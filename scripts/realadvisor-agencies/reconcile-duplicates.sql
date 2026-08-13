@@ -311,6 +311,34 @@ order by a.city, a.address;
 --
 -- La requête ci-dessous isole la classe à risque (93 lignes) : nom sans forme
 -- juridique en suffixe, ou portant « group »/« holding ».
+--
+-- ═══ CORRIGER un IDE suspect : la COMMUNE décide ═══════════════════════════
+-- Une fois l'écart constaté, énumérer toute la PARENTÉ au registre (CONTAINS sur
+-- le token distinctif, avec `schema:addressLocality`), puis croiser deux critères :
+--
+--   nom exact ET même commune        → correction MÉCANIQUE, rien à arbitrer
+--   nom et commune se CONTREDISENT   → arbitrage humain, ne pas trancher seul
+--
+-- Mesuré le 13.08.2026 sur les 7 lignes « holding » : **5 mécaniques, 2 humaines**.
+--   • « Naef Immobilier Genève » (Petit-Lancy) détenait *Naef Holding SA* alors que
+--     « Naef Immobilier Genève SA, à Lancy » existe, MÊME commune. Idem Habitrust,
+--     keller real estate, Swiss Residence Group — le bon IDE existait, inutilisé.
+--   • ⛔ « Koch Immobilien » (Wallisellen) : « Koch Immobilien AG » existe mais à
+--     Büttikon **AG**, autre canton ; la seule entité Koch de Wallisellen est
+--     « KOCH Group AG », celle que nous détenons. Nom et ville se contredisent.
+--   • ⛔ « Groupe Prisme » : « Groupe Prisme S.A. » ET « Prisme Immobilier SA »
+--     coexistent dans LA MÊME commune. Le nom désigne l'une, l'activité l'autre.
+--
+-- ⚠ TROIS PIÈGES DE CETTE ÉNUMÉRATION :
+--  1. **chercher sur NOTRE nom, pas sur celui du registre.** J'ai interrogé
+--     « residence immobilien » (le nom inscrit) et conclu qu'il n'y avait pas
+--     d'alternative — alors que « Swiss Residence Group AG », notre nom, EXISTE
+--     verbatim à Zoug. La question est « notre nom est-il inscrit ? ».
+--  2. **commune ≠ localité.** « keller real estate » siège à Madetswil, qui est
+--     un hameau de Russikon — notre ville. Une égalité stricte l'aurait écarté.
+--  3. **une succursale a son PROPRE IDE.** « Interfida SA Lugano » a reçu celui
+--     d'« Interfida SA succursale di Lugano » (nom ET ville concordants) plutôt
+--     que celui d'« Interfida SA » (Chiasso). Choix défendable, pas forcé.
 select a.name, a.uid_che, replace(replace(a.uid_che,'-',''),'.','') as ide_pour_lindas
 from public.agency_profiles a
 where a.uid_che is not null
