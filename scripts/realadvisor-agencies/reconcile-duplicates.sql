@@ -346,6 +346,32 @@ order by a.city, a.address;
 -- PAS UN INDICE — une fiduciaire suisse fait couramment de la gérance. Ce critère
 -- a produit 4 signalements dont 1 seule vraie erreur. Ne pas s'en servir seul.
 --
+-- ═══ QUAND VIDER, ET QUAND S'ABSTENIR — « réfuté » ≠ « non établi » ════════
+-- La distinction qui a structuré les 6 champs vidés, et qui ne se voit qu'après
+-- coup :
+--   • **RÉFUTÉ** — l'entité détenue est démontrablement une autre : autre canton,
+--     société d'un autre nom, ou unique homonyme suisse à 200 km. ⇒ VIDER.
+--     Fait sur `DELTA Immobilien` (Delta Treuhand AG, `c/o` Gümligen ; aucune
+--     « Delta » immobilière du canton), `Rinesa Gjukaj` (0 annonce ; la SEULE
+--     « Rinesa » du registre est à Vallorbe/VD quand la ligne est à Olten/SO) et
+--     `Naef Immobilier` Vevey (détenait *Naef Immobilier **Nyon** SA*).
+--   • **NON ÉTABLI mais plausible** — même canton, rien qui réfute. Vider est
+--     alors une POSTURE (« pas d'IDE plutôt qu'un IDE non prouvé »), pas une
+--     correction : c'est au propriétaire de la donnée de trancher.
+--     Retiré sur décision de Julien le 13.08.2026, valeurs conservées ICI pour
+--     pouvoir défaire :
+--       `Minder Immobilien` (Oberburgstrasse 12, Burgdorf/BE) ← CHE-112.418.890
+--            = Minder AG, Fenchern 1, Scheuren/BE
+--       `Stefan Diethelm`   (Gärischstrasse 20, Bellach/SO)   ← CHE-101.103.809
+--            = Diethelm Immobilien AG, Buchmattstrasse 52, Burgdorf/BE
+--       `Reto Knuchel`      (Jurastrasse 1, Utzenstorf/BE)     ← CHE-103.044.431
+--            = Knuchel Immobilien AG, Steinackerweg 13, Wiedlisbach/BE
+--   • ⛔ **PLUSIEURS CANDIDATS CRÉDIBLES — NE PAS VIDER.** Effacer y détruirait
+--     une information probablement juste sans rien trancher. Laissés tels quels :
+--     `Niederer AG Immobilien und Verwaltungen` (4 sociétés à l'Unterdorfstrasse
+--     5), `Groupe Prisme`, `Koch Immobilien`, `Bucher` (4 « Bucher Immobilien »
+--     dans la région lucernoise).
+--
 -- ⛔ QUAND AUCUN CANDIDAT NE CONVIENT, VIDER LE CHAMP plutôt qu'affirmer un faux.
 -- « DELTA Immobilien » (Seftigen) détenait *Delta Treuhand AG*, `c/o` à Gümligen,
 -- sans aucune société immobilière « Delta » dans le canton : lien fondé sur un
