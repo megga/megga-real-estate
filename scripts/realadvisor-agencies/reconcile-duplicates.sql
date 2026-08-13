@@ -714,6 +714,48 @@ order by s.name;
 --   d'implantation. Il tranche en revanche le SIÈGE, et vaut mieux que n'importe
 --   quel annuaire pour ça.
 
+-- ═══ Le NOM DÉCOUPÉ AU MAUVAIS ENDROIT — invisible aux requêtes de nom ══════
+-- Flatfox scinde parfois un nom d'agence n'importe où, et notre sync en fait des
+-- lignes. Mesuré sur de Rham SA (Avenue Mon-Repos 14, Lausanne) : **10 libellés
+-- d'annonceur pour UNE agence**, dont `de — SA`, `de — de Rham SA`,
+-- `Jessica — Gabbani`, `Jessica Gabbani — Jessica Gabbani` (une courtière).
+-- ⛔ AUCUNE requête « PARENT — suffixe » ne les trouve : elles cherchent un parent
+-- nommé « de » ou « Jessica », qui n'existe pas. **Le nom lui-même est corrompu,
+-- donc tout crible fondé sur le nom est aveugle par construction.**
+-- ⇒ Seule l'ADRESSE les rattache. Deux pièges dans le crible ci-dessous, mesurés :
+--   ⛔ **`Postfach` (et `c/o`, `.`) est une adresse VIDE déguisée** — le garde-fou
+--      `<> ''` ne l'attrape pas, et elle apparie alors toutes les lignes qui n'ont
+--      qu'une case postale (« Spross Lebensräume AG » ↔ « BVK »…). Les exclure.
+--   ⛔ **Une rue partagée n'est pas une société partagée** : « kade & partner ag »
+--      et ImmoSky sont toutes deux Ringstrasse 18b — un immeuble de bureaux.
+--      Ce crible SUGGÈRE, il ne conclut pas ; c'est le NOM tronqué qui confirme
+--      (un fragment du nom du parent, ou un prénom+nom de personne).
+select p.name as agence, p.address, count(*) as fragments, sum(f.ann) as annonces
+from public.agency_profiles p
+join lateral (
+  select s.id, s.name,
+         (select count(*) from public.market_listings m where m.agency_profile_id=s.id) as ann
+  from public.agency_profiles s
+  where s.id <> p.id
+    and lower(regexp_replace(s.address,'[^a-z0-9]','','gi'))
+      = lower(regexp_replace(p.address,'[^a-z0-9]','','gi'))
+    and lower(coalesce(s.city,'')) = lower(coalesce(p.city,''))
+    and similarity(lower(s.name), lower(p.name)) < 0.55
+) f on true
+where p.uid_che is not null           -- l'agence « réelle » est celle qui a un IDE
+  and coalesce(p.address,'') <> ''
+  and p.address !~* '^\s*(postfach|case postale|c/o|casella|\.)\s*$'   -- ⛔ adresses vides déguisées
+  and p.address ~ '[0-9]'                                             -- une vraie rue a un numéro
+group by p.id, p.name, p.address
+order by annonces desc;
+
+-- ⚠ CETTE TABLE DÉCRIT QUI GÈRE, PAS QUI POSSÈDE. « PVS der Burgergemeinde Bern »
+-- est la caisse de pension de la bourgeoisie — une entité juridique distincte —
+-- mais domiciliée « p. A. Domänenverwaltung », c'est-à-dire chez son gestionnaire.
+-- Elle a donc été versée dans la ligne du gestionnaire (13.08.2026). Choix de
+-- MODÉLISATION, réversible : si un propriétaire institutionnel doit garder sa
+-- propre ligne, ressortir ses annonces par `agency_name`.
+
 -- ═══ ⛔ « GÈRE CET IMMEUBLE » ≠ « A UN BUREAU ICI » ═════════════════════════
 -- Distinction qui décide si une ligne est une agence, et que trois vérifications
 -- sur quatre ont d'abord manquée. Un gestionnaire administre des centaines
