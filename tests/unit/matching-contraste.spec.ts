@@ -222,6 +222,89 @@ describe('Matching — l’encre reste lisible, et la garde lit le CSS', () => {
   })
 
   /**
+   * ⛔ LA PASTILLE DE BAISSE DE PRIX — le seul écart que le reciblage ait laissé
+   * sous l'AA, et le seul défaut de contraste que la sonde au rendu ait trouvé
+   * hors de l'atelier : `#C45A00` rendait 4,37:1 sur la carte blanche et 4,15:1
+   * sur la sous-carte.
+   *
+   * ⚠ CE N'EST PAS UN RECIBLAGE. `--sys-yellow` reste une couleur FONCTIONNELLE
+   * — elle dit « le prix a baissé », une information que les neutres ne savent
+   * pas porter. On ne la remplace pas par un gris : on l'ASSOMBRIT dans sa propre
+   * famille, jusqu'à ce qu'elle passe. Même geste que `tk.goal`, monté de
+   * `#059669` à `#047857` sur « Mes biens » — et comme là-bas, la valeur retenue
+   * EXISTE DÉJÀ dans le dépôt (`--color-warning-dark` de `globals.css`, `warnFg`
+   * du rapport KYC) plutôt que d'être inventée pour l'occasion.
+   *
+   * ⚠ La teinte sert dans les DEUX rôles — encre sur la carte, et aplat sous une
+   * encre blanche. Le contraste étant symétrique, un seul seuil couvre les deux ;
+   * ce test le dit explicitement pour que personne ne « corrige » un seul rôle.
+   */
+  it('la pastille de baisse de prix est lisible dans ses deux rôles', () => {
+    const src = readFileSync('src/components/matching-recherche/mrhCtx.ts', 'utf-8')
+    const aplatTeinte = /MRH_PRICE_DROP\s*=\s*'(#[0-9a-fA-F]{6})'/.exec(src)?.[1]
+    // ⚠ Ancré sur la VALEUR, pas sur la signature : un motif qui décrivait le
+    // typage (`(dark: boolean): string =>`) se casse au premier refactor de
+    // forme sans que la règle ait changé — une garde qui rougit pour rien se
+    // fait désarmer, pas corriger.
+    const encreSombre = /mrhPriceDropInk[\s\S]*?dark \? '(#[0-9a-fA-F]{6})'/.exec(src)?.[1]
+    expect(aplatTeinte, 'MRH_PRICE_DROP introuvable — la garde ne mesure plus rien').toMatch(/^#/)
+    expect(encreSombre, 'encre sombre introuvable — la garde ne mesure plus rien').toMatch(/^#/)
+
+    const faibles: string[] = []
+    // ── rôle ENCRE, sur les surfaces pleines de CHAQUE thème ──
+    // ⛔ C'est ici que la première version de cette garde était trop courte : elle
+    // ne mesurait que le clair. Assombrir la teinte pour passer sur blanc l'a
+    // fait tomber à 3,97:1 sur la carte sombre — un correctif qui déplace le
+    // défaut d'un thème à l'autre, et une garde qui l'aurait laissé passer.
+    for (const [theme, encre, surfaces] of [
+      ['clair', aplatTeinte as string, { carte: '#ffffff', 'sous-carte': '#f9f9f9' }],
+      ['sombre', encreSombre as string, { carte: '#090909', 'sous-carte': '#050505' }],
+    ] as const) {
+      for (const [nom, surface] of Object.entries(surfaces)) {
+        const r = contraste(encre, surface)
+        if (r < AA) faibles.push(`encre ${theme} sur ${nom} = ${r.toFixed(2)}:1`)
+      }
+    }
+    // ── rôle APLAT : encre blanche par-dessus, donc INVARIANT — l'aplat porte
+    // son propre fond, il ne dépend pas du thème de la page. Une seule valeur
+    // suffit, et c'est pour ça que les deux rôles ne peuvent pas partager la
+    // même constante.
+    const aplat = contraste('#ffffff', aplatTeinte as string)
+    if (aplat < AA) faibles.push(`blanc sur l'aplat = ${aplat.toFixed(2)}:1`)
+    expect(faibles, `sous ${AA}:1 :\n  ${faibles.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⚠ UNE SEULE VALEUR POUR UN SEUL SENS. La teinte vivait en QUATRE exemplaires
+   * — trois littéraux dans les composants de la Recherche et `--sys-yellow` dans
+   * `atelier.css`. Sur cette surface, une valeur dupliquée a toujours fini par
+   * diverger (la table des statuts l'a fait trois fois). Les composants lisent
+   * désormais la constante, et la feuille porte la même valeur.
+   */
+  it('la teinte de baisse de prix n’existe qu’en un exemplaire', () => {
+    const src = readFileSync('src/components/matching-recherche/mrhCtx.ts', 'utf-8')
+    const teinte = (/MRH_PRICE_DROP\s*=\s*'(#[0-9a-fA-F]{6})'/.exec(src)?.[1] ?? '').toLowerCase()
+    const litteraux: string[] = []
+    for (const { nom, code } of AVATARS.concat(
+      ['MrhCard.tsx', 'MrhExtDetail.tsx'].map((n) => ({
+        nom: `src/components/matching-recherche/${n}`,
+        code: readFileSync(`src/components/matching-recherche/${n}`, 'utf-8'),
+      })),
+    )) {
+      if (nom.endsWith('mrhCtx.ts')) continue
+      for (const m of code.matchAll(/#[0-9a-fA-F]{6}/g)) {
+        if (m[0].toLowerCase() === teinte) litteraux.push(`${nom} — ${m[0]}`)
+      }
+    }
+    expect(litteraux, `teinte recopiée au lieu d'être lue :\n  ${litteraux.join('\n  ')}`).toEqual([])
+    // Et la feuille porte la MÊME valeur, sinon les deux moitiés de l'écran
+    // diraient « prix baissé » de deux oranges différents.
+    const feuille = readFileSync('src/components/matching-atelier/atelier.css', 'utf-8')
+    const sys = /--sys-yellow\s*:\s*(#[0-9a-fA-F]{6})/.exec(feuille)?.[1]?.toLowerCase()
+    expect(sys, '--sys-yellow diverge de MRH_PRICE_DROP').toBe(teinte)
+  })
+
+  /**
    * Et que `encreSur` BASCULE. Une fonction qui répondrait toujours la même
    * encre passerait tout ce qui précède sans rien dériver.
    *

@@ -9,6 +9,7 @@ import MrhPhoto from './MrhPhoto'
 import MrhAgencyLogo from './MrhAgencyLogo'
 import { formatCHF } from '@/lib/utils'
 import type { MrhBien } from './types'
+import { mrhPriceDropInk } from './mrhCtx'
 import type { MrhCtx } from './mrhCtx'
 
 interface Props {
@@ -101,7 +102,7 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
               {price ? formatCHF(price) : t('recherche.card.estimate')}
               {isRent && price ? <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600 }}> {t('recherche.card.perMonth')}</span> : null}
               {dropPct != null && dropPct >= 2 ? (
-                <span title={t('recherche.card.priceDrop')} style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: '#C45A00', marginLeft: 7, letterSpacing: 0 }}>
+                <span title={t('recherche.card.priceDrop')} style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: mrhPriceDropInk(dark), marginLeft: 7, letterSpacing: 0 }}>
                   {'−' + dropPct + ' %'}
                 </span>
               ) : null}

@@ -68,6 +68,12 @@ export const MRH_DEMO_BIENS: MrhBien[] = [
     id: 'demo-ml-01', title: '5 pièces familial — Carouge',
     addr: 'Rue Ancienne 6, 1227 Carouge', city: 'Carouge', postal_code: '1227',
     type: 'apartment', typeLabel: 'Appartement', transaction: 'vente',
+    // ⛔ `price_reduced` EST NÉCESSAIRE AU BANC. La pastille en APLAT de la fiche
+    // est gatée sur ce statut : sans une fixture qui le porte, deux des trois
+    // sites de la teinte de baisse de prix ne sont rendus NULLE PART, et la sonde
+    // au rendu n'en voyait qu'un seul. Même défaut que `/dev/biens`, qui ne
+    // montrait jamais la pastille de score faute de donnée pour la déclencher.
+    status: 'price_reduced',
     price: 1100000, price_original: 1145000, price_per_m2: 9167,
     rooms: 5, beds: 3, baths: 2, area: 120, year: 1996,
     lat: 46.1817, lng: 6.1397, days_on_market: 12,

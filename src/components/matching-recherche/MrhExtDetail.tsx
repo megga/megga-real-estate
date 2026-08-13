@@ -31,6 +31,7 @@ import { useMarketListingDetail } from '@/hooks/useMatchingRecherche'
 import { formatCHF, formatDate } from '@/lib/utils'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { floorLabelKey, type MrhBien, type MrhBienDetail, type MrhContact } from './types'
+import { MRH_PRICE_DROP } from './mrhCtx'
 import type { MrhSurf } from './mrhCtx'
 
 // Carte réelle isolée + lazy → mapbox-gl ne charge qu'à l'ouverture d'une fiche avec token.
@@ -262,7 +263,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
               <button className="mrh-gal-main" onClick={() => photos.length && setLb(0)} title={t('recherche.detail.seePhotos')} style={{ gridColumn: '1', gridRow: galMainRow, position: 'relative', border: 0, cursor: photos.length ? 'zoom-in' : 'default', padding: 0, borderRadius: 16, overflow: 'hidden', background: subBg }}>
                 <MrhPhoto url={photos[0]} dark={dark} alt={bien.title} fallbackBg={subBg} fallbackInk={sp.sub} />
                 {bien.status === 'price_reduced' && (
-                  <span style={{ position: 'absolute', top: 16, left: 16, display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 13px', borderRadius: 999, background: '#C45A00', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, boxShadow: '0 2px 8px rgba(3,3,3,.18)' }}>{t('recherche.card.priceDrop')}</span>
+                  <span style={{ position: 'absolute', top: 16, left: 16, display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 13px', borderRadius: 999, background: MRH_PRICE_DROP, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, boxShadow: '0 2px 8px rgba(3,3,3,.18)' }}>{t('recherche.card.priceDrop')}</span>
                 )}
                 {photos.length > 0 && (
                   <span style={{ position: 'absolute', bottom: 16, right: 16, display: 'inline-flex', alignItems: 'center', gap: 7, height: 30, padding: '0 13px', borderRadius: 999, background: 'rgba(3,3,3,.72)', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>
@@ -301,7 +302,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                   {isRent && price ? <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600 }}>{t('recherche.detail.perMonthLong')}</span> : null}
                   {priceOrig ? <span style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 600, textDecoration: 'line-through' }}>{formatCHF(priceOrig)}</span> : null}
-                  {dropPct ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 999, background: '#C45A00', color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 600 }}>{'−' + dropPct + ' %'}</span> : null}
+                  {dropPct ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 999, background: MRH_PRICE_DROP, color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 600 }}>{'−' + dropPct + ' %'}</span> : null}
                 </div>
               </div>
             </div>

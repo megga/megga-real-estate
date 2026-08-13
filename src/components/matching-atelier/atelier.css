@@ -79,7 +79,7 @@
      Elles ne servent d'ENCRE que dans les pastilles `.tone-*`, où le fond est un
      voile de la teinte elle-même — c'est ce fond composé qui décide, et il est
      mesuré au rendu, pas ici. Écart CONSTATÉ, pas gravé. */
-  --sys-green:#059669; --sys-red:#C0453B; --sys-yellow:#C45A00; --sys-blue:#1E5BC6;
+  --sys-green:#059669; --sys-red:#C0453B; --sys-yellow:#B45309; --sys-blue:#1E5BC6;
 
   /* ── RAYONS ─────────────────────────────────────────────────────────────────
      L'atelier avait 10 · 12 · 14 · 16 · 18 · 22 · 999 ; la grammaire a
