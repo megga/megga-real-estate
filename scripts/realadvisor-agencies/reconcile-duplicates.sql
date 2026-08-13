@@ -247,6 +247,52 @@ order by lieu, a.name;
 -- Ticino, Zentralschweiz…). ⇒ Après un tri par seuil, relire la FAMILLE entière :
 -- une ligne isolée d'un schéma déjà tranché se range avec lui.
 -- ⚠ Un suffixe en « c/o » est une DOMICILIATION, jamais une implantation.
+--
+-- ═══ Dernier crible, gratuit : le CONFINEMENT COMMUNAL ══════════════════════
+-- Quand ni l'annuaire ni l'adresse ne disent rien, comparer les COMMUNES des
+-- annonces (plus fin que les cantons utilisés pour les jumelles Wincasa) :
+--   **communes de la sous-ligne ⊆ communes du parent ⇒ elle n'ouvre AUCUN
+--   territoire, donc ce n'est pas une implantation ⇒ fusionner sans risque.**
+-- Mesuré : « de Rham SA - Montreux » publiait à Blonay et Montreux, deux communes
+-- où le parent publiait DÉJÀ (avec Clarens, Territet, Glion) ; « Arlewo AG -
+-- Stans » n'avait qu'une annonce à Beckenried, déjà couverte. Fusion sûre.
+-- ⛔ À l'inverse « Property One Partners AG - Pfäffikon SZ » ouvrait Arth et
+-- Feusisberg, et « - Zug » ouvrait Risch : NON confinées. Fusionnées le
+-- 13.08.2026 sur décision de Julien, **pas sur une preuve** — 13 annonces,
+-- réversibles par `agency_name`. Le noter est le minimum.
+--
+-- ⛔ ORDRE DE PRÉSÉANCE quand les deux signaux se contredisent : **une fiche
+-- d'annuaire avec ADRESSE DÉCLARÉE bat le confinement communal.** Mesuré :
+-- « Valimmobilier SA - Collombey » et « - Brig » SONT confinées (le parent
+-- publie déjà dans leurs communes) et seraient donc fusionnables par ce crible —
+-- mais l'annuaire leur donne une rue à chacune (Route de la Fin 2A ; Rhonesand-
+-- strasse 7). Une adresse est un fait DÉCLARÉ ; le confinement n'est qu'une
+-- inférence tirée d'une distribution d'annonces, qui reflète le marché local
+-- autant que l'organisation. Deux bureaux voisins se recouvrent forcément.
+-- ⇒ Le confinement ne sert QUE là où l'annuaire est muet.
+-- (Corollaire rassurant : 9 des 11 lignes conservées ne sont PAS confinées —
+-- elles ouvrent des communes que le parent n'a pas. Les deux verdicts concordent
+-- donc dans 9 cas sur 11.)
+select p.name as parent, s.name as sous_ligne,
+       (select count(*) from public.market_listings m where m.agency_profile_id=s.id) as ann,
+       not exists (
+         select 1 from public.market_listings ms
+         where ms.agency_profile_id = s.id and ms.city is not null
+           and not exists (select 1 from public.market_listings mp
+                           where mp.agency_profile_id = p.id and mp.city = ms.city)
+       ) as communes_confinees
+from public.agency_profiles s
+join public.agency_profiles p
+  on lower(p.name) = lower(trim(regexp_replace(s.name,' [-—] .*$',''))) and p.id <> s.id
+where s.name ~ ' [-—] ' and coalesce(s.address,'') = ''
+  and (select count(*) from public.market_listings m where m.agency_profile_id=s.id) > 0;
+
+-- ═══ BILAN du chantier des sous-lignes (13.08.2026) ════════════════════════
+-- 97 lignes à tiret sur 44 familles → **11 restantes**, toutes légitimes : ce
+-- sont exactement les implantations que l'annuaire RA reconnaît, adresse à
+-- l'appui (« Valimmobilier SA - Martigny » et ses 410 annonces en tête).
+-- 3137 annonces regroupées sous le bon parent, aucune perdue, 0 orpheline.
+-- ⇒ Le reliquat n'est pas un reste à traiter : c'est le RÉSULTAT.
 -- Version couvrant LES DEUX séparateurs, avec les signaux qui décident. Trier
 -- soi-même : `adresse_propre` ⇒ garder ; `nb_cantons` ≥ 5 sans adresse ⇒ fusionner.
 select p.name as parent, s.name as sous_ligne,
