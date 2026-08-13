@@ -43,8 +43,9 @@ Lire aussi `CLAUDE.md` §3 en entier.
 
 ## §1 — Le périmètre, dérivé du ROUTAGE
 
-⛔ **Ne pas partir du nom des dossiers.** Ce périmètre-ci est dérivé de
-`src/App.tsx:517`.
+⛔ **Ne pas partir du nom des dossiers, NI de la description du design.** Ce
+périmètre-ci est dérivé de `src/App.tsx:517` et de
+`AdminConsoleRoutes.tsx` / `AdminShell.tsx`.
 
 ```
 /dashboard/admin/*  → AdminConsoleRoute      (useSuperAdminGate, UX seule)
@@ -52,6 +53,52 @@ Lire aussi `CLAUDE.md` §3 en entier.
                             → AdminShell     (pose .megga-admin-console + data-admin-dark)
                             → 19 pages lazy
 ```
+
+### ⚠ LE RAIL RÉEL N'EST PAS CELUI QU'ON DÉCRIT — 18 entrées, 5 groupes
+
+Relevé dans `AdminShell.tsx`, groupe par groupe. La description de référence du
+design annonce **12 entrées en 6 groupes** ; le code en porte **18 en 5**. Ce
+n'est pas une erreur de la description : la console a **grandi** depuis, et six
+entrées n'y figurent pas. Vérifier ce tableau avant de chiffrer quoi que ce soit.
+
+| Groupe (i18n) | Entrées | Route |
+|---|---|---|
+| **Pilotage** | Live · Vue d'ensemble | `/live` · `(index)` |
+| **Clients** | Agences · Utilisateurs · **Utilisateurs finaux** · **Modération** · **Appels d'onboarding** | `/agencies` `/users` `/end-users` `/moderation` `/onboarding-calls` |
+| **Revenus** | Plans | `/plans` |
+| **Opérations** | Monitoring · Sécurité · **Conformité** · **Revue KYB** | `/monitoring` `/security` `/compliance` `/kyb-review` |
+| **Produit & IA** | Diffusion · **Feature flags** · Satisfaction · **Autonomie** · **Apprentissage** · **Usage des outils** | `/changelog` `/feature-flags` `/nps` `/autonomy` `/learning` `/tool-usage` |
+
+**En gras : les six entrées absentes de la description.**
+
+Trois écarts mesurés, à ne pas reporter dans le chantier :
+
+1. ⛔ **Il n'y a pas de groupe « Contenu ».** « Diffusion » (`/changelog`,
+   `AdminCommunicationPage`) est rangée dans **Produit & IA**. Le mot
+   « Diffusion » n'existe ailleurs que comme famille d'audit et comme terme des
+   annonces.
+2. ⛔ **Les groupes s'appellent « Opérations » et « Produit & IA »**, pas
+   « Exploitation » et « Produit ».
+3. ⛔ **La Satisfaction (NPS) n'est PAS un « Bientôt disponible ».**
+   `AdminNpsPage` fait 255 lignes, lit `useAdminNps()`, rend des réponses, des
+   notes 1-5 et un `AdminEmpty`. C'est une page VIVANTE avec un état vide — la
+   mention « bientôt disponible » décrit l'état de la DONNÉE, pas celui de
+   l'écran. ⚠ La traiter comme un placeholder la laisserait hors du chantier
+   avec ses 14 marqueurs.
+
+### Les deux surfaces qui ne sont pas des entrées de rail
+
+- **la fiche agence** — `agencies/:id` → `AdminAgencyDetailPage` (458 l.,
+  **38 marqueurs**, la 2ᵉ plus lourde) ;
+- **la modale de diagnostic KYC** — `KycLinkDiagnosticModal.tsx`, ouverte depuis
+  le pied de Vue d'ensemble. ⚠ Elle est PORTÉE : elle relève du piège de modale
+  (§2.5), et c'est en la livrant qu'il a été mesuré.
+
+⚠ Ne pas confondre cette modale avec `/kyb-review` (`AdminKybReviewPage`), qui
+est une entrée de rail à part entière — et le fait structurant n° 1.
+
+**18 entrées de rail + la fiche agence = 19 fichiers de page.** Le compte tombe
+juste ; c'est le rail qui était mal décrit, pas le dossier.
 
 | Zone | Fichiers | Lignes | Marqueurs |
 |---|---|---|---|
@@ -211,7 +258,9 @@ un alpha en cherchant une couleur. `sgVoileEncre(dark, alpha)`
 
 ---
 
-## §3 — Les trois questions à trancher AVANT de coder
+## §3 — Les questions à trancher AVANT de coder
+
+⚠ La troisième est déjà tranchée (14 août) ; les deux premières restent ouvertes.
 
 ### 1. `AdminKybReviewPage` — Tailwind ou style en ligne ?
 
@@ -235,15 +284,23 @@ il reste et le reste passe à `#424bfb`. S'il ne dit plus rien, il part. Comme
 les sept `--black` du Matching : **trancher usage par usage**, il n'y en a que
 deux.
 
-### 3. Quel banc, et jusqu'où ?
+### 3. ✅ TRANCHÉE — le banc couvre les 19 pages
 
-19 pages, 4 surfaces portées, 2 thèmes. Le Matching a montré qu'un banc partiel
-coûte plus qu'il ne rapporte. Trois découpages possibles :
+**Décision Julien, 14 août 2026 : « on doit faire toutes les pages de la console
+admin ».** Le banc couvre donc les **18 entrées de rail + la fiche agence**, les
+**4 surfaces portées** et les **2 thèmes**. Pas de découpage par volume.
 
-- **les 19 pages** — le plus sûr, le plus long ;
-- **les 6 pages qui portent 60 % des marqueurs**, plus les 4 modales et le kit ;
-- **le kit et la coquille seuls**, si les pages se révèlent n'être que des
-  compositions du kit (⚠ **à MESURER avant de le supposer**).
+⛔ Ce que cela implique, et qu'il faut accepter d'emblée : le banc est le plus
+gros de tous ceux du dépôt. `/dev/matching-atelier` montait 2 pages,
+`/dev/pipeline` en monte 2 ; celui-ci en monte 19. Prévoir que le Lot 0 soit
+**le lot le plus long du chantier**, pas une formalité d'ouverture.
+
+⚠ Deux économies possibles, à MESURER avant de les supposer :
+- si les pages ne sont que des compositions du **kit** (`AdminPage`,
+  `adminKit`), le banc peut monter la coquille une fois et les pages par un
+  slot — c'est l'idiome du pager Matching ;
+- les 18 pages passent toutes par `AdminConsoleRoutes` : un seul point
+  d'injection peut suffire, au lieu de 19 substitutions.
 
 ⛔ Dans tous les cas le banc doit couvrir **le sombre** et **les surfaces
 portées** : c'est là que vit le piège de modale, et c'est la seule chose qui le
