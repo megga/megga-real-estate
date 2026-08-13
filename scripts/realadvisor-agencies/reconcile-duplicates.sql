@@ -199,13 +199,47 @@ order by lieu, a.name;
 -- ⚠ Quand le suffixe est LUI AUSSI une ligne existante, le libellé peut être
 -- inversé (« Philipp Roth — Immowengi AG » : courtier en tête, agence en queue).
 -- Retenir alors celle des deux qui porte le plus d'annonces.
-select s.id, s.name as sous_ligne, p.id as parent_id, p.name as parent
+--
+-- ⛔⛔ CETTE REQUÊTE NE VOIT QUE LE TIRET CADRATIN « — ». LE TIRET SIMPLE « - »
+-- EN CACHAIT 97 AUTRES, sur 44 familles et 4145 annonces — invisibles pendant
+-- tout le chantier. Chercher LES DEUX séparateurs, toujours.
+--
+-- ⛔ ET LA CONTRAINTE « MÊME VILLE » NE MARCHE PAS SUR CETTE FAMILLE-LÀ : la
+-- plupart de ces sous-lignes n'ont AUCUNE ville. Le discriminant devient
+-- l'ADRESSE PROPRE, et deux signaux objectifs qui ne lisent pas le suffixe :
+--   • **adresse propre ⇒ implantation réelle, GARDER** (53 lignes ; ce sont
+--     massivement les entrées d'annuaire RA, avec 0 annonce pour l'instant) ;
+--   • **aucune adresse + annonces sur ≥ 5 CANTONS ⇒ ce n'est pas un bureau de
+--     ville**, quel que soit son nom. « PREMIUM HOMES AG - Gerlafingen » couvre
+--     23 cantons, « - Wallisellen » 20 : des flux, pas des agences ;
+--   • **suffixe = la ville DU PARENT et pas d'adresse ⇒ flux du parent**
+--     (« VAL Group SA - Sion » quand VAL Group SA siège à Sion) ;
+--   • suffixe de TERRITOIRE (Ostschweiz, Ticino, « SUI - T 1 ») ou de FONCTION
+--     (Vente, Vermarktung, Real Estate) ⇒ région commerciale ou département.
+-- Résultat sur les 97 (13.08.2026) : **24 fusionnées (2896 annonces), 53 gardées,
+-- 19 indécidables** — suffixe de ville SANS adresse ET avec des annonces
+-- (« Valimmobilier SA - Martigny », 410). Là, seule la procédure du portail tranche.
+--
+-- ⚠ Le parent n'est pas forcément le plus riche : « ImmoSky AG » portait 1 annonce
+-- contre 1158 à sa sous-ligne « Zentrale », et n'avait NI site NI logo quand elle
+-- avait les deux. Repointer vers le parent (le nom propre) mais REMONTER ses trous
+-- depuis la sous-ligne la plus fournie — 12 sites et 8 logos récupérés ainsi.
+-- Version couvrant LES DEUX séparateurs, avec les signaux qui décident. Trier
+-- soi-même : `adresse_propre` ⇒ garder ; `nb_cantons` ≥ 5 sans adresse ⇒ fusionner.
+select p.name as parent, s.name as sous_ligne,
+       (select count(*) from public.market_listings m where m.agency_profile_id=p.id) as ann_parent,
+       (select count(*) from public.market_listings m where m.agency_profile_id=s.id) as ann,
+       coalesce(s.address,'') <> '' as adresse_propre,
+       coalesce((select count(distinct m.canton) from public.market_listings m
+                 where m.agency_profile_id=s.id), 0) as nb_cantons,
+       lower(coalesce(p.city,'')) = lower(trim(regexp_replace(s.name, '^.*? [-—] ', ''))) as suffixe_est_ville_du_parent,
+       s.id as id_sous_ligne, p.id as id_parent
 from public.agency_profiles s
 join public.agency_profiles p
-  on lower(p.name) = lower(trim(split_part(s.name, '—', 1)))
- and lower(p.city) = lower(s.city) and p.id <> s.id
-where s.name like '%—%' and s.city is not null
-  and trim(substr(s.name, position('—' in s.name) + 1)) <> '';
+  on lower(p.name) = lower(trim(regexp_replace(s.name, ' [-—] .*$', '')))
+ and p.id <> s.id
+where s.name ~ ' [-—] '
+order by (select count(*) from public.market_listings m where m.agency_profile_id=s.id) desc;
 
 -- ═══ Troisième signal : l'ADRESSE POSTALE ══════════════════════════════════
 -- Le plus fort des trois, et le seul qui morde quand le nom ne dit RIEN. Flatfox
