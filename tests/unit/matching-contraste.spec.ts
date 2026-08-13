@@ -351,6 +351,31 @@ describe('Matching — l’encre reste lisible, et la garde lit le CSS', () => {
   })
 
   /**
+   * ⛔ UN SEUL CHEMIN POUR CHARGER LA MARQUE D'UNE RÉGIE.
+   *
+   * `MrhAgencyLogo` porte trois choses qui ne se voient pas dans une capture et
+   * qu'une seconde implémentation perdrait en silence : le mémo d'échec PAR URL
+   * (un booléen bloquerait une carte recyclée sur le repli), `referrerPolicy` à
+   * `no-referrer` (le CDN est tiers, on ne lui envoie pas l'URL de l'app) et
+   * `loading="lazy"` (la grille monte jusqu'à 400 cartes sans virtualisation).
+   *
+   * ⚠ La règle n'est donc pas « il faut un logo » mais « il n'y a qu'un endroit
+   * qui en charge un ». Sur cette surface, une valeur ou une mécanique dupliquée
+   * a toujours fini par diverger — la table des statuts l'a fait trois fois.
+   */
+  it('la marque des régies ne se charge qu’à un seul endroit', () => {
+    const porteurs: string[] = []
+    for (const { nom, code } of RECHERCHE) {
+      if (nom.endsWith('MrhAgencyLogo.tsx')) continue
+      // Une balise `img` dont la source est un logo de régie, écrite ailleurs
+      // que dans le composant partagé.
+      if (/<img[^>]*agency_logo_url/.test(code)) porteurs.push(nom)
+      if (/agency_logo_url/.test(code) && !/MrhAgencyLogo/.test(code)) porteurs.push(`${nom} (lit la colonne sans passer par le composant)`)
+    }
+    expect(porteurs, `chargement de logo hors du composant partagé :\n  ${porteurs.join('\n  ')}`).toEqual([])
+  })
+
+  /**
    * Et que `encreSur` BASCULE. Une fonction qui répondrait toujours la même
    * encre passerait tout ce qui précède sans rien dériver.
    *

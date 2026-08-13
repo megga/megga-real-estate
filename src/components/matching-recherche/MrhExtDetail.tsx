@@ -26,6 +26,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import RechIcon from './RechIcon'
 import MrhPhoto from './MrhPhoto'
+import MrhAgencyLogo from './MrhAgencyLogo'
 import MrhLightbox from './MrhLightbox'
 import { useMarketListingDetail } from '@/hooks/useMatchingRecherche'
 import { formatCHF, formatDate } from '@/lib/utils'
@@ -362,7 +363,23 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
               <div style={{ position: 'sticky', top: 6 }}>
                 <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>{t('recherche.detail.agency')}</div>
                 <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'grid', placeItems: 'center', background: ACC, color: ONACC, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{agencyInit || '—'}</span>
+                  {/* La MARQUE de la régie quand la base en a une, le monogramme
+                      sinon. ⚠ 47,9 % des annonces actives portent un logo (68,0 %
+                      côté Flatfox, 31,3 % côté RealAdvisor, mesuré le 13.08.2026) :
+                      le repli n'est pas un cas de bord, il couvre la majorité.
+                      ⚠ Le chargement passe par le composant PARTAGÉ — mémo d'échec
+                      par URL, `no-referrer`, `lazy`. Réécrire une balise `img` ici
+                      aurait dupliqué précisément la partie où les bugs se logent. */}
+                  <MrhAgencyLogo
+                    name={bien.agency}
+                    logoUrl={bien.agency_logo_url}
+                    sp={sp}
+                    line={line}
+                    gabarit="fiche"
+                    monogramme={
+                      <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'grid', placeItems: 'center', background: ACC, color: ONACC, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{agencyInit || '—'}</span>
+                    }
+                  />
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agencyName}</div>
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 7, fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600, marginTop: 2 }}>

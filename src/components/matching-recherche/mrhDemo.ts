@@ -60,8 +60,19 @@ function bien(p: Partial<MrhBien> & Pick<MrhBien, 'id' | 'title' | 'addr' | 'typ
  * Neuf annonces, choisies pour couvrir ce que la carte SAIT afficher et qui,
  * autrement, ne se voit jamais tous en même temps : vente ET location (les deux
  * segments du sélecteur), un prix barré (baisse ≥ 2 %), une annonce sans photo
- * (le repli de `MrhPhoto`), une sans logo de régie, et des coordonnées réelles
- * pour que les pastilles de la vue Carte se positionnent.
+ * (le repli de `MrhPhoto`), et des coordonnées réelles pour que les pastilles de
+ * la vue Carte se positionnent.
+ *
+ * ⛔ TROIS RÉGIES PORTENT UN LOGO, LES AUTRES NON — et c'est le point. Mesuré en
+ * base le 13 août 2026 : 47,9 % des annonces actives ont un logo (68,0 % côté
+ * Flatfox, 31,3 % côté RealAdvisor). Un banc où toutes en auraient un ferait
+ * croire que le repli sur le NOM est un cas de bord, alors qu'il couvre la
+ * majorité de la grille — c'est exactement l'erreur que la maquette d'origine
+ * avait faite en dessinant un monogramme.
+ *
+ * ⚠ Les paires nom + logo sont RÉELLES, relevées en base : poser un vrai logo sur
+ * une régie inventée fabriquerait une donnée. Un CDN de chaque, et un SVG, un PNG
+ * et un JPG — les trois ne se chargent pas de la même façon.
  */
 export const MRH_DEMO_BIENS: MrhBien[] = [
   bien({
@@ -78,7 +89,8 @@ export const MRH_DEMO_BIENS: MrhBien[] = [
     rooms: 5, beds: 3, baths: 2, area: 120, year: 1996,
     lat: 46.1817, lng: 6.1397, days_on_market: 12,
     features: ['Balcon', 'Cave', 'Parking', 'Ascenseur', 'Parquet'],
-    ref: 'MG-RA-4827193', agency: 'Régie du Rhône SA', agency_phone: '+41 22 819 44 00',
+    ref: 'MG-RA-4827193', agency: '105 Immo', agency_phone: '+41 22 819 44 00',
+    agency_logo_url: 'https://storage.googleapis.com/img.realadvisor.ch/logo-agency-105immo_2025-06-25-155449.svg',
     source_portal: 'realadvisor',
     photos: ['1502672260266-1c1ef2d93688', '1493809842364-78817add7ffb', '1560448204-e02f11c3d0e2'].map((i) => PHOTO(i)),
   }),
@@ -90,7 +102,8 @@ export const MRH_DEMO_BIENS: MrhBien[] = [
     rooms: 4, beds: 2, baths: 1, area: 98, year: 2005,
     lat: 46.1809, lng: 6.1372, days_on_market: 4,
     features: ['Terrasse', 'Ascenseur', 'Cave', 'Parquet'],
-    ref: 'MG-RA-4831077', agency: 'Naef Immobilier', agency_phone: '+41 22 839 39 39',
+    ref: 'MG-RA-4831077', agency: 'AD Immob', agency_phone: '+41 22 839 39 39',
+    agency_logo_url: 'https://storage.googleapis.com/img.realadvisor.ch/logo-ad-immob_2025-06-06-134039.png',
     source_portal: 'realadvisor',
     photos: ['1493663284031-b7e3aefcae8e', '1505691938895-1758d7feb511'].map((i) => PHOTO(i)),
   }),
@@ -137,7 +150,8 @@ export const MRH_DEMO_BIENS: MrhBien[] = [
     rent: 3200, area: 82, rooms: 3.5, beds: 2, baths: 1, year: 2014,
     lat: 46.2035, lng: 6.1590, days_on_market: 6,
     features: ['Balcon', 'Ascenseur', 'Cave'],
-    ref: 'MG-FL-8809741', agency: 'Régie Bory & Cie', agency_phone: '+41 22 708 12 12',
+    ref: 'MG-FL-8809741', agency: 'AD Real Estate', agency_phone: '+41 22 708 12 12',
+    agency_logo_url: 'https://flatfox.ch/thumb/org/2026/04/0y5q9rryesr3zyvisbtn56ugi4syciihivc789d2xso3eijtrc.jpg?alias=org_logo_m&signature=7ghbsUn-NIQS0CkrdFaLMTPzYQ8sGUJZPSAZy9HYOqA',
     source_portal: 'flatfox',
     photos: ['1522708323590-d24dbb6b0267', '1484154218962-a197022b5858'].map((i) => PHOTO(i)),
   }),
