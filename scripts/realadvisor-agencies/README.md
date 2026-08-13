@@ -59,6 +59,32 @@ tourner sur le seul CSV quand la capture brute a été purgée.
 | `logos/` | logos nommés `<slug>.<ext>` |
 | `agencies.jsonl` | capture brute + fichier de reprise (contient aussi ce qui n'est pas livré) |
 
+## Ce que l'annuaire apporte vraiment — et ce qu'il n'apporte pas
+
+Mesuré sur l'import du 13.08.2026, **352 agences** insérées et survivantes après
+toutes les fusions :
+
+| | |
+|---|---|
+| avec **site web** | **341** |
+| avec **logo** | **349** |
+| avec des **annonces** chez nous | **1** (6 annonces) |
+| avec un `uid_che` | 0 |
+
+⇒ **L'annuaire et le flux d'annonces sont deux populations DISJOINTES**, pas
+l'une incluse dans l'autre. Une agence d'annuaire ne publie presque jamais chez
+nous. La valeur de cet import n'est donc pas le volume d'annonces : c'est
+**l'identité** — site officiel et logo, sur des agences dont la base n'avait rien.
+Ne pas juger la collecte au nombre d'annonces qu'elle rapporte.
+
+⛔ **Comment ré-isoler un import a posteriori — le piège.** `source='realadvisor'`
+ne suffit pas (4830 lignes, dont le flux d'annonces). `source_id is not null` **ne
+suffit pas non plus** : une synchro planifiée en pose aussi — 90 lignes datées du
+28.07.2026, avec adresse ET `source_id`, qui ne viennent PAS de ce dossier.
+Le seul discriminant fiable est **`created_at::date` = le jour de l'import**,
+combiné à `address is not null`. ⚠ Il est donc à réécrire à chaque campagne :
+noter la date de l'import quelque part, elle n'est pas déductible après coup.
+
 ## Ce que le site impose (et pourquoi le code a cette forme)
 
 1. **Le HTML est derrière un challenge Cloudflare « managed ».** Mesuré le
