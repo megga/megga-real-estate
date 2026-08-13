@@ -85,13 +85,8 @@ export default function MrhCard({ bien, score, reasonText, useMiss, index, ctx }
       <div style={{ padding: '13px 16px 15px', display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.title}</div>
         <div style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.addr}</div>
-        {/* La date reste seule sur sa ligne : la marque a quitté cette rangée. */}
-        <div style={{ marginTop: 7, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.postedAt}</div>
-        {/* ⚠ LA MARQUE A SA PROPRE LIGNE, PLEINE LARGEUR. Tant qu'elle partageait
-            la rangée de la date, c'est la HAUTEUR qui la bornait — pas la place :
-            la rangée faisait 345 px et la date n'en occupait que 55. Sortie de là,
-            elle peut prendre toute la largeur de la carte et respirer. */}
-        <div style={{ marginTop: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
+          <span style={{ minWidth: 0, flex: 1, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{bien.postedAt}</span>
           <MrhAgencyLogo name={bien.agency} logoUrl={bien.agency_logo_url} sp={sp} line={line} />
         </div>
         {reasonText && (
