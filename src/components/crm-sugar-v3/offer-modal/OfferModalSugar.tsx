@@ -75,8 +75,6 @@ function OmField({
           fontSize: 'var(--crm-text-sm)',
           fontWeight: 600,
           color: pal.muted,
-          textTransform: 'uppercase',
-          letterSpacing: 0.6,
           marginBottom: 8,
         }}
       >
@@ -104,7 +102,7 @@ function OmSectionHead({ index, title, pal }: { index: number; title: string; pa
           background: pal.ink,
           color: pal.onInk,
           fontSize: 'var(--crm-text-md)',
-          fontWeight: 700,
+          fontWeight: 600,
           display: 'grid',
           placeItems: 'center',
         }}
@@ -115,7 +113,7 @@ function OmSectionHead({ index, title, pal }: { index: number; title: string; pa
         style={{
           margin: 0,
           fontSize: 'var(--crm-text-5xl)',
-          fontWeight: 700,
+          fontWeight: 600,
           color: pal.ink,
           letterSpacing: -0.5,
           lineHeight: 1.15,
@@ -177,7 +175,7 @@ function OmConditionToggle({
           <SgIcon name={icon} size={18} stroke={active ? pal.accentInk : pal.inkSoft} sw={1.8} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: pal.ink }}>{title}</div>
+          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: pal.ink }}>{title}</div>
         </div>
         <div
           style={{
@@ -456,7 +454,7 @@ export default function OfferModalSugar({
         background: pal.bg,
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: '"Inter Tight", system-ui, sans-serif',
+        fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif',
         animation: 'omFadeIn .25s cubic-bezier(.2,.8,.2,1) both',
       }}
     >
@@ -470,7 +468,7 @@ export default function OfferModalSugar({
         style={{ padding: '22px 40px 18px', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-5xl)', flexShrink: 0 }}
       >
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 700, color: pal.ink, letterSpacing: -0.4 }}>
+          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: pal.ink, letterSpacing: -0.4 }}>
             {bien?.title || t('offerModal.header.fallback')}
           </div>
         </div>
@@ -553,7 +551,7 @@ export default function OfferModalSugar({
                     <div
                       style={{
                         fontSize: 'var(--crm-text-3xl)',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         color: pal.ink,
                         fontVariantNumeric: 'tabular-nums',
                       }}
@@ -783,8 +781,6 @@ export default function OfferModalSugar({
                   fontSize: 'var(--crm-text-sm)',
                   fontWeight: 600,
                   color: pal.recapMut,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.6,
                   marginBottom: 18,
                 }}
               >
@@ -797,7 +793,7 @@ export default function OfferModalSugar({
                 <div
                   style={{
                     fontSize: 'var(--crm-text-8xl)',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     color: pal.onInk,
                     letterSpacing: -0.8,
                     fontVariantNumeric: 'tabular-nums',
@@ -834,7 +830,7 @@ export default function OfferModalSugar({
                 ].map((r) => (
                   <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                     <span style={{ fontSize: 'var(--crm-text-lg)', color: pal.recapMut, fontWeight: 500 }}>{r.l}</span>
-                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: pal.onInk, fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: pal.onInk, fontVariantNumeric: 'tabular-nums' }}>
                       {r.v}
                     </span>
                   </div>

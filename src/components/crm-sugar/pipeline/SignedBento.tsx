@@ -66,7 +66,7 @@ export function SignedBento({
           width: 420, maxWidth: 'calc(100vw - 48px)', background: panelBg, borderRadius: 'var(--crm-radius-6xl)',
           boxShadow: sp.solidShadow,
           padding: '28px 26px 22px',
-          fontFamily: '"Inter Tight", system-ui, sans-serif',
+          fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif',
         }}
       >
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--crm-space-md)' }}>

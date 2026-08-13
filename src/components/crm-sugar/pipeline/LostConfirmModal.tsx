@@ -41,7 +41,7 @@ export function LostConfirmModal({ sp, dark, contactName, onCancel, onConfirm }:
         background: sp.solidBg, borderRadius: 'var(--crm-radius-6xl)',
         boxShadow: sp.solidShadow,
         padding: '26px 26px 22px',
-        fontFamily: '"Inter Tight", system-ui, sans-serif',
+        fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif',
         animation: 'sugar-fade-up .3s cubic-bezier(.2,.8,.2,1) both',
       }}>
         <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.4, color: sp.ink }}>

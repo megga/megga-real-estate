@@ -133,6 +133,27 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   // taille littérale, quand les deux pages portaient 51 tailles. Un lot qui
   // recopierait l'ordre du chantier précédent chercherait la mauvaise chose.
   { root: 'src/components/crm-sugar/pipeline', keep: (n) => /\.tsx?$/.test(n) },
+  // La modale d'offre et les jetons de la fiche deal — la part de `crm-sugar-v3`
+  // que la chaîne Pipeline REND réellement.
+  //
+  // ⛔ ET SEULEMENT ELLE. `crm-sugar-v3` hors `vitrine` porte 199 marqueurs, dont
+  // 176 dans `kyc-wizard`, `kyc-pager`, `visite-detail`, `audit` et
+  // `primitives` : des écrans que ce chantier n'a jamais ouverts, qui n'ont
+  // aucun banc, et que la décision de périmètre (§3.1 du plan, 13 août 2026) a
+  // explicitement laissés dehors. Les entrer ici les déclarerait portés sans
+  // que personne les ait regardés — l'inverse de ce à quoi sert un cliquet :
+  // une zone absente n'est pas déclarée propre, elle est déclarée NON TRAITÉE.
+  //
+  // ⚠ `tokens.ts` (`SugarV3`) reste dehors pour la même raison, et c'est une
+  // décision, pas un oubli : il porte deux noirs Sugar, mais il alimente onze
+  // pages hors périmètre. Le reciblage de la chaîne Pipeline est passé par ses
+  // palettes LOCALES, pas par lui — la mesure d'ouverture a montré que la fiche
+  // ne lui prend qu'un formateur de date.
+  {
+    root: 'src/components/crm-sugar-v3',
+    keep: (n) => ['icons.tsx', 'dealStepper.ts', 'dealTokens.ts'].includes(n),
+  },
+  { root: 'src/components/crm-sugar-v3/offer-modal', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
   // ⛔ « Matching · Recherche » entre SANS `MrhMapView.tsx`. La carte est GELÉE
   // par décision (13 août 2026) : le jeton Mapbox est absent du build, donc la
@@ -444,6 +465,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar',
       'src/components/crm-sugar/contacts-pager',
       'src/components/crm-sugar/pipeline',
+      'src/components/crm-sugar-v3/offer-modal',
       'src/pages/agent',
       'src/components/matching-recherche',
       'src/components/matching-atelier',

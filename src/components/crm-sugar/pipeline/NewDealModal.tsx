@@ -175,7 +175,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
     position: 'absolute', inset: 0, zIndex: 60,
     background: nd.bg,
     display: 'flex', flexDirection: 'column',
-    fontFamily: '"Inter Tight", system-ui, sans-serif',
+    fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif',
     animation: 'sugar-overlay-fade .25s ease both',
   }
 

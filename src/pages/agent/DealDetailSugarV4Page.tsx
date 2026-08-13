@@ -372,7 +372,7 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
   const shell = (children: ReactNode) => (
     <div style={{
       position: 'relative', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-      background: sp.pageBg, color: p.ink, fontFamily: '"Inter Tight", system-ui, sans-serif',
+      background: sp.pageBg, color: p.ink, fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif',
     }}>
       <style>{SUGAR_KEYFRAMES}</style>
       <style>{`

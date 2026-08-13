@@ -595,7 +595,7 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
     <div style={{
       position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
       display: 'flex', flexDirection: 'column',
-      fontFamily: '"Inter Tight", system-ui, sans-serif', color: sp.ink,
+      fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
       <style>{SUGAR_KEYFRAMES}</style>
       <style>{`
