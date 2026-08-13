@@ -159,6 +159,15 @@ const ModalesShowcasePage = lazy(() => import('@/pages/dev/ModalesShowcasePage')
 const OnboardingPreviewPage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/OnboardingPreviewPage'))
   : () => null
+// Banc de la console super-admin — DEV seulement, même ternaire et même raison.
+// ⚠ Il s'écarte des autres bancs (`/dev/pipeline`, `/dev/biens`), qui sont
+// permanents : ceux-là montrent l'écran d'un agent, celui-ci monte le chrome de
+// la PLATEFORME — badge « ADMIN », MRR, registre des agences, journal de
+// sécurité. Le servir publiquement inviterait la question « est-ce réel ? » et
+// donnerait la carte de la surface super-admin à un visiteur.
+const AdminShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/AdminShowcasePage'))
+  : () => null
 // MEGGA AI — panneau docké monté AU-DESSUS de <Routes>, hors de l'arbre de routage
 // pour survivre au remount de navigation : le panneau + la conversation
 // persistent d'une page à l'autre (suivi de contexte, chantier 5).
@@ -485,6 +494,10 @@ function AppRoutes() {
               {import.meta.env.DEV && (
                 <Route path="/dev/onboarding" element={<OnboardingPreviewPage />} />
               )}
+              {/* ⚠ `/dev/admin` n'est PAS ici : le banc de la console porte son
+                  propre routeur, et React Router refuse un <Router> dans un
+                  <Router>. Il est branché plus bas, dans `App()`, AVANT
+                  <BrowserRouter>. */}
 
 
               {/* Sprint 4.4 — Export PDF dossier KYC (protected, no layout — print-friendly) */}
@@ -627,8 +640,43 @@ function CopilotPanelHost() {
   )
 }
 
+/**
+ * Le banc de la console remplace TOUT l'arbre de routage, il ne s'y insère pas.
+ *
+ * ⛔ Ce n'est pas un raccourci : React Router v6 LÈVE sur un `<Router>` rendu
+ * dans un `<Router>` (« You should never have more than one in your app »), et
+ * c'est précisément un second routeur — en mémoire — qui donne au banc son point
+ * d'interception unique de la navigation. Il doit donc vivre AVANT
+ * `<BrowserRouter>`, pas dans une route.
+ *
+ * Les providers gardés sont ceux dont le périmètre admin a besoin, mesurés :
+ * `QueryClientProvider` (38 hooks React Query), `AuthProvider` (`AdminShell`
+ * lit le profil) et `ToastProvider` (12 fichiers appellent `useToast` — sans
+ * lui, la moitié des pages lèvent au montage).
+ */
+function BancConsoleAdmin() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ToastProvider>
+          <ErrorBoundary>
+            <Suspense fallback={null}>
+              <AdminShowcasePage />
+            </Suspense>
+          </ErrorBoundary>
+        </ToastProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  )
+}
+
 /** Point d'entrée : empile les providers globaux autour des routes et des widgets globaux (cookies, Intercom, panneau IA). */
 export default function App() {
+  // `import.meta.env.DEV` est remplacé par `false` au build : la branche entière
+  // — et le chunk du banc — disparaissent du bundle déployé.
+  if (import.meta.env.DEV && window.location.pathname.startsWith('/dev/admin')) {
+    return <BancConsoleAdmin />
+  }
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <StaleBundleDetector />
