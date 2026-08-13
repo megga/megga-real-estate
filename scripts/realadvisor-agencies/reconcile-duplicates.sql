@@ -198,7 +198,59 @@ join public.agency_profiles p
 where s.name like '%—%' and s.city is not null
   and trim(substr(s.name, position('—' in s.name) + 1)) <> '';
 
--- ═══ ⛔ LA LEÇON QUI A COÛTÉ TROIS ERREURS ══════════════════════════════════
+-- ═══ Troisième signal : l'ADRESSE POSTALE ══════════════════════════════════
+-- Le plus fort des trois, et le seul qui morde quand le nom ne dit RIEN. Flatfox
+-- a saisi 20 bureaux Wincasa DEUX FOIS : une fois sous un toponyme nu (« Baden »,
+-- « Bern PostParc »), une fois sous « Wincasa AG — X ». Aucun score lexical ne les
+-- rapproche — « Basel Grosspeter » et « Wincasa AG — Basel » n'ont aucun mot en
+-- commun — mais les deux portent « Grosspeteranlage 5+7 », au caractère près.
+--
+-- ⛔ IL FAUT LES DEUX, RUE **ET** COMMUNE — chacune seule ment, en sens inverse :
+--   • la VILLE seule confond « Wincasa AG — Basel » (Grosspeteranlage) et
+--     « — Basel Wohnen 1 » (Drahtzugstrasse), deux bureaux bâlois DISTINCTS ;
+--   • la RUE seule confond les homonymes de voirie — « Bahnhofstrasse 1 » existe
+--     dans des centaines de communes. Mesuré le 13.08.2026 : sans la commune la
+--     requête rend 158 paires, avec elle 121 ; les 37 écartées sont des rues
+--     homonymes dans des communes différentes.
+--
+-- Corroboration à exiger avant d'écrire — les cantons de la petite ligne doivent
+-- être CONTENUS dans ceux de la grosse (Chur `GR` ⊂ `GL,GR,SG,SZ,TG,ZH`). Deux
+-- géographies disjointes signalent un mauvais appariement, pas un doublon.
+select a.name, b.name, a.address, a.city,
+       (select count(*) from public.market_listings m where m.agency_profile_id=a.id) ann_a,
+       (select count(*) from public.market_listings m where m.agency_profile_id=b.id) ann_b,
+       (select string_agg(distinct m.canton, ',') from public.market_listings m where m.agency_profile_id=a.id) cantons_a,
+       (select string_agg(distinct m.canton, ',') from public.market_listings m where m.agency_profile_id=b.id) cantons_b
+from public.agency_profiles a
+join public.agency_profiles b
+  on lower(regexp_replace(b.address, '[^a-z0-9]', '', 'gi'))
+   = lower(regexp_replace(a.address, '[^a-z0-9]', '', 'gi'))
+ and lower(b.city) = lower(a.city)
+ and b.id > a.id
+where a.address is not null and a.address <> '' and a.city is not null
+  and similarity(lower(a.name), lower(b.name)) < 0.5
+order by a.city, a.address;
+
+-- ═══ ⛔ FUSION AVEC RENOMMAGE : L'ORDRE EST CONTRAINT DANS LES DEUX SENS ═════
+-- Le survivant est la ligne qui porte les ANNONCES (le toponyme nu, 228 contre 6),
+-- mais c'est la jumelle qui porte le BON NOM. Le survivant doit donc être renommé,
+-- et adopter le slug de la jumelle — sinon il reste `baden` sous le nom
+-- « Wincasa AG — Baden », et le bon slug part à la poubelle avec la ligne supprimée.
+--
+--   1. PHOTOGRAPHIER slug + website_url de la jumelle  ← ils meurent avec elle
+--   2. repointer market_listings vers le survivant
+--   3. supprimer la jumelle (gardes sur les DEUX FK)
+--   4. SEULEMENT LÀ renommer et adopter le slug        ← unique IMMÉDIAT
+--
+-- Les étapes 1 et 4 se contraignent en sens opposés : lire avant la suppression,
+-- écrire après. Les inverser casse dans un cas ou dans l'autre.
+-- ⚠ Il n'y a AUCUN trigger sur agency_profiles : renommer ne régénère pas le slug.
+--
+-- ⚠ NE PAS PROPAGER LE website_url DE LA LIGNE NUE. Deux portaient un site de
+-- TIERS sur un bureau Wincasa (immo-lausanne.ch, gerancec.ch), écrits en avril
+-- 2026 bien avant l'import RA. La fusion prend celui de la JUMELLE, ou rien.
+
+-- ═══ ⛔ LA LEÇON QUI A COÛTÉ QUATRE ERREURS ═════════════════════════════════
 -- 1. CLASSER LES LIGNES, JAMAIS LES PAIRES. Un premier tri par paire étiquetait
 --    « bruit » une agence légitime dès qu'elle était appariée à du bruit —
 --    « de Rham SA » (775 annonces) et « Regus » (445) s'y sont retrouvés.
@@ -207,4 +259,21 @@ where s.name like '%—%' and s.city is not null
 --    leur nature les sépare. 8 des 20 paires dites « haute confiance » ont dû
 --    être écartées à la relecture (groupe vs filiale, succursales, adjectifs
 --    géographiques pris pour des marques).
--- 3. RELIRE LA LISTE AVANT D'ÉCRIRE. C'est ce qui a rattrapé les trois fois.
+-- 3. QUAND LE NOM NE TRANCHE PAS, CHERCHER UNE CLÉ QUI N'EST PAS UN NOM.
+--    L'adresse a apparié 20/20 là où aucune heuristique lexicale ne pouvait. La
+--    table de correspondance, elle, proposait de verser les toponymes dans le
+--    SIÈGE tout en gardant les jumelles — chaque bureau éclaté en deux parents.
+-- 4. RELIRE LA LISTE AVANT D'ÉCRIRE. C'est ce qui a rattrapé les quatre fois.
+
+-- ═══ ⛔ « GÈRE CET IMMEUBLE » ≠ « A UN BUREAU ICI » ═════════════════════════
+-- Distinction qui décide si une ligne est une agence, et que trois vérifications
+-- sur quatre ont d'abord manquée. Un gestionnaire administre des centaines
+-- d'immeubles depuis quelques bureaux : trouver « Verwaltung : Wincasa AG » sur la
+-- page d'un immeuble n'établit PAS une implantation.
+--
+-- ⛔ `implenia.com/standort` ÉNUMÈRE DES MANDATS, PAS DES BUREAUX. Source à ne pas
+-- croire : elle place « Wincasa AG » à Klybeckstrasse 191 (immeuble de labos À
+-- LOUER), donne 4 adresses bâloises distinctes, et écrit « Rue des Fléchère 7A »
+-- sans le s. C'est elle qui alimentait les fausses adresses de ce lot.
+-- Ce qui vaut : le site de l'EXPLOITANT quand il porte un courriel du domaine de
+-- la société (stjakobpark@wincasa.ch) — l'occupant s'y déclare lui-même.
