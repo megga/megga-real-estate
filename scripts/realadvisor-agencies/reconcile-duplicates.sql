@@ -139,20 +139,72 @@ select (select count(*) from public.agency_profiles)                          as
             and not exists (select 1 from public.agency_profiles a
                             where a.id = ml.agency_profile_id))               as annonces_orphelines;
 
--- ═══ Ce que ce script NE fait PAS ═══════════════════════════════════════════
--- Il ne rapproche que par la raison sociale. ~91 paires partagent LOGO et
--- COMMUNE sous des noms trop éloignés pour être vues — « Sven Lott Immobilien »
--- et « RE/MAX Immobilien in Affoltern am Albis » sont la même agence.
--- La requête ci-dessous les liste ; elle N'EST PAS branchée sur une fusion
--- automatique, et c'est délibéré : le même signal rapproche aussi des sociétés
--- RÉELLEMENT distinctes d'un même groupe (« Arimo Vermarktung AG » et « Arimo
--- Bewirtschaftung AG » partagent logo et commune sans être la même entité).
--- Cette liste demande un arbitrage humain avant toute fusion.
+-- ═══ Second signal : le LOGO partagé ═══════════════════════════════════════
+-- La partie ci-dessus ne rapproche que par la raison sociale. Un logo commun,
+-- dans la même commune, rattrape ce que le nom ne dit pas.
+--
+-- ⛔ CE SIGNAL NE DOIT JAMAIS PILOTER UNE FUSION AUTOMATIQUE. Il rapproche aussi
+-- des entités RÉELLEMENT distinctes : centres commerciaux Wincasa (« Basel
+-- Stücki »), départements Privera, les cinq sociétés du groupe Tarchini, et des
+-- sociétés qui partagent simplement un gérant.
+--
+-- Sur 91 paires ainsi trouvées (13.08.2026), 11 seulement étaient fusionnables.
+-- La requête en rend 63 aujourd'hui, les fusions ayant retiré le reste : ce sont
+-- des paires ARBITRÉES « ne pas fusionner », pas un reliquat à traiter.
+-- Trois cribles ont écarté le reste, dans cet ordre :
+--   1. les DEUX lignes portent un uid_che ⇒ deux CHE (l'index est UNIQUE) ⇒ deux
+--      entités juridiques ⇒ jamais.
+--   2. aucun mot distinctif partagé, mots de métier retirés ⇒ rien n'atteste la
+--      même société (« FAMBAU Genossenschaft » / « Siedlungsgenossenschaft
+--      Bethlehemacker »).
+--   3. mot commun mais suffixes divergents ⇒ le REGISTRE tranche. Mesuré :
+--      « Wirnsperger Hotel Betriebe AG » et « Wirnsperger Generalunternehmung AG »
+--      sont deux inscriptions à Fehraltorf ; idem « CITY STAY AG » (Zürich) et
+--      « CITY STAY Management GmbH » (Cham).
+--
+-- ⚠ LE SURVIVANT SE CHOISIT SUR LE NOMBRE D'ANNONCES, jamais sur l'ancienneté :
+-- « Regimo Basel » en porte 274 contre 2 à sa jumelle, « Privera AG » 3609. Se
+-- tromper de côté déclenche le ON DELETE SET NULL sur des milliers de lignes.
 select a.id, a.name, b.id, b.name, coalesce(a.city, a.canton) as lieu,
-       round(similarity(lower(a.name), lower(b.name))::numeric, 2) as sim
+       round(similarity(lower(a.name), lower(b.name))::numeric, 2) as sim,
+       (select count(*) from public.market_listings m where m.agency_profile_id=a.id) ann_a,
+       (select count(*) from public.market_listings m where m.agency_profile_id=b.id) ann_b,
+       (a.uid_che is not null) ide_a, (b.uid_che is not null) ide_b
 from public.agency_profiles a
 join public.agency_profiles b
   on b.logo_url = a.logo_url and b.id > a.id
  and a.city is not null and lower(a.city) = lower(b.city)
 where similarity(lower(a.name), lower(b.name)) < 0.4
 order by lieu, a.name;
+
+-- ═══ Sous-lignes « PARENT — suffixe » ═══════════════════════════════════════
+-- Flatfox importe comme agences des noms de courtiers, des départements et des
+-- noms doublés. Quand le PARENT existe lui-même comme ligne DANS LA MÊME VILLE,
+-- le rattachement est certain — 33 lignes résorbées le 13.08.2026, d'où le 0 que
+-- rend la requête aujourd'hui.
+--
+-- ⚠ LA CONTRAINTE « MÊME VILLE » EST CE QUI PROTÈGE LES SUCCURSALES. Sans elle,
+-- les 16 bureaux « Wincasa AG — Baden/Basel/Chur/Lugano… » seraient absorbés par
+-- le siège de Glattpark : ce sont des implantations réelles, pas du bruit.
+--
+-- ⚠ Quand le suffixe est LUI AUSSI une ligne existante, le libellé peut être
+-- inversé (« Philipp Roth — Immowengi AG » : courtier en tête, agence en queue).
+-- Retenir alors celle des deux qui porte le plus d'annonces.
+select s.id, s.name as sous_ligne, p.id as parent_id, p.name as parent
+from public.agency_profiles s
+join public.agency_profiles p
+  on lower(p.name) = lower(trim(split_part(s.name, '—', 1)))
+ and lower(p.city) = lower(s.city) and p.id <> s.id
+where s.name like '%—%' and s.city is not null
+  and trim(substr(s.name, position('—' in s.name) + 1)) <> '';
+
+-- ═══ ⛔ LA LEÇON QUI A COÛTÉ TROIS ERREURS ══════════════════════════════════
+-- 1. CLASSER LES LIGNES, JAMAIS LES PAIRES. Un premier tri par paire étiquetait
+--    « bruit » une agence légitime dès qu'elle était appariée à du bruit —
+--    « de Rham SA » (775 annonces) et « Regus » (445) s'y sont retrouvés.
+-- 2. UN SCORE SUR LES MOTS COMMUNS NE RÉPOND PAS À « EST-CE UNE AGENCE ? ».
+--    Une succursale et un centre commercial ont le même profil lexical ; seule
+--    leur nature les sépare. 8 des 20 paires dites « haute confiance » ont dû
+--    être écartées à la relecture (groupe vs filiale, succursales, adjectifs
+--    géographiques pris pour des marques).
+-- 3. RELIRE LA LISTE AVANT D'ÉCRIRE. C'est ce qui a rattrapé les trois fois.
