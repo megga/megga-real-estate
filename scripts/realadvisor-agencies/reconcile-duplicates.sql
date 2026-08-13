@@ -224,6 +224,29 @@ order by lieu, a.name;
 -- contre 1158 à sa sous-ligne « Zentrale », et n'avait NI site NI logo quand elle
 -- avait les deux. Repointer vers le parent (le nom propre) mais REMONTER ses trous
 -- depuis la sous-ligne la plus fournie — 12 sites et 8 logos récupérés ainsi.
+--
+-- ═══ Trancher les indécidables : l'ANNUAIRE RA est la source primaire ═══════
+-- ⛔ La procédure du portail Flatfox NE S'APPLIQUE PAS à ces lignes : les 19
+-- indécidables sont toutes `source='realadvisor'` avec **0 annonce Flatfox**.
+-- L'équivalent existe et il est LOCAL : `agencies.csv`, les 1236 fiches
+-- d'annuaire collectées par ce dossier. Apparier sur le nom plié.
+--   • **fiche propre AVEC adresse de rue ⇒ implantation reconnue, GARDER.**
+--     11 des 19 en avaient une — dont « Valimmobilier SA - Martigny », Avenue de
+--     la Gare 52, 1920 Martigny : ses **410 annonces** allaient être versées à
+--     tort dans Conthey. C'est la vérification qui a le plus rapporté du lot.
+--   • **ASYMÉTRIE : parent dans l'annuaire, enfant absent ⇒ libellé de flux.**
+--     (« Swiss Patrimoine Immobilier SA - Agence de Genève », 202 annonces.)
+--   ⚠ L'absence SEULE ne prouve rien : l'annuaire (1236) et le flux d'annonces
+--     (4714 lignes RA) sont deux populations DISTINCTES, pas l'une incluse dans
+--     l'autre. 7 lignes sont restées muettes faute de parent à l'annuaire.
+--
+-- ⚠ LE SEUIL DE 5 CANTONS A UN PLANCHER, et il laisse passer les petits
+-- territoires : « ImmoSky AG - Bern » (BE+FR) et « - Basel » (BL+BS) n'en
+-- couvrent que 2 et ont survécu au tri, alors qu'elles appartiennent visiblement
+-- au MÊME schéma de nommage que les 7 territoires fusionnés (Aargau, Ostschweiz,
+-- Ticino, Zentralschweiz…). ⇒ Après un tri par seuil, relire la FAMILLE entière :
+-- une ligne isolée d'un schéma déjà tranché se range avec lui.
+-- ⚠ Un suffixe en « c/o » est une DOMICILIATION, jamais une implantation.
 -- Version couvrant LES DEUX séparateurs, avec les signaux qui décident. Trier
 -- soi-même : `adresse_propre` ⇒ garder ; `nb_cantons` ≥ 5 sans adresse ⇒ fusionner.
 select p.name as parent, s.name as sous_ligne,
