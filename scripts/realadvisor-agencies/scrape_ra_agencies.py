@@ -38,6 +38,7 @@ import json
 import re
 import sys
 import time
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -244,6 +245,20 @@ def sitemap_urls(session, lang: str) -> list[str]:
 
 # ─── Logos ────────────────────────────────────────────────────────
 
+def encode_url(url: str) -> str:
+    """Rend l'URL utilisable par urllib.
+
+    Les logos sont servis sous leur nom d'origine, tel que l'agence l'a téléversé
+    — « Logo h2b_2024-02-13.jpg », « logo Jol'Immo avec slogan.jpg ». Ces espaces
+    et apostrophes littéraux font échouer urllib en InvalidURL (18 logos perdus
+    sur 1236 avant ce correctif). On ré-encode le seul chemin, en laissant
+    intactes les séquences déjà encodées.
+    """
+    parts = urllib.parse.urlsplit(url)
+    return urllib.parse.urlunsplit(parts._replace(
+        path=urllib.parse.quote(parts.path, safe="/%:@&=+$,~")))
+
+
 def download_logos(records: list[dict], out: Path, delay: float) -> int:
     """Les logos vivent sur storage.googleapis.com, hors challenge : HTTP nu."""
     logos = out / "logos"
@@ -265,7 +280,7 @@ def download_logos(records: list[dict], out: Path, delay: float) -> int:
             done += 1
             continue
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": UA})
+            req = urllib.request.Request(encode_url(url), headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=30) as resp:
                 dest.write_bytes(resp.read())
             rec["logo_file"] = dest.name
@@ -292,6 +307,18 @@ SCALARS = ["slug", "agency_id", "name", "website", "has_phone",
            "logo_url", "logo_file", "source_url"]
 
 
+def read_jsonl(path: Path) -> list[dict]:
+    """Relit le JSONL en ne coupant QUE sur `\\n`.
+
+    ⛔ Ne jamais utiliser `str.splitlines()` ici : il coupe aussi sur U+2028,
+    U+2029, \\x0b, \\x0c et \\x85, que `json.dumps(ensure_ascii=False)` n'échappe
+    pas. Mesuré sur ce jeu de données : 16 U+2028 venus des présentations
+    d'agences faisaient lire 1236 lignes comme 1250, dont des fragments
+    invalides — le crawl entier était collecté mais illisible.
+    """
+    return [json.loads(l) for l in path.read_text().split("\n") if l.strip()]
+
+
 def purge_raw(jsonl: Path, enabled: bool) -> None:
     """Efface la capture brute, sur demande explicite.
 
@@ -311,11 +338,19 @@ def purge_raw(jsonl: Path, enabled: bool) -> None:
 
 
 def write_outputs(records: list[dict], out: Path) -> None:
+    # Les données saisies par les agences traînent des espaces : « Laura Immo »
+    # sortait avec un blanc final, et l'adresse « 1920  Martigny » (double
+    # espace) donnait un NPA « 1920 » que plus rien ne reconnaît comme NPA.
+    # On normalise à l'écriture, pas seulement à l'extraction, pour que les
+    # captures déjà faites en profitent sans recrawl.
+    def clean(v):
+        return re.sub(r"\s+", " ", v).strip() if isinstance(v, str) else v
+
     with (out / "agencies.csv").open("w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=SCALARS)
         w.writeheader()
         for r in records:
-            w.writerow({k: r.get(k) for k in SCALARS})
+            w.writerow({k: clean(r.get(k)) for k in SCALARS})
 
 
 # ─── Boucle ───────────────────────────────────────────────────────
@@ -337,7 +372,7 @@ def main() -> None:
     jsonl = args.out / "agencies.jsonl"
 
     if args.logos_only:
-        records = [json.loads(l) for l in jsonl.read_text().splitlines() if l.strip()]
+        records = read_jsonl(jsonl)
         print(f"logos : {download_logos(records, args.out, args.delay/4)}/{len(records)}")
         write_outputs(records, args.out)
         purge_raw(jsonl, args.purge_raw)
@@ -345,9 +380,8 @@ def main() -> None:
 
     seen = set()
     if jsonl.exists():
-        for line in jsonl.read_text().splitlines():
-            if line.strip():
-                seen.add(json.loads(line)["source_url"])
+        for rec in read_jsonl(jsonl):
+            seen.add(rec["source_url"])
         print(f"reprise : {len(seen)} fiches déjà collectées", file=sys.stderr)
 
     with StealthySession(headless=False, solve_cloudflare=True, humanize=True,

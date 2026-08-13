@@ -24,7 +24,9 @@ CANTONS = {"ZH", "BE", "LU", "UR", "SZ", "OW", "NW", "GL", "ZG", "FR", "SO",
 # d'erreur HTML passerait tous les contrôles de taille.
 MAGIC = {b"\x89PNG": "png", b"\xff\xd8\xff": "jpeg", b"GIF8": "gif",
          b"RIFF": "webp", b"<svg": "svg", b"<?xm": "svg", b"BM": "bmp",
-         b"\x00\x00\x01\x00": "ico"}
+         b"\x00\x00\x01\x00": "ico",
+         # TIFF, dans ses deux boutismes — deux agences en servent un.
+         b"II*\x00": "tiff", b"MM\x00*": "tiff"}
 
 
 def looks_like_image(head: bytes) -> bool:
@@ -40,7 +42,13 @@ def looks_like_image(head: bytes) -> bool:
 # imbriqués (agents) se désactivent alors d'eux-mêmes plutôt que de mentir.
 raw = OUT / "agencies.jsonl"
 if raw.exists():
-    rows = [json.loads(l) for l in raw.read_text().splitlines() if l.strip()]
+    # ⛔ split("\n") et pas splitlines() : ce dernier coupe aussi sur U+2028,
+    # que json.dumps n'échappe pas — 16 dans ce jeu de données.
+    rows = [json.loads(l) for l in raw.read_text().split("\n") if l.strip()]
+    # Même normalisation qu'à l'écriture du CSV, sinon le contrôle juge des
+    # valeurs que le livrable ne contient pas.
+    rows = [{k: (re.sub(r"\s+", " ", v).strip() if isinstance(v, str) else v)
+             for k, v in r.items()} for r in rows]
     source, deep = "capture brute", True
 else:
     import csv as _csv
