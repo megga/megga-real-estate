@@ -2,7 +2,7 @@
 // ─────────────────────────────────────────────────────────────────────
 // Port fidèle du handoff Claude Design (crm-offer-modal-sugar.jsx) :
 //   - Plus de wizard 3 étapes → une seule page scrollable (3 sections + récap).
-//   - Thème bento clair/sombre (OM_LIGHT / OM_DARK, fond sombre unifié #0A0B0D).
+//   - Thème dérivé de MEGGA X (omTokens.omPalette) — plus de palette figée.
 //   - `contained` = épouse le bento parent (position absolue) ; sinon plein écran.
 //   - Submit BRANCHÉ : useCreateOffer → insert crm_offers (statut 'pending'),
 //     trigger DB AuditEvent, puis onSubmit(newOffer) + onClose().
@@ -26,81 +26,9 @@ import { EMPTY_OFFER_CONDITIONS, countActiveConditions } from '@/types/offer'
 import type { Offer, OfferConditions, OfferKind } from '@/types/offer'
 import type { Contact } from '@/types/contact'
 import type { Property } from '@/types/listing'
-import { MXC_COLOR, encreSur } from '@/components/megga-x-crm/tokens'
-
-// ─── Palettes (bento immersif) ──────────────────────────────────────────
-export interface OmPalette {
-  bg: string
-  card: string
-  cardSubtle: string
-  cardBorder: string | null
-  black: string
-  ink: string
-  inkSoft: string
-  muted: string
-  ghost: string
-  onAccent: string
-  shadowSm: string
-  shadow: string
-  shadowLg: string
-  ok: string
-  warn: string
-  err: string
-  /** couleurs du récap inversé (texte sur fond = ink) */
-  recapMut: string
-  recapMut2: string
-  recapLine: string
-  swapBg: string
-}
-
-const OM_LIGHT: OmPalette = {
-  bg: '#EDEFF3',
-  card: '#FFFFFF',
-  cardSubtle: '#F7F8FA',
-  cardBorder: null,
-  black: '#0B0C0E',
-  ink: '#0B0C0E',
-  inkSoft: '#3A3D44',
-  muted: '#686868',
-  ghost: '#B5BAC2',
-  onAccent: '#FFFFFF',
-  shadowSm: '0 4px 16px rgba(15,23,42,0.04)',
-  shadow: '0 12px 40px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.03)',
-  shadowLg: '0 24px 60px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.04)',
-  ok: '#10B981',
-  warn: '#F59E0B',
-  err: '#EF4444',
-  recapMut: 'rgba(255,255,255,0.60)',
-  recapMut2: 'rgba(255,255,255,0.70)',
-  recapLine: 'rgba(255,255,255,0.10)',
-  swapBg: '#FFFFFF',
-}
-
-// Aligné sur le cockpit Today (fond unifié #0A0B0D, cards ton « frame »).
-// Surfaces en GETTERS : la palette est montée une fois, les getters la gardent
-// vivante quand la teinte sombre change.
-const OM_DARK: OmPalette = {
-  bg: MXC_COLOR.n100,
-  card: MXC_COLOR.n300,
-  cardSubtle: MXC_COLOR.n200,
-  cardBorder: 'rgba(255,255,255,0.07)',
-  black: '#ECEDF3',
-  ink: '#ECEDF3',
-  inkSoft: '#B5B7C4',
-  muted: '#797D90',
-  ghost: '#363646',
-  onAccent: MXC_COLOR.n1000,
-  shadowSm: '0 1px 2px rgba(0,0,0,.40), 0 6px 18px -10px rgba(0,0,0,.60)',
-  shadow: '0 1px 2px rgba(0,0,0,.45), 0 10px 28px -12px rgba(0,0,0,.65)',
-  shadowLg: '0 24px 60px rgba(0,0,0,.60), 0 4px 16px rgba(0,0,0,.45)',
-  ok: '#34C796',
-  warn: '#F2B855',
-  err: '#F26B65',
-  recapMut: 'rgba(10,11,13,0.60)',
-  recapMut2: 'rgba(10,11,13,0.72)',
-  recapLine: 'rgba(10,11,13,0.14)',
-  swapBg: '#373B49',
-}
+import { encreSur } from '@/components/megga-x-crm/tokens'
+import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { omPalette, type OmPalette } from './omTokens'
 
 function omFmt(n: number | string | null | undefined): string {
   if (n == null || n === '') return '—'
@@ -174,7 +102,7 @@ function OmSectionHead({ index, title, pal }: { index: number; title: string; pa
           borderRadius: 'var(--crm-radius-pill)',
           flexShrink: 0,
           background: pal.ink,
-          color: pal.onAccent,
+          color: pal.onInk,
           fontSize: 'var(--crm-text-md)',
           fontWeight: 700,
           display: 'grid',
@@ -237,8 +165,8 @@ function OmConditionToggle({
             width: 40,
             height: 40,
             borderRadius: 'var(--crm-radius-lg)',
-            background: active ? pal.ink : pal.card,
-            color: active ? pal.onAccent : pal.inkSoft,
+            background: active ? pal.accent : pal.card,
+            color: active ? pal.accentInk : pal.inkSoft,
             flexShrink: 0,
             display: 'grid',
             placeItems: 'center',
@@ -246,7 +174,7 @@ function OmConditionToggle({
             transition: 'all .2s ease',
           }}
         >
-          <SgIcon name={icon} size={18} stroke={active ? pal.onAccent : pal.inkSoft} sw={1.8} />
+          <SgIcon name={icon} size={18} stroke={active ? pal.accentInk : pal.inkSoft} sw={1.8} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: pal.ink }}>{title}</div>
@@ -257,14 +185,14 @@ function OmConditionToggle({
             height: 22,
             borderRadius: 'var(--crm-radius-pill)',
             flexShrink: 0,
-            background: active ? pal.ink : pal.card,
+            background: active ? pal.accent : pal.card,
             boxShadow: active ? 'none' : `0 0 0 2px ${pal.cardSubtle} inset`,
             display: 'grid',
             placeItems: 'center',
             transition: 'all .15s ease',
           }}
         >
-          {active && <SgIcon name="check" size={13} stroke={pal.onAccent} sw={3} />}
+          {active && <SgIcon name="check" size={13} stroke={pal.accentInk} sw={3} />}
         </div>
       </div>
       {active && children && <div style={{ marginTop: 16, paddingLeft: 54 }}>{children}</div>}
@@ -315,7 +243,7 @@ function OmBlackPill({
   pal: OmPalette
 }) {
   const [h, setH] = useState(false)
-  const fondCta = disabled ? pal.ghost : h ? '#1F2024' : '#0B0C0E'
+  const fondCta = disabled ? pal.ghost : h ? pal.accentHover : pal.accent
   return (
     <button
       onClick={onClick}
@@ -342,7 +270,7 @@ function OmBlackPill({
         alignItems: 'center',
         gap: 'var(--crm-space-md)',
         whiteSpace: 'nowrap',
-        boxShadow: disabled ? 'none' : h ? '0 12px 30px rgba(11,12,14,0.25)' : '0 6px 16px rgba(11,12,14,0.18)',
+        boxShadow: disabled ? 'none' : h ? pal.shadow : pal.shadowSm,
         transform: h && !disabled ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'all .18s ease',
       }}
@@ -402,7 +330,7 @@ export default function OfferModalSugar({
   banc,
 }: OfferModalSugarProps) {
   const { t } = useTranslation('pipeline')
-  const pal = dark ? OM_DARK : OM_LIGHT
+  const pal = omPalette(dark, crmSugarPalette(dark))
   const isCounter = kind === 'counter'
 
   const { user } = useAuth()
@@ -849,7 +777,7 @@ export default function OfferModalSugar({
 
           {/* ── Récapitulatif (inversé) ── */}
           <section>
-            <div style={{ background: pal.ink, color: pal.onAccent, borderRadius: 'var(--crm-radius-5xl)', padding: 32, boxShadow: pal.shadow }}>
+            <div style={{ background: pal.ink, color: pal.onInk, borderRadius: 'var(--crm-radius-5xl)', padding: 32, boxShadow: pal.shadow }}>
               <div
                 style={{
                   fontSize: 'var(--crm-text-sm)',
@@ -870,7 +798,7 @@ export default function OfferModalSugar({
                   style={{
                     fontSize: 'var(--crm-text-8xl)',
                     fontWeight: 700,
-                    color: pal.onAccent,
+                    color: pal.onInk,
                     letterSpacing: -0.8,
                     fontVariantNumeric: 'tabular-nums',
                   }}
@@ -906,7 +834,7 @@ export default function OfferModalSugar({
                 ].map((r) => (
                   <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                     <span style={{ fontSize: 'var(--crm-text-lg)', color: pal.recapMut, fontWeight: 500 }}>{r.l}</span>
-                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: pal.onAccent, fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: pal.onInk, fontVariantNumeric: 'tabular-nums' }}>
                       {r.v}
                     </span>
                   </div>

@@ -38,31 +38,12 @@ import { useKycDossierByContact } from '@/hooks/useKycDossier'
 import { useTransactionNextReminder } from '@/hooks/usePipelineNextActions'
 import { useBiensSugar } from '@/hooks/useBiensSugar'
 import { mapCriteria } from '@/lib/sugarAdapters'
+import { dsPalette, type DsPal } from '@/components/crm-sugar-v3/dealTokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import type { CrmBien, CrmContact } from '@/components/crm-sugar/mockData'
 import type { Offer, OfferKind } from '@/types/offer'
 import type { Contact } from '@/types/contact'
 import type { Property } from '@/types/listing'
-
-// Palettes fiche V4 (DsLIGHT / DsDARK du handoff — valeurs exactes).
-interface DsPal {
-  card: string; sub: string; ink: string; soft: string; muted: string; ghost: string
-  black: string; blackHover: string; onBlack: string; chip: string
-  hair: string; shadow: string; err: string; ok: string
-}
-const DsLIGHT: DsPal = {
-  card: '#FFFFFF', sub: '#F7F8FA', ink: '#0B0C0E', soft: '#3A3D44', muted: '#686868', ghost: '#B5BAC2',
-  black: '#0B0C0E', blackHover: '#1F2024', onBlack: '#FFFFFF', chip: 'rgba(11,12,14,0.05)',
-  hair: 'rgba(15,23,42,0.07)',
-  shadow: '0 12px 40px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.03)',
-  err: '#8E1F3D', ok: '#059669',
-}
-const DsDARK: DsPal = {
-  card: 'rgba(255,255,255,0.05)', sub: 'rgba(255,255,255,0.06)', ink: '#ECEDF3', soft: '#C4C8D0', muted: '#8A909B', ghost: '#4C505A',
-  black: '#ECEDF3', blackHover: '#FFFFFF', onBlack: '#0B0C0E', chip: 'rgba(255,255,255,0.07)',
-  hair: 'rgba(255,255,255,0.07)',
-  shadow: '0 14px 40px rgba(0,0,0,0.42), 0 2px 8px rgba(0,0,0,0.30)',
-  err: '#E0738C', ok: '#2FBE8B',
-}
 
 const dsFmt = (n: number | null | undefined) =>
   n == null ? '' : 'CHF ' + n.toLocaleString('fr-CH').replace(/\u202f|,/g, "'")
@@ -87,7 +68,7 @@ function DsBlack({ children, onClick, p }: { children: ReactNode; onClick: () =>
   return (
     <button onClick={onClick} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)} style={{
       height: 44, padding: '0 22px', borderRadius: 999, border: 0,
-      background: h ? p.blackHover : p.black, color: p.onBlack, fontFamily: 'inherit',
+      background: h ? p.accentHover : p.accent, color: p.accentInk, fontFamily: 'inherit',
       fontWeight: 700, fontSize: 13.5, cursor: 'pointer',
       display: 'inline-flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap',
     }}>{children}</button>
@@ -173,7 +154,7 @@ function DsMatchRow({ b, pct, top, p, onOpen }: {
       {pct != null && (
         <span style={{
           flexShrink: 0, padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 800,
-          background: top ? p.black : p.chip, color: top ? p.onBlack : p.ink, fontVariantNumeric: 'tabular-nums',
+          background: top ? p.ink : p.chip, color: top ? p.onInk : p.ink, fontVariantNumeric: 'tabular-nums',
         }}>{pct}%</span>
       )}
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -213,20 +194,20 @@ function DsOfferRow2({ o, current, p, t }: {
     }}>
       <div style={{
         width: 30, height: 30, borderRadius: 999, flexShrink: 0, display: 'grid', placeItems: 'center',
-        background: counter ? 'transparent' : p.black,
+        background: counter ? 'transparent' : p.ink,
         boxShadow: counter ? `0 0 0 1.5px ${p.ghost} inset` : 'none',
       }}>
-        <SgIcon name={counter ? 'swap' : 'arrowR'} size={13} stroke={counter ? p.ink : p.onBlack} sw={2} />
+        <SgIcon name={counter ? 'swap' : 'arrowR'} size={13} stroke={counter ? p.ink : p.onInk} sw={2} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
           <span style={{
             fontSize: 10.5, fontWeight: 700, color: p.muted, textTransform: 'uppercase', letterSpacing: 0.6,
           }}>{counter ? t('deal.offer_row.counter') : t('deal.offer_row.offer')}</span>
-          {o.status === 'accepted' ? pill(p.ok, '#FFFFFF', t('deal.offer_status.accepted'))
-            : o.status === 'rejected' ? pill(p.err, '#FFFFFF', t('deal.offer_status.rejected'))
-            : o.status === 'expired' ? pill(p.muted, '#FFFFFF', t('deal.offer_status.expired'))
-            : current ? pill(p.black, p.onBlack, t('deal.offer_status.current')) : null}
+          {o.status === 'accepted' ? pill(p.ok, encreSur(p.ok), t('deal.offer_status.accepted'))
+            : o.status === 'rejected' ? pill(p.err, encreSur(p.err), t('deal.offer_status.rejected'))
+            : o.status === 'expired' ? pill(p.muted, encreSur(p.muted), t('deal.offer_status.expired'))
+            : current ? pill(p.ink, p.onInk, t('deal.offer_status.current')) : null}
           <span style={{ marginLeft: 'auto', fontSize: 11, color: p.muted, fontWeight: 500, whiteSpace: 'nowrap' }}>
             {fmtDateTime(o.created_at)}
           </span>
@@ -299,8 +280,8 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
     }
   }, [dark])
 
-  const p = dark ? DsDARK : DsLIGHT
   const sp = crmSugarPalette(dark)
+  const p = dsPalette(dark, sp)
 
   // ⚠ Les sept hooks sont appelés DANS TOUS LES CAS (règle des hooks) ; en banc
   // leur résultat est écarté. Sans session ils ne partent de toute façon pas.
@@ -723,7 +704,7 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
         <div style={{
           position: 'absolute', left: '50%', bottom: 28, transform: 'translateX(-50%)', zIndex: 60,
           display: 'inline-flex', alignItems: 'center', gap: 10, padding: '13px 20px', borderRadius: 999,
-          background: p.black, color: p.onBlack, fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap',
+          background: p.ink, color: p.onInk, fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap',
           boxShadow: '0 18px 44px rgba(0,0,0,0.30), 0 4px 14px rgba(0,0,0,0.20)',
           animation: 'sugar-fade-up .3s cubic-bezier(.2,.8,.2,1) both',
         }}>{toast}</div>

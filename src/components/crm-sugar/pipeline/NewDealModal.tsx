@@ -21,6 +21,7 @@ import {
   type StageId, type SugarPalette,
 } from '../tokens'
 import { encreSur } from '@/components/megga-x-crm/tokens'
+import { ndPalette } from './ndTokens'
 import type { CrmContact, CrmBien } from '../mockData'
 import { useAuth } from '@/hooks/useAuth'
 import { useContactsSugar } from '@/hooks/useContactsSugar'
@@ -57,53 +58,6 @@ interface Props {
   dark: boolean
   prefill: NewDealPrefill | null
   banc?: NewDealBanc
-}
-
-interface NdPalette {
-  bg: string
-  card: string
-  cardSubtle: string
-  cardBorder?: string
-  black: string
-  blackHover: string
-  ink: string
-  inkSoft: string
-  muted: string
-  ghost: string
-  line: string
-  onAccent: string
-  green: string
-  onGreen: string
-  shadow: string
-  shadowLg: string
-}
-
-function ndPalette(dark: boolean, sp: SugarPalette): NdPalette {
-  if (!dark) {
-    return {
-      bg: '#EDEFF3',
-      card: '#FFFFFF', cardSubtle: '#F7F8FA',
-      black: sp.accent, blackHover: '#1F2024',
-      ink: '#0B0C0E', inkSoft: '#3A3D44', muted: '#686868', ghost: '#B5BAC2',
-      line: 'rgba(11,12,14,0.07)',
-      onAccent: sp.accentInk,
-      green: '#0FA968', onGreen: '#FFFFFF',
-      shadow: '0 12px 40px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.03)',
-      shadowLg: '0 24px 60px rgba(15,23,42,0.08), 0 4px 16px rgba(15,23,42,0.04)',
-    }
-  }
-  return {
-    bg: '#0A0A0F',
-    card: 'rgba(255,255,255,0.05)', cardSubtle: 'rgba(255,255,255,0.04)',
-    cardBorder: 'rgba(255,255,255,0.08)',
-    black: sp.accent, blackHover: '#FFFFFF',
-    ink: '#ECEDF3', inkSoft: '#B5B7C4', muted: '#8A909B', ghost: '#363646',
-    line: 'rgba(255,255,255,0.08)',
-    onAccent: sp.accentInk,
-    green: '#34C796', onGreen: '#08130E',
-    shadow: '0 1px 2px rgba(0,0,0,.45), 0 10px 28px -12px rgba(0,0,0,.65)',
-    shadowLg: '0 24px 60px rgba(0,0,0,.60), 0 4px 16px rgba(0,0,0,.45)',
-  }
 }
 
 export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) {
@@ -248,7 +202,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
           <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--crm-space-lg)' }}>
             <button onClick={onClose} style={{
               height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
-              background: nd.black, color: nd.onAccent, fontFamily: 'inherit',
+              background: nd.accent, color: nd.accentInk, fontFamily: 'inherit',
               fontWeight: 700, fontSize: 'var(--crm-text-xl)', cursor: 'pointer', boxShadow: nd.shadow,
             }}>{t('modal.seePipeline')}</button>
           </div>
@@ -331,7 +285,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
           width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', background: nd.ink,
           display: 'grid', placeItems: 'center', flexShrink: 0,
         }}>
-          <MEIcon name="check" size={13} color={nd.onAccent} />
+          <MEIcon name="check" size={13} color={nd.accentInk} />
         </span>
       )}
     </button>
@@ -408,7 +362,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
                       <button key={o.v} onClick={() => setContactMode(o.v)} style={{
                         height: 36, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
                         background: contactMode === o.v ? nd.ink : 'transparent',
-                        color: contactMode === o.v ? nd.onAccent : nd.inkSoft,
+                        color: contactMode === o.v ? nd.accentInk : nd.inkSoft,
                         fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-lg)', cursor: 'pointer',
                         transition: 'all .16s ease',
                       }}>{o.label}</button>
@@ -587,8 +541,8 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
               // `ghost` : 2,86:1 en clair et 3,69:1 en sombre — sous l'AA dans
               // les DEUX thèmes. Un bouton désactivé reste lu (c'est lui qui dit
               // ce qui manque) ; son encre se dérive de son propre fond.
-              background: (!canCreate || creating) ? nd.ghost : nd.black,
-              color: (!canCreate || creating) ? encreSur(nd.ghost) : nd.onAccent,
+              background: (!canCreate || creating) ? nd.ghost : nd.accent,
+              color: (!canCreate || creating) ? encreSur(nd.ghost) : nd.accentInk,
               fontFamily: 'inherit', fontWeight: 700, fontSize: 'var(--crm-text-xl)',
               cursor: (!canCreate || creating) ? 'not-allowed' : 'pointer',
               boxShadow: (!canCreate || creating) ? 'none' : nd.shadow,

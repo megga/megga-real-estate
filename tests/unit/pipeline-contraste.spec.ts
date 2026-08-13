@@ -51,6 +51,9 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { CRM_STAGE_ORDER, crmSugarPalette, sgStagePillBg, sgStageTint } from '@/components/crm-sugar/tokens'
 import { AVATAR_PALETTE } from '@/lib/sugarAdapters'
+import { dsPalette } from '@/components/crm-sugar-v3/dealTokens'
+import { omPalette } from '@/components/crm-sugar-v3/offer-modal/omTokens'
+import { ndPalette } from '@/components/crm-sugar/pipeline/ndTokens'
 
 const AA = 4.5
 
@@ -197,50 +200,27 @@ function aplatsDeDonnee(code: string): RegExp {
  * texte — une garde qui refuse du code correct se fait désarmer, pas corriger.
  */
 /**
- * ⚠ LES TROIS PALETTES SE LISENT DANS LA SOURCE, ELLES NE S'IMPORTENT PAS.
+ * ⚠ LES PALETTES S'IMPORTENT — DEPUIS LE LOT 2, ET C'ÉTAIT L'INTÉRÊT DE
+ * L'EXTRACTION.
  *
- * Les exporter depuis leur fichier de composant ferait rougir
- * `react-refresh/only-export-components` — mesuré : cinq erreurs eslint sur une
- * base à zéro. Les extraire dans des modules de jetons est le bon geste, mais
- * c'est le LOT 2 (le reciblage des palettes parallèles), pas un effet de bord
- * d'une passe de contraste. En attendant, on lit le littéral — même idiome que
- * `matching-contraste.spec.ts`, qui lit `atelier.css` sans l'importer.
+ * Cette garde lisait le LITTÉRAL dans le fichier de page : les exporter depuis
+ * un fichier de composant faisait rougir `react-refresh/only-export-components`
+ * (cinq erreurs eslint sur une base à zéro). Le lot 2 les a sorties dans des
+ * modules de jetons — `dealTokens`, `omTokens` — et elles sont devenues des
+ * FONCTIONS de la palette MEGGA X. On mesure donc les valeurs réellement
+ * rendues, sans parseur intermédiaire.
  *
- * ⚠ Et on VÉRIFIE la lecture : une clé absente rendrait `undefined`, donc une
- * mesure sautée, donc une clause verte par vacuité.
+ * ⛔ Et le passage l'a prouvé au bon moment : la garde a LEVÉ quand les
+ * littéraux ont disparu, au lieu de passer au vert sur une palette qu'elle ne
+ * trouvait plus. C'est ce que `litPalette` exigeait, et c'est ce qui a évité
+ * qu'un refactor la neutralise en silence.
  */
-function litPalette(fichier: string, ancre: RegExp, cles: string[]): Record<string, string> {
-  const src = readFileSync(fichier, 'utf-8')
-  const debut = src.search(ancre)
-  if (debut < 0) throw new Error(`ancre introuvable dans ${fichier}`)
-  const fin = src.indexOf('\n}', debut)
-  const bloc = src.slice(debut, fin)
-  const out: Record<string, string> = {}
-  for (const cle of cles) {
-    const m = bloc.match(new RegExp(`\\b${cle}:\\s*'([^']+)'`))
-    if (!m) throw new Error(`clé ${cle} introuvable dans ${fichier} — la garde mesurerait undefined`)
-    out[cle] = m[1]
-  }
-  return out
-}
-
-const FICHE = 'src/pages/agent/DealDetailSugarV4Page.tsx'
-const OFFRE = 'src/components/crm-sugar-v3/offer-modal/OfferModalSugar.tsx'
-const NOUVEAU = `${DOSSIER}/NewDealModal.tsx`
-const CLES_DS = ['card', 'sub', 'ink', 'soft', 'muted']
-const CLES_OM = ['bg', 'card', 'cardSubtle', 'ink', 'inkSoft', 'muted', 'ghost']
-
-const dsClair = litPalette(FICHE, /const DsLIGHT: DsPal = \{/, CLES_DS)
-const dsSombre = litPalette(FICHE, /const DsDARK: DsPal = \{/, CLES_DS)
-const omClair = litPalette(OFFRE, /const OM_LIGHT: OmPalette = \{/, CLES_OM)
-const ndClair = litPalette(NOUVEAU, /if \(!dark\) \{\s*\n\s*return \{/, ['bg', 'card', 'cardSubtle', 'ink', 'inkSoft', 'muted', 'ghost'])
-const ndSombre = litPalette(NOUVEAU, /\n {2}return \{\n\s*bg: '#0A0A0F'/, ['bg', 'card', 'cardSubtle', 'ink', 'inkSoft', 'muted', 'ghost'])
-// `OM_DARK` tire ses surfaces de `MXC_COLOR` (pas de littéral) : on les prend à
-// la source des jetons, seule façon de ne pas recopier une valeur qui dérivera.
-const omSombre = {
-  ...litPalette(OFFRE, /const OM_DARK: OmPalette = \{/, ['ink', 'inkSoft', 'muted', 'ghost']),
-  bg: MXC_COLOR.n100, card: MXC_COLOR.n300, cardSubtle: MXC_COLOR.n200,
-}
+const dsClair = dsPalette(false, crmSugarPalette(false))
+const dsSombre = dsPalette(true, crmSugarPalette(true))
+const omClair = omPalette(false, crmSugarPalette(false))
+const omSombre = omPalette(true, crmSugarPalette(true))
+const ndClair = ndPalette(false, crmSugarPalette(false))
+const ndSombre = ndPalette(true, crmSugarPalette(true))
 const CANVAS_SOMBRE = crmSugarPalette(true).pageBg
 
 const PALETTES: { nom: string; encres: string[]; surfaces: string[] }[] = [
