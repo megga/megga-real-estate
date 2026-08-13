@@ -88,7 +88,7 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
         display: 'inline-grid', placeItems: 'center',
         ...(gabarit === 'fiche'
           ? { minHeight: 64, maxWidth: '100%', borderRadius: 12, padding: '10px 14px' }
-          : { flexShrink: 0, height: 56, borderRadius: 10, padding: '0 12px' }),
+          : { width: '100%', minHeight: 76, borderRadius: 12, padding: '10px 14px' }),
         background: LOGO_PLATE_BG,
         boxShadow: 'inset 0 0 0 1px ' + line,
       }}>
@@ -102,7 +102,7 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
           onError={() => setFailedUrl(logoUrl)}
           style={gabarit === 'fiche'
             ? { maxHeight: 44, maxWidth: 240, objectFit: 'contain', display: 'block' }
-            : { height: 40, maxWidth: 190, objectFit: 'contain', display: 'block' }}
+            : { maxHeight: 56, maxWidth: '100%', objectFit: 'contain', display: 'block' }}
         />
       </span>
     )
@@ -116,11 +116,11 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
   // Sur une CARTE : le logo SEUL s'il existe, le nom sinon.
   if (plaque) return plaque
 
-  // ⚠ 120 px de plafond. Des régies portent 86 à 95 caractères — des agences
-  // générales d'assurance — et sans borne le nom mangerait la date de
-  // publication, qui partage la rangée.
+  // ⚠ Plus de plafond à 120 px : le nom ne partage plus sa rangée avec la date,
+  // il a la largeur de la carte. Les régies à 86-95 caractères — des agences
+  // générales d'assurance — s'y écrêtent proprement au lieu de disputer la place.
   return (
-    <span title={label} style={{ flexShrink: 0, maxWidth: 120, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+    <span title={label} style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
       {label}
     </span>
   )
