@@ -72,7 +72,22 @@ print("Unicité et complétude")
 slugs = [r["slug"] for r in rows]
 dupes = [s for s, c in collections.Counter(slugs).items() if c > 1]
 flag(bool(dupes), f"slugs dupliqués : {dupes[:5] or 'aucun'}")
-flag(n != 1236, f"effectif attendu 1236, obtenu {n}")
+# ⛔ Pas d'effectif attendu en dur : RealAdvisor en ajoute et en retire en
+# continu, et un « 1236 » figé transforme le contrôle en faux rouge permanent —
+# donc en bruit qu'on apprend à ignorer, ce qui masquerait la prochaine vraie
+# anomalie. On compare au sitemap quand il est là, sinon on se contente de dire
+# l'effectif. `--attendu N` permet de le forcer ponctuellement.
+attendu = None
+for i, a in enumerate(sys.argv):
+    if a == "--attendu" and i + 1 < len(sys.argv):
+        attendu = int(sys.argv[i + 1])
+urls = OUT / "agency_urls.txt"
+if attendu is None and urls.exists():
+    attendu = len({u for u in urls.read_text().split() if u.strip()})
+if attendu is None:
+    print(f"  ·   effectif : {n} (aucune référence pour le comparer)")
+else:
+    flag(n != attendu, f"effectif attendu {attendu}, obtenu {n}")
 flag(any(not r.get("name") for r in rows),
      f"fiches sans nom : {sum(1 for r in rows if not r.get('name'))}")
 

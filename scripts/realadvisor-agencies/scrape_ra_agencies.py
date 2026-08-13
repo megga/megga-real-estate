@@ -17,11 +17,9 @@ Deux surfaces échappent au challenge et sont donc lues en HTTP nu :
 
 Sortie (dans --out, par défaut `out/`)
 --------------------------------------
-  agencies.jsonl   une fiche complète par ligne — reprise de crawl possible
-  agencies.csv     un plat des champs scalaires, pour tableur
-  agents.csv       une ligne par agent
-  reviews.csv      une ligne par avis
+  agencies.csv     LE LIVRABLE : identité, adresse, canton, site, logo
   logos/           les logos, nommés d'après le slug de l'agence
+  agencies.jsonl   capture brute + fichier de reprise ; --purge-raw l'efface
 
 Usage
 -----
@@ -68,35 +66,77 @@ CANTON_CODE = {
     "valais": "VS", "neuchatel": "NE", "geneve": "GE", "jura": "JU",
 }
 
-# « Rue de la Faïencerie 2, 1227 Carouge » — filet quand l'objet « équipe » du
-# flux RSC manque (agences non revendiquées) et que seul le JSON-LD répond.
-_ADDR = re.compile(r"^(.*?)\s+(\S+),\s*(\d{4})\s+(.+)$")
+# Filet quand l'objet « équipe » du flux RSC manque (agences non revendiquées)
+# et que seul le JSON-LD répond. Deux formes, essayées dans cet ordre :
+#   « Rue de la Faïencerie 2, 1227 Carouge »  → rue, n°, NPA, localité
+#   « 1815 Montreux » / « Sion, 1950 Sion »   → NPA, localité seuls
+# ⚠ Exiger un numéro de rue laissait 13 fiches sans NPA ni localité, et 4 sans
+# canton, alors que l'adresse complète était là.
+# Variantes d'extension qui désignent le même format : les ramener au nom usuel
+# évite un `.jfif` que peu d'outils reconnaissent alors que c'est du JPEG.
+ALIAS_EXT = {"jfif": "jpg", "jpe": "jpg", "tif": "tiff", "svgz": "svg"}
+
+_ADDR_RUE = re.compile(r"^(.*?)\s+(\S+),\s*(\d{4})\s+(.+)$")
+_ADDR_NPA = re.compile(r"(?:^|,\s*)(\d{4})\s+([^,]+)$")
 
 
 # ─── Extraction ───────────────────────────────────────────────────
 
 def text_chunks(blob: str) -> dict[str, str]:
-    """Indexe les chunks texte du flux RSC par leur identifiant."""
+    """Indexe les chunks texte du flux RSC par leur identifiant.
+
+    ⛔ La longueur annoncée (`50:T4d1,`) est un nombre d'OCTETS — c'est le
+    protocole flight, qui découpe un flux binaire. Trancher la chaîne Python sur
+    cette valeur compte des CARACTÈRES : dès qu'un texte porte des accents, il en
+    a moins que d'octets, et la tranche déborde sur le chunk suivant. On repasse
+    donc par les octets.
+    """
+    raw = blob.encode("utf-8")
     out = {}
     for m in _TEXT_CHUNK.finditer(blob):
         length = int(m.group(2), 16)
-        out[m.group(1)] = blob[m.end() : m.end() + length]
+        start = len(blob[: m.end()].encode("utf-8"))
+        out[m.group(1)] = raw[start : start + length].decode("utf-8", "ignore")
     return out
+
+
+def scoped_value(blob: str, pattern: str, slug: str):
+    """Lit une valeur du flux RSC en refusant l'ambiguïté.
+
+    ⛔ Un `re.search` nu prend la PREMIÈRE occurrence du flux entier : sur une
+    fiche qui rend d'abord un bloc « agences similaires » ou une vente réalisée
+    par un tiers, c'est la valeur du VOISIN qui est retenue, sans que rien ne le
+    signale. On préfère donc l'occurrence portée par un objet dont l'`agency_slug`
+    est celui de la page ; à défaut, on n'accepte la valeur que si le flux n'en
+    contient qu'une seule — sinon on rend None plutôt qu'un chiffre plausible et
+    faux.
+    """
+    ancre = re.search(pattern + r'[^{}]{0,400}?"agency_?[sS]lug":"%s"' % re.escape(slug), blob)
+    if ancre:
+        return ancre.group(1)
+    valeurs = {m.group(1) for m in re.finditer(pattern, blob)}
+    return valeurs.pop() if len(valeurs) == 1 else None
 
 
 def pick_team(blob: str, slug: str) -> dict:
     """L'objet « équipe » de CETTE agence, le plus complet des candidats.
 
     La page cite aussi les agences des transactions voisines ; on filtre donc sur
-    le slug, puis on garde l'objet qui porte le plus de clés (celui de l'en-tête
-    de fiche est plus riche que ceux cités dans les ventes).
+    le slug, puis on retient l'objet qui porte le plus de champs d'IDENTITÉ.
     """
-    best = {}
+    # ⛔ Ne PAS classer sur le nombre de clés : si RealAdvisor enrichit un jour
+    # l'objet cité dans le contexte d'une transaction (acheteur, vendeur…), il
+    # dépasserait celui de l'en-tête de fiche et deviendrait la source du nom, du
+    # logo et de l'adresse. On note donc les clés d'IDENTITÉ, celles qu'on lit.
+    IDENTITE = ("name", "logo", "route", "street_number", "postcode", "locality",
+                "hide_exact_address", "mv_agency", "id")
+    best, best_score = {}, -1
     for obj in P.json_objects_with_key(blob, "agency_slug", limit=60):
         if obj.get("agency_slug") != slug:
             continue
-        if len(obj) > len(best):
-            best = obj
+        score = sum(1 for k in IDENTITE if obj.get(k) is not None)
+        if score > best_score:
+            best, best_score = obj, score
     return best
 
 
@@ -114,17 +154,21 @@ def extract(page_html: str, url: str) -> dict:
     if m:
         about = chunks.get(m.group(1))
 
-    m = re.search(r'"href":"([^"]+)","rel":"nofollow","eventName":"website_link_clicked"', blob)
+    # Le lien « site web » porte href ET params dans le MÊME bloc : on les lit
+    # ensemble pour être sûr que l'uuid appartient bien à ce lien-là.
+    m = re.search(
+        r'"href":"([^"]+)","rel":"nofollow","eventName":"website_link_clicked",'
+        r'"params":\{"page_type":"agency-detail","agency_id":"([0-9a-f-]{36})"', blob)
     website = m.group(1) if m else None
 
-    # L'uuid d'agence vit normalement sur l'objet « équipe » — mais celui-ci
-    # n'existe QUE pour les agences revendiquées (31 % du vivier ne l'ont pas :
-    # 0 transaction, pas de fiche d'équipe). Les paramètres d'événement du lien
-    # « site web », eux, le portent toujours : c'est notre seconde source.
-    agency_id = team.get("id")
+    # L'uuid vit normalement sur l'objet « équipe » — mais celui-ci n'existe QUE
+    # pour les agences revendiquées (31 % du vivier ne l'ont pas). Le bloc
+    # d'événement ci-dessus est la seconde source, et il est ancré sur
+    # `page_type: agency-detail`, donc sur l'agence de la PAGE — là où un
+    # `re.search` sur `"agency_id"` seul aurait pu happer celui d'un voisin.
+    agency_id = team.get("id") or (m.group(2) if m else None)
     if not agency_id:
-        m_id = re.search(r'"agency_id":"([0-9a-f-]{36})"', blob)
-        agency_id = m_id.group(1) if m_id else None
+        agency_id = scoped_value(blob, r'"agency_id":"([0-9a-f-]{36})"', slug)
 
     m_y = re.search(r"(\d+)\s*ans? d.expérience", blob)
     m_p = re.search(r'"hasPhone":(true|false)', blob)
@@ -163,8 +207,11 @@ def extract(page_html: str, url: str) -> dict:
         })
 
     agg = org.get("aggregateRating") or {}
-    m_tx = re.search(r'"totalTransactions":(\d+)', blob)
-    m_ls = re.search(r'"totalListings":(\d+)', blob)
+    # Ancrés sur le slug de la page (cf. scoped_value) : ces compteurs sont rendus
+    # à côté de ceux d'agences citées, et un premier-match-gagne y attribuait les
+    # chiffres du voisin sans que rien ne paraisse anormal.
+    tx = scoped_value(blob, r'"totalTransactions":(\d+)', slug)
+    ls = scoped_value(blob, r'"totalListings":(\d+)', slug)
 
     canton_slug = canton = None
     for crumb in P.ld_breadcrumb(page_html):
@@ -175,9 +222,16 @@ def extract(page_html: str, url: str) -> dict:
     route, number = team.get("route"), team.get("street_number")
     postcode, locality = team.get("postcode"), team.get("locality")
     if not postcode and org.get("address"):
-        m_a = _ADDR.match(org["address"].strip())
+        brut = org["address"].strip()
+        m_a = _ADDR_RUE.match(brut)
         if m_a:
             route, number, postcode, locality = m_a.groups()
+        else:
+            # Pas de numéro de rue : on récupère au moins NPA et localité, plutôt
+            # que de tout perdre — c'est ce qui laissait des fiches sans canton.
+            m_a = _ADDR_NPA.search(brut)
+            if m_a:
+                postcode, locality = m_a.group(1), m_a.group(2).strip()
 
     return {
         "slug": slug,
@@ -196,9 +250,9 @@ def extract(page_html: str, url: str) -> dict:
         "hide_exact_address": team.get("hide_exact_address"),
         "rating": agg.get("ratingValue"),
         "reviews_count": agg.get("reviewCount"),
-        "transactions_total": int(m_tx.group(1)) if m_tx else None,
+        "transactions_total": int(tx) if tx else None,
         "sales_count_24m": (team.get("mv_agency") or {}).get("sales_count"),
-        "listings_count": int(m_ls.group(1)) if m_ls else None,
+        "listings_count": int(ls) if ls else None,
         "years_experience": int(m_y.group(1)) if m_y else None,
         # Le numéro lui-même n'est jamais rendu (masqué derrière un clic) ; on ne
         # garde que le fait qu'il en existe un, ce qui suffit à qualifier un lead.
@@ -223,8 +277,24 @@ def sitemap_urls(session, lang: str) -> list[str]:
     Le navigateur rend ensuite le XML dans sa visionneuse : on relit les URLs
     dans le DOM plutôt que dans des balises <loc>, qui n'y survivent pas toutes.
     """
-    seed = f"{BASE}/{lang}/agences-immobilieres/canton-jura"
-    session.fetch(seed)
+    # ⛔ Une seule page d'amorce codée en dur rend l'énumération muette si RA la
+    # renomme : le cookie n'est pas posé, la navigation retombe sur le challenge,
+    # et le script annonce « 0 agences » sans erreur. On essaie donc plusieurs
+    # cantons et on échoue BRUYAMMENT si aucun ne répond.
+    seed = None
+    for canton in ("canton-jura", "canton-geneve", "canton-vaud", "canton-zurich"):
+        candidat = f"{BASE}/{lang}/agences-immobilieres/{canton}"
+        try:
+            page = session.fetch(candidat)
+            if "__next_f" in page.html_content:
+                seed = candidat
+                break
+        except Exception as exc:  # noqa: BLE001 — on essaie le canton suivant
+            print(f"  amorce {canton} KO ({type(exc).__name__})", file=sys.stderr)
+    if seed is None:
+        raise RuntimeError(
+            "aucune page canton n'a pu servir d'amorce — le cookie Cloudflare ne "
+            "peut pas être posé, l'énumération du sitemap échouerait en silence")
 
     grabbed: dict = {}
 
@@ -268,12 +338,16 @@ def download_logos(records: list[dict], out: Path, delay: float) -> int:
         url = rec.get("logo_url")
         if not url:
             continue
-        # RealAdvisor sert aussi de l'AVIF : forcer `.png` par défaut donnait des
-        # fichiers à extension mensongère, qu'aucun outil n'ouvrait ensuite.
+        # ⛔ Forcer `.png` sur tout format inconnu produit des fichiers à extension
+        # MENSONGÈRE. La liste a d'abord oublié l'AVIF, puis le JFIF (2 logos
+        # enregistrés en .png alors qu'ils sont du JPEG). Élargir la liste ne fait
+        # que repousser le problème : on garde donc l'extension d'origine dès
+        # qu'elle ressemble à une extension, et `.bin` signale l'inconnu au lieu
+        # de le déguiser.
         ext = re.sub(r"[?#].*$", "", url).rsplit(".", 1)[-1].lower()
-        if ext not in {"png", "jpg", "jpeg", "webp", "gif", "svg", "avif",
-                       "heic", "bmp", "ico", "tif", "tiff"}:
-            ext = "png"
+        ext = ALIAS_EXT.get(ext, ext)
+        if not re.fullmatch(r"[a-z0-9]{2,5}", ext):
+            ext = "bin"
         dest = logos / f"{rec['slug']}.{ext}"
         if dest.exists() and dest.stat().st_size > 0:
             rec["logo_file"] = dest.name

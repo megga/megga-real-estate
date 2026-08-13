@@ -10,6 +10,7 @@ On lit les deux et on préfère le RSC quand il répond, le JSON-LD servant de f
 
 import html as html_mod
 import json
+import sys
 import re
 
 _NEXT_F = re.compile(r'self\.__next_f\.push\(\[1,\s*"((?:[^"\\]|\\.)*)"\]\)')
@@ -96,6 +97,12 @@ def _balanced(blob: str, start: int):
                 return blob[start : i + 1]
         i += 1
         if i - start > 400_000:
+            # ⛔ Abandonner en silence fait disparaître un champ sans trace : une
+            # fiche dont l'objet « équipe » dépasse le plafond ressort avec le
+            # même profil qu'une agence non revendiquée, et rien ne distingue les
+            # deux cas. On le signale.
+            print(f"[ra_parse] objet > 400k caractères ignoré à l'offset {start} "
+                  f"— champ potentiellement perdu", file=sys.stderr)
             return None
     return None
 
