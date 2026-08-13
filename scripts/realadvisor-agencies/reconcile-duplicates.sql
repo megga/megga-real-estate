@@ -329,6 +329,30 @@ order by a.city, a.address;
 --   • ⛔ « Groupe Prisme » : « Groupe Prisme S.A. » ET « Prisme Immobilier SA »
 --     coexistent dans LA MÊME commune. Le nom désigne l'une, l'activité l'autre.
 --
+-- ⚠ DEMANDER `schema:streetAddress`, PAS SEULEMENT LA COMMUNE — la RUE tranche
+-- ce que la commune laisse ouvert, et elle a renversé 3 des 4 lignes « activité
+-- divergente » (13.08.2026) :
+--   • « Mentor Immobilier » (Seestrasse 33b, Wädenswil) et *MENTOR TREUHAND AG*
+--     sont inscrites à la MÊME RUE ⇒ **aucune erreur**, l'IDE était bon.
+--   • « Lehmann Immobilien » (Bahnhofstrasse 4, Langnau i.E.) détenait *Treuhand
+--     Lehmann AG*, Mezenerweg 8a à BERNE ; à SA propre adresse est inscrite
+--     *Lehmann AG Baumanagement* ⇒ correction, malgré un nom non identique.
+--     L'adresse exacte prime sur le mot « Immobilien » dans la raison sociale.
+--   • « Niederer AG Immobilien und Verwaltungen » : **4 sociétés Niederer à
+--     l'Unterdorfstrasse 5** ⇒ l'adresse est ÉPUISÉE comme discriminant, comme
+--     au siège Tarchini. Arbitrage humain.
+--
+-- ⛔ « ACTIVITÉ DIFFÉRENTE » (nous *Immobilien*, l'inscription *Treuhand*) N'EST
+-- PAS UN INDICE — une fiduciaire suisse fait couramment de la gérance. Ce critère
+-- a produit 4 signalements dont 1 seule vraie erreur. Ne pas s'en servir seul.
+--
+-- ⛔ QUAND AUCUN CANDIDAT NE CONVIENT, VIDER LE CHAMP plutôt qu'affirmer un faux.
+-- « DELTA Immobilien » (Seftigen) détenait *Delta Treuhand AG*, `c/o` à Gümligen,
+-- sans aucune société immobilière « Delta » dans le canton : lien fondé sur un
+-- token générique. `uid_che = NULL` fait produire `unavailable` au check KYB
+-- `registry_lookup` — un dossier visiblement incomplet, au lieu d'un verdict
+-- adossé à la mauvaise personne morale, qui lui a l'air valide.
+--
 -- ⚠ TROIS PIÈGES DE CETTE ÉNUMÉRATION :
 --  1. **chercher sur NOTRE nom, pas sur celui du registre.** J'ai interrogé
 --     « residence immobilien » (le nom inscrit) et conclu qu'il n'y avait pas
