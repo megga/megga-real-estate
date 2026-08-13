@@ -362,37 +362,48 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                   sélection — sortent de l'écran dès qu'on déroule pour lire. */}
               <div style={{ position: 'sticky', top: 6 }}>
                 <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>{t('recherche.detail.agency')}</div>
-                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
-                  {/* La MARQUE de la régie quand la base en a une, le monogramme
-                      sinon. ⚠ 47,9 % des annonces actives portent un logo (68,0 %
-                      côté Flatfox, 31,3 % côté RealAdvisor, mesuré le 13.08.2026) :
-                      le repli n'est pas un cas de bord, il couvre la majorité.
-                      ⚠ Le chargement passe par le composant PARTAGÉ — mémo d'échec
-                      par URL, `no-referrer`, `lazy`. Réécrire une balise `img` ici
-                      aurait dupliqué précisément la partie où les bugs se logent. */}
-                  <MrhAgencyLogo
-                    name={bien.agency}
-                    logoUrl={bien.agency_logo_url}
-                    sp={sp}
-                    line={line}
-                    gabarit="fiche"
-                    monogramme={
-                      <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'grid', placeItems: 'center', background: ACC, color: ONACC, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{agencyInit || '—'}</span>
-                    }
-                  />
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agencyName}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 7, fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600, marginTop: 2 }}>
-                      <span>{portalLabel}</span>
-                      {/* ⛔ Le séparateur n'a plus de teinte à lui. `dot` existait pour être PLUS
-                          FAIBLE que la ligne qu'il ponctue — 1,67:1 en clair, 1,89:1 en sombre —
-                          et « plus faible » finit toujours sous le plancher : même motif que
-                          `--ink-dim`. Il hérite donc de `sp.sub`, comme le texte qu'il sépare ;
-                          l'écart visuel est déjà porté par le `gap` du conteneur.
-                          `aria-hidden` parce que c'est de la ponctuation VISUELLE : les deux
-                          faits sont déjà deux éléments distincts pour un lecteur d'écran. */}
-                      {bien.postedAt ? <><span aria-hidden="true">·</span><span>{bien.postedAt}</span></> : null}
-                    </div>
+                <div style={{ marginTop: 10 }}>
+                  {/* La MARQUE de la régie parle SEULE quand la base en a une —
+                      logo sur plaque, sans le nom à côté. Sinon le monogramme et
+                      le nom reviennent ensemble.
+
+                      ⛔ C'est le COMPOSANT qui arbitre, pas cette page : lui seul
+                      sait si l'image a échoué. Masquer le nom ici sur la simple
+                      présence d'une URL laisserait un bloc « Régie » entièrement
+                      vide le jour où le CDN ne répond pas.
+
+                      ⚠ Le repli n'est pas un cas de bord : 61,2 % des 76 648
+                      annonces actives ont un logo (mesuré le 13.08.2026, APRÈS la
+                      reprise d'`agency_profiles`), et 17 496 des 29 730 restantes
+                      portent un nom.
+
+                      ⚠ Le chargement passe par le composant PARTAGÉ — mémo
+                      d'échec par URL, `no-referrer`, `lazy`. Réécrire une balise
+                      `img` ici dupliquerait la partie où les bugs se logent. */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                    <MrhAgencyLogo
+                      name={bien.agency}
+                      logoUrl={bien.agency_logo_url}
+                      sp={sp}
+                      line={line}
+                      gabarit="fiche"
+                      monogramme={
+                        <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'grid', placeItems: 'center', background: ACC, color: ONACC, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{agencyInit || '—'}</span>
+                      }
+                      nom={
+                        <span style={{ minWidth: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agencyName}</span>
+                      }
+                    />
+                  </div>
+                  {/* Portail et date restent SOUS la marque dans les deux
+                      branches : ce sont des faits sur l'annonce, pas sur la
+                      régie, et ils ne doivent pas disparaître avec le nom. */}
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 7, marginTop: 8, fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600 }}>
+                    <span>{portalLabel}</span>
+                    {/* ⛔ Le séparateur n'a plus de teinte à lui — voir `--ink-dim` :
+                        un jeton qui n'existe que pour être plus faible finit sous
+                        le plancher (1,67:1). `aria-hidden` : ponctuation VISUELLE. */}
+                    {bien.postedAt ? <><span aria-hidden="true">·</span><span>{bien.postedAt}</span></> : null}
                   </div>
                 </div>
                 {bien.agency_phone ? (

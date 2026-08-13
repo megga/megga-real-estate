@@ -59,25 +59,36 @@ interface Props {
    * l'ACCENT, et que l'accent appartient à l'écran, pas à ce composant.
    */
   monogramme?: ReactNode
+  /**
+   * Le NOM écrit, gabarit `fiche` — rendu uniquement dans la branche de repli.
+   *
+   * ⛔ C'est le composant qui doit décider de l'afficher, pas l'appelant : lui
+   * seul sait si l'image a ÉCHOUÉ. Un appelant qui masquerait le nom sur la
+   * simple présence d'une URL laisserait un bloc « Régie » entièrement vide le
+   * jour où le CDN ne répond pas.
+   */
+  nom?: ReactNode
 }
 
-export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'carte', monogramme }: Props) {
+export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'carte', monogramme, nom }: Props) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const label = name?.trim()
-  if (!label) return gabarit === 'fiche' ? <>{monogramme}</> : null
+  if (!label) return gabarit === 'fiche' ? <>{monogramme}{nom}</> : null
 
   // ⚠ Le gabarit `fiche` est CARRÉ (40 px) : il prend la place exacte du
   // monogramme, sinon la ligne d'à côté — nom + portail + date — se décalerait
   // selon que la régie a un logo ou non.
-  const carre = gabarit === 'fiche'
+  // ⚠ Le gabarit `fiche` n'est plus CARRÉ : la plaque y remplace le nom ET le
+  // monogramme, donc elle a toute la largeur de la colonne (340 px) pour se
+  // déployer. Un logo est un dessin — le contraindre à un carré de 40 px le
+  // rendait décoratif plutôt que reconnaissable.
   const plaque = logoUrl && failedUrl !== logoUrl
     ? (
       <span style={{
-        flexShrink: 0,
-        ...(carre
-          ? { width: 40, height: 40, borderRadius: 12, padding: 4 }
-          : { height: 34, borderRadius: 8, padding: '0 8px' }),
-        display: 'grid', placeItems: 'center',
+        display: 'inline-grid', placeItems: 'center',
+        ...(gabarit === 'fiche'
+          ? { minHeight: 64, maxWidth: '100%', borderRadius: 12, padding: '10px 14px' }
+          : { flexShrink: 0, height: 34, borderRadius: 8, padding: '0 8px' }),
         background: LOGO_PLATE_BG,
         boxShadow: 'inset 0 0 0 1px ' + line,
       }}>
@@ -89,17 +100,18 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
           loading="lazy"
           decoding="async"
           onError={() => setFailedUrl(logoUrl)}
-          style={carre
-            ? { maxHeight: 32, maxWidth: 32, objectFit: 'contain', display: 'block' }
+          style={gabarit === 'fiche'
+            ? { maxHeight: 44, maxWidth: 240, objectFit: 'contain', display: 'block' }
             : { height: 24, maxWidth: 116, objectFit: 'contain', display: 'block' }}
         />
       </span>
     )
     : null
 
-  // Sur la FICHE, le nom est déjà écrit à côté : la plaque le remplace, et à
-  // défaut c'est le monogramme fourni par l'appelant.
-  if (carre) return plaque ?? <>{monogramme}</>
+  // Sur la FICHE, la marque parle seule quand elle existe. Sinon le monogramme
+  // ET le nom reviennent ensemble — c'est le composant qui en décide, parce que
+  // lui seul sait si l'image a échoué.
+  if (gabarit === 'fiche') return plaque ?? <>{monogramme}{nom}</>
 
   // Sur une CARTE : le logo SEUL s'il existe, le nom sinon.
   if (plaque) return plaque
