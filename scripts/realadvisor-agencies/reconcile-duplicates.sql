@@ -225,6 +225,15 @@ where s.name like '%—%' and s.city is not null
 -- Corroboration à exiger avant d'écrire — les cantons de la petite ligne doivent
 -- être CONTENUS dans ceux de la grosse (Chur `GR` ⊂ `GL,GR,SG,SZ,TG,ZH`). Deux
 -- géographies disjointes signalent un mauvais appariement, pas un doublon.
+--
+-- ⛔ ET LE CONTRE-EXEMPLE QUI BORNE CE SIGNAL : UN SIÈGE DE GROUPE. Via Cantonale 3
+-- à Manno abrite **7 sociétés Tarchini INSCRITES** (Brands SA, FoxTown SA, Luxury
+-- Real Estate SA, Consulting SA, Real Estate SA, Residential Real Estate SA, la
+-- Fondazione) — 18 « Tarchini » au registre en tout. Même adresse, même logo,
+-- noms proches : toutes les corroborations concordent, et pourtant rien n'est
+-- fusionnable. ⇒ Avant d'écrire sur un groupe d'adresse, INTERROGER LE REGISTRE
+-- sur le token distinctif : plusieurs inscriptions à la même rue = plusieurs
+-- sociétés. Le signal d'adresse rapproche des BUREAUX, pas des personnes morales.
 select a.name, b.name, a.address, a.city,
        (select count(*) from public.market_listings m where m.agency_profile_id=a.id) ann_a,
        (select count(*) from public.market_listings m where m.agency_profile_id=b.id) ann_b,
@@ -258,6 +267,36 @@ order by a.city, a.address;
 -- ⚠ NE PAS PROPAGER LE website_url DE LA LIGNE NUE. Deux portaient un site de
 -- TIERS sur un bureau Wincasa (immo-lausanne.ch, gerancec.ch), écrits en avril
 -- 2026 bien avant l'import RA. La fusion prend celui de la JUMELLE, ou rien.
+
+-- ═══ ⛔ UNE LISTE DE PAIRES N'EST PAS UNE LISTE DE DÉCISIONS ════════════════
+-- Piège rencontré sur Tarchini : « fusionne toutes les paires SAUF celle-ci » est
+-- IRRÉALISABLE dès que les paires forment un groupe connexe. Sur 4 lignes,
+-- Consulting↔Group et Consulting↔Residential réunissent Group et Residential par
+-- TRANSITIVITÉ — donc exactement la paire qu'on voulait exclure.
+-- ⇒ Une exclusion ne se décide pas paire par paire : elle se décide sur la LIGNE
+-- (retirer Residential du groupe), ou le groupe entier reste intact.
+-- ⚠ Corollaire pour les CSV d'arbitrage : n lignes à une adresse produisent
+-- n(n-1)/2 paires — 3 lignes REMICOM ont donné 3 « paires », qui étaient UN seul
+-- geste. Compter les GROUPES, pas les paires, avant d'annoncer un volume.
+
+-- ═══ Vérifier un uid_che contre le registre ════════════════════════════════
+-- ⚠ FORMATS INCOMPATIBLES : la base stocke `CHE-XXX.XXX.XXX` (594/594 lignes),
+-- LINDAS rend `CHEXXXXXXXXX`. Convertir avant toute comparaison, sinon 0 résultat.
+-- Le sens IDE→nom est RAPIDE (~53 ms) contrairement à nom→IDE : une seule requête
+-- SPARQL avec `VALUES ?ident { "CHE…" "CHE…" }` en résout 25 d'un coup.
+--
+-- Mesuré le 13.08.2026 sur 25 lignes tirées au hasard : **25/25 concordantes**.
+-- L'enrichissement Zefix de juillet n'est donc PAS globalement faux. Les 3 erreurs
+-- connues sont d'une classe précise — lignes dont le nom est un LIBELLÉ DE GROUPE
+-- (« Tarchini Group » portait le CHE de Tarchini Real Estate SA) ou une VARIANTE
+-- D'ÉCRITURE, là où l'appariement par nom avait plusieurs candidats. Auditer cette
+-- classe, pas les 594 : la requête ci-dessous en isole **93** (mesuré), soit
+-- 4 lots LINDAS.
+select a.name, a.uid_che, replace(replace(a.uid_che,'-',''),'.','') as ide_pour_lindas
+from public.agency_profiles a
+where a.uid_che is not null
+  and (a.name !~* '(AG|SA|GmbH|Sàrl|Sagl)$' or a.name ~* 'group|holding')
+order by a.name;
 
 -- ═══ ⛔ LA LEÇON QUI A COÛTÉ QUATRE ERREURS ═════════════════════════════════
 -- 1. CLASSER LES LIGNES, JAMAIS LES PAIRES. Un premier tri par paire étiquetait
