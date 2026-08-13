@@ -165,6 +165,15 @@ select (select count(*) from public.agency_profiles)                          as
 -- ⚠ LE SURVIVANT SE CHOISIT SUR LE NOMBRE D'ANNONCES, jamais sur l'ancienneté :
 -- « Regimo Basel » en porte 274 contre 2 à sa jumelle, « Privera AG » 3609. Se
 -- tromper de côté déclenche le ON DELETE SET NULL sur des milliers de lignes.
+--
+-- ⛔ ET CE SIGNAL A DES FAUX NÉGATIFS — « logos différents » ne prouve RIEN.
+-- Mesuré sur CBRE : `CBRE (Zürich) AG` porte `s6qxwnnglmy….jpg` quand les autres
+-- lignes CBRE portent `louadjzkc01….jpg`, alors que les cinq appartiennent à la
+-- MÊME organisation Flatfox (leurs annonces pointent toutes vers
+-- `/fr/cbre-zurich-ag/`). Ce sont deux fichiers distincts captés à des dates de
+-- synchronisation différentes, pas deux marques. ⇒ Un logo commun RAPPROCHE,
+-- un logo différent n'ÉCARTE pas. Pour trancher, passer par le portail (section
+-- « qu'est-ce que cette ligne ? » plus bas).
 select a.id, a.name, b.id, b.name, coalesce(a.city, a.canton) as lieu,
        round(similarity(lower(a.name), lower(b.name))::numeric, 2) as sim,
        (select count(*) from public.market_listings m where m.agency_profile_id=a.id) ann_a,
@@ -278,9 +287,32 @@ order by a.city, a.address;
 --   3. cette fiche donne la raison sociale — « Wincasa AG ». Tranché.
 --   4. recouper avec le `logo_url` : même fichier = même organisation.
 --
--- ⚠ Sur Flatfox, quand l'organisation n'a pas de nom, le bloc annonceur affiche
--- son ADRESSE à la place — d'où les lignes nommées « Laupenstrasse 19 3001 Bern »
--- ou, après troncature, « Bern ». Le nom opaque EST le symptôme, pas un mystère.
+-- ⚠ LA STRUCTURE FLATFOX EXPLIQUE TOUTE CETTE CLASSE DE LIGNES, confirmée trois
+-- fois (Wincasa, CBRE, REMICOM) : **UNE organisation, un libellé d'annonceur
+-- LIBRE par annonce**, au format `<DESK> <ADRESSE>` — « AGENCE REMICOM PME Route
+-- de Frontenex 58 Bis 1207 Genève ». Notre sync fabrique une `agency_profile` par
+-- libellé distinct. D'où, pour une seule société : 22 lignes Wincasa, 4 CBRE,
+-- 9 REMICOM. Quand le desk n'a pas de nom, le libellé se réduit à l'adresse —
+-- d'où « Bern » (Laupenstrasse 19). Le nom opaque EST le symptôme, pas un mystère.
+-- ⚠ Le slug de la ligne portant la raison sociale vaut souvent l'identifiant
+-- d'organisation du portail : `cbre-zurich-ag` ↔ `/fr/cbre-zurich-ag/`.
+
+-- ═══ ✅ COMMENT DÉFAIRE UNE DE CES FUSIONS ══════════════════════════════════
+-- `market_listings.agency_name` conserve le libellé d'annonceur d'ORIGINE sur
+-- chaque annonce, 1:1 avec la ligne dont elle venait, et la fusion n'y touche pas
+-- (elle ne bouge que `agency_profile_id`). ⇒ Inutile de sauvegarder les
+-- identifiants d'annonces avant de fusionner : recréer la ligne, puis
+--     update market_listings set agency_profile_id = <ligne recréée>
+--      where agency_name = '<libellé exact>';
+-- Vérifié sur REMICOM : après fusion, la survivante genevoise porte 3 libellés
+-- distincts et la neuchâteloise 2 — exactement les lignes absorbées.
+-- Ne reste à sauvegarder que les MÉTADONNÉES des lignes supprimées (slug,
+-- claim_token, created_at), que rien d'autre ne porte.
+select a.name, m.agency_name, count(*) as n
+from public.market_listings m
+join public.agency_profiles a on a.id = m.agency_profile_id
+where a.name = 'AGENCE REMICOM GENEVE'
+group by 1, 2 order by 3 desc;
 -- Remplacer le `name` par celui de la ligne à identifier ; l'exemple est la ligne
 -- qui a servi de cas d'école (elle s'appelait « Bern » avant d'être tranchée).
 select m.source_url, m.agency_name, m.city, m.canton
