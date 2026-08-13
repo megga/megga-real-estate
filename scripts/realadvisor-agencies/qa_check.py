@@ -100,10 +100,9 @@ print(f"  ·   logos partagés : {len(multi)} URL pour {sum(len(v) for v in mult
 for url, names in list(multi.items())[:5]:
     print(f"        {url.rsplit('/', 1)[-1][:52]} → {', '.join(names[:4])}")
 
-print("\nRemplissage")
-for key in ("logo_url", "website", "postcode", "canton_code", "rating",
-            "reviews_count", "transactions_total", "sales_count_24m",
-            "listings_count", "about", "agents", "agency_id"):
+print("\nRemplissage (champs retenus au livrable)")
+for key in ("agency_id", "name", "logo_url", "website", "has_phone", "postcode",
+            "locality", "canton_code", "years_experience"):
     c = sum(1 for r in rows if r.get(key) not in (None, "", []))
     print(f"  {key:20s} {c:5d}/{n}  {100*c//n:3d}%")
 

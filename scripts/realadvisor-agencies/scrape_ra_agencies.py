@@ -258,12 +258,14 @@ def download_logos(records: list[dict], out: Path, delay: float) -> int:
             ext = "png"
         dest = logos / f"{rec['slug']}.{ext}"
         if dest.exists() and dest.stat().st_size > 0:
+            rec["logo_file"] = dest.name
             done += 1
             continue
         try:
             req = urllib.request.Request(url, headers={"User-Agent": UA})
             with urllib.request.urlopen(req, timeout=30) as resp:
                 dest.write_bytes(resp.read())
+            rec["logo_file"] = dest.name
             done += 1
         except Exception as exc:  # noqa: BLE001 — un logo manquant ne casse pas le lot
             print(f"  logo KO {rec['slug']}: {type(exc).__name__}", file=sys.stderr)
@@ -273,40 +275,25 @@ def download_logos(records: list[dict], out: Path, delay: float) -> int:
 
 # ─── Sorties ──────────────────────────────────────────────────────
 
-SCALARS = ["slug", "agency_id", "name", "website", "address_full", "route",
-           "street_number", "postcode", "locality", "canton", "canton_code",
-           "hide_exact_address", "rating", "reviews_count", "transactions_total",
-           "sales_count_24m", "listings_count", "years_experience", "has_phone",
-           "logo_url", "source_url"]
+# Décision produit (13.08.2026, Julien) : on ne retient que l'IDENTITÉ de
+# l'agence et son logo. Les indicateurs de performance — transactions, ventes sur
+# 24 mois, notes, avis, équipe — sont volontairement hors livrable.
+#
+# ⚠ La page les rend de toute façon : les retirer ne fait rien gagner au crawl,
+# et `agencies.jsonl` (fichier de reprise, pas livrable) garde la capture brute.
+# C'est ce qui permettra d'en rajouter un jour SANS tout recollecter.
+SCALARS = ["slug", "agency_id", "name", "website", "has_phone",
+           "address_full", "route", "street_number", "postcode", "locality",
+           "canton", "canton_code", "hide_exact_address", "years_experience",
+           "logo_url", "logo_file", "source_url"]
 
 
 def write_outputs(records: list[dict], out: Path) -> None:
     with (out / "agencies.csv").open("w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=SCALARS + ["services", "n_agents", "about"])
+        w = csv.DictWriter(fh, fieldnames=SCALARS)
         w.writeheader()
         for r in records:
-            row = {k: r.get(k) for k in SCALARS}
-            row["services"] = "|".join(r.get("services") or [])
-            row["n_agents"] = len(r.get("agents") or [])
-            row["about"] = (r.get("about") or "").replace("\n", " ").strip()
-            w.writerow(row)
-
-    with (out / "agents.csv").open("w", newline="") as fh:
-        w = csv.writer(fh)
-        w.writerow(["agency_slug", "agency_name", "agent_slug", "full_name",
-                    "title", "is_broker", "reviews_count", "avg_rating", "services"])
-        for r in records:
-            for a in r.get("agents") or []:
-                w.writerow([r["slug"], r.get("name"), a["agent_slug"], a["full_name"],
-                            a["title"], a["is_broker"], a["reviews_count"],
-                            a["avg_rating"], "|".join(a["services"])])
-
-    with (out / "reviews.csv").open("w", newline="") as fh:
-        w = csv.writer(fh)
-        w.writerow(["agency_slug", "author", "date", "rating", "text"])
-        for r in records:
-            for v in r.get("reviews") or []:
-                w.writerow([r["slug"], v["author"], v["date"], v["rating"], v["text"]])
+            w.writerow({k: r.get(k) for k in SCALARS})
 
 
 # ─── Boucle ───────────────────────────────────────────────────────

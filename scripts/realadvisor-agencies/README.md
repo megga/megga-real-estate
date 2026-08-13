@@ -1,8 +1,14 @@
 # Annuaire des agences RealAdvisor
 
-Collecte les ~1 240 fiches agence de `realadvisor.ch/fr/trouver-une-agence`
-(nom, adresse, canton, site, note, avis, agents, statistiques de vente) et
-télécharge les logos.
+Collecte l'**identité** des ~1 240 agences de `realadvisor.ch/fr/trouver-une-agence`
+— nom, adresse, canton, site web, ancienneté — et télécharge leurs **logos**.
+
+⚠ **Hors périmètre, par décision produit (13.08.2026, Julien) : les indicateurs
+de performance.** Transactions, ventes sur 24 mois, notes, avis et fiches
+d'agents ne sont PAS livrés. La page les rend quand même — les écarter ne fait
+rien gagner au crawl — et `agencies.jsonl` en garde la capture brute : si le
+besoin change, il suffit de rejouer `--logos-only` avec des colonnes en plus,
+sans recollecter.
 
 Complète [`realadvisor-sync`](../../supabase/functions/realadvisor-sync), qui
 ingère les **annonces** : cette source-ci porte les **agences elles-mêmes**,
@@ -39,11 +45,9 @@ sans recrawler.
 
 | Fichier | Contenu |
 |---|---|
-| `agencies.jsonl` | une fiche complète par ligne (agents et avis imbriqués) |
-| `agencies.csv` | champs scalaires, un plat par agence |
-| `agents.csv` | une ligne par agent (titre, note, services) |
-| `reviews.csv` | une ligne par avis |
+| `agencies.csv` | **le livrable** : identité, adresse, canton, site, logo |
 | `logos/` | logos nommés `<slug>.<ext>` |
+| `agencies.jsonl` | capture brute + fichier de reprise (contient aussi ce qui n'est pas livré) |
 
 ## Ce que le site impose (et pourquoi le code a cette forme)
 
@@ -76,11 +80,14 @@ sans recrawler.
 
 ## Limites connues
 
-- **Avis** : `reviews_count` est le total réel, mais `reviews[]` ne contient que
-  ceux rendus en page 1 (~5). Le reste demande de paginer la section Avis.
-- **Téléphone** : jamais rendu (le site le masque derrière un clic). Les numéros
-  RA vivent déjà dans `market_listings.agency_phone` — cf. la fiche cerveau
-  `project_zefix_agency_che_enrichment`.
+- **Téléphone** : jamais rendu — le site le masque derrière un clic. On ne livre
+  donc que `has_phone` (un numéro existe ou non), ce qui suffit à qualifier un
+  lead. Les numéros RA eux-mêmes vivent déjà dans `market_listings.agency_phone`,
+  cf. la fiche cerveau `project_zefix_agency_che_enrichment`.
+- **`agency_id`** : l'objet « équipe » du flux RSC n'existe que pour les agences
+  revendiquées (~69 %). Pour les autres, l'uuid est repêché dans les paramètres
+  d'événement du lien « site web ». Sans ce repli, un tiers du vivier — celui des
+  agences à démarcher — sortait sans clé de jointure vers `market_listings`.
 - **Langue** : le crawl est fait en `--lang fr` ; `canton` est donc le libellé
   français. `canton_code` (GE, VD…) est, lui, indépendant de la langue.
 
