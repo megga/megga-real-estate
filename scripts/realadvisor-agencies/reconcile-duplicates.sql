@@ -482,6 +482,53 @@ where a.name = 'Wincasa AG — Bern'
 order by m.updated_at desc nulls last
 limit 3;
 
+-- ⚠ REPLI QUAND LES ANNONCES SONT MORTES — Flatfox rend **410 Gone** sur les
+-- annonces retirées, et un échantillon entier peut être périmé (4 sur 4, mesuré).
+-- La fiche d'ORGANISATION, elle, survit : `https://flatfox.ch/fr/<slug>/listings/`
+-- répond 200 et son `<title>` donne la raison sociale de l'annonceur. Le slug se
+-- devine depuis le nom, ou se lit sur une annonce encore vivante d'une ligne
+-- SŒUR. Mesuré : `/fr/niederer/` → « Niederer AG Immobilien und Verwaltungen »,
+-- ce qui a validé la fusion alors qu'aucune annonce de la survivante ne répondait.
+
+-- ═══ ⛔ COMPARER DEUX ADRESSES NORMALISÉES SANS GARDE-FOU DE VIDE ═══════════
+-- Le piège le plus bête et le plus coûteux de ce chantier, évité de justesse.
+-- `regexp_replace(NULL_ou_vide, …)` rend `''` des DEUX côtés, donc l'égalité est
+-- VRAIE. Une exploration des lignes « - Standort » m'a ainsi rendu 4 paires
+-- « même rue » qui étaient 4 paires d'adresses ABSENTES. J'allais les documenter
+-- comme une classe de doublons.
+-- ⇒ Toute comparaison d'adresse exige `and coalesce(x.address,'') <> ''` sur les
+--    DEUX côtés. Idem pour la ville, le logo, l'IDE : `md5('')` = `d41d8cd9…`
+--    rapproche joyeusement toutes les lignes SANS logo.
+--
+-- Ce que les 12 lignes « - Standort » sont VRAIMENT (mesuré, 13.08.2026) : deux
+-- groupes DISJOINTS, ce qui interdit d'en faire une classe de doublons —
+--   • 4 SANS adresse mais AVEC les annonces (« ImmoSky AG - Standort Dübendorf ZH
+--     (Zentrale) » en porte 1158) : ce sont des lignes dérivées du flux d'annonces
+--     RA, où `address`/`city` sont NULL par construction ;
+--   • 8 AVEC une adresse complète (NPA compris) et **0 annonce** : celles-là
+--     viennent de l'annuaire RA, importées par ce dossier.
+-- Aucune paire ne partage donc une rue. Le seul vrai doublon inter-sources
+-- rencontré est « Kocher Immobilien AG » (flatfox, 276 ann.) ↔ « … - Standort
+-- Solothurn » (RA, 0 ann.), même nom ET même rue — traité le 13.08.2026.
+-- ⚠ L'adresse RA porte le NPA (« Schmiedengasse 25, 4500 Solothurn ») là où celle
+-- de Flatfox ne l'a pas : couper au premier virgule avant de comparer.
+-- ⚠ Et la ligne RA n'est PAS la plus pauvre : celle de Solothurn (0 annonce)
+-- portait le SEUL site web du couple. Remonter les trous avant de supprimer,
+-- même quand la perdante paraît vide.
+-- ⛔ Ne PAS reprendre son `source_id` : il identifie chez RealAdvisor, et le poser
+-- sur une ligne `source='flatfox'` lui ferait mentir sur sa provenance.
+select s.name, s.city, s.source,
+       (select count(*) from public.market_listings m where m.agency_profile_id=s.id) as ann,
+       p.name as parent, p.source as parent_source
+from public.agency_profiles s
+join public.agency_profiles p
+  on lower(p.name) = lower(trim(split_part(s.name, ' - Standort ', 1))) and p.id <> s.id
+ and coalesce(p.address,'') <> '' and coalesce(s.address,'') <> ''      -- ⛔ le garde-fou
+ and lower(regexp_replace(p.address,'[^a-z0-9]','','gi'))
+   = lower(regexp_replace(split_part(s.address,',',1),'[^a-z0-9]','','gi'))
+where s.name like '% - Standort %'
+order by s.name;
+
 -- ⛔ CE QUI NE MARCHE PAS, mesuré le 13.08.2026 — ne pas y repasser :
 -- • **le site de l'entreprise** : wincasa.ch rend ses adresses côté client, sa
 --   charge RSC n'en contient AUCUNE, la carte est derrière un mur de consentement
