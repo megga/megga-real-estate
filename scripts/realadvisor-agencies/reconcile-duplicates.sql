@@ -432,6 +432,14 @@ order by a.city, a.address;
 -- n(n-1)/2 paires — 3 lignes REMICOM ont donné 3 « paires », qui étaient UN seul
 -- geste. Compter les GROUPES, pas les paires, avant d'annoncer un volume.
 
+-- ═══ BILAN DE L'AUDIT DES uid_che (clos le 13.08.2026) ═════════════════════
+-- 93 lignes de la classe à risque → **7 corrigées · 7 vidées · 3 sans erreur
+-- après vérification · 0 ouverte**. `uid_che` renseignés : 594 → **587**.
+-- ⚠ La baisse est le RÉSULTAT, pas une perte : 7 numéros désignaient une autre
+-- société que la ligne qui les portait. Mieux vaut aucun IDE qu'un faux — le
+-- check KYB `registry_lookup` rend alors `unavailable`, donc un dossier
+-- visiblement incomplet plutôt qu'un verdict adossé à la mauvaise personne morale.
+
 -- ═══ Vérifier un uid_che contre le registre ════════════════════════════════
 -- LA SEULE MÉTHODE QUI MARCHE, en une phrase : **demander au registre ce qu'il
 -- inscrit sous NOTRE numéro, et comparer au nôtre.** Sens IDE→nom, rapide
@@ -519,11 +527,24 @@ order by a.city, a.address;
 --            = Diethelm Immobilien AG, Buchmattstrasse 52, Burgdorf/BE
 --       `Reto Knuchel`      (Jurastrasse 1, Utzenstorf/BE)     ← CHE-103.044.431
 --            = Knuchel Immobilien AG, Steinackerweg 13, Wiedlisbach/BE
---   • ⛔ **PLUSIEURS CANDIDATS CRÉDIBLES — NE PAS VIDER.** Effacer y détruirait
---     une information probablement juste sans rien trancher. Laissés tels quels :
---     `Niederer AG Immobilien und Verwaltungen` (4 sociétés à l'Unterdorfstrasse
---     5), `Groupe Prisme`, `Koch Immobilien`, `Bucher` (4 « Bucher Immobilien »
---     dans la région lucernoise).
+--   • **SOUTENU mais NON UNIQUE** — quatrième situation, la plus inconfortable :
+--     une preuve positive désigne l'entité détenue, mais elle en désigne
+--     plusieurs à la fois. `Niederer AG Immobilien und Verwaltungen` : le test
+--     d'adresse établit que l'Unterdorfstrasse 5 est bien celle de l'AGENCE (ses
+--     21 annonces sont à Bern, Ittigen, Worblaufen, Zollikofen) et *Niederer AG
+--     Services* y est inscrite — mais **4 sociétés Niederer partagent cette
+--     adresse** (AG FM, AG Services, mobil in immobilien, Treuhand AG) et
+--     l'homonyme EXACT de la ligne est à Muttenz (CHE-381.678.199). L'adresse
+--     réduit à 4, pas à 1.
+--     ⇒ Vider y détruit une information probablement juste : c'est une décision
+--       de PRUDENCE, pas une correction. Prise par Julien le 13.08.2026.
+--       Valeur retirée : **CHE-100.156.192** = Niederer AG Services,
+--       Unterdorfstrasse 5, 3072 Ostermundigen.
+--   • Les autres cas de ce type ont été RÉSOLUS et non vidés : `Groupe Prisme`
+--     (corrigé vers CHE-105.698.572 — le NOM tranchait là où l'adresse ne
+--     pouvait pas), `Koch Immobilien` (aucune erreur, le test d'adresse a
+--     innocenté l'IDE détenu), `Bucher` (vidé : aucune adresse du tout, donc
+--     « non établi » et non « soutenu »).
 --
 -- ⛔ QUAND AUCUN CANDIDAT NE CONVIENT, VIDER LE CHAMP plutôt qu'affirmer un faux.
 -- « DELTA Immobilien » (Seftigen) détenait *Delta Treuhand AG*, `c/o` à Gümligen,
