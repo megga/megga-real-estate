@@ -24,6 +24,8 @@ import { useCreateOffer, suggestedOfferAmount } from '@/hooks/useOffers'
 import { useAuth } from '@/hooks/useAuth'
 import { EMPTY_OFFER_CONDITIONS, countActiveConditions } from '@/types/offer'
 import type { Offer, OfferConditions, OfferKind } from '@/types/offer'
+import type { Contact } from '@/types/contact'
+import type { Property } from '@/types/listing'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 // ─── Palettes (bento immersif) ──────────────────────────────────────────
@@ -359,6 +361,23 @@ export interface OfferModalSugarProps {
   /** appelé APRÈS insert crm_offers (statut 'pending'). */
   onSubmit?: (offer: Offer) => void
   onClose: () => void
+  /**
+   * Substitution d'aperçu (`/dev/pipeline`). Cette modale porte ses PROPRES
+   * sources — `useTransaction`, `useProperty`, `useContact` —, toutes gatées sur
+   * la session : sans banc elle rend son formulaire mais SANS prix demandé, donc
+   * sans montant suggéré ni écart calculé, c'est-à-dire sans la moitié qui
+   * distingue une offre d'une saisie libre.
+   *
+   * Elle ne lit que quatre champs : la projection les nomme tous. L'ÉCRITURE est
+   * déjà bloquée par la garde `!user` de `submit` — seule la donnée manquait.
+   */
+  banc?: OfferModalBanc
+}
+
+export interface OfferModalBanc {
+  deal: TxLite
+  bien: Pick<Property, 'title' | 'price'> | null
+  buyer: Pick<Contact, 'first_name' | 'last_name'> | null
 }
 
 type TxLite = {
@@ -375,6 +394,7 @@ export default function OfferModalSugar({
   contained = false,
   onSubmit,
   onClose,
+  banc,
 }: OfferModalSugarProps) {
   const { t } = useTranslation('pipeline')
   const pal = dark ? OM_DARK : OM_LIGHT
@@ -382,9 +402,12 @@ export default function OfferModalSugar({
 
   const { user } = useAuth()
   const { data: dealRaw } = useTransaction(dealId)
-  const deal = dealRaw as TxLite | undefined
-  const { data: bien } = useProperty(deal?.property_id)
-  const { data: buyer } = useContact(deal?.contact_buyer_id ?? undefined)
+  const liveDeal = dealRaw as TxLite | undefined
+  const deal = banc ? banc.deal : liveDeal
+  const { data: liveBien } = useProperty(liveDeal?.property_id)
+  const { data: liveBuyer } = useContact(liveDeal?.contact_buyer_id ?? undefined)
+  const bien = banc ? banc.bien : liveBien
+  const buyer = banc ? banc.buyer : liveBuyer
   const { mutate: createOffer, isPending: isSaving, error: saveError } = useCreateOffer()
 
   const askingPrice = bien?.price ?? null

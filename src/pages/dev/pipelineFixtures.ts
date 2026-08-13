@@ -21,6 +21,7 @@
  */
 import { CRM_BIENS, CRM_CONTACTS, type CrmBien, type CrmContact, type CrmDeal } from '@/components/crm-sugar/mockData'
 import type { StageId } from '@/components/crm-sugar/tokens'
+import { EMPTY_OFFER_CONDITIONS, type Offer, type OfferStatus } from '@/types/offer'
 
 /**
  * Les quatre états que le banc doit pouvoir montrer.
@@ -127,3 +128,122 @@ export const PIPELINE_DEAL_PERDU = 'dv-11'
 
 /** Étape ouverte par le banc pour la création inline (carte fantôme). */
 export const PIPELINE_STAGE_INLINE: StageId = 'to-qualify'
+
+// ═══════════════════════════════════════════════════════════════════════
+// FICHE DEAL — `DealDetailSugarV4Page`
+//
+// ⚠ Vue-modèle, pas des lignes de base : la page lit une projection étroite de
+// cinq types DB. Voir `DealDetailBanc` pour le pourquoi.
+// ═══════════════════════════════════════════════════════════════════════
+
+/**
+ * Les quatre états de la fiche, et pourquoi chacun.
+ *
+ * ⛔ `lead` et `nego` ne sont pas deux jeux de données : ce sont les DEUX MOITIÉS
+ * de la page, et `isLead = !property && offers.length === 0` les sépare. En
+ * `lead` la colonne droite rend `dsMatches` (le score de proximité) ; en `nego`
+ * elle rend la chaîne d'offres. Un banc qui n'en montrerait qu'une laisserait la
+ * moitié des 62 marqueurs de ce fichier invérifiés.
+ */
+export type FicheEtat = 'lead' | 'nego' | 'signe' | 'erreur'
+
+export const FICHE_ETATS: { id: FicheEtat; label: string; titre: string }[] = [
+  { id: 'lead', label: 'Lead', titre: 'Sans bien ni offre — colonne droite = matching de proximité' },
+  { id: 'nego', label: 'Négociation', titre: 'Bien + chaîne de 3 offres, la dernière en attente' },
+  { id: 'signe', label: 'Signé', titre: 'Étape terminale — barre pleine, compteur masqué' },
+  { id: 'erreur', label: 'Échec', titre: 'La transaction n’a pas pu être chargée' },
+]
+
+const DEAL_BASE = {
+  status: 'active',
+  updated_at: maj(1),
+  property: null,
+}
+
+/** `ContactTransaction` — 7 champs, le vrai type du hook. */
+export const FICHE_DEAL: Record<FicheEtat, {
+  id: string; stage: string; status: string
+  price_offered: number | null; price_final: number | null; updated_at: string
+  property: { title: string; address: string; city: string; price: number; photos: string[] } | null
+}> = {
+  lead: { ...DEAL_BASE, id: 'dv-05', stage: 'active_search', price_offered: null, price_final: null },
+  nego: { ...DEAL_BASE, id: 'dv-11', stage: 'offer', price_offered: 830_000, price_final: null },
+  signe: { ...DEAL_BASE, id: 'dv-12', stage: 'signed', status: 'completed', price_offered: 1_240_000, price_final: 1_240_000 },
+  erreur: { ...DEAL_BASE, id: 'dv-11', stage: 'offer', price_offered: 830_000, price_final: null },
+}
+
+/**
+ * Acheteur. ⚠ `search_criteria` est renseigné pour que les pastilles de critères
+ * rendent : sans lui la colonne gauche perd son bloc entier, et `dsMatches`
+ * retombe sur « les trois premiers biens, sans pourcentage » — ce qui ferait
+ * croire que le score n'est pas implémenté.
+ */
+export const FICHE_CONTACT = {
+  id: 'c-005',
+  first_name: 'Camille',
+  last_name: 'Rougier',
+  phone: '+41 79 224 61 07',
+  email: 'c.rougier@bluewin.ch',
+  search_criteria: {
+    type: 'apartment',
+    transaction_type: 'buy' as const,
+    budget_min: 700_000,
+    budget_max: 1_000_000,
+    zones: ['Carouge', 'Genève', 'GE'],
+    rooms_min: 4,
+    surface_min: 90,
+    features: ['balcon'],
+  },
+  form_data: { lang: 'fr' },
+}
+
+/** Le bien de la moitié « négociation ». `null` en mode lead — c'est ce qui le définit. */
+export const FICHE_BIEN = {
+  id: 'b-101',
+  title: '4 pièces lumineux Eaux-Vives',
+  address: 'Rue du Lac 15',
+  city: 'Genève',
+  surface_m2: 85,
+  rooms: 4,
+  price: 850_000,
+}
+
+const offre = (
+  id: string, kind: 'offer' | 'counter', from: 'buyer' | 'seller',
+  label: string, amount: number, status: OfferStatus, jours: number, parent: string | null,
+): Offer => ({
+  id, deal_id: 'dv-11', agency_id: 'ag-demo', parent_offer_id: parent,
+  kind, from_party: from, by_id: null, by_label: label,
+  amount, currency: 'CHF', conditions: EMPTY_OFFER_CONDITIONS,
+  deposit: Math.round(amount * 0.1), closing_date: null, expires_at: jour(jours + 14),
+  attachments: [], notes: null, status,
+  created_at: jour(jours), responded_at: status === 'pending' ? null : jour(jours + 1),
+})
+
+/**
+ * Trois tours, et l'ordre compte : la page marque `current` le DERNIER et
+ * n'offre « Accepter / Refuser » que si son statut est `pending`. Une chaîne
+ * dont le dernier tour serait déjà tranché cacherait les deux boutons.
+ */
+export const FICHE_OFFRES: Offer[] = [
+  // ⚠ Les statuts sont les CINQ réels (`pending`/`accepted`/`rejected`/
+  // `expired`/`withdrawn`) : il n'existe pas de `countered`. Un tour auquel on a
+  // contre-offert est `rejected`, et c'est la contre-offre qui porte la suite.
+  offre('of-1', 'offer', 'buyer', 'Camille Rougier', 790_000, 'rejected', -21, null),
+  offre('of-2', 'counter', 'seller', 'MEGGA · Agent', 845_000, 'rejected', -14, 'of-1'),
+  offre('of-3', 'offer', 'buyer', 'Camille Rougier', 830_000, 'pending', -4, 'of-2'),
+]
+
+/** Le seul champ de `KycCase` que la page lit. `verified` masque le lien KYC. */
+export const FICHE_KYC: Record<FicheEtat, string> = {
+  lead: 'pending', nego: 'pending', signe: 'verified', erreur: 'none',
+}
+
+export const FICHE_NEXT_ACTION: Record<FicheEtat, { kind: string; note: string } | null> = {
+  lead: { kind: 'match', note: 'Envoyer la sélection Champel' },
+  nego: { kind: 'offer', note: 'Réponse du vendeur attendue' },
+  // ⚠ Terminal : la page MASQUE la prochaine action sur signed/lost. Lui en
+  // donner une quand même est ce qui prouve que le masquage marche.
+  signe: { kind: 'note', note: 'Rendez-vous notaire à confirmer' },
+  erreur: null,
+}

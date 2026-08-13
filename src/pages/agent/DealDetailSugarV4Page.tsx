@@ -27,7 +27,10 @@ import OfferModalSugar from '@/components/crm-sugar-v3/offer-modal/OfferModalSug
 import {
   SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { useTransaction, useUpdateTransactionStage, useUpdateTransactionStatus } from '@/hooks/useTransactions'
+import {
+  useTransaction, useUpdateTransactionStage, useUpdateTransactionStatus,
+  type ContactTransaction,
+} from '@/hooks/useTransactions'
 import { useContact } from '@/hooks/useContacts'
 import { useProperty } from '@/hooks/useProperties'
 import { useOfferChain, lastOffer, useUpdateOfferStatus } from '@/hooks/useOffers'
@@ -37,6 +40,8 @@ import { useBiensSugar } from '@/hooks/useBiensSugar'
 import { mapCriteria } from '@/lib/sugarAdapters'
 import type { CrmBien, CrmContact } from '@/components/crm-sugar/mockData'
 import type { Offer, OfferKind } from '@/types/offer'
+import type { Contact } from '@/types/contact'
+import type { Property } from '@/types/listing'
 
 // Palettes fiche V4 (DsLIGHT / DsDARK du handoff — valeurs exactes).
 interface DsPal {
@@ -241,10 +246,44 @@ function DsOfferRow2({ o, current, p, t }: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-export default function DealDetailSugarV4Page() {
+
+/**
+ * Contrat du slot d'aperçu (`/dev/pipeline`, écran « Fiche deal »).
+ *
+ * ⚠ C'est un VUE-MODÈLE, pas un jeu de lignes de base — idiome déjà retenu par
+ * `MobileDealDetailScreen({ demoData })`, qu'on reprend plutôt que d'en inventer
+ * un second. La page lit une projection étroite de cinq types DB (`Contact` a 30
+ * champs requis, `KycCase` 40) : fabriquer les lignes entières pour en afficher
+ * sept serait inventer de la donnée — et pour le KYC, inventer de la donnée de
+ * CONFORMITÉ (statut PEP, sanctions, score de risque) que personne ne lit.
+ *
+ * Les `Pick<>` sont volontaires : si la page se met à lire un champ de plus, elle
+ * ne compile plus. La projection ne peut donc pas se périmer en silence.
+ */
+export interface DealDetailBanc {
+  deal: ContactTransaction | null
+  contact: Pick<Contact, 'id' | 'first_name' | 'last_name' | 'phone' | 'email' | 'search_criteria' | 'form_data'> | null
+  property: Pick<Property, 'id' | 'title' | 'address' | 'city' | 'surface_m2' | 'rooms' | 'price'> | null
+  offers: Offer[]
+  /** Seul champ de `KycCase` que la page lit — voir la note ci-dessus. */
+  kycStatus: string
+  nextAction: { kind: string; note: string } | null
+  /** Portefeuille pour `dsMatches` en mode LEAD. */
+  biens: CrmBien[]
+  isLoading: boolean
+  isError: boolean
+  /** ⛔ Intercepte toute sortie — sinon `ProtectedRoute` éjecte vers la production. */
+  onNavigate?: (vers: string) => void
+  Chrome?: (p: { dark: boolean }) => ReactNode
+}
+
+export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc } = {}) {
   const { t } = useTranslation('pipeline')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const enBanc = banc !== undefined
+  /** Seul point de sortie de la page — voir `DealDetailBanc.onNavigate`. */
+  const go = (vers: string) => { if (banc?.onNavigate) banc.onNavigate(vers); else navigate(vers) }
 
   // Thème dark/light, persisté (même clé que les autres pages Sugar).
   const [dark, setDark] = useState<boolean>(() => {
@@ -263,15 +302,26 @@ export default function DealDetailSugarV4Page() {
   const p = dark ? DsDARK : DsLIGHT
   const sp = crmSugarPalette(dark)
 
-  const { data: deal, isLoading, isError, error } = useTransaction(id)
-  const { data: contact } = useContact(deal?.contact_buyer_id ?? undefined)
-  const { data: property } = useProperty(deal?.property_id ?? undefined)
-  const { data: offerChain } = useOfferChain(deal?.id)
-  const { data: kycDossier } = useKycDossierByContact(deal?.contact_buyer_id ?? undefined)
-  const { nextAction } = useTransactionNextReminder(deal?.id)
-  const { biens } = useBiensSugar()
+  // ⚠ Les sept hooks sont appelés DANS TOUS LES CAS (règle des hooks) ; en banc
+  // leur résultat est écarté. Sans session ils ne partent de toute façon pas.
+  const live = useTransaction(id)
+  const { data: liveContact } = useContact(live.data?.contact_buyer_id ?? undefined)
+  const { data: liveProperty } = useProperty(live.data?.property_id ?? undefined)
+  const { data: offerChain } = useOfferChain(live.data?.id)
+  const { data: kycDossier } = useKycDossierByContact(live.data?.contact_buyer_id ?? undefined)
+  const { nextAction: liveNextAction } = useTransactionNextReminder(live.data?.id)
+  const { biens: liveBiens } = useBiensSugar()
 
-  const offers = useMemo(() => offerChain ?? [], [offerChain])
+  const deal = banc ? banc.deal ?? undefined : live.data
+  const contact = banc ? banc.contact ?? undefined : liveContact
+  const property = banc ? banc.property ?? undefined : liveProperty
+  const isLoading = banc ? banc.isLoading : live.isLoading
+  const isError = banc ? banc.isError : live.isError
+  const error = banc ? null : live.error
+  const nextAction = banc ? banc.nextAction : liveNextAction
+  const biens = banc ? banc.biens : liveBiens
+
+  const offers = useMemo(() => (banc ? banc.offers : offerChain ?? []), [banc, offerChain])
   const last = lastOffer(offers)
   const updateOfferStatus = useUpdateOfferStatus()
   const updateStage = useUpdateTransactionStage()
@@ -292,6 +342,7 @@ export default function DealDetailSugarV4Page() {
 
   const respondOffer = (offer: Offer, status: 'accepted' | 'rejected') => {
     if (!deal) return
+    if (enBanc) { showToast(status === 'accepted' ? t('deal.toast.accepted') : t('deal.toast.rejected')); return }
     updateOfferStatus.mutate(
       { offerId: offer.id, dealId: deal.id, status },
       {
@@ -308,6 +359,7 @@ export default function DealDetailSugarV4Page() {
   }
   const markLost = () => {
     if (!deal) return
+    if (enBanc) { showToast(t('deal.toast.lost')); return }
     updateStage.mutate(
       { id: deal.id, stage: 'lost' },
       {
@@ -320,18 +372,18 @@ export default function DealDetailSugarV4Page() {
   const onCmd = () => window.alert(t('board.commandPaletteComingSoon'))
   const onNavigate = (navId: SugarScreenId | string) => {
     switch (navId) {
-      case 'today':     navigate('/dashboard'); break
-      case 'pipeline':  navigate('/dashboard/pipeline'); break
-      case 'matching':  navigate('/dashboard/matching'); break
-      case 'contacts':  navigate('/dashboard/contacts'); break
-      case 'biens':     navigate('/dashboard/listings'); break
-      case 'calendar':  navigate('/dashboard/calendar'); break
-      case 'kyc':       navigate('/dashboard/kyc'); break
-      case 'parcours':  navigate('/dashboard/journey'); break
+      case 'today':     go('/dashboard'); break
+      case 'pipeline':  go('/dashboard/pipeline'); break
+      case 'matching':  go('/dashboard/matching'); break
+      case 'contacts':  go('/dashboard/contacts'); break
+      case 'biens':     go('/dashboard/listings'); break
+      case 'calendar':  go('/dashboard/calendar'); break
+      case 'kyc':       go('/dashboard/kyc'); break
+      case 'parcours':  go('/dashboard/journey'); break
       case 'ai':
-      case 'julien':    navigate('/dashboard/julien'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings':  navigate('/dashboard/settings'); break
+      case 'julien':    go('/dashboard/julien'); break
+      case 'dashboard': go('/dashboard/analytics'); break
+      case 'settings':  go('/dashboard/settings'); break
       default: break
     }
   }
@@ -363,6 +415,9 @@ export default function DealDetailSugarV4Page() {
           </div>
         </main>
       </div>
+      {/* ⚠ À la RACINE : le cadre bento porte `overflow: hidden` et clipperait
+          les commandes. Le thème est reçu, jamais relu — voir le banc Pipeline. */}
+      {banc?.Chrome ? <banc.Chrome dark={dark} /> : null}
     </div>
   )
 
@@ -385,7 +440,7 @@ export default function DealDetailSugarV4Page() {
   const initials = contact
     ? `${contact.first_name?.[0] ?? ''}${contact.last_name?.[0] ?? ''}`.toUpperCase() || '?'
     : '?'
-  const kycStatus = kycDossier?.dossier_status ?? 'none'
+  const kycStatus = banc ? banc.kycStatus : kycDossier?.dossier_status ?? 'none'
   const uiStage: StageId = deal.stage === 'lost' ? 'lost' : mapTransactionStageToStepper(deal.stage)
   const stageLabel = t(`stages.${uiStage}`)
   const isTerminal = deal.stage === 'signed' || deal.stage === 'lost'
@@ -418,7 +473,7 @@ export default function DealDetailSugarV4Page() {
   return shell(
     <>
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 22px', flexShrink: 0 }}>
-        <DsGhost p={p} onClick={() => navigate('/dashboard/pipeline')}>
+        <DsGhost p={p} onClick={() => go('/dashboard/pipeline')}>
           <SgIcon name="arrowL" size={15} stroke={p.soft} />{t('title')}
         </DsGhost>
       </header>
@@ -474,7 +529,7 @@ export default function DealDetailSugarV4Page() {
               <>
                 <div style={{ height: 1, background: p.hair, margin: '24px 0' }} />
                 <button
-                  onClick={() => navigate(`/dashboard/kyc?openContactId=${contact.id}`)}
+                  onClick={() => go(`/dashboard/kyc?openContactId=${contact.id}`)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 11, padding: 0, background: 'transparent',
                     border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
@@ -488,7 +543,7 @@ export default function DealDetailSugarV4Page() {
               </>
             )}
             <div style={{ marginTop: 'auto', paddingTop: 26 }}>
-              <DsGhost p={p} onClick={() => contact && navigate(`/dashboard/contacts/${contact.id}`)}>
+              <DsGhost p={p} onClick={() => contact && go(`/dashboard/contacts/${contact.id}`)}>
                 {t('deal.open_contact')} <SgIcon name="arrowR" size={14} stroke={p.soft} />
               </DsGhost>
             </div>
@@ -540,13 +595,13 @@ export default function DealDetailSugarV4Page() {
                       <div key={m.b.id}>
                         {i > 0 && <div style={{ height: 1, background: p.hair, margin: '0 4px' }} />}
                         <DsMatchRow b={m.b} pct={m.pct} top={i === 0} p={p}
-                          onOpen={() => navigate(`/dashboard/listings/${m.b.id}`)} />
+                          onOpen={() => go(`/dashboard/listings/${m.b.id}`)} />
                       </div>
                     ))}
                   </div>
                 )}
                 <div style={{ marginTop: 'auto', paddingTop: 20 }}>
-                  <DsBlack p={p} onClick={() => navigate(`/dashboard/matching${contact ? `?contact=${contact.id}` : ''}`)}>
+                  <DsBlack p={p} onClick={() => go(`/dashboard/matching${contact ? `?contact=${contact.id}` : ''}`)}>
                     {t('deal.transmit', { name: contact?.first_name ?? t('deal.buyer_fallback') })}
                   </DsBlack>
                 </div>
@@ -554,7 +609,7 @@ export default function DealDetailSugarV4Page() {
             ) : (
               <>
                 {property && (
-                  <button onClick={() => navigate(`/dashboard/listings/${property.id}`)} style={{
+                  <button onClick={() => go(`/dashboard/listings/${property.id}`)} style={{
                     marginTop: 22, width: '100%', textAlign: 'left', border: 0, cursor: 'pointer',
                     fontFamily: 'inherit', background: 'transparent', padding: 0,
                     display: 'flex', alignItems: 'center', gap: 14, minWidth: 0,
@@ -652,6 +707,11 @@ export default function DealDetailSugarV4Page() {
           dealId={deal.id}
           kind={offerModalKind}
           parentOffer={offerModalKind === 'counter' ? last ?? null : null}
+          banc={banc ? {
+            deal: { id: deal.id, contact_buyer_id: contact?.id ?? null, property_id: property?.id ?? '' },
+            bien: property ? { title: property.title, price: property.price } : null,
+            buyer: contact ? { first_name: contact.first_name, last_name: contact.last_name } : null,
+          } : undefined}
           contained
           dark={dark}
           onSubmit={() => showToast(offerModalKind === 'counter' ? t('deal.toast.counter_sent') : t('deal.toast.offer_sent'))}

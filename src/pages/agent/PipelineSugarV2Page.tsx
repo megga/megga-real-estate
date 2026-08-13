@@ -87,6 +87,16 @@ export interface PipelineBanc {
   /** Rend le bandeau d'erreur NON bloquant, colonnes conservées. */
   isError: boolean
   /**
+   * ⛔ INTERCEPTE TOUTE NAVIGATION, et ce n'est pas un confort.
+   *
+   * Sans elle, un clic sur une carte fait `navigate('/dashboard/transactions/…')`
+   * → `ProtectedRoute` → `window.location.replace('https://megga.ch/login')`. Le
+   * banc éjecte alors vers la PRODUCTION — mesuré à l'écran, pas déduit : c'est
+   * exactement le piège pour lequel ce banc existe, et la première version l'a
+   * livré avec. Vaut aussi pour la barre supérieure et le rail.
+   */
+  onNavigate?: (vers: string) => void
+  /**
    * Listes des DEUX surfaces de création, qui portent leurs propres sources
    * (`useContactsSugar`, `useBiensSugar`). Elles sont fournies à part des index
    * du board : l'état « vide · filtré » vide `contactsById` pour atteindre la
@@ -141,7 +151,9 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
   const [newDealPrefill, setNewDealPrefill] = useState<NewDealPrefill | null>(null)
   // Création inline (concept B) : quelle colonne a sa carte fantôme ouverte.
   const [inlineStage, setInlineStage] = useState<StageId | null>(null)
-  const openDeal = (dealId: string) => { navigate(`/dashboard/transactions/${dealId}`) }
+  /** Seul point de sortie de la page — voir `PipelineBanc.onNavigate`. */
+  const go = (vers: string) => { if (banc?.onNavigate) banc.onNavigate(vers); else navigate(vers) }
+  const openDeal = (dealId: string) => { go(`/dashboard/transactions/${dealId}`) }
 
   const logAudit = useLogAudit()
 
@@ -517,7 +529,7 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
       ? t('board.sign.congratsPromptWithBien', { name: name ?? t('deal.buyer_fallback'), bien: b.title })
       : t('board.sign.congratsPrompt', { name: name ?? t('deal.buyer_fallback') })
     if (ai.enabled) ai.askAi(prompt)
-    else if (signedContact) navigate(`/dashboard/contacts/${signedContact.id}`)
+    else if (signedContact) go(`/dashboard/contacts/${signedContact.id}`)
     else if (dealId) openDeal(dealId)
   }
 
@@ -525,18 +537,18 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
   const onCmd = () => window.alert(t('board.commandPaletteComingSoon'))
   const onNavigate = (id: SugarScreenId | string) => {
     switch (id) {
-      case 'today':     navigate('/dashboard'); break
-      case 'pipeline':  navigate('/dashboard/pipeline'); break
-      case 'matching':  navigate('/dashboard/matching'); break
-      case 'contacts':  navigate('/dashboard/contacts'); break
-      case 'biens':     navigate('/dashboard/listings'); break
-      case 'biens-new': navigate('/dashboard/listings/new'); break
-      case 'calendar':  navigate('/dashboard/calendar'); break
-      case 'kyc':       navigate('/dashboard/kyc'); break
+      case 'today':     go('/dashboard'); break
+      case 'pipeline':  go('/dashboard/pipeline'); break
+      case 'matching':  go('/dashboard/matching'); break
+      case 'contacts':  go('/dashboard/contacts'); break
+      case 'biens':     go('/dashboard/listings'); break
+      case 'biens-new': go('/dashboard/listings/new'); break
+      case 'calendar':  go('/dashboard/calendar'); break
+      case 'kyc':       go('/dashboard/kyc'); break
       case 'ai':
-      case 'julien':    navigate('/dashboard/julien'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings':  navigate('/dashboard/settings'); break
+      case 'julien':    go('/dashboard/julien'); break
+      case 'dashboard': go('/dashboard/analytics'); break
+      case 'settings':  go('/dashboard/settings'); break
       default: break
     }
   }
@@ -843,7 +855,7 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
         <SignedBento
           sp={sp} dark={dark}
           firstName={signedContact?.firstName ?? null}
-          onScheduleAct={() => { finishSigned(); navigate('/dashboard/calendar') }}
+          onScheduleAct={() => { finishSigned(); go('/dashboard/calendar') }}
           onCongrats={congratsSigned}
           onOpenFile={() => { const id = signedDeal; finishSigned(); if (id) openDeal(id) }}
           onReopen={reopenSigned}
