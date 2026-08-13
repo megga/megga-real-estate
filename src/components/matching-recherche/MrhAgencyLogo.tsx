@@ -3,11 +3,15 @@
 // repli sur le NOM quand la colonne est vide ou que l'image ne charge pas.
 //
 // Choix non évidents :
-//  · Repli = le nom en toutes lettres, PAS un monogramme. La maquette prévoit un
-//    monogramme, mais elle a été dessinée sur un jeu de démo où chaque annonce
-//    avait un logo : en production 41 061 annonces actives sur 78 354 n'en ont
-//    pas, et « RD » sur une pastille de 22 px ferait disparaître l'information
-//    « qui commercialise ce bien » de la majorité de la grille.
+//  · Le nom est TOUJOURS écrit ; le logo est une plaque qui le PRÉCÈDE quand la
+//    base en a un. La maquette prévoyait un monogramme seul, mais elle a été
+//    dessinée sur un jeu de démo où chaque annonce avait un logo : mesuré le
+//    13.08.2026, 40 452 annonces actives sur 77 632 n'en ont pas (68,0 % de
+//    couverture côté Flatfox, 31,3 % côté RealAdvisor). Un logo SEUL ferait donc
+//    disparaître « qui commercialise ce bien » de la majorité de la grille, et un
+//    monogramme seul le rendrait indéchiffrable.
+//  · C'est le NOM qui cède à l'ellipse, jamais la plaque : une marque à moitié
+//    rognée ne se reconnaît plus, un nom tronqué se lit encore.
 //  · `no-referrer` : l'URL pointe un CDN tiers, on ne lui envoie pas l'URL de l'app.
 //  · `loading="lazy"` OBLIGATOIRE, comme MrhPhoto : la grille de résultats monte
 //    jusqu'à 400 cartes sans virtualisation, dont ~145 portent un logo (76 URL
@@ -58,12 +62,12 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
   const label = name?.trim()
   if (!label) return gabarit === 'fiche' ? <>{monogramme}</> : null
 
-  if (logoUrl && failedUrl !== logoUrl) {
-    // ⚠ Le gabarit `fiche` est CARRÉ (40 px) : il prend la place exacte du
-    // monogramme, sinon la ligne d'à côté — nom + portail + date — se décalerait
-    // selon que la régie a un logo ou non.
-    const carre = gabarit === 'fiche'
-    return (
+  // ⚠ Le gabarit `fiche` est CARRÉ (40 px) : il prend la place exacte du
+  // monogramme, sinon la ligne d'à côté — nom + portail + date — se décalerait
+  // selon que la régie a un logo ou non.
+  const carre = gabarit === 'fiche'
+  const plaque = logoUrl && failedUrl !== logoUrl
+    ? (
       <span style={{
         flexShrink: 0,
         ...(carre
@@ -75,7 +79,7 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
       }}>
         <img
           src={logoUrl}
-          alt={label}
+          alt={carre ? label : ''}
           title={label}
           referrerPolicy="no-referrer"
           loading="lazy"
@@ -87,13 +91,24 @@ export default function MrhAgencyLogo({ name, logoUrl, sp, line, gabarit = 'cart
         />
       </span>
     )
-  }
+    : null
 
-  if (gabarit === 'fiche') return <>{monogramme}</>
+  // Sur la FICHE, le nom est déjà écrit à côté : la plaque le remplace, et à
+  // défaut c'est le monogramme fourni par l'appelant.
+  if (carre) return plaque ?? <>{monogramme}</>
 
+  // Sur une CARTE, la plaque PRÉCÈDE le nom au lieu de s'y substituer. ⚠ `alt`
+  // est vide sur cette variante : le nom qui suit porte déjà l'information, et un
+  // `alt` la ferait annoncer deux fois.
   return (
-    <span title={label} style={{ flexShrink: 0, maxWidth: 120, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-      {label}
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+      {plaque}
+      {/* ⚠ 120 px de plafond, conservés de la version « nom seul ». Des régies
+          portent 86 à 95 caractères (des agences générales d'assurance, qui ont
+          un logo) : sans borne, le nom mangerait la date de publication. */}
+      <span title={label} style={{ minWidth: 0, maxWidth: 120, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {label}
+      </span>
     </span>
   )
 }

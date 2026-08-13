@@ -162,7 +162,13 @@ export const MRH_DEMO_BIENS: MrhBien[] = [
     rent: 4100, area: 108, rooms: 4.5, beds: 3, baths: 2, year: 2019,
     lat: 46.1962, lng: 6.1852, days_on_market: 19,
     features: ['Jardin', 'Parking', 'Ascenseur'],
-    ref: 'MG-FL-8791220', agency: 'Naef Immobilier',
+    // ⚠ LE CAS QUI SERRE, et il est réel : des agences générales d'assurance
+    // portent 86 à 95 caractères ET un logo. Sans lui dans le banc, on livrerait
+    // une rangée « plaque + nom + date » qu'on n'a jamais vue se disputer la
+    // largeur.
+    ref: 'MG-FL-8791220',
+    agency: "Helvetia Compagnie Suisse d'Assurances sur la Vie SA, Agence générale Lausanne La Côte",
+    agency_logo_url: 'https://flatfox.ch/thumb/org/2020/09/5skf5sjpzqm3ndwrxj08jgj70v8t0azhpzl9et0akm1er8jvl3.jpg?alias=org_logo_m&signature=Nn5dKJhFpftGy5qt6lFcKPhltaQ7s4DNzZyCR93tPiI',
     source_portal: 'flatfox',
     photos: ['1567016432779-094069958ea5'].map((i) => PHOTO(i)),
   }),
