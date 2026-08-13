@@ -20,7 +20,7 @@ import {
   CRM_STAGE_ORDER, SG_STAGE_HUE, crmFmtCHF,
   type StageId, type SugarPalette,
 } from '../tokens'
-import type { CrmContact } from '../mockData'
+import type { CrmContact, CrmBien } from '../mockData'
 import { useAuth } from '@/hooks/useAuth'
 import { useContactsSugar } from '@/hooks/useContactsSugar'
 import { useBiensSugar } from '@/hooks/useBiensSugar'
@@ -37,12 +37,25 @@ export interface NewDealPrefill {
   value?: number | null
 }
 
+/**
+ * Substitution d'aperçu (`/dev/pipeline`). Cette modale porte ses PROPRES
+ * sources — `useContactsSugar` et `useBiensSugar`, gatées sur la session — donc
+ * sans banc elle ne rend que ses deux états vides : on ne pouvait voir ni la
+ * liste de contacts, ni celle des biens, ni la sélection. C'est la moitié la
+ * plus lourde du dossier (576 lignes) et elle porte une police en dur assumée.
+ */
+export interface NewDealBanc {
+  contacts: CrmContact[]
+  biens: CrmBien[]
+}
+
 interface Props {
   open: boolean
   onClose: () => void
   sp: SugarPalette
   dark: boolean
   prefill: NewDealPrefill | null
+  banc?: NewDealBanc
 }
 
 interface NdPalette {
@@ -92,13 +105,17 @@ function ndPalette(dark: boolean, sp: SugarPalette): NdPalette {
   }
 }
 
-export function NewDealModal({ open, onClose, sp, dark, prefill }: Props) {
+export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) {
   const { t } = useTranslation('pipeline')
   const { profile } = useAuth()
   const nd = ndPalette(dark, sp)
 
-  const { contacts: allContacts } = useContactsSugar()
-  const { biens } = useBiensSugar()
+  // ⚠ Les deux hooks sont appelés DANS TOUS LES CAS (règle des hooks) ; en banc
+  // leur résultat est écarté. Sans session ils ne partent de toute façon pas.
+  const { contacts: liveContacts } = useContactsSugar()
+  const { biens: liveBiens } = useBiensSugar()
+  const allContacts = banc ? banc.contacts : liveContacts
+  const biens = banc ? banc.biens : liveBiens
   const allBiens = useMemo(() => biens.filter(b => b.status === 'active'), [biens])
   const createContact = useCreateContact()
   const createTransaction = useCreateTransaction()

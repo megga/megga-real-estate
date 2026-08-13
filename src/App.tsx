@@ -148,6 +148,7 @@ const MatchingShowcasePage = lazy(() => import('@/pages/dev/MatchingShowcasePage
 const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
 const BiensShowcasePage = lazy(() => import('@/pages/dev/BiensShowcasePage'))
 const ContactsShowcasePage = lazy(() => import('@/pages/dev/ContactsShowcasePage'))
+const PipelineShowcasePage = lazy(() => import('@/pages/dev/PipelineShowcasePage'))
 const ModalesShowcasePage = lazy(() => import('@/pages/dev/ModalesShowcasePage'))
 // Aperçu du parcours d'onboarding — DEV seulement (cf. sa route plus bas, et son
 // en-tête pour les trois murs qui rendent ce parcours autrement inatteignable).
@@ -469,6 +470,11 @@ function AppRoutes() {
               <Route path="/dev/biens" element={<BiensShowcasePage />} />
               {/* Contacts — même raison, même idiome (liste, fiche, premier lancement). */}
               <Route path="/dev/contacts" element={<ContactsShowcasePage />} />
+              {/* Pipeline — la page RÉELLE par le slot `banc` : 3 vues, 8 colonnes,
+                  états d'exception, modales, bascule de thème. Une seule vue à la
+                  fois : `SugarDealCard` porte un `layoutId` GLOBAL, et deux vues
+                  montées ensemble videraient les colonnes jumelles. */}
+              <Route path="/dev/pipeline" element={<PipelineShowcasePage />} />
               {/* Modales qu'aucun geste n'ouvre sans session : elles ne seraient
                   JAMAIS rendues hors production, donc jamais éprouvées. */}
               <Route path="/dev/modales" element={<ModalesShowcasePage />} />

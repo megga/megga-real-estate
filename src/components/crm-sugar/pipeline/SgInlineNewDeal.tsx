@@ -19,6 +19,7 @@ import { useCreateTransaction } from '@/hooks/useTransactions'
 import { usePipelineReminderCreators } from '@/hooks/usePipelineNextActions'
 import { stageIdToTransactionStage } from '@/lib/sugarAdapters'
 import type { NewDealPrefill } from './NewDealModal'
+import type { CrmContact } from '../mockData'
 
 interface Props {
   stage: StageId
@@ -29,12 +30,20 @@ interface Props {
   onCreated: (txId: string) => void
   /** « Plus d'options » → ouvre la modale complète pré-remplie. */
   onMore: (prefill: NewDealPrefill) => void
+  /**
+   * Substitution d'aperçu (`/dev/pipeline`) : `useContactsSugar` est gaté sur
+   * la session, donc sans banc la recherche de contact ne propose JAMAIS rien —
+   * la moitié utile de la carte fantôme (les trois suggestions) restait
+   * invisible. L'écriture, elle, est déjà bloquée par la garde `agency_id`.
+   */
+  banc?: { contacts: CrmContact[] }
 }
 
-export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore }: Props) {
+export function SgInlineNewDeal({ stage, sp, dark, onCancel, onCreated, onMore, banc }: Props) {
   const { t } = useTranslation('pipeline')
   const { profile } = useAuth()
-  const { contacts: all } = useContactsSugar()
+  const { contacts: liveContacts } = useContactsSugar()
+  const all = banc ? banc.contacts : liveContacts
   const createTransaction = useCreateTransaction()
   const { createFirstFollowUp } = usePipelineReminderCreators()
 

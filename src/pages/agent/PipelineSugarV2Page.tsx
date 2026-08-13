@@ -14,8 +14,20 @@
  *     brouillon (human-in-the-loop — jamais d'envoi automatique) ;
  *   - planifier une visite persiste un reminder « visite » réel (pas d'action
  *     factice) en plus de l'avancement d'étape du proto.
+ *
+ * ── SLOT `banc` (aperçu `/dev/pipeline`) ─────────────────────────────────────
+ * Cette page tire TOUT d'`usePipelineSugar()`, gaté sur `profile.agency_id` :
+ * sans session elle ne rend qu'un board vide, et `ProtectedRoute` renvoie vers
+ * la production avant même d'y arriver. Le slot `banc` substitue la SOURCE et
+ * rend les ÉCRITURES inertes — la page, elle, reste la page : mêmes filtres,
+ * mêmes vues, mêmes colonnes, mêmes modales, même drag-drop.
+ *
+ * ⚠ Il ne pilote PAS l'état interne : le banc reçoit les mêmes poignées que
+ * l'agent (`PipelineBancGestes`) et appuie sur les mêmes boutons. Un banc qui
+ * dupliquerait la machine à états mesurerait sa copie.
  */
 
+import type { ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -49,10 +61,50 @@ import {
   SugarStageFilter, SugarRiskFilter, SugarPeriodFilter,
   type PipelineView, type RiskFilterValue,
 } from '@/components/crm-sugar/pipeline/PipelineFilters'
-import { NewDealModal, type NewDealPrefill } from '@/components/crm-sugar/pipeline/NewDealModal'
+import { NewDealModal, type NewDealBanc, type NewDealPrefill } from '@/components/crm-sugar/pipeline/NewDealModal'
 import { SgInlineNewDeal } from '@/components/crm-sugar/pipeline/SgInlineNewDeal'
+import type { CrmContact, CrmBien } from '@/components/crm-sugar/mockData'
 
-export default function PipelineSugarV2Page() {
+/**
+ * Poignées du board, telles que l'agent les actionne. Le banc les reçoit pour
+ * ouvrir les surfaces qui, autrement, ne s'atteignent que par un survol suivi
+ * d'un menu (« perdu »), ou par un drag suivi de 1 750 ms d'animation (le bento
+ * « Signé ») — deux gestes qu'une capture ne peut pas tenir.
+ */
+export interface PipelineBancGestes {
+  ouvrirNouveauDeal: () => void
+  ouvrirPerdu: (dealId: string) => void
+  ouvrirSigne: (dealId: string) => void
+  ouvrirInline: (stage: StageId) => void
+  fermerTout: () => void
+}
+
+/** Contrat du slot d'aperçu — voir l'en-tête de fichier. */
+export interface PipelineBanc {
+  deals: CrmDeal[]
+  contactsById: Map<string, CrmContact>
+  biensById: Map<string, CrmBien>
+  /** Rend le bandeau d'erreur NON bloquant, colonnes conservées. */
+  isError: boolean
+  /**
+   * Listes des DEUX surfaces de création, qui portent leurs propres sources
+   * (`useContactsSugar`, `useBiensSugar`). Elles sont fournies à part des index
+   * du board : l'état « vide · filtré » vide `contactsById` pour atteindre la
+   * carte « affinez vos filtres », et la modale n'a pas à se vider avec lui.
+   */
+  creation?: NewDealBanc
+  /**
+   * Commandes du banc, rendues à la RACINE de la page.
+   *
+   * ⚠ Elles ne peuvent pas vivre dans le cadre bento : il porte
+   * `overflow: hidden` et clippe tout ce qui le déborde. Et le banc ne relit
+   * jamais `megga.sugar.dark` pour son compte — il REÇOIT `dark`, sinon ses
+   * propres commandes seraient peintes dans le thème d'avant la bascule.
+   */
+  Chrome?: (p: { dark: boolean; gestes: PipelineBancGestes }) => ReactNode
+}
+
+export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = {}) {
   const { t } = useTranslation('pipeline')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -94,10 +146,19 @@ export default function PipelineSugarV2Page() {
   const logAudit = useLogAudit()
 
   // ── Source de vérité : Supabase via usePipelineSugar ────────────────
-  const {
-    deals: liveDeals, updateStage, isError: pipelineError, refetch: pipelineRefetch,
-    contactsById, biensById,
-  } = usePipelineSugar()
+  // ⚠ Le hook est appelé DANS TOUS LES CAS (règle des hooks) ; en banc son
+  // résultat est simplement écarté. Sans session il ne part de toute façon
+  // aucune requête : ses cinq queries sont gatées sur `agency_id`.
+  const live = usePipelineSugar()
+  const enBanc = banc !== undefined
+  const liveDeals = banc ? banc.deals : live.deals
+  const contactsById = banc ? banc.contactsById : live.contactsById
+  const biensById = banc ? banc.biensById : live.biensById
+  const { updateStage } = live
+  // En banc, l'état d'erreur est celui que le banc demande, et « Réessayer »
+  // n'a rien à relancer — le bouton reste actionnable pour être photographié.
+  const pipelineError = banc ? banc.isError : live.isError
+  const pipelineRefetch = enBanc ? () => undefined : live.refetch
   const updateStatus = useUpdateTransactionStatus()
   const archiveTx = useArchiveTransaction()
   const reassignTx = useReassignTransaction()
@@ -160,11 +221,13 @@ export default function PipelineSugarV2Page() {
     signTimers.current.push(setTimeout(() => {
       // « Gagné » : le deal sort du board actif (status='completed').
       setPendingWon(prev => new Set(prev).add(dealId))
-      updateStatus.mutateAsync({ id: dealId, status: 'completed' })
-        .catch(() => {
-          setPendingWon(prev => { const n = new Set(prev); n.delete(dealId); return n })
-          showToast(t('board.toast.moveFailedTitle'))
-        })
+      if (!enBanc) {
+        updateStatus.mutateAsync({ id: dealId, status: 'completed' })
+          .catch(() => {
+            setPendingWon(prev => { const n = new Set(prev); n.delete(dealId); return n })
+            showToast(t('board.toast.moveFailedTitle'))
+          })
+      }
       setSigningId(null)
       setSignExit(false)
       setSignedDeal(dealId)
@@ -185,6 +248,9 @@ export default function PipelineSugarV2Page() {
     onError?: () => void
   }) => {
     patchPendingStage(dealId, targetStage)
+    // En banc l'overlay optimiste EST le résultat : on ne le retire pas, sinon
+    // la carte reviendrait dans sa colonne de départ après chaque déplacement.
+    if (enBanc) { opts?.onSuccess?.(); return }
     updateStage.mutate(
       { id: dealId, stage: stageIdToTransactionStage(targetStage) },
       {
@@ -214,6 +280,7 @@ export default function PipelineSugarV2Page() {
     const fromStage = deal.stage
     applyStageMove(movedId, targetStage, {
       onSuccess: () => {
+        if (enBanc) return
         logAudit.mutate({
           category: 'deal',
           severity: 'info',
@@ -358,11 +425,13 @@ export default function PipelineSugarV2Page() {
 
   // ── Actions de carte ────────────────────────────────────────────────
   const handleReassign = (dealId: string, member: { id: string; name: string }) => {
+    if (enBanc) { showToast(t('board.toast.reassigned', { name: member.name })); return }
     reassignTx.mutateAsync({ id: dealId, assignedTo: member.id })
       .then(() => showToast(t('board.toast.reassigned', { name: member.name })))
       .catch(() => showToast(t('board.card.actionFailed', { message: t('board.card.unknownError') })))
   }
   const handleArchive = (dealId: string) => {
+    if (enBanc) { showToast(t('board.toast.archived'), () => setPipeToast(null)); return }
     archiveTx.mutateAsync({ id: dealId, archived: true })
       .then(() => {
         logAudit.mutate({
@@ -399,6 +468,7 @@ export default function PipelineSugarV2Page() {
     // Avance vers « Visite planifiée » seulement si c'est un progrès (jamais de recul).
     const advance = CRM_STAGE_PROBS['visit-scheduled'] > (CRM_STAGE_PROBS[deal.stage] || 0)
     if (advance) applyStageMove(dealId, 'visit-scheduled')
+    if (enBanc) { showToast(t('board.toast.visitScheduled', { day: slot.day, time: slot.time })); return }
     // Le créneau devient l'échéance réelle du deal — reminder « visite » persisté
     // (une visite « planifiée » qui ne planifie rien serait une action factice).
     createVisitReminder({
@@ -427,7 +497,7 @@ export default function PipelineSugarV2Page() {
   const signedContact = signedDealData ? contactsById.get(signedDealData.contactId) ?? null : null
   const finishSigned = () => {
     // Hygiène : un deal gagné ne garde pas de relances actives (Focus/Calendrier).
-    if (signedDeal) cancelReminders.mutateAsync(signedDeal).catch(() => {})
+    if (signedDeal && !enBanc) cancelReminders.mutateAsync(signedDeal).catch(() => {})
     setSignedDeal(null)
   }
   const reopenSigned = () => {
@@ -435,7 +505,7 @@ export default function PipelineSugarV2Page() {
     const dealId = signedDeal
     setSignedDeal(null)
     setPendingWon(prev => { const n = new Set(prev); n.delete(dealId); return n })
-    updateStatus.mutateAsync({ id: dealId, status: 'active' }).catch(() => {})
+    if (!enBanc) updateStatus.mutateAsync({ id: dealId, status: 'active' }).catch(() => {})
     applyStageMove(dealId, 'interest-confirmed')
   }
   const congratsSigned = () => {
@@ -470,6 +540,20 @@ export default function PipelineSugarV2Page() {
       default: break
     }
   }
+
+  // ── Poignées offertes au banc ───────────────────────────────────────
+  // Ce sont celles de l'agent, pas des raccourcis : « perdu » passe par le même
+  // `setLostConfirm` que le menu de carte, « signé » par le même `setSignedDeal`
+  // que la fin de la célébration. Le banc n'ouvre rien que l'écran n'ouvre.
+  const bancGestes = useMemo<PipelineBancGestes>(() => ({
+    ouvrirNouveauDeal: () => { setNewDealPrefill(null); setNewDealOpen(true) },
+    ouvrirPerdu: (dealId) => setLostConfirm(dealId),
+    ouvrirSigne: (dealId) => setSignedDeal(dealId),
+    ouvrirInline: (stage) => setInlineStage(stage),
+    fermerTout: () => {
+      setNewDealOpen(false); setLostConfirm(null); setSignedDeal(null); setInlineStage(null)
+    },
+  }), [])
 
   // ── État vide partagé (2 variantes) ─────────────────────────────────
   const pipeHasAnyActive = localDeals.some(d => !d.archived && !d.won && d.stage !== 'lost')
@@ -657,14 +741,17 @@ export default function PipelineSugarV2Page() {
                         inlineForm={inlineStage === stage ? (
                           <SgInlineNewDeal
                             stage={stage} sp={sp} dark={dark}
+                            banc={banc?.creation}
                             onCancel={() => setInlineStage(null)}
                             onCreated={(txId) => {
                               setInlineStage(null)
                               // Undo = ranger le deal créé par erreur (pas de DELETE
                               // client : archived_at préserve l'audit) + annuler sa relance.
                               showToast(t('board.toast.created'), () => {
-                                void archiveTx.mutateAsync({ id: txId, archived: true })
-                                cancelReminders.mutateAsync(txId).catch(() => {})
+                                if (!enBanc) {
+                                  void archiveTx.mutateAsync({ id: txId, archived: true })
+                                  cancelReminders.mutateAsync(txId).catch(() => {})
+                                }
                                 setPipeToast(null)
                               })
                             }}
@@ -693,6 +780,7 @@ export default function PipelineSugarV2Page() {
                       <PipelineTimeline
                         sp={sp} dark={dark} deals={filteredDeals} onOpenDeal={openDeal}
                         onReschedule={async (reminderId, triggerAtIso) => {
+                          if (enBanc) return
                           try {
                             await rescheduleReminder.mutateAsync({ id: reminderId, triggerAt: triggerAtIso })
                           } catch (e) {
@@ -713,6 +801,7 @@ export default function PipelineSugarV2Page() {
               onClose={() => setNewDealOpen(false)}
               sp={sp} dark={dark}
               prefill={newDealPrefill}
+              banc={banc?.creation}
             />
           </div>
         </main>
@@ -762,6 +851,7 @@ export default function PipelineSugarV2Page() {
         />
       )}
 
+      {banc?.Chrome ? <banc.Chrome dark={dark} gestes={bancGestes} /> : null}
     </div>
   )
 }
