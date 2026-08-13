@@ -116,6 +116,18 @@ def extract(page_html: str, url: str) -> dict:
     m = re.search(r'"href":"([^"]+)","rel":"nofollow","eventName":"website_link_clicked"', blob)
     website = m.group(1) if m else None
 
+    # L'uuid d'agence vit normalement sur l'objet « équipe » — mais celui-ci
+    # n'existe QUE pour les agences revendiquées (31 % du vivier ne l'ont pas :
+    # 0 transaction, pas de fiche d'équipe). Les paramètres d'événement du lien
+    # « site web », eux, le portent toujours : c'est notre seconde source.
+    agency_id = team.get("id")
+    if not agency_id:
+        m_id = re.search(r'"agency_id":"([0-9a-f-]{36})"', blob)
+        agency_id = m_id.group(1) if m_id else None
+
+    m_y = re.search(r"(\d+)\s*ans? d.expérience", blob)
+    m_p = re.search(r'"hasPhone":(true|false)', blob)
+
     # Un agent est éclaté sur plusieurs objets RSC, chacun partiel : on fusionne
     # par slug en gardant la première valeur non nulle rencontrée.
     by_slug: dict[str, dict] = {}
@@ -169,7 +181,7 @@ def extract(page_html: str, url: str) -> dict:
     return {
         "slug": slug,
         "source_url": url,
-        "agency_id": team.get("id"),
+        "agency_id": agency_id,
         "name": team.get("name") or org.get("name"),
         "logo_url": ((team.get("logo") or {}).get("url")) or org.get("image"),
         "website": website,
@@ -186,6 +198,10 @@ def extract(page_html: str, url: str) -> dict:
         "transactions_total": int(m_tx.group(1)) if m_tx else None,
         "sales_count_24m": (team.get("mv_agency") or {}).get("sales_count"),
         "listings_count": int(m_ls.group(1)) if m_ls else None,
+        "years_experience": int(m_y.group(1)) if m_y else None,
+        # Le numéro lui-même n'est jamais rendu (masqué derrière un clic) ; on ne
+        # garde que le fait qu'il en existe un, ce qui suffit à qualifier un lead.
+        "has_phone": (m_p.group(1) == "true") if m_p else None,
         "services": sorted({s for a in agents for s in a["services"]}),
         "about": about,
         "agents": agents,
@@ -260,7 +276,8 @@ def download_logos(records: list[dict], out: Path, delay: float) -> int:
 SCALARS = ["slug", "agency_id", "name", "website", "address_full", "route",
            "street_number", "postcode", "locality", "canton", "canton_code",
            "hide_exact_address", "rating", "reviews_count", "transactions_total",
-           "sales_count_24m", "listings_count", "logo_url", "source_url"]
+           "sales_count_24m", "listings_count", "years_experience", "has_phone",
+           "logo_url", "source_url"]
 
 
 def write_outputs(records: list[dict], out: Path) -> None:
