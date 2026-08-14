@@ -53,6 +53,20 @@ const SEV_MAP: Record<JournalSeverity, { key: 'critical' | 'warning' | 'info'; t
  *  l'heure — c'est la fenêtre choisie qui porte la date. */
 const COL = { time: 84, severity: 108, family: 104, action: 190, actor: 150, entity: 150 } as const
 
+/**
+ * Largeur sous laquelle le registre DÉFILE au lieu de s'écraser.
+ *
+ * ⛔ Six colonnes sur sept ont une largeur FIXE (786 px) et ne cèdent rien
+ * (`flexShrink: 0`). Seule « Détails » est élastique, avec `minWidth: 0` : elle
+ * absorbait donc 100 % du déficit et tombait à ZÉRO. Mesuré sur `/dev/admin` à
+ * 1280 px de fenêtre — la largeur d'écran la plus courante — une colonne sur
+ * sept était invisible, sans le moindre indice qu'il manquait quelque chose.
+ *
+ * 786 (colonnes) + 6 gouttières de 16 (96) + marges de 20 (40) = 922, plus
+ * 180 px de plancher pour « Détails ».
+ */
+const REGISTRE_MIN_WIDTH = 1100
+
 const TRUNCATE: CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
 /** Condense les paires en une ligne `libellé: valeur`, tronquée à 80 caractères. */
@@ -151,6 +165,12 @@ export default function SecurityRegistryView() {
       </div>
 
       <AdminCard padding={0} style={{ overflow: 'hidden' }}>
+        {/* ⚠ Le `minWidth` est porté UNE fois par l'enveloppe, pas par chaque
+            ligne : les lignes sont des blocs, elles prennent la largeur de leur
+            parent. Le répéter sur l'en-tête, la ligne et le bloc déplié serait
+            trois occasions de le laisser diverger. */}
+        <div className="adm-scroll" style={{ overflowX: 'auto' }}>
+        <div style={{ minWidth: REGISTRE_MIN_WIDTH }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-md) var(--crm-space-2xl)',
           background: sp.tableHeadBg, fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, color: sp.sub,
@@ -246,6 +266,12 @@ export default function SecurityRegistryView() {
           })
         )}
 
+        </div>
+        </div>
+
+        {/* ⚠ HORS de l'enveloppe défilante : la pagination n'a pas de colonnes,
+            et la faire glisser avec le registre la rendrait introuvable dès
+            qu'on défile vers la droite. */}
         <AdminPager page={page} totalPages={totalPages} total={total} perPage={PER_PAGE} onPage={setPage} />
       </AdminCard>
     </>

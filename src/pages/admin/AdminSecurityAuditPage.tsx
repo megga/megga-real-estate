@@ -3,23 +3,25 @@
  *
  * Route : `/dashboard/admin/security`. Liste les actions sensibles
  * d'`activity_events` (filtres sévérité/action/acteur, recherche, pagination,
- * métadonnées dépliables) avec un bandeau KPI sur 7 jours. UN seul export : le
- * PDF juridique de la chaîne d'audit PLATEFORME complète (hash-chain nLPD/LBA —
- * volontairement non filtré). L'export CSV de la vue filtrée a été retiré :
- * « aucun export CSV, nulle part dans la console » (décision du 31 juillet 2026).
+ * métadonnées dépliables) avec un bandeau KPI sur 7 jours.
  *
- * Présentation en grammaire Sugar (kit `adminKit`) : journal dans un bento séparé
- * par l'ombre, sévérités en pilules pleines, accent NOIR sur les contrôles actifs.
- * Le repère violet « Admin MEGGA » vit désormais une seule fois dans le rail du
- * shell — la page n'a plus qu'un titre.
+ * ⚠ AUCUN EXPORT DEPUIS CETTE PAGE. Le CSV de la vue filtrée était parti le
+ * 31 juillet 2026 (« aucun export CSV, nulle part dans la console ») ; le PDF de
+ * la chaîne d'audit PLATEFORME est parti le 14 août 2026, sur décision de
+ * Julien. `downloadAuditPdf` et l'edge `audit-pdf-export` restent VIVANTS —
+ * l'export par agence de la fiche d'audit agent (`AuditSugarPage`) les appelle
+ * toujours. Ce qui a disparu est la piste PLATEFORME complète, pas le mécanisme.
+ *
+ * Présentation en grammaire MEGGA X (kit `adminKit`) : journal dans un bento
+ * séparé par la bordure, sévérités en pilules pleines dont l'encre est dérivée
+ * de l'aplat. Le repère violet « Admin MEGGA » vit une seule fois, dans le rail
+ * du shell — la page n'a qu'un titre.
  */
 import { useState, useMemo, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Shield, AlertTriangle, AlertCircle, Info, FileDown, ChevronDown } from 'lucide-react'
+import { Shield, AlertTriangle, AlertCircle, Info, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 import { fr } from 'date-fns/locale'
-import { downloadAuditPdf } from '@/lib/auditPdfExport'
-import { useToast } from '@/components/ui/Toast'
 import {
   useSecurityAudit,
   AUDIT_ACTION_LABELS,
@@ -31,7 +33,7 @@ import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { useClientPagination } from '@/hooks/useClientPagination'
 import SecurityRegistryView from '@/components/admin/SecurityRegistryView'
 import AdminPage from '@/components/admin/kit/AdminPage'
-import { AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
+import { AdminCard, AdminEmpty, AdminError, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
@@ -45,6 +47,16 @@ const SEVERITY_PILL_VALUES: SeverityFilter[] = ['all', 'critical', 'warning', 'i
 
 /** Largeurs des colonnes du journal — partagées par l'en-tête et les lignes. */
 const COL = { time: 132, severity: 108, action: 168, actor: 172, entity: 92 } as const
+
+/**
+ * Largeur sous laquelle le journal défile plutôt que de s'écraser.
+ *
+ * Somme des cinq colonnes FIXES (672) + les cinq gouttières de 12 (60) + les
+ * marges latérales de 14 (28) = 760, plus 180 px de plancher pour « Détails ».
+ * En dessous, cette colonne — la seule élastique — tombait à zéro sans rien
+ * signaler ; c'est ce qui la rend de nouveau atteignable.
+ */
+const JOURNAL_MIN_WIDTH = 940
 
 const TRUNCATE: CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
@@ -117,12 +129,10 @@ export default function AdminSecurityAuditPage() {
   const { t } = useTranslation('admin')
   const { data: entries, isLoading, isError, refetch } = useSecurityAudit({ limit: 500 })
   const { sp, surf, dark } = useAdminSugar()
-  const toast = useToast()
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
   const [actionFilter, setActionFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
-  const [pdfExporting, setPdfExporting] = useState(false)
   // Deux journaux, deux questions. `registry` = admin_log (ce que MEGGA fait SUR une
   // agence, avec chaîne d'empreintes) ; `agencies` = activity_events (ce qui se passe CHEZ
   // les agences). Le registre est la vue par défaut : c'est celle que la console doit
@@ -176,21 +186,6 @@ export default function AdminSecurityAuditPage() {
     setPage(1)
   }
 
-  // ── Export PDF plateforme (hash-chain, nLPD/LBA) ──────────────────────
-  // Piste d'audit PLATEFORME complète (branche super-admin d'audit-pdf-export),
-  // volontairement sans les filtres d'affichage : la preuve juridique porte sur
-  // la chaîne entière, pas sur une vue filtrée par action côté client.
-  async function handlePdfExport() {
-    setPdfExporting(true)
-    try {
-      await downloadAuditPdf({})
-    } catch {
-      toast.error(t('admin:securityAudit.pdfExportError'))
-    } finally {
-      setPdfExporting(false)
-    }
-  }
-
   // Filet de séparation des lignes — même valeur que `AdminTd`, pour que le
   // journal et les tableaux de la console se lisent d'un seul rythme.
   const rowHair = dark ? 'rgba(255,255,255,0.06)' : 'rgba(3, 3, 3, 0.05)'
@@ -201,13 +196,6 @@ export default function AdminSecurityAuditPage() {
       title={t('admin:securityAudit.title')}
       subtitle={t('admin:securityAudit.subtitle')}
       width="wide"
-      actions={
-        <>
-          <AdminGhostBtn onClick={() => void handlePdfExport()} disabled={pdfExporting} icon={FileDown}>
-            {pdfExporting ? t('admin:securityAudit.pdfExporting') : t('admin:securityAudit.exportPdf')}
-          </AdminGhostBtn>
-        </>
-      }
     >
       {/* Pas de règle de survol de ligne ici : les lignes du journal portent
           `.adm-row` (admin-console.css), dont le `:hover` est en `!important`.
@@ -327,6 +315,25 @@ export default function AdminSecurityAuditPage() {
 
       {/* Journal d'audit */}
       <AdminCard padding={0} style={{ overflow: 'hidden' }}>
+        {/* ⛔ LE JOURNAL DÉFILE À L'HORIZONTALE SOUS SA LARGEUR UTILE, et ce
+            n'est pas un confort : cinq de ses six colonnes ont une largeur FIXE
+            (`COL`, 672 px) et ne cèdent rien (`flexShrink: 0`). Seule
+            « Détails » est élastique, avec `minWidth: 0` — elle absorbait donc
+            100 % du déficit et tombait à ZÉRO. Mesuré : sous ~1310 px de
+            fenêtre, une colonne sur six devenait invisible, sans le moindre
+            indice qu'il manquait quelque chose.
+
+            Le défilement plutôt qu'un reserrage des largeurs : la colonne reste
+            ATTEIGNABLE et aucune des cinq autres ne change de gabarit, donc le
+            journal se lit au même rythme que les tableaux du kit.
+
+            ⚠ L'enveloppe porte le `minWidth` UNE fois, et non chaque ligne :
+            les lignes sont des blocs, elles prennent la largeur de leur parent.
+            Le poser sur chaque ligne aurait demandé de le répéter à trois
+            endroits — l'en-tête, la ligne, et le bloc de métadonnées déplié —
+            avec trois occasions de le laisser diverger. */}
+        <div className="adm-scroll" style={{ overflowX: 'auto' }}>
+        <div style={{ minWidth: JOURNAL_MIN_WIDTH }}>
         {/* En-tête de colonnes — casse normale, fond de tête de table Sugar */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px',
@@ -434,8 +441,14 @@ export default function AdminSecurityAuditPage() {
           })
         )}
 
+        </div>
+        </div>
+
         {/* Pagination — rejoint le bento du journal : le filet supérieur du kit
-            la sépare de la dernière ligne au lieu de flotter sous la carte. */}
+            la sépare de la dernière ligne au lieu de flotter sous la carte.
+            ⚠ HORS de l'enveloppe défilante : elle n'a pas de colonnes, et la
+            faire glisser avec le journal l'aurait rendue introuvable dès qu'on
+            fait défiler vers la droite. */}
         <AdminPager page={page} totalPages={totalPages} total={total} perPage={perPage} onPage={setPage} />
       </AdminCard>
       </>

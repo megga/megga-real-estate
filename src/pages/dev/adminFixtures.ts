@@ -133,6 +133,21 @@ const JOURNAL = [
   { id: 'e08', ts: ilYA(420), action: 'cron_job_failed', severity: 'crit', category: 'platform', agency_name: null, actor_label: 'pg_cron', actor_kind: 'system', entity_type: 'cron', object_label: 'realadvisor-probe-collect' },
 ]
 
+/**
+ * Catégorie du journal → famille d'audit RÉELLE (`JOURNAL_FAMILIES`).
+ *
+ * ⚠ Les douze familles sont un énuméré FERMÉ, et chacune a sa clé i18n. Une
+ * valeur hors liste ne lève pas : elle s'affiche telle quelle à l'écran, sous la
+ * forme `audit.family.<valeur>`.
+ */
+const FAMILLE_JOURNAL: Record<string, string> = {
+  security: 'session',
+  billing: 'plans',
+  platform: 'ops',
+  agency: 'lifecycle',
+  moderation: 'diffusion',
+}
+
 /** `activity_events` brut — la forme de la TABLE, pas celle du journal assemblé. */
 const EVENEMENTS = JOURNAL.map((l, i) => ({
   id: `ev-${i + 1}`,
@@ -301,18 +316,35 @@ export const RPC: Record<string, unknown | ((args: Record<string, unknown>) => u
     { id: 'ml-3', status: 'expired', mode: 'full', sent_at: ilYA(60 * 24 * 12), opened_at: null, uploaded_at: null, confirmed_at: null, expires_at: ilYA(60 * 24 * 5), agency_name: 'Lavaux Résidences SA', contact_name: 'Mme Progin' },
   ],
 
-  get_admin_security_journal: JOURNAL.map((l, i) => ({
+  /**
+   * ⛔ DEUX CHAMPS QUI ONT UN CONTRAT ÉTROIT, et les rater fait passer un écran
+   * SAIN pour un écran cassé — c'est arrivé, signalé comme « problème
+   * d'affichage sur Audit de sécurité ».
+   *
+   * 1. `ts` est `HH:MM:SS`, PAS une date ISO : la RPC ne rend pas la date, c'est
+   *    la FENÊTRE (aujourd'hui / 24 h / ce mois) qui la porte, et le hook le dit
+   *    dans sa docstring. Un `2026-08-14T08:35:33.839Z` triple la largeur de la
+   *    colonne, la fait passer à la ligne, écrase ses voisines et finit tronqué.
+   * 2. `fam` est l'une des DOUZE familles de `JOURNAL_FAMILIES`. `platform`,
+   *    `access` et `billing` n'en font pas partie : sans clé i18n correspondante,
+   *    l'écran affiche `audit.family.platform` EN CLAIR. Une valeur hors énuméré
+   *    ne lève pas — elle s'affiche.
+   *
+   * La leçon est celle des fixtures qui « arrangent » la donnée, prise à
+   * l'envers : une fixture qui ne respecte pas le contrat fabrique un faux
+   * défaut, et envoie corriger une page qui va bien.
+   */
+  get_admin_security_journal: JOURNAL.map((l) => ({
     id: l.id,
-    ts: l.ts,
+    ts: new Date(l.ts).toLocaleTimeString('fr-CH', { hour12: false, timeZone: 'Europe/Zurich' }),
     sev: l.severity === 'crit' ? 'crit' : l.severity === 'warn' ? 'warn' : 'info',
-    fam: l.category === 'security' ? 'access' : l.category === 'billing' ? 'billing' : 'platform',
+    fam: FAMILLE_JOURNAL[l.category ?? ''] ?? 'ops',
     action: l.action,
     action_params: null,
-    entity: l.object_label ?? '—',
+    entity: l.object_label ?? '',
     actor: l.actor_label,
     meta: [['agence', l.agency_name ?? '—'], ['origine', 'banc']],
     total_count: JOURNAL.length,
-    _i: i,
   })),
 
   get_admin_agency_review_queue: [
