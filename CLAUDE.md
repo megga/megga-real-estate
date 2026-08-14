@@ -193,7 +193,26 @@ d'écran n'est restée sur Graphite).
 - Boutons : style ghost `border border-theme-border text-theme-secondary` — JAMAIS `bg-accent text-white`
 - Badges : texte coloré sans fond (`text-red-500`, pas `bg-red-100 text-red-800`)
 - Modals : TOUJOURS `createPortal(document.body)` avec `z-[100]`
-- Steppers : monochrome (numéros + underline), pas de dots colorés
+- **Steppers : l'étape courante porte l'ACCENT, et la progression se lit dans la
+  GÉOMÉTRIE.** ⛔ La règle précédente disait « monochrome (numéros + underline) » :
+  mesuré le 16 août 2026, **aucun stepper du dépôt n'a jamais utilisé
+  d'underline**, et l'accent a remplacé le monochrome le 10 août. Elle décrivait
+  Sugar Pure, pas MEGGA X. Trois idiomes coexistent, chacun justifié par le NOMBRE
+  d'étapes — ne pas en inventer un quatrième :
+  - **barre segmentée** quand les étapes n'ont pas de nom utile (`WizardShell`,
+    7 étapes : segments de 4 px, `i <= etape ? accent : line`) ;
+  - **pilules à libellé** quand elles en ont un et qu'on peut revenir en arrière
+    (`KwStepper`, 3 étapes : actif = pilule d'accent, fait = coche verte, à venir
+    = sourdine) ;
+  - **cercles** quand l'étape est une DONNÉE et non une position dans un
+    formulaire (`dealStepper`, 8 cercles pour 14 stades DB).
+  ⚠ **Pas de numéro de rang** : trois étapes alignées SONT 1, 2, 3, et l'accent dit
+  déjà laquelle est courante. Ce qui reste marqué est ce que la position ne dit
+  pas — « fait », par une coche. Deux exceptions mesurées et légitimes :
+  `IdentityShell` (onboarding KYB) suit la nav `.mx-stepper` de la VITRINE, dont
+  le numéro fait partie ; le wizard mobile affiche un compteur `n / N`, qui n'est
+  pas un rang mais une distance restante sur un écran sans place pour les
+  libellés.
 - Scrollbars : `.scrollbar-hide` sur modals et pipeline
 - Notifications sidebar : pas de dot rouge par défaut (système Messages retiré du CRM agent)
 
