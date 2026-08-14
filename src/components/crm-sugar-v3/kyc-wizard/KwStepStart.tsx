@@ -36,17 +36,13 @@ export function KwStepStart({ data, set }: Props) {
         >
           {t('wizard.start.title')}
         </h1>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 'var(--crm-text-xl)',
-            color: sp.inkSoft,
-            fontWeight: 500,
-            lineHeight: 1.55,
-          }}
-        >
-          {t('wizard.start.subtitle')}
-        </p>
+        {/* ⚠ LE SOUS-TITRE A ÉTÉ RETIRÉ (16 août 2026), clé comprise, dans les
+            quatre langues. Il disait « Trois chemins pour respecter l'obligation
+            LBA. Le plus rapide reste de lier le dossier à un contact déjà connu
+            de votre CRM. » — 124 caractères pour annoncer ce que les trois
+            cartes montrent déjà, et recommander ce que le badge « Recommandé »
+            recommande à quatre centimètres de là. Chaque carte dit désormais ce
+            qui se passe si on la choisit, et rien d'autre. */}
       </div>
 
       <div

@@ -239,18 +239,17 @@
     },
     "start": {
       "title": "Comment voulez-vous ouvrir ce dossier ?",
-      "subtitle": "Trois chemins pour respecter l'obligation LBA. Le plus rapide reste de lier le dossier à un contact déjà connu de votre CRM.",
       "existing": {
         "title": "Lier à un contact existant",
-        "sub": "Le plus courant : vous sélectionnez un acheteur, vendeur ou locataire déjà présent dans le CRM."
+        "sub": "Un acheteur, vendeur ou locataire déjà dans le CRM."
       },
       "import": {
-        "title": "Importer un dossier externe (bientôt)",
-        "sub": "L'import + parsing automatique (PDF Persona, ComplyAdvantage, rapport agence partenaire) arrive dans une prochaine release. Utilisez « Lier à un contact existant » en attendant."
+        "title": "Importer un dossier externe",
+        "sub": "Bientôt disponible."
       },
       "magic": {
         "title": "Demander les pièces",
-        "sub": "Lien magique envoyé au contact pour qu'il dépose lui-même ses justificatifs en toute sécurité."
+        "sub": "Le contact dépose ses pièces lui-même."
       }
     },
     "contact": {

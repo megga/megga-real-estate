@@ -239,18 +239,17 @@
     },
     "start": {
       "title": "How would you like to open this case?",
-      "subtitle": "Three ways to meet your AMLA obligation. The quickest is to link the case to a contact already in your CRM.",
       "existing": {
         "title": "Link to an existing contact",
-        "sub": "The most common path: pick a buyer, seller or tenant already in the CRM."
+        "sub": "A buyer, seller or tenant already in the CRM."
       },
       "import": {
-        "title": "Import an external file (coming soon)",
-        "sub": "Import with automatic parsing (Persona PDF, ComplyAdvantage, partner-agency report) is coming in a future release. Use “Link to an existing contact” in the meantime."
+        "title": "Import an external file",
+        "sub": "Coming soon."
       },
       "magic": {
         "title": "Request the documents",
-        "sub": "A magic link is sent to the contact so they can securely upload their documents themselves."
+        "sub": "The contact uploads their documents themselves."
       }
     },
     "contact": {
