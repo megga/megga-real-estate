@@ -20,28 +20,75 @@
 
 import type { OutboundTemplateMessage } from './whatsapp-gateway.ts'
 
-export type WaTemplateKey = 'followup' | 'availability' | 'new_listings'
+export type WaTemplateKey =
+  | 'followup'
+  | 'availability'
+  | 'new_listings'
+  | 'agent_daily_brief'
+  | 'kyc_documents_missing'
 
-export const WA_TEMPLATE_KEYS: WaTemplateKey[] = ['followup', 'availability', 'new_listings']
+export const WA_TEMPLATE_KEYS: WaTemplateKey[] = [
+  'followup',
+  'availability',
+  'new_listings',
+  'agent_daily_brief',
+  'kyc_documents_missing',
+]
 
 export interface WaTemplateContext {
   clientFirstName?: string   // {{1}} — prénom du client (repli « Bonjour »)
   agentName?: string         // {{2}} — nom de l'agent/agence
   count?: number             // new_listings : nombre de biens ({{2}})
   extra?: string             // availability : objet du créneau (ex. « une visite »)
+  agentFirstName?: string    // agent_daily_brief : prénom de l'AGENT destinataire ({{1}})
+  itemCount?: number         // agent_daily_brief : nombre d'éléments à traiter ({{2}})
+  /** Langue du DESTINATAIRE. Prime sur la surcharge d'env. Valeur inconnue = ignorée. */
+  lang?: string
 }
+
+/** Les 4 langues du CRM. Meta n'expose pas de_CH/it_CH : on dépose sous `de`/`it`. */
+export type WaTemplateLang = 'fr' | 'de' | 'en' | 'it'
+
+export const WA_TEMPLATE_LANGS: WaTemplateLang[] = ['fr', 'de', 'en', 'it']
 
 interface WaTemplateDef {
   /** Env var portant le nom Meta APPROUVÉ (vide/absent = template non activé). */
   nameEnv: string
   /** Env var pour surcharger la langue ; sinon defaultLang. */
   langEnv: string
-  defaultLang: string
-  /** Corps type soumis à Meta (documentation — l'ordre des {{n}} DOIT matcher bodyParams). */
-  bodyText: string
+  defaultLang: WaTemplateLang
+  /**
+   * Corps soumis à Meta, PAR LANGUE. Un même nom de template porte plusieurs
+   * traductions côté Meta ; `language.code` choisit à l'envoi.
+   *
+   * ⚠ L'ordre des `{{n}}` est IDENTIQUE dans toutes les langues, parce que
+   * `bodyParams` produit un seul tableau ordonné pour toutes. Une traduction qui
+   * inverserait {{1}} et {{2}} — tentant en allemand — enverrait le nom de
+   * l'agence à la place du prénom du client.
+   */
+  bodyTexts: Record<WaTemplateLang, string>
   /** Paramètres du corps dans l'ordre {{1}}, {{2}}… Chaîne non vide garantie (Meta rejette
-   *  un paramètre vide). */
-  bodyParams: (ctx: WaTemplateContext) => string[]
+   *  un paramètre vide). `lang` sert aux replis : voir FALLBACK. */
+  bodyParams: (ctx: WaTemplateContext, lang: WaTemplateLang) => string[]
+}
+
+/**
+ * Replis quand le CRM ne connaît pas la valeur — PAR LANGUE.
+ *
+ * ⛔ Ils étaient en français en dur, et faux même en français : le repli du prénom
+ * valait `'Bonjour'` dans un corps qui commence par « Bonjour {{1}} », soit
+ * « Bonjour Bonjour, ». En allemand cela donnait « Guten Tag Bonjour, hier meldet
+ * sich votre agent … für une visite » — trois langues dans une phrase, livrée au
+ * client. Un repli est du texte visible : il appartient à la langue du message.
+ *
+ * `slot` est à l'ACCUSATIF en allemand (« für » le régit) et féminin partout, pour
+ * rester grammatical dans la phrase d'origine.
+ */
+const FALLBACK: Record<WaTemplateLang, { person: string; agent: string; agency: string; slot: string }> = {
+  fr: { person: 'Madame, Monsieur', agent: 'votre agent', agency: 'votre agence', slot: 'une visite' },
+  de: { person: 'geschätzte Kundin, geschätzter Kunde', agent: 'Ihr Ansprechpartner', agency: 'Ihre Immobilienagentur', slot: 'eine Besichtigung' },
+  en: { person: 'there', agent: 'your agent', agency: 'your agency', slot: 'a viewing' },
+  it: { person: 'Gentile Cliente', agent: 'il Suo consulente', agency: 'la Sua agenzia', slot: 'una visita' },
 }
 
 const nonEmpty = (v: string | undefined | null, fallback: string): string => {
@@ -54,33 +101,130 @@ const REGISTRY: Record<WaTemplateKey, WaTemplateDef> = {
   //   Souhaitez-vous qu'on en reparle ? »
   followup: {
     nameEnv: 'WA_TEMPLATE_FOLLOWUP', langEnv: 'WA_TEMPLATE_FOLLOWUP_LANG', defaultLang: 'fr',
-    bodyText: 'Bonjour {{1}}, {{2}} revient vers vous au sujet de votre projet immobilier. Souhaitez-vous qu’on en reparle ?',
-    bodyParams: (c) => [nonEmpty(c.clientFirstName, 'Bonjour'), nonEmpty(c.agentName, 'votre agent')],
+    bodyTexts: {
+      fr: 'Bonjour {{1}}, {{2}} revient vers vous au sujet de votre projet immobilier. Souhaitez-vous qu’on en reparle ?',
+      de: 'Guten Tag {{1}}, hier meldet sich {{2}} erneut wegen Ihres Immobilienprojekts. Möchten Sie darüber sprechen?',
+      en: 'Hello {{1}}, this is {{2}} getting back to you about your property plans. Would you like to discuss them further?',
+      it: 'Buongiorno {{1}}, La ricontatta {{2}} in merito al Suo progetto immobiliare. Desidera riparlarne?',
+    },
+    bodyParams: (c, l) => [nonEmpty(c.clientFirstName, FALLBACK[l].person), nonEmpty(c.agentName, FALLBACK[l].agent)],
   },
   // « Bonjour {{1}}, {{2}} vous propose un créneau pour {{3}}. Êtes-vous disponible ? »
+  //
+  // ⚠ DE : « für » régit l'accusatif, donc {{3}} doit arriver à l'accusatif
+  // (« eine Besichtigung »). Et la question porte sur la disponibilité, pas sur
+  // un horaire : le corps ne contient AUCUNE date, seulement l'objet du créneau.
   availability: {
     nameEnv: 'WA_TEMPLATE_AVAILABILITY', langEnv: 'WA_TEMPLATE_AVAILABILITY_LANG', defaultLang: 'fr',
-    bodyText: 'Bonjour {{1}}, {{2}} vous propose un créneau pour {{3}}. Êtes-vous disponible ?',
-    bodyParams: (c) => [nonEmpty(c.clientFirstName, 'Bonjour'), nonEmpty(c.agentName, 'votre agent'), nonEmpty(c.extra, 'une visite')],
+    bodyTexts: {
+      fr: 'Bonjour {{1}}, {{2}} vous propose un créneau pour {{3}}. Êtes-vous disponible ?',
+      de: 'Guten Tag {{1}}, hier meldet sich {{2}} mit einem Terminvorschlag für {{3}}. Hätten Sie dafür Zeit?',
+      en: 'Hello {{1}}, this is {{2}} getting in touch to suggest a time for {{3}}. Are you available?',
+      it: 'Buongiorno {{1}}, La contatta {{2}} per proporLe un orario per {{3}}. È disponibile?',
+    },
+    bodyParams: (c, l) => [
+      nonEmpty(c.clientFirstName, FALLBACK[l].person),
+      nonEmpty(c.agentName, FALLBACK[l].agent),
+      nonEmpty(c.extra, FALLBACK[l].slot),
+    ],
   },
   // « Bonjour {{1}}, {{2}} nouveau(x) bien(s) correspondant à votre recherche viennent
   //   d'arriver. Voulez-vous les découvrir ? »
+  // ⚠ {{2}} est un NOMBRE : chaque traduction doit rester grammaticale avec 1
+  // comme avec 12. D'où « Treffer » (invariable) en allemand et « listing(s) » en
+  // anglais, sur le modèle du « bien(s) » français.
   new_listings: {
     nameEnv: 'WA_TEMPLATE_NEW_LISTINGS', langEnv: 'WA_TEMPLATE_NEW_LISTINGS_LANG', defaultLang: 'fr',
-    bodyText: 'Bonjour {{1}}, {{2}} nouveau(x) bien(s) correspondant à votre recherche viennent d’arriver. Voulez-vous les découvrir ?',
-    bodyParams: (c) => [nonEmpty(c.clientFirstName, 'Bonjour'), String(Math.max(1, c.count ?? 1))],
+    bodyTexts: {
+      fr: 'Bonjour {{1}}, {{2}} nouveau(x) bien(s) correspondant à votre recherche viennent d’arriver. Voulez-vous les découvrir ?',
+      de: 'Guten Tag {{1}}, zu Ihrer Suche gibt es neu {{2}} Treffer. Möchten Sie mehr dazu erfahren?',
+      en: 'Hello {{1}}, we have found {{2}} new listing(s) matching your search. Would you like to take a look?',
+      it: 'Buongiorno {{1}}, Le segnaliamo {{2}} proprietà di recente pubblicazione in linea con la Sua ricerca. Desidera riceverne i dettagli?',
+    },
+    bodyParams: (c, l) => [nonEmpty(c.clientFirstName, FALLBACK[l].person), String(Math.max(1, c.count ?? 1))],
+  },
+
+  // ── Agent-facing ───────────────────────────────────────────────────────────
+  // Le SEUL template dont le destinataire a un consentement tracé en base
+  // (`whatsapp_agent_links.verified` + opt-out par `morning_brief_enabled`) :
+  // l'agent est utilisateur du service, pas un contact démarché.
+  //
+  // Le corps PORTE le décompte au lieu de demander la permission de l'envoyer.
+  // Une formule du type « votre brief est prêt, souhaitez-vous le recevoir ? »
+  // n'énonce aucun fait et se fait reclasser en MARKETING — en plus de marquer
+  // la journée comme livrée alors que rien d'utile n'a été dit.
+  //
+  // ⚠ MESURÉ le 14.08.2026 : soumis en UTILITY, Meta l'a APPROUVÉ en **MARKETING**.
+  // La dernière phrase (« Répondez … pour recevoir le détail ») se lit comme un
+  // réengagement. Conséquence : tarif marketing et opt-in marketing pour un
+  // message destiné à l'AGENT lui-même. Ne jamais déduire le coût ni la règle de
+  // consentement de la catégorie DEMANDÉE — relire celle rendue par l'API.
+  // Contestable dans WhatsApp Manager (statut IN_APPEAL) si on veut UTILITY.
+  //
+  // ⚠ La commande entre guillemets reste « mon point du jour » DANS TOUTES LES
+  // LANGUES, volontairement : le routage vers `get_daily_brief` est sémantique et
+  // les descriptions d'outils sont en français, et `detectLang` ne connaît que
+  // fr/en (`whatsapp-i18n.ts`). Conséquence à connaître avant d'activer le DE ou
+  // l'IT : l'agent recevra le détail EN FRANÇAIS, parce que sa réponse « mon point
+  // du jour » sera détectée comme française.
+  agent_daily_brief: {
+    nameEnv: 'WA_TEMPLATE_AGENT_DAILY_BRIEF', langEnv: 'WA_TEMPLATE_AGENT_DAILY_BRIEF_LANG', defaultLang: 'fr',
+    bodyTexts: {
+      fr: 'Bonjour {{1}}, votre point du jour MEGGA compte {{2}} élément(s) à traiter : visites, relances, offres à échéance et nouveaux leads. Répondez « mon point du jour » pour recevoir le détail ici.',
+      de: 'Guten Tag {{1}}, Ihr MEGGA-Tagesüberblick enthält heute {{2}} Pendenz(en): Besichtigungen, Wiedervorlagen, auslaufende Angebote und neue Leads. Antworten Sie mit dem Stichwort «mon point du jour», um die Details hier zu erhalten.',
+      en: 'Hello {{1}}, your MEGGA daily brief lists {{2}} item(s) to handle: viewings, follow-ups, expiring offers and new leads. Reply "my daily brief" to receive the details here.',
+      it: 'Buongiorno {{1}}, il Suo riepilogo MEGGA di oggi conta {{2}} attività da gestire: visite, solleciti, offerte in scadenza e nuovi lead. Risponda «mon point du jour» per ricevere qui il dettaglio.',
+    },
+    bodyParams: (c, l) => [
+      nonEmpty(c.agentFirstName, FALLBACK[l].person),
+      // Meta rejette un paramètre vide, et un décompte à 0 n'a aucune raison
+      // d'être poussé : l'appelant ne doit pas déclencher le template dans ce cas.
+      String(Math.max(1, c.itemCount ?? 1)),
+    ],
+  },
+
+  // ── Client ─────────────────────────────────────────────────────────────────
+  // ⚠ Le corps ne dit PAS « vérification » ni « KYC » : ce canal est grand public
+  // (aperçu sur écran verrouillé, WhatsApp Web partagé, sauvegardes cloud) et le
+  // statut LAB/KYC d'une personne n'a pas à y transiter. « une ou plusieurs
+  // pièces à votre dossier » suffit à rouvrir la conversation.
+  //
+  // ⛔ NE PAS ACTIVER tant que `executeSendKycLink` fige `channels: ['email']` et
+  // refuse un contact sans e-mail : un « oui » ouvrirait une fenêtre 24 h sur une
+  // impasse. Le lien de dépôt n'a encore jamais été émis (0 ligne).
+  kyc_documents_missing: {
+    nameEnv: 'WA_TEMPLATE_KYC_DOCUMENTS_MISSING', langEnv: 'WA_TEMPLATE_KYC_DOCUMENTS_MISSING_LANG', defaultLang: 'fr',
+    bodyTexts: {
+      fr: 'Bonjour {{1}}, il manque encore une ou plusieurs pièces à votre dossier chez {{2}}. Souhaitez-vous recevoir le lien de dépôt sécurisé ?',
+      de: 'Guten Tag {{1}}, in Ihrem Dossier bei {{2}} fehlen noch eine oder mehrere Unterlagen. Möchten Sie den Link zum sicheren Upload erhalten?',
+      en: 'Hello {{1}}, one or more documents are still missing from your file with {{2}}. Would you like to receive the secure upload link?',
+      it: 'Buongiorno {{1}}, alla Sua pratica presso {{2}} mancano ancora uno o più documenti. Desidera ricevere il link sicuro per il caricamento?',
+    },
+    bodyParams: (c, l) => [nonEmpty(c.clientFirstName, FALLBACK[l].person), nonEmpty(c.agentName, FALLBACK[l].agency)],
   },
 }
 
-/** Documentation du corps type d'un template (pour la soumission Meta). */
-export function templateBodyText(key: WaTemplateKey): string {
-  return REGISTRY[key].bodyText
+/** Corps d'un template dans une langue donnée (documentation + soumission Meta). */
+export function templateBodyText(key: WaTemplateKey, lang: WaTemplateLang = 'fr'): string {
+  return REGISTRY[key].bodyTexts[lang]
 }
+
+/** Une langue connue du registre, ou `null` si la valeur ne correspond à rien. */
+const asLang = (v: string): WaTemplateLang | null =>
+  (WA_TEMPLATE_LANGS as string[]).includes(v) ? (v as WaTemplateLang) : null
 
 /**
  * Construit le message template à envoyer, ou `null` si le template n'est pas configuré
  * (nom approuvé absent de l'env) → le caller applique un repli gracieux (pas d'envoi).
  * `env` est injecté (Deno.env.get) pour rester PUR et testable.
+ *
+ * LANGUE, par ordre de priorité : celle du destinataire (`ctx.lang`), sinon la
+ * surcharge d'environnement, sinon `defaultLang`.
+ *
+ * ⚠ La surcharge d'env est GLOBALE : la poser à `de` bascule TOUS les destinataires
+ * en allemand, francophones compris. Elle sert à corriger un déploiement, pas à
+ * faire du multilingue — pour ça, c'est `ctx.lang` qu'il faut renseigner, et il ne
+ * l'est nulle part aujourd'hui (aucune colonne de langue sur `contacts`).
  */
 export function buildTemplateMessage(
   key: WaTemplateKey,
@@ -92,8 +236,11 @@ export function buildTemplateMessage(
   if (!def) return null
   const name = (env(def.nameEnv) ?? '').trim()
   if (!name) return null // template non approuvé/configuré → repli
-  const languageCode = (env(def.langEnv) ?? '').trim() || def.defaultLang
-  return { toPhone, templateName: name, languageCode, bodyParams: def.bodyParams(ctx) }
+  const lang =
+    asLang((ctx.lang ?? '').trim()) ??
+    asLang((env(def.langEnv) ?? '').trim()) ??
+    def.defaultLang
+  return { toPhone, templateName: name, languageCode: lang, bodyParams: def.bodyParams(ctx, lang) }
 }
 
 /** Liste des clés de template ACTIVÉES (nom approuvé présent dans l'env). */
