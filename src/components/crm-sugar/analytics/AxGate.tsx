@@ -70,7 +70,7 @@ export default function AxGate({ dark, saving, onDone }: { dark: boolean; saving
           {saving ? tr('analytics.gate.saving') : tr('analytics.gate.cta')}
         </button>
         {err && (
-          <div role="alert" style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.pillBehind.bg, textAlign: 'center' }}>
+          <div role="alert" style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.errInk, textAlign: 'center' }}>
             {tr('analytics.gate.error')}
           </div>
         )}
