@@ -19,6 +19,7 @@ import { SET_PALETTE, applySetTheme } from '@/components/crm-sugar/settings/data
 import { buildCalPalette } from '@/components/crm-sugar/calendar/data'
 import { VxSP_DARK } from '@/components/crm-sugar-v3/vitrine/vitrineTokens'
 import { MT_DARK } from '@/components/crm-mobile/tokens'
+import { adminSurfaces } from '@/hooks/useAdminSugar'
 
 /** Luminance relative WCAG — sert à vérifier la monotonie de l'échelle. */
 function luminance(hex: string): number {
@@ -114,6 +115,15 @@ describe('palettes d’écran dérivées', () => {
     { name: 'mobile MT.pageBg', read: () => MT_DARK.pageBg, attendu: MXC_COLOR.n100 },
     { name: 'mobile MT.card', read: () => MT_DARK.card, attendu: MXC_COLOR.n300 },
     { name: 'mobile MT.tabBarBg', read: () => MT_DARK.tabBarBg, attendu: MXC_COLOR.n300 },
+    // ⛔ LA CONSOLE ADMIN EST LA SEULE SURFACE QUI Y ÉTAIT RESTÉE, et ce test ne
+    // pouvait pas le voir : ses cinq paliers ne vivaient pas dans une palette JS
+    // mais dans `admin-console.css`, que ce fichier n'ouvre pas (zéro
+    // `readFileSync`). Graphite y a survécu quatre jours, toutes portes vertes.
+    // Depuis le 14 août 2026 `adminSurfaces()` DÉSCEND de `mxCrmPalette()`, donc
+    // elle entre ici comme les autres — et `admin-console-css.spec.ts` tient
+    // l'autre langage.
+    { name: 'console admin surf.card', read: () => adminSurfaces(true).card, attendu: MXC_COLOR.n300 },
+    { name: 'console admin surf.cardSub', read: () => adminSurfaces(true).cardSub, attendu: MXC_COLOR.n200 },
   ]
 
   it.each(cases)('$name rend un neutre MEGGA X', ({ read, attendu }) => {

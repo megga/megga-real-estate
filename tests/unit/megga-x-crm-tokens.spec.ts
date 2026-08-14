@@ -409,8 +409,6 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
    * chantier Contacts, qui traitent précisément les polices en dur.
    */
   const POLICES_ASSUMEES = new Set([
-    'src/components/admin/AdminShell.tsx',
-    'src/components/admin/UserDrawer.tsx',
     'src/components/ai-copilot/panel/AnnonceReviewModal.tsx',
     'src/components/ai-copilot/panel/CopilotPanel.tsx',
     'src/components/ai-copilot/panel/DeleteContactReviewModal.tsx',

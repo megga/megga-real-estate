@@ -136,7 +136,12 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
           background: sp.solidBg, boxShadow: sp.solidShadow,
           // Le drawer est porté sur `document.body`, hors du conteneur du shell :
           // il doit redéclarer la police et les chiffres tabulaires de la console.
-          fontFamily: '"Inter Tight", system-ui, sans-serif', fontVariantNumeric: 'tabular-nums',
+          //
+          // ⚠ Par la VARIABLE, pas par le nom. Une police écrite en dur ÉCRASE
+          // `--crm-font`, donc la direction ne peut plus changer la typographie
+          // de cette région — et le défaut est invisible sous MEGGA X, dont la
+          // police EST Inter Tight. Le nom n'est ici qu'un repli.
+          fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', fontVariantNumeric: 'tabular-nums',
         }}
       >
         {/* Close button */}

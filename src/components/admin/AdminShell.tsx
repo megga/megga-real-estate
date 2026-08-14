@@ -280,7 +280,9 @@ export default function AdminShell() {
       style={{
         position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
-        fontFamily: '"Inter Tight", system-ui, sans-serif', color: sp.ink,
+        // ⚠ Par la VARIABLE : une police en dur écraserait `--crm-font` pour
+        // toute la console, et le défaut ne se verrait pas sous MEGGA X.
+        fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
         fontVariantNumeric: 'tabular-nums',
       }}
     >

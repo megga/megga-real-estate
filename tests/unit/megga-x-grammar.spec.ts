@@ -181,15 +181,36 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   // instrument ne lit que les styles EN LIGNE. Un silence n'est pas un verdict.
   // Elle est passée au style en ligne au même lot, ce qui la rend VISIBLE ici.
   { root: 'src/pages/admin', keep: (n) => /\.tsx?$/.test(n) },
-  // Le chrome et les atomes de la console (lot 4, 14 août 2026). Deux racines
-  // parce que `kit/` est un sous-dossier et que `scanRoots` ne descend pas.
+  // Le chrome et les atomes de la console (lot 4, 14 août 2026).
+  //
+  // ⚠ UNE SEULE racine, et `kit/` est dedans : `collect()` RECURSE. Le lot 4
+  // avait ajouté `src/components/admin/kit` en second, sur la croyance que le
+  // balayage ne descendait pas — mesuré, les trois fichiers du kit étaient
+  // alors lus DEUX fois (27 entrées pour 24 fichiers). Une croyance sur le
+  // comportement d'un helper se vérifie dans le helper, pas dans sa docstring.
+  // Le kit reste nommé plus bas, en TÉMOIN de balayage : c'est ce qui prouve
+  // que la récursion l'atteint vraiment.
   //
   // ⚠ Leur dette est celle des composants du Pipeline, pas celle des pages
   // d'à côté : 58 graisses ≥ 700 et DEUX tailles littérales seulement. La même
   // console porte donc les deux dettes opposées, chacune de son côté de la
   // frontière page/composant.
   { root: 'src/components/admin', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/admin/kit', keep: (n) => /\.tsx?$/.test(n) },
+]
+
+/**
+ * Un fichier par zone acquise RÉCEMMENT, dont on exige qu'il soit réellement
+ * balayé.
+ *
+ * ⛔ `emptyRoots` n'attrape qu'une racine qui ne rend AUCUN fichier. Une racine
+ * qui en rend quelques-uns pendant qu'un sous-dossier entier échappe au filtre
+ * lui paraît saine — et c'est exactement la forme que prend une régression de
+ * couverture. Même idiome que `PAGES_ACQUISES`, appliqué aux dossiers.
+ */
+const TEMOINS_DE_ZONE = [
+  'src/pages/admin/AdminKybReviewPage.tsx',
+  'src/components/admin/AdminShell.tsx',
+  'src/components/admin/kit/adminKit.tsx',
 ]
 
 /** La preuve que le scan voit encore l'arbre — sinon tout passe par vacuité. */
@@ -514,8 +535,13 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/matching-atelier',
       'src/pages/admin',
       'src/components/admin',
-      'src/components/admin/kit',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
+    // Et les zones acquises sont réellement ATTEINTES — une racine présente
+    // dont un sous-dossier échappe au filtre passerait `emptyRoots`.
+    const chemins = sources.map((s) => s.chemin)
+    for (const t of TEMOINS_DE_ZONE) {
+      expect(chemins, `zone non balayée : ${t}`).toContain(t)
+    }
     // Les pages sont bien VUES — un filtre de nom qui ne matche rien laisserait
     // la racine non vide (le dossier en contient d'autres) tout en ne gardant
     // aucune d'elles.
