@@ -23,9 +23,32 @@ import { execSql } from './helpers/local-sql'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 
-const runSql = (body: string) => execSql(`do $$\n${body}\nend $$;`)
+/** Le corps porte son bloc complet (`begin … end`) — le wrapper ne ferme rien pour lui. */
+const runSql = (body: string) => execSql(`do $$\n${body}\n$$;`)
 const assertSql = (body: string) => expect(() => runSql(body), 'assertion SQL').not.toThrow()
-const refuseSql = (body: string) => expect(() => runSql(body), 'ce SQL devait être refusé').toThrow()
+
+/**
+ * Motifs de refus LÉGITIMES. Tout le reste — une syntaxe fautive au premier chef — est un
+ * échec du test, pas une preuve.
+ */
+const MOTIF_REFUS =
+  /violates (check|unique|not-null|foreign key) constraint|est append-only|permission denied|denied for/i
+
+/**
+ * Un refus doit venir de la CONTRAINTE, jamais d'une faute de frappe.
+ *
+ * ⚠ Écrit APRÈS coup, et c'est la leçon. La première version de ce banc se contentait de
+ * `toThrow()`, et ses corps refermaient un `end` que le wrapper posait déjà. Les quinze
+ * refus passaient donc tous sur `syntax error at or near "end"` : verts, et ne prouvant
+ * rien du tout. Une erreur de syntaxe fait « échouer » n'importe quel SQL — c'est le
+ * MOTIF qui décide, pas l'échec.
+ */
+const refuseSql = (body: string, motif: RegExp = MOTIF_REFUS) => {
+  let msg = ''
+  try { runSql(body) } catch (e) { msg = String((e as Error).message) }
+  expect(msg, `ce SQL devait être refusé : ${body}`).not.toBe('')
+  expect(msg, 'refusé, mais pas par une contrainte').toMatch(motif)
+}
 
 /**
  * Numéro à 11 chiffres dont les 9 derniers — ce que `normalize_phone` retient — sont
@@ -242,10 +265,10 @@ describe.skipIf(!HAS_KEYS)('registre de consentement WhatsApp — L1', () => {
       // Transaction EXPLICITE avec rollback : si le trigger manquait, ce test doit échouer
       // en rendant un verdict, pas en vidant le registre de la base de CI pour les specs
       // suivantes. L'assertion tient dans les deux cas.
-      expect(
-        () => execSql('begin; truncate public.whatsapp_consents; rollback;'),
-        'le trigger STATEMENT doit refuser le TRUNCATE',
-      ).toThrow()
+      let truncErr = ''
+      try { execSql('begin; truncate public.whatsapp_consents; rollback;') }
+      catch (e) { truncErr = String((e as Error).message) }
+      expect(truncErr, 'le trigger STATEMENT doit refuser le TRUNCATE').toMatch(/est append-only/)
     })
 
     it('le caviardage DSAR efface la PII et RIEN d’autre', async () => {
