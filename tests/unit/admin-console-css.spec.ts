@@ -32,24 +32,27 @@
  * passerait au vert sur une feuille entièrement fautive : quatorzième forme de
  * garde vacuité, celle qui rend un succès au lieu d'une erreur.
  *
- * ── CE QUE CETTE GARDE NE COUVRE PAS, ET C'EST ÉCRIT PLUTÔT QUE TU ──────────
- * `adminSurfaces()` (`src/hooks/useAdminSugar.ts`) est la TROISIÈME source de
- * surfaces de la console : cinq clés écrites à la main, dont deux VOILES en
- * sombre (`rgba(255,255,255,.05)` et `.04`). Elles ne sont pas Graphite et
- * elles ne s'écartent pas de la logique de MEGGA X — leur sous-carte est bien
- * CREUSÉE sous leur carte —, mais composées sur le canvas elles rendent
- * `#101010` et `#0d0d0d` là où la feuille écrit `#090909` et `#050505`. Écart
- * mesuré entre les deux : 1,05:1, sous le seuil de perception, et les deux
- * sources ne se touchent nulle part à l'écran (vérifié page par page).
+ * ── LA TROISIÈME SOURCE, FERMÉE AU LOT SUIVANT ──────────────────────────────
+ * `adminSurfaces()` (`src/hooks/useAdminSugar.ts`) écrivait ses cinq valeurs à
+ * la main — transcription de `galSurfaces` du temps de Sugar Pure. La feuille
+ * pouvait donc être vérifiée et juste pendant que le JS disait autre chose.
  *
- * Ce n'est donc PAS un défaut visible, c'est une duplication de plus. Elle
- * appartient au lot du kit, qui possède `adminSurfaces` ; la nommer ici évite
- * qu'on lise « la feuille est vérifiée » comme « les surfaces le sont ».
+ * ⛔ Et ce n'est pas resté théorique : ses cartes sombres étaient des VOILES
+ * (5 % et 4 %), et le tiroir de revue KYB les empilait DEUX fois. La pile
+ * rendait `#323232`, une couleur d'aucune échelle, sur laquelle « Valider »
+ * tombait à 4,06:1 et « Rejeter » à 4,31:1 — mesuré au rendu, tiroir ouvert.
+ * Une duplication non gardée finit toujours par produire une valeur que
+ * personne n'a choisie.
+ *
+ * Les deux langages descendent maintenant de `mxCrmPalette()`, et la clause
+ * « les surfaces JS descendent de la palette » est ce qui les empêche de
+ * re-diverger.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { adminSurfaces } from '@/hooks/useAdminSugar'
 
 const FEUILLE = 'src/styles/admin-console.css'
 const brut = readFileSync(FEUILLE, 'utf-8')
@@ -173,6 +176,45 @@ describe('admin-console.css — la feuille suit MEGGA X', () => {
       }
     }
     expect(ecarts, `la feuille a dérivé de la palette :\n  ${ecarts.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ LA TROISIÈME SOURCE. `adminSurfaces()` écrivait ses cinq valeurs à la
+   * main — transcription de `galSurfaces` du temps de Sugar Pure. La feuille
+   * pouvait donc être vérifiée et juste pendant que le JS disait autre chose,
+   * ce qui est arrivé : ses cartes sombres étaient des VOILES, et empilées deux
+   * fois dans le tiroir de revue elles produisaient `#323232`, une couleur
+   * d'aucune échelle, sur laquelle deux boutons d'action tombaient sous l'AA.
+   *
+   * Les deux langages disent maintenant la même chose, et cette clause est ce
+   * qui les empêche de re-diverger.
+   */
+  it('les surfaces JS descendent de la palette, comme la feuille', () => {
+    const ecarts: string[] = []
+    for (const sombre of [false, true]) {
+      const sp = crmSugarPalette(sombre)
+      const surf = adminSurfaces(sombre)
+      const attendu: Record<string, string> = {
+        card: sp.cardBg,
+        cardSub: sp.cardSubBg,
+        hairline: `1px solid ${sp.cardBorder}`,
+        shadow: sp.shadow,
+        shadowHov: sp.focusShadow,
+      }
+      for (const [cle, valeur] of Object.entries(attendu)) {
+        const lu = surf[cle as keyof typeof surf]
+        if (lu !== valeur) ecarts.push(`${sombre ? 'sombre' : 'clair'} · surf.${cle} = ${lu} au lieu de ${valeur}`)
+      }
+      // Et aucune des cinq n'est un VOILE : une surface de la console est un
+      // palier opaque, sinon elle dérive dès qu'on l'empile.
+      for (const [cle, v] of Object.entries(surf)) {
+        if (cle.startsWith('shadow')) continue
+        if (/rgba\([^)]*,\s*0?\.\d+\s*\)/.test(v)) {
+          ecarts.push(`${sombre ? 'sombre' : 'clair'} · surf.${cle} est un voile : ${v}`)
+        }
+      }
+    }
+    expect(ecarts, `les surfaces JS ont dérivé :\n  ${ecarts.join('\n  ')}`).toEqual([])
   })
 
   it('toute couleur de la feuille est un barreau de l’échelle', () => {

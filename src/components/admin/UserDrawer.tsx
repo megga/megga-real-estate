@@ -33,6 +33,7 @@ import {
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 
 
 interface UserDrawerProps {
@@ -110,7 +111,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex justify-end">
       <style>{`
         .audr-ev { transition: background .15s ease; }
-        .audr-ev:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(15,23,42,0.03)'}; }
+        .audr-ev:hover { background: ${sgVoileEncre(dark, 0.045)}; }
         .audr-sel:focus { box-shadow: inset 0 0 0 2px ${sp.accent}; }
         .audr-link:hover { text-decoration: underline; }
       `}</style>
@@ -159,7 +160,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--crm-space-lg)', paddingTop: 'var(--crm-space-md)' }}>
               <AdminAvatar initials={initialsOf(user.full_name ?? 'Utilisateur')} photo={user.avatar_url} size={64} />
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
-                <h2 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.5, color: sp.ink, lineHeight: 1.2 }}>
+                <h2 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.5, color: sp.ink, lineHeight: 1.2 }}>
                   {user.full_name ?? t('common.noName')}
                 </h2>
                 {user.is_suspended && (
@@ -185,7 +186,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                     to={`${ADMIN_CONSOLE_PATH}/agencies/${user.agency_id}`}
                     onClick={onClose}
                     className="audr-link"
-                    style={{ color: sp.ink, fontWeight: 700, textDecoration: 'none' }}
+                    style={{ color: sp.ink, fontWeight: 600, textDecoration: 'none' }}
                   >
                     {user.agency_name}
                   </Link>
@@ -201,7 +202,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
             {/* Role selector */}
             <div>
-              <label style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.2, color: sp.sub, marginBottom: 7 }}>
+              <label style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.2, color: sp.sub, marginBottom: 7 }}>
                 {t('userDrawer.role')}
               </label>
               <select
@@ -331,7 +332,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 d'inscription ne pose de case marketing, donc l'absence de ligne
                 signifie « jamais demandé », pas un refus. */}
             <div style={{ paddingTop: 'var(--crm-space-2xl)', borderTop: surf.hairline }}>
-              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
+              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, marginBottom: 9 }}>
                 {t('userDrawer.consents.title')}
               </div>
               {(() => {
@@ -357,7 +358,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
             {/* Activity timeline */}
             <div>
-              <h3 style={{ margin: '0 0 10px', fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 0.2, color: sp.sub }}>
+              <h3 style={{ margin: '0 0 10px', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.2, color: sp.sub }}>
                 {t('userDrawer.recentActivity')}
               </h3>
 
@@ -380,7 +381,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                       <span style={{ width: 6, height: 6, borderRadius: ADMIN_RADII.pill, background: sp.accent, marginTop: 5, flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', color: sp.ink, lineHeight: 1.4 }}>
-                          <span style={{ fontWeight: 700 }}>{event.action}</span>
+                          <span style={{ fontWeight: 600 }}>{event.action}</span>
                           {event.entity_type && (
                             <span style={{ color: sp.sub }}> {t('userDrawer.actionOn')} {event.entity_type}</span>
                           )}

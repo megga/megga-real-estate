@@ -120,7 +120,7 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
           />
           <kbd style={{
             flexShrink: 0, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: ADMIN_RADII.pill,
-            background: surf.cardSub, color: sp.sub, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700,
+            background: surf.cardSub, color: sp.sub, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600,
           }}>
             Esc
           </kbd>
@@ -166,7 +166,7 @@ export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogPr
                     >
                       <MEIcon name={Icon as MEIconName} size={16} color={sp.sub} />
                       <span style={{ minWidth: 0, flex: 1 }}>
-                        <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {item.title}
                         </span>
                         <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

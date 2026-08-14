@@ -17,6 +17,7 @@ import { useAnnouncementsAdmin, type Announcement, type AnnouncementInput } from
 import { AdminCard, AdminDivider, AdminGhostBtn, AdminIc, AdminSolidBtn, AdminSwitch } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 
 const PLAN_IDS = ['starter', 'pro', 'entreprise'] as const
 const SEVERITIES = ['info', 'warning', 'critical'] as const
@@ -82,7 +83,7 @@ export default function AnnouncementFormModal({ existing, onClose }: {
 
   const labelStyle: CSSProperties = {
     display: 'block', marginBottom: 6,
-    fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, color: sp.sub,
+    fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.2, color: sp.sub,
   }
   // Champ Sugar : pas de bordure, une surface creuse et un filet INTÉRIEUR — le
   // trait ne sépare rien, l'ombre du bento s'en charge.
@@ -90,12 +91,12 @@ export default function AnnouncementFormModal({ existing, onClose }: {
     width: '100%', height: 38, padding: '0 var(--crm-space-xl)', borderRadius: ADMIN_RADII.row, border: 0,
     background: surf.cardSub, color: sp.ink,
     fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, outline: 'none',
-    boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
+    boxShadow: `0 0 0 1.5px ${sgVoileEncre(dark, 0.07)} inset`,
   }
   /** Segment de sélection (sévérité, plans) — accent plein quand actif. */
   const segmentStyle = (on: boolean): CSSProperties => ({
     height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-    fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap',
     background: on ? sp.accent : surf.cardSub, color: on ? sp.accentInk : sp.soft,
   })
   const hintStyle: CSSProperties = { margin: '6px 0 0', fontSize: 'var(--crm-text-sm)', color: sp.soft }
@@ -104,7 +105,7 @@ export default function AnnouncementFormModal({ existing, onClose }: {
   // ne sait pas exprimer, et qui doivent suivre le thème.
   const menuCss = `
     .annf-opt { transition: background-color .14s ease; }
-    .annf-opt:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'}; }
+    .annf-opt:hover { background: ${sgVoileEncre(dark, 0.05)}; }
     .annf-search::placeholder { color: ${sp.soft}; }
   `
 
@@ -157,7 +158,7 @@ export default function AnnouncementFormModal({ existing, onClose }: {
               <span key={id} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', height: 28, padding: '0 var(--crm-space-xs) 0 var(--crm-space-lg)',
                 borderRadius: ADMIN_RADII.pill, background: surf.cardSub, color: sp.ink,
-                fontSize: 'var(--crm-text-sm)', fontWeight: 700, maxWidth: '100%',
+                fontSize: 'var(--crm-text-sm)', fontWeight: 600, maxWidth: '100%',
               }}>
                 <span className="truncate" style={{ maxWidth: 140 }}>{agencies.find(a => a.id === id)?.name ?? id}</span>
                 <button onClick={() => toggleAgency(id)} style={{
@@ -172,7 +173,7 @@ export default function AnnouncementFormModal({ existing, onClose }: {
               <button onClick={() => setAgencyOpen(o => !o)} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 28, padding: '0 var(--crm-space-xl)',
                 borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap',
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap',
                 color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
               }}>
                 {t('announcements.form.addAgency')}
@@ -203,7 +204,7 @@ export default function AnnouncementFormModal({ existing, onClose }: {
                           <button key={a.id} onClick={() => toggleAgency(a.id)} className="annf-opt" style={{
                             width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-md)',
                             padding: 'var(--crm-space-sm) var(--crm-space-xl)', border: 0, background: 'transparent', cursor: 'pointer', textAlign: 'left',
-                            fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 700 : 600, color: on ? sp.ink : sp.sub,
+                            fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 600 : 500, color: on ? sp.ink : sp.sub,
                           }}>
                             <span className="truncate">{a.name}</span>
                             {on && <AdminIc icon={Check} size={13} color={sp.ink} />}

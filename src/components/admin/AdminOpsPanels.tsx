@@ -57,7 +57,7 @@ function OpsStat({ label, value, color }: { label: string; value: string | numbe
     <div>
       <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.soft }}>{label}</p>
       <p style={{
-        margin: '2px 0 0', fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.4,
+        margin: '2px 0 0', fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.4,
         color: color ?? sp.ink, fontVariantNumeric: 'tabular-nums',
       }}>
         {value}
@@ -97,7 +97,7 @@ export function SyndicationHealthPanel() {
             {data.by_status.map((row) => (
               <div key={`${row.portal}-${row.status}`} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-md)' }}>
                 <span style={{
-                  fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.4,
+                  fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.4,
                   color: statusCountColor(row.status, tones, sp), fontVariantNumeric: 'tabular-nums',
                 }}>
                   {row.count}
@@ -245,7 +245,7 @@ export function WhatsAppOpsPanel() {
                 {data.top_errors.map((e) => (
                   <div key={e.error} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)', fontSize: 'var(--crm-text-sm)' }}>
                     <span style={{ color: sp.sub, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.error}</span>
-                    <span style={{ flexShrink: 0, fontWeight: 700, color: tones.err, fontVariantNumeric: 'tabular-nums' }}>{e.count}</span>
+                    <span style={{ flexShrink: 0, fontWeight: 600, color: tones.err, fontVariantNumeric: 'tabular-nums' }}>{e.count}</span>
                   </div>
                 ))}
               </div>
@@ -314,7 +314,7 @@ export function AiCostsSection() {
                     <AdminTd style={{ color: sp.sub }}>{row.provider}</AdminTd>
                     <AdminTd style={{ color: sp.sub }}>{row.module}</AdminTd>
                     <AdminTd align="right" numeric style={{ color: sp.sub }}>{row.calls}</AdminTd>
-                    <AdminTd align="right" numeric style={{ fontWeight: 700 }}>
+                    <AdminTd align="right" numeric style={{ fontWeight: 600 }}>
                       {Number(row.cost_usd).toFixed(4)} USD
                     </AdminTd>
                   </tr>

@@ -1,13 +1,22 @@
 /**
- * Kit Sugar de la console admin — atomes de rendu.
+ * Kit de la console admin — atomes de rendu, en grammaire MEGGA X.
  *
- * Encode la grammaire de l'écran Paramètres du CRM (« Sugar Pure ») pour que les
- * 17 pages d'administration cessent de la réinventer :
- *   - bento séparé par l'OMBRE, pas par une bordure décorative ;
- *   - accent noir unique sur les contrôles, violet réservé au repère plateforme ;
- *   - statuts en pilules à fond plein + texte blanc (jamais `text-red-500`) ;
+ * Encode la grammaire de la direction pour que les 19 pages d'administration
+ * cessent de la réinventer :
+ *   - bento séparé par la BORDURE, jamais par une ombre (en sombre `sp.shadow`
+ *     vaut `'none'` : c'est un trait de la direction, pas un oubli) ;
+ *   - accent `#424bfb` sur les contrôles, violet réservé au repère de contexte
+ *     du rail (`AdminShell`, trois sites) ;
+ *   - statuts en pilules à fond plein dont l'encre est DÉRIVÉE de l'aplat
+ *     (`encreSur`), jamais choisie — un aplat clair prend l'encre sombre ;
  *   - quatre rayons seulement (`ADMIN_RADII`) ;
- *   - chiffres tabulaires, icônes à stroke 1.7.
+ *   - chiffres tabulaires, icônes à stroke 1.7 ;
+ *   - graisses 500/600, jamais au-delà : c'est l'encre qui porte la hiérarchie.
+ *
+ * ⚠ Cet en-tête décrivait « Sugar Pure », « l'accent noir unique » et « texte
+ * blanc » jusqu'au 14 août 2026 — une norme retirée du CRM le 10. Un fichier
+ * aligné sur une référence périmée se relit MOINS qu'un fichier négligé : il a
+ * l'air tenu.
  *
  * Les atomes lisent le thème eux-mêmes via `useAdminSugar()` : les pages ne
  * portent aucune prop de palette. Constantes et types dans `adminKitCore.ts`
@@ -18,7 +27,9 @@ import type { LucideIcon } from 'lucide-react'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useAdminSugar, type AdminTones } from '@/hooks/useAdminSugar'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { ADMIN_ICON_SIZE, ADMIN_ICON_STROKE, ADMIN_RADII, type AdminToneName } from './adminKitCore'
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 
 /* ─── Icône ─────────────────────────────────────────────────────────────────── */
 
@@ -50,11 +61,13 @@ export function AdminIc({ icon: Icon, size = ADMIN_ICON_SIZE, color, style }: {
 /* ─── Bento ─────────────────────────────────────────────────────────────────── */
 
 /**
- * Carte de la console — le bento Sugar.
+ * Carte de la console — le bento.
  *
- * Séparée du fond par `surf.shadow` et une hairline très discrète, JAMAIS par
- * `border border-theme-border`. C'est la différence visuelle la plus lourde
- * entre la console d'avant et les Paramètres.
+ * ⚠ Séparée du fond par sa BORDURE. En clair une ombre courte l'accompagne ; en
+ * sombre `sp.shadow` vaut `'none'` et l'écart de luminance avec le canvas est
+ * de 1,036:1 — c'est-à-dire imperceptible, PAR CHOIX. Ne pas « réparer » en
+ * ajoutant une ombre sombre ou en creusant l'écart : la séparation vient de la
+ * bordure (`CLAUDE.md` §3).
  */
 export function AdminCard({ children, padding = 20, radius = ADMIN_RADII.card, className, style, onClick }: {
   children: ReactNode
@@ -88,7 +101,7 @@ export function AdminCard({ children, padding = 20, radius = ADMIN_RADII.card, c
 /** Filet de séparation interne d'un bento (l'équivalent de `hairSoft` des Réglages). */
 export function AdminDivider({ margin = '0' }: { margin?: string }) {
   const { dark } = useAdminSugar()
-  return <div style={{ height: 1, background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.05)', margin }} />
+  return <div style={{ height: 1, background: sgVoileEncre(dark, 0.07), margin }} />
 }
 
 /* ─── Titres ────────────────────────────────────────────────────────────────── */
@@ -117,7 +130,7 @@ export function AdminGroupTitle({ label, tone = 'info', right, level = 2 }: {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-md)' }}>
       <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: toneColor(tone, tones), flexShrink: 0 }} />
-      <Heading style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.2, color: sp.ink }}>{label}</Heading>
+      <Heading style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: 0.2, color: sp.ink }}>{label}</Heading>
       {right && <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>{right}</div>}
     </div>
   )
@@ -171,7 +184,7 @@ export function AdminPill({ label, tone = 'neutral', icon, title, style }: {
         padding: icon ? '5px 12px 5px 9px' : '5px 12px',
         borderRadius: ADMIN_RADII.pill,
         background: bg, color: ink,
-        fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: -0.1,
+        fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.1,
         whiteSpace: 'nowrap', flexShrink: 0,
         ...style,
       }}
@@ -244,7 +257,7 @@ export function AdminGhostBtn({ children, onClick, icon, disabled, title, style,
         display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
         height: 34, padding: '0 var(--crm-space-2xl)', borderRadius: ADMIN_RADII.pill, border: 0,
         cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? VOILE_DESACTIVE : 1,
-        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
+        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap',
         color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
         ...style,
       }}
@@ -256,10 +269,11 @@ export function AdminGhostBtn({ children, onClick, icon, disabled, title, style,
 }
 
 /**
- * Bouton principal : accent NOIR (`sp.accent`), texte `sp.accentInk`.
+ * Bouton principal : l'accent `#424bfb` (`sp.accent`), encre `sp.accentInk`.
  *
- * Sugar Pure n'a qu'un accent, et il n'est pas violet : le violet de la console
- * reste un repère de contexte, pas une couleur d'action.
+ * ⚠ L'accent de la direction, PAS le violet : celui-ci reste un repère de
+ * contexte — « tu es dans la console » — et vit aux trois sites du rail. Un
+ * bouton d'action n'est pas un repère de contexte.
  */
 export function AdminSolidBtn({ children, onClick, icon, disabled, title, style }: {
   children: ReactNode
@@ -277,7 +291,7 @@ export function AdminSolidBtn({ children, onClick, icon, disabled, title, style 
         display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
         height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: ADMIN_RADII.pill, border: 0,
         cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? VOILE_DESACTIVE : 1,
-        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
+        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap',
         color: sp.accentInk, background: sp.accent, boxShadow: sp.shadowSm,
         ...style,
       }}
@@ -314,7 +328,10 @@ export function AdminSwitch({ on, onClick, label, disabled }: {
     >
       <span style={{
         position: 'absolute', top: 3, left: on ? 21 : 3, width: 20, height: 20,
-        borderRadius: ADMIN_RADII.pill, background: dark && on ? '#0B0C0E' : '#fff',
+        // ⛔ Le pouce portait `#0B0C0E`, le noir de SUGAR — la direction retirée.
+        // Il survivait ici parce qu'aucune garde ne balayait ce dossier ; c'est
+        // le seul du périmètre. Les deux pôles sont ceux de l'échelle.
+        borderRadius: ADMIN_RADII.pill, background: dark && on ? MXC_COLOR.n100 : MXC_COLOR.n1000,
         transition: 'left .22s cubic-bezier(.2,.8,.2,1)', boxShadow: '0 1px 3px rgba(0,0,0,.25)',
       }} />
     </button>
@@ -351,7 +368,7 @@ export function AdminAvatar({ initials, size = 34, photo, alt }: {
         position: 'relative',
         width: size, height: size, borderRadius: ADMIN_RADII.pill, flexShrink: 0, overflow: 'hidden',
         background: sp.accent, color: sp.accentInk, display: 'grid', placeItems: 'center',
-        fontSize: Math.round(size * 0.38), fontWeight: 700, letterSpacing: -0.4,
+        fontSize: Math.round(size * 0.38), fontWeight: 600, letterSpacing: -0.4,
       }}
     >
       {/* Les initiales restent rendues DESSOUS : si l'image échoue en cours de
@@ -393,7 +410,7 @@ export function AdminStat({ label, value, icon, tone, hint, trend }: {
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
         {icon && <AdminIc icon={icon} size={16} color={iconColor} />}
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.6, color: sp.ink, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.6, color: sp.ink, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums' }}>
             {value}
           </div>
           <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, lineHeight: 1.3, marginTop: 1 }}>{label}</div>
@@ -401,7 +418,7 @@ export function AdminStat({ label, value, icon, tone, hint, trend }: {
         </div>
         {trend != null && trend !== 0 && (
           <span style={{
-            fontSize: 'var(--crm-text-sm)', fontWeight: 700, flexShrink: 0, fontVariantNumeric: 'tabular-nums',
+            fontSize: 'var(--crm-text-sm)', fontWeight: 600, flexShrink: 0, fontVariantNumeric: 'tabular-nums',
             color: trend > 0 ? tones.ok : tones.err,
           }}>
             {trend > 0 ? '+' : ''}{trend}
@@ -425,7 +442,7 @@ export function AdminEmpty({ icon, title, hint, action }: {
   return (
     <div style={{ display: 'grid', placeItems: 'center', gap: 'var(--crm-space-lg)', padding: '44px 20px', textAlign: 'center' }}>
       {icon && <AdminIc icon={icon} size={26} color={sp.sub} />}
-      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>{title}</div>
+      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, letterSpacing: -0.2 }}>{title}</div>
       {hint && <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, maxWidth: 380, lineHeight: 1.5 }}>{hint}</div>}
       {action}
     </div>
@@ -467,7 +484,7 @@ export function AdminError({ message, onRetry, retryLabel }: {
   const { tones } = useAdminSugar()
   return (
     <div style={{ display: 'grid', placeItems: 'center', gap: 'var(--crm-space-xl)', padding: '36px 20px', textAlign: 'center' }}>
-      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tones.err }}>{message}</div>
+      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tones.err }}>{message}</div>
       {onRetry && retryLabel && <AdminGhostBtn onClick={onRetry}>{retryLabel}</AdminGhostBtn>}
     </div>
   )
@@ -492,7 +509,7 @@ export function AdminTh({ children, align = 'left', width, bg }: {
   return (
     <th style={{
       textAlign: align, width, padding: 'var(--crm-space-md) var(--crm-space-xl)', whiteSpace: 'nowrap',
-      fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
+      fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, color: sp.sub,
       background: bg ?? sp.tableHeadBg, position: 'sticky', top: 0, zIndex: 1,
     }}>
       {children}
@@ -511,7 +528,7 @@ export function AdminTd({ children, align = 'left', numeric, style }: {
   return (
     <td style={{
       textAlign: align, padding: 'var(--crm-space-lg) var(--crm-space-xl)', fontSize: 'var(--crm-text-md)', color: sp.ink,
-      borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)'}`,
+      borderTop: `1px solid ${sgVoileEncre(dark, 0.06)}`,
       fontVariantNumeric: numeric ? 'tabular-nums' : undefined,
       ...style,
     }}>
@@ -561,7 +578,7 @@ export function AdminSearchInput({ value, onChange, placeholder, label, maxWidth
         style={{
           width: '100%', height, padding: `0 12px 0 ${compact ? 31 : 35}px`, boxSizing: 'border-box',
           borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub,
-          color: sp.ink, fontFamily: 'inherit', fontSize: compact ? 12 : 13, fontWeight: 600,
+          color: sp.ink, fontFamily: 'inherit', fontSize: compact ? 'var(--crm-text-sm)' : 'var(--crm-text-md)', fontWeight: 600,
           outline: 'none', transition: 'box-shadow .16s ease',
         }}
       />
@@ -627,7 +644,7 @@ export function AdminPager({ page, totalPages, total, perPage, onPage }: {
                 style={{
                   minWidth: 28, height: 28, padding: '0 var(--crm-space-md)', borderRadius: ADMIN_RADII.pill,
                   border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)',
-                  fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+                  fontWeight: 600, fontVariantNumeric: 'tabular-nums',
                   background: on ? sp.accent : 'transparent',
                   color: on ? sp.accentInk : sp.soft,
                 }}
@@ -685,7 +702,7 @@ export function AdminSegmentBtn({ on, onClick, children, variant = 'filter', tit
       style={{
         height: tab ? 34 : 32, padding: tab ? '0 15px' : '0 14px',
         borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
+        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap',
         background: on ? sp.accent : restBg,
         color: on ? sp.accentInk : sp.soft,
         boxShadow: !on && tab ? sp.shadowSm : 'none',

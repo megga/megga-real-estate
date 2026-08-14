@@ -35,7 +35,7 @@ export default function CronRunNowConfirm({ jobname, messageFr, pending, onConfi
         </p>
         <p style={{
           margin: 0, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-          fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.sub,
+          fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub,
         }}>
           {jobname}
         </p>

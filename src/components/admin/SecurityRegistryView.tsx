@@ -35,6 +35,7 @@ import {
   AdminCard, AdminEmpty, AdminError, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSkeleton,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 
 const PER_PAGE = 20
 
@@ -82,7 +83,7 @@ export default function SecurityRegistryView() {
   // (offset), donc rester en page 7 sur un filtre qui n'a que 2 pages rendrait du vide.
   const change = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1) }
 
-  const rowHair = dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)'
+  const rowHair = sgVoileEncre(dark, 0.06)
 
   return (
     <>
@@ -101,7 +102,7 @@ export default function SecurityRegistryView() {
                 onClick={() => change(setWin)(w)}
                 style={{
                   height: 30, padding: '0 var(--crm-space-2xl)', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
+                  fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 600 : 500, whiteSpace: 'nowrap',
                   background: on ? sp.accent : 'transparent', color: on ? sp.accentInk : sp.sub,
                   transition: 'background .15s ease, color .15s ease',
                 }}
@@ -120,7 +121,7 @@ export default function SecurityRegistryView() {
             onChange={e => change(setFilter)(e.target.value as JournalFilter)}
             style={{
               height: 34, padding: '0 34px 0 15px', borderRadius: ADMIN_RADII.pill, border: 0, outline: 'none',
-              appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700,
+              appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
               color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
             }}
           >
@@ -152,7 +153,7 @@ export default function SecurityRegistryView() {
       <AdminCard padding={0} style={{ overflow: 'hidden' }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-md) var(--crm-space-2xl)',
-          background: sp.tableHeadBg, fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
+          background: sp.tableHeadBg, fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, color: sp.sub,
         }}>
           <div style={{ width: COL.time, flexShrink: 0 }}>{t('admin:securityAudit.table.timestamp')}</div>
           <div style={{ width: COL.severity, flexShrink: 0 }}>{t('admin:securityAudit.table.severity')}</div>
@@ -230,7 +231,7 @@ export default function SecurityRegistryView() {
                       <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'minmax(120px, max-content) 1fr', gap: '6px 16px' }}>
                         {e.meta.map(([l, v], i) => (
                           <div key={`${e.id}-${i}`} style={{ display: 'contents' }}>
-                            <dt style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.ink }}>{l}</dt>
+                            <dt style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink }}>{l}</dt>
                             <dd style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub, wordBreak: 'break-word' }}>{v}</dd>
                           </div>
                         ))}

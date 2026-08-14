@@ -17,6 +17,7 @@ import { AdminGhostBtn, AdminSegmentBtn, AdminSolidBtn, AdminSwitch } from '@/co
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
 import { useAdminSugar } from '@/hooks/useAdminSugar'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 
 const PLAN_IDS = ['starter', 'pro', 'entreprise'] as const
 
@@ -62,7 +63,7 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
 
   const labelStyle: CSSProperties = {
     display: 'block', marginBottom: 6,
-    fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, color: sp.sub,
+    fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.2, color: sp.sub,
   }
   // Champ Sugar : pas de bordure, une surface creuse et un filet INTÉRIEUR — le
   // trait ne participe pas à la séparation, l'ombre du bento s'en charge.
@@ -70,7 +71,7 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
     width: '100%', height: 38, padding: '0 var(--crm-space-xl)', borderRadius: ADMIN_RADII.row, border: 0,
     background: surf.cardSub, color: sp.ink,
     fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, outline: 'none',
-    boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
+    boxShadow: `0 0 0 1.5px ${sgVoileEncre(dark, 0.07)} inset`,
   }
 
   return (

@@ -2,9 +2,9 @@
  * Palette Sugar de la console super-admin, dérivée du thème admin.
  *
  * Les Paramètres du CRM (`SettingsSugarV2Page`) calculent leur palette au
- * render — `crmSugarPalette(dark)` → `adminSurfaces(dark)`
- * — puis la font descendre en props. La console, elle, a 17 pages et 27
- * composants : enfiler `sp`/`surf`/`dark` partout serait un carnage d'imports.
+ * render — `crmSugarPalette(dark)` → `adminSurfaces(dark)` — puis la font
+ * descendre en props. La console, elle, a 19 pages et 24 composants : enfiler
+ * `sp`/`surf`/`dark` partout serait un carnage d'imports.
  *
  * Ce hook lit le thème sur `AdminThemeProvider` (déjà branché sur la clé Sugar
  * `megga.sugar.dark`) et rend la MÊME palette que les Paramètres. Les atomes du
@@ -17,16 +17,31 @@ import { crmSugarPalette, type SugarPalette } from '@/components/crm-sugar/token
 import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 /**
- * Surfaces Sugar Pure : blanc opaque en clair, verre subtil en sombre.
+ * Surfaces de la console — DÉRIVÉES de la palette, plus recopiées.
  *
- * Valeurs recopiées de `galSurfaces` (crm-sugar/biens/gallery/galHelpers.ts).
- * La duplication est VOLONTAIRE : `galHelpers` importe `@/i18n` pour ses
- * libellés de statut, et comme le kit admin est importé par les 42 surfaces de
- * la console, passer par lui traînait tout le bundle i18n dans le chunk partagé
- * du kit (mesuré : 570 kB, chaînes de locale incluses). `galSurfaces` ignore de
- * toute façon son argument de palette — c'est une table de constantes indexée
- * sur `dark`, donc rien de vivant n'est perdu ici. `tokens.ts`, lui, n'importe
- * rien : la palette continue de venir de la source de vérité.
+ * ⛔ C'ÉTAIT LA TROISIÈME SOURCE DE SURFACES DU PÉRIMÈTRE, après les styles en
+ * ligne et `admin-console.css`. Cinq valeurs écrites à la main, transcrites de
+ * `galSurfaces` du temps de Sugar Pure : « blanc opaque en clair, verre subtil
+ * en sombre ». C'est la grammaire de Sugar, pas celle de MEGGA X.
+ *
+ * Trois choses en sortaient, chacune mesurée :
+ * 1. **Les cartes sombres étaient des VOILES** (5 % et 4 %). Un voile posé sur
+ *    un canvas neutre n'est pas un palier : empilé deux fois dans le tiroir de
+ *    revue KYB, il produisait `#323232`, une couleur d'aucune échelle sur
+ *    laquelle deux boutons d'action tombaient sous l'AA. MEGGA X pose des
+ *    paliers OPAQUES et CREUSE la sous-carte sous la carte.
+ * 2. **Le filet portait le gris-bleu slate-900** (`rgba(15,23,42,0.05)`) — la
+ *    quatorzième occurrence du périmètre, et celle que le motif de famille n'a
+ *    pas attrapée parce qu'elle vit à l'intérieur d'une chaîne
+ *    `'1px solid rgba(…)'`. Toujours par la même porte : une fraction d'opacité.
+ *    En MEGGA X la séparation vient de la BORDURE, alors elle en devient une.
+ * 3. **Les ombres SOMBRES contredisaient la direction** — `sp.shadow` vaut
+ *    `'none'` en sombre, la vitrine séparant par la bordure. Les deux paires
+ *    d'ombres portaient en plus `rgba(40,55,90,…)`, un second bleu-gris.
+ *
+ * Les cinq valeurs descendent désormais de `mxCrmPalette()`. Le CSS de la
+ * console dit la même chose dans son langage, et `admin-console-css.spec.ts`
+ * vérifie que les deux restent d'accord.
  */
 export interface AdminSurfaces {
   card: string
@@ -44,16 +59,16 @@ export interface AdminSurfaces {
  * SOURCE, pas à une transcription qui se périmera au premier reciblage.
  */
 export function adminSurfaces(dark: boolean): AdminSurfaces {
+  const sp = crmSugarPalette(dark)
   return {
-    card: dark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
-    cardSub: dark ? 'rgba(255,255,255,0.04)' : '#F4F6F9',
-    hairline: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(15,23,42,0.05)',
-    shadow: dark
-      ? '0 1px 2px rgba(0,0,0,.4), 0 10px 28px -12px rgba(0,0,0,.6)'
-      : '0 1px 2px rgba(15,23,42,.04), 0 12px 34px -14px rgba(40,55,90,.20)',
-    shadowHov: dark
-      ? '0 1px 2px rgba(0,0,0,.5), 0 24px 50px -16px rgba(0,0,0,.7)'
-      : '0 2px 6px rgba(15,23,42,.05), 0 26px 52px -18px rgba(40,55,90,.32)',
+    card: sp.cardBg,
+    cardSub: sp.cardSubBg,
+    hairline: `1px solid ${sp.cardBorder}`,
+    shadow: sp.shadow,
+    // ⚠ `focusShadow` et non une seconde ombre inventée : la vitrine n'en a
+    // qu'une, et en sombre les deux valent `'none'` — c'est la bordure qui
+    // sépare, pas une élévation.
+    shadowHov: sp.focusShadow,
   }
 }
 
@@ -108,16 +123,13 @@ export interface AdminSugar {
 }
 
 /**
- * Palette + surfaces + tons de la console, mémorisés sur `dark`.
+ * Tons fonctionnels de la console, purs et exportés — même raison
+ * qu'`adminSurfaces` : la garde de contraste doit lire la SOURCE.
  *
  * Les tons clair/sombre suivent la convention `pfColors` : on assombrit en clair
  * pour tenir le contraste sur fond blanc, on éclaircit en sombre. Ne pas les
  * remplacer par les `text-*-500` de Tailwind — c'est précisément l'écart que
  * l'alignement corrige.
- */
-/**
- * Tons fonctionnels de la console, purs et exportés — même raison
- * qu'`adminSurfaces` : la garde de contraste doit lire la SOURCE.
  */
 export function adminTones(dark: boolean): AdminTones {
   const sp = crmSugarPalette(dark)
@@ -148,6 +160,7 @@ export function adminTones(dark: boolean): AdminTones {
   }
 }
 
+/** Palette + surfaces + tons de la console, mémorisés sur `dark`. */
 export function useAdminSugar(): AdminSugar {
   const { dark } = useAdminTheme()
 

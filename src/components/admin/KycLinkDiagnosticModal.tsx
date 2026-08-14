@@ -136,7 +136,7 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
     background: surf.cardSub, border: surf.hairline, color: sp.ink,
     fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
   } as const
-  const libelle = { display: 'block', marginBottom: 5, fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.sub } as const
+  const libelle = { display: 'block', marginBottom: 5, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub } as const
 
   return (
     // ⛔ PAS de `className="megga-admin-console"` ici, et c'est mesuré : la feuille
@@ -158,7 +158,7 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
 
         {/* ── Temps 1 : le motif ───────────────────────────────────────────── */}
         <div>
-          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, marginBottom: 9 }}>
             {t('kycDiag.step1')}
           </div>
           {agencesEnVol ? (
@@ -203,7 +203,7 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
 
         {/* ── Temps 2 : la recherche ───────────────────────────────────────── */}
         <div style={{ opacity: motifComplet ? 1 : 0.45, pointerEvents: motifComplet ? 'auto' : 'none' }}>
-          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, marginBottom: 9 }}>
             {t('kycDiag.step2')}
           </div>
           <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', alignItems: 'flex-end' }}>
@@ -231,7 +231,7 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
         {/* ── Temps 3 : les correspondances ────────────────────────────────── */}
         {(lookup.isPending || resultat || lookup.isError) && (
           <div>
-            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub, marginBottom: 9 }}>
+            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, marginBottom: 9 }}>
               {t('kycDiag.step3')}
             </div>
 
@@ -265,7 +265,7 @@ export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props
                   return (
                     <div key={m.link_id} style={{ padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: ADMIN_RADII.card, background: surf.cardSub }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
+                        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>
                           {m.contact ?? t('common.noName')}
                         </span>
                         <AdminPill

@@ -181,6 +181,15 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   // instrument ne lit que les styles EN LIGNE. Un silence n'est pas un verdict.
   // Elle est passée au style en ligne au même lot, ce qui la rend VISIBLE ici.
   { root: 'src/pages/admin', keep: (n) => /\.tsx?$/.test(n) },
+  // Le chrome et les atomes de la console (lot 4, 14 août 2026). Deux racines
+  // parce que `kit/` est un sous-dossier et que `scanRoots` ne descend pas.
+  //
+  // ⚠ Leur dette est celle des composants du Pipeline, pas celle des pages
+  // d'à côté : 58 graisses ≥ 700 et DEUX tailles littérales seulement. La même
+  // console porte donc les deux dettes opposées, chacune de son côté de la
+  // frontière page/composant.
+  { root: 'src/components/admin', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/admin/kit', keep: (n) => /\.tsx?$/.test(n) },
 ]
 
 /** La preuve que le scan voit encore l'arbre — sinon tout passe par vacuité. */
@@ -238,7 +247,14 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
     // qui dépend du nom d'une variable locale n'exempte pas une famille, elle
     // exempte un fichier par accident. C'est la FORME qui définit la famille :
     // une taille qui suit son conteneur ne peut pas être un barreau.
-    motif: /fontSize:\s*(?:Math\.max\(\d+,\s*)?\w+ \* 0\.\d+/,
+    //
+    // ⚠ ET IL ANCRAIT AUSSI SUR L'ENVELOPPE. Il connaissait `Math.max(…)` mais
+    // pas `Math.round(…)` — l'avatar du kit admin, dont le calcul est le MÊME à
+    // l'arrondi près. Même défaut d'un cran plus haut : le nom de la fonction
+    // enveloppante n'est pas plus la famille que le nom de la variable. Toute
+    // enveloppe `Math.*` est donc admise ; ce qui définit la famille reste
+    // « une taille PROPORTIONNELLE à autre chose ».
+    motif: /fontSize:\s*(?:Math\.\w+\([^)]*?)?\w+ \* 0\.\d+/,
     raison: 'calculée : une initiale suit le diamètre de sa pastille',
   },
   { motif: /fontSize:\s*104\b/, raison: '104 px — le prix en grand, au-dessus du dernier barreau' },
@@ -497,6 +513,8 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/matching-recherche',
       'src/components/matching-atelier',
       'src/pages/admin',
+      'src/components/admin',
+      'src/components/admin/kit',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
     // Les pages sont bien VUES — un filtre de nom qui ne matche rien laisserait
     // la racine non vide (le dossier en contient d'autres) tout en ne gardant

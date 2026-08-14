@@ -120,7 +120,7 @@ export default function AnnouncementsTab() {
                       </span>
                     )}
                   </div>
-                  <h3 className="truncate" style={{ margin: 0, fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
+                  <h3 className="truncate" style={{ margin: 0, fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>
                     {a.title}
                   </h3>
                   <p className="line-clamp-2" style={{ margin: '6px 0 0', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: sp.soft, lineHeight: 1.55, whiteSpace: 'pre-line' }}>

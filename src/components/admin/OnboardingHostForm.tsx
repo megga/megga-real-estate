@@ -120,7 +120,7 @@ export default function OnboardingHostForm({ host, onClose }: OnboardingHostForm
       background: sp.cardSubBg, border: surf.hairline,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>
+        <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>
           {t(host ? 'onboardingCalls.hosts.form.editTitle' : 'onboardingCalls.hosts.form.addTitle')}
         </span>
         <AdminGhostBtn onClick={onClose} icon={X} label={t('onboardingCalls.hosts.form.close')}>

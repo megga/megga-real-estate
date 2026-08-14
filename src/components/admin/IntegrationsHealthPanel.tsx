@@ -32,7 +32,7 @@ function HealthCard({ icon: Icon, title, level, lines }: {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', marginBottom: 9 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', minWidth: 0 }}>
           <AdminIc icon={Icon} size={16} color={sp.sub} />
-          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{title}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>{title}</span>
         </span>
         <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: dot[level], flexShrink: 0 }} />
       </div>

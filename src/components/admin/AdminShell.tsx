@@ -1,5 +1,5 @@
 /**
- * Chrome de la console super-admin (`/dashboard/admin`), en grammaire Sugar.
+ * Chrome de la console super-admin (`/dashboard/admin`), en grammaire MEGGA X.
  *
  * Porté sur la coquille de l'écran Paramètres du CRM
  * (`SettingsSugarV2Page`) : le contenu ne court plus bord à bord, il vit dans le
@@ -12,10 +12,10 @@
  * copie. `admin-console.css` continue de re-teinter les variables pour les
  * pages ; ici on lit la palette en JS pour obtenir le cadre exact.
  *
- * L'accent violet est CONSERVÉ, à contre-courant de l'accent unique de Sugar
- * Pure : c'est le seul signal qui dit « tu n'es plus dans ton agence, tu es dans
- * la plateforme ». Il est réduit à la pastille du rail et à l'item actif —
- * jamais un bouton plein, jamais un statut métier.
+ * Le violet est CONSERVÉ, à contre-courant de l'accent unique de la direction :
+ * c'est le seul signal qui dit « tu n'es plus dans ton agence, tu es dans la
+ * plateforme ». Il vit en TROIS sites, tous ici (`VIOLET_CONSOLE`) — jamais un
+ * bouton plein, jamais un statut métier, et jamais le ton du kit.
  *
  * Mise en page : le rail est dans le cadre au-delà de `lg`, en tiroir en
  * dessous (le cadre passe alors pleine largeur, sans rayon).
@@ -40,6 +40,7 @@ import { SUGAR_KEYFRAMES } from '@/components/crm-sugar/SugarShell'
 // `.megga-admin-console`, posée sur la racine ci-dessous — sans quoi elle
 // reteindrait tout le CRM.
 import '@/styles/admin-console.css'
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 
 /**
  * Le violet de la console — son unique repère de contexte, en TROIS sites, tous
@@ -128,13 +129,13 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
     fontFamily: 'inherit', textAlign: 'left' as const,
     background: 'transparent',
   }
-  const labelStyle = { flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink } as const
+  const labelStyle = { flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink } as const
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, padding: '26px 18px 18px' }}>
       {/* Titre d'écran + repère de contexte (le violet, une seule fois) */}
       <div style={{ padding: '0 var(--crm-space-sm)', marginBottom: 18 }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1.1, color: sp.ink, lineHeight: 1 }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 600, letterSpacing: -1.1, color: sp.ink, lineHeight: 1 }}>
           {t('nav.adminConsole')}
         </h1>
         {/* ⛔ LE VIOLET, ET SEULEMENT ICI. Ces deux sites lisaient `tones.accent`,
@@ -146,7 +147,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
           <span style={{ width: 7, height: 7, borderRadius: ADMIN_RADII.pill, background: VIOLET_CONSOLE, flexShrink: 0 }} />
           {/* Le repère de contexte passe par la clé, pas par un littéral : les 17
               pages la rendaient avant, elle serait devenue orpheline. */}
-          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: VIOLET_CONSOLE, letterSpacing: -0.1 }}>{t('admin:common.adminBadge')}</span>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: VIOLET_CONSOLE, letterSpacing: -0.1 }}>{t('admin:common.adminBadge')}</span>
         </div>
       </div>
 
@@ -158,7 +159,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
         {NAV_SECTIONS.map((section) => (
           <div key={section.labelKey}>
             <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-xl) var(--crm-space-xs)' }}>
-              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, color: sp.sub, userSelect: 'none' }}>
+              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.2, color: sp.sub, userSelect: 'none' }}>
                 {t(section.labelKey)}
               </span>
             </div>
@@ -187,7 +188,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Pied de rail : retour CRM, compte */}
       <div style={{ flexShrink: 0, marginTop: 10 }}>
-        <div style={{ height: 1, background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.05)', margin: '0 6px 8px' }} />
+        <div style={{ height: 1, background: sgVoileEncre(dark, 0.07), margin: '0 6px 8px' }} />
 
         {/* Une ancre, mais une navigation par le routeur : l'ancre préserve le
             clic-milieu et le survol d'URL, le routeur évite le rechargement. */}
@@ -203,7 +204,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
           borderRadius: ADMIN_RADII.row, background: surf.cardSub,
         }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {profile?.full_name ?? profile?.email ?? '—'}
             </p>
             <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub, lineHeight: 1.3 }}>{t('nav.adminOverview')}</p>
@@ -290,14 +291,14 @@ export default function AdminShell() {
            et la liste de notifications de tout repère de focus clavier. L'anneau
            vient de la règle WCAG d'admin-console.css. */
         .adm-nav { -webkit-tap-highlight-color: transparent; transition: background-color .18s ease; }
-        .adm-nav:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'} !important; }
+        .adm-nav:hover { background: ${sgVoileEncre(dark, 0.05)} !important; }
         /* Champ de recherche du kit (\`AdminSearchInput\`). Ces deux règles ne
            s'expriment pas en style inline ; elles vivaient donc recopiées dans
            chaque écran, sous une classe différente à chaque fois. */
         .adm-search::placeholder { color: ${sp.sub}; font-weight: 500; }
         .adm-search:focus { box-shadow: inset 0 0 0 2px ${sp.accent}; }
         .adm-scroll::-webkit-scrollbar { width: 9px; }
-        .adm-scroll::-webkit-scrollbar-thumb { background: ${dark ? 'rgba(255,255,255,.12)' : 'rgba(15,23,42,.14)'}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+        .adm-scroll::-webkit-scrollbar-thumb { background: ${sgVoileEncre(dark, .12)}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
         /* Le dock d'icônes occupe la gouttière gauche (il porte sa propre
            largeur de 128 px), d'où l'absence de padding-left ici — même
            géométrie que l'écran Réglages du CRM. */
@@ -333,7 +334,7 @@ export default function AdminShell() {
         >
           <MEIcon name="menu" size={19} color={sp.soft} />
         </button>
-        <Link to={ADMIN_CONSOLE_PATH} style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: VIOLET_CONSOLE, textDecoration: 'none' }}>
+        <Link to={ADMIN_CONSOLE_PATH} style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: VIOLET_CONSOLE, textDecoration: 'none' }}>
           {t('admin:common.adminBadge')}
         </Link>
       </header>
