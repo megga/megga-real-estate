@@ -122,13 +122,13 @@ function ProfileHeader({ sp, name, initials, subtitle, planLabel }: ProfileHeade
         width: 44, height: 44, borderRadius: 'var(--crm-radius-pill)',
         background: sp.ink, color: sp.solidBg,
         display: 'grid', placeItems: 'center',
-        fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: 0.3,
+        fontSize: 'var(--crm-text-xl)', fontWeight: 600,
         flexShrink: 0,
       }}>{initials}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
           <span style={{
-            fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: sp.ink, letterSpacing: -0.2,
+            fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.2,
             lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{name}</span>
           {planLabel && (
@@ -136,7 +136,7 @@ function ProfileHeader({ sp, name, initials, subtitle, planLabel }: ProfileHeade
               display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)',
               padding: 'var(--crm-space-2xs) var(--crm-space-sm) var(--crm-space-2xs) var(--crm-space-xs)', borderRadius: 'var(--crm-radius-pill)',
               background: sp.ink, color: sp.solidBg,
-              fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.3, textTransform: 'uppercase',
+              fontSize: 'var(--crm-text-xs)', fontWeight: 500,
               flexShrink: 0, whiteSpace: 'nowrap',
             }}>
               <InlineIco name="spark" size={9} stroke={sp.solidBg} strokeWidth={2} />
@@ -223,7 +223,7 @@ export default function SugarProfileDropdown({
           <Sep sp={sp} />
           <div style={{
             padding: 'var(--crm-space-2xs) var(--crm-space-lg) var(--crm-space-sm)',
-            fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.2,
+            fontSize: 'var(--crm-text-xs)', fontWeight: 500, letterSpacing: 0.2,
             color: sp.sub,
           }}>{t('profile.platformSection')}</div>
           {/* Chevron et non flèche « sortie » : la console est une surface du

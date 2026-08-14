@@ -409,12 +409,6 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
    * chantier Contacts, qui traitent précisément les polices en dur.
    */
   const POLICES_ASSUMEES = new Set([
-    'src/components/ai-copilot/panel/AnnonceReviewModal.tsx',
-    'src/components/ai-copilot/panel/CopilotPanel.tsx',
-    'src/components/ai-copilot/panel/DeleteContactReviewModal.tsx',
-    'src/components/ai-copilot/panel/EmailReviewModal.tsx',
-    'src/components/ai-copilot/panel/LetterReviewModal.tsx',
-    'src/components/ai-copilot/panel/PublishReviewModal.tsx',
     'src/components/crm-sugar-wizard/WizardShell.tsx',
     'src/components/crm-sugar/biens/pager/BiensFirstRun.tsx',
     'src/components/crm-sugar/biens/pager/BpRenewModal.tsx',

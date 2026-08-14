@@ -25,7 +25,8 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, type Transition } from 'motion/react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
-import type { SugarPalette } from './tokens'
+import { sgVoileEncre, type SugarPalette } from './tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { RelanceSession } from '@/components/crm-sugar/today/RelanceSession'
 import { openSugarSearch } from './search/openSearch'
 
@@ -330,9 +331,23 @@ export function SugarIconRail({
 
   // Pas de nonce de rejeu au niveau du rail : chaque DockBtn tient le sien. Un
   // survol ne re-rend donc que le bouton pointé — le rail lui-même ne re-rend pas.
-  const idleIcon = dark ? 'rgba(255,255,255,0.62)' : 'rgba(20,22,34,0.50)'
-  const hoverIcon = dark ? 'rgba(255,255,255,0.92)' : 'rgba(11,12,14,0.85)'
-  const activeIcon = dark ? '#FFFFFF' : '#0B0C0E'
+  // Trois degrés d'encre d'icône, tous dérivés du même pôle. `sgVoileEncre`
+  // nomme le rôle — « un voile de ce qui s'oppose à la surface » — au lieu de
+  // redire à la main la paire clair/sombre : c'est par cette porte que le noir
+  // de Sugar était entré ici, en `rgba(11,12,14,0.85)` que personne ne relit
+  // comme une couleur. L'état ACTIF n'est pas un voile mais l'encre pleine.
+  //
+  // ⚠ `idleIcon` n'était PAS signalé par le cliquet : il portait
+  // `rgba(20,22,34,0.50)`, un quasi-noir BLEUTÉ (B−R = 14) — même famille que le
+  // gris-bleu slate-900, en plus discret, et qu'aucune garde ne connaît. Mesuré
+  // avant de le déplacer, alpha COMPOSÉ sur la surface réelle du rail (`frameBg`,
+  // #ffffff en clair) : les trois degrés montent ou ne bougent pas.
+  //   idle  clair 3,40 → 3,90 · hover clair 13,17 → 14,55 · actif 19,57 → 20,62
+  //   sombre : inchangé (les trois partaient déjà du blanc).
+  // Le seuil qui s'applique est celui du NON-TEXTE (3:1) : ce sont des glyphes.
+  const idleIcon = sgVoileEncre(dark, dark ? 0.62 : 0.50)
+  const hoverIcon = sgVoileEncre(dark, dark ? 0.92 : 0.85)
+  const activeIcon = dark ? MXC_COLOR.n1000 : MXC_COLOR.n100
 
   // Capsule harmonisée — mêmes tokens que les cards/frames Sugar (frameBg /
   // frameBorder / shadow) pour que le rail soit du MÊME matériau que le reste de

@@ -46,7 +46,7 @@
  *   (`CLAUDE.md` §3 : ~4 200 valeurs en variables sur 161 fichiers).
  */
 import { describe, it, expect } from 'vitest'
-import { emptyRoots, readFileSafely, rel, scanRoots } from './helpers/fs-scan'
+import { emptyRoots, readFileSafely, rel, scanRoots, type RootSpec } from './helpers/fs-scan'
 
 /**
  * Surfaces PORTÉES. Un lot qui nettoie une zone l'ajoute ici, pas avant.
@@ -109,7 +109,11 @@ const PAGES_ACQUISES = [
  * `BiensFirstRun`. Il reste fixe ; il ne suit toujours pas le thème.
  */
 
-const ZONES: { root: string; keep: (n: string) => boolean }[] = [
+// ⚠ Typé `RootSpec[]`, pas une forme recopiée à la main : l'ancienne annotation
+// ne connaissait pas `keepPath`, donc TypeScript ne l'aurait PAS signalé si un
+// lot l'avait mal orthographié — le filtre serait tombé en silence et la zone
+// aurait aspiré les fichiers homonymes des autres lots.
+const ZONES: RootSpec[] = [
   { root: 'src/components/crm-sugar-wizard', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/biens', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar-v3/vitrine', keep: (n) => /\.tsx?$/.test(n) },
@@ -125,7 +129,33 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   // 0 graisse ≥ 700, 0 interlettrage, 0 taille en dur, 0 noir Sugar. Son seul
   // hex hors échelle est `#e53935`, le compteur de notifications — sémantique,
   // même famille que `err`.
-  { root: 'src/components/crm-sugar', keep: (n) => n === 'SugarShell.tsx' },
+  // ⚠ CHROME PARTAGÉ — les fichiers posés À LA RACINE de `crm-sugar`, pas dans
+  // ses sous-dossiers. `SugarShell` porte la barre supérieure, `LiquidGlassRail`
+  // le rail et ses icônes animées, `tokens.ts` la palette que TOUT le CRM lit.
+  //
+  // ⛔ `keepPath` N'EST PAS UN ORNEMENT. `collect()` récurse et `keep` ne voit
+  // que le nom de base : sans lui, retenir `'tokens.ts'` ramènerait AUSSI
+  // `crm-sugar/analytics/tokens.ts` — une palette Sugar Pure complète (12 noirs
+  // et gris-bleus) appartenant au lot Analytics, qui serait alors déclarée
+  // portée sans que personne l'ait regardée. Mesuré avant d'écrire la zone.
+  {
+    root: 'src/components/crm-sugar',
+    keep: (n) => ['SugarShell.tsx', 'LiquidGlassRail.tsx', 'tokens.ts'].includes(n),
+    keepPath: (p) => p.split('/').length === 4,
+  },
+  // Le chrome rendu par les 27 surfaces du CRM (lot 1 du chantier « CRM agent »,
+  // 15 août 2026) : recherche, notifications, dropdown de profil.
+  { root: 'src/components/crm-sugar/search', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-sugar/notifications', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-sugar/profile', keep: (n) => /\.tsx?$/.test(n) },
+  // ⛔ LE DOCK MEGGA AI EST DU CHROME, ET AUCUN PLAN NE LE COMPTAIT. `App.tsx`
+  // le monte par `CopilotPanelHost`, AU-DESSUS de `<Routes>`, donc sur TOUTE
+  // route `/dashboard` — y compris les onze surfaces réputées portées. Mesuré le
+  // 15 août 2026 : 114 marqueurs sur 8 fichiers, dont cinq modales de revue
+  // presque identiques entre elles.
+  { root: 'src/components/ai-copilot/panel', keep: (n) => /\.tsx?$/.test(n) },
+  // Monté globalement dans `App()`, au-dessus de tout le reste.
+  { root: 'src/components/layout', keep: (n) => n === 'StaleBundleDetector.tsx' },
   // « Contacts » EN ENTIER depuis le lot 4 — voir la note au-dessus de `PAGES`.
   { root: 'src/components/crm-sugar/contacts-pager', keep: (n) => /\.tsx?$/.test(n) },
   // Le Pipeline EN ENTIER depuis le lot 4 du chantier MEGGA X (13 août 2026).
@@ -211,6 +241,72 @@ const TEMOINS_DE_ZONE = [
   'src/pages/admin/AdminKybReviewPage.tsx',
   'src/components/admin/AdminShell.tsx',
   'src/components/admin/kit/adminKit.tsx',
+  // Chrome (lot 1, 15 août 2026). `tokens.ts` et `LiquidGlassRail.tsx` sont
+  // nommés parce qu'ils passent par un `keepPath` : si ce filtre se resserrait
+  // par accident, la zone rendrait encore des fichiers et `emptyRoots` la
+  // croirait saine.
+  'src/components/crm-sugar/tokens.ts',
+  'src/components/crm-sugar/LiquidGlassRail.tsx',
+  'src/components/crm-sugar/search/CrmSugarSearch.tsx',
+  'src/components/crm-sugar/notifications/SugarNotificationsPopover.tsx',
+  'src/components/crm-sugar/profile/SugarProfileDropdown.tsx',
+  'src/components/ai-copilot/panel/CopilotPanel.tsx',
+  'src/components/layout/StaleBundleDetector.tsx',
+]
+
+/**
+ * ⛔ CE QUE `keepPath` DOIT LAISSER DEHORS, nommé plutôt que supposé.
+ *
+ * Le filtre de chemin de la zone `crm-sugar` existe pour une raison précise :
+ * sans lui, `keep: n === 'tokens.ts'` ramenait la palette d'Analytics. Un test
+ * qui se contenterait de vérifier la présence des témoins passerait au vert le
+ * jour où le filtre disparaîtrait — c'est la vacuité n°22, « la couverture ne
+ * repose plus sur rien ». On exige donc aussi l'ABSENCE.
+ */
+/**
+ * Le gris-bleu slate-900 de Tailwind, sous ses deux alphabets.
+ *
+ * ⚠ Il n'a JAMAIS d'écriture hexadécimale dans le dépôt : il entre par une
+ * fraction d'opacité. Le motif lit quand même `#0F172A` — une garde qui ne
+ * connaît qu'une notation ne garde rien (c'est ainsi que le noir de Sugar avait
+ * survécu onze fois en décimal).
+ */
+const GRIS_BLEU = /#0F172A\b|rgba?\(\s*15\s*,\s*23\s*,\s*42\b/i
+
+/**
+ * Fichier → nombre de gris-bleus ENCORE TOLÉRÉS. Relevé le 15 août 2026, sur
+ * les zones que le cliquet déclarait déjà portées.
+ *
+ * ⚠ Ces 36 sites ne sont PAS une dette du lot 1 : ils appartiennent à des
+ * surfaces livrées avant que quiconque garde cette teinte. Les corriger ici
+ * repeindrait six zones dans un lot qui n'en regarde qu'une, et rendrait tout
+ * diff ultérieur inattribuable. Chaque zone les emporte à son propre passage.
+ *
+ * ⛔ AUCUNE ENTRÉE POUR LE CHROME. Le lot 1 les a tous retirés : si un fichier
+ * du chrome réapparaissait ici, ce serait une régression, pas une exemption.
+ */
+const GRIS_BLEU_ASSUMES = new Map<string, number>([
+  ['src/components/crm-mobile/matching/MmMatchingScreen.tsx', 1],
+  ['src/components/crm-mobile/more/MrNotifSheet.tsx', 1],
+  ['src/components/crm-mobile/tokens.ts', 4],
+  ['src/components/crm-sugar-v3/vitrine/vitrineTokens.ts', 3],
+  ['src/components/crm-sugar-wizard/steps/Step4Photos.tsx', 1],
+  ['src/components/crm-sugar-wizard/tokens.ts', 4],
+  ['src/components/crm-sugar/biens/gallery/GalCard.tsx', 2],
+  ['src/components/crm-sugar/biens/gallery/GalleryAtoms.tsx', 1],
+  ['src/components/crm-sugar/biens/pager/BpFollowupPage.tsx', 4],
+  ['src/components/crm-sugar/biens/pager/BpRenewModal.tsx', 1],
+  ['src/components/crm-sugar/contacts-pager/ContactDetailPager.tsx', 1],
+  ['src/components/crm-sugar/contacts-pager/ContactsPager.tsx', 4],
+  ['src/components/crm-sugar/contacts-pager/NewContactModal.tsx', 5],
+  ['src/pages/agent/BienDetailSugarV4Page.tsx', 4],
+])
+
+const HORS_ZONE_ATTENDUS = [
+  'src/components/crm-sugar/analytics/tokens.ts',
+  'src/components/crm-sugar/settings/data.ts',
+  'src/components/crm-sugar/today/data.ts',
+  'src/components/crm-sugar/calendar/data.ts',
 ]
 
 /** La preuve que le scan voit encore l'arbre — sinon tout passe par vacuité. */
@@ -294,6 +390,14 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
     raison: '44 px — les chiffres et titres d’affichage au-dessus du dernier barreau (3 sites)',
   },
   { motif: /fontSize:\s*40\b/, raison: '40 px — le titre du premier lancement, au-dessus du barreau' },
+  {
+    // Même famille que les tailles calculées : une valeur en `em` suit son
+    // conteneur, donc elle ne PEUT pas être un barreau. Ici le code en ligne du
+    // dock MEGGA AI, qui doit rester légèrement plus petit que la prose qui
+    // l'entoure quelle que soit la taille de celle-ci.
+    motif: /fontSize:\s*'[\d.]+em'/,
+    raison: 'relative : le code en ligne suit la taille de sa prose',
+  },
 ]
 
 /**
@@ -502,6 +606,57 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
   })
 
   /**
+   * ⛔ LE GRIS-BLEU SLATE-900 — il a traversé QUATRE campagnes toutes portes
+   * vertes, et la mesure le dit.
+   *
+   * `rgba(15,23,42,…)` est le slate-900 de Tailwind (B−R = 27). Le Pipeline
+   * l'avait nommé (`sgVoileEncre`) et corrigé CHEZ LUI ; trois specs le gardent,
+   * chacune sur sa seule zone (`admin-console-css`, `pipeline-palettes`,
+   * `matching-atelier-css`). Aucune ne couvrait le reste, et le cliquet de
+   * grammaire n'interdisait que le noir de Sugar.
+   *
+   * Mesuré le 15 août 2026 sur TOUTES les zones du cliquet : **36 sites
+   * survivent dans six zones déclarées PORTÉES** — le wizard (dont 4 dans son
+   * fichier de jetons), « Mes biens » (8), la vitrine de la fiche (3), le CRM
+   * mobile (6, dont 4 dans ses jetons), Contacts (10) et la fiche bien (4).
+   * Il entre toujours par la même porte : une FRACTION D'OPACITÉ. Personne ne
+   * relit `rgba(15,23,42,0.022)` en cherchant une couleur.
+   *
+   * ⚠ CLIQUET À L'ENVERS, ET COMPTÉ. `POLICES_ASSUMEES` exempte un FICHIER ;
+   * ici on exempte un fichier ET son NOMBRE. Sans le nombre, un fichier déjà
+   * listé pourrait en gagner un de plus sans que rien ne bouge — c'est la
+   * quatrième forme de `megga/gardes-vacuites`, l'exemption trop grossière,
+   * dont le JSDoc de `TAILLES_ASSUMEES` dit déjà qu'elle « laisse passer ce
+   * qu'elle prétend surveiller ». Chaque lot qui nettoie une zone descend ou
+   * retire sa ligne ; le test suivant refuse toute entrée devenue trop haute.
+   */
+  it('aucun gris-bleu slate-900 hors inventaire', () => {
+    const trop: string[] = []
+    for (const { chemin, code } of sources) {
+      const n = code.split('\n').filter((l) => GRIS_BLEU.test(l)).length
+      const permis = GRIS_BLEU_ASSUMES.get(chemin) ?? 0
+      if (n > permis) trop.push(`${chemin} : ${n} > ${permis} permis`)
+    }
+    expect(trop, `gris-bleu au-delà de l'inventaire :\n  ${trop.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * L'inventaire ne doit que RÉTRÉCIR : une entrée dont le fichier en porte
+   * moins qu'annoncé laisse un crédit ouvert, et le prochain lot pourrait en
+   * réintroduire sans rien faire rougir.
+   */
+  it('l’inventaire du gris-bleu ne garde aucun crédit', () => {
+    const perimees: string[] = []
+    for (const [chemin, permis] of GRIS_BLEU_ASSUMES) {
+      const s = sources.find((x) => x.chemin === chemin)
+      if (!s) { perimees.push(`${chemin} : fichier absent du balayage`); continue }
+      const n = s.code.split('\n').filter((l) => GRIS_BLEU.test(l)).length
+      if (n < permis) perimees.push(`${chemin} : ${n} réels < ${permis} inscrits — descendre le compte`)
+    }
+    expect(perimees, `inventaire à resserrer :\n  ${perimees.join('\n  ')}`).toEqual([])
+  })
+
+  /**
    * ⛔ UN ALIAS SUFFIT À CONTOURNER LA GARDE PRÉCÉDENTE.
    *
    * `BpRenewModal.tsx` faisait `const accent = sp.ink`, puis peignait son
@@ -535,12 +690,22 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/matching-atelier',
       'src/pages/admin',
       'src/components/admin',
+      'src/components/crm-sugar/search',
+      'src/components/crm-sugar/notifications',
+      'src/components/crm-sugar/profile',
+      'src/components/ai-copilot/panel',
+      'src/components/layout',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
     // Et les zones acquises sont réellement ATTEINTES — une racine présente
     // dont un sous-dossier échappe au filtre passerait `emptyRoots`.
     const chemins = sources.map((s) => s.chemin)
     for (const t of TEMOINS_DE_ZONE) {
       expect(chemins, `zone non balayée : ${t}`).toContain(t)
+    }
+    // …et le filtre de chemin tient encore : ces fichiers portent le nom retenu
+    // par la zone `crm-sugar` mais vivent dans un sous-dossier d'un AUTRE lot.
+    for (const h of HORS_ZONE_ATTENDUS) {
+      expect(chemins, `aspiré par accident, hors du lot : ${h}`).not.toContain(h)
     }
     // Les pages sont bien VUES — un filtre de nom qui ne matche rien laisserait
     // la racine non vide (le dossier en contient d'autres) tout en ne gardant

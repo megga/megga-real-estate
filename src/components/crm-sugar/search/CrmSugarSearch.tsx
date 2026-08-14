@@ -10,7 +10,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { crmSugarPalette, CRM_STAGES, type SugarPalette } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, CRM_STAGES, sgVoileEncre, type SugarPalette } from '@/components/crm-sugar/tokens'
 import { useContacts } from '@/hooks/useContacts'
 import { useBiensSugar } from '@/hooks/useBiensSugar'
 import { usePipelineSugar } from '@/hooks/usePipelineSugar'
@@ -72,7 +72,7 @@ function Hi({ text, q, sp }: { text: string; q: string; sp: SugarPalette }) {
   return (
     <>
       {text.slice(0, i)}
-      <mark style={{ background: 'transparent', color: sp.ink, fontWeight: 700, padding: 0 }}>
+      <mark style={{ background: 'transparent', color: sp.ink, fontWeight: 600, padding: 0 }}>
         {text.slice(i, i + q.length)}
       </mark>
       {text.slice(i + q.length)}
@@ -102,7 +102,7 @@ function BienThumb({ id }: { id: string }) {
 
 function activeRowStyle(active: boolean, dark: boolean): CSSProperties {
   return active
-    ? { background: dark ? 'rgba(255,255,255,0.06)' : 'rgba(11,12,14,0.04)' }
+    ? { background: sgVoileEncre(dark, dark ? 0.06 : 0.04) }
     : { background: 'transparent' }
 }
 
@@ -122,7 +122,7 @@ function Section({ title, count, children, sp, accent, badge }: {
         style={{
           display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
           padding: 'var(--crm-space-lg) var(--crm-space-2xl) var(--crm-space-sm)', color: accent || sp.sub,
-          fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.7, textTransform: 'uppercase',
+          fontSize: 'var(--crm-text-sm)', fontWeight: 500,
         }}
       >
         <span style={{ whiteSpace: 'nowrap' }}>{title}</span>
@@ -130,7 +130,7 @@ function Section({ title, count, children, sp, accent, badge }: {
           <span
             style={{
               background: accent ? accent + '18' : sp.cardSubBg, color: accent || sp.sub,
-              padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-xs)', fontWeight: 700,
+              padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', fontSize: 'var(--crm-text-xs)', fontWeight: 600,
               fontVariantNumeric: 'tabular-nums',
             }}
           >
@@ -144,7 +144,7 @@ function Section({ title, count, children, sp, accent, badge }: {
               padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)',
               background: 'linear-gradient(135deg, rgba(0,65,217,0.10) 0%, rgba(139,92,246,0.10) 100%)',
               border: '1px solid rgba(139,92,246,0.18)',
-              fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase',
+              fontSize: 'var(--crm-text-xs)', fontWeight: 500,
               color: accent || sp.sub,
             }}
           >
@@ -357,7 +357,9 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
   if (!open) return null
 
   // Couleurs adaptées light / dark (§7 — neutralisé, zéro bleu sur la chrome).
-  const overlayColor = dark ? 'rgba(11,12,14,0.55)' : 'rgba(238,240,242,0.55)'
+  // Voile de fond : en SOMBRE c'est le canvas MEGGA X voilé, en CLAIR un gris
+  // pâle assumé — ce n'est pas une encre, donc pas `sgVoileEncre`.
+  const overlayColor = dark ? `rgba(3,3,3,0.55)` : 'rgba(238,240,242,0.55)'
   const panelBg = dark ? 'rgba(24,25,28,0.80)' : 'rgba(255,255,255,0.78)'
   const panelBorder = dark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.7)'
   const panelShadow = dark
@@ -471,7 +473,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                   padding: 'var(--crm-space-sm) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
                   background: isActive ? sp.accent : 'transparent',
                   color: isActive ? sp.accentInk : sp.sub,
-                  fontSize: 'var(--crm-text-lg)', fontWeight: isActive ? 700 : 600,
+                  fontSize: 'var(--crm-text-lg)', fontWeight: isActive ? 600 : 500,
                   fontFamily: 'inherit', letterSpacing: -0.1,
                   transition: 'background .15s ease, color .15s ease',
                 }}
@@ -530,7 +532,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 style={{
                   marginTop: 18, padding: 'var(--crm-space-md) var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
                   background: 'linear-gradient(135deg, #0041D9 0%, #8B5CF6 100%)', color: '#fff',
-                  fontSize: 'var(--crm-text-lg)', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+                  fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
                   display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', boxShadow: '0 8px 20px -8px rgba(60,80,200,0.5)',
                 }}
               >
@@ -588,7 +590,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                 const initials = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase()
                 return (
                   <button key={c.id} onClick={() => { onClose(); navigate(`/dashboard/contacts/${c.id}`) }} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: '#0041D9', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 700 }}>
+                    <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: '#0041D9', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>
                       {initials}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -597,7 +599,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                       </div>
                     </div>
                     {typeof score === 'number' && (
-                      <div style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: score >= 80 ? '#0E9F6E' : score >= 60 ? '#0041D9' : sp.sub, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}` }}>
+                      <div style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: score >= 80 ? '#0E9F6E' : score >= 60 ? '#0041D9' : sp.sub, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}` }}>
                         {score}
                       </div>
                     )}
@@ -630,10 +632,10 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                     </div>
                     {price ? (
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+                        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
                           {formatCHF(price)}{b.transaction === 'location' ? tr('search.perMonth') : ''}
                         </div>
-                        <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4 }}>{b.transaction}</div>
+                        <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 500 }}>{b.transaction}</div>
                       </div>
                     ) : null}
                   </button>
@@ -684,7 +686,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                   <IconSpark size={14} stroke="#fff" />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink }}>{tr('search.command.askMeggaQuery', { query: q })}</div>
+                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{tr('search.command.askMeggaQuery', { query: q })}</div>
                 </div>
                 <IconArrowR stroke={sp.sub} />
               </button>

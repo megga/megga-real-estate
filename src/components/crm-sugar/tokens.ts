@@ -2,7 +2,24 @@
 // 1:1 port from the Claude Design bundle (crm-tokens.jsx).
 // Cohérent avec le site public MEGGA, étendu pour outil pro.
 
-import { mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { mxCrmPalette, MXC_COLOR } from '@/components/megga-x-crm/tokens'
+
+/**
+ * Le PÔLE D'ENCRE des mélanges de teinte — l'extrémité neutre vers laquelle
+ * `sgMix` tire une teinte d'étape pour en dériver une encre ou un aplat.
+ *
+ * ⚠ CE N'EST PAS LA TEINTE, C'EST SON POINT DE FUITE. L'arbitrage rendu quatre
+ * fois met les teintes d'étape hors direction parce qu'elles ENCODENT l'étape
+ * du deal ; le pôle, lui, n'encode rien — c'est le noir de la direction, et il
+ * traînait en `#0B0C0E`, celui de Sugar.
+ *
+ * Effet MESURÉ du passage à `n100` sur les dix-huit dérivations (le 15 août
+ * 2026) : toutes montent. Plancher de `sgStagePillBg` sous encre blanche
+ * 4,529 → 4,657 ; plancher de `tintInk` sur son panneau 5,219 → 5,529 — cette
+ * dernière valeur est exactement celle que `pipeline-contraste.spec.ts`
+ * annonçait, ce qui confirme que la sonde lit bien la même chose que la garde.
+ */
+const ENCRE_POLE = MXC_COLOR.n100
 
 export interface CrmTheme {
   bg: string
@@ -47,14 +64,19 @@ export const CRM_GRAPHITE = {
   s4: '#21242F', // plafond — modales, popovers, menus, palette de commandes
 } as const
 
-// Dark mode — cohérence avec MEGGA AI : quasi-noir NEUTRE, aligné sur le
-// cockpit Today (#0A0B0D). Fond unifié (handoff « Unification du fond sombre »)
-// pour que Today, Pipeline, fiche Deal et modale offre partagent EXACTEMENT le
-// même noir. Ne pas réintroduire de teinte bleue (#0A0A0F portait un B=15).
+// Dark mode — quasi-noir NEUTRE. Le fond unifié (handoff « Unification du fond
+// sombre ») vaut toujours : Today, Pipeline, fiche Deal et modale offre
+// partagent EXACTEMENT le même noir. Ce qu'il est a changé — c'est `n100`
+// (#030303), le canvas MEGGA X, et non plus le `#0A0B0D` du cockpit Sugar.
+// Ne pas réintroduire de teinte bleue (le vieux #0A0A0F portait un B=15).
+//
+// ⚠ Aucun pixel ne bouge : `CRM_TOKENS.dark` n'a plus de lecteur de rendu. Le
+// seul survivant, `kycPalette`, ne lit que `okSoft`/`warnSoft`/`dangerSoft` sur
+// `graphite`. Aligner cette valeur ferme une porte, elle n'en ouvre pas.
 // Hoisté hors de CRM_TOKENS : `graphite` en dérive par spread (cf. le proto, où
 // CRM_TOKENS.graphite = { ...CRM_TOKENS.dark, … }).
 const CRM_DARK_BASE: CrmTheme = {
-  bg:           '#0A0B0D',
+  bg:           MXC_COLOR.n100,
   surface:      '#101019',
   surface2:     '#171724',
   border:       '#1F1F2E',
@@ -220,7 +242,7 @@ export function sgStageTint(stage: StageId, dark: boolean): { hue: string; panel
   return {
     hue,
     panel: dark ? sgMix(hue, '#141517', 0.85) : sgMix(hue, '#FFFFFF', 0.81),
-    tintInk: dark ? sgMix(hue, '#FFFFFF', 0.35) : sgMix(hue, '#0B0C0E', 0.45),
+    tintInk: dark ? sgMix(hue, '#FFFFFF', 0.35) : sgMix(hue, ENCRE_POLE, 0.45),
   }
 }
 
@@ -248,7 +270,7 @@ export function sgVoileEncre(dark: boolean, alpha: number): string {
  *  portant du texte — pastilles 8-9 px et barres restent en SG_STAGE_HUE pur. */
 export function sgStagePillBg(stage: StageId, dark: boolean): string {
   const h = SG_STAGE_HUE[stage] || '#8A93A5'
-  return dark ? h : sgMix(h, '#0B0C0E', 0.32)
+  return dark ? h : sgMix(h, ENCRE_POLE, 0.32)
 }
 // ─── Formatters ─────────────────────────────────────────────────────────
 export function crmFmtCHF(n: number | null | undefined): string {

@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { SugarPalette } from '../tokens'
+import { sgVoileEncre, type SugarPalette } from '../tokens'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { KIND_META, type SugarNotif, type NotifKind } from './data'
 
@@ -82,14 +82,14 @@ function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRow
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
             overflow: 'hidden', wordBreak: 'normal', overflowWrap: 'anywhere',
           }}>
-            <span style={{ fontWeight: n.read ? 600 : 700, color: sp.ink }}>{n.title}</span>
+            <span style={{ fontWeight: n.read ? 500 : 600, color: sp.ink }}>{n.title}</span>
             {context && (
               <span style={{ color: sp.ink, fontWeight: n.read ? 400 : 500, opacity: 0.85 }}> {context}.</span>
             )}
           </div>
           <div style={{
             fontSize: 'var(--crm-text-sm)', color: n.read ? sp.sub : sp.ink, marginTop: 3,
-            fontWeight: n.read ? 500 : 700, fontVariantNumeric: 'tabular-nums',
+            fontWeight: n.read ? 400 : 600, fontVariantNumeric: 'tabular-nums',
             display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
@@ -111,7 +111,7 @@ function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRow
                 display: 'grid', placeItems: 'center',
                 background: menuOpen ? sp.accent : sp.pageBg,
                 color: menuOpen ? sp.accentInk : sp.ink,
-                boxShadow: '0 1px 4px rgba(15,23,42,0.12)',
+                boxShadow: `0 1px 4px ${sgVoileEncre(dark, 0.12)}`,
               }}>
               <MEIcon name="more-horizontal" size={16} color={menuOpen ? sp.accentInk : sp.ink} />
             </span>
@@ -131,12 +131,12 @@ function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRow
           // Menu flottant : palier haut, pas le canvas — au fond de page il ne
           // se détachait pas de la liste qu'il recouvre.
           background: sp.solidBg,
-          border: `1px solid ${dark ? (sp.solidBorder || 'rgba(255,255,255,0.09)') : (sp.frameBorder || 'rgba(15,23,42,0.08)')}`,
+          border: `1px solid ${dark ? sp.solidBorder : sp.frameBorder}`,
           boxShadow: sp.solidShadow,
         }}>
           {menuItem('check', n.read ? t('notifications.markUnread') : t('notifications.markRead'), () => onMarkRead(!n.read))}
           {menuItem('eye', t('notifications.hideOne'), () => onHide())}
-          <div style={{ height: 1, background: sp.frameBorder || 'rgba(15,23,42,0.07)', margin: '5px 8px' }} />
+          <div style={{ height: 1, background: sp.frameBorder, margin: '5px 8px' }} />
           {menuItem('bell', t('notifications.muteKind', { kind: meta.label }), () => onMute())}
         </div>
       )}
@@ -188,19 +188,26 @@ export default function SugarNotificationsPopover({
 
   const top = localItems.slice(0, 5)
   const unread = localItems.filter(n => !n.read).length
-  const solidBg = dark ? '#16181F' : '#FFFFFF'
+  // ⛔ La popover peignait SA propre surface flottante — `#16181F`, un palier
+  // Graphite bleuté (B−R = 9) — alors que la palette la porte : `solidBg` vaut
+  // n300 (#090909) en sombre. Troisième source de surfaces, même défaut que
+  // `adminSurfaces()` sur la console.
+  const solidBg = sp.solidBg
 
   return (
     <div style={{
       position: 'absolute', top: 'calc(100% + 10px)', right: 0,
       width: 400, padding: 'var(--crm-space-xl)', zIndex: 9000,
-      background: 'rgba(255,255,255,0.85)',
+      // ⚠ Portait `rgba(255,255,255,0.85)` en dur — un blanc qui aurait sauté
+      // aux yeux en sombre si la doublure opaque ci-dessous ne le recouvrait pas
+      // entièrement (`inset: 0`). Inerte, donc, mais c'est un piège posé pour qui
+      // retirerait la doublure. Le retrait est un no-op vérifié à l'écran.
       backdropFilter: 'blur(20px) saturate(140%)',
       WebkitBackdropFilter: 'blur(20px) saturate(140%)',
       // Rayon du pager (26) — jumeau du dropdown profil, ancré au bouton voisin :
       // les deux popovers de la TopNav doivent partager la même courbure.
       borderRadius: 'var(--crm-radius-6xl)',
-      boxShadow: '0 32px 70px rgba(15,23,42,0.10), 0 6px 20px rgba(15,23,42,0.05)',
+      boxShadow: `0 32px 70px ${sgVoileEncre(dark, 0.10)}, 0 6px 20px ${sgVoileEncre(dark, 0.05)}`,
       animation: 'sugar-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>
       {/* Doublure opaque — son rayon DOIT suivre celui de la coque, sinon un
@@ -221,7 +228,7 @@ export default function SugarNotificationsPopover({
             <MEIcon name="bell" size={14} color={sp.ink} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: sp.ink, letterSpacing: '-0.01em' }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, letterSpacing: '-0.01em' }}>
               {t('nav.notifications')}
             </div>
             <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>
@@ -232,7 +239,7 @@ export default function SugarNotificationsPopover({
             onClick={() => { setLocalItems(prev => prev.map(n => ({ ...n, read: true }))); onMarkAll?.() }}
             disabled={unread === 0}
             style={{
-              fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: unread === 0 ? sp.sub : sp.ink,
+              fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: unread === 0 ? sp.sub : sp.ink,
               padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', border: 0,
               background: 'transparent', cursor: unread === 0 ? 'default' : 'pointer',
               fontFamily: 'inherit', whiteSpace: 'nowrap',
@@ -266,7 +273,7 @@ export default function SugarNotificationsPopover({
         <div style={{
           display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
           padding: 'var(--crm-space-lg) var(--crm-space-md) var(--crm-space-xs)', marginTop: 6,
-          borderTop: `1px solid ${sp.frameBorder || 'rgba(15,23,42,0.06)'}`,
+          borderTop: `1px solid ${sp.frameBorder}`,
         }}>
           <button
             onClick={onMute}
@@ -287,10 +294,10 @@ export default function SugarNotificationsPopover({
             onClick={onSeeAll}
             style={{
               padding: 'var(--crm-space-md) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
-              background: sp.ink, color: sp.pageBg,
-              fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700,
+              background: sp.accent, color: sp.accentInk,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600,
               cursor: 'pointer', whiteSpace: 'nowrap',
-              boxShadow: '0 4px 12px rgba(11,12,14,0.18)',
+              boxShadow: `0 4px 12px ${sgVoileEncre(dark, 0.18)}`,
             }}>{t('notifications.seeAll')} →</button>
         </div>
 
@@ -299,8 +306,8 @@ export default function SugarNotificationsPopover({
           <div style={{
             position: 'absolute', left: '50%', bottom: -6, transform: 'translateX(-50%)',
             background: sp.ink, color: sp.pageBg,
-            fontSize: 'var(--crm-text-sm)', fontWeight: 700, padding: 'var(--crm-space-sm) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
-            boxShadow: '0 8px 24px rgba(11,12,14,0.28)', whiteSpace: 'nowrap', zIndex: 2,
+            fontSize: 'var(--crm-text-sm)', fontWeight: 600, padding: 'var(--crm-space-sm) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
+            boxShadow: `0 8px 24px ${sgVoileEncre(dark, 0.28)}`, whiteSpace: 'nowrap', zIndex: 2,
             animation: 'sugar-fade-up 200ms cubic-bezier(.22,1,.36,1)',
           }}>{toast}</div>
         )}

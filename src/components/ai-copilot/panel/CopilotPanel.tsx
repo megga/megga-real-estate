@@ -10,7 +10,7 @@ import {
   useState, useRef, useEffect, useMemo, useCallback,
   type ReactNode, type KeyboardEvent as ReactKeyboardEvent, type ChangeEvent as ReactChangeEvent,
 } from 'react'
-import { crmSugarPalette, crmFmtCHF, CRM_STAGES, type StageId } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, crmFmtCHF, CRM_STAGES, sgVoileEncre, type StageId } from '@/components/crm-sugar/tokens'
 import { useCopilot, type PendingActionCard } from '@/hooks/useCopilot'
 import { useUploadChatPhoto } from '@/hooks/useProperties'
 import { useAuth } from '@/hooks/useAuth'
@@ -78,7 +78,7 @@ function CpThinking({ sp, query, phase }: { sp: AiPalette; query?: string; phase
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0' }}>
       <span key={label} style={{
-        fontSize: 13.5, fontWeight: 600, lineHeight: 1.5,
+        fontSize: 'var(--crm-text-md)', fontWeight: 600, lineHeight: 1.5,
         color: sp.dark ? 'rgba(255,255,255,0.55)' : '#7A8088',
         background: `linear-gradient(100deg, ${sp.dark ? 'rgba(255,255,255,0.35)' : '#B5BAC2'} 30%, ${sp.ink} 50%, ${sp.dark ? 'rgba(255,255,255,0.35)' : '#B5BAC2'} 70%)`,
         backgroundSize: '200% 100%',
@@ -100,7 +100,7 @@ function cpInline(text: string, sp: AiPalette, kb: string): ReactNode[] {
   while ((m = re.exec(text))) {
     if (m.index > last) out.push(text.slice(last, m.index))
     if (m[1] != null) {
-      out.push(<strong key={kb + 'b' + k++} style={{ fontWeight: 750, color: sp.ink }}>{m[1]}</strong>)
+      out.push(<span key={kb + 'b' + k++} style={{ fontWeight: 600, color: sp.ink }}>{m[1]}</span>)
     } else {
       out.push(<code key={kb + 'c' + k++} style={{
         fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: '0.86em',
@@ -149,14 +149,14 @@ function CpRichText({ content, sp }: { content: string; sp: AiPalette }) {
     return bl
   }, [content])
 
-  const txt = { fontSize: 14, lineHeight: 1.62, color: sp.soft, fontWeight: 500 } as const
+  const txt = { fontSize: 'var(--crm-text-lg)', lineHeight: 1.62, color: sp.soft, fontWeight: 500 } as const
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {blocks.map((b, i) => {
         if (b.type === 'h') {
           return (
             <div key={i} style={{
-              fontSize: 13.5, fontWeight: 800, color: sp.ink, letterSpacing: -0.2,
+              fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, letterSpacing: -0.2,
               lineHeight: 1.35, marginTop: i === 0 ? 0 : 2,
             }}>{cpInline(b.text, sp, 'h' + i)}</div>
           )
@@ -179,7 +179,7 @@ function CpRichText({ content, sp }: { content: string; sp: AiPalette }) {
               {b.items.map((it, j) => (
                 <li key={j} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
                   <span style={{
-                    fontSize: 12.5, fontWeight: 800, color: sp.ink, flexShrink: 0, minWidth: 15,
+                    fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink, flexShrink: 0, minWidth: 15,
                     fontVariantNumeric: 'tabular-nums', lineHeight: 1.62,
                   }}>{j + 1}.</span>
                   <span style={txt}>{cpInline(it, sp, 'o' + i + '_' + j)}</span>
@@ -230,15 +230,15 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGene
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
         <CpIcon name="draft" size={14} color={sp.sub} sw={1.9} />
-        <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: sp.sub }}>{kind}</span>
+        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>{kind}</span>
       </div>
       {subject != null && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: sp.sub, flexShrink: 0 }}>Objet</span>
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: sp.ink, letterSpacing: -0.2, lineHeight: 1.4 }}>{subject}</span>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, flexShrink: 0 }}>Objet</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, letterSpacing: -0.2, lineHeight: 1.4 }}>{subject}</span>
         </div>
       )}
-      <div style={{ fontSize: 13.5, lineHeight: 1.6, color: sp.soft, fontWeight: 500, whiteSpace: 'pre-wrap' }}>
+      <div style={{ fontSize: 'var(--crm-text-md)', lineHeight: 1.6, color: sp.soft, fontWeight: 500, whiteSpace: 'pre-wrap' }}>
         {text}{open && <span style={{ opacity: 0.4 }}>▍</span>}
       </div>
       {!open && (
@@ -254,7 +254,7 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGene
               }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 15px',
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.1, height: 34, padding: '0 15px',
                 borderRadius: 999, background: sp.accent, color: sp.onAccent, transition: 'background .15s, transform .15s',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)' }}
@@ -264,9 +264,9 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGene
           )}
           <button onClick={copy} style={{
             display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, letterSpacing: -0.1, height: 34, padding: '0 13px',
+            fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.1, height: 34, padding: '0 13px',
             borderRadius: 999, color: copied ? sp.ink : sp.soft, background: sp.dark ? sp.fill : '#FFFFFF',
-            boxShadow: sp.dark ? 'none' : '0 1px 4px rgba(15,23,42,0.06)', transition: 'background .14s',
+            boxShadow: sp.dark ? 'none' : `0 1px 4px ${sgVoileEncre(false, 0.06)}`, transition: 'background .14s',
           }}>
             <CpIcon name={copied ? 'check' : 'copy'} size={13} color={copied ? sp.ink : sp.soft} sw={2} />
             {copied ? 'Copié' : 'Copier'}
@@ -317,7 +317,7 @@ function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce, onGenerateLetter
           background: sp.fill,
         }}>
           <CpIcon name="eye" size={13} color={sp.sub} sw={1.9} />
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: sp.sub, letterSpacing: 0.1 }}>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, letterSpacing: 0.1 }}>
             Vous êtes maintenant sur {screenLabel(msg.screen || '')}
           </span>
         </div>
@@ -325,7 +325,7 @@ function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce, onGenerateLetter
           {pack.actions.slice(0, 2).map((a, i) => (
             <button key={i} onClick={() => onSend(a.p)} style={{
               border: 0, cursor: 'pointer', fontFamily: 'inherit', padding: '7px 13px', borderRadius: 999,
-              fontSize: 12, fontWeight: 700, letterSpacing: -0.1, color: sp.soft,
+              fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.1, color: sp.soft,
               background: sp.cardBg2, boxShadow: sp.cardShadow, transition: 'background .14s',
             }}
               onMouseEnter={(e) => { e.currentTarget.style.background = sp.rowHov }}
@@ -343,7 +343,7 @@ function Bubble({ msg, sp, onSend, onInsertEmail, onUseAnnonce, onGenerateLetter
         <div style={{
           maxWidth: '82%', background: sp.accent, color: sp.onAccent,
           padding: '11px 15px', borderRadius: '16px 16px 4px 16px',
-          fontSize: 14, lineHeight: 1.5, fontWeight: 500,
+          fontSize: 'var(--crm-text-lg)', lineHeight: 1.5, fontWeight: 500,
         }}>{msg.content}</div>
       </div>
     )
@@ -428,10 +428,10 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string, photos?: string
             }}>
               {p.url
                 ? <img src={p.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <span style={{ fontSize: 11, fontWeight: 700, color: p.error ? '#E5484D' : sp.sub }}>{p.error ? '!' : '…'}</span>}
+                : <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: p.error ? '#E5484D' : sp.sub }}>{p.error ? '!' : '…'}</span>}
               <button onClick={() => removePhoto(p.id)} title="Retirer" aria-label="Retirer la photo" style={{
                 position: 'absolute', top: 2, right: 2, width: 16, height: 16, borderRadius: 999, border: 0, cursor: 'pointer',
-                background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 11, lineHeight: '16px', padding: 0,
+                background: 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 'var(--crm-text-xs)', lineHeight: '16px', padding: 0,
               }}>×</button>
             </div>
           ))}
@@ -442,7 +442,7 @@ function Composer({ onSend, loading, sp }: { onSend: (t: string, photos?: string
         placeholder="Demander à MEGGA AI"
         style={{
           width: '100%', border: 0, outline: 'none', background: 'transparent',
-          resize: 'none', fontFamily: 'inherit', fontSize: 14.5, lineHeight: 1.5,
+          resize: 'none', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', lineHeight: 1.5,
           color: sp.dark ? '#FFFFFF' : sp.ink, padding: '4px 0', maxHeight: 120,
         }} />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -479,9 +479,9 @@ function PanelHeader({ sp, onClose, onReset, hasMsgs }: { sp: AiPalette; onClose
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 14px', flexShrink: 0 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: sp.ink, letterSpacing: -0.3 }}>MEGGA AI</span>
+          <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.3 }}>MEGGA AI</span>
           <span style={{
-            marginLeft: 8, fontSize: 10.5, fontWeight: 700, letterSpacing: 0.2,
+            marginLeft: 8, fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2,
             color: sp.onAccent, padding: '2px 7px', borderRadius: 999, background: sp.accent,
           }}>Bêta</span>
         </div>
@@ -509,7 +509,7 @@ function EmptyDock({ sp, onSend, screen }: { sp: AiPalette; onSend: (p: string) 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '0 28px', textAlign: 'center' }}>
-        <h2 style={{ margin: 0, fontSize: 23, fontWeight: 800, color: sp.ink, letterSpacing: -0.6, lineHeight: 1.15 }}>
+        <h2 style={{ margin: 0, fontSize: 23, fontWeight: 600, color: sp.ink, letterSpacing: -0.6, lineHeight: 1.15 }}>
           Comment puis-je<br />vous aider ?
         </h2>
       </div>
@@ -517,7 +517,7 @@ function EmptyDock({ sp, onSend, screen }: { sp: AiPalette; onSend: (p: string) 
       <div key={screen} style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '0 16px 4px', animation: 'cpCtxIn .4s cubic-bezier(.2,.8,.2,1) both' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '0 4px 4px' }}>
           <CpIcon name="sparkle" size={12} color={sp.aiInk} sw={1.9} />
-          <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: sp.sub }}>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>
             Suggestions · {pack.label}
           </span>
         </div>
@@ -526,7 +526,7 @@ function EmptyDock({ sp, onSend, screen }: { sp: AiPalette; onSend: (p: string) 
             onMouseEnter={(e) => { e.currentTarget.style.background = sp.rowHov }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
             <CpIcon name={c.icon} size={16} color={sp.sub} />
-            <span style={{ flex: 1, textAlign: 'left', fontSize: 13.5, fontWeight: 600, color: sp.soft }}>{c.t}</span>
+            <span style={{ flex: 1, textAlign: 'left', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.soft }}>{c.t}</span>
             <CpIcon name="arrowR" size={15} color={sp.sub} />
           </button>
         ))}
@@ -813,7 +813,7 @@ export default function CopilotPanel() {
           // finissait avant la glissade et le push).
           transition: 'transform .42s cubic-bezier(.2,.8,.2,1), opacity .42s cubic-bezier(.2,.8,.2,1)',
           pointerEvents: shown ? 'auto' : 'none',
-          fontFamily: "'Inter Tight', system-ui, sans-serif",
+          fontFamily: 'var(--crm-font)',
         }}
       >
         {mounted && (

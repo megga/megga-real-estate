@@ -134,6 +134,21 @@ export interface RootSpec {
   root: string
   /** Retient un fichier sur son NOM de base — jamais sur son chemin complet. */
   keep: (name: string) => boolean
+  /**
+   * Filtre supplémentaire sur le CHEMIN repo-relatif, appliqué en plus de
+   * {@link keep}. Optionnel : sans lui, le comportement est inchangé.
+   *
+   * ⛔ POURQUOI IL EXISTE. `collect()` RÉCURSE, et `keep` ne voit que le nom de
+   * base : une racine `src/components/crm-sugar` qui retient `'tokens.ts'`
+   * ramène AUSSI `crm-sugar/analytics/tokens.ts` — une palette Sugar Pure
+   * complète appartenant à un autre lot. Le cliquet de grammaire l'aurait alors
+   * déclarée portée sans que personne la regarde, ce qui est exactement
+   * l'inverse de ce à quoi sert un cliquet.
+   *
+   * Même famille que l'exemption ancrée sur un nom de variable locale : un
+   * filtre qui ne peut nommer qu'une FEUILLE ne peut pas désigner une ZONE.
+   */
+  keepPath?: (relPath: string) => boolean
 }
 
 export interface Scan {
@@ -153,7 +168,7 @@ function isDirectory(entry: Dirent, path: string, unreadable: string[]): boolean
   return stat.status === 'ok' && stat.value.isDirectory()
 }
 
-function collect(dir: string, keep: (name: string) => boolean, files: string[], unreadable: string[]): void {
+function collect(dir: string, spec: RootSpec, files: string[], unreadable: string[]): void {
   const listing = readSafely(() => readdirSync(dir, { withFileTypes: true }))
   // Une racine absente ne remonte PAS ici : le contrôle positif de chaque garde-fou
   // la nomme, avec un diagnostic bien plus parlant qu'une ligne « unreadable ».
@@ -166,8 +181,8 @@ function collect(dir: string, keep: (name: string) => boolean, files: string[], 
   for (const entry of entries) {
     if (SKIP_DIRS.has(entry.name)) continue
     const path = join(dir, entry.name)
-    if (isDirectory(entry, path, unreadable)) collect(path, keep, files, unreadable)
-    else if (keep(entry.name)) files.push(path)
+    if (isDirectory(entry, path, unreadable)) collect(path, spec, files, unreadable)
+    else if (spec.keep(entry.name) && (spec.keepPath?.(rel(path)) ?? true)) files.push(path)
   }
 }
 
@@ -182,9 +197,10 @@ export function scanRoots(specs: readonly RootSpec[]): Scan {
   const unreadable: string[] = []
   const filesPerRoot: Record<string, number> = {}
 
-  for (const { root, keep } of specs) {
+  for (const spec of specs) {
+    const { root } = spec
     const found: string[] = []
-    collect(repoPath(root), keep, found, unreadable)
+    collect(repoPath(root), spec, found, unreadable)
     // `+=` et non `=` : deux specs peuvent viser la même racine avec des filtres
     // distincts, et le total doit rester le nombre de fichiers effectivement vus.
     filesPerRoot[root] = (filesPerRoot[root] ?? 0) + found.length
