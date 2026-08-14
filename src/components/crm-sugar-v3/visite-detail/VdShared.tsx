@@ -7,6 +7,7 @@
 // (VdMobileCompanion supprimé — la vue mobile compagnon contenait
 //  uniquement des contrôles non-fonctionnels — voir l'historique git.)
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SugarV3 } from '../tokens'
@@ -22,9 +23,7 @@ export function VdEyebrow({ children }: { children: ReactNode }) {
         fontSize: 'var(--crm-text-md)',
         fontWeight: 600,
         color: SugarV3.muted,
-        letterSpacing: 1.2,
-        textTransform: 'uppercase',
-      }}
+                      }}
     >
       {children}
     </div>
@@ -100,7 +99,7 @@ export function VdBonPanel({
             style={{
               margin: '10px 0 0',
               fontSize: 'var(--crm-text-4xl)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.ink,
               letterSpacing: -0.4,
             }}
@@ -128,9 +127,8 @@ export function VdBonPanel({
           <div
             style={{
               fontSize: 'var(--crm-text-sm)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.ink,
-              letterSpacing: 4,
               marginBottom: 6,
             }}
           >
@@ -139,7 +137,7 @@ export function VdBonPanel({
           <div
             style={{
               fontSize: 'var(--crm-text-3xl)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.ink,
               letterSpacing: -0.3,
             }}
@@ -167,15 +165,13 @@ export function VdBonPanel({
                 fontSize: 'var(--crm-text-xs)',
                 color: SugarV3.muted,
                 fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                marginBottom: 6,
+                                                marginBottom: 6,
               }}
             >
               {t('visitDetail.bon.fieldProperty')}
             </div>
             <div
-              style={{ fontWeight: 700, color: SugarV3.ink, fontSize: 'var(--crm-text-xl)' }}
+              style={{ fontWeight: 600, color: SugarV3.ink, fontSize: 'var(--crm-text-xl)' }}
             >
               {visit.property?.title ?? '—'}
             </div>
@@ -204,16 +200,14 @@ export function VdBonPanel({
                   fontSize: 'var(--crm-text-xs)',
                   color: SugarV3.muted,
                   fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
+                                                      marginBottom: 6,
                 }}
               >
                 {t('visitDetail.bon.fieldVisitor')}
               </div>
               <div
                 style={{
-                  fontWeight: 700,
+                  fontWeight: 600,
                   color: SugarV3.ink,
                   fontSize: 'var(--crm-text-lg)',
                 }}
@@ -230,16 +224,14 @@ export function VdBonPanel({
                   fontSize: 'var(--crm-text-xs)',
                   color: SugarV3.muted,
                   fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 6,
+                                                      marginBottom: 6,
                 }}
               >
                 {t('visitDetail.bon.fieldAgent')}
               </div>
               <div
                 style={{
-                  fontWeight: 700,
+                  fontWeight: 600,
                   color: SugarV3.ink,
                   fontSize: 'var(--crm-text-lg)',
                 }}
@@ -259,16 +251,14 @@ export function VdBonPanel({
                 fontSize: 'var(--crm-text-xs)',
                 color: SugarV3.muted,
                 fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                marginBottom: 6,
+                                                marginBottom: 6,
               }}
             >
               {t('visitDetail.bon.fieldDateTime')}
             </div>
             <div
               style={{
-                fontWeight: 700,
+                fontWeight: 600,
                 color: SugarV3.ink,
                 fontSize: 'var(--crm-text-lg)',
               }}
@@ -293,9 +283,7 @@ export function VdBonPanel({
                 fontSize: 'var(--crm-text-xs)',
                 color: SugarV3.muted,
                 fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                marginBottom: 8,
+                                                marginBottom: 8,
               }}
             >
               {t('visitDetail.bon.commitmentLabel')}
@@ -350,9 +338,7 @@ export function VdBonPanel({
                   fontSize: 'var(--crm-text-xs)',
                   color: SugarV3.muted,
                   fontWeight: 600,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  marginBottom: 8,
+                                                      marginBottom: 8,
                 }}
               >
                 {s.l}
@@ -433,7 +419,7 @@ export function VdBonPanel({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 'var(--crm-space-md)',
-              boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
+              boxShadow: `0 6px 16px ${sgVoileEncre(false, 0.18)}`,
             }}
           >
             <SgIcon name="pen" size={14} stroke="#fff" sw={2} />
@@ -464,7 +450,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
           style={{
             margin: '10px 0 16px',
             fontSize: 'var(--crm-text-4xl)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: SugarV3.ink,
             letterSpacing: -0.4,
           }}
@@ -497,7 +483,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
           <div
             style={{
               fontSize: 'var(--crm-text-xl)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.ink,
               marginBottom: 6,
             }}
@@ -547,7 +533,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
             style={{
               margin: '10px 0 0',
               fontSize: 'var(--crm-text-4xl)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.ink,
               letterSpacing: -0.4,
             }}
@@ -566,7 +552,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               background: SugarV3.cardSubtle,
               color: SugarV3.ink,
               fontSize: 'var(--crm-text-lg)',
-              fontWeight: 700,
+              fontWeight: 600,
             }}
           >
             <span
@@ -585,16 +571,14 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
                 fontSize: 'var(--crm-text-xs)',
                 color: SugarV3.muted,
                 fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-              }}
+                                              }}
             >
               {t('visitDetail.report.score')}
             </div>
             <div
               style={{
                 fontSize: 'var(--crm-text-4xl)',
-                fontWeight: 700,
+                fontWeight: 600,
                 color: SugarV3.ink,
                 lineHeight: 1,
                 fontVariantNumeric: 'tabular-nums',
@@ -637,11 +621,9 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               gap: 'var(--crm-space-md)',
               marginBottom: 12,
               fontSize: 'var(--crm-text-sm)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.muted,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-            }}
+                                        }}
           >
             <SgIcon name="smile" size={13} stroke={SugarV3.muted} sw={1.8} />
             {t('visitDetail.report.highlights')}
@@ -702,11 +684,9 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               gap: 'var(--crm-space-md)',
               marginBottom: 12,
               fontSize: 'var(--crm-text-sm)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.muted,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-            }}
+                                        }}
           >
             <SgIcon name="flame" size={13} stroke={SugarV3.muted} sw={1.8} />
             {t('visitDetail.report.objections')}
@@ -762,11 +742,9 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
         <div
           style={{
             fontSize: 'var(--crm-text-sm)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: SugarV3.muted,
-            textTransform: 'uppercase',
-            letterSpacing: 0.5,
-            marginBottom: 8,
+                                    marginBottom: 8,
           }}
         >
           {t('visitDetail.report.nextStep')}
@@ -825,7 +803,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               <div
                 style={{
                   fontSize: 'var(--crm-text-md)',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   marginBottom: 2,
                 }}
               >
@@ -873,7 +851,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
               sw={1.8}
             />
             <span
-              style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SugarV3.ink }}
+              style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV3.ink }}
             >
               {t('visitDetail.report.photoCount', { count: r.photos })}
             </span>

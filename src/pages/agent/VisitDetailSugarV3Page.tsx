@@ -139,7 +139,7 @@ export default function VisitDetailSugarV3Page() {
             style={{
               fontFamily: 'JetBrains Mono, monospace',
               whiteSpace: 'nowrap',
-              fontSize: 12,
+              fontSize: 'var(--crm-text-sm)',
               color: SugarV3.muted,
               letterSpacing: 0.3,
             }}
@@ -208,8 +208,8 @@ export default function VisitDetailSugarV3Page() {
               <h1
                 style={{
                   margin: '12px 0 10px',
-                  fontSize: 36,
-                  fontWeight: 700,
+                  fontSize: 'var(--crm-text-8xl)',
+                  fontWeight: 600,
                   color: SugarV3.ink,
                   letterSpacing: -0.8,
                   lineHeight: 1.15,
@@ -232,7 +232,7 @@ export default function VisitDetailSugarV3Page() {
                   gap: 14,
                   flexWrap: 'wrap',
                   color: SugarV3.muted,
-                  fontSize: 14,
+                  fontSize: 'var(--crm-text-lg)',
                   fontWeight: 500,
                 }}
               >
