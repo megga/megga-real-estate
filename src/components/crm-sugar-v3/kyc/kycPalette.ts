@@ -21,48 +21,57 @@ import { createContext, useContext } from 'react'
 import { CRM_TOKENS, type SugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
+/**
+ * ⛔ DIX CLÉS ONT ÉTÉ RETIRÉES le 16 août 2026 (lot 3), et pas parce qu'elles
+ * étaient hors direction : elles n'avaient AUCUN LECTEUR. Mesuré sur les onze
+ * fichiers qui montent cette palette — `bg`, `ringTrack`, `stepLine`, et toute la
+ * famille d'état (`ok`, `warn`, `err`, `okSoft`, `warnSoft`, `okDark`,
+ * `errDark`) : zéro usage, dans les deux thèmes.
+ *
+ * ⚠ C'EST CE QUI TRANCHE LA QUESTION « jusqu'où la palette descend ». On croyait
+ * devoir arbitrer entre l'échelle et des tons SÉMANTIQUES ; la mesure dit qu'il
+ * n'y avait rien à arbitrer, parce que ces tons-là ne peignaient plus rien. Les
+ * teintes qui ENCODENT réellement le KYC vivent ailleurs — `kypStatusMeta` et
+ * `kypRiskMeta` (`kypTokens.ts`), le statut de dossier et le niveau de risque —
+ * et ce lot n'y touche pas. Une palette parallèle finit toujours par accumuler
+ * des clés que plus personne ne lit : elles ne se voient qu'en comptant.
+ *
+ * `blackHover` part avec elles, pour une raison de DIRECTION celle-là : la
+ * vitrine ne donne à `.primary-button:hover` qu'un `scale3d(1.04)`, aucun
+ * changement de couleur — et `KycBlackPill` porte déjà sa réponse géométrique
+ * (`translateY(-1px)` + ombre renforcée). `SugarV3` avait retiré la sienne pour
+ * ce motif exact.
+ */
 export interface KycPalette {
   // Fond
-  bg: string
   bgGradient: string
   // Surfaces
   card: string
   cardSubtle: string
   cardBorder: string
-  // Accent CTA (flip en sombre)
+  // Accent CTA — l'élément ACTIF le porte, dans les DEUX thèmes
   black: string
-  blackHover: string
   onAccent: string
   // Texte
   ink: string
   inkSoft: string
   muted: string
   ghost: string
-  // Anneau / jauge
-  ringTrack: string
   // Ombres
   shadowSm: string
   shadow: string
   shadowLg: string
   shadowHover: string
-  // États (tons vifs constants — sémantique reconnaissable dans les 2 thèmes)
-  ok: string
-  warn: string
-  err: string
-  // États « soft » (bg + texte) — adaptés au thème pour les encarts d'alerte
-  okSoft: string
-  warnSoft: string
+  // ⚠ Les deux SEULS tons d'état qui restent : ils ont des lecteurs, et leur
+  // teinte porte l'information « erreur ». L'échelle ne sait pas la porter.
   errSoft: string
-  okDark: string
-  errDark: string
   errDarker: string
-  // Wizard KYC (handoff refonte) — tokens posés SUR l'accent (s'inversent en
-  // sombre) + chrome (séparateurs, fondu footer, logo, scrollbar).
+  // Chrome du wizard — posés SUR l'accent, donc de sens constant d'un thème à
+  // l'autre (l'accent, lui, ne change pas).
   onAccentSoft: string
   onAccentMid: string
   onAccentFaint: string
   divider: string
-  stepLine: string
   footerFade: string
   logoInvert: boolean
   scrollThumb: string
@@ -72,29 +81,38 @@ export interface KycPalette {
 // Tons de risque — FIXES dans les 2 thèmes (le risque doit se repérer d'un
 // coup d'œil, comme les couleurs d'étapes du pipeline). Handoff §4.
 export const KYC_LIGHT: KycPalette = {
-  bg: '#EDEFF3',
-  bgGradient:
-    'radial-gradient(ellipse 120% 80% at 50% 100%, #C8D5E0 0%, #E2E5EB 50%, #EDEFF3 100%)',
-  card: '#FFFFFF',
-  cardSubtle: '#F7F8FA',
+  // ⛔ PLAT, plus un dégradé radial bleu-gris. MEGGA X ne pratique pas le fond
+  // décoratif : la branche SOMBRE rendait déjà `sp.pageBg` nu, et le clair
+  // gardait seul un `radial-gradient(#C8D5E0 → #E2E5EB → #EDEFF3)` qui ne
+  // descendait d'aucun barreau. Les trois teintes étaient les seules de leur
+  // espèce dans tout le KYC.
+  bgGradient: MXC_COLOR.n900,
+  card: MXC_COLOR.n1000,
+  cardSubtle: MXC_COLOR.n900,
+  // ⚠ HORS DIRECTION, et c'est un IDIOME, pas un oubli : en clair le KYC sépare
+  // par l'OMBRE, pas par la bordure. Ça n'a de sens que depuis que les ombres
+  // existent réellement (lot 1bis) — avant, « ombres seules » et « rien du tout »
+  // se ressemblaient beaucoup.
   cardBorder: 'transparent',
   // ⛔ L'ACCENT, pas l'encre. Les douze lecteurs de `black` sont TOUS des états
   // actifs ou des affordances primaires — pilule d'étape sélectionnée, carte de
   // porte choisie, CTA du wizard, onglet courant. Le peindre en encre appliquait
   // la règle de Sugar Pure (« l'accent EST l'encre ») avec les jetons de MEGGA X.
   black: MXC_COLOR.accent,
-  blackHover: '#1F2024',
-  onAccent: '#FFFFFF',
+  onAccent: MXC_COLOR.n1000,
   ink: MXC_COLOR.n100,
-  inkSoft: '#3A3D44',
+  // L'échelle d'encre claire de MEGGA X, du plein au secondaire :
+  // n100 (#030303) · n400 (#181818) · n500 (#686868).
+  inkSoft: MXC_COLOR.n400,
   // ⛔ `#7A8088` ne passait PAS l'AA en clair — 3,98:1 sur sa propre carte, sur
   // 14 sites en `color:`. Le défaut était MONO-THÈME (en sombre `muted` vaut
   // `sp.sub`, donc 7,89:1), donc invisible à toute garde d'un seul thème.
   // `n500` est le barreau que MEGGA X donne à l'encre secondaire claire :
   // 5,57 sur la carte, 5,24 sur la sous-carte, 4,84 sur le canvas.
   muted: MXC_COLOR.n500,
-  ghost: '#B5BAC2',
-  ringTrack: `${sgVoileEncre(false, 0.08)}`,
+  // Aplat d'un CTA désactivé. WCAG exempte l'élément désactivé de tout seuil —
+  // ce qui ne dispense pas de le prendre sur l'échelle.
+  ghost: MXC_COLOR.n700,
   shadowSm: `0 4px 16px ${sgVoileEncre(false, 0.04)}`,
   // ⛔ BACKTICKS, pas des guillemets simples. Ces trois lignes ont vécu en
   // chaînes littérales contenant `${…}` : du TEXTE, donc une déclaration CSS
@@ -104,28 +122,22 @@ export const KYC_LIGHT: KycPalette = {
   shadow: `0 12px 40px ${sgVoileEncre(false, 0.06)}, 0 2px 8px ${sgVoileEncre(false, 0.03)}`,
   shadowLg: `0 24px 60px ${sgVoileEncre(false, 0.08)}, 0 4px 16px ${sgVoileEncre(false, 0.04)}`,
   shadowHover: `0 32px 70px ${sgVoileEncre(false, 0.10)}, 0 6px 20px ${sgVoileEncre(false, 0.05)}`,
-  ok: '#10B981',
-  warn: '#F59E0B',
-  err: '#EF4444',
-  okSoft: '#E5F4EC',
-  warnSoft: '#FFF4E0',
   errSoft: 'rgba(239,68,68,0.10)',
-  okDark: '#0E9F6E',
-  errDark: '#E53935',
   errDarker: '#B91C1C',
   // ⚠ 0,75 rendait 3,95:1 sur l'accent — sous l'AA. 0,85 rend 4,63:1. Les deux
   // autres sont des APLATS (fond de pastille, fond de vignette), pas des encres :
   // ils ne portent aucun seuil de texte et ne bougent pas.
-  onAccentSoft: 'rgba(255,255,255,0.85)',
-  onAccentMid: 'rgba(255,255,255,0.18)',
-  onAccentFaint: 'rgba(255,255,255,0.10)',
-  divider: `${sgVoileEncre(false, 0.10)}`,
-  stepLine: `${sgVoileEncre(false, 0.08)}`,
-  footerFade:
-    'linear-gradient(180deg, transparent 0%, rgba(237,239,243,0.9) 60%, rgba(237,239,243,1) 100%)',
+  // ⚠ `sgVoileEncre(true, …)` rend exactement `rgba(255,255,255,…)`. Le voile
+  // est BLANC dans les deux thèmes parce qu'il se pose sur l'ACCENT, qui ne
+  // change pas — le paramètre nomme la couleur du voile, pas le thème de l'écran.
+  onAccentSoft: sgVoileEncre(true, 0.85),
+  onAccentMid: sgVoileEncre(true, 0.18),
+  onAccentFaint: sgVoileEncre(true, 0.10),
+  divider: sgVoileEncre(false, 0.10),
+  footerFade: `linear-gradient(180deg, transparent 0%, ${MXC_COLOR.n900} 62%, ${MXC_COLOR.n900} 100%)`,
   logoInvert: false,
-  scrollThumb: `${sgVoileEncre(false, 0.18)}`,
-  scrollThumbHover: `${sgVoileEncre(false, 0.32)}`,
+  scrollThumb: sgVoileEncre(false, 0.18),
+  scrollThumbHover: sgVoileEncre(false, 0.32),
 }
 
 /**
@@ -146,7 +158,6 @@ export function buildKycPalette(
   const t = CRM_TOKENS.graphite
   if (!dark) return KYC_LIGHT
   return {
-    bg: sp.pageBg,
     bgGradient: sp.pageBg,
     card: MXC_COLOR.n300,
     cardSubtle: MXC_COLOR.n200,
@@ -154,7 +165,6 @@ export function buildKycPalette(
     // sinon la bordure devient le seul relief visible et durcit le bento.
     cardBorder: 'rgba(255,255,255,0.06)',
     black: sp.accent, // l'actif porte l'accent dans les DEUX thèmes
-    blackHover: '#FFFFFF',
     // ⛔ BLANC, PAS LE CANVAS — et ce n'était pas une étourderie mais un
     // commentaire PÉRIMÉ. « texte sombre posé sur la pilule claire » disait vrai
     // quand la branche sombre rendait une pilule CLAIRE ; le lot A2 a fait passer
@@ -164,38 +174,42 @@ export function buildKycPalette(
     // `CLAUDE.md` §3 dit que l'accent ne tient en aplat (5,78:1) que parce que
     // c'est l'ENCRE BLANCHE qui porte le contraste — la branche sombre cassait
     // exactement la propriété sur laquelle la règle s'appuie.
-    onAccent: '#FFFFFF',
+    onAccent: MXC_COLOR.n1000,
     ink: sp.ink,
     inkSoft: sp.soft,
     muted: sp.sub,
-    ghost: 'rgba(255,255,255,0.20)',
-    ringTrack: 'rgba(255,255,255,0.14)',
-    shadowSm: '0 2px 8px rgba(0,0,0,0.30)',
-    shadow: '0 1px 2px rgba(0,0,0,0.40), 0 12px 32px -12px rgba(0,0,0,0.65)',
-    shadowLg: '0 1px 2px rgba(0,0,0,0.45), 0 24px 60px -16px rgba(0,0,0,0.75)',
-    shadowHover: '0 1px 2px rgba(0,0,0,0.50), 0 30px 70px -16px rgba(0,0,0,0.80)',
-    ok: '#10B981',
-    warn: '#F59E0B',
-    err: '#EF4444',
-    // Encarts d'alerte adaptés au sombre (fonds profonds, texte clair lisible)
-    okSoft: t.okSoft,
-    warnSoft: t.warnSoft,
+    // ⚠ OPAQUE, plus un voile blanc à 20 %. En sombre MEGGA X sépare par la
+    // bordure et n'empile pas de voiles sur une surface neutre — et un voile ne
+    // se mesure qu'après composition, ce qui masque son vrai palier.
+    ghost: MXC_COLOR.n400,
+    // ⛔ AUCUNE OMBRE EN SOMBRE, et la palette le dit déjà : `mxCrmPalette(true)`
+    // rend `shadow` et `shadowSm` à `'none'`, comme la vitrine. `CLAUDE.md` §3 :
+    // « la séparation vient de la BORDURE, pas de l'écart de luminance » — et la
+    // branche sombre du KYC porte justement `cardBorder` à
+    // `rgba(255,255,255,0.06)`. Les quatre ombres noires qui vivaient ici
+    // faisaient donc double emploi avec le filet, sur un canvas déjà à `#030303`
+    // où une ombre noire ne peut rien assombrir.
+    shadowSm: sp.shadowSm,
+    shadow: sp.shadow,
+    // ⚠ `shadowLg` et `shadowHover` n'ont pas de jumeau dans `sp` : ils prennent
+    // la même valeur, donc `'none'` ici. Une surface flottante en sombre est
+    // ancrée par son voile de fond et son filet, pas par une ombre.
+    shadowLg: sp.shadow,
+    shadowHover: sp.shadow,
+    // Encart d'alerte adapté au sombre (fond profond, encre claire lisible).
     errSoft: t.dangerSoft,
-    okDark: '#6EE7B7',
-    errDark: '#F8B4B0',
     errDarker: '#FCA5A5',
     // ⚠ MÊME SENS QU'EN CLAIR, pour la même raison : ils se posent sur l'accent,
     // qui ne change pas d'un thème à l'autre. Ils s'inversaient (voile d'encre
     // SOMBRE) du temps de la pilule claire — sur l'accent, ça donnait 2,58:1.
-    onAccentSoft: 'rgba(255,255,255,0.85)',
-    onAccentMid: 'rgba(255,255,255,0.18)',
-    onAccentFaint: 'rgba(255,255,255,0.10)',
-    divider: 'rgba(255,255,255,0.12)',
-    stepLine: 'rgba(255,255,255,0.16)',
+    onAccentSoft: sgVoileEncre(true, 0.85),
+    onAccentMid: sgVoileEncre(true, 0.18),
+    onAccentFaint: sgVoileEncre(true, 0.10),
+    divider: sgVoileEncre(true, 0.12),
     footerFade: `linear-gradient(180deg, transparent 0%, ${sp.pageBg} 62%, ${sp.pageBg} 100%)`,
     logoInvert: true,
-    scrollThumb: 'rgba(255,255,255,0.22)',
-    scrollThumbHover: 'rgba(255,255,255,0.40)',
+    scrollThumb: sgVoileEncre(true, 0.22),
+    scrollThumbHover: sgVoileEncre(true, 0.40),
   }
 }
 

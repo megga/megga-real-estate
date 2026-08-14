@@ -120,8 +120,11 @@ const SOMBRE = buildKycPalette(true, crmSugarPalette(true))
  * `black` en fait partie : c'est l'accent, et `onAccent*` s'y pose.
  */
 const THEMES: { nom: string; p: KycPalette; surfaces: Record<string, string> }[] = [
-  { nom: 'CLAIR', p: CLAIR, surfaces: { card: CLAIR.card, cardSubtle: CLAIR.cardSubtle, bg: CLAIR.bg } },
-  { nom: 'SOMBRE', p: SOMBRE, surfaces: { card: SOMBRE.card, cardSubtle: SOMBRE.cardSubtle, bg: SOMBRE.bg } },
+  // ⚠ Le canvas est `bgGradient`, pas `bg` : ce dernier a été retiré au lot 3
+  // (zéro lecteur), et depuis que le clair ne porte plus de dégradé décoratif,
+  // `bgGradient` EST une couleur plate dans les deux thèmes.
+  { nom: 'CLAIR', p: CLAIR, surfaces: { card: CLAIR.card, cardSubtle: CLAIR.cardSubtle, canvas: CLAIR.bgGradient } },
+  { nom: 'SOMBRE', p: SOMBRE, surfaces: { card: SOMBRE.card, cardSubtle: SOMBRE.cardSubtle, canvas: SOMBRE.bgGradient } },
 ]
 
 /* ─── L'inventaire des ENCRES, confronté à la source ─────────────────────────── */
@@ -294,6 +297,65 @@ describe('Contraste KYC — les deux thèmes, les rôles énumérés', () => {
       if (ri < AA) faibles.push(`${nom} : initiales (${encre}) sur la pastille (${aplat}) = ${arrondi(ri)}:1`)
     }
     expect(faibles, `pastille indiscernable, ou initiales illisibles :\n  ${faibles.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ LA PALETTE DESCEND DE MEGGA X — sauf ce qui ENCODE, et c'est nommé.
+   *
+   * `KycPalette` est une palette PARALLÈLE : 35 clés écrites à la main à côté de
+   * `mxCrmPalette`. C'est le troisième exemplaire du motif que ce chantier a
+   * rencontré partout (la console, la popover de notifications, les cinq modales
+   * du dock), et il se cherche par la FORME — un objet littéral de couleurs dans
+   * un composant qui a déjà une palette — jamais par le nom.
+   *
+   * ⚠ CE QUI RESTE DEHORS EST MESURÉ, PAS SUPPOSÉ. Les familles qu'on croyait
+   * « sémantiques » (`ok`/`warn`/`err` et leurs déclinaisons douces) avaient
+   * ZÉRO lecteur dans les onze fichiers qui montent cette palette : elles étaient
+   * MORTES, pas hors direction. Les tons qui encodent réellement vivent ailleurs
+   * — `kypStatusMeta` et `kypRiskMeta` (`kypTokens.ts`), que ce lot ne touche
+   * pas. Ne restent ici que `errSoft` et `errDarker`, qui ont des lecteurs et
+   * disent une ERREUR : leur teinte porte l'information, l'échelle ne sait pas
+   * la porter.
+   */
+  it('chaque couleur de la palette descend de MEGGA X, sauf celles qui encodent', () => {
+    const src = readFileSync('src/components/crm-sugar-v3/kyc/kycPalette.ts', 'utf-8')
+    const clair = src.slice(src.indexOf('export const KYC_LIGHT'), src.indexOf('export function buildKycPalette'))
+    const sombre = src.slice(src.indexOf('return {', src.indexOf('if (!dark) return KYC_LIGHT')))
+
+    /** Une valeur est DÉRIVÉE si elle nomme une source du système. */
+    const derive = (v: string) => /\b(?:MXC_COLOR|MXC_SYSTEM|sp|t)\.\w+|\bsgVoileEncre\(|\bencreSur\(/.test(v)
+
+    /**
+     * Hors direction, NOMMÉES une par une avec leur raison — jamais un motif.
+     * Une exemption qui nomme une famille exempte des sites par accident.
+     */
+    const HORS_DIRECTION: Record<string, string> = {
+      errSoft: 'fond d’encart d’ERREUR — la teinte porte l’information',
+      errDarker: 'encre d’ERREUR — idem',
+      logoInvert: 'booléen, pas une couleur',
+      cardBorder: 'idiome documenté du KYC clair : ombres SEULES, bordure transparente',
+    }
+
+    const nus: string[] = []
+    const vues = new Set<string>()
+    for (const [nomBloc, bloc] of [['CLAIR', clair], ['SOMBRE', sombre]] as const) {
+      for (const m of bloc.matchAll(/^\s+(\w+):\s*([^\n]+?),?\s*$/gm)) {
+        const [, cle, val] = m
+        if (HORS_DIRECTION[cle!]) continue
+        vues.add(`${nomBloc}.${cle}`)
+        // Une valeur multi-ligne (gradient) est lue sur sa première ligne : on
+        // ne juge que celles qui portent une couleur reconnaissable.
+        if (!/#[0-9a-f]{3,8}\b|rgba?\(/i.test(val!) || derive(val!)) continue
+        nus.push(`${nomBloc}.${cle} = ${val!.slice(0, 60)}`)
+      }
+    }
+    // ⚠ TÉMOINS NOMMÉS, pas un seuil. Un `> 40` s'était périmé le jour même où
+    // dix clés mortes ont été retirées : un compte décrit un ÉTAT, il se périme
+    // dès que l'état bouge légitimement. Un témoin décrit le BALAYAGE.
+    for (const t of ['CLAIR.card', 'CLAIR.onAccent', 'SOMBRE.card', 'SOMBRE.ink']) {
+      expect([...vues], `clé non lue : le découpage du fichier a changé (${t})`).toContain(t)
+    }
+    expect(nus, `couleur écrite à la main, hors inventaire :\n  ${nus.join('\n  ')}`).toEqual([])
   })
 
   /**

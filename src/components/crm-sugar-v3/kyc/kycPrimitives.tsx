@@ -47,7 +47,11 @@ export function KycBlackPill({
         padding: size === 'lg' ? '0 26px' : '0 18px',
         borderRadius: 'var(--crm-radius-pill)',
         border: 0,
-        background: disabled ? sp.ghost : hover ? sp.blackHover : sp.black,
+        // ⚠ AUCUN changement de couleur au survol, et c'est une mesure : la
+        // feuille de la vitrine ne donne à `.primary-button:hover` qu'un
+        // `scale3d(1.04)`. La réponse au survol est GÉOMÉTRIQUE, et elle est
+        // déjà là — `translateY(-1px)` et l'ombre renforcée, plus bas.
+        background: disabled ? sp.ghost : sp.black,
         color: sp.onAccent,
         fontFamily: 'inherit',
         fontSize: size === 'lg' ? 'var(--crm-text-lg)' : 'var(--crm-text-md)',
