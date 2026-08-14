@@ -822,7 +822,8 @@ export type OutboundPurpose =
 /** Motif PRÉCIS — journalisé, jamais affiché tel quel à un agent. */
 export type GuardReason =
   | 'invalid_phone' | 'subject_mismatch' | 'phone_suppressed'
-  | 'ack_without_suppression' | 'ack_already_sent' | 'agent_link_unverified'
+  | 'ack_without_suppression' | 'ack_already_sent' | 'ack_not_requested'
+  | 'agent_link_unverified'
   | 'do_not_contact' | 'opted_out' | 'no_opt_in' | 'marketing_requires_consent'
   | 'window_closed' | 'kill_switch'
 
@@ -1258,3 +1259,17 @@ que le reste du webhook, pas une dette nouvelle ; elle mérite un banc dédié.
 
 La durée de conservation annoncée dans l'accusé reste qualitative, faute de purge réelle sur
 `whatsapp_messages.body` (§6.2 point 6). À trancher avec Gregory avant le pilote.
+
+### Correctif post-CI de L2 — `ack_not_requested`
+
+Le banc a rejeté le premier passage sur `un opt-out saisi par l'AGENT ne doit AUCUN accusé`.
+Cause réelle : la RPC accordait `ok_opt_out_ack` dès qu'une suppression était active, quelle
+qu'en soit l'origine. Or `record_whatsapp_consent` écrit AUSSI une suppression pour un
+opt-out `agent_manual` (c'est ce qui la fait survivre au cycle supprimer/recréer la fiche).
+Une personne que l'agent avait cochée « ne plus contacter » aurait donc reçu « votre
+désinscription est prise en compte » sans avoir rien demandé — un message non sollicité de
+plus, et un mensonge sur qui a décidé.
+
+La règle existait déjà, mais au mauvais endroit : dans le filtre du balayage et dans
+`whatsapp_pending_notices`, pas dans la fonction qui DÉCIDE. Elle est remontée dans la RPC,
+sous un motif propre — `ack_not_requested`, ajouté à `GuardReason` du §2.2.

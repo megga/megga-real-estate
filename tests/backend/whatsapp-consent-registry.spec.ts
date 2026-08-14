@@ -939,11 +939,14 @@ rollback;
         p_contact_id: contactId, p_agency_id: setup.agencyAId,
       })
       expect(await accusesDus(phone)).toHaveLength(0)
-      // …et la garde le confirme de son côté : le motif n'est pas « déjà envoyé ».
+      // …et la RÈGLE vit dans la RPC, pas seulement dans le filtre du balayage. Sans ça,
+      // les deux se contrediraient : la garde accordait l'accusé (une suppression active
+      // suffisait) là où le balayage l'excluait. Un futur appelant aurait eu raison contre
+      // le seul endroit qui décide.
       const v = await allowed({
         p_wa_phone: phone, p_purpose: 'opt_out_ack', p_contact_id: contactId, p_agency_id: setup.agencyAId,
       })
-      expect(v.allowed).toBe(false)
+      expect(v).toMatchObject({ allowed: false, reason: 'ack_not_requested' })
     })
 
     it('le bouton d’opt-out d’un AGENT ne coupe QUE son brief', async () => {

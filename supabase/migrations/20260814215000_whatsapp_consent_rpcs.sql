@@ -140,6 +140,15 @@ begin
       -- EST le plafond). Il porte l'avis LPD — c'est le seul message que cette personne
       -- recevra jamais si son PREMIER message est « stop ».
       if p_purpose = 'opt_out_ack' then
+        -- ⛔ Seule une demande de LA PERSONNE appelle un accusé. Une suppression
+        -- 'agent_manual' est une décision de l'AGENT : répondre « votre désinscription est
+        -- prise en compte » à quelqu'un qui n'a rien demandé serait un message non
+        -- sollicité de plus, et un mensonge sur qui a décidé. Même frontière que
+        -- whatsapp_pending_notices, qui n'exclut de l'avis LPD que stop_keyword/meta_block.
+        if v_sup.reason not in ('stop_keyword','meta_block') then
+          return query select false,'ack_not_requested','ack_not_requested',
+                              false,null::text,v_kind; return;
+        end if;
         if v_sup.ack_sent_at is null then
           return query select true,'ok_opt_out_ack','ok_opt_out_ack',false,
                               'legal_obligation'::text, v_kind; return;
