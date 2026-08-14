@@ -41,6 +41,16 @@ import { SUGAR_KEYFRAMES } from '@/components/crm-sugar/SugarShell'
 // reteindrait tout le CRM.
 import '@/styles/admin-console.css'
 
+/**
+ * Le violet de la console — son unique repère de contexte, en TROIS sites, tous
+ * dans ce fichier : la pastille du rail, le badge « ADMIN » et le titre mobile.
+ *
+ * ⚠ Distinct de `tones.accent`, qui est l'accent MEGGA X offert au KIT. Les
+ * confondre est exactement ce qui s'était produit : deux des trois sites
+ * lisaient le ton du kit, si bien que repeindre le kit aurait effacé le repère.
+ */
+const VIOLET_CONSOLE = 'rgb(var(--color-admin-accent))'
+
 interface NavItem {
   labelKey: string
   href: string
@@ -108,7 +118,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation(['common', 'admin'])
   const { signOut, profile } = useAuth()
   const { dark } = useAdminTheme()
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf } = useAdminSugar()
   const navigate = useNavigate()
 
   const rowBase = {
@@ -127,11 +137,16 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
         <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1.1, color: sp.ink, lineHeight: 1 }}>
           {t('nav.adminConsole')}
         </h1>
+        {/* ⛔ LE VIOLET, ET SEULEMENT ICI. Ces deux sites lisaient `tones.accent`,
+            qui sert désormais le KIT et vaut l'accent MEGGA X : ils liraient donc
+            du bleu, et le repère de contexte disparaîtrait. Le violet passe par
+            sa variable, comme le titre plus bas — trois sites, tous dans ce
+            fichier, tous des repères de contexte. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginTop: 9 }}>
-          <span style={{ width: 7, height: 7, borderRadius: ADMIN_RADII.pill, background: tones.accent, flexShrink: 0 }} />
+          <span style={{ width: 7, height: 7, borderRadius: ADMIN_RADII.pill, background: VIOLET_CONSOLE, flexShrink: 0 }} />
           {/* Le repère de contexte passe par la clé, pas par un littéral : les 17
               pages la rendaient avant, elle serait devenue orpheline. */}
-          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tones.accent, letterSpacing: -0.1 }}>{t('admin:common.adminBadge')}</span>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: VIOLET_CONSOLE, letterSpacing: -0.1 }}>{t('admin:common.adminBadge')}</span>
         </div>
       </div>
 
@@ -318,7 +333,7 @@ export default function AdminShell() {
         >
           <MEIcon name="menu" size={19} color={sp.soft} />
         </button>
-        <Link to={ADMIN_CONSOLE_PATH} style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: 'rgb(var(--color-admin-accent))', textDecoration: 'none' }}>
+        <Link to={ADMIN_CONSOLE_PATH} style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: VIOLET_CONSOLE, textDecoration: 'none' }}>
           {t('admin:common.adminBadge')}
         </Link>
       </header>

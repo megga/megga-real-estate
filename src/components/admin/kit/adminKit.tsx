@@ -158,7 +158,11 @@ export function AdminPill({ label, tone = 'neutral', icon, title, style }: {
   if (!label && !icon) return null
   const neutral = tone === 'neutral'
   const bg = toneColor(tone, tones)
-  const ink = neutral ? tones.neutralInk : onTone
+  // L'encre se DÉRIVE de l'aplat : un ton clair prend l'encre sombre, et
+  // inversement. Le blanc constant d'avant faisait tomber les six pilules
+  // sombres entre 2,38:1 et 3,57:1. `neutral` garde son encre propre — c'est le
+  // seul ton qui dit « pas de signal », il ne doit pas crier.
+  const ink = neutral ? tones.neutralInk : onTone(bg)
   return (
     <span
       title={title}
@@ -179,6 +183,24 @@ export function AdminPill({ label, tone = 'neutral', icon, title, style }: {
 }
 
 /* ─── Boutons ───────────────────────────────────────────────────────────────── */
+
+/**
+ * Voile de l'état DÉSACTIVÉ, et ce n'est pas un réglage à l'œil.
+ *
+ * ⛔ Il valait 0,5, et sur le bouton PRINCIPAL — encre inversée sur l'accent —
+ * ça donnait 2,26:1 : « Publier maintenant » était illisible avant saisie.
+ * Mesuré à l'écran sur `/dev/admin` puis à la source, dans les deux thèmes et
+ * sur les deux fonds que la console pose sous un bouton.
+ *
+ * 0,7 est le PLUS PETIT voile qui franchit 3:1 dans les cinq cas (le pire vaut
+ * alors 3,29:1). Il est donc dérivé de la mesure, pas choisi — et le voile
+ * reste un voile : `cursor: not-allowed` et l'attribut `disabled` continuent de
+ * porter le sens, l'opacité ne fait que l'appuyer.
+ *
+ * ⚠ Le seuil est 3:1 et non l'AA : la WCAG 1.4.3 exempte explicitement les
+ * commandes inactives. On refuse l'illisible, on n'invente pas une exigence.
+ */
+const VOILE_DESACTIVE = 0.7
 
 /**
  * Bouton secondaire : surface de carte + ombre courte, texte encre.
@@ -221,7 +243,7 @@ export function AdminGhostBtn({ children, onClick, icon, disabled, title, style,
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
         height: 34, padding: '0 var(--crm-space-2xl)', borderRadius: ADMIN_RADII.pill, border: 0,
-        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? VOILE_DESACTIVE : 1,
         fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
         color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
         ...style,
@@ -254,7 +276,7 @@ export function AdminSolidBtn({ children, onClick, icon, disabled, title, style 
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
         height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: ADMIN_RADII.pill, border: 0,
-        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? VOILE_DESACTIVE : 1,
         fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
         color: sp.accentInk, background: sp.accent, boxShadow: sp.shadowSm,
         ...style,
@@ -285,7 +307,7 @@ export function AdminSwitch({ on, onClick, label, disabled }: {
       onClick={onClick} role="switch" aria-checked={on} aria-label={label} disabled={disabled}
       style={{
         width: 44, height: 26, borderRadius: ADMIN_RADII.pill, border: 0, padding: 0,
-        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1, flexShrink: 0,
+        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? VOILE_DESACTIVE : 1, flexShrink: 0,
         background: on ? sp.accent : (dark ? 'rgba(255,255,255,0.16)' : '#D5DAE2'),
         position: 'relative', transition: 'background .22s ease',
       }}

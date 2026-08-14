@@ -167,9 +167,18 @@
     --color-accent-dark: 30 64 175;       /* #1E40AF */
     --color-accent-fg: 255 255 255;       /* text on accent bg */
 
-    /* Admin accent (violet) */
-    --color-admin-accent: 139 92 246;
-    --color-admin-accent-hover: 124 58 237;
+    /* Admin accent (violet) — le REPÈRE DE CONTEXTE de la console, et lui seul.
+       Il ne décore pas : il dit « tu n'es plus dans ton agence, tu es dans la
+       plateforme ». Ses trois sites vivent dans `AdminShell`.
+
+       ⛔ Descendu de `139 92 246` (violet-500) à `124 58 237` (violet-600) le
+       14 août 2026. Il est employé en TEXTE — le badge « ADMIN » et le titre du
+       rail — et rendait 4,02:1 sur le fond du rail en clair. Le barreau existait
+       déjà juste en dessous, comme `-hover` ; celui-ci descend d'un cran à son
+       tour pour rester un survol. En sombre, `167 139 250` tient (7,58:1) et ne
+       bouge pas. Mesuré par `tests/unit/admin-contraste.spec.ts`. */
+    --color-admin-accent: 124 58 237;
+    --color-admin-accent-hover: 109 40 217;
     --color-admin-accent-light: 245 243 255;
 
     /* Semantic */

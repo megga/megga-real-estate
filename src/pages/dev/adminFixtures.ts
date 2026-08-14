@@ -420,7 +420,14 @@ export const RPC: Record<string, unknown | ((args: Record<string, unknown>) => u
 
   /* ── Gestes : réussissent, n'écrivent rien ────────────────────────────── */
   admin_create_agency: { code: 'ok', id: 'a1000000-0000-4000-8000-00000000000f' },
-  admin_cron_run_now: { code: 'ok' },
+  // ⚠ Enveloppe §10.1 complète, et c'est le banc qui l'a exigée : `{ code: 'ok' }`
+  // ne respecte pas le contrat de `readCronRunNow`, qui LÈVE — l'écran affichait
+  // « Réponse inattendue du serveur ». Un banc qui rend une enveloppe
+  // approximative éprouve la branche d'échec en croyant éprouver le succès.
+  admin_cron_run_now: {
+    ok: true, code: 'ok', message_fr: null,
+    data: { scheduled_for: dans(0.02) },
+  },
   admin_kyc_link_regenerate: { code: 'ok', queued: true },
   admin_log_impersonation: { code: 'ok' },
   admin_set_user_role: { code: 'ok' },

@@ -111,11 +111,11 @@ export default function AdminNpsPage() {
   // la barre empilée deviendrait illisible. `ink` garde le pourcentage lisible
   // sur chaque fond, en clair comme en sombre.
   const ratingFill: Record<number, { bg: string; ink: string }> = {
-    1: { bg: tones.err, ink: onTone },
-    2: { bg: tones.warn, ink: onTone },
+    1: { bg: tones.err, ink: onTone(tones.err) },
+    2: { bg: tones.warn, ink: onTone(tones.warn) },
     3: { bg: sp.accent, ink: sp.accentInk },
-    4: { bg: tones.cyan, ink: onTone },
-    5: { bg: tones.ok, ink: onTone },
+    4: { bg: tones.cyan, ink: onTone(tones.cyan) },
+    5: { bg: tones.ok, ink: onTone(tones.ok) },
   }
 
   return (
