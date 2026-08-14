@@ -116,6 +116,16 @@ export interface PipelineBanc {
   Chrome?: (p: { dark: boolean; gestes: PipelineBancGestes }) => ReactNode
 }
 
+/**
+ * Marge horizontale du cadre bento, en pixels.
+ *
+ * ⚠ Elle est LUE DEUX FOIS, et c'est pour ça qu'elle est une constante : le
+ * cadre la pose, et le board la reprend en négatif pour s'en échapper. Écrite
+ * deux fois, elle aurait divergé au premier ajustement et laissé le kanban
+ * décalé de quelques pixels — un défaut qui se voit mal et se cherche longtemps.
+ */
+const PIPE_PAD_X = 34
+
 export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = {}) {
   const { t } = useTranslation('pipeline')
   const navigate = useNavigate()
@@ -614,7 +624,7 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
             <div style={{
               position: 'relative', width: '100%', height: '100%',
               background: sp.pageBg, color: sp.ink,
-              padding: '30px 34px 22px', boxSizing: 'border-box',
+              padding: `30px ${PIPE_PAD_X}px 22px`, boxSizing: 'border-box',
               display: 'flex', flexDirection: 'column', minHeight: 0,
             }}>
               {/* En-tête : titre · recherche · Filtres · vues · Nouveau deal */}
@@ -718,6 +728,12 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
                   position: 'relative', flex: 1, minHeight: 0,
                   overflowY: view === 'kanban' ? 'hidden' : 'auto', overflowX: 'auto',
                   overscrollBehavior: 'contain',
+                  // ⛔ Le board s'ÉCHAPPE de la marge du cadre pour aller au
+                  // filet : c'est ce qui fait la feuille. Une marge négative
+                  // plutôt qu'un padding retiré au parent — sinon le titre, la
+                  // recherche et les filtres, qui sont ses frères, colleraient
+                  // eux aussi au bord.
+                  marginLeft: -PIPE_PAD_X, marginRight: -PIPE_PAD_X,
                 }}
               >
                 {/* Masqué pendant une création inline : la carte d'état vide
@@ -729,10 +745,10 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
                   }}>{pipeEmptyCard}</div>
                 )}
                 {view === 'kanban' && (
-                  <div style={{ display: 'flex', gap: 14, paddingBottom: 8, height: '100%' }}>
-                    {CRM_STAGE_ORDER.map(stage => (
+                  <div style={{ display: 'flex', paddingBottom: 8, height: '100%' }}>
+                    {CRM_STAGE_ORDER.map((stage, i) => (
                       <SugarStageColumn
-                        key={stage} stage={stage}
+                        key={stage} stage={stage} premiere={i === 0}
                         deals={filteredByStage(stage)}
                         sp={sp} dark={dark}
                         onOpenDeal={openDeal}

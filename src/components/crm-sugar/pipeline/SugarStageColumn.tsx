@@ -18,6 +18,14 @@ interface StageColumnProps extends SugarDealCardActions {
   deals: CrmDeal[]
   sp: SugarPalette
   dark: boolean
+  /**
+   * La première colonne de l'entonnoir — elle seule n'a PAS de filet à gauche.
+   *
+   * ⚠ L'index vient du parent, pas d'un `:first-child` : les styles sont en
+   * ligne. Et sans lui, la colonne 1 dessinerait un filet à un pixel de la
+   * bordure du cadre, donc un double trait à l'entrée de l'entonnoir.
+   */
+  premiere?: boolean
   onOpenDeal: (id: string) => void
   draggingId: string | null
   signingId?: string | null
@@ -36,7 +44,7 @@ interface StageColumnProps extends SugarDealCardActions {
 }
 
 export function SugarStageColumn({
-  stage, deals, sp, dark, onOpenDeal,
+  stage, deals, sp, dark, premiere, onOpenDeal,
   draggingId, signingId, signExit,
   dragOver, onDragOver, onDrop, onDragLeave, onDragStart, onDragEnd,
   onInlineOpen, inlineForm,
@@ -58,7 +66,25 @@ export function SugarStageColumn({
         display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)',
         position: 'relative',
         background: tint.panel,
-        borderRadius: 'var(--crm-radius-4xl)',
+        /**
+         * ⛔ FEUILLE CONTINUE (15 août 2026) — les colonnes ne flottent plus.
+         *
+         * Elles étaient huit panneaux arrondis séparés par 14 px de rainure.
+         * Mises bout à bout, leurs teintes d'étape forment la PROGRESSION de
+         * l'entonnoir, du bleu au brun : ce que la rainure coupait, le filet
+         * laisse lire.
+         *
+         * ⚠ LE FILET EST UN VOILE, pas un aplat — la surface qu'il borde est
+         * TEINTÉE, et une couleur opaque y ferait une tache au lieu d'une
+         * séparation. Même règle que les pastilles « + » de ces mêmes colonnes,
+         * que la migration Graphite avait converties en palier opaque.
+         *
+         * ⚠ Gain mesuré : 160 px d'entonnoir visible en plus à largeur égale
+         * (68 px de marge du cadre + 92 px de rainures), soit une demi-colonne.
+         * Ce n'est PAS un gain de surface — le board défile.
+         */
+        borderRadius: 0,
+        borderLeft: premiere ? 'none' : `1px solid ${sgVoileEncre(dark, 0.10)}`,
         padding: 'var(--crm-space-2xl) var(--crm-space-xl) var(--crm-space-xl)',
         boxSizing: 'border-box',
         boxShadow: dragOver && draggingId ? `0 0 0 2px ${tint.hue} inset` : 'none',
