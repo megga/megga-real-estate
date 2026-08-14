@@ -34,8 +34,8 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "whatsapp consen
 
 ## Lots — cases à cocher
 
-- [ ] **L0** — `parseInbound` : `button`/`interactive` → `body`, bornage 6–15 chiffres. 1 fichier, 0 migration.
-- [ ] **L1** — les 7 migrations du §1 + banc backend (forme des tables, 12 motifs de la RPC, EXPLAIN, `count(pg_proc)=2`). Rien en production.
+- [x] **L0** — `parseInbound` : `button`/`interactive` → `body`, bornage 6–15 chiffres. 1 fichier, 0 migration. *(livré — voir §7)*
+- [x] **L1** — les 7 migrations du §1 + banc backend (forme des tables, 12 motifs de la RPC, EXPLAIN, `count(pg_proc)=2`). Rien en production. *(livré — voir §7)*
 - [ ] **L2** — le STOP : 3 points d'interception, `whatsapp-stop-keywords.ts`, accusé LPD 4 langues, `stop_handled_at`.
 - [ ] **L3** — `whatsapp-outbound-guard.ts` + câblage des **5 chemins CLIENT** (sites 1–5).
 - [ ] **L4** — câblage des **7 chemins AGENT** (sites 6–12) + `set_morning_brief_enabled`.
@@ -1135,3 +1135,73 @@ Non-messages, hors périmètre : `markRead` (`:832`), `uploadMetaMediaDocument` 
 7. **Le brief agent part en texte libre**, donc dépend de la fenêtre 24 h avec l'agent. Avec `requireWindow` par défaut, un brief hors fenêtre sera désormais refusé `window_closed` **avant** le POST au lieu d'échouer en 131047 après. Le résultat est identique pour l'agent (pas de brief) mais devient **visible dans `activity_events`** — c'est un gain d'observabilité, pas une régression, mais il faut s'attendre à voir apparaître ces refus.
 8. **`agent_daily_brief` est approuvé MARKETING mais jamais envoyé.** À décider : soit le brancher (et alors il exige un opt-in marketing pour un message destiné à l'agent lui-même, ce qui est absurde et plaide pour l'appel `IN_APPEAL` vers UTILITY), soit le retirer du registre de templates.
 9. **`set_morning_brief_enabled` et le CHECK `wa_consents_brief_scope`** : la branche de réactivation doit écrire `scope='all'` (sinon le CHECK la rejette). Point à couvrir explicitement au banc L1 — c'est le genre d'incohérence qui ne se voit qu'au troisième aller-retour du toggle.
+
+---
+
+## 7. JOURNAL D'IMPLÉMENTATION — L0 et L1 (14.08.2026)
+
+### Ce qui a été livré
+
+**L0** — `_shared/whatsapp-gateway.ts` : `parseInbound` lit `message.button` et
+`message.interactive` dans `body` ; la borne 6–15 chiffres devient
+`isDialablePhone()` + `PHONE_MIN_DIGITS`/`PHONE_MAX_DIGITS`, jumelle TS du CHECK
+`^[0-9]{6,15}$`, appliquée à l'expéditeur (un JID de groupe rend `null` ⇒ 200 sans
+écriture). `whatsapp-lead-triage.ts` s'y raccorde au lieu de redupliquer la règle.
+9 tests dans `whatsapp-gateway.test.ts` ; suite complète verte (1912).
+
+**L1** — les 7 migrations `20260814210000` → `20260814216000` et le banc
+`tests/backend/whatsapp-consent-registry.spec.ts` (43 tests).
+
+### ⚠ Sept écarts au §1, chacun parce que le SQL du plan ne tournait pas ou mentait
+
+1. **`wa_consents_brief_scope` rendue UNIDIRECTIONNELLE.** L'équivalence
+   `(source='brief_disabled') = (scope='daily_brief')` interdisait deux écritures que le
+   plan prescrit ailleurs : le bouton d'opt-out Meta sur le numéro d'un AGENT (§3.1 point
+   A, `meta_block` + `daily_brief`) et toute réactivation du brief. Découverte à L2/L4 en
+   23514. Devenue : `source not in ('brief_disabled','brief_enabled') or scope='daily_brief'`.
+2. **`brief_enabled` ajoutée au domaine d'opt-in**, et `set_morning_brief_enabled` l'écrit
+   au lieu d'`agent_pairing`. Le §6.2 #9 avait vu le CHECK mais pas l'allow-list :
+   `agent_pairing` n'y figure pas, donc la réactivation levait 42501 **à tous les coups**.
+   Le repli suggéré (`scope='all'`) aurait de plus fait annuler par le toggle du brief un
+   opt-out sans rapport, l'étape 6 comparant les horodatages par portée.
+3. **`agent_link_unverified` était INATTEIGNABLE.** Les deux chemins qui posaient
+   `v_kind='profile'` garantissaient déjà le lien vérifié. Conséquence réelle : un
+   `p_profile_id` annoncé sans lien retombait silencieusement sur la dérivation par
+   contact — soit exactement le trou de `kyc-report-pdf` (§4 site 12) que la garde est
+   censée fermer. L'étape 2 refuse désormais explicitement, et le re-test mort de l'étape 6
+   est retiré.
+4. **La lecture du registre par numéro est devenue ASYMÉTRIQUE** (étape 7) : opt_out global,
+   opt_in par sujet ou par numéro **dans la même agence**. Telle qu'écrite, un opt-in
+   obtenu par l'agence B autorisait l'agence A — la ligne la plus récente l'emporte. C'est
+   la contradiction exacte de la levée par sujet de l'étape 3.
+5. **`subject_mismatch` testé sur `found`, pas sur `v_agency is null`.** `contacts.agency_id`
+   est NULLABLE : une fiche sans agence était refusée sous un motif qui envoie chercher une
+   incohérence numéro↔fiche inexistante.
+6. **`redact_whatsapp_consent` écrite.** Le COMMENT de la table la promettait et le trigger
+   lui réservait son unique échappatoire ; sans elle, la promesse était fausse et
+   l'échappatoire morte. Le caviardage est épinglé colonne par colonne — il ne peut pas
+   servir à réattribuer une déclaration.
+7. **`grant execute … to service_role` explicite** sur `suppress_contact_phone`,
+   `mark_suppression_ack_sent`, `redact_whatsapp_consent` et `whatsapp_pending_notices`.
+   `revoke … from public` retire la voie générale ; ces fonctions ne tenaient plus que par
+   les DEFAULT PRIVILEGES de Supabase. Précédent maison : `ensure_wa_inbound_lead`.
+
+### ⛔ Ce qui n'a PAS pu être vérifié
+
+**Le banc n'a jamais tourné.** Cette machine n'a ni Docker, ni Postgres, ni la CLI
+Supabase : `supabase start` est impossible, et `describe.skipIf(!HAS_KEYS)` saute les 43
+tests en local. Ils s'exécuteront pour la première fois dans `backend.yml`, sur la PR.
+
+Ce qui EST vérifié : les 7 fichiers parsent contre la grammaire réelle de PostgreSQL
+(libpg-query), `lint:migrations` (rejouabilité), `lint:types-freshness`, `lint:deadcode`,
+ESLint et `tsc` sur le banc, `deno check` sur les 159 fichiers edge, et les 1912 tests
+unitaires. **Les corps plpgsql ne sont PAS couverts** par ce parser — ils y sont des
+littéraux. Une faute d'exécution dans `whatsapp_send_allowed` ne se verra qu'en CI.
+
+### À faire avant de merger
+
+- **Re-dater les 7 migrations au jour du merge** si ce n'est plus le 14.08.2026
+  (`git mv`, ordre relatif conservé). Le date-guard de `deploy.yml` ne rejoue que les
+  fichiers datés du jour.
+- Lire le résultat de `backend.yml` sur la PR **avant** d'attaquer L2 : c'est la première
+  exécution réelle du SQL.
