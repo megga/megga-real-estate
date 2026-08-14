@@ -1,0 +1,237 @@
+/**
+ * Interception de `window.fetch` pour les bancs `/dev/*` — le point d'injection
+ * des données, commun à `/dev/admin` et `/dev/crm`.
+ *
+ * ── POURQUOI CE MODULE EXISTE ────────────────────────────────────────────────
+ * Le banc de la console (14 août 2026) a établi qu'une SEULE interception couvre
+ * toute la couture de données d'une surface protégée : les hooks passent par le
+ * client `supabase`, dont le `global.fetch` (`authAwareFetch`) appelle le `fetch`
+ * **global** au moment de l'appel. Aucun slot dans du code de production.
+ *
+ * Le banc du CRM agent a la même forme et une couture plus large — 31 tables,
+ * 18 RPC et 16 edge functions mesurées sur les dix-sept surfaces `/dashboard`
+ * restantes. Recopier ~150 lignes d'analyse PostgREST pour la seconde fois aurait
+ * garanti que les deux versions divergent : c'est le filtrage des prédicats qui
+ * empêche le banc de mentir par excès, et une seule des deux copies aurait reçu
+ * la prochaine correction.
+ *
+ * ⚠ CE MODULE NE PORTE AUCUNE FIXTURE. Il ne sait pas ce qu'est une agence ni un
+ * deal ; il sait lire une URL PostgREST et appliquer un prédicat. Les fixtures
+ * vivent dans `adminFixtures.ts` et `crmFixtures.ts`, et c'est le banc qui les
+ * lui donne par {@link reglerBanc}.
+ */
+import { SUPABASE_FUNCTIONS_URL } from '@/lib/supabase'
+
+/** Les trois états qu'un banc fait jouer à ses sources. */
+export type BancEtat = 'nominal' | 'vide' | 'erreur'
+
+/** Une fixture de RPC : une valeur, ou une fonction de ses arguments. */
+export type FixtureRpc = unknown | ((args: Record<string, unknown>) => unknown)
+
+const BASE = SUPABASE_FUNCTIONS_URL.replace(/\/functions\/v1$/, '')
+const REST = `${BASE}/rest/v1/`
+const FN = `${BASE}/functions/v1/`
+const AUTH = `${BASE}/auth/v1/`
+
+/**
+ * Contrat courant, lu par l'intercepteur à CHAQUE appel.
+ *
+ * ⚠ Une variable de module, pas une clôture : l'intercepteur est installé une
+ * fois, et il doit répondre selon l'état choisi APRÈS son installation.
+ */
+const contrat = {
+  etat: 'nominal' as BancEtat,
+  tables: {} as Record<string, unknown[]>,
+  rpc: {} as Record<string, FixtureRpc>,
+  /**
+   * Session à servir sur `/auth/v1/*`, ou `null` pour laisser passer l'appel.
+   *
+   * ⛔ SANS ELLE, UN BANC À SESSION SEMÉE S'EFFACE LUI-MÊME. Le jeton du banc
+   * n'est pas signé : `/auth/v1/user` répond 401 avec un corps qui contient le
+   * mot « JWT » — or `authAwareFetch` (src/lib/supabase.ts) reconnaît ce motif
+   * et appelle `purgeAuthTokens()`. La session disparaît alors du stockage en
+   * pleine session, et l'écran retombe sur le mur au rechargement suivant.
+   * Mesuré sur `/dev/crm` : trois 401 à l'ouverture.
+   *
+   * `/dev/admin` la laisse à `null` — il n'a pas de session et n'en veut pas.
+   */
+  session: null as unknown,
+  /** Noms d'appels qu'aucune fixture ne couvre — remontés aux commandes du banc. */
+  signaler: (_appel: string) => {},
+}
+
+/** Règle tout ou partie du contrat. Appelable avant comme après l'installation. */
+export function reglerBanc(p: Partial<typeof contrat>): void {
+  Object.assign(contrat, p)
+}
+
+/** Corps JSON, avec les en-têtes que `supabase-js` sait lire. */
+function json(corps: unknown, nombre: number): Response {
+  return new Response(corps === undefined ? 'null' : JSON.stringify(corps), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'content-range': `0-${Math.max(0, nombre - 1)}/${nombre}`,
+    },
+  })
+}
+
+/** Échec côté serveur, dans la forme que PostgREST rend — pour l'état « Échec ». */
+function echec(): Response {
+  return new Response(
+    JSON.stringify({ code: 'PGRST000', message: 'banc : échec simulé', details: null, hint: null }),
+    { status: 500, headers: { 'content-type': 'application/json; charset=utf-8' } },
+  )
+}
+
+/** Colonnes non lisibles telles quelles (`select` n'est pas appliqué : inutile ici). */
+const PARAMS_HORS_FILTRE = new Set(['select', 'order', 'limit', 'offset', 'columns', 'on_conflict'])
+
+/** Valeur PostgREST : `"…"` quoté, `null`, sinon la chaîne brute. */
+function valeur(v: string): unknown {
+  const s = v.replace(/^"(.*)"$/, '$1')
+  if (s === 'null') return null
+  return s
+}
+
+/**
+ * Applique les filtres et le tri de la requête aux lignes de la fixture.
+ *
+ * ⛔ SANS ÇA LE BANC MENT PAR EXCÈS. Le journal d'erreurs du Monitoring
+ * interroge `activity_events` avec `action=eq.edge_function_error` ; en rendant
+ * les huit événements quel que soit le filtre, il affichait des créations
+ * d'agence dans une liste d'erreurs. Une fixture qui ignore le prédicat produit
+ * un écran cohérent en apparence et faux en substance — la variante (e) des
+ * pièges de sonde.
+ *
+ * Sous-ensemble volontaire : `eq`, `neq`, `gt(e)`, `lt(e)`, `in`, `is`, plus
+ * `order` et `limit`. Un opérateur inconnu laisse passer la ligne plutôt que de
+ * la retirer : mieux vaut un écran trop plein qu'un vide qu'on lirait comme un
+ * bogue de la page.
+ */
+function filtrer(lignes: unknown[], requete: string): unknown[] {
+  const p = new URLSearchParams(requete)
+  let out = lignes as Record<string, unknown>[]
+
+  for (const [col, expr] of p.entries()) {
+    if (PARAMS_HORS_FILTRE.has(col)) continue
+    const sep = expr.indexOf('.')
+    if (sep < 0) continue
+    const op = expr.slice(0, sep)
+    const brut = expr.slice(sep + 1)
+    out = out.filter((l) => {
+      const v = l[col]
+      switch (op) {
+        case 'eq': return String(v) === String(valeur(brut))
+        case 'neq': return String(v) !== String(valeur(brut))
+        case 'gt': return String(v) > brut
+        case 'gte': return String(v) >= brut
+        case 'lt': return String(v) < brut
+        case 'lte': return String(v) <= brut
+        case 'is': return brut === 'null' ? v == null : v != null
+        case 'in': return brut.replace(/^\(|\)$/g, '').split(',')
+          .map((x) => String(valeur(x))).includes(String(v))
+        default: return true
+      }
+    })
+  }
+
+  const ordre = p.get('order')
+  if (ordre) {
+    const [col, sens] = ordre.split('.')
+    const desc = sens === 'desc'
+    out = [...out].sort((a, b) => {
+      const x = String(a[col!] ?? ''), y = String(b[col!] ?? '')
+      return (x < y ? -1 : x > y ? 1 : 0) * (desc ? -1 : 1)
+    })
+  }
+
+  const limite = Number(p.get('limit'))
+  return Number.isFinite(limite) && limite > 0 ? out.slice(0, limite) : out
+}
+
+/** Arguments d'une RPC, lus dans le corps POST. `{}` si le corps n'est pas du JSON. */
+function lireArguments(init?: RequestInit): Record<string, unknown> {
+  if (typeof init?.body !== 'string') return {}
+  try {
+    const v: unknown = JSON.parse(init.body)
+    return v && typeof v === 'object' ? (v as Record<string, unknown>) : {}
+  } catch { return {} }
+}
+
+/**
+ * Réponse du banc pour une URL Supabase, ou `null` si l'appel ne le concerne pas
+ * (l'appel part alors au vrai `fetch` — c'est le cas de `/auth/v1`).
+ */
+function repondre(url: string, init?: RequestInit): Response | null {
+  const objetSeul = String(
+    (init?.headers as Record<string, string> | undefined)?.Accept ??
+    (init?.headers as Record<string, string> | undefined)?.accept ?? '',
+  ).includes('vnd.pgrst.object')
+
+  // ⚠ L'auth passe AVANT l'état « Échec » : faire répondre 401 à `/auth/v1`
+  // déclencherait la purge de jetons décrite sur `contrat.session`, et l'état
+  // « Échec » cesserait d'être réversible — il éjecterait le banc.
+  if (url.startsWith(AUTH)) {
+    if (contrat.session == null) return null
+    const s = contrat.session as { user?: unknown }
+    // `/user` rend l'utilisateur nu ; `/token`, `/logout` et le reste rendent la
+    // session. Aucun de ces appels n'atteint le vrai service.
+    return json(url.startsWith(`${AUTH}user`) ? (s.user ?? null) : contrat.session, 1)
+  }
+
+  if (url.startsWith(FN)) {
+    if (contrat.etat === 'erreur') return echec()
+    return json({ ok: true, banc: true }, 1)
+  }
+
+  if (!url.startsWith(REST)) return null
+  if (contrat.etat === 'erreur') return echec()
+
+  const [chemin = '', requete = ''] = url.slice(REST.length).split('?')
+
+  if (chemin.startsWith('rpc/')) {
+    const nom = chemin.slice(4)
+    const brut = Object.prototype.hasOwnProperty.call(contrat.rpc, nom) ? contrat.rpc[nom] : undefined
+    if (brut === undefined) contrat.signaler(`rpc/${nom}`)
+    // Une fixture peut être une FONCTION des arguments : la fiche agence doit
+    // rendre l'agence demandée, sinon l'en-tête contredit la ligne cliquée.
+    const fixture = typeof brut === 'function'
+      ? (brut as (a: Record<string, unknown>) => unknown)(lireArguments(init))
+      : brut
+    const rendu = contrat.etat === 'vide'
+      ? (Array.isArray(fixture) ? [] : null)
+      : (fixture ?? (objetSeul ? null : []))
+    const n = Array.isArray(rendu) ? rendu.length : 1
+    return json(objetSeul && Array.isArray(rendu) ? (rendu[0] ?? null) : rendu, n)
+  }
+
+  const lignes = Object.prototype.hasOwnProperty.call(contrat.tables, chemin) ? contrat.tables[chemin]! : undefined
+  if (lignes === undefined) contrat.signaler(chemin)
+  const sortie = contrat.etat === 'vide' ? [] : filtrer(lignes ?? [], requete)
+  return json(objetSeul ? (sortie[0] ?? null) : sortie, sortie.length)
+}
+
+let fetchOrigine: typeof window.fetch | null = null
+
+/**
+ * Installe l'intercepteur. Idempotent : `useState(initialiseur)` est
+ * ré-exécuté par StrictMode, et une seconde enveloppe autour de la première
+ * ferait de l'origine sauvegardée… l'intercepteur lui-même.
+ */
+export function installerBanc(): void {
+  if (fetchOrigine) return
+  fetchOrigine = window.fetch.bind(window)
+  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    const reponse = repondre(url, init)
+    if (reponse) return reponse
+    return fetchOrigine!(input, init)
+  }
+}
+
+export function desinstallerBanc(): void {
+  if (!fetchOrigine) return
+  window.fetch = fetchOrigine
+  fetchOrigine = null
+}

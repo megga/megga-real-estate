@@ -33,6 +33,12 @@
  * `fetch` **global** au moment de l'appel : une seule interception les couvre.
  * C'est l'économie que le plan demandait de mesurer avant de la supposer.
  *
+ * ⚠ Cette interception vit désormais dans `bancSupabase.ts`, partagée avec
+ * `/dev/crm` (15 août 2026). Elle était écrite ici ; l'y laisser aurait fait
+ * recopier ~150 lignes d'analyse PostgREST pour le second banc, et c'est le
+ * filtrage des prédicats — la part qui empêche le banc de mentir par excès — qui
+ * aurait divergé.
+ *
  * ⛔ Données de DÉMONSTRATION (`adminFixtures.ts`). Rien ne vient de la base,
  * aucun geste n'écrit. Une RPC sans fixture rend vide et est COMPTÉE dans les
  * commandes : un banc qui tronque en silence se lit « tout couvert ».
@@ -44,193 +50,15 @@
  * donnerait la carte complète de la surface super-admin à un visiteur. Même
  * arbitrage que `/dev/onboarding`.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { AdminThemeProvider, useAdminTheme } from '@/components/admin/AdminThemeProvider'
 import AdminConsoleRoutes from '@/components/admin/AdminConsoleRoutes'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { SUPABASE_FUNCTIONS_URL } from '@/lib/supabase'
+import { desinstallerBanc, installerBanc, reglerBanc } from './bancSupabase'
 import { RPC, TABLES, type AdminBancEtat } from './adminFixtures'
-
-/* ─── Interception de `window.fetch` ──────────────────────────────────────── */
-
-const BASE = SUPABASE_FUNCTIONS_URL.replace(/\/functions\/v1$/, '')
-const REST = `${BASE}/rest/v1/`
-const FN = `${BASE}/functions/v1/`
-
-/**
- * État courant, lu par l'intercepteur à CHAQUE appel.
- *
- * ⚠ Une variable de module, pas une clôture : l'intercepteur est installé une
- * fois, et il doit répondre selon l'état choisi APRÈS son installation.
- */
-const banc = {
-  etat: 'nominal' as AdminBancEtat,
-  /** Noms d'appels qu'aucune fixture ne couvre — remontés aux commandes. */
-  signaler: (_appel: string) => {},
-}
-
-let fetchOrigine: typeof window.fetch | null = null
-
-/** Corps JSON, avec les en-têtes que `supabase-js` sait lire. */
-function json(corps: unknown, nombre: number): Response {
-  return new Response(corps === undefined ? 'null' : JSON.stringify(corps), {
-    status: 200,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'content-range': `0-${Math.max(0, nombre - 1)}/${nombre}`,
-    },
-  })
-}
-
-/** Échec côté serveur, dans la forme que PostgREST rend — pour l'état « Échec ». */
-function echec(): Response {
-  return new Response(
-    JSON.stringify({ code: 'PGRST000', message: 'banc : échec simulé', details: null, hint: null }),
-    { status: 500, headers: { 'content-type': 'application/json; charset=utf-8' } },
-  )
-}
-
-/** Colonnes non lisibles telles quelles (`select` n'est pas appliqué : inutile ici). */
-const PARAMS_HORS_FILTRE = new Set(['select', 'order', 'limit', 'offset', 'columns', 'on_conflict'])
-
-/** Valeur PostgREST : `"…"` quoté, `null`, sinon la chaîne brute. */
-function valeur(v: string): unknown {
-  const s = v.replace(/^"(.*)"$/, '$1')
-  if (s === 'null') return null
-  return s
-}
-
-/**
- * Applique les filtres et le tri de la requête aux lignes de la fixture.
- *
- * ⛔ SANS ÇA LE BANC MENT PAR EXCÈS. Le journal d'erreurs du Monitoring
- * interroge `activity_events` avec `action=eq.edge_function_error` ; en rendant
- * les huit événements quel que soit le filtre, il affichait des créations
- * d'agence dans une liste d'erreurs. Une fixture qui ignore le prédicat produit
- * un écran cohérent en apparence et faux en substance — la variante (e) des
- * pièges de sonde.
- *
- * Sous-ensemble volontaire : `eq`, `neq`, `gt(e)`, `lt(e)`, `in`, `is`, plus
- * `order` et `limit`. Un opérateur inconnu laisse passer la ligne plutôt que de
- * la retirer : mieux vaut un écran trop plein qu'un vide qu'on lirait comme un
- * bogue de la page.
- */
-function filtrer(lignes: unknown[], requete: string): unknown[] {
-  const p = new URLSearchParams(requete)
-  let out = lignes as Record<string, unknown>[]
-
-  for (const [col, expr] of p.entries()) {
-    if (PARAMS_HORS_FILTRE.has(col)) continue
-    const sep = expr.indexOf('.')
-    if (sep < 0) continue
-    const op = expr.slice(0, sep)
-    const brut = expr.slice(sep + 1)
-    out = out.filter((l) => {
-      const v = l[col]
-      switch (op) {
-        case 'eq': return String(v) === String(valeur(brut))
-        case 'neq': return String(v) !== String(valeur(brut))
-        case 'gt': return String(v) > brut
-        case 'gte': return String(v) >= brut
-        case 'lt': return String(v) < brut
-        case 'lte': return String(v) <= brut
-        case 'is': return brut === 'null' ? v == null : v != null
-        case 'in': return brut.replace(/^\(|\)$/g, '').split(',')
-          .map((x) => String(valeur(x))).includes(String(v))
-        default: return true
-      }
-    })
-  }
-
-  const ordre = p.get('order')
-  if (ordre) {
-    const [col, sens] = ordre.split('.')
-    const desc = sens === 'desc'
-    out = [...out].sort((a, b) => {
-      const x = String(a[col!] ?? ''), y = String(b[col!] ?? '')
-      return (x < y ? -1 : x > y ? 1 : 0) * (desc ? -1 : 1)
-    })
-  }
-
-  const limite = Number(p.get('limit'))
-  return Number.isFinite(limite) && limite > 0 ? out.slice(0, limite) : out
-}
-
-/** Arguments d'une RPC, lus dans le corps POST. `{}` si le corps n'est pas du JSON. */
-function lireArguments(init?: RequestInit): Record<string, unknown> {
-  if (typeof init?.body !== 'string') return {}
-  try {
-    const v: unknown = JSON.parse(init.body)
-    return v && typeof v === 'object' ? (v as Record<string, unknown>) : {}
-  } catch { return {} }
-}
-
-/**
- * Réponse du banc pour une URL Supabase, ou `null` si l'appel ne le concerne pas
- * (l'appel part alors au vrai `fetch` — c'est le cas de `/auth/v1`).
- */
-function repondre(url: string, init?: RequestInit): Response | null {
-  const objetSeul = String(
-    (init?.headers as Record<string, string> | undefined)?.Accept ??
-    (init?.headers as Record<string, string> | undefined)?.accept ?? '',
-  ).includes('vnd.pgrst.object')
-
-  if (url.startsWith(FN)) {
-    if (banc.etat === 'erreur') return echec()
-    return json({ ok: true, banc: true }, 1)
-  }
-
-  if (!url.startsWith(REST)) return null
-  if (banc.etat === 'erreur') return echec()
-
-  const [chemin = '', requete = ''] = url.slice(REST.length).split('?')
-
-  if (chemin.startsWith('rpc/')) {
-    const nom = chemin.slice(4)
-    const brut = Object.prototype.hasOwnProperty.call(RPC, nom) ? RPC[nom] : undefined
-    if (brut === undefined) banc.signaler(`rpc/${nom}`)
-    // Une fixture peut être une FONCTION des arguments : la fiche agence doit
-    // rendre l'agence demandée, sinon l'en-tête contredit la ligne cliquée.
-    const fixture = typeof brut === 'function'
-      ? (brut as (a: Record<string, unknown>) => unknown)(lireArguments(init))
-      : brut
-    const valeur = banc.etat === 'vide'
-      ? (Array.isArray(fixture) ? [] : null)
-      : (fixture ?? (objetSeul ? null : []))
-    const n = Array.isArray(valeur) ? valeur.length : 1
-    return json(objetSeul && Array.isArray(valeur) ? (valeur[0] ?? null) : valeur, n)
-  }
-
-  const lignes = Object.prototype.hasOwnProperty.call(TABLES, chemin) ? TABLES[chemin]! : undefined
-  if (lignes === undefined) banc.signaler(chemin)
-  const sortie = banc.etat === 'vide' ? [] : filtrer(lignes ?? [], requete)
-  return json(objetSeul ? (sortie[0] ?? null) : sortie, sortie.length)
-}
-
-/**
- * Installe l'intercepteur. Idempotent : `useState(initialiseur)` est
- * ré-exécuté par StrictMode, et une seconde enveloppe autour de la première
- * ferait de l'origine sauvegardée… l'intercepteur lui-même.
- */
-function installer() {
-  if (fetchOrigine) return
-  fetchOrigine = window.fetch.bind(window)
-  window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-    const reponse = repondre(url, init)
-    if (reponse) return reponse
-    return fetchOrigine!(input, init)
-  }
-}
-
-function desinstaller() {
-  if (!fetchOrigine) return
-  window.fetch = fetchOrigine
-  fetchOrigine = null
-}
 
 /* ─── Chrome du banc ──────────────────────────────────────────────────────── */
 
@@ -373,18 +201,23 @@ function Banc({ etat, setEtat, sansFixture }: {
 export default function AdminShowcasePage() {
   const [etat, setEtatLocal] = useState<AdminBancEtat>('nominal')
   const [sansFixture, setSansFixture] = useState<string[]>([])
-  const vus = useRef(new Set<string>())
   const qc = useQueryClient()
 
   // ⚠ Installé PENDANT le rendu du banc, donc AVANT que la console monte et
   // lance ses requêtes. Un effet arriverait après le premier `queryFn`.
   useState(() => {
-    banc.signaler = (appel) => {
-      if (vus.current.has(appel)) return
-      vus.current.add(appel)
-      setSansFixture([...vus.current].sort())
-    }
-    installer()
+    reglerBanc({
+      tables: TABLES,
+      rpc: RPC,
+      // ⚠ Dédoublonné par une mise à jour FONCTIONNELLE, pas par une `ref`.
+      // Une clôture qui lit `ref.current` et qu'on passe à une fonction pendant
+      // le rendu fait rougir `react-hooks/refs` — et la règle a raison : rien ne
+      // garantit que la lecture n'arrive pas pendant un rendu.
+      signaler: (appel) => {
+        setSansFixture((prev) => (prev.includes(appel) ? prev : [...prev, appel].sort()))
+      },
+    })
+    installerBanc()
     return true
   })
   // ⛔ ET IL FAUT RÉINSTALLER ICI, sinon le banc part en production sans le
@@ -392,13 +225,18 @@ export default function AdminShowcasePage() {
   // l'intercepteur, et l'initialiseur de `useState` ne rejoue PAS au remontage
   // (l'état survit). Mesuré à l'écran — les 42 RPC partaient vers la vraie base,
   // qui répondait 401, et la Vue d'ensemble restait sur son squelette.
+  //
+  // ⚠ Les SOURCES sont reposées ici aussi : `bancSupabase` porte un contrat de
+  // module, et `/dev/crm` y écrit les siennes. Réinstaller sans les reposer
+  // laisserait le banc répondre avec les fixtures de l'autre.
   useEffect(() => {
-    installer()
-    return desinstaller
+    reglerBanc({ tables: TABLES, rpc: RPC })
+    installerBanc()
+    return desinstallerBanc
   }, [])
 
   const setEtat = useCallback((e: AdminBancEtat) => {
-    banc.etat = e
+    reglerBanc({ etat: e })
     setEtatLocal(e)
     // Les requêtes actives repartent avec la nouvelle réponse ; on ne remonte
     // pas l'arbre, sinon changer d'état ramènerait à l'accueil de la console.

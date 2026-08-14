@@ -168,6 +168,14 @@ const OnboardingPreviewPage = import.meta.env.DEV
 const AdminShowcasePage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/AdminShowcasePage'))
   : () => null
+// Banc du CRM agent — DEV seulement, même ternaire. Il monte les dix surfaces
+// `/dashboard` qu'il reste à porter en MEGGA X, et il SÈME une session dans le
+// stockage pour lever les trois murs (ProtectedRoute, gate d'identité de la
+// coquille, KycLabGuard). Semer une session n'a aucune excuse dans un bundle
+// déployé — c'est ce qui décide le gel, avant même les écrans de conformité.
+const CrmShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/CrmShowcasePage'))
+  : () => null
 // MEGGA AI — panneau docké monté AU-DESSUS de <Routes>, hors de l'arbre de routage
 // pour survivre au remount de navigation : le panneau + la conversation
 // persistent d'une page à l'autre (suivi de contexte, chantier 5).
@@ -670,12 +678,50 @@ function BancConsoleAdmin() {
   )
 }
 
+/**
+ * Le banc du CRM agent, même mécanique que celui de la console et pour la même
+ * raison : il porte un `MemoryRouter`, et React Router LÈVE sur un routeur dans
+ * un routeur.
+ *
+ * Providers gardés — ceux qu'`AppRoutes` a au-dessus de lui en production, moins
+ * ce que la coquille apporte elle-même (`ThemeProvider`, `CopilotContextProvider`
+ * sont dans `AgentSugarLayout`) : `QueryClientProvider`, `AuthProvider` (les
+ * hooks du CRM sont gatés sur `profile.agency_id`) et `ToastProvider`.
+ *
+ * ⛔ `AiPanelProvider` N'EST PAS ICI, et ce n'est pas un oubli : il appelle
+ * `useLocation()`, donc il LÈVE au-dessus d'un routeur. En production il est
+ * dans `<BrowserRouter>` ; ici il descend dans le `MemoryRouter` du banc. Écran
+ * blanc au premier essai, diagnostiqué par la console — la compilation ne dit
+ * rien d'une exigence de contexte.
+ */
+function BancCrmAgent() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ToastProvider>
+          <ErrorBoundary>
+            <Suspense fallback={null}>
+              <CrmShowcasePage />
+            </Suspense>
+          </ErrorBoundary>
+        </ToastProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  )
+}
+
 /** Point d'entrée : empile les providers globaux autour des routes et des widgets globaux (cookies, Intercom, panneau IA). */
 export default function App() {
   // `import.meta.env.DEV` est remplacé par `false` au build : la branche entière
   // — et le chunk du banc — disparaissent du bundle déployé.
   if (import.meta.env.DEV && window.location.pathname.startsWith('/dev/admin')) {
     return <BancConsoleAdmin />
+  }
+  // ⚠ Conditionné au mode dev pour DEUX raisons, chacune suffisante : le banc
+  // SÈME une session dans le stockage, et il monte des écrans de conformité
+  // (KYC) et de facturation. Voir l'en-tête de `CrmShowcasePage`.
+  if (import.meta.env.DEV && window.location.pathname.startsWith('/dev/crm')) {
+    return <BancCrmAgent />
   }
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
