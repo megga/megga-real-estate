@@ -71,7 +71,7 @@ export default function VisitDetailSugarV3Page() {
           background: SugarV3.bgGradient,
           display: 'grid',
           placeItems: 'center',
-          color: SugarV3.err,
+          color: SugarV3.errDarker,
           fontFamily: SugarV3.font,
           padding: 40,
           textAlign: 'center',

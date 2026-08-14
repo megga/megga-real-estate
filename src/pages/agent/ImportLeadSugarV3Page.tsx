@@ -598,7 +598,7 @@ function PasteStep({
             padding: '14px 18px',
             borderRadius: 14,
             background: SugarV3.errSoft,
-            color: SugarV3.err,
+            color: SugarV3.errDarker,
             fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
             display: 'flex',
@@ -1005,7 +1005,7 @@ function ReviewStep({
             padding: '14px 18px',
             borderRadius: 14,
             background: SugarV3.errSoft,
-            color: SugarV3.err,
+            color: SugarV3.errDarker,
             fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
           }}
@@ -1504,7 +1504,7 @@ function CreatedView({
               <span style={{ color: SugarV3.ink, fontWeight: 600}}>{t('import.lead.created.nextActionLabel')}</span>{' '}
               {NEXT_ACTION_LABELS[extracted.nextAction]}
               {extracted.urgency === 'high' && (
-                <span style={{ color: SugarV3.warn, fontWeight: 600 }}> {t('import.lead.created.highUrgencySuffix')}</span>
+                <span style={{ color: SugarV3.warnDarker, fontWeight: 600 }}> {t('import.lead.created.highUrgencySuffix')}</span>
               )}
             </div>
           </div>

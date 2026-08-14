@@ -63,7 +63,24 @@ export const SugarV3 = {
   // Texte
   ink: MXC_COLOR.n100,
   inkSoft: '#3A3D44',
-  muted: '#7A8088',
+  /**
+   * ⛔ `#7A8088` NE PASSAIT PAS L'AA, et c'est l'encre la plus employée de cet
+   * objet : 3,98:1 sur sa propre carte blanche, sur **66 sites en `color:`**
+   * répartis dans cinq surfaces (Visites, Audit, Import lead, wizard KYC,
+   * primitives partagées). Le défaut était connu depuis six lots et laissé de
+   * côté — le corriger depuis un lot KYC aurait repeint quatre écrans hors
+   * périmètre, et rendu tout diff inattribuable.
+   *
+   * `n500` est le barreau que MEGGA X donne à l'encre secondaire claire :
+   * 5,57:1 sur la carte, 5,24 sur la sous-carte. Gardé par
+   * `sugar-v3-contraste.spec.ts`.
+   */
+  muted: MXC_COLOR.n500,
+  /**
+   * ⚠ REPOS, PAS ENCRE — 1,95:1, il ne peut pas porter de texte. Ses trois
+   * emplois légitimes sont des APLATS (remplissage d'un contrôle désactivé) ;
+   * le seul site qui s'en servait pour écrire est passé à `muted`.
+   */
   ghost: '#B5BAC2',
 
   // Ombres signature Sugar
@@ -78,7 +95,14 @@ export const SugarV3 = {
   err: '#EF4444',
   okDark: '#0E9F6E', // utilisé pour le score risque faible dans CtKyc
   errDark: '#E53935',
+  /**
+   * Les variantes FONCÉES existent pour le TEXTE : une teinte sémantique reste
+   * vive sur un aplat, mais une encre illisible n'encode plus rien. Mêmes valeurs
+   * que `EtatVide` et le rapport PDF, qui les avaient déjà mesurées pour le clair
+   * — `#B91C1C` rend 6,47:1, `#B45309` rend 5,02:1.
+   */
   errDarker: '#B91C1C',
+  warnDarker: '#B45309',
 
   // Backgrounds soft pour pastilles statut (jamais pour cards)
   okSoft: '#E5F4EC',

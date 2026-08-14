@@ -378,7 +378,7 @@ export function VdBonPanel({
                 <div
                   style={{
                     fontSize: 'var(--crm-text-sm)',
-                    color: SugarV3.ghost,
+                    color: SugarV3.muted,
                     fontWeight: 500,
                   }}
                 >

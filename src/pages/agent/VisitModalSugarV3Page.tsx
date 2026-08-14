@@ -975,7 +975,7 @@ export default function VisitModalSugarV3Page() {
             role="alert"
             style={{
               fontSize: 'var(--crm-text-sm)',
-              color: SugarV3.err,
+              color: SugarV3.errDarker,
               fontWeight: 600,
               marginRight: 12,
             }}
