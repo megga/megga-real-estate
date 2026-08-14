@@ -37,8 +37,15 @@
 -- convertirait le grant de table en grants de colonnes et figerait la table pour
 -- les ajouts suivants.
 
+--   · IF NOT EXISTS — `deploy.yml` rejoue TOUTE migration datée du jour à CHAQUE push,
+--     et sans lui le second push lève 42701 « column already exists », coupe l'étape
+--     (`set -e`) et emporte les migrations suivantes AVEC les Edge Functions. Mesuré sur
+--     ce fichier même : Backend Integration Tests #31831596395. ⚠ Le contrôle statique
+--     `lint:migrations` ne l'attrape pas — il lit les CREATE, pas les ALTER. Quand la
+--     colonne existe déjà, tout l'ADD COLUMN est sauté, CHECK compris : la contrainte
+--     posée au premier passage survit, aucun doublon n'est créé.
 ALTER TABLE public.contacts
-  ADD COLUMN language text NULL
+  ADD COLUMN IF NOT EXISTS language text NULL
     CHECK (language IN ('fr', 'de', 'en', 'it'));
 
 COMMENT ON COLUMN public.contacts.language IS
