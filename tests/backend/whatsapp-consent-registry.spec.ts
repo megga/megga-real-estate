@@ -985,8 +985,17 @@ rollback;
       .select('wa_opt_in, wa_consent_at, wa_opt_out_at, wa_suppressed').eq('id', id).single()).data
 
     it('en régime nominal, elle ne corrige RIEN', async () => {
-      // Le nombre rendu EST la dérive : sans le filtre de divergence, la fonction rendrait
-      // le même chiffre chaque nuit et une dérive réelle serait indiscernable du bruit.
+      // ⚠ PREMIER APPEL : ramener la base à zéro dérive. Ce n'est pas une commodité de test,
+      // c'est la fonction qui fait son travail — les tests précédents LÈVENT des suppressions
+      // en SQL direct (`lifted_at`), geste qui n'a aucune RPC pour recaler le cache. C'est
+      // exactement le chemin pour lequel cette réconciliation existe, et la première version
+      // de ce test l'ignorait : elle attendait 0 sur une base que la suite avait fait dériver
+      // de quatre fiches. Le rouge en CI venait du TEST, pas de la fonction.
+      await svc.rpc('reconcile_wa_consent_cache')
+
+      // À partir d'ici la base est en phase. Une écriture par la RPC ne doit RIEN laisser à
+      // corriger : le nombre rendu EST la dérive, et sans le filtre de divergence la
+      // fonction rendrait le même chiffre chaque nuit.
       const phone = newPhone()
       const contactId = await seedContact(phone, setup.agencyAId)
       await record({
