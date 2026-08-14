@@ -12,6 +12,7 @@
 //   3. Submit → useCreateMagicLink → Edge function magic-link-create
 //   4. Affichage du résultat : URL + bouton "Copier" + bouton "Fermer"
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState, useMemo, useId } from 'react'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
@@ -67,7 +68,7 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
         background: selected ? SugarV3.black : SugarV3.cardSubtle,
         color: selected ? '#fff' : SugarV3.ink,
         boxShadow: selected
-          ? '0 14px 32px rgba(11,12,14,0.20), 0 4px 12px rgba(11,12,14,0.10)'
+          ? `0 14px 32px ${sgVoileEncre(false, 0.20)}, 0 4px 12px ${sgVoileEncre(false, 0.10)}`
           : 'none',
         fontFamily: 'inherit',
         cursor: 'pointer',
@@ -89,16 +90,14 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
             background: selected ? 'rgba(255,255,255,0.16)' : SugarV3.black,
             color: '#fff',
             fontSize: 'var(--crm-text-xs)',
-            fontWeight: 700,
-            letterSpacing: 0.6,
-            textTransform: 'uppercase',
-          }}
+            fontWeight: 600,
+                                  }}
         >
           {t('wizard.magic.recommended')}
         </span>
       )}
       <div>
-        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, marginBottom: 4 }}>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, marginBottom: 4 }}>
           {title}
         </div>
         <div
@@ -127,7 +126,7 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
           style={{
             padding: 'var(--crm-space-2xs) var(--crm-space-md)',
             borderRadius: 'var(--crm-radius-pill)',
-            background: selected ? 'rgba(255,255,255,0.12)' : 'rgba(11,12,14,0.05)',
+            background: selected ? 'rgba(255,255,255,0.12)' : `${sgVoileEncre(false, 0.05)}`,
           }}
         >
           {duration}
@@ -136,7 +135,7 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
           style={{
             padding: 'var(--crm-space-2xs) var(--crm-space-md)',
             borderRadius: 'var(--crm-radius-pill)',
-            background: selected ? 'rgba(255,255,255,0.12)' : 'rgba(11,12,14,0.05)',
+            background: selected ? 'rgba(255,255,255,0.12)' : `${sgVoileEncre(false, 0.05)}`,
           }}
         >
           {steps}
@@ -187,7 +186,7 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
           borderRadius: 'var(--crm-radius-xs)',
           flexShrink: 0,
           background: selected ? SugarV3.black : 'transparent',
-          boxShadow: selected ? 'none' : 'inset 0 0 0 1.5px rgba(11,12,14,0.22)',
+          boxShadow: selected ? 'none' : `inset 0 0 0 1.5px ${sgVoileEncre(false, 0.22)}`,
           display: 'grid',
           placeItems: 'center',
         }}
@@ -208,7 +207,7 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
         <SgIcon name={icon} size={15} stroke={SugarV3.ink} sw={1.7} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: SugarV3.ink, letterSpacing: -0.1 }}>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV3.ink, letterSpacing: -0.1 }}>
           {label}
         </div>
         <div style={{ fontSize: 'var(--crm-text-sm)', color: SugarV3.muted, fontWeight: 500, marginTop: 1 }}>
@@ -308,7 +307,7 @@ export function MlkAgentModal({
           background: SugarV3.card,
           borderRadius: 'var(--crm-radius-6xl)',
           boxShadow:
-            '0 40px 100px rgba(15,23,42,0.20), 0 8px 24px rgba(15,23,42,0.10)',
+            '0 40px 100px ${sgVoileEncre(false, 0.20)}, 0 8px 24px ${sgVoileEncre(false, 0.10)}',
           fontFamily: SugarV3.font,
           color: SugarV3.ink,
           animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
@@ -367,7 +366,7 @@ function ModalOverlay({ children, onClose, titreId }: { children: ReactNode; onC
         position: 'fixed',
         inset: 0,
         zIndex: 9100,
-        background: 'rgba(11,12,14,0.45)',
+        background: `${sgVoileEncre(false, 0.45)}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -439,11 +438,9 @@ function FormView({
           <div
             style={{
               fontSize: 'var(--crm-text-xs)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.muted,
-              letterSpacing: 1.4,
-              textTransform: 'uppercase',
-              marginBottom: 6,
+                                          marginBottom: 6,
             }}
           >
             {t('wizard.magic.eyebrow')}
@@ -453,7 +450,7 @@ function FormView({
             style={{
               margin: 0,
               fontSize: 'var(--crm-text-5xl)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.ink,
               letterSpacing: -0.6,
               lineHeight: 1.15,
@@ -494,11 +491,9 @@ function FormView({
         <div
           style={{
             fontSize: 'var(--crm-text-xs)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: SugarV3.muted,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-            marginBottom: 10,
+                                    marginBottom: 10,
           }}
         >
           {t('wizard.magic.modeLabel')}
@@ -534,11 +529,9 @@ function FormView({
         <div
           style={{
             fontSize: 'var(--crm-text-xs)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: SugarV3.muted,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-            marginBottom: 10,
+                                    marginBottom: 10,
           }}
         >
           {t('wizard.magic.channelLabel')}
@@ -566,11 +559,9 @@ function FormView({
         <div
           style={{
             fontSize: 'var(--crm-text-xs)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: SugarV3.muted,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-            marginBottom: 10,
+                                    marginBottom: 10,
           }}
         >
           {t('wizard.magic.messageLabel')}
@@ -625,7 +616,7 @@ function FormView({
           >
             <Trans
               i18nKey="kyc:wizard.magic.expiryNote"
-              components={{ 1: <strong style={{ color: SugarV3.ink, fontWeight: 700 }} /> }}
+              components={{ 1: <span style={{ color: SugarV3.ink, fontWeight: 600 }} /> }}
             />
           </span>
         </div>
@@ -709,11 +700,9 @@ function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }:
         <div
           style={{
             fontSize: 'var(--crm-text-xs)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: SugarV3.muted,
-            letterSpacing: 1.4,
-            textTransform: 'uppercase',
-            marginBottom: 6,
+                                    marginBottom: 6,
           }}
         >
           {t('wizard.magic.success.eyebrow')}
@@ -723,7 +712,7 @@ function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }:
           style={{
             margin: '0 0 12px',
             fontSize: 'var(--crm-text-5xl)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: SugarV3.ink,
             letterSpacing: -0.6,
             lineHeight: 1.15,
@@ -762,11 +751,9 @@ function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }:
             <div
               style={{
                 fontSize: 'var(--crm-text-xs)',
-                fontWeight: 700,
+                fontWeight: 600,
                 color: SugarV3.muted,
-                letterSpacing: 1.2,
-                textTransform: 'uppercase',
-                marginBottom: 4,
+                                                marginBottom: 4,
               }}
             >
               {t('wizard.magic.success.urlLabel')}

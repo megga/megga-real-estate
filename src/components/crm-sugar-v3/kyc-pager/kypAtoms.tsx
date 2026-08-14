@@ -1,6 +1,7 @@
 // MEGGA CRM — KYC Pager · atomes (icônes, avatar, pilules, jauge, CTA)
 // Port fidèle des atomes du prototype `kyc-pager-proto.jsx`.
 
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import type { CSSProperties, ReactNode } from 'react'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmInitials } from '@/components/crm-sugar/tokens'
@@ -80,12 +81,12 @@ export function KypAvatar({
         height: size,
         borderRadius: 'var(--crm-radius-pill)',
         flexShrink: 0,
-        background: avatarBg || '#0B0C0E',
+        background: avatarBg || MXC_COLOR.n100,
         color: '#fff',
         display: 'grid',
         placeItems: 'center',
         fontSize: size * 0.34,
-        fontWeight: 700,
+        fontWeight: 600,
         letterSpacing: 0.2,
         boxShadow: `0 0 0 2px ${ring}`,
       }}
@@ -108,7 +109,7 @@ export function KypPill({ tone, label }: { tone: string; label: string }) {
         background: tone,
         color: '#fff',
         fontSize: 'var(--crm-text-sm)',
-        fontWeight: 700,
+        fontWeight: 600,
         whiteSpace: 'nowrap',
         flexShrink: 0,
       }}
@@ -153,7 +154,7 @@ export function KypCta({
         border: 0,
         fontFamily: KYP_FONT,
         fontSize: 'var(--crm-text-md)',
-        fontWeight: 700,
+        fontWeight: 600,
         whiteSpace: 'nowrap',
         cursor: disabled ? 'not-allowed' : 'pointer',
         flexShrink: 0,

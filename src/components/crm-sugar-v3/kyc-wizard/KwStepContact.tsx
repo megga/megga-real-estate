@@ -56,7 +56,7 @@ export function KwStepContact({ data, set }: Props) {
           style={{
             margin: '0 0 14px',
             fontSize: 'var(--crm-text-9xl)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: sp.ink,
             letterSpacing: -0.8,
             lineHeight: 1.1,
@@ -197,7 +197,7 @@ export function KwStepContact({ data, set }: Props) {
                       display: 'grid',
                       placeItems: 'center',
                       fontSize: 'var(--crm-text-lg)',
-                      fontWeight: 700,
+                      fontWeight: 600,
                     }}
                   >
                     {initials}
@@ -206,7 +206,7 @@ export function KwStepContact({ data, set }: Props) {
                     <div
                       style={{
                         fontSize: 'var(--crm-text-xl)',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         letterSpacing: -0.2,
                         marginBottom: 2,
                       }}
@@ -230,7 +230,7 @@ export function KwStepContact({ data, set }: Props) {
                       background: selected ? sp.onAccentFaint : sp.cardSubtle,
                       color: selected ? sp.onAccent : sp.inkSoft,
                       fontSize: 'var(--crm-text-sm)',
-                      fontWeight: 700,
+                      fontWeight: 600,
                       letterSpacing: 0.1,
                     }}
                   >
@@ -240,7 +240,7 @@ export function KwStepContact({ data, set }: Props) {
                     <span
                       style={{
                         fontSize: 'var(--crm-text-xs)',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         color: sp.muted,
                         padding: 'var(--crm-space-xs) var(--crm-space-lg)',
                         borderRadius: 'var(--crm-radius-pill)',

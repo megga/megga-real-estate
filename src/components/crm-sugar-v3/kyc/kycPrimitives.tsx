@@ -6,6 +6,7 @@
 // Sugar) : ici chaque primitive lit `useKycPalette()` → suit le flip clair/
 // sombre du handoff §3. Scoping KYC volontaire : ne pas réutiliser ailleurs.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useKycPalette } from './kycPalette'
@@ -49,7 +50,7 @@ export function KycBlackPill({
         background: disabled ? sp.ghost : hover ? sp.blackHover : sp.black,
         color: sp.onAccent,
         fontFamily: 'inherit',
-        fontSize: size === 'lg' ? 14.5 : 13,
+        fontSize: size === 'lg' ? 'var(--crm-text-lg)' : 'var(--crm-text-md)',
         fontWeight: 600,
         letterSpacing: 0.1,
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -60,8 +61,8 @@ export function KycBlackPill({
         boxShadow: disabled
           ? 'none'
           : hover
-            ? '0 12px 30px rgba(11,12,14,0.25)'
-            : '0 6px 16px rgba(11,12,14,0.18)',
+            ? `0 12px 30px ${sgVoileEncre(false, 0.25)}`
+            : `0 6px 16px ${sgVoileEncre(false, 0.18)}`,
         transform: hover && !disabled ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'all .18s ease',
         ...style,
@@ -123,7 +124,7 @@ export function KycGhostPill({
         gap: size === 'sm' ? 7 : 8,
         whiteSpace: 'nowrap',
         boxShadow: active
-          ? '0 6px 16px rgba(11,12,14,0.18)'
+          ? `0 6px 16px ${sgVoileEncre(false, 0.18)}`
           : hover
             ? sp.shadow
             : 'none',

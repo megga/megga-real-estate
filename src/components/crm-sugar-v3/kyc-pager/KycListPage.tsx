@@ -104,7 +104,7 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
     >
       {/* En-tête */}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-3xl)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>KYC</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 600, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>KYC</h1>
         <div style={{ flex: 1 }} />
         <KypCta sp={sp} h={40} onClick={onNewDossier}>
           Nouveau dossier
@@ -131,7 +131,7 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
                 color: on ? sp.focusInk : sp.soft,
                 fontFamily: KYP_FONT,
                 fontSize: 'var(--crm-text-lg)',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
                 boxShadow: on ? 'none' : sp.shadowSm,
               }}
@@ -163,10 +163,8 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
             gap: 'var(--crm-space-xl)',
             padding: 'var(--crm-space-xl) var(--crm-space-6xl)',
             fontSize: 'var(--crm-text-sm)',
-            fontWeight: 700,
-            letterSpacing: 0.4,
-            textTransform: 'uppercase',
-            color: sp.sub,
+            fontWeight: 600,
+                                    color: sp.sub,
             borderBottom: `1px solid ${surf.hairline}`,
           }}
         >
@@ -209,7 +207,7 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
                 <div
                   style={{
                     fontSize: 'var(--crm-text-xl)',
-                    fontWeight: 700,
+                    fontWeight: 600,
                     color: sp.ink,
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',

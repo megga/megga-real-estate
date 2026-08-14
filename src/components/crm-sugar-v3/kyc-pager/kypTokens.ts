@@ -65,7 +65,7 @@ export function kypSurf(dark: boolean): KypSurf {
   return {
     card: dark ? MXC_COLOR.n300 : '#FFFFFF',
     cardSub: dark ? MXC_COLOR.n200 : '#F7F8FA',
-    hairline: dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)',
+    hairline: dark ? 'rgba(255,255,255,0.06)' : '${sgVoileEncre(false, 0.05)}',
     ghost: dark ? 'rgba(255,255,255,0.28)' : '#B5BAC2',
     late: dark ? '#E08A2E' : '#C45A00',
     ringAvatar: dark ? MXC_COLOR.n300 : '#FFFFFF',

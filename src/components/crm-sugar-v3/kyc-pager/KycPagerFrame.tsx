@@ -6,6 +6,8 @@
 // swipe / points latéraux / indice bas-gauche. La mécanique est GELÉE quand la
 // fiche ou le wizard est ouvert. Fiche route-driven (deep-link), wizard embedded.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { KycWizardModal } from '../kyc-wizard/KycWizardModal'
@@ -20,8 +22,8 @@ const KYP_PAGES = [
 ]
 
 function KypPageDots({ page, onGo, dark }: { page: number; onGo: (i: number) => void; dark: boolean }) {
-  const activeCol = dark ? '#F2F2F6' : '#0B0C0E'
-  const idleCol = dark ? 'rgba(255,255,255,.22)' : 'rgba(11,12,14,.18)'
+  const activeCol = dark ? '#F2F2F6' : MXC_COLOR.n100
+  const idleCol = dark ? 'rgba(255,255,255,.22)' : `${sgVoileEncre(false, .18)}`
   return (
     <div
       style={{
@@ -82,7 +84,7 @@ function KypScrollHint({ page, onGo, sp }: { page: number; onGo: (i: number) => 
         cursor: 'pointer',
       }}
     >
-      <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, lineHeight: 1, color: sp.sub }}>
+      <span style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, lineHeight: 1, color: sp.sub }}>
         {next ? '↓' : '↑'}
       </span>
       <span
@@ -99,7 +101,7 @@ function KypScrollHint({ page, onGo, sp }: { page: number; onGo: (i: number) => 
           transition: 'max-width .4s cubic-bezier(.76,0,.24,1), opacity .3s ease, transform .4s cubic-bezier(.76,0,.24,1)',
         }}
       >
-        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink }}>{target.label}</span>
+        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{target.label}</span>
       </span>
     </button>
   )

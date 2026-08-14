@@ -2,6 +2,7 @@
 // Refonte visuelle (handoff §1.3) : palette-aware (useKycPalette), accent inversé
 // en sombre (onAccent / onAccentSoft / onAccentFaint), bord systématique cardBorder.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -49,7 +50,7 @@ export function KwGateCard({
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.55 : 1,
         boxShadow: selected
-          ? '0 24px 60px rgba(11,12,14,0.30), 0 4px 16px rgba(11,12,14,0.15)'
+          ? `0 24px 60px ${sgVoileEncre(false, 0.30)}, 0 4px 16px ${sgVoileEncre(false, 0.15)}`
           : hover
             ? sp.shadowHover
             : sp.shadow,
@@ -71,10 +72,8 @@ export function KwGateCard({
             background: selected ? sp.onAccent : sp.black,
             color: selected ? sp.ink : sp.onAccent,
             fontSize: 'var(--crm-text-xs)',
-            fontWeight: 700,
-            letterSpacing: 0.5,
-            textTransform: 'uppercase',
-          }}
+            fontWeight: 600,
+                                  }}
         >
           {t('wizard.gate.recommended')}
         </span>
@@ -98,7 +97,7 @@ export function KwGateCard({
           style={{
             margin: '0 0 6px',
             fontSize: 'var(--crm-text-3xl)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: selected ? sp.onAccent : sp.ink,
             letterSpacing: -0.3,
             lineHeight: 1.25,

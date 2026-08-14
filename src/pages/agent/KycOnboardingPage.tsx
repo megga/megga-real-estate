@@ -7,6 +7,7 @@
 // localStorage `megga.kyc.onboarded` + 0 dossier. Les CTA posent le flag puis
 // naviguent vers le pager (avec un state `openWizard` pour ouvrir le wizard).
 
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
@@ -139,18 +140,18 @@ export default function KycOnboardingPage() {
                   padding: '0 10px 0 22px',
                   borderRadius: 999,
                   background: '#FFFFFF',
-                  color: '#0B0C0E',
+                  color: MXC_COLOR.n100,
                   border: 0,
                   fontFamily: 'inherit',
-                  fontSize: 13.5,
-                  fontWeight: 700,
+                  fontSize: 'var(--crm-text-md)',
+                  fontWeight: 600,
                   letterSpacing: '-0.2px',
                   cursor: 'pointer',
                   boxShadow: '0 8px 26px rgba(0,0,0,0.32), 0 0 0 5px rgba(255,255,255,0.08)',
                 }}
               >
                 Ouvrir mon premier dossier
-                <span style={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 999, background: '#0B0C0E' }}>
+                <span style={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 999, background: MXC_COLOR.n100 }}>
                   <ArrowGlyph color="#FFFFFF" />
                 </span>
               </button>
@@ -168,7 +169,7 @@ export default function KycOnboardingPage() {
                     color: '#FFFFFF',
                     border: '1px solid rgba(255,255,255,0.22)',
                     fontFamily: 'inherit',
-                    fontSize: 12.5,
+                    fontSize: 'var(--crm-text-sm)',
                     fontWeight: 600,
                     cursor: 'pointer',
                     backdropFilter: 'blur(8px)',
@@ -184,7 +185,7 @@ export default function KycOnboardingPage() {
                     background: 'transparent',
                     cursor: 'pointer',
                     fontFamily: 'inherit',
-                    fontSize: 12.5,
+                    fontSize: 'var(--crm-text-sm)',
                     fontWeight: 600,
                     color: 'rgba(255,255,255,0.62)',
                     padding: 0,

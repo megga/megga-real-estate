@@ -3,6 +3,7 @@
 // Red-team Léa #1 + #5 : sans cette UI, crypto / mixed étaient invisibles
 // comme red flag. Ici on documente, on associe une pièce, on logge.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState, useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -88,7 +89,7 @@ export function SourceOfFundsOverlay({
         position: 'fixed',
         inset: 0,
         zIndex: 9100,
-        background: 'rgba(11,12,14,0.55)',
+        background: `${sgVoileEncre(false, 0.55)}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -115,9 +116,7 @@ export function SourceOfFundsOverlay({
             fontSize: 'var(--crm-text-sm)',
             fontWeight: 600,
             color: sp.muted,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-            marginBottom: 10,
+                                    marginBottom: 10,
           }}
         >
           {t('dossier.funds.overlayEyebrow')}
@@ -127,7 +126,7 @@ export function SourceOfFundsOverlay({
           style={{
             margin: '0 0 18px',
             fontSize: 'var(--crm-text-4xl)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: sp.ink,
             letterSpacing: -0.4,
           }}

@@ -107,7 +107,7 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
           minHeight: 0,
           background: surf.card,
           borderRadius: 'var(--crm-radius-5xl)',
-          boxShadow: '0 40px 100px rgba(15,23,42,0.30), 0 8px 24px rgba(15,23,42,0.14)',
+          boxShadow: '0 40px 100px ${sgVoileEncre(false, 0.30)}, 0 8px 24px ${sgVoileEncre(false, 0.14)}',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -143,7 +143,7 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
             <div
               style={{
                 fontSize: 'var(--crm-text-xl)',
-                fontWeight: 700,
+                fontWeight: 600,
                 color: sp.ink,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -169,7 +169,7 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
               background: surf.cardSub,
               color: sp.ink,
               fontSize: 'var(--crm-text-md)',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
               flexShrink: 0,
             }}

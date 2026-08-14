@@ -265,9 +265,7 @@ export function KycWizardModal({ onClose, initialContactId, embedded = false, in
                   fontSize: 'var(--crm-text-sm)',
                   fontWeight: 600,
                   color: sp.muted,
-                  letterSpacing: 1,
-                  textTransform: 'uppercase',
-                  whiteSpace: 'nowrap',
+                                                      whiteSpace: 'nowrap',
                 }}
               >
                 {t('wizard.header.eyebrow')}
@@ -275,7 +273,7 @@ export function KycWizardModal({ onClose, initialContactId, embedded = false, in
               <div
                 style={{
                   fontSize: 'var(--crm-text-3xl)',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   color: sp.ink,
                   letterSpacing: -0.3,
                 }}

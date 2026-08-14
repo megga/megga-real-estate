@@ -82,7 +82,7 @@ export function KwStepImport({ data, set }: Props) {
     <div style={{ maxWidth: 720, margin: '0 auto', animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
       <style>{`@keyframes kwSpin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ marginBottom: 40, textAlign: 'center' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-9xl)', fontWeight: 700, color: sp.ink, letterSpacing: -0.8, lineHeight: 1.1 }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-9xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.8, lineHeight: 1.1 }}>
           Déposez le rapport externe
         </h1>
       </div>
@@ -130,7 +130,7 @@ export function KwStepImport({ data, set }: Props) {
                 boxSizing: 'border-box',
               }}
             />
-            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>MEGGA lit les contrôles…</div>
+            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>MEGGA lit les contrôles…</div>
             <div style={{ fontSize: 'var(--crm-text-md)', color: sp.muted, fontWeight: 500 }}>{data.importFile?.name}</div>
           </div>
         )}
@@ -148,7 +148,7 @@ export function KwStepImport({ data, set }: Props) {
           <div style={{ animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', paddingBottom: 'var(--crm-space-2xl)', minWidth: 0 }}>
               <SgIcon name="doc" size={14} stroke={sp.inkSoft} />
-              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {data.importFile?.name}
               </span>
             </div>
@@ -157,7 +157,7 @@ export function KwStepImport({ data, set }: Props) {
                 <span style={{ width: 24, height: 24, borderRadius: 'var(--crm-radius-pill)', background: sp.black, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                   <SgIcon name="check" size={12} stroke={sp.onAccent} sw={2.4} />
                 </span>
-                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap' }}>{c.key}</span>
+                <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap' }}>{c.key}</span>
                 <span style={{ fontSize: 'var(--crm-text-md)', color: sp.muted, fontWeight: 500, marginLeft: 'auto', textAlign: 'right', whiteSpace: 'nowrap' }}>
                   {c.result}
                 </span>

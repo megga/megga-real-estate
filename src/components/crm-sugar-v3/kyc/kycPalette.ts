@@ -18,7 +18,7 @@
 //   ringTrack          → piste de l'anneau de progression.
 
 import { createContext, useContext } from 'react'
-import { CRM_TOKENS, type SugarPalette } from '@/components/crm-sugar/tokens'
+import { CRM_TOKENS, type SugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 export interface KycPalette {
@@ -78,18 +78,22 @@ export const KYC_LIGHT: KycPalette = {
   card: '#FFFFFF',
   cardSubtle: '#F7F8FA',
   cardBorder: 'transparent',
-  black: '#0B0C0E',
+  // ⛔ L'ACCENT, pas l'encre. Les douze lecteurs de `black` sont TOUS des états
+  // actifs ou des affordances primaires — pilule d'étape sélectionnée, carte de
+  // porte choisie, CTA du wizard, onglet courant. Le peindre en encre appliquait
+  // la règle de Sugar Pure (« l'accent EST l'encre ») avec les jetons de MEGGA X.
+  black: MXC_COLOR.accent,
   blackHover: '#1F2024',
   onAccent: '#FFFFFF',
-  ink: '#0B0C0E',
+  ink: MXC_COLOR.n100,
   inkSoft: '#3A3D44',
   muted: '#7A8088',
   ghost: '#B5BAC2',
-  ringTrack: 'rgba(11,12,14,0.08)',
-  shadowSm: '0 4px 16px rgba(15, 23, 42, 0.04)',
-  shadow: '0 12px 40px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.03)',
-  shadowLg: '0 24px 60px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.04)',
-  shadowHover: '0 32px 70px rgba(15, 23, 42, 0.10), 0 6px 20px rgba(15, 23, 42, 0.05)',
+  ringTrack: `${sgVoileEncre(false, 0.08)}`,
+  shadowSm: `0 4px 16px ${sgVoileEncre(false, 0.04)}`,
+  shadow: '0 12px 40px ${sgVoileEncre(false, 0.06)}, 0 2px 8px ${sgVoileEncre(false, 0.03)}',
+  shadowLg: '0 24px 60px ${sgVoileEncre(false, 0.08)}, 0 4px 16px ${sgVoileEncre(false, 0.04)}',
+  shadowHover: '0 32px 70px ${sgVoileEncre(false, 0.10)}, 0 6px 20px ${sgVoileEncre(false, 0.05)}',
   ok: '#10B981',
   warn: '#F59E0B',
   err: '#EF4444',
@@ -102,13 +106,13 @@ export const KYC_LIGHT: KycPalette = {
   onAccentSoft: 'rgba(255,255,255,0.75)',
   onAccentMid: 'rgba(255,255,255,0.18)',
   onAccentFaint: 'rgba(255,255,255,0.10)',
-  divider: 'rgba(11,12,14,0.10)',
-  stepLine: 'rgba(11,12,14,0.08)',
+  divider: `${sgVoileEncre(false, 0.10)}`,
+  stepLine: `${sgVoileEncre(false, 0.08)}`,
   footerFade:
     'linear-gradient(180deg, transparent 0%, rgba(237,239,243,0.9) 60%, rgba(237,239,243,1) 100%)',
   logoInvert: false,
-  scrollThumb: 'rgba(11,12,14,0.18)',
-  scrollThumbHover: 'rgba(11,12,14,0.32)',
+  scrollThumb: `${sgVoileEncre(false, 0.18)}`,
+  scrollThumbHover: `${sgVoileEncre(false, 0.32)}`,
 }
 
 /**
@@ -136,7 +140,7 @@ export function buildKycPalette(
     // En graphite la card est OPAQUE : le « tour blanc » redescend au filet,
     // sinon la bordure devient le seul relief visible et durcit le bento.
     cardBorder: 'rgba(255,255,255,0.06)',
-    black: sp.ink, // pilule claire en sombre
+    black: sp.accent, // l'actif porte l'accent dans les DEUX thèmes
     blackHover: '#FFFFFF',
     onAccent: sp.pageBg, // texte sombre posé sur la pilule claire
     ink: sp.ink,
@@ -158,9 +162,9 @@ export function buildKycPalette(
     okDark: '#6EE7B7',
     errDark: '#F8B4B0',
     errDarker: '#FCA5A5',
-    onAccentSoft: 'rgba(11,12,14,0.62)',
-    onAccentMid: 'rgba(11,12,14,0.14)',
-    onAccentFaint: 'rgba(11,12,14,0.08)',
+    onAccentSoft: `${sgVoileEncre(false, 0.62)}`,
+    onAccentMid: `${sgVoileEncre(false, 0.14)}`,
+    onAccentFaint: `${sgVoileEncre(false, 0.08)}`,
     divider: 'rgba(255,255,255,0.12)',
     stepLine: 'rgba(255,255,255,0.16)',
     footerFade: `linear-gradient(180deg, transparent 0%, ${sp.pageBg} 62%, ${sp.pageBg} 100%)`,

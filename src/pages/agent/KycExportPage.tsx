@@ -6,6 +6,7 @@
 // puis l'agent fait Cmd+P (ou auto-trigger). Le navigateur génère un PDF natif
 // — pas de dépendance Puppeteer / jsPDF. Plus simple, plus léger.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -180,7 +181,7 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
         alignItems: 'center',
         justifyContent: 'space-between',
         fontFamily: '"Inter Tight", system-ui, sans-serif',
-        boxShadow: '0 2px 8px rgba(15,23,42,0.04)',
+        boxShadow: '0 2px 8px ${sgVoileEncre(false, 0.04)}',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -194,7 +195,7 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
             background: '#FFFFFF',
             color: PDF.inkSoft,
             fontFamily: 'inherit',
-            fontSize: 12.5,
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 600,
             cursor: 'pointer',
           }}
@@ -203,12 +204,10 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
         </button>
         <div
           style={{
-            fontSize: 11,
+            fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
             color: PDF.muted,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-          }}
+                                  }}
         >
           {t('report.export.reportRef', { reference })}
         </div>
@@ -223,11 +222,11 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
           background: PDF.black,
           color: '#FFFFFF',
           fontFamily: 'inherit',
-          fontSize: 13,
-          fontWeight: 700,
+          fontSize: 'var(--crm-text-md)',
+          fontWeight: 600,
           letterSpacing: 0.1,
           cursor: 'pointer',
-          boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
+          boxShadow: `0 6px 16px ${sgVoileEncre(false, 0.18)}`,
         }}
       >
         {t('report.export.print')}
@@ -249,7 +248,7 @@ function ExportPlaceholder({ children }: { children: React.ReactNode }) {
         justifyContent: 'center',
         fontFamily: '"Inter Tight", system-ui, sans-serif',
         color: PDF.muted,
-        fontSize: 14,
+        fontSize: 'var(--crm-text-lg)',
         fontWeight: 500,
       }}
     >

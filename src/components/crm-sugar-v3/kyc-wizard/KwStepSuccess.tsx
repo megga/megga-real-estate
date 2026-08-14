@@ -48,9 +48,7 @@ export function KwStepSuccess({ data, onOpen, onClose }: Props) {
           fontSize: 'var(--crm-text-md)',
           fontWeight: 600,
           color: sp.muted,
-          letterSpacing: 1.2,
-          textTransform: 'uppercase',
-          marginBottom: 12,
+                              marginBottom: 12,
         }}
       >
         {t('wizard.success.eyebrow')}
@@ -59,7 +57,7 @@ export function KwStepSuccess({ data, onOpen, onClose }: Props) {
         style={{
           margin: '0 0 14px',
           fontSize: 'var(--crm-text-8xl)',
-          fontWeight: 700,
+          fontWeight: 600,
           color: sp.ink,
           letterSpacing: -0.7,
           lineHeight: 1.1,

@@ -22,7 +22,7 @@ function KypLatePill({ surf }: { surf: KypSurf }) {
         background: surf.late,
         color: '#fff',
         fontSize: 'var(--crm-text-sm)',
-        fontWeight: 700,
+        fontWeight: 600,
         whiteSpace: 'nowrap',
         flexShrink: 0,
       }}
@@ -50,7 +50,7 @@ function KypVigieCard({
         <span
           style={{
             fontSize: 'var(--crm-text-xl)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: sp.ink,
             letterSpacing: -0.2,
             flex: 1,
@@ -83,7 +83,7 @@ function KypVigieCard({
             textOverflow: 'ellipsis',
           }}
         >
-          <span style={{ fontWeight: 700 }}>
+          <span style={{ fontWeight: 600 }}>
             {it.firstName} {it.lastName}
           </span>{' '}
           — {it.meta}
@@ -124,7 +124,7 @@ function KypDenseRow({
     >
       <KypAvatar firstName={it.firstName} lastName={it.lastName} size={26} ring={surf.card} />
       <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-md)' }}>
-        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap' }}>{it.title}</span>
+        <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap' }}>{it.title}</span>
         <span
           style={{
             fontSize: 'var(--crm-text-md)',
@@ -143,7 +143,7 @@ function KypDenseRow({
       </span>
       <span
         onClick={() => onOpen(it.dossierId)}
-        style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0 }}
+        style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', cursor: 'pointer', flexShrink: 0 }}
       >
         {it.cta} ›
       </span>
@@ -175,7 +175,7 @@ function KypVigieCol({
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
       <div style={{ margin: '0 4px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-xs)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
-          <span style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>{title}</span>
+          <span style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.5, color: sp.ink }}>{title}</span>
           <span
             style={{
               display: 'inline-flex',
@@ -188,7 +188,7 @@ function KypVigieCol({
               background: sp.focusBg,
               color: sp.focusInk,
               fontSize: 'var(--crm-text-lg)',
-              fontWeight: 800,
+              fontWeight: 600,
               fontVariantNumeric: 'tabular-nums',
               lineHeight: 1,
             }}
@@ -196,7 +196,7 @@ function KypVigieCol({
             {list.length}
           </span>
         </div>
-        <span style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+        <span style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 500 }}>
           {sub}
         </span>
       </div>
@@ -249,7 +249,7 @@ function KypVigieCol({
                     background: surf.cardSub,
                     color: sp.soft,
                     fontSize: 'var(--crm-text-md)',
-                    fontWeight: 700,
+                    fontWeight: 600,
                   }}
                 >
                   Voir les {hidden} autres ›
@@ -297,7 +297,7 @@ export function KycVigiePage({ sp, surf, onOpen }: Props) {
             <div
               style={{
                 fontSize: 'var(--crm-text-7xl)',
-                fontWeight: 800,
+                fontWeight: 600,
                 color: surf.late,
                 letterSpacing: -1,
                 lineHeight: 1,
@@ -306,7 +306,7 @@ export function KycVigiePage({ sp, surf, onOpen }: Props) {
             >
               {nLate}
             </div>
-            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.sub, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 6 }}>
+            <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, marginTop: 6 }}>
               en retard
             </div>
           </div>

@@ -51,7 +51,7 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
           maxWidth: 'calc(100% - 60px)',
           background: dark ? '#202124' : '#FFFFFF',
           borderRadius: 'var(--crm-radius-6xl)',
-          boxShadow: '0 40px 100px rgba(15,23,42,0.20), 0 8px 24px rgba(15,23,42,0.10)',
+          boxShadow: '0 40px 100px ${sgVoileEncre(false, 0.20)}, 0 8px 24px ${sgVoileEncre(false, 0.10)}',
           padding: '26px 28px',
           boxSizing: 'border-box',
           animation: 'kypPop .38s cubic-bezier(.2,.8,.2,1) both',
@@ -67,7 +67,7 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
             if (f) setFile(f)
           }}
         />
-        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>{label}</div>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.4, color: sp.ink }}>{label}</div>
         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: sp.sub, marginTop: 4 }}>{contactName}</div>
 
         {!file ? (
@@ -121,7 +121,7 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
             <span
               style={{
                 fontSize: 'var(--crm-text-lg)',
-                fontWeight: 700,
+                fontWeight: 600,
                 color: sp.ink,
                 minWidth: 0,
                 whiteSpace: 'nowrap',
@@ -140,7 +140,7 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 'var(--crm-space-2xl)', marginTop: 20 }}>
           <span
             onClick={onCancel}
-            style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.soft, cursor: 'pointer', fontFamily: KYP_FONT }}
+            style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.soft, cursor: 'pointer', fontFamily: KYP_FONT }}
           >
             Annuler
           </span>

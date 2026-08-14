@@ -6,6 +6,7 @@
 // revenir ; étapes À VENIR = sourdine + badge numéro bordé, non cliquables.
 // Palette-aware (useKycPalette) — pas de couleur en dur (sauf le vert/✓ §1.5).
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState } from 'react'
 import { SgIcon } from '../icons'
 import { useKycPalette } from '../kyc/kycPalette'
@@ -47,14 +48,14 @@ function KwStepItem({ index, label, current, onJump }: StepItemProps) {
         color: active ? sp.onAccent : done ? sp.inkSoft : sp.muted,
         fontFamily: 'inherit',
         fontSize: 'var(--crm-text-lg)',
-        fontWeight: active ? 700 : 600,
+        fontWeight: active ? 600 : 500,
         letterSpacing: -0.1,
         whiteSpace: 'nowrap',
         cursor: reachable && !active ? 'pointer' : 'default',
         display: 'inline-flex',
         alignItems: 'center',
         gap: 'var(--crm-space-md)',
-        boxShadow: active ? '0 6px 16px rgba(11,12,14,0.22)' : 'none',
+        boxShadow: active ? `0 6px 16px ${sgVoileEncre(false, 0.22)}` : 'none',
         transition: 'all .2s ease',
         flexShrink: 0,
       }}
@@ -70,7 +71,7 @@ function KwStepItem({ index, label, current, onJump }: StepItemProps) {
           background: badgeBg,
           color: badgeFg,
           fontSize: 'var(--crm-text-sm)',
-          fontWeight: 700,
+          fontWeight: 600,
           fontVariantNumeric: 'tabular-nums',
           display: 'grid',
           placeItems: 'center',

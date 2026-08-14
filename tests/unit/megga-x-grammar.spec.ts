@@ -75,6 +75,10 @@ const PAGES = new Set([
   // « Aujourd'hui », la page d'accueil du CRM (lot A1, 15 août 2026). Elle ne
   // porte que le pager et le chrome — les deux pages vivent dans `today/`.
   'TodaySugarPage.tsx',
+  // Les trois pages KYC (lot A2). `KycExportPage` et `KycOnboardingPage` sont
+  // ROUTÉES — /dashboard/kyc/:id/export et kyc/bienvenue — et le plan du chantier
+  // les avait ratées en groupant par DOSSIER : 15 marqueurs invisibles.
+  'KycSugarV3Page.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
 ])
 
 /**
@@ -96,6 +100,7 @@ const PAGES_ACQUISES = [
   'MatchingPagerPage.tsx', 'MatchingAtelierPage.tsx',
   'PipelineSugarV2Page.tsx', 'DealDetailSugarV4Page.tsx', 'OfferModalSugarV3Page.tsx',
   'TodaySugarPage.tsx',
+  'KycSugarV3Page.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
 ]
 
 /**
@@ -157,6 +162,16 @@ const ZONES: RootSpec[] = [
   // écrit par défaut — ce qui fait du cliquet le livrable qui compte, pas de la
   // passe.
   { root: 'src/components/crm-sugar/today', keep: (n) => /\.tsx?$/.test(n) },
+  // KYC — lot A2 (15 août 2026), éclaté sur TROIS dossiers. Le nom d'une surface
+  // ne dit pas où elle est rangée : `kyc` (la palette et les cartes), `kyc-pager`
+  // (les deux pages du pager) et `kyc-wizard` (l'entonnoir de collecte).
+  //
+  // ⚠ SURFACE DE CONFORMITÉ : le lot ne touche qu'à la COMPOSITION. Aucun libellé,
+  // aucun seuil, aucun statut n'a changé — seulement la casse, la graisse,
+  // l'interlettrage, l'échelle et les deux teintes proscrites.
+  { root: 'src/components/crm-sugar-v3/kyc', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-sugar-v3/kyc-pager', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-sugar-v3/kyc-wizard', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/search', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/notifications', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/profile', keep: (n) => /\.tsx?$/.test(n) },
@@ -722,6 +737,9 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/pages/admin',
       'src/components/admin',
       'src/components/crm-sugar/today',
+      'src/components/crm-sugar-v3/kyc',
+      'src/components/crm-sugar-v3/kyc-pager',
+      'src/components/crm-sugar-v3/kyc-wizard',
       'src/components/crm-sugar/search',
       'src/components/crm-sugar/notifications',
       'src/components/crm-sugar/profile',

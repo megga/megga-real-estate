@@ -252,7 +252,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
     return (
       <KypFicheOverlay sp={sp}>
         <div style={{ maxWidth: 420, textAlign: 'center' }}>
-          <h2 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, color: sp.ink }}>Dossier indisponible</h2>
+          <h2 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink }}>Dossier indisponible</h2>
           <p style={{ margin: '10px 0 0', fontSize: 'var(--crm-text-lg)', lineHeight: 1.55, color: sp.sub }}>
             Ce dossier n'a pas pu être ouvert : il n'existe pas, ou il n'est pas accessible depuis votre agence.
           </p>
@@ -275,7 +275,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                 color: sp.ink,
                 fontFamily: KYP_FONT,
                 fontSize: 'var(--crm-text-md)',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
               }}
             >
@@ -404,7 +404,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
         </button>
         {contact && <KypAvatar firstName={contact.first_name} lastName={contact.last_name} size={46} ring={sp.pageBg} />}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, color: sp.ink }}>
+          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.5, color: sp.ink }}>
             {contact ? `${contact.first_name} ${contact.last_name}` : 'Dossier KYC'}
           </div>
           <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 500, marginTop: 3 }}>
@@ -437,10 +437,8 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
             gap: 'var(--crm-space-2xl)',
             padding: 'var(--crm-space-xl) var(--crm-space-7xl)',
             fontSize: 'var(--crm-text-sm)',
-            fontWeight: 700,
-            letterSpacing: 0.4,
-            textTransform: 'uppercase',
-            color: sp.sub,
+            fontWeight: 600,
+                                    color: sp.sub,
             borderBottom: `1px solid ${surf.hairline}`,
             flexShrink: 0,
           }}
@@ -492,7 +490,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                 >
                   <KypCheckIcon category={cat} size={16} sw={1.7} />
                 </div>
-                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink, letterSpacing: -0.2 }}>{label}</div>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.2 }}>{label}</div>
                 <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
                   {rowDocs.map((doc) => (
                     <button
@@ -511,7 +509,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                         color: sp.ink,
                         fontFamily: KYP_FONT,
                         fontSize: 'var(--crm-text-sm)',
-                        fontWeight: 700,
+                        fontWeight: 600,
                         whiteSpace: 'nowrap',
                         cursor: 'pointer',
                         flexShrink: 0,
@@ -550,7 +548,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   {screeningThis ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap' }}>
                       <span
                         style={{
                           width: 14,
@@ -610,7 +608,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
           </span>
           <span
             onClick={() => onNavigate('audit')}
-            style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, cursor: 'pointer', whiteSpace: 'nowrap' }}
+            style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, cursor: 'pointer', whiteSpace: 'nowrap' }}
           >
             Ouvrir le Journal ›
           </span>
@@ -628,7 +626,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
               boxShadow: sp.shadowSm,
               color: sp.ink,
               fontSize: 'var(--crm-text-md)',
-              fontWeight: 700,
+              fontWeight: 600,
               cursor: 'pointer',
             }}
           >
@@ -773,18 +771,18 @@ function MatchDecisionModal({
           maxWidth: 'calc(100% - 60px)',
           background: surf.card,
           borderRadius: 'var(--crm-radius-5xl)',
-          boxShadow: '0 40px 100px rgba(15,23,42,0.30), 0 8px 24px rgba(15,23,42,0.14)',
+          boxShadow: '0 40px 100px ${sgVoileEncre(false, 0.30)}, 0 8px 24px ${sgVoileEncre(false, 0.14)}',
           padding: '26px 26px 22px',
           boxSizing: 'border-box',
           animation: 'kypDocUp .3s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
-        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, color: sp.ink }}>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.4, color: sp.ink }}>
           {isPep ? 'Match PEP à trancher' : 'Alerte sanctions à trancher'}
         </div>
         <div style={{ background: surf.cardSub, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', marginTop: 14 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)' }}>
-            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>{recordName}</span>
+            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>{recordName}</span>
             <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
               {total} correspondance{total > 1 ? 's' : ''}
             </span>
@@ -839,7 +837,7 @@ function MatchDecisionModal({
               color: sp.ink,
               fontFamily: KYP_FONT,
               fontSize: 'var(--crm-text-lg)',
-              fontWeight: 700,
+              fontWeight: 600,
             }}
           >
             Confirmer le match
@@ -858,7 +856,7 @@ function MatchDecisionModal({
               color: sp.focusInk,
               fontFamily: KYP_FONT,
               fontSize: 'var(--crm-text-lg)',
-              fontWeight: 700,
+              fontWeight: 600,
             }}
           >
             Écarter le faux positif

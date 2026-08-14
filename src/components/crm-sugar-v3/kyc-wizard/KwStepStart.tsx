@@ -28,7 +28,7 @@ export function KwStepStart({ data, set }: Props) {
           style={{
             margin: '0 0 14px',
             fontSize: 'var(--crm-text-9xl)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: sp.ink,
             letterSpacing: -0.8,
             lineHeight: 1.1,

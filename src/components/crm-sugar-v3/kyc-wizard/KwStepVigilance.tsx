@@ -30,7 +30,7 @@ export function KwStepVigilance({ data, set }: Props) {
           style={{
             margin: '0 0 14px',
             fontSize: 'var(--crm-text-9xl)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: sp.ink,
             letterSpacing: -0.8,
             lineHeight: 1.1,
@@ -57,9 +57,7 @@ export function KwStepVigilance({ data, set }: Props) {
             fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
             color: sp.muted,
-            letterSpacing: 1,
-            textTransform: 'uppercase',
-            marginBottom: 12,
+                                    marginBottom: 12,
           }}
         >
           {t('wizard.vigilance.entityTypeLabel')}
