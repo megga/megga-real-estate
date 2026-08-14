@@ -8,8 +8,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, type NormalizedInboundMessage, type SendConfig, type SendResult, type StatusUpdate } from '../_shared/whatsapp-gateway.ts'
-import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
+import { getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, type NormalizedInboundMessage, type SendConfig, type StatusUpdate } from '../_shared/whatsapp-gateway.ts'
 import { resolveTriageAgencyId, ensureLeadForInboundPhone, triageLeadName, isTriageEligible } from '../_shared/whatsapp-lead-triage.ts'
 import { buildTemplateMessage, type WaTemplateContext, type WaTemplateKey } from '../_shared/whatsapp-templates.ts'
 import { extractPairingCode, isPairingCodeValid, parseConfirmation, isPendingActionValid, isUndoCommand, stageLabel } from '../_shared/whatsapp-agent-router.ts'
@@ -17,8 +16,6 @@ import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument, describeInboundMedia, ID_DOC_REDACTION_FR } from '../_shared/vision.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
-import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
-import { meggaProse } from '../_shared/megga-prose.ts'
 import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, executePublishToPortals, executeWithdrawFromPortals, executeDeleteContact, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 import { asWaLang, detectLang, refusalText, t, type WaLang, undoneStage, undoStateChanged, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
 import { detectStopRequest } from '../_shared/whatsapp-stop-keywords.ts'
@@ -226,7 +223,7 @@ serve(async (req) => {
       if ((recentGuesses?.length ?? 0) <= PAIRING_GUESS_LIMIT) {
         const { data: pending } = await admin
           .from('whatsapp_agent_links')
-          .select('id, agency_id, pairing_expires_at')
+          .select('id, profile_id, agency_id, pairing_expires_at')
           .eq('pairing_code', code)
           .eq('verified', false)
           .maybeSingle()
@@ -266,14 +263,17 @@ serve(async (req) => {
             })
           }
 
-          const sendConfig: SendConfig = {
-            metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
-            metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
-            metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
-          }
+          // SITE 6 — le lien vient de passer `verified=true` : la garde le voit, et son
+          // sujet dérivé sera bien 'profile'. La fenêtre est ouverte par construction (le
+          // code d'appairage vient d'arriver de ce numéro).
           const okMsg = '✅ Votre WhatsApp est lié à MEGGA. Posez-moi vos questions : « Mes RDV demain ? », « Résume le dossier Dubois »…'
-          const sreq = provider.buildSendTextRequest({ toPhone: msg.fromPhone, body: okMsg }, sendConfig)
-          try { await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) }) } catch { /* */ }
+          await sendOutboundGuarded({
+            admin, provider, to: msg.fromPhone,
+            purpose: 'service',
+            payload: { type: 'text', body: okMsg },
+            profileId: pending.profile_id, agencyId: pending.agency_id,
+            isAutomated: true,
+          })
 
           return new Response(JSON.stringify({ ok: true, routed: 'pairing' }), {
             status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -627,7 +627,14 @@ async function processAgentMessage(
       if (claimed && claimed.length > 0) {
         const undoReply = await rollbackAutoAction(admin, agentLink, last as UndoRow, lang)
         if (undoReply) {
-          await sendWhatsAppText(provider, msg.fromPhone, undoReply, { retry: true })
+          // SITE 7 — retry sûr : le destinataire est l'AGENT, un doublon y est inoffensif.
+          await sendOutboundGuarded({
+            admin, provider, to: msg.fromPhone,
+            purpose: 'service',
+            payload: { type: 'text', body: undoReply },
+            profileId: agentLink.profile_id, agencyId: agentLink.agency_id,
+            isAutomated: true, retry: true,
+          })
           return
         }
         // Rollback impossible OU outil sans branche : LIBÉRER le verrou pour ne pas brûler le
@@ -697,30 +704,21 @@ async function processAgentMessage(
     replyIsError = brain.isError
   }
 
-  // Envoi de la réponse à l'agent (fenêtre 24h ouverte) + log outbound + audit.
-  const sendConfig: SendConfig = {
-    metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
-    metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
-    metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
-  }
-  const outText = toWhatsAppText(meggaProse(reply)) // style maison (meggaProse) puis Markdown DeepSeek (**gras**) → WhatsApp (*gras*)
-  // Réponse AGENT-facing : retry court (réseau/5xx/429, jamais 131047). En tentative unique,
-  // la réponse du copilote était perdue au moindre aléa Meta ; un doublon vers l'agent est
-  // inoffensif. sendWhatsAppText applique meggaProse+toWhatsAppText (identique à outText).
-  const outId = (await sendWhatsAppText(provider, msg.fromPhone, reply, { retry: true })).providerMessageId
-
-  await admin.from('whatsapp_messages').upsert({
-    provider: provider.name,
-    provider_message_id: outId ?? `local-agent-${msg.providerMessageId}`,
-    direction: 'outbound',
-    wa_from: sendConfig.metaPhoneNumberId ?? 'megga',
-    wa_to: msg.fromPhone,
-    agency_id: agentLink.agency_id,
-    body: outText,
-    status: 'received',
-    is_agent_error: replyIsError,
-    is_automated: true, // réponse générée par le copilote (MEGGA→agent) : jamais du corpus de voix
-  }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
+  // Envoi de la réponse à l'agent (fenêtre 24 h ouverte) + audit.
+  // Retry court (réseau/5xx/429, jamais 131047) : en tentative unique, la réponse du
+  // copilote était perdue au moindre aléa Meta, et un doublon vers l'AGENT est inoffensif.
+  // La normalisation (meggaProse puis syntaxe WhatsApp) vit maintenant dans la garde.
+  // SITE 8 — la garde persiste elle-même le sortant : le double upsert qui vivait ici a
+  // disparu avec lui. `isAgentError` porte ce que l'alerte de livraison relit.
+  await sendOutboundGuarded({
+    admin, provider, to: msg.fromPhone,
+    purpose: 'service',
+    payload: { type: 'text', body: reply },
+    profileId: agentLink.profile_id, agencyId: agentLink.agency_id,
+    isAutomated: true, // réponse générée par le copilote (MEGGA→agent) : jamais du corpus de voix
+    isAgentError: replyIsError,
+    retry: true,
+  })
 
   try {
     await admin.from('activity_events').insert({
@@ -778,25 +776,6 @@ async function callAgentBrain(
 }
 
 // Envoi d'un texte WhatsApp à un numéro (fenêtre 24h requise, sinon template Meta).
-// Renvoie le SendResult complet : le provider_message_id, persisté sur les sortants
-// clients, est ce qui permet aux events `statuses` (applyStatusUpdates) de suivre la
-// livraison et d'alerter au premier failed — un envoi sans id est invisible à la boucle.
-// opts.retry : rejoue les erreurs transitoires (réseau/5xx/429, jamais 131047). À n'activer
-// que sur les envois AGENT-facing (réponse copilote, alerte, confirmation d'undo), où un
-// doublon est inoffensif. Les envois CLIENT (send_listings) restent en tentative unique
-// (défaut) : l'API Meta n'est pas idempotente → un retry pourrait doublonner côté client.
-async function sendWhatsAppText(
-  provider: ReturnType<typeof getProvider>, toPhone: string, body: string,
-  opts?: { retry?: boolean },
-): Promise<SendResult> {
-  const sendConfig: SendConfig = {
-    metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
-    metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
-    metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
-  }
-  const sreq = provider.buildSendTextRequest({ toPhone, body: toWhatsAppText(meggaProse(body)) }, sendConfig)
-  return sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b), { maxAttempts: opts?.retry ? 3 : 1 })
-}
 
 // ── Statuts de livraison (sent/delivered/read/failed) ──────────────────────
 // Applique les events `statuses` Meta aux SORTANTS. Monotone via allowedPriorStatuses :
@@ -883,7 +862,7 @@ async function notifyDeliveryFailure(
   if (row.contact_id && row.agency_id && !alreadyAlerted) {
     const { data: link } = await admin
       .from('whatsapp_agent_links')
-      .select('wa_number')
+      .select('wa_number, profile_id')
       .eq('agency_id', row.agency_id)
       .eq('verified', true)
       .limit(1)
@@ -903,7 +882,18 @@ async function notifyDeliveryFailure(
       // rendu à Meta sur les events `statuses`. Un retry (~25 s) retarderait l'ACK → Meta
       // rejouerait le webhook (voire throttlerait l'abonnement). L'alerte est best-effort
       // (alert_sent audité, re-tentée au prochain `failed` du lot) : tentative unique.
-      const res = await sendWhatsAppText(provider, waNumber, `⚠️ ${what} ${who} n'a pas été délivré${isPhoto ? 'e' : ''} : ${reason}.`)
+      // SITE 9 — ⚠ PIÈGE DE CLASSIFICATION. Ce site connaît un `row.contact_id` CLIENT,
+      // mais il écrit à un AGENT (`waNumber`). Passer ce contactId ferait juger l'envoi sur
+      // le consentement du client — et refuser d'avertir l'agent que SON message n'est pas
+      // passé. Le critère est le NUMÉRO DESTINATAIRE, jamais le sujet du message.
+      const res = await sendOutboundGuarded({
+        admin, provider, to: waNumber,
+        purpose: 'service',
+        payload: { type: 'text', body: `⚠️ ${what} ${who} n'a pas été délivré${isPhoto ? 'e' : ''} : ${reason}.` },
+        profileId: (link as { profile_id?: string | null } | null)?.profile_id ?? null,
+        agencyId: row.agency_id,
+        isAutomated: true,
+      })
       alertSent = res.ok
     }
   }
@@ -1117,7 +1107,10 @@ async function executePending(
     if (!contact || !contact.phone) return t(lang, 'contactNotFoundSend')
     const phone = String(contact.phone).replace(/\D/g, '')
     const tmsg = buildTemplateMessage(key, phone, await templateCtx(admin, agentLink, contactId), (k) => Deno.env.get(k))
-    if (!tmsg || !provider.buildSendTemplateRequest) return t(lang, 'sendFail24h')
+    // La capacité du provider n'est plus testée ici : la garde rend `unsupported_payload`
+    // si elle manque, et un `buildSend*Request` nommé hors de la gateway ferait rougir la
+    // porte CI de L6 pour rien.
+    if (!tmsg) return t(lang, 'sendFail24h')
     // SITE 1 — le seul envoi HORS fenêtre 24 h, donc le plus sensible du dépôt.
     // `new_listings` est du MARKETING : sans opt-in de base `consent`, la garde le refuse,
     // et c'est voulu — un template approuvé par Meta n'est pas un consentement de la personne.

@@ -10,12 +10,11 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
-import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getProvider } from '../_shared/whatsapp-gateway.ts'
+import { sendOutboundGuarded } from '../_shared/whatsapp-outbound-guard.ts'
 import { execRunKycScreening, execSendKycReport, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 import { asWaLang, asyncFailed } from '../_shared/whatsapp-i18n.ts'
-import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
-import { meggaProse } from '../_shared/megga-prose.ts'
 
 // Jobs lourds (~50-60s chacun) : on en réclame UN par tick. Le cron tourne chaque minute,
 // donc un backlog se draine à 1/min — largement suffisant pour du KYC déclenché par l'agent,
@@ -35,20 +34,33 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0
 }
 
-// Livraison d'un texte à l'AGENT seul (jamais au client). Isolée : un échec d'envoi Meta
-// est loggé mais ne propage pas (le job est déjà marqué — pas de re-traitement = pas de
-// double screening/PDF). No-op si numéro ou secrets Meta absents.
+// SITE 11 — livraison d'un texte à l'AGENT seul (jamais au client). Isolée : un échec
+// d'envoi Meta est loggé mais ne propage pas (le job est déjà marqué — pas de
+// re-traitement = pas de double screening/PDF).
+//
+// ⚠ Cette fonction est l'une des DEUX du dépôt qui ne vérifiaient PAS le kill-switch
+// (`whatsapp_enabled`) : couper MEGGA WhatsApp laissait donc partir les résultats KYC
+// async. Passer par la garde le corrige sans qu'aucun appelant ait à y penser.
+//
+// Retry court sur erreur transitoire (réseau/5xx/429) : sans lui la livraison du résultat
+// KYC était en tentative unique, donc perdue au moindre aléa Meta. Jamais sur 131047.
 async function sendToAgent(
-  provider: ReturnType<typeof getProvider>, cfg: SendConfig,
-  toPhone: string, body: string, metaToken: string, metaPhoneNumberId: string,
+  admin: SupabaseClient, provider: ReturnType<typeof getProvider>,
+  toPhone: string, body: string,
+  subject: { profileId: string; agencyId: string | null },
 ): Promise<void> {
-  if (!metaToken || !metaPhoneNumberId || !toPhone) return
-  // Retry court sur erreur transitoire (réseau/5xx/429) : la livraison du résultat KYC à
-  // l'agent est en tentative unique sinon → perdue au moindre aléa Meta. sendWithRetry ne
-  // rejoue jamais 131047 (fenêtre 24h) et ne lève pas (ce chemin reste best-effort).
-  const sreq = provider.buildSendTextRequest({ toPhone, body: toWhatsAppText(meggaProse(body)) }, cfg)
-  const sr = await sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b))
-  if (!sr.ok) console.error('wa-agent-async agent send not ok:', sr.error ?? 'error')
+  if (!toPhone) return
+  const sr = await sendOutboundGuarded({
+    admin, provider, to: toPhone,
+    purpose: 'service',
+    payload: { type: 'text', body },
+    profileId: subject.profileId, agencyId: subject.agencyId,
+    isAutomated: true, retry: true,
+  })
+  if (!sr.ok) {
+    console.error('wa-agent-async agent send not ok:',
+      ('error' in sr ? sr.error : sr.reason) ?? 'error')
+  }
 }
 
 serve(async (req) => {
@@ -66,11 +78,7 @@ serve(async (req) => {
 
   const t0 = Date.now()
   const overBudget = () => Date.now() - t0 > BUDGET_MS
-  const metaToken = Deno.env.get('META_WHATSAPP_TOKEN') ?? ''
-  const apiVersion = Deno.env.get('META_API_VERSION') ?? 'v22.0'
-  const metaPhoneNumberId = Deno.env.get('META_PHONE_NUMBER_ID') ?? ''
   const provider = getProvider('meta')
-  const sendCfg: SendConfig = { metaToken, metaPhoneNumberId, metaApiVersion: apiVersion }
 
   const { data: jobs, error } = await admin.rpc('claim_whatsapp_async_jobs', { p_batch: BATCH })
   if (error) return json({ error: error.message }, 500)
@@ -81,6 +89,10 @@ serve(async (req) => {
     const id = j.id as string
     const tool = j.tool as string
     const agentPhone = j.wa_agent_phone as string
+    const subject = {
+      profileId: j.profile_id as string,
+      agencyId: (j.agency_id as string | null) ?? null,
+    }
     const lang = asWaLang(j.lang)
     try {
       const ctx: ActionCtx = {
@@ -109,7 +121,7 @@ serve(async (req) => {
       // renvoie une chaîne d'erreur sans throw) — sinon l'agent resterait sans réponse après
       // l'ACK. Report en succès : kyc-report-pdf a déjà envoyé le PDF ; ce texte le confirme.
       // Isolée (sendToAgent ne propage pas) : le job reste 'done', pas de re-traitement.
-      await sendToAgent(provider, sendCfg, agentPhone, result, metaToken, metaPhoneNumberId)
+      await sendToAgent(admin, provider, agentPhone, result, subject)
       done++
     } catch (e) {
       const rc = ((j.retry_count as number) ?? 0) + 1
@@ -121,9 +133,8 @@ serve(async (req) => {
       }).eq('id', id)
       // Échec TERMINAL : prévenir l'agent (ne jamais le laisser sans réponse après l'ACK).
       if (isFinal) {
-        await sendToAgent(provider, sendCfg, agentPhone,
-          asyncFailed(lang, tool === 'run_kyc_screening' ? 'screening' : 'report'),
-          metaToken, metaPhoneNumberId)
+        await sendToAgent(admin, provider, agentPhone,
+          asyncFailed(lang, tool === 'run_kyc_screening' ? 'screening' : 'report'), subject)
       }
       failed++
     }

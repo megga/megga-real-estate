@@ -256,6 +256,23 @@ describe('sendOutboundGuarded — persistance et jeton d’accusé', () => {
     })
   })
 
+  it('isAgentError traverse jusqu’à la ligne — l’alerte de livraison le relit', async () => {
+    const h = harness()
+    await sendOutboundGuarded(baseArgs(h, { isAgentError: true, profileId: 'p-1', contactId: null }))
+    expect(h.upserted[0].row).toMatchObject({ is_agent_error: true, contact_id: null })
+  })
+
+  it('un payload document non supporté par le provider est une ERREUR, pas un refus', async () => {
+    // La distinction compte : « le provider ne sait pas » n'est pas « la personne a dit non ».
+    const h = harness()
+    const noDoc = { ...fakeProvider(), buildSendDocumentRequest: undefined } as unknown as WhatsAppProvider
+    const r = await sendOutboundGuarded(baseArgs(h, {
+      provider: noDoc, payload: { type: 'document', mediaId: 'M1', filename: 'r.pdf' },
+    }))
+    expect(r.ok).toBe(false)
+    expect((r as { blocked: boolean }).blocked).toBe(false)
+  })
+
   it('l’accusé de désinscription consomme son jeton, et SEULEMENT s’il est parti', async () => {
     const ok = harness({ verdict: { ...OK_VERDICT, reason: 'ok_opt_out_ack' } })
     await sendOutboundGuarded(baseArgs(ok, { purpose: 'opt_out_ack' }))

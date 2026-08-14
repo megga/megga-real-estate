@@ -24,10 +24,9 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
-import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
-import { meggaProse } from '../_shared/megga-prose.ts'
+import { getProvider } from '../_shared/whatsapp-gateway.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
+import { sendOutboundGuarded } from '../_shared/whatsapp-outbound-guard.ts'
 import {
   composeMorningBrief, zurichHour, zurichDayBoundsUtc, SQL_LIMITS,
   type BriefVisit, type BriefReminder, type BriefOffer, type BriefSellerLead,
@@ -197,11 +196,6 @@ serve(async (req) => {
   const metaPhoneNumberId = Deno.env.get('META_PHONE_NUMBER_ID') ?? ''
   if (!dryRun && (!metaToken || !metaPhoneNumberId)) return json({ ok: true, skipped: 'meta_env_missing' }, 200)
   const provider = getProvider('meta')
-  const sendCfg: SendConfig = {
-    metaToken, metaPhoneNumberId,
-    metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
-  }
-
   const { data: links, error: linksErr } = await admin
     .from('whatsapp_agent_links')
     .select('profile_id, wa_number, agency_id, profile:profiles(full_name, agency_id, spoken_languages, deleted_at)')
@@ -284,21 +278,20 @@ serve(async (req) => {
     }
     if (!claimed) { skippedDup++; continue }
 
-    const outText = toWhatsAppText(meggaProse(text))
-    let outId: string | null = null
-    let sendOk = false
-    try {
-      const sreq = provider.buildSendTextRequest({ toPhone: link.wa_number, body: outText }, sendCfg)
-      const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-      const sbody = await sres.json().catch(() => ({}))
-      const parsed = provider.parseSendResult(sres.status, sbody)
-      sendOk = parsed.ok
-      outId = parsed.providerMessageId
-      if (!parsed.ok) console.error('morning-brief send not ok:', sres.status, parsed.error ?? '')
-    } catch (e) {
-      console.error('morning-brief send failed:', (e as Error)?.name ?? 'error')
-    }
-    if (!sendOk) {
+    // SITE 10 — `scope:'daily_brief'` est ce qui rend le toggle du brief SIGNIFIANT : sans
+    // lui, un agent qui coupe son brief couperait aussi son copilote, son PDF KYC et ses
+    // résultats async. Le brief part en TEXTE LIBRE, donc il dépend de la fenêtre 24 h avec
+    // l'agent — hors fenêtre, la garde le refuse AVANT le POST au lieu de le laisser
+    // échouer en 131047 après. Même résultat pour l'agent, mais désormais VISIBLE dans
+    // activity_events : il faut s'attendre à voir apparaître ces refus.
+    const briefSent = await sendOutboundGuarded({
+      admin, provider, to: link.wa_number,
+      purpose: 'service', scope: 'daily_brief',
+      payload: { type: 'text', body: text },
+      profileId: link.profile_id, agencyId,
+      isAutomated: true, // brief quotidien généré (vers l'agent) : jamais du corpus de voix
+    })
+    if (!briefSent.ok) {
       // Échec (dont 131047 fenêtre 24h fermée) : silencieux côté agent, claim relâché
       // pour que le tick filet ou un déclenchement manuel du jour reste possible.
       await admin.from('whatsapp_daily_briefs').delete()
@@ -312,21 +305,6 @@ serve(async (req) => {
     await admin.from('whatsapp_daily_briefs')
       .update({ confirmed_at: new Date().toISOString() })
       .eq('profile_id', link.profile_id).eq('brief_date', dateKey)
-
-    // Journaliser le sortant dans le fil copilote (mêmes colonnes que la réponse
-    // copilote du webhook) : visible CRM, repris par la mémoire C1 du cerveau.
-    await admin.from('whatsapp_messages').upsert({
-      provider: provider.name,
-      provider_message_id: outId ?? `local-brief-${link.profile_id}-${dateKey}`,
-      direction: 'outbound',
-      wa_from: metaPhoneNumberId,
-      wa_to: link.wa_number,
-      agency_id: agencyId,
-      body: outText,
-      status: 'received',
-      is_agent_error: false,
-      is_automated: true, // brief quotidien généré (vers l'agent) : jamais du corpus de voix
-    }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
 
     try {
       await admin.from('activity_events').insert({

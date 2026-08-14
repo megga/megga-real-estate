@@ -38,7 +38,7 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "whatsapp consen
 - [x] **L1** — les 7 migrations du §1 + banc backend (forme des tables, 12 motifs de la RPC, EXPLAIN, `count(pg_proc)=2`). Rien en production. *(livré — voir §7)*
 - [x] **L2** — le STOP : 3 points d'interception, `whatsapp-stop-keywords.ts`, accusé LPD 4 langues, `stop_handled_at`. *(livré — voir §7)*
 - [x] **L3** — `whatsapp-outbound-guard.ts` + câblage des **5 chemins CLIENT** (sites 1–5). *(livré — voir §9)*
-- [ ] **L4** — câblage des **7 chemins AGENT** (sites 6–12) + `set_morning_brief_enabled`.
+- [x] **L4** — câblage des **7 chemins AGENT** (sites 6–12) + `set_morning_brief_enabled`. *(livré — voir §10)*
 - [ ] **L5** — UI CRM : état du consentement sur la fiche contact, « Envoyer » grisé avec motif, geste « ne plus contacter ».
 - [ ] **L6** — portes CI (4 règles du §5) + réconciliation nocturne cache↔registre.
 
@@ -1318,3 +1318,56 @@ sur `executePending` reste à écrire.
 
 Les 7 chemins AGENT (sites 6–12) restent NON gardés — c'est le périmètre de L4. Le
 kill-switch reste donc percé sur `whatsapp-agent-async` et `kyc-report-pdf`.
+
+---
+
+## 10. JOURNAL D'IMPLÉMENTATION — L4 (14.08.2026)
+
+### Ce qui a été livré
+
+Les 7 chemins AGENT câblés (sites 6–12). **Il ne reste AUCUN `provider.buildSend*Request`
+ni `sendWithRetry` hors de la gateway et de la garde** — vérifié par grep, c'est la propriété
+que la porte CI de L6 figera.
+
+Conséquences directes :
+- le **kill-switch est enfin global** : `whatsapp-agent-async` et `kyc-report-pdf`, les deux
+  seules fonctions qui ne le vérifiaient pas, passent par la garde qui le vérifie pour elles ;
+- `kyc-report-pdf` **cesse d'accepter un `to_phone` arbitraire** : `profile_id` était déjà
+  dans le corps mais n'était pas utilisé pour valider le numéro. La garde exige désormais un
+  `whatsapp_agent_links` vérifié — un numéro de CLIENT, même dans sa fenêtre 24 h, ne peut
+  plus recevoir le rapport KYC d'un agent ;
+- le toggle du brief **ne coupe que le brief** (`scope:'daily_brief'` sur le site 10).
+
+Code mort emporté : `sendWhatsAppText`, `sendWhatsAppImage`, `sendCfg`/`sendConfig` locaux,
+et les imports de `sendWithRetry`, `toWhatsAppText`, `meggaProse` devenus inutiles dans
+quatre fonctions.
+
+### Écarts et découvertes
+
+1. **`set_morning_brief_enabled` n'avait AUCUN `UPDATE` PostgREST à remplacer.** Le plan le
+   présente comme un remplacement ; un grep sur tout le dépôt ne trouve aucun écrivain de
+   `morning_brief_enabled` hors du cron (lecture) et de la RPC elle-même. La RPC posée en L1
+   est donc déjà l'unique chemin, et l'UI qui l'appellera appartient à L5. Rien à faire ici.
+   ⚠ Reste ouvert : la policy `wa_agent_links_self` étant `FOR ALL`, un agent PEUT encore
+   basculer la colonne en direct via PostgREST, ce qui laisserait le registre sans sa ligne.
+   Le verrouiller demande de toucher une policy que l'appairage utilise aussi — à trancher,
+   pas à improviser.
+2. **`sendStopAck` construisait encore sa requête à la main.** Écrit en L2 avec la note « à
+   l'arrivée de la garde, ces trois appels deviennent un seul `sendOutboundGuarded` », puis
+   oublié en L3 : l'accusé de désinscription était le DERNIER envoi client hors garde.
+   Corrigé — la garde arbitre, envoie, persiste et consomme `ack_sent_at`.
+   `requireWindow:false` : l'accusé est une obligation d'information, pas un message de
+   service ; le pré-refuser sur la fenêtre le ferait disparaître sans trace.
+3. **Site 9 — le piège de classification traité explicitement.** L'alerte d'échec connaît un
+   `contact_id` CLIENT mais écrit à un AGENT. Passer ce contactId aurait fait juger l'envoi
+   sur le consentement du client, donc refuser d'avertir l'agent que SON message n'est pas
+   passé. Le critère est le numéro destinataire, jamais le sujet du message.
+4. **`isAgentError` ajouté à la garde** : l'alerte de livraison relit cette colonne, et le
+   site 8 était le seul à la poser.
+
+### ⛔ Ce qui reste non vérifié
+
+Même dette qu'en L3, désormais étendue aux sept chemins agent : aucun banc n'exerce les
+sites eux-mêmes. La garde est testée en isolation (19 tests), le câblage est type-checké,
+mais que chaque site lui passe les bons arguments — en particulier `profileId` et NON
+`contactId` au site 9 — n'est prouvé par rien d'autre que la relecture.

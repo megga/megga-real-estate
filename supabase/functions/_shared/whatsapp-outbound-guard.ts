@@ -65,6 +65,8 @@ export interface SendOutboundArgs {
   scope?: 'all' | 'daily_brief'
   sentByProfileId?: string | null
   isAutomated?: boolean
+  /** Parité colonne `whatsapp_messages.is_agent_error` — lue par l'alerte de livraison. */
+  isAgentError?: boolean
   retry?: boolean
   /** Défaut TRUE pour tout payload non-template. Fail-closed. */
   requireWindow?: boolean
@@ -270,6 +272,7 @@ export async function sendOutboundGuarded(a: SendOutboundArgs): Promise<SendOutb
       status: 'received',
       sent_by_profile_id: a.sentByProfileId ?? null,
       is_automated: a.isAutomated ?? false,
+      is_agent_error: a.isAgentError ?? false,
     }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
   } catch (e) {
     // Le message EST parti : ne pas le trahir en rendant un échec. On journalise et on rend ok.

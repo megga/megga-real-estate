@@ -8,10 +8,7 @@
 // La détection, elle, vit à part (`whatsapp-stop-keywords.ts`) et reste PURE.
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { getProvider, type SendConfig } from './whatsapp-gateway.ts'
-import { sendWithRetry } from './whatsapp-retry.ts'
-import { toWhatsAppText } from './whatsapp-format.ts'
-import { meggaProse } from './megga-prose.ts'
+import { sendOutboundGuarded } from './whatsapp-outbound-guard.ts'
 import { buildStopAck } from './whatsapp-stop-ack.ts'
 import { resolveStopLang, type StopLang } from './whatsapp-stop-keywords.ts'
 
@@ -88,10 +85,10 @@ export async function recordAgentBriefOptOut(
 /**
  * Envoie l'accusé de désinscription, qui porte l'avis LPD.
  *
- * ⚠ C'est `whatsapp_send_allowed(purpose:'opt_out_ack')` qui arbitre, PAS ce code : la RPC
- * exige une suppression active et un `ack_sent_at` vide. Le plafond est donc l'unicité de
- * la ligne de suppression, en base, hors d'atteinte d'un appelant distrait. À l'arrivée de
- * la garde d'envoi (L3), ces trois appels deviennent un seul `sendOutboundGuarded`.
+ * ⚠ C'est la GARDE qui arbitre, PAS ce code : elle interroge `whatsapp_send_allowed` avec
+ * `purpose:'opt_out_ack'`, qui exige une suppression active, née d'une demande de la
+ * personne, et un `ack_sent_at` vide — puis consomme ce jeton si et seulement si l'envoi
+ * est parti. Le plafond vit donc en base, hors d'atteinte d'un appelant distrait.
  *
  * ⛔ NE JETTE JAMAIS : appelé en tâche de fond, après l'ACK 200 rendu à Meta.
  */
@@ -100,22 +97,6 @@ export async function sendStopAck(
   s: StopSubject & { langHint: StopLang | null },
 ): Promise<void> {
   try {
-    const metaToken = Deno.env.get('META_WHATSAPP_TOKEN')
-    const metaPhoneNumberId = Deno.env.get('META_PHONE_NUMBER_ID')
-    if (!metaToken || !metaPhoneNumberId) return
-
-    const { data: verdicts, error: vErr } = await admin.rpc('whatsapp_send_allowed', {
-      p_wa_phone: s.phone, p_purpose: 'opt_out_ack',
-      p_contact_id: s.contactId, p_agency_id: s.agencyId,
-    })
-    if (vErr) throw new Error(vErr.message)
-    const v = (verdicts as Array<{ allowed: boolean; reason: string }> | null)?.[0]
-    if (!v?.allowed) {
-      // `ack_already_sent` est le cas NOMINAL d'un second STOP : on ne réécrit pas.
-      console.warn('whatsapp stop: accusé non envoyé,', v?.reason ?? 'verdict absent')
-      return
-    }
-
     // Qui traite, et dans quelle langue. Deux lectures, toutes deux facultatives : sans
     // agence on nomme MEGGA, sans langue déclarée on retombe sur celle du mot-clé.
     const [agency, contact] = await Promise.all([
@@ -132,26 +113,24 @@ export async function sendStopAck(
       lang, agencyName: (agency.data as { name?: string | null } | null)?.name ?? null,
     })
 
-    const provider = getProvider('meta')
-    const cfg: SendConfig = {
-      metaToken, metaPhoneNumberId,
-      metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
-    }
-    const req = provider.buildSendTextRequest(
-      { toPhone: s.phone, body: toWhatsAppText(meggaProse(body)) }, cfg)
-    // Même profil que l'avis LPD : l'accusé va au CLIENT et l'API Meta n'est pas
-    // idempotente. On ne rejoue QUE les refus de quota (rejetés avant mise en file, donc
-    // sûrs), jamais un 5xx ni un timeout — ambigus, Meta a peut-être livré.
-    const sr = await sendWithRetry(req, (st, b) => provider.parseSendResult(st, b),
-      { maxAttempts: 2, timeoutMs: 6000, retryNetworkError: false })
-
-    if (!sr.ok) {
-      // On ne consomme PAS ack_sent_at : rien ne rejoue cet envoi, et un second STOP de la
-      // même personne doit pouvoir obtenir l'accusé qu'elle n'a pas reçu.
-      console.error('whatsapp stop: envoi de l’accusé échoué:', String(sr.error ?? 'error').slice(0, 80))
+    // ⚠ `requireWindow:false` : l'accusé est une obligation d'information, pas un message
+    // de service. Le pré-refuser sur la fenêtre le ferait disparaître sans que personne ne
+    // le sache ; le laisser partir fait trancher Meta, et un refus de sa part laisse
+    // `ack_sent_at` vide, donc le rattrapage du cron réessaie dans les 24 h.
+    const sent = await sendOutboundGuarded({
+      admin, to: s.phone,
+      purpose: 'opt_out_ack',
+      payload: { type: 'text', body },
+      contactId: s.contactId, agencyId: s.agencyId,
+      isAutomated: true, requireWindow: false,
+    })
+    if (!sent.ok) {
+      // `ack_already_sent` et `ack_not_requested` sont NOMINAUX : le rattrapage du cron
+      // repasse sur des suppressions déjà servies, et la garde les écarte en base.
+      console.warn('whatsapp stop: accusé non envoyé,',
+        ('error' in sent ? sent.error : sent.reason) ?? 'motif absent')
       return
     }
-    await admin.rpc('mark_suppression_ack_sent', { p_wa_phone: s.phone })
 
     // L'accusé A PORTÉ l'avis LPD. `whatsapp_pending_notices` exclut déjà les numéros
     // bloqués, mais cette ligne survit à une LEVÉE de la suppression : sans elle, un
