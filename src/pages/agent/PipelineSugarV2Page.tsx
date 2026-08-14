@@ -27,6 +27,7 @@
  * dupliquerait la machine à états mesurerait sa copie.
  */
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -571,23 +572,16 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
   // ── État vide partagé (2 variantes) ─────────────────────────────────
   const pipeHasAnyActive = localDeals.some(d => !d.archived && !d.won && d.stage !== 'lost')
   const pipeEmptyCard = (
-    <div style={{
-      pointerEvents: 'auto', textAlign: 'center', background: sp.cardBg, borderRadius: 22,
-      boxShadow: sp.shadow, padding: '34px 46px', maxWidth: 380,
-      animation: 'sugar-fade-up .4s cubic-bezier(.2,.8,.2,1) both',
-    }}>
-      <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.4, color: sp.ink }}>
-        {pipeHasAnyActive ? t('board.emptyState.filtered.title') : t('board.emptyState.none.title')}
-      </div>
-      <p style={{ margin: '9px 0 0', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: sp.ink, lineHeight: 1.55 }}>
-        {pipeHasAnyActive ? t('board.emptyState.filtered.body') : t('board.emptyState.none.body')}
-      </p>
-      <button
-        onClick={pipeHasAnyActive ? resetFilters : () => { setNewDealPrefill(null); setNewDealOpen(true) }}
-        style={{
-          marginTop: 20, height: 42, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer',
-          background: sp.accent, color: sp.accentInk, fontWeight: 600, fontSize: 'var(--crm-text-md)', fontFamily: 'inherit',
-        }}>{pipeHasAnyActive ? t('board.emptyState.filtered.cta') : t('new_deal')}</button>
+    <div style={{ pointerEvents: 'auto', maxWidth: 380 }}>
+      <EtatVide
+        dark={dark}
+        titre={pipeHasAnyActive ? t('board.emptyState.filtered.title') : t('board.emptyState.none.title')}
+        corps={pipeHasAnyActive ? t('board.emptyState.filtered.body') : t('board.emptyState.none.body')}
+        action={{
+          libelle: pipeHasAnyActive ? t('board.emptyState.filtered.cta') : t('new_deal'),
+          onClick: pipeHasAnyActive ? resetFilters : () => { setNewDealPrefill(null); setNewDealOpen(true) },
+        }}
+      />
     </div>
   )
 

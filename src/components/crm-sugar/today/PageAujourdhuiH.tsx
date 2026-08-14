@@ -18,6 +18,7 @@
 // ⚠️ Données de démonstration (`./dataH`). Le câblage Supabase est le « Lot 0 »
 // du handoff : le payload remplace les constantes, les composants ne bougent pas.
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, type ReactNode } from 'react'
@@ -191,15 +192,13 @@ function HlAbsenceOverlay({ groups, total, sinceLabel, onSignal, onClose, onClea
               {g.items.map((s, i) => row(<HlSignalCard s={s} onCta={onSignal} first={i === 0} />, s.id))}
             </div>
           )) : (
-            <div className="hl-abs-row" style={{ margin: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--crm-space-2xl)', padding: '28px 24px 40px' }}>
-              <span style={{ width: 56, height: 56, borderRadius: 'var(--crm-radius-pill)', background: TK.ok.bg, display: 'grid', placeItems: 'center' }}>
-                <RXIcon name="check" size={26} sw={2.3} color={TK.ok.dot} />
-              </span>
-              <div>
-                <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, color: TK.ink }}>{t('today.h.absence.emptyTitle')}</div>
-                <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: TK.sub, marginTop: 5, lineHeight: 1.5, maxWidth: 264 }}>{t('today.h.absence.emptyDesc')}</div>
-              </div>
-            </div>
+            <EtatVide
+              dark={TK.mode !== 'light'}
+              registre="aJour"
+              glyphe={<RXIcon name="check" size={26} sw={2.1} />}
+              titre={t('today.h.absence.emptyTitle')}
+              corps={t('today.h.absence.emptyDesc')}
+            />
           )}
         </div>
         {total > 0 && (
@@ -341,13 +340,18 @@ function HlDay({ day, selId, onSel }: {
 // Un segment sans contenu doit le DIRE. Sans ça, « 0 chaud » surplombe un vide
 // qu'on ne sait pas lire : rien à traiter, ou rien qui charge ?
 function HlZoneEmpty({ label }: { label: string }) {
+  // Registre « à jour » : la coche verte disait déjà « tu es à jour », mais par
+  // une PASTILLE. La direction le fait dire par l'encre du titre — voir le
+  // JSDoc d'`EtatVide`, qui explique pourquoi ce registre n'est pas dans la
+  // vitrine et pourquoi on le garde quand même.
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) var(--crm-space-2xs) var(--crm-space-2xs)' }}>
-      <span style={{ width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', background: TK.ok.bg, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-        <RXIcon name="check" size={15} sw={2.4} color={TK.ok.dot} />
-      </span>
-      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: TK.sub, lineHeight: 1.4 }}>{label}</span>
-    </div>
+    <EtatVide
+      dark={TK.mode !== 'light'}
+      forme="ligne"
+      registre="aJour"
+      glyphe={<RXIcon name="check" size={16} sw={2.2} />}
+      titre={label}
+    />
   )
 }
 
@@ -696,16 +700,13 @@ export function PageAujourdhuiH() {
             <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub, fontVariantNumeric: 'tabular-nums' }}>{t('today.h.appointments', { count: day.blocks.length })}</span>
           </div>
           {!isLoading && !day.blocks.length ? (
-            <div className="hl-dossier" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-xl)', textAlign: 'center', padding: '0 24px 40px' }}>
-              <span style={{ width: 48, height: 48, borderRadius: 'var(--crm-radius-pill)', background: TK.card, display: 'grid', placeItems: 'center' }}>
-                <RXIcon name="cal" size={22} sw={2.1} color={TK.sub} />
-              </span>
-              <div>
-                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.3, color: TK.ink }}>{t('today.h.day.emptyTitle')}</div>
-                <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: TK.sub, marginTop: 5, lineHeight: 1.5, maxWidth: 240 }}>{t('today.h.day.emptyDesc')}</div>
-              </div>
-            </div>
-          ) : (
+                <EtatVide
+                  dark={TK.mode !== 'light'}
+                  glyphe={<RXIcon name="cal" size={26} sw={1.9} />}
+                  titre={t('today.h.day.emptyTitle')}
+                  corps={t('today.h.day.emptyDesc')}
+                />
+              ) : (
             <HlDay day={day} selId={pop && pop.b ? pop.b.id : null} onSel={(id, el) => { setWhatsNew(false); openPop(id, el) }} />
           )}
         </div>
@@ -773,12 +774,13 @@ export function PageAujourdhuiH() {
                     {teaser.map((s, i) => <HlSignalCard key={s.id} s={s} onCta={onSignal} first={i === 0} />)}
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-xs) var(--crm-space-2xs) var(--crm-space-2xs)' }}>
-                    <span style={{ width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', background: TK.ok.bg, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-                      <RXIcon name="check" size={15} sw={2.4} color={TK.ok.dot} />
-                    </span>
-                    <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: TK.sub, lineHeight: 1.4 }}>{sinceLabel ? t('today.h.absence.upToDateInline', { since: sinceLabel }) : t('today.h.absence.emptyDesc')}</span>
-                  </div>
+                  <EtatVide
+                    dark={TK.mode !== 'light'}
+                    forme="ligne"
+                    registre="aJour"
+                    glyphe={<RXIcon name="check" size={16} sw={2.2} />}
+                    titre={sinceLabel ? t('today.h.absence.upToDateInline', { since: sinceLabel }) : t('today.h.absence.emptyDesc')}
+                  />
                 )}
               </div>
             </>

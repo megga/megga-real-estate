@@ -157,7 +157,7 @@ const ZONES: RootSpec[] = [
   // portée sans que personne l'ait regardée. Mesuré avant d'écrire la zone.
   {
     root: 'src/components/crm-sugar',
-    keep: (n) => ['SugarShell.tsx', 'LiquidGlassRail.tsx', 'tokens.ts'].includes(n),
+    keep: (n) => ['SugarShell.tsx', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx'].includes(n),
     keepPath: (p) => p.split('/').length === 4,
   },
   // Le chrome rendu par les 27 surfaces du CRM (lot 1 du chantier « CRM agent »,

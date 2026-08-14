@@ -7,6 +7,7 @@
 // « À suivre ». En-tête + toolbar épinglés ; contenu scrollable (le pager laisse
 // le scroll interne l'emporter avant de changer de page).
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -131,25 +132,14 @@ export function BpTopGallery({
       {/* Contenu (scrollable) */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '6px 34px 30px' }}>
         {filtered.length === 0 ? (
-          <div style={{ background: surf.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: surf.shadow, border: surf.hairline, padding: '64px 20px', textAlign: 'center' }}>
-            <div style={{ width: 56, height: 56, borderRadius: 'var(--crm-radius-pill)', margin: '0 auto 14px', background: surf.cardSub, display: 'grid', placeItems: 'center' }}>
-              <MEIcon name={isError ? 'alert' : 'home'} size={22} color={isError ? '#E53935' : sp.sub} />
-            </div>
-            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>
-              {isError ? t('biens.error.title') : isLoading ? t('biens.loading') : t('biens.empty.noMatch')}
-            </div>
-            {isError && (
-              <>
-                <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, marginTop: 6, lineHeight: 1.5 }}>{t('biens.error.message')}</div>
-                <button
-                  onClick={() => refetch()}
-                  style={{ marginTop: 14, height: 34, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', background: surf.card, color: sp.ink, border: surf.hairline, boxShadow: surf.shadow, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}
-                >
-                  <MEIcon name="refresh" size={13} color={sp.soft} /> {t('biens.error.retry')}
-                </button>
-              </>
-            )}
-          </div>
+          <EtatVide
+            dark={dark}
+            registre={isError ? 'erreur' : 'neutre'}
+            glyphe={<MEIcon name={isError ? 'alert' : 'home'} size={24} />}
+            titre={isError ? t('biens.error.title') : isLoading ? t('biens.loading') : t('biens.empty.noMatch')}
+            corps={isError ? t('biens.error.message') : undefined}
+            action={isError ? { libelle: t('biens.error.retry'), onClick: () => { void refetch() } } : undefined}
+          />
         ) : view === 'galerie' ? (
           <div className="bpg-grid">
             {filtered.map((b) => (

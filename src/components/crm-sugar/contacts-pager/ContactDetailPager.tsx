@@ -16,6 +16,7 @@
 // composant remplit le <main> avec le viewport. AUCUN appel Supabase : le parent
 // fournit les données normalisées + les callbacks de persistance.
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import {
   useCallback, useEffect, useLayoutEffect, useRef, useState,
   type ReactNode, type ReactElement, type CSSProperties, type MutableRefObject,
@@ -1283,7 +1284,7 @@ function CdLinks({ P, dark, links, freezeRef, onRevokeLink }: {
       ) : links.failed ? (
         <div role="alert" style={{ padding: 'var(--crm-space-3xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: P.danger }}>{t('fiche.links.failed')}</div>
       ) : links.items.length === 0 ? (
-        <div style={{ padding: 'var(--crm-space-3xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{t('fiche.links.empty')}</div>
+        <EtatVide dark={dark} titre={t('fiche.links.empty')} />
       ) : links.items.map((l, i) => {
         const state = l.status ? LINK_STATE[l.status] : null
         const channel = l.channel === 'whatsapp' ? t('fiche.links.channel.whatsapp')
@@ -1428,7 +1429,7 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
                 <span onClick={onOpenMatching} style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: P.muted, cursor: 'pointer' }}>{t('fiche.loop.openInMatching')}</span>
               </div>
               {loop.items.length === 0 ? (
-                <div style={{ padding: 'var(--crm-space-5xl) var(--crm-space-2xs)', fontSize: 'var(--crm-text-md)', fontWeight: 500, color: P.muted }}>{t('loop.empty')}</div>
+                <EtatVide dark={dark} titre={t('loop.empty')} />
               ) : loop.items.map((m, i) => {
                 const out = m.state === 'dismissed'
                 return (

@@ -15,6 +15,7 @@
 //  - la porte écrit l'objectif via useAgencyTargets().saveYearly (RPC analytics_set_target),
 //    PAS en localStorage (l'ancien 'megga-analytics-target' a été supprimé).
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useState, useEffect, useRef, useLayoutEffect, type CSSProperties, type ReactNode } from 'react'
@@ -24,7 +25,7 @@ import { useAgencyTargets } from '@/hooks/useAgencyTargets'
 import AxGate from './AxGate'
 import AxFirstRun from './AxFirstRun'
 import {
-  useAX, axCHF, axShort, axPace, type AxPeriodId, type AxPeriodData,
+  useAX, useAxDark, axCHF, axShort, axPace, type AxPeriodId, type AxPeriodData,
   type AxBucketId, type AxBucket,
 } from './tokens'
 
@@ -381,6 +382,7 @@ function AxfChartCard({ d, acc, dark, seg }: { d: AxPeriodData; acc: AxfAccent; 
 // ═══════════════════════════════════════════════════════════════════════════
 export interface AxDrill { bucket: AxBucketId; rect: DOMRect }
 function AxfCompositionCard({ d, acc, dark, onDrill }: { d: AxPeriodData; acc: AxfAccent; dark: boolean; onDrill: (x: AxDrill) => void }) {
+  const axDark = useAxDark()
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
   const total = d.composition.reduce((s, c) => s + c.v, 0)
@@ -392,9 +394,7 @@ function AxfCompositionCard({ d, acc, dark, onDrill }: { d: AxPeriodData; acc: A
     <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl) var(--crm-space-5xl)', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.composition.title')}</h3>
       {total === 0 ? (
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: A.muted }}>
-          {tr('analytics.composition.empty')}
-        </div>
+        <EtatVide dark={axDark} titre={tr('analytics.composition.empty')} />
       ) : (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 14 }}>
           {d.composition.map((c, i) => {

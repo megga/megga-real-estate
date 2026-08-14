@@ -108,6 +108,14 @@ export const AX_DARK: AxTheme = {
 export const AXCtx = createContext<AxTheme>(AX)
 export const useAX = (): AxTheme => useContext(AXCtx)
 
+/**
+ * Le THÈME de la palette Analytics, qu'elle ne publiait pas — dérivé, pas
+ * deviné : la branche claire est la seule dont la carte est le blanc pur. Un
+ * composant qui a besoin du THÈME (et non d'une couleur) le relisait sinon
+ * ailleurs, ce qui fait deux sources pour un seul fait.
+ */
+export const useAxDark = (): boolean => useContext(AXCtx).card !== AX.card
+
 // ── Formatters ───────────────────────────────────────────────────────────────
 // fr-CH sépare les milliers par U+202F (espace fine insécable) : \s le couvre
 // déjà. Ne pas réintroduire le caractère en clair — invisible en relecture.

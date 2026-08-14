@@ -10,6 +10,7 @@
 // (MrhExtDetail) et la vue Carte arrivent en incrément C (clic carte → portail
 // pour l'instant). « Proches des critères » aussi.
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -590,15 +591,12 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
               <button onClick={() => refetch()} style={{ marginTop: 16, height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{t('recherche.retry')}</button>
             </div>
           ) : strict.length === 0 ? (
-            <div style={{ background: surf.card, borderRadius: 20, boxShadow: surf.shadow, border: surf.hairline, padding: '48px 24px', textAlign: 'center', maxWidth: 540, margin: '12px auto 0', animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
-              <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.3 }}>{biens.length ? t('recherche.empty.title') : t('recherche.empty.noMarket')}</div>
-              {rescue ? (
-                <>
-                  <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 500, marginTop: 8 }}>{t('recherche.empty.rescue', { count: rescue.n, label: rescue.tok.label })}</div>
-                  <button onClick={() => removeTok(rescue.tok)} style={{ marginTop: 18, height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{t('recherche.empty.rescueCta')}</button>
-                </>
-              ) : null}
-            </div>
+            <EtatVide
+              dark={dark}
+              titre={biens.length ? t('recherche.empty.title') : t('recherche.empty.noMarket')}
+              corps={rescue ? t('recherche.empty.rescue') : undefined}
+              action={rescue ? { libelle: t('recherche.empty.rescueCta'), onClick: () => removeTok(rescue.tok) } : undefined}
+            />
           ) : (
             <>
               <MrhGrid items={strict} reasonFor={reasonFor} ctx={ctx} />

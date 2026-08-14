@@ -6,6 +6,7 @@
 // détail (modale éditoriale), lightbox galerie, overlay « tout le catalogue ».
 // Quick wins : état « Proposé » persistant, filtres quantifiés, tri.
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -920,7 +921,7 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
 
         {/* grille */}
         {list.length === 0 ? (
-          <div style={{ flex: 1, display: 'grid', placeItems: 'center', color: TK.sub, fontSize: 'var(--crm-text-xl)' }}>{t('today.catalogue.empty')}</div>
+          <EtatVide dark={lightMode === false} titre={t('today.catalogue.empty')} />
         ) : (
           <div style={{ flex: 1, minHeight: 0, display: 'grid',
             gridTemplateColumns: '1.55fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>

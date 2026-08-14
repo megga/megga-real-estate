@@ -179,6 +179,17 @@ export function buildKycPalette(
 // hors d'un provider (tests, Storybook, anciennes pages) reste fonctionnel.
 export const KycPaletteContext = createContext<KycPalette>(KYC_LIGHT)
 
+/**
+ * Le THÈME de la palette KYC, qu'elle ne publiait pas.
+ *
+ * ⚠ Dérivé, pas deviné : la branche claire est la seule dont la carte est le
+ * blanc pur. Un composant qui a besoin du thème (et non d'une couleur) devait
+ * jusqu'ici le relire dans le stockage — deux sources pour un seul fait.
+ */
+export function useKycDark(): boolean {
+  return useContext(KycPaletteContext).card !== KYC_LIGHT.card
+}
+
 export function useKycPalette(): KycPalette {
   return useContext(KycPaletteContext)
 }

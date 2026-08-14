@@ -13,6 +13,7 @@
  * Libellés de dates via Intl (langue active), plus de tables FR codées en dur.
  */
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CRM_STAGES, SG_STAGE_HUE, crmFmtCHF, crmInitials, type SugarPalette, sgVoileEncre } from '../tokens'
@@ -326,10 +327,7 @@ export function PipelineTimeline({ sp, dark, deals, onOpenDeal, onReschedule }: 
       </div>
 
       {cRows.length === 0 && (
-        <div style={{
-          background: surface, borderRadius: 'var(--crm-radius-5xl)', boxShadow: sp.shadow,
-          padding: '40px 18px', textAlign: 'center', fontSize: 'var(--crm-text-lg)', color: sp.sub,
-        }}>{t('timeline.emptySearch')}</div>
+        <EtatVide dark={dark} titre={t('timeline.emptySearch')} />
       )}
 
       {tlGroups.map(g => {

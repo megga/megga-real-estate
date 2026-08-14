@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v2 — Notifications popover anchored on the topbar bell.
 // 1:1 port from the Claude Design bundle (crm-notifications.jsx — SugarNotificationsPopover).
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { sgVoileEncre, type SugarPalette } from '../tokens'
@@ -250,15 +251,11 @@ export default function SugarNotificationsPopover({
         {/* Liste */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)', maxHeight: 420, overflowY: 'auto' }}>
           {top.length === 0 && (
-            <div style={{ padding: '32px 16px', textAlign: 'center', color: sp.sub, fontSize: 'var(--crm-text-md)' }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: 'var(--crm-radius-pill)', background: sp.cardSubBg,
-                display: 'grid', placeItems: 'center', margin: '0 auto 10px',
-              }}>
-                <MEIcon name="bell" size={18} color={sp.sub} />
-              </div>
-              {t('notifications.empty')}
-            </div>
+            <EtatVide
+              dark={dark}
+              glyphe={<MEIcon name="bell" size={22} />}
+              titre={t('notifications.empty')}
+            />
           )}
           {top.map(n => (
             <NotifRow key={n.id} n={n} sp={sp} dark={dark}

@@ -4,10 +4,11 @@
 //
 // Les contacts ayant déjà un dossier KYC en cours sont grisés et non-cliquables.
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SgIcon } from '../icons'
-import { useKycPalette } from '../kyc/kycPalette'
+import { useKycPalette, useKycDark } from '../kyc/kycPalette'
 import { useContacts } from '@/hooks/useContacts'
 import { useKycDossiers } from '@/hooks/useKycDossier'
 import type { WizardData } from './types'
@@ -20,6 +21,7 @@ interface Props {
 export function KwStepContact({ data, set }: Props) {
   const { t } = useTranslation('kyc')
   const sp = useKycPalette()
+  const dark = useKycDark()
   const { contacts = [] } = useContacts()
   const { data: dossiers = [] } = useKycDossiers()
   const [query, setQuery] = useState('')
@@ -128,17 +130,7 @@ export function KwStepContact({ data, set }: Props) {
           style={{ flex: 1, overflowY: 'auto', padding: 'var(--crm-space-xl) var(--crm-space-md) var(--crm-space-xl) var(--crm-space-xl)' }}
         >
           {filtered.length === 0 ? (
-            <div
-              style={{
-                padding: '40px 20px',
-                textAlign: 'center',
-                color: sp.muted,
-                fontSize: 'var(--crm-text-lg)',
-                fontWeight: 500,
-              }}
-            >
-              {t('wizard.contact.empty')}
-            </div>
+            <EtatVide dark={dark} titre={t('wizard.contact.empty')} />
           ) : (
             filtered.map((c) => {
               const has = contactsWithActiveDossier.has(c.id)

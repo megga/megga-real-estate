@@ -13,6 +13,7 @@
 // Le hero est volontairement sombre (texte blanc) dans les deux thèmes :
 //   fond #0B0C0E en light, #16171F en dark — seule surface hors tokens clairs.
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useEffect, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
@@ -918,9 +919,12 @@ function SessionsCard() {
             >
               <SetIcon name="info" size={15} stroke={SET.muted} sw={2} />
             </div>
-            <div style={{ fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 600 }}>
-              {error ? t('security.sessions.loadError') : t('security.sessions.empty')}
-            </div>
+            <EtatVide
+              dark={isSetDark()}
+              forme="ligne"
+              registre={error ? 'erreur' : 'neutre'}
+              titre={error ? t('security.sessions.loadError') : t('security.sessions.empty')}
+            />
           </div>
         )}
 

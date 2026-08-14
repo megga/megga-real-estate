@@ -12,6 +12,7 @@
 // Le chrome (SugarTopNav + SugarIconRail) est monté par la page conteneur
 // (ContactsSugarV2Page) ; ce composant remplit le <main> avec le viewport.
 
+import EtatVide from '@/components/crm-sugar/EtatVide'
 import {
   useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
   type CSSProperties, type ReactNode,
@@ -287,7 +288,7 @@ function CtpTopList({ contacts, sp, dark, isLoading, filter, setFilter, onOpenCo
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           {isLoading && <CtpSkeletonRows dark={dark} hairSoft={hairSoft} />}
           {!isLoading && rows.length === 0 && (
-            <div style={{ padding: '48px 22px', textAlign: 'center', color: sp.sub, fontSize: 'var(--crm-text-xl)', fontWeight: 600 }}>{t('pager.emptyFilter')}</div>
+            <EtatVide dark={dark} titre={t('pager.emptyFilter')} />
           )}
           {!isLoading && rows.map((c, i) => {
             const aud = audienceOf(c)
