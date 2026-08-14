@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v2 — Dossier bento (header notch + 4 stage columns)
 // 1:1 port from `crm-screen-parcours-sugar.jsx` (PCDossierFrame + PCBigAvatar + RoundBtn).
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -89,7 +90,7 @@ export function PCDossierFrame({
             style={{
               margin: 0,
               fontSize: 'var(--crm-text-2xl)',
-              fontWeight: 700,
+              fontWeight: 600,
               letterSpacing: -0.3,
               color: sp.ink,
               lineHeight: 1.15,
@@ -116,13 +117,12 @@ export function PCDossierFrame({
               background: u.bg,
               color: u.fg,
               fontSize: 'var(--crm-text-xs)',
-              fontWeight: 700,
+              fontWeight: 600,
               letterSpacing: 0.3,
               display: 'inline-flex',
               alignItems: 'center',
               gap: 'var(--crm-space-sm)',
-              textTransform: 'uppercase',
-              alignSelf: 'flex-start',
+                            alignSelf: 'flex-start',
             }}
           >
             <span
@@ -186,7 +186,7 @@ export function PCDossierFrame({
                   borderRadius: 'var(--crm-radius-pill)',
                   background: dark ? sp.cardBg : '#FFFFFF',
                   border: `2px dashed ${
-                    dark ? 'rgba(255,255,255,0.22)' : 'rgba(15,23,42,0.20)'
+                    dark ? 'rgba(255,255,255,0.22)' : `${sgVoileEncre(false, 0.20)}`
                   }`,
                   color: sp.sub,
                   display: 'grid',
@@ -205,7 +205,7 @@ export function PCDossierFrame({
                   background: '#D1D5DB',
                   color: '#fff',
                   fontSize: 'var(--crm-text-xs)',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   padding: 'var(--crm-space-2xs) var(--crm-space-sm)',
                   borderRadius: 'var(--crm-radius-pill)',
                   border: `2px solid ${sp.avatarBorder}`,
@@ -305,7 +305,7 @@ export function PCBigAvatar({ agent, count, badgeColor, sp }: PCBigAvatarProps) 
           display: 'grid',
           placeItems: 'center',
           fontSize: 'var(--crm-text-xl)',
-          fontWeight: 700,
+          fontWeight: 600,
           border: `3px solid ${sp.avatarBorder}`,
           boxSizing: 'border-box',
           boxShadow: hover
@@ -325,7 +325,7 @@ export function PCBigAvatar({ agent, count, badgeColor, sp }: PCBigAvatarProps) 
           background: badgeColor || '#D1D5DB',
           color: '#fff',
           fontSize: 'var(--crm-text-xs)',
-          fontWeight: 700,
+          fontWeight: 600,
           padding: 'var(--crm-space-2xs) var(--crm-space-sm)',
           borderRadius: 'var(--crm-radius-pill)',
           border: `2px solid ${sp.avatarBorder}`,

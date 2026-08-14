@@ -4,6 +4,8 @@
 // Grammaire Sugar Pure : surfaces blanches, accent ink #0B0C0E, ombres douces,
 // zéro bordure décorative, Manrope, CHF à apostrophes, rampe monochrome.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { createContext, useContext } from 'react'
 
 export interface AxPill { bg: string; fg: string; sh: string }
@@ -31,6 +33,17 @@ export interface AxTheme {
   pillAhead: AxPill
   pillBehind: AxPill
   pillNeutral: AxPill
+  /**
+   * L'ACCENT MEGGA X et l'encre qu'on pose DESSUS — ajoutés au lot A4.
+   *
+   * ⚠ Distincts d'`onAccent`, dont le sens CHANGE avec le thème : l'accent de
+   * Sugar Pure était l'encre, donc noir en clair et blanc en sombre, et
+   * `onAccent` était son inverse. L'accent de MEGGA X est `#424bfb` dans les
+   * DEUX thèmes, et l'encre qui tient dessus est le blanc (5,78:1 mesuré).
+   * Réutiliser `onAccent` aurait rendu l'encre noire sur bleu en clair.
+   */
+  accent: string
+  accentInk: string
   onAccent: string
   skBase: string
   skShine: string
@@ -43,30 +56,32 @@ export const AX: AxTheme = {
   card: '#FFFFFF',
   cardSubtle: '#F6F7F9',
   cardWhisper: '#FAFAFB',
-  ink: '#0B0C0E',
+  ink: MXC_COLOR.n100,
   inkSoft: '#3A3D44',
   muted: '#80858E',
   ghost: '#B5BAC2',
-  hairline: 'rgba(11,12,14,0.07)',
-  hairlineSt: 'rgba(11,12,14,0.12)',
-  shadowSm: '0 4px 16px rgba(15,23,42,0.05)',
-  shadow: '0 14px 44px rgba(15,23,42,0.07), 0 2px 8px rgba(15,23,42,0.04)',
-  shadowLg: '0 28px 70px rgba(15,23,42,0.10), 0 6px 18px rgba(15,23,42,0.05)',
-  secured: '#0B0C0E',
+  hairline: `${sgVoileEncre(false, 0.07)}`,
+  hairlineSt: `${sgVoileEncre(false, 0.12)}`,
+  shadowSm: `0 4px 16px ${sgVoileEncre(false, 0.05)}`,
+  shadow: `0 14px 44px ${sgVoileEncre(false, 0.07)}, 0 2px 8px ${sgVoileEncre(false, 0.04)}`,
+  shadowLg: `0 28px 70px ${sgVoileEncre(false, 0.10)}, 0 6px 18px ${sgVoileEncre(false, 0.05)}`,
+  secured: MXC_COLOR.n100,
   probable: '#7B828C',
   possible: '#CDD1D7',
-  line: '#0B0C0E',
-  area: 'rgba(11,12,14,0.06)',
+  line: MXC_COLOR.n100,
+  area: `${sgVoileEncre(false, 0.06)}`,
   goal: '#C2C6CD',
-  grid: 'rgba(11,12,14,0.05)',
+  grid: `${sgVoileEncre(false, 0.05)}`,
   pillAhead: { bg: '#15643F', fg: '#FFFFFF', sh: '0 1px 2px rgba(21,100,63,0.32), inset 0 -1px 0 rgba(0,0,0,0.10)' },
   pillBehind: { bg: '#A0521E', fg: '#FFFFFF', sh: '0 1px 2px rgba(160,82,30,0.32), inset 0 -1px 0 rgba(0,0,0,0.10)' },
   pillNeutral: { bg: '#202127', fg: '#FFFFFF', sh: '0 1px 2px rgba(32,33,39,0.30), inset 0 -1px 0 rgba(0,0,0,0.10)' },
+  accent: MXC_COLOR.accent,
+  accentInk: MXC_COLOR.n1000,
   onAccent: '#FFFFFF',
   skBase: '#ECEDF0',
   skShine: '#F8F9FB',
   appBlur: 'rgba(239,239,241,0.82)',
-  scrim: 'rgba(11,12,14,0.34)',
+  scrim: `${sgVoileEncre(false, 0.34)}`,
   pageBg: 'radial-gradient(ellipse 120% 80% at 50% 100%, #D7D8DB 0%, #E6E7E9 50%, #EFEFF1 100%)',
 }
 
@@ -80,7 +95,9 @@ export const AX_DARK: AxTheme = {
   shadowLg: '0 30px 70px rgba(0,0,0,0.60), 0 6px 18px rgba(0,0,0,0.40)',
   secured: '#F3F4F6', probable: '#878D98', possible: '#41454D',
   line: '#F3F4F6', area: 'rgba(255,255,255,0.08)', goal: '#565A62', grid: 'rgba(255,255,255,0.07)',
-  onAccent: '#0B0C0E',
+  accent: MXC_COLOR.accent,
+  accentInk: MXC_COLOR.n1000,
+  onAccent: MXC_COLOR.n100,
   skBase: '#23262B', skShine: '#2F333A',
   appBlur: 'rgba(13,14,17,0.78)',
   scrim: 'rgba(0,0,0,0.58)',

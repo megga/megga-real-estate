@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v2 — Parcours filters (Agent / Stade / Urgence)
 // 1:1 port from `crm-screen-parcours-sugar.jsx` (PCFilters).
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useTranslation } from 'react-i18next'
 import { type SugarPalette } from '../tokens'
 import {
@@ -72,11 +73,9 @@ export function PCFilters({
         <span
           style={{
             fontSize: 'var(--crm-text-sm)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: sp.sub,
-            textTransform: 'uppercase',
-            letterSpacing: 0.6,
-          }}
+                                  }}
         >
           {tr('journey.filters.stageLabel')}
         </span>
@@ -109,7 +108,7 @@ export function PCFilters({
         style={{
           width: 1,
           height: 22,
-          background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.10)',
+          background: dark ? 'rgba(255,255,255,0.12)' : `${sgVoileEncre(false, 0.10)}`,
         }}
       />
 
@@ -118,11 +117,9 @@ export function PCFilters({
         <span
           style={{
             fontSize: 'var(--crm-text-sm)',
-            fontWeight: 700,
+            fontWeight: 600,
             color: sp.sub,
-            textTransform: 'uppercase',
-            letterSpacing: 0.6,
-          }}
+                                  }}
         >
           {tr('journey.filters.urgencyLabel')}
         </span>

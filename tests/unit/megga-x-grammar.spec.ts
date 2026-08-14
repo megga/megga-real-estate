@@ -79,6 +79,8 @@ const PAGES = new Set([
   // ROUTÉES — /dashboard/kyc/:id/export et kyc/bienvenue — et le plan du chantier
   // les avait ratées en groupant par DOSSIER : 15 marqueurs invisibles.
   'KycSugarV3Page.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
+  'VisitModalSugarV3Page.tsx', 'VisitDetailSugarV3Page.tsx', 'DashboardSugarV4Page.tsx',
+  'ImportLeadSugarV3Page.tsx', 'JulienSugarV2Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
 ])
 
 /**
@@ -101,6 +103,8 @@ const PAGES_ACQUISES = [
   'PipelineSugarV2Page.tsx', 'DealDetailSugarV4Page.tsx', 'OfferModalSugarV3Page.tsx',
   'TodaySugarPage.tsx',
   'KycSugarV3Page.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
+  'VisitModalSugarV3Page.tsx', 'VisitDetailSugarV3Page.tsx', 'DashboardSugarV4Page.tsx',
+  'ImportLeadSugarV3Page.tsx', 'JulienSugarV2Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
 ]
 
 /**
@@ -172,6 +176,17 @@ const ZONES: RootSpec[] = [
   { root: 'src/components/crm-sugar-v3/kyc', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar-v3/kyc-pager', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar-v3/kyc-wizard', keep: (n) => /\.tsx?$/.test(n) },
+  // Visites (lot A3), Analytics (A4) et le parcours d'import de lead — les trois
+  // dernières surfaces jamais portées de la vague A.
+  //
+  // ⚠ Analytics vit dans `analytics/`, PAS dans `dashboard/` : son nom de route
+  // (/dashboard/analytics) et son nom de dossier ne coïncident pas, et sa page
+  // s'appelle `DashboardSugarV4Page`. Troisième fois que le nom d'une surface ne
+  // dit pas où elle est rangée.
+  { root: 'src/components/crm-sugar-v3/visite-detail', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-sugar-v3/audit', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-sugar/analytics', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-sugar/journey', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/search', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/notifications', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/profile', keep: (n) => /\.tsx?$/.test(n) },
@@ -340,12 +355,13 @@ const GRIS_BLEU_ASSUMES = new Map<string, number>([
   ['src/pages/agent/BienDetailSugarV4Page.tsx', 4],
 ])
 
-// ⚠ `today/data.ts` en est SORTI au lot A1 : la zone `today` est entrée dans le
+// ⚠ `today/data.ts` (lot A1) et `analytics/tokens.ts` (lot A4) en sont SORTIS
+// à mesure que leurs zones entraient. Il ne reste que la vague B.
+// Rédaction d'origine : `today/data.ts` en est sorti au lot A1 : la zone `today` est entrée dans le
 // cliquet, donc ce fichier est désormais balayé LÉGITIMEMENT. C'est le test qui
 // l'a signalé, pas une relecture — un garde qui décrit un état doit rougir quand
 // l'état change, même si le changement est voulu.
 const HORS_ZONE_ATTENDUS = [
-  'src/components/crm-sugar/analytics/tokens.ts',
   'src/components/crm-sugar/settings/data.ts',
   'src/components/crm-sugar/calendar/data.ts',
 ]
@@ -436,6 +452,16 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
     raison: '44 px — les chiffres et titres d’affichage au-dessus du dernier barreau (4 sites)',
   },
   { motif: /fontSize:\s*40\b/, raison: '40 px — le titre du premier lancement, au-dessus du barreau' },
+  { motif: /fontSize:\s*48\b/, raison: '48 px — le chiffre d’ouverture de Julien, au-dessus du dernier barreau (1 site)' },
+  {
+    // Troisième membre de la famille CALCULÉE, après `x * 0.34` et les `em` :
+    // un `clamp()` borne une taille entre deux extrêmes et suit la LARGEUR DE LA
+    // FENÊTRE entre les deux. Par construction, ce n'est pas un barreau — et ses
+    // deux bornes en sont bien, elles, ce qui est le point : l'échelle sert de
+    // garde-corps, pas de valeur.
+    motif: /fontSize:\s*'clamp\(/,
+    raison: 'responsive : un clamp() suit la largeur de la fenêtre (2 sites)',
+  },
   {
     // Même famille que les tailles calculées : une valeur en `em` suit son
     // conteneur, donc elle ne PEUT pas être un barreau. Ici le code en ligne du
@@ -619,13 +645,21 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       const lignes = code.split('\n')
       lignes.forEach((ligne, i) => {
         if (!/background:\s*\w+\.ink\b/.test(ligne)) return
-        const voisinage = lignes.slice(Math.max(0, i - 6), i + 7).join(' ')
-        if (/<button|cursor:\s*'pointer'/.test(voisinage)) fautifs.push(`${chemin}:${i + 1}`)
+        // ⚠ ANCRÉ SUR L'ÉLÉMENT, pas sur une fenêtre de lignes. Le voisinage de
+        // ±6 lignes attrapait le marqueur d'allure d'`AxDashboard` — un `<div>`
+        // informatif — parce qu'un bouton vivait plus bas. Un bloc JSX est une
+        // unité du LANGAGE : il ne bouge ni sous un commentaire, ni sous un
+        // renommage, et il dit à QUI appartient le `onClick`.
+        let d = i
+        while (d > 0 && !/<[A-Za-z]/.test(lignes[d]!)) d--
+        let f = i
+        while (f < lignes.length - 1 && !/\/?>\s*$|}}>/.test(lignes[f]!)) f++
+        const element = lignes.slice(d, f + 1).join(' ')
+        if (/onClick|cursor:\s*'pointer'/.test(element)) fautifs.push(`${chemin}:${i + 1}`)
       })
     }
     expect(fautifs, `encre en fond d'un élément actionnable :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
-
   /**
    * ⛔ LE NOIR DE SUGAR, SOUS SES DEUX ALPHABETS.
    *
@@ -740,6 +774,10 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar-v3/kyc',
       'src/components/crm-sugar-v3/kyc-pager',
       'src/components/crm-sugar-v3/kyc-wizard',
+      'src/components/crm-sugar-v3/visite-detail',
+      'src/components/crm-sugar-v3/audit',
+      'src/components/crm-sugar/analytics',
+      'src/components/crm-sugar/journey',
       'src/components/crm-sugar/search',
       'src/components/crm-sugar/notifications',
       'src/components/crm-sugar/profile',

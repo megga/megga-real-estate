@@ -15,6 +15,7 @@
 //
 // Spec : RED_TEAM_SPRINT_3.md §G.1 (D2 invalidé), §B.B3 (dédup), §F.F5.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -278,12 +279,10 @@ export default function ImportLeadSugarV3Page() {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: 11.5,
+              fontSize: 'var(--crm-text-xs)',
               fontWeight: 600,
               color: SugarV3.muted,
-              textTransform: 'uppercase',
-              letterSpacing: 0.6,
-              display: 'inline-flex',
+                                          display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
             }}
@@ -308,12 +307,12 @@ export default function ImportLeadSugarV3Page() {
               color: editMode ? '#fff' : SugarV3.inkSoft,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: 12,
+              fontSize: 'var(--crm-text-sm)',
               fontWeight: 600,
               display: 'inline-flex',
               alignItems: 'center',
               gap: 7,
-              boxShadow: editMode ? '0 6px 16px rgba(11,12,14,0.18)' : SugarV3.shadowSm,
+              boxShadow: editMode ? `0 6px 16px ${sgVoileEncre(false, 0.18)}` : SugarV3.shadowSm,
               whiteSpace: 'nowrap',
             }}
           >
@@ -395,7 +394,7 @@ export default function ImportLeadSugarV3Page() {
             gap: 14,
             flexShrink: 0,
             background: SugarV3.card,
-            boxShadow: '0 -8px 24px rgba(15,23,42,0.04)',
+            boxShadow: `0 -8px 24px ${sgVoileEncre(false, 0.04)}`,
           }}
         >
           <SgGhostPill
@@ -407,7 +406,7 @@ export default function ImportLeadSugarV3Page() {
 
           <div style={{ flex: 1 }} />
 
-          <div style={{ fontSize: 12.5, color: SugarV3.muted, fontWeight: 600 }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', color: SugarV3.muted, fontWeight: 600 }}>
             {t('import.lead.stepProgress', { current: step + 1, total: STEP_COUNT })}
           </div>
 
@@ -494,12 +493,10 @@ function PasteStep({
       <div style={{ marginBottom: 36, maxWidth: 720 }}>
         <div
           style={{
-            fontSize: 12,
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 600,
             color: SugarV3.muted,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-            marginBottom: 14,
+                                    marginBottom: 14,
           }}
         >
           {t('import.lead.stepOf', { current: 1, total: 2 })}
@@ -507,8 +504,8 @@ function PasteStep({
         <h1
           style={{
             margin: '0 0 14px',
-            fontSize: 38,
-            fontWeight: 700,
+            fontSize: 'var(--crm-text-9xl)',
+            fontWeight: 600,
             color: SugarV3.ink,
             letterSpacing: -0.8,
             lineHeight: 1.1,
@@ -519,7 +516,7 @@ function PasteStep({
         <p
           style={{
             margin: 0,
-            fontSize: 15,
+            fontSize: 'var(--crm-text-xl)',
             color: SugarV3.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
@@ -551,7 +548,7 @@ function PasteStep({
             outline: 'none',
             resize: 'vertical',
             fontFamily: 'inherit',
-            fontSize: 15,
+            fontSize: 'var(--crm-text-xl)',
             fontWeight: 500,
             color: SugarV3.ink,
             lineHeight: 1.6,
@@ -564,12 +561,10 @@ function PasteStep({
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <span
           style={{
-            fontSize: 11.5,
+            fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
             color: SugarV3.muted,
-            letterSpacing: 0.8,
-            textTransform: 'uppercase',
-          }}
+                                  }}
         >
           {t('import.lead.paste.tryExample')}
         </span>
@@ -586,7 +581,7 @@ function PasteStep({
               color: SugarV3.inkSoft,
               cursor: 'pointer',
               fontFamily: 'inherit',
-              fontSize: 12,
+              fontSize: 'var(--crm-text-sm)',
               fontWeight: 600,
               boxShadow: SugarV3.shadowSm,
             }}
@@ -604,7 +599,7 @@ function PasteStep({
             borderRadius: 14,
             background: SugarV3.errSoft,
             color: SugarV3.err,
-            fontSize: 13,
+            fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
             display: 'flex',
             alignItems: 'center',
@@ -674,12 +669,10 @@ function ReviewStep({
       <div style={{ marginBottom: 28, maxWidth: 720 }}>
         <div
           style={{
-            fontSize: 12,
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 600,
             color: SugarV3.muted,
-            letterSpacing: 1.2,
-            textTransform: 'uppercase',
-            marginBottom: 14,
+                                    marginBottom: 14,
           }}
         >
           {t('import.lead.stepOf', { current: 2, total: 2 })}
@@ -687,8 +680,8 @@ function ReviewStep({
         <h1
           style={{
             margin: '0 0 14px',
-            fontSize: 38,
-            fontWeight: 700,
+            fontSize: 'var(--crm-text-9xl)',
+            fontWeight: 600,
             color: SugarV3.ink,
             letterSpacing: -0.8,
             lineHeight: 1.1,
@@ -699,7 +692,7 @@ function ReviewStep({
         <p
           style={{
             margin: 0,
-            fontSize: 15,
+            fontSize: 'var(--crm-text-xl)',
             color: SugarV3.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
@@ -986,12 +979,12 @@ function ReviewStep({
           }}
         >
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: SugarV3.ink, marginBottom: 3 }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV3.ink, marginBottom: 3 }}>
               {t('import.lead.deal.title')}
             </div>
             <div
               style={{
-                fontSize: 12.5,
+                fontSize: 'var(--crm-text-sm)',
                 color: SugarV3.muted,
                 fontWeight: 500,
                 lineHeight: 1.5,
@@ -1013,7 +1006,7 @@ function ReviewStep({
             borderRadius: 14,
             background: SugarV3.errSoft,
             color: SugarV3.err,
-            fontSize: 13,
+            fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
           }}
         >
@@ -1082,19 +1075,17 @@ function ExtractedField({
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
-            fontSize: 10.5,
-            fontWeight: 700,
+            fontSize: 'var(--crm-text-xs)',
+            fontWeight: 600,
             color: SugarV3.muted,
-            letterSpacing: 0.6,
-            textTransform: 'uppercase',
-            marginBottom: 4,
+                                    marginBottom: 4,
           }}
         >
           {label}
         </div>
         <div
           style={{
-            fontSize: 15,
+            fontSize: 'var(--crm-text-xl)',
             fontWeight: 600,
             color: SugarV3.ink,
             letterSpacing: -0.2,
@@ -1158,12 +1149,10 @@ function EditField({
         </div>
         <div
           style={{
-            fontSize: 10.5,
-            fontWeight: 700,
+            fontSize: 'var(--crm-text-xs)',
+            fontWeight: 600,
             color: SugarV3.muted,
-            letterSpacing: 0.6,
-            textTransform: 'uppercase',
-          }}
+                                  }}
         >
           {label}
         </div>
@@ -1181,7 +1170,7 @@ const editInputStyle: React.CSSProperties = {
   border: 0,
   borderRadius: 10,
   fontFamily: 'inherit',
-  fontSize: 14,
+  fontSize: 'var(--crm-text-lg)',
   fontWeight: 600,
   color: SugarV3.ink,
   outline: 'none',
@@ -1213,7 +1202,7 @@ function SegmentedChoice<T extends string>({
             background: value === o.v ? SugarV3.ink : SugarV3.card,
             color: value === o.v ? '#fff' : SugarV3.inkSoft,
             fontFamily: 'inherit',
-            fontSize: 12,
+            fontSize: 'var(--crm-text-sm)',
             fontWeight: 600,
             cursor: 'pointer',
           }}
@@ -1239,7 +1228,7 @@ function ToggleSwitch({ active, onClick }: { active: boolean; onClick: () => voi
         cursor: 'pointer',
         transition: 'all .2s ease',
         boxShadow: active
-          ? '0 4px 12px rgba(11,12,14,0.18)'
+          ? `0 4px 12px ${sgVoileEncre(false, 0.18)}`
           : `inset 0 0 0 2px ${SugarV3.ghost}`,
         flexShrink: 0,
       }}
@@ -1289,10 +1278,10 @@ function BannerInfo({ icon, title, body }: { icon: string; title: string; body: 
         <SgIcon name={icon as never} size={14} stroke={SugarV3.inkSoft} sw={1.8} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: SugarV3.ink, marginBottom: 2 }}>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV3.ink, marginBottom: 2 }}>
           {title}
         </div>
-        <div style={{ fontSize: 12, color: SugarV3.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: SugarV3.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
           {body}
         </div>
       </div>
@@ -1322,7 +1311,7 @@ function DuplicateBanner({
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <SgIcon name="alert" size={16} stroke={SugarV3.warn} sw={2} />
-        <div style={{ fontSize: 13, fontWeight: 700, color: SugarV3.ink }}>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV3.ink }}>
           {t('import.lead.duplicate.title', { count: candidates.length })}
         </div>
       </div>
@@ -1345,24 +1334,22 @@ function DuplicateBanner({
             }}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: SugarV3.ink }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV3.ink }}>
                 {c.first_name} {c.last_name}
               </div>
-              <div style={{ fontSize: 11.5, color: SugarV3.muted, fontWeight: 500, marginTop: 2 }}>
+              <div style={{ fontSize: 'var(--crm-text-xs)', color: SugarV3.muted, fontWeight: 500, marginTop: 2 }}>
                 {[c.email, c.phone].filter(Boolean).join(' · ') || '—'}
               </div>
             </div>
             <span
               style={{
-                fontSize: 10.5,
-                fontWeight: 700,
+                fontSize: 'var(--crm-text-xs)',
+                fontWeight: 600,
                 padding: '3px 9px',
                 borderRadius: 999,
                 background: SugarV3.cardSubtle,
                 color: SugarV3.inkSoft,
-                letterSpacing: 0.4,
-                textTransform: 'uppercase',
-              }}
+                                              }}
             >
               {t('import.lead.duplicate.matchBadge', { kind: t(`import.lead.duplicate.kind.${c.match_kind}`) })}
             </span>
@@ -1370,7 +1357,7 @@ function DuplicateBanner({
           </button>
         ))}
       </div>
-      <div style={{ fontSize: 11.5, color: SugarV3.muted, fontWeight: 500 }}>
+      <div style={{ fontSize: 'var(--crm-text-xs)', color: SugarV3.muted, fontWeight: 500 }}>
         {t('import.lead.duplicate.note')}
       </div>
     </div>
@@ -1430,8 +1417,8 @@ function CreatedView({
         <h1
           style={{
             margin: '0 0 12px',
-            fontSize: 32,
-            fontWeight: 700,
+            fontSize: 'var(--crm-text-7xl)',
+            fontWeight: 600,
             color: SugarV3.ink,
             letterSpacing: -0.6,
             lineHeight: 1.15,
@@ -1439,7 +1426,7 @@ function CreatedView({
         >
           {t('import.lead.created.title', { name: fullName })}
         </h1>
-        <p style={{ margin: 0, fontSize: 15, color: SugarV3.inkSoft, fontWeight: 500 }}>
+        <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', color: SugarV3.inkSoft, fontWeight: 500 }}>
           {dealId
             ? t('import.lead.created.subtitleDeal', { intent: INTENT_LABELS[extracted.intent] })
             : t('import.lead.created.subtitleContact')}
@@ -1465,17 +1452,17 @@ function CreatedView({
               color: '#fff',
               display: 'grid',
               placeItems: 'center',
-              fontSize: 18,
-              fontWeight: 700,
+              fontSize: 'var(--crm-text-3xl)',
+              fontWeight: 600,
             }}
           >
             {initials}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 700, color: SugarV3.ink, letterSpacing: -0.3 }}>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: SugarV3.ink, letterSpacing: -0.3 }}>
               {fullName}
             </div>
-            <div style={{ fontSize: 13, color: SugarV3.muted, fontWeight: 500, marginTop: 2 }}>
+            <div style={{ fontSize: 'var(--crm-text-md)', color: SugarV3.muted, fontWeight: 500, marginTop: 2 }}>
               {[extracted.email, extracted.phone].filter(Boolean).join(' · ') || t('import.lead.created.partialContact')}
             </div>
           </div>
@@ -1485,11 +1472,9 @@ function CreatedView({
               borderRadius: 999,
               background: SugarV3.cardSubtle,
               color: SugarV3.inkSoft,
-              fontSize: 10.5,
-              fontWeight: 700,
-              letterSpacing: 0.4,
-              textTransform: 'uppercase',
-            }}
+              fontSize: 'var(--crm-text-xs)',
+              fontWeight: 600,
+                                        }}
           >
             {INTENT_LABELS[extracted.intent]}
           </span>
@@ -1510,13 +1495,13 @@ function CreatedView({
             <div
               style={{
                 flex: 1,
-                fontSize: 13,
+                fontSize: 'var(--crm-text-md)',
                 fontWeight: 500,
                 color: SugarV3.inkSoft,
                 lineHeight: 1.5,
               }}
             >
-              <strong style={{ color: SugarV3.ink, fontWeight: 700 }}>{t('import.lead.created.nextActionLabel')}</strong>{' '}
+              <span style={{ color: SugarV3.ink, fontWeight: 600}}>{t('import.lead.created.nextActionLabel')}</span>{' '}
               {NEXT_ACTION_LABELS[extracted.nextAction]}
               {extracted.urgency === 'high' && (
                 <span style={{ color: SugarV3.warn, fontWeight: 600 }}> {t('import.lead.created.highUrgencySuffix')}</span>
@@ -1541,10 +1526,10 @@ function CreatedView({
               textAlign: 'left',
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: SugarV3.ink, marginBottom: 2 }}>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV3.ink, marginBottom: 2 }}>
               {t('import.lead.created.viewPipeline')}
             </div>
-            <div style={{ fontSize: 11.5, color: SugarV3.muted, fontWeight: 500 }}>
+            <div style={{ fontSize: 'var(--crm-text-xs)', color: SugarV3.muted, fontWeight: 500 }}>
               {t('import.lead.created.viewPipelineDesc')}
             </div>
           </button>
@@ -1562,10 +1547,10 @@ function CreatedView({
             textAlign: 'left',
           }}
         >
-          <div style={{ fontSize: 13, fontWeight: 700, color: SugarV3.ink, marginBottom: 2 }}>
+          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV3.ink, marginBottom: 2 }}>
             {t('import.lead.created.viewContact')}
           </div>
-          <div style={{ fontSize: 11.5, color: SugarV3.muted, fontWeight: 500 }}>
+          <div style={{ fontSize: 'var(--crm-text-xs)', color: SugarV3.muted, fontWeight: 500 }}>
             {t('import.lead.created.viewContactDesc')}
           </div>
         </button>
@@ -1583,9 +1568,9 @@ function CreatedView({
             color: '#fff',
             cursor: 'pointer',
             fontFamily: 'inherit',
-            fontSize: 13,
+            fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
-            boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
+            boxShadow: `0 6px 16px ${sgVoileEncre(false, 0.18)}`,
           }}
         >
           {t('common:actions.close')}

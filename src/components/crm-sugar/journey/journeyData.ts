@@ -6,6 +6,7 @@
 // niveaux d'urgence) sont traduits via getter singleton (clés pipeline:journey.*).
 // PARCOURS_TEAM reste une table de correspondance (parcoursAgentById, rendu live)
 // → laissée en FR en attendant le chantier RBAC équipe.
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import i18n from '@/i18n'
 
 export interface ParcoursAgent {
@@ -18,7 +19,7 @@ export interface ParcoursAgent {
 }
 
 export const PARCOURS_TEAM: ParcoursAgent[] = [
-  { id: 't-greg', firstName: 'Grégory', lastName: 'Lyonnet', initials: 'GR', role: 'Directeur', avatarBg: '#0B0C0E' },
+  { id: 't-greg', firstName: 'Grégory', lastName: 'Lyonnet', initials: 'GR', role: 'Directeur', avatarBg: MXC_COLOR.n100 },
   { id: 't-sophie', firstName: 'Sophie', lastName: 'Martin', initials: 'SO', role: 'Courtière senior', avatarBg: '#1E5BC6' },
   { id: 't-marc', firstName: 'Marc', lastName: 'Dubois', initials: 'MA', role: 'Courtier', avatarBg: '#0891B2' },
   { id: 't-lea', firstName: 'Léa', lastName: 'Berger', initials: 'LE', role: 'Assistante admin.', avatarBg: '#C45A00' },

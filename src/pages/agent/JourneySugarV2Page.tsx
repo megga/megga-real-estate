@@ -133,8 +133,8 @@ export default function JourneySugarV2Page() {
             <h1
               style={{
                 margin: 0,
-                fontSize: 38,
-                fontWeight: 800,
+                fontSize: 'var(--crm-text-9xl)',
+                fontWeight: 600,
                 letterSpacing: -1.2,
                 color: sp.ink,
                 lineHeight: 1,
@@ -144,7 +144,7 @@ export default function JourneySugarV2Page() {
             </h1>
             <span
               style={{
-                fontSize: 13,
+                fontSize: 'var(--crm-text-md)',
                 color: sp.sub,
                 fontWeight: 500,
                 marginLeft: 6,
@@ -184,7 +184,7 @@ export default function JourneySugarV2Page() {
                   border: `1px solid ${sp.frameBorder}`,
                   borderRadius: 24,
                   color: sp.sub,
-                  fontSize: 14,
+                  fontSize: 'var(--crm-text-lg)',
                   fontWeight: 500,
                 }}
               >

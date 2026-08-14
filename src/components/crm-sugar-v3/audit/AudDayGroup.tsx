@@ -28,7 +28,7 @@ export function AudDayGroup({ dateLabel, events }: Props) {
           <span
             style={{
               fontSize: 'var(--crm-text-lg)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.ink,
               letterSpacing: -0.1,
             }}
@@ -41,7 +41,7 @@ export function AudDayGroup({ dateLabel, events }: Props) {
               borderRadius: 'var(--crm-radius-pill)',
               background: SugarV3.card,
               fontSize: 'var(--crm-text-xs)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.inkSoft,
               fontVariantNumeric: 'tabular-nums',
               boxShadow: SugarV3.shadowSm,

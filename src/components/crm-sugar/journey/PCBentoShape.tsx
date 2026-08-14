@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v2 — Bento shape SVG with concave notch (header avatar tray)
 // 1:1 port from `crm-screen-parcours-sugar.jsx` (PCBentoShape).
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useLayoutEffect, useRef, useState } from 'react'
 
 interface PCBentoShapeProps {
@@ -79,7 +80,7 @@ export function PCBentoShape({
         zIndex: 0,
         pointerEvents: 'none',
         filter: shadow
-          ? 'drop-shadow(0 12px 28px rgba(15,23,42,0.10)) drop-shadow(0 2px 6px rgba(15,23,42,0.05))'
+          ? `drop-shadow(0 12px 28px ${sgVoileEncre(false, 0.10)}) drop-shadow(0 2px 6px ${sgVoileEncre(false, 0.05)})`
           : 'none',
       }}
     >

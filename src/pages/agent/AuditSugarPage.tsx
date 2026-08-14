@@ -15,7 +15,7 @@ import {
   SUGAR_KEYFRAMES,
   type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
 import {
   SugarV3,
   SUGAR_V3_KEYFRAMES,
@@ -159,12 +159,10 @@ export default function AuditSugarPage() {
               <div>
                 <div
                   style={{
-                    fontSize: 12,
+                    fontSize: 'var(--crm-text-sm)',
                     fontWeight: 600,
                     color: SugarV3.muted,
-                    letterSpacing: 1.2,
-                    textTransform: 'uppercase',
-                    marginBottom: 14,
+                                                            marginBottom: 14,
                   }}
                 >
                   {tr('audit.eyebrow')}
@@ -173,7 +171,7 @@ export default function AuditSugarPage() {
                   style={{
                     margin: '0 0 12px',
                     fontSize: 40,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     color: SugarV3.ink,
                     letterSpacing: -0.8,
                     lineHeight: 1.05,
@@ -184,7 +182,7 @@ export default function AuditSugarPage() {
                 <p
                   style={{
                     margin: 0,
-                    fontSize: 15,
+                    fontSize: 'var(--crm-text-xl)',
                     color: SugarV3.inkSoft,
                     fontWeight: 500,
                     lineHeight: 1.55,
@@ -241,7 +239,7 @@ export default function AuditSugarPage() {
                     borderRadius: 14,
                     background: SugarV3.errSoft,
                     color: SugarV3.errDarker,
-                    fontSize: 12.5,
+                    fontSize: 'var(--crm-text-sm)',
                     fontWeight: 600,
                     marginTop: 12,
                   }}
@@ -328,7 +326,7 @@ export default function AuditSugarPage() {
                     outline: 'none',
                     background: 'transparent',
                     fontFamily: 'inherit',
-                    fontSize: 13,
+                    fontSize: 'var(--crm-text-md)',
                     fontWeight: 500,
                     color: SugarV3.ink,
                   }}
@@ -406,7 +404,7 @@ export default function AuditSugarPage() {
                 style={{
                   width: 1,
                   height: 22,
-                  background: 'rgba(11,12,14,0.08)',
+                  background: `${sgVoileEncre(false, 0.08)}`,
                   margin: '0 6px',
                 }}
               />
@@ -469,7 +467,7 @@ export default function AuditSugarPage() {
                     padding: '80px 40px',
                     textAlign: 'center',
                     color: SugarV3.muted,
-                    fontSize: 14,
+                    fontSize: 'var(--crm-text-lg)',
                     fontWeight: 500,
                   }}
                 >
@@ -481,7 +479,7 @@ export default function AuditSugarPage() {
                     padding: '80px 40px',
                     textAlign: 'center',
                     color: SugarV3.muted,
-                    fontSize: 14,
+                    fontSize: 'var(--crm-text-lg)',
                     fontWeight: 500,
                   }}
                 >
@@ -507,7 +505,7 @@ export default function AuditSugarPage() {
                 alignItems: 'center',
                 gap: 14,
                 color: SugarV3.muted,
-                fontSize: 12.5,
+                fontSize: 'var(--crm-text-sm)',
                 fontWeight: 500,
               }}
             >

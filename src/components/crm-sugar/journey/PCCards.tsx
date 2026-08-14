@@ -1,6 +1,8 @@
 // MEGGA CRM Sugar v2 — Parcours task cards (BigCard, MiniRow, GridCard) + connectors
 // 1:1 port from `crm-screen-parcours-sugar.jsx`.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -62,12 +64,12 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
             width: 44,
             height: 44,
             borderRadius: 'var(--crm-radius-pill)',
-            background: agent ? agent.avatarBg : '#0B0C0E',
+            background: agent ? agent.avatarBg : MXC_COLOR.n100,
             color: '#fff',
             display: 'grid',
             placeItems: 'center',
             fontSize: 'var(--crm-text-lg)',
-            fontWeight: 700,
+            fontWeight: 600,
             border: `2px solid ${
               isActive ? 'rgba(255,255,255,0.18)' : sp.avatarBorder
             }`,
@@ -134,7 +136,7 @@ export function PCBigCard({ task, agent, sp, dark, onClick }: CardProps) {
         <div
           style={{
             fontSize: 'var(--crm-text-lg)',
-            fontWeight: 700,
+            fontWeight: 600,
             lineHeight: 1.3,
             color: isActive ? sp.focusInk : sp.ink,
             letterSpacing: -0.1,
@@ -231,7 +233,7 @@ export function PCMiniRow({ task, agent, sp, dark, onClick }: CardProps) {
             display: 'grid',
             placeItems: 'center',
             fontSize: 'var(--crm-text-xs)',
-            fontWeight: 700,
+            fontWeight: 600,
             flexShrink: 0,
           }}
         >
@@ -338,7 +340,7 @@ export function PCGridCard({ task, agent, sp, dark, onClick }: CardProps) {
           display: 'grid',
           placeItems: 'center',
           fontSize: 'var(--crm-text-xs)',
-          fontWeight: 700,
+          fontWeight: 600,
         }}
       >
         {isDone ? (
@@ -363,7 +365,7 @@ export function PCGridCard({ task, agent, sp, dark, onClick }: CardProps) {
       <div
         style={{
           fontSize: 'var(--crm-text-md)',
-          fontWeight: 700,
+          fontWeight: 600,
           lineHeight: 1.25,
           color: isActive ? sp.focusInk : sp.ink,
           letterSpacing: -0.1,
@@ -380,7 +382,7 @@ export function PCColConnector({ sp, dark, hot }: { sp: SugarPalette; dark: bool
     ? sp.ink
     : dark
       ? 'rgba(255,255,255,0.22)'
-      : 'rgba(15,23,42,0.22)'
+      : `${sgVoileEncre(false, 0.22)}`
   return (
     <div
       style={{

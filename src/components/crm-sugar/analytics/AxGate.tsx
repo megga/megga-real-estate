@@ -5,6 +5,7 @@
 // backend réel (useAgencyTargets → RPC analytics_set_target), PAS en localStorage.
 // L'écran bascule ensuite tout seul vers le cockpit fantôme (objectif défini, 0 deal).
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAX } from './tokens'
@@ -48,22 +49,22 @@ export default function AxGate({ dark, saving, onDone }: { dark: boolean; saving
       `}</style>
 
       <img className="ax-gate-icon ax-gate-in1" src="/iconly-glass/Activity.svg" alt=""
-        style={{ width: 170, filter: `drop-shadow(0 24px 48px ${dark ? 'rgba(0,0,0,0.55)' : 'rgba(15,23,42,0.28)'})` }} />
+        style={{ width: 170, filter: `drop-shadow(0 24px 48px ${dark ? 'rgba(0,0,0,0.55)' : `${sgVoileEncre(false, 0.28)}`})` }} />
 
-      <div className="ax-gate-in2" style={{ marginTop: 34, fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: A.muted }}>{tr('analytics.gate.eyebrow')}</div>
-      <h1 className="ax-gate-in2" style={{ margin: '14px 0 0', fontSize: 44, fontWeight: 800, letterSpacing: -1.6, lineHeight: 1.06, color: A.ink, textAlign: 'center' }}>{tr('analytics.gate.title')}</h1>
+      <div className="ax-gate-in2" style={{ marginTop: 34, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted }}>{tr('analytics.gate.eyebrow')}</div>
+      <h1 className="ax-gate-in2" style={{ margin: '14px 0 0', fontSize: 44, fontWeight: 600, letterSpacing: -1.6, lineHeight: 1.06, color: A.ink, textAlign: 'center' }}>{tr('analytics.gate.title')}</h1>
 
       <div className="ax-gate-in3" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)', marginTop: 36, width: 340 }}>
         <div className="ax-gate-input" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: A.card, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-xs) var(--crm-space-xs) var(--crm-space-xs) var(--crm-space-4xl)', boxShadow: A.shadowSm }}>
-          <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: A.muted, flexShrink: 0 }}>CHF</span>
+          <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: A.muted, flexShrink: 0 }}>CHF</span>
           <input autoFocus inputMode="numeric" placeholder={tr('analytics.gate.placeholder')} value={val}
             onChange={e => setVal(agFmtInput(e.target.value))}
             onKeyDown={e => { if (e.key === 'Enter') submit() }}
-            style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.6, color: A.ink, padding: 'var(--crm-space-xl) var(--crm-space-2xl) var(--crm-space-xl) 0', fontVariantNumeric: 'tabular-nums', outline: 'none' }} />
+            style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.6, color: A.ink, padding: 'var(--crm-space-xl) var(--crm-space-2xl) var(--crm-space-xl) 0', fontVariantNumeric: 'tabular-nums', outline: 'none' }} />
         </div>
         <button className="ax-gate-cta" onClick={submit} disabled={!canSubmit} style={{
-          height: 48, borderRadius: 'var(--crm-radius-pill)', border: 0, background: A.ink, color: A.onAccent,
-          fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, cursor: canSubmit ? 'pointer' : 'default',
+          height: 48, borderRadius: 'var(--crm-radius-pill)', border: 0, background: A.accent, color: A.accentInk,
+          fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, cursor: canSubmit ? 'pointer' : 'default',
           opacity: canSubmit ? 1 : 0.45, width: '100%',
         }}>
           {saving ? tr('analytics.gate.saving') : tr('analytics.gate.cta')}

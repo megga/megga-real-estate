@@ -7,11 +7,12 @@
 //   streaming token-by-token natif → on retire la simulation streaming locale.
 // - useAuth().profile remplace window.CRM_AGENT pour le prénom et l'avatar.
 
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
 import {
   SugarTopNav, SugarIconRail, type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
@@ -164,15 +165,15 @@ function tok(dark: boolean): JulienTokens {
     bg: '#F4F5F7',
     surface: '#FFFFFF',
     surfaceB: '#F7F8FA',
-    ink: '#0B0C0E',
+    ink: MXC_COLOR.n100,
     inkSoft: '#3A3D44',
     muted: '#7A8088',
     ghost: '#B5BAC2',
     border: '#E4E6EC',
-    borderHov: '#0B0C0E',
-    black: '#0B0C0E',
+    borderHov: MXC_COLOR.n100,
+    black: MXC_COLOR.n100,
     selInk: '#FFFFFF',
-    shadow: '0 8px 32px rgba(15,23,42,0.08)',
+    shadow: `0 8px 32px ${sgVoileEncre(false, 0.08)}`,
     drawerBg: 'rgba(245,246,248,0.96)',
   }
 }
@@ -495,13 +496,13 @@ function JulienConversation({ s, dark, prevScreen, firstName, resumeId }: Julien
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <h1
               style={{
-                margin: 0, fontSize: 48, fontWeight: 800,
+                margin: 0, fontSize: 48, fontWeight: 600,
                 color: s.ink, letterSpacing: '-1.2px', textAlign: 'center', lineHeight: 1.1,
               }}
             >
               {greeting}
             </h1>
-            <div style={{ fontSize: 16, color: s.inkSoft, fontWeight: 500, textAlign: 'center' }}>
+            <div style={{ fontSize: 'var(--crm-text-2xl)', color: s.inkSoft, fontWeight: 500, textAlign: 'center' }}>
               {subgreeting}
             </div>
           </div>
@@ -522,8 +523,8 @@ function JulienConversation({ s, dark, prevScreen, firstName, resumeId }: Julien
                   backdropFilter: 'blur(16px) saturate(1.4)',
                   WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
                   border: dark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.8)',
-                  boxShadow: dark ? '0 4px 16px rgba(0,0,0,.25)' : '0 4px 20px rgba(15,23,42,0.07)',
-                  color: s.inkSoft, fontSize: 13, fontWeight: 600,
+                  boxShadow: dark ? '0 4px 16px rgba(0,0,0,.25)' : `0 4px 20px ${sgVoileEncre(false, 0.07)}`,
+                  color: s.inkSoft, fontSize: 'var(--crm-text-md)', fontWeight: 600,
                   fontFamily: '"Inter Tight", system-ui, sans-serif', cursor: 'pointer',
                   transition: 'all .18s',
                   animation: `capsule-in .35s ease ${i * 0.06}s both`,
@@ -588,7 +589,7 @@ function Bubble({ msg, s, dark }: BubbleProps) {
             borderRadius: '20px 20px 4px 20px',
             background: dark ? 'rgba(255,255,255,0.08)' : s.surface,
             border: '1px solid ' + s.border,
-            fontSize: 15, lineHeight: 1.7, color: s.ink, fontWeight: 500,
+            fontSize: 'var(--crm-text-xl)', lineHeight: 1.7, color: s.ink, fontWeight: 500,
           }}
         >
           {msg.content}
@@ -601,7 +602,7 @@ function Bubble({ msg, s, dark }: BubbleProps) {
     <div style={{ marginBottom: 16, maxWidth: 580 }}>
       <div
         style={{
-          fontSize: 13, fontWeight: 700, color: s.ink,
+          fontSize: 'var(--crm-text-md)', fontWeight: 600, color: s.ink,
           marginBottom: 8, display: 'flex', alignItems: 'center', gap: 7,
         }}
       >
@@ -616,7 +617,7 @@ function Bubble({ msg, s, dark }: BubbleProps) {
         {/* Nom de l'assistant MEGGA AI (marque) — cohérent avec « Megga » partout ailleurs. */}
         {'Megga'}
       </div>
-      <div style={{ fontSize: 15.5, lineHeight: 1.8, color: s.ink, fontWeight: 400, paddingLeft: 30 }}>
+      <div style={{ fontSize: 'var(--crm-text-xl)', lineHeight: 1.8, color: s.ink, fontWeight: 400, paddingLeft: 30 }}>
         {msg.loading && !msg.content ? (
           <div style={{ display: 'flex', gap: 5, alignItems: 'center', padding: '4px 0' }}>
             {[0, 1, 2].map(i => (
@@ -649,7 +650,7 @@ function Bubble({ msg, s, dark }: BubbleProps) {
               display: 'inline-flex', alignItems: 'center', gap: 5,
               padding: '4px 10px', borderRadius: 999, border: 0,
               background: 'transparent', color: s.muted,
-              fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
+              fontSize: 'var(--crm-text-sm)', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
             }}
           >
             <JIcon name={copied ? 'check' : 'copy'} size={12} color="currentColor" />
@@ -672,14 +673,14 @@ function StreamingIndicator({ dark, s }: { dark: boolean; s: JulienTokens }) {
             position: 'absolute', inset: -4, borderRadius: '50%',
             background: dark
               ? 'radial-gradient(circle, rgba(242,240,236,0.18) 0%, transparent 70%)'
-              : 'radial-gradient(circle, rgba(11,12,14,0.10) 0%, transparent 70%)',
+              : `radial-gradient(circle, ${sgVoileEncre(false, 0.10)} 0%, transparent 70%)`,
             animation: 'gg-halo 1.8s ease-in-out infinite',
           }}
         />
         <div
           style={{
             position: 'absolute', inset: 0, borderRadius: '50%',
-            border: `1.5px solid ${dark ? 'rgba(242,240,236,0.18)' : 'rgba(11,12,14,0.12)'}`,
+            border: `1.5px solid ${dark ? 'rgba(242,240,236,0.18)' : `${sgVoileEncre(false, 0.12)}`}`,
             borderTopColor: s.ink,
             animation: 'gg-spin 1.4s linear infinite',
           }}
@@ -717,7 +718,7 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
         border: `1px solid ${s.border}`,
         background: dark ? 'rgba(255,255,255,0.025)' : '#FFFFFF',
         overflow: 'hidden',
-        boxShadow: dark ? '0 4px 16px rgba(0,0,0,0.25)' : '0 2px 10px rgba(11,12,14,0.04)',
+        boxShadow: dark ? '0 4px 16px rgba(0,0,0,0.25)' : `0 2px 10px ${sgVoileEncre(false, 0.04)}`,
       }}
     >
       <div
@@ -731,20 +732,19 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
         <div
           style={{
             width: 22, height: 22, borderRadius: 7,
-            background: dark ? 'rgba(255,255,255,0.08)' : 'rgba(11,12,14,0.06)',
+            background: dark ? 'rgba(255,255,255,0.08)' : `${sgVoileEncre(false, 0.06)}`,
             display: 'grid', placeItems: 'center',
           }}
         >
           <JIcon name="mail" size={12} color={s.ink} sw={2} />
         </div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: s.ink, letterSpacing: '0.01em' }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: s.ink, letterSpacing: '0.01em' }}>
           {tr('julien.email.draftTitle')}
         </div>
         <div
           style={{
             marginLeft: 6, padding: '2px 8px', borderRadius: 999,
-            fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-            background: dark ? 'rgba(217,119,87,0.18)' : 'rgba(217,119,87,0.12)',
+            fontSize: 'var(--crm-text-xs)', fontWeight: 600,             background: dark ? 'rgba(217,119,87,0.18)' : 'rgba(217,119,87,0.12)',
             color: '#B5582F',
           }}
         >
@@ -758,7 +758,7 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
             padding: '5px 11px', borderRadius: 999, border: 0,
             background: copied ? (dark ? 'rgba(46,160,67,0.18)' : 'rgba(46,160,67,0.10)') : s.black,
             color: copied ? '#2EA043' : s.selInk,
-            fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer',
+            fontSize: 'var(--crm-text-xs)', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
             transition: 'all .18s',
           }}
         >
@@ -777,15 +777,14 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
         >
           <div
             style={{
-              width: 48, fontSize: 11.5, fontWeight: 700, color: s.muted,
-              textTransform: 'uppercase', letterSpacing: '0.06em',
+              width: 48, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: s.muted,
             }}
           >
             {tr('julien.email.toLabel')}
           </div>
           <div
             style={{
-              flex: 1, fontSize: 14,
+              flex: 1, fontSize: 'var(--crm-text-lg)',
               color: email.to ? s.ink : s.muted,
               fontStyle: email.to ? 'normal' : 'italic',
             }}
@@ -796,13 +795,12 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '9px 0' }}>
           <div
             style={{
-              width: 48, fontSize: 11.5, fontWeight: 700, color: s.muted,
-              textTransform: 'uppercase', letterSpacing: '0.06em',
+              width: 48, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: s.muted,
             }}
           >
             {tr('julien.email.subjectLabel')}
           </div>
-          <div style={{ flex: 1, fontSize: 14, fontWeight: 600, color: s.ink }}>
+          <div style={{ flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: s.ink }}>
             {email.subject}
           </div>
         </div>
@@ -812,7 +810,7 @@ function EmailDraft({ email, s, dark, onCopy, copied }: EmailDraftProps) {
         style={{
           padding: '16px 18px 18px',
           borderTop: `1px solid ${s.border}`,
-          fontSize: 14.5, lineHeight: 1.75, color: s.ink,
+          fontSize: 'var(--crm-text-lg)', lineHeight: 1.75, color: s.ink,
           whiteSpace: 'pre-wrap',
           fontFamily: '"Inter Tight", system-ui, sans-serif',
         }}
@@ -863,7 +861,7 @@ function PromptBar({ onSend, loading, dark, s }: PromptBarProps) {
           borderRadius: 26,
           boxShadow: dark
             ? 'inset 0 0 0 1px rgba(255,255,255,0.08), 0 32px 80px rgba(0,0,0,.55)'
-            : 'inset 0 0 0 1px rgba(255,255,255,0.9), 0 32px 80px rgba(15,23,42,0.12), 0 4px 16px rgba(15,23,42,0.06)',
+            : `inset 0 0 0 1px rgba(255,255,255,0.9), 0 32px 80px ${sgVoileEncre(false, 0.12)}, 0 4px 16px ${sgVoileEncre(false, 0.06)}`,
           overflow: 'hidden',
         }}
       >
@@ -873,7 +871,7 @@ function PromptBar({ onSend, loading, dark, s }: PromptBarProps) {
             placeholder={tr('julien.promptPlaceholder')} rows={1}
             style={{
               width: '100%', border: 0, background: 'transparent',
-              color: s.ink, fontSize: 15.5, fontFamily: '"Inter Tight", system-ui, sans-serif',
+              color: s.ink, fontSize: 'var(--crm-text-xl)', fontFamily: '"Inter Tight", system-ui, sans-serif',
               resize: 'none', outline: 'none', lineHeight: 1.65,
               maxHeight: 200, overflowY: 'auto', padding: 0,
             }}
@@ -894,7 +892,7 @@ function PromptBar({ onSend, loading, dark, s }: PromptBarProps) {
               background: val.trim() ? s.black : s.surfaceB,
               cursor: val.trim() ? 'pointer' : 'default',
               display: 'grid', placeItems: 'center',
-              boxShadow: val.trim() ? '0 4px 12px rgba(11,12,14,0.2)' : 'none',
+              boxShadow: val.trim() ? `0 4px 12px ${sgVoileEncre(false, 0.2)}` : 'none',
               transition: 'all .18s',
             }}
           >

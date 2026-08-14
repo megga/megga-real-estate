@@ -15,6 +15,8 @@
 //  - la porte écrit l'objectif via useAgencyTargets().saveYearly (RPC analytics_set_target),
 //    PAS en localStorage (l'ancien 'megga-analytics-target' a été supprimé).
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useState, useEffect, useRef, useLayoutEffect, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAxDashboardData } from '@/hooks/useAxDashboardData'
@@ -93,11 +95,11 @@ function axEnsureKeyframes() {
 // ── Pilule de delta (statique, couleurs sémantiques) ─────────────────────────
 function AxfDelta({ v, pts, abs }: { v: number; pts?: boolean; abs?: boolean }) {
   const A = useAX()
-  if (v === 0) return <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: A.muted }}>—</span>
+  if (v === 0) return <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted }}>—</span>
   const up = v > 0
   const p = up ? A.pillAhead : A.pillBehind
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', background: p.bg, color: p.fg, boxShadow: p.sh, fontSize: 'var(--crm-text-xs)', fontWeight: 800, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', background: p.bg, color: p.fg, boxShadow: p.sh, fontSize: 'var(--crm-text-xs)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>
       <AxIcon name={up ? 'up' : 'down'} size={9} stroke="#fff" sw={3} />
       {up ? '+' : ''}{v}{pts ? ' pt' : abs ? '' : '%'}
     </span>
@@ -123,12 +125,12 @@ function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; on
   return (
     <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: '24px 28px', boxShadow: A.shadowLg, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 'var(--crm-space-4xl)', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       <div>
-        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 1.3, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.eyebrow')}</div>
-        <div style={{ marginTop: 12, fontSize: 'clamp(30px, 2.45vw, 46px)', fontWeight: 800, letterSpacing: -1.6, color: A.ink, lineHeight: 0.96, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted }}>{tr('analytics.hero.eyebrow')}</div>
+        <div style={{ marginTop: 12, fontSize: 'clamp(30px, 2.45vw, 46px)', fontWeight: 600, letterSpacing: -1.6, color: A.ink, lineHeight: 0.96, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
           {axCHF(num)}
         </div>
         <div style={{ marginTop: 12 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-xs) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: verdict.bg, color: verdict.fg, boxShadow: verdict.sh, fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: -0.1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-xs) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: verdict.bg, color: verdict.fg, boxShadow: verdict.sh, fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.1, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
             <AxIcon name={pace.ahead ? 'up' : 'down'} size={11} stroke="#fff" sw={2.6} />
             {axCHF(Math.abs(pace.diff))} {pace.ahead ? tr('analytics.hero.aheadShort') : tr('analytics.hero.behindShort')} · {pace.projPct} %
           </span>
@@ -137,13 +139,13 @@ function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; on
       {/* colonnes Réalisé / Reste */}
       <div style={{ display: 'flex', alignItems: 'stretch' }}>
         <div style={{ flex: 1, minWidth: 0, paddingRight: 'var(--crm-space-4xl)' }}>
-          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.realized')}</div>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: A.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(d.realizedNow)}</div>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: A.muted }}>{tr('analytics.hero.realized')}</div>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: A.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(d.realizedNow)}</div>
         </div>
         <div style={{ width: 1, background: A.hairline, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0, paddingLeft: 'var(--crm-space-4xl)' }}>
-          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: A.muted }}>{tr('analytics.hero.remaining')}</div>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: acc.accent, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(reste)}</div>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: A.muted }}>{tr('analytics.hero.remaining')}</div>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: acc.accent, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(reste)}</div>
         </div>
       </div>
       {/* pace bar muette + objectif */}
@@ -156,9 +158,9 @@ function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; on
           <div title={tr('analytics.hero.paceMarkerTitle')} style={{ position: 'absolute', top: -4, bottom: -4, left: `${pacePct}%`, width: 2.5, borderRadius: 'var(--crm-radius-2xs)', background: A.ink }} />
         </div>
         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted }}>
-          <span>{tr('analytics.hero.objectiveLabel')} <strong style={{ color: A.ink, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{axCHF(d.target)}</strong></span>
+          <span>{tr('analytics.hero.objectiveLabel')} <span style={{ color: A.ink, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{axCHF(d.target)}</span></span>
           {onGoSettings && (
-            <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+            <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
               · {tr('analytics.hero.modify')}
             </button>
           )}
@@ -176,16 +178,16 @@ function AxfSeg({ items, value, onChange, dark }: { items: { id: AxPeriodId; lab
   const idx = Math.max(0, items.findIndex(it => it.id === value))
   const n = items.length
   return (
-    <div role="tablist" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${n}, 1fr)`, background: A.cardSubtle, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-2xs)', boxShadow: dark ? 'inset 0 1px 3px rgba(0,0,0,.35)' : 'inset 0 1px 3px rgba(15,23,42,.07)' }}>
-      <div aria-hidden="true" style={{ position: 'absolute', top: 3, bottom: 3, left: 3, width: `calc((100% - 6px) / ${n})`, transform: `translateX(${idx * 100}%)`, transition: 'transform .38s cubic-bezier(.2,.8,.2,1)', borderRadius: 'var(--crm-radius-pill)', background: A.ink, boxShadow: dark ? '0 2px 8px rgba(0,0,0,.30)' : '0 2px 8px rgba(15,23,42,.18)' }} />
+    <div role="tablist" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${n}, 1fr)`, background: A.cardSubtle, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-2xs)', boxShadow: dark ? 'inset 0 1px 3px rgba(0,0,0,.35)' : `inset 0 1px 3px ${sgVoileEncre(false, .07)}` }}>
+      <div aria-hidden="true" style={{ position: 'absolute', top: 3, bottom: 3, left: 3, width: `calc((100% - 6px) / ${n})`, transform: `translateX(${idx * 100}%)`, transition: 'transform .38s cubic-bezier(.2,.8,.2,1)', borderRadius: 'var(--crm-radius-pill)', background: A.accent, boxShadow: dark ? '0 2px 8px rgba(0,0,0,.30)' : `0 2px 8px ${sgVoileEncre(false, .18)}` }} />
       {items.map(it => {
         const active = it.id === value
         return (
           <button key={it.id} role="tab" aria-selected={active} onClick={() => onChange(it.id)} className="axf-seg-btn" style={{
             position: 'relative', zIndex: 1, border: 0, background: 'transparent', fontFamily: 'inherit',
             padding: 'var(--crm-space-sm) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', cursor: active ? 'default' : 'pointer',
-            fontSize: 'var(--crm-text-md)', fontWeight: active ? 800 : 700, letterSpacing: -0.1, whiteSpace: 'nowrap',
-            color: active ? A.onAccent : A.muted,
+            fontSize: 'var(--crm-text-md)', fontWeight: active ? 600 : 500, letterSpacing: -0.1, whiteSpace: 'nowrap',
+            color: active ? A.accentInk : A.muted,
           }}>{it.label}</button>
         )
       })}
@@ -321,11 +323,11 @@ function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; ac
           boxShadow: '0 10px 28px rgba(0,0,0,0.38)', border: '1px solid rgba(255,255,255,0.10)',
           pointerEvents: 'none', whiteSpace: 'nowrap', fontFamily: 'Manrope',
         }}>
-          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)' }}>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: 'rgba(255,255,255,0.55)' }}>
             {(d.axisLabels[hov] || `${d.pointWord || tr('analytics.trajectory.pointWordFallback')} ${hov + 1}`)}{hov > s.elapsed ? ` · ${tr('analytics.trajectory.projectedShort')}` : ''}
           </span>
-          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{axCHF(hovVal)}</span>
-          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, color: hovDiff >= 0 ? '#3FCF8E' : '#F0A05A', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{axCHF(hovVal)}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: hovDiff >= 0 ? '#3FCF8E' : '#F0A05A', fontVariantNumeric: 'tabular-nums' }}>
             {hovDiff >= 0 ? '▲ +' : '▼ −'}{axCHF(Math.abs(hovDiff)).replace('CHF ', '')}
           </span>
         </div>
@@ -354,7 +356,7 @@ function AxfChartCard({ d, acc, dark, seg }: { d: AxPeriodData; acc: AxfAccent; 
   return (
     <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: '20px 26px 12px', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)', flexWrap: 'wrap', flexShrink: 0 }}>
-        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.chart.title')}</h3>
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.chart.title')}</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)', flexWrap: 'wrap' }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.inkSoft }}>
             <span style={{ width: 16, height: 3, borderRadius: 'var(--crm-radius-2xs)', background: acc.accent }} /> {tr('analytics.chart.realized')}
@@ -384,11 +386,11 @@ function AxfCompositionCard({ d, acc, dark, onDrill }: { d: AxPeriodData; acc: A
   const total = d.composition.reduce((s, c) => s + c.v, 0)
   const colOf: Record<AxBucketId, string> = { secured: acc.accent, probable: acc.soft, possible: acc.ghost }
   const txtOf: Record<AxBucketId, string> = dark
-    ? { secured: '#0B0C0E', probable: '#FFFFFF', possible: A.ink }
-    : { secured: '#0B0C0E', probable: '#0B0C0E', possible: '#0B0C0E' }
+    ? { secured: MXC_COLOR.n100, probable: '#FFFFFF', possible: A.ink }
+    : { secured: MXC_COLOR.n100, probable: MXC_COLOR.n100, possible: MXC_COLOR.n100 }
   return (
     <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl) var(--crm-space-5xl)', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
-      <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.composition.title')}</h3>
+      <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.composition.title')}</h3>
       {total === 0 ? (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: A.muted }}>
           {tr('analytics.composition.empty')}
@@ -412,15 +414,15 @@ function AxfCompositionCard({ d, acc, dark, onDrill }: { d: AxPeriodData; acc: A
                 {big ? (
                   <>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
-                      <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
-                      <span style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{pct} %</span>
+                      <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
+                      <span style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{pct} %</span>
                     </div>
-                    <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, opacity: 0.72, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(c.v)}</div>
+                    <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, opacity: 0.72, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(c.v)}</div>
                   </>
                 ) : (
                   <>
-                    <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
-                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{pct} %</span>
+                    <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.label}</span>
+                    <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>{pct} %</span>
                   </>
                 )}
               </button>
@@ -471,8 +473,8 @@ function AxfDrillPopover({ drill, bucket, compValue, onClose, onNavigate }: {
       <div style={{ position: 'absolute', left, top, width: W, maxHeight: H, background: A.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: A.shadowLg, padding: 'var(--crm-space-4xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', animation: 'axRise .3s cubic-bezier(.2,.8,.2,1) both' }}>
         <div style={{ position: 'absolute', [fitsRight ? 'left' : 'right']: -7, top: arrowY, width: 14, height: 14, background: A.card, transform: 'rotate(45deg)', borderRadius: 'var(--crm-radius-2xs)' } as CSSProperties} />
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', flexShrink: 0 }}>
-          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: A.ink, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bucket.label}</span>
-          {compValue > 0 && <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{axCHF(compValue)}</span>}
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: A.ink, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bucket.label}</span>
+          {compValue > 0 && <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{axCHF(compValue)}</span>}
         </div>
         {items.length === 0 ? (
           <div style={{ marginTop: 12, marginBottom: 6, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.muted, lineHeight: 1.5 }}>
@@ -480,20 +482,20 @@ function AxfDrillPopover({ drill, bucket, compValue, onClose, onNavigate }: {
           </div>
         ) : (
           <>
-            <div style={{ marginTop: 12, fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: A.muted, flexShrink: 0 }}>{tr('analytics.drill.topFiles')}</div>
+            <div style={{ marginTop: 12, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted, flexShrink: 0 }}>{tr('analytics.drill.topFiles')}</div>
             <div style={{ marginTop: 4, overflowY: 'auto', minHeight: 0 }}>
               {items.map((x, i) => (
                 <div key={i} className="axf-row" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', minWidth: 0 }}>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 800, color: A.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.prop}</span>
-                  <span style={{ padding: 'var(--crm-space-2xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#FFFFFF', fontSize: 'var(--crm-text-xs)', fontWeight: 800, whiteSpace: 'nowrap', flexShrink: 0 }}>{x.state}</span>
-                  <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{x.comm > 0 ? axCHF(x.comm).replace('CHF ', '') : '—'}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.prop}</span>
+                  <span style={{ padding: 'var(--crm-space-2xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#FFFFFF', fontSize: 'var(--crm-text-xs)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>{x.state}</span>
+                  <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{x.comm > 0 ? axCHF(x.comm).replace('CHF ', '') : '—'}</span>
                 </div>
               ))}
             </div>
           </>
         )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10, flexShrink: 0 }}>
-          <button onClick={() => { onClose(); onNavigate?.('pipeline') }} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 800, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+          <button onClick={() => { onClose(); onNavigate?.('pipeline') }} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 3 }}>
             {tr('analytics.drill.openInPipeline')}
           </button>
         </div>
@@ -518,7 +520,7 @@ function AxfSourcesCard({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
   useEffect(() => { const t = window.setTimeout(() => setOn(true), 60); return () => window.clearTimeout(t) }, [])
   return (
     <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl) var(--crm-space-3xl)', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
-      <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.sources.commissionTitle')}</h3>
+      <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.sources.commissionTitle')}</h3>
       {chans.length === 0 ? (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: A.muted }}>
           {tr('analytics.sources.commissionEmpty')}
@@ -527,11 +529,11 @@ function AxfSourcesCard({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
         <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'stretch', gap: 'var(--crm-space-2xl)', paddingTop: 'var(--crm-space-xl)' }}>
           {chans.map((s, i) => (
             <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-sm)' }} title={`${s.label} · ${axCHF(s.comm)} · ${tr('analytics.sources.wonDeals', { count: s.won ?? 0 })}`}>
-              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axShort(s.comm)}</span>
+              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axShort(s.comm)}</span>
               <div style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative', borderRadius: 'var(--crm-radius-md)', background: A.cardSubtle, overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: on ? `${Math.max(5, (s.comm / maxComm) * 100)}%` : 0, background: acc.accent, opacity: opac[i] ?? 0.3, borderRadius: 'var(--crm-radius-md)', transition: `height .8s cubic-bezier(.2,.8,.2,1) ${i * 0.07}s` }} />
               </div>
-              <span style={{ maxWidth: '100%', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: A.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span>
+              <span style={{ maxWidth: '100%', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span>
             </div>
           ))}
         </div>
@@ -571,7 +573,7 @@ function AxfKpiGrid({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
               <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={k.label}>{k.label}</span>
               <AxfDelta v={k.delta} pts={k.pts} abs={k.abs} />
             </div>
-            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, color: A.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 8 }}>{k.value}</div>
+            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: A.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 8 }}>{k.value}</div>
           </div>
           {k.spark.length >= 2 && <AxfAreaSpark data={k.spark} acc={acc} h={40} />}
         </div>
@@ -627,7 +629,7 @@ export function AxfStyles({ dark }: { dark: boolean }) {
          qui était le seul motif légitime de couper l'outline.
          .axf-row est un <div> non focusable : la déclaration n'y servait à rien. */
       .axf-row { -webkit-tap-highlight-color: transparent; }
-      .axf-row:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'} !important; }
+      .axf-row:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : `${sgVoileEncre(false, 0.035)}`} !important; }
       .axf-block { -webkit-tap-highlight-color: transparent; }
       .axf-block:hover { filter: brightness(${dark ? '1.07' : '0.97'}); }
       .axf-seg-btn { -webkit-tap-highlight-color: transparent; }
@@ -724,9 +726,9 @@ export default function AxDashboardBody({ dark = false, onNavigate }: AxDashboar
   if (isError && !d) {
     content = (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-3xl)', textAlign: 'center', color: A.ink }}>
-        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800 }}>{tr('analytics.error.title')}</div>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600 }}>{tr('analytics.error.title')}</div>
         <div style={{ fontSize: 'var(--crm-text-lg)', opacity: 0.7, lineHeight: 1.5, maxWidth: 360 }}>{tr('analytics.error.body')}</div>
-        <button onClick={() => refetch()} style={{ height: 40, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', background: A.ink, color: A.onAccent, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800 }}>{tr('analytics.error.retry')}</button>
+        <button onClick={() => refetch()} style={{ height: 40, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', background: A.accent, color: A.accentInk, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>{tr('analytics.error.retry')}</button>
       </div>
     )
   } else if (isLoading || !d) {

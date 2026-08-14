@@ -73,7 +73,7 @@ export function AudEventRow({ event, last }: Props) {
           fontVariantNumeric: 'tabular-nums',
         }}
       >
-        <div style={{ fontWeight: 700, color: SugarV3.ink, marginBottom: 2 }}>
+        <div style={{ fontWeight: 600, color: SugarV3.ink, marginBottom: 2 }}>
           {dt.date}
         </div>
         <div>{dt.time}</div>
@@ -92,7 +92,7 @@ export function AudEventRow({ event, last }: Props) {
           placeItems: 'center',
           flexShrink: 0,
           fontSize: 'var(--crm-text-sm)',
-          fontWeight: 700,
+          fontWeight: 600,
           letterSpacing: 0.2,
         }}
       >
@@ -116,7 +116,7 @@ export function AudEventRow({ event, last }: Props) {
           <span
             style={{
               fontSize: 'var(--crm-text-lg)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.ink,
               letterSpacing: -0.15,
               whiteSpace: 'nowrap',
@@ -133,10 +133,8 @@ export function AudEventRow({ event, last }: Props) {
                   sev === 'critical' ? SugarV3.errSoft : SugarV3.warnSoft,
                 color: sev === 'critical' ? SugarV3.errDarker : '#8C5A00',
                 fontSize: 'var(--crm-text-xs)',
-                fontWeight: 700,
-                letterSpacing: 0.2,
-                textTransform: 'uppercase',
-              }}
+                fontWeight: 600,
+                                              }}
             >
               {sev === 'critical' ? i18n.t('common:audit.severity.critical') : i18n.t('common:audit.severity.warning')}
             </span>
@@ -190,9 +188,7 @@ export function AudEventRow({ event, last }: Props) {
               fontSize: 'var(--crm-text-sm)',
               fontWeight: 600,
               color: cat.tone,
-              letterSpacing: 0.4,
-              textTransform: 'uppercase',
-              marginBottom: 1,
+                                          marginBottom: 1,
             }}
           >
             {cat.label}
@@ -200,7 +196,7 @@ export function AudEventRow({ event, last }: Props) {
           <div
             style={{
               fontSize: 'var(--crm-text-md)',
-              fontWeight: 700,
+              fontWeight: 600,
               color: SugarV3.ink,
               letterSpacing: -0.1,
               whiteSpace: 'nowrap',
