@@ -2,10 +2,14 @@
 -- Aucun appelant à ce stade — le câblage des 12 sites d'envoi vient en L3/L4.
 begin;
 
--- ⚠ DROP avant CREATE OR REPLACE : un changement de type de retour lève « cannot change
--- return type » (migration en échec → deploy.yml bloque la journée), et un changement de
--- signature crée une SURCHARGE, pas un remplacement → PGRST203 sur tous les appels.
+-- ⚠ DROP avant CREATE : un changement de type de retour lève « cannot change return type »
+-- (migration en échec → deploy.yml bloque la journée), et un paramètre ajouté ne REMPLACE
+-- pas, il SURCHARGE — deux candidates rendent PGRST203 sur tous les appels.
+-- Les DEUX signatures de whatsapp_send_allowed sont droppées : l'ancienne à 6 paramètres
+-- parce qu'elle surchargerait, la nouvelle à 7 parce que le rejeu du jour retomberait
+-- sinon sur 42723 (« function already exists »).
 drop function if exists public.whatsapp_send_allowed(text,text,uuid,uuid,uuid,text);
+drop function if exists public.whatsapp_send_allowed(text,text,uuid,uuid,uuid,text,int);
 drop function if exists public.record_whatsapp_consent(text,text,text,text,uuid,uuid,uuid,text,text,text,jsonb,uuid,text);
 
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -20,7 +24,14 @@ create function public.whatsapp_send_allowed(
   p_contact_id uuid default null,
   p_profile_id uuid default null,
   p_agency_id  uuid default null,        -- agence de l'APPELANT (visibilité du motif)
-  p_scope      text default 'all'
+  p_scope      text default 'all',
+  -- Marge de sécurité sur la fenêtre 24 h. La VALEUR appartient à l'appelant — la garde
+  -- d'envoi passe 15 — parce que c'est une politique, pas un fait : entre ce verdict et le
+  -- POST à Meta il s'écoule un build, un retry et une latence réseau. Sans marge, un
+  -- message décidé à 23 h 59 part après l'expiration et revient en 131047, alors que
+  -- l'agent aurait pu se voir proposer le repli template. Défaut 0 : un appelant qui ne
+  -- sait pas ce qu'il fait obtient le fait brut, pas une politique implicite.
+  p_window_margin_minutes int default 0
 )
 returns table (allowed boolean, reason text, public_reason text,
                in_24h_window boolean, legal_basis text, subject_kind text)
@@ -174,7 +185,8 @@ begin
   --    sans le scope, l'agence A « répondait » à un message que la personne avait écrit à
   --    l'agence B — du démarchage à froid habillé en réponse.
   select
-    bool_or(coalesce(m.wa_timestamp, m.created_at) > now() - interval '24 hours'),
+    bool_or(coalesce(m.wa_timestamp, m.created_at)
+            > now() - interval '24 hours' + make_interval(mins => greatest(coalesce(p_window_margin_minutes, 0), 0))),
     bool_or(true)
     into v_win, v_rel
   from public.whatsapp_messages m
@@ -269,15 +281,15 @@ begin
   return query select true,'ok','ok',v_win,v_last.legal_basis,v_kind;
 end $$;
 
-comment on function public.whatsapp_send_allowed(text,text,uuid,uuid,uuid,text) is
+comment on function public.whatsapp_send_allowed(text,text,uuid,uuid,uuid,text,int) is
   'Autorisation d''envoi WhatsApp. Le SUJET est dérivé du numéro, jamais déclaré par '
   'l''appelant. Ordre : bornage → sujet → SUPPRESSION (avant tout consentement) → fenêtre '
   '24 h / relation 30 j → avis LPD → branche sujet. `reason` est le motif précis '
   '(journalisé) ; `public_reason` est ce qu''un agent a le droit de voir — les distinguer '
   'évite de révéler à l''agence B qu''un numéro a dit STOP à l''agence A.';
 
-revoke all on function public.whatsapp_send_allowed(text,text,uuid,uuid,uuid,text) from public, anon;
-grant execute on function public.whatsapp_send_allowed(text,text,uuid,uuid,uuid,text)
+revoke all on function public.whatsapp_send_allowed(text,text,uuid,uuid,uuid,text,int) from public, anon;
+grant execute on function public.whatsapp_send_allowed(text,text,uuid,uuid,uuid,text,int)
   to authenticated, service_role;
 
 -- ═══════════════════════════════════════════════════════════════════════════
