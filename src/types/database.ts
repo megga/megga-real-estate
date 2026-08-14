@@ -2088,6 +2088,7 @@ export type Database = {
           import_raw_text: string | null
           import_raw_text_received_at: string | null
           last_interaction_at: string | null
+          language: string | null
           last_name: string
           nationality: string | null
           notes: string | null
@@ -2115,6 +2116,7 @@ export type Database = {
           import_raw_text?: string | null
           import_raw_text_received_at?: string | null
           last_interaction_at?: string | null
+          language?: string | null
           last_name: string
           nationality?: string | null
           notes?: string | null
@@ -2142,6 +2144,7 @@ export type Database = {
           import_raw_text?: string | null
           import_raw_text_received_at?: string | null
           last_interaction_at?: string | null
+          language?: string | null
           last_name?: string
           nationality?: string | null
           notes?: string | null

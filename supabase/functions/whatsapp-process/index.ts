@@ -203,6 +203,9 @@ serve(async (req) => {
           source_last_message_at: c.last_message_at, generated_at: new Date().toISOString(),
         }, { onConflict: 'contact_id' })
         insights++
+        // La langue observée dans le fil renseigne aussi le CONTACT : c'est elle
+        // qui décidera de la langue des templates hors fenêtre 24h.
+        await applyDetectedLanguage(admin, c.contact_id, insight.language)
         // Phase 4B : MEGGA qualifie le lead en autonomie (crée/enrichit + matching).
         if (insight.lead) {
           try { await qualifyLead(admin, c.agency_id, c.contact_id, insight, digest) }
@@ -288,6 +291,35 @@ serve(async (req) => {
 })
 
 // ── Phase 4B : qualification autonome du lead ───────────────────────────────
+/**
+ * Reporte sur `contacts.language` la langue observée par la compréhension.
+ *
+ * POURQUOI DÉDUIRE PLUTÔT QUE DEMANDER. La langue d'un contact n'est saisie nulle
+ * part aujourd'hui, alors que la compréhension la produit déjà à chaque cycle —
+ * sur le texte écrit par le client lui-même, et validée contre le même jeu fermé
+ * fr/de/en/it que la contrainte de la colonne (`whatsapp-comprehend.ts`). C'est
+ * une observation, pas une déclaration : plus fiable qu'une case de formulaire
+ * qu'un agent coche à la va-vite.
+ *
+ * ⚠ N'ÉCRIT QUE SI LA COLONNE EST NULLE. Un agent qui corrige la langue à la main
+ * doit gagner définitivement : sans ce garde-fou, le prochain message du client
+ * dans une autre langue — une phrase en anglais dans un fil allemand suffit —
+ * écraserait sa correction en silence, à chaque cycle.
+ */
+async function applyDetectedLanguage(
+  admin: SupabaseClient,
+  contactId: string,
+  language: string | null,
+): Promise<void> {
+  if (!language) return
+  // Échec non bloquant : la langue est un confort, jamais une raison de perdre un insight.
+  const { error } = await admin.from('contacts')
+    .update({ language })
+    .eq('id', contactId)
+    .is('language', null)
+  if (error) console.error('contact language propagation failed:', String(error.message ?? '').slice(0, 120))
+}
+
 // À partir de l'insight, MEGGA résout le contact (tiers → dédoublonne/crée ;
 // sinon l'expéditeur), le flague « à compléter », et — si les critères suffisent —
 // crée une client_searches qui déclenche le matching (trigger DB). Idempotent
@@ -336,12 +368,19 @@ async function qualifyLead(
         type: 'lead',
         source: 'whatsapp_ai',
         score: 'cold',
+        // Contact neuf : la langue observée est la seule qu'on aura avant le
+        // premier échange écrit par un humain.
+        language: insight.language,
       }).select('id').single()
       if (error || !newC) return
       leadContactId = (newC as { id: string }).id
       created = true
     }
   }
+
+  // Le contact peut aussi avoir été RETROUVÉ par dédoublonnage (téléphone ou nom) :
+  // il n'est alors pas celui du fil traité plus haut, et n'a donc pas reçu la langue.
+  await applyDetectedLanguage(admin, leadContactId, insight.language)
 
   // 2. Critères extraits de CE fil + état du contact.
   const { data: cRow } = await admin.from('contacts').select('tags, phone, email, search_criteria').eq('id', leadContactId).maybeSingle()

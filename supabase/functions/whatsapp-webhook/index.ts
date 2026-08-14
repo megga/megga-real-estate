@@ -930,19 +930,35 @@ async function rollbackAutoAction(
   return null // outil sans branche → le handler relâchera le verrou
 }
 
-// Contexte de remplissage des variables d'un template (prénom client + nom agent).
+/**
+ * Contexte de remplissage des variables d'un template (prénom client + nom agent),
+ * et LANGUE DU CLIENT.
+ *
+ * ⚠ Deux langues cohabitent dans ce fichier et ne doivent pas être confondues :
+ *   · le `lang: WaLang` qui circule partout est celui de l'AGENT — détecté sur son
+ *     message, il n'habille que ce qu'on lui répond à lui (`t(lang, …)`), et ne
+ *     connaît que fr/en ;
+ *   · celui rendu ici est celui du CLIENT (`contacts.language`, migration
+ *     20260814190000), et décide de la traduction du template qu'IL recevra.
+ * Envoyer un template allemand parce que l'agent écrit en allemand serait un
+ * contresens : c'est le destinataire qui compte.
+ *
+ * Colonne nulle ⇒ `undefined` ⇒ `buildTemplateMessage` retombe sur sa langue par
+ * défaut. Une valeur hors fr/de/en/it y est ignorée de la même façon.
+ */
 async function templateCtx(
   admin: SupabaseClient,
   agentLink: { profile_id: string; agency_id: string | null },
   contactId: string,
 ): Promise<WaTemplateContext> {
   const [{ data: c }, { data: prof }] = await Promise.all([
-    admin.from('contacts').select('first_name').eq('id', contactId).maybeSingle(),
+    admin.from('contacts').select('first_name, language').eq('id', contactId).maybeSingle(),
     admin.from('profiles').select('full_name').eq('id', agentLink.profile_id).maybeSingle(),
   ])
   return {
     clientFirstName: (c?.first_name as string | null) ?? undefined,
     agentName: (prof?.full_name as string | null) ?? undefined,
+    lang: (c?.language as string | null) ?? undefined,
   }
 }
 
