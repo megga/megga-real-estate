@@ -46,7 +46,7 @@ describe('COPILOT_TOOLS — composition du catalogue', () => {
   })
 
   it('n\'expose AUCUN outil d\'écriture/envoi', () => {
-    const forbidden = ['send_client_message', 'send_client_email', 'update_pipeline', 'create_contact', 'record_offer', 'open_kyc_case', 'send_listings']
+    const forbidden = ['send_client_message', 'send_client_email', 'update_pipeline', 'create_contact', 'record_offer', 'open_kyc_case', 'send_listings', 'invite_optin']
     for (const f of forbidden) expect(names, `${f} ne doit pas être exposé`).not.toContain(f)
   })
 

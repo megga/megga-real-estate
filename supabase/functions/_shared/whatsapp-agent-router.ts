@@ -61,6 +61,10 @@ const TOOL_TIERS: Record<string, ToolTier> = {
   // send_kyc_link : envoi d'un email au CLIENT (lien d'upload KYC) → confirm. Le KYC reste
   // facultatif : l'outil n'est qu'un assist, jamais une étape obligatoire.
   send_kyc_link: 'confirm',
+  // invite_optin : e-mail au CLIENT qui engage juridiquement l'agence (c'est l'information
+  // préalable de l'art. 6 al. 6 nLPD). Jamais en auto — et « invite Dubois » avec deux
+  // Dubois au fichier doit pouvoir être arrêté avant l'envoi.
+  invite_optin: 'confirm',
   // send_client_email : rédige + envoie un email au CLIENT → confirm. Socle légal : toute
   // communication client sort sous validation humaine, jamais automatique.
   send_client_email: 'confirm',

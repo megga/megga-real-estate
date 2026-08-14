@@ -1540,8 +1540,16 @@ valent quelque chose.
   jamais invité. Sans e-mail, le bouton est désactivé AVEC son motif : l'invitation voyage
   par ce canal-là, et l'agent doit savoir quoi corriger. Les cinq refus de l'edge function
   ont chacun leur message, dans les quatre langues.
-  ⚠ Le copilote WhatsApp n'a toujours pas d'outil équivalent : un agent ne peut pas dire
-  « invite Madame Dubois » depuis sa conversation. À décider séparément.
+- ~~Le copilote n'a pas d'outil équivalent.~~ **LIVRÉ le 15.08.2026** : outil `invite_optin`,
+  palier `confirm` (l'e-mail porte l'information préalable de l'art. 6 al. 6 — et « invite
+  Dubois » avec deux Dubois au fichier doit pouvoir être arrêté AVANT l'envoi).
+  Le PRÉREQUIS est le sujet de l'outil : si la personne n'existe pas, le copilote le DIT et
+  propose de créer la fiche (`create_contact`), il n'échoue pas sèchement. Tous les refus
+  sont explicatifs — pas d'e-mail, pas de numéro, déjà consentie, bloquée, invitation déjà
+  en route avec sa date.
+  Le geste vit dans `_shared/whatsapp-optin-send.ts`, partagé avec l'edge function du bouton
+  CRM : deux portes d'entrée, un seul comportement. `invite_optin` est verrouillé HORS du
+  catalogue web (test de `copilot-tools`) — c'est un outil WhatsApp, pas une action du CRM.
 - **`agency_wa_numbers` doit être peuplé.** Sans lui, l'invitation échoue en
   `agency_wa_number_missing` — explicitement, plutôt que de replier sur
   `META_PHONE_NUMBER_ID`, qui est un identifiant de compte et non un numéro : le lien

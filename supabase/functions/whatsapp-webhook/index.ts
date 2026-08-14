@@ -16,7 +16,7 @@ import { fetchMetaMedia } from '../_shared/whatsapp-media.ts'
 import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { readDocument, describeInboundMedia, ID_DOC_REDACTION_FR } from '../_shared/vision.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
-import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, executePublishToPortals, executeWithdrawFromPortals, executeDeleteContact, type ActionCtx } from '../_shared/whatsapp-actions.ts'
+import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeInviteOptin, executeSendClientEmail, executePublishToPortals, executeWithdrawFromPortals, executeDeleteContact, type ActionCtx } from '../_shared/whatsapp-actions.ts'
 import { asWaLang, detectLang, refusalText, t, type WaLang, undoneStage, undoStateChanged, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
 import { detectStopRequest } from '../_shared/whatsapp-stop-keywords.ts'
 import { recordStopRequest, recordAgentBriefOptOut, sendStopAck } from '../_shared/whatsapp-stop.ts'
@@ -1346,6 +1346,10 @@ async function executePending(
   if (pending.tool === 'open_kyc_case') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
     return executeOpenKycCase(ctx, pending.args)
+  }
+  if (pending.tool === 'invite_optin') {
+    const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
+    return executeInviteOptin(ctx, pending.args)
   }
   if (pending.tool === 'send_kyc_link') {
     const ctx: ActionCtx = { supabase: admin, profileId: agentLink.profile_id, agencyId: agentLink.agency_id, lang }
