@@ -193,19 +193,44 @@ const ENCRES_SUR_SURFACE = ['ink', 'inkSoft', 'muted', 'errDarker']
 const ENCRES_SUR_ACCENT = ['onAccent', 'onAccentSoft']
 
 /**
- * ⚠ `black` est employé en `color:`, mais sur un GLYPHE — le conteneur 56 px qui
- * porte l'icône d'une carte de porte, dont l'unique enfant est `{icon}`. WCAG
- * 1.4.11 lui applique 3:1, pas 4,5. `CLAUDE.md` §3 le dit explicitement : « le
- * seuil non-texte 3:1 est satisfait, un glyphe décoratif peut rester en accent ».
+ * ⛔ ET LE COUPLE INVERSE, celui que cette garde ne mesurait PAS.
  *
- * ⛔ Le distinguer n'est PAS une commodité. L'autre site qui peignait du TEXTE en
- * `sp.black` (le pied de carte au survol) tenait en clair — 5,78:1, le contraste
- * est symétrique — et tombait à 3,44:1 sur la carte sombre. Confondre les deux
- * rôles aurait soit laissé passer le texte, soit envoyé repeindre le glyphe.
+ * `onAccent` est défini comme « l'encre posée sur l'accent », mais une pastille
+ * peut l'employer comme APLAT — c'est le cas du badge « Recommandé » sur la carte
+ * de porte SÉLECTIONNÉE, qui est une pilule claire posée sur une carte d'accent.
+ * Son encre est alors un jeton d'encre ordinaire, et il faut le mesurer CONTRE
+ * `onAccent`, pas contre une surface.
+ *
+ * ⚠ CE DÉFAUT A ÉTÉ INTRODUIT PAR LE CORRECTIF DU LOT 1. Faire passer `onAccent`
+ * sombre de `sp.pageBg` (#030303) à `#FFFFFF` a réparé les douze sites où il est
+ * une ENCRE — et cassé celui où il est un APLAT : le badge est devenu blanc sur
+ * blanc, 1,00:1, texte invisible. Vu à l'écran, pas par un test. C'est la forme
+ * n°5 de `megga/gardes-vacuites` — la garde qu'on désarme en écrivant le
+ * correctif — rencontrée sur le correctif lui-même : une garde ne mesure que les
+ * couples qu'on lui a nommés, et j'avais nommé un seul sens du couple.
  */
-const GLYPHES_SUR_SURFACE = ['black']
+const ENCRES_SUR_ONACCENT = ['black']
 
-const ENCRES_ATTENDUES = [...ENCRES_SUR_SURFACE, ...ENCRES_SUR_ACCENT, ...GLYPHES_SUR_SURFACE]
+/**
+ * Jetons employés en `color:` sur un GLYPHE, donc mesurés au seuil non-textuel
+ * (WCAG 1.4.11, 3:1) et non à l'AA.
+ *
+ * ⚠ VIDE DEPUIS LE 16 AOÛT 2026, et ce n'est pas un trou. `black` y était : le
+ * conteneur 56 px des cartes de porte peignait son icône en `sp.black`, c'est-à-
+ * dire en `#424bfb`. C'était l'ACCENT SUR UN ÉLÉMENT INACTIF — l'inverse exact
+ * de la règle du 10 août 2026 — et la carte non choisie est passée à `muted`,
+ * qui est une encre ordinaire. Il ne reste donc aucun glyphe à mesurer à part.
+ *
+ * ⛔ La liste vide ne rouvre rien : c'est la clause « l'inventaire décrit encore
+ * la source » qui garde la porte. Si un jeton redevenait un glyphe, elle
+ * rougirait en le nommant, et il faudrait décider ICI de son seuil. Une liste
+ * vide dont personne ne garde les ajouts serait, elle, une vacuité.
+ */
+const GLYPHES_SUR_SURFACE: string[] = []
+
+const ENCRES_ATTENDUES = [
+  ...ENCRES_SUR_SURFACE, ...ENCRES_SUR_ACCENT, ...ENCRES_SUR_ONACCENT, ...GLYPHES_SUR_SURFACE,
+]
 
 describe('Contraste KYC — les deux thèmes, les rôles énumérés', () => {
   /** Sans lui, tout le reste passerait par vacuité sur un balayage cassé. */
@@ -265,6 +290,11 @@ describe('Contraste KYC — les deux thèmes, les rôles énumérés', () => {
       for (const jeton of ENCRES_SUR_ACCENT) {
         const r = contraste(p[jeton as keyof KycPalette] as string, p.black)
         if (r < AA) faibles.push(`${jeton} (${p[jeton as keyof KycPalette]}) sur black (${p.black}) = ${arrondi(r)}:1`)
+      }
+      // …et le couple INVERSE : une pilule claire posée sur la carte d'accent.
+      for (const jeton of ENCRES_SUR_ONACCENT) {
+        const r = contraste(p[jeton as keyof KycPalette] as string, p.onAccent)
+        if (r < AA) faibles.push(`${jeton} (${p[jeton as keyof KycPalette]}) sur l'aplat onAccent (${p.onAccent}) = ${arrondi(r)}:1`)
       }
       expect(faibles, `encre sous l'AA sur l'accent en ${nom} :\n  ${faibles.join('\n  ')}`).toEqual([])
     })

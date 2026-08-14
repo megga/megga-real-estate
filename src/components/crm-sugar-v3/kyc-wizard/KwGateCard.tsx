@@ -69,8 +69,16 @@ export function KwGateCard({
             right: 18,
             padding: 'var(--crm-space-xs) var(--crm-space-lg)',
             borderRadius: 'var(--crm-radius-pill)',
+            // ⛔ L'ENCRE DE CETTE PILULE EST L'ACCENT, pas `ink`. Sélectionnée,
+            // elle est une pilule CLAIRE posée sur une carte d'accent : son
+            // aplat est `onAccent`, donc son encre doit contraster avec du
+            // BLANC. `sp.ink` vaut `#ffffff` en sombre — blanc sur blanc, 1,00:1,
+            // texte invisible. Le défaut est né du correctif du lot 1, qui a fait
+            // passer `onAccent` sombre de `#030303` à `#FFFFFF` : il a réparé les
+            // douze sites où ce jeton est une ENCRE et cassé le seul où il est un
+            // APLAT. L'accent sur blanc rend 5,78:1 dans les deux thèmes.
             background: selected ? sp.onAccent : sp.black,
-            color: selected ? sp.ink : sp.onAccent,
+            color: selected ? sp.black : sp.onAccent,
             fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
                                   }}
@@ -83,8 +91,21 @@ export function KwGateCard({
           width: 56,
           height: 56,
           borderRadius: 'var(--crm-radius-3xl)',
-          background: selected ? sp.onAccentFaint : sp.cardSubtle,
-          color: selected ? sp.onAccent : sp.black,
+          // ⛔ AUCUN APLAT SOUS UNE ICÔNE NON SÉLECTIONNÉE. `cardSubtle` posait un
+          // carré `#050505` sur une carte `#090909` : 1,03:1 — un écart qui ne
+          // SÉPARE pas (CLAUDE.md §3 : « la séparation vient de la BORDURE »),
+          // et qui se lit donc comme une tache sombre plutôt que comme une
+          // sous-surface. L'icône se pose directement sur la carte.
+          //
+          // Sur la carte SÉLECTIONNÉE le voile reste : il est clair sur l'accent,
+          // donc il sépare vraiment, et il marque l'état ACTIF — le seul qui ait
+          // le droit d'être marqué.
+          background: selected ? sp.onAccentFaint : 'transparent',
+          // ⚠ GRIS, PAS L'ACCENT. Une porte non choisie portait `sp.black`,
+          // c'est-à-dire `#424bfb` : l'accent sur un élément INACTIF, exactement
+          // l'inverse de la règle du 10 août 2026. `muted` tient le seuil
+          // non-textuel dans les deux thèmes (7,89:1 en sombre, 5,57 en clair).
+          color: selected ? sp.onAccent : sp.muted,
           display: 'grid',
           placeItems: 'center',
           flexShrink: 0,

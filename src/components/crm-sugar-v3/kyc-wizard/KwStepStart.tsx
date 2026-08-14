@@ -60,7 +60,7 @@ export function KwStepStart({ data, set }: Props) {
             <SgIcon
               name="user"
               size={26}
-              stroke={data.source === 'existing' ? sp.onAccent : sp.black}
+              stroke={data.source === 'existing' ? sp.onAccent : sp.muted}
             />
           }
           title={t('wizard.start.existing.title')}
@@ -73,7 +73,7 @@ export function KwStepStart({ data, set }: Props) {
             <SgIcon
               name="upload"
               size={26}
-              stroke={data.source === 'import' ? sp.onAccent : sp.black}
+              stroke={data.source === 'import' ? sp.onAccent : sp.muted}
             />
           }
           title={t('wizard.start.import.title')}
@@ -89,7 +89,7 @@ export function KwStepStart({ data, set }: Props) {
             <SgIcon
               name="send"
               size={26}
-              stroke={data.source === 'magic' ? sp.onAccent : sp.black}
+              stroke={data.source === 'magic' ? sp.onAccent : sp.muted}
             />
           }
           title={t('wizard.start.magic.title')}
