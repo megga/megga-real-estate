@@ -13,7 +13,6 @@ interface Props {
   title: string
   sub: string
   onClick?: () => void
-  recommended?: boolean
   selected?: boolean
   disabled?: boolean
 }
@@ -23,7 +22,6 @@ export function KwGateCard({
   title,
   sub,
   onClick,
-  recommended,
   selected,
   disabled,
 }: Props) {
@@ -61,31 +59,6 @@ export function KwGateCard({
         gap: 'var(--crm-space-2xl)',
       }}
     >
-      {recommended && (
-        <span
-          style={{
-            position: 'absolute',
-            top: 18,
-            right: 18,
-            padding: 'var(--crm-space-xs) var(--crm-space-lg)',
-            borderRadius: 'var(--crm-radius-pill)',
-            // ⛔ L'ENCRE DE CETTE PILULE EST L'ACCENT, pas `ink`. Sélectionnée,
-            // elle est une pilule CLAIRE posée sur une carte d'accent : son
-            // aplat est `onAccent`, donc son encre doit contraster avec du
-            // BLANC. `sp.ink` vaut `#ffffff` en sombre — blanc sur blanc, 1,00:1,
-            // texte invisible. Le défaut est né du correctif du lot 1, qui a fait
-            // passer `onAccent` sombre de `#030303` à `#FFFFFF` : il a réparé les
-            // douze sites où ce jeton est une ENCRE et cassé le seul où il est un
-            // APLAT. L'accent sur blanc rend 5,78:1 dans les deux thèmes.
-            background: selected ? sp.onAccent : sp.black,
-            color: selected ? sp.black : sp.onAccent,
-            fontSize: 'var(--crm-text-xs)',
-            fontWeight: 600,
-                                  }}
-        >
-          {t('wizard.gate.recommended')}
-        </span>
-      )}
       <div
         style={{
           width: 56,

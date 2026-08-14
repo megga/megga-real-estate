@@ -284,7 +284,6 @@
       }
     },
     "gate": {
-      "recommended": "Recommended",
       "selected": "Selected",
       "choose": "Choose"
     },

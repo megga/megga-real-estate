@@ -208,8 +208,15 @@ const ENCRES_SUR_ACCENT = ['onAccent', 'onAccentSoft']
  * n°5 de `megga/gardes-vacuites` — la garde qu'on désarme en écrivant le
  * correctif — rencontrée sur le correctif lui-même : une garde ne mesure que les
  * couples qu'on lui a nommés, et j'avais nommé un seul sens du couple.
+ *
+ * ⚠ LA LISTE EST VIDE DEPUIS LE RETRAIT DU BADGE « Recommandé » (16 août 2026,
+ * décision produit) : plus aucune pilule du KYC ne se pose sur un aplat
+ * `onAccent`. Elle RESTE ici, avec sa raison, parce que le couple reviendra dès
+ * qu'on reposera une pastille claire sur une carte d'accent — et la clause
+ * « l'inventaire décrit encore la source » le dira en le nommant. Effacer la
+ * liste effacerait la leçon avec elle.
  */
-const ENCRES_SUR_ONACCENT = ['black']
+const ENCRES_SUR_ONACCENT: string[] = []
 
 /**
  * Jetons employés en `color:` sur un GLYPHE, donc mesurés au seuil non-textuel

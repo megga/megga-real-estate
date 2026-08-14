@@ -54,7 +54,6 @@ export function KwStepStart({ data, set }: Props) {
         }}
       >
         <KwGateCard
-          recommended
           selected={data.source === 'existing'}
           icon={
             <SgIcon
