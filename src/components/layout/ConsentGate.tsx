@@ -152,11 +152,11 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
 
         <h1
           id="consent-gate-title"
-          style={{ margin: '16px 0 0', fontSize: 22, fontWeight: 600, letterSpacing: -0.4, color: sp.ink }}
+          style={{ margin: '16px 0 0', fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.4, color: sp.ink }}
         >
           {t('consentGate.title')}
         </h1>
-        <p style={{ margin: '8px 0 0', fontSize: 14.5, lineHeight: 1.5, color: sp.sub }}>
+        <p style={{ margin: '8px 0 0', fontSize: 'var(--crm-text-lg)', lineHeight: 1.5, color: sp.sub }}>
           {t('consentGate.subtitle')}
         </p>
 
@@ -166,7 +166,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
           {rows.map((row) => (
             <label
               key={row.consent_type}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 13.5, lineHeight: 1.5, color: sp.ink, cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 'var(--crm-text-md)', lineHeight: 1.5, color: sp.ink, cursor: 'pointer' }}
             >
               <input
                 type="checkbox"
@@ -193,7 +193,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
           ))}
 
           <label
-            style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 13.5, lineHeight: 1.5, color: sp.sub, cursor: 'pointer' }}
+            style={{ display: 'flex', alignItems: 'flex-start', gap: 12, fontSize: 'var(--crm-text-md)', lineHeight: 1.5, color: sp.sub, cursor: 'pointer' }}
           >
             <input
               type="checkbox"
@@ -206,7 +206,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
         </div>
 
         {accept.isError && (
-          <p role="alert" style={{ margin: '16px 0 0', fontSize: 13, color: '#EF4444' }}>
+          <p role="alert" style={{ margin: '16px 0 0', fontSize: 'var(--crm-text-md)', color: '#EF4444' }}>
             {t('consentGate.error')}
           </p>
         )}
@@ -223,7 +223,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
             border: 'none',
             background: sp.accent,
             color: sp.accentInk,
-            fontSize: 14,
+            fontSize: 'var(--crm-text-lg)',
             fontWeight: 600,
             cursor: canSubmit ? 'pointer' : 'not-allowed',
             opacity: canSubmit ? 1 : 0.45,

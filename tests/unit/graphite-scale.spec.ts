@@ -11,6 +11,7 @@
  * lecteur. Il ne reste que `CRM_TOKENS.graphite`, le thème legacy.
  */
 import { describe, it, expect } from 'vitest'
+import { readFileSafely, rel, scanRoots } from './helpers/fs-scan'
 import { CRM_GRAPHITE, CRM_TOKENS, crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { mxCrmPalette, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { SugarV2, setSugarV2Dark } from '@/components/crm-sugar-wizard/tokens'
@@ -130,6 +131,62 @@ describe('palettes d’écran dérivées', () => {
     const v = read()
     expect(v).toBe(attendu)
     expect(NEUTRES, `${v} hors palette`).toContain(v)
+  })
+
+  /**
+   * ⛔ LES CLAUSES DE CE FICHIER N'ÉNUMÈRENT QUE CE QU'ON LEUR A NOMMÉ.
+   *
+   * Onze palettes y sont importées une par une. Le chantier « CRM agent » en a
+   * traversé six de plus — `AX` et `AX_DARK` (Analytics), `KYC_LIGHT`, `SugarV3`,
+   * `pfKitCore`, `journeyData` — dont AUCUNE n'était couverte. Mesurées le 16
+   * août 2026, elles sont toutes propres ; mais « propre aujourd'hui » et
+   * « gardée » sont deux choses, et c'est exactement l'écart que ce chantier a
+   * passé huit lots à combler ailleurs.
+   *
+   * Ce balayage remplace l'énumération par une RÈGLE : aucun fichier de `src/`
+   * n'écrit un barreau de l'échelle Graphite. Une palette qui naîtra demain est
+   * couverte sans que personne pense à l'ajouter — c'est la différence entre une
+   * garde qui liste et une garde qui décrit.
+   *
+   * ⚠ Seul le fichier qui DÉFINIT l'échelle en porte les valeurs. L'exemption
+   * est nominative, pas un motif : elle ne peut pas s'étendre par accident.
+   */
+  it('aucun fichier de src/ n’écrit un barreau de l’échelle Graphite', () => {
+    const DEFINITION = 'src/components/crm-sugar/tokens.ts'
+    // ⛔ VALEURS FIGÉES, PAS DÉRIVÉES — et c'est un contrôle négatif qui l'a
+    // exigé. En lisant la rampe dans `CRM_GRAPHITE`, la clause cherchait ce que
+    // le fichier exempté contient : changer un palier changeait AUSSI le motif,
+    // et la garde restait verte. Un test qu'on ne peut pas faire rougir en
+    // cassant sa cible est vrai par construction — la troisième forme de
+    // `megga/gardes-vacuites`. L'échelle Graphite est HISTORIQUE : elle ne
+    // bougera plus, donc la figer ne coûte rien et rend la clause falsifiable.
+    const rampe = ['#12161c', '#161a21', '#1a1d26', '#1d212a', '#21242f']
+    // …et si elle bougeait quand même, on veut le savoir ICI plutôt que de
+    // garder un motif qui ne décrit plus rien.
+    expect((Object.values(CRM_GRAPHITE) as string[]).map((v) => v.toLowerCase()),
+      'l’échelle Graphite a changé : reprendre les valeurs figées ci-dessus').toEqual(rampe)
+    const scan = scanRoots([{ root: 'src', keep: (n) => /\.tsx?$/.test(n) }])
+    expect(scan.files.length, 'balayage vide : chemin cassé, pas arbre propre').toBeGreaterThan(400)
+    const fautifs: string[] = []
+    let vuDansLaDefinition = 0
+    for (const abs of scan.files) {
+      const chemin = rel(abs)
+      const lu = readFileSafely(abs)
+      if (lu.status !== 'ok') continue
+      lu.value.split('\n').forEach((ligne, i) => {
+        const sans = ligne.replace(/\/\/.*$/, '')
+        for (const g of rampe) {
+          if (!sans.toLowerCase().includes(g)) continue
+          if (chemin === DEFINITION) { vuDansLaDefinition++; continue }
+          fautifs.push(`${chemin}:${i + 1} → ${g}`)
+        }
+      })
+    }
+    // ⚠ Contrôle POSITIF de l'exemption : si la définition cessait de porter ses
+    // cinq paliers, le motif ne matcherait plus rien nulle part et la clause
+    // passerait au vert par vacuité — la troisième forme de gardes-vacuités.
+    expect(vuDansLaDefinition, 'l’échelle n’est plus définie où on la cherche').toBeGreaterThanOrEqual(5)
+    expect(fautifs, `barreau Graphite écrit hors de sa définition :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 
   it('aucune de ces surfaces n’est restée sur Graphite', () => {

@@ -1420,10 +1420,10 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
       {allPhotos.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#0E1410', margin: 0 }}>
+            <h3 style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: '#0E1410', margin: 0 }}>
               {t('form.step4.layoutTitle')}
             </h3>
-            <p style={{ fontSize: 12, color: '#7A8079', marginTop: 4 }}>
+            <p style={{ fontSize: 'var(--crm-text-sm)', color: '#7A8079', marginTop: 4 }}>
               {t('form.step4.layoutSubtitle')}
             </p>
           </div>

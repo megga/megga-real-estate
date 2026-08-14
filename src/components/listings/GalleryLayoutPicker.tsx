@@ -108,10 +108,10 @@ export default function GalleryLayoutPicker({ value, onChange }: GalleryLayoutPi
       }}
     >
       <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: M.ink }}>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: M.ink }}>
           {t('editor.gallery.title')}
         </div>
-        <div style={{ fontSize: 12, color: M.muted, marginTop: 2 }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: M.muted, marginTop: 2 }}>
           {t('editor.gallery.subtitle')}
         </div>
       </div>
@@ -148,14 +148,14 @@ export default function GalleryLayoutPicker({ value, onChange }: GalleryLayoutPi
               <div>
                 <div
                   style={{
-                    fontSize: 13,
-                    fontWeight: 700,
+                    fontSize: 'var(--crm-text-md)',
+                    fontWeight: 600,
                     color: selected ? M.green : M.ink,
                   }}
                 >
                   {t(`editor.gallery.layout.${opt.value}.label`)}
                 </div>
-                <div style={{ fontSize: 11, color: M.muted, marginTop: 2 }}>
+                <div style={{ fontSize: 'var(--crm-text-xs)', color: M.muted, marginTop: 2 }}>
                   {t(`editor.gallery.layout.${opt.value}.description`)}
                 </div>
               </div>

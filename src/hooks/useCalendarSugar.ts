@@ -8,6 +8,7 @@
 // (transactions stage='notary'/'signed'), publish (properties.published_at).
 // HOT_BUYERS + AI_INSIGHTS restent câblés sur le mock pour l'instant.
 
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
@@ -309,7 +310,7 @@ export function useCalendarSugar(): UseCalendarSugarReturn {
       warm: warmScore(c),
       reason: c.score === 'hot' ? 'Lead chaud · suivi prioritaire' : 'Lead tiède · à relancer',
       lastContact: relativeDay(c.last_interaction_at),
-      tone: '#0B0C0E',
+      tone: MXC_COLOR.n100,
     }))
   }, [hotBuyerRows])
 

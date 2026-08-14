@@ -82,6 +82,7 @@ const PAGES = new Set([
   'VisitModalSugarV3Page.tsx', 'VisitDetailSugarV3Page.tsx', 'DashboardSugarV4Page.tsx',
   'ImportLeadSugarV3Page.tsx', 'JulienSugarV2Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
   'SettingsSugarV2Page.tsx', 'CalendarSugarV2Page.tsx',
+  'ListingFormPage.tsx',
 ])
 
 /**
@@ -107,6 +108,7 @@ const PAGES_ACQUISES = [
   'VisitModalSugarV3Page.tsx', 'VisitDetailSugarV3Page.tsx', 'DashboardSugarV4Page.tsx',
   'ImportLeadSugarV3Page.tsx', 'JulienSugarV2Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
   'SettingsSugarV2Page.tsx', 'CalendarSugarV2Page.tsx',
+  'ListingFormPage.tsx',
 ]
 
 /**
@@ -199,6 +201,15 @@ const ZONES: RootSpec[] = [
   // aurait coûté dix fois leur prix.
   { root: 'src/components/crm-sugar/settings', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/calendar', keep: (n) => /\.tsx?$/.test(n) },
+  // Vague C — ce que le plan rangeait sous « Reste (pages) », et qui n'est pas un
+  // reste : les deux sélecteurs d'affichage de la fiche bien (rendus par
+  // `/dashboard/listings/:id/edit`) et le bandeau de consentement.
+  //
+  // ⚠ `ConsentGate` est du CHROME, pas une page : `ProtectedRoute` le monte sur
+  // TOUTE route protégée. Le plan le comptait avec les pages parce qu'il vit dans
+  // `layout/` ; c'est le ROUTAGE qui dit ce qu'il est.
+  { root: 'src/components/listings', keep: (n) => ['ListingDisplayPickers.tsx', 'GalleryLayoutPicker.tsx'].includes(n) },
+  { root: 'src/components/layout', keep: (n) => n === 'ConsentGate.tsx' },
   { root: 'src/components/crm-sugar/search', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/notifications', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/profile', keep: (n) => /\.tsx?$/.test(n) },
@@ -813,6 +824,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar/journey',
       'src/components/crm-sugar/settings',
       'src/components/crm-sugar/calendar',
+      'src/components/listings',
       'src/components/crm-sugar/search',
       'src/components/crm-sugar/notifications',
       'src/components/crm-sugar/profile',
