@@ -75,10 +75,24 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 // ── Base ────────────────────────────────────────────────────
 
+/**
+ * Requête PostgREST avec retry sur statement timeout (57014). Le rôle API porte le
+ * timeout du plan (~8 s) et un scan À FROID de market_listings le dépasse ; mais chaque
+ * tentative annulée laisse ses pages dans le cache, et la même requête passe en <1 s à
+ * chaud (mesuré le 14/08 : 8,3 s → timeout, puis 0,37 s). Trois essais suffisent.
+ */
 async function db(path, init = {}) {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...init, headers: { ...DB_HEADERS, ...init.headers } })
-  if (!res.ok) throw new Error(`PostgREST ${res.status} sur ${path} — ${await res.text()}`)
-  return res.status === 204 ? null : res.json()
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...init, headers: { ...DB_HEADERS, ...init.headers } })
+    if (res.ok) return res.status === 204 ? null : res.json()
+    const body = await res.text()
+    if (body.includes('57014') && attempt < 2) {
+      console.warn(`  (statement timeout sur ${path.split('?')[0]}, tentative ${attempt + 2}/3 — cache en chauffe)`)
+      await sleep(1000)
+      continue
+    }
+    throw new Error(`PostgREST ${res.status} sur ${path} — ${body}`)
+  }
 }
 
 async function configValue(key) {
@@ -101,22 +115,44 @@ async function loadIdentity() {
  * ⚠ `p_cap_abs: null` reproduit le cron : le cap absolu de 1200 a été retiré le 02/08 et
  * le cron passe null. Le laisser à sa valeur par défaut afficherait un plafond que la prod
  * n'applique plus. `p_cap_pct` vit dans app_config depuis le 11/08, bornes identiques.
+ *
+ * ⚠ DÉGRADABLE : via PostgREST le rôle porte le statement timeout du plan (~8 s, mesuré
+ * 8,3 s le 14/08) et les deux count(*) du RPC le dépassent — le cron, lui, tourne en SQL
+ * direct sans cette limite. Ce recoupement est un plus, pas une condition : on rend null
+ * et le rapport bascule sur le comptage estimé.
  */
 async function sweepDryRun() {
   const raw = Number(await configValue('realadvisor_sweep_cap_pct'))
   const pct = Number.isFinite(raw) && raw > 0 ? Math.min(0.1, Math.max(0.005, raw)) : 0.03
-  const out = await db('rpc/realadvisor_probe_sweep', {
-    method: 'POST',
-    body: JSON.stringify({
-      p_offer_type: 'buy',
-      p_threshold: THRESHOLD,
-      p_min_age_hours: MIN_AGE_HOURS,
-      p_cap_abs: null,
-      p_cap_pct: pct,
-      p_apply: false,
-    }),
-  })
-  return { ...out, cap_pct: pct }
+  try {
+    const out = await db('rpc/realadvisor_probe_sweep', {
+      method: 'POST',
+      body: JSON.stringify({
+        p_offer_type: 'buy',
+        p_threshold: THRESHOLD,
+        p_min_age_hours: MIN_AGE_HOURS,
+        p_cap_abs: null,
+        p_cap_pct: pct,
+        p_apply: false,
+      }),
+    })
+    return { ...out, cap_pct: pct }
+  } catch (e) {
+    console.warn(`⚠ dry-run du sweep indisponible (${e.message.slice(0, 90)}…) — live estimé, pas de recoupement.`)
+    return null
+  }
+}
+
+/** Repli quand le dry-run timeoute : live via l'estimateur du planner (jamais count exact
+ *  sur 40k+ lignes — règle Supabase du projet). */
+async function estimatedLive() {
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/market_listings?select=id&source_portal=eq.realadvisor` +
+      '&transaction_type=eq.buy&status=in.(active,price_reduced)&limit=1',
+    { headers: { ...DB_HEADERS, Prefer: 'count=estimated', Range: '0-0' } },
+  )
+  const n = Number(res.headers.get('content-range')?.split('/')[1])
+  return Number.isFinite(n) ? n : null
 }
 
 /**
@@ -129,14 +165,30 @@ async function sweepDryRun() {
  */
 async function loadCandidates() {
   const cutoff = new Date(Date.now() - MIN_AGE_HOURS * 3600_000).toISOString()
-  const rows = await db(
+  const base =
     'market_listings?select=source_id,absent_first_at,last_seen_at' +
-      '&source_portal=eq.realadvisor&transaction_type=eq.buy' +
-      '&status=in.(active,price_reduced)' +
-      `&absent_probe_count=gte.${THRESHOLD}` +
-      `&absent_first_at=lt.${cutoff}` +
-      '&order=absent_first_at.asc&limit=20000',
-  )
+    '&source_portal=eq.realadvisor&transaction_type=eq.buy' +
+    '&status=in.(active,price_reduced)' +
+    `&absent_probe_count=gte.${THRESHOLD}` +
+    `&absent_first_at=lt.${cutoff}` +
+    '&order=absent_first_at.asc,source_id.asc&limit=1000'
+  // ⚠ PostgREST plafonne toute réponse à 1000 lignes (db-max-rows) — un `limit` supérieur
+  // est TRONQUÉ EN SILENCE. Pagination keyset, composite parce que les absent_first_at
+  // sont posés PAR LOTS à la même seconde (sonde horaire) : un `gt` sur la seule date
+  // sauterait les lignes partageant le timestamp de bordure.
+  const rows = []
+  let cursor = null
+  for (;;) {
+    const page = await db(
+      cursor
+        ? `${base}&or=(absent_first_at.gt.${cursor.at},and(absent_first_at.eq.${cursor.at},source_id.gt.${cursor.id}))`
+        : base,
+    )
+    rows.push(...page)
+    if (page.length < 1000) break
+    const last = page[page.length - 1]
+    cursor = { at: encodeURIComponent(last.absent_first_at), id: last.source_id }
+  }
   return rows
     .filter((r) => r.last_seen_at === null || new Date(r.last_seen_at) < new Date(r.absent_first_at))
     .map((r) => r.source_id)
@@ -261,14 +313,19 @@ async function applyBookkeep(aliveIds) {
 
 const ident = await loadIdentity()
 const [sweep, candidates, control] = await Promise.all([sweepDryRun(), loadCandidates(), loadControl()])
+const live = sweep ? Number(sweep.live) : await estimatedLive()
 
 console.log(`Gate id_in — UA « ${ident.ua.slice(0, 44)}… »`)
-console.log(`live ${sweep.live} · candidats ${sweep.candidates} · plafond ${sweep.limit} (${sweep.cap_pct * 100} %)`)
-if (candidates.length !== Number(sweep.candidates)) {
-  console.warn(
-    `⚠ prédicat divergent : ${candidates.length} candidats reconstruits ici contre ` +
-      `${sweep.candidates} côté RPC. Le prédicat du script a dérivé de realadvisor_probe_sweep.`,
-  )
+if (sweep) {
+  console.log(`live ${sweep.live} · candidats ${sweep.candidates} · plafond ${sweep.limit} (${sweep.cap_pct * 100} %)`)
+  if (candidates.length !== Number(sweep.candidates)) {
+    console.warn(
+      `⚠ prédicat divergent : ${candidates.length} candidats reconstruits ici contre ` +
+        `${sweep.candidates} côté RPC. Le prédicat du script a dérivé de realadvisor_probe_sweep.`,
+    )
+  }
+} else {
+  console.log(`live ~${live ?? '?'} (estimé) · candidats ${candidates.length} (reconstruits, sans recoupement RPC)`)
 }
 console.log(APPLY ? '⚠ mode --apply : les vivants seront rendus à la file\n' : 'mode constat (aucune écriture)\n')
 
@@ -309,9 +366,11 @@ if (APPLY && cand.alive.length > 0) {
 console.log('\n═══ VIVIER vs CATALOGUE RA ═══')
 if (!cat.ok) {
   console.log(`catalogue indisponible (${cat.reason}) — écart non mesuré.`)
+} else if (live == null) {
+  console.log(`RA déclare ${cat.total_count} · live local inconnu (dry-run ET estimation en échec) — écart non mesuré.`)
 } else {
-  const ecart = sweep.live - cat.total_count
-  console.log(`live ${sweep.live} · RA déclare ${cat.total_count} · écart ${ecart >= 0 ? '+' : ''}${ecart}`)
+  const ecart = live - cat.total_count
+  console.log(`live ${sweep ? live : `~${live} (estimé)`} · RA déclare ${cat.total_count} · écart ${ecart >= 0 ? '+' : ''}${ecart}`)
   console.log(
     ecart > 500
       ? '⇒ vivier gonflé : le sweep SOUS-retire. Laisser drainer, ou relever app_config.realadvisor_sweep_cap_pct.'
