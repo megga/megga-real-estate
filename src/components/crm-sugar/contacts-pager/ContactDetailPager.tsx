@@ -1378,20 +1378,13 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
 
       {totallyEmpty ? (
         // Boucle jamais démarrée → invitation à transmettre, pas un cul-de-sac gris.
-        <div style={{ flex: 1, minHeight: 0, display: 'grid', placeItems: 'center' }}>
-          <div style={{ maxWidth: 430, textAlign: 'center', background: P.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: P.shadowSm, padding: '34px 32px' }}>
-            <span style={{ display: 'inline-grid', placeItems: 'center' }}>
-              <FcpIcon name="send" size={30} stroke={P.inkSoft} />
-            </span>
-            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, letterSpacing: -0.3, color: P.ink, marginTop: 16 }}>{t('fiche.loop.emptyTitle')}</div>
-            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: P.muted, lineHeight: 1.55, marginTop: 8 }}>
-              <Trans t={t} i18nKey="fiche.loop.emptyBody" values={{ name: firstName }} components={{ 1: <br /> }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 20 }}>
-              <CdCta P={P} onClick={onOpenMatching}>{t('fiche.cta.transmit')}</CdCta>
-            </div>
-          </div>
-        </div>
+        <EtatVide
+          dark={dark}
+          glyphe={<FcpIcon name="send" size={30} />}
+          titre={t('fiche.loop.emptyTitle')}
+          corps={<Trans t={t} i18nKey="fiche.loop.emptyBody" values={{ name: firstName }} components={{ 1: <br /> }} />}
+          action={{ libelle: t('fiche.cta.transmit'), onClick: onOpenMatching }}
+        />
       ) : (
         <div style={{ flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>
           {/* À traiter */}

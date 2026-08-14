@@ -162,7 +162,72 @@ export const CRM_TABLES: Record<string, unknown[]> = {
  * sans fixture elle rendrait `[]`, ce qui est juste, mais la COMPTER dans les
  * appels sans fixture noierait le signal des vraies manques.
  */
+/**
+ * Les trois RPC d'Analytics, à la FORME que `buildAxData` attend.
+ *
+ * ⚠ LA FORME, PAS SEULEMENT LE NOM. La console avait livré quatre fixtures
+ * syntaxiquement valides et sémantiquement fausses — un taux rendu en fraction
+ * affiché « 870,0 % », une enveloppe de RPC incomplète qui faisait lever le
+ * lecteur et éprouver la branche d'ÉCHEC en croyant éprouver le succès. Ces
+ * trois-ci sont recopiées des interfaces `CockpitJson`, `ObjectifJson` et
+ * `FunnelJson`, champ par champ : une clé manquante rend `undefined` là où la
+ * page attend un nombre, et l'écran ment sans erreur.
+ */
+const AX_COCKPIT = {
+  scope: 'me', period: 'month', velocity_source: 'stage_change',
+  decomp: { signed: 84_000, compromis: 42_000, offres: 61_000, pipeline: 128_000 },
+  decomp_flags: {
+    signed: { n_default_pct: 0, n_missing_price: 0 },
+    compromis: { n_default_pct: 1, n_missing_price: 0 },
+    offres: { n_default_pct: 2, n_missing_price: 1 },
+    pipeline: { n_default_pct: 4, n_missing_price: 2 },
+  },
+  projected: 187_450,
+  contributors: [
+    { name: 'Champel · 4,5 p', stage: 'compromis', amount: 42_000, price_missing: false, pct_default: false },
+    { name: 'Cologny · villa', stage: 'offre', amount: 61_000, price_missing: false, pct_default: true },
+  ],
+  deals: 12, n_signed: 3, volume_signed: 2_800_000,
+  conversion: 0.26, conversion_prev: 0.21,
+  delta_deals: 2, velocity: 34, kyc_risk: 1, kyc_urgent: 0, kyc_risk_prev: 2,
+}
+
+const AX_OBJECTIF = {
+  period: 'month', trunc: 'week', target: 250_000, target_is_set: true,
+  realized: 84_000, buckets: 4, realIdx: 2,
+  xLabels: ['S1', 'S2', 'S3', 'S4'],
+  real: [21_000, 38_000, 84_000, 0],
+  median: [25_000, 55_000, 90_000, 140_000],
+  projected: 187_450, label: 'Août 2026',
+}
+
+const AX_FUNNEL = {
+  funnel: { leads: 34, leads_prev: 28, qualif: 19, qualif_prev: 17, visits: 11, offers: 5, compromis: 2 },
+  sources: [
+    { source: 'flatfox', v: 14, conv: 0.21, prev: 11, comm: 42_000, won: 1 },
+    { source: 'site', v: 9, conv: 0.33, prev: 8, comm: 61_000, won: 1 },
+    { source: 'recommandation', v: 6, conv: 0.5, prev: 5, comm: 84_000, won: 1 },
+  ],
+  forecast: { n30: 3, mid30: 96_000, n60: 6, mid60: 148_000, n90: 9, mid90: 205_000 },
+}
+
+/** Le journal de version, tel que `get_agent_changelog` le PROJETTE. */
+const CHANGELOG = [
+  {
+    id: 'chg-1', version: '2026.08',
+    title: 'Les états vides parlent d’une seule voix',
+    content: 'Un idiome unique remplace les trois grammaires qui coexistaient.',
+    published_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
+  },
+]
+
 export const CRM_RPC: Record<string, unknown> = {
   claim_pending_role: null,
   is_super_admin: false,
+  // ⚠ `analytics_*` rendent un OBJET, pas un tableau : le hook les lit
+  // directement comme `CockpitJson` / `ObjectifJson` / `FunnelJson`.
+  analytics_cockpit: AX_COCKPIT,
+  analytics_objectif: AX_OBJECTIF,
+  analytics_funnel: AX_FUNNEL,
+  get_agent_changelog: CHANGELOG,
 }

@@ -99,8 +99,14 @@ export interface EtatVideProps {
   /** Le glyphe. Il hérite de `currentColor` — ne pas lui donner de couleur. */
   glyphe?: ReactNode
   titre: string
-  /** Une phrase, pas un paragraphe : ce qui manque, et quoi faire le cas échéant. */
-  corps?: string
+  /**
+   * Une phrase, pas un paragraphe : ce qui manque, et quoi faire le cas échéant.
+   *
+   * ⚠ `ReactNode` et non `string` — certaines surfaces passent par `<Trans>`
+   * avec un saut de ligne dans la traduction. Exiger une chaîne aurait laissé
+   * ces états vides dehors, ou fait perdre leur mise en ligne.
+   */
+  corps?: ReactNode
   registre?: RegistreVide
   /** L'appel à l'action, s'il y en a un. Il porte l'accent, comme partout. */
   action?: { libelle: string; onClick: () => void }

@@ -42,12 +42,18 @@ import {
   DEMO_CONTACTS, DEMO_FICHE, DEMO_FICHE_LINKS, DEMO_FICHE_LOOP, DEMO_FICHE_NBA,
 } from './demoFixtures'
 
-type Surface = 'liste' | 'fiche' | 'premier'
+type Surface = 'liste' | 'fiche' | 'premier' | 'vide' | 'fiche-vide'
 
 const SURFACES: { id: Surface; label: string }[] = [
   { id: 'liste', label: 'Liste' },
   { id: 'fiche', label: 'Fiche' },
   { id: 'premier', label: 'Premier lancement' },
+  // ⚠ « Vide » n'est PAS « premier lancement ». Le premier lancement est une
+  // couverture pleine page, montrée une fois à l'ouverture d'un compte ; le vide
+  // est un état ordinaire — un filtre trop étroit, une boucle sans match — que
+  // l'agent croise tous les jours et que personne ne pouvait regarder ici.
+  { id: 'vide', label: 'Liste · vide' },
+  { id: 'fiche-vide', label: 'Fiche · vide' },
 ]
 
 /** Les callbacks de persistance du pager : le banc n'écrit nulle part. */
@@ -150,12 +156,12 @@ export default function ContactsShowcasePage() {
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <SugarIconRail active="contacts" onNavigate={onNavigate} onCmd={NOOP} dark={dark} setDark={setDark} sp={sp} />
 
-        {surface === 'fiche' ? (
+        {surface === 'fiche' || surface === 'fiche-vide' ? (
           <ContactDetailPager
             fiche={DEMO_FICHE}
             nba={DEMO_FICHE_NBA}
-            loop={DEMO_FICHE_LOOP}
-            links={DEMO_FICHE_LINKS}
+            loop={surface === 'fiche-vide' ? { ...DEMO_FICHE_LOOP, items: [], pendingLikes: [] } : DEMO_FICHE_LOOP}
+            links={surface === 'fiche-vide' ? { ...DEMO_FICHE_LINKS, items: [] } : DEMO_FICHE_LINKS}
             sp={sp}
             dark={dark}
             onBack={() => setSurface('liste')}
@@ -175,7 +181,7 @@ export default function ContactsShowcasePage() {
           <ContactsPager
             // `premier` = carnet vide chargé AVEC SUCCÈS, donc `fresh` : c'est ce
             // qui distingue un compte neuf d'une panne de chargement.
-            contacts={surface === 'premier' ? [] : DEMO_CONTACTS}
+            contacts={surface === 'premier' || surface === 'vide' ? [] : DEMO_CONTACTS}
             sp={sp}
             dark={dark}
             fresh={surface === 'premier'}
