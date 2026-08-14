@@ -2,9 +2,16 @@
 // Port de crm-kyc-wizard.jsx §KwStepItem/KwStepper.
 //
 // Même grammaire que les seg-tabs de la fiche KYC : pilule sur l'étape ACTIVE
-// uniquement ; étapes FAITES = libellé simple + badge ✓ vert, cliquables pour
-// revenir ; étapes À VENIR = sourdine + badge numéro bordé, non cliquables.
+// uniquement ; étapes FAITES = libellé + coche verte, cliquables pour revenir ;
+// étapes À VENIR = sourdine, non cliquables.
 // Palette-aware (useKycPalette) — pas de couleur en dur (sauf le vert/✓ §1.5).
+//
+// ⚠ LES NUMÉROS ONT ÉTÉ RETIRÉS (16 août 2026). Ils ne disaient rien que la
+// position ne dise déjà : trois étapes alignées de gauche à droite SONT 1, 2, 3.
+// L'étape courante est portée par la pilule d'accent, pas par son rang. La coche
+// RESTE, elle : « fait » est le seul état qui ne se déduit pas de la position.
+// Même geste que les sur-titres « Étape X sur 3 » et le compteur « n/3 », retirés
+// à la refonte du wizard pour la même raison.
 
 import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState } from 'react'
@@ -26,11 +33,6 @@ function KwStepItem({ index, label, current, onJump }: StepItemProps) {
   const done = index < current
   const active = index === current
   const reachable = index <= current
-
-  // Badge d'index : check VERT si fait, numéro sinon.
-  const badgeBg = active ? sp.onAccentMid : done ? KW_DONE_GREEN : 'transparent'
-  const badgeBorder = active || done ? '0' : `1px solid ${sp.cardBorder}`
-  const badgeFg = active ? sp.onAccent : done ? '#FFFFFF' : sp.muted
 
   return (
     <button
@@ -60,29 +62,25 @@ function KwStepItem({ index, label, current, onJump }: StepItemProps) {
         flexShrink: 0,
       }}
     >
-      <span
-        style={{
-          width: 20,
-          height: 20,
-          borderRadius: 'var(--crm-radius-pill)',
-          boxSizing: 'border-box',
-          flexShrink: 0,
-          border: badgeBorder,
-          background: badgeBg,
-          color: badgeFg,
-          fontSize: 'var(--crm-text-sm)',
-          fontWeight: 600,
-          fontVariantNumeric: 'tabular-nums',
-          display: 'grid',
-          placeItems: 'center',
-        }}
-      >
-        {done ? (
+      {/* La coche SEULE, et seulement sur une étape faite : c'est le seul état
+          qui ne se lit pas dans la position. L'étape courante a sa pilule, les
+          suivantes leur sourdine. */}
+      {done && (
+        <span
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 'var(--crm-radius-pill)',
+            boxSizing: 'border-box',
+            flexShrink: 0,
+            background: KW_DONE_GREEN,
+            display: 'grid',
+            placeItems: 'center',
+          }}
+        >
           <SgIcon name="check" size={11} stroke="#FFFFFF" sw={2.6} />
-        ) : (
-          index + 1
-        )}
-      </span>
+        </span>
+      )}
       {label}
     </button>
   )
