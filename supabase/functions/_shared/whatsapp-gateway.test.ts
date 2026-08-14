@@ -165,6 +165,30 @@ describe('whatsapp-gateway — réponses à un bouton (opt-out Meta)', () => {
   it('un texte l’emporte toujours sur un bouton présent dans le même message', () => {
     const m = inbound({ type: 'text', text: { body: 'bonjour' }, button: { text: 'Stop promotions' } })
     expect(m?.body).toBe('bonjour')
+    expect(m?.bodySource).toBe('text')
+  })
+
+  // `bodySource` n'est pas décoratif : l'opt-out par BOUTON doit être honoré même pour un
+  // agent (Meta l'exige sur ses templates), alors qu'un agent qui TAPE « stop » refuse
+  // seulement l'action en cours — « stop » appartient déjà au jeu NO de parseConfirmation.
+  it('bodySource dit d’où vient le corps, donc si la personne a cliqué ou écrit', () => {
+    expect(inbound({ type: 'button', button: { text: 'Stop promotions' } })?.bodySource).toBe('button')
+    expect(inbound({ type: 'button', button: { payload: 'STOP_PROMO' } })?.bodySource).toBe('button')
+    expect(inbound({ type: 'interactive', interactive: { button_reply: { id: 'x', title: 'Ne plus recevoir' } } })?.bodySource).toBe('interactive')
+    expect(inbound({ type: 'interactive', interactive: { list_reply: { id: 'r', title: 'Me désinscrire' } } })?.bodySource).toBe('interactive')
+    expect(inbound({ type: 'text', text: { body: 'stop' } })?.bodySource).toBe('text')
+    expect(inbound({ type: 'image', image: { id: 'M1', caption: 'stop' } })?.bodySource).toBe('caption')
+    // Pas de corps → pas de provenance. Un 'text' par défaut ferait passer un vocal pour
+    // un message écrit.
+    expect(inbound({ type: 'audio', audio: { id: 'A1', mime_type: 'audio/ogg' } })?.bodySource).toBeNull()
+  })
+
+  it('un libellé de bouton VIDE ne masque pas la source suivante', () => {
+    // `?? ` ne filtre que null/undefined : une chaîne vide aurait gagné la cascade et rendu
+    // un corps vide avec bodySource='button', donc un message orphelin de plus.
+    const m = inbound({ type: 'button', button: { text: '', payload: 'STOP_PROMO' } })
+    expect(m?.body).toBe('STOP_PROMO')
+    expect(m?.bodySource).toBe('button')
   })
 
   it('aucun corps exploitable → body reste null (pas de chaîne vide fabriquée)', () => {

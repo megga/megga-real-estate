@@ -11,6 +11,14 @@ export interface NormalizedInboundMessage {
   fromPhone: string
   toPhone: string | null
   body: string | null
+  /**
+   * D'où vient `body`. Le distinguer est nécessaire, pas cosmétique : l'opt-out par BOUTON
+   * doit être honoré même pour un agent (Meta l'exige sur ses propres templates), alors
+   * qu'un agent qui tape « stop » refuse seulement l'action en cours — « stop » appartient
+   * déjà au jeu NO de `parseConfirmation`. Sans cette distinction, répondre « stop » à une
+   * confirmation désinscrirait l'agent de son propre copilote.
+   */
+  bodySource: InboundBodySource | null
   mediaType: NormalizedMediaType | null
   mediaUrl: string | null
   mediaId: string | null
@@ -21,6 +29,9 @@ export interface NormalizedInboundMessage {
 
 export type NormalizedMediaType =
   | 'image' | 'audio' | 'video' | 'document' | 'location' | 'contact' | 'sticker'
+
+/** Provenance du corps normalisé. `button`/`interactive` = la personne a CLIQUÉ. */
+export type InboundBodySource = 'text' | 'caption' | 'button' | 'interactive'
 
 export interface OutboundTextMessage {
   toPhone: string   // digits only, international without +
@@ -179,6 +190,11 @@ export async function verifyHmac(rawBody: string, signatureHeader: string, secre
 // Signature : header X-Hub-Signature-256 = sha256=HMAC-SHA256(app_secret, rawBody),
 // vérifiée par verifyHmac() — désormais le seul chemin d'entrée accepté.
 
+/** Première valeur réellement porteuse de texte. Une chaîne vide n'en est pas une. */
+function firstNonEmpty(...vals: Array<string | undefined>): string | undefined {
+  return vals.find((v) => typeof v === 'string' && v !== '')
+}
+
 const META_TYPE_TO_MEDIA: Record<string, NormalizedMediaType> = {
   image: 'image', audio: 'audio', voice: 'audio', video: 'video',
   document: 'document', location: 'location', contacts: 'contact', sticker: 'sticker',
@@ -214,6 +230,23 @@ class MetaProvider implements WhatsAppProvider {
     // lieu d'insérer : le webhook rend alors 200 sans écrire, seule issue qui ne déclenche
     // pas de rejeu Meta.
     if (!isDialablePhone(fromPhone)) return null
+    // ⚠ Une seule cascade, décrite DEUX fois (la valeur et sa provenance), ne resterait pas
+    // d'accord avec elle-même longtemps. On résout donc une fois, et `body` en découle.
+    //
+    // ⚠ `firstNonEmpty` et NON `??` : Meta envoie un `button.text` VIDE plutôt qu'absent
+    // quand le bouton n'a pas de libellé, et `??` ne franchit pas une chaîne vide. Le
+    // `payload` était alors perdu, et le message redevenait orphelin — le défaut même que
+    // la lecture des boutons corrige.
+    const resolved: Array<[InboundBodySource, string | undefined]> = [
+      ['text', text?.body],
+      ['caption', mediaObj?.caption],
+      // `payload` seulement à défaut de `text`, et le `title` d'un reply plutôt que son
+      // `id` : ce corps alimente le corpus de voix et la compréhension, y injecter un
+      // identifiant technique le polluerait.
+      ['button', firstNonEmpty(button?.text, button?.payload)],
+      ['interactive', firstNonEmpty(interactive?.button_reply?.title, interactive?.list_reply?.title)],
+    ]
+    const hit = resolved.find(([, v]) => v != null && v !== '')
     const tsRaw = message.timestamp as string | number | undefined
     const ts = tsRaw != null ? Number(tsRaw) : undefined
     return {
@@ -228,15 +261,8 @@ class MetaProvider implements WhatsAppProvider {
       toPhone: metadata?.display_phone_number
         ? normalizePhone(metadata.display_phone_number as string)
         : null,
-      // `payload` seulement à défaut de `text`, et le `title` du reply plutôt que son `id` :
-      // ce corps alimente le corpus de voix et la compréhension — y injecter un identifiant
-      // technique le polluerait.
-      body: text?.body
-        ?? mediaObj?.caption
-        ?? button?.text ?? button?.payload
-        ?? interactive?.button_reply?.title
-        ?? interactive?.list_reply?.title
-        ?? null,
+      body: hit?.[1] ?? null,
+      bodySource: hit?.[0] ?? null,
       mediaType: META_TYPE_TO_MEDIA[type] ?? null,
       mediaUrl: null, // bytes récupérés en différé via Graph API (whatsapp-media)
       mediaId: mediaObj?.id ?? null,

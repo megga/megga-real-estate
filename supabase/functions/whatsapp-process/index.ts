@@ -21,6 +21,8 @@ import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 import { mapCriteria, computeMissing, isSearchable, mergeCriteria, criteriaDelta, type LeadCriteria } from '../_shared/whatsapp-lead.ts'
 import { deriveFollowups, persistFollowups, fetchContactDefaultHour } from '../_shared/whatsapp-followups.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
+import { detectStopRequest, type StopLang } from '../_shared/whatsapp-stop-keywords.ts'
+import { recordStopRequest, sendStopAck, type StopSubject } from '../_shared/whatsapp-stop.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BATCH = 10            // messages média réclamés / tick (chaque op peut être lente)
@@ -113,6 +115,10 @@ serve(async (req) => {
   if (error) { await releaseProcessLock(admin); return json({ error: error.message }, 500) }
 
   let done = 0, failed = 0
+  // Accusés à envoyer une fois la boucle finie : l'ÉCRITURE du refus part tout de suite
+  // (elle doit précéder la phase 3 du même tick), l'ENVOI attend — c'est un appel réseau,
+  // et la boucle média est déjà le poste le plus lourd du budget.
+  const stopAcks: Array<StopSubject & { langHint: StopLang }> = []
   for (const m of (jobs ?? []) as Array<Record<string, unknown>>) {
     if (overBudget()) break  // reste 'processing' → repris au tick suivant (>5 min)
     const id = m.id as string
@@ -142,6 +148,38 @@ serve(async (req) => {
           }
         }
       }
+      // ── Point C : le STOP dit à l'ORAL, ou écrit dans une image ──
+      //
+      // Le webhook ne peut pas le voir : `parseInbound` rend `body = null` pour un audio
+      // (ni `text.body`, ni `caption`), donc `detectStopRequest(null)` y est faux. La
+      // transcription Deepgram — et la description Gemini d'une image ou d'un PDF —
+      // n'arrivent qu'ici, une minute plus tard. Or la note vocale est un canal majoritaire
+      // côté client : sans ce point, « arrêtez de m'écrire » dit à voix haute n'est JAMAIS
+      // entendu.
+      //
+      // `stop_handled_at` est le seul garde-fou d'idempotence de ce chemin : un job
+      // retombé en 'failed' est re-réclamé, et le registre étant append-only, chaque
+      // reprise empilerait une déclaration de plus.
+      const stopLang = (m.direction === 'inbound' && !m.stop_handled_at)
+        ? detectStopRequest(patch.transcript as string | null | undefined)
+        : null
+      if (stopLang) {
+        patch.stop_handled_at = new Date().toISOString()
+        const subject: StopSubject = {
+          phone: String(m.wa_from ?? ''),
+          contactId: (m.contact_id as string | null) ?? null,
+          agencyId: (m.agency_id as string | null) ?? null,
+          messageId: id,
+          viaButton: false,   // une transcription ne vient jamais d'un clic
+        }
+        // ÉCRITE AVANT l'update, à dessein : si l'update échoue, le job est repris et le
+        // refus est réécrit (ligne de registre en double, suppression inchangée — elle est
+        // ON CONFLICT DO NOTHING). L'ordre inverse perdrait le refus en silence, et sur un
+        // registre de conformité c'est le mauvais sens de l'erreur.
+        await recordStopRequest(admin, subject)
+        stopAcks.push({ ...subject, langHint: stopLang })
+      }
+
       await admin.from('whatsapp_messages').update(patch).eq('id', id)
       done++
     } catch (e) {
@@ -152,6 +190,47 @@ serve(async (req) => {
         last_error: String((e as Error)?.message ?? 'error').slice(0, 300),
       }).eq('id', id)
       failed++
+    }
+  }
+
+  // Accusés de désinscription. AVANT la phase 3, et ce n'est pas cosmétique : la
+  // suppression que `recordStopRequest` vient d'écrire exclut le numéro de
+  // `whatsapp_pending_notices`, donc de l'avis LPD du tick COURANT. Sans cet ordre, MEGGA
+  // répondrait au STOP par un message de démarchage dans la minute.
+  for (const a of stopAcks) {
+    if (overBudget()) break
+    await sendStopAck(admin, a)
+  }
+
+  // Rattrapage. L'accusé porte l'avis LPD et c'est, pour qui écrit « stop » en premier
+  // message, le SEUL message qu'il recevra jamais : le perdre en silence n'est pas une
+  // option. Or trois chemins peuvent le perdre — le `waitUntil` du webhook si l'instance
+  // est recyclée, la boucle ci-dessus si le budget coupe, un échec réseau de Meta.
+  //
+  // La reprise est gratuite parce que l'état vit en BASE : une suppression active dont
+  // `ack_sent_at` est vide EST un accusé dû. `whatsapp_send_allowed` le vérifie de son
+  // côté, donc ce balayage ne peut pas doubler un envoi déjà parti.
+  //
+  // Borné à 24 h : au-delà, un accusé qui n'est jamais parti ne partira pas (numéro
+  // injoignable), et réessayer chaque minute pour l'éternité ne ferait que du bruit.
+  if (!overBudget()) {
+    const { data: dusAcks } = await admin
+      .from('contact_suppressions')
+      .select('wa_phone, contact_id, agency_id')
+      .is('lifted_at', null)
+      .is('ack_sent_at', null)
+      .in('reason', ['stop_keyword', 'meta_block'])
+      .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: true })
+      .limit(NOTICE_BATCH)
+    for (const s of (dusAcks ?? []) as Array<{ wa_phone: string; contact_id: string | null; agency_id: string | null }>) {
+      if (overBudget()) break
+      // langHint null : le mot-clé qui l'aurait renseignée appartient au chemin direct.
+      // resolveStopLang retombe sur `contacts.language`, puis sur le français.
+      await sendStopAck(admin, {
+        phone: s.wa_phone, contactId: s.contact_id, agencyId: s.agency_id,
+        messageId: null, viaButton: false, langHint: null,
+      })
     }
   }
 

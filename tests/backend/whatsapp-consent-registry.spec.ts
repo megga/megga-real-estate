@@ -888,6 +888,88 @@ rollback;
   })
 
   // ══════════════════════════════════════════════════════════════════════════
+  // 4bis. CE QUE L2 AJOUTE — idempotence du cron et rattrapage des accusés
+  // ══════════════════════════════════════════════════════════════════════════
+
+  describe('interception du STOP — l’état qui vit en base', () => {
+    it('stop_handled_at existe et vaut NULL par défaut', async () => {
+      // Seul garde-fou d'idempotence du point C : `claim_whatsapp_jobs` re-réclame un job
+      // retombé en 'failed', et le registre étant append-only chaque reprise empilerait
+      // une déclaration de plus.
+      const { data, error } = await svc.from('whatsapp_messages')
+        .select('id, stop_handled_at').limit(1)
+      expect(error, 'colonne absente = le cron rejoue à chaque tick').toBeNull()
+      expect(Array.isArray(data)).toBe(true)
+    })
+
+    /** Le prédicat EXACT du rattrapage de whatsapp-process. */
+    const accusesDus = async (phone: string) => {
+      const { data } = await svc.from('contact_suppressions')
+        .select('wa_phone, contact_id, agency_id')
+        .is('lifted_at', null).is('ack_sent_at', null)
+        .in('reason', ['stop_keyword', 'meta_block'])
+        .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .eq('wa_phone', phone)
+      return data ?? []
+    }
+
+    it('un STOP crée un accusé DÛ, que l’envoi consomme', async () => {
+      // L'accusé est le SEUL message que recevra jamais qui écrit « stop » en premier :
+      // le perdre en silence (waitUntil tué, budget du cron épuisé, réseau) n'est pas une
+      // option. L'état vit donc en base, et le rattrapage est gratuit.
+      const phone = newPhone()
+      const contactId = await seedContact(phone, setup.agencyAId)
+      await record({
+        p_kind: 'contact', p_wa_phone: phone, p_event: 'opt_out', p_source: 'stop_keyword',
+        p_contact_id: contactId, p_agency_id: setup.agencyAId,
+      })
+      expect(await accusesDus(phone), 'un accusé est dû').toHaveLength(1)
+
+      await svc.rpc('mark_suppression_ack_sent', { p_wa_phone: phone })
+      expect(await accusesDus(phone), 'consommé : le balayage ne peut pas doubler l’envoi').toHaveLength(0)
+    })
+
+    it('un opt-out saisi par l’AGENT ne doit AUCUN accusé', async () => {
+      // La personne n'a rien demandé — lui écrire « votre désinscription est prise en
+      // compte » serait un message non sollicité de plus, et un mensonge.
+      const phone = newPhone()
+      const contactId = await seedContact(phone, setup.agencyAId)
+      await record({
+        p_kind: 'contact', p_wa_phone: phone, p_event: 'opt_out', p_source: 'agent_manual',
+        p_contact_id: contactId, p_agency_id: setup.agencyAId,
+      })
+      expect(await accusesDus(phone)).toHaveLength(0)
+      // …et la garde le confirme de son côté : le motif n'est pas « déjà envoyé ».
+      const v = await allowed({
+        p_wa_phone: phone, p_purpose: 'opt_out_ack', p_contact_id: contactId, p_agency_id: setup.agencyAId,
+      })
+      expect(v.allowed).toBe(false)
+    })
+
+    it('le bouton d’opt-out d’un AGENT ne coupe QUE son brief', async () => {
+      // Chemin du point A, écrit tel que le webhook l'appelle. Sur un WABA mono-numéro,
+      // suspendre le numéro d'un agent vaudrait pour tous les tenants.
+      const phone = newPhone()
+      const profileId = crypto.randomUUID()
+      await record({
+        p_kind: 'profile', p_wa_phone: phone, p_event: 'opt_out', p_source: 'meta_block',
+        p_profile_id: profileId, p_agency_id: setup.agencyAId,
+        p_legal_basis: 'contract', p_scope: 'daily_brief',
+      })
+      const { data: sup } = await svc.from('contact_suppressions').select('id').eq('wa_phone', phone)
+      expect(sup, 'aucune suppression pour un sujet profile').toHaveLength(0)
+      expect(await accusesDus(phone), 'donc aucun accusé dû non plus').toHaveLength(0)
+
+      const { data: rows } = await svc.from('whatsapp_consents')
+        .select('scope, source, event').eq('profile_id', profileId)
+      expect(rows).toHaveLength(1)
+      expect(rows?.[0], 'l’équivalence stricte du design rejetait cette ligne').toMatchObject({
+        event: 'opt_out', source: 'meta_block', scope: 'daily_brief',
+      })
+    })
+  })
+
+  // ══════════════════════════════════════════════════════════════════════════
   // 5. LE TOGGLE DU BRIEF — désactiver → réactiver → désactiver
   // ══════════════════════════════════════════════════════════════════════════
 

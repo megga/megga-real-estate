@@ -36,7 +36,7 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "whatsapp consen
 
 - [x] **L0** — `parseInbound` : `button`/`interactive` → `body`, bornage 6–15 chiffres. 1 fichier, 0 migration. *(livré — voir §7)*
 - [x] **L1** — les 7 migrations du §1 + banc backend (forme des tables, 12 motifs de la RPC, EXPLAIN, `count(pg_proc)=2`). Rien en production. *(livré — voir §7)*
-- [ ] **L2** — le STOP : 3 points d'interception, `whatsapp-stop-keywords.ts`, accusé LPD 4 langues, `stop_handled_at`.
+- [x] **L2** — le STOP : 3 points d'interception, `whatsapp-stop-keywords.ts`, accusé LPD 4 langues, `stop_handled_at`. *(livré — voir §7)*
 - [ ] **L3** — `whatsapp-outbound-guard.ts` + câblage des **5 chemins CLIENT** (sites 1–5).
 - [ ] **L4** — câblage des **7 chemins AGENT** (sites 6–12) + `set_morning_brief_enabled`.
 - [ ] **L5** — UI CRM : état du consentement sur la fiche contact, « Envoyer » grisé avec motif, geste « ne plus contacter ».
@@ -1205,3 +1205,56 @@ littéraux. Une faute d'exécution dans `whatsapp_send_allowed` ne se verra qu'e
   fichiers datés du jour.
 - Lire le résultat de `backend.yml` sur la PR **avant** d'attaquer L2 : c'est la première
   exécution réelle du SQL.
+
+---
+
+## 8. JOURNAL D'IMPLÉMENTATION — L2 (14.08.2026)
+
+### Ce qui a été livré
+
+- `_shared/whatsapp-stop-keywords.ts` — détection PURE, deux régimes (le message EST le
+  mot-clé / le message CONTIENT la demande, borné à 160 caractères), 4 langues.
+  `resolveStopLang` tranche pour « stop » nu : mot-clé localisé, puis `contacts.language`,
+  puis français.
+- `_shared/whatsapp-stop-ack.ts` — l'accusé portant l'avis LPD, 4 langues.
+- `_shared/whatsapp-stop.ts` — les EFFETS (`recordStopRequest`, `recordAgentBriefOptOut`,
+  `sendStopAck`), partagés par les trois points d'interception. Aucun ne jette.
+- Migration `20260814217000_whatsapp_messages_stop_handled_at.sql`.
+- `parseInbound` expose `bodySource` (`text|caption|button|interactive`).
+- Points A (webhook, bouton Meta, avant la bifurcation), B (webhook, texte, branche client)
+  et C (`whatsapp-process`, transcription).
+- Banc : +4 tests backend (47 au total), +16 tests unitaires (1928 au total).
+
+### Écarts et décisions
+
+1. **`bodySource` ajouté au message normalisé.** Le point A ne peut pas se contenter du
+   texte : « stop » appartient déjà au jeu NO de `parseConfirmation`, donc un agent qui
+   REFUSE une action se désinscrirait de son propre copilote. Le discriminant est le clic.
+2. **`firstNonEmpty` au lieu de `??` dans la cascade du corps.** Meta envoie un
+   `button.text` VIDE plutôt qu'absent quand le bouton n'a pas de libellé ; `??` ne franchit
+   pas une chaîne vide, et le `payload` était perdu. Trouvé par le test, pas par la relecture.
+3. **Rattrapage des accusés dans le cron.** Le design n'en prévoyait aucun : l'accusé partait
+   dans un `waitUntil`, et sa perte (instance recyclée, budget épuisé, échec réseau) était
+   définitive — pour le seul message que cette personne recevra jamais. L'état vivant en base
+   (`ack_sent_at` vide sur une suppression active), la reprise est gratuite et ne peut pas
+   doubler un envoi : `whatsapp_send_allowed` arbitre des deux côtés. Borné à 24 h.
+4. **`runInBackground` renvoie une promesse et les appelants l'attendent.** Le helper extrait
+   avait perdu le `else await bg` de l'original : hors edge runtime (CI, local) la tâche de
+   fond n'aurait plus jamais tourné.
+5. **Un agent qui clique l'opt-out ne reçoit AUCUN accusé.** Le texte est écrit pour un
+   prospect démarché (avis LPD, art. 19) ; un agent est un utilisateur du service, sous base
+   contractuelle. Lui envoyer serait faux. Conséquence assumée : son clic est silencieux
+   jusqu'à ce que L5 affiche l'état du brief dans le CRM.
+6. **L'ACK ne consomme `ack_sent_at` qu'en cas de SUCCÈS.** Rien ne rejoue cet envoi, et un
+   second STOP de la même personne doit pouvoir obtenir l'accusé qu'elle n'a pas reçu.
+
+### ⛔ Ce qui reste non vérifié
+
+Les trois points d'interception sont du code d'edge function : **aucun banc du dépôt ne les
+exerce**. `deno check` les type, les specs backend couvrent leurs effets EN BASE (l'accusé
+dû, l'idempotence, la portée du brief), mais le chemin HTTP lui-même — l'ordre des gardes,
+l'ACK 200 avant l'envoi, le `routed:` rendu — n'est éprouvé par rien. C'est la même dette
+que le reste du webhook, pas une dette nouvelle ; elle mérite un banc dédié.
+
+La durée de conservation annoncée dans l'accusé reste qualitative, faute de purge réelle sur
+`whatsapp_messages.body` (§6.2 point 6). À trancher avec Gregory avant le pilote.
