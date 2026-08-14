@@ -295,11 +295,31 @@ d'été rend `null` au lieu d'un créneau décalé). Console : `/dashboard/admin
 l'audit `actor_kind='system'`, catégorie **`onboarding`** ajoutée au CHECK d'`activity_events`.
 Cerveau : `megga/onboarding-call`.
 
-**Routes dev** (showcase, no auth) : `/dev/mandate-sign`, `/dev/sentry-test`.
+**Routes dev — DIX bancs, pas deux.** Cette ligne annonçait `/dev/mandate-sign`
+(retiré depuis) et `/dev/sentry-test` ; relevé dans `App.tsx` le 16 août 2026 :
+
+| Banc | Ce qu'il monte | Gel |
+|---|---|---|
+| `/dev/crm` | **les dix surfaces `/dashboard`** sous leur vraie coquille, chrome et dock IA compris | DEV |
+| `/dev/admin` | les 19 pages de la console super-admin | DEV |
+| `/dev/onboarding` | l'entonnoir d'identité, écritures neutralisées | DEV |
+| `/dev/pipeline` · `/dev/biens` · `/dev/contacts` · `/dev/matching-atelier` · `/dev/mobile` · `/dev/modales` | leur surface, par un slot `banc` | permanents |
+| `/dev/sentry-test` | déclencheur d'erreur | permanent |
+
+⚠ Les trois premiers sont conditionnés à `import.meta.env.DEV` : ils montent le
+chrome de la PLATEFORME, des écrans de conformité, ou **sèment une session** dans
+le stockage — ce qui n'a aucune excuse dans un bundle déployé. Les autres ne
+montrent que l'écran d'un agent sur données de démonstration.
+
+⛔ POURQUOI CES BANCS EXISTENT, et c'est la même raison à chaque fois : sans
+session, `ProtectedRoute` fait `window.location.replace('https://megga.ch/login')`
+— une redirection **absolue**. On est déposé sur `app.megga.ch`, qui sert `main`,
+en croyant regarder localhost : on relit l'ancienne version de son propre travail,
+et ça ne ressemble pas à une erreur. Cf. `megga/crm-agent-meggax-banc`.
 
 ### Composants (`src/components/`)
 - `propertyx/` — **système d'icônes seul** : `MEIcon`, `PxIconFont`, `PxSocialIcon`, `PxWhatsAppButton` + `tokens.ts` (`PX.*`). Les atomes de présentation (PxButton, PxBadge, PxInput, PxAvatar, PxLogo…) et `sections/` ont été retirés avec la marketplace — **ne pas les réintroduire** (cf. CLAUDE.md § Vestiges Property X).
-- `megga-x/` — **MEGGA X**, port 1:1 Webflow de la vitrine, scopé `.megga-x`. ⚠ Depuis le 10 août 2026 (PR #1194) c'est aussi la **direction unique du CRM** : Sugar est supprimée, cf. `megga/da-meggax-crm`. Contenu : `MeggaX` + 12 wrappers `Mx*`, CSS générée `src/styles/megga-x.generated.css`, route dev `/design-system/megga-x`. Règle **zéro-invention** ; résidus de marques Webflow encore présents dans la CSS/fontes. Cf. `megga/design-megga-x`.
+- `megga-x/` — **MEGGA X**, port 1:1 Webflow de la vitrine, scopé `.megga-x`. ⚠ Depuis le 10 août 2026 (PR #1194) c'est aussi la **direction unique du CRM** : Sugar est supprimée, cf. `megga/da-meggax-crm`. **Le portage est TERMINÉ depuis le 16 août 2026** (PR #1205, 9 lots) : les dix surfaces qui restaient — Aujourd'hui, KYC, Visites, Analytics, Import lead, Julien, Parcours, Audit, Réglages, Calendrier — plus le chrome et le dock MEGGA AI. 902 marqueurs → 4, tous des exemptions nommées ; le cliquet `megga-x-grammar.spec.ts` couvre 25 zones contre 14. Cf. `megga/crm-agent-meggax`. Contenu : `MeggaX` + 12 wrappers `Mx*`, CSS générée `src/styles/megga-x.generated.css`, route dev `/design-system/megga-x`. Règle **zéro-invention** ; résidus de marques Webflow encore présents dans la CSS/fontes. Cf. `megga/design-megga-x`.
 - `ui/` — primitives headless + Motion (modal, dialog, Sheet, Toast, Shimmer, popover, tabs…).
 - `layout/` — `ProtectedRoute`, `ConsentGate` (gate nLPD), `StaleBundleDetector`, `AgentLayout`, `AgentSugarLayout`.
 - `crm-sugar/` + `crm-sugar-v3/` — shell CRM, contact detail, KYC (**pager `kyc-pager/`** : frame + liste + vigie + fiche stricte + liseuse ; wizard `kyc-wizard/` avec voie import ; l'ancien écran `kyc/` [KycDossierDetail/KycListView] n'est plus routé, conservé transitoirement), **biens** (`biens/pager/` [BiensPager/BpTopGallery/BpFollowupPage/BpRenewModal/BiensFirstRun/followupData] + `biens/gallery/` + BnScoreBadge — les anciens BnSubmissions/BnDetailOverlay/BnPhoto/biensData/helpers sont **retirés**, superseded par le design final), tokens dark.
