@@ -57,6 +57,12 @@ const EVENEMENTS = [
   // edges (`actor_kind='ai'`, `actor_id` NULL).
   { id: 'e3', agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: 'ai', action: 'relance_drafted', category: 'relance', severity: 'info', entity_type: 'contact', entity_id: 'c3', created_at: ilYA(9) },
   { id: 'e4', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'listing_published', category: 'listing', severity: 'info', entity_type: 'property', entity_id: 'p1', created_at: ilYA(30) },
+  // ⚠ `entity_type: 'kyc_case'` — c'est le seul motif que `useKycAuditEvents`
+  // retient (avec `kyc` et `kyc_check`). Sans ces deux lignes, la piste d'audit
+  // du RAPPORT sort vide, et sa page 3 se relit comme une page réussie.
+  // `actor:profiles!actor_id` est embarqué : le banc n'applique pas `select`.
+  { id: 'e5', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'kyc_case_created', category: 'kyc', severity: 'info', entity_type: 'kyc_case', entity_id: 'k1', metadata: null, created_at: ilYA(310), actor: { full_name: AGENT_BANC.full_name } },
+  { id: 'e6', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'kyc_check_completed', category: 'kyc', severity: 'info', entity_type: 'kyc_check', entity_id: 'kc1-id', metadata: { category: 'id' }, created_at: ilYA(300), actor: { full_name: AGENT_BANC.full_name } },
 ]
 
 /* ─── KYC — de quoi regarder la liste, la vigie et la fiche stricte ────────── */

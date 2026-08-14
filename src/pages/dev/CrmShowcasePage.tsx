@@ -64,6 +64,7 @@ import { semerSessionBanc } from './bancSession'
 const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
 const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
 const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))
+const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 const VisitModalSugarV3Page = lazy(() => import('@/pages/agent/VisitModalSugarV3Page'))
 const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugarV3Page'))
 const DashboardSugarV4Page = lazy(() => import('@/pages/agent/DashboardSugarV4Page'))
@@ -99,6 +100,7 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' }[
   { id: 'today', chemin: '/dashboard', label: 'Aujourd’hui', vague: 'A' },
   { id: 'kyc', chemin: '/dashboard/kyc', label: 'KYC', vague: 'A' },
   { id: 'kyc-bienvenue', chemin: '/dashboard/kyc/bienvenue', label: 'KYC · bienvenue', vague: 'A' },
+  { id: 'kyc-rapport', chemin: '/dashboard/kyc/k1/export', label: 'KYC · rapport', vague: 'A' },
   { id: 'visite-new', chemin: '/dashboard/visits/new', label: 'Visite · nouvelle', vague: 'A' },
   { id: 'visite', chemin: '/dashboard/visits/v1', label: 'Visite · fiche', vague: 'A' },
   { id: 'analytics', chemin: '/dashboard/analytics', label: 'Analytics', vague: 'A' },
@@ -282,6 +284,12 @@ function RoutesBanc() {
           <Route path="kyc" element={<KycSugarV3Page />} />
           <Route path="kyc/bienvenue" element={<KycOnboardingPage />} />
           <Route path="kyc/:dossierId" element={<KycSugarV3Page />} />
+          {/* ⚠ Le RAPPORT n'avait aucun banc, et c'est la surface la plus
+              difficile à relire de tête : trois pages A4 en pixels absolus,
+              montées par DEUX routes (l'aperçu agent ici, le rendu headless sur
+              `/kyc-report/:token`). Sans lui, ses 1 844 lignes ne se
+              vérifiaient que par lecture. */}
+          <Route path="kyc/:dossierId/export" element={<KycExportPage />} />
         </Route>
       </Route>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -334,6 +342,21 @@ export default function CrmShowcasePage() {
   // l'intercepteur, et l'initialiseur de `useState` ne rejoue PAS au remontage
   // (l'état survit). Défaut mesuré à l'écran sur le banc de la console — les
   // requêtes partaient vers la vraie base, qui répondait 401.
+  // ⛔ `window.print()` EST UN GESTE, et le banc n'en laisse passer aucun.
+  // `KycExportPage` l'appelle SEULE, 800 ms après que le dossier a chargé — sur
+  // le banc ça ouvre une boîte native qui fige le volet du navigateur, et la
+  // surface devient inobservable au moment précis où on voulait la regarder.
+  // Mesuré : le volet est resté bloqué jusqu'à un Échap.
+  //
+  // Même arbitrage que l'interception de `fetch` — on neutralise la sortie, on
+  // ne touche pas au code de production. La restauration est symétrique : le
+  // banc démonté, la vraie fonction revient.
+  useEffect(() => {
+    const vraie = window.print
+    window.print = () => {}
+    return () => { window.print = vraie }
+  }, [])
+
   useEffect(() => {
     // ⛔ `socle` — les deux tables qui TRAVERSENT l'état « Vide ». Sans elles, la
     // bascule vidait aussi l'identité de la session : le KYC tombait sur le mur
