@@ -110,6 +110,36 @@ describe('bancSupabase — la forme rendue suit l’en-tête Accept', () => {
   })
 
   /**
+   * ⛔ L'ÉTAT « VIDE » NE DOIT PAS VIDER LA SESSION — sinon il ne montre pas ce
+   * qu'il annonce.
+   *
+   * Son libellé dit « chaque source rend zéro ligne — les états vides de chaque
+   * surface ». Mesuré sur `/dev/crm` : en vidant AUSSI `profiles` et `agencies`,
+   * il faisait tomber le KYC sur le mur d'identité (`useIdentityGate` →
+   * `/dashboard/identite`), et l'écran montrait « Vérifiez l'identité de votre
+   * agence » au lieu d'un seul état vide. Le troisième mur du banc se relève
+   * quand on retire la donnée qui le tenait ouvert.
+   *
+   * L'identité de la session n'est pas de la donnée de DOMAINE : sans elle il n'y
+   * a pas d'écran du tout, donc pas d'état vide à regarder. Ces tables-là
+   * traversent l'état vide ; toutes les autres rendent bien zéro ligne.
+   */
+  it('l’état « Vide » garde le socle de session et ne vide que le domaine', async () => {
+    reglerBanc({
+      etat: 'vide',
+      tables: { profiles: [{ id: 'p1' }], agencies: [{ id: 'a1' }], essais: LIGNES },
+      socle: ['profiles', 'agencies'],
+    })
+    expect(await lire('profiles?select=*'), 'la session a été vidée : le mur se relève').toHaveLength(1)
+    expect(await lire('agencies?select=*'), 'l’agence a été vidée : le gate LAB se relève').toHaveLength(1)
+    expect(await lire('essais?select=*'), 'une table de DOMAINE doit bien rendre zéro ligne').toEqual([])
+    // …et `.single()` sur le socle rend toujours l'objet, pas un tableau.
+    const p = await lire('profiles?select=*&id=eq.p1', new Headers({ Accept: OBJET_SEUL }))
+    expect(Array.isArray(p)).toBe(false)
+    reglerBanc({ etat: 'nominal', tables: { essais: LIGNES }, socle: [] })
+  })
+
+  /**
    * Une table sans fixture rend `[]`, et `.single()` dessus rend `null` — jamais
    * `undefined`, que `JSON.stringify` transforme en corps illisible.
    */

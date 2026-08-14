@@ -68,6 +68,21 @@ const contrat = {
    * `/dev/admin` la laisse à `null` — il n'a pas de session et n'en veut pas.
    */
   session: null as unknown,
+  /**
+   * Tables qui TRAVERSENT l'état « Vide » — l'identité de la session, jamais du
+   * domaine.
+   *
+   * ⛔ SANS ELLES, « VIDE » NE MONTRE PAS CE QU'IL ANNONCE. Son libellé promet
+   * « les états vides de chaque surface » ; en vidant AUSSI `profiles` et
+   * `agencies`, il faisait tomber le KYC sur le mur d'identité — l'écran
+   * affichait « Vérifiez l'identité de votre agence », pas un état vide. Le
+   * troisième mur du banc se relève dès qu'on retire la donnée qui le tenait
+   * ouvert, et on croit regarder une surface alors qu'on regarde une garde.
+   *
+   * Ces tables ne sont pas de la donnée à montrer : sans elles il n'y a pas
+   * d'écran du tout, donc rien de vide à regarder.
+   */
+  socle: [] as string[],
   /** Noms d'appels qu'aucune fixture ne couvre — remontés aux commandes du banc. */
   signaler: (_appel: string) => {},
 }
@@ -251,7 +266,8 @@ function repondre(url: string, init?: RequestInit): Response | null {
 
   const lignes = Object.prototype.hasOwnProperty.call(contrat.tables, chemin) ? contrat.tables[chemin]! : undefined
   if (lignes === undefined) contrat.signaler(chemin)
-  const sortie = contrat.etat === 'vide' ? [] : filtrer(lignes ?? [], requete)
+  const vide = contrat.etat === 'vide' && !contrat.socle.includes(chemin)
+  const sortie = vide ? [] : filtrer(lignes ?? [], requete)
   return json(objetSeul ? (sortie[0] ?? null) : sortie, sortie.length)
 }
 

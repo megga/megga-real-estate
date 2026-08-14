@@ -172,6 +172,18 @@ describe('État vide — un idiome, trois registres', () => {
       'src/components/crm-sugar/biens/pager/BpTopGallery.tsx',
       'src/components/crm-sugar/settings/SecuritySection.tsx',
       'src/components/crm-sugar-v3/kyc-wizard/KwStepContact.tsx',
+      // Lot 4 du chantier KYC (16 août 2026). Les deux surfaces du pager
+      // écrivaient leur vide à la main — une ligne alignée à gauche dans la
+      // table, un bloc centré dans chaque colonne de la Vigie — soit deux
+      // grammaires de plus dans le même écran.
+      //
+      // ⚠ ELLES N'ÉTAIENT PAS REGARDABLES avant ce lot, et pas parce qu'on n'y
+      // pensait pas : l'état « Vide » du banc vidait AUSSI `profiles` et
+      // `agencies`, donc le KYC tombait sur le mur d'identité et montrait
+      // « Vérifiez l'identité de votre agence ». On croyait regarder une
+      // surface, on regardait une garde. Le banc garde désormais un SOCLE.
+      'src/components/crm-sugar-v3/kyc-pager/KycListPage.tsx',
+      'src/components/crm-sugar-v3/kyc-pager/KycVigiePage.tsx',
       'src/components/crm-sugar/analytics/AxDashboard.tsx',
       'src/components/matching-recherche/MatchingRechercheHybride.tsx',
     ]

@@ -8,7 +8,8 @@
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { useKycVigie, type KycVigieItem } from '@/hooks/useKycVigie'
 import { KYP_FONT, type KypSurf } from './kypTokens'
-import { KypAvatar, KypCta } from './kypAtoms'
+import { KypAvatar, KypCta, KypIcon } from './kypAtoms'
+import EtatVide from '@/components/crm-sugar/EtatVide'
 
 function KypLatePill({ surf }: { surf: KypSurf }) {
   return (
@@ -214,20 +215,18 @@ function KypVigieCol({
           overflow: 'hidden',
         }}
       >
+        {/* ⚠ REGISTRE NEUTRE, pas « à jour ». La colonne ne reçoit qu'une liste :
+            elle ne peut pas distinguer « tout a été traité » — une bonne
+            nouvelle — de « il n'y a jamais rien eu à traiter ». Peindre en vert
+            un écran qui n'a jamais rien porté inventerait une information que la
+            donnée ne contient pas. Le libellé, lui, ne bouge pas. */}
         {list.length === 0 && (
-          <div
-            style={{
-              flex: 1,
-              display: 'grid',
-              placeItems: 'center',
-              fontSize: 'var(--crm-text-lg)',
-              color: sp.sub,
-              fontWeight: 500,
-              textAlign: 'center',
-            }}
-          >
-            Rien en attente ici.
-          </div>
+          <EtatVide
+            dark={surf.dark}
+            registre="neutre"
+            glyphe={<KypIcon name="checkAll" size={24} />}
+            titre="Rien en attente ici."
+          />
         )}
         {urgent.map((it) => (
           <KypVigieCard key={it.key} it={it} sp={sp} surf={surf} onOpen={onOpen} />

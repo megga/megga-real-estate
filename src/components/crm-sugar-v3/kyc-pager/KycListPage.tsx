@@ -8,7 +8,8 @@ import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { useKycDossiers, type KycDossierRow } from '@/hooks/useKycDossier'
 import type { KycDossierStatus } from '@/types/kyc'
 import { KYP_FONT, type KypSurf } from './kypTokens'
-import { KypAvatar, KypCta, KypStatusPill } from './kypAtoms'
+import { KypAvatar, KypCta, KypIcon, KypStatusPill } from './kypAtoms'
+import EtatVide from '@/components/crm-sugar/EtatVide'
 
 type FilterKey = 'all' | 'none' | 'pending' | 'verified'
 
@@ -178,15 +179,26 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
           {isLoading && (
             <div style={{ padding: '40px 22px', fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500 }}>Chargement des dossiers…</div>
           )}
+          {/* ⚠ Les LIBELLÉS ne bougent pas — c'est une surface de conformité. Seule
+              la grammaire passe à l'idiome commun : la gravité par l'ENCRE DU
+              TITRE, pas par une couleur posée à la main sur un bloc aligné à
+              gauche. `erreur` et `neutre` entrent ensemble parce qu'ils vivent
+              dans le même bloc : on ne peut pas en migrer un sans nommer l'autre. */}
           {isError && !isLoading && (
-            <div style={{ padding: '40px 22px', fontSize: 'var(--crm-text-lg)', color: surf.destructive, fontWeight: 600 }}>
-              Impossible de charger les dossiers KYC.
-            </div>
+            <EtatVide
+              dark={surf.dark}
+              registre="erreur"
+              glyphe={<KypIcon name="shield" size={26} />}
+              titre="Impossible de charger les dossiers KYC."
+            />
           )}
           {!isLoading && !isError && rows.length === 0 && (
-            <div style={{ padding: '40px 22px', fontSize: 'var(--crm-text-lg)', color: sp.sub, fontWeight: 500 }}>
-              Aucun dossier dans cette vue.
-            </div>
+            <EtatVide
+              dark={surf.dark}
+              registre="neutre"
+              glyphe={<KypIcon name="shield" size={26} />}
+              titre="Aucun dossier dans cette vue."
+            />
           )}
           {rows.map((d, i) => (
             <div

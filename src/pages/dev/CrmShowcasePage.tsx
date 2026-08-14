@@ -335,7 +335,16 @@ export default function CrmShowcasePage() {
   // (l'état survit). Défaut mesuré à l'écran sur le banc de la console — les
   // requêtes partaient vers la vraie base, qui répondait 401.
   useEffect(() => {
-    reglerBanc({ tables: CRM_TABLES, rpc: CRM_RPC, rpcVide: CRM_RPC_VIDE, session })
+    // ⛔ `socle` — les deux tables qui TRAVERSENT l'état « Vide ». Sans elles, la
+    // bascule vidait aussi l'identité de la session : le KYC tombait sur le mur
+    // d'identité et l'écran affichait « Vérifiez l'identité de votre agence » au
+    // lieu d'un état vide. On croyait regarder une surface, on regardait une
+    // garde. Elles ne sont pas de la donnée à montrer — sans elles il n'y a pas
+    // d'écran du tout, donc rien de vide à regarder.
+    reglerBanc({
+      tables: CRM_TABLES, rpc: CRM_RPC, rpcVide: CRM_RPC_VIDE, session,
+      socle: ['profiles', 'agencies'],
+    })
     installerBanc()
     return desinstallerBanc
   }, [session])
