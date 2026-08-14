@@ -367,8 +367,29 @@ function Closing({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens
 /** Composition du pipeline (sécurisé / probable / possible) en barre empilée + détail ; drill-down différé (`records` null en prod). */
 function Composition({ d, t, tk }: { d: AxPeriodData; t: TFunction; tk: MobileTokens }) {
   const total = d.composition.reduce((s, c) => s + c.v, 0)
+  /**
+   * La rampe monochrome de « De quoi est fait le projeté » — trois valeurs
+   * d'une même grandeur, donc une famille qui ENCODE. Elle reste hors direction ;
+   * ce qui a changé, c'est qu'elle DÉRIVE maintenant dans les deux thèmes.
+   *
+   * ⛔ La branche sombre portait `#F3F4F6 / #878D98 / #41454D` — des copies
+   * faites à la main de l'ancienne `AX_DARK` du bureau, dont le chantier
+   * « Analytics en MEGGA X » a supprimé la source. Le clair dérivait déjà : une
+   * moitié suivait l'échelle, l'autre était figée sur des valeurs orphelines.
+   *
+   * ⚠ LE MIROIR LITTÉRAL DU CLAIR N'ÉTAIT PAS LA RÉPONSE. `n1000/n600/n400`
+   * donne des pas de 2,52 puis 7,04 — un petit pas puis un gouffre, qui fait
+   * lire « Probable » comme un « Sécurisé » un peu terne. L'échelle MEGGA X
+   * n'est pas régulière dans sa moitié claire ; le clair ne marche que parce que
+   * `n100/n500/n700` tombe sur trois crans bien espacés (3,70 / 3,47).
+   *
+   * Des trois triplets dérivés qui tiennent, `n800/n600/n500` est le plus
+   * régulier — pas de 2,15 et 2,21, soit la régularité du clair. Le prix est
+   * assumé : « Sécurisé » n'est plus le blanc pur mais `n800`.
+   * Gardé par `tests/unit/mobile-palette.spec.ts`.
+   */
   const ramp: Record<string, string> = tk.mode === 'dark'
-    ? { secured: '#F3F4F6', probable: '#878D98', possible: '#41454D' }
+    ? { secured: MXC_COLOR.n800, probable: MXC_COLOR.n600, possible: MXC_COLOR.n500 }
     : { secured: MXC_COLOR.n100, probable: MXC_COLOR.n500, possible: MXC_COLOR.n700 }
   return (
     <div style={{ marginTop: 24 }}>

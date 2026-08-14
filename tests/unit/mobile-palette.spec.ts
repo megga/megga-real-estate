@@ -238,4 +238,184 @@ describe('CRM mobile — la palette descend de MEGGA X', () => {
     }
     expect(faibles.length, `encres sous ${AA}:1 :\n  ${faibles.join('\n  ')}`).toBe(0)
   })
+
+  /**
+   * ⛔ LA RAMPE DE COMPOSITION D'ANALYTICS — les DEUX branches, et c'est
+   * l'ASYMÉTRIE qui était le défaut.
+   *
+   * `MobileAnalyticsScreen` peint « De quoi est fait le projeté » avec trois
+   * crans d'une rampe monochrome. Sa branche CLAIRE dérivait déjà
+   * (`n100 / n500 / n700`) ; sa branche SOMBRE portait trois littéraux
+   * `#F3F4F6 / #878D98 / #41454D` — des copies faites à la main de l'ancienne
+   * `AX_DARK` du bureau, dont le chantier « Analytics en MEGGA X » a supprimé la
+   * SOURCE. Elles ne pointaient donc plus vers rien.
+   *
+   * ⚠ AUCUNE GARDE NE POUVAIT LES VOIR. Ce fichier ne lit que
+   * `crm-mobile/tokens.ts` ; les autres specs de contraste gardent une ZONE du
+   * BUREAU. Un littéral écrit dans un ÉCRAN mobile tombe entre les deux — c'est
+   * la forme n° 38 (« l'objet de jetons partagé n'a de garde nulle part ») prise
+   * un cran plus bas : ici il n'y a même pas d'objet, juste des valeurs en dur.
+   *
+   * ⛔ ET LE MIROIR DU CLAIR N'ÉTAIT PAS LA RÉPONSE. `n1000 / n600 / n400` — la
+   * transposition littérale — donne un cran de queue à **1,12:1** sur la carte
+   * (la pastille disparaît) et une rampe très irrégulière : 2,52 puis 7,04.
+   * L'échelle MEGGA X n'est pas régulière dans sa moitié claire, et le clair ne
+   * marche que parce que `n100/n500/n700` tombe par chance sur trois crans bien
+   * espacés (3,70 / 3,47). Le balayage des dix barreaux ne laisse que TROIS
+   * triplets qui tiennent les deux contraintes ; `n800/n600/n500` est le plus
+   * régulier (2,15 / 2,21).
+   *
+   * ⛔ CE QUE CETTE CLAUSE N'ASSERTE PAS, ET LA MESURE QUI L'EXPLIQUE. Une
+   * première version exigeait de chaque cran 3:1 contre sa carte — le seuil des
+   * objets graphiques. Elle rougissait sur la branche CLAIRE, qui est pourtant
+   * la référence. Mesuré : sur une carte blanche, cinq barreaux seulement
+   * passent 3:1 (`n100`…`n500`) et quatre d'entre eux sont tassés entre 20,62 et
+   * 17,76 — **zéro** triplet dérivé peut tenir ce seuil ET rester lisible cran
+   * par cran. La contrainte était donc INFAISABLE en clair, et l'imposer aurait
+   * envoyé repeindre un écran que personne n'a signalé (piège (g)).
+   *
+   * ⚠ Et le seuil n'était pas le bon instrument : chaque ligne de la rampe porte
+   * son NOM, son MONTANT et son POURCENTAGE en toutes lettres. La pastille est
+   * redondante avec son libellé, c'est-à-dire exactement le cas que la WCAG
+   * 1.4.11 laisse dehors. Retiré, avec sa mesure — l'effacer effacerait la raison.
+   *
+   * La clause garde donc trois choses, toutes vérifiables : la rampe DÉRIVE de
+   * l'échelle, ses crans se distinguent l'un de l'autre, et elle est RÉGULIÈRE.
+   * Ce dernier point n'est pas cosmétique : trois valeurs d'une même grandeur
+   * qui progressent par pas inégaux font lire la valeur du milieu comme
+   * appartenant à l'un des deux bouts.
+   */
+  it('la rampe de composition d’Analytics dérive de l’échelle, dans les deux thèmes', async () => {
+    const { readFileSync } = await import('node:fs')
+    const F = 'src/components/crm-mobile/analytics/MobileAnalyticsScreen.tsx'
+    const src = readFileSync(F, 'utf-8')
+
+    /**
+     * ⚠ Ancrée sur l'UNITÉ DU LANGAGE — la déclaration `const ramp`, de son `=`
+     * à la fin du second objet du ternaire — jamais sur une fenêtre de lignes.
+     * Un commentaire inséré au-dessus, ou un retour à la ligne différent, ne
+     * doit pas désarmer la clause (forme n° 16).
+     */
+    const i = src.indexOf('const ramp')
+    expect(i, `déclaration \`const ramp\` introuvable dans ${F}`).toBeGreaterThan(-1)
+    const bloc = src.slice(i, src.indexOf('\n  return', i))
+    const branches = [...bloc.matchAll(/\{([^{}]*secured[^{}]*)\}/g)].map((m) => m[1]!)
+    expect(branches, 'les DEUX branches du ternaire doivent être lues').toHaveLength(2)
+
+    /** Rend la valeur d'un cran : un littéral, ou une référence `MXC_COLOR.nX`. */
+    const valeur = (branche: string, cle: string): string | null => {
+      const m = new RegExp(`${cle}:\\s*([^,}]+)`).exec(branche)
+      if (!m) return null
+      const brut = m[1]!.trim()
+      const ref = /^MXC_COLOR\.(\w+)$/.exec(brut)
+      if (ref) return (MXC_COLOR as Record<string, string>)[ref[1]!] ?? null
+      return /^'#[0-9a-fA-F]{3,6}'$/.test(brut) ? brut.slice(1, -1) : null
+    }
+
+    const CRANS = ['secured', 'probable', 'possible'] as const
+    const fautes: string[] = []
+    // La première branche du ternaire est celle de `mode === 'dark'`.
+    for (const [nom, branche] of [['sombre', branches[0]!], ['clair', branches[1]!]] as const) {
+      const vals: string[] = []
+      for (const cle of CRANS) {
+        const v = valeur(branche, cle)
+        // ⛔ REFUSER ce qu'on ne sait pas lire, jamais le sauter (forme n° 14).
+        expect(v, `${nom} · ${cle} : valeur non lue dans « ${branche.trim()} »`).not.toBeNull()
+        if (!ECHELLE.has(v!.toLowerCase())) fautes.push(`${nom} · ${cle} = ${v} — hors de l'échelle`)
+        vals.push(v!)
+      }
+      // Chaque cran se distingue du SUIVANT, sans quoi la rampe ne dit plus
+      // trois valeurs mais deux.
+      const pas: number[] = []
+      for (let k = 0; k < vals.length - 1; k++) {
+        const r = contraste(vals[k]!, vals[k + 1]!)
+        pas.push(r)
+        if (r < 1.8) fautes.push(`${nom} · ${CRANS[k]}↔${CRANS[k + 1]} = ${r.toFixed(2)}:1 — les deux crans se confondent`)
+      }
+      // …et les pas restent COMPARABLES : une rampe qui fait un petit pas puis
+      // un gouffre fait lire la valeur du milieu comme un des deux bouts.
+      // Mesuré : le clair actuel rend 3,70 / 3,47 (rapport 1,07) ; le miroir
+      // littéral `n1000/n600/n400` rendrait 2,52 / 7,04 (rapport 2,80).
+      const rapport = Math.max(...pas) / Math.min(...pas)
+      if (rapport > 2) fautes.push(`${nom} · pas ${pas.map((p) => p.toFixed(2)).join(' / ')} — rapport ${rapport.toFixed(2)}, rampe irrégulière`)
+    }
+    expect(fautes, `la rampe de composition ne tient plus :\n  ${fautes.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ LE CLIQUET DES NEUTRES ÉCRITS À LA MAIN, hors `tokens.ts`.
+   *
+   * La clause précédente garde UNE rampe. Celle-ci empêche la même chose de
+   * recommencer ailleurs : un gris écrit en dur dans un écran mobile ne descend
+   * de rien, ne suit aucun changement d'échelle, et n'est vu par aucune garde —
+   * ni celle-ci (qui lisait `tokens.ts` seul), ni les huit specs de contraste
+   * (qui gardent des zones du BUREAU).
+   *
+   * ⚠ C'EST UN CLIQUET, PAS UNE INTERDICTION. Quinze valeurs héritées existent ;
+   * les interdire d'un coup enverrait repeindre dix fichiers hors de tout lot en
+   * cours. L'inventaire ne peut que RÉTRÉCIR : une valeur neuve fait rougir, une
+   * valeur retirée de la source AUSSI (sinon la liste se périme en silence et
+   * finit par décrire un dépôt qui n'existe plus).
+   *
+   * ⚠ LE MOTIF EST VOLONTAIREMENT LARGE — chroma ≤ 24, ce qui ramasse aussi
+   * quelques teintes PÂLES. Un motif serré à ≤ 12 ratait `#878D98`, l'un des
+   * trois qu'on venait corriger : le seuil qui décrit « un gris » n'existe pas.
+   * Un motif large avec un inventaire ÉNUMÉRÉ et confronté est sûr ; un motif
+   * serré qui laisse passer sa propre cible ne l'est pas (forme n° 21).
+   *
+   * ⚠ La clé est le FICHIER, pas la ligne : une ligne bouge au premier commentaire.
+   */
+  it('aucun neutre neuf écrit à la main dans un écran mobile', async () => {
+    const { readdirSync, readFileSync } = await import('node:fs')
+    const RACINE = 'src/components/crm-mobile'
+
+    /** Dette héritée, relevée le 15 août 2026. Ne peut que rétrécir. */
+    const ASSUMES: Record<string, string[]> = {
+      'agenda/AgTimeGrid.tsx': ['#D2D7DF'],
+      'bien/shared.ts': ['#111827', '#6B7280'],
+      'contacts/MobileContactDetailScreen.tsx': ['#07060B', '#0C091A'],
+      'contacts/detailShared.ts': ['#7A8088'],
+      'deal/MobileDealDetailScreen.tsx': ['#1A1B22', '#7A8088'],
+      'matching/MmKyc.tsx': ['#DCF1E6'],
+      'matching/MmMatchCard.tsx': ['#E4E7EC'],
+      'pipeline/MobilePipelineScreen.tsx': ['#E0F1F5'],
+      'today/MobileFocusHero.tsx': ['#1A1B22'],
+    }
+
+    const sansCommentaires = (c: string) =>
+      c.replace(/\/\*[\s\S]*?\*\//g, (b) => '\n'.repeat((b.match(/\n/g) ?? []).length)).replace(/\/\/[^\n]*/g, ' ')
+    const canaux = (h: string) => {
+      const x = h.replace('#', '')
+      const p = x.length === 3 ? [...x].map((c) => c + c).join('') : x
+      return [0, 2, 4].map((i) => parseInt(p.slice(i, i + 2), 16))
+    }
+    const chroma = (h: string) => { const c = canaux(h); return Math.max(...c) - Math.min(...c) }
+
+    const fichiers = readdirSync(RACINE, { recursive: true, encoding: 'utf-8' })
+      .filter((f) => /\.tsx?$/.test(f) && !f.endsWith('tokens.ts'))
+    expect(fichiers.length, 'balayage vide : chemin cassé, pas dossier propre').toBeGreaterThan(30)
+
+    const vus: Record<string, Set<string>> = {}
+    for (const f of fichiers) {
+      const code = sansCommentaires(readFileSync(`${RACINE}/${f}`, 'utf-8'))
+      for (const m of code.matchAll(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g)) {
+        const h = m[0]
+        const plein = h.length === 4 ? '#' + [...h.slice(1)].map((c) => c + c).join('') : h
+        if (ECHELLE.has(plein.toLowerCase())) continue   // déjà un barreau
+        if (chroma(h) > 24) continue                     // teinte CHROMATIQUE : elle encode, hors sujet
+        ;(vus[f] ??= new Set()).add(h)
+      }
+    }
+
+    const neufs: string[] = []
+    const morts: string[] = []
+    for (const [f, set] of Object.entries(vus)) {
+      for (const v of set) if (!(ASSUMES[f] ?? []).includes(v)) neufs.push(`${f} — ${v}`)
+    }
+    for (const [f, vals] of Object.entries(ASSUMES)) {
+      for (const v of vals) if (!vus[f]?.has(v)) morts.push(`${f} — ${v}`)
+    }
+    expect(neufs, `neutre écrit à la main, hors inventaire — le tirer d'un barreau :\n  ${neufs.join('\n  ')}`).toEqual([])
+    expect(morts, `inscrit dans l'inventaire mais absent de la source — retirer la ligne :\n  ${morts.join('\n  ')}`).toEqual([])
+  })
 })
