@@ -20,7 +20,7 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
 import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
@@ -41,7 +41,7 @@ function TodayPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: numb
   const { t } = useTranslation('dashboard')
   // Point de page ACTIF : même règle que partout ailleurs, il porte l'accent.
   const activeCol = TK.accent
-  const idleCol = lightMode ? 'rgba(11,12,14,.18)' : 'rgba(255,255,255,.22)'
+  const idleCol = sgVoileEncre(!lightMode, lightMode ? 0.18 : 0.22)
   return (
     <div style={{
       position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30,
@@ -84,7 +84,7 @@ function TodayScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: num
       <span className="tsh-mouse" style={{
         display: 'grid', placeItems: 'center', flex: 'none',
         width: 22, height: 22,
-        fontSize: 16, fontWeight: 700, lineHeight: 1, color: sub,
+        fontSize: 'var(--crm-text-2xl)', fontWeight: 600, lineHeight: 1, color: sub,
         transition: 'color .35s ease',
       }}>
         {next ? '↓' : '↑'}
@@ -96,7 +96,7 @@ function TodayScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: num
         transform: 'translateX(-6px)',
         transition: 'max-width .4s cubic-bezier(.76,0,.24,1), opacity .3s ease, transform .4s cubic-bezier(.76,0,.24,1)',
       }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: ink }}>{targetLabel}</span>
+        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: ink }}>{targetLabel}</span>
       </span>
     </button>
   )

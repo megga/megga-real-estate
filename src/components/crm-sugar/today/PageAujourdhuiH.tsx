@@ -18,6 +18,8 @@
 // ⚠️ Données de démonstration (`./dataH`). Le câblage Supabase est le « Lot 0 »
 // du handoff : le payload remplace les constantes, les composants ne bougent pas.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useState, useRef, useCallback, useEffect, useLayoutEffect, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 // `motion/react` = la voie du dépôt (18 fichiers, dont le voisin FocusMode).
@@ -81,7 +83,7 @@ function HlSignalBadge({ s, size = 32 }: { s: HlSignalData; size?: number }) {
   const dot = s.type === 'like' ? TK.danger.dot : s.type === 'rappel' ? (s.late ? TK.danger.dot : TK.neutral.dot) : TK.frameHi
   return (
     <span style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
-      <span style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', background: s.av, color: '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 700 }}>{s.initials}</span>
+      <span style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', background: s.av, color: '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 600 }}>{s.initials}</span>
       <span style={{ position: 'absolute', right: -3, bottom: -3, width: 16, height: 16, borderRadius: 'var(--crm-radius-pill)', background: s.type === 'skip' ? TK.frameHi : dot, boxShadow: `0 0 0 2px ${TK.frameSolid}`, display: 'grid', placeItems: 'center' }}>
         {s.type === 'like' ? <HlHeart s={8} /> : s.type === 'skip' ? <HlCross s={7} /> : <RXIcon name="clock" size={9} sw={3} color="#fff" />}
       </span>
@@ -98,14 +100,14 @@ function HlSignalCard({ s, onCta, first }: { s: AbsenceSignal; onCta?: (s: Absen
       <HlSignalBadge s={s} size={30} />
       <div style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {s.type === 'ia'
-          ? <span style={{ fontWeight: 700, color: TK.ink }}>{s.text}</span>
-          : <><span style={{ fontWeight: 700, color: TK.ink }}>{s.who.split(' ')[0]}</span> <span style={{ fontWeight: 600, color: TK.inkDim }}>{s.text}</span></>}
+          ? <span style={{ fontWeight: 600, color: TK.ink }}>{s.text}</span>
+          : <><span style={{ fontWeight: 600, color: TK.ink }}>{s.who.split(' ')[0]}</span> <span style={{ fontWeight: 600, color: TK.inkDim }}>{s.text}</span></>}
       </div>
       <span style={{ flexShrink: 0, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: s.late ? TK.danger.dot : TK.sub, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{s.meta}</span>
       {s.cta && (
         <button
           onClick={() => onCta && onCta(s)} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
-          style={{ flexShrink: 0, background: h ? TK.card : 'transparent', border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: TK.ink, whiteSpace: 'nowrap', cursor: 'pointer', padding: 'var(--crm-space-xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-sm)', marginRight: -5 }}
+          style={{ flexShrink: 0, background: h ? TK.card : 'transparent', border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.ink, whiteSpace: 'nowrap', cursor: 'pointer', padding: 'var(--crm-space-xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-sm)', marginRight: -5 }}
         >
           {s.cta}
         </button>
@@ -148,7 +150,7 @@ function HlAbsenceOverlay({ groups, total, sinceLabel, onSignal, onClose, onClea
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
       style={{
         position: 'absolute', inset: 0, zIndex: 30,
-        background: TK.mode === 'light' ? 'rgba(15,23,42,0.13)' : 'rgba(4,5,8,0.44)',
+        background: TK.mode === 'light' ? sgVoileEncre(false, 0.13) : 'rgba(4,5,8,0.44)',
         backdropFilter: 'blur(1.5px)', WebkitBackdropFilter: 'blur(1.5px)',
       }}
     >
@@ -165,7 +167,7 @@ function HlAbsenceOverlay({ groups, total, sinceLabel, onSignal, onClose, onClea
       >
         <div style={{ flexShrink: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-3xl) var(--crm-space-4xl) var(--crm-space-lg)' }}>
           <div>
-            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.4, color: TK.ink }}>{t('today.h.absence.title')}</div>
+            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.4, color: TK.ink }}>{t('today.h.absence.title')}</div>
             <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub, marginTop: 3 }}>
               {/* Sans présence enregistrée (toute première session), on annonce
                   le compte sans prétendre à un « depuis » qu'on ignore. */}
@@ -184,7 +186,7 @@ function HlAbsenceOverlay({ groups, total, sinceLabel, onSignal, onClose, onClea
               {row(
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-md)', marginTop: gi ? 13 : 0, marginBottom: 1 }}>
                   <Eyebrow>{g.name}</Eyebrow>
-                  <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: TK.faint, fontVariantNumeric: 'tabular-nums' }}>{g.items.length}</span>
+                  <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: TK.faint, fontVariantNumeric: 'tabular-nums' }}>{g.items.length}</span>
                 </div>, `h-${g.name}`)}
               {g.items.map((s, i) => row(<HlSignalCard s={s} onCta={onSignal} first={i === 0} />, s.id))}
             </div>
@@ -194,7 +196,7 @@ function HlAbsenceOverlay({ groups, total, sinceLabel, onSignal, onClose, onClea
                 <RXIcon name="check" size={26} sw={2.3} color={TK.ok.dot} />
               </span>
               <div>
-                <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.3, color: TK.ink }}>{t('today.h.absence.emptyTitle')}</div>
+                <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, color: TK.ink }}>{t('today.h.absence.emptyTitle')}</div>
                 <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: TK.sub, marginTop: 5, lineHeight: 1.5, maxWidth: 264 }}>{t('today.h.absence.emptyDesc')}</div>
               </div>
             </div>
@@ -202,7 +204,7 @@ function HlAbsenceOverlay({ groups, total, sinceLabel, onSignal, onClose, onClea
         </div>
         {total > 0 && (
           <div style={{ flexShrink: 0, padding: 'var(--crm-space-lg) var(--crm-space-4xl) var(--crm-space-2xl)', display: 'flex', justifyContent: 'flex-end', borderTop: `1px solid ${TK.border}` }}>
-            <button onClick={onClearAll} style={{ height: 30, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', background: TK.cardHi, color: TK.inkDim, fontSize: 'var(--crm-text-sm)', fontWeight: 700 }}>
+            <button onClick={onClearAll} style={{ height: 30, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', background: TK.cardHi, color: TK.inkDim, fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>
               {t('today.h.absence.markAll')}
             </button>
           </div>
@@ -228,7 +230,7 @@ function HlBlock({ b, pct, span, sel, done, past, onSel }: {
   const bg = hlColor(b.kind)
   const short = b.dur <= 30 // ≤ 30 min → une seule ligne
   const softSh = TK.mode === 'light'
-    ? '0 2px 8px rgba(15,23,42,0.10), 0 1px 3px rgba(15,23,42,0.06)'
+    ? `0 2px 8px ${sgVoileEncre(false, 0.10)}, 0 1px 3px ${sgVoileEncre(false, 0.06)}`
     : '0 2px 10px rgba(0,0,0,0.45)'
   return (
     <button
@@ -243,7 +245,7 @@ function HlBlock({ b, pct, span, sel, done, past, onSel }: {
       }}
     >
       <span style={{
-        fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: -0.2, lineHeight: 1.25,
+        fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, lineHeight: 1.25,
         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: short ? 1 : 'none',
         textDecoration: done ? 'line-through' : 'none',
       }}>{b.contact}</span>
@@ -259,7 +261,7 @@ function HlBlock({ b, pct, span, sel, done, past, onSel }: {
           <span style={{
             flexShrink: 0, marginLeft: short ? 0 : 'auto', position: short ? 'static' : 'absolute', top: 8, right: 9,
             width: 15, height: 15, borderRadius: 'var(--crm-radius-pill)', background: '#fff', display: 'grid', placeItems: 'center',
-            color: bg, fontSize: 'var(--crm-text-sm)', fontWeight: 900, lineHeight: 1,
+            color: bg, fontSize: 'var(--crm-text-sm)', fontWeight: 600, lineHeight: 1,
           }}>!</span>
         ))}
     </button>
@@ -300,8 +302,8 @@ function HlDay({ day, selId, onSel }: {
         {/* badge « maintenant » dans la gouttière */}
         {nowInWindow && <span style={{
           position: 'absolute', top: `${pct(nowM)}%`, right: 10, transform: 'translateY(-8px)', zIndex: 8,
-          fontSize: 'var(--crm-text-xs)', fontWeight: 800, fontVariantNumeric: 'tabular-nums', background: nowCol,
-          color: TK.mode === 'light' ? '#fff' : '#0B0C0E', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)',
+          fontSize: 'var(--crm-text-xs)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', background: nowCol,
+          color: TK.mode === 'light' ? MXC_COLOR.n1000 : MXC_COLOR.n100, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)',
         }}>{nowLabel}</span>}
       </div>
       {/* colonne timeline */}
@@ -317,7 +319,7 @@ function HlDay({ day, selId, onSel }: {
             background: TK.card, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-md)',
           }}>
             <RXIcon name="bolt" size={13} sw={2.1} color={TK.sub} />
-            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: TK.sub, whiteSpace: 'nowrap', flexShrink: 0 }}>
+            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub, whiteSpace: 'nowrap', flexShrink: 0 }}>
               {t('today.h.freeWindow', { duration: freeLabel })}
             </span>
           </div>
@@ -359,12 +361,12 @@ function HlDealCard({ d, first, onCta }: { d: HlHotData; first?: boolean; onCta?
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
           <Av initials={d.init} av={d.av} size={22} />
-          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, color: TK.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: TK.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name}</span>
         </div>
       </div>
       <button
         onClick={() => onCta && onCta(d)}
-        style={{ flexShrink: 0, height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, fontFamily: 'inherit', background: TK.accent, color: TK.accentInk, fontSize: 'var(--crm-text-sm)', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+        style={{ flexShrink: 0, height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, fontFamily: 'inherit', background: TK.accent, color: TK.accentInk, fontSize: 'var(--crm-text-sm)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
       >{d.cta}</button>
     </div>
   )
@@ -378,7 +380,7 @@ function HlAnnCard({ a, first, onCta }: { a: HlAnnData; first?: boolean; onCta?:
         {a.photo && <img src={a.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, color: TK.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: TK.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {a.title} <span style={{ fontWeight: 600, color: TK.sub }}>{a.price}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginTop: 4, minWidth: 0 }}>
@@ -388,7 +390,7 @@ function HlAnnCard({ a, first, onCta }: { a: HlAnnData; first?: boolean; onCta?:
       </div>
       <button
         onClick={() => onCta && onCta(a)}
-        style={{ flexShrink: 0, height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, fontFamily: 'inherit', background: TK.accent, color: TK.accentInk, fontSize: 'var(--crm-text-sm)', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+        style={{ flexShrink: 0, height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, fontFamily: 'inherit', background: TK.accent, color: TK.accentInk, fontSize: 'var(--crm-text-sm)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
       >{a.cta}</button>
     </div>
   )
@@ -400,14 +402,14 @@ function HlNewsCard({ n, first }: { n: HlNewsData; first?: boolean }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '82px 1fr', gap: 'var(--crm-space-3xl)', padding: 'var(--crm-space-2xl) var(--crm-space-2xs)', borderTop: first ? 'none' : `1px solid ${TK.border}` }}>
       <div>
-        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, color: TK.ink, lineHeight: 1.3 }}>{n.date}</div>
-        <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 700, color: TK.faint, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{n.year}</div>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: TK.ink, lineHeight: 1.3 }}>{n.date}</div>
+        <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: TK.faint, marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>{n.year}</div>
       </div>
       <div style={{ minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 5 }}>
-          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, letterSpacing: -0.2, color: TK.ink }}>{n.title}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: TK.ink }}>{n.title}</span>
           {n.fresh && (
-            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: TK.accentInk, background: TK.accent, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', flexShrink: 0 }}>
+            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: TK.accentInk, background: TK.accent, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', flexShrink: 0 }}>
               {t('today.h.news.fresh')}
             </span>
           )}
@@ -426,7 +428,7 @@ function HlWhatsNew({ news, onClose }: { news: HlNewsData[]; onClose: () => void
         <Eyebrow>{t('today.h.whatsNew')}</Eyebrow>
         <button
           onClick={onClose}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 28, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${TK.cardBorder}`, background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: TK.inkDim, cursor: 'pointer' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 28, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${TK.cardBorder}`, background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.inkDim, cursor: 'pointer' }}
         >{t('today.h.close')}</button>
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 'var(--crm-space-xs)' }}>
@@ -487,7 +489,7 @@ function HlBlockPopover({ b, anchor, cw, ch, done, onClose, onCal, onCta }: {
       transition={{ duration: 0.18, ease: [0.2, 0.8, 0.2, 1] }}
       style={{
         position: 'absolute', inset: 0, zIndex: 50,
-        background: TK.mode === 'light' ? 'rgba(15,23,42,0.10)' : 'rgba(4,5,8,0.40)',
+        background: TK.mode === 'light' ? sgVoileEncre(false, 0.10) : 'rgba(4,5,8,0.40)',
         backdropFilter: 'blur(1.5px)', WebkitBackdropFilter: 'blur(1.5px)',
       }}
     >
@@ -508,9 +510,9 @@ function HlBlockPopover({ b, anchor, cw, ch, done, onClose, onCal, onCta }: {
         {/* Barre de titre — pastille de couleur fonctionnelle + type */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 12 }}>
           <span style={{ width: 11, height: 11, borderRadius: 'var(--crm-radius-xs)', background: hlColor(b.kind), flexShrink: 0 }} />
-          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: TK.sub, letterSpacing: 1, textTransform: 'uppercase' }}>{typeLabel}</span>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: TK.sub }}>{typeLabel}</span>
           {done && (
-            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.5, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', background: '#059669', color: '#FFFFFF', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)', background: '#059669', color: '#FFFFFF' }}>
               {t('today.h.doneBadge')}
             </span>
           )}
@@ -524,7 +526,7 @@ function HlBlockPopover({ b, anchor, cw, ch, done, onClose, onCal, onCta }: {
           </button>
         </div>
         {/* Titre — le contact */}
-        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, color: TK.ink, letterSpacing: -0.5, lineHeight: 1.2, marginBottom: 12, textDecoration: done ? 'line-through' : 'none' }}>{b.contact}</div>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: TK.ink, letterSpacing: -0.5, lineHeight: 1.2, marginBottom: 12, textDecoration: done ? 'line-through' : 'none' }}>{b.contact}</div>
         {/* Infos — lignes façon Calendrier */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: TK.inkDim, lineHeight: 1.4 }}>
@@ -544,7 +546,7 @@ function HlBlockPopover({ b, anchor, cw, ch, done, onClose, onCal, onCta }: {
                 <img src={b.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: TK.ink, letterSpacing: -0.2 }}>{b.price}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: TK.ink, letterSpacing: -0.2 }}>{b.price}</div>
                 <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub, marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.place}</div>
               </div>
             </div>
@@ -561,10 +563,10 @@ function HlBlockPopover({ b, anchor, cw, ch, done, onClose, onCal, onCta }: {
         </div>
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 14 }}>
-          <button onClick={onCta} style={{ width: '100%', height: 42, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', background: TK.accent, color: TK.accentInk }}>
+          <button onClick={onCta} style={{ width: '100%', height: 42, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', background: TK.accent, color: TK.accentInk }}>
             {b.cta}
           </button>
-          <button onClick={onCal} style={{ width: '100%', height: 42, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', background: TK.card, color: TK.ink }}>
+          <button onClick={onCal} style={{ width: '100%', height: 42, borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', background: TK.card, color: TK.ink }}>
             {t('today.h.openInCalendar')}
           </button>
         </div>
@@ -670,14 +672,14 @@ export function PageAujourdhuiH() {
 
       {/* EN-TÊTE — intégré dans le bento */}
       <div style={{ flexShrink: 0, padding: '18px 26px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-3xl)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.8, color: TK.ink }}>{t('today.h.greeting', { name: firstName })}</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: TK.ink }}>{t('today.h.greeting', { name: firstName })}</h1>
         {/* Pas de nouveauté publiée ⇒ pas de bouton : il ouvrirait un panneau vide. */}
         {news.length > 0 && (
         <button
           onClick={() => setWhatsNew((v) => !v)}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', height: 36, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap',
-            background: whatsNew ? TK.accent : TK.card, color: whatsNew ? TK.accentInk : TK.ink, fontSize: 'var(--crm-text-md)', fontWeight: 700,
+            background: whatsNew ? TK.accent : TK.card, color: whatsNew ? TK.accentInk : TK.ink, fontSize: 'var(--crm-text-md)', fontWeight: 600,
             boxShadow: whatsNew ? 'none' : `inset 0 0 0 1px ${TK.cardBorder}`,
           }}
         >{t('today.h.whatsNew')}</button>
@@ -691,7 +693,7 @@ export function PageAujourdhuiH() {
         <div style={{ width: 420, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, padding: 'var(--crm-space-4xl) var(--crm-space-3xl) var(--crm-space-3xl)' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12, padding: '0 var(--crm-space-xs)', flexShrink: 0 }}>
             <Eyebrow>{t('today.h.yourDay')}</Eyebrow>
-            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: TK.sub, fontVariantNumeric: 'tabular-nums' }}>{t('today.h.appointments', { count: day.blocks.length })}</span>
+            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub, fontVariantNumeric: 'tabular-nums' }}>{t('today.h.appointments', { count: day.blocks.length })}</span>
           </div>
           {!isLoading && !day.blocks.length ? (
             <div className="hl-dossier" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-xl)', textAlign: 'center', padding: '0 24px 40px' }}>
@@ -699,7 +701,7 @@ export function PageAujourdhuiH() {
                 <RXIcon name="cal" size={22} sw={2.1} color={TK.sub} />
               </span>
               <div>
-                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.3, color: TK.ink }}>{t('today.h.day.emptyTitle')}</div>
+                <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.3, color: TK.ink }}>{t('today.h.day.emptyTitle')}</div>
                 <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: TK.sub, marginTop: 5, lineHeight: 1.5, maxWidth: 240 }}>{t('today.h.day.emptyDesc')}</div>
               </div>
             </div>
@@ -722,14 +724,14 @@ export function PageAujourdhuiH() {
                     {([['dossiers', t('today.h.tabs.deals')], ['annonces', t('today.h.tabs.listings')]] as const).map(([k, l]) => (
                       <button
                         key={k} onClick={() => setZone(k as 'dossiers' | 'annonces')}
-                        style={{ height: 26, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap', background: zone === k ? TK.accent : 'transparent', color: zone === k ? TK.accentInk : TK.sub }}
+                        style={{ height: 26, padding: '0 var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', background: zone === k ? TK.accent : 'transparent', color: zone === k ? TK.accentInk : TK.sub }}
                       >{l}</button>
                     ))}
                   </div>
                   </div>
                   {zone === 'dossiers'
-                    ? <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: TK.sub }}>{t('today.h.hotCount', { count: hotDeals.length })}</span>
-                    : <button onClick={() => nav('biens')} style={{ background: 'none', border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: TK.sub, cursor: 'pointer', padding: 'var(--crm-space-xs) var(--crm-space-sm)', marginRight: -4 }}>{t('today.h.openListings')}</button>}
+                    ? <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub }}>{t('today.h.hotCount', { count: hotDeals.length })}</span>
+                    : <button onClick={() => nav('biens')} style={{ background: 'none', border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub, cursor: 'pointer', padding: 'var(--crm-space-xs) var(--crm-space-sm)', marginRight: -4 }}>{t('today.h.openListings')}</button>}
                 </div>
                 <div key={zone} className="hl-dossier" style={{ minHeight: 0 }}>
                   {zone === 'dossiers' ? (
@@ -743,7 +745,7 @@ export function PageAujourdhuiH() {
                           onClick={() => nav('pipeline')}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: 'var(--crm-space-lg)', marginTop: 2, padding: 'var(--crm-space-xl) var(--crm-space-2xs) var(--crm-space-2xs)', borderTop: `1px solid ${TK.border}`, background: 'none', border: 0, fontFamily: 'inherit', cursor: 'pointer', textAlign: 'left' }}
                         >
-                          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: TK.inkDim }}>{t('today.h.seeDealsInPipeline', { count: pipelineTotal })}</span>
+                          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: TK.inkDim }}>{t('today.h.seeDealsInPipeline', { count: pipelineTotal })}</span>
                           <RXIcon name="arrow" size={15} sw={2.2} color={TK.sub} />
                         </button>
                       )}
@@ -762,7 +764,7 @@ export function PageAujourdhuiH() {
                   {absenceTotal > 0 && (
                     <button
                       onClick={() => setAbsOpen((v) => !v)}
-                      style={{ background: absOpen ? TK.cardHi : 'none', border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: absOpen ? TK.ink : TK.sub, cursor: 'pointer', padding: 'var(--crm-space-xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-sm)', marginRight: -5 }}
+                      style={{ background: absOpen ? TK.cardHi : 'none', border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: absOpen ? TK.ink : TK.sub, cursor: 'pointer', padding: 'var(--crm-space-xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-sm)', marginRight: -5 }}
                     >{t('today.h.absence.seeAll', { count: absenceTotal })}</button>
                   )}
                 </div>
@@ -803,7 +805,7 @@ export function PageAujourdhuiH() {
 
       {/* TOAST */}
       {toast && (
-        <div style={{ position: 'absolute', left: '50%', bottom: 20, transform: 'translateX(-50%)', zIndex: 80, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-lg) var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', background: TK.accent, color: TK.accentInk, fontSize: 'var(--crm-text-md)', fontWeight: 700, boxShadow: TK.shadowLg, animation: 'hlFade .2s ease both' }}>
+        <div style={{ position: 'absolute', left: '50%', bottom: 20, transform: 'translateX(-50%)', zIndex: 80, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-lg) var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', background: TK.accent, color: TK.accentInk, fontSize: 'var(--crm-text-md)', fontWeight: 600, boxShadow: TK.shadowLg, animation: 'hlFade .2s ease both' }}>
           <RXIcon name="check" size={14} sw={2.4} color={TK.accentInk} />{toast}
         </div>
       )}

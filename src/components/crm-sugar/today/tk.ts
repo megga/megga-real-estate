@@ -10,6 +10,7 @@
 // re-render sur le changement de `dark`, donc lire le singleton muté au render
 // renvoie toujours l'ambiance courante (comportement identique au proto).
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 export interface TkTone {
@@ -93,12 +94,12 @@ const TK_LIGHT: Omit<Tk, 'mode'> = {
   frame: '#FFFFFF',
   frameSolid: '#FFFFFF',
   frameHi: '#F5F6F8',
-  border: 'rgba(15,23,42,0.09)',
-  borderHi: 'rgba(15,23,42,0.16)',
-  card: 'rgba(15,23,42,0.028)',
-  cardHi: 'rgba(15,23,42,0.055)',
-  cardBorder: 'rgba(15,23,42,0.08)',
-  ink: '#0B0C0E',
+  border: sgVoileEncre(false, 0.09),
+  borderHi: sgVoileEncre(false, 0.16),
+  card: sgVoileEncre(false, 0.028),
+  cardHi: sgVoileEncre(false, 0.055),
+  cardBorder: sgVoileEncre(false, 0.08),
+  ink: MXC_COLOR.n100,
   accent: MXC_COLOR.accent,
   accentInk: MXC_COLOR.n1000,
   inkDim: '#3A3D44',
@@ -106,8 +107,8 @@ const TK_LIGHT: Omit<Tk, 'mode'> = {
   faint: '#9CA1AB',
   primary: '#2A2D34',
   primarySoft: 'rgba(42,45,52,0.10)',
-  shadow: '0 1px 2px rgba(15,23,42,.05), 0 14px 36px -18px rgba(15,23,42,.18)',
-  shadowLg: '0 30px 70px -24px rgba(15,23,42,.30), 0 8px 22px -14px rgba(15,23,42,.16)',
+  shadow: `0 1px 2px ${sgVoileEncre(false, 0.05)}, 0 14px 36px -18px ${sgVoileEncre(false, 0.18)}`,
+  shadowLg: `0 30px 70px -24px ${sgVoileEncre(false, 0.30)}, 0 8px 22px -14px ${sgVoileEncre(false, 0.16)}`,
   ok: { bg: '#DBF2E6', fg: '#15643F', dot: '#15923F' },
   warn: { bg: '#FBE8D0', fg: '#8A4B12', dot: '#D98A2B' },
   danger: { bg: '#FADBE2', fg: '#8E1F3D', dot: '#D7475F' },

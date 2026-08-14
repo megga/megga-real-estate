@@ -6,6 +6,7 @@
 // détail (modale éditoriale), lightbox galerie, overlay « tout le catalogue ».
 // Quick wins : état « Proposé » persistant, filtres quantifiés, tri.
 
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -198,15 +199,15 @@ function CatalogTile({ m, big = false, onOpen, delay = 0, shown, proposed }: { m
       {proposed && (
         <div style={{ position: 'absolute', top: 13, right: 13, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)',
           background: 'rgba(21,100,63,.9)', border: '1px solid rgba(52,199,150,.6)' }}>
-          <RXIcon name="check" size={big ? 14 : 12} color="#9be9c1" sw={2.6} /><span style={{ fontSize: big ? 13 : 11.5, fontWeight: 800, color: '#DBF4E6' }}>{t('today.catalogue.proposed')}</span>
+          <RXIcon name="check" size={big ? 14 : 12} color="#9be9c1" sw={2.6} /><span style={{ fontSize: big ? 'var(--crm-text-md)' : 'var(--crm-text-xs)', fontWeight: 600, color: '#DBF4E6' }}>{t('today.catalogue.proposed')}</span>
         </div>
       )}
       <div style={{ position: 'absolute', top: 14, left: 14 }}>
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 'var(--crm-space-sm)', whiteSpace: 'nowrap',
           background: 'rgba(8,8,12,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
           padding: big ? '9px 15px' : '7px 13px', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${TK.borderHi}` }}>
-          <span style={{ fontSize: big ? 11 : 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,.7)' }}>{m.place}</span>
-          <span style={{ fontSize: big ? 15 : 12.5, fontWeight: 800, letterSpacing: -0.2, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>CHF {m.price}</span>
+          <span style={{ fontSize: big ? 'var(--crm-text-xs)' : 'var(--crm-text-xs)', fontWeight: 600, color: 'rgba(255,255,255,.7)' }}>{m.place}</span>
+          <span style={{ fontSize: big ? 'var(--crm-text-xl)' : 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.2, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>CHF {m.price}</span>
         </span>
       </div>
 
@@ -214,7 +215,7 @@ function CatalogTile({ m, big = false, onOpen, delay = 0, shown, proposed }: { m
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
           <Av initials={m.bi} av={m.av} size={big ? 42 : 34} ring />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: big ? 17 : 14, fontWeight: 800, color: '#fff', letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.buyer}</div>
+            <div style={{ fontSize: big ? 'var(--crm-text-2xl)' : 'var(--crm-text-lg)', fontWeight: 600, color: '#fff', letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.buyer}</div>
           </div>
         </div>
       </div>
@@ -345,7 +346,7 @@ function CatRailCard({ children, pad = 16 }: { children: ReactNode; pad?: number
 
 function CatEyebrow({ children, color = TK.sub }: { children: ReactNode; color?: string }) {
   return (
-    <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color, marginBottom: 11 }}>{children}</div>
+    <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color, marginBottom: 11 }}>{children}</div>
   )
 }
 
@@ -355,7 +356,7 @@ function CatSpecCell({ icon, label, value }: { icon: string; label: string; valu
       background: TK.card, border: `1px solid ${TK.cardBorder}` }}>
       <CatDIcon name={icon} size={17} color={TK.sub} />
       <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.faint, letterSpacing: 0.2 }}>{label}</span>
-      <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: TK.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{value}</span>
+      <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: TK.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{value}</span>
     </div>
   )
 }
@@ -365,7 +366,7 @@ function CatPriceRow({ icon, label, value, accent, last }: { icon: string; label
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) 0', borderBottom: last ? 'none' : `1px solid ${TK.border}` }}>
       {icon === 'down' ? <CatDIcon name="down" size={14} color={accent || TK.sub} /> : <RXIcon name={icon} size={14} sw={1.7} color={accent || TK.sub} />}
       <span style={{ flex: 1, fontSize: 'var(--crm-text-md)', color: TK.sub, fontWeight: 500 }}>{label}</span>
-      <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: accent || TK.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{value}</span>
+      <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: accent || TK.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{value}</span>
     </div>
   )
 }
@@ -414,11 +415,11 @@ function CatGallery({ photos, start = 0, title, onClose }: { photos: string[]; s
         <div style={{ position: 'absolute', left: 0, right: 0, top: 0, zIndex: 2, display: 'flex', alignItems: 'flex-start',
           justifyContent: 'space-between', gap: 'var(--crm-space-3xl)', padding: 'var(--crm-space-4xl) var(--crm-space-5xl)' }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: '#fff', letterSpacing: -0.4,
+            <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: '#fff', letterSpacing: -0.4,
               textShadow: '0 1px 14px rgba(0,0,0,.5)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', flexShrink: 0 }}>
-            <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: 'rgba(255,255,255,.88)', fontVariantNumeric: 'tabular-nums',
+            <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: 'rgba(255,255,255,.88)', fontVariantNumeric: 'tabular-nums',
               whiteSpace: 'nowrap', background: 'rgba(12,13,17,.5)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
               padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: '1px solid rgba(255,255,255,.14)' }}>{i + 1} / {n}</span>
             <button onClick={onClose} title={t('today.catalogue.gallery.closeHint')} style={{ width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)',
@@ -478,7 +479,7 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
         {/* ── header ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-3xl) var(--crm-space-5xl)', borderBottom: `1px solid ${TK.border}`, flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', minWidth: 0 }}>
-            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: TK.sub, whiteSpace: 'nowrap' }}>{t('today.catalogue.detail.eyebrow')}</span>
+            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: TK.sub, whiteSpace: 'nowrap' }}>{t('today.catalogue.detail.eyebrow')}</span>
           </div>
           <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${TK.border}`, background: TK.card, color: TK.inkDim, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-3xl)', lineHeight: 1, flexShrink: 0 }}>×</button>
         </div>
@@ -505,7 +506,7 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(8,8,12,.6)' }} />
                       <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: '#fff' }}>
                         <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>+{n - 3}</div>
+                          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.5, fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>+{n - 3}</div>
                           <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: 'rgba(255,255,255,.8)', marginTop: 2 }}>{t('today.catalogue.detail.photos')}</div>
                         </div>
                       </div>
@@ -516,7 +517,7 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
 
               {/* titre + adresse */}
               <div style={{ minWidth: 0 }}>
-                <h2 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.8, color: TK.ink, lineHeight: 1.06, textWrap: 'balance' }}>{D.title}</h2>
+                <h2 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: TK.ink, lineHeight: 1.06, textWrap: 'balance' }}>{D.title}</h2>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 10, flexWrap: 'wrap' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-lg)', color: TK.inkDim }}><CatDIcon name="pin" size={14} color={TK.sub} />{D.addr}</span>
                 </div>
@@ -572,7 +573,7 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
                     <span style={{ width: 34, height: 34, borderRadius: '50% 50% 50% 2px', transform: 'rotate(45deg)', display: 'grid', placeItems: 'center',
                       background: TK.accent, boxShadow: '0 6px 16px rgba(0,0,0,.45)' }}>
                       <span style={{ transform: 'rotate(-45deg)', display: 'grid', placeItems: 'center' }}>
-                        <CatDIcon name="pin" size={15} color={lightMode ? '#fff' : '#0A0A0F'} />
+                        <CatDIcon name="pin" size={15} color={lightMode ? MXC_COLOR.n1000 : MXC_COLOR.n100} />
                       </span>
                     </span>
                   </div>
@@ -590,7 +591,7 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
               <CatRailCard pad={18}>
                 <CatEyebrow>{t('today.catalogue.section.salePrice')}</CatEyebrow>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)', flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 800, color: TK.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums', lineHeight: 1, whiteSpace: 'nowrap' }}>CHF {m.price}</div>
+                  <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: TK.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums', lineHeight: 1, whiteSpace: 'nowrap' }}>CHF {m.price}</div>
                   {D.priceWas && <span style={{ fontSize: 'var(--crm-text-lg)', color: TK.faint, textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>CHF {fmtCHFk(D.priceWas).replace('CHF ', '')}</span>}
                 </div>
                 <div style={{ marginTop: 13 }}>
@@ -605,14 +606,14 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
                   <Av initials={m.bi} av={m.av} size={46} ring />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: TK.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.buyer}</div>
+                    <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: TK.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.buyer}</div>
                     <div style={{ fontSize: 'var(--crm-text-md)', color: TK.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('today.catalogue.buyer.searching', { tag: tLabel(t, m.tag), specs: m.specs })}</div>
                   </div>
                 </div>
                 {/* compatibilité — concept épuré : verdict qualitatif + ledger */}
                 <div style={{ marginTop: 18, paddingTop: 'var(--crm-space-4xl)', borderTop: `1px solid ${TK.border}` }}>
-                  <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: '0.15em', textTransform: 'uppercase', color: TK.sub, marginBottom: 5 }}>{t('today.catalogue.section.compatibility')}</div>
-                  <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: compatTone, letterSpacing: -0.3, marginBottom: 13 }}>{compatLabel}</div>
+                  <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: TK.sub, marginBottom: 5 }}>{t('today.catalogue.section.compatibility')}</div>
+                  <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: compatTone, letterSpacing: -0.3, marginBottom: 13 }}>{compatLabel}</div>
                   <div>
                     {reasons.map((r, i) => (
                       <CatMatchLine key={r.k} label={t(r.labelKey)} ok={r.ok} first={i === 0} />
@@ -626,10 +627,10 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
                 <CatEyebrow>{t('today.catalogue.section.advertiser')}</CatEyebrow>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
                   <div style={{ width: 46, height: 46, borderRadius: 'var(--crm-radius-lg)', flexShrink: 0, display: 'grid', placeItems: 'center',
-                    background: TK.frameHi, border: `1px solid ${TK.border}`, fontSize: 'var(--crm-text-xl)', fontWeight: 800,
+                    background: TK.frameHi, border: `1px solid ${TK.border}`, fontSize: 'var(--crm-text-xl)', fontWeight: 600,
                     color: TK.ink, letterSpacing: -0.3 }}>{D.annonceur.initials}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: TK.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tLabel(t, D.annonceur.name)}</div>
+                    <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: TK.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tLabel(t, D.annonceur.name)}</div>
                   </div>
                 </div>
                 <div style={{ marginTop: 16, paddingTop: 'var(--crm-space-3xl)', borderTop: `1px solid ${TK.border}`, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
@@ -666,14 +667,14 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
               se contredit, et supprimer est irréversible. */}
           {m.contactId && (
             <button onClick={() => onOpenMatching(m)} style={{ height: 48, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${TK.border}`, cursor: 'pointer',
-              background: 'transparent', color: TK.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+              background: 'transparent', color: TK.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, whiteSpace: 'nowrap' }}>
               {t('today.catalogue.action.openInMatching')}
             </button>
           )}
           <button onClick={() => onPropose(m)} style={{ height: 48, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
             background: proposed ? TK.ok.bg : TK.accent,
             color: '#FFFFFF',
-            fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', whiteSpace: 'nowrap',
+            fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', whiteSpace: 'nowrap',
             transition: 'background-color .25s ease' }}>
             {proposed ? t('today.catalogue.action.added', { name: first }) : t('today.catalogue.action.addToFile', { name: first })}
           </button>
@@ -698,7 +699,7 @@ function CatalogMoreTile({ items, onOpen, delay = 0, shown }: { items: (CatItem 
   const ringCol = lightMode ? '#FFFFFF' : '#14141E'
   const bigCol = lightMode ? TK.ink : '#fff'
   const pillBg = TK.accent
-  const pillFg = lightMode ? '#FFFFFF' : '#0A0A0F'
+  const pillFg = lightMode ? MXC_COLOR.n1000 : MXC_COLOR.n100
   return (
     <div onClick={onOpen} onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
       style={{ position: 'relative', borderRadius: 'var(--crm-radius-4xl)', overflow: 'hidden', height: '100%', cursor: 'pointer',
@@ -724,10 +725,10 @@ function CatalogMoreTile({ items, onOpen, delay = 0, shown }: { items: (CatItem 
         </div>
       </div>
       <div style={{ position: 'relative' }}>
-        <div style={{ fontSize: 'var(--crm-text-8xl)', fontWeight: 800, letterSpacing: -1.5, lineHeight: 1, color: bigCol, fontVariantNumeric: 'tabular-nums' }}>+{n}</div>
-        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: TK.inkDim, marginTop: 4 }}>{t('today.catalogue.more.otherMatches', { count: n })}</div>
+        <div style={{ fontSize: 'var(--crm-text-8xl)', fontWeight: 600, letterSpacing: -1.5, lineHeight: 1, color: bigCol, fontVariantNumeric: 'tabular-nums' }}>+{n}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: TK.inkDim, marginTop: 4 }}>{t('today.catalogue.more.otherMatches', { count: n })}</div>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginTop: 11, padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)',
-          background: pillBg, color: pillFg, fontSize: 'var(--crm-text-md)', fontWeight: 700 }}>
+          background: pillBg, color: pillFg, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>
           {t('today.catalogue.more.viewWhole')} <RXIcon name="arrow" size={13} sw={2.2} color={pillFg} />
         </div>
       </div>
@@ -751,20 +752,20 @@ function CatalogGalleryCard({ m, proposed, onOpen }: { m: CatItem; proposed: boo
         <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 'var(--crm-space-sm)', whiteSpace: 'nowrap',
           background: 'rgba(8,8,12,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
           padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${TK.borderHi}` }}>
-          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,.7)' }}>{m.place}</span>
-          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: -0.2, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>CHF {m.price}</span>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: 'rgba(255,255,255,.7)' }}>{m.place}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>CHF {m.price}</span>
         </span>
       </div>
       {proposed && (
         <div style={{ position: 'absolute', top: 11, right: 11, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)',
           background: 'rgba(21,100,63,.9)', border: '1px solid rgba(52,199,150,.6)' }}>
-          <RXIcon name="check" size={11} sw={2.6} color="#9be9c1" /><span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: '#DBF4E6' }}>{t('today.catalogue.proposed')}</span>
+          <RXIcon name="check" size={11} sw={2.6} color="#9be9c1" /><span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: '#DBF4E6' }}>{t('today.catalogue.proposed')}</span>
         </div>
       )}
       <div style={{ position: 'absolute', left: 12, right: 12, bottom: 11, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
         <Av initials={m.bi} av={m.av} size={30} ring />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: '#fff', letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.buyer}</div>
+          <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: '#fff', letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.buyer}</div>
         </div>
       </div>
     </div>
@@ -784,19 +785,19 @@ function CatalogGalleryOverlay({ list, proposedSet, sortLabel, onCycleSort, onOp
       {/* header pleine page */}
       <div style={{ position: 'relative', zIndex: 1, padding: '28px 34px 18px', borderBottom: `1px solid ${TK.border}`, flexShrink: 0 }}>
         <button onClick={onClose} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-sm) var(--crm-space-2xl) var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', marginBottom: 14,
-          border: `1px solid ${TK.cardBorder}`, background: TK.card, color: TK.inkDim, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700 }}>
+          border: `1px solid ${TK.cardBorder}`, background: TK.card, color: TK.inkDim, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>
           <span style={{ display: 'inline-flex', transform: 'scaleX(-1)' }}><RXIcon name="arrow" size={14} sw={2.2} color={TK.inkDim} /></span>{t('today.catalogue.gallery.backToWall')}</button>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 'var(--crm-space-5xl)' }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
-              <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1.2, lineHeight: 1, color: TK.ink }}>{t('today.catalogue.gallery.title')}</h1>
-              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: TK.accentInk, background: TK.accent, padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontVariantNumeric: 'tabular-nums' }}>{list.length}</span>
+              <h1 style={{ margin: 0, fontSize: 'var(--crm-text-7xl)', fontWeight: 600, letterSpacing: -1.2, lineHeight: 1, color: TK.ink }}>{t('today.catalogue.gallery.title')}</h1>
+              <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: TK.accentInk, background: TK.accent, padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', fontVariantNumeric: 'tabular-nums' }}>{list.length}</span>
             </div>
             <div style={{ fontSize: 'var(--crm-text-lg)', color: TK.sub, marginTop: 8 }}>{t('today.catalogue.gallery.subtitle')}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', flexShrink: 0 }}>
             <button onClick={onCycleSort} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
-              border: `1px solid ${TK.cardBorder}`, background: TK.card, color: TK.inkDim, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+              border: `1px solid ${TK.cardBorder}`, background: TK.card, color: TK.inkDim, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap' }}>
               <RXIcon name="trend" size={13} sw={1.9} />{t('today.catalogue.sort.byDot', { label: sortLabel })}</button>
             <button onClick={onClose} style={{ width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${TK.cardBorder}`, background: TK.card, color: TK.inkDim, cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-4xl)', lineHeight: 1 }}>×</button>
           </div>
@@ -820,7 +821,7 @@ function EnjeuStat({ icon, children, accent }: { icon: string; children: ReactNo
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-xs) var(--crm-space-xl) var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)',
       background: TK.card, border: `1px solid ${TK.cardBorder}`, whiteSpace: 'nowrap' }}>
       <RXIcon name={icon} size={13} sw={1.9} color={accent || TK.inkDim} />
-      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: TK.inkDim }}>{children}</span>
+      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: TK.inkDim }}>{children}</span>
     </span>
   )
 }
@@ -888,7 +889,7 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
         {/* header */}
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 14, flexShrink: 0, gap: 'var(--crm-space-5xl)' }}>
           <div style={{ minWidth: 0 }}>
-            <h1 style={{ margin: '0', fontSize: 'var(--crm-text-7xl)', fontWeight: 800, letterSpacing: -1.2, lineHeight: 1, color: TK.ink }}>{t('today.catalogue.title')}</h1>
+            <h1 style={{ margin: '0', fontSize: 'var(--crm-text-7xl)', fontWeight: 600, letterSpacing: -1.2, lineHeight: 1, color: TK.ink }}>{t('today.catalogue.title')}</h1>
             {proposed.size > 0 && (
               <div style={{ display: 'flex', gap: 'var(--crm-space-md)', marginTop: 11, flexWrap: 'wrap' }}>
                 <EnjeuStat icon="check" accent="#34C796">{t('today.catalogue.proposedCount', { count: proposed.size })}</EnjeuStat>
@@ -898,7 +899,7 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', flexShrink: 0 }}>
             <button onClick={() => setSortI((i) => (i + 1) % CATA_SORTS.length)} title={t('today.catalogue.sort.change')}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
-                boxShadow: `inset 0 0 0 1px ${TK.cardBorder}`, background: TK.card, color: TK.inkDim, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap' }}>
+                boxShadow: `inset 0 0 0 1px ${TK.cardBorder}`, background: TK.card, color: TK.inkDim, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap' }}>
               <RXIcon name="trend" size={13} sw={1.9} color={TK.inkDim} />{t('today.catalogue.sort.by', { label: t(sort.labelKey) })}</button>
             <span style={{ width: 1, height: 22, background: TK.cardBorder, flexShrink: 0 }} />
             <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
@@ -907,10 +908,10 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
                 const n = catalogue.filter(c.test).length
                 return (
                   <button key={c.key} onClick={() => setFilter(c.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap',
+                    fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap',
                     background: on ? TK.accent : TK.card, color: on ? TK.accentInk : TK.inkDim,
                     boxShadow: on ? 'none' : `inset 0 0 0 1px ${TK.cardBorder}`, transition: 'background .18s, color .18s' }}>
-                    {t(c.labelKey)}<span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: on ? (lightMode ? 'rgba(255,255,255,.55)' : '#797D90') : TK.faint, fontVariantNumeric: 'tabular-nums' }}>{n}</span></button>
+                    {t(c.labelKey)}<span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: on ? (lightMode ? 'rgba(255,255,255,.55)' : '#797D90') : TK.faint, fontVariantNumeric: 'tabular-nums' }}>{n}</span></button>
                 )
               })}
             </div>

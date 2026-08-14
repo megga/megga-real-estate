@@ -72,6 +72,9 @@ const PAGES = new Set([
   // était déjà propre — 44 lignes qui ne font que monter la modale ; l'entrer
   // quand même est ce qui empêche qu'il cesse de l'être.
   'PipelineSugarV2Page.tsx', 'DealDetailSugarV4Page.tsx', 'OfferModalSugarV3Page.tsx',
+  // « Aujourd'hui », la page d'accueil du CRM (lot A1, 15 août 2026). Elle ne
+  // porte que le pager et le chrome — les deux pages vivent dans `today/`.
+  'TodaySugarPage.tsx',
 ])
 
 /**
@@ -92,6 +95,7 @@ const PAGES_ACQUISES = [
   'ContactDetailSugarV3Page.tsx', 'ContactsSugarV2Page.tsx',
   'MatchingPagerPage.tsx', 'MatchingAtelierPage.tsx',
   'PipelineSugarV2Page.tsx', 'DealDetailSugarV4Page.tsx', 'OfferModalSugarV3Page.tsx',
+  'TodaySugarPage.tsx',
 ]
 
 /**
@@ -145,6 +149,14 @@ const ZONES: RootSpec[] = [
   },
   // Le chrome rendu par les 27 surfaces du CRM (lot 1 du chantier « CRM agent »,
   // 15 août 2026) : recherche, notifications, dropdown de profil.
+  // « Aujourd'hui » — l'écran d'accueil du CRM, lot A1 (15 août 2026).
+  //
+  // ⚠ C'est le dossier le plus RÉCEMMENT écrit du reste (« concept H », page 0
+  // installée après la bascule de direction) et il portait quand même 96
+  // graisses ≥ 700. La grammaire MEGGA X n'est donc pas encore ce que la main
+  // écrit par défaut — ce qui fait du cliquet le livrable qui compte, pas de la
+  // passe.
+  { root: 'src/components/crm-sugar/today', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/search', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/notifications', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/profile', keep: (n) => /\.tsx?$/.test(n) },
@@ -257,6 +269,7 @@ const TEMOINS_DE_ZONE = [
   // croirait saine.
   'src/components/crm-sugar/tokens.ts',
   'src/components/crm-sugar/LiquidGlassRail.tsx',
+  'src/components/crm-sugar/today/PageAujourdhuiH.tsx',
   'src/components/crm-sugar/search/CrmSugarSearch.tsx',
   'src/components/crm-sugar/notifications/SugarNotificationsPopover.tsx',
   'src/components/crm-sugar/profile/SugarProfileDropdown.tsx',
@@ -312,10 +325,13 @@ const GRIS_BLEU_ASSUMES = new Map<string, number>([
   ['src/pages/agent/BienDetailSugarV4Page.tsx', 4],
 ])
 
+// ⚠ `today/data.ts` en est SORTI au lot A1 : la zone `today` est entrée dans le
+// cliquet, donc ce fichier est désormais balayé LÉGITIMEMENT. C'est le test qui
+// l'a signalé, pas une relecture — un garde qui décrit un état doit rougir quand
+// l'état change, même si le changement est voulu.
 const HORS_ZONE_ATTENDUS = [
   'src/components/crm-sugar/analytics/tokens.ts',
   'src/components/crm-sugar/settings/data.ts',
-  'src/components/crm-sugar/today/data.ts',
   'src/components/crm-sugar/calendar/data.ts',
 ]
 
@@ -705,6 +721,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/matching-atelier',
       'src/pages/admin',
       'src/components/admin',
+      'src/components/crm-sugar/today',
       'src/components/crm-sugar/search',
       'src/components/crm-sugar/notifications',
       'src/components/crm-sugar/profile',
