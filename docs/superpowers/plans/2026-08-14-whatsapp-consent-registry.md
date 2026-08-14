@@ -39,7 +39,7 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "whatsapp consen
 - [x] **L2** — le STOP : 3 points d'interception, `whatsapp-stop-keywords.ts`, accusé LPD 4 langues, `stop_handled_at`. *(livré — voir §7)*
 - [x] **L3** — `whatsapp-outbound-guard.ts` + câblage des **5 chemins CLIENT** (sites 1–5). *(livré — voir §9)*
 - [x] **L4** — câblage des **7 chemins AGENT** (sites 6–12) + `set_morning_brief_enabled`. *(livré — voir §10)*
-- [ ] **L5** — UI CRM : état du consentement sur la fiche contact, « Envoyer » grisé avec motif, geste « ne plus contacter ».
+- [x] **L5** — UI CRM : état du consentement sur la fiche contact, « Envoyer » grisé avec motif, geste « ne plus contacter ». *(livré — voir §11)*
 - [ ] **L6** — portes CI (4 règles du §5) + réconciliation nocturne cache↔registre.
 
 ---
@@ -1371,3 +1371,52 @@ Même dette qu'en L3, désormais étendue aux sept chemins agent : aucun banc n'
 sites eux-mêmes. La garde est testée en isolation (19 tests), le câblage est type-checké,
 mais que chaque site lui passe les bons arguments — en particulier `profileId` et NON
 `contactId` au site 9 — n'est prouvé par rien d'autre que la relecture.
+
+---
+
+## 11. JOURNAL D'IMPLÉMENTATION — L5 (14.08.2026)
+
+### Ce qui a été livré
+
+- `src/hooks/useContactConsent.ts` — état du blocage (motif, date, canal, accusé) + journal
+  des vingt dernières déclarations + le geste « ne plus contacter ».
+- `CdConsent` dans le pager de la fiche contact, à l'intérieur de la carte Coordonnées :
+  état, motif, date, journal repliable, et le geste avec confirmation.
+- Clés i18n `fiche.consent.*` dans les **quatre** langues.
+- `src/types/database.ts` rattrapé à la main.
+
+### Écarts et découvertes
+
+1. **« Bouton Envoyer grisé avec motif » n'a AUCUNE cible.** Il n'existe pas de bouton
+   d'envoi WhatsApp dans le CRM : la seule surface WhatsApp est la carte d'appairage des
+   réglages, et l'envoi se fait depuis la conversation de l'agent avec le copilote. Le motif
+   exposable est donc déjà rendu là où il sert — c'est `refusalText`, livré en L3, que
+   l'agent lit dans WhatsApp. Troisième affirmation du plan qui ne survit pas au grep, après
+   `set_morning_brief_enabled` (L4) et `contact_id` obligatoire au stash (L3).
+2. **`src/types/database.ts` a été patché à la main.** Le fichier est GÉNÉRÉ, mais
+   `check-types-freshness` refuse tout `.rpc('nom')` absent, et régénérer exige que les
+   migrations soient en production — elles ne le sont pas. Le patch écrit exactement ce que
+   la régénération produira ; le script vit dans le scratchpad, pas dans le dépôt.
+   ⚠ **À régénérer après le déploiement** (`generate_typescript_types`), ne serait-ce que
+   pour vérifier que ce rattrapage disait vrai.
+   ⚠ N'y ont été ajoutées que les trois RPC réellement exposées à PostgREST ; les trois
+   autres du lot sont révoquées à `authenticated`, donc absentes des types par construction.
+3. **La carte ne dit RIEN tant que la lecture n'a pas abouti.** Afficher « joignable » sur
+   une requête en cours ferait l'inverse exact de ce que cette carte existe pour éviter.
+4. **Le geste disparaît sur un contact déjà bloqué**, au lieu d'être grisé : un bouton actif
+   sans effet invite au clic, puis au doute sur l'état affiché.
+5. **Les deux origines sont présentées différemment.** « La personne a demandé »
+   (`stop_keyword`, `meta_block`) et « l'agent a coché » (`agent_manual`) ne se valent pas :
+   la première ne se lève pas depuis le CRM. Les afficher pareil ferait croire l'une
+   révocable comme l'autre.
+
+### ⛔ Ce qui reste ouvert
+
+- **Aucune vérification visuelle.** La fiche contact exige une session authentifiée et un
+  contact réel ; le serveur de dev de `launch.json` sert par ailleurs un autre checkout
+  (dette connue). Le rendu est donc garanti par `tsc`, le build et le lint, pas par l'œil.
+- **La levée d'un blocage n'a pas d'UI.** `lifted_at`/`lifted_reason` n'acceptent que
+  `super_admin` ou `saisie_erronee`, et aucune RPC ne l'expose. Un `agent_manual` posé par
+  erreur ne se retire donc pas depuis le CRM — à traiter avec la console admin.
+- **Le toggle du brief reste sans UI.** `set_morning_brief_enabled` est prête et testée
+  depuis L1 ; la brancher dans la carte d'appairage est le geste suivant, hors périmètre L5.

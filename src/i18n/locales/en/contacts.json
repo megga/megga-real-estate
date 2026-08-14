@@ -1110,6 +1110,36 @@
     "saved": {
       "coord": "Contact details saved",
       "crit": "Criteria saved"
+    },
+    "consent": {
+      "label": "WhatsApp reachability",
+      "reachable": "Reachable",
+      "optedOut": "Asked not to be contacted",
+      "blockedByAgent": "Marked “do not contact”",
+      "optedOutHelp": "This person asked for it themselves. The block cannot be lifted from the CRM.",
+      "blockedByAgentHelp": "Internal decision. No WhatsApp message will go to this number.",
+      "doNotContact": "Do not contact",
+      "confirm": "No further WhatsApp message will be sent to this contact.",
+      "confirmYes": "Confirm",
+      "saving": "Saving…",
+      "showLog": "Show log",
+      "hideLog": "Hide log",
+      "event": {
+        "opt_in": "Consent",
+        "opt_out": "Refusal"
+      },
+      "source": {
+        "stop_keyword": "STOP received by message",
+        "meta_block": "WhatsApp unsubscribe button",
+        "agent_manual": "Entered by an agent",
+        "click_to_wa": "Consent link",
+        "web_form_doubleoptin": "Form with double confirmation",
+        "qr": "QR code",
+        "import_repermission": "Import with re-consent",
+        "agent_pairing": "Agent pairing",
+        "brief_enabled": "Brief re-enabled",
+        "brief_disabled": "Brief disabled"
+      }
     }
   },
   "nba": {

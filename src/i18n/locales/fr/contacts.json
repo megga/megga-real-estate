@@ -1110,6 +1110,36 @@
     "saved": {
       "coord": "Coordonnées enregistrées",
       "crit": "Critères enregistrés"
+    },
+    "consent": {
+      "label": "Joignabilité WhatsApp",
+      "reachable": "Joignable",
+      "optedOut": "Ne souhaite plus être contacté",
+      "blockedByAgent": "Marqué « ne plus contacter »",
+      "optedOutHelp": "Cette personne l'a demandé elle-même. Le blocage ne se lève pas depuis le CRM.",
+      "blockedByAgentHelp": "Décision interne. Aucun message WhatsApp ne partira vers ce numéro.",
+      "doNotContact": "Ne plus contacter",
+      "confirm": "Plus aucun message WhatsApp ne partira vers ce contact.",
+      "confirmYes": "Confirmer",
+      "saving": "Enregistrement…",
+      "showLog": "Voir le journal",
+      "hideLog": "Masquer le journal",
+      "event": {
+        "opt_in": "Consentement",
+        "opt_out": "Refus"
+      },
+      "source": {
+        "stop_keyword": "STOP reçu par message",
+        "meta_block": "Bouton de désinscription WhatsApp",
+        "agent_manual": "Saisi par un agent",
+        "click_to_wa": "Lien de consentement",
+        "web_form_doubleoptin": "Formulaire avec double confirmation",
+        "qr": "QR code",
+        "import_repermission": "Import avec re-consentement",
+        "agent_pairing": "Appairage agent",
+        "brief_enabled": "Brief réactivé",
+        "brief_disabled": "Brief désactivé"
+      }
     }
   },
   "nba": {
