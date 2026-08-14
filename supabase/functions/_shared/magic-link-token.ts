@@ -26,8 +26,13 @@ export interface MagicLinkTokenPayload {
    *
    * Absent = lien magique KYC — la valeur historique, préservée pour que les
    * jetons déjà en circulation restent valides.
+   *
+   * `wa_optin` désigne une `whatsapp_optin_invites.id`. Il compte DOUBLE ici : ce jeton ne
+   * voyage pas dans une URL mais dans le CORPS d'un message WhatsApp, que n'importe qui
+   * peut recopier. Sans `k`, un jeton de rendez-vous collé dans WhatsApp serait
+   * formellement recevable comme consentement.
    */
-  k?: 'appt'
+  k?: 'appt' | 'wa_optin'
 }
 
 const enc = new TextEncoder()

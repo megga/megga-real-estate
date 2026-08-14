@@ -84,6 +84,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'whatsapp-agent',
   'whatsapp-agent-async',
   'whatsapp-morning-brief',
+  'whatsapp-optin-invite',
   'whatsapp-process',
   'whatsapp-webhook',
 ] as const

@@ -21,6 +21,7 @@ import { asWaLang, detectLang, refusalText, t, type WaLang, undoneStage, undoSta
 import { detectStopRequest } from '../_shared/whatsapp-stop-keywords.ts'
 import { recordStopRequest, recordAgentBriefOptOut, sendStopAck } from '../_shared/whatsapp-stop.ts'
 import { sendOutboundGuarded, type PublicReason } from '../_shared/whatsapp-outbound-guard.ts'
+import { extractOptinToken, consumeOptinToken, OPTIN_BODY_PLACEHOLDER } from '../_shared/whatsapp-optin.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -314,6 +315,42 @@ serve(async (req) => {
   //    qui demande qu'on le laisse tranquille est exactement le geste à éviter, et c'est ce
   //    qui lui donnerait un agency_id, donc son entrée dans whatsapp_pending_notices, donc
   //    une réponse AUTOMATIQUE à son STOP dans l'heure.
+  // ── 3ter. Consentement `click_to_wa` — la personne renvoie le jeton reçu par e-mail ──
+  //
+  // Placé AVANT le STOP et AVANT le triage : c'est un message que MEGGA a sollicité sur un
+  // canal déjà consenti, pas un inbound spontané. Le corps porte un jeton signé, qu'on ne
+  // recopie PAS dans le fil — un porteur d'autorisation n'a rien à faire dans un journal de
+  // conversation lisible par toute l'agence.
+  const optinToken = extractOptinToken(msg.body)
+  if (optinToken) {
+    const ins = await insertInboundOnce(admin, provider, msg, {
+      contact_id: contactId,
+      agency_id: agencyId,
+      body: OPTIN_BODY_PLACEHOLDER,
+      processing_status: 'done',
+    })
+    if (ins.error) {
+      console.error('whatsapp_messages insert error:', ins.error)
+      return new Response('DB error', { status: 500, headers: corsHeaders })
+    }
+    if (ins.duplicate) {
+      return new Response(JSON.stringify({ ok: true, routed: 'client_duplicate_optin' }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const issue = await consumeOptinToken(admin, {
+      token: optinToken, fromPhone: msg.fromPhone, messageId: ins.id,
+    })
+    await runInBackground(markRead(provider, msg.providerMessageId, false))
+    // ⚠ AUCUN accusé envoyé, et c'est délibéré : la garde refuserait un texte libre hors
+    // fenêtre, et surtout la personne vient d'écrire — elle sait ce qu'elle a fait. Un
+    // « merci » automatique serait le premier message non sollicité du consentement qu'on
+    // vient d'obtenir.
+    return new Response(JSON.stringify({ ok: true, routed: 'client_optin', outcome: issue }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   const stopLang = detectStopRequest(msg.body)
   if (stopLang) {
     const ins = await insertInboundOnce(admin, provider, msg, {

@@ -682,6 +682,9 @@ verify_jwt = false
 [functions.weekly-report]
 verify_jwt = false
 
+[functions.whatsapp-optin-invite]
+verify_jwt = false
+
 [functions.whatsapp-webhook]
 verify_jwt = false
 

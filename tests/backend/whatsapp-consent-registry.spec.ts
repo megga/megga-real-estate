@@ -1043,6 +1043,144 @@ rollback;
   })
 
   // ══════════════════════════════════════════════════════════════════════════
+  // 4quater. click_to_wa — LE SEUL chemin d'opt-in
+  // ══════════════════════════════════════════════════════════════════════════
+
+  describe('invitation d’opt-in (click_to_wa)', () => {
+    const TEXTE = 'Régie du Lac SA peut vous envoyer sur WhatsApp les biens correspondant à '
+      + 'votre recherche. Vous pouvez arrêter à tout moment en répondant STOP.'
+
+    const inviter = async (contactId: string) => {
+      const { data, error } = await svc.rpc('create_wa_optin_invite', {
+        p_contact_id: contactId, p_shown_text: TEXTE, p_lang: 'fr',
+      })
+      if (error) throw new Error(error.message)
+      return (data as Array<{ id: string; wa_phone: string }>)[0]
+    }
+
+    it('un aller complet produit un opt-in de base « consent », et il OUVRE le marketing', async () => {
+      // C'est tout l'enjeu : sans ce chemin, `purpose:'marketing'` ne peut JAMAIS passer —
+      // aucune ligne `legal_basis='consent'` n'existe, et la garde paraît cassée.
+      const phone = newPhone()
+      const contactId = await seedContact(phone, setup.agencyAId)
+      const avant = await allowed({
+        p_wa_phone: phone, p_purpose: 'marketing', p_contact_id: contactId, p_agency_id: setup.agencyAId,
+      })
+      expect(avant, 'aucun consentement au départ').toMatchObject({ allowed: false, reason: 'no_opt_in' })
+
+      const inv = await inviter(contactId)
+      const { data: issue } = await svc.rpc('consume_wa_optin_invite', {
+        p_invite_id: inv.id, p_wa_phone: phone, p_message_id: 'wamid.OPTIN1',
+      })
+      expect(issue).toBe('ok')
+
+      const apres = await allowed({
+        p_wa_phone: phone, p_purpose: 'marketing', p_contact_id: contactId, p_agency_id: setup.agencyAId,
+      })
+      expect(apres).toMatchObject({ allowed: true, reason: 'ok', legal_basis: 'consent' })
+    })
+
+    it('la PREUVE voyage avec la déclaration', async () => {
+      // Un opt-in sans trace de ce qui a été montré ne prouve rien (art. 6 al. 6 nLPD) :
+      // un audit ne doit avoir à reconstituer ni le texte, ni la langue, ni l'invitation.
+      const phone = newPhone()
+      const contactId = await seedContact(phone, setup.agencyAId)
+      const inv = await inviter(contactId)
+      await svc.rpc('consume_wa_optin_invite', { p_invite_id: inv.id, p_wa_phone: phone })
+
+      const { data } = await svc.from('whatsapp_consents')
+        .select('event, source, legal_basis, purpose, proof').eq('contact_id', contactId).single()
+      expect(data).toMatchObject({
+        event: 'opt_in', source: 'click_to_wa', legal_basis: 'consent', purpose: 'marketing',
+      })
+      const proof = data?.proof as Record<string, unknown>
+      expect(proof.shown_text, 'le texte MONTRÉ, mot pour mot').toBe(TEXTE)
+      expect(proof.lang).toBe('fr')
+      expect(proof.invite_id).toBe(inv.id)
+    })
+
+    it('⛔ un EXPÉDITEUR différent du numéro invité ne consent à RIEN', async () => {
+      // Le cœur de la sécurité. Le jeton prouve que MEGGA a écrit au contact ; c'est
+      // l'expéditeur qui prouve que ce numéro-là veut recevoir. Sans cette égalité, un lien
+      // intercepté ferait naître un opt-in attribué au contact — et la garde autoriserait
+      // alors du marketing vers le VRAI numéro, que son titulaire n'a jamais consenti.
+      const phone = newPhone()
+      const contactId = await seedContact(phone, setup.agencyAId)
+      const inv = await inviter(contactId)
+
+      const { data: issue } = await svc.rpc('consume_wa_optin_invite', {
+        p_invite_id: inv.id, p_wa_phone: newPhone(), p_message_id: 'wamid.PIRATE',
+      })
+      expect(issue).toBe('phone_mismatch')
+
+      const { data: rows } = await svc.from('whatsapp_consents').select('id').eq('contact_id', contactId)
+      expect(rows, 'aucune déclaration fabriquée').toHaveLength(0)
+      const { data: encore } = await svc.from('whatsapp_optin_invites')
+        .select('consumed_at').eq('id', inv.id).single()
+      expect(encore?.consumed_at, 'l’invitation reste ouverte pour son vrai destinataire').toBeNull()
+    })
+
+    it('l’usage est UNIQUE : un rejeu ne double pas le consentement', async () => {
+      const phone = newPhone()
+      const contactId = await seedContact(phone, setup.agencyAId)
+      const inv = await inviter(contactId)
+      const un = await svc.rpc('consume_wa_optin_invite', { p_invite_id: inv.id, p_wa_phone: phone })
+      const deux = await svc.rpc('consume_wa_optin_invite', { p_invite_id: inv.id, p_wa_phone: phone })
+      expect(un.data).toBe('ok')
+      expect(deux.data).toBe('already_consumed')
+      const { data: rows } = await svc.from('whatsapp_consents').select('id').eq('contact_id', contactId)
+      expect(rows).toHaveLength(1)
+    })
+
+    it('une invitation expirée est refusée', () => {
+      // On la vieillit en SQL : `create_wa_optin_invite` ne sait pas produire un passé.
+      assertSql(`
+      declare v_id uuid; v_contact uuid; v_agency uuid; v_issue text;
+      begin
+        select id, agency_id into v_contact, v_agency from public.contacts
+         where phone is not null order by created_at desc limit 1;
+        insert into public.whatsapp_optin_invites
+          (contact_id, agency_id, wa_phone, shown_text, expires_at)
+        values (v_contact, v_agency, '410000000001',
+                '${TEXTE}', now() - interval '1 day')
+        returning id into v_id;
+        select public.consume_wa_optin_invite(v_id, '410000000001') into v_issue;
+        if v_issue <> 'expired' then
+          raise exception 'attendu expired, recu %', v_issue;
+        end if;
+        delete from public.whatsapp_optin_invites where id = v_id;
+      end`)
+    })
+
+    it('⛔ on n’invite PAS un numéro déjà bloqué', async () => {
+      // Demander « puis-je vous écrire ? » à quelqu'un qui vient de dire STOP est
+      // précisément le message qu'il a refusé — et par e-mail, donc hors de portée de la
+      // garde WhatsApp.
+      const phone = newPhone()
+      const contactId = await seedContact(phone, setup.agencyAId)
+      await record({
+        p_kind: 'contact', p_wa_phone: phone, p_event: 'opt_out', p_source: 'stop_keyword',
+        p_contact_id: contactId, p_agency_id: setup.agencyAId,
+      })
+      const { error } = await svc.rpc('create_wa_optin_invite', {
+        p_contact_id: contactId, p_shown_text: TEXTE, p_lang: 'fr',
+      })
+      expect(error?.message ?? '').toContain('phone_suppressed')
+    })
+
+    it('les deux RPC sont fermées à un agent authentifié', async () => {
+      const a = await setup.clientA.rpc('create_wa_optin_invite', {
+        p_contact_id: seededContacts[0], p_shown_text: TEXTE, p_lang: 'fr',
+      })
+      expect(a.error, 'un agent ne fabrique pas une invitation sans passer par l’edge').not.toBeNull()
+      const b = await setup.clientA.rpc('consume_wa_optin_invite', {
+        p_invite_id: crypto.randomUUID(), p_wa_phone: newPhone(),
+      })
+      expect(b.error, 'ni ne consent à la place de quelqu’un').not.toBeNull()
+    })
+  })
+
+  // ══════════════════════════════════════════════════════════════════════════
   // 5. LE TOGGLE DU BRIEF — désactiver → réactiver → désactiver
   // ══════════════════════════════════════════════════════════════════════════
 

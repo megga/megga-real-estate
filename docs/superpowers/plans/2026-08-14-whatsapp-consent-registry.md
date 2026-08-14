@@ -1476,3 +1476,69 @@ fois c'est la preuve de détection qui l'a montré :
 
 C'est la même leçon que celle qui a produit ces portes : **un contrôle qui n'a jamais échoué
 n'a rien prouvé.**
+
+---
+
+## 13. `click_to_wa` — LE CHEMIN D'OPT-IN (14.08.2026)
+
+Hors des sept lots : c'est le point 4 du §6.2, « à planifier sinon la garde sera perçue
+comme cassée ». Sans lui, `purpose:'marketing'` = **0 envoi possible**, aucune ligne
+`legal_basis='consent'` ne pouvant exister.
+
+### Le dispositif
+
+1. L'agent déclenche `whatsapp-optin-invite`. La fonction lit le contact, sa langue, le
+   numéro Business de son agence dans `agency_wa_numbers`.
+2. Elle crée une ligne `whatsapp_optin_invites` portant le TEXTE EXACTEMENT MONTRÉ, signe
+   un jeton `k:'wa_optin'` désignant cette ligne, et envoie l'e-mail par Resend.
+3. La personne clique. WhatsApp s'ouvre, message pré-rempli `MEGGA-OUI <jeton>`. **Elle**
+   l'envoie.
+4. Le webhook reconnaît le préfixe, vérifie la signature et le `k`, puis délègue à
+   `consume_wa_optin_invite`, qui écrit l'opt-in via `record_whatsapp_consent`.
+
+### Les six décisions qui portent le dispositif
+
+1. **L'invitation part par E-MAIL, jamais par WhatsApp.** Un message non sollicité demandant
+   l'autorisation d'envoyer des messages non sollicités est exactement ce que la garde
+   existe pour empêcher.
+2. **⛔ L'EXPÉDITEUR doit être le numéro invité.** C'est le cœur de la sécurité. Le jeton
+   prouve que MEGGA a écrit au contact ; c'est l'expéditeur qui prouve que ce numéro-là veut
+   recevoir. Sans cette égalité, un lien intercepté ferait naître un opt-in attribué au
+   contact — et l'étape 7 de la garde autoriserait du marketing vers le VRAI numéro, que son
+   titulaire n'a jamais consenti.
+3. **Le jeton désigne une LIGNE, pas un contact_id signé.** Elle porte le texte montré (la
+   preuve exigée par l'art. 6 al. 6), rend l'usage unique et révocable.
+4. **Le `k:'wa_optin'` n'est pas décoratif.** Le même secret signe les liens magiques KYC et
+   les jetons de rendez-vous ; sans lui, un jeton d'une autre famille collé dans WhatsApp
+   serait formellement recevable comme consentement.
+5. **On n'invite pas un numéro bloqué.** Demander « puis-je vous écrire ? » à quelqu'un qui
+   vient de dire STOP est le message qu'il a refusé — et par e-mail, donc hors de portée de
+   la garde WhatsApp.
+6. **Aucun accusé de réception n'est envoyé.** La personne vient d'écrire, elle sait ce
+   qu'elle a fait ; un « merci » automatique serait le premier message non sollicité du
+   consentement qu'on vient d'obtenir. Et le jeton n'est jamais rendu à l'agent : il pourrait
+   sinon fabriquer le consentement depuis son propre téléphone.
+
+### ⚠ Le texte de l'invitation est une pièce juridique
+
+`_shared/whatsapp-optin-copy.ts` porte cinq informations en quatre langues : qui écrira,
+quoi, à quelle fréquence, comment se retirer, et **que rien ne change si l'on ignore le
+message**. Cette dernière compte autant que les autres : un consentement n'est LIBRE que si
+le refuser ne coûte rien.
+
+⛔ **À faire relire par Gregory avant le pilote.** C'est lui qui engage la responsabilité de
+l'agence, et c'est ce texte — archivé mot pour mot — qui décidera si les opt-in obtenus
+valent quelque chose.
+
+### Ce qui reste ouvert
+
+- **Aucune surface de déclenchement.** L'edge function existe et est authentifiée, mais rien
+  ne l'appelle : ni bouton dans la fiche contact, ni outil du copilote WhatsApp. C'est une
+  décision produit, pas technique.
+- **`agency_wa_numbers` doit être peuplé.** Sans lui, l'invitation échoue en
+  `agency_wa_number_missing` — explicitement, plutôt que de replier sur
+  `META_PHONE_NUMBER_ID`, qui est un identifiant de compte et non un numéro : le lien
+  `wa.me` mènerait nulle part et l'agent croirait l'invitation partie.
+- **Un contact dont le WhatsApp diffère du téléphone CRM ne peut pas consentir** par ce
+  chemin (l'égalité des numéros le refuse). C'est le bon comportement : consentir pour un
+  numéro qu'on n'a pas vérifié n'aurait aucune valeur.
