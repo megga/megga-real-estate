@@ -181,7 +181,17 @@ const ZONES: RootSpec[] = [
   // ne lui prend qu'un formateur de date.
   {
     root: 'src/components/crm-sugar-v3',
-    keep: (n) => ['icons.tsx', 'dealStepper.ts', 'dealTokens.ts'].includes(n),
+    // ⚠ `primitives.tsx` entre au lot A0 (15 août 2026) — il est le socle des
+    // quatre surfaces de la vague A (KYC, Visites, Audit, Import lead), pas du
+    // chrome : mesuré, les 27 écrans du CRM ne le montent PAS, et
+    // `BienDetailSugarV4Page`, la seule surface portée qui touche à ce dossier,
+    // ne lui prend rien.
+    //
+    // ⛔ `tokens.ts` reste DEHORS, et c'est une décision datée : son jeton
+    // `black` a encore 13 lecteurs dans des surfaces dont le lot n'est pas
+    // passé. L'entrer maintenant déclarerait porté un fichier que quatre
+    // écrans lisent encore à l'ancienne règle.
+    keep: (n) => ['icons.tsx', 'dealStepper.ts', 'dealTokens.ts', 'primitives.tsx'].includes(n),
   },
   { root: 'src/components/crm-sugar-v3/offer-modal', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
@@ -386,8 +396,13 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
     // plans). Une exemption dont la raison nomme un site pendant que son motif
     // en couvre trois exempte les deux autres PAR ACCIDENT — quatrième forme de
     // `megga/gardes-vacuites`, ici dans sa variante « raison périmée ».
+    // ⚠ COMPTE REVU LE 15 AOÛT 2026 : QUATRE sites depuis l'entrée de
+    // `crm-sugar-v3/primitives.tsx` au cliquet (son `SgBigStat`). La raison
+    // annonçait 3 — et c'est exactement le mode d'échec qu'elle documente
+    // elle-même : une raison qui donne un compte se périme sans que le motif
+    // bouge. Recompté, jamais estimé.
     motif: /fontSize:\s*44\b/,
-    raison: '44 px — les chiffres et titres d’affichage au-dessus du dernier barreau (3 sites)',
+    raison: '44 px — les chiffres et titres d’affichage au-dessus du dernier barreau (4 sites)',
   },
   { motif: /fontSize:\s*40\b/, raison: '40 px — le titre du premier lancement, au-dessus du barreau' },
   {

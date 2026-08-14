@@ -9,6 +9,7 @@
 import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { SugarV3 } from './tokens'
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 
 // ─── Pilule noire (CTA principal) ──────────────────────────────────────
 interface BlackPillProps {
@@ -46,14 +47,10 @@ export function KycBlackPill({
         padding: size === 'lg' ? '0 26px' : '0 18px',
         borderRadius: 'var(--crm-radius-pill)',
         border: 0,
-        background: disabled
-          ? SugarV3.ghost
-          : hover
-            ? SugarV3.blackHover
-            : SugarV3.black,
+        background: disabled ? SugarV3.ghost : SugarV3.accent,
         color: '#fff',
         fontFamily: 'inherit',
-        fontSize: size === 'lg' ? 14.5 : 13,
+        fontSize: size === 'lg' ? 'var(--crm-text-lg)' : 'var(--crm-text-md)',
         fontWeight: 600,
         letterSpacing: 0.1,
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -64,8 +61,8 @@ export function KycBlackPill({
         boxShadow: disabled
           ? 'none'
           : hover
-            ? '0 12px 30px rgba(11,12,14,0.25)'
-            : '0 6px 16px rgba(11,12,14,0.18)',
+            ? `0 12px 30px ${sgVoileEncre(false, 0.25)}`
+            : `0 6px 16px ${sgVoileEncre(false, 0.18)}`,
         transform: hover && !disabled ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'all .18s ease',
         ...style,
@@ -115,7 +112,7 @@ export function KycGhostPill({
         padding: size === 'sm' ? '0 14px' : '0 18px',
         borderRadius: 'var(--crm-radius-pill)',
         border: 0,
-        background: active ? SugarV3.black : hover ? SugarV3.card : 'transparent',
+        background: active ? SugarV3.accent : hover ? SugarV3.card : 'transparent',
         color: active ? '#fff' : SugarV3.inkSoft,
         fontFamily: 'inherit',
         fontSize,
@@ -127,7 +124,7 @@ export function KycGhostPill({
         gap: size === 'sm' ? 7 : 8,
         whiteSpace: 'nowrap',
         boxShadow: active
-          ? '0 6px 16px rgba(11,12,14,0.18)'
+          ? `0 6px 16px ${sgVoileEncre(false, 0.18)}`
           : hover
             ? SugarV3.shadow
             : 'none',
@@ -232,9 +229,7 @@ export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
       <div
         style={{
           fontSize: 'var(--crm-text-sm)',
-          fontWeight: 600,
-          letterSpacing: 1.1,
-          textTransform: 'uppercase',
+          fontWeight: 500,
           color: SugarV3.muted,
         }}
       >
@@ -251,7 +246,7 @@ export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
         <span
           style={{
             fontSize: 44,
-            fontWeight: 700,
+            fontWeight: 600,
             letterSpacing: -1.4,
             lineHeight: 1,
             color: SugarV3.ink,
@@ -314,19 +309,19 @@ export function KycStepper({ steps, current, onJump }: StepperProps) {
                 borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: active
-                  ? SugarV3.black
+                  ? SugarV3.accent
                   : done
                     ? SugarV3.inkSoft
                     : SugarV3.card,
                 color: active || done ? '#fff' : SugarV3.muted,
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-md)',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: reachable ? 'pointer' : 'default',
                 display: 'grid',
                 placeItems: 'center',
                 boxShadow: active
-                  ? '0 6px 16px rgba(11,12,14,0.25), 0 0 0 4px rgba(11,12,14,0.06)'
+                  ? `0 6px 16px ${sgVoileEncre(false, 0.25)}, 0 0 0 4px ${sgVoileEncre(false, 0.06)}`
                   : SugarV3.shadowSm,
                 transition: 'all .2s ease',
                 flexShrink: 0,
@@ -341,7 +336,7 @@ export function KycStepper({ steps, current, onJump }: StepperProps) {
                   height: 2,
                   flexShrink: 0,
                   background:
-                    i < current ? SugarV3.inkSoft : 'rgba(11,12,14,0.08)',
+                    i < current ? SugarV3.inkSoft : sgVoileEncre(false, 0.08),
                   transition: 'background .3s ease',
                 }}
               />

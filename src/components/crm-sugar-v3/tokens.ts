@@ -8,6 +8,8 @@
 // — CHF avec apostrophes : CHF 1'250'000
 
 import type { KycCheckCategory, KycDossierStatus } from '@/types/kyc'
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 // i18n : les libellés des maps (contrôles/statuts/risque KYC + catégories audit)
 // sont traduits au render via getter singleton (clés kyc:* / common:audit.category.*).
 // Les tonalités/icônes restent fixes.
@@ -23,21 +25,40 @@ export const SugarV3 = {
   card: '#FFFFFF',
   cardSubtle: '#F7F8FA',
 
-  // Accent unique = NOIR PUR
+  // ⛔ ACCENT — la règle du 10 août 2026 : l'élément ACTIF porte `#424bfb`.
+  // `black` appliquait l'ancienne règle de Sugar Pure (« l'accent EST l'encre »),
+  // qui peint l'actif en non-couleur.
+  //
+  // ⚠ PAS de variante de survol, et c'est une MESURE, pas un oubli : la feuille
+  // de la vitrine ne donne à `.primary-button:hover` qu'un `scale3d(1.04)` —
+  // aucun changement de couleur. Le survol de l'accent est GÉOMÉTRIQUE. En
+  // inventer une teinte aurait été ajouter un barreau que la direction n'a pas.
+  accent: MXC_COLOR.accent,
+  /**
+   * ⚠ EN SURSIS, et le compte est là pour qu'on le voie descendre. Au 15 août
+   * 2026 il reste 13 lecteurs, tous dans des surfaces de la vague A dont le lot
+   * n'est pas encore passé : KYC (`MlkAgentModal`), Visites (`VdShared`,
+   * `VisitModalSugarV3Page`), Audit (`AudEventRow`, `AuditSugarPage`) et Import
+   * lead. Chaque lot remplace les SIENS — par `accent` quand le site est une
+   * affordance, par `ink` quand il ne fait qu'écrire.
+   *
+   * ⛔ C'est aussi pourquoi ce fichier n'est PAS encore dans le cliquet : une
+   * zone absente n'est pas déclarée propre, elle est déclarée non traitée.
+   */
   black: '#0B0C0E',
   blackHover: '#1F2024',
 
   // Texte
-  ink: '#0B0C0E',
+  ink: MXC_COLOR.n100,
   inkSoft: '#3A3D44',
   muted: '#7A8088',
   ghost: '#B5BAC2',
 
   // Ombres signature Sugar
-  shadowSm: '0 4px 16px rgba(15, 23, 42, 0.04)',
-  shadow: '0 12px 40px rgba(15, 23, 42, 0.06), 0 2px 8px rgba(15, 23, 42, 0.03)',
-  shadowLg: '0 24px 60px rgba(15, 23, 42, 0.08), 0 4px 16px rgba(15, 23, 42, 0.04)',
-  shadowHover: '0 32px 70px rgba(15, 23, 42, 0.10), 0 6px 20px rgba(15, 23, 42, 0.05)',
+  shadowSm: `0 4px 16px ${sgVoileEncre(false, 0.04)}`,
+  shadow: `0 12px 40px ${sgVoileEncre(false, 0.06)}, 0 2px 8px ${sgVoileEncre(false, 0.03)}`,
+  shadowLg: `0 24px 60px ${sgVoileEncre(false, 0.08)}, 0 4px 16px ${sgVoileEncre(false, 0.04)}`,
+  shadowHover: `0 32px 70px ${sgVoileEncre(false, 0.10)}, 0 6px 20px ${sgVoileEncre(false, 0.05)}`,
 
   // États (utilitaires uniquement, jamais décoratifs — micro-pastilles ≤7×7px)
   ok: '#10B981',
