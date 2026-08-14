@@ -45,7 +45,7 @@ const CREATE_RE = new RegExp(
 /**
  * `ALTER TABLE … ADD COLUMN` SANS `IF NOT EXISTS`.
  *
- * ⚠ TROU MESURÉ le 14.08.2026 sur `20260814190000_contacts_language.sql`. Le contrôle
+ * ⚠ TROU MESURÉ le 14.08.2026 sur `20260815190000_contacts_language.sql`. Le contrôle
  * ci-dessus ne lit que les CREATE : une migration qui n'ajoute QUE des colonnes y passait
  * intacte, puis levait 42701 au second rejeu du jour, coupait l'étape (`set -e`) et
  * emportait les migrations suivantes AVEC les Edge Functions. C'est exactement l'incident

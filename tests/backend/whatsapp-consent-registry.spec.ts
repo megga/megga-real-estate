@@ -1,5 +1,5 @@
-// Banc du registre de consentement WhatsApp (lot L1 — migrations 20260814210000 à
-// 20260814216000). Aucun appelant applicatif à ce stade : ce banc est le SEUL lecteur des
+// Banc du registre de consentement WhatsApp (lot L1 — migrations 20260815210000 à
+// 20260815216000). Aucun appelant applicatif à ce stade : ce banc est le SEUL lecteur des
 // deux RPC tant que L3/L4 n'ont pas câblé les 12 sites d'envoi.
 //
 // Trois principes, hérités d'erreurs déjà payées par ce dépôt :

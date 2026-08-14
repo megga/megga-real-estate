@@ -37,7 +37,7 @@ export interface Contact {
   // Enriched CRM fields (Étape 1)
   whatsapp_phone: string | null
   /** Langue de correspondance (fr|de|en|it). NULL tant qu'elle n'est pas déclarée
-   *  ni déduite — les lecteurs replient sur 'fr'. Migration 20260814190000. */
+   *  ni déduite — les lecteurs replient sur 'fr'. Migration 20260815190000. */
   language: string | null
 
   /** Identité LBA art. 3 — colonnes réelles depuis la migration 20260718160000. */

@@ -12,7 +12,7 @@ Le portefeuille Meta a été **recréé et vérifié** ce jour ; toute la chaîn
 
 - **App** `1864617921183779` (publiée) · **WABA** `1816378669743304` · numéro **+41 22 567 00 75** `CONNECTED`/`CLOUD_API`
 - **20 templates** déposés (5 × fr/de/en/it) ; plusieurs approuvés, dont `megga_kyc_documents_missing` en **UTILITY**
-- **`contacts.language`** ajoutée (migration `20260814190000`) — elle réparait au passage `magic-link-send-email`, qui la sélectionnait sur une colonne inexistante et faisait échouer **tous** les liens magiques KYC sous le motif trompeur « contact has no email »
+- **`contacts.language`** ajoutée (migration `20260815190000`) — elle réparait au passage `magic-link-send-email`, qui la sélectionnait sur une colonne inexistante et faisait échouer **tous** les liens magiques KYC sous le motif trompeur « contact has no email »
 - La langue se **déduit** de `whatsapp_conversation_insights`, uniquement si la colonne est nulle
 
 **⛔ Aucun `WA_TEMPLATE_*` n'est posé en secret, et il ne doit pas l'être avant L3.** Tout le chemin hors fenêtre 24 h est donc inerte (`buildTemplateMessage` rend `null`, repli gracieux). C'est ce plan qui lève le verrou — pas avant.
@@ -72,7 +72,7 @@ Deux corrections du brief d'origine restent valides et sont conservées : `whats
 
 Sept fichiers, un seul ordre. **Les migrations doivent porter la date du jour du merge** (le date‑guard de `deploy.yml` ne rejoue que les fichiers datés du jour) — `20260814*` ci‑dessous est un gabarit à re‑dater.
 
-### 1.1 `20260814210000_contact_suppressions.sql`
+### 1.1 `20260815210000_contact_suppressions.sql`
 
 ```sql
 -- Suppression PAR NUMÉRO, GLOBALE au WABA. Le WABA est mono-numéro : Meta ne connaît
@@ -157,7 +157,7 @@ create policy cs_select_super on public.contact_suppressions
 commit;
 ```
 
-### 1.2 `20260814211000_whatsapp_consents.sql`
+### 1.2 `20260815211000_whatsapp_consents.sql`
 
 ```sql
 -- Registre de consentement WhatsApp — APPEND-ONLY, preuve nLPD art. 6 al. 6.
@@ -300,7 +300,7 @@ create policy wa_consents_select_super on public.whatsapp_consents
 commit;
 ```
 
-### 1.3 `20260814212000_contacts_wa_consent_cache.sql`
+### 1.3 `20260815212000_contacts_wa_consent_cache.sql`
 
 ```sql
 begin;
@@ -325,7 +325,7 @@ commit;
 
 Deux colonnes du brief sont **supprimées du design** : `do_not_contact` (doublonnait `contact_suppressions` — deux états pour un fait ⇒ deux vérités) et `consent_source` + son second CHECK (piège **m3** : deux CHECK sur le même domaine, dont l'un échoue *dans* la RPC et tombe dans un `catch`).
 
-### 1.4 `20260814213000_whatsapp_messages_inbound_normphone_index.sql`
+### 1.4 `20260815213000_whatsapp_messages_inbound_normphone_index.sql`
 
 ```sql
 -- La fenêtre 24 h de whatsapp_send_allowed filtre normalize_phone(wa_from) sur des lignes
@@ -349,7 +349,7 @@ comment on index public.idx_wa_messages_inbound_normphone is
 commit;
 ```
 
-### 1.5 `20260814214000_activity_events_category_messaging.sql`
+### 1.5 `20260815214000_activity_events_category_messaging.sql`
 
 ```sql
 -- Domaine vivant après 20260803214105:192-198 (9 valeurs). On AJOUTE, on ne tord pas :
@@ -365,7 +365,7 @@ end $$;
 
 Les 6 événements WhatsApp existants **gardent** `category='contact'` : `activity_events` est append‑only, réécrire l'histoire est pire que l'incohérence.
 
-### 1.6 `20260814215000_whatsapp_consent_rpcs.sql`
+### 1.6 `20260815215000_whatsapp_consent_rpcs.sql`
 
 ```sql
 begin;
@@ -778,7 +778,7 @@ grant execute on function public.set_morning_brief_enabled(boolean) to authentic
 
 > ⚠ `set_morning_brief_enabled` écrit `agent_pairing` en opt_in : le CHECK `wa_consents_brief_scope` exige `scope='daily_brief'` **ssi** `source='brief_disabled'`. Il faut donc que la réactivation porte `scope='all'`. À l'implémentation : passer `'all'` sur la branche `p_enabled=true` (et ajuster la RPC de lecture, qui filtre déjà sur `scope in ('all', p_scope)`). Le banc L1 doit couvrir désactiver → réactiver → désactiver.
 
-### 1.7 `20260814216000_whatsapp_pending_notices_respect_suppressions.sql`
+### 1.7 `20260815216000_whatsapp_pending_notices_respect_suppressions.sql`
 
 ```sql
 -- Sans ça, MEGGA répond au STOP par l'avis LPD dans l'heure (cron chaque minute).
@@ -1150,7 +1150,7 @@ Non-messages, hors périmètre : `markRead` (`:832`), `uploadMetaMediaDocument` 
 écriture). `whatsapp-lead-triage.ts` s'y raccorde au lieu de redupliquer la règle.
 9 tests dans `whatsapp-gateway.test.ts` ; suite complète verte (1912).
 
-**L1** — les 7 migrations `20260814210000` → `20260814216000` et le banc
+**L1** — les 7 migrations `20260815210000` → `20260815216000` et le banc
 `tests/backend/whatsapp-consent-registry.spec.ts` (43 tests).
 
 ### ⚠ Sept écarts au §1, chacun parce que le SQL du plan ne tournait pas ou mentait
@@ -1220,7 +1220,7 @@ littéraux. Une faute d'exécution dans `whatsapp_send_allowed` ne se verra qu'e
 - `_shared/whatsapp-stop-ack.ts` — l'accusé portant l'avis LPD, 4 langues.
 - `_shared/whatsapp-stop.ts` — les EFFETS (`recordStopRequest`, `recordAgentBriefOptOut`,
   `sendStopAck`), partagés par les trois points d'interception. Aucun ne jette.
-- Migration `20260814217000_whatsapp_messages_stop_handled_at.sql`.
+- Migration `20260815217000_whatsapp_messages_stop_handled_at.sql`.
 - `parseInbound` expose `bodySource` (`text|caption|button|interactive`).
 - Points A (webhook, bouton Meta, avant la bifurcation), B (webhook, texte, branche client)
   et C (`whatsapp-process`, transcription).

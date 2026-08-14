@@ -1067,7 +1067,7 @@ async function rollbackAutoAction(
  *     message, il n'habille que ce qu'on lui répond à lui (`t(lang, …)`), et ne
  *     connaît que fr/en ;
  *   · celui rendu ici est celui du CLIENT (`contacts.language`, migration
- *     20260814190000), et décide de la traduction du template qu'IL recevra.
+ *     20260815190000), et décide de la traduction du template qu'IL recevra.
  * Envoyer un template allemand parce que l'agent écrit en allemand serait un
  * contresens : c'est le destinataire qui compte.
  *
