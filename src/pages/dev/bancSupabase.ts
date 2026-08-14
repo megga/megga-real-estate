@@ -172,14 +172,42 @@ function lireArguments(init?: RequestInit): Record<string, unknown> {
 }
 
 /**
+ * `Accept` de la requête, quelle que soit la NOTATION de ses en-têtes.
+ *
+ * ⛔ CE POINT DÉCIDAIT DE LA FORME RENDUE, ET IL NE CONNAISSAIT QU'UNE NOTATION.
+ * La lecture d'origine — `init.headers.Accept ?? init.headers.accept` — ne
+ * fonctionne que sur un OBJET NU. Or `supabase-js` passe une instance de
+ * `Headers`, où ces deux propriétés valent `undefined` : la valeur n'est
+ * atteignable que par `.get()`. Mesuré sur `/dev/crm` avant correctif —
+ * `typeDeHeaders: "Headers"`, `litParPointAccept: "(undefined)"`,
+ * `litParGet: "application/vnd.pgrst.object+json"`.
+ *
+ * `objetSeul` était donc TOUJOURS faux, et chacun des 35 `.single()` du dépôt
+ * recevait un TABLEAU là où son hook attend un objet — sans exception, sans type
+ * faux, sans rien dans la console : la page se dessinait avec tous ses champs à
+ * `undefined`. Sur la fiche stricte du KYC, les cinq contrôles s'affichaient
+ * « Automatique — en attente » sur un dossier screené.
+ *
+ * `new Headers(...)` normalise les TROIS formes de `HeadersInit` (instance,
+ * objet nu, couples). Le repli sur la lecture nue ne sert qu'au cas où la
+ * normalisation jette sur une entrée malformée : mieux vaut la réponse imparfaite
+ * d'avant qu'un banc qui lève. Gardé par `banc-supabase.spec.ts`.
+ */
+function accept(init?: RequestInit): string {
+  try {
+    return new Headers(init?.headers).get('accept') ?? ''
+  } catch {
+    const nu = init?.headers as Record<string, string> | undefined
+    return String(nu?.Accept ?? nu?.accept ?? '')
+  }
+}
+
+/**
  * Réponse du banc pour une URL Supabase, ou `null` si l'appel ne le concerne pas
  * (l'appel part alors au vrai `fetch` — c'est le cas de `/auth/v1`).
  */
 function repondre(url: string, init?: RequestInit): Response | null {
-  const objetSeul = String(
-    (init?.headers as Record<string, string> | undefined)?.Accept ??
-    (init?.headers as Record<string, string> | undefined)?.accept ?? '',
-  ).includes('vnd.pgrst.object')
+  const objetSeul = accept(init).includes('vnd.pgrst.object')
 
   // ⚠ L'auth passe AVANT l'état « Échec » : faire répondre 401 à `/auth/v1`
   // déclencherait la purge de jetons décrite sur `contrat.session`, et l'état

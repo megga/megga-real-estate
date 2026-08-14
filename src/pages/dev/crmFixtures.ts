@@ -33,6 +33,7 @@
 // fichier-ci arrive derrière un import lazy. Voir l'en-tête de `bancSession`.
 export { AGENCE_BANC, AGENT_BANC } from './bancSession'
 import { AGENCE_BANC, AGENT_BANC } from './bancSession'
+import type { KycDossierStatus } from '@/types/kyc'
 
 /* ─── Le socle : ce que le CHROME tire sur CHAQUE écran ────────────────────── */
 
@@ -49,6 +50,157 @@ const EVENEMENTS = [
   { id: 'e2', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'visit_scheduled', category: 'visit', severity: 'info', entity_type: 'visit', entity_id: 'v1', created_at: ilYA(4) },
   { id: 'e3', agency_id: AGENCE_BANC.id, actor_id: 'ai', actor_kind: 'ai', action: 'relance_drafted', category: 'relance', severity: 'info', entity_type: 'contact', entity_id: 'c3', created_at: ilYA(9) },
   { id: 'e4', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'listing_published', category: 'listing', severity: 'info', entity_type: 'property', entity_id: 'p1', created_at: ilYA(30) },
+]
+
+/* ─── KYC — de quoi regarder la liste, la vigie et la fiche stricte ────────── */
+
+/**
+ * Les cinq contrôles LBA, pour trois dossiers.
+ *
+ * ⚠ `category` est la clé de TOUT l'écran : `KYP_CHECK_ORDER` (`kypTokens.ts`)
+ * fige `id · address · pep · sanctions · funds`, et `deriveVigie` ne cherche que
+ * `id · address · funds` du côté client. Une catégorie inventée ne lève rien —
+ * elle disparaît simplement de la fiche, ce qui se lit « contrôle absent ».
+ *
+ * ⚠ « Fait » = `is_completed` OU `is_required === false` : la liste et la fiche
+ * appliquent la même règle, et une fixture qui les sépare les ferait diverger.
+ */
+const KYC_CHECKS = [
+  // k1 — dossier complet, les cinq faits.
+  { id: 'kc1-id', kyc_case_id: 'k1', category: 'id', label: "Pièce d'identité officielle", is_completed: true, is_required: true, completed_at: ilYA(300), completed_by: AGENT_BANC.id, document_id: 'kd1', notes: null },
+  { id: 'kc1-ad', kyc_case_id: 'k1', category: 'address', label: 'Justificatif de domicile', is_completed: true, is_required: true, completed_at: ilYA(298), completed_by: AGENT_BANC.id, document_id: 'kd2', notes: null },
+  { id: 'kc1-pep', kyc_case_id: 'k1', category: 'pep', label: 'Personne exposée politiquement', is_completed: true, is_required: true, completed_at: ilYA(302), completed_by: AGENT_BANC.id, document_id: null, notes: null },
+  { id: 'kc1-san', kyc_case_id: 'k1', category: 'sanctions', label: 'Listes de sanctions', is_completed: true, is_required: true, completed_at: ilYA(302), completed_by: AGENT_BANC.id, document_id: null, notes: null },
+  { id: 'kc1-fun', kyc_case_id: 'k1', category: 'funds', label: 'Source des fonds', is_completed: true, is_required: true, completed_at: ilYA(296), completed_by: AGENT_BANC.id, document_id: null, notes: null },
+  // k2 — en cours : l'identité est là, le domicile manque. C'est ce trou qui
+  // fait apparaître la première ligne « Côté client » de la Vigie.
+  { id: 'kc2-id', kyc_case_id: 'k2', category: 'id', label: "Pièce d'identité officielle", is_completed: true, is_required: true, completed_at: ilYA(50), completed_by: AGENT_BANC.id, document_id: 'kd3', notes: null },
+  { id: 'kc2-ad', kyc_case_id: 'k2', category: 'address', label: 'Justificatif de domicile', is_completed: false, is_required: true, completed_at: null, completed_by: null, document_id: null, notes: null },
+  { id: 'kc2-pep', kyc_case_id: 'k2', category: 'pep', label: 'Personne exposée politiquement', is_completed: true, is_required: true, completed_at: ilYA(52), completed_by: AGENT_BANC.id, document_id: null, notes: null },
+  { id: 'kc2-san', kyc_case_id: 'k2', category: 'sanctions', label: 'Listes de sanctions', is_completed: false, is_required: true, completed_at: null, completed_by: null, document_id: null, notes: null },
+  { id: 'kc2-fun', kyc_case_id: 'k2', category: 'funds', label: 'Source des fonds', is_completed: false, is_required: true, completed_at: null, completed_by: null, document_id: null, notes: null },
+  // k3 — jamais démarré : les cinq lignes existent, aucune n'est faite.
+  { id: 'kc3-id', kyc_case_id: 'k3', category: 'id', label: "Pièce d'identité officielle", is_completed: false, is_required: true, completed_at: null, completed_by: null, document_id: null, notes: null },
+  { id: 'kc3-ad', kyc_case_id: 'k3', category: 'address', label: 'Justificatif de domicile', is_completed: false, is_required: true, completed_at: null, completed_by: null, document_id: null, notes: null },
+  { id: 'kc3-pep', kyc_case_id: 'k3', category: 'pep', label: 'Personne exposée politiquement', is_completed: false, is_required: true, completed_at: null, completed_by: null, document_id: null, notes: null },
+  { id: 'kc3-san', kyc_case_id: 'k3', category: 'sanctions', label: 'Listes de sanctions', is_completed: false, is_required: true, completed_at: null, completed_by: null, document_id: null, notes: null },
+  { id: 'kc3-fun', kyc_case_id: 'k3', category: 'funds', label: 'Source des fonds', is_completed: false, is_required: true, completed_at: null, completed_by: null, document_id: null, notes: null },
+]
+
+/**
+ * Décisions de screening — append-only, `supersedes_id` chaîne les révisions.
+ *
+ * ⛔ UNE SEULE, ET C'EST LE POINT. `kyc_cases.sanctions_status` RESTE `'match'`
+ * après qu'un faux positif a été écarté : c'est la décision la plus récente qui
+ * décide de ce que la Vigie affiche. Sans cette ligne, k2 remonterait « à
+ * trancher » — et l'écran dirait le contraire de la donnée.
+ */
+const KYC_DECISIONS = [
+  {
+    id: 'kd-s1', agency_id: AGENCE_BANC.id, kyc_case_id: 'k2',
+    decision_target: 'sanctions', decision: 'false_positive',
+    justification: 'Homonymie confirmée : date de naissance et nationalité divergentes du profil listé (SECO, liste consolidée).',
+    decided_by: AGENT_BANC.id, decided_at: ilYA(46),
+    screening_snapshot: { provider: 'dilisense', hits: 1, matched_name: 'T. Baumgartner' },
+    supersedes_id: null,
+  },
+]
+
+/** Pièces déposées — seules les métadonnées, comme le fait `useKycDocuments`. */
+const KYC_DOCS = [
+  { id: 'kd1', kyc_case_id: 'k1', agency_id: AGENCE_BANC.id, contact_id: 'c1', name: 'passeport-rochat.pdf', type: 'pdf', storage_path: `${AGENCE_BANC.id}/k1/passeport.pdf`, size_bytes: 412_880, status: 'validated', document_category: 'identity', issued_at: ilYA(26_000), expires_at: ilYA(-52_000), uploaded_by: AGENT_BANC.id, created_at: ilYA(300), sha256_hash: 'a3f1c2b4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f80' },
+  { id: 'kd2', kyc_case_id: 'k1', agency_id: AGENCE_BANC.id, contact_id: 'c1', name: 'attestation-domicile.pdf', type: 'pdf', storage_path: `${AGENCE_BANC.id}/k1/domicile.pdf`, size_bytes: 128_440, status: 'validated', document_category: 'domicile', issued_at: ilYA(1_400), expires_at: null, uploaded_by: AGENT_BANC.id, created_at: ilYA(298), sha256_hash: 'b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3' },
+  { id: 'kd3', kyc_case_id: 'k2', agency_id: AGENCE_BANC.id, contact_id: 'c2', name: 'cni-baumgartner.jpg', type: 'image', storage_path: `${AGENCE_BANC.id}/k2/cni.jpg`, size_bytes: 2_204_112, status: 'pending', document_category: 'identity', issued_at: ilYA(14_000), expires_at: ilYA(-31_000), uploaded_by: AGENT_BANC.id, created_at: ilYA(50), sha256_hash: 'c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4' },
+]
+
+/**
+ * Les trois dossiers, avec leurs relations EMBARQUÉES.
+ *
+ * ⛔ `bancSupabase` N'APPLIQUE PAS `select` — il rend la ligne telle quelle. Les
+ * quatre alias que les hooks demandent doivent donc être présents ENSEMBLE sur
+ * chaque ligne, sous le nom exact de leur alias :
+ *   · `contact`   → les trois hooks (`id, first_name, last_name, type`)
+ *   · `checks`    → `useKycDossiers` (compteurs) et `useKycVigie` (catégories)
+ *   · `checklist` → `useKycCase`, que la fiche stricte indexe par catégorie
+ *   · `decisions` → `useKycVigie`, pour lire un match avec sa dernière décision
+ * Un alias manquant ne lève pas : la surface se dessine avec un compteur à zéro
+ * ou une colonne vide, et se lit comme un écran sain.
+ */
+const kycRelations = (caseId: string, contact: Record<string, unknown> | null) => ({
+  contact,
+  checks: KYC_CHECKS.filter((c) => c.kyc_case_id === caseId),
+  checklist: KYC_CHECKS.filter((c) => c.kyc_case_id === caseId),
+  decisions: KYC_DECISIONS.filter((d) => d.kyc_case_id === caseId),
+})
+
+/**
+ * ⛔ NE PAS ÉCRIRE LE LITTÉRAL `dossier_status: 'verified'` ICI.
+ *
+ * `kyc-verified-source-guard` — la « règle d'or » LBA — interdit cette ÉCRITURE
+ * partout hors du trigger `auto_verify_kyc_dossier`, et son motif ne distingue
+ * pas une écriture d'une ligne de démonstration rendue en LECTURE. Le dépôt a
+ * déjà tranché ce cas exact pour le KYC mobile (`MobileKycListScreen.tsx`, où le
+ * même NB est écrit) : une constante TYPÉE lève le faux positif sans toucher au
+ * garde-fou — et le typage sur `KycDossierStatus` vaut mieux que le littéral,
+ * puisqu'il rougirait si l'énumération changeait.
+ *
+ * Le garde a donc attrapé cette fixture au premier passage. C'est son rôle : il
+ * n'a pas été assoupli, c'est la fixture qui a pris l'idiome de la maison.
+ */
+const ST_VERIFIED: KycDossierStatus = 'verified'
+
+const KYC_CASES = [
+  {
+    id: 'k1', agency_id: AGENCE_BANC.id, contact_id: 'c1',
+    type: 'buyer_pp', status: 'validated', dossier_status: ST_VERIFIED,
+    risk_level: 'low', risk_score: 12, risk_factors: [], vigilance: 'standard',
+    pep_status: 'clear', pep_details: null, sanctions_status: 'clear', sanctions_details: null,
+    screening_status: 'done', screening_started_at: ilYA(303), last_screening_at: ilYA(302),
+    completion_pct: 100, contact_nationality: 'CH',
+    source_of_funds_type: 'salary', source_of_funds_description: 'Revenus salariés, employeur genevois depuis 2019.', source_of_funds_doc_id: null,
+    transaction_id: null, transaction_amount: 1_450_000,
+    ai_analysis: null, notes: null,
+    validated_by: AGENT_BANC.id, validated_at: ilYA(295),
+    // 11 mois devant : hors de la fenêtre d'échéance, contrairement à k2.
+    expires_at: ilYA(-8_030), created_at: ilYA(310),
+    ...kycRelations('k1', { id: 'c1', first_name: 'Camille', last_name: 'Rochat', type: 'buyer' }),
+  },
+  {
+    id: 'k2', agency_id: AGENCE_BANC.id, contact_id: 'c2',
+    type: 'seller_pp', status: 'in_progress', dossier_status: 'pending',
+    risk_level: 'medium', risk_score: 48, risk_factors: ['transaction_amount'], vigilance: 'standard',
+    pep_status: 'clear', pep_details: null,
+    // ⛔ RESTE `match` alors que le faux positif est écarté — voir KYC_DECISIONS.
+    sanctions_status: 'match',
+    sanctions_details: { provider: 'dilisense', hits: 1, matched_name: 'T. Baumgartner' },
+    screening_status: 'done', screening_started_at: ilYA(53), last_screening_at: ilYA(52),
+    completion_pct: 40, contact_nationality: 'CH',
+    source_of_funds_type: null, source_of_funds_description: null, source_of_funds_doc_id: null,
+    transaction_id: null, transaction_amount: 3_200_000,
+    ai_analysis: null, notes: null,
+    validated_by: null, validated_at: null,
+    // 45 jours : dans la fenêtre d'échéance que la Vigie remonte.
+    expires_at: ilYA(-1_080), created_at: ilYA(56),
+    ...kycRelations('k2', { id: 'c2', first_name: 'Théo', last_name: 'Baumgartner', type: 'seller' }),
+  },
+  {
+    id: 'k3', agency_id: AGENCE_BANC.id, contact_id: 'c3',
+    type: 'buyer_pp', status: 'pending', dossier_status: 'none',
+    risk_level: 'high', risk_score: 81, risk_factors: ['pep_match', 'foreign_nationality'], vigilance: 'renforced',
+    // Le screening automatique a tourné à l'ouverture ; aucun contrôle manuel
+    // n'a commencé. Le match PEP est donc SANS décision → « à trancher ».
+    pep_status: 'match',
+    pep_details: { provider: 'dilisense', hits: 2, matched_name: 'S. Perret', category: 'PEP national' },
+    sanctions_status: 'clear', sanctions_details: null,
+    screening_status: 'done', screening_started_at: ilYA(13), last_screening_at: ilYA(12),
+    completion_pct: 0, contact_nationality: 'FR',
+    source_of_funds_type: null, source_of_funds_description: null, source_of_funds_doc_id: null,
+    transaction_id: null, transaction_amount: null,
+    ai_analysis: null, notes: null,
+    validated_by: null, validated_at: null,
+    expires_at: null, created_at: ilYA(14),
+    ...kycRelations('k3', { id: 'c3', first_name: 'Salomé', last_name: 'Perret', type: 'buyer' }),
+  },
 ]
 
 /**
@@ -81,7 +233,10 @@ export const CRM_TABLES: Record<string, unknown[]> = {
   matches: [],
   crm_offers: [],
   seller_leads: [],
-  kyc_cases: [],
+  kyc_cases: KYC_CASES,
+  kyc_checklist_items: KYC_CHECKS,
+  kyc_screening_decisions: KYC_DECISIONS,
+  documents: KYC_DOCS,
   property_scores: [],
   appointments: [],
 }
@@ -192,4 +347,23 @@ export const CRM_RPC: Record<string, unknown> = {
   analytics_objectif: AX_OBJECTIF,
   analytics_funnel: AX_FUNNEL,
   get_agent_changelog: CHANGELOG,
+  // ⚠ FONCTIONS DES ARGUMENTS, pas des valeurs. Les deux RPC du KYC sont
+  // paramétrées par le dossier regardé : rendre une constante ferait afficher la
+  // décision d'un AUTRE dossier sous le nom de celui qu'on a ouvert — un écran
+  // cohérent en apparence et faux en substance.
+  //
+  // ⚠ Les deux rendent un TABLEAU (fonctions `RETURNS TABLE`), et leurs deux
+  // appelants lisent `rows[0] ?? null`. Aucune entrée dans `CRM_RPC_VIDE` n'est
+  // donc nécessaire : à l'état « Vide », `[]` dit bien « aucune ligne », là où un
+  // `null` sur une RPC rendant un OBJET aurait laissé la page sur son squelette.
+  kyc_by_contact_id: (a: Record<string, unknown>) =>
+    KYC_CASES.filter((k) => k.contact_id === a.p_contact_id)
+      .map(({ checks: _c, checklist: _l, decisions: _d, contact: _ct, ...row }) => row),
+  kyc_latest_screening_decision: (a: Record<string, unknown>) => {
+    const pour = KYC_DECISIONS.filter(
+      (d) => d.kyc_case_id === a.p_kyc_case_id && d.decision_target === a.p_target,
+    )
+    // La plus récente d'abord — c'est celle que la fiche et la Vigie lisent.
+    return [...pour].sort((x, y) => (x.decided_at < y.decided_at ? 1 : -1)).slice(0, 1)
+  },
 }
