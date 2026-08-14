@@ -263,7 +263,7 @@ export default function AuditSugarPage() {
               <KycStatCard
                 label={tr('audit.stats.events')}
                 value={stats.total}
-                accent={SugarV3.black}
+                accent={SugarV3.accent}
                 sub={filterDays >= 3650 ? tr('audit.stats.eventsRangeAll') : tr('audit.stats.eventsRangeDays', { days: filterDays })}
               />
               <KycStatCard

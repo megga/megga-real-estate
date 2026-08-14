@@ -410,7 +410,7 @@ export function VdBonPanel({
               padding: '0 var(--crm-space-4xl)',
               borderRadius: 'var(--crm-radius-pill)',
               border: 0,
-              background: SugarV3.black,
+              background: SugarV3.accent,
               color: '#fff',
               fontFamily: 'inherit',
               fontWeight: 600,

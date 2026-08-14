@@ -34,19 +34,31 @@ export const SugarV3 = {
   // aucun changement de couleur. Le survol de l'accent est GÉOMÉTRIQUE. En
   // inventer une teinte aurait été ajouter un barreau que la direction n'a pas.
   accent: MXC_COLOR.accent,
-  /**
-   * ⚠ EN SURSIS, et le compte est là pour qu'on le voie descendre. Au 15 août
-   * 2026 il reste 13 lecteurs, tous dans des surfaces de la vague A dont le lot
-   * n'est pas encore passé : KYC (`MlkAgentModal`), Visites (`VdShared`,
-   * `VisitModalSugarV3Page`), Audit (`AudEventRow`, `AuditSugarPage`) et Import
-   * lead. Chaque lot remplace les SIENS — par `accent` quand le site est une
-   * affordance, par `ink` quand il ne fait qu'écrire.
+  /*
+   * ⛔ `black` et `blackHover` ONT ÉTÉ RETIRÉS le 16 août 2026 (lot 2 du chantier
+   * KYC). Le sursis annonçait 13 lecteurs « dans des surfaces dont le lot n'est
+   * pas encore passé » — mesuré à l'ouverture du lot, il en restait DOUZE, et
+   * toutes leurs surfaces étaient déjà balayées par le cliquet. Le verrou était
+   * périmé, et c'est le fichier de jetons qui restait dehors, pas ses lecteurs.
    *
-   * ⛔ C'est aussi pourquoi ce fichier n'est PAS encore dans le cliquet : une
-   * zone absente n'est pas déclarée propre, elle est déclarée non traitée.
+   * Répartition appliquée, site par site, selon la règle que ce fichier énonçait
+   * déjà — `accent` pour une affordance, `ink` pour ce qui ne fait qu'écrire :
+   *
+   *   · DIX affordances → `accent` : les quatre états sélectionnés de
+   *     `MlkAgentModal`, les CTA « Signer » (`VdShared`), les deux CTA de
+   *     `VisitModalSugarV3Page`, l'accent d'`AuditSugarPage`, le mode édition et
+   *     le CTA de fermeture d'`ImportLeadSugarV3Page`.
+   *   · DEUX qui ENCODENT → `ink`, et c'est le seul geste qui préserve leur
+   *     sens : la teinte de la catégorie d'audit `auth` (huit catégories, huit
+   *     teintes — la peindre en accent l'aurait rendue indiscernable du bleu
+   *     `#1E5BC6` de `kyc`), et l'aplat d'avatar de l'acteur SYSTÈME, qui se
+   *     distingue de l'acteur humain (`inkSoft`) précisément par sa teinte. Les
+   *     repeindre en accent aurait fait MENTIR une marque de donnée.
+   *
+   * Changement d'ALPHABET, pas de sens : `#0B0C0E` → `MXC_COLOR.n100`. Même
+   * geste que le pôle d'encre du Pipeline — ce n'est pas la teinte qui portait
+   * l'information, c'est son point de fuite.
    */
-  black: '#0B0C0E',
-  blackHover: '#1F2024',
 
   // Texte
   ink: MXC_COLOR.n100,
@@ -170,7 +182,7 @@ export const AUDIT_CATEGORIES: Record<
   contact: { get label() { return i18n.t('common:audit.category.contact') }, tone: SugarV3.muted },
   bien: { get label() { return i18n.t('common:audit.category.bien') }, tone: '#C45A00' },
   doc: { get label() { return i18n.t('common:audit.category.doc') }, tone: SugarV3.okDark },
-  auth: { get label() { return i18n.t('common:audit.category.auth') }, tone: SugarV3.black },
+  auth: { get label() { return i18n.t('common:audit.category.auth') }, tone: SugarV3.ink },
   settings: { get label() { return i18n.t('common:audit.category.settings') }, tone: SugarV3.muted },
   ai: { get label() { return i18n.t('common:audit.category.ai') }, tone: '#7A4FD8' },
 }

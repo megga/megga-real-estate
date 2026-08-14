@@ -48,7 +48,14 @@ const CONTACTS = [
 const EVENEMENTS = [
   { id: 'e1', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'contact_created', category: 'contact', severity: 'info', entity_type: 'contact', entity_id: 'c1', created_at: ilYA(1) },
   { id: 'e2', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'visit_scheduled', category: 'visit', severity: 'info', entity_type: 'visit', entity_id: 'v1', created_at: ilYA(4) },
-  { id: 'e3', agency_id: AGENCE_BANC.id, actor_id: 'ai', actor_kind: 'ai', action: 'relance_drafted', category: 'relance', severity: 'info', entity_type: 'contact', entity_id: 'c3', created_at: ilYA(9) },
+  // ⛔ `actor_id` NULL, pas la chaîne `'ai'`. `AudEventRow` bascule sur la
+  // TRUTHINESS d'`actor_id` : avec `'ai'` l'événement s'affichait en agent
+  // HUMAIN (pastille « AG », encre douce) alors qu'il est écrit par l'IA — et la
+  // branche système, celle qui porte la pastille d'encre pleine, n'était rendue
+  // NULLE PART. Une fixture syntaxiquement valide et sémantiquement fausse, dans
+  // le lot même qui existait pour les éviter. Le contrat réel est celui des
+  // edges (`actor_kind='ai'`, `actor_id` NULL).
+  { id: 'e3', agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: 'ai', action: 'relance_drafted', category: 'relance', severity: 'info', entity_type: 'contact', entity_id: 'c3', created_at: ilYA(9) },
   { id: 'e4', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'listing_published', category: 'listing', severity: 'info', entity_type: 'property', entity_id: 'p1', created_at: ilYA(30) },
 ]
 

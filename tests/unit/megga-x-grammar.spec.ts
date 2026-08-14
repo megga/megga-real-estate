@@ -252,11 +252,22 @@ const ZONES: RootSpec[] = [
     // `BienDetailSugarV4Page`, la seule surface portée qui touche à ce dossier,
     // ne lui prend rien.
     //
-    // ⛔ `tokens.ts` reste DEHORS, et c'est une décision datée : son jeton
-    // `black` a encore 13 lecteurs dans des surfaces dont le lot n'est pas
-    // passé. L'entrer maintenant déclarerait porté un fichier que quatre
-    // écrans lisent encore à l'ancienne règle.
-    keep: (n) => ['icons.tsx', 'dealStepper.ts', 'dealTokens.ts', 'primitives.tsx'].includes(n),
+    // ⛔ `tokens.ts` ENTRE au lot 2 du chantier KYC (16 août 2026), et la
+    // décision qui le tenait dehors s'est PÉRIMÉE : elle disait « 13 lecteurs
+    // dans des surfaces dont le lot n'est pas passé ». Mesuré à l'ouverture de
+    // ce lot, les douze occurrences de `SugarV3.black` vivent TOUTES dans des
+    // fichiers déjà balayés — `audit/`, `visite-detail/`, `kyc-wizard/` et trois
+    // pages de `PAGES`. Le verrou annoncé n'existait plus ; seul le fichier de
+    // jetons restait dehors, et avec lui le noir de Sugar, que la clause
+    // `NOIRS` ne pouvait pas voir puisqu'elle ne lit que les fichiers BALAYÉS —
+    // le littéral vivait ici, les écrans n'en lisaient que le NOM.
+    //
+    // ⚠ `keepPath` ancre les cinq noms sur le dossier IMMÉDIAT. Aucun homonyme
+    // n'existe aujourd'hui, mais `collect()` RÉCURSE et `keep` ne voit que le
+    // nom de base : c'est exactement ainsi qu'une racine `crm-sugar` retenant
+    // `tokens.ts` avait ramené la palette d'Analytics (vacuité n° 23).
+    keep: (n) => ['icons.tsx', 'dealStepper.ts', 'dealTokens.ts', 'primitives.tsx', 'tokens.ts'].includes(n),
+    keepPath: (p) => p.split('/').length === 4,
   },
   { root: 'src/components/crm-sugar-v3/offer-modal', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
@@ -322,6 +333,11 @@ const TEMOINS_DE_ZONE = [
   // croirait saine.
   'src/components/crm-sugar/tokens.ts',
   'src/components/crm-sugar/LiquidGlassRail.tsx',
+  // ⚠ `crm-sugar-v3/tokens.ts` passe lui aussi par un `keepPath` (lot 2, 16 août
+  // 2026) : si ce filtre se resserrait par accident, la racine rendrait encore
+  // ses quatre autres fichiers et `emptyRoots` la croirait saine — pendant que
+  // le fichier de jetons, celui qui porte les couleurs, serait sorti du balayage.
+  'src/components/crm-sugar-v3/tokens.ts',
   'src/components/crm-sugar/today/PageAujourdhuiH.tsx',
   'src/components/crm-sugar/search/CrmSugarSearch.tsx',
   'src/components/crm-sugar/notifications/SugarNotificationsPopover.tsx',
@@ -809,6 +825,10 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar/contacts-pager',
       'src/components/crm-sugar/pipeline',
       'src/components/crm-sugar-v3/offer-modal',
+      // ⚠ La racine NUE, celle qui porte `tokens.ts` depuis le lot 2 du chantier
+      // KYC. Elle manquait à cette liste : les cinq fichiers qu'elle retient
+      // pouvaient donc quitter le cliquet sans que rien ne rougisse.
+      'src/components/crm-sugar-v3',
       'src/pages/agent',
       'src/components/matching-recherche',
       'src/components/matching-atelier',

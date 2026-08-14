@@ -35,7 +35,7 @@ export function AudEventRow({ event, last }: Props) {
     : {
         name: i18n.t('common:audit.actor.system'),
         initials: 'AI',
-        avatarBg: SugarV3.black,
+        avatarBg: SugarV3.ink,
         isSystem: true,
       }
 

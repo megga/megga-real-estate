@@ -2,7 +2,12 @@
 // Sprint 4.7.B — Port pixel-près de handoff-kyc-magic-link/maquette/megga-kyc-magic-link.jsx
 // (composant MlkAgentModal lignes 1067-1186).
 //
-// Direction artistique : Sugar Pure strict, tokens SugarV3.*, accent noir #0B0C0E.
+// Direction artistique : MEGGA X, tokens SugarV3.*, l'élément ACTIF porte
+// l'accent #424bfb (lot 2, 16 août 2026). L'en-tête annonçait « Sugar Pure
+// strict, accent noir #0B0C0E » : c'était vrai à l'écriture, et c'est
+// exactement la forme de dérive la plus coûteuse — un fichier aligné sur une
+// norme PÉRIMÉE se relit moins qu'un fichier négligé, parce qu'il a l'air
+// documenté.
 // L'agent choisit le mode (Libre / Vérifiée), les canaux (Email / SMS),
 // personnalise un message optionnel, puis envoie le lien magique au client.
 //
@@ -65,7 +70,7 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
         border: 0,
         padding: 'var(--crm-space-4xl) var(--crm-space-4xl) var(--crm-space-3xl)',
         borderRadius: 'var(--crm-radius-3xl)',
-        background: selected ? SugarV3.black : SugarV3.cardSubtle,
+        background: selected ? SugarV3.accent : SugarV3.cardSubtle,
         color: selected ? '#fff' : SugarV3.ink,
         boxShadow: selected
           ? `0 14px 32px ${sgVoileEncre(false, 0.20)}, 0 4px 12px ${sgVoileEncre(false, 0.10)}`
@@ -87,7 +92,7 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
             right: 12,
             padding: 'var(--crm-space-2xs) var(--crm-space-md)',
             borderRadius: 'var(--crm-radius-pill)',
-            background: selected ? 'rgba(255,255,255,0.16)' : SugarV3.black,
+            background: selected ? 'rgba(255,255,255,0.16)' : SugarV3.accent,
             color: '#fff',
             fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
@@ -168,7 +173,7 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
         borderRadius: 'var(--crm-radius-xl)',
         background: SugarV3.card,
         boxShadow: selected ? SugarV3.shadow : SugarV3.shadowSm,
-        outline: selected ? `2px solid ${SugarV3.black}` : 'none',
+        outline: selected ? `2px solid ${SugarV3.accent}` : 'none',
         outlineOffset: -1,
         fontFamily: 'inherit',
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -185,7 +190,7 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
           height: 18,
           borderRadius: 'var(--crm-radius-xs)',
           flexShrink: 0,
-          background: selected ? SugarV3.black : 'transparent',
+          background: selected ? SugarV3.accent : 'transparent',
           boxShadow: selected ? 'none' : `inset 0 0 0 1.5px ${sgVoileEncre(false, 0.22)}`,
           display: 'grid',
           placeItems: 'center',
