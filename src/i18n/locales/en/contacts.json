@@ -1139,6 +1139,18 @@
         "agent_pairing": "Agent pairing",
         "brief_enabled": "Brief re-enabled",
         "brief_disabled": "Brief disabled"
+      },
+      "invite": "Invite on WhatsApp",
+      "inviting": "Sending…",
+      "inviteHelp": "An email will offer them to receive your messages on WhatsApp. They accept, not you.",
+      "inviteNoEmail": "Without an email address the invitation cannot go out: it travels on that channel.",
+      "inviteSent": "Invitation sent on {{date}}, awaiting their reply.",
+      "inviteError": {
+        "generic": "The invitation did not go out. Try again in a moment.",
+        "phone_suppressed": "This contact asked not to be contacted: we do not invite them again.",
+        "contact_without_email": "This contact has no email address.",
+        "agency_wa_number_missing": "The agency's WhatsApp number is not registered. Contact support.",
+        "email_send_failed": "The email could not be sent. Try again in a moment."
       }
     }
   },

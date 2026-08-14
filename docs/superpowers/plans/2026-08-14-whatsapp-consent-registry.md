@@ -1532,9 +1532,16 @@ valent quelque chose.
 
 ### Ce qui reste ouvert
 
-- **Aucune surface de déclenchement.** L'edge function existe et est authentifiée, mais rien
-  ne l'appelle : ni bouton dans la fiche contact, ni outil du copilote WhatsApp. C'est une
-  décision produit, pas technique.
+- ~~Aucune surface de déclenchement.~~ **LIVRÉ le 15.08.2026** : bouton « Inviter sur
+  WhatsApp » dans le bloc de joignabilité de la fiche contact. Trois états, jamais deux
+  boutons — déjà consenti → rien à demander ; invitation en route → on le DIT, avec sa date,
+  plutôt que d'en renvoyer une (deux liens vivants pour la même personne, c'est un
+  consentement qu'on ne saura pas attribuer) ; sinon → le bouton. Un contact bloqué n'est
+  jamais invité. Sans e-mail, le bouton est désactivé AVEC son motif : l'invitation voyage
+  par ce canal-là, et l'agent doit savoir quoi corriger. Les cinq refus de l'edge function
+  ont chacun leur message, dans les quatre langues.
+  ⚠ Le copilote WhatsApp n'a toujours pas d'outil équivalent : un agent ne peut pas dire
+  « invite Madame Dubois » depuis sa conversation. À décider séparément.
 - **`agency_wa_numbers` doit être peuplé.** Sans lui, l'invitation échoue en
   `agency_wa_number_missing` — explicitement, plutôt que de replier sur
   `META_PHONE_NUMBER_ID`, qui est un identifiant de compte et non un numéro : le lien

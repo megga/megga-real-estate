@@ -6545,6 +6545,54 @@ export type Database = {
           },
         ]
       }
+      whatsapp_optin_invites: {
+        Row: {
+          agency_id: string
+          consent_id: string | null
+          consumed_at: string | null
+          consumed_message_id: string | null
+          contact_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          lang: string
+          purpose: string
+          sent_by: string | null
+          shown_text: string
+          wa_phone: string
+        }
+        Insert: {
+          agency_id: string
+          consent_id?: string | null
+          consumed_at?: string | null
+          consumed_message_id?: string | null
+          contact_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          lang?: string
+          purpose?: string
+          sent_by?: string | null
+          shown_text: string
+          wa_phone: string
+        }
+        Update: {
+          agency_id?: string
+          consent_id?: string | null
+          consumed_at?: string | null
+          consumed_message_id?: string | null
+          contact_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          lang?: string
+          purpose?: string
+          sent_by?: string | null
+          shown_text?: string
+          wa_phone?: string
+        }
+        Relationships: []
+      }
       whatsapp_pending_actions: {
         Row: {
           agency_id: string | null

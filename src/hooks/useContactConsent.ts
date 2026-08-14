@@ -26,6 +26,13 @@ export interface ConsentEntry {
   legalBasis: string
 }
 
+export interface PendingInvite {
+  id: string
+  createdAt: string
+  expiresAt: string
+  lang: string
+}
+
 export interface ContactConsentState {
   /** Un blocage ACTIF existe sur ce numéro (tous canaux confondus). */
   suppressed: boolean
@@ -39,10 +46,15 @@ export interface ContactConsentState {
   ackSentAt: string | null
   /** Journal, du plus récent au plus ancien. */
   journal: ConsentEntry[]
+  /** La dernière déclaration est un consentement. */
+  optedIn: boolean
+  /** Invitation ENVOYÉE, ni consommée ni expirée. Empêche d'inviter en boucle. */
+  pendingInvite: PendingInvite | null
 }
 
 const EMPTY: ContactConsentState = {
-  suppressed: false, reason: null, suppressedAt: null, channel: null, ackSentAt: null, journal: [],
+  suppressed: false, reason: null, suppressedAt: null, channel: null, ackSentAt: null,
+  journal: [], optedIn: false, pendingInvite: null,
 }
 
 export function contactConsentKey(contactId: string | undefined) {
@@ -63,7 +75,7 @@ export function useContactConsent(contactId: string | undefined) {
     enabled: !!contactId,
     queryFn: async (): Promise<ContactConsentState> => {
       if (!contactId) return EMPTY
-      const [sup, log] = await Promise.all([
+      const [sup, log, inv] = await Promise.all([
         supabase
           .from('contact_suppressions')
           .select('reason, created_at, channel, ack_sent_at')
@@ -78,27 +90,47 @@ export function useContactConsent(contactId: string | undefined) {
           .eq('contact_id', contactId)
           .order('created_at', { ascending: false })
           .limit(20),
+        supabase
+          .from('whatsapp_optin_invites')
+          .select('id, created_at, expires_at, lang')
+          .eq('contact_id', contactId)
+          .is('consumed_at', null)
+          .gt('expires_at', new Date().toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ])
       // Une erreur de lecture n'est PAS « pas de blocage » : la fiche préfère ne rien
       // affirmer plutôt qu'affirmer « contactable » sur une lecture ratée.
       if (sup.error) throw new Error(sup.error.message)
       const row = sup.data as
         { reason: string; created_at: string; channel: string; ack_sent_at: string | null } | null
+      const invRow = inv.data as Record<string, unknown> | null
+      const journal: ConsentEntry[] = ((log.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
+        id: String(r.id),
+        createdAt: String(r.created_at),
+        event: r.event === 'opt_in' ? 'opt_in' : 'opt_out',
+        source: String(r.source),
+        scope: String(r.scope),
+        purpose: String(r.purpose),
+        legalBasis: String(r.legal_basis),
+      }))
       return {
         suppressed: !!row,
         reason: (row?.reason as SuppressionReason | undefined) ?? null,
         suppressedAt: row?.created_at ?? null,
         channel: row?.channel ?? null,
         ackSentAt: row?.ack_sent_at ?? null,
-        journal: ((log.data ?? []) as Array<Record<string, unknown>>).map((r) => ({
-          id: String(r.id),
-          createdAt: String(r.created_at),
-          event: r.event === 'opt_in' ? 'opt_in' : 'opt_out',
-          source: String(r.source),
-          scope: String(r.scope),
-          purpose: String(r.purpose),
-          legalBasis: String(r.legal_basis),
-        })),
+        journal,
+        // La DERNIÈRE déclaration décide — même règle que `whatsapp_send_allowed`. Compter
+        // les opt-in ferait dire « consenti » à quelqu'un qui a accepté puis refusé.
+        optedIn: journal[0]?.event === 'opt_in',
+        pendingInvite: invRow
+          ? {
+              id: String(invRow.id), createdAt: String(invRow.created_at),
+              expiresAt: String(invRow.expires_at), lang: String(invRow.lang),
+            }
+          : null,
       }
     },
   })
@@ -135,6 +167,34 @@ export function useSetDoNotContact() {
       // la liste le lisent toutes deux.
       void qc.invalidateQueries({ queryKey: ['contacts'] })
       void qc.invalidateQueries({ queryKey: ['contacts-sugar'] })
+    },
+  })
+}
+
+/**
+ * Envoie l'invitation d'opt-in par e-mail (`click_to_wa`).
+ *
+ * ⛔ L'edge function fait TOUT : elle crée l'invitation, signe le jeton et envoie le mail.
+ * Le jeton n'est jamais rendu ici — un agent qui pourrait se le faire remettre pourrait
+ * fabriquer le consentement du contact depuis son propre téléphone.
+ */
+export function useSendOptinInvite() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (v: { contactId: string }) => {
+      const { data, error } = await supabase.functions.invoke('whatsapp-optin-invite', {
+        body: { contact_id: v.contactId },
+      })
+      if (error) throw error
+      const d = data as { ok?: boolean; error?: string } | null
+      // ⚠ Les refus MÉTIER (numéro bloqué, contact sans e-mail, numéro Business non
+      // enregistré) reviennent en 4xx avec un corps : sans cette lecture, l'agent verrait
+      // « envoyé » alors que rien n'est parti.
+      if (!d?.ok) throw new Error(d?.error || 'optin_invite_failed')
+      return d
+    },
+    onSuccess: (_r, v) => {
+      void qc.invalidateQueries({ queryKey: contactConsentKey(v.contactId) })
     },
   })
 }

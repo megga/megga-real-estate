@@ -1139,6 +1139,18 @@
         "agent_pairing": "Agenten-Kopplung",
         "brief_enabled": "Briefing wieder aktiviert",
         "brief_disabled": "Briefing deaktiviert"
+      },
+      "invite": "Auf WhatsApp einladen",
+      "inviting": "Wird gesendet…",
+      "inviteHelp": "Eine E-Mail bietet ihr an, Ihre Nachrichten auf WhatsApp zu erhalten. Sie entscheidet.",
+      "inviteNoEmail": "Ohne E-Mail-Adresse kann die Einladung nicht abgehen: sie läuft über diesen Kanal.",
+      "inviteSent": "Einladung am {{date}} gesendet, Antwort ausstehend.",
+      "inviteError": {
+        "generic": "Die Einladung ist nicht abgegangen. Versuchen Sie es gleich noch einmal.",
+        "phone_suppressed": "Dieser Kontakt möchte nicht mehr kontaktiert werden: wir laden ihn nicht erneut ein.",
+        "contact_without_email": "Dieser Kontakt hat keine E-Mail-Adresse.",
+        "agency_wa_number_missing": "Die WhatsApp-Nummer der Agentur ist nicht registriert. Wenden Sie sich an den Support.",
+        "email_send_failed": "Die E-Mail konnte nicht gesendet werden. Versuchen Sie es gleich noch einmal."
       }
     }
   },
