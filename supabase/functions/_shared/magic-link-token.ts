@@ -32,7 +32,17 @@ export interface MagicLinkTokenPayload {
    * peut recopier. Sans `k`, un jeton de rendez-vous collé dans WhatsApp serait
    * formellement recevable comme consentement.
    */
-  k?: 'appt' | 'wa_optin'
+  k?: 'appt' | 'wa_optin' | 'unsub'
+
+  /**
+   * Optionnel : ADRESSE e-mail, pour les jetons `unsub`.
+   *
+   * Elle voyage DANS le jeton et non par un id de ligne, parce que la personne qui se
+   * désinscrit n'existe pas forcément dans nos contacts — un e-mail transféré, une adresse
+   * de suivi. Signée, donc non forgeable ; et le lien ne fait qu'ajouter un blocage, geste
+   * qui ne peut nuire à personne même s'il était déclenché par un tiers.
+   */
+  e?: string
 }
 
 const enc = new TextEncoder()

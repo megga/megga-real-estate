@@ -5,6 +5,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
+import { emailSendAllowed } from '../_shared/email-guard.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -274,6 +275,17 @@ serve(async (req) => {
 
     // ── 5. Build HTML and send via Resend ──
     const html = buildEmailHtml(resolvedSubject, resolvedBody, agentName)
+
+    // ⛔ GARDE du canal e-mail. Un STOP reçu sur WhatsApp écrit `channel='all'` : sans
+    // cette lecture, la personne continuerait de recevoir ces envois après avoir demandé
+    // qu'on la laisse tranquille.
+    const verdict = await emailSendAllowed(supabase, { to: contact.email, purpose: 'relance' })
+    if (!verdict.allowed) {
+      return new Response(
+        JSON.stringify({ error: verdict.reason, blocked: true }),
+        { status: 409, headers: { 'Content-Type': 'application/json', ...corsHeaders } },
+      )
+    }
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',

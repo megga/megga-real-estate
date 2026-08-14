@@ -1181,6 +1181,88 @@ rollback;
   })
 
   // ══════════════════════════════════════════════════════════════════════════
+  // 4quinquies. LE CANAL E-MAIL — un STOP WhatsApp coupe aussi les relances
+  // ══════════════════════════════════════════════════════════════════════════
+
+  describe('email_send_allowed', () => {
+    const mail = (tag: string) => `stop-${tag}-${Date.now()}-${phoneSeq++}@megga-test.local`
+
+    const verdict = async (email: string, purpose = 'relance') => {
+      const { data, error } = await svc.rpc('email_send_allowed', { p_email: email, p_purpose: purpose })
+      if (error) throw new Error(error.message)
+      return (data as Array<{ allowed: boolean; reason: string }>)[0]
+    }
+
+    it('une adresse inconnue passe', async () => {
+      expect(await verdict(mail('libre'))).toMatchObject({ allowed: true, reason: 'ok' })
+    })
+
+    it('⛔ un STOP reçu sur WHATSAPP coupe les relances par E-MAIL', async () => {
+      // C'est le trou que ce lot ferme : le refus était enregistré, opposable — et ce
+      // canal-ci l'ignorait. La personne disait stop et continuait de recevoir des mails.
+      const phone = newPhone()
+      const email = mail('wa')
+      const { data: c, error } = await svc.from('contacts').insert({
+        agency_id: setup.agencyAId, first_name: 'Stop', last_name: 'Mail',
+        email, phone, source: 'manual', type: 'lead',
+      }).select('id').single()
+      if (error) throw new Error(error.message)
+      seededContacts.push(c.id); seededPhones.push(phone)
+
+      expect((await verdict(email)).allowed, 'joignable au départ').toBe(true)
+      await record({
+        p_kind: 'contact', p_wa_phone: phone, p_event: 'opt_out', p_source: 'stop_keyword',
+        p_contact_id: c.id, p_agency_id: setup.agencyAId,
+      })
+      expect(await verdict(email)).toMatchObject({ allowed: false, reason: 'unsubscribed' })
+
+      // …mais un TRANSACTIONNEL passe : c'est une réponse à un geste de la personne, pas
+      // une sollicitation. La priver de sa confirmation de visite serait un zèle nuisible.
+      expect(await verdict(email, 'transactional')).toMatchObject({ allowed: true, reason: 'ok_transactional' })
+    })
+
+    it('un clic « se désinscrire » bloque l’ADRESSE, et lui seule', async () => {
+      const email = mail('unsub')
+      const { data: id, error } = await svc.rpc('suppress_contact_email', {
+        p_email: email, p_source_ref: 'list_unsubscribe_one_click',
+      })
+      expect(error).toBeNull()
+      expect(id, 'la première désinscription rend son id').not.toBeNull()
+      expect(await verdict(email)).toMatchObject({ allowed: false, reason: 'unsubscribed' })
+
+      // Idempotent : un second clic (Gmail rejoue parfois le one-click) ne doit pas échouer.
+      const again = await svc.rpc('suppress_contact_email', { p_email: email })
+      expect(again.error, 'un rejeu ne rend pas 500').toBeNull()
+      expect(again.data, 'NULL = déjà désinscrite').toBeNull()
+
+      // ⛔ Le geste NE déborde PAS sur WhatsApp : channel='email'. Étendre une
+      // désinscription e-mail au canal WhatsApp serait décider à la place de la personne.
+      const { data: rows } = await svc.from('contact_suppressions')
+        .select('channel, wa_phone, email').eq('email', email)
+      expect(rows).toHaveLength(1)
+      expect(rows?.[0]).toMatchObject({ channel: 'email', wa_phone: null })
+    })
+
+    it('la casse de l’adresse n’ouvre pas une porte dérobée', async () => {
+      const email = mail('case')
+      await svc.rpc('suppress_contact_email', { p_email: email.toUpperCase() })
+      expect(await verdict(email.toLowerCase())).toMatchObject({ allowed: false })
+      expect(await verdict(email.toUpperCase())).toMatchObject({ allowed: false })
+    })
+
+    it('une adresse malformée est refusée, pas devinée', async () => {
+      for (const bad of ['', '   ', 'pas-une-adresse', 'a@b', 'a b@c.ch']) {
+        expect((await verdict(bad)).reason, bad).toBe('invalid_email')
+      }
+    })
+
+    it('suppress_contact_email est fermée à un agent', async () => {
+      const r = await setup.clientA.rpc('suppress_contact_email', { p_email: mail('agent') })
+      expect(r.error, 'la désinscription passe par le lien public, pas par un agent').not.toBeNull()
+    })
+  })
+
+  // ══════════════════════════════════════════════════════════════════════════
   // 5. LE TOGGLE DU BRIEF — désactiver → réactiver → désactiver
   // ══════════════════════════════════════════════════════════════════════════
 

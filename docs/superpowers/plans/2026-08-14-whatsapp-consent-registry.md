@@ -1557,3 +1557,65 @@ valent quelque chose.
 - **Un contact dont le WhatsApp diffère du téléphone CRM ne peut pas consentir** par ce
   chemin (l'égalité des numéros le refuse). C'est le bon comportement : consentir pour un
   numéro qu'on n'a pas vérifié n'aurait aucune valeur.
+
+---
+
+## 14. LE CANAL E-MAIL (15.08.2026)
+
+Point 3 du §6.2. Six expéditeurs Resend écrivaient sans lire le registre : quelqu'un qui
+disait STOP sur WhatsApp continuait de recevoir des relances par e-mail. Le refus était
+enregistré, opposable — et ignoré par la moitié des canaux.
+
+### ⚠ Deux affirmations du §6.2 corrigées par la mesure
+
+1. **« `contact_suppressions.channel` est prêt » — FAUX.** La colonne acceptait bien
+   `'email'`, mais `wa_phone` est NOT NULL : la table ne pouvait PAS exprimer une
+   suppression d'adresse, et quelqu'un qui clique « se désinscrire » n'a pas forcément de
+   numéro chez nous. La moitié du domaine était inatteignable. Corrigé : `wa_phone`
+   nullable, colonne `email`, CHECK qu'au moins une des deux clés existe, index unique sur
+   `lower(email)`.
+2. **`weekly-digest` n'est PAS un expéditeur client.** Il écrit au STAFF de l'agence
+   (`profiles` en rôle agent/manager/admin) et porte déjà son propre opt-out
+   (`weekly_digest_opt_out`). Le lister parmi les canaux à garder était une erreur
+   d'inventaire ; le garder aurait bloqué un digest interne sur un STOP client.
+
+### Ce qui a été livré
+
+- `email_send_allowed(email, purpose, contact_id)` — la décision vit en SQL, comme pour
+  WhatsApp. Elle lit le registre **par ADRESSE** (désinscription e-mail) **et par CONTACT**
+  (un STOP WhatsApp écrit `channel='all'` sur le NUMÉRO ; sans ce second chemin le trou
+  restait ouvert).
+- `suppress_contact_email()` — écrit `channel='email'`, **jamais `'all'`** : étendre une
+  désinscription e-mail à WhatsApp serait décider à la place de la personne.
+- `_shared/email-guard.ts` + `email-unsubscribe` : lien signé, en-têtes `List-Unsubscribe`
+  et `List-Unsubscribe-Post` (RFC 8058, le « one-click » que Gmail et Outlook attendent —
+  son absence pèse sur la délivrabilité de tout le domaine).
+- Trois expéditeurs gardés en `relance` (relance, rappel, bien) ; le transactionnel passe.
+
+### La promesse qui ne pouvait pas être tenue
+
+`send-relance-email` écrivait « Si vous ne souhaitez plus recevoir de messages, répondez
+avec STOP » depuis `noreply@megga.ch`, **sans `reply_to`**, et aucune réception d'e-mail
+n'existe dans le dépôt. Cette phrase a disparu du dépôt. C'était pire qu'une absence de
+mécanisme : elle faisait croire que le refus serait pris en compte.
+
+### Décisions
+
+- **Le transactionnel passe outre une suppression.** Ce n'est pas une échappatoire : c'est
+  une réponse à un geste de la personne (elle a réservé une visite, demandé un lien). Même
+  règle que `ok_service_window` côté WhatsApp — le consentement est requis pour INITIER.
+- **Un jeton de désinscription EXPIRÉ est accepté.** Un e-mail se relit des mois plus tard,
+  et répondre « lien expiré » à quelqu'un qui demande à ne plus être contacté serait un
+  refus déguisé. Seule l'authenticité de la signature est exigée.
+- **La page de désinscription est close** : pas de logo cliquable, pas de retour vers l'app.
+  Qui vient de dire « ne m'écrivez plus » n'a pas à être réengagé sur la page qui l'acte.
+- **Même réponse que l'adresse ait été bloquée à l'instant ou qu'elle l'était déjà** :
+  distinguer les deux dirait à un tiers si une adresse est dans notre fichier.
+
+### Ce qui reste ouvert
+
+- **`send-email` (générique) n'est pas gardé.** Ses destinataires varient selon le
+  `template`, et certains sont internes (`contact@megga.ch`). Lui attribuer un `purpose`
+  demande de trancher template par template — à faire, mais pas à deviner.
+- **Aucune purge des adresses.** `contact_suppressions.email` est de la PII conservée sans
+  limite ; `redact_whatsapp_consent` ne couvre que le registre de consentement.
