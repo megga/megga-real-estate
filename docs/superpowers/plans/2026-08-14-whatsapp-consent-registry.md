@@ -37,7 +37,7 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "whatsapp consen
 - [x] **L0** — `parseInbound` : `button`/`interactive` → `body`, bornage 6–15 chiffres. 1 fichier, 0 migration. *(livré — voir §7)*
 - [x] **L1** — les 7 migrations du §1 + banc backend (forme des tables, 12 motifs de la RPC, EXPLAIN, `count(pg_proc)=2`). Rien en production. *(livré — voir §7)*
 - [x] **L2** — le STOP : 3 points d'interception, `whatsapp-stop-keywords.ts`, accusé LPD 4 langues, `stop_handled_at`. *(livré — voir §7)*
-- [ ] **L3** — `whatsapp-outbound-guard.ts` + câblage des **5 chemins CLIENT** (sites 1–5).
+- [x] **L3** — `whatsapp-outbound-guard.ts` + câblage des **5 chemins CLIENT** (sites 1–5). *(livré — voir §9)*
 - [ ] **L4** — câblage des **7 chemins AGENT** (sites 6–12) + `set_morning_brief_enabled`.
 - [ ] **L5** — UI CRM : état du consentement sur la fiche contact, « Envoyer » grisé avec motif, geste « ne plus contacter ».
 - [ ] **L6** — portes CI (4 règles du §5) + réconciliation nocturne cache↔registre.
@@ -1273,3 +1273,48 @@ plus, et un mensonge sur qui a décidé.
 La règle existait déjà, mais au mauvais endroit : dans le filtre du balayage et dans
 `whatsapp_pending_notices`, pas dans la fonction qui DÉCIDE. Elle est remontée dans la RPC,
 sous un motif propre — `ack_not_requested`, ajouté à `GuardReason` du §2.2.
+
+---
+
+## 9. JOURNAL D'IMPLÉMENTATION — L3 (14.08.2026)
+
+### Ce qui a été livré
+
+- `_shared/whatsapp-outbound-guard.ts` — la garde unique. 17 tests sans base ni réseau.
+- `p_window_margin_minutes` sur `whatsapp_send_allowed` (défaut 0) ; la garde passe 15.
+- `refusalText` dans `whatsapp-i18n.ts` — ce qu'on dit à l'agent, motif EXPOSABLE seulement.
+- Les 5 chemins CLIENT câblés ; les 2 `fetch` bruts du webhook et le dernier `sendWithRetry`
+  client de `whatsapp-process` ont disparu.
+- `prepareSendListings` ne fige plus le numéro dans le stash.
+
+### Écarts et décisions
+
+1. **La marge de fenêtre est un PARAMÈTRE de la RPC, pas un champ rendu.** Le design la
+   voulait entièrement côté TS, ce qui exigeait que la RPC rende l'expiration de la fenêtre —
+   donc une colonne de plus sur dix-huit points de retour, sans Postgres local pour les
+   éprouver. La valeur (15) reste en TS, où elle est une politique lisible et testable ;
+   l'arithmétique vit en SQL. Les DEUX signatures sont droppées avant le create.
+2. **Chaque photo de `send_listings` repasse par la garde**, là où le design demandait une
+   garde par GESTE. Le coût redouté (« six déclenchements pour un seul oui ») n'existe pas :
+   la garde ne journalise QUE les refus, et un refus du texte renvoie l'agent avant la
+   boucle. Le gain, lui, est réel : un STOP qui arrive entre deux photos arrête les suivantes.
+3. **`contact_id` devient obligatoire à l'exécution de `send_listings`, et le numéro est
+   relu.** Le design ne visait que le stash ; l'exécuteur tolérait pourtant `contact_id` nul
+   (`String(...) || null`) et lisait `args.phone`, figé jusqu'à quinze minutes plus tôt. Une
+   fiche corrigée entre la proposition et le « oui » faisait partir le message à l'ancien
+   numéro.
+4. **`sendWhatsAppImage` supprimée** : la garde a absorbé son dernier appelant.
+5. **La garde échoue FERMÉ sur un verdict indisponible.** Non spécifié ; l'inverse ferait de
+   la panne un chemin d'attaque.
+6. **Le sortant est persisté en `status:'received'`**, comme les cinq sites existants —
+   l'échelle est monotone et `allowedPriorStatuses('sent')` vaut `['received']`.
+
+### ⛔ Ce qui reste non vérifié
+
+Aucun banc n'exerce `executePending` ni la boucle d'avis LPD : le câblage est type-checké et
+la garde est testée en isolation, mais le fait que le SITE passe les bons arguments ne l'est
+pas. C'est exactement le piège « le câblage n'est pas la preuve ». Un banc de bout en bout
+sur `executePending` reste à écrire.
+
+Les 7 chemins AGENT (sites 6–12) restent NON gardés — c'est le périmètre de L4. Le
+kill-switch reste donc percé sur `whatsapp-agent-async` et `kyc-report-pdf`.

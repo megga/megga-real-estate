@@ -20,9 +20,10 @@ import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import { toWhatsAppText } from '../_shared/whatsapp-format.ts'
 import { meggaProse } from '../_shared/megga-prose.ts'
 import { execUpdatePipeline, executeRecordOffer, executeOpenKycCase, executeSendKycLink, executeSendClientEmail, executePublishToPortals, executeWithdrawFromPortals, executeDeleteContact, type ActionCtx } from '../_shared/whatsapp-actions.ts'
-import { asWaLang, detectLang, t, type WaLang, undoneStage, undoStateChanged, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
+import { asWaLang, detectLang, refusalText, t, type WaLang, undoneStage, undoStateChanged, undoneAuto, undoNoun } from '../_shared/whatsapp-i18n.ts'
 import { detectStopRequest } from '../_shared/whatsapp-stop-keywords.ts'
 import { recordStopRequest, recordAgentBriefOptOut, sendStopAck } from '../_shared/whatsapp-stop.ts'
+import { sendOutboundGuarded, type PublicReason } from '../_shared/whatsapp-outbound-guard.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -455,6 +456,11 @@ serve(async (req) => {
   return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 })
 
+/** Message rendu à l'agent quand la garde refuse. Motif EXPOSABLE uniquement. */
+function refusalMessage(publicReason: PublicReason, lang: WaLang): string {
+  return refusalText(lang, publicReason)
+}
+
 /**
  * Insert idempotent d'un ENTRANT, et gate de rejeu.
  *
@@ -792,29 +798,6 @@ async function sendWhatsAppText(
   return sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b), { maxAttempts: opts?.retry ? 3 : 1 })
 }
 
-// Envoi d'une image WhatsApp par URL publique (photo R2) — Meta télécharge le lien,
-// pas d'upload média. ok=false si le provider ne le supporte pas.
-async function sendWhatsAppImage(
-  provider: ReturnType<typeof getProvider>, toPhone: string, link: string, caption?: string,
-): Promise<SendResult> {
-  if (!provider.buildSendImageRequest) return { ok: false, providerMessageId: null, error: 'unsupported' }
-  const sendConfig: SendConfig = {
-    metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
-    metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
-    metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
-  }
-  // Même normalisation que le texte (meggaProse + syntaxe WhatsApp) : la légende
-  // est un message client comme un autre.
-  const sreq = provider.buildSendImageRequest(
-    { toPhone, link, caption: caption ? toWhatsAppText(meggaProse(caption)) : undefined },
-    sendConfig,
-  )
-  try {
-    const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-    return provider.parseSendResult(sres.status, await sres.json().catch(() => ({})))
-  } catch { return { ok: false, providerMessageId: null, error: 'network' } }
-}
-
 // ── Statuts de livraison (sent/delivered/read/failed) ──────────────────────
 // Applique les events `statuses` Meta aux SORTANTS. Monotone via allowedPriorStatuses :
 // un event en retard (delivered après read) ou un rejeu ne matche aucune ligne → no-op.
@@ -1135,28 +1118,18 @@ async function executePending(
     const phone = String(contact.phone).replace(/\D/g, '')
     const tmsg = buildTemplateMessage(key, phone, await templateCtx(admin, agentLink, contactId), (k) => Deno.env.get(k))
     if (!tmsg || !provider.buildSendTemplateRequest) return t(lang, 'sendFail24h')
-    const sendConfig: SendConfig = {
-      metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
-      metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
-      metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
-    }
-    const sreq = provider.buildSendTemplateRequest(tmsg, sendConfig)
-    let outId: string | null = null
-    try {
-      const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-      if (!sres.ok) return t(lang, 'sendFail24h')
-      const sbody = await sres.json().catch(() => ({}))
-      outId = provider.parseSendResult(sres.status, sbody).providerMessageId
-    } catch { return t(lang, 'sendFailNet') }
-    await admin.from('whatsapp_messages').upsert({
-      provider: provider.name,
-      provider_message_id: outId ?? `local-template-${contactId}-${Date.now()}`,
-      direction: 'outbound', wa_from: sendConfig.metaPhoneNumberId ?? 'megga',
-      wa_to: phone, contact_id: contactId, agency_id: agentLink.agency_id,
-      body: `[template: ${key}]`, status: 'received', is_agent_error: false,
-      sent_by_profile_id: agentLink.profile_id,
-      is_automated: true, // template Meta (boilerplate) : jamais du corpus de voix
-    }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true }).then(() => {}, () => {})
+    // SITE 1 — le seul envoi HORS fenêtre 24 h, donc le plus sensible du dépôt.
+    // `new_listings` est du MARKETING : sans opt-in de base `consent`, la garde le refuse,
+    // et c'est voulu — un template approuvé par Meta n'est pas un consentement de la personne.
+    const sent = await sendOutboundGuarded({
+      admin, provider, to: phone,
+      purpose: key === 'new_listings' ? 'marketing' : 'utility',
+      payload: { type: 'template', message: tmsg },
+      contactId, agencyId: agentLink.agency_id,
+      sentByProfileId: agentLink.profile_id,
+      isAutomated: true, // template Meta (boilerplate) : jamais du corpus de voix
+    })
+    if (!sent.ok) return sent.blocked ? refusalMessage(sent.publicReason, lang) : t(lang, 'sendFailNet')
     try {
       await admin.from('activity_events').insert({
         agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
@@ -1179,36 +1152,30 @@ async function executePending(
       .eq('agency_id', agentLink.agency_id)
       .maybeSingle()
     if (!contact || !contact.phone) return t(lang, 'contactNotFoundSend')
-    const sendConfig: SendConfig = {
-      metaToken: Deno.env.get('META_WHATSAPP_TOKEN'),
-      metaPhoneNumberId: Deno.env.get('META_PHONE_NUMBER_ID'),
-      metaApiVersion: Deno.env.get('META_API_VERSION') ?? 'v22.0',
-    }
-    const sreq = provider.buildSendTextRequest({ toPhone: String(contact.phone).replace(/\D/g, ''), body: toWhatsAppText(meggaProse(text)) }, sendConfig)
-    let outId: string | null = null
-    try {
-      const sres = await fetch(sreq.url, { method: sreq.method, headers: sreq.headers, body: sreq.body, signal: AbortSignal.timeout(8000) })
-      if (!sres.ok) {
-        // Fenêtre 24h fermée (ex. 131047) : si un template de relance approuvé est configuré,
-        // on PROPOSE de l'envoyer (HITL, l'agent confirme — jamais d'auto-envoi de contenu non
-        // validé). Inerte tant qu'aucun template n'est activé (Meta approuvé + env posé).
-        const offer = await offerTemplateFallback(admin, agentLink, contactId, lang)
-        return offer ?? t(lang, 'sendFail24h')
-      }
-      const sbody = await sres.json().catch(() => ({}))
-      outId = provider.parseSendResult(sres.status, sbody).providerMessageId
-    } catch { return t(lang, 'sendFailNet') }
-    // Persiste le message client envoyé (fil + corpus de voix). Idempotent, non bloquant.
+    // SITE 2 — texte libre au client. `requireWindow` par défaut, et le repli template est
+    // porté par `onWindowClosed` : la garde refuse AVANT le POST, donc le 131047 qui
+    // déclenchait la proposition aujourd'hui n'arrivera plus jamais. Sans ce crochet,
+    // offerTemplateFallback deviendrait du code mort et l'agent recevrait un refus sec.
+    //
     // sent_by_profile_id = l'agent qui a validé l'envoi → mimétisme de voix PAR AGENT
     // (apprentissage T2 par l'exemple ; cf. agent-style.ts fetchClientVoiceSamples).
-    await admin.from('whatsapp_messages').upsert({
-      provider: provider.name,
-      provider_message_id: outId ?? `local-clientmsg-${contactId}-${Date.now()}`,
-      direction: 'outbound', wa_from: sendConfig.metaPhoneNumberId ?? 'megga',
-      wa_to: String(contact.phone).replace(/\D/g, ''), contact_id: contactId,
-      agency_id: agentLink.agency_id, body: text, status: 'received', is_agent_error: false,
-      sent_by_profile_id: agentLink.profile_id,
-    }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true }).then(() => {}, () => {})
+    let fallbackOffer: string | null = null
+    const sent = await sendOutboundGuarded({
+      admin, provider, to: String(contact.phone),
+      purpose: 'service',
+      payload: { type: 'text', body: text },
+      contactId, agencyId: agentLink.agency_id,
+      sentByProfileId: agentLink.profile_id,
+      onWindowClosed: async () => {
+        fallbackOffer = await offerTemplateFallback(admin, agentLink, contactId, lang)
+        return fallbackOffer !== null
+      },
+    })
+    if (!sent.ok) {
+      if (!sent.blocked) return t(lang, 'sendFailNet')
+      if (sent.reason === 'window_closed') return fallbackOffer ?? t(lang, 'sendFail24h')
+      return refusalMessage(sent.publicReason, lang)
+    }
     try {
       await admin.from('activity_events').insert({
         agency_id: agentLink.agency_id, actor_id: null, actor_kind: 'ai',
@@ -1249,37 +1216,31 @@ async function executePending(
     return executeRecordOffer(ctx, pending.args)
   }
   if (pending.tool === 'send_listings') {
-    // Payload figé au stash (validé + formaté) : { contact_id, phone, text, images }. On envoie tel quel.
     if (!agentLink.agency_id) return t(lang, 'noAgencySend')
-    const phone = String(pending.args.phone ?? '').replace(/\D/g, '')
     const text = String(pending.args.text ?? '')
-    if (!phone || !text) return t(lang, 'selectionIncomplete')
-    const contactId = String(pending.args.contact_id ?? '') || null
-    const waFrom = Deno.env.get('META_PHONE_NUMBER_ID') ?? 'megga'
-    const sent = await sendWhatsAppText(provider, phone, text)
-    if (!sent.ok) return t(lang, 'sendFail24h')
-    // Persiste le texte envoyé avec son id provider RÉEL (repli local si le parse n'en
-    // rend pas) : c'est lui qui rattache les statuses Meta (delivered/read/failed) à la
-    // ligne — avec un id local, un échec 131047 resterait muet. On AWAIT (au lieu de
-    // fire-and-forget) : la ligne existe avant que les events statuses n'arrivent (fenêtre
-    // de course réduite) et un échec DB est LOGGÉ, plus avalé. Idempotent, non bloquant.
-    const persist = async (
-      row: Record<string, unknown>, label: string,
-    ): Promise<void> => {
-      try {
-        const { error } = await admin.from('whatsapp_messages')
-          .upsert(row, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
-        if (error) console.error(`send_listings ${label} persist failed:`, error.message.slice(0, 120))
-      } catch (e) { console.error(`send_listings ${label} persist threw:`, (e as Error)?.name ?? 'error') }
-    }
-    await persist({
-      provider: provider.name,
-      provider_message_id: sent.providerMessageId ?? `local-listings-${contactId ?? 'x'}-${Date.now()}`,
-      direction: 'outbound', wa_from: waFrom,
-      wa_to: phone, contact_id: contactId,
-      agency_id: agentLink.agency_id, body: text, status: 'received', is_agent_error: false,
-      is_automated: true, // texte send_listings (« Bonjour X, voici une sélection… ») = boilerplate, hors corpus de voix
-    }, 'text')
+    // ⚠ CORRECTION À LA SOURCE. Le numéro était FIGÉ au stash et le contact TOLÉRÉ NUL
+    // (`String(...) || null`). Deux conséquences : une fiche corrigée entre la proposition
+    // et le « oui » faisait partir le message à l'ANCIEN numéro, et sans contact la garde
+    // devait dériver le sujet à l'aveugle — pour refuser, mais en visant peut-être une
+    // autre fiche. Le contact devient obligatoire (prepareSendListings l'exigeait déjà) et
+    // le numéro est RELU, scopé à l'agence par le SQL.
+    const contactId = String(pending.args.contact_id ?? '')
+    if (!contactId || !text) return t(lang, 'selectionIncomplete')
+    const { data: lContact } = await admin.from('contacts')
+      .select('id, phone').eq('id', contactId).eq('agency_id', agentLink.agency_id).maybeSingle()
+    const phone = String((lContact as { phone?: string | null } | null)?.phone ?? '').replace(/\D/g, '')
+    if (!phone) return t(lang, 'contactNotFoundSend')
+    // SITE 3 — le texte. Il porte le verdict du GESTE : s'il est refusé, la boucle photos
+    // ci-dessous ne tourne pas, et l'agent reçoit un motif au lieu de six.
+    const sent = await sendOutboundGuarded({
+      admin, provider, to: phone,
+      purpose: 'service',
+      payload: { type: 'text', body: text },
+      contactId, agencyId: agentLink.agency_id,
+      sentByProfileId: agentLink.profile_id,
+      isAutomated: true, // « Bonjour X, voici une sélection… » = boilerplate, hors corpus de voix
+    })
+    if (!sent.ok) return sent.blocked ? refusalMessage(sent.publicReason, lang) : t(lang, 'sendFail24h')
     // Photos : la 1re de chaque bien, en messages image après le texte. Best-effort au
     // sens où le texte est déjà parti — mais PAS muet : on compte les tentatives réelles
     // (imagesAttempted) vs les succès (photosSent) et on le dit à l'agent si l'écart
@@ -1294,21 +1255,21 @@ async function executePending(
       if (!url) continue
       imagesAttempted++
       const caption = typeof img.caption === 'string' ? img.caption.slice(0, 300) : undefined
-      const ires = await sendWhatsAppImage(provider, phone, url, caption)
+      // SITE 4 — chaque photo repasse par la garde, et c'est plus sûr que de la court-circuiter
+      // au prétexte que le texte est déjà parti : un STOP qui arrive entre deux photos DOIT
+      // arrêter les suivantes. Le coût redouté — six déclenchements pour un seul « oui » —
+      // n'existe pas : la garde ne journalise QUE les refus, et un refus du texte a déjà
+      // renvoyé l'agent plus haut.
+      const ires = await sendOutboundGuarded({
+        admin, provider, to: phone,
+        purpose: 'service',
+        payload: { type: 'image', url, caption },
+        contactId, agencyId: agentLink.agency_id,
+        sentByProfileId: agentLink.profile_id,
+        isAutomated: true, // légende de photo send_listings = boilerplate, hors corpus de voix
+      })
       if (!ires.ok) { console.error('send_listings photo failed:', url.slice(0, 120)); continue }
       photosSent++
-      // Chaque image persistée avec son id provider → visible dans le fil client et
-      // couverte par la même boucle de statuts/alerte que le texte.
-      await persist({
-        provider: provider.name,
-        provider_message_id: ires.providerMessageId ?? `local-listings-img-${contactId ?? 'x'}-${Date.now()}-${i}`,
-        direction: 'outbound', wa_from: waFrom,
-        wa_to: phone, contact_id: contactId,
-        agency_id: agentLink.agency_id, body: caption ?? null,
-        media_type: 'image', media_url: url,
-        status: 'received', is_agent_error: false,
-        is_automated: true, // légende de photo send_listings = boilerplate, hors corpus de voix
-      }, 'photo')
     }
     try {
       await admin.from('activity_events').insert({

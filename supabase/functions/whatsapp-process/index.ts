@@ -16,13 +16,12 @@ import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { describeInboundMedia, threadTextFor, isReadableDocMime } from '../_shared/vision.ts'
 import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage, type ConversationInsight } from '../_shared/whatsapp-comprehend.ts'
 import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
-import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
-import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 import { mapCriteria, computeMissing, isSearchable, mergeCriteria, criteriaDelta, type LeadCriteria } from '../_shared/whatsapp-lead.ts'
 import { deriveFollowups, persistFollowups, fetchContactDefaultHour } from '../_shared/whatsapp-followups.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
 import { detectStopRequest, type StopLang } from '../_shared/whatsapp-stop-keywords.ts'
 import { recordStopRequest, sendStopAck, type StopSubject } from '../_shared/whatsapp-stop.ts'
+import { sendOutboundGuarded } from '../_shared/whatsapp-outbound-guard.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BATCH = 10            // messages média réclamés / tick (chaque op peut être lente)
@@ -311,8 +310,6 @@ serve(async (req) => {
   let notices = 0
   if (metaToken && metaPhoneNumberId && !overBudget()) {
     const { data: pendingNotices } = await admin.rpc('whatsapp_pending_notices', { p_limit: NOTICE_BATCH })
-    const provider = getProvider('meta')
-    const cfg: SendConfig = { metaToken, metaPhoneNumberId, metaApiVersion: apiVersion }
     for (const n of (pendingNotices ?? []) as Array<{ agency_id: string; wa_phone: string }>) {
       if (overBudget()) break
       // Retry court (profil resserré : 2 tentatives, timeout 6s) sur erreur transitoire.
@@ -322,9 +319,20 @@ serve(async (req) => {
       // peut-être livré → doublonnerait la notice). Jamais 131047. Un 5xx non rejoué est
       // re-tenté au prochain tick (whatsapp_pending_notices borne la fenêtre 24h). Profil borné
       // pour ne pas déborder le budget du cron (overBudget() en tête de boucle borne déjà).
-      const sreq = provider.buildSendTextRequest({ toPhone: n.wa_phone, body: NOTICE_TEXT }, cfg)
-      const sr = await sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b), { maxAttempts: 2, timeoutMs: 6000, retryNetworkError: false })
-      if (!sr.ok) console.error('whatsapp notice send failed:', String(sr.error ?? 'error').slice(0, 80))
+      // SITE 5 — SEUL envoi client sans humain dans la boucle, et le plus exposé.
+      // ⛔ `purpose:'lpd_notice'` n'est autorisé QUE d'ici (porte CI de L6). Exiger un
+      // contactId le tuerait : whatsapp_pending_notices ne rend que (agency_id, wa_phone).
+      // `requireWindow:false` parce que la RPC borne déjà la fenêtre à 24 h côté SQL, et
+      // que l'obligation d'information n'est pas un message de service.
+      const sr = await sendOutboundGuarded({
+        admin, to: n.wa_phone,
+        purpose: 'lpd_notice',
+        payload: { type: 'text', body: NOTICE_TEXT },
+        agencyId: n.agency_id,
+        isAutomated: true,
+        requireWindow: false,
+      })
+      if (!sr.ok) console.error('whatsapp notice send failed:', String(('error' in sr ? sr.error : sr.reason) ?? 'error').slice(0, 80))
       // Une tentative par numéro : on enregistre l'avis quoi qu'il arrive (la fenêtre
       // 24h de whatsapp_pending_notices borne déjà les renvois).
       await admin.from('whatsapp_notices').upsert(

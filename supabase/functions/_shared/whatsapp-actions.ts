@@ -989,7 +989,10 @@ export async function prepareSendListings(ctx: ActionCtx, a: Args): Promise<Prep
     : `Voici ce que je propose d'envoyer à ${who} :\n\n${text}${photoNote}\n\nJ'envoie ? (« oui » / « non »)`
   // listing_ids figés dans le payload → permettent, à l'envoi confirmé, de marquer
   // les matches correspondants comme 'sent' (capture de sent_at, instrumentation).
-  return { ok: true, prompt, payload: { contact_id: contactId, phone: contact.phone.replace(/\D/g, ''), text, listing_ids: ids.slice(0, 5), images } }
+  // ⛔ Le numéro n'est PLUS figé dans le payload : entre cette proposition et le « oui »
+  // de l'agent il peut s'écouler quinze minutes, et une fiche corrigée entre-temps faisait
+  // partir le message à l'ANCIEN numéro. L'exécution le relit, scopé à l'agence.
+  return { ok: true, prompt, payload: { contact_id: contactId, text, listing_ids: ids.slice(0, 5), images } }
 }
 
 /** Valide + prépare l'enregistrement d'une offre (crm_offers). Le montant est figé au « oui ». */
