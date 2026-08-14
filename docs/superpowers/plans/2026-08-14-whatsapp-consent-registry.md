@@ -40,7 +40,7 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "whatsapp consen
 - [x] **L3** — `whatsapp-outbound-guard.ts` + câblage des **5 chemins CLIENT** (sites 1–5). *(livré — voir §9)*
 - [x] **L4** — câblage des **7 chemins AGENT** (sites 6–12) + `set_morning_brief_enabled`. *(livré — voir §10)*
 - [x] **L5** — UI CRM : état du consentement sur la fiche contact, « Envoyer » grisé avec motif, geste « ne plus contacter ». *(livré — voir §11)*
-- [ ] **L6** — portes CI (4 règles du §5) + réconciliation nocturne cache↔registre.
+- [x] **L6** — portes CI (4 règles du §5) + réconciliation nocturne cache↔registre. *(livré — voir §12)*
 
 ---
 
@@ -1420,3 +1420,59 @@ mais que chaque site lui passe les bons arguments — en particulier `profileId`
   erreur ne se retire donc pas depuis le CRM — à traiter avec la console admin.
 - **Le toggle du brief reste sans UI.** `set_morning_brief_enabled` est prête et testée
   depuis L1 ; la brancher dans la carte d'appairage est le geste suivant, hors périmètre L5.
+
+---
+
+## 12. JOURNAL D'IMPLÉMENTATION — L6 (14.08.2026)
+
+### Ce qui a été livré
+
+- **`scripts/check-whatsapp-outbound.mjs`** — les règles 1 à 3 du §5, branchée en CI.
+  Éprouvée sur ses quatre classes de violation : `purpose` en variable, `purpose` absent,
+  `lpd_notice` hors de `whatsapp-process`, `opt_out_ack` hors du module STOP, plus un
+  `buildSendTextRequest` hors garde. Chacune détectée, dépôt restauré, porte re-verte.
+- **`scripts/check-spec-sql-blocks.mjs`** — l'équilibre `begin`/`end` des corps plpgsql des
+  specs. Éprouvée en remettant le wrapper fautif : elle rouge exactement là où les quinze
+  refus creux vivaient.
+- **`lint:migrations` durci** — `ALTER TABLE … ADD COLUMN` sans `IF NOT EXISTS`.
+- **`reconcile_wa_consent_cache()`** + `pg_cron` à 03:20 UTC, et 3 tests au banc (50 au total).
+
+### La règle 4 du §5 était déjà tenue
+
+« Un numéro appartenant à un contact opté-out est refusé même appelé avec
+`purpose:'lpd_notice'` et une suppression `stop_keyword` active » : c'est la seconde moitié
+du test `lpd_notice passe un opt-out déclaratif, jamais une suppression active`, écrit en L1.
+
+### Écarts et découvertes
+
+1. **La règle 2 accepte un ternaire de littéraux.** `purpose: key === 'new_listings' ?
+   'marketing' : 'utility'` ÉNUMÈRE ses valeurs possibles — c'est exactement ce que la règle
+   protège. L'interdire n'aurait forcé qu'à dupliquer l'appel.
+2. **`opt_out_ack` est réservé à `_shared/whatsapp-stop.ts`**, pas aux deux fonctions qui
+   l'appellent : le module EST la branche STOP, partagée par le webhook et le cron.
+3. **Deux migrations historiques violaient la nouvelle règle** — `reminders.kind` et
+   `transactions.archived_at`, précisément les deux de l'incident du 28 juillet 2026. Elles
+   sont CORRIGÉES (`IF NOT EXISTS`, no-op en production puisqu'elles y sont déjà) plutôt
+   qu'ajoutées à la liste d'exceptions, que le script demande de ne pas faire grandir.
+4. **Le contrôle des blocs SQL est restreint aux specs qui le demandent** (`@sql-blocks-check`).
+   Son compteur ne survit pas à l'entrelacement des apostrophes SQL et JavaScript : sur
+   quatre specs de la console admin, un `'${'$'}{X}'` ou un `'{"role":"service_role"}'`
+   dépareille le retrait des littéraux et invente des blocs. Les signaler serait crier au
+   loup. Élargir la portée demande d'abord un compteur robuste à ce quoting.
+5. **La réconciliation rend le nombre de fiches qui DIVERGEAIENT.** Le filtre de divergence
+   n'est pas une optimisation : sans lui, la fonction rendrait le même chiffre chaque nuit
+   et une dérive réelle serait indiscernable du bruit. Elle journalise seulement quand elle
+   corrige.
+
+### ⚠ Deux fois où le contrôle avait tort avant le code
+
+Les deux portes ont été VERTES pour de mauvaises raisons avant d'être justes, et les deux
+fois c'est la preuve de détection qui l'a montré :
+- la première tentative de test de la porte sortante ne mutait rien (mauvaise indentation) et
+  concluait que trois règles sur quatre étaient creuses. Le muteur porte désormais un
+  `assert` : une mutation qui ne s'applique pas est une erreur, pas un succès ;
+- le contrôle des blocs comptait `\n` comme un caractère de mot, ne voyait donc jamais le
+  `end` du wrapper, et criait sur soixante corps parfaitement valides.
+
+C'est la même leçon que celle qui a produit ces portes : **un contrôle qui n'a jamais échoué
+n'a rien prouvé.**

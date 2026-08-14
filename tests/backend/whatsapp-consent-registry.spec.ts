@@ -13,6 +13,10 @@
 //     lève rien — c'est exactement ainsi que la coupure des relances du chantier d'origine
 //     était creuse à 100 % (elle écrivait status='pending', valeur absente du domaine).
 //
+//  @sql-blocks-check — ce fichier est analysé par scripts/check-spec-sql-blocks.mjs, qui
+//  vérifie que ses corps plpgsql sont ÉQUILIBRÉS. C'est ici que le défaut est né : quinze
+//  refus passaient sur `syntax error at or near "end"`, verts et vides de sens.
+//
 //  3. skipIf(!HAS_KEYS) ne SKIP PAS en CI (backend.yml exporte SUPABASE_TEST_*) — lire le
 //     nombre de tests exécutés, jamais le code de sortie.
 
@@ -969,6 +973,63 @@ rollback;
       expect(rows?.[0], 'l’équivalence stricte du design rejetait cette ligne').toMatchObject({
         event: 'opt_out', source: 'meta_block', scope: 'daily_brief',
       })
+    })
+  })
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // 4ter. RÉCONCILIATION NOCTURNE — le cache raconte ce que le registre dit
+  // ══════════════════════════════════════════════════════════════════════════
+
+  describe('reconcile_wa_consent_cache', () => {
+    const cache = async (id: string) => (await svc.from('contacts')
+      .select('wa_opt_in, wa_consent_at, wa_opt_out_at, wa_suppressed').eq('id', id).single()).data
+
+    it('en régime nominal, elle ne corrige RIEN', async () => {
+      // Le nombre rendu EST la dérive : sans le filtre de divergence, la fonction rendrait
+      // le même chiffre chaque nuit et une dérive réelle serait indiscernable du bruit.
+      const phone = newPhone()
+      const contactId = await seedContact(phone, setup.agencyAId)
+      await record({
+        p_kind: 'contact', p_wa_phone: phone, p_event: 'opt_out', p_source: 'stop_keyword',
+        p_contact_id: contactId, p_agency_id: setup.agencyAId,
+      })
+      const { data: n, error } = await svc.rpc('reconcile_wa_consent_cache')
+      expect(error).toBeNull()
+      expect(Number(n), 'record_whatsapp_consent tient déjà le cache à jour').toBe(0)
+    })
+
+    it('elle rattrape un cache faussé, dans les DEUX sens', async () => {
+      const phone = newPhone()
+      const contactId = await seedContact(phone, setup.agencyAId)
+      await record({
+        p_kind: 'contact', p_wa_phone: phone, p_event: 'opt_out', p_source: 'stop_keyword',
+        p_contact_id: contactId, p_agency_id: setup.agencyAId,
+      })
+      // On simule les deux chemins qui évitent la RPC : une écriture directe du cache
+      // (import, correction à la main) et une LEVÉE de blocage par un super-admin.
+      execSql(`update public.contacts
+                  set wa_opt_in = true, wa_suppressed = false, wa_opt_out_at = null
+                where id = '${contactId}';`)
+      expect((await cache(contactId))?.wa_suppressed, 'la fiche ment maintenant').toBe(false)
+
+      const { data: n } = await svc.rpc('reconcile_wa_consent_cache')
+      expect(Number(n), 'une fiche divergeait').toBeGreaterThanOrEqual(1)
+      const apres = await cache(contactId)
+      expect(apres?.wa_suppressed, 'le blocage est réaffirmé').toBe(true)
+      expect(apres?.wa_opt_in).toBe(false)
+      expect(apres?.wa_opt_out_at, 'un opt-out se date, il ne s’efface pas').not.toBeNull()
+
+      // Sens inverse : blocage levé → le cache doit cesser de l'afficher.
+      execSql(`update public.contact_suppressions
+                  set lifted_at = now(), lifted_reason = 'super_admin'
+                where contact_id = '${contactId}' and lifted_at is null;`)
+      await svc.rpc('reconcile_wa_consent_cache')
+      expect((await cache(contactId))?.wa_suppressed, 'une levée n’a aucune RPC pour l’écrire').toBe(false)
+    })
+
+    it('elle est fermée à un agent — c’est un travail de nuit, pas un geste', async () => {
+      const r = await setup.clientA.rpc('reconcile_wa_consent_cache')
+      expect(r.error).not.toBeNull()
     })
   })
 

@@ -112,6 +112,26 @@ jobs:
         # détecté sur #893, corrigé par #894). Allowlist historique dans le script.
         run: npm run lint:migrations
 
+      - name: Chemin sortant WhatsApp (garde de consentement)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        # Garde-fou CONFORMITÉ : rien ne part vers une personne sans passer par
+        # `sendOutboundGuarded`. Un grep de symboles ne suffisait pas — les trois trous les
+        # plus graves du chantier passaient par le BON symbole avec un MAUVAIS argument
+        # (`kind:'phone'` qui désactivait le registre, un `to_phone` libre jamais vérifié,
+        # un accusé qui construisait encore sa requête à la main). On vérifie donc les
+        # ARGUMENTS et les LIEUX : finalité lisible statiquement, `lpd_notice` et
+        # `opt_out_ack` géographiquement bornés, aucun `buildSend*Request` hors gateway/garde.
+        run: npm run lint:whatsapp-outbound
+
+      - name: Blocs SQL des specs backend (équilibre begin/end)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        # Garde-fou ANTI-TEST-CREUX : un corps `do $$ … $$` mal fermé lève `syntax error`,
+        # ce qui fait échouer N'IMPORTE QUEL SQL — donc PASSER toute assertion qui se
+        # contente d'attendre un échec. Quinze refus du banc de consentement étaient verts
+        # et ne prouvaient rien. libpg-query ne peut PAS l'attraper : le corps d'un `do $$`
+        # est un littéral pour le parser de PostgreSQL, qui accepte `begin … end end`.
+        run: npm run lint:spec-sql
+
       - name: Gardes d'authentification des edge functions
         if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # Toutes les fonctions sont déployées --no-verify-jwt (allowlist JWT_PROTECTED
