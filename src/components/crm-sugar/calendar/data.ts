@@ -4,6 +4,7 @@
 // reminders) et enrichis des créneaux « Occupé » des agendas externes
 // (Google / Outlook) ; aucun tableau démo ici.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { createContext, useContext } from 'react'
 // i18n : le `label` des types d'événement est un GETTER (lu via l'instance i18n
 // singleton à l'accès → traduit + réactif au changement de langue, sans changer
@@ -267,19 +268,19 @@ export const CAL_LIGHT: CalSugarPalette = {
   inkSoft: MXC_COLOR.n400,
   muted: MXC_COLOR.n500,
   ghost: MXC_COLOR.n600,
-  line: 'rgba(11,12,14,0.06)',
-  line2: 'rgba(11,12,14,0.10)',
+  line: sgVoileEncre(false, 0.06),
+  line2: sgVoileEncre(false, 0.10),
   accent: MXC_COLOR.accent,
   onAccent: MXC_COLOR.n1000,
   ring: MXC_COLOR.accent,
   black: MXC_COLOR.accent,
-  todayCol: 'rgba(11,12,14,0.015)',
+  todayCol: sgVoileEncre(false, 0.015),
   nowColor: '#E54D38',
   heroBg: MXC_COLOR.n100,
   heroInk: MXC_COLOR.n1000,
   heroChip: 'rgba(255,255,255,0.08)',
   heroChipStrong: 'rgba(255,255,255,0.12)',
-  heroShadow: '0 16px 36px rgba(11,12,14,0.18)',
+  heroShadow: `0 16px 36px ${sgVoileEncre(false, 0.18)}`,
   warnBg: '#FBF1E6',
   warnBorder: '#F2D2A8',
   warnInk: '#7A4A14',
@@ -288,14 +289,14 @@ export const CAL_LIGHT: CalSugarPalette = {
   warmInk: '#7A4A14',
   warmIcon: '#A8631C',
   dangerInk: '#B33A2A',
-  shadowSm: '0 2px 8px rgba(11,12,14,0.04), 0 1px 3px rgba(11,12,14,0.05)',
-  shadow: '0 8px 24px rgba(11,12,14,0.08), 0 2px 8px rgba(11,12,14,0.05)',
-  shadowHover: '0 16px 36px rgba(11,12,14,0.14), 0 4px 12px rgba(11,12,14,0.08)',
+  shadowSm: `0 2px 8px ${sgVoileEncre(false, 0.04)}, 0 1px 3px ${sgVoileEncre(false, 0.05)}`,
+  shadow: `0 8px 24px ${sgVoileEncre(false, 0.08)}, 0 2px 8px ${sgVoileEncre(false, 0.05)}`,
+  shadowHover: `0 16px 36px ${sgVoileEncre(false, 0.14)}, 0 4px 12px ${sgVoileEncre(false, 0.08)}`,
   isDark: false,
 }
 
 export const CAL_DARK: CalSugarPalette = {
-  bg: '#0A0A0F',
+  bg: MXC_COLOR.n100,
   // Surfaces NEUTRES (gris quasi-noir) alignées sur Matching / Contacts — voir buildCalPalette.
   card: '#17181A',
   popBg: '#1E1F21',

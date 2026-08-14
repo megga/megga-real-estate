@@ -9,6 +9,7 @@
 // Google + Microsoft avec état réel (lié / non lié), Connecter → link (redirect
 // OAuth), Déconnecter → confirmation puis unlink.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState } from 'react'
 import type { JSX } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -152,7 +153,7 @@ export function SSOConnectionsCard() {
                     height: 38,
                     borderRadius: 'var(--crm-radius-md)',
                     background: '#fff',
-                    boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.10)',
+                    boxShadow: `inset 0 0 0 1px ${sgVoileEncre(false, 0.10)}`,
                     display: 'grid',
                     placeItems: 'center',
                     flexShrink: 0,

@@ -2,6 +2,7 @@
 // Séparé de pfKit.tsx (composants) pour respecter react-refresh/only-export-components
 // (un fichier ne mélange pas exports composants et non-composants). Idem galHelpers.ts.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import type { SugarPalette } from '../../tokens'
 import type { GalSurfaces } from '../../biens/gallery/galHelpers'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
@@ -113,9 +114,9 @@ export function pfColors(sp: SugarPalette, surf: GalSurfaces, dark: boolean): Pf
     inputBg: dark ? 'rgba(0,0,0,0.22)' : '#FFFFFF',
     ink: sp.ink, soft: sp.soft, sub: sp.sub,
     ghost: dark ? 'rgba(230,235,240,0.32)' : '#B5BAC2',
-    hair: surf.hairline, hairSoft: dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.05)',
+    hair: surf.hairline, hairSoft: dark ? 'rgba(255,255,255,0.07)' : sgVoileEncre(false, 0.05),
     shadow: surf.shadow, shadowSm: sp.shadowSm,
-    onInk: dark ? '#0B0C0E' : '#FFFFFF',
+    onInk: dark ? MXC_COLOR.n100 : '#FFFFFF',
     ...mxFills(dark),
   }
 }

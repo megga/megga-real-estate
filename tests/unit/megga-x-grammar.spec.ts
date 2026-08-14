@@ -81,6 +81,7 @@ const PAGES = new Set([
   'KycSugarV3Page.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
   'VisitModalSugarV3Page.tsx', 'VisitDetailSugarV3Page.tsx', 'DashboardSugarV4Page.tsx',
   'ImportLeadSugarV3Page.tsx', 'JulienSugarV2Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
+  'SettingsSugarV2Page.tsx', 'CalendarSugarV2Page.tsx',
 ])
 
 /**
@@ -105,6 +106,7 @@ const PAGES_ACQUISES = [
   'KycSugarV3Page.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
   'VisitModalSugarV3Page.tsx', 'VisitDetailSugarV3Page.tsx', 'DashboardSugarV4Page.tsx',
   'ImportLeadSugarV3Page.tsx', 'JulienSugarV2Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
+  'SettingsSugarV2Page.tsx', 'CalendarSugarV2Page.tsx',
 ]
 
 /**
@@ -187,6 +189,16 @@ const ZONES: RootSpec[] = [
   { root: 'src/components/crm-sugar-v3/audit', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/analytics', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/journey', keep: (n) => /\.tsx?$/.test(n) },
+  // Vague B (16 août 2026) — les deux surfaces dont la COMPOSITION était déjà
+  // portée et dont seule la COULEUR restait.
+  //
+  // ⚠ C'est le fait structurant du plan : « porté » recouvrait DEUX choses que le
+  // cerveau confondait. Le Calendrier (#1199) n'avait plus UNE seule faute de
+  // grammaire et portait encore douze couleurs ; les Réglages (#1197), douze
+  // grammaires contre quarante-trois couleurs. Les traiter comme « à refaire »
+  // aurait coûté dix fois leur prix.
+  { root: 'src/components/crm-sugar/settings', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-sugar/calendar', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/search', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/notifications', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/profile', keep: (n) => /\.tsx?$/.test(n) },
@@ -362,8 +374,6 @@ const GRIS_BLEU_ASSUMES = new Map<string, number>([
 // l'a signalé, pas une relecture — un garde qui décrit un état doit rougir quand
 // l'état change, même si le changement est voulu.
 const HORS_ZONE_ATTENDUS = [
-  'src/components/crm-sugar/settings/data.ts',
-  'src/components/crm-sugar/calendar/data.ts',
 ]
 
 /** La preuve que le scan voit encore l'arbre — sinon tout passe par vacuité. */
@@ -404,8 +414,19 @@ const TEMOIN = 'src/components/crm-sugar-wizard/steps/Step7Publish.tsx'
  */
 const INTERLETTRAGES_ASSUMES: { motif: RegExp; raison: string }[] = [
   {
-    motif: /letterSpacing: 6, fontVariantNumeric: 'tabular-nums'/,
-    raison: 'le code d’appairage WhatsApp, lu et recopié caractère par caractère',
+    // ⚠ ANCRÉ SUR LA FORME, plus sur la valeur du jour. Le motif exigeait
+    // `letterSpacing: 6` — celui de la modale WhatsApp de Contacts — et laissait
+    // donc dehors le `8` de la carte d'appairage des Réglages, qui est le MÊME
+    // geste sur le MÊME objet. Une exemption ancrée sur un littéral n'exempte
+    // pas une famille, elle exempte un site par accident.
+    motif: /fontVariantNumeric: 'tabular-nums'/,
+    raison: 'un code en chiffres, lu et recopié caractère par caractère',
+  },
+  {
+    // Même famille, autre marqueur : une police à chasse fixe dit qu'on lit la
+    // suite caractère par caractère (secret 2FA, empreinte, clé de récupération).
+    motif: /fontFamily: 'ui-monospace/,
+    raison: 'une suite en chasse fixe — un secret, pas un mot',
   },
 ]
 
@@ -564,15 +585,27 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
    * c'est le resserrement des titres d'affichage, que la vitrine pratique.
    */
   it('aucun interlettrage de micro-capitale', () => {
-    const fautifs = sites((l) => {
-      if (INTERLETTRAGES_ASSUMES.some(({ motif }) => motif.test(l))) return false
-      for (const m of l.matchAll(/letterSpacing:\s*'?(-?\.?[\d.]+)(em)?'?/g)) {
-        const v = Number(m[1])
-        if (Number.isNaN(v)) continue
-        if (m[2] === 'em' ? v >= 0.04 : v >= 0.4) return true
-      }
-      return false
-    })
+    const fautifs: string[] = []
+    for (const { chemin, code } of sources) {
+      const lignes = code.split('\n')
+      lignes.forEach((ligne, i) => {
+        let positif = false
+        for (const m of ligne.matchAll(/letterSpacing:\s*'?(-?\.?[\d.]+)(em)?'?/g)) {
+          const v = Number(m[1])
+          if (Number.isNaN(v)) continue
+          if (m[2] === 'em' ? v >= 0.04 : v >= 0.4) positif = true
+        }
+        if (!positif) return
+        // ⚠ L'exemption se cherche dans le BLOC DE STYLE, pas sur la ligne : le
+        // `letterSpacing` et le marqueur qui dit « c'est un code » (chiffres
+        // tabulaires, chasse fixe) vivent sur deux lignes voisines dès que le
+        // style est écrit en colonne. Une garde qui ne lit qu'une ligne oblige à
+        // tout écrire sur une seule — elle contraint la MISE EN FORME du code.
+        const bloc = lignes.slice(Math.max(0, i - 8), i + 9).join(' ')
+        if (INTERLETTRAGES_ASSUMES.some(({ motif }) => motif.test(bloc))) return
+        fautifs.push(`${chemin}:${i + 1}`)
+      })
+    }
     expect(fautifs, `interlettrage positif ≥ 0,4 :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 
@@ -778,6 +811,8 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar-v3/audit',
       'src/components/crm-sugar/analytics',
       'src/components/crm-sugar/journey',
+      'src/components/crm-sugar/settings',
+      'src/components/crm-sugar/calendar',
       'src/components/crm-sugar/search',
       'src/components/crm-sugar/notifications',
       'src/components/crm-sugar/profile',

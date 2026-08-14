@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { CalIcon } from './CalIcon'
 import { CalCircleBtn, CalViewToggle, type CalViewId } from './CalToolbar'
@@ -60,11 +60,11 @@ function CalSyncToast({ data, onDone }: { data: ToastData; onDone: () => void })
   const color = data.toneColor || (pair ? (dk ? pair[1] : pair[0]) : SP.accent)
   return (
     <div style={{ position: 'fixed', left: '50%', bottom: 26, zIndex: 999, transform: 'translateX(-50%)', animation: 'calToastIn .32s cubic-bezier(.2,.8,.2,1) both' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', background: SP.card, color: SP.ink, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-lg) var(--crm-space-3xl) var(--crm-space-lg) var(--crm-space-xl)', minWidth: 288, maxWidth: 460, boxShadow: dk ? SP.shadowHover : '0 20px 54px rgba(15,23,42,0.18), 0 4px 14px rgba(15,23,42,0.10)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', background: SP.card, color: SP.ink, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-lg) var(--crm-space-3xl) var(--crm-space-lg) var(--crm-space-xl)', minWidth: 288, maxWidth: 460, boxShadow: dk ? SP.shadowHover : `0 20px 54px ${sgVoileEncre(false, 0.18)}, 0 4px 14px ${sgVoileEncre(false, 0.10)}` }}>
         <div style={{ width: 28, height: 28, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, display: 'grid', placeItems: 'center', background: phase === 'done' ? color : 'transparent' }}>
           {phase === 'done'
             ? <CalIcon name="check" size={15} stroke="#FFFFFF" sw={3} />
-            : <div style={{ width: 16, height: 16, borderRadius: 'var(--crm-radius-pill)', border: `2px solid ${dk ? 'rgba(255,255,255,0.16)' : 'rgba(11,12,14,0.12)'}`, borderTopColor: color, animation: 'calSpin .7s linear infinite' }} />}
+            : <div style={{ width: 16, height: 16, borderRadius: 'var(--crm-radius-pill)', border: `2px solid ${dk ? 'rgba(255,255,255,0.16)' : sgVoileEncre(false, 0.12)}`, borderTopColor: color, animation: 'calSpin .7s linear infinite' }} />}
         </div>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
@@ -456,7 +456,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
 
   return (
     <CalPaletteContext.Provider value={SP}>
-      <div style={{ position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: '"Inter Tight", system-ui, sans-serif', color: sp.ink }}>
+      <div style={{ position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font)', color: sp.ink }}>
         <style>{SUGAR_KEYFRAMES}</style>
         <style>{`
           @keyframes calPopIn { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: none; } }

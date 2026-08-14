@@ -3,6 +3,7 @@
 // Déclenchée par « Nouvel événement », un clic sur un créneau vide (pré-rempli)
 // ou « Modifier » depuis la bulle. Sélecteurs date/heure custom + liens CRM réels.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
@@ -493,7 +494,7 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
 
   const modalShadow = SP.isDark
     ? '0 30px 80px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.06)'
-    : '0 40px 100px rgba(15,23,42,0.20), 0 8px 24px rgba(15,23,42,0.10)'
+    : `0 40px 100px ${sgVoileEncre(false, 0.20)}, 0 8px 24px ${sgVoileEncre(false, 0.10)}`
 
   const ref = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState({ left: -9999, top: -9999 })

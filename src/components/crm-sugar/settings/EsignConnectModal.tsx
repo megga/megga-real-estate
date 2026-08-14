@@ -3,6 +3,7 @@
 // recréé. Appelle l'edge `sign-document` action connect_provider, qui valide la
 // clé par un login live et la chiffre dans Supabase Vault.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Modal, SetInput, SetBlackBtn, SetGhostBtn, SetIcon } from './atoms'
@@ -104,7 +105,7 @@ export function EsignConnectModal({ onClose, onConnected }: Props) {
                     fontSize: 'var(--crm-text-lg)',
                     fontWeight: 500,
                     cursor: 'pointer',
-                    boxShadow: active ? 'none' : 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+                    boxShadow: active ? 'none' : `inset 0 0 0 1px ${sgVoileEncre(false, 0.04)}`,
                     transition: 'all .15s',
                   }}
                 >

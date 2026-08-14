@@ -8,6 +8,7 @@
 // contrôles de la section (pas de propagation globale — cf. plan).
 // i18n : réutilise preferences.* existant, microcopie neuve = focus.preferences.*.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { switchLanguage } from '@/i18n'
@@ -119,7 +120,7 @@ function PxfSelect({ c, value, onChange, options }: { c: PfColors; value: string
                   onMouseEnter={(e) => { if (!on) e.currentTarget.style.background = c.cardSub }}
                   onMouseLeave={(e) => { if (!on) e.currentTarget.style.background = 'transparent' }}
                   style={{ width: '100%', padding: 'var(--crm-space-md) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-sm)', border: 0, cursor: 'pointer', background: on ? c.cardSub : 'transparent', color: c.ink, fontFamily: 'inherit',
-                    fontSize: 'var(--crm-text-lg)', fontWeight: on ? 700 : 500, textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--crm-space-xl)', whiteSpace: 'nowrap' }}>
+                    fontSize: 'var(--crm-text-lg)', fontWeight: on ? 600 : 500, textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--crm-space-xl)', whiteSpace: 'nowrap' }}>
                   {o.label}
                   {on && <PxfIc name="check" size={14} stroke={c.green} sw={2.4} />}
                 </button>
@@ -256,7 +257,7 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
           @keyframes pxfMenuIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
           .pxf-saved { animation: pxfCtrlIn .26s cubic-bezier(.2,.9,.3,1) both; }
         }
-        .pxf-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.03)'}; border-radius: 12px; }
+        .pxf-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : sgVoileEncre(false, 0.03)}; border-radius: 12px; }
       `}</style>
 
       <div style={{ borderRadius: 'var(--crm-radius-6xl)', boxShadow: c.shadow }}>

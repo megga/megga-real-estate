@@ -4,6 +4,7 @@
 // marquer terminé · itinéraire. Les événements externes « Occupé » sont en
 // LECTURE SEULE (pas de modifier/supprimer/terminé).
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { Fragment, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
@@ -256,7 +257,7 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
                 <div style={{
                   width: 42, height: 42, borderRadius: 'var(--crm-radius-md)', flexShrink: 0,
                   background: `repeating-linear-gradient(135deg, ${propTone} 0 8px, ${shadeMix(propTone, -0.05)} 8px 16px)`,
-                  display: 'grid', placeItems: 'center', color: 'rgba(11,12,14,0.22)',
+                  display: 'grid', placeItems: 'center', color: sgVoileEncre(false, 0.22),
                 }}>
                   <CalIcon name="home" size={19} stroke="currentColor" sw={1.4} />
                 </div>

@@ -5,6 +5,7 @@
 // Câblage : profiles + agent_profiles (via useAgentProfileSugar) ; photo via useAvatar
 // (bucket `avatars` + profiles.avatar_url). i18n : namespace `settings` (focus.*).
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/components/ui/Toast'
@@ -139,7 +140,7 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
       <style>{`
         ${PF_KEYFRAMES}
         .pfx-row { transition: background-color .24s ease; }
-        .pfx-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.03)'}; }
+        .pfx-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : sgVoileEncre(false, 0.03)}; }
         /* Anneau de focus = l'ACCENT, pas l'encre : c'est la couleur que
            MEGGA X donne à tout état actif. */
         .pfx-inp:focus { box-shadow: 0 0 0 2px ${c.seal.bg} inset !important; }
@@ -182,7 +183,7 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
                     <div ref={infoRef} style={{ position: 'relative', display: 'inline-flex' }}>
                       <button onClick={() => setInfo((v) => !v)} aria-label={t('focus.profile.info.title')} title={t('focus.profile.info.title')}
                         style={{ width: 18, height: 18, borderRadius: 'var(--crm-radius-pill)', border: 0, padding: 0, cursor: 'pointer', display: 'grid', placeItems: 'center',
-                          background: info ? c.ink : (dark ? 'rgba(255,255,255,0.12)' : 'rgba(15,23,42,0.06)') }}>
+                          background: info ? c.ink : (dark ? 'rgba(255,255,255,0.12)' : sgVoileEncre(false, 0.06)) }}>
                         <PfIc name="info" size={12} stroke={info ? c.onInk : (dark ? 'rgba(235,240,245,0.9)' : c.sub)} sw={2} />
                       </button>
                       {info && (
@@ -193,7 +194,7 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
                           <div style={{ position: 'relative', fontSize: 'var(--crm-text-md)', lineHeight: 1.5, color: c.soft, fontWeight: 500 }}>
                             {(() => {
                               const parts = t('focus.profile.info.body').split('{{brand}}')
-                              return (<>{parts[0]}<b style={{ color: c.ink, fontWeight: 600 }}>MEGGA</b>{parts[1] ?? ''}</>)
+                              return (<>{parts[0]}<span style={{ color: c.ink, fontWeight: 600 }}>MEGGA</span>{parts[1] ?? ''}</>)
                             })()}
                           </div>
                         </div>

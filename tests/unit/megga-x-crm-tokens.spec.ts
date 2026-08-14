@@ -412,8 +412,6 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
     'src/components/crm-sugar-wizard/WizardShell.tsx',
     'src/components/crm-sugar/biens/pager/BiensFirstRun.tsx',
     'src/components/crm-sugar/biens/pager/BpRenewModal.tsx',
-    'src/components/crm-sugar/calendar/CalendarApp.tsx',
-    'src/components/crm-sugar/settings/BillingSection.tsx',
     'src/components/matching-atelier/MatchingFirstRun.tsx',
     'src/pages/agent/BienDetailSugarV4Page.tsx',
     'src/pages/agent/BiensSugarV2Page.tsx',

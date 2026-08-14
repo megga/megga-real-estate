@@ -4,6 +4,8 @@
 // Sans dépendance i18n : les libellés UI sont fournis traduits par la section (props
 // `labels`). Constantes/palette/types dans pfKitCore.tsx (règle react-refresh).
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import {
   useEffect, useRef, useState,
   type ReactNode, type RefObject,
@@ -70,8 +72,8 @@ function PfGhost({ c, children, onClick }: { c: PfColors; children: ReactNode; o
 
 export function PfAvatar({ c, photo, initials, size = 62 }: { c: PfColors; photo?: string | null; initials: string; size?: number }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, overflow: 'hidden', boxShadow: '0 10px 26px -12px rgba(11,12,14,0.45)',
-      background: photo ? `#0B0C0E center/cover no-repeat url("${photo}")` : c.ink, color: c.dark ? '#0B0C0E' : '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 500, letterSpacing: -0.5 }}>
+    <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, overflow: 'hidden', boxShadow: `0 10px 26px -12px ${sgVoileEncre(false, 0.45)}`,
+      background: photo ? `${MXC_COLOR.n100} center/cover no-repeat url("${photo}")` : c.ink, color: c.dark ? MXC_COLOR.n100 : '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.36, fontWeight: 500, letterSpacing: -0.5 }}>
       {photo ? null : initials}
     </div>
   )
@@ -209,8 +211,8 @@ export function PfPhotoModal({ c, initial, onCancel, onSave, labels }: {
   const mView = c.dark ? '#161616' : c.cardSub
   const mBtnSub = c.dark ? 'rgba(255,255,255,0.09)' : c.cardSub
   const mRing = c.dark ? 'rgba(255,255,255,0.10)' : c.hair
-  const mOverlay = c.dark ? 'rgba(0,0,0,0.58)' : 'rgba(11,12,14,0.42)'
-  const mShadow = c.dark ? '0 30px 80px rgba(0,0,0,0.6)' : '0 40px 100px rgba(11,12,14,0.30), 0 8px 24px rgba(11,12,14,0.12)'
+  const mOverlay = c.dark ? 'rgba(0,0,0,0.58)' : sgVoileEncre(false, 0.42)
+  const mShadow = c.dark ? '0 30px 80px rgba(0,0,0,0.6)' : `0 40px 100px ${sgVoileEncre(false, 0.30)}, 0 8px 24px ${sgVoileEncre(false, 0.12)}`
 
   const onFile = (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files && e.target.files[0]
@@ -253,7 +255,7 @@ export function PfPhotoModal({ c, initial, onCancel, onSave, labels }: {
     cv.width = S; cv.height = S
     const ctx = cv.getContext('2d')
     if (!ctx) return
-    ctx.fillStyle = '#0B0C0E'; ctx.fillRect(0, 0, S, S)
+    ctx.fillStyle = MXC_COLOR.n100; ctx.fillRect(0, 0, S, S)
     ctx.imageSmoothingQuality = 'high'
     try {
       ctx.drawImage(imgRef.current, pos.x * k, pos.y * k, scaledW * k, scaledH * k)

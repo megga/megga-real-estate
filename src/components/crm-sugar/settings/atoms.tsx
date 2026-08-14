@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar v2 — Settings atoms (icon, input, textarea, switch, buttons, card)
 // 1:1 port from `crm-screen-settings-sugar.jsx`.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState, type ReactNode } from 'react'
 import { motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
@@ -295,8 +296,8 @@ export function SetInput({
           borderRadius: 'var(--crm-radius-xl)',
           background: focus ? SET.inputFocusBg : SET.cardSubtle,
           boxShadow: focus
-            ? `0 0 0 2px ${SET.black}, 0 4px 12px rgba(15,23,42,0.05)`
-            : 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+            ? `0 0 0 2px ${SET.black}, 0 4px 12px ${sgVoileEncre(false, 0.05)}`
+            : `inset 0 0 0 1px ${sgVoileEncre(false, 0.04)}`,
           opacity: disabled ? 0.55 : 1,
           transition: 'all .18s ease',
         }}
@@ -390,7 +391,7 @@ export function SetBlackBtn({
         background: disabled || loading ? SET.ghost : hover ? SET.blackHover : SET.black,
         color: SET.blackInk,
         fontFamily: 'inherit',
-        fontSize: size === 'lg' ? 14.5 : size === 'sm' ? 12.5 : 13.5,
+        fontSize: size === 'lg' ? 'var(--crm-text-lg)' : size === 'sm' ? 'var(--crm-text-sm)' : 'var(--crm-text-md)',
         fontWeight: 600,
         letterSpacing: 0.1,
         cursor: disabled || loading ? 'not-allowed' : 'pointer',
@@ -400,8 +401,8 @@ export function SetBlackBtn({
         boxShadow: disabled || loading
           ? 'none'
           : hover
-            ? '0 12px 30px rgba(11,12,14,0.25)'
-            : '0 6px 16px rgba(11,12,14,0.18)',
+            ? `0 12px 30px ${sgVoileEncre(false, 0.25)}`
+            : `0 6px 16px ${sgVoileEncre(false, 0.18)}`,
         transition: 'all .18s ease',
         transform: hover && !disabled && !loading ? 'translateY(-1px)' : 'translateY(0)',
       }}
@@ -464,7 +465,7 @@ export function SetGhostBtn({
           : 'transparent',
         color: danger ? SET.bad : SET.inkSoft,
         fontFamily: 'inherit',
-        fontSize: size === 'sm' ? 12.5 : 13.5,
+        fontSize: size === 'sm' ? 'var(--crm-text-sm)' : 'var(--crm-text-md)',
         fontWeight: 600,
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
@@ -495,7 +496,7 @@ export function Modal({ title, children, onClose, wide }: ModalProps) {
         position: 'fixed',
         inset: 0,
         zIndex: 200,
-        background: 'rgba(11,12,14,0.40)',
+        background: sgVoileEncre(false, 0.40),
         backdropFilter: 'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
         display: 'grid',
@@ -512,7 +513,7 @@ export function Modal({ title, children, onClose, wide }: ModalProps) {
           padding: 28,
           width: wide ? 720 : 480,
           maxWidth: '100%',
-          boxShadow: '0 40px 100px rgba(11,12,14,0.30)',
+          boxShadow: `0 40px 100px ${sgVoileEncre(false, 0.30)}`,
           maxHeight: '86vh',
           overflowY: 'auto',
           animation: 'setSlideUp .25s cubic-bezier(.2,.8,.2,1) both',
@@ -736,7 +737,7 @@ export function Toast({ open, label }: ToastProps) {
         display: 'flex',
         alignItems: 'center',
         gap: 'var(--crm-space-lg)',
-        boxShadow: '0 24px 60px rgba(11,12,14,0.30)',
+        boxShadow: `0 24px 60px ${sgVoileEncre(false, 0.30)}`,
         fontSize: 'var(--crm-text-lg)',
         fontWeight: 600,
         animation: 'setSlideUp .3s cubic-bezier(.2,.8,.2,1) both',

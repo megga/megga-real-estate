@@ -8,7 +8,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmSugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { mxSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
@@ -145,9 +145,9 @@ export default function SettingsSugarV2Page() {
            transparente de même épaisseur — c'est ce qui empêche le texte de
            sauter d'un pixel au changement de section. */
         .spg-nav { -webkit-tap-highlight-color: transparent; }
-        .spg-nav:hover { background: ${darkR ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'}; }
+        .spg-nav:hover { background: ${darkR ? 'rgba(255,255,255,0.05)' : sgVoileEncre(false, 0.035)}; }
         .spg-scroll::-webkit-scrollbar { width: 9px; }
-        .spg-scroll::-webkit-scrollbar-thumb { background: ${darkR ? 'rgba(255,255,255,.12)' : 'rgba(15,23,42,.14)'}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+        .spg-scroll::-webkit-scrollbar-thumb { background: ${darkR ? 'rgba(255,255,255,.12)' : sgVoileEncre(false, .14)}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
       `}</style>
 
       <SugarTopNav active={'settings' as SugarScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />

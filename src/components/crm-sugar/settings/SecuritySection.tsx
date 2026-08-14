@@ -13,6 +13,7 @@
 // Le hero est volontairement sombre (texte blanc) dans les deux thèmes :
 //   fond #0B0C0E en light, #16171F en dark — seule surface hors tokens clairs.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useEffect, useState } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
@@ -204,7 +205,7 @@ function SaveBtn({ ready, onClick, loading }: { ready: boolean; onClick: () => v
         alignItems: 'center',
         gap: 'var(--crm-space-md)',
         transition: 'background .18s, color .18s',
-        boxShadow: ready ? '0 6px 16px rgba(11,12,14,0.18)' : `inset 0 0 0 1px ${SET.line}`,
+        boxShadow: ready ? `0 6px 16px ${sgVoileEncre(false, 0.18)}` : `inset 0 0 0 1px ${SET.line}`,
         whiteSpace: 'nowrap',
       }}
     >
@@ -623,7 +624,7 @@ function PwdVaultLight() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 'var(--crm-space-md)',
-                boxShadow: verifiedEmail ? '0 6px 16px rgba(11,12,14,0.18)' : 'none',
+                boxShadow: verifiedEmail ? `0 6px 16px ${sgVoileEncre(false, 0.18)}` : 'none',
               }}
             >
               <SetIcon name="mail" size={14} stroke={verifiedEmail ? SET.blackInk : SET.ghost} sw={2} /> {t('security.password.sendLink')}
@@ -674,7 +675,7 @@ function PwdVaultLight() {
                   i18nKey="security.password.sentBody"
                   ns="settings"
                   values={{ email: maskEmail(verifiedEmail) }}
-                  components={{ b: <strong style={{ color: SET.ink, fontWeight: 700 }} /> }}
+                  components={{ b: <span style={{ color: SET.ink, fontWeight: 600 }} /> }}
                 />
               </div>
             </div>
@@ -692,7 +693,7 @@ function PwdVaultLight() {
             <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: SET.muted }}>
               {t('security.password.nothingReceived')}{' '}
               {cooldown > 0 ? (
-                <span style={{ color: SET.ghost, fontWeight: 700 }}>{t('security.password.resendIn', { count: cooldown })}</span>
+                <span style={{ color: SET.ghost, fontWeight: 600 }}>{t('security.password.resendIn', { count: cooldown })}</span>
               ) : (
                 <button
                   onClick={sendReset}

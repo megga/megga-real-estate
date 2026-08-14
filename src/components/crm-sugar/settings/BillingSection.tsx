@@ -15,6 +15,7 @@
 // Prix affichés = catalogue maquette (Gratuit 0 · Pro 49, annuel 41 « deux mois offerts »
 //   · Custom sur devis) ; le portail Stripe reste la source de vérité du montant facturé.
 
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useToast } from '@/components/ui/Toast'
@@ -107,7 +108,7 @@ export function BillingSection() {
     : null
 
   return (
-    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 28px 40px', fontFamily: '"Inter Tight", system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '30px 28px 40px', fontFamily: 'var(--crm-font)' }}>
       {/* Toggle Mensuel / Annuel (+ badge « Deux mois offerts ») */}
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.05)', boxShadow: `0 0 0 1px ${V.border} inset`, marginBottom: 30 }}>
         {([
@@ -231,7 +232,7 @@ function ctaStyle(kind: 'brand' | 'light' | 'ghost', busy: boolean): CSSProperti
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-sm)', whiteSpace: 'nowrap',
   }
   if (kind === 'brand') return { ...base, background: V.brand, color: '#fff' }
-  if (kind === 'light') return { ...base, background: '#FFFFFF', color: '#0B0C0E' }
+  if (kind === 'light') return { ...base, background: '#FFFFFF', color: MXC_COLOR.n100 }
   return { ...base, background: 'rgba(255,255,255,0.08)', color: V.head } // ghost (plan courant non-pro)
 }
 

@@ -17,6 +17,7 @@
 // (IAZI, RealAdvisor, SIX, Onfido, Veriff, Zapier) et le bandeau de fausses stats
 // (« 12.3k synchronisations ») ont été retirés — aucune donnée mockée affichée comme réelle.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useMemo, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
@@ -196,7 +197,7 @@ function IntegrationLogo({ item, size = 44 }: { item: Integration; size?: number
         display: 'grid',
         placeItems: 'center',
         flexShrink: 0,
-        boxShadow: '0 4px 12px rgba(15,23,42,0.10), inset 0 0 0 1px rgba(0,0,0,0.04)',
+        boxShadow: `0 4px 12px ${sgVoileEncre(false, 0.10)}, inset 0 0 0 1px rgba(0,0,0,0.04)`,
       }}
     >
       {item.logo}
@@ -574,7 +575,7 @@ function DetailsModal({
         position: 'fixed',
         inset: 0,
         zIndex: 200,
-        background: 'rgba(11,12,14,0.40)',
+        background: sgVoileEncre(false, 0.40),
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         display: 'grid',
@@ -590,7 +591,7 @@ function DetailsModal({
           padding: 32,
           maxWidth: 540,
           width: '92%',
-          boxShadow: '0 40px 80px rgba(11,12,14,0.30)',
+          boxShadow: `0 40px 80px ${sgVoileEncre(false, 0.30)}`,
           animation: 'setScaleIn .25s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
@@ -782,7 +783,7 @@ function DetailsModal({
                 fontSize: 'var(--crm-text-lg)',
                 fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: '0 6px 16px rgba(11,12,14,0.18)',
+                boxShadow: `0 6px 16px ${sgVoileEncre(false, 0.18)}`,
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 'var(--crm-space-md)',
@@ -810,7 +811,7 @@ function WhatsAppPairModal({ onClose, t }: { onClose: () => void; t: TFunction }
         position: 'fixed',
         inset: 0,
         zIndex: 200,
-        background: 'rgba(11,12,14,0.42)',
+        background: sgVoileEncre(false, 0.42),
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
         display: 'grid',
@@ -827,7 +828,7 @@ function WhatsAppPairModal({ onClose, t }: { onClose: () => void; t: TFunction }
           background: SET.card,
           borderRadius: 'var(--crm-radius-5xl)',
           padding: 28,
-          boxShadow: '0 40px 100px rgba(11,12,14,0.30)',
+          boxShadow: `0 40px 100px ${sgVoileEncre(false, 0.30)}`,
           maxHeight: '86vh',
           overflowY: 'auto',
           animation: 'setScaleIn .25s cubic-bezier(.2,.8,.2,1) both',
@@ -1012,7 +1013,7 @@ export function IntegrationsSection() {
                   color: active ? SET.blackInk : SET.inkSoft,
                   fontFamily: 'inherit',
                   fontSize: 'var(--crm-text-md)',
-                  fontWeight: active ? 700 : 600,
+                  fontWeight: active ? 600 : 500,
                   cursor: 'pointer',
                   letterSpacing: -0.05,
                   transition: 'all .15s',
@@ -1090,7 +1091,7 @@ export function IntegrationsSection() {
               position: 'fixed',
               inset: 0,
               zIndex: 200,
-              background: 'rgba(11,12,14,0.40)',
+              background: sgVoileEncre(false, 0.40),
               backdropFilter: 'blur(8px)',
               WebkitBackdropFilter: 'blur(8px)',
               display: 'grid',
@@ -1106,7 +1107,7 @@ export function IntegrationsSection() {
                 padding: 32,
                 maxWidth: 460,
                 width: '90%',
-                boxShadow: '0 40px 80px rgba(11,12,14,0.30)',
+                boxShadow: `0 40px 80px ${sgVoileEncre(false, 0.30)}`,
                 animation: 'setScaleIn .25s cubic-bezier(.2,.8,.2,1) both',
               }}
             >

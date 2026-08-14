@@ -13,6 +13,7 @@
 //
 // `bare` : rend le corps sans la carte extérieure (pour l'embarquer dans une modale Sugar).
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation, Trans } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -70,7 +71,7 @@ function WAHeadTile() {
         display: 'grid',
         placeItems: 'center',
         background: SET.cardSubtle,
-        boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+        boxShadow: `inset 0 0 0 1px ${sgVoileEncre(false, 0.04)}`,
       }}
     >
       <WAGlyphSolid size={20} />
@@ -146,7 +147,7 @@ function WABody() {
       height: h,
       borderRadius: 'var(--crm-radius-sm)',
       background: SET.cardSubtle,
-      boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+      boxShadow: `inset 0 0 0 1px ${sgVoileEncre(false, 0.04)}`,
     })
     return (
       <div style={{ display: 'grid', gap: 'var(--crm-space-3xl)' }}>
@@ -157,7 +158,7 @@ function WABody() {
               height: 38,
               borderRadius: 'var(--crm-radius-md)',
               background: SET.cardSubtle,
-              boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+              boxShadow: `inset 0 0 0 1px ${sgVoileEncre(false, 0.04)}`,
             }}
           />
           <div style={{ display: 'grid', gap: 'var(--crm-space-sm)' }}>
@@ -186,7 +187,7 @@ function WABody() {
             padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
             borderRadius: 'var(--crm-radius-lg)',
             background: SET.cardSubtle,
-            boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+            boxShadow: `inset 0 0 0 1px ${sgVoileEncre(false, 0.04)}`,
           }}
         >
           <span style={{ color: SET.err, flexShrink: 0, marginTop: 1 }}>
@@ -234,7 +235,7 @@ function WABody() {
             padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
             borderRadius: 'var(--crm-radius-lg)',
             background: SET.cardSubtle,
-            boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+            boxShadow: `inset 0 0 0 1px ${sgVoileEncre(false, 0.04)}`,
           }}
         >
           <div style={{ minWidth: 0 }}>
@@ -286,7 +287,7 @@ function WABody() {
                   fontWeight: 500,
                   color: SET.inkSoft,
                   background: SET.card,
-                  boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.06)',
+                  boxShadow: `inset 0 0 0 1px ${sgVoileEncre(false, 0.06)}`,
                   whiteSpace: 'nowrap',
                 }}
               >
@@ -310,7 +311,7 @@ function WABody() {
             padding: 'var(--crm-space-4xl) var(--crm-space-3xl)',
             borderRadius: 'var(--crm-radius-xl)',
             background: SET.cardSubtle,
-            boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+            boxShadow: `inset 0 0 0 1px ${sgVoileEncre(false, 0.04)}`,
             textAlign: 'center',
           }}
         >
@@ -331,7 +332,7 @@ function WABody() {
               i18nKey="integrations.whatsapp.waiting.sendCode"
               t={t}
               values={{ number: MEGGA_WA_NUMBER }}
-              components={{ strong: <strong style={{ color: SET.inkSoft }} /> }}
+              components={{ strong: <span style={{ color: SET.inkSoft, fontWeight: 600 }} /> }}
             />
           </div>
         </div>
@@ -344,7 +345,7 @@ function WABody() {
             padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
             borderRadius: 'var(--crm-radius-lg)',
             background: SET.cardSubtle,
-            boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.04)',
+            boxShadow: `inset 0 0 0 1px ${sgVoileEncre(false, 0.04)}`,
           }}
         >
           <span style={{ position: 'relative', width: 9, height: 9, flexShrink: 0 }}>
@@ -399,7 +400,7 @@ function WABody() {
           i18nKey="integrations.whatsapp.unlinked.body"
           t={t}
           values={{ number: MEGGA_WA_NUMBER }}
-          components={{ strong: <strong style={{ color: SET.ink }} /> }}
+          components={{ strong: <span style={{ color: SET.ink, fontWeight: 600 }} /> }}
         />
       </p>
       <WAGhostButton

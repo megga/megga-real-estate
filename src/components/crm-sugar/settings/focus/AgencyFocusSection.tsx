@@ -5,6 +5,8 @@
 // Le nom d'agence s'affiche en header (défini à l'onboarding) — non édité ici,
 // conformément au design. Les objectifs commerciaux vivent dans Analytics.
 
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
@@ -83,8 +85,8 @@ async function uploadAgencyLogo(dataUrl: string, agencyId: string): Promise<stri
 
 function AgLogoTile({ c, url, initials, size = 62 }: { c: PfColors; url: string; initials: string; size?: number }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-3xl)', flexShrink: 0, overflow: 'hidden', boxShadow: '0 10px 26px -12px rgba(11,12,14,0.45)',
-      background: url ? `#0B0C0E center/cover no-repeat url("${url}")` : c.ink, color: c.dark ? '#0B0C0E' : '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.34, fontWeight: 500, letterSpacing: -0.5 }}>
+    <div style={{ width: size, height: size, borderRadius: 'var(--crm-radius-3xl)', flexShrink: 0, overflow: 'hidden', boxShadow: `0 10px 26px -12px ${sgVoileEncre(false, 0.45)}`,
+      background: url ? `${MXC_COLOR.n100} center/cover no-repeat url("${url}")` : c.ink, color: c.dark ? MXC_COLOR.n100 : '#fff', display: 'grid', placeItems: 'center', fontSize: size * 0.34, fontWeight: 500, letterSpacing: -0.5 }}>
       {url ? null : initials}
     </div>
   )
@@ -176,7 +178,7 @@ export function AgencyFocusSection({ sp, surf, dark }: FocusSectionProps) {
       <style>{`
         ${PF_KEYFRAMES}
         .pfx-row { transition: background-color .24s ease; }
-        .pfx-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.03)'}; }
+        .pfx-row:hover { background: ${dark ? 'rgba(255,255,255,0.04)' : sgVoileEncre(false, 0.03)}; }
         /* Anneau de focus = l'ACCENT, pas l'encre : c'est la couleur que
            MEGGA X donne à tout état actif. */
         .pfx-inp:focus { box-shadow: 0 0 0 2px ${c.seal.bg} inset !important; }
