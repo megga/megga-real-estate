@@ -126,6 +126,17 @@ export interface PipelineBanc {
  */
 const PIPE_PAD_X = 34
 
+/**
+ * Marge BASSE du cadre bento, en pixels — même raison que {@link PIPE_PAD_X} :
+ * lue deux fois, par le cadre qui la pose et par le board qui s'en échappe.
+ *
+ * ⚠ Le board va donc jusqu'au filet du bas. C'est là que loge la barre de
+ * défilement horizontale du kanban : elle se retrouve à l'aplomb de la bordure
+ * du cadre, ce qui est le comportement voulu — le `paddingBottom` de la rangée
+ * de colonnes, lui, reste, c'est lui qui garde les cartes au-dessus d'elle.
+ */
+const PIPE_PAD_B = 22
+
 export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = {}) {
   const { t } = useTranslation('pipeline')
   const navigate = useNavigate()
@@ -603,8 +614,19 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
     }}>
       <style>{SUGAR_KEYFRAMES}</style>
       <style>{`
+        /* ⛔ LA BARRE HORIZONTALE NE PREND PLUS DE HAUTEUR (15 août 2026).
+           Depuis que les colonnes vont jusqu'au filet du bas, une barre classique
+           leur volerait 10 px et laisserait voir le fond du cadre à travers son
+           rail transparent — une bande claire sous l'entonnoir, exactement la
+           trace qu'on venait de supprimer. Mesuré : sur macOS elle vaut DÉJÀ
+           0 px (barres en superposition), donc rien ne change ici ; c'est sous
+           Linux et Windows qu'elle poussait, et c'est là que la référence
+           visuelle est produite.
+           ⚠ Le défilement horizontal reste entier — molette, pavé tactile, et
+           l'auto-défilement au bord pendant un glisser de carte. La barre
+           VERTICALE de la vue liste, elle, garde sa largeur. */
         .sgPipeBoard{scrollbar-width:thin;scrollbar-color:${sp.cardBorder} transparent}
-        .sgPipeBoard::-webkit-scrollbar{width:10px;height:10px}
+        .sgPipeBoard::-webkit-scrollbar{width:10px;height:0}
         .sgPipeBoard::-webkit-scrollbar-track{background:transparent}
         .sgPipeBoard::-webkit-scrollbar-thumb{background:${sp.cardBorder};border-radius:999px;border:3px solid transparent;background-clip:padding-box}
         .sgPipeBoard::-webkit-scrollbar-corner{background:transparent}
@@ -624,7 +646,7 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
             <div style={{
               position: 'relative', width: '100%', height: '100%',
               background: sp.pageBg, color: sp.ink,
-              padding: `30px ${PIPE_PAD_X}px 22px`, boxSizing: 'border-box',
+              padding: `30px ${PIPE_PAD_X}px ${PIPE_PAD_B}px`, boxSizing: 'border-box',
               display: 'flex', flexDirection: 'column', minHeight: 0,
             }}>
               {/* En-tête : titre · recherche · Filtres · vues · Nouveau deal */}
@@ -733,7 +755,7 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
                   // plutôt qu'un padding retiré au parent — sinon le titre, la
                   // recherche et les filtres, qui sont ses frères, colleraient
                   // eux aussi au bord.
-                  marginLeft: -PIPE_PAD_X, marginRight: -PIPE_PAD_X,
+                  marginLeft: -PIPE_PAD_X, marginRight: -PIPE_PAD_X, marginBottom: -PIPE_PAD_B,
                 }}
               >
                 {/* Masqué pendant une création inline : la carte d'état vide
@@ -745,7 +767,7 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
                   }}>{pipeEmptyCard}</div>
                 )}
                 {view === 'kanban' && (
-                  <div style={{ display: 'flex', paddingBottom: 8, height: '100%' }}>
+                  <div style={{ display: 'flex', height: '100%' }}>
                     {CRM_STAGE_ORDER.map((stage, i) => (
                       <SugarStageColumn
                         key={stage} stage={stage} premiere={i === 0}
