@@ -28,80 +28,11 @@
  * bundle déployé n'aurait aucune excuse.
  */
 
-/** L'agence du banc : identité soumise et LAB validée, sinon la coquille retient l'écran. */
-export const AGENCE_BANC = {
-  id: '00000000-0000-4000-8000-000000000a11',
-  name: 'Agence MEGGA · démonstration',
-  verification_status: 'validated',
-  identity_submitted_at: '2026-01-01T00:00:00Z',
-  canton: 'GE',
-  plan: 'pro',
-} as const
-
-/** Le compte du banc — la même personne que `MOCK_PROFILE`, pour ne pas inventer un second agent. */
-export const AGENT_BANC = {
-  id: '00000000-0000-4000-8000-000000000901',
-  email: 'demo@megga.local',
-  full_name: 'Gregory Lyonnet',
-  role: 'agent',
-  avatar_url: null,
-  phone: null,
-  canton: 'GE',
-  agency_id: AGENCE_BANC.id,
-  created_at: '2026-01-01T00:00:00Z',
-} as const
-
-/** Base64url sans rembourrage — l'alphabet des segments d'un JWT. */
-function b64url(o: unknown): string {
-  return btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-}
-
-/**
- * Sème la session dans le stockage de `supabase-js` et la REND, pour que le banc
- * la serve aussi sur `/auth/v1/*` (voir `contrat.session` de `bancSupabase`).
- * Rend `null` si la clé n'a pas pu être dérivée ou écrite.
- *
- * ⚠ La clé se DÉRIVE de l'URL du projet (`sb-<ref>-auth-token`) : l'écrire en
- * dur ferait taire le banc le jour où l'on pointe une autre instance — un banc
- * qui échoue en silence se lit « la page est cassée ».
- *
- * ⚠ Et il faut poser `megga_remember` : le stockage du dépôt bascule sur
- * `sessionStorage` quand il vaut `'false'`, et la session semée dans
- * `localStorage` serait alors lue au mauvais endroit.
- */
-export function semerSessionBanc(urlProjet: string): unknown {
-  const ref = /https?:\/\/([^.]+)\./.exec(urlProjet)?.[1]
-  if (!ref) return null
-  const expire = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365
-  const jeton = [
-    b64url({ alg: 'HS256', typ: 'JWT' }),
-    b64url({ sub: AGENT_BANC.id, aud: 'authenticated', role: 'authenticated', exp: expire }),
-    'banc-non-signe',
-  ].join('.')
-  const session = {
-    access_token: jeton,
-    refresh_token: 'banc',
-    token_type: 'bearer',
-    expires_in: 60 * 60 * 24 * 365,
-    expires_at: expire,
-    user: {
-      id: AGENT_BANC.id,
-      aud: 'authenticated',
-      role: 'authenticated',
-      email: AGENT_BANC.email,
-      app_metadata: {},
-      user_metadata: { full_name: AGENT_BANC.full_name, role: AGENT_BANC.role },
-      created_at: AGENT_BANC.created_at,
-    },
-  }
-  try {
-    window.localStorage.setItem('megga_remember', 'true')
-    window.localStorage.setItem(`sb-${ref}-auth-token`, JSON.stringify(session))
-    return window.localStorage.getItem(`sb-${ref}-auth-token`) === null ? null : session
-  } catch {
-    return null
-  }
-}
+// ⚠ La session et les deux identités vivent dans `bancSession.ts`, importé par
+// `App.tsx` : elles doivent être posées AVANT que les providers montent, et ce
+// fichier-ci arrive derrière un import lazy. Voir l'en-tête de `bancSession`.
+export { AGENCE_BANC, AGENT_BANC } from './bancSession'
+import { AGENCE_BANC, AGENT_BANC } from './bancSession'
 
 /* ─── Le socle : ce que le CHROME tire sur CHAQUE écran ────────────────────── */
 
@@ -220,6 +151,37 @@ const CHANGELOG = [
     published_at: new Date(Date.now() - 2 * 86_400_000).toISOString(),
   },
 ]
+
+/**
+ * Ce que les trois RPC d'Analytics rendent quand il n'y a RIEN — un objet
+ * complet à zéro, pas `null`. C'est la différence entre « aucune commission sur
+ * la période » (un état vide, qui se dessine) et « la donnée n'est pas arrivée »
+ * (un squelette, qui tourne).
+ */
+export const CRM_RPC_VIDE: Record<string, unknown> = {
+  analytics_cockpit: {
+    ...AX_COCKPIT,
+    decomp: { signed: 0, compromis: 0, offres: 0, pipeline: 0 },
+    projected: 0, contributors: [], deals: 0, n_signed: 0, volume_signed: 0,
+    conversion: null, conversion_prev: null, delta_deals: 0, velocity: 0,
+    kyc_risk: 0, kyc_urgent: 0, kyc_risk_prev: 0,
+  },
+  // ⚠ `target_is_set` RESTE VRAI. Le mettre à faux ne montre pas l'état vide : il
+  // route vers `AxFirstRun` (« Fixe ton objectif annuel »), qui est un écran
+  // d'ACCUEIL. L'état vide d'Analytics, c'est « un objectif est fixé, rien n'a
+  // encore été réalisé » — vu à l'écran, pas déduit de la forme.
+  analytics_objectif: {
+    ...AX_OBJECTIF,
+    realized: 0, realIdx: 0,
+    real: [0, 0, 0, 0], median: [0, 0, 0, 0], projected: 0,
+  },
+  analytics_funnel: {
+    funnel: { leads: 0, leads_prev: 0, qualif: 0, qualif_prev: 0, visits: 0, offers: 0, compromis: 0 },
+    sources: [],
+    forecast: { n30: 0, mid30: 0, n60: 0, mid60: 0, n90: 0, mid90: 0 },
+  },
+  get_agent_changelog: [],
+}
 
 export const CRM_RPC: Record<string, unknown> = {
   claim_pending_role: null,

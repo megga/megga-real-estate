@@ -47,14 +47,17 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { MemoryRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AiPanelProvider } from '@/hooks/useAiPanel'
+import { AuthProvider } from '@/hooks/useAuth'
+import { ToastProvider } from '@/components/ui/Toast'
 import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import AgentSugarLayout from '@/components/layout/AgentSugarLayout'
 import KycLabGuard from '@/components/layout/KycLabGuard'
 import { SUPABASE_FUNCTIONS_URL } from '@/lib/supabase'
 import { desinstallerBanc, installerBanc, reglerBanc, type BancEtat } from './bancSupabase'
-import { CRM_RPC, CRM_TABLES, semerSessionBanc } from './crmFixtures'
+import { CRM_RPC, CRM_RPC_VIDE, CRM_TABLES } from './crmFixtures'
+import { semerSessionBanc } from './bancSession'
 
 /* ─── Les surfaces montées, dérivées du ROUTAGE de `App.tsx` ───────────────── */
 
@@ -287,21 +290,35 @@ function RoutesBanc() {
   )
 }
 
+/**
+ * Client de requêtes PROPRE au banc — le vrai vit dans `App.tsx`, hors de portée
+ * d'un import lazy sans créer de cycle. Ses réglages de reprise n'ont aucun sens
+ * ici : chaque réponse vient de l'interception, aucune ne peut échouer par
+ * réseau.
+ */
+const clientBanc = new QueryClient({
+  defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
+})
+
 export default function CrmShowcasePage() {
   const [etat, setEtatLocal] = useState<BancEtat>('nominal')
   const [sansFixture, setSansFixture] = useState<string[]>([])
-  const qc = useQueryClient()
 
   // ⚠ Semé et installé PENDANT le rendu, donc AVANT que `AuthProvider` appelle
   // `getSession()` dans son effet et avant le premier `queryFn`. Un effet
   // arriverait trop tard : la coquille aurait déjà retenu l'écran.
+  // ⚠ AVANT TOUT LE RESTE, et hors de l'initialiseur `useState` : il doit avoir
+  // eu lieu quand `AuthProvider`, rendu plus bas, lancera son `getSession()`.
+  const session = semerSessionBanc(SUPABASE_FUNCTIONS_URL)
+
   useState(() => {
     reglerBanc({
       tables: CRM_TABLES,
       rpc: CRM_RPC,
-      // La session est semée ET servie : sans la seconde moitié, `/auth/v1`
-      // répondrait 401 et `authAwareFetch` purgerait le jeton du banc.
-      session: semerSessionBanc(SUPABASE_FUNCTIONS_URL),
+      rpcVide: CRM_RPC_VIDE,
+      // Servie AUSSI sur `/auth/v1` : sans ça, le 401 du vrai service ferait
+      // purger le jeton par `authAwareFetch`.
+      session,
       // Dédoublonné par une mise à jour FONCTIONNELLE, pas par une `ref` — une
       // clôture qui lit `ref.current` et qu'on passe à une fonction pendant le
       // rendu fait rougir `react-hooks/refs`, et la règle a raison.
@@ -318,26 +335,33 @@ export default function CrmShowcasePage() {
   // (l'état survit). Défaut mesuré à l'écran sur le banc de la console — les
   // requêtes partaient vers la vraie base, qui répondait 401.
   useEffect(() => {
-    reglerBanc({
-      tables: CRM_TABLES,
-      rpc: CRM_RPC,
-      session: semerSessionBanc(SUPABASE_FUNCTIONS_URL),
-    })
+    reglerBanc({ tables: CRM_TABLES, rpc: CRM_RPC, rpcVide: CRM_RPC_VIDE, session })
     installerBanc()
     return desinstallerBanc
-  }, [])
+  }, [session])
 
   const setEtat = useCallback((e: BancEtat) => {
     reglerBanc({ etat: e })
     setEtatLocal(e)
     // Les requêtes actives repartent avec la nouvelle réponse ; on ne remonte
     // pas l'arbre, sinon changer d'état ramènerait à « Aujourd'hui ».
-    void qc.resetQueries()
-  }, [qc])
+    // ⚠ Le CLIENT directement, pas `useQueryClient()` : ce composant POSE le
+    // provider, donc le hook s'exécuterait hors de lui — « No QueryClient set ».
+    void clientBanc.resetQueries()
+  }, [])
 
   const entrees = useMemo(() => ['/dashboard'], [])
 
   return (
+    // ⛔ LES PROVIDERS SONT ICI, PAS DANS `App.tsx`, et l'ordre est tout : le
+    // corps de ce composant — donc `semerSessionBanc` ci-dessus — s'exécute
+    // AVANT le rendu de `AuthProvider` et donc avant son effet `getSession()`.
+    // Posés dans `App.tsx`, ils partaient pendant que ce chunk chargeait encore,
+    // ne trouvaient pas la session, et la coquille retenait l'écran sur
+    // `BootSplash` pour toujours.
+    <QueryClientProvider client={clientBanc}>
+      <AuthProvider>
+        <ToastProvider>
     <MemoryRouter initialEntries={entrees}>
       {/* ⛔ `AiPanelProvider` est DANS le routeur, pas au-dessus : il appelle
           `useLocation()`. Posé dans la coquille du banc (`BancCrmAgent`), il
@@ -353,5 +377,8 @@ export default function CrmShowcasePage() {
         <Commandes etat={etat} setEtat={setEtat} sansFixture={sansFixture} />
       </AiPanelProvider>
     </MemoryRouter>
+        </ToastProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   )
 }

@@ -44,6 +44,18 @@ const contrat = {
   tables: {} as Record<string, unknown[]>,
   rpc: {} as Record<string, FixtureRpc>,
   /**
+   * Fixtures propres à l'état « Vide », quand rendre `null` ne dit pas la même
+   * chose que rendre une réponse VIDE.
+   *
+   * ⛔ « ZÉRO LIGNE » N'EST PAS « ZÉRO MONTANT ». Pour une RPC qui rend un
+   * TABLEAU, `[]` dit bien « rien à montrer ». Pour une RPC qui rend un OBJET —
+   * le cockpit d'Analytics, sa trajectoire, son entonnoir — rendre `null` dit
+   * « pas encore répondu », et la page reste sur son squelette : on croit
+   * regarder l'état vide, on regarde un chargement qui n'aboutira jamais.
+   * Mesuré à l'écran, pas déduit. Une entrée ici rend l'objet ZÉRO attendu.
+   */
+  rpcVide: {} as Record<string, FixtureRpc>,
+  /**
    * Session à servir sur `/auth/v1/*`, ou `null` pour laisser passer l'appel.
    *
    * ⛔ SANS ELLE, UN BANC À SESSION SEMÉE S'EFFACE LUI-MÊME. Le jeton du banc
@@ -199,8 +211,11 @@ function repondre(url: string, init?: RequestInit): Response | null {
     const fixture = typeof brut === 'function'
       ? (brut as (a: Record<string, unknown>) => unknown)(lireArguments(init))
       : brut
+    const propreAuVide = Object.prototype.hasOwnProperty.call(contrat.rpcVide, nom)
+      ? contrat.rpcVide[nom]
+      : undefined
     const rendu = contrat.etat === 'vide'
-      ? (Array.isArray(fixture) ? [] : null)
+      ? (propreAuVide !== undefined ? propreAuVide : (Array.isArray(fixture) ? [] : null))
       : (fixture ?? (objetSeul ? null : []))
     const n = Array.isArray(rendu) ? rendu.length : 1
     return json(objetSeul && Array.isArray(rendu) ? (rendu[0] ?? null) : rendu, n)

@@ -679,34 +679,32 @@ function BancConsoleAdmin() {
 }
 
 /**
- * Le banc du CRM agent, même mécanique que celui de la console et pour la même
- * raison : il porte un `MemoryRouter`, et React Router LÈVE sur un routeur dans
- * un routeur.
+ * Le banc du CRM agent — un simple montage LAZY, et c'est délibéré.
  *
- * Providers gardés — ceux qu'`AppRoutes` a au-dessus de lui en production, moins
- * ce que la coquille apporte elle-même (`ThemeProvider`, `CopilotContextProvider`
- * sont dans `AgentSugarLayout`) : `QueryClientProvider`, `AuthProvider` (les
- * hooks du CRM sont gatés sur `profile.agency_id`) et `ToastProvider`.
+ * ⛔ IL NE POSE PAS LES PROVIDERS, contrairement au banc de la console. Le banc
+ * doit SEMER une session avant qu'`AuthProvider` appelle `getSession()` ; s'il
+ * les posait ici, l'effet du provider partirait pendant que le chunk de la page
+ * charge encore, trouverait un stockage vide, poserait `profile: null` et n'y
+ * reviendrait jamais — `useIdentityGate` resterait sur `loading` et la coquille
+ * retiendrait l'écran sur `BootSplash` POUR TOUJOURS. Symptôme traître : le
+ * jeton EST dans le stockage quand on regarde, c'est l'ORDRE qui est faux.
  *
- * ⛔ `AiPanelProvider` N'EST PAS ICI, et ce n'est pas un oubli : il appelle
- * `useLocation()`, donc il LÈVE au-dessus d'un routeur. En production il est
- * dans `<BrowserRouter>` ; ici il descend dans le `MemoryRouter` du banc. Écran
- * blanc au premier essai, diagnostiqué par la console — la compilation ne dit
- * rien d'une exigence de contexte.
+ * ⛔ ET IL NE FAUT PAS NON PLUS IMPORTER LE SEMIS ICI pour l'appeler avant : un
+ * import statique depuis `App.tsx` fait entrer l'identité de démonstration dans
+ * le BUNDLE DÉPLOYÉ. Mesuré — « Agence MEGGA · démonstration » et son UUID se
+ * sont retrouvés dans `index-*.js`, le minifieur retenant l'objet parce que son
+ * `.id` est lu. La branche gelée en DEV ne suffit pas à faire disparaître ce
+ * qu'un import statique amarre.
+ *
+ * Le banc monte donc SES providers lui-même, derrière l'import lazy.
  */
 function BancCrmAgent() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <ToastProvider>
-          <ErrorBoundary>
-            <Suspense fallback={null}>
-              <CrmShowcasePage />
-            </Suspense>
-          </ErrorBoundary>
-        </ToastProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <Suspense fallback={null}>
+        <CrmShowcasePage />
+      </Suspense>
+    </ErrorBoundary>
   )
 }
 
