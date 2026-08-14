@@ -11,7 +11,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { type SugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
 import type { KycDocument } from '@/types/kyc'
 import { type KypSurf } from './kypTokens'
 import { KypIcon } from './kypAtoms'
@@ -107,7 +107,7 @@ export function KycDocViewer({ doc, sp, surf, onClose }: Props) {
           minHeight: 0,
           background: surf.card,
           borderRadius: 'var(--crm-radius-5xl)',
-          boxShadow: '0 40px 100px ${sgVoileEncre(false, 0.30)}, 0 8px 24px ${sgVoileEncre(false, 0.14)}',
+          boxShadow: `0 40px 100px ${sgVoileEncre(false, 0.30)}, 0 8px 24px ${sgVoileEncre(false, 0.14)}`,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',

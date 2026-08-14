@@ -71,7 +71,7 @@ function KypVigieCard({
         )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 8, minWidth: 0 }}>
-        <KypAvatar firstName={it.firstName} lastName={it.lastName} size={22} ring={surf.cardSub} />
+        <KypAvatar firstName={it.firstName} lastName={it.lastName} size={22} avatarBg={surf.avatar} ring={surf.cardSub} />
         <span
           style={{
             fontSize: 'var(--crm-text-md)',
@@ -122,7 +122,7 @@ function KypDenseRow({
         borderBottom: last ? '0' : `1px solid ${surf.hairline}`,
       }}
     >
-      <KypAvatar firstName={it.firstName} lastName={it.lastName} size={26} ring={surf.card} />
+      <KypAvatar firstName={it.firstName} lastName={it.lastName} size={26} avatarBg={surf.avatar} ring={surf.card} />
       <div style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-md)' }}>
         <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap' }}>{it.title}</span>
         <span

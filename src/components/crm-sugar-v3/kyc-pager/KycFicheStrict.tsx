@@ -13,7 +13,7 @@
 //   • export = route print existante ; PAS de suppression (rétention LBA 10 ans).
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { type SugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
 import {
   useKycCase,
   useKycDocuments,
@@ -402,7 +402,7 @@ export function KycFicheStrict({ dossierId, agentId, sp, surf, onClose, onNaviga
         >
           <KypIcon name="arrowL" size={18} />
         </button>
-        {contact && <KypAvatar firstName={contact.first_name} lastName={contact.last_name} size={46} ring={sp.pageBg} />}
+        {contact && <KypAvatar firstName={contact.first_name} lastName={contact.last_name} size={46} avatarBg={surf.avatar} ring={sp.pageBg} />}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.5, color: sp.ink }}>
             {contact ? `${contact.first_name} ${contact.last_name}` : 'Dossier KYC'}
@@ -771,7 +771,7 @@ function MatchDecisionModal({
           maxWidth: 'calc(100% - 60px)',
           background: surf.card,
           borderRadius: 'var(--crm-radius-5xl)',
-          boxShadow: '0 40px 100px ${sgVoileEncre(false, 0.30)}, 0 8px 24px ${sgVoileEncre(false, 0.14)}',
+          boxShadow: `0 40px 100px ${sgVoileEncre(false, 0.30)}, 0 8px 24px ${sgVoileEncre(false, 0.14)}`,
           padding: '26px 26px 22px',
           boxSizing: 'border-box',
           animation: 'kypDocUp .3s cubic-bezier(.2,.8,.2,1) both',

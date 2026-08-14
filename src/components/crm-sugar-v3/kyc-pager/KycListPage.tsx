@@ -203,7 +203,7 @@ export function KycListPage({ sp, surf, onNewDossier, onOpen }: Props) {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', minWidth: 0 }}>
-                <KypAvatar firstName={d.contact!.first_name} lastName={d.contact!.last_name} size={34} ring={surf.card} />
+                <KypAvatar firstName={d.contact!.first_name} lastName={d.contact!.last_name} size={34} avatarBg={surf.avatar} ring={surf.card} />
                 <div
                   style={{
                     fontSize: 'var(--crm-text-xl)',

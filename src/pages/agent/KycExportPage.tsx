@@ -181,7 +181,7 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
         alignItems: 'center',
         justifyContent: 'space-between',
         fontFamily: '"Inter Tight", system-ui, sans-serif',
-        boxShadow: '0 2px 8px ${sgVoileEncre(false, 0.04)}',
+        boxShadow: `0 2px 8px ${sgVoileEncre(false, 0.04)}`,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

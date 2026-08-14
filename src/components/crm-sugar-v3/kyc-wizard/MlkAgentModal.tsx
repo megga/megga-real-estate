@@ -307,7 +307,7 @@ export function MlkAgentModal({
           background: SugarV3.card,
           borderRadius: 'var(--crm-radius-6xl)',
           boxShadow:
-            '0 40px 100px ${sgVoileEncre(false, 0.20)}, 0 8px 24px ${sgVoileEncre(false, 0.10)}',
+            `0 40px 100px ${sgVoileEncre(false, 0.20)}, 0 8px 24px ${sgVoileEncre(false, 0.10)}`,
           fontFamily: SugarV3.font,
           color: SugarV3.ink,
           animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',

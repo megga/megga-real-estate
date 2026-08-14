@@ -124,7 +124,10 @@ export function KwGateCard({
           display: 'flex',
           alignItems: 'center',
           gap: 'var(--crm-space-md)',
-          color: selected ? sp.onAccent : hover ? sp.black : sp.muted,
+          // ⚠ `sp.ink` au survol, plus `sp.black` : l'accent en TEXTE tient en
+          // clair (5,78:1) mais tombe à 3,44:1 sur la carte sombre. Le survol
+          // reste un signal — il passe de l'encre secondaire à l'encre pleine.
+          color: selected ? sp.onAccent : hover ? sp.ink : sp.muted,
           fontSize: 'var(--crm-text-lg)',
           fontWeight: 600,
           transition: 'color .2s',

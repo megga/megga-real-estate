@@ -12,6 +12,7 @@ import { KYC_STATUS_LABELS, KYC_RISK_LABELS } from '../tokens'
 import type { KycCheckCategory, KycDossierStatus } from '@/types/kyc'
 import type { KycRiskLevel } from '@/lib/constants'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 
 /** Police du pager / fiche / wizard (déjà en usage côté KYC). */
 export const KYP_FONT = SugarV3.font
@@ -57,6 +58,20 @@ export interface KypSurf {
   ghost: string
   late: string
   ringAvatar: string
+  /**
+   * Aplat de la pastille d'avatar.
+   *
+   * ⛔ IL DOIT SUIVRE LE THÈME, et ce n'est pas une préférence. `KypAvatar`
+   * peignait `MXC_COLOR.n100` en dur : en sombre la pastille valait le canvas
+   * (`#030303` sur `#030303`, 1,00:1) — le disque n'existait pas, seules ses
+   * initiales blanches flottaient à 20,62:1. Aucune garde d'ENCRE ne pouvait le
+   * voir, puisque c'est la FORME qui disparaissait.
+   *
+   * En sombre le disque ne peut pas descendre sous la carte (`#090909` est déjà
+   * quasi noir) : il doit MONTER. Il prend donc l'encre sombre, ce que
+   * `encreSur` dérive — jamais un `#fff` en dur.
+   */
+  avatar: string
   destructive: string
   dark: boolean
 }
@@ -65,10 +80,14 @@ export function kypSurf(dark: boolean): KypSurf {
   return {
     card: dark ? MXC_COLOR.n300 : '#FFFFFF',
     cardSub: dark ? MXC_COLOR.n200 : '#F7F8FA',
-    hairline: dark ? 'rgba(255,255,255,0.06)' : '${sgVoileEncre(false, 0.05)}',
+    // ⛔ L'APPEL, pas une chaîne qui le cite. Écrit en guillemets simples, ce
+    // `${…}` n'était que du texte : `border: 1px solid ${…}` devenait invalide et
+    // les filets de la fiche stricte disparaissaient en CLAIR.
+    hairline: dark ? 'rgba(255,255,255,0.06)' : sgVoileEncre(false, 0.05),
     ghost: dark ? 'rgba(255,255,255,0.28)' : '#B5BAC2',
     late: dark ? '#E08A2E' : '#C45A00',
     ringAvatar: dark ? MXC_COLOR.n300 : '#FFFFFF',
+    avatar: dark ? MXC_COLOR.n600 : MXC_COLOR.n100,
     destructive: dark ? '#E0738C' : '#8E1F3D',
     dark,
   }

@@ -4,7 +4,7 @@
 // remontée à la fiche qui la téléverse via `useUploadKycDocument`.
 
 import { useRef, useState } from 'react'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { type SugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { KYC_CHECK_LABELS } from '../tokens'
 import type { KycCheckCategory } from '@/types/kyc'
 import { KYP_FONT, type KypSurf } from './kypTokens'
@@ -51,7 +51,7 @@ export function KycUploadModal({ category, contactName, sp, surf, pending, onCan
           maxWidth: 'calc(100% - 60px)',
           background: dark ? '#202124' : '#FFFFFF',
           borderRadius: 'var(--crm-radius-6xl)',
-          boxShadow: '0 40px 100px ${sgVoileEncre(false, 0.20)}, 0 8px 24px ${sgVoileEncre(false, 0.10)}',
+          boxShadow: `0 40px 100px ${sgVoileEncre(false, 0.20)}, 0 8px 24px ${sgVoileEncre(false, 0.10)}`,
           padding: '26px 28px',
           boxSizing: 'border-box',
           animation: 'kypPop .38s cubic-bezier(.2,.8,.2,1) both',

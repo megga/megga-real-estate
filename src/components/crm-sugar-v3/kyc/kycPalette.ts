@@ -87,13 +87,23 @@ export const KYC_LIGHT: KycPalette = {
   onAccent: '#FFFFFF',
   ink: MXC_COLOR.n100,
   inkSoft: '#3A3D44',
-  muted: '#7A8088',
+  // ⛔ `#7A8088` ne passait PAS l'AA en clair — 3,98:1 sur sa propre carte, sur
+  // 14 sites en `color:`. Le défaut était MONO-THÈME (en sombre `muted` vaut
+  // `sp.sub`, donc 7,89:1), donc invisible à toute garde d'un seul thème.
+  // `n500` est le barreau que MEGGA X donne à l'encre secondaire claire :
+  // 5,57 sur la carte, 5,24 sur la sous-carte, 4,84 sur le canvas.
+  muted: MXC_COLOR.n500,
   ghost: '#B5BAC2',
   ringTrack: `${sgVoileEncre(false, 0.08)}`,
   shadowSm: `0 4px 16px ${sgVoileEncre(false, 0.04)}`,
-  shadow: '0 12px 40px ${sgVoileEncre(false, 0.06)}, 0 2px 8px ${sgVoileEncre(false, 0.03)}',
-  shadowLg: '0 24px 60px ${sgVoileEncre(false, 0.08)}, 0 4px 16px ${sgVoileEncre(false, 0.04)}',
-  shadowHover: '0 32px 70px ${sgVoileEncre(false, 0.10)}, 0 6px 20px ${sgVoileEncre(false, 0.05)}',
+  // ⛔ BACKTICKS, pas des guillemets simples. Ces trois lignes ont vécu en
+  // chaînes littérales contenant `${…}` : du TEXTE, donc une déclaration CSS
+  // invalide que le navigateur écarte — `box-shadow: none`. Avec
+  // `cardBorder: 'transparent'` juste au-dessus, les cartes claires du KYC
+  // sortaient sans ombre NI bordure. Gardé par `interpolation-morte.spec.ts`.
+  shadow: `0 12px 40px ${sgVoileEncre(false, 0.06)}, 0 2px 8px ${sgVoileEncre(false, 0.03)}`,
+  shadowLg: `0 24px 60px ${sgVoileEncre(false, 0.08)}, 0 4px 16px ${sgVoileEncre(false, 0.04)}`,
+  shadowHover: `0 32px 70px ${sgVoileEncre(false, 0.10)}, 0 6px 20px ${sgVoileEncre(false, 0.05)}`,
   ok: '#10B981',
   warn: '#F59E0B',
   err: '#EF4444',
@@ -103,7 +113,10 @@ export const KYC_LIGHT: KycPalette = {
   okDark: '#0E9F6E',
   errDark: '#E53935',
   errDarker: '#B91C1C',
-  onAccentSoft: 'rgba(255,255,255,0.75)',
+  // ⚠ 0,75 rendait 3,95:1 sur l'accent — sous l'AA. 0,85 rend 4,63:1. Les deux
+  // autres sont des APLATS (fond de pastille, fond de vignette), pas des encres :
+  // ils ne portent aucun seuil de texte et ne bougent pas.
+  onAccentSoft: 'rgba(255,255,255,0.85)',
   onAccentMid: 'rgba(255,255,255,0.18)',
   onAccentFaint: 'rgba(255,255,255,0.10)',
   divider: `${sgVoileEncre(false, 0.10)}`,
@@ -142,7 +155,16 @@ export function buildKycPalette(
     cardBorder: 'rgba(255,255,255,0.06)',
     black: sp.accent, // l'actif porte l'accent dans les DEUX thèmes
     blackHover: '#FFFFFF',
-    onAccent: sp.pageBg, // texte sombre posé sur la pilule claire
+    // ⛔ BLANC, PAS LE CANVAS — et ce n'était pas une étourderie mais un
+    // commentaire PÉRIMÉ. « texte sombre posé sur la pilule claire » disait vrai
+    // quand la branche sombre rendait une pilule CLAIRE ; le lot A2 a fait passer
+    // `black` à l'accent sans suivre `onAccent`. Résultat mesuré au rendu :
+    // `#030303` sur `#424bfb` = 3,57:1 sur les 12 sites en `color:` (pilule
+    // d'étape active du wizard, badge « Recommandé », CTA primaire).
+    // `CLAUDE.md` §3 dit que l'accent ne tient en aplat (5,78:1) que parce que
+    // c'est l'ENCRE BLANCHE qui porte le contraste — la branche sombre cassait
+    // exactement la propriété sur laquelle la règle s'appuie.
+    onAccent: '#FFFFFF',
     ink: sp.ink,
     inkSoft: sp.soft,
     muted: sp.sub,
@@ -162,9 +184,12 @@ export function buildKycPalette(
     okDark: '#6EE7B7',
     errDark: '#F8B4B0',
     errDarker: '#FCA5A5',
-    onAccentSoft: `${sgVoileEncre(false, 0.62)}`,
-    onAccentMid: `${sgVoileEncre(false, 0.14)}`,
-    onAccentFaint: `${sgVoileEncre(false, 0.08)}`,
+    // ⚠ MÊME SENS QU'EN CLAIR, pour la même raison : ils se posent sur l'accent,
+    // qui ne change pas d'un thème à l'autre. Ils s'inversaient (voile d'encre
+    // SOMBRE) du temps de la pilule claire — sur l'accent, ça donnait 2,58:1.
+    onAccentSoft: 'rgba(255,255,255,0.85)',
+    onAccentMid: 'rgba(255,255,255,0.18)',
+    onAccentFaint: 'rgba(255,255,255,0.10)',
     divider: 'rgba(255,255,255,0.12)',
     stepLine: 'rgba(255,255,255,0.16)',
     footerFade: `linear-gradient(180deg, transparent 0%, ${sp.pageBg} 62%, ${sp.pageBg} 100%)`,

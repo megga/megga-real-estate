@@ -1,7 +1,7 @@
 // MEGGA CRM — KYC Pager · atomes (icônes, avatar, pilules, jauge, CTA)
 // Port fidèle des atomes du prototype `kyc-pager-proto.jsx`.
 
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, encreSur } from '@/components/megga-x-crm/tokens'
 import type { CSSProperties, ReactNode } from 'react'
 import type { SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmInitials } from '@/components/crm-sugar/tokens'
@@ -81,8 +81,12 @@ export function KypAvatar({
         height: size,
         borderRadius: 'var(--crm-radius-pill)',
         flexShrink: 0,
+        // ⛔ L'ENCRE SE DÉRIVE DE L'APLAT, elle ne se choisit pas. `color: '#fff'`
+        // en dur ne tenait que parce que l'aplat était noir en dur : dès que la
+        // pastille monte (thème sombre, où elle ne peut pas descendre sous la
+        // carte), le blanc tombe à 2,3:1. `encreSur` rend l'encre qui passe.
         background: avatarBg || MXC_COLOR.n100,
-        color: '#fff',
+        color: encreSur(avatarBg || MXC_COLOR.n100),
         display: 'grid',
         placeItems: 'center',
         fontSize: size * 0.34,
