@@ -801,7 +801,7 @@ function ReasonDialog({ open, onClose, onConfirm, pending, variant }: {
             onClick={() => onConfirm(trimmed)}
             disabled={trimmed === '' || pending}
             className={cn(
-              'h-9 px-4 text-sm font-medium border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
+              'h-9 px-4 text-sm font-medium border rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed',
               confirmTone,
             )}
           >
@@ -1025,21 +1025,21 @@ function ResolveIdDocumentSection({ agencyId, pending, persons, onResolve, busy 
               <button
                 onClick={() => onResolve(p.checkId, 'match')}
                 disabled={busy}
-                className="h-8 px-3 text-xs font-medium border border-emerald-500/30 text-emerald-500 rounded-lg hover:border-emerald-500 transition-colors disabled:opacity-40"
+                className="h-8 px-3 text-xs font-medium border border-emerald-500/30 text-emerald-500 rounded-lg hover:border-emerald-500 transition-colors disabled:opacity-70"
               >
                 {t('kybReview.resolveIdDocument.match')}
               </button>
               <button
                 onClick={() => onResolve(p.checkId, 'partial')}
                 disabled={busy}
-                className="h-8 px-3 text-xs font-medium border border-amber-500/30 text-amber-500 rounded-lg hover:border-amber-500 transition-colors disabled:opacity-40"
+                className="h-8 px-3 text-xs font-medium border border-amber-500/30 text-amber-500 rounded-lg hover:border-amber-500 transition-colors disabled:opacity-70"
               >
                 {t('kybReview.resolveIdDocument.partial')}
               </button>
               <button
                 onClick={() => onResolve(p.checkId, 'mismatch')}
                 disabled={busy}
-                className="h-8 px-3 text-xs font-medium border border-red-500/30 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-40"
+                className="h-8 px-3 text-xs font-medium border border-red-500/30 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-70"
               >
                 {t('kybReview.resolveIdDocument.mismatch')}
               </button>
@@ -1212,7 +1212,7 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
               onError: handleError,
             })}
             disabled={anyActionPending}
-            className="h-9 px-4 text-sm font-medium border border-emerald-500/30 text-emerald-500 rounded-lg hover:border-emerald-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+            className="h-9 px-4 text-sm font-medium border border-emerald-500/30 text-emerald-500 rounded-lg hover:border-emerald-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
           >
             {validate.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {validate.isPending ? t('kybReview.actions.validating') : t('kybReview.actions.validate')}
@@ -1220,14 +1220,14 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
           <button
             onClick={() => setRejectOpen(true)}
             disabled={anyActionPending}
-            className="h-9 px-4 text-sm font-medium border border-red-500/30 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-9 px-4 text-sm font-medium border border-red-500/30 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {t('kybReview.actions.reject')}
           </button>
           <button
             onClick={() => setCorrectionOpen(true)}
             disabled={anyActionPending}
-            className="h-9 px-4 text-sm font-medium border border-amber-500/30 text-amber-500 rounded-lg hover:border-amber-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="h-9 px-4 text-sm font-medium border border-amber-500/30 text-amber-500 rounded-lg hover:border-amber-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {t('kybReview.actions.requestCorrection')}
           </button>
@@ -1237,7 +1237,7 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
               onError: handleError,
             })}
             disabled={anyActionPending}
-            className="h-9 px-4 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+            className="h-9 px-4 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
           >
             {relaunch.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {relaunch.isPending ? t('kybReview.actions.relaunching') : t('kybReview.actions.relaunch')}
@@ -1397,7 +1397,7 @@ function QueuePager({ view, total, onPrev, onNext }: {
         <button
           onClick={onPrev}
           disabled={!hasPrev}
-          className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+          className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           {t('kybReview.pager.previous')}
@@ -1408,7 +1408,7 @@ function QueuePager({ view, total, onPrev, onNext }: {
         <button
           onClick={onNext}
           disabled={!hasNext}
-          className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+          className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
         >
           {t('kybReview.pager.next')}
           <ChevronRight className="h-3.5 w-3.5" />
