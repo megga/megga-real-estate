@@ -228,6 +228,7 @@ Le code vit dans **3 runtimes distincts** ; un fichier ne « déménage » pas l
 | `src/` | Navigateur (bundle Vite, **TS only**) | Code d'app **importé et rendu**, rien d'autre |
 | `scripts/` | Node (`node scripts/*.mjs`, brut, **aucun loader TS**) | **Exécutables** seuls ; helpers partagés → `scripts/_shared/`, fixtures de données → `scripts/_data/` |
 | `supabase/functions/` | Deno (edge) | Edge functions ; code partagé → `_shared/` |
+| `scripts/realadvisor-agencies/` | **Python** (venv `uv`, hors CI) | ⚠ Seule exception à la règle Node, et elle est contrainte : franchir le challenge Cloudflare de RealAdvisor exige un navigateur furtif **headful** (Camoufox), et rien d'équivalent ne passe côté Node — mesuré, cf. le README du dossier. Ne pas « corriger » en portant vers `.mjs` sans avoir prouvé qu'un client Node passe. **Le dossier est une unité autonome : ses helpers Python y restent** (`ra_parse.py`) au lieu d'aller dans `scripts/_shared/`, qui est le dossier des helpers **Node** — y mêler deux runtimes nuirait plus à la lisibilité que la co-location. |
 
 - ⛔ **JAMAIS de helper ni de donnée de script dans `src/`** : c'est le bundle navigateur, et un script Node ne peut importer ni un `.ts` ni l'arbre frontend. Un helper de script va dans `scripts/_shared/`, pas dans `src/lib/`.
 - `src/lib/` et `src/hooks/` sont **PLATS volontairement** — ne PAS les réorganiser en sous-dossiers thématiques (churn massif d'imports + conflits de merge ; le plat est idiomatique, l'alias `@/` suffit). `src/components/` est foldered par thème.
