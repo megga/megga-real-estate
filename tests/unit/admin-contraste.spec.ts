@@ -44,7 +44,7 @@
  * rend un succès, pas une erreur).
  */
 import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { adminSurfaces, adminTones } from '@/hooks/useAdminSugar'
@@ -156,6 +156,20 @@ const SOURCE_HOOK = 'src/hooks/useAdminSugar.ts'
  */
 const CONSOMMATEURS_ONTONE = ['src/pages/admin/AdminNpsPage.tsx']
 
+/**
+ * Les trois dossiers de la console, balayés en ENTIER.
+ *
+ * ⚠ On liste le DOSSIER, pas les fichiers : une clause qui itérerait les
+ * fichiers connus rétrécirait avec eux. `emptyRoots` n'existe pas ici, d'où
+ * l'assertion de peuplement dans « le balayage lit chaque ton ».
+ */
+function fichiersDuPerimetre(): string[] {
+  const racines = ['src/pages/admin', 'src/components/admin', 'src/components/admin/kit']
+  return racines.flatMap((r) =>
+    readdirSync(r).filter((n) => /\.tsx?$/.test(n)).map((n) => `${r}/${n}`),
+  )
+}
+
 const sansCommentaires = (c: string) =>
   c.replace(/\/\*[\s\S]*?\*\//g, (b) => '\n'.repeat((b.match(/\n/g) ?? []).length))
     .replace(/\/\/[^\n]*/g, ' ')
@@ -253,11 +267,18 @@ describe('Console admin — les tons restent lisibles dans les deux thèmes', ()
    * explique le correctif (n° 16).
    */
   it('aucun texte de la console n’est peint avec le ton `accent`', () => {
-    const code = sansCommentaires(readFileSync(SOURCE_KIT, 'utf8'))
-    const fautifs = code.split('\n')
-      .map((l, i) => ({ l, n: i + 1 }))
-      .filter(({ l }) => /\bcolor:\s*[^,;}\n]*\btones?\.accent\b/.test(l))
-      .map(({ n }) => `${SOURCE_KIT}:${n}`)
+    // ⛔ ELLE NE LISAIT QUE LE KIT, ET MON PROPRE CORRECTIF L'A CONTOURNÉE.
+    // La migration d'`AdminKybReviewPage` a converti `text-admin-accent` en
+    // `color: tones.accent` sur son badge « Admin MEGGA » : 3,57:1 sur le canvas
+    // sombre, mesuré au RENDU alors que la garde restait verte. Onzième forme —
+    // une garde qui ne regarde que là où on a rangé les valeurs ne voit pas
+    // celles écrites à côté. Elle balaye désormais le PÉRIMÈTRE.
+    const fautifs: string[] = []
+    for (const f of fichiersDuPerimetre()) {
+      sansCommentaires(readFileSync(f, 'utf8')).split('\n').forEach((l, i) => {
+        if (/\bcolor:\s*[^,;}\n]*\btones?\.accent\b/.test(l)) fautifs.push(`${f}:${i + 1}`)
+      })
+    }
     expect(fautifs, `texte peint en accent :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 

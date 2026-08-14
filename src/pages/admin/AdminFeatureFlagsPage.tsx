@@ -79,7 +79,7 @@ function AgencyTargetPicker({ flag, agencies, disabled, onUpdate }: {
       <AdminGhostBtn
         onClick={() => setOpen(!open)}
         disabled={disabled}
-        style={{ height: 28, padding: '0 12px', fontSize: 11.5, gap: 6 }}
+        style={{ height: 28, padding: '0 12px', fontSize: 'var(--crm-text-xs)', gap: 6 }}
       >
         {t('admin:featureFlags.targetAgency')}
         <AdminIc
@@ -119,12 +119,12 @@ function AgencyTargetPicker({ flag, agencies, disabled, onUpdate }: {
               style={{
                 width: '100%', height: 30, marginBottom: 4, borderRadius: ADMIN_RADII.pill, border: 0, outline: 'none',
                 padding: '0 12px', background: sp.solidBgSub, color: sp.ink,
-                fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600,
               }}
             />
             <div className="scrollbar-hide" style={{ maxHeight: 224, overflowY: 'auto' }}>
               {filtered.length === 0 && (
-                <p style={{ margin: 0, padding: '10px 10px', fontSize: 12, color: sp.soft }}>
+                <p style={{ margin: 0, padding: '10px 10px', fontSize: 'var(--crm-text-sm)', color: sp.soft }}>
                   {t('admin:featureFlags.noAgencyFound')}
                 </p>
               )}
@@ -143,7 +143,7 @@ function AgencyTargetPicker({ flag, agencies, disabled, onUpdate }: {
                       width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
                       padding: '7px 10px', borderRadius: ADMIN_RADII.row, border: 0, background: 'transparent',
                       cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                      fontSize: 12, fontWeight: active ? 700 : 600, color: active ? sp.ink : sp.sub,
+                      fontSize: 'var(--crm-text-sm)', fontWeight: active ? 600 : 500, color: active ? sp.ink : sp.sub,
                     }}
                   >
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
@@ -184,7 +184,7 @@ export default function AdminFeatureFlagsPage() {
   // sombre vaut exactement `rgba(255,255,255,0.05)`, c'est-à-dire la surface de
   // carte elle-même — le survol serait invisible en thème sombre. On la renforce
   // donc ici pour le déclencheur du sélecteur et les pilules de plan inactives.
-  const hovOnCard = dark ? 'rgba(255,255,255,0.13)' : 'rgba(15,23,42,0.055)'
+  const hovOnCard = dark ? 'rgba(255,255,255,0.13)' : 'rgba(3, 3, 3, 0.055)'
   const hoverCss = `
     .ffx-picker > button, .ffx-plan { transition: background-color .16s ease, opacity .16s ease; }
     .ffx-picker > button:hover:not(:disabled) { background: ${hovOnCard} !important; }
@@ -221,29 +221,29 @@ export default function AdminFeatureFlagsPage() {
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                    <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
+                    <h3 style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>
                       {flag.label}
                     </h3>
                     <code
                       style={{
                         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-                        fontSize: 11, fontWeight: 600, color: sp.soft,
+                        fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft,
                         background: surf.cardSub, padding: '3px 9px', borderRadius: ADMIN_RADII.pill,
                       }}
                     >
                       {flag.key}
                     </code>
                   </div>
-                  <p style={{ margin: '6px 0 0', fontSize: 12.5, fontWeight: 500, color: sp.sub, lineHeight: 1.5 }}>
+                  <p style={{ margin: '6px 0 0', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, lineHeight: 1.5 }}>
                     {flag.description}
                   </p>
 
                   {/* Rappel des plans ciblés (lecture seule) */}
                   {!flag.enabled_globally && flag.enabled_plans.length > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 9 }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.soft }}>{t('admin:featureFlags.plans')} :</span>
+                      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft }}>{t('admin:featureFlags.plans')} :</span>
                       {flag.enabled_plans.map(plan => (
-                        <AdminPill key={plan} label={t(`admin:common.plan.${plan}`)} style={{ padding: '3px 10px', fontSize: 11 }} />
+                        <AdminPill key={plan} label={t(`admin:common.plan.${plan}`)} style={{ padding: '3px 10px', fontSize: 'var(--crm-text-xs)' }} />
                       ))}
                     </div>
                   )}
@@ -261,7 +261,7 @@ export default function AdminFeatureFlagsPage() {
                 <>
                   <AdminDivider margin="14px 0 12px" />
                   <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                    <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.soft, marginRight: 2 }}>
+                    <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft, marginRight: 2 }}>
                       {t('admin:featureFlags.activeFor')}
                     </span>
                     {PLAN_IDS.map(plan => {
@@ -281,7 +281,7 @@ export default function AdminFeatureFlagsPage() {
                           aria-pressed={active}
                           style={{
                             height: 30, padding: '0 13px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                            fontFamily: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                            fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap',
                             background: active ? sp.accent : surf.card, color: active ? sp.accentInk : sp.soft,
                             boxShadow: active ? 'none' : sp.shadowSm,
                           }}
@@ -299,7 +299,7 @@ export default function AdminFeatureFlagsPage() {
                 <>
                   <AdminDivider margin="12px 0" />
                   <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                    <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.soft, marginRight: 2 }}>
+                    <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft, marginRight: 2 }}>
                       {t('admin:featureFlags.agencies')}
                     </span>
                     {flag.enabled_agencies.map(id => (
@@ -309,7 +309,7 @@ export default function AdminFeatureFlagsPage() {
                           display: 'inline-flex', alignItems: 'center', gap: 4,
                           height: 28, padding: '0 5px 0 11px', borderRadius: ADMIN_RADII.pill,
                           background: tones.neutralBg, color: tones.neutralInk,
-                          fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
+                          fontSize: 'var(--crm-text-xs)', fontWeight: 600, whiteSpace: 'nowrap',
                         }}
                       >
                         <span style={{ maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>

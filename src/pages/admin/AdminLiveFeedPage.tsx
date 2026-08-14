@@ -187,7 +187,7 @@ function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: b
         {/* Horodatage */}
         <span style={{
           width: COL.time, flexShrink: 0, paddingTop: 2,
-          fontFamily: MONO, fontSize: 11, color: sp.sub, fontVariantNumeric: 'tabular-nums',
+          fontFamily: MONO, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontVariantNumeric: 'tabular-nums',
         }}>
           {formatTime(event.created_at)}
         </span>
@@ -198,16 +198,16 @@ function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: b
         </span>
 
         {/* Action */}
-        <span style={{ minWidth: COL.action, flexShrink: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>
+        <span style={{ minWidth: COL.action, flexShrink: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>
           {getActionLabel(event.action)}
         </span>
 
         {/* Type d'entité — pilule neutre : la teinte est déjà portée par la pastille */}
-        <AdminPill label={event.entity_type} tone="neutral" style={{ fontSize: 11, padding: '3px 10px' }} />
+        <AdminPill label={event.entity_type} tone="neutral" style={{ fontSize: 'var(--crm-text-xs)', padding: '3px 10px' }} />
 
         {/* Résumé metadata */}
         <span style={{
-          flex: 1, minWidth: 0, paddingTop: 2, fontSize: 11.5, color: sp.sub,
+          flex: 1, minWidth: 0, paddingTop: 2, fontSize: 'var(--crm-text-xs)', color: sp.sub,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {metaSummary || '—'}
@@ -230,7 +230,7 @@ function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: b
           <pre style={{
             margin: 0, padding: 12, borderRadius: ADMIN_RADII.row,
             background: surf.cardSub, color: sp.sub,
-            fontFamily: MONO, fontSize: 11.5, lineHeight: 1.55,
+            fontFamily: MONO, fontSize: 'var(--crm-text-xs)', lineHeight: 1.55,
             overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all',
           }}>
             {JSON.stringify(event.metadata, null, 2)}
@@ -344,7 +344,7 @@ export default function AdminLiveFeedPage() {
     >
       <style>{`
         .lfx-row { transition: background .15s ease; }
-        .lfx-row:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(15,23,42,0.03)'}; }
+        .lfx-row:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(3, 3, 3, 0.03)'}; }
         .lfx-row:focus:not(:focus-visible) { outline: none; }
         .lfx-row:focus-visible { outline: 2px solid ${sp.accent}; outline-offset: -2px; }
       `}</style>
@@ -378,7 +378,7 @@ export default function AdminLiveFeedPage() {
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   height: 30, padding: '0 13px', borderRadius: ADMIN_RADII.pill, border: 0,
-                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap',
                   background: on ? sp.accent : surf.cardSub, color: on ? sp.accentInk : sp.soft,
                   transition: 'background .18s ease',
                 }}
@@ -408,7 +408,7 @@ export default function AdminLiveFeedPage() {
               style={{
                 height: 30, padding: '0 13px 0 32px', borderRadius: ADMIN_RADII.pill, border: 0,
                 background: surf.cardSub, color: sp.soft,
-                fontFamily: 'inherit', fontSize: 12, fontWeight: 700,
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600,
                 appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer',
               }}
             >
@@ -418,7 +418,7 @@ export default function AdminLiveFeedPage() {
               ))}
             </select>
           </div>
-          <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
             {t('liveFeed.events', { count: filteredEvents.length })}
           </span>
         </div>
@@ -429,7 +429,7 @@ export default function AdminLiveFeedPage() {
         {/* En-tête de colonnes */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: COL.gap, padding: `9px ${COL.padX}px`,
-          background: sp.tableHeadBg, fontSize: 11, fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
+          background: sp.tableHeadBg, fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.1, color: sp.sub,
         }}>
           <span style={{ width: COL.time, flexShrink: 0 }}>{t('liveFeed.column.time')}</span>
           <span style={{ width: COL.dot, flexShrink: 0 }} />

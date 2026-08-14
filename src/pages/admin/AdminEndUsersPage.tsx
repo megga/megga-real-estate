@@ -60,7 +60,7 @@ function StatusPills<T extends string>({ options, value, onChange, prefix }: {
             onClick={() => onChange(opt)}
             style={{
               height: 30, padding: '0 13px', borderRadius: ADMIN_RADII.pill, border: 0,
-              cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+              cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap',
               background: on ? sp.accent : surf.cardSub, color: on ? sp.accentInk : sp.soft,
               transition: 'background .18s ease',
             }}

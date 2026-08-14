@@ -114,7 +114,7 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
         onClick={() => setOpen(!open)}
         expanded={open}
         hasPopup
-        style={{ height: 30, padding: '0 13px', fontSize: 12 }}
+        style={{ height: 30, padding: '0 13px', fontSize: 'var(--crm-text-sm)' }}
       >
         {t('admin:plans.changePlan')}
         <AdminIc
@@ -161,7 +161,7 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
                   style={{
                     display: 'block', width: '100%', textAlign: 'left',
                     padding: '7px 12px', borderRadius: ADMIN_RADII.pill, border: 0, background: 'transparent',
-                    fontFamily: 'inherit', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
+                    fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap',
                     color: current ? sp.sub : sp.ink,
                     cursor: current ? 'default' : 'pointer',
                   }}
@@ -191,10 +191,10 @@ function PlanQueue({ title, rows, dot, amount, onOpen }: {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, padding: '0 2px 8px' }}>
-        <h3 style={{ margin: 0, fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub }}>
+        <h3 style={{ margin: 0, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>
           {title}
         </h3>
-        <span style={{ fontSize: 11.5, fontWeight: 700, color: sp.sub }}>{rows.length}</span>
+        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>{rows.length}</span>
       </div>
       {rows.map((row, i) => (
         <div
@@ -208,10 +208,10 @@ function PlanQueue({ title, rows, dot, amount, onOpen }: {
           }}
         >
           <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: dot, flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>
+          <div style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>
             {row.name}
           </div>
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.soft, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.soft, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
             {amount(row)}
           </span>
           <AdminIc icon={ChevronRight} size={15} color={sp.sub} />
@@ -300,14 +300,14 @@ export default function AdminPlansPage() {
   const th = (label: string, extra?: { align?: 'left' | 'right'; width?: number }) => (
     <th style={{
       textAlign: extra?.align ?? 'left', width: extra?.width, padding: '9px 12px',
-      whiteSpace: 'nowrap', fontSize: 11, fontWeight: 700, color: sp.sub,
+      whiteSpace: 'nowrap', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub,
     }}>{label}</th>
   )
   const tdStyle = (extra?: { align?: 'left' | 'right'; total?: boolean }): CSSProperties => ({
-    padding: extra?.total ? '13px 12px 11px' : '11px 12px', fontSize: 12.5, fontWeight: 600, color: sp.ink,
+    padding: extra?.total ? '13px 12px 11px' : '11px 12px', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink,
     whiteSpace: 'nowrap', textAlign: extra?.align ?? 'left', fontVariantNumeric: 'tabular-nums',
     borderTop: extra?.total
-      ? `1px solid ${dark ? 'rgba(255,255,255,0.16)' : 'rgba(15,23,42,0.16)'}`
+      ? `1px solid ${dark ? 'rgba(255,255,255,0.16)' : 'rgba(3, 3, 3, 0.16)'}`
       : surf.hairline,
   })
 
@@ -339,10 +339,10 @@ export default function AdminPlansPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 26 }}>
         {/* MRR — le seul chiffre que la fiche agence ne peut pas donner */}
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12 }}>
-          <span style={{ fontSize: 44, fontWeight: 800, letterSpacing: -2, lineHeight: 1, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 44, fontWeight: 600, letterSpacing: -2, lineHeight: 1, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
             {formatCHF(Number(board.mrr))}
           </span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: sp.sub, marginBottom: 5 }}>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub, marginBottom: 5 }}>
             {t('plans.mrrSuffix')}
           </span>
         </div>
@@ -350,7 +350,7 @@ export default function AdminPlansPage() {
         {/* Les files : ce qui menace le revenu, rien d'autre. « Sièges saturés »
             attend la décision n° 4 — le serveur la nomme dans `unavailable`. */}
         {calm ? (
-          <div style={{ padding: '6px 2px 0', fontSize: 13, fontWeight: 600, color: sp.sub }}>
+          <div style={{ padding: '6px 2px 0', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub }}>
             {t('plans.calm')}
           </div>
         ) : (
@@ -426,9 +426,9 @@ export default function AdminPlansPage() {
                   return (
                     <tr key={row.id} className="adm-row" onClick={() => openAgency(row)} style={{ cursor: 'pointer' }}>
                       <td style={tdStyle()}>
-                        <div style={{ fontWeight: 700, letterSpacing: -0.2 }}>{row.name}</div>
+                        <div style={{ fontWeight: 600, letterSpacing: -0.2 }}>{row.name}</div>
                         {extra?.city && (
-                          <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>{extra.city}</div>
+                          <div style={{ marginTop: 2, fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>{extra.city}</div>
                         )}
                       </td>
                       <td style={tdStyle()}>{planLabel(row.plan)}</td>
@@ -452,17 +452,17 @@ export default function AdminPlansPage() {
                 })}
                 {/* Ligne de totaux : population COMPLÈTE, pas la vue filtrée. */}
                 <tr>
-                  <td style={{ ...tdStyle({ total: true }), fontWeight: 800 }}>
+                  <td style={{ ...tdStyle({ total: true }), fontWeight: 600 }}>
                     {rows.length === portfolio.length
                       ? t('plans.totals.all', { count: portfolio.length })
                       : t('plans.totals.filtered', { shown: rows.length, total: portfolio.length })}
                   </td>
                   <td style={tdStyle({ total: true })} />
-                  <td style={{ ...tdStyle({ total: true, align: 'right' }), fontWeight: 800 }}>
+                  <td style={{ ...tdStyle({ total: true, align: 'right' }), fontWeight: 600 }}>
                     {t('plans.totals.seats', { count: seatsTotal })}
                   </td>
-                  <td style={{ ...tdStyle({ total: true, align: 'right' }), fontWeight: 800 }}>{propsTotal}</td>
-                  <td style={{ ...tdStyle({ total: true, align: 'right' }), fontWeight: 800 }}>
+                  <td style={{ ...tdStyle({ total: true, align: 'right' }), fontWeight: 600 }}>{propsTotal}</td>
+                  <td style={{ ...tdStyle({ total: true, align: 'right' }), fontWeight: 600 }}>
                     {formatCHF(Number(board.mrr))}
                   </td>
                   <td style={tdStyle({ total: true })} />
@@ -477,15 +477,15 @@ export default function AdminPlansPage() {
           {board.pricing_source && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 26, margin: '14px 2px 0', paddingTop: 14,
-              borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.07)'}`,
+              borderTop: `1px solid ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(3, 3, 3, 0.07)'}`,
               flexWrap: 'wrap',
             }}>
-              <span style={{ fontSize: 11, fontWeight: 700, color: sp.sub }}>{t('plans.grid')}</span>
+              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>{t('plans.grid')}</span>
               {PLANS.map(p => {
                 const monthly = board.pricing_source?.[p.id]?.monthly
                 if (monthly === undefined || monthly === null) return null
                 return (
-                  <span key={p.id} style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink }}>
+                  <span key={p.id} style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink }}>
                     {p.name}{' '}
                     <span style={{ fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                       {formatCHF(Number(monthly))}

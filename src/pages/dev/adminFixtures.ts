@@ -320,11 +320,15 @@ export const RPC: Record<string, unknown | ((args: Record<string, unknown>) => u
     { agency_id: AGENCES[4]!.id, agency_name: AGENCES[4]!.name, country: 'CH', verification_status: 'manual_review', verification_score: null, identity_submitted_at: ilYA(60 * 8), verification_sweep_attempts: 0, total_count: 2 },
   ],
 
+  // ⚠ `result` appartient à un vocabulaire FERMÉ — match / partial / mismatch /
+  // unavailable / pending_manual_review. Écrit `pass`, il tombait dans la
+  // branche par défaut de `checkRowTone` et sortait un véto SATISFAIT en
+  // ROUGE : une fixture hors vocabulaire ne casse rien, elle ment.
   get_admin_agency_review_detail: [
     { check_id: 'c1', related_person_id: null, check_type: 'registry_lookup', source: 'lindas', result: 'partial', raw_response: { uid: 'CHE-000.000.000' }, checked_at: ilYA(60 * 29), applicable_weight: 2, is_veto: false },
     { check_id: 'c2', related_person_id: null, check_type: 'vat_lookup', source: 'uid_register', result: 'unavailable', raw_response: null, checked_at: ilYA(60 * 29), applicable_weight: 3, is_veto: false },
     { check_id: 'c3', related_person_id: null, check_type: 'address_geocode', source: 'mapbox', result: 'unavailable', raw_response: null, checked_at: ilYA(60 * 29), applicable_weight: 1.5, is_veto: false },
-    { check_id: 'c4', related_person_id: 'p1', check_type: 'sanctions_screening', source: 'dilisense', result: 'pass', raw_response: { hits: 0 }, checked_at: ilYA(60 * 29), applicable_weight: 0, is_veto: true },
+    { check_id: 'c4', related_person_id: 'p1', check_type: 'sanctions_screening', source: 'dilisense', result: 'match', raw_response: { hits: 0 }, checked_at: ilYA(60 * 29), applicable_weight: 0, is_veto: true },
   ],
 
   // ⚠ Les statuts sont `confirmed` / `done` / `no_show` / `cancelled`. Écrits

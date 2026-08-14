@@ -193,7 +193,7 @@ export default function AdminSecurityAuditPage() {
 
   // Filet de séparation des lignes — même valeur que `AdminTd`, pour que le
   // journal et les tableaux de la console se lisent d'un seul rythme.
-  const rowHair = dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)'
+  const rowHair = dark ? 'rgba(255,255,255,0.06)' : 'rgba(3, 3, 3, 0.05)'
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
@@ -231,7 +231,7 @@ export default function AdminSecurityAuditPage() {
               onClick={() => setView(v)}
               style={{
                 height: 30, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: on ? 600 : 500, whiteSpace: 'nowrap',
                 background: on ? sp.accent : 'transparent', color: on ? sp.accentInk : sp.sub,
                 transition: 'background .15s ease, color .15s ease',
               }}
@@ -282,7 +282,7 @@ export default function AdminSecurityAuditPage() {
                 onClick={() => handleSeverityChange(val)}
                 style={{
                   height: 30, padding: '0 14px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
+                  fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: on ? 600 : 500, whiteSpace: 'nowrap',
                   background: on ? sp.accent : 'transparent', color: on ? sp.accentInk : sp.sub,
                   transition: 'background .15s ease, color .15s ease',
                 }}
@@ -300,7 +300,7 @@ export default function AdminSecurityAuditPage() {
             onChange={e => handleActionChange(e.target.value)}
             style={{
               height: 34, padding: '0 34px 0 15px', borderRadius: ADMIN_RADII.pill, border: 0, outline: 'none',
-              appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
+              appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600,
               color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
             }}
           >
@@ -330,7 +330,7 @@ export default function AdminSecurityAuditPage() {
         {/* En-tête de colonnes — casse normale, fond de tête de table Sugar */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px',
-          background: sp.tableHeadBg, fontSize: 11, fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
+          background: sp.tableHeadBg, fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.1, color: sp.sub,
         }}>
           <div style={{ width: COL.time, flexShrink: 0 }}>{t('admin:securityAudit.table.timestamp')}</div>
           <div style={{ width: COL.severity, flexShrink: 0 }}>{t('admin:securityAudit.table.severity')}</div>
@@ -370,7 +370,7 @@ export default function AdminSecurityAuditPage() {
                   }}
                 >
                   {/* Timestamp */}
-                  <div style={{ width: COL.time, flexShrink: 0, fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                  <div style={{ width: COL.time, flexShrink: 0, fontSize: 'var(--crm-text-xs)', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                     {formatTimestamp(entry.created_at)}
                   </div>
 
@@ -380,7 +380,7 @@ export default function AdminSecurityAuditPage() {
                   </div>
 
                   {/* Action */}
-                  <div style={{ width: COL.action, flexShrink: 0, fontSize: 12.5, fontWeight: 600, color: sp.ink, ...TRUNCATE }}>
+                  <div style={{ width: COL.action, flexShrink: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink, ...TRUNCATE }}>
                     {AUDIT_ACTION_LABELS[entry.action] ?? entry.action}
                   </div>
 
@@ -388,23 +388,23 @@ export default function AdminSecurityAuditPage() {
                   <div style={{ width: COL.actor, flexShrink: 0, minWidth: 0 }}>
                     {entry.actor_name ? (
                       <div style={{ minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: sp.ink, lineHeight: 1.3, ...TRUNCATE }}>{entry.actor_name}</p>
-                        <p style={{ margin: 0, fontSize: 11, color: sp.sub, lineHeight: 1.3, ...TRUNCATE }}>{entry.actor_email}</p>
+                        <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink, lineHeight: 1.3, ...TRUNCATE }}>{entry.actor_name}</p>
+                        <p style={{ margin: 0, fontSize: 'var(--crm-text-xs)', color: sp.sub, lineHeight: 1.3, ...TRUNCATE }}>{entry.actor_email}</p>
                       </div>
                     ) : entry.actor_id === 'ai' ? (
-                      <span style={{ fontSize: 12.5, fontWeight: 600, color: sp.sub }}>{t('admin:securityAudit.megaAi')}</span>
+                      <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub }}>{t('admin:securityAudit.megaAi')}</span>
                     ) : (
-                      <span style={{ fontSize: 12, color: sp.sub }}>-</span>
+                      <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>-</span>
                     )}
                   </div>
 
                   {/* Details */}
-                  <div style={{ flex: 1, minWidth: 0, fontSize: 11.5, color: sp.sub, ...TRUNCATE }}>
+                  <div style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-xs)', color: sp.sub, ...TRUNCATE }}>
                     {summarizeMetadata(entry.metadata)}
                   </div>
 
                   {/* Entity */}
-                  <div style={{ width: COL.entity, flexShrink: 0, textAlign: 'right', fontSize: 11.5, color: sp.sub }}>
+                  <div style={{ width: COL.entity, flexShrink: 0, textAlign: 'right', fontSize: 'var(--crm-text-xs)', color: sp.sub }}>
                     {entry.entity_type}
                   </div>
                 </button>
@@ -413,14 +413,14 @@ export default function AdminSecurityAuditPage() {
                 {isExpanded && (
                   <div style={{ padding: '12px 14px', background: surf.cardSub }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, color: sp.ink }}>{t('admin:securityAudit.metadataFull')}</span>
-                      <span style={{ fontSize: 11, color: sp.sub }}>ID: {entry.entity_id}</span>
+                      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.ink }}>{t('admin:securityAudit.metadataFull')}</span>
+                      <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub }}>ID: {entry.entity_id}</span>
                     </div>
                     <pre
                       className="scrollbar-hide"
                       style={{
                         margin: 0, padding: 12, borderRadius: ADMIN_RADII.row, background: sp.pageBg,
-                        color: sp.sub, fontSize: 11.5, lineHeight: 1.5,
+                        color: sp.sub, fontSize: 'var(--crm-text-xs)', lineHeight: 1.5,
                         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
                         overflowX: 'auto', maxHeight: 192,
                       }}

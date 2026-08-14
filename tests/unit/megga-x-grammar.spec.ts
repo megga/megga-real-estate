@@ -165,6 +165,22 @@ const ZONES: { root: string; keep: (n: string) => boolean }[] = [
   // une exemption écrite, pas un oubli qu'on relèverait à la relecture.
   { root: 'src/components/matching-recherche', keep: (n) => /\.tsx?$/.test(n) && n !== 'MrhMapView.tsx' },
   { root: 'src/components/matching-atelier', keep: (n) => /\.tsx?$/.test(n) },
+  // Les 19 pages de la console super-admin (lot 3 du chantier MEGGA X,
+  // 14 août 2026). Le dossier ENTIER, pas une liste de noms : les 19 fichiers
+  // ont été traités, et un vingtième qui arriverait doit l'être aussi.
+  //
+  // ⚠ Leur dette était l'inverse de celle du dossier de composants du Pipeline,
+  // et c'est la deuxième fois que la mesure contredit l'ordre attendu : 208
+  // tailles littérales ici contre ZÉRO côté composants admin, qui portent eux
+  // 45 graisses. Recopier l'ordre du chantier précédent aurait fait chercher la
+  // mauvaise chose.
+  //
+  // ⛔ ET LE CLIQUET NE VOYAIT PAS `AdminKybReviewPage`. Elle rendait 0 marqueur
+  // sur 1 502 lignes — non pas parce qu'elle était propre, mais parce qu'elle
+  // était peinte en CLASSES (154 `className`, 0 `style={{`) et que cet
+  // instrument ne lit que les styles EN LIGNE. Un silence n'est pas un verdict.
+  // Elle est passée au style en ligne au même lot, ce qui la rend VISIBLE ici.
+  { root: 'src/pages/admin', keep: (n) => /\.tsx?$/.test(n) },
 ]
 
 /** La preuve que le scan voit encore l'arbre — sinon tout passe par vacuité. */
@@ -228,7 +244,18 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
   { motif: /fontSize:\s*104\b/, raison: '104 px — le prix en grand, au-dessus du dernier barreau' },
   { motif: /fontSize:\s*72\b/, raison: '72 px — la saisie chiffrée en grand, au-dessus du barreau' },
   { motif: /fontSize:\s*q === 6 \? 32 : 40\b/, raison: '32/40 px — un même titre à deux densités' },
-  { motif: /fontSize:\s*44\b/, raison: '44 px — le titre de confirmation, au-dessus du barreau' },
+  {
+    // ⚠ RAISON RÉÉCRITE LE 14 AOÛT 2026, et c'est une correction de garde, pas
+    // de code. Elle disait « le titre de confirmation » — un site — alors que
+    // le motif est ancré sur une VALEUR et couvre donc une famille : trois
+    // sites dans les zones du cliquet (le titre de l'étape 8 du wizard, le
+    // compteur du premier lancement de « Mes biens », le MRR du poste de
+    // plans). Une exemption dont la raison nomme un site pendant que son motif
+    // en couvre trois exempte les deux autres PAR ACCIDENT — quatrième forme de
+    // `megga/gardes-vacuites`, ici dans sa variante « raison périmée ».
+    motif: /fontSize:\s*44\b/,
+    raison: '44 px — les chiffres et titres d’affichage au-dessus du dernier barreau (3 sites)',
+  },
   { motif: /fontSize:\s*40\b/, raison: '40 px — le titre du premier lancement, au-dessus du barreau' },
 ]
 
@@ -469,6 +496,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/pages/agent',
       'src/components/matching-recherche',
       'src/components/matching-atelier',
+      'src/pages/admin',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
     // Les pages sont bien VUES — un filtre de nom qui ne matche rien laisserait
     // la racine non vide (le dossier en contient d'autres) tout en ne gardant

@@ -190,7 +190,7 @@ function CallsTab() {
                       <AdminTd>
                         <span style={{ fontWeight: 600 }}>{call.agency_name ?? '—'}</span>
                         <br />
-                        <span style={{ color: sp.soft, fontSize: 12 }}>
+                        <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>
                           {call.booked_by_name ?? call.booked_by_email ?? '—'}
                         </span>
                       </AdminTd>
@@ -199,7 +199,7 @@ function CallsTab() {
                         {call.rescheduled_count > 0 && (
                           <>
                             <br />
-                            <span style={{ color: sp.soft, fontSize: 12 }}>
+                            <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>
                               {t('onboardingCalls.table.rescheduled', { count: call.rescheduled_count })}
                             </span>
                           </>
@@ -340,7 +340,7 @@ function HostsTab() {
                   <AdminTd>
                     <span style={{ fontWeight: 600 }}>{host.display_name}</span>
                     <br />
-                    <span style={{ color: sp.soft, fontSize: 12 }}>
+                    <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>
                       {host.profile_email ?? '—'}
                       {/* Le fuseau seulement quand il SURPREND. Tous les hôtes sont à
                           Europe/Zurich : répété sur chaque rangée, il n'apprenait rien
@@ -358,7 +358,7 @@ function HostsTab() {
                     {hours.more > 0 && (
                       <>
                         <br />
-                        <span style={{ color: sp.soft, fontSize: 12 }}>
+                        <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>
                           {t('onboardingCalls.hosts.table.hoursMore', { n: hours.more })}
                         </span>
                       </>
@@ -409,7 +409,7 @@ function HostsTab() {
           c'est le cas : sous une liste d'hôtes actifs, la phrase n'expliquait rien et
           s'ajoutait au texte que cet écran demande déjà de lire. */}
       {!isLoading && (hosts ?? []).length > 0 && !(hosts ?? []).some((h) => h.is_active) && (
-        <p style={{ color: sp.soft, fontSize: 12, marginTop: 14, lineHeight: 1.6 }}>
+        <p style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)', marginTop: 14, lineHeight: 1.6 }}>
           {t('onboardingCalls.hosts.provisioningNote')}
         </p>
       )}

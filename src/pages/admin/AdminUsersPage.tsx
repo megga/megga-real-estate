@@ -115,7 +115,7 @@ export default function AdminUsersPage() {
 
   const th = { bg: sp.pageBg }
   const cellule: CSSProperties = {
-    padding: '12px', fontSize: 12.5, fontWeight: 600, color: sp.ink,
+    padding: '12px', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink,
     borderTop: surf.hairline, verticalAlign: 'middle',
   }
 
@@ -138,17 +138,17 @@ export default function AdminUsersPage() {
             <AdminAvatar initials={nom.slice(0, 2).toUpperCase()} photo={u.avatar_url ?? undefined} alt={nom} size={30} />
             <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{nom}</span>
+                <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>{nom}</span>
                 {f && <AdminPill label={t(USER_FLAG_KEY[f])} tone={USER_FLAG_TONE[f]} />}
               </div>
-              <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <div style={{ marginTop: 2, fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {u.email}
               </div>
             </div>
           </div>
         </td>
 
-        <td style={{ ...cellule, fontWeight: 500, color: sp.sub, fontSize: 11.5 }}>
+        <td style={{ ...cellule, fontWeight: 500, color: sp.sub, fontSize: 'var(--crm-text-xs)' }}>
           {u.agency_name ?? t('users.platform')}
         </td>
 
@@ -160,7 +160,7 @@ export default function AdminUsersPage() {
         </td>
 
         {/* Dernière activité — un fait, et son absence dite plutôt que masquée */}
-        <td style={{ ...cellule, fontWeight: 500, fontSize: 11.5, whiteSpace: 'nowrap', color: activite.kind === 'recent' ? sp.sub : tones.warn }}>
+        <td style={{ ...cellule, fontWeight: 500, fontSize: 'var(--crm-text-xs)', whiteSpace: 'nowrap', color: activite.kind === 'recent' ? sp.sub : tones.warn }}>
           {activite.kind === 'none'
             ? t('users.activity.never')
             : activite.kind === 'stale'
@@ -231,7 +231,7 @@ export default function AdminUsersPage() {
               style={{
                 marginTop: 12, alignSelf: 'flex-start', border: 0, background: 'transparent',
                 padding: '7px 10px', borderRadius: ADMIN_RADII.pill, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: sp.sub,
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub,
               }}
             >
               {t('users.showMore', { count: reste })}

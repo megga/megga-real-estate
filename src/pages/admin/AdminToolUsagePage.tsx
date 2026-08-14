@@ -64,7 +64,7 @@ export default function AdminToolUsagePage() {
       <AdminCard padding="14px 16px">
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
           <AdminIc icon={Sparkles} size={16} color={tones.info} style={{ marginTop: 2 }} />
-          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: sp.sub }}>
+          <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', lineHeight: 1.55, color: sp.sub }}>
             {t('toolUsage.observeNote')}
           </p>
         </div>
@@ -79,7 +79,7 @@ export default function AdminToolUsagePage() {
         <AdminCard padding="14px 16px">
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
             <AdminIc icon={AlertTriangle} size={16} color={tones.err} style={{ marginTop: 2 }} />
-            <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, lineHeight: 1.55, color: sp.ink }}>
+            <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 600, lineHeight: 1.55, color: sp.ink }}>
               {t('toolUsage.error')}
             </p>
           </div>
