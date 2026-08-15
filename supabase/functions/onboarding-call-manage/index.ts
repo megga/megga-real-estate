@@ -71,7 +71,7 @@ async function loadParties(db: SupabaseClient, call: CallRow) {
   const [{ data: agency }, { data: booker }, { data: host }] = await Promise.all([
     db.from('agencies').select('name').eq('id', call.agency_id).maybeSingle(),
     db.from('profiles').select('email, full_name').eq('id', call.booked_by).maybeSingle(),
-    db.from('onboarding_hosts').select('profile_id, timezone').eq('id', call.host_id).maybeSingle(),
+    db.from('onboarding_hosts').select('profile_id, timezone, calendar_email').eq('id', call.host_id).maybeSingle(),
   ])
   const hostEmail = host?.profile_id
     ? (await db.from('profiles').select('email').eq('id', host.profile_id).maybeSingle()).data?.email ?? null
@@ -81,6 +81,8 @@ async function loadParties(db: SupabaseClient, call: CallRow) {
     attendeeName: booker?.full_name ?? '',
     attendeeEmail: booker?.email ?? '',
     hostProfileId: host?.profile_id ?? null,
+    /** Boîte de service de l'hôte : décide de la voie d'autorisation vers l'agenda. */
+    hostCalendarEmail: (host?.calendar_email as string | null) ?? null,
     hostTimezone: host?.timezone ?? 'Europe/Zurich',
     hostEmail,
   }
@@ -152,7 +154,8 @@ serve(async (req: Request) => {
 
     if (call.calendar_provider && call.calendar_event_id && parties.hostProfileId) {
       await deleteHostEvent(
-        db, parties.hostProfileId,
+        db,
+        { profileId: parties.hostProfileId, calendarEmail: parties.hostCalendarEmail },
         call.calendar_provider as CalendarProvider, call.calendar_event_id,
       )
     }
@@ -262,7 +265,8 @@ serve(async (req: Request) => {
   // rendez-vous, c'est exactement ce que la fonctionnalité doit éviter.
   if (call.calendar_provider && call.calendar_event_id && parties.hostProfileId) {
     await moveHostEvent(
-      db, parties.hostProfileId,
+      db,
+      { profileId: parties.hostProfileId, calendarEmail: parties.hostCalendarEmail },
       call.calendar_provider as CalendarProvider, call.calendar_event_id,
       slotMs, call.duration_minutes,
     )

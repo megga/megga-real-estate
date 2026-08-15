@@ -3895,6 +3895,7 @@ export type Database = {
       onboarding_hosts: {
         Row: {
           buffer_after_minutes: number
+          calendar_email: string | null
           created_at: string
           display_name: string
           duration_minutes: number
@@ -3911,6 +3912,7 @@ export type Database = {
         }
         Insert: {
           buffer_after_minutes?: number
+          calendar_email?: string | null
           created_at?: string
           display_name: string
           duration_minutes?: number
@@ -3927,6 +3929,7 @@ export type Database = {
         }
         Update: {
           buffer_after_minutes?: number
+          calendar_email?: string | null
           created_at?: string
           display_name?: string
           duration_minutes?: number
@@ -7927,6 +7930,7 @@ export type Database = {
         Args: never
         Returns: {
           buffer_after_minutes: number
+          calendar_email: string
           created_at: string
           display_name: string
           duration_minutes: number

@@ -441,6 +441,17 @@ function HostsTab() {
                           et faisait passer l'e-mail à la ligne. */}
                       {host.timezone !== DEFAULT_TIMEZONE && ` · ${host.timezone}`}
                     </span>
+                    {/* Quel agenda fait foi. À dire SEULEMENT quand ce n'est pas celui
+                        du compte de l'hôte : c'est alors une information qu'aucun autre
+                        écran ne porte, et sans elle « aucun créneau » est indiagnosticable. */}
+                    {host.calendar_email && (
+                      <>
+                        <br />
+                        <span style={{ color: sp.soft, fontSize: 12 }}>
+                          {t('onboardingCalls.hosts.table.calendar', { email: host.calendar_email })}
+                        </span>
+                      </>
+                    )}
                   </AdminTd>
                   <AdminTd>
                     {/* La ligne de règles (« 30 min, tampon 15 min, préavis 12 h,

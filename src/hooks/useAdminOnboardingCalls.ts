@@ -41,6 +41,8 @@ export interface AdminOnboardingHost {
   profile_id: string
   display_name: string
   profile_email: string | null
+  /** Boîte Workspace dont l'agenda fait foi ; `null` ⇒ agenda personnel de l'hôte. */
+  calendar_email: string | null
   timezone: string
   is_active: boolean
   weekly_hours: { dow: number; start: string; end: string }[]

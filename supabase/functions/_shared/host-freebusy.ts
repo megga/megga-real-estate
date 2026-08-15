@@ -13,9 +13,18 @@
 // seules occupations sont ses rendez-vous déjà pris, et le moteur de créneaux s'en
 // contente. Un agenda injoignable non plus, mais il vaut alors mieux proposer trop peu
 // que trop : voir `readHostBusy`.
+//
+// DEUX SOURCES D'AUTORISATION, et c'est `calendar_email` qui tranche :
+//   - renseigné → COMPTE DE SERVICE usurpant cette boîte Workspace. L'agenda appartient
+//     alors à MEGGA et ne dépend d'aucun consentement individuel ; c'est aussi le seul
+//     chemin qui permette de créer un lien Meet (cf. google-service-account.ts) ;
+//   - nul → jeton OAuth de l'hôte, voie historique, conservée telle quelle pour les
+//     agendas déjà branchés et pour Outlook.
+// Un hôte bascule de l'une à l'autre en posant ou retirant la colonne, sans déploiement.
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { BusyInterval } from './onboarding-slots.ts'
+import { serviceAccountAccessToken } from './google-service-account.ts'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const GOOGLE_CALENDAR_API = 'https://www.googleapis.com/calendar/v3'
@@ -27,6 +36,18 @@ const MS_SCOPE = 'https://graph.microsoft.com/Calendars.ReadWrite offline_access
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000
 
 export type CalendarProvider = 'google' | 'outlook'
+
+/**
+ * De quel agenda parle-t-on, et au nom de qui.
+ *
+ * Les deux champs sont nécessaires ensemble : `calendarEmail` choisit le mode
+ * d'autorisation, `profileId` reste la clé des jetons OAuth de la voie historique.
+ */
+export interface HostCalendarRef {
+  profileId: string
+  /** Boîte Workspace usurpée par le compte de service. `null` ⇒ jeton de l'hôte. */
+  calendarEmail: string | null
+}
 
 export interface HostBusyResult {
   provider: CalendarProvider | null
@@ -53,6 +74,20 @@ export interface HostEventResult {
 }
 
 // ── Jetons ──────────────────────────────────────────────────────────────────
+
+/**
+ * Jeton Google pour cet hôte, quelle que soit la voie.
+ *
+ * ⚠ Aucun repli de l'une sur l'autre : un hôte dont la boîte de service est déclarée
+ * mais injoignable ne doit PAS retomber sur le jeton personnel de quelqu'un — l'agenda
+ * consulté ne serait plus celui qu'on croit, et les créneaux proposés viendraient d'un
+ * autre calendrier que celui où l'événement sera posé.
+ */
+async function googleAccessTokenFor(db: SupabaseClient, host: HostCalendarRef): Promise<string | null> {
+  return host.calendarEmail
+    ? await serviceAccountAccessToken(host.calendarEmail)
+    : await googleAccessToken(db, host.profileId)
+}
 
 async function googleAccessToken(db: SupabaseClient, userId: string): Promise<string | null> {
   const { data: row } = await db
@@ -243,7 +278,7 @@ function zoneSuffix(dayKey: string, timezone: string): string {
  */
 export async function readHostBusy(
   db: SupabaseClient,
-  userId: string,
+  host: HostCalendarRef,
   timezone: string,
   fromMs: number,
   toMs: number,
@@ -251,7 +286,16 @@ export async function readHostBusy(
   const timeMin = new Date(fromMs).toISOString()
   const timeMax = new Date(toMs).toISOString()
 
-  const googleToken = await googleAccessToken(db, userId)
+  const googleToken = await googleAccessTokenFor(db, host)
+
+  // Une boîte de service déclarée mais sans jeton = agenda branché et illisible, donc
+  // `degraded` — surtout pas « libre ». C'est l'état exact tant que la délégation n'est
+  // pas accordée côté Workspace : l'hôte disparaît de la grille au lieu d'ouvrir des
+  // créneaux sur un agenda qu'on ne sait pas lire.
+  if (host.calendarEmail && !googleToken) {
+    return { provider: 'google', busy: [], degraded: true }
+  }
+
   if (googleToken) {
     const params = new URLSearchParams({
       timeMin, timeMax,
@@ -274,7 +318,7 @@ export async function readHostBusy(
     return { provider: 'google', busy, degraded: false }
   }
 
-  const outlookToken = await outlookAccessToken(db, userId)
+  const outlookToken = await outlookAccessToken(db, host.profileId)
   if (outlookToken) {
     const params = new URLSearchParams({
       startDateTime: timeMin,
@@ -311,13 +355,13 @@ export async function readHostBusy(
 /** Pose l'événement dans l'agenda de l'hôte. Rend `null` s'il n'en a aucun de branché. */
 export async function createHostEvent(
   db: SupabaseClient,
-  userId: string,
+  host: HostCalendarRef,
   input: HostEventInput,
 ): Promise<HostEventResult | null> {
   const startIso = new Date(input.startMs).toISOString()
   const endIso = new Date(input.startMs + input.durationMinutes * 60_000).toISOString()
 
-  const googleToken = await googleAccessToken(db, userId)
+  const googleToken = await googleAccessTokenFor(db, host)
   if (googleToken) {
     const body: Record<string, unknown> = {
       summary: input.summary,
@@ -352,7 +396,10 @@ export async function createHostEvent(
     return { provider: 'google', eventId: created.id, meetingUrl: created.hangoutLink ?? null }
   }
 
-  const outlookToken = await outlookAccessToken(db, userId)
+  // Une boîte de service déclarée n'a pas de repli Outlook : elle DIT quel agenda fait foi.
+  if (host.calendarEmail) return null
+
+  const outlookToken = await outlookAccessToken(db, host.profileId)
   if (outlookToken) {
     const res = await fetch(`${GRAPH_API}/me/events`, {
       method: 'POST',
@@ -386,7 +433,7 @@ export async function createHostEvent(
 /** Déplace un événement existant. Replanifier ne doit pas laisser deux entrées. */
 export async function moveHostEvent(
   db: SupabaseClient,
-  userId: string,
+  host: HostCalendarRef,
   provider: CalendarProvider,
   eventId: string,
   startMs: number,
@@ -396,7 +443,7 @@ export async function moveHostEvent(
   const endIso = new Date(startMs + durationMinutes * 60_000).toISOString()
 
   if (provider === 'google') {
-    const token = await googleAccessToken(db, userId)
+    const token = await googleAccessTokenFor(db, host)
     if (!token) return false
     const res = await fetch(`${GOOGLE_CALENDAR_API}/calendars/primary/events/${eventId}`, {
       method: 'PATCH',
@@ -409,7 +456,7 @@ export async function moveHostEvent(
     return !!res?.ok
   }
 
-  const token = await outlookAccessToken(db, userId)
+  const token = await outlookAccessToken(db, host.profileId)
   if (!token) return false
   const res = await fetch(`${GRAPH_API}/me/events/${eventId}`, {
     method: 'PATCH',
@@ -425,12 +472,12 @@ export async function moveHostEvent(
 /** Retire l'événement. Un échec est sans gravité : le rendez-vous est déjà annulé en base. */
 export async function deleteHostEvent(
   db: SupabaseClient,
-  userId: string,
+  host: HostCalendarRef,
   provider: CalendarProvider,
   eventId: string,
 ): Promise<boolean> {
   if (provider === 'google') {
-    const token = await googleAccessToken(db, userId)
+    const token = await googleAccessTokenFor(db, host)
     if (!token) return false
     const res = await fetch(`${GOOGLE_CALENDAR_API}/calendars/primary/events/${eventId}`, {
       method: 'DELETE',
@@ -439,7 +486,7 @@ export async function deleteHostEvent(
     return !!res?.ok
   }
 
-  const token = await outlookAccessToken(db, userId)
+  const token = await outlookAccessToken(db, host.profileId)
   if (!token) return false
   const res = await fetch(`${GRAPH_API}/me/events/${eventId}`, {
     method: 'DELETE',

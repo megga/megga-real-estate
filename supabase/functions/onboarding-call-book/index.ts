@@ -160,7 +160,7 @@ serve(async (req: Request) => {
   ].filter(Boolean).join('\n')
 
   let meetingUrl: string | null = null
-  const event = await createHostEvent(db, host.profile_id, {
+  const event = await createHostEvent(db, { profileId: host.profile_id, calendarEmail: host.calendar_email }, {
     summary,
     description,
     startMs: slotMs,

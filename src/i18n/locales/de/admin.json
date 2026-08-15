@@ -996,6 +996,7 @@
       "deactivate": "Deaktivieren",
       "table": {
         "host": "Gastgeber",
+        "calendar": "Kalender {{email}}",
         "hours": "Zeiten",
         "upcoming": "Bevorstehend",
         "state": "Status",

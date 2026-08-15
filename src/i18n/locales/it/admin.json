@@ -996,6 +996,7 @@
       "deactivate": "Disattivare",
       "table": {
         "host": "Referente",
+        "calendar": "agenda {{email}}",
         "hours": "Orari",
         "upcoming": "In arrivo",
         "state": "Stato",
