@@ -38,8 +38,6 @@ const SHELL = 'supabase/functions/_shared/email-shell.ts';
  * et dans quel ordre s'y prendre (le client d'abord, l'interne ensuite).
  */
 const A_MIGRER = {
-  'supabase/functions/_shared/agency-verification-notice.ts':
-    "Avis de décision KYB au dirigeant (validé / refusé / correction demandée). CLIENT, à migrer en priorité : c'est le premier e-mail que reçoit une agence après sa soumission.",
   'supabase/functions/_shared/booking-email.ts':
     'Confirmation de rendez-vous KYC au client final. CLIENT, et vu par des tiers (les clients des agences) : priorité haute.',
   'supabase/functions/_shared/whatsapp-optin-send.ts':

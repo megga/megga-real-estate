@@ -68,9 +68,9 @@ const CAS: Cas[] = [
   { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’hôte (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked') },
   { id: 'appel-hote-annule', nom: 'Appel d’accueil · annulation (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail({ ...appel, meetingUrl: null }, 'cancelled') },
 
-  // ── Pas encore migrés ─────────────────────────────────────────────────────
-  // Premier de la liste A_MIGRER : c'est le premier e-mail qu'une agence reçoit après
-  // avoir soumis son dossier. Les trois décisions, parce qu'elles ne se ressemblent pas.
+  // Décision KYB — migrée le 15.08.2026, premier des treize à rejoindre la coquille.
+  // Les trois décisions, parce qu'elles ne se ressemblent pas : seule la correction porte
+  // un bouton, seul le rejet est terminal, seule la validation n'a pas de motif.
   ...(['validated', 'rejected', 'correction_requested'] as const).map((status) => {
     const notice = buildVerificationNotice({
       status,
@@ -82,7 +82,7 @@ const CAS: Cas[] = [
       id: `kyb-${status}`,
       nom: `Décision KYB · ${status}`,
       source: '_shared/agency-verification-notice.ts',
-      migre: false,
+      migre: true,
       rendu: { subject: notice.subject, html: notice.html },
     }
   }),
