@@ -691,7 +691,7 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
             {/* Ce que la lecture assistée a trouvé, AU-DESSUS de l'image et non à sa
                 place : elle dit où porter les yeux, elle ne remplace pas le regard.
                 Absente sur les dossiers soumis avant le 03.08.2026. */}
-            {(p.idDocumentRead || p.idDocumentExpiresOn) && (
+            {(p.idDocumentRead || p.idDocumentExpiresOn || p.identityVerificationStatus) && (
               <div className="mt-1 flex items-center gap-2 text-xs text-theme-tertiary">
                 {/* « vérifiée » quand c'est le prestataire (document authentifié +
                     selfie), « lecture » quand c'est le modèle (ce qui est imprimé sur
@@ -701,6 +701,17 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
                     {t(`kybReview.detail.${p.idDocumentRead.provider === 'stripe_identity' ? 'idVerified' : 'idRead'}.${p.idDocumentRead.verdict}`)}
                   </span>
                 )}
+                {/* État BRUT de la session Stripe, quand le verdict ne le porte pas
+                    déjà : sans lui, « Stripe a échoué » et « jamais tenté » se
+                    lisaient pareil. Le code d'erreur reste brut — vocabulaire Stripe,
+                    stable, que le relecteur peut chercher tel quel. */}
+                {p.identityVerificationStatus &&
+                  (p.identityVerificationStatus !== 'verified' || !p.idDocumentRead) && (
+                    <span>
+                      {t(`kybReview.detail.stripeStatus.${p.identityVerificationStatus}`, p.identityVerificationStatus)}
+                      {p.identityVerificationErrorCode ? ` · ${p.identityVerificationErrorCode}` : ''}
+                    </span>
+                  )}
                 {p.idDocumentExpiresOn && (
                   <span className={cn(p.idDocumentRead?.expired && 'text-red-500')}>
                     {t('kybReview.detail.idRead.expiresOn', { date: swissDate(p.idDocumentExpiresOn) })}

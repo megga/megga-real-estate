@@ -221,6 +221,14 @@ export interface KybReviewPerson {
    */
   idDocumentExpiresOn: string | null
   idDocumentRead: KybIdReadRecord | null
+  /**
+   * État BRUT de la session Stripe Identity (colonnes posées par le webhook,
+   * service_role seul — trigger 20260803160000). Distinct du verdict `idDocumentRead`,
+   * qui n'existe qu'après un `verified` développé : sans ces deux champs, « Stripe a
+   * échoué » et « jamais tenté » se lisaient pareil depuis la console.
+   */
+  identityVerificationStatus: string | null
+  identityVerificationErrorCode: string | null
   roles: PersonRoleRow[]
 }
 
@@ -231,6 +239,8 @@ interface PersonRpcRow {
   id_document_type: string | null
   id_document_expires_on: string | null
   id_document_read: unknown
+  identity_verification_status: string | null
+  identity_verification_error_code: string | null
   roles: Array<{ role: 'signatory' | 'ubo'; valid_to: string | null }> | null
 }
 
@@ -242,7 +252,7 @@ function useKybReviewPersons(agencyId: string) {
     queryFn: async (): Promise<KybReviewPerson[]> => {
       const { data, error } = await supabase
         .from('agency_related_persons')
-        .select('id, first_name, last_name, id_document_type, id_document_expires_on, id_document_read, roles:agency_person_roles(role, valid_to)')
+        .select('id, first_name, last_name, id_document_type, id_document_expires_on, id_document_read, identity_verification_status, identity_verification_error_code, roles:agency_person_roles(role, valid_to)')
         .eq('agency_id', agencyId)
       if (error) throw error
       return ((data ?? []) as unknown as PersonRpcRow[]).map((p) => ({
@@ -257,6 +267,8 @@ function useKybReviewPersons(agencyId: string) {
         // jsonb libre en base : une ligne écrite par une version antérieure du
         // contrat ne doit pas casser l'écran qui l'affiche.
         idDocumentRead: isKybIdReadRecord(p.id_document_read) ? p.id_document_read : null,
+        identityVerificationStatus: p.identity_verification_status ?? null,
+        identityVerificationErrorCode: p.identity_verification_error_code ?? null,
         roles: (p.roles ?? []).map((r) => ({ role: r.role, validTo: r.valid_to })),
       }))
     },
