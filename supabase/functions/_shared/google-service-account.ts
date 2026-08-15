@@ -122,10 +122,21 @@ export async function createAssertion(
   return `${signingInput}.${b64url(new Uint8Array(signature))}`
 }
 
-/** La clé du secret, ou `null` s'il est absent ou illisible. */
+/**
+ * La clé du secret, ou `null` s'il est absent ou illisible.
+ *
+ * ⚠ Le nom `GOOGLE_WORKSPACE_SA_KEY` vient de la PROD, pas d'un choix de code : le
+ * secret y a été posé sous ce nom le 09.08.2026, avant que ce module n'existe, et la
+ * valeur d'un secret ne se relit pas depuis le tableau de bord — c'est donc au code de
+ * s'aligner. Mesuré le 15.08 : un nom désaccordé échoue exactement comme un secret
+ * absent, silencieusement ; d'où aussi le log de la branche absente.
+ */
 function readKey(): ServiceAccountKey | null {
-  const raw = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_KEY')
-  if (!raw) return null
+  const raw = Deno.env.get('GOOGLE_WORKSPACE_SA_KEY')
+  if (!raw) {
+    console.error('[google-service-account] GOOGLE_WORKSPACE_SA_KEY absent des secrets edge')
+    return null
+  }
   try {
     const parsed = JSON.parse(raw) as Partial<ServiceAccountKey>
     if (!parsed.client_email || !parsed.private_key) {
@@ -135,7 +146,7 @@ function readKey(): ServiceAccountKey | null {
     return { client_email: parsed.client_email, private_key: parsed.private_key }
   } catch {
     // Le contenu n'est jamais journalisé : c'est une clé privée.
-    console.error('[google-service-account] GOOGLE_SERVICE_ACCOUNT_KEY n est pas du JSON')
+    console.error('[google-service-account] GOOGLE_WORKSPACE_SA_KEY n est pas du JSON')
     return null
   }
 }
