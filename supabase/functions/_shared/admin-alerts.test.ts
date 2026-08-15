@@ -6,6 +6,7 @@
 // pas avec un double.
 import { describe, it, expect } from 'vitest'
 import {
+  cronStaleHours,
   buildKybReviewAlerts,
   buildEmailFailureAlerts,
   type KybReviewQueueRow,
@@ -124,5 +125,39 @@ describe('buildEmailFailureAlerts — l\'alerte SUR l\'alerte', () => {
   it('un destinataire absent ne fait pas disparaître l\'événement', () => {
     const [a] = buildEmailFailureAlerts([echec({ recipient: null })], 24)
     expect(a.key).toBe('email:failure:destinataire inconnu')
+  })
+})
+
+describe('cronStaleHours — un seuil unique criait sur des jobs sains', () => {
+  const DEFAUT = 25
+
+  it('quotidien ou plus fréquent : le seuil du réglage, inchangé', () => {
+    expect(cronStaleHours('20 3 * * *', DEFAUT)).toBe(DEFAUT)   // tous les jours à 03:20
+    expect(cronStaleHours('*/15 * * * *', DEFAUT)).toBe(DEFAUT) // tous les quarts d'heure
+    expect(cronStaleHours('0 * * * *', DEFAUT)).toBe(DEFAUT)    // toutes les heures
+  })
+
+  it('⛔ HEBDOMADAIRE : plus d\'une semaine, sinon il est « en retard » 6 jours sur 7', () => {
+    // Mesuré le 16.08 : weekly-digest-friday (0 17 * * 5) a tourné vendredi avec succès
+    // et l'alerte partait quand même, chaque semaine, depuis des semaines.
+    expect(cronStaleHours('0 17 * * 5', DEFAUT)).toBe(24 * 8)
+    expect(cronStaleHours('15 3 * * 1', DEFAUT)).toBe(24 * 8)
+  })
+
+  it('⛔ MENSUEL : plus d\'un mois, sinon il est « en retard » 30 jours sur 31', () => {
+    expect(cronStaleHours('15 3 1 * *', DEFAUT)).toBe(24 * 33)
+    expect(cronStaleHours('40 3 1 * *', DEFAUT)).toBe(24 * 33)
+  })
+
+  it('le jour du mois PRIME sur le jour de semaine : il est plus espacé', () => {
+    expect(cronStaleHours('0 3 1 * 1', DEFAUT)).toBe(24 * 33)
+  })
+
+  it('une expression illisible retombe sur le défaut, elle ne désarme pas l\'alerte', () => {
+    // Se taire sur un horaire qu'on ne sait pas lire serait pire que crier :
+    // un job vraiment mort passerait inaperçu.
+    expect(cronStaleHours('', DEFAUT)).toBe(DEFAUT)
+    expect(cronStaleHours('n importe quoi', DEFAUT)).toBe(DEFAUT)
+    expect(cronStaleHours('0 3 *', DEFAUT)).toBe(DEFAUT)
   })
 })

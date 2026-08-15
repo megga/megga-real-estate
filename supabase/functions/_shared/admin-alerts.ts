@@ -223,6 +223,39 @@ async function readJsonConfig<T>(admin: SupabaseClient, key: string): Promise<T 
   }
 }
 
+
+/**
+ * Au bout de combien d'heures un job pg_cron est-il VRAIMENT en retard.
+ *
+ * ⛔ UN SEUIL UNIQUE NE PEUT PAS MARCHER. `cron_stale_hours` vaut 25 h et s'appliquait à
+ * TOUS les jobs : un job hebdomadaire est donc « en retard » six jours sur sept, et un
+ * job mensuel trente jours sur trente et un. Mesuré le 16.08.2026 — sur les cinq jobs
+ * que le seuil dénonçait, QUATRE étaient parfaitement sains :
+ *
+ *   weekly-digest-friday              `0 17 * * 5`  hebdomadaire, tourné vendredi, OK
+ *   knowledge-snippets-expire-weekly  `15 3 * * 1`  hebdomadaire, tourné lundi, OK
+ *   activity-events-retention         `15 3 1 * *`  mensuel, tourné le 1er, OK
+ *   whatsapp-consent-cache-reconcile  `20 3 * * *`  quotidien, tourné hier, OK (le jobid
+ *                                                   avait changé, cf. 20260816000000)
+ *   admin-ai-drift-purge-monthly      `40 3 1 * *`  mensuel, JAMAIS exécuté. Le vrai.
+ *
+ * Le seul signal réel dormait donc sous quatre fausses alertes hebdomadaires, ce qui est
+ * la façon la plus sûre de rendre une boîte d'alertes illisible.
+ *
+ * La cadence se lit dans l'expression elle-même : jour-du-mois contraint ⇒ mensuel,
+ * sinon jour-de-semaine contraint ⇒ hebdomadaire, sinon quotidien ou plus fréquent. La
+ * marge est large À DESSEIN : cette alerte doit dire « ce job ne tourne plus », pas
+ * « ce job a dix minutes de retard ».
+ */
+export function cronStaleHours(schedule: string, defautHeures: number): number {
+  const champs = schedule.trim().split(/\s+/)
+  if (champs.length < 5) return defautHeures
+  const [, , jourDuMois, , jourSemaine] = champs
+  if (jourDuMois !== '*') return 24 * 33      // mensuel : un mois de 31 jours, plus deux
+  if (jourSemaine !== '*') return 24 * 8      // hebdomadaire : une semaine, plus un jour
+  return defautHeures
+}
+
 export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: AlertSignals): Promise<void> {
   const thresholds: AlertThresholds = {
     ...DEFAULT_THRESHOLDS,
@@ -234,16 +267,18 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
   // 1. Crons en retard / en échec (RPC gardée is_super_admin OR is_service_role).
   try {
     const { data: cronRows } = await admin.rpc('get_cron_health')
-    for (const job of (cronRows ?? []) as Array<{ jobname: string; active: boolean; last_start: string | null; last_status: string | null }>) {
+    for (const job of (cronRows ?? []) as Array<{ jobname: string; schedule: string | null; active: boolean; last_start: string | null; last_status: string | null }>) {
       if (!job.active) continue
-      const staleMs = thresholds.cron_stale_hours * 60 * 60 * 1000
-      const stale = !job.last_start || now.getTime() - new Date(job.last_start).getTime() > staleMs
+      // ⛔ LE SEUIL DÉPEND DE LA CADENCE DU JOB, pas d'une constante unique : voir
+      // `cronStaleHours`. Un `cron_stale_hours` plat criait sur quatre jobs sains.
+      const heures = cronStaleHours(job.schedule ?? '', thresholds.cron_stale_hours)
+      const stale = !job.last_start || now.getTime() - new Date(job.last_start).getTime() > heures * 3_600_000
       const failed = job.last_status === 'failed'
       if (stale || failed) {
         alerts.push({
           key: `cron:${job.jobname}`,
           subject: `Cron ${job.jobname} ${failed ? 'en échec' : 'en retard'}`,
-          body: `Le job pg_cron « ${job.jobname} » est ${failed ? `en échec (dernier statut : ${job.last_status})` : `sans exécution depuis plus de ${thresholds.cron_stale_hours}h`}. Dernier run : ${formatCH(job.last_start)}.`,
+          body: `Le job pg_cron « ${job.jobname} » (${job.schedule ?? 'horaire inconnu'}) est ${failed ? `en échec (dernier statut : ${job.last_status})` : `sans exécution depuis plus de ${heures}h`}. Dernier run : ${formatCH(job.last_start)}.`,
         })
       }
     }
