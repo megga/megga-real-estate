@@ -414,7 +414,7 @@ Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel e
 DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
 MEGGA_MAGIC_LINK_HMAC_SECRET,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
-GOOGLE_SERVICE_ACCOUNT_KEY (⚠ à poser — voir ci-dessous),
+GOOGLE_WORKSPACE_SA_KEY (✅ posé le 09.08.2026 — voir ci-dessous),
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_IDENTITY_FLOW_ID,
 MAPBOX_TOKEN,
 UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
@@ -461,7 +461,10 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 > PR #1114, qui réduit le motif rendu aux appelants anonymes à `expired`/`invalid` — il
 > renseignait un tiers sur la configuration du déploiement.
 
-> 🗓 **`GOOGLE_SERVICE_ACCOUNT_KEY` — l'agenda des appels d'accueil (15.08.2026).**
+> 🗓 **`GOOGLE_WORKSPACE_SA_KEY` — l'agenda des appels d'accueil (15.08.2026).**
+> ⚠ Le NOM vient de la prod : Julien l'avait posé ainsi le 09.08, avant le code — et la
+> valeur d'un secret ne se relit pas depuis le dashboard, donc c'est le code qui s'est
+> aligné (un nom désaccordé échoue comme un secret absent : `degraded`, silencieux).
 > Contenu : le fichier de clé JSON **entier** du compte de service
 > `megga-onboarding-calendar@tribal-dispatch-504619-c1.iam.gserviceaccount.com`
 > (projet Google « My First Project » du compte **hello@megga.ai**, API Calendar déjà
