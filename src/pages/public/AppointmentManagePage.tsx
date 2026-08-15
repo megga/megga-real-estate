@@ -38,7 +38,7 @@ function GhostButton({ onClick, children, disabled }: {
       disabled={disabled}
       style={{
         flex: 1, height: 46, borderRadius: 999, cursor: disabled ? 'default' : 'pointer',
-        fontFamily: MLK.font, fontSize: 14, fontWeight: 600, letterSpacing: -0.1,
+        fontFamily: MLK.font, fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.1,
         background: MLK.card, color: disabled ? MLK.ghost : MLK.inkSoft,
         border: 'none', boxShadow: MLK.shadowSm,
       }}
@@ -51,8 +51,8 @@ function GhostButton({ onClick, children, disabled }: {
 function Notice({ title, body }: { title: string; body: string }) {
   return (
     <div style={{ padding: '26px 24px', background: MLK.cardSubtle, borderRadius: 18, textAlign: 'center' }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: MLK.ink, marginBottom: 6 }}>{title}</div>
-      <div style={{ fontSize: 13.5, color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6 }}>{body}</div>
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: MLK.ink, marginBottom: 6 }}>{title}</div>
+      <div style={{ fontSize: 'var(--crm-text-md)', color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6 }}>{body}</div>
     </div>
   )
 }
@@ -109,10 +109,10 @@ export default function AppointmentManagePage() {
   if (done) {
     return shell(
       <>
-        <h1 className="mlk-h1" style={{ margin: '0 0 12px', fontSize: 28, fontWeight: 700, color: MLK.ink, letterSpacing: -0.7, textAlign: 'center' }}>
+        <h1 className="mlk-h1" style={{ margin: '0 0 12px', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.7, textAlign: 'center' }}>
           {done.status === 'cancelled' ? t('client.manage.cancelled_title') : t('client.manage.rescheduled_title')}
         </h1>
-        <p style={{ margin: '0 auto 26px', fontSize: 14, color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6, textAlign: 'center', maxWidth: 400 }}>
+        <p style={{ margin: '0 auto 26px', fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6, textAlign: 'center', maxWidth: 400 }}>
           {done.status === 'cancelled' ? t('client.manage.cancelled_body') : t('client.manage.rescheduled_body')}
         </p>
         {done.status !== 'cancelled' && <MlkAppointmentCard appointment={done} />}
@@ -136,7 +136,7 @@ export default function AppointmentManagePage() {
     const failure = manageMut.error
     return shell(
       <>
-        <h1 className="mlk-h1" style={{ margin: '0 0 22px', fontSize: 26, fontWeight: 700, color: MLK.ink, letterSpacing: -0.6, textAlign: 'center' }}>
+        <h1 className="mlk-h1" style={{ margin: '0 0 22px', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.6, textAlign: 'center' }}>
           {t('client.manage.reschedule_title')}
         </h1>
 
@@ -155,7 +155,7 @@ export default function AppointmentManagePage() {
               onDayChange={(k) => { setSelectedDay(k); setSelectedSlot(null) }}
             />
             {failure && (
-              <div style={{ padding: '12px 16px', borderRadius: 12, marginBottom: 16, background: '#FEF2F2', fontSize: 13, color: '#B42318', fontWeight: 500, lineHeight: 1.5 }}>
+              <div style={{ padding: '12px 16px', borderRadius: 12, marginBottom: 16, background: '#FEF2F2', fontSize: 'var(--crm-text-md)', color: '#B42318', fontWeight: 500, lineHeight: 1.5 }}>
                 {t(`client.booking.error_${failure.code}`, { defaultValue: t('client.booking.error_default') })}
               </div>
             )}
@@ -196,7 +196,7 @@ export default function AppointmentManagePage() {
         <MlkAppointmentCard appointment={appointment} />
         <Notice title={t('client.manage.confirm_cancel_title')} body={t('client.manage.confirm_cancel_body')} />
         {failure && (
-          <div style={{ padding: '12px 16px', borderRadius: 12, margin: '16px 0 0', background: '#FEF2F2', fontSize: 13, color: '#B42318', fontWeight: 500, lineHeight: 1.5 }}>
+          <div style={{ padding: '12px 16px', borderRadius: 12, margin: '16px 0 0', background: '#FEF2F2', fontSize: 'var(--crm-text-md)', color: '#B42318', fontWeight: 500, lineHeight: 1.5 }}>
             {t(`client.booking.error_${failure.code}`, { defaultValue: t('client.booking.error_default') })}
           </div>
         )}
@@ -222,10 +222,10 @@ export default function AppointmentManagePage() {
   // ── Vue par défaut ──
   return shell(
     <>
-      <h1 className="mlk-h1" style={{ margin: '0 0 10px', fontSize: 26, fontWeight: 700, color: MLK.ink, letterSpacing: -0.6, textAlign: 'center' }}>
+      <h1 className="mlk-h1" style={{ margin: '0 0 10px', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.6, textAlign: 'center' }}>
         {t('client.manage.title')}
       </h1>
-      <p style={{ margin: '0 auto 24px', fontSize: 14, color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6, textAlign: 'center', maxWidth: 400 }}>
+      <p style={{ margin: '0 auto 24px', fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6, textAlign: 'center', maxWidth: 400 }}>
         {t('client.manage.subtitle', { when: when.full })}
       </p>
 

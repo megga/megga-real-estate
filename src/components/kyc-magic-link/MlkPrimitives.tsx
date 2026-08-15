@@ -508,10 +508,17 @@ export function MlkBackground({ children }: { children: ReactNode }) {
             border-radius: 22px !important;
           }
         }
-        /* Titres H1 plus petits sur mobile (pas de débordement < 380px) */
+        /* Titres H1 plus petits sur mobile (pas de débordement < 380px).
+           ⛔ ELLE NE DOIT JAMAIS AGRANDIR, et elle le faisait. Cette règle
+           s'applique à TOUS les .mlk-h1, dont le plus petit vaut 24 px : à
+           26 px, trois titres sortaient PLUS GRANDS sur téléphone que sur
+           bureau. Le défaut préexistait sur un site (l'écran de lien expiré) ;
+           la descente des tailles du lot 3 en a révélé deux autres.
+           Le barreau 5xl est le plancher des h1 de cette face — la règle
+           rétrécit toujours, ou ne fait rien. */
         @media (max-width: 480px) {
           .mlk-h1 {
-            font-size: 26px !important;
+            font-size: var(--crm-text-5xl) !important;
             letter-spacing: -0.5px !important;
             line-height: 1.15 !important;
           }

@@ -111,9 +111,9 @@ export default function AcceptInvitePage() {
               <div className="text-center">
                 <h2 className="text-lg font-semibold text-gray-900">{t('team.acceptInvite.title')}</h2>
                 <p className="text-sm text-gray-500 mt-2">
-                  <strong className="text-gray-700">{invitation.inviterName}</strong>
+                  <span className="font-semibold text-gray-700">{invitation.inviterName}</span>
                   {' '}{t('team.acceptInvite.invitesYou')}{' '}
-                  <strong className="text-gray-700">{invitation.agencyName}</strong>
+                  <span className="font-semibold text-gray-700">{invitation.agencyName}</span>
                 </p>
               </div>
 

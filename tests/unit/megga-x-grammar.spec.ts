@@ -142,10 +142,15 @@ const PAGES_PUBLIQUES = new Set([
   // Lot 2 (15 août 2026). Autonome : son seul import de premier niveau était un
   // hook, et sa palette `RC` vient d'être extraite pour pouvoir être GARDÉE.
   'BuyerReceptionPage.tsx',
+  // Lot 3 (15 août 2026). Les deux dernières pages publiques qui rendent des
+  // marqueurs. `AppointmentManagePage` monte `kyc-magic-link/` — elle hérite
+  // donc du gros du lot 1 et ne porte plus que ses propres littéraux ;
+  // `AcceptInvitePage` ne porte AUCUNE couleur, une seule clause la fait rougir.
+  'AppointmentManagePage.tsx', 'AcceptInvitePage.tsx',
 ])
 
 /** Écrite à part, en dur — elle ne peut pas rétrécir avec l'ensemble surveillé (n°15). */
-const PAGES_PUBLIQUES_ACQUISES = ['BuyerReceptionPage.tsx']
+const PAGES_PUBLIQUES_ACQUISES = ['BuyerReceptionPage.tsx', 'AppointmentManagePage.tsx', 'AcceptInvitePage.tsx']
 
 // ⚠ Typé `RootSpec[]`, pas une forme recopiée à la main : l'ancienne annotation
 // ne connaissait pas `keepPath`, donc TypeScript ne l'aurait PAS signalé si un
@@ -721,6 +726,29 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       return !TAILLES_ASSUMEES.some(({ motif }) => motif.test(ligne))
     })
     expect(fautifs, `tailles hors échelle :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ ET LA MÊME RÈGLE EN CSS, que la clause précédente ne peut PAS voir.
+   *
+   * Elle cherche `fontSize:` — la notation des styles EN LIGNE. Un composant qui
+   * pose un `<style>{`…`}</style>` écrit `font-size:`, en kebab, et sort du
+   * balayage sans un mot. C'est la vacuité n°10 : la garde ne voit pas un
+   * LANGAGE, pas un fichier.
+   *
+   * ⚠ ET ELLE A CACHÉ UN DÉFAUT RÉEL. La règle mobile de la face publique posait
+   * `.mlk-h1 { font-size: 26px !important }` sur des titres dont le plus petit
+   * vaut 24 px : trois d'entre eux sortaient PLUS GRANDS sur téléphone que sur
+   * bureau. Une règle qui prétend rétrécir et qui agrandit ne se voit ni à la
+   * relecture — elle a l'air d'un garde-fou — ni dans la clause d'à côté.
+   *
+   * ⚠ MESURÉ AVANT D'ÊTRE ÉCRITE : UNE seule occurrence dans les 373 fichiers du
+   * cliquet. Cette clause ne peut donc pas allumer une zone que personne n'a
+   * regardée — c'est ce qui la rend sûre, et c'est pourquoi le compte est ici.
+   */
+  it('les tailles écrites en CSS sortent aussi de l’échelle', () => {
+    const fautifs = sites((l) => /font-size:\s*[\d.]+px/.test(l))
+    expect(fautifs, `taille CSS en dur :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 
   /**
