@@ -631,6 +631,9 @@ verify_jwt = false
 [functions.onboarding-slots]
 verify_jwt = false
 
+[functions.resend-webhook]
+verify_jwt = false
+
 [functions.outlook-calendar-sync]
 verify_jwt = false
 
