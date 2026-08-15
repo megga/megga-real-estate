@@ -650,49 +650,42 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 > grille** (`degraded`), jamais traité comme libre — donc « aucun créneau » est le symptôme
 > attendu tant que la délégation manque.
 
-> ⚠ **`MAPBOX_TOKEN` n'est PAS configuré** (constat du 01.08.2026, [issue #1061](https://github.com/megga/megga-real-estate/issues/1061)).
-> Il est distinct de `VITE_MAPBOX_TOKEN` (secret GitHub Actions, injecté au build du bundle
-> navigateur). Le connecteur de géocodage KYB tourne dans une Edge Function, côté serveur :
-> il lui faut le jeton dans les secrets Supabase, pas dans le build. Sans lui, le check
-> `address_geocode` produit `unavailable` — et contrairement à ce que cette note affirmait,
-> **ça ne « retire pas juste un signal » : ça empêche tout score d'exister**. Le moteur exclut
-> `unavailable` du numérateur ET du dénominateur, or les trois seuls checks scorables
-> (`vat_lookup` 3.00, `address_geocode` 1.50, `domain_whois_age` 0.75) sortent tous
-> `unavailable` aujourd'hui → `verification_score = NULL` pour tout dossier suisse, et la file
-> de revue trie sur des `NULL`.
+> ✅ **`MAPBOX_TOKEN` est configuré et FONCTIONNE** (posé et mesuré le 16.08.2026 —
+> [issue #1061](https://github.com/megga/megga-real-estate/issues/1061) close). Il est distinct de
+> `VITE_MAPBOX_TOKEN` : le connecteur de géocodage KYB tourne dans une Edge Function, côté serveur,
+> et lui faut le jeton dans les secrets Supabase, pas dans le build.
 >
-> « La même valeur convient » **reste à vérifier** : si le jeton porte une restriction URL
-> referrer, il fonctionnera dans le navigateur et échouera depuis l'Edge Function (appel sans
-> referrer). Il faudra alors un second jeton public sans restriction, scope `geocoding`.
-
-> ⚠ **Les deux variables du registre UID ne sont PAS configurées** (aucun secret Supabase,
-> aucune entrée `supabase/config.toml`) : on ignore encore s'il existe une API séparée pour
-> la TVA suisse/liechtensteinoise, ou si ce n'est qu'un champ Zefix. Le squelette de
-> connecteur (étape 6 du KYB agences, `supabase/functions/_shared/kyb-sources.ts`) les lit
-> déjà : vides, le check `vat_lookup` (CH/LI) produit `unavailable`, ce qui ne casse rien et
-> ne change aucun verdict. Les poser **sans écrire le connecteur** ne débloque rien non
-> plus, et le signale explicitement (`KybSourceNotWiredError`).
+> ⛔ **LES DEUX JETONS NE PEUVENT PAS PORTER LA MÊME VALEUR.** L'Edge Function appelle Mapbox
+> **sans referrer** : un jeton restreint par URL y échoue en 403, alors qu'il marche dans le
+> navigateur. `MAPBOX_TOKEN` doit donc être SANS restriction, et `VITE_MAPBOX_TOKEN` — lisible par
+> quiconque dans le bundle public — doit être restreint à `app.megga.ch`.
 >
-> `ZEFIX_API_URL` et `ZEFIX_API_CREDENTIAL` **ont été retirées de cette liste le
-> 29.07.2026** : elles ne sont plus lues nulle part. Le registre du commerce suisse est
-> interrogé par **LINDAS**, l'endpoint SPARQL public de la Confédération, sans clé ni
-> compte. Il ne manque plus que le **statut actif/radié**, absent de LINDAS, qui plafonne le
-> check `registry_lookup` à `partial` et empêche donc un dossier suisse de s'auto-valider.
-> Détail : [docs/agency-kyb-handoff.md](docs/agency-kyb-handoff.md) §7bis (ce que chaque
-> pays peut auto-valider) et §8 (ce qui reste suspendu).
+> ⚠ **Le code appelle Geocoding v6, jamais v5.** Mapbox a classé `geocoding/v5/mapbox.places`
+> *legacy* : un compte créé aujourd'hui reçoit `403 {"message":"Forbidden"}`. Trois appels sont
+> concernés (`_shared/kyb-sources.ts`, `src/lib/mapbox.ts`, `Step2Address.tsx`) et la forme de la
+> réponse diffère — détails dans le cerveau, `megga/mapbox-geocoding-v6`.
+>
+> Effet mesuré une fois posé : `address_geocode` rend `match`, et `verification_score` cesse d'être
+> `NULL` (1.000 sur les deux dossiers de test, contre 13 dossiers à `NULL` depuis toujours). ⚠ Ce
+> score ne repose encore que sur UN check scorable : `vat_lookup` attend le registre UID et
+> `domain_whois_age` réclame un site web déclaré.
 
 ### Secrets GitHub Actions
 ```
-VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN (⚠ vide — voir ci-dessous),
+VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN (✅ posé le 16.08.2026),
 CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN
 ```
 
-> ⚠ **`VITE_MAPBOX_TOKEN` est listé ici mais vide au build** ([issue #1061](https://github.com/megga/megga-real-estate/issues/1061)).
-> Les 290 fichiers déployés de `app.megga.ch` et `megga.ch` ont été inspectés le 01.08.2026 :
-> aucun littéral `pk.`, alors que `MrhMapbox.tsx` lit `import.meta.env.VITE_MAPBOX_TOKEN` au
-> niveau module — la valeur devrait y être figée. Conséquence : les cartes du CRM affichent
-> le repli « Carte indisponible ». Les secrets GitHub n'étant pas lisibles, l'absence est
-> déduite des artefacts, pas vérifiée à la source.
+> ✅ **`VITE_MAPBOX_TOKEN` est posé et présent dans le bundle** (16.08.2026). Vérifié en balayant
+> les **263 chunks** réellement servis par `app.megga.ch` : le jeton (`pk.eyJ…`) est dans
+> `ListingFormPage-*.js` et `WizardShell-*.js`, aux côtés de `search/geocode/v6/forward`.
+>
+> ⛔ **NE PAS CHERCHER LE JETON DANS `index-*.js`** : ce fichier ne contient pas une ligne de
+> Mapbox, le code étant découpé en morceaux chargés à la demande. C'est ce raccourci qui a fait
+> conclure deux fois à tort que le secret était vide. Un jeton absent du bundle se prouve en
+> balayant les chunks, jamais l'index seul.
+>
+> ⚠ La valeur est figée **au build** : la poser exige un redéploiement pour prendre effet.
 
 ### Supabase
 - **Project ref** : eayczugyrvmtqnnmvjod | **Region** : eu-west-1 | **Plan** : Pro
@@ -700,20 +693,19 @@ CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN
 
 ### Prochaines priorités
 
-**🔴 Bloquant en production — [issue #1061](https://github.com/megga/megga-real-estate/issues/1061) : jeton Mapbox absent partout.**
-Deux secrets à poser, deux effets distincts, constatés le 01.08.2026 :
-- `VITE_MAPBOX_TOKEN` (GitHub Actions) est **vide au build** → les cartes du CRM sont mortes
-  (Matching · Recherche affiche le repli « Carte indisponible »). Vérifié en inspectant les
-  290 fichiers déployés de `app.megga.ch` + `megga.ch` : zéro littéral `pk.`. Exige un
-  redéploiement, la valeur étant figée au build.
-- `MAPBOX_TOKEN` (secrets Supabase) absent → `address_geocode` = `unavailable`, donc
-  **`verification_score` reste `NULL` pour tout dossier suisse** (les 3 seuls checks
-  scorables sont tous `unavailable` ; les checks tranchés sont des vétos à poids 0). Pris en
-  compte sans redéploiement. C'est le geste à plus fort effet sur le KYB.
+**✅ Résolu le 16.08.2026 — [issue #1061](https://github.com/megga/megga-real-estate/issues/1061), jeton Mapbox.**
+Les deux secrets sont posés, le code est passé en Geocoding v6, et le KYB calcule enfin des
+scores (`1.000` sur les deux dossiers de test, contre 13 dossiers à `NULL` depuis toujours).
+Ce qui reste de cet épisode est écrit plus haut, dans les deux encadrés des secrets.
 
-⚠ Vérifier la restriction **URL referrer** du jeton : un jeton restreint marche dans le
-navigateur mais échoue depuis l'Edge Function, qui appelle sans referrer — auquel cas les
-deux secrets doivent porter des valeurs **différentes**.
+**🟠 Reste à faire, par ordre d'effet :**
+1. **Deux jetons Mapbox distincts.** Le même est aujourd'hui posé aux deux endroits, donc le
+   jeton du navigateur est **sans restriction et lisible par tous** dans le bundle public.
+   Dupliquer, et restreindre la copie navigateur à `app.megga.ch`.
+2. **Registre UID** (`UID_REGISTER_API_URL` / `_CREDENTIAL`) : sans lui `vat_lookup` reste
+   `unavailable` et le score suisse ne repose que sur UN check.
+3. **`Step2Address.tsx` invente des adresses** quand le géocodage échoue : son `catch` retombe
+   sur `mockSuggestions` sans rien dire à l'écran. Décider ce que l'utilisateur doit voir.
 
 ---
 
