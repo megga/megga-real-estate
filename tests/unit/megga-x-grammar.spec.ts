@@ -126,6 +126,27 @@ const PAGES_ACQUISES = [
  * `BiensFirstRun`. Il reste fixe ; il ne suit toujours pas le thème.
  */
 
+/**
+ * Pages de la face PUBLIQUE entrées au cliquet. Elles ne vivent PAS dans
+ * `src/pages/agent`, donc elles ne peuvent pas passer par `PAGES` : c'est une
+ * seconde racine, avec son propre filtre et sa propre liste acquise.
+ *
+ * ⚠ Les huit pages publiques restantes rendent 0 marqueur AUJOURD'HUI, et ce
+ * n'est pas un verdict : mesuré le 15 août 2026, elles sont peintes en CLASSES
+ * (de 8 à 57 `className`, ZÉRO `style={{`) et cet instrument ne lit que les
+ * styles EN LIGNE. Les entrer ici les déclarerait portées pendant qu'il ne
+ * mesurerait rien — c'est la vacuité n°6, « la garde muette prise pour un
+ * verdict ». Elles attendent d'être regardées, pas d'être inscrites.
+ */
+const PAGES_PUBLIQUES = new Set([
+  // Lot 2 (15 août 2026). Autonome : son seul import de premier niveau était un
+  // hook, et sa palette `RC` vient d'être extraite pour pouvoir être GARDÉE.
+  'BuyerReceptionPage.tsx',
+])
+
+/** Écrite à part, en dur — elle ne peut pas rétrécir avec l'ensemble surveillé (n°15). */
+const PAGES_PUBLIQUES_ACQUISES = ['BuyerReceptionPage.tsx']
+
 // ⚠ Typé `RootSpec[]`, pas une forme recopiée à la main : l'ancienne annotation
 // ne connaissait pas `keepPath`, donc TypeScript ne l'aurait PAS signalé si un
 // lot l'avait mal orthographié — le filtre serait tombé en silence et la zone
@@ -290,6 +311,13 @@ const ZONES: RootSpec[] = [
   // seulement la casse, la graisse, l'interlettrage, l'échelle et le noir de
   // Sugar. Les trois PAGES publiques entrent plus tard, à leurs propres lots.
   { root: 'src/components/kyc-magic-link', keep: (n) => /\.tsx?$/.test(n) },
+  // ⛔ LA PAGE **ET** SON MODULE DE JETONS (lot 2, 15 août 2026). Entrer la page
+  // seule aurait suffi à faire passer la clause : les littéraux venaient d'être
+  // sortis dans `receptionTokens.ts`, et le cliquet n'aurait plus vu que leur
+  // NOM. C'est exactement le piège que `crm-sugar-v3/tokens.ts` a posé pendant
+  // six lots — le noir de Sugar vivait dans le fichier de jetons, hors balayage.
+  { root: 'src/pages/public', keep: (n) => PAGES_PUBLIQUES.has(n) },
+  { root: 'src/components/buyer-reception', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar-v3/offer-modal', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
   // ⛔ « Matching · Recherche » entre SANS `MrhMapView.tsx`. La carte est GELÉE
@@ -369,6 +397,7 @@ const TEMOINS_DE_ZONE = [
   // resserrait par accident, la racine rendrait encore ses cinq autres fichiers
   // et `emptyRoots` la croirait saine.
   'src/components/kyc-magic-link/MlkScreens.tsx',
+  'src/components/buyer-reception/receptionTokens.ts',
 ]
 
 /**
@@ -866,6 +895,8 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar-v3/offer-modal',
       // La face publique — lot 1 du chantier « la face publique en MEGGA X ».
       'src/components/kyc-magic-link',
+      'src/pages/public',
+      'src/components/buyer-reception',
       // ⚠ La racine NUE, celle qui porte `tokens.ts` depuis le lot 2 du chantier
       // KYC. Elle manquait à cette liste : les cinq fichiers qu'elle retient
       // pouvaient donc quitter le cliquet sans que rien ne rougisse.
@@ -914,6 +945,10 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
     for (const p of PAGES_ACQUISES) {
       expect(PAGES, `page retirée du cliquet : ${p}`).toContain(p)
       expect(vues, `page non balayée : ${p}`).toContain(p)
+    }
+    for (const p of PAGES_PUBLIQUES_ACQUISES) {
+      expect(PAGES_PUBLIQUES, `page publique retirée du cliquet : ${p}`).toContain(p)
+      expect(vues, `page publique non balayée : ${p}`).toContain(p)
     }
   })
 })

@@ -10,16 +10,9 @@ import { useMemo, useState } from 'react'
 import type { CSSProperties, UIEvent as ReactUIEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { useBuyerReception, useBuyerReactionMutation, type ReceptionBien } from '@/hooks/useBuyerReception'
+import { RC, RC_FONT as FONT } from '@/components/buyer-reception/receptionTokens'
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 
-const RC = {
-  bg: 'radial-gradient(ellipse 120% 80% at 50% 100%, #C8D5E0 0%, #E2E5EB 48%, #EDEFF3 100%)',
-  card: '#FFFFFF', sub: '#F4F6F9', ink: '#0B0C0E', soft: '#3A3D44', muted: '#7A8088',
-  line: 'rgba(15,23,42,0.06)',
-  shadow: '0 12px 40px rgba(15,23,42,0.06), 0 2px 8px rgba(15,23,42,0.03)',
-  shadowSm: '0 4px 16px rgba(15,23,42,0.04)',
-  sheetShadow: '0 -18px 60px rgba(15,23,42,0.18), 0 -4px 16px rgba(15,23,42,0.08)',
-}
-const FONT = 'Manrope, system-ui, sans-serif'
 const MOTIFS = ['Trop cher', 'Quartier', 'Étage / luminosité', 'Trop petit', 'Pas le bon moment', 'Autre']
 // \s couvre déjà U+202F / U+00A0 (séparateurs de milliers fr-CH) — inutile de
 // les répéter en clair dans la classe : invisibles en relecture.
@@ -41,8 +34,8 @@ function Icon({ d, size = 22, stroke = 'currentColor', fill = 'none', sw = 1.9 }
     </svg>
   )
 }
-const blackBtn = (extra?: CSSProperties): CSSProperties => ({ width: '100%', height: 52, borderRadius: 999, border: 0, cursor: 'pointer', background: RC.ink, color: '#fff', fontSize: 15, fontWeight: 700, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, boxShadow: '0 8px 20px rgba(11,12,14,0.20)', fontFamily: FONT, ...extra })
-const ghostBtn = (extra?: CSSProperties): CSSProperties => ({ height: 52, borderRadius: 999, border: 0, cursor: 'pointer', background: RC.sub, color: RC.soft, fontSize: 15, fontWeight: 700, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: FONT, ...extra })
+const blackBtn = (extra?: CSSProperties): CSSProperties => ({ width: '100%', height: 52, borderRadius: 999, border: 0, cursor: 'pointer', background: RC.accent, color: '#fff', fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, boxShadow: `0 8px 20px ${sgVoileEncre(false, 0.20)}`, fontFamily: FONT, ...extra })
+const ghostBtn = (extra?: CSSProperties): CSSProperties => ({ height: 52, borderRadius: 999, border: 0, cursor: 'pointer', background: RC.sub, color: RC.soft, fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: FONT, ...extra })
 const KEYFRAMES = `@keyframes rcUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes rcFade{from{opacity:0}to{opacity:1}}
 @keyframes rcSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -100,7 +93,7 @@ export default function BuyerReceptionPage() {
   // ── États lien invalide / expiré / chargement ──
   if (isLoading) {
     return <div style={{ ...stage, display: 'grid', placeItems: 'center' }}><style>{KEYFRAMES}</style>
-      <div style={{ color: RC.muted, fontSize: 14, fontWeight: 600 }}>Chargement de votre sélection…</div></div>
+      <div style={{ color: RC.muted, fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>Chargement de votre sélection…</div></div>
   }
   if (isError || !data || data.ok === false) {
     const expired = data?.reason === 'expired'
@@ -108,8 +101,8 @@ export default function BuyerReceptionPage() {
       <div style={{ ...stage, display: 'grid', placeItems: 'center', padding: 24 }}>
         <style>{KEYFRAMES}</style>
         <div style={{ background: RC.card, borderRadius: 22, boxShadow: RC.shadow, padding: '32px 26px', textAlign: 'center', maxWidth: 360 }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: RC.ink, letterSpacing: -0.4 }}>{expired ? 'Ce lien a expiré' : "Ce lien n'est plus valide"}</div>
-          <div style={{ fontSize: 13.5, fontWeight: 500, color: RC.muted, marginTop: 10, lineHeight: 1.55 }}>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: RC.ink, letterSpacing: -0.4 }}>{expired ? 'Ce lien a expiré' : "Ce lien n'est plus valide"}</div>
+          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: RC.muted, marginTop: 10, lineHeight: 1.55 }}>
             Contactez votre conseiller pour recevoir une nouvelle sélection.
           </div>
         </div>
@@ -127,14 +120,14 @@ export default function BuyerReceptionPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               {agent?.avatar
                 ? <img src={agent.avatar} alt={agent.name} referrerPolicy="no-referrer" style={{ width: 56, height: 56, borderRadius: 999, objectFit: 'cover', flexShrink: 0, boxShadow: RC.shadowSm, background: RC.sub }} />
-                : <span style={{ width: 56, height: 56, borderRadius: 999, flexShrink: 0, display: 'grid', placeItems: 'center', background: RC.ink, color: '#fff', fontSize: 18, fontWeight: 800 }}>{(agent?.name || '?').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()}</span>}
+                : <span style={{ width: 56, height: 56, borderRadius: 999, flexShrink: 0, display: 'grid', placeItems: 'center', background: RC.ink, color: '#fff', fontSize: 'var(--crm-text-3xl)', fontWeight: 600 }}>{(agent?.name || '?').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()}</span>}
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: RC.ink, letterSpacing: -0.4 }}>{agent?.name || 'Votre conseiller'}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: RC.muted, marginTop: 2 }}>Votre conseiller{agent?.agency ? ' · ' + agent.agency : ''}</div>
+                <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: RC.ink, letterSpacing: -0.4 }}>{agent?.name || 'Votre conseiller'}</div>
+                <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: RC.muted, marginTop: 2 }}>Votre conseiller{agent?.agency ? ' · ' + agent.agency : ''}</div>
               </div>
             </div>
             <div style={{ marginTop: 16, background: RC.card, borderRadius: 18, boxShadow: RC.shadow, padding: '16px 18px' }}>
-              <div style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.55, color: RC.soft }}>
+              <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.55, color: RC.soft }}>
                 Bonjour {data.contact.firstName || ''}, voici une sélection de biens qui collent à votre recherche. Dites-moi lesquels vous parlent — j'organise les visites dans la foulée.
               </div>
             </div>
@@ -143,10 +136,10 @@ export default function BuyerReceptionPage() {
           {/* Progression */}
           <div style={{ padding: '22px 20px 8px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <h1 style={{ margin: 0, fontSize: 23, fontWeight: 800, letterSpacing: -0.7, color: RC.ink }}>Votre sélection</h1>
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: RC.muted }}>{treated} sur {total}</span>
+              <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.7, color: RC.ink }}>Votre sélection</h1>
+              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: RC.muted }}>{treated} sur {total}</span>
             </div>
-            <div style={{ marginTop: 12, height: 5, borderRadius: 999, background: 'rgba(15,23,42,.07)', overflow: 'hidden' }}>
+            <div style={{ marginTop: 12, height: 5, borderRadius: 999, background: sgVoileEncre(false, 0.07), overflow: 'hidden' }}>
               <div style={{ height: '100%', width: (total ? (treated / total) * 100 : 0) + '%', background: RC.ink, borderRadius: 999, transition: 'width .45s cubic-bezier(.2,.8,.2,1)' }} />
             </div>
           </div>
@@ -162,7 +155,7 @@ export default function BuyerReceptionPage() {
                     <div style={{ position: 'relative', height: 208, background: RC.sub, opacity: st === 'rejected' ? 0.5 : 1, transition: 'opacity .3s' }}>
                       {b.photos[0] && <img src={b.photos[0]} alt={b.title} referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
                       {b.photos.length > 0 && (
-                        <span style={{ position: 'absolute', bottom: 14, right: 14, height: 26, padding: '0 11px', borderRadius: 999, background: 'rgba(11,12,14,.66)', color: '#fff', fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ position: 'absolute', bottom: 14, right: 14, height: 26, padding: '0 11px', borderRadius: 999, background: sgVoileEncre(false, 0.66), color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           <Icon d={ICO.camera} size={13} stroke="#fff" sw={1.7} /> {b.photos.length}
                         </span>
                       )}
@@ -171,10 +164,10 @@ export default function BuyerReceptionPage() {
                   <div style={{ padding: '16px 18px 18px' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: 17.5, fontWeight: 800, color: RC.ink, letterSpacing: -0.4 }}>{b.title}</div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: RC.muted, marginTop: 3 }}>{[b.quartier, b.rooms != null ? b.rooms + ' pièces' : null, b.area != null ? b.area + ' m²' : null].filter(Boolean).join(' · ')}</div>
+                        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: RC.ink, letterSpacing: -0.4 }}>{b.title}</div>
+                        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: RC.muted, marginTop: 3 }}>{[b.quartier, b.rooms != null ? b.rooms + ' pièces' : null, b.area != null ? b.area + ' m²' : null].filter(Boolean).join(' · ')}</div>
                       </div>
-                      <div style={{ fontSize: 17, fontWeight: 800, color: RC.ink, letterSpacing: -0.4, whiteSpace: 'nowrap', flexShrink: 0 }}>{p ? fmtCHF(p) : '—'}{b.transaction === 'location' && p ? <span style={{ fontSize: 12, color: RC.muted }}>/mois</span> : null}</div>
+                      <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: RC.ink, letterSpacing: -0.4, whiteSpace: 'nowrap', flexShrink: 0 }}>{p ? fmtCHF(p) : '—'}{b.transaction === 'location' && p ? <span style={{ fontSize: 'var(--crm-text-sm)', color: RC.muted }}>/mois</span> : null}</div>
                     </div>
                     {!st ? (
                       <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
@@ -184,9 +177,9 @@ export default function BuyerReceptionPage() {
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 16 }}>
                         {st === 'liked'
-                          ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 40, padding: '0 16px', borderRadius: 999, background: RC.ink, color: '#fff', fontSize: 13.5, fontWeight: 700 }}><Icon d={ICO.heart} size={15} stroke="#fff" fill="#fff" sw={1.4} /> Ça vous intéresse</span>
-                          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 40, padding: '0 16px', borderRadius: 999, background: RC.sub, color: RC.muted, fontSize: 13.5, fontWeight: 700 }}>Écarté{motifOf(b) ? ' · ' + motifOf(b) : ''}</span>}
-                        <button onClick={() => backTo(b.match_id)} style={{ border: 0, background: 'none', cursor: 'pointer', color: RC.soft, fontSize: 13.5, fontWeight: 700, padding: '8px 6px', fontFamily: FONT }}>Revenir</button>
+                          ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 40, padding: '0 16px', borderRadius: 999, background: RC.ink, color: '#fff', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}><Icon d={ICO.heart} size={15} stroke="#fff" fill="#fff" sw={1.4} /> Ça vous intéresse</span>
+                          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 40, padding: '0 16px', borderRadius: 999, background: RC.sub, color: RC.muted, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>Écarté{motifOf(b) ? ' · ' + motifOf(b) : ''}</span>}
+                        <button onClick={() => backTo(b.match_id)} style={{ border: 0, background: 'none', cursor: 'pointer', color: RC.soft, fontSize: 'var(--crm-text-md)', fontWeight: 600, padding: '8px 6px', fontFamily: FONT }}>Revenir</button>
                       </div>
                     )}
                   </div>
@@ -202,7 +195,7 @@ export default function BuyerReceptionPage() {
           )}
 
           <div style={{ padding: '26px 20px 0', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 600, color: RC.muted }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: RC.muted }}>
               <Icon d={ICO.lock} size={13} stroke={RC.muted} /> Lien privé sécurisé · transmis par {firstName} via MEGGA
             </div>
           </div>
@@ -236,9 +229,9 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 40, maxWidth: 480, margin: '0 auto' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,.38)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: sgVoileEncre(false, 0.38), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 40, background: RC.card, borderRadius: '28px 28px 0 0', boxShadow: RC.sheetShadow, overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'rcSheet .38s cubic-bezier(.2,.85,.25,1) both' }}>
-        <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: 'rgba(15,23,42,.14)', zIndex: 3 }} />
+        <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: sgVoileEncre(false, 0.14), zIndex: 3 }} />
         <button onClick={onClose} aria-label="Fermer" style={{ position: 'absolute', top: 16, right: 16, zIndex: 3, width: 36, height: 36, borderRadius: 999, border: 0, cursor: 'pointer', background: 'rgba(255,255,255,.9)', boxShadow: RC.shadowSm, display: 'grid', placeItems: 'center' }}><Icon d={ICO.x} size={17} stroke={RC.ink} /></button>
         <div className="rc-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ position: 'relative' }}>
@@ -258,31 +251,31 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
           <div style={{ padding: '20px 22px 12px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14 }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 22, fontWeight: 800, color: RC.ink, letterSpacing: -0.6 }}>{bien.title}</div>
-                <div style={{ fontSize: 13.5, fontWeight: 600, color: RC.muted, marginTop: 5 }}>{bien.addr}</div>
+                <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: RC.ink, letterSpacing: -0.6 }}>{bien.title}</div>
+                <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: RC.muted, marginTop: 5 }}>{bien.addr}</div>
               </div>
-              <div style={{ fontSize: 21, fontWeight: 800, color: RC.ink, letterSpacing: -0.6, whiteSpace: 'nowrap' }}>{p ? fmtCHF(p) : '—'}</div>
+              <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: RC.ink, letterSpacing: -0.6, whiteSpace: 'nowrap' }}>{p ? fmtCHF(p) : '—'}</div>
             </div>
             {facts.length > 0 && (
               <div style={{ marginTop: 18, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                 {facts.map((f) => (
                   <div key={f.k} style={{ background: RC.sub, borderRadius: 14, padding: '12px 13px' }}>
-                    <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 0.4, textTransform: 'uppercase', color: RC.muted }}>{f.k}</div>
-                    <div style={{ fontSize: 15.5, fontWeight: 800, color: RC.ink, marginTop: 4, letterSpacing: -0.3 }}>{f.v}</div>
+                    <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: RC.muted }}>{f.k}</div>
+                    <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: RC.ink, marginTop: 4, letterSpacing: -0.3 }}>{f.v}</div>
                   </div>
                 ))}
               </div>
             )}
-            {bien.desc && <div style={{ marginTop: 20, fontSize: 14, fontWeight: 500, lineHeight: 1.6, color: RC.soft }}>{bien.desc}</div>}
+            {bien.desc && <div style={{ marginTop: 20, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.6, color: RC.soft }}>{bien.desc}</div>}
             {bien.features.length > 0 && (
               <div style={{ marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {bien.features.map((f) => <span key={f} style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 999, background: RC.sub, color: RC.soft, fontSize: 12.5, fontWeight: 600 }}>{f}</span>)}
+                {bien.features.map((f) => <span key={f} style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 14px', borderRadius: 999, background: RC.sub, color: RC.soft, fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>{f}</span>)}
               </div>
             )}
             <div style={{ height: 12 }} />
           </div>
         </div>
-        <div style={{ flexShrink: 0, padding: '12px 18px calc(12px + env(safe-area-inset-bottom))', background: RC.card, boxShadow: '0 -8px 24px rgba(15,23,42,.05)' }}>
+        <div style={{ flexShrink: 0, padding: '12px 18px calc(12px + env(safe-area-inset-bottom))', background: RC.card, boxShadow: `0 -8px 24px ${sgVoileEncre(false, 0.05)}` }}>
           {!status ? (
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={onReject} style={ghostBtn({ flex: '0 0 auto', width: 58, padding: 0 })} aria-label="Écarter"><Icon d={ICO.x} size={21} stroke={RC.soft} /></button>
@@ -290,7 +283,7 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: status === 'liked' ? RC.ink : RC.muted }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: status === 'liked' ? RC.ink : RC.muted }}>
                 {status === 'liked' ? <><Icon d={ICO.heart} size={17} stroke={RC.ink} fill={RC.ink} sw={1.4} /> Ça vous intéresse</> : 'Écarté' + (motif ? ' · ' + motif : '')}
               </span>
               <button onClick={onBack} style={ghostBtn({ padding: '0 18px', height: 44 })}>Revenir</button>
@@ -308,19 +301,19 @@ function ReceptionReject({ firstName, onClose, onConfirm }: { firstName: string;
   const [note, setNote] = useState('')
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, maxWidth: 480, margin: '0 auto' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,.42)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: sgVoileEncre(false, 0.42), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: RC.card, borderRadius: '28px 28px 0 0', boxShadow: RC.sheetShadow, padding: '22px 22px calc(20px + env(safe-area-inset-bottom))', animation: 'rcSheet .36s cubic-bezier(.2,.85,.25,1) both' }}>
-        <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: 'rgba(15,23,42,.14)' }} />
-        <div style={{ fontSize: 19, fontWeight: 800, color: RC.ink, letterSpacing: -0.5, marginTop: 6 }}>Ce bien ne convient pas ?</div>
-        <div style={{ fontSize: 13, fontWeight: 500, color: RC.muted, marginTop: 6, lineHeight: 1.5 }}>Optionnel — mais ça aide {firstName} à affiner les prochaines propositions.</div>
+        <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: sgVoileEncre(false, 0.14) }} />
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: RC.ink, letterSpacing: -0.5, marginTop: 6 }}>Ce bien ne convient pas ?</div>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: RC.muted, marginTop: 6, lineHeight: 1.5 }}>Optionnel — mais ça aide {firstName} à affiner les prochaines propositions.</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 18 }}>
           {MOTIFS.map((m) => {
             const on = motif === m
-            return <button key={m} onClick={() => setMotif(on ? null : m)} aria-pressed={on} style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, cursor: 'pointer', fontSize: 13.5, fontWeight: 700, fontFamily: FONT, background: on ? RC.ink : RC.sub, color: on ? '#fff' : RC.soft, transition: 'background .15s, color .15s' }}>{m}</button>
+            return <button key={m} onClick={() => setMotif(on ? null : m)} aria-pressed={on} style={{ height: 40, padding: '0 16px', borderRadius: 999, border: 0, cursor: 'pointer', fontSize: 'var(--crm-text-md)', fontWeight: 600, fontFamily: FONT, background: on ? RC.accent : RC.sub, color: on ? '#fff' : RC.soft, transition: 'background .15s, color .15s' }}>{m}</button>
           })}
         </div>
         <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Préciser (facultatif)…" rows={2}
-          style={{ marginTop: 14, width: '100%', resize: 'none', borderRadius: 14, border: 0, background: RC.sub, padding: '13px 15px', fontFamily: FONT, fontSize: 14, fontWeight: 500, color: RC.ink, outline: 'none', boxShadow: 'inset 0 0 0 1px ' + RC.line, boxSizing: 'border-box' }} />
+          style={{ marginTop: 14, width: '100%', resize: 'none', borderRadius: 14, border: 0, background: RC.sub, padding: '13px 15px', fontFamily: FONT, fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: RC.ink, outline: 'none', boxShadow: 'inset 0 0 0 1px ' + RC.line, boxSizing: 'border-box' }} />
         <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
           <button onClick={onClose} style={ghostBtn({ flex: 1 })}>Annuler</button>
           <button onClick={() => onConfirm(motif, note.trim() || null)} style={blackBtn({ flex: 1.4 })}>Écarter ce bien</button>
@@ -337,28 +330,28 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: RC.bg, animation: 'rcFade .3s ease both', display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto', fontFamily: FONT }}>
       <div className="rc-scroll" style={{ flex: 1, overflowY: 'auto', padding: '72px 22px 28px', textAlign: 'center' }}>
-        <div style={{ width: 68, height: 68, borderRadius: 999, background: RC.ink, margin: '0 auto', display: 'grid', placeItems: 'center', boxShadow: '0 12px 30px rgba(11,12,14,.25)', animation: 'rcPop .5s cubic-bezier(.2,.9,.3,1) both' }}><Icon d={ICO.check} size={30} stroke="#fff" sw={2.2} /></div>
-        <h1 style={{ margin: '20px 0 0', fontSize: 26, fontWeight: 800, letterSpacing: -0.8, color: RC.ink }}>Merci {contactFirst} !</h1>
-        <p style={{ margin: '10px auto 0', maxWidth: 300, fontSize: 14.5, fontWeight: 500, lineHeight: 1.55, color: RC.soft }}>
+        <div style={{ width: 68, height: 68, borderRadius: 999, background: RC.ink, margin: '0 auto', display: 'grid', placeItems: 'center', boxShadow: `0 12px 30px ${sgVoileEncre(false, 0.25)}`, animation: 'rcPop .5s cubic-bezier(.2,.9,.3,1) both' }}><Icon d={ICO.check} size={30} stroke="#fff" sw={2.2} /></div>
+        <h1 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: RC.ink }}>Merci {contactFirst} !</h1>
+        <p style={{ margin: '10px auto 0', maxWidth: 300, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.55, color: RC.soft }}>
           Vos réponses sont transmises à {agent?.name || 'votre conseiller'}. Il revient vers vous très vite pour organiser les visites.
         </p>
         <div style={{ marginTop: 26, background: RC.card, borderRadius: 20, boxShadow: RC.shadow, padding: '18px 18px 10px', textAlign: 'left' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <Icon d={ICO.heart} size={16} stroke={RC.ink} fill={RC.ink} sw={1.4} />
-            <span style={{ fontSize: 13.5, fontWeight: 800, color: RC.ink }}>{liked.length === 0 ? 'Aucun bien retenu' : liked.length + (liked.length > 1 ? ' biens vous intéressent' : ' bien vous intéresse')}</span>
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: RC.ink }}>{liked.length === 0 ? 'Aucun bien retenu' : liked.length + (liked.length > 1 ? ' biens vous intéressent' : ' bien vous intéresse')}</span>
           </div>
           {liked.map((b) => (
             <div key={b.match_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderTop: '1px solid ' + RC.line }}>
               {b.photos[0] && <img src={b.photos[0]} alt="" referrerPolicy="no-referrer" style={{ width: 52, height: 52, borderRadius: 12, objectFit: 'cover', flexShrink: 0, background: RC.sub }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: RC.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}{b.quartier ? ' · ' + b.quartier : ''}</div>
-                <div style={{ fontSize: 12.5, fontWeight: 700, color: RC.muted, marginTop: 2 }}>{priceOf(b) ? fmtCHF(priceOf(b) as number) : '—'}</div>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: RC.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}{b.quartier ? ' · ' + b.quartier : ''}</div>
+                <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: RC.muted, marginTop: 2 }}>{priceOf(b) ? fmtCHF(priceOf(b) as number) : '—'}</div>
               </div>
             </div>
           ))}
-          {liked.length === 0 && <div style={{ fontSize: 13, fontWeight: 500, color: RC.muted, lineHeight: 1.5, padding: '4px 0 8px' }}>Pas de souci — {firstName} vous prépare d'autres biens plus proches de vos attentes.</div>}
+          {liked.length === 0 && <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: RC.muted, lineHeight: 1.5, padding: '4px 0 8px' }}>Pas de souci — {firstName} vous prépare d'autres biens plus proches de vos attentes.</div>}
         </div>
-        {rejected > 0 && <div style={{ marginTop: 12, fontSize: 12.5, fontWeight: 600, color: RC.muted }}>{rejected} bien{rejected > 1 ? 's' : ''} écarté{rejected > 1 ? 's' : ''} — pris en compte.</div>}
+        {rejected > 0 && <div style={{ marginTop: 12, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: RC.muted }}>{rejected} bien{rejected > 1 ? 's' : ''} écarté{rejected > 1 ? 's' : ''} — pris en compte.</div>}
       </div>
       <div style={{ flexShrink: 0, padding: '12px 18px calc(16px + env(safe-area-inset-bottom))' }}>
         {agent?.phone && <a href={'tel:' + agent.phone.replace(/\s+/g, '')} style={{ ...blackBtn(), textDecoration: 'none', marginBottom: 10 }}><Icon d={ICO.phone} size={17} stroke="#fff" /> Appeler {firstName}</a>}
