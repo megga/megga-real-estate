@@ -24,22 +24,28 @@ const CORS = {
 }
 
 /**
- * Page rendue à la personne. Volontairement close : pas de logo cliquable, pas de lien de
+ * Réponse rendue à la personne. Volontairement close : pas de logo cliquable, pas de lien de
  * retour vers l'app. Quelqu'un qui vient de dire « ne m'écrivez plus » n'a pas à être
  * réengagé sur la page qui acte son refus.
+ *
+ * ⛔ DU TEXTE, ET NON DU HTML — ce n'est pas un choix esthétique, c'est la plateforme.
+ * Sur le domaine par défaut `<ref>.supabase.co`, le gateway Supabase **réécrit** tout
+ * `text/html` en `text/plain` et ajoute `content-security-policy: default-src 'none';
+ * sandbox` (documenté : « Serving of HTML content is only supported with custom domains »).
+ * MESURÉ le 15.08.2026 sur la fonction déployée : la page partait bien en `text/html`
+ * depuis le code — vérifié sous Deno — et arrivait en `text/plain`. La personne recevait
+ * donc le SOURCE HTML en clair sur une page légalement exigée, et les styles inline étaient
+ * de toute façon bloqués par la CSP.
+ *
+ * On sert donc ce que la plateforme servira : du texte brut, mis en forme pour être lu.
+ * ⚠ La seule façon de rendre du HTML ici serait un domaine personnalisé pour les edge
+ * functions. Ce serait réintroduire une base d'URL configurable — exactement ce que le §1
+ * de la revue vient de fermer — pour du style. Non.
  */
 function page(titre: string, corps: string, status: number): Response {
   return new Response(
-    `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<meta name="robots" content="noindex"/><title>${titre}</title></head>
-<body style="margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;background:#fafafa;color:#1f2937;">
-  <div style="max-width:420px;padding:32px;text-align:center;">
-    <div style="font-size:18px;font-weight:600;margin-bottom:10px;">${titre}</div>
-    <div style="font-size:14px;line-height:1.6;color:#4b5563;">${corps}</div>
-  </div>
-</body></html>`,
-    { status, headers: { ...CORS, 'Content-Type': 'text/html; charset=utf-8' } },
+    `${titre}\n\n${corps}\n`,
+    { status, headers: { ...CORS, 'Content-Type': 'text/plain; charset=utf-8' } },
   )
 }
 
@@ -65,7 +71,10 @@ serve(async (req) => {
     if (!expire) {
       return oneClick
         ? new Response('invalid', { status: 400, headers: CORS })
-        : page('Lien invalide', "Ce lien de désinscription n'est pas valide. Écrivez-nous à privacy@megga.ch et nous le ferons à la main.", 400)
+        // Une phrase par ligne : en texte brut, c'est la mise en forme dont on dispose.
+        : page('Lien invalide',
+               "Ce lien de désinscription n'est pas valide.\n"
+             + 'Écrivez-nous à privacy@megga.ch et nous le ferons à la main.', 400)
     }
   }
   const email = String(v.payload?.e ?? '').trim().toLowerCase()
@@ -85,7 +94,9 @@ serve(async (req) => {
     console.error('email-unsubscribe:', error.message.slice(0, 120))
     return oneClick
       ? new Response('error', { status: 500, headers: CORS })
-      : page('Une erreur est survenue', "Nous n'avons pas pu enregistrer votre demande. Écrivez-nous à privacy@megga.ch, nous la traiterons à la main.", 500)
+      : page('Une erreur est survenue',
+             "Nous n'avons pas pu enregistrer votre demande.\n"
+           + 'Écrivez-nous à privacy@megga.ch, nous la traiterons à la main.', 500)
   }
 
   // ⚠ Le même message que l'adresse ait été bloquée à l'instant ou qu'elle l'était déjà :
@@ -94,7 +105,8 @@ serve(async (req) => {
     ? new Response('ok', { status: 200, headers: CORS })
     : page(
         'C’est fait',
-        'Vous ne recevrez plus d’e-mails de notre part. Pour accéder à vos données, les corriger ou les supprimer : privacy@megga.ch.',
+        'Vous ne recevrez plus d’e-mails de notre part.\n'
+      + 'Pour accéder à vos données, les corriger ou les supprimer : privacy@megga.ch',
         200,
       )
 })
