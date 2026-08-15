@@ -2,6 +2,7 @@
 // Edge Function pour l'envoi automatique d'emails de relance
 // Appelée par automation-engine quand auto_send = true sur une règle
 
+import { buildContactReminderEmail } from '../_shared/reminder-email.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
@@ -94,55 +95,12 @@ Cordialement,
 
 // ── HTML email builder ──────────────────────────────────────────────────────
 
-function buildEmailHtml(subject: string, body: string, agentName: string, unsubscribeHtml = ''): string {
-  const bodyHtml = body
-    .split('\n\n')
-    .map((p) => `<p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px 0;">${p.replace(/\n/g, '<br/>')}</p>`)
-    .join('')
+// Gabarit dans `_shared/reminder-email.ts` depuis le 15.08.2026 : pur, donc testable et
+// visible au banc de rendu. La résolution des variables, elle, reste ici : elle appartient
+// au gabarit de RAPPEL (table `reminder_templates`), pas à l'habillage de l'e-mail.
 
-  return `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${subject}</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-  <div style="max-width:600px;margin:0 auto;padding:32px 16px;">
-
-    <!-- Header -->
-    <div style="text-align:center;margin-bottom:32px;">
-      <span style="font-size:22px;font-weight:700;color:#1a1a1a;letter-spacing:-0.5px;">MEGGA</span>
-      <span style="font-size:11px;color:#9ca3af;display:block;margin-top:2px;">Immobilier Suisse</span>
-    </div>
-
-    <!-- Body -->
-    <div style="background:#ffffff;border-radius:16px;padding:32px 28px;border:1px solid #e5e7eb;">
-      ${bodyHtml}
-    </div>
-
-    <!-- Agent signature -->
-    <div style="margin-top:32px;padding-top:20px;border-top:1px solid #e5e7eb;">
-      <p style="font-size:13px;color:#374151;margin:0;font-weight:600;">${agentName}</p>
-      <p style="font-size:12px;color:#9ca3af;margin:4px 0 0 0;">MEGGA Immobilier</p>
-    </div>
-
-    <!-- Disclaimer -->
-    <!-- ⛔ « contactez votre agent » a été retiré : c'était la même promesse creuse que le
-         « répondez STOP » de send-relance-email — un renvoi vers un humain à la place d'un
-         mécanisme, dans un message que l'automation-engine envoie précisément sans humain.
-         Le pied de page ci-dessous porte un lien qui écrit vraiment dans le registre. -->
-    <p style="font-size:10px;color:#d1d5db;text-align:center;margin-top:24px;line-height:1.5;">
-      Cet email a été envoyé automatiquement via MEGGA Real Estate.
-    </p>
-    ${unsubscribeHtml}
-  </div>
-</body>
-</html>`
-}
-
-// ── Variable resolution ─────────────────────────────────────────────────────
-
+/** Remplace `{{contact.first_name}}` et consorts. Une variable absente rend une chaîne
+ *  vide plutôt que son propre nom — mieux vaut un blanc qu'un `{{…}}` chez le client. */
 function resolveTemplate(
   template: string,
   vars: Record<string, string>
@@ -151,8 +109,6 @@ function resolveTemplate(
     return vars[key] || ''
   })
 }
-
-// ── Main handler ────────────────────────────────────────────────────────────
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -299,10 +255,12 @@ serve(async (req) => {
     // rappel automatique n'offre aucune sortie depuis le message lui-même — et c'est
     // l'unique canal par lequel cette personne nous parle.
     const unsub = await unsubscribeHeaders(contact.email, reminder.contact_id ?? null)
-    const html = buildEmailHtml(
-      resolvedSubject, resolvedBody, agentName,
-      unsub ? unsubscribeFooterHtml(unsub.url, contact.language ?? 'fr') : '',
-    )
+    const { html } = buildContactReminderEmail({
+      subject: resolvedSubject,
+      body: resolvedBody,
+      agentName,
+      unsubscribeHtml: unsub ? unsubscribeFooterHtml(unsub.url, contact.language ?? 'fr') : undefined,
+    })
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',

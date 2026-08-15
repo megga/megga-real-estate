@@ -38,12 +38,8 @@ const SHELL = 'supabase/functions/_shared/email-shell.ts';
  * et dans quel ordre s'y prendre (le client d'abord, l'interne ensuite).
  */
 const A_MIGRER = {
-  'supabase/functions/_shared/whatsapp-optin-send.ts':
-    "Invitation à consentir au canal WhatsApp. CLIENT, envoyée au contact d'une agence.",
   'supabase/functions/send-email/index.ts':
     "Fonction générique (estimation vendeur, notification d'agent, accès portail). Porte sa propre `wrapHTML` en gris clair ; c'est le plus gros chantier des treize.",
-  'supabase/functions/send-reminder-email/index.ts':
-    'Rappel de rendez-vous ou de tâche. CLIENT.',
   'supabase/functions/weekly-report/index.ts':
     "Rapport hebdomadaire à l'agent. INTERNE au produit, donc moins pressé.",
 };

@@ -22,7 +22,7 @@
 import {
   buildAttendeeEmail,
   buildHostEmail,
-  buildReminderEmail,
+  buildReminderEmail as buildOnboardingReminderEmail,
   type OnboardingCallEmailData,
 } from '../supabase/functions/_shared/onboarding-email.ts'
 import { buildVerificationNotice } from '../supabase/functions/_shared/agency-verification-notice.ts'
@@ -33,6 +33,8 @@ import { buildTeamInviteEmail } from '../supabase/functions/_shared/team-invite-
 import { buildVisitEmail } from '../supabase/functions/_shared/visit-email.ts'
 import { buildPropertyEmail } from '../supabase/functions/_shared/property-email.ts'
 import { buildRelanceEmail } from '../supabase/functions/_shared/relance-email.ts'
+import { buildContactReminderEmail } from '../supabase/functions/_shared/reminder-email.ts'
+import { buildOptinInviteEmail } from '../supabase/functions/_shared/whatsapp-optin-send.ts'
 
 const SORTIE = '.email-preview'
 
@@ -70,10 +72,41 @@ const CAS: Cas[] = [
   // Le cas SANS lien de visioconférence est réel (agenda d'hôte injoignable) et c'est
   // celui qu'on oublie de regarder : il doit rester lisible, sans bouton mort.
   { id: 'appel-confirmation-sans-lien', nom: 'Appel d’accueil · confirmation, sans lien Meet', source: '_shared/onboarding-email.ts', migre: true, rendu: buildAttendeeEmail({ ...appel, meetingUrl: null }) },
-  { id: 'appel-rappel-fr', nom: 'Appel d’accueil · rappel J-1 (FR)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildReminderEmail(appel) },
-  { id: 'appel-rappel-en', nom: 'Appel d’accueil · rappel J-1 (EN)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildReminderEmail({ ...appel, locale: 'en' }) },
+  { id: 'appel-rappel-fr', nom: 'Appel d’accueil · rappel J-1 (FR)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildOnboardingReminderEmail(appel) },
+  { id: 'appel-rappel-en', nom: 'Appel d’accueil · rappel J-1 (EN)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildOnboardingReminderEmail({ ...appel, locale: 'en' }) },
   { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’hôte (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked') },
   { id: 'appel-hote-annule', nom: 'Appel d’accueil · annulation (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail({ ...appel, meetingUrl: null }, 'cancelled') },
+
+  // Rappel automatique et consentement WhatsApp — migrés le 15.08.2026.
+  {
+    id: 'rappel-automatique',
+    nom: 'Rappel de rendez-vous (automation)',
+    source: '_shared/reminder-email.ts',
+    migre: true,
+    rendu: buildContactReminderEmail({
+      subject: 'Votre rendez-vous de demain',
+      body: 'Bonjour Marie,\n\nPetit rappel : nous nous voyons demain à 14:00 pour la visite du 3.5 pièces de Carouge.\n\nÀ demain.',
+      agentName: 'Gregory Lyonnet',
+      unsubscribeHtml: '<p style="margin:0;font-family:\'Inter Tight\',Arial,sans-serif;font-size:11px;color:#8a8a8f;">'
+        + '<a href="https://app.megga.ch/desinscription/jeton" style="color:#8a8a8f;">Se désinscrire de ces rappels</a></p>',
+    }),
+  },
+  {
+    id: 'consentement-whatsapp',
+    nom: 'Consentement WhatsApp',
+    source: '_shared/whatsapp-optin-send.ts',
+    migre: true,
+    rendu: buildOptinInviteEmail({
+      lang: 'fr',
+      copy: {
+        subject: 'Recevoir les messages de Régie du Rhône sur WhatsApp',
+        body: 'Bonjour,\n\nRégie du Rhône souhaite pouvoir vous écrire sur WhatsApp : réponses plus rapides, documents à portée de main.\n\nUn seul message suffit pour accepter.',
+        cta: 'Accepter sur WhatsApp',
+      },
+      agencyName: 'Régie du Rhône',
+      lien: 'https://wa.me/41225551010?text=OPTIN%20jeton-de-demonstration',
+    }),
+  },
 
   // Commerciaux — migrés le 15.08.2026. Les SEULS à porter une désinscription : leur
   // mention de pied diffère donc de tous les autres, et c'est ce qu'il faut regarder ici.
