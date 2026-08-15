@@ -32,6 +32,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'c2pa-verify',
   'delete-account',
   'detect-new-device',
+  'email-unsubscribe',
   'esign-webhook',
   'extract-lead',
   'extract-property-pdf',
@@ -84,6 +85,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'whatsapp-agent',
   'whatsapp-agent-async',
   'whatsapp-morning-brief',
+  'whatsapp-optin-invite',
   'whatsapp-process',
   'whatsapp-webhook',
 ] as const

@@ -18,7 +18,7 @@ import {
   execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
   execScheduleVisit, execCreateReminder, execUpdatePipeline, execUpdatePipelineWithUndo, execQualifyLead,
   execCreateDeal, execSearchListings, execGetKycStatus,
-  prepareSendListings, prepareRecordOffer, prepareOpenKycCase, prepareSendKycLink,
+  prepareSendListings, prepareRecordOffer, prepareOpenKycCase, prepareSendKycLink, prepareInviteOptin,
   prepareSendClientEmail, prepareDeleteContact,
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
   execSummarizeGroupThread, execCheckGroupLeak,
@@ -494,6 +494,10 @@ async function stashPending(
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'open_kyc_case') {
     const p = await prepareOpenKycCase(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
+  } else if (tool === 'invite_optin') {
+    const p = await prepareInviteOptin(ctx, args)
     if (!p.ok) return { status: 'error', error: p.error }
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'send_kyc_link') {

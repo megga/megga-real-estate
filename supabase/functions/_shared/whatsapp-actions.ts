@@ -14,6 +14,7 @@
 //  - contact -> `contacts` (pas de created_by ; on met source='whatsapp_ai').
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { sendOptinInvite } from './whatsapp-optin-send.ts'
 import { mapCriteria, isSearchable, computeMissing, parseAmount, canonicalPropertyType, normalizeZone } from './whatsapp-lead.ts'
 import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDefault, kycScreenLabel, kycDateShort, projectMatchListing, stripExactAddress, portalLabel, normalizePortal, type MatchListingInput, type ResolvedMatchView } from './whatsapp-agent-router.ts'
 import { validateIdxProperty, toNum, type IdxProperty } from './idx-mapper.ts'
@@ -989,7 +990,130 @@ export async function prepareSendListings(ctx: ActionCtx, a: Args): Promise<Prep
     : `Voici ce que je propose d'envoyer à ${who} :\n\n${text}${photoNote}\n\nJ'envoie ? (« oui » / « non »)`
   // listing_ids figés dans le payload → permettent, à l'envoi confirmé, de marquer
   // les matches correspondants comme 'sent' (capture de sent_at, instrumentation).
-  return { ok: true, prompt, payload: { contact_id: contactId, phone: contact.phone.replace(/\D/g, ''), text, listing_ids: ids.slice(0, 5), images } }
+  // ⛔ Le numéro n'est PLUS figé dans le payload : entre cette proposition et le « oui »
+  // de l'agent il peut s'écouler quinze minutes, et une fiche corrigée entre-temps faisait
+  // partir le message à l'ANCIEN numéro. L'exécution le relit, scopé à l'agence.
+  return { ok: true, prompt, payload: { contact_id: contactId, text, listing_ids: ids.slice(0, 5), images } }
+}
+
+/**
+ * Prépare l'invitation d'opt-in WhatsApp (`click_to_wa`).
+ *
+ * ⚠ LE PRÉREQUIS EST LE SUJET DE CET OUTIL. On ne peut inviter que quelqu'un qui EXISTE dans
+ * les contacts : c'est sa fiche qui porte l'e-mail par lequel l'invitation voyage, et le
+ * numéro auquel le consentement sera attribué. Sans contact, le copilote doit le DIRE et
+ * proposer de créer la fiche (`create_contact`), jamais échouer sèchement — c'est la
+ * différence entre un assistant et un formulaire.
+ *
+ * Les refus sont tous EXPLICATIFS : un agent à qui l'on dit non sans motif réessaie.
+ */
+export async function prepareInviteOptin(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const contactId = s(a.contact_id)
+  if (!contactId) {
+    return { ok: false, error: lang === 'en'
+      ? 'Who should I invite? If they are not in your contacts yet, I can create them first.'
+      : "Qui veux-tu inviter ? Si la personne n'est pas encore dans tes contacts, je peux la créer d'abord." }
+  }
+
+  const { data: cRow } = await ctx.supabase
+    .from('contacts').select('first_name, last_name, email, phone, wa_opt_in')
+    .eq('id', contactId).eq('agency_id', ctx.agencyId).maybeSingle()
+  const contact = cRow as {
+    first_name: string | null; last_name: string | null
+    email: string | null; phone: string | null; wa_opt_in: boolean | null
+  } | null
+  if (!contact) {
+    return { ok: false, error: lang === 'en'
+      ? "I can't find them in your contacts. I have to add them first — give me their name, phone and email and I'll create the contact."
+      : "Je ne la trouve pas dans tes contacts. Je dois d'abord l'ajouter — donne-moi son nom, son numéro et son e-mail et je crée la fiche." }
+  }
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim()
+    || (lang === 'en' ? 'this contact' : 'ce contact')
+
+  if (!contact.email) {
+    return { ok: false, error: lang === 'en'
+      ? `${name} has no email address. The invitation travels by email — add one on their record first.`
+      : `${name} n'a pas d'adresse e-mail. L'invitation voyage par e-mail — ajoute-en une sur sa fiche d'abord.` }
+  }
+  if (!contact.phone) {
+    return { ok: false, error: lang === 'en'
+      ? `${name} has no phone number — I would not know which WhatsApp number the consent applies to.`
+      : `${name} n'a pas de numéro — je ne saurais pas à quel WhatsApp le consentement s'applique.` }
+  }
+  if (contact.wa_opt_in) {
+    return { ok: false, error: lang === 'en'
+      ? `${name} already accepted WhatsApp messages — nothing to ask.`
+      : `${name} a déjà accepté les messages WhatsApp — il n'y a rien à demander.` }
+  }
+
+  // ⛔ On n'invite pas un numéro bloqué. Demander « puis-je vous écrire ? » à quelqu'un qui
+  // vient de dire STOP est exactement le message qu'il a refusé — et par e-mail, donc hors
+  // de portée de la garde WhatsApp.
+  const { data: sup } = await ctx.supabase
+    .from('contact_suppressions').select('id').eq('contact_id', contactId).is('lifted_at', null).limit(1)
+  if ((sup ?? []).length) {
+    return { ok: false, error: lang === 'en'
+      ? `${name} asked not to be contacted. I am not inviting them again.`
+      : `${name} a demandé à ne plus être contactée. Je ne la réinvite pas.` }
+  }
+
+  // Une invitation VIVANTE : le dire, plutôt qu'en envoyer une seconde. Deux liens actifs
+  // pour la même personne, c'est un consentement qu'on ne saura pas attribuer.
+  const { data: inv } = await ctx.supabase
+    .from('whatsapp_optin_invites').select('created_at')
+    .eq('contact_id', contactId).is('consumed_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  const pending = inv as { created_at: string } | null
+  if (pending) {
+    const d = new Date(pending.created_at).toLocaleDateString(lang === 'en' ? 'en-GB' : 'fr-CH')
+    return { ok: false, error: lang === 'en'
+      ? `An invitation was already sent to ${name} on ${d} and is still pending. Let's wait for their reply.`
+      : `Une invitation a déjà été envoyée à ${name} le ${d} et attend sa réponse. Laissons-la répondre.` }
+  }
+
+  const prompt = lang === 'en'
+    ? `Email ${name} (${contact.email}) an invitation to receive your messages on WhatsApp? They accept themselves, by sending us a message. ("yes" / "no")`
+    : `J'envoie à ${name} (${contact.email}) un e-mail lui proposant de recevoir tes messages sur WhatsApp ? C'est elle qui accepte, en nous écrivant. (« oui » / « non »)`
+  return { ok: true, prompt, payload: { contact_id: contactId } }
+}
+
+/** Envoie l'invitation confirmée. Le geste vit dans `_shared/whatsapp-optin-send.ts`. */
+export async function executeInviteOptin(ctx: ActionCtx, args: Args): Promise<string> {
+  const lang = ctx.lang ?? 'fr'
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const contactId = s(args.contact_id)
+  if (!contactId) return lang === 'en' ? 'Incomplete action — nothing sent.' : "Action incomplète, je n'ai rien envoyé."
+  const r = await sendOptinInvite(ctx.supabase, {
+    contactId, agencyId: ctx.agencyId as string, sentBy: ctx.profileId,
+  })
+  if (r.ok) {
+    return lang === 'en'
+      ? 'Invitation sent. I will record the consent as soon as they reply.'
+      : "Invitation envoyée. J'enregistre le consentement dès qu'elle répond."
+  }
+  const FR: Record<string, string> = {
+    contact_not_found: 'Contact introuvable dans ton agence.',
+    contact_without_email: "Ce contact n'a pas d'adresse e-mail.",
+    contact_without_phone: "Ce contact n'a pas de numéro.",
+    agency_wa_number_missing: "Le numéro WhatsApp de l'agence n'est pas enregistré — je ne peux pas construire le lien.",
+    phone_suppressed: 'Cette personne a demandé à ne plus être contactée.',
+    email_send_failed: "L'e-mail n'est pas parti. Réessaie dans un moment.",
+  }
+  const EN: Record<string, string> = {
+    contact_not_found: 'Contact not found in your agency.',
+    contact_without_email: 'This contact has no email address.',
+    contact_without_phone: 'This contact has no phone number.',
+    agency_wa_number_missing: "The agency's WhatsApp number is not registered — I can't build the link.",
+    phone_suppressed: 'This person asked not to be contacted.',
+    email_send_failed: 'The email did not go out. Try again in a moment.',
+  }
+  const table = lang === 'en' ? EN : FR
+  return table[r.error] ?? (lang === 'en'
+    ? 'The invitation did not go out.'
+    : "L'invitation n'est pas partie.")
 }
 
 /** Valide + prépare l'enregistrement d'une offre (crm_offers). Le montant est figé au « oui ». */

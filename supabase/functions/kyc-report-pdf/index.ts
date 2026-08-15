@@ -5,7 +5,7 @@ import { buildCfPdfRequestBody, parseBasicAuthPair, redactCfRenderError } from '
 import { kycReportRenderUrl } from '../_shared/app-url.ts'
 import { uploadMetaMediaDocument } from '../_shared/whatsapp-media.ts'
 import { getProvider } from '../_shared/whatsapp-gateway.ts'
-import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
+import { sendOutboundGuarded } from '../_shared/whatsapp-outbound-guard.ts'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
 
 const corsHeaders = {
@@ -106,18 +106,30 @@ serve(async (req) => {
       metaToken, metaPhoneNumberId, apiVersion,
     })
 
+    // SITE 12 — le point d'entrée le plus faible du dépôt, et la garde le ferme deux fois.
+    //
+    // ⛔ `to_phone` est un PARAMÈTRE LIBRE du corps, gardé par le seul secret de service :
+    // rien ne vérifiait qu'il désignait un agent de `agency_id`. En passant `profileId`, la
+    // garde exige un `whatsapp_agent_links` VÉRIFIÉ sur ce numéro — sinon
+    // `agent_link_unverified`. Un numéro de CLIENT, même dans sa fenêtre 24 h, ne peut plus
+    // recevoir le rapport KYC d'un agent.
+    //
+    // ⚠ Cette fonction est la seconde des deux qui ne vérifiaient PAS le kill-switch.
+    //
+    // Retry court sur erreur transitoire (réseau/5xx/429) : sans lui, l'envoi partait en
+    // tentative unique. Jamais sur 131047. Le média (mediaId) reste valide entre les essais.
     const provider = getProvider('meta')
-    const sreq = provider.buildSendDocumentRequest!(
-      { toPhone, mediaId, filename, caption: reference },
-      { metaToken, metaPhoneNumberId, metaApiVersion: apiVersion },
-    )
-    // Retry court sur erreur transitoire (réseau/5xx/429) — l'envoi du rapport KYC à l'agent
-    // partait en tentative unique, donc perdu au moindre aléa Meta. Jamais de retry sur
-    // 131047 (fenêtre 24h). Le média (mediaId) reste valide entre les tentatives.
-    const sendParsed = await sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b))
+    const sendParsed = await sendOutboundGuarded({
+      admin: supabase, provider, to: toPhone,
+      purpose: 'service',
+      payload: { type: 'document', mediaId, filename, caption: reference },
+      profileId: profile_id ?? null, agencyId: agency_id,
+      isAutomated: true, retry: true,
+    })
     if (!sendParsed.ok) {
-      console.error('kyc-report-pdf meta-send', { kyc_case_id, err: sendParsed.error ?? '' })
-      return json({ error: `meta send failed: ${sendParsed.error ?? ''}` }, 502)
+      const why = 'error' in sendParsed ? sendParsed.error : sendParsed.reason
+      console.error('kyc-report-pdf meta-send', { kyc_case_id, err: why ?? '' })
+      return json({ error: `meta send failed: ${why ?? ''}` }, 502)
     }
 
     // 5. Audit (actor IA, lecture seule du dossier — règle d'or intacte).

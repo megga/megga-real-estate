@@ -7,7 +7,7 @@
 
 BEGIN;
 
-ALTER TABLE public.transactions ADD COLUMN archived_at timestamptz;
+ALTER TABLE public.transactions ADD COLUMN IF NOT EXISTS archived_at timestamptz;
 
 COMMENT ON COLUMN public.transactions.archived_at IS
   'Deal rangé hors pipeline (kanban/liste/timeline). NULL = visible ; undo = remise à NULL.';

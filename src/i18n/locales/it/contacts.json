@@ -1110,6 +1110,48 @@
     "saved": {
       "coord": "Recapiti salvati",
       "crit": "Criteri salvati"
+    },
+    "consent": {
+      "label": "Raggiungibilità WhatsApp",
+      "reachable": "Raggiungibile",
+      "optedOut": "Non desidera più essere contattato",
+      "blockedByAgent": "Contrassegnato «non contattare»",
+      "optedOutHelp": "La persona lo ha chiesto lei stessa. Il blocco non si toglie dal CRM.",
+      "blockedByAgentHelp": "Decisione interna. A questo numero non partirà alcun messaggio WhatsApp.",
+      "doNotContact": "Non contattare più",
+      "confirm": "A questo contatto non sarà più inviato alcun messaggio WhatsApp.",
+      "confirmYes": "Conferma",
+      "saving": "Salvataggio…",
+      "showLog": "Mostra il registro",
+      "hideLog": "Nascondi il registro",
+      "event": {
+        "opt_in": "Consenso",
+        "opt_out": "Rifiuto"
+      },
+      "source": {
+        "stop_keyword": "STOP ricevuto per messaggio",
+        "meta_block": "Pulsante di cancellazione WhatsApp",
+        "agent_manual": "Inserito da un agente",
+        "click_to_wa": "Link di consenso",
+        "web_form_doubleoptin": "Modulo con doppia conferma",
+        "qr": "Codice QR",
+        "import_repermission": "Importazione con nuovo consenso",
+        "agent_pairing": "Abbinamento agente",
+        "brief_enabled": "Brief riattivato",
+        "brief_disabled": "Brief disattivato"
+      },
+      "invite": "Invitare su WhatsApp",
+      "inviting": "Invio…",
+      "inviteHelp": "Un’e-mail le proporrà di ricevere i suoi messaggi su WhatsApp. È lei ad accettare.",
+      "inviteNoEmail": "Senza indirizzo e-mail l'invito non può partire: viaggia su quel canale.",
+      "inviteSent": "Invito inviato il {{date}}, in attesa di risposta.",
+      "inviteError": {
+        "generic": "L'invito non è partito. Riprovi tra un momento.",
+        "phone_suppressed": "Questo contatto ha chiesto di non essere più contattato: non lo invitiamo di nuovo.",
+        "contact_without_email": "Questo contatto non ha un indirizzo e-mail.",
+        "agency_wa_number_missing": "Il numero WhatsApp dell'agenzia non è registrato. Contatti il supporto.",
+        "email_send_failed": "L'e-mail non è stata inviata. Riprovi tra un momento."
+      }
     }
   },
   "nba": {

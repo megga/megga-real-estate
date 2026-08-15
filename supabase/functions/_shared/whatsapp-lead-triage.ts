@@ -10,6 +10,7 @@
 // jamais le numéro complet en log. L'atomicité/dédup/ambiguïté vit dans la RPC SQL.
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { isDialablePhone } from './whatsapp-gateway.ts'
 
 /**
  * Décision PURE d'affectation d'agence pour un numéro inconnu (testable sans I/O).
@@ -108,7 +109,6 @@ export function triageLeadName(phone: string): { firstName: string; lastName: st
  * ET body texte NON VIDE (un média seul / body vide = démarchage/bruit → pas de lead).
  */
 export function isTriageEligible(phone: string, body: string | null | undefined): boolean {
-  const digits = (phone || '').replace(/\D/g, '')
-  if (digits.length < 6 || digits.length > 15) return false
+  if (!isDialablePhone(phone)) return false
   return (body ?? '').trim().length > 0
 }

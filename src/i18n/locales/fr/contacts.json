@@ -1110,6 +1110,48 @@
     "saved": {
       "coord": "Coordonnées enregistrées",
       "crit": "Critères enregistrés"
+    },
+    "consent": {
+      "label": "Joignabilité WhatsApp",
+      "reachable": "Joignable",
+      "optedOut": "Ne souhaite plus être contacté",
+      "blockedByAgent": "Marqué « ne plus contacter »",
+      "optedOutHelp": "Cette personne l'a demandé elle-même. Le blocage ne se lève pas depuis le CRM.",
+      "blockedByAgentHelp": "Décision interne. Aucun message WhatsApp ne partira vers ce numéro.",
+      "doNotContact": "Ne plus contacter",
+      "confirm": "Plus aucun message WhatsApp ne partira vers ce contact.",
+      "confirmYes": "Confirmer",
+      "saving": "Enregistrement…",
+      "showLog": "Voir le journal",
+      "hideLog": "Masquer le journal",
+      "event": {
+        "opt_in": "Consentement",
+        "opt_out": "Refus"
+      },
+      "source": {
+        "stop_keyword": "STOP reçu par message",
+        "meta_block": "Bouton de désinscription WhatsApp",
+        "agent_manual": "Saisi par un agent",
+        "click_to_wa": "Lien de consentement",
+        "web_form_doubleoptin": "Formulaire avec double confirmation",
+        "qr": "QR code",
+        "import_repermission": "Import avec re-consentement",
+        "agent_pairing": "Appairage agent",
+        "brief_enabled": "Brief réactivé",
+        "brief_disabled": "Brief désactivé"
+      },
+      "invite": "Inviter sur WhatsApp",
+      "inviting": "Envoi…",
+      "inviteHelp": "Un e-mail lui proposera de recevoir vos messages sur WhatsApp. C'est elle qui accepte.",
+      "inviteNoEmail": "Sans adresse e-mail, l'invitation ne peut pas partir : elle voyage par ce canal.",
+      "inviteSent": "Invitation envoyée le {{date}}, en attente de sa réponse.",
+      "inviteError": {
+        "generic": "L'invitation n'est pas partie. Réessayez dans un moment.",
+        "phone_suppressed": "Ce contact a demandé à ne plus être contacté : on ne le réinvite pas.",
+        "contact_without_email": "Ce contact n'a pas d'adresse e-mail.",
+        "agency_wa_number_missing": "Le numéro WhatsApp de l'agence n'est pas enregistré. Contactez le support.",
+        "email_send_failed": "L'e-mail n'a pas pu être envoyé. Réessayez dans un moment."
+      }
     }
   },
   "nba": {

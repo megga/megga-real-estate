@@ -556,6 +556,9 @@ verify_jwt = false
 [functions.detect-new-device]
 verify_jwt = false
 
+[functions.email-unsubscribe]
+verify_jwt = false
+
 [functions.extract-lead]
 verify_jwt = false
 
@@ -680,6 +683,9 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.weekly-report]
+verify_jwt = false
+
+[functions.whatsapp-optin-invite]
 verify_jwt = false
 
 [functions.whatsapp-webhook]

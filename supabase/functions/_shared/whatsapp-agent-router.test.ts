@@ -125,6 +125,13 @@ describe('toolTier', () => {
     expect(toolTier('record_offer')).toBe('confirm')
     expect(toolTier('send_client_email')).toBe('confirm')
   })
+  it('invite_optin est confirm — il engage juridiquement l’agence', () => {
+    // L'e-mail porte l'information préalable de l'art. 6 al. 6 nLPD. Et « invite Dubois »
+    // avec deux Dubois au fichier doit pouvoir être arrêté AVANT l'envoi : c'est le seul
+    // garde-fou entre une phrase en langage naturel et un e-mail à la mauvaise personne.
+    expect(toolTier('invite_optin')).toBe('confirm')
+  })
+
   it('send_kyc_link est confirm (envoi email au client ; KYC facultatif)', () => {
     expect(toolTier('send_kyc_link')).toBe('confirm')
   })

@@ -293,6 +293,14 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
   {
     type: 'function',
     function: {
+      name: 'invite_optin',
+      description: "Envoie au CLIENT, par e-mail, une invitation à recevoir tes messages sur WhatsApp. C'est le SEUL moyen d'obtenir son consentement : sans lui, aucun message promotionnel ne peut partir. Pour « invite Dubois sur WhatsApp », « demande à Mme Vaucher si je peux lui écrire ». La personne DOIT déjà exister dans les contacts — si elle n'y est pas, dis-le et propose de la créer d'abord avec create_contact (nom, numéro, e-mail), puis rappelle cet outil. contact_id via search_contacts.",
+      parameters: { type: 'object', properties: { contact_id: { type: 'string' } }, required: ['contact_id'] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'open_kyc_case',
       description: "Ouvre un dossier KYC (LBA) pour un contact. Le système retrouve le contact, déduit le type (acheteur/vendeur, personne physique/morale) et confirme avant de créer. Appelle directement l'outil sans rien vérifier avant. Exemples : « ouvre un KYC pour Dubois », « lance la conformité de Mme Vaucher en vigilance renforcée ». contact_id via search_contacts.",
       parameters: {

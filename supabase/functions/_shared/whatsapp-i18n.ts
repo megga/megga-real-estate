@@ -150,6 +150,47 @@ export function t(lang: WaLang, key: WaStringKey): string {
   return STR[key][lang]
 }
 
+/**
+ * Ce qu'on dit à l'AGENT quand la garde d'envoi refuse.
+ *
+ * ⛔ Le paramètre est le motif EXPOSABLE, jamais le motif précis. Dire « phone_suppressed »
+ * apprendrait à l'agence B qu'un numéro a écrit STOP à l'agence A — l'oracle exact que la
+ * policy RLS cache. `not_contactable` est le seul mot juste quand la personne n'est pas la
+ * nôtre.
+ *
+ * Chaque message dit aussi QUOI FAIRE : un refus qu'on ne sait pas lever se solde par un
+ * agent qui réessaie en boucle, puis qui contourne.
+ */
+export function refusalText(lang: WaLang, publicReason: string): string {
+  const FR: Record<string, string> = {
+    do_not_contact: "Cette personne a demandé à ne plus être contactée. Je n'envoie rien.",
+    opted_out: "Cette personne s'est désinscrite. Je n'envoie rien.",
+    phone_suppressed: 'Ce numéro est bloqué (désinscription). Rien envoyé.',
+    not_contactable: "Ce contact n'est pas joignable par WhatsApp. Rien envoyé.",
+    no_opt_in: "Pas de consentement pour écrire en premier à ce contact, et sa fenêtre 24h est fermée. Rien envoyé.",
+    marketing_requires_consent: "Ce message est promotionnel : il demande un consentement explicite, que ce contact n'a pas donné. Rien envoyé.",
+    invalid_phone: "Le numéro de ce contact est inexploitable. Corrige-le sur sa fiche.",
+    kill_switch: 'MEGGA WhatsApp est coupé pour le moment. Rien envoyé.',
+    agent_link_unverified: "Ce numéro n'est pas un agent vérifié. Rien envoyé.",
+    window_closed: "Sa fenêtre 24h est fermée. Rien envoyé.",
+  }
+  const EN: Record<string, string> = {
+    do_not_contact: "This person asked not to be contacted again. I'm not sending anything.",
+    opted_out: "This person unsubscribed. I'm not sending anything.",
+    phone_suppressed: 'This number is blocked (unsubscribed). Nothing sent.',
+    not_contactable: 'This contact cannot be reached on WhatsApp. Nothing sent.',
+    no_opt_in: "No consent to message this contact first, and their 24h window is closed. Nothing sent.",
+    marketing_requires_consent: 'This message is promotional: it needs explicit consent, which this contact has not given. Nothing sent.',
+    invalid_phone: "This contact's number is unusable. Fix it on their record.",
+    kill_switch: 'MEGGA WhatsApp is switched off right now. Nothing sent.',
+    agent_link_unverified: 'This number is not a verified agent. Nothing sent.',
+    window_closed: 'Their 24h window is closed. Nothing sent.',
+  }
+  const table = lang === 'en' ? EN : FR
+  // Un motif inconnu ne doit pas produire un message vide : mieux vaut le générique que rien.
+  return table[publicReason] ?? table.not_contactable
+}
+
 /** Suffixe de confirmation, réutilisé par les prompts paramétrés. */
 export function confirmSuffix(lang: WaLang): string {
   return lang === 'en' ? 'Confirm? (reply « yes » / « no »)' : 'Tu confirmes ? (« oui » / « non »)'

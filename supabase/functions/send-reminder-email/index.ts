@@ -5,6 +5,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
+import { emailSendAllowed, unsubscribeHeaders, unsubscribeFooterHtml } from '../_shared/email-guard.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -93,7 +94,7 @@ Cordialement,
 
 // ── HTML email builder ──────────────────────────────────────────────────────
 
-function buildEmailHtml(subject: string, body: string, agentName: string): string {
+function buildEmailHtml(subject: string, body: string, agentName: string, unsubscribeHtml = ''): string {
   const bodyHtml = body
     .split('\n\n')
     .map((p) => `<p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 16px 0;">${p.replace(/\n/g, '<br/>')}</p>`)
@@ -127,10 +128,14 @@ function buildEmailHtml(subject: string, body: string, agentName: string): strin
     </div>
 
     <!-- Disclaimer -->
+    <!-- ⛔ « contactez votre agent » a été retiré : c'était la même promesse creuse que le
+         « répondez STOP » de send-relance-email — un renvoi vers un humain à la place d'un
+         mécanisme, dans un message que l'automation-engine envoie précisément sans humain.
+         Le pied de page ci-dessous porte un lien qui écrit vraiment dans le registre. -->
     <p style="font-size:10px;color:#d1d5db;text-align:center;margin-top:24px;line-height:1.5;">
       Cet email a été envoyé automatiquement via MEGGA Real Estate.
-      Si vous souhaitez ne plus recevoir ces messages, contactez votre agent.
     </p>
+    ${unsubscribeHtml}
   </div>
 </body>
 </html>`
@@ -191,7 +196,11 @@ serve(async (req) => {
     // ── 1. Load reminder with relations ──
     const { data: reminder, error: remErr } = await supabase
       .from('reminders')
-      .select('*, contact:contacts(first_name, last_name, email), property:properties(title, address, city, price, rooms, surface_m2)')
+      // `language` : le pied de page de désinscription se rend dans les quatre langues, et
+      // il serait absurde de proposer « Se désinscrire » en français à un germanophone.
+      // Domaine fr/de/en/it, identique à celui d'`unsubscribeFooterHtml` ; NULL = non
+      // renseignée, le repli 'fr' vit à la lecture (20260815190000).
+      .select('*, contact:contacts(first_name, last_name, email, language), property:properties(title, address, city, price, rooms, surface_m2)')
       .eq('id', reminder_id)
       .single()
 
@@ -273,7 +282,27 @@ serve(async (req) => {
     const resolvedBody = resolveTemplate(body, vars)
 
     // ── 5. Build HTML and send via Resend ──
-    const html = buildEmailHtml(resolvedSubject, resolvedBody, agentName)
+    // ⛔ GARDE du canal e-mail. Un STOP reçu sur WhatsApp écrit `channel='all'` : sans
+    // cette lecture, la personne continuerait de recevoir ces envois après avoir demandé
+    // qu'on la laisse tranquille.
+    const verdict = await emailSendAllowed(supabase, {
+      to: contact.email, purpose: 'relance', contactId: reminder.contact_id ?? null,
+    })
+    if (!verdict.allowed) {
+      return new Response(
+        JSON.stringify({ error: verdict.reason, blocked: true }),
+        { status: 409, headers: { 'Content-Type': 'application/json', ...corsHeaders } },
+      )
+    }
+
+    // La garde dit qui NE peut PAS recevoir ; le lien dit comment le devenir. Sans lui, un
+    // rappel automatique n'offre aucune sortie depuis le message lui-même — et c'est
+    // l'unique canal par lequel cette personne nous parle.
+    const unsub = await unsubscribeHeaders(contact.email, reminder.contact_id ?? null)
+    const html = buildEmailHtml(
+      resolvedSubject, resolvedBody, agentName,
+      unsub ? unsubscribeFooterHtml(unsub.url, contact.language ?? 'fr') : '',
+    )
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -286,6 +315,9 @@ serve(async (req) => {
         to: [contact.email],
         subject: resolvedSubject,
         html,
+        // `List-Unsubscribe` + one-click : ce que Gmail et Outlook ATTENDENT. Leur absence
+        // pèse sur la délivrabilité de tout le domaine, pas seulement de ce message.
+        ...(unsub ? { headers: unsub.headers } : {}),
       }),
     })
 

@@ -16,11 +16,12 @@ import { transcribe } from '../_shared/whatsapp-transcribe.ts'
 import { describeInboundMedia, threadTextFor, isReadableDocMime } from '../_shared/vision.ts'
 import { buildThreadDigest, buildMessages, comprehend, type ThreadMessage, type ConversationInsight } from '../_shared/whatsapp-comprehend.ts'
 import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
-import { getProvider, type SendConfig } from '../_shared/whatsapp-gateway.ts'
-import { sendWithRetry } from '../_shared/whatsapp-retry.ts'
 import { mapCriteria, computeMissing, isSearchable, mergeCriteria, criteriaDelta, type LeadCriteria } from '../_shared/whatsapp-lead.ts'
 import { deriveFollowups, persistFollowups, fetchContactDefaultHour } from '../_shared/whatsapp-followups.ts'
 import { isWhatsAppEnabled } from '../_shared/whatsapp-config.ts'
+import { detectStopRequest, type StopLang } from '../_shared/whatsapp-stop-keywords.ts'
+import { recordStopRequest, sendStopAck, type StopSubject } from '../_shared/whatsapp-stop.ts'
+import { sendOutboundGuarded } from '../_shared/whatsapp-outbound-guard.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BATCH = 10            // messages média réclamés / tick (chaque op peut être lente)
@@ -113,6 +114,10 @@ serve(async (req) => {
   if (error) { await releaseProcessLock(admin); return json({ error: error.message }, 500) }
 
   let done = 0, failed = 0
+  // Accusés à envoyer une fois la boucle finie : l'ÉCRITURE du refus part tout de suite
+  // (elle doit précéder la phase 3 du même tick), l'ENVOI attend — c'est un appel réseau,
+  // et la boucle média est déjà le poste le plus lourd du budget.
+  const stopAcks: Array<StopSubject & { langHint: StopLang }> = []
   for (const m of (jobs ?? []) as Array<Record<string, unknown>>) {
     if (overBudget()) break  // reste 'processing' → repris au tick suivant (>5 min)
     const id = m.id as string
@@ -142,6 +147,38 @@ serve(async (req) => {
           }
         }
       }
+      // ── Point C : le STOP dit à l'ORAL, ou écrit dans une image ──
+      //
+      // Le webhook ne peut pas le voir : `parseInbound` rend `body = null` pour un audio
+      // (ni `text.body`, ni `caption`), donc `detectStopRequest(null)` y est faux. La
+      // transcription Deepgram — et la description Gemini d'une image ou d'un PDF —
+      // n'arrivent qu'ici, une minute plus tard. Or la note vocale est un canal majoritaire
+      // côté client : sans ce point, « arrêtez de m'écrire » dit à voix haute n'est JAMAIS
+      // entendu.
+      //
+      // `stop_handled_at` est le seul garde-fou d'idempotence de ce chemin : un job
+      // retombé en 'failed' est re-réclamé, et le registre étant append-only, chaque
+      // reprise empilerait une déclaration de plus.
+      const stopLang = (m.direction === 'inbound' && !m.stop_handled_at)
+        ? detectStopRequest(patch.transcript as string | null | undefined)
+        : null
+      if (stopLang) {
+        patch.stop_handled_at = new Date().toISOString()
+        const subject: StopSubject = {
+          phone: String(m.wa_from ?? ''),
+          contactId: (m.contact_id as string | null) ?? null,
+          agencyId: (m.agency_id as string | null) ?? null,
+          messageId: id,
+          viaButton: false,   // une transcription ne vient jamais d'un clic
+        }
+        // ÉCRITE AVANT l'update, à dessein : si l'update échoue, le job est repris et le
+        // refus est réécrit (ligne de registre en double, suppression inchangée — elle est
+        // ON CONFLICT DO NOTHING). L'ordre inverse perdrait le refus en silence, et sur un
+        // registre de conformité c'est le mauvais sens de l'erreur.
+        await recordStopRequest(admin, subject)
+        stopAcks.push({ ...subject, langHint: stopLang })
+      }
+
       await admin.from('whatsapp_messages').update(patch).eq('id', id)
       done++
     } catch (e) {
@@ -152,6 +189,47 @@ serve(async (req) => {
         last_error: String((e as Error)?.message ?? 'error').slice(0, 300),
       }).eq('id', id)
       failed++
+    }
+  }
+
+  // Accusés de désinscription. AVANT la phase 3, et ce n'est pas cosmétique : la
+  // suppression que `recordStopRequest` vient d'écrire exclut le numéro de
+  // `whatsapp_pending_notices`, donc de l'avis LPD du tick COURANT. Sans cet ordre, MEGGA
+  // répondrait au STOP par un message de démarchage dans la minute.
+  for (const a of stopAcks) {
+    if (overBudget()) break
+    await sendStopAck(admin, a)
+  }
+
+  // Rattrapage. L'accusé porte l'avis LPD et c'est, pour qui écrit « stop » en premier
+  // message, le SEUL message qu'il recevra jamais : le perdre en silence n'est pas une
+  // option. Or trois chemins peuvent le perdre — le `waitUntil` du webhook si l'instance
+  // est recyclée, la boucle ci-dessus si le budget coupe, un échec réseau de Meta.
+  //
+  // La reprise est gratuite parce que l'état vit en BASE : une suppression active dont
+  // `ack_sent_at` est vide EST un accusé dû. `whatsapp_send_allowed` le vérifie de son
+  // côté, donc ce balayage ne peut pas doubler un envoi déjà parti.
+  //
+  // Borné à 24 h : au-delà, un accusé qui n'est jamais parti ne partira pas (numéro
+  // injoignable), et réessayer chaque minute pour l'éternité ne ferait que du bruit.
+  if (!overBudget()) {
+    const { data: dusAcks } = await admin
+      .from('contact_suppressions')
+      .select('wa_phone, contact_id, agency_id')
+      .is('lifted_at', null)
+      .is('ack_sent_at', null)
+      .in('reason', ['stop_keyword', 'meta_block'])
+      .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .order('created_at', { ascending: true })
+      .limit(NOTICE_BATCH)
+    for (const s of (dusAcks ?? []) as Array<{ wa_phone: string; contact_id: string | null; agency_id: string | null }>) {
+      if (overBudget()) break
+      // langHint null : le mot-clé qui l'aurait renseignée appartient au chemin direct.
+      // resolveStopLang retombe sur `contacts.language`, puis sur le français.
+      await sendStopAck(admin, {
+        phone: s.wa_phone, contactId: s.contact_id, agencyId: s.agency_id,
+        messageId: null, viaButton: false, langHint: null,
+      })
     }
   }
 
@@ -203,6 +281,9 @@ serve(async (req) => {
           source_last_message_at: c.last_message_at, generated_at: new Date().toISOString(),
         }, { onConflict: 'contact_id' })
         insights++
+        // La langue observée dans le fil renseigne aussi le CONTACT : c'est elle
+        // qui décidera de la langue des templates hors fenêtre 24h.
+        await applyDetectedLanguage(admin, c.contact_id, insight.language)
         // Phase 4B : MEGGA qualifie le lead en autonomie (crée/enrichit + matching).
         if (insight.lead) {
           try { await qualifyLead(admin, c.agency_id, c.contact_id, insight, digest) }
@@ -229,8 +310,6 @@ serve(async (req) => {
   let notices = 0
   if (metaToken && metaPhoneNumberId && !overBudget()) {
     const { data: pendingNotices } = await admin.rpc('whatsapp_pending_notices', { p_limit: NOTICE_BATCH })
-    const provider = getProvider('meta')
-    const cfg: SendConfig = { metaToken, metaPhoneNumberId, metaApiVersion: apiVersion }
     for (const n of (pendingNotices ?? []) as Array<{ agency_id: string; wa_phone: string }>) {
       if (overBudget()) break
       // Retry court (profil resserré : 2 tentatives, timeout 6s) sur erreur transitoire.
@@ -240,9 +319,24 @@ serve(async (req) => {
       // peut-être livré → doublonnerait la notice). Jamais 131047. Un 5xx non rejoué est
       // re-tenté au prochain tick (whatsapp_pending_notices borne la fenêtre 24h). Profil borné
       // pour ne pas déborder le budget du cron (overBudget() en tête de boucle borne déjà).
-      const sreq = provider.buildSendTextRequest({ toPhone: n.wa_phone, body: NOTICE_TEXT }, cfg)
-      const sr = await sendWithRetry(sreq, (s, b) => provider.parseSendResult(s, b), { maxAttempts: 2, timeoutMs: 6000, retryNetworkError: false })
-      if (!sr.ok) console.error('whatsapp notice send failed:', String(sr.error ?? 'error').slice(0, 80))
+      // SITE 5 — SEUL envoi client sans humain dans la boucle, et le plus exposé.
+      // ⛔ `purpose:'lpd_notice'` n'est autorisé QUE d'ici (porte CI de L6). Exiger un
+      // contactId le tuerait : whatsapp_pending_notices ne rend que (agency_id, wa_phone).
+      // `requireWindow:false` parce que la RPC borne déjà la fenêtre à 24 h côté SQL, et
+      // que l'obligation d'information n'est pas un message de service.
+      const sr = await sendOutboundGuarded({
+        admin, to: n.wa_phone,
+        purpose: 'lpd_notice',
+        payload: { type: 'text', body: NOTICE_TEXT },
+        agencyId: n.agency_id,
+        isAutomated: true,
+        requireWindow: false,
+        // Le profil resserré décrit ci-dessus, RESTITUÉ : le passage par la garde l'avait
+        // ramené à `maxAttempts:1` et au timeout par défaut de 8000 ms, ce qui déborde le
+        // budget de 90 s du cron d'un tiers par envoi et supprime le rejeu des quotas.
+        retryProfile: { maxAttempts: 2, timeoutMs: 6000, retryNetworkError: false },
+      })
+      if (!sr.ok) console.error('whatsapp notice send failed:', String(('error' in sr ? sr.error : sr.reason) ?? 'error').slice(0, 80))
       // Une tentative par numéro : on enregistre l'avis quoi qu'il arrive (la fenêtre
       // 24h de whatsapp_pending_notices borne déjà les renvois).
       await admin.from('whatsapp_notices').upsert(
@@ -288,6 +382,35 @@ serve(async (req) => {
 })
 
 // ── Phase 4B : qualification autonome du lead ───────────────────────────────
+/**
+ * Reporte sur `contacts.language` la langue observée par la compréhension.
+ *
+ * POURQUOI DÉDUIRE PLUTÔT QUE DEMANDER. La langue d'un contact n'est saisie nulle
+ * part aujourd'hui, alors que la compréhension la produit déjà à chaque cycle —
+ * sur le texte écrit par le client lui-même, et validée contre le même jeu fermé
+ * fr/de/en/it que la contrainte de la colonne (`whatsapp-comprehend.ts`). C'est
+ * une observation, pas une déclaration : plus fiable qu'une case de formulaire
+ * qu'un agent coche à la va-vite.
+ *
+ * ⚠ N'ÉCRIT QUE SI LA COLONNE EST NULLE. Un agent qui corrige la langue à la main
+ * doit gagner définitivement : sans ce garde-fou, le prochain message du client
+ * dans une autre langue — une phrase en anglais dans un fil allemand suffit —
+ * écraserait sa correction en silence, à chaque cycle.
+ */
+async function applyDetectedLanguage(
+  admin: SupabaseClient,
+  contactId: string,
+  language: string | null,
+): Promise<void> {
+  if (!language) return
+  // Échec non bloquant : la langue est un confort, jamais une raison de perdre un insight.
+  const { error } = await admin.from('contacts')
+    .update({ language })
+    .eq('id', contactId)
+    .is('language', null)
+  if (error) console.error('contact language propagation failed:', String(error.message ?? '').slice(0, 120))
+}
+
 // À partir de l'insight, MEGGA résout le contact (tiers → dédoublonne/crée ;
 // sinon l'expéditeur), le flague « à compléter », et — si les critères suffisent —
 // crée une client_searches qui déclenche le matching (trigger DB). Idempotent
@@ -336,12 +459,19 @@ async function qualifyLead(
         type: 'lead',
         source: 'whatsapp_ai',
         score: 'cold',
+        // Contact neuf : la langue observée est la seule qu'on aura avant le
+        // premier échange écrit par un humain.
+        language: insight.language,
       }).select('id').single()
       if (error || !newC) return
       leadContactId = (newC as { id: string }).id
       created = true
     }
   }
+
+  // Le contact peut aussi avoir été RETROUVÉ par dédoublonnage (téléphone ou nom) :
+  // il n'est alors pas celui du fil traité plus haut, et n'a donc pas reçu la langue.
+  await applyDetectedLanguage(admin, leadContactId, insight.language)
 
   // 2. Critères extraits de CE fil + état du contact.
   const { data: cRow } = await admin.from('contacts').select('tags, phone, email, search_criteria').eq('id', leadContactId).maybeSingle()

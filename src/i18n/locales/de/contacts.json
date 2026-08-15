@@ -1110,6 +1110,48 @@
     "saved": {
       "coord": "Kontaktdaten gespeichert",
       "crit": "Kriterien gespeichert"
+    },
+    "consent": {
+      "label": "WhatsApp-Erreichbarkeit",
+      "reachable": "Erreichbar",
+      "optedOut": "Möchte nicht mehr kontaktiert werden",
+      "blockedByAgent": "Als «nicht kontaktieren» markiert",
+      "optedOutHelp": "Diese Person hat es selbst verlangt. Die Sperre lässt sich nicht im CRM aufheben.",
+      "blockedByAgentHelp": "Interne Entscheidung. An diese Nummer geht keine WhatsApp-Nachricht.",
+      "doNotContact": "Nicht mehr kontaktieren",
+      "confirm": "An diesen Kontakt geht keine WhatsApp-Nachricht mehr.",
+      "confirmYes": "Bestätigen",
+      "saving": "Wird gespeichert…",
+      "showLog": "Verlauf anzeigen",
+      "hideLog": "Verlauf ausblenden",
+      "event": {
+        "opt_in": "Einwilligung",
+        "opt_out": "Widerspruch"
+      },
+      "source": {
+        "stop_keyword": "STOP per Nachricht erhalten",
+        "meta_block": "WhatsApp-Abmeldeschaltfläche",
+        "agent_manual": "Von einem Agenten erfasst",
+        "click_to_wa": "Einwilligungslink",
+        "web_form_doubleoptin": "Formular mit doppelter Bestätigung",
+        "qr": "QR-Code",
+        "import_repermission": "Import mit erneuter Einwilligung",
+        "agent_pairing": "Agenten-Kopplung",
+        "brief_enabled": "Briefing wieder aktiviert",
+        "brief_disabled": "Briefing deaktiviert"
+      },
+      "invite": "Auf WhatsApp einladen",
+      "inviting": "Wird gesendet…",
+      "inviteHelp": "Eine E-Mail bietet ihr an, Ihre Nachrichten auf WhatsApp zu erhalten. Sie entscheidet.",
+      "inviteNoEmail": "Ohne E-Mail-Adresse kann die Einladung nicht abgehen: sie läuft über diesen Kanal.",
+      "inviteSent": "Einladung am {{date}} gesendet, Antwort ausstehend.",
+      "inviteError": {
+        "generic": "Die Einladung ist nicht abgegangen. Versuchen Sie es gleich noch einmal.",
+        "phone_suppressed": "Dieser Kontakt möchte nicht mehr kontaktiert werden: wir laden ihn nicht erneut ein.",
+        "contact_without_email": "Dieser Kontakt hat keine E-Mail-Adresse.",
+        "agency_wa_number_missing": "Die WhatsApp-Nummer der Agentur ist nicht registriert. Wenden Sie sich an den Support.",
+        "email_send_failed": "Die E-Mail konnte nicht gesendet werden. Versuchen Sie es gleich noch einmal."
+      }
     }
   },
   "nba": {
