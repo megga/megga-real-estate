@@ -144,6 +144,15 @@ jobs:
         # avaient une garde et fuyaient quand même faute de cloisonner par agency_id.
         run: npm run lint:edge-auth
 
+      - name: Coquille des e-mails (direction MEGGA X)
+        # Mesuré le 15.08.2026 : TREIZE fichiers fabriquaient chacun leur propre
+        # `<!DOCTYPE html>`, onze en police système, huit fonds de page différents.
+        # ⚠ Un module partagé ne suffit pas, on l'a déjà vérifié ici : `_shared/resend.ts`
+        # existe pour être le point d'envoi unique et deux sites sur seize l'utilisent.
+        # C'est cette porte qui empêche le quatorzième design de naître — la liste
+        # A_MIGRER, elle, ne fait que dater les douze qui restent.
+        run: npm run lint:email-shell
+
       - name: Cache des dépendances Deno
         # Les Edge Functions importent 143 fois par URL (esm.sh, deno.land) ; sans cache,
         # chaque exécution retélécharge tout et met la CI à la merci d'un CDN tiers. Le
