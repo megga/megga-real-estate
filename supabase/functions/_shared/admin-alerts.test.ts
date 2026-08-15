@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   cronStaleHours,
+  jobMuetEstSuspect,
   buildKybReviewAlerts,
   buildEmailFailureAlerts,
   type KybReviewQueueRow,
@@ -159,5 +160,37 @@ describe('cronStaleHours — un seuil unique criait sur des jobs sains', () => {
     expect(cronStaleHours('', DEFAUT)).toBe(DEFAUT)
     expect(cronStaleHours('n importe quoi', DEFAUT)).toBe(DEFAUT)
     expect(cronStaleHours('0 3 *', DEFAUT)).toBe(DEFAUT)
+  })
+})
+
+describe('jobMuetEstSuspect — « jamais exécuté » n\'est pas « en panne »', () => {
+  const MAINTENANT = new Date('2026-08-16T00:00:00Z')
+  const MOIS = 33 * 24
+
+  it('⛔ un job jamais vu ne déclenche RIEN : on l\'inscrit, on se tait', () => {
+    // Sans cette règle, le tout premier passage de l'alerting dénoncerait la totalité
+    // des jobs du jour, ce qui est exactement le bruit qu'on cherche à supprimer.
+    expect(jobMuetEstSuspect(undefined, MOIS, MAINTENANT)).toBe(false)
+  })
+
+  it('⛔ observé DEPUIS MOINS d\'une période : il n\'a pas encore eu son tour', () => {
+    // Le cas réel : admin-ai-drift-purge-monthly (40 3 1 * *) a été créé le 01.08 vers
+    // 08:00, APRÈS son créneau de 03:40. Son premier passage est le 01.09. Il n'a rien
+    // raté, et il était pourtant dénoncé tous les jours.
+    expect(jobMuetEstSuspect('2026-08-01T08:00:00Z', MOIS, MAINTENANT)).toBe(false)
+  })
+
+  it('observé depuis PLUS d\'une période sans jamais tourner : là, c\'est suspect', () => {
+    expect(jobMuetEstSuspect('2026-06-01T08:00:00Z', MOIS, MAINTENANT)).toBe(true)
+  })
+
+  it('la période compte : un job QUOTIDIEN muet depuis deux jours est suspect', () => {
+    // Même date d'observation, verdicts opposés selon la cadence — c'est tout l'objet.
+    expect(jobMuetEstSuspect('2026-08-13T00:00:00Z', 25, MAINTENANT)).toBe(true)
+    expect(jobMuetEstSuspect('2026-08-13T00:00:00Z', MOIS, MAINTENANT)).toBe(false)
+  })
+
+  it('une date illisible ne déclenche pas : on ne crie pas sur un registre abîmé', () => {
+    expect(jobMuetEstSuspect('pas-une-date', 25, MAINTENANT)).toBe(false)
   })
 })

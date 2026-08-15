@@ -256,6 +256,36 @@ export function cronStaleHours(schedule: string, defautHeures: number): number {
   return defautHeures
 }
 
+
+/**
+ * Un job sans AUCUNE exécution est-il en panne, ou simplement trop jeune ?
+ *
+ * ⛔ LA QUESTION N'EST PAS DÉCIDABLE SANS SON ÂGE. `cron.job` ne porte pas de date de
+ * création, et pg_cron journalise les échecs comme les succès : zéro ligne signifie
+ * « jamais déclenché », pas « déclenché et raté ».
+ *
+ * Mesuré le 16.08.2026 sur `admin-ai-drift-purge-monthly` (`40 3 1 * *`) : zéro
+ * exécution, donc alerte. Or ses voisins de jobid (308 et 310) ont démarré le 01.08 à
+ * 08:25 — il a été créé le même matin, APRÈS son créneau de 03:40. Son premier passage
+ * est le 01.09. Le job n'a rien raté : il n'a pas encore eu son tour.
+ *
+ * D'où le registre de première observation : on n'accuse un job muet qu'une fois qu'on
+ * l'a vu vivre plus longtemps que sa propre période. Un job réellement mort est donc
+ * signalé avec au plus une période de retard, ce qui est le prix exact de ne pas crier
+ * pour rien pendant un mois.
+ */
+export function jobMuetEstSuspect(
+  premiereObservationIso: string | undefined,
+  toleranceHeures: number,
+  now: Date,
+): boolean {
+  // Jamais vu : on l'inscrit ce tour-ci et on se tait. Le tour suivant tranchera.
+  if (!premiereObservationIso) return false
+  const vu = new Date(premiereObservationIso).getTime()
+  if (Number.isNaN(vu)) return false
+  return now.getTime() - vu > toleranceHeures * 3_600_000
+}
+
 export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: AlertSignals): Promise<void> {
   const thresholds: AlertThresholds = {
     ...DEFAULT_THRESHOLDS,
@@ -267,20 +297,34 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
   // 1. Crons en retard / en échec (RPC gardée is_super_admin OR is_service_role).
   try {
     const { data: cronRows } = await admin.rpc('get_cron_health')
+    // Registre de première observation : `cron.job` ne date pas ses créations, donc on
+    // s'en souvient nous-mêmes. Sans lui, un job mensuel créé hier est « en panne »
+    // pendant un mois (cf. `jobMuetEstSuspect`).
+    const vus = (await readJsonConfig<Record<string, string>>(admin, 'admin_cron_first_seen')) ?? {}
+    let vusModifie = false
     for (const job of (cronRows ?? []) as Array<{ jobname: string; schedule: string | null; active: boolean; last_start: string | null; last_status: string | null }>) {
       if (!job.active) continue
+      if (!vus[job.jobname]) { vus[job.jobname] = now.toISOString(); vusModifie = true }
       // ⛔ LE SEUIL DÉPEND DE LA CADENCE DU JOB, pas d'une constante unique : voir
       // `cronStaleHours`. Un `cron_stale_hours` plat criait sur quatre jobs sains.
       const heures = cronStaleHours(job.schedule ?? '', thresholds.cron_stale_hours)
-      const stale = !job.last_start || now.getTime() - new Date(job.last_start).getTime() > heures * 3_600_000
+      const stale = job.last_start
+        ? now.getTime() - new Date(job.last_start).getTime() > heures * 3_600_000
+        : jobMuetEstSuspect(vus[job.jobname], heures, now)
       const failed = job.last_status === 'failed'
       if (stale || failed) {
         alerts.push({
           key: `cron:${job.jobname}`,
           subject: `Cron ${job.jobname} ${failed ? 'en échec' : 'en retard'}`,
-          body: `Le job pg_cron « ${job.jobname} » (${job.schedule ?? 'horaire inconnu'}) est ${failed ? `en échec (dernier statut : ${job.last_status})` : `sans exécution depuis plus de ${heures}h`}. Dernier run : ${formatCH(job.last_start)}.`,
+          body: `Le job pg_cron « ${job.jobname} » (${job.schedule ?? 'horaire inconnu'}) est ${failed ? `en échec (dernier statut : ${job.last_status})` : job.last_start ? `sans exécution depuis plus de ${heures}h` : 'observé depuis plus d’une période sans avoir jamais tourné'}. Dernier run : ${formatCH(job.last_start)}.`,
         })
       }
+    }
+    if (vusModifie) {
+      await admin.from('app_config').upsert(
+        { key: 'admin_cron_first_seen', value: JSON.stringify(vus) },
+        { onConflict: 'key' },
+      )
     }
   } catch (e) {
     console.error('[admin-alerts] cron health read failed:', (e as Error)?.message)
