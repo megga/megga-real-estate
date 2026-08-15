@@ -226,7 +226,32 @@ Tokens :      bg-theme-page, bg-theme-card, bg-theme-section, bg-theme-sidebar, 
 
 **JAMAIS utiliser** : `bg-white`, `text-gray-900`, `border-gray-200` (cassent le dark mode), `shadow-card`, `shadow-sm`
 
-**Typo :** DM Sans 400/500/600/700. Hero 4xl, Page 2xl, Section xl, Card lg, Body base, Small sm, Caption xs.
+**Typo :** ⚠ **`--crm-font` vaut `"Inter Tight"`** (globals.css `:root`), pas DM Sans —
+cette ligne annonçait la police de **Sugar**, supprimée le 10 août 2026. Mesuré le
+15 août : DM Sans ne survit qu'en **repli** (`admin-console.css`, `index.html`) et
+dans deux fichiers de jetons archivés (`propertyx`, `auth-bento`). `index.html`
+charge quatre familles — Inter Tight, Manrope, DM Sans, Plus Jakarta Sans — dont
+une seule habille le CRM. Échelle : les 13 barreaux `--crm-text-*` (11 → 38 px),
+pas des noms de taille Tailwind.
+
+**🌐 LA FACE PUBLIQUE — ce que le CLIENT voit** (portée le 15 août 2026). Quatre
+surfaces sans compte : `/kyc/:token`, `/rendez-vous/:token`, `/reception/:token`,
+`/accept-invite/:token`. Elles suivent MEGGA X, avec **trois écarts assumés** :
+
+1. **Manrope**, pas Inter Tight — décision Julien. C'est, avec le dégradé bleuté
+   de page, la seule chose qui distingue ces écrans du CRM, et ils sont vus par
+   des clients.
+2. **Mono-thème.** Zéro `dark` / `prefers-color-scheme` / `matchMedia` sur les six
+   fichiers ; les deux gardes le DISENT et rougiront le jour où ça change.
+3. `inkSoft` / `soft` = `#3A3D44`, hors échelle par **mesure** (n400 est à 1,16:1
+   de n100 en clair — un doublon, pas un cran). Même valeur qu'Analytics.
+
+Deux objets de jetons, deux specs : `MLK` (kyc-magic-link, 2 surfaces) et `RC`
+(réception acheteur). ⛔ Le cliquet de grammaire **ne lisait pas du tout** ce
+dossier avant ce chantier, et sa clause « aucun élément cliquable peint en encre »
+y est **aveugle par le nom** — elle cherche `…ink`, le jeton s'appelait `black`.
+La règle est donc gardée dans `mlk-contraste.spec.ts`, testée sur la **valeur**.
+Cf. `megga/face-publique-meggax` et `megga/gardes-vacuites` n° 45-47.
 
 ---
 
