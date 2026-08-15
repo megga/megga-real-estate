@@ -2083,7 +2083,7 @@
 
 .megga-x .w-checkbox-input--inputType-custom.w--redirected-checked {
   background-color: #3898ec;
-  background-image: url("../images/custom-checkbox-checkmark.589d534424.svg");
+  background-image: url("/megga-x/images/custom-checkbox-checkmark.589d534424.svg");
   background-position: 50%;
   background-repeat: no-repeat;
   background-size: cover;
@@ -2264,7 +2264,7 @@
   background-color: var(--neutral-colors--800);
   color: var(--neutral-colors--1000);
   text-align: center;
-  background-image: url("../images/670856dfa5206d2fd340b293_quote-bg-gradient-codeai-x-webflow-template.png");
+  background-image: url("/megga-x/images/670856dfa5206d2fd340b293_quote-bg-gradient-codeai-x-webflow-template.png");
   background-position: 50%;
   background-size: cover;
   border: 0 #000;
@@ -6194,7 +6194,7 @@
 .megga-x .checkbox.w--redirected-checked {
   border-color: var(--primary-colors--100);
   background-color: var(--primary-colors--100);
-  background-image: url("../images/6700656525f146e43f2e495f_checkbox-check-icon-mega-webflow-template.svg");
+  background-image: url("/megga-x/images/6700656525f146e43f2e495f_checkbox-check-icon-mega-webflow-template.svg");
   background-size: 10px;
   margin-top: 0;
   margin-left: 0;
@@ -6446,7 +6446,7 @@
 }
 
 .megga-x .colors-gradient-bottom {
-  background-image: url("../images/6704750aa4d30828d675aa20_gradient-bottom-bg-image-codeai-x-webflow-template.png");
+  background-image: url("/megga-x/images/6704750aa4d30828d675aa20_gradient-bottom-bg-image-codeai-x-webflow-template.png");
   background-position: 50% 0;
   background-repeat: no-repeat;
   background-size: cover;
@@ -6466,7 +6466,7 @@
 }
 
 .megga-x .colors-gradient-bottom.gradient-card {
-  background-image: url("../images/670d9f97b3abc6296b383369_gradient-bottom-bg-small-image-codeai-x-webflow-template.png");
+  background-image: url("/megga-x/images/670d9f97b3abc6296b383369_gradient-bottom-bg-small-image-codeai-x-webflow-template.png");
   height: 264px;
 }
 
@@ -7142,7 +7142,7 @@
 }
 
 .megga-x .colors-gradient-top {
-  background-image: url("../images/671052883b2e230ae8c3ba2f_gradient-top-bg-image-codeai-x-webflow-template.png");
+  background-image: url("/megga-x/images/671052883b2e230ae8c3ba2f_gradient-top-bg-image-codeai-x-webflow-template.png");
   background-position: 50%;
   background-repeat: no-repeat;
   background-size: cover;

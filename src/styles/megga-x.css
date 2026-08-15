@@ -7,10 +7,17 @@
  *     `node scripts/build-megga-x-css.mjs`, NE PAS éditer à la main) ;
  *  - les AJOUTS assumés (ce que la vitrine n'a pas) sont isolés dans
  *    megga-x-additions.css, pour rester auditables d'un coup d'œil ;
- *  - ici on ne fait que : charger Inter Tight + poser le canvas du conteneur.
+ *  - ici on ne fait que : poser le canvas du conteneur.
+ *
+ * ⛔ L'`@import` RÉSEAU VERS GOOGLE FONTS A ÉTÉ RETIRÉ (15 août 2026), et il ne
+ * rendait AUCUN service. `index.html` déclare déjà Inter Tight par un `<link>`
+ * précédé d'un `preconnect` — la police était donc en vol avant même que cette
+ * feuille soit lue. L'`@import` ajoutait un aller-retour au pire endroit : il
+ * bloque le rendu ET n'est découvert que lorsque la feuille qui le contient est
+ * arrivée, donc il sérialise ce que le `<link>` parallélise. Charger deux fois
+ * une police ne la charge pas mieux ; ça retarde la première peinture.
  * ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&display=swap');
 @import './megga-x.generated.css';
 @import './megga-x-additions.css';
 

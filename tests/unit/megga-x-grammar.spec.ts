@@ -616,6 +616,42 @@ const EXEMPTIONS_ECRITES: { zone: string; motif: string; garde: string }[] = [
       `dans un bundle déployé.`,
     garde: 'tests/unit/dev-bancs-frontiere.spec.ts',
   })),
+  // ── Lot 3 · L'EXEMPTION DE NATURE (tranchée par Julien le 15 août 2026) ─────
+  //
+  // ⛔ CELLE-CI N'EST PAS DE MÊME ESPÈCE QUE LES AUTRES. Les trois précédentes
+  // disent « cette zone n'est pas mesurable par cet instrument » — du papier, un
+  // fichier absent du bundle. Celle-ci dit « cette zone EST l'instrument ». Le
+  // cliquet mesure les surfaces CONTRE la direction MEGGA X ; le port de la
+  // vitrine la DÉFINIT, donc l'y mesurer est circulaire : un écart y serait, par
+  // construction, la direction qui change d'avis, jamais une régression.
+  //
+  // ⚠ ELLE NE REPOSE PAS SUR « LA ZONE EST PROPRE ». Elle l'est — 0 marqueur sur
+  // 23 fichiers, mesuré — et c'est rassurant, mais ce n'est PAS le motif : une
+  // zone propre entre au cliquet, précisément pour qu'elle le reste. Confondre
+  // les deux ferait de « c'est vert » un motif d'exemption, ce qui les rendrait
+  // toutes acceptables.
+  //
+  // ⛔ ET SA CONTREPARTIE EST CE QUI L'EMPÊCHE D'ÊTRE UN BLANC-SEING. Une
+  // direction exemptée de son propre cliquet doit être gardée AUTREMENT, sinon
+  // « exempté » veut dire « personne ne regarde » : `megga-x.generated.css`,
+  // 10 571 lignes et 100 % de la DA, n'était gardée par RIEN. La garde nommée
+  // vérifie que le fichier commis est exactement ce que le générateur produit,
+  // qu'aucune `url()` ne pend, et qu'aucun `@import` réseau ne bloque le rendu.
+  ...[
+    { zone: 'src/components/megga-x', quoi: 'le port 1:1 de la vitrine' },
+    { zone: 'src/pages/dev/MeggaXStyleGuidePage.tsx', quoi: 'sa vitrine, servie sur /design-system/megga-x' },
+  ].map(({ zone, quoi }) => ({
+    zone,
+    motif:
+      `exemption de NATURE : ${quoi}. Le cliquet mesure les surfaces CONTRE la direction ` +
+      `MEGGA X ; ce code la DÉFINIT, donc l'y mesurer est circulaire — un écart y serait la ` +
+      `direction qui change d'avis, pas une régression. ⚠ Le motif n'est PAS « la zone est ` +
+      `propre » (elle l'est, 0 marqueur sur 23 fichiers) : une zone propre entre au cliquet ` +
+      `pour qu'elle le reste. Contrepartie, sans quoi l'exemption serait un blanc-seing : la ` +
+      `feuille générée est gardée sur sa SOURCE — fichier commis identique au produit du ` +
+      `générateur, zéro url() pendante, zéro @import réseau.`,
+    garde: 'tests/unit/megga-x-source-frontiere.spec.ts',
+  })),
 ]
 
 /**
@@ -1470,6 +1506,66 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       }
     }
     expect(defauts, `exemption sans support :\n  ${defauts.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ LA CLAUSE DE FERMETURE — « tout ce qui PEINT est couvert ou exempté ».
+   *
+   * C'est elle qui fait de « 100 % » un fait gardé plutôt qu'un comptage. Les
+   * clauses précédentes vérifient que les zones INSCRITES sont saines ; aucune
+   * ne dit ce qui n'est inscrit nulle part. Un dossier neuf plein de styles
+   * pouvait arriver sans qu'une seule ligne rougisse — l'absence est le seul
+   * état qu'un cliquet, par construction, ne voit pas.
+   *
+   * ⛔ ET ELLE NE PEUT PAS ÊTRE UNE LISTE (n°50). Une liste témoin protège
+   * contre une édition PARTIELLE, jamais contre une édition COHÉRENTE : retirer
+   * un fichier de la liste ET du cliquet du même geste passe au vert. Ce qui
+   * ferme, c'est un TIERS que la mutation ne peut pas éditer — ici le SYSTÈME DE
+   * FICHIERS. On énumère les PORTEURS depuis l'arbre, et chacun doit être balayé
+   * ou nommé dans `EXEMPTIONS_ECRITES`. Un porteur neuf devra donc entrer, ou
+   * justifier sa sortie DANS UN DIFF.
+   *
+   * ⚠ « PORTEUR » EST UNE DÉFINITION, ET ELLE EST ÉCRITE ICI : un `.tsx` de
+   * `src/` qui contient `style={{`, `className=` ou `<style`. Les hooks, `lib/`
+   * et `types/` ne peignent rien et n'ont aucune raison d'entrer dans un
+   * dénominateur de direction — les compter ferait baisser le chiffre sans
+   * couvrir un pixel de plus.
+   *
+   * Mesuré le 15 août 2026 : 330 porteurs, 303 balayés, 27 exemptés, ZÉRO
+   * orphelin.
+   */
+  it('tout porteur de src/ est couvert, ou exempté avec un motif', () => {
+    const tous = scanRoots([{ root: 'src', keep: (n) => /\.tsx$/.test(n) }])
+    expect(emptyRoots(tous), 'racine vide : chemin cassé, pas dépôt sans pages').toEqual([])
+    // Sans ce plancher, un arbre déplacé rendrait « rien à couvrir » et la
+    // clause passerait au vert sur un dépôt qu'elle ne lit plus.
+    expect(tous.files.length, 'src/ ne rend plus de .tsx').toBeGreaterThan(300) // 379 mesurés le 15.08.2026
+
+    const balayes = new Set(sources.map((s) => s.chemin))
+    const exempte = (p: string) =>
+      EXEMPTIONS_ECRITES.some(({ zone }) => p === zone || p.startsWith(zone + '/'))
+
+    const orphelins: string[] = []
+    let porteurs = 0
+    for (const abs of tous.files) {
+      const lu = readFileSafely(abs)
+      if (lu.status !== 'ok') continue
+      // ⚠ Sur le fichier BRUT, pas sur sa version sans commentaires : la
+      // définition d'un porteur est « ce fichier peint », et un `style={{`
+      // commenté reste le signe d'un fichier qui peint.
+      if (!/style=\{\{|className=|<style/.test(lu.value)) continue
+      porteurs++
+      const chemin = rel(abs)
+      if (!balayes.has(chemin) && !exempte(chemin)) orphelins.push(chemin)
+    }
+
+    // Un dénominateur qui s'effondre rendrait la clause vraie sans rien couvrir.
+    expect(porteurs, 'plus aucun porteur trouvé — la définition ou le balayage est cassé').toBeGreaterThan(250)
+    expect(
+      orphelins,
+      `porteur ni balayé ni exempté — l'entrer dans ZONES, ou écrire son motif dans ` +
+        `EXEMPTIONS_ECRITES avec la garde qui le porte :\n  ${orphelins.join('\n  ')}`,
+    ).toEqual([])
   })
 
   /**
