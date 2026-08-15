@@ -31,7 +31,8 @@
       "copy": "Copia il link",
       "copied": "Link copiato",
       "noCall": "Nessun appuntamento è ancora fissato. Le scriveremo appena si libera un orario.",
-      "enterCta": "Vai al mio spazio"
+      "enterCta": "Vai al mio spazio",
+      "bookFailed": "L'orario scelto è appena stato preso. Sceglietene uno nuovo dal vostro spazio, sezione Chiamata di benvenuto."
     },
     "pendingNotice": {
       "title": "La Sua compilazione è in pausa",
@@ -215,7 +216,8 @@
         "hostLabel": "Con",
         "durationLabel": "Durata",
         "duration": "{{minutes}} min",
-        "none": "Nessun appuntamento per ora. Le scriveremo appena si libera un orario."
+        "none": "Nessun appuntamento per ora. Le scriveremo appena si libera un orario.",
+        "pending": "Sarà confermato all'invio del dossier."
       },
       "attestation": "Attesto che le informazioni sopra riportate sono esatte e complete, per quanto a mia conoscenza.",
       "errors": {
@@ -323,7 +325,8 @@
       "confirm": "Confermare l'appuntamento",
       "confirming": "Prenotazione…",
       "later": "Più tardi",
-      "continue": "Continua verso il mio spazio"
+      "continue": "Continua verso il mio spazio",
+      "choose": "Tenere questo orario"
     },
     "confirmed": {
       "title": "Prenotato",
@@ -331,6 +334,11 @@
       "join": "Partecipare alla videoconferenza",
       "emailSent": "Un'e-mail di conferma la attende, con il link e la possibilità di riprogrammare.",
       "toDashboard": "Vai al mio spazio"
+    },
+    "chosen": {
+      "title": "Orario scelto",
+      "body": "La prenotazione partirà con il vostro dossier, dopo il riepilogo. Il link video e l'e-mail di conferma seguiranno in quel momento.",
+      "change": "Modificare"
     },
     "empty": {
       "noHost": "Nessun orario disponibile al momento. La ricontatteremo per e-mail appena possibile.",

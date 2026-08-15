@@ -50,6 +50,7 @@ import {
   type IdentityDocumentPreview, type IdentityDocumentType, type IdentityVerificationStatus,
 } from '@/hooks/useAgencyIdentity'
 import type { OnboardingCallRow } from '@/hooks/useOnboardingCall'
+import type { OcBookingChoice } from '@/components/onboarding-call/OcBooking'
 import { bookedWhenLabel } from '@/components/onboarding-call/ocDates'
 import type { KybIdReadRecord } from '@/types/kybIdRead'
 import { IdentityReadNotice } from './StepPieceIdentite'
@@ -84,6 +85,12 @@ interface StepRecapitulatifProps {
    * réserver : aucun hôte actif, ou aucun créneau libre sur l'horizon).
    */
   rendezVous: OnboardingCallRow | null
+  /**
+   * Le créneau RETENU à l'étape 4, quand rien n'est encore en base : la réservation ne
+   * part qu'avec le dossier (décision client du 15.08.2026). La relecture doit donc
+   * dire la date ET le fait qu'elle sera confirmée à l'envoi — pas avant.
+   */
+  rendezVousChoisi: OcBookingChoice | null
   /** Fuseau dans lequel l'heure du rendez-vous est relue — celui du navigateur. */
   rendezVousTimezone: string
   attestationChecked: boolean
@@ -149,7 +156,7 @@ export function StepRecapitulatif({
   signataire, agencyDraft, documentType, identityRead, verificationStatus,
   verifiedDocumentType, verifiedAt,
   recto, verso, identityDocumentsLoading, identityDocumentsError,
-  rendezVous, rendezVousTimezone,
+  rendezVous, rendezVousChoisi, rendezVousTimezone,
   attestationChecked, onAttestationChange, onEditStep,
 }: StepRecapitulatifProps) {
   const { t, i18n } = useTranslation('onboarding')
@@ -327,6 +334,24 @@ export function StepRecapitulatif({
                 // langues pour une valeur qui ne s'accorde jamais (« 30 min »).
                 value={t('wizard.recap.rendezVous.duration', { minutes: rendezVous.duration_minutes })}
               />
+            </>
+          ) : rendezVousChoisi ? (
+            <>
+              {/* Créneau RETENU, pas réservé : la date se relit comme le reste, et la
+                  ligne d'état remplace l'hôte — il n'est attribué qu'à l'écriture,
+                  le nommer ici serait une promesse que la réservation peut démentir. */}
+              <RecapRow
+                label={t('wizard.recap.rendezVous.whenLabel')}
+                value={bookedWhenLabel(rendezVousChoisi.slot, rendezVousTimezone)}
+                capitalizeValue
+              />
+              <RecapRow
+                label={t('wizard.recap.rendezVous.durationLabel')}
+                value={t('wizard.recap.rendezVous.duration', { minutes: rendezVousChoisi.durationMinutes })}
+              />
+              <p className="paragraph-small text-color-neutral-600 mg-top-3x-extra-small">
+                {t('wizard.recap.rendezVous.pending')}
+              </p>
             </>
           ) : (
             // Pas une erreur, et surtout pas en rouge : l'étape a été franchie parce

@@ -30,8 +30,19 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MeggaX, MxButton } from '@/components/megga-x'
-import type { OnboardingCallRow } from '@/hooks/useOnboardingCall'
 import { bookedWhenLabel } from '@/components/onboarding-call/ocDates'
+
+/**
+ * Le minimum que l'écran relit d'une réservation : l'instant et le lien. Structurel
+ * et non `OnboardingCallRow` : depuis le 15.08.2026 la réservation est faite PAR la
+ * soumission (cf. handleSubmit), et sa réponse edge (BookResult) ne porte pas la
+ * forme complète de la ligne — exiger la ligne obligerait à attendre un refetch pour
+ * afficher ce que la réponse dit déjà.
+ */
+interface RendezVousAffiche {
+  scheduled_at: string
+  meeting_url: string | null
+}
 
 /**
  * L'emblème : un calendrier.
@@ -58,15 +69,21 @@ function CalendrierGlyph() {
 const COPIE_VISIBLE_MS = 2_000
 
 interface Props {
-  /** Le rendez-vous pris à l'étape 4, ou `null` s'il n'y avait rien à réserver. */
-  rendezVous: OnboardingCallRow | null
+  /** La réservation faite à la soumission (ou antérieure), `null` si aucune. */
+  rendezVous: RendezVousAffiche | null
+  /**
+   * Un créneau avait été retenu mais la réservation a échoué à la soumission (pris
+   * entre-temps, ou edge injoignable). Le dossier, lui, est parti : l'écran le dit
+   * et pointe vers l'écran de réservation, au lieu de laisser croire à un rendez-vous.
+   */
+  bookingFailed?: boolean
   /** Fuseau dans lequel l'heure est relue — celui du navigateur. */
   timezone: string
   /** Sortie vers le CRM. C'est la SEULE navigation de cet écran. */
   onEnter: () => void
 }
 
-export default function IdentitySubmittedScreen({ rendezVous, timezone, onEnter }: Props) {
+export default function IdentitySubmittedScreen({ rendezVous, bookingFailed = false, timezone, onEnter }: Props) {
   const { t } = useTranslation('onboarding')
   const [copie, setCopie] = useState(false)
   const lien = rendezVous?.meeting_url ?? null
@@ -176,11 +193,13 @@ export default function IdentitySubmittedScreen({ rendezVous, timezone, onEnter 
 
                     {/* Un rendez-vous manquant se dit ICI, sous l'action, et non à la
                         place de la carte : le dossier est parti, c'est le sujet de
-                        l'écran ; l'absence de créneau en est une note de bas de page. */}
+                        l'écran ; l'absence de créneau en est une note de bas de page.
+                        Deux causes distinctes, deux phrases : un créneau retenu mais
+                        pris entre-temps n'est pas « rien à réserver ». */}
                     {!rendezVous && (
                       <div className="mg-top-small text-center">
                         <p className="paragraph-small text-color-neutral-600">
-                          {t('gate.submitted.noCall')}
+                          {t(bookingFailed ? 'gate.submitted.bookFailed' : 'gate.submitted.noCall')}
                         </p>
                       </div>
                     )}

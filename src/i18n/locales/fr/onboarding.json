@@ -31,7 +31,8 @@
       "copy": "Copier le lien",
       "copied": "Lien copié",
       "noCall": "Aucun rendez-vous n'est encore fixé. Nous vous écrirons dès qu'un créneau s'ouvre.",
-      "enterCta": "Aller à mon espace"
+      "enterCta": "Aller à mon espace",
+      "bookFailed": "Le créneau retenu vient d'être pris. Choisissez un nouveau créneau depuis votre espace, rubrique Rendez-vous d'accueil."
     },
     "pendingNotice": {
       "title": "Votre saisie est en pause",
@@ -215,7 +216,8 @@
         "hostLabel": "Avec",
         "durationLabel": "Durée",
         "duration": "{{minutes}} min",
-        "none": "Aucun rendez-vous pour l'instant. Nous vous écrirons dès qu'un créneau s'ouvre."
+        "none": "Aucun rendez-vous pour l'instant. Nous vous écrirons dès qu'un créneau s'ouvre.",
+        "pending": "Sera confirmé à l'envoi du dossier."
       },
       "attestation": "J'atteste que les informations ci-dessus sont exactes et complètes, à ma connaissance.",
       "errors": {
@@ -323,7 +325,8 @@
       "confirm": "Confirmer le rendez-vous",
       "confirming": "Réservation…",
       "later": "Plus tard",
-      "continue": "Continuer vers mon espace"
+      "continue": "Continuer vers mon espace",
+      "choose": "Retenir ce créneau"
     },
     "confirmed": {
       "title": "C'est réservé",
@@ -331,6 +334,11 @@
       "join": "Rejoindre la visioconférence",
       "emailSent": "Un e-mail de confirmation vous attend, avec le lien et de quoi replanifier si besoin.",
       "toDashboard": "Aller à mon espace"
+    },
+    "chosen": {
+      "title": "Créneau retenu",
+      "body": "La réservation partira avec votre dossier, après le récapitulatif. Le lien de visioconférence et l'e-mail de confirmation suivront à ce moment-là.",
+      "change": "Modifier"
     },
     "empty": {
       "noHost": "Aucun créneau n'est ouvert pour le moment. Nous revenons vers vous par e-mail dès que possible.",

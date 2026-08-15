@@ -31,7 +31,8 @@
       "copy": "Copy the link",
       "copied": "Link copied",
       "noCall": "No call is booked yet. We will write to you as soon as a slot opens.",
-      "enterCta": "Go to my workspace"
+      "enterCta": "Go to my workspace",
+      "bookFailed": "The held slot was just taken. Pick a new one from your space, under Welcome call."
     },
     "pendingNotice": {
       "title": "Your entry is paused",
@@ -215,7 +216,8 @@
         "hostLabel": "With",
         "durationLabel": "Duration",
         "duration": "{{minutes}} min",
-        "none": "No appointment yet. We will write to you as soon as a slot opens."
+        "none": "No appointment yet. We will write to you as soon as a slot opens.",
+        "pending": "Will be confirmed when the file is sent."
       },
       "attestation": "I confirm that the information above is accurate and complete to the best of my knowledge.",
       "errors": {
@@ -323,7 +325,8 @@
       "confirm": "Confirm the appointment",
       "confirming": "Booking…",
       "later": "Later",
-      "continue": "Continue to my workspace"
+      "continue": "Continue to my workspace",
+      "choose": "Hold this slot"
     },
     "confirmed": {
       "title": "You are booked",
@@ -331,6 +334,11 @@
       "join": "Join the video call",
       "emailSent": "A confirmation email is waiting for you, with the link and a way to reschedule if needed.",
       "toDashboard": "Go to my workspace"
+    },
+    "chosen": {
+      "title": "Slot held",
+      "body": "The booking will go out with your file, after the review. The video link and the confirmation email will follow at that point.",
+      "change": "Change"
     },
     "empty": {
       "noHost": "No slot is open right now. We will come back to you by email as soon as we can.",
