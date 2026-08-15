@@ -399,14 +399,14 @@ function CatGallery({ photos, start = 0, title, onClose }: { photos: string[]; s
   return (
     <div onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
       style={{ position: 'absolute', inset: 0, zIndex: 40, display: 'flex', flexDirection: 'column',
-        background: lightMode ? TK.bg : '#0A0B0E', animation: 'cat-galfade-in .3s cubic-bezier(.22,1,.36,1)' }}>
+        background: lightMode ? TK.bg : MXC_COLOR.n100, animation: 'cat-galfade-in .3s cubic-bezier(.22,1,.36,1)' }}>
       <style>{`
         @keyframes cat-galfade-in { from { opacity:0; } to { opacity:1; } }
         @keyframes cat-galphoto { from { opacity:0; transform:scale(1.035); } to { opacity:1; transform:none; } }
         .cat-gal-strip::-webkit-scrollbar { display:none; }
       `}</style>
       {/* scène photo */}
-      <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', background: lightMode ? '#D8DBE1' : '#08090C' }}>
+      <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden', background: lightMode ? '#D8DBE1' : MXC_COLOR.n200 }}>
         <img key={i} src={photos[i]} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%',
           objectFit: 'cover', animation: 'cat-galphoto .45s cubic-bezier(.22,1,.36,1)' }} />
         {/* scrim haut */}
@@ -432,7 +432,7 @@ function CatGallery({ photos, start = 0, title, onClose }: { photos: string[]; s
         <button onClick={next} aria-label={t('today.catalogue.gallery.next')} style={{ ...navBtn, right: 18 }}><CatDIcon name="next" size={22} color="#fff" /></button>
       </div>
       {/* pellicule */}
-      <div ref={stripRef} className="cat-gal-strip" style={{ flexShrink: 0, display: 'flex', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-3xl)', background: lightMode ? '#FFFFFF' : '#0C0D11',
+      <div ref={stripRef} className="cat-gal-strip" style={{ flexShrink: 0, display: 'flex', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-3xl)', background: lightMode ? '#FFFFFF' : MXC_COLOR.n300,
         overflowX: 'auto', scrollbarWidth: 'none', borderTop: `1px solid ${lightMode ? TK.border : 'rgba(255,255,255,.06)'}` }}>
         {photos.map((p, idx) => (
           <button key={idx} data-sel={idx === i} onClick={() => setI(idx)} style={{ flexShrink: 0, width: 120, height: 78,

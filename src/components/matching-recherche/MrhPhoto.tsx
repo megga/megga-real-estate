@@ -5,6 +5,7 @@
 
 import { useState } from 'react'
 import RechIcon from './RechIcon'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 interface Props {
   url?: string | null
@@ -39,7 +40,7 @@ export default function MrhPhoto({ url, dark, alt = '', fallbackBg, fallbackInk 
       style={{
         position: 'absolute', inset: 0, width: '100%', height: '100%',
         objectFit: 'cover', display: 'block',
-        background: dark ? '#12151B' : '#E7ECF2',
+        background: dark ? MXC_COLOR.n400 : '#E7ECF2',
       }}
     />
   )

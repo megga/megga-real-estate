@@ -119,7 +119,7 @@ export function BillingSection() {
           return (
             <button key={tg.id} onClick={() => setPeriod(tg.id)} style={{
               height: 40, padding: '0 var(--crm-space-5xl)', border: 0, borderRadius: 'var(--crm-radius-pill)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600,
-              background: on ? '#181A20' : 'transparent', color: on ? V.head : V.mut, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', transition: 'color .15s, background .15s',
+              background: on ? MXC_COLOR.n400 : 'transparent', color: on ? V.head : V.mut, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', transition: 'color .15s, background .15s',
             }}>
               {tg.label}
               {tg.badge && <span style={{ height: 22, padding: '0 var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: V.brand, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>{tg.badge}</span>}

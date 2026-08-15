@@ -550,8 +550,21 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
    * aucune palette. Son dernier lecteur — la pastille d'avatar — est passé à
    * `sp.accent` avec la suppression de Sugar : il ne doit plus en avoir aucun
    * hors du module qui construit le thème.
+   *
+   * ⚠ ET CETTE CLAUSE GARDE LE CHEMIN DE LECTURE, PAS LA TEINTE — la distinction
+   * n'est pas théorique. Elle s'écrit `/\bt\.primary\b/`, donc elle voit un
+   * IDENTIFIANT. Mesuré le 16 août 2026 : la VALEUR `#0041D9` vit dans **34
+   * emplois répartis sur 21 fichiers** — le sceau du Matching, les palettes
+   * d'affichage d'annonce, la recherche ⌘K — pendant que cette clause est verte,
+   * et elle a raison de l'être : aucun de ces sites ne LIT le thème, ils
+   * recopient une teinte.
+   *
+   * Lire ce titre comme « la teinte a disparu » serait donc la vacuité n°6, la
+   * garde muette prise pour un verdict. C'est `couleur-barreaux.spec.ts` qui
+   * tient la VALEUR, par un plafond par zone qui ne peut que baisser — les deux
+   * clauses gardent des choses différentes, et aucune ne remplace l'autre.
    */
-  it('l’accent hérité de CrmTheme n’a plus aucun lecteur', () => {
+  it('l’accent hérité de CrmTheme n’a plus aucun lecteur (le CHEMIN, pas la teinte)', () => {
     const lecteurs = sources
       .filter((s) => s.path !== 'src/components/crm-sugar/tokens.ts')
       .filter((s) => /\bt\.primary\b/.test(s.code))

@@ -14,6 +14,7 @@ import { useAvatar } from '@/hooks/useAvatar'
 import type { ProfileData } from '../data'
 import { PfIc, PfEditField, PfAvatar, PfPhotoModal, type FocusSectionProps, type PfRow, type PfColors, type PfEditLabels } from './pfKit'
 import { pfColors, PF_KEYFRAMES } from './pfKitCore'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 // Clés éditables = clés string de ProfileData rendues par la section.
 type RowKey =
@@ -188,8 +189,8 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
                       </button>
                       {info && (
                         <div className="pfx-info-in" role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 9px)', left: -6, zIndex: 30,
-                          width: 264, background: dark ? '#1B1D22' : '#FFFFFF', borderRadius: 'var(--crm-radius-xl)', boxShadow: c.shadow, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', transformOrigin: 'top left', border: c.hair }}>
-                          <span style={{ position: 'absolute', top: -6, left: 11, width: 11, height: 11, background: dark ? '#1B1D22' : '#FFFFFF', transform: 'rotate(45deg)', borderRadius: 'var(--crm-radius-2xs)', borderTop: c.hair, borderLeft: c.hair }} />
+                          width: 264, background: dark ? MXC_COLOR.n400 : '#FFFFFF', borderRadius: 'var(--crm-radius-xl)', boxShadow: c.shadow, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', transformOrigin: 'top left', border: c.hair }}>
+                          <span style={{ position: 'absolute', top: -6, left: 11, width: 11, height: 11, background: dark ? MXC_COLOR.n400 : '#FFFFFF', transform: 'rotate(45deg)', borderRadius: 'var(--crm-radius-2xs)', borderTop: c.hair, borderLeft: c.hair }} />
                           <div style={{ position: 'relative', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: c.ink, letterSpacing: -0.2, marginBottom: 5 }}>{t('focus.profile.info.title')}</div>
                           <div style={{ position: 'relative', fontSize: 'var(--crm-text-md)', lineHeight: 1.5, color: c.soft, fontWeight: 500 }}>
                             {(() => {

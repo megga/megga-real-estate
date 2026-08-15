@@ -11,7 +11,7 @@
  * lecteur. Il ne reste que `CRM_TOKENS.graphite`, le thème legacy.
  */
 import { describe, it, expect } from 'vitest'
-import { readFileSafely, rel, scanRoots } from './helpers/fs-scan'
+import { readFileSafely, rel, repoPath, scanRoots } from './helpers/fs-scan'
 import { CRM_GRAPHITE, CRM_TOKENS, crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { mxCrmPalette, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { SugarV2, setSugarV2Dark } from '@/components/crm-sugar-wizard/tokens'
@@ -35,11 +35,6 @@ function luminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
-function contrast(a: string, b: string): number {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
-  return (hi + 0.05) / (lo + 0.05)
-}
-
 describe('échelle Graphite — ce qu\'il en reste', () => {
   it('monte strictement de s0 à s4', () => {
     const steps = [CRM_GRAPHITE.s0, CRM_GRAPHITE.s1, CRM_GRAPHITE.s2, CRM_GRAPHITE.s3, CRM_GRAPHITE.s4]
@@ -48,11 +43,49 @@ describe('échelle Graphite — ce qu\'il en reste', () => {
     expect(new Set(steps).size).toBe(5)
   })
 
-  it('remonte `muted` au-dessus de AA sur le canvas', () => {
-    // #797D90 (teintes historiques) tombait à 4,45:1 sur #12161C. `CrmTheme`
-    // n'est pas parti avec Sugar : 28 fichiers le lisent encore.
-    expect(contrast(CRM_TOKENS.graphite.muted, CRM_GRAPHITE.s0)).toBeGreaterThanOrEqual(4.5)
-    expect(contrast(CRM_TOKENS.graphite.muted, CRM_GRAPHITE.s4)).toBeGreaterThanOrEqual(4.5)
+  /**
+   * ⛔ CETTE CLAUSE ÉTAIT CREUSE, ET SA JUSTIFICATION PÉRIMÉE D'UN FACTEUR 28.
+   *
+   * Elle mesurait le contraste de `CRM_TOKENS.graphite.muted` au motif que
+   * « `CrmTheme` n'est pas parti avec Sugar : 28 fichiers le lisent encore ».
+   * Mesuré le 16 août 2026 : `CrmTheme` n'est nommé que dans UN fichier — celui
+   * qui le définit — et `CRM_TOKENS` n'a qu'un seul lecteur de rendu,
+   * `kyc/kycPalette.ts:158`, qui en lit exactement UN champ : `dangerSoft`.
+   * `muted` n'en a AUCUN. On assertait donc un seuil sur une teinte que plus
+   * personne ne peint : verte à jamais, quelle que soit la valeur.
+   *
+   * ⚠ CE QUI LA REMPLACE GARDE LA SURFACE D'EXPOSITION de la direction morte,
+   * et rien d'autre : un thème legacy dont on remettrait à lire les champs
+   * cesserait d'être legacy sans que rien ne le dise. Le compte ne peut que
+   * baisser. ⛔ Le titre dit exactement cela — pas « il est lisible » : une
+   * clause dont l'intitulé promet plus que ce qu'elle mesure est la même vacuité
+   * que celle qu'on répare ici, déplacée du corps vers le nom.
+   */
+  it('le thème legacy n’a qu’UN champ vivant', () => {
+    const lu = readFileSafely(repoPath('src/components/crm-sugar-v3/kyc/kycPalette.ts'))
+    expect(lu.status, 'kycPalette illisible : la clause ne mesure rien').toBe('ok')
+    const lus = [...new Set(
+      ((lu.status === 'ok' ? lu.value : '')
+        .replace(/\/\*[\s\S]*?\*\//g, ' ')
+        .replace(/\/\/[^\n]*/g, ' ')
+        .match(/\bt\.[a-zA-Z]+/g) ?? []),
+    )].sort()
+    expect(
+      lus,
+      'le thème Graphite legacy a gagné (ou perdu) des lecteurs de champ — une direction ' +
+        'morte dont la surface d’exposition remonte cesse d’être morte : trancher, puis ' +
+        'mettre cette liste à jour',
+    ).toEqual(['t.dangerSoft'])
+
+    // ⛔ ET ON N'Y AJOUTE PAS DE SEUIL DE CONTRASTE, alors que c'était le réflexe.
+    // `dangerSoft` est consommé comme `errSoft` : un REMPLISSAGE de pastille, pas
+    // une encre. Mesuré contre la carte sombre, il rend 1,25:1 — et c'est normal,
+    // c'est l'encre POSÉE dessus qui porte le contraste, pas le fond. Lui imposer
+    // les 3:1 des éléments non textuels serait appliquer un seuil à un rôle qu'on
+    // n'a pas qualifié : la faute exacte que ce dépôt a déjà commise sur les
+    // pilules à teinte vive, et qu'il a écrite hors périmètre dans
+    // `sugar-v3-contraste.spec.ts`. La lisibilité de ce qui s'écrit SUR `errSoft`
+    // est gardée là-bas, sur la palette KYC, avec les bons fonds.
   })
 
 

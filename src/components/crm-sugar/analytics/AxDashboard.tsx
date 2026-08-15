@@ -320,7 +320,7 @@ function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; ac
           transform: `translateX(${hov > nSafe * 0.7 ? '-104%' : hov < nSafe * 0.3 ? '4%' : '-50%'})`,
           transition: 'left .16s cubic-bezier(.2,.8,.2,1), transform .16s cubic-bezier(.2,.8,.2,1)',
           display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
-          background: '#1A1C20', borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-sm) var(--crm-space-xl)',
+          background: MXC_COLOR.n400, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-sm) var(--crm-space-xl)',
           boxShadow: '0 10px 28px rgba(0,0,0,0.38)', border: '1px solid rgba(255,255,255,0.10)',
           pointerEvents: 'none', whiteSpace: 'nowrap', fontFamily: 'var(--crm-font)',
         }}>
