@@ -15,7 +15,7 @@
 // une passerelle d'astreinte. On envoie les deux parts, pas l'une à la place de l'autre.
 
 import {
-  INK, MUTED, FONT,
+  MUTED,
   escapeHtml, shell, p, note, button,
 } from './email-shell.ts'
 import type { Alert } from './admin-alerts.ts'
@@ -72,11 +72,7 @@ export function buildAdminAlertEmail(
     bodyHtml: `
      ${p(`<span style="color:${MUTED};">Relevé du ${escapeHtml(quand)}</span>`, 24)}
      ${due.map((a) => note(a.subject, escapeHtml(a.body))).join('')}
-     <div style="margin:4px 0 8px;">${button(URL_MONITORING, 'Ouvrir le monitoring')}</div>
-     <p style="margin:28px 0 0;font-family:${FONT};font-size:11.5px;color:${MUTED};line-height:1.5;">
-       Une même alerte ne repart pas avant 24 h. Se désabonner de ces messages se fait
-       dans la console, <span style="color:${INK};">Réglages, Notifications admin</span>.
-     </p>`,
+     <div style="margin:4px 0 8px;">${button(URL_MONITORING, 'Ouvrir le monitoring')}</div>`,
   })
 
   // La part texte reste proche de l'ancien message : elle servait, et un opérateur qui
