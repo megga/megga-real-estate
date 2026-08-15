@@ -8,6 +8,7 @@ import {
   buildAttendeeEmail,
   buildHostEmail,
   buildReminderEmail,
+  calibrationLines,
   type OnboardingCallEmailData,
 } from './onboarding-email'
 
@@ -112,6 +113,71 @@ describe('avis à l\'hôte — interne, donc dépouillé', () => {
 
   it('l\'objet nomme l\'agence et le créneau, pour un tri à l\'oeil', () => {
     expect(buildHostEmail(base, 'booked').subject).toContain('Régie du Rhône')
+  })
+})
+
+describe('réponses de calibrage — ce qui rend l\'avis utile avant l\'appel', () => {
+  const reponses = {
+    portfolio: '6-20',
+    business: 'both',
+    team: '2-5',
+    priority: 'mandates',
+    cantons: 'Genève, Vaud',
+    // L'identité voyage dans le MÊME objet (contrat de l'edge), et la ligne
+    // « Contact » la rend déjà.
+    first_name: 'Julien',
+    last_name: 'Gauthier',
+    email: 'julien@example.ch',
+  }
+
+  it('traduit les codes, dans l\'ordre des questions du wizard', () => {
+    // Sans ce dictionnaire l'avis afficherait « portfolio : 6-20 » : la colonne ne
+    // stocke que des codes, et une fonction Deno ne voit pas le bundle i18n.
+    expect(calibrationLines(reponses).map((l) => `${l.label}: ${l.value}`)).toEqual([
+      'Portefeuille: 6 à 20 biens',
+      'Activité: Vente et location',
+      'Équipe: 2 à 5 agents',
+      'Priorité: Trouver des mandats',
+      'Cantons: Genève, Vaud',
+    ])
+  })
+
+  it('⛔ ne répète PAS l\'identité : elle est déjà dans la ligne Contact', () => {
+    const labels = calibrationLines(reponses).map((l) => l.label)
+    expect(labels).not.toContain('first_name')
+    expect(labels).not.toContain('email')
+  })
+
+  it('une question inconnue sort avec son code brut plutôt que d\'être perdue', () => {
+    // Ajouter une question au wizard sans toucher au dictionnaire dégrade
+    // l'affichage ; ça ne doit pas escamoter la réponse.
+    expect(calibrationLines({ nouvelle_question: 'sa réponse' }))
+      .toEqual([{ label: 'nouvelle_question', value: 'sa réponse' }])
+  })
+
+  it('aucune réponse, aucune section : pas de titre au-dessus du vide', () => {
+    expect(calibrationLines(null)).toEqual([])
+    expect(calibrationLines({})).toEqual([])
+    expect(buildHostEmail(base, 'booked').html).not.toContain('Ce qu’ils ont répondu')
+  })
+
+  it('l\'avis les rend quand l\'appel a lieu', () => {
+    const { html } = buildHostEmail(base, 'booked', reponses)
+    expect(html).toContain('Ce qu’ils ont répondu')
+    expect(html).toContain('6 à 20 biens')
+    expect(html).toContain('Trouver des mandats')
+  })
+
+  it('une annulation ne les rend pas : le seul fait utile est que le créneau est libre', () => {
+    expect(buildHostEmail(base, 'cancelled', reponses).html).not.toContain('Ce qu’ils ont répondu')
+  })
+
+  it('⛔ la réponse libre est ÉCHAPPÉE — « cantons » est du texte saisi', () => {
+    // Six gabarits interpolaient sans échapper avant la migration du 15.08 ; celui-ci
+    // reçoit une chaîne que l'utilisateur compose entièrement.
+    const { html } = buildHostEmail(base, 'booked', { cantons: '<img src=x onerror=alert(1)>' })
+    expect(html).not.toContain('<img src=x')
+    expect(html).toContain('&lt;img src=x')
   })
 })
 

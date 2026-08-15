@@ -136,10 +136,84 @@ export function buildAttendeeEmail(d: OnboardingCallEmailData): { subject: strin
   return { subject, html }
 }
 
-/** Avis interne, pour l'hôte MEGGA qui prend l'appel. */
+/**
+ * Les questions de calibrage posées à la réservation, en clair.
+ *
+ * ⚠ DUPLIQUÉ DE `src/i18n/locales/fr/onboarding.json` À DESSEIN, et ce n'est pas une
+ * négligence : une fonction Deno ne voit pas le bundle i18n du navigateur — `src/`
+ * n'est pas déployé avec `supabase/functions/` — et `attendee_answers` ne stocke que
+ * des CODES (`portfolio: '6-20'`), volontairement (ce sont des choix, pas des mesures).
+ * Sans cette table, l'avis afficherait « portfolio : 6-20 ».
+ *
+ * La formulation s'écarte du produit à dessein : le wizard s'adresse à l'agence
+ * (« votre portefeuille », « mes acquéreurs »), cet avis parle D'ELLE à l'équipe.
+ * D'où « Portefeuille » et « Suivre ses acquéreurs ».
+ */
+const CALIBRAGE: Record<string, { label: string; options?: Record<string, string> }> = {
+  portfolio: {
+    label: 'Portefeuille',
+    options: { '1-5': '1 à 5 biens', '6-20': '6 à 20 biens', '21-50': '21 à 50 biens', '50+': 'Plus de 50 biens' },
+  },
+  business: {
+    label: 'Activité',
+    options: { sale: 'Vente', rent: 'Location', both: 'Vente et location' },
+  },
+  team: {
+    label: 'Équipe',
+    options: { '1': 'Agent seul', '2-5': '2 à 5 agents', '6-15': '6 à 15 agents', '15+': 'Plus de 15 agents' },
+  },
+  priority: {
+    label: 'Priorité',
+    options: {
+      mandates: 'Trouver des mandats',
+      buyers: 'Suivre ses acquéreurs',
+      admin: 'Gagner du temps administratif',
+      compliance: 'Sécuriser le LAB/KYC',
+    },
+  },
+  cantons: { label: 'Cantons' },
+}
+
+/** Identité du signataire : déjà rendue dans la ligne « Contact », donc jamais répétée. */
+const IDENTITE = new Set(['first_name', 'last_name', 'email'])
+
+export interface CalibrationLine { label: string; value: string }
+
+/**
+ * Traduit `attendee_answers` en lignes lisibles, dans l'ordre des questions du wizard.
+ *
+ * Une clé inconnue n'est PAS jetée : elle ressort avec son code brut. Ajouter une
+ * question au wizard sans toucher à ce fichier dégrade l'affichage — ça ne le casse
+ * pas, et surtout ça ne perd pas la réponse.
+ */
+export function calibrationLines(
+  answers: Record<string, string> | null | undefined,
+): CalibrationLine[] {
+  if (!answers) return []
+  const lignes: CalibrationLine[] = []
+  for (const [cle, q] of Object.entries(CALIBRAGE)) {
+    const brut = answers[cle]
+    if (!brut) continue
+    lignes.push({ label: q.label, value: q.options?.[brut] ?? brut })
+  }
+  for (const [cle, valeur] of Object.entries(answers)) {
+    if (cle in CALIBRAGE || IDENTITE.has(cle) || !valeur) continue
+    lignes.push({ label: cle, value: valeur })
+  }
+  return lignes
+}
+
+/**
+ * Avis interne, pour la boîte MEGGA qui prend l'appel.
+ *
+ * `answers` porte les réponses de calibrage. Elles ne sont rendues que si l'appel a
+ * lieu : sur une annulation, elles n'apprennent plus rien et allongent un message dont
+ * le seul contenu utile est « le créneau est libre ».
+ */
 export function buildHostEmail(
   d: OnboardingCallEmailData,
   kind: 'booked' | 'rescheduled' | 'cancelled',
+  answers?: Record<string, string> | null,
 ): { subject: string; html: string } {
   const when = formatWhen(d.startMs, d.timezone, 'fr')
   const heading = kind === 'booked'
@@ -149,6 +223,7 @@ export function buildHostEmail(
       : 'Appel d’accueil annulé'
 
   const subject = `${heading} · ${d.agencyName} · ${when}`
+  const calibrage = kind === 'cancelled' ? [] : calibrationLines(answers)
 
   // Avis INTERNE : ni mention légale ni pilule de connexion (cf. ShellOptions).
   // L'hôte est déjà dans l'outil, on lui donne des faits et un bouton, rien d'autre.
@@ -164,6 +239,12 @@ export function buildHostEmail(
       ${row(kind === 'cancelled' ? 'Créneau libéré' : 'Quand', escapeHtml(when))}
       ${row('Durée', `${d.durationMinutes} min`)}
     </table>
+    ${calibrage.length > 0
+      ? `${h2('Ce qu’ils ont répondu')}
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:8px 0 28px;">
+      ${calibrage.map((l) => row(l.label, escapeHtml(l.value))).join('')}
+    </table>`
+      : ''}
     ${kind !== 'cancelled' && d.meetingUrl ? button(d.meetingUrl, 'Ouvrir la visioconférence') : ''}`,
   })
 

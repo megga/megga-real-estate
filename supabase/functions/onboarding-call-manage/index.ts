@@ -85,6 +85,14 @@ async function loadParties(db: SupabaseClient, call: CallRow) {
     hostCalendarEmail: (host?.calendar_email as string | null) ?? null,
     hostTimezone: host?.timezone ?? 'Europe/Zurich',
     hostEmail,
+    /**
+     * Où part l'avis interne : la boîte d'ÉQUIPE d'abord (celle qui reçoit déjà
+     * l'invitation d'agenda), le profil de l'hôte en repli quand il n'y en a pas.
+     * Même règle qu'à la réservation — les deux fonctions doivent écrire au même
+     * endroit, sinon une replanification arrive dans une boîte que la réservation
+     * n'a jamais touchée.
+     */
+    hostNoticeTo: (host?.calendar_email as string | null) ?? hostEmail,
   }
 }
 
@@ -174,8 +182,8 @@ serve(async (req: Request) => {
       locale: locale as 'fr' | 'en',
     }
     const hostMail = buildHostEmail(emailData, 'cancelled')
-    if (parties.hostEmail) {
-      await sendResendEmail({ to: parties.hostEmail, subject: hostMail.subject, html: hostMail.html })
+    if (parties.hostNoticeTo) {
+      await sendResendEmail({ to: parties.hostNoticeTo, subject: hostMail.subject, html: hostMail.html })
     }
     // Une annulation `.ics` retire l'entrée de l'agenda du client, ce qu'un simple
     // e-mail ne fait pas : sans elle, le rendez-vous annulé reste affiché chez lui.
@@ -315,8 +323,8 @@ serve(async (req: Request) => {
       }],
     })
   }
-  if (parties.hostEmail) {
-    await sendResendEmail({ to: parties.hostEmail, subject: hostMail.subject, html: hostMail.html })
+  if (parties.hostNoticeTo) {
+    await sendResendEmail({ to: parties.hostNoticeTo, subject: hostMail.subject, html: hostMail.html })
   }
 
   await db.from('activity_events').insert({

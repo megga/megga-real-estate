@@ -56,6 +56,15 @@ const appel: OnboardingCallEmailData = {
   locale: 'fr',
 }
 
+/** Réponses de calibrage, telles que le wizard les poste (codes, pas libellés). */
+const reponsesCalibrage = {
+  portfolio: '6-20',
+  business: 'both',
+  team: '2-5',
+  priority: 'mandates',
+  cantons: 'Genève, Vaud',
+}
+
 interface Cas {
   id: string
   nom: string
@@ -75,7 +84,7 @@ const CAS: Cas[] = [
   { id: 'appel-confirmation-sans-lien', nom: 'Appel d’accueil · confirmation, sans lien Meet', source: '_shared/onboarding-email.ts', migre: true, rendu: buildAttendeeEmail({ ...appel, meetingUrl: null }) },
   { id: 'appel-rappel-fr', nom: 'Appel d’accueil · rappel J-1 (FR)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildOnboardingReminderEmail(appel) },
   { id: 'appel-rappel-en', nom: 'Appel d’accueil · rappel J-1 (EN)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildOnboardingReminderEmail({ ...appel, locale: 'en' }) },
-  { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’hôte (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked') },
+  { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’équipe (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked', reponsesCalibrage) },
   { id: 'appel-hote-annule', nom: 'Appel d’accueil · annulation (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail({ ...appel, meetingUrl: null }, 'cancelled') },
 
   // Rapport hebdomadaire — migré le 15.08.2026. INTERNE à l'équipe MEGGA : aucune mention

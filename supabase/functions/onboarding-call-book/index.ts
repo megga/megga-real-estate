@@ -102,6 +102,9 @@ serve(async (req: Request) => {
   if (!host) return json({ error: 'slot_taken' }, 409)
 
   // ── 2. L'écriture, qui arbitre ──
+  // Assaini UNE fois : la colonne et l'avis à l'équipe lisent la même valeur, sinon
+  // l'e-mail pourrait montrer autre chose que ce que la console affiche.
+  const answers = sanitizeAnswers(body.answers)
   const { data: inserted, error: insertError } = await db
     .from('onboarding_calls')
     .insert({
@@ -117,7 +120,7 @@ serve(async (req: Request) => {
       // des paires chaîne -> chaîne courtes entrent, au plus 20. Un client peut poster
       // ce qu'il veut ; sans ce filtre, la colonne accepterait un objet arbitraire —
       // profondeur incluse — que rien en aval ne saurait lire ni borner.
-      attendee_answers: sanitizeAnswers(body.answers),
+      attendee_answers: answers,
     })
     .select('id, manage_token, scheduled_at, duration_minutes')
     .single()
@@ -211,7 +214,19 @@ serve(async (req: Request) => {
   })
 
   const attendeeMail = buildAttendeeEmail(emailData)
-  const hostMail = buildHostEmail({ ...emailData, timezone: host.timezone }, 'booked')
+  const hostMail = buildHostEmail({ ...emailData, timezone: host.timezone }, 'booked', answers)
+
+  // ⚠ L'avis va à la BOÎTE D'ÉQUIPE, pas au profil de l'hôte.
+  // `calendar_email` est la boîte Workspace dont l'agenda fait foi (hello@megga.ai) :
+  // elle reçoit déjà l'invitation Google, et c'est là que l'équipe regarde. Le profil
+  // reste le repli pour un hôte resté sur la voie OAuth personnelle (calendar_email
+  // NULL), pour qui la boîte du profil EST la bonne.
+  //
+  // Ce n'était pas un manque mais une mauvaise adresse : l'avis partait vers le profil,
+  // et les deux envois du 15.08.2026 y sont morts en `suppressed` — l'adresse était sur
+  // la liste de suppression Resend depuis le 05.08. Un avis interne invisible se
+  // constate dix jours trop tard.
+  const hostNoticeTo = host.calendar_email ?? hostProfile?.email ?? null
 
   const [attendeeSent] = await Promise.all([
     attendeeEmail
@@ -226,8 +241,8 @@ serve(async (req: Request) => {
           }],
         })
       : Promise.resolve({ ok: false, error: 'no attendee email' }),
-    hostProfile?.email
-      ? sendResendEmail({ to: hostProfile.email, subject: hostMail.subject, html: hostMail.html })
+    hostNoticeTo
+      ? sendResendEmail({ to: hostNoticeTo, subject: hostMail.subject, html: hostMail.html })
       : Promise.resolve({ ok: false, error: 'no host email' }),
   ])
 
