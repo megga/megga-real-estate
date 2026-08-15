@@ -28,6 +28,8 @@ import {
 import { buildVerificationNotice } from '../supabase/functions/_shared/agency-verification-notice.ts'
 import { buildBookingEmail } from '../supabase/functions/_shared/booking-email.ts'
 import { buildMagicLinkEmail, type MagicLinkLocale } from '../supabase/functions/_shared/magic-link-email.ts'
+import { buildDeviceAlertEmail } from '../supabase/functions/_shared/device-alert-email.ts'
+import { buildTeamInviteEmail } from '../supabase/functions/_shared/team-invite-email.ts'
 
 const SORTIE = '.email-preview'
 
@@ -69,6 +71,37 @@ const CAS: Cas[] = [
   { id: 'appel-rappel-en', nom: 'Appel d’accueil · rappel J-1 (EN)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildReminderEmail({ ...appel, locale: 'en' }) },
   { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’hôte (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked') },
   { id: 'appel-hote-annule', nom: 'Appel d’accueil · annulation (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail({ ...appel, meetingUrl: null }, 'cancelled') },
+
+  // Sécurité et invitation — migrés le 15.08.2026. Le premier est le SEUL e-mail de
+  // sécurité du produit : sa mention de pied diffère de toutes les autres, et c'est
+  // délibéré. Le second est le seul dont le destinataire n'a pas encore de compte.
+  {
+    id: 'securite-nouvel-appareil',
+    nom: 'Sécurité · nouvelle connexion',
+    source: '_shared/device-alert-email.ts',
+    migre: true,
+    rendu: buildDeviceAlertEmail({
+      name: 'Julien',
+      browser: 'Chrome 131',
+      os: 'macOS',
+      city: 'Genève',
+      country: 'Suisse',
+      ip: '85.218.12.44',
+      when: '15.08.2026 à 17:42',
+    }),
+  },
+  {
+    id: 'invitation-equipe',
+    nom: 'Invitation à rejoindre l’équipe',
+    source: '_shared/team-invite-email.ts',
+    migre: true,
+    rendu: buildTeamInviteEmail({
+      inviterName: 'Gregory Lyonnet',
+      agencyName: 'Régie du Rhône',
+      role: 'manager',
+      acceptUrl: 'https://app.megga.ch/accept-invite/jeton-de-demonstration',
+    }),
+  },
 
   // Lien magique KYC — migré le 15.08.2026. LES QUATRE LANGUES, parce que c'est le seul
   // gabarit multilingue et que l'allemand est celui qui déborde : s'il tient, les autres

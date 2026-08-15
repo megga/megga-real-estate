@@ -40,8 +40,6 @@ const SHELL = 'supabase/functions/_shared/email-shell.ts';
 const A_MIGRER = {
   'supabase/functions/_shared/whatsapp-optin-send.ts':
     "Invitation à consentir au canal WhatsApp. CLIENT, envoyée au contact d'une agence.",
-  'supabase/functions/detect-new-device/index.ts':
-    'Alerte de connexion depuis un nouvel appareil. CLIENT, et de SÉCURITÉ : sa mention de pied ne doit pas être remplacée par la mention transactionnelle.',
   'supabase/functions/send-email/index.ts':
     "Fonction générique (estimation vendeur, notification d'agent, accès portail). Porte sa propre `wrapHTML` en gris clair ; c'est le plus gros chantier des treize.",
   'supabase/functions/send-property-email/index.ts':
@@ -50,10 +48,8 @@ const A_MIGRER = {
     'Relance commerciale à un contact. CLIENT.',
   'supabase/functions/send-reminder-email/index.ts':
     'Rappel de rendez-vous ou de tâche. CLIENT.',
-  'supabase/functions/send-team-invite/index.ts':
-    "Invitation à rejoindre l'agence. CLIENT (futur agent), premier contact avec la marque.",
   'supabase/functions/send-visit-email/index.ts':
-    'Confirmation de visite de bien. CLIENT.',
+    "Confirmation de visite de bien. CLIENT. ⚠ En le migrant, corriger aussi son heure : son en-tête signale qu'il s'appuie sur getHours() du runtime, donc sur UTC en edge, et annonce au client une heure décalée d'une à deux heures selon la saison (booking-email est né de ce défaut).",
   'supabase/functions/weekly-report/index.ts':
     "Rapport hebdomadaire à l'agent. INTERNE au produit, donc moins pressé.",
 };
