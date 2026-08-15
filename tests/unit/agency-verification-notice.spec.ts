@@ -89,7 +89,7 @@ describe('buildVerificationNotice', () => {
 
   it('une validation annonce ce que l\'agence peut désormais faire', () => {
     const n = buildVerificationNotice({ ...base, status: 'validated', reason: null })
-    expect(n.subject).toMatch(/verifiee/i)
+    expect(n.subject).toMatch(/vérifiée/i)
     expect(n.html).toContain('Regie Test SA')
     expect(n.html).toMatch(/KYC/)
   })
@@ -148,7 +148,15 @@ describe('buildVerificationNotice', () => {
     const n = buildVerificationNotice({
       ...base, agencyName: 'Regie <img src=x onerror=alert(1)> SA', status: 'validated', reason: null,
     })
-    expect(n.html).not.toContain('<img')
+    // ⚠ On ne teste PLUS « aucun <img » : depuis la migration vers la coquille commune
+    // (15.08.2026), l'e-mail porte de VRAIES images — le logo et le glyphe de pied. Cette
+    // assertion confondait « aucune injection » et « aucune image ».
+    //
+    // ⚠ Et on ne teste pas non plus l'absence de « onerror= » : la chaîne SUBSISTE, en
+    // texte affiché, parce que seul le chevron a besoin d'être neutralisé. Une balise dont
+    // le `<` est échappé ne s'exécute pas, elle se lit. C'est le chevron vivant qu'on
+    // traque, donc la charge sous sa forme ACTIVE.
+    expect(n.html).not.toContain('<img src=x')
     expect(n.html).toContain('&lt;img')
   })
 })
