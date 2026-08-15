@@ -13,6 +13,7 @@
 //     l'alerting ne casse pas la collecte de métriques.
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { buildAdminAlertEmail, formatCH } from './admin-alert-email.ts'
 
 interface AlertThresholds {
   cron_stale_hours: number
@@ -197,7 +198,7 @@ export function buildKybReviewAlerts(file: KybReviewQueueRow[], now: Date): Aler
     const score = Number(d.verification_score)
     return {
       key: `kyb:review:${d.agency_id}`,
-      subject: `Dossier KYB à valider — ${d.agency_name}`,
+      subject: `Dossier KYB à valider · ${d.agency_name}`,
       body: `L'agence « ${d.agency_name} »${d.country ? ` (${d.country})` : ''} attend une revue humaine`
         + `${d.identity_submitted_at ? ` depuis ${dureeAttente(d.identity_submitted_at, now)}` : ''}`
         // Un score absent n'est PAS un détail propre à cette agence : c'est l'état de
@@ -242,7 +243,7 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
         alerts.push({
           key: `cron:${job.jobname}`,
           subject: `Cron ${job.jobname} ${failed ? 'en échec' : 'en retard'}`,
-          body: `Le job pg_cron « ${job.jobname} » est ${failed ? `en échec (dernier statut : ${job.last_status})` : `sans exécution depuis plus de ${thresholds.cron_stale_hours}h`}. Dernier run : ${job.last_start ?? 'jamais'}.`,
+          body: `Le job pg_cron « ${job.jobname} » est ${failed ? `en échec (dernier statut : ${job.last_status})` : `sans exécution depuis plus de ${thresholds.cron_stale_hours}h`}. Dernier run : ${formatCH(job.last_start)}.`,
         })
       }
     }
@@ -257,7 +258,7 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
       alerts.push({
         key: 'flatfox:stale',
         subject: 'Sync Flatfox en retard',
-        body: `Aucun listing Flatfox vu depuis ${Math.round(ageMs / 3_600_000)}h (seuil : ${thresholds.flatfox_stale_hours}h). Dernier last_seen_at : ${signals.flatfoxLastSeen}.`,
+        body: `Aucun listing Flatfox vu depuis ${Math.round(ageMs / 3_600_000)}h (seuil : ${thresholds.flatfox_stale_hours}h). Dernier passage : ${formatCH(signals.flatfoxLastSeen)}.`,
       })
     }
   }
@@ -317,7 +318,7 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
       alerts.push({
         key: 'whatsapp:deadletter',
         subject: 'Files WhatsApp bloquées',
-        body: `${newlyStuck} nouvel(le)(s) file(s) WhatsApp en échec définitif sur 24h (seuil : ${thresholds.whatsapp_deadletter_max}) — ${dl.processing_deadletter_24h} média/transcription non rejouable(s) et ${dl.async_jobs_failed_24h} job(s) KYC async échoué(s). Backlog cumulatif : ${dl.processing_deadletter}. Voir /dashboard/admin/monitoring.`,
+        body: `${newlyStuck} nouvel(le)(s) file(s) WhatsApp en échec définitif sur 24h (seuil : ${thresholds.whatsapp_deadletter_max}) : ${dl.processing_deadletter_24h} média/transcription non rejouable(s) et ${dl.async_jobs_failed_24h} job(s) KYC async échoué(s). Backlog cumulatif : ${dl.processing_deadletter}. Voir /dashboard/admin/monitoring.`,
       })
     }
   }
@@ -336,8 +337,8 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
       const pct = b.cap > 0 ? Math.round((Number(b.usage) / Number(b.cap)) * 100) : 0
       alerts.push({
         key: `quota:${b.agency_id}:${b.metric}`,
-        subject: `Quota ${QUOTA_METRIC_LABELS[b.metric] ?? b.metric} — ${b.agency_name}`,
-        body: `L'agence « ${b.agency_name} » atteint ${pct}% de son plafond ${QUOTA_METRIC_LABELS[b.metric] ?? b.metric} (${b.usage} / ${b.cap}, alerte dès ${b.threshold_pct}%). Aucun blocage appliqué — voir /dashboard/admin/agencies.`,
+        subject: `Quota ${QUOTA_METRIC_LABELS[b.metric] ?? b.metric} · ${b.agency_name}`,
+        body: `L'agence « ${b.agency_name} » atteint ${pct}% de son plafond ${QUOTA_METRIC_LABELS[b.metric] ?? b.metric} (${b.usage} / ${b.cap}, alerte dès ${b.threshold_pct}%). Aucun blocage appliqué, voir /dashboard/admin/agencies.`,
       })
     }
   } catch (e) {
@@ -447,8 +448,8 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
     if (nbBloques > 0) {
       alerts.push({
         key: 'outbox:stuck',
-        subject: 'File d\'outbox bloquée — rien ne la consomme',
-        body: `${auMoins(nbBloques)} job(s) de la file outbox_jobs sont dus depuis plus de ${thresholds.outbox_stuck_hours}h et personne ne les a pris. Un geste de console y a déposé un effet externe que rien n'exécute — par exemple une réémission de lien KYC qui ne partira jamais. Vérifier qu'un consommateur d'outbox tourne. Voir /dashboard/admin/monitoring.`,
+        subject: 'File d\'outbox bloquée : rien ne la consomme',
+        body: `${auMoins(nbBloques)} job(s) de la file outbox_jobs sont dus depuis plus de ${thresholds.outbox_stuck_hours}h et personne ne les a pris. Un geste de console y a déposé un effet externe que rien n'exécute, par exemple une réémission de lien KYC qui ne partira jamais. Vérifier qu'un consommateur d'outbox tourne. Voir /dashboard/admin/monitoring.`,
       })
     }
 
@@ -522,15 +523,22 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
     return
   }
 
-  const list = due.map((a) => `• ${a.subject}\n  ${a.body}`).join('\n\n')
+  // ⛔ CE MESSAGE PARTAIT EN TEXTE SEUL, sans une ligne de HTML : c'est celui que
+  // l'équipe reçoit quand la plateforme va mal, et il arrivait sans marque, sans lien
+  // cliquable et horodaté en ISO brut. La composition vit désormais dans un module pur,
+  // donc relisible au banc (`npm run email:preview`) et couvert par des tests.
+  // Les DEUX parts sont envoyées : une alerte doit rester lisible là où le HTML ne
+  // passe pas.
+  const mail = buildAdminAlertEmail(due, now)
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
     body: JSON.stringify({
       from: 'MEGGA <noreply@megga.ch>',
       to: recipients,
-      subject: `[MEGGA Admin] ${due.length === 1 ? due[0].subject : `${due.length} alertes plateforme`}`,
-      text: `Alertes plateforme MEGGA — ${now.toISOString()}\n\n${list}\n\nDétails : app.megga.ch/dashboard/admin/monitoring`,
+      subject: mail.subject,
+      html: mail.html,
+      text: mail.text,
     }),
   })
   if (!res.ok) {

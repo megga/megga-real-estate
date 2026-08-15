@@ -37,6 +37,7 @@ import { buildRelanceEmail } from '../supabase/functions/_shared/relance-email.t
 import { buildContactReminderEmail } from '../supabase/functions/_shared/reminder-email.ts'
 import { buildOptinInviteEmail } from '../supabase/functions/_shared/whatsapp-optin-send.ts'
 import { buildWeeklyReportEmail } from '../supabase/functions/_shared/weekly-report-email.ts'
+import { buildAdminAlertEmail } from '../supabase/functions/_shared/admin-alert-email.ts'
 
 const SORTIE = '.email-preview'
 
@@ -90,6 +91,19 @@ const CAS: Cas[] = [
   { id: 'appel-annulation-client', nom: 'Appel d’accueil · annulation (client)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildCancellationEmail(appel) },
   { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’équipe (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked', reponsesCalibrage) },
   { id: 'appel-hote-annule', nom: 'Appel d’accueil · annulation (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail({ ...appel, meetingUrl: null }, 'cancelled') },
+
+  // Alerte plateforme — elle partait en TEXTE SEUL jusqu'au 15.08.2026. Le cas montré
+  // porte deux alertes : c'est celui où la mise en page compte vraiment.
+  {
+    id: 'alerte-plateforme',
+    nom: 'Alertes plateforme (interne MEGGA)',
+    source: '_shared/admin-alert-email.ts',
+    migre: true,
+    rendu: buildAdminAlertEmail([
+      { key: 'cron:weekly-digest-friday', subject: 'Cron weekly-digest-friday en retard', body: 'Le job pg_cron « weekly-digest-friday » est sans exécution depuis plus de 25h. Dernier run : 14.08.2026 19:00.' },
+      { key: 'kyb:regie', subject: 'Dossier KYB à valider · Régie du Rhône', body: 'L’agence « Régie du Rhône » (CH) attend une revue humaine depuis 3 jours.' },
+    ], new Date(QUAND)),
+  },
 
   // Rapport hebdomadaire — migré le 15.08.2026. INTERNE à l'équipe MEGGA : aucune mention
   // légale, et une pilule qui mène à la console. Le cas montré porte des alertes non nulles,
