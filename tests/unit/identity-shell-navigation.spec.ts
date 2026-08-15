@@ -272,6 +272,28 @@ describe('isRendezVousStepComplete — gate le bouton Continuer de l\'étape 4 (
     // Un rendez-vous pris ne débloque AUCUNE autre étape.
     expect(canAdvanceFromIdentityStep(0, EMPTY_SIGNATAIRE_DRAFT, EMPTY_AGENCY_DRAFT, EMPTY_PIECE_IDENTITE_DRAFT, false, booked)).toBe(false)
   })
+
+  // Décision client du 15.08.2026 : l'étape RETIENT un créneau, la réservation part
+  // avec le dossier (handleSubmit). Le créneau retenu franchit l'étape à lui seul —
+  // y compris pendant que l'écran relit les créneaux (state à null) : le choix est
+  // déjà fait, la relecture ne doit pas re-verrouiller le bouton.
+  const CHOIX = {
+    slot: '2026-08-17T07:00:00.000Z',
+    durationMinutes: 30,
+    answers: { portfolio: '6-20' },
+  }
+
+  it('créneau RETENU (réservation différée à la soumission) -> franchissable', () => {
+    expect(isRendezVousStepComplete({ booked: false, nothingToBook: false }, CHOIX)).toBe(true)
+    expect(isRendezVousStepComplete(null, CHOIX)).toBe(true)
+  })
+
+  it('le créneau retenu passe par le 7e argument de canAdvanceFromIdentityStep, à l\'indice 3 seul', () => {
+    const nothing = { booked: false, nothingToBook: false }
+    expect(canAdvanceFromIdentityStep(3, EMPTY_SIGNATAIRE_DRAFT, EMPTY_AGENCY_DRAFT, EMPTY_PIECE_IDENTITE_DRAFT, false, nothing, CHOIX)).toBe(true)
+    // Un créneau retenu ne débloque AUCUNE autre étape.
+    expect(canAdvanceFromIdentityStep(0, EMPTY_SIGNATAIRE_DRAFT, EMPTY_AGENCY_DRAFT, EMPTY_PIECE_IDENTITE_DRAFT, false, nothing, CHOIX)).toBe(false)
+  })
 })
 
 describe('isPieceIdentiteStepComplete — gate le bouton Continuer de l\'étape 3 (pièce d\'identité)', () => {

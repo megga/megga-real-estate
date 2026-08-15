@@ -32,13 +32,15 @@
  * handleSubmit.
  *
  * ⚠ L'étape « rendez-vous » a été AJOUTÉE le 4 août 2026, en avant-dernière position.
- * Elle est la seule du parcours à n'avoir AUCUN brouillon : la réservation est engagée
- * en base au clic sur Confirmer, par l'edge function, pas au changement d'étape (cf.
- * l'en-tête d'OcBooking). Elle est aussi la seule dont le franchissement dépend d'un
- * état SERVEUR plutôt que de champs saisis — d'où `rendezVous`, le verdict qu'elle
- * remonte à cette coquille (isRendezVousStepComplete). C'est aussi ce jour-là que la
- * question du « pouvoir de signature » a laissé place à « quel est votre rôle » à
- * l'étape 0 (cf. SignataireDraft plus bas).
+ * Depuis le 15.08.2026 (décision client), elle ne RÉSERVE plus : elle RETIENT un
+ * créneau (`rdvChoice`, un brouillon en mémoire de cette coquille), et c'est
+ * handleSubmit qui réserve APRÈS le récapitulatif — le lien de visioconférence et
+ * l'e-mail de confirmation n'existent donc qu'une fois le dossier soumis (cf.
+ * l'en-tête d'OcBooking pour le renversement). Son franchissement dépend du créneau
+ * retenu, d'un rendez-vous déjà en base (agence repassant par le wizard), ou de
+ * l'absence de tout créneau à réserver (isRendezVousStepComplete). Le 4 août est
+ * aussi le jour où la question du « pouvoir de signature » a laissé place à « quel
+ * est votre rôle » à l'étape 0 (cf. SignataireDraft plus bas).
  *
  * L'étape 2 diffère des deux précédentes sur un point : elle ne porte AUCUN
  * brouillon local à sauvegarder au clic sur Continuer. Le fichier recto/verso est
@@ -86,8 +88,8 @@ import {
   type AgencyDeclaredRole, type IdentityDocumentType, type IdentityVerificationStatus,
   type VerificationStartFailure,
 } from '@/hooks/useAgencyIdentity'
-import { useMyOnboardingCall, browserTimezone } from '@/hooks/useOnboardingCall'
-import type { OcBookingState } from '@/components/onboarding-call/OcBooking'
+import { useMyOnboardingCall, useBookOnboardingCall, browserTimezone } from '@/hooks/useOnboardingCall'
+import type { OcBookingChoice, OcBookingState } from '@/components/onboarding-call/OcBooking'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
 import IdentitySubmittedScreen from './IdentitySubmittedScreen'
 import IdentityVerificationReturnScreen from './IdentityVerificationReturnScreen'
@@ -307,21 +309,26 @@ export function clampIdentityStep(step: number, stepCount: number): number {
 /**
  * L'étape « rendez-vous » (index 3) est-elle franchissable ?
  *
- * BLOQUANTE PAR DÉFAUT (décision client du 4 août 2026) : on n'avance qu'une fois le
- * rendez-vous d'accueil pris. Mais jamais un CUL-DE-SAC : quand il n'y a rien à
- * réserver — aucun hôte actif dans le pool, ou plus aucun créneau libre sur l'horizon —
- * l'exigence tombe. Sans cette réserve, l'étape enfermerait aujourd'hui même chaque
- * nouvelle agence hors du CRM : `onboarding_hosts` est vide en production et aucun
- * agenda n'y est connecté. L'exigence porte sur ce que le dirigeant PEUT faire, jamais
- * sur ce que notre configuration lui permet d'atteindre.
+ * BLOQUANTE PAR DÉFAUT (décision client du 4 août 2026) : on n'avance qu'avec un
+ * créneau RETENU (`choice` — depuis le 15.08.2026 l'étape ne réserve plus, cf.
+ * l'en-tête du fichier) ou un rendez-vous déjà EN BASE (`state.booked`, agence
+ * repassant par le wizard après une réservation). Mais jamais un CUL-DE-SAC : quand il
+ * n'y a rien à réserver — aucun hôte actif dans le pool, ou plus aucun créneau libre
+ * sur l'horizon — l'exigence tombe. Sans cette réserve, l'étape enfermerait chaque
+ * nouvelle agence hors du CRM dès que le pool est vide. L'exigence porte sur ce que le
+ * dirigeant PEUT faire, jamais sur ce que notre configuration lui permet d'atteindre.
  *
- * `null` = l'écran n'a pas encore rendu son verdict (première lecture des créneaux en
- * cours). On bloque alors, plutôt que de laisser passer par défaut : une étape ne doit
- * pas être réputée franchie parce que la question n'a pas encore de réponse — c'est la
- * même règle qu'à la pièce d'identité (cf. isPieceIdentiteStepComplete).
+ * `state` à `null` = l'écran n'a pas encore rendu son verdict (première lecture des
+ * créneaux en cours). Sans créneau retenu, on bloque alors, plutôt que de laisser
+ * passer par défaut : une étape ne doit pas être réputée franchie parce que la question
+ * n'a pas encore de réponse — même règle qu'à la pièce d'identité.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
-export function isRendezVousStepComplete(state: OcBookingState | null): boolean {
+export function isRendezVousStepComplete(
+  state: OcBookingState | null,
+  choice: OcBookingChoice | null = null,
+): boolean {
+  if (choice != null) return true
   if (state == null) return false
   return state.booked || state.nothingToBook
 }
@@ -359,11 +366,12 @@ export function canAdvanceFromIdentityStep(
   pieceIdentite: PieceIdentiteDraft = EMPTY_PIECE_IDENTITE_DRAFT,
   blockedDeclared = false,
   rendezVous: OcBookingState | null = null,
+  rendezVousChoice: OcBookingChoice | null = null,
 ): boolean {
   if (step === 0) return isSignataireStepComplete(signataire)
   if (step === 1) return isAgencyStepComplete(agency)
   if (step === 2) return isPieceIdentiteStepComplete(pieceIdentite, blockedDeclared)
-  if (step === 3) return isRendezVousStepComplete(rendezVous)
+  if (step === 3) return isRendezVousStepComplete(rendezVous, rendezVousChoice)
   return false
 }
 
@@ -1174,6 +1182,22 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
    */
   const [rendezVous, setRendezVous] = useState<OcBookingState | null>(null)
 
+  /**
+   * Le créneau RETENU à l'étape 4 — un brouillon en MÉMOIRE, jamais en base : la
+   * réservation n'existe qu'à la soumission (décision client du 15.08.2026, cf.
+   * l'en-tête du fichier). Fermer l'onglet le perd, et c'est acceptable : rechoisir
+   * un créneau prend dix secondes, tandis qu'une réservation orpheline (dossier
+   * jamais soumis) engageait un hôte, un e-mail et un lien de visioconférence.
+   */
+  const [rdvChoice, setRdvChoice] = useState<OcBookingChoice | null>(null)
+  const bookOnSubmit = useBookOnboardingCall()
+  /** La réservation faite PAR la soumission — l'écran de sortie la lit en direct,
+   *  sans attendre le refetch de la query ['onboarding-call']. */
+  const [reservationSoumise, setReservationSoumise] = useState<{ scheduled_at: string; meeting_url: string | null } | null>(null)
+  /** Le créneau retenu n'a pas pu être réservé à la soumission (pris entre-temps,
+   *  ou edge injoignable) : le dossier, lui, est parti — l'écran de sortie le dit. */
+  const [reservationEchouee, setReservationEchouee] = useState(false)
+
   // Le rendez-vous tel qu'il est EN BASE, pour la relecture du récapitulatif. Distinct
   // de `rendezVous` ci-dessus, qui n'est qu'un verdict de franchissement : ici il faut
   // la date, la durée et l'hôte. Même requête (clé ['onboarding-call', agencyId]) que
@@ -1182,7 +1206,7 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
   const bookedCall = useMyOnboardingCall()
   const rendezVousTimezone = useMemo(() => browserTimezone(), [])
 
-  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, pieceIdentiteDraft, blockedDeclared, rendezVous)
+  const canNext = canAdvanceFromIdentityStep(step, signataire, agencyDraft, pieceIdentiteDraft, blockedDeclared, rendezVous, rdvChoice)
 
   /** Enveloppe commune à chaque étape persistable : bascule saving/error autour de
    *  l'opération d'écriture réelle (savePerson ou saveAgency selon l'étape).
@@ -1260,12 +1284,11 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
       return isPieceIdentiteStepComplete(pieceIdentiteDraft, blockedDeclared)
     }
     if (step === 3) {
-      // Rien à écrire ici non plus, et pour une raison plus forte qu'à l'étape 2 : la
-      // réservation est déjà DANS la base, engagée au clic sur Confirmer par l'edge
-      // function (ligne, e-mails, événement d'agenda de l'hôte d'un bloc — cf. l'en-tête
-      // de OcBooking). Il n'existe aucun brouillon local à sauver au passage à l'étape
-      // suivante. Garde défensive redondante avec canNext, même style que l'étape 2.
-      return isRendezVousStepComplete(rendezVous)
+      // Rien à écrire ici : le créneau retenu (`rdvChoice`) est un brouillon en
+      // MÉMOIRE de cette coquille, par conception — la base ne connaît la réservation
+      // qu'à la soumission (cf. handleSubmit). Garde défensive redondante avec
+      // canNext, même style que l'étape 2.
+      return isRendezVousStepComplete(rendezVous, rdvChoice)
     }
     // Étape 5 (récapitulatif) : rien à persister en QUITTANT l'étape — l'attestation
     // n'est pas un brouillon à écrire en base, et la soumission elle-même est une
@@ -1312,6 +1335,25 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
     setError(null)
     try {
       await submit(signatoryId)
+      // La réservation part MAINTENANT, après le dossier — jamais avant (décision
+      // client du 15.08.2026) : le lien de visioconférence et l'e-mail de confirmation
+      // n'existent que pour un dossier soumis. Dans un try/catch À PART : le dossier
+      // est déjà parti, un créneau pris entre-temps ou une edge injoignable ne doit
+      // pas se présenter comme un échec de soumission ni rejouer submit() — l'écran
+      // de sortie le dit, et l'écran /dashboard/rendez-vous-accueil sert à rechoisir.
+      if (rdvChoice && !bookedCall.data) {
+        try {
+          const reservation = await bookOnSubmit.mutateAsync({
+            slot: rdvChoice.slot,
+            phone: rdvChoice.phone,
+            note: rdvChoice.note,
+            answers: rdvChoice.answers,
+          })
+          setReservationSoumise({ scheduled_at: reservation.scheduled_at, meeting_url: reservation.meeting_url })
+        } catch {
+          setReservationEchouee(true)
+        }
+      }
       // Le parcours se ferme sur un écran, plus sur une redirection muette vers
       // /dashboard (choix du 04.08.2026, renversé le 10.08). Le dirigeant vient de
       // soumettre un dossier de conformité : lui dire ce qu'il devient, et où a lieu
@@ -1365,7 +1407,11 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
   if (ecran === 'submitted') {
     return (
       <IdentitySubmittedScreen
-        rendezVous={bookedCall.data ?? null}
+        // La réservation faite par la soumission d'abord (lecture directe, sans
+        // attendre le refetch), sinon un rendez-vous antérieur en base (agence
+        // repassée par le wizard), sinon rien.
+        rendezVous={reservationSoumise ?? bookedCall.data ?? null}
+        bookingFailed={reservationEchouee}
         timezone={rendezVousTimezone}
         onEnter={() => navigate('/dashboard')}
       />
@@ -1539,9 +1585,9 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
             onUndeclareBlocked={() => setBlockedDeclared(false)}
           />
         ) : step === 3 ? (
-          // `setRendezVous` est stable (setter de useState) : OcBooking peut donc
-          // l'appeler dans un effet sans risque de boucle, cf. son en-tête.
-          <StepRendezVous onStateChange={setRendezVous} />
+          // `setRendezVous`/`setRdvChoice` sont stables (setters de useState) : OcBooking peut donc
+          // les appeler dans un effet sans risque de boucle, cf. son en-tête.
+          <StepRendezVous onStateChange={setRendezVous} choice={rdvChoice} onChoiceChange={setRdvChoice} />
         ) : step === 4 ? (
           <StepRecapitulatif
             signataire={signataire}
@@ -1558,10 +1604,12 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
             identityRead={existingSignatory?.idDocumentRead ?? null}
             identityDocumentsLoading={false}
             identityDocumentsError={false}
-            // Relu depuis la BASE et non depuis l'état de l'étape 3 : c'est la source
-            // de vérité (la réservation y est déjà écrite), et c'est ce qui fait qu'un
-            // dirigeant qui rouvre son wizard le lendemain relit son rendez-vous.
+            // Un rendez-vous EN BASE (agence repassée par le wizard après une
+            // réservation) l'emporte sur le créneau seulement retenu : c'est la
+            // réalité contre l'intention. Le créneau retenu, lui, vit en mémoire —
+            // la base ne le connaîtra qu'à la soumission (cf. handleSubmit).
             rendezVous={bookedCall.data ?? null}
+            rendezVousChoisi={rdvChoice}
             rendezVousTimezone={rendezVousTimezone}
             attestationChecked={attestationChecked}
             onAttestationChange={setAttestationChecked}
