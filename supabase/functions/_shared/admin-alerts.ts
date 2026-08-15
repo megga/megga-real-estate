@@ -81,10 +81,72 @@ interface AlertSignals {
   now: Date
 }
 
-interface Alert {
+export interface Alert {
   key: string
   subject: string
   body: string
+}
+
+/** Une ligne de `get_admin_agency_review_queue` — la file telle que la console la voit. */
+export interface KybReviewQueueRow {
+  agency_id: string
+  agency_name: string
+  country: string | null
+  /** `numeric` en base : PostgREST peut le rendre en chaîne. Jamais lu sans `Number()`. */
+  verification_score: number | string | null
+  identity_submitted_at: string | null
+  /** Taille RÉELLE de la file, rendue par la RPC — évite un `count: 'exact'` (§7). */
+  total_count: number | string
+}
+
+/** « 6h », « 3 jours » — au-delà de deux jours, l'heure près n'apprend plus rien. */
+function dureeAttente(depuis: string, now: Date): string {
+  const heures = Math.max(0, Math.round((now.getTime() - new Date(depuis).getTime()) / 3_600_000))
+  return heures < 48 ? `${heures}h` : `${Math.round(heures / 24)} jours`
+}
+
+/**
+ * Un dossier KYB en attente de revue = une alerte. Pure, donc testable sans client.
+ *
+ * POURQUOI CETTE RÈGLE EXISTE. Un dossier qui atterrit en `manual_review` n'était
+ * notifié à PERSONNE chez MEGGA : `agency-verification-notify` écrit aux DIRIGEANTS de
+ * l'agence à chaque décision, jamais à nous à l'arrivée. La file ne se découvrait qu'en
+ * ouvrant la console — donc seulement si on y pensait.
+ *
+ * Ce n'est pas une file de confort. Tant qu'un dossier n'est ni `auto_validated` ni
+ * `validated`, la liste blanche d'`useLabGuard` INTERDIT à l'agence d'ouvrir un dossier
+ * KYC et d'envoyer une signature — le cœur du produit. Chaque ligne est un client
+ * bloqué qui attend un clic de notre part ; c'est ce que le corps du message dit.
+ *
+ * UNE CLÉ PAR AGENCE : un dossier donne une alerte, puis se tait 24 h (cooldown du
+ * module). Un dossier qui traîne se rappelle donc une fois par jour — voulu, il bloque
+ * quelqu'un. Même forme de clé que la règle des quotas.
+ *
+ * ⚠ AUCUN SEUIL, et aucune sélection : la RPC ne rend QUE `manual_review`, et c'est le
+ * bon périmètre — `correction_requested` attend l'AGENCE, pas nous ; l'alerter ici
+ * demanderait d'agir à qui ne peut rien faire.
+ */
+export function buildKybReviewAlerts(file: KybReviewQueueRow[], now: Date): Alert[] {
+  const total = Number(file[0]?.total_count ?? 0)
+  const reste = Number.isFinite(total) && total > file.length ? total - file.length : 0
+
+  return file.map((d) => {
+    const score = Number(d.verification_score)
+    return {
+      key: `kyb:review:${d.agency_id}`,
+      subject: `Dossier KYB à valider — ${d.agency_name}`,
+      body: `L'agence « ${d.agency_name} »${d.country ? ` (${d.country})` : ''} attend une revue humaine`
+        + `${d.identity_submitted_at ? ` depuis ${dureeAttente(d.identity_submitted_at, now)}` : ''}`
+        // Un score absent n'est PAS un détail propre à cette agence : c'est l'état de
+        // tout dossier suisse tant que MAPBOX_TOKEN manque (les trois checks scorables
+        // sortent `unavailable`, cf. CLAUDE.md). Le nommer évite de chercher une
+        // anomalie du dossier là où c'est la plateforme qui ne sait pas encore scorer.
+        + ` (score : ${Number.isFinite(score) && d.verification_score !== null ? score.toFixed(3) : 'jamais calculé'}).`
+        + ` Tant qu'elle n'est pas validée, elle ne peut ni ouvrir un dossier KYC ni envoyer une signature.`
+        + `${reste > 0 ? ` ${reste} autre(s) dossier(s) en attente.` : ''}`
+        + ` Traiter : /dashboard/admin/kyb-review`,
+    }
+  })
 }
 
 async function readJsonConfig<T>(admin: SupabaseClient, key: string): Promise<T | null> {
@@ -344,6 +406,18 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
     }
   } catch (e) {
     console.error('[admin-alerts] outbox read failed:', (e as Error)?.message)
+  }
+
+  // 12. Dossiers KYB en attente de revue humaine (15.08.2026) — cf. buildKybReviewAlerts
+  // pour le pourquoi. MÊME SOURCE que la console (`get_admin_agency_review_queue`, dont
+  // la garde admet `is_service_role()`) : l'alerte ne peut pas raconter autre chose que
+  // l'écran vers lequel elle renvoie, et le tri des plus douteux en tête est le sien.
+  // Plafonné à 20 lignes nommées ; `total_count` dit le reste sans compter la table.
+  try {
+    const { data: fileRevue } = await admin.rpc('get_admin_agency_review_queue', { p_limit: 20, p_offset: 0 })
+    alerts.push(...buildKybReviewAlerts((fileRevue ?? []) as KybReviewQueueRow[], now))
+  } catch (e) {
+    console.error('[admin-alerts] kyb review queue read failed:', (e as Error)?.message)
   }
 
   if (alerts.length === 0) return

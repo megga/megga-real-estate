@@ -11,14 +11,21 @@
  * ni note à demander, et son jeton la fait passer par une autre edge — mais partage
  * avec lui le calendrier (OcSlotPicker) et la carte de confirmation (OcBookedCard).
  *
- * ÉTAT ET ÉCRITURE. Ce composant détient l'état de saisie (mois affiché, jour, créneau,
- * téléphone, note) et déclenche l'écriture lui-même. La réservation est engagée AU CLIC
- * sur Confirmer, pas à la soumission du dossier : l'edge function écrit la ligne, envoie
- * les e-mails et pose l'événement dans l'agenda de l'hôte d'un bloc (cf. son en-tête —
- * « l'ordre des opérations est la fonctionnalité »). Conséquence assumée : quelqu'un qui
- * abandonne le wizard après cette étape garde son rendez-vous, ce qui vaut mieux que
- * l'inverse — un créneau seulement « retenu » côté navigateur peut être pris entre-temps,
- * et le refus tomberait alors au moment le plus sensible du parcours.
+ * ÉTAT ET ÉCRITURE — DEUX MODES, parce que les deux surfaces n'ont pas la même suite.
+ *
+ * `immediate` (écran /dashboard/rendez-vous-accueil) : la réservation est engagée AU
+ * CLIC sur Confirmer — l'edge écrit la ligne, envoie les e-mails et pose l'événement
+ * d'agenda d'un bloc. Il n'y a rien après cet écran, différer n'aurait pas de sens.
+ *
+ * `deferred` (étape 4 du wizard d'identité) : le clic ne fait que RETENIR le créneau
+ * (remonté à la coquille via `onChoiceChange`) ; c'est `handleSubmit`, APRÈS le
+ * récapitulatif, qui réserve. Décision client du 15.08.2026, renversant celle du
+ * 04.08 : réserver à l'étape 4 générait le lien Meet et l'e-mail de confirmation
+ * AVANT que le dossier soit relu et soumis — un abandon au récapitulatif laissait un
+ * rendez-vous confirmé pour un dossier jamais envoyé. Contrepartie assumée : un
+ * créneau seulement retenu peut être pris entre-temps ; la soumission revérifie
+ * (index unique côté base) et l'écran de sortie propose alors de rechoisir, au lieu
+ * d'un refus au moment le plus sensible.
  *
  * HABILLAGE : MEGGA X. Suppose d'être rendu dans un conteneur `<MeggaX>`.
  */
@@ -54,9 +61,32 @@ export interface OcBookingState {
   nothingToBook: boolean
 }
 
+/**
+ * Le créneau RETENU en mode différé — tout ce que la réservation demandera, pour que
+ * `handleSubmit` puisse appeler l'edge sans remonter chercher quoi que ce soit ici.
+ * `durationMinutes` vient de la réponse de l'edge (créneaux) : le récapitulatif la
+ * relit sans réinventer une durée côté navigateur.
+ */
+export interface OcBookingChoice {
+  slot: string
+  durationMinutes: number
+  phone?: string
+  note?: string
+  answers: Record<string, string>
+}
+
 export interface OcBookingProps {
   /** Remonté à chaque changement d'état — l'appelant en fait ce qu'il veut (gate, bouton). */
   onStateChange?: (state: OcBookingState) => void
+  /**
+   * `immediate` (défaut) réserve au clic ; `deferred` ne fait que retenir le créneau
+   * et le remonte via `onChoiceChange` — cf. l'en-tête du fichier.
+   */
+  mode?: 'immediate' | 'deferred'
+  /** Mode différé : le créneau déjà retenu, relu quand on revient sur l'étape. */
+  choice?: OcBookingChoice | null
+  /** Mode différé : remonte le créneau retenu à la coquille, qui en est la mémoire. */
+  onChoiceChange?: (choice: OcBookingChoice | null) => void
   /**
    * Rendu SOUS le bloc quand rien n'est encore réservé : la sortie propre à chaque
    * surface (« Plus tard » sur l'écran du CRM, rien dans le wizard, où le pied
@@ -76,8 +106,17 @@ function monthBounds(month: Date): { from: string; to: string } {
   }
 }
 
-export default function OcBooking({ onStateChange, secondaryAction }: OcBookingProps) {
+export default function OcBooking({ onStateChange, mode = 'immediate', choice = null, onChoiceChange, secondaryAction }: OcBookingProps) {
   const { t, i18n } = useTranslation('onboarding')
+  const deferred = mode === 'deferred'
+  /**
+   * Mode différé, un créneau déjà retenu : la carte « Créneau retenu » s'affiche tant
+   * que le dirigeant ne demande pas à MODIFIER. Un état local et non une remise à
+   * `null` du choix chez l'appelant : le choix reste valide (le bouton Continuer de la
+   * coquille reste actif) pendant qu'on le retouche — l'annuler pour le rééditer
+   * ferait clignoter le gate.
+   */
+  const [enModification, setEnModification] = useState(false)
 
   // Le fuseau du navigateur n'est qu'un POINT DE DÉPART : un dirigeant en déplacement,
   // ou qui reçoit un associé à l'étranger, doit pouvoir lire les créneaux dans le fuseau
@@ -85,9 +124,13 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
   // am/pm fait manquer un appel.
   const [timezone, setTimezone] = useState(() => browserTimezone())
   const [hour12, setHour12] = useState(false)
-  const [month, setMonth] = useState(() => new Date())
-  const [selectedDay, setSelectedDay] = useState<string | null>(null)
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
+  // Hydratés depuis le créneau RETENU quand il existe (mode différé, retour sur
+  // l'étape) : « Modifier » doit rouvrir le formulaire tel qu'il a été laissé, pas
+  // demander de tout retaper. L'étape se démonte entre deux passages, l'état local
+  // seul ne survivrait pas.
+  const [month, setMonth] = useState(() => (choice ? new Date(choice.slot) : new Date()))
+  const [selectedDay, setSelectedDay] = useState<string | null>(() => (choice ? dayKeyOf(choice.slot, browserTimezone()) : null))
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(() => choice?.slot ?? null)
   /**
    * Le numéro WhatsApp, en DEUX contrôles : l'indicatif se choisit, le reste se tape.
    *
@@ -98,8 +141,16 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
    * Suisse par défaut, parce que c'est le marché ; la liste suit l'ordre des pays et non
    * celui des indicatifs, un dirigeant cherchant son pays par son nom.
    */
-  const [paysTel, setPaysTel] = useState('CH')
-  const [numeroLocal, setNumeroLocal] = useState('')
+  // ⚠ LES INITIALISEURS VIENNENT DE `main` (#1212) — le formulaire part rempli du
+  // téléphone déjà connu du dossier. Nous n'y avons pas touché.
+  const [paysTel, setPaysTel] = useState(() => {
+    const dial = choice?.phone ? splitDialCode(choice.phone).dial : null
+    return (dial ? countryForDialCode(dial) : null) ?? 'CH'
+  })
+  const [numeroLocal, setNumeroLocal] = useState(() => (choice?.phone ? splitDialCode(choice.phone).local : ''))
+  // ⚠ Et `const indicatif` NE REVIENT PAS : chez `main` il n'avait qu'un usage, la
+  // concaténation, que `composePhone` remplace à l'identique — même garde du vide,
+  // même retrait du zéro de tête. Le réintroduire en ferait une variable morte.
   // 195 options traduites et RETRIÉES : sans mémoïsation, la liste entière serait
   // reconstruite à chaque frappe dans les champs voisins.
   const optionsIndicatif = useMemo(() => dialCodeOptions(i18n.language), [i18n.language])
@@ -113,13 +164,13 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
     if (iso) setPaysTel(iso)
     setNumeroLocal(local)
   }
-  const telPrerempli = useRef(false)
-  const [note, setNote] = useState('')
+  const telPrerempli = useRef(choice?.phone != null)
+  const [note, setNote] = useState(() => choice?.note ?? '')
 
   // Deux temps, comme le plan de référence : on choisit QUAND, puis on dit QUI.
   // Tout demander sur un seul écran faisait cohabiter un calendrier et sept champs,
   // et noyait le seul geste qui compte à la première seconde — prendre une date.
-  const [etape, setEtape] = useState<'creneau' | 'formulaire'>('creneau')
+  const [etape, setEtape] = useState<'creneau' | 'formulaire'>(() => (choice ? 'formulaire' : 'creneau'))
 
   /**
    * Préremplissage du nom, à DEUX sources qui ne se valent pas.
@@ -190,7 +241,13 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
   // Les réponses calibrent le CRM (Focus, matching) et préparent l'appel. Stockées
   // telles quelles dans `attendee_answers` : ce sont des CHOIX, pas des mesures — les
   // interpréter ici figerait une lecture que le produit n'a pas encore arrêtée.
-  const [reponses, setReponses] = useState<Record<string, string>>({})
+  const [reponses, setReponses] = useState<Record<string, string>>(() => {
+    if (!choice) return {}
+    // L'identité voyage dans le même objet answers (contrat de l'edge) mais a ses
+    // propres champs à l'écran : la réinjecter ici doublerait chaque valeur.
+    const { first_name: _prenom, last_name: _nom, email: _email, ...rest } = choice.answers
+    return rest
+  })
   const repondre = (cle: string, valeur: string) => setReponses((r) => ({ ...r, [cle]: valeur }))
 
   const bounds = useMemo(() => monthBounds(month), [month])
@@ -257,6 +314,31 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
         timezone={timezone}
         note={t('call.confirmed.emailSent')}
       />
+    )
+  }
+
+  // Mode différé, créneau retenu : la carte tient lieu de clôture d'étape — la vraie
+  // confirmation (e-mail, lien de visioconférence) n'existera qu'à la soumission du
+  // dossier, et la carte le DIT pour que personne n'attende un e-mail qui n'est pas
+  // parti. Aucun hôte nommé : il n'est attribué qu'à l'écriture (pickHostForSlot).
+  if (deferred && choice && !enModification) {
+    return (
+      <div className="card">
+        <div className="pd---content-inside-card text-center">
+          <h2 className="display-3 semi-bold">{t('call.chosen.title')}</h2>
+          <div className="mg-top-3x-extra-small">
+            <p className="display-2 semi-bold capitalize">{longSlotLabel(choice.slot, timezone, hour12)}</p>
+          </div>
+          <div className="mg-top-3x-extra-small">
+            <p className="paragraph-small text-color-neutral-600">{t('call.chosen.body')}</p>
+          </div>
+          <div className="mg-top-small">
+            <MxButton type="button" variant="secondary" size="small" onClick={() => setEnModification(true)}>
+              {t('call.chosen.change')}
+            </MxButton>
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -450,16 +532,26 @@ export default function OcBooking({ onStateChange, secondaryAction }: OcBookingP
                   type="button"
                   onClick={() => {
                     if (!selectedSlot) return
-                    book.mutate({
+                    const saisie = {
                       slot: selectedSlot,
                       phone: phone.trim() || undefined,
                       note: note.trim() || undefined,
                       answers: { ...reponses, first_name: prenom.trim(), last_name: nom.trim(), email: email.trim() },
-                    })
+                    }
+                    // Différé : rien ne part — le créneau est RETENU chez l'appelant,
+                    // l'edge ne sera appelée qu'à la soumission du dossier.
+                    if (deferred) {
+                      onChoiceChange?.({ ...saisie, durationMinutes: slotsQuery.data?.duration_minutes ?? 30 })
+                      setEnModification(false)
+                      return
+                    }
+                    book.mutate(saisie)
                   }}
                   disabled={!selectedSlot || !identiteComplete || book.isPending}
                 >
-                  {book.isPending ? t('call.actions.confirming') : t('call.actions.confirm')}
+                  {deferred
+                    ? t('call.actions.choose')
+                    : book.isPending ? t('call.actions.confirming') : t('call.actions.confirm')}
                 </MxButton>
               </div>
             </div>

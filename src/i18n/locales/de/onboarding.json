@@ -31,7 +31,8 @@
       "copy": "Link kopieren",
       "copied": "Link kopiert",
       "noCall": "Es ist noch kein Termin festgelegt. Wir schreiben Ihnen, sobald ein Zeitfenster frei wird.",
-      "enterCta": "Zu meinem Bereich"
+      "enterCta": "Zu meinem Bereich",
+      "bookFailed": "Der vorgemerkte Termin wurde soeben vergeben. Wählen Sie einen neuen in Ihrem Bereich unter Willkommensgespräch."
     },
     "pendingNotice": {
       "title": "Ihre Erfassung ist unterbrochen",
@@ -215,7 +216,8 @@
         "hostLabel": "Mit",
         "durationLabel": "Dauer",
         "duration": "{{minutes}} Min.",
-        "none": "Noch kein Termin. Wir schreiben Ihnen, sobald einer frei wird."
+        "none": "Noch kein Termin. Wir schreiben Ihnen, sobald einer frei wird.",
+        "pending": "Wird beim Absenden des Dossiers bestätigt."
       },
       "attestation": "Ich bestätige, dass die obigen Angaben nach meinem Wissen richtig und vollständig sind.",
       "errors": {
@@ -323,7 +325,8 @@
       "confirm": "Termin bestätigen",
       "confirming": "Wird gebucht…",
       "later": "Später",
-      "continue": "Weiter zu meinem Bereich"
+      "continue": "Weiter zu meinem Bereich",
+      "choose": "Diesen Termin vormerken"
     },
     "confirmed": {
       "title": "Gebucht",
@@ -331,6 +334,11 @@
       "join": "Videokonferenz beitreten",
       "emailSent": "Eine Bestätigungsmail wartet auf Sie, mit dem Link und der Möglichkeit umzubuchen.",
       "toDashboard": "Zu meinem Bereich"
+    },
+    "chosen": {
+      "title": "Termin vorgemerkt",
+      "body": "Die Buchung geht zusammen mit Ihrem Dossier raus, nach der Zusammenfassung. Videolink und Bestätigungs-E-Mail folgen dann.",
+      "change": "Ändern"
     },
     "empty": {
       "noHost": "Derzeit ist kein Termin offen. Wir melden uns so bald wie möglich per E-Mail.",
