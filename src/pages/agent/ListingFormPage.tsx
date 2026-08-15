@@ -1826,7 +1826,7 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
         <div className="rounded-lg border border-theme-border p-5 bg-theme-section">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div>
-              <p className="text-lg font-bold text-theme-primary">
+              <p className="text-lg font-semibold text-theme-primary">
                 {price > 0 ? formatCHF(price) : 'CHF —'}
               </p>
               <h3 className="text-sm font-semibold text-theme-primary mt-0.5">
@@ -3080,7 +3080,7 @@ export default function ListingFormPage() {
                   <MEIcon name="building" className="w-8 h-8 text-theme-tertiary" />
                 </div>
               )}
-              <p className="text-base font-bold text-theme-primary truncate">
+              <p className="text-base font-semibold text-theme-primary truncate">
                 {form.watch('title') || t('form.preview.newPropertyTitle')}
               </p>
               <p className="text-xs text-theme-secondary truncate mt-0.5">

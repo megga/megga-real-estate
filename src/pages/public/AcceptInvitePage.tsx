@@ -82,7 +82,7 @@ export default function AcceptInvitePage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <span className="text-2xl font-bold text-gray-900 tracking-tight">MEGGA</span>
+          <span className="text-2xl font-semibold text-gray-900 tracking-tight">MEGGA</span>
           <p className="text-xs text-gray-500 mt-1">Immobilier Suisse</p>
         </div>
 

@@ -83,6 +83,14 @@ const PAGES = new Set([
   'ImportLeadSugarV3Page.tsx', 'JulienSugarV2Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
   'SettingsSugarV2Page.tsx', 'CalendarSugarV2Page.tsx',
   'ListingFormPage.tsx',
+  // Lot 5 (15 août 2026) — les pages réputées PROPRES entrent enfin. Un cliquet
+  // ne sert pas qu'à constater : il empêche qu'une surface cesse de l'être.
+  // ⚠ `IdentitySugarPage` (14 lignes) et `AuthCallbackPage` ne peignent RIEN ;
+  // `WizardSugarV2Page` et `KycReportRenderPage` sont en styles en ligne, donc
+  // pleinement vues ; les autres sont en CLASSES et ne sont mesurées que sur la
+  // casse, la graisse et l'interlettrage — voir l'inventaire de cécité plus bas.
+  'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentitySugarPage.tsx',
+  'OnboardingCallPage.tsx', 'WizardSugarV2Page.tsx',
 ])
 
 /**
@@ -109,6 +117,14 @@ const PAGES_ACQUISES = [
   'ImportLeadSugarV3Page.tsx', 'JulienSugarV2Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
   'SettingsSugarV2Page.tsx', 'CalendarSugarV2Page.tsx',
   'ListingFormPage.tsx',
+  // Lot 5 (15 août 2026) — les pages réputées PROPRES entrent enfin. Un cliquet
+  // ne sert pas qu'à constater : il empêche qu'une surface cesse de l'être.
+  // ⚠ `IdentitySugarPage` (14 lignes) et `AuthCallbackPage` ne peignent RIEN ;
+  // `WizardSugarV2Page` et `KycReportRenderPage` sont en styles en ligne, donc
+  // pleinement vues ; les autres sont en CLASSES et ne sont mesurées que sur la
+  // casse, la graisse et l'interlettrage — voir l'inventaire de cécité plus bas.
+  'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentitySugarPage.tsx',
+  'OnboardingCallPage.tsx', 'WizardSugarV2Page.tsx',
 ]
 
 /**
@@ -147,10 +163,21 @@ const PAGES_PUBLIQUES = new Set([
   // donc du gros du lot 1 et ne porte plus que ses propres littéraux ;
   // `AcceptInvitePage` ne porte AUCUNE couleur, une seule clause la fait rougir.
   'AppointmentManagePage.tsx', 'AcceptInvitePage.tsx',
+  // Lot 5 — les neuf dernières pages publiques.
+  'AuthCallbackPage.tsx', 'KycPublicPage.tsx', 'KycReportRenderPage.tsx',
+  'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx', 'PrivacyPage.tsx',
+  'ResetPasswordPage.tsx', 'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
+  'AuthBentoPage.tsx',
 ])
 
 /** Écrite à part, en dur — elle ne peut pas rétrécir avec l'ensemble surveillé (n°15). */
-const PAGES_PUBLIQUES_ACQUISES = ['BuyerReceptionPage.tsx', 'AppointmentManagePage.tsx', 'AcceptInvitePage.tsx']
+const PAGES_PUBLIQUES_ACQUISES = [
+  'BuyerReceptionPage.tsx', 'AppointmentManagePage.tsx', 'AcceptInvitePage.tsx',
+  'AuthCallbackPage.tsx', 'KycPublicPage.tsx', 'KycReportRenderPage.tsx',
+  'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx', 'PrivacyPage.tsx',
+  'ResetPasswordPage.tsx', 'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
+  'AuthBentoPage.tsx',
+]
 
 // ⚠ Typé `RootSpec[]`, pas une forme recopiée à la main : l'ancienne annotation
 // ne connaissait pas `keepPath`, donc TypeScript ne l'aurait PAS signalé si un
@@ -945,25 +972,69 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
   })
 
   /**
+   * ⛔ LA MÊME GRAMMAIRE, EN CLASSES — le LANGAGE que les clauses ci-dessus ne
+   * lisent pas (vacuité n°10).
+   *
+   * Elles cherchent `textTransform:`, `fontWeight:`, `letterSpacing:` — la
+   * notation des styles EN LIGNE. Une surface peinte en classes Tailwind écrit
+   * `uppercase`, `font-bold`, `tracking-wide`, et rend donc ZÉRO sur trois
+   * clauses quel que soit son état réel. C'est ce qui rendait sept pages
+   * publiques indéchiffrables, et ce qui fait qu'`AcceptInvitePage` est entrée au
+   * cliquet du lot 3 en n'y étant mesurée que par la clause des BALISES.
+   *
+   * ⚠ MESURÉ AVANT D'ÊTRE ÉCRITE — c'est ce qui la rend sûre : NEUF sites au
+   * total sur les 303 fichiers du cliquet. Une clause de langage ne peut allumer
+   * une zone que personne n'a regardée que si elle est large ; celle-ci ne l'est
+   * pas, et le compte est ici pour qu'on puisse le revérifier.
+   *
+   * ⛔ ET ELLE NE COUVRE PAS TOUT, il faut le dire : les TAILLES restent
+   * invisibles en classes. `text-sm` est un barreau de TAILWIND, pas un
+   * `var(--crm-text-*)` ; exiger l'un depuis l'autre demanderait de réécrire la
+   * page en styles en ligne, ce qui est un geste, pas une clause. Les pages
+   * peintes en classes restent donc mesurées sur leur CASSE, leur GRAISSE et
+   * leur INTERLETTRAGE — pas sur leur échelle ni sur leurs couleurs.
+   */
+  it('aucune micro-capitale, en classes non plus', () => {
+    const fautifs = sites((l) => /className=[^>]*\buppercase\b/.test(l))
+    expect(fautifs, `micro-capitales en classes :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  it('aucune graisse au-dessus de 600, en classes non plus', () => {
+    // `font-bold` = 700, `font-extrabold` = 800, `font-black` = 900.
+    // `font-semibold` (600) est le plafond, il reste permis.
+    const fautifs = sites((l) => /className=[^>]*\bfont-(bold|extrabold|black)\b/.test(l))
+    expect(fautifs, `graisses ≥ 700 en classes :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  it('aucun interlettrage de micro-capitale, en classes non plus', () => {
+    // Seul le POSITIF est visé : `tracking-tight`/`tighter` resserrent un titre
+    // d'affichage, ce que la vitrine pratique — c'est le pendant du seuil ≥ 0,4.
+    const fautifs = sites((l) => /className=[^>]*\btracking-(wide|wider|widest)\b/.test(l))
+    expect(fautifs, `interlettrage positif en classes :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  /**
    * ⛔ CE QUE L'INSTRUMENT NE VOIT PAS, INVENTORIÉ — sinon « 0 marqueur » se lit
    * « propre » (vacuité n°6, « la garde muette prise pour un verdict »).
    *
-   * Ce fichier ne lit que les styles EN LIGNE. Une page peinte en CLASSES rend
-   * donc zéro sur SIX des clauses ci-dessus — casse, graisse, interlettrage,
-   * échelle, noir de Sugar, gris-bleu — quel que soit son état réel. Mesuré le
-   * 15 août 2026 sur `src/pages/public` : SEPT des treize pages sont dans ce cas,
-   * de 8 à 57 `className` pour ZÉRO `style={{`.
+   * Ce fichier lit d'abord les styles EN LIGNE. Une page peinte en CLASSES est
+   * donc mesurée PARTIELLEMENT, et il faut dire où passe la frontière.
    *
-   * ⚠ ET L'UNE D'ELLES EST DÉJÀ DANS LE CLIQUET. `AcceptInvitePage` est entrée au
-   * lot 3 : la clause qui l'a fait rougir est celle des BALISES à graisse héritée,
-   * qui lit le MARQUAGE et non les styles — elle a donc réellement mesuré quelque
-   * chose. Les six autres, non. L'inscrire ici est ce qui empêche de lire son
-   * appartenance au cliquet comme une couverture complète.
+   * ⚠ CE QUE L'INSTRUMENT VOIT DÉSORMAIS, depuis le lot 5 : la CASSE
+   * (`uppercase`), la GRAISSE (`font-bold|extrabold|black`) et l'INTERLETTRAGE
+   * (`tracking-wide|wider|widest`) — trois clauses jumelles qui lisent le
+   * langage des classes.
    *
-   * C'est aussi pourquoi le « lot 5 » du chantier — entrer les pages réputées
-   * propres — est SUSPENDU : les inscrire les déclarerait portées pendant que
-   * l'instrument ne mesure rien. Elles attendent d'être regardées, pas d'être
-   * inscrites.
+   * ⛔ CE QU'IL NE VOIT TOUJOURS PAS : l'ÉCHELLE et les COULEURS. `text-sm` est
+   * un barreau de TAILWIND, pas un `var(--crm-text-*)` ; `text-gray-500` n'est
+   * ni le noir de Sugar ni le gris-bleu, mais ce n'est pas non plus un jeton de
+   * thème. Exiger l'un depuis l'autre demanderait de réécrire ces pages en
+   * styles en ligne — un geste, pas une clause. C'est pourquoi cet inventaire
+   * SURVIT à leur entrée au cliquet : appartenir au cliquet ne veut pas dire
+   * être entièrement mesuré, et sans cette liste on lirait l'un pour l'autre.
+   *
+   * Mesuré le 15 août 2026 sur `src/pages/public` : SEPT des quatorze pages sont
+   * peintes en classes, de 8 à 57 `className` pour ZÉRO `style={{`.
    *
    * ⚠ CLIQUET À L'ENVERS, ET DANS LES DEUX SENS : une page qui devient visible
    * (elle gagne des styles en ligne) doit SORTIR de cette liste et entrer dans le
@@ -1006,6 +1077,42 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
     const disparues = [...AVEUGLES.keys()].filter((n) => !vues.has(n))
     expect(ecarts, `l'inventaire de ce que l'instrument ne voit pas a dérivé :\n  ${ecarts.join('\n  ')}`).toEqual([])
     expect(disparues, `inscrite mais absente du balayage :\n  ${disparues.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ LES DEUX DOSSIERS DE PAGES SONT COUVERTS EN ENTIER — et c'est cet
+   * invariant-là qui tient, pas la liste.
+   *
+   * ⚠ IL REMPLACE UNE PROTECTION QUE J'AI VUE ÉCHOUER. `PAGES_ACQUISES` est
+   * écrite à part pour que retirer une page de l'ensemble surveillé fasse rougir
+   * (vacuité n°15) — mais un contrôle négatif l'a prise en défaut : retirer la
+   * page des DEUX listes du même geste passait au VERT. C'est la limite
+   * inhérente à toute liste témoin, et elle ne se ferme pas en ajoutant une
+   * troisième liste : elle se ferme en confrontant à un TIERS que la mutation ne
+   * peut pas éditer — ici le système de fichiers.
+   *
+   * Mesuré le 15 août 2026, au lot 5 : 28 pages dans `src/pages/agent`, 13 dans
+   * `src/pages/public`, et TOUTES surveillées. Une page neuve devra donc entrer,
+   * ou justifier sa sortie en modifiant cette clause — ce qui se lit dans un
+   * diff, contrairement à un oubli.
+   */
+  it('aucune page n’échappe au cliquet — les deux dossiers sont couverts', () => {
+    const manquantes: string[] = []
+    for (const [dossier, surveillees] of [
+      ['src/pages/agent', PAGES],
+      ['src/pages/public', PAGES_PUBLIQUES],
+    ] as const) {
+      const scan = scanRoots([{ root: dossier, keep: (n) => /\.tsx$/.test(n) }])
+      expect(emptyRoots(scan), `racine vide : ${dossier}`).toEqual([])
+      // Sans ce plancher, un chemin cassé rendrait « rien à couvrir » et la
+      // clause passerait au vert sur un dossier qu'elle ne lit plus.
+      expect(scan.files.length, `${dossier} ne rend plus de page`).toBeGreaterThan(10)
+      for (const abs of scan.files) {
+        const nom = rel(abs).split('/').pop()!
+        if (!surveillees.has(nom)) manquantes.push(`${dossier}/${nom}`)
+      }
+    }
+    expect(manquantes, `page hors du cliquet — l'entrer, ou écrire pourquoi :\n  ${manquantes.join('\n  ')}`).toEqual([])
   })
 
   /**
