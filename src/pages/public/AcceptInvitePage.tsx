@@ -127,7 +127,7 @@ export default function AcceptInvitePage() {
                 <button
                   onClick={handleClaim}
                   disabled={claiming}
-                  className="w-full h-11 rounded-lg text-sm font-medium border border-gray-200 text-gray-700 hover:text-gray-900 hover:border-gray-400 transition-colors disabled:opacity-50"
+                  className="w-full h-11 rounded-lg text-sm font-medium bg-accent hover:bg-accent/90 text-white transition-colors disabled:opacity-50"
                 >
                   {claiming ? t('team.acceptInvite.accepting') : t('team.acceptInvite.accept')}
                 </button>

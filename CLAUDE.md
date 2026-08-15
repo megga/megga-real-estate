@@ -190,7 +190,16 @@ d'écran n'est restée sur Graphite).
 
 **Règles visuelles clés :**
 - Bentos : `rounded-xl border border-theme-border` — PAS d'ombres
-- Boutons : style ghost `border border-theme-border text-theme-secondary` — JAMAIS `bg-accent text-white`
+- Boutons : ⚠ **CETTE RÈGLE DÉCRIT SUGAR PURE, corrigée le 15 août 2026.** Elle
+  disait « style ghost — JAMAIS `bg-accent text-white` », ce qui CONTREDIT la
+  décision du 10 août écrite quatre points plus haut. Mesuré sur `src/` : **120
+  sites peignent une affordance en accent** (102 `background: *.accent`, 18
+  `bg-accent`) dans 36 fichiers, contre **11** au ghost canonique. La règle vive
+  est celle du point 4 — **l'affordance PRIMAIRE porte l'accent**, le ghost est
+  le SECONDAIRE. ⛔ Et deux accents coexistent : `MXC_COLOR.accent` `#424bfb`
+  (styles en ligne, MEGGA X) et `--color-accent` `#2563EB` (Tailwind, `bg-accent`),
+  à 1,12:1 l'un de l'autre — tous deux lisibles sous blanc (5,78 et 5,17). Les
+  unifier est une décision à part, pas un effet de bord
 - Badges : texte coloré sans fond (`text-red-500`, pas `bg-red-100 text-red-800`)
 - Modals : TOUJOURS `createPortal(document.body)` avec `z-[100]`
 - **Steppers : l'étape courante porte l'ACCENT, et la progression se lit dans la
@@ -345,7 +354,7 @@ useEffect(() => {
 - Validation KYC auto sans action humaine
 - Envoi auto au client sans validation agent
 - Couleurs hardcodées (`bg-white`, `text-gray-*`) → tokens thème
-- `bg-accent` plein sur boutons → style ghost
+- ⚠ ~~`bg-accent` plein sur boutons → style ghost~~ — **périmé**, voir §3 : c'est l'inverse depuis le 10 août 2026 (120 sites contre 11)
 - Ombres sur bentos
 - Modals inline → toujours `createPortal`
 - UPPERCASE dans les titres → capitalize

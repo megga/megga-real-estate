@@ -250,7 +250,7 @@ export default function VisitFeedbackPage() {
             className={cn(
               'w-full h-11 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2',
               rating && offerInterest && !submitFeedback.isPending
-                ? 'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active'
+                ? 'bg-accent hover:bg-accent/90 text-white'
                 : 'bg-gray-100 text-gray-500 cursor-not-allowed'
             )}
           >
