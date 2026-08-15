@@ -68,8 +68,105 @@ for (const line of raw.split('\n')) {
   offenders.push(`${file} - ${symbol}`);
 }
 
+// ─── SECONDE PASSE : l'angle mort de ts-prune ────────────────────────────────
+//
+// ⛔ `ts-prune` COMPTE TOUS LES EXPORTS D'UN MODULE ATTEINT PAR `import()`
+// COMME VIVANTS. Il voit l'import dynamique du MODULE et ne sait pas résoudre
+// quel MEMBRE est lu (`.then((m) => ({ default: m.X }))`). Prouvé par expérience
+// contrôlée le 15 août 2026 : un export nommé `ExportManifestementMort` ajouté à
+// une page passait la porte au VERT, et sept exports provablement morts
+// d'`AuthBentoPage` vivaient là depuis des mois sous un « baseline propre ».
+//
+// ⚠ ET C'EST L'ANGLE MORT QUI COMPTE LE PLUS ICI : toute l'architecture de
+// routes passe par `lazy(() => import(…))`. Mesuré, 78 modules ne sont atteints
+// QUE dynamiquement — c'est-à-dire que la porte était aveugle là où le code mort
+// s'accumule, pas dans un recoin.
+//
+// ── CE QUE CETTE PASSE FAIT, ET SURTOUT CE QU'ELLE NE FAIT PAS ───────────────
+// Elle n'essaie PAS de refaire l'analyse de ts-prune. Elle ne regarde que les
+// modules atteints EXCLUSIVEMENT par `import()` : un module aussi importé
+// statiquement — même une seule fois, même en relatif — est déjà couvert.
+// Restreindre le périmètre est ce qui la rend juste ; trois versions plus larges
+// ont SUR-signalé, ce qui est la pire façon de casser une porte.
+import { readdirSync, existsSync } from 'node:fs';
+import { readFileSync as lire } from 'node:fs';
+import { join, dirname, resolve as resoudreChemin } from 'node:path';
+
+const RACINE = resoudreChemin(process.cwd());
+const SRC = join(RACINE, 'src');
+
+function parcourir(d, out = []) {
+  if (!existsSync(d)) return out;
+  for (const e of readdirSync(d, { withFileTypes: true })) {
+    if (e.name === 'node_modules' || e.name === '_archived') continue;
+    const p = join(d, e.name);
+    e.isDirectory() ? parcourir(p, out) : /\.tsx?$/.test(e.name) && out.push(p);
+  }
+  return out;
+}
+
+/** Résout un spécifieur (alias `@/` ou relatif) vers un fichier réel. */
+function resoudreModule(spec, depuis) {
+  const base = spec.startsWith('@/') ? join(SRC, spec.slice(2)) : resoudreChemin(dirname(depuis), spec);
+  for (const c of [base + '.tsx', base + '.ts', join(base, 'index.tsx'), join(base, 'index.ts')]) {
+    if (existsSync(c)) return c;
+  }
+  return null;
+}
+
+// ⚠ `tests/` EST BALAYÉ, et son absence était un défaut : douze helpers
+// d'`AdminKybReviewPage` n'y sont importés que par une spec, et une passe qui
+// ne lit que `src/` les donnait tous pour morts.
+const fichiers = [...parcourir(SRC), ...parcourir(join(RACINE, 'tests'))];
+const statiques = new Set();
+const dynamiques = new Map();
+
+for (const f of fichiers) {
+  const code = lire(f, 'utf8');
+  for (const m of code.matchAll(/(?:^|[\s;])(?:import|export)\s[^;]*?from\s*['"]([^'"]+)['"]/g)) {
+    const r = resoudreModule(m[1], f);
+    if (r) statiques.add(r);
+  }
+  for (const m of code.matchAll(/require\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+    const r = resoudreModule(m[1], f);
+    if (r) statiques.add(r);
+  }
+  for (const m of code.matchAll(/import\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+    const r = resoudreModule(m[1], f);
+    if (!r) continue;
+    // ⚠ UNE FENÊTRE APRÈS L'APPEL, jamais un groupe optionnel paresseux : celui
+    // que j'avais écrit s'arrêtait à la première `)` — celle de `(m)` — et
+    // rendait donc le membre RÉELLEMENT lu pour un mort.
+    const suite = code.slice(m.index + m[0].length, m.index + m[0].length + 300);
+    const noms = [...suite.matchAll(/\b\w+\.([A-Za-z_]\w*)/g)].map((x) => x[1]);
+    const s = dynamiques.get(r) ?? new Set();
+    (noms.length ? noms : ['default']).forEach((n) => s.add(n));
+    dynamiques.set(r, s);
+  }
+}
+
+let exclusifs = 0;
+for (const [f, lus] of [...dynamiques].sort((a, b) => a[0].localeCompare(b[0]))) {
+  if (statiques.has(f)) continue;
+  exclusifs++;
+  const chemin = f.slice(RACINE.length + 1);
+  if (ALLOW_FILES.has(chemin)) continue;
+  for (const m of lire(f, 'utf8').matchAll(/^export\s+(?:async\s+)?(?:function|const|class)\s+(\w+)/gm)) {
+    if (lus.has(m[1])) continue;
+    if (ALLOW_SYMBOLS.has(`${chemin}:${m[1]}`)) continue;
+    offenders.push(`${chemin} - ${m[1]} (chargé en lazy : ce membre n'est lu à AUCUN site d'import)`);
+  }
+}
+
+// Sans ce plancher, un `src/` déplacé rendrait « rien à analyser » et la passe
+// passerait au vert sur un dépôt qu'elle ne lit plus.
+if (exclusifs < 10) {
+  console.error(`✗ passe lazy : seulement ${exclusifs} module(s) exclusivement dynamique(s) — l'analyse ne mesure plus rien.`);
+  process.exit(1);
+}
+
 if (offenders.length === 0) {
-  console.log('✓ Aucun export mort (baseline propre).');
+  console.log(`✓ Aucun export mort (baseline propre — dont ${exclusifs} modules chargés en lazy, invisibles pour ts-prune).`);
   process.exit(0);
 }
 console.error(`✗ ${offenders.length} export(s) mort(s) détecté(s) — retire-les ou justifie-les dans scripts/check-dead-exports.mjs :`);
