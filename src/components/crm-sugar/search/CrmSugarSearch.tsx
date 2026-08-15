@@ -9,6 +9,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAiPanel } from '@/hooks/useAiPanel'
 import { useTranslation } from 'react-i18next'
 import { crmSugarPalette, CRM_STAGES, sgVoileEncre, type SugarPalette } from '@/components/crm-sugar/tokens'
 import { useContacts } from '@/hooks/useContacts'
@@ -214,6 +215,7 @@ interface Props {
 
 export default function CrmSugarSearch({ open, onClose }: Props) {
   const navigate = useNavigate()
+  const ai = useAiPanel()
   // Collision : la variable `t` ci-dessous = tokens de thème. Le traducteur = `tr`.
   const { t: tr, i18n } = useTranslation('common')
 
@@ -302,29 +304,37 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
     return out
   }, [showEmpty, showAdmin, meggaRecent, meggaResults, contactResults, bienResults, dealResults])
 
-  const goJulien = useCallback(() => {
+  /**
+   * ⛔ LA PAGE « Julien » A ÉTÉ SUPPRIMÉE (17 août 2026) : ces deux gestes
+   * ouvrent désormais le DOCK MEGGA AI, seule surface du copilote.
+   *
+   * ⚠ Ils restent DEUX, et les fondre serait perdre la distinction : `goMegga`
+   * ouvre un fil NEUF, `resumeConversation` rouvre un fil ÉCRIT — bulles et
+   * historique du copilote réamorcés, pour que la suite s'écrive dans la même
+   * conversation côté serveur.
+   */
+  const goMegga = useCallback(() => {
     onClose()
-    navigate('/dashboard/julien')
-  }, [navigate, onClose])
+    ai.open()
+  }, [ai, onClose])
 
-  // Reprendre une conversation copilote : ouvre la page Julien avec son id.
   const resumeConversation = useCallback((id: string) => {
     onClose()
-    navigate(`/dashboard/julien?c=${id}`)
-  }, [navigate, onClose])
+    ai.openConversation(id)
+  }, [ai, onClose])
 
   const runItem = useCallback((item: FlatItem | undefined) => {
     if (!item) return
     switch (item.kind) {
       case 'megga-convo': resumeConversation(item.id); break
       case 'ai':
-      case 'ai-query': goJulien(); break
+      case 'ai-query': goMegga(); break
       case 'contact': onClose(); navigate(`/dashboard/contacts/${item.id}`); break
       case 'bien': onClose(); navigate(`/dashboard/listings/${item.id}`); break
       case 'deal': onClose(); navigate(`/dashboard/transactions/${item.id}`); break
       case 'admin': onClose(); navigate(ADMIN_CONSOLE_PATH); break
     }
-  }, [goJulien, resumeConversation, navigate, onClose])
+  }, [goMegga, resumeConversation, navigate, onClose])
 
   // Focus auto à l'ouverture.
   useEffect(() => {
@@ -507,7 +517,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
                   const idx = offEmptyPrompts + i
                   const isActive = activeIdx === idx
                   return (
-                    <button key={p} onClick={goJulien} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
+                    <button key={p} onClick={goMegga} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
                       <div style={{ width: 16, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
                         <IconSpark stroke={isActive ? sp.ink : sp.sub} />
                       </div>
@@ -528,7 +538,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
               <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>{tr('search.command.empty.title', { query: q })}</div>
               <div style={{ fontSize: 'var(--crm-text-lg)', marginTop: 6 }}>{tr('search.command.empty.body')}</div>
               <button
-                onClick={goJulien}
+                onClick={goMegga}
                 style={{
                   marginTop: 18, padding: 'var(--crm-space-md) var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
                   background: 'linear-gradient(135deg, #0041D9 0%, #8B5CF6 100%)', color: '#fff',
@@ -672,7 +682,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
           {!showEmpty && (
             <div style={{ padding: 'var(--crm-space-sm) var(--crm-space-2xl) var(--crm-space-xl)' }}>
               <button
-                onClick={goJulien}
+                onClick={goMegga}
                 style={{
                   width: '100%', padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-xl)', cursor: 'pointer',
                   background: dark

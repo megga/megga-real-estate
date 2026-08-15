@@ -25,7 +25,13 @@ export const HELP_ARTICLES: Record<string, string> = {
   pipeline: '15424971', // Suivre vos affaires dans le pipeline
   matching: '15492029', // Lire un score de matching et proposer un bien
   calendar: '15424986', // Connecter Google, Outlook et la signature
-  julien: '15492030', // Le copilote MEGGA AI : ce qu'il fait, ses limites
+  // ⛔ `julien: '15492030'` A ÉTÉ RETIRÉ le 17 août 2026 avec la page du même nom.
+  // Les clés d'aide reprennent les `SugarScreenId` ; `'julien'` n'en est plus un,
+  // donc l'entrée était devenue INATTEIGNABLE — `openHelpFor(active)` ne peut plus
+  // la produire. ⚠ L'ARTICLE, lui, existe toujours et reste juste : « Le copilote
+  // MEGGA AI : ce qu'il fait, ses limites », id Intercom **15492030**. Ce qui
+  // manque désormais est un point d'entrée depuis le DOCK, qui n'est pas un écran
+  // et n'a donc pas de clé. À poser le jour où le dock gagne son bouton d'aide.
   parcours: '15692113', // Suivre l'avancement de vos dossiers avec le Parcours
   biens: '15692114', // Gérer votre portefeuille de biens
   // Surfaces secondaires (hors TopNav) — utilisables par les pages dédiées :

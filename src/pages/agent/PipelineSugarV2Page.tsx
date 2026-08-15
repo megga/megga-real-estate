@@ -568,8 +568,6 @@ export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = 
       case 'biens-new': go('/dashboard/listings/new'); break
       case 'calendar':  go('/dashboard/calendar'); break
       case 'kyc':       go('/dashboard/kyc'); break
-      case 'ai':
-      case 'julien':    go('/dashboard/julien'); break
       case 'dashboard': go('/dashboard/analytics'); break
       case 'settings':  go('/dashboard/settings'); break
       default: break

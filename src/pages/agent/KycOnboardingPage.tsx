@@ -50,7 +50,6 @@ export default function KycOnboardingPage() {
       case 'parcours': navigate('/dashboard/journey'); break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'kyc': navigate('/dashboard/kyc'); break
-      case 'julien': navigate('/dashboard/julien'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings': navigate('/dashboard/settings'); break
       default:

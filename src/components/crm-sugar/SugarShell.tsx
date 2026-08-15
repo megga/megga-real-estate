@@ -65,7 +65,7 @@ export function SugarRoundIconBtn({ children, dot, onClick, sp, title }: SugarRo
 // ─── Top navigation (logo + horizontal tabs + actions) ─────────────────
 export type SugarScreenId =
   | 'today' | 'pipeline' | 'matching' | 'parcours' | 'contacts'
-  | 'biens' | 'calendar' | 'julien'
+  | 'biens' | 'calendar'
 
 interface SugarTopNavProps {
   active?: SugarScreenId
@@ -78,8 +78,10 @@ export function SugarTopNav({ active = 'today', sp, onNavigate, dark = false }: 
   const navigate = useNavigate()
   const { t: tc } = useTranslation('common')
   const { signOut, profile, user } = useAuth()
-  // MEGGA AI — le bouton ✦ ouvre le panneau docké (via AiPanelProvider). Repli
-  // sur la page « Julien » si la nav est rendue hors du provider.
+  // MEGGA AI — le bouton ✦ ouvre le panneau docké (via AiPanelProvider).
+  // ⛔ Il n'y a plus de repli : la page « Julien » a été supprimée le 17 août 2026,
+  // et le copilote n'a qu'une surface. Hors provider (`enabled: false`), le bouton
+  // est INERTE plutôt que de naviguer vers une route qui redirige.
   const ai = useAiPanel()
   /**
    * Pastille d'avatar : elle lisait `t.primary` (#0041D9), un bleu d'avant
@@ -138,9 +140,9 @@ export function SugarTopNav({ active = 'today', sp, onNavigate, dark = false }: 
     { id: 'biens',     label: tc('nav.listings') },
     { id: 'calendar',  label: tc('nav.calendar') },
   ]
-  const isJulien = active === 'julien'
-  // ✦ actif = page Julien OU panneau MEGGA AI ouvert (quand le provider est monté).
-  const aiActive = isJulien || (ai.enabled && ai.isOpen)
+  // ✦ actif = panneau MEGGA AI ouvert. La disjonction avec la page « Julien » est
+  // partie avec elle : il n'y a plus qu'une façon d'avoir le copilote à l'écran.
+  const aiActive = ai.enabled && ai.isOpen
 
   // ─── Dock MEGGA AI : la barre du haut ne bouge pas ─────────────────────
   // `AgentSugarLayout` comprime le contenu de travail par `paddingRight` quand le
@@ -264,12 +266,9 @@ export function SugarTopNav({ active = 'today', sp, onNavigate, dark = false }: 
         {/* Aide contextuelle : ouvre l'article Help Center de l'écran courant (ou le
             Centre d'aide à défaut, public si Intercom n'est pas configuré). */}
         <SugarRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => openHelpFor(active)}><AnimatedTopIcon name="help" color={sp.soft} size={TOPNAV_ICON} /></SugarRoundIconBtn>
-        {/* Bouton Megga — ouvre le panneau MEGGA AI docké (ou la page Julien en repli) */}
+        {/* Bouton Megga — ouvre le panneau MEGGA AI docké. */}
         <button
-          onClick={() => {
-            if (ai.enabled && active !== 'julien') ai.open()
-            else onNavigate?.('julien')
-          }}
+          onClick={() => { if (ai.enabled) ai.open() }}
           title={tc('nav.aiAgent')}
           aria-expanded={ai.enabled ? ai.isOpen : undefined}
           style={{

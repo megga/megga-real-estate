@@ -4,7 +4,7 @@
  * ── POURQUOI CETTE ROUTE EXISTE ──────────────────────────────────────────────
  * Les dix surfaces `/dashboard/*` qu'il reste à porter en MEGGA X n'avaient
  * AUCUN banc : `Aujourd'hui`, KYC, Visites, Analytics, Import lead, Réglages,
- * Julien, Parcours, Audit, Calendrier. Sans session, `ProtectedRoute` fait
+ * Parcours, Audit, Calendrier. Sans session, `ProtectedRoute` fait
  * `window.location.replace('https://megga.ch/login')` — une redirection
  * **absolue** vers la production : on est déposé sur `app.megga.ch`, qui sert
  * `main`, en croyant regarder localhost. On relit alors l'ancienne version de
@@ -70,7 +70,6 @@ const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugar
 const DashboardSugarV4Page = lazy(() => import('@/pages/agent/DashboardSugarV4Page'))
 const ImportLeadSugarV3Page = lazy(() => import('@/pages/agent/ImportLeadSugarV3Page'))
 const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
-const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const JourneySugarV2Page = lazy(() => import('@/pages/agent/JourneySugarV2Page'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
@@ -105,7 +104,6 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' }[
   { id: 'visite', chemin: '/dashboard/visits/v1', label: 'Visite · fiche', vague: 'A' },
   { id: 'analytics', chemin: '/dashboard/analytics', label: 'Analytics', vague: 'A' },
   { id: 'import-lead', chemin: '/dashboard/import-lead', label: 'Import lead', vague: 'A' },
-  { id: 'julien', chemin: '/dashboard/julien', label: 'Julien', vague: 'A' },
   { id: 'settings', chemin: '/dashboard/settings', label: 'Réglages', vague: 'B' },
   { id: 'calendar', chemin: '/dashboard/calendar', label: 'Calendrier', vague: 'B' },
   { id: 'journey', chemin: '/dashboard/journey', label: 'Parcours', vague: 'B' },
@@ -276,7 +274,6 @@ function RoutesBanc() {
         <Route path="journey" element={<JourneySugarV2Page />} />
         <Route path="settings" element={<SettingsSugarV2Page />} />
         <Route path="audit" element={<AuditSugarPage />} />
-        <Route path="julien" element={<JulienSugarV2Page />} />
         <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
         <Route path="visits/new" element={<VisitModalSugarV3Page />} />
         <Route path="visits/:id" element={<VisitDetailSugarV3Page />} />

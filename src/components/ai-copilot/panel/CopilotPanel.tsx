@@ -23,6 +23,7 @@ import AnnonceReviewModal from './AnnonceReviewModal'
 import LetterReviewModal from './LetterReviewModal'
 import PublishReviewModal from './PublishReviewModal'
 import DeleteContactReviewModal from './DeleteContactReviewModal'
+import { useConversationMessages } from '@/hooks/useConversationHistory'
 import {
   PANEL_W, deriveAiPalette, packFor, screenLabel, parseSegments, detectEmailDraft, isAnnonceRequest, isLettreRequest, thinkingPhases,
   type AiPalette,
@@ -544,15 +545,17 @@ const CP_KEYFRAMES = `
 `
 
 // ── Contenu (monté à la 1re ouverture — évite les requêtes tant que fermé) ──
-function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
+function PanelContent({ sp, isOpen, screen, seed, consumeSeed, conversationId, consumeConversation, onClose }: {
   sp: AiPalette
   isOpen: boolean
   screen: string
   seed: string | null
   consumeSeed: () => void
+  conversationId: string | null
+  consumeConversation: () => void
   onClose: () => void
 }) {
-  const { sendMessageStream, executePending, isLoading, clearHistory } = useCopilot()
+  const { sendMessageStream, executePending, isLoading, clearHistory, resumeConversation } = useCopilot()
   const { profile } = useAuth()
   const { deals } = usePipelineSugar()
   const { entity } = useAiPanel()
@@ -659,6 +662,34 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
     }
   }, [isOpen, seed, consumeSeed])
 
+  /**
+   * Reprise d'une conversation persistée (⌘K › conversations récentes).
+   *
+   * ⛔ CETTE CAPACITÉ VENAIT DE LA PAGE « Julien », et elle a été PORTÉE ICI avant
+   * de la supprimer. Le dock savait déjà tenir une conversation — `useCopilot`
+   * expose `resumeConversation` depuis toujours — mais rien ne l'appelait : la
+   * seule façon de rouvrir un fil passait par `/dashboard/julien?c=<id>`. La
+   * supprimer sans ce port aurait laissé l'Edge Function continuer d'ÉCRIRE
+   * l'historique dans `ai_copilot_conversations` sans qu'aucune surface puisse
+   * le relire.
+   *
+   * ⚠ DEUX AMORÇAGES, PAS UN. Les bulles visibles ET l'historique interne du
+   * copilote. N'en faire qu'un donnerait soit un fil muet à l'écran, soit une
+   * suite de conversation qui repart de zéro côté serveur — donc une SECONDE
+   * conversation pour le même échange.
+   */
+  const { data: repris } = useConversationMessages(conversationId)
+  const reprisRef = useRef<string | null>(null)
+  useEffect(() => { if (!isOpen) reprisRef.current = null }, [isOpen])
+  useEffect(() => {
+    if (!repris || reprisRef.current === repris.id) return
+    reprisRef.current = repris.id
+    idRef.current = repris.messages.length
+    setMessages(repris.messages.map((m, i) => ({ id: i + 1, role: m.role, content: m.content })))
+    resumeConversation(repris.id, repris.messages)
+    consumeConversation()
+  }, [repris, resumeConversation, consumeConversation])
+
   // Suivi de contexte (chantier 5) : changement d'écran panneau ouvert → marqueur.
   const lastCtxScreenRef = useRef(screen)
   useEffect(() => {
@@ -758,7 +789,7 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, onClose }: {
 
 // ── Panneau (shell fixe + animation d'ouverture) ────────────────────────────
 export default function CopilotPanel() {
-  const { isOpen, screen, seed, close, consumeSeed } = useAiPanel()
+  const { isOpen, screen, seed, close, consumeSeed, conversationId, consumeConversation } = useAiPanel()
   const { impersonating } = useImpersonate()
   const dark = usePanelDark(isOpen)
   const sp = useMemo<AiPalette>(() => {
@@ -823,6 +854,8 @@ export default function CopilotPanel() {
             screen={screen}
             seed={seed}
             consumeSeed={consumeSeed}
+            conversationId={conversationId}
+            consumeConversation={consumeConversation}
             onClose={close}
           />
         )}

@@ -565,9 +565,6 @@ export default function BienDetailSugarV4Page({ demoData }: BienDetailProps = {}
       case 'biens-new': navigate('/dashboard/listings/new'); break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'kyc': navigate('/dashboard/kyc'); break
-      case 'ai':
-      case 'julien': navigate('/dashboard/julien'); break
-      case 'chat':
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings': navigate('/dashboard/settings'); break
       default:

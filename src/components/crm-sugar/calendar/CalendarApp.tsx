@@ -439,9 +439,6 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
       case 'parcours': navigate('/dashboard/journey'); break
       case 'calendar': break
       case 'kyc': navigate('/dashboard/kyc'); break
-      case 'ai':
-      case 'julien': navigate('/dashboard/julien'); break
-      case 'chat':
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings': navigate('/dashboard/settings?tab=integrations'); break
       default:

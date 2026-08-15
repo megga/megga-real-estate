@@ -361,8 +361,6 @@ export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc 
       case 'calendar':  go('/dashboard/calendar'); break
       case 'kyc':       go('/dashboard/kyc'); break
       case 'parcours':  go('/dashboard/journey'); break
-      case 'ai':
-      case 'julien':    go('/dashboard/julien'); break
       case 'dashboard': go('/dashboard/analytics'); break
       case 'settings':  go('/dashboard/settings'); break
       default: break

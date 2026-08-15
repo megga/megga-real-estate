@@ -141,7 +141,6 @@ const IdentityMobileNotice = lazy(() => import('@/pages/agent/IdentityMobileNoti
 const OnboardingCallPage = lazy(() => import('@/pages/agent/OnboardingCallPage'))
 const OnboardingCallManagePage = lazy(() => import('@/pages/public/OnboardingCallManagePage'))
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
-const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
 // ⛔ LES SEPT BANCS RESTANTS PASSENT AU TERNAIRE (15 août 2026). Mesuré au lot 3a :
 // ils avaient un chunk dans `dist/assets/` et une route déclarée — donc joignables
@@ -653,7 +652,13 @@ function AppRoutes() {
                 <Route path="premier-jour" element={<Navigate to="/dashboard" replace />} />
                 {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}
                 <Route path="audit" element={<AuditSugarPage />} />
-                <Route path="julien" element={<JulienSugarV2Page />} />
+                {/* ⛔ La page « Julien » a été supprimée le 17 août 2026 : le copilote
+                    n'a plus qu'une surface, le dock MEGGA AI. La route REDIRIGE au lieu
+                    de disparaître — elle a été partagée en signet et le ⌘K y pointait
+                    encore hier. Même geste que /dashboard/network et le portail vendeur.
+                    Sa capacité propre (reprise d'une conversation persistée) est portée
+                    dans le dock, pas perdue : `useAiPanel.openConversation`. */}
+                <Route path="julien" element={<Navigate to="/dashboard" replace />} />
                 {/* Sprint 4 — Dashboard Analytics Sugar v4 (Cockpit / Entonnoir / Objectif) */}
                 {/* Analytics — mobile (< 768px) : cockpit commission (P9). */}
                 <Route path="analytics" element={<ResponsiveRoute desktop={<DashboardSugarV4Page />} mobile={<MobileAnalyticsPage />} />} />

@@ -138,7 +138,7 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/components/propertyx', 40],
   ['src/components/listings', 37],
   ['src/pages/dev', 26],
-  ['src/pages/agent', 25],
+  ['src/pages/agent', 4],
   ['src/components/kyc-magic-link', 24],
   ['src/components/auth-bento', 22],
   ['src/components/kyc-report', 22],

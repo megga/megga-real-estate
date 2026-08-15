@@ -186,8 +186,6 @@ export default function MatchingPagerPage({ banc }: { banc?: MatchingPagerBanc }
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'parcours': navigate('/dashboard/journey'); break
-      case 'ai':
-      case 'julien': navigate('/dashboard/julien'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings': navigate('/dashboard/settings'); break
       default:

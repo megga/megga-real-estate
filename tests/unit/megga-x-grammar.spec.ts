@@ -80,7 +80,7 @@ const PAGES = new Set([
   // les avait ratées en groupant par DOSSIER : 15 marqueurs invisibles.
   'KycSugarV3Page.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
   'VisitModalSugarV3Page.tsx', 'VisitDetailSugarV3Page.tsx', 'DashboardSugarV4Page.tsx',
-  'ImportLeadSugarV3Page.tsx', 'JulienSugarV2Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
+  'ImportLeadSugarV3Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
   'SettingsSugarV2Page.tsx', 'CalendarSugarV2Page.tsx',
   'ListingFormPage.tsx',
   // Lot 5 (15 août 2026) — les pages réputées PROPRES entrent enfin. Un cliquet
@@ -114,7 +114,7 @@ const PAGES_ACQUISES = [
   'TodaySugarPage.tsx',
   'KycSugarV3Page.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
   'VisitModalSugarV3Page.tsx', 'VisitDetailSugarV3Page.tsx', 'DashboardSugarV4Page.tsx',
-  'ImportLeadSugarV3Page.tsx', 'JulienSugarV2Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
+  'ImportLeadSugarV3Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
   'SettingsSugarV2Page.tsx', 'CalendarSugarV2Page.tsx',
   'ListingFormPage.tsx',
   // Lot 5 (15 août 2026) — les pages réputées PROPRES entrent enfin. Un cliquet
@@ -946,7 +946,7 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/skeletons', { hors: 8, total: 12 }],
   ['src/components/ui', { hors: 0, total: 29 }],
   ['src/pages/admin', { hors: 225, total: 464 }],
-  ['src/pages/agent', { hors: 363, total: 980 }],
+  ['src/pages/agent', { hors: 331, total: 936 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 68, total: 259 }],
 ])
@@ -1173,7 +1173,6 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
     raison: '44 px — les chiffres et titres d’affichage au-dessus du dernier barreau (4 sites)',
   },
   { motif: /fontSize:\s*40\b/, raison: '40 px — le titre du premier lancement, au-dessus du barreau' },
-  { motif: /fontSize:\s*48\b/, raison: '48 px — le chiffre d’ouverture de Julien, au-dessus du dernier barreau (1 site)' },
   {
     // Troisième membre de la famille CALCULÉE, après `x * 0.34` et les `em` :
     // un `clamp()` borne une taille entre deux extrêmes et suit la LARGEUR DE LA

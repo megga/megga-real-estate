@@ -2224,8 +2224,6 @@ export default function ListingFormPage() {
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'matching': navigate('/dashboard/matching'); break
       case 'parcours': navigate('/dashboard/journey'); break
-      case 'ai':
-      case 'julien': navigate('/dashboard/julien'); break
       case 'settings': navigate('/dashboard/settings'); break
       default:
     }

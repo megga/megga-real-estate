@@ -63,7 +63,6 @@ const CRM_AGENT_ROUTES: RouteSpec[] = [
   { path: '/dashboard/network', label: 'Réseau agences' },
   { path: '/dashboard/audit', label: 'Audit' },
   { path: '/dashboard/analytics', label: 'Analytics' },
-  { path: '/dashboard/julien', label: 'Julien IA' },
 
   // ── Sub-routes statiques (sans paramètre) ───────────────────────────────
   { path: '/dashboard/listings/new', label: 'Listings > Nouveau bien' },

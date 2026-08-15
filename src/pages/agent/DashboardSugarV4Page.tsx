@@ -57,10 +57,6 @@ export default function DashboardSugarV4Page() {
       case 'parcours':
         navigate('/dashboard/journey')
         break
-      case 'ai':
-      case 'julien':
-        navigate('/dashboard/julien')
-        break
       case 'settings':
         navigate('/dashboard/settings')
         break
