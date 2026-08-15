@@ -800,6 +800,10 @@
   "kybReview.detail.idVerified.partial": "vérifiée · concorde en partie",
   "kybReview.detail.idVerified.mismatch": "vérifiée · NE CONCORDE PAS",
   "kybReview.detail.idVerified.unreadable": "vérification non aboutie",
+  "kybReview.detail.stripeStatus.processing": "vérification Stripe en cours",
+  "kybReview.detail.stripeStatus.requires_input": "vérification Stripe interrompue",
+  "kybReview.detail.stripeStatus.canceled": "vérification Stripe annulée",
+  "kybReview.detail.stripeStatus.verified": "vérifiée chez Stripe",
   "kybReview.checks.table.type": "Type",
   "kybReview.checks.table.source": "Source",
   "kybReview.checks.table.result": "Résultat",
@@ -959,7 +963,13 @@
       "status": "Statut",
       "actions": "Actions",
       "rescheduled": "replanifié {{count}} fois",
-      "openMeeting": "Ouvrir la visioconférence"
+      "openMeeting": "Ouvrir la visioconférence",
+      "details": "Détails"
+    },
+    "details": {
+      "phone": "Téléphone",
+      "note": "Note",
+      "answers": "Réponses de calibrage"
     },
     "actions": {
       "markDone": "Tenu",

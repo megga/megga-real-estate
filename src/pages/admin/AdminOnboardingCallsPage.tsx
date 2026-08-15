@@ -9,9 +9,9 @@
  * Toutes les lectures passent par RPC gardée `is_super_admin()` : les tables du pool
  * n'accordent aucun droit au client (cf. migration 20260803214105).
  */
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { CalendarCheck, CheckCircle2, Clock, UserX, XCircle, Video, Power, Pencil, Plus } from 'lucide-react'
+import { CalendarCheck, CheckCircle2, ChevronDown, ChevronUp, Clock, UserX, XCircle, Video, Power, Pencil, Plus } from 'lucide-react'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
   AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc,
@@ -48,6 +48,13 @@ function formatWhen(iso: string): string {
     hour: '2-digit', minute: '2-digit', hour12: false,
   }).format(new Date(iso))
 }
+
+/** Clés du questionnaire de calibrage, dans l'ordre du formulaire (OcBooking). */
+const CALIBRATION_KEYS = ['portfolio', 'business', 'team', 'priority', 'cantons'] as const
+
+/** L'identité (prénom, nom, e-mail) voyage dans le même jsonb, mais la rangée du
+ *  tableau la porte déjà : la répéter dans le détail n'apprendrait rien. */
+const IDENTITY_ANSWER_KEYS = new Set(['first_name', 'last_name', 'email'])
 
 /**
  * Nombre de jours d'horaires rendus en clair dans le tableau ; au-delà, un compte.
@@ -90,10 +97,14 @@ function weeklySummary(
 }
 
 function CallsTab() {
-  const { t } = useTranslation('admin')
+  // Le namespace `onboarding` s'ajoute pour libeller les réponses de calibrage avec
+  // les questions du wizard lui-même : une seule source pour la question ET ses options.
+  const { t } = useTranslation(['admin', 'onboarding'])
   const { sp, surf, tones } = useAdminSugar()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<string>('all')
+  /** Appel dont la rangée de détail est dépliée — une seule à la fois suffit. */
+  const [openDetails, setOpenDetails] = useState<string | null>(null)
 
   const { data: calls, isLoading, isError, refetch } = useAdminOnboardingCalls()
   const setOutcome = useSetOnboardingCallOutcome()
@@ -122,6 +133,31 @@ function CallsTab() {
   }, [calls, query, status])
 
   const { page, setPage, totalPages, paginated, perPage, total } = useClientPagination(filtered, PER_PAGE)
+
+  /**
+   * Réponses affichables d'un appel : les questions connues d'abord, libellées par le
+   * questionnaire du wizard, puis toute clé inconnue en brut — le jsonb est déclaratif,
+   * une clé future ne doit pas disparaître en silence.
+   */
+  const answerRowsFor = (call: AdminOnboardingCall): { key: string; label: string; value: string }[] => {
+    const answers = call.attendee_answers
+    if (!answers) return []
+    const known = CALIBRATION_KEYS
+      .filter((key) => answers[key])
+      .map((key) => ({
+        key: key as string,
+        label: t(`onboarding:call.questions.${key}.label`, { defaultValue: key }),
+        // `cantons` est une réponse libre, les autres sont des options fermées dont le
+        // libellé vit avec la question ; une option inconnue s'affiche telle quelle.
+        value: key === 'cantons'
+          ? answers[key]
+          : t(`onboarding:call.questions.${key}.options.${answers[key]}`, { defaultValue: answers[key] }),
+      }))
+    const rest = Object.keys(answers)
+      .filter((key) => !IDENTITY_ANSWER_KEYS.has(key) && !(CALIBRATION_KEYS as readonly string[]).includes(key))
+      .map((key) => ({ key, label: key, value: answers[key] }))
+    return [...known, ...rest]
+  }
 
   if (isError) return <AdminError message={t('onboardingCalls.error')} onRetry={() => void refetch()} />
 
@@ -185,8 +221,12 @@ function CallsTab() {
               <tbody>
                 {paginated.map((call: AdminOnboardingCall) => {
                   const isPast = Date.parse(call.scheduled_at) <= nowMs
+                  const answerRows = answerRowsFor(call)
+                  const hasDetails = !!(call.attendee_phone || call.attendee_note || answerRows.length > 0)
+                  const isOpen = hasDetails && openDetails === call.id
                   return (
-                    <tr key={call.id} style={{ borderTop: surf.hairline }}>
+                    <Fragment key={call.id}>
+                    <tr style={{ borderTop: surf.hairline }}>
                       <AdminTd>
                         <span style={{ fontWeight: 600 }}>{call.agency_name ?? '—'}</span>
                         <br />
@@ -251,9 +291,63 @@ function CallsTab() {
                               {t('onboardingCalls.actions.cancel')}
                             </AdminSegmentBtn>
                           )}
+                          {/* Téléphone, note et réponses de calibrage : à un clic, pas en
+                              colonnes — la plupart des rangées n'en ont pas, des colonnes
+                              vides ne feraient qu'élargir le tableau. */}
+                          {hasDetails && (
+                            <AdminSegmentBtn
+                              on={isOpen}
+                              variant="hollow"
+                              onClick={() => setOpenDetails(isOpen ? null : call.id)}
+                              title={t('onboardingCalls.table.details')}
+                            >
+                              <AdminIc icon={isOpen ? ChevronUp : ChevronDown} size={14} />
+                            </AdminSegmentBtn>
+                          )}
                         </div>
                       </AdminTd>
                     </tr>
+                    {isOpen && (
+                      /* La rangée de détail appartient à celle du dessus : pas de filet
+                         entre les deux, c'est la rangée suivante qui en porte un. */
+                      <tr>
+                        <td colSpan={5} style={{ padding: '0 10px 14px' }}>
+                          <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
+                            {call.attendee_phone && (
+                              <div>
+                                <span style={{ color: sp.soft, fontSize: 12 }}>{t('onboardingCalls.details.phone')}</span>
+                                <br />
+                                {call.attendee_phone}
+                              </div>
+                            )}
+                            {call.attendee_note && (
+                              <div>
+                                <span style={{ color: sp.soft, fontSize: 12 }}>{t('onboardingCalls.details.note')}</span>
+                                <br />
+                                {call.attendee_note}
+                              </div>
+                            )}
+                            {answerRows.length > 0 && (
+                              <div>
+                                <div style={{ color: sp.soft, fontSize: 12, marginBottom: 4 }}>
+                                  {t('onboardingCalls.details.answers')}
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))', gap: 6 }}>
+                                  {answerRows.map((row) => (
+                                    <div key={row.key}>
+                                      <span style={{ color: sp.soft, fontSize: 12 }}>{row.label}</span>
+                                      <br />
+                                      {row.value}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </Fragment>
                   )
                 })}
               </tbody>

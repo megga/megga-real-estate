@@ -7904,6 +7904,7 @@ export type Database = {
           agency_id: string
           agency_name: string
           agency_slug: string
+          attendee_answers: Json
           attendee_note: string
           attendee_phone: string
           booked_by: string

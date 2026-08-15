@@ -30,6 +30,7 @@ export interface AdminOnboardingCall {
   meeting_url: string | null
   attendee_phone: string | null
   attendee_note: string | null
+  attendee_answers: Record<string, string> | null
   rescheduled_count: number
   cancel_reason: string | null
   created_at: string
@@ -53,6 +54,20 @@ export interface AdminOnboardingHost {
   created_at: string
 }
 
+/**
+ * jsonb libre en base : ne garde que des paires chaîne → chaîne, le contrat que
+ * `sanitizeAnswers` (onboarding-call-book) impose à l'écriture — une ligne écrite
+ * par une version antérieure du parcours ne doit pas casser l'écran qui l'affiche.
+ */
+function toAnswersRecord(raw: unknown): Record<string, string> | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const out: Record<string, string> = {}
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof value === 'string' && value) out[key] = value
+  }
+  return Object.keys(out).length > 0 ? out : null
+}
+
 export function useAdminOnboardingCalls(status?: string) {
   return useQuery({
     queryKey: ['admin-onboarding-calls', status ?? 'all'],
@@ -64,7 +79,8 @@ export function useAdminOnboardingCalls(status?: string) {
         p_offset: 0,
       })
       if (error) throw error
-      return (data ?? []) as AdminOnboardingCall[]
+      return ((data ?? []) as Array<Omit<AdminOnboardingCall, 'attendee_answers'> & { attendee_answers: unknown }>)
+        .map((call) => ({ ...call, attendee_answers: toAnswersRecord(call.attendee_answers) }))
     },
   })
 }

@@ -412,4 +412,22 @@ describe.skipIf(!HAS_KEYS)('appel d accueil — socle base (live)', () => {
       expect(error?.message).toContain('bad weekly_hours slice')
     }
   })
+
+  it('L13 — la console rend les réponses de calibrage avec l appel', async () => {
+    const call = await freshCallForA(11)
+    const answers = { portfolio: '6-20', priority: 'mandates', cantons: 'Genève, Vaud' }
+    const upd = await svc.from('onboarding_calls')
+      .update({ attendee_answers: answers })
+      .eq('id', call.id)
+    expect(upd.error).toBeNull()
+
+    const { data, error } = await svc.rpc('get_admin_onboarding_calls', {
+      p_status: 'confirmed', p_limit: 2000, p_offset: 0,
+    })
+    expect(error).toBeNull()
+    const row = (data ?? []).find((r) => r.id === call.id)
+    // Égalité sur l'objet complet, pas une simple présence : un retour tronqué ou
+    // re-sérialisé autrement doit se voir ici (migration 20260815230000).
+    expect(row?.attendee_answers).toEqual(answers)
+  })
 })
