@@ -57,7 +57,7 @@ export function BentoPortalToggle({
               boxShadow: active ? 'none' : `0 0 0 1px ${ringColor} inset`,
               color: active ? tokens.ctaFg : hovered ? tokens.titleColor : tokens.bodyColor,
               fontFamily: tokens.font,
-              fontSize: 14,
+              fontSize: 'var(--crm-text-lg)',
               fontWeight: 500,
               letterSpacing: tokens.letterSpacing,
               cursor: active ? 'default' : 'pointer',

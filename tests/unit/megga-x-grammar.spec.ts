@@ -466,6 +466,13 @@ const ZONES: RootSpec[] = [
   { root: 'src/components/auth', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/map', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar-identity', keep: (n) => /\.tsx?$/.test(n) },
+  // ⚠ `auth-bento` — UNE route vivante sur huit coquilles exportées, et les sept
+  // autres ont été retirées au même lot. Elle entre au cliquet plutôt que d'être
+  // exemptée parce que `/auth/forgot-password/reset` est une surface CLIENT,
+  // servie sans compte : le motif « coquille morte » ne couvre pas le chemin qui
+  // rend encore. Voir l'en-tête de `src/pages/public/AuthBentoPage.tsx` pour ce
+  // que `lint:deadcode` ne voyait pas.
+  { root: 'src/components/auth-bento', keep: (n) => /\.tsx?$/.test(n) },
   // ── Lot 3 · les bancs QUI PARTENT EN PRODUCTION ─────────────────────────────
   //
   // ⛔ LE PLAN VOULAIT EXEMPTER `src/pages/dev` EN BLOC, au motif que ce sont des
