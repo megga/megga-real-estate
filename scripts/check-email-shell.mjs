@@ -42,8 +42,6 @@ const A_MIGRER = {
     "Invitation à consentir au canal WhatsApp. CLIENT, envoyée au contact d'une agence.",
   'supabase/functions/detect-new-device/index.ts':
     'Alerte de connexion depuis un nouvel appareil. CLIENT, et de SÉCURITÉ : sa mention de pied ne doit pas être remplacée par la mention transactionnelle.',
-  'supabase/functions/magic-link-send-email/index.ts':
-    "Lien magique KYC envoyé au client final d'une agence. CLIENT, fort volume.",
   'supabase/functions/send-email/index.ts':
     "Fonction générique (estimation vendeur, notification d'agent, accès portail). Porte sa propre `wrapHTML` en gris clair ; c'est le plus gros chantier des treize.",
   'supabase/functions/send-property-email/index.ts':
