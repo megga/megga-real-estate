@@ -40,8 +40,6 @@ const SHELL = 'supabase/functions/_shared/email-shell.ts';
 const A_MIGRER = {
   'supabase/functions/send-email/index.ts':
     "Fonction générique (estimation vendeur, notification d'agent, accès portail). Porte sa propre `wrapHTML` en gris clair ; c'est le plus gros chantier des treize.",
-  'supabase/functions/weekly-report/index.ts':
-    "Rapport hebdomadaire à l'agent. INTERNE au produit, donc moins pressé.",
 };
 
 /** Marqueurs d'un document HTML complet — ce que seule la coquille a le droit d'écrire. */

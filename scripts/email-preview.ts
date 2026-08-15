@@ -35,6 +35,7 @@ import { buildPropertyEmail } from '../supabase/functions/_shared/property-email
 import { buildRelanceEmail } from '../supabase/functions/_shared/relance-email.ts'
 import { buildContactReminderEmail } from '../supabase/functions/_shared/reminder-email.ts'
 import { buildOptinInviteEmail } from '../supabase/functions/_shared/whatsapp-optin-send.ts'
+import { buildWeeklyReportEmail } from '../supabase/functions/_shared/weekly-report-email.ts'
 
 const SORTIE = '.email-preview'
 
@@ -76,6 +77,28 @@ const CAS: Cas[] = [
   { id: 'appel-rappel-en', nom: 'Appel d’accueil · rappel J-1 (EN)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildOnboardingReminderEmail({ ...appel, locale: 'en' }) },
   { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’hôte (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked') },
   { id: 'appel-hote-annule', nom: 'Appel d’accueil · annulation (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail({ ...appel, meetingUrl: null }, 'cancelled') },
+
+  // Rapport hebdomadaire — migré le 15.08.2026. INTERNE à l'équipe MEGGA : aucune mention
+  // légale, et une pilule qui mène à la console. Le cas montré porte des alertes non nulles,
+  // celui qu'on veut regarder.
+  {
+    id: 'rapport-hebdomadaire',
+    nom: 'Rapport hebdomadaire (interne MEGGA)',
+    source: '_shared/weekly-report-email.ts',
+    migre: true,
+    rendu: buildWeeklyReportEmail({
+      periode: '08.08.2026 au 15.08.2026',
+      rows: [
+        { label: 'Agences totales', value: 13, delta: 2 },
+        { label: 'Utilisateurs', value: 8, delta: 1 },
+        { label: 'Biens actifs', value: 6 },
+        { label: 'Transactions actives', value: 4, delta: 1 },
+        { label: 'KYC à risque', value: 2, alertIfPositive: true },
+        { label: 'Événements (7 j)', value: 1284 },
+        { label: 'Erreurs système (7 j)', value: 0, alertIfPositive: true },
+      ],
+    }),
+  },
 
   // Rappel automatique et consentement WhatsApp — migrés le 15.08.2026.
   {
