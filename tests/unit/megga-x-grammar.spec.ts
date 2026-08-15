@@ -820,6 +820,146 @@ function classesDe(code: string): string {
     .join(' ')
 }
 
+
+/**
+ * ⛔ LOT 7 · B4 — RAYONS ET ESPACEMENTS, et le chiffre était à REFAIRE.
+ *
+ * Le plan refusait de figer un compte : son relevé (189 + 96 + 35 = 320) et
+ * celui des agents (127 + 67 + 262 = 456) divergeaient « parce que les
+ * définitions divergent ». Ce qui manquait n'était pas la mesure, c'était la
+ * DÉFINITION. La voici, et sous elle le compte est **3 666 sur 236 fichiers** —
+ * un ordre de grandeur au-dessus des deux estimations.
+ *
+ * ── CE QUI COMPTE COMME UN LITTÉRAL ─────────────────────────────────
+ * Une propriété de rayon ou d'espacement (`borderRadius`, `padding*`, `margin*`,
+ * `gap`, `rowGap`, `columnGap`) dont la valeur porte un CHIFFRE non enveloppé
+ * dans `var(--crm-radius-*)` ou `var(--crm-space-*)` ; plus les utilitaires
+ * Tailwind équivalents (`p-4`, `gap-2`, `rounded-xl`).
+ *
+ * ⛔ CE QUI N'EN EST PAS, ET POURQUOI — chaque exclusion a sa raison, sinon
+ * c'est un chiffre qu'on ajuste jusqu'à ce qu'il plaise :
+ *  · `0` — un reset, pas un choix d'échelle : aucun barreau ne vaut zéro ;
+ *  · `999` / `9999` / `50%` — une PILULE ou un CERCLE est une géométrie (le
+ *    rayon maximal), pas un cran. `--crm-radius-pill` le dit lui-même ;
+ *  · `calc()`, `Math.*`, une opération, un ternaire, une interpolation — une
+ *    valeur calculée suit son conteneur, donc elle ne PEUT pas être un barreau ;
+ *  · `%`, `vw`, `vh`, `em`, `rem`, `fr`, `auto` — relatifs au conteneur.
+ *
+ * ── ET UN SEUL CHIFFRE CACHAIT TROIS NATURES ──────────────────────────
+ *
+ *   1 846  HORS ÉCHELLE — le vrai défaut : 13, 18, 26, 34… des valeurs que
+ *          l'échelle ne sait PAS exprimer. Elles ne bougeront pas si l'échelle
+ *          bouge, et rien ne signale qu'elles en sont sorties.
+ *     726  SUR l'échelle, non tokenisé — `padding: 16` quand 16 EST
+ *          `--crm-space-2xl`. Bonne valeur, mauvais vocabulaire.
+ *   1 094  ÉCHELLE ÉTRANGÈRE — `p-4`, `gap-2`, en classes Tailwind.
+ *
+ * ⚠ ET LA TROISIÈME N'EST PAS DE LA MÊME DETTE QUE `text-sm` AU LOT 6, ce qui
+ * se MESURE : Tailwind rend `p-1`…`p-6` = 4, 8, 12, 16, 20, 24 — exactement les
+ * six valeurs de `--crm-space-*`. Les deux échelles COÏNCIDENT. Pour le TEXTE
+ * elles divergent (le CRM a besoin de demi-pas à 11 et 13 px que Tailwind n'a
+ * pas), et c'est ce qui rendait `text-sm` risqué. Ici le risque de dérive est
+ * nul : seul le vocabulaire diffère.
+ *
+ * ⚠ TROUVÉ EN MESURANT : L'ÉCHELLE PORTE DES ALIAS. Douze noms de rayon pour
+ * SEPT valeurs (`xl` = `2xl` = `3xl` = 16 px), douze d'espacement pour SIX.
+ * « Tokenisé » ne garantit donc pas « un nom par valeur » — c'est une autre
+ * question, et elle se pose à part.
+ *
+ * ⛔ POURQUOI PAR ZONE, ET NON PAR FICHIER. 236 entrées feraient une table que
+ * personne ne relit ; le plan prescrit de « descendre par zones », et une zone
+ * se paie comme une unité. DEUX compteurs par zone : `hors` — le défaut, qui ne
+ * doit jamais monter — et `total`, qui empêche d'échanger une dette contre une
+ * autre (convertir dix `p-4` en dix `padding: 15` ferait baisser le total si
+ * l'on ne comptait que lui, et monter le vrai défaut).
+ */
+const B4_ASSUME = new Map<string, { hors: number; total: number }>([
+  ['src/components/admin', { hors: 53, total: 86 }],
+  ['src/components/ai-copilot/panel', { hors: 97, total: 121 }],
+  ['src/components/auth', { hors: 0, total: 13 }],
+  ['src/components/auth-bento', { hors: 16, total: 28 }],
+  ['src/components/crm-mobile', { hors: 228, total: 319 }],
+  ['src/components/crm-sugar', { hors: 3, total: 3 }],
+  ['src/components/crm-sugar-identity', { hors: 1, total: 69 }],
+  ['src/components/crm-sugar-v3', { hors: 2, total: 3 }],
+  ['src/components/crm-sugar-v3/audit', { hors: 3, total: 4 }],
+  ['src/components/crm-sugar-v3/kyc', { hors: 10, total: 10 }],
+  ['src/components/crm-sugar-v3/kyc-pager', { hors: 22, total: 25 }],
+  ['src/components/crm-sugar-v3/kyc-wizard', { hors: 36, total: 46 }],
+  ['src/components/crm-sugar-v3/offer-modal', { hors: 15, total: 19 }],
+  ['src/components/crm-sugar-v3/visite-detail', { hors: 23, total: 30 }],
+  ['src/components/crm-sugar-v3/vitrine', { hors: 4, total: 4 }],
+  ['src/components/crm-sugar-wizard', { hors: 64, total: 100 }],
+  ['src/components/crm-sugar/analytics', { hors: 13, total: 29 }],
+  ['src/components/crm-sugar/biens', { hors: 43, total: 51 }],
+  ['src/components/crm-sugar/calendar', { hors: 18, total: 28 }],
+  ['src/components/crm-sugar/contacts-pager', { hors: 68, total: 92 }],
+  ['src/components/crm-sugar/journey', { hors: 3, total: 5 }],
+  ['src/components/crm-sugar/notifications', { hors: 4, total: 4 }],
+  ['src/components/crm-sugar/pipeline', { hors: 32, total: 38 }],
+  ['src/components/crm-sugar/profile', { hors: 2, total: 2 }],
+  ['src/components/crm-sugar/search', { hors: 8, total: 8 }],
+  ['src/components/crm-sugar/settings', { hors: 74, total: 95 }],
+  ['src/components/crm-sugar/today', { hors: 43, total: 54 }],
+  ['src/components/kyc-magic-link', { hors: 80, total: 110 }],
+  ['src/components/layout', { hors: 9, total: 107 }],
+  ['src/components/listings', { hors: 39, total: 115 }],
+  ['src/components/map', { hors: 0, total: 4 }],
+  ['src/components/matching-atelier', { hors: 37, total: 50 }],
+  ['src/components/matching-recherche', { hors: 123, total: 185 }],
+  ['src/components/onboarding-call', { hors: 0, total: 27 }],
+  ['src/components/propertyx', { hors: 2, total: 3 }],
+  ['src/components/skeletons', { hors: 8, total: 12 }],
+  ['src/components/ui', { hors: 0, total: 29 }],
+  ['src/pages/admin', { hors: 225, total: 464 }],
+  ['src/pages/agent', { hors: 364, total: 981 }],
+  ['src/pages/dev', { hors: 6, total: 34 }],
+  ['src/pages/public', { hors: 68, total: 259 }],
+])
+
+/** Les propriétés qui portent un rayon ou un espacement. */
+const B4_PROPS =
+  'borderRadius|border(?:Top|Bottom)(?:Left|Right)Radius|padding(?:Top|Right|Bottom|Left|Inline|Block)?|margin(?:Top|Right|Bottom|Left|Inline|Block)?|gap|rowGap|columnGap'
+/** Les utilitaires Tailwind équivalents. */
+const B4_CLASSE = /\b(?:rounded(?:-[trbl]{1,2})?|p[xytrbl]?|m[xytrbl]?|gap(?:-[xy])?|space-[xy])-[\w.]+\b/g
+/** Ce que l'échelle sait exprimer — la liste vient de `globals.css`, pas d'une intuition. */
+const B4_RAYONS = new Set([2, 4, 8, 12, 16, 20, 24])
+const B4_ESPACES = new Set([4, 8, 12, 16, 20, 24])
+
+/** Les quatre exclusions écrites plus haut, chacune sur sa forme. */
+function b4EstLitteral(valeur: string): boolean {
+  if (/^\s*(?:0|'0'|"0"|0px|'0px'|"0px")\s*$/.test(valeur)) return false
+  if (/\b(?:999+|50%)\b/.test(valeur)) return false
+  if (/calc\(|Math\.|[*+/]|\?|\$\{/.test(valeur)) return false
+  if (/%|vw|vh|em\b|rem\b|fr\b|auto/.test(valeur)) return false
+  if (/var\(--crm-(?:radius|space)/.test(valeur)) return false
+  return /\d/.test(valeur)
+}
+
+/** `{hors, total}` d'un fichier — `hors` = ce que l'échelle ne sait pas dire. */
+function b4Compte(code: string, classes: string): { hors: number; total: number } {
+  let hors = 0
+  let surEchelle = 0
+  for (const m of code.matchAll(new RegExp(`\\b(${B4_PROPS}):\\s*([^,}\\n]+)`, 'g'))) {
+    if (!b4EstLitteral(m[2]!)) continue
+    const echelle = /[Rr]adius/.test(m[1]!) ? B4_RAYONS : B4_ESPACES
+    const nombres = [...m[2]!.matchAll(/(\d+(?:\.\d+)?)/g)].map((x) => Number(x[1]))
+    if (nombres.length && nombres.every((x) => echelle.has(x))) surEchelle++
+    else hors++
+  }
+  const tw = (classes.match(B4_CLASSE) ?? []).length
+  return { hors, total: hors + surEchelle + tw }
+}
+
+/** La zone la PLUS SPÉCIFIQUE qui contient ce chemin — sinon un fichier de
+ *  `crm-sugar/today` tomberait dans `crm-sugar` et fausserait les deux comptes. */
+function b4Zone(chemin: string, racines: string[]): string {
+  return (
+    racines.filter((r) => chemin.startsWith(r + '/')).sort((a, b) => b.length - a.length)[0] ??
+    chemin.split('/').slice(0, -1).join('/')
+  )
+}
+
 /** Les espèces mesurées dans une feuille, et le motif qui les reconnaît. */
 const ESPECES_CSS: { nom: 'graisse' | 'capitale' | 'interlettrage' | 'taille'; voit: (ligne: string) => boolean }[] = [
   { nom: 'graisse', voit: (l) => /font-weight:\s*(700|800|900|bold)\b/.test(l) },
@@ -1640,6 +1780,61 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       `couleur ou échelle en classes au-delà de l'inventaire — passer par un jeton ` +
         `(MLK/RC côté client, var(--crm-text-*) pour l'échelle) :\n  ${trop.join('\n  ')}`,
     ).toEqual([])
+  })
+
+  /**
+   * Le plafond de B4, par zone et sur DEUX compteurs. Le second n'est pas une
+   * redondance : sans lui, convertir dix `p-4` en dix `padding: 15` ferait
+   * BAISSER le total pendant que le vrai défaut monte.
+   */
+  it('aucune zone ne dépasse son inventaire de rayons et d’espacements', () => {
+    const racines = ZONES.map((z) => z.root)
+    const vu = new Map<string, { hors: number; total: number }>()
+    for (const { chemin, code } of sources) {
+      const classes = classesDe(code)
+      const c = b4Compte(code, classes)
+      if (!c.total) continue
+      const z = b4Zone(chemin, racines)
+      const e = vu.get(z) ?? { hors: 0, total: 0 }
+      vu.set(z, { hors: e.hors + c.hors, total: e.total + c.total })
+    }
+    const trop: string[] = []
+    for (const [zone, reel] of vu) {
+      const permis = B4_ASSUME.get(zone)
+      if (!permis) { trop.push(`${zone} : ${reel.total} littéraux, aucune entrée d'inventaire`); continue }
+      if (reel.hors > permis.hors) trop.push(`${zone} — hors échelle : ${reel.hors} > ${permis.hors} permis`)
+      if (reel.total > permis.total) trop.push(`${zone} — total : ${reel.total} > ${permis.total} permis`)
+    }
+    expect(
+      trop,
+      `rayons/espacements au-delà de l'inventaire — passer par var(--crm-radius-*) ` +
+        `ou var(--crm-space-*) :\n  ${trop.join('\n  ')}`,
+    ).toEqual([])
+  })
+
+  /**
+   * ⛔ ET IL NE DOIT QUE RÉTRÉCIR. Un inventaire de 3 666 entrées dont personne
+   * ne descend le compte quand une zone est nettoyée n'est plus un cliquet :
+   * c'est une photographie qui vieillit, et le lot suivant réintroduirait
+   * silencieusement ce que le précédent a retiré.
+   */
+  it('l’inventaire des rayons et espacements ne garde aucun crédit', () => {
+    const racines = ZONES.map((z) => z.root)
+    const vu = new Map<string, { hors: number; total: number }>()
+    for (const { chemin, code } of sources) {
+      const c = b4Compte(code, classesDe(code))
+      const z = b4Zone(chemin, racines)
+      const e = vu.get(z) ?? { hors: 0, total: 0 }
+      vu.set(z, { hors: e.hors + c.hors, total: e.total + c.total })
+    }
+    const perimees: string[] = []
+    for (const [zone, permis] of B4_ASSUME) {
+      const reel = vu.get(zone)
+      if (!reel) { perimees.push(`${zone} : zone absente du balayage — l'entrée ne garde plus rien`); continue }
+      if (reel.hors < permis.hors) perimees.push(`${zone} — hors échelle : ${reel.hors} réels < ${permis.hors} inscrits — descendre le compte`)
+      if (reel.total < permis.total) perimees.push(`${zone} — total : ${reel.total} réels < ${permis.total} inscrits — descendre le compte`)
+    }
+    expect(perimees, `inventaire B4 à resserrer :\n  ${perimees.join('\n  ')}`).toEqual([])
   })
 
   /**
