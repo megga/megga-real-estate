@@ -61,14 +61,17 @@ const esc = escapeHtml
  *   · les FAITS passent en tableau (quand, comment, avec) — c'est ce qu'on relit la veille ;
  *   · l'action devient un BOUTON, plus un lien noyé dans une phrase.
  *
- * ⚠ LA PIÈCE D'IDENTITÉ EST UN RAPPEL, PAS UNE CONDITION. Le client l'a DÉJÀ transmise
- * par le lien magique (`kyc_magic_link_uploads`, extraction avant réservation) : son
- * identité est au dossier quand ce message part. Une première version de cette refonte
- * l'annonçait en bloc encadré avec « la séance ne peut pas se tenir sans elle » — une
- * conséquence qu'aucun code ni aucun processus ne garantit, écrite sur un registre
- * inquiétant à quelqu'un qui a déjà fait ce qu'on lui demandait. La phrase reste au ras
- * du texte, au conditionnel, ou disparaît : elle ne doit jamais reprendre du poids sans
- * qu'une règle métier écrite la justifie.
+ * ⛔ AUCUNE MENTION DE LA PIÈCE D'IDENTITÉ — décision de Julien, 15.08.2026. Le client la
+ * DÉPOSE par le lien magique (`kyc_magic_link_uploads`, extraction avant réservation) et
+ * **la vérification est faite en amont** : quand ce message part, il n'y a plus rien à
+ * apporter. La demander reviendrait à redemander ce qui est déjà fourni, ce qui inquiète
+ * sans rien obtenir.
+ *
+ * L'ancienne version portait « Merci de vous munir de la pièce d'identité que vous avez
+ * transmise » ; une refonte de ce même jour avait aggravé la chose en « la séance ne peut
+ * pas se tenir sans elle », conséquence qu'aucun processus ne garantissait. Les deux sont
+ * parties. Un test interdit toute réapparition : ne pas la réintroduire sans que le
+ * processus de vérification ait changé, et par écrit.
  *
  * ⚠ AUCUNE PILULE D'EN-TÊTE (`headerCta: null`), contrairement aux e-mails d'agence : le
  * destinataire est le CLIENT d'une agence, il n'a pas de compte MEGGA. Lui proposer
@@ -87,7 +90,11 @@ export function buildBookingEmail(p: BookingEmailParams): { subject: string; htm
     confirmed: {
       objet: `${p.agencyName ?? 'MEGGA'} · rendez-vous de vérification confirmé`,
       titre: 'Votre rendez-vous de vérification est confirmé',
-      apercu: 'La date, le lieu et ce qu’il faut apporter sont dans ce message.',
+      // ⚠ Ne promet QUE ce que le message porte vraiment, dans les deux modes et sans
+      // supposer un lien de gestion : la version précédente annonçait « ce qu'il faut
+      // apporter » et a survécu au retrait de cette consigne, promettant un contenu
+      // disparu. C'est le test qui l'a vu, pas la relecture.
+      apercu: 'Le détail de votre rendez-vous : quand, comment et avec qui.',
     },
     rescheduled: {
       objet: `${p.agencyName ?? 'MEGGA'} · rendez-vous de vérification déplacé`,
@@ -142,7 +149,6 @@ export function buildBookingEmail(p: BookingEmailParams): { subject: string; htm
        ${row(p.mode === 'video' ? 'Comment' : 'Où', modeLigne)}
        ${row('Avec', `${who} · ${agency}`)}
      </table>
-     ${p_('Gardez votre pièce d’identité à portée de main : votre conseiller peut avoir à la voir.', 28)}
      ${p.mode === 'video' && p.videoLink
         ? `<div style="margin:0 0 32px;">${button(p.videoLink, 'Rejoindre la visioconférence')}</div>`
         : ''}

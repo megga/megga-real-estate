@@ -37,14 +37,17 @@ describe('buildBookingEmail — ce que le client doit pouvoir faire', () => {
     expect(buildBookingEmail(base).html).toContain('10:00')
   })
 
-  it('⛔ la pièce d’identité est un RAPPEL, jamais une condition', () => {
-    // Le client l'a déjà transmise par le lien magique avant de réserver : son identité
-    // est au dossier quand ce message part. Annoncer que « la séance ne peut pas se tenir
-    // sans elle » serait une conséquence qu'aucun processus ne garantit, adressée à
-    // quelqu'un qui a déjà fait ce qu'on lui demandait.
-    const html = buildBookingEmail(base).html
-    expect(html).toContain('pièce d’identité à portée de main')
-    expect(html).not.toMatch(/ne peut pas se tenir|obligatoire|sans quoi|faute de quoi/i)
+  it('⛔ ne demande JAMAIS la pièce d’identité : la vérification est faite en amont', () => {
+    // Décision produit du 15.08.2026. Le client dépose sa pièce par le lien magique avant
+    // même de pouvoir réserver, et la vérification est déjà faite quand ce message part :
+    // la redemander inquiéterait sans rien obtenir. Deux formulations sont passées par là
+    // (« Merci de vous munir de… », puis « la séance ne peut pas se tenir sans elle »),
+    // d'où ce garde-fou plutôt qu'une confiance dans la relecture.
+    for (const kind of ['confirmed', 'rescheduled', 'cancelled'] as const) {
+      const html = buildBookingEmail({ ...base, kind }).html
+      expect(html).not.toContain('pièce d’identité')
+      expect(html).not.toMatch(/munir|apporter|à portée de main/i)
+    }
   })
 
   it('visioconférence avec lien -> bouton ; sans lien -> aucun bouton mort, mais un mot', () => {
@@ -65,7 +68,6 @@ describe('buildBookingEmail — ce que le client doit pouvoir faire', () => {
   it('une ANNULATION ne porte ni consigne, ni bouton, ni lien de report', () => {
     // Elle dit seulement quoi faire ensuite : demander un nouveau créneau à son conseiller.
     const html = buildBookingEmail({ ...base, kind: 'cancelled' }).html
-    expect(html).not.toContain('pièce d’identité à portée')
     expect(html).not.toContain('Rejoindre la visioconférence')
     expect(html).not.toContain('Un empêchement ?')
     expect(html).toContain('contactez Gregory Lyonnet chez Régie du Rhône')
