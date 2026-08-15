@@ -24,6 +24,7 @@ interface AlertThresholds {
   calendar_sync_stale_max: number
   stripe_webhook_stale_hours: number
   outbox_stuck_hours: number
+  email_failure_window_hours: number
 }
 
 const DEFAULT_THRESHOLDS: AlertThresholds = {
@@ -47,6 +48,10 @@ const DEFAULT_THRESHOLDS: AlertThresholds = {
   // n'existant. Le seuil n'est pas là pour tolérer du retard mais pour que
   // l'absence de consommateur cesse d'être silencieuse.
   outbox_stuck_hours: 6,
+  // Fenêtre des échecs de remise. 24 h et non plus : au-delà, l'alerte redirait chaque
+  // jour un rebond déjà traité, et le cooldown par destinataire suffit à ne pas répéter
+  // un incident en cours.
+  email_failure_window_hours: 24,
 }
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000
@@ -85,6 +90,64 @@ export interface Alert {
   key: string
   subject: string
   body: string
+}
+
+/** Une ligne d'`email_delivery_events` — un e-mail qui n'est PAS arrivé. */
+export interface EmailFailureRow {
+  event_type: string
+  recipient: string | null
+  subject: string | null
+  bounce_type: string | null
+  occurred_at: string
+}
+
+/**
+ * Les e-mails qui ne sont pas arrivés, sur la fenêtre écoulée.
+ *
+ * POURQUOI CETTE RÈGLE EST LA PLUS IMPORTANTE DU MODULE. Le 15.08.2026, on a découvert
+ * que `hello@juarts.com` était sur la liste de suppression Resend depuis dix jours : tout
+ * ce fichier écrivait dans le vide, et son propre verrou de 24 h se posait quand même,
+ * parce que Resend rend 200 en ACCEPTANT une requête dont il ne remettra jamais le
+ * message. Un canal d'alerte dont la panne est silencieuse est pire que pas d'alerte.
+ *
+ * Cette règle est donc l'alerte SUR l'alerte, en plus de couvrir les e-mails client.
+ *
+ * ⚠ Elle n'est pas à l'abri du même piège : si l'adresse de destination est elle-même
+ * supprimée, ce message ne partira pas non plus. C'est pourquoi elle nomme les
+ * destinataires touchés — le jour où l'un d'eux est une adresse de l'équipe, la ligne se
+ * lit dans la console (`/dashboard/admin/monitoring`) même si l'e-mail n'arrive pas.
+ *
+ * Groupée PAR DESTINATAIRE et non une alerte par événement : dix rebonds sur la même
+ * boîte sont un seul fait à traiter, et le cooldown par clé les tiendrait de toute façon.
+ */
+export function buildEmailFailureAlerts(lignes: EmailFailureRow[], fenetreHeures: number): Alert[] {
+  const parDestinataire = new Map<string, EmailFailureRow[]>()
+  for (const l of lignes) {
+    const cle = l.recipient ?? 'destinataire inconnu'
+    parDestinataire.set(cle, [...(parDestinataire.get(cle) ?? []), l])
+  }
+
+  return [...parDestinataire.entries()].map(([destinataire, evts]) => {
+    // Un rebond PERMANENT condamne l'adresse (Resend la met en liste de suppression et
+    // tout envoi ultérieur est refusé au départ) ; un transitoire se rejoue seul. La
+    // distinction décide s'il faut agir, elle ouvre donc le message.
+    const permanent = evts.some((e) => (e.bounce_type ?? '').toLowerCase() === 'permanent')
+    const plainte = evts.some((e) => e.event_type === 'email.complained')
+    const sujets = [...new Set(evts.map((e) => e.subject).filter(Boolean))].slice(0, 3)
+
+    return {
+      key: `email:failure:${destinataire}`,
+      subject: `${plainte ? 'Plainte' : permanent ? 'Adresse morte' : 'Remise en échec'} · ${destinataire}`,
+      body: `${evts.length} e-mail(s) non remis à « ${destinataire} » sur ${fenetreHeures}h`
+        + `${sujets.length ? ` (${sujets.join(' · ')})` : ''}.`
+        + (permanent
+          ? ` Rebond PERMANENT : Resend a mis l’adresse en liste de suppression, et tout envoi ultérieur sera refusé au départ tant qu’elle y reste, sans erreur visible côté code.`
+          : plainte
+            ? ` Marqué comme indésirable par le destinataire : à ne plus solliciter.`
+            : ` Rebond transitoire : peut se résoudre seul, à surveiller s’il se répète.`)
+        + ` Voir /dashboard/admin/monitoring`,
+    }
+  })
 }
 
 /** Une ligne de `get_admin_agency_review_queue` — la file telle que la console la voit. */
@@ -418,6 +481,22 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
     alerts.push(...buildKybReviewAlerts((fileRevue ?? []) as KybReviewQueueRow[], now))
   } catch (e) {
     console.error('[admin-alerts] kyb review queue read failed:', (e as Error)?.message)
+  }
+
+  // 13. E-mails non remis (15.08.2026) — cf. buildEmailFailureAlerts pour le pourquoi.
+  // Fenêtre glissante et lecture BORNÉE (§7) : la table peut grossir, on n'y compte
+  // jamais. Alimentée par l'edge `resend-webhook`.
+  try {
+    const depuis = new Date(now.getTime() - thresholds.email_failure_window_hours * 3_600_000).toISOString()
+    const { data: echecs } = await admin
+      .from('email_delivery_events')
+      .select('event_type, recipient, subject, bounce_type, occurred_at')
+      .gte('occurred_at', depuis)
+      .order('occurred_at', { ascending: false })
+      .limit(200)
+    alerts.push(...buildEmailFailureAlerts((echecs ?? []) as EmailFailureRow[], thresholds.email_failure_window_hours))
+  } catch (e) {
+    console.error('[admin-alerts] email failures read failed:', (e as Error)?.message)
   }
 
   if (alerts.length === 0) return
