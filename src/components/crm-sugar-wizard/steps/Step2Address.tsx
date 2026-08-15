@@ -58,19 +58,51 @@ export function Step2Address({ data, set }: StepProps) {
     setLoading(true)
     try {
       if (!MAPBOX_TOKEN) throw new Error('No Mapbox token')
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json`
-        + `?access_token=${MAPBOX_TOKEN}&country=ch&limit=5&language=fr&types=address`
+      // ⛔ GEOCODING v6, ET NON v5. Mapbox a classé `geocoding/v5/mapbox.places` LEGACY :
+      // elle n'est plus servie qu'aux comptes qui l'utilisaient déjà. Mesuré le
+      // 16.08.2026 avec un jeton neuf, valide et sans restriction : HTTP 403,
+      // `{"message":"Forbidden"}` — l'autocomplétion retombait donc SILENCIEUSEMENT sur
+      // `mockSuggestions`, c'est-à-dire sur des adresses inventées, sans que rien à
+      // l'écran ne le dise. Le `catch` qui rend ce repli si commode est aussi ce qui
+      // rendait la panne invisible.
+      const url = `https://api.mapbox.com/search/geocode/v6/forward`
+        + `?q=${encodeURIComponent(q)}&access_token=${MAPBOX_TOKEN}&country=ch&limit=5&language=fr&types=address`
       const res = await fetch(url)
+      if (!res.ok) throw new Error(`geocode ${res.status}`)
       const json = await res.json()
-      const feats: MapboxFeature[] = (json.features || []).map((f: { id: string; place_name: string; text: string; center: [number, number]; context?: { id?: string; text?: string }[]; properties?: { address?: string }; address?: string }) => ({
-        id: f.id,
-        place_name: f.place_name,
-        text: f.text,
-        center: f.center,
-        context: f.context || [],
-        properties: f.properties || {},
-        address: f.address,
-      }))
+      // v6 rend un contexte NOMMÉ là où v5 rendait un tableau. On le ramène ici à la
+      // forme locale, pour que `chooseSuggestion` et le repli de démonstration
+      // continuent de parler la même langue.
+      const feats: MapboxFeature[] = (json.features || []).map((f: {
+        properties?: {
+          mapbox_id?: string
+          full_address?: string
+          name?: string
+          context?: {
+            street?: { name?: string }
+            address?: { address_number?: string }
+            postcode?: { name?: string }
+            place?: { name?: string }
+            region?: { name?: string }
+          }
+        }
+        geometry?: { coordinates?: [number, number] }
+      }) => {
+        const ctx = f.properties?.context ?? {}
+        return {
+          id: f.properties?.mapbox_id ?? '',
+          place_name: f.properties?.full_address ?? f.properties?.name ?? '',
+          text: ctx.street?.name ?? f.properties?.name ?? '',
+          center: (f.geometry?.coordinates ?? [0, 0]) as [number, number],
+          context: [
+            { id: 'postcode', text: ctx.postcode?.name },
+            { id: 'place', text: ctx.place?.name },
+            { id: 'region', text: ctx.region?.name },
+          ].filter((c) => !!c.text),
+          properties: { address: ctx.address?.address_number },
+          address: ctx.address?.address_number,
+        }
+      })
       setSuggestions(feats)
       setShowSuggestions(!autoConfirm)
       if (autoConfirm && feats[0]) chooseSuggestion(feats[0])

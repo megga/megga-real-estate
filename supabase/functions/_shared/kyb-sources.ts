@@ -1273,23 +1273,60 @@ export const registryNumberFormatSource: KybSource = {
 // manuelle : voir les reserves du rapport de tache -- ce connecteur n'a pas pu etre
 // exerce contre le vrai service (aucun jeton disponible dans cet environnement).
 
-interface MapboxContextEntry {
-  id?: string
-  short_code?: string
+// ⛔ GEOCODING v6, ET NON v5. Le connecteur appelait `geocoding/v5/mapbox.places`, que
+// Mapbox a classee LEGACY et ne sert plus qu'aux comptes qui l'utilisaient deja. Mesure
+// le 16.08.2026 avec un jeton neuf, valide et sans restriction : HTTP 403,
+// `{"message":"Forbidden"}`. Le contraste tranche le diagnostic — un jeton faux rend
+// « Not Authorized - Invalid Token », un jeton absent « No Token » ; « Forbidden » sec
+// vise l'API, pas le jeton. Aucun compte cree aujourd'hui ne peut donc geocoder en v5.
+//
+// LA FORME DE LA REPONSE DIFFERE, ce n'est pas qu'un changement d'URL :
+//   v5 : features[].context[] est un TABLEAU, l'entree pays a `id: "country.x"` et
+//        `short_code: "ch"` (minuscule) ; la region porte `short_code: "CH-GE"`.
+//   v6 : features[].properties.context est un OBJET nomme, le pays a
+//        `country_code: "CH"` (majuscule) et la region `region_code: "GE"` avec
+//        `region_code_full: "CH-GE"`.
+// Lire l'ancienne forme sur une reponse v6 ne leve pas : cela rend `undefined`, donc un
+// `partial` silencieux sur CHAQUE dossier. C'est pourquoi les deux codes sont lus par
+// des fonctions distinctes et testees.
+
+interface MapboxV6Context {
+  country?: { country_code?: string; name?: string }
+  region?: { region_code?: string; region_code_full?: string; name?: string }
 }
 
 interface MapboxFeature {
-  place_name?: string
-  context?: MapboxContextEntry[]
+  properties?: {
+    full_address?: string
+    name?: string
+    context?: MapboxV6Context
+  }
 }
 
 interface MapboxGeocodeResponse {
   features?: MapboxFeature[]
 }
 
-function findContextShortCode(context: MapboxContextEntry[] | undefined, idPrefix: string): string | null {
-  const entry = context?.find((c) => typeof c.id === 'string' && c.id.startsWith(idPrefix))
-  return typeof entry?.short_code === 'string' ? entry.short_code.toUpperCase() : null
+/** Code pays ISO 3166-1 alpha-2, en majuscules. `null` si le contexte ne le porte pas. */
+export function countryCodeOf(feature: MapboxFeature | undefined): string | null {
+  const code = feature?.properties?.context?.country?.country_code
+  return typeof code === 'string' && code.trim() ? code.trim().toUpperCase() : null
+}
+
+/**
+ * Code de canton, en majuscules.
+ *
+ * v6 donne les deux formes : `region_code` deja nu (« GE ») et `region_code_full`
+ * prefixe (« CH-GE »). On prend la premiere quand elle est la, l'autre en repli —
+ * Mapbox ne garantit pas les deux sur toutes les regions du monde.
+ */
+export function regionCodeOf(feature: MapboxFeature | undefined): string | null {
+  const region = feature?.properties?.context?.region
+  const nu = region?.region_code
+  if (typeof nu === 'string' && nu.trim()) return nu.trim().toUpperCase()
+  return extractCantonSuffix(
+    typeof region?.region_code_full === 'string' ? region.region_code_full.toUpperCase() : null,
+  )
 }
 
 /** "CH-GE" -> "GE". null si la forme ne comporte pas exactement un tiret (canton non
@@ -1309,18 +1346,18 @@ function extractCantonSuffix(regionShortCode: string | null): string | null {
  *  simplement absent de la reponse -- "pays OU canton declare" (brief tache 3) : le
  *  pays a lui seul confirme deja suffisamment en l'absence de contradiction sur le
  *  canton. */
-function classifyGeocode(
+export function classifyGeocode(
   declaredCountry: string,
   declaredCanton: string | null,
   feature: MapboxFeature | undefined
 ): 'match' | 'partial' | 'mismatch' {
   if (!feature) return 'partial'
-  const geocodedCountry = findContextShortCode(feature.context, 'country')
+  const geocodedCountry = countryCodeOf(feature)
   if (!geocodedCountry) return 'partial'
   if (geocodedCountry !== declaredCountry.toUpperCase()) return 'mismatch'
 
   if (declaredCountry.toUpperCase() === 'CH' && declaredCanton) {
-    const geocodedCanton = extractCantonSuffix(findContextShortCode(feature.context, 'region'))
+    const geocodedCanton = regionCodeOf(feature)
     if (geocodedCanton && geocodedCanton !== declaredCanton.toUpperCase()) return 'mismatch'
   }
   return 'match'
@@ -1344,9 +1381,13 @@ export function createAddressGeocodeSource(mapboxToken: string): KybSource {
       if (!declaredCountry) throw new Error('mapbox: no declared country to compare against')
 
       const query = queryParts.join(', ')
+      // v6 : la requete passe en parametre `q`, plus dans le chemin (cf. l'en-tete de
+      // la section). `types=address` n'est PAS pose : une adresse d'agence peut ne
+      // resoudre qu'a la rue ou a la localite, et c'est le PAYS qu'on compare — filtrer
+      // sur `address` transformerait ces cas en zero resultat, donc en `partial`.
       const url =
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +
-        `?access_token=${mapboxToken}&limit=1`
+        `https://api.mapbox.com/search/geocode/v6/forward` +
+        `?q=${encodeURIComponent(query)}&limit=1&access_token=${mapboxToken}`
 
       let res: Response
       try {
@@ -1409,7 +1450,7 @@ export function createAddressGeocodeSource(mapboxToken: string): KybSource {
           query,
           declared_country: declaredCountry,
           declared_canton: agency.canton,
-          place_name: feature?.place_name ?? null,
+          place_name: feature?.properties?.full_address ?? feature?.properties?.name ?? null,
           mapbox: body,
         },
       }
