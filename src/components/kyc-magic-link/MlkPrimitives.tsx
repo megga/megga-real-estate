@@ -11,6 +11,7 @@ import type { CSSProperties, ReactNode } from 'react'
 // Jetons déplacés dans mlkTokens.ts : ce fichier n'exporte que des composants
 // (contrainte Fast Refresh). Voir l'en-tête de mlkTokens.ts.
 import { MLK } from './mlkTokens'
+import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 
 // ─── Icônes line-stroke (subset utilisé par les écrans clients) ───────────
 
@@ -238,8 +239,8 @@ export function MlkBlackPill({
         boxShadow: disabled
           ? 'none'
           : hover
-            ? '0 14px 32px rgba(11,12,14,0.28)'
-            : '0 8px 20px rgba(11,12,14,0.20)',
+            ? `0 14px 32px ${sgVoileEncre(false, 0.28)}`
+            : `0 8px 20px ${sgVoileEncre(false, 0.20)}`,
         transform: hover && !disabled ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'all .18s ease',
       }}
@@ -283,7 +284,7 @@ export function MlkWordmark({ size = 18 }: { size?: number }) {
           display: 'none',
           fontFamily: 'Manrope, sans-serif',
           fontSize: size,
-          fontWeight: 800,
+          fontWeight: 600,
           letterSpacing: -1.5,
           color: MLK.ink,
         }}
@@ -316,7 +317,7 @@ export function MlkAgentAvatar({
         display: 'grid',
         placeItems: 'center',
         fontSize: Math.max(13, size * 0.34),
-        fontWeight: 700,
+        fontWeight: 600,
         flexShrink: 0,
         boxShadow: `0 0 0 4px ${color}26`,
       }}
@@ -361,8 +362,8 @@ export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
           </div>
           <div
             style={{
-              fontSize: 13,
-              fontWeight: 700,
+              fontSize: 'var(--crm-text-md)',
+              fontWeight: 600,
               color: MLK.ink,
               letterSpacing: -0.1,
               marginTop: 2,
@@ -372,7 +373,7 @@ export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
           </div>
           <div
             style={{
-              fontSize: 11.5,
+              fontSize: 'var(--crm-text-xs)',
               color: MLK.muted,
               fontWeight: 500,
               lineHeight: 1.5,
@@ -398,7 +399,7 @@ export function MlkFooter() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-end',
-        fontSize: 11,
+        fontSize: 'var(--crm-text-xs)',
         color: MLK.muted,
         fontWeight: 500,
       }}

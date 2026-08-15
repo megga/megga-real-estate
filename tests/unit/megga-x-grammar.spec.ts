@@ -269,6 +269,27 @@ const ZONES: RootSpec[] = [
     keep: (n) => ['icons.tsx', 'dealStepper.ts', 'dealTokens.ts', 'primitives.tsx', 'tokens.ts'].includes(n),
     keepPath: (p) => p.split('/').length === 4,
   },
+  // ⛔ LA FACE PUBLIQUE — la première zone de ce cliquet qui n'est PAS vue par
+  // un agent (lot 1, 15 août 2026). `kyc-magic-link/` porte le parcours client
+  // KYC (`/kyc/:token`) ET la gestion de rendez-vous (`/rendez-vous/:token`) :
+  // 1 993 lignes, dont 1 008 pour `MlkScreens.tsx` seul.
+  //
+  // ⚠ ELLE N'ÉTAIT SOUS AUCUNE DES TRENTE RACINES, et c'est ce qui la
+  // distingue des zones entrées jusqu'ici. Sur Analytics et le KYC agent, le
+  // cliquet balayait déjà le dossier et ne mesurait « que » la composition ;
+  // ici il ne le lisait pas du tout. Personne ne mesurait cette face — ni sa
+  // composition, ni sa couleur (voir `mlk-contraste.spec.ts`, lot 0).
+  //
+  // ⚠ LE PIÈGE DE PÉRIMÈTRE ÉTAIT LE MÊME QU'AU CHANTIER KYC. `KycPublicPage`
+  // rend ZÉRO marqueur — mesuré, elle ne porte ni `style={{` ni `className` —
+  // et monte une zone qui en porte sept clauses. Grouper par DOSSIER, ou par
+  // page, fait rater le périmètre : c'est le ROUTAGE qui dit ce qui est rendu.
+  //
+  // ⚠ SURFACE CLIENT : le lot ne touche qu'à la COMPOSITION. Aucun libellé,
+  // aucune date de rendez-vous, aucune référence de dossier n'a changé —
+  // seulement la casse, la graisse, l'interlettrage, l'échelle et le noir de
+  // Sugar. Les trois PAGES publiques entrent plus tard, à leurs propres lots.
+  { root: 'src/components/kyc-magic-link', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar-v3/offer-modal', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
   // ⛔ « Matching · Recherche » entre SANS `MrhMapView.tsx`. La carte est GELÉE
@@ -344,6 +365,10 @@ const TEMOINS_DE_ZONE = [
   'src/components/crm-sugar/profile/SugarProfileDropdown.tsx',
   'src/components/ai-copilot/panel/CopilotPanel.tsx',
   'src/components/layout/StaleBundleDetector.tsx',
+  // ⚠ La zone la plus lourde du lot 1 : si le filtre de la face publique se
+  // resserrait par accident, la racine rendrait encore ses cinq autres fichiers
+  // et `emptyRoots` la croirait saine.
+  'src/components/kyc-magic-link/MlkScreens.tsx',
 ]
 
 /**
@@ -740,7 +765,21 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
    * l'interdire.
    */
   it('aucun noir Sugar ne subsiste dans les composants', () => {
-    const NOIRS = /#0B0C0E\b|#0A0A0F\b|#0A0B0D\b|rgba?\(\s*11\s*,\s*12\s*,\s*14\b/gi
+    // ⛔ PAS DE `g` ICI, ET C'EST UNE CORRECTION DE VACUITÉ (15 août 2026).
+    //
+    // Le motif portait `/gi`, et un littéral de regex est UNIQUE : `.test()` sur
+    // un motif global avance `lastIndex` et reprend la ligne SUIVANTE en plein
+    // milieu. Une ligne fautive qui suit immédiatement une autre ligne fautive
+    // sortait donc du compte. Mesuré sur les 359 fichiers du cliquet : la clause
+    // en voyait SIX, il y en avait SEPT — le septième étant
+    // `MlkPrimitives.tsx:242`, l'ombre de survol écrite juste sous celle qui,
+    // elle, était bien vue.
+    //
+    // ⚠ Le mode d'échec est celui de toute la famille : silencieux, et du bon
+    // côté du seuil. Il ne peut pas se voir en relecture, parce que le motif est
+    // JUSTE — c'est son état qui ne l'est pas. `GRIS_BLEU`, plus haut, ne porte
+    // pas `g` et n'a jamais eu le défaut.
+    const NOIRS = /#0B0C0E\b|#0A0A0F\b|#0A0B0D\b|rgba?\(\s*11\s*,\s*12\s*,\s*14\b/i
     const fautifs = sites((l) => NOIRS.test(l))
     expect(fautifs, `noir Sugar vivant :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
@@ -825,6 +864,8 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar/contacts-pager',
       'src/components/crm-sugar/pipeline',
       'src/components/crm-sugar-v3/offer-modal',
+      // La face publique — lot 1 du chantier « la face publique en MEGGA X ».
+      'src/components/kyc-magic-link',
       // ⚠ La racine NUE, celle qui porte `tokens.ts` depuis le lot 2 du chantier
       // KYC. Elle manquait à cette liste : les cinq fichiers qu'elle retient
       // pouvaient donc quitter le cliquet sans que rien ne rougisse.
