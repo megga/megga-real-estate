@@ -10,9 +10,27 @@
 // « une erreur est survenue ».
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { SUPABASE_FUNCTIONS_URL, SUPABASE_PUBLIC_ANON_KEY } from '@/lib/supabase'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+/**
+ * ⛔ L'URL DES FONCTIONS ET LA CLÉ PUBLIQUE VIENNENT DE `lib/supabase`, JAMAIS
+ * D'UNE LECTURE NUE DE L'ENVIRONNEMENT.
+ *
+ * Ce module lisait les deux variables de build SANS les replis que
+ * `src/lib/supabase.ts` porte depuis toujours. Quand l'URL manque — un checkout
+ * sans `.env`, un build dont le secret n'a pas été injecté — la chaîne vaut
+ * `undefined`, l'URL construite devient RELATIVE, et le serveur y répond par le
+ * repli SPA : **200, avec du HTML**. `res.ok` est vrai, `res.json()` lève, et la
+ * page finit sur un écran vide sans que rien ne signale la cause.
+ *
+ * Mesuré le 15 août 2026 : `/kyc/<jeton>` rendait une page BLANCHE en dev, et la
+ * requête partait sur `/kyc/undefined/functions/v1/magic-link-get`.
+ *
+ * ⚠ C'est AUSSI ce qui rendait cette face impossible à monter sur un banc :
+ * l'intercepteur de `bancSupabase` reconnaît les appels à leur URL ABSOLUE.
+ */
+const SUPABASE_URL = SUPABASE_FUNCTIONS_URL.replace(/\/functions\/v1$/, '')
+const SUPABASE_ANON_KEY = SUPABASE_PUBLIC_ANON_KEY
 
 const FN_HEADERS = {
   apikey: SUPABASE_ANON_KEY,

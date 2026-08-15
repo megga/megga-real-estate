@@ -150,6 +150,14 @@ const BiensShowcasePage = lazy(() => import('@/pages/dev/BiensShowcasePage'))
 const ContactsShowcasePage = lazy(() => import('@/pages/dev/ContactsShowcasePage'))
 const PipelineShowcasePage = lazy(() => import('@/pages/dev/PipelineShowcasePage'))
 const ModalesShowcasePage = lazy(() => import('@/pages/dev/ModalesShowcasePage'))
+// ⛔ CONDITIONNÉ AU MODE DEV, comme `/dev/crm`, et pour la MÊME raison : ce banc
+// appelle `installerBanc()`, qui remplace `window.fetch` pour TOUTE la session.
+// Dans un bundle déployé, une visite à `/dev/public` détournerait silencieusement
+// la couche de données de l'application entière. Les autres bancs ne montrent que
+// des maquettes ; celui-ci monte les écrans RÉELS avec un intercepteur.
+const PublicShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/PublicShowcasePage'))
+  : () => null
 // Aperçu du parcours d'onboarding — DEV seulement (cf. sa route plus bas, et son
 // en-tête pour les trois murs qui rendent ce parcours autrement inatteignable).
 // Le ternaire n'est pas décoratif : `import.meta.env.DEV` est remplacé par `false`
@@ -495,6 +503,11 @@ function AppRoutes() {
               {/* Modales qu'aucun geste n'ouvre sans session : elles ne seraient
                   JAMAIS rendues hors production, donc jamais éprouvées. */}
               <Route path="/dev/modales" element={<ModalesShowcasePage />} />
+              {/* La FACE PUBLIQUE — les trois surfaces qu'un client ouvre sans
+                  compte. ⚠ `/*` : le banc porte des routes IMBRIQUÉES, qui sont
+                  ce qui donne aux pages le `:token` qu'elles lisent. Sans jeton
+                  valide, `KycPublicPage` rend `null` — une page blanche. */}
+              <Route path="/dev/public/*" element={<PublicShowcasePage />} />
               {/* Onboarding — la SEULE de ces routes à être conditionnée au mode dev.
                   Les autres ne montrent que des maquettes ; celle-ci monte les écrans
                   réels avec l'écriture entre étapes neutralisée (IdentityShellPreview),

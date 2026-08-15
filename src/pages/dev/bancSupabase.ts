@@ -83,6 +83,23 @@ const contrat = {
    * d'écran du tout, donc rien de vide à regarder.
    */
   socle: [] as string[],
+  /**
+   * Fixtures par EDGE FUNCTION, pour les surfaces dont l'écran ENTIER vient
+   * d'une fonction et non de PostgREST.
+   *
+   * ⛔ SANS ELLES, LE BANC RÉPOND `{ok:true, banc:true}` À TOUT. C'était sans
+   * conséquence tant que les bancs montaient des surfaces `/dashboard` : leurs
+   * données viennent de `rest/v1`, et les edges n'y servent qu'à écrire. La face
+   * PUBLIQUE est l'inverse — `/kyc/:token`, `/reception/:token` et
+   * `/rendez-vous/:token` LISENT tout par une edge, jetons compris. Leur servir
+   * `{ok:true}` ne montre pas un écran vide : ça montre un écran d'ERREUR, ou
+   * rien du tout.
+   *
+   * ⚠ La clé est le NOM de la fonction (`magic-link-get`), pas l'URL. Une
+   * fonction sans fixture garde l'ancienne réponse et est SIGNALÉE, comme une
+   * table inconnue — sinon un banc muet ressemble à un banc complet.
+   */
+  edges: {} as Record<string, FixtureRpc>,
   /** Noms d'appels qu'aucune fixture ne couvre — remontés aux commandes du banc. */
   signaler: (_appel: string) => {},
 }
@@ -237,7 +254,20 @@ function repondre(url: string, init?: RequestInit): Response | null {
 
   if (url.startsWith(FN)) {
     if (contrat.etat === 'erreur') return echec()
-    return json({ ok: true, banc: true }, 1)
+    const nom = url.slice(FN.length).split('?')[0]!.replace(/\/$/, '')
+    if (!Object.prototype.hasOwnProperty.call(contrat.edges, nom)) {
+      contrat.signaler(`fn/${nom}`)
+      return json({ ok: true, banc: true }, 1)
+    }
+    const brut = contrat.edges[nom]
+    const fixture = typeof brut === 'function'
+      ? (brut as (a: Record<string, unknown>) => unknown)(lireArguments(init))
+      : brut
+    // ⚠ « Vide » n'a pas de sens universel pour une edge : une fonction qui rend
+    // un OBJET doit rendre l'objet ZÉRO, pas `null` — sinon la page reste sur son
+    // squelette et on croit regarder un état vide (même piège que `rpcVide`).
+    const rendu = contrat.etat === 'vide' && Array.isArray(fixture) ? [] : fixture
+    return json(rendu, Array.isArray(rendu) ? rendu.length : 1)
   }
 
   if (!url.startsWith(REST)) return null
