@@ -53,14 +53,14 @@ function mrhPos(b: MrhBien, bnds: Bounds): Pos {
 function pinStyle(hot: boolean, near: boolean, on: boolean, isRent: boolean): CSSProperties {
   const bg = isRent ? (hot ? RENT_HOT : near ? RENT_NEAR : RENT) : (hot ? VIO_HOT : near ? VIO_NEAR : VIO)
   const glow = isRent ? '0 3px 10px rgba(1,64,215,.42)' : '0 3px 10px rgba(76,58,160,.42)'
-  return { border: 0, cursor: 'pointer', padding: '5px 10px', borderRadius: 999, fontFamily: 'inherit', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', background: bg, color: '#FFFFFF', boxShadow: glow, outline: on ? '2px solid rgba(255,255,255,.9)' : 'none', outlineOffset: -2, transition: 'background .14s' }
+  return { border: 0, cursor: 'pointer', padding: '5px 10px', borderRadius: 999, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', background: bg, color: '#FFFFFF', boxShadow: glow, outline: on ? '2px solid rgba(255,255,255,.9)' : 'none', outlineOffset: -2, transition: 'background .14s' }
 }
 const isRentBien = (b: MrhBien) => b.transaction === 'location'
 const priceLabel = (b: MrhBien) => { const p = isRentBien(b) ? b.rent : b.price; return p ? mrhM(p) : '—' }
 
 function MapSurface({ dark }: { dark: boolean }) {
   const base = dark ? '#0F131A' : '#E9EDF2'
-  const ln = dark ? 'rgba(255,255,255,.05)' : 'rgba(15,23,42,.055)'
+  const ln = dark ? 'rgba(255,255,255,.05)' : 'rgba(3,3,3,.055)'
   const water = dark ? 'rgba(96,128,170,.12)' : 'rgba(120,150,190,.18)'
   const park = dark ? 'rgba(96,150,112,.09)' : 'rgba(120,170,120,.15)'
   return (
@@ -70,7 +70,7 @@ function MapSurface({ dark }: { dark: boolean }) {
       <div style={{ position: 'absolute', top: '40%', left: '-10%', width: '130%', height: 10, background: ln }} />
       <div style={{ position: 'absolute', right: '-10%', bottom: '-14%', width: '56%', height: '48%', borderRadius: '50% 46% 44% 52%', background: water, transform: 'rotate(-12deg)' }} />
       <div style={{ position: 'absolute', left: '7%', top: '11%', width: '22%', height: '27%', borderRadius: '46% 54% 50% 48%', background: park }} />
-      <div style={{ position: 'absolute', inset: 0, background: dark ? 'radial-gradient(120% 92% at 50% 42%, transparent 54%, rgba(0,0,0,.34))' : 'radial-gradient(120% 92% at 50% 42%, transparent 60%, rgba(15,23,42,.06))' }} />
+      <div style={{ position: 'absolute', inset: 0, background: dark ? 'radial-gradient(120% 92% at 50% 42%, transparent 54%, rgba(0,0,0,.34))' : 'radial-gradient(120% 92% at 50% 42%, transparent 60%, rgba(3,3,3,.06))' }} />
     </div>
   )
 }
@@ -109,8 +109,8 @@ function MapPopoverCard({ b, m, ctx }: { b: MrhBien; m: MrhItem['m']; ctx: MrhCt
         <MrhPhoto url={photos[pi]} dark={dark} alt="" fallbackBg={surf.cardSub} fallbackInk={sp.sub} />
         {photos.length > 1 && (
           <>
-            <button onClick={(e) => goPhoto(e, -1)} style={{ position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)', width: 24, height: 24, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: 'rgba(11,12,14,.55)' }}><RechIcon name="chevronL" size={14} stroke="#fff" /></button>
-            <button onClick={(e) => goPhoto(e, 1)} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', width: 24, height: 24, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: 'rgba(11,12,14,.55)' }}><RechIcon name="chevronR" size={14} stroke="#fff" /></button>
+            <button onClick={(e) => goPhoto(e, -1)} style={{ position: 'absolute', left: 6, top: '50%', transform: 'translateY(-50%)', width: 24, height: 24, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: 'rgba(3,3,3,.55)' }}><RechIcon name="chevronL" size={14} stroke="#fff" /></button>
+            <button onClick={(e) => goPhoto(e, 1)} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', width: 24, height: 24, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: 'rgba(3,3,3,.55)' }}><RechIcon name="chevronR" size={14} stroke="#fff" /></button>
             <div style={{ position: 'absolute', bottom: 6, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 4, alignItems: 'center' }}>
               {photos.map((_, i) => (
                 <span key={i} style={{ width: i === pi ? 11 : 5, height: 5, borderRadius: 999, background: i === pi ? '#fff' : 'rgba(255,255,255,.55)', transition: 'width .15s', boxShadow: '0 1px 2px rgba(0,0,0,.3)' }} />
@@ -118,14 +118,14 @@ function MapPopoverCard({ b, m, ctx }: { b: MrhBien; m: MrhItem['m']; ctx: MrhCt
             </div>
           </>
         )}
-        {m && m.score != null && <span style={{ position: 'absolute', top: 8, right: 8, display: 'inline-flex', alignItems: 'center', gap: 2, padding: '3px 8px', borderRadius: 999, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 11, fontWeight: 800, boxShadow: '0 2px 8px rgba(15,23,42,.2)' }}>{m.score}<span style={{ fontSize: 9, color: sp.sub }}>%</span></span>}
+        {m && m.score != null && <span style={{ position: 'absolute', top: 8, right: 8, display: 'inline-flex', alignItems: 'center', gap: 2, padding: '3px 8px', borderRadius: 999, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 'var(--crm-text-xs)', fontWeight: 600, boxShadow: '0 2px 8px rgba(3,3,3,.2)' }}>{m.score}<span style={{ fontSize: 9, color: sp.sub }}>%</span></span>}
       </div>
       <div style={{ padding: '9px 11px 11px' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: sp.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
-        <div style={{ fontSize: 11, color: sp.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.addr}</div>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
+        <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.addr}</div>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginTop: 7 }}>
-          <span style={{ fontSize: 14.5, fontWeight: 800, color: sp.ink, letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{price ? formatCHF(price) : '—'}</span>
-          <span style={{ fontSize: 11, color: sp.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{b.rooms ?? '—'} p · {b.area ?? '—'} m²</span>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{price ? formatCHF(price) : '—'}</span>
+          <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{b.rooms ?? '—'} p · {b.area ?? '—'} m²</span>
         </div>
       </div>
     </div>
@@ -150,14 +150,14 @@ function ListRow({ b, m, active, ctx, onHover, onOpen }: { b: MrhBien; m: MrhIte
       style={{ display: 'flex', gap: 12, padding: 8, borderRadius: 14, cursor: 'pointer', flexShrink: 0, background: surf.card, border: surf.hairline, boxShadow: (on ? '0 0 0 1.5px ' + ACC + ' inset, ' : '') + (active ? surf.shadowHov : surf.shadow), outline: active ? '2px solid ' + ACC : '2px solid transparent', outlineOffset: -2, transition: 'box-shadow .15s, outline-color .15s' }}>
       <div style={{ width: 104, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, background: surf.cardSub, position: 'relative' }}>
         <MrhPhoto url={b.photos[0]} dark={dark} alt="" fallbackBg={surf.cardSub} fallbackInk={sp.sub} />
-        {m && m.score != null && <span style={{ position: 'absolute', top: 6, left: 6, display: 'inline-flex', alignItems: 'center', gap: 1, padding: '2px 7px', borderRadius: 999, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 10.5, fontWeight: 800, boxShadow: '0 2px 6px rgba(15,23,42,.18)' }}>{m.score}<span style={{ fontSize: 8.5, color: sp.sub }}>%</span></span>}
+        {m && m.score != null && <span style={{ position: 'absolute', top: 6, left: 6, display: 'inline-flex', alignItems: 'center', gap: 1, padding: '2px 7px', borderRadius: 999, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 'var(--crm-text-xs)', fontWeight: 600, boxShadow: '0 2px 6px rgba(3,3,3,.18)' }}>{m.score}<span style={{ fontSize: 8.5, color: sp.sub }}>%</span></span>}
       </div>
       <div style={{ minWidth: 0, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: sp.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
-        <div style={{ fontSize: 12, color: sp.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.addr}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, letterSpacing: -0.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</div>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.addr}</div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
-          <span style={{ fontSize: 15, fontWeight: 800, color: sp.ink, letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{price ? formatCHF(price) : '—'}</span>
-          <span style={{ fontSize: 11.5, color: sp.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>· {b.rooms ?? '—'} p · {b.area ?? '—'} m²</span>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{price ? formatCHF(price) : '—'}</span>
+          <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>· {b.rooms ?? '—'} p · {b.area ?? '—'} m²</span>
         </div>
       </div>
       {buyer && (
@@ -252,7 +252,7 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
 
   const act = groups.find((x) => x.b.id === hoverId)
   const actPos = act && posById[act.b.id] ? posById[act.b.id] : null
-  const labStyle = { fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase' as const, color: sp.sub }
+  const labStyle = { fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }
   const rowOf = (x: MrhItem) => <ListRow key={x.b.id} b={x.b} m={x.m} active={x.b.id === hoverId} ctx={ctx} onHover={setHover} onOpen={ctx.onOpen} />
 
   // Marqueurs pour la carte réelle (Mapbox) : pastilles prix + aperçu du survol.
@@ -292,7 +292,7 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
         {near.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '10px 2px 2px' }}>
             <span style={labStyle}>{t('recherche.near.title')}</span>
-            <span style={{ fontSize: 11, color: sp.sub, fontWeight: 600, opacity: 0.8 }}>{t('recherche.near.note')}</span>
+            <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, opacity: 0.8 }}>{t('recherche.near.note')}</span>
           </div>
         )}
         {near.map(rowOf)}
@@ -306,7 +306,7 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
             ) : (
               <>
                 <MapSurface dark={dark} />
-                <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 13, fontWeight: 600 }}>{t('recherche.map.noLocated')}</div>
+                <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{t('recherche.map.noLocated')}</div>
               </>
             )}
           </Suspense>
@@ -318,17 +318,17 @@ export default function MrhMapView({ strict, near, ctx }: Props) {
           {bnds ? located.filter((x) => posById[x.b.id]?._in).map((x) => (
             <PricePin key={x.b.id} b={x.b} pos={posById[x.b.id]} active={x.b.id === hoverId} near={x.near} sel={ctx.sel} onHover={setHover} onOpen={ctx.onOpen} />
           )) : (
-            <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 13, fontWeight: 600 }}>{t('recherche.map.noLocated')}</div>
+            <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: sp.sub, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{t('recherche.map.noLocated')}</div>
           )}
           {bnds0 && (
             <div style={{ position: 'absolute', right: 12, top: 12, zIndex: 46, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <button onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(48, z * 1.4)) }} title={t('recherche.map.zoomIn')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 20, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>+</button>
-              <button onClick={(e) => { e.stopPropagation(); setZoom((z) => { const n = Math.max(1, z / 1.4); if (n <= 1) setCtr(null); return n }) }} title={t('recherche.map.zoomOut')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 22, fontWeight: 700, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>−</button>
+              <button onClick={(e) => { e.stopPropagation(); setZoom((z) => Math.min(48, z * 1.4)) }} title={t('recherche.map.zoomIn')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 20, fontWeight: 600, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(3,3,3,.18)' }}>+</button>
+              <button onClick={(e) => { e.stopPropagation(); setZoom((z) => { const n = Math.max(1, z / 1.4); if (n <= 1) setCtr(null); return n }) }} title={t('recherche.map.zoomOut')} style={{ width: 32, height: 32, borderRadius: 9, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, fontSize: 22, fontWeight: 600, fontFamily: 'inherit', lineHeight: 1, boxShadow: '0 2px 8px rgba(3,3,3,.18)' }}>−</button>
             </div>
           )}
           {zoom > 1 && (
             <button onClick={(e) => { e.stopPropagation(); setZoom(1); setCtr(null) }} title={t('recherche.map.overview')}
-              style={{ position: 'absolute', left: 12, top: 12, zIndex: 46, height: 32, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, boxShadow: '0 2px 8px rgba(15,23,42,.18)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              style={{ position: 'absolute', left: 12, top: 12, zIndex: 46, height: 32, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, background: dark ? sp.solidBg : '#FFFFFF', color: sp.ink, boxShadow: '0 2px 8px rgba(3,3,3,.18)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
               {t('recherche.map.overview')}
             </button>
           )}

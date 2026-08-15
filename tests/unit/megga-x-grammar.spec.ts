@@ -384,7 +384,25 @@ const ZONES: RootSpec[] = [
   // couleurs propres (#0F131A / #E9EDF2, eau et parcs en rgba) qui ne sortent
   // d'aucun système de jetons. L'exclure ici est ce qui rend le gel VÉRIFIABLE :
   // une exemption écrite, pas un oubli qu'on relèverait à la relecture.
-  { root: 'src/components/matching-recherche', keep: (n) => /\.tsx?$/.test(n) && n !== 'MrhMapView.tsx' },
+  // ⛔ `MrhMapView` ENTRE AU LOT 3 (15 août 2026), ET LE GEL AVAIT PERDU SON
+  // MOTIF SANS QUE PERSONNE LE VOIE. L'exclusion disait : « le jeton Mapbox est
+  // absent du build, donc la branche qui rend réellement est la carte
+  // SCHÉMATIQUE ». Mesuré sur l'issue #1061 : son constat n° 1 est ✅ RÉSOLU
+  // depuis le 3 août — `VITE_MAPBOX_TOKEN` est posé et inliné dans le bundle,
+  // donc en PRODUCTION c'est la carte réelle qui rend. Le motif était vrai à
+  // l'écriture et faux deux jours plus tard ; rien ne le disait, parce qu'une
+  // exemption ne se relit pas.
+  //
+  // ⚠ CE QUI RESTE VRAI, ET CE QUI NE L'EST PAS. Le repli schématique rend
+  // encore en DEV (le jeton est restreint par referrer, 403 depuis
+  // localhost:5173), et ses couleurs de fond — `#0F131A` / `#E9EDF2`, l'eau et
+  // les parcs en rgba — ENCODENT une carte : elles ne sortent d'aucun système de
+  // jetons et ne le peuvent pas. Mais mesuré site par site, les 40 marqueurs du
+  // fichier ne sont PAS cartographiques : les 7 gris-bleus et 2 noirs de Sugar
+  // sont des ombres de BOUTONS DE ZOOM, de pastilles de score et d'aperçus au
+  // survol — du chrome posé SUR la carte. L'exemption couvrait tout un fichier
+  // pour protéger une poignée de teintes de fond.
+  { root: 'src/components/matching-recherche', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/matching-atelier', keep: (n) => /\.tsx?$/.test(n) },
   // Les 19 pages de la console super-admin (lot 3 du chantier MEGGA X,
   // 14 août 2026). Le dossier ENTIER, pas une liste de noms : les 19 fichiers
@@ -764,6 +782,40 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
     // l'entoure quelle que soit la taille de celle-ci.
     motif: /fontSize:\s*'[\d.]+em'/,
     raison: 'relative : le code en ligne suit la taille de sa prose',
+  },
+  {
+    // ⛔ SOUS LE PLANCHER DE L'ÉCHELLE — la symétrie exacte de la famille
+    // « au-dessus », six entrées plus haut : `--crm-text-*` COMMENCE à 11 px
+    // (`xs`), donc une taille inférieure n'est pas hors échelle par négligence,
+    // elle est hors de ce que l'échelle sait exprimer.
+    //
+    // ⚠ ANCRÉE SUR LA FORME, PAS SUR LA VALEUR, ET C'EST UN RESSERREMENT
+    // DÉLIBÉRÉ. La première rédaction exemptait « toute taille < 11 » : mesurée,
+    // elle ne couvrait que 4 sites (les 28 autres du dépôt vivent dans
+    // `kyc-report`, hors cliquet par l'exemption du papier), donc elle était sûre
+    // AUJOURD'HUI — et rien n'aurait empêché un `fontSize: 9` de passer demain
+    // dans le Pipeline. Une exemption sûre par l'état du dépôt n'est pas une
+    // exemption sûre. Même défaut que l'inventaire du gris-bleu sans son NOMBRE.
+    //
+    // Deux des quatre sites n'en avaient d'ailleurs pas besoin : les 10,5 px des
+    // pastilles sont montés sur `xs` (un demi-pixel). Restent les DEUX que la
+    // forme définit : le suffixe « % » d'une pastille de score, qui doit rester
+    // plus petit que le nombre qu'il qualifie — sinon il cesse d'être un suffixe.
+    motif: /fontSize: [\d.]+, color: sp\.sub \}\}>%/,
+    raison: 'sous le plancher : le suffixe « % » d’une pastille de score, plus petit que son nombre (2 sites)',
+  },
+  {
+    // ⚠ LA PAIRE OPTIQUE DES BOUTONS DE ZOOM, ASSUMÉE ENSEMBLE. `+` est à 20 px
+    // et `−` à 22 : le signe moins (U+2212) rend plus léger que le plus à taille
+    // égale, et les deux px d'écart sont une compensation, pas une négligence.
+    //
+    // ⛔ ET ON NE LES ÉCLATE PAS. 20 EST un barreau (`4xl`), 22 n'en est pas un :
+    // tokeniser l'un et exempter l'autre casserait précisément le rapport qui
+    // fait la compensation. C'est l'arbitrage déjà rendu pour `32 : 40` — « éclater
+    // les deux états d'un même titre entre un jeton et un littéral est pire que
+    // de les assumer ensemble ».
+    motif: /fontSize: 2[02], fontWeight: 600, fontFamily: 'inherit', lineHeight: 1/,
+    raison: 'la paire optique + / − des boutons de zoom, dans un bouton de 32 px (2 sites)',
   },
 ]
 
