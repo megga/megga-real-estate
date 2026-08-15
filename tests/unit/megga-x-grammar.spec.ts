@@ -907,6 +907,70 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
   })
 
   /**
+   * ⛔ CE QUE L'INSTRUMENT NE VOIT PAS, INVENTORIÉ — sinon « 0 marqueur » se lit
+   * « propre » (vacuité n°6, « la garde muette prise pour un verdict »).
+   *
+   * Ce fichier ne lit que les styles EN LIGNE. Une page peinte en CLASSES rend
+   * donc zéro sur SIX des clauses ci-dessus — casse, graisse, interlettrage,
+   * échelle, noir de Sugar, gris-bleu — quel que soit son état réel. Mesuré le
+   * 15 août 2026 sur `src/pages/public` : SEPT des treize pages sont dans ce cas,
+   * de 8 à 57 `className` pour ZÉRO `style={{`.
+   *
+   * ⚠ ET L'UNE D'ELLES EST DÉJÀ DANS LE CLIQUET. `AcceptInvitePage` est entrée au
+   * lot 3 : la clause qui l'a fait rougir est celle des BALISES à graisse héritée,
+   * qui lit le MARQUAGE et non les styles — elle a donc réellement mesuré quelque
+   * chose. Les six autres, non. L'inscrire ici est ce qui empêche de lire son
+   * appartenance au cliquet comme une couverture complète.
+   *
+   * C'est aussi pourquoi le « lot 5 » du chantier — entrer les pages réputées
+   * propres — est SUSPENDU : les inscrire les déclarerait portées pendant que
+   * l'instrument ne mesure rien. Elles attendent d'être regardées, pas d'être
+   * inscrites.
+   *
+   * ⚠ CLIQUET À L'ENVERS, ET DANS LES DEUX SENS : une page qui devient visible
+   * (elle gagne des styles en ligne) doit SORTIR de cette liste et entrer dans le
+   * cliquet ; une page qui grossit en classes fait rougir aussi. La liste ne peut
+   * que rétrécir.
+   */
+  it('les pages publiques que l’instrument ne voit pas sont inventoriées', () => {
+    /** Fichier → nombre de `className=`, relevé le 15 août 2026. */
+    const AVEUGLES = new Map<string, number>([
+      ['AcceptInvitePage.tsx', 27],
+      ['NotFoundPage.tsx', 21],
+      ['OnboardingCallManagePage.tsx', 30],
+      ['PrivacyPage.tsx', 8],
+      ['ResetPasswordPage.tsx', 19],
+      ['VisitFeedbackPage.tsx', 46],
+      ['VisitManagePage.tsx', 57],
+    ])
+    const scanPublic = scanRoots([{ root: 'src/pages/public', keep: (n) => /\.tsx$/.test(n) }])
+    expect(emptyRoots(scanPublic), 'racine vide : chemin cassé, pas surface propre').toEqual([])
+    expect(scanPublic.files.length, 'le balayage ne voit plus les pages publiques').toBeGreaterThan(10)
+
+    const ecarts: string[] = []
+    const vues = new Set<string>()
+    for (const abs of scanPublic.files) {
+      const nom = rel(abs).split('/').pop()!
+      const lu = readFileSafely(abs)
+      if (lu.status !== 'ok') { ecarts.push(`${nom} : illisible`); continue }
+      // ⚠ SUR LA SOURCE BRUTE, commentaires compris : un `style={{` en commentaire
+      // ne peint rien, mais un fichier qui n'en a QUE là reste aveugle — et c'est
+      // l'aveuglement qu'on mesure, pas la propreté.
+      const enLigne = (lu.value.match(/style=\{\{/g) ?? []).length
+      const classes = (lu.value.match(/className=/g) ?? []).length
+      const aveugle = enLigne === 0 && classes > 0
+      const inscrit = AVEUGLES.get(nom)
+      vues.add(nom)
+      if (aveugle && inscrit === undefined) ecarts.push(`${nom} : ${classes} className, 0 style en ligne — AVEUGLE et non inscrite`)
+      else if (aveugle && classes > inscrit!) ecarts.push(`${nom} : ${classes} className > ${inscrit} inscrits — la page grossit hors de vue`)
+      else if (!aveugle && inscrit !== undefined) ecarts.push(`${nom} : elle porte ${enLigne} style(s) en ligne — elle est VISIBLE, la sortir de la liste et l'entrer au cliquet`)
+    }
+    const disparues = [...AVEUGLES.keys()].filter((n) => !vues.has(n))
+    expect(ecarts, `l'inventaire de ce que l'instrument ne voit pas a dérivé :\n  ${ecarts.join('\n  ')}`).toEqual([])
+    expect(disparues, `inscrite mais absente du balayage :\n  ${disparues.join('\n  ')}`).toEqual([])
+  })
+
+  /**
    * Le cliquet doit RESTER un cliquet : une zone retirée de `ZONES` désarmerait
    * les tests ci-dessus en silence, et le fichier resterait vert.
    */
