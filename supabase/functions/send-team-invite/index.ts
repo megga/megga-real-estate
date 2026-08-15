@@ -1,3 +1,4 @@
+import { buildTeamInviteEmail } from '../_shared/team-invite-email.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // L'adresse d'acceptation s'est déjà bâtie ici depuis l'en-tête `Origin`, que
@@ -25,70 +26,8 @@ interface InviteRequest {
   invitationId?: string
 }
 
-function buildInviteEmailHtml(params: {
-  inviterName: string
-  agencyName: string
-  role: string
-  acceptUrl: string
-}): string {
-  const roleLabels: Record<string, string> = {
-    admin: 'Administrateur',
-    manager: 'Manager',
-    agent: 'Agent',
-    assistant: 'Assistant',
-  }
-  const roleLabel = roleLabels[params.role] || params.role
-
-  return `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Invitation — MEGGA</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
-
-    <!-- Header -->
-    <div style="text-align:center;margin-bottom:32px;">
-      <span style="font-size:22px;font-weight:700;color:#1a1a1a;letter-spacing:-0.5px;">MEGGA</span>
-      <span style="font-size:11px;color:#9ca3af;display:block;margin-top:2px;">Immobilier Suisse</span>
-    </div>
-
-    <!-- Content -->
-    <div style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;padding:32px;">
-      <h2 style="font-size:20px;font-weight:600;color:#1a1a1a;margin:0 0 16px 0;">
-        Vous êtes invité à rejoindre une équipe
-      </h2>
-
-      <p style="font-size:14px;color:#6b7280;line-height:1.6;margin:0 0 24px 0;">
-        <strong style="color:#374151;">${params.inviterName}</strong> vous invite à rejoindre
-        <strong style="color:#374151;">${params.agencyName}</strong> sur MEGGA.
-      </p>
-
-      <div style="background:#f9fafb;border-radius:10px;padding:16px;margin:0 0 24px 0;">
-        <p style="font-size:12px;color:#9ca3af;margin:0 0 4px 0;">Votre rôle</p>
-        <p style="font-size:16px;font-weight:600;color:#1a1a1a;margin:0;">${roleLabel}</p>
-      </div>
-
-      <a href="${params.acceptUrl}" target="_blank" rel="noopener noreferrer"
-        style="display:block;text-align:center;background:#1a1a1a;color:#ffffff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:600;">
-        Accepter l'invitation
-      </a>
-
-      <p style="font-size:11px;color:#9ca3af;text-align:center;margin:16px 0 0 0;">
-        Cette invitation expire dans 7 jours.
-      </p>
-    </div>
-
-    <!-- Disclaimer -->
-    <p style="font-size:10px;color:#d1d5db;text-align:center;margin-top:24px;line-height:1.5;">
-      Si vous n'avez pas demandé cette invitation, vous pouvez ignorer cet email.
-    </p>
-  </div>
-</body>
-</html>`
-}
+// Le gabarit vit dans `_shared/team-invite-email.ts` depuis le 15.08.2026 : pur, donc
+// testable et visible au banc de rendu.
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -245,7 +184,7 @@ serve(async (req) => {
       // Send email
       const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
       if (RESEND_API_KEY) {
-        const html = buildInviteEmailHtml({
+        const { subject, html } = buildTeamInviteEmail({
           inviterName: profile.full_name,
           agencyName: agency.name,
           role: invitation.role,
@@ -261,7 +200,7 @@ serve(async (req) => {
           body: JSON.stringify({
             from: 'MEGGA Immobilier <noreply@megga.ch>',
             to: [invitation.email],
-            subject: `Invitation à rejoindre ${agency.name} sur MEGGA`,
+            subject,
             html,
           }),
         })
@@ -393,7 +332,7 @@ serve(async (req) => {
     // Send email via Resend
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (RESEND_API_KEY) {
-      const html = buildInviteEmailHtml({
+      const { subject, html } = buildTeamInviteEmail({
         inviterName: profile.full_name,
         agencyName: agency.name,
         role: body.role,
@@ -409,7 +348,7 @@ serve(async (req) => {
         body: JSON.stringify({
           from: 'MEGGA Immobilier <noreply@megga.ch>',
           to: [body.email],
-          subject: `Invitation à rejoindre ${agency.name} sur MEGGA`,
+          subject,
           html,
         }),
       })
