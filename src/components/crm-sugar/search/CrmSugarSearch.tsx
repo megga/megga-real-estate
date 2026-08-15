@@ -384,7 +384,7 @@ export default function CrmSugarSearch({ open, onClose }: Props) {
         backdropFilter: 'blur(18px) saturate(140%)',
         WebkitBackdropFilter: 'blur(18px) saturate(140%)',
         display: 'grid', placeItems: 'start center', paddingTop: '11vh',
-        fontFamily: '"Manrope", system-ui, sans-serif',
+        fontFamily: 'var(--crm-font)',
       }}
     >
       <style>{`

@@ -385,7 +385,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
       <div style={{ position: 'relative', width: 'min(760px, 96vw)', maxHeight: '92vh', display: 'flex', flexDirection: 'column',
         background: TK.frame, border: `1px solid ${TK.borderHi}`, borderRadius: 'var(--crm-radius-6xl)', boxShadow: TK.shadowLg,
         overflow: 'hidden', transformOrigin: 'top right', animation: 'rsPop .42s cubic-bezier(.2,.85,.25,1) both',
-        fontFamily: 'Manrope, system-ui, sans-serif', color: TK.ink }}>
+        fontFamily: 'var(--crm-font)', color: TK.ink }}>
 
         {/* HEAD */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-3xl) var(--crm-space-5xl)', borderBottom: `1px solid ${TK.border}` }}>

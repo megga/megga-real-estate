@@ -58,10 +58,10 @@ export default function AxFirstRun({ acc, dark, target, onGoSettings }: { acc: A
             <div style={{ flex: 1, minHeight: 0, position: 'relative', marginTop: 8 }}>
               <svg viewBox="0 0 1000 380" width="100%" height="100%" preserveAspectRatio="none" style={{ animation: 'axRise .5s cubic-bezier(.2,.8,.2,1) both' }}>
                 <path d="M 22 346 L 978 34" fill="none" stroke={A.goal} strokeWidth="2" strokeDasharray="3 6" strokeLinecap="round" />
-                <text x="976" y="22" textAnchor="end" fontSize="12" fontWeight="700" fill={A.muted} fontFamily="Manrope">{tr('analytics.trajectory.objectiveShort', { amount: axShort(target) })}</text>
+                <text x="976" y="22" textAnchor="end" fontSize="12" fontWeight="600" fill={A.muted}>{tr('analytics.trajectory.objectiveShort', { amount: axShort(target) })}</text>
                 <circle cx="22" cy="346" r="11" fill={acc.accent} opacity="0.2" />
                 <circle cx="22" cy="346" r="6" fill={acc.accent} />
-                <text x="40" y="336" fontSize="12.5" fontWeight="700" fill={A.inkSoft} fontFamily="Manrope">{tr('analytics.firstrun.trajectoryStart')}</text>
+                <text x="40" y="336" fontSize="12.5" fontWeight="600" fill={A.inkSoft}>{tr('analytics.firstrun.trajectoryStart')}</text>
               </svg>
             </div>
           </div>

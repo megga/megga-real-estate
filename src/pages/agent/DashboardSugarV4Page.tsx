@@ -86,7 +86,7 @@ export default function DashboardSugarV4Page() {
         display: 'flex',
         flexDirection: 'column',
         background: sp.pageBg,
-        fontFamily: "'Manrope', system-ui, sans-serif",
+        fontFamily: 'var(--crm-font)',
         color: sp.ink,
       }}
     >

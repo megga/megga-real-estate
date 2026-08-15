@@ -664,7 +664,7 @@ export function PageAujourdhuiH() {
   const teaser = absenceSignals.slice(0, 4)
 
   return (
-    <div ref={rootRef} style={{ position: 'relative', width: '100%', height: '100%', background: TK.frame, fontFamily: 'Manrope, system-ui, sans-serif', color: TK.ink, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div ref={rootRef} style={{ position: 'relative', width: '100%', height: '100%', background: TK.frame, fontFamily: 'var(--crm-font)', color: TK.ink, boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <style>{`
         @keyframes hlFade { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:none } }
         .hl-dossier { animation: hlFade .32s cubic-bezier(.2,.8,.2,1) both; }

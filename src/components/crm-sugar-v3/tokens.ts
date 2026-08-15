@@ -109,8 +109,13 @@ export const SugarV3 = {
   warnSoft: '#FFF4E0',
   errSoft: 'rgba(239,68,68,0.10)',
 
-  // Police
-  font: '"Inter Tight", system-ui, sans-serif',
+  // Police — ⛔ le nom est un REPLI, pas la valeur. Écrit en dur, il ÉCRASAIT
+  // `--crm-font` sur les dix surfaces agent qui lisent ce jeton (KYC, Visites,
+  // Import lead, Audit) : la direction ne pouvait plus changer leur typographie.
+  // Invisible sous MEGGA X, dont la police EST Inter Tight — le défaut ne se
+  // voyait qu'en déplaçant le jeton. La clause qui l'a trouvé lit la clé
+  // RACCOURCIE `font:`, que `fontFamily:` ne voit pas (lot 4 · B6).
+  font: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif',
 } as const
 // ─── Animations keyframe (à injecter dans le DOM via <style>) ──────────
 // Animation d'entrée signature Sugar : .5s cubic-bezier(.2,.8,.2,1) both

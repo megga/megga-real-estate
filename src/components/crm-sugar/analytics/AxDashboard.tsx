@@ -269,13 +269,13 @@ function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; ac
         </defs>
         {/* objectif */}
         <path d={`M ${x(0)} ${y(s.goal[0] ?? 0)} L ${xEnd} ${y(goalEnd)}`} fill="none" stroke={A.goal} strokeWidth="2" strokeDasharray="3 6" strokeLinecap="round" opacity="0.85" />
-        <text x={xEnd - 2} y={y(goalEnd) - 9} textAnchor="end" fontSize="12" fontWeight="700" fill={A.muted} fontFamily="Manrope">{tr('analytics.trajectory.objectiveShort', { amount: axShort(d.target) })}</text>
+        <text x={xEnd - 2} y={y(goalEnd) - 9} textAnchor="end" fontSize="12" fontWeight="600" fill={A.muted}>{tr('analytics.trajectory.objectiveShort', { amount: axShort(d.target) })}</text>
         {/* cône d'incertitude + projection */}
         {hasProj && (
           <>
             <path d={`M ${px0} ${py0} L ${xEnd} ${y(coneHi)} L ${xEnd} ${y(coneLo)} Z`} fill="url(#axfCone)" />
             <path d={`M ${px0} ${py0} L ${xEnd} ${y(d.projectedEnd)}`} fill="none" stroke={acc.accent} strokeWidth="2.4" strokeDasharray="2 8" strokeLinecap="round" opacity="0.6" />
-            <text x={xEnd - 2} y={y(coneLo) + 17} textAnchor="end" fontSize="11" fontWeight="700" fill={A.muted} fontFamily="Manrope">{tr('analytics.trajectory.prudent', { amount: axShort(coneLo) })}</text>
+            <text x={xEnd - 2} y={y(coneLo) + 17} textAnchor="end" fontSize="11" fontWeight="600" fill={A.muted}>{tr('analytics.trajectory.prudent', { amount: axShort(coneLo) })}</text>
           </>
         )}
         {/* réalisé */}
@@ -287,18 +287,18 @@ function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; ac
         <circle cx={px0} cy={py0} r="5.5" fill="none" stroke={A.card} strokeWidth="2" />
         <g>
           <rect x={rx0} y={py0 - 46} width={rw} height={26} rx="13" fill="#1A1C20" stroke="rgba(255,255,255,0.12)" />
-          <text x={rx0 + rw / 2} y={py0 - 28} textAnchor="middle" fontSize="12" fontWeight="800" fill="#FFFFFF" fontFamily="Manrope">{rv}</text>
+          <text x={rx0 + rw / 2} y={py0 - 28} textAnchor="middle" fontSize="12" fontWeight="600" fill="#FFFFFF">{rv}</text>
         </g>
         {/* projeté (fin de période) */}
         {hasProj && (
           <g>
             <rect x={xEnd - pw} y={y(d.projectedEnd) - 13} width={pw} height={26} rx="13" fill="#1A1C20" stroke="rgba(255,255,255,0.12)" />
-            <text x={xEnd - pw / 2} y={y(d.projectedEnd) + 4} textAnchor="middle" fontSize="12" fontWeight="800" fill={acc.accent} fontFamily="Manrope">{pv}</text>
+            <text x={xEnd - pw / 2} y={y(d.projectedEnd) + 4} textAnchor="middle" fontSize="12" fontWeight="600" fill={acc.accent}>{pv}</text>
           </g>
         )}
         {/* repères X épars */}
         {labs.map(o => (
-          <text key={o.i} x={x(o.i)} y={VBH - 8} textAnchor={o.i === 0 ? 'start' : o.i === nSafe - 1 ? 'end' : 'middle'} fontSize="12.5" fontWeight={hov === o.i ? '800' : '600'} fill={hov === o.i ? A.ink : A.muted} fontFamily="Manrope">{o.lab}</text>
+          <text key={o.i} x={x(o.i)} y={VBH - 8} textAnchor={o.i === 0 ? 'start' : o.i === nSafe - 1 ? 'end' : 'middle'} fontSize="12.5" fontWeight={hov === o.i ? '800' : '600'} fill={hov === o.i ? A.ink : A.muted}>{o.lab}</text>
         ))}
         {/* crosshair fluide : écart vs objectif */}
         {hov != null && hovVal != null && hovGoal != null && hovDiff != null && (
@@ -322,7 +322,7 @@ function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; ac
           display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
           background: '#1A1C20', borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-sm) var(--crm-space-xl)',
           boxShadow: '0 10px 28px rgba(0,0,0,0.38)', border: '1px solid rgba(255,255,255,0.10)',
-          pointerEvents: 'none', whiteSpace: 'nowrap', fontFamily: 'Manrope',
+          pointerEvents: 'none', whiteSpace: 'nowrap', fontFamily: 'var(--crm-font)',
         }}>
           <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: 'rgba(255,255,255,0.55)' }}>
             {(d.axisLabels[hov] || `${d.pointWord || tr('analytics.trajectory.pointWordFallback')} ${hov + 1}`)}{hov > s.elapsed ? ` · ${tr('analytics.trajectory.projectedShort')}` : ''}
@@ -746,7 +746,7 @@ export default function AxDashboardBody({ dark = false, onNavigate }: AxDashboar
   }
 
   return (
-    <div style={{ height: '100%', width: '100%', minHeight: 0, minWidth: 0, fontFamily: "'Manrope', system-ui, sans-serif" }}>
+    <div style={{ height: '100%', width: '100%', minHeight: 0, minWidth: 0, fontFamily: 'var(--crm-font)' }}>
       <AxfStyles dark={dark} />
       {content}
     </div>

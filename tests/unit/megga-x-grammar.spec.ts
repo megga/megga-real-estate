@@ -1248,6 +1248,81 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
     expect(fautifs, `graisses ≥ 700 en classes :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 
+  /**
+   * ⛔ ET LA MÊME GRAMMAIRE EN ATTRIBUTS JSX — le TROISIÈME langage (lot 4,
+   * 15 août 2026). Vacuité n°10 dans sa variante la plus discrète.
+   *
+   * Les clauses de style en ligne s'ancrent sur `fontWeight:` — avec les
+   * DEUX-POINTS. Un `<text>` SVG écrit `fontWeight="800"`, en ATTRIBUT de
+   * présentation, et sort du balayage sans un mot. Ce n'est ni une classe ni un
+   * style en ligne : c'est une troisième notation de la même propriété.
+   *
+   * ⚠ ET LA ZONE ÉTAIT COUVERTE, LE CLIQUET VERT. Les six sites vivaient dans
+   * `AxDashboard` et `AxFirstRun` — Analytics, entrée au cliquet à la vague A —
+   * pendant que les clauses de graisse et de police y rendaient zéro. Un
+   * périmètre juste ne suffit pas si l'instrument ne lit pas le langage.
+   *
+   * ⚠ MESURÉE AVANT D'ÊTRE ÉCRITE : treize sites au total dans tout `src/`, dans
+   * DEUX fichiers — six graisses et sept polices. Cette clause ne peut donc pas
+   * allumer une zone que personne n'a regardée.
+   */
+  it('aucune graisse au-dessus de 600, en attribut JSX non plus', () => {
+    const fautifs = sites((l) => /fontWeight=["'{]?\s*["']?\s*[789]00\b/.test(l))
+    expect(fautifs, `graisses ≥ 700 en attribut :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  it('aucune micro-capitale ni interlettrage, en attribut JSX non plus', () => {
+    const fautifs = sites((l) => /textTransform=["'{]?\s*["']?uppercase|letterSpacing=["'{]/.test(l))
+    expect(fautifs, `casse ou interlettrage en attribut :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ B6 — LA POLICE PAR UNE AUTRE CLÉ, deux formes que `fontFamily:` ne voit
+   * pas : l'ATTRIBUT (`fontFamily="Manrope"`, sept sites, tous en SVG) et la clé
+   * RACCOURCIE `font:` (`crm-sugar-v3/tokens.ts:113` écrit
+   * `font: '"Inter Tight", …'`).
+   *
+   * ⚠ QUELLE police a droit de cité, et OÙ, est gardé à part —
+   * `polices-domaines.spec.ts`. Ici on garde seulement qu'aucune NOTATION
+   * n'échappe au regard : c'est la frontière entre « la règle » et « le langage
+   * dans lequel on peut l'enfreindre ».
+   *
+   * ⛔ ET LES DEUX NOTATIONS N'ONT PAS LE MÊME RÉGIME — ma première rédaction les
+   * confondait, et une clause l'a montré en rougissant sur du code CORRECT.
+   *
+   *  · `font:` (la clé raccourcie) ne se juge que sur `Inter Tight|DM Sans`,
+   *    exactement comme la clause « aucune police écrite en dur » : écrire
+   *    Inter Tight en toutes lettres ÉCRASE `--crm-font`, écrire Manrope est un
+   *    autre choix — légitime dans son domaine, et c'est `polices-domaines` qui
+   *    en décide. `mlkTokens.ts` écrit `font: 'Manrope, …'` pour la face
+   *    publique : refuser cette ligne, c'est refuser du code correct.
+   *  · L'ATTRIBUT, lui, est refusé quelle que soit la police, et c'est un régime
+   *    plus strict pour une raison mécanique : un attribut de présentation SVG
+   *    n'accepte PAS `var()`. Il ne peut donc jamais être tokenisé — il ne peut
+   *    que figer. Le remède n'est pas de le réécrire mais de le RETIRER :
+   *    `font-family` est héritée et s'applique au texte SVG, donc l'absence
+   *    d'attribut rend `var(--crm-font)` sans un mot. Mesuré à 0 après le lot 4.
+   *
+   * ⛔ ET J'AI ÉCRIT LA VACUITÉ n°1 DU DÉPÔT, MOT POUR MOT, EN CROYANT LA
+   * CONNAÎTRE. Ma première rédaction cherchait le nom JUSTE APRÈS le guillemet
+   * ouvrant — `font:\s*['"`][^'"`]*(Inter Tight…)`. Or la ligne visée s'écrit
+   * `font: '"Inter Tight", system-ui, sans-serif'` : un guillemet s'intercale,
+   * la classe `[^'"`]*` s'arrête dessus, et la clause était VERTE sur le seul
+   * site qu'elle existait pour attraper. C'est exactement le défaut qui avait
+   * laissé passer 29 fichiers en août, documenté dans ce dépôt, et je l'ai
+   * reproduit en écrivant sa correction. Le motif borne désormais sur le
+   * SÉPARATEUR (`[^,;}\n]*`), comme la clause « aucune police écrite en dur »
+   * dont il est le jumeau — connaître une vacuité ne protège pas d'elle ;
+   * recopier la FORME du remède, si.
+   */
+  it('aucune police nommée par un attribut ou écrite en dur sous la clé `font:`', () => {
+    const fautifs = sites((l) => {
+      const sansJeton = l.replace(/var\(--crm-font[^)]*\)/g, 'VAR')
+      return /fontFamily=["'{]/.test(sansJeton) || /\bfont:[^,;}\n]*(Inter Tight|DM Sans)/.test(sansJeton)
+    })
+    expect(fautifs, `police par attribut ou écrite en dur sous \`font:\` :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
   it('aucun interlettrage de micro-capitale, en classes non plus', () => {
     // Seul le POSITIF est visé : `tracking-tight`/`tighter` resserrent un titre
     // d'affichage, ce que la vitrine pratique — c'est le pendant du seuil ≥ 0,4.

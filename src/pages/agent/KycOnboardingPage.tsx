@@ -78,7 +78,7 @@ export default function KycOnboardingPage() {
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: 'Manrope, system-ui, sans-serif',
+        fontFamily: 'var(--crm-font)',
         color: sp.ink,
       }}
     >

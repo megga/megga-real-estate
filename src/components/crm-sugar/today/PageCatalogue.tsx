@@ -883,7 +883,7 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
 
   return (
     <div style={{ width: '100%', height: '100%', background: TK.bg, color: TK.ink,
-      fontFamily: 'Manrope, system-ui, sans-serif', padding: '36px 34px 22px', boxSizing: 'border-box',
+      fontFamily: 'var(--crm-font)', padding: '36px 34px 22px', boxSizing: 'border-box',
       display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'relative' }}>
       <Orbs />
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
