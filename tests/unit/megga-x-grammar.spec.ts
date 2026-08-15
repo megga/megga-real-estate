@@ -790,23 +790,29 @@ const CSS_ASSUME = new Map<string, { graisse?: number; capitale?: number; interl
  * gèle les 543 pendant que la passe se fait, zone par zone, avec un banc.
  */
 const CLASSES_ASSUMEES = new Map<string, { palette?: number; blanc?: number; echelle?: number }>([
-  ['src/components/admin/ImpersonateBanner.tsx', { blanc: 1, echelle: 1 }],
+  ['src/components/admin/ImpersonateBanner.tsx', { echelle: 1 }],
   ['src/components/auth/FavoritesLoginPrompt.tsx', { echelle: 5 }],
   ['src/components/layout/ErrorBoundary.tsx', { echelle: 5 }],
   ['src/components/layout/KycLabGuard.tsx', { echelle: 12 }],
   ['src/components/layout/OnboardingCallBanner.tsx', { palette: 2, echelle: 6 }],
   ['src/components/layout/StaleBundleDetector.tsx', { palette: 4, echelle: 3 }],
-  ['src/components/listings/FloorPlanEditor.tsx', { palette: 5, blanc: 3, echelle: 15 }],
+  ['src/components/listings/FloorPlanEditor.tsx', { palette: 5, echelle: 15 }],
   ['src/components/listings/SwissAddressAutocomplete.tsx', { palette: 1, echelle: 6 }],
   ['src/components/map/PropertyStaticMap.tsx', { echelle: 1 }],
   ['src/components/ui/modal.tsx', { echelle: 2 }],
   ['src/components/ui/Toast.tsx', { echelle: 2 }],
   ['src/components/ui/UpgradePrompt.tsx', { echelle: 3 }],
-  ['src/pages/agent/ExternalListingDetailPage.tsx', { palette: 9, blanc: 7, echelle: 63 }],
-  ['src/pages/agent/ListingFormPage.tsx', { palette: 25, blanc: 11, echelle: 155 }],
+  ['src/pages/agent/ExternalListingDetailPage.tsx', { palette: 9, blanc: 2, echelle: 63 }],
+  // ⚠ 25 sites de palette payés le 15 août 2026, et ils étaient TOUS sémantiques
+  // (rouge / émeraude) : zéro gris. Les dix ENCRES passent à `-dark`, qui est
+  // l'encre dans les DEUX thèmes — plus foncée en clair, plus claire en sombre.
+  // Aucune valeur unique ne tenait les deux (`red-600` : 4,83:1 en clair mais
+  // 2,97 en sombre), c'est un second RÔLE qu'il fallait, pas une meilleure teinte.
+  // Les onze « blanc » n'en étaient pas : des `text-white` sur voile sombre.
+  ['src/pages/agent/ListingFormPage.tsx', { echelle: 155 }],
   ['src/pages/dev/SentryTestPage.tsx', { echelle: 4 }],
   ['src/pages/public/PrivacyPage.tsx', { echelle: 5 }],
-  ['src/pages/public/ResetPasswordPage.tsx', { blanc: 4, echelle: 10 }],
+  ['src/pages/public/ResetPasswordPage.tsx', { blanc: 3, echelle: 10 }],
 ])
 
 /**
@@ -823,7 +829,21 @@ const ESPECES_CLASSE: { nom: 'palette' | 'blanc' | 'echelle'; motif: RegExp }[] 
     motif:
       /\b(?:text|bg|border|from|via|to|ring|divide|outline|decoration)-(?:gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/g,
   },
-  { nom: 'blanc', motif: /\b(?:text|bg|border)-white\b/g },
+  /**
+   * ⛔ `bg-white` ET `text-white` NE SONT PAS LA MÊME CHOSE, et ma première
+   * rédaction les comptait ensemble. Mesuré le 15 août 2026 sur les 41 sites que
+   * l'espèce recensait : CINQ sont des `bg-white` — ce que CLAUDE.md proscrit
+   * nommément, parce qu'un fond blanc en dur casse le mode sombre — et VINGT
+   * sont des `text-white`, l'encre blanche posée sur un aplat foncé
+   * (`bg-black/60` sur une photo, `bg-accent-solid`). Celle-là est l'idiome
+   * CORRECT : c'est exactement ce que la règle « l'accent tient en aplat parce
+   * que c'est l'encre blanche qui porte le contraste » décrit.
+   *
+   * ⚠ Quatre cinquièmes de l'espèce étaient donc une fausse alerte. Même famille
+   * que `first-letter:uppercase` au lot 1 : une clause qui refuse du code correct
+   * se fait désarmer, pas corriger. Seul le FOND compte ici.
+   */
+  { nom: 'blanc', motif: /\bbg-white\b/g },
   { nom: 'echelle', motif: /\btext-(?:xs|sm|base|lg|xl|[2-9]xl)\b/g },
 ]
 

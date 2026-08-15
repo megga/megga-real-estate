@@ -450,7 +450,7 @@ function NumberStepper({
           <MEIcon name="plus" className="h-4 w-4" />
         </button>
       </div>
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      {error && <p className="text-xs text-danger-dark mt-1">{error}</p>}
     </div>
   )
 }
@@ -469,7 +469,7 @@ function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: React.R
 /** Message d'erreur de validation sous un champ ; rien si `message` absent. */
 function FieldError({ message }: { message?: string }) {
   if (!message) return null
-  return <p className="text-xs text-red-500 mt-1">{message}</p>
+  return <p className="text-xs text-danger-dark mt-1">{message}</p>
 }
 
 /** Sous-titre de section à l'intérieur d'une étape. */
@@ -1112,7 +1112,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
       <div>
         <FieldLabel htmlFor="availability_date">
           {t('form.fields.availability')}
-          {isRent && <span className="ml-1 text-red-500" aria-hidden="true">*</span>}
+          {isRent && <span className="ml-1 text-danger-dark" aria-hidden="true">*</span>}
           {isRent && <span className="sr-only">{t('form.required')}</span>}
         </FieldLabel>
         <div className="flex flex-wrap gap-2 mb-3">
@@ -1513,8 +1513,8 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
     return (
       <div className="rounded-xl border border-theme-border p-4 mt-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-            <MEIcon name="shield" className="w-4 h-4 text-emerald-600" />
+          <div className="w-8 h-8 rounded-lg bg-success-light flex items-center justify-center flex-shrink-0">
+            <MEIcon name="shield" className="w-4 h-4 text-success-dark" />
           </div>
           <div>
             <p className="text-sm font-medium text-theme-primary">{t('form.c2pa.title')}</p>
@@ -1531,11 +1531,11 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
         <div className="flex items-center gap-3">
           <div className={cn(
             'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            signed || signPhotos.isSuccess ? 'bg-emerald-50' : 'bg-theme-hover'
+            signed || signPhotos.isSuccess ? 'bg-success-light' : 'bg-theme-hover'
           )}>
             <MEIcon name="shield" className={cn(
               'w-4 h-4',
-              signed || signPhotos.isSuccess ? 'text-emerald-600' : 'text-theme-muted'
+              signed || signPhotos.isSuccess ? 'text-success-dark' : 'text-theme-muted'
             )} />
           </div>
           <div>
@@ -1576,7 +1576,7 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
         )}
       </div>
       {signPhotos.isError && (
-        <p className="text-xs text-red-600 mt-2">
+        <p className="text-xs text-danger-dark mt-2">
           {t('form.c2pa.error')}
         </p>
       )}
@@ -1709,7 +1709,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
 
               {/* Error */}
               {error && (
-                <p className="text-xs text-red-500">
+                <p className="text-xs text-danger-dark">
                   {error.error}
                   {error.upgrade_required && ` ${t('form.staging.upgradeSuffix')}`}
                 </p>
@@ -2082,8 +2082,8 @@ function UrlImportScreen({ onExtracted, onBack }: {
 
             {/* Error */}
             {error && (
-              <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
-                <p className="text-sm text-red-500 font-medium">{t('form.url.errorTitle')}</p>
+              <div className="rounded-xl border border-danger/30 bg-danger/5 p-4">
+                <p className="text-sm text-danger-dark font-medium">{t('form.url.errorTitle')}</p>
                 <p className="text-xs text-theme-muted mt-1">{error}</p>
               </div>
             )}
@@ -2180,8 +2180,8 @@ function PdfUploadScreen({ onExtracted, onBack }: {
 
         {/* Error */}
         {error && (
-          <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/5 p-4">
-            <p className="text-sm text-red-500 font-medium">{t('form.pdf.errorTitle')}</p>
+          <div className="mt-4 rounded-xl border border-danger/30 bg-danger/5 p-4">
+            <p className="text-sm text-danger-dark font-medium">{t('form.pdf.errorTitle')}</p>
             <p className="text-xs text-theme-muted mt-1">{error}</p>
             <button
               onClick={() => { setSelectedFile(null) }}
@@ -2865,7 +2865,7 @@ export default function ListingFormPage() {
 
       {/* Error banner */}
       {saveError && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-500">
+        <div className="rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm text-danger-dark">
           {saveError}
         </div>
       )}
@@ -2922,7 +2922,7 @@ export default function ListingFormPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(1) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(1) ? 'bg-success text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(1) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '1'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">{t('form.sections.general')}</span>
@@ -2948,7 +2948,7 @@ export default function ListingFormPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(2) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(2) ? 'bg-success text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(2) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '2'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">{t('form.sections.location')}</span>
@@ -2973,7 +2973,7 @@ export default function ListingFormPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(3) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(3) ? 'bg-success text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(3) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '3'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">{t('form.sections.priceDetails')}</span>
@@ -2998,7 +2998,7 @@ export default function ListingFormPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(4) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(4) ? 'bg-success text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(4) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '4'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">{t('form.sections.photos')}</span>
@@ -3045,7 +3045,7 @@ export default function ListingFormPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(5) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(5) ? 'bg-success text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(5) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '5'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">{t('form.sections.descriptionPublish')}</span>
@@ -3125,7 +3125,7 @@ export default function ListingFormPage() {
                     onClick={() => scrollToSection(s.num)}
                     className="flex items-center gap-2 w-full text-left text-xs text-theme-secondary hover:text-theme-primary transition-colors py-0.5"
                   >
-                    <span className={cn('w-3 h-3 rounded-full border flex items-center justify-center', completedSteps.includes(s.num) ? 'bg-emerald-500 border-emerald-500' : 'border-theme-border')}>
+                    <span className={cn('w-3 h-3 rounded-full border flex items-center justify-center', completedSteps.includes(s.num) ? 'bg-success border-success' : 'border-theme-border')}>
                       {completedSteps.includes(s.num) && <MEIcon name="check" className="w-2 h-2 text-white" />}
                     </span>
                     {s.label}
