@@ -502,6 +502,44 @@ const TEMOINS_DE_ZONE = [
 ]
 
 /**
+ * ⛔ LES ZONES QUI SONT DEHORS *PAR DÉCISION* — et « absent » n'en est pas une.
+ *
+ * Un lecteur de `ZONES` qui cherche `kyc-report` ne trouve rien, et rien ne
+ * distingue « exempté après mesure » de « jamais regardé ». C'est le mode
+ * d'échec que tout ce fichier existe pour empêcher, laissé ouvert du côté des
+ * SORTIES : le cliquet dit ce qu'il couvre, jamais pourquoi il ne couvre pas.
+ *
+ * ⚠ CE N'EST PAS UNE LISTE TÉMOIN DE PLUS (n°50). Une seconde liste qui
+ * répéterait « kyc-report est dehors » serait désarmée par une édition
+ * cohérente — on la retirerait en même temps que la racine. Ici la clause
+ * confronte à un TIERS : le fichier de garde doit EXISTER et NOMMER la zone.
+ * Supprimer la garde, ou la vider de sa zone, fait rougir le cliquet ; et la
+ * garde, de son côté, refuse déjà que la zone entre dans `ZONES`. Les deux
+ * verrous tiennent des choses différentes, dans des fichiers différents.
+ *
+ * ⛔ ET LA MESURE CONTREDIT LE PLAN QUI M'ENVOYAIT ICI. Il donnait `kyc-report`
+ * pour « le trou le plus grave », resté hors de toute racine, à 45 marqueurs.
+ * Mesuré : 104 marqueurs — et le chiffre 104 était DÉJÀ écrit, avec son
+ * raisonnement, dans `kyc-report-frontiere.spec.ts`, commis quatre-vingt-dix
+ * commits plus tôt. La zone n'était pas un oubli : c'est l'exemption la plus
+ * argumentée du dépôt, et elle porte un déclencheur qui refuse son entrée. Le
+ * lot qui aurait « bouché le trou » aurait repeint 104 marqueurs corrects et
+ * changé la mise en page d'un document vu par des clients et des autorités.
+ */
+const EXEMPTIONS_ECRITES: { zone: string; motif: string; garde: string }[] = [
+  {
+    zone: 'src/components/kyc-report',
+    motif:
+      'du PAPIER : `PDF_W`/`PDF_H` valent A4 à 96 DPI exactement, la mise en page est en ' +
+      'pixels absolus qui valent des millimètres. Ses sur-titres à 9,5 px en capitales ' +
+      'espacées sont de la typographie d’imprimé, pas une survivance de Sugar — et aucun ' +
+      'barreau de `--crm-text-*` ne vaut 9,5. La COMPOSITION suit le support ; le COLORIS, ' +
+      'lui, ne dépend pas du support et reste gardé (noir de Sugar et gris-bleu proscrits).',
+    garde: 'tests/unit/kyc-report-frontiere.spec.ts',
+  },
+]
+
+/**
  * ⛔ CE QUE `keepPath` DOIT LAISSER DEHORS, nommé plutôt que supposé.
  *
  * Le filtre de chemin de la zone `crm-sugar` existe pour une raison précise :
@@ -1204,6 +1242,41 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       }
     }
     expect(manquantes, `page hors du cliquet — l'entrer, ou écrire pourquoi :\n  ${manquantes.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ UNE ZONE DEHORS DOIT L'ÊTRE PAR ÉCRIT, ET SA GARDE DOIT EXISTER.
+   *
+   * Trois choses sont exigées, et la troisième est celle qui compte : le fichier
+   * de garde nommé doit CITER la zone. Sans elle, la clause se contenterait de
+   * vérifier qu'un fichier existe — on pourrait le vider, ou l'écrire sur une
+   * autre zone, et le motif s'évaporerait sans que rien ne rougisse. C'est la
+   * n°22 (« la couverture ne repose plus sur rien ») appliquée à une sortie.
+   *
+   * ⚠ ET LA GARDE NOMMÉE FAIT LE CHEMIN INVERSE : `kyc-report-frontiere` refuse
+   * que la zone entre dans `ZONES`. Les deux fichiers se tiennent, chacun sur ce
+   * que l'autre ne peut pas voir — ce n'est pas une redondance, c'est un verrou
+   * croisé. Le retrait de l'un est visible depuis l'autre.
+   */
+  it('chaque zone laissée dehors l’est par une exemption ÉCRITE, et sa garde la nomme', () => {
+    expect(EXEMPTIONS_ECRITES.length, 'plus aucune exemption écrite — la clause ne mesure rien').toBeGreaterThan(0)
+    const racines = ZONES.map((z) => z.root)
+    const defauts: string[] = []
+    for (const { zone, motif, garde } of EXEMPTIONS_ECRITES) {
+      if (racines.includes(zone)) {
+        defauts.push(`${zone} est À LA FOIS dans ZONES et exemptée — trancher, lire ${garde}`)
+      }
+      if (motif.trim().length < 40) defauts.push(`${zone} : motif trop court pour être un motif`)
+      const lu = readFileSafely(repoPath(garde))
+      if (lu.status !== 'ok') {
+        defauts.push(`${zone} : sa garde ${garde} est introuvable — l'exemption n'a plus de support`)
+        continue
+      }
+      if (!lu.value.includes(zone)) {
+        defauts.push(`${zone} : sa garde ${garde} ne la nomme plus — le motif s'est évaporé`)
+      }
+    }
+    expect(defauts, `exemption sans support :\n  ${defauts.join('\n  ')}`).toEqual([])
   })
 
   /**
