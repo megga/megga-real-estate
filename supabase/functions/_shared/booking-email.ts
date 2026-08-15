@@ -59,9 +59,16 @@ const esc = escapeHtml
  * empilait cinq paragraphes de prose : la date, le lieu, la consigne de pièce d'identité
  * et le lien de report s'y lisaient au même niveau, donc aucun ne se voyait. Ici :
  *   · les FAITS passent en tableau (quand, comment, avec) — c'est ce qu'on relit la veille ;
- *   · la CONSIGNE devient un bloc encadré : oublier sa pièce fait échouer la séance, c'est
- *     la seule chose que le message doit rendre impossible à manquer ;
  *   · l'action devient un BOUTON, plus un lien noyé dans une phrase.
+ *
+ * ⚠ LA PIÈCE D'IDENTITÉ EST UN RAPPEL, PAS UNE CONDITION. Le client l'a DÉJÀ transmise
+ * par le lien magique (`kyc_magic_link_uploads`, extraction avant réservation) : son
+ * identité est au dossier quand ce message part. Une première version de cette refonte
+ * l'annonçait en bloc encadré avec « la séance ne peut pas se tenir sans elle » — une
+ * conséquence qu'aucun code ni aucun processus ne garantit, écrite sur un registre
+ * inquiétant à quelqu'un qui a déjà fait ce qu'on lui demandait. La phrase reste au ras
+ * du texte, au conditionnel, ou disparaît : elle ne doit jamais reprendre du poids sans
+ * qu'une règle métier écrite la justifie.
  *
  * ⚠ AUCUNE PILULE D'EN-TÊTE (`headerCta: null`), contrairement aux e-mails d'agence : le
  * destinataire est le CLIENT d'une agence, il n'a pas de compte MEGGA. Lui proposer
@@ -135,7 +142,7 @@ export function buildBookingEmail(p: BookingEmailParams): { subject: string; htm
        ${row(p.mode === 'video' ? 'Comment' : 'Où', modeLigne)}
        ${row('Avec', `${who} · ${agency}`)}
      </table>
-     ${note(null, 'Munissez-vous de la pièce d’identité que vous avez transmise : la séance ne peut pas se tenir sans elle.')}
+     ${p_('Gardez votre pièce d’identité à portée de main : votre conseiller peut avoir à la voir.', 28)}
      ${p.mode === 'video' && p.videoLink
         ? `<div style="margin:0 0 32px;">${button(p.videoLink, 'Rejoindre la visioconférence')}</div>`
         : ''}

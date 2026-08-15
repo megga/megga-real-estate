@@ -37,8 +37,14 @@ describe('buildBookingEmail — ce que le client doit pouvoir faire', () => {
     expect(buildBookingEmail(base).html).toContain('10:00')
   })
 
-  it('la consigne de pièce d’identité est présente : l’oublier fait échouer la séance', () => {
-    expect(buildBookingEmail(base).html).toContain('pièce d’identité que vous avez transmise')
+  it('⛔ la pièce d’identité est un RAPPEL, jamais une condition', () => {
+    // Le client l'a déjà transmise par le lien magique avant de réserver : son identité
+    // est au dossier quand ce message part. Annoncer que « la séance ne peut pas se tenir
+    // sans elle » serait une conséquence qu'aucun processus ne garantit, adressée à
+    // quelqu'un qui a déjà fait ce qu'on lui demandait.
+    const html = buildBookingEmail(base).html
+    expect(html).toContain('pièce d’identité à portée de main')
+    expect(html).not.toMatch(/ne peut pas se tenir|obligatoire|sans quoi|faute de quoi/i)
   })
 
   it('visioconférence avec lien -> bouton ; sans lien -> aucun bouton mort, mais un mot', () => {
@@ -59,7 +65,7 @@ describe('buildBookingEmail — ce que le client doit pouvoir faire', () => {
   it('une ANNULATION ne porte ni consigne, ni bouton, ni lien de report', () => {
     // Elle dit seulement quoi faire ensuite : demander un nouveau créneau à son conseiller.
     const html = buildBookingEmail({ ...base, kind: 'cancelled' }).html
-    expect(html).not.toContain('pièce d’identité')
+    expect(html).not.toContain('pièce d’identité à portée')
     expect(html).not.toContain('Rejoindre la visioconférence')
     expect(html).not.toContain('Un empêchement ?')
     expect(html).toContain('contactez Gregory Lyonnet chez Régie du Rhône')
