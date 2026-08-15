@@ -95,14 +95,21 @@ function zoneDe(chemin: string): string {
  * pas une. Chaque entrée porte son motif ; une entrée qui ne correspond plus à
  * aucun code fait rougir — sans quoi une exemption survit à ce qu'elle exemptait.
  */
+/*
+ * ⚠ L'EXEMPTION DU GABARIT D'E-MAIL A ÉTÉ RETIRÉE — non pas parce que son motif
+ * était faux, mais parce qu'il a DÉMÉNAGÉ. `src/hooks/useSendAgentEmail.ts`
+ * construisait son HTML en clair, fond littéral compris ; le chantier de la
+ * coquille e-mail (arrivé par `main`) l'a déplacé dans
+ * `supabase/functions/_shared/email-shell.ts`, hors de `src/` et donc hors de ce
+ * balayage. Le motif reste vrai — un client de messagerie ne connaît ni
+ * `data-theme` ni les variables du CRM — mais il n'a plus rien à couvrir ici.
+ *
+ * ⛔ C'est la clause « chaque exemption correspond encore à du code » qui l'a
+ * signalé, et elle ne l'a fait qu'en CI : la CI teste la FUSION avec `main`,
+ * pendant que la branche était en retard de 35 commits. Une exemption calibrée
+ * sur un arbre local peut être périmée à la seconde où elle est écrite.
+ */
 const SURFACES_EXEMPTEES: { fichier: string; motif: string }[] = [
-  {
-    fichier: 'src/hooks/useSendAgentEmail.ts',
-    motif:
-      'un gabarit HTML d’E-MAIL. Il part chez un client de messagerie, qui ne connaît ni ' +
-      '`data-theme` ni les variables du CRM : la couleur DOIT y être littérale. L’y interdire ' +
-      'reviendrait à interdire d’envoyer un e-mail lisible.',
-  },
   {
     fichier: 'src/pages/dev/OnboardingPreviewPage.tsx',
     motif:
@@ -150,7 +157,6 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/lib/sugarAdapters.ts', 8],
   ['src/hooks/useAgentProfileSugar.ts', 7],
   ['src/hooks/useCalendarSugar.ts', 6],
-  ['src/hooks/useSendAgentEmail.ts', 6],
   ['src/pages/public', 6],
   ['src/components/auth', 4],
   ['src/components/buyer-reception', 4],
