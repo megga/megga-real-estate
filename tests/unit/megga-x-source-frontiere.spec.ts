@@ -38,13 +38,31 @@
  */
 import { describe, it, expect } from 'vitest'
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { repoPath, readFileSafely } from './helpers/fs-scan'
 
 const ZONE = 'src/components/megga-x'
 const PAGE = 'src/pages/dev/MeggaXStyleGuidePage.tsx'
 const FEUILLE = 'src/styles/megga-x.generated.css'
 const ENTREE = 'src/styles/megga-x.css'
+/**
+ * ⛔ LA TROISIÈME FEUILLE RELÈVE DE LA MÊME NATURE, ET LA MESURE LE TRANCHE.
+ *
+ * `megga-x-additions.css` porte « les AJOUTS assumés (ce que la vitrine n'a
+ * pas) », scopés `.megga-x`. Le réflexe du lot 5 était d'y tokeniser ses sept
+ * `font-size` en px sur `--crm-text-*`. Mesuré avant : la feuille de la vitrine
+ * ne déclare AUCUNE variable de taille de texte — ses familles sont `main`,
+ * `system`, `section`, `secondary`, `neutral`, `primary`, et une seule variable
+ * typographique, `--main-font` — et elle écrit elle-même **141 `font-size` en
+ * px**.
+ *
+ * Écrire un px dans une règle `.megga-x` est donc ce que la direction FAIT ; y
+ * imposer l'échelle du CRM importerait le vocabulaire du CRM dans la source de
+ * la direction, à rebours de la « transcription fidèle » que ces feuilles
+ * déclarent. Les trois feuilles sortent du cliquet CSS pour le même motif que
+ * `src/components/megga-x` sort du cliquet de composition.
+ */
+const ADDITIONS = 'src/styles/megga-x-additions.css'
 
 const feuille = readFileSafely(repoPath(FEUILLE))
 const entree = readFileSafely(repoPath(ENTREE))
@@ -88,6 +106,17 @@ describe('MEGGA X — la source de la direction, et sa contrepartie', () => {
     // le scan sous la main. Dupliquer le balayage ici pour le redire aurait créé
     // une seconde vérité à maintenir.
     expect(racines, 'le dossier des bancs est passé en racine nue').toContain('src/pages/dev')
+    // ⚠ ET LA PAGE EST NOMMÉE ICI, avec un rôle RÉEL — pas pour satisfaire le
+    // verrou croisé. Une exemption qui désigne un fichier disparu ne protège
+    // plus rien : elle survit juste assez longtemps pour couvrir un homonyme.
+    //
+    // ⛔ CE FIL A ÉTÉ COUPÉ PAR UNE CORRECTION DE LINT, et le cliquet l'a vu.
+    // `PAGE` n'avait plus de lecteur depuis le retrait de la clause faible ;
+    // ESLint l'a signalée inutilisée, je l'ai supprimée — et l'exemption de
+    // `MeggaXStyleGuidePage` s'est retrouvée « sans support », parce que sa
+    // garde ne la NOMMAIT plus nulle part. Un verrou croisé attrape aussi les
+    // ruptures qu'on croit cosmétiques.
+    expect(existsSync(repoPath(PAGE)), `${PAGE} a disparu — son exemption ne désigne plus rien`).toBe(true)
   })
 
   /**
@@ -113,7 +142,9 @@ describe('MEGGA X — la source de la direction, et sa contrepartie', () => {
       ).toBe(true)
     } finally {
       // ⛔ On restaure quoi qu'il arrive : un test ne laisse pas l'arbre modifié.
-      readFileSync(repoPath(FEUILLE), 'utf8') !== avant && require('node:fs').writeFileSync(repoPath(FEUILLE), avant)
+      // Écrire sans comparer serait plus court, mais toucher le mtime d'un
+      // fichier de 380 Kio à chaque exécution relancerait le watcher de Vite.
+      if (readFileSync(repoPath(FEUILLE), 'utf8') !== avant) writeFileSync(repoPath(FEUILLE), avant)
     }
   })
 
@@ -151,9 +182,33 @@ describe('MEGGA X — la source de la direction, et sa contrepartie', () => {
    * par un `<link>` précédé d'un `preconnect`. Il ne rendait donc aucun service :
    * il ajoutait un aller-retour pour une police déjà en vol.
    */
+  /**
+   * La feuille des ajouts est exemptée du cliquet CSS ; elle doit donc être
+   * nommée ICI, sans quoi son exemption n'aurait pas de support. Et l'exemption
+   * porte sur l'ÉCHELLE, pas sur tout : une feuille qui déclare la direction
+   * n'est pas dispensée d'exister.
+   */
+  it('la feuille des ajouts existe et reste scopée à la direction', () => {
+    const lu = readFileSafely(repoPath(ADDITIONS))
+    expect(lu.status, `${ADDITIONS} illisible — son exemption n’a plus de support`).toBe('ok')
+    const css = lu.status === 'ok' ? lu.value : ''
+    expect(css.length, 'la feuille des ajouts est vide').toBeGreaterThan(1000)
+    // ⛔ Toute règle doit rester SOUS `.megga-x`. Une règle non scopée fuirait
+    // du design system vers le CRM entier, et l'exemption de nature — « ceci
+    // EST la direction » — ne la couvrirait plus : elle peindrait des surfaces
+    // que le cliquet mesure, avec un vocabulaire qu'il n'admet pas.
+    const nonScopees = css
+      .replace(/\/\*[\s\S]*?\*\//g, (b) => '\n'.repeat((b.match(/\n/g) ?? []).length))
+      .split('\n')
+      .map((l, i) => ({ l: l.trim(), i: i + 1 }))
+      .filter(({ l }) => /^[.#a-z[][^{}]*\{\s*$/.test(l) && !l.includes('.megga-x') && !/^@/.test(l))
+      .map(({ i }) => `${ADDITIONS}:${i}`)
+    expect(nonScopees, `règle non scopée .megga-x — elle fuit vers le CRM :\n  ${nonScopees.join('\n  ')}`).toEqual([])
+  })
+
   it('aucun @import réseau dans les feuilles MEGGA X', () => {
     const fautifs: string[] = []
-    for (const [nom, lu] of [[ENTREE, entree], [FEUILLE, feuille]] as const) {
+    for (const [nom, lu] of [[ENTREE, entree], [FEUILLE, feuille], [ADDITIONS, readFileSafely(repoPath(ADDITIONS))]] as const) {
       const css = lu.status === 'ok' ? lu.value : ''
       css.split('\n').forEach((ligne, i) => {
         if (/@import\s+url\(\s*['"]?https?:/.test(ligne)) fautifs.push(`${nom}:${i + 1}`)

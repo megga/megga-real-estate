@@ -652,6 +652,115 @@ const EXEMPTIONS_ECRITES: { zone: string; motif: string; garde: string }[] = [
       `générateur, zéro url() pendante, zéro @import réseau.`,
     garde: 'tests/unit/megga-x-source-frontiere.spec.ts',
   })),
+  // ── Lot 5 · les trois FEUILLES de la direction, même motif ─────────────────
+  // Le réflexe était de tokeniser leurs `font-size` sur `--crm-text-*`. Mesuré
+  // avant de le faire : la feuille de la vitrine ne déclare AUCUNE variable de
+  // taille de texte — une seule variable typographique, `--main-font` — et écrit
+  // elle-même 141 `font-size` en px. Écrire un px dans une règle `.megga-x` est
+  // donc ce que la direction FAIT ; y imposer l'échelle du CRM importerait le
+  // vocabulaire du CRM dans la SOURCE de la direction.
+  ...['megga-x.css', 'megga-x.generated.css', 'megga-x-additions.css'].map((n) => ({
+    zone: `src/styles/${n}`,
+    motif:
+      `exemption de NATURE, même motif que src/components/megga-x : cette feuille EST la ` +
+      `direction, exprimée dans SON vocabulaire. La vitrine ne déclare aucune variable de ` +
+      `taille de texte et écrit 141 font-size en px ; lui imposer --crm-text-* serait ` +
+      `importer l'échelle du CRM dans la source dont il descend. ⚠ L'exemption porte sur ` +
+      `l'ÉCHELLE, pas sur tout : la garde exige que la feuille générée soit le produit exact ` +
+      `du générateur, qu'aucune url() ne pende, qu'aucun @import réseau ne bloque le rendu, ` +
+      `et que chaque règle des ajouts reste scopée .megga-x — une règle qui fuirait peindrait ` +
+      `des surfaces que le cliquet mesure, avec un vocabulaire qu'il n'admet pas.`,
+    garde: 'tests/unit/megga-x-source-frontiere.spec.ts',
+  })),
+]
+
+/**
+ * ⛔ LOT 5 · LA GRAMMAIRE DANS LES FEUILLES CSS — le QUATRIÈME langage.
+ *
+ * Trois notations étaient lues : le style en ligne (`fontWeight:`), la classe
+ * (`font-bold`), l'attribut JSX (`fontWeight="800"`). La quatrième — une FEUILLE
+ * `.css` — ne l'était pas du tout. Une seule clause y touchait, et seulement
+ * pour les `<style>` posés DANS un `.tsx`.
+ *
+ * ⚠ TROUVÉ À L'ÉCRAN, PAS PAR LECTURE. En vérifiant le lot 3c sur
+ * `/dev/matching-atelier`, 43 éléments rendaient une graisse ≥ 700 qu'aucune
+ * clause ne voyait — `.sgk-title`, `.eyebrow`, `.big.nums`. Elles vivent dans
+ * `atelier.css`, et `matching-atelier` est au cliquet depuis le 13 août : la
+ * zone était DÉCLARÉE COUVERTE pendant que toute sa grammaire lui échappait.
+ *
+ * ── DEUX PIÈGES, DÉJÀ CONNUS DU DÉPÔT, ET QUI ONT FAILLI ÊTRE REPRODUITS ─────
+ * Mon relevé brut donnait 6 graisses ≥ 700 dans `globals.css` et un gris-bleu
+ * dans `admin-console.css`. Les deux sont FAUX :
+ *
+ *  · les six graisses sont des descripteurs `@font-face` — elles déclarent quel
+ *    FICHIER Objectivity fournit quelle graisse. Interdire ça reviendrait à
+ *    interdire de livrer une police en gras. Les blocs `@font-face` sont donc
+ *    neutralisés, comme `collect()` neutralise les keyframes ;
+ *  · le gris-bleu vit dans le COMMENTAIRE qui explique son retrait. C'est la
+ *    forme n°16 : la garde désarmée par sa propre documentation.
+ *
+ * Après correction : `globals.css`, `admin-console.css`, `mrh.css` et
+ * `megga-x.css` rendent ZÉRO. La dette réelle est de 146 marqueurs, dont 143
+ * dans une seule feuille.
+ */
+/**
+ * Rend le CSS tel que la clause doit le lire : sans commentaires (n°16) et sans
+ * les blocs `@font-face`, dont les `font-weight` sont des descripteurs.
+ * Les deux préservent le compte de lignes — un `fichier:ligne` faux coûte plus
+ * cher qu'il ne rapporte.
+ */
+function cssLisible(css: string): string {
+  const garderLignes = (bloc: string) => '\n'.repeat((bloc.match(/\n/g) ?? []).length)
+  return css.replace(/\/\*[\s\S]*?\*\//g, garderLignes).replace(/@font-face\s*\{[^}]*\}/g, garderLignes)
+}
+
+/**
+ * Feuille → ce qu'elle porte ENCORE, par espèce. Cliquet à plafond décroissant :
+ * le compte ne peut que baisser, et le test suivant refuse toute entrée devenue
+ * trop haute.
+ *
+ * ⛔ POURQUOI UN INVENTAIRE ET NON UNE PASSE. `atelier.css` fait 964 lignes et
+ * porte 143 marqueurs : les corriger dans le lot qui POSE la clause noierait la
+ * clause dans le diff, et 47 de ses tailles sont hors échelle — donc 47
+ * arbitrages visuels sur une surface que l'agent utilise. C'est la conduite que
+ * le plan prescrit pour les zones surdimensionnées, appliquée ici.
+ *
+ * ⚠ `responsive.css` : ses TROIS tailles appartiennent à des sélecteurs MORTS.
+ * Mesuré — `.sg-h1`, `.sg-stat-value` et `.sg-grid-coords` n'ont aucun porteur
+ * dans `src/`, aucune composition dynamique de classe, et sont absents du
+ * bundle construit ; 9 des 15 sélecteurs de cette feuille sont dans ce cas,
+ * alors qu'elle est importée par `main.tsx` donc chargée PARTOUT. Ses six
+ * sélecteurs vivants ne portent, eux, aucun marqueur. Le retrait de la feuille
+ * est une décision de PRODUIT, posée et non prise ici — d'où l'inventaire.
+ */
+const CSS_ASSUME = new Map<string, { graisse?: number; capitale?: number; interlettrage?: number; taille?: number }>([
+  ['src/components/matching-atelier/atelier.css', { graisse: 44, capitale: 5, interlettrage: 6, taille: 88 }],
+  ['src/components/crm-sugar-v3/responsive.css', { taille: 3 }],
+])
+
+/** Les espèces mesurées dans une feuille, et le motif qui les reconnaît. */
+const ESPECES_CSS: { nom: 'graisse' | 'capitale' | 'interlettrage' | 'taille'; voit: (ligne: string) => boolean }[] = [
+  { nom: 'graisse', voit: (l) => /font-weight:\s*(700|800|900|bold)\b/.test(l) },
+  { nom: 'capitale', voit: (l) => /text-transform:\s*uppercase/.test(l) },
+  {
+    nom: 'interlettrage',
+    // Même seuil que la clause des styles en ligne : seul le POSITIF est visé,
+    // et 0,04em vaut 0,4px sur un texte de 10 px.
+    voit: (l) => {
+      const m = l.match(/letter-spacing:\s*(-?[\d.]+)(px|em|rem)?/)
+      if (!m) return false
+      const v = Number(m[1])
+      return !Number.isNaN(v) && v >= (m[2] === 'em' || m[2] === 'rem' ? 0.04 : 0.4)
+    },
+  },
+  {
+    nom: 'taille',
+    // ⚠ On compte TOUTE taille littérale, pas seulement celles hors échelle : un
+    // 14 px écrit en dur ne bougera pas si l'échelle bouge, et c'est la même
+    // dette qu'un 14,5. Le détail « dont N hors échelle » vit dans la docstring,
+    // là où il informe, pas dans le seuil, où il ferait deux règles.
+    voit: (l) => /font-size:\s*[\d.]+px/.test(l),
+  },
 ]
 
 /**
@@ -1566,6 +1675,72 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       `porteur ni balayé ni exempté — l'entrer dans ZONES, ou écrire son motif dans ` +
         `EXEMPTIONS_ECRITES avec la garde qui le porte :\n  ${orphelins.join('\n  ')}`,
     ).toEqual([])
+  })
+
+  /**
+   * ⛔ LES FEUILLES SONT ÉNUMÉRÉES DEPUIS L'ARBRE, jamais listées. Une liste de
+   * chemins se périme au premier `.css` ajouté, et personne ne le verrait — le
+   * fichier neuf ne serait simplement pas lu. Même raison que la clause de
+   * fermeture : le tiers, c'est le système de fichiers.
+   */
+  it('chaque feuille CSS de src/ est lue, ou exemptée avec un motif', () => {
+    const feuilles = scanRoots([{ root: 'src', keep: (n) => /\.css$/.test(n) }])
+    expect(emptyRoots(feuilles), 'racine vide : chemin cassé').toEqual([])
+    expect(feuilles.files.length, 'plus aucune feuille — la clause ne mesure rien').toBeGreaterThan(5)
+    const exemptees = new Set(EXEMPTIONS_ECRITES.map((e) => e.zone))
+    const inconnues = feuilles.files
+      .map(rel)
+      .filter((p) => !exemptees.has(p) && !CSS_ASSUME.has(p))
+      .filter((p) => {
+        const lu = readFileSafely(repoPath(p))
+        if (lu.status !== 'ok') return false
+        const lignes = cssLisible(lu.value).split('\n')
+        return ESPECES_CSS.some(({ voit }) => lignes.some(voit))
+      })
+    expect(
+      inconnues,
+      `feuille qui porte de la grammaire sans inventaire ni exemption :\n  ${inconnues.join('\n  ')}`,
+    ).toEqual([])
+  })
+
+  /**
+   * Le plafond, par ESPÈCE. Un total unique conflerait quatre dettes qui se
+   * paient séparément — et permettrait d'en échanger une contre une autre sans
+   * que rien ne bouge.
+   */
+  it('aucune feuille CSS ne dépasse son inventaire', () => {
+    const trop: string[] = []
+    for (const [chemin, permis] of CSS_ASSUME) {
+      const lu = readFileSafely(repoPath(chemin))
+      if (lu.status !== 'ok') { trop.push(`${chemin} : illisible — l'inventaire ne mesure rien`); continue }
+      const lignes = cssLisible(lu.value).split('\n')
+      for (const { nom, voit } of ESPECES_CSS) {
+        const n = lignes.filter(voit).length
+        const p = permis[nom] ?? 0
+        if (n > p) trop.push(`${chemin} — ${nom} : ${n} > ${p} permis`)
+      }
+    }
+    expect(trop, `grammaire CSS au-delà de l'inventaire :\n  ${trop.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * L'inventaire ne doit que RÉTRÉCIR : une entrée dont la feuille en porte
+   * moins qu'annoncé laisse un crédit ouvert, et le prochain lot pourrait en
+   * réintroduire sans rien faire rougir. Même idiome que le gris-bleu.
+   */
+  it('l’inventaire CSS ne garde aucun crédit', () => {
+    const perimees: string[] = []
+    for (const [chemin, permis] of CSS_ASSUME) {
+      const lu = readFileSafely(repoPath(chemin))
+      if (lu.status !== 'ok') { perimees.push(`${chemin} : fichier absent`); continue }
+      const lignes = cssLisible(lu.value).split('\n')
+      for (const { nom, voit } of ESPECES_CSS) {
+        const n = lignes.filter(voit).length
+        const p = permis[nom] ?? 0
+        if (n < p) perimees.push(`${chemin} — ${nom} : ${n} réels < ${p} inscrits — descendre le compte`)
+      }
+    }
+    expect(perimees, `inventaire CSS à resserrer :\n  ${perimees.join('\n  ')}`).toEqual([])
   })
 
   /**
