@@ -197,6 +197,23 @@ export function row(label: string, value: string): string {
 }
 
 /**
+ * Bloc encadré, CREUSÉ dans la carte : un motif de décision, une consigne à ne pas rater.
+ *
+ * ⚠ `#050505` sur une carte `#090909` : dans l'échelle sombre MEGGA X une sous-surface se
+ * CREUSE, elle ne monte pas. C'est l'inverse de l'ancienne échelle Graphite, et le piège
+ * exact dans lequel sa migration était tombée (cf. CLAUDE.md §3).
+ *
+ * `label` à `null` quand le bloc se suffit à lui-même : un intitulé qui répète la phrase
+ * qu'il coiffe ajoute du bruit là où l'on voulait de l'attention.
+ */
+export function note(label: string | null, html: string): string {
+  return `<div style="margin:0 0 28px;padding:16px 18px;background:#050505;border:1px solid ${CARD_BORDER};border-radius:14px;">
+      ${label ? `<p style="margin:0 0 6px;font-family:${FONT};font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:${MUTED};">${escapeHtml(label)}</p>` : ''}
+      <p style="margin:0;font-family:${FONT};font-size:14px;line-height:1.6;color:${BODY_INK};">${html}</p>
+    </div>`
+}
+
+/**
  * Bouton d'action, en pilule.
  *
  * ⚠ La branche VML n'est pas décorative : Outlook (moteur Word) ignore `border-radius`
