@@ -51,13 +51,21 @@ export async function geocodeAddress(
   if (!address || !token) return null
   if (geocodeCache.has(address)) return geocodeCache.get(address)!
   try {
+    // ⛔ GEOCODING v6, ET NON v5. Mapbox a classé `geocoding/v5/mapbox.places` LEGACY :
+    // elle n'est plus servie qu'aux comptes qui l'utilisaient déjà. Mesuré le
+    // 16.08.2026 avec un jeton neuf, valide et sans restriction : HTTP 403,
+    // `{"message":"Forbidden"}`. Un compte créé aujourd'hui ne peut pas géocoder en v5.
+    // La requête passe en paramètre `q` ; les coordonnées restent du GeoJSON standard,
+    // donc `geometry.coordinates` en [lng, lat].
     const url =
-      `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(address)}.json` +
-      `?access_token=${token}&country=ch&limit=1&language=fr`
+      `https://api.mapbox.com/search/geocode/v6/forward` +
+      `?q=${encodeURIComponent(address)}&access_token=${token}&country=ch&limit=1&language=fr`
     const res = await fetch(url, { signal })
     if (!res.ok) throw new Error(`geocode ${res.status}`)
-    const json = (await res.json()) as { features?: Array<{ center?: [number, number] }> }
-    const c = json.features?.[0]?.center // [lng, lat]
+    const json = (await res.json()) as {
+      features?: Array<{ geometry?: { coordinates?: [number, number] } }>
+    }
+    const c = json.features?.[0]?.geometry?.coordinates // [lng, lat]
     const coords = c ? validCoords(c[1], c[0]) : null
     geocodeCache.set(address, coords)
     return coords
