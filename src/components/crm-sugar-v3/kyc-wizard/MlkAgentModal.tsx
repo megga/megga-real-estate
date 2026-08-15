@@ -2,7 +2,7 @@
 // Sprint 4.7.B — Port pixel-près de handoff-kyc-magic-link/maquette/megga-kyc-magic-link.jsx
 // (composant MlkAgentModal lignes 1067-1186).
 //
-// Direction artistique : MEGGA X, tokens SugarV3.*, l'élément ACTIF porte
+// Direction artistique : MEGGA X, tokens sugarV3Palette(), l'élément ACTIF porte
 // l'accent #424bfb (lot 2, 16 août 2026). L'en-tête annonçait « Sugar Pure
 // strict, accent noir #0B0C0E » : c'était vrai à l'écriture, et c'est
 // exactement la forme de dérive la plus coûteuse — un fichier aligné sur une
@@ -21,9 +21,10 @@ import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useState, useMemo, useId } from 'react'
 import type { ReactNode } from 'react'
 import { Trans, useTranslation } from 'react-i18next'
-import { SugarV3 } from '../tokens'
+import { sugarV3Palette } from '../tokens'
 import { SgIcon } from '../icons'
 import { KycBlackPill, KycGhostPill } from '../primitives'
+import { useSugarDark } from '@/lib/sugarDark'
 import { useCreateMagicLink } from '@/hooks/useMagicLink'
 import type {
   MagicLinkChannel,
@@ -60,6 +61,8 @@ interface ModeCardProps {
 
 function MlkModeCard({ selected, title, sub, duration, steps, recommended, onClick }: ModeCardProps) {
   const { t } = useTranslation('kyc')
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <button
       type="button"
@@ -70,8 +73,8 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
         border: 0,
         padding: 'var(--crm-space-4xl) var(--crm-space-4xl) var(--crm-space-3xl)',
         borderRadius: 'var(--crm-radius-3xl)',
-        background: selected ? SugarV3.accent : SugarV3.cardSubtle,
-        color: selected ? '#fff' : SugarV3.ink,
+        background: selected ? S.accent : S.cardSubtle,
+        color: selected ? '#fff' : S.ink,
         boxShadow: selected
           ? `0 14px 32px ${sgVoileEncre(false, 0.20)}, 0 4px 12px ${sgVoileEncre(false, 0.10)}`
           : 'none',
@@ -92,7 +95,7 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
             right: 12,
             padding: 'var(--crm-space-2xs) var(--crm-space-md)',
             borderRadius: 'var(--crm-radius-pill)',
-            background: selected ? 'rgba(255,255,255,0.16)' : SugarV3.accent,
+            background: selected ? 'rgba(255,255,255,0.16)' : S.accent,
             color: '#fff',
             fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
@@ -109,7 +112,7 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
           style={{
             fontSize: 'var(--crm-text-md)',
             fontWeight: 500,
-            color: selected ? 'rgba(255,255,255,0.70)' : SugarV3.muted,
+            color: selected ? 'rgba(255,255,255,0.70)' : S.muted,
             lineHeight: 1.45,
           }}
         >
@@ -123,7 +126,7 @@ function MlkModeCard({ selected, title, sub, duration, steps, recommended, onCli
           marginTop: 4,
           fontSize: 'var(--crm-text-xs)',
           fontWeight: 600,
-          color: selected ? 'rgba(255,255,255,0.88)' : SugarV3.inkSoft,
+          color: selected ? 'rgba(255,255,255,0.88)' : S.inkSoft,
           fontVariantNumeric: 'tabular-nums',
         }}
       >
@@ -160,6 +163,8 @@ interface ChannelChipProps {
 }
 
 function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: ChannelChipProps) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <button
       type="button"
@@ -171,9 +176,9 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
         border: 0,
         padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
         borderRadius: 'var(--crm-radius-xl)',
-        background: SugarV3.card,
-        boxShadow: selected ? SugarV3.shadow : SugarV3.shadowSm,
-        outline: selected ? `2px solid ${SugarV3.accent}` : 'none',
+        background: S.card,
+        boxShadow: selected ? S.shadow : S.shadowSm,
+        outline: selected ? `2px solid ${S.accent}` : 'none',
         outlineOffset: -1,
         fontFamily: 'inherit',
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -190,7 +195,7 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
           height: 18,
           borderRadius: 'var(--crm-radius-xs)',
           flexShrink: 0,
-          background: selected ? SugarV3.accent : 'transparent',
+          background: selected ? S.accent : 'transparent',
           boxShadow: selected ? 'none' : `inset 0 0 0 1.5px ${sgVoileEncre(false, 0.22)}`,
           display: 'grid',
           placeItems: 'center',
@@ -204,18 +209,18 @@ function MlkChannelChip({ icon, label, sub, selected, disabled, onClick }: Chann
           height: 32,
           borderRadius: 'var(--crm-radius-pill)',
           flexShrink: 0,
-          background: SugarV3.cardSubtle,
+          background: S.cardSubtle,
           display: 'grid',
           placeItems: 'center',
         }}
       >
-        <SgIcon name={icon} size={15} stroke={SugarV3.ink} sw={1.7} />
+        <SgIcon name={icon} size={15} stroke={S.ink} sw={1.7} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV3.ink, letterSpacing: -0.1 }}>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: S.ink, letterSpacing: -0.1 }}>
           {label}
         </div>
-        <div style={{ fontSize: 'var(--crm-text-sm)', color: SugarV3.muted, fontWeight: 500, marginTop: 1 }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: S.muted, fontWeight: 500, marginTop: 1 }}>
           {sub}
         </div>
       </div>
@@ -237,6 +242,8 @@ export function MlkAgentModal({
   onClose,
   onSuccess,
 }: Props) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   const createLink = useCreateMagicLink()
   const [mode, setMode] = useState<MagicLinkMode>(defaultMode)
   const [channels, setChannels] = useState<MagicLinkChannel[]>(() => {
@@ -309,12 +316,12 @@ export function MlkAgentModal({
         style={{
           width: 720,
           maxWidth: 'calc(100vw - 32px)',
-          background: SugarV3.card,
+          background: S.card,
           borderRadius: 'var(--crm-radius-6xl)',
           boxShadow:
             `0 40px 100px ${sgVoileEncre(false, 0.20)}, 0 8px 24px ${sgVoileEncre(false, 0.10)}`,
-          fontFamily: SugarV3.font,
-          color: SugarV3.ink,
+          fontFamily: S.font,
+          color: S.ink,
           animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
           overflow: 'hidden',
         }}
@@ -426,6 +433,8 @@ function FormView({
   onSubmit,
 }: FormViewProps) {
   const { t } = useTranslation('kyc')
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   const firstName = contactName.split(' ')[0]
   return (
     <>
@@ -444,7 +453,7 @@ function FormView({
             style={{
               fontSize: 'var(--crm-text-xs)',
               fontWeight: 600,
-              color: SugarV3.muted,
+              color: S.muted,
                                           marginBottom: 6,
             }}
           >
@@ -456,7 +465,7 @@ function FormView({
               margin: 0,
               fontSize: 'var(--crm-text-5xl)',
               fontWeight: 600,
-              color: SugarV3.ink,
+              color: S.ink,
               letterSpacing: -0.6,
               lineHeight: 1.15,
             }}
@@ -464,7 +473,7 @@ function FormView({
             {t('wizard.magic.title', { firstName })}
           </h2>
           {contactSummary && (
-            <div style={{ marginTop: 8, fontSize: 'var(--crm-text-lg)', color: SugarV3.muted, fontWeight: 500 }}>
+            <div style={{ marginTop: 8, fontSize: 'var(--crm-text-lg)', color: S.muted, fontWeight: 500 }}>
               {contactSummary}
             </div>
           )}
@@ -478,15 +487,15 @@ function FormView({
             height: 38,
             borderRadius: 'var(--crm-radius-pill)',
             border: 0,
-            background: SugarV3.cardSubtle,
-            color: SugarV3.inkSoft,
+            background: S.cardSubtle,
+            color: S.inkSoft,
             display: 'grid',
             placeItems: 'center',
             cursor: 'pointer',
             flexShrink: 0,
           }}
         >
-          <SgIcon name="close" size={16} stroke={SugarV3.inkSoft} sw={2} />
+          <SgIcon name="close" size={16} stroke={S.inkSoft} sw={2} />
         </button>
       </div>
 
@@ -497,7 +506,7 @@ function FormView({
           style={{
             fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: S.muted,
                                     marginBottom: 10,
           }}
         >
@@ -535,7 +544,7 @@ function FormView({
           style={{
             fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: S.muted,
                                     marginBottom: 10,
           }}
         >
@@ -565,7 +574,7 @@ function FormView({
           style={{
             fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: S.muted,
                                     marginBottom: 10,
           }}
         >
@@ -583,8 +592,8 @@ function FormView({
             width: '100%',
             padding: 'var(--crm-space-2xl) var(--crm-space-3xl)',
             borderRadius: 'var(--crm-radius-xl)',
-            background: SugarV3.cardSubtle,
-            color: SugarV3.ink,
+            background: S.cardSubtle,
+            color: S.ink,
             fontSize: 'var(--crm-text-lg)',
             lineHeight: 1.5,
             fontWeight: 500,
@@ -605,23 +614,23 @@ function FormView({
             alignItems: 'center',
             gap: 'var(--crm-space-lg)',
             padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
-            background: SugarV3.cardSubtle,
+            background: S.cardSubtle,
             borderRadius: 'var(--crm-radius-lg)',
             marginBottom: 24,
           }}
         >
-          <SgIcon name="clock" size={14} stroke={SugarV3.muted} sw={1.8} />
+          <SgIcon name="clock" size={14} stroke={S.muted} sw={1.8} />
           <span
             style={{
               fontSize: 'var(--crm-text-sm)',
-              color: SugarV3.muted,
+              color: S.muted,
               fontWeight: 500,
               lineHeight: 1.5,
             }}
           >
             <Trans
               i18nKey="kyc:wizard.magic.expiryNote"
-              components={{ 1: <span style={{ color: SugarV3.ink, fontWeight: 600 }} /> }}
+              components={{ 1: <span style={{ color: S.ink, fontWeight: 600 }} /> }}
             />
           </span>
         </div>
@@ -632,8 +641,8 @@ function FormView({
             style={{
               padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
               borderRadius: 'var(--crm-radius-lg)',
-              background: SugarV3.errSoft,
-              color: SugarV3.errDarker,
+              background: S.errSoft,
+              color: S.errDarker,
               fontSize: 'var(--crm-text-md)',
               fontWeight: 600,
               marginBottom: 24,
@@ -648,7 +657,7 @@ function FormView({
       <div
         style={{
           padding: '18px 32px 26px',
-          background: SugarV3.cardSubtle,
+          background: S.cardSubtle,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -685,6 +694,8 @@ interface SuccessViewProps {
 
 function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }: SuccessViewProps) {
   const { t } = useTranslation('kyc')
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   const firstName = contactName.split(' ')[0]
   return (
     <>
@@ -695,18 +706,18 @@ function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }:
             height: 72,
             borderRadius: 'var(--crm-radius-pill)',
             margin: '0 auto 22px',
-            background: SugarV3.okSoft,
+            background: S.okSoft,
             display: 'grid',
             placeItems: 'center',
           }}
         >
-          <SgIcon name="check" size={32} stroke={SugarV3.okDark} sw={2.5} />
+          <SgIcon name="check" size={32} stroke={S.okDark} sw={2.5} />
         </div>
         <div
           style={{
             fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: S.muted,
                                     marginBottom: 6,
           }}
         >
@@ -718,7 +729,7 @@ function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }:
             margin: '0 0 12px',
             fontSize: 'var(--crm-text-5xl)',
             fontWeight: 600,
-            color: SugarV3.ink,
+            color: S.ink,
             letterSpacing: -0.6,
             lineHeight: 1.15,
           }}
@@ -729,7 +740,7 @@ function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }:
           style={{
             margin: '0 0 22px',
             fontSize: 'var(--crm-text-lg)',
-            color: SugarV3.inkSoft,
+            color: S.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
             maxWidth: 460,
@@ -748,7 +759,7 @@ function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }:
             alignItems: 'center',
             gap: 'var(--crm-space-xl)',
             padding: 'var(--crm-space-2xl) var(--crm-space-4xl)',
-            background: SugarV3.cardSubtle,
+            background: S.cardSubtle,
             borderRadius: 'var(--crm-radius-xl)',
           }}
         >
@@ -757,7 +768,7 @@ function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }:
               style={{
                 fontSize: 'var(--crm-text-xs)',
                 fontWeight: 600,
-                color: SugarV3.muted,
+                color: S.muted,
                                                 marginBottom: 4,
               }}
             >
@@ -766,7 +777,7 @@ function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }:
             <div
               style={{
                 fontSize: 'var(--crm-text-lg)',
-                color: SugarV3.ink,
+                color: S.ink,
                 fontWeight: 600,
                 fontFamily: 'monospace',
                 whiteSpace: 'nowrap',
@@ -783,7 +794,7 @@ function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }:
               <SgIcon
                 name={copyState === 'copied' ? 'check' : 'file'}
                 size={14}
-                stroke={copyState === 'copied' ? SugarV3.okDark : SugarV3.inkSoft}
+                stroke={copyState === 'copied' ? S.okDark : S.inkSoft}
                 sw={1.8}
               />
             }
@@ -796,7 +807,7 @@ function SuccessView({ titreId, link, contactName, copyState, onCopy, onClose }:
       <div
         style={{
           padding: '18px 32px 26px',
-          background: SugarV3.cardSubtle,
+          background: S.cardSubtle,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',

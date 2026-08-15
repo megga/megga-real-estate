@@ -6,10 +6,11 @@
 // Pour les nouvelles pages (Bien, Deal, Visite, modals Offre/Visite) on les
 // exporte également sous le préfixe Sg* générique : voir le bas de ce fichier.
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { SugarV3 } from './tokens'
+import { sugarV3Palette } from './tokens'
 import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { useSugarDark } from '@/lib/sugarDark'
 
 // ─── Pilule noire (CTA principal) ──────────────────────────────────────
 interface BlackPillProps {
@@ -33,6 +34,8 @@ export function KycBlackPill({
   style,
   title,
 }: BlackPillProps) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   const [hover, setHover] = useState(false)
   const h = size === 'lg' ? 50 : 40
   return (
@@ -47,7 +50,7 @@ export function KycBlackPill({
         padding: size === 'lg' ? '0 26px' : '0 18px',
         borderRadius: 'var(--crm-radius-pill)',
         border: 0,
-        background: disabled ? SugarV3.ghost : SugarV3.accent,
+        background: disabled ? S.ghost : S.accent,
         color: '#fff',
         fontFamily: 'inherit',
         fontSize: size === 'lg' ? 'var(--crm-text-lg)' : 'var(--crm-text-md)',
@@ -97,6 +100,8 @@ export function KycGhostPill({
   disabled,
   title,
 }: GhostPillProps) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   const [hover, setHover] = useState(false)
   const h = size === 'sm' ? 36 : 40
   const fontSize = size === 'sm' ? 12.5 : 13
@@ -112,8 +117,8 @@ export function KycGhostPill({
         padding: size === 'sm' ? '0 14px' : '0 18px',
         borderRadius: 'var(--crm-radius-pill)',
         border: 0,
-        background: active ? SugarV3.accent : hover ? SugarV3.card : 'transparent',
-        color: active ? '#fff' : SugarV3.inkSoft,
+        background: active ? S.accent : hover ? S.card : 'transparent',
+        color: active ? '#fff' : S.inkSoft,
         fontFamily: 'inherit',
         fontSize,
         fontWeight: 600,
@@ -126,7 +131,7 @@ export function KycGhostPill({
         boxShadow: active
           ? `0 6px 16px ${sgVoileEncre(false, 0.18)}`
           : hover
-            ? SugarV3.shadow
+            ? S.shadow
             : 'none',
         transition: 'all .18s ease',
         ...style,
@@ -154,6 +159,8 @@ export function KycCircleBtn({
   size = 44,
   badge,
 }: CircleBtnProps) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <button
       onClick={onClick}
@@ -163,22 +170,22 @@ export function KycCircleBtn({
         height: size,
         borderRadius: 'var(--crm-radius-pill)',
         border: 0,
-        background: SugarV3.cardSubtle,
-        color: SugarV3.inkSoft,
+        background: S.cardSubtle,
+        color: S.inkSoft,
         cursor: 'pointer',
         display: 'grid',
         placeItems: 'center',
         position: 'relative',
-        boxShadow: SugarV3.shadowSm,
+        boxShadow: S.shadowSm,
         transition: 'all .18s ease',
       }}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = SugarV3.card
-        e.currentTarget.style.boxShadow = SugarV3.shadow
+        e.currentTarget.style.background = S.card
+        e.currentTarget.style.boxShadow = S.shadow
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = SugarV3.cardSubtle
-        e.currentTarget.style.boxShadow = SugarV3.shadowSm
+        e.currentTarget.style.background = S.cardSubtle
+        e.currentTarget.style.boxShadow = S.shadowSm
       }}
     >
       {icon}
@@ -191,8 +198,8 @@ export function KycCircleBtn({
             width: 8,
             height: 8,
             borderRadius: 'var(--crm-radius-pill)',
-            background: SugarV3.err,
-            boxShadow: `0 0 0 2px ${SugarV3.cardSubtle}`,
+            background: S.err,
+            boxShadow: `0 0 0 2px ${S.cardSubtle}`,
           }}
         />
       )}
@@ -213,13 +220,15 @@ interface StatCardProps {
 }
 
 export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <div
       style={{
-        background: SugarV3.card,
+        background: S.card,
         borderRadius: 'var(--crm-radius-5xl)',
         padding: 'var(--crm-space-6xl) var(--crm-space-7xl)',
-        boxShadow: SugarV3.shadow,
+        boxShadow: S.shadow,
         minHeight: 124,
         display: 'flex',
         flexDirection: 'column',
@@ -230,7 +239,7 @@ export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
         style={{
           fontSize: 'var(--crm-text-sm)',
           fontWeight: 500,
-          color: SugarV3.muted,
+          color: S.muted,
         }}
       >
         {label}
@@ -249,7 +258,7 @@ export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
             fontWeight: 600,
             letterSpacing: -1.4,
             lineHeight: 1,
-            color: SugarV3.ink,
+            color: S.ink,
             fontVariantNumeric: 'tabular-nums',
           }}
         >
@@ -272,7 +281,7 @@ export function KycStatCard({ label, value, sub, accent }: StatCardProps) {
           style={{
             fontSize: 'var(--crm-text-md)',
             fontWeight: 500,
-            color: SugarV3.muted,
+            color: S.muted,
             marginTop: 8,
           }}
         >
@@ -292,6 +301,8 @@ interface StepperProps {
 }
 
 export function KycStepper({ steps, current, onJump }: StepperProps) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
       {steps.map((s, i) => {
@@ -309,11 +320,11 @@ export function KycStepper({ steps, current, onJump }: StepperProps) {
                 borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
                 background: active
-                  ? SugarV3.accent
+                  ? S.accent
                   : done
-                    ? SugarV3.inkSoft
-                    : SugarV3.card,
-                color: active || done ? '#fff' : SugarV3.muted,
+                    ? S.inkSoft
+                    : S.card,
+                color: active || done ? '#fff' : S.muted,
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-md)',
                 fontWeight: 600,
@@ -322,7 +333,7 @@ export function KycStepper({ steps, current, onJump }: StepperProps) {
                 placeItems: 'center',
                 boxShadow: active
                   ? `0 6px 16px ${sgVoileEncre(false, 0.25)}, 0 0 0 4px ${sgVoileEncre(false, 0.06)}`
-                  : SugarV3.shadowSm,
+                  : S.shadowSm,
                 transition: 'all .2s ease',
                 flexShrink: 0,
               }}
@@ -336,7 +347,7 @@ export function KycStepper({ steps, current, onJump }: StepperProps) {
                   height: 2,
                   flexShrink: 0,
                   background:
-                    i < current ? SugarV3.inkSoft : sgVoileEncre(false, 0.08),
+                    i < current ? S.inkSoft : sgVoileEncre(false, 0.08),
                   transition: 'background .3s ease',
                 }}
               />

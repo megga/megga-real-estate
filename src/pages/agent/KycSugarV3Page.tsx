@@ -21,7 +21,7 @@ import {
   type SugarScreenId,
 } from '@/components/crm-sugar/SugarShell'
 import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
+import { SUGAR_V3_FONT, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
 import {
   KycPaletteContext,
   buildKycPalette,
@@ -155,7 +155,7 @@ export default function KycSugarV3Page() {
           height: '100vh',
           width: '100%',
           background: sp.pageBg,
-          fontFamily: SugarV3.font,
+          fontFamily: SUGAR_V3_FONT,
           color: kycSp.ink,
           display: 'flex',
           flexDirection: 'column',

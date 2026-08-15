@@ -37,7 +37,7 @@ import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { repoPath, rel } from './helpers/fs-scan'
-import { SugarV3 } from '@/components/crm-sugar-v3/tokens'
+import { sugarV3Palette } from '@/components/crm-sugar-v3/tokens'
 
 const AA = 4.5
 
@@ -68,10 +68,23 @@ function contraste(encre: string, fond: string): number | null {
 }
 const arrondi = (n: number) => Math.round(n * 100) / 100
 
-/** Les surfaces que `SugarV3` porte lui-même — une encre s'y pose. */
-const SURFACES: Record<string, string> = {
-  card: SugarV3.card,
-  cardSubtle: SugarV3.cardSubtle,
+/**
+ * ⛔ LES DEUX THÈMES, depuis que `SugarV3` est une FONCTION (16 août 2026).
+ *
+ * La clause « SugarV3 est mono-thème » de ce fichier avait été écrite pour
+ * rougir ce jour-là, et elle a rougi. Ce qui la remplace ne se contente pas de
+ * lever l'interdit : il DOUBLE la mesure. Une encre lisible en clair peut être
+ * illisible en sombre — c'est même le cas le plus fréquent, puisque les variantes
+ * FONCÉES (`errDarker`, `warnDarker`) sont faites pour écrire sur du blanc.
+ */
+const THEMES = [
+  { nom: 'clair', p: sugarV3Palette(false) },
+  { nom: 'sombre', p: sugarV3Palette(true) },
+] as const
+
+/** Les surfaces que la palette porte elle-même — une encre s'y pose. */
+function surfacesDe(p: ReturnType<typeof sugarV3Palette>): Record<string, string> {
+  return { card: p.card, cardSubtle: p.cardSubtle }
 }
 
 /* ─── L'inventaire des rôles, confronté à la source ──────────────────────── */
@@ -92,15 +105,18 @@ const sansCommentaires = (c: string) =>
 
 const SOURCES = balayer(repoPath('src'), [])
   .map((p) => ({ nom: rel(p), code: sansCommentaires(readFileSync(p, 'utf-8')) }))
-  .filter((s) => s.code.includes('SugarV3.'))
+  .filter((s) => /\bsugarV3Palette\b/.test(s.code))
 
 /** Jetons employés en `color:` — donc soumis au seuil de TEXTE. */
 function encresEmployees(): Set<string> {
   const vus = new Set<string>()
   for (const { code } of SOURCES) {
     for (const l of code.split('\n')) {
-      for (const cle of Object.keys(SugarV3)) {
-        if (new RegExp(`(?:^|[^-\\w])color:\\s*[^,;\\n]*\\bSugarV3\\.${cle}\\b`).test(l)) vus.add(cle)
+      for (const cle of Object.keys(THEMES[0].p)) {
+        // ⚠ La palette est reçue sous le nom `S` chez tous ses lecteurs (contrat
+        // du port). Ancrer sur `S.` ET sur un nom de clé CONNU évite qu'un `s.`
+        // de boucle (VdShared mappe sur `.map((s) => …)`) se fasse compter.
+        if (new RegExp(`(?:^|[^-\\w])color:\\s*[^,;\\n]*\\bS\\.${cle}\\b`).test(l)) vus.add(cle)
       }
     }
   }
@@ -115,46 +131,118 @@ function encresEmployees(): Set<string> {
  */
 const ENCRES_ATTENDUES = ['ink', 'inkSoft', 'muted', 'errDarker', 'warnDarker']
 
+/**
+ * ⛔ LES ENCRES DE L'APLAT INVERSÉ — une famille À PART, et c'est une décision.
+ *
+ * `invInk` et `invInkSoft` sont bien employés en `color:`, donc la clause
+ * d'inventaire les voit — et elle a eu raison de les refuser tant qu'ils n'étaient
+ * pas qualifiés. Mais les mesurer sur `card`/`cardSubtle` serait un contresens :
+ * ils ne s'y posent JAMAIS. Leur surface est `invBg`, et elle est l'inverse de la
+ * carte par construction — une encre qui passe sur l'une échoue forcément sur
+ * l'autre.
+ *
+ * Ils sont donc mesurés, mais contre leur propre fond, par la clause « l'aplat
+ * inversé porte son encre ». Les inscrire ici les exempterait ; les laisser dans
+ * `ENCRES_ATTENDUES` les mesurerait au mauvais endroit. La troisième voie est de
+ * NOMMER la famille.
+ */
+const ENCRES_INVERSEES = ['invInk', 'invInkSoft']
+
 describe('Contraste SugarV3 — les encres d’un objet partagé par cinq surfaces', () => {
   it('le balayage voit les lecteurs et lit toutes les valeurs', () => {
     expect(SOURCES.length, 'aucun lecteur trouvé : balayage cassé').toBeGreaterThan(5)
-    const illisibles = Object.entries(SugarV3)
-      .filter(([, v]) => typeof v === 'string' && /^#|^rgba?\(/.test(v))
-      .filter(([, v]) => !canal(v as string))
-      .map(([k, v]) => `${k} = ${String(v)}`)
+    const illisibles = THEMES.flatMap(({ nom, p }) =>
+      Object.entries(p)
+        .filter(([, v]) => typeof v === 'string' && /^#|^rgba?\(/.test(v))
+        .filter(([, v]) => !canal(v as string))
+        .map(([k, v]) => `${nom}.${k} = ${String(v)}`))
     expect(illisibles, `valeur non lue — la garde REFUSE au lieu de sauter :\n  ${illisibles.join('\n  ')}`).toEqual([])
   })
 
   /**
-   * ⚠ `SugarV3` est un OBJET STATIQUE : une seule valeur par jeton, donc un seul
-   * thème. Cette clause existe pour que le jour où il gagne une branche sombre,
-   * la garde ne continue PAS à mesurer la moitié de la vérité en silence.
+   * ⛔ L'INVERSE DE LA CLAUSE QU'ELLE REMPLACE, et c'est le point.
+   *
+   * Ce fichier interdisait à `SugarV3` d'avoir une branche de thème — non pas
+   * parce qu'une branche était mauvaise, mais pour que la garde ne continue PAS
+   * à mesurer la moitié de la vérité en silence le jour où elle arriverait. Elle
+   * est arrivée. La clause exige donc désormais que les deux thèmes soient
+   * RÉELLEMENT distincts : si `sugarV3Palette` cessait de brancher, tout ce
+   * fichier repasserait au vert en ne mesurant qu'un thème deux fois.
    */
-  it('SugarV3 est mono-thème, et la garde ne mesure donc qu’un thème', () => {
-    const src = readFileSync(repoPath('src/components/crm-sugar-v3/tokens.ts'), 'utf-8')
-    const bloc = src.slice(src.indexOf('export const SugarV3'), src.indexOf('} as const'))
+  it('les deux thèmes sont distincts — sinon la garde mesure deux fois le même', () => {
+    const [clair, sombre] = [THEMES[0].p, THEMES[1].p]
+    const differents = Object.keys(clair).filter(
+      (k) => clair[k as keyof typeof clair] !== sombre[k as keyof typeof sombre],
+    )
     expect(
-      /\bdark\b/.test(sansCommentaires(bloc)),
-      'SugarV3 a gagné une branche de thème : cette garde doit énumérer les surfaces des DEUX thèmes',
-    ).toBe(false)
+      differents.length,
+      'les deux thèmes rendent les mêmes valeurs : la branche sombre a disparu, ' +
+        'et les clauses ci-dessous ne mesurent plus qu’un thème',
+    ).toBeGreaterThan(8)
+    // ⚠ Et les SURFACES doivent bouger, pas seulement des détails : c'est sur
+    // elles que se pose chaque encre.
+    expect(clair.card, 'la carte ne bascule pas').not.toBe(sombre.card)
+    expect(clair.cardSubtle, 'la sous-carte ne bascule pas').not.toBe(sombre.cardSubtle)
+    // ⛔ La sous-carte se CREUSE en sombre — plus sombre que la carte, quand en
+    // clair elle est plus grise que le blanc (CLAUDE.md §3, « MEGGA X les creuse »).
+    expect(canal(sombre.cardSubtle)![0], 'la sous-carte sombre doit être CREUSÉE sous la carte')
+      .toBeLessThan(canal(sombre.card)![0])
+  })
+
+  /**
+   * ⛔ L'APLAT INVERSÉ EST UNE PAIRE, et une paire se garde des DEUX côtés.
+   *
+   * Six surfaces peignaient `background: ink` + `color: '#fff'`. Thémer `ink`
+   * sans son encre les aurait rendues blanc-sur-blanc en sombre. La clause exige
+   * que le couple contraste dans les deux thèmes — c'est ce qui empêche qu'on
+   * rethème un seul des deux jetons plus tard.
+   */
+  it('l’aplat inversé porte son encre dans les deux thèmes', () => {
+    const faibles: string[] = []
+    // ⚠ DEUX aplats inversés, pas un : `invBgSoft` distingue l'acteur HUMAIN du
+    // SYSTÈME dans les lignes d'audit. Ne mesurer que `invBg` laisserait passer
+    // exactement le défaut trouvé au rendu — cinq pastilles à 1,06:1.
+    for (const { nom, p } of THEMES) {
+      for (const fond of ['invBg', 'invBgSoft'] as const) {
+        for (const jeton of ENCRES_INVERSEES) {
+          const encre = p[jeton as keyof typeof p] as string
+          const r = contraste(encre, p[fond])
+          expect(r, `contraste non mesurable : ${jeton} sur ${fond} (${nom})`).not.toBeNull()
+          if (r! < AA) faibles.push(`${nom} : ${jeton} (${encre}) sur ${fond} (${p[fond]}) = ${arrondi(r!)}:1`)
+        }
+      }
+      // ⛔ ET LES DEUX APLATS RESTENT DISTINCTS : leur écart de teinte ENCODE
+      // l'acteur. Les fondre ferait mentir une marque de donnée.
+      expect(p.invBg, `${nom} : les deux aplats inversés se confondent — l'acteur n'est plus lisible`)
+        .not.toBe(p.invBgSoft)
+    }
+    // ⛔ ET L'APLAT INVERSÉ DOIT VRAIMENT S'INVERSER. Sans cette ligne, peindre
+    // `invBg` de la même valeur dans les deux thèmes passerait — or c'est
+    // exactement le défaut d'origine : un jeton apparié dont un seul côté bascule.
+    expect(THEMES[0].p.invBg, 'l’aplat inversé ne bascule pas').not.toBe(THEMES[1].p.invBg)
+    expect(THEMES[0].p.invBgSoft, 'le second aplat inversé ne bascule pas').not.toBe(THEMES[1].p.invBgSoft)
+    expect(THEMES[0].p.invInk, 'l’encre de l’aplat inversé ne bascule pas').not.toBe(THEMES[1].p.invInk)
+    expect(faibles, `l'encre de l'aplat inversé est illisible :\n  ${faibles.join('\n  ')}`).toEqual([])
   })
 
   it('l’inventaire des encres décrit encore la source', () => {
     const vues = [...encresEmployees()].sort()
-    const nouvelles = vues.filter((v) => !ENCRES_ATTENDUES.includes(v))
+    const nouvelles = vues.filter((v) => !ENCRES_ATTENDUES.includes(v) && !ENCRES_INVERSEES.includes(v))
     const mortes = ENCRES_ATTENDUES.filter((a) => !vues.includes(a))
     expect(nouvelles, `jeton devenu une ENCRE sans être mesuré :\n  ${nouvelles.join('\n  ')}`).toEqual([])
     expect(mortes, `inscrit comme encre mais plus employé — retirer :\n  ${mortes.join('\n  ')}`).toEqual([])
   })
 
-  it('chaque encre atteint l’AA sur les surfaces de SugarV3', () => {
+  it('chaque encre atteint l’AA sur les surfaces des DEUX thèmes', () => {
     const faibles: string[] = []
-    for (const jeton of ENCRES_ATTENDUES) {
-      const encre = SugarV3[jeton as keyof typeof SugarV3] as string
-      for (const [nom, fond] of Object.entries(SURFACES)) {
-        const r = contraste(encre, fond)
-        expect(r, `contraste non mesurable : ${jeton} sur ${nom}`).not.toBeNull()
-        if (r! < AA) faibles.push(`${jeton} (${encre}) sur ${nom} (${fond}) = ${arrondi(r!)}:1`)
+    for (const { nom: theme, p } of THEMES) {
+      for (const jeton of ENCRES_ATTENDUES) {
+        const encre = p[jeton as keyof typeof p] as string
+        for (const [nom, fond] of Object.entries(surfacesDe(p))) {
+          const r = contraste(encre, fond)
+          expect(r, `contraste non mesurable : ${theme}.${jeton} sur ${nom}`).not.toBeNull()
+          if (r! < AA) faibles.push(`${theme} : ${jeton} (${encre}) sur ${nom} (${fond}) = ${arrondi(r!)}:1`)
+        }
       }
     }
     expect(faibles, `encre sous l'AA :\n  ${faibles.join('\n  ')}`).toEqual([])

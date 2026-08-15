@@ -19,7 +19,12 @@ import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
+import {
+  sugarV3Palette,
+  SUGAR_V3_KEYFRAMES,
+  type SugarV3Palette,
+} from '@/components/crm-sugar-v3/tokens'
+import { useSugarDark } from '@/lib/sugarDark'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
 import {
   SgBlackPill,
@@ -94,6 +99,8 @@ export default function ImportLeadSugarV3Page() {
   const { t } = useTranslation('contacts')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
 
   const steps = useMemo(
     () => STEP_IDS.map((id) => ({ id, label: t(`import.lead.steps.${id}`) })),
@@ -233,11 +240,11 @@ export default function ImportLeadSugarV3Page() {
         position: 'fixed',
         inset: 0,
         zIndex: 220,
-        background: SugarV3.bgGradient,
+        background: S.bgGradient,
         animation: 'ilFadeIn .25s cubic-bezier(.2,.8,.2,1) both',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: SugarV3.font,
+        fontFamily: S.font,
       }}
     >
       <style>{`
@@ -265,15 +272,15 @@ export default function ImportLeadSugarV3Page() {
             height: 44,
             borderRadius: 999,
             border: 0,
-            background: SugarV3.cardSubtle,
-            color: SugarV3.inkSoft,
+            background: S.cardSubtle,
+            color: S.inkSoft,
             cursor: 'pointer',
             display: 'grid',
             placeItems: 'center',
-            boxShadow: SugarV3.shadowSm,
+            boxShadow: S.shadowSm,
           }}
         >
-          <SgIcon name="close" size={18} stroke={SugarV3.inkSoft} />
+          <SgIcon name="close" size={18} stroke={S.inkSoft} />
         </button>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -281,13 +288,13 @@ export default function ImportLeadSugarV3Page() {
             style={{
               fontSize: 'var(--crm-text-xs)',
               fontWeight: 600,
-              color: SugarV3.muted,
+              color: S.muted,
                                           display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
             }}
           >
-            <SgIcon name="sparkle" size={12} stroke={SugarV3.muted} sw={1.8} />
+            <SgIcon name="sparkle" size={12} stroke={S.muted} sw={1.8} />
             {t('import.lead.eyebrow')}
           </div>
         </div>
@@ -303,8 +310,8 @@ export default function ImportLeadSugarV3Page() {
               padding: '0 14px',
               borderRadius: 999,
               border: 0,
-              background: editMode ? SugarV3.accent : SugarV3.card,
-              color: editMode ? '#fff' : SugarV3.inkSoft,
+              background: editMode ? S.accent : S.card,
+              color: editMode ? '#fff' : S.inkSoft,
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: 'var(--crm-text-sm)',
@@ -312,7 +319,7 @@ export default function ImportLeadSugarV3Page() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 7,
-              boxShadow: editMode ? `0 6px 16px ${sgVoileEncre(false, 0.18)}` : SugarV3.shadowSm,
+              boxShadow: editMode ? `0 6px 16px ${sgVoileEncre(false, 0.18)}` : S.shadowSm,
               whiteSpace: 'nowrap',
             }}
           >
@@ -332,7 +339,7 @@ export default function ImportLeadSugarV3Page() {
               </>
             ) : (
               <>
-                <SgIcon name="pencil" size={12} stroke={SugarV3.inkSoft} sw={2} />
+                <SgIcon name="pencil" size={12} stroke={S.inkSoft} sw={2} />
                 {t('common:actions.edit')}
               </>
             )}
@@ -393,12 +400,12 @@ export default function ImportLeadSugarV3Page() {
             alignItems: 'center',
             gap: 14,
             flexShrink: 0,
-            background: SugarV3.card,
+            background: S.card,
             boxShadow: `0 -8px 24px ${sgVoileEncre(false, 0.04)}`,
           }}
         >
           <SgGhostPill
-            icon={<SgIcon name="arrowL" size={15} stroke={SugarV3.inkSoft} />}
+            icon={<SgIcon name="arrowL" size={15} stroke={S.inkSoft} />}
             onClick={() => (step > 0 ? setStep(0) : close())}
           >
             {step === 0 ? t('common:actions.cancel') : t('import.lead.repaste')}
@@ -406,7 +413,7 @@ export default function ImportLeadSugarV3Page() {
 
           <div style={{ flex: 1 }} />
 
-          <div style={{ fontSize: 'var(--crm-text-sm)', color: SugarV3.muted, fontWeight: 600 }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', color: S.muted, fontWeight: 600 }}>
             {t('import.lead.stepProgress', { current: step + 1, total: STEP_COUNT })}
           </div>
 
@@ -482,6 +489,8 @@ function PasteStep({
   errorCode?: string
 }) {
   const { t } = useTranslation('contacts')
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <div
       style={{
@@ -495,7 +504,7 @@ function PasteStep({
           style={{
             fontSize: 'var(--crm-text-sm)',
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: S.muted,
                                     marginBottom: 14,
           }}
         >
@@ -506,7 +515,7 @@ function PasteStep({
             margin: '0 0 14px',
             fontSize: 'var(--crm-text-9xl)',
             fontWeight: 600,
-            color: SugarV3.ink,
+            color: S.ink,
             letterSpacing: -0.8,
             lineHeight: 1.1,
           }}
@@ -517,7 +526,7 @@ function PasteStep({
           style={{
             margin: 0,
             fontSize: 'var(--crm-text-xl)',
-            color: SugarV3.inkSoft,
+            color: S.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
           }}
@@ -528,9 +537,9 @@ function PasteStep({
 
       <div
         style={{
-          background: SugarV3.card,
+          background: S.card,
           borderRadius: 24,
-          boxShadow: SugarV3.shadowLg,
+          boxShadow: S.shadowLg,
           padding: 8,
           marginBottom: 18,
         }}
@@ -550,7 +559,7 @@ function PasteStep({
             fontFamily: 'inherit',
             fontSize: 'var(--crm-text-xl)',
             fontWeight: 500,
-            color: SugarV3.ink,
+            color: S.ink,
             lineHeight: 1.6,
             background: 'transparent',
             boxSizing: 'border-box',
@@ -563,7 +572,7 @@ function PasteStep({
           style={{
             fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: S.muted,
                                   }}
         >
           {t('import.lead.paste.tryExample')}
@@ -577,13 +586,13 @@ function PasteStep({
               padding: '0 14px',
               borderRadius: 999,
               border: 0,
-              background: SugarV3.card,
-              color: SugarV3.inkSoft,
+              background: S.card,
+              color: S.inkSoft,
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: 'var(--crm-text-sm)',
               fontWeight: 600,
-              boxShadow: SugarV3.shadowSm,
+              boxShadow: S.shadowSm,
             }}
           >
             {s.label}
@@ -597,8 +606,8 @@ function PasteStep({
             marginTop: 24,
             padding: '14px 18px',
             borderRadius: 14,
-            background: SugarV3.errSoft,
-            color: SugarV3.errDarker,
+            background: S.errSoft,
+            color: S.errDarker,
             fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
             display: 'flex',
@@ -606,7 +615,7 @@ function PasteStep({
             gap: 10,
           }}
         >
-          <SgIcon name="alert" size={16} stroke={SugarV3.err} sw={1.8} />
+          <SgIcon name="alert" size={16} stroke={S.err} sw={1.8} />
           {errorCode === 'unauthorized'
             ? t('import.lead.errors.unauthorized')
             : errorCode === 'text_too_short'
@@ -658,6 +667,8 @@ function ReviewStep({
   error,
 }: ReviewStepProps) {
   const { t } = useTranslation('contacts')
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <div
       style={{
@@ -671,7 +682,7 @@ function ReviewStep({
           style={{
             fontSize: 'var(--crm-text-sm)',
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: S.muted,
                                     marginBottom: 14,
           }}
         >
@@ -682,7 +693,7 @@ function ReviewStep({
             margin: '0 0 14px',
             fontSize: 'var(--crm-text-9xl)',
             fontWeight: 600,
-            color: SugarV3.ink,
+            color: S.ink,
             letterSpacing: -0.8,
             lineHeight: 1.1,
           }}
@@ -693,7 +704,7 @@ function ReviewStep({
           style={{
             margin: 0,
             fontSize: 'var(--crm-text-xl)',
-            color: SugarV3.inkSoft,
+            color: S.inkSoft,
             fontWeight: 500,
             lineHeight: 1.55,
           }}
@@ -755,13 +766,13 @@ function ReviewStep({
                     value={extracted.firstName}
                     onChange={(e) => updateField('firstName', e.target.value)}
                     placeholder={t('import.lead.field.firstName')}
-                    style={editInputStyle}
+                    style={editInputStyle(S)}
                   />
                   <input
                     value={extracted.lastName}
                     onChange={(e) => updateField('lastName', e.target.value)}
                     placeholder={t('import.lead.field.lastName')}
-                    style={editInputStyle}
+                    style={editInputStyle(S)}
                   />
                 </div>
               </EditField>
@@ -785,7 +796,7 @@ function ReviewStep({
                   value={extracted.email}
                   onChange={(e) => updateField('email', e.target.value)}
                   placeholder="email@example.com"
-                  style={editInputStyle}
+                  style={editInputStyle(S)}
                 />
               </EditField>
             ) : (
@@ -804,7 +815,7 @@ function ReviewStep({
                   value={extracted.phone}
                   onChange={(e) => updateField('phone', e.target.value)}
                   placeholder="+41 79 …"
-                  style={editInputStyle}
+                  style={editInputStyle(S)}
                 />
               </EditField>
             ) : (
@@ -850,7 +861,7 @@ function ReviewStep({
                     updateField('budget', e.target.value ? Number(e.target.value) : null)
                   }
                   placeholder="0"
-                  style={editInputStyle}
+                  style={editInputStyle(S)}
                 />
               </EditField>
             ) : (
@@ -877,13 +888,13 @@ function ReviewStep({
                       updateField('rooms', e.target.value ? Number(e.target.value) : null)
                     }
                     placeholder={t('import.lead.field.rooms')}
-                    style={editInputStyle}
+                    style={editInputStyle(S)}
                   />
                   <input
                     value={extracted.zone}
                     onChange={(e) => updateField('zone', e.target.value)}
                     placeholder={t('import.lead.field.zone')}
-                    style={editInputStyle}
+                    style={editInputStyle(S)}
                   />
                 </div>
               </EditField>
@@ -926,10 +937,10 @@ function ReviewStep({
                 value={URGENCY_LABELS[extracted.urgency]}
                 accentTone={
                   extracted.urgency === 'high'
-                    ? SugarV3.warn
+                    ? S.warn
                     : extracted.urgency === 'medium'
-                      ? SugarV3.ink
-                      : SugarV3.muted
+                      ? S.ink
+                      : S.muted
                 }
               />
             )}
@@ -944,7 +955,7 @@ function ReviewStep({
                 <select
                   value={extracted.nextAction}
                   onChange={(e) => updateField('nextAction', e.target.value as ExtractedLead['nextAction'])}
-                  style={{ ...editInputStyle, padding: '0 12px', appearance: 'none', cursor: 'pointer' }}
+                  style={{ ...editInputStyle(S), padding: '0 12px', appearance: 'none', cursor: 'pointer' }}
                 >
                   <option value="call">{t('import.nextAction.call')}</option>
                   <option value="visit">{t('import.nextAction.visit')}</option>
@@ -967,10 +978,10 @@ function ReviewStep({
       {revealedCount >= FIELD_COUNT && !editMode && (
         <div
           style={{
-            background: SugarV3.card,
+            background: S.card,
             borderRadius: 20,
             padding: 22,
-            boxShadow: SugarV3.shadow,
+            boxShadow: S.shadow,
             marginBottom: 16,
             display: 'flex',
             alignItems: 'center',
@@ -979,13 +990,13 @@ function ReviewStep({
           }}
         >
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SugarV3.ink, marginBottom: 3 }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: S.ink, marginBottom: 3 }}>
               {t('import.lead.deal.title')}
             </div>
             <div
               style={{
                 fontSize: 'var(--crm-text-sm)',
-                color: SugarV3.muted,
+                color: S.muted,
                 fontWeight: 500,
                 lineHeight: 1.5,
               }}
@@ -1004,8 +1015,8 @@ function ReviewStep({
             marginTop: 12,
             padding: '14px 18px',
             borderRadius: 14,
-            background: SugarV3.errSoft,
-            color: SugarV3.errDarker,
+            background: S.errSoft,
+            color: S.errDarker,
             fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
           }}
@@ -1046,12 +1057,14 @@ function ExtractedField({
   accentTone?: string
 }) {
   const { t } = useTranslation('contacts')
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <div
       style={{
         padding: '16px 18px',
         borderRadius: 16,
-        background: SugarV3.cardSubtle,
+        background: S.cardSubtle,
         display: 'flex',
         alignItems: 'flex-start',
         gap: 14,
@@ -1062,22 +1075,22 @@ function ExtractedField({
           width: 36,
           height: 36,
           borderRadius: 10,
-          background: SugarV3.card,
-          color: SugarV3.ink,
+          background: S.card,
+          color: S.ink,
           display: 'grid',
           placeItems: 'center',
-          boxShadow: SugarV3.shadowSm,
+          boxShadow: S.shadowSm,
           flexShrink: 0,
         }}
       >
-        <SgIcon name={icon as never} size={16} stroke={SugarV3.ink} sw={1.8} />
+        <SgIcon name={icon as never} size={16} stroke={S.ink} sw={1.8} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
             fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: S.muted,
                                     marginBottom: 4,
           }}
         >
@@ -1087,7 +1100,7 @@ function ExtractedField({
           style={{
             fontSize: 'var(--crm-text-xl)',
             fontWeight: 600,
-            color: SugarV3.ink,
+            color: S.ink,
             letterSpacing: -0.2,
             lineHeight: 1.3,
             display: 'flex',
@@ -1107,7 +1120,7 @@ function ExtractedField({
               }}
             />
           )}
-          {value || <span style={{ color: SugarV3.muted, fontWeight: 500 }}>{t('import.lead.notDetected')}</span>}
+          {value || <span style={{ color: S.muted, fontWeight: 500 }}>{t('import.lead.notDetected')}</span>}
         </div>
       </div>
     </div>
@@ -1123,12 +1136,14 @@ function EditField({
   label: string
   children: React.ReactNode
 }) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <div
       style={{
         padding: '14px 16px',
         borderRadius: 16,
-        background: SugarV3.cardSubtle,
+        background: S.cardSubtle,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
@@ -1137,21 +1152,21 @@ function EditField({
             width: 28,
             height: 28,
             borderRadius: 8,
-            background: SugarV3.card,
-            color: SugarV3.ink,
+            background: S.card,
+            color: S.ink,
             display: 'grid',
             placeItems: 'center',
-            boxShadow: SugarV3.shadowSm,
+            boxShadow: S.shadowSm,
             flexShrink: 0,
           }}
         >
-          <SgIcon name={icon as never} size={13} stroke={SugarV3.ink} sw={1.8} />
+          <SgIcon name={icon as never} size={13} stroke={S.ink} sw={1.8} />
         </div>
         <div
           style={{
             fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
-            color: SugarV3.muted,
+            color: S.muted,
                                   }}
         >
           {label}
@@ -1162,21 +1177,25 @@ function EditField({
   )
 }
 
-const editInputStyle: React.CSSProperties = {
-  width: '100%',
-  height: 40,
-  padding: '0 14px',
-  background: SugarV3.card,
-  border: 0,
-  borderRadius: 10,
-  fontFamily: 'inherit',
-  fontSize: 'var(--crm-text-lg)',
-  fontWeight: 600,
-  color: SugarV3.ink,
-  outline: 'none',
-  boxSizing: 'border-box',
-  boxShadow: `inset 0 0 0 2px ${SugarV3.ink}`,
-  fontVariantNumeric: 'tabular-nums',
+// Helper de MODULE : il ne peut pas lire de hook, la palette lui est donc passée
+// par l'appelant (ReviewStep, seul lecteur).
+function editInputStyle(S: SugarV3Palette): React.CSSProperties {
+  return {
+    width: '100%',
+    height: 40,
+    padding: '0 14px',
+    background: S.card,
+    border: 0,
+    borderRadius: 10,
+    fontFamily: 'inherit',
+    fontSize: 'var(--crm-text-lg)',
+    fontWeight: 600,
+    color: S.ink,
+    outline: 'none',
+    boxSizing: 'border-box',
+    boxShadow: `inset 0 0 0 2px ${S.ink}`,
+    fontVariantNumeric: 'tabular-nums',
+  }
 }
 
 function SegmentedChoice<T extends string>({
@@ -1188,6 +1207,8 @@ function SegmentedChoice<T extends string>({
   onChange: (v: T) => void
   options: { v: T; l: string }[]
 }) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <div style={{ display: 'flex', gap: 6 }}>
       {options.map((o) => (
@@ -1199,8 +1220,8 @@ function SegmentedChoice<T extends string>({
             height: 36,
             borderRadius: 8,
             border: 0,
-            background: value === o.v ? SugarV3.ink : SugarV3.card,
-            color: value === o.v ? '#fff' : SugarV3.inkSoft,
+            background: value === o.v ? S.invBg : S.card,
+            color: value === o.v ? S.invInk : S.inkSoft,
             fontFamily: 'inherit',
             fontSize: 'var(--crm-text-sm)',
             fontWeight: 600,
@@ -1215,6 +1236,8 @@ function SegmentedChoice<T extends string>({
 }
 
 function ToggleSwitch({ active, onClick }: { active: boolean; onClick: () => void }) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <button
       onClick={onClick}
@@ -1223,13 +1246,13 @@ function ToggleSwitch({ active, onClick }: { active: boolean; onClick: () => voi
         height: 28,
         borderRadius: 999,
         border: 0,
-        background: active ? SugarV3.ink : SugarV3.cardSubtle,
+        background: active ? S.invBg : S.cardSubtle,
         position: 'relative',
         cursor: 'pointer',
         transition: 'all .2s ease',
         boxShadow: active
           ? `0 4px 12px ${sgVoileEncre(false, 0.18)}`
-          : `inset 0 0 0 2px ${SugarV3.ghost}`,
+          : `inset 0 0 0 2px ${S.ghost}`,
         flexShrink: 0,
       }}
     >
@@ -1241,7 +1264,7 @@ function ToggleSwitch({ active, onClick }: { active: boolean; onClick: () => voi
           width: 22,
           height: 22,
           borderRadius: 999,
-          background: '#fff',
+          background: active ? S.invInk : S.card,
           transition: 'all .2s ease',
         }}
       />
@@ -1250,13 +1273,15 @@ function ToggleSwitch({ active, onClick }: { active: boolean; onClick: () => voi
 }
 
 function BannerInfo({ icon, title, body }: { icon: string; title: string; body: string }) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <div
       style={{
         marginBottom: 16,
         padding: '14px 18px',
         borderRadius: 14,
-        background: SugarV3.cardSubtle,
+        background: S.cardSubtle,
         display: 'flex',
         alignItems: 'flex-start',
         gap: 12,
@@ -1267,21 +1292,21 @@ function BannerInfo({ icon, title, body }: { icon: string; title: string; body: 
           width: 28,
           height: 28,
           borderRadius: 8,
-          background: SugarV3.card,
+          background: S.card,
           display: 'grid',
           placeItems: 'center',
           flexShrink: 0,
-          boxShadow: SugarV3.shadowSm,
+          boxShadow: S.shadowSm,
           marginTop: 2,
         }}
       >
-        <SgIcon name={icon as never} size={14} stroke={SugarV3.inkSoft} sw={1.8} />
+        <SgIcon name={icon as never} size={14} stroke={S.inkSoft} sw={1.8} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV3.ink, marginBottom: 2 }}>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: S.ink, marginBottom: 2 }}>
           {title}
         </div>
-        <div style={{ fontSize: 'var(--crm-text-sm)', color: SugarV3.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: S.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
           {body}
         </div>
       </div>
@@ -1297,21 +1322,23 @@ function DuplicateBanner({
   onSelect: (id: string) => void
 }) {
   const { t } = useTranslation('contacts')
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <div
       style={{
         marginBottom: 16,
         padding: '16px 20px',
         borderRadius: 14,
-        background: SugarV3.warnSoft,
+        background: S.warnSoft,
         display: 'flex',
         flexDirection: 'column',
         gap: 12,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <SgIcon name="alert" size={16} stroke={SugarV3.warn} sw={2} />
-        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV3.ink }}>
+        <SgIcon name="alert" size={16} stroke={S.warn} sw={2} />
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: S.ink }}>
           {t('import.lead.duplicate.title', { count: candidates.length })}
         </div>
       </div>
@@ -1325,7 +1352,7 @@ function DuplicateBanner({
               padding: '10px 12px',
               borderRadius: 10,
               border: 0,
-              background: SugarV3.card,
+              background: S.card,
               cursor: 'pointer',
               fontFamily: 'inherit',
               display: 'flex',
@@ -1334,10 +1361,10 @@ function DuplicateBanner({
             }}
           >
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV3.ink }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: S.ink }}>
                 {c.first_name} {c.last_name}
               </div>
-              <div style={{ fontSize: 'var(--crm-text-xs)', color: SugarV3.muted, fontWeight: 500, marginTop: 2 }}>
+              <div style={{ fontSize: 'var(--crm-text-xs)', color: S.muted, fontWeight: 500, marginTop: 2 }}>
                 {[c.email, c.phone].filter(Boolean).join(' · ') || '—'}
               </div>
             </div>
@@ -1347,17 +1374,17 @@ function DuplicateBanner({
                 fontWeight: 600,
                 padding: '3px 9px',
                 borderRadius: 999,
-                background: SugarV3.cardSubtle,
-                color: SugarV3.inkSoft,
+                background: S.cardSubtle,
+                color: S.inkSoft,
                                               }}
             >
               {t('import.lead.duplicate.matchBadge', { kind: t(`import.lead.duplicate.kind.${c.match_kind}`) })}
             </span>
-            <SgIcon name="arrowR" size={14} stroke={SugarV3.inkSoft} sw={2} />
+            <SgIcon name="arrowR" size={14} stroke={S.inkSoft} sw={2} />
           </button>
         ))}
       </div>
-      <div style={{ fontSize: 'var(--crm-text-xs)', color: SugarV3.muted, fontWeight: 500 }}>
+      <div style={{ fontSize: 'var(--crm-text-xs)', color: S.muted, fontWeight: 500 }}>
         {t('import.lead.duplicate.note')}
       </div>
     </div>
@@ -1384,6 +1411,8 @@ function CreatedView({
   onNavToDeal: () => void
 }) {
   const { t } = useTranslation('contacts')
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   const fullName = `${extracted.firstName} ${extracted.lastName}`.trim() || t('import.lead.created.fallbackName')
   const initials = useMemo(
     () => `${(extracted.firstName[0] ?? '?')}${(extracted.lastName[0] ?? '')}`.toUpperCase(),
@@ -1412,21 +1441,21 @@ function CreatedView({
             margin: '0 auto 22px',
           }}
         >
-          <SgIcon name="check" size={28} stroke={SugarV3.ok} sw={2.5} />
+          <SgIcon name="check" size={28} stroke={S.ok} sw={2.5} />
         </div>
         <h1
           style={{
             margin: '0 0 12px',
             fontSize: 'var(--crm-text-7xl)',
             fontWeight: 600,
-            color: SugarV3.ink,
+            color: S.ink,
             letterSpacing: -0.6,
             lineHeight: 1.15,
           }}
         >
           {t('import.lead.created.title', { name: fullName })}
         </h1>
-        <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', color: SugarV3.inkSoft, fontWeight: 500 }}>
+        <p style={{ margin: 0, fontSize: 'var(--crm-text-xl)', color: S.inkSoft, fontWeight: 500 }}>
           {dealId
             ? t('import.lead.created.subtitleDeal', { intent: INTENT_LABELS[extracted.intent] })
             : t('import.lead.created.subtitleContact')}
@@ -1435,10 +1464,10 @@ function CreatedView({
 
       <div
         style={{
-          background: SugarV3.card,
+          background: S.card,
           borderRadius: 24,
           padding: 28,
-          boxShadow: SugarV3.shadowLg,
+          boxShadow: S.shadowLg,
           marginBottom: 16,
         }}
       >
@@ -1448,8 +1477,8 @@ function CreatedView({
               width: 52,
               height: 52,
               borderRadius: 999,
-              background: SugarV3.ink,
-              color: '#fff',
+              background: S.invBg,
+              color: S.invInk,
               display: 'grid',
               placeItems: 'center',
               fontSize: 'var(--crm-text-3xl)',
@@ -1459,10 +1488,10 @@ function CreatedView({
             {initials}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: SugarV3.ink, letterSpacing: -0.3 }}>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: S.ink, letterSpacing: -0.3 }}>
               {fullName}
             </div>
-            <div style={{ fontSize: 'var(--crm-text-md)', color: SugarV3.muted, fontWeight: 500, marginTop: 2 }}>
+            <div style={{ fontSize: 'var(--crm-text-md)', color: S.muted, fontWeight: 500, marginTop: 2 }}>
               {[extracted.email, extracted.phone].filter(Boolean).join(' · ') || t('import.lead.created.partialContact')}
             </div>
           </div>
@@ -1470,8 +1499,8 @@ function CreatedView({
             style={{
               padding: '5px 11px',
               borderRadius: 999,
-              background: SugarV3.cardSubtle,
-              color: SugarV3.inkSoft,
+              background: S.cardSubtle,
+              color: S.inkSoft,
               fontSize: 'var(--crm-text-xs)',
               fontWeight: 600,
                                         }}
@@ -1485,26 +1514,26 @@ function CreatedView({
             style={{
               padding: '14px 16px',
               borderRadius: 14,
-              background: SugarV3.cardSubtle,
+              background: S.cardSubtle,
               display: 'flex',
               alignItems: 'center',
               gap: 12,
             }}
           >
-            <SgIcon name="sparkle" size={16} stroke={SugarV3.ink} sw={1.8} />
+            <SgIcon name="sparkle" size={16} stroke={S.ink} sw={1.8} />
             <div
               style={{
                 flex: 1,
                 fontSize: 'var(--crm-text-md)',
                 fontWeight: 500,
-                color: SugarV3.inkSoft,
+                color: S.inkSoft,
                 lineHeight: 1.5,
               }}
             >
-              <span style={{ color: SugarV3.ink, fontWeight: 600}}>{t('import.lead.created.nextActionLabel')}</span>{' '}
+              <span style={{ color: S.ink, fontWeight: 600}}>{t('import.lead.created.nextActionLabel')}</span>{' '}
               {NEXT_ACTION_LABELS[extracted.nextAction]}
               {extracted.urgency === 'high' && (
-                <span style={{ color: SugarV3.warnDarker, fontWeight: 600 }}> {t('import.lead.created.highUrgencySuffix')}</span>
+                <span style={{ color: S.warnDarker, fontWeight: 600 }}> {t('import.lead.created.highUrgencySuffix')}</span>
               )}
             </div>
           </div>
@@ -1519,17 +1548,17 @@ function CreatedView({
               padding: '14px 20px',
               borderRadius: 16,
               border: 0,
-              background: SugarV3.card,
-              boxShadow: SugarV3.shadow,
+              background: S.card,
+              boxShadow: S.shadow,
               cursor: 'pointer',
               fontFamily: 'inherit',
               textAlign: 'left',
             }}
           >
-            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV3.ink, marginBottom: 2 }}>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: S.ink, marginBottom: 2 }}>
               {t('import.lead.created.viewPipeline')}
             </div>
-            <div style={{ fontSize: 'var(--crm-text-xs)', color: SugarV3.muted, fontWeight: 500 }}>
+            <div style={{ fontSize: 'var(--crm-text-xs)', color: S.muted, fontWeight: 500 }}>
               {t('import.lead.created.viewPipelineDesc')}
             </div>
           </button>
@@ -1540,17 +1569,17 @@ function CreatedView({
             padding: '14px 20px',
             borderRadius: 16,
             border: 0,
-            background: SugarV3.card,
-            boxShadow: SugarV3.shadow,
+            background: S.card,
+            boxShadow: S.shadow,
             cursor: 'pointer',
             fontFamily: 'inherit',
             textAlign: 'left',
           }}
         >
-          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: SugarV3.ink, marginBottom: 2 }}>
+          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: S.ink, marginBottom: 2 }}>
             {t('import.lead.created.viewContact')}
           </div>
-          <div style={{ fontSize: 'var(--crm-text-xs)', color: SugarV3.muted, fontWeight: 500 }}>
+          <div style={{ fontSize: 'var(--crm-text-xs)', color: S.muted, fontWeight: 500 }}>
             {t('import.lead.created.viewContactDesc')}
           </div>
         </button>
@@ -1564,7 +1593,7 @@ function CreatedView({
             padding: '0 24px',
             borderRadius: 999,
             border: 0,
-            background: SugarV3.accent,
+            background: S.accent,
             color: '#fff',
             cursor: 'pointer',
             fontFamily: 'inherit',

@@ -18,11 +18,12 @@ import {
 } from '@/components/crm-sugar/SugarShell'
 import { crmSugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
 import {
-  SugarV3,
+  sugarV3Palette,
   SUGAR_V3_KEYFRAMES,
   AUDIT_CATEGORIES,
   AUDIT_CAT_ICONS,
 } from '@/components/crm-sugar-v3/tokens'
+import { readSugarDark } from '@/lib/sugarDark'
 import {
   KycBlackPill,
   KycGhostPill,
@@ -50,11 +51,18 @@ export default function AuditSugarPage() {
   const etroit = useIsMobile()
   const navigate = useNavigate()
   const { t: tr } = useTranslation('common')
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return window.localStorage.getItem('megga.sugar.dark') === '1'
-  })
+  /**
+   * ⚠ `readSugarDark()` et non `useSugarDark()` : le rail de cette page BASCULE
+   * le thème (`setDark` lui est passé), et le hook est en lecture seule. Deux
+   * sources — l'état local pour `sp`, le hook pour `S` — divergeraient au clic,
+   * ce qui recréerait la demi-bascule qu'on corrige. C'est la MÊME lecture
+   * partagée, avec le repli `prefers-color-scheme` que la forme `=== '1'`
+   * recopiée ici n'avait pas : une clé absente y rendait FAUX, donc un profil
+   * neuf sous macOS sombre recevait une page claire.
+   */
+  const [dark, setDark] = useState<boolean>(readSugarDark)
   const sp = useMemo(() => crmSugarPalette(dark), [dark])
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
 
   const [filterCat, setFilterCat] = useState<AuditCategory | 'all'>('all')
   const [filterSev, setFilterSev] = useState<AuditSeverity | 'all'>('all')
@@ -129,9 +137,9 @@ export default function AuditSugarPage() {
       style={{
         minHeight: '100vh',
         width: '100%',
-        background: SugarV3.bgGradient,
-        fontFamily: SugarV3.font,
-        color: SugarV3.ink,
+        background: S.bgGradient,
+        fontFamily: S.font,
+        color: S.ink,
       }}
     >
       <style>{SUGAR_KEYFRAMES}</style>
@@ -173,7 +181,7 @@ export default function AuditSugarPage() {
                   style={{
                     fontSize: 'var(--crm-text-sm)',
                     fontWeight: 600,
-                    color: SugarV3.muted,
+                    color: S.muted,
                                                             marginBottom: 14,
                   }}
                 >
@@ -184,7 +192,7 @@ export default function AuditSugarPage() {
                     margin: '0 0 12px',
                     fontSize: 40,
                     fontWeight: 600,
-                    color: SugarV3.ink,
+                    color: S.ink,
                     letterSpacing: -0.8,
                     lineHeight: 1.05,
                   }}
@@ -195,7 +203,7 @@ export default function AuditSugarPage() {
                   style={{
                     margin: 0,
                     fontSize: 'var(--crm-text-xl)',
-                    color: SugarV3.inkSoft,
+                    color: S.inkSoft,
                     fontWeight: 500,
                     lineHeight: 1.55,
                     maxWidth: 620,
@@ -207,7 +215,7 @@ export default function AuditSugarPage() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <KycGhostPill
                   onClick={() => downloadAuditCsv(events)}
-                  icon={<SgIcon name="download" size={14} stroke={SugarV3.inkSoft} />}
+                  icon={<SgIcon name="download" size={14} stroke={S.inkSoft} />}
                 >
                   {tr('audit.export.csv')}
                 </KycGhostPill>
@@ -249,8 +257,8 @@ export default function AuditSugarPage() {
                     gridColumn: '1 / -1',
                     padding: '10px 14px',
                     borderRadius: 14,
-                    background: SugarV3.errSoft,
-                    color: SugarV3.errDarker,
+                    background: S.errSoft,
+                    color: S.errDarker,
                     fontSize: 'var(--crm-text-sm)',
                     fontWeight: 600,
                     marginTop: 12,
@@ -274,19 +282,19 @@ export default function AuditSugarPage() {
               <KycStatCard
                 label={tr('audit.stats.events')}
                 value={stats.total}
-                accent={SugarV3.accent}
+                accent={S.accent}
                 sub={filterDays >= 3650 ? tr('audit.stats.eventsRangeAll') : tr('audit.stats.eventsRangeDays', { days: filterDays })}
               />
               <KycStatCard
                 label={tr('audit.stats.critical')}
                 value={stats.critical}
-                accent={SugarV3.err}
+                accent={S.err}
                 sub={tr('audit.stats.criticalSub')}
               />
               <KycStatCard
                 label={tr('audit.stats.warning')}
                 value={stats.warn}
-                accent={SugarV3.warn}
+                accent={S.warn}
                 sub={tr('audit.stats.warningSub')}
               />
               <KycStatCard
@@ -300,10 +308,10 @@ export default function AuditSugarPage() {
             {/* BARRE DE FILTRES */}
             <div
               style={{
-                background: SugarV3.card,
+                background: S.card,
                 borderRadius: 22,
                 padding: '18px 22px',
-                boxShadow: SugarV3.shadow,
+                boxShadow: S.shadow,
                 marginBottom: 18,
                 display: 'grid',
                 gridTemplateColumns: etroit ? '1fr' : '1fr auto',
@@ -320,12 +328,12 @@ export default function AuditSugarPage() {
                   gap: 10,
                   padding: '0 14px',
                   height: 44,
-                  background: SugarV3.cardSubtle,
+                  background: S.cardSubtle,
                   borderRadius: 999,
                   maxWidth: 380,
                 }}
               >
-                <SgIcon name="search" size={16} stroke={SugarV3.muted} />
+                <SgIcon name="search" size={16} stroke={S.muted} />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -338,7 +346,7 @@ export default function AuditSugarPage() {
                     fontFamily: 'inherit',
                     fontSize: 'var(--crm-text-md)',
                     fontWeight: 500,
-                    color: SugarV3.ink,
+                    color: S.ink,
                   }}
                 />
               </div>
@@ -435,7 +443,7 @@ export default function AuditSugarPage() {
                       width: 7,
                       height: 7,
                       borderRadius: 999,
-                      background: SugarV3.err,
+                      background: S.err,
                     }}
                   />
                 }
@@ -452,7 +460,7 @@ export default function AuditSugarPage() {
                       width: 7,
                       height: 7,
                       borderRadius: 999,
-                      background: SugarV3.warn,
+                      background: S.warn,
                     }}
                   />
                 }
@@ -464,10 +472,10 @@ export default function AuditSugarPage() {
             {/* LISTE GROUPÉE */}
             <div
               style={{
-                background: SugarV3.card,
+                background: S.card,
                 borderRadius: 22,
                 overflow: 'hidden',
-                boxShadow: SugarV3.shadow,
+                boxShadow: S.shadow,
                 animation: 'sgFadeUp .7s cubic-bezier(.2,.8,.2,1) both',
               }}
             >
@@ -476,7 +484,7 @@ export default function AuditSugarPage() {
                   style={{
                     padding: '80px 40px',
                     textAlign: 'center',
-                    color: SugarV3.muted,
+                    color: S.muted,
                     fontSize: 'var(--crm-text-lg)',
                     fontWeight: 500,
                   }}
@@ -488,7 +496,7 @@ export default function AuditSugarPage() {
                   style={{
                     padding: '80px 40px',
                     textAlign: 'center',
-                    color: SugarV3.muted,
+                    color: S.muted,
                     fontSize: 'var(--crm-text-lg)',
                     fontWeight: 500,
                   }}
@@ -514,7 +522,7 @@ export default function AuditSugarPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 14,
-                color: SugarV3.muted,
+                color: S.muted,
                 fontSize: 'var(--crm-text-sm)',
                 fontWeight: 500,
               }}
@@ -524,14 +532,14 @@ export default function AuditSugarPage() {
                   width: 32,
                   height: 32,
                   borderRadius: 999,
-                  background: SugarV3.card,
-                  boxShadow: SugarV3.shadowSm,
+                  background: S.card,
+                  boxShadow: S.shadowSm,
                   display: 'grid',
                   placeItems: 'center',
                   flexShrink: 0,
                 }}
               >
-                <SgIcon name="lock" size={14} stroke={SugarV3.inkSoft} />
+                <SgIcon name="lock" size={14} stroke={S.inkSoft} />
               </div>
               <div>
                 {tr('audit.footer.retention')}

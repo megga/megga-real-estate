@@ -10,13 +10,35 @@ import { useEffect, useState } from 'react'
 export const SUGAR_DARK_KEY = 'megga.sugar.dark'
 const STORAGE_KEY = SUGAR_DARK_KEY
 
-/** Lecture ponctuelle de la préférence sombre (SSR-safe). */
+/**
+ * Lecture ponctuelle de la préférence sombre (SSR-safe).
+ *
+ * ⛔ `window` PEUT EXISTER SANS `localStorage`, et sans `matchMedia`. Tester le
+ * seul `window` ne suffit donc pas : l'environnement de test de vitest fournit
+ * l'un sans l'autre, et un navigateur le fait aussi — Safari en navigation
+ * privée et tout contexte où les cookies sont bloqués font LEVER l'accès à
+ * `localStorage`, pas rendre `null`. Une lecture de thème qui jette casserait le
+ * rendu de la surface entière ; elle doit dégrader vers le clair, jamais échouer.
+ *
+ * Le défaut s'est révélé en donnant une branche sombre à `SugarV3` : ses maps de
+ * libellés lisent le thème par un getter, donc cette fonction est devenue
+ * atteignable depuis un import de module — ce qu'elle n'était pas quand seuls des
+ * composants l'appelaient.
+ */
 export function readSugarDark(): boolean {
   if (typeof window === 'undefined') return false
-  const saved = window.localStorage.getItem(STORAGE_KEY)
-  if (saved === '1') return true
-  if (saved === '0') return false
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
+  try {
+    const saved = window.localStorage?.getItem(STORAGE_KEY)
+    if (saved === '1') return true
+    if (saved === '0') return false
+  } catch {
+    // Accès refusé (navigation privée, cookies bloqués) : on retombe sur le système.
+  }
+  try {
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
+  } catch {
+    return false
+  }
 }
 
 /**

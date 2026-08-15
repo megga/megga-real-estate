@@ -9,9 +9,11 @@
 // Sync Realtime : tout update push du mobile arrive ici via useVisitRealtime.
 // Route : /dashboard/visits/:id
 
+import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
+import { sugarV3Palette, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
+import { useSugarDark } from '@/lib/sugarDark'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
 import {
   SgBlackPill,
@@ -46,17 +48,19 @@ export default function VisitDetailSugarV3Page() {
   const { data: visit, isLoading, isError, error } = useVisitDetail(id)
   const { mutate: signBon } = useSignVisitBon()
   useVisitRealtime(id)
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
 
   if (isLoading) {
     return (
       <div
         style={{
           minHeight: '100vh',
-          background: SugarV3.bgGradient,
+          background: S.bgGradient,
           display: 'grid',
           placeItems: 'center',
-          color: SugarV3.muted,
-          fontFamily: SugarV3.font,
+          color: S.muted,
+          fontFamily: S.font,
         }}
       >
         {t('visitDetail.loading')}
@@ -68,11 +72,11 @@ export default function VisitDetailSugarV3Page() {
       <div
         style={{
           minHeight: '100vh',
-          background: SugarV3.bgGradient,
+          background: S.bgGradient,
           display: 'grid',
           placeItems: 'center',
-          color: SugarV3.errDarker,
-          fontFamily: SugarV3.font,
+          color: S.errDarker,
+          fontFamily: S.font,
           padding: 40,
           textAlign: 'center',
         }}
@@ -88,11 +92,11 @@ export default function VisitDetailSugarV3Page() {
       <div
         style={{
           minHeight: '100vh',
-          background: SugarV3.bgGradient,
+          background: S.bgGradient,
           display: 'grid',
           placeItems: 'center',
-          color: SugarV3.muted,
-          fontFamily: SugarV3.font,
+          color: S.muted,
+          fontFamily: S.font,
         }}
       >
         {t('visitDetail.notFound')}
@@ -108,9 +112,9 @@ export default function VisitDetailSugarV3Page() {
       style={{
         width: '100%',
         minHeight: '100vh',
-        background: SugarV3.bgGradient,
-        color: SugarV3.ink,
-        fontFamily: SugarV3.font,
+        background: S.bgGradient,
+        color: S.ink,
+        fontFamily: S.font,
       }}
     >
       <style>{SUGAR_V3_KEYFRAMES}</style>
@@ -130,7 +134,7 @@ export default function VisitDetailSugarV3Page() {
           }}
         >
           <SgGhostPill
-            icon={<SgIcon name="arrowL" size={15} stroke={SugarV3.inkSoft} />}
+            icon={<SgIcon name="arrowL" size={15} stroke={S.inkSoft} />}
             onClick={() => navigate('/dashboard/calendar')}
           >
             {t('visitDetail.backToCalendar')}
@@ -140,7 +144,7 @@ export default function VisitDetailSugarV3Page() {
               fontFamily: 'JetBrains Mono, monospace',
               whiteSpace: 'nowrap',
               fontSize: 'var(--crm-text-sm)',
-              color: SugarV3.muted,
+              color: S.muted,
               letterSpacing: 0.3,
             }}
           >
@@ -210,13 +214,13 @@ export default function VisitDetailSugarV3Page() {
                   margin: '12px 0 10px',
                   fontSize: 'var(--crm-text-8xl)',
                   fontWeight: 600,
-                  color: SugarV3.ink,
+                  color: S.ink,
                   letterSpacing: -0.8,
                   lineHeight: 1.15,
                 }}
               >
                 {visit.property?.title ?? t('visitDetail.propertyFallback')}
-                <span style={{ color: SugarV3.muted, fontWeight: 500 }}>
+                <span style={{ color: S.muted, fontWeight: 500 }}>
                   {' '}
                   {t('visitDetail.withContact', {
                     name: visit.contact
@@ -231,7 +235,7 @@ export default function VisitDetailSugarV3Page() {
                   alignItems: 'center',
                   gap: 14,
                   flexWrap: 'wrap',
-                  color: SugarV3.muted,
+                  color: S.muted,
                   fontSize: 'var(--crm-text-lg)',
                   fontWeight: 500,
                 }}
@@ -243,7 +247,7 @@ export default function VisitDetailSugarV3Page() {
                     gap: 7,
                   }}
                 >
-                  <SgIcon name="cal" size={14} stroke={SugarV3.muted} />
+                  <SgIcon name="cal" size={14} stroke={S.muted} />
                   {vdDateLong(visit.scheduled_at)}
                 </span>
                 <span>·</span>
@@ -254,7 +258,7 @@ export default function VisitDetailSugarV3Page() {
                     gap: 7,
                   }}
                 >
-                  <SgIcon name="clock" size={14} stroke={SugarV3.muted} />
+                  <SgIcon name="clock" size={14} stroke={S.muted} />
                   {new Date(visit.scheduled_at).toLocaleTimeString('fr-CH', {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -271,7 +275,7 @@ export default function VisitDetailSugarV3Page() {
                         gap: 7,
                       }}
                     >
-                      <SgIcon name="pin" size={14} stroke={SugarV3.muted} />
+                      <SgIcon name="pin" size={14} stroke={S.muted} />
                       {visit.property.address}
                     </span>
                   </>

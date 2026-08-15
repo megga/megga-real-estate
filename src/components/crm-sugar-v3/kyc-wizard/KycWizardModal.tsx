@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { SugarV3 } from '../tokens'
+import { SUGAR_V3_FONT } from '../tokens'
 import { SgIcon } from '../icons'
 import { useKycPalette } from '../kyc/kycPalette'
 import { KycBlackPill, KycCircleBtn, KycGhostPill } from '../kyc/kycPrimitives'
@@ -210,7 +210,7 @@ export function KycWizardModal({ onClose, initialContactId, embedded = false, in
         inset: 0,
         zIndex: embedded ? 40 : 9000,
         background: sp.bgGradient,
-        fontFamily: SugarV3.font,
+        fontFamily: SUGAR_V3_FONT,
         color: sp.ink,
         display: 'flex',
         flexDirection: 'column',

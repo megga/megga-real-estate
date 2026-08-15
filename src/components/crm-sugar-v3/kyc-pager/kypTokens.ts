@@ -7,15 +7,14 @@
 // fond teinté clair, jamais de dot. Le chrome (fond, cartes, encre, ombres,
 // accent noir) dérive de `crmSugarPalette` (SugarPalette) comme le reste du CRM.
 
-import { SugarV3 } from '../tokens'
-import { KYC_STATUS_LABELS, KYC_RISK_LABELS } from '../tokens'
+import { SUGAR_V3_FONT, KYC_STATUS_LABELS, KYC_RISK_LABELS } from '../tokens'
 import type { KycCheckCategory, KycDossierStatus } from '@/types/kyc'
 import type { KycRiskLevel } from '@/lib/constants'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 
 /** Police du pager / fiche / wizard (déjà en usage côté KYC). */
-export const KYP_FONT = SugarV3.font
+export const KYP_FONT = SUGAR_V3_FONT
 
 /** Tons de risque — fixes dans les 2 thèmes (repère immédiat). README §6. */
 export const KYP_RISK: Record<KycRiskLevel, string> = {

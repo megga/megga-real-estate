@@ -13,8 +13,13 @@ import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { SugarV3, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
+import {
+  sugarV3Palette,
+  SUGAR_V3_KEYFRAMES,
+  type SugarV3Palette,
+} from '@/components/crm-sugar-v3/tokens'
 import { SgIcon } from '@/components/crm-sugar-v3/icons'
+import { useSugarDark } from '@/lib/sugarDark'
 import { useAgencyProperties } from '@/hooks/useProperties'
 import { useContacts } from '@/hooks/useContacts'
 import { useCreateAgentVisit } from '@/hooks/useVisitDetail'
@@ -25,19 +30,25 @@ const STEP_KEYS = [
   'visitModal.stepper.confirmation',
 ] as const
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  height: 50,
-  padding: '0 18px',
-  background: SugarV3.cardSubtle,
-  border: 0,
-  borderRadius: 14,
-  fontFamily: 'inherit',
-  fontSize: 'var(--crm-text-xl)',
-  fontWeight: 600,
-  color: SugarV3.ink,
-  outline: 'none',
-  boxSizing: 'border-box',
+/**
+ * Style des champs de saisie. Vit au niveau MODULE, donc hors de portée d'un
+ * hook : la palette lui est passée en PARAMÈTRE par le composant appelant.
+ */
+function makeInputStyle(S: SugarV3Palette): React.CSSProperties {
+  return {
+    width: '100%',
+    height: 50,
+    padding: '0 18px',
+    background: S.cardSubtle,
+    border: 0,
+    borderRadius: 14,
+    fontFamily: 'inherit',
+    fontSize: 'var(--crm-text-xl)',
+    fontWeight: 600,
+    color: S.ink,
+    outline: 'none',
+    boxSizing: 'border-box',
+  }
 }
 
 function Field({
@@ -49,6 +60,8 @@ function Field({
   hint?: string
   children: React.ReactNode
 }) {
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
   return (
     <div>
       <label
@@ -56,7 +69,7 @@ function Field({
           display: 'block',
           fontSize: 'var(--crm-text-xs)',
           fontWeight: 600,
-          color: SugarV3.muted,
+          color: S.muted,
                               marginBottom: 8,
         }}
       >
@@ -68,7 +81,7 @@ function Field({
           style={{
             marginTop: 6,
             fontSize: 'var(--crm-text-xs)',
-            color: SugarV3.muted,
+            color: S.muted,
             fontWeight: 500,
           }}
         >
@@ -86,6 +99,10 @@ export default function VisitModalSugarV3Page() {
   const defaultBienId = params.get('bienId') ?? null
   const defaultContactId = params.get('contactId') ?? null
   const dealId = params.get('dealId') ?? null
+
+  const dark = useSugarDark()
+  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const inputStyle = useMemo(() => makeInputStyle(S), [S])
 
   const [step, setStep] = useState(0)
   const [bienId, setBienId] = useState<string | null>(defaultBienId)
@@ -193,10 +210,10 @@ export default function VisitModalSugarV3Page() {
         position: 'fixed',
         inset: 0,
         zIndex: 200,
-        background: SugarV3.bgGradient,
+        background: S.bgGradient,
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: SugarV3.font,
+        fontFamily: S.font,
       }}
     >
       <style>{SUGAR_V3_KEYFRAMES}</style>
@@ -218,22 +235,22 @@ export default function VisitModalSugarV3Page() {
             height: 44,
             borderRadius: 999,
             border: 0,
-            background: SugarV3.cardSubtle,
-            color: SugarV3.inkSoft,
+            background: S.cardSubtle,
+            color: S.inkSoft,
             cursor: 'pointer',
             display: 'grid',
             placeItems: 'center',
-            boxShadow: SugarV3.shadowSm,
+            boxShadow: S.shadowSm,
           }}
         >
-          <SgIcon name="close" size={18} stroke={SugarV3.inkSoft} />
+          <SgIcon name="close" size={18} stroke={S.inkSoft} />
         </button>
         <div style={{ flex: 1 }}>
           <div
             style={{
               fontSize: 'var(--crm-text-xs)',
               fontWeight: 600,
-              color: SugarV3.muted,
+              color: S.muted,
                                         }}
           >
             {t('visitModal.title')}
@@ -256,8 +273,8 @@ export default function VisitModalSugarV3Page() {
                       height: 28,
                       borderRadius: 999,
                       background:
-                        active || done ? SugarV3.ink : SugarV3.cardSubtle,
-                      color: active || done ? '#fff' : SugarV3.muted,
+                        active || done ? S.invBg : S.cardSubtle,
+                      color: active || done ? S.invInk : S.muted,
                       fontSize: 'var(--crm-text-xs)',
                       fontWeight: 600,
                       display: 'grid',
@@ -268,7 +285,7 @@ export default function VisitModalSugarV3Page() {
                     }}
                   >
                     {done ? (
-                      <SgIcon name="check" size={13} stroke="#fff" sw={2.5} />
+                      <SgIcon name="check" size={13} stroke={S.invInk} sw={2.5} />
                     ) : (
                       i + 1
                     )}
@@ -278,10 +295,10 @@ export default function VisitModalSugarV3Page() {
                       fontSize: 'var(--crm-text-md)',
                       fontWeight: active || done ? 600 : 500,
                       color: active
-                        ? SugarV3.ink
+                        ? S.ink
                         : done
-                          ? SugarV3.inkSoft
-                          : SugarV3.muted,
+                          ? S.inkSoft
+                          : S.muted,
                       whiteSpace: 'nowrap',
                     }}
                   >
@@ -294,7 +311,7 @@ export default function VisitModalSugarV3Page() {
                       width: 48,
                       height: 2,
                       margin: '0 14px',
-                      background: i < step ? SugarV3.ink : SugarV3.cardSubtle,
+                      background: i < step ? S.ink : S.cardSubtle,
                     }}
                   />
                 )}
@@ -327,7 +344,7 @@ export default function VisitModalSugarV3Page() {
                   style={{
                     fontSize: 'var(--crm-text-sm)',
                     fontWeight: 600,
-                    color: SugarV3.muted,
+                    color: S.muted,
                                                             marginBottom: 14,
                   }}
                 >
@@ -338,7 +355,7 @@ export default function VisitModalSugarV3Page() {
                     margin: '0 0 14px',
                     fontSize: 'var(--crm-text-9xl)',
                     fontWeight: 600,
-                    color: SugarV3.ink,
+                    color: S.ink,
                     letterSpacing: -0.8,
                     lineHeight: 1.1,
                   }}
@@ -349,7 +366,7 @@ export default function VisitModalSugarV3Page() {
                   style={{
                     margin: 0,
                     fontSize: 'var(--crm-text-xl)',
-                    color: SugarV3.inkSoft,
+                    color: S.inkSoft,
                     fontWeight: 500,
                     lineHeight: 1.55,
                   }}
@@ -384,7 +401,7 @@ export default function VisitModalSugarV3Page() {
                           pointerEvents: 'none',
                         }}
                       >
-                        <SgIcon name="search" size={15} stroke={SugarV3.muted} sw={1.8} />
+                        <SgIcon name="search" size={15} stroke={S.muted} sw={1.8} />
                       </span>
                     </div>
                   </Field>
@@ -407,13 +424,13 @@ export default function VisitModalSugarV3Page() {
                             width: '100%',
                             textAlign: 'left',
                             padding: '14px 16px',
-                            background: sel ? SugarV3.card : SugarV3.cardSubtle,
+                            background: sel ? S.card : S.cardSubtle,
                             border: 0,
                             borderRadius: 16,
                             cursor: 'pointer',
                             fontFamily: 'inherit',
                             boxShadow: sel
-                              ? `0 0 0 2px ${SugarV3.ink} inset, ${SugarV3.shadow}`
+                              ? `0 0 0 2px ${S.ink} inset, ${S.shadow}`
                               : 'none',
                             transition: 'all .15s ease',
                             display: 'flex',
@@ -427,20 +444,20 @@ export default function VisitModalSugarV3Page() {
                               height: 36,
                               borderRadius: 12,
                               flexShrink: 0,
-                              background: SugarV3.ink,
-                              color: '#fff',
+                              background: S.invBg,
+                              color: S.invInk,
                               display: 'grid',
                               placeItems: 'center',
                             }}
                           >
-                            <SgIcon name="home" size={15} stroke="#fff" sw={1.8} />
+                            <SgIcon name="home" size={15} stroke={S.invInk} sw={1.8} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div
                               style={{
                                 fontSize: 'var(--crm-text-md)',
                                 fontWeight: 600,
-                                color: SugarV3.ink,
+                                color: S.ink,
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
@@ -451,7 +468,7 @@ export default function VisitModalSugarV3Page() {
                             <div
                               style={{
                                 fontSize: 'var(--crm-text-xs)',
-                                color: SugarV3.muted,
+                                color: S.muted,
                                 fontWeight: 500,
                                 whiteSpace: 'nowrap',
                                 overflow: 'hidden',
@@ -469,9 +486,9 @@ export default function VisitModalSugarV3Page() {
                         style={{
                           padding: 14,
                           borderRadius: 14,
-                          background: SugarV3.cardSubtle,
+                          background: S.cardSubtle,
                           fontSize: 'var(--crm-text-sm)',
-                          color: SugarV3.muted,
+                          color: S.muted,
                           fontWeight: 500,
                           textAlign: 'center',
                         }}
@@ -501,7 +518,7 @@ export default function VisitModalSugarV3Page() {
                           pointerEvents: 'none',
                         }}
                       >
-                        <SgIcon name="search" size={15} stroke={SugarV3.muted} sw={1.8} />
+                        <SgIcon name="search" size={15} stroke={S.muted} sw={1.8} />
                       </span>
                     </div>
                   </Field>
@@ -526,13 +543,13 @@ export default function VisitModalSugarV3Page() {
                             width: '100%',
                             textAlign: 'left',
                             padding: '14px 16px',
-                            background: sel ? SugarV3.card : SugarV3.cardSubtle,
+                            background: sel ? S.card : S.cardSubtle,
                             border: 0,
                             borderRadius: 16,
                             cursor: 'pointer',
                             fontFamily: 'inherit',
                             boxShadow: sel
-                              ? `0 0 0 2px ${SugarV3.ink} inset, ${SugarV3.shadow}`
+                              ? `0 0 0 2px ${S.ink} inset, ${S.shadow}`
                               : 'none',
                             transition: 'all .15s ease',
                             display: 'flex',
@@ -546,8 +563,8 @@ export default function VisitModalSugarV3Page() {
                               height: 36,
                               borderRadius: 999,
                               flexShrink: 0,
-                              background: SugarV3.ink,
-                              color: '#fff',
+                              background: S.invBg,
+                              color: S.invInk,
                               display: 'grid',
                               placeItems: 'center',
                               fontWeight: 600,
@@ -561,7 +578,7 @@ export default function VisitModalSugarV3Page() {
                               style={{
                                 fontSize: 'var(--crm-text-md)',
                                 fontWeight: 600,
-                                color: SugarV3.ink,
+                                color: S.ink,
                               }}
                             >
                               {c.first_name} {c.last_name}
@@ -569,7 +586,7 @@ export default function VisitModalSugarV3Page() {
                             <div
                               style={{
                                 fontSize: 'var(--crm-text-xs)',
-                                color: SugarV3.muted,
+                                color: S.muted,
                                 fontWeight: 500,
                               }}
                             >
@@ -593,7 +610,7 @@ export default function VisitModalSugarV3Page() {
                   style={{
                     fontSize: 'var(--crm-text-sm)',
                     fontWeight: 600,
-                    color: SugarV3.muted,
+                    color: S.muted,
                                                             marginBottom: 14,
                   }}
                 >
@@ -604,7 +621,7 @@ export default function VisitModalSugarV3Page() {
                     margin: '0 0 14px',
                     fontSize: 'var(--crm-text-9xl)',
                     fontWeight: 600,
-                    color: SugarV3.ink,
+                    color: S.ink,
                     letterSpacing: -0.8,
                     lineHeight: 1.1,
                   }}
@@ -615,7 +632,7 @@ export default function VisitModalSugarV3Page() {
                   style={{
                     margin: 0,
                     fontSize: 'var(--crm-text-xl)',
-                    color: SugarV3.inkSoft,
+                    color: S.inkSoft,
                     fontWeight: 500,
                     lineHeight: 1.55,
                   }}
@@ -626,9 +643,9 @@ export default function VisitModalSugarV3Page() {
 
               <div
                 style={{
-                  background: SugarV3.card,
+                  background: S.card,
                   borderRadius: 24,
-                  boxShadow: SugarV3.shadowLg,
+                  boxShadow: S.shadowLg,
                   padding: 36,
                   maxWidth: 720,
                 }}
@@ -687,7 +704,7 @@ export default function VisitModalSugarV3Page() {
                   style={{
                     fontSize: 'var(--crm-text-sm)',
                     fontWeight: 600,
-                    color: SugarV3.muted,
+                    color: S.muted,
                                                             marginBottom: 14,
                   }}
                 >
@@ -698,7 +715,7 @@ export default function VisitModalSugarV3Page() {
                     margin: '0 0 14px',
                     fontSize: 'var(--crm-text-9xl)',
                     fontWeight: 600,
-                    color: SugarV3.ink,
+                    color: S.ink,
                     letterSpacing: -0.8,
                     lineHeight: 1.1,
                   }}
@@ -709,7 +726,7 @@ export default function VisitModalSugarV3Page() {
                   style={{
                     margin: 0,
                     fontSize: 'var(--crm-text-xl)',
-                    color: SugarV3.inkSoft,
+                    color: S.inkSoft,
                     fontWeight: 500,
                     lineHeight: 1.55,
                   }}
@@ -729,18 +746,18 @@ export default function VisitModalSugarV3Page() {
                 {/* Récap noir */}
                 <div
                   style={{
-                    background: SugarV3.ink,
-                    color: '#fff',
+                    background: S.invBg,
+                    color: S.invInk,
                     borderRadius: 24,
                     padding: 32,
-                    boxShadow: SugarV3.shadow,
+                    boxShadow: S.shadow,
                   }}
                 >
                   <div
                     style={{
                       fontSize: 'var(--crm-text-xs)',
                       fontWeight: 600,
-                      color: 'rgba(255,255,255,0.6)',
+                      color: S.invInkSoft,
                                                                   marginBottom: 22,
                     }}
                   >
@@ -873,13 +890,13 @@ export default function VisitModalSugarV3Page() {
                         width: '100%',
                         textAlign: 'left',
                         padding: 22,
-                        background: opt.v ? SugarV3.card : SugarV3.cardSubtle,
+                        background: opt.v ? S.card : S.cardSubtle,
                         border: 0,
                         borderRadius: 20,
                         cursor: 'pointer',
                         fontFamily: 'inherit',
                         boxShadow: opt.v
-                          ? `0 0 0 2px ${SugarV3.ink} inset, ${SugarV3.shadow}`
+                          ? `0 0 0 2px ${S.ink} inset, ${S.shadow}`
                           : 'none',
                         display: 'flex',
                         alignItems: 'flex-start',
@@ -892,7 +909,7 @@ export default function VisitModalSugarV3Page() {
                           style={{
                             fontSize: 'var(--crm-text-lg)',
                             fontWeight: 600,
-                            color: SugarV3.ink,
+                            color: S.ink,
                             marginBottom: 3,
                           }}
                         >
@@ -901,7 +918,7 @@ export default function VisitModalSugarV3Page() {
                         <div
                           style={{
                             fontSize: 'var(--crm-text-sm)',
-                            color: SugarV3.muted,
+                            color: S.muted,
                             fontWeight: 500,
                             lineHeight: 1.5,
                           }}
@@ -915,16 +932,16 @@ export default function VisitModalSugarV3Page() {
                           height: 22,
                           borderRadius: 999,
                           flexShrink: 0,
-                          background: opt.v ? SugarV3.ink : SugarV3.card,
+                          background: opt.v ? S.invBg : S.card,
                           boxShadow: opt.v
                             ? 'none'
-                            : `0 0 0 2px ${SugarV3.cardSubtle} inset`,
+                            : `0 0 0 2px ${S.cardSubtle} inset`,
                           display: 'grid',
                           placeItems: 'center',
                         }}
                       >
                         {opt.v && (
-                          <SgIcon name="check" size={13} stroke="#fff" sw={3} />
+                          <SgIcon name="check" size={13} stroke={S.invInk} sw={3} />
                         )}
                       </div>
                     </button>
@@ -944,7 +961,7 @@ export default function VisitModalSugarV3Page() {
           alignItems: 'center',
           gap: 14,
           flexShrink: 0,
-          background: SugarV3.card,
+          background: S.card,
           boxShadow: `0 -8px 24px ${sgVoileEncre(false, 0.04)}`,
         }}
       >
@@ -956,7 +973,7 @@ export default function VisitModalSugarV3Page() {
             borderRadius: 999,
             border: 0,
             background: 'transparent',
-            color: SugarV3.inkSoft,
+            color: S.inkSoft,
             fontFamily: 'inherit',
             fontSize: 'var(--crm-text-lg)',
             fontWeight: 600,
@@ -966,7 +983,7 @@ export default function VisitModalSugarV3Page() {
             gap: 9,
           }}
         >
-          <SgIcon name="arrowL" size={15} stroke={SugarV3.inkSoft} />
+          <SgIcon name="arrowL" size={15} stroke={S.inkSoft} />
           {step === 0 ? t('visitModal.action.cancel') : t('visitModal.action.back')}
         </button>
         <div style={{ flex: 1 }} />
@@ -975,7 +992,7 @@ export default function VisitModalSugarV3Page() {
             role="alert"
             style={{
               fontSize: 'var(--crm-text-sm)',
-              color: SugarV3.errDarker,
+              color: S.errDarker,
               fontWeight: 600,
               marginRight: 12,
             }}
@@ -984,7 +1001,7 @@ export default function VisitModalSugarV3Page() {
           </div>
         )}
         <div
-          style={{ fontSize: 'var(--crm-text-sm)', color: SugarV3.muted, fontWeight: 600 }}
+          style={{ fontSize: 'var(--crm-text-sm)', color: S.muted, fontWeight: 600 }}
         >
           {t('visitModal.footer.stepCounter', {
             current: step + 1,
@@ -1000,7 +1017,7 @@ export default function VisitModalSugarV3Page() {
               padding: '0 28px',
               borderRadius: 999,
               border: 0,
-              background: canContinue ? SugarV3.accent : SugarV3.ghost,
+              background: canContinue ? S.accent : S.ghost,
               color: '#fff',
               fontFamily: 'inherit',
               fontWeight: 600,
@@ -1026,7 +1043,7 @@ export default function VisitModalSugarV3Page() {
               padding: '0 28px',
               borderRadius: 999,
               border: 0,
-              background: isSaving ? SugarV3.ghost : SugarV3.accent,
+              background: isSaving ? S.ghost : S.accent,
               color: '#fff',
               fontFamily: 'inherit',
               fontWeight: 600,
