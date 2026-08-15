@@ -22,7 +22,31 @@ export interface OnboardingCallEmailData {
   locale: 'fr' | 'en'
 }
 
+// ── Jetons de l'habillage MEGGA X ───────────────────────────────────────────
+// L'ancienne coquille était claire (fond #f5f5f7, carte blanche, DM Sans) : elle
+// datait d'avant la bascule du CRM et de la vitrine vers MEGGA X. Les valeurs
+// ci-dessous sont celles de la direction en vigueur, posées ici en clair parce
+// qu'un e-mail ne peut lire aucune variable CSS : le client de messagerie ne voit
+// que ce qui est inliné.
 const BRAND = '#424bfb'
+const CARD = '#090909'
+const CARD_BORDER = '#181818'
+const INK = '#ffffff'
+const BODY_INK = '#cccccc'
+const MUTED = '#8a8a8f'
+
+/**
+ * ⚠ `app.megga.ch`, JAMAIS `megga.ch`. La vitrine est derrière un mot de passe :
+ * mesuré le 15.08.2026, `megga.ch/email/megga-logo-white.png` rend **401** en
+ * `text/plain` (23 octets), ce que tout client de messagerie affiche en image
+ * cassée. C'est l'adresse que portait cette coquille depuis l'origine, donc le
+ * logo était mort dans chaque e-mail d'appel d'accueil déjà parti. Les deux
+ * fichiers sont versionnés dans `public/email/` et servis en `image/png` par
+ * l'app.
+ */
+const ASSETS = 'https://app.megga.ch/email'
+
+const FONT = "'Inter Tight','Helvetica Neue',Helvetica,Arial,sans-serif"
 
 /** Date et heure lisibles, dans le fuseau demandé. */
 export function formatWhen(startMs: number, timezone: string, locale: 'fr' | 'en'): string {
@@ -47,37 +71,241 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;')
 }
 
-function shell(title: string, bodyHtml: string): string {
-  return `<!doctype html>
-<html><body style="margin:0;padding:0;background:#f5f5f7;font-family:'DM Sans',Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f7;padding:32px 12px;">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;">
-        <tr><td style="background:#0A0B0D;padding:24px 28px;">
-          <img src="https://megga.ch/email/megga-logo-white.png" alt="MEGGA" width="132" style="display:block;border:0;" />
-        </td></tr>
-        <tr><td style="padding:28px;">
-          <h1 style="margin:0 0 16px;font-size:20px;line-height:1.3;color:#0A0B0D;font-weight:700;">${escapeHtml(title)}</h1>
-          ${bodyHtml}
-        </td></tr>
-        <tr><td style="padding:18px 28px;border-top:1px solid #ececf0;color:#8E8E96;font-size:12px;line-height:1.6;">
-          MEGGA Real Estate · Gen&egrave;ve<br />Ce message vous est envoy&eacute; parce qu&rsquo;un rendez-vous vous concerne.
-        </td></tr>
-      </table>
-    </td></tr>
+interface ShellOptions {
+  /** Sert le `<title>` ET le `<h1>` : les deux disent la même chose, par construction. */
+  title: string
+  /**
+   * Texte d'aperçu de la liste des messages, masqué à l'ouverture. Il ne REPÈTE
+   * jamais l'objet : c'est la seule ligne qui peut dire pourquoi garder le message
+   * (le lien y est), là où l'objet dit de quoi il s'agit.
+   */
+  preheader: string
+  bodyHtml: string
+  /**
+   * Mention de pied. `null` pour un avis INTERNE : promettre à un collègue qu'« il
+   * ne s'agit pas d'une communication marketing » n'a pas de destinataire.
+   */
+  legalNote: string | null
+  /** Pilule d'en-tête. `null` sur les avis internes, où elle n'ouvre rien d'utile. */
+  headerCta: { href: string; label: string } | null
+}
+
+/**
+ * Coquille MEGGA X sombre, commune aux trois gabarits.
+ *
+ * ⚠ Tout est inliné et posé en tableaux : un client de messagerie ne lit ni
+ * variable CSS, ni flexbox, ni grille. Le `<style>` de l'en-tête ne porte donc que
+ * ce qui ne peut PAS être inliné (media queries), et rien d'essentiel n'en dépend :
+ * un client qui le jette rend quand même la carte correctement.
+ */
+function shell(o: ShellOptions): string {
+  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="supported-color-schemes" content="dark" />
+  <title>${escapeHtml(o.title)}</title>
+  <!--[if mso]>
+  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+  <![endif]-->
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;700;800&amp;display=swap" rel="stylesheet" />
+  <style>
+    a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+    :root { color-scheme: dark; supported-color-schemes: dark; }
+    @media (prefers-color-scheme: light) {
+      body { background: #ffffff !important; }
+      .mg-card { background: ${CARD} !important; }
+      .mg-title, .mg-h2 { color: ${INK} !important; }
+    }
+    @media screen and (max-width: 600px) {
+      .mg-pad { padding-left: 24px !important; padding-right: 24px !important; }
+      .mg-title { font-size: 26px !important; }
+      .mg-cta { display: block !important; width: 100% !important; box-sizing: border-box !important; padding-left: 16px !important; padding-right: 16px !important; }
+      .mg-login { display: none !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;background:#ffffff;-webkit-font-smoothing:antialiased;">
+
+  <div style="display:none;max-height:0;overflow:hidden;color:transparent;opacity:0;">
+    ${escapeHtml(o.preheader)}
+  </div>
+
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#ffffff;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" class="mg-card" style="max-width:600px;width:100%;background:${CARD};border:1px solid ${CARD_BORDER};border-radius:24px;">
+
+          <tr>
+            <td class="mg-pad" style="padding:36px 36px 8px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                <tr>
+                  <td align="left" valign="middle">
+                    <img src="${ASSETS}/megga-logo-white.png" width="140" height="31" alt="MEGGA"
+                      style="display:block;width:140px;height:31px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;font-family:${FONT};font-size:21px;font-weight:800;letter-spacing:-1.1px;color:${INK};" />
+                  </td>
+                  ${o.headerCta ? `<td align="right" valign="middle" class="mg-login">
+                    <a href="${escapeHtml(o.headerCta.href)}"
+                      style="display:inline-block;border:1px solid ${INK};color:${INK};text-decoration:none;padding:11px 22px;border-radius:999px;font-family:${FONT};font-size:13px;font-weight:600;line-height:1;letter-spacing:0.4px;">
+                      ${escapeHtml(o.headerCta.label)}
+                    </a>
+                  </td>` : ''}
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mg-pad" style="padding:52px 36px 0;">
+              <h1 class="mg-title" style="margin:0 0 20px;font-family:${FONT};font-size:30px;font-weight:700;line-height:1.2;letter-spacing:-0.8px;color:${INK};">
+                ${escapeHtml(o.title)}
+              </h1>
+              ${o.bodyHtml}
+            </td>
+          </tr>
+
+          <tr>
+            <td align="center" class="mg-pad" style="padding:44px 36px 8px;">
+              <img src="${ASSETS}/megga-gg-indigo.png" width="36" height="22" alt=""
+                style="display:block;width:36px;height:22px;border:0;outline:none;-ms-interpolation-mode:bicubic;font-family:${FONT};font-size:14px;font-weight:800;letter-spacing:-0.6px;color:${BRAND};" />
+            </td>
+          </tr>
+          <tr>
+            <td align="center" class="mg-pad" style="padding:14px 36px 0;">
+              <p style="margin:0 0 4px;font-family:${FONT};font-size:12.5px;font-weight:400;line-height:1.6;color:${MUTED};">
+                MEGGA, Rue du Rhône 14, 1204 Genève, Suisse
+              </p>
+              <p style="margin:0;font-family:${FONT};font-size:12.5px;font-weight:400;line-height:1.6;color:${MUTED};">
+                © 2026 MEGGA Inc. Tous droits réservés
+              </p>
+            </td>
+          </tr>
+          ${o.legalNote ? `<tr>
+            <td align="center" class="mg-pad" style="padding:26px 48px 20px;">
+              <p style="margin:0;font-family:${FONT};font-size:11.5px;font-weight:400;line-height:1.75;color:${MUTED};">
+                ${escapeHtml(o.legalNote)}
+              </p>
+            </td>
+          </tr>` : ''}
+
+          <tr>
+            <td height="112" style="height:112px;font-size:0;line-height:0;">
+              <div style="height:112px;font-size:0;line-height:0;border-radius:0 0 24px 24px;background-image:linear-gradient(to bottom, ${CARD} 0%, rgba(9,9,9,0.93) 32%, rgba(9,9,9,0.5) 66%, rgba(9,9,9,0) 100%),linear-gradient(to right, #030303 0%, #12036e 9%, #2409c4 25%, #a02afb 50%, #7a0a76 76%, #2b0430 92%, #030303 100%);">&nbsp;</div>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
   </table>
+
 </body></html>`
+}
+
+/** Paragraphe de corps, à l'encre douce de la direction. */
+function p(html: string, marginBottom = 16): string {
+  return `<p style="margin:0 0 ${marginBottom}px;font-family:${FONT};font-size:16px;font-weight:400;line-height:1.6;color:${BODY_INK};">${html}</p>`
 }
 
 function row(label: string, value: string): string {
   return `<tr>
-    <td style="padding:6px 0;color:#8E8E96;font-size:13px;width:110px;vertical-align:top;">${escapeHtml(label)}</td>
-    <td style="padding:6px 0;color:#0A0B0D;font-size:14px;font-weight:500;">${value}</td>
+    <td style="padding:7px 0;font-family:${FONT};color:${MUTED};font-size:13px;width:120px;vertical-align:top;">${escapeHtml(label)}</td>
+    <td style="padding:7px 0;font-family:${FONT};color:${INK};font-size:15px;font-weight:500;">${value}</td>
   </tr>`
 }
 
+/**
+ * Bouton d'action, en pilule.
+ *
+ * ⚠ La branche VML n'est pas décorative : Outlook (moteur Word) ignore
+ * `border-radius` et le remplissage d'un `<a>`, et rendrait un lien bleu souligné
+ * au milieu d'une carte noire. `v:roundrect` EXIGE une largeur en pixels, sans
+ * équivalent automatique : on l'estime sur la longueur du libellé, une pilule un
+ * peu large étant sans conséquence là où une pilule trop étroite couperait le mot.
+ */
 function button(href: string, label: string): string {
-  return `<a href="${escapeHtml(href)}" style="display:inline-block;background:${BRAND};color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;">${escapeHtml(label)}</a>`
+  const largeurVml = Math.round(64 + label.length * 8.8)
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td align="left">
+    <!--[if mso]>
+    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"
+      href="${escapeHtml(href)}" arcsize="50%" stroke="f" fillcolor="${BRAND}"
+      style="height:56px;v-text-anchor:middle;width:${largeurVml}px;">
+      <w:anchorlock/>
+      <center style="color:#ffffff;font-family:Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;">${escapeHtml(label)}</center>
+    </v:roundrect>
+    <![endif]-->
+    <!--[if !mso]><!-->
+    <a class="mg-cta" href="${escapeHtml(href)}"
+      style="display:inline-block;background:${BRAND};color:#ffffff;text-decoration:none;padding:18px 32px;border-radius:999px;text-align:center;font-family:${FONT};font-size:16px;font-weight:600;line-height:1;letter-spacing:-0.2px;">
+      ${escapeHtml(label)}
+    </a>
+    <!--<![endif]-->
+  </td></tr></table>`
+}
+
+/** Sous-titre du bloc secondaire (« Un empêchement ? »). */
+function h2(text: string): string {
+  return `<h2 class="mg-h2" style="margin:0 0 8px;font-family:${FONT};font-size:16px;font-weight:700;line-height:1.4;color:${INK};">${escapeHtml(text)}</h2>`
+}
+
+/**
+ * Mention de pied des e-mails CLIENT. Vraie pour les trois cas où elle sert
+ * (confirmation, rappel) : le message concerne un rendez-vous pris par le
+ * destinataire. ⛔ Ne jamais la remplacer par la mention « notification de
+ * sécurité » du gabarit d'authentification : ce serait faux ici, et une fausse
+ * mention de sécurité use celle qui compte quand elle arrive vraiment.
+ */
+const LEGAL_NOTE = {
+  fr: 'Cet e-mail concerne un rendez-vous que vous avez pris avec MEGGA. Il ne s’agit pas d’une communication marketing : c’est pourquoi il ne contient pas de lien de désinscription.',
+  en: 'This email is about an appointment you booked with MEGGA. It is not a marketing message, which is why it carries no unsubscribe link.',
+} as const
+
+/** Pilule d'en-tête des e-mails client. */
+const HEADER_CTA = {
+  fr: { href: 'https://app.megga.ch/dashboard', label: 'Ouvrir mon espace' },
+  en: { href: 'https://app.megga.ch/dashboard', label: 'Open my space' },
+} as const
+
+/** Bloc de faits partagé par la confirmation et le rappel. */
+function detailsTable(d: OnboardingCallEmailData, fr: boolean): string {
+  const when = formatWhen(d.startMs, d.timezone, d.locale)
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0 0 28px;">
+    ${row(fr ? 'Quand' : 'When', escapeHtml(when))}
+    ${row(fr ? 'Durée' : 'Duration', `${d.durationMinutes} min`)}
+    ${row(fr ? 'Avec' : 'With', escapeHtml(d.hostName))}
+    ${d.meetingUrl ? row(fr ? 'Lien' : 'Link', `<a href="${escapeHtml(d.meetingUrl)}" style="color:${BRAND};word-break:break-all;">${escapeHtml(d.meetingUrl)}</a>`) : ''}
+  </table>`
+}
+
+/**
+ * Ligne de repli quand aucun lien de visioconférence n'existe encore.
+ *
+ * Le cas est réel : `createHostEvent` rend `null` si l'agenda de l'hôte n'est pas
+ * joignable, et la réservation aboutit quand même. Promettre un lien absent, ou
+ * n'en rien dire, laisserait le destinataire chercher dans un e-mail qui ne
+ * l'aura jamais porté.
+ */
+function lienASuivre(fr: boolean): string {
+  return p(fr
+    ? 'Le lien de visioconférence vous parvient dès qu’il est prêt, dans un second message.'
+    : 'Your video link will follow in a second message as soon as it is ready.', 0)
+}
+
+/** Le bloc « Un empêchement ? » : c'est la ligne la plus utile de l'e-mail. */
+function blocReplanifier(d: OnboardingCallEmailData, fr: boolean): string {
+  return `${h2(fr ? 'Un empêchement ?' : 'Something came up?')}
+     <p style="margin:0 0 24px;font-family:${FONT};font-size:15px;font-weight:400;line-height:1.6;color:${BODY_INK};">
+       <a href="${escapeHtml(d.manageUrl)}" style="color:${BRAND};">${fr ? 'Replanifiez ou annulez' : 'Reschedule or cancel'}</a>${fr ? ' en un clic, sans avoir à vous reconnecter.' : ' in one click, no sign-in needed.'}
+     </p>`
+}
+
+/** Signature client. « À bientôt » et non « Merci » : on se donne rendez-vous. */
+function signature(fr: boolean): string {
+  return `<div style="padding:32px 0 0;">${p(fr ? 'À bientôt,<br />L’équipe MEGGA' : 'See you soon,<br />The MEGGA team', 0)}</div>`
 }
 
 /** E-mail de confirmation, pour l'agence qui vient de réserver. */
@@ -85,31 +313,32 @@ export function buildAttendeeEmail(d: OnboardingCallEmailData): { subject: strin
   const fr = d.locale === 'fr'
   const when = formatWhen(d.startMs, d.timezone, d.locale)
 
+  // L'ÉTAT avant la marque : un objet se lit tronqué sur mobile, et ce qui compte
+  // est que le rendez-vous est acté. Le logo dit qui écrit, dès l'ouverture.
   const subject = fr
-    ? `Votre appel d'accueil MEGGA, ${when}`
-    : `Your MEGGA welcome call, ${when}`
+    ? `Appel d’accueil confirmé · ${when}`
+    : `Welcome call confirmed · ${when}`
 
-  const details = `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 22px;">
-    ${row(fr ? 'Quand' : 'When', escapeHtml(when))}
-    ${row(fr ? 'Dur&eacute;e' : 'Duration', `${d.durationMinutes} min`)}
-    ${row(fr ? 'Avec' : 'With', escapeHtml(d.hostName))}
-    ${d.meetingUrl ? row(fr ? 'Lien' : 'Link', `<a href="${escapeHtml(d.meetingUrl)}" style="color:${BRAND};">${escapeHtml(d.meetingUrl)}</a>`) : ''}
-  </table>`
-
-  const html = shell(
-    fr ? 'Votre appel d’accueil est confirmé' : 'Your welcome call is confirmed',
-    `<p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#3a3a40;">
-       ${fr
-        ? `Bonjour ${escapeHtml(d.attendeeName)}, votre appel d’accueil pour ${escapeHtml(d.agencyName)} est réservé. Nous ferons le tour de votre installation et répondrons à vos questions.`
-        : `Hello ${escapeHtml(d.attendeeName)}, your welcome call for ${escapeHtml(d.agencyName)} is booked. We will walk through your setup and answer your questions.`}
-     </p>
-     ${details}
-     ${d.meetingUrl ? `<p style="margin:0 0 18px;">${button(d.meetingUrl, fr ? 'Rejoindre l’appel' : 'Join the call')}</p>` : ''}
-     <p style="margin:0;font-size:13px;line-height:1.6;color:#8E8E96;">
-       ${fr ? 'Un emp&ecirc;chement ? Vous pouvez ' : 'Something came up? You can '}
-       <a href="${escapeHtml(d.manageUrl)}" style="color:${BRAND};">${fr ? 'replanifier ou annuler' : 'reschedule or cancel'}</a>${fr ? ', sans avoir à vous reconnecter.' : ', no sign-in needed.'}
-     </p>`,
-  )
+  const html = shell({
+    title: fr ? 'Votre appel d’accueil est confirmé' : 'Your welcome call is confirmed',
+    // N'ajoute rien à l'objet : il dit ce que le message CONTIENT, donc pourquoi le garder.
+    preheader: fr
+      ? 'Le lien de visioconférence et de quoi replanifier sont dans ce message.'
+      : 'Your video link and reschedule options are in this message.',
+    legalNote: LEGAL_NOTE[d.locale],
+    headerCta: HEADER_CTA[d.locale],
+    bodyHtml: `
+     ${p(fr ? `Bonjour ${escapeHtml(d.attendeeName)},` : `Hello ${escapeHtml(d.attendeeName)},`)}
+     ${p(fr
+      ? `Nous nous retrouvons pour faire le tour de votre installation, répondre à vos questions et calibrer MEGGA sur votre façon de travailler.`
+      : `We will walk through your setup, answer your questions, and tune MEGGA to the way you work.`, 28)}
+     ${detailsTable(d, fr)}
+     ${d.meetingUrl
+      ? `<div style="margin:0 0 32px;">${button(d.meetingUrl, fr ? 'Rejoindre l’appel' : 'Join the call')}</div>`
+      : `<div style="margin:0 0 32px;">${lienASuivre(fr)}</div>`}
+     ${blocReplanifier(d, fr)}
+     ${signature(fr)}`,
+  })
 
   return { subject, html }
 }
@@ -128,14 +357,22 @@ export function buildHostEmail(
 
   const subject = `${heading} · ${d.agencyName} · ${when}`
 
-  const html = shell(heading, `
-    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 20px;">
+  // Avis INTERNE : ni mention légale ni pilule de connexion (cf. ShellOptions).
+  // L'hôte est déjà dans l'outil, on lui donne des faits et un bouton, rien d'autre.
+  const html = shell({
+    title: heading,
+    preheader: `${d.agencyName} · ${when}`,
+    legalNote: null,
+    headerCta: null,
+    bodyHtml: `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0 0 28px;">
       ${row('Agence', escapeHtml(d.agencyName))}
       ${row('Contact', `${escapeHtml(d.attendeeName)}<br /><a href="mailto:${escapeHtml(d.attendeeEmail)}" style="color:${BRAND};">${escapeHtml(d.attendeeEmail)}</a>`)}
-      ${row(kind === 'cancelled' ? 'Cr&eacute;neau lib&eacute;r&eacute;' : 'Quand', escapeHtml(when))}
-      ${row('Dur&eacute;e', `${d.durationMinutes} min`)}
+      ${row(kind === 'cancelled' ? 'Créneau libéré' : 'Quand', escapeHtml(when))}
+      ${row('Durée', `${d.durationMinutes} min`)}
     </table>
-    ${kind !== 'cancelled' && d.meetingUrl ? `<p style="margin:0;">${button(d.meetingUrl, 'Ouvrir la visioconf&eacute;rence')}</p>` : ''}`)
+    ${kind !== 'cancelled' && d.meetingUrl ? button(d.meetingUrl, 'Ouvrir la visioconférence') : ''}`,
+  })
 
   return { subject, html }
 }
@@ -146,19 +383,24 @@ export function buildReminderEmail(d: OnboardingCallEmailData): { subject: strin
   const when = formatWhen(d.startMs, d.timezone, d.locale)
 
   return {
-    subject: fr ? `Rappel : appel d'accueil ${when}` : `Reminder: welcome call ${when}`,
-    html: shell(
-      fr ? 'C’est demain' : 'It is tomorrow',
-      `<p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#3a3a40;">
-         ${fr
-          ? `Petit rappel : votre appel d’accueil avec ${escapeHtml(d.hostName)} a lieu ${escapeHtml(when)}.`
-          : `A quick reminder: your welcome call with ${escapeHtml(d.hostName)} takes place ${escapeHtml(when)}.`}
-       </p>
-       ${d.meetingUrl ? `<p style="margin:0 0 18px;">${button(d.meetingUrl, fr ? 'Rejoindre l’appel' : 'Join the call')}</p>` : ''}
-       <p style="margin:0;font-size:13px;line-height:1.6;color:#8E8E96;">
-         <a href="${escapeHtml(d.manageUrl)}" style="color:${BRAND};">${fr ? 'Replanifier ou annuler' : 'Reschedule or cancel'}</a>
-       </p>`,
-    ),
+    subject: fr ? `Rappel : appel d’accueil ${when}` : `Reminder: welcome call ${when}`,
+    html: shell({
+      title: fr ? 'C’est demain' : 'It is tomorrow',
+      preheader: fr
+        ? 'Le lien de visioconférence est dans ce message.'
+        : 'Your video link is in this message.',
+      legalNote: LEGAL_NOTE[d.locale],
+      headerCta: HEADER_CTA[d.locale],
+      bodyHtml: `
+       ${p(fr
+        ? `Petit rappel : votre appel d’accueil avec ${escapeHtml(d.hostName)} a lieu ${escapeHtml(when)}.`
+        : `A quick reminder: your welcome call with ${escapeHtml(d.hostName)} takes place ${escapeHtml(when)}.`, 28)}
+       ${d.meetingUrl
+        ? `<div style="margin:0 0 32px;">${button(d.meetingUrl, fr ? 'Rejoindre l’appel' : 'Join the call')}</div>`
+        : `<div style="margin:0 0 32px;">${lienASuivre(fr)}</div>`}
+       ${blocReplanifier(d, fr)}
+       ${signature(fr)}`,
+    }),
   }
 }
 
