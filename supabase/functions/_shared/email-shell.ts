@@ -65,12 +65,20 @@ export interface ShellOptions {
   legalNote: string | null
   /** Pilule d'en-tête. `null` sur les avis internes, où elle n'ouvre rien d'utile. */
   headerCta: { href: string; label: string } | null
+  /**
+   * Langue du document. Par défaut `fr`, la langue de la plupart des e-mails du produit.
+   *
+   * ⚠ À passer sur tout gabarit multilingue : un e-mail allemand annoncé `lang="fr"` fait
+   * lire l'allemand avec une prononciation française à un lecteur d'écran, et trompe les
+   * outils de traduction automatique du client de messagerie.
+   */
+  lang?: string
 }
 
 /** Coquille MEGGA X sombre, commune à tous les e-mails du produit. */
 export function shell(o: ShellOptions): string {
   return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" lang="fr">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="${escapeHtml(o.lang ?? 'fr')}">
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />

@@ -27,6 +27,7 @@ import {
 } from '../supabase/functions/_shared/onboarding-email.ts'
 import { buildVerificationNotice } from '../supabase/functions/_shared/agency-verification-notice.ts'
 import { buildBookingEmail } from '../supabase/functions/_shared/booking-email.ts'
+import { buildMagicLinkEmail, type MagicLinkLocale } from '../supabase/functions/_shared/magic-link-email.ts'
 
 const SORTIE = '.email-preview'
 
@@ -68,6 +69,38 @@ const CAS: Cas[] = [
   { id: 'appel-rappel-en', nom: 'Appel d’accueil · rappel J-1 (EN)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildReminderEmail({ ...appel, locale: 'en' }) },
   { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’hôte (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked') },
   { id: 'appel-hote-annule', nom: 'Appel d’accueil · annulation (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail({ ...appel, meetingUrl: null }, 'cancelled') },
+
+  // Lien magique KYC — migré le 15.08.2026. LES QUATRE LANGUES, parce que c'est le seul
+  // gabarit multilingue et que l'allemand est celui qui déborde : s'il tient, les autres
+  // tiennent. Le message personnalisé de l'agent est montré à part, il change la hauteur.
+  ...(['fr', 'de', 'en', 'it'] as MagicLinkLocale[]).map((locale) => ({
+    id: `lien-magique-${locale}`,
+    nom: `Lien magique KYC (${locale.toUpperCase()})`,
+    source: '_shared/magic-link-email.ts',
+    migre: true,
+    rendu: buildMagicLinkEmail({
+      locale,
+      firstName: 'Marie',
+      agentFullName: 'Gregory Lyonnet',
+      agencyName: 'Régie du Rhône',
+      url: 'https://app.megga.ch/kyc/jeton-de-demonstration',
+      customMessage: null,
+    }),
+  })),
+  {
+    id: 'lien-magique-message-agent',
+    nom: 'Lien magique KYC · message de l’agent',
+    source: '_shared/magic-link-email.ts',
+    migre: true,
+    rendu: buildMagicLinkEmail({
+      locale: 'fr',
+      firstName: 'Marie',
+      agentFullName: 'Gregory Lyonnet',
+      agencyName: 'Régie du Rhône',
+      url: 'https://app.megga.ch/kyc/jeton-de-demonstration',
+      customMessage: 'Comme convenu au téléphone, voici le lien. N’hésitez pas si une question se pose.',
+    }),
+  },
 
   // Convocation KYC — migrée le 15.08.2026. Les trois modes, parce qu'ils ne montrent pas
   // la même chose : la visio porte un bouton, le sur-place une adresse, l'annulation ni

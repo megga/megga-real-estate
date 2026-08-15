@@ -26,6 +26,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { kycMagicLinkUrl } from '../_shared/app-url.ts'
 import { redactPII } from '../_shared/pii-redaction.ts'
+import { buildMagicLinkEmail, normalizeLocale } from '../_shared/magic-link-email.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -67,198 +68,9 @@ async function authorizeSendEmailCall(
 const FROM_EMAIL = Deno.env.get('MEGGA_KYC_FROM_EMAIL') ?? 'kyc@megga.ch'
 const FROM_NAME = Deno.env.get('MEGGA_KYC_FROM_NAME') ?? 'MEGGA'
 
-type Locale = 'fr' | 'de' | 'en' | 'it'
-
-function normalizeLocale(lang: string | null | undefined): Locale {
-  const l = (lang ?? '').toLowerCase().slice(0, 2)
-  if (l === 'de' || l === 'en' || l === 'it') return l
-  return 'fr'
-}
-
-interface TemplateStrings {
-  subject: (agencyName: string) => string
-  preheader: string
-  greeting: (firstName: string) => string
-  intro: (agentFullName: string, agencyName: string) => string
-  cta: string
-  expiryNote: string
-  reassuranceTitle: string
-  reassurance: { title: string; sub: string }[]
-  closing: string
-  footer: (agencyName: string) => string
-  privacyMention: string
-}
-
-const STRINGS: Record<Locale, TemplateStrings> = {
-  fr: {
-    subject: (a) => `${a} — Finaliser votre dossier KYC`,
-    preheader: 'Pour finaliser votre dossier, vérifions votre identité en quelques minutes.',
-    greeting: (n) => `Bonjour ${n},`,
-    intro: (agent, agency) =>
-      `Pour finaliser votre dossier avec <strong>${agent}</strong> (${agency}), il nous reste à vérifier votre identité. Comptez environ 5 minutes.`,
-    cta: 'Déposer mes pièces',
-    expiryNote: 'Ce lien est sécurisé et expire dans 7 jours.',
-    reassuranceTitle: 'Vos données restent protégées',
-    reassurance: [
-      { title: 'Données en Suisse', sub: 'Hébergement Genève' },
-      { title: 'Chiffré bout-en-bout', sub: 'AES-256 · TLS 1.3' },
-      { title: 'Vu par 2 personnes', sub: 'Votre agent + conformité' },
-      { title: 'Conservé 10 ans', sub: 'LBA art. 7, puis supprimé' },
-    ],
-    closing: 'À très vite,',
-    footer: (a) =>
-      `Cet email vous a été envoyé par ${a} via MEGGA. Si vous n'attendiez pas cette demande, ignorez ce message — le lien expirera automatiquement.`,
-    privacyMention:
-      'Traitement de vos données conforme à la nLPD suisse et à la LBA (art. 7 — conservation 10 ans).',
-  },
-  de: {
-    subject: (a) => `${a} — Vervollständigen Sie Ihr KYC-Dossier`,
-    preheader: 'Lassen Sie uns Ihre Identität in wenigen Minuten verifizieren.',
-    greeting: (n) => `Guten Tag ${n},`,
-    intro: (agent, agency) =>
-      `Um Ihr Dossier mit <strong>${agent}</strong> (${agency}) abzuschliessen, müssen wir Ihre Identität verifizieren. Dauer ca. 5 Minuten.`,
-    cta: 'Dokumente bereitstellen',
-    expiryNote: 'Dieser sichere Link läuft in 7 Tagen ab.',
-    reassuranceTitle: 'Ihre Daten bleiben geschützt',
-    reassurance: [
-      { title: 'Daten in der Schweiz', sub: 'Hosting Genf' },
-      { title: 'Ende-zu-Ende verschlüsselt', sub: 'AES-256 · TLS 1.3' },
-      { title: 'Eingesehen von 2 Personen', sub: 'Ihr Berater + Compliance' },
-      { title: '10 Jahre aufbewahrt', sub: 'GwG Art. 7, dann gelöscht' },
-    ],
-    closing: 'Mit freundlichen Grüssen,',
-    footer: (a) =>
-      `Diese E-Mail wurde Ihnen von ${a} über MEGGA gesendet. Falls Sie diese Anfrage nicht erwartet haben, ignorieren Sie diese Nachricht — der Link läuft automatisch ab.`,
-    privacyMention:
-      'Verarbeitung Ihrer Daten gemäss revDSG und GwG (Art. 7 — 10 Jahre Aufbewahrung).',
-  },
-  en: {
-    subject: (a) => `${a} — Complete your KYC file`,
-    preheader: "Let's verify your identity in a few minutes to finalize your file.",
-    greeting: (n) => `Hello ${n},`,
-    intro: (agent, agency) =>
-      `To finalize your file with <strong>${agent}</strong> (${agency}), we need to verify your identity. About 5 minutes.`,
-    cta: 'Upload my documents',
-    expiryNote: 'This secure link expires in 7 days.',
-    reassuranceTitle: 'Your data stays protected',
-    reassurance: [
-      { title: 'Data in Switzerland', sub: 'Hosting in Geneva' },
-      { title: 'End-to-end encrypted', sub: 'AES-256 · TLS 1.3' },
-      { title: 'Seen by 2 people', sub: 'Your agent + compliance' },
-      { title: 'Kept 10 years', sub: 'AML Art. 7, then deleted' },
-    ],
-    closing: 'Kind regards,',
-    footer: (a) =>
-      `This email was sent to you by ${a} through MEGGA. If you did not expect this request, please ignore this message — the link will expire automatically.`,
-    privacyMention:
-      'Your data is processed in accordance with the Swiss FDPA and AML Act (Art. 7 — 10-year retention).',
-  },
-  it: {
-    subject: (a) => `${a} — Finalizzare la sua pratica KYC`,
-    preheader: 'Verifichiamo la sua identità in pochi minuti per finalizzare la pratica.',
-    greeting: (n) => `Buongiorno ${n},`,
-    intro: (agent, agency) =>
-      `Per finalizzare la sua pratica con <strong>${agent}</strong> (${agency}), dobbiamo verificare la sua identità. Circa 5 minuti.`,
-    cta: 'Caricare i miei documenti',
-    expiryNote: 'Questo link sicuro scade tra 7 giorni.',
-    reassuranceTitle: 'I suoi dati restano protetti',
-    reassurance: [
-      { title: 'Dati in Svizzera', sub: 'Hosting Ginevra' },
-      { title: 'Crittografati end-to-end', sub: 'AES-256 · TLS 1.3' },
-      { title: 'Visti da 2 persone', sub: 'Il suo agente + compliance' },
-      { title: 'Conservati 10 anni', sub: 'LRD art. 7, poi cancellati' },
-    ],
-    closing: 'A presto,',
-    footer: (a) =>
-      `Questa email le è stata inviata da ${a} tramite MEGGA. Se non si aspettava questa richiesta, ignori questo messaggio — il link scadrà automaticamente.`,
-    privacyMention:
-      'Trattamento dei dati conforme alla nLPD svizzera e alla LRD (art. 7 — conservazione 10 anni).',
-  },
-}
-
-function buildHtmlEmail(input: {
-  locale: Locale
-  firstName: string
-  agentFullName: string
-  agencyName: string
-  url: string
-  customMessage: string | null
-}): string {
-  const t = STRINGS[input.locale]
-  const safe = (s: string) =>
-    s
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-
-  // Compact, inline-CSS, Outlook-safe HTML
-  return `<!doctype html>
-<html lang="${input.locale}">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${safe(t.subject(input.agencyName))}</title>
-</head>
-<body style="margin:0;padding:0;background:#EDEFF3;font-family:Manrope,Arial,sans-serif;color:#0B0C0E;">
-<div style="display:none;max-height:0;overflow:hidden;color:transparent;opacity:0;">${safe(t.preheader)}</div>
-<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#EDEFF3;padding:32px 16px;">
-  <tr><td align="center">
-    <table role="presentation" cellpadding="0" cellspacing="0" width="560" style="max-width:560px;background:#FFFFFF;border-radius:24px;padding:40px 32px;box-shadow:0 12px 40px rgba(15,23,42,0.06);">
-      <tr><td style="padding-bottom:24px;">
-        <div style="font-family:Manrope,Arial,sans-serif;font-size:18px;font-weight:800;letter-spacing:-1px;color:#0B0C0E;">MEGGA</div>
-      </td></tr>
-      <tr><td style="padding-bottom:6px;font-size:11px;font-weight:700;color:#7A8088;letter-spacing:1.4px;text-transform:uppercase;">
-        ${safe(input.agencyName)}
-      </td></tr>
-      <tr><td style="padding-bottom:18px;font-size:26px;font-weight:700;letter-spacing:-0.6px;line-height:1.15;color:#0B0C0E;">
-        ${safe(t.greeting(input.firstName))}
-      </td></tr>
-      <tr><td style="padding-bottom:24px;font-size:14.5px;line-height:1.6;color:#3A3D44;font-weight:500;">
-        ${t.intro(safe(input.agentFullName), safe(input.agencyName))}
-      </td></tr>
-      ${
-        input.customMessage
-          ? `<tr><td style="padding-bottom:24px;">
-        <div style="background:#F7F8FA;border-radius:14px;padding:16px 18px;font-size:13.5px;line-height:1.55;color:#3A3D44;font-style:italic;white-space:pre-wrap;">${safe(input.customMessage)}</div>
-      </td></tr>`
-          : ''
-      }
-      <tr><td align="center" style="padding-bottom:14px;">
-        <a href="${safe(input.url)}" style="display:inline-block;background:#0B0C0E;color:#FFFFFF;text-decoration:none;padding:18px 32px;border-radius:999px;font-size:15px;font-weight:600;letter-spacing:0.1px;box-shadow:0 8px 20px rgba(11,12,14,0.20);">${safe(t.cta)} →</a>
-      </td></tr>
-      <tr><td align="center" style="padding-bottom:32px;font-size:11.5px;color:#7A8088;font-weight:500;">
-        ${safe(t.expiryNote)}
-      </td></tr>
-      <tr><td style="padding:24px 0 12px;border-top:1px solid #F0F1F4;font-size:11px;font-weight:700;color:#7A8088;letter-spacing:1.2px;text-transform:uppercase;">
-        ${safe(t.reassuranceTitle)}
-      </td></tr>
-      <tr><td style="padding-bottom:24px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:separate;border-spacing:8px 0;">
-          <tr>
-            ${t.reassurance
-              .map(
-                (r) => `<td valign="top" width="25%" style="padding:12px 8px;background:#F7F8FA;border-radius:12px;">
-              <div style="font-size:12.5px;font-weight:700;color:#0B0C0E;letter-spacing:-0.1px;margin-bottom:2px;">${safe(r.title)}</div>
-              <div style="font-size:11px;color:#7A8088;font-weight:500;line-height:1.4;">${safe(r.sub)}</div>
-            </td>`,
-              )
-              .join('')}
-          </tr>
-        </table>
-      </td></tr>
-      <tr><td style="padding-top:12px;font-size:11.5px;color:#7A8088;line-height:1.5;font-weight:500;">
-        ${safe(t.footer(input.agencyName))}
-      </td></tr>
-      <tr><td style="padding-top:10px;font-size:11px;color:#B5BAC2;line-height:1.5;font-weight:500;">
-        ${safe(t.privacyMention)}
-      </td></tr>
-    </table>
-  </td></tr>
-</table>
-</body>
-</html>`
-}
+// Le gabarit vit dans `_shared/magic-link-email.ts` depuis le 15.08.2026 : il y est PUR,
+// donc testable et visible au banc de rendu (`npm run email:preview`). Cette fonction ne
+// garde que le réseau et l'accès aux données.
 
 interface SendEmailRequest {
   magic_link_id: string
@@ -370,12 +182,11 @@ serve(async (req) => {
   }
 
   const locale = normalizeLocale(contact.language)
-  const t = STRINGS[locale]
   // Même constructeur que magic-link-create : le bouton de l'e-mail mène là où
   // l'agent croit l'envoyer.
   const url = kycMagicLinkUrl(link.token)
 
-  const html = buildHtmlEmail({
+  const { subject, html } = buildMagicLinkEmail({
     locale,
     firstName: contact.first_name,
     agentFullName: agent?.full_name ?? agency?.name ?? 'MEGGA',
@@ -394,7 +205,7 @@ serve(async (req) => {
     body: JSON.stringify({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to: [contact.email],
-      subject: t.subject(agency?.name ?? 'MEGGA'),
+      subject,
       html,
       // Reply-to vers l'agence pour les questions du client
       // (l'agent reçoit la réponse directement dans son CRM email)
