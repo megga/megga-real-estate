@@ -79,7 +79,7 @@ function ShowcaseInner() {
     border: 0,
     cursor: 'pointer',
     fontFamily: 'inherit',
-    fontSize: 14.5,
+    fontSize: 'var(--crm-text-xl)',
     fontWeight: 600,
     background: tk.accent,
     color: tk.accentInk,
@@ -121,7 +121,7 @@ function ShowcaseInner() {
       <MobileTodayScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <div style={{ padding: '24px 16px 8px' }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600, letterSpacing: -0.5, color: tk.ink }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.5, color: tk.ink }}>
           Mobile — Primitives (P1)
         </h1>
         <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
@@ -165,7 +165,7 @@ function ShowcaseInner() {
 
       <SgSheet open={sheetOpen} onClose={() => setSheetOpen(false)} ariaLabel="Détail" bottomGap={24}>
         <div style={{ padding: '4px 18px 22px' }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, letterSpacing: -0.3, color: tk.ink }}>
+          <h2 style={{ margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink }}>
             Filtrer les biens
           </h2>
           {['Tous les statuts', 'Actifs', 'Réservés', 'Brouillons'].map((label, i) => (
@@ -176,7 +176,7 @@ function ShowcaseInner() {
                 padding: '14px 16px',
                 borderRadius: 14,
                 background: tk.cardSubtle,
-                fontSize: 14.5,
+                fontSize: 'var(--crm-text-xl)',
                 fontWeight: 600,
                 color: tk.ink,
                 boxShadow: i === 1 ? `0 0 0 2px ${tk.accent} inset` : undefined,

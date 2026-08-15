@@ -448,6 +448,43 @@ const ZONES: RootSpec[] = [
   { root: 'src/components/auth', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/map', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar-identity', keep: (n) => /\.tsx?$/.test(n) },
+  // ── Lot 3 · les bancs QUI PARTENT EN PRODUCTION ─────────────────────────────
+  //
+  // ⛔ LE PLAN VOULAIT EXEMPTER `src/pages/dev` EN BLOC, au motif que ce sont des
+  // « bancs `import.meta.env.DEV`, jamais servis ». Mesuré dans le bundle
+  // construit : HUIT des douze pages ont un chunk dans `dist/assets/`, les
+  // quatre autres zéro. Le motif était faux pour les deux tiers du dossier — et
+  // une exemption au motif faux est PIRE qu'une absence : une absence se
+  // questionne, un motif écrit se croit.
+  //
+  // Sept de ces huit entrent donc ici comme n'importe quelle surface livrée :
+  // ils sont routés sur `app.megga.ch`. Ils ne coûtent que CINQ marqueurs.
+  //
+  // ⚠ CE N'EST PAS UN AVIS SUR LEUR PRÉSENCE EN PRODUCTION. Que
+  // `/dev/sentry-test` — qui déclenche des erreurs Sentry — soit joignable est
+  // une question de PRODUIT, posée à part. Ici on constate seulement qu'un
+  // fichier livré ne peut pas être exempté au motif qu'il ne l'est pas.
+  //
+  // ⚠ QUATRE DES CINQ NOMS EXCLUS PORTENT LEUR MOTIF dans `EXEMPTIONS_ECRITES` :
+  // ils sont absents du bundle, et la garde `dev-bancs-frontiere.spec.ts` mesure
+  // le ternaire qui les en tient absents.
+  //
+  // ⛔ LE CINQUIÈME EST EXCLU SANS EXEMPTION ÉCRITE, ET C'EST DÉLIBÉRÉ.
+  // `MeggaXStyleGuidePage` sert `/design-system/megga-x` — la seule route de
+  // design system survivante, et le port de la vitrine. Le mesurer contre la
+  // direction qu'il DÉFINIT serait circulaire, mais cette exemption « de
+  // nature » n'est pas tranchée : elle est posée à Julien avec celle de
+  // `src/components/megga-x` (18 porteurs, même argument). Tant qu'elle ne l'est
+  // pas, ce fichier reste une SORTIE NON MOTIVÉE — l'axe A n'est donc pas clos,
+  // et la clause de fermeture du dernier lot devra le nommer plutôt que le
+  // laisser passer. Écrire un motif ici reviendrait à trancher à sa place.
+  {
+    root: 'src/pages/dev',
+    keep: (n) =>
+      /\.tsx$/.test(n) &&
+      !['PublicShowcasePage.tsx', 'OnboardingPreviewPage.tsx', 'AdminShowcasePage.tsx',
+        'CrmShowcasePage.tsx', 'MeggaXStyleGuidePage.tsx'].includes(n),
+  },
 ]
 
 /**
@@ -537,6 +574,23 @@ const EXEMPTIONS_ECRITES: { zone: string; motif: string; garde: string }[] = [
       'lui, ne dépend pas du support et reste gardé (noir de Sugar et gris-bleu proscrits).',
     garde: 'tests/unit/kyc-report-frontiere.spec.ts',
   },
+  // ── Lot 3 · les quatre bancs ABSENTS DU BUNDLE ─────────────────────────────
+  // Un seul motif pour les quatre, et il est MESURÉ : `import.meta.env.DEV` est
+  // remplacé par `false` au build, donc la branche d'import disparaît et Vite
+  // n'émet aucun chunk. Vérifié dans `dist/assets/` : zéro chunk pour ces
+  // quatre, deux pour chacun des huit autres. La garde, elle, ne mesure pas le
+  // bundle — elle mesure le TERNAIRE dans `App.tsx`, qui en est la cause et se
+  // vérifie sans construire.
+  ...['PublicShowcasePage', 'OnboardingPreviewPage', 'AdminShowcasePage', 'CrmShowcasePage'].map((n) => ({
+    zone: `src/pages/dev/${n}.tsx`,
+    motif:
+      `banc de développement ABSENT du bundle : sa déclaration passe par le ternaire ` +
+      `\`import.meta.env.DEV\`, remplacé par \`false\` au build, donc Vite n'émet aucun chunk ` +
+      `pour lui — mesuré dans dist/assets/. Il n'est jamais servi sur app.megga.ch, et ` +
+      `\`${n}\` sème en plus un état (session, intercepteur de fetch) qui n'a aucune excuse ` +
+      `dans un bundle déployé.`,
+    garde: 'tests/unit/dev-bancs-frontiere.spec.ts',
+  })),
 ]
 
 /**
@@ -1261,10 +1315,15 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
   it('chaque zone laissée dehors l’est par une exemption ÉCRITE, et sa garde la nomme', () => {
     expect(EXEMPTIONS_ECRITES.length, 'plus aucune exemption écrite — la clause ne mesure rien').toBeGreaterThan(0)
     const racines = ZONES.map((z) => z.root)
+    // ⚠ Une exemption vise soit une ZONE (racine), soit un FICHIER. Vérifier la
+    // seule liste des racines laisserait une exemption de fichier passer alors
+    // que le fichier est bel et bien balayé — l'exemption dirait alors le
+    // contraire de ce qui se produit, ce qui est pire que pas d'exemption.
+    const balayes = new Set(sources.map((s) => s.chemin))
     const defauts: string[] = []
     for (const { zone, motif, garde } of EXEMPTIONS_ECRITES) {
-      if (racines.includes(zone)) {
-        defauts.push(`${zone} est À LA FOIS dans ZONES et exemptée — trancher, lire ${garde}`)
+      if (racines.includes(zone) || balayes.has(zone)) {
+        defauts.push(`${zone} est À LA FOIS balayée et exemptée — trancher, lire ${garde}`)
       }
       if (motif.trim().length < 40) defauts.push(`${zone} : motif trop court pour être un motif`)
       const lu = readFileSafely(repoPath(garde))
