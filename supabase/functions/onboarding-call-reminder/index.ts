@@ -16,6 +16,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
 import { sendResendEmail } from '../_shared/resend.ts'
 import { buildReminderEmail } from '../_shared/onboarding-email.ts'
+import { parseLocale, DEFAULT_LOCALE } from '../_shared/recipient-language.ts'
 import { onboardingCallManageUrl } from '../_shared/app-url.ts'
 
 const corsHeaders = {
@@ -72,7 +73,7 @@ serve(async (req: Request) => {
     if (!claimed) continue
 
     const [{ data: booker }, { data: agency }, { data: host }] = await Promise.all([
-      db.from('profiles').select('email, full_name').eq('id', call.booked_by).maybeSingle(),
+      db.from('profiles').select('email, full_name, language').eq('id', call.booked_by).maybeSingle(),
       db.from('agencies').select('name').eq('id', call.agency_id).maybeSingle(),
       db.from('onboarding_hosts').select('timezone').eq('id', call.host_id).maybeSingle(),
     ])
@@ -90,7 +91,13 @@ serve(async (req: Request) => {
       timezone: host?.timezone ?? 'Europe/Zurich',
       meetingUrl: call.meeting_url,
       manageUrl: onboardingCallManageUrl(call.manage_token),
-      locale: 'fr',
+      // ⛔ C'ÉTAIT `'fr'` EN DUR. Ce rappel part d'un cron : il n'y a AUCUNE requête
+      // d'où lire une langue, donc un anglophone ayant réservé en anglais recevait la
+      // veille un message en français. La préférence enregistrée est la seule source
+      // qu'un envoi automatique puisse consulter, et elle SUIT les changements : si
+      // l'agence bascule en allemand entre la réservation et le rappel, le rappel
+      // arrive en allemand.
+      locale: parseLocale(booker.language) ?? DEFAULT_LOCALE,
     })
 
     const result = await sendResendEmail({

@@ -656,6 +656,13 @@
                 agency_name: agency,
                 role: 'agent',
                 legal_consent: true,
+                // La langue de la PAGE d'inscription devient la langue de
+                // correspondance : le trigger handle_new_user la pose sur
+                // profiles.language (migration 20260815250000). Sans elle, un
+                // inscrit germanophone recevait tous ses courriels en francais —
+                // y compris ceux qu'aucun clic ne declenche, comme le rappel J-1,
+                // qui n'a aucune requete d'ou lire une langue.
+                language: langue(),
               },
             },
           });

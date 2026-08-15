@@ -7,8 +7,10 @@ import { describe, it, expect } from 'vitest'
 import {
   buildAttendeeEmail,
   buildHostEmail,
+  buildCancellationEmail,
   buildReminderEmail,
   calibrationLines,
+  type CallLocale,
   type OnboardingCallEmailData,
 } from './onboarding-email'
 
@@ -215,5 +217,70 @@ describe('rappel J-1', () => {
     const { html } = buildReminderEmail(base)
     expect(html).toContain('communication marketing')
     expect(html).not.toContain('notification de sécurité')
+  })
+})
+
+describe('les QUATRE langues, pas deux', () => {
+  const LANGUES: CallLocale[] = ['fr', 'de', 'en', 'it']
+
+  it('aucun gabarit client ne retombe en français pour DE ou IT', () => {
+    // Le défaut d'origine : `locale === 'en' ? 'en' : 'fr'` avalait 'de' et 'it'.
+    // Un mot propre à chaque langue suffit à prouver que la bascule a lieu.
+    const temoin: Record<CallLocale, RegExp> = {
+      fr: /appel d’accueil/i,
+      de: /Willkommensgespräch/,
+      en: /welcome call/i,
+      it: /chiamata di benvenuto/i,
+    }
+    for (const l of LANGUES) {
+      for (const rendu of [
+        buildAttendeeEmail({ ...base, locale: l }),
+        buildReminderEmail({ ...base, locale: l }),
+        buildCancellationEmail({ ...base, locale: l }),
+      ]) {
+        expect(`${rendu.subject} ${rendu.html}`).toMatch(temoin[l])
+      }
+    }
+  })
+
+  it('le document se DÉCLARE dans sa langue : lang="de", pas lang="fr"', () => {
+    // Annoncer « fr » sur un texte allemand casse la césure, la synthèse vocale et
+    // WCAG 3.1.1 — le même défaut que `<html lang>` du CRM.
+    for (const l of LANGUES) {
+      expect(buildAttendeeEmail({ ...base, locale: l }).html).toContain(`lang="${l}"`)
+    }
+  })
+
+  it('la date est écrite dans la langue du destinataire', () => {
+    expect(buildAttendeeEmail({ ...base, locale: 'de' }).subject).toContain('August')
+    expect(buildAttendeeEmail({ ...base, locale: 'it' }).subject).toContain('agosto')
+    expect(buildAttendeeEmail({ ...base, locale: 'fr' }).subject).toContain('août')
+  })
+
+  it('la mention légale suit, elle aussi', () => {
+    expect(buildAttendeeEmail({ ...base, locale: 'de' }).html).toContain('Werbenachricht')
+    expect(buildAttendeeEmail({ ...base, locale: 'it' }).html).toContain('comunicazione commerciale')
+  })
+})
+
+describe('annulation client — elle était hors coquille', () => {
+  it('passe par la coquille MEGGA X : logo, pied, mention', () => {
+    // Elle était composée à la main dans onboarding-call-manage : un `<p>` nu en
+    // Helvetica. La porte lint:email-shell ne voit pas un fragment, seulement un
+    // document — d'où ce test, qui la remplace sur ce cas.
+    const { html } = buildCancellationEmail(base)
+    expect(html).toContain('<!DOCTYPE')
+    expect(html).toContain('megga-logo-white.png')
+    expect(html).toContain('communication marketing')
+    expect(html).not.toContain('font-family:Helvetica,Arial,sans-serif;font-size:15px')
+  })
+
+  it('⛔ le texte porte ses ACCENTS', () => {
+    // L'original disait « annule », « ete », « reserver » — trois fautes visibles
+    // par le client dans un message de quatre lignes.
+    const { subject, html } = buildCancellationEmail(base)
+    expect(subject).toContain('annulé')
+    expect(html).toContain('a bien été annulé')
+    expect(html).not.toMatch(/\bete annule\b/)
   })
 })

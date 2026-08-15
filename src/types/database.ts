@@ -19,6 +19,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activity_events: {
@@ -2080,13 +2105,14 @@ export type Database = {
           channel: string
           contact_id: string | null
           created_at: string
+          email: string | null
           id: string
           lifted_at: string | null
           lifted_by: string | null
           lifted_reason: string | null
           reason: string
           source_ref: string | null
-          wa_phone: string
+          wa_phone: string | null
         }
         Insert: {
           ack_sent_at?: string | null
@@ -2094,13 +2120,14 @@ export type Database = {
           channel: string
           contact_id?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           lifted_at?: string | null
           lifted_by?: string | null
           lifted_reason?: string | null
           reason: string
           source_ref?: string | null
-          wa_phone: string
+          wa_phone?: string | null
         }
         Update: {
           ack_sent_at?: string | null
@@ -2108,13 +2135,14 @@ export type Database = {
           channel?: string
           contact_id?: string | null
           created_at?: string
+          email?: string | null
           id?: string
           lifted_at?: string | null
           lifted_by?: string | null
           lifted_reason?: string | null
           reason?: string
           source_ref?: string | null
-          wa_phone?: string
+          wa_phone?: string | null
         }
         Relationships: []
       }
@@ -2132,8 +2160,8 @@ export type Database = {
           id: string
           import_raw_text: string | null
           import_raw_text_received_at: string | null
-          last_interaction_at: string | null
           language: string | null
+          last_interaction_at: string | null
           last_name: string
           nationality: string | null
           notes: string | null
@@ -2164,8 +2192,8 @@ export type Database = {
           id?: string
           import_raw_text?: string | null
           import_raw_text_received_at?: string | null
-          last_interaction_at?: string | null
           language?: string | null
+          last_interaction_at?: string | null
           last_name: string
           nationality?: string | null
           notes?: string | null
@@ -2196,8 +2224,8 @@ export type Database = {
           id?: string
           import_raw_text?: string | null
           import_raw_text_received_at?: string | null
-          last_interaction_at?: string | null
           language?: string | null
+          last_interaction_at?: string | null
           last_name?: string
           nationality?: string | null
           notes?: string | null
@@ -2473,6 +2501,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_delivery_events: {
+        Row: {
+          bounce_type: string | null
+          created_at: string
+          email_id: string | null
+          event_type: string
+          id: string
+          occurred_at: string
+          payload: Json | null
+          provider: string
+          provider_event_id: string
+          reason: string | null
+          recipient: string | null
+          subject: string | null
+        }
+        Insert: {
+          bounce_type?: string | null
+          created_at?: string
+          email_id?: string | null
+          event_type: string
+          id?: string
+          occurred_at?: string
+          payload?: Json | null
+          provider?: string
+          provider_event_id: string
+          reason?: string | null
+          recipient?: string | null
+          subject?: string | null
+        }
+        Update: {
+          bounce_type?: string | null
+          created_at?: string
+          email_id?: string | null
+          event_type?: string
+          id?: string
+          occurred_at?: string
+          payload?: Json | null
+          provider?: string
+          provider_event_id?: string
+          reason?: string | null
+          recipient?: string | null
+          subject?: string | null
+        }
+        Relationships: []
       }
       esign_provider_connections: {
         Row: {
@@ -3763,6 +3836,7 @@ export type Database = {
       onboarding_calls: {
         Row: {
           agency_id: string
+          attendee_answers: Json | null
           attendee_note: string | null
           attendee_phone: string | null
           booked_by: string
@@ -3786,6 +3860,7 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          attendee_answers?: Json | null
           attendee_note?: string | null
           attendee_phone?: string | null
           booked_by: string
@@ -3809,6 +3884,7 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          attendee_answers?: Json | null
           attendee_note?: string | null
           attendee_phone?: string | null
           booked_by?: string
@@ -4183,6 +4259,7 @@ export type Database = {
           full_name: string
           id: string
           is_suspended: boolean
+          language: string | null
           mobile_phone: string | null
           onboarding_completed: boolean | null
           onboarding_step: number | null
@@ -4211,6 +4288,7 @@ export type Database = {
           full_name: string
           id: string
           is_suspended?: boolean
+          language?: string | null
           mobile_phone?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: number | null
@@ -4239,6 +4317,7 @@ export type Database = {
           full_name?: string
           id?: string
           is_suspended?: boolean
+          language?: string | null
           mobile_phone?: string | null
           onboarding_completed?: boolean | null
           onboarding_step?: number | null
@@ -6416,8 +6495,8 @@ export type Database = {
           sent_by_profile_id: string | null
           session_id: string | null
           status: string
-          stop_handled_at: string | null
           status_updated_at: string | null
+          stop_handled_at: string | null
           transcript: string | null
           transcript_confidence: number | null
           transcript_lang: string | null
@@ -6451,8 +6530,8 @@ export type Database = {
           sent_by_profile_id?: string | null
           session_id?: string | null
           status?: string
-          stop_handled_at?: string | null
           status_updated_at?: string | null
+          stop_handled_at?: string | null
           transcript?: string | null
           transcript_confidence?: number | null
           transcript_lang?: string | null
@@ -6486,8 +6565,8 @@ export type Database = {
           sent_by_profile_id?: string | null
           session_id?: string | null
           status?: string
-          stop_handled_at?: string | null
           status_updated_at?: string | null
+          stop_handled_at?: string | null
           transcript?: string | null
           transcript_confidence?: number | null
           transcript_lang?: string | null
@@ -7351,6 +7430,7 @@ export type Database = {
           session_id: string | null
           status: string
           status_updated_at: string | null
+          stop_handled_at: string | null
           transcript: string | null
           transcript_confidence: number | null
           transcript_lang: string | null
@@ -7368,6 +7448,10 @@ export type Database = {
       cleanup_orphan_property_drafts: { Args: never; Returns: number }
       compute_agent_preferences: { Args: { p_agent_id: string }; Returns: Json }
       compute_platform_mrr_estimate: { Args: never; Returns: number }
+      consume_wa_optin_invite: {
+        Args: { p_invite_id: string; p_message_id?: string; p_wa_phone: string }
+        Returns: string
+      }
       contact_next_action: {
         Args: { p_agency: string; p_contact: string }
         Returns: Json
@@ -7429,6 +7513,21 @@ export type Database = {
           p_type?: string
         }
         Returns: Json
+      }
+      create_wa_optin_invite: {
+        Args: {
+          p_contact_id: string
+          p_days?: number
+          p_lang?: string
+          p_purpose?: string
+          p_sent_by?: string
+          p_shown_text: string
+        }
+        Returns: {
+          agency_id: string
+          id: string
+          wa_phone: string
+        }[]
       }
       crm_offer_chain: {
         Args: { p_deal_id: string }
@@ -7526,6 +7625,13 @@ export type Database = {
           }
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
+      email_send_allowed: {
+        Args: { p_contact_id?: string; p_email: string; p_purpose?: string }
+        Returns: {
+          allowed: boolean
+          reason: string
+        }[]
+      }
       enablelongtransactions: { Args: never; Returns: string }
       ensure_wa_inbound_lead: {
         Args: {
@@ -8282,6 +8388,13 @@ export type Database = {
           uploaded_at: string
         }[]
       }
+      kyb_identity_orphans: {
+        Args: never
+        Returns: {
+          storage_path: string
+          uploaded_at: string
+        }[]
+      }
       kyb_identity_retention_days: { Args: never; Returns: number }
       kyc_booking_busy_ranges: {
         Args: {
@@ -8369,6 +8482,10 @@ export type Database = {
         Returns: {
           id: string
         }[]
+      }
+      mark_suppression_ack_sent: {
+        Args: { p_wa_phone: string }
+        Returns: undefined
       }
       match_candidate_listings: {
         Args: {
@@ -8524,6 +8641,7 @@ export type Database = {
         Args: { p_agency_id: string }
         Returns: undefined
       }
+      reconcile_wa_consent_cache: { Args: never; Returns: number }
       record_agency_verification_run: {
         Args: {
           p_agency_id: string
@@ -8544,6 +8662,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_consent: {
+        Args: { p_type: string; p_version?: string }
+        Returns: undefined
+      }
       record_whatsapp_consent: {
         Args: {
           p_agency_id?: string
@@ -8551,8 +8673,8 @@ export type Database = {
           p_event: string
           p_kind: string
           p_legal_basis?: string
-          p_proof?: Json
           p_profile_id?: string
+          p_proof?: Json
           p_purpose?: string
           p_recorded_by?: string
           p_scope?: string
@@ -8562,10 +8684,7 @@ export type Database = {
         }
         Returns: string
       }
-      record_consent: {
-        Args: { p_type: string; p_version?: string }
-        Returns: undefined
-      }
+      redact_whatsapp_consent: { Args: { p_wa_phone: string }; Returns: number }
       reschedule_kyc_appointment: {
         Args: {
           p_appointment_id: string
@@ -9247,6 +9366,25 @@ export type Database = {
         Args: { sim_threshold?: number }
         Returns: number
       }
+      suppress_contact_email: {
+        Args: {
+          p_agency_id?: string
+          p_contact_id?: string
+          p_email: string
+          p_source_ref?: string
+        }
+        Returns: string
+      }
+      suppress_contact_phone: {
+        Args: {
+          p_agency_id?: string
+          p_channel: string
+          p_reason: string
+          p_source_ref?: string
+          p_wa_phone: string
+        }
+        Returns: string
+      }
       sweep_pending_agency_verifications: { Args: never; Returns: undefined }
       team_remove_member: { Args: { p_member_id: string }; Returns: undefined }
       team_role_rank: { Args: { p_role: string }; Returns: number }
@@ -9289,6 +9427,13 @@ export type Database = {
           n: number
         }[]
       }
+      whatsapp_pending_notices: {
+        Args: { p_limit?: number }
+        Returns: {
+          agency_id: string
+          wa_phone: string
+        }[]
+      }
       whatsapp_send_allowed: {
         Args: {
           p_agency_id?: string
@@ -9306,13 +9451,6 @@ export type Database = {
           public_reason: string
           reason: string
           subject_kind: string
-        }[]
-      }
-      whatsapp_pending_notices: {
-        Args: { p_limit?: number }
-        Returns: {
-          agency_id: string
-          wa_phone: string
         }[]
       }
       whatsapp_stale_insight_contacts: {
@@ -9524,6 +9662,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       crm_offer_kind: ["offer", "counter"],

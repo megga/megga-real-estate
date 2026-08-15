@@ -19,6 +19,7 @@ import { createHostEvent } from '../_shared/host-freebusy.ts'
 import { sendResendEmail, toBase64 } from '../_shared/resend.ts'
 import { buildAttendeeEmail, buildHostEmail, buildIcs } from '../_shared/onboarding-email.ts'
 import { onboardingCallManageUrl } from '../_shared/app-url.ts'
+import { profileLocale } from '../_shared/recipient-language.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -184,7 +185,10 @@ serve(async (req: Request) => {
       .eq('id', inserted.id)
   }
 
-  const locale = body.locale === 'en' ? 'en' : 'fr'
+  // ⛔ C'ÉTAIT `body.locale === 'en' ? 'en' : 'fr'` : 'de' et 'it' tombaient dans le
+  // `else` et l'agence recevait du français. La requête prime (l'agent vient de
+  // choisir), le profil sert de mémoire (migration 20260815250000).
+  const locale = await profileLocale(db, profile.id, body.locale)
   const timezone = typeof body.timezone === 'string' && body.timezone ? body.timezone : host.timezone
   const emailData = {
     callId: inserted.id,
@@ -197,7 +201,7 @@ serve(async (req: Request) => {
     timezone,
     meetingUrl,
     manageUrl,
-    locale: locale as 'fr' | 'en',
+    locale,
   }
 
   // ⚠ TOUT CE BLOC EST SOUS FILET, et l'en-tête dit pourquoi : « rien de ce qui vient

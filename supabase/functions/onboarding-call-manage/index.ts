@@ -18,9 +18,10 @@ import { loadAvailability } from '../_shared/onboarding-availability.ts'
 import { MAX_RESCHEDULES, recheckWindow } from '../_shared/onboarding-slots.ts'
 import { moveHostEvent, deleteHostEvent, type CalendarProvider } from '../_shared/host-freebusy.ts'
 import { sendResendEmail, toBase64 } from '../_shared/resend.ts'
-import { buildAttendeeEmail, buildHostEmail, buildIcs } from '../_shared/onboarding-email.ts'
+import { buildAttendeeEmail, buildCancellationEmail, buildHostEmail, buildIcs } from '../_shared/onboarding-email.ts'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 import { onboardingCallManageUrl } from '../_shared/app-url.ts'
+import { profileLocale } from '../_shared/recipient-language.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -140,7 +141,10 @@ serve(async (req: Request) => {
 
   const parties = await loadParties(db, call)
   const manageUrl = onboardingCallManageUrl(call.manage_token)
-  const locale = body.locale === 'en' ? 'en' : 'fr'
+  // Même règle qu'à la réservation : la requête d'abord, la préférence du profil
+  // ensuite. Un lien de gestion s'ouvre SANS session — le porteur du jeton n'est pas
+  // forcément connecté — donc la base est souvent la seule source disponible ici.
+  const locale = await profileLocale(db, call.booked_by, body.locale)
   const timezone = typeof body.timezone === 'string' && body.timezone ? body.timezone : parties.hostTimezone
 
   // ── Annulation ──
@@ -179,7 +183,7 @@ serve(async (req: Request) => {
       timezone: parties.hostTimezone,
       meetingUrl: null,
       manageUrl,
-      locale: locale as 'fr' | 'en',
+      locale,
     }
     const hostMail = buildHostEmail(emailData, 'cancelled')
     if (parties.hostNoticeTo) {
@@ -200,14 +204,11 @@ serve(async (req: Request) => {
         method: 'CANCEL',
         sequence: call.rescheduled_count + 1,
       })
+      const annulMail = buildCancellationEmail(emailData)
       await sendResendEmail({
         to: parties.attendeeEmail,
-        subject: locale === 'fr' ? 'Votre appel d’accueil est annule' : 'Your welcome call is cancelled',
-        html: `<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">${
-          locale === 'fr'
-            ? 'Votre appel d’accueil a bien ete annule. Vous pouvez en reserver un nouveau depuis votre espace MEGGA.'
-            : 'Your welcome call has been cancelled. You can book a new one from your MEGGA workspace.'
-        }</p>`,
+        subject: annulMail.subject,
+        html: annulMail.html,
         attachments: [{
           filename: 'appel-accueil-megga.ics',
           content: toBase64(ics),
@@ -291,7 +292,7 @@ serve(async (req: Request) => {
     timezone,
     meetingUrl: call.meeting_url,
     manageUrl,
-    locale: locale as 'fr' | 'en',
+    locale,
   }
 
   const attendeeMail = buildAttendeeEmail(emailData)

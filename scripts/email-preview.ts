@@ -22,6 +22,7 @@
 import {
   buildAttendeeEmail,
   buildHostEmail,
+  buildCancellationEmail,
   buildReminderEmail as buildOnboardingReminderEmail,
   type OnboardingCallEmailData,
 } from '../supabase/functions/_shared/onboarding-email.ts'
@@ -84,6 +85,9 @@ const CAS: Cas[] = [
   { id: 'appel-confirmation-sans-lien', nom: 'Appel d’accueil · confirmation, sans lien Meet', source: '_shared/onboarding-email.ts', migre: true, rendu: buildAttendeeEmail({ ...appel, meetingUrl: null }) },
   { id: 'appel-rappel-fr', nom: 'Appel d’accueil · rappel J-1 (FR)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildOnboardingReminderEmail(appel) },
   { id: 'appel-rappel-en', nom: 'Appel d’accueil · rappel J-1 (EN)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildOnboardingReminderEmail({ ...appel, locale: 'en' }) },
+  { id: 'appel-confirmation-de', nom: 'Appel d’accueil · confirmation (DE)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildAttendeeEmail({ ...appel, locale: 'de' }) },
+  { id: 'appel-confirmation-it', nom: 'Appel d’accueil · confirmation (IT)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildAttendeeEmail({ ...appel, locale: 'it' }) },
+  { id: 'appel-annulation-client', nom: 'Appel d’accueil · annulation (client)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildCancellationEmail(appel) },
   { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’équipe (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked', reponsesCalibrage) },
   { id: 'appel-hote-annule', nom: 'Appel d’accueil · annulation (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail({ ...appel, meetingUrl: null }, 'cancelled') },
 
