@@ -319,12 +319,24 @@ export function KycStepper({ steps, current, onJump }: StepperProps) {
                 height: 32,
                 borderRadius: 'var(--crm-radius-pill)',
                 border: 0,
+                // ⛔ L'ÉTAPE FAITE EST UN APLAT INVERSÉ, pas une encre posée en
+                // fond. Elle peignait `inkSoft` sous du blanc : en sombre,
+                // `inkSoft` devient l'encre CLAIRE (#ededed) et la pastille
+                // rendait blanc sur blanc — 1,06:1. Le défaut a survécu au lot
+                // qui a repris ses onze jumeaux parce que le ternaire est
+                // MULTI-LIGNE, invisible à un balayage qui lit ligne à ligne ;
+                // et la vérification à l'écran ne l'a pas vu non plus, le banc
+                // n'affichant aucune étape déjà faite. Un écran ne prouve que
+                // les ÉTATS qu'il rend.
                 background: active
                   ? S.accent
                   : done
-                    ? S.inkSoft
+                    ? S.invBgSoft
                     : S.card,
-                color: active || done ? '#fff' : S.muted,
+                // ⚠ Deux blancs différents, et c'est le point : sur l'accent
+                // l'encre ne bascule pas (l'aplat non plus), sur l'aplat inversé
+                // elle DOIT basculer.
+                color: active ? S.accentInk : done ? S.invInk : S.muted,
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-md)',
                 fontWeight: 600,

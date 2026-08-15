@@ -148,6 +148,19 @@ const ENCRES_ATTENDUES = ['ink', 'inkSoft', 'muted', 'errDarker', 'warnDarker']
  */
 const ENCRES_INVERSEES = ['invInk', 'invInkSoft']
 
+/**
+ * ⚠ TROISIÈME FAMILLE, et elle naît du même raisonnement que la deuxième :
+ * `accentInk` est bien une encre, mais son fond est l'APLAT D'ACCENT — jamais la
+ * carte. La mesurer sur `card` dirait qu'un blanc sur blanc est fautif, ce qui
+ * est vrai mais hors sujet : ce blanc-là ne se pose pas là.
+ *
+ * ⛔ Elle ne bascule PAS, contrairement à `invInk`, et c'est ce qui la distingue :
+ * l'aplat d'accent vaut #424bfb dans les deux thèmes (c'est un RÔLE), donc son
+ * encre reste blanche. Un jeton apparié dont un seul côté bascule est le défaut
+ * que ce fichier garde ; ici, aucun des deux ne bascule, et c'est correct.
+ */
+const ENCRES_SUR_ACCENT = ['accentInk']
+
 describe('Contraste SugarV3 — les encres d’un objet partagé par cinq surfaces', () => {
   it('le balayage voit les lecteurs et lit toutes les valeurs', () => {
     expect(SOURCES.length, 'aucun lecteur trouvé : balayage cassé').toBeGreaterThan(5)
@@ -215,6 +228,13 @@ describe('Contraste SugarV3 — les encres d’un objet partagé par cinq surfac
       // l'acteur. Les fondre ferait mentir une marque de donnée.
       expect(p.invBg, `${nom} : les deux aplats inversés se confondent — l'acteur n'est plus lisible`)
         .not.toBe(p.invBgSoft)
+      // L'encre de l'APLAT D'ACCENT, sur son propre fond — troisième famille.
+      for (const jeton of ENCRES_SUR_ACCENT) {
+        const encre = p[jeton as keyof typeof p] as string
+        const r = contraste(encre, p.accent)
+        expect(r, `contraste non mesurable : ${jeton} sur accent (${nom})`).not.toBeNull()
+        if (r! < AA) faibles.push(`${nom} : ${jeton} (${encre}) sur accent (${p.accent}) = ${arrondi(r!)}:1`)
+      }
     }
     // ⛔ ET L'APLAT INVERSÉ DOIT VRAIMENT S'INVERSER. Sans cette ligne, peindre
     // `invBg` de la même valeur dans les deux thèmes passerait — or c'est
@@ -227,7 +247,9 @@ describe('Contraste SugarV3 — les encres d’un objet partagé par cinq surfac
 
   it('l’inventaire des encres décrit encore la source', () => {
     const vues = [...encresEmployees()].sort()
-    const nouvelles = vues.filter((v) => !ENCRES_ATTENDUES.includes(v) && !ENCRES_INVERSEES.includes(v))
+    const nouvelles = vues.filter(
+      (v) => ![...ENCRES_ATTENDUES, ...ENCRES_INVERSEES, ...ENCRES_SUR_ACCENT].includes(v),
+    )
     const mortes = ENCRES_ATTENDUES.filter((a) => !vues.includes(a))
     expect(nouvelles, `jeton devenu une ENCRE sans être mesuré :\n  ${nouvelles.join('\n  ')}`).toEqual([])
     expect(mortes, `inscrit comme encre mais plus employé — retirer :\n  ${mortes.join('\n  ')}`).toEqual([])

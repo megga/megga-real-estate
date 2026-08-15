@@ -176,6 +176,13 @@ export function sugarV3Palette(dark: boolean) {
    * source ne remplace pas un écran.
    */
   invBgSoft: dark ? MXC_COLOR.n700 : '#3A3D44',
+  /**
+   * L'encre POSÉE SUR L'APLAT D'ACCENT — blanche dans les deux thèmes, parce que
+   * l'aplat, lui, ne bascule pas. Elle sort du littéral `'#fff'` pour porter un
+   * NOM : à côté d'`invInk`, qui bascule, un blanc en dur ne se distingue pas
+   * d'un oubli. Même valeur que `mxCrmPalette().accentInk`.
+   */
+  accentInk: sp.accentInk,
 
   // Ombres signature Sugar — ⛔ `none` en sombre : MEGGA X sépare par la BORDURE.
   shadowSm: dark ? 'none' : `0 4px 16px ${sgVoileEncre(false, 0.04)}`,

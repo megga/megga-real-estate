@@ -189,7 +189,23 @@ lecteur de `CrmTheme.primary`) et
 d'écran n'est restée sur Graphite).
 
 **Règles visuelles clés :**
-- Bentos : `rounded-xl border border-theme-border` — PAS d'ombres
+
+> ⚠ **SEPT RÈGLES REMESURÉES LE 16 AOÛT 2026, UNE SEULE ÉTAIT ENCORE VRAIE.** Les
+> six autres décrivaient Sugar Pure, pas MEGGA X — et une règle fausse ici coûte
+> plus qu'un écart dans le code : c'est ce qu'un agent lit AVANT d'écrire, donc
+> elle se recopie sur chaque surface neuve. Chaque correction porte son chiffre et
+> sa méthode ; un chiffre sans date se périme sans prévenir.
+
+- Bentos : `rounded-xl border border-theme-border`. ⚠ **« PAS d'ombres » ÉTAIT FAUX
+  EN CLAIR, et un test EXIGE le contraire.** Mesuré : **740 `boxShadow` en style en
+  ligne sur 188 fichiers** (contre 6 classes `shadow-*`), et
+  [megga-x-crm-tokens.spec.ts:311](tests/unit/megga-x-crm-tokens.spec.ts) exige que
+  `SET_PALETTE.shadow` CONTIENNE `MXC_CARD_SHADOW` — une valeur confrontée ligne 106
+  à la feuille de la vitrine, donc **l'ombre de carte vient de la direction
+  elle-même**. La règle vraie est celle du mode : `MXC_CARD_SHADOW` en clair,
+  `shadow: 'none'` en sombre (ligne 316 l'interdit explicitement), parce que MEGGA X
+  y sépare par la BORDURE. Ce qui reste proscrit, ce sont les ombres de Tailwind
+  (`shadow-card`, `shadow-sm`), qui ne suivent aucun thème.
 - Boutons : ⚠ **CETTE RÈGLE DÉCRIT SUGAR PURE, corrigée le 15 août 2026.** Elle
   disait « style ghost — JAMAIS `bg-accent text-white` », ce qui CONTREDIT la
   décision du 10 août écrite quatre points plus haut. Mesuré sur `src/` : **120
@@ -206,8 +222,21 @@ d'écran n'est restée sur Graphite).
   filets, donc l'anneau de focus tomberait avec). `#8dc1ff` est
   `MXC_SYSTEM.blue300`, le barreau déjà nommé pour ce cas. Gardé par
   [accent-ramp.spec.ts](tests/unit/accent-ramp.spec.ts)
-- Badges : texte coloré sans fond (`text-red-500`, pas `bg-red-100 text-red-800`)
-- Modals : TOUJOURS `createPortal(document.body)` avec `z-[100]`
+- Badges : ⚠ **RÈGLE INVERSÉE, et une garde exige l'inverse.** Elle disait « texte
+  coloré sans fond (`text-red-500`, pas `bg-red-100 text-red-800`) ». Mesuré :
+  **25 des 27 fichiers de badge/pilule/puce posent un fond**, et
+  [contacts-contraste.spec.ts:250](tests/unit/contacts-contraste.spec.ts) assère
+  qu'une pilule porte bien `background:`. L'idiome vivant est **l'aplat sous une
+  encre lisible** — c'est d'ailleurs ce que gardent les dix specs de contraste. Ce
+  qui reste proscrit est la palette Tailwind BRUTE (`bg-red-100 text-red-800`) :
+  ni jeton de thème, ni jeton sémantique, elle ne bougera pas si la direction bouge.
+- Modals : `createPortal(document.body)`. ⚠ **« TOUJOURS … avec `z-[100]` » n'est
+  vrai ni pour l'un ni pour l'autre.** Mesuré : **33 des 36 fichiers de
+  modale/panneau/dialogue** appellent `createPortal` — la règle tient à trois près —
+  mais le z-index est un **désordre assumé nulle part** : **175 sites `zIndex`
+  portant 44 valeurs DISTINCTES**, dont seulement **10** valent 100. Aucune garde ne
+  le mesure. Poser `z-[100]` sans regarder ses voisins est donc un coup de dé, pas
+  une convention : lire l'empilement local d'abord.
 - **Steppers : l'étape courante porte l'ACCENT, et la progression se lit dans la
   GÉOMÉTRIE.** ⛔ La règle précédente disait « monochrome (numéros + underline) » :
   mesuré le 16 août 2026, **aucun stepper du dépôt n'a jamais utilisé
@@ -219,15 +248,33 @@ d'écran n'est restée sur Graphite).
   - **pilules à libellé** quand elles en ont un et qu'on peut revenir en arrière
     (`KwStepper`, 3 étapes : actif = pilule d'accent, fait = coche verte, à venir
     = sourdine) ;
-  - **cercles** quand l'étape est une DONNÉE et non une position dans un
-    formulaire (`dealStepper`, 8 cercles pour 14 stades DB).
+  - **barre segmentée, encore** quand l'étape est une DONNÉE et non une position
+    dans un formulaire. ⛔ **CE POINT DISAIT « `dealStepper`, 8 CERCLES » : IL N'Y A
+    AUCUN CERCLE.** Mesuré le 16 août 2026 sur les deux seuls consommateurs —
+    `DealDetailSugarV4Page:100` et `MobileDealDetailScreen:179` rendent tous deux
+    `CRM_STAGE_ORDER.map(...)` en `flex: 1, height: 4` : une **barre de 8 segments**,
+    la même forme que `WizardShell`. Le « 8 » était juste (8 colonnes UI pour 14
+    stades DB), la forme non.
+    ⚠ Et les deux segments ne se peignent pas pareil : le mobile met l'étape
+    courante en `accent`, le bureau la peint en `ink` — donc **le bureau n'applique
+    pas la règle du 10 août** (« l'élément ACTIF porte l'accent »). Écart réel, non
+    tranché.
+  - **cercles numérotés** — l'idiome que ce point ne nommait pas. `KycStepper`
+    (alias `SgStepper`, [primitives.tsx:341](src/components/crm-sugar-v3/primitives.tsx))
+    rend des pastilles de 32 px reliées par un trait de 2 px, portant `✓` si l'étape
+    est faite et **son rang sinon**. Unique consommateur hors primitives :
+    `ImportLeadSugarV3Page:302`.
   ⚠ **Pas de numéro de rang** : trois étapes alignées SONT 1, 2, 3, et l'accent dit
   déjà laquelle est courante. Ce qui reste marqué est ce que la position ne dit
-  pas — « fait », par une coche. Deux exceptions mesurées et légitimes :
+  pas — « fait », par une coche. La règle annonçait **deux** exceptions ; il y en a
+  **trois**, et la troisième n'est pas une exception mais un OUBLI D'INVENTAIRE :
   `IdentityShell` (onboarding KYB) suit la nav `.mx-stepper` de la VITRINE, dont
   le numéro fait partie ; le wizard mobile affiche un compteur `n / N`, qui n'est
   pas un rang mais une distance restante sur un écran sans place pour les
-  libellés.
+  libellés ; et **`KycStepper` affiche bel et bien le rang** (`{done ? '✓' : i + 1}`),
+  sans motif écrit. Il porte pourtant DÉJÀ la coche que la règle prescrit — le
+  numéro y est donc redondant avec la position, exactement ce que la règle vise.
+  À trancher : le retirer, ou l'inscrire comme troisième exception.
 - Scrollbars : `.scrollbar-hide` sur modals et pipeline
 - Notifications sidebar : pas de dot rouge par défaut (système Messages retiré du CRM agent)
 
@@ -240,6 +287,13 @@ Tokens :      bg-theme-page, bg-theme-card, bg-theme-section, bg-theme-sidebar, 
 ```
 
 **JAMAIS utiliser** : `bg-white`, `text-gray-900`, `border-gray-200` (cassent le dark mode), `shadow-card`, `shadow-sm`
+
+> ⚠ **ET LA CLAUSE QUI GARDE `bg-white` NE LIT QUE LES CLASSES.** Mesuré le 16 août
+> 2026 : **6** occurrences de `bg-white` en `className` — que le cliquet compte et
+> plafonne — contre **17 fonds blancs écrits en STYLE EN LIGNE**
+> (`background: '#fff'`), qui lui sont invisibles. Le même défaut, dans l'autre
+> langage. Une partie est légitime (encre blanche sur aplat, papier A4 du rapport
+> KYC) ; la garde de valeur est [couleur-barreaux.spec.ts](tests/unit/couleur-barreaux.spec.ts).
 
 **Typo :** ⚠ **`--crm-font` vaut `"Inter Tight"`** (globals.css `:root`), pas DM Sans —
 cette ligne annonçait la police de **Sugar**, supprimée le 10 août 2026. Mesuré le
@@ -406,7 +460,10 @@ useEffect(() => {
 - ⚠ ~~`bg-accent` plein sur boutons → style ghost~~ — **périmé**, voir §3 : c'est l'inverse depuis le 10 août 2026 (120 sites contre 11)
 - Ombres sur bentos
 - Modals inline → toujours `createPortal`
-- UPPERCASE dans les titres → capitalize
+- UPPERCASE dans les titres → capitalize — ✅ **la SEULE des sept règles visuelles
+  qui soit encore vraie ET gardée** (16 août 2026). Mesuré : 20 `textTransform:
+  'uppercase'` vivants, tous dans `kyc-report` (papier A4, exempté par écrit) et
+  `pages/dev` (bancs absents du bundle). Zéro sur une surface agent.
 - Dots rouges sidebar
 - Next.js / Vercel → React+Vite / Cloudflare Pages
 - `console.log` en production
