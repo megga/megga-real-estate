@@ -253,9 +253,26 @@ pas des noms de taille Tailwind.
 surfaces sans compte : `/kyc/:token`, `/rendez-vous/:token`, `/reception/:token`,
 `/accept-invite/:token`. Elles suivent MEGGA X, avec **trois écarts assumés** :
 
-1. **Manrope**, pas Inter Tight — décision Julien. C'est, avec le dégradé bleuté
-   de page, la seule chose qui distingue ces écrans du CRM, et ils sont vus par
-   des clients.
+1. **Manrope**, pas Inter Tight — décision Julien. ⚠ Cette ligne disait « c'est,
+   avec le dégradé bleuté, **la seule chose qui distingue ces écrans du CRM** » :
+   **FAUX, et corrigé le 15 août 2026 avec le chiffre.** `MOBILE_FONT` vaut
+   Manrope et alimente **34 emplois dans 23 fichiers** du CRM mobile ; NEUF
+   fichiers du CRM de BUREAU l'écrivaient aussi (Analytics, « Aujourd'hui », la
+   recherche, deux pages agent). Mesuré à l'écran sur « Aujourd'hui » : **29
+   éléments rendaient en Inter Tight et 26 en Manrope** — deux polices se
+   partageaient le même écran, presque à parts égales.
+
+   ✅ **LA FRONTIÈRE EST DÉSORMAIS UNE RÈGLE, pas un constat** (décision Julien,
+   option (b) du plan « 100 % ») : **Inter Tight (`var(--crm-font)`) est la
+   police de l'agent au BUREAU ; Manrope est celle du MOBILE et de tout ce que
+   voit un CLIENT.** Le bureau est revenu au jeton — 15 sites, 8 fichiers.
+   Gardée dans les deux sens par [polices-domaines.spec.ts](tests/unit/polices-domaines.spec.ts).
+
+   ⚠ TROIS POLICES RESTENT HORS RÈGLE PARCE QU'ELLES ENCODENT, nommées dans la
+   garde : `ui-monospace` (une suite lue caractère par caractère),
+   `Caveat, cursive` (la SIGNATURE du rapport KYC — en Inter Tight ce n'est plus
+   une signature), `'Cormorant Garamond'` (la police que l'AGENT CHOISIT pour sa
+   galerie — une donnée saisie, pas un choix de direction).
 2. **Mono-thème.** Zéro `dark` / `prefers-color-scheme` / `matchMedia` sur les six
    fichiers ; les deux gardes le DISENT et rougiront le jour où ça change.
 3. `inkSoft` / `soft` = `#3A3D44`, hors échelle par **mesure** (n400 est à 1,16:1
@@ -267,6 +284,32 @@ dossier avant ce chantier, et sa clause « aucun élément cliquable peint en en
 y est **aveugle par le nom** — elle cherche `…ink`, le jeton s'appelait `black`.
 La règle est donc gardée dans `mlk-contraste.spec.ts`, testée sur la **valeur**.
 Cf. `megga/face-publique-meggax` et `megga/gardes-vacuites` n° 45-47.
+
+⚠ **« Elles suivent MEGGA X » ÉTAIT FAUX POUR `/accept-invite/:token`** — elle
+n'importait AUCUN jeton et portait 23 couleurs de palette Tailwind brute. C'est
+vrai depuis le 15 août 2026 : elle est portée, et **deux autres pages clientes
+l'ont rejointe** — `/visit/:id/edit` et `/visit/:id/feedback`, que cette section
+ne comptait pas parce qu'elles ne prennent pas leur jeton dans le chemin mais
+dans la QUERY. La face publique fait donc **SIX** surfaces sans compte, pas
+quatre.
+
+⛔ **DEUX ENCRES SÉMANTIQUES ÉTAIENT SOUS L'AA sur ces pages**, et c'est mesuré,
+pas préféré : `text-red-500` rendait **3,76:1** sur carte blanche et
+`text-emerald-600` **3,77:1**. Elles passent par `MLK_STATUT` — la famille qui
+ENCODE, tenue SÉPARÉE de `MLK` parce que la direction ne la gouverne pas :
+`#B91C1C` (6,47:1) et `#047857` (5,48:1). ⚠ L'ambre, lui, a été *baissé* de 7,09
+à 5,02:1 pour prendre la valeur que trois autres surfaces portent déjà — une
+encre d'alerte qui diffère d'un écran à l'autre coûte plus que deux points de
+contraste. Les étoiles de notation restent hors seuil **par écrit** : aucune
+teinte dorée n'atteint 3:1 sur blanc sans virer au brun, et c'est la POSITION de
+la coupure dans une rangée de cinq qui porte l'information.
+
+🧪 **Banc : `/dev/public` monte les SIX surfaces**, trois états chacune. ⚠ Les
+deux visites ne se branchent pas comme les autres — elles lisent une RPC
+(`get_visit_by_token`, la lecture directe de `visits` ayant été retirée en
+juillet 2026) et prennent leur jeton dans la QUERY. Une route de banc en
+`visite/:token` les monterait sans jeton : elles rendraient « lien invalide », et
+on corrigerait la fixture au lieu de la route.
 
 ---
 
