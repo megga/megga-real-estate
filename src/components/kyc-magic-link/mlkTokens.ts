@@ -42,6 +42,51 @@
 import { sgVoileEncre } from '@/components/crm-sugar/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
+/**
+ * ⛔ LA FAMILLE QUI ENCODE — et elle est SÉPARÉE de `MLK` pour une raison.
+ *
+ * `MLK` descend de l'échelle et ne porte que des NEUTRES ; l'erreur, l'alerte
+ * et le succès ne décorent pas, ils disent un ÉTAT. Les mêler à la palette
+ * neutre reviendrait à prétendre que la direction les gouverne — elle ne le
+ * fait pas, et c'est l'arbitrage rendu quatre fois dans ce dépôt (teintes
+ * d'étape du pipeline, pastilles de groupe, TYPE_COLOR, tons de galStatus).
+ *
+ * ⛔ MAIS « HORS DIRECTION » NE VEUT PAS DIRE « HORS LISIBILITÉ », et deux des
+ * trois valeurs sortantes étaient sous l'AA. Mesuré sur la carte blanche :
+ *
+ *   red-500     #EF4444 → 3,76:1  ⛔     →  #B91C1C → 6,47:1  ✅
+ *   emerald-600 #059669 → 3,77:1  ⛔     →  #047857 → 5,48:1  ✅
+ *   amber-800   #92400E → 7,09:1  ✅     →  #B45309 → 5,02:1  ✅
+ *
+ * ⚠ LE TROISIÈME EST UN ARBITRAGE, PAS UNE CORRECTION, et il se lit à l'envers
+ * des deux autres : l'ambre sortant était MEILLEUR (7,09 contre 5,02). J'ai pris
+ * quand même la valeur du dépôt, parce qu'elle est nommée à ce rôle sur TROIS
+ * surfaces (`SugarV3.warnDarker`, `EtatVide.aFaire`, `PDF.warnFg`) et qu'une
+ * encre d'alerte qui diffère d'un écran à l'autre est exactement l'incohérence
+ * que ce chantier retire. Les deux passent l'AA ; ce qui les départage est
+ * l'unicité, et le chiffre est écrit pour qu'on puisse revenir dessus.
+ *
+ * ⚠ LES DEUX ÉTOILES RESTENT TELLES QUELLES, ET C'EST ÉCRIT PLUTÔT QUE SUBI :
+ * l'or rend 1,67:1 et le vide 1,24:1, très en dessous du seuil non-texte de
+ * 3:1. Aucune teinte dorée n'atteint 3:1 sur blanc sans virer au brun. Ce qui
+ * porte l'information ici n'est pas le contraste d'une étoile mais la POSITION
+ * de la coupure dans une rangée de cinq — et la note est aussi rendue en texte
+ * juste à côté.
+ */
+export const MLK_STATUT = {
+  errInk: '#B91C1C',
+  errFill: '#FEF2F2',
+  errLine: '#FECACA',
+  warnInk: '#B45309',
+  warnFill: '#FFFBEB',
+  warnLine: '#FDE68A',
+  okInk: '#047857',
+  okFill: '#ECFDF5',
+  okLine: '#6EE7B7',
+  starOn: '#FBBF24',
+  starOff: '#E5E7EB',
+} as const
+
 export const MLK = {
   /**
    * ⚠ GARDÉ HORS ÉCHELLE. Le dégradé de la page client — avec Manrope, la seule

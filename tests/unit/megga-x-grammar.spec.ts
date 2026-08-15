@@ -793,8 +793,6 @@ const CLASSES_ASSUMEES = new Map<string, { palette?: number; blanc?: number; ech
   ['src/pages/dev/SentryTestPage.tsx', { echelle: 4 }],
   ['src/pages/public/PrivacyPage.tsx', { echelle: 5 }],
   ['src/pages/public/ResetPasswordPage.tsx', { blanc: 4, echelle: 10 }],
-  ['src/pages/public/VisitFeedbackPage.tsx', { palette: 41, blanc: 6, echelle: 20 }],
-  ['src/pages/public/VisitManagePage.tsx', { palette: 38, blanc: 7, echelle: 23 }],
 ])
 
 /**
@@ -1594,8 +1592,6 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       ['OnboardingCallManagePage.tsx', 30],
       ['PrivacyPage.tsx', 8],
       ['ResetPasswordPage.tsx', 19],
-      ['VisitFeedbackPage.tsx', 46],
-      ['VisitManagePage.tsx', 57],
     ])
     const scanPublic = scanRoots([{ root: 'src/pages/public', keep: (n) => /\.tsx$/.test(n) }])
     expect(emptyRoots(scanPublic), 'racine vide : chemin cassé, pas surface propre').toEqual([])
