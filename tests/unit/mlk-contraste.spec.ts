@@ -259,37 +259,18 @@ const GLYPHES = ['ink', 'muted']
  * au fichier, sinon cet inventaire dériverait sans que rien ne bouge.
  */
 const COUPLES: { aplat: string; encre: string; seuil: number; site: string; motif: RegExp }[] = [
-  {
-    aplat: 'black', encre: '#fff', seuil: AA,
-    site: 'MlkPrimitives.tsx — le libellé de MlkBlackPill',
-    motif: /background:\s*disabled\s*\?\s*MLK\.ghost\s*:\s*MLK\.black,\s*\n\s*color:\s*'#fff'/,
-  },
-  {
-    // ⛔ LE SITE QUI ROUGIT, et il est le MÊME que les deux précédents : c'est
-    // l'état DÉSACTIVÉ du bouton. Le fond descend à #B5BAC2, l'encre reste
-    // blanche, et le libellé tombe à 1,95:1. Sixième occurrence de la famille
-    // « états désactivés » — le Pipeline avait mesuré exactement 1,95 sur la
-    // sienne, et c'était le pire site de son périmètre.
-    aplat: 'ghost', encre: '#fff', seuil: AA,
-    site: 'MlkPrimitives.tsx — MlkBlackPill DÉSACTIVÉ',
-    motif: /background:\s*disabled\s*\?\s*MLK\.ghost\s*:\s*MLK\.black,\s*\n\s*color:\s*'#fff'/,
-  },
-  {
-    aplat: 'black', encre: '#fff', seuil: AA_FORME,
-    site: 'MlkBooking.tsx — le glyphe de la pastille de rendez-vous',
-    motif: /background:\s*isCancelled\s*\?\s*MLK\.ghost\s*:\s*MLK\.black,/,
-  },
-  {
-    // Même pastille, rendez-vous ANNULÉ : le glyphe blanc sur ghost, 1,95:1.
-    aplat: 'ghost', encre: '#fff', seuil: AA_FORME,
-    site: 'MlkBooking.tsx — la pastille d’un rendez-vous ANNULÉ',
-    motif: /background:\s*isCancelled\s*\?\s*MLK\.ghost\s*:\s*MLK\.black,/,
-  },
-  {
-    aplat: 'black', encre: '#fff', seuil: AA_FORME,
-    site: 'MlkScreens.tsx — le disque de confirmation',
-    motif: /background:\s*MLK\.black,\s*\n\s*color:\s*'#fff',/,
-  },
+  { aplat: 'accent', encre: '#fff', seuil: AA, site: 'MlkBlackPill — le bouton principal, ACTIF',
+    motif: /background: disabled \? MLK\.ghost : MLK\.accent,\s*\n\s*color: '(#fff)'/ },
+  { aplat: 'ghost', encre: '#fff', seuil: AA, site: 'MlkBlackPill DÉSACTIVÉ',
+    motif: /background: disabled \? MLK\.ghost : MLK\.accent,\s*\n\s*color: '(#fff)'/ },
+  { aplat: 'accent', encre: '#fff', seuil: AA, site: 'MlkSlotPicker — le créneau SÉLECTIONNÉ',
+    motif: /background: on \? MLK\.accent : MLK\.card,\s*\n\s*color: on \? '(#fff)'/ },
+  { aplat: 'ink', encre: '#fff', seuil: AA_FORME, site: 'MlkBooking — le glyphe de la pastille de rendez-vous',
+    motif: /background: isCancelled \? MLK\.ghost : MLK\.ink,[\s\S]{0,200}?stroke="(#fff)"/ },
+  { aplat: 'ghost', encre: '#fff', seuil: AA_FORME, site: 'MlkBooking — la pastille d’un rendez-vous ANNULÉ',
+    motif: /background: isCancelled \? MLK\.ghost : MLK\.ink,[\s\S]{0,200}?stroke="(#fff)"/ },
+  { aplat: 'ink', encre: '#fff', seuil: AA_FORME, site: 'MlkScreens — le disque de confirmation',
+    motif: /background: MLK\.ink,\s*\n\s*color: '(#fff)',/ },
 ]
 
 /**
@@ -313,10 +294,11 @@ const HORS_SEUIL: Record<string, string> = {
   'aplat:card': 'la surface elle-même — détachée du dégradé par shadowLg (1,49:1), idiome clair',
   'aplat:cardSubtle': 'sous-surface (encart, ligne de dépôt, tuile de créneau) — 1,06:1 sur la carte, idiome clair',
   'aplat:bgGradient': 'le dégradé de page — aucune encre de MLK ne s’y pose, voir SURFACES',
-  'aplat:black': 'aplat d’affordance — mesuré comme couple avec son encre blanche',
+  'aplat:accent': 'aplat d’affordance ACTIVE — mesuré comme couple avec son encre blanche',
+  'aplat:ink': 'aplat de DONNÉE — le disque de fin, et la pastille de rendez-vous qui ENCODE son statut',
   'aplat:ghost': 'aplat d’état désactivé — mesuré comme couple, et c’est lui qui rougit',
-  'filet:black': 'filet d’encre (bordure de la tuile sélectionnée) — 19,57:1, pas une encre',
-  'ombre:black': 'anneau inset de la zone de dépôt survolée (2 px), pas une encre',
+  'filet:accent': 'anneau de SÉLECTION (tuile de type de pièce, créneau) — mesuré comme couple',
+  'ombre:accent': 'anneau inset de la zone de dépôt pendant le glisser (2 px) — une affordance engagée',
   'ombre:shadow': 'ombre',
   'ombre:shadowSm': 'ombre',
   'ombre:shadowLg': 'ombre',
@@ -387,7 +369,7 @@ describe('Contraste MLK — l’objet de jetons des deux faces publiques', () =>
     // ⚠ TÉMOINS NOMMÉS, jamais un compte (n° 33) : un seuil décrit un ÉTAT et se
     // périme au premier retrait légitime ; un témoin décrit le BALAYAGE.
     const vus = rolesEmployes()
-    for (const t of ['texte:ink', 'texte:muted', 'texte:ghost', 'aplat:card', 'aplat:ghost', 'glyphe:ink', 'ombre:black']) {
+    for (const t of ['texte:ink', 'texte:muted', 'texte:ghost', 'aplat:card', 'aplat:ghost', 'glyphe:ink', 'ombre:accent']) {
       expect([...vus.keys()], `rôle non vu : le balayage ne lit plus la source (${t})`).toContain(t)
     }
 
@@ -515,10 +497,26 @@ describe('Contraste MLK — l’objet de jetons des deux faces publiques', () =>
    * qui ne se vérifie pas dérive au premier correctif. Chaque motif est ancré sur
    * le BLOC de style qui porte les deux moitiés, pas sur une ligne.
    */
-  it('chaque couple décrit encore un site réel de la source', () => {
+  /**
+   * ⚠ L'ENCRE DU COUPLE EST DÉRIVÉE DE LA SOURCE, PAS RECOPIÉE — durcissement
+   * exigé par un contrôle négatif du lot 2, sur la spec jumelle : inverser
+   * l'encre DANS LA SOURCE laissait la clause de mesure au VERT, puisqu'elle ne
+   * lit que la transcription. Le motif CAPTURE désormais l'encre écrite, et la
+   * clause exige qu'elle coïncide avec celle qu'on a déclarée.
+   */
+  it('chaque couple décrit encore un site réel, et son encre vient de la SOURCE', () => {
     const tout = SOURCE.map((s) => s.code).join('\n')
-    const perimes = COUPLES.filter(({ motif }) => !motif.test(tout)).map((c) => `${c.encre} sur ${c.aplat} — ${c.site}`)
+    const perimes: string[] = []
+    const derives: string[] = []
+    for (const c of COUPLES) {
+      const m = c.motif.exec(tout)
+      if (!m) { perimes.push(`${c.encre} sur ${c.aplat} — ${c.site}`); continue }
+      const brut = m[1]!
+      const lu = brut.startsWith('MLK.') ? MLK[brut.slice(4) as keyof typeof MLK] : brut
+      if (lu !== c.encre) derives.push(`${c.site} : la source pose « ${brut} » (${lu}), l'inventaire déclare « ${c.encre} »`)
+    }
     expect(perimes, `couple inscrit qui ne décrit plus la source :\n  ${perimes.join('\n  ')}`).toEqual([])
+    expect(derives, `l'encre déclarée n'est plus celle de la source :\n  ${derives.join('\n  ')}`).toEqual([])
   })
 
   /**
@@ -583,11 +581,71 @@ describe('Contraste MLK — l’objet de jetons des deux faces publiques', () =>
     }
     // ⚠ TÉMOINS NOMMÉS, pas un compte (n° 33) : `> N clés lues` s'était périmé le
     // jour même où dix clés mortes ont été retirées, au chantier KYC.
-    for (const t of ['card', 'cardSubtle', 'ink', 'muted', 'ghost', 'black']) {
+    for (const t of ['card', 'cardSubtle', 'ink', 'accent', 'muted', 'ghost']) {
       expect(Object.keys(MLK), `clé non lue : le découpage a changé (${t})`).toContain(t)
     }
     expect(nus, `couleur écrite à la main, hors de l'échelle MEGGA X :\n  ${nus.join('\n  ')}`).toEqual([])
     expect(exemptionsMortes, `exemption périmée :\n  ${exemptionsMortes.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ UN ÉLÉMENT ACTIONNABLE PORTE L'ACCENT, PAS L'ENCRE — la règle du 10 août
+   * 2026, appliquée ici parce que le cliquet partagé ne peut PAS la voir.
+   *
+   * ⚠ SA CLAUSE JUMELLE EST AVEUGLE À CETTE FACE, et pour une raison purement
+   * LEXICALE : elle cherche `background: …ink`, et le jeton d'ici s'appelle
+   * `black`. `kyc-magic-link/` est entré au cliquet au lot 1 avec sa clause
+   * VERTE, pendant que le bouton principal du parcours client était peint en
+   * encre. Un nom n'est pas une règle.
+   *
+   * ⛔ ET ON NE PEUT PAS SIMPLEMENT ÉLARGIR LA CLAUSE PARTAGÉE. Mesuré le 15 août
+   * 2026 sur les 373 fichiers du cliquet : son motif actuel voit 29 aplats
+   * d'encre ; lui ajouter le NOM `black` en donne 55, et la forme TERNAIRE
+   * (`background: on ? X.ink : …`) en donne 116 — le wizard, les Réglages, le
+   * Pipeline et six pages agent, des zones que ce chantier n'a jamais ouvertes.
+   * Les allumer d'un lot qui regarde la face publique enverrait repeindre des
+   * écrans que personne n'a signalés. La règle est donc gardée ICI, sur les
+   * cinq fichiers de cette face ; le chiffre est écrit pour le lot qui voudra
+   * l'élargir.
+   *
+   * ⚠ ACTIONNABLE INCLUT LE DÉPÔT DE FICHIER. La zone de dépôt ne porte ni
+   * `onClick` ni `cursor: 'pointer'` — elle écoute `onDrop`/`onDragOver` — et
+   * l'heuristique du cliquet ne la verrait pas. Une cible de dépôt est pourtant
+   * une affordance, et son anneau au survol dit « relâchez ici ».
+   */
+  it('aucun élément actionnable de la face publique n’est peint en encre', () => {
+    const ACTIONNABLE = /onClick|onDrop|onDragOver|cursor:\s*'pointer'/
+    /** Les rôles où le jeton PEINT l'élément — pas ceux où il l'écrit. */
+    const PEINT = new Set(['aplat', 'filet', 'ombre'])
+    const fautifs: string[] = []
+    for (const { nom, code } of SOURCE) {
+      const lignes = code.split('\n')
+      lignes.forEach((ligne, i) => {
+        for (const m of ligne.matchAll(/\bMLK\.(\w+)/g)) {
+          const prop = proprietePorteuse(code, lignes.slice(0, i).join('\n').length + 1 + m.index!)
+          const role = prop ? (ROLE_PAR_PROPRIETE[prop] ?? 'autre') : 'autre'
+          if (!PEINT.has(role)) continue
+          // ⛔ TESTÉ SUR LA VALEUR, PAS SUR LE NOM — c'est toute la leçon de cette
+          // clause. `black` et `ink` portent le MÊME barreau ; un jeton qui
+          // duplique l'encre la peindra quel que soit son nom, et la clause
+          // jumelle du cliquet est aveugle ici précisément parce qu'elle cherche
+          // un NOM. Une carte, une ombre ou le voile d'un état désactivé posés
+          // sur un bouton sont légitimes : ce n'est pas « l'accent partout »,
+          // c'est « pas l'ENCRE sur ce qui s'actionne ».
+          const valeur = MLK[m[1] as keyof typeof MLK] as string | undefined
+          if (valeur !== MLK.ink) continue
+          // ⚠ ANCRÉ SUR L'ÉLÉMENT JSX, pas sur une fenêtre de lignes (n°25) : un
+          // bloc est une unité du LANGAGE, et il dit à QUI appartient le geste.
+          let d = i
+          while (d > 0 && !/<[A-Za-z]/.test(lignes[d]!)) d--
+          let f = i
+          while (f < lignes.length - 1 && !/\/?>\s*$|}}>/.test(lignes[f]!)) f++
+          const element = lignes.slice(d, f + 1).join(' ')
+          if (ACTIONNABLE.test(element)) fautifs.push(`${nom}:${i + 1} — MLK.${m[1]}`)
+        }
+      })
+    }
+    expect(fautifs, `élément actionnable peint autrement qu'en accent :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 
   /**

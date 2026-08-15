@@ -382,7 +382,7 @@ export function MlkUpload({
                 borderRadius: 16,
                 background: isSelected ? MLK.card : MLK.cardSubtle,
                 boxShadow: isSelected ? MLK.shadow : 'none',
-                outline: isSelected ? `2px solid ${MLK.black}` : 'none',
+                outline: isSelected ? `2px solid ${MLK.accent}` : 'none',
                 fontFamily: 'inherit',
                 cursor: 'pointer',
                 display: 'flex',
@@ -397,7 +397,7 @@ export function MlkUpload({
                   height: 22,
                   borderRadius: 999,
                   flexShrink: 0,
-                  background: isSelected ? MLK.black : 'transparent',
+                  background: isSelected ? MLK.accent : 'transparent',
                   boxShadow: isSelected
                     ? 'none'
                     : `inset 0 0 0 1.5px ${sgVoileEncre(false, 0.25)}`,
@@ -474,7 +474,7 @@ export function MlkUpload({
           background: dragOver ? sgVoileEncre(false, 0.05) : sgVoileEncre(false, 0.025),
           borderRadius: 22,
           boxShadow: dragOver
-            ? `inset 0 0 0 2px ${MLK.black}`
+            ? `inset 0 0 0 2px ${MLK.accent}`
             : `inset 0 0 0 1.5px ${sgVoileEncre(false, 0.10)}`,
           display: 'flex',
           flexDirection: 'column',
@@ -755,7 +755,7 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
           width: 96,
           height: 96,
           borderRadius: 999,
-          background: MLK.black,
+          background: MLK.ink,
           color: '#fff',
           margin: '0 auto 32px',
           display: 'grid',

@@ -58,18 +58,30 @@ export const MLK = {
    */
   cardSubtle: MXC_COLOR.n900,
   /**
-   * L'aplat d'affordance — le CTA, le disque de confirmation, la tuile de
-   * créneau sélectionnée.
+   * ⛔ L'ÉLÉMENT ACTIF PORTE L'ACCENT — arbitrage rendu site par site le
+   * 15 août 2026, sur les NEUF emplois de l'ancien `black`.
    *
-   * ⚠ IL RESTE DE L'ENCRE, ET C'EST UNE QUESTION OUVERTE, PAS UN OUBLI. La règle
-   * du 10 août 2026 dit que l'élément ACTIF porte l'accent `#424bfb` ; ici il
-   * porte l'encre, ce qui est l'ancienne règle « l'accent EST l'encre » avec les
-   * jetons de la nouvelle. Le lot du 15 août ne change que l'ALPHABET
-   * (`#0B0C0E` → `n100`), comme `BiensFirstRun` et `ContactsFirstRun` avant lui :
-   * peindre en accent le bouton principal que le CLIENT voit se décide, ça ne se
-   * glisse pas dans un lot de descente.
+   * SEPT le prennent, parce qu'ils disent « vous avez agi sur ceci » : la pilule
+   * (le bouton principal de tout le parcours), l'anneau et le point radio de la
+   * tuile de type de pièce sélectionnée, l'anneau de la zone de dépôt pendant le
+   * glisser, le jour et le créneau choisis, et le filet de ce créneau.
+   *
+   * DEUX gardent l'encre, et ce sont des DONNÉES : le disque de confirmation —
+   * rien ne s'y actionne — et la pastille de rendez-vous, dont le couple avec
+   * `ghost` ENCODE « annulé » contre « confirmé ». Les repeindre les ferait
+   * mentir ; c'est l'arbitrage rendu quatre fois dans ce dépôt.
+   *
+   * ⚠ `black` DISPARAÎT avec cet arbitrage, et pas seulement parce qu'il n'a
+   * plus de lecteur : il portait le MÊME barreau qu'`ink`. C'était le nom d'une
+   * RÈGLE — « l'accent EST l'encre », celle de Sugar Pure — et pas d'une
+   * couleur. La règle partie, le jeton n'avait plus de raison d'exister à côté
+   * d'`ink`. Même retrait que `SugarV3.black` au chantier KYC ; `tsc` interdit
+   * désormais son retour.
+   *
+   * ⚠ Le composant garde son nom, `MlkBlackPill` : renommer est un geste
+   * lexical à part.
    */
-  black: MXC_COLOR.n100,
+  accent: MXC_COLOR.accent,
   ink: MXC_COLOR.n100,
   /** ⚠ Hors échelle par MESURE — voir l'en-tête. */
   inkSoft: '#3A3D44',

@@ -45,7 +45,7 @@ export function MlkAppointmentCard({ appointment }: { appointment: PublicAppoint
         <div
           style={{
             width: 38, height: 38, borderRadius: 999,
-            background: isCancelled ? MLK.ghost : MLK.black,
+            background: isCancelled ? MLK.ghost : MLK.ink,
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}
         >

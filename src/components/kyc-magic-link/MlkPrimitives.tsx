@@ -223,7 +223,7 @@ export function MlkBlackPill({
         // `MLK.blackHover` était donc un troisième signal pour le même état, et
         // la direction ne donne pas de variante de ton à l'affordance (même
         // retrait qu'au chantier KYC sur `kycPalette.blackHover`).
-        background: disabled ? MLK.ghost : MLK.black,
+        background: disabled ? MLK.ghost : MLK.accent,
         color: '#fff',
         fontFamily: 'inherit',
         fontSize: fs,

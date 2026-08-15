@@ -61,7 +61,7 @@ export function MlkSlotPicker({
                 flexShrink: 0, padding: '10px 16px', borderRadius: 999, border: 'none',
                 cursor: 'pointer', fontFamily: MLK.font, fontSize: 'var(--crm-text-md)', fontWeight: 600,
                 letterSpacing: -0.1, whiteSpace: 'nowrap',
-                background: on ? MLK.black : MLK.card,
+                background: on ? MLK.accent : MLK.card,
                 color: on ? '#fff' : MLK.inkSoft,
                 boxShadow: on ? 'none' : MLK.shadowSm,
               }}
@@ -88,8 +88,8 @@ export function MlkSlotPicker({
               style={{
                 padding: '13px 8px', borderRadius: 14, cursor: 'pointer',
                 fontFamily: MLK.font, fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.1,
-                border: on ? `1.5px solid ${MLK.black}` : '1.5px solid transparent',
-                background: on ? MLK.black : MLK.card,
+                border: on ? `1.5px solid ${MLK.accent}` : '1.5px solid transparent',
+                background: on ? MLK.accent : MLK.card,
                 color: on ? '#fff' : MLK.ink,
                 boxShadow: on ? 'none' : MLK.shadowSm,
               }}
