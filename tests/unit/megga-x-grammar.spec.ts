@@ -743,7 +743,13 @@ function cssLisible(css: string): string {
  * est une décision de PRODUIT, posée et non prise ici — d'où l'inventaire.
  */
 const CSS_ASSUME = new Map<string, { graisse?: number; capitale?: number; interlettrage?: number; taille?: number }>([
-  ['src/components/matching-atelier/atelier.css', { graisse: 44, capitale: 5, interlettrage: 6, taille: 88 }],
+  // ⚠ 55 marqueurs sur 143 payés le 15 août 2026 : les 44 graisses passent à
+  // 600, et les CINQ micro-capitales partent AVEC leur interlettrage — sur de la
+  // casse normale, un tracking positif disloque le mot, ils voyagent ensemble.
+  // Restent les 88 tailles, dont 47 hors échelle : elles demandent un arbitrage
+  // par site (17 valeurs distinctes, des demi-pas aux chiffres d'affichage), et
+  // l'échelle PROPRE du fichier (`.t1`=13,5 px, `.t3`=17) en fait partie.
+  ['src/components/matching-atelier/atelier.css', { taille: 88 }],
 ])
 
 /**
