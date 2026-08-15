@@ -62,6 +62,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { MLK } from '@/components/kyc-magic-link/mlkTokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { repoPath, rel } from './helpers/fs-scan'
 
 const AA = 4.5
@@ -261,12 +262,7 @@ const COUPLES: { aplat: string; encre: string; seuil: number; site: string; moti
   {
     aplat: 'black', encre: '#fff', seuil: AA,
     site: 'MlkPrimitives.tsx — le libellé de MlkBlackPill',
-    motif: /background:\s*disabled\s*\?\s*MLK\.ghost\s*:\s*hover\s*\?\s*MLK\.blackHover\s*:\s*MLK\.black,\s*\n\s*color:\s*'#fff'/,
-  },
-  {
-    aplat: 'blackHover', encre: '#fff', seuil: AA,
-    site: 'MlkPrimitives.tsx — le même libellé au survol',
-    motif: /background:\s*disabled\s*\?\s*MLK\.ghost\s*:\s*hover\s*\?\s*MLK\.blackHover\s*:\s*MLK\.black,\s*\n\s*color:\s*'#fff'/,
+    motif: /background:\s*disabled\s*\?\s*MLK\.ghost\s*:\s*MLK\.black,\s*\n\s*color:\s*'#fff'/,
   },
   {
     // ⛔ LE SITE QUI ROUGIT, et il est le MÊME que les deux précédents : c'est
@@ -276,7 +272,7 @@ const COUPLES: { aplat: string; encre: string; seuil: number; site: string; moti
     // sienne, et c'était le pire site de son périmètre.
     aplat: 'ghost', encre: '#fff', seuil: AA,
     site: 'MlkPrimitives.tsx — MlkBlackPill DÉSACTIVÉ',
-    motif: /background:\s*disabled\s*\?\s*MLK\.ghost\s*:\s*hover\s*\?\s*MLK\.blackHover\s*:\s*MLK\.black,\s*\n\s*color:\s*'#fff'/,
+    motif: /background:\s*disabled\s*\?\s*MLK\.ghost\s*:\s*MLK\.black,\s*\n\s*color:\s*'#fff'/,
   },
   {
     aplat: 'black', encre: '#fff', seuil: AA_FORME,
@@ -318,7 +314,6 @@ const HORS_SEUIL: Record<string, string> = {
   'aplat:cardSubtle': 'sous-surface (encart, ligne de dépôt, tuile de créneau) — 1,06:1 sur la carte, idiome clair',
   'aplat:bgGradient': 'le dégradé de page — aucune encre de MLK ne s’y pose, voir SURFACES',
   'aplat:black': 'aplat d’affordance — mesuré comme couple avec son encre blanche',
-  'aplat:blackHover': 'le même au survol — mesuré comme couple',
   'aplat:ghost': 'aplat d’état désactivé — mesuré comme couple, et c’est lui qui rougit',
   'filet:black': 'filet d’encre (bordure de la tuile sélectionnée) — 19,57:1, pas une encre',
   'ombre:black': 'anneau inset de la zone de dépôt survolée (2 px), pas une encre',
@@ -338,15 +333,27 @@ const HORS_SEUIL: Record<string, string> = {
  * quinze clés ont un lecteur, et douze en ont plus de trois. Le compte est écrit
  * parce qu'il contredit l'attente, pas parce qu'il la confirme.
  *
- *   · `bg` (#EDEFF3) — le fond plat. `bgGradient` l'a remplacé, et son troisième
- *     arrêt porte la même valeur : le jeton a survécu à son emploi.
- *   · `shadowHover` — aucun survol de cette face ne change d'ombre.
+ * ⚠ ELLE EST VIDE DEPUIS LA DESCENTE (15 août 2026), et c'est l'état visé : les
+ * trois clés ont été RETIRÉES plutôt qu'inscrites ici, et `tsc` interdit
+ * désormais leur retour. Ce qu'elles étaient reste écrit dans l'en-tête de
+ * `mlkTokens.ts` :
  *
- * Elles sont INSCRITES plutôt que retirées : les retirer est un geste de lot 4,
- * et ce fichier est le lot 0. La clause `orphelines` garde la porte pour toutes
- * les autres.
+ *   · `bg` (#EDEFF3) — le fond plat, sans lecteur. `bgGradient` l'avait
+ *     remplacé, et son troisième arrêt porte la même valeur : le jeton avait
+ *     survécu à son emploi.
+ *   · `shadowHover` — sans lecteur : aucun survol de cette face ne change
+ *     d'ombre.
+ *   · `blackHover` — il en AVAIT un, et c'est pour ça qu'il est parti autrement :
+ *     `MlkBlackPill` porte déjà un `translateY(-1px)` et une ombre renforcée, si
+ *     bien que la teinte était un TROISIÈME signal pour le même état. La
+ *     direction ne donne pas de variante de ton à l'affordance — même retrait
+ *     qu'au chantier KYC sur `kycPalette.blackHover`.
+ *
+ * La liste vide ne rouvre rien : c'est la clause `orphelines` qui garde la
+ * porte, et elle rougit sur TOUTE clé sans lecteur. `MORTES` n'existe que pour
+ * le cas où l'on voudrait en tolérer une, et il faudrait alors écrire pourquoi.
  */
-const MORTES = ['bg', 'shadowHover']
+const MORTES: string[] = []
 
 /**
  * ⛔ CE QUI N'EST PAS UNE COULEUR SIMPLE, nommé un par un. Tout le RESTE doit se
@@ -359,7 +366,6 @@ const NON_COULEURS: Record<string, string> = {
   shadow: 'chaîne de box-shadow',
   shadowSm: 'chaîne de box-shadow',
   shadowLg: 'chaîne de box-shadow',
-  shadowHover: 'chaîne de box-shadow',
   font: 'une pile de polices',
 }
 
@@ -513,6 +519,75 @@ describe('Contraste MLK — l’objet de jetons des deux faces publiques', () =>
     const tout = SOURCE.map((s) => s.code).join('\n')
     const perimes = COUPLES.filter(({ motif }) => !motif.test(tout)).map((c) => `${c.encre} sur ${c.aplat} — ${c.site}`)
     expect(perimes, `couple inscrit qui ne décrit plus la source :\n  ${perimes.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ CHAQUE COULEUR DESCEND DE MEGGA X — sauf ce qui est NOMMÉ, avec sa raison
+   * et sa mesure (décision de Julien, 15 août 2026).
+   *
+   * ⚠ ELLE LIT LES DEUX NOTATIONS, ET C'EST TOUT LE POINT. Les quatre ombres de
+   * `MLK` ne portaient AUCUN hexadécimal : leur teinte était `rgba(15,23,42,…)`,
+   * le gris-bleu slate-900, écrit en décimal. Une clause qui n'extrairait que les
+   * `#rrggbb` trouverait zéro teinte dans ces chaînes, passerait son chemin, et
+   * déclarerait descendue une palette qui garde la seconde teinte proscrite du
+   * dépôt. C'est la forme n° 14 posée dans la clause qui prétend la prévenir —
+   * exactement ce qui est arrivé à `analytics-contraste` sur `var(--x)` (n° 40).
+   *
+   * ⚠ ET C'EST LA PORTE PAR LAQUELLE CETTE TEINTE ENTRE TOUJOURS : une FRACTION
+   * D'OPACITÉ. Personne ne relit `rgba(15,23,42,0.04)` en cherchant une couleur.
+   */
+  it('chaque couleur descend de MEGGA X, sauf celles qui sont nommées', () => {
+    /**
+     * ⛔ CE QUI RESTE DEHORS EST MESURÉ, PAS SUPPOSÉ.
+     */
+    const HORS_ECHELLE: Record<string, string> = {
+      // ⚠ Reprise TELLE QUELLE de la mesure d'Analytics, et la valeur d'ici est
+      // déjà la sienne : entre l'encre et le texte secondaire, `n400` sort à
+      // 1,16:1 de `n100` en clair — un DOUBLON, pas un cran. `#3A3D44` tient
+      // 10,88:1 sur la carte. Chercher la valeur avant d'en inventer une : le
+      // dépôt la portait déjà, au même rôle.
+      inkSoft: 'aucun barreau entre l’encre et le texte secondaire — n400 est à 1,16:1 de n100 en clair',
+      // ⚠ L'IDENTITÉ DE LA FACE CLIENT, et c'est une décision, pas un oubli.
+      // Ce dégradé bleuté et Manrope sont les deux seules choses qui distinguent
+      // cet écran du CRM ; il est vu par des clients, pas par des agents. Julien
+      // les garde tous les deux (15 août 2026). Le reste descend.
+      bgGradient: 'dégradé de page — identité de la face client, gardée avec Manrope',
+      font: 'Manrope — la police de cette face, gardée par décision du 15 août 2026',
+    }
+    const BARREAUX = new Set<string>(Object.values(MXC_COLOR))
+
+    /** Toute couleur d'une chaîne, HEX ET DÉCIMALE, ramenée à son triplet. */
+    const teintesDe = (v: string): string[] => [
+      ...(v.match(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) ?? []),
+      ...[...v.matchAll(/rgba?\(([^)]+)\)/g)].map((m) => {
+        const p = m[1]!.split(/[,/]/).map((s) => parseFloat(s.trim()))
+        return '#' + p.slice(0, 3).map((n) => Math.round(n).toString(16).padStart(2, '0')).join('')
+      }),
+    ]
+    // Le lecteur des deux notations est éprouvé ICI, pas supposé : sans ça, une
+    // expression cassée rendrait « zéro teinte » partout et la clause passerait
+    // au vert sur une palette entièrement hors échelle.
+    expect(teintesDe('0 4px 16px rgba(15,23,42,0.04)'), 'le lecteur ne voit plus la notation décimale').toEqual(['#0f172a'])
+    expect(teintesDe('#686868'), 'le lecteur ne voit plus la notation hexadécimale').toEqual(['#686868'])
+
+    const nus: string[] = []
+    const exemptionsMortes: string[] = []
+    for (const [cle, v] of Object.entries(MLK)) {
+      if (HORS_ECHELLE[cle]) continue
+      for (const teinte of teintesDe(v)) {
+        if (!BARREAUX.has(teinte.toLowerCase())) nus.push(`${cle} = ${v.slice(0, 70)} → ${teinte} n'est pas un barreau`)
+      }
+    }
+    for (const cle of Object.keys(HORS_ECHELLE)) {
+      if (!(cle in MLK)) exemptionsMortes.push(`${cle} — exemptée mais absente de MLK`)
+    }
+    // ⚠ TÉMOINS NOMMÉS, pas un compte (n° 33) : `> N clés lues` s'était périmé le
+    // jour même où dix clés mortes ont été retirées, au chantier KYC.
+    for (const t of ['card', 'cardSubtle', 'ink', 'muted', 'ghost', 'black']) {
+      expect(Object.keys(MLK), `clé non lue : le découpage a changé (${t})`).toContain(t)
+    }
+    expect(nus, `couleur écrite à la main, hors de l'échelle MEGGA X :\n  ${nus.join('\n  ')}`).toEqual([])
+    expect(exemptionsMortes, `exemption périmée :\n  ${exemptionsMortes.join('\n  ')}`).toEqual([])
   })
 
   /**

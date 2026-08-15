@@ -217,7 +217,12 @@ export function MlkBlackPill({
         padding: pad,
         borderRadius: 999,
         border: 0,
-        background: disabled ? MLK.ghost : hover ? MLK.blackHover : MLK.black,
+        // ⚠ Le survol ne change pas de TEINTE, il est GÉOMÉTRIQUE — le
+        // `translateY(-1px)` et l'ombre renforcée plus bas le portaient déjà.
+        // `MLK.blackHover` était donc un troisième signal pour le même état, et
+        // la direction ne donne pas de variante de ton à l'affordance (même
+        // retrait qu'au chantier KYC sur `kycPalette.blackHover`).
+        background: disabled ? MLK.ghost : MLK.black,
         color: '#fff',
         fontFamily: 'inherit',
         fontSize: fs,
