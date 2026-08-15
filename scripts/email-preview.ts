@@ -26,6 +26,7 @@ import {
   type OnboardingCallEmailData,
 } from '../supabase/functions/_shared/onboarding-email.ts'
 import { buildVerificationNotice } from '../supabase/functions/_shared/agency-verification-notice.ts'
+import { buildBookingEmail } from '../supabase/functions/_shared/booking-email.ts'
 
 const SORTIE = '.email-preview'
 
@@ -67,6 +68,34 @@ const CAS: Cas[] = [
   { id: 'appel-rappel-en', nom: 'Appel d’accueil · rappel J-1 (EN)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildReminderEmail({ ...appel, locale: 'en' }) },
   { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’hôte (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked') },
   { id: 'appel-hote-annule', nom: 'Appel d’accueil · annulation (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail({ ...appel, meetingUrl: null }, 'cancelled') },
+
+  // Convocation KYC — migrée le 15.08.2026. Les trois modes, parce qu'ils ne montrent pas
+  // la même chose : la visio porte un bouton, le sur-place une adresse, l'annulation ni
+  // faits ni consigne. Le cas « visio sans lien » est celui qu'on oublie de regarder.
+  ...([
+    ['confirmee-visio', { kind: 'confirmed', mode: 'video', videoLink: 'https://meet.google.com/abc-defg-hij' }],
+    ['confirmee-sur-place', { kind: 'confirmed', mode: 'sur_place', location: 'Rue du Rhône 14, 1204 Genève' }],
+    ['confirmee-visio-sans-lien', { kind: 'confirmed', mode: 'video', videoLink: null }],
+    ['deplacee', { kind: 'rescheduled', mode: 'video', videoLink: 'https://meet.google.com/abc-defg-hij' }],
+    ['annulee', { kind: 'cancelled', mode: 'video', manageUrl: null }],
+  ] as const).map(([id, patch]) => ({
+    id: `kyc-rdv-${id}`,
+    nom: `Rendez-vous KYC · ${id.replace(/-/g, ' ')}`,
+    source: '_shared/booking-email.ts',
+    migre: true,
+    rendu: buildBookingEmail({
+      to: 'client@example.ch',
+      contactName: 'Marie Favre',
+      startIso: new Date(QUAND).toISOString(),
+      timeZone: 'Europe/Zurich',
+      agencyName: 'Régie du Rhône',
+      agentName: 'Gregory Lyonnet',
+      manageUrl: 'https://app.megga.ch/visite/jeton/modifier',
+      location: null,
+      videoLink: null,
+      ...patch,
+    }),
+  })),
 
   // Décision KYB — migrée le 15.08.2026, premier des treize à rejoindre la coquille.
   // Les trois décisions, parce qu'elles ne se ressemblent pas : seule la correction porte

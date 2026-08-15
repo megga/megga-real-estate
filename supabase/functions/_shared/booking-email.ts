@@ -10,6 +10,11 @@
 // Meilleur effort : un échec d'envoi ne remet jamais en cause la réservation
 // elle-même (la page de confirmation affiche le rendez-vous de toute façon).
 
+import {
+  BRAND, BODY_INK, INK, FONT,
+  escapeHtml, shell, p as p_, h2, row, button, note,
+} from './email-shell.ts'
+
 const RESEND_URL = 'https://api.resend.com/emails'
 const FROM = 'MEGGA <noreply@megga.ch>'
 
@@ -42,31 +47,119 @@ function formatFr(iso: string, timeZone: string): string {
   return `${date} à ${time}`
 }
 
-function buildHtml(subject: string, paragraphs: string[]): string {
-  return `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
-<div style="max-width:560px;margin:32px auto;background:white;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
-  <div style="background:#1a1a1a;padding:24px 32px;text-align:center">
-    <span style="color:white;font-size:20px;font-weight:700;letter-spacing:2px">MEGGA</span>
-    <span style="display:block;color:#9ca3af;font-size:11px;margin-top:2px">Immobilier Suisse</span>
-  </div>
-  <div style="padding:32px">
-    <h2 style="margin:0 0 16px;font-size:18px;color:#111827">${subject}</h2>
-    ${paragraphs.map(p => `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#374151">${p}</p>`).join('\n    ')}
-  </div>
-  <div style="padding:16px 32px;border-top:1px solid #f3f4f6;text-align:center">
-    <p style="margin:0;font-size:11px;color:#9ca3af">MEGGA Real Estate — megga.ch</p>
-  </div>
-</div>
-</body>
-</html>`
+/** Neutralise le HTML : ces valeurs viennent de la base et finissent dans un e-mail. */
+const esc = escapeHtml
+
+/**
+ * Compose sujet et corps. PUR — d'où sa séparation d'avec `sendBookingEmail` : le banc
+ * de rendu (`npm run email:preview`) l'importe pour montrer les trois cas sans réseau, ce
+ * que l'ancienne version, dont la coquille était privée, rendait impossible.
+ *
+ * ARCHITECTURE, ET NON SEULEMENT COULEURS (refonte du 15.08.2026). L'ancienne version
+ * empilait cinq paragraphes de prose : la date, le lieu, la consigne de pièce d'identité
+ * et le lien de report s'y lisaient au même niveau, donc aucun ne se voyait. Ici :
+ *   · les FAITS passent en tableau (quand, comment, avec) — c'est ce qu'on relit la veille ;
+ *   · la CONSIGNE devient un bloc encadré : oublier sa pièce fait échouer la séance, c'est
+ *     la seule chose que le message doit rendre impossible à manquer ;
+ *   · l'action devient un BOUTON, plus un lien noyé dans une phrase.
+ *
+ * ⚠ AUCUNE PILULE D'EN-TÊTE (`headerCta: null`), contrairement aux e-mails d'agence : le
+ * destinataire est le CLIENT d'une agence, il n'a pas de compte MEGGA. Lui proposer
+ * « Ouvrir mon espace » l'enverrait sur une porte qui ne s'ouvre pas pour lui.
+ */
+export function buildBookingEmail(p: BookingEmailParams): { subject: string; html: string } {
+  const when = formatFr(p.startIso, p.timeZone)
+  const who = p.agentName ? esc(p.agentName) : 'votre conseiller'
+  const agency = p.agencyName ? esc(p.agencyName) : 'MEGGA'
+  const salutation = p.contactName ? `Bonjour ${esc(p.contactName)},` : 'Bonjour,'
+
+  // Le nom de L'AGENCE ouvre l'objet, jamais MEGGA : le destinataire connaît son agence,
+  // pas l'outil qu'elle utilise. Un objet qui s'annonce au nom d'un tiers inconnu se lit
+  // comme un message non sollicité.
+  const titres: Record<BookingEmailKind, { objet: string; titre: string; apercu: string }> = {
+    confirmed: {
+      objet: `${p.agencyName ?? 'MEGGA'} · rendez-vous de vérification confirmé`,
+      titre: 'Votre rendez-vous de vérification est confirmé',
+      apercu: 'La date, le lieu et ce qu’il faut apporter sont dans ce message.',
+    },
+    rescheduled: {
+      objet: `${p.agencyName ?? 'MEGGA'} · rendez-vous de vérification déplacé`,
+      titre: 'Votre rendez-vous a été déplacé',
+      apercu: 'La nouvelle date est dans ce message.',
+    },
+    cancelled: {
+      objet: `${p.agencyName ?? 'MEGGA'} · rendez-vous de vérification annulé`,
+      titre: 'Votre rendez-vous a été annulé',
+      apercu: 'Aucune démarche de votre part n’est nécessaire.',
+    },
+  }
+  const t = titres[p.kind]
+
+  // Une annulation n'a ni faits à relire, ni consigne, ni action : ce qui reste est de
+  // savoir quoi faire ensuite, et cela tient en une phrase.
+  if (p.kind === 'cancelled') {
+    return {
+      subject: t.objet,
+      html: shell({
+        title: t.titre,
+        preheader: t.apercu,
+        legalNote: LEGAL_NOTE,
+        headerCta: null,
+        bodyHtml: `
+     ${p_(salutation)}
+     ${p_(`Votre rendez-vous de vérification d’identité du <strong style="color:${INK};">${when}</strong> a bien été annulé.`, 28)}
+     ${p_(`Pour en fixer un nouveau, contactez ${who} chez ${agency}.`, 0)}
+     ${signature()}`,
+      }),
+    }
+  }
+
+  const modeLigne = p.mode === 'video'
+    ? (p.videoLink ? 'En visioconférence' : 'En visioconférence, lien à venir')
+    : (p.location ? esc(p.location) : 'Sur place')
+
+  return {
+    subject: t.objet,
+    html: shell({
+      title: t.titre,
+      preheader: t.apercu,
+      legalNote: LEGAL_NOTE,
+      headerCta: null,
+      bodyHtml: `
+     ${p_(salutation)}
+     ${p_(p.kind === 'rescheduled'
+        ? 'Votre rendez-vous de vérification d’identité a été déplacé. Voici les nouvelles informations.'
+        : 'Votre rendez-vous de vérification d’identité est confirmé. Voici les informations à retenir.', 28)}
+     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0 0 28px;">
+       ${row('Quand', esc(when))}
+       ${row(p.mode === 'video' ? 'Comment' : 'Où', modeLigne)}
+       ${row('Avec', `${who} · ${agency}`)}
+     </table>
+     ${note(null, 'Munissez-vous de la pièce d’identité que vous avez transmise : la séance ne peut pas se tenir sans elle.')}
+     ${p.mode === 'video' && p.videoLink
+        ? `<div style="margin:0 0 32px;">${button(p.videoLink, 'Rejoindre la visioconférence')}</div>`
+        : ''}
+     ${p.manageUrl
+        ? `${h2('Un empêchement ?')}
+     <p style="margin:0 0 24px;font-family:${FONT};font-size:15px;font-weight:400;line-height:1.6;color:${BODY_INK};">
+       <a href="${esc(p.manageUrl)}" style="color:${BRAND};">Déplacez ou annulez ce rendez-vous</a> en un clic, sans avoir à vous connecter.
+     </p>`
+        : ''}
+     ${signature()}`,
+    }),
+  }
 }
 
-/** Neutralise le HTML : ces valeurs viennent de la base et finissent dans un e-mail. */
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+/**
+ * Mention de pied. Le destinataire n'est pas client de MEGGA mais de l'agence : la
+ * mention doit nommer la raison de l'envoi sans lui attribuer une relation qu'il n'a pas.
+ */
+const LEGAL_NOTE = 'Cet e-mail concerne un rendez-vous de vérification d’identité pris avec votre agence. '
+  + 'Il ne s’agit pas d’une communication marketing : c’est pourquoi il ne contient pas de lien de désinscription.'
+
+/** Signature : MEGGA est l'outil, la relation appartient à l'agence. */
+function signature(): string {
+  return `<div style="padding:32px 0 0;">${p_('À bientôt,<br />L’équipe MEGGA', 0)}</div>`
 }
 
 /**
@@ -77,45 +170,13 @@ export async function sendBookingEmail(p: BookingEmailParams): Promise<boolean> 
   const apiKey = Deno.env.get('RESEND_API_KEY')
   if (!apiKey || !p.to) return false
 
-  const when = formatFr(p.startIso, p.timeZone)
-  const hello = p.contactName ? `Bonjour ${esc(p.contactName)},` : 'Bonjour,'
-  const who = p.agentName ? esc(p.agentName) : 'votre conseiller'
-  const agency = p.agencyName ? esc(p.agencyName) : 'MEGGA'
-
-  let subject: string
-  const body: string[] = [hello]
-
-  if (p.kind === 'cancelled') {
-    subject = 'Votre rendez-vous de vérification a été annulé'
-    body.push(`Votre rendez-vous de vérification d'identité du <strong>${when}</strong> a bien été annulé.`)
-    body.push(`Pour en fixer un nouveau, contactez ${who} chez ${agency}.`)
-  } else {
-    subject = p.kind === 'rescheduled'
-      ? 'Votre rendez-vous de vérification a été déplacé'
-      : 'Votre rendez-vous de vérification est confirmé'
-    body.push(
-      p.kind === 'rescheduled'
-        ? `Votre rendez-vous de vérification d'identité est désormais fixé au <strong>${when}</strong>.`
-        : `Votre rendez-vous de vérification d'identité est confirmé pour le <strong>${when}</strong>.`,
-    )
-    if (p.mode === 'video') {
-      body.push(p.videoLink
-        ? `Il se tiendra en visioconférence : <a href="${esc(p.videoLink)}">rejoindre la réunion</a>.`
-        : 'Il se tiendra en visioconférence ; le lien vous parviendra avant la séance.')
-    } else if (p.location) {
-      body.push(`Adresse : <strong>${esc(p.location)}</strong>.`)
-    }
-    body.push('Merci de vous munir de la pièce d\'identité que vous avez transmise.')
-    if (p.manageUrl) {
-      body.push(`Un empêchement ? <a href="${esc(p.manageUrl)}">Déplacer ou annuler ce rendez-vous</a>.`)
-    }
-  }
+  const { subject, html } = buildBookingEmail(p)
 
   try {
     const res = await fetch(RESEND_URL, {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: FROM, to: p.to, subject, html: buildHtml(subject, body) }),
+      body: JSON.stringify({ from: FROM, to: p.to, subject, html }),
     })
     return res.ok
   } catch {

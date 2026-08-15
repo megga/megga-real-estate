@@ -12,10 +12,7 @@
 // L'HABILLAGE vient de `_shared/email-shell.ts` (migration du 15.08.2026) : ce fichier ne
 // decide que du CONTENU. Un `<!DOCTYPE>` ecrit ici ferait crier `npm run lint:email-shell`.
 
-import {
-  CARD_BORDER, MUTED, BODY_INK, INK, FONT,
-  escapeHtml, shell, p, button,
-} from './email-shell.ts'
+import { INK, escapeHtml, shell, p, button, note } from './email-shell.ts'
 //
 // POURQUOI UNE NOTIFICATION, ET PAS UN SIMPLE BANDEAU. Avant cette tache, ni une validation
 // ni un rejet n'emettait quoi que ce soit : l'agence decouvrait la decision en se
@@ -141,20 +138,6 @@ const PREHEADER: Record<NotifiableStatus, string> = {
 }
 
 /**
- * Bloc « Motif », creusé dans la carte.
- *
- * Sous-surface `#050505` sur la carte `#090909` : dans l'échelle sombre MEGGA X, une
- * sous-carte se CREUSE, elle ne monte pas — c'est l'inverse de l'ancienne échelle
- * Graphite, et le piège dans lequel sa migration était tombée (cf. CLAUDE.md §3).
- */
-function blocMotif(motif: string): string {
-  return `<div style="margin:0 0 28px;padding:16px 18px;background:#050505;border:1px solid ${CARD_BORDER};border-radius:14px;">
-      <p style="margin:0 0 6px;font-family:${FONT};font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:${MUTED};">Motif</p>
-      <p style="margin:0;font-family:${FONT};font-size:14px;line-height:1.6;color:${BODY_INK};">${escapeHtml(motif)}</p>
-    </div>`
-}
-
-/**
  * Compose sujet et corps HTML, sur la coquille commune `_shared/email-shell.ts`.
  *
  * ⚠ MIGRÉ LE 15.08.2026. Ce fichier fabriquait sa propre coquille — fond `#f9fafb`,
@@ -199,7 +182,7 @@ export function buildVerificationNotice(input: {
     bodyHtml: `
      ${p(`Dossier de <strong style="color:${INK};">${escapeHtml(input.agencyName)}</strong>.`)}
      ${p(escapeHtml(BODY[input.status]), 28)}
-     ${showReason ? blocMotif(input.reason!.trim()) : ''}
+     ${showReason ? note('Motif', escapeHtml(input.reason!.trim())) : ''}
      ${cta}`,
   })
 
