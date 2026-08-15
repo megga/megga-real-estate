@@ -791,7 +791,6 @@ const CLASSES_ASSUMEES = new Map<string, { palette?: number; blanc?: number; ech
   ['src/pages/agent/ExternalListingDetailPage.tsx', { palette: 9, blanc: 7, echelle: 63 }],
   ['src/pages/agent/ListingFormPage.tsx', { palette: 25, blanc: 11, echelle: 155 }],
   ['src/pages/dev/SentryTestPage.tsx', { echelle: 4 }],
-  ['src/pages/public/AcceptInvitePage.tsx', { palette: 23, blanc: 2, echelle: 13 }],
   ['src/pages/public/PrivacyPage.tsx', { echelle: 5 }],
   ['src/pages/public/ResetPasswordPage.tsx', { blanc: 4, echelle: 10 }],
   ['src/pages/public/VisitFeedbackPage.tsx', { palette: 41, blanc: 6, echelle: 20 }],
@@ -1591,7 +1590,6 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
   it('les pages publiques que l’instrument ne voit pas sont inventoriées', () => {
     /** Fichier → nombre de `className=`, relevé le 15 août 2026. */
     const AVEUGLES = new Map<string, number>([
-      ['AcceptInvitePage.tsx', 27],
       ['NotFoundPage.tsx', 21],
       ['OnboardingCallManagePage.tsx', 30],
       ['PrivacyPage.tsx', 8],
