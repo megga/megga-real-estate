@@ -12,6 +12,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { optinCopy, optinLang } from './whatsapp-optin-copy.ts'
 import { OPTIN_PREFIX } from './whatsapp-optin.ts'
+import { BODY_INK, MUTED, FONT, escapeHtml, shell } from './email-shell.ts'
 
 export const INVITE_DAYS = 14
 
@@ -25,9 +26,44 @@ export type OptinSendResult =
   | { ok: true; inviteId: string; lang: string; email: string }
   | { ok: false; error: OptinSendError }
 
-const escapeHtml = (s: string) =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-   .replace(/"/g, '&quot;').replace(/'/g, '&#039;')
+/**
+ * Compose l'invitation. PUR — d'où sa séparation d'avec l'envoi : le banc de rendu
+ * (`npm run email:preview`) l'importe sans réseau ni base.
+ *
+ * ⚠ LE BOUTON EST VERT WHATSAPP (#25D366) et non l'accent MEGGA : c'est le seul bouton du
+ * produit qui ouvre une application tierce, et sa couleur dit vers où il mène. Une pilule
+ * indigo promettrait une page MEGGA.
+ *
+ * ⚠ `lien` était posé BRUT dans l'attribut `href`. Il est fabriqué ici (wa.me + jeton
+ * signé), donc sans danger en pratique, mais un attribut non échappé dans un e-mail est
+ * une habitude qui finit par coûter : il l'est désormais comme le reste.
+ */
+export function buildOptinInviteEmail(i: {
+  lang: string
+  copy: { subject: string; body: string; cta: string }
+  agencyName: string
+  lien: string
+}): { subject: string; html: string } {
+  return {
+    subject: i.copy.subject,
+    html: shell({
+      lang: i.lang,
+      title: i.copy.subject,
+      // L'aperçu dit le COÛT et la sortie : c'est une demande de consentement, la
+      // question du destinataire est « à quoi je m'engage ».
+      preheader: 'Un message, et vous pourrez répondre STOP à tout moment.',
+      legalNote: 'Cet e-mail vous invite à consentir aux messages WhatsApp de votre agence. '
+        + 'Tant que vous n’avez pas répondu, aucun message ne vous sera envoyé sur ce canal.',
+      headerCta: null,
+      bodyHtml: `
+     <div style="font-family:${FONT};font-size:15px;line-height:1.6;color:${BODY_INK};white-space:pre-line;">${escapeHtml(i.copy.body)}</div>
+     <div style="margin:28px 0 0;">
+       <a href="${escapeHtml(i.lien)}" style="display:inline-block;background:#25D366;color:#ffffff;text-decoration:none;padding:16px 28px;border-radius:999px;font-family:${FONT};font-size:15px;font-weight:600;line-height:1;">${escapeHtml(i.copy.cta)}</a>
+     </div>
+     <p style="margin:28px 0 0;font-family:${FONT};font-size:11px;color:${MUTED};">${escapeHtml(i.agencyName)}</p>`,
+    }),
+  }
+}
 
 /**
  * Crée l'invitation, signe son jeton, envoie l'e-mail.
@@ -93,16 +129,7 @@ export async function sendOptinInvite(
   const token = await signMagicLinkToken({ id: invite.id, exp: unix, k: 'wa_optin' })
   const lien = `https://wa.me/${business}?text=${encodeURIComponent(`${OPTIN_PREFIX} ${token}`)}`
 
-  const html = `<!DOCTYPE html><html lang="${lang}"><head><meta charset="utf-8"/></head>
-<body style="margin:0;padding:24px;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#1f2937;">
-  <div style="max-width:560px;margin:0 auto;">
-    <div style="font-size:14px;line-height:1.6;white-space:pre-line;">${escapeHtml(copy.body)}</div>
-    <p style="margin:28px 0;">
-      <a href="${lien}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#25D366;color:#fff;text-decoration:none;font-weight:600;font-size:14px;">${escapeHtml(copy.cta)}</a>
-    </p>
-    <div style="font-size:11px;color:#9ca3af;">${escapeHtml(agencyName)}</div>
-  </div>
-</body></html>`
+  const { html } = buildOptinInviteEmail({ lang, copy, agencyName, lien })
 
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
