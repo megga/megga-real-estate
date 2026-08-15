@@ -155,6 +155,76 @@ describe('MEGGA X CRM — la grammaire déclarée en CSS', () => {
     expect(hors).toEqual([2, 4, 999])
   })
 
+  /**
+   * ⛔ L'ÉCHELLE PORTE DES ALIAS — douze noms de rayon pour SEPT valeurs, douze
+   * d'espacement pour SIX. « Tokenisé » ne garantit donc pas « un nom par
+   * valeur », et ces trois clauses ne le voyaient pas : elles comparent des
+   * VALEURS à la vitrine, jamais des NOMS entre eux.
+   *
+   * ── CE QUE L'HISTOIRE DIT, ET QUI TRANCHE ───────────────────────────────
+   * Ce ne sont PAS des doublons de négligence. Avant la bascule vers MEGGA X
+   * (`d7d068b1`), les valeurs étaient DISTINCTES : `space-lg` valait 10 px
+   * contre 12 pour `xl`, `space-2xl` 14 contre 16 pour `3xl`, `radius-md` 10
+   * contre 8 pour `sm`, `radius-xl` 14 contre 16 pour `2xl`. L'échelle de Sugar
+   * était plus fine ; celle de MEGGA X est plus grossière, et la bascule a
+   * ÉCRASÉ les paires l'une sur l'autre.
+   *
+   * ⚠ LA VITRINE, ELLE, N'A AUCUN ALIAS : quatorze espacements pour quatorze
+   * noms, huit rayons pour huit. Les alias sont donc une invention du CRM — et
+   * c'est précisément pourquoi il faut les DÉCLARER plutôt que les subir.
+   *
+   * ── POURQUOI ON NE LES FOND PAS ─────────────────────────────────────────
+   * Mesuré : aucun de ces noms n'est mort. Le plus discret (`radius-2xs`) a NEUF
+   * lecteurs, le plus employé (`radius-pill`) en a 703 ; les fondre demanderait
+   * ~3 100 réécritures pour ZÉRO pixel. ⛔ Et surtout, ça DÉTRUIRAIT ce que ces
+   * 3 100 sites enregistrent : le nom y dit encore l'intention (« l'écart d'une
+   * sous-carte » vs « l'écart d'une section ») que la valeur ne distingue plus.
+   * Si l'échelle regagnait un cran à 10 px, l'information pour le placer serait
+   * perdue — et irrécupérable.
+   *
+   * Ce qui se décide ici, c'est donc : les alias RESTENT, mais ils sont ÉCRITS,
+   * et l'ensemble ne peut que RÉTRÉCIR. Un nom neuf qui doublerait une valeur
+   * existante devra s'inscrire ici, donc se justifier.
+   */
+  const ALIAS_ASSUMES: Record<'radius' | 'space', Record<number, string[]>> = {
+    radius: { 8: ['sm', 'md'], 16: ['xl', '2xl', '3xl'], 20: ['4xl', '5xl'] },
+    space: {
+      4: ['2xs', 'xs'], 8: ['sm', 'md'], 12: ['lg', 'xl'],
+      16: ['2xl', '3xl'], 20: ['4xl', '5xl'], 24: ['6xl', '7xl'],
+    },
+  }
+
+  it('les alias de l’échelle sont ceux qui ont été écrits, et l’ensemble ne grossit pas', () => {
+    const ecarts: string[] = []
+    for (const famille of ['radius', 'space'] as const) {
+      const parValeur = new Map<number, string[]>()
+      for (const m of globals.matchAll(new RegExp(`--crm-${famille}-([a-z0-9]+): *([0-9.]+)px`, 'g'))) {
+        const v = Number(m[2])
+        parValeur.set(v, [...(parValeur.get(v) ?? []), m[1]!])
+      }
+      // Sans ce plancher, un bloc renommé rendrait « aucune collision » et la
+      // clause passerait au vert sur une échelle qu'elle ne lit plus.
+      expect(parValeur.size, `${famille} : plus aucun barreau lu`).toBeGreaterThan(4)
+
+      const reels = [...parValeur].filter(([, n]) => n.length > 1)
+      const inscrits = ALIAS_ASSUMES[famille]
+      for (const [v, noms] of reels) {
+        const attendu = inscrits[v]
+        if (!attendu) { ecarts.push(`${famille} ${v}px : alias NEUF (${noms.join(', ')}) — l'écrire, donc en décider`); continue }
+        const surnumeraires = noms.filter((n) => !attendu.includes(n))
+        if (surnumeraires.length) ecarts.push(`${famille} ${v}px : ${surnumeraires.join(', ')} en plus des ${attendu.length} inscrits`)
+      }
+      // ⚠ Cliquet à l'envers : une collision résolue doit SORTIR de la liste,
+      // sinon l'inventaire garde un crédit et le prochain lot pourrait la
+      // réintroduire sans rien faire rougir.
+      for (const v of Object.keys(inscrits).map(Number)) {
+        const reel = parValeur.get(v) ?? []
+        if (reel.length <= 1) ecarts.push(`${famille} ${v}px : la collision a disparu — retirer l'entrée`)
+      }
+    }
+    expect(ecarts, `les alias de l'échelle ont dérivé :\n  ${ecarts.join('\n  ')}`).toEqual([])
+  })
+
   // ⚠ Le TEXTE s'écarte sur 11 et 13 px : la vitrine n'en a ni l'un ni l'autre
   // (ses tailles sautent 10 → 12 → 14), et le CRM a besoin de ces demi-pas pour
   // monter d'un cran sans doubler la hauteur de ses lignes. 34 px est un
