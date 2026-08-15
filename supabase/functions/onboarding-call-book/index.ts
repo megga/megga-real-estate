@@ -200,21 +200,32 @@ serve(async (req: Request) => {
     locale: locale as 'fr' | 'en',
   }
 
-  const ics = buildIcs({
-    callId: inserted.id,
-    summary,
-    description,
-    startMs: slotMs,
-    durationMinutes: host.duration_minutes,
-    organizerEmail: hostProfile?.email ?? 'noreply@megga.ch',
-    attendeeEmail,
-    meetingUrl,
-    method: 'REQUEST',
-    sequence: 0,
-  })
+  // ⚠ TOUT CE BLOC EST SOUS FILET, et l'en-tête dit pourquoi : « rien de ce qui vient
+  // après l'insertion ne peut faire échouer la réservation ». Cette promesse n'était
+  // vraie que par chance tant que les gabarits ne lisaient que des valeurs venues de la
+  // base. Depuis que l'avis d'équipe rend `answers` — saisi par le client — la
+  // composition d'un e-mail touche de la donnée arbitraire, et une exception ici rendait
+  // 500 APRÈS l'écriture : rendez-vous confirmé en base, agenda occupé, personne
+  // prévenue, et l'agence verrouillée par l'index unique sur son propre appel.
+  // Le rattrapage journalise et laisse le reste se dérouler ; c'est exactement le
+  // « e-mail perdu qui se rattrape » de l'en-tête, par opposition au rendez-vous perdu.
+  let attendeeSent: { ok: boolean; error?: unknown } = { ok: false, error: 'not attempted' }
+  try {
+    const ics = buildIcs({
+      callId: inserted.id,
+      summary,
+      description,
+      startMs: slotMs,
+      durationMinutes: host.duration_minutes,
+      organizerEmail: hostProfile?.email ?? 'noreply@megga.ch',
+      attendeeEmail,
+      meetingUrl,
+      method: 'REQUEST',
+      sequence: 0,
+    })
 
-  const attendeeMail = buildAttendeeEmail(emailData)
-  const hostMail = buildHostEmail({ ...emailData, timezone: host.timezone }, 'booked', answers)
+    const attendeeMail = buildAttendeeEmail(emailData)
+    const hostMail = buildHostEmail({ ...emailData, timezone: host.timezone }, 'booked', answers)
 
   // ⚠ L'avis va à la BOÎTE D'ÉQUIPE, pas au profil de l'hôte.
   // `calendar_email` est la boîte Workspace dont l'agenda fait foi (hello@megga.ai) :
@@ -226,25 +237,32 @@ serve(async (req: Request) => {
   // et les deux envois du 15.08.2026 y sont morts en `suppressed` — l'adresse était sur
   // la liste de suppression Resend depuis le 05.08. Un avis interne invisible se
   // constate dix jours trop tard.
-  const hostNoticeTo = host.calendar_email ?? hostProfile?.email ?? null
+    const hostNoticeTo = host.calendar_email ?? hostProfile?.email ?? null
 
-  const [attendeeSent] = await Promise.all([
-    attendeeEmail
-      ? sendResendEmail({
-          to: attendeeEmail,
-          subject: attendeeMail.subject,
-          html: attendeeMail.html,
-          attachments: [{
-            filename: 'appel-accueil-megga.ics',
-            content: toBase64(ics),
-            content_type: 'text/calendar; method=REQUEST',
-          }],
-        })
-      : Promise.resolve({ ok: false, error: 'no attendee email' }),
-    hostNoticeTo
-      ? sendResendEmail({ to: hostNoticeTo, subject: hostMail.subject, html: hostMail.html })
-      : Promise.resolve({ ok: false, error: 'no host email' }),
-  ])
+    ;[attendeeSent] = await Promise.all([
+      attendeeEmail
+        ? sendResendEmail({
+            to: attendeeEmail,
+            subject: attendeeMail.subject,
+            html: attendeeMail.html,
+            attachments: [{
+              filename: 'appel-accueil-megga.ics',
+              content: toBase64(ics),
+              content_type: 'text/calendar; method=REQUEST',
+            }],
+          })
+        : Promise.resolve({ ok: false, error: 'no attendee email' }),
+      hostNoticeTo
+        ? sendResendEmail({ to: hostNoticeTo, subject: hostMail.subject, html: hostMail.html })
+        : Promise.resolve({ ok: false, error: 'no host email' }),
+    ])
+  } catch (err) {
+    // La réservation TIENT. On perd l'e-mail, pas le rendez-vous — et il reste
+    // rattrapable : la console admin le montre, le rappel J-1 repartira, et
+    // `confirmation_sent_at` resté NULL dit précisément ce qui a manqué.
+    console.error('[onboarding-call-book] emails failed', err)
+    attendeeSent = { ok: false, error: String(err) }
+  }
 
   if (attendeeSent.ok) {
     await db.from('onboarding_calls')

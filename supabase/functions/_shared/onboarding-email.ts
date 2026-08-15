@@ -194,10 +194,20 @@ export function calibrationLines(
   for (const [cle, q] of Object.entries(CALIBRAGE)) {
     const brut = answers[cle]
     if (!brut) continue
-    lignes.push({ label: q.label, value: q.options?.[brut] ?? brut })
+    // ⛔ `options[brut]` REMONTE LA CHAÎNE DE PROTOTYPES. `brut` vient du client, et
+    // `sanitizeAnswers` ne borne que la forme (chaîne courte), pas le contenu : pour
+    // `portfolio: 'constructor'` — ou 'toString', 'valueOf', 'hasOwnProperty' — la
+    // recherche rend une FONCTION héritée d'Object.prototype. Le `??` ne la rattrape
+    // pas (elle n'est ni null ni undefined) et `escapeHtml` levait sur `.replace`.
+    // D'où le test de type plutôt qu'un simple `??`.
+    const traduit = q.options?.[brut]
+    lignes.push({ label: q.label, value: typeof traduit === 'string' ? traduit : brut })
   }
   for (const [cle, valeur] of Object.entries(answers)) {
-    if (cle in CALIBRAGE || IDENTITE.has(cle) || !valeur) continue
+    // Même piège, silencieux celui-là : `'toString' in CALIBRAGE` vaut true alors que
+    // CALIBRAGE ne déclare pas cette question, et la réponse disparaissait — l'inverse
+    // exact de ce que cette boucle promet. `Object.hasOwn` ne regarde que le propre.
+    if (Object.hasOwn(CALIBRAGE, cle) || IDENTITE.has(cle) || !valeur) continue
     lignes.push({ label: cle, value: valeur })
   }
   return lignes

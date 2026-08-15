@@ -172,6 +172,26 @@ describe('réponses de calibrage — ce qui rend l\'avis utile avant l\'appel', 
     expect(buildHostEmail(base, 'cancelled', reponses).html).not.toContain('Ce qu’ils ont répondu')
   })
 
+  it('⛔ une valeur qui NOMME un membre de Object.prototype ne fait pas lever', () => {
+    // `options['constructor']` remonte la chaîne de prototypes et rend une FONCTION,
+    // que `??` ne rattrape pas — escapeHtml levait alors sur `.replace`. Dans
+    // onboarding-call-book, cette levée arrive APRÈS l'insertion de la réservation :
+    // le rendez-vous existait, et personne n'en était prévenu.
+    for (const charge of ['constructor', 'toString', 'valueOf', 'hasOwnProperty']) {
+      expect(() => buildHostEmail(base, 'booked', { portfolio: charge })).not.toThrow()
+      expect(calibrationLines({ portfolio: charge })).toEqual([
+        { label: 'Portefeuille', value: charge },
+      ])
+    }
+  })
+
+  it('⛔ une question inconnue nommée « toString » n’est pas jetée en silence', () => {
+    // `'toString' in CALIBRAGE` vaut true par héritage : la réponse disparaissait,
+    // c'est-à-dire exactement ce que la boucle promet d'éviter.
+    expect(calibrationLines({ toString: 'ma reponse' }))
+      .toEqual([{ label: 'toString', value: 'ma reponse' }])
+  })
+
   it('⛔ la réponse libre est ÉCHAPPÉE — « cantons » est du texte saisi', () => {
     // Six gabarits interpolaient sans échapper avant la migration du 15.08 ; celui-ci
     // reçoit une chaîne que l'utilisateur compose entièrement.
