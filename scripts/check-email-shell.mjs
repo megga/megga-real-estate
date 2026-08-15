@@ -48,8 +48,6 @@ const A_MIGRER = {
     'Relance commerciale à un contact. CLIENT.',
   'supabase/functions/send-reminder-email/index.ts':
     'Rappel de rendez-vous ou de tâche. CLIENT.',
-  'supabase/functions/send-visit-email/index.ts':
-    "Confirmation de visite de bien. CLIENT. ⚠ En le migrant, corriger aussi son heure : son en-tête signale qu'il s'appuie sur getHours() du runtime, donc sur UTC en edge, et annonce au client une heure décalée d'une à deux heures selon la saison (booking-email est né de ce défaut).",
   'supabase/functions/weekly-report/index.ts':
     "Rapport hebdomadaire à l'agent. INTERNE au produit, donc moins pressé.",
 };
