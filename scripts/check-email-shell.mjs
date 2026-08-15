@@ -29,6 +29,17 @@ import { join } from 'node:path';
 
 const FUNCTIONS_DIR = 'supabase/functions';
 
+/**
+ * ⚠ `src/` EST DANS LE PÉRIMÈTRE DEPUIS LE 15.08.2026, et c'est un trou que cette porte
+ * a elle-même laissé passer : `src/hooks/useSendAgentEmail.ts` fabriquait un document
+ * HTML d'e-mail COMPLET dans le bundle navigateur, puis le postait à `send-email`. Une
+ * quatorzième coquille, invisible tant qu'on ne scannait que les edge functions.
+ *
+ * Le front n'a AUCUNE raison de composer un e-mail : il envoie le texte, le serveur
+ * compose. C'est ce que fait désormais `agent_freeform`.
+ */
+const SRC_DIR = 'src';
+
 /** Le seul fichier autorisé à porter la coquille. */
 const SHELL = 'supabase/functions/_shared/email-shell.ts';
 
@@ -37,13 +48,26 @@ const SHELL = 'supabase/functions/_shared/email-shell.ts';
  * Chaque entrée dit CE QUE L'E-MAIL EST — pour qu'on sache ce qu'on casse en migrant,
  * et dans quel ordre s'y prendre (le client d'abord, l'interne ensuite).
  */
-const A_MIGRER = {
-  'supabase/functions/send-email/index.ts':
-    "Fonction générique (estimation vendeur, notification d'agent, accès portail). Porte sa propre `wrapHTML` en gris clair ; c'est le plus gros chantier des treize.",
-};
+const A_MIGRER = {};
 
 /** Marqueurs d'un document HTML complet — ce que seule la coquille a le droit d'écrire. */
 const MARQUEURS = [/<!DOCTYPE\s+html/i, /<html[\s>]/i];
+
+/**
+ * Dans `src/`, seul un `<!DOCTYPE>` compte. `<html` y désigne presque toujours un
+ * sélecteur ou un commentaire sur l'élément racine (thème, verrou de défilement) — le
+ * chercher produisait cinq faux positifs et aurait fait désactiver la porte.
+ */
+const MARQUEURS_SRC = [/<!DOCTYPE\s+html/i];
+
+/**
+ * Documents HTML de `src/` qui ne sont PAS des e-mails. Une seule entrée, et elle porte
+ * sa raison comme les autres listes de ce dépôt.
+ */
+const HORS_EMAIL = {
+  'src/components/ai-copilot/panel/LetterReviewModal.tsx':
+    "Lettre A4 IMPRIMABLE (`@page { size: A4 }`), pas un e-mail : elle part chez un imprimeur ou un PDF, jamais dans une boîte. La coquille d'e-mail lui donnerait un fond noir et un pied de désinscription sur du papier.",
+};
 
 function fichiersTs(dir) {
   const out = [];
@@ -51,7 +75,7 @@ function fichiersTs(dir) {
     const chemin = join(dir, entree);
     if (statSync(chemin).isDirectory()) {
       out.push(...fichiersTs(chemin));
-    } else if (entree.endsWith('.ts') && !entree.endsWith('.test.ts')) {
+    } else if (/\.tsx?$/.test(entree) && !/\.(test|spec)\.tsx?$/.test(entree)) {
       out.push(chemin);
     }
   }
@@ -61,10 +85,12 @@ function fichiersTs(dir) {
 const fautifs = [];
 const listePerimee = [];
 
-for (const fichier of fichiersTs(FUNCTIONS_DIR)) {
+for (const fichier of [...fichiersTs(FUNCTIONS_DIR), ...fichiersTs(SRC_DIR)]) {
   if (fichier === SHELL) continue;
+  if (fichier in HORS_EMAIL) continue;
   const source = readFileSync(fichier, 'utf8');
-  const emetDuHtml = MARQUEURS.some((m) => m.test(source));
+  const motifs = fichier.startsWith(`${SRC_DIR}/`) ? MARQUEURS_SRC : MARQUEURS;
+  const emetDuHtml = motifs.some((m) => m.test(source));
 
   if (fichier in A_MIGRER) {
     // Un fichier migré qui resterait listé ferait croire à du travail restant, et pire :

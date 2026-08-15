@@ -2,6 +2,7 @@
 // Generic email Edge Function — handles seller estimation, agent notification, portal access emails
 // Uses Resend API with MEGGA branding
 
+import { CARD_BORDER, MUTED, INK, FONT, shell, p, button, escapeHtml } from '../_shared/email-shell.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 
@@ -25,47 +26,59 @@ function formatCHF(amount: number): string {
 
 // ── HTML wrapper ──────────────────────────────────────────────────
 
-function wrapHTML(subject: string, bodyHTML: string): string {
-  return `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
-<div style="max-width:560px;margin:32px auto;background:white;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
-  <div style="background:#1a1a1a;padding:24px 32px;text-align:center">
-    <span style="color:white;font-size:20px;font-weight:700;letter-spacing:2px">MEGGA</span>
-    <span style="display:block;color:#9ca3af;font-size:11px;margin-top:2px">Immobilier Suisse</span>
-  </div>
-  <div style="padding:32px">
-    <h2 style="margin:0 0 20px;font-size:18px;color:#111827">${subject}</h2>
-    ${bodyHTML}
-  </div>
-  <div style="padding:16px 32px;border-top:1px solid #f3f4f6;text-align:center">
-    <p style="margin:0;font-size:11px;color:#9ca3af">MEGGA Real Estate &mdash; megga.ch</p>
-  </div>
-</div>
-</body>
-</html>`
+/**
+ * Coquille et atomes — repointés sur `_shared/email-shell.ts` le 15.08.2026.
+ *
+ * ⚠ LES NEUF GABARITS NOMMÉS DE CE FICHIER N'ONT AUCUN APPELANT dans le dépôt (mesuré ce
+ * jour-là : le seul invocateur de `send-email` est `useSendAgentEmail`, qui passe
+ * `template: 'agent_freeform'`). Deux d'entre eux servaient des parcours retirés depuis —
+ * `seller_portal_access` désigne le portail vendeur supprimé le 26.07.2026, dont même les
+ * tables ont disparu. Ils ne sont pas supprimés ici : constater l'absence d'appelant DANS
+ * ce dépôt ne prouve pas qu'aucun système externe ne poste sur cette fonction, et
+ * l'effacement de neuf capacités est une décision qui appartient à Julien, pas à une
+ * migration d'habillage. Ils sont donc RHABILLÉS, pas réécrits : leurs atomes changent,
+ * leur contenu ne bouge pas d'une virgule.
+ *
+ * `kind` décide de ce que la coquille dit d'elle-même : un e-mail interne (lead vendeur,
+ * notification admin) n'a pas de mention légale et gagne la pilule ; un e-mail client a
+ * l'inverse.
+ */
+function wrapHTML(subject: string, bodyHTML: string, kind: 'client' | 'interne' = 'client'): string {
+  return shell({
+    title: subject,
+    // Faute de mieux : ces gabarits n'ont jamais porté de texte d'aperçu propre, et en
+    // inventer un par gabarit dépasserait le rhabillage. L'objet vaut mieux que rien.
+    preheader: subject,
+    legalNote: kind === 'interne'
+      ? null
+      : 'Cet e-mail vous a été envoyé par MEGGA à la suite d’une demande de votre part. '
+        + 'Il ne s’agit pas d’une communication marketing : c’est pourquoi il ne contient pas '
+        + 'de lien de désinscription.',
+    headerCta: kind === 'interne'
+      ? { href: 'https://app.megga.ch/dashboard', label: 'Ouvrir mon espace' }
+      : null,
+    bodyHtml: bodyHTML,
+  })
 }
 
-function p(text: string): string {
-  return `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#374151">${text}</p>`
-}
-
-function cta(label: string, url: string): string {
-  return `<div style="text-align:center;margin:24px 0 16px">
-    <a href="${url}" style="display:inline-block;padding:12px 28px;background:#2563EB;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600">${label}</a>
-  </div>`
-}
-
+/** Encart creusé : porte des lignes de faits, donc du HTML libre (pas `note`, qui rend un <p>). */
 function box(content: string): string {
-  return `<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:16px 0">${content}</div>`
+  return `<div style="margin:16px 0 24px;padding:18px 20px;background:#050505;border:1px solid ${CARD_BORDER};border-radius:14px;">${content}</div>`
 }
 
+/** Ligne de faits DANS un encart. Deux colonnes, sans tableau : l'encart en contient plusieurs. */
 function row(label: string, value: string): string {
-  return `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px">
-    <span style="color:#6b7280">${label}</span>
-    <span style="color:#111827;font-weight:500">${value}</span>
-  </div>`
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 6px;">
+    <tr>
+      <td style="font-family:${FONT};font-size:13px;color:${MUTED};">${label}</td>
+      <td align="right" style="font-family:${FONT};font-size:13px;color:${INK};font-weight:500;">${value}</td>
+    </tr>
+  </table>`
+}
+
+/** Bouton centré, à la différence de ceux du reste du produit : ces gabarits le posaient ainsi. */
+function cta(label: string, url: string): string {
+  return `<div style="text-align:center;margin:24px 0 16px;">${button(url, label)}</div>`
 }
 
 // ── Template: Seller Estimation ───────────────────────────────────
@@ -140,7 +153,7 @@ function agentNewSellerLead(data: Record<string, unknown>): { subject: string; h
     cta('Voir dans mon dashboard', dashboardUrl),
   ].join('\n')
 
-  return { subject, html: wrapHTML(subject, bodyHTML) }
+  return { subject, html: wrapHTML(subject, bodyHTML, 'interne') }
 }
 
 // ── Template: Seller Portal Access ──────────────────────────────
@@ -216,7 +229,7 @@ function ticketNotificationAdmin(data: Record<string, unknown>): { subject: stri
     cta('Voir dans le dashboard', dashboardUrl),
   ].join('\n')
 
-  return { subject: emailSubject, html: wrapHTML(emailSubject, bodyHTML) }
+  return { subject: emailSubject, html: wrapHTML(emailSubject, bodyHTML, 'interne') }
 }
 
 // ── Template: Ticket Reply (agent to client) ────────────────────
@@ -424,10 +437,27 @@ serve(async (req) => {
         break
       }
       default: {
-        // Fallback: just send raw HTML if provided in data.html
+        // `agent_freeform` : l'e-mail que l'agent écrit lui-même depuis le copilote. C'est
+        // le SEUL chemin réellement emprunté de cette fonction.
+        //
+        // ⚠ IL SE COMPOSAIT DANS LE NAVIGATEUR. `useSendAgentEmail` fabriquait un document
+        // HTML complet dans le bundle front et le passait en `data.html` : une QUATORZIÈME
+        // coquille d'e-mail, invisible à la porte `lint:email-shell` qui ne scanne que
+        // `supabase/functions/`. Elle est supprimée ; le front envoie désormais le TEXTE,
+        // et la composition se fait ici, avec la coquille commune.
         emailSubject = overrideSubject || 'MEGGA Notification'
-        const rawHtml = data.html as string
-        emailHtml = rawHtml || wrapHTML(emailSubject, p(data.body as string || ''))
+        const corps = data.body as string | undefined
+        if (corps) {
+          // Échappé, puis structuré : double saut = paragraphe, simple = retour à la ligne.
+          emailHtml = wrapHTML(
+            emailSubject,
+            corps.trim().split(/\n{2,}/).map((par) => p(escapeHtml(par).replace(/\n/g, '<br />'))).join(''),
+          )
+        } else {
+          // Repli TRANSITOIRE : un onglet ouvert avant ce déploiement enverra encore
+          // `data.html`. À retirer une fois le front partout à jour.
+          emailHtml = (data.html as string) || wrapHTML(emailSubject, p(''))
+        }
         break
       }
     }
