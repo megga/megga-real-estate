@@ -59,7 +59,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
-import { readFileSafely, repoPath } from './helpers/fs-scan'
+import { emptyRoots, readFileSafely, rel, repoPath, scanRoots } from './helpers/fs-scan'
 
 const AA = 4.5
 /** Seuil des éléments NON textuels (WCAG 1.4.11) — un anneau de focus, un filet. */
@@ -213,5 +213,113 @@ describe('Rampe d’accent — un jeton par rôle, dans les deux thèmes', () =>
     // est une préférence VIVE, posée par `usePreferences`.
     expect(/\[data-sidebar-style="colored"\] aside \{[\s\S]{0,400}?background-color: rgb\(var\(--color-accent-solid\)\)/.test(CSS),
       'le rail coloré ne lit plus le jeton d’APLAT — il forcerait du blanc sur une encre pâle').toBe(true)
+  })
+
+  /**
+   * ⛔ LE FILET ET L'ANNEAU SUIVENT L'ENCRE — ils ne portent pas leur propre ton.
+   *
+   * Ils avaient divergé, et rien ne pouvait le dire : `--color-border-focus` et
+   * `--color-ring` gardaient #2563EB / #3B82F6 — l'accent d'AVANT l'unification
+   * du 15 août — pendant que `applyPreferences` les réécrivait au rendu. Le
+   * défaut était donc masqué par un SECOND défaut ; retirer la réécriture l'a
+   * exposé, et `ring-1` sans couleur (`ui/Toast.tsx`) tire bien d'ici.
+   *
+   * ⚠ La clause exige la RÉFÉRENCE, pas l'égalité des valeurs. Deux littéraux
+   * identiques rediverger aient au premier changement d'encre — c'est exactement
+   * ce qui s'est produit. `var(--color-accent)` fait qu'il n'y a plus qu'une
+   * valeur à changer, donc plus rien à synchroniser.
+   */
+  it('le filet et l’anneau lisent l’encre, dans les deux thèmes', () => {
+    const manquants: string[] = []
+    for (const [nom, ancre] of [['CLAIR', ':root {'], ['SOMBRE', '[data-theme="dark"] {']] as const) {
+      const i = CSS.indexOf(ancre)
+      expect(i, `${nom} : ancre introuvable, la clause ne mesure rien`).toBeGreaterThan(-1)
+      const j = CSS.indexOf('\n  }', i)
+      const corps = CSS.slice(i, j < 0 ? undefined : j)
+      for (const jeton of ['--color-border-focus', '--color-ring']) {
+        const m = new RegExp(`${jeton}:\\s*([^;]+);`).exec(corps)
+        if (!m) { manquants.push(`${nom} : ${jeton} absent`); continue }
+        if (m[1]!.trim() !== 'var(--color-accent)') manquants.push(`${nom} : ${jeton} = « ${m[1]!.trim() }» au lieu de var(--color-accent)`)
+      }
+    }
+    expect(
+      manquants,
+      'un filet ou un anneau porte son propre ton : il rediverge de l’encre au premier ' +
+        'changement d’accent, et personne ne le verra :\n  ',
+    ).toEqual([])
+  })
+
+  /**
+   * ⛔ ET TOUT CE QUI PRÉCÈDE MESURE UNE FEUILLE QUI NE PEIGNAIT PAS.
+   *
+   * Les six clauses au-dessus lisent `globals.css`. Elles étaient VERTES pendant
+   * que `applyPreferences` (`usePreferences.ts`) réécrivait `--color-accent` en
+   * style EN LIGNE sur `<html>`, à chaque montage du `ThemeProvider` — et un
+   * style en ligne bat la feuille. La rampe gardée n'était donc pas la rampe
+   * rendue : `bg-accent` sortait en `#3461D1` (preset « sapphire ») pendant que
+   * `bg-accent-solid`, lui, n'était pas réécrit et restait `#424bfb`. Deux bleus
+   * à 1,04:1 sur la même page — exactement le défaut que l'unification du
+   * 15 août avait clos, revenu par une autre porte.
+   *
+   * ⚠ CE N'EST PAS UNE FAUTE DE CONTRASTE, ET C'EST CE QUI LE RENDAIT INVISIBLE.
+   * Le sapphire passe l'AA dans les deux thèmes (5,56:1 et 6,38:1) : aucune des
+   * dix specs de contraste ne pouvait le voir. C'est une faute d'IDENTITÉ, et
+   * seule une clause sur le MÉCANISME l'attrape.
+   *
+   * ⛔ POURQUOI LE RETRAIT, ET NON UN PRESET RÉALIGNÉ. Un preset porte UNE valeur
+   * par thème ; la direction porte DEUX RÔLES (l'aplat `#424bfb` dans les deux
+   * thèmes, l'encre `#8dc1ff` en sombre). Le système de presets ne sait pas
+   * exprimer cette scission — lui donner les bonnes valeurs corrigerait le clair
+   * et casserait le sombre. S'ajoute qu'aucun ÉCRIVAIN de préférences n'existe
+   * dans le dépôt depuis le retrait d'`AgentLayout` : le preset ne peut être que
+   * son défaut. L'accent est une décision de DIRECTION, pas une préférence par
+   * agent — `CLAUDE.md` §3 : « il n'y a plus de choix ».
+   *
+   * ⚠ LA CLAUSE VISE LE GESTE, PAS LE FICHIER. Ancrée sur `usePreferences.ts`,
+   * elle serait contournée par un `setProperty` écrit ailleurs — c'est la vacuité
+   * n° 22 (« la couverture ne repose plus sur rien »). Elle balaye donc tout
+   * `src/`, et son contrôle POSITIF exige que le balayage voie encore des
+   * écritures légitimes : sans lui, un scan cassé rendrait zéro et la clause
+   * passerait au vert sur un dépôt qu'elle ne lit plus.
+   */
+  it('aucun code ne réécrit la rampe d’accent au RENDU', () => {
+    const scan = scanRoots([{ root: 'src', keep: (n) => /\.tsx?$/.test(n) }])
+    expect(emptyRoots(scan), 'racine vide : chemin cassé, pas dépôt propre').toEqual([])
+    expect(scan.files.length, 'le balayage ne voit plus src/').toBeGreaterThan(100)
+
+    /** Les jetons que la FEUILLE tranche par rôle — nul ne les réécrit au rendu. */
+    const RESERVES = /^--color-(accent|border-focus|ring)/
+    const ecritures: { site: string; jeton: string }[] = []
+    for (const abs of scan.files) {
+      const lu = readFileSafely(abs)
+      if (lu.status !== 'ok') continue
+      // Sans commentaires : la note qui EXPLIQUE le retrait ne doit pas le rouvrir (n° 16).
+      const code = lu.value
+        .replace(/\/\*[\s\S]*?\*\//g, (b) => '\n'.repeat((b.match(/\n/g) ?? []).length))
+        .replace(/\/\/[^\n]*/g, ' ')
+      code.split('\n').forEach((ligne, i) => {
+        for (const m of ligne.matchAll(/setProperty\(\s*['"`](--[\w-]+)/g)) {
+          ecritures.push({ site: `${rel(abs)}:${i + 1}`, jeton: m[1]! })
+        }
+      })
+    }
+
+    // ⛔ CONTRÔLE POSITIF. `--content-zoom` et les rayons de préférence sont des
+    // écritures LÉGITIMES (densité, corps de texte, arrondi) : elles prouvent que
+    // le motif reconnaît bien un `setProperty`. Sans elles, « zéro accent » ne
+    // vaudrait rien — ce serait « zéro lecture ».
+    expect(
+      ecritures.length,
+      'aucune écriture de variable CSS trouvée dans src/ — le motif ne reconnaît plus rien, ' +
+        'la clause est vacue',
+    ).toBeGreaterThan(0)
+
+    const fautives = ecritures.filter((e) => RESERVES.test(e.jeton))
+    expect(
+      fautives.map((e) => `${e.site} → ${e.jeton}`),
+      'la rampe d’accent est réécrite au rendu : un style en ligne sur <html> bat la feuille, ' +
+        'donc les six clauses ci-dessus mesurent une rampe qui ne peint pas. L’accent est une ' +
+        'décision de DIRECTION, pas une préférence par agent :\n  ',
+    ).toEqual([])
   })
 })

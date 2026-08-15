@@ -158,7 +158,12 @@
     /* Borders */
     --color-border: 215 218 224;          /* #D7DAE0 — stronger for light */
     --color-border-subtle: 229 231 235;   /* #E5E7EB */
-    --color-border-focus: 37 99 235;      /* accent blue */
+    /* ⛔ LE FILET SUIT L'ENCRE, il ne porte plus sa propre valeur. Il gardait
+       #2563EB — l'accent d'AVANT l'unification du 15 août 2026, que celle-ci a
+       oublié parce que `applyPreferences` le réécrivait au rendu : personne ne
+       pouvait voir qu'il avait divergé. Le retrait de cette réécriture l'a
+       exposé. Un filet est le rôle ENCRE, donc il lit `--color-accent`. */
+    --color-border-focus: var(--color-accent);
 
     /* Accent (brand) */
     /* ⛔ L'ACCENT DE MARQUE, unifié le 15 août 2026. Cette rampe portait un
@@ -211,7 +216,8 @@
     --shadow-modal: 0 20px 60px rgba(0,0,0,0.15);
 
     /* Ring */
-    --color-ring: 37 99 235;
+    /* Même rôle, même source : `ring-1` sans couleur tire d'ici (Toast.tsx). */
+    --color-ring: var(--color-accent);
 
     /* Border radius (customizable) */
     --radius-card: 12px;
@@ -364,7 +370,9 @@
     /* Borders */
     --color-border: 56 56 56;             /* #383838 */
     --color-border-subtle: 42 42 42;      /* #2A2A2A */
-    --color-border-focus: 59 130 246;
+    /* Suit l'encre — ici #8dc1ff, la seule valeur qui tienne le seuil des
+       filets sur la page sombre (l'accent y rend 2,95:1). */
+    --color-border-focus: var(--color-accent);
 
     /* Accent — slightly brighter in dark for better contrast */
     /* ⛔ EN SOMBRE, L'ENCRE N'EST PAS L'ACCENT — `#424bfb` rend 2,95:1 sur cette
@@ -402,7 +410,7 @@
     --shadow-modal: 0 20px 60px rgba(0,0,0,0.6);
 
     /* Ring */
-    --color-ring: 59 130 246;
+    --color-ring: var(--color-accent);
 
     /* Border radius (inherit from root, can be overridden) */
     --radius-card: 12px;
