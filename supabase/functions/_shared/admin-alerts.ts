@@ -13,6 +13,7 @@
 //     l'alerting ne casse pas la collecte de métriques.
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { buildAdminAlertEmail, formatCH } from './admin-alert-email.ts'
 
 interface AlertThresholds {
   cron_stale_hours: number
@@ -24,6 +25,7 @@ interface AlertThresholds {
   calendar_sync_stale_max: number
   stripe_webhook_stale_hours: number
   outbox_stuck_hours: number
+  email_failure_window_hours: number
 }
 
 const DEFAULT_THRESHOLDS: AlertThresholds = {
@@ -47,6 +49,10 @@ const DEFAULT_THRESHOLDS: AlertThresholds = {
   // n'existant. Le seuil n'est pas là pour tolérer du retard mais pour que
   // l'absence de consommateur cesse d'être silencieuse.
   outbox_stuck_hours: 6,
+  // Fenêtre des échecs de remise. 24 h et non plus : au-delà, l'alerte redirait chaque
+  // jour un rebond déjà traité, et le cooldown par destinataire suffit à ne pas répéter
+  // un incident en cours.
+  email_failure_window_hours: 24,
 }
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000
@@ -85,6 +91,64 @@ export interface Alert {
   key: string
   subject: string
   body: string
+}
+
+/** Une ligne d'`email_delivery_events` — un e-mail qui n'est PAS arrivé. */
+export interface EmailFailureRow {
+  event_type: string
+  recipient: string | null
+  subject: string | null
+  bounce_type: string | null
+  occurred_at: string
+}
+
+/**
+ * Les e-mails qui ne sont pas arrivés, sur la fenêtre écoulée.
+ *
+ * POURQUOI CETTE RÈGLE EST LA PLUS IMPORTANTE DU MODULE. Le 15.08.2026, on a découvert
+ * que `hello@juarts.com` était sur la liste de suppression Resend depuis dix jours : tout
+ * ce fichier écrivait dans le vide, et son propre verrou de 24 h se posait quand même,
+ * parce que Resend rend 200 en ACCEPTANT une requête dont il ne remettra jamais le
+ * message. Un canal d'alerte dont la panne est silencieuse est pire que pas d'alerte.
+ *
+ * Cette règle est donc l'alerte SUR l'alerte, en plus de couvrir les e-mails client.
+ *
+ * ⚠ Elle n'est pas à l'abri du même piège : si l'adresse de destination est elle-même
+ * supprimée, ce message ne partira pas non plus. C'est pourquoi elle nomme les
+ * destinataires touchés — le jour où l'un d'eux est une adresse de l'équipe, la ligne se
+ * lit dans la console (`/dashboard/admin/monitoring`) même si l'e-mail n'arrive pas.
+ *
+ * Groupée PAR DESTINATAIRE et non une alerte par événement : dix rebonds sur la même
+ * boîte sont un seul fait à traiter, et le cooldown par clé les tiendrait de toute façon.
+ */
+export function buildEmailFailureAlerts(lignes: EmailFailureRow[], fenetreHeures: number): Alert[] {
+  const parDestinataire = new Map<string, EmailFailureRow[]>()
+  for (const l of lignes) {
+    const cle = l.recipient ?? 'destinataire inconnu'
+    parDestinataire.set(cle, [...(parDestinataire.get(cle) ?? []), l])
+  }
+
+  return [...parDestinataire.entries()].map(([destinataire, evts]) => {
+    // Un rebond PERMANENT condamne l'adresse (Resend la met en liste de suppression et
+    // tout envoi ultérieur est refusé au départ) ; un transitoire se rejoue seul. La
+    // distinction décide s'il faut agir, elle ouvre donc le message.
+    const permanent = evts.some((e) => (e.bounce_type ?? '').toLowerCase() === 'permanent')
+    const plainte = evts.some((e) => e.event_type === 'email.complained')
+    const sujets = [...new Set(evts.map((e) => e.subject).filter(Boolean))].slice(0, 3)
+
+    return {
+      key: `email:failure:${destinataire}`,
+      subject: `${plainte ? 'Plainte' : permanent ? 'Adresse morte' : 'Remise en échec'} · ${destinataire}`,
+      body: `${evts.length} e-mail(s) non remis à « ${destinataire} » sur ${fenetreHeures}h`
+        + `${sujets.length ? ` (${sujets.join(' · ')})` : ''}.`
+        + (permanent
+          ? ` Rebond PERMANENT : Resend a mis l’adresse en liste de suppression, et tout envoi ultérieur sera refusé au départ tant qu’elle y reste, sans erreur visible côté code.`
+          : plainte
+            ? ` Marqué comme indésirable par le destinataire : à ne plus solliciter.`
+            : ` Rebond transitoire : peut se résoudre seul, à surveiller s’il se répète.`)
+        + ` Voir /dashboard/admin/monitoring`,
+    }
+  })
 }
 
 /** Une ligne de `get_admin_agency_review_queue` — la file telle que la console la voit. */
@@ -134,7 +198,7 @@ export function buildKybReviewAlerts(file: KybReviewQueueRow[], now: Date): Aler
     const score = Number(d.verification_score)
     return {
       key: `kyb:review:${d.agency_id}`,
-      subject: `Dossier KYB à valider — ${d.agency_name}`,
+      subject: `Dossier KYB à valider · ${d.agency_name}`,
       body: `L'agence « ${d.agency_name} »${d.country ? ` (${d.country})` : ''} attend une revue humaine`
         + `${d.identity_submitted_at ? ` depuis ${dureeAttente(d.identity_submitted_at, now)}` : ''}`
         // Un score absent n'est PAS un détail propre à cette agence : c'est l'état de
@@ -159,6 +223,69 @@ async function readJsonConfig<T>(admin: SupabaseClient, key: string): Promise<T 
   }
 }
 
+
+/**
+ * Au bout de combien d'heures un job pg_cron est-il VRAIMENT en retard.
+ *
+ * ⛔ UN SEUIL UNIQUE NE PEUT PAS MARCHER. `cron_stale_hours` vaut 25 h et s'appliquait à
+ * TOUS les jobs : un job hebdomadaire est donc « en retard » six jours sur sept, et un
+ * job mensuel trente jours sur trente et un. Mesuré le 16.08.2026 — sur les cinq jobs
+ * que le seuil dénonçait, QUATRE étaient parfaitement sains :
+ *
+ *   weekly-digest-friday              `0 17 * * 5`  hebdomadaire, tourné vendredi, OK
+ *   knowledge-snippets-expire-weekly  `15 3 * * 1`  hebdomadaire, tourné lundi, OK
+ *   activity-events-retention         `15 3 1 * *`  mensuel, tourné le 1er, OK
+ *   whatsapp-consent-cache-reconcile  `20 3 * * *`  quotidien, tourné hier, OK (le jobid
+ *                                                   avait changé, cf. 20260816000000)
+ *   admin-ai-drift-purge-monthly      `40 3 1 * *`  mensuel, JAMAIS exécuté. Le vrai.
+ *
+ * Le seul signal réel dormait donc sous quatre fausses alertes hebdomadaires, ce qui est
+ * la façon la plus sûre de rendre une boîte d'alertes illisible.
+ *
+ * La cadence se lit dans l'expression elle-même : jour-du-mois contraint ⇒ mensuel,
+ * sinon jour-de-semaine contraint ⇒ hebdomadaire, sinon quotidien ou plus fréquent. La
+ * marge est large À DESSEIN : cette alerte doit dire « ce job ne tourne plus », pas
+ * « ce job a dix minutes de retard ».
+ */
+export function cronStaleHours(schedule: string, defautHeures: number): number {
+  const champs = schedule.trim().split(/\s+/)
+  if (champs.length < 5) return defautHeures
+  const [, , jourDuMois, , jourSemaine] = champs
+  if (jourDuMois !== '*') return 24 * 33      // mensuel : un mois de 31 jours, plus deux
+  if (jourSemaine !== '*') return 24 * 8      // hebdomadaire : une semaine, plus un jour
+  return defautHeures
+}
+
+
+/**
+ * Un job sans AUCUNE exécution est-il en panne, ou simplement trop jeune ?
+ *
+ * ⛔ LA QUESTION N'EST PAS DÉCIDABLE SANS SON ÂGE. `cron.job` ne porte pas de date de
+ * création, et pg_cron journalise les échecs comme les succès : zéro ligne signifie
+ * « jamais déclenché », pas « déclenché et raté ».
+ *
+ * Mesuré le 16.08.2026 sur `admin-ai-drift-purge-monthly` (`40 3 1 * *`) : zéro
+ * exécution, donc alerte. Or ses voisins de jobid (308 et 310) ont démarré le 01.08 à
+ * 08:25 — il a été créé le même matin, APRÈS son créneau de 03:40. Son premier passage
+ * est le 01.09. Le job n'a rien raté : il n'a pas encore eu son tour.
+ *
+ * D'où le registre de première observation : on n'accuse un job muet qu'une fois qu'on
+ * l'a vu vivre plus longtemps que sa propre période. Un job réellement mort est donc
+ * signalé avec au plus une période de retard, ce qui est le prix exact de ne pas crier
+ * pour rien pendant un mois.
+ */
+export function jobMuetEstSuspect(
+  premiereObservationIso: string | undefined,
+  toleranceHeures: number,
+  now: Date,
+): boolean {
+  // Jamais vu : on l'inscrit ce tour-ci et on se tait. Le tour suivant tranchera.
+  if (!premiereObservationIso) return false
+  const vu = new Date(premiereObservationIso).getTime()
+  if (Number.isNaN(vu)) return false
+  return now.getTime() - vu > toleranceHeures * 3_600_000
+}
+
 export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: AlertSignals): Promise<void> {
   const thresholds: AlertThresholds = {
     ...DEFAULT_THRESHOLDS,
@@ -170,18 +297,34 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
   // 1. Crons en retard / en échec (RPC gardée is_super_admin OR is_service_role).
   try {
     const { data: cronRows } = await admin.rpc('get_cron_health')
-    for (const job of (cronRows ?? []) as Array<{ jobname: string; active: boolean; last_start: string | null; last_status: string | null }>) {
+    // Registre de première observation : `cron.job` ne date pas ses créations, donc on
+    // s'en souvient nous-mêmes. Sans lui, un job mensuel créé hier est « en panne »
+    // pendant un mois (cf. `jobMuetEstSuspect`).
+    const vus = (await readJsonConfig<Record<string, string>>(admin, 'admin_cron_first_seen')) ?? {}
+    let vusModifie = false
+    for (const job of (cronRows ?? []) as Array<{ jobname: string; schedule: string | null; active: boolean; last_start: string | null; last_status: string | null }>) {
       if (!job.active) continue
-      const staleMs = thresholds.cron_stale_hours * 60 * 60 * 1000
-      const stale = !job.last_start || now.getTime() - new Date(job.last_start).getTime() > staleMs
+      if (!vus[job.jobname]) { vus[job.jobname] = now.toISOString(); vusModifie = true }
+      // ⛔ LE SEUIL DÉPEND DE LA CADENCE DU JOB, pas d'une constante unique : voir
+      // `cronStaleHours`. Un `cron_stale_hours` plat criait sur quatre jobs sains.
+      const heures = cronStaleHours(job.schedule ?? '', thresholds.cron_stale_hours)
+      const stale = job.last_start
+        ? now.getTime() - new Date(job.last_start).getTime() > heures * 3_600_000
+        : jobMuetEstSuspect(vus[job.jobname], heures, now)
       const failed = job.last_status === 'failed'
       if (stale || failed) {
         alerts.push({
           key: `cron:${job.jobname}`,
           subject: `Cron ${job.jobname} ${failed ? 'en échec' : 'en retard'}`,
-          body: `Le job pg_cron « ${job.jobname} » est ${failed ? `en échec (dernier statut : ${job.last_status})` : `sans exécution depuis plus de ${thresholds.cron_stale_hours}h`}. Dernier run : ${job.last_start ?? 'jamais'}.`,
+          body: `Le job pg_cron « ${job.jobname} » (${job.schedule ?? 'horaire inconnu'}) est ${failed ? `en échec (dernier statut : ${job.last_status})` : job.last_start ? `sans exécution depuis plus de ${heures}h` : 'observé depuis plus d’une période sans avoir jamais tourné'}. Dernier run : ${formatCH(job.last_start)}.`,
         })
       }
+    }
+    if (vusModifie) {
+      await admin.from('app_config').upsert(
+        { key: 'admin_cron_first_seen', value: JSON.stringify(vus) },
+        { onConflict: 'key' },
+      )
     }
   } catch (e) {
     console.error('[admin-alerts] cron health read failed:', (e as Error)?.message)
@@ -194,7 +337,7 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
       alerts.push({
         key: 'flatfox:stale',
         subject: 'Sync Flatfox en retard',
-        body: `Aucun listing Flatfox vu depuis ${Math.round(ageMs / 3_600_000)}h (seuil : ${thresholds.flatfox_stale_hours}h). Dernier last_seen_at : ${signals.flatfoxLastSeen}.`,
+        body: `Aucun listing Flatfox vu depuis ${Math.round(ageMs / 3_600_000)}h (seuil : ${thresholds.flatfox_stale_hours}h). Dernier passage : ${formatCH(signals.flatfoxLastSeen)}.`,
       })
     }
   }
@@ -254,7 +397,7 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
       alerts.push({
         key: 'whatsapp:deadletter',
         subject: 'Files WhatsApp bloquées',
-        body: `${newlyStuck} nouvel(le)(s) file(s) WhatsApp en échec définitif sur 24h (seuil : ${thresholds.whatsapp_deadletter_max}) — ${dl.processing_deadletter_24h} média/transcription non rejouable(s) et ${dl.async_jobs_failed_24h} job(s) KYC async échoué(s). Backlog cumulatif : ${dl.processing_deadletter}. Voir /dashboard/admin/monitoring.`,
+        body: `${newlyStuck} nouvel(le)(s) file(s) WhatsApp en échec définitif sur 24h (seuil : ${thresholds.whatsapp_deadletter_max}) : ${dl.processing_deadletter_24h} média/transcription non rejouable(s) et ${dl.async_jobs_failed_24h} job(s) KYC async échoué(s). Backlog cumulatif : ${dl.processing_deadletter}. Voir /dashboard/admin/monitoring.`,
       })
     }
   }
@@ -273,8 +416,8 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
       const pct = b.cap > 0 ? Math.round((Number(b.usage) / Number(b.cap)) * 100) : 0
       alerts.push({
         key: `quota:${b.agency_id}:${b.metric}`,
-        subject: `Quota ${QUOTA_METRIC_LABELS[b.metric] ?? b.metric} — ${b.agency_name}`,
-        body: `L'agence « ${b.agency_name} » atteint ${pct}% de son plafond ${QUOTA_METRIC_LABELS[b.metric] ?? b.metric} (${b.usage} / ${b.cap}, alerte dès ${b.threshold_pct}%). Aucun blocage appliqué — voir /dashboard/admin/agencies.`,
+        subject: `Quota ${QUOTA_METRIC_LABELS[b.metric] ?? b.metric} · ${b.agency_name}`,
+        body: `L'agence « ${b.agency_name} » atteint ${pct}% de son plafond ${QUOTA_METRIC_LABELS[b.metric] ?? b.metric} (${b.usage} / ${b.cap}, alerte dès ${b.threshold_pct}%). Aucun blocage appliqué, voir /dashboard/admin/agencies.`,
       })
     }
   } catch (e) {
@@ -384,8 +527,8 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
     if (nbBloques > 0) {
       alerts.push({
         key: 'outbox:stuck',
-        subject: 'File d\'outbox bloquée — rien ne la consomme',
-        body: `${auMoins(nbBloques)} job(s) de la file outbox_jobs sont dus depuis plus de ${thresholds.outbox_stuck_hours}h et personne ne les a pris. Un geste de console y a déposé un effet externe que rien n'exécute — par exemple une réémission de lien KYC qui ne partira jamais. Vérifier qu'un consommateur d'outbox tourne. Voir /dashboard/admin/monitoring.`,
+        subject: 'File d\'outbox bloquée : rien ne la consomme',
+        body: `${auMoins(nbBloques)} job(s) de la file outbox_jobs sont dus depuis plus de ${thresholds.outbox_stuck_hours}h et personne ne les a pris. Un geste de console y a déposé un effet externe que rien n'exécute, par exemple une réémission de lien KYC qui ne partira jamais. Vérifier qu'un consommateur d'outbox tourne. Voir /dashboard/admin/monitoring.`,
       })
     }
 
@@ -420,6 +563,22 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
     console.error('[admin-alerts] kyb review queue read failed:', (e as Error)?.message)
   }
 
+  // 13. E-mails non remis (15.08.2026) — cf. buildEmailFailureAlerts pour le pourquoi.
+  // Fenêtre glissante et lecture BORNÉE (§7) : la table peut grossir, on n'y compte
+  // jamais. Alimentée par l'edge `resend-webhook`.
+  try {
+    const depuis = new Date(now.getTime() - thresholds.email_failure_window_hours * 3_600_000).toISOString()
+    const { data: echecs } = await admin
+      .from('email_delivery_events')
+      .select('event_type, recipient, subject, bounce_type, occurred_at')
+      .gte('occurred_at', depuis)
+      .order('occurred_at', { ascending: false })
+      .limit(200)
+    alerts.push(...buildEmailFailureAlerts((echecs ?? []) as EmailFailureRow[], thresholds.email_failure_window_hours))
+  } catch (e) {
+    console.error('[admin-alerts] email failures read failed:', (e as Error)?.message)
+  }
+
   if (alerts.length === 0) return
 
   // Dédup 24h par clé d'alerte.
@@ -443,15 +602,22 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
     return
   }
 
-  const list = due.map((a) => `• ${a.subject}\n  ${a.body}`).join('\n\n')
+  // ⛔ CE MESSAGE PARTAIT EN TEXTE SEUL, sans une ligne de HTML : c'est celui que
+  // l'équipe reçoit quand la plateforme va mal, et il arrivait sans marque, sans lien
+  // cliquable et horodaté en ISO brut. La composition vit désormais dans un module pur,
+  // donc relisible au banc (`npm run email:preview`) et couvert par des tests.
+  // Les DEUX parts sont envoyées : une alerte doit rester lisible là où le HTML ne
+  // passe pas.
+  const mail = buildAdminAlertEmail(due, now)
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
     body: JSON.stringify({
       from: 'MEGGA <noreply@megga.ch>',
       to: recipients,
-      subject: `[MEGGA Admin] ${due.length === 1 ? due[0].subject : `${due.length} alertes plateforme`}`,
-      text: `Alertes plateforme MEGGA — ${now.toISOString()}\n\n${list}\n\nDétails : app.megga.ch/dashboard/admin/monitoring`,
+      subject: mail.subject,
+      html: mail.html,
+      text: mail.text,
     }),
   })
   if (!res.ok) {

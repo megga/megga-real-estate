@@ -101,3 +101,6 @@ __pycache__/
 # (non ancrés : le skill écrit là où Claude est lancé, pas forcément à la racine)
 council-report-*.html
 council-transcript-*.md
+
+# Sortie du banc de rendu des e-mails (npm run email:preview) — artefacts, jamais versionnés.
+.email-preview/

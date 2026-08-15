@@ -37,6 +37,8 @@
     "ruflo:seed": "node scripts/ruflo-seed-memory.mjs",
     "lint:roster": "node scripts/check-edge-roster.mjs",
     "lint:edge-auth": "node scripts/check-edge-auth.mjs",
+    "lint:email-shell": "node scripts/check-email-shell.mjs",
+    "email:preview": "deno run --allow-read --allow-write scripts/email-preview.ts",
     "lint:migrations": "node scripts/check-migration-idempotence.mjs",
     "lint:whatsapp-outbound": "node scripts/check-whatsapp-outbound.mjs",
     "lint:spec-sql": "node scripts/check-spec-sql-blocks.mjs",

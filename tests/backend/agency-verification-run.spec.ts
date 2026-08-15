@@ -3641,11 +3641,15 @@ describe('connecteur registre francais (registry_lookup / registry_legal_name_ma
 // connecteur precis (contrairement a VIES et recherche-entreprises) : aucun jeton
 // Mapbox n'etait disponible dans l'environnement de cette tache -- voir les reserves
 // de docs/superpowers/sdd/task-3-report.md. La forme de reponse stubbee ici reprend
-// EXACTEMENT le schema que Mapbox documente pour la Geocoding v5 (`features[].context[]`
-// avec `id`/`short_code`) -- PAS un champ deja consomme tel quel ailleurs dans ce depot :
-// Step2Address.tsx lit bien `context[].id` sur les memes entrees, mais pour leur
-// `.text`, jamais `short_code` (meme correctif que le commentaire equivalent dans
-// _shared/kyb-sources.ts, revue etape 4/tache 3, point 4).
+// EXACTEMENT le schema que Mapbox documente pour la Geocoding v6 (`properties.context`,
+// un OBJET NOMME dont le pays porte `country_code`).
+//
+// ⛔ CES FIXTURES ETAIENT EN v5 (`features[].context[]`, un TABLEAU avec `short_code`) et
+// ce banc est ce qui a rattrape le port du 16.08.2026 : nourri d'une forme v5, le
+// connecteur v6 rend `partial` -- il ne leve pas. C'est precisement le defaut SILENCIEUX
+// que le port devait eviter, et cinq tests rouges valent mieux que des dossiers
+// eternellement « partial » sans une ligne de journal. Voir kyb-geocode.test.ts, qui
+// fige la contrepartie : une reponse de forme v5 doit rendre null, jamais un faux match.
 describe('connecteur geocodage Mapbox (address_geocode) -- logique pure, fetch stubbe (aucun reseau reel)', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -3672,14 +3676,16 @@ describe('connecteur geocodage Mapbox (address_geocode) -- logique pure, fetch s
     return new Response(JSON.stringify({ features }), { status: 200, headers: { 'content-type': 'application/json' } })
   }
 
-  function chGeFeature(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  /** Forme v6 : le contexte est un objet nomme, pas un tableau. */
+  function chGeFeature(context: Record<string, unknown> | null = null): Record<string, unknown> {
     return {
-      place_name: 'Rue du Rhone 1, 1201 Geneve, Suisse',
-      context: [
-        { id: 'region.456', short_code: 'CH-GE' },
-        { id: 'country.789', short_code: 'CH' },
-      ],
-      ...overrides,
+      properties: {
+        full_address: 'Rue du Rhone 1, 1201 Geneve, Suisse',
+        context: context ?? {
+          country: { country_code: 'CH', name: 'Suisse' },
+          region: { region_code: 'GE', region_code_full: 'CH-GE', name: 'Geneve' },
+        },
+      },
     }
   }
 
@@ -3733,7 +3739,7 @@ describe('connecteur geocodage Mapbox (address_geocode) -- logique pure, fetch s
   it('pays geocode DIFFERENT du pays declare -> mismatch : contradiction reelle', async () => {
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () => mapboxResponse([chGeFeature({ context: [{ id: 'country.1', short_code: 'FR' }] })]))
+      vi.fn(async () => mapboxResponse([chGeFeature({ country: { country_code: 'FR' } })]))
     )
     const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo({ country: 'CH' }))
     expect(row.result).toBe('mismatch')
@@ -3745,10 +3751,8 @@ describe('connecteur geocodage Mapbox (address_geocode) -- logique pure, fetch s
       vi.fn(async () =>
         mapboxResponse([
           chGeFeature({
-            context: [
-              { id: 'region.1', short_code: 'CH-ZH' },
-              { id: 'country.2', short_code: 'CH' },
-            ],
+            region: { region_code: 'ZH' },
+            country: { country_code: 'CH' },
           }),
         ])
       )
@@ -3763,7 +3767,7 @@ describe('connecteur geocodage Mapbox (address_geocode) -- logique pure, fetch s
     async () => {
       vi.stubGlobal(
         'fetch',
-        vi.fn(async () => mapboxResponse([chGeFeature({ context: [{ id: 'country.1', short_code: 'CH' }] })]))
+        vi.fn(async () => mapboxResponse([chGeFeature({ country: { country_code: 'CH' } })]))
       )
       const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo({ country: 'CH', canton: 'GE' }))
       expect(row.result).toBe('match')
@@ -3771,7 +3775,7 @@ describe('connecteur geocodage Mapbox (address_geocode) -- logique pure, fetch s
   )
 
   it('reponse sans contexte pays exploitable -> partial, jamais invente', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => mapboxResponse([{ place_name: 'quelque part', context: [] }])))
+    vi.stubGlobal('fetch', vi.fn(async () => mapboxResponse([{ properties: { full_address: 'quelque part', context: {} } }])))
     const row = await runKybSource(createAddressGeocodeSource('fake-token'), agencyGeo())
     expect(row.result).toBe('partial')
   })
@@ -3815,7 +3819,7 @@ describe('connecteur geocodage Mapbox (address_geocode) -- logique pure, fetch s
         'fetch',
         vi.fn(async () => {
           throw new Error(
-            'request to https://api.mapbox.com/geocoding/v5/mapbox.places/x.json?access_token=SUPER-SECRET-TOKEN failed'
+            'request to https://api.mapbox.com/search/geocode/v6/forward?q=x&access_token=SUPER-SECRET-TOKEN failed'
           )
         })
       )

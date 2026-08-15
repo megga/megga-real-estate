@@ -18,9 +18,10 @@ import { loadAvailability } from '../_shared/onboarding-availability.ts'
 import { MAX_RESCHEDULES, recheckWindow } from '../_shared/onboarding-slots.ts'
 import { moveHostEvent, deleteHostEvent, type CalendarProvider } from '../_shared/host-freebusy.ts'
 import { sendResendEmail, toBase64 } from '../_shared/resend.ts'
-import { buildAttendeeEmail, buildHostEmail, buildIcs } from '../_shared/onboarding-email.ts'
+import { buildAttendeeEmail, buildCancellationEmail, buildHostEmail, buildIcs } from '../_shared/onboarding-email.ts'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 import { onboardingCallManageUrl } from '../_shared/app-url.ts'
+import { profileLocale } from '../_shared/recipient-language.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -85,6 +86,14 @@ async function loadParties(db: SupabaseClient, call: CallRow) {
     hostCalendarEmail: (host?.calendar_email as string | null) ?? null,
     hostTimezone: host?.timezone ?? 'Europe/Zurich',
     hostEmail,
+    /**
+     * Où part l'avis interne : la boîte d'ÉQUIPE d'abord (celle qui reçoit déjà
+     * l'invitation d'agenda), le profil de l'hôte en repli quand il n'y en a pas.
+     * Même règle qu'à la réservation — les deux fonctions doivent écrire au même
+     * endroit, sinon une replanification arrive dans une boîte que la réservation
+     * n'a jamais touchée.
+     */
+    hostNoticeTo: (host?.calendar_email as string | null) ?? hostEmail,
   }
 }
 
@@ -132,7 +141,10 @@ serve(async (req: Request) => {
 
   const parties = await loadParties(db, call)
   const manageUrl = onboardingCallManageUrl(call.manage_token)
-  const locale = body.locale === 'en' ? 'en' : 'fr'
+  // Même règle qu'à la réservation : la requête d'abord, la préférence du profil
+  // ensuite. Un lien de gestion s'ouvre SANS session — le porteur du jeton n'est pas
+  // forcément connecté — donc la base est souvent la seule source disponible ici.
+  const locale = await profileLocale(db, call.booked_by, body.locale)
   const timezone = typeof body.timezone === 'string' && body.timezone ? body.timezone : parties.hostTimezone
 
   // ── Annulation ──
@@ -171,11 +183,11 @@ serve(async (req: Request) => {
       timezone: parties.hostTimezone,
       meetingUrl: null,
       manageUrl,
-      locale: locale as 'fr' | 'en',
+      locale,
     }
     const hostMail = buildHostEmail(emailData, 'cancelled')
-    if (parties.hostEmail) {
-      await sendResendEmail({ to: parties.hostEmail, subject: hostMail.subject, html: hostMail.html })
+    if (parties.hostNoticeTo) {
+      await sendResendEmail({ to: parties.hostNoticeTo, subject: hostMail.subject, html: hostMail.html })
     }
     // Une annulation `.ics` retire l'entrée de l'agenda du client, ce qu'un simple
     // e-mail ne fait pas : sans elle, le rendez-vous annulé reste affiché chez lui.
@@ -192,14 +204,11 @@ serve(async (req: Request) => {
         method: 'CANCEL',
         sequence: call.rescheduled_count + 1,
       })
+      const annulMail = buildCancellationEmail(emailData)
       await sendResendEmail({
         to: parties.attendeeEmail,
-        subject: locale === 'fr' ? 'Votre appel d’accueil est annule' : 'Your welcome call is cancelled',
-        html: `<p style="font-family:Helvetica,Arial,sans-serif;font-size:15px;">${
-          locale === 'fr'
-            ? 'Votre appel d’accueil a bien ete annule. Vous pouvez en reserver un nouveau depuis votre espace MEGGA.'
-            : 'Your welcome call has been cancelled. You can book a new one from your MEGGA workspace.'
-        }</p>`,
+        subject: annulMail.subject,
+        html: annulMail.html,
         attachments: [{
           filename: 'appel-accueil-megga.ics',
           content: toBase64(ics),
@@ -283,7 +292,7 @@ serve(async (req: Request) => {
     timezone,
     meetingUrl: call.meeting_url,
     manageUrl,
-    locale: locale as 'fr' | 'en',
+    locale,
   }
 
   const attendeeMail = buildAttendeeEmail(emailData)
@@ -315,8 +324,8 @@ serve(async (req: Request) => {
       }],
     })
   }
-  if (parties.hostEmail) {
-    await sendResendEmail({ to: parties.hostEmail, subject: hostMail.subject, html: hostMail.html })
+  if (parties.hostNoticeTo) {
+    await sendResendEmail({ to: parties.hostNoticeTo, subject: hostMail.subject, html: hostMail.html })
   }
 
   await db.from('activity_events').insert({

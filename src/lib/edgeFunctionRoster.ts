@@ -66,6 +66,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'photo-processor',
   'property-photo-r2',
   'realadvisor-sync',
+  'resend-webhook',
   'revoke-device-session',
   'send-email',
   'send-property-email',

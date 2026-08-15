@@ -4,10 +4,15 @@
 // d'identite KYB (etape 7, tache 6).
 //
 // POURQUOI CE FICHIER EXISTE SEPAREMENT de l'edge function qui envoie. Module PUR : aucun
-// import, aucun Deno.env.get, aucun fetch -- meme discipline que _shared/kyb-sources.ts, et
-// pour la meme raison : il est importable tel quel depuis un test vitest, donc les libelles,
-// les destinataires et les sujets se verifient sans pile Deno ni cle Resend. Ce qui touche au
+// Deno.env.get, aucun fetch -- meme discipline que _shared/kyb-sources.ts, et pour la meme
+// raison : il est importable tel quel depuis un test vitest, donc les libelles, les
+// destinataires et les sujets se verifient sans pile Deno ni cle Resend. Ce qui touche au
 // reseau reste dans agency-verification-notify/index.ts.
+//
+// L'HABILLAGE vient de `_shared/email-shell.ts` (migration du 15.08.2026) : ce fichier ne
+// decide que du CONTENU. Un `<!DOCTYPE>` ecrit ici ferait crier `npm run lint:email-shell`.
+
+import { INK, escapeHtml, shell, p, button, note } from './email-shell.ts'
 //
 // POURQUOI UNE NOTIFICATION, ET PAS UN SIMPLE BANDEAU. Avant cette tache, ni une validation
 // ni un rejet n'emettait quoi que ce soit : l'agence decouvrait la decision en se
@@ -86,47 +91,59 @@ export interface NoticeContent {
 
 /** Libelles par statut. En francais seulement, comme tous les courriels transactionnels de ce
  *  depot (send-team-invite, send-visit-email...) : la langue du destinataire n'est pas connue
- *  cote serveur, et le CRM lui-meme est en francais par defaut. */
+ *  cote serveur, et le CRM lui-meme est en francais par defaut.
+ *
+ *  ⚠ ACCENTUES depuis le 15.08.2026. Ces libelles etaient ecrits sans diacritiques
+ *  (« L'identite de votre agence est validee »), artefact de la premiere ecriture du
+ *  fichier : le reste du depot accentue, et c'est de la copie CLIENT sur une decision de
+ *  conformite. Les commentaires de ce fichier, eux, restent en l'etat — ils ne partent
+ *  chez personne. */
 const HEADLINE: Record<NotifiableStatus, string> = {
-  validated: "L'identite de votre agence est validee",
-  auto_validated: "L'identite de votre agence est validee",
-  rejected: "L'identite de votre agence n'a pas ete validee",
-  correction_requested: 'Une correction est demandee sur votre dossier',
+  validated: 'L’identité de votre agence est validée',
+  auto_validated: 'L’identité de votre agence est validée',
+  rejected: 'L’identité de votre agence n’a pas été validée',
+  correction_requested: 'Une correction est demandée sur votre dossier',
 }
 
 const SUBJECT: Record<NotifiableStatus, string> = {
-  validated: 'Votre agence est verifiee sur MEGGA',
-  auto_validated: 'Votre agence est verifiee sur MEGGA',
-  rejected: "Verification d'identite : dossier refuse",
-  correction_requested: "Verification d'identite : correction demandee",
+  validated: 'Votre agence est vérifiée sur MEGGA',
+  auto_validated: 'Votre agence est vérifiée sur MEGGA',
+  rejected: 'Vérification d’identité : dossier refusé',
+  correction_requested: 'Vérification d’identité : correction demandée',
 }
 
 const BODY: Record<NotifiableStatus, string> = {
   validated:
-    "Vous pouvez desormais ouvrir des dossiers KYC clients et lancer des signatures electroniques.",
+    'Vous pouvez désormais ouvrir des dossiers KYC clients et lancer des signatures électroniques.',
   auto_validated:
-    "Vous pouvez desormais ouvrir des dossiers KYC clients et lancer des signatures electroniques.",
+    'Vous pouvez désormais ouvrir des dossiers KYC clients et lancer des signatures électroniques.',
   rejected:
-    "L'ouverture de dossiers KYC clients et les signatures electroniques restent indisponibles. "
-    + 'Renvoyer le formulaire ne relance pas d\'examen : contactez le support MEGGA pour connaitre la suite.',
+    'L’ouverture de dossiers KYC clients et les signatures électroniques restent indisponibles. '
+    + 'Renvoyer le formulaire ne relance pas d’examen : contactez le support MEGGA pour connaître la suite.',
   correction_requested:
-    'Reprenez votre formulaire d\'identite, corrigez ce qui est indique ci-dessous, puis soumettez '
-    + 'a nouveau. L\'examen reprendra automatiquement.',
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
+    'Reprenez votre formulaire d’identité, corrigez ce qui est indiqué ci-dessous, puis soumettez '
+    + 'à nouveau. L’examen reprendra automatiquement.',
 }
 
 /**
- * Compose sujet et corps HTML. Reprend le gabarit des courriels transactionnels existants
- * (en-tete MEGGA, carte blanche arrondie, styles en ligne) plutot que d'en introduire un
- * second.
+ * Texte d'aperçu, par statut. Il ne recopie pas l'objet : il dit ce que le message
+ * CONTIENT, donc pourquoi l'ouvrir maintenant — le motif pour les deux décisions qui en
+ * portent un, l'effet concret pour une validation.
+ */
+const PREHEADER: Record<NotifiableStatus, string> = {
+  validated: 'Les dossiers KYC et les signatures électroniques vous sont ouverts.',
+  auto_validated: 'Les dossiers KYC et les signatures électroniques vous sont ouverts.',
+  rejected: 'Le motif de la décision est dans ce message.',
+  correction_requested: 'Le motif à corriger est dans ce message, avec le lien pour reprendre.',
+}
+
+/**
+ * Compose sujet et corps HTML, sur la coquille commune `_shared/email-shell.ts`.
+ *
+ * ⚠ MIGRÉ LE 15.08.2026. Ce fichier fabriquait sa propre coquille — fond `#f9fafb`,
+ * police système, wordmark « MEGGA / Immobilier Suisse » en texte — soit l'un des treize
+ * designs d'e-mail que le dépôt comptait. La porte `npm run lint:email-shell` interdit
+ * désormais d'en réintroduire une ici.
  *
  * LE MOTIF EST ECHAPPE, et ce n'est pas de la precaution generique : c'est un texte libre
  * saisi par un relecteur, rendu dans du HTML envoye par courriel. Un chevron non echappe
@@ -147,59 +164,27 @@ export function buildVerificationNotice(input: {
     && typeof input.reason === 'string'
     && input.reason.trim() !== ''
 
-  const reasonBlock = showReason
-    ? `
-      <div style="margin:0 0 24px 0;padding:16px;background:#f9fafb;border-radius:12px;border:1px solid #e5e7eb;">
-        <p style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;color:#9ca3af;margin:0 0 6px 0;">Motif</p>
-        <p style="font-size:14px;color:#374151;line-height:1.6;margin:0;">${escapeHtml(input.reason!.trim())}</p>
-      </div>`
+  // Le bouton ne mene au formulaire d'identite que quand il y a quelque chose a y faire :
+  // `rejected` est TERMINAL, proposer de reprendre promettrait une reprise qui n'existe pas.
+  const cta = input.status === 'correction_requested'
+    ? `<div style="margin:0 0 8px;">${button(`${input.appUrl}/dashboard/identite`, 'Reprendre le formulaire')}</div>`
     : ''
 
-  // Le bouton ne mene au formulaire d'identite que quand il y a quelque chose a y faire.
-  const ctaBlock = input.status === 'correction_requested'
-    ? `
-      <div style="margin:0 0 8px 0;">
-        <a href="${escapeHtml(input.appUrl)}/dashboard/identite"
-           style="display:inline-block;background:#1a1a1a;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 20px;border-radius:10px;">
-          Reprendre le formulaire
-        </a>
-      </div>`
-    : ''
-
-  const html = `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(SUBJECT[input.status])}</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
-  <div style="max-width:600px;margin:0 auto;padding:24px 16px;">
-
-    <div style="text-align:center;margin-bottom:32px;">
-      <span style="font-size:22px;font-weight:700;color:#1a1a1a;letter-spacing:-0.5px;">MEGGA</span>
-      <span style="font-size:11px;color:#9ca3af;display:block;margin-top:2px;">Immobilier Suisse</span>
-    </div>
-
-    <div style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;padding:32px;">
-      <h2 style="font-size:20px;font-weight:600;color:#1a1a1a;margin:0 0 16px 0;">
-        ${escapeHtml(HEADLINE[input.status])}
-      </h2>
-
-      <p style="font-size:14px;color:#6b7280;line-height:1.6;margin:0 0 24px 0;">
-        Dossier de <strong style="color:#374151;">${escapeHtml(input.agencyName)}</strong>.
-        ${escapeHtml(BODY[input.status])}
-      </p>
-${reasonBlock}
-${ctaBlock}
-    </div>
-
-    <p style="font-size:11px;color:#9ca3af;text-align:center;margin:24px 0 0 0;">
-      Message automatique, envoye parce qu'une decision a ete prise sur le dossier d'identite de votre agence.
-    </p>
-  </div>
-</body>
-</html>`
+  const html = shell({
+    title: HEADLINE[input.status],
+    preheader: PREHEADER[input.status],
+    // Mention propre au KYB : celle des e-mails de rendez-vous parlerait d'un
+    // rendez-vous, celle du gabarit d'authentification annoncerait une notification de
+    // sécurité. Les deux seraient fausses ici.
+    legalNote: 'Cet e-mail concerne le dossier de vérification d’identité de votre agence. '
+      + 'Il ne s’agit pas d’une communication marketing : c’est pourquoi il ne contient pas de lien de désinscription.',
+    headerCta: { href: `${input.appUrl}/dashboard`, label: 'Ouvrir mon espace' },
+    bodyHtml: `
+     ${p(`Dossier de <strong style="color:${INK};">${escapeHtml(input.agencyName)}</strong>.`)}
+     ${p(escapeHtml(BODY[input.status]), 28)}
+     ${showReason ? note('Motif', escapeHtml(input.reason!.trim())) : ''}
+     ${cta}`,
+  })
 
   return { subject: SUBJECT[input.status], html }
 }

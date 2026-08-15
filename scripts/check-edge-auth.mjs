@@ -47,6 +47,7 @@ const BESPOKE_GUARDS = {
   'whatsapp-webhook': ['verifyHmac'],           // X-Hub-Signature-256 sur le corps BRUT
   'stripe-webhook': ['constructEventAsync'],    // signature Stripe + tolérance d'horodatage
   'esign-webhook': ['timingSafeEqual'],         // jeton de rappel (64 hex) dans l'URL
+  'resend-webhook': ['verifySvixSignature'],    // signature Svix sur le corps BRUT + fenêtre anti-rejeu
   'idx-feed': ['idx_feed_token'],               // jeton de flux par agence, résolu en base
   // `whatsapp-agent`, `idx-syndicate` et `kyc-report-pdf` ONT QUITTÉ cette liste
   // le 05.08.2026 : ils comparaient le secret à la main avec un `safeEqual` local,

@@ -18,6 +18,7 @@
 //
 // Returns: { ok: true, isNew: boolean }
 
+import { buildDeviceAlertEmail } from '../_shared/device-alert-email.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -100,50 +101,10 @@ async function geolocate(ip: string): Promise<{ country: string | null; city: st
 
 // ─── Email ───────────────────────────────────────────────────────────────
 
-function deviceAlertHtml(args: { name: string; browser: string; os: string; city: string | null; country: string | null; ip: string; when: string }): string {
-  const location = [args.city, args.country].filter(Boolean).join(', ') || 'Localisation inconnue'
-  return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"></head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;background:#f5f5f5;margin:0;padding:40px 20px">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05)">
-    <tr><td style="padding:32px 32px 0 32px">
-      <div style="width:44px;height:44px;border-radius:999px;background:#FEF3C7;display:inline-flex;align-items:center;justify-content:center;margin-bottom:16px">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
-      </div>
-      <h1 style="font-size:20px;color:#111827;margin:0 0 6px 0;font-weight:600">Nouvelle connexion détectée</h1>
-      <p style="font-size:14px;color:#6B7280;margin:0 0 24px 0;line-height:1.55">
-        Bonjour${args.name ? ' ' + args.name : ''}, une connexion vient d'être effectuée sur ton compte MEGGA depuis un appareil que nous ne reconnaissons pas.
-      </p>
-    </td></tr>
-    <tr><td style="padding:0 32px">
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:#F9FAFB;border-radius:12px;padding:4px">
-        <tr><td style="padding:14px 16px">
-          <div style="display:flex;justify-content:space-between;padding:6px 0"><span style="font-size:12px;color:#6B7280">Navigateur</span><span style="font-size:13px;color:#111827;font-weight:600">${args.browser}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #F3F4F6"><span style="font-size:12px;color:#6B7280">Système</span><span style="font-size:13px;color:#111827;font-weight:600">${args.os}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #F3F4F6"><span style="font-size:12px;color:#6B7280">Localisation</span><span style="font-size:13px;color:#111827;font-weight:600">${location}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #F3F4F6"><span style="font-size:12px;color:#6B7280">Adresse IP</span><span style="font-size:13px;color:#111827;font-family:monospace">${args.ip || '—'}</span></div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-top:1px solid #F3F4F6"><span style="font-size:12px;color:#6B7280">Date</span><span style="font-size:13px;color:#111827;font-weight:600">${args.when}</span></div>
-        </td></tr>
-      </table>
-    </td></tr>
-    <tr><td style="padding:24px 32px">
-      <p style="font-size:13px;color:#6B7280;margin:0 0 16px 0;line-height:1.55">
-        Si tu reconnais cette connexion, tu peux ignorer ce message.<br>
-        Sinon, change ton mot de passe immédiatement :
-      </p>
-      <a href="https://megga.ch/security/sessions" style="display:inline-block;background:#111827;color:#fff;text-decoration:none;padding:11px 22px;border-radius:999px;font-size:13px;font-weight:600">Sécuriser mon compte</a>
-    </td></tr>
-    <tr><td style="padding:24px 32px 32px 32px;border-top:1px solid #F3F4F6">
-      <p style="font-size:11px;color:#9CA3AF;margin:0;line-height:1.55">
-        MEGGA Real Estate · Suisse<br>
-        Tu reçois cet email parce que la détection d'appareils est activée sur ton compte.
-      </p>
-    </td></tr>
-  </table>
-</body></html>`
-}
+// Le gabarit vit dans `_shared/device-alert-email.ts` depuis le 15.08.2026 : pur, donc
+// testable et visible au banc de rendu.
 
-async function sendDeviceAlert(to: string, html: string) {
+async function sendDeviceAlert(to: string, subject: string, html: string) {
   const resendKey = Deno.env.get('RESEND_API_KEY')
   if (!resendKey) { console.error('RESEND_API_KEY missing'); return }
   const r = await fetch('https://api.resend.com/emails', {
@@ -152,7 +113,7 @@ async function sendDeviceAlert(to: string, html: string) {
     body: JSON.stringify({
       from: 'MEGGA Security <security@megga.ch>',
       to: [to],
-      subject: 'Nouvelle connexion sur ton compte MEGGA',
+      subject,
       html,
     }),
   })
@@ -237,9 +198,8 @@ serve(async (req) => {
       const when = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich' })
       const nameMeta = user.user_metadata?.full_name
       const name = typeof nameMeta === 'string' ? nameMeta.split(' ')[0] : ''
-      await sendDeviceAlert(user.email, deviceAlertHtml({
-        name, browser, os, city, country, ip, when,
-      }))
+      const { subject, html } = buildDeviceAlertEmail({ name, browser, os, city, country, ip, when })
+      await sendDeviceAlert(user.email, subject, html)
     }
 
     return json({ ok: true, isNew: true, emailSent: !isFirstDevice })

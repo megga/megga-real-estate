@@ -19,6 +19,7 @@ import { createHostEvent } from '../_shared/host-freebusy.ts'
 import { sendResendEmail, toBase64 } from '../_shared/resend.ts'
 import { buildAttendeeEmail, buildHostEmail, buildIcs } from '../_shared/onboarding-email.ts'
 import { onboardingCallManageUrl } from '../_shared/app-url.ts'
+import { profileLocale } from '../_shared/recipient-language.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,6 +103,9 @@ serve(async (req: Request) => {
   if (!host) return json({ error: 'slot_taken' }, 409)
 
   // ── 2. L'écriture, qui arbitre ──
+  // Assaini UNE fois : la colonne et l'avis à l'équipe lisent la même valeur, sinon
+  // l'e-mail pourrait montrer autre chose que ce que la console affiche.
+  const answers = sanitizeAnswers(body.answers)
   const { data: inserted, error: insertError } = await db
     .from('onboarding_calls')
     .insert({
@@ -117,7 +121,7 @@ serve(async (req: Request) => {
       // des paires chaîne -> chaîne courtes entrent, au plus 20. Un client peut poster
       // ce qu'il veut ; sans ce filtre, la colonne accepterait un objet arbitraire —
       // profondeur incluse — que rien en aval ne saurait lire ni borner.
-      attendee_answers: sanitizeAnswers(body.answers),
+      attendee_answers: answers,
     })
     .select('id, manage_token, scheduled_at, duration_minutes')
     .single()
@@ -181,7 +185,10 @@ serve(async (req: Request) => {
       .eq('id', inserted.id)
   }
 
-  const locale = body.locale === 'en' ? 'en' : 'fr'
+  // ⛔ C'ÉTAIT `body.locale === 'en' ? 'en' : 'fr'` : 'de' et 'it' tombaient dans le
+  // `else` et l'agence recevait du français. La requête prime (l'agent vient de
+  // choisir), le profil sert de mémoire (migration 20260815250000).
+  const locale = await profileLocale(db, profile.id, body.locale)
   const timezone = typeof body.timezone === 'string' && body.timezone ? body.timezone : host.timezone
   const emailData = {
     callId: inserted.id,
@@ -194,42 +201,72 @@ serve(async (req: Request) => {
     timezone,
     meetingUrl,
     manageUrl,
-    locale: locale as 'fr' | 'en',
+    locale,
   }
 
-  const ics = buildIcs({
-    callId: inserted.id,
-    summary,
-    description,
-    startMs: slotMs,
-    durationMinutes: host.duration_minutes,
-    organizerEmail: hostProfile?.email ?? 'noreply@megga.ch',
-    attendeeEmail,
-    meetingUrl,
-    method: 'REQUEST',
-    sequence: 0,
-  })
+  // ⚠ TOUT CE BLOC EST SOUS FILET, et l'en-tête dit pourquoi : « rien de ce qui vient
+  // après l'insertion ne peut faire échouer la réservation ». Cette promesse n'était
+  // vraie que par chance tant que les gabarits ne lisaient que des valeurs venues de la
+  // base. Depuis que l'avis d'équipe rend `answers` — saisi par le client — la
+  // composition d'un e-mail touche de la donnée arbitraire, et une exception ici rendait
+  // 500 APRÈS l'écriture : rendez-vous confirmé en base, agenda occupé, personne
+  // prévenue, et l'agence verrouillée par l'index unique sur son propre appel.
+  // Le rattrapage journalise et laisse le reste se dérouler ; c'est exactement le
+  // « e-mail perdu qui se rattrape » de l'en-tête, par opposition au rendez-vous perdu.
+  let attendeeSent: { ok: boolean; error?: unknown } = { ok: false, error: 'not attempted' }
+  try {
+    const ics = buildIcs({
+      callId: inserted.id,
+      summary,
+      description,
+      startMs: slotMs,
+      durationMinutes: host.duration_minutes,
+      organizerEmail: hostProfile?.email ?? 'noreply@megga.ch',
+      attendeeEmail,
+      meetingUrl,
+      method: 'REQUEST',
+      sequence: 0,
+    })
 
-  const attendeeMail = buildAttendeeEmail(emailData)
-  const hostMail = buildHostEmail({ ...emailData, timezone: host.timezone }, 'booked')
+    const attendeeMail = buildAttendeeEmail(emailData)
+    const hostMail = buildHostEmail({ ...emailData, timezone: host.timezone }, 'booked', answers)
 
-  const [attendeeSent] = await Promise.all([
-    attendeeEmail
-      ? sendResendEmail({
-          to: attendeeEmail,
-          subject: attendeeMail.subject,
-          html: attendeeMail.html,
-          attachments: [{
-            filename: 'appel-accueil-megga.ics',
-            content: toBase64(ics),
-            content_type: 'text/calendar; method=REQUEST',
-          }],
-        })
-      : Promise.resolve({ ok: false, error: 'no attendee email' }),
-    hostProfile?.email
-      ? sendResendEmail({ to: hostProfile.email, subject: hostMail.subject, html: hostMail.html })
-      : Promise.resolve({ ok: false, error: 'no host email' }),
-  ])
+  // ⚠ L'avis va à la BOÎTE D'ÉQUIPE, pas au profil de l'hôte.
+  // `calendar_email` est la boîte Workspace dont l'agenda fait foi (hello@megga.ai) :
+  // elle reçoit déjà l'invitation Google, et c'est là que l'équipe regarde. Le profil
+  // reste le repli pour un hôte resté sur la voie OAuth personnelle (calendar_email
+  // NULL), pour qui la boîte du profil EST la bonne.
+  //
+  // Ce n'était pas un manque mais une mauvaise adresse : l'avis partait vers le profil,
+  // et les deux envois du 15.08.2026 y sont morts en `suppressed` — l'adresse était sur
+  // la liste de suppression Resend depuis le 05.08. Un avis interne invisible se
+  // constate dix jours trop tard.
+    const hostNoticeTo = host.calendar_email ?? hostProfile?.email ?? null
+
+    ;[attendeeSent] = await Promise.all([
+      attendeeEmail
+        ? sendResendEmail({
+            to: attendeeEmail,
+            subject: attendeeMail.subject,
+            html: attendeeMail.html,
+            attachments: [{
+              filename: 'appel-accueil-megga.ics',
+              content: toBase64(ics),
+              content_type: 'text/calendar; method=REQUEST',
+            }],
+          })
+        : Promise.resolve({ ok: false, error: 'no attendee email' }),
+      hostNoticeTo
+        ? sendResendEmail({ to: hostNoticeTo, subject: hostMail.subject, html: hostMail.html })
+        : Promise.resolve({ ok: false, error: 'no host email' }),
+    ])
+  } catch (err) {
+    // La réservation TIENT. On perd l'e-mail, pas le rendez-vous — et il reste
+    // rattrapable : la console admin le montre, le rappel J-1 repartira, et
+    // `confirmation_sent_at` resté NULL dit précisément ce qui a manqué.
+    console.error('[onboarding-call-book] emails failed', err)
+    attendeeSent = { ok: false, error: String(err) }
+  }
 
   if (attendeeSent.ok) {
     await db.from('onboarding_calls')

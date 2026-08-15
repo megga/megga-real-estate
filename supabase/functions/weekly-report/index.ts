@@ -1,3 +1,4 @@
+import { buildWeeklyReportEmail } from '../_shared/weekly-report-email.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -79,107 +80,24 @@ serve(async (req) => {
       })
     }
 
-    // ── Build email HTML ──
-    const dateRange = `${new Date(weekAgo).toLocaleDateString('fr-CH')} — ${now.toLocaleDateString('fr-CH')}`
-
-    const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rapport hebdomadaire MEGGA</title>
-</head>
-<body style="margin:0;padding:0;background:#f8f9fa;font-family:'Helvetica Neue',Arial,sans-serif;">
-  <div style="max-width:600px;margin:0 auto;padding:32px 20px;">
-    <!-- Header -->
-    <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:24px;font-weight:bold;color:#1c1c1c;margin:0;">MEGGA</h1>
-      <p style="font-size:14px;color:#8b5cf6;margin:8px 0 0;">Rapport hebdomadaire</p>
-      <p style="font-size:12px;color:#6b7280;margin:4px 0 0;">${dateRange}</p>
-    </div>
-
-    <!-- KPIs Grid -->
-    <div style="background:white;border-radius:12px;border:1px solid #e5e7eb;padding:24px;margin-bottom:16px;">
-      <h2 style="font-size:14px;font-weight:600;color:#1c1c1c;margin:0 0 16px;">Vue d'ensemble</h2>
-      <table style="width:100%;border-collapse:collapse;">
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">
-            <span style="font-size:13px;color:#6b7280;">Agences totales</span>
-          </td>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;text-align:right;">
-            <strong style="font-size:16px;color:#1c1c1c;">${totalAgencies.count ?? 0}</strong>
-            ${(newAgencies.count ?? 0) > 0 ? `<span style="font-size:11px;color:#10b981;margin-left:6px;">+${newAgencies.count}</span>` : ''}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">
-            <span style="font-size:13px;color:#6b7280;">Utilisateurs</span>
-          </td>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;text-align:right;">
-            <strong style="font-size:16px;color:#1c1c1c;">${totalUsers.count ?? 0}</strong>
-            ${(newUsers.count ?? 0) > 0 ? `<span style="font-size:11px;color:#10b981;margin-left:6px;">+${newUsers.count}</span>` : ''}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">
-            <span style="font-size:13px;color:#6b7280;">Biens actifs</span>
-          </td>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;text-align:right;">
-            <strong style="font-size:16px;color:#1c1c1c;">${activeProperties.count ?? 0}</strong>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">
-            <span style="font-size:13px;color:#6b7280;">Transactions actives</span>
-          </td>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;text-align:right;">
-            <strong style="font-size:16px;color:#1c1c1c;">${activeTransactions.count ?? 0}</strong>
-            ${(newTransactions.count ?? 0) > 0 ? `<span style="font-size:11px;color:#10b981;margin-left:6px;">+${newTransactions.count}</span>` : ''}
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">
-            <span style="font-size:13px;color:#6b7280;">KYC a risque</span>
-          </td>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;text-align:right;">
-            <strong style="font-size:16px;color:${(highRiskKyc.count ?? 0) > 0 ? '#dc2626' : '#1c1c1c'};">${highRiskKyc.count ?? 0}</strong>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;">
-            <span style="font-size:13px;color:#6b7280;">Evenements (7j)</span>
-          </td>
-          <td style="padding:8px 0;border-bottom:1px solid #f3f4f6;text-align:right;">
-            <strong style="font-size:16px;color:#1c1c1c;">${totalEvents.count ?? 0}</strong>
-          </td>
-        </tr>
-        <tr>
-          <td style="padding:8px 0;">
-            <span style="font-size:13px;color:#6b7280;">Erreurs systeme (7j)</span>
-          </td>
-          <td style="padding:8px 0;text-align:right;">
-            <strong style="font-size:16px;color:${(errors.count ?? 0) > 0 ? '#dc2626' : '#10b981'};">${errors.count ?? 0}</strong>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <!-- CTA -->
-    <div style="text-align:center;margin-top:24px;">
-      <a href="https://megga.ch/dashboard/admin" style="display:inline-block;padding:12px 24px;background:#8b5cf6;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500;">
-        Ouvrir le dashboard admin
-      </a>
-    </div>
-
-    <!-- Footer -->
-    <div style="text-align:center;margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;">
-      <p style="font-size:11px;color:#9ca3af;margin:0;">MEGGA Real Estate — Rapport automatique</p>
-      <p style="font-size:11px;color:#9ca3af;margin:4px 0 0;">Ce rapport est envoye chaque lundi a 8h</p>
-    </div>
-  </div>
-</body>
-</html>`
+    // Le gabarit vit dans `_shared/weekly-report-email.ts` depuis le 15.08.2026 : pur,
+    // donc testable et visible au banc de rendu.
+    //
+    // ⚠ Fuseau EXPLICITE. `toLocaleDateString` sans `timeZone` suit celui du runtime,
+    // c'est-à-dire UTC en edge : un rapport tiré peu après minuit affichait la veille.
+    const jour = (d: Date) => d.toLocaleDateString('fr-CH', { timeZone: 'Europe/Zurich' })
+    const { subject, html } = buildWeeklyReportEmail({
+      periode: `${jour(new Date(weekAgo))} au ${jour(now)}`,
+      rows: [
+        { label: 'Agences totales', value: totalAgencies.count ?? 0, delta: newAgencies.count ?? 0 },
+        { label: 'Utilisateurs', value: totalUsers.count ?? 0, delta: newUsers.count ?? 0 },
+        { label: 'Biens actifs', value: activeProperties.count ?? 0 },
+        { label: 'Transactions actives', value: activeTransactions.count ?? 0, delta: newTransactions.count ?? 0 },
+        { label: 'KYC à risque', value: highRiskKyc.count ?? 0, alertIfPositive: true },
+        { label: 'Événements (7 j)', value: totalEvents.count ?? 0 },
+        { label: 'Erreurs système (7 j)', value: errors.count ?? 0, alertIfPositive: true },
+      ],
+    })
 
     // ── Send via Resend ──
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
@@ -196,7 +114,7 @@ serve(async (req) => {
         body: JSON.stringify({
           from: 'MEGGA Admin <noreply@megga.ch>',
           to: email,
-          subject: `Rapport hebdomadaire MEGGA — ${now.toLocaleDateString('fr-CH')}`,
+          subject,
           html,
         }),
       })
