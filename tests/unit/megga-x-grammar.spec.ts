@@ -738,6 +738,91 @@ const CSS_ASSUME = new Map<string, { graisse?: number; capitale?: number; interl
   ['src/components/crm-sugar-v3/responsive.css', { taille: 3 }],
 ])
 
+/**
+ * ⛔ LOT 6 · B2 ET B3 — la COULEUR et l'ÉCHELLE dans le langage des CLASSES.
+ *
+ * L'inventaire de cécité (plus bas) le dit depuis le lot 5 : « CE QU'IL NE VOIT
+ * TOUJOURS PAS : l'ÉCHELLE et les COULEURS ». Il le disait sans le mesurer. Le
+ * voici mesuré, et il est plus large que le plan ne l'annonçait — celui-ci
+ * parlait de « 47 couleurs grises sur trois pages publiques ». Sur les fichiers
+ * du cliquet : **148 sites de palette, 41 `bg-white`, 354 d'échelle, dans VINGT
+ * fichiers**. `ListingFormPage` en porte 191 à lui seul, `ExternalListingDetail`
+ * 79 — deux surfaces AGENT que le plan ne citait pas. Mon relevé initial les
+ * ratait parce qu'il ne lisait que `className="…"` et pas `className={cn(…)}`.
+ *
+ * ── CE QUE CHAQUE ESPÈCE DIT, ET POURQUOI ELLES NE SE PAIENT PAS PAREIL ──────
+ *
+ * · **palette** — `text-gray-500`, `bg-amber-50` : la palette Tailwind BRUTE.
+ *   Ni jeton de thème (`text-theme-*`), ni jeton sémantique du design system
+ *   (`text-danger`, `bg-accent`). Ce sont 148 valeurs qui ne bougeront pas si la
+ *   direction bouge. ⚠ Et elles ne se remplacent PAS toutes de la même façon :
+ *   mesuré sur les trois pages publiques, ~48 sont des NEUTRES (gris) qui
+ *   tombent sur `MLK.ink`/`inkSoft`/`muted` mécaniquement, et ~24 sont des
+ *   SÉMANTIQUES (rouge, ambre, émeraude) qui ENCODENT un statut — elles relèvent
+ *   de « la teinte vive sur l'aplat, la foncée sur le texte », donc d'un
+ *   arbitrage par site, pas d'un remplacement.
+ * · **blanc** — `bg-white`, que CLAUDE.md proscrit nommément (« casse le dark
+ *   mode »). Compté à part parce qu'il a UNE réponse, pas plusieurs.
+ * · **echelle** — `text-sm`, `text-2xl` : des barreaux de TAILWIND, pas des
+ *   `var(--crm-text-*)`. La correspondance est pourtant exacte et sans perte
+ *   (12→sm, 14→lg, 16→2xl, 18→3xl, 20→4xl, 24→5xl) : c'est la plus mécanique
+ *   des trois, et de loin la plus nombreuse.
+ *
+ * ⛔ POURQUOI UN INVENTAIRE, ET NON UNE PASSE. 543 sites dans 20 fichiers, dont
+ * trois pages CLIENTES qui portent des dates de rendez-vous et des références de
+ * dossier — et pour lesquelles il n'existe AUCUN banc : `/dev/public` monte le
+ * KYC, le rendez-vous et la réception, pas celles-ci. Repeindre ce qu'on ne peut
+ * pas regarder est exactement ce que ce chantier refuse de faire. L'inventaire
+ * gèle les 543 pendant que la passe se fait, zone par zone, avec un banc.
+ */
+const CLASSES_ASSUMEES = new Map<string, { palette?: number; blanc?: number; echelle?: number }>([
+  ['src/components/admin/ImpersonateBanner.tsx', { blanc: 1, echelle: 1 }],
+  ['src/components/auth/FavoritesLoginPrompt.tsx', { echelle: 5 }],
+  ['src/components/layout/ErrorBoundary.tsx', { echelle: 5 }],
+  ['src/components/layout/KycLabGuard.tsx', { echelle: 12 }],
+  ['src/components/layout/OnboardingCallBanner.tsx', { palette: 2, echelle: 6 }],
+  ['src/components/layout/StaleBundleDetector.tsx', { palette: 4, echelle: 3 }],
+  ['src/components/listings/FloorPlanEditor.tsx', { palette: 5, blanc: 3, echelle: 15 }],
+  ['src/components/listings/SwissAddressAutocomplete.tsx', { palette: 1, echelle: 6 }],
+  ['src/components/map/PropertyStaticMap.tsx', { echelle: 1 }],
+  ['src/components/ui/modal.tsx', { echelle: 2 }],
+  ['src/components/ui/Toast.tsx', { echelle: 2 }],
+  ['src/components/ui/UpgradePrompt.tsx', { echelle: 3 }],
+  ['src/pages/agent/ExternalListingDetailPage.tsx', { palette: 9, blanc: 7, echelle: 63 }],
+  ['src/pages/agent/ListingFormPage.tsx', { palette: 25, blanc: 11, echelle: 155 }],
+  ['src/pages/dev/SentryTestPage.tsx', { echelle: 4 }],
+  ['src/pages/public/AcceptInvitePage.tsx', { palette: 23, blanc: 2, echelle: 13 }],
+  ['src/pages/public/PrivacyPage.tsx', { echelle: 5 }],
+  ['src/pages/public/ResetPasswordPage.tsx', { blanc: 4, echelle: 10 }],
+  ['src/pages/public/VisitFeedbackPage.tsx', { palette: 41, blanc: 6, echelle: 20 }],
+  ['src/pages/public/VisitManagePage.tsx', { palette: 38, blanc: 7, echelle: 23 }],
+])
+
+/**
+ * ⚠ LES TROIS MOTIFS LISENT LE CONTENU DES `className`, PAS LA LIGNE. Un
+ * `text-gray-500` cité dans une chaîne de prose ou un nom de variable ne peint
+ * rien ; et surtout, la forme `className={cn('a', x ? 'b' : 'c')}` s'étend sur
+ * plusieurs lignes — la lire ligne à ligne sous-compterait exactement comme le
+ * relevé initial, qui ne voyait que `className="…"` et ratait 191 sites dans
+ * `ListingFormPage`.
+ */
+const ESPECES_CLASSE: { nom: 'palette' | 'blanc' | 'echelle'; motif: RegExp }[] = [
+  {
+    nom: 'palette',
+    motif:
+      /\b(?:text|bg|border|from|via|to|ring|divide|outline|decoration)-(?:gray|slate|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}\b/g,
+  },
+  { nom: 'blanc', motif: /\b(?:text|bg|border)-white\b/g },
+  { nom: 'echelle', motif: /\btext-(?:xs|sm|base|lg|xl|[2-9]xl)\b/g },
+]
+
+/** Le contenu de tous les `className` d'un fichier, concaténé. */
+function classesDe(code: string): string {
+  return [...code.matchAll(/class[Nn]ame=(?:"([^"]*)"|\{([\s\S]{0,400}?)\})/g)]
+    .map((m) => m[1] ?? m[2] ?? '')
+    .join(' ')
+}
+
 /** Les espèces mesurées dans une feuille, et le motif qui les reconnaît. */
 const ESPECES_CSS: { nom: 'graisse' | 'capitale' | 'interlettrage' | 'taille'; voit: (ligne: string) => boolean }[] = [
   { nom: 'graisse', voit: (l) => /font-weight:\s*(700|800|900|bold)\b/.test(l) },
@@ -1539,6 +1624,48 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
     const disparues = [...AVEUGLES.keys()].filter((n) => !vues.has(n))
     expect(ecarts, `l'inventaire de ce que l'instrument ne voit pas a dérivé :\n  ${ecarts.join('\n  ')}`).toEqual([])
     expect(disparues, `inscrite mais absente du balayage :\n  ${disparues.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * Le plafond, espèce par espèce — un total unique permettrait d'échanger une
+   * dette de couleur contre une dette d'échelle sans que rien ne bouge.
+   */
+  it('aucun fichier ne dépasse son inventaire de classes', () => {
+    const trop: string[] = []
+    for (const { chemin, code } of sources) {
+      const cls = classesDe(code)
+      const permis = CLASSES_ASSUMEES.get(chemin)
+      for (const { nom, motif } of ESPECES_CLASSE) {
+        const n = (cls.match(motif) ?? []).length
+        const p = permis?.[nom] ?? 0
+        if (n > p) trop.push(`${chemin} — ${nom} : ${n} > ${p} permis`)
+      }
+    }
+    expect(
+      trop,
+      `couleur ou échelle en classes au-delà de l'inventaire — passer par un jeton ` +
+        `(MLK/RC côté client, var(--crm-text-*) pour l'échelle) :\n  ${trop.join('\n  ')}`,
+    ).toEqual([])
+  })
+
+  /**
+   * L'inventaire ne doit que RÉTRÉCIR. Sans cette clause, un fichier nettoyé
+   * garderait son crédit et le prochain lot pourrait en réintroduire — c'est le
+   * défaut que le JSDoc du gris-bleu documente déjà.
+   */
+  it('l’inventaire des classes ne garde aucun crédit', () => {
+    const perimees: string[] = []
+    for (const [chemin, permis] of CLASSES_ASSUMEES) {
+      const s = sources.find((x) => x.chemin === chemin)
+      if (!s) { perimees.push(`${chemin} : absent du balayage — l'entrée ne garde plus rien`); continue }
+      const cls = classesDe(s.code)
+      for (const { nom, motif } of ESPECES_CLASSE) {
+        const n = (cls.match(motif) ?? []).length
+        const p = permis[nom] ?? 0
+        if (n < p) perimees.push(`${chemin} — ${nom} : ${n} réels < ${p} inscrits — descendre le compte`)
+      }
+    }
+    expect(perimees, `inventaire des classes à resserrer :\n  ${perimees.join('\n  ')}`).toEqual([])
   })
 
   /**
