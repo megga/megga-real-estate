@@ -735,7 +735,6 @@ function cssLisible(css: string): string {
  */
 const CSS_ASSUME = new Map<string, { graisse?: number; capitale?: number; interlettrage?: number; taille?: number }>([
   ['src/components/matching-atelier/atelier.css', { graisse: 44, capitale: 5, interlettrage: 6, taille: 88 }],
-  ['src/components/crm-sugar-v3/responsive.css', { taille: 3 }],
 ])
 
 /**
@@ -912,7 +911,7 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/skeletons', { hors: 8, total: 12 }],
   ['src/components/ui', { hors: 0, total: 29 }],
   ['src/pages/admin', { hors: 225, total: 464 }],
-  ['src/pages/agent', { hors: 364, total: 981 }],
+  ['src/pages/agent', { hors: 363, total: 980 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 68, total: 259 }],
 ])

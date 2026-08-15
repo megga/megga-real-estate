@@ -9,6 +9,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import {
   SugarTopNav,
   SugarIconRail,
@@ -35,6 +36,18 @@ import { downloadAuditPdf } from '@/lib/auditPdfExport'
 import type { AuditCategory, AuditSeverity, AuditEvent } from '@/types/kyc'
 
 export default function AuditSugarPage() {
+  /**
+   * ⛔ CETTE PAGE N'A PAS DE VARIANTE MOBILE, contrairement au KYC et au wizard :
+   * sa route est `<Route path="audit" element={<AuditSugarPage />} />`, sans
+   * `ResponsiveRoute`. Elle rend donc TELLE QUELLE à 375 px, et ses trois
+   * collapses étaient portés par `responsive.css` — une feuille chargée sur
+   * TOUTES les pages de l'app pour trois règles utiles ici.
+   *
+   * Le seuil est celui de `useIsMobile` (768 px), le même que `ResponsiveRoute` :
+   * deux seuils divergents auraient créé une bande de largeurs où l'un bascule
+   * et pas l'autre.
+   */
+  const etroit = useIsMobile()
   const navigate = useNavigate()
   const { t: tr } = useTranslation('common')
   const [dark, setDark] = useState<boolean>(() => {
@@ -142,16 +155,15 @@ export default function AuditSugarPage() {
           sp={sp}
         />
 
-        <main className="sg-main-padded" style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px 40px' }}>
+        <main style={{ flex: 1, minWidth: 0, padding: etroit ? '100px 16px 120px 16px' : '100px 40px 120px 40px' }}>
           <div style={{ maxWidth: 1280, margin: '0 auto' }}>
             {/* HEADER */}
             <div
-              className="sg-row-stack"
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1fr auto',
+                gridTemplateColumns: etroit ? '1fr' : '1fr auto',
                 gap: 32,
-                alignItems: 'flex-end',
+                alignItems: etroit ? 'stretch' : 'flex-end',
                 marginBottom: 36,
                 animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both',
               }}
@@ -251,10 +263,9 @@ export default function AuditSugarPage() {
 
             {/* STATS */}
             <div
-              className="sg-grid-4"
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
+                gridTemplateColumns: etroit ? '1fr' : 'repeat(4, 1fr)',
                 gap: 14,
                 marginBottom: 24,
                 animation: 'sgFadeUp .55s cubic-bezier(.2,.8,.2,1) both',
@@ -295,12 +306,11 @@ export default function AuditSugarPage() {
                 boxShadow: SugarV3.shadow,
                 marginBottom: 18,
                 display: 'grid',
-                gridTemplateColumns: '1fr auto',
+                gridTemplateColumns: etroit ? '1fr' : '1fr auto',
                 gap: 16,
-                alignItems: 'center',
+                alignItems: etroit ? 'stretch' : 'center',
                 animation: 'sgFadeUp .6s cubic-bezier(.2,.8,.2,1) both',
               }}
-              className="sg-row-stack"
             >
               {/* Recherche */}
               <div

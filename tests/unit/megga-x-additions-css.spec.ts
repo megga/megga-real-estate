@@ -35,11 +35,20 @@ import { readFileSync } from 'node:fs'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { repoPath } from './helpers/fs-scan'
 
-/** Les trois feuilles, et ce que chacune est censée porter. */
+/**
+ * Les DEUX feuilles, et ce que chacune est censée porter.
+ *
+ * ⚠ Elles étaient trois. `crm-sugar-v3/responsive.css` a été RETIRÉE le 15 août
+ * 2026 : neuf de ses quinze sélecteurs n'avaient aucun porteur, deux n'étaient
+ * portés que par le wizard KYC — qui passe par `ResponsiveRoute` et ne rend
+ * donc jamais sous 768 px —, et les trois derniers ne servaient qu'à
+ * `AuditSugarPage`, seule surface agent sans variante mobile. Ses règles
+ * vivent désormais DANS la page, sur `useIsMobile()`. Une feuille chargée par
+ * `main.tsx` sur TOUTES les pages pour trois règles utiles à une seule.
+ */
 const FEUILLES = [
   { chemin: 'src/styles/megga-x-additions.css', role: 'les ajouts de la coquille MEGGA X (identité, modales, champs)' },
   { chemin: 'src/styles/megga-x.css', role: 'le point d’entrée qui importe les deux autres' },
-  { chemin: 'src/components/crm-sugar-v3/responsive.css', role: 'les seules règles responsives de la chaîne SugarV3' },
 ]
 
 /**
@@ -141,7 +150,6 @@ describe('Feuilles MEGGA X non gardées — additions, entrée, responsive', () 
     const ATTENDU: Record<string, { hex: number; rgba: number }> = {
       'src/styles/megga-x-additions.css': { hex: 0, rgba: 5 },
       'src/styles/megga-x.css': { hex: 0, rgba: 0 },
-      'src/components/crm-sugar-v3/responsive.css': { hex: 0, rgba: 0 },
     }
     const reel = Object.fromEntries(feuilles.map((f) => [f.chemin, {
       hex: (f.css.match(/#[0-9a-fA-F]{3,8}\b/g) ?? []).length,

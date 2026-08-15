@@ -119,7 +119,7 @@ export function KwStepVigilance({ data, set }: Props) {
         )}
       </div>
 
-      <div className="sg-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-6xl)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-6xl)' }}>
         <KwGateCard
           selected={data.vigilance === 'standard'}
           icon={

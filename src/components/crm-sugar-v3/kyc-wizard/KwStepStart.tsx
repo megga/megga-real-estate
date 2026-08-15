@@ -46,7 +46,6 @@ export function KwStepStart({ data, set }: Props) {
       </div>
 
       <div
-        className="sg-grid-gates"
         style={{
           display: 'grid',
           gridTemplateColumns: '1.15fr 1fr 1fr',
