@@ -483,12 +483,21 @@ const ZONES: RootSpec[] = [
   // questionne, un motif écrit se croit.
   //
   // Sept de ces huit entrent donc ici comme n'importe quelle surface livrée :
-  // ils sont routés sur `app.megga.ch`. Ils ne coûtent que CINQ marqueurs.
+  // ils étaient routés sur `app.megga.ch`. Ils ne coûtaient que CINQ marqueurs.
   //
-  // ⚠ CE N'EST PAS UN AVIS SUR LEUR PRÉSENCE EN PRODUCTION. Que
-  // `/dev/sentry-test` — qui déclenche des erreurs Sentry — soit joignable est
-  // une question de PRODUIT, posée à part. Ici on constate seulement qu'un
-  // fichier livré ne peut pas être exempté au motif qu'il ne l'est pas.
+  // ⚠ ILS Y RESTENT BIEN QU'ILS SOIENT DÉSORMAIS GELÉS. La question de produit
+  // que ce commentaire posait — « /dev/sentry-test, qui DÉCLENCHE des erreurs
+  // Sentry, joignable en production » — a été tranchée le 15 août 2026 : les
+  // sept passent au ternaire `import.meta.env.DEV`, donc plus aucun chunk.
+  //
+  // ⛔ ET ÊTRE ABSENT DU BUNDLE REND UNE EXEMPTION POSSIBLE, PAS NÉCESSAIRE. Les
+  // sortir maintenant ferait de « c'est gelé » un motif d'exemption — le même
+  // glissement que « c'est vert » en serait un. Ils sont entrés PROPRES, et une
+  // zone propre reste au cliquet précisément pour qu'elle le demeure : c'est
+  // l'argument déjà écrit pour `MatchingAtelierPage` et `OfferModalSugarV3Page`.
+  // Les quatre exemptés, eux, le sont parce qu'ils SÈMENT un état (session,
+  // intercepteur de fetch) — c'est ce qui les rend inexerçables, pas leur
+  // absence du bundle.
   //
   // ⚠ QUATRE DES CINQ NOMS EXCLUS PORTENT LEUR MOTIF dans `EXEMPTIONS_ECRITES` :
   // ils sont absents du bundle, et la garde `dev-bancs-frontiere.spec.ts` mesure

@@ -27,14 +27,27 @@
  *  · banc en `lazy()` nu        → livré et routé   → c'est une surface, il entre
  *    au cliquet comme n'importe quelle autre.
  *
- * ⚠ CE FICHIER NE JUGE PAS QU'UN BANC DOIVE PARTIR EN PRODUCTION. Il constate
- * lesquels y sont, pour que l'exemption ne couvre que ceux qui n'y sont pas. Le
- * fait que sept bancs — dont `/dev/sentry-test`, qui déclenche des erreurs
- * Sentry — soient joignables sur `app.megga.ch` est une question de PRODUIT,
- * posée à part et non tranchée ici.
+ * ── LA QUESTION DE PRODUIT A ÉTÉ TRANCHÉE (15 août 2026) ────────────────────
+ * Ce fichier a d'abord CONSTATÉ que sept bancs étaient joignables sur
+ * `app.megga.ch` — dont `/dev/sentry-test`, qui DÉCLENCHE des erreurs Sentry —
+ * en disant que la décision ne lui appartenait pas. Julien a tranché : les sept
+ * passent au ternaire. Un banc de développement livré n'est pas seulement du
+ * poids mort, c'est une surface que personne ne teste, ouverte à qui connaît
+ * l'URL.
+ *
+ * ⚠ IL N'Y A DONC PLUS DEUX POPULATIONS, et la clause qui l'exigeait a ROUGI
+ * pour le dire. Elle est remplacée par plus fort : le dossier est ÉNUMÉRÉ depuis
+ * l'arbre, et tout banc routé doit être gelé. Une liste n'aurait jamais vu
+ * arriver un banc neuf ; l'arbre, si.
+ *
+ * ⚠ ÊTRE ABSENT DU BUNDLE REND UNE EXEMPTION POSSIBLE, PAS NÉCESSAIRE. Les sept
+ * gelés RESTENT dans le cliquet de grammaire : ils y sont entrés propres, et une
+ * zone propre y reste précisément pour qu'elle le demeure. Les quatre premiers,
+ * eux, sont exemptés parce qu'ils SÈMENT un état (session, intercepteur de
+ * fetch) — c'est ce qui les rend inexerçables, pas leur absence du bundle.
  */
 import { describe, it, expect } from 'vitest'
-import { readFileSafely, repoPath } from './helpers/fs-scan'
+import { emptyRoots, readFileSafely, rel, repoPath, scanRoots } from './helpers/fs-scan'
 
 /**
  * Les quatre bancs exemptés, et la seule raison qui les exempte.
@@ -55,6 +68,17 @@ const BANCS_HORS_BUNDLE = [
   { chemin: 'src/pages/dev/OnboardingPreviewPage.tsx', route: '/dev/onboarding' },
   { chemin: 'src/pages/dev/AdminShowcasePage.tsx', route: '/dev/admin' },
   { chemin: 'src/pages/dev/CrmShowcasePage.tsx', route: '/dev/crm' },
+  // ── Les sept derniers, gelés le 15 août 2026 ────────────────────────────
+  // Ils étaient LIVRÉS : un chunk dans `dist/assets/` et une route déclarée.
+  // La décision de les geler est de PRODUIT, pas de direction artistique —
+  // ce fichier ne fait que la rendre vérifiable.
+  { chemin: 'src/pages/dev/SentryTestPage.tsx', route: '/dev/sentry-test' },
+  { chemin: 'src/pages/dev/MatchingShowcasePage.tsx', route: '/dev/matching-atelier' },
+  { chemin: 'src/pages/dev/MobileShowcasePage.tsx', route: '/dev/mobile' },
+  { chemin: 'src/pages/dev/BiensShowcasePage.tsx', route: '/dev/biens' },
+  { chemin: 'src/pages/dev/ContactsShowcasePage.tsx', route: '/dev/contacts' },
+  { chemin: 'src/pages/dev/PipelineShowcasePage.tsx', route: '/dev/pipeline' },
+  { chemin: 'src/pages/dev/ModalesShowcasePage.tsx', route: '/dev/modales' },
 ].map((b) => ({ ...b, fichier: b.chemin.split('/').pop()!.replace('.tsx', '') }))
 
 const app = readFileSafely(repoPath('src/App.tsx'))
@@ -88,16 +112,42 @@ describe('Bancs /dev — la frontière bundle', () => {
   })
 
   /**
-   * ⛔ ET LE CONTRÔLE POSITIF QUI EMPÊCHE LA CLAUSE PRÉCÉDENTE D'ÊTRE VRAIE PAR
-   * CONSTRUCTION. Si `App.tsx` cessait d'employer le ternaire NULLE PART, la
-   * clause ci-dessus resterait verte sur une liste vide de fautifs seulement
-   * parce que plus rien ne matcherait — non : on exige que le dossier contienne
-   * AUSSI des bancs livrés, sans quoi la frontière ne sépare rien.
+   * ⛔ LA FRONTIÈRE A CESSÉ DE SÉPARER DEUX POPULATIONS — parce qu'il n'en reste
+   * qu'UNE, et c'est le but.
+   *
+   * La clause précédente exigeait qu'il existe AUSSI des bancs livrés, sans quoi
+   * elle aurait pu être vraie par vacuité. Cette prémisse est tombée le 15 août
+   * 2026 : les sept derniers bancs ont été gelés, tous les `/dev/*` passent
+   * désormais par le ternaire. ⚠ La clause a rougi pour le dire, et c'est
+   * exactement ce qu'on lui demande — desserrer son seuil aurait été le geste
+   * facile et faux.
+   *
+   * Ce qui la remplace est PLUS FORT, et n'est plus une liste : on énumère
+   * `src/pages/dev` DEPUIS L'ARBRE, et tout fichier qu'`App.tsx` référence doit
+   * passer par le ternaire. Un banc neuf devra donc être gelé, ou justifier sa
+   * sortie dans un DIFF — la liste, elle, ne l'aurait jamais vu arriver.
+   *
+   * ⚠ UNE SEULE EXCEPTION, ET CE N'EST PAS UN BANC. `MeggaXStyleGuidePage` sert
+   * `/design-system/megga-x`, que CLAUDE.md §3 désigne comme la seule route de
+   * design system survivante. Elle est livrée DÉLIBÉRÉMENT.
    */
-  it('la frontière sépare vraiment deux populations', () => {
-    const gardes = BANCS_HORS_BUNDLE.length
-    // Les bancs livrés, lus depuis les routes déclarées — pas depuis une liste.
-    const routesDev = [...source.matchAll(/path="(\/dev\/[a-z-]+|\/design-system\/megga-x)"/g)].map((m) => m[1]!)
-    expect(routesDev.length, 'plus aucune route de banc — la frontière ne sépare rien').toBeGreaterThan(gardes)
+  it('aucune page de src/pages/dev n’échappe au ternaire — le dossier est couvert', () => {
+    const scan = scanRoots([{ root: 'src/pages/dev', keep: (n) => /Page\.tsx$/.test(n) }])
+    expect(emptyRoots(scan), 'racine vide : chemin cassé').toEqual([])
+    expect(scan.files.length, 'plus aucune page de banc — la clause ne mesure rien').toBeGreaterThan(8)
+
+    const SERVIE_DELIBEREMENT = new Set(['MeggaXStyleGuidePage'])
+    const nus: string[] = []
+    for (const abs of scan.files) {
+      const nom = rel(abs).split('/').pop()!.replace('.tsx', '')
+      if (SERVIE_DELIBEREMENT.has(nom)) continue
+      // Une page qu'`App.tsx` ne référence pas n'est pas routée : rien à geler.
+      if (!source.includes(`pages/dev/${nom}`)) continue
+      const bloc = new RegExp(`const ${nom}\\s*=([\\s\\S]{0,400}?)\\n(?=const |// |/\\*|\\n)`)
+      const m = source.match(bloc)
+      if (!m) { nus.push(`${nom} : déclaration introuvable dans App.tsx`); continue }
+      if (!/import\.meta\.env\.DEV/.test(m[1]!)) nus.push(`${nom} : `.concat('pas de ternaire DEV — ce banc PART en production'))
+    }
+    expect(nus, `banc de développement livré :\n  ${nus.join('\n  ')}`).toEqual([])
   })
 })

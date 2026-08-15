@@ -143,13 +143,41 @@ const OnboardingCallManagePage = lazy(() => import('@/pages/public/OnboardingCal
 const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
 const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
-const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
-const MatchingShowcasePage = lazy(() => import('@/pages/dev/MatchingShowcasePage'))
-const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
-const BiensShowcasePage = lazy(() => import('@/pages/dev/BiensShowcasePage'))
-const ContactsShowcasePage = lazy(() => import('@/pages/dev/ContactsShowcasePage'))
-const PipelineShowcasePage = lazy(() => import('@/pages/dev/PipelineShowcasePage'))
-const ModalesShowcasePage = lazy(() => import('@/pages/dev/ModalesShowcasePage'))
+// ⛔ LES SEPT BANCS RESTANTS PASSENT AU TERNAIRE (15 août 2026). Mesuré au lot 3a :
+// ils avaient un chunk dans `dist/assets/` et une route déclarée — donc joignables
+// sur app.megga.ch, dont `/dev/sentry-test`, qui DÉCLENCHE des erreurs Sentry. Un
+// banc de développement livré n'est pas seulement du poids mort : c'est une surface
+// que personne ne teste, ouverte à qui connaît l'URL.
+//
+// ⚠ `import.meta.env.DEV` est remplacé par `false` au build : la branche d'import
+// disparaît et Vite n'émet aucun chunk. Le ternaire N'EST PAS décoratif — le
+// remplacer par un `lazy()` nu suffirait à tout renvoyer en production, et c'est
+// exactement ce que `dev-bancs-frontiere.spec.ts` refuse.
+//
+// ⚠ `/design-system/megga-x` N'EST PAS DANS CE LOT : ce n'est pas un banc mais la
+// seule route de design system survivante (CLAUDE.md §3), et elle est servie
+// délibérément.
+const SentryTestPage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/SentryTestPage'))
+  : () => null
+const MatchingShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/MatchingShowcasePage'))
+  : () => null
+const MobileShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/MobileShowcasePage'))
+  : () => null
+const BiensShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/BiensShowcasePage'))
+  : () => null
+const ContactsShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/ContactsShowcasePage'))
+  : () => null
+const PipelineShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/PipelineShowcasePage'))
+  : () => null
+const ModalesShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/ModalesShowcasePage'))
+  : () => null
 // ⛔ CONDITIONNÉ AU MODE DEV, comme `/dev/crm`, et pour la MÊME raison : ce banc
 // appelle `installerBanc()`, qui remplace `window.fetch` pour TOUTE la session.
 // Dans un bundle déployé, une visite à `/dev/public` détournerait silencieusement
