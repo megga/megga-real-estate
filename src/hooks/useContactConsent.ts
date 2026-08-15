@@ -102,7 +102,16 @@ export function useContactConsent(contactId: string | undefined) {
       ])
       // Une erreur de lecture n'est PAS « pas de blocage » : la fiche préfère ne rien
       // affirmer plutôt qu'affirmer « contactable » sur une lecture ratée.
+      //
+      // ⛔ LES TROIS, et la doctrine ne vaut que si elle vaut pour les trois. Un timeout sur
+      // `whatsapp_optin_invites` rendait `pendingInvite: null` : la carte réaffichait le
+      // bouton et l'agent envoyait une SECONDE invitation — deux liens vivants pour la même
+      // personne, donc un consentement qu'on ne saurait plus attribuer. Un échec sur
+      // `whatsapp_consents` rendait `optedIn: false` : on proposait d'inviter quelqu'un qui
+      // avait déjà consenti.
       if (sup.error) throw new Error(sup.error.message)
+      if (log.error) throw new Error(log.error.message)
+      if (inv.error) throw new Error(inv.error.message)
       const row = sup.data as
         { reason: string; created_at: string; channel: string; ack_sent_at: string | null } | null
       const invRow = inv.data as Record<string, unknown> | null
@@ -172,6 +181,32 @@ export function useSetDoNotContact() {
 }
 
 /**
+ * Motif MÉTIER d'un refus d'edge function.
+ *
+ * ⛔ `functions.invoke` range TOUTE réponse non-2xx dans `error` — un `FunctionsHttpError`
+ * dont le `message` est le même pour tous les codes (« Edge Function returned a non-2xx
+ * status code ») — et laisse `data` à `null`. Le motif ne vit donc que dans le CORPS de la
+ * réponse, exposé par `supabase-js` sur `error.context`, qui est la `Response` brute.
+ *
+ * Sans cette lecture, la carte cherchait `fiche.consent.inviteError.<message générique>`,
+ * ne trouvait rien et retombait sur le texte passe-partout : les cinq motifs traduits
+ * étaient inatteignables, ce qui est l'inverse du but de la carte.
+ */
+async function readInvokeError(error: unknown): Promise<string> {
+  const ctx = (error as { context?: Response } | undefined)?.context
+  if (ctx && typeof ctx.json === 'function') {
+    try {
+      const reason = ((await ctx.json()) as { error?: unknown } | null)?.error
+      if (typeof reason === 'string' && reason) return reason
+    } catch {
+      // Corps non-JSON : un 502 de passerelle, une page d'erreur. Le message générique
+      // reste alors la meilleure information disponible.
+    }
+  }
+  return (error as { message?: string } | undefined)?.message || 'optin_invite_failed'
+}
+
+/**
  * Envoie l'invitation d'opt-in par e-mail (`click_to_wa`).
  *
  * ⛔ L'edge function fait TOUT : elle crée l'invitation, signe le jeton et envoie le mail.
@@ -185,11 +220,12 @@ export function useSendOptinInvite() {
       const { data, error } = await supabase.functions.invoke('whatsapp-optin-invite', {
         body: { contact_id: v.contactId },
       })
-      if (error) throw error
+      // Les refus MÉTIER (numéro bloqué, contact sans e-mail, numéro Business non
+      // enregistré) reviennent en 4xx avec un corps : c'est `readInvokeError` qui l'ouvre.
+      if (error) throw new Error(await readInvokeError(error))
       const d = data as { ok?: boolean; error?: string } | null
-      // ⚠ Les refus MÉTIER (numéro bloqué, contact sans e-mail, numéro Business non
-      // enregistré) reviennent en 4xx avec un corps : sans cette lecture, l'agent verrait
-      // « envoyé » alors que rien n'est parti.
+      // Ceinture et bretelles : une edge qui rendrait 200 avec `{ ok: false }` ne doit pas
+      // faire dire « envoyé » alors que rien n'est parti.
       if (!d?.ok) throw new Error(d?.error || 'optin_invite_failed')
       return d
     },

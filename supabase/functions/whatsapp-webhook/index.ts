@@ -327,6 +327,12 @@ serve(async (req) => {
       contact_id: contactId,
       agency_id: agencyId,
       body: OPTIN_BODY_PLACEHOLDER,
+      // ⛔ `raw: null` — remplacer `body` ne suffisait PAS. `insertInboundOnce` écrit
+      // `raw: msg.raw`, le payload Meta COMPLET, donc le jeton signé en clair, conservé
+      // trente jours : la promesse du commentaire ci-dessus n'était pas tenue. L'usage
+      // unique et l'égalité d'expéditeur limitaient le dégât ; ils ne l'annulaient pas.
+      // Le payload brut d'un message dont on ne garde même pas le texte n'a aucun usage.
+      raw: null,
       processing_status: 'done',
     })
     if (ins.error) {
@@ -1154,7 +1160,8 @@ async function executePending(
     const sent = await sendOutboundGuarded({
       admin, provider, to: phone,
       purpose: key === 'new_listings' ? 'marketing' : 'utility',
-      payload: { type: 'template', message: tmsg },
+      // `templateKey` : c'est la clé interne, pas le nom Meta, que l'historique du CRM porte.
+      payload: { type: 'template', message: tmsg, templateKey: key },
       contactId, agencyId: agentLink.agency_id,
       sentByProfileId: agentLink.profile_id,
       isAutomated: true, // template Meta (boilerplate) : jamais du corpus de voix

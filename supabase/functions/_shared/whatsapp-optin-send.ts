@@ -76,6 +76,9 @@ export async function sendOptinInvite(
     p_lang: lang,
     p_purpose: 'marketing',
     p_days: INVITE_DAYS,
+    // Qui a invité, ÉCRIT dans la table de preuve. Le porter uniquement dans les métadonnées
+    // d'`activity_events` laissait `whatsapp_optin_invites.sent_by` vide en permanence.
+    p_sent_by: a.sentBy ?? null,
   })
   if (invErr) {
     return { ok: false, error: invErr.message.includes('phone_suppressed') ? 'phone_suppressed' : 'invite_not_created' }
@@ -117,7 +120,11 @@ export async function sendOptinInvite(
     return { ok: false, error: 'email_send_failed' }
   }
 
-  await admin.from('activity_events').insert({
+  // ⚠ Même défaut que la garde d'envoi (§3 de la revue) : `.then(() => {}, () => {})` avalait
+  // TOUT, y compris le `{ error }` que `supabase-js` RETOURNE au lieu de le jeter. L'audit de
+  // l'invitation pouvait donc être inexistant sans qu'aucune ligne ne le dise. Non bloquant —
+  // l'invitation EST partie —, mais journalisé.
+  const { error: evtErr } = await admin.from('activity_events').insert({
     agency_id: a.agencyId,
     actor_id: null,
     actor_kind: 'ai',
@@ -127,7 +134,8 @@ export async function sendOptinInvite(
     category: 'messaging',
     severity: 'info',
     metadata: { via: 'email', profile_id: a.sentBy ?? null, lang, invite_id: invite.id },
-  }).then(() => {}, () => {})
+  })
+  if (evtErr) console.error('optin invite: audit non écrit:', evtErr.message.slice(0, 120))
 
   return { ok: true, inviteId: invite.id, lang, email: c.email }
 }

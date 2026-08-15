@@ -28,6 +28,11 @@
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+// La LECTURE de la finalité vit à part, parce qu'elle a besoin d'un banc : c'est elle qui
+// rend le verdict, et une porte dont le lecteur n'est pas éprouvé rend un vert non gagné.
+import {
+  PURPOSES, purposeLisible, valeurDe, corpsArguments, sansCommentaires,
+} from './_shared/wa-outbound-purpose.mjs';
 
 const RACINE = 'supabase/functions';
 
@@ -50,8 +55,6 @@ const RESERVEES = {
   opt_out_ack: ['supabase/functions/_shared/whatsapp-stop.ts'],
 };
 
-const PURPOSES = ['service', 'utility', 'marketing', 'lpd_notice', 'opt_out_ack'];
-
 function sources(dir) {
   const out = [];
   for (const e of readdirSync(dir)) {
@@ -63,30 +66,6 @@ function sources(dir) {
 }
 
 const ligneDe = (txt, i) => txt.slice(0, i).split('\n').length;
-
-/** Commentaires retirés : un `buildSendTextRequest` CITÉ dans une note n'est pas un appel. */
-function sansCommentaires(sql) {
-  return sql
-    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
-    .split('\n').map((l) => l.replace(/\/\/.*$/, (m) => ' '.repeat(m.length))).join('\n');
-}
-
-/**
- * Un `purpose:` est-il lisible statiquement ?
- *
- * Accepté : `'service'` · `cond ? 'marketing' : 'utility'`. Un ternaire de littéraux
- * ÉNUMÈRE ses valeurs possibles — c'est exactement ce que la propriété 2 protège, et
- * l'interdire n'aurait forcé qu'à dupliquer l'appel.
- * Refusé : `p`, `opts.purpose`, `PURPOSES[i]`, `cond ? p : 'service'`.
- */
-function purposeLisible(expr) {
-  const e = expr.trim();
-  const lit = (s) => new RegExp(`^'(${PURPOSES.join('|')})'$`).test(s.trim());
-  if (lit(e)) return [e.replace(/'/g, '')];
-  const m = e.match(/^(.+?)\?([^?:]+):([^?:]+)$/s);
-  if (m && lit(m[2]) && lit(m[3])) return [m[2].trim().replace(/'/g, ''), m[3].trim().replace(/'/g, '')];
-  return null;
-}
 
 const fautes = [];
 const fichiers = sources(RACINE);
@@ -107,25 +86,32 @@ for (const f of fichiers) {
   }
 
   // ── Propriétés 2 et 3 ─────────────────────────────────────────────────────
-  for (const m of txt.matchAll(/sendOutboundGuarded\s*\(\s*\{/g)) {
+  // ⚠ On repère l'APPEL, pas « l'appel suivi d'une accolade ». L'ancienne forme
+  // (`\(\s*\{`) ne voyait tout simplement pas `sendOutboundGuarded(args)` : l'envoi
+  // n'était ni compté, ni contrôlé — un contournement en une variable.
+  for (const m of txt.matchAll(/\bsendOutboundGuarded\s*\(/g)) {
+    // La DÉCLARATION n'est pas un appel. L'ancienne forme l'écartait par accident — sa
+    // signature ne commence pas par `{` —, ce qui n'était pas une raison mais une chance.
+    if (/\bfunction\s+$/.test(txt.slice(Math.max(0, m.index - 40), m.index))) continue;
     appels++;
-    // Le bloc d'arguments, jusqu'à l'accolade équilibrée.
-    let i = txt.indexOf('{', m.index), prof = 0, fin = i;
-    for (; fin < txt.length; fin++) {
-      if (txt[fin] === '{') prof++;
-      else if (txt[fin] === '}') { prof--; if (prof === 0) break; }
+    const args = corpsArguments(txt, m.index + m[0].length);
+    if (args === null) {
+      fautes.push({
+        f, ligne: ligneDe(txt, m.index),
+        quoi: '`sendOutboundGuarded` sans littéral d\'objet en ligne — la finalité doit être lisible SUR PLACE',
+      });
+      continue;
     }
-    const args = txt.slice(i, fin + 1);
-    const pm = args.match(/\bpurpose\s*:\s*([^\n,}]+)/);
-    if (!pm) {
+    const expr = valeurDe(args, 'purpose');
+    if (!expr) {
       fautes.push({ f, ligne: ligneDe(txt, m.index), quoi: '`sendOutboundGuarded` sans `purpose:`' });
       continue;
     }
-    const valeurs = purposeLisible(pm[1]);
+    const valeurs = purposeLisible(expr);
     if (!valeurs) {
       fautes.push({
         f, ligne: ligneDe(txt, m.index),
-        quoi: `\`purpose: ${pm[1].trim()}\` n'est pas lisible statiquement — littéral, ou ternaire de littéraux`,
+        quoi: `\`purpose: ${expr}\` n'est pas lisible statiquement — littéral, ou ternaire de littéraux`,
       });
       continue;
     }

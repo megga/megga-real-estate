@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { emailSendAllowed } from '../_shared/email-guard.ts'
+import { emailSendAllowed, unsubscribeHeaders, unsubscribeFooterHtml } from '../_shared/email-guard.ts'
 
 interface PropertyPayload {
   title: string
@@ -30,7 +30,7 @@ function formatCHF(amount: number): string {
   return `CHF ${amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, "'")}`
 }
 
-function buildEmailHtml(req: SendRequest): string {
+function buildEmailHtml(req: SendRequest, unsubscribeHtml = ''): string {
   const p = req.property
   const photoSection = p.photo_url
     ? `<img src="${p.photo_url}" alt="${p.title || 'Bien immobilier'}" style="width:100%;height:auto;border-radius:12px;display:block;" />`
@@ -122,6 +122,7 @@ function buildEmailHtml(req: SendRequest): string {
       Les informations sont fournies à titre indicatif et peuvent évoluer sans préavis.
       Cet email a été envoyé via MEGGA Real Estate.
     </p>
+    ${unsubscribeHtml}
 
   </div>
 </body>
@@ -174,8 +175,6 @@ serve(async (req) => {
       })
     }
 
-    const html = buildEmailHtml(body)
-
     const priceDisplay = body.property.price > 0
       ? formatCHF(body.property.price)
       : 'Bien immobilier'
@@ -198,6 +197,12 @@ serve(async (req) => {
       )
     }
 
+    // Une garde sans porte de sortie n'est qu'une moitié de mécanisme : la personne peut
+    // être bloquée, mais pas se bloquer elle-même. Le jeton porte l'ADRESSE — cet envoi
+    // part vers un destinataire qui n'a pas forcément de fiche chez nous.
+    const unsub = await unsubscribeHeaders(body.to)
+    const html = buildEmailHtml(body, unsub ? unsubscribeFooterHtml(unsub.url) : '')
+
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -209,6 +214,9 @@ serve(async (req) => {
         to: [body.to],
         subject: `${priceDisplay} — ${body.property.title || locationDisplay}`,
         html,
+        // `List-Unsubscribe` + one-click : ce que Gmail et Outlook ATTENDENT. Leur absence
+        // pèse sur la délivrabilité de tout le domaine, pas seulement de ce message.
+        ...(unsub ? { headers: unsub.headers } : {}),
       }),
     })
 

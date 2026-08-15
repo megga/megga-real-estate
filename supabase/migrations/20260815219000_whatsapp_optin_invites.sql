@@ -32,6 +32,10 @@ create table if not exists public.whatsapp_optin_invites (
   shown_text   text        not null check (length(shown_text) >= 40),
 
   expires_at   timestamptz not null,
+  -- Profil de l'agent qui a déclenché l'invitation. Renseignée par `create_wa_optin_invite` :
+  -- une colonne déclarée et jamais écrite dans une table de PREUVE est pire qu'absente, elle
+  -- laisse croire que la question « qui a invité ? » a une réponse en base.
+  -- NULL reste possible : l'exécuteur du copilote WhatsApp n'a pas toujours de profil en main.
   sent_by      uuid        null,
 
   consumed_at         timestamptz null,
@@ -69,12 +73,21 @@ create policy wa_optin_invites_select_agency on public.whatsapp_optin_invites
 -- ═══════════════════════════════════════════════════════════════════════════
 -- CRÉATION — service_role seulement (l'edge function signe le jeton).
 -- ═══════════════════════════════════════════════════════════════════════════
+-- ⚠ DROP avant CREATE, et non `create or replace` : `p_sent_by` change la SIGNATURE, si bien
+-- qu'un `replace` créerait une SURCHARGE au lieu de remplacer. PostgREST rendrait alors
+-- PGRST203 (« could not choose the best candidate function ») sur tout appel — un défaut que
+-- seule la CI voit, parce qu'il n'apparaît qu'une fois les deux versions posées en base.
+drop function if exists public.create_wa_optin_invite(uuid,text,text,text,int);
+
 create or replace function public.create_wa_optin_invite(
   p_contact_id uuid,
   p_shown_text text,
   p_lang       text default 'fr',
   p_purpose    text default 'marketing',
-  p_days       int  default 14
+  p_days       int  default 14,
+  -- Qui a invité. Facultatif : le geste reste valide sans, mais quand l'appelant le sait, la
+  -- table de preuve doit le porter — pas seulement les métadonnées d'`activity_events`.
+  p_sent_by    uuid default null
 ) returns table (id uuid, wa_phone text, agency_id uuid)
 language plpgsql security definer set search_path to 'public','pg_temp' as $$
 declare
@@ -102,16 +115,16 @@ begin
   end if;
 
   insert into public.whatsapp_optin_invites
-    (contact_id, agency_id, wa_phone, purpose, lang, shown_text, expires_at)
+    (contact_id, agency_id, wa_phone, purpose, lang, shown_text, expires_at, sent_by)
   values (p_contact_id, v_agency, v_phone, p_purpose, p_lang, p_shown_text,
-          now() + make_interval(days => greatest(coalesce(p_days, 14), 1)))
+          now() + make_interval(days => greatest(coalesce(p_days, 14), 1)), p_sent_by)
   returning whatsapp_optin_invites.id into v_id;
 
   return query select v_id, v_phone, v_agency;
 end $$;
 
-revoke all on function public.create_wa_optin_invite(uuid,text,text,text,int) from public, anon, authenticated;
-grant execute on function public.create_wa_optin_invite(uuid,text,text,text,int) to service_role;
+revoke all on function public.create_wa_optin_invite(uuid,text,text,text,int,uuid) from public, anon, authenticated;
+grant execute on function public.create_wa_optin_invite(uuid,text,text,text,int,uuid) to service_role;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- CONSOMMATION — le message entrant porte le jeton, déjà vérifié côté edge.

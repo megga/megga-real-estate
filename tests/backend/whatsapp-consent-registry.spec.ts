@@ -1058,6 +1058,30 @@ rollback;
       return (data as Array<{ id: string; wa_phone: string }>)[0]
     }
 
+    it('⛔ RÉGRESSION — `sent_by` est ÉCRIT, pas seulement déclaré', async () => {
+      // La colonne existait dans une table de PREUVE et n'était renseignée par personne : la
+      // question « qui a déclenché cette invitation ? » n'avait de réponse que dans
+      // `activity_events`, écrit en best-effort. On compte la VALEUR, pas l'absence d'erreur.
+      const phone = newPhone()
+      const contactId = await seedContact(phone, setup.agencyAId)
+      // uuid NU, sans FK — même doctrine que `contact_id` sur cette table.
+      const profileId = crypto.randomUUID()
+      const { data, error } = await svc.rpc('create_wa_optin_invite', {
+        p_contact_id: contactId, p_shown_text: TEXTE, p_lang: 'fr', p_sent_by: profileId,
+      })
+      expect(error).toBeNull()
+      const inv = (data as Array<{ id: string }>)[0]
+      const { data: row } = await svc.from('whatsapp_optin_invites')
+        .select('sent_by').eq('id', inv.id).single()
+      expect(row?.sent_by).toBe(profileId)
+
+      // Facultatif : le copilote WhatsApp n'a pas toujours de profil en main.
+      const inv2 = await inviter(contactId)
+      const { data: row2 } = await svc.from('whatsapp_optin_invites')
+        .select('sent_by').eq('id', inv2.id).single()
+      expect(row2?.sent_by).toBeNull()
+    })
+
     it('un aller complet produit un opt-in de base « consent », et il OUVRE le marketing', async () => {
       // C'est tout l'enjeu : sans ce chemin, `purpose:'marketing'` ne peut JAMAIS passer —
       // aucune ligne `legal_basis='consent'` n'existe, et la garde paraît cassée.
@@ -1259,6 +1283,19 @@ rollback;
     it('suppress_contact_email est fermée à un agent', async () => {
       const r = await setup.clientA.rpc('suppress_contact_email', { p_email: mail('agent') })
       expect(r.error, 'la désinscription passe par le lien public, pas par un agent').not.toBeNull()
+    })
+
+    it('⛔ email_send_allowed est fermée à un agent — une adresse n’est pas un oracle', async () => {
+      // Accordée à `authenticated`, elle devenait ÉNUMÉRABLE : l'agence B testait n'importe
+      // quelle adresse et apprenait si elle s'était désinscrite chez l'agence A — l'oracle
+      // exact que `public_reason` et la policy RLS existent pour fermer.
+      //
+      // ⚠ L'asymétrie avec `whatsapp_send_allowed`, elle, est voulue : celui-là exige un
+      // `p_contact_id` DE L'AGENCE de l'appelant. Ici l'entrée est une ADRESSE — précisément
+      // parce que la personne qui se désinscrit n'a pas forcément de fiche — donc aucune
+      // garde de tenant n'est possible. Les trois appelants sont des edges en service_role.
+      const r = await setup.clientA.rpc('email_send_allowed', { p_email: mail('oracle') })
+      expect(r.error, 'aucun appelant front n’existe : la fonction ne doit pas être joignable').not.toBeNull()
     })
   })
 

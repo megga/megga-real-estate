@@ -24,7 +24,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import {
   getProvider, type SendConfig, type WhatsAppProvider, type OutboundTemplateMessage,
 } from './whatsapp-gateway.ts'
-import { sendWithRetry } from './whatsapp-retry.ts'
+import { sendWithRetry, type SendWithRetryOpts } from './whatsapp-retry.ts'
 import { toWhatsAppText } from './whatsapp-format.ts'
 import { meggaProse } from './megga-prose.ts'
 import { isWhatsAppEnabled } from './whatsapp-config.ts'
@@ -46,7 +46,12 @@ export type OutboundPayload =
   | { type: 'text'; body: string }
   | { type: 'image'; url: string; caption?: string }
   | { type: 'document'; mediaId: string; filename: string; caption?: string }
-  | { type: 'template'; message: OutboundTemplateMessage }
+  /**
+   * `templateKey` est la clé INTERNE (`WaTemplateKey`), absente d'`OutboundTemplateMessage`
+   * qui ne porte que le nom approuvé par Meta. C'est elle que l'historique du CRM journalise
+   * depuis toujours, et elle seule qui reste lisible quand le nom Meta change au réapprouvage.
+   */
+  | { type: 'template'; message: OutboundTemplateMessage; templateKey?: string }
 
 export interface SendOutboundArgs {
   admin: SupabaseClient
@@ -68,6 +73,20 @@ export interface SendOutboundArgs {
   /** Parité colonne `whatsapp_messages.is_agent_error` — lue par l'alerte de livraison. */
   isAgentError?: boolean
   retry?: boolean
+  /**
+   * Profil de retry FIN, fusionné par-dessus ce que `retry` décide : chaque clé posée ici
+   * l'emporte, les autres gardent le comportement du booléen.
+   *
+   * ⚠ `retry` est un booléen à deux positions, et deux positions ne suffisent pas. L'accusé
+   * de désinscription et l'avis LPD ont un TROISIÈME régime, choisi explicitement : rejouer
+   * les seuls refus de QUOTA (`retryNetworkError: false`), jamais un 5xx ni un timeout, qui
+   * sont ambigus — Meta a peut-être livré, et rejouer doublonnerait un message vers un
+   * CLIENT. En passant par la garde, ces deux sites avaient silencieusement basculé sur
+   * `maxAttempts: 1` et le `timeoutMs` par défaut de 8000 : un throttle 429 sur l'accusé —
+   * seul message que recevra jamais qui écrit « stop » en premier — n'était plus rejoué, et
+   * chaque envoi du cron pouvait bloquer 8 s au lieu de 6 sur un budget de 90 s.
+   */
+  retryProfile?: Pick<SendWithRetryOpts, 'maxAttempts' | 'baseDelayMs' | 'timeoutMs' | 'retryNetworkError'>
   /** Défaut TRUE pour tout payload non-template. Fail-closed. */
   requireWindow?: boolean
   /** Appelé sur `window_closed` AVANT de rendre le refus (repli template HITL). */
@@ -139,7 +158,13 @@ async function auditGuard(
   meta: Record<string, unknown>,
 ): Promise<void> {
   try {
-    await admin.from('activity_events').insert({
+    // ⛔ `supabase-js` RETOURNE `{ error }`, il ne JETTE pas. Le `try/catch` seul n'attrapait
+    // donc rien et le `console.error` ci-dessous n'était jamais atteint : une violation de
+    // contrainte — `activity_events_category_messaging` pas encore appliquée, par exemple —
+    // rendait l'audit des refus silencieusement inexistant. C'est très exactement le défaut
+    // que ce bloc dit corriger. On lit le retour ; le `catch` ne couvre plus que ce qui jette
+    // pour de bon (client mal construit, métadonnée non sérialisable).
+    const { error } = await admin.from('activity_events').insert({
       agency_id: a.agencyId ?? null,
       actor_id: null,
       actor_kind: 'system',
@@ -155,10 +180,9 @@ async function auditGuard(
         phone_tail: normalizeOutboundPhone(a.to).slice(-4),
       },
     })
+    if (error) console.error('whatsapp guard: audit non écrit:', error.message.slice(0, 120))
   } catch (e) {
-    // ⚠ Un `catch` muet ici reproduirait le défaut qu'on corrige : le webhook avalait ses
-    // violations de contrainte, si bien que l'audit était silencieusement inexistant.
-    console.error('whatsapp guard: audit non écrit:', String((e as Error)?.message ?? 'error').slice(0, 120))
+    console.error('whatsapp guard: audit non écrit (exception):', String((e as Error)?.message ?? 'error').slice(0, 120))
   }
 }
 
@@ -175,10 +199,17 @@ export async function sendOutboundGuarded(a: SendOutboundArgs): Promise<SendOutb
   const to = normalizeOutboundPhone(a.to)
 
   const blocked = async (
-    reason: GuardReason, publicReason: PublicReason, inWindow: boolean, fallbackOffered = false,
+    reason: GuardReason, publicReason: PublicReason, inWindow: boolean,
+    fallbackOffered?: boolean,
   ): Promise<SendOutboundResult> => {
-    await auditGuard(a.admin, 'whatsapp_send_blocked', a, { reason, in_window: inWindow })
-    return { ok: false, blocked: true, reason, publicReason, inWindow, fallbackOffered }
+    await auditGuard(a.admin, 'whatsapp_send_blocked', a, {
+      reason, in_window: inWindow,
+      // La clé n'apparaît QUE là où la notion existe (`window_closed`, seul refus qui ait un
+      // repli à proposer). L'écrire partout poserait un `false` sans signification dans les
+      // douze autres motifs d'un journal append-only conservé dix ans.
+      ...(fallbackOffered === undefined ? {} : { fallback_offered: fallbackOffered }),
+    })
+    return { ok: false, blocked: true, reason, publicReason, inWindow, fallbackOffered: fallbackOffered ?? false }
   }
 
   // 1. Bornage. La borne HAUTE empêche un JID de groupe (18 chiffres) de faire échouer
@@ -222,8 +253,10 @@ export async function sendOutboundGuarded(a: SendOutboundArgs): Promise<SendOutb
       try { fallbackOffered = await a.onWindowClosed() }
       catch (e) { console.warn('whatsapp guard: repli template échoué:', String((e as Error)?.message ?? 'error').slice(0, 80)) }
     }
-    await auditGuard(a.admin, 'whatsapp_send_blocked', a, { reason: 'window_closed', in_window: false, fallback_offered: fallbackOffered })
-    return { ok: false, blocked: true, reason: 'window_closed', publicReason: 'window_closed', inWindow: false, fallbackOffered }
+    // ⚠ Par `blocked()`, comme les treize autres refus. Le retour construit à la main ici
+    // avait fait diverger deux chemins qui doivent rendre la même forme — et laissé le
+    // paramètre `fallbackOffered` de `blocked()` sans aucun appelant, donc jamais éprouvé.
+    return blocked('window_closed', 'window_closed', false, fallbackOffered)
   }
 
   // 5. Build — dernier point du dépôt à appeler provider.build*Request.
@@ -238,7 +271,7 @@ export async function sendOutboundGuarded(a: SendOutboundArgs): Promise<SendOutb
   // 6. Envoi. ⚠ `retry` n'est sûr que vers un AGENT : l'API Meta n'est pas idempotente, un
   //    rejeu vers un client doublonnerait son message.
   const sr = await sendWithRetry(req, (s, b) => provider.parseSendResult(s, b),
-    { maxAttempts: a.retry ? 3 : 1 })
+    { maxAttempts: a.retry ? 3 : 1, ...a.retryProfile })
   if (!sr.ok) {
     await auditGuard(a.admin, 'whatsapp_send_failed', a, {
       in_window: inWindow, error: String(sr.error ?? 'error').slice(0, 120),
@@ -250,7 +283,9 @@ export async function sendOutboundGuarded(a: SendOutboundArgs): Promise<SendOutb
   //    n'a pas ce barreau, et l'échelle est lue par le filtre d'UPDATE de parseStatusUpdates.
   //    L'idempotence pré-POST est un chantier distinct, à ne pas glisser ici.
   try {
-    await a.admin.from('whatsapp_messages').upsert({
+    // Même lecture du retour qu'en `auditGuard` : sans elle, un sortant non persisté ne
+    // laissait aucune trace, et le message parti n'existait nulle part côté CRM.
+    const { error } = await a.admin.from('whatsapp_messages').upsert({
       provider: provider.name,
       // Repli synthétique : `provider_message_id` est NOT NULL et Meta peut rendre 200 sans
       // id. Même convention que les sites existants.
@@ -274,15 +309,23 @@ export async function sendOutboundGuarded(a: SendOutboundArgs): Promise<SendOutb
       is_automated: a.isAutomated ?? false,
       is_agent_error: a.isAgentError ?? false,
     }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
-  } catch (e) {
     // Le message EST parti : ne pas le trahir en rendant un échec. On journalise et on rend ok.
-    console.error('whatsapp guard: sortant non persisté:', String((e as Error)?.message ?? 'error').slice(0, 120))
+    if (error) console.error('whatsapp guard: sortant non persisté:', error.message.slice(0, 120))
+  } catch (e) {
+    console.error('whatsapp guard: sortant non persisté (exception):', String((e as Error)?.message ?? 'error').slice(0, 120))
   }
 
   // L'accusé de désinscription consomme son unique jeton — et seulement s'il est PARTI.
+  // ⚠ Le retour compte plus qu'ailleurs : un `mark_suppression_ack_sent` raté laisse
+  // `ack_sent_at` NULL, donc le prochain passage renverra un SECOND accusé à quelqu'un qui
+  // a demandé le silence.
   if (a.purpose === 'opt_out_ack') {
-    try { await a.admin.rpc('mark_suppression_ack_sent', { p_wa_phone: to }) }
-    catch (e) { console.error('whatsapp guard: ack non marqué:', String((e as Error)?.message ?? 'error').slice(0, 80)) }
+    try {
+      const { error } = await a.admin.rpc('mark_suppression_ack_sent', { p_wa_phone: to })
+      if (error) console.error('whatsapp guard: ack non marqué:', error.message.slice(0, 80))
+    } catch (e) {
+      console.error('whatsapp guard: ack non marqué (exception):', String((e as Error)?.message ?? 'error').slice(0, 80))
+    }
   }
 
   return { ok: true, providerMessageId: sr.providerMessageId, inWindow }
@@ -294,7 +337,11 @@ function outboundBody(p: OutboundPayload): string | null {
     case 'text': return p.body
     case 'image': return p.caption ?? null
     case 'document': return p.caption ?? p.filename
-    case 'template': return `[template:${p.message.templateName}]`
+    // ⚠ L'espace et la CLÉ, tous deux repris de l'existant : le CRM affiche `[template: <clé>]`
+    // depuis l'origine (webhook, avant la garde). En rendant `[template:<nom Meta>]` on avait
+    // introduit un SECOND format dans un historique qui n'en avait qu'un, et remplacé un mot
+    // stable par un nom qui change à chaque réapprouvage Meta.
+    case 'template': return `[template: ${p.templateKey ?? p.message.templateName}]`
   }
 }
 

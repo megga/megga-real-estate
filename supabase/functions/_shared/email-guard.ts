@@ -75,7 +75,14 @@ export async function unsubscribeHeaders(
     const token = await signMagicLinkToken({
       id: contactId ?? '-', exp: unix, k: 'unsub', e: to.trim().toLowerCase(),
     })
-    const base = Deno.env.get('MEGGA_APP_URL') || 'https://app.megga.ch'
+    // ⛔ LE HÔTE DES EDGE FUNCTIONS, jamais `app.megga.ch`. Cloudflare Pages y sert un
+    // fallback SPA : mesuré le 15.08.2026, le GET du pied de page rend la coquille de l'app
+    // en `200 text/html` et le POST one-click de Gmail rend `405`. Le lien affichait donc
+    // « c'est fait » sans écrire une seule ligne dans `contact_suppressions` — un mécanisme
+    // légalement exigé qui échoue en signalant le succès. Le hôte Supabase, lui, rend du
+    // `application/json` : c'est le `content-type` qui distingue, jamais le code HTTP.
+    const base = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/+$/, '')
+    if (!base) throw new Error('SUPABASE_URL absent')
     const url = `${base}/functions/v1/email-unsubscribe?t=${encodeURIComponent(token)}`
     return {
       url,

@@ -104,8 +104,18 @@ comment on function public.email_send_allowed(text,text,uuid) is
   '— un STOP WhatsApp (channel=''all'') bloque donc aussi les relances par e-mail. Un '
   'purpose ''transactional'' passe : c''est une réponse, pas une sollicitation.';
 
-revoke all on function public.email_send_allowed(text,text,uuid) from public, anon;
-grant execute on function public.email_send_allowed(text,text,uuid) to authenticated, service_role;
+-- ⛔ PAS de `authenticated`, et l'asymétrie avec `whatsapp_send_allowed` est le sujet même.
+-- Celui-là est accordé aux agents parce que son étape 0 exige un `p_contact_id` DE LEUR
+-- AGENCE (20260815215000:60-65) : un agent ne peut interroger que son propre fichier.
+-- Celui-ci n'a pas de garde équivalente, et il ne peut pas en avoir une utile — son entrée
+-- est une ADRESSE, précisément parce que la personne qui se désinscrit n'existe pas
+-- forcément dans nos contacts. Ouvert à `authenticated`, il devient un oracle énumérable :
+-- l'agence B teste une adresse et apprend si elle s'est désinscrite chez l'agence A, ce que
+-- `public_reason` et la policy RLS existent justement pour fermer.
+-- Les trois appelants sont des edge functions en service_role (`_shared/email-guard.ts`) ;
+-- aucun appelant front n'existe.
+revoke all on function public.email_send_allowed(text,text,uuid) from public, anon, authenticated;
+grant execute on function public.email_send_allowed(text,text,uuid) to service_role;
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- DÉSINSCRIPTION PAR ADRESSE — ce que le lien « se désinscrire » appelle.

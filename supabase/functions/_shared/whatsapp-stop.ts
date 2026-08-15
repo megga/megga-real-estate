@@ -123,6 +123,12 @@ export async function sendStopAck(
       payload: { type: 'text', body },
       contactId: s.contactId, agencyId: s.agencyId,
       isAutomated: true, requireWindow: false,
+      // Profil resserré, délibéré : 2 tentatives et 6 s. `retryNetworkError:false` ne rejoue
+      // que les refus de QUOTA (429 + throttle Meta en 400), rejetés AVANT mise en file donc
+      // sûrs ; jamais un 5xx ni un timeout, ambigus (Meta a peut-être livré → doublon vers un
+      // client). Sans ce profil, un throttle sur l'accusé — seul message que recevra jamais
+      // qui écrit « stop » en premier — ne serait pas rejoué du tout.
+      retryProfile: { maxAttempts: 2, timeoutMs: 6000, retryNetworkError: false },
     })
     if (!sent.ok) {
       // `ack_already_sent` et `ack_not_requested` sont NOMINAUX : le rattrapage du cron

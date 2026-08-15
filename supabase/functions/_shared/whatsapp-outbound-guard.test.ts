@@ -30,8 +30,18 @@ interface Harness {
   upserted: Array<{ table: string; row: Record<string, unknown> }>
 }
 
-/** Faux client Supabase : seulement ce que la garde touche réellement. */
-function harness(opts?: { verdict?: Verdict; killed?: boolean; rpcError?: string }): Harness {
+/**
+ * Faux client Supabase : seulement ce que la garde touche réellement.
+ *
+ * ⛔ `writeError` / `ackError` ne sont PAS des commodités. `supabase-js` RETOURNE `{ error }`,
+ * il ne JETTE pas : un faux qui ne sait qu'aboutir ou lever ne peut pas reproduire le défaut
+ * — un refus de la base — et laisse le banc vert sur un audit inexistant. Quand l'écriture
+ * échoue, la ligne n'est PAS enregistrée : c'est ce que le test doit pouvoir compter.
+ */
+function harness(opts?: {
+  verdict?: Verdict; killed?: boolean; rpcError?: string
+  writeError?: string; ackError?: string
+}): Harness {
   const inserted: Harness['inserted'] = []
   const upserted: Harness['upserted'] = []
   const rpc = vi.fn(async (name: string) => {
@@ -39,13 +49,23 @@ function harness(opts?: { verdict?: Verdict; killed?: boolean; rpcError?: string
       if (opts?.rpcError) return { data: null, error: { message: opts.rpcError } }
       return { data: [opts?.verdict ?? OK_VERDICT], error: null }
     }
+    if (name === 'mark_suppression_ack_sent' && opts?.ackError) {
+      return { data: null, error: { message: opts.ackError } }
+    }
     return { data: null, error: null }
   })
+  const refus = { error: { message: opts?.writeError ?? '' } }
   const from = (table: string) => ({
     // isWhatsAppEnabled : app_config.whatsapp_enabled
     select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { value: opts?.killed ? 'false' : 'true' } }) }) }),
-    insert: async (row: Record<string, unknown>) => { inserted.push({ table, row }); return { error: null } },
-    upsert: async (row: Record<string, unknown>) => { upserted.push({ table, row }); return { error: null } },
+    insert: async (row: Record<string, unknown>) => {
+      if (opts?.writeError) return refus
+      inserted.push({ table, row }); return { error: null }
+    },
+    upsert: async (row: Record<string, unknown>) => {
+      if (opts?.writeError) return refus
+      upserted.push({ table, row }); return { error: null }
+    },
   })
   return { admin: { from, rpc } as unknown as SendOutboundArgs['admin'], rpc, inserted, upserted }
 }
@@ -240,6 +260,73 @@ describe('sendOutboundGuarded — ce qu’elle journalise', () => {
     expect(r.ok).toBe(true)
     expect(h.inserted.filter((i) => i.table === 'activity_events')).toHaveLength(0)
   })
+
+  it('un audit REFUSÉ PAR LA BASE ne passe pas en silence — 0 ligne, et on le dit', async () => {
+    // ⛔ LE DÉFAUT ORIGINEL. `supabase-js` RETOURNE `{ error }`, il ne JETTE pas : le
+    // `try/catch` qui entourait l'insert ne se déclenchait jamais et le `console.error`
+    // promis n'était pas atteint. Si `activity_events_category_messaging` n'est pas encore
+    // appliquée — ou si une autre contrainte casse — l'audit des refus est inexistant, et
+    // rien ne le dit. L'assertion n'est donc PAS « ça ne jette pas » : on compte des lignes.
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const h = harness({
+      writeError: 'new row violates check constraint "activity_events_category_check"',
+      verdict: {
+        allowed: false, reason: 'do_not_contact', public_reason: 'not_contactable',
+        in_24h_window: false, legal_basis: 'consent', subject_kind: 'contact',
+      },
+    })
+    const r = await sendOutboundGuarded(baseArgs(h))
+    // Aucune ligne écrite…
+    expect(h.inserted.filter((i) => i.table === 'activity_events')).toHaveLength(0)
+    // …et le journal d'exécution le dit, avec le motif de la base.
+    expect(err).toHaveBeenCalledWith(
+      'whatsapp guard: audit non écrit:', expect.stringContaining('activity_events_category_check'))
+    // Le refus reste un refus : l'échec de l'audit ne change pas la décision.
+    expect(blockedResult(r).reason).toBe('do_not_contact')
+  })
+
+  it('un sortant NON PERSISTÉ est signalé — mais le message est parti, on ne le trahit pas', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const h = harness({ writeError: 'deadlock detected' })
+    const r = await sendOutboundGuarded(baseArgs(h))
+    expect(h.upserted.filter((u) => u.table === 'whatsapp_messages')).toHaveLength(0)
+    expect(err).toHaveBeenCalledWith(
+      'whatsapp guard: sortant non persisté:', expect.stringContaining('deadlock'))
+    expect(r.ok).toBe(true)
+  })
+
+  it('un jeton d’accusé NON MARQUÉ est signalé — sinon un SECOND accusé partira', async () => {
+    // `mark_suppression_ack_sent` raté laisse `ack_sent_at` NULL : le rattrapage du cron
+    // repasse, la garde autorise, et quelqu'un qui a demandé le silence reçoit un doublon.
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const h = harness({ verdict: { ...OK_VERDICT, reason: 'ok_opt_out_ack' }, ackError: 'timeout' })
+    await sendOutboundGuarded(baseArgs(h, { purpose: 'opt_out_ack' }))
+    expect(err).toHaveBeenCalledWith('whatsapp guard: ack non marqué:', expect.stringContaining('timeout'))
+  })
+
+  it('`fallback_offered` est journalisé sur window_closed, et NULLE PART ailleurs', async () => {
+    // ⚠ CE CAS NE PROUVE PAS LA REFONTE — il la CARACTÉRISE, et c'est ce qu'on lui demande.
+    // Avant comme après, le refus window_closed portait `fallback_offered` et les autres non ;
+    // ce test était donc déjà vert sur l'ancien code. Il ne vaut pas comme régression, il vaut
+    // comme FILET : la factorisation « évidente » — un `blocked()` unifié qui poserait
+    // `fallback_offered: false` par défaut — estamperait treize refus d'une clé sans
+    // signification, dans un journal append-only conservé dix ans. C'est cette mutation-là
+    // qu'il attrape, et c'est le seul piège réel de §11.
+    const ferme = harness({ verdict: { ...OK_VERDICT, in_24h_window: false } })
+    await sendOutboundGuarded(baseArgs(ferme, { onWindowClosed: async () => true }))
+    const evt = ferme.inserted.filter((i) => i.table === 'activity_events')
+    expect(evt).toHaveLength(1)
+    expect((evt[0].row.metadata as Record<string, unknown>).reason).toBe('window_closed')
+    expect((evt[0].row.metadata as Record<string, unknown>).fallback_offered).toBe(true)
+
+    const autre = harness({ verdict: {
+      allowed: false, reason: 'no_opt_in', public_reason: 'no_opt_in',
+      in_24h_window: true, legal_basis: null, subject_kind: 'contact',
+    } })
+    await sendOutboundGuarded(baseArgs(autre))
+    const meta = autre.inserted[0].row.metadata as Record<string, unknown>
+    expect(meta).not.toHaveProperty('fallback_offered')
+  })
 })
 
 describe('sendOutboundGuarded — persistance et jeton d’accusé', () => {
@@ -282,6 +369,65 @@ describe('sendOutboundGuarded — persistance et jeton d’accusé', () => {
     const ko = harness({ verdict: { ...OK_VERDICT, reason: 'ok_opt_out_ack' } })
     await sendOutboundGuarded(baseArgs(ko, { purpose: 'opt_out_ack', provider: fakeProvider(false) }))
     expect(ko.rpc).not.toHaveBeenCalledWith('mark_suppression_ack_sent', expect.anything())
+  })
+})
+
+describe('sendOutboundGuarded — le profil de retry', () => {
+  // Un throttle Meta : 429 côté HTTP, refus AVANT mise en file, donc sûr à rejouer même
+  // pour un envoi CLIENT non idempotent.
+  const throttle = () => vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 429 })))
+
+  it('sans profil, un envoi non-retry ne tente QU’UNE fois', async () => {
+    throttle()
+    const h = harness()
+    await sendOutboundGuarded(baseArgs(h, { provider: fakeProvider(false) }))
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('le profil resserré de l’accusé STOP et de l’avis LPD est RESTITUÉ jusqu’à sendWithRetry', async () => {
+    // ⛔ Les deux sites l'avaient perdu en passant par la garde : `maxAttempts: 1` et le
+    // timeout par défaut de 8000 ms. Un throttle sur l'accusé — seul message que recevra
+    // jamais qui écrit « stop » en premier — n'était donc plus rejoué du tout.
+    throttle()
+    const h = harness()
+    await sendOutboundGuarded(baseArgs(h, {
+      provider: fakeProvider(false),
+      retryProfile: { maxAttempts: 2, timeoutMs: 6000, retryNetworkError: false, baseDelayMs: 0 },
+    }))
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+
+  it('le profil PRIME sur `retry`, clé par clé', async () => {
+    throttle()
+    const h = harness()
+    await sendOutboundGuarded(baseArgs(h, {
+      provider: fakeProvider(false), retry: true,          // vaudrait 3 tentatives…
+      retryProfile: { maxAttempts: 1 },                     // …que le profil ramène à 1.
+    }))
+    expect(fetch).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('sendOutboundGuarded — le corps journalisé d’un template', () => {
+  const tmsg = { toPhone: '', templateName: 'megga_followup_v3', languageCode: 'fr' }
+
+  it('porte la CLÉ INTERNE, au format historique `[template: <clé>]`', async () => {
+    // Le CRM affiche ce corps depuis l'origine, avec l'espace et la clé. Rendre
+    // `[template:<nom Meta>]` introduisait un SECOND format dans un historique qui n'en
+    // avait qu'un, et remplaçait un mot stable par un nom qui change à chaque réapprouvage.
+    const h = harness()
+    await sendOutboundGuarded(baseArgs(h, {
+      purpose: 'utility', payload: { type: 'template', message: tmsg, templateKey: 'followup' },
+    }))
+    expect(h.upserted[0].row.body).toBe('[template: followup]')
+  })
+
+  it('retombe sur le nom Meta quand la clé n’est pas fournie', async () => {
+    const h = harness()
+    await sendOutboundGuarded(baseArgs(h, {
+      purpose: 'utility', payload: { type: 'template', message: tmsg },
+    }))
+    expect(h.upserted[0].row.body).toBe('[template: megga_followup_v3]')
   })
 })
 

@@ -331,6 +331,10 @@ serve(async (req) => {
         agencyId: n.agency_id,
         isAutomated: true,
         requireWindow: false,
+        // Le profil resserré décrit ci-dessus, RESTITUÉ : le passage par la garde l'avait
+        // ramené à `maxAttempts:1` et au timeout par défaut de 8000 ms, ce qui déborde le
+        // budget de 90 s du cron d'un tiers par envoi et supprime le rejeu des quotas.
+        retryProfile: { maxAttempts: 2, timeoutMs: 6000, retryNetworkError: false },
       })
       if (!sr.ok) console.error('whatsapp notice send failed:', String(('error' in sr ? sr.error : sr.reason) ?? 'error').slice(0, 80))
       // Une tentative par numéro : on enregistre l'avis quoi qu'il arrive (la fenêtre

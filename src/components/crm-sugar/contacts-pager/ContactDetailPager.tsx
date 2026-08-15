@@ -27,6 +27,12 @@ import { COUNTRIES, countryName } from '@/lib/countries'
 import { hasIdentityChanged, isInvalidSwissDate, type ContactIdentity } from '@/lib/contactIdentity'
 import { type SugarPalette } from '@/components/crm-sugar/tokens'
 import { crmFmtCHF } from '@/components/crm-sugar/tokens'
+// ⚠ `formatDate` et non `toLocaleDateString('fr-CH')` : le format suisse DD.MM.YYYY est la
+// règle de MAISON, valable dans les quatre langues (CLAUDE.md §6), et il vit dans un seul
+// helper. Figer `'fr-CH'` au site d'appel donnait le même rendu par coïncidence, en le
+// rendant insensible à toute évolution du helper — et en laissant croire, dans une carte
+// traduite, que la carte formate en français.
+import { formatDate } from '@/lib/utils'
 
 // ═══════════════════════════════════════════════════════════════════════
 //   API PUBLIQUE
@@ -712,7 +718,7 @@ function CdConsent({ P, phone, consent, onDoNotContact, onInviteOptin }: {
         <span style={{ fontSize: 'var(--crm-text-base)', fontWeight: 700, color: teinte }}>{etat}</span>
         {consent.suppressed && consent.suppressedAt && (
           <span style={{ fontSize: 'var(--crm-text-sm)', color: P.muted, fontVariantNumeric: 'tabular-nums' }}>
-            {new Date(consent.suppressedAt).toLocaleDateString('fr-CH')}
+            {formatDate(consent.suppressedAt)}
           </span>
         )}
       </div>
@@ -735,7 +741,7 @@ function CdConsent({ P, phone, consent, onDoNotContact, onInviteOptin }: {
           {consent.pendingInviteAt ? (
             <div style={{ fontSize: 'var(--crm-text-sm)', color: P.muted }}>
               {t('fiche.consent.inviteSent', {
-                date: new Date(consent.pendingInviteAt).toLocaleDateString('fr-CH'),
+                date: formatDate(consent.pendingInviteAt),
               })}
             </div>
           ) : (
@@ -790,7 +796,7 @@ function CdConsent({ P, phone, consent, onDoNotContact, onInviteOptin }: {
           {consent.journal.map((e) => (
             <div key={e.id} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-sm)' }}>
               <span style={{ color: P.muted, fontVariantNumeric: 'tabular-nums', minWidth: 78 }}>
-                {new Date(e.createdAt).toLocaleDateString('fr-CH')}
+                {formatDate(e.createdAt)}
               </span>
               <span style={{ fontWeight: 600, color: e.event === 'opt_in' ? P.ok : P.inkSoft }}>
                 {t('fiche.consent.event.' + e.event)}
