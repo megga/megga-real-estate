@@ -11,6 +11,14 @@ export interface NormalizedInboundMessage {
   fromPhone: string
   toPhone: string | null
   body: string | null
+  /**
+   * D'où vient `body`. Le distinguer est nécessaire, pas cosmétique : l'opt-out par BOUTON
+   * doit être honoré même pour un agent (Meta l'exige sur ses propres templates), alors
+   * qu'un agent qui tape « stop » refuse seulement l'action en cours — « stop » appartient
+   * déjà au jeu NO de `parseConfirmation`. Sans cette distinction, répondre « stop » à une
+   * confirmation désinscrirait l'agent de son propre copilote.
+   */
+  bodySource: InboundBodySource | null
   mediaType: NormalizedMediaType | null
   mediaUrl: string | null
   mediaId: string | null
@@ -21,6 +29,9 @@ export interface NormalizedInboundMessage {
 
 export type NormalizedMediaType =
   | 'image' | 'audio' | 'video' | 'document' | 'location' | 'contact' | 'sticker'
+
+/** Provenance du corps normalisé. `button`/`interactive` = la personne a CLIQUÉ. */
+export type InboundBodySource = 'text' | 'caption' | 'button' | 'interactive'
 
 export interface OutboundTextMessage {
   toPhone: string   // digits only, international without +
@@ -113,6 +124,27 @@ export function normalizePhone(jid: string): string {
   return (jid || '').split('@')[0].replace(/\D/g, '')
 }
 
+/** Bornes d'un numéro joignable, en chiffres nus. 15 = maximum E.164. */
+export const PHONE_MIN_DIGITS = 6
+export const PHONE_MAX_DIGITS = 15
+
+/**
+ * Un numéro peut-il porter un message WhatsApp — dans un sens comme dans l'autre ?
+ *
+ * Jumelle TS du CHECK SQL `wa_phone ~ '^[0-9]{6,15}$'` du registre de consentement.
+ * La règle vivait en trois exemplaires (triage, garde d'envoi, contraintes SQL) ; elle
+ * n'en a plus qu'un côté code, sinon les trois divergeront.
+ *
+ * La borne HAUTE fait le vrai travail : un JID de groupe (`120363…@g.us`) donne 18
+ * chiffres. Le laisser passer coûte deux fois — l'insert viole la contrainte, la fonction
+ * rend 500, et Meta rejoue ; et si l'insert passait, `normalize_phone` (= 9 derniers
+ * chiffres) le rapprocherait d'un contact au hasard.
+ */
+export function isDialablePhone(value: string | null | undefined): boolean {
+  const digits = (value ?? '').replace(/\D/g, '')
+  return digits.length >= PHONE_MIN_DIGITS && digits.length <= PHONE_MAX_DIGITS
+}
+
 // Progression monotone des statuts d'un sortant : received < sent < delivered < read.
 // `failed` est terminal et n'écrase jamais `read` (un message lu a forcément été livré).
 // L'UPDATE filtre sur ces statuts antérieurs : un event en retard ou rejoué ne matche
@@ -158,6 +190,11 @@ export async function verifyHmac(rawBody: string, signatureHeader: string, secre
 // Signature : header X-Hub-Signature-256 = sha256=HMAC-SHA256(app_secret, rawBody),
 // vérifiée par verifyHmac() — désormais le seul chemin d'entrée accepté.
 
+/** Première valeur réellement porteuse de texte. Une chaîne vide n'en est pas une. */
+function firstNonEmpty(...vals: Array<string | undefined>): string | undefined {
+  return vals.find((v) => typeof v === 'string' && v !== '')
+}
+
 const META_TYPE_TO_MEDIA: Record<string, NormalizedMediaType> = {
   image: 'image', audio: 'audio', voice: 'audio', video: 'video',
   document: 'document', location: 'location', contacts: 'contact', sticker: 'sticker',
@@ -179,12 +216,43 @@ class MetaProvider implements WhatsAppProvider {
     const type = (message.type as string) || 'text'
     const text = message.text as { body?: string } | undefined
     const mediaObj = message[type] as { id?: string; mime_type?: string; caption?: string } | undefined
+    // Réponses à un BOUTON. Elles ne portent ni `text.body` ni `caption` : jusqu'ici
+    // `body` valait null, donc le bouton « Stop promotions » que Meta attache lui-même à
+    // nos templates marketing — le chemin d'opt-out qu'il met en avant — était INVISIBLE,
+    // et le message restait orphelin (isTriageEligible exige un corps non vide).
+    const button = message.button as { text?: string; payload?: string } | undefined
+    const interactive = message.interactive as {
+      button_reply?: { id?: string; title?: string }
+      list_reply?: { id?: string; title?: string }
+    } | undefined
+    const fromPhone = normalizePhone(message.from as string)
+    // Hors bornes = pas un interlocuteur (JID de groupe, expéditeur absent). On ignore au
+    // lieu d'insérer : le webhook rend alors 200 sans écrire, seule issue qui ne déclenche
+    // pas de rejeu Meta.
+    if (!isDialablePhone(fromPhone)) return null
+    // ⚠ Une seule cascade, décrite DEUX fois (la valeur et sa provenance), ne resterait pas
+    // d'accord avec elle-même longtemps. On résout donc une fois, et `body` en découle.
+    //
+    // ⚠ `firstNonEmpty` et NON `??` : Meta envoie un `button.text` VIDE plutôt qu'absent
+    // quand le bouton n'a pas de libellé, et `??` ne franchit pas une chaîne vide. Le
+    // `payload` était alors perdu, et le message redevenait orphelin — le défaut même que
+    // la lecture des boutons corrige.
+    const resolved: Array<[InboundBodySource, string | undefined]> = [
+      ['text', text?.body],
+      ['caption', mediaObj?.caption],
+      // `payload` seulement à défaut de `text`, et le `title` d'un reply plutôt que son
+      // `id` : ce corps alimente le corpus de voix et la compréhension, y injecter un
+      // identifiant technique le polluerait.
+      ['button', firstNonEmpty(button?.text, button?.payload)],
+      ['interactive', firstNonEmpty(interactive?.button_reply?.title, interactive?.list_reply?.title)],
+    ]
+    const hit = resolved.find(([, v]) => v != null && v !== '')
     const tsRaw = message.timestamp as string | number | undefined
     const ts = tsRaw != null ? Number(tsRaw) : undefined
     return {
       providerMessageId: message.id as string,
       sessionId: (metadata?.phone_number_id as string) ?? null,
-      fromPhone: normalizePhone(message.from as string),
+      fromPhone,
       // UNIQUEMENT le vrai numéro Business (display_phone_number), JAMAIS phone_number_id
       // (ID de compte Meta ~15 chiffres, déjà en sessionId) : ce toPhone route l'attribution
       // d'agence (agency_for_wa_business_number) via normalize_phone = 9 derniers chiffres ;
@@ -193,7 +261,8 @@ class MetaProvider implements WhatsAppProvider {
       toPhone: metadata?.display_phone_number
         ? normalizePhone(metadata.display_phone_number as string)
         : null,
-      body: text?.body ?? mediaObj?.caption ?? null,
+      body: hit?.[1] ?? null,
+      bodySource: hit?.[0] ?? null,
       mediaType: META_TYPE_TO_MEDIA[type] ?? null,
       mediaUrl: null, // bytes récupérés en différé via Graph API (whatsapp-media)
       mediaId: mediaObj?.id ?? null,

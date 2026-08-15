@@ -38,6 +38,8 @@
     "lint:roster": "node scripts/check-edge-roster.mjs",
     "lint:edge-auth": "node scripts/check-edge-auth.mjs",
     "lint:migrations": "node scripts/check-migration-idempotence.mjs",
+    "lint:whatsapp-outbound": "node scripts/check-whatsapp-outbound.mjs",
+    "lint:spec-sql": "node scripts/check-spec-sql-blocks.mjs",
     "test:e2e:admin": "playwright test --config=playwright.admin.config.ts"
   },
   "dependencies": {

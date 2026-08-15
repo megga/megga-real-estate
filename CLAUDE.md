@@ -458,6 +458,7 @@ Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel e
 DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
 MEGGA_MAGIC_LINK_HMAC_SECRET,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
+GOOGLE_SERVICE_ACCOUNT_KEY (⚠ à poser — voir ci-dessous),
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_IDENTITY_FLOW_ID,
 MAPBOX_TOKEN,
 UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
@@ -503,6 +504,33 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 > donc `no_secret` ⇒ absent, `invalid_signature` ⇒ présent. ⚠ Cet oracle disparaît avec la
 > PR #1114, qui réduit le motif rendu aux appelants anonymes à `expired`/`invalid` — il
 > renseignait un tiers sur la configuration du déploiement.
+
+> 🗓 **`GOOGLE_SERVICE_ACCOUNT_KEY` — l'agenda des appels d'accueil (15.08.2026).**
+> Contenu : le fichier de clé JSON **entier** du compte de service
+> `megga-onboarding-calendar@tribal-dispatch-504619-c1.iam.gserviceaccount.com`
+> (projet Google « My First Project » du compte **hello@megga.ai**, API Calendar déjà
+> activée). Lu par `_shared/google-service-account.ts`, qui signe une assertion RS256 et
+> **usurpe** la boîte déclarée dans `onboarding_hosts.calendar_email`.
+>
+> ⚠ L'usurpation n'est pas un luxe : un compte de service qui écrit dans un agenda
+> simplement PARTAGÉ avec lui **ne peut pas créer de lien Google Meet** (Google exige un
+> utilisateur organisateur). C'est possible ici parce que **`megga.ai` EST un Workspace**
+> — mesuré le 15.08 : MX `smtp.google.com`, SPF `_spf.google.com` (par contraste
+> `megga.ch` est chez privateemail). `calendars/primary` désigne alors l'agenda de la
+> boîte usurpée.
+>
+> ⛔ **Sans la délégation à l'échelle du domaine, le secret ne sert à rien** : le jeton
+> est refusé en `unauthorized_client`. À accorder dans la console d'administration
+> Workspace (Sécurité › Contrôle des API › Délégation), au client OAuth
+> **`118071255987425211651`**, scope **`https://www.googleapis.com/auth/calendar`** et lui
+> seul. Cette page exige une ré-authentification par mot de passe même sur une session
+> ouverte : elle ne peut pas être configurée par un agent.
+>
+> Bascule hôte par hôte, sans déploiement : `calendar_email` renseignée ⇒ compte de
+> service ; NULL ⇒ voie OAuth personnelle historique (inchangée, Outlook comprise).
+> ⚠ Un hôte dont la boîte est déclarée mais le jeton indisponible est **écarté de la
+> grille** (`degraded`), jamais traité comme libre — donc « aucun créneau » est le symptôme
+> attendu tant que la délégation manque.
 
 > ⚠ **`MAPBOX_TOKEN` n'est PAS configuré** (constat du 01.08.2026, [issue #1061](https://github.com/megga/megga-real-estate/issues/1061)).
 > Il est distinct de `VITE_MAPBOX_TOKEN` (secret GitHub Actions, injecté au build du bundle

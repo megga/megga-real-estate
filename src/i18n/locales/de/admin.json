@@ -797,6 +797,10 @@
   "kybReview.detail.idVerified.partial": "geprüft · stimmt teilweise überein",
   "kybReview.detail.idVerified.mismatch": "geprüft · STIMMT NICHT ÜBEREIN",
   "kybReview.detail.idVerified.unreadable": "Prüfung nicht abgeschlossen",
+  "kybReview.detail.stripeStatus.processing": "Stripe-Prüfung läuft",
+  "kybReview.detail.stripeStatus.requires_input": "Stripe-Prüfung unterbrochen",
+  "kybReview.detail.stripeStatus.canceled": "Stripe-Prüfung abgebrochen",
+  "kybReview.detail.stripeStatus.verified": "bei Stripe geprüft",
   "kybReview.checks.table.type": "Typ",
   "kybReview.checks.table.source": "Quelle",
   "kybReview.checks.table.result": "Ergebnis",
@@ -956,7 +960,13 @@
       "status": "Status",
       "actions": "Aktionen",
       "rescheduled": "{{count}} mal umgebucht",
-      "openMeeting": "Videokonferenz öffnen"
+      "openMeeting": "Videokonferenz öffnen",
+      "details": "Details"
+    },
+    "details": {
+      "phone": "Telefon",
+      "note": "Notiz",
+      "answers": "Antworten zur Kalibrierung"
     },
     "actions": {
       "markDone": "Gehalten",
@@ -983,6 +993,7 @@
       "deactivate": "Deaktivieren",
       "table": {
         "host": "Gastgeber",
+        "calendar": "Kalender {{email}}",
         "hours": "Zeiten",
         "upcoming": "Bevorstehend",
         "state": "Status",

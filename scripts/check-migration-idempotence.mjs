@@ -42,6 +42,20 @@ const CREATE_RE = new RegExp(
   String.raw`\bCREATE\s+(OR\s+REPLACE\s+)?(?:UNIQUE\s+)?(${KINDS})\b(\s+IF\s+NOT\s+EXISTS)?\s+([A-Za-z0-9_."]+)`,
   'gi',
 );
+/**
+ * `ALTER TABLE … ADD COLUMN` SANS `IF NOT EXISTS`.
+ *
+ * ⚠ TROU MESURÉ le 14.08.2026 sur `20260815190000_contacts_language.sql`. Le contrôle
+ * ci-dessus ne lit que les CREATE : une migration qui n'ajoute QUE des colonnes y passait
+ * intacte, puis levait 42701 au second rejeu du jour, coupait l'étape (`set -e`) et
+ * emportait les migrations suivantes AVEC les Edge Functions. C'est exactement l'incident
+ * du 02.08.2026, par une autre porte.
+ *
+ * Le motif accepte les listes (`ADD COLUMN a …, ADD COLUMN b …`) en cherchant CHAQUE
+ * occurrence, pas seulement la première de l'instruction.
+ */
+const ADD_COLUMN_RE = /\bADD\s+COLUMN\b(?!\s+IF\s+NOT\s+EXISTS)\s+("?[A-Za-z0-9_]+"?)/gi;
+
 const DROP_RE = new RegExp(
   String.raw`\bDROP\s+(?:${KINDS})\s+IF\s+EXISTS\s+([A-Za-z0-9_."]+)`,
   'gi',
@@ -90,6 +104,9 @@ function checkFile(path) {
     if (dropped.has(normalize(name))) continue;
     faults.push({ line: lineOf(sql, c.index), kind: kind.toUpperCase(), name });
   }
+  for (const a of sql.matchAll(ADD_COLUMN_RE)) {
+    faults.push({ line: lineOf(sql, a.index), kind: 'ADD COLUMN', name: a[1] });
+  }
   return faults;
 }
 
@@ -106,7 +123,8 @@ for (const f of files) {
   failed += faults.length;
   console.error(`\n✗ ${f} — non rejouable :`);
   for (const { line, kind, name } of faults) {
-    console.error(`    ligne ${line} : CREATE ${kind} ${name}`);
+    const geste = kind === 'ADD COLUMN' ? `ALTER TABLE … ADD COLUMN ${name}` : `CREATE ${kind} ${name}`;
+    console.error(`    ligne ${line} : ${geste}`);
   }
 }
 

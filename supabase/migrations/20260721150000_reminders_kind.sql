@@ -7,7 +7,7 @@
 
 BEGIN;
 
-ALTER TABLE public.reminders ADD COLUMN kind text
+ALTER TABLE public.reminders ADD COLUMN IF NOT EXISTS kind text
   CONSTRAINT reminders_kind_check
   CHECK (kind IN ('call', 'visit', 'kyc', 'match', 'offer', 'note'));
 

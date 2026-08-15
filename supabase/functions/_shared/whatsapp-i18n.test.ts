@@ -1,4 +1,44 @@
 import { describe, it, expect } from 'vitest'
+import { refusalText } from './whatsapp-i18n'
+
+describe('refusalText — ce que la garde dit à l’agent', () => {
+  const EXPOSABLES = [
+    'do_not_contact', 'opted_out', 'phone_suppressed', 'not_contactable', 'no_opt_in',
+    'marketing_requires_consent', 'invalid_phone', 'kill_switch', 'agent_link_unverified',
+    'window_closed',
+  ] as const
+
+  it('chaque motif exposable a un texte dans les deux langues', () => {
+    for (const r of EXPOSABLES) {
+      for (const lang of ['fr', 'en'] as const) {
+        const s = refusalText(lang, r)
+        expect(s.length, `${lang}/${r}`).toBeGreaterThan(20)
+        // Un refus muet se solde par un agent qui réessaie, puis qui contourne.
+        expect(s, `${lang}/${r}`).not.toContain('undefined')
+      }
+    }
+  })
+
+  it('les motifs FR et EN diffèrent réellement (pas de repli silencieux)', () => {
+    for (const r of EXPOSABLES) {
+      expect(refusalText('fr', r), r).not.toBe(refusalText('en', r))
+    }
+  })
+
+  it('un motif inconnu retombe sur le générique, jamais sur du vide', () => {
+    expect(refusalText('fr', 'motif_inexistant')).toBe(refusalText('fr', 'not_contactable'))
+    expect(refusalText('en', '')).toBe(refusalText('en', 'not_contactable'))
+  })
+
+  it('le texte ne révèle jamais qu’un autre tenant a reçu le STOP', () => {
+    // `not_contactable` est le motif rendu à une agence qui ne voit pas la ligne : son
+    // texte ne doit pas laisser deviner une désinscription chez quelqu'un d'autre.
+    for (const lang of ['fr', 'en'] as const) {
+      const s = refusalText(lang, 'not_contactable').toLowerCase()
+      expect(s).not.toMatch(/désinscri|unsubscrib|stop/)
+    }
+  })
+})
 import {
   detectLang, asWaLang, t, confirmSuffix, confirmSuffixCorrectable, kycTypeLabel, vigilanceLabel,
   confirmOpenKyc, openKycResult, confirmUpdatePipeline, pipelineWhoNamed,

@@ -708,7 +708,13 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
             {/* Ce que la lecture assistée a trouvé, AU-DESSUS de l'image et non à sa
                 place : elle dit où porter les yeux, elle ne remplace pas le regard.
                 Absente sur les dossiers soumis avant le 03.08.2026. */}
-            {(p.idDocumentRead || p.idDocumentExpiresOn) && (
+            {/* ⚠ LA CONDITION VIENT DE `main`, LE STYLE VIENT DE NOUS, et ce n'est
+                pas un compromis. Le corps rend `identityVerificationStatus` plus
+                bas : sans lui dans la condition, un dossier qui n'a QUE l'état
+                Stripe verrait tout le bloc masqué — la fonctionnalité serait
+                morte. Et le style en ligne est ce qui rend cette page VISIBLE au
+                cliquet de grammaire, qui ne lit pas les classes. */}
+            {(p.idDocumentRead || p.idDocumentExpiresOn || p.identityVerificationStatus) && (
               <div className="mt-1 flex items-center gap-2" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
                 {/* « vérifiée » quand c'est le prestataire (document authentifié +
                     selfie), « lecture » quand c'est le modèle (ce qui est imprimé sur
@@ -718,6 +724,17 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
                     {t(`kybReview.detail.${p.idDocumentRead.provider === 'stripe_identity' ? 'idVerified' : 'idRead'}.${p.idDocumentRead.verdict}`)}
                   </span>
                 )}
+                {/* État BRUT de la session Stripe, quand le verdict ne le porte pas
+                    déjà : sans lui, « Stripe a échoué » et « jamais tenté » se
+                    lisaient pareil. Le code d'erreur reste brut — vocabulaire Stripe,
+                    stable, que le relecteur peut chercher tel quel. */}
+                {p.identityVerificationStatus &&
+                  (p.identityVerificationStatus !== 'verified' || !p.idDocumentRead) && (
+                    <span>
+                      {t(`kybReview.detail.stripeStatus.${p.identityVerificationStatus}`, p.identityVerificationStatus)}
+                      {p.identityVerificationErrorCode ? ` · ${p.identityVerificationErrorCode}` : ''}
+                    </span>
+                  )}
                 {p.idDocumentExpiresOn && (
                   <span style={p.idDocumentRead?.expired ? { color: tones.err } : undefined}>
                     {t('kybReview.detail.idRead.expiresOn', { date: swissDate(p.idDocumentExpiresOn) })}

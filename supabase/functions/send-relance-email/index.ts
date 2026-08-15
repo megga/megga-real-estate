@@ -5,9 +5,13 @@
 // MEGGA AI in the relance editor) so the agent owns the wording.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { emailSendAllowed, unsubscribeHeaders, unsubscribeFooterHtml } from '../_shared/email-guard.ts'
 
 interface SendRequest {
+  /** Pied de page de désinscription, injecté par la garde. Vide = pas de lien signé. */
+  unsubscribeHtml?: string
   to: string
   subject: string
   body: string
@@ -62,10 +66,7 @@ function buildHtml(req: SendRequest): string {
       </div>
       ${signature}
     </div>
-    <p style="font-size:10px;color:#d1d5db;text-align:center;margin-top:20px;line-height:1.5;">
-      Email envoyé via MEGGA Real Estate. Si vous ne souhaitez plus recevoir
-      de messages, répondez avec « STOP ».
-    </p>
+    ${req.unsubscribeHtml ?? ''}
   </div>
 </body>
 </html>`
@@ -108,14 +109,31 @@ serve(async (req) => {
       )
     }
 
-    const html = buildHtml(body)
-
     const tags = [
       { name: 'kind', value: 'relance' },
       ...(body.leadId ? [{ name: 'lead_id', value: body.leadId }] : []),
       // agency_id pris du profil authentifié, pas du body (non falsifiable).
       { name: 'agency_id', value: profile.agency_id },
     ]
+
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
+    // ⛔ GARDE. Une relance est un envoi que NOUS initions : un STOP reçu sur WhatsApp
+    // (channel='all') la bloque, tout comme un clic « se désinscrire » sur un e-mail
+    // précédent. C'est le trou que ce chantier ferme — le refus était enregistré et
+    // opposable, et ce canal-ci l'ignorait.
+    const verdict = await emailSendAllowed(admin, { to: body.to, purpose: 'relance' })
+    if (!verdict.allowed) {
+      return new Response(
+        JSON.stringify({ error: verdict.reason, blocked: true }),
+        { status: 409, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } },
+      )
+    }
+
+    const unsub = await unsubscribeHeaders(body.to)
+    const html = buildHtml({ ...body, unsubscribeHtml: unsub ? unsubscribeFooterHtml(unsub.url) : '' })
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -129,6 +147,9 @@ serve(async (req) => {
         subject: body.subject,
         html,
         tags,
+        // `List-Unsubscribe` + one-click : ce que Gmail et Outlook ATTENDENT. Leur absence
+        // pèse sur la délivrabilité de tout le domaine, pas seulement de ce message.
+        ...(unsub ? { headers: unsub.headers } : {}),
       }),
     })
 

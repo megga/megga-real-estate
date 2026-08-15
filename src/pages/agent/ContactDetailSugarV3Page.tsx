@@ -35,6 +35,7 @@ import ContactDetailPager, {
   type FicheRevokeResult,
 } from '@/components/crm-sugar/contacts-pager/ContactDetailPager'
 import { useContactNextAction } from '@/hooks/useContactNextAction'
+import { useContactConsent, useSetDoNotContact, useSendOptinInvite } from '@/hooks/useContactConsent'
 import { nbaToI18n } from '@/lib/contactNba'
 
 export default function ContactDetailSugarV3Page() {
@@ -64,6 +65,11 @@ export default function ContactDetailSugarV3Page() {
   const { data: kyc } = useKycDossierByContact(id)
   // NBA (cerveau partagé) — best-effort : null si RPC absent/erreur, la fiche vit sans.
   const { data: nbaRaw } = useContactNextAction(id)
+  // Joignabilité WhatsApp : l'état, son motif et le journal. Le pager ne fait aucun appel
+  // réseau — il reçoit la donnée normalisée et le geste, comme tout le reste de la fiche.
+  const { data: consent } = useContactConsent(id)
+  const doNotContact = useSetDoNotContact()
+  const inviteOptin = useSendOptinInvite()
   const update = useUpdateContact()
   const del = useDeleteContact()
   const invalidateKyc = useInvalidateKycForContact()
@@ -186,6 +192,19 @@ export default function ContactDetailSugarV3Page() {
       sp={sp}
       dark={dark}
       onBack={() => navigate('/dashboard/contacts')}
+      consent={consent
+        ? {
+            ...consent,
+            pendingInviteAt: consent.pendingInvite?.createdAt ?? null,
+            // L'invitation voyage par E-MAIL : sans adresse, elle ne peut pas partir, et la
+            // carte doit le dire plutôt que de griser sans motif.
+            canInvite: !!contact?.email && !!contact?.phone,
+          }
+        : null}
+      onDoNotContact={contact?.phone
+        ? async () => { await doNotContact.mutateAsync({ contactId: id, phone: contact.phone as string }) }
+        : undefined}
+      onInviteOptin={async () => { await inviteOptin.mutateAsync({ contactId: id }) }}
       onSaveIdentity={async (v) => {
         const cols = identityToColumns(v)
         await update.mutateAsync({ id, first_name: v.firstName, last_name: v.lastName, ...cols })

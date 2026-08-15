@@ -2073,6 +2073,51 @@ export type Database = {
           },
         ]
       }
+      contact_suppressions: {
+        Row: {
+          ack_sent_at: string | null
+          agency_id: string | null
+          channel: string
+          contact_id: string | null
+          created_at: string
+          id: string
+          lifted_at: string | null
+          lifted_by: string | null
+          lifted_reason: string | null
+          reason: string
+          source_ref: string | null
+          wa_phone: string
+        }
+        Insert: {
+          ack_sent_at?: string | null
+          agency_id?: string | null
+          channel: string
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          lifted_reason?: string | null
+          reason: string
+          source_ref?: string | null
+          wa_phone: string
+        }
+        Update: {
+          ack_sent_at?: string | null
+          agency_id?: string | null
+          channel?: string
+          contact_id?: string | null
+          created_at?: string
+          id?: string
+          lifted_at?: string | null
+          lifted_by?: string | null
+          lifted_reason?: string | null
+          reason?: string
+          source_ref?: string | null
+          wa_phone?: string
+        }
+        Relationships: []
+      }
       contacts: {
         Row: {
           agency_id: string | null
@@ -2088,6 +2133,7 @@ export type Database = {
           import_raw_text: string | null
           import_raw_text_received_at: string | null
           last_interaction_at: string | null
+          language: string | null
           last_name: string
           nationality: string | null
           notes: string | null
@@ -2100,6 +2146,10 @@ export type Database = {
           type: string
           updated_at: string | null
           user_id: string | null
+          wa_consent_at: string | null
+          wa_opt_in: boolean
+          wa_opt_out_at: string | null
+          wa_suppressed: boolean
         }
         Insert: {
           agency_id?: string | null
@@ -2115,6 +2165,7 @@ export type Database = {
           import_raw_text?: string | null
           import_raw_text_received_at?: string | null
           last_interaction_at?: string | null
+          language?: string | null
           last_name: string
           nationality?: string | null
           notes?: string | null
@@ -2127,6 +2178,10 @@ export type Database = {
           type?: string
           updated_at?: string | null
           user_id?: string | null
+          wa_consent_at?: string | null
+          wa_opt_in?: boolean
+          wa_opt_out_at?: string | null
+          wa_suppressed?: boolean
         }
         Update: {
           agency_id?: string | null
@@ -2142,6 +2197,7 @@ export type Database = {
           import_raw_text?: string | null
           import_raw_text_received_at?: string | null
           last_interaction_at?: string | null
+          language?: string | null
           last_name?: string
           nationality?: string | null
           notes?: string | null
@@ -2154,6 +2210,10 @@ export type Database = {
           type?: string
           updated_at?: string | null
           user_id?: string | null
+          wa_consent_at?: string | null
+          wa_opt_in?: boolean
+          wa_opt_out_at?: string | null
+          wa_suppressed?: boolean
         }
         Relationships: [
           {
@@ -3835,6 +3895,7 @@ export type Database = {
       onboarding_hosts: {
         Row: {
           buffer_after_minutes: number
+          calendar_email: string | null
           created_at: string
           display_name: string
           duration_minutes: number
@@ -3851,6 +3912,7 @@ export type Database = {
         }
         Insert: {
           buffer_after_minutes?: number
+          calendar_email?: string | null
           created_at?: string
           display_name: string
           duration_minutes?: number
@@ -3867,6 +3929,7 @@ export type Database = {
         }
         Update: {
           buffer_after_minutes?: number
+          calendar_email?: string | null
           created_at?: string
           display_name?: string
           duration_minutes?: number
@@ -6022,6 +6085,63 @@ export type Database = {
           },
         ]
       }
+      whatsapp_consents: {
+        Row: {
+          agency_id: string | null
+          contact_id: string | null
+          created_at: string
+          event: string
+          id: string
+          ip_hash: string | null
+          legal_basis: string
+          profile_id: string | null
+          proof: Json | null
+          purpose: string
+          recorded_by: string | null
+          scope: string
+          source: string
+          source_ref: string | null
+          subject_kind: string
+          wa_phone: string
+        }
+        Insert: {
+          agency_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          event: string
+          id?: string
+          ip_hash?: string | null
+          legal_basis?: string
+          profile_id?: string | null
+          proof?: Json | null
+          purpose?: string
+          recorded_by?: string | null
+          scope?: string
+          source: string
+          source_ref?: string | null
+          subject_kind: string
+          wa_phone: string
+        }
+        Update: {
+          agency_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          ip_hash?: string | null
+          legal_basis?: string
+          profile_id?: string | null
+          proof?: Json | null
+          purpose?: string
+          recorded_by?: string | null
+          scope?: string
+          source?: string
+          source_ref?: string | null
+          subject_kind?: string
+          wa_phone?: string
+        }
+        Relationships: []
+      }
       whatsapp_conversation_insights: {
         Row: {
           agency_id: string
@@ -6296,6 +6416,7 @@ export type Database = {
           sent_by_profile_id: string | null
           session_id: string | null
           status: string
+          stop_handled_at: string | null
           status_updated_at: string | null
           transcript: string | null
           transcript_confidence: number | null
@@ -6330,6 +6451,7 @@ export type Database = {
           sent_by_profile_id?: string | null
           session_id?: string | null
           status?: string
+          stop_handled_at?: string | null
           status_updated_at?: string | null
           transcript?: string | null
           transcript_confidence?: number | null
@@ -6364,6 +6486,7 @@ export type Database = {
           sent_by_profile_id?: string | null
           session_id?: string | null
           status?: string
+          stop_handled_at?: string | null
           status_updated_at?: string | null
           transcript?: string | null
           transcript_confidence?: number | null
@@ -6424,6 +6547,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_optin_invites: {
+        Row: {
+          agency_id: string
+          consent_id: string | null
+          consumed_at: string | null
+          consumed_message_id: string | null
+          contact_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          lang: string
+          purpose: string
+          sent_by: string | null
+          shown_text: string
+          wa_phone: string
+        }
+        Insert: {
+          agency_id: string
+          consent_id?: string | null
+          consumed_at?: string | null
+          consumed_message_id?: string | null
+          contact_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          lang?: string
+          purpose?: string
+          sent_by?: string | null
+          shown_text: string
+          wa_phone: string
+        }
+        Update: {
+          agency_id?: string
+          consent_id?: string | null
+          consumed_at?: string | null
+          consumed_message_id?: string | null
+          contact_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          lang?: string
+          purpose?: string
+          sent_by?: string | null
+          shown_text?: string
+          wa_phone?: string
+        }
+        Relationships: []
       }
       whatsapp_pending_actions: {
         Row: {
@@ -7736,6 +7907,7 @@ export type Database = {
           agency_id: string
           agency_name: string
           agency_slug: string
+          attendee_answers: Json
           attendee_note: string
           attendee_phone: string
           booked_by: string
@@ -7758,6 +7930,7 @@ export type Database = {
         Args: never
         Returns: {
           buffer_after_minutes: number
+          calendar_email: string
           created_at: string
           display_name: string
           duration_minutes: number
@@ -8371,6 +8544,24 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_whatsapp_consent: {
+        Args: {
+          p_agency_id?: string
+          p_contact_id?: string
+          p_event: string
+          p_kind: string
+          p_legal_basis?: string
+          p_proof?: Json
+          p_profile_id?: string
+          p_purpose?: string
+          p_recorded_by?: string
+          p_scope?: string
+          p_source: string
+          p_source_ref?: string
+          p_wa_phone: string
+        }
+        Returns: string
+      }
       record_consent: {
         Args: { p_type: string; p_version?: string }
         Returns: undefined
@@ -8441,6 +8632,10 @@ export type Database = {
       }
       set_agent_learned_style: {
         Args: { p_agent_id: string; p_status: string; p_traits?: string }
+        Returns: undefined
+      }
+      set_morning_brief_enabled: {
+        Args: { p_enabled: boolean }
         Returns: undefined
       }
       slugify: { Args: { input: string }; Returns: string }
@@ -9092,6 +9287,25 @@ export type Database = {
         Returns: {
           median_hour: number
           n: number
+        }[]
+      }
+      whatsapp_send_allowed: {
+        Args: {
+          p_agency_id?: string
+          p_contact_id?: string
+          p_profile_id?: string
+          p_purpose?: string
+          p_scope?: string
+          p_wa_phone: string
+          p_window_margin_minutes?: number
+        }
+        Returns: {
+          allowed: boolean
+          in_24h_window: boolean
+          legal_basis: string
+          public_reason: string
+          reason: string
+          subject_kind: string
         }[]
       }
       whatsapp_pending_notices: {

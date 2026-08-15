@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, type NormalizedInboundMessage } from './whatsapp-gateway'
+import { getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, isDialablePhone, PHONE_MIN_DIGITS, PHONE_MAX_DIGITS, type NormalizedInboundMessage } from './whatsapp-gateway'
 
 // Régression de l'audit du 03.08.2026 §4.2. Le webhook choisissait sa branche de
 // vérification d'après l'en-tête envoyé par l'APPELANT : sans
@@ -120,6 +120,126 @@ describe('whatsapp-gateway — Meta média entrant', () => {
       } }] }],
     }) as NormalizedInboundMessage
     expect(m.toPhone).toBe('41798749484') // digits-only du vrai numéro Business
+  })
+})
+
+// Le bouton d'opt-out que Meta attache lui-même aux templates marketing arrive en
+// `type:'button'` ou `type:'interactive'` : ni `text.body` ni `caption`. `body` valait donc
+// null, et le seul chemin de désinscription que Meta met en avant était invisible côté MEGGA.
+describe('whatsapp-gateway — réponses à un bouton (opt-out Meta)', () => {
+  const meta = getProvider('meta')
+  const inbound = (message: Record<string, unknown>) => meta.parseInbound({
+    object: 'whatsapp_business_account',
+    entry: [{ changes: [{ field: 'messages', value: {
+      metadata: { display_phone_number: '41225670075', phone_number_id: '123' },
+      messages: [{ from: '41780001122', id: 'wamid.B1', timestamp: '1717000000', ...message }],
+    } }] }],
+  }) as NormalizedInboundMessage | null
+
+  it('type:button → le libellé du bouton devient le corps', () => {
+    const m = inbound({ type: 'button', button: { text: 'Stop promotions', payload: 'STOP_PROMO' } })
+    expect(m?.body).toBe('Stop promotions')
+    expect(m?.mediaType).toBeNull()   // 'button' n'est pas un média
+    expect(m?.mediaId).toBeNull()
+  })
+
+  it('type:button sans libellé → repli sur le payload', () => {
+    expect(inbound({ type: 'button', button: { payload: 'STOP_PROMO' } })?.body).toBe('STOP_PROMO')
+  })
+
+  it('interactive/button_reply → le TITRE, jamais l’id technique', () => {
+    const m = inbound({ type: 'interactive', interactive: {
+      type: 'button_reply', button_reply: { id: 'wa_optout_v2', title: 'Ne plus recevoir' },
+    } })
+    expect(m?.body).toBe('Ne plus recevoir')
+    expect(m?.body).not.toContain('wa_optout_v2')
+  })
+
+  it('interactive/list_reply → le titre de l’entrée choisie', () => {
+    const m = inbound({ type: 'interactive', interactive: {
+      type: 'list_reply', list_reply: { id: 'row_3', title: 'Me désinscrire' },
+    } })
+    expect(m?.body).toBe('Me désinscrire')
+  })
+
+  it('un texte l’emporte toujours sur un bouton présent dans le même message', () => {
+    const m = inbound({ type: 'text', text: { body: 'bonjour' }, button: { text: 'Stop promotions' } })
+    expect(m?.body).toBe('bonjour')
+    expect(m?.bodySource).toBe('text')
+  })
+
+  // `bodySource` n'est pas décoratif : l'opt-out par BOUTON doit être honoré même pour un
+  // agent (Meta l'exige sur ses templates), alors qu'un agent qui TAPE « stop » refuse
+  // seulement l'action en cours — « stop » appartient déjà au jeu NO de parseConfirmation.
+  it('bodySource dit d’où vient le corps, donc si la personne a cliqué ou écrit', () => {
+    expect(inbound({ type: 'button', button: { text: 'Stop promotions' } })?.bodySource).toBe('button')
+    expect(inbound({ type: 'button', button: { payload: 'STOP_PROMO' } })?.bodySource).toBe('button')
+    expect(inbound({ type: 'interactive', interactive: { button_reply: { id: 'x', title: 'Ne plus recevoir' } } })?.bodySource).toBe('interactive')
+    expect(inbound({ type: 'interactive', interactive: { list_reply: { id: 'r', title: 'Me désinscrire' } } })?.bodySource).toBe('interactive')
+    expect(inbound({ type: 'text', text: { body: 'stop' } })?.bodySource).toBe('text')
+    expect(inbound({ type: 'image', image: { id: 'M1', caption: 'stop' } })?.bodySource).toBe('caption')
+    // Pas de corps → pas de provenance. Un 'text' par défaut ferait passer un vocal pour
+    // un message écrit.
+    expect(inbound({ type: 'audio', audio: { id: 'A1', mime_type: 'audio/ogg' } })?.bodySource).toBeNull()
+  })
+
+  it('un libellé de bouton VIDE ne masque pas la source suivante', () => {
+    // `?? ` ne filtre que null/undefined : une chaîne vide aurait gagné la cascade et rendu
+    // un corps vide avec bodySource='button', donc un message orphelin de plus.
+    const m = inbound({ type: 'button', button: { text: '', payload: 'STOP_PROMO' } })
+    expect(m?.body).toBe('STOP_PROMO')
+    expect(m?.bodySource).toBe('button')
+  })
+
+  it('aucun corps exploitable → body reste null (pas de chaîne vide fabriquée)', () => {
+    expect(inbound({ type: 'button', button: {} })?.body).toBeNull()
+    expect(inbound({ type: 'interactive', interactive: {} })?.body).toBeNull()
+  })
+})
+
+describe('isDialablePhone — bornage 6–15 chiffres', () => {
+  it('accepte un numéro suisse et un E.164 de longueur maximale', () => {
+    expect(isDialablePhone('41791112233')).toBe(true)
+    expect(isDialablePhone('079 111 22 33')).toBe(true)   // séparateurs ignorés
+    expect(isDialablePhone('1'.repeat(PHONE_MAX_DIGITS))).toBe(true)
+    expect(isDialablePhone('1'.repeat(PHONE_MIN_DIGITS))).toBe(true)
+  })
+
+  it('refuse trop court, trop long, vide et absent', () => {
+    expect(isDialablePhone('1'.repeat(PHONE_MIN_DIGITS - 1))).toBe(false)
+    expect(isDialablePhone('1'.repeat(PHONE_MAX_DIGITS + 1))).toBe(false)
+    expect(isDialablePhone('')).toBe(false)
+    expect(isDialablePhone(null)).toBe(false)
+    expect(isDialablePhone(undefined)).toBe(false)
+    expect(isDialablePhone('bonjour')).toBe(false)        // 0 chiffre
+  })
+
+  it('refuse un JID de groupe (18 chiffres) — le cas qui motive la borne haute', () => {
+    expect(isDialablePhone('120363123456789012@g.us')).toBe(false)
+  })
+})
+
+describe('parseInbound — un expéditeur hors bornes est ignoré, pas inséré', () => {
+  const meta = getProvider('meta')
+  const from = (value: unknown) => meta.parseInbound({
+    object: 'whatsapp_business_account',
+    entry: [{ changes: [{ field: 'messages', value: {
+      metadata: { phone_number_id: '123' },
+      messages: [{ from: value, id: 'wamid.G1', timestamp: '1717000000', type: 'text', text: { body: 'salut' } }],
+    } }] }],
+  })
+
+  it('un JID de groupe rend null — sinon insert en échec → 500 → rejeu Meta en boucle', () => {
+    expect(from('120363123456789012@g.us')).toBeNull()
+  })
+
+  it('un expéditeur absent rend null au lieu d’un numéro vide', () => {
+    expect(from(undefined)).toBeNull()
+    expect(from('')).toBeNull()
+  })
+
+  it('un numéro normal reste parsé', () => {
+    expect((from('41780001122') as NormalizedInboundMessage).fromPhone).toBe('41780001122')
   })
 })
 

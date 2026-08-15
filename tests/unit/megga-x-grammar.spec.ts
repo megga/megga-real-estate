@@ -46,7 +46,7 @@
  *   (`CLAUDE.md` §3 : ~4 200 valeurs en variables sur 161 fichiers).
  */
 import { describe, it, expect } from 'vitest'
-import { emptyRoots, readFileSafely, rel, scanRoots, type RootSpec } from './helpers/fs-scan'
+import { emptyRoots, readFileSafely, rel, repoPath, scanRoots, type RootSpec } from './helpers/fs-scan'
 
 /**
  * Surfaces PORTÉES. Un lot qui nettoie une zone l'ajoute ici, pas avant.
@@ -749,6 +749,44 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
   it('les tailles écrites en CSS sortent aussi de l’échelle', () => {
     const fautifs = sites((l) => /font-size:\s*[\d.]+px/.test(l))
     expect(fautifs, `taille CSS en dur :\n  ${fautifs.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ UN BARREAU CITÉ DOIT EXISTER — sans quoi « tokenisé » ne veut rien dire.
+   *
+   * La clause ci-dessus efface les `var(--crm-…)` AVANT de chercher un chiffre :
+   * elle accepte donc n'importe quel nom, y compris un barreau qui n'a jamais été
+   * déclaré. Le navigateur écarte alors la déclaration entière et la taille
+   * retombe sur l'HÉRITAGE — silencieusement, du bon côté de la garde.
+   *
+   * ⚠ TROUVÉ À LA FUSION, PAS PAR RELECTURE. `main` a apporté
+   * `fontSize: 'var(--crm-text-base)'` dans la carte de consentement WhatsApp :
+   * un nom parfaitement plausible — c'est celui de Tailwind — et absent des
+   * TREIZE barreaux de `globals.css`. La clause des tailles était verte dessus.
+   *
+   * Même famille que la n°17 et la n°40 : une INDIRECTION que la garde ne sait
+   * pas résoudre, et qu'elle laisse donc passer. Le remède est le même — la
+   * résoudre, et refuser ce qui ne se résout pas.
+   */
+  it('chaque barreau de texte cité existe vraiment', () => {
+    const feuille = readFileSafely(repoPath('src/styles/globals.css'))
+    expect(feuille.status, 'globals.css illisible : la clause ne mesure rien').toBe('ok')
+    const declares = new Set(
+      [...(feuille.status === 'ok' ? feuille.value : '').matchAll(/--crm-text-([a-z0-9]+)\s*:/g)].map((m) => m[1]!),
+    )
+    // Sans ce témoin, une feuille vidée rendrait « aucun barreau » et la clause
+    // accuserait TOUT le dépôt au lieu de rougir sur sa propre cécité.
+    expect(declares.size, 'aucun barreau lu dans globals.css — la clause est cassée').toBeGreaterThan(10)
+
+    const inconnus: string[] = []
+    for (const { chemin, code } of sources) {
+      code.split('\n').forEach((ligne, i) => {
+        for (const m of ligne.matchAll(/var\(--crm-text-([a-z0-9]+)\)/g)) {
+          if (!declares.has(m[1]!)) inconnus.push(`${chemin}:${i + 1} — --crm-text-${m[1]} n'est pas un barreau`)
+        }
+      })
+    }
+    expect(inconnus, `barreau de texte inexistant :\n  ${inconnus.join('\n  ')}`).toEqual([])
   })
 
   /**

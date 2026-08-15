@@ -1050,6 +1050,48 @@
       "coord": "Contact details saved",
       "crit": "Criteria saved",
       "note": "Note saved"
+    },
+    "consent": {
+      "label": "WhatsApp reachability",
+      "reachable": "Reachable",
+      "optedOut": "Asked not to be contacted",
+      "blockedByAgent": "Marked “do not contact”",
+      "optedOutHelp": "This person asked for it themselves. The block cannot be lifted from the CRM.",
+      "blockedByAgentHelp": "Internal decision. No WhatsApp message will go to this number.",
+      "doNotContact": "Do not contact",
+      "confirm": "No further WhatsApp message will be sent to this contact.",
+      "confirmYes": "Confirm",
+      "saving": "Saving…",
+      "showLog": "Show log",
+      "hideLog": "Hide log",
+      "event": {
+        "opt_in": "Consent",
+        "opt_out": "Refusal"
+      },
+      "source": {
+        "stop_keyword": "STOP received by message",
+        "meta_block": "WhatsApp unsubscribe button",
+        "agent_manual": "Entered by an agent",
+        "click_to_wa": "Consent link",
+        "web_form_doubleoptin": "Form with double confirmation",
+        "qr": "QR code",
+        "import_repermission": "Import with re-consent",
+        "agent_pairing": "Agent pairing",
+        "brief_enabled": "Brief re-enabled",
+        "brief_disabled": "Brief disabled"
+      },
+      "invite": "Invite on WhatsApp",
+      "inviting": "Sending…",
+      "inviteHelp": "An email will offer them to receive your messages on WhatsApp. They accept, not you.",
+      "inviteNoEmail": "Without an email address the invitation cannot go out: it travels on that channel.",
+      "inviteSent": "Invitation sent on {{date}}, awaiting their reply.",
+      "inviteError": {
+        "generic": "The invitation did not go out. Try again in a moment.",
+        "phone_suppressed": "This contact asked not to be contacted: we do not invite them again.",
+        "contact_without_email": "This contact has no email address.",
+        "agency_wa_number_missing": "The agency's WhatsApp number is not registered. Contact support.",
+        "email_send_failed": "The email could not be sent. Try again in a moment."
+      }
     }
   },
   "nba": {

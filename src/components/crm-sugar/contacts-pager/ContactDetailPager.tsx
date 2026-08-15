@@ -32,6 +32,12 @@ import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { creerNotePlanner } from '@/components/crm-sugar/contacts-pager/notePlanner'
 import { CTP_FN } from '@/components/crm-sugar/contacts-pager/ctpTokens'
+// ⚠ `formatDate` et non `toLocaleDateString('fr-CH')` : le format suisse DD.MM.YYYY est la
+// règle de MAISON, valable dans les quatre langues (CLAUDE.md §6), et il vit dans un seul
+// helper. Figer `'fr-CH'` au site d'appel donnait le même rendu par coïncidence, en le
+// rendant insensible à toute évolution du helper — et en laissant croire, dans une carte
+// traduite, que la carte formate en français.
+import { formatDate } from '@/lib/utils'
 
 // ═══════════════════════════════════════════════════════════════════════
 //   API PUBLIQUE
@@ -121,6 +127,15 @@ export interface ContactDetailPagerProps {
   onInvalidateKyc: () => Promise<void>
   onSaveCoord: (v: { civ: string; email: string; phone: string; lang: string; canal: string }) => Promise<void>
   onSaveCriteria: (c: CriteriaInput) => Promise<void>
+  /** État de consentement WhatsApp. `null` tant que la lecture n'a pas abouti. */
+  consent?: FicheConsent | null
+  /** Geste « ne plus contacter ». Doit résoudre APRÈS l'écriture (la carte relit ensuite). */
+  onDoNotContact?: () => Promise<void>
+  /** Envoie l'invitation d'opt-in par e-mail. Rejette avec un motif exploitable. */
+  onInviteOptin?: () => Promise<void>
+  // ⚠ `Promise<void>` vient de NOUS : la base et `main` portent `void`, et le
+  // planificateur de note attend l'écriture avant de relire. Ce n'est donc pas un
+  // arbitrage, c'est notre changement que `main` n'a pas touché.
   onSaveNote: (note: string) => Promise<void>
   /** Doit résoudre APRÈS la suppression réelle : la carte « Contact supprimé » n'est
    *  montrée qu'ensuite, et c'est `onBack` (pas ce callback) qui ramène à la liste. */
@@ -137,6 +152,29 @@ export interface ContactDetailPagerProps {
 // ═══════════════════════════════════════════════════════════════════════
 //   PALETTE dérivée (cdpPal du design)
 // ═══════════════════════════════════════════════════════════════════════
+/**
+ * Ce que la fiche sait du consentement WhatsApp d'un contact.
+ *
+ * ⚠ Le `reason` distingue ce que la PERSONNE a demandé (`stop_keyword`, `meta_block`) de ce
+ * que l'AGENT a décidé (`agent_manual`). La fiche ne doit pas les présenter pareil : le
+ * premier ne se lève pas d'un clic, le second est une note interne.
+ */
+export interface FicheConsent {
+  suppressed: boolean
+  reason: 'stop_keyword' | 'meta_block' | 'agent_manual' | 'bounce_hard' | null
+  suppressedAt: string | null
+  ackSentAt: string | null
+  /** La dernière déclaration est un consentement. */
+  optedIn: boolean
+  /** Invitation partie, ni acceptée ni expirée. */
+  pendingInviteAt: string | null
+  /** Sans e-mail, l'invitation ne peut PAS partir — elle voyage par ce canal-là. */
+  canInvite: boolean
+  journal: Array<{
+    id: string; createdAt: string; event: 'opt_in' | 'opt_out'; source: string; scope: string
+  }>
+}
+
 interface FichePal {
   sp: SugarPalette
   pageBg: string
@@ -711,10 +749,164 @@ function CdIdentityModal({ P, dark, draft, setDraft, verified, error, onCancel, 
 // ═══════════════════════════════════════════════════════════════════════
 //   COORDONNÉES (éditables)
 // ═══════════════════════════════════════════════════════════════════════
+/**
+ * Joignabilité WhatsApp — l'état, son MOTIF, et le geste.
+ *
+ * Pourquoi le motif est affiché et pas seulement l'état : un agent à qui l'on grise une
+ * action sans raison réessaie, puis contourne. Et les deux origines ne se valent pas —
+ * « la personne a demandé » ne se lève pas depuis le CRM, « l'agent a coché » est une note
+ * interne. Les présenter pareil ferait croire l'un révocable comme l'autre.
+ *
+ * ⛔ AUCUN appel réseau ici : le parent lit et écrit, la carte affiche. C'est la convention
+ * de tout ce pager.
+ */
+function CdConsent({ P, phone, consent, onDoNotContact, onInviteOptin }: {
+  P: FichePal; phone: string
+  consent: FicheConsent | null | undefined
+  onDoNotContact?: () => Promise<void>
+  onInviteOptin?: () => Promise<void>
+}) {
+  const { t } = useTranslation('contacts')
+  const [confirming, setConfirming] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [showLog, setShowLog] = useState(false)
+  const [inviting, setInviting] = useState(false)
+  const [inviteErr, setInviteErr] = useState<string | null>(null)
+
+  // Tant que la lecture n'a pas abouti, on n'affirme RIEN. Afficher « joignable » sur une
+  // lecture en cours ferait exactement l'inverse de ce que cette carte existe pour éviter.
+  if (!consent) return null
+
+  const parLaPersonne = consent.reason === 'stop_keyword' || consent.reason === 'meta_block'
+  const teinte = consent.suppressed ? (parLaPersonne ? P.danger : P.wait) : P.ok
+  const etat = !consent.suppressed
+    ? t('fiche.consent.reachable')
+    : parLaPersonne ? t('fiche.consent.optedOut') : t('fiche.consent.blockedByAgent')
+
+  const agir = () => {
+    if (!onDoNotContact || busy) return
+    setBusy(true)
+    void onDoNotContact().finally(() => { setBusy(false); setConfirming(false) })
+  }
+
+  return (
+    <div style={{ marginTop: 'var(--crm-space-xl)', paddingTop: 'var(--crm-space-lg)', borderTop: `1px solid ${P.hairline}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
+        <div style={cdLbl(P)}>{t('fiche.consent.label')}</div>
+        <div style={{ flex: 1 }} />
+        {consent.journal.length > 0 && (
+          <button
+            onClick={() => setShowLog((v) => !v)}
+            style={{ border: 0, background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit',
+              fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: P.muted }}
+          >{showLog ? t('fiche.consent.hideLog') : t('fiche.consent.showLog')}</button>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
+        {/* Pastille : texte coloré sans fond (grammaire maison des badges). */}
+        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: teinte }}>{etat}</span>
+        {consent.suppressed && consent.suppressedAt && (
+          <span style={{ fontSize: 'var(--crm-text-sm)', color: P.muted, fontVariantNumeric: 'tabular-nums' }}>
+            {formatDate(consent.suppressedAt)}
+          </span>
+        )}
+      </div>
+
+      {consent.suppressed && (
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: P.inkSoft, marginTop: 5 }}>
+          {parLaPersonne ? t('fiche.consent.optedOutHelp') : t('fiche.consent.blockedByAgentHelp')}
+        </div>
+      )}
+
+      {/* ── Invitation d'opt-in (click_to_wa) ──────────────────────────────────
+          Trois états, jamais deux boutons : déjà consenti → rien à demander ;
+          invitation en route → on le DIT plutôt que d'en renvoyer une (chaque envoi
+          crée une invitation valable quatorze jours, et deux liens vivants pour la
+          même personne c'est un consentement qu'on ne saura pas attribuer) ;
+          sinon → le bouton. Un contact bloqué n'est jamais invité : lui demander
+          « puis-je vous écrire ? » est le message qu'il vient de refuser. */}
+      {!consent.suppressed && !consent.optedIn && !!onInviteOptin && (
+        <div style={{ marginTop: 'var(--crm-space-lg)' }}>
+          {consent.pendingInviteAt ? (
+            <div style={{ fontSize: 'var(--crm-text-sm)', color: P.muted }}>
+              {t('fiche.consent.inviteSent', {
+                date: formatDate(consent.pendingInviteAt),
+              })}
+            </div>
+          ) : (
+            <>
+              <CdCta
+                tone="ghost" small P={P}
+                disabled={inviting || !consent.canInvite}
+                onClick={() => {
+                  if (inviting || !consent.canInvite) return
+                  setInviting(true); setInviteErr(null)
+                  void onInviteOptin()
+                    .catch((e: unknown) => setInviteErr(String((e as Error)?.message ?? 'error')))
+                    .finally(() => setInviting(false))
+                }}
+              >{inviting ? t('fiche.consent.inviting') : t('fiche.consent.invite')}</CdCta>
+              {/* Le motif, pas seulement le grisage : sans e-mail, l'agent doit savoir QUOI
+                  corriger — l'invitation voyage par ce canal-là, pas par WhatsApp. */}
+              <div style={{ fontSize: 'var(--crm-text-sm)', color: P.muted, marginTop: 5 }}>
+                {!consent.canInvite
+                  ? t('fiche.consent.inviteNoEmail')
+                  : inviteErr
+                    ? t('fiche.consent.inviteError.' + inviteErr, { defaultValue: t('fiche.consent.inviteError.generic') })
+                    : t('fiche.consent.inviteHelp')}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Le geste n'existe QUE s'il change quelque chose : sur un contact déjà bloqué, un
+          bouton actif inviterait à un clic sans effet, donc à douter de l'état affiché. */}
+      {!consent.suppressed && !!phone && !!onDoNotContact && (
+        <div style={{ marginTop: 'var(--crm-space-lg)' }}>
+          {!confirming ? (
+            <CdCta tone="ghost" small P={P} onClick={() => setConfirming(true)}>
+              {t('fiche.consent.doNotContact')}
+            </CdCta>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 'var(--crm-text-sm)', color: P.inkSoft }}>{t('fiche.consent.confirm')}</span>
+              <CdCta tone="ghost" small P={P} onClick={() => setConfirming(false)}>{t('cd.cancel')}</CdCta>
+              <CdCta small P={P} onClick={agir} disabled={busy}>
+                {busy ? t('fiche.consent.saving') : t('fiche.consent.confirmYes')}
+              </CdCta>
+            </div>
+          )}
+        </div>
+      )}
+
+      {showLog && (
+        <div style={{ marginTop: 'var(--crm-space-lg)', display: 'grid', gap: 6 }}>
+          {consent.journal.map((e) => (
+            <div key={e.id} style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-sm)' }}>
+              <span style={{ color: P.muted, fontVariantNumeric: 'tabular-nums', minWidth: 78 }}>
+                {formatDate(e.createdAt)}
+              </span>
+              <span style={{ fontWeight: 600, color: e.event === 'opt_in' ? P.ok : P.inkSoft }}>
+                {t('fiche.consent.event.' + e.event)}
+              </span>
+              <span style={{ color: P.muted }}>{t('fiche.consent.source.' + e.source, { defaultValue: e.source })}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface CoordForm { civ: string; email: string; phone: string; lang: string; canal: string }
 
-function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
-  P: FichePal; fiche: FicheContact; editSignal: number; freezeRef: MutableRefObject<number>; onSave: ContactDetailPagerProps['onSaveCoord']
+function CdCoord({ P, fiche, editSignal, freezeRef, onSave, consent, onDoNotContact, onInviteOptin }: {
+  P: FichePal; fiche: FicheContact; editSignal: number; freezeRef: MutableRefObject<number>
+  onSave: ContactDetailPagerProps['onSaveCoord']
+  consent?: FicheConsent | null
+  onDoNotContact?: () => Promise<void>; onInviteOptin?: () => Promise<void>
 }) {
   const { t } = useTranslation('contacts')
   const seed: CoordForm = { civ: fiche.civ || '', email: fiche.email || '', phone: fiche.phone || '', lang: fiche.lang || 'fr', canal: fiche.canal || '' }
@@ -800,6 +992,10 @@ function CdCoord({ P, fiche, editSignal, freezeRef, onSave }: {
           <CdReadRow label={t('detail.email')} value={form.email} empty={!form.email} P={P} />
           <CdReadRow label={t('detail.phone')} value={form.phone} empty={!form.phone} mono P={P} />
           <CdReadRow label={t('fiche.coord.channel')} value={form.canal ? t('fiche.canal.' + form.canal) : ''} empty={!form.canal} P={P} />
+          {/* Pleine largeur : la joignabilité conditionne TOUTES les lignes au-dessus. */}
+          <div style={{ gridColumn: '1 / -1' }}>
+            <CdConsent P={P} phone={form.phone} consent={consent} onDoNotContact={onDoNotContact} onInviteOptin={onInviteOptin} />
+          </div>
         </div>
       )}
     </div>
@@ -1021,12 +1217,14 @@ function CdDots({ page, onGo, P, labels }: { page: number; onGo: (i: number) => 
 // ═══════════════════════════════════════════════════════════════════════
 //   PAGE 0 — SES INFORMATIONS
 // ═══════════════════════════════════════════════════════════════════════
-function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatching, onOpenListings, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete }: {
+function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatching, onOpenListings, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete, consent, onDoNotContact, onInviteOptin }: {
   P: FichePal; dark: boolean; fiche: FicheContact; nba?: FicheNba | null; freezeRef: MutableRefObject<number>
   onBack: () => void; onOpenKyc: () => void; onOpenMatching: () => void; onOpenListings: () => void
   onSaveIdentity: ContactDetailPagerProps['onSaveIdentity']; onInvalidateKyc: ContactDetailPagerProps['onInvalidateKyc']
   onSaveCoord: ContactDetailPagerProps['onSaveCoord']; onSaveCriteria: ContactDetailPagerProps['onSaveCriteria']
   onSaveNote: ContactDetailPagerProps['onSaveNote']; onDelete: ContactDetailPagerProps['onDelete']
+  consent?: FicheConsent | null
+  onDoNotContact?: () => Promise<void>; onInviteOptin?: () => Promise<void>
 }) {
   const { t } = useTranslation('contacts')
   const ficheIdentity = useCallback((): ContactIdentity => ({
@@ -1195,7 +1393,7 @@ function CdInfos({ P, dark, fiche, nba, freezeRef, onBack, onOpenKyc, onOpenMatc
             utilisable (148 px) — sans lui elle tombait à 54 px et passait sous
             le pli. Le pager cède déjà la molette à un enfant défilant. */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', minHeight: 0, overflowY: 'auto' }}>
-          <CdCoord key={'coord-' + fiche.id} P={P} fiche={fiche} editSignal={coordSig} freezeRef={freezeRef} onSave={onSaveCoord} />
+          <CdCoord key={'coord-' + fiche.id} P={P} fiche={fiche} editSignal={coordSig} freezeRef={freezeRef} onSave={onSaveCoord} consent={consent} onDoNotContact={onDoNotContact} onInviteOptin={onInviteOptin} />
           <CdNote key={'note-' + fiche.id} P={P} notes={fiche.notes} onSaveNote={onSaveNote} />
         </div>
       </div>
@@ -1451,7 +1649,7 @@ function CdBoucle({ P, dark, loop, links, firstName, freezeRef, onOpenMatching, 
 //   PAGER
 // ═══════════════════════════════════════════════════════════════════════
 export default function ContactDetailPager(props: ContactDetailPagerProps): ReactElement {
-  const { fiche, nba, loop, links, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete, onOpenKyc, onOpenMatching, onOpenListings, onProposeVisit, onRevokeLink } = props
+  const { fiche, nba, loop, links, sp, dark, onBack, onSaveIdentity, onInvalidateKyc, onSaveCoord, onSaveCriteria, onSaveNote, onDelete, onOpenKyc, onOpenMatching, onOpenListings, onProposeVisit, onRevokeLink, consent, onDoNotContact, onInviteOptin } = props
   const { t } = useTranslation('contacts')
   const P = buildPal(sp, dark)
   const pageLabels = [t('fiche.page.infos'), t('fiche.page.loop')]
@@ -1559,7 +1757,8 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
         <div ref={trackRef} style={{ height: '100%', willChange: 'transform' }}>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
             <CdInfos P={P} dark={dark} fiche={fiche} nba={nba} freezeRef={freezeRef} onBack={onBack} onOpenKyc={onOpenKyc} onOpenMatching={onOpenMatching} onOpenListings={onOpenListings}
-              onSaveIdentity={onSaveIdentity} onInvalidateKyc={onInvalidateKyc} onSaveCoord={onSaveCoord} onSaveCriteria={onSaveCriteria} onSaveNote={onSaveNote} onDelete={onDelete} />
+              onSaveIdentity={onSaveIdentity} onInvalidateKyc={onInvalidateKyc} onSaveCoord={onSaveCoord} onSaveCriteria={onSaveCriteria} onSaveNote={onSaveNote} onDelete={onDelete}
+              consent={consent} onDoNotContact={onDoNotContact} onInviteOptin={onInviteOptin} />
           </div>
           <div style={{ height: '100%', width: '100%', position: 'relative', overflow: 'hidden' }}>
             <CdBoucle P={P} dark={dark} loop={loop} links={links} firstName={fiche.firstName} freezeRef={freezeRef}
