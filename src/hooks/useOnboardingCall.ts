@@ -15,6 +15,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import i18n from '@/i18n'
 
 /** Clé de mise en sommeil du rappel, par agence : passer n'est pas refuser. */
 export const ONBOARDING_CALL_SNOOZE_KEY = 'megga.onboardingCall.snoozed'
@@ -140,6 +141,21 @@ export interface BookResult {
  * remontent tels quels : l'écran doit pouvoir dire lequel s'est produit, et rafraîchir
  * la liste dans le cas d'un créneau parti entre l'affichage et le clic.
  */
+
+/**
+ * La langue affichée, pour que le courriel parte dans la même.
+ *
+ * ⛔ C'ÉTAIT `'fr'` EN DUR aux deux appels. Un agent qui lisait le CRM en allemand
+ * recevait donc sa confirmation en français : ni la fonction d'edge ni le gabarit
+ * n'étaient en cause, c'est l'appelant qui écrasait le choix avant de partir.
+ *
+ * `i18n.language` peut porter une forme régionale (`de-CH`) ; l'edge la ramène à sa
+ * base (`_shared/recipient-language.ts`), on ne la tronque donc pas ici.
+ */
+function langueAffichee(): string {
+  return i18n.language || 'fr'
+}
+
 export function useBookOnboardingCall() {
   const queryClient = useQueryClient()
 
@@ -152,7 +168,7 @@ export function useBookOnboardingCall() {
           note: input.note,
           answers: input.answers,
           timezone: browserTimezone(),
-          locale: 'fr',
+          locale: langueAffichee(),
         },
       })
       // `functions.invoke` enveloppe un 409 dans une FunctionsHttpError dont le corps
@@ -211,7 +227,7 @@ export function useManageOnboardingCall() {
           slot: input.slot,
           reason: input.reason,
           timezone: browserTimezone(),
-          locale: 'fr',
+          locale: langueAffichee(),
         },
       })
       if (error) {

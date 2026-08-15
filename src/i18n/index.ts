@@ -303,6 +303,39 @@ export async function switchLanguage(lng: string): Promise<void> {
   // a pu choisir autre chose.
   if (langueDemandee !== lng) return
   if (i18n.language !== lng) await i18n.changeLanguage(lng)
+  void persisterLangueDeCorrespondance(lng)
+}
+
+/**
+ * Écrit la langue choisie sur `profiles.language` — la langue d'interface EST la
+ * langue de correspondance (règle du 15.08.2026).
+ *
+ * ⚠ ICI et pas sur l'événement `languageChanged` : celui-ci part aussi pendant
+ * `init()`, à chaque démarrage, avec la langue DÉTECTÉE. L'enregistrer reviendrait à
+ * inscrire un choix que personne n'a fait — et à écraser une préférence réelle par un
+ * repli au premier chargement depuis un autre poste. `switchLanguage` est la porte du
+ * choix DÉLIBÉRÉ : les sélecteurs passent tous par elle.
+ *
+ * Sans session, il n'y a rien à écrire : un visiteur anonyme n'a pas de profil. Sa
+ * langue est recueillie à l'inscription, où la vitrine la joint aux métadonnées
+ * (`sites/megga-vitrine/js/megga-auth.js`).
+ *
+ * L'import est dynamique pour ne pas tirer le client Supabase dans le graphe de l'i18n,
+ * qui se charge au tout premier octet de l'application. L'écriture n'est jamais
+ * attendue : une bascule de langue ne doit pas dépendre du réseau, et une préférence
+ * perdue se repose au clic suivant.
+ */
+async function persisterLangueDeCorrespondance(lng: string): Promise<void> {
+  if (!['fr', 'de', 'en', 'it'].includes(lng)) return
+  try {
+    const { supabase } = await import('@/lib/supabase')
+    const { data } = await supabase.auth.getSession()
+    const userId = data.session?.user?.id
+    if (!userId) return
+    await supabase.from('profiles').update({ language: lng }).eq('id', userId)
+  } catch {
+    // Muet par conception : l'interface a déjà basculé, et c'est ce que l'agent voit.
+  }
 }
 
 /**
