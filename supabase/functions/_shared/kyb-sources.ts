@@ -1364,7 +1364,24 @@ export function createAddressGeocodeSource(mapboxToken: string): KybSource {
       }
 
       if (!res.ok) {
-        const err = new Error(`mapbox: unexpected status ${res.status}`) as Error & { status: number }
+        // ⚠ LE CODE SEUL NE DIAGNOSTIQUE RIEN. Mesuré le 16.08.2026 : le connecteur a
+        // rendu trois fois « unexpected status 403 » sans qu'on puisse distinguer un
+        // jeton restreint par URL, une portee manquante, un compte sans acces a
+        // Geocoding v5 (API legacy chez Mapbox) ou un compte non active. Mapbox met la
+        // raison dans le CORPS, en clair. Deux heures de conjectures pour une ligne.
+        //
+        // ⛔ Le corps est TRONQUE et NETTOYE avant d'etre journalise : il finit dans
+        // `agency_verification_checks.raw_response`, que la console admin affiche. Le
+        // corps de Mapbox ne porte pas le jeton aujourd'hui, mais l'URL si (parametre
+        // `access_token`), et rien ne garantit qu'une future version d'erreur ne la
+        // recopie pas. On efface donc tout ce qui ressemble a un jeton, par principe.
+        let detail = ''
+        try {
+          detail = (await res.text()).slice(0, 300).replace(/\b[ps]k\.[A-Za-z0-9._-]+/g, '[jeton]')
+        } catch { /* corps illisible : le code seul devra suffire */ }
+        const err = new Error(
+          `mapbox: unexpected status ${res.status}${detail ? ` — ${detail}` : ''}`,
+        ) as Error & { status: number }
         err.status = res.status
         throw err
       }
