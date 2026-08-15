@@ -166,6 +166,13 @@
     --color-accent-light: 239 246 255;    /* #EFF6FF */
     --color-accent-dark: 30 64 175;       /* #1E40AF */
     --color-accent-fg: 255 255 255;       /* text on accent bg */
+    /* ⛔ L'APLAT A SON PROPRE JETON depuis le 15 août 2026, et il vaut la MÊME
+       teinte dans les deux thèmes — c'est un RÔLE, pas un ton. `--color-accent`
+       est réglée pour se lire en TEXTE sur la page de son thème ; en sombre
+       (#3B82F6) elle ne porte pas l'encre blanche : 3,68:1, sous l'AA. Aucune
+       valeur unique ne tient les deux rôles — mesuré, #2563EB inverse le
+       défaut (aplat 5,17 ✅, texte 3,30 ⛔). D'où deux jetons. */
+    --color-accent-solid: 37 99 235;      /* #2563EB — aplat sous encre blanche, 5,17:1 */
 
     /* Admin accent (violet) — le REPÈRE DE CONTEXTE de la console, et lui seul.
        Il ne décore pas : il dit « tu n'es plus dans ton agence, tu es dans la
@@ -346,6 +353,8 @@
     --color-accent-light: 23 37 84;       /* dark blue bg for badges */
     --color-accent-dark: 37 99 235;       /* #2563EB */
     --color-accent-fg: 255 255 255;
+    /* Même valeur qu'en clair : voir la note du bloc `:root`. */
+    --color-accent-solid: 37 99 235;      /* #2563EB — 5,17:1 sous encre blanche */
 
     /* Admin accent (violet) */
     --color-admin-accent: 167 139 250;

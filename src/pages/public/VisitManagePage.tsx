@@ -184,7 +184,7 @@ export default function VisitManagePage() {
           <div className="space-y-3">
             <button
               onClick={() => setMode('reschedule')}
-              className="w-full h-11 text-sm font-medium bg-accent hover:bg-accent/90 text-white rounded-xl transition-colors"
+              className="w-full h-11 text-sm font-medium bg-accent-solid hover:bg-accent-solid/90 text-white rounded-xl transition-colors"
             >
               Reporter la visite
             </button>

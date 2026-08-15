@@ -48,6 +48,8 @@ export default {
           hover: themeColor('--color-accent-hover'),
           light: themeColor('--color-accent-light'),
           dark: themeColor('--color-accent-dark'),
+          // L'APLAT : même teinte dans les deux thèmes, parce que c'est un RÔLE.
+          solid: themeColor('--color-accent-solid'),
           foreground: themeColor('--color-accent-fg'),
         },
 

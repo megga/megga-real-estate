@@ -1725,7 +1725,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
                     </div>
                     <div className="relative bg-theme-card">
                       <img src={result.staged_url} alt={t('form.staging.furnished')} className="w-full aspect-[4/3] object-cover" />
-                      <span className="absolute bottom-2 left-2 text-xs font-medium bg-accent/80 text-white px-2 py-0.5 rounded">MEGGA Staging</span>
+                      <span className="absolute bottom-2 left-2 text-xs font-medium bg-accent-solid/80 text-white px-2 py-0.5 rounded">MEGGA Staging</span>
                     </div>
                   </div>
                   <div className="p-3 flex items-center justify-between">
@@ -3109,7 +3109,7 @@ export default function ListingFormPage() {
                 <span>{Math.round((completedSteps.length / 5) * 100)}%</span>
               </div>
               <div className="h-1.5 bg-theme-hover rounded-full overflow-hidden">
-                <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${(completedSteps.length / 5) * 100}%` }} />
+                <div className="h-full bg-accent-solid rounded-full transition-all duration-300" style={{ width: `${(completedSteps.length / 5) * 100}%` }} />
               </div>
               <div className="mt-3 space-y-1">
                 {[
