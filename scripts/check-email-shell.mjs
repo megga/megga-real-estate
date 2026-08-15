@@ -42,10 +42,6 @@ const A_MIGRER = {
     "Invitation à consentir au canal WhatsApp. CLIENT, envoyée au contact d'une agence.",
   'supabase/functions/send-email/index.ts':
     "Fonction générique (estimation vendeur, notification d'agent, accès portail). Porte sa propre `wrapHTML` en gris clair ; c'est le plus gros chantier des treize.",
-  'supabase/functions/send-property-email/index.ts':
-    "Envoi d'une fiche de bien à un contact. CLIENT.",
-  'supabase/functions/send-relance-email/index.ts':
-    'Relance commerciale à un contact. CLIENT.',
   'supabase/functions/send-reminder-email/index.ts':
     'Rappel de rendez-vous ou de tâche. CLIENT.',
   'supabase/functions/weekly-report/index.ts':

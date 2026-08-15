@@ -4,6 +4,7 @@
 // This one accepts a free-form subject + body composed by the agent (or by
 // MEGGA AI in the relance editor) so the agent owns the wording.
 
+import { buildRelanceEmail } from '../_shared/relance-email.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
@@ -31,46 +32,8 @@ const CORS_HEADERS = {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
-
-function buildHtml(req: SendRequest): string {
-  // Plain-text body wrapped in a clean HTML shell so the recipient gets
-  // both renderings (Resend auto-derives a text part from the HTML).
-  // Paragraphs preserved via white-space:pre-line.
-  const bodyEscaped = escapeHtml(req.body)
-  const signature = req.agentSignature
-    ? `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:13px;color:#374151;white-space:pre-line;">${escapeHtml(req.agentSignature)}</div>`
-    : req.agentName
-      ? `<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:13px;color:#374151;">${escapeHtml(req.agentName)}<br/><span style="font-size:11px;color:#9ca3af;">MEGGA Immobilier</span></div>`
-      : ''
-
-  return `<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHtml(req.subject)}</title>
-</head>
-<body style="margin:0;padding:0;background-color:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <div style="max-width:600px;margin:0 auto;padding:32px 20px;">
-    <div style="background:#ffffff;border-radius:16px;padding:32px 28px;border:1px solid #e5e7eb;">
-      <div style="font-size:14px;color:#1f2937;line-height:1.6;white-space:pre-line;">
-        ${bodyEscaped}
-      </div>
-      ${signature}
-    </div>
-    ${req.unsubscribeHtml ?? ''}
-  </div>
-</body>
-</html>`
-}
+// Gabarit dans `_shared/relance-email.ts` depuis le 15.08.2026 : pur, donc testable et
+// visible au banc de rendu.
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -133,7 +96,10 @@ serve(async (req) => {
     }
 
     const unsub = await unsubscribeHeaders(body.to)
-    const html = buildHtml({ ...body, unsubscribeHtml: unsub ? unsubscribeFooterHtml(unsub.url) : '' })
+    const { html } = buildRelanceEmail({
+      ...body,
+      unsubscribeHtml: unsub ? unsubscribeFooterHtml(unsub.url) : undefined,
+    })
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
