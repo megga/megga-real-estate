@@ -37,8 +37,11 @@ import { Link, Route, Routes, useLocation } from 'react-router-dom'
 import KycPublicPage from '@/pages/public/KycPublicPage'
 import AppointmentManagePage from '@/pages/public/AppointmentManagePage'
 import BuyerReceptionPage from '@/pages/public/BuyerReceptionPage'
+import VisitManagePage from '@/pages/public/VisitManagePage'
+import VisitFeedbackPage from '@/pages/public/VisitFeedbackPage'
+import AcceptInvitePage from '@/pages/public/AcceptInvitePage'
 import { installerBanc, reglerBanc } from './bancSupabase'
-import { apptCreneaux, apptVue, mlkVue, receptionVue, type PublicEtat } from './publicFixtures'
+import { apptCreneaux, apptVue, invitationVue, mlkVue, receptionVue, visiteVue, type PublicEtat } from './publicFixtures'
 
 const ETATS: { id: PublicEtat; label: string; titre: string }[] = [
   { id: 'nominal', label: 'Nominal', titre: 'Le parcours tel que le client l’ouvre' },
@@ -46,10 +49,22 @@ const ETATS: { id: PublicEtat; label: string; titre: string }[] = [
   { id: 'expire', label: 'Expiré', titre: 'Lien périmé, rendez-vous annulé, sélection close' },
 ]
 
+/**
+ * ⚠ `chemin` PORTE SON JETON SOUS LA FORME QUE LA PAGE LIT, et les deux formes
+ * coexistent : les trois premières prennent le leur dans le CHEMIN
+ * (`useParams`), les deux visites dans la QUERY (`searchParams.get('token')`).
+ * Monter une visite en `visite/banc` la laisserait sans jeton — elle rendrait
+ * son écran « lien invalide », et on croirait regarder un défaut de fixture.
+ */
 const SURFACES = [
   { chemin: 'kyc/banc', label: 'KYC · parcours client', route: '/kyc/:token' },
   { chemin: 'rendez-vous/banc', label: 'Rendez-vous', route: '/rendez-vous/:token' },
   { chemin: 'reception/banc', label: 'Réception acheteur', route: '/reception/:token' },
+  // Lot 6 (15 août 2026) — les trois pages CLIENTES qu'aucun banc ne montrait,
+  // et que la passe B2/B3 doit repeindre. Les regarder est le préalable.
+  { chemin: 'visite?token=banc', label: 'Visite · modifier', route: '/visit/:id/edit' },
+  { chemin: 'avis?token=banc', label: 'Visite · avis', route: '/visit/:id/feedback' },
+  { chemin: 'invitation/banc', label: 'Invitation équipe', route: '/accept-invite/:token' },
 ]
 
 export default function PublicShowcasePage() {
@@ -82,7 +97,9 @@ function poserContrat(etat: PublicEtat) {
   reglerBanc({
       etat: 'nominal',
       tables: {},
-      rpc: {},
+      // ⛔ Les deux visites lisent une RPC, pas une edge : la lecture directe de
+      //   `visits` a été retirée en juillet 2026 avec sa policy anon trop large.
+      rpc: { get_visit_by_token: visiteVue(etat) },
       edges: {
         'magic-link-get': mlkVue(etat),
         'magic-link-upload': { upload_id: 'demo', filename: 'demo.pdf', size_bytes: 1024, type: 'identity', sha256_hash: null, uploaded_at: new Date().toISOString(), status: 'received' },
@@ -92,6 +109,11 @@ function poserContrat(etat: PublicEtat) {
         'appointment-book': { ok: true },
         'buyer-reception-get': receptionVue(etat),
         'buyer-reception-react': { ok: true },
+        'accept-team-invite': invitationVue(etat),
+        // Les gestes des deux visites : rien n'écrit, mais sans fixture le banc
+        // SIGNALE la fonction et l'écran montre une erreur au lieu d'un succès.
+        'visit-reschedule': { ok: true },
+        'visit-cancel': { ok: true },
       },
   })
 }
@@ -109,7 +131,9 @@ function rendu(etat: PublicEtat, setEtat: (e: PublicEtat) => void, pathname: str
       >
         <span style={{ opacity: 0.55 }}>Face publique</span>
         {SURFACES.map((s) => {
-          const actif = pathname.includes(s.chemin.split('/')[0]!)
+          // ⚠ Sur le SEGMENT, pas sur la chaîne entière : deux des chemins
+          //   portent leur jeton en query (`visite?token=banc`).
+          const actif = pathname.includes(s.chemin.split(/[/?]/)[0]!)
           return (
             <Link
               key={s.chemin}
@@ -150,6 +174,9 @@ function rendu(etat: PublicEtat, setEtat: (e: PublicEtat) => void, pathname: str
           <Route path="kyc/:token" element={<KycPublicPage />} />
           <Route path="rendez-vous/:token" element={<AppointmentManagePage />} />
           <Route path="reception/:token" element={<BuyerReceptionPage />} />
+          <Route path="visite" element={<VisitManagePage />} />
+          <Route path="avis" element={<VisitFeedbackPage />} />
+          <Route path="invitation/:token" element={<AcceptInvitePage />} />
           <Route
             path="*"
             element={

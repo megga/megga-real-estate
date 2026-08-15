@@ -21,7 +21,7 @@ import type { MagicLinkPublicView } from '@/types/magicLink'
 import type { PublicAppointment, SlotsView } from '@/hooks/useAppointmentBooking'
 import type { ReceptionBien } from '@/hooks/useBuyerReception'
 
-/** Les états qu'on fait jouer aux trois surfaces. */
+/** Les états qu'on fait jouer aux surfaces. */
 export type PublicEtat = 'nominal' | 'termine' | 'expire'
 
 const jours = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString()
@@ -117,5 +117,58 @@ export function receptionVue(etat: PublicEtat) {
     items: etat === 'termine'
       ? [bien(1, 'interested'), bien(2, 'rejected'), bien(3, 'interested')]
       : [bien(1, 'sent'), bien(2, 'sent'), bien(3, 'sent')],
+  }
+}
+
+/* ─── `/visit/:id/edit` et `/visit/:id/feedback` — RPC `get_visit_by_token` ──── */
+
+/**
+ * ⛔ CES DEUX-LÀ NE PASSENT PAS PAR UNE EDGE FUNCTION, mais par une RPC — et
+ * c'est ce qui les distinguait des trois premières surfaces du banc. La lecture
+ * directe de `visits` a été retirée en juillet 2026 (une policy anon
+ * `manage_token IS NOT NULL` exposait TOUTES les visites) ; il ne reste que
+ * `get_visit_by_token`, SECURITY DEFINER. La fixture se pose donc dans
+ * `contrat.rpc`, pas dans `contrat.edges`.
+ *
+ * ⚠ ET LE JETON EST DANS LA QUERY, PAS DANS LE CHEMIN : ces pages lisent
+ * `searchParams.get('token')`. Une route de banc en `visite/:token` les
+ * monterait sans jeton — elles rendraient leur écran « lien invalide », et on
+ * croirait regarder un défaut de fixture.
+ */
+export function visiteVue(etat: PublicEtat) {
+  return {
+    id: 'demo-visit',
+    // ⚠ `done` n'est pas un état « terminé » décoratif : c'est le seul statut
+    // depuis lequel un avis se dépose, et l'automation ne relance que des `done`.
+    scheduled_at: jours(etat === 'termine' ? -2 : 3),
+    status: etat === 'termine' ? 'done' : etat === 'expire' ? 'cancelled' : 'scheduled',
+    buyer_name: 'Client Démo',
+    buyer_email: 'client.demo@example.invalid',
+    property: {
+      title: 'Bien de démonstration',
+      address: 'Rue Démo 1',
+      city: 'Genève',
+      photos: [],
+    },
+  }
+}
+
+/* ─── `/accept-invite/:token` — accept-team-invite ───────────────────────────── */
+
+/**
+ * ⚠ CETTE SURFACE RÉPOND SES ERREURS DANS LE CORPS, pas par un statut HTTP : la
+ * page teste `data?.error` et traduit le code. Une fixture qui rendrait une
+ * erreur de transport montrerait donc l'écran générique et masquerait les trois
+ * écrans que ce banc existe pour regarder.
+ */
+export function invitationVue(etat: PublicEtat) {
+  if (etat === 'termine') return { error: 'invitation_accepted' }
+  if (etat === 'expire') return { error: 'invitation_expired' }
+  return {
+    email: 'invite.demo@example.invalid',
+    role: 'agent',
+    agencyName: 'Agence Démo',
+    inviterName: 'Agent Démo',
+    expiresAt: jours(6),
   }
 }
