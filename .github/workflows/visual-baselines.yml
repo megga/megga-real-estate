@@ -56,6 +56,15 @@ jobs:
         # file directly results in "no tests found".
         run: npx playwright test --config=playwright.visual.config.ts --update-snapshots=all
 
+      # ⛔ L'EMPREINTE VOYAGE AVEC L'IMAGE. Elle rattache la capture aux sources
+      # qui la peignent ; écrite plus tard, ou pas du tout, la porte de fraîcheur
+      # (`tests/unit/visual-baseline-fraicheur.spec.ts`) resterait ROUGE après une
+      # régénération réussie — et on apprendrait à la contourner au lieu de s'en
+      # servir. Elle atterrit dans le dossier des captures, donc dans le `git add`
+      # qui suit.
+      - name: Rattacher les captures à l'état des écrans
+        run: node scripts/visual-baseline-empreinte.mjs --write
+
       - name: Commit & push baselines if changed
         run: |
           git config user.name "Claude (visual baselines)"
