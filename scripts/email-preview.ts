@@ -31,6 +31,8 @@ import { buildMagicLinkEmail, type MagicLinkLocale } from '../supabase/functions
 import { buildDeviceAlertEmail } from '../supabase/functions/_shared/device-alert-email.ts'
 import { buildTeamInviteEmail } from '../supabase/functions/_shared/team-invite-email.ts'
 import { buildVisitEmail } from '../supabase/functions/_shared/visit-email.ts'
+import { buildPropertyEmail } from '../supabase/functions/_shared/property-email.ts'
+import { buildRelanceEmail } from '../supabase/functions/_shared/relance-email.ts'
 
 const SORTIE = '.email-preview'
 
@@ -72,6 +74,50 @@ const CAS: Cas[] = [
   { id: 'appel-rappel-en', nom: 'Appel d’accueil · rappel J-1 (EN)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildReminderEmail({ ...appel, locale: 'en' }) },
   { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’hôte (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked') },
   { id: 'appel-hote-annule', nom: 'Appel d’accueil · annulation (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail({ ...appel, meetingUrl: null }, 'cancelled') },
+
+  // Commerciaux — migrés le 15.08.2026. Les SEULS à porter une désinscription : leur
+  // mention de pied diffère donc de tous les autres, et c'est ce qu'il faut regarder ici.
+  {
+    id: 'fiche-de-bien',
+    nom: 'Fiche de bien envoyée à un contact',
+    source: '_shared/property-email.ts',
+    migre: true,
+    rendu: buildPropertyEmail({
+      contactFirstName: 'Marie',
+      agentName: 'Gregory Lyonnet',
+      agentPhone: '+41 22 555 10 10',
+      message: 'Vu ce matin, il correspond à ce dont nous parlions : proche du parc et sans travaux.',
+      property: {
+        title: '3.5 pièces avec terrasse',
+        address: 'Rue Ancienne 12, 1227 Carouge',
+        city: 'Carouge',
+        price: 1_190_000,
+        rooms: 3.5,
+        surface_m2: 92,
+        type: 'Appartement',
+        photo_url: null,
+        source_url: 'https://www.example.ch/annonce/12345',
+        source_agency: 'Régie du Rhône',
+        source_portal: 'Homegate',
+      },
+      unsubscribeHtml: '<p style="margin:0;font-family:\'Inter Tight\',Arial,sans-serif;font-size:11px;color:#8a8a8f;">'
+        + '<a href="https://app.megga.ch/desinscription/jeton" style="color:#8a8a8f;">Se désinscrire de ces envois</a></p>',
+    }),
+  },
+  {
+    id: 'relance-agent',
+    nom: 'Relance écrite par l’agent',
+    source: '_shared/relance-email.ts',
+    migre: true,
+    rendu: buildRelanceEmail({
+      subject: 'Une visite la semaine prochaine ?',
+      body: 'Bonjour Marie,\n\nJe reviens vers vous au sujet du 3.5 pièces de Carouge. Il reste disponible, et deux visites sont prévues jeudi.\n\nSouhaitez-vous que je vous réserve un créneau ?',
+      agentName: 'Gregory Lyonnet',
+      agentSignature: null,
+      unsubscribeHtml: '<p style="margin:0;font-family:\'Inter Tight\',Arial,sans-serif;font-size:11px;color:#8a8a8f;">'
+        + '<a href="https://app.megga.ch/desinscription/jeton" style="color:#8a8a8f;">Se désinscrire de ces envois</a></p>',
+    }),
+  },
 
   // Visite de bien — migrée le 15.08.2026. Les trois cas, et la variante vidéo : c'est
   // celle qui porte un bouton et dont le « lien à venir » se lit facilement de travers.

@@ -61,8 +61,22 @@ export interface ShellOptions {
   /**
    * Mention de pied. `null` pour un avis INTERNE : promettre à un collègue qu'« il ne
    * s'agit pas d'une communication marketing » n'a pas de destinataire.
+   *
+   * ⚠ Elle doit être VRAIE pour CE message. La plupart des e-mails du produit sont
+   * transactionnels et n'ont pas de désinscription ; l'alerte de sécurité a la sienne,
+   * qui dit qu'elle arrive même désabonné ; les envois commerciaux, eux, PORTENT un lien
+   * de désinscription (cf. `unsubscribeHtml`) et ne peuvent donc pas affirmer l'inverse.
    */
   legalNote: string | null
+  /**
+   * Bloc de désinscription, fourni par l'appelant (il porte un jeton par destinataire).
+   * Rendu sous la mention de pied.
+   *
+   * ⚠ Sa présence CONTREDIT la mention transactionnelle : un e-mail qui offre de se
+   * désabonner ne peut pas écrire qu'il ne contient pas de lien de désinscription. Les
+   * deux se choisissent ensemble.
+   */
+  unsubscribeHtml?: string
   /** Pilule d'en-tête. `null` sur les avis internes, où elle n'ouvre rien d'utile. */
   headerCta: { href: string; label: string } | null
   /**
@@ -166,6 +180,11 @@ export function shell(o: ShellOptions): string {
               <p style="margin:0;font-family:${FONT};font-size:11.5px;font-weight:400;line-height:1.75;color:${MUTED};">
                 ${escapeHtml(o.legalNote)}
               </p>
+            </td>
+          </tr>` : ''}
+          ${o.unsubscribeHtml ? `<tr>
+            <td align="center" class="mg-pad" style="padding:0 48px 20px;">
+              ${o.unsubscribeHtml}
             </td>
           </tr>` : ''}
 
