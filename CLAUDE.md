@@ -196,10 +196,16 @@ d'écran n'est restée sur Graphite).
   sites peignent une affordance en accent** (102 `background: *.accent`, 18
   `bg-accent`) dans 36 fichiers, contre **11** au ghost canonique. La règle vive
   est celle du point 4 — **l'affordance PRIMAIRE porte l'accent**, le ghost est
-  le SECONDAIRE. ⛔ Et deux accents coexistent : `MXC_COLOR.accent` `#424bfb`
-  (styles en ligne, MEGGA X) et `--color-accent` `#2563EB` (Tailwind, `bg-accent`),
-  à 1,12:1 l'un de l'autre — tous deux lisibles sous blanc (5,78 et 5,17). Les
-  unifier est une décision à part, pas un effet de bord
+  le SECONDAIRE. ✅ **UN SEUL ACCENT depuis le 15 août 2026.** La rampe
+  Tailwind portait un second bleu (`#2563EB`) que rien ne rattachait à MEGGA X ;
+  elle adopte l'accent de marque. ⚠ Mais **deux JETONS, un par rôle**, parce
+  qu'aucune valeur unique ne tient les deux en sombre :
+  `--color-accent-solid` = `#424bfb` dans les deux thèmes (l'APLAT, 5,78:1 sous
+  blanc) ; `--color-accent` = `#424bfb` en clair et **`#8dc1ff`** en sombre
+  (l'ENCRE et les filets — l'accent y rend 2,95:1, sous l'AA ET sous le seuil des
+  filets, donc l'anneau de focus tomberait avec). `#8dc1ff` est
+  `MXC_SYSTEM.blue300`, le barreau déjà nommé pour ce cas. Gardé par
+  [accent-ramp.spec.ts](tests/unit/accent-ramp.spec.ts)
 - Badges : texte coloré sans fond (`text-red-500`, pas `bg-red-100 text-red-800`)
 - Modals : TOUJOURS `createPortal(document.body)` avec `z-[100]`
 - **Steppers : l'étape courante porte l'ACCENT, et la progression se lit dans la

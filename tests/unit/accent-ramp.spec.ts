@@ -24,9 +24,33 @@
  *
  * Le dépôt possédait déjà la règle : « la teinte VIVE va sur l'APLAT, la FONCÉE
  * va sur le TEXTE » (`CLAUDE.md` §3, `megga/da-meggax-crm`). Ce qui manquait,
- * c'est le second JETON. D'où `--color-accent-solid`, l'aplat, à #2563EB dans
- * les DEUX thèmes — la valeur que la feuille portait déjà en clair, donc aucune
- * teinte inventée et aucun changement visible en clair.
+ * c'est le second JETON. D'où `--color-accent-solid`.
+ *
+ * ── PUIS LES DEUX RAMPES ONT ÉTÉ UNIFIÉES (15 août 2026, même journée) ───────
+ * ⛔ Il y avait DEUX accents dans le dépôt, et rien ne le disait : `#424bfb`
+ * (MEGGA X, 328 sites, 123 fichiers, styles en ligne) et `#2563EB` (cette rampe,
+ * 10 fichiers). À 1,12:1 l'un de l'autre — presque indiscernables — et ils se
+ * rencontraient sur six surfaces CRM, le chrome peint de l'un et le contenu de
+ * l'autre. La rampe adopte donc l'accent de MARQUE :
+ *
+ *   `accent-solid` (APLAT) = #424bfb dans les DEUX thèmes — 5,78:1 sous blanc
+ *   `accent` (ENCRE)       = #424bfb en clair (5,78 sur blanc)
+ *                          = #8dc1ff en sombre — `MXC_SYSTEM.blue300`, 9,09:1
+ *
+ * ⚠ L'ENCRE SOMBRE N'EST PAS UNE VALEUR TROUVÉE : `#424bfb` rend **2,95:1** sur
+ * la page sombre, sous l'AA et même sous le seuil des FILETS — donc l'anneau de
+ * focus serait tombé avec. `blue300` est le barreau que le dépôt avait déjà
+ * nommé pour ce cas exact.
+ *
+ * ⛔ ET UN PIÈGE QUI SE SERAIT VU TOUT DE SUITE, MAIS TROP TARD : le rail
+ * `[data-sidebar-style="colored"]` — une préférence VIVE, posée par
+ * `usePreferences` — peignait son fond avec `--color-accent` en forçant du texte
+ * BLANC. Le jeton devenant PÂLE en sombre, ce rail serait passé à **1,87:1**. Il
+ * lit maintenant l'aplat, et une clause l'exige.
+ *
+ * ⚠ `--color-accent-hover` et `--color-accent-light` sont PARTIS : zéro lecteur,
+ * en CSS comme en utilitaires. Une clé sans lecteur n'est pas « hors direction »,
+ * elle est morte.
  *
  * ⚠ ET LE DÉFAUT SE RENDAIT VRAIMENT. `data-theme="dark"` est posé sur `<html>`
  * et il est GLOBAL : il survit à une navigation SPA, y compris vers les pages
@@ -34,6 +58,7 @@
  * 5,17:1 en clair, 3,68:1 dès que l'attribut est là.
  */
 import { describe, it, expect } from 'vitest'
+import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { readFileSafely, repoPath } from './helpers/fs-scan'
 
 const AA = 4.5
@@ -89,7 +114,7 @@ describe('Rampe d’accent — un jeton par rôle, dans les deux thèmes', () =>
     expect(lu.status, `${FEUILLE} illisible : la spec ne mesure rien`).toBe('ok')
     for (const [nom, b] of [['CLAIR', CLAIR], ['SOMBRE', SOMBRE]] as const) {
       expect(Object.keys(b).length, `bloc ${nom} vide : l'ancre a bougé`).toBeGreaterThan(4)
-      for (const cle of ['accent', 'accent-solid', 'accent-fg', 'bg-page']) {
+      for (const cle of ['accent', 'accent-solid', 'accent-fg', 'accent-dark', 'bg-page']) {
         expect(Object.keys(b), `${nom} : ${cle} absent`).toContain(cle)
       }
     }
@@ -137,6 +162,17 @@ describe('Rampe d’accent — un jeton par rôle, dans les deux thèmes', () =>
   })
 
   /**
+   * ⚠ L'ENCRE SOMBRE EST UN BARREAU NOMMÉ, pas une valeur trouvée. `#424bfb` rend
+   * 2,95:1 sur la page sombre — sous l'AA et même sous le seuil des filets. Le
+   * dépôt avait déjà tranché : `MXC_SYSTEM.blue300`, « le barreau de la vitrine
+   * qui répond », cité dans `megga-x-crm/tokens.ts` et dans `CLAUDE.md` §3.
+   */
+  it('l’encre sombre est le barreau que le dépôt a nommé', () => {
+    const attendu = MXC_SYSTEM.blue300.replace('#', '').match(/../g)!.map((h) => parseInt(h, 16)).join(' ')
+    expect(SOMBRE['accent'], `l'encre sombre doit rester MXC_SYSTEM.blue300 (${MXC_SYSTEM.blue300})`).toBe(attendu)
+  })
+
+  /**
    * L'anneau de focus est tiré de `--color-accent` (`globals.css`, `:focus-visible`
    * et `.focus-ring`) : un tracé, donc le seuil NON textuel.
    */
@@ -166,7 +202,16 @@ describe('Rampe d’accent — un jeton par rôle, dans les deux thèmes', () =>
   it('aucune surface ne peint son aplat avec le jeton d’ENCRE', () => {
     const scan = readFileSafely(repoPath('tests/unit/helpers/fs-scan.ts'))
     expect(scan.status, 'helper illisible').toBe('ok')
-    expect(CLAIR['accent-solid'], 'accent-solid doit valoir la teinte d’aplat mesurée (#2563eb)').toBe('37 99 235')
-    expect(SOMBRE['accent-solid'], 'accent-solid doit être la MÊME dans les deux thèmes : c’est un rôle, pas un ton').toBe('37 99 235')
+    // ⛔ DÉRIVÉ DE LA SOURCE, PAS RECOPIÉ : l'aplat DOIT être l'accent de marque
+    // de MEGGA X. Figer le littéral ici laisserait les deux rampes redivergaer
+    // sans que rien ne rougisse — c'est exactement ce qui s'était produit.
+    const marque = MXC_COLOR.accent.replace('#', '').match(/../g)!.map((h) => parseInt(h, 16)).join(' ')
+    expect(CLAIR['accent-solid'], `l'aplat n'est plus l'accent de marque (${MXC_COLOR.accent})`).toBe(marque)
+    expect(SOMBRE['accent-solid'], 'l’aplat doit être la MÊME valeur dans les deux thèmes : c’est un rôle, pas un ton').toBe(marque)
+    // ⛔ ET LE RAIL COLORÉ EST UN APLAT. Il force du texte BLANC ; lire le jeton
+    // d'ENCRE le peindrait en #8dc1ff au thème sombre — 1,87:1. `data-sidebar-style`
+    // est une préférence VIVE, posée par `usePreferences`.
+    expect(/\[data-sidebar-style="colored"\] aside \{[\s\S]{0,400}?background-color: rgb\(var\(--color-accent-solid\)\)/.test(CSS),
+      'le rail coloré ne lit plus le jeton d’APLAT — il forcerait du blanc sur une encre pâle').toBe(true)
   })
 })

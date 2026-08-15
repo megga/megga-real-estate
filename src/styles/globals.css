@@ -161,10 +161,14 @@
     --color-border-focus: 37 99 235;      /* accent blue */
 
     /* Accent (brand) */
-    --color-accent: 37 99 235;            /* #2563EB */
-    --color-accent-hover: 29 78 216;      /* #1D4ED8 */
-    --color-accent-light: 239 246 255;    /* #EFF6FF */
-    --color-accent-dark: 30 64 175;       /* #1E40AF */
+    /* ⛔ L'ACCENT DE MARQUE, unifié le 15 août 2026. Cette rampe portait un
+       SECOND bleu (#2563EB) que rien ne rattachait à MEGGA X : deux accents à
+       1,12:1 l'un de l'autre se rencontraient sur six surfaces CRM, le chrome
+       peint de l'un et le contenu de l'autre. `--color-accent` est le rôle
+       ENCRE — c'est lui que lisent `text-accent`, l'anneau de focus et les
+       filets. */
+    --color-accent: 66 75 251;            /* #424bfb — 5,78:1 en encre sur blanc */
+    --color-accent-dark: 56 64 213;       /* #3840D5 — survol du rail coloré, 7,34:1 sous blanc */
     --color-accent-fg: 255 255 255;       /* text on accent bg */
     /* ⛔ L'APLAT A SON PROPRE JETON depuis le 15 août 2026, et il vaut la MÊME
        teinte dans les deux thèmes — c'est un RÔLE, pas un ton. `--color-accent`
@@ -172,7 +176,7 @@
        (#3B82F6) elle ne porte pas l'encre blanche : 3,68:1, sous l'AA. Aucune
        valeur unique ne tient les deux rôles — mesuré, #2563EB inverse le
        défaut (aplat 5,17 ✅, texte 3,30 ⛔). D'où deux jetons. */
-    --color-accent-solid: 37 99 235;      /* #2563EB — aplat sous encre blanche, 5,17:1 */
+    --color-accent-solid: 66 75 251;      /* #424bfb — aplat sous encre blanche, 5,78:1 */
 
     /* Admin accent (violet) — le REPÈRE DE CONTEXTE de la console, et lui seul.
        Il ne décore pas : il dit « tu n'es plus dans ton agence, tu es dans la
@@ -348,13 +352,16 @@
     --color-border-focus: 59 130 246;
 
     /* Accent — slightly brighter in dark for better contrast */
-    --color-accent: 59 130 246;           /* #3B82F6 */
-    --color-accent-hover: 96 165 250;     /* #60A5FA */
-    --color-accent-light: 23 37 84;       /* dark blue bg for badges */
-    --color-accent-dark: 37 99 235;       /* #2563EB */
+    /* ⛔ EN SOMBRE, L'ENCRE N'EST PAS L'ACCENT — `#424bfb` rend 2,95:1 sur cette
+       page, sous l'AA et même sous le seuil des filets. `blue300` est le barreau
+       de la vitrine prévu pour ça, déjà nommé dans `megga-x-crm/tokens.ts` et
+       dans `CLAUDE.md` §3 : « pour une encre teintée sur sombre ». 9,09:1 ici.
+       L'APLAT, lui, ne bouge pas d'un thème à l'autre : voir `accent-solid`. */
+    --color-accent: 141 193 255;          /* #8dc1ff — MXC_SYSTEM.blue300, 9,09:1 */
+    --color-accent-dark: 56 64 213;       /* #3840D5 — même rôle qu'en clair */
     --color-accent-fg: 255 255 255;
     /* Même valeur qu'en clair : voir la note du bloc `:root`. */
-    --color-accent-solid: 37 99 235;      /* #2563EB — 5,17:1 sous encre blanche */
+    --color-accent-solid: 66 75 251;      /* #424bfb — 5,78:1 sous encre blanche */
 
     /* Admin accent (violet) */
     --color-admin-accent: 167 139 250;
@@ -553,7 +560,9 @@ main {
 /* ─── Sidebar colored style ─── */
 
 [data-sidebar-style="colored"] aside {
-  background-color: rgb(var(--color-accent)) !important;
+  /* ⛔ APLAT, pas encre : ce rail force du texte BLANC. Lire `--color-accent`
+     ici le peignait en #8dc1ff au thème sombre — 1,87:1, illisible. */
+  background-color: rgb(var(--color-accent-solid)) !important;
   border-color: rgb(var(--color-accent-dark)) !important;
 }
 
