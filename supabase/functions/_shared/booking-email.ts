@@ -12,7 +12,7 @@
 
 import {
   BRAND, BODY_INK, INK, FONT,
-  escapeHtml, shell, p as p_, h2, row, button, note,
+  escapeHtml, shell, p as p_, h2, row, button,
 } from './email-shell.ts'
 
 const RESEND_URL = 'https://api.resend.com/emails'
