@@ -19,6 +19,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { verifyMagicLinkToken } from '../_shared/magic-link-token.ts'
 import { deleteBookingEvent, updateBookingEvent } from '../_shared/booking-calendar-write.ts'
 import { sendBookingEmail } from '../_shared/booking-email.ts'
+import { parseLocale, DEFAULT_LOCALE } from '../_shared/recipient-language.ts'
 import type { CalendarProvider, TokenTable } from '../_shared/booking-oauth.ts'
 
 const corsHeaders = {
@@ -138,7 +139,7 @@ serve(async (req) => {
   const [{ data: pub }, { data: contact }, { data: agency }, { data: agent }, { data: settings }] =
     await Promise.all([
       db.rpc('get_kyc_appointment_public', { p_appointment_id: apptId }),
-      db.from('contacts').select('first_name, last_name, email').eq('id', row.contact_id).maybeSingle(),
+      db.from('contacts').select('first_name, last_name, email, language').eq('id', row.contact_id).maybeSingle(),
       db.from('agencies').select('name').eq('id', row.agency_id).maybeSingle(),
       db.from('profiles').select('full_name').eq('id', row.agent_id).maybeSingle(),
       db.from('agent_booking_settings').select('timezone').eq('agent_id', row.agent_id).maybeSingle(),
@@ -183,6 +184,10 @@ serve(async (req) => {
   try {
     if (contact?.email) {
       await sendBookingEmail({
+        // ⚠ La langue du CONTACT, pas celle de l'agent : c'est lui qui lit ce message.
+        // `contacts.language` et `profiles.language` sont deux colonnes pour deux
+        // populations, et les confondre écrirait au client dans la langue de son courtier.
+        locale: parseLocale(contact?.language) ?? DEFAULT_LOCALE,
         kind: action === 'cancel' ? 'cancelled' : 'rescheduled',
         to: contact.email,
         contactName,

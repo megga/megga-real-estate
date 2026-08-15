@@ -15,12 +15,217 @@ import {
   escapeHtml, shell, p as p_, h2, row, button,
 } from './email-shell.ts'
 
+import type { AppLocale } from './recipient-language.ts'
+
 const RESEND_URL = 'https://api.resend.com/emails'
 const FROM = 'MEGGA <noreply@megga.ch>'
 
 export type BookingEmailKind = 'confirmed' | 'rescheduled' | 'cancelled'
 
+/**
+ * Tout le texte, dans les quatre langues du produit (16.08.2026).
+ *
+ * ⚠ LE DESTINATAIRE EST UN CONTACT DE L'AGENCE, pas un agent : sa langue vient de
+ * `contacts.language`, jamais de `profiles.language`. Deux colonnes, deux populations ;
+ * les confondre écrirait au client dans la langue de son courtier.
+ *
+ * ⛔ LA MENTION LÉGALE N'ATTRIBUE LA PRISE DE RENDEZ-VOUS À PERSONNE. Le français dit
+ * « un rendez-vous PRIS avec votre agence » — participe sans agent. Une première
+ * traduction allemande disait « den SIE vereinbart HABEN », affirmant que le destinataire
+ * l'avait fixé lui-même : c'est faux pour quelqu'un convoqué par son agence, et une
+ * mention légale qui se trompe sur la raison de l'envoi ne vaut rien. La forme passive
+ * (« der vereinbart wurde ») est la traduction fidèle.
+ */
+const INTL_TAG: Record<AppLocale, string> = {
+  fr: 'fr-CH', de: 'de-CH', en: 'en-GB', it: 'it-CH',
+}
+
+const T: Record<AppLocale, {
+  suffixeObjet: Record<BookingEmailKind, string>
+  titre: Record<BookingEmailKind, string>
+  apercu: Record<BookingEmailKind, string>
+  introConfirme: string
+  introDeplace: string
+  ligneQuand: string
+  ligneComment: string
+  ligneOu: string
+  ligneAvec: string
+  modeVisio: string
+  modeVisioSansLien: string
+  modeSurPlace: string
+  ctaRejoindreVisio: string
+  titreEmpechement: string
+  lienEmpechement: string
+  suiteEmpechement: string
+  fallbackConseiller: string
+  legal: string
+}> = {
+  fr: {
+    suffixeObjet: {
+      confirmed: 'rendez-vous de vérification confirmé',
+      rescheduled: 'rendez-vous de vérification déplacé',
+      cancelled: 'rendez-vous de vérification annulé',
+    },
+    titre: {
+      confirmed: 'Votre rendez-vous de vérification est confirmé',
+      rescheduled: 'Votre rendez-vous a été déplacé',
+      cancelled: 'Votre rendez-vous a été annulé',
+    },
+    apercu: {
+      confirmed: 'Le détail de votre rendez-vous : quand, comment et avec qui.',
+      rescheduled: 'La nouvelle date est dans ce message.',
+      cancelled: 'Aucune démarche de votre part n’est nécessaire.',
+    },
+    introConfirme: 'Votre rendez-vous de vérification d’identité est confirmé. Voici les informations à retenir.',
+    introDeplace: 'Votre rendez-vous de vérification d’identité a été déplacé. Voici les nouvelles informations.',
+    ligneQuand: 'Quand',
+    ligneComment: 'Comment',
+    ligneOu: 'Où',
+    ligneAvec: 'Avec',
+    modeVisio: 'En visioconférence',
+    modeVisioSansLien: 'En visioconférence, lien à venir',
+    modeSurPlace: 'Sur place',
+    ctaRejoindreVisio: 'Rejoindre la visioconférence',
+    titreEmpechement: 'Un empêchement ?',
+    lienEmpechement: 'Déplacez ou annulez ce rendez-vous',
+    suiteEmpechement: ' en un clic, sans avoir à vous connecter.',
+    fallbackConseiller: 'votre conseiller',
+    legal: 'Cet e-mail concerne un rendez-vous de vérification d’identité pris avec votre agence. Il ne s’agit pas d’une communication marketing : c’est pourquoi il ne contient pas de lien de désinscription.',
+  },
+  de: {
+    suffixeObjet: {
+      confirmed: 'Termin zur Identitätsprüfung bestätigt',
+      rescheduled: 'Termin zur Identitätsprüfung verschoben',
+      cancelled: 'Termin zur Identitätsprüfung abgesagt',
+    },
+    titre: {
+      confirmed: 'Ihr Termin zur Identitätsprüfung ist bestätigt',
+      rescheduled: 'Ihr Termin wurde verschoben',
+      cancelled: 'Ihr Termin wurde abgesagt',
+    },
+    apercu: {
+      confirmed: 'Die Details Ihres Termins: wann, wie und mit wem.',
+      rescheduled: 'Der neue Termin steht in dieser Nachricht.',
+      cancelled: 'Sie müssen nichts weiter unternehmen.',
+    },
+    introConfirme: 'Ihr Termin zur Identitätsprüfung ist bestätigt. Hier die wichtigsten Angaben.',
+    introDeplace: 'Ihr Termin zur Identitätsprüfung wurde verschoben. Hier die neuen Angaben.',
+    ligneQuand: 'Wann',
+    ligneComment: 'Wie',
+    ligneOu: 'Wo',
+    ligneAvec: 'Mit',
+    modeVisio: 'Per Videokonferenz',
+    modeVisioSansLien: 'Per Videokonferenz, Link folgt',
+    modeSurPlace: 'Vor Ort',
+    ctaRejoindreVisio: 'An der Videokonferenz teilnehmen',
+    titreEmpechement: 'Ist etwas dazwischengekommen?',
+    lienEmpechement: 'Diesen Termin verschieben oder absagen',
+    suiteEmpechement: ' mit einem Klick, ohne Anmeldung.',
+    fallbackConseiller: 'Ihre Beraterin oder Ihr Berater',
+    legal: 'Diese E-Mail betrifft einen Termin zur Identitätsprüfung, der mit Ihrer Agentur vereinbart wurde. Es handelt sich nicht um eine Werbenachricht, deshalb enthält sie keinen Abmeldelink.',
+  },
+  en: {
+    suffixeObjet: {
+      confirmed: 'identity check appointment confirmed',
+      rescheduled: 'identity check appointment moved',
+      cancelled: 'identity check appointment cancelled',
+    },
+    titre: {
+      confirmed: 'Your identity check appointment is confirmed',
+      rescheduled: 'Your appointment has been moved',
+      cancelled: 'Your appointment has been cancelled',
+    },
+    apercu: {
+      confirmed: 'The details of your appointment: when, how and with whom.',
+      rescheduled: 'The new date is in this message.',
+      cancelled: 'No action is needed on your part.',
+    },
+    introConfirme: 'Your identity check appointment is confirmed. Here are the details to keep in mind.',
+    introDeplace: 'Your identity check appointment has been moved. Here are the new details.',
+    ligneQuand: 'When',
+    ligneComment: 'How',
+    ligneOu: 'Where',
+    ligneAvec: 'With',
+    modeVisio: 'By video call',
+    modeVisioSansLien: 'By video call, link to follow',
+    modeSurPlace: 'In person',
+    ctaRejoindreVisio: 'Join the video call',
+    titreEmpechement: 'Something came up?',
+    lienEmpechement: 'Move or cancel this appointment',
+    suiteEmpechement: ' in one click, no sign-in needed.',
+    fallbackConseiller: 'your adviser',
+    legal: 'This email is about an identity check appointment booked with your agency. It is not a marketing message, which is why it carries no unsubscribe link.',
+  },
+  it: {
+    suffixeObjet: {
+      confirmed: 'appuntamento di verifica d\'identità confermato',
+      rescheduled: 'appuntamento di verifica d\'identità spostato',
+      cancelled: 'appuntamento di verifica d\'identità annullato',
+    },
+    titre: {
+      confirmed: 'Il suo appuntamento di verifica d\'identità è confermato',
+      rescheduled: 'Il suo appuntamento è stato spostato',
+      cancelled: 'Il suo appuntamento è stato annullato',
+    },
+    apercu: {
+      confirmed: 'I dettagli del suo appuntamento: quando, come e con chi.',
+      rescheduled: 'La nuova data è in questo messaggio.',
+      cancelled: 'Non è necessaria alcuna azione da parte sua.',
+    },
+    introConfirme: 'Il suo appuntamento di verifica d\'identità è confermato. Ecco le informazioni da tenere presenti.',
+    introDeplace: 'Il suo appuntamento di verifica d\'identità è stato spostato. Ecco le nuove informazioni.',
+    ligneQuand: 'Quando',
+    ligneComment: 'Come',
+    ligneOu: 'Dove',
+    ligneAvec: 'Con',
+    modeVisio: 'In videoconferenza',
+    modeVisioSansLien: 'In videoconferenza, link in arrivo',
+    modeSurPlace: 'Di persona',
+    ctaRejoindreVisio: 'Partecipare alla videoconferenza',
+    titreEmpechement: 'Un imprevisto?',
+    lienEmpechement: 'Sposti o annulli questo appuntamento',
+    suiteEmpechement: ' con un clic, senza doversi connettere.',
+    fallbackConseiller: 'il suo consulente',
+    legal: 'Questa e-mail riguarda un appuntamento di verifica d\'identità fissato con la sua agenzia. Non è una comunicazione commerciale: per questo non contiene alcun link di disiscrizione.',
+  },
+}
+
+/** Phrases portant du HTML ou une salutation : gardées à part de la table plate. */
+const T2: Record<AppLocale, {
+  annuleDate: (quand: string) => string
+  annuleSuite: (qui: string, agence: string) => string
+  salutation: (nom: string) => string
+  signature: string
+}> = {
+  fr: {
+    annuleDate: (q) => `Votre rendez-vous de vérification d’identité du <strong style="color:${INK};">${q}</strong> a bien été annulé.`,
+    annuleSuite: (qui, ag) => `Pour en fixer un nouveau, contactez ${qui} chez ${ag}.`,
+    salutation: (n) => (n ? `Bonjour ${n},` : 'Bonjour,'),
+    signature: 'À bientôt,<br />L’équipe MEGGA',
+  },
+  de: {
+    annuleDate: (q) => `Ihr Termin zur Identitätsprüfung vom <strong style="color:${INK};">${q}</strong> wurde abgesagt.`,
+    annuleSuite: (qui, ag) => `Um einen neuen zu vereinbaren, wenden Sie sich an ${qui} bei ${ag}.`,
+    salutation: (n) => (n ? `Guten Tag ${n},` : 'Guten Tag,'),
+    signature: 'Bis bald,<br />Ihr MEGGA Team',
+  },
+  en: {
+    annuleDate: (q) => `Your identity verification appointment on <strong style="color:${INK};">${q}</strong> has been cancelled.`,
+    annuleSuite: (qui, ag) => `To arrange a new one, contact ${qui} at ${ag}.`,
+    salutation: (n) => (n ? `Hello ${n},` : 'Hello,'),
+    signature: 'See you soon,<br />The MEGGA team',
+  },
+  it: {
+    annuleDate: (q) => `Il Suo appuntamento di verifica d’identità del <strong style="color:${INK};">${q}</strong> è stato annullato.`,
+    annuleSuite: (qui, ag) => `Per fissarne uno nuovo, contatti ${qui} presso ${ag}.`,
+    salutation: (n) => (n ? `Buongiorno ${n},` : 'Buongiorno,'),
+    signature: 'A presto,<br />Il team MEGGA',
+  },
+}
+
 export interface BookingEmailParams {
+  /** Langue du CONTACT (contacts.language), jamais celle de l'agent. Défaut : français. */
+  locale?: AppLocale
   kind: BookingEmailKind
   to: string
   contactName: string | null
@@ -36,12 +241,13 @@ export interface BookingEmailParams {
 }
 
 /** « lundi 1 septembre 2026 à 10:00 » dans le fuseau donné. */
-function formatFr(iso: string, timeZone: string): string {
+/** ⚠ Renommée de `formatFr` le 16.08.2026 : elle ne rend plus du français seul. */
+function formatWhen(iso: string, timeZone: string, locale: AppLocale): string {
   const d = new Date(iso)
-  const date = new Intl.DateTimeFormat('fr-CH', {
+  const date = new Intl.DateTimeFormat(INTL_TAG[locale], {
     timeZone, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   }).format(d)
-  const time = new Intl.DateTimeFormat('fr-CH', {
+  const time = new Intl.DateTimeFormat(INTL_TAG[locale], {
     timeZone, hour: '2-digit', minute: '2-digit', hour12: false,
   }).format(d)
   return `${date} à ${time}`
@@ -78,101 +284,81 @@ const esc = escapeHtml
  * « Ouvrir mon espace » l'enverrait sur une porte qui ne s'ouvre pas pour lui.
  */
 export function buildBookingEmail(p: BookingEmailParams): { subject: string; html: string } {
-  const when = formatFr(p.startIso, p.timeZone)
-  const who = p.agentName ? esc(p.agentName) : 'votre conseiller'
+  const l = p.locale ?? 'fr'
+  const t = T[l]
+  const t2 = T2[l]
+  const when = formatWhen(p.startIso, p.timeZone, l)
+  const who = p.agentName ? esc(p.agentName) : t.fallbackConseiller
   const agency = p.agencyName ? esc(p.agencyName) : 'MEGGA'
-  const salutation = p.contactName ? `Bonjour ${esc(p.contactName)},` : 'Bonjour,'
+  const salutation = t2.salutation(p.contactName ? esc(p.contactName) : '')
 
   // Le nom de L'AGENCE ouvre l'objet, jamais MEGGA : le destinataire connaît son agence,
   // pas l'outil qu'elle utilise. Un objet qui s'annonce au nom d'un tiers inconnu se lit
   // comme un message non sollicité.
-  const titres: Record<BookingEmailKind, { objet: string; titre: string; apercu: string }> = {
-    confirmed: {
-      objet: `${p.agencyName ?? 'MEGGA'} · rendez-vous de vérification confirmé`,
-      titre: 'Votre rendez-vous de vérification est confirmé',
-      // ⚠ Ne promet QUE ce que le message porte vraiment, dans les deux modes et sans
-      // supposer un lien de gestion : la version précédente annonçait « ce qu'il faut
-      // apporter » et a survécu au retrait de cette consigne, promettant un contenu
-      // disparu. C'est le test qui l'a vu, pas la relecture.
-      apercu: 'Le détail de votre rendez-vous : quand, comment et avec qui.',
-    },
-    rescheduled: {
-      objet: `${p.agencyName ?? 'MEGGA'} · rendez-vous de vérification déplacé`,
-      titre: 'Votre rendez-vous a été déplacé',
-      apercu: 'La nouvelle date est dans ce message.',
-    },
-    cancelled: {
-      objet: `${p.agencyName ?? 'MEGGA'} · rendez-vous de vérification annulé`,
-      titre: 'Votre rendez-vous a été annulé',
-      apercu: 'Aucune démarche de votre part n’est nécessaire.',
-    },
-  }
-  const t = titres[p.kind]
+  const objet = `${p.agencyName ?? 'MEGGA'} · ${t.suffixeObjet[p.kind]}`
 
   // Une annulation n'a ni faits à relire, ni consigne, ni action : ce qui reste est de
   // savoir quoi faire ensuite, et cela tient en une phrase.
   if (p.kind === 'cancelled') {
     return {
-      subject: t.objet,
+      subject: objet,
       html: shell({
-        title: t.titre,
-        preheader: t.apercu,
-        legalNote: LEGAL_NOTE,
+        lang: l,
+        title: t.titre.cancelled,
+        preheader: t.apercu.cancelled,
+        legalNote: t.legal,
         headerCta: null,
         bodyHtml: `
      ${p_(salutation)}
-     ${p_(`Votre rendez-vous de vérification d’identité du <strong style="color:${INK};">${when}</strong> a bien été annulé.`, 28)}
-     ${p_(`Pour en fixer un nouveau, contactez ${who} chez ${agency}.`, 0)}
-     ${signature()}`,
+     ${p_(t2.annuleDate(when), 28)}
+     ${p_(t2.annuleSuite(who, agency), 0)}
+     ${signature(l)}`,
       }),
     }
   }
 
   const modeLigne = p.mode === 'video'
-    ? (p.videoLink ? 'En visioconférence' : 'En visioconférence, lien à venir')
-    : (p.location ? esc(p.location) : 'Sur place')
+    ? (p.videoLink ? t.modeVisio : t.modeVisioSansLien)
+    : (p.location ? esc(p.location) : t.modeSurPlace)
 
   return {
-    subject: t.objet,
+    subject: objet,
     html: shell({
-      title: t.titre,
-      preheader: t.apercu,
-      legalNote: LEGAL_NOTE,
+      lang: l,
+      title: t.titre[p.kind],
+      preheader: t.apercu[p.kind],
+      legalNote: t.legal,
       headerCta: null,
       bodyHtml: `
      ${p_(salutation)}
-     ${p_(p.kind === 'rescheduled'
-        ? 'Votre rendez-vous de vérification d’identité a été déplacé. Voici les nouvelles informations.'
-        : 'Votre rendez-vous de vérification d’identité est confirmé. Voici les informations à retenir.', 28)}
+     ${p_(p.kind === 'rescheduled' ? t.introDeplace : t.introConfirme, 28)}
      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0 0 28px;">
-       ${row('Quand', esc(when))}
-       ${row(p.mode === 'video' ? 'Comment' : 'Où', modeLigne)}
-       ${row('Avec', `${who} · ${agency}`)}
+       ${row(t.ligneQuand, esc(when))}
+       ${row(p.mode === 'video' ? t.ligneComment : t.ligneOu, modeLigne)}
+       ${row(t.ligneAvec, `${who} · ${agency}`)}
      </table>
      ${p.mode === 'video' && p.videoLink
-        ? `<div style="margin:0 0 32px;">${button(p.videoLink, 'Rejoindre la visioconférence')}</div>`
+        ? `<div style="margin:0 0 32px;">${button(p.videoLink, t.ctaRejoindreVisio)}</div>`
         : ''}
      ${p.manageUrl
-        ? `${h2('Un empêchement ?')}
+        ? `${h2(t.titreEmpechement)}
      <p style="margin:0 0 24px;font-family:${FONT};font-size:15px;font-weight:400;line-height:1.6;color:${BODY_INK};">
-       <a href="${esc(p.manageUrl)}" style="color:${BRAND};">Déplacez ou annulez ce rendez-vous</a> en un clic, sans avoir à vous connecter.
+       <a href="${esc(p.manageUrl)}" style="color:${BRAND};">${t.lienEmpechement}</a>${t.suiteEmpechement}
      </p>`
         : ''}
-     ${signature()}`,
+     ${signature(l)}`,
     }),
   }
 }
 
 /**
- * Mention de pied. Le destinataire n'est pas client de MEGGA mais de l'agence : la
- * mention doit nommer la raison de l'envoi sans lui attribuer une relation qu'il n'a pas.
+ * Signature : MEGGA est l'outil, la relation appartient à l'agence.
+ *
+ * ⚠ La mention de pied a rejoint la table `T` (champ `legal`) : elle doit suivre la
+ * langue du destinataire comme le reste, et une constante ne le pouvait pas.
  */
-const LEGAL_NOTE = 'Cet e-mail concerne un rendez-vous de vérification d’identité pris avec votre agence. '
-  + 'Il ne s’agit pas d’une communication marketing : c’est pourquoi il ne contient pas de lien de désinscription.'
-
-/** Signature : MEGGA est l'outil, la relation appartient à l'agence. */
-function signature(): string {
-  return `<div style="padding:32px 0 0;">${p_('À bientôt,<br />L’équipe MEGGA', 0)}</div>`
+function signature(l: AppLocale): string {
+  return `<div style="padding:32px 0 0;">${p_(T2[l].signature, 0)}</div>`
 }
 
 /**

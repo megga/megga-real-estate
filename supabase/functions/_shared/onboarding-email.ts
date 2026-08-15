@@ -187,7 +187,12 @@ const T: Record<CallLocale, {
   },
   it: {
     legal: 'Questa e-mail riguarda un appuntamento che ha fissato con MEGGA. Non è una comunicazione commerciale: per questo non contiene alcun link di disiscrizione.',
-    ctaEspace: 'Vai al mio spazio',
+    // ⚠ « Vai » est un impératif de DEUXIÈME personne, donc un tutoiement — seul de tout
+    // l'italien du produit, qui emploie partout ailleurs la forme de courtoisie ou
+    // l'infinitif (« Prenoti », « Partecipare », « Scegliere »). L'étiquette venait de
+    // l'interface, où elle est l'anomalie ; l'infinitif s'aligne sur la grammaire, pas
+    // sur une chaîne isolée.
+    ctaEspace: 'Aprire il mio spazio',
     quand: 'Quando', duree: 'Durata', avec: 'Con', lien: 'Link',
     lienASuivre: 'Il link per la videoconferenza le arriverà in un secondo messaggio, appena sarà pronto.',
     empechementTitre: 'Un imprevisto?',
