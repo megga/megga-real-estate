@@ -9,6 +9,7 @@
 // L'accès est donc réservé au secret de service ; le destinataire et l'agence
 // se déduisent de la ligne `visits`, jamais du corps de la requête.
 
+import { buildVisitEmail } from '../_shared/visit-email.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
@@ -24,39 +25,8 @@ interface RequestBody {
   visit_id: string
 }
 
-function formatDateFR(isoDate: string): string {
-  const d = new Date(isoDate)
-  const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-  const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
-  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
-}
-
-function formatTimeFR(isoDate: string): string {
-  const d = new Date(isoDate)
-  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
-}
-
-function buildHTML(subject: string, bodyParagraphs: string[]): string {
-  return `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f9fafb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">
-<div style="max-width:560px;margin:32px auto;background:white;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb">
-  <div style="background:#1a1a1a;padding:24px 32px;text-align:center">
-    <span style="color:white;font-size:20px;font-weight:700;letter-spacing:2px">MEGGA</span>
-    <span style="display:block;color:#9ca3af;font-size:11px;margin-top:2px">Immobilier Suisse</span>
-  </div>
-  <div style="padding:32px">
-    <h2 style="margin:0 0 16px;font-size:18px;color:#111827">${subject}</h2>
-    ${bodyParagraphs.map(p => `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#374151">${p}</p>`).join('\n    ')}
-  </div>
-  <div style="padding:16px 32px;border-top:1px solid #f3f4f6;text-align:center">
-    <p style="margin:0;font-size:11px;color:#9ca3af">MEGGA Real Estate — megga.ch</p>
-  </div>
-</div>
-</body>
-</html>`
-}
+// Les gabarits et le formatage des dates vivent dans `_shared/visit-email.ts` depuis le
+// 15.08.2026 : purs, donc testables et visibles au banc de rendu.
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -108,8 +78,6 @@ serve(async (req) => {
     const contact = Array.isArray(visit.contact) ? visit.contact[0] : visit.contact
     const propertyTitle = property?.title || property?.address || 'Bien immobilier'
     const propertyAddress = `${property?.address || ''}, ${property?.city || ''}`
-    const dateFR = formatDateFR(visit.scheduled_at)
-    const timeFR = formatTimeFR(visit.scheduled_at)
     const manageUrl = visitManageUrl(visit.id, visit.manage_token)
     // feedbackUrl used in post-visit reminder (sent separately via pg_cron)
     const isVideo = visit.visit_type === 'video'
@@ -128,60 +96,49 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'RESEND_API_KEY not set' }), { status: 500, headers: corsHeaders })
     }
 
+    // Un seul constructeur pour les trois cas : le fuseau, l'échappement et la
+    // typographie y sont tenus au même endroit (cf. l'en-tête du module).
+    const commun = {
+      scheduledAt: visit.scheduled_at as string,
+      propertyTitle,
+      propertyAddress,
+      isVideo,
+      videoLabel,
+      videoLink: (visit.video_link as string | null) ?? null,
+      manageUrl,
+      buyerName: (visit.buyer_name as string | null) ?? contact?.first_name ?? null,
+    }
+
     let to = ''
     let subject = ''
     let html = ''
 
-    if (type === 'confirmation_buyer') {
-      to = visit.buyer_email || contact?.email || ''
-      subject = isVideo
-        ? `Votre visite vidéo est confirmée — ${propertyTitle}`
-        : `Votre visite est confirmée — ${propertyTitle}`
-      const videoInfo = isVideo
-        ? `<strong>Mode :</strong> Visite vidéo via ${videoLabel}<br>${visit.video_link ? `<strong>Lien :</strong> <a href="${visit.video_link}" style="color:#2563eb">${visit.video_link}</a><br>` : `Le lien ${videoLabel} sera envoyé par l'agent avant la visite.<br>`}`
-        : `<strong>Adresse :</strong> ${propertyAddress}`
-      html = buildHTML(isVideo ? 'Visite vidéo confirmée' : 'Visite confirmée', [
-        `Bonjour ${visit.buyer_name || contact?.first_name || ''},`,
-        `Votre demande de visite${isVideo ? ' vidéo' : ''} pour <strong>${propertyTitle}</strong> a bien été enregistrée.`,
-        `<strong>Date :</strong> ${dateFR}<br><strong>Heure :</strong> ${timeFR}<br>${videoInfo}`,
-        `Vous recevrez un rappel la veille de la visite.`,
-        `<a href="${manageUrl}" style="display:inline-block;margin-top:8px;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500">Gérer ma visite</a>`,
-        `<span style="font-size:12px;color:#9ca3af">Reporter ou annuler à tout moment via le lien ci-dessus.</span>`,
-      ])
-    } else if (type === 'notification_agent') {
+    if (type === 'notification_agent') {
       to = agent?.email || ''
-      subject = isVideo
-        ? `Nouvelle demande de visite vidéo (${videoLabel}) — ${propertyTitle}`
-        : `Nouvelle demande de visite — ${propertyTitle}`
-      const qualif = visit.qualification || {}
-      const qualifText = [
+      const qualif = (visit.qualification ?? {}) as Record<string, unknown>
+      const qualification = [
         qualif.budget ? `Budget : ${qualif.budget}` : '',
         qualif.financing ? `Financement : ${qualif.financing}` : '',
         qualif.firstVisit !== undefined ? `Première visite : ${qualif.firstVisit ? 'Oui' : 'Non'}` : '',
       ].filter(Boolean).join(' · ')
-      html = buildHTML(isVideo ? `Nouvelle visite vidéo (${videoLabel})` : 'Nouvelle demande de visite', [
-        `Bonjour ${agent?.full_name || ''},`,
-        `Une nouvelle demande de visite${isVideo ? ` vidéo via ${videoLabel}` : ''} a été reçue via le site.`,
-        `<strong>Bien :</strong> ${propertyTitle}<br><strong>Adresse :</strong> ${propertyAddress}`,
-        isVideo ? `<strong>Mode :</strong> Visite vidéo via ${videoLabel}` : '',
-        `<strong>Date souhaitée :</strong> ${dateFR} à ${timeFR}`,
-        `<strong>Contact :</strong> ${visit.buyer_name || ''}<br>Email : ${visit.buyer_email || ''}<br>Tél : ${visit.buyer_phone || '—'}`,
-        qualifText ? `<strong>Pré-qualification :</strong> ${qualifText}` : '',
-        visit.buyer_message ? `<strong>Message :</strong> ${visit.buyer_message}` : '',
-        `La visite apparaît dans votre calendrier MEGGA.`,
-      ].filter(Boolean))
-    } else if (type === 'reminder') {
+      ;({ subject, html } = buildVisitEmail({
+        ...commun,
+        kind: 'notification_agent',
+        agentName: agent?.full_name ?? null,
+        buyerEmail: (visit.buyer_email as string | null) ?? null,
+        buyerPhone: (visit.buyer_phone as string | null) ?? null,
+        buyerMessage: (visit.buyer_message as string | null) ?? null,
+        qualification: qualification || null,
+      }))
+    } else {
       to = visit.buyer_email || contact?.email || ''
-      subject = `Rappel : visite demain — ${propertyTitle}`
-      html = buildHTML('Rappel de visite', [
-        `Bonjour ${visit.buyer_name || contact?.first_name || ''},`,
-        `Nous vous rappelons votre visite prévue <strong>demain</strong>.`,
-        `<strong>Bien :</strong> ${propertyTitle}<br><strong>Heure :</strong> ${timeFR}<br><strong>Adresse :</strong> ${propertyAddress}`,
-        `<a href="${manageUrl}" style="display:inline-block;margin-top:8px;padding:10px 20px;background:#2563eb;color:white;text-decoration:none;border-radius:8px;font-size:14px;font-weight:500">Gérer ma visite</a>`,
-        `À demain !`,
-      ])
-      // Mark reminder as sent
-      await supabaseAdmin.from('visits').update({ reminder_sent: true }).eq('id', visit_id)
+      ;({ subject, html } = buildVisitEmail({
+        ...commun,
+        kind: type === 'reminder' ? 'reminder' : 'confirmation_buyer',
+      }))
+      if (type === 'reminder') {
+        await supabaseAdmin.from('visits').update({ reminder_sent: true }).eq('id', visit_id)
+      }
     }
 
     if (!to) {

@@ -30,6 +30,7 @@ import { buildBookingEmail } from '../supabase/functions/_shared/booking-email.t
 import { buildMagicLinkEmail, type MagicLinkLocale } from '../supabase/functions/_shared/magic-link-email.ts'
 import { buildDeviceAlertEmail } from '../supabase/functions/_shared/device-alert-email.ts'
 import { buildTeamInviteEmail } from '../supabase/functions/_shared/team-invite-email.ts'
+import { buildVisitEmail } from '../supabase/functions/_shared/visit-email.ts'
 
 const SORTIE = '.email-preview'
 
@@ -71,6 +72,39 @@ const CAS: Cas[] = [
   { id: 'appel-rappel-en', nom: 'Appel d’accueil · rappel J-1 (EN)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildReminderEmail({ ...appel, locale: 'en' }) },
   { id: 'appel-hote-nouveau', nom: 'Appel d’accueil · avis à l’hôte (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail(appel, 'booked') },
   { id: 'appel-hote-annule', nom: 'Appel d’accueil · annulation (interne)', source: '_shared/onboarding-email.ts', migre: true, rendu: buildHostEmail({ ...appel, meetingUrl: null }, 'cancelled') },
+
+  // Visite de bien — migrée le 15.08.2026. Les trois cas, et la variante vidéo : c'est
+  // celle qui porte un bouton et dont le « lien à venir » se lit facilement de travers.
+  ...([
+    ['confirmation', { kind: 'confirmation_buyer', isVideo: false }],
+    ['confirmation-video', { kind: 'confirmation_buyer', isVideo: true, videoLink: 'https://meet.google.com/abc-defg-hij' }],
+    ['rappel-veille', { kind: 'reminder', isVideo: false }],
+    ['notification-agent', { kind: 'notification_agent', isVideo: false }],
+  ] as const).map(([id, patch]) => ({
+    id: `visite-${id}`,
+    nom: `Visite de bien · ${id.replace(/-/g, ' ')}`,
+    source: '_shared/visit-email.ts',
+    migre: true,
+    rendu: buildVisitEmail({
+      kind: 'confirmation_buyer',
+      // 22:30 UTC = le LENDEMAIN 00:30 à Genève : le cas qui prouve la correction du
+      // fuseau. L'ancien gabarit annonçait ici le 16 août à 22:30.
+      scheduledAt: '2026-08-16T22:30:00.000Z',
+      propertyTitle: '3.5 pièces, Carouge',
+      propertyAddress: 'Rue Ancienne 12, 1227 Carouge',
+      isVideo: false,
+      videoLabel: 'Google Meet',
+      videoLink: null,
+      manageUrl: 'https://app.megga.ch/visite/jeton/modifier',
+      buyerName: 'Marie Favre',
+      agentName: 'Gregory Lyonnet',
+      buyerEmail: 'marie@example.ch',
+      buyerPhone: '+41 79 123 45 67',
+      buyerMessage: 'Je serais intéressée par une visite en fin de journée si possible.',
+      qualification: 'Budget : 1.2M · Financement : accord de principe',
+      ...patch,
+    }),
+  })),
 
   // Sécurité et invitation — migrés le 15.08.2026. Le premier est le SEUL e-mail de
   // sécurité du produit : sa mention de pied diffère de toutes les autres, et c'est
