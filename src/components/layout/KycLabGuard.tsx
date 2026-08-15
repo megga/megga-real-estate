@@ -107,7 +107,7 @@ function KycStatusUnavailableScreen() {
     <div className="flex items-center justify-center min-h-full px-4 py-12">
       <div className="w-full max-w-lg rounded-xl border border-theme-border bg-theme-card p-6 md:p-8">
         <AlertCircle className="h-6 w-6 text-theme-tertiary" />
-        <p className="mt-4 text-xs font-medium uppercase tracking-wide text-theme-tertiary">
+        <p className="mt-4 text-xs font-medium text-theme-tertiary">
           {t('labGuard.block.unavailable.eyebrow')}
         </p>
         <h1 className="mt-2 text-lg font-semibold text-theme-primary">{t('labGuard.block.unavailable.title')}</h1>
@@ -155,7 +155,7 @@ function KycBlockedScreen({ status }: { status: BlockedStatus }) {
     <div className="flex items-center justify-center min-h-full px-4 py-12">
       <div className="w-full max-w-lg rounded-xl border border-theme-border bg-theme-card p-6 md:p-8">
         <Icon className={cn('h-6 w-6', color)} />
-        <p className={cn('mt-4 text-xs font-medium uppercase tracking-wide', color)}>{eyebrow}</p>
+        <p className={cn('mt-4 text-xs font-medium', color)}>{eyebrow}</p>
         <h1 className="mt-2 text-lg font-semibold text-theme-primary">{title}</h1>
         <p className="mt-3 text-sm text-theme-secondary leading-relaxed">{body}</p>
         <div className="mt-6 flex flex-wrap items-center gap-3">

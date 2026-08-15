@@ -208,9 +208,17 @@ const ZONES: RootSpec[] = [
   // `crm-sugar/analytics/tokens.ts` — une palette Sugar Pure complète (12 noirs
   // et gris-bleus) appartenant au lot Analytics, qui serait alors déclarée
   // portée sans que personne l'ait regardée. Mesuré avant d'écrire la zone.
+  //
+  // ⚠ `mockData.ts` et `sugarThemeVars.ts` ENTRENT au lot 1 du chantier « 100 % »
+  // (15 août 2026), et ils ne sont pas un oubli qu'on répare : ils étaient les
+  // deux SEULS fichiers de la racine que le `keep` nommé laissait dehors, ce qui
+  // rendait la zone couverte « à quatre noms près ». Mesurés avant d'entrer : 0
+  // marqueur sur les douze clauses. Les nommer coûte deux lignes et ferme le
+  // dernier interstice de cette racine — après quoi la liste des noms EST le
+  // contenu du dossier, et c'est ce qui la rend vérifiable.
   {
     root: 'src/components/crm-sugar',
-    keep: (n) => ['SugarShell.tsx', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx'].includes(n),
+    keep: (n) => ['SugarShell.tsx', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'sugarThemeVars.ts'].includes(n),
     keepPath: (p) => p.split('/').length === 4,
   },
   // Le chrome rendu par les 27 surfaces du CRM (lot 1 du chantier « CRM agent »,
@@ -261,8 +269,21 @@ const ZONES: RootSpec[] = [
   // ⚠ `ConsentGate` est du CHROME, pas une page : `ProtectedRoute` le monte sur
   // TOUTE route protégée. Le plan le comptait avec les pages parce qu'il vit dans
   // `layout/` ; c'est le ROUTAGE qui dit ce qu'il est.
-  { root: 'src/components/listings', keep: (n) => ['ListingDisplayPickers.tsx', 'GalleryLayoutPicker.tsx'].includes(n) },
-  { root: 'src/components/layout', keep: (n) => n === 'ConsentGate.tsx' },
+  //
+  // ⛔ `listings` ET `layout` PASSENT DE DEUX NOMS AU DOSSIER ENTIER (lot 1 du
+  // chantier « 100 % », 15 août 2026), et c'est le même défaut des deux côtés :
+  // une racine qui ne retient que les fichiers d'un lot déclare la zone traitée
+  // pendant que ses voisins n'ont jamais été lus. `emptyRoots` ne peut pas le
+  // voir — la racine rend bien des fichiers.
+  //
+  // ⚠ `layout` est du CHROME, et c'est ce qui rend l'écart grave : `App.tsx` et
+  // `ProtectedRoute` montent ce dossier AU-DESSUS de `<Routes>`, donc sur les
+  // surfaces déjà portées. Deux fichiers sur douze étaient mesurés ; les dix
+  // autres — la coquille agent, le rideau de démarrage, la frontière d'erreur,
+  // les deux bandeaux LAB, la transition de page, l'en-tête public — rendaient
+  // sur des écrans que le cliquet déclarait propres.
+  { root: 'src/components/listings', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/layout', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/search', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/notifications', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar/profile', keep: (n) => /\.tsx?$/.test(n) },
@@ -272,8 +293,11 @@ const ZONES: RootSpec[] = [
   // 15 août 2026 : 114 marqueurs sur 8 fichiers, dont cinq modales de revue
   // presque identiques entre elles.
   { root: 'src/components/ai-copilot/panel', keep: (n) => /\.tsx?$/.test(n) },
-  // Monté globalement dans `App()`, au-dessus de tout le reste.
-  { root: 'src/components/layout', keep: (n) => n === 'StaleBundleDetector.tsx' },
+  // ⚠ `StaleBundleDetector` avait sa propre racine `layout` — monté globalement
+  // dans `App()`, au-dessus de tout le reste. Elle a fusionné avec la racine du
+  // dossier entier, juste au-dessus : deux specs sur la même racine faisaient
+  // lire ce fichier DEUX fois (`filesPerRoot` accumule en `+=`), et un doublon
+  // dans le balayage compte double dans chaque clause.
   // « Contacts » EN ENTIER depuis le lot 4 — voir la note au-dessus de `PAGES`.
   { root: 'src/components/crm-sugar/contacts-pager', keep: (n) => /\.tsx?$/.test(n) },
   // Le Pipeline EN ENTIER depuis le lot 4 du chantier MEGGA X (13 août 2026).
@@ -393,6 +417,37 @@ const ZONES: RootSpec[] = [
   // console porte donc les deux dettes opposées, chacune de son côté de la
   // frontière page/composant.
   { root: 'src/components/admin', keep: (n) => /\.tsx?$/.test(n) },
+  // ── Lot 1 du chantier « MEGGA X à 100 % » (15 août 2026) ────────────────────
+  //
+  // ⛔ CE QUI SE FERME ICI N'EST PAS UNE DETTE, C'EST UN SILENCE. Ces sept zones
+  // rendent ZÉRO marqueur sur les douze clauses — mesuré avant de les écrire, et
+  // c'est précisément pourquoi elles entrent : une zone absente n'est pas
+  // déclarée propre, elle est déclarée NON TRAITÉE, et personne ne peut lire la
+  // différence dans un fichier vert. Les entrer coûte sept lignes et transforme
+  // « on n'a pas regardé » en « on garde ».
+  //
+  // ⚠ ET LE COMPTE DU PLAN ÉTAIT FAUX SUR SIX ZONES SUR TREIZE. Il additionnait
+  // graisses + capitales + polices, en laissant dehors les tailles hors échelle,
+  // les interlettrages, le noir de Sugar et le gris-bleu : `kyc-report` sortait à
+  // 45 pour 104 réels, `auth-bento` à 1 pour 24. Un compte de marqueurs est un
+  // compte de CLAUSES — écrire lesquelles, sans quoi deux mesures du même dossier
+  // ne se comparent pas.
+  //
+  // ⚠ `crm-sugar-identity` : l'écart annoncé par le plan est TRANCHÉ, et il
+  // n'existait pas. Un agent y annonçait « 9 polices en dur » ; le dossier ne
+  // contient AUCUN `fontFamily` ni `font:` — zéro au grep brut sur ses neuf
+  // fichiers. L'écart venait de la clause des polices, qui ne connaît que
+  // `Inter Tight|DM Sans` et à qui Manrope est invisible : compter « les polices
+  // en dur » et appliquer la clause ne mesurent pas la même chose. C'est la
+  // vacuité n°46 par l'autre bout — là un NOM de jeton aveuglait la garde, ici
+  // c'est un nom de POLICE, et il fait sur-compter au lieu de sous-compter.
+  { root: 'src/components/ui', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/propertyx', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/onboarding-call', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/skeletons', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/auth', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/map', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-sugar-identity', keep: (n) => /\.tsx?$/.test(n) },
 ]
 
 /**
@@ -430,6 +485,20 @@ const TEMOINS_DE_ZONE = [
   // et `emptyRoots` la croirait saine.
   'src/components/kyc-magic-link/MlkScreens.tsx',
   'src/components/buyer-reception/receptionTokens.ts',
+  // Lot 1 du chantier « 100 % » (15 août 2026). Deux témoins, deux raisons
+  // DISTINCTES — un témoin qui ne prouve rien de plus qu'`emptyRoots` est du
+  // bruit, et cette liste ne vaut que si chaque entrée nomme un mode d'échec
+  // qu'`emptyRoots` laisse passer :
+  //
+  // · `mockData.ts` passe par le `keep` NOMMÉ de la racine `crm-sugar` ET par
+  //   son `keepPath`. Si l'un des deux se resserrait, la racine rendrait encore
+  //   ses cinq autres fichiers et `emptyRoots` la croirait saine.
+  'src/components/crm-sugar/mockData.ts',
+  // · `steps/StepAgence.tsx` vit dans un SOUS-DOSSIER. C'est la preuve que la
+  //   récursion de `collect()` atteint `crm-sugar-identity/steps/` — cinq des
+  //   neuf fichiers de la zone y vivent, et une racine qui ne rendrait que les
+  //   quatre du premier niveau ne serait pas vide.
+  'src/components/crm-sugar-identity/steps/StepAgence.tsx',
 ]
 
 /**
@@ -994,8 +1063,30 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
    * peintes en classes restent donc mesurées sur leur CASSE, leur GRAISSE et
    * leur INTERLETTRAGE — pas sur leur échelle ni sur leurs couleurs.
    */
+  /**
+   * ⛔ `first-letter:uppercase` N'EST PAS UNE MICRO-CAPITALE — c'en est
+   * l'inverse, et la clause le refusait.
+   *
+   * Trouvé au lot 1 du chantier « 100 % » (15 août 2026) en entrant
+   * `src/components/layout` : `OnboardingCallBanner` capitalise l'initiale d'une
+   * date rendue en minuscules par `toLocaleDateString` (« lundi 18 août » →
+   * « Lundi 18 août »). Le variant Tailwind ne touche qu'UNE LETTRE ; la règle
+   * vise le mot ENTIER mis en capitales, qui était l'idiome de sur-titre de
+   * Sugar. Le `\b` matchait quand même, le `:` n'étant pas un caractère de mot.
+   *
+   * ⚠ ET LE REMÈDE NE POUVAIT PAS ÊTRE DE CORRIGER LE CODE. Retirer la classe
+   * aurait changé ce que le CLIENT lit — un nom de jour en minuscule au début
+   * d'une phrase — pour satisfaire une garde qui visait autre chose. « Une garde
+   * qui refuse du code correct se fait désarmer, pas corriger » (JSDoc de la
+   * clause des tailles, quatre points plus haut) : c'est la clause qui bouge.
+   *
+   * ⚠ ON N'EXCLUT PAS TOUS LES VARIANTS, seulement les deux qui portent sur un
+   * FRAGMENT. `md:uppercase` reste une micro-capitale — sous un point de rupture,
+   * mais le mot entier y passe bien en capitales, et l'exclure ouvrirait la porte
+   * que cette clause existe pour fermer.
+   */
   it('aucune micro-capitale, en classes non plus', () => {
-    const fautifs = sites((l) => /className=[^>]*\buppercase\b/.test(l))
+    const fautifs = sites((l) => /className=[^>]*(?<!first-letter:)(?<!first-line:)\buppercase\b/.test(l))
     expect(fautifs, `micro-capitales en classes :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 
@@ -1159,6 +1250,14 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm-sugar/profile',
       'src/components/ai-copilot/panel',
       'src/components/layout',
+      // Lot 1 du chantier « 100 % » (15 août 2026).
+      'src/components/ui',
+      'src/components/propertyx',
+      'src/components/onboarding-call',
+      'src/components/skeletons',
+      'src/components/auth',
+      'src/components/map',
+      'src/components/crm-sugar-identity',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
     // Et les zones acquises sont réellement ATTEINTES — une racine présente
     // dont un sous-dossier échappe au filtre passerait `emptyRoots`.
