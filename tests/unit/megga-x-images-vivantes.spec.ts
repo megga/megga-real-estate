@@ -30,7 +30,7 @@
  *     donc AUSSI `src/`.
  */
 import { describe, expect, it } from 'vitest'
-import { readFileSafely, readSafely, rel, repoPath, scanRoots } from './helpers/fs-scan'
+import { readFileSafely, readSafely, repoPath, scanRoots } from './helpers/fs-scan'
 import { readdirSync } from 'node:fs'
 
 const DOSSIER = 'public/megga-x/images'
