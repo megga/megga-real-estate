@@ -2264,9 +2264,6 @@
   background-color: var(--neutral-colors--800);
   color: var(--neutral-colors--1000);
   text-align: center;
-  background-image: url("/megga-x/images/670856dfa5206d2fd340b293_quote-bg-gradient-codeai-x-webflow-template.png");
-  background-position: 50%;
-  background-size: cover;
   border: 0 #000;
   font-size: 24px;
   font-weight: 500;
@@ -6445,31 +6442,6 @@
   color: var(--primary-colors--100);
 }
 
-.megga-x .colors-gradient-bottom {
-  background-image: url("/megga-x/images/6704750aa4d30828d675aa20_gradient-bottom-bg-image-codeai-x-webflow-template.png");
-  background-position: 50% 0;
-  background-repeat: no-repeat;
-  background-size: cover;
-  justify-content: center;
-  height: 422px;
-  position: absolute;
-  inset: auto 0 0;
-}
-
-.megga-x .colors-gradient-bottom.v2 {
-  bottom: -58px;
-}
-
-.megga-x .colors-gradient-bottom.v3 {
-  background-position: 20% 100%;
-  height: 380px;
-}
-
-.megga-x .colors-gradient-bottom.gradient-card {
-  background-image: url("/megga-x/images/670d9f97b3abc6296b383369_gradient-bottom-bg-small-image-codeai-x-webflow-template.png");
-  height: 264px;
-}
-
 .megga-x ._w-h-100 {
   width: 100%;
   height: 100%;
@@ -7139,16 +7111,6 @@
 
 .megga-x .icon-card---bg-blur.social-media-color.dribbble {
   background-color: #ea4c89;
-}
-
-.megga-x .colors-gradient-top {
-  background-image: url("/megga-x/images/671052883b2e230ae8c3ba2f_gradient-top-bg-image-codeai-x-webflow-template.png");
-  background-position: 50%;
-  background-repeat: no-repeat;
-  background-size: cover;
-  height: 436px;
-  position: absolute;
-  inset: 0% 0% auto;
 }
 
 .megga-x .sales-home---hero-link-wrapper {
@@ -9060,14 +9022,6 @@
     margin-top: var(--main-spacers--regular);
   }
 
-  .megga-x .colors-gradient-bottom {
-    height: 322px;
-  }
-
-  .megga-x .colors-gradient-bottom._165px-mbl {
-    height: 165px;
-  }
-
   .megga-x .blur-image-overlay {
     min-height: 278px;
   }
@@ -9903,11 +9857,6 @@
     padding-bottom: var(--section-paddings--pd-regular);
     border-bottom-left-radius: var(--main-border-radius--br-medium);
     border-bottom-right-radius: var(--main-border-radius--br-medium);
-  }
-
-  .megga-x .colors-gradient-bottom.v2 {
-    height: 32%;
-    bottom: -32px;
   }
 
   .megga-x .position-absolute---bottom.integration---image-bottom {

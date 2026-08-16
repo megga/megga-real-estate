@@ -41,6 +41,26 @@ const DROP = new Set(['html', 'body', 'html body'])
 // (`.w-webflow-badge`, `.w-webflow-badge > img`, …).
 const DROP_PATTERN = /w-webflow-badge/
 
+// ⛔ LES BLOCS DE DÉGRADÉ DE LA VITRINE — même argument que le badge ci-dessus, et
+// même mesure. `.colors-gradient-top` / `-bottom` (et sa variante `.gradient-card`)
+// sont des blocs de PAGE MARKETING : vérifié le 16.08.2026, aucun composant du dépôt
+// ne produit ces classes, et sur `/design-system/megga-x` — la seule route qui monte
+// `.megga-x` — le navigateur ne demande aucune de leurs images.
+//
+// ⚠ ON RETIRE LA RÈGLE, PAS SEULEMENT LA COPIE. Ne pas copier l'image en laissant son
+// `url()` dans la feuille fabriquerait un lien pendant : invisible tant que personne
+// n'écrit la classe, un 404 le jour où quelqu'un l'écrit. Sans règle, la classe
+// n'existe pas et la question ne se pose plus.
+//
+// Ce que ça évite de livrer : 3 PNG pour 757 Ko, recopiés dans `dist/` à chaque build.
+const DROP_MARKETING = /colors-gradient-/
+
+// Le fond décoratif de `blockquote`, seul. ⚠ ICI ON NE RETIRE PAS LA RÈGLE : ses
+// treize autres déclarations sont de la typographie légitime, et `blockquote` est un
+// sélecteur d'ÉLÉMENT — le supprimer déshabillerait toute citation écrite demain.
+// Seul son `background-image` (76 Ko) part, avec le cadrage qui n'a plus d'objet.
+const IMAGE_DECORATIVE_SEULE = /quote-bg-gradient/
+
 
 const css = readFileSync(SRC, 'utf8')
 const rootNode = postcss.parse(css)
@@ -73,7 +93,8 @@ let dropped = 0
 rootNode.walkRules((rule) => {
   if (inKeyframes(rule)) return // ne pas toucher 0%/50%/to…
   if (rule.parent && rule.parent.type === 'atrule' && /font-face/i.test(rule.parent.name)) return
-  if (DROP.has(rule.selector.trim()) || DROP_PATTERN.test(rule.selector)) {
+  if (DROP.has(rule.selector.trim()) || DROP_PATTERN.test(rule.selector)
+      || DROP_MARKETING.test(rule.selector)) {
     rule.remove()
     dropped++
     return
@@ -107,8 +128,18 @@ const IMG_SRC = resolve(root, 'sites/megga-vitrine/images')
 const IMG_OUT = resolve(root, 'public/megga-x/images')
 const imagesVues = new Set()
 let imgFixes = 0
+let decorRetire = 0
 rootNode.walkDecls((decl) => {
   if (!decl.value.includes('../images/')) return
+  if (IMAGE_DECORATIVE_SEULE.test(decl.value)) {
+    // `background-position` / `background-size` deviennent des non-sens sans image :
+    // ils ne s'appliquent qu'à elle, jamais à la couleur de fond qui reste.
+    const regle = decl.parent
+    decl.remove()
+    regle.walkDecls(/^background-(position|size)$/, (d) => d.remove())
+    decorRetire++
+    return
+  }
   for (const m of decl.value.matchAll(/\.\.\/images\/([^"')]+)/g)) imagesVues.add(m[1])
   decl.value = decl.value.replace(/\.\.\/images\//g, '/megga-x/images/')
   imgFixes++
@@ -135,5 +166,5 @@ const header = `/* =============================================================
 `
 writeFileSync(OUT, header + rootNode.toString(), 'utf8')
 console.log(
-  `[megga-x] ${ruleCount} règles scopées, ${dropped} règles html/body retirées, ${fontFixes} chemins de police + ${imgFixes} chemins d’image corrigés, ${imagesVues.size} image(s) copiée(s) → ${OUT}`,
+  `[megga-x] ${ruleCount} règles scopées, ${dropped} règles html/body retirées, ${fontFixes} chemins de police + ${imgFixes} chemins d’image corrigés, ${decorRetire} fond décoratif retiré, ${imagesVues.size} image(s) copiée(s) → ${OUT}`,
 )
