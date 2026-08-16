@@ -21,13 +21,13 @@ const PASS = 'preview';
 /**
  * UNE seule valeur ouvre la vitrine — `off` — d'où que la valeur vienne.
  *
- * La polarité est dans ce sens exprès, et c'est la décision qui porte tout le
- * reste : un autre mot, une valeur vide, une faute de frappe, une clé jamais
- * écrite, une variable absente ferment. Une préversion de branche, un
- * `wrangler dev` local ou un projet Pages recréé n'héritent d'aucun réglage ;
- * ils doivent hériter du comportement le plus sûr, pas du plus ouvert. Écrite
- * dans l'autre sens (`on` ferme), cette même liste d'accidents publierait la
- * vitrine de pré-lancement.
+ * Un autre mot, une valeur vide, une faute de frappe ferment : une valeur qu'on
+ * n'a pas su lire ne doit pas ouvrir.
+ *
+ * ⚠ Ce qui est ABSENT, en revanche, ne passe plus par ici : il prend
+ * `GATE_PAR_DEFAUT`, qui vaut aujourd'hui `off`. Cette fonction ne décide donc
+ * plus du sort d'une préversion ni d'un projet Pages recréé — c'est la
+ * constante qui le fait, et elle les OUVRE.
  */
 function demandeOuverture(valeur) {
   return String(valeur ?? '').trim().toLowerCase() === 'off';
@@ -35,6 +35,29 @@ function demandeOuverture(valeur) {
 
 /** Clé lue dans le KV. */
 const CLE_GATE = 'gate';
+
+/**
+ * ⚠ CE QUE VAUT LE GATE QUAND AUCUN RÉGLAGE NE RÉPOND — `off`, donc OUVERT
+ * (16 août 2026, demande de Julien).
+ *
+ * `megga.ch` est en accès libre. Ni le KV ni la variable n'ont besoin d'exister
+ * pour ça : c'est cette valeur qui gouverne, et elle n'exige aucun geste au
+ * tableau de bord. C'était la demande d'origine, et les deux plans de contrôle
+ * ajoutés au-dessus ne la servaient pas — ils la remettaient à plus tard.
+ *
+ * Refermer, au choix, du plus vif au plus définitif :
+ *   1. clé `gate` du KV `VITRINE_CONFIG` → `on` (ou n'importe quoi sauf `off`) ;
+ *   2. variable `VITRINE_GATE` → `on`, effectif au déploiement suivant ;
+ *   3. cette constante → `'on'`, qui rétablit le défaut fermé.
+ *
+ * ⛔ Tant qu'elle vaut `off`, la vitrine de pré-lancement est lisible ET
+ * indexable par n'importe qui, préversions de branche comprises. C'est un état
+ * VOULU, pas un oubli — mais c'est aussi celui qui se périme le plus mal, parce
+ * que plus rien à l'écran ne le signale. La sonde de
+ * `.claude/hooks/session-start.sh` est le seul rappel : « vitrine : 200 — le
+ * gate est OUVERT ⚠ ».
+ */
+const GATE_PAR_DEFAUT = 'off';
 
 /**
  * Le gate est-il posé ? Deux sources, dans cet ordre (16 août 2026, Julien).
@@ -45,6 +68,9 @@ const CLE_GATE = 'gate';
  * 2. **Variable `VITRINE_GATE`** — le réglage de repli, relu au déploiement
  *    seulement. Il gouverne là où le KV n'est pas branché : préversions de
  *    branche, `wrangler dev`, et la période avant que le binding existe.
+ * 3. **`GATE_PAR_DEFAUT`** — quand ni l'un ni l'autre n'existe. Il vaut `off`,
+ *    donc **l'état par défaut est OUVERT** : c'est ce qui gouverne la
+ *    production aujourd'hui, où aucun des deux réglages n'est posé.
  *
  * Un niveau ne parle que s'il a quelque chose à dire. Clé absente du KV
  * (`null`) = « pas d'avis » → on descend à la variable. C'est l'état juste
@@ -80,7 +106,7 @@ async function gateActif(env) {
       return true;
     }
   }
-  return !demandeOuverture(env?.VITRINE_GATE);
+  return !demandeOuverture(env?.VITRINE_GATE ?? GATE_PAR_DEFAUT);
 }
 
 /**

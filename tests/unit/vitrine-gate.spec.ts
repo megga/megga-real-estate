@@ -1,18 +1,18 @@
 /**
- * Garde-fou : la POLARITÉ du gate de la vitrine, et sa cascade de réglages.
+ * Garde-fou : la cascade de réglages du gate de la vitrine, et son DÉFAUT.
  *
- * Pourquoi un test. Depuis le 16 août 2026, le mot de passe de megga.ch ne se
- * règle plus dans le code : il vient d'un KV (`VITRINE_CONFIG`, clé `gate`) ou,
- * à défaut, d'une variable d'environnement — deux plans de contrôle vivant dans
- * un tableau de bord que rien ici ne peut relire. Le seul endroit où la règle
- * reste vérifiable est ce fichier.
+ * Pourquoi un test. Le mot de passe de megga.ch ne se règle plus dans le code :
+ * il vient d'un KV (`VITRINE_CONFIG`, clé `gate`) ou, à défaut, d'une variable
+ * d'environnement — deux plans de contrôle vivant dans un tableau de bord que
+ * rien ici ne peut relire. Le seul endroit où la règle reste vérifiable est ce
+ * fichier.
  *
- * Ce qui est gardé, et qui n'est pas symétrique : `off` OUVRE, et RIEN d'autre
- * n'ouvre. Écrite dans l'autre sens (« `on` ferme »), la même liste d'accidents
- * — clé jamais écrite, variable absente sur une préversion, valeur vide, faute
- * de frappe, KV en panne — publierait la vitrine de pré-lancement au lieu de la
- * fermer. C'est cette asymétrie que le test fige : les cas qui ferment y sont
- * plus nombreux que les cas qui ouvrent, exprès.
+ * ⚠ LE DÉFAUT EST OUVERT depuis le 16 août 2026 (`GATE_PAR_DEFAUT = 'off'`) :
+ * en production, aucun des deux réglages n'est posé, donc c'est cette constante
+ * qui gouverne. Conséquence pour les tests : **ne rien passer n'éprouve plus
+ * rien**. Toute assertion qui veut un gate FERMÉ doit le demander
+ * explicitement, d'où `FERMÉ` ci-dessous. Sans ça, la moitié de ce fichier
+ * passerait au vert pour la mauvaise raison le jour où le défaut rebascule.
  *
  * Le gate est éprouvé à travers le vrai `fetch`, pas seulement `gateActif` : le
  * risque n'est pas la fonction, c'est son CÂBLAGE — un gate correct mais non
@@ -44,26 +44,42 @@ const kvEnPanne = (): KV => ({
   },
 })
 
+/** Le réglage qui FERME. À passer partout où l'assertion porte sur un gate posé. */
+const FERMÉ = { VITRINE_GATE: 'on' }
+
 const appeler = (path: string, env: Partial<Env> = {}) =>
   handler.fetch(new Request('https://megga.ch' + path), { ...env, ASSETS } as Env)
 
 /** Une page de contenu, donc gatée : ni page d'auth, ni page légale, ni ressource. */
 const PAGE_GATEE = '/pricing'
 
-describe('gate de la vitrine — seule la valeur `off` ouvre', () => {
-  it('ouvre sur `off`', async () => {
-    const r = await appeler(PAGE_GATEE, { VITRINE_GATE: 'off' })
+describe('gate de la vitrine — le défaut, quand aucun réglage ne répond', () => {
+  // ⚠ C'est l'état de la production : ni binding KV, ni variable. Ce test dit
+  // à voix haute que le site est en accès libre — si quelqu'un le trouve
+  // surprenant, c'est ici qu'il faut le lire, pas dans un tableau de bord.
+  it('OUVRE la vitrine sans aucun réglage', async () => {
+    const r = await appeler(PAGE_GATEE)
     expect(r.status).toBe(200)
     expect(r.headers.get('WWW-Authenticate')).toBeNull()
   })
 
-  it.each(['OFF', 'Off', ' off ', '\toff\n'])('ouvre sur %o (casse et espaces normalisés)', async (valeur) => {
+  it('ouvre aussi quand `env` lui-même manque', async () => {
+    expect(await gateActif(undefined)).toBe(false)
+    expect(await gateActif({})).toBe(false)
+  })
+
+  it('se laisse refermer par la variable, sans toucher au code', async () => {
+    expect((await appeler(PAGE_GATEE, FERMÉ)).status).toBe(401)
+  })
+})
+
+describe('gate de la vitrine — seule la valeur `off` ouvre', () => {
+  it.each(['off', 'OFF', 'Off', ' off ', '\toff\n'])('ouvre sur %o', async (valeur) => {
     expect((await appeler(PAGE_GATEE, { VITRINE_GATE: valeur })).status).toBe(200)
   })
 
-  // Le cœur du test : tout ce qui n'est pas `off` doit FERMER.
+  // Une valeur POSÉE mais illisible ferme : on n'ouvre pas sur un doute.
   it.each([
-    ['variable absente', undefined],
     ['valeur vide', ''],
     ['espaces seuls', '   '],
     ['faute de frappe', 'of'],
@@ -71,23 +87,17 @@ describe('gate de la vitrine — seule la valeur `off` ouvre', () => {
     ['booléen en texte', 'false'],
     ['valeur opposée', 'on'],
     ['zéro', '0'],
-    ['null', null],
     ['booléen', false],
-  ])('ferme quand %s', async (_cas, valeur) => {
+  ])('ferme sur %s', async (_cas, valeur) => {
     const r = await appeler(PAGE_GATEE, { VITRINE_GATE: valeur })
     expect(r.status).toBe(401)
     expect(r.headers.get('WWW-Authenticate')).toContain('Basic realm=')
   })
-
-  it('ferme quand `env` lui-même manque', async () => {
-    expect(await gateActif(undefined)).toBe(true)
-    expect(await gateActif({})).toBe(true)
-  })
 })
 
 describe('gate de la vitrine — le KV est la bascule vive, et il prime', () => {
-  it('ouvre sur `off` dans le KV, même si la variable dit le contraire', async () => {
-    expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: kv('off'), VITRINE_GATE: 'on' })).status).toBe(200)
+  it('ouvre sur `off` dans le KV, même si la variable ferme', async () => {
+    expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: kv('off'), ...FERMÉ })).status).toBe(200)
   })
 
   it.each(['on', '', 'of', 'true'])(
@@ -102,56 +112,61 @@ describe('gate de la vitrine — le KV est la bascule vive, et il prime', () => 
   // Clé pas encore écrite : c'est l'état juste après la création du namespace.
   // Il ne doit RIEN changer — sinon brancher le KV refermerait un site ouvert.
   it('descend à la variable quand la clé est absente du KV', async () => {
-    expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: kv(null), VITRINE_GATE: 'off' })).status).toBe(200)
-    expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: kv(null) })).status).toBe(401)
+    expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: kv(null), ...FERMÉ })).status).toBe(401)
+    expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: kv(null) })).status).toBe(200)
   })
 
   // ⛔ L'invariant qui coûterait le plus cher à perdre : une panne n'est pas une
-  // absence d'avis. Elle ferme, et elle ne descend PAS à la variable.
+  // absence d'avis. Elle ferme, et elle ne descend PAS au repli — y compris
+  // quand le repli, aujourd'hui, ouvrirait.
   it('ferme quand la lecture KV échoue, même si la variable dit `off`', async () => {
     expect(
       (await appeler(PAGE_GATEE, { VITRINE_CONFIG: kvEnPanne(), VITRINE_GATE: 'off' })).status
     ).toBe(401)
   })
 
+  it('ferme quand la lecture KV échoue et qu’aucune variable ne répond', async () => {
+    expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: kvEnPanne() })).status).toBe(401)
+  })
+
   it('ignore un binding qui n’est pas un KV et retombe sur la variable', async () => {
-    expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: {}, VITRINE_GATE: 'off' })).status).toBe(200)
+    expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: {}, ...FERMÉ })).status).toBe(401)
   })
 
   // Le nom de la clé et le cacheTtl ne sont pas décoratifs : une clé mal
-  // nommée retomberait SILENCIEUSEMENT sur la variable, et la bascule vive
+  // nommée retomberait SILENCIEUSEMENT sur le repli, et la bascule vive
   // n'existerait plus sans que rien ne le signale.
   it('lit la clé `gate` avec un cacheTtl de 60 s', async () => {
     const espion = kv('off')
-    await appeler(PAGE_GATEE, { VITRINE_CONFIG: espion })
+    await appeler(PAGE_GATEE, { VITRINE_CONFIG: espion, ...FERMÉ })
     expect(espion.get).toHaveBeenCalledWith('gate', { cacheTtl: 60 })
   })
 
   it('ne lit pas le KV pour un chemin public', async () => {
     const espion = kv('off')
-    await appeler('/login', { VITRINE_CONFIG: espion })
-    await appeler('/css/styles.css', { VITRINE_CONFIG: espion })
+    await appeler('/login', { VITRINE_CONFIG: espion, ...FERMÉ })
+    await appeler('/css/styles.css', { VITRINE_CONFIG: espion, ...FERMÉ })
     expect(espion.get).not.toHaveBeenCalled()
   })
 })
 
-describe('gate de la vitrine — ce que le drapeau ne doit PAS changer', () => {
+describe('gate de la vitrine — ce que le réglage ne doit PAS changer', () => {
   it.each([
     ['pages d’auth', '/login'],
     ['pages légales', '/privacy'],
     ['sitemap', '/sitemap.xml'],
     ['ressources', '/css/styles.css'],
-  ])('laisse passer les %s même gate fermé', async (_cas, path) => {
-    expect((await appeler(path)).status).toBe(200)
+  ])('laisse passer les %s gate FERMÉ', async (_cas, path) => {
+    expect((await appeler(path, FERMÉ)).status).toBe(200)
   })
 
-  it('répond à /api/geo gate fermé (sinon le CRM ne détecte plus la langue)', async () => {
-    expect((await appeler('/api/geo')).status).toBe(200)
+  it('répond à /api/geo gate FERMÉ (sinon le CRM ne détecte plus la langue)', async () => {
+    expect((await appeler('/api/geo', FERMÉ)).status).toBe(200)
   })
 
   it.each([
-    ['gate fermé', {}],
-    ['gate ouvert par variable', { VITRINE_GATE: 'off' }],
+    ['gate fermé', FERMÉ],
+    ['gate ouvert par défaut', {}],
     ['gate ouvert par KV', { VITRINE_CONFIG: kv('off') }],
   ])('redirige les anciennes URLs — %s', async (_cas, env) => {
     const r = await appeler('/tarifs', env)
@@ -160,6 +175,6 @@ describe('gate de la vitrine — ce que le drapeau ne doit PAS changer', () => {
   })
 
   it('ne laisse pas un préfixe ouvert servir de tunnel vers une page gatée', async () => {
-    expect((await appeler('/css/%2e%2e/pricing')).status).toBe(401)
+    expect((await appeler('/css/%2e%2e/pricing', FERMÉ)).status).toBe(401)
   })
 })
