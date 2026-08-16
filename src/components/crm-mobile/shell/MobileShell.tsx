@@ -3,6 +3,7 @@
  * mobiles (crm-mobile/shell), avec ou sans barre d'onglets selon `variant`.
  */
 import type { ReactNode } from 'react'
+import { useHideIntercomLauncher } from '@/hooks/useIntercomLauncher'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import MobileTabBar from './MobileTabBar'
@@ -23,6 +24,9 @@ interface MobileShellProps {
  */
 export default function MobileShell({ children, variant = 'tabs', header }: MobileShellProps) {
   const { tk } = useMobileTokens()
+  // L'aide vit dans l'écran « Plus » (MobileMoreScreen) : la bulle native ferait
+  // doublon, et sur un écran de téléphone elle mange un coin de la pilule d'onglets.
+  useHideIntercomLauncher()
   return (
     <div
       style={{

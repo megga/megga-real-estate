@@ -11,10 +11,8 @@
 // Module volontairement SANS dépendance au SDK → testable seul (tests/unit/intercom-lpd-allowlist.test.ts).
 // Appliqué par src/lib/intercom.ts (bootIntercom / updateIntercom).
 
-/** Clés autorisées au niveau utilisateur/boot (attributs SaaS de l'agent + config SDK). */
+/** Clés autorisées au niveau utilisateur/boot — les DONNÉES (attributs SaaS de l'agent). */
 export const INTERCOM_ALLOWED_KEYS = [
-  'app_id',
-  'region',
   'user_id',
   'email',
   'name',
@@ -25,10 +23,25 @@ export const INTERCOM_ALLOWED_KEYS = [
   'company',
 ] as const
 
+/**
+ * Clés de CONFIGURATION du SDK — elles règlent le comportement du widget, elles
+ * ne transportent aucune donnée.
+ *
+ * Tenues à part des clés utilisateur pour que la garantie LPD reste lisible en
+ * relecture : élargir cette liste-ci ne peut rien faire fuiter, élargir
+ * `INTERCOM_ALLOWED_KEYS` le peut. Les deux traversent le même filtre.
+ */
+export const INTERCOM_ALLOWED_CONFIG_KEYS = [
+  'app_id',
+  'region',
+  /** Masque la bulle native là où une entrée d'aide MEGGA X la remplace. */
+  'hide_default_launcher',
+] as const
+
 /** Clés autorisées dans l'objet `company` (données de l'AGENCE SaaS — jamais d'un client). */
 export const INTERCOM_ALLOWED_COMPANY_KEYS = ['company_id', 'name', 'stripe_customer_id'] as const
 
-const USER_SET: ReadonlySet<string> = new Set(INTERCOM_ALLOWED_KEYS)
+const USER_SET: ReadonlySet<string> = new Set([...INTERCOM_ALLOWED_KEYS, ...INTERCOM_ALLOWED_CONFIG_KEYS])
 const COMPANY_SET: ReadonlySet<string> = new Set(INTERCOM_ALLOWED_COMPANY_KEYS)
 
 export interface SanitizeResult {

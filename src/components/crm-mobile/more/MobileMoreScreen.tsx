@@ -7,6 +7,7 @@ import { useState, type CSSProperties } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { switchLanguage } from '@/i18n'
+import { openHelpFor } from '@/lib/help-articles'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import Pressable from '@/components/ui/Pressable'
 import { useAuth } from '@/hooks/useAuth'
@@ -19,7 +20,10 @@ import MrNotifSheet from './MrNotifSheet'
 interface MoreDest {
   labelKey: string
   icon: MEIconName
-  route: string
+  /** Destination interne — exclusif avec `open`. */
+  route?: string
+  /** Action non navigante : le Centre d'aide vit dans le Messenger, hors routeur. */
+  open?: () => void
   cta?: boolean
 }
 
@@ -30,6 +34,9 @@ const MORE_DESTS: MoreDest[] = [
   { labelKey: 'nav.createListing', icon: 'plus', route: '/dashboard/listings/new', cta: true },
   { labelKey: 'nav.kyc', icon: 'shield', route: '/dashboard/kyc' },
   { labelKey: 'nav.settings', icon: 'settings', route: '/dashboard/settings' },
+  // Seule entrée d'aide du CRM mobile — la bulle Intercom native est masquée par
+  // MobileShell. La retirer d'ici couperait l'accès au support sur téléphone.
+  { labelKey: 'nav.help', icon: 'help', open: () => openHelpFor() },
 ]
 
 /** Bascule segmentée (pilule) générique — sert aux réglages Apparence et Langue. */
@@ -253,8 +260,8 @@ export default function MobileMoreScreen() {
       <div style={{ ...card, marginTop: 16 }}>
         {MORE_DESTS.map((d, i) => (
           <Pressable
-            key={d.route}
-            onClick={() => navigate(d.route)}
+            key={d.labelKey}
+            onClick={() => (d.route ? navigate(d.route) : d.open?.())}
             style={{
               width: '100%',
               textAlign: 'left',

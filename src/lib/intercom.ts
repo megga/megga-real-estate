@@ -51,13 +51,44 @@ export interface IntercomBootArgs {
 let booted = false
 
 /**
+ * État VOULU du lanceur natif, tenu au niveau du module et non dans React.
+ *
+ * ⚠️ Sans cette mémoire, le masquage serait perdu à chaque re-boot : la coquille
+ * CRM se monte avant que le Messenger soit booté (le boot identifié attend le JWT
+ * de l'edge), et `shutdownIntercom()` + re-boot rejoue les arguments d'origine. Un
+ * simple `update()` au montage remettrait donc la bulle à l'écran une seconde plus
+ * tard, sans que rien ne le signale.
+ */
+let launcherHidden = false
+
+/**
  * Boote (ou re-boote) le Messenger. Anonyme si aucun argument utilisateur.
  * No-op tant que `VITE_INTERCOM_APP_ID` n'est pas défini (comme PostHog sans clé).
  */
 export function bootIntercom(args: IntercomBootArgs = {}) {
   if (!APP_ID || typeof window === 'undefined') return
-  Intercom({ app_id: APP_ID, region: 'us', ...guardArgs(args) } as Parameters<typeof Intercom>[0])
+  Intercom({
+    app_id: APP_ID,
+    region: 'us',
+    ...guardArgs({ hide_default_launcher: launcherHidden, ...args }),
+  } as Parameters<typeof Intercom>[0])
   booted = true
+}
+
+/**
+ * Masque ou rétablit la bulle native.
+ *
+ * À n'appeler que depuis une coquille qui offre sa PROPRE entrée d'aide MEGGA X
+ * (`useHideIntercomLauncher`) : masquer sans remplacer coupe le seul accès au
+ * support. Les surfaces sans entrée d'aide — pages publiques, onboarding, console
+ * admin — gardent donc la bulle.
+ *
+ * Sûr avant le boot : la valeur est mémorisée et appliquée au boot suivant.
+ */
+export function setIntercomLauncherHidden(hidden: boolean) {
+  launcherHidden = hidden
+  if (!APP_ID || !booted) return
+  sdkUpdate(guardArgs({ hide_default_launcher: hidden }) as Parameters<typeof sdkUpdate>[0])
 }
 
 export function updateIntercom(args: IntercomBootArgs = {}) {
