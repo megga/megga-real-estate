@@ -226,12 +226,43 @@ l'AGENT). ⛔ Et `executeSendClientEmail` est de toute façon **cassé** : il ap
 `send-relance-email` avec la clé service-role, que `requireAgentAuth` refuse — **401 mesuré**,
 faute du contournement que `magic-link-send-email:59-61` possède, lui.
 
-### Lot D — la vitrine · le trou connu
+### ~~Lot D — la vitrine~~ · ✅ FAIT le 16 août 2026 — mais PAS comme annoncé
 
-Un utilisateur **déjà inscrit** qui bascule la langue sur `megga.ch` ne l'enregistre pas :
-`localStorage` est cloisonné par origine et la vitrine n'a pas la session du CRM. En
-pratique il rebasculera dans le CRM, où c'est capté. Fermer le trou demande de brancher
-`sites/megga-vitrine/js/megga-lang.js` sur son propre client Supabase.
+⛔ **LA CORRECTION ANNONCÉE ÉTAIT RÉFUTÉE PAR LA MESURE.** Cette section disait : « fermer le
+trou demande de brancher `megga-lang.js` sur son propre client Supabase ». Mesuré, ce
+branchement n'aurait presque jamais écrit — il faut un jeton dans le `localStorage` de
+**megga.ch**, que seul un chemin du dépôt y dépose : la connexion **par mot de passe sur la
+vitrine elle-même**. Pas les arrivées depuis Google, pas les inscriptions (la confirmation
+par e-mail ne rend aucune session, et `goToCrm` n'est même pas atteint : `showDone` rend
+`true`), pas OAuth (les jetons naissent sur `app.megga.ch`) — et **pas le cas décrit ici**,
+l'agent connecté sur l'app qui revient sur la vitrine. Les quatre ponts possibles ont été
+cherchés (cookie de domaine parent, jeton d'URL, refresh token partagé, `.megga.ch`) :
+aucun n'existe, et la vitrine n'écrit aucun cookie.
+
+⛔ **Et l'échec aurait été SILENCIEUX.** Sans session, l'appel part en `anon` ;
+`REVOKE UPDATE … FROM anon` (20260627120000) et `profiles_update_own` font que l'UPDATE ne
+matche **aucune ligne**, et PostgREST rend `200 []`. Le branchement aurait paru marcher en
+développement — où l'on est connecté — et n'aurait rien écrit en production. Coût :
+**200 Ko de SDK sur 32 pages** qui ne le téléchargent pas aujourd'hui.
+
+✅ **LE VRAI TROU ÉTAIT DANS LE CRM, à deux lignes.** La langue TRAVERSE déjà par `?lang=`
+(`goToCrm` l'accroche sur ses deux branches), mais `seedLanguageFromUrl` l'écrivait dans la
+clé du détecteur et s'arrêtait là : `persisterLangueDeCorrespondance` n'était appelée que
+par `switchLanguage`. Une langue venue de la vitrine n'atteignait donc **jamais**
+`profiles.language`. `persisterLangueDArrivee` ferme la boucle.
+
+✅ **L'arrivée par le callback d'authentification est couverte**, et c'est vérifié dans le
+SDK plutôt que supposé : `getSession()` fait `await this.initializePromise`
+(`GoTrueClient.js:2217`), laquelle comprend la détection de la session dans l'URL. La session
+née des jetons du fragment est donc déjà là — c'est précisément le chemin `goToCrm`.
+
+⚠ **Rien à faire côté vitrine, finalement.** Elle n'a **aucun lien de navigation** vers
+l'app (la seule mention d'`app.megga.ch` dans son HTML est de la prose, dans `privacy.html`),
+et ses deux chemins vers le CRM portent déjà `langueQuery()`. Zéro octet ajouté.
+
+⚠ **Ce qui reste ouvert, et qui est un choix, pas un oubli** : un agent qui tape
+`app.megga.ch` directement depuis un signet n'apporte aucune langue. Il basculera dans le
+CRM, où `switchLanguage` persiste — ce que cette section disait déjà, et qui reste vrai.
 
 ## Ce qu'il faut savoir avant de toucher à un gabarit
 
