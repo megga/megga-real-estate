@@ -90,7 +90,7 @@ C'est la réponse à la question qui justifiait cette étape.
 **Deux gestes en trop, à démonter plutôt qu'à ne pas construire :**
 
 - `admin_set_agency_plan(uuid, text, text, text)` — gardée, auditée, appelée par `AdminPlansPage.tsx:88` et `AdminBillingCard.tsx:86`, alors que §5.7 pose « aucune RPC mutante ». Elle est en outre **cassée pour 3 plans sur 4** : sa whitelist accepte `entreprise`, l'enum n'a que `starter\|pro\|agency\|enterprise`.
-- `admin_log_impersonation(text, uuid, jsonb)` — gardée, jamais exercée (0 événement), mais le chemin front est **vivant** : `useImpersonate.ts`, `UserDrawer.tsx:236`, `ImpersonationHandoff.tsx`, `App.tsx:591`, `AgentSugarLayout.tsx`, et deux surfaces du CRM agent (`IntercomMessenger.tsx`, `CopilotPanel.tsx`) lisent `impersonating` pour se neutraliser. Le retrait touche donc du code hors du dossier admin.
+- `admin_log_impersonation(text, uuid, jsonb)` — gardée, jamais exercée (0 événement), mais le chemin front est **vivant** : `useImpersonate.ts`, `UserDrawer.tsx:236`, `ImpersonationHandoff.tsx`, `App.tsx:591`, `AgentLayout.tsx`, et deux surfaces du CRM agent (`IntercomMessenger.tsx`, `CopilotPanel.tsx`) lisent `impersonating` pour se neutraliser. Le retrait touche donc du code hors du dossier admin.
 
 ---
 

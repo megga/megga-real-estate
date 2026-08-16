@@ -1,4 +1,4 @@
-// Parametric smoke coverage of the CRM agent (all routes under AgentSugarLayout
+// Parametric smoke coverage of the CRM agent (all routes under AgentLayout
 // that don't take a URL parameter). For each route we assert:
 //   1. the page renders something visible (body has > 50 chars of text)
 //   2. its `landmark`, WHEN one is declared — le seul point qui prouve que la
@@ -63,10 +63,8 @@ const CRM_AGENT_ROUTES: RouteSpec[] = [
   { path: '/dashboard/network', label: 'Réseau agences' },
   { path: '/dashboard/audit', label: 'Audit' },
   { path: '/dashboard/analytics', label: 'Analytics' },
-  { path: '/dashboard/julien', label: 'Julien IA' },
 
   // ── Sub-routes statiques (sans paramètre) ───────────────────────────────
-  { path: '/dashboard/contacts/import', label: 'Contacts > Import' },
   { path: '/dashboard/listings/new', label: 'Listings > Nouveau bien' },
   { path: '/dashboard/import-lead', label: 'Import lead IA' },
   { path: '/dashboard/visits/nouveau', label: 'Visites > Nouvelle' },

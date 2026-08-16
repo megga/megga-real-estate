@@ -2,21 +2,29 @@
 
 > Extrait de CLAUDE.md §4. Les règles de base (direction, thème, tokens) sont dans CLAUDE.md.
 
-> ⚠️ **Depuis le 9 août 2026, la direction par DÉFAUT du CRM est MEGGA X**
-> ([PR #1191](https://github.com/megga/megga-real-estate/pull/1191)). Tout ce
-> document reste exact, mais décrit **Sugar** — désormais la direction
-> alternative, toujours entièrement résolvable et choisissable par l'agent
-> (Réglages › Apparence › Direction). Deux conséquences pour qui écrit du style :
+> ⛔ **CE DOCUMENT DÉCRIT LE PASSÉ. Il est conservé comme ARCHIVE, pas comme
+> référence** (bandeau réécrit le 16 août 2026).
 >
-> - **Ne plus écrire de littéral de rayon, d'espacement ou de taille de texte.**
->   Ces valeurs sont des variables CSS (`--crm-radius-*`, `--crm-space-*`,
->   `--crm-text-*`, cf. `src/styles/globals.css`) ; un littéral ne suivrait pas
->   la direction active. Les couleurs, elles, passent par la palette en prop.
-> - **Un test qui éprouve une propriété de Sugar doit épingler la direction** —
->   `crmSugarPalette(t, dark, tone, 'sugar')`. Sans le 4ᵉ argument il vérifie la
->   direction active du moment, donc les surfaces de la vitrine.
+> Son avertissement précédent datait du 9 août et annonçait Sugar comme « la
+> direction alternative, toujours entièrement résolvable et **choisissable par
+> l'agent** (Réglages › Apparence › Direction) ». Les trois affirmations sont
+> fausses depuis le 10 août 2026 ([PR #1194](https://github.com/megga/megga-real-estate/pull/1194)) :
+> **Sugar est SUPPRIMÉE**, le réglage n'existe plus, et il n'y a plus de direction
+> à choisir. Un bandeau périmé sur un document d'archive est pire que pas de
+> bandeau : il donne au lecteur la confiance qu'il est à jour.
 >
-> Détail de la mécanique : CLAUDE.md §3.
+> ⚠ **Et il ne se contredit pas seulement avec CLAUDE.md — il se contredit avec le
+> COMPILATEUR.** Ce texte prescrit `useDarkTone()` et `crmStep('s3', …)` ; les deux
+> symboles ont été supprimés de `src/`, avec `crmDarkTone`, `CRM_DARK_TONES` et le
+> choix de teinte. Le code qu'il enseigne ne compile pas.
+>
+> **Ce qui reste vrai et utile ici**, et la seule raison de ne pas supprimer le
+> fichier : ⛔ ne pas écrire de littéral de rayon, d'espacement ni de taille de
+> texte — ce sont des variables CSS (`--crm-radius-*`, `--crm-space-*`,
+> `--crm-text-*`, cf. `src/styles/globals.css`). Cette règle-là a survécu à la
+> direction qui l'a introduite.
+>
+> **La référence vivante est CLAUDE.md §3**, et elle seule.
 
 ## Sugar Pure — Pipeline v2 (handoff juillet 2026)
 
@@ -26,19 +34,25 @@ Grammaire visuelle des surfaces refondues (Pipeline kanban/liste/timeline, modal
 
 - **Séparation par ombre douce**, aucune bordure décorative 1px. Beaucoup d'air.
 - **Accent UI unique = noir** `#0B0C0E` (clair) / encre `#ECEDF3` (sombre) —
-  `sp.accent` / `sp.accentInk` de `crmSugarPalette`. Aucune couleur vive en accent.
+  `sp.accent` / `sp.accentInk` de `crmPalette`. Aucune couleur vive en accent.
 - **Teinte sombre par défaut = « Graphite »** — échelle de surfaces OPAQUES
   `#12161C` → `#21242F` en 5 paliers (`CRM_GRAPHITE`, `CRM_TOKENS.graphite`).
-  Noir pur `#000000` reste offert. La teinte est **vivante** : `useDarkTone()`
+  Noir pur `#000000` reste offert. La teinte était **vivante** : `useDarkTone()`
   côté React (`crmDarkTone()` hors React), choisie dans Réglages › Préférences ›
-  Apparence. Un littéral local passe par `crmStep('s3', '<valeur historique>')`,
+  Apparence. Un littéral local passait par `crmStep('s3', '<valeur historique>')`,
+  ⛔ **— TROIS SYMBOLES SUPPRIMÉS DE `src/` LE 10 AOÛT 2026, comme le choix de
+  teinte lui-même. Ce paragraphe est de l'histoire ; l'écrire aujourd'hui ne
+  compile pas.** L'échelle sombre vivante est celle de MEGGA X (CLAUDE.md §3), et
+  ce qui subsiste de Graphite est gardé par
+  [graphite-scale.spec.ts](../tests/unit/graphite-scale.spec.ts) : **un seul champ
+  a encore un lecteur**.
   et une palette montée une fois doit exposer des **getters**, sinon elle fige sa
   valeur au chargement. Barème et règles : `CLAUDE.md` §Échelle sombre.
-- **Teintes d'étape** : balayage continu `SG_STAGE_HUE` (indigo `#5B6BE6` →
-  orange `#E8892A`, `lost` rose `#C2607E` hors funnel). Dérivations `sgMix`
-  FIGÉES : fond de colonne clair `sgMix(hue,#FFF,.81)` / sombre
-  `sgMix(hue,#141517,.85)` ; compteur teinté `.45→#0B0C0E` / `.35→#FFF` ;
-  pilule à texte blanc `sgStagePillBg` = clair `sgMix(hue,#0B0C0E,.32)`,
+- **Teintes d'étape** : balayage continu `CRM_STAGE_HUE` (indigo `#5B6BE6` →
+  orange `#E8892A`, `lost` rose `#C2607E` hors funnel). Dérivations `crmMix`
+  FIGÉES : fond de colonne clair `crmMix(hue,#FFF,.81)` / sombre
+  `crmMix(hue,#141517,.85)` ; compteur teinté `.45→#0B0C0E` / `.35→#FFF` ;
+  pilule à texte blanc `crmStagePillBg` = clair `crmMix(hue,#0B0C0E,.32)`,
   sombre teinte pure. Les pastilles 8-9 px et les barres restent en teinte pure.
 - **Pilules de statut/type** : TOUJOURS fond opaque plein + texte blanc (jamais
   fond teinté clair + texte coloré, jamais de dot dans la pilule).

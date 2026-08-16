@@ -13,7 +13,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, X } from 'lucide-react'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminUsers } from '@/hooks/useAdminUsers'
 import { useUpsertOnboardingHost, type AdminOnboardingHost } from '@/hooks/useAdminOnboardingCalls'
 import { AdminGhostBtn, AdminIc, AdminSolidBtn } from '@/components/admin/kit/adminKit'
@@ -32,7 +32,7 @@ const TIMEZONES = ['Europe/Zurich', 'Europe/Paris', 'Europe/Berlin', 'Europe/Rom
 
 export default function OnboardingHostForm({ host, onClose }: OnboardingHostFormProps) {
   const { t } = useTranslation('admin')
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const upsert = useUpsertOnboardingHost()
   const { users } = useAdminUsers()
 
@@ -120,7 +120,7 @@ export default function OnboardingHostForm({ host, onClose }: OnboardingHostForm
       background: sp.cardSubBg, border: surf.hairline,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: sp.ink }}>
+        <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>
           {t(host ? 'onboardingCalls.hosts.form.editTitle' : 'onboardingCalls.hosts.form.addTitle')}
         </span>
         <AdminGhostBtn onClick={onClose} icon={X} label={t('onboardingCalls.hosts.form.close')}>

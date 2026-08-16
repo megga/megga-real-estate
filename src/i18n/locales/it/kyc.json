@@ -239,18 +239,17 @@
     },
     "start": {
       "title": "Come desidera aprire questo fascicolo?",
-      "subtitle": "Tre percorsi per adempiere all'obbligo LRD. Il più rapido resta collegare il fascicolo a un contatto già presente nel Suo CRM.",
       "existing": {
         "title": "Collegare a un contatto esistente",
-        "sub": "Il caso più frequente: seleziona un acquirente, un venditore o un inquilino già presente nel CRM."
+        "sub": "Un acquirente, venditore o inquilino già nel CRM."
       },
       "import": {
-        "title": "Importare un fascicolo esterno (prossimamente)",
-        "sub": "L'importazione con lettura automatica (PDF Persona, ComplyAdvantage, rapporto di un'agenzia partner) arriverà in una prossima versione. Nel frattempo utilizzi «Collegare a un contatto esistente»."
+        "title": "Importare un fascicolo esterno",
+        "sub": "Presto disponibile."
       },
       "magic": {
         "title": "Richiedere i documenti",
-        "sub": "Link magico inviato al contatto affinché carichi lui stesso i suoi giustificativi in tutta sicurezza."
+        "sub": "Il contatto carica lui stesso i suoi documenti."
       }
     },
     "contact": {
@@ -285,7 +284,6 @@
       }
     },
     "gate": {
-      "recommended": "Consigliato",
       "selected": "Selezionato",
       "choose": "Scegli"
     },

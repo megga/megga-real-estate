@@ -56,7 +56,7 @@ d'identité : ce helper est *lossy* et réécrit tous les pixels.
 ### 2.1 La décision du 02.08 ne parle pas des octets
 
 Son texte, en entier
-([StepPieceIdentite.tsx:137-139](../src/components/crm-sugar-identity/steps/StepPieceIdentite.tsx)) :
+([StepPieceIdentite.tsx:137-139](../src/components/crm-identity/steps/StepPieceIdentite.tsx)) :
 
 > « Aucune **retouche** n'est proposée, et c'est délibéré : l'original déposé EST la pièce
 > examinée par l'équipe conformité (décision produit du 02.08.2026, "l'original doit rester
@@ -374,7 +374,7 @@ Vérifié en production : le bucket `documents` porte
 `allowed_mime_types = {application/pdf, image/jpeg, image/png, application/msword, docx}` et
 `file_size_limit = 20 Mio`. **`image/webp` n'y est pas.** Or il est proposé par
 `ACCEPTED_TYPES`
-([StepPieceIdentite.tsx:59](../src/components/crm-sugar-identity/steps/StepPieceIdentite.tsx))
+([StepPieceIdentite.tsx:59](../src/components/crm-identity/steps/StepPieceIdentite.tsx))
 et accepté par `ALLOWED_IDENTITY_DOCUMENT_TYPES`
 ([useAgencyIdentity.ts:523](../src/hooks/useAgencyIdentity.ts)). **Un recto en WebP passe la
 validation client et échoue au téléversement.**

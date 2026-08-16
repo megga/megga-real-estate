@@ -60,7 +60,7 @@ import {
   AdminSkeleton, AdminSolidBtn,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 
 type Tab = 'changelog' | 'announcements'
 
@@ -98,7 +98,7 @@ export default function AdminCommunicationPage() {
 /** Onglet Changelog — la feuille d'abord, l'historique dessous. */
 function ChangelogSheet() {
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const toast = useToast()
   const {
     entries, isLoading, isError, refetch,
@@ -174,7 +174,7 @@ function ChangelogSheet() {
           onChange={e => setTitre(e.target.value)}
           placeholder={t('changelog.sheet.titlePlaceholder')}
           aria-label={t('changelog.sheet.titlePlaceholder')}
-          style={{ ...champ, fontSize: 19, fontWeight: 800, letterSpacing: -0.5 }}
+          style={{ ...champ, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.5 }}
         />
         <textarea
           value={texte}
@@ -182,7 +182,7 @@ function ChangelogSheet() {
           placeholder={t('changelog.sheet.descPlaceholder')}
           aria-label={t('changelog.sheet.descPlaceholder')}
           rows={3}
-          style={{ ...champ, marginTop: 10, fontSize: 13, fontWeight: 500, resize: 'vertical', lineHeight: 1.5 }}
+          style={{ ...champ, marginTop: 10, fontSize: 'var(--crm-text-md)', fontWeight: 500, resize: 'vertical', lineHeight: 1.5 }}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 14, paddingTop: 12, borderTop: surf.hairline, flexWrap: 'wrap' }}>
           <input
@@ -190,13 +190,13 @@ function ChangelogSheet() {
             onChange={e => setVersion(e.target.value)}
             placeholder={t('changelog.sheet.versionPlaceholder')}
             aria-label={t('changelog.sheet.versionPlaceholder')}
-            style={{ ...champ, width: 160, fontSize: 12, fontWeight: 600, color: sp.sub }}
+            style={{ ...champ, width: 160, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub }}
           />
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
             <AdminGhostBtn
               onClick={() => enregistrer(false)}
               disabled={!pret || createEntry.isPending}
-              style={{ height: 32, fontSize: 12 }}
+              style={{ height: 32, fontSize: 'var(--crm-text-sm)' }}
             >
               {t('changelog.sheet.saveDraft')}
             </AdminGhostBtn>
@@ -213,11 +213,11 @@ function ChangelogSheet() {
       {/* ── L'historique ────────────────────────────────────────────────────── */}
       <div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, padding: '0 2px 10px' }}>
-          <h2 style={{ margin: 0, fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: sp.sub }}>
+          <h2 style={{ margin: 0, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>
             {t('changelog.history')}
           </h2>
           {(compte.drafts > 0 || compte.scheduled > 0) && (
-            <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+            <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>
               {t('changelog.counts', compte)}
             </span>
           )}
@@ -239,11 +239,11 @@ function ChangelogSheet() {
                 <div key={e.id} style={ligne}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{e.title}</span>
+                      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>{e.title}</span>
                       <AdminPill label={t(`changelog.state.${etat}`)} tone={STATE_TONE[etat]} />
-                      {e.version && <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub }}>{e.version}</span>}
+                      {e.version && <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>{e.version}</span>}
                     </div>
-                    <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ marginTop: 2, fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {etat === 'published'
                         ? `${t('changelog.publishedLocked')} · ${formatDate(e.created_at)}`
                         : formatDate(e.created_at)}
@@ -254,18 +254,18 @@ function ChangelogSheet() {
                       déjà publiée, ou modifier ce que le serveur a figé, n'a pas
                       de sens et ne doit pas être proposé. */}
                   {etat === 'published' ? (
-                    <AdminGhostBtn onClick={() => setARetirer(e.id)} disabled={unpublishEntry.isPending} style={{ height: 28, fontSize: 11.5 }}>
+                    <AdminGhostBtn onClick={() => setARetirer(e.id)} disabled={unpublishEntry.isPending} style={{ height: 28, fontSize: 'var(--crm-text-xs)' }}>
                       {t('changelog.action.unpublish')}
                     </AdminGhostBtn>
                   ) : (
-                    <AdminGhostBtn onClick={() => setAPublier(e.id)} disabled={publishEntry.isPending} style={{ height: 28, fontSize: 11.5 }}>
+                    <AdminGhostBtn onClick={() => setAPublier(e.id)} disabled={publishEntry.isPending} style={{ height: 28, fontSize: 'var(--crm-text-xs)' }}>
                       {t('changelog.action.publish')}
                     </AdminGhostBtn>
                   )}
                   <AdminGhostBtn
                     onClick={() => setASupprimer(e.id)}
                     disabled={deleteEntry.isPending}
-                    style={{ height: 28, fontSize: 11.5, color: tones.err }}
+                    style={{ height: 28, fontSize: 'var(--crm-text-xs)', color: tones.err }}
                   >
                     {t('changelog.action.delete')}
                   </AdminGhostBtn>
@@ -278,7 +278,7 @@ function ChangelogSheet() {
         {/* ⛔ La seule ligne que l'écran DOIT dire : rien ne lit encore ce qu'on
             publie. La taire ferait d'un geste sans effet un geste qui paraît en
             avoir un (É2). */}
-        <div style={{ marginTop: 14, padding: '0 2px', fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+        <div style={{ marginTop: 14, padding: '0 2px', fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>
           {t('changelog.noReader')}
         </div>
       </div>

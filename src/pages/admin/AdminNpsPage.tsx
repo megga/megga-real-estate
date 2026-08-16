@@ -15,7 +15,7 @@ import { Star, MessageSquare, TrendingUp, Users } from 'lucide-react'
 import { useAdminNps } from '@/hooks/useAdminNps'
 import type { NpsResponse } from '@/hooks/useAdminNps'
 import { formatRelativeDate } from '@/lib/utils'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
@@ -35,7 +35,7 @@ function npsScoreTone(score: number): AdminToneName {
  */
 function ResponseCard({ response, first }: { response: NpsResponse; first: boolean }) {
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
 
   return (
     <div
@@ -63,25 +63,25 @@ function ResponseCard({ response, first }: { response: NpsResponse; first: boole
       {/* Contenu */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>
             {response.user_name ?? t('nps.anonymousUser')}
           </span>
           {response.user_email && (
-            <span style={{ fontSize: 11.5, color: sp.soft }}>{response.user_email}</span>
+            <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.soft }}>{response.user_email}</span>
           )}
           {response.role && (
-            <AdminPill label={response.role} style={{ padding: '3px 9px', fontSize: 11 }} />
+            <AdminPill label={response.role} style={{ padding: '3px 9px', fontSize: 'var(--crm-text-xs)' }} />
           )}
         </div>
         {response.comment && (
-          <p style={{ margin: '5px 0 0', fontSize: 12.5, fontWeight: 500, color: sp.sub, lineHeight: 1.5 }}>
+          <p style={{ margin: '5px 0 0', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, lineHeight: 1.5 }}>
             {response.comment}
           </p>
         )}
       </div>
 
       {/* Date */}
-      <span style={{ fontSize: 11.5, color: sp.soft, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.soft, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
         {formatRelativeDate(response.submitted_at)}
       </span>
     </div>
@@ -92,7 +92,7 @@ function ResponseCard({ response, first }: { response: NpsResponse; first: boole
 export default function AdminNpsPage() {
   const { t } = useTranslation('admin')
   const { data, isLoading, isError, refetch } = useAdminNps()
-  const { sp, tones, onTone } = useAdminSugar()
+  const { sp, tones, onTone } = useAdminSurfaces()
 
   const stats = data?.stats
   const responses = data?.responses ?? []
@@ -111,11 +111,11 @@ export default function AdminNpsPage() {
   // la barre empilée deviendrait illisible. `ink` garde le pourcentage lisible
   // sur chaque fond, en clair comme en sombre.
   const ratingFill: Record<number, { bg: string; ink: string }> = {
-    1: { bg: tones.err, ink: onTone },
-    2: { bg: tones.warn, ink: onTone },
+    1: { bg: tones.err, ink: onTone(tones.err) },
+    2: { bg: tones.warn, ink: onTone(tones.warn) },
     3: { bg: sp.accent, ink: sp.accentInk },
-    4: { bg: tones.cyan, ink: onTone },
-    5: { bg: tones.ok, ink: onTone },
+    4: { bg: tones.cyan, ink: onTone(tones.cyan) },
+    5: { bg: tones.ok, ink: onTone(tones.ok) },
   }
 
   return (
@@ -160,7 +160,7 @@ export default function AdminNpsPage() {
       {/* Répartition des notes */}
       {stats && stats.totalResponses > 0 && (
         <AdminCard padding="16px 18px">
-          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
+          <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>
             {t('nps.distribution')}
           </p>
           <AdminDivider margin="12px 0 14px" />
@@ -182,7 +182,7 @@ export default function AdminNpsPage() {
                   title={`${rating} etoile${rating > 1 ? 's' : ''}: ${count} (${Math.round(pct)}%)`}
                 >
                   {pct >= 8 && (
-                    <span style={{ fontSize: 11, fontWeight: 700, color: fill.ink, fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: fill.ink, fontVariantNumeric: 'tabular-nums' }}>
                       {Math.round(pct)}%
                     </span>
                   )}
@@ -196,7 +196,7 @@ export default function AdminNpsPage() {
             {[1, 2, 3, 4, 5].map(rating => (
               <div key={rating} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 9, height: 9, borderRadius: ADMIN_RADII.pill, background: ratingFill[rating].bg, flexShrink: 0 }} />
-                <span style={{ fontSize: 11.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+                <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
                   {ratingLabels[rating]} ({stats.distribution[rating] ?? 0})
                 </span>
               </div>
@@ -208,10 +208,10 @@ export default function AdminNpsPage() {
       {/* Réponses */}
       <AdminCard padding="16px 18px">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <p style={{ margin: 0, fontSize: 13.5, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>
+          <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>
             {t('nps.recentResponses')}
           </p>
-          <span style={{ fontSize: 11.5, color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>
             {responses.length} reponse{responses.length !== 1 ? 's' : ''}
           </span>
         </div>

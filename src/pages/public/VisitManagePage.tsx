@@ -7,13 +7,47 @@
  * cancelled / rescheduled.
  */
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { CalendarDays, MapPin, Check, X, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { usePublicVisit, useRescheduleVisit, useCancelVisit, estRefus } from '@/hooks/useVisits'
 import PublicPageHeader from '@/components/layout/PublicPageHeader'
+import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
 
 const TIME_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
+
+/**
+ * Les formes répétées de cette page — mêmes que celles de l'avis de visite, et
+ * pour la même raison : écrites une fois, elles ne divergent pas.
+ *
+ * ⚠ LE FILET EST UNE OMBRE INTERNE, PAS UNE BORDURE. Une bordure occupe de la
+ * place et décale la mise en page dès qu'elle change au survol ou à la
+ * sélection ; `inset 0 0 0 1px` se pose PAR-DESSUS.
+ */
+const PAGE = { background: MLK.card, fontFamily: MLK.font, color: MLK.ink }
+const FILET = `inset 0 0 0 1px ${MLK.ghost}33`
+const TITRE = { fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, margin: 0 }
+const SOUS = { fontSize: 'var(--crm-text-lg)', color: MLK.muted }
+
+/** Le disque d'un écran de fin — une DONNÉE : rien ne s'y actionne. */
+const disque = (ton: 'ok' | 'err'): CSSProperties => ({
+  background: ton === 'ok' ? MLK_STATUT.okFill : MLK_STATUT.errFill,
+})
+
+/**
+ * La pastille sélectionnable — jour, créneau.
+ *
+ * ⛔ ICI TOUT PREND L'ACCENT quand c'est actif, contrairement à l'avis de visite
+ * où deux familles gardent un ton : un jour et une heure n'ont pas de POLARITÉ,
+ * ils disent seulement « vous avez choisi ceci ». C'est la règle du 10 août dans
+ * son cas le plus simple.
+ */
+function pastille(actif: boolean): CSSProperties {
+  const base: CSSProperties = { fontFamily: 'inherit', border: 0, cursor: 'pointer' }
+  return actif
+    ? { ...base, fontWeight: 500, color: MLK.accent, background: `${MLK.accent}0D`, boxShadow: `inset 0 0 0 1px ${MLK.accent}` }
+    : { ...base, color: MLK.inkSoft, background: 'transparent', boxShadow: FILET }
+}
 
 export default function VisitManagePage() {
   // Visit ID from URL (used for display, token used for auth)
@@ -30,11 +64,14 @@ export default function VisitManagePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={PAGE}>
         <PublicPageHeader />
         <div className="flex flex-col items-center justify-center h-[60vh]">
-          <div className="h-8 w-8 border-2 border-gray-200 border-t-accent rounded-full animate-spin mb-4" />
-          <p className="text-sm text-gray-500">Chargement...</p>
+          <div
+            className="h-8 w-8 rounded-full animate-spin mb-4"
+            style={{ border: `2px solid ${MLK.ghost}33`, borderTopColor: MLK.accent }}
+          />
+          <p style={SOUS}>Chargement...</p>
         </div>
       </div>
     )
@@ -42,11 +79,11 @@ export default function VisitManagePage() {
 
   if (!visit || !token) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={PAGE}>
         <PublicPageHeader />
         <div className="flex flex-col items-center justify-center h-[60vh]">
-          <p className="text-xl font-semibold text-gray-900 mb-2">Lien invalide</p>
-          <p className="text-sm text-gray-500">Ce lien de gestion de visite est expiré ou invalide.</p>
+          <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 8 }}>Lien invalide</p>
+          <p style={SOUS}>Ce lien de gestion de visite est expiré ou invalide.</p>
         </div>
       </div>
     )
@@ -88,14 +125,14 @@ export default function VisitManagePage() {
 
   if (mode === 'cancelled') {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={PAGE}>
         <PublicPageHeader />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
-          <div className="h-12 w-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <X className="h-6 w-6 text-red-500" />
+          <div className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4" style={disque('err')}>
+            <X className="h-6 w-6" style={{ color: MLK_STATUT.errInk }} />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900">Visite annulée</h2>
-          <p className="text-sm text-gray-500 mt-2">L'agent a été notifié de l'annulation.</p>
+          <h2 style={TITRE}>Visite annulée</h2>
+          <p style={{ ...SOUS, marginTop: 8 }}>L'agent a été notifié de l'annulation.</p>
         </div>
       </div>
     )
@@ -103,14 +140,14 @@ export default function VisitManagePage() {
 
   if (mode === 'rescheduled') {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={PAGE}>
         <PublicPageHeader />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
-          <div className="h-12 w-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="h-6 w-6 text-emerald-600" />
+          <div className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4" style={disque('ok')}>
+            <Check className="h-6 w-6" style={{ color: MLK_STATUT.okInk }} />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900">Visite reportée</h2>
-          <p className="text-sm text-gray-500 mt-2">L'agent a été notifié du nouveau créneau.</p>
+          <h2 style={TITRE}>Visite reportée</h2>
+          <p style={{ ...SOUS, marginTop: 8 }}>L'agent a été notifié du nouveau créneau.</p>
         </div>
       </div>
     )
@@ -118,21 +155,21 @@ export default function VisitManagePage() {
 
   if (visit.status === 'cancelled') {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={PAGE}>
         <PublicPageHeader />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
-          <p className="text-lg font-semibold text-gray-900">Cette visite a été annulée</p>
+          <p style={TITRE}>Cette visite a été annulée</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={PAGE}>
       <PublicPageHeader />
       <div className="max-w-md mx-auto px-4 py-12">
         {/* Visit summary card */}
-        <div className="rounded-xl border border-gray-200 overflow-hidden mb-8">
+        <div className="rounded-xl overflow-hidden mb-8" style={{ boxShadow: FILET }}>
           {photo && (
             <div className="aspect-[16/9]">
               {/* no-referrer : le token de gestion est dans la query de CETTE page,
@@ -141,15 +178,15 @@ export default function VisitManagePage() {
             </div>
           )}
           <div className="p-5 space-y-3">
-            <h2 className="text-lg font-semibold text-gray-900">{property?.title || 'Visite planifiée'}</h2>
+            <h2 style={TITRE}>{property?.title || 'Visite planifiée'}</h2>
             {property?.address && (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2" style={SOUS}>
                 <MapPin className="h-4 w-4 flex-shrink-0" />
                 {property.address}, {property.city}
               </div>
             )}
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <CalendarDays className="h-4 w-4 flex-shrink-0 text-accent" />
+            <div className="flex items-center gap-2" style={{ fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft }}>
+              <CalendarDays className="h-4 w-4 flex-shrink-0" style={{ color: MLK.accent }} />
               <span className="font-medium capitalize">{dateFR}</span> à <span className="font-medium">{timeFR}</span>
             </div>
           </div>
@@ -160,18 +197,21 @@ export default function VisitManagePage() {
             Sans ce bloc, l'écran de succès s'afficherait sur un geste qui n'a
             rien écrit et l'acheteur repartirait convaincu du contraire. */}
         {(cancel.isError || reschedule.isError) && (
-          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <div
+            className="mb-4 rounded-xl px-4 py-3"
+            style={{ background: MLK_STATUT.warnFill, boxShadow: `inset 0 0 0 1px ${MLK_STATUT.warnLine}` }}
+          >
             {estRefus(cancel.error) || estRefus(reschedule.error) ? (
               <>
-                <p className="text-sm font-medium text-amber-900">Ce lien ne permet plus cette action</p>
-                <p className="text-xs text-amber-800 mt-1">
+                <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>Ce lien ne permet plus cette action</p>
+                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
                   La visite a peut-être déjà été annulée ou clôturée. Contactez votre agent pour la modifier.
                 </p>
               </>
             ) : (
               <>
-                <p className="text-sm font-medium text-amber-900">L'action n'a pas abouti</p>
-                <p className="text-xs text-amber-800 mt-1">
+                <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>L'action n'a pas abouti</p>
+                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
                   Vérifiez votre connexion et réessayez.
                 </p>
               </>
@@ -184,14 +224,16 @@ export default function VisitManagePage() {
           <div className="space-y-3">
             <button
               onClick={() => setMode('reschedule')}
-              className="w-full h-11 text-sm font-medium border border-gray-200 rounded-xl hover:border-gray-300 transition-colors text-gray-700"
+              className="w-full h-11 rounded-xl transition-colors"
+              style={{ fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, border: 0, cursor: 'pointer', background: MLK.accent, color: '#FFFFFF' }}
             >
               Reporter la visite
             </button>
             <button
               onClick={handleCancel}
               disabled={cancel.isPending}
-              className="w-full h-11 text-sm font-medium text-red-500 border border-red-200 rounded-xl hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full h-11 rounded-xl transition-colors flex items-center justify-center gap-2"
+              style={{ fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, border: 0, cursor: 'pointer', background: 'transparent', color: MLK_STATUT.errInk, boxShadow: `inset 0 0 0 1px ${MLK_STATUT.errLine}` }}
             >
               {cancel.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Annuler la visite
@@ -202,7 +244,7 @@ export default function VisitManagePage() {
         {/* Reschedule form */}
         {mode === 'reschedule' && (
           <div className="space-y-4">
-            <h3 className="text-sm font-semibold text-gray-900">Choisir une nouvelle date</h3>
+            <h3 style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: MLK.ink, margin: 0 }}>Choisir une nouvelle date</h3>
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
               {dates.map((d) => {
                 const key = d.toISOString().split('T')[0]
@@ -212,13 +254,11 @@ export default function VisitManagePage() {
                   <button
                     key={key}
                     onClick={() => setNewDate(key)}
-                    className={cn(
-                      'flex flex-col items-center min-w-[56px] px-2 py-2 rounded-lg border text-xs transition-colors',
-                      newDate === key ? 'border-accent bg-accent/5 text-accent font-medium' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                    )}
+                    className="flex flex-col items-center min-w-[56px] px-2 py-2 rounded-lg transition-colors"
+                    style={{ ...pastille(newDate === key), fontSize: 'var(--crm-text-sm)' }}
                   >
                     <span className="capitalize">{dayName}</span>
-                    <span className="text-base font-semibold mt-0.5">{dayNum}</span>
+                    <span className="mt-0.5" style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600 }}>{dayNum}</span>
                   </button>
                 )
               })}
@@ -230,10 +270,8 @@ export default function VisitManagePage() {
                   <button
                     key={t}
                     onClick={() => setNewTime(t)}
-                    className={cn(
-                      'px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors',
-                      newTime === t ? 'border-accent bg-accent/5 text-accent' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                    )}
+                    className="px-3 py-1.5 rounded-lg transition-colors"
+                    style={{ ...pastille(newTime === t), fontSize: 'var(--crm-text-sm)', fontWeight: 500 }}
                   >
                     {t}
                   </button>
@@ -244,17 +282,21 @@ export default function VisitManagePage() {
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setMode('view')}
-                className="flex-1 h-10 text-sm text-gray-600 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
+                className="flex-1 h-10 rounded-lg transition-colors"
+                style={{ fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', border: 0, cursor: 'pointer', background: 'transparent', color: MLK.inkSoft, boxShadow: FILET }}
               >
                 Retour
               </button>
               <button
                 onClick={handleReschedule}
                 disabled={!newDate || reschedule.isPending}
-                className={cn(
-                  'flex-1 h-10 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2',
-                  newDate && !reschedule.isPending ? 'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active' : 'bg-gray-100 text-gray-500 cursor-not-allowed'
-                )}
+                className="flex-1 h-10 rounded-lg transition-colors flex items-center justify-center gap-2"
+                style={{
+                  fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, border: 0,
+                  ...(newDate && !reschedule.isPending
+                    ? { background: MLK.accent, color: '#FFFFFF', cursor: 'pointer' }
+                    : { background: MLK.cardSubtle, color: MLK.ghost, cursor: 'not-allowed' }),
+                }}
               >
                 {reschedule.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Confirmer

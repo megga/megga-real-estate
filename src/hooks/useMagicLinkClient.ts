@@ -4,9 +4,24 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { MagicLinkPublicView } from '@/types/magicLink'
+import { SUPABASE_FUNCTIONS_URL, SUPABASE_PUBLIC_ANON_KEY } from '@/lib/supabase'
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+/**
+ * ⛔ L'URL DES FONCTIONS VIENT DE `lib/supabase`, JAMAIS D'UNE LECTURE NUE DE
+ * L'ENVIRONNEMENT.
+ *
+ * Ce module lisait la variable de build SANS le repli que
+ * `src/lib/supabase.ts` porte depuis toujours. Quand la variable manque — un
+ * checkout sans `.env`, un build dont le secret n'a pas été injecté — la chaîne
+ * vaut `undefined`, l'URL construite devient RELATIVE, et le serveur y répond
+ * par le repli SPA : **200, avec du HTML**. `res.ok` est vrai, `res.json()` lève,
+ * et la page finit sur un écran vide sans que rien ne signale la cause.
+ *
+ * Mesuré le 15 août 2026 : `/kyc/<jeton>` rendait une page BLANCHE en dev, et la
+ * requête partait sur `/kyc/undefined/functions/v1/magic-link-get`.
+ */
+const SUPABASE_URL = SUPABASE_FUNCTIONS_URL.replace(/\/functions\/v1$/, '')
+const SUPABASE_ANON_KEY = SUPABASE_PUBLIC_ANON_KEY
 
 // Toutes les requêtes ont besoin de la clé anon Supabase pour passer
 // l'authentification d'infrastructure (avant le check HMAC interne).

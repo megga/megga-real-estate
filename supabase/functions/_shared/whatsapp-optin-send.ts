@@ -10,7 +10,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
-import { optinCopy, optinLang } from './whatsapp-optin-copy.ts'
+import { type OptinCopy, optinCopy, optinLang } from './whatsapp-optin-copy.ts'
 import { OPTIN_PREFIX } from './whatsapp-optin.ts'
 import { BODY_INK, MUTED, FONT, escapeHtml, shell } from './email-shell.ts'
 
@@ -40,7 +40,7 @@ export type OptinSendResult =
  */
 export function buildOptinInviteEmail(i: {
   lang: string
-  copy: { subject: string; body: string; cta: string }
+  copy: OptinCopy
   agencyName: string
   lien: string
 }): { subject: string; html: string } {
@@ -49,11 +49,12 @@ export function buildOptinInviteEmail(i: {
     html: shell({
       lang: i.lang,
       title: i.copy.subject,
-      // L'aperçu dit le COÛT et la sortie : c'est une demande de consentement, la
-      // question du destinataire est « à quoi je m'engage ».
-      preheader: 'Un message, et vous pourrez répondre STOP à tout moment.',
-      legalNote: 'Cet e-mail vous invite à consentir aux messages WhatsApp de votre agence. '
-        + 'Tant que vous n’avez pas répondu, aucun message ne vous sera envoyé sur ce canal.',
+      // ⚠ APERÇU ET MENTION LÉGALE VIENNENT DE `copy`, comme l'objet et le corps.
+      // Écrits en dur ici, ils restaient français dans un e-mail déclaré `lang="de"` :
+      // le destinataire lisait un objet allemand, puis une ligne d'aperçu et un pied
+      // de consentement qu'il ne comprenait pas. Cf. `whatsapp-optin-copy.ts`.
+      preheader: i.copy.preheader,
+      legalNote: i.copy.legalNote,
       headerCta: null,
       bodyHtml: `
      <div style="font-family:${FONT};font-size:15px;line-height:1.6;color:${BODY_INK};white-space:pre-line;">${escapeHtml(i.copy.body)}</div>

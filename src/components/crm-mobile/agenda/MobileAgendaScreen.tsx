@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useCalendarSugar } from '@/hooks/useCalendarSugar'
+import { useCalendarScreen } from '@/hooks/useCalendarScreen'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
+import { openCrmSearch } from '@/components/crm/search/openSearch'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import MeggaWordmark from '../shell/MeggaWordmark'
@@ -12,7 +12,7 @@ import AgEventCard from './AgEventCard'
 import AgTimeGrid from './AgTimeGrid'
 import AgEventSheet from './AgEventSheet'
 import { calEventToVM, demoEvents, fmtDur, minutesOf, sameDay, type AgEventVM } from './vm'
-import { calNowColor } from '@/components/crm-sugar/calendar/data'
+import { calNowColor } from '@/components/crm/calendar/data'
 
 type AgView = 'list' | 'block'
 
@@ -25,7 +25,7 @@ function startOfDay(d: Date): Date {
 
 /**
  * Agenda mobile (onglet 4) — sélecteur de jour + bascule Liste ↔ Bloc
- * (time-block). Câblé `useCalendarSugar` (visites + reminders, mêmes events que
+ * (time-block). Câblé `useCalendarScreen` (visites + reminders, mêmes events que
  * le desktop, lecture seule). Création = flux visite réel (`/dashboard/visits/new`).
  * Seeds derrière `demo`. v1 : édition inline (replanifier/supprimer) différée.
  */
@@ -33,7 +33,7 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
   const navigate = useNavigate()
   const { t } = useTranslation('calendar')
   const { tk } = useMobileTokens()
-  const { events, isLoading, isError, refetch } = useCalendarSugar()
+  const { events, isLoading, isError, refetch } = useCalendarScreen()
 
   const [selected, setSelected] = useState<Date>(() => startOfDay(new Date()))
   const [view, setView] = useState<AgView>('list')
@@ -78,7 +78,7 @@ export function MobileAgendaScreen({ demo = false }: { demo?: boolean }) {
         <MeggaWordmark color={tk.ink} height={22} />
         <button
           type="button"
-          onClick={() => openSugarSearch()}
+          onClick={() => openCrmSearch()}
           aria-label={t('common:nav.search')}
           style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}
         >

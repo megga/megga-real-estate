@@ -37,12 +37,14 @@ import {
   History, IdCard, Loader2, RotateCw, ScanSearch, ShieldAlert, TrendingDown, UserX, Users, X,
   XCircle,
 } from 'lucide-react'
-import { cn, formatDate } from '@/lib/utils'
+import { formatDate } from '@/lib/utils'
 // Réutilisé tel quel depuis le CRM : ce hook prend (agencyId, relatedPersonId) en simples
 // paramètres et ne lit jamais l'agence de l'appelant, donc il sert le relecteur super-admin
 // aussi bien que le dirigeant. La console partage le bundle et le client Supabase du CRM.
 import { useIdentityDocuments } from '@/hooks/useAgencyIdentity'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { useAdminSurfaces, type AdminTones } from '@/hooks/useAdminSurfaces'
+import type { CrmPalette } from '@/components/crm/tokens'
 import { useToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/modal'
 import PageTransition from '@/components/layout/PageTransition'
@@ -464,17 +466,27 @@ const REASON_META: Record<ReviewReasonCode, { icon: typeof AlertTriangle; tone: 
   low_score: { icon: TrendingDown, tone: 'neutral' },
 }
 
-const TONE_TEXT: Record<'negative' | 'warn' | 'neutral', string> = {
-  negative: 'text-red-500',
-  warn: 'text-amber-500',
-  neutral: 'text-theme-secondary',
+/**
+ * Encre d'une raison de blocage — les TONS de la console, plus la palette brute
+ * de Tailwind.
+ *
+ * ⛔ Ces deux tables rendaient `text-red-500`, `text-amber-500`,
+ * `text-emerald-500` : des barreaux de Tailwind, réglés pour personne, et qui
+ * ne suivaient NI le thème NI le reciblage de contraste du lot 1. `tones.err`
+ * vaut `#B91C1C` en clair et `#F26B65` en sombre, mesurés sur les surfaces de
+ * la console ; `text-red-500` valait `#ef4444` dans les deux.
+ */
+function toneInk(tone: 'negative' | 'warn' | 'neutral', sp: CrmPalette, tones: AdminTones): string {
+  if (tone === 'negative') return tones.err
+  if (tone === 'warn') return tones.warn
+  return sp.soft
 }
 
-const CHECK_TONE_TEXT: Record<CheckTone, string> = {
-  positive: 'text-emerald-500',
-  negative: 'text-red-500',
-  neutral: 'text-theme-tertiary',
-  pending: 'text-amber-500',
+function checkToneInk(tone: CheckTone, sp: CrmPalette, tones: AdminTones): string {
+  if (tone === 'positive') return tones.ok
+  if (tone === 'negative') return tones.err
+  if (tone === 'pending') return tones.warn
+  return sp.sub
 }
 
 const CHECK_TONE_ICON: Record<CheckTone, typeof CheckCircle2> = {
@@ -488,15 +500,16 @@ const CHECK_TONE_ICON: Record<CheckTone, typeof CheckCircle2> = {
  *  la description reste visible en permanence, pas de dépendance à un hover. */
 function ReasonCard({ code }: { code: ReviewReasonCode }) {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSurfaces()
   const meta = REASON_META[code]
   const Icon = meta.icon
   const key = code.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-theme-border p-3">
-      <Icon className={cn('h-4 w-4 mt-0.5 flex-shrink-0', TONE_TEXT[meta.tone])} />
+    <div className="flex items-start gap-3 rounded-lg p-3" style={{ border: `1px solid ${sp.cardBorder}` }}>
+      <Icon className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: toneInk(meta.tone, sp, tones) }} />
       <div className="min-w-0">
-        <p className={cn('text-sm font-medium', TONE_TEXT[meta.tone])}>{t(`kybReview.reason.${key}.title`)}</p>
-        <p className="text-xs text-theme-tertiary mt-0.5">{t(`kybReview.reason.${key}.description`)}</p>
+        <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: toneInk(meta.tone, sp, tones) }}>{t(`kybReview.reason.${key}.title`)}</p>
+        <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t(`kybReview.reason.${key}.description`)}</p>
       </div>
     </div>
   )
@@ -536,34 +549,35 @@ function CheckRow({ check, persons, expanded, onToggle }: {
   onToggle: () => void
 }) {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSurfaces()
   const tone = checkRowTone(check.result, check.isVeto)
   const ToneIcon = CHECK_TONE_ICON[tone]
   const weight = displayCheckWeight(check.applicableWeight, check.isVeto)
 
   return (
     <>
-      <tr className="border-b border-theme-border-subtle">
-        <td className="py-2.5 pr-3 text-sm text-theme-primary">{labelForCheckType(t, check.checkType)}</td>
-        <td className="py-2.5 pr-3 text-sm text-theme-secondary whitespace-nowrap">{labelForSource(t, check.source)}</td>
-        <td className="py-2.5 pr-3 text-sm text-theme-secondary whitespace-nowrap">
+      <tr style={{ borderBottom: `1px solid ${sp.frameBorder}` }}>
+        <td className="py-2.5 pr-3" style={{ fontSize: 'var(--crm-text-lg)', color: sp.ink }}>{labelForCheckType(t, check.checkType)}</td>
+        <td className="py-2.5 pr-3 whitespace-nowrap" style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft }}>{labelForSource(t, check.source)}</td>
+        <td className="py-2.5 pr-3 whitespace-nowrap" style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft }}>
           {personLabel(t, check.relatedPersonId, persons)}
         </td>
         <td className="py-2.5 pr-3">
-          <span className={cn('inline-flex items-center gap-1.5 text-sm font-medium whitespace-nowrap', CHECK_TONE_TEXT[tone])}>
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap" style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: checkToneInk(tone, sp, tones) }}>
             <ToneIcon className="h-3.5 w-3.5 flex-shrink-0" />
             {labelForResult(t, check.result)}
           </span>
         </td>
-        <td className="py-2.5 pr-3 text-sm text-theme-secondary tabular-nums whitespace-nowrap">
+        <td className="py-2.5 pr-3 whitespace-nowrap" style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>
           {weight === 'veto' ? t('kybReview.checks.weightVeto')
             : weight === 'unknown' ? t('kybReview.checks.weightUnknown')
               : weight.toFixed(2)}
         </td>
-        <td className="py-2.5 pr-3 text-xs text-theme-tertiary whitespace-nowrap">{formatDate(check.checkedAt)}</td>
-        <td className="py-2.5 text-right">
+        <td className="py-2.5 pr-3 whitespace-nowrap" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{formatDate(check.checkedAt)}</td>
+        <td className="py-2.5" style={{ textAlign: 'right' }}>
           <button
             onClick={onToggle}
-            className="text-theme-tertiary hover:text-theme-primary transition-colors"
+            className="hover:text-theme-primary transition-colors" style={{ color: sp.sub }}
             aria-label={t(expanded ? 'kybReview.checks.hideRaw' : 'kybReview.checks.viewRaw')}
             aria-expanded={expanded}
           >
@@ -572,9 +586,9 @@ function CheckRow({ check, persons, expanded, onToggle }: {
         </td>
       </tr>
       {expanded && (
-        <tr className="border-b border-theme-border-subtle">
-          <td colSpan={7} className="bg-theme-hover/40 px-3 py-2.5">
-            <pre className="text-xs text-theme-secondary whitespace-pre-wrap break-all max-h-64 overflow-y-auto scrollbar-hide">
+        <tr style={{ borderBottom: `1px solid ${sp.frameBorder}` }}>
+          <td colSpan={7} className="px-3 py-2.5" style={{ background: sp.cardSubBg }}>
+            <pre className="whitespace-pre-wrap break-all max-h-64 overflow-y-auto scrollbar-hide" style={{ fontSize: 'var(--crm-text-sm)', color: sp.soft }}>
               {JSON.stringify(check.rawResponse, null, 2) ?? '—'}
             </pre>
           </td>
@@ -588,23 +602,24 @@ function CheckRow({ check, persons, expanded, onToggle }: {
  *  lisibles sans avoir lu ce dépôt, réponse brute consultable par ligne. */
 function ChecksTable({ checks, persons }: { checks: KybReviewCheckRow[]; persons: KybReviewPerson[] }) {
   const { t } = useTranslation('admin')
+  const { sp } = useAdminSurfaces()
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   if (checks.length === 0) {
-    return <p className="text-sm text-theme-tertiary py-4">{t('kybReview.detail.checksEmpty')}</p>
+    return <p className="py-4" style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub }}>{t('kybReview.detail.checksEmpty')}</p>
   }
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left">
+      <table className="w-full" style={{ textAlign: 'left' }}>
         <thead>
-          <tr className="border-b border-theme-border text-xs font-medium text-theme-tertiary">
-            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.type')}</th>
-            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.source')}</th>
-            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.person')}</th>
-            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.result')}</th>
-            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.weight')}</th>
-            <th className="py-2 pr-3 font-medium">{t('kybReview.checks.table.checkedAt')}</th>
+          <tr style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, borderBottom: `1px solid ${sp.cardBorder}` }}>
+            <th className="py-2 pr-3" style={{ fontWeight: 500 }}>{t('kybReview.checks.table.type')}</th>
+            <th className="py-2 pr-3" style={{ fontWeight: 500 }}>{t('kybReview.checks.table.source')}</th>
+            <th className="py-2 pr-3" style={{ fontWeight: 500 }}>{t('kybReview.checks.table.person')}</th>
+            <th className="py-2 pr-3" style={{ fontWeight: 500 }}>{t('kybReview.checks.table.result')}</th>
+            <th className="py-2 pr-3" style={{ fontWeight: 500 }}>{t('kybReview.checks.table.weight')}</th>
+            <th className="py-2 pr-3" style={{ fontWeight: 500 }}>{t('kybReview.checks.table.checkedAt')}</th>
             <th className="py-2" />
           </tr>
         </thead>
@@ -648,10 +663,11 @@ function swissDate(iso: string): string {
 
 function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agencyId: string }) {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSurfaces()
   const today = new Date().toISOString().slice(0, 10)
 
   if (persons.length === 0) {
-    return <p className="text-sm text-theme-tertiary py-2">{t('kybReview.detail.personsEmpty')}</p>
+    return <p className="py-2" style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub }}>{t('kybReview.detail.personsEmpty')}</p>
   }
 
   return (
@@ -663,16 +679,16 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
           return { label, active: r.role === 'signatory' ? active : true }
         })
         return (
-          <li key={p.id} className="text-sm">
+          <li key={p.id} style={{ fontSize: 'var(--crm-text-lg)' }}>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-theme-primary">
+              <span style={{ color: sp.ink }}>
                 {p.firstName} {p.lastName}
                 {/* Nature de la pièce, à côté du nom : c'est elle qui dit combien de
                     faces attendre sous cette ligne. Sans elle, l'absence de verso
                     d'un passeport se lit comme un dossier incomplet. Absente sur les
                     dossiers soumis avant le 03.08.2026, où rien ne la demandait. */}
                 {p.idDocumentType && (
-                  <span className="ml-2 text-xs text-theme-tertiary">
+                  <span className="ml-2" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
                     {t(`kybReview.detail.idDocumentType.${p.idDocumentType}`)}
                   </span>
                 )}
@@ -681,7 +697,8 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
                 {roleLabels.map((r, i) => (
                   <span
                     key={i}
-                    className={cn('text-xs', r.active ? 'text-theme-secondary' : 'text-theme-tertiary line-through')}
+                    className={r.active ? undefined : 'line-through'}
+                    style={{ fontSize: 'var(--crm-text-sm)', color: r.active ? sp.soft : sp.sub }}
                   >
                     {r.label}
                   </span>
@@ -691,8 +708,14 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
             {/* Ce que la lecture assistée a trouvé, AU-DESSUS de l'image et non à sa
                 place : elle dit où porter les yeux, elle ne remplace pas le regard.
                 Absente sur les dossiers soumis avant le 03.08.2026. */}
+            {/* ⚠ LA CONDITION VIENT DE `main`, LE STYLE VIENT DE NOUS, et ce n'est
+                pas un compromis. Le corps rend `identityVerificationStatus` plus
+                bas : sans lui dans la condition, un dossier qui n'a QUE l'état
+                Stripe verrait tout le bloc masqué — la fonctionnalité serait
+                morte. Et le style en ligne est ce qui rend cette page VISIBLE au
+                cliquet de grammaire, qui ne lit pas les classes. */}
             {(p.idDocumentRead || p.idDocumentExpiresOn || p.identityVerificationStatus) && (
-              <div className="mt-1 flex items-center gap-2 text-xs text-theme-tertiary">
+              <div className="mt-1 flex items-center gap-2" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
                 {/* « vérifiée » quand c'est le prestataire (document authentifié +
                     selfie), « lecture » quand c'est le modèle (ce qui est imprimé sur
                     une image, rien de plus). Le relecteur tranche sur cette nuance. */}
@@ -713,7 +736,7 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
                     </span>
                   )}
                 {p.idDocumentExpiresOn && (
-                  <span className={cn(p.idDocumentRead?.expired && 'text-red-500')}>
+                  <span style={p.idDocumentRead?.expired ? { color: tones.err } : undefined}>
                     {t('kybReview.detail.idRead.expiresOn', { date: swissDate(p.idDocumentExpiresOn) })}
                   </span>
                 )}
@@ -734,9 +757,10 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
  *  seule information que get_admin_agency_review_detail ne rend pas : elle vit ici. */
 function HistoryList({ events }: { events: KybReviewEvent[] }) {
   const { t } = useTranslation('admin')
+  const { sp } = useAdminSurfaces()
 
   if (events.length === 0) {
-    return <p className="text-sm text-theme-tertiary py-2">{t('kybReview.detail.historyEmpty')}</p>
+    return <p className="py-2" style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub }}>{t('kybReview.detail.historyEmpty')}</p>
   }
 
   return (
@@ -745,13 +769,13 @@ function HistoryList({ events }: { events: KybReviewEvent[] }) {
         const reason = decisionReasonFromEvent(e)
         const key = e.action.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
         return (
-          <li key={e.id} className="text-sm">
+          <li key={e.id} style={{ fontSize: 'var(--crm-text-lg)' }}>
             <div className="flex items-center justify-between gap-3">
-              <span className="text-theme-primary">{t(`kybReview.event.${key}`, e.action)}</span>
-              <span className="text-xs text-theme-tertiary whitespace-nowrap">{formatDate(e.createdAt)}</span>
+              <span style={{ color: sp.ink }}>{t(`kybReview.event.${key}`, e.action)}</span>
+              <span className="whitespace-nowrap" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{formatDate(e.createdAt)}</span>
             </div>
             {reason && (
-              <p className="text-xs text-theme-tertiary mt-0.5">
+              <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
                 {t('kybReview.event.reasonPrefix')} {reason}
               </p>
             )}
@@ -779,42 +803,47 @@ function ReasonDialog({ open, onClose, onConfirm, pending, variant }: {
   variant: 'reject' | 'correction'
 }) {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSurfaces()
   const [reason, setReason] = useState('')
   const trimmed = reason.trim()
   const ns = variant === 'reject' ? 'kybReview.rejectDialog' : 'kybReview.correctionDialog'
   const busyKey = variant === 'reject' ? 'kybReview.actions.rejecting' : 'kybReview.actions.requestingCorrection'
-  const confirmTone = variant === 'reject'
-    ? 'border-red-500/30 text-red-500 hover:border-red-500'
-    : 'border-amber-500/30 text-amber-500 hover:border-amber-500'
+  // L'encre porte le ton, la bordure reprend celle du cadre et le survol passe
+  // par `.adm-ghost` — même grammaire que les six autres boutons d'action.
+  const confirmInk = variant === 'reject' ? tones.err : tones.warn
 
   return (
     <Modal open={open} onClose={onClose} title={t(`${ns}.title`)} size="md">
       <div className="p-5 space-y-3">
         <div>
-          <label className="text-xs text-theme-secondary mb-1.5 block">{t(`${ns}.reasonLabel`)}</label>
+          <label className="mb-1.5 block" style={{ fontSize: 'var(--crm-text-sm)', color: sp.soft }}>{t(`${ns}.reasonLabel`)}</label>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder={t(`${ns}.reasonPlaceholder`)}
             rows={4}
             autoFocus
-            className="w-full px-3 py-2 text-sm bg-transparent border border-theme-border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
+            /* Pas de `focus:ring-*` ici : la feuille de la console pose déjà
+               l'anneau WCAG sur tout `:focus-visible`, et un second anneau en
+               doublait l'épaisseur avec la teinte de l'accent du CRM. */
+            className="w-full px-3 py-2 rounded-lg resize-none" style={{ fontSize: 'var(--crm-text-lg)', background: 'transparent', border: `1px solid ${sp.cardBorder}` }}
           />
           {reason !== '' && trimmed === '' && (
-            <p className="text-xs text-red-500 mt-1">{t(`${ns}.reasonRequired`)}</p>
+            <p className="mt-1" style={{ fontSize: 'var(--crm-text-sm)', color: tones.err }}>{t(`${ns}.reasonRequired`)}</p>
           )}
         </div>
         <div className="flex justify-end gap-3 pt-1">
-          <button onClick={onClose} className="h-9 px-4 text-sm text-theme-secondary hover:text-theme-primary transition-colors">
+          <button onClick={onClose} className="h-9 px-4 hover:text-theme-primary transition-colors" style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft }}>
             {t('common.cancel')}
           </button>
           <button
             onClick={() => onConfirm(trimmed)}
             disabled={trimmed === '' || pending}
-            className={cn(
-              'h-9 px-4 text-sm font-medium border rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed',
-              confirmTone,
-            )}
+            className="adm-ghost h-9 px-4 rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
+            style={{
+              fontSize: 'var(--crm-text-lg)', fontWeight: 500,
+              color: confirmInk, border: `1px solid ${sp.cardBorder}`,
+            }}
           >
             {pending ? t(busyKey) : t(`${ns}.confirm`)}
           </button>
@@ -838,6 +867,7 @@ function ReasonDialog({ open, onClose, onConfirm, pending, variant }: {
  */
 function IdDocumentFace({ label, signedUrl, path }: { label: string; signedUrl: string; path: string }) {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSurfaces()
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
   const [zoomed, setZoomed] = useState(false)
@@ -884,15 +914,15 @@ function IdDocumentFace({ label, signedUrl, path }: { label: string; signedUrl: 
 
   return (
     <div className="min-w-0">
-      <p className="text-xs text-theme-tertiary mb-1">{label}</p>
+      <p className="mb-1" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{label}</p>
       {isPdf ? (
         failed ? (
-          <p className="text-xs text-red-500">{t('kybReview.idDocument.faceError')}</p>
+          <p style={{ fontSize: 'var(--crm-text-sm)', color: tones.err }}>{t('kybReview.idDocument.faceError')}</p>
         ) : pdfUrl ? (
-          <iframe src={pdfUrl} title={label} className="w-full h-64 rounded-lg border border-theme-border bg-theme-section" />
+          <iframe src={pdfUrl} title={label} className="w-full h-64 rounded-lg" style={{ background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}` }} />
         ) : (
-          <div className="h-64 rounded-lg border border-theme-border grid place-items-center">
-            <Loader2 className="h-4 w-4 animate-spin text-theme-tertiary" />
+          <div className="h-64 rounded-lg grid place-items-center" style={{ border: `1px solid ${sp.cardBorder}` }}>
+            <Loader2 className="h-4 w-4 animate-spin" style={{ color: sp.sub }} />
           </div>
         )
       ) : (
@@ -900,14 +930,15 @@ function IdDocumentFace({ label, signedUrl, path }: { label: string; signedUrl: 
           <button
             type="button"
             onClick={() => setZoomed(true)}
-            className="block w-full rounded-lg border border-theme-border overflow-hidden hover:border-theme-border-subtle transition-colors"
+            className="block w-full rounded-lg overflow-hidden hover:border-theme-border-subtle transition-colors" style={{ border: `1px solid ${sp.cardBorder}` }}
             aria-label={t('kybReview.idDocument.enlarge')}
           >
-            <img src={signedUrl} alt={label} className="w-full h-48 object-contain bg-theme-section" />
+            <img src={signedUrl} alt={label} className="w-full h-48 object-contain" style={{ background: sp.cardSubBg }} />
           </button>
           {zoomed && createPortal(
             <div
-              className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-sm grid place-items-center p-6"
+              className="fixed inset-0 z-[110] backdrop-blur-sm grid place-items-center p-6"
+              style={{ background: 'rgba(3, 3, 3, 0.8)' }}
               onClick={() => setZoomed(false)}
               role="dialog"
               aria-modal="true"
@@ -949,6 +980,7 @@ function IdDocumentFace({ label, signedUrl, path }: { label: string; signedUrl: 
  */
 function IdDocumentPreview({ agencyId, relatedPersonId }: { agencyId: string; relatedPersonId: string }) {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSurfaces()
   const [open, setOpen] = useState(false)
   const documents = useIdentityDocuments(agencyId, open ? relatedPersonId : null)
 
@@ -957,7 +989,7 @@ function IdDocumentPreview({ agencyId, relatedPersonId }: { agencyId: string; re
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:border-theme-border-subtle hover:text-theme-primary transition-colors inline-flex items-center gap-1.5"
+        className="h-8 px-3 rounded-lg hover:border-theme-border-subtle hover:text-theme-primary transition-colors inline-flex items-center gap-1.5" style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.soft, border: `1px solid ${sp.cardBorder}` }}
       >
         <IdCard className="h-3.5 w-3.5" />
         {t('kybReview.idDocument.show')}
@@ -973,22 +1005,22 @@ function IdDocumentPreview({ agencyId, relatedPersonId }: { agencyId: string; re
       <button
         type="button"
         onClick={() => setOpen(false)}
-        className="text-xs text-theme-tertiary hover:text-theme-primary transition-colors"
+        className="hover:text-theme-primary transition-colors" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}
       >
         {t('kybReview.idDocument.hide')}
       </button>
 
       {documents.isLoading ? (
-        <p className="text-xs text-theme-tertiary">{t('kybReview.idDocument.loading')}</p>
+        <p style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('kybReview.idDocument.loading')}</p>
       ) : documents.isError ? (
-        <p className="text-xs text-red-500">{t('kybReview.idDocument.error')}</p>
+        <p style={{ fontSize: 'var(--crm-text-sm)', color: tones.err }}>{t('kybReview.idDocument.error')}</p>
       ) : nothing ? (
         <div>
-          <p className="text-xs text-theme-secondary">{t('kybReview.idDocument.empty')}</p>
+          <p style={{ fontSize: 'var(--crm-text-sm)', color: sp.soft }}>{t('kybReview.idDocument.empty')}</p>
           {/* La ligne de check ne prouve PAS que le fichier existe : submit_agency_identity
               « ne touche jamais au fichier lui-même » et n'enregistre aucun chemin. Le
               relecteur doit savoir que ce vide est ambigu, pas conclure à une fraude. */}
-          <p className="text-xs text-theme-tertiary mt-0.5">{t('kybReview.idDocument.emptyHint')}</p>
+          <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('kybReview.idDocument.emptyHint')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -1014,6 +1046,7 @@ function ResolveIdDocumentSection({ agencyId, pending, persons, onResolve, busy 
   busy: boolean
 }) {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSurfaces()
   if (pending.length === 0) return null
 
   return (
@@ -1022,8 +1055,8 @@ function ResolveIdDocumentSection({ agencyId, pending, persons, onResolve, busy 
         const person = persons.find((x) => x.id === p.relatedPersonId)
         const name = person ? `${person.firstName} ${person.lastName}`.trim() : '—'
         return (
-          <div key={p.checkId} className="rounded-lg border border-amber-500/30 p-3">
-            <p className="text-sm font-medium text-theme-primary mb-2">
+          <div key={p.checkId} className="rounded-lg p-3" style={{ border: `1px solid ${tones.warn}` }}>
+            <p className="mb-2" style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: sp.ink }}>
               {t('kybReview.resolveIdDocument.title', { name })}
             </p>
             {/* La pièce AVANT les boutons : c'est l'ordre du geste. La RPC appelée juste
@@ -1036,21 +1069,21 @@ function ResolveIdDocumentSection({ agencyId, pending, persons, onResolve, busy 
               <button
                 onClick={() => onResolve(p.checkId, 'match')}
                 disabled={busy}
-                className="h-8 px-3 text-xs font-medium border border-emerald-500/30 text-emerald-500 rounded-lg hover:border-emerald-500 transition-colors disabled:opacity-40"
+                className="adm-ghost h-8 px-3 rounded-lg transition-colors disabled:opacity-70" style={{ border: `1px solid ${sp.cardBorder}`, fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: tones.ok }}
               >
                 {t('kybReview.resolveIdDocument.match')}
               </button>
               <button
                 onClick={() => onResolve(p.checkId, 'partial')}
                 disabled={busy}
-                className="h-8 px-3 text-xs font-medium border border-amber-500/30 text-amber-500 rounded-lg hover:border-amber-500 transition-colors disabled:opacity-40"
+                className="adm-ghost h-8 px-3 rounded-lg transition-colors disabled:opacity-70" style={{ border: `1px solid ${sp.cardBorder}`, fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: tones.warn }}
               >
                 {t('kybReview.resolveIdDocument.partial')}
               </button>
               <button
                 onClick={() => onResolve(p.checkId, 'mismatch')}
                 disabled={busy}
-                className="h-8 px-3 text-xs font-medium border border-red-500/30 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-40"
+                className="adm-ghost h-8 px-3 rounded-lg transition-colors disabled:opacity-70" style={{ border: `1px solid ${sp.cardBorder}`, fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: tones.err }}
               >
                 {t('kybReview.resolveIdDocument.mismatch')}
               </button>
@@ -1064,11 +1097,12 @@ function ResolveIdDocumentSection({ agencyId, pending, persons, onResolve, busy 
 
 /** Section repliable (Vérifications / Personnes liées / Historique). */
 function DetailSection({ title, icon: Icon, children }: { title: string; icon: typeof Users; children: ReactNode }) {
+  const { sp } = useAdminSurfaces()
   return (
-    <div className="rounded-xl border border-theme-border p-4">
+    <div className="rounded-xl p-4" style={{ border: `1px solid ${sp.cardBorder}` }}>
       <div className="flex items-center gap-2 mb-3">
-        <Icon className="h-4 w-4 text-theme-secondary" />
-        <h3 className="text-sm font-semibold text-theme-primary">{title}</h3>
+        <Icon className="h-4 w-4" style={{ color: sp.soft }} />
+        <h3 style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{title}</h3>
       </div>
       {children}
     </div>
@@ -1080,6 +1114,7 @@ function DetailSection({ title, icon: Icon, children }: { title: string; icon: t
  *  et les 4 actions. */
 function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: () => void }) {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSurfaces()
   const toast = useToast()
   const drawerRef = useFocusTrap(true)
 
@@ -1131,46 +1166,53 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
 
   return createPortal(
     <div className="fixed inset-0 z-[100]">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(3, 3, 3, 0.5)' }} onClick={onClose} />
       <div
         ref={drawerRef}
         role="dialog"
         aria-modal="true"
         aria-label={row.agencyName}
-        className="absolute right-0 top-0 h-full w-full max-w-xl bg-theme-card border-l border-theme-border overflow-y-auto scrollbar-hide"
+        /* ⛔ `sp.solidBg` et non `surf.card` : une surface FLOTTANTE est un
+           palier OPAQUE. `surf.card` est un voile à 5 % en sombre, et le tiroir
+           l'empilait DEUX fois — panneau puis barres collantes — au-dessus du
+           voile de fond. Mesuré au rendu : la pile sortait `#323232`, une
+           couleur d'aucune échelle, sur laquelle « Valider » tombait à 4,06:1 et
+           « Rejeter » à 4,31:1. Aucune lecture de source ne compose une pile de
+           trois alphas ; aucune sonde de rendu ne voit un tiroir fermé. */
+        className="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto scrollbar-hide" style={{ background: sp.solidBg, borderLeft: `1px solid ${sp.cardBorder}` }}
       >
-        <div className="sticky top-0 bg-theme-card border-b border-theme-border px-5 py-4 flex items-start justify-between gap-3 z-10">
+        <div className="sticky top-0 px-5 py-4 flex items-start justify-between gap-3 z-10" style={{ background: sp.solidBg, borderBottom: `1px solid ${sp.cardBorder}` }}>
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-theme-primary truncate">{row.agencyName}</h2>
-            <p className="text-xs text-theme-tertiary mt-0.5">
+            <h2 className="truncate" style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink }}>{row.agencyName}</h2>
+            <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
               {row.country ?? '—'} · {row.identitySubmittedAt
                 ? t('kybReview.detail.submittedAt') + ' ' + formatDate(row.identitySubmittedAt)
                 : t('kybReview.detail.notSubmitted')}
             </p>
           </div>
-          <button onClick={onClose} aria-label={t('common.close')} className="p-1.5 rounded-lg hover:bg-theme-hover text-theme-tertiary hover:text-theme-primary transition-colors flex-shrink-0">
+          <button onClick={onClose} aria-label={t('common.close')} className="p-1.5 rounded-lg hover:bg-theme-hover hover:text-theme-primary transition-colors flex-shrink-0" style={{ color: sp.sub }}>
             <X className="h-4 w-4" />
           </button>
         </div>
 
         <div className="p-5 space-y-4">
           {isLoading ? (
-            <p className="text-sm text-theme-tertiary">{t('kybReview.detail.loading')}</p>
+            <p style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub }}>{t('kybReview.detail.loading')}</p>
           ) : isError ? (
-            <p className="text-sm text-red-500">{t('kybReview.detail.error')}</p>
+            <p style={{ fontSize: 'var(--crm-text-lg)', color: tones.err }}>{t('kybReview.detail.error')}</p>
           ) : (
             <>
               {/* Score + tentatives du filet — les chiffres bruts, toujours visibles. */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-theme-border p-3">
-                  <p className="text-xs text-theme-tertiary">{t('kybReview.detail.score')}</p>
-                  <p className="text-lg font-semibold text-theme-primary tabular-nums mt-0.5">
+                <div className="rounded-xl p-3" style={{ border: `1px solid ${sp.cardBorder}` }}>
+                  <p style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('kybReview.detail.score')}</p>
+                  <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
                     {row.verificationScore != null ? row.verificationScore.toFixed(3) : t('kybReview.scoreNone')}
                   </p>
                 </div>
-                <div className="rounded-xl border border-theme-border p-3">
-                  <p className="text-xs text-theme-tertiary">{t('kybReview.detail.sweepAttempts')}</p>
-                  <p className="text-lg font-semibold text-theme-primary tabular-nums mt-0.5">
+                <div className="rounded-xl p-3" style={{ border: `1px solid ${sp.cardBorder}` }}>
+                  <p style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('kybReview.detail.sweepAttempts')}</p>
+                  <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
                     {row.verificationSweepAttempts} / {SWEEP_MAX_ATTEMPTS}
                   </p>
                 </div>
@@ -1178,7 +1220,7 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
 
               {/* Pourquoi ce dossier est ici — la section centrale du brief. */}
               <div>
-                <h3 className="text-sm font-semibold text-theme-primary mb-2">{t('kybReview.detail.whySection')}</h3>
+                <h3 className="mb-2" style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{t('kybReview.detail.whySection')}</h3>
                 <div className="space-y-2">
                   {reasons.map((r) => <ReasonCard key={r.code} code={r.code} />)}
                 </div>
@@ -1216,14 +1258,14 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
 
         {/* Actions — toujours visibles, même en erreur de chargement du détail (une
             décision reste possible avec ce que la file elle-même a déjà montré). */}
-        <div className="sticky bottom-0 bg-theme-card border-t border-theme-border px-5 py-3 flex flex-wrap items-center gap-2">
+        <div className="sticky bottom-0 px-5 py-3 flex flex-wrap items-center gap-2" style={{ background: sp.solidBg, borderTop: `1px solid ${sp.cardBorder}` }}>
           <button
             onClick={() => validate.mutate(undefined, {
               onSuccess: () => toast.success(t('kybReview.actions.validateSuccess')),
               onError: handleError,
             })}
             disabled={anyActionPending}
-            className="h-9 px-4 text-sm font-medium border border-emerald-500/30 text-emerald-500 rounded-lg hover:border-emerald-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+            className="adm-ghost h-9 px-4 rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5" style={{ border: `1px solid ${sp.cardBorder}`, fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tones.ok }}
           >
             {validate.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {validate.isPending ? t('kybReview.actions.validating') : t('kybReview.actions.validate')}
@@ -1231,14 +1273,14 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
           <button
             onClick={() => setRejectOpen(true)}
             disabled={anyActionPending}
-            className="h-9 px-4 text-sm font-medium border border-red-500/30 text-red-500 rounded-lg hover:border-red-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="adm-ghost h-9 px-4 rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed" style={{ border: `1px solid ${sp.cardBorder}`, fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tones.err }}
           >
             {t('kybReview.actions.reject')}
           </button>
           <button
             onClick={() => setCorrectionOpen(true)}
             disabled={anyActionPending}
-            className="h-9 px-4 text-sm font-medium border border-amber-500/30 text-amber-500 rounded-lg hover:border-amber-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="adm-ghost h-9 px-4 rounded-lg transition-colors disabled:opacity-70 disabled:cursor-not-allowed" style={{ border: `1px solid ${sp.cardBorder}`, fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: tones.warn }}
           >
             {t('kybReview.actions.requestCorrection')}
           </button>
@@ -1248,7 +1290,7 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
               onError: handleError,
             })}
             disabled={anyActionPending}
-            className="h-9 px-4 text-sm font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+            className="h-9 px-4 rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5" style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: sp.soft, border: `1px solid ${sp.cardBorder}` }}
           >
             {relaunch.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {relaunch.isPending ? t('kybReview.actions.relaunching') : t('kybReview.actions.relaunch')}
@@ -1301,16 +1343,17 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
 
 /** Placeholder pulsant de la file pendant le chargement. */
 function QueueSkeleton() {
+  const { sp } = useAdminSurfaces()
   return (
     <>
       {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className={cn('flex items-center px-4 py-3.5 gap-4', i < 3 && 'border-b border-theme-border')}>
+        <div key={i} className="flex items-center px-4 py-3.5 gap-4" style={i < 3 ? { borderBottom: `1px solid ${sp.cardBorder}` } : undefined}>
           <div className="flex-1 space-y-1.5">
-            <div className="h-3.5 w-40 rounded bg-theme-hover animate-pulse" />
-            <div className="h-2.5 w-24 rounded bg-theme-hover animate-pulse" />
+            <div className="h-3.5 w-40 rounded animate-pulse" style={{ background: sp.focusSurface }} />
+            <div className="h-2.5 w-24 rounded animate-pulse" style={{ background: sp.focusSurface }} />
           </div>
-          <div className="h-3 w-16 rounded bg-theme-hover animate-pulse" />
-          <div className="h-3 w-20 rounded bg-theme-hover animate-pulse" />
+          <div className="h-3 w-16 rounded animate-pulse" style={{ background: sp.focusSurface }} />
+          <div className="h-3 w-20 rounded animate-pulse" style={{ background: sp.focusSurface }} />
         </div>
       ))}
     </>
@@ -1320,11 +1363,12 @@ function QueueSkeleton() {
 /** État vide : aucun dossier en attente de décision. */
 function QueueEmpty() {
   const { t } = useTranslation('admin')
+  const { sp } = useAdminSurfaces()
   return (
-    <div className="px-4 py-16 text-center">
-      <CheckCircle2 className="h-8 w-8 mx-auto text-theme-tertiary mb-3" />
-      <p className="text-sm text-theme-secondary font-medium">{t('kybReview.empty.title')}</p>
-      <p className="text-xs text-theme-tertiary mt-1">{t('kybReview.empty.subtitle')}</p>
+    <div className="px-4 py-16" style={{ textAlign: 'center' }}>
+      <CheckCircle2 className="h-8 w-8 mx-auto mb-3" style={{ color: sp.sub }} />
+      <p style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft, fontWeight: 500 }}>{t('kybReview.empty.title')}</p>
+      <p className="mt-1" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('kybReview.empty.subtitle')}</p>
     </div>
   )
 }
@@ -1332,14 +1376,15 @@ function QueueEmpty() {
 /** État d'erreur de la liste, avec reprise. */
 function QueueError({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSurfaces()
   return (
-    <div className="px-4 py-16 text-center">
-      <AlertTriangle className="h-8 w-8 mx-auto text-red-500 mb-3" />
-      <p className="text-sm text-theme-secondary font-medium">{t('kybReview.error.title')}</p>
-      <p className="text-xs text-theme-tertiary mt-1 mb-3">{t('kybReview.error.subtitle')}</p>
+    <div className="px-4 py-16" style={{ textAlign: 'center' }}>
+      <AlertTriangle className="h-8 w-8 mx-auto mb-3" style={{ color: tones.err }} />
+      <p style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft, fontWeight: 500 }}>{t('kybReview.error.title')}</p>
+      <p className="mt-1 mb-3" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('kybReview.error.subtitle')}</p>
       <button
         onClick={onRetry}
-        className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors"
+        className="h-8 px-3 rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors" style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.soft, border: `1px solid ${sp.cardBorder}` }}
       >
         {t('kybReview.error.retry')}
       </button>
@@ -1355,30 +1400,29 @@ function QueueRow({ row, onOpen, isLast }: {
   isLast: boolean
 }) {
   const { t } = useTranslation('admin')
+  const { sp, tones } = useAdminSurfaces()
   const signal = queueRowSignal(row.verificationScore, row.verificationSweepAttempts)
 
   return (
     <button
       onClick={onOpen}
-      className={cn(
-        'flex items-center px-4 py-3.5 w-full text-left gap-4 hover:bg-theme-hover transition-colors',
-        !isLast && 'border-b border-theme-border',
-      )}
+      className="flex items-center px-4 py-3.5 w-full text-left gap-4 hover:bg-theme-hover transition-colors"
+      style={!isLast ? { borderBottom: `1px solid ${sp.cardBorder}` } : undefined}
     >
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-theme-primary truncate">{row.agencyName}</p>
-        <p className="text-xs text-theme-tertiary mt-0.5">
+        <p className="truncate" style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: sp.ink }}>{row.agencyName}</p>
+        <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
           {row.country ?? '—'} · {row.identitySubmittedAt ? formatDate(row.identitySubmittedAt) : '—'}
         </p>
       </div>
-      <div className="w-28 text-right">
+      <div className="w-28" style={{ textAlign: 'right' }}>
         {signal === 'sweep_exhausted' ? (
-          <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-500">
+          <span className="inline-flex items-center gap-1" style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: tones.warn }}>
             <RotateCw className="h-3.5 w-3.5" />
             {t('kybReview.reason.sweepExhausted.title')}
           </span>
         ) : (
-          <span className="text-sm font-medium text-theme-primary tabular-nums">
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
             {signal === 'score_unknown' ? t('kybReview.scoreNone') : row.verificationScore!.toFixed(3)}
           </span>
         )}
@@ -1397,29 +1441,30 @@ function QueuePager({ view, total, onPrev, onNext }: {
   onNext: () => void
 }) {
   const { t } = useTranslation('admin')
+  const { sp } = useAdminSurfaces()
   const { page, pageCount, rangeStart, rangeEnd, hasPrev, hasNext } = view
 
   return (
-    <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-theme-border">
-      <p className="text-xs text-theme-tertiary tabular-nums">
+    <div className="flex items-center justify-between gap-3 px-4 py-3" style={{ borderTop: `1px solid ${sp.cardBorder}` }}>
+      <p style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
         {t('kybReview.pager.range', { from: rangeStart, to: rangeEnd, total })}
       </p>
       <div className="flex items-center gap-2">
         <button
           onClick={onPrev}
           disabled={!hasPrev}
-          className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+          className="h-8 px-3 rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5" style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.soft, border: `1px solid ${sp.cardBorder}` }}
         >
           <ChevronLeft className="h-3.5 w-3.5" />
           {t('kybReview.pager.previous')}
         </button>
-        <span className="text-xs text-theme-tertiary tabular-nums whitespace-nowrap">
+        <span className="whitespace-nowrap" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
           {t('kybReview.pager.page', { page: page + 1, pageCount })}
         </span>
         <button
           onClick={onNext}
           disabled={!hasNext}
-          className="h-8 px-3 text-xs font-medium border border-theme-border text-theme-secondary rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
+          className="h-8 px-3 rounded-lg hover:text-theme-primary hover:border-theme-active transition-colors disabled:opacity-70 disabled:cursor-not-allowed inline-flex items-center gap-1.5" style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.soft, border: `1px solid ${sp.cardBorder}` }}
         >
           {t('kybReview.pager.next')}
           <ChevronRight className="h-3.5 w-3.5" />
@@ -1432,6 +1477,7 @@ function QueuePager({ view, total, onPrev, onNext }: {
 /** Écran : file KYB en manual_review, triée par score, paginée, et le tiroir de détail. */
 export default function AdminKybReviewPage() {
   const { t } = useTranslation('admin')
+  const { sp } = useAdminSurfaces()
   const [requestedPage, setRequestedPage] = useState(0)
   const { data, isLoading, isError, refetch } = useAdminKybReviewQueue(requestedPage * KYB_REVIEW_PAGE_SIZE)
   const [selectedAgencyId, setSelectedAgencyId] = useState<string | null>(null)
@@ -1462,17 +1508,18 @@ export default function AdminKybReviewPage() {
     <PageTransition>
       <div className="max-w-3xl mx-auto space-y-5">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="h-2 w-2 rounded-full bg-admin-accent" />
-            <span className="text-xs font-medium text-admin-accent">{t('common.adminBadge')}</span>
-          </div>
-          <h1 className="text-2xl font-semibold text-theme-primary">{t('kybReview.title')}</h1>
-          <p className="text-sm text-theme-tertiary mt-0.5">
+          {/* ⛔ PAS de second repère « Admin MEGGA » ici. Il vit UNE fois, dans le
+              rail du shell — les 17 autres pages l'ont perdu à la passe UI du
+              3 août, celle-ci l'avait gardé. Et il ne pouvait pas rester : peint
+              en accent, il rendait 3,57:1 sur le canvas sombre, l'accent ne
+              passant pas l'AA en TEXTE (cf. `admin-contraste`). */}
+          <h1 style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 600, color: sp.ink }}>{t('kybReview.title')}</h1>
+          <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub }}>
             {isLoading ? t('common.loading') : t('kybReview.subtitle', { count: total })}
           </p>
         </div>
 
-        <div className="rounded-xl border border-theme-border">
+        <div className="rounded-xl" style={{ border: `1px solid ${sp.cardBorder}` }}>
           {isLoading ? (
             <QueueSkeleton />
           ) : isError ? (

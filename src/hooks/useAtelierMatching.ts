@@ -22,7 +22,7 @@ import { useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { mapKycStatus } from '@/lib/sugarAdapters'
+import { mapKycStatus } from '@/lib/crmAdapters'
 import type { Json, TablesInsert } from '@/types/database'
 import type { SearchCriteria } from '@/types/contact'
 import type { KycCase } from '@/types/kyc'
@@ -441,7 +441,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
   }, [queryClient])
 
   return {
-    // Idem useContactsSugar : le KYC n'alimente qu'un badge, il ne doit pas
+    // Idem useContactsScreen : le KYC n'alimente qu'un badge, il ne doit pas
     // remettre tout l'atelier en écran de chargement quand il se rafraîchit.
     isLoading: matchesLoading,
     isError: matchesError || kycError,

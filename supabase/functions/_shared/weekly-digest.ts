@@ -1,4 +1,7 @@
 // Digest hebdomadaire — logique PURE (zéro I/O, zéro Deno), testable vitest.
+// L'e-mail passe par la coquille commune (`email-shell.ts`), pure elle aussi.
+import { escapeHtml, FONT, shell } from './email-shell.ts'
+
 // Le bilan est 100% AGRÉGÉ (compteurs) : aucune donnée nominative, donc aucune
 // pseudonymisation nécessaire. Ce module tient : le seuil de silence (pas d'email
 // une semaine vide), le snapshot chiffré passé à DeepSeek, et le fallback
@@ -62,15 +65,44 @@ Ton direct et encourageant sans flagornerie, tutoiement de l'agent, format suiss
 ${snapshot}`
 }
 
-/** Rendu HTML minimal (email sobre). Le texte est déjà en clair (pas de PII). */
-export function digestHtml(bodyText: string, weekLabel: string): string {
-  const safe = bodyText
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>')
-  return `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#1c1c1e">
-  <p style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#8e8e96;margin:0 0 4px">MEGGA AI · Bilan de la semaine</p>
-  <p style="font-size:13px;color:#8e8e96;margin:0 0 16px">${weekLabel}</p>
-  <div style="font-size:15px;line-height:1.6">${safe}</div>
-  <p style="font-size:12px;color:#b0b0b6;margin-top:24px">Tu reçois ce bilan chaque vendredi. Pour te désabonner, réponds à cet email ou change tes préférences dans MEGGA.</p>
-</div>`
+/**
+ * Le bilan hebdomadaire, dans la coquille commune.
+ *
+ * ⛔ IL A ÉTÉ LE QUATORZIÈME DESIGN, ET LA PORTE NE POUVAIT PAS LE VOIR.
+ *
+ * Jusqu'au 16 août 2026, cette fonction rendait un `<div>` autonome : police
+ * système, encre claire `#1c1c1e` en dur, pied écrit à la main, ni logo ni
+ * structure MEGGA X. Elle a survécu à la migration des treize gabarits parce que
+ * `scripts/check-email-shell.mjs` cherche `<!DOCTYPE` ou `<html>` pour repérer une
+ * coquille maison — or un FRAGMENT n'en porte aucun. La porte imprimait donc
+ * « Migration terminée » pendant que les agents recevaient, chaque vendredi, le
+ * dernier e-mail d'avant la direction.
+ *
+ * ⚠ Le nom `digestHtml` est conservé : c'est le rôle qui compte pour ses appelants,
+ * et le renommer aurait mêlé un geste lexical à une correction de fond.
+ *
+ * Le texte reçu est déjà en clair (agrégats sans PII), mais il vient d'un modèle :
+ * il est échappé comme n'importe quelle entrée, puis structuré (saut simple =
+ * retour à la ligne).
+ *
+ * ⚠ `dashboardUrl` ENTRE PAR PARAMÈTRE, il ne se lit pas ici. Ce module se déclare
+ * pur dès sa première ligne — « zéro I/O, zéro Deno » — et cette propriété n'est
+ * pas décorative : sa spec tourne sous vitest, donc sous Node, où `Deno.env`
+ * n'existe pas. Appeler `appDashboardUrl()` d'ici échangerait une adresse en dur
+ * contre une spec qui plante. C'est l'appelant, lui-même Deno, qui la fournit.
+ */
+export function digestHtml(bodyText: string, weekLabel: string, dashboardUrl: string): string {
+  const corps = escapeHtml(bodyText).replace(/\n/g, '<br />')
+  return shell({
+    title: 'Ton bilan de la semaine',
+    // L'aperçu ne répète pas l'objet : il date le bilan, ce que l'objet ne dit pas.
+    preheader: weekLabel,
+    // Transactionnel : l'agent le reçoit au titre de son compte. La désinscription
+    // passe par ses préférences — dite ici, faute d'un jeton par destinataire.
+    legalNote: 'Tu reçois ce bilan chaque vendredi. Pour ne plus le recevoir, '
+      + 'change tes préférences dans MEGGA ou réponds à cet e-mail.',
+    headerCta: { href: dashboardUrl, label: 'Ouvrir mon espace' },
+    bodyHtml: `<p style="margin:0 0 16px;font-family:${FONT};font-size:13px;color:#8e8e96;">${escapeHtml(weekLabel)}</p>
+     <div style="font-family:${FONT};font-size:15px;line-height:1.6;">${corps}</div>`,
+  })
 }

@@ -60,7 +60,7 @@ function Segment<T extends string>({
               cursor: 'pointer',
               fontFamily: 'inherit',
               fontSize: 'var(--crm-text-lg)',
-              fontWeight: 800,
+              fontWeight: 600,
               letterSpacing: -0.1,
               background: on ? tk.accent : 'transparent',
               color: on ? tk.accentInk : tk.muted,
@@ -195,13 +195,13 @@ export default function MobileMoreScreen() {
             background: tk.accent,
             color: tk.accentInk,
             fontSize: 'var(--crm-text-3xl)',
-            fontWeight: 800,
+            fontWeight: 600,
             flexShrink: 0,
           }}
         >
           {initials}
         </span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.5, color: tk.ink }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.5, color: tk.ink }}>
           {displayName}
         </span>
         <MEIcon name="chevron-right" size={20} color={tk.ghost} />
@@ -214,7 +214,7 @@ export default function MobileMoreScreen() {
             <span style={prefIcon}>
               <MEIcon name={isDark ? 'moon' : 'sun'} size={18} color={tk.ink} />
             </span>
-            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.ink, letterSpacing: -0.2 }}>
+            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.2 }}>
               {t('nav.appearance')}
             </span>
           </div>
@@ -233,7 +233,7 @@ export default function MobileMoreScreen() {
             <span style={prefIcon}>
               <MEIcon name="globe" size={18} color={tk.ink} />
             </span>
-            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: tk.ink, letterSpacing: -0.2 }}>
+            <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.2 }}>
               {t('nav.language')}
             </span>
           </div>
@@ -282,7 +282,7 @@ export default function MobileMoreScreen() {
             >
               <MEIcon name={d.icon} size={19} color={d.cta ? tk.accentInk : tk.ink} />
             </span>
-            <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 700, letterSpacing: -0.3, color: tk.ink }}>
+            <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink }}>
               {t(d.labelKey)}
             </span>
             <MEIcon name="chevron-right" size={18} color={tk.ghost} />
@@ -312,7 +312,7 @@ export default function MobileMoreScreen() {
           }}
         >
           <MEIcon name="logout" size={18} color={tk.muted} />
-          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.2, color: tk.muted }}>{t('nav.logout')}</span>
+          <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, color: tk.muted }}>{t('nav.logout')}</span>
         </Pressable>
       </div>
 

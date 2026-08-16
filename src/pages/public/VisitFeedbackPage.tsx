@@ -6,11 +6,50 @@
  * objections + intérêt d'offre ; le retour est anonymisé côté vendeur.
  */
 import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Star, Check, Loader2, MapPin } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { usePublicVisit, useSubmitFeedback, estRefus } from '@/hooks/useVisits'
 import PublicPageHeader from '@/components/layout/PublicPageHeader'
+import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+
+/**
+ * Les quatre formes que cette page répète — écrites une fois pour qu'elles ne
+ * divergent pas, comme `MlkPrimitives` le fait pour le parcours KYC.
+ *
+ * ⚠ LE FILET EST UNE OMBRE INTERNE, PAS UNE BORDURE. Une bordure occupe de la
+ * place et décale la mise en page dès qu'elle change d'épaisseur au survol ou à
+ * la sélection ; `inset 0 0 0 1px` se pose PAR-DESSUS. C'est ce que la face
+ * publique déjà portée emploie.
+ */
+const PAGE = { background: MLK.card, fontFamily: MLK.font, color: MLK.ink }
+const FILET = `inset 0 0 0 1px ${MLK.ghost}33`
+const CARTE = { boxShadow: FILET }
+const LABEL = { fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK.inkSoft }
+
+/**
+ * La pastille sélectionnable, en trois tons.
+ *
+ * ⛔ ET LE TON N'EST PAS DÉCORATIF : `ok` et `err` disent une POLARITÉ (point
+ * fort / point à améliorer) — c'est une DONNÉE, elle garde son ton même
+ * sélectionnée. `accent` dit « vous avez choisi ceci » sur un choix qui n'a pas
+ * de polarité (oui / peut-être / non) : là, la règle du 10 août s'applique et
+ * l'élément actif porte l'accent. L'accent marque ce qu'on a FAIT ; le ton dit
+ * ce que la chose EST.
+ */
+function pastille(actif: boolean, ton: 'ok' | 'err' | 'accent'): CSSProperties {
+  const base: CSSProperties = {
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', border: 0, cursor: 'pointer',
+  }
+  if (!actif) return { ...base, color: MLK.inkSoft, background: 'transparent', boxShadow: FILET }
+  if (ton === 'accent') {
+    return { ...base, fontWeight: 500, color: MLK.accent, background: `${MLK.accent}0D`, boxShadow: `inset 0 0 0 1px ${MLK.accent}` }
+  }
+  const [encre, aplat, filet] = ton === 'ok'
+    ? [MLK_STATUT.okInk, MLK_STATUT.okFill, MLK_STATUT.okLine]
+    : [MLK_STATUT.errInk, MLK_STATUT.errFill, MLK_STATUT.errLine]
+  return { ...base, fontWeight: 500, color: encre, background: aplat, boxShadow: `inset 0 0 0 1px ${filet}` }
+}
 
 const STRENGTHS = [
   'Luminosité', 'Agencement', 'Quartier', 'État général', 'Vue', 'Calme', 'Surface', 'Rangements',
@@ -42,10 +81,16 @@ export default function VisitFeedbackPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={PAGE}>
         <PublicPageHeader />
         <div className="flex flex-col items-center justify-center h-[60vh]">
-          <div className="h-8 w-8 border-2 border-gray-200 border-t-accent rounded-full animate-spin mb-4" />
+          {/* ⚠ LE ROULEAU GARDE UNE VRAIE BORDURE, contrairement au reste : c'est
+              elle QUI EST le dessin — un anneau dont un quart porte l'accent.
+              Une ombre interne ne peut pas rendre ça. */}
+          <div
+            className="h-8 w-8 rounded-full animate-spin mb-4"
+            style={{ border: `2px solid ${MLK.ghost}33`, borderTopColor: MLK.accent }}
+          />
         </div>
       </div>
     )
@@ -53,11 +98,11 @@ export default function VisitFeedbackPage() {
 
   if (!visit || !token) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={PAGE}>
         <PublicPageHeader />
         <div className="flex flex-col items-center justify-center h-[60vh]">
-          <p className="text-xl font-semibold text-gray-900 mb-2">Lien invalide</p>
-          <p className="text-sm text-gray-500">Ce lien de feedback est expiré ou invalide.</p>
+          <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 8 }}>Lien invalide</p>
+          <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted }}>Ce lien de feedback est expiré ou invalide.</p>
         </div>
       </div>
     )
@@ -65,14 +110,22 @@ export default function VisitFeedbackPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen" style={PAGE}>
         <PublicPageHeader />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
-          <div className="h-12 w-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Check className="h-6 w-6 text-emerald-600" />
+          {/* ⚠ DISQUE DE CONFIRMATION — une DONNÉE, pas une affordance : rien ne
+              s'y actionne. Il garde donc son ton de succès au lieu de l'accent,
+              même arbitrage qu'au parcours KYC. */}
+          <div
+            className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4"
+            style={{ background: MLK_STATUT.okFill }}
+          >
+            <Check className="h-6 w-6" style={{ color: MLK_STATUT.okInk }} />
           </div>
-          <h2 className="text-lg font-semibold text-gray-900">Merci pour votre retour</h2>
-          <p className="text-sm text-gray-500 mt-2">
+          <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, margin: 0 }}>
+            Merci pour votre retour
+          </h2>
+          <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 8 }}>
             Votre avis aide l'agent à mieux comprendre vos attentes.
           </p>
         </div>
@@ -102,11 +155,11 @@ export default function VisitFeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={PAGE}>
       <PublicPageHeader />
       <div className="max-w-md mx-auto px-4 py-12">
         {/* Property card */}
-        <div className="rounded-xl border border-gray-200 overflow-hidden mb-8">
+        <div className="rounded-xl overflow-hidden mb-8" style={CARTE}>
           {property?.photos?.[0] && (
             <div className="aspect-[16/9]">
               {/* no-referrer : le token de retour est dans la query de CETTE page,
@@ -115,9 +168,14 @@ export default function VisitFeedbackPage() {
             </div>
           )}
           <div className="p-4">
-            <h2 className="text-base font-semibold text-gray-900">{property?.title || 'Bien visité'}</h2>
+            <h2 style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: MLK.ink, margin: 0 }}>
+              {property?.title || 'Bien visité'}
+            </h2>
             {property?.address && (
-              <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-1">
+              <div
+                className="flex items-center gap-1.5 mt-1"
+                style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted }}
+              >
                 <MapPin className="h-3.5 w-3.5" />
                 {property.address}, {property.city}
               </div>
@@ -125,12 +183,14 @@ export default function VisitFeedbackPage() {
           </div>
         </div>
 
-        <h1 className="text-xl font-semibold text-gray-900 mb-6">Comment s'est passée la visite ?</h1>
+        <h1 style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 24 }}>
+          Comment s'est passée la visite ?
+        </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Star rating */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-3 block">Note globale</label>
+            <label className="mb-3 block" style={LABEL}>Note globale</label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map(n => (
                 <button
@@ -142,10 +202,12 @@ export default function VisitFeedbackPage() {
                   className="p-0.5 transition-transform hover:scale-110"
                   aria-label={`${n} étoile${n > 1 ? 's' : ''}`}
                 >
-                  <Star className={cn(
-                    'h-8 w-8 transition-colors',
-                    (hoverRating || rating) >= n ? 'fill-amber-400 text-amber-400' : 'text-gray-200'
-                  )} />
+                  <Star
+                    className="h-8 w-8 transition-colors"
+                    style={(hoverRating || rating) >= n
+                      ? { fill: MLK_STATUT.starOn, color: MLK_STATUT.starOn }
+                      : { color: MLK_STATUT.starOff }}
+                  />
                 </button>
               ))}
             </div>
@@ -153,17 +215,15 @@ export default function VisitFeedbackPage() {
 
           {/* Strengths */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Points forts</label>
+            <label className="mb-2 block" style={LABEL}>Points forts</label>
             <div className="flex flex-wrap gap-1.5">
               {STRENGTHS.map(s => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => toggleItem(strengths, setStrengths, s)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg border text-xs transition-colors',
-                    strengths.includes(s) ? 'border-emerald-400 bg-emerald-50 text-emerald-700 font-medium' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                  )}
+                  className="px-3 py-1.5 rounded-lg transition-colors"
+                  style={pastille(strengths.includes(s), 'ok')}
                 >
                   {s}
                 </button>
@@ -173,17 +233,15 @@ export default function VisitFeedbackPage() {
 
           {/* Objections */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Points à améliorer</label>
+            <label className="mb-2 block" style={LABEL}>Points à améliorer</label>
             <div className="flex flex-wrap gap-1.5">
               {OBJECTIONS.map(o => (
                 <button
                   key={o}
                   type="button"
                   onClick={() => toggleItem(objections, setObjections, o)}
-                  className={cn(
-                    'px-3 py-1.5 rounded-lg border text-xs transition-colors',
-                    objections.includes(o) ? 'border-red-300 bg-red-50 text-red-600 font-medium' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                  )}
+                  className="px-3 py-1.5 rounded-lg transition-colors"
+                  style={pastille(objections.includes(o), 'err')}
                 >
                   {o}
                 </button>
@@ -193,19 +251,23 @@ export default function VisitFeedbackPage() {
 
           {/* Comment */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Commentaire libre</label>
+            <label className="mb-2 block" style={LABEL}>Commentaire libre</label>
             <textarea
               value={comment}
               onChange={e => setComment(e.target.value)}
               placeholder="Partagez vos impressions..."
               rows={3}
-              className="w-full px-3 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent resize-none"
+              className="w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
+              style={{
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', color: MLK.ink,
+                background: MLK.card, boxShadow: FILET, border: 0,
+              }}
             />
           </div>
 
           {/* Offer interest */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Seriez-vous intéressé par une offre ?</label>
+            <label className="mb-2 block" style={LABEL}>Seriez-vous intéressé par une offre ?</label>
             <div className="flex gap-2">
               {[
                 { key: 'yes', label: 'Oui' },
@@ -216,12 +278,12 @@ export default function VisitFeedbackPage() {
                   key={key}
                   type="button"
                   onClick={() => setOfferInterest(key as typeof offerInterest)}
-                  className={cn(
-                    'flex-1 h-10 rounded-lg border text-sm font-medium transition-colors',
-                    offerInterest === key
-                      ? 'border-accent bg-accent/5 text-accent'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                  )}
+                  className="flex-1 h-10 rounded-lg transition-colors"
+                  // ⚠ CELUI-CI PREND L'ACCENT, les deux familles au-dessus non :
+                  // « oui / peut-être / non » est un CHOIX qu'on actionne, quand
+                  // « point fort » et « point à améliorer » disent une POLARITÉ.
+                  // L'accent marque ce qu'on a fait ; le ton dit ce que c'est.
+                  style={pastille(offerInterest === key, 'accent')}
                 >
                   {label}
                 </button>
@@ -233,9 +295,14 @@ export default function VisitFeedbackPage() {
               Sans ce bloc l'écran de remerciement s'afficherait sur un envoi
               que la base a refusé. */}
           {submitFeedback.isError && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-              <p className="text-sm font-medium text-amber-900">Votre avis n'a pas pu être enregistré</p>
-              <p className="text-xs text-amber-800 mt-1">
+            <div
+              className="rounded-xl px-4 py-3"
+              style={{ background: MLK_STATUT.warnFill, boxShadow: `inset 0 0 0 1px ${MLK_STATUT.warnLine}` }}
+            >
+              <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>
+                Votre avis n'a pas pu être enregistré
+              </p>
+              <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
                 {estRefus(submitFeedback.error)
                   ? 'Un avis a peut-être déjà été déposé pour cette visite, ou celle-ci a été annulée.'
                   : 'Vérifiez votre connexion et réessayez.'}
@@ -247,18 +314,19 @@ export default function VisitFeedbackPage() {
           <button
             type="submit"
             disabled={!rating || !offerInterest || submitFeedback.isPending}
-            className={cn(
-              'w-full h-11 text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2',
-              rating && offerInterest && !submitFeedback.isPending
-                ? 'border border-theme-border text-theme-secondary hover:text-theme-primary hover:border-theme-active'
-                : 'bg-gray-100 text-gray-500 cursor-not-allowed'
-            )}
+            className="w-full h-11 rounded-lg transition-colors flex items-center justify-center gap-2"
+            style={{
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, border: 0,
+              ...(rating && offerInterest && !submitFeedback.isPending
+                ? { background: MLK.accent, color: '#FFFFFF', cursor: 'pointer' }
+                : { background: MLK.cardSubtle, color: MLK.ghost, cursor: 'not-allowed' }),
+            }}
           >
             {submitFeedback.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
             {submitFeedback.isPending ? 'Envoi...' : 'Envoyer mon avis'}
           </button>
 
-          <p className="text-xs text-gray-500 text-center">
+          <p className="text-center" style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted }}>
             Votre retour est anonymisé et partagé avec le vendeur pour améliorer la présentation du bien.
           </p>
         </form>

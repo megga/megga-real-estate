@@ -462,14 +462,6 @@
       "baths": "sdb",
       "epc": "DPE"
     },
-    "score": {
-      "chaud": "Chaud",
-      "a_animer": "À animer",
-      "en_veille": "En veille",
-      "fallback": "Estimation",
-      "tooltip": "Score de bien, estimation",
-      "tooltipLimited": "Score de bien, estimation · données limitées"
-    },
     "submissions": {
       "bannerTitle_one": "{{count}} nouvelle soumission vendeur",
       "bannerTitle_other": "{{count}} nouvelles soumissions vendeurs",
@@ -629,7 +621,6 @@
     "onlineOn": "Annonce en ligne sur {{portals}}",
     "notPublishedYet": "Bien non encore publié",
     "viewPhotos": "Voir les {{count}} photos",
-    "c2paVerified": "Provenance vérifiée · C2PA",
     "transactionRent": "Location",
     "transactionSale": "Vente",
     "rentLabel": "Loyer",
@@ -849,7 +840,6 @@
   },
   "wizard": {
     "steps": {
-      "start": "Démarrer",
       "mandate": "Vendeur",
       "address": "Adresse",
       "specs": "Caractéristiques",
@@ -860,51 +850,17 @@
     },
     "forOwner": "Pour {{name}}",
     "ownerVia": {
-      "submission": "via soumission",
       "linked": "vendeur lié"
-    },
-    "step0": {
-      "eyebrow": "Étape 1 sur 8 · Démarrer",
-      "title": "Comment souhaitez-vous créer ce bien ?",
-      "subtitle": "Trois manières d'aller vite. Le contenu sera ensuite affiné étape par étape.",
-      "manual": {
-        "title": "Saisir manuellement",
-        "sub": "Section par section, vous gardez la main."
-      },
-      "import": {
-        "title": "Importer un mandat",
-        "sub": "MEGGA AI extrait tout du PDF de mandat.",
-        "soon": "Bientôt"
-      },
-      "autosave": {
-        "title": "Brouillon sauvegardé automatiquement",
-        "note": "Vous pouvez fermer le wizard à tout moment, vos données restent."
-      },
-      "submissions": {
-        "title": "Reprendre une soumission",
-        "subtitle": "{{count}} particuliers ont soumis leur bien. Sélectionnez-en un pour pré-remplir.",
-        "emptyTitle": "Aucune soumission",
-        "emptyBody": "Aucun particulier n'a soumis de bien pour le moment.",
-        "unknownVendor": "Vendeur inconnu",
-        "subtitle_one": "1 particulier a soumis son bien.",
-        "subtitle_other": "{{count}} particuliers ont soumis leur bien.",
-        "selectVendor": "Sélectionnez un vendeur",
-        "cap_one": "5 soumissions affichées au maximum ; 1 plus ancienne dans Mes biens.",
-        "cap_other": "5 soumissions affichées au maximum ; {{count}} plus anciennes dans Mes biens."
-      }
     },
     "step1": {
       "vendor": {
-        "eyebrow": "Étape 2 sur 8 · Vendeur (1/2)",
         "title": "Qui est le propriétaire ?",
-        "subtitle": "Liez ce bien à un contact existant ou créez-en un nouveau.",
         "change": "Changer",
         "searchPlaceholder": "Tapez le nom, l'email ou le téléphone du vendeur…",
-        "newButton": "+ Nouveau",
+        "newButton": "Nouveau",
         "recentSellers": "Vos vendeurs récents",
         "noMatchTitle": "Aucun contact trouvé pour « {{query}} »",
-        "noMatchBody": "Créez un nouveau contact vendeur.",
-        "createNamed": "+ Créer « {{query}} »",
+        "createNamed": "Créer « {{query}} »",
         "sellerTag": "Vendeur",
         "newSeller": "Nouveau vendeur",
         "quickInfo": "Quelques informations rapides",
@@ -914,20 +870,17 @@
         "phone": "Téléphone",
         "phonePlaceholder": "+41 79 …",
         "kycNote": "Le KYC pourra être lancé après la signature du mandat. MEGGA peut envoyer la procédure au vendeur, c'est optionnel.",
-        "createContact": "Créer le contact"
+        "createContact": "Créer le contact",
+        "submissions_one": "1 soumission en attente",
+        "submissions_other": "{{count}} soumissions en attente",
+        "unknownVendor": "Vendeur inconnu"
       },
       "mandate": {
-        "eyebrow": "Étape 2 sur 8 · Mandat (2/2)",
         "title": "Quel type de mandat ?",
-        "subtitle": "Importez un mandat signé pour gagner du temps, ou configurez-le manuellement.",
-        "subtitleImported": "MEGGA AI a extrait les informations de votre mandat. Vérifiez et ajustez si nécessaire.",
         "field": {
-          "type": "Type de mandat",
           "duration": "Durée",
           "commission": "Commission",
-          "fees": "Honoraires",
-          "signedAt": "Date de signature",
-          "vendor": "Vendeur identifié"
+          "fees": "Honoraires"
         },
         "type": {
           "exclusive": {
@@ -944,18 +897,6 @@
           }
         },
         "recommended": "Recommandé",
-        "import": {
-          "title": "Importer un mandat signé",
-          "hint": "Glissez votre PDF ici. MEGGA AI extrait automatiquement le type, la durée, la commission et la date de signature.",
-          "choosePdf": "Choisir le PDF"
-        },
-        "reading": "Lecture du fichier…",
-        "analyzing": "MEGGA AI analyse votre mandat",
-        "searchingNextField": "Recherche du champ suivant…",
-        "importedTitle": "Mandat importé et analysé",
-        "enterManually": "Saisir manuellement",
-        "enterManuallyQuoted": "« Saisir manuellement »",
-        "editHint": "Pour modifier ces valeurs, cliquez sur",
         "months": "{{count}} mois",
         "feesOwner": "À charge du vendeur",
         "feesBuyer": "À charge de l'acheteur",
@@ -964,7 +905,6 @@
         "statusLabel": "Statut",
         "signed": "Signé",
         "notSigned": "Non signé",
-        "orManual": "ou configurez à la main",
         "proposedCommission": "Commission proposée",
         "settings": "Paramètres",
         "settingsTitle": "Ajustez les conditions du mandat",
@@ -976,9 +916,7 @@
       }
     },
     "step2": {
-      "eyebrow": "Étape 3 sur 8 · Adresse",
       "title": "Où se situe le bien ?",
-      "subtitle": "Tapez une adresse, MEGGA AI complète le code postal, le canton et les coordonnées.",
       "searchPlaceholder": "Rue, numéro, ville…",
       "confirmedTitle": "Adresse confirmée",
       "confirmedSubtitle": "Code postal, canton et coordonnées détectés automatiquement.",
@@ -1091,9 +1029,7 @@
     "photosCount_one": "{{count}} photo",
     "photosCount_other": "{{count}} photos",
     "step4": {
-      "eyebrow": "Étape 5 sur 8 · Photos",
       "title": "Ajoutez les photos du bien",
-      "intro": "Les annonces avec 8 à 12 photos reçoivent <strong>3× plus de demandes</strong>. La première photo sera la couverture sur MEGGA.",
       "mode": {
         "pc": "Depuis cet ordinateur",
         "mobile": "Depuis votre téléphone",
@@ -1316,20 +1252,10 @@
       "addressPlaceholder": "Adresse à compléter",
       "agentLine": "MEGGA · {{canton}} · Présentation par l'agent",
       "contact": "Contacter",
-      "whenPublish": "Quand publier",
       "publishNow": {
         "title": "Publier maintenant",
         "sub": "L'annonce devient visible dans les 30 secondes."
       },
-      "schedule": {
-        "title": "Programmer",
-        "sub": "Choisissez la date et l'heure de mise en ligne."
-      },
-      "draft": {
-        "title": "Enregistrer en brouillon",
-        "sub": "Reprenez plus tard. Aucune date publique."
-      },
-      "scheduleDateLabel": "Date et heure (Europe/Zurich)",
       "visibility": {
         "eyebrow": "Visibilité",
         "public": "Public",
@@ -1372,8 +1298,6 @@
       },
       "mandateNote": "Mandat non signé : l'annonce paraîtra sur MEGGA ; la diffusion Immobilier.ch partira dès la signature.",
       "cta": {
-        "schedule": "Programmer la publication",
-        "draft": "Enregistrer le brouillon",
         "private": "Enregistrer en privé",
         "publishIdx": "Publier sur Immobilier.ch",
         "publishMegga": "Publier sur MEGGA"
@@ -1395,29 +1319,14 @@
       "featuresLabel": "Équipements",
       "agentFallback": "Votre agence",
       "optionsTitle": "Options de publication",
-      "when": {
-        "now": "Maintenant",
-        "schedule": "Programmer",
-        "draft": "Brouillon"
-      },
-      "draftNote": "Le bien reste en brouillon dans « Mes biens », rien n'est diffusé."
+      "savedNote": "Ce bien est déjà enregistré en brouillon dans « Mes biens ». Publier le rend visible."
     },
     "step8": {
-      "eyebrow": {
-        "now": "Publication confirmée",
-        "schedule": "Programmée",
-        "draft": "Brouillon"
-      },
       "title": {
-        "now": "Annonce publiée",
-        "schedule": "Publication programmée",
-        "draft": "Brouillon enregistré"
+        "now": "Annonce publiée"
       },
       "subtitle": {
-        "now": "Votre bien est désormais en ligne sur MEGGA.",
-        "schedule": "La publication aura lieu le {{date}}.",
-        "scheduleFallbackDate": "à la date choisie",
-        "draft": "Vous pourrez reprendre depuis votre tableau de bord."
+        "now": "Votre bien est désormais en ligne sur MEGGA."
       },
       "noCover": "Pas de couverture",
       "noAddress": "Bien sans adresse",
@@ -1452,23 +1361,20 @@
           "subtitle": "Tableau de bord et pipeline."
         }
       },
-      "confirmationEmail": "Vous recevrez un email de confirmation à <strong>{{email}}</strong>.",
       "c2paNote": "Toutes les images générées sont signées <strong>C2PA</strong> · provenance vérifiable par l'acheteur."
     },
     "shell": {
       "mandateTitle": "Mandat",
       "continue": "Continuer",
       "publishing": "Publication…",
-      "schedulePublish": "Programmer la publication",
-      "saveDraft": "Enregistrer en brouillon",
       "publish": "Publier sur MEGGA",
-      "photoRequired": "Ajoutez au moins une photo pour publier. Sans photo, enregistrez l'annonce en brouillon et complétez-la plus tard.",
       "publishError": "Échec de la publication : {{message}}",
       "unknownError": "Erreur inconnue",
       "recommended": "Recommandé",
       "choose": "Choisir",
       "saved": "Enregistré",
-      "autosave": "Enregistrement automatique"
+      "saving": "Enregistrement…",
+      "saveFailed": "Non enregistré"
     },
     "kyc": {
       "verified": "KYC vérifié",
@@ -1695,7 +1601,8 @@
     "porte": {
       "choose": "Choisir",
       "selected": "Sélectionné"
-    }
+    },
+    "progress": "Étape {{n}} sur {{total}} · {{label}}"
   },
   "gallery": {
     "sort": "Trier"
@@ -1746,13 +1653,13 @@
       "expiresAt": "Expire le"
     },
     "photoIndex": "Photo {{i}} / {{total}}",
+    "photoViewer": "Photos du bien",
     "surfaceSuffix": "m²"
   },
   "wizardMobile": {
     "continue": "Continuer",
     "publish": "Publier",
     "publishing": "Publication…",
-    "saveDraft": "Enregistrer en brouillon",
     "publishError": "Échec de la publication. Réessayez.",
     "doneTitle": "Bien créé",
     "doneDesc": "Votre bien est enregistré. Ajoutez les photos depuis sa fiche.",
@@ -1763,10 +1670,10 @@
     "postCode": "NPA",
     "city": "Ville",
     "canton": "Canton",
-    "specsTitle": "Caractéristiques",
+    "specsTitle": "Que comprend le bien ?",
     "energy": "Classe énergétique",
     "features": "Atouts",
-    "priceTitle": "Prix & publication",
+    "priceTitle": "À quel prix ?",
     "priceLabel": "Prix de vente",
     "rentLabel": "Loyer mensuel",
     "charges": "Charges",
@@ -1774,9 +1681,6 @@
     "mandate": "Mandat",
     "mandateExclusive": "Exclusif",
     "mandateSimple": "Simple",
-    "publishWhen": "Publication",
-    "publishNow": "Publier maintenant",
-    "draft": "Brouillon",
     "photosLater": "Photos à ajouter depuis la fiche du bien",
     "step": {
       "type": "Type",

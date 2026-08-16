@@ -64,9 +64,9 @@ function VariantPicker<T extends string>({
       }}
     >
       <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: M.ink }}>{title}</div>
+        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: M.ink }}>{title}</div>
         {subtitle && (
-          <div style={{ fontSize: 12, color: M.muted, marginTop: 2 }}>{subtitle}</div>
+          <div style={{ fontSize: 'var(--crm-text-sm)', color: M.muted, marginTop: 2 }}>{subtitle}</div>
         )}
       </div>
 
@@ -108,15 +108,15 @@ function VariantPicker<T extends string>({
               <div>
                 <div
                   style={{
-                    fontSize: 13,
-                    fontWeight: 700,
+                    fontSize: 'var(--crm-text-md)',
+                    fontWeight: 600,
                     color: selected ? M.green : M.ink,
                   }}
                 >
                   {opt.label}
                 </div>
                 {opt.description && (
-                  <div style={{ fontSize: 11, color: M.muted, marginTop: 2 }}>{opt.description}</div>
+                  <div style={{ fontSize: 'var(--crm-text-xs)', color: M.muted, marginTop: 2 }}>{opt.description}</div>
                 )}
               </div>
             </button>
@@ -142,7 +142,7 @@ function NullMock() {
         alignItems: 'center',
         justifyContent: 'center',
         color: M.muted,
-        fontSize: 11,
+        fontSize: 'var(--crm-text-xs)',
         fontWeight: 600,
         background: '#FAFBFD',
       }}
@@ -330,8 +330,8 @@ export function PartnerAgencyPicker({ value, onChange }: PartnerAgencyPickerProp
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 14,
-            fontWeight: 700,
+            fontSize: 'var(--crm-text-lg)',
+            fontWeight: 600,
             fontFamily: p.mono.length > 1 ? 'Manrope, sans-serif' : "'Cormorant Garamond', serif",
           }}
         >

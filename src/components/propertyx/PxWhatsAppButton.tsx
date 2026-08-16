@@ -103,7 +103,11 @@ export default function PxWhatsAppButton({
         border: 0,
         fontFamily: PX.font.sans,
         fontWeight: 500,
-        fontSize: 16,
+        // 16 px EST un barreau (`--crm-text-2xl`) : le jeton rend la même valeur.
+        // Ce bouton est l'un des quatre vestiges Px rendus DANS le CRM, donc
+        // c'est l'échelle du CRM qui le gouverne, pas `PX.type` — l'échelle
+        // Property X est archivée avec la marketplace.
+        fontSize: 'var(--crm-text-2xl)',
         lineHeight: 1.25,
         letterSpacing: '-0.48px',
         cursor: 'pointer',

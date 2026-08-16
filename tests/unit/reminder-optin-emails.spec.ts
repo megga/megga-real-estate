@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildContactReminderEmail } from '../../supabase/functions/_shared/reminder-email'
 import { buildOptinInviteEmail } from '../../supabase/functions/_shared/whatsapp-optin-send'
+import { optinCopy } from '../../supabase/functions/_shared/whatsapp-optin-copy'
 
 const DESINSCRIPTION = '<a href="https://app.megga.ch/desinscription/jeton">Se désinscrire</a>'
 
@@ -47,21 +48,47 @@ describe('buildContactReminderEmail', () => {
 })
 
 describe('buildOptinInviteEmail', () => {
+  /**
+   * ⚠ LA COPIE VIENT D'`optinCopy`, PAS D'UNE FIXTURE ÉCRITE À LA MAIN.
+   *
+   * Une fixture inventée n'éprouve que le gabarit ; elle ne dit rien de ce que le
+   * destinataire reçoit vraiment. C'est ce qui a permis au défaut de passer : la
+   * fixture ne portait ni aperçu ni mention légale, donc les deux clauses
+   * ci-dessous mesuraient des textes que le CONSTRUCTEUR écrivait en dur — et qui
+   * restaient français quelle que soit la langue déclarée.
+   */
   const base = {
     lang: 'fr',
-    copy: {
-      subject: 'Recevoir les messages de Régie du Rhône sur WhatsApp',
-      body: 'Régie du Rhône souhaite vous écrire sur WhatsApp.',
-      cta: 'Accepter sur WhatsApp',
-    },
+    copy: optinCopy('fr', 'Régie du Rhône'),
     agencyName: 'Régie du Rhône',
     lien: 'https://wa.me/41225551010?text=OPTIN%20jeton',
   }
 
   it('déclare la langue du destinataire : la copie existe en quatre langues', () => {
-    for (const lang of ['fr', 'de', 'en', 'it']) {
-      expect(buildOptinInviteEmail({ ...base, lang }).html).toContain(`lang="${lang}"`)
+    for (const lang of ['fr', 'de', 'en', 'it'] as const) {
+      const html = buildOptinInviteEmail({ ...base, lang, copy: optinCopy(lang, 'Régie du Rhône') }).html
+      expect(html).toContain(`lang="${lang}"`)
     }
+  })
+
+  /**
+   * ⛔ LA CLAUSE QUI MANQUAIT. L'aperçu de boîte de réception et la mention légale
+   * étaient écrits en dur, en français, dans le constructeur : un contact
+   * germanophone recevait un objet et un corps allemands, puis la seule ligne
+   * expliquant à quoi il consent en français. Le test précédent ne l'attrapait pas
+   * — il ne regardait que l'attribut `lang`, qui, lui, était juste.
+   *
+   * On mesure sur les DEUX textes, et sur une langue dont on sait qu'elle diffère
+   * mot pour mot du français.
+   */
+  it('⛔ traduit AUSSI l’aperçu et la mention légale, pas seulement le corps', () => {
+    const de = optinCopy('de', 'Régie du Rhône')
+    const html = buildOptinInviteEmail({ ...base, lang: 'de', copy: de }).html
+    expect(html).toContain(de.preheader)
+    expect(html).toContain(de.legalNote)
+    // Les deux formulations françaises ne doivent subsister nulle part.
+    expect(html).not.toContain('répondre STOP à tout moment')
+    expect(html).not.toContain('aucun message ne vous sera envoyé')
   })
 
   it('⛔ le bouton reste VERT WhatsApp, pas l’accent MEGGA', () => {

@@ -61,13 +61,6 @@
     "activity": "Activité"
   },
   "import": {
-    "csv_label": "CSV / Excel",
-    "csv_desc": "Importer depuis un fichier .csv ou .tsv",
-    "vcard_label": "vCard (.vcf)",
-    "vcard_desc": "Depuis iPhone, Android, Outlook, Gmail",
-    "text_label": "Texte libre (IA)",
-    "text_desc": "Coller un email ou message, MEGGA AI extrait les infos",
-    "manual_label": "Saisie manuelle",
     "urgency": {
       "high": "Élevée",
       "medium": "Modérée",
@@ -179,62 +172,6 @@
         "viewPipelineDesc": "Ouvrir la carte deal",
         "viewContact": "Voir la fiche contact →",
         "viewContactDesc": "Coordonnées, KYC, historique"
-      }
-    },
-    "batch": {
-      "title": "Importer des contacts",
-      "methodPrompt": "Comment souhaitez-vous ajouter vos contacts ?",
-      "manual_desc": "Ajouter un contact à la main",
-      "importing": "Import en cours…",
-      "importCount_one": "Importer {{count}} contact",
-      "importCount_other": "Importer {{count}} contacts",
-      "foundCount_one": "{{count}} contact trouvé",
-      "foundCount_other": "{{count}} contacts trouvés",
-      "field": {
-        "ignore": "Ignorer",
-        "firstName": "Prénom",
-        "lastName": "Nom",
-        "email": "Email",
-        "phone": "Téléphone",
-        "type": "Type",
-        "notes": "Notes",
-        "source": "Source"
-      },
-      "csv": {
-        "title": "Importer depuis un CSV",
-        "uploadPrompt": "Glissez ou sélectionnez votre fichier",
-        "mapPrompt_one": "{{count}} contact trouvé, mappez les colonnes",
-        "mapPrompt_other": "{{count}} contacts trouvés, mappez les colonnes",
-        "dropTitle": "Glissez votre fichier CSV ici",
-        "dropHint": "ou cliquez pour sélectionner (.csv, .tsv)",
-        "previewLabel": "Aperçu :"
-      },
-      "vcard": {
-        "title": "Importer depuis vCard",
-        "subtitle": "Export depuis iPhone, Android, Outlook ou Gmail",
-        "dropTitle": "Glissez votre fichier .vcf ici",
-        "dropHint": "ou cliquez pour sélectionner"
-      },
-      "text": {
-        "title": "Extraction IA",
-        "subtitle": "Collez un email, un message, ou tout texte contenant des coordonnées",
-        "placeholder": "Ex : Bonjour, je suis Marie Dupont, joignable au 079 123 45 67 ou marie.dupont@gmail.com. Je cherche un 4 pièces à Genève…",
-        "extract": "Extraire les contacts",
-        "analyzing": "MEGGA AI analyse le texte…",
-        "identifiedCount_one": "{{count}} contact identifié",
-        "identifiedCount_other": "{{count}} contacts identifiés",
-        "errorNotFound": "Aucun contact trouvé dans le texte",
-        "errorNone": "Aucun contact identifié",
-        "errorExtract": "Erreur d'extraction"
-      },
-      "result": {
-        "importedCount_one": "{{count}} contact importé",
-        "importedCount_other": "{{count}} contacts importés",
-        "skippedCount_one": "{{count}} ignoré (incomplet)",
-        "skippedCount_other": "{{count}} ignorés (incomplets)",
-        "duplicatesCount_one": "{{count}} doublon ignoré",
-        "duplicatesCount_other": "{{count}} doublons ignorés",
-        "goToContacts": "Voir mes contacts"
       }
     }
   },
@@ -892,7 +829,6 @@
     "email": "Email",
     "emailPlaceholder": "nom@exemple.ch",
     "phone": "Téléphone",
-    "phonePlaceholder": "+41 79 …",
     "lang": "Langue",
     "langOpt": {
       "fr": "Français",
@@ -951,7 +887,8 @@
       "rentMax": "Loyer max",
       "propertyAddress": "Adresse du bien"
     },
-    "birthError": "Date de naissance invalide : format JJ.MM.AAAA."
+    "birthError": "Date de naissance invalide : format JJ.MM.AAAA.",
+    "dialCode": "Indicatif du pays"
   },
   "fiche": {
     "back": "Contacts",
@@ -968,7 +905,8 @@
       "editIdentity": "Modifier l'identité",
       "editCoord": "Modifier les coordonnées",
       "editCriteria": "Modifier les critères",
-      "delete": "Supprimer le contact"
+      "delete": "Supprimer le contact",
+      "more": "Plus d’actions"
     },
     "delete": {
       "title": "Supprimer {{name}} ?",
@@ -1058,7 +996,8 @@
     },
     "note": {
       "label": "Note",
-      "placeholder": "Contexte, préférences, historique de la relation…"
+      "placeholder": "Contexte, préférences, historique de la relation…",
+      "saveError": "La note n'a pas pu être enregistrée. Réessayez."
     },
     "page": {
       "infos": "Ses informations",
@@ -1109,7 +1048,8 @@
     },
     "saved": {
       "coord": "Coordonnées enregistrées",
-      "crit": "Critères enregistrés"
+      "crit": "Critères enregistrés",
+      "note": "Note enregistrée"
     },
     "consent": {
       "label": "Joignabilité WhatsApp",
@@ -1165,7 +1105,6 @@
     "matchesToSend": "Proposer une sélection ({{count}} biens pertinents)",
     "neverContacted": "Prendre un premier contact (jamais recontacté)",
     "dormant": "Relancer (sans échange depuis {{days}} j)",
-    "estimateTag": "estimation",
     "kycNote": "Dossier KYC à finaliser (facultatif, ne bloque rien)"
   }
 }

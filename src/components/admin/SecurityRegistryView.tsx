@@ -30,11 +30,12 @@ import {
   type JournalSeverity,
   type JournalWindow,
 } from '@/hooks/useAdminSecurityJournal'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import {
   AdminCard, AdminEmpty, AdminError, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSkeleton,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 const PER_PAGE = 20
 
@@ -52,6 +53,20 @@ const SEV_MAP: Record<JournalSeverity, { key: 'critical' | 'warning' | 'info'; t
  *  l'heure — c'est la fenêtre choisie qui porte la date. */
 const COL = { time: 84, severity: 108, family: 104, action: 190, actor: 150, entity: 150 } as const
 
+/**
+ * Largeur sous laquelle le registre DÉFILE au lieu de s'écraser.
+ *
+ * ⛔ Six colonnes sur sept ont une largeur FIXE (786 px) et ne cèdent rien
+ * (`flexShrink: 0`). Seule « Détails » est élastique, avec `minWidth: 0` : elle
+ * absorbait donc 100 % du déficit et tombait à ZÉRO. Mesuré sur `/dev/admin` à
+ * 1280 px de fenêtre — la largeur d'écran la plus courante — une colonne sur
+ * sept était invisible, sans le moindre indice qu'il manquait quelque chose.
+ *
+ * 786 (colonnes) + 6 gouttières de 16 (96) + marges de 20 (40) = 922, plus
+ * 180 px de plancher pour « Détails ».
+ */
+const REGISTRE_MIN_WIDTH = 1100
+
 const TRUNCATE: CSSProperties = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
 /** Condense les paires en une ligne `libellé: valeur`, tronquée à 80 caractères. */
@@ -64,7 +79,7 @@ function summarizePairs(pairs: [string, string][] | null): string {
 /** Journal du registre MEGGA : fenêtre, filtre unique (sévérité OU famille), recherche. */
 export default function SecurityRegistryView() {
   const { t } = useTranslation('admin')
-  const { sp, surf, dark } = useAdminSugar()
+  const { sp, surf, dark } = useAdminSurfaces()
   const [win, setWin] = useState<JournalWindow>('today')
   const [filter, setFilter] = useState<JournalFilter>('all')
   const [search, setSearch] = useState('')
@@ -82,7 +97,7 @@ export default function SecurityRegistryView() {
   // (offset), donc rester en page 7 sur un filtre qui n'a que 2 pages rendrait du vide.
   const change = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1) }
 
-  const rowHair = dark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.05)'
+  const rowHair = crmVoileEncre(dark, 0.06)
 
   return (
     <>
@@ -101,7 +116,7 @@ export default function SecurityRegistryView() {
                 onClick={() => change(setWin)(w)}
                 style={{
                   height: 30, padding: '0 var(--crm-space-2xl)', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 700 : 600, whiteSpace: 'nowrap',
+                  fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: on ? 600 : 500, whiteSpace: 'nowrap',
                   background: on ? sp.accent : 'transparent', color: on ? sp.accentInk : sp.sub,
                   transition: 'background .15s ease, color .15s ease',
                 }}
@@ -120,7 +135,7 @@ export default function SecurityRegistryView() {
             onChange={e => change(setFilter)(e.target.value as JournalFilter)}
             style={{
               height: 34, padding: '0 34px 0 15px', borderRadius: ADMIN_RADII.pill, border: 0, outline: 'none',
-              appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700,
+              appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
               color: sp.ink, background: surf.card, boxShadow: sp.shadowSm,
             }}
           >
@@ -150,9 +165,15 @@ export default function SecurityRegistryView() {
       </div>
 
       <AdminCard padding={0} style={{ overflow: 'hidden' }}>
+        {/* ⚠ Le `minWidth` est porté UNE fois par l'enveloppe, pas par chaque
+            ligne : les lignes sont des blocs, elles prennent la largeur de leur
+            parent. Le répéter sur l'en-tête, la ligne et le bloc déplié serait
+            trois occasions de le laisser diverger. */}
+        <div className="adm-scroll" style={{ overflowX: 'auto' }}>
+        <div style={{ minWidth: REGISTRE_MIN_WIDTH }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-md) var(--crm-space-2xl)',
-          background: sp.tableHeadBg, fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
+          background: sp.tableHeadBg, fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, color: sp.sub,
         }}>
           <div style={{ width: COL.time, flexShrink: 0 }}>{t('admin:securityAudit.table.timestamp')}</div>
           <div style={{ width: COL.severity, flexShrink: 0 }}>{t('admin:securityAudit.table.severity')}</div>
@@ -230,7 +251,7 @@ export default function SecurityRegistryView() {
                       <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: 'minmax(120px, max-content) 1fr', gap: '6px 16px' }}>
                         {e.meta.map(([l, v], i) => (
                           <div key={`${e.id}-${i}`} style={{ display: 'contents' }}>
-                            <dt style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: sp.ink }}>{l}</dt>
+                            <dt style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink }}>{l}</dt>
                             <dd style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub, wordBreak: 'break-word' }}>{v}</dd>
                           </div>
                         ))}
@@ -245,6 +266,12 @@ export default function SecurityRegistryView() {
           })
         )}
 
+        </div>
+        </div>
+
+        {/* ⚠ HORS de l'enveloppe défilante : la pagination n'a pas de colonnes,
+            et la faire glisser avec le registre la rendrait introuvable dès
+            qu'on défile vers la droite. */}
         <AdminPager page={page} totalPages={totalPages} total={total} perPage={PER_PAGE} onPage={setPage} />
       </AdminCard>
     </>

@@ -462,14 +462,6 @@
       "baths": "Bad",
       "epc": "GEAK"
     },
-    "score": {
-      "chaud": "Heiss",
-      "a_animer": "Zu beleben",
-      "en_veille": "Ruhend",
-      "fallback": "Schätzung",
-      "tooltip": "Objekt-Score, Schätzung",
-      "tooltipLimited": "Objekt-Score, Schätzung · begrenzte Daten"
-    },
     "submissions": {
       "bannerTitle_one": "{{count}} neue Verkäufereinreichung",
       "bannerTitle_other": "{{count}} neue Verkäufereinreichungen",
@@ -629,7 +621,6 @@
     "onlineOn": "Inserat online auf {{portals}}",
     "notPublishedYet": "Objekt noch nicht veröffentlicht",
     "viewPhotos": "Alle {{count}} Fotos ansehen",
-    "c2paVerified": "Herkunft verifiziert · C2PA",
     "transactionRent": "Miete",
     "transactionSale": "Verkauf",
     "rentLabel": "Mietzins",
@@ -849,7 +840,6 @@
   },
   "wizard": {
     "steps": {
-      "start": "Start",
       "mandate": "Verkäufer",
       "address": "Adresse",
       "specs": "Merkmale",
@@ -860,51 +850,17 @@
     },
     "forOwner": "Für {{name}}",
     "ownerVia": {
-      "submission": "via Einreichung",
       "linked": "verknüpfter Verkäufer"
-    },
-    "step0": {
-      "eyebrow": "Schritt 1 von 8 · Start",
-      "title": "Wie möchten Sie dieses Objekt erstellen?",
-      "subtitle": "Drei schnelle Wege. Der Inhalt wird anschliessend Schritt für Schritt verfeinert.",
-      "manual": {
-        "title": "Manuell erfassen",
-        "sub": "Abschnitt für Abschnitt, Sie behalten die Kontrolle."
-      },
-      "import": {
-        "title": "Mandat importieren",
-        "sub": "MEGGA AI extrahiert alles aus dem Mandats-PDF.",
-        "soon": "Demnächst"
-      },
-      "autosave": {
-        "title": "Entwurf automatisch gespeichert",
-        "note": "Sie können den Assistenten jederzeit schliessen, Ihre Daten bleiben erhalten."
-      },
-      "submissions": {
-        "title": "Einreichung fortsetzen",
-        "subtitle": "{{count}} Privatpersonen haben ihr Objekt eingereicht. Wählen Sie eine aus, um vorauszufüllen.",
-        "emptyTitle": "Keine Einreichung",
-        "emptyBody": "Bisher hat keine Privatperson ein Objekt eingereicht.",
-        "unknownVendor": "Unbekannter Verkäufer",
-        "subtitle_one": "1 Privatperson hat ihr Objekt eingereicht.",
-        "subtitle_other": "{{count}} Privatpersonen haben ihr Objekt eingereicht.",
-        "selectVendor": "Wählen Sie einen Verkäufer",
-        "cap_one": "Maximal 5 Einreichungen angezeigt; 1 ältere unter Meine Objekte.",
-        "cap_other": "Maximal 5 Einreichungen angezeigt; {{count}} ältere unter Meine Objekte."
-      }
     },
     "step1": {
       "vendor": {
-        "eyebrow": "Schritt 2 von 8 · Verkäufer (1/2)",
         "title": "Wer ist der Eigentümer?",
-        "subtitle": "Dieses Objekt mit einem bestehenden Kontakt verknüpfen oder einen neuen erstellen.",
         "change": "Ändern",
         "searchPlaceholder": "Name, E-Mail oder Telefon des Verkäufers eingeben…",
-        "newButton": "+ Neu",
+        "newButton": "Neu",
         "recentSellers": "Ihre letzten Verkäufer",
         "noMatchTitle": "Kein Kontakt für «{{query}}» gefunden",
-        "noMatchBody": "Einen neuen Verkäuferkontakt erstellen.",
-        "createNamed": "+ «{{query}}» erstellen",
+        "createNamed": "«{{query}}» erstellen",
         "sellerTag": "Verkäufer",
         "newSeller": "Neuer Verkäufer",
         "quickInfo": "Ein paar kurze Angaben",
@@ -914,20 +870,17 @@
         "phone": "Telefon",
         "phonePlaceholder": "+41 79 …",
         "kycNote": "Das KYC kann nach der Unterzeichnung des Mandats gestartet werden. MEGGA kann das Verfahren an den Verkäufer senden, das ist optional.",
-        "createContact": "Kontakt erstellen"
+        "createContact": "Kontakt erstellen",
+        "submissions_one": "1 offene Einreichung",
+        "submissions_other": "{{count}} offene Einreichungen",
+        "unknownVendor": "Unbekannter Verkäufer"
       },
       "mandate": {
-        "eyebrow": "Schritt 2 von 8 · Mandat (2/2)",
         "title": "Welche Art von Mandat?",
-        "subtitle": "Ein unterzeichnetes Mandat importieren, um Zeit zu sparen, oder es manuell einrichten.",
-        "subtitleImported": "MEGGA AI hat die Angaben aus Ihrem Mandat extrahiert. Prüfen und bei Bedarf anpassen.",
         "field": {
-          "type": "Mandatstyp",
           "duration": "Dauer",
           "commission": "Commission",
-          "fees": "Honorar",
-          "signedAt": "Unterschriftsdatum",
-          "vendor": "Verkäufer identifiziert"
+          "fees": "Honorar"
         },
         "type": {
           "exclusive": {
@@ -944,18 +897,6 @@
           }
         },
         "recommended": "Empfohlen",
-        "import": {
-          "title": "Unterzeichnetes Mandat importieren",
-          "hint": "Ihr PDF hierher ziehen. MEGGA AI extrahiert automatisch Typ, Dauer, Provision und Unterschriftsdatum.",
-          "choosePdf": "PDF auswählen"
-        },
-        "reading": "Datei wird gelesen…",
-        "analyzing": "MEGGA AI analysiert Ihr Mandat",
-        "searchingNextField": "Nächstes Feld wird gesucht…",
-        "importedTitle": "Mandat importiert und analysiert",
-        "enterManually": "Manuell eingeben",
-        "enterManuallyQuoted": "«Manuell eingeben»",
-        "editHint": "Um diese Werte zu ändern, klicken Sie auf",
         "months": "{{count}} Monate",
         "feesOwner": "Zulasten des Verkäufers",
         "feesBuyer": "Zulasten des Käufers",
@@ -964,7 +905,6 @@
         "statusLabel": "Status",
         "signed": "Unterzeichnet",
         "notSigned": "Nicht unterzeichnet",
-        "orManual": "oder manuell einrichten",
         "proposedCommission": "Vorgeschlagene Provision",
         "settings": "Einstellungen",
         "settingsTitle": "Mandatsbedingungen anpassen",
@@ -976,9 +916,7 @@
       }
     },
     "step2": {
-      "eyebrow": "Schritt 3 von 8 · Adresse",
       "title": "Wo befindet sich das Objekt?",
-      "subtitle": "Geben Sie eine Adresse ein, MEGGA AI ergänzt PLZ, Kanton und Koordinaten.",
       "searchPlaceholder": "Strasse, Nummer, Ort…",
       "confirmedTitle": "Adresse bestätigt",
       "confirmedSubtitle": "PLZ, Kanton und Koordinaten automatisch erkannt.",
@@ -1091,9 +1029,7 @@
     "photosCount_one": "{{count}} photo",
     "photosCount_other": "{{count}} photos",
     "step4": {
-      "eyebrow": "Schritt 5 von 8 · Fotos",
       "title": "Fügen Sie die Fotos des Objekts hinzu",
-      "intro": "Inserate mit 8 bis 12 Fotos erhalten <strong>3× mehr Anfragen</strong>. Das erste Foto wird das Titelbild auf MEGGA.",
       "mode": {
         "pc": "Von diesem Computer",
         "mobile": "Von Ihrem Telefon",
@@ -1316,20 +1252,10 @@
       "addressPlaceholder": "Adresse ergänzen",
       "agentLine": "MEGGA · {{canton}} · Präsentiert vom Makler",
       "contact": "Kontaktieren",
-      "whenPublish": "Wann veröffentlichen",
       "publishNow": {
         "title": "Jetzt veröffentlichen",
         "sub": "Das Inserat wird innerhalb von 30 Sekunden sichtbar."
       },
-      "schedule": {
-        "title": "Planen",
-        "sub": "Wählen Sie Datum und Uhrzeit der Veröffentlichung."
-      },
-      "draft": {
-        "title": "Als Entwurf speichern",
-        "sub": "Später fortfahren. Kein öffentliches Datum."
-      },
-      "scheduleDateLabel": "Datum und Uhrzeit (Europe/Zurich)",
       "visibility": {
         "eyebrow": "Sichtbarkeit",
         "public": "Public",
@@ -1372,8 +1298,6 @@
       },
       "mandateNote": "Mandat nicht unterzeichnet: Das Inserat erscheint auf MEGGA; die Verbreitung auf Immobilier.ch startet mit der Unterzeichnung.",
       "cta": {
-        "schedule": "Veröffentlichung planen",
-        "draft": "Entwurf speichern",
         "private": "Privat speichern",
         "publishIdx": "Auf Immobilier.ch veröffentlichen",
         "publishMegga": "Auf MEGGA veröffentlichen"
@@ -1395,29 +1319,14 @@
       "featuresLabel": "Ausstattung",
       "agentFallback": "Ihre Agentur",
       "optionsTitle": "Veröffentlichungsoptionen",
-      "when": {
-        "now": "Jetzt",
-        "schedule": "Planen",
-        "draft": "Entwurf"
-      },
-      "draftNote": "Das Objekt bleibt als Entwurf in «Meine Objekte», nichts wird verbreitet."
+      "savedNote": "Diese Immobilie ist bereits als Entwurf in Meine Immobilien gespeichert. Veröffentlichen macht sie sichtbar."
     },
     "step8": {
-      "eyebrow": {
-        "now": "Veröffentlichung bestätigt",
-        "schedule": "Geplant",
-        "draft": "Entwurf"
-      },
       "title": {
-        "now": "Inserat veröffentlicht",
-        "schedule": "Veröffentlichung geplant",
-        "draft": "Entwurf gespeichert"
+        "now": "Inserat veröffentlicht"
       },
       "subtitle": {
-        "now": "Ihr Objekt ist jetzt auf MEGGA online.",
-        "schedule": "Die Veröffentlichung erfolgt am {{date}}.",
-        "scheduleFallbackDate": "am gewählten Datum",
-        "draft": "Sie können später über Ihr Dashboard weitermachen."
+        "now": "Ihr Objekt ist jetzt auf MEGGA online."
       },
       "noCover": "Kein Titelbild",
       "noAddress": "Objekt ohne Adresse",
@@ -1452,23 +1361,20 @@
           "subtitle": "Dashboard und Pipeline."
         }
       },
-      "confirmationEmail": "Sie erhalten eine Bestätigungs-E-Mail an <strong>{{email}}</strong>.",
       "c2paNote": "Alle generierten Bilder sind <strong>C2PA</strong>-signiert · Herkunft für den Käufer überprüfbar."
     },
     "shell": {
       "mandateTitle": "Mandat",
       "continue": "Weiter",
       "publishing": "Veröffentlichung…",
-      "schedulePublish": "Veröffentlichung planen",
-      "saveDraft": "Als Entwurf speichern",
       "publish": "Auf MEGGA veröffentlichen",
-      "photoRequired": "Fügen Sie mindestens ein Foto hinzu, um zu veröffentlichen. Ohne Foto speichern Sie das Inserat als Entwurf und vervollständigen es später.",
       "publishError": "Veröffentlichung fehlgeschlagen: {{message}}",
       "unknownError": "Unbekannter Fehler",
       "recommended": "Empfohlen",
       "choose": "Auswählen",
       "saved": "Gespeichert",
-      "autosave": "Automatische Speicherung"
+      "saving": "Wird gespeichert…",
+      "saveFailed": "Nicht gespeichert"
     },
     "kyc": {
       "verified": "KYC verifiziert",
@@ -1695,7 +1601,8 @@
     "porte": {
       "choose": "Auswählen",
       "selected": "Ausgewählt"
-    }
+    },
+    "progress": "Schritt {{n}} von {{total}} · {{label}}"
   },
   "gallery": {
     "sort": "Sortieren"
@@ -1746,13 +1653,13 @@
       "expiresAt": "Läuft ab am"
     },
     "photoIndex": "Foto {{i}} / {{total}}",
+    "photoViewer": "Fotos des Objekts",
     "surfaceSuffix": "m²"
   },
   "wizardMobile": {
     "continue": "Weiter",
     "publish": "Veröffentlichen",
     "publishing": "Wird veröffentlicht…",
-    "saveDraft": "Als Entwurf speichern",
     "publishError": "Veröffentlichung fehlgeschlagen. Erneut versuchen.",
     "doneTitle": "Objekt erstellt",
     "doneDesc": "Ihr Objekt ist gespeichert. Fotos in der Objektseite hinzufügen.",
@@ -1763,10 +1670,10 @@
     "postCode": "PLZ",
     "city": "Ort",
     "canton": "Kanton",
-    "specsTitle": "Merkmale",
+    "specsTitle": "Was umfasst das Objekt?",
     "energy": "Energieklasse",
     "features": "Ausstattung",
-    "priceTitle": "Preis & Veröffentlichung",
+    "priceTitle": "Zu welchem Preis?",
     "priceLabel": "Verkaufspreis",
     "rentLabel": "Monatsmiete",
     "charges": "Nebenkosten",
@@ -1774,9 +1681,6 @@
     "mandate": "Mandat",
     "mandateExclusive": "Exklusiv",
     "mandateSimple": "Einfach",
-    "publishWhen": "Veröffentlichung",
-    "publishNow": "Jetzt veröffentlichen",
-    "draft": "Entwurf",
     "photosLater": "Fotos können auf der Objektseite hinzugefügt werden",
     "step": {
       "type": "Typ",

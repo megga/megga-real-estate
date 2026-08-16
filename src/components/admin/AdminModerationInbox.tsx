@@ -18,8 +18,9 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ui/Toast'
 import { AdminCard, AdminDivider, AdminEmpty, AdminIc, AdminSkeleton } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import type { LucideIcon } from 'lucide-react'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 function fmtDateTime(iso: string): string {
   try {
@@ -36,12 +37,12 @@ function fmtDateTime(iso: string): string {
  * partagée, leurs en-têtes divergeaient à la première retouche.
  */
 function InboxBento({ icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   return (
     <AdminCard padding={0}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
         <AdminIc icon={icon} size={16} color={sp.sub} />
-        <h2 style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{title}</h2>
+        <h2 style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>{title}</h2>
       </div>
       <AdminDivider />
       {children}
@@ -51,12 +52,12 @@ function InboxBento({ icon, title, children }: { icon: LucideIcon; title: string
 
 /** Sélecteur Sugar : surface creuse + filet INTÉRIEUR, jamais de bordure décorative. */
 function useSelectStyle(): CSSProperties {
-  const { sp, surf, dark } = useAdminSugar()
+  const { sp, surf, dark } = useAdminSurfaces()
   return {
     height: 32, padding: '0 var(--crm-space-lg)', borderRadius: ADMIN_RADII.row, border: 0,
     background: surf.cardSub, color: sp.ink, cursor: 'pointer',
     fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, outline: 'none',
-    boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
+    boxShadow: `0 0 0 1.5px ${crmVoileEncre(dark, 0.07)} inset`,
   }
 }
 
@@ -78,7 +79,7 @@ export function SellerLeadsInbox() {
   const toast = useToast()
   const queryClient = useQueryClient()
   const [assigning, setAssigning] = useState<string | null>(null)
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const selectStyle = useSelectStyle()
 
   const { data: leads, isLoading } = useQuery({
@@ -138,7 +139,7 @@ export function SellerLeadsInbox() {
               }}
             >
               <div style={{ minWidth: 0, flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {lead.contact_name}
                 </p>
                 <p style={{ margin: '1px 0 0', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, fontVariantNumeric: 'tabular-nums', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -186,7 +187,7 @@ export function ContactMessagesInbox() {
   const { t } = useTranslation('admin')
   const toast = useToast()
   const queryClient = useQueryClient()
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const selectStyle = useSelectStyle()
 
   const { data: messages, isLoading } = useQuery({
@@ -226,7 +227,7 @@ export function ContactMessagesInbox() {
             <div key={msg.id} style={{ padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderTop: i === 0 ? undefined : surf.hairline }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {msg.name} <span style={{ fontWeight: 500, color: sp.sub }}>· {msg.email}</span>
                   </p>
                   <p style={{ margin: '1px 0 0', fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>

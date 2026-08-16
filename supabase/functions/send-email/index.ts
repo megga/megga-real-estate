@@ -34,23 +34,32 @@ interface SendEmailRequest {
 }
 
 /**
- * La coquille commune, avec ce que ce gabarit dit de lui-même : un e-mail client porte
- * la mention transactionnelle, un e-mail interne n'en a pas et gagne la pilule.
+ * La coquille commune de ce gabarit.
+ *
+ * ⛔ AUCUNE MENTION LÉGALE, ET C'EST UNE DÉCISION, PAS UN OUBLI (16 août 2026).
+ *
+ * Le passage à la coquille avait ajouté une phrase que `main` ne portait pas :
+ * « Cet e-mail vous a été envoyé par MEGGA à la suite d'une demande de votre part.
+ * Il ne s'agit pas d'une communication marketing […] ». Elle était fausse dès que
+ * l'agent prospecte — et c'est précisément ce que fait `agent_freeform`, seul
+ * gabarit vivant ici, alimenté par la modale de revue du copilote où le
+ * destinataire se saisit librement. Une affirmation de conformité que le produit
+ * ne peut pas étayer coûte davantage qu'une absence de mention.
+ *
+ * ⚠ Elle était en outre écrite en français en dur, alors que `wrapHTML` ne
+ * transmet pas `lang` : un agent écrivant en allemand y gagnait un pied français.
+ *
+ * ⚠ Le paramètre `kind` est retiré avec elle : ses deux sites d'appel prenaient le
+ * défaut, la branche `'interne'` n'était donc joignable par personne.
  */
-function wrapHTML(subject: string, bodyHTML: string, kind: 'client' | 'interne' = 'client'): string {
+function wrapHTML(subject: string, bodyHTML: string): string {
   return shell({
     title: subject,
     // Faute de mieux : ces gabarits n'ont jamais porté de texte d'aperçu propre, et en
     // inventer un par gabarit dépasserait le rhabillage. L'objet vaut mieux que rien.
     preheader: subject,
-    legalNote: kind === 'interne'
-      ? null
-      : 'Cet e-mail vous a été envoyé par MEGGA à la suite d’une demande de votre part. '
-        + 'Il ne s’agit pas d’une communication marketing : c’est pourquoi il ne contient pas '
-        + 'de lien de désinscription.',
-    headerCta: kind === 'interne'
-      ? { href: 'https://app.megga.ch/dashboard', label: 'Ouvrir mon espace' }
-      : null,
+    legalNote: null,
+    headerCta: null,
     bodyHtml: bodyHTML,
   })
 }
@@ -118,8 +127,18 @@ serve(async (req) => {
         corps.trim().split(/\n{2,}/).map((par) => p(escapeHtml(par).replace(/\n/g, '<br />'))).join(''),
       )
     } else {
-      // Repli TRANSITOIRE : un onglet ouvert avant ce déploiement enverra encore
-      // `data.html`. À retirer une fois le front partout à jour.
+      // ⛔ REPLI TRANSITOIRE, AVEC UNE ÉCHÉANCE ÉCRITE : 15 SEPTEMBRE 2026.
+      //
+      // Il n'existe que pour un onglet ouvert AVANT ce déploiement, qui enverrait
+      // encore `data.html`. Tant qu'il vit, n'importe quel appelant muni d'un jeton
+      // d'agent peut faire partir un document HTML complet, non échappé et hors
+      // coquille, signé DKIM par megga.ch — et le chemin étant une donnée
+      // d'exécution, `lint:email-shell` ne le verra jamais.
+      //
+      // ⚠ « À retirer une fois le front à jour » était une INTENTION, que rien ne
+      // rappelait. La date ci-dessus est tenue par `tests/unit/email-repli-html.spec.ts`,
+      // qui rougit à l'échéance si le repli est encore là. Le retirer fait aussi
+      // disparaître le test : c'est le seul geste qui rende les deux verts.
       emailHtml = (data.html as string) || wrapHTML(emailSubject, p(''))
     }
 

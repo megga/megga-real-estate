@@ -12,7 +12,7 @@
 //   - Par annonce  : 1 annonce pivot → N acheteurs scorés
 //   - Par acheteur : 1 acheteur pivot → N biens scorés (lien « +N biens »)
 // Deep-links : ?annonce=p:<uuid>|m:<uuid> (pivot) · ?contact=<uuid> (acheteur).
-// Rendu plein écran par-dessus le shell (pattern OfferModalSugarV3Page).
+// Rendu plein écran par-dessus le shell (pattern OfferPage).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -32,7 +32,7 @@ import {
 import { useAgencyProperties } from '@/hooks/useProperties'
 import AtelierStage from '@/components/matching-atelier/AtelierStage'
 import MatchingFirstRun from '@/components/matching-atelier/MatchingFirstRun'
-import { useSugarDark } from '@/components/matching-atelier/useSugarDark'
+import { useCrmDark } from '@/lib/crmDark'
 import { PendingRegistry, type AtelierGestes } from '@/components/matching-atelier/pendingTriage'
 import type { AtelierBuyer, AtelierListing } from '@/components/matching-atelier/types'
 import { useToast } from '@/components/ui/Toast'
@@ -42,7 +42,7 @@ export default function MatchingAtelierPage(
   { embedded = false, dark: darkOverride, onOpenRecherche }: {
     embedded?: boolean
     dark?: boolean
-    /** glisse le pager vers la page Recherche — fourni par MatchingPagerPage seul */
+    /** glisse le pager vers la page Recherche — fourni par MatchingPage seul */
     onOpenRecherche?: () => void
   } = {},
 ) {
@@ -52,7 +52,7 @@ export default function MatchingAtelierPage(
   const [searchParams, setSearchParams] = useSearchParams()
   // Embarqué dans le pager, le thème vient du parent (même onglet — le toggle du
   // rail n'émet pas d'event `storage` local) ; sinon on suit le thème global.
-  const darkAuto = useSugarDark()
+  const darkAuto = useCrmDark()
   const dark = darkOverride ?? darkAuto
   const { user, profile } = useAuth()
   const { isLoading, isError, pivots, pivotByKey, defaultPivotKey, poolFor, buyerFor, refresh } = useAtelierMatching()

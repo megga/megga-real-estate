@@ -1,7 +1,7 @@
 /**
  * Gate identite legale (route /dashboard/identite) - decide si un dirigeant
  * doit saisir l'identite legale de son agence avant d'acceder au reste du
- * CRM. Consomme par AgentSugarLayout, qui emet la redirection.
+ * CRM. Consomme par AgentLayout, qui emet la redirection.
  *
  * Le coeur de la decision (resolveIdentityGateStatus) est une fonction pure,
  * sur le meme motif que l'ancien resolveOnboardingGate
@@ -108,7 +108,7 @@ export function resolveIdentityGateStatus(input: ResolveIdentityGateStatusInput)
  * Garde-fou 2 : la route du gate ne se redirige jamais vers elle-meme, meme
  * quand le statut vaut 'required' - sinon un dirigeant qui l'ouvre
  * directement (lien, retour navigateur) ne pourrait jamais l'atteindre. Pur,
- * consomme par AgentSugarLayout avec `location.pathname`.
+ * consomme par AgentLayout avec `location.pathname`.
  */
 export function shouldRedirectToIdentityGate(status: IdentityGateStatus, pathname: string): boolean {
   return status === 'required' && pathname !== IDENTITY_GATE_ROUTE
@@ -120,7 +120,7 @@ export function shouldRedirectToIdentityGate(status: IdentityGateStatus, pathnam
  *
  * Le garde-fou 1 ci-dessus dit seulement de ne pas REDIRIGER sur un etat
  * indetermine. Il ne disait rien de ce qu'on affiche pendant ce temps, et
- * AgentSugarLayout rendait donc l'<Outlet/> - c'est-a-dire le CRM - jusqu'a ce
+ * AgentLayout rendait donc l'<Outlet/> - c'est-a-dire le CRM - jusqu'a ce
  * que la lecture agence reponde. Un dirigeant qui vient d'activer son compte
  * voyait son tableau de bord s'afficher une fraction de seconde avant d'etre
  * renvoye sur le wizard d'identite : l'app lui montrait une porte ouverte puis
@@ -157,7 +157,7 @@ interface AgencyIdentityRow {
 }
 
 /**
- * Hook consomme par AgentSugarLayout. Resout les trois sources (profil,
+ * Hook consomme par AgentLayout. Resout les trois sources (profil,
  * is_super_admin(), agencies.identity_submitted_at) puis delegue la
  * decision a resolveIdentityGateStatus.
  *

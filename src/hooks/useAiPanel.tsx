@@ -24,12 +24,26 @@ interface AiPanelValue {
   askAi: (question: string) => void
   /** Purge la graine après envoi (anti-doublon). */
   consumeSeed: () => void
+  /**
+   * Conversation persistée à REPRENDRE au prochain rendu du panneau, ou `null`.
+   *
+   * ⚠ Distinct de `seed`, et les confondre serait perdre la moitié du geste :
+   * une graine est un TEXTE à envoyer, une reprise est un FIL déjà écrit —
+   * elle repeuple les bulles ET réamorce l'historique du copilote, pour que la
+   * suite s'écrive dans la MÊME conversation côté serveur.
+   */
+  conversationId: string | null
+  /** Ouvre le panneau sur une conversation persistée (⌘K › conversations récentes). */
+  openConversation: (id: string) => void
+  /** Purge l'id après reprise (anti-doublon, même rôle que `consumeSeed`). */
+  consumeConversation: () => void
 }
 
 const noop = () => {}
 const AiPanelContext = createContext<AiPanelValue>({
   enabled: false, isOpen: false, seed: null, screen: 'today', entity: null,
   open: noop, close: noop, askAi: noop, consumeSeed: noop,
+  conversationId: null, openConversation: noop, consumeConversation: noop,
 })
 
 /** Provider du panneau MEGGA AI : dérive écran + entité de la route et expose open/close/askAi/seed. */
@@ -41,14 +55,26 @@ export function AiPanelProvider({ children }: { children: ReactNode }) {
   // Mémoïsé par pathname → référence stable (sinon re-render à chaque render).
   const entity = useMemo(() => entityFromPath(location.pathname), [location.pathname])
 
-  const open = useCallback((s?: string) => { setSeed(s ?? null); setIsOpen(true) }, [])
+  const [conversationId, setConversationId] = useState<string | null>(null)
+
+  // ⚠ Ouvrir efface l'autre voie. Une graine et une reprise sont exclusives : le
+  // panneau ne peut pas à la fois repartir d'un fil existant et envoyer une
+  // question neuve — les deux écriraient dans le même rendu, dans un ordre que
+  // rien ne garantit.
+  const open = useCallback((s?: string) => { setSeed(s ?? null); setConversationId(null); setIsOpen(true) }, [])
   const close = useCallback(() => setIsOpen(false), [])
-  const askAi = useCallback((q: string) => { setSeed(q || null); setIsOpen(true) }, [])
+  const askAi = useCallback((q: string) => { setSeed(q || null); setConversationId(null); setIsOpen(true) }, [])
   const consumeSeed = useCallback(() => setSeed(null), [])
+  const openConversation = useCallback((id: string) => {
+    setSeed(null); setConversationId(id); setIsOpen(true)
+  }, [])
+  const consumeConversation = useCallback(() => setConversationId(null), [])
 
   const value = useMemo<AiPanelValue>(() => ({
     enabled: true, isOpen, seed, screen, entity, open, close, askAi, consumeSeed,
-  }), [isOpen, seed, screen, entity, open, close, askAi, consumeSeed])
+    conversationId, openConversation, consumeConversation,
+  }), [isOpen, seed, screen, entity, open, close, askAi, consumeSeed,
+       conversationId, openConversation, consumeConversation])
 
   return <AiPanelContext.Provider value={value}>{children}</AiPanelContext.Provider>
 }

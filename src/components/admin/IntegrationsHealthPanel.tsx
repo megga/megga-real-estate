@@ -10,7 +10,7 @@ import { useAdminIntegrationsHealth } from '@/hooks/useAdminIntegrationsHealth'
 import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
 import { AdminCard, AdminGroupTitle, AdminIc, AdminSkeleton } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import type { LucideIcon } from 'lucide-react'
 
 type Level = 'ok' | 'warn' | 'down' | 'idle'
@@ -18,7 +18,7 @@ type Level = 'ok' | 'warn' | 'down' | 'idle'
 function HealthCard({ icon: Icon, title, level, lines }: {
   icon: LucideIcon; title: string; level: Level; lines: string[]
 }) {
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   // `idle` n'est pas un signal : la pastille reste encre douce, pas un ton vif.
   const dot: Record<Level, string> = {
     ok: tones.ok,
@@ -32,7 +32,7 @@ function HealthCard({ icon: Icon, title, level, lines }: {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', marginBottom: 9 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', minWidth: 0 }}>
           <AdminIc icon={Icon} size={16} color={sp.sub} />
-          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{title}</span>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>{title}</span>
         </span>
         <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: dot[level], flexShrink: 0 }} />
       </div>

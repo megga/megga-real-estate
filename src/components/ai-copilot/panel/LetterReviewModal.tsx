@@ -7,7 +7,8 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useToast } from '@/components/ui/Toast'
 import { CpIcon } from './panelIcons'
-import type { AiPalette } from './aiPanel'
+import { revueKit, type AiPalette } from './aiPanel'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface LetterReviewModalProps {
   open: boolean
@@ -45,6 +46,7 @@ function buildLetterHtml(body: string, dateStr: string): string {
 
 export default function LetterReviewModal({ open, sp, dark, letter, onClose }: LetterReviewModalProps) {
   const toast = useToast()
+  const refPiegeFocus = useFocusTrap(open, onClose)
   const [body, setBody] = useState(letter)
 
   useEffect(() => {
@@ -71,36 +73,31 @@ export default function LetterReviewModal({ open, sp, dark, letter, onClose }: L
     onClose()
   }
 
-  const surface = dark ? '#17181C' : '#FFFFFF'
-  const fieldBg = dark ? 'rgba(255,255,255,0.05)' : '#F4F6F9'
-  const fieldBorder = dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(15,23,42,0.08)'
+
+  const K = revueKit(sp)
 
   return createPortal(
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center',
-        background: dark ? 'rgba(0,0,2,0.55)' : 'rgba(15,23,42,0.28)',
-        backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+        ...K.scrim,
         animation: 'ltrFade .2s ease both', padding: 20,
-        fontFamily: "'Inter Tight', system-ui, sans-serif",
       }}
     >
       <style>{`@keyframes ltrFade{from{opacity:0}to{opacity:1}}@keyframes ltrUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
       <div
         onClick={(e) => e.stopPropagation()}
+        ref={refPiegeFocus}
         role="dialog"
+        aria-modal="true"
         aria-label="Générer le PDF de la lettre"
         style={{
-          width: 'min(540px, 100%)', maxHeight: '86vh', overflowY: 'auto',
-          background: surface, borderRadius: 22, padding: '20px 22px 18px',
-          boxShadow: dark ? '0 30px 80px -12px rgba(0,0,0,.7)' : '0 30px 80px -16px rgba(15,23,42,.28)',
-          display: 'flex', flexDirection: 'column', gap: 14,
+          ...K.carte,
           animation: 'ltrUp .28s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 17, fontWeight: 800, color: sp.ink, letterSpacing: -0.3, flex: 1 }}>Générer le PDF</span>
+          <span style={K.titre}>Générer le PDF</span>
           <button onClick={onClose} title="Fermer" aria-label="Fermer" style={{
             width: 32, height: 32, borderRadius: 999, border: 0, cursor: 'pointer',
             background: 'transparent', display: 'grid', placeItems: 'center',
@@ -110,29 +107,29 @@ export default function LetterReviewModal({ open, sp, dark, letter, onClose }: L
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase', color: sp.sub }}>Lettre (en-tête MEGGA · A4)</span>
+          <span style={K.libelle}>Lettre (en-tête MEGGA · A4)</span>
           <textarea
             value={body} onChange={(e) => setBody(e.target.value)} rows={12}
             style={{
-              width: '100%', border: fieldBorder, outline: 'none', background: fieldBg,
-              borderRadius: 12, padding: '11px 13px', fontFamily: 'inherit', fontSize: 14,
+              width: '100%', border: K.champ.border, outline: 'none', background: K.champ.background,
+              borderRadius: 12, padding: '11px 13px', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)',
               color: sp.ink, boxSizing: 'border-box', resize: 'vertical', lineHeight: 1.6, minHeight: 220,
             }}
           />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
-          <span style={{ fontSize: 12, color: sp.sub, flex: 1 }}>
+          <span style={K.aide}>
             Ouvre l'aperçu imprimable — choisissez « Enregistrer en PDF ».
           </span>
           <button onClick={onClose} style={{
             height: 40, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: sp.soft,
+            ...K.boutonFantome,
             background: dark ? 'rgba(255,255,255,0.06)' : '#F1F4F8',
           }}>Annuler</button>
           <button onClick={generate} disabled={!canGenerate} style={{
             height: 40, padding: '0 20px', borderRadius: 999, border: 0,
-            cursor: canGenerate ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
+            cursor: canGenerate ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
             background: canGenerate ? sp.accent : sp.fillStrong,
             color: canGenerate ? sp.onAccent : sp.sub, display: 'flex', alignItems: 'center', gap: 7,
           }}>

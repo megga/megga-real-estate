@@ -128,7 +128,7 @@ Décisions produit actées, à ne pas rouvrir sans arbitrage de Thomas :
 
 ### Les quatre pays, et pourquoi il n'y en a que trois au wizard
 
-Le wizard ne propose que `CH`, `FR` et `LI` ([StepAgence.tsx:58](../../../src/components/crm-sugar-identity/steps/StepAgence.tsx#L58)).
+Le wizard ne propose que `CH`, `FR` et `LI` ([StepAgence.tsx:58](../../../src/components/crm-identity/steps/StepAgence.tsx#L58)).
 Ce n'est pas une limite technique : c'est le marché adressé. Le cas `LI` est une dette
 ouverte, voir §9.
 
@@ -230,7 +230,7 @@ Deux réserves, honnêtement posées :
    - provision_solo_agency() pose role = 'admin' sur le fondateur
         |
         v
- PREMIER LOGIN  AgentSugarLayout -> useIdentityGate()
+ PREMIER LOGIN  AgentLayout -> useIdentityGate()
    gate actif si : agency_id non nul
                 ET role in ('admin','manager')
                 ET agencies.identity_submitted_at is null
@@ -1095,9 +1095,9 @@ invité.
 | `src/hooks/useLabGuard.ts` | garde LAB côté CRM agent |
 | `src/hooks/useAdminKybReview.ts` | file de revue de la console admin |
 | `src/hooks/useAgencySettings.ts` | réglages agence (voir défaut D) |
-| `src/components/crm-sugar-identity/IdentityShell.tsx` | coquille du wizard, navigation et persistance |
-| `src/components/crm-sugar-identity/steps/Step*.tsx` | les 5 étapes |
-| `src/pages/agent/IdentitySugarPage.tsx`, `IdentityMobileNotice.tsx` | route `/dashboard/identite` |
+| `src/components/crm-identity/IdentityShell.tsx` | coquille du wizard, navigation et persistance |
+| `src/components/crm-identity/steps/Step*.tsx` | les 5 étapes |
+| `src/pages/agent/IdentityPage.tsx`, `IdentityMobileNotice.tsx` | route `/dashboard/identite` |
 | `src/pages/admin/AdminKybReviewPage.tsx` | écran de la file de revue |
 | `src/components/layout/KycLabGuard.tsx`, `LabGuardBanner.tsx` | blocage et bandeau |
 | `src/i18n/locales/{fr,de,en,it}/onboarding.json` | 129 clés, 4 langues, à parité |

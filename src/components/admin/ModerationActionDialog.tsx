@@ -15,7 +15,8 @@ import { AlertTriangle, Building2, Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/modal'
 import { AdminGhostBtn, AdminIc } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 interface ModerationActionDialogProps {
   open: boolean
@@ -43,7 +44,7 @@ export default function ModerationActionDialog({
   onConfirm,
 }: ModerationActionDialogProps) {
   const { t } = useTranslation('admin')
-  const { sp, surf, dark, tones } = useAdminSugar()
+  const { sp, surf, dark, tones } = useAdminSurfaces()
   const [selectedReason, setSelectedReason] = useState<string | null>(null)
   const [customReason, setCustomReason] = useState('')
 
@@ -71,7 +72,7 @@ export default function ModerationActionDialog({
   function reasonPill(on: boolean) {
     return {
       height: 32, padding: '0 var(--crm-space-2xl)', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-      fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 700, whiteSpace: 'nowrap' as const,
+      fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap' as const,
       background: on ? sp.accent : surf.cardSub,
       color: on ? sp.accentInk : sp.soft,
     }
@@ -99,7 +100,7 @@ export default function ModerationActionDialog({
             </div>
           )}
           <p style={{
-            margin: 0, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, letterSpacing: -0.2, color: sp.ink,
+            margin: 0, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {propertyTitle}
@@ -107,7 +108,7 @@ export default function ModerationActionDialog({
         </div>
 
         {/* Motifs */}
-        <p style={{ margin: '0 0 8px', fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, color: sp.sub }}>
+        <p style={{ margin: '0 0 8px', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.2, color: sp.sub }}>
           {t('moderation.reason')}
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)', marginBottom: 12 }}>
@@ -146,7 +147,7 @@ export default function ModerationActionDialog({
               borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub, color: sp.ink,
               fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.5,
               outline: 'none', resize: 'none',
-              boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
+              boxShadow: `0 0 0 1.5px ${crmVoileEncre(dark, 0.07)} inset`,
             }}
           />
         )}

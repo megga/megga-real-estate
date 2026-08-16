@@ -32,11 +32,11 @@ export function MobileRelancesIA({ demo = false, onStart }: { demo?: boolean; on
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', color: tk.relanceMuted }}>
         <MEIcon name="bolt" size={15} color={tk.relanceMuted} />
-        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, whiteSpace: 'nowrap' }}>
           {t('today.cockpit.tiles.relances')}
         </span>
       </div>
-      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.6, marginTop: 11 }}>
+      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.6, marginTop: 11 }}>
         {total} {t('today.relances.leadsToFollow')}
       </div>
       <button
@@ -51,7 +51,7 @@ export function MobileRelancesIA({ demo = false, onStart }: { demo?: boolean; on
           cursor: 'pointer',
           fontFamily: 'inherit',
           fontSize: 'var(--crm-text-xl)',
-          fontWeight: 800,
+          fontWeight: 600,
           color: tk.ctaInk,
           background: tk.ctaBg,
           display: 'inline-flex',

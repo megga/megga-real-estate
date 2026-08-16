@@ -1,3 +1,4 @@
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 interface MeggaWordmarkProps {
   color?: string
   height?: number
@@ -7,7 +8,7 @@ interface MeggaWordmarkProps {
  * Wordmark MEGGA en SVG inline (ratio 694.81 × 419.02), repris du chrome
  * desktop. Monochrome via `color`. Composant décoratif du shell mobile.
  */
-export default function MeggaWordmark({ color = '#0B0C0E', height = 26 }: MeggaWordmarkProps) {
+export default function MeggaWordmark({ color = MXC_COLOR.n100, height = 26 }: MeggaWordmarkProps) {
   const width = (694.81 / 419.02) * height
   return (
     <svg viewBox="0 0 694.81 419.02" width={width} height={height} aria-label="MEGGA" style={{ display: 'block' }}>

@@ -10,11 +10,12 @@
 // (MrhExtDetail) et la vue Carte arrivent en incrément C (clic carte → portail
 // pour l'instant). « Proches des critères » aussi.
 
+import EtatVide from '@/components/crm/EtatVide'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmPalette } from '@/components/crm/tokens'
 import { useToast } from '@/components/ui/Toast'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useAuth } from '@/hooks/useAuth'
@@ -28,6 +29,10 @@ import MrhSendSheet from './MrhSendSheet'
 import { useMatchingSearch, useMatchingSearchTotal, useMatchingBuyers, useCitySuggest, type SearchTx } from '@/hooks/useMatchingRecherche'
 import { typeLabelFr, type MrhBien, type MrhContact } from './types'
 import type { MrhCtx, MrhScore, MrhSurf } from './mrhCtx'
+import {
+  MRH_DEMO_BIENS, MRH_DEMO_BUYERS, MRH_DEMO_CITIES, MRH_DEMO_DETAIL, MRH_DEMO_SEND,
+  MRH_DEMO_TOTAL, type MrhDemoEtat,
+} from './mrhDemo'
 import { parseQuery, norm } from './omniParse'
 import './mrh.css'
 
@@ -64,29 +69,43 @@ function scoreBien(c: MrhContact, b: MrhBien): MrhScore {
 
 interface Props {
   dark: boolean
+  /**
+   * Banc d'essai (`/dev/matching-atelier`) : les cinq requêtes de cet écran sont
+   * remplacées par les fixtures de `mrhDemo.ts`, et aucun geste n'écrit.
+   *
+   * ⚠ Ce composant est le SEUL du périmètre bureau qui porte ses propres hooks —
+   * `AtelierStage` est présentationnel et se nourrit par ses props. Sans ce mode,
+   * la moitié la plus lourde de l'écran Matching n'a aucun banc : toutes ses
+   * requêtes sont gatées sur la session, donc sans session elle ne rend qu'un
+   * état bloqué. Idiome repris de `MobileMatchingScreen demo`, pas inventé ici.
+   *
+   * La valeur choisit l'ÉTAT à montrer (`ok` · `vide` · `erreur` · `bloque`) —
+   * les trois derniers ne s'atteignent pas par hasard en production.
+   */
+  demo?: MrhDemoEtat
 }
 
-export default function MatchingRechercheHybride({ dark }: Props) {
+export default function MatchingRechercheHybride({ dark, demo }: Props) {
   const { t } = useTranslation('matching')
   const navigate = useNavigate()
   const toast = useToast()
   const { profile } = useAuth()
   const sendSel = useSendReceptionSelection()
   const ai = useAiPanel()
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   const surf: MrhSurf = {
     card: dark ? sp.cardBg : '#FFFFFF',
     // `cardSub` = fond des vignettes photo (et leur repli) → palier « sous-card ».
     cardSub: dark ? sp.cardSubBg : '#F4F6F9',
-    hairline: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(15,23,42,0.05)',
+    hairline: dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(3,3,3,0.05)',
     shadow: sp.shadow,
-    shadowHov: dark ? '0 1px 2px rgba(0,0,0,.5), 0 18px 44px -14px rgba(0,0,0,.7)' : '0 1px 2px rgba(15,23,42,.06), 0 22px 48px -16px rgba(15,23,42,.2)',
+    shadowHov: dark ? '0 1px 2px rgba(0,0,0,.5), 0 18px 44px -14px rgba(0,0,0,.7)' : '0 1px 2px rgba(3,3,3,.06), 0 22px 48px -16px rgba(3,3,3,.2)',
   }
   // Accent de l'écran : il valait l'ENCRE inversée (règle Sugar Pure), donc
   // une non-couleur. Segments actifs, jetons de recherche et CTA le portent.
   const ACC = sp.accent
   const ONACC = sp.accentInk
-  const line = dark ? 'rgba(255,255,255,.09)' : 'rgba(15,23,42,.06)'
+  const line = dark ? 'rgba(255,255,255,.09)' : 'rgba(3,3,3,.06)'
   const chipBg = dark ? 'rgba(255,255,255,.06)' : '#F4F6F9'
   const popBg = dark ? sp.solidBg : surf.card
 
@@ -107,7 +126,11 @@ export default function MatchingRechercheHybride({ dark }: Props) {
   useEffect(() => { try { localStorage.setItem('megga-rech-view', view) } catch { /* ignore */ } }, [view])
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const { data: buyers = [] } = useMatchingBuyers()
+  // ⚠ Les hooks restent appelés INCONDITIONNELLEMENT — le mode démo substitue
+  // leur RÉSULTAT, il ne saute pas l'appel. Sans session ils sont de toute façon
+  // désactivés et aucune requête ne part.
+  const { data: liveBuyers = [] } = useMatchingBuyers()
+  const buyers = demo ? MRH_DEMO_BUYERS : liveBuyers
 
   // ── params serveur (filtre DUR) dérivés des jetons + transaction + acheteur ──
   const serverParams = useMemo(() => {
@@ -134,11 +157,14 @@ export default function MatchingRechercheHybride({ dark }: Props) {
   //   (a) bloquée  — n'a pas pu partir : le dire, et proposer de réessayer
   //   (b) en vol   — chargement légitime
   //   (c) résolue  — seul cas où l'on a le droit d'affirmer « aucune annonce »
-  const { data: biens = [], status, fetchStatus, isError, refetch, blocked } = useMatchingSearch(serverParams)
-  const isFetchingFirst = status === 'pending' && fetchStatus === 'fetching'
+  const live = useMatchingSearch(serverParams)
+  const biens: MrhBien[] = demo ? (demo === 'ok' ? MRH_DEMO_BIENS : []) : live.data ?? []
+  const refetch = demo ? () => {} : live.refetch
+  const isFetchingFirst = demo ? false : live.status === 'pending' && live.fetchStatus === 'fetching'
   // `blocked` (gate faux) OU `pending` sans requête en vol (query en pause).
-  const isBlocked = blocked || (status === 'pending' && !isFetchingFirst)
-  const isSettled = status === 'success'
+  const isBlocked = demo ? demo === 'bloque' : live.blocked || (live.status === 'pending' && !isFetchingFirst)
+  const isError = demo ? demo === 'erreur' : live.isError
+  const isSettled = demo ? demo === 'ok' || demo === 'vide' : live.status === 'success'
 
   // Chien de garde : au-delà de 15 s, une requête « en cours » n'est plus un
   // chargement, c'est un incident. On le dit plutôt que de faire tourner le
@@ -151,7 +177,8 @@ export default function MatchingRechercheHybride({ dark }: Props) {
   }, [isFetchingFirst])
   // Total RÉEL du marché filtré — sert à ne jamais présenter la taille de la
   // tranche chargée comme un nombre de marché.
-  const { data: marketTotal } = useMatchingSearchTotal(serverParams)
+  const { data: liveTotal } = useMatchingSearchTotal(serverParams)
+  const marketTotal = demo ? (demo === 'ok' ? MRH_DEMO_TOTAL : 0) : liveTotal
 
   // ── filtres client (texte libre + jetons pièces/quartier) + scoring ──
   const clientTokens = useMemo(() => tokens.filter((tk) => tk.field === 'rooms' || tk.field === 'text' || tk.field === 'surface'), [tokens])
@@ -259,7 +286,16 @@ export default function MatchingRechercheHybride({ dark }: Props) {
   // Envoi de la sélection à l'acheteur : crée les matches marché (RPC idempotente)
   // + mint le lien de réception, puis ouvre la feuille de partage (WhatsApp / copier).
   const onSendSelection = () => {
-    if (!buyer || !profile?.agency_id || !sel.length || sendSel.isPending) return
+    if (!buyer || !sel.length) return
+    // La feuille d'envoi ne s'ouvre QUE par ce geste : sans branche de démo elle
+    // resterait invisible au banc, faute d'`agency_id`. Une modale qu'aucun banc
+    // n'atteint n'est pas une modale vérifiée.
+    if (demo) {
+      setSentLink({ ...MRH_DEMO_SEND, firstName: buyer.firstName, count: sel.length })
+      setSel([])
+      return
+    }
+    if (!profile?.agency_id || sendSel.isPending) return
     const items = sel
       .map((id) => biens.find((b) => b.id === id))
       .filter((b): b is MrhBien => !!b)
@@ -282,7 +318,13 @@ export default function MatchingRechercheHybride({ dark }: Props) {
 
   // ── suggestions typées ── villes via search_cities (TOUTES les villes) + acheteurs + annonces locales
   const searchTx: SearchTx = trans === 'vente' ? 'buy' : trans === 'location' ? 'rent' : null
-  const { data: rawCityHits = [] } = useCitySuggest(q, searchTx)
+  // ⚠ `useCitySuggest` est le seul des cinq à ne PAS être gaté sur la session :
+  // sans substitution il partirait vraiment interroger `search_cities` depuis le
+  // banc. On le court-circuite donc, au lieu de compter sur son échec.
+  const { data: liveCityHits = [] } = useCitySuggest(demo ? '' : q, searchTx)
+  const rawCityHits = demo
+    ? MRH_DEMO_CITIES.filter((c) => norm(c.city).startsWith(norm(q.trim())))
+    : liveCityHits
   const navSugg = useRef(false)
   const sugg = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -372,13 +414,13 @@ export default function MatchingRechercheHybride({ dark }: Props) {
   // ── atomes locaux ──
   const Avatar = ({ name, size = 28 }: { name: string; size?: number }) => {
     const ini = name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
-    return <span style={{ width: size, height: size, borderRadius: 999, flexShrink: 0, display: 'grid', placeItems: 'center', background: ACC, color: ONACC, fontSize: size * 0.36, fontWeight: 800 }}>{ini}</span>
+    return <span style={{ width: size, height: size, borderRadius: 999, flexShrink: 0, display: 'grid', placeItems: 'center', background: ACC, color: ONACC, fontSize: size * 0.36, fontWeight: 600 }}>{ini}</span>
   }
   const Chip = ({ active, onClick, children, pressed, aria }: { active?: boolean; onClick: () => void; children: ReactNode; pressed?: boolean; aria?: string }) => (
-    <button onClick={onClick} aria-pressed={pressed} aria-label={aria} style={{ height: 32, padding: '0 14px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: active ? 700 : 600, whiteSpace: 'nowrap', background: active ? ACC : chipBg, color: active ? ONACC : sp.soft, boxShadow: active ? 'none' : 'inset 0 0 0 1px ' + line, transition: 'background .15s, color .15s' }}>{children}</button>
+    <button onClick={onClick} aria-pressed={pressed} aria-label={aria} style={{ height: 32, padding: '0 14px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: active ? 600 : 600, whiteSpace: 'nowrap', background: active ? ACC : chipBg, color: active ? ONACC : sp.soft, boxShadow: active ? 'none' : 'inset 0 0 0 1px ' + line, transition: 'background .15s, color .15s' }}>{children}</button>
   )
   const Token = ({ children, onX, icon }: { children: ReactNode; onX: () => void; icon?: 'user' }) => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 32, padding: '0 6px 0 13px', borderRadius: 999, background: ACC, color: ONACC, fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 32, padding: '0 6px 0 13px', borderRadius: 999, background: ACC, color: ONACC, fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
       {icon && <RechIcon name={icon} size={12} stroke={ONACC} />}
       {children}
       <button onClick={(e) => { e.stopPropagation(); onX() }} title={t('recherche.omni.removeToken')} style={{ width: 20, height: 20, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', background: dark ? 'rgba(0,0,0,.22)' : 'rgba(255,255,255,.20)', padding: 0 }}>
@@ -393,14 +435,14 @@ export default function MatchingRechercheHybride({ dark }: Props) {
         style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '9px 12px', borderRadius: 14, border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: (h || active) ? (dark ? 'rgba(255,255,255,.05)' : '#F1F4F8') : 'transparent', transition: 'background .12s' }}>
         {avatar ? <Avatar name={avatar} size={30} /> : <span style={{ width: 30, height: 30, borderRadius: 999, background: dark ? 'rgba(255,255,255,.06)' : '#F1F4F8', display: 'grid', placeItems: 'center', flexShrink: 0 }}><RechIcon name={icon ?? 'search'} size={14} stroke={sp.sub} /></span>}
         <span style={{ minWidth: 0, flex: 1 }}>
-          <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</span>
-          {sub && <span style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: sp.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>}
+          <span style={{ display: 'block', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</span>
+          {sub && <span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>}
         </span>
         <RechIcon name="arrowR" size={13} stroke={(h || active) ? sp.ink : sp.sub} />
       </button>
     )
   }
-  const Lab = ({ children, style }: { children: ReactNode; style?: CSSProperties }) => <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sp.soft, ...style }}>{children}</div>
+  const Lab = ({ children, style }: { children: ReactNode; style?: CSSProperties }) => <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft, ...style }}>{children}</div>
 
   const rootVars = { '--mrh-line': line, '--mrh-soft': sp.soft, '--mrh-focus': dark ? '#8DA4FF' : '#0041D9' } as CSSProperties
 
@@ -412,15 +454,15 @@ export default function MatchingRechercheHybride({ dark }: Props) {
       <div style={{ flexShrink: 0, padding: '22px 30px 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('recherche.title')}</h1>
-            <div style={{ fontSize: 13, color: sp.soft, fontWeight: 500, marginTop: 7 }} role="status" aria-live="polite">
+            <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 600, letterSpacing: -1, color: sp.ink, lineHeight: 1 }}>{t('recherche.title')}</h1>
+            <div style={{ fontSize: 'var(--crm-text-md)', color: sp.soft, fontWeight: 500, marginTop: 7 }} role="status" aria-live="polite">
               {countText}
               {truncated && (
                 <span style={{ color: sp.sub }}> · {t('recherche.countTotal', { total: marketTotal })}</span>
               )}
             </div>
             {truncated && clientFilterActive && (
-              <div style={{ fontSize: 11.5, color: sp.sub, fontWeight: 500, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 500, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <RechIcon name="spark" size={11} stroke={sp.sub} />
                 {t('recherche.clientFilterScope', { count: biens.length })}
               </div>
@@ -430,13 +472,13 @@ export default function MatchingRechercheHybride({ dark }: Props) {
             <div role="group" aria-label={t('recherche.trans.group')} style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 999, background: chipBg, boxShadow: 'inset 0 0 0 1px ' + line }}>
               {([{ id: 'all', label: t('recherche.trans.all') }, { id: 'vente', label: t('recherche.trans.sale') }, { id: 'location', label: t('recherche.trans.rent') }] as const).map((v) => (
                 <button key={v.id} onClick={() => setTrans(v.id)} aria-pressed={trans === v.id} aria-label={t('recherche.trans.aria', { label: v.label })}
-                  style={{ height: 30, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: trans === v.id ? 700 : 600, whiteSpace: 'nowrap', background: trans === v.id ? ACC : 'transparent', color: trans === v.id ? ONACC : sp.soft, transition: 'background .15s, color .15s' }}>{v.label}</button>
+                  style={{ height: 30, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: trans === v.id ? 600 : 600, whiteSpace: 'nowrap', background: trans === v.id ? ACC : 'transparent', color: trans === v.id ? ONACC : sp.soft, transition: 'background .15s, color .15s' }}>{v.label}</button>
               ))}
             </div>
             <div role="group" aria-label={t('recherche.view.group')} style={{ display: 'inline-flex', gap: 2, padding: 3, borderRadius: 999, background: chipBg, boxShadow: 'inset 0 0 0 1px ' + line }}>
               {([{ id: 'grid', label: t('recherche.view.grid') }, { id: 'map', label: t('recherche.view.map') }] as const).map((v) => (
                 <button key={v.id} onClick={() => setView(v.id)} aria-pressed={view === v.id} aria-label={t('recherche.view.aria', { label: v.label })}
-                  style={{ height: 30, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: view === v.id ? 700 : 600, whiteSpace: 'nowrap', background: view === v.id ? ACC : 'transparent', color: view === v.id ? ONACC : sp.soft, transition: 'background .15s, color .15s' }}>{v.label}</button>
+                  style={{ height: 30, padding: '0 13px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: view === v.id ? 600 : 600, whiteSpace: 'nowrap', background: view === v.id ? ACC : 'transparent', color: view === v.id ? ONACC : sp.soft, transition: 'background .15s, color .15s' }}>{v.label}</button>
               ))}
             </div>
             <div role="group" aria-label={t('recherche.sort.group')} style={{ display: 'flex', gap: 6 }}>
@@ -455,8 +497,8 @@ export default function MatchingRechercheHybride({ dark }: Props) {
             <input ref={inputRef} value={q} onChange={(e) => setQ(e.target.value)} onFocus={() => setDd(true)} onKeyDown={onInputKey}
               aria-label={t('recherche.omni.aria')} role="combobox" aria-expanded={dd} aria-autocomplete="list"
               placeholder={buyer ? t('recherche.omni.placeholderBuyer', { name: buyer.firstName }) : (tokens.length ? t('recherche.omni.placeholderRefine') : t('recherche.omni.placeholder'))}
-              style={{ flex: 1, minWidth: 150, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 14, color: sp.ink, padding: '6px 4px' }} />
-            <span style={{ padding: '3px 8px', borderRadius: 6, background: chipBg, fontSize: 11, fontWeight: 700, color: sp.sub, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>/</span>
+              style={{ flex: 1, minWidth: 150, border: 0, outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', color: sp.ink, padding: '6px 4px' }} />
+            <span style={{ padding: '3px 8px', borderRadius: 6, background: chipBg, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, fontFamily: "'JetBrains Mono', monospace", flexShrink: 0 }}>/</span>
           </div>
 
           {dd && !q.trim() && (
@@ -464,8 +506,11 @@ export default function MatchingRechercheHybride({ dark }: Props) {
               <Lab style={{ padding: '4px 12px 8px' }}>{buyer ? t('recherche.omni.ddChange') : t('recherche.omni.ddPick')}</Lab>
               {buyers.length === 0 ? (
                 <div style={{ padding: '2px 12px 12px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, lineHeight: 1.55, color: sp.soft }}>{t('recherche.omni.noBuyers')}</div>
-                  <button onClick={() => navigate('/dashboard/contacts')} style={{ height: 40, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, background: ACC, color: ONACC, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, lineHeight: 1.55, color: sp.soft }}>{t('recherche.omni.noBuyers')}</div>
+                  {/* ⚠ Inerte au banc : la cible est une surface protégée, donc
+                      `ProtectedRoute` rebondirait sur la PRODUCTION — le piège
+                      même que ce banc existe pour éviter. */}
+                  <button onClick={() => { if (!demo) navigate('/dashboard/contacts') }} style={{ height: 40, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, background: ACC, color: ONACC, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                     <RechIcon name="plus" size={13} stroke={ONACC} /> {t('recherche.omni.addFirst')}
                   </button>
                 </div>
@@ -505,13 +550,13 @@ export default function MatchingRechercheHybride({ dark }: Props) {
         {/* Méta sous la barre */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 12, minHeight: 22 }}>
           {buyer && buyer.criteria.mustHave.length > 0 && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: sp.sub, fontWeight: 600 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600 }}>
               <RechIcon name="spark" size={12} stroke={sp.sub} /> {t('recherche.alsoWants', { name: buyer.firstName, list: buyer.criteria.mustHave.join(', ') })}
             </span>
           )}
           <div style={{ flex: 1 }} />
           {(buyer || tokens.length > 0 || q) && (
-            <button onClick={clearAll} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, color: sp.sub, padding: '6px 8px', borderRadius: 8 }}>{t('recherche.clearAll')}</button>
+            <button onClick={clearAll} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, padding: '6px 8px', borderRadius: 8 }}>{t('recherche.clearAll')}</button>
           )}
         </div>
       </div>
@@ -526,43 +571,40 @@ export default function MatchingRechercheHybride({ dark }: Props) {
           // englobant de tout descendant en `position: fixed`.
           style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '10px 30px 34px', animation: 'mrhViewIn .28s cubic-bezier(.2,.8,.2,1) backwards' }}>
           {isFetchingFirst ? (
-            <div style={{ display: 'grid', placeItems: 'center', minHeight: 240, gap: 14, color: sp.sub, fontSize: 14, fontWeight: 600, textAlign: 'center' }}>
+            <div style={{ display: 'grid', placeItems: 'center', minHeight: 240, gap: 14, color: sp.sub, fontSize: 'var(--crm-text-lg)', fontWeight: 600, textAlign: 'center' }}>
               <span>{slow ? t('recherche.slow') : t('recherche.loading')}</span>
               {slow && (
-                <button onClick={() => refetch()} style={{ height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>{t('recherche.retry')}</button>
+                <button onClick={() => refetch()} style={{ height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{t('recherche.retry')}</button>
               )}
             </div>
           ) : isError ? (
             <div style={{ background: surf.card, borderRadius: 20, boxShadow: surf.shadow, border: surf.hairline, padding: '48px 24px', textAlign: 'center', maxWidth: 540, margin: '12px auto 0' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: sp.ink }}>{t('recherche.error')}</div>
-              <button onClick={() => refetch()} style={{ marginTop: 16, height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>{t('recherche.retry')}</button>
+              <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>{t('recherche.error')}</div>
+              <button onClick={() => refetch()} style={{ marginTop: 16, height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{t('recherche.retry')}</button>
             </div>
           ) : isBlocked ? (
             // La query n'a pas pu partir. On n'affirme RIEN sur la base ici — c'est
             // précisément la confusion entre ce cas et « résolue vide » qui a produit
             // le faux « aucune annonce du marché » pendant des semaines.
             <div style={{ background: surf.card, borderRadius: 20, boxShadow: surf.shadow, border: surf.hairline, padding: '48px 24px', textAlign: 'center', maxWidth: 540, margin: '12px auto 0' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: sp.ink }}>{t('recherche.blocked')}</div>
-              <button onClick={() => refetch()} style={{ marginTop: 16, height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>{t('recherche.retry')}</button>
+              <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>{t('recherche.blocked')}</div>
+              <button onClick={() => refetch()} style={{ marginTop: 16, height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{t('recherche.retry')}</button>
             </div>
           ) : strict.length === 0 ? (
-            <div style={{ background: surf.card, borderRadius: 20, boxShadow: surf.shadow, border: surf.hairline, padding: '48px 24px', textAlign: 'center', maxWidth: 540, margin: '12px auto 0', animation: 'sgFadeUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: sp.ink, letterSpacing: -0.3 }}>{biens.length ? t('recherche.empty.title') : t('recherche.empty.noMarket')}</div>
-              {rescue ? (
-                <>
-                  <div style={{ fontSize: 13, color: sp.sub, fontWeight: 500, marginTop: 8 }}>{t('recherche.empty.rescue', { count: rescue.n, label: rescue.tok.label })}</div>
-                  <button onClick={() => removeTok(rescue.tok)} style={{ marginTop: 18, height: 40, padding: '0 20px', borderRadius: 999, border: 0, cursor: 'pointer', background: ACC, color: ONACC, fontFamily: 'inherit', fontSize: 13, fontWeight: 700 }}>{t('recherche.empty.rescueCta')}</button>
-                </>
-              ) : null}
-            </div>
+            <EtatVide
+              dark={dark}
+              titre={biens.length ? t('recherche.empty.title') : t('recherche.empty.noMarket')}
+              corps={rescue ? t('recherche.empty.rescue') : undefined}
+              action={rescue ? { libelle: t('recherche.empty.rescueCta'), onClick: () => removeTok(rescue.tok) } : undefined}
+            />
           ) : (
             <>
               <MrhGrid items={strict} reasonFor={reasonFor} ctx={ctx} />
               {near.length > 0 && (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '22px 0 14px' }}>
-                    <span style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sp.soft }}>{t('recherche.near.title')}</span>
-                    <span style={{ fontSize: 11.5, color: sp.sub, fontWeight: 600, opacity: 0.8 }}>{t('recherche.near.note')}</span>
+                    <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft }}>{t('recherche.near.title')}</span>
+                    <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 600, opacity: 0.8 }}>{t('recherche.near.note')}</span>
                   </div>
                   <MrhGrid items={near} offset={strict.length} useMiss reasonFor={reasonForNear} ctx={ctx} />
                 </>
@@ -576,7 +618,7 @@ export default function MatchingRechercheHybride({ dark }: Props) {
       {buyer && sel.length > 0 && (
         <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 40 }}>
           <button onClick={onSendSelection} disabled={sendSel.isPending}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 10, height: 48, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: ACC, color: ONACC, fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap', boxShadow: dark ? '0 16px 44px rgba(0,0,0,.5)' : '0 16px 40px rgba(15,23,42,.28), 0 4px 12px rgba(15,23,42,.14)', animation: 'sgFadeUp .4s cubic-bezier(.2,.8,.2,1) both' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 10, height: 48, padding: '0 22px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', background: ACC, color: ONACC, fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap', boxShadow: dark ? '0 16px 44px rgba(0,0,0,.5)' : '0 16px 40px rgba(3,3,3,.28), 0 4px 12px rgba(3,3,3,.14)', animation: 'sgFadeUp .4s cubic-bezier(.2,.8,.2,1) both' }}>
             <RechIcon name="send" size={15} stroke={ONACC} /> {t('recherche.send', { count: sel.length, name: buyer.firstName })}
           </button>
         </div>
@@ -600,6 +642,7 @@ export default function MatchingRechercheHybride({ dark }: Props) {
           buyer={buyer} on={sel.includes(extBien.id)}
           onToggle={() => toggleSel(extBien.id)}
           onClose={() => setExtBien(null)}
+          detailDemo={demo ? MRH_DEMO_DETAIL : undefined}
         />
       )}
     </div>

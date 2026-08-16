@@ -6,7 +6,7 @@
 // Real-data source for the dashboard relance session.
 //
 // Replaces the seed RELANCE_LEADS array (still kept in
-// src/components/crm-sugar-v3/dashboard/relanceData.ts) with contacts
+// src/components/crm-dossiers/dashboard/relanceData.ts) with contacts
 // from the agent's agency that have gone dormant — defined as:
 //   - last_interaction_at older than 14 days, OR
 //   - last_interaction_at IS NULL (never touched after creation)
@@ -24,7 +24,7 @@ import { useState } from 'react'
 import { useQuery } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import type { KycStatus, RelanceLead } from '@/components/crm-sugar-v3/dashboard/relanceData'
+import type { KycStatus, RelanceLead } from '@/components/crm-dossiers/dashboard/relanceData'
 
 const DORMANT_DAYS = 14
 const MAX_LEADS = 50

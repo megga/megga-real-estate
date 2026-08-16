@@ -20,7 +20,7 @@ import AdminPage from '@/components/admin/kit/AdminPage'
 import {
   AdminCard, AdminIc, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminToolUsage, type ToolUsageRow } from '@/hooks/useAdminToolUsage'
 import { WHATSAPP_TOOL_CATALOG } from '@/lib/whatsapp-tools-catalog'
 import { AiCostsSection } from '@/components/admin/AdminOpsPanels'
@@ -39,7 +39,7 @@ const ERROR_RATE_ALERT = 0.2
 /** Table d'usage des outils (observés + jamais utilisés) suivie de la section coûts IA. */
 export default function AdminToolUsagePage() {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const { data: observed = [], isLoading, error } = useAdminToolUsage()
 
   // La RPC ne renvoie que les outils observés. On complète avec les outils JAMAIS utilisés du
@@ -64,7 +64,7 @@ export default function AdminToolUsagePage() {
       <AdminCard padding="14px 16px">
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
           <AdminIc icon={Sparkles} size={16} color={tones.info} style={{ marginTop: 2 }} />
-          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: sp.sub }}>
+          <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', lineHeight: 1.55, color: sp.sub }}>
             {t('toolUsage.observeNote')}
           </p>
         </div>
@@ -79,7 +79,7 @@ export default function AdminToolUsagePage() {
         <AdminCard padding="14px 16px">
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
             <AdminIc icon={AlertTriangle} size={16} color={tones.err} style={{ marginTop: 2 }} />
-            <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, lineHeight: 1.55, color: sp.ink }}>
+            <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 600, lineHeight: 1.55, color: sp.ink }}>
               {t('toolUsage.error')}
             </p>
           </div>

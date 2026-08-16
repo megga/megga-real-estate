@@ -6,7 +6,7 @@
 import { useMemo } from 'react'
 import { useGoogleCalendar } from './useGoogleCalendar'
 import { useOutlookCalendar } from './useOutlookCalendar'
-import type { CalEvent } from '@/components/crm-sugar/calendar/data'
+import type { CalEvent } from '@/components/crm/calendar/data'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
 
 function bridge(ce: CalendarEvent, source: 'google' | 'microsoft', busyTitle: string): CalEvent {

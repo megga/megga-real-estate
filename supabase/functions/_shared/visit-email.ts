@@ -23,6 +23,7 @@
 // d'une ouverture hors de Suisse — c'est écrit dans l'audit France.
 
 import { INK, MUTED, FONT, escapeHtml, shell, p, h2, row, button, note } from './email-shell.ts'
+import { appDashboardUrl } from './app-url.ts'
 
 const FUSEAU = 'Europe/Zurich'
 
@@ -90,7 +91,7 @@ export function buildVisitEmail(i: VisitEmailInput): { subject: string; html: st
         title: i.isVideo ? `Nouvelle visite vidéo (${i.videoLabel})` : 'Nouvelle demande de visite',
         preheader: `${i.propertyTitle} · ${date} à ${heure}`,
         legalNote: null,
-        headerCta: { href: 'https://app.megga.ch/dashboard', label: 'Ouvrir mon espace' },
+        headerCta: { href: appDashboardUrl(), label: 'Ouvrir mon espace' },
         bodyHtml: `
      ${p(i.agentName ? `Bonjour ${escapeHtml(i.agentName)},` : 'Bonjour,')}
      ${p('Une nouvelle demande de visite a été reçue via le site.', 28)}

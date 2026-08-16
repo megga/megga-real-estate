@@ -1,0 +1,39 @@
+-- Le droit d'ÉCRITURE sur `profiles.language` — sans lui, la colonne existe et
+-- personne ne peut l'écrire.
+--
+-- ⛔ CE QUI MANQUAIT, ET POURQUOI ÇA NE SE VOYAIT PAS. La migration
+-- `20260815250000_profiles_language.sql` ajoute la colonne mais aucun GRANT. Or
+-- `profiles` n'accorde plus l'UPDATE au niveau de la TABLE : le verrouillage
+-- anti-escalade de juin 2026 l'a révoqué pour `authenticated`, puis re-accordé
+-- COLONNE PAR COLONNE. Une colonne ajoutée après coup n'hérite donc de rien.
+--
+-- Mesuré en production le 16 août 2026 :
+--   has_column_privilege('authenticated','public.profiles','language','UPDATE') → false
+--   has_column_privilege('authenticated','public.profiles','full_name','UPDATE') → true
+--   profils portant une langue : 0 sur 8.
+--
+-- Trois raisons pour lesquelles la panne était SILENCIEUSE, et c'est la
+-- conjonction qui compte :
+--   1. `persisterLangueDeCorrespondance` (src/i18n/index.ts) avale l'erreur par
+--      conception — une bascule de langue ne doit pas dépendre du réseau ;
+--   2. `profileLocale()` retombe sur 'fr', qui est aussi le défaut du produit :
+--      le repli est indiscernable d'un choix ;
+--   3. `scripts/check-migration-drift.mjs` exclut explicitement les GRANT de son
+--      périmètre (« leur absence ne se lit pas dans un simple information_schema »).
+--
+-- Résultat : la fonctionnalité entière était inerte. Un agent basculant le CRM en
+-- allemand voyait l'interface changer, mais la colonne restait NULL et le rappel
+-- J-1 de l'appel d'accueil repartait en français — exactement la régression que la
+-- migration de la veille disait corriger.
+--
+-- ⚠ CE GRANT N'OUVRE RIEN. La RLS reste le verrou : `profiles_update_own` borne
+-- l'UPDATE à `id = auth.uid()` et refuse toute modification de `role` ou
+-- `agency_id`. La contrainte `profiles_language_valid` borne déjà les valeurs aux
+-- quatre langues du produit. On accorde la seule colonne `language`, jamais la table.
+--
+-- ⚠ POURQUOI UN FICHIER NEUF PLUTÔT QUE LA CORRECTION DU PRÉCÉDENT. `deploy.yml`
+-- n'applique que les migrations dont l'horodatage vaut ≥ TODAY. Corriger le fichier
+-- du 15 août ne l'aurait jamais rejoué : il serait passé sous le seuil, et la panne
+-- aurait survécu au correctif.
+
+grant update (language) on public.profiles to authenticated;

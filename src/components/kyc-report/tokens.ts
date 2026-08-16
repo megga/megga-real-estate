@@ -1,9 +1,22 @@
 // MEGGA — Tokens locaux pour le rapport PDF KYC (Sprint 4.4)
-// Sugar Pure strict : surfaces blanches, ombres douces, noir comme accent unique.
-// AUCUNE bordure décorative, AUCUN gradient AI, AUCUNE icône brain/sparkle.
+// Surfaces blanches, ombres douces, encre unique. AUCUNE bordure décorative,
+// AUCUN gradient AI, AUCUNE icône brain/sparkle.
 //
 // Adapté du modèle `megga-kyc-ai-analysis.jsx` (palette KAI), MAIS sans aucune
 // mention IA / Sonnet (cf. décision produit : « zero AI » dans le PDF notaire).
+//
+// ── CE DOCUMENT EST DU PAPIER, ET ÇA SE LIT DANS SES CHIFFRES ────────────────
+// `PDF_W`/`PDF_H` valent A4 à 96 DPI exactement : la mise en page est en pixels
+// ABSOLUS qui valent des millimètres. C'est pourquoi ce dossier n'utilise aucun
+// `var(--crm-…)` et reste hors du cliquet de COMPOSITION — ses tailles à 9,5 px
+// et ses capitales espacées sont de la typographie d'imprimé, pas une survivance.
+// La frontière est écrite et gardée : `tests/unit/kyc-report-frontiere.spec.ts`.
+//
+// ⚠ L'en-tête annonçait « Sugar Pure strict … noir comme accent unique ». C'était
+// vrai à l'écriture, et c'est la forme de dérive la plus coûteuse : un fichier
+// aligné sur une norme PÉRIMÉE se relit moins qu'un fichier négligé.
+
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 export const PDF = {
   // Couleurs
@@ -11,8 +24,13 @@ export const PDF = {
   card: '#FFFFFF',
   cardSubtle: '#F7F8FA',
   cardDeep: '#F0F2F6',
-  black: '#0B0C0E',
-  ink: '#0B0C0E',
+  // ⛔ Le noir de Sugar (`#0B0C0E`) part d'ici comme d'ailleurs : une teinte ne
+  // devient pas « de l'imprimé » parce que le document l'est. Sur papier blanc,
+  // les deux sont un quasi-noir (20,6:1 contre 19,9:1) — changement d'ALPHABET,
+  // pas de rendu. Ce n'est PAS l'accent : un document ne porte pas d'affordance,
+  // il porte de l'encre.
+  black: MXC_COLOR.n100,
+  ink: MXC_COLOR.n100,
   inkSoft: '#3A3D44',
   muted: '#7A8088',
   hair: '#E7E9EE', // règle fine éditoriale

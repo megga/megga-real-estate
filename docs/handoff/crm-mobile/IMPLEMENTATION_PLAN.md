@@ -8,9 +8,9 @@
 
 ### Bascule responsive — par wrapper d'élément de route, pas au layout
 
-Le chrome Sugar (`SugarTopNav` + `SugarIconRail` 128px) **n'est pas dans le layout** : `AgentSugarLayout` ne rend que des providers (`ThemeProvider > CopilotContextProvider > ImpersonateBanner + <Outlet/> + CrmSugarSearchHost + NpsSurvey`). Chaque page agent instancie elle-même son shell. Conséquence : impossible de masquer le chrome desktop par un simple switch de layout.
+Le chrome Sugar (`CrmTopNav` + `CrmIconRail` 128px) **n'est pas dans le layout** : `AgentLayout` ne rend que des providers (`ThemeProvider > CopilotContextProvider > ImpersonateBanner + <Outlet/> + CrmSugarSearchHost + NpsSurvey`). Chaque page agent instancie elle-même son shell. Conséquence : impossible de masquer le chrome desktop par un simple switch de layout.
 
-**Décision : un composant `ResponsiveRoute({ desktop, mobile })`** qui fait `const isMobile = useIsMobile(); return isMobile ? mobile : desktop`. Appliqué route par route dans `App.tsx`. Les providers restent dans `AgentSugarLayout` et couvrent les deux branches (le mobile hérite gratuitement du thème, du copilote, de l'impersonate banner).
+**Décision : un composant `ResponsiveRoute({ desktop, mobile })`** qui fait `const isMobile = useIsMobile(); return isMobile ? mobile : desktop`. Appliqué route par route dans `App.tsx`. Les providers restent dans `AgentLayout` et couvrent les deux branches (le mobile hérite gratuitement du thème, du copilote, de l'impersonate banner).
 
 - `useIsMobile()` = `useMediaQuery('(max-width: 768px)')`, déjà présent (`src/hooks/useMediaQuery.ts`), initialisé correctement au premier paint (`useState(() => window.matchMedia(query).matches)`), pas de flash desktop→mobile.
 - **Seuil unique binaire = 768.** V1 ne crée pas de 3e arbre tablette : 768–1024 reçoit le desktop. `useIsTablet` reste disponible pour des ajustements internes futurs.
@@ -27,9 +27,9 @@ Le chrome Sugar (`SugarTopNav` + `SugarIconRail` 128px) **n'est pas dans le layo
 
 ### Masquage du chrome desktop dans les pages
 
-Le chrome desktop est rendu **dans chaque page** (ex. `TodaySugarPage` L325). Pour ne pas l'afficher sur mobile **sans dupliquer la page**, deux options possibles :
+Le chrome desktop est rendu **dans chaque page** (ex. `TodayPage` L325). Pour ne pas l'afficher sur mobile **sans dupliquer la page**, deux options possibles :
 - **(retenu)** Le mobile vit dans des **fichiers `*MobilePage.tsx` séparés** → `ResponsiveRoute` rend l'un OU l'autre. Le fichier desktop n'est jamais modifié, donc aucun risque de toucher un pixel desktop. Pas besoin d'early-return dans les pages desktop.
-- (rejeté) Early-return conditionnel `if (isMobile) return null` autour des `<SugarTopNav/>` dans ~12 pages : plus invasif, touche les fichiers desktop.
+- (rejeté) Early-return conditionnel `if (isMobile) return null` autour des `<CrmTopNav/>` dans ~12 pages : plus invasif, touche les fichiers desktop.
 
 ### Routing — mapping écrans → routes existantes
 
@@ -55,7 +55,7 @@ Le chrome desktop est rendu **dans chaque page** (ex. `TodaySugarPage` L325). Po
 | agenda time-block | sous-vue de calendar | |
 | relance | sous-vue de today (overlay `RelanceSession`) | createPortal |
 
-**Second layout (`AgentLayout`).** Les vues détail mobiles `contacts/:id`, `listings/new`, `listings/:id/edit`, `market/:externalId`, `import-lead` vivent sous `AgentLayout`, **pas** `AgentSugarLayout`. Il faut aussi y appliquer `ResponsiveRoute` (mobile = page détail avec header retour, sans tab bar), sinon ces fiches s'ouvrent avec le chrome desktop sur mobile.
+**Second layout (`AgentLayout`).** Les vues détail mobiles `contacts/:id`, `listings/new`, `listings/:id/edit`, `market/:externalId`, `import-lead` vivent sous `AgentLayout`, **pas** `AgentLayout`. Il faut aussi y appliquer `ResponsiveRoute` (mobile = page détail avec header retour, sans tab bar), sinon ces fiches s'ouvrent avec le chrome desktop sur mobile.
 
 ---
 
@@ -98,8 +98,8 @@ Atomes partagés réutilisés tels quels (mécanique neutre, theming indépendan
 
 ### Points d'insertion
 
-- **`src/App.tsx`** : envelopper chaque `element={<XxxSugarPage/>}` du bloc `<Route path="/dashboard" element={AgentSugarLayout}>` (L472-517) en `element={<ResponsiveRoute desktop={<XxxSugarPage/>} mobile={<XxxMobilePage/>} />}`. Idem dans le bloc `AgentLayout` pour les vues détail. Ajouter `<Route path="more" element={<ResponsiveRoute desktop={<Navigate to="/dashboard/settings"/>} mobile={<MobileMorePage/>} />} />`. Branches en `lazy()` comme l'existant. Migration page par page : `mobile={desktop}` en no-op tant que l'écran mobile n'est pas livré.
-- **`AgentSugarLayout.tsx`** : inchangé (providers couvrent les deux branches). Le `MobileShell` est rendu côté `*MobilePage.tsx` (chaque page mobile s'enveloppe dans `MobileShell`), pas dans le layout — ainsi le desktop ne voit jamais le shell mobile.
+- **`src/App.tsx`** : envelopper chaque `element={<XxxSugarPage/>}` du bloc `<Route path="/dashboard" element={AgentLayout}>` (L472-517) en `element={<ResponsiveRoute desktop={<XxxSugarPage/>} mobile={<XxxMobilePage/>} />}`. Idem dans le bloc `AgentLayout` pour les vues détail. Ajouter `<Route path="more" element={<ResponsiveRoute desktop={<Navigate to="/dashboard/settings"/>} mobile={<MobileMorePage/>} />} />`. Branches en `lazy()` comme l'existant. Migration page par page : `mobile={desktop}` en no-op tant que l'écran mobile n'est pas livré.
+- **`AgentLayout.tsx`** : inchangé (providers couvrent les deux branches). Le `MobileShell` est rendu côté `*MobilePage.tsx` (chaque page mobile s'enveloppe dans `MobileShell`), pas dans le layout — ainsi le desktop ne voit jamais le shell mobile.
 
 ---
 
@@ -114,7 +114,7 @@ Consolidations à intégrer (5 divergences relevées dans le handoff) :
 4. **token `kycSeal`** : `#0041D9` (sceau vérifié).
 5. **`MTCtx` Provider** dont `dark` dérive de `useTheme()` (`data-theme`), **pas** d'un `localStorage('megga-mobile-dark')` parallèle.
 
-**À NE PAS faire** : baser le module sur `src/components/crm-sugar/tokens.ts` (primary `#0041D9` bleu desktop) ni hériter de `today/tk.ts` dont l'accent dark est bleu `#6F8CFF` (non conforme Sugar Pure ; à réaligner dans un second temps, hors V1). Le port `.jsx → .ts` doit préfixer les noms pour éviter les collisions (scope global Babel des maquettes).
+**À NE PAS faire** : baser le module sur `src/components/crm/tokens.ts` (primary `#0041D9` bleu desktop) ni hériter de `today/tk.ts` dont l'accent dark est bleu `#6F8CFF` (non conforme Sugar Pure ; à réaligner dans un second temps, hors V1). Le port `.jsx → .ts` doit préfixer les noms pour éviter les collisions (scope global Babel des maquettes).
 
 ---
 
@@ -126,11 +126,11 @@ Consolidations à intégrer (5 divergences relevées dans le handoff) :
 | **P1 — Primitives** | SgSheet, SgActionMenu, SgToast, SgConfirmDestructive, MEIcon (glyphes manquants) | Toutes les feuilles dépendent des bottom-sheets / toast pilule / confirmation destructive. Re-skin, pas réécriture. | M |
 | **P2 — Hubs de navigation** | more (hub), notifications (feuille) | « Plus » est la porte d'entrée des écrans secondaires + valide la tab bar et le branchement notif. Lecture seule, peu de gestes. | M |
 | **P3 — Cockpit** | today, relance | Écran d'accueil (onglet 1), réutilise `useFocusQueue` + gestes audités. Relance = overlay enfant de today. | L |
-| **P4 — Pipeline & deal** | pipeline, deal | Onglets 2 ; réutilise `usePipelineSugar` + mutation stage (audit par trigger DB). KYC non-bloquant strict. | L (pipeline M / deal L) |
+| **P4 — Pipeline & deal** | pipeline, deal | Onglets 2 ; réutilise `usePipelineScreen` + mutation stage (audit par trigger DB). KYC non-bloquant strict. | L (pipeline M / deal L) |
 | **P5 — Matching** | matching | Onglet 3 ; `useAtelierMatching` + PendingRegistry undo 5s. Feuilles envoyer/visite. | L |
-| **P6 — Agenda** | agenda (liste + time-block) | Onglet 4 ; `useCalendarSugar` + créer visite/reminder. | L |
+| **P6 — Agenda** | agenda (liste + time-block) | Onglet 4 ; `useCalendarScreen` + créer visite/reminder. | L |
 | **P7 — Biens** | biens (liste), bien fiche, wizard, mandat | Sous « Plus ». Fiche = re-skin de la page déjà câblée. Wizard = `handlePublish` réutilisé. Mandat = synthèse IA (mock côté desktop, à flaguer). | L |
-| **P8 — Contacts** | contacts liste, contact détail, contact-new | Sous « Plus ». `useContactsSugar` + détail v2 (WhatsApp, insight, KYC rappel doux). | L (liste/new M, détail L) |
+| **P8 — Contacts** | contacts liste, contact détail, contact-new | Sous « Plus ». `useContactsScreen` + détail v2 (WhatsApp, insight, KYC rappel doux). | L (liste/new M, détail L) |
 | **P9 — Conformité & pilotage** | kyc, parcours, analytics, settings | Sous « Plus ». KYC = garde LBA art.9 verbatim. Analytics = re-disposition du même `AxPeriodData`. Settings = mêmes hooks live. | L (analytics/parcours M, kyc/settings L) |
 
 Chaque phase : extraire la logique data du desktop dans un hook/controller partagé quand pertinent (ex. `useBienVitrineController`), porter le markup en grammaire mobile, brancher loading/empty/error, i18n bloquant + parité FR/EN, `npm run build` (tsc -b) avant push.
@@ -139,7 +139,7 @@ Chaque phase : extraire la logique data du desktop dans un hook/controller parta
 
 ## 5. Contraintes globales
 
-- **i18n** : `useTranslation('<ns existant>')` (les 15 ns existent) ; 100 % des chaînes FR en `t()`, clé ajoutée dans `fr/<ns>.json` ET `en/<ns>.json`. `lint:i18n` (ERROR sur `crm-sugar/**`, `pages/agent/**`) + `i18n:parity:ci` bloquants.
+- **i18n** : `useTranslation('<ns existant>')` (les 15 ns existent) ; 100 % des chaînes FR en `t()`, clé ajoutée dans `fr/<ns>.json` ET `en/<ns>.json`. `lint:i18n` (ERROR sur `crm/**`, `pages/agent/**`) + `i18n:parity:ci` bloquants.
 - **CHF** : `formatCHF` de `src/lib/utils.ts` (type-defensive, apostrophe suisse). Pas `crmFmtCHF`/`pxFormatCHF`.
 - **KYC non-bloquant partout** : aucun verrou pipeline/envoi/parcours. Rappel doux uniquement. Garde d'intégrité autorisée : édition d'identité d'un contact vérifié → modale d'avertissement (verified→pending). Garde LBA art.9 KYC (`screeningGuard`/`canMarkAll`) copiée verbatim.
 - **Virtual staging IA retiré V1** ; **C2PA gardé**.
@@ -186,7 +186,7 @@ Le mobile fait foi. À traiter **hors** du port mobile (cf. `HANDOFF_MOBILE_VS_D
 
 ## 8. Risques
 
-- **i18n bloquant** : une seule chaîne FR codée en dur sous `crm-sugar/**` ou `pages/agent/**` casse la CI (ERROR). Extraire 100 % AVANT merge ; ajouter chaque clé en fr **et** en.
+- **i18n bloquant** : une seule chaîne FR codée en dur sous `crm/**` ou `pages/agent/**` casse la CI (ERROR). Extraire 100 % AVANT merge ; ajouter chaque clé en fr **et** en.
 - **Double layout** : oublier `AgentLayout` pour les vues détail mobiles → fiches en chrome desktop sur mobile.
 - **Pilule fixe** : sans `padding-bottom: calc(94px+safe-area)` sur le `<main>` de chaque écran, le contenu passe sous la barre.
 - **Double source de thème** : un `localStorage('megga-mobile-dark')` parallèle désynchronise du `ThemeProvider`. Brancher sur `useTheme()`.
@@ -210,12 +210,12 @@ La revue adversariale a trouvé 2 blocages d'archi/compliance réels (lignes con
 **Fait** : `AgentLayout.tsx` rend `Sidebar` + un header mobile `md:hidden` (L56) + `Breadcrumb` + `<BottomTabBar/>` (`fixed bottom-0 z-50 md:hidden`, L88) autour de l'`<Outlet/>`. Les routes `contacts/:id`, `listings/new`, `listings/:id/edit`, `market/:externalId`, `contacts/import` (+ tout `admin/*`) vivent sous CE layout. `ResponsiveRoute` au niveau `element=` **ne masque pas** le chrome du layout parent → sous 768px : header legacy **+** `MobileShell`, et **2 barres d'onglets** (`BottomTabBar` legacy + `MobileTabBar`).
 
 **Décision retenue : rendre `AgentLayout` mobile-aware** (et NON déplacer des routes — déplacer stripperait la nav desktop des pages legacy `ListingFormPage`/`ExternalListingDetailPage`). Dans `AgentLayoutInner`, `const isMobile = useIsMobile()` ; si `isMobile`, retourner uniquement `<>{ImpersonateBanner}<main>{Outlet}</main></>` — **pas** de Sidebar, **pas** de header `md:hidden`, **pas** de Breadcrumb, **pas** de `BottomTabBar`. La page mobile (via `ResponsiveRoute`) fournit son propre `MobileShell`. **Desktop ≥768 strictement inchangé** (neutralisation gatée sur `isMobile`).
-- `AgentSugarLayout` reste tel quel (déjà sans chrome) — rien à neutraliser.
+- `AgentLayout` reste tel quel (déjà sans chrome) — rien à neutraliser.
 - **Note admin** : `admin/*` étant aussi sous `AgentLayout`, un super-admin sur mobile perdra la tab bar legacy. **Accepté** (admin = outil desktop super-admin, hors cible mobile V1). À documenter, pas un blocage.
-- **Bonus desktop** : `ContactDetailSugarV3Page` rend déjà son propre `SugarTopNav` tout en étant sous `AgentLayout` (Sidebar) → double chrome **desktop existant aujourd'hui**. Hors scope strict, mais à signaler dans la réconciliation desktop.
+- **Bonus desktop** : `ContactDetailPage` rend déjà son propre `CrmTopNav` tout en étant sous `AgentLayout` (Sidebar) → double chrome **desktop existant aujourd'hui**. Hors scope strict, mais à signaler dans la réconciliation desktop.
 
 ### 9.2 BLOQUANT — le garde-fou i18n ne couvre PAS `crm-mobile/**`
-**Fait** : `eslint.config.js` `lockedFamilies` verrouille `crm-sugar/**`, `crm-sugar-v3/**`, `crm-sugar-wizard/**`, `matching-atelier/**`, `ai-copilot/**`, `kyc-report/**`, `pages/agent/**` — **pas** `src/components/crm-mobile/**` (où vivra ~tout le code mobile). Le risque #1 du §8 (« une chaîne FR casse la CI ») est donc **FAUX en l'état** : les écrans mobiles échapperaient silencieusement au `no-literal-string`.
+**Fait** : `eslint.config.js` `lockedFamilies` verrouille `crm/**`, `crm-dossiers/**`, `crm-wizard/**`, `matching-atelier/**`, `ai-copilot/**`, `kyc-report/**`, `pages/agent/**` — **pas** `src/components/crm-mobile/**` (où vivra ~tout le code mobile). Le risque #1 du §8 (« une chaîne FR casse la CI ») est donc **FAUX en l'état** : les écrans mobiles échapperaient silencieusement au `no-literal-string`.
 **Correctif P0 obligatoire** : ajouter `'src/components/crm-mobile/**/*.{ts,tsx}'` à `lockedFamilies` **avant la 1ʳᵉ PR mobile**, et re-vérifier que `parity:ci` (fr ET en) couvre chaque clé ajoutée.
 
 ### 9.3 Blocages fonctionnels à traiter comme tels (pas « nice-to-have »)
@@ -227,7 +227,7 @@ La revue adversariale a trouvé 2 blocages d'archi/compliance réels (lignes con
 - **Critères d'acceptation par écran** : reprendre verbatim les valeurs du handoff (rayons 28/22/18/14/12/999, ombres `shadowSm/shadow/shadowLg`, entrée `sgFadeUp/mwFadeUp .45–.5s`), clair **et** sombre — pas seulement le README.
 - **Fiche bien** (P7) : confirmer la parité des **4 onglets** (Aperçu / Performance / Demandes / Historique) + galerie plein écran (lightbox).
 - **Détail affaire** (P4) : couvrir négociation **offre/contre-offre** + parties acheteur/bien ; `deal.probability` = donnée à NE PAS fabriquer → dériver du stage ou masquer l'anneau.
-- **Agenda time-block** (P6) : résoudre la parité time-blocking (pas un simple listing) ; `useCalendarSugar` n'a pas de types KYC/offre.
+- **Agenda time-block** (P6) : résoudre la parité time-blocking (pas un simple listing) ; `useCalendarScreen` n'a pas de types KYC/offre.
 - **Suspense** : définir un skeleton mobile dédié pour les branches `lazy()` (sinon `SmartPageLoader` affiche un squelette desktop).
 - **`SgSheet`** : wrapper **isolé** de `ui/Sheet` (ne pas modifier `Sheet.tsx`, sinon fuite de tokens Sugar vers les usages desktop). Pas de `layoutId` partagé entre branches desktop/mobile (transition shared-element parasite au resize).
 - **Empty-state agency nulle** : réutiliser le pattern des pages Sugar desktop (gestes inertes si `profile.agency_id` null).

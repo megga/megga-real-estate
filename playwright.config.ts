@@ -9,7 +9,7 @@ export default defineConfig({
   // defeats by construction (useAuth() would keep returning the mock profile
   // regardless of the real session). Run separately via `npm run test:e2e:kyb`
   // (playwright.kyb.config.ts, its own dev server, no bypass).
-  testIgnore: ['**/visual-regression.spec.ts', '**/onboarding-identite.spec.ts'],
+  testIgnore: ['**/visual-regression.spec.ts', '**/visual-sensibilite.spec.ts', '**/onboarding-identite.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,

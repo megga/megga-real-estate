@@ -20,7 +20,7 @@ import { AiPanelProvider } from '@/hooks/useAiPanel'
 // /home et les routes publiques à fort trafic SEO.
 //
 // Avant cette optimisation : ~30 components publics étaient eager, dont les
-// 11 pages DesignSystem (depuis retirées) + TodaySugarPage (dashboard agent) — résultat : 153 KB
+// 11 pages DesignSystem (depuis retirées) + TodayPage (dashboard agent) — résultat : 153 KB
 // JS inutilisé sur /louer d'après Lighthouse, FCP/LCP à 4.6s. Convertir tout
 // le reste en lazy() ramène le main bundle à ~50 KB.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -62,7 +62,7 @@ const AuthSetNewPasswordPage = lazy(() =>
 )
 
 // Layout shells agent — lazy car ils ne wrappent que les routes dashboard
-const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout'))
+const AgentLayout = lazy(() => import('@/components/layout/AgentLayout'))
 // Étape 5 KYB, tâche 4 — garde LAB plein sur les routes kyc/* (layout-route, aucun path propre).
 const KycLabGuard = lazy(() => import('@/components/layout/KycLabGuard'))
 
@@ -100,53 +100,91 @@ const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
 const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
 const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
 const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
-const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
+const TodayPage = lazy(() => import('@/pages/agent/TodayPage'))
 
 // Lazy-loaded agent pages
-const DashboardSugarV4Page = lazy(() => import('@/pages/agent/DashboardSugarV4Page'))
-const ContactImportPage = lazy(() => import('@/pages/agent/ContactImportPage'))
-const ContactDetailSugarV3Page = lazy(() => import('@/pages/agent/ContactDetailSugarV3Page'))
-const PipelineSugarV2Page = lazy(() => import('@/pages/agent/PipelineSugarV2Page'))
-const ContactsSugarV2Page = lazy(() => import('@/pages/agent/ContactsSugarV2Page'))
-const BiensSugarV2Page = lazy(() => import('@/pages/agent/BiensSugarV2Page'))
+const AnalyticsPage = lazy(() => import('@/pages/agent/AnalyticsPage'))
+const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
+const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
+const ContactsPage = lazy(() => import('@/pages/agent/ContactsPage'))
+const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
 // Sprint 2 — Sugar v3 (port pixel-près handoff Bien + Deal + Visite)
-const BienDetailSugarV4Page = lazy(() => import('@/pages/agent/BienDetailSugarV4Page'))
-const DealDetailSugarV4Page = lazy(() => import('@/pages/agent/DealDetailSugarV4Page'))
-const OfferModalSugarV3Page = lazy(() => import('@/pages/agent/OfferModalSugarV3Page'))
-const VisitModalSugarV3Page = lazy(() => import('@/pages/agent/VisitModalSugarV3Page'))
-const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugarV3Page'))
+const ListingDetailPage = lazy(() => import('@/pages/agent/ListingDetailPage'))
+const DealDetailPage = lazy(() => import('@/pages/agent/DealDetailPage'))
+const OfferPage = lazy(() => import('@/pages/agent/OfferPage'))
+const VisitNewPage = lazy(() => import('@/pages/agent/VisitNewPage'))
+const VisitDetailPage = lazy(() => import('@/pages/agent/VisitDetailPage'))
 // VisitCompanionPage removed — the mobile companion view contained only
 // non-functional UI (mic recording / photo capture / signature / sentiment
 // cards with no persistence). The route + page were removed; real on-site
 // visit capture is a separate sprint.
 // Sprint 3 — Import Lead IA (Sugar plein écran 2 étapes, extraction Claude)
-const ImportLeadSugarV3Page = lazy(() => import('@/pages/agent/ImportLeadSugarV3Page'))
-const MatchingPagerPage = lazy(() => import('@/pages/agent/MatchingPagerPage'))
-const JourneySugarV2Page = lazy(() => import('@/pages/agent/JourneySugarV2Page'))
-const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
-const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
+const ImportLeadPage = lazy(() => import('@/pages/agent/ImportLeadPage'))
+const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
+const JourneyPage = lazy(() => import('@/pages/agent/JourneyPage'))
+const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
+const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
-const WizardSugarV2Page = lazy(() => import('@/pages/agent/WizardSugarV2Page'))
-const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
+const ListingWizardPage = lazy(() => import('@/pages/agent/ListingWizardPage'))
+const KycPage = lazy(() => import('@/pages/agent/KycPage'))
 // Refonte KYC (handoff) — onboarding « Première ouverture » (empty-state).
 const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))
 // Sprint 4.4 — Export PDF dossier KYC (route print-friendly, hors layout agent)
 const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 // Étape 2 KYB — gate identité légale (/dashboard/identite). Desktop : coquille
-// du wizard (IdentitySugarPage, tâche 3 le remplit). Mobile : invitation à
+// du wizard (IdentityPage, tâche 3 le remplit). Mobile : invitation à
 // terminer sur ordinateur (IdentityMobileNotice), hors périmètre v1.
-const IdentitySugarPage = lazy(() => import('@/pages/agent/IdentitySugarPage'))
+const IdentityPage = lazy(() => import('@/pages/agent/IdentityPage'))
 const IdentityMobileNotice = lazy(() => import('@/pages/agent/IdentityMobileNotice'))
 // Étape 3 KYB — suite immédiate du wizard d'identité : réserver l'appel d'accueil
 // avec l'équipe MEGGA. Écran passable, jamais bloquant.
 const OnboardingCallPage = lazy(() => import('@/pages/agent/OnboardingCallPage'))
 const OnboardingCallManagePage = lazy(() => import('@/pages/public/OnboardingCallManagePage'))
-const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
-const JulienSugarV2Page = lazy(() => import('@/pages/agent/JulienSugarV2Page'))
+const AuditPage = lazy(() => import('@/pages/agent/AuditPage'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
-const SentryTestPage = lazy(() => import('@/pages/dev/SentryTestPage'))
-const MatchingAtelierDemoPage = lazy(() => import('@/pages/dev/MatchingAtelierDemoPage'))
-const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
+// ⛔ LES SEPT BANCS RESTANTS PASSENT AU TERNAIRE (15 août 2026). Mesuré au lot 3a :
+// ils avaient un chunk dans `dist/assets/` et une route déclarée — donc joignables
+// sur app.megga.ch, dont `/dev/sentry-test`, qui DÉCLENCHE des erreurs Sentry. Un
+// banc de développement livré n'est pas seulement du poids mort : c'est une surface
+// que personne ne teste, ouverte à qui connaît l'URL.
+//
+// ⚠ `import.meta.env.DEV` est remplacé par `false` au build : la branche d'import
+// disparaît et Vite n'émet aucun chunk. Le ternaire N'EST PAS décoratif — le
+// remplacer par un `lazy()` nu suffirait à tout renvoyer en production, et c'est
+// exactement ce que `dev-bancs-frontiere.spec.ts` refuse.
+//
+// ⚠ `/design-system/megga-x` N'EST PAS DANS CE LOT : ce n'est pas un banc mais la
+// seule route de design system survivante (CLAUDE.md §3), et elle est servie
+// délibérément.
+const SentryTestPage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/SentryTestPage'))
+  : () => null
+const MatchingShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/MatchingShowcasePage'))
+  : () => null
+const MobileShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/MobileShowcasePage'))
+  : () => null
+const BiensShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/BiensShowcasePage'))
+  : () => null
+const ContactsShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/ContactsShowcasePage'))
+  : () => null
+const PipelineShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/PipelineShowcasePage'))
+  : () => null
+const ModalesShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/ModalesShowcasePage'))
+  : () => null
+// ⛔ CONDITIONNÉ AU MODE DEV, comme `/dev/crm`, et pour la MÊME raison : ce banc
+// appelle `installerBanc()`, qui remplace `window.fetch` pour TOUTE la session.
+// Dans un bundle déployé, une visite à `/dev/public` détournerait silencieusement
+// la couche de données de l'application entière. Les autres bancs ne montrent que
+// des maquettes ; celui-ci monte les écrans RÉELS avec un intercepteur.
+const PublicShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/PublicShowcasePage'))
+  : () => null
 // Aperçu du parcours d'onboarding — DEV seulement (cf. sa route plus bas, et son
 // en-tête pour les trois murs qui rendent ce parcours autrement inatteignable).
 // Le ternaire n'est pas décoratif : `import.meta.env.DEV` est remplacé par `false`
@@ -155,6 +193,23 @@ const MobileShowcasePage = lazy(() => import('@/pages/dev/MobileShowcasePage'))
 // `OnboardingPreviewPage-*.js` dans dist/ — jamais chargé, mais livré.
 const OnboardingPreviewPage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/OnboardingPreviewPage'))
+  : () => null
+// Banc de la console super-admin — DEV seulement, même ternaire et même raison.
+// ⚠ Il s'écarte des autres bancs (`/dev/pipeline`, `/dev/biens`), qui sont
+// permanents : ceux-là montrent l'écran d'un agent, celui-ci monte le chrome de
+// la PLATEFORME — badge « ADMIN », MRR, registre des agences, journal de
+// sécurité. Le servir publiquement inviterait la question « est-ce réel ? » et
+// donnerait la carte de la surface super-admin à un visiteur.
+const AdminShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/AdminShowcasePage'))
+  : () => null
+// Banc du CRM agent — DEV seulement, même ternaire. Il monte les dix surfaces
+// `/dashboard` qu'il reste à porter en MEGGA X, et il SÈME une session dans le
+// stockage pour lever les trois murs (ProtectedRoute, gate d'identité de la
+// coquille, KycLabGuard). Semer une session n'a aucune excuse dans un bundle
+// déployé — c'est ce qui décide le gel, avant même les écrans de conformité.
+const CrmShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/CrmShowcasePage'))
   : () => null
 // MEGGA AI — panneau docké monté AU-DESSUS de <Routes>, hors de l'arbre de routage
 // pour survivre au remount de navigation : le panneau + la conversation
@@ -456,10 +511,30 @@ function AppRoutes() {
 
               {/* Dev showcase routes (no auth) */}
               <Route path="/design-system/megga-x" element={<MeggaXStyleGuidePage />} />
-              {/* Atelier Matching — démo QA visuelle (mocks handoff, zéro écriture) */}
-              <Route path="/dev/matching-atelier" element={<MatchingAtelierDemoPage />} />
+              {/* Matching — QA visuelle du PAGER entier (chrome, 2 pages, bascule
+                  de thème, états d'exception). Mocks du handoff, zéro écriture.
+                  Le chemin garde son nom d'origine : il est cité tel quel dans le
+                  cerveau comme le banc où s'éprouvent les modales de l'atelier. */}
+              <Route path="/dev/matching-atelier" element={<MatchingShowcasePage />} />
               <Route path="/dev/sentry-test" element={<SentryTestPage />} />
               <Route path="/dev/mobile" element={<MobileShowcasePage />} />
+              {/* Mes biens sans session : ProtectedRoute renvoie sinon vers la PRODUCTION. */}
+              <Route path="/dev/biens" element={<BiensShowcasePage />} />
+              {/* Contacts — même raison, même idiome (liste, fiche, premier lancement). */}
+              <Route path="/dev/contacts" element={<ContactsShowcasePage />} />
+              {/* Pipeline — la page RÉELLE par le slot `banc` : 3 vues, 8 colonnes,
+                  états d'exception, modales, bascule de thème. Une seule vue à la
+                  fois : `DealCard` porte un `layoutId` GLOBAL, et deux vues
+                  montées ensemble videraient les colonnes jumelles. */}
+              <Route path="/dev/pipeline" element={<PipelineShowcasePage />} />
+              {/* Modales qu'aucun geste n'ouvre sans session : elles ne seraient
+                  JAMAIS rendues hors production, donc jamais éprouvées. */}
+              <Route path="/dev/modales" element={<ModalesShowcasePage />} />
+              {/* La FACE PUBLIQUE — les trois surfaces qu'un client ouvre sans
+                  compte. ⚠ `/*` : le banc porte des routes IMBRIQUÉES, qui sont
+                  ce qui donne aux pages le `:token` qu'elles lisent. Sans jeton
+                  valide, `KycPublicPage` rend `null` — une page blanche. */}
+              <Route path="/dev/public/*" element={<PublicShowcasePage />} />
               {/* Onboarding — la SEULE de ces routes à être conditionnée au mode dev.
                   Les autres ne montrent que des maquettes ; celle-ci monte les écrans
                   réels avec l'écriture entre étapes neutralisée (IdentityShellPreview),
@@ -467,6 +542,10 @@ function AppRoutes() {
               {import.meta.env.DEV && (
                 <Route path="/dev/onboarding" element={<OnboardingPreviewPage />} />
               )}
+              {/* ⚠ `/dev/admin` n'est PAS ici : le banc de la console porte son
+                  propre routeur, et React Router refuse un <Router> dans un
+                  <Router>. Il est branché plus bas, dans `App()`, AVANT
+                  <BrowserRouter>. */}
 
 
               {/* Sprint 4.4 — Export PDF dossier KYC (protected, no layout — print-friendly) */}
@@ -484,11 +563,11 @@ function AppRoutes() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <AgentSugarLayout />
+                    <AgentLayout />
                   </ProtectedRoute>
                 }
               >
-                <Route index element={<ResponsiveRoute desktop={<TodaySugarPage />} mobile={<MobileTodayPage />} />} />
+                <Route index element={<ResponsiveRoute desktop={<TodayPage />} mobile={<MobileTodayPage />} />} />
                 {/* La console vit DANS le CRM depuis juillet 2026 : plus d'onglet,
                     plus de passage de session par fragment, et l'URL redevient
                     rechargeable et partageable. Le splat `*` est requis — la
@@ -497,53 +576,52 @@ function AppRoutes() {
                     Sous la coquille Sugar, qui ne rend aucun chrome : la
                     console porte le sien. */}
                 <Route path="admin/*" element={<AdminConsoleRoute />} />
-                <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelineSugarV2Page />} mobile={<MobilePipelinePage />} />} />
+                <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelinePage />} mobile={<MobilePipelinePage />} />} />
                 {/* Contacts — mobile (< 768px) : liste (P8). */}
-                <Route path="contacts" element={<ResponsiveRoute desktop={<ContactsSugarV2Page />} mobile={<MobileContactsListPage />} />} />
+                <Route path="contacts" element={<ResponsiveRoute desktop={<ContactsPage />} mobile={<MobileContactsListPage />} />} />
                 {/* Création contact — mobile only (desktop : modale dans le pager). */}
                 <Route path="contacts/new" element={<ResponsiveRoute desktop={<Navigate to="/dashboard/contacts" replace />} mobile={<MobileNewContactPage />} />} />
                 {/* Import de contacts — porté sous Sugar (chrome auto-porté). */}
-                <Route path="contacts/import" element={<ContactImportPage />} />
                 {/* Portées depuis AgentLayout : elles épousent le pager Sugar. */}
                 <Route path="market/:externalId" element={<ByParam><ExternalListingDetailPage /></ByParam>} />
                 <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
-                <Route path="listings/new" element={<ResponsiveRoute desktop={<WizardSugarV2Page />} mobile={<MobileWizardPage />} />} />
+                <Route path="listings/new" element={<ResponsiveRoute desktop={<ListingWizardPage />} mobile={<MobileWizardPage />} />} />
                 <Route path="listings/:id/edit" element={<ByParam><ListingFormPage /></ByParam>} />
                 {/* Fiche contact — pager 2 pages (refonte Claude Design juil. 2026).
-                    Sous AgentSugarLayout (chrome Sugar auto-porté) pour cohérence
+                    Sous AgentLayout (chrome Sugar auto-porté) pour cohérence
                     liste↔fiche. Mobile (< 768px) : fiche détail P8/2. */}
-                <Route path="contacts/:id" element={<ByParam><ResponsiveRoute desktop={<ContactDetailSugarV3Page />} mobile={<MobileContactDetailPage />} /></ByParam>} />
+                <Route path="contacts/:id" element={<ByParam><ResponsiveRoute desktop={<ContactDetailPage />} mobile={<MobileContactDetailPage />} /></ByParam>} />
                 {/* Mes biens — mobile (< 768px) : galerie portefeuille (P7). */}
-                <Route path="listings" element={<ResponsiveRoute desktop={<BiensSugarV2Page />} mobile={<MobileBiensPage />} />} />
+                <Route path="listings" element={<ResponsiveRoute desktop={<ListingsPage />} mobile={<MobileBiensPage />} />} />
                 {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent).
                     Mobile (< 768px) : fiche lecture seule (P7). */}
-                <Route path="listings/:id" element={<ByParam><ResponsiveRoute desktop={<BienDetailSugarV4Page />} mobile={<MobileBienVitrinePage />} /></ByParam>} />
+                <Route path="listings/:id" element={<ByParam><ResponsiveRoute desktop={<ListingDetailPage />} mobile={<MobileBienVitrinePage />} /></ByParam>} />
                 {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
-                <Route path="transactions/:id" element={<ByParam><ResponsiveRoute desktop={<DealDetailSugarV4Page />} mobile={<MobileDealDetailPage />} /></ByParam>} />
+                <Route path="transactions/:id" element={<ByParam><ResponsiveRoute desktop={<DealDetailPage />} mobile={<MobileDealDetailPage />} /></ByParam>} />
                 {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
-                <Route path="transactions/:id/offre/:kind" element={<ByParam><OfferModalSugarV3Page /></ByParam>} />
+                <Route path="transactions/:id/offre/:kind" element={<ByParam><OfferPage /></ByParam>} />
                 {/* Sprint 2 — Modal Planifier Visite (Sugar plein écran 3 étapes) */}
-                <Route path="visits/new" element={<VisitModalSugarV3Page />} />
+                <Route path="visits/new" element={<VisitNewPage />} />
                 {/* Sprint 2 — Fiche Visite (bon + rapport) */}
-                <Route path="visits/:id" element={<ByParam><VisitDetailSugarV3Page /></ByParam>} />
+                <Route path="visits/:id" element={<ByParam><VisitDetailPage /></ByParam>} />
                 {/* Legacy FR */}
                 <Route path="visites/nouveau" element={<Navigate to="/dashboard/visits/new" replace />} />
                 <Route path="visites/:id" element={<DashboardVisitRedirect />} />
                 {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
-                <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
+                <Route path="import-lead" element={<ImportLeadPage />} />
                 {/* Matching — pager vertical (refonte Claude Design juil. 2026) :
                     page 0 = atelier triptyque « par score » · page 1 = recherche
                     hybride du marché (vente + location). Deep-links portés par
                     l'atelier : ?annonce=p:<id>|m:<id> · ?contact=<id>.
                     Mobile (< 768px) : inbox acheteurs + focus. */}
-                <Route path="matching" element={<ResponsiveRoute desktop={<MatchingPagerPage />} mobile={<MobileMatchingPage />} />} />
+                <Route path="matching" element={<ResponsiveRoute desktop={<MatchingPage />} mobile={<MobileMatchingPage />} />} />
                 {/* Parcours — mobile (< 768px) : dossiers en vue panoramique (P9). */}
-                <Route path="journey" element={<ResponsiveRoute desktop={<JourneySugarV2Page />} mobile={<MobileJourneyPage />} />} />
+                <Route path="journey" element={<ResponsiveRoute desktop={<JourneyPage />} mobile={<MobileJourneyPage />} />} />
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
                 {/* Agenda — mobile (< 768px) : jour liste + time-block (P6). */}
-                <Route path="calendar" element={<ResponsiveRoute desktop={<CalendarSugarV2Page />} mobile={<MobileAgendaPage />} />} />
+                <Route path="calendar" element={<ResponsiveRoute desktop={<CalendarPage />} mobile={<MobileAgendaPage />} />} />
                 {/* Réglages — mobile (< 768px) : hub de réglages (P9). */}
-                <Route path="settings" element={<ResponsiveRoute desktop={<SettingsSugarV2Page />} mobile={<MobileSettingsPage />} />} />
+                <Route path="settings" element={<ResponsiveRoute desktop={<SettingsPage />} mobile={<MobileSettingsPage />} />} />
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
                 {/* Étape 5 KYB, tâche 4 — garde LAB plein : KycLabGuard (layout-route, aucun
                     path propre) remplace ces trois routes par un écran de blocage tant que
@@ -551,19 +629,19 @@ function AppRoutes() {
                     Regroupées sous un seul <Route> parent pour ne monter le garde qu'une fois. */}
                 <Route element={<KycLabGuard />}>
                   {/* KYC — pager 2 pages (Dossiers · Vigie). Mobile (< 768px) : liste (P9). */}
-                  <Route path="kyc" element={<ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycListPage />} />} />
+                  <Route path="kyc" element={<ResponsiveRoute desktop={<KycPage />} mobile={<MobileKycListPage />} />} />
                   {/* Onboarding « Première ouverture » (desktop) — refonte KYC. */}
                   <Route
                     path="kyc/bienvenue"
                     element={<ResponsiveRoute desktop={<KycOnboardingPage />} mobile={<Navigate to="/dashboard/kyc" replace />} />}
                   />
                   {/* Détail dossier KYC — fiche en overlay (desktop) ; mobile : 4 onglets (P9). */}
-                  <Route path="kyc/:dossierId" element={<ByParam><ResponsiveRoute desktop={<KycSugarV3Page />} mobile={<MobileKycDetailPage />} /></ByParam>} />
+                  <Route path="kyc/:dossierId" element={<ByParam><ResponsiveRoute desktop={<KycPage />} mobile={<MobileKycDetailPage />} /></ByParam>} />
                 </Route>
                 {/* Étape 2 KYB — gate identité légale (useIdentityGate redirige ici depuis
-                    AgentSugarLayout tant que agencies.identity_submitted_at est nul).
+                    AgentLayout tant que agencies.identity_submitted_at est nul).
                     Mobile (< 768px) : la saisie se termine sur ordinateur uniquement. */}
-                <Route path="identite" element={<ResponsiveRoute desktop={<IdentitySugarPage />} mobile={<IdentityMobileNotice />} />} />
+                <Route path="identite" element={<ResponsiveRoute desktop={<IdentityPage />} mobile={<IdentityMobileNotice />} />} />
                 {/* Étape 3 KYB — réservation de l'appel d'accueil, à la sortie du wizard. */}
                 <Route path="rendez-vous-accueil" element={<OnboardingCallPage />} />
                 {/* Réseau inter-agences — hors périmètre v1 (route neutralisée ; NetworkSugarV2Page retirée) */}
@@ -573,11 +651,17 @@ function AppRoutes() {
                 <Route path="onboarding" element={<Navigate to="/dashboard" replace />} />
                 <Route path="premier-jour" element={<Navigate to="/dashboard" replace />} />
                 {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}
-                <Route path="audit" element={<AuditSugarPage />} />
-                <Route path="julien" element={<JulienSugarV2Page />} />
+                <Route path="audit" element={<AuditPage />} />
+                {/* ⛔ La page « Julien » a été supprimée le 17 août 2026 : le copilote
+                    n'a plus qu'une surface, le dock MEGGA AI. La route REDIRIGE au lieu
+                    de disparaître — elle a été partagée en signet et le ⌘K y pointait
+                    encore hier. Même geste que /dashboard/network et le portail vendeur.
+                    Sa capacité propre (reprise d'une conversation persistée) est portée
+                    dans le dock, pas perdue : `useAiPanel.openConversation`. */}
+                <Route path="julien" element={<Navigate to="/dashboard" replace />} />
                 {/* Sprint 4 — Dashboard Analytics Sugar v4 (Cockpit / Entonnoir / Objectif) */}
                 {/* Analytics — mobile (< 768px) : cockpit commission (P9). */}
-                <Route path="analytics" element={<ResponsiveRoute desktop={<DashboardSugarV4Page />} mobile={<MobileAnalyticsPage />} />} />
+                <Route path="analytics" element={<ResponsiveRoute desktop={<AnalyticsPage />} mobile={<MobileAnalyticsPage />} />} />
                 {/* Hub « Plus » mobile-only — desktop redirige vers Réglages */}
                 <Route
                   path="more"
@@ -610,8 +694,79 @@ function CopilotPanelHost() {
   )
 }
 
+/**
+ * Le banc de la console remplace TOUT l'arbre de routage, il ne s'y insère pas.
+ *
+ * ⛔ Ce n'est pas un raccourci : React Router v6 LÈVE sur un `<Router>` rendu
+ * dans un `<Router>` (« You should never have more than one in your app »), et
+ * c'est précisément un second routeur — en mémoire — qui donne au banc son point
+ * d'interception unique de la navigation. Il doit donc vivre AVANT
+ * `<BrowserRouter>`, pas dans une route.
+ *
+ * Les providers gardés sont ceux dont le périmètre admin a besoin, mesurés :
+ * `QueryClientProvider` (38 hooks React Query), `AuthProvider` (`AdminShell`
+ * lit le profil) et `ToastProvider` (12 fichiers appellent `useToast` — sans
+ * lui, la moitié des pages lèvent au montage).
+ */
+function BancConsoleAdmin() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <ToastProvider>
+          <ErrorBoundary>
+            <Suspense fallback={null}>
+              <AdminShowcasePage />
+            </Suspense>
+          </ErrorBoundary>
+        </ToastProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  )
+}
+
+/**
+ * Le banc du CRM agent — un simple montage LAZY, et c'est délibéré.
+ *
+ * ⛔ IL NE POSE PAS LES PROVIDERS, contrairement au banc de la console. Le banc
+ * doit SEMER une session avant qu'`AuthProvider` appelle `getSession()` ; s'il
+ * les posait ici, l'effet du provider partirait pendant que le chunk de la page
+ * charge encore, trouverait un stockage vide, poserait `profile: null` et n'y
+ * reviendrait jamais — `useIdentityGate` resterait sur `loading` et la coquille
+ * retiendrait l'écran sur `BootSplash` POUR TOUJOURS. Symptôme traître : le
+ * jeton EST dans le stockage quand on regarde, c'est l'ORDRE qui est faux.
+ *
+ * ⛔ ET IL NE FAUT PAS NON PLUS IMPORTER LE SEMIS ICI pour l'appeler avant : un
+ * import statique depuis `App.tsx` fait entrer l'identité de démonstration dans
+ * le BUNDLE DÉPLOYÉ. Mesuré — « Agence MEGGA · démonstration » et son UUID se
+ * sont retrouvés dans `index-*.js`, le minifieur retenant l'objet parce que son
+ * `.id` est lu. La branche gelée en DEV ne suffit pas à faire disparaître ce
+ * qu'un import statique amarre.
+ *
+ * Le banc monte donc SES providers lui-même, derrière l'import lazy.
+ */
+function BancCrmAgent() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={null}>
+        <CrmShowcasePage />
+      </Suspense>
+    </ErrorBoundary>
+  )
+}
+
 /** Point d'entrée : empile les providers globaux autour des routes et des widgets globaux (cookies, Intercom, panneau IA). */
 export default function App() {
+  // `import.meta.env.DEV` est remplacé par `false` au build : la branche entière
+  // — et le chunk du banc — disparaissent du bundle déployé.
+  if (import.meta.env.DEV && window.location.pathname.startsWith('/dev/admin')) {
+    return <BancConsoleAdmin />
+  }
+  // ⚠ Conditionné au mode dev pour DEUX raisons, chacune suffisante : le banc
+  // SÈME une session dans le stockage, et il monte des écrans de conformité
+  // (KYC) et de facturation. Voir l'en-tête de `CrmShowcasePage`.
+  if (import.meta.env.DEV && window.location.pathname.startsWith('/dev/crm')) {
+    return <BancCrmAgent />
+  }
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <StaleBundleDetector />

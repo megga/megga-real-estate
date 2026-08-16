@@ -10,7 +10,8 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ui/Toast'
 import { useSendAgentEmail } from '@/hooks/useSendAgentEmail'
 import { CpIcon } from './panelIcons'
-import type { AiPalette } from './aiPanel'
+import { revueKit, type AiPalette } from './aiPanel'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 export interface EmailDraft {
   subject: string
@@ -32,6 +33,7 @@ const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim())
 
 export default function EmailReviewModal({ open, sp, dark, draft, contactId, onClose, onSent }: EmailReviewModalProps) {
   const toast = useToast()
+  const refPiegeFocus = useFocusTrap(open, onClose)
   const sendEmail = useSendAgentEmail()
   const [to, setTo] = useState('')
   const [subject, setSubject] = useState(draft.subject)
@@ -93,13 +95,11 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
     }
   }
 
-  const surface = dark ? '#17181C' : '#FFFFFF'
-  const fieldBg = dark ? 'rgba(255,255,255,0.05)' : '#F4F6F9'
-  const fieldBorder = dark ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(15,23,42,0.08)'
-  const labelStyle = { fontSize: 11, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase', color: sp.sub } as const
+  const K = revueKit(sp)
+
   const inputStyle = {
-    width: '100%', border: fieldBorder, outline: 'none', background: fieldBg,
-    borderRadius: 12, padding: '11px 13px', fontFamily: 'inherit', fontSize: 14,
+    width: '100%', border: K.champ.border, outline: 'none', background: K.champ.background,
+    borderRadius: 12, padding: '11px 13px', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)',
     color: sp.ink, boxSizing: 'border-box',
   } as const
 
@@ -107,28 +107,27 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center',
-        background: dark ? 'rgba(0,0,2,0.55)' : 'rgba(15,23,42,0.28)',
-        backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+        ...K.scrim,
         animation: 'emrFade .2s ease both', padding: 20,
-        fontFamily: "'Inter Tight', system-ui, sans-serif",
       }}
     >
       <style>{`@keyframes emrFade{from{opacity:0}to{opacity:1}}@keyframes emrUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}`}</style>
       <div
         onClick={(e) => e.stopPropagation()}
+        ref={refPiegeFocus}
         role="dialog"
+        aria-modal="true"
         aria-label="Envoyer l'email"
         style={{
           width: 'min(520px, 100%)', maxHeight: '86vh', overflowY: 'auto',
-          background: surface, borderRadius: 22, padding: '20px 22px 18px',
-          boxShadow: dark ? '0 30px 80px -12px rgba(0,0,0,.7)' : '0 30px 80px -16px rgba(15,23,42,.28)',
+          background: K.carte.background, borderRadius: K.carte.borderRadius, padding: '20px 22px 18px',
+          boxShadow: K.carte.boxShadow,
           display: 'flex', flexDirection: 'column', gap: 14,
           animation: 'emrUp .28s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 17, fontWeight: 800, color: sp.ink, letterSpacing: -0.3, flex: 1 }}>Envoyer l'email</span>
+          <span style={K.titre}>Envoyer l'email</span>
           <button onClick={onClose} title="Fermer" aria-label="Fermer" style={{
             width: 32, height: 32, borderRadius: 999, border: 0, cursor: 'pointer',
             background: 'transparent', display: 'grid', placeItems: 'center',
@@ -138,7 +137,7 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={labelStyle}>À</span>
+          <span style={K.libelle}>À</span>
           <input
             type="email" value={to} onChange={(e) => setTo(e.target.value)}
             placeholder="destinataire@email.ch" style={inputStyle}
@@ -146,12 +145,12 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={labelStyle}>Objet</span>
+          <span style={K.libelle}>Objet</span>
           <input value={subject} onChange={(e) => setSubject(e.target.value)} style={inputStyle} />
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <span style={labelStyle}>Message</span>
+          <span style={K.libelle}>Message</span>
           <textarea
             value={body} onChange={(e) => setBody(e.target.value)} rows={9}
             style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, minHeight: 160 }}
@@ -165,7 +164,7 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
             onClick={() => { setScheduleMode((v) => !v); if (!scheduleMode && !scheduleAt) setScheduleAt(minAt) }}
             style={{
               display: 'flex', alignItems: 'center', gap: 8, border: 0, cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: scheduleMode ? sp.ink : sp.sub,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: scheduleMode ? 600 : 500, color: scheduleMode ? sp.ink : sp.sub,
               background: 'transparent', padding: '4px 0',
             }}>
             <span style={{
@@ -187,17 +186,17 @@ export default function EmailReviewModal({ open, sp, dark, draft, contactId, onC
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 }}>
-          <span style={{ fontSize: 12, color: sp.sub, flex: 1 }}>
+          <span style={K.aide}>
             {scheduling ? 'Programmé — modifiable avant l’heure d’envoi.' : "Vous relisez avant l'envoi — rien n'est envoyé automatiquement."}
           </span>
           <button onClick={onClose} style={{
             height: 40, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, color: sp.soft,
+            ...K.boutonFantome,
             background: dark ? 'rgba(255,255,255,0.06)' : '#F1F4F8',
           }}>Annuler</button>
           <button onClick={send} disabled={!canSend} style={{
             height: 40, padding: '0 20px', borderRadius: 999, border: 0,
-            cursor: canSend ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
+            cursor: canSend ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
             background: canSend ? sp.accent : sp.fillStrong,
             color: canSend ? sp.onAccent : sp.sub, display: 'flex', alignItems: 'center', gap: 7,
           }}>

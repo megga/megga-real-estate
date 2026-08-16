@@ -23,7 +23,7 @@ Non, ce n'est pas le bon arbitrage : retirer le KYC supprime ton seul vrai foss�
 ## 3. « Reprendre une base » — les 2 facettes
 
 **(a) IMPORT / migration depuis CRM incumbents — faisable, effort faible.**
-Sourcé et solide. Follow Up Boss, kvCORE/BoldTrail, HubSpot offrent export CSV (UI, gratuit) + API natives + connecteurs tiers (Zapier). MEGGA a déjà la brique : `ImportLeadSugarV3Page` (wizard 2 étapes), `extract-lead` (DeepSeek), RPC `create_lead_with_optional_deal`. Ajouter un parser CSV batch ≈ quelques heures à ~300-400 LOC. **Ce volet ne pose pas de problème.**
+Sourcé et solide. Follow Up Boss, kvCORE/BoldTrail, HubSpot offrent export CSV (UI, gratuit) + API natives + connecteurs tiers (Zapier). MEGGA a déjà la brique : `ImportLeadPage` (wizard 2 étapes), `extract-lead` (DeepSeek), RPC `create_lead_with_optional_deal`. Ajouter un parser CSV batch ≈ quelques heures à ~300-400 LOC. **Ce volet ne pose pas de problème.**
 
 **(b) RÉACTIVATION — catégorie réelle, mais c'est une feature, pas un moat.**
 - *Catégorie* : réelle et validée en immobilier. Mais ce n'est **pas un espace blanc** : Ylopo (« database ignite »), nurtureBEAST (« cold reactivation »), Structurely, BoldTrail font exactement ça. Une fonction présente chez 20 acteurs est une **commodité**, pas une catégorie défendable. L'analyse #2 se contredit en listant 20 concurrents puis en concluant « espace blanc ».
@@ -70,7 +70,7 @@ Net : la stratégie allégée n'a de sens qu'aux US (pire marché), et garder le
 ## 7. Ce que MEGGA réutilise déjà (l'avantage de vitesse)
 
 Réutilisation réelle et vérifiée — c'est le vrai atout, indépendamment du débat KYC :
-- **Import / réactivation** : `useImportLead`, `ImportLeadSugarV3Page`, `extract-lead`, RPC `create_lead_with_optional_deal` → ~100 % réutilisables.
+- **Import / réactivation** : `useImportLead`, `ImportLeadPage`, `extract-lead`, RPC `create_lead_with_optional_deal` → ~100 % réutilisables.
 - **Copilote WhatsApp inbound** : ~26 des 30 outils plug & play (matching, briefs, notes, deals, drafts).
 - **Matching / scoring** : `matching-engine`, `score-engine` (logique 0-100 générique).
 - **IA copilote** : `ai-copilot` (DeepSeek), `automation-engine` (triggers, détection dormant).

@@ -5,7 +5,7 @@
 //   - reminderToNextAction : trigger_at obligatoire (sinon null), note = message_template
 //     trimé (vide accepté — l'UI retombe sur le libellé localisé du kind).
 //   - Sélection « premier pending par transaction » : la liste arrive triée par
-//     trigger_at ASC (usePipelineSugar), le premier rencontré gagne.
+//     trigger_at ASC (usePipelineScreen), le premier rencontré gagne.
 // Logique PURE : aucune dépendance Supabase/React → vitest jsdom.
 
 import { describe, it, expect } from 'vitest'
@@ -13,7 +13,7 @@ import {
   REMINDER_KIND_BY_TYPE,
   reminderToNextAction,
   type PipelineReminderRow,
-} from '@/lib/sugarAdapters'
+} from '@/lib/crmAdapters'
 
 const row = (over: Partial<PipelineReminderRow>): PipelineReminderRow => ({
   id: 'r-1',
@@ -76,9 +76,9 @@ describe('reminderToNextAction', () => {
   })
 })
 
-describe('sélection premier-actif-par-transaction (contrat usePipelineSugar)', () => {
+describe('sélection premier-actif-par-transaction (contrat usePipelineScreen)', () => {
   it('sur une liste triée par trigger_at ASC, le premier rencontré par tx gagne', () => {
-    // Reproduit la boucle de usePipelineSugar (Map.has → skip les suivants).
+    // Reproduit la boucle de usePipelineScreen (Map.has → skip les suivants).
     const rows: PipelineReminderRow[] = [
       row({ id: 'r-early', transaction_id: 'tx-1', trigger_at: '2026-07-22T09:00:00+00:00' }),
       row({ id: 'r-late', transaction_id: 'tx-1', trigger_at: '2026-07-30T09:00:00+00:00' }),

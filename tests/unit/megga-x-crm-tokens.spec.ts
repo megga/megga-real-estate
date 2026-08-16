@@ -17,9 +17,9 @@ import { readdirSync, readFileSync } from 'node:fs'
 import {
   MXC_COLOR, MXC_CARD_SHADOW, MXC_SYSTEM, mxCrmPalette,
 } from '@/components/megga-x-crm/tokens'
-import { pfAccents, pfColors } from '@/components/crm-sugar/settings/focus/pfKitCore'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { applySetTheme, isSetDark, SET_PALETTE } from '@/components/crm-sugar/settings/data'
+import { pfAccents, pfColors } from '@/components/crm/settings/focus/pfKitCore'
+import { crmPalette } from '@/components/crm/tokens'
+import { applySetTheme, isSetDark, SET_PALETTE } from '@/components/crm/settings/data'
 
 const SHEET = 'src/styles/megga-x.generated.css'
 const css = readFileSync(SHEET, 'utf-8')
@@ -155,6 +155,76 @@ describe('MEGGA X CRM — la grammaire déclarée en CSS', () => {
     expect(hors).toEqual([2, 4, 999])
   })
 
+  /**
+   * ⛔ L'ÉCHELLE PORTE DES ALIAS — douze noms de rayon pour SEPT valeurs, douze
+   * d'espacement pour SIX. « Tokenisé » ne garantit donc pas « un nom par
+   * valeur », et ces trois clauses ne le voyaient pas : elles comparent des
+   * VALEURS à la vitrine, jamais des NOMS entre eux.
+   *
+   * ── CE QUE L'HISTOIRE DIT, ET QUI TRANCHE ───────────────────────────────
+   * Ce ne sont PAS des doublons de négligence. Avant la bascule vers MEGGA X
+   * (`d7d068b1`), les valeurs étaient DISTINCTES : `space-lg` valait 10 px
+   * contre 12 pour `xl`, `space-2xl` 14 contre 16 pour `3xl`, `radius-md` 10
+   * contre 8 pour `sm`, `radius-xl` 14 contre 16 pour `2xl`. L'échelle de Sugar
+   * était plus fine ; celle de MEGGA X est plus grossière, et la bascule a
+   * ÉCRASÉ les paires l'une sur l'autre.
+   *
+   * ⚠ LA VITRINE, ELLE, N'A AUCUN ALIAS : quatorze espacements pour quatorze
+   * noms, huit rayons pour huit. Les alias sont donc une invention du CRM — et
+   * c'est précisément pourquoi il faut les DÉCLARER plutôt que les subir.
+   *
+   * ── POURQUOI ON NE LES FOND PAS ─────────────────────────────────────────
+   * Mesuré : aucun de ces noms n'est mort. Le plus discret (`radius-2xs`) a NEUF
+   * lecteurs, le plus employé (`radius-pill`) en a 703 ; les fondre demanderait
+   * ~3 100 réécritures pour ZÉRO pixel. ⛔ Et surtout, ça DÉTRUIRAIT ce que ces
+   * 3 100 sites enregistrent : le nom y dit encore l'intention (« l'écart d'une
+   * sous-carte » vs « l'écart d'une section ») que la valeur ne distingue plus.
+   * Si l'échelle regagnait un cran à 10 px, l'information pour le placer serait
+   * perdue — et irrécupérable.
+   *
+   * Ce qui se décide ici, c'est donc : les alias RESTENT, mais ils sont ÉCRITS,
+   * et l'ensemble ne peut que RÉTRÉCIR. Un nom neuf qui doublerait une valeur
+   * existante devra s'inscrire ici, donc se justifier.
+   */
+  const ALIAS_ASSUMES: Record<'radius' | 'space', Record<number, string[]>> = {
+    radius: { 8: ['sm', 'md'], 16: ['xl', '2xl', '3xl'], 20: ['4xl', '5xl'] },
+    space: {
+      4: ['2xs', 'xs'], 8: ['sm', 'md'], 12: ['lg', 'xl'],
+      16: ['2xl', '3xl'], 20: ['4xl', '5xl'], 24: ['6xl', '7xl'],
+    },
+  }
+
+  it('les alias de l’échelle sont ceux qui ont été écrits, et l’ensemble ne grossit pas', () => {
+    const ecarts: string[] = []
+    for (const famille of ['radius', 'space'] as const) {
+      const parValeur = new Map<number, string[]>()
+      for (const m of globals.matchAll(new RegExp(`--crm-${famille}-([a-z0-9]+): *([0-9.]+)px`, 'g'))) {
+        const v = Number(m[2])
+        parValeur.set(v, [...(parValeur.get(v) ?? []), m[1]!])
+      }
+      // Sans ce plancher, un bloc renommé rendrait « aucune collision » et la
+      // clause passerait au vert sur une échelle qu'elle ne lit plus.
+      expect(parValeur.size, `${famille} : plus aucun barreau lu`).toBeGreaterThan(4)
+
+      const reels = [...parValeur].filter(([, n]) => n.length > 1)
+      const inscrits = ALIAS_ASSUMES[famille]
+      for (const [v, noms] of reels) {
+        const attendu = inscrits[v]
+        if (!attendu) { ecarts.push(`${famille} ${v}px : alias NEUF (${noms.join(', ')}) — l'écrire, donc en décider`); continue }
+        const surnumeraires = noms.filter((n) => !attendu.includes(n))
+        if (surnumeraires.length) ecarts.push(`${famille} ${v}px : ${surnumeraires.join(', ')} en plus des ${attendu.length} inscrits`)
+      }
+      // ⚠ Cliquet à l'envers : une collision résolue doit SORTIR de la liste,
+      // sinon l'inventaire garde un crédit et le prochain lot pourrait la
+      // réintroduire sans rien faire rougir.
+      for (const v of Object.keys(inscrits).map(Number)) {
+        const reel = parValeur.get(v) ?? []
+        if (reel.length <= 1) ecarts.push(`${famille} ${v}px : la collision a disparu — retirer l'entrée`)
+      }
+    }
+    expect(ecarts, `les alias de l'échelle ont dérivé :\n  ${ecarts.join('\n  ')}`).toEqual([])
+  })
+
   // ⚠ Le TEXTE s'écarte sur 11 et 13 px : la vitrine n'en a ni l'un ni l'autre
   // (ses tailles sautent 10 → 12 → 14), et le CRM a besoin de ces demi-pas pour
   // monter d'un cran sans doubler la hauteur de ses lignes. 34 px est un
@@ -172,11 +242,11 @@ describe('MEGGA X CRM — la grammaire déclarée en CSS', () => {
 describe('MEGGA X CRM — la palette du CRM', () => {
   // 33 endroits construisent la palette et la transmettent en prop. C'est le
   // point unique : si la dérivation casse, tout le CRM se dépeint d'un coup.
-  it('crmSugarPalette rend exactement MEGGA X', () => {
+  it('crmPalette rend exactement MEGGA X', () => {
     for (const dark of [false, true]) {
-      expect(crmSugarPalette(dark)).toEqual(mxCrmPalette(dark))
+      expect(crmPalette(dark)).toEqual(mxCrmPalette(dark))
     }
-    expect(crmSugarPalette(false).accent).toBe(MXC_COLOR.accent)
+    expect(crmPalette(false).accent).toBe(MXC_COLOR.accent)
   })
 })
 
@@ -217,7 +287,7 @@ describe('MEGGA X CRM — les encres restent lisibles', () => {
 /**
  * La palette des Réglages — deuxième point de délégation.
  *
- * `SET_PALETTE` est le seul jeu de couleurs du CRM que `crmSugarPalette()` ne
+ * `SET_PALETTE` est le seul jeu de couleurs du CRM que `crmPalette()` ne
  * couvrait pas : Intégrations, Sécurité, les atomes et les modales le lisent
  * directement (~280 lectures). Il délègue désormais lui aussi, ce qui déplace
  * la question du « est-ce que ça bascule » vers « est-ce que ça bascule JUSTE ».
@@ -386,6 +456,40 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
     .filter((f) => /\.tsx?$/.test(f))
     .map((f) => ({ path: `src/${f}`, code: sansCommentaires(readFileSync(`src/${f}`, 'utf-8')) }))
 
+  /**
+   * Polices en dur CONNUES — l'inventaire, pas une autorisation.
+   *
+   * ⛔ ELLES N'ONT PAS ÉTÉ INTRODUITES ICI. Elles étaient là avant, et la garde
+   * les laissait TOUTES passer : son motif exigeait le nom de la police juste
+   * après le guillemet ouvrant, or le dépôt écrit soit
+   * `fontFamily: "'Inter Tight', …"` soit `fontFamily: '"Inter Tight", …'` —
+   * un guillemet s'intercale dans les deux cas. Mesuré le 12.08.2026 en
+   * réparant le motif : 29 fichiers (24 après les lots 2-4 de « Contacts », qui ont vidé son dossier), dont `ListingDetailPage` et
+   * `ListingsPage`, qui sont pourtant DANS le cliquet de grammaire depuis
+   * le lot 4 de « Mes biens ». La garde n'attrapait rien du tout.
+   *
+   * Les nommer les COMPTE le temps que leur surface soit portée. Sans cette
+   * liste, réparer le motif rendait la garde rouge sur 29 fichiers hors
+   * périmètre, et le réflexe aurait été de re-desserrer le motif — c'est-à-dire
+   * de refaire le trou.
+   *
+   * ⚠ Cette liste est un CLIQUET À L'ENVERS : elle ne doit que rétrécir. Le
+   * test qui suit refuse toute entrée devenue inutile, donc un fichier nettoyé
+   * doit en sortir. Les trois de `contacts-pager/` partent aux lots 3-4 du
+   * chantier Contacts, qui traitent précisément les polices en dur.
+   */
+  const POLICES_ASSUMEES = new Set([
+    'src/components/crm-wizard/WizardShell.tsx',
+    'src/components/crm/biens/pager/BiensFirstRun.tsx',
+    'src/components/crm/biens/pager/BpRenewModal.tsx',
+    'src/components/matching-atelier/MatchingFirstRun.tsx',
+    'src/pages/agent/ListingDetailPage.tsx',
+    'src/pages/agent/ListingsPage.tsx',
+    'src/pages/agent/JourneyPage.tsx',
+    'src/pages/agent/KycExportPage.tsx',
+    'src/pages/dev/BiensShowcasePage.tsx',
+  ])
+
   it('la liste des sources est bien peuplée', () => {
     // Sans ça, un chemin cassé rendrait les deux tests suivants vrais par vacuité.
     expect(sources.length).toBeGreaterThan(400)
@@ -397,11 +501,47 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
    * MEGGA X — dont la police EST Inter Tight — et ne se voit qu'en revenant à
    * Sugar, qui restait en Inter Tight au lieu de DM Sans.
    */
+  /**
+   * ⛔ CETTE GARDE ÉTAIT VERTE SUR ONZE FICHIERS FAUTIFS — mesuré le 12.08.2026.
+   *
+   * Son motif exigeait le nom de la police JUSTE APRÈS le guillemet ouvrant :
+   * `fontFamily: *['"`][^'"`]*(Inter Tight|DM Sans)`. Il attrape bien
+   * `fontFamily: 'Inter Tight, system-ui'` — mais PAS
+   * `fontFamily: "'Inter Tight', system-ui, sans-serif"`, où un guillemet
+   * simple s'intercale. Or c'est cette seconde forme que le dépôt écrit
+   * partout : la classe `[^'"`]*` s'arrête sur elle, et la garde passait.
+   *
+   * Une garde qui ne connaît qu'une notation ne garde rien — même défaut que le
+   * noir de Sugar, qui avait survécu onze fois en `rgba(11,12,14,…)` sous un
+   * motif qui ne lisait que l'hexadécimal.
+   *
+   * On cherche donc le nom de la police N'IMPORTE OÙ dans la valeur, et on
+   * exempte ce qui passe par la variable — `var(--crm-font, "Inter Tight")` est
+   * la forme CORRECTE : le nom n'y est qu'un repli.
+   */
   it('aucune police n’est écrite en dur dans un style', () => {
     const coupables = sources
-      .filter((s) => /fontFamily: *['"`][^'"`]*(Inter Tight|DM Sans)/.test(s.code))
+      .filter((s) => {
+        const sansJeton = s.code.replace(/var\(--crm-font[^)]*\)/g, 'VAR')
+        return /fontFamily:[^,;}\n]*(Inter Tight|DM Sans)/.test(sansJeton)
+      })
       .map((s) => s.path)
+      .filter((p) => !POLICES_ASSUMEES.has(p))
     expect(coupables, 'passer par var(--crm-font, …)').toEqual([])
+  })
+
+  /**
+   * Une exemption qui ne correspond plus à rien est un mensonge silencieux :
+   * elle laisse croire qu'un écart est surveillé alors que le fichier est propre
+   * — ou a disparu. Même idiome que `TAILLES_ASSUMEES` du cliquet de grammaire.
+   */
+  it('chaque police assumée correspond encore à du code', () => {
+    const mortes = [...POLICES_ASSUMEES].filter((p) => {
+      const s = sources.find((x) => x.path === p)
+      if (!s) return true
+      return !/fontFamily:[^,;}\n]*(Inter Tight|DM Sans)/.test(s.code.replace(/var\(--crm-font[^)]*\)/g, 'VAR'))
+    })
+    expect(mortes, `exemptions sans code :\n  ${mortes.join('\n  ')}`).toEqual([])
   })
 
   /**
@@ -409,10 +549,23 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
    * aucune palette. Son dernier lecteur — la pastille d'avatar — est passé à
    * `sp.accent` avec la suppression de Sugar : il ne doit plus en avoir aucun
    * hors du module qui construit le thème.
+   *
+   * ⚠ ET CETTE CLAUSE GARDE LE CHEMIN DE LECTURE, PAS LA TEINTE — la distinction
+   * n'est pas théorique. Elle s'écrit `/\bt\.primary\b/`, donc elle voit un
+   * IDENTIFIANT. Mesuré le 16 août 2026 : la VALEUR `#0041D9` vit dans **34
+   * emplois répartis sur 21 fichiers** — le sceau du Matching, les palettes
+   * d'affichage d'annonce, la recherche ⌘K — pendant que cette clause est verte,
+   * et elle a raison de l'être : aucun de ces sites ne LIT le thème, ils
+   * recopient une teinte.
+   *
+   * Lire ce titre comme « la teinte a disparu » serait donc la vacuité n°6, la
+   * garde muette prise pour un verdict. C'est `couleur-barreaux.spec.ts` qui
+   * tient la VALEUR, par un plafond par zone qui ne peut que baisser — les deux
+   * clauses gardent des choses différentes, et aucune ne remplace l'autre.
    */
-  it('l’accent hérité de CrmTheme n’a plus aucun lecteur', () => {
+  it('l’accent hérité de CrmTheme n’a plus aucun lecteur (le CHEMIN, pas la teinte)', () => {
     const lecteurs = sources
-      .filter((s) => s.path !== 'src/components/crm-sugar/tokens.ts')
+      .filter((s) => s.path !== 'src/components/crm/tokens.ts')
       .filter((s) => /\bt\.primary\b/.test(s.code))
       .map((s) => s.path)
     expect(lecteurs).toEqual([])

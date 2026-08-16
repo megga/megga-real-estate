@@ -32,7 +32,7 @@ import {
   AdminPill, AdminSearchInput, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { formatRelativeDate } from '@/lib/utils'
@@ -47,7 +47,7 @@ const FLATFOX_SYNC_MAX_AGE_MS = 25 * 60 * 60 * 1000
 
 export default function AdminMonitoringPage() {
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const { health, healthLoading, healthError, edgeFunctions, edgeFunctionsLoading, errorLogs, errorLogsLoading } = useAdminMonitoring()
 
   const deepseekBalance = useDeepSeekBalance()
@@ -187,10 +187,10 @@ export default function AdminMonitoringPage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
             <AdminIc icon={AlertTriangle} color={tones.err} style={{ marginTop: 1 }} />
             <div style={{ minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>
+              <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>
                 {t('admin:monitoring.errorTitle')}
               </p>
-              <p style={{ margin: '3px 0 0', fontSize: 12, color: sp.sub, lineHeight: 1.45 }}>
+              <p style={{ margin: '3px 0 0', fontSize: 'var(--crm-text-sm)', color: sp.sub, lineHeight: 1.45 }}>
                 {t('admin:monitoring.errorDesc')}
               </p>
             </div>
@@ -273,12 +273,12 @@ export default function AdminMonitoringPage() {
           <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <AdminIc icon={Home} size={16} color={sp.sub} />
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{t('admin:monitoring.flatfox.title')}</span>
+              <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>{t('admin:monitoring.flatfox.title')}</span>
             </span>
-            <span style={{ fontSize: 12.5, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
               {t('admin:monitoring.flatfox.activeListings', { count: flatfoxStats.data.total })}
             </span>
-            <span style={{ fontSize: 11.5, color: sp.soft }}>
+            <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.soft }}>
               {flatfoxLastSeen
                 ? t('admin:monitoring.flatfox.lastSync', { when: formatRelativeDate(flatfoxLastSeen) })
                 : t('admin:monitoring.flatfox.never')}
@@ -335,8 +335,8 @@ export default function AdminMonitoringPage() {
                         }} />
                       </AdminTd>
                       <AdminTd style={{ fontFamily: MONO, fontWeight: 600 }}>{row.jobname}</AdminTd>
-                      <AdminTd style={{ fontFamily: MONO, fontSize: 11.5, color: sp.soft }}>{row.schedule}</AdminTd>
-                      <AdminTd align="right" numeric style={{ fontSize: 11.5, color: sp.soft }}>{lastRunLabel}</AdminTd>
+                      <AdminTd style={{ fontFamily: MONO, fontSize: 'var(--crm-text-xs)', color: sp.soft }}>{row.schedule}</AdminTd>
+                      <AdminTd align="right" numeric style={{ fontSize: 'var(--crm-text-xs)', color: sp.soft }}>{lastRunLabel}</AdminTd>
                       <AdminTd align="right">
                         <AdminPill
                           label={st.stale ? t('admin:monitoring.cronHealth.stale') : t('admin:monitoring.cronHealth.ok')}
@@ -345,7 +345,7 @@ export default function AdminMonitoringPage() {
                       </AdminTd>
                       <AdminTd align="right">
                         {runDone[row.jobname] ? (
-                          <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.soft }}>{runDone[row.jobname]}</span>
+                          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft }}>{runDone[row.jobname]}</span>
                         ) : (
                           // Le bouton reste offert sur un cron désactivé : c'est la RPC qui
                           // refuse, avec sa raison. Le masquer ferait deux juges, et l'écran
@@ -428,10 +428,10 @@ export default function AdminMonitoringPage() {
             <>
               <AdminDivider margin="16px 0 12px" />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 9 }}>
-                <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub }}>{t('admin:monitoring.ai.tokensPerDay')}</span>
+                <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>{t('admin:monitoring.ai.tokensPerDay')}</span>
                 {/* Une seule série depuis le retrait d'Anthropic : la légende à
                     deux teintes n'avait plus rien à distinguer. */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 13, fontSize: 11, color: sp.soft }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 13, fontSize: 'var(--crm-text-xs)', color: sp.soft }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                     <span style={{ width: 8, height: 8, borderRadius: ADMIN_RADII.pill, background: sp.accent }} /> DeepSeek
                   </span>
@@ -477,7 +477,7 @@ export default function AdminMonitoringPage() {
                     onClick={() => setFnFilter(f)}
                     style={{
                       height: 28, padding: '0 12px', borderRadius: ADMIN_RADII.pill, border: 0,
-                      cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
+                      cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                       whiteSpace: 'nowrap', transition: 'background .18s ease',
                       background: on ? sp.accent : surf.cardSub,
                       color: on ? sp.accentInk : sp.soft,
@@ -536,10 +536,10 @@ export default function AdminMonitoringPage() {
                       }} />
                     </AdminTd>
                     <AdminTd align="right" numeric style={{ color: sp.sub }}>{fn.invocationsLast24h}</AdminTd>
-                    <AdminTd align="right" numeric style={fn.errorsLast24h > 0 ? { color: tones.err, fontWeight: 700 } : { color: sp.soft }}>
+                    <AdminTd align="right" numeric style={fn.errorsLast24h > 0 ? { color: tones.err, fontWeight: 600 } : { color: sp.soft }}>
                       {fn.errorsLast24h}
                     </AdminTd>
-                    <AdminTd align="right" numeric style={{ fontSize: 11.5, color: sp.soft }}>
+                    <AdminTd align="right" numeric style={{ fontSize: 'var(--crm-text-xs)', color: sp.soft }}>
                       {fn.lastInvocation ? formatRelativeDate(fn.lastInvocation) : '-'}
                     </AdminTd>
                   </tr>
@@ -603,20 +603,20 @@ export default function AdminMonitoringPage() {
                         <AdminPill
                           label={err.function_name ?? err.entity_type}
                           tone="neutral"
-                          style={{ fontFamily: MONO, fontSize: 11, padding: '3px 9px' }}
+                          style={{ fontFamily: MONO, fontSize: 'var(--crm-text-xs)', padding: '3px 9px' }}
                         />
                         {err.duration_ms && (
-                          <span style={{ fontSize: 11, color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>{err.duration_ms}ms</span>
+                          <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>{err.duration_ms}ms</span>
                         )}
                       </div>
                       <p style={{
-                        margin: '5px 0 0', fontSize: 12, color: sp.sub,
+                        margin: '5px 0 0', fontSize: 'var(--crm-text-sm)', color: sp.sub,
                         whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                       }}>
                         {err.error_message || JSON.stringify(err.metadata).slice(0, 120)}
                       </p>
                     </div>
-                    <span style={{ fontSize: 11, color: sp.soft, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: 'var(--crm-text-xs)', color: sp.soft, flexShrink: 0, whiteSpace: 'nowrap' }}>
                       {formatRelativeDate(err.created_at)}
                     </span>
                   </button>
@@ -626,7 +626,7 @@ export default function AdminMonitoringPage() {
                       background: surf.cardSub,
                     }}>
                       <pre style={{
-                        margin: 0, fontFamily: MONO, fontSize: 11, color: sp.sub,
+                        margin: 0, fontFamily: MONO, fontSize: 'var(--crm-text-xs)', color: sp.sub,
                         whiteSpace: 'pre-wrap', wordBreak: 'break-all',
                       }}>
                         {JSON.stringify(err.metadata, null, 2)}
@@ -677,15 +677,15 @@ function HealthTile({ icon, label, value, valueColor, gauge, hint }: {
   gauge?: { percent: number; color: string }
   hint?: ReactNode
 }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   return (
     <AdminCard padding="14px 16px">
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>
         <AdminIc icon={icon} size={14} color={sp.sub} />
-        <span style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: 0.1, color: sp.sub }}>{label}</span>
+        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.1, color: sp.sub }}>{label}</span>
       </div>
       <div style={{
-        fontSize: 19, fontWeight: 800, letterSpacing: -0.6, lineHeight: 1.1,
+        fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.6, lineHeight: 1.1,
         color: valueColor ?? sp.ink, fontVariantNumeric: 'tabular-nums',
       }}>
         {value}
@@ -696,7 +696,7 @@ function HealthTile({ icon, label, value, valueColor, gauge, hint }: {
         </div>
       )}
       {hint && (
-        <div style={{ fontSize: 11, color: sp.soft, marginTop: 6, fontVariantNumeric: 'tabular-nums' }}>{hint}</div>
+        <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.soft, marginTop: 6, fontVariantNumeric: 'tabular-nums' }}>{hint}</div>
       )}
     </AdminCard>
   )

@@ -11,7 +11,6 @@ import { initPostHogIfConsented } from '@/lib/posthog'
 import { initSentry } from '@/lib/sentry'
 import App from './App'
 import './styles/globals.css'
-import './components/crm-sugar-v3/responsive.css'
 
 // Initialize Sentry error tracking (essential/operational — no user consent gate)
 initSentry()

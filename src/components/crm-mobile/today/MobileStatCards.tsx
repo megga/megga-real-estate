@@ -4,9 +4,9 @@
  */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { usePipelineSugar } from '@/hooks/usePipelineSugar'
+import { usePipelineScreen } from '@/hooks/usePipelineScreen'
 import { useAxDashboardData } from '@/hooks/useAxDashboardData'
-import { axPace } from '@/components/crm-sugar/analytics/tokens'
+import { axPace } from '@/components/crm/analytics/tokens'
 import { useMobileTokens } from '../useMobileTokens'
 
 /** Jauge circulaire SVG (0-100 %, clampé) : anneau + arc de progression animé, pourcentage centré. */
@@ -43,7 +43,7 @@ function Ring({ pct, color }: { pct: number; color: string }) {
           display: 'grid',
           placeItems: 'center',
           fontSize: 'var(--crm-text-2xl)',
-          fontWeight: 800,
+          fontWeight: 600,
           color: tk.ink,
           letterSpacing: -0.4,
         }}
@@ -56,14 +56,14 @@ function Ring({ pct, color }: { pct: number; color: string }) {
 
 /**
  * Cartes statistiques du cockpit : Pipeline (cumul live des deals actifs) +
- * Objectif (jauge projetée). Câblé `usePipelineSugar` + `useAxDashboardData`
+ * Objectif (jauge projetée). Câblé `usePipelineScreen` + `useAxDashboardData`
  * (mêmes hooks que le desktop, dédupés par React Query). Empty-states honnêtes ;
  * seeds uniquement derrière `demo`.
  */
 export function MobileStatCards({ demo = false }: { demo?: boolean }) {
   const { t } = useTranslation('dashboard')
   const { tk } = useMobileTokens()
-  const { deals } = usePipelineSugar()
+  const { deals } = usePipelineScreen()
   const { data: ax } = useAxDashboardData('year', 'me')
 
   const active = deals.filter((d) => d.stage !== 'lost')
@@ -91,9 +91,9 @@ export function MobileStatCards({ demo = false }: { demo?: boolean }) {
       <div style={{ ...cardBase, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', color: tk.muted }}>
           <MEIcon name="trending-up" size={15} color={tk.muted} />
-          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2 }}>{t('today.cockpit.tiles.pipeline')}</span>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.2 }}>{t('today.cockpit.tiles.pipeline')}</span>
         </div>
-        <div style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -1, color: tk.ink, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+        <div style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 500, letterSpacing: -1, color: tk.ink, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
           {pipeTotal}
         </div>
         <div style={{ fontSize: 'var(--crm-text-sm)', color: tk.muted, fontWeight: 600 }}>
@@ -106,16 +106,16 @@ export function MobileStatCards({ demo = false }: { demo?: boolean }) {
       <div style={{ ...cardBase, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
         {targetSet ? <Ring pct={projPct} color={tk.goal} /> : null}
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, letterSpacing: 0.2 }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, letterSpacing: 0.2 }}>
             {t('today.cockpit.tiles.objectif')}
           </div>
           {targetSet ? (
-            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink, fontVariantNumeric: 'tabular-nums', marginTop: 4, whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink, fontVariantNumeric: 'tabular-nums', marginTop: 4, whiteSpace: 'nowrap' }}>
               {realized}
-              <span style={{ color: tk.muted, fontWeight: 700 }}> / {target}</span>
+              <span style={{ color: tk.muted, fontWeight: 600 }}> / {target}</span>
             </div>
           ) : (
-            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.muted, marginTop: 4 }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 4 }}>
               {t('today.cockpit.objectifUnset')}
             </div>
           )}

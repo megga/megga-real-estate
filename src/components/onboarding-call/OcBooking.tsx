@@ -34,7 +34,7 @@ import { useTranslation } from 'react-i18next'
 import { MxButton, MxField, MxInput, MxLink, MxSelect } from '@/components/megga-x'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencyIdentity } from '@/hooks/useAgencyIdentity'
-import { COUNTRY_DIAL_CODES, PHONE_EXAMPLES, countryForDialCode, dialCodeOptions, splitDialCode } from '@/lib/countries'
+import { PHONE_EXAMPLES, composePhone, countryForDialCode, dialCodeOptions, splitDialCode } from '@/lib/countries'
 import OcSlotPicker from './OcSlotPicker'
 import OcBookedCard from './OcBookedCard'
 import { dayKeyOf } from './ocDates'
@@ -141,19 +141,23 @@ export default function OcBooking({ onStateChange, mode = 'immediate', choice = 
    * Suisse par défaut, parce que c'est le marché ; la liste suit l'ordre des pays et non
    * celui des indicatifs, un dirigeant cherchant son pays par son nom.
    */
+  // ⚠ LES INITIALISEURS VIENNENT DE `main` (#1212) — le formulaire part rempli du
+  // téléphone déjà connu du dossier. Nous n'y avons pas touché.
   const [paysTel, setPaysTel] = useState(() => {
     const dial = choice?.phone ? splitDialCode(choice.phone).dial : null
     return (dial ? countryForDialCode(dial) : null) ?? 'CH'
   })
   const [numeroLocal, setNumeroLocal] = useState(() => (choice?.phone ? splitDialCode(choice.phone).local : ''))
-  const indicatif = `+${COUNTRY_DIAL_CODES[paysTel] ?? '41'}`
+  // ⚠ Et `const indicatif` NE REVIENT PAS : chez `main` il n'avait qu'un usage, la
+  // concaténation, que `composePhone` remplace à l'identique — même garde du vide,
+  // même retrait du zéro de tête. Le réintroduire en ferait une variable morte.
   // 195 options traduites et RETRIÉES : sans mémoïsation, la liste entière serait
   // reconstruite à chaque frappe dans les champs voisins.
   const optionsIndicatif = useMemo(() => dialCodeOptions(i18n.language), [i18n.language])
   // Ce qui part à l'edge : la concaténation, jamais les deux morceaux. Le zéro de tête
   // (079…) est retiré — il n'existe qu'en composition nationale et casserait le numéro
   // une fois l'indicatif devant.
-  const phone = numeroLocal.trim() === '' ? '' : `${indicatif}${numeroLocal.replace(/\D/g, '').replace(/^0+/, '')}`
+  const phone = composePhone(paysTel, numeroLocal)
   const setPhone = (valeur: string) => {
     const { dial, local } = splitDialCode(valeur)
     const iso = dial ? countryForDialCode(dial) : null

@@ -11,9 +11,9 @@
  */
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
+import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { crmPalette } from '@/components/crm/tokens'
+import { crmThemeVars } from '@/components/crm/crmThemeVars'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { useTranslation, Trans } from 'react-i18next'
 import i18n from '@/i18n'
@@ -57,6 +57,7 @@ import {
 import { usePlanLimits } from '@/hooks/usePlanLimits'
 import { FLOOR_PLAN_ROOMS } from '@/types/floorPlan'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
+import { readCrmDark } from '@/lib/crmDark'
 
 // ─── Zod schemas per step ───
 
@@ -450,7 +451,7 @@ function NumberStepper({
           <MEIcon name="plus" className="h-4 w-4" />
         </button>
       </div>
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      {error && <p className="text-xs text-danger-dark mt-1">{error}</p>}
     </div>
   )
 }
@@ -469,7 +470,7 @@ function FieldLabel({ htmlFor, children }: { htmlFor?: string; children: React.R
 /** Message d'erreur de validation sous un champ ; rien si `message` absent. */
 function FieldError({ message }: { message?: string }) {
   if (!message) return null
-  return <p className="text-xs text-red-500 mt-1">{message}</p>
+  return <p className="text-xs text-danger-dark mt-1">{message}</p>
 }
 
 /** Sous-titre de section à l'intérieur d'une étape. */
@@ -1112,7 +1113,7 @@ function Step3({ form }: { form: UseFormReturn<ListingFormData> }) {
       <div>
         <FieldLabel htmlFor="availability_date">
           {t('form.fields.availability')}
-          {isRent && <span className="ml-1 text-red-500" aria-hidden="true">*</span>}
+          {isRent && <span className="ml-1 text-danger-dark" aria-hidden="true">*</span>}
           {isRent && <span className="sr-only">{t('form.required')}</span>}
         </FieldLabel>
         <div className="flex flex-wrap gap-2 mb-3">
@@ -1420,10 +1421,10 @@ function Step4({ form, pendingFiles, setPendingFiles, floorPlanProps, propertyId
       {allPhotos.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div>
-            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#0E1410', margin: 0 }}>
+            <h3 style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: '#0E1410', margin: 0 }}>
               {t('form.step4.layoutTitle')}
             </h3>
-            <p style={{ fontSize: 12, color: '#7A8079', marginTop: 4 }}>
+            <p style={{ fontSize: 'var(--crm-text-sm)', color: '#7A8079', marginTop: 4 }}>
               {t('form.step4.layoutSubtitle')}
             </p>
           </div>
@@ -1513,8 +1514,8 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
     return (
       <div className="rounded-xl border border-theme-border p-4 mt-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-            <MEIcon name="shield" className="w-4 h-4 text-emerald-600" />
+          <div className="w-8 h-8 rounded-lg bg-success-light flex items-center justify-center flex-shrink-0">
+            <MEIcon name="shield" className="w-4 h-4 text-success-dark" />
           </div>
           <div>
             <p className="text-sm font-medium text-theme-primary">{t('form.c2pa.title')}</p>
@@ -1531,11 +1532,11 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
         <div className="flex items-center gap-3">
           <div className={cn(
             'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            signed || signPhotos.isSuccess ? 'bg-emerald-50' : 'bg-theme-hover'
+            signed || signPhotos.isSuccess ? 'bg-success-light' : 'bg-theme-hover'
           )}>
             <MEIcon name="shield" className={cn(
               'w-4 h-4',
-              signed || signPhotos.isSuccess ? 'text-emerald-600' : 'text-theme-muted'
+              signed || signPhotos.isSuccess ? 'text-success-dark' : 'text-theme-muted'
             )} />
           </div>
           <div>
@@ -1576,7 +1577,7 @@ function C2paCertifySection({ propertyId, photoUrls }: { propertyId?: string; ph
         )}
       </div>
       {signPhotos.isError && (
-        <p className="text-xs text-red-600 mt-2">
+        <p className="text-xs text-danger-dark mt-2">
           {t('form.c2pa.error')}
         </p>
       )}
@@ -1709,7 +1710,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
 
               {/* Error */}
               {error && (
-                <p className="text-xs text-red-500">
+                <p className="text-xs text-danger-dark">
                   {error.error}
                   {error.upgrade_required && ` ${t('form.staging.upgradeSuffix')}`}
                 </p>
@@ -1725,7 +1726,7 @@ function StagingSection({ photos, propertyId, onStagedPhoto }: {
                     </div>
                     <div className="relative bg-theme-card">
                       <img src={result.staged_url} alt={t('form.staging.furnished')} className="w-full aspect-[4/3] object-cover" />
-                      <span className="absolute bottom-2 left-2 text-xs font-medium bg-accent/80 text-white px-2 py-0.5 rounded">MEGGA Staging</span>
+                      <span className="absolute bottom-2 left-2 text-xs font-medium bg-accent-solid/80 text-white px-2 py-0.5 rounded">MEGGA Staging</span>
                     </div>
                   </div>
                   <div className="p-3 flex items-center justify-between">
@@ -1826,7 +1827,7 @@ function Step5({ form }: { form: UseFormReturn<ListingFormData> }) {
         <div className="rounded-lg border border-theme-border p-5 bg-theme-section">
           <div className="flex items-start justify-between gap-3 mb-2">
             <div>
-              <p className="text-lg font-bold text-theme-primary">
+              <p className="text-lg font-semibold text-theme-primary">
                 {price > 0 ? formatCHF(price) : 'CHF —'}
               </p>
               <h3 className="text-sm font-semibold text-theme-primary mt-0.5">
@@ -2082,8 +2083,8 @@ function UrlImportScreen({ onExtracted, onBack }: {
 
             {/* Error */}
             {error && (
-              <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
-                <p className="text-sm text-red-500 font-medium">{t('form.url.errorTitle')}</p>
+              <div className="rounded-xl border border-danger/30 bg-danger/5 p-4">
+                <p className="text-sm text-danger-dark font-medium">{t('form.url.errorTitle')}</p>
                 <p className="text-xs text-theme-muted mt-1">{error}</p>
               </div>
             )}
@@ -2180,8 +2181,8 @@ function PdfUploadScreen({ onExtracted, onBack }: {
 
         {/* Error */}
         {error && (
-          <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/5 p-4">
-            <p className="text-sm text-red-500 font-medium">{t('form.pdf.errorTitle')}</p>
+          <div className="mt-4 rounded-xl border border-danger/30 bg-danger/5 p-4">
+            <p className="text-sm text-danger-dark font-medium">{t('form.pdf.errorTitle')}</p>
             <p className="text-xs text-theme-muted mt-1">{error}</p>
             <button
               onClick={() => { setSelectedFile(null) }}
@@ -2209,12 +2210,12 @@ export default function ListingFormPage() {
   const navigate = useNavigate()
 
   const [dark, setDark] = useState<boolean>(() =>
-    typeof window !== 'undefined' && window.localStorage.getItem('megga.sugar.dark') === '1')
+    typeof window !== 'undefined' && readCrmDark())
 
   // Chrome Sugar porté ici : cette page vivait sous `AgentLayout` (sidebar
   // legacy). Chaque surface Sugar porte son propre chrome.
-  const sgSp = useMemo(() => crmSugarPalette(dark), [dark])
-  const onSugarNav = (id: SugarScreenId | string) => {
+  const sgSp = useMemo(() => crmPalette(dark), [dark])
+  const onCrmNav = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -2224,13 +2225,11 @@ export default function ListingFormPage() {
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'matching': navigate('/dashboard/matching'); break
       case 'parcours': navigate('/dashboard/journey'); break
-      case 'ai':
-      case 'julien': navigate('/dashboard/julien'); break
       case 'settings': navigate('/dashboard/settings'); break
       default:
     }
   }
-  const onSugarCmd = () => {}
+  const onCrmCmd = () => {}
 
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -2825,11 +2824,11 @@ export default function ListingFormPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...sugarThemeVars(sgSp, dark) }}>
-      <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav active={'biens' as SugarScreenId} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
+    <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }}>
+      <style>{CRM_KEYFRAMES}</style>
+      <CrmTopNav active={'biens' as CrmScreenId} sp={sgSp} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} />
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        <SugarIconRail active={'biens' as SugarScreenId} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} setDark={setDark} sp={sgSp} />
+        <CrmIconRail active={'biens' as CrmScreenId} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} setDark={setDark} sp={sgSp} />
         <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
@@ -2865,7 +2864,7 @@ export default function ListingFormPage() {
 
       {/* Error banner */}
       {saveError && (
-        <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-500">
+        <div className="rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm text-danger-dark">
           {saveError}
         </div>
       )}
@@ -2922,7 +2921,7 @@ export default function ListingFormPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(1) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(1) ? 'bg-success text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(1) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '1'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">{t('form.sections.general')}</span>
@@ -2948,7 +2947,7 @@ export default function ListingFormPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(2) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(2) ? 'bg-success text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(2) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '2'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">{t('form.sections.location')}</span>
@@ -2973,7 +2972,7 @@ export default function ListingFormPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(3) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(3) ? 'bg-success text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(3) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '3'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">{t('form.sections.priceDetails')}</span>
@@ -2998,7 +2997,7 @@ export default function ListingFormPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(4) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(4) ? 'bg-success text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(4) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '4'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">{t('form.sections.photos')}</span>
@@ -3045,7 +3044,7 @@ export default function ListingFormPage() {
                 )}
               >
                 <div className="flex items-center gap-3">
-                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(5) ? 'bg-emerald-500 text-white' : 'bg-theme-active text-theme-primary')}>
+                  <span className={cn('w-7 h-7 rounded-full text-xs font-medium flex items-center justify-center', completedSteps.includes(5) ? 'bg-success text-white' : 'bg-theme-active text-theme-primary')}>
                     {completedSteps.includes(5) ? <MEIcon name="check" className="w-3.5 h-3.5" /> : '5'}
                   </span>
                   <span className="text-sm font-semibold text-theme-primary">{t('form.sections.descriptionPublish')}</span>
@@ -3080,7 +3079,7 @@ export default function ListingFormPage() {
                   <MEIcon name="building" className="w-8 h-8 text-theme-tertiary" />
                 </div>
               )}
-              <p className="text-base font-bold text-theme-primary truncate">
+              <p className="text-base font-semibold text-theme-primary truncate">
                 {form.watch('title') || t('form.preview.newPropertyTitle')}
               </p>
               <p className="text-xs text-theme-secondary truncate mt-0.5">
@@ -3109,7 +3108,7 @@ export default function ListingFormPage() {
                 <span>{Math.round((completedSteps.length / 5) * 100)}%</span>
               </div>
               <div className="h-1.5 bg-theme-hover rounded-full overflow-hidden">
-                <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${(completedSteps.length / 5) * 100}%` }} />
+                <div className="h-full bg-accent-solid rounded-full transition-all duration-300" style={{ width: `${(completedSteps.length / 5) * 100}%` }} />
               </div>
               <div className="mt-3 space-y-1">
                 {[
@@ -3125,7 +3124,7 @@ export default function ListingFormPage() {
                     onClick={() => scrollToSection(s.num)}
                     className="flex items-center gap-2 w-full text-left text-xs text-theme-secondary hover:text-theme-primary transition-colors py-0.5"
                   >
-                    <span className={cn('w-3 h-3 rounded-full border flex items-center justify-center', completedSteps.includes(s.num) ? 'bg-emerald-500 border-emerald-500' : 'border-theme-border')}>
+                    <span className={cn('w-3 h-3 rounded-full border flex items-center justify-center', completedSteps.includes(s.num) ? 'bg-success border-success' : 'border-theme-border')}>
                       {completedSteps.includes(s.num) && <MEIcon name="check" className="w-2 h-2 text-white" />}
                     </span>
                     {s.label}

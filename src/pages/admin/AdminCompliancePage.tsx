@@ -22,7 +22,7 @@ import type { LucideIcon } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useAdminCompliance, useConsentStats, useAccountDeletions } from '@/hooks/useAdminCompliance'
 import type { ComplianceCase } from '@/hooks/useAdminCompliance'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useClientPagination } from '@/hooks/useClientPagination'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSegmentBtn, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
@@ -125,12 +125,12 @@ function EmptyState({ tab }: { tab: TabValue }) {
 
 /** En-tête d'une carte nLPD : icône + titre, puis filet de séparation. */
 function CardHead({ icon, title }: { icon: LucideIcon; title: string }) {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
         <AdminIc icon={icon} size={16} color={sp.sub} />
-        <h2 style={{ margin: 0, fontSize: 13.5, fontWeight: 800, letterSpacing: -0.2, color: sp.ink }}>{title}</h2>
+        <h2 style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>{title}</h2>
       </div>
       <AdminDivider margin="12px 0" />
     </>
@@ -140,7 +140,7 @@ function CardHead({ icon, title }: { icon: LucideIcon; title: string }) {
 /** Carte nLPD : couverture des consentements par type × version (P2 admin). */
 function ConsentStatsCard() {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const { data, isLoading } = useConsentStats()
 
   return (
@@ -156,7 +156,7 @@ function ConsentStatsCard() {
         <AdminEmpty title={t('compliance.consents.empty')} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <p style={{ margin: 0, fontSize: 12.5, fontWeight: 500, color: sp.sub, lineHeight: 1.5, fontVariantNumeric: 'tabular-nums' }}>
+          <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, lineHeight: 1.5, fontVariantNumeric: 'tabular-nums' }}>
             {t('compliance.consents.summary', {
               terms: data.users_with_terms,
               privacy: data.users_with_privacy,
@@ -165,11 +165,11 @@ function ConsentStatsCard() {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {data.coverage.map((row) => (
-              <div key={`${row.consent_type}-${row.version}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>
+              <div key={`${row.consent_type}-${row.version}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 'var(--crm-text-sm)' }}>
                 <span style={{ color: sp.sub, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {t(`compliance.consents.type.${row.consent_type}`)} · {row.version}
                 </span>
-                <span style={{ fontWeight: 700, color: sp.ink, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{row.accepted}</span>
+                <span style={{ fontWeight: 600, color: sp.ink, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{row.accepted}</span>
               </div>
             ))}
           </div>
@@ -182,7 +182,7 @@ function ConsentStatsCard() {
 /** Carte nLPD : journal des suppressions de comptes (delete-account, art. 32). */
 function AccountDeletionsCard() {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const { data, isLoading } = useAccountDeletions()
 
   return (
@@ -199,7 +199,7 @@ function AccountDeletionsCard() {
       ) : (
         <div className="scrollbar-hide" style={{ display: 'flex', flexDirection: 'column', gap: 5, maxHeight: 256, overflowY: 'auto' }}>
           {data.map((event) => (
-            <div key={event.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 12 }}>
+            <div key={event.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, fontSize: 'var(--crm-text-sm)' }}>
               <span style={{ color: sp.sub, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {event.object_label ?? event.entity_id ?? '—'}
               </span>
@@ -214,7 +214,7 @@ function AccountDeletionsCard() {
 
 /** Barre de progression compacte de complétude d'un dossier (valeur bornée 0–100). */
 function CompletionBar({ value }: { value: number }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
       <span style={{ width: 62, height: 6, borderRadius: ADMIN_RADII.pill, background: surf.cardSub, overflow: 'hidden', flexShrink: 0 }}>
@@ -225,7 +225,7 @@ function CompletionBar({ value }: { value: number }) {
           }}
         />
       </span>
-      <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>{value}%</span>
+      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>{value}%</span>
     </span>
   )
 }
@@ -233,7 +233,7 @@ function CompletionBar({ value }: { value: number }) {
 /** Écran compliance : KPIs, table de dossiers filtrable/paginée et cartes nLPD. */
 export default function AdminCompliancePage() {
   const { t } = useTranslation('admin')
-  const { sp, surf, dark, tones } = useAdminSugar()
+  const { sp, surf, dark, tones } = useAdminSurfaces()
   const { cases, isLoading, isError, refetch, stats, statsLoading } = useAdminCompliance()
   const [tab, setTab] = useState<TabValue>('all')
   const [search, setSearch] = useState('')
@@ -294,7 +294,7 @@ export default function AdminCompliancePage() {
   // mobile monte d'un cran d'ombre. Les valeurs suivent le thème, d'où le <style>.
   const hoverCss = `
     .cmpl-row { transition: background-color .16s ease; }
-    .cmpl-row:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'}; }
+    .cmpl-row:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(3, 3, 3, 0.035)'}; }
     .cmpl-card { transition: box-shadow .18s ease; }
     .cmpl-card:hover { box-shadow: ${surf.shadowHov}; }
   `
@@ -383,13 +383,13 @@ export default function AdminCompliancePage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                      <span style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {c.contact_name}
                       </span>
-                      <AdminPill label={TYPE_LABEL[c.type] ?? c.type} style={{ padding: '3px 9px', fontSize: 11 }} />
+                      <AdminPill label={TYPE_LABEL[c.type] ?? c.type} style={{ padding: '3px 9px', fontSize: 'var(--crm-text-xs)' }} />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 7 }}>
-                      <AdminPill label={RISK_LABEL[c.risk_level] ?? c.risk_level} tone={riskTone(c.risk_level)} style={{ padding: '3px 10px', fontSize: 11 }} />
+                      <AdminPill label={RISK_LABEL[c.risk_level] ?? c.risk_level} tone={riskTone(c.risk_level)} style={{ padding: '3px 10px', fontSize: 'var(--crm-text-xs)' }} />
                       {c.screening_status === 'match' && <AdminIc icon={AlertTriangle} size={14} color={tones.err} />}
                       {c.screening_status === 'clear' && <AdminIc icon={ShieldCheck} size={14} color={tones.ok} />}
                     </div>
@@ -409,7 +409,7 @@ export default function AdminCompliancePage() {
           style={{
             display: 'flex', alignItems: 'center', gap: 12, padding: '9px 16px',
             background: sp.tableHeadBg, borderBottom: surf.hairline,
-            fontSize: 11, fontWeight: 700, letterSpacing: 0.1, color: sp.sub,
+            fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.1, color: sp.sub,
           }}
         >
           <span style={{ flex: 1, minWidth: 0 }}>{t('compliance.table.contact')}</span>
@@ -445,23 +445,23 @@ export default function AdminCompliancePage() {
               }}
             >
               {/* Contact */}
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {c.contact_name}
               </span>
 
               {/* Agence */}
-              <span style={{ width: COL.agency, fontSize: 12, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ width: COL.agency, fontSize: 'var(--crm-text-sm)', color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {c.agency_name ?? <span style={{ color: sp.soft }}>&mdash;</span>}
               </span>
 
               {/* Type */}
               <span style={{ width: COL.type }}>
-                <AdminPill label={TYPE_LABEL[c.type] ?? c.type} style={{ padding: '3px 9px', fontSize: 11 }} />
+                <AdminPill label={TYPE_LABEL[c.type] ?? c.type} style={{ padding: '3px 9px', fontSize: 'var(--crm-text-xs)' }} />
               </span>
 
               {/* Risque */}
               <span style={{ width: COL.risk }}>
-                <AdminPill label={RISK_LABEL[c.risk_level] ?? c.risk_level} tone={riskTone(c.risk_level)} style={{ padding: '3px 10px', fontSize: 11 }} />
+                <AdminPill label={RISK_LABEL[c.risk_level] ?? c.risk_level} tone={riskTone(c.risk_level)} style={{ padding: '3px 10px', fontSize: 'var(--crm-text-xs)' }} />
               </span>
 
               {/* Screening PEP */}
@@ -471,7 +471,7 @@ export default function AdminCompliancePage() {
                 ) : c.screening_status === 'clear' ? (
                   <AdminIc icon={ShieldCheck} size={15} color={tones.ok} />
                 ) : (
-                  <span style={{ fontSize: 12, color: sp.soft }}>&mdash;</span>
+                  <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.soft }}>&mdash;</span>
                 )}
               </span>
 
@@ -482,11 +482,11 @@ export default function AdminCompliancePage() {
 
               {/* Statut */}
               <span style={{ width: COL.status, display: 'flex', justifyContent: 'center' }}>
-                <AdminPill label={STATUS_LABEL[c.status] ?? c.status} tone={statusTone(c.status)} style={{ padding: '3px 10px', fontSize: 11 }} />
+                <AdminPill label={STATUS_LABEL[c.status] ?? c.status} tone={statusTone(c.status)} style={{ padding: '3px 10px', fontSize: 'var(--crm-text-xs)' }} />
               </span>
 
               {/* Date */}
-              <span style={{ width: COL.date, fontSize: 12, color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ width: COL.date, fontSize: 'var(--crm-text-sm)', color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>
                 {formatDate(c.created_at)}
               </span>
             </Link>
@@ -507,7 +507,7 @@ export default function AdminCompliancePage() {
           >
             {t('common.previous')}
           </AdminGhostBtn>
-          <span style={{ fontSize: 12, fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
             {page}/{totalPages}
           </span>
           <AdminGhostBtn

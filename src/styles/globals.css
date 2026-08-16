@@ -158,18 +158,43 @@
     /* Borders */
     --color-border: 215 218 224;          /* #D7DAE0 — stronger for light */
     --color-border-subtle: 229 231 235;   /* #E5E7EB */
-    --color-border-focus: 37 99 235;      /* accent blue */
+    /* ⛔ LE FILET SUIT L'ENCRE, il ne porte plus sa propre valeur. Il gardait
+       #2563EB — l'accent d'AVANT l'unification du 15 août 2026, que celle-ci a
+       oublié parce que `applyPreferences` le réécrivait au rendu : personne ne
+       pouvait voir qu'il avait divergé. Le retrait de cette réécriture l'a
+       exposé. Un filet est le rôle ENCRE, donc il lit `--color-accent`. */
+    --color-border-focus: var(--color-accent);
 
     /* Accent (brand) */
-    --color-accent: 37 99 235;            /* #2563EB */
-    --color-accent-hover: 29 78 216;      /* #1D4ED8 */
-    --color-accent-light: 239 246 255;    /* #EFF6FF */
-    --color-accent-dark: 30 64 175;       /* #1E40AF */
+    /* ⛔ L'ACCENT DE MARQUE, unifié le 15 août 2026. Cette rampe portait un
+       SECOND bleu (#2563EB) que rien ne rattachait à MEGGA X : deux accents à
+       1,12:1 l'un de l'autre se rencontraient sur six surfaces CRM, le chrome
+       peint de l'un et le contenu de l'autre. `--color-accent` est le rôle
+       ENCRE — c'est lui que lisent `text-accent`, l'anneau de focus et les
+       filets. */
+    --color-accent: 66 75 251;            /* #424bfb — 5,78:1 en encre sur blanc */
+    --color-accent-dark: 56 64 213;       /* #3840D5 — survol du rail coloré, 7,34:1 sous blanc */
     --color-accent-fg: 255 255 255;       /* text on accent bg */
+    /* ⛔ L'APLAT A SON PROPRE JETON depuis le 15 août 2026, et il vaut la MÊME
+       teinte dans les deux thèmes — c'est un RÔLE, pas un ton. `--color-accent`
+       est réglée pour se lire en TEXTE sur la page de son thème ; en sombre
+       (#3B82F6) elle ne porte pas l'encre blanche : 3,68:1, sous l'AA. Aucune
+       valeur unique ne tient les deux rôles — mesuré, #2563EB inverse le
+       défaut (aplat 5,17 ✅, texte 3,30 ⛔). D'où deux jetons. */
+    --color-accent-solid: 66 75 251;      /* #424bfb — aplat sous encre blanche, 5,78:1 */
 
-    /* Admin accent (violet) */
-    --color-admin-accent: 139 92 246;
-    --color-admin-accent-hover: 124 58 237;
+    /* Admin accent (violet) — le REPÈRE DE CONTEXTE de la console, et lui seul.
+       Il ne décore pas : il dit « tu n'es plus dans ton agence, tu es dans la
+       plateforme ». Ses trois sites vivent dans `AdminShell`.
+
+       ⛔ Descendu de `139 92 246` (violet-500) à `124 58 237` (violet-600) le
+       14 août 2026. Il est employé en TEXTE — le badge « ADMIN » et le titre du
+       rail — et rendait 4,02:1 sur le fond du rail en clair. Le barreau existait
+       déjà juste en dessous, comme `-hover` ; celui-ci descend d'un cran à son
+       tour pour rester un survol. En sombre, `167 139 250` tient (7,58:1) et ne
+       bouge pas. Mesuré par `tests/unit/admin-contraste.spec.ts`. */
+    --color-admin-accent: 124 58 237;
+    --color-admin-accent-hover: 109 40 217;
     --color-admin-accent-light: 245 243 255;
 
     /* Semantic */
@@ -191,7 +216,8 @@
     --shadow-modal: 0 20px 60px rgba(0,0,0,0.15);
 
     /* Ring */
-    --color-ring: 37 99 235;
+    /* Même rôle, même source : `ring-1` sans couleur tire d'ici (Toast.tsx). */
+    --color-ring: var(--color-accent);
 
     /* Border radius (customizable) */
     --radius-card: 12px;
@@ -236,7 +262,22 @@
     --crm-text-8xl: 34px;
     --crm-text-9xl: 38px;
 
-    /* Rayons — pas régulier de 2 px entre 8 et 22 */
+    /* Rayons — pas régulier de 2 px entre 8 et 22
+     *
+     * ⛔ DOUZE NOMS POUR SEPT VALEURS, ET CE N'EST PAS UNE NÉGLIGENCE. Avant la
+     * bascule vers MEGGA X, l'échelle de Sugar était PLUS FINE : `md` valait
+     * 10 px contre 8 pour `sm`, `xl` valait 14 contre 16 pour `2xl`. La bascule
+     * a écrasé les paires l'une sur l'autre. Les noms restent parce qu'ils
+     * disent encore, sur ~3 100 sites, une intention que la valeur ne distingue
+     * plus — les fondre la détruirait, et rien ne permettrait de replacer un
+     * cran à 10 px s'il revenait.
+     *
+     * ⚠ La vitrine, elle, n'a AUCUN alias (14 espacements / 14 noms, 8 rayons /
+     * 8 noms) : ceux-ci sont propres au CRM. Ils sont donc ÉCRITS et gardés —
+     * `megga-x-crm-tokens.spec.ts`, « les alias de l'échelle sont ceux qui ont
+     * été écrits » : un nom neuf qui doublerait une valeur devra s'y inscrire,
+     * et une collision résolue devra en sortir.
+     */
     --crm-radius-2xs: 2px;
     --crm-radius-xs: 4px;
     --crm-radius-sm: 8px;
@@ -329,14 +370,21 @@
     /* Borders */
     --color-border: 56 56 56;             /* #383838 */
     --color-border-subtle: 42 42 42;      /* #2A2A2A */
-    --color-border-focus: 59 130 246;
+    /* Suit l'encre — ici #8dc1ff, la seule valeur qui tienne le seuil des
+       filets sur la page sombre (l'accent y rend 2,95:1). */
+    --color-border-focus: var(--color-accent);
 
     /* Accent — slightly brighter in dark for better contrast */
-    --color-accent: 59 130 246;           /* #3B82F6 */
-    --color-accent-hover: 96 165 250;     /* #60A5FA */
-    --color-accent-light: 23 37 84;       /* dark blue bg for badges */
-    --color-accent-dark: 37 99 235;       /* #2563EB */
+    /* ⛔ EN SOMBRE, L'ENCRE N'EST PAS L'ACCENT — `#424bfb` rend 2,95:1 sur cette
+       page, sous l'AA et même sous le seuil des filets. `blue300` est le barreau
+       de la vitrine prévu pour ça, déjà nommé dans `megga-x-crm/tokens.ts` et
+       dans `CLAUDE.md` §3 : « pour une encre teintée sur sombre ». 9,09:1 ici.
+       L'APLAT, lui, ne bouge pas d'un thème à l'autre : voir `accent-solid`. */
+    --color-accent: 141 193 255;          /* #8dc1ff — MXC_SYSTEM.blue300, 9,09:1 */
+    --color-accent-dark: 56 64 213;       /* #3840D5 — même rôle qu'en clair */
     --color-accent-fg: 255 255 255;
+    /* Même valeur qu'en clair : voir la note du bloc `:root`. */
+    --color-accent-solid: 66 75 251;      /* #424bfb — 5,78:1 sous encre blanche */
 
     /* Admin accent (violet) */
     --color-admin-accent: 167 139 250;
@@ -362,7 +410,7 @@
     --shadow-modal: 0 20px 60px rgba(0,0,0,0.6);
 
     /* Ring */
-    --color-ring: 59 130 246;
+    --color-ring: var(--color-accent);
 
     /* Border radius (inherit from root, can be overridden) */
     --radius-card: 12px;
@@ -428,7 +476,7 @@
   body {
     background-color: #ffffff;
     color: #1a1a1a;
-    /* Point unique de la police : 206 des 242 `fontFamily` de crm-sugar valent
+    /* Point unique de la police : 206 des 242 `fontFamily` de crm/ valent
        `inherit`, donc cette seule règle habille tout le CRM. Un composant qui
        écrit une police en dur la court-circuite — garde dans
        megga-x-crm-tokens.spec.ts. */
@@ -535,7 +583,9 @@ main {
 /* ─── Sidebar colored style ─── */
 
 [data-sidebar-style="colored"] aside {
-  background-color: rgb(var(--color-accent)) !important;
+  /* ⛔ APLAT, pas encre : ce rail force du texte BLANC. Lire `--color-accent`
+     ici le peignait en #8dc1ff au thème sombre — 1,87:1, illisible. */
+  background-color: rgb(var(--color-accent-solid)) !important;
   border-color: rgb(var(--color-accent-dark)) !important;
 }
 
@@ -686,7 +736,7 @@ main {
    l'opacité après 120 ms, donc le squelette n'est visible que si l'attente
    est réelle. Le composant reste monté tout du long (aucune temporisation
    JS, aucun état à gérer) — c'est la peinture qui est différée.
-   Utilisé par src/components/skeletons/SugarPageSkeleton.tsx.
+   Utilisé par src/components/skeletons/CrmPageSkeleton.tsx.
    ────────────────────────────────────────────────────────────────────── */
 .megga-fallback {
   animation: megga-fallback-in 180ms ease 120ms both;

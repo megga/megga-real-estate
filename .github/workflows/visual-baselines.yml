@@ -56,6 +56,19 @@ jobs:
         # file directly results in "no tests found".
         run: npx playwright test --config=playwright.visual.config.ts --update-snapshots=all
 
+      # ⛔ L'EMPREINTE N'EST PAS ÉCRITE ICI, ET C'EST DÉLIBÉRÉ.
+      #
+      # Elle rattache la capture aux sources qui la peignent
+      # (`tests/unit/visual-baseline-fraicheur.spec.ts`). Une étape ajoutée à ce
+      # fichier NE S'EXÉCUTERAIT PAS : pour un événement `issue_comment`, GitHub
+      # lit la définition du workflow sur la BRANCHE PAR DÉFAUT, jamais sur la
+      # branche de PR — même s'il checkout cette dernière juste après. Mesuré le
+      # 15 août 2026 : l'étape ajoutée sur la PR n'apparaît pas dans le journal
+      # du run, la capture a été régénérée et l'empreinte est restée périmée.
+      #
+      # C'est donc `visual-regression.spec.ts` qui l'écrit, sous
+      # `--update-snapshots` — la SPEC, elle, vient bien du checkout. Elle
+      # atterrit dans le dossier des captures, donc dans le `git add` ci-dessous.
       - name: Commit & push baselines if changed
         run: |
           git config user.name "Claude (visual baselines)"

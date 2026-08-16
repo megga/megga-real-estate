@@ -55,7 +55,7 @@ import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Clock, Eye } from 'lucide-react'
 import { formatCHF, formatDate, formatRelativeDate } from '@/lib/utils'
 import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import { useAgencyOnboardingCalls } from '@/hooks/useAdminOnboardingCalls'
 import {
@@ -80,7 +80,7 @@ const STATUS_TONE: Record<string, AdminToneName> = { active: 'ok', suspended: 'e
 export default function AdminAgencyDetailPage() {
   const { id = '' } = useParams()
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const { data, isPending, isError, refetch } = useAdminAgencyDetail(id)
   const { updateStatus } = useAdminAgencies()
 
@@ -112,7 +112,7 @@ export default function AdminAgencyDetailPage() {
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start',
         marginBottom: 14, padding: '5px 9px 5px 6px', borderRadius: ADMIN_RADII.pill,
-        textDecoration: 'none', fontSize: 12, fontWeight: 600, color: sp.sub,
+        textDecoration: 'none', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub,
       }}
     >
       <AdminIc icon={ArrowLeft} size={14} color={sp.sub} />
@@ -185,18 +185,17 @@ export default function AdminAgencyDetailPage() {
 
   const chiffre = (valeur: string, libelle: string) => (
     <div key={libelle} style={{ minWidth: 118 }}>
-      <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.8, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.8, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
         {valeur}
       </div>
-      <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>{libelle}</div>
+      <div style={{ marginTop: 2, fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>{libelle}</div>
     </div>
   )
 
   const section = (cle: string, titre: string, contenu: ReactNode) => (
     <section key={cle} style={{ ...filet, paddingTop: 16, marginTop: 22 }}>
       <h2 style={{
-        margin: '0 0 11px', fontSize: 11.5, fontWeight: 800, letterSpacing: '0.06em',
-        textTransform: 'uppercase', color: sp.sub,
+        margin: '0 0 11px', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub,
       }}>
         {titre}
       </h2>
@@ -207,20 +206,20 @@ export default function AdminAgencyDetailPage() {
   const membre = (m: AgencyDetailMember, i: number) => (
     <div key={m.id} style={{ ...ligne, borderTop: i === 0 ? undefined : surf.hairline }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {m.name ?? t('common.noName')}
           {m.suspended && (
-            <span style={{ marginLeft: 8, fontSize: 11.5, fontWeight: 500, color: tones.err }}>
+            <span style={{ marginLeft: 8, fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tones.err }}>
               {t('agencyDetail.team.suspended')}
             </span>
           )}
         </div>
-        <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ marginTop: 2, fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {[m.email, m.role ? t(`common.role.${m.role}`, { defaultValue: m.role }) : null]
             .filter(Boolean).join(' · ')}
         </div>
       </div>
-      <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub, whiteSpace: 'nowrap' }}>
+      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub, whiteSpace: 'nowrap' }}>
         {t('agencyDetail.team.registeredOn', { date: formatDate(m.since) })}
       </span>
       {/* Bouton icône : le libellé complet part en `title` ET en `label`
@@ -242,7 +241,7 @@ export default function AdminAgencyDetailPage() {
 
       {/* ── En-tête ─────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 13, flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0, fontSize: 34, fontWeight: 800, letterSpacing: -1.4, lineHeight: 1.05, color: sp.ink }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-8xl)', fontWeight: 600, letterSpacing: -1.4, lineHeight: 1.05, color: sp.ink }}>
           {nom}
         </h1>
         <AdminPill
@@ -253,20 +252,20 @@ export default function AdminAgencyDetailPage() {
         {agency.sub === 'past_due' && <AdminPill label={t('agencies.sub.pastDue')} tone="err" />}
         {suspendue && (
           <div style={{ marginLeft: 'auto' }}>
-            <AdminGhostBtn onClick={() => basculer('active')} disabled={updateStatus.isPending} style={{ height: 30, fontSize: 12 }}>
+            <AdminGhostBtn onClick={() => basculer('active')} disabled={updateStatus.isPending} style={{ height: 30, fontSize: 'var(--crm-text-sm)' }}>
               {t('agencyDetail.reactivate.cta')}
             </AdminGhostBtn>
           </div>
         )}
       </div>
-      <div style={{ marginTop: 5, fontSize: 12.5, fontWeight: 500, color: sp.sub }}>
+      <div style={{ marginTop: 5, fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub }}>
         {[agency.city, agency.canton, agency.email].filter(Boolean).join(' · ')}
       </div>
 
       {flash && (
         <div style={{
           marginTop: 14, padding: '11px 13px', borderRadius: ADMIN_RADII.row, background: surf.cardSub,
-          fontSize: 12.5, fontWeight: 600, color: flash.ok ? sp.ink : tones.err,
+          fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: flash.ok ? sp.ink : tones.err,
         }}>
           {flash.text}
         </div>
@@ -275,7 +274,7 @@ export default function AdminAgencyDetailPage() {
       {/* ── Équipe ──────────────────────────────────────────────────────────── */}
       {section('team', t('agencyDetail.section.team'),
         team.length === 0
-          ? <div style={{ fontSize: 12.5, fontWeight: 500, color: sp.sub, padding: '2px 2px 6px' }}>
+          ? <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, padding: '2px 2px 6px' }}>
               {t('agencyDetail.team.empty')}
             </div>
           : <div style={{ display: 'flex', flexDirection: 'column' }}>{team.map(membre)}</div>,
@@ -286,16 +285,16 @@ export default function AdminAgencyDetailPage() {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {invitations.map((inv, i) => (
             <div key={inv.id ?? `${inv.email}-${i}`} style={{ ...ligne, borderTop: i === 0 ? undefined : surf.hairline }}>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13, fontWeight: 700, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {inv.email ?? t('common.noName')}
               </span>
               {inv.role && (
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+                <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>
                   {t(`common.role.${inv.role}`, { defaultValue: inv.role })}
                 </span>
               )}
               {inv.created_at && (
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub, whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub, whiteSpace: 'nowrap' }}>
                   {t('agencyDetail.invites.sentOn', { date: formatDate(inv.created_at) })}
                 </span>
               )}
@@ -312,7 +311,7 @@ export default function AdminAgencyDetailPage() {
             {chiffre(String(agency.properties), t('agencyDetail.portfolio.properties'))}
             {chiffre(String(agency.deals), t('agencyDetail.portfolio.deals'))}
           </div>
-          <div style={{ marginTop: 10, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+          <div style={{ marginTop: 10, fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>
             {agency.last
               ? t('agencyDetail.portfolio.lastActivity', { when: formatRelativeDate(agency.last) })
               : t('agencyDetail.portfolio.noActivity')}
@@ -339,18 +338,18 @@ export default function AdminAgencyDetailPage() {
       {section('subscription', t('agencyDetail.section.subscription'),
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={ligne}>
-            <span style={{ minWidth: 118, fontSize: 12.5, fontWeight: 700, color: sp.ink }}>
+            <span style={{ minWidth: 118, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink }}>
               {t('agencyDetail.sub.plan')}
             </span>
-            <span style={{ fontSize: 12.5, fontWeight: 500, color: sp.sub }}>
+            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub }}>
               {t('agencyDetail.sub.planValue', { plan: planLabel, price: formatCHF(Number(agency.mrr)) })}
             </span>
           </div>
           <div style={{ ...ligne, borderTop: surf.hairline }}>
-            <span style={{ minWidth: 118, fontSize: 12.5, fontWeight: 700, color: sp.ink }}>
+            <span style={{ minWidth: 118, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink }}>
               {t('agencyDetail.sub.seats')}
             </span>
-            <span style={{ fontSize: 12.5, fontWeight: 500, color: sp.sub }}>
+            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub }}>
               {t('agencyDetail.sub.seatsValue', { count: agency.agents })}
               {' · '}
               {/* É1 : le plafond n'est pas affiché, il est NOMMÉ comme manquant. */}
@@ -359,7 +358,7 @@ export default function AdminAgencyDetailPage() {
           </div>
           {!subscription && (
             <div style={{ ...ligne, borderTop: surf.hairline, minHeight: 38 }}>
-              <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+              <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>
                 {t('agencyDetail.sub.none')}
               </span>
             </div>
@@ -369,7 +368,7 @@ export default function AdminAgencyDetailPage() {
 
       {/* ── Note interne — jamais lue par l'agence (RLS super-admin seule) ───── */}
       {note?.note && section('note', t('agencyDetail.section.note'),
-        <div style={{ fontSize: 12.5, fontWeight: 500, color: sp.ink, whiteSpace: 'pre-wrap' }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.ink, whiteSpace: 'pre-wrap' }}>
           {note.note}
         </div>,
       )}
@@ -380,7 +379,7 @@ export default function AdminAgencyDetailPage() {
           <AdminGhostBtn
             onClick={() => setConfirmOuvert(true)}
             disabled={updateStatus.isPending}
-            style={{ height: 30, fontSize: 12, color: tones.err }}
+            style={{ height: 30, fontSize: 'var(--crm-text-sm)', color: tones.err }}
           >
             {t('agencyDetail.suspend.cta')}
           </AdminGhostBtn>
@@ -421,7 +420,7 @@ function AppelAccueil({ agencyId, section }: {
   section: (cle: string, titre: string, contenu: ReactNode) => ReactNode
 }) {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const { data: calls, isLoading } = useAgencyOnboardingCalls(agencyId)
 
   const trie = [...(calls ?? [])].sort((a, b) => Date.parse(b.scheduled_at) - Date.parse(a.scheduled_at))
@@ -430,25 +429,25 @@ function AppelAccueil({ agencyId, section }: {
 
   return section('call', t('agencyDetail.onboardingCall.title'),
     isLoading ? <AdminSkeleton height={40} /> : !dernier ? (
-      <div style={{ fontSize: 12.5, fontWeight: 500, color: sp.sub, padding: '2px 2px 6px' }}>
+      <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: sp.sub, padding: '2px 2px 6px' }}>
         {t('agencyDetail.onboardingCall.none')}
       </div>
     ) : (
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minHeight: 40 }}>
         <AdminIc icon={Clock} size={15} color={sp.sub} />
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
           {new Intl.DateTimeFormat('fr-CH', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit', hour12: false,
           }).format(new Date(dernier.scheduled_at))}
         </span>
-        <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>{dernier.host_name}</span>
+        <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>{dernier.host_name}</span>
         <AdminPill
           label={t(`onboardingCalls.status.${dernier.status}`)}
           tone={dernier.status === 'confirmed' ? 'ok' : dernier.status === 'no_show' ? 'err' : 'neutral'}
         />
         {dernier.rescheduled_count > 0 && (
-          <span style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub }}>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>
             {t('onboardingCalls.table.rescheduled', { count: dernier.rescheduled_count })}
           </span>
         )}

@@ -1,0 +1,233 @@
+/**
+ * Données de démonstration partagées par les harnais d'aperçu (`/dev/*`).
+ *
+ * ⛔ Rien ici ne vient de la base et rien ne doit y ressembler à un vrai bien
+ * d'agence : ces objets servent à vérifier une composition sans session, pas à
+ * simuler un portefeuille.
+ *
+ * ⚠ Une SEULE fixture partagée. `DEMO_LISTING` vivait dans
+ * `MobileShowcasePage.tsx` ; l'aperçu bureau en aurait recopié une variante, et
+ * les deux auraient divergé au premier champ ajouté — c'est exactement ce qui
+ * est arrivé à la carte des types du wizard (`villa` valait `'villa'` d'un côté
+ * et `'house'` de l'autre).
+ */
+import type { Property } from '@/types/listing'
+import { CRM_CONTACTS, type CrmContact } from '@/components/crm/mockData'
+import type {
+  FicheContact, FicheLoopItem, FicheNba, FicheReceptionLink,
+} from '@/components/crm/contacts-pager/ContactDetailPager'
+import type { KycCase, KycDocument } from '@/types/kyc'
+
+export const DEMO_LISTING: Property = {
+  id: 'p3', agency_id: 'ag', title: 'Villa contemporaine', description: 'Villa lumineuse de 240 m² avec piscine, vue dégagée, finitions haut de gamme. Quartier résidentiel calme à Cologny, proche des écoles internationales.',
+  type: 'villa', status: 'active', price: 3850000, currency: 'CHF', rooms: 7, bedrooms: 5, bathrooms: 3, surface_m2: 240,
+  year_built: 2019, charges_monthly: 0, mandate_type: 'Exclusif', energy_class: 'A', mandate_commission_pct: 3, mandate_signed_at: '2026-05-02', mandate_expires_at: '2026-11-02',
+  transaction_type: 'buy', address: 'Route de la Capite 12', city: 'Cologny', canton: 'GE', postal_code: '1223', lat: 46.22, lng: 6.18,
+  photos: ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80', 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&q=80', 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&q=80'],
+  c2pa_verified: true, features: ['Piscine', 'Jardin', 'Garage', 'Cave'], created_by: 'u', created_at: '2026-05-02', published_at: '2026-05-04',
+}
+
+/**
+ * Contacts de démonstration — `CRM_CONTACTS` COMPLÉTÉ pour que le banc montre
+ * les éléments FRAGILES.
+ *
+ * ⛔ C'est la leçon de `/dev/biens`, qui n'affichait aucune pastille de score
+ * faute de `health` dans ses données : un harnais qui cache précisément
+ * l'élément défectueux coûte plus cher qu'il ne rapporte. Ici les deux éléments
+ * à mesurer sont l'AVATAR (huit teintes de `pickAvatarBg`, dont cinq échouent
+ * l'AA sous encre blanche) et la PILULE de type (`CTP_FN`, quatre valeurs).
+ *
+ * `CRM_CONTACTS` seul en montre l'essentiel mais pas tout — mesuré, pas supposé :
+ * sept teintes d'avatar sur huit (#EC4899 manque), et trois KYC sur quatre
+ * (`stale` manque). Les TROIS pilules sortent en revanche déjà, ce qui n'allait
+ * pas de soi : `type` n'y vaut que `buyer` ou `seller`, et c'est
+ * `criteria.transaction === 'location'` qui fait basculer un acheteur sur la
+ * pilule `tenant` (cf. `audienceOf`). Compter les `type` aurait conclu à tort
+ * qu'il manquait une audience.
+ *
+ * Les deux contacts ajoutés ferment ce qui reste : la huitième teinte, le KYC
+ * `stale`, et le type `landlord` — qui ne crée pas de quatrième pilule (il
+ * retombe sur `seller`) mais donne son `audience: 'Bailleur'` à la fiche.
+ */
+const DEMO_CONTACTS_COMPLEMENT: CrmContact[] = [
+  // Locataire par le `type` (et non par ses critères, comme les autres) — plus
+  // la huitième teinte d'avatar (#EC4899) et le KYC `stale`.
+  {
+    id: 'c-d01', type: 'tenant', firstName: 'Sofia', lastName: 'Marchetti',
+    email: 's.marchetti@bluewin.ch', phone: '+41 76 318 40 55', lang: 'it',
+    status: 'qualified', score: 66, source: 'website', assignedTo: 'agt-1',
+    createdAt: '2026-05-04T10:15:00', lastActivityAt: '2026-06-02T16:40:00',
+    kyc: { status: 'stale', riskLevel: 'low', expiresAt: '2026-05-20' },
+    criteria: { transaction: 'location', types: ['appartement'], cantons: ['VD'], cities: ['Lausanne'], budgetMax: 3200, roomsMin: 3 },
+    tags: ['mobilité pro'], notes: 'Arrive de Milan pour un poste à l’EPFL. Bail souhaité au 1er septembre.',
+    avatarBg: '#EC4899',
+  },
+  // Bailleur — l'audience `Bailleur` de la fiche, qui retombe sur la pilule
+  // `seller`. La teinte reprend #F59E0B À DESSEIN : c'est la pire du jeu sous
+  // encre blanche (2,15:1), autant qu'elle soit visible deux fois.
+  {
+    id: 'c-d02', type: 'landlord', firstName: 'Bernard', lastName: 'Held',
+    email: 'b.held@swissonline.ch', phone: '+41 79 604 27 18', lang: 'de',
+    status: 'active', score: 78, source: 'referral', assignedTo: 'agt-1',
+    createdAt: '2026-02-11T08:30:00', lastActivityAt: '2026-06-05T09:05:00',
+    kyc: { status: 'verified', riskLevel: 'low', expiresAt: '2027-02-11' },
+    tags: ['multi-lots'], notes: 'Propriétaire de trois lots à Nyon. Souhaite déléguer la gérance complète.',
+    avatarBg: '#F59E0B',
+  },
+]
+
+export const DEMO_CONTACTS: CrmContact[] = [...CRM_CONTACTS, ...DEMO_CONTACTS_COMPLEMENT]
+
+/**
+ * Fiche contact de démonstration — l'entrée de `ContactDetailPager`, qui est
+ * purement présentationnel (le conteneur porte les requêtes). Le harnais peut
+ * donc l'alimenter directement, sans échafaudage dans le code de production.
+ *
+ * `verified: true` pour que le bluecheck soit rendu, et une identité LBA
+ * complète pour que les neuf lignes du bloc Coordonnées portent une valeur —
+ * un « — » partout ne dit rien de la composition.
+ */
+export const DEMO_FICHE: FicheContact = {
+  id: 'c-001', firstName: 'Marie', lastName: 'Bertrand', verified: true,
+  email: 'm.bertrand@bluewin.ch', phone: '+41 79 412 88 02',
+  lang: 'fr', civ: 'mrs', canal: 'whatsapp',
+  audience: 'Acheteur', isTenant: false, avatarBg: '#0041D9',
+  birth: '14.03.1986', nationality: 'CH', residence: 'CH',
+  homeAddress: 'Rue du Rhône 42, 1204 Genève',
+  photo: null,
+  crit: {
+    transaction: 'vente', types: ['appartement'], cantons: ['GE'],
+    cities: ['Genève', 'Carouge'], budgetMin: 900000, budgetMax: 1300000,
+    areaMin: 90, roomsMin: 4, mustHave: ['balcon', 'ascenseur'],
+  },
+  notes: 'Recherche un 4-5p pour la rentrée scolaire. Décision d’achat en couple, mari basé à Lausanne en semaine.',
+}
+
+/** Boucle de match — page 1 de la fiche. Les quatre états y sont représentés. */
+export const DEMO_FICHE_LOOP: {
+  items: FicheLoopItem[]; pendingLikes: FicheLoopItem[]; transmitted: number; opened: number
+} = {
+  items: [
+    { matchId: 'm1', title: 'Appartement 4.5p — Eaux-Vives', addr: 'Rue des Eaux-Vives 18, Genève', photo: DEMO_LISTING.photos?.[0] ?? null, state: 'sent', motif: null },
+    { matchId: 'm2', title: 'Duplex 5p — Carouge', addr: 'Rue Ancienne 7, Carouge', photo: DEMO_LISTING.photos?.[1] ?? null, state: 'seen', motif: null },
+    { matchId: 'm4', title: 'Appartement 3.5p — Champel', addr: 'Avenue de Champel 30, Genève', photo: null, state: 'dismissed', motif: 'Étage trop bas' },
+  ],
+  pendingLikes: [
+    { matchId: 'm3', title: 'Attique 4p — Plainpalais', addr: 'Boulevard du Pont-d’Arve 5, Genève', photo: DEMO_LISTING.photos?.[2] ?? null, state: 'liked', motif: null },
+  ],
+  transmitted: 4,
+  opened: 3,
+}
+
+/**
+ * Liens de réception — les états qui se PEIGNENT différemment : actif, échu,
+ * retiré, et le statut non reconnu (`null`), sur lequel l'UI n'offre pas de
+ * retrait.
+ */
+export const DEMO_FICHE_LINKS: { items: FicheReceptionLink[]; isLoading: boolean; failed: boolean } = {
+  items: [
+    { id: 'l1', status: 'viewed', channel: 'whatsapp', createdAt: '2026-06-01T10:00:00', expiresAt: '2026-07-01T10:00:00', count: 3, revokedAt: null, active: true },
+    { id: 'l2', status: 'expired', channel: 'link', createdAt: '2026-04-02T09:00:00', expiresAt: '2026-05-02T09:00:00', count: 2, revokedAt: null, active: false },
+    { id: 'l3', status: 'revoked', channel: 'whatsapp', createdAt: '2026-05-10T14:00:00', expiresAt: '2026-06-10T14:00:00', count: 1, revokedAt: '2026-05-18T08:20:00', active: false },
+    { id: 'l4', status: null, channel: null, createdAt: '2026-05-22T11:00:00', expiresAt: '2026-06-22T11:00:00', count: 1, revokedAt: null, active: false },
+  ],
+  isLoading: false,
+  failed: false,
+}
+
+/** Prochaine action estimée — bloc additif, absent si `null` : le banc le montre. */
+export const DEMO_FICHE_NBA: FicheNba = {
+  label: 'Proposer une visite pour l’attique de Plainpalais',
+  kycNote: null,
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fixtures du banc des modales (`/dev/modales`).
+//
+// ⚠ Elles n'existent QUE pour éprouver un piège de focus et un rendu. Aucune
+// ne doit se mettre à ressembler à un jeu de données réaliste : dès qu'une
+// fixture devient crédible, quelqu'un finit par lire son contenu comme un fait.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Brouillon d'e-mail relu par `EmailReviewModal` (l'agent valide avant envoi). */
+export const DEMO_AI_EMAIL = {
+  subject: 'Suite à votre visite de l’attique de Plainpalais',
+  body: 'Bonjour Marie,\n\nMerci pour votre visite de mardi. Comme convenu, je vous joins le dossier complet du bien : plans, charges détaillées et procès-verbal de la dernière assemblée.\n\nJe reste à disposition pour une seconde visite.\n\nBien à vous,\nGregory Lyonnet',
+}
+
+/** Texte d'annonce relu par `AnnonceReviewModal` avant enregistrement sur le bien. */
+export const DEMO_AI_ANNONCE =
+  'Attique de 4,5 pièces au dernier étage d’un immeuble de 2019, à deux pas de la plaine de Plainpalais. ' +
+  'Séjour traversant ouvert sur une terrasse de 28 m² exposée sud-ouest, cuisine entièrement équipée, ' +
+  'trois chambres dont une suite parentale. Cave et place de parc en sous-sol comprises.'
+
+/** Courrier relu par `LetterReviewModal` (lettre papier, pas d'envoi automatisé). */
+export const DEMO_AI_LETTER =
+  'Genève, le 12 août 2026\n\nMadame, Monsieur,\n\n' +
+  'Faisant suite à notre entretien téléphonique, je vous confirme la mise en vente du bien sis ' +
+  'route de Chêne 44, et vous prie de trouver ci-joint le mandat de courtage pour signature.\n\n' +
+  'Veuillez agréer, Madame, Monsieur, mes salutations distinguées.\n\nGregory Lyonnet'
+
+/**
+ * Carte d'action en attente, telle que le copilote la produit. `kind` décide du
+ * verbe du bouton (« Publier » / « Retirer »), d'où deux fixtures et non une.
+ */
+export const DEMO_AI_PENDING_PUBLISH = {
+  id: 'demo-pending-1', kind: 'publish', title: 'Attique · Plainpalais',
+  portals: ['Homegate', 'ImmoScout24'],
+  preview: 'Attique de 4,5 pièces, 118 m², terrasse 28 m² — CHF 1’950’000',
+}
+export const DEMO_AI_PENDING_DELETE = {
+  id: 'demo-pending-2', kind: 'delete_contact', title: 'Marie Bertrand',
+  portals: [],
+  preview: 'Acheteuse · aucun deal ouvert · dernière activité il y a 8 mois',
+}
+
+/** Lien de réception minté, tel que `MrhSendSheet` le reçoit après l'envoi. */
+export const DEMO_SEND_RESULT = {
+  url: 'https://app.megga.ch/r/demo-token-de-banc',
+  token: 'demo-token-de-banc',
+  phone: '+41798749484',
+  firstName: 'Marie',
+  count: 3,
+}
+
+/**
+ * Dossier LAB/KYC minimal — il n'alimente que `SourceOfFundsOverlay`, qui n'en
+ * lit QUE les trois champs « source des fonds ». Le reste est là parce que le
+ * type l'exige, pas parce que l'écran s'en sert : ne pas y chercher un dossier
+ * cohérent.
+ */
+export const DEMO_KYC_CASE: KycCase = {
+  id: 'demo-kyc-banc', agency_id: 'demo-ag', transaction_id: 'demo-tx', contact_id: 'demo-c1',
+  type: 'buyer_pp', risk_level: 'medium', status: 'in_progress', completion_pct: 60,
+  validated_by: null, validated_at: null, created_at: '2026-07-01T09:00:00.000Z',
+  pep_status: 'clear', pep_details: null, sanctions_status: 'clear', sanctions_details: null,
+  last_screening_at: '2026-07-02T09:00:00.000Z', contact_nationality: 'CH',
+  transaction_amount: 1950000, risk_score: 42, risk_factors: null, notes: null,
+  vigilance: 'standard', expires_at: null, dossier_status: 'pending',
+  source_of_funds_type: null, source_of_funds_description: null, source_of_funds_doc_id: null,
+  ai_analysis: null,
+}
+
+/**
+ * ⚠ DEUX documents, et un seul éligible. L'aperçu filtre sur
+ * `document_category` (`financial` | `compliance`) : avec une liste homogène,
+ * un filtre cassé rendrait exactement le même écran qu'un filtre correct.
+ */
+export const DEMO_KYC_DOCS: KycDocument[] = [
+  {
+    id: 'demo-doc-fin', agency_id: 'demo-ag', kyc_case_id: 'demo-kyc-banc', transaction_id: null,
+    contact_id: 'demo-c1', property_id: null, name: 'Attestation de vente — étude Vermeil.pdf',
+    type: 'pdf', storage_path: 'demo/attestation.pdf', size_bytes: 184320, uploaded_by: null,
+    status: 'validated', created_at: '2026-07-03T10:00:00.000Z', issued_at: null, expires_at: null,
+    document_category: 'financial', sha256_hash: null,
+  },
+  {
+    id: 'demo-doc-id', agency_id: 'demo-ag', kyc_case_id: 'demo-kyc-banc', transaction_id: null,
+    contact_id: 'demo-c1', property_id: null, name: 'Passeport.pdf',
+    type: 'pdf', storage_path: 'demo/passeport.pdf', size_bytes: 92160, uploaded_by: null,
+    status: 'validated', created_at: '2026-07-03T10:05:00.000Z', issued_at: null, expires_at: null,
+    document_category: 'identity', sha256_hash: null,
+  },
+]

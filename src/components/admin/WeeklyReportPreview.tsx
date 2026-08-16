@@ -11,14 +11,14 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Send, CheckCircle, Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useToast } from '@/components/ui/Toast'
 import { AdminGhostBtn, AdminIc } from '@/components/admin/kit/adminKit'
 
 /** Bouton « envoyer maintenant » avec libellé/icône reflétant l'état d'envoi. */
 export default function WeeklyReportPreview() {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const toast = useToast()
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)

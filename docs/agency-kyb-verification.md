@@ -327,7 +327,7 @@ pas dans le CRM agent.
 Fichiers à corriger (vérifié par grep) :
 
 - `src/hooks/useAgencySettings.ts` — type, `select`, `update`
-- `src/components/crm-sugar/settings/focus/AgencyFocusSection.tsx` — UI desktop (`RowKey`, `AG_GROUPS`)
+- `src/components/crm/settings/focus/AgencyFocusSection.tsx` — UI desktop (`RowKey`, `AG_GROUPS`)
 - `src/components/crm-mobile/settings/MobileSettingsScreen.tsx` — UI mobile
 - `src/types/database.ts` — types générés
 - `src/i18n/locales/{fr,de,en,it}/settings.json` — clés i18n (cosmétique, non bloquant)

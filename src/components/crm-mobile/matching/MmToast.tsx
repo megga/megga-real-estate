@@ -21,7 +21,7 @@ export interface MmToastState {
 
 /**
  * Toast d'action Sugar (accent plein, au-dessus de la barre d'onglets) avec
- * actions « Annuler » / « Voir le deal → ». La primitive `SgToast` est
+ * actions « Annuler » / « Voir le deal → ». La primitive `CrmToast` est
  * volontairement passive (display-only) ; le contrat undo 5 s du matching exige
  * un toast cliquable, d'où ce composant dédié.
  */
@@ -51,7 +51,7 @@ export default function MmToast({ toast }: { toast: MmToastState | null }) {
             color: tk.accentInk,
             fontFamily: MOBILE_FONT,
             fontSize: 'var(--crm-text-lg)',
-            fontWeight: 700,
+            fontWeight: 600,
             letterSpacing: -0.2,
             padding: toast.onUndo || toast.onSeeDeal ? '9px 10px 9px 18px' : '11px 18px',
             borderRadius: 'var(--crm-radius-pill)',
@@ -79,7 +79,7 @@ export default function MmToast({ toast }: { toast: MmToastState | null }) {
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-lg)',
-                fontWeight: 800,
+                fontWeight: 600,
                 color: tk.accentInk,
                 opacity: 0.85,
                 padding: 'var(--crm-space-sm) var(--crm-space-sm)',
@@ -100,7 +100,7 @@ export default function MmToast({ toast }: { toast: MmToastState | null }) {
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-lg)',
-                fontWeight: 800,
+                fontWeight: 600,
                 color: tk.accentInk,
                 padding: 'var(--crm-space-sm) var(--crm-space-lg)',
                 whiteSpace: 'nowrap',

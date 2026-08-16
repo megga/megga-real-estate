@@ -267,9 +267,9 @@ async function expectNoBounceBack(page: Page, pattern: RegExp): Promise<void> {
  * le header est rendu avant le `isLoading ? spinner : ...` du <main>). Son
  * absence ici ne peut donc pas venir d'un chargement lent : elle signe
  * qu'IdentityShell n'a jamais été monté du tout, ce qui n'arrive que si
- * AgentSugarLayout rend en boucle <Navigate to={IDENTITY_GATE_ROUTE}> à la
+ * AgentLayout rend en boucle <Navigate to={IDENTITY_GATE_ROUTE}> à la
  * place de <Outlet/> alors que l'URL affiche déjà /dashboard/identite (cf.
- * AgentSugarLayout.tsx) — exactement le garde-fou 2 qui aurait régressé.
+ * AgentLayout.tsx) — exactement le garde-fou 2 qui aurait régressé.
  */
 async function expectWizardShellMounted(page: Page): Promise<void> {
   // Écran d'arrivée (01.08.2026) : depuis IdentityWelcomeScreen, un dirigeant qui
@@ -304,7 +304,7 @@ async function expectWizardShellMounted(page: Page): Promise<void> {
     page.getByRole('button', { name: 'Reprendre plus tard' }),
     `Coquille du wizard identité absente (bouton "Reprendre plus tard" introuvable) alors que ` +
     `l'URL affiche déjà /dashboard/identite : IdentityShell n'a probablement jamais monté -- ` +
-    `AgentSugarLayout boucle sur <Navigate to={IDENTITY_GATE_ROUTE}> au lieu de rendre <Outlet/>. ` +
+    `AgentLayout boucle sur <Navigate to={IDENTITY_GATE_ROUTE}> au lieu de rendre <Outlet/>. ` +
     `Vérifier le garde-fou 2 (shouldRedirectToIdentityGate) dans useIdentityGate.ts.`,
   ).toBeVisible()
 }

@@ -93,7 +93,7 @@ Le red-team prévoyait un garde-fou `> N appels/h/agent → critical alert`. Pas
 
 ### A.6 — `MINEUR` — Truncation silencieuse côté UI
 
-[extract-lead/index.ts:229](supabase/functions/extract-lead/index.ts:229) retourne `truncated: true` quand `text > 8KB` mais l'UI [ImportLeadSugarV3Page.tsx](src/pages/agent/ImportLeadSugarV3Page.tsx) ne l'affiche pas. L'agent croit que tout son texte a été analysé.
+[extract-lead/index.ts:229](supabase/functions/extract-lead/index.ts:229) retourne `truncated: true` quand `text > 8KB` mais l'UI [ImportLeadPage.tsx](src/pages/agent/ImportLeadPage.tsx) ne l'affiche pas. L'agent croit que tout son texte a été analysé.
 
 **Fix** : afficher un bandeau "Message tronqué à 8 KB pour l'analyse" si `extractMutation.data?.truncated`. 5 min.
 
@@ -115,7 +115,7 @@ Migration G2 ajoute `actor_kind` avec `DEFAULT 'user'`. Les inserts existants (e
 
 ### B.1 — `MAJEUR` — Pas d'idempotence sur création (double-clic)
 
-[ImportLeadSugarV3Page.tsx:80](src/pages/agent/ImportLeadSugarV3Page.tsx:80) — `handleCreate` est attaché au CTA sans guard. Si l'agent double-clique pendant que `importMutation.isPending`, le bouton se désactive (via `disabled` au render) mais l'async gap entre setState et re-render peut laisser passer 2 mutations.
+[ImportLeadPage.tsx:80](src/pages/agent/ImportLeadPage.tsx:80) — `handleCreate` est attaché au CTA sans guard. Si l'agent double-clique pendant que `importMutation.isPending`, le bouton se désactive (via `disabled` au render) mais l'async gap entre setState et re-render peut laisser passer 2 mutations.
 
 Pire : React Query ne déduplique pas par défaut les mutations.
 
@@ -123,7 +123,7 @@ Pire : React Query ne déduplique pas par défaut les mutations.
 
 ### B.2 — `MAJEUR` — Dédup query court-circuitable
 
-[ImportLeadSugarV3Page.tsx:64-69](src/pages/agent/ImportLeadSugarV3Page.tsx:64) — `useFindContactDuplicates` est appelé en arrière-plan mais [handleCreate](src/pages/agent/ImportLeadSugarV3Page.tsx:80) ne vérifie pas `dedup.data`. Donc :
+[ImportLeadPage.tsx:64-69](src/pages/agent/ImportLeadPage.tsx:64) — `useFindContactDuplicates` est appelé en arrière-plan mais [handleCreate](src/pages/agent/ImportLeadPage.tsx:80) ne vérifie pas `dedup.data`. Donc :
 - Agent colle un message
 - IA extrait `marie.bertrand@bluewin.ch` (qui existe déjà)
 - Dédup query part en async
@@ -144,7 +144,7 @@ Conséquence : si demain un contact arrive avec `'0041 79 555 12 34'`, la dédup
 
 ### B.4 — `MINEUR` — Escape ferme sans warning
 
-[ImportLeadSugarV3Page.tsx:73-78](src/pages/agent/ImportLeadSugarV3Page.tsx:73) — la touche Escape navigue immédiatement vers `returnTo`. Si l'agent a tapé 1500 caractères ou cliqué "Analyser" sans clore le wizard, tout est perdu sans avertissement.
+[ImportLeadPage.tsx:73-78](src/pages/agent/ImportLeadPage.tsx:73) — la touche Escape navigue immédiatement vers `returnTo`. Si l'agent a tapé 1500 caractères ou cliqué "Analyser" sans clore le wizard, tout est perdu sans avertissement.
 
 **Fix** : si `text.trim().length > 50` OU `step > 0`, afficher un `confirm()` avant de naviguer. 10 min.
 
@@ -156,7 +156,7 @@ Comportement acceptable pour MVP — le refresh est rare en travail réel. À no
 
 ### B.6 — `MINEUR` — Seuil de confidence trop bas
 
-[ImportLeadSugarV3Page.tsx:113-114](src/pages/agent/ImportLeadSugarV3Page.tsx:113) — `if (result.extracted.confidence < 0.5) setEditMode(true)`.
+[ImportLeadPage.tsx:113-114](src/pages/agent/ImportLeadPage.tsx:113) — `if (result.extracted.confidence < 0.5) setEditMode(true)`.
 
 Claude Sonnet retourne rarement < 0.5 même sur des messages courts (test empirique courant : minimum observé ~0.6). Le seuil 0.5 ne déclenchera presque jamais.
 
@@ -164,7 +164,7 @@ Claude Sonnet retourne rarement < 0.5 même sur des messages courts (test empiri
 
 ### B.7 — `MINEUR` — Dédup query trop bavarde en mode édition
 
-[ImportLeadSugarV3Page.tsx:64-69](src/pages/agent/ImportLeadSugarV3Page.tsx:64) — la query est `enabled` dès qu'il y a un signal. En mode édition, chaque keystroke dans email/phone/firstName/lastName re-trigger un cycle React Query. Sur connexion lente, ça crée du bruit.
+[ImportLeadPage.tsx:64-69](src/pages/agent/ImportLeadPage.tsx:64) — la query est `enabled` dès qu'il y a un signal. En mode édition, chaque keystroke dans email/phone/firstName/lastName re-trigger un cycle React Query. Sur connexion lente, ça crée du bruit.
 
 **Fix** : debounce 300ms via `useDebouncedValue` (déjà dans le repo si présent, sinon implémenté ad-hoc). 15 min. Backlog.
 
@@ -174,13 +174,13 @@ Claude Sonnet retourne rarement < 0.5 même sur des messages courts (test empiri
 
 ### C.1 — `MINEUR` — `as never` sur les noms d'icônes
 
-[ImportLeadSugarV3Page.tsx](src/pages/agent/ImportLeadSugarV3Page.tsx) utilise `<SgIcon name={icon as never} />` pour passer des string génériques. Bypass de la safety du type `SgIconName`.
+[ImportLeadPage.tsx](src/pages/agent/ImportLeadPage.tsx) utilise `<SgIcon name={icon as never} />` pour passer des string génériques. Bypass de la safety du type `SgIconName`.
 
 **Fix** : typer le prop `icon` du `ExtractedField` comme `SgIconName`. 5 min.
 
 ### C.2 — `MINEUR` — Props deprecated dans `BdPhoto` et `BnPhoto`
 
-[BdShared.tsx:178-184](src/components/crm-sugar-v3/bien-detail/BdShared.tsx:178) et [BnPhoto.tsx:13](src/components/crm-sugar/biens/BnPhoto.tsx:13) — props `c2paVerified`, `photoCount`, `showBadge`, `signed` marquées `@deprecated` mais conservées. Compatibilité respectée mais dette tech.
+[BdShared.tsx:178-184](src/components/crm-dossiers/bien-detail/BdShared.tsx:178) et [BnPhoto.tsx:13](src/components/crm/biens/BnPhoto.tsx:13) — props `c2paVerified`, `photoCount`, `showBadge`, `signed` marquées `@deprecated` mais conservées. Compatibilité respectée mais dette tech.
 
 **Fix** : nettoyer les call sites pour ne plus passer ces props, puis retirer la signature. Backlog.
 
@@ -205,7 +205,7 @@ Si `contacts.insert` réussit puis `transactions.insert` échoue (ex. enum `tran
 
 ### C.5 — `MINEUR` — Sample WhatsApp grammaticalement faux
 
-[samples.ts:35](src/components/crm-sugar-v3/import-lead/samples.ts:35) — *« On sommes tous les deux salariés »* (faute, devrait être *« On est tous les deux salariés »* ou *« Nous sommes tous les deux salariés »*).
+[samples.ts:35](src/components/crm-dossiers/import-lead/samples.ts:35) — *« On sommes tous les deux salariés »* (faute, devrait être *« On est tous les deux salariés »* ou *« Nous sommes tous les deux salariés »*).
 
 Hérité de la maquette handoff (`crm-import-lead-modal.jsx`). Trivial mais visible sur le bouton "Essayer avec un exemple".
 

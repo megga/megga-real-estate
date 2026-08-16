@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { formatTodayHeader } from '@/lib/utils'
-import { useFocusQueue } from '@/components/crm-sugar/today/useFocusQueue'
-import { selectFocusQueue } from '@/components/crm-sugar/today/focusQueue'
-import { RelanceSession } from '@/components/crm-sugar/today/RelanceSession'
-import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
+import { useFocusQueue } from '@/components/crm/today/useFocusQueue'
+import { selectFocusQueue } from '@/components/crm/today/focusQueue'
+import { RelanceSession } from '@/components/crm/today/RelanceSession'
+import { openCrmSearch } from '@/components/crm/search/openSearch'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
@@ -21,10 +21,10 @@ import { MobileRelancesIA } from './MobileRelancesIA'
  * Cockpit « Aujourd'hui » mobile — port condensé du desktop (PageAujourdhui) :
  * en-tête (wordmark + recherche/MEGGA AI) + salutation réelle, héros file de
  * priorités, stats Pipeline + Objectif, agenda du jour, bloc Relances IA. Tout
- * est branché sur les MÊMES hooks que le desktop (useFocusQueue, usePipelineSugar,
- * useCalendarSugar, useRelanceLeads, useAxDashboardData) — gestes HITL préservés,
+ * est branché sur les MÊMES hooks que le desktop (useFocusQueue, usePipelineScreen,
+ * useCalendarScreen, useRelanceLeads, useAxDashboardData) — gestes HITL préservés,
  * empty-states honnêtes, seeds derrière `demo`. La recherche réutilise la palette
- * existante (openSugarSearch), pas un faux moteur.
+ * existante (openCrmSearch), pas un faux moteur.
  */
 export function MobileTodayScreen({ demo = false }: { demo?: boolean }) {
   const navigate = useNavigate()
@@ -45,7 +45,7 @@ export function MobileTodayScreen({ demo = false }: { demo?: boolean }) {
         <MeggaWordmark color={tk.ink} height={22} />
         <button
           type="button"
-          onClick={() => openSugarSearch()}
+          onClick={() => openCrmSearch()}
           aria-label={t('common:nav.search')}
           style={{
             width: 38,
@@ -64,8 +64,8 @@ export function MobileTodayScreen({ demo = false }: { demo?: boolean }) {
       </header>
 
       <div style={{ padding: 'var(--crm-space-md) var(--crm-space-2xs) 0' }}>
-        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, textTransform: 'uppercase', letterSpacing: '0.12em' }}>{headerDate}</div>
-        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.8, color: tk.ink, lineHeight: 1.1 }}>{greeting}</h1>
+        <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted}}>{headerDate}</div>
+        <h1 style={{ margin: '4px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 500, letterSpacing: -0.8, color: tk.ink, lineHeight: 1.1 }}>{greeting}</h1>
       </div>
 
       <MobileFocusHero

@@ -27,7 +27,7 @@
  */
 import { useMemo, useState, type ReactElement } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import IdentityShell, { type IdentityShellPreview } from '@/components/crm-sugar-identity/IdentityShell'
+import IdentityShell, { type IdentityShellPreview } from '@/components/crm-identity/IdentityShell'
 import IdentityMobileNotice from '@/pages/agent/IdentityMobileNotice'
 import OnboardingCallPage from '@/pages/agent/OnboardingCallPage'
 import KycOnboardingPage from '@/pages/agent/KycOnboardingPage'

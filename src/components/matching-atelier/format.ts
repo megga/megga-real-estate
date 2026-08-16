@@ -3,7 +3,7 @@
 import { formatCHF } from '@/lib/utils'
 
 /** CHF 1'100'000 — « — » si invalide (type-defensive, règle CLAUDE.md) */
-export function sgaFmtCHF(n: number | string | null | undefined): string {
+export function atlFmtCHF(n: number | string | null | undefined): string {
   if (n == null || n === '') return '—'
   return formatCHF(n)
 }
@@ -22,14 +22,14 @@ export function fmtBudgetRange(min?: number, max?: number): string {
 }
 
 /** Date de retour d'un report (J+7), format « 17 juin » */
-export function sgaReturnDate(iso?: string): string {
+export function atlReturnDate(iso?: string): string {
   const d = iso ? new Date(iso) : new Date(Date.now() + 7 * 864e5)
   return d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'long' })
 }
 
 /** Couleur d'un score (≥80 ink, ≥60 soft, sinon muted) */
-export const sgaScoreColor = (s: number): string =>
+export const atlScoreColor = (s: number): string =>
   s >= 80 ? 'var(--ink)' : s >= 60 ? 'var(--ink-soft)' : 'var(--ink-muted)'
 
-export const sgaInitials = (first: string, last: string): string =>
+export const atlInitials = (first: string, last: string): string =>
   `${first[0] ?? ''}${last[0] ?? ''}`.toUpperCase()

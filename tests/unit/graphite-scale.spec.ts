@@ -11,14 +11,16 @@
  * lecteur. Il ne reste que `CRM_TOKENS.graphite`, le thème legacy.
  */
 import { describe, it, expect } from 'vitest'
-import { CRM_GRAPHITE, CRM_TOKENS, crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { readFileSafely, rel, repoPath, scanRoots } from './helpers/fs-scan'
+import { CRM_GRAPHITE, CRM_TOKENS, crmPalette } from '@/components/crm/tokens'
 import { mxCrmPalette, MXC_COLOR } from '@/components/megga-x-crm/tokens'
-import { SugarV2, setSugarV2Dark } from '@/components/crm-sugar-wizard/tokens'
-import { TK, applyTK } from '@/components/crm-sugar/today/tk'
-import { SET_PALETTE, applySetTheme } from '@/components/crm-sugar/settings/data'
-import { buildCalPalette } from '@/components/crm-sugar/calendar/data'
-import { VxSP_DARK } from '@/components/crm-sugar-v3/vitrine/vitrineTokens'
+import { WizardTokens, setWizardDark } from '@/components/crm-wizard/tokens'
+import { TK, applyTK } from '@/components/crm/today/tk'
+import { SET_PALETTE, applySetTheme } from '@/components/crm/settings/data'
+import { buildCalPalette } from '@/components/crm/calendar/data'
+import { VxSP_DARK } from '@/components/crm-dossiers/vitrine/vitrineTokens'
 import { MT_DARK } from '@/components/crm-mobile/tokens'
+import { adminSurfaces } from '@/hooks/useAdminSurfaces'
 
 /** Luminance relative WCAG — sert à vérifier la monotonie de l'échelle. */
 function luminance(hex: string): number {
@@ -33,11 +35,6 @@ function luminance(hex: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
-function contrast(a: string, b: string): number {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
-  return (hi + 0.05) / (lo + 0.05)
-}
-
 describe('échelle Graphite — ce qu\'il en reste', () => {
   it('monte strictement de s0 à s4', () => {
     const steps = [CRM_GRAPHITE.s0, CRM_GRAPHITE.s1, CRM_GRAPHITE.s2, CRM_GRAPHITE.s3, CRM_GRAPHITE.s4]
@@ -46,11 +43,49 @@ describe('échelle Graphite — ce qu\'il en reste', () => {
     expect(new Set(steps).size).toBe(5)
   })
 
-  it('remonte `muted` au-dessus de AA sur le canvas', () => {
-    // #797D90 (teintes historiques) tombait à 4,45:1 sur #12161C. `CrmTheme`
-    // n'est pas parti avec Sugar : 28 fichiers le lisent encore.
-    expect(contrast(CRM_TOKENS.graphite.muted, CRM_GRAPHITE.s0)).toBeGreaterThanOrEqual(4.5)
-    expect(contrast(CRM_TOKENS.graphite.muted, CRM_GRAPHITE.s4)).toBeGreaterThanOrEqual(4.5)
+  /**
+   * ⛔ CETTE CLAUSE ÉTAIT CREUSE, ET SA JUSTIFICATION PÉRIMÉE D'UN FACTEUR 28.
+   *
+   * Elle mesurait le contraste de `CRM_TOKENS.graphite.muted` au motif que
+   * « `CrmTheme` n'est pas parti avec Sugar : 28 fichiers le lisent encore ».
+   * Mesuré le 16 août 2026 : `CrmTheme` n'est nommé que dans UN fichier — celui
+   * qui le définit — et `CRM_TOKENS` n'a qu'un seul lecteur de rendu,
+   * `kyc/kycPalette.ts:158`, qui en lit exactement UN champ : `dangerSoft`.
+   * `muted` n'en a AUCUN. On assertait donc un seuil sur une teinte que plus
+   * personne ne peint : verte à jamais, quelle que soit la valeur.
+   *
+   * ⚠ CE QUI LA REMPLACE GARDE LA SURFACE D'EXPOSITION de la direction morte,
+   * et rien d'autre : un thème legacy dont on remettrait à lire les champs
+   * cesserait d'être legacy sans que rien ne le dise. Le compte ne peut que
+   * baisser. ⛔ Le titre dit exactement cela — pas « il est lisible » : une
+   * clause dont l'intitulé promet plus que ce qu'elle mesure est la même vacuité
+   * que celle qu'on répare ici, déplacée du corps vers le nom.
+   */
+  it('le thème legacy n’a qu’UN champ vivant', () => {
+    const lu = readFileSafely(repoPath('src/components/crm-dossiers/kyc/kycPalette.ts'))
+    expect(lu.status, 'kycPalette illisible : la clause ne mesure rien').toBe('ok')
+    const lus = [...new Set(
+      ((lu.status === 'ok' ? lu.value : '')
+        .replace(/\/\*[\s\S]*?\*\//g, ' ')
+        .replace(/\/\/[^\n]*/g, ' ')
+        .match(/\bt\.[a-zA-Z]+/g) ?? []),
+    )].sort()
+    expect(
+      lus,
+      'le thème Graphite legacy a gagné (ou perdu) des lecteurs de champ — une direction ' +
+        'morte dont la surface d’exposition remonte cesse d’être morte : trancher, puis ' +
+        'mettre cette liste à jour',
+    ).toEqual(['t.dangerSoft'])
+
+    // ⛔ ET ON N'Y AJOUTE PAS DE SEUIL DE CONTRASTE, alors que c'était le réflexe.
+    // `dangerSoft` est consommé comme `errSoft` : un REMPLISSAGE de pastille, pas
+    // une encre. Mesuré contre la carte sombre, il rend 1,25:1 — et c'est normal,
+    // c'est l'encre POSÉE dessus qui porte le contraste, pas le fond. Lui imposer
+    // les 3:1 des éléments non textuels serait appliquer un seuil à un rôle qu'on
+    // n'a pas qualifié : la faute exacte que ce dépôt a déjà commise sur les
+    // pilules à teinte vive, et qu'il a écrite hors périmètre dans
+    // `sugar-v3-contraste.spec.ts`. La lisibilité de ce qui s'écrit SUR `errSoft`
+    // est gardée là-bas, sur la palette KYC, avec les bons fonds.
   })
 
 
@@ -67,7 +102,7 @@ describe('échelle Graphite — ce qu\'il en reste', () => {
 describe('palette du CRM — MEGGA X, plus aucune direction alternative', () => {
   it('rend MEGGA X dans les deux modes', () => {
     for (const dark of [false, true]) {
-      expect(crmSugarPalette(dark)).toEqual(mxCrmPalette(dark))
+      expect(crmPalette(dark)).toEqual(mxCrmPalette(dark))
     }
   })
 
@@ -89,8 +124,8 @@ describe('palette du CRM — MEGGA X, plus aucune direction alternative', () => 
   })
 
   it('n’expose plus de rampe : `crmStep(sp, …)` doit retomber sur son littéral', () => {
-    expect('ramp' in crmSugarPalette(true)).toBe(false)
-    expect('ramp' in crmSugarPalette(false)).toBe(false)
+    expect('ramp' in crmPalette(true)).toBe(false)
+    expect('ramp' in crmPalette(false)).toBe(false)
   })
 })
 
@@ -105,8 +140,8 @@ describe('palettes d’écran dérivées', () => {
   const NEUTRES = Object.values(MXC_COLOR) as string[]
 
   const cases: { name: string; read: () => string; attendu: string }[] = [
-    { name: 'wizard SugarV2.card', read: () => { setSugarV2Dark(true); return SugarV2.card }, attendu: MXC_COLOR.n300 },
-    { name: 'wizard SugarV2.rail', read: () => { setSugarV2Dark(true); return SugarV2.rail }, attendu: MXC_COLOR.n200 },
+    { name: 'wizard WizardTokens.card', read: () => { setWizardDark(true); return WizardTokens.card }, attendu: MXC_COLOR.n300 },
+    { name: 'wizard WizardTokens.rail', read: () => { setWizardDark(true); return WizardTokens.rail }, attendu: MXC_COLOR.n200 },
     { name: 'cockpit TK.frame', read: () => { applyTK(true); return TK.frame }, attendu: MXC_COLOR.n200 },
     { name: 'cockpit TK.cardHi', read: () => { applyTK(true); return TK.cardHi }, attendu: MXC_COLOR.n400 },
     { name: 'calendrier popBg', read: () => buildCalPalette(true).popBg, attendu: MXC_COLOR.n300 },
@@ -114,12 +149,77 @@ describe('palettes d’écran dérivées', () => {
     { name: 'mobile MT.pageBg', read: () => MT_DARK.pageBg, attendu: MXC_COLOR.n100 },
     { name: 'mobile MT.card', read: () => MT_DARK.card, attendu: MXC_COLOR.n300 },
     { name: 'mobile MT.tabBarBg', read: () => MT_DARK.tabBarBg, attendu: MXC_COLOR.n300 },
+    // ⛔ LA CONSOLE ADMIN EST LA SEULE SURFACE QUI Y ÉTAIT RESTÉE, et ce test ne
+    // pouvait pas le voir : ses cinq paliers ne vivaient pas dans une palette JS
+    // mais dans `admin-console.css`, que ce fichier n'ouvre pas (zéro
+    // `readFileSync`). Graphite y a survécu quatre jours, toutes portes vertes.
+    // Depuis le 14 août 2026 `adminSurfaces()` DÉSCEND de `mxCrmPalette()`, donc
+    // elle entre ici comme les autres — et `admin-console-css.spec.ts` tient
+    // l'autre langage.
+    { name: 'console admin surf.card', read: () => adminSurfaces(true).card, attendu: MXC_COLOR.n300 },
+    { name: 'console admin surf.cardSub', read: () => adminSurfaces(true).cardSub, attendu: MXC_COLOR.n200 },
   ]
 
   it.each(cases)('$name rend un neutre MEGGA X', ({ read, attendu }) => {
     const v = read()
     expect(v).toBe(attendu)
     expect(NEUTRES, `${v} hors palette`).toContain(v)
+  })
+
+  /**
+   * ⛔ LES CLAUSES DE CE FICHIER N'ÉNUMÈRENT QUE CE QU'ON LEUR A NOMMÉ.
+   *
+   * Onze palettes y sont importées une par une. Le chantier « CRM agent » en a
+   * traversé six de plus — `AX` et `AX_DARK` (Analytics), `KYC_LIGHT`, `DossierTokens`,
+   * `pfKitCore`, `journeyData` — dont AUCUNE n'était couverte. Mesurées le 16
+   * août 2026, elles sont toutes propres ; mais « propre aujourd'hui » et
+   * « gardée » sont deux choses, et c'est exactement l'écart que ce chantier a
+   * passé huit lots à combler ailleurs.
+   *
+   * Ce balayage remplace l'énumération par une RÈGLE : aucun fichier de `src/`
+   * n'écrit un barreau de l'échelle Graphite. Une palette qui naîtra demain est
+   * couverte sans que personne pense à l'ajouter — c'est la différence entre une
+   * garde qui liste et une garde qui décrit.
+   *
+   * ⚠ Seul le fichier qui DÉFINIT l'échelle en porte les valeurs. L'exemption
+   * est nominative, pas un motif : elle ne peut pas s'étendre par accident.
+   */
+  it('aucun fichier de src/ n’écrit un barreau de l’échelle Graphite', () => {
+    const DEFINITION = 'src/components/crm/tokens.ts'
+    // ⛔ VALEURS FIGÉES, PAS DÉRIVÉES — et c'est un contrôle négatif qui l'a
+    // exigé. En lisant la rampe dans `CRM_GRAPHITE`, la clause cherchait ce que
+    // le fichier exempté contient : changer un palier changeait AUSSI le motif,
+    // et la garde restait verte. Un test qu'on ne peut pas faire rougir en
+    // cassant sa cible est vrai par construction — la troisième forme de
+    // `megga/gardes-vacuites`. L'échelle Graphite est HISTORIQUE : elle ne
+    // bougera plus, donc la figer ne coûte rien et rend la clause falsifiable.
+    const rampe = ['#12161c', '#161a21', '#1a1d26', '#1d212a', '#21242f']
+    // …et si elle bougeait quand même, on veut le savoir ICI plutôt que de
+    // garder un motif qui ne décrit plus rien.
+    expect((Object.values(CRM_GRAPHITE) as string[]).map((v) => v.toLowerCase()),
+      'l’échelle Graphite a changé : reprendre les valeurs figées ci-dessus').toEqual(rampe)
+    const scan = scanRoots([{ root: 'src', keep: (n) => /\.tsx?$/.test(n) }])
+    expect(scan.files.length, 'balayage vide : chemin cassé, pas arbre propre').toBeGreaterThan(400)
+    const fautifs: string[] = []
+    let vuDansLaDefinition = 0
+    for (const abs of scan.files) {
+      const chemin = rel(abs)
+      const lu = readFileSafely(abs)
+      if (lu.status !== 'ok') continue
+      lu.value.split('\n').forEach((ligne, i) => {
+        const sans = ligne.replace(/\/\/.*$/, '')
+        for (const g of rampe) {
+          if (!sans.toLowerCase().includes(g)) continue
+          if (chemin === DEFINITION) { vuDansLaDefinition++; continue }
+          fautifs.push(`${chemin}:${i + 1} → ${g}`)
+        }
+      })
+    }
+    // ⚠ Contrôle POSITIF de l'exemption : si la définition cessait de porter ses
+    // cinq paliers, le motif ne matcherait plus rien nulle part et la clause
+    // passerait au vert par vacuité — la troisième forme de gardes-vacuités.
+    expect(vuDansLaDefinition, 'l’échelle n’est plus définie où on la cherche').toBeGreaterThanOrEqual(5)
+    expect(fautifs, `barreau Graphite écrit hors de sa définition :\n  ${fautifs.join('\n  ')}`).toEqual([])
   })
 
   it('aucune de ces surfaces n’est restée sur Graphite', () => {
@@ -133,10 +233,23 @@ describe('palettes d’écran dérivées', () => {
     expect(MT_DARK.headerBg).toBe('rgba(5,5,5,0.82)')
   })
 
-  it('garde le wizard en clair intact', () => {
-    setSugarV2Dark(false)
-    expect(SugarV2.card).toBe('#FFFFFF')
-    setSugarV2Dark(null)
+  /**
+   * Le wizard en clair descend de MEGGA X, et pas de Graphite.
+   *
+   * Cette assertion figeait `'#FFFFFF'` en littéral, pour vérifier que la
+   * bascule Graphite — qui ne visait que le SOMBRE — n'avait pas débordé sur la
+   * branche claire du wizard. Le 11 août 2026 cette branche a été migrée
+   * exprès : elle vaut la même couleur, mais elle la tient désormais de
+   * `mxCrmPalette`. Le littéral ne disait plus d'où venait la valeur, seulement
+   * qu'elle coïncidait. Ce que la palette du wizard doit respecter est
+   * verrouillé par `wizard-palette.spec.ts` ; ici on garde ce que ce fichier-ci
+   * a pour rôle de dire — aucune surface n'est restée sur Graphite.
+   */
+  it('le wizard en clair descend de MEGGA X, pas de Graphite', () => {
+    setWizardDark(false)
+    expect(WizardTokens.card).toBe(mxCrmPalette(false).cardBg)
+    expect(Object.values(CRM_GRAPHITE) as string[]).not.toContain(WizardTokens.card)
+    setWizardDark(null)
   })
 
   /**

@@ -84,7 +84,7 @@ export default function MmFocus({ focus, sent, scheduled, onBack, onRequestSend,
               background: buyer.av,
               color: '#fff',
               fontSize: 'var(--crm-text-2xl)',
-              fontWeight: 800,
+              fontWeight: 600,
               flexShrink: 0,
             }}
           >
@@ -95,7 +95,7 @@ export default function MmFocus({ focus, sent, scheduled, onBack, onRequestSend,
               <span
                 style={{
                   fontSize: 'var(--crm-text-4xl)',
-                  fontWeight: 800,
+                  fontWeight: 500,
                   letterSpacing: -0.5,
                   color: tk.ink,
                   whiteSpace: 'nowrap',
@@ -119,9 +119,8 @@ export default function MmFocus({ focus, sent, scheduled, onBack, onRequestSend,
             style={{
               margin: '0 0 11px',
               fontSize: 'var(--crm-text-lg)',
-              fontWeight: 800,
+              fontWeight: 600,
               letterSpacing: 0.3,
-              textTransform: 'uppercase',
               color: tk.muted,
             }}
           >
@@ -152,10 +151,10 @@ export default function MmFocus({ focus, sent, scheduled, onBack, onRequestSend,
             justifyContent: 'space-between',
           }}
         >
-          <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 800, letterSpacing: -0.4, color: tk.ink }}>
+          <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink }}>
             {t('atelier.matchedListings')}
           </h3>
-          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
             {pool.length}
           </span>
         </div>

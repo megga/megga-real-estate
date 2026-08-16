@@ -21,7 +21,7 @@ import {
 import type { AdminToneName } from '@/components/admin/kit/adminKitCore'
 import AdminConfirm from '@/components/admin/AdminConfirm'
 import OnboardingHostForm from '@/components/admin/OnboardingHostForm'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useClientPagination } from '@/hooks/useClientPagination'
 import {
   useAdminOnboardingCalls,
@@ -100,7 +100,7 @@ function CallsTab() {
   // Le namespace `onboarding` s'ajoute pour libeller les réponses de calibrage avec
   // les questions du wizard lui-même : une seule source pour la question ET ses options.
   const { t } = useTranslation(['admin', 'onboarding'])
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<string>('all')
   /** Appel dont la rangée de détail est dépliée — une seule à la fois suffit. */
@@ -230,7 +230,7 @@ function CallsTab() {
                       <AdminTd>
                         <span style={{ fontWeight: 600 }}>{call.agency_name ?? '—'}</span>
                         <br />
-                        <span style={{ color: sp.soft, fontSize: 12 }}>
+                        <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>
                           {call.booked_by_name ?? call.booked_by_email ?? '—'}
                         </span>
                       </AdminTd>
@@ -239,7 +239,7 @@ function CallsTab() {
                         {call.rescheduled_count > 0 && (
                           <>
                             <br />
-                            <span style={{ color: sp.soft, fontSize: 12 }}>
+                            <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>
                               {t('onboardingCalls.table.rescheduled', { count: call.rescheduled_count })}
                             </span>
                           </>
@@ -312,30 +312,30 @@ function CallsTab() {
                          entre les deux, c'est la rangée suivante qui en porte un. */
                       <tr>
                         <td colSpan={5} style={{ padding: '0 10px 14px' }}>
-                          <div style={{ display: 'grid', gap: 8, fontSize: 13 }}>
+                          <div style={{ display: 'grid', gap: 8, fontSize: 'var(--crm-text-md)' }}>
                             {call.attendee_phone && (
                               <div>
-                                <span style={{ color: sp.soft, fontSize: 12 }}>{t('onboardingCalls.details.phone')}</span>
+                                <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>{t('onboardingCalls.details.phone')}</span>
                                 <br />
                                 {call.attendee_phone}
                               </div>
                             )}
                             {call.attendee_note && (
                               <div>
-                                <span style={{ color: sp.soft, fontSize: 12 }}>{t('onboardingCalls.details.note')}</span>
+                                <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>{t('onboardingCalls.details.note')}</span>
                                 <br />
                                 {call.attendee_note}
                               </div>
                             )}
                             {answerRows.length > 0 && (
                               <div>
-                                <div style={{ color: sp.soft, fontSize: 12, marginBottom: 4 }}>
+                                <div style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)', marginBottom: 4 }}>
                                   {t('onboardingCalls.details.answers')}
                                 </div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))', gap: 6 }}>
                                   {answerRows.map((row) => (
                                     <div key={row.key}>
-                                      <span style={{ color: sp.soft, fontSize: 12 }}>{row.label}</span>
+                                      <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>{row.label}</span>
                                       <br />
                                       {row.value}
                                     </div>
@@ -383,7 +383,7 @@ function CallsTab() {
 
 function HostsTab() {
   const { t } = useTranslation('admin')
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const { data: hosts, isLoading, isError, refetch } = useAdminOnboardingHosts()
   const setActive = useSetOnboardingHostActive()
   // `null` = fermé ; `'new'` = création ; sinon l'hôte en cours de modification.
@@ -434,7 +434,7 @@ function HostsTab() {
                   <AdminTd>
                     <span style={{ fontWeight: 600 }}>{host.display_name}</span>
                     <br />
-                    <span style={{ color: sp.soft, fontSize: 12 }}>
+                    <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>
                       {host.profile_email ?? '—'}
                       {/* Le fuseau seulement quand il SURPREND. Tous les hôtes sont à
                           Europe/Zurich : répété sur chaque rangée, il n'apprenait rien
@@ -447,7 +447,7 @@ function HostsTab() {
                     {host.calendar_email && (
                       <>
                         <br />
-                        <span style={{ color: sp.soft, fontSize: 12 }}>
+                        <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>
                           {t('onboardingCalls.hosts.table.calendar', { email: host.calendar_email })}
                         </span>
                       </>
@@ -463,7 +463,7 @@ function HostsTab() {
                     {hours.more > 0 && (
                       <>
                         <br />
-                        <span style={{ color: sp.soft, fontSize: 12 }}>
+                        <span style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)' }}>
                           {t('onboardingCalls.hosts.table.hoursMore', { n: hours.more })}
                         </span>
                       </>
@@ -514,7 +514,7 @@ function HostsTab() {
           c'est le cas : sous une liste d'hôtes actifs, la phrase n'expliquait rien et
           s'ajoutait au texte que cet écran demande déjà de lire. */}
       {!isLoading && (hosts ?? []).length > 0 && !(hosts ?? []).some((h) => h.is_active) && (
-        <p style={{ color: sp.soft, fontSize: 12, marginTop: 14, lineHeight: 1.6 }}>
+        <p style={{ color: sp.soft, fontSize: 'var(--crm-text-sm)', marginTop: 14, lineHeight: 1.6 }}>
           {t('onboardingCalls.hosts.provisioningNote')}
         </p>
       )}

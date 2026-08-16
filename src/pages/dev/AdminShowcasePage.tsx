@@ -1,0 +1,255 @@
+/**
+ * Banc de la console super-admin — `/dev/admin`, sans session.
+ *
+ * ── POURQUOI CETTE ROUTE EXISTE ──────────────────────────────────────────────
+ * La console vit sous `/dashboard/admin/*`, donc DERRIÈRE DEUX MURS, pas un :
+ *   1. `ProtectedRoute` — sans session il fait
+ *      `window.location.replace('https://megga.ch/login')`, une redirection
+ *      **absolue** vers la production. On est alors déposé sur `app.megga.ch`,
+ *      qui sert `main`, en croyant regarder localhost : on relit l'ancienne
+ *      version de son propre travail, et ça ne ressemble pas à une erreur.
+ *   2. `useSuperAdminGate` — rend `<Navigate to="/dashboard" replace />`.
+ * Aucune des 19 pages n'était donc regardable pendant qu'on la repeint.
+ *
+ * ── LE POINT D'INTERCEPTION DE LA NAVIGATION EST LE ROUTEUR ──────────────────
+ * ⛔ Le banc du Pipeline a livré ce défaut : un clic sur une carte appelait
+ * `navigate('/dashboard/transactions/…')` et déposait sur `megga.ch`. Il l'a
+ * corrigé par un `onNavigate` passé à la page — un point de sortie qu'il faut
+ * penser à câbler, surface par surface.
+ *
+ * Ici c'est un MEMORYROUTER, et c'est plus fort : mesuré, les 44 fichiers du
+ * périmètre ne contiennent **aucun `window.location`** — les 19 sites de
+ * navigation passent tous par React Router (`useNavigate`, `<Link>`,
+ * `<NavLink>`). Un routeur mémoire les capture donc TOUS, y compris les trois
+ * `navigate('/dashboard…')` d'`AdminShell`, sans qu'on ait rien à câbler et
+ * sans toucher une ligne de production. Une cible hors console tombe sur
+ * `SortieNeutralisee`, qui le DIT au lieu de quitter le domaine.
+ *
+ * ── LE POINT D'INJECTION DES DONNÉES EST `window.fetch` ──────────────────────
+ * Les 19 pages ne partagent aucune couture de données : 38 hooks distincts,
+ * 42 RPC, 18 tables, 5 edge functions. Leur donner un slot `banc` aurait demandé
+ * 19 substitutions dans du code de production. Mais les 38 hooks passent tous
+ * par le client `supabase`, dont le `global.fetch` (`authAwareFetch`) appelle le
+ * `fetch` **global** au moment de l'appel : une seule interception les couvre.
+ * C'est l'économie que le plan demandait de mesurer avant de la supposer.
+ *
+ * ⚠ Cette interception vit désormais dans `bancSupabase.ts`, partagée avec
+ * `/dev/crm` (15 août 2026). Elle était écrite ici ; l'y laisser aurait fait
+ * recopier ~150 lignes d'analyse PostgREST pour le second banc, et c'est le
+ * filtrage des prédicats — la part qui empêche le banc de mentir par excès — qui
+ * aurait divergé.
+ *
+ * ⛔ Données de DÉMONSTRATION (`adminFixtures.ts`). Rien ne vient de la base,
+ * aucun geste n'écrit. Une RPC sans fixture rend vide et est COMPTÉE dans les
+ * commandes : un banc qui tronque en silence se lit « tout couvert ».
+ *
+ * ⚠ ROUTE CONDITIONNÉE AU MODE DEV, contrairement aux bancs `/dev/pipeline` ou
+ * `/dev/biens`. Ceux-là montrent l'écran d'un agent ; celui-ci monte le chrome
+ * de la PLATEFORME — badge « ADMIN », MRR, registre des agences, journal de
+ * sécurité. Servir ça publiquement inviterait la question « est-ce réel ? » et
+ * donnerait la carte complète de la surface super-admin à un visiteur. Même
+ * arbitrage que `/dev/onboarding`.
+ */
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { AdminThemeProvider, useAdminTheme } from '@/components/admin/AdminThemeProvider'
+import AdminConsoleRoutes from '@/components/admin/AdminConsoleRoutes'
+import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
+import { crmPalette } from '@/components/crm/tokens'
+import { desinstallerBanc, installerBanc, reglerBanc } from './bancSupabase'
+import { RPC, TABLES, type AdminBancEtat } from './adminFixtures'
+
+/* ─── Chrome du banc ──────────────────────────────────────────────────────── */
+
+const ETATS: { id: AdminBancEtat; label: string; titre: string }[] = [
+  { id: 'nominal', label: 'Nominal', titre: '5 agences, 5 comptes, journal à 8 lignes, 1 cron en échec' },
+  { id: 'vide', label: 'Vide', titre: 'Chaque source rend zéro ligne — les 19 états vides (AdminEmpty)' },
+  { id: 'erreur', label: 'Échec', titre: 'Chaque source rend 500 — les 19 branches d’erreur (AdminError)' },
+]
+
+/**
+ * Commandes repliables, en bas à droite.
+ *
+ * ⛔ Un banc qui CACHE une surface ne la vérifie pas : posées à demeure, elles
+ * recouvrent le pied des tableaux les plus longs. Elles se replient.
+ */
+function Commandes({ etat, setEtat, sansFixture }: {
+  etat: AdminBancEtat
+  setEtat: (e: AdminBancEtat) => void
+  sansFixture: string[]
+}) {
+  const { dark } = useAdminTheme()
+  const [replie, setReplie] = useState(false)
+  const sp = crmPalette(dark)
+
+  const pilule = (actif: boolean) => ({
+    border: 0, cursor: 'pointer', fontFamily: 'inherit',
+    padding: 'var(--crm-space-xs) var(--crm-space-lg)',
+    borderRadius: 'var(--crm-radius-pill)',
+    fontSize: 'var(--crm-text-sm)', fontWeight: 600,
+    background: actif ? sp.accent : 'transparent',
+    color: actif ? sp.accentInk : sp.sub,
+    whiteSpace: 'nowrap' as const,
+  })
+  const groupe = {
+    display: 'inline-flex', gap: 'var(--crm-space-2xs)',
+    background: sp.solidBg, borderRadius: 'var(--crm-radius-pill)',
+    padding: 'var(--crm-space-2xs)', border: `1px solid ${sp.cardBorder}`,
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 14, right: 14, zIndex: 9500,
+      display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
+      gap: 'var(--crm-space-2xs)',
+    }}>
+      {!replie && (
+        <>
+          <div style={groupe}>
+            {ETATS.map((e) => (
+              <button key={e.id} type="button" title={e.titre}
+                onClick={() => setEtat(e.id)} aria-pressed={etat === e.id}
+                style={pilule(etat === e.id)}>{e.label}</button>
+            ))}
+          </div>
+          {sansFixture.length > 0 && (
+            // ⚠ Un banc qui borne sa couverture doit le DIRE : une troncature
+            // silencieuse se lit « tout couvert ».
+            <div
+              title={sansFixture.join('\n')}
+              style={{
+                ...groupe, padding: 'var(--crm-space-2xs) var(--crm-space-lg)',
+                fontSize: 'var(--crm-text-xs)', color: sp.sub, maxWidth: 320,
+              }}>
+              {sansFixture.length} appel{sansFixture.length > 1 ? 's' : ''} sans fixture → vide
+            </div>
+          )}
+        </>
+      )}
+      <button
+        type="button"
+        onClick={() => setReplie((v) => !v)}
+        aria-expanded={!replie}
+        title={replie ? 'Déplier les commandes du banc' : 'Replier — dégage le coin bas-droit'}
+        style={{
+          border: 0, cursor: 'pointer', fontFamily: 'inherit',
+          padding: 'var(--crm-space-2xs) var(--crm-space-lg)',
+          borderRadius: 'var(--crm-radius-pill)', background: sp.accent, color: sp.accentInk,
+          fontSize: 'var(--crm-text-xs)', fontWeight: 600,
+        }}>
+        {replie ? 'Aperçu ▸' : 'Aperçu · données de démonstration'}
+      </button>
+    </div>
+  )
+}
+
+/**
+ * Ce que le banc rend quand la console vise une cible hors d'elle-même.
+ *
+ * C'est la SEULE sortie possible : le routeur mémoire n'a que deux routes. Elle
+ * le dit et propose le retour, au lieu d'éjecter en production.
+ */
+function SortieNeutralisee() {
+  const navigate = useNavigate()
+  const { dark } = useAdminTheme()
+  const sp = crmPalette(dark)
+  return (
+    <div style={{
+      height: '100vh', display: 'grid', placeItems: 'center',
+      background: sp.pageBg, color: sp.ink, textAlign: 'center', padding: 24,
+    }}>
+      <div style={{ maxWidth: 460, display: 'grid', gap: 'var(--crm-space-lg)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600 }}>
+          Sortie neutralisée
+        </p>
+        <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', color: sp.sub, lineHeight: 1.5 }}>
+          La console a visé une cible hors d’elle-même. En production ce lien mène
+          au CRM ; ici il ne quitte pas le banc.
+        </p>
+        <div>
+          <button type="button" onClick={() => navigate(ADMIN_CONSOLE_PATH)} style={{
+            border: 0, cursor: 'pointer', fontFamily: 'inherit',
+            padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
+            borderRadius: 'var(--crm-radius-pill)',
+            background: sp.accent, color: sp.accentInk,
+            fontSize: 'var(--crm-text-lg)', fontWeight: 600,
+          }}>Revenir à la console</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Corps du banc — sous le provider de thème, donc `useAdminTheme` y est légal. */
+function Banc({ etat, setEtat, sansFixture }: {
+  etat: AdminBancEtat
+  setEtat: (e: AdminBancEtat) => void
+  sansFixture: string[]
+}) {
+  return (
+    <>
+      <Routes>
+        <Route path={`${ADMIN_CONSOLE_PATH}/*`} element={<AdminConsoleRoutes />} />
+        <Route path="*" element={<SortieNeutralisee />} />
+      </Routes>
+      <Commandes etat={etat} setEtat={setEtat} sansFixture={sansFixture} />
+    </>
+  )
+}
+
+export default function AdminShowcasePage() {
+  const [etat, setEtatLocal] = useState<AdminBancEtat>('nominal')
+  const [sansFixture, setSansFixture] = useState<string[]>([])
+  const qc = useQueryClient()
+
+  // ⚠ Installé PENDANT le rendu du banc, donc AVANT que la console monte et
+  // lance ses requêtes. Un effet arriverait après le premier `queryFn`.
+  useState(() => {
+    reglerBanc({
+      tables: TABLES,
+      rpc: RPC,
+      // ⚠ Dédoublonné par une mise à jour FONCTIONNELLE, pas par une `ref`.
+      // Une clôture qui lit `ref.current` et qu'on passe à une fonction pendant
+      // le rendu fait rougir `react-hooks/refs` — et la règle a raison : rien ne
+      // garantit que la lecture n'arrive pas pendant un rendu.
+      signaler: (appel) => {
+        setSansFixture((prev) => (prev.includes(appel) ? prev : [...prev, appel].sort()))
+      },
+    })
+    installerBanc()
+    return true
+  })
+  // ⛔ ET IL FAUT RÉINSTALLER ICI, sinon le banc part en production sans le
+  // savoir. StrictMode monte, DÉMONTE, remonte : le nettoyage désinstallait
+  // l'intercepteur, et l'initialiseur de `useState` ne rejoue PAS au remontage
+  // (l'état survit). Mesuré à l'écran — les 42 RPC partaient vers la vraie base,
+  // qui répondait 401, et la Vue d'ensemble restait sur son squelette.
+  //
+  // ⚠ Les SOURCES sont reposées ici aussi : `bancSupabase` porte un contrat de
+  // module, et `/dev/crm` y écrit les siennes. Réinstaller sans les reposer
+  // laisserait le banc répondre avec les fixtures de l'autre.
+  useEffect(() => {
+    reglerBanc({ tables: TABLES, rpc: RPC })
+    installerBanc()
+    return desinstallerBanc
+  }, [])
+
+  const setEtat = useCallback((e: AdminBancEtat) => {
+    reglerBanc({ etat: e })
+    setEtatLocal(e)
+    // Les requêtes actives repartent avec la nouvelle réponse ; on ne remonte
+    // pas l'arbre, sinon changer d'état ramènerait à l'accueil de la console.
+    void qc.resetQueries()
+  }, [qc])
+
+  const entrees = useMemo(() => [ADMIN_CONSOLE_PATH], [])
+
+  return (
+    <MemoryRouter initialEntries={entrees}>
+      <AdminThemeProvider>
+        <Banc etat={etat} setEtat={setEtat} sansFixture={sansFixture} />
+      </AdminThemeProvider>
+    </MemoryRouter>
+  )
+}

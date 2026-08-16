@@ -7,11 +7,11 @@ import { useState, type CSSProperties } from 'react'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { MOBILE_FONT } from '@/components/crm-mobile/tokens'
 import { useMobileTokens } from '@/components/crm-mobile/useMobileTokens'
-import SgActionMenu from '@/components/crm-mobile/primitives/SgActionMenu'
-import SgConfirmDestructive from '@/components/crm-mobile/primitives/SgConfirmDestructive'
-import SgSheet from '@/components/crm-mobile/primitives/SgSheet'
-import SgToast from '@/components/crm-mobile/primitives/SgToast'
-import { useSgToast } from '@/components/crm-mobile/primitives/useSgToast'
+import CrmActionMenu from '@/components/crm-mobile/primitives/CrmActionMenu'
+import CrmConfirmDestructive from '@/components/crm-mobile/primitives/CrmConfirmDestructive'
+import CrmSheet from '@/components/crm-mobile/primitives/CrmSheet'
+import CrmToast from '@/components/crm-mobile/primitives/CrmToast'
+import { useCrmToast } from '@/components/crm-mobile/primitives/useCrmToast'
 import MobileMoreScreen from '@/components/crm-mobile/more/MobileMoreScreen'
 import { MobileTodayScreen } from '@/components/crm-mobile/today/MobileTodayScreen'
 import { MobilePipelineScreen } from '@/components/crm-mobile/pipeline/MobilePipelineScreen'
@@ -30,7 +30,7 @@ import { MobileKycDetailScreen } from '@/components/crm-mobile/kyc/MobileKycDeta
 import { MobileSettingsScreen } from '@/components/crm-mobile/settings/MobileSettingsScreen'
 import { MobileDealDetailScreen, type DealData } from '@/components/crm-mobile/deal/MobileDealDetailScreen'
 import { EMPTY_OFFER_CONDITIONS, type Offer } from '@/types/offer'
-import type { Property } from '@/types/listing'
+import { DEMO_LISTING } from './demoFixtures'
 
 const DEMO_OFFER: Offer = {
   id: 'o1', deal_id: 'd5', agency_id: 'ag', parent_offer_id: null,
@@ -49,14 +49,6 @@ const DEMO_DEAL: DealData = {
   photo: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1000&q=80',
   kycStatus: 'pending', offers: [DEMO_OFFER], notes: 'Vendeur attend la réponse sous 48 h.',
   createdAt: '2026-06-20T09:00:00.000Z',
-}
-const DEMO_LISTING: Property = {
-  id: 'p3', agency_id: 'ag', title: 'Villa contemporaine', description: 'Villa lumineuse de 240 m² avec piscine, vue dégagée, finitions haut de gamme. Quartier résidentiel calme à Cologny, proche des écoles internationales.',
-  type: 'villa', status: 'active', price: 3850000, currency: 'CHF', rooms: 7, bedrooms: 5, bathrooms: 3, surface_m2: 240,
-  year_built: 2019, charges_monthly: 0, mandate_type: 'Exclusif', energy_class: 'A', mandate_commission_pct: 3, mandate_signed_at: '2026-05-02', mandate_expires_at: '2026-11-02',
-  transaction_type: 'buy', address: 'Route de la Capite 12', city: 'Cologny', canton: 'GE', postal_code: '1223', lat: 46.22, lng: 6.18,
-  photos: ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&q=80', 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1200&q=80', 'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=1200&q=80'],
-  c2pa_verified: true, features: ['Piscine', 'Jardin', 'Garage', 'Cave'], created_by: 'u', created_at: '2026-05-02', published_at: '2026-05-04',
 }
 
 /**
@@ -79,7 +71,7 @@ function ShowcaseInner() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const { toast, showToast } = useSgToast()
+  const { toast, showToast } = useCrmToast()
 
   const cta: CSSProperties = {
     height: 46,
@@ -87,8 +79,8 @@ function ShowcaseInner() {
     border: 0,
     cursor: 'pointer',
     fontFamily: 'inherit',
-    fontSize: 14.5,
-    fontWeight: 700,
+    fontSize: 'var(--crm-text-xl)',
+    fontWeight: 600,
     background: tk.accent,
     color: tk.accentInk,
     boxShadow: tk.shadow,
@@ -129,7 +121,7 @@ function ShowcaseInner() {
       <MobileTodayScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <div style={{ padding: '24px 16px 8px' }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, letterSpacing: -0.5, color: tk.ink }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.5, color: tk.ink }}>
           Mobile — Primitives (P1)
         </h1>
         <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
@@ -142,7 +134,7 @@ function ShowcaseInner() {
 
       <MobileMoreScreen />
 
-      <SgActionMenu
+      <CrmActionMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         title="Bien · Réf MG-2026-101"
@@ -159,7 +151,7 @@ function ShowcaseInner() {
         }}
       />
 
-      <SgConfirmDestructive
+      <CrmConfirmDestructive
         open={confirmOpen}
         title="Supprimer le bien ?"
         message="Cette action est définitive. L'annonce et ses statistiques de diffusion seront retirées."
@@ -171,9 +163,9 @@ function ShowcaseInner() {
         onCancel={() => setConfirmOpen(false)}
       />
 
-      <SgSheet open={sheetOpen} onClose={() => setSheetOpen(false)} ariaLabel="Détail" bottomGap={24}>
+      <CrmSheet open={sheetOpen} onClose={() => setSheetOpen(false)} ariaLabel="Détail" bottomGap={24}>
         <div style={{ padding: '4px 18px 22px' }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, letterSpacing: -0.3, color: tk.ink }}>
+          <h2 style={{ margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink }}>
             Filtrer les biens
           </h2>
           {['Tous les statuts', 'Actifs', 'Réservés', 'Brouillons'].map((label, i) => (
@@ -184,8 +176,8 @@ function ShowcaseInner() {
                 padding: '14px 16px',
                 borderRadius: 14,
                 background: tk.cardSubtle,
-                fontSize: 14.5,
-                fontWeight: i === 1 ? 800 : 600,
+                fontSize: 'var(--crm-text-xl)',
+                fontWeight: 600,
                 color: tk.ink,
                 boxShadow: i === 1 ? `0 0 0 2px ${tk.accent} inset` : undefined,
               }}
@@ -194,9 +186,9 @@ function ShowcaseInner() {
             </div>
           ))}
         </div>
-      </SgSheet>
+      </CrmSheet>
 
-      <SgToast toast={toast} />
+      <CrmToast toast={toast} />
     </div>
   )
 }

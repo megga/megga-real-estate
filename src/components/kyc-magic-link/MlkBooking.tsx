@@ -45,26 +45,26 @@ export function MlkAppointmentCard({ appointment }: { appointment: PublicAppoint
         <div
           style={{
             width: 38, height: 38, borderRadius: 999,
-            background: isCancelled ? MLK.ghost : MLK.black,
+            background: isCancelled ? MLK.ghost : MLK.ink,
             display: 'grid', placeItems: 'center', flexShrink: 0,
           }}
         >
           <MlkIcon name={isCancelled ? 'alert' : 'check'} size={19} stroke="#fff" sw={2.2} />
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 15.5, fontWeight: 700, color: MLK.ink, letterSpacing: -0.2 }}>
+          <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.2 }}>
             {when.dayLabel}
           </div>
-          <div style={{ fontSize: 13, color: MLK.muted, fontWeight: 500, marginTop: 1 }}>
+          <div style={{ fontSize: 'var(--crm-text-md)', color: MLK.muted, fontWeight: 500, marginTop: 1 }}>
             {t('client.booking.at_time', { time: when.time })}
           </div>
         </div>
       </div>
 
       {appointment.mode === 'video' ? (
-        <div style={{ fontSize: 13, color: MLK.inkSoft, fontWeight: 500 }}>
+        <div style={{ fontSize: 'var(--crm-text-md)', color: MLK.inkSoft, fontWeight: 500 }}>
           {appointment.video_link ? (
-            <a href={appointment.video_link} style={{ color: MLK.ink, fontWeight: 700 }}>
+            <a href={appointment.video_link} style={{ color: MLK.ink, fontWeight: 600 }}>
               {t('client.booking.join_video')}
             </a>
           ) : (
@@ -72,7 +72,7 @@ export function MlkAppointmentCard({ appointment }: { appointment: PublicAppoint
           )}
         </div>
       ) : appointment.location ? (
-        <div style={{ fontSize: 13, color: MLK.inkSoft, fontWeight: 500 }}>{appointment.location}</div>
+        <div style={{ fontSize: 'var(--crm-text-md)', color: MLK.inkSoft, fontWeight: 500 }}>{appointment.location}</div>
       ) : null}
     </div>
   )
@@ -91,8 +91,8 @@ function BookingNotice({ title, body }: { title: string; body: string }) {
         textAlign: 'center',
       }}
     >
-      <div style={{ fontSize: 15, fontWeight: 700, color: MLK.ink, marginBottom: 6 }}>{title}</div>
-      <div style={{ fontSize: 13.5, color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6 }}>{body}</div>
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: MLK.ink, marginBottom: 6 }}>{title}</div>
+      <div style={{ fontSize: 'var(--crm-text-md)', color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6 }}>{body}</div>
     </div>
   )
 }
@@ -144,7 +144,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
         <h1
           className="mlk-h1"
           style={{
-            margin: '0 0 12px', fontSize: 30, fontWeight: 700, color: MLK.ink,
+            margin: '0 0 12px', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink,
             letterSpacing: -0.8, lineHeight: 1.15, textAlign: 'center',
           }}
         >
@@ -152,14 +152,14 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
         </h1>
         <p
           style={{
-            margin: '0 auto 30px', fontSize: 14.5, color: MLK.inkSoft, fontWeight: 500,
+            margin: '0 auto 30px', fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft, fontWeight: 500,
             lineHeight: 1.6, textAlign: 'center', maxWidth: 420,
           }}
         >
           {t('client.booking.confirmed_body', { agentName: agentFullName, agencyName })}
         </p>
         <MlkAppointmentCard appointment={confirmed} />
-        <p style={{ margin: '0 0 8px', fontSize: 12.5, color: MLK.muted, textAlign: 'center', lineHeight: 1.6 }}>
+        <p style={{ margin: '0 0 8px', fontSize: 'var(--crm-text-sm)', color: MLK.muted, textAlign: 'center', lineHeight: 1.6 }}>
           {t('client.booking.confirmed_email')}
         </p>
         <MlkFooter />
@@ -206,7 +206,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
           <MlkWordmark size={16} />
         </div>
         <BookingNotice {...notice} />
-        <div style={{ fontSize: 12.5, color: MLK.muted, textAlign: 'center' }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted, textAlign: 'center' }}>
           {t('client.booking.contact_agent', { agentName: agentFullName, agencyName })}
         </div>
         <MlkFooter />
@@ -225,7 +225,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
       <h1
         className="mlk-h1"
         style={{
-          margin: '0 0 12px', fontSize: 30, fontWeight: 700, color: MLK.ink,
+          margin: '0 0 12px', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink,
           letterSpacing: -0.8, lineHeight: 1.15, textAlign: 'center',
         }}
       >
@@ -233,7 +233,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
       </h1>
       <p
         style={{
-          margin: '0 auto 28px', fontSize: 14.5, color: MLK.inkSoft, fontWeight: 500,
+          margin: '0 auto 28px', fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft, fontWeight: 500,
           lineHeight: 1.6, textAlign: 'center', maxWidth: 440,
         }}
       >
@@ -257,7 +257,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
         }}
       >
         <MlkIcon name={data.mode === 'video' ? 'lock' : 'home'} size={17} stroke={MLK.muted} />
-        <div style={{ fontSize: 12.5, color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 'var(--crm-text-sm)', color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.5 }}>
           {data.mode === 'video'
             ? t('client.booking.mode_video')
             : data.location
@@ -270,7 +270,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
         <div
           style={{
             padding: '12px 16px', borderRadius: 12, marginBottom: 16,
-            background: '#FEF2F2', fontSize: 13, color: '#B42318', fontWeight: 500, lineHeight: 1.5,
+            background: '#FEF2F2', fontSize: 'var(--crm-text-md)', color: '#B42318', fontWeight: 500, lineHeight: 1.5,
           }}
         >
           {/* `slot_taken` n'est pas une erreur du client : quelqu'un a simplement

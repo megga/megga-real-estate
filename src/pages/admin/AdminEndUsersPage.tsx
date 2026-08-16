@@ -23,7 +23,7 @@ import {
   AdminPill, AdminSkeleton, AdminStat, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { SellerLeadsInbox, ContactMessagesInbox } from '@/components/admin/AdminModerationInbox'
 import { useEndUserStats, useKycMagicLinks } from '@/hooks/useAdminEndUsers'
 
@@ -49,7 +49,7 @@ function StatusPills<T extends string>({ options, value, onChange, prefix }: {
   options: readonly T[]; value: T; onChange: (v: T) => void; prefix: string
 }) {
   const { t } = useTranslation('admin')
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
       {options.map(opt => {
@@ -60,7 +60,7 @@ function StatusPills<T extends string>({ options, value, onChange, prefix }: {
             onClick={() => onChange(opt)}
             style={{
               height: 30, padding: '0 13px', borderRadius: ADMIN_RADII.pill, border: 0,
-              cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
+              cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap',
               background: on ? sp.accent : surf.cardSub, color: on ? sp.accentInk : sp.soft,
               transition: 'background .18s ease',
             }}
@@ -117,7 +117,7 @@ function ListBento({ filters, columns, loading, isEmpty, empty, rows, minWidth }
 
 export default function AdminEndUsersPage() {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const { data: stats, isLoading: statsLoading } = useEndUserStats()
   const [kycStatus, setKycStatus] = useState<typeof KYC_FILTERS[number]>('')
   const { data: kycLinks, isLoading: kycLoading } = useKycMagicLinks(kycStatus || null)

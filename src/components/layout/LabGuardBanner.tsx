@@ -5,7 +5,7 @@
  * ── Où il vit, et pourquoi il a déménagé (04.08.2026) ──────────────────────────────
  *
  * Monté dans **IdentityShell**, à l'intérieur de `.mx-appshell`. Il vivait auparavant
- * dans AgentSugarLayout, au-dessus de tout le CRM, et deux choses ont changé.
+ * dans AgentLayout, au-dessus de tout le CRM, et deux choses ont changé.
  *
  * 1. Il n'a plus de raison d'être ailleurs. La garde d'identité renvoie toute route
  *    vers `/dashboard/identite` tant que le dossier n'est pas soumis, et l'écran plein

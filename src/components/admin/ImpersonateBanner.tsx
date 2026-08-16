@@ -8,8 +8,8 @@
  * même idiome que la piste d'`AdminSwitch` — dont le survol passe par une classe
  * scopée, une valeur inline ne pouvant pas porter d'état `:hover`.
  *
- * ⚠️ Ce composant vit dans le CRM (`AgentLayout`, `AgentSugarLayout`), hors de
- * `AdminThemeProvider` : il ne peut donc PAS appeler `useAdminSugar()`, qui lève
+ * ⚠️ Ce composant vit dans le CRM (`AgentLayout`, `AgentLayout`), hors de
+ * `AdminThemeProvider` : il ne peut donc PAS appeler `useAdminSurfaces()`, qui lève
  * hors du provider. Seules les constantes du kit (`ADMIN_RADII`) sont
  * utilisables ici.
  */
@@ -34,13 +34,17 @@ export default function ImpersonateBanner() {
     <div className="sticky top-0 z-[90] flex items-center justify-center gap-3 h-10 bg-admin-accent text-white text-sm font-medium px-4">
       <style>{EXIT_CSS}</style>
       <MEIcon name="eye" size={16} />
-      <span>{t('userDrawer.impersonate')} <strong>{impersonating.full_name}</strong> ({impersonating.email})</span>
+      {/* ⛔ Pas de `<strong>` : le preflight Tailwind lui donne `bolder`, qui
+          résout à 700 sur un parent réglé à 500 — une graisse que la SOURCE ne
+          déclare pas et qu'aucune lecture de code ne voit. L'emphase passe par
+          un `<span>` à graisse explicite. */}
+      <span>{t('userDrawer.impersonate')} <span style={{ fontWeight: 600 }}>{impersonating.full_name}</span> ({impersonating.email})</span>
       <button
         onClick={stopImpersonate}
         className="imp-exit ml-2 h-6 px-2.5 flex items-center gap-1.5"
         style={{
           borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-          color: 'inherit', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 700,
+          color: 'inherit', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600,
         }}
       >
         <MEIcon name="close" size={13} />

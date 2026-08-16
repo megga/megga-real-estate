@@ -18,7 +18,7 @@
 //    `null` est simplement masqué.
 //  · Carte plein écran et lightbox sont PORTÉES dans `document.body` : la fiche
 //    vit sous le track translaté du pager, où `position: fixed` deviendrait un
-//    cadre local (même correctif que SgaOverlayHost côté atelier).
+//    cadre local (même correctif que AtlOverlayHost côté atelier).
 
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
@@ -26,11 +26,13 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import RechIcon from './RechIcon'
 import MrhPhoto from './MrhPhoto'
+import MrhAgencyLogo from './MrhAgencyLogo'
 import MrhLightbox from './MrhLightbox'
 import { useMarketListingDetail } from '@/hooks/useMatchingRecherche'
 import { formatCHF, formatDate } from '@/lib/utils'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
-import { floorLabelKey, type MrhBien, type MrhContact } from './types'
+import type { CrmPalette } from '@/components/crm/tokens'
+import { floorLabelKey, type MrhBien, type MrhBienDetail, type MrhContact } from './types'
+import { MRH_PRICE_DROP } from './mrhCtx'
 import type { MrhSurf } from './mrhCtx'
 
 // Carte réelle isolée + lazy → mapbox-gl ne charge qu'à l'ouverture d'une fiche avec token.
@@ -45,17 +47,17 @@ interface Spec { k: string; v: string; mono?: boolean }
  * La moyenne réelle est de 1 462 signes (max 9 335) : sans repli, la fiche
  * s'ouvre au milieu d'un pavé et le prix passe sous la ligne de flottaison.
  */
-function MrhDescription({ text, sp }: { text: string; sp: SugarPalette }) {
+function MrhDescription({ text, sp }: { text: string; sp: CrmPalette }) {
   const { t } = useTranslation('matching')
   const [open, setOpen] = useState(false)
   const long = text.length > 320
   return (
     <div>
-      <div style={{ fontSize: 14.5, fontWeight: 500, lineHeight: 1.65, color: sp.ink, textWrap: 'pretty', whiteSpace: 'pre-line', display: open || !long ? 'block' : '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: open || !long ? 'unset' : 4, overflow: 'hidden' }}>
+      <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.65, color: sp.ink, textWrap: 'pretty', whiteSpace: 'pre-line', display: open || !long ? 'block' : '-webkit-box', WebkitBoxOrient: 'vertical', WebkitLineClamp: open || !long ? 'unset' : 4, overflow: 'hidden' }}>
         {text}
       </div>
       {long && (
-        <button onClick={() => setOpen((v) => !v)} style={{ marginTop: 8, border: 0, background: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', color: sp.ink, fontSize: 13, fontWeight: 800 }}>
+        <button onClick={() => setOpen((v) => !v)} style={{ marginTop: 8, border: 0, background: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', color: sp.ink, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>
           {open ? t('recherche.detail.readLess') : t('recherche.detail.readMore')}
         </button>
       )}
@@ -65,7 +67,7 @@ function MrhDescription({ text, sp }: { text: string; sp: SugarPalette }) {
 
 interface Props {
   bien: MrhBien
-  sp: SugarPalette
+  sp: CrmPalette
   surf: MrhSurf
   dark: boolean
   line: string
@@ -76,15 +78,26 @@ interface Props {
   on: boolean
   onToggle: () => void
   onClose: () => void
+  /**
+   * Banc d'essai : champs de fiche fournis au lieu d'être lus par clé primaire.
+   * Sans ça, la moitié basse de la fiche — description, étage, charges,
+   * disponibilité — reste vide au banc, et c'est justement la partie la plus
+   * dense du plus gros fichier du périmètre.
+   */
+  detailDemo?: MrhBienDetail
 }
 
-export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, ONACC, buyer, on, onToggle, onClose }: Props) {
+export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, ONACC, buyer, on, onToggle, onClose, detailDemo }: Props) {
   const { t } = useTranslation('matching')
   // `isPending`/`isError` ne sont pas décoratifs : la description s'insère AU-DESSUS
   // des caractéristiques, donc sans place réservée toute la fiche saute quand la
   // requête revient. Et un échec rendu comme une absence ferait affirmer à l'écran
   // que le portail n'a rien publié, sans l'avoir vérifié.
-  const { data: detail, isPending: detailPending, isError: detailError } = useMarketListingDetail(bien.id)
+  // ⚠ `null` en id désactive la query — le banc ne doit pas interroger la base.
+  const live = useMarketListingDetail(detailDemo ? null : bien.id)
+  const detail = detailDemo ?? live.data
+  const detailPending = detailDemo ? false : live.isPending
+  const detailError = detailDemo ? false : live.isError
 
   const [lb, setLb] = useState(-1)
   const [mapOpen, setMapOpen] = useState(false)
@@ -109,7 +122,6 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
   const portalLabel = bien.source_portal === 'flatfox' ? 'Flatfox' : bien.source_portal === 'realadvisor' ? 'RealAdvisor' : (bien.source_portal || t('recherche.detail.portalFallback'))
   const openPortal = () => { const u = bien.source_url || ''; if (u) window.open(/^https?:/i.test(u) ? u : 'https://' + u, '_blank', 'noopener') }
   const subBg = dark ? 'rgba(255,255,255,.045)' : '#F7F8FA'
-  const dot = dark ? 'rgba(255,255,255,.22)' : 'rgba(15,23,42,.22)'
   const ppm2 = bien.price_per_m2 || (price && bien.area ? Math.round(price / bien.area) : null)
   const priceOrig = bien.price_original
   const dropPct = priceOrig && price && priceOrig > price ? Math.round((1 - price / priceOrig) * 100) : null
@@ -117,7 +129,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
   const agencyName = bien.agency || '—'
   const agencyInit = agencyName.split(/\s+/).map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
   const mapBg = dark ? '#12151B' : '#E7ECF2'
-  const mapLine = dark ? 'rgba(255,255,255,.05)' : 'rgba(15,23,42,.06)'
+  const mapLine = dark ? 'rgba(255,255,255,.05)' : 'rgba(3,3,3,.06)'
   const photos = bien.photos
   const hasCoords = bien.lat != null && bien.lng != null
 
@@ -172,14 +184,14 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
 
   const selectBtn = (block?: boolean) => buyer ? (
     <button onClick={onToggle}
-      style={{ marginTop: block ? 10 : 0, width: block ? '100%' : undefined, height: block ? 46 : 44, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: block ? 14 : 13.5, fontWeight: 700, background: on ? chipBg : 'transparent', color: sp.ink, boxShadow: on ? 'none' : 'inset 0 0 0 1px ' + sp.solidBorder, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+      style={{ marginTop: block ? 10 : 0, width: block ? '100%' : undefined, height: block ? 46 : 44, padding: '0 18px', borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: on ? chipBg : 'transparent', color: sp.ink, boxShadow: on ? 'none' : 'inset 0 0 0 1px ' + sp.solidBorder, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, whiteSpace: 'nowrap' }}>
       <RechIcon name={on ? 'check' : 'plus'} size={15} stroke={sp.ink} />
       {on ? (block ? t('recherche.detail.inSelectionOf', { name: buyer.firstName }) : t('recherche.detail.inSelection')) : t('recherche.detail.addToSelection')}
     </button>
   ) : null
 
   const eyebrow = (label: string) => (
-    <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sp.sub, marginBottom: 12 }}>{label}</div>
+    <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, marginBottom: 12 }}>{label}</div>
   )
   const rule = <div style={{ height: 1, background: line, margin: '22px 0' }} />
 
@@ -199,9 +211,9 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
     const box = chipsBox(big)
     return (
       <div style={{ position: 'absolute', left: box.edge, right: box.edge, bottom: box.edge, zIndex: 2, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', height: box.h, padding: big ? '0 15px' : '0 13px', borderRadius: 999, maxWidth: '100%', background: dark ? 'rgba(11,12,14,.8)' : 'rgba(255,255,255,.94)', color: sp.ink, fontSize: big ? 13.5 : 12.5, fontWeight: 700, boxShadow: '0 2px 8px rgba(15,23,42,.12)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bien.addr}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', height: box.h, padding: big ? '0 15px' : '0 13px', borderRadius: 999, maxWidth: '100%', background: dark ? 'rgba(3,3,3,.8)' : 'rgba(255,255,255,.94)', color: sp.ink, fontSize: big ? 'var(--crm-text-md)' : 'var(--crm-text-sm)', fontWeight: 600, boxShadow: '0 2px 8px rgba(3,3,3,.12)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bien.addr}</span>
         {hasCoords && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', height: box.h - 4, padding: big ? '0 13px' : '0 11px', borderRadius: 999, background: dark ? 'rgba(11,12,14,.66)' : 'rgba(255,255,255,.85)', color: sp.sub, fontSize: big ? 11.5 : 11, fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', height: box.h - 4, padding: big ? '0 13px' : '0 11px', borderRadius: 999, background: dark ? 'rgba(3,3,3,.66)' : 'rgba(255,255,255,.85)', color: sp.sub, fontSize: 'var(--crm-text-xs)', fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>
             {(bien.lat as number).toFixed(4) + ', ' + (bien.lng as number).toFixed(4)}
           </span>
         )}
@@ -237,7 +249,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
         <button onClick={onClose} title={t('recherche.detail.back')} style={{ width: 40, height: 40, borderRadius: 999, border: 0, cursor: 'pointer', flexShrink: 0, display: 'grid', placeItems: 'center', padding: 0, background: surf.card, boxShadow: surf.shadow }}>
           <RechIcon name="chevronL" size={18} stroke={sp.ink} />
         </button>
-        <div style={{ fontSize: 13, fontWeight: 600, color: sp.sub }}>{t('recherche.detail.back')}</div>
+        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub }}>{t('recherche.detail.back')}</div>
         <div style={{ flex: 1 }} />
         {selectBtn(false)}
       </div>
@@ -246,15 +258,15 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
         <div style={{ maxWidth: 1180, margin: '0 auto' }}>
 
           {/* ── Bento 1 · Affiche (collage photo + identité + prix) ── */}
-          <div style={{ background: surf.card, borderRadius: 26, boxShadow: dark ? surf.shadow : '0 24px 60px rgba(15,23,42,0.10), 0 6px 18px rgba(15,23,42,0.06)', padding: 14 }}>
+          <div style={{ background: surf.card, borderRadius: 26, boxShadow: dark ? surf.shadow : '0 24px 60px rgba(3,3,3,0.10), 0 6px 18px rgba(3,3,3,0.06)', padding: 14 }}>
             <div className="mrh-gallery" style={{ display: 'grid', gridTemplateColumns: galCols, gridTemplateRows: galRows, gap: 8, height: 420 }}>
               <button className="mrh-gal-main" onClick={() => photos.length && setLb(0)} title={t('recherche.detail.seePhotos')} style={{ gridColumn: '1', gridRow: galMainRow, position: 'relative', border: 0, cursor: photos.length ? 'zoom-in' : 'default', padding: 0, borderRadius: 16, overflow: 'hidden', background: subBg }}>
                 <MrhPhoto url={photos[0]} dark={dark} alt={bien.title} fallbackBg={subBg} fallbackInk={sp.sub} />
                 {bien.status === 'price_reduced' && (
-                  <span style={{ position: 'absolute', top: 16, left: 16, display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 13px', borderRadius: 999, background: '#C45A00', color: '#fff', fontSize: 12, fontWeight: 700, boxShadow: '0 2px 8px rgba(15,23,42,.18)' }}>{t('recherche.card.priceDrop')}</span>
+                  <span style={{ position: 'absolute', top: 16, left: 16, display: 'inline-flex', alignItems: 'center', height: 30, padding: '0 13px', borderRadius: 999, background: MRH_PRICE_DROP, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, boxShadow: '0 2px 8px rgba(3,3,3,.18)' }}>{t('recherche.card.priceDrop')}</span>
                 )}
                 {photos.length > 0 && (
-                  <span style={{ position: 'absolute', bottom: 16, right: 16, display: 'inline-flex', alignItems: 'center', gap: 7, height: 30, padding: '0 13px', borderRadius: 999, background: 'rgba(11,12,14,.72)', color: '#fff', fontSize: 12, fontWeight: 700 }}>
+                  <span style={{ position: 'absolute', bottom: 16, right: 16, display: 'inline-flex', alignItems: 'center', gap: 7, height: 30, padding: '0 13px', borderRadius: 999, background: 'rgba(3,3,3,.72)', color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>
                     <RechIcon name="layers" size={13} stroke="#fff" /> {t('recherche.card.photos', { count: photos.length })}
                   </span>
                 )}
@@ -268,7 +280,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                   <button key={p + String(i)} className="mrh-gal-thumb" onClick={() => setLb(i + 1)} title={t('recherche.detail.seePhotos')} style={{ position: 'relative', gridColumn: wide ? 'span 2' : undefined, border: 0, cursor: 'zoom-in', padding: 0, borderRadius: 12, overflow: 'hidden', background: subBg }}>
                     <MrhPhoto url={p} dark={dark} alt="" fallbackBg={subBg} fallbackInk={sp.sub} />
                     {overflow && (
-                      <span style={{ position: 'absolute', inset: 0, background: 'rgba(6,7,9,.52)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>{'+' + (photos.length - 5)}</span>
+                      <span style={{ position: 'absolute', inset: 0, background: 'rgba(6,7,9,.52)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.5 }}>{'+' + (photos.length - 5)}</span>
                     )}
                   </button>
                 )
@@ -277,20 +289,20 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
 
             <div className="mrh-affiche" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 80, flexWrap: 'wrap', padding: '40px 22px 24px' }}>
               <div style={{ minWidth: 0 }}>
-                <h2 style={{ margin: 0, fontSize: 28, fontWeight: 800, letterSpacing: -0.8, color: sp.ink, lineHeight: 1.1 }}>{bien.title}</h2>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, color: sp.sub, marginTop: 8, fontWeight: 600 }}>
+                <h2 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 600, letterSpacing: -0.8, color: sp.ink, lineHeight: 1.1 }}>{bien.title}</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--crm-text-lg)', color: sp.sub, marginTop: 8, fontWeight: 600 }}>
                   <RechIcon name="mapPin" size={15} stroke={sp.sub} /> {bien.addr}
                 </div>
               </div>
               <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: sp.sub, marginBottom: 5 }}>
+                <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub, marginBottom: 5 }}>
                   {isRent ? t('recherche.detail.priceCaptionRent') : t('recherche.detail.priceCaptionSale')}
                 </div>
-                <div style={{ fontSize: 30, fontWeight: 800, color: sp.ink, letterSpacing: -0.8, lineHeight: 1, whiteSpace: 'nowrap' }}>{priceLabel}</div>
+                <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.8, lineHeight: 1, whiteSpace: 'nowrap' }}>{priceLabel}</div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-                  {isRent && price ? <span style={{ fontSize: 12.5, color: sp.sub, fontWeight: 600 }}>{t('recherche.detail.perMonthLong')}</span> : null}
-                  {priceOrig ? <span style={{ fontSize: 13, color: sp.sub, fontWeight: 600, textDecoration: 'line-through' }}>{formatCHF(priceOrig)}</span> : null}
-                  {dropPct ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 999, background: '#C45A00', color: '#fff', fontSize: 11.5, fontWeight: 800 }}>{'−' + dropPct + ' %'}</span> : null}
+                  {isRent && price ? <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600 }}>{t('recherche.detail.perMonthLong')}</span> : null}
+                  {priceOrig ? <span style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, fontWeight: 600, textDecoration: 'line-through' }}>{formatCHF(priceOrig)}</span> : null}
+                  {dropPct ? <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 9px', borderRadius: 999, background: MRH_PRICE_DROP, color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 600 }}>{'−' + dropPct + ' %'}</span> : null}
                 </div>
               </div>
             </div>
@@ -312,7 +324,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                 ) : detailError ? (
                   <>
                     {eyebrow(t('recherche.detail.sectionDescription'))}
-                    <div style={{ fontSize: 13.5, fontWeight: 500, color: sp.sub }}>{t('recherche.detail.detailError')}</div>
+                    <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: sp.sub }}>{t('recherche.detail.detailError')}</div>
                     {rule}
                   </>
                 ) : detail?.description ? (
@@ -322,12 +334,12 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                     {rule}
                   </>
                 ) : null}
-                <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sp.sub, marginBottom: 14 }}>{t('recherche.detail.sectionSpecs')}</div>
+                <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, marginBottom: 14 }}>{t('recherche.detail.sectionSpecs')}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '16px 22px' }}>
                   {specs.map((s) => (
                     <div key={s.k} style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: sp.sub }}>{s.k}</div>
-                      <div title={s.v} style={{ fontSize: 15.5, fontWeight: 800, color: sp.ink, marginTop: 4, letterSpacing: -0.2, fontFamily: s.mono ? "'JetBrains Mono', monospace" : 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.v}</div>
+                      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>{s.k}</div>
+                      <div title={s.v} style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, marginTop: 4, letterSpacing: -0.2, fontFamily: s.mono ? "'JetBrains Mono', monospace" : 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.v}</div>
                     </div>
                   ))}
                 </div>
@@ -337,7 +349,7 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                     {eyebrow(t('recherche.detail.equip'))}
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {bien.features.map((f) => (
-                        <span key={f} style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 15px', borderRadius: 999, background: chipBg, color: sp.ink, fontSize: 13, fontWeight: 600 }}>{f}</span>
+                        <span key={f} style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 15px', borderRadius: 999, background: chipBg, color: sp.ink, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{f}</span>
                       ))}
                     </div>
                   </>
@@ -349,23 +361,57 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
                   deux seules actions de la fiche — ouvrir le portail, ajouter à la
                   sélection — sortent de l'écran dès qu'on déroule pour lire. */}
               <div style={{ position: 'sticky', top: 6 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: sp.sub }}>{t('recherche.detail.agency')}</div>
-                <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'grid', placeItems: 'center', background: ACC, color: ONACC, fontSize: 13.5, fontWeight: 800 }}>{agencyInit || '—'}</span>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: sp.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agencyName}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 7, fontSize: 12, color: sp.sub, fontWeight: 600, marginTop: 2 }}>
-                      <span>{portalLabel}</span>
-                      {bien.postedAt ? <><span style={{ color: dot }}>·</span><span>{bien.postedAt}</span></> : null}
-                    </div>
+                <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub }}>{t('recherche.detail.agency')}</div>
+                <div style={{ marginTop: 10 }}>
+                  {/* La MARQUE de la régie parle SEULE quand la base en a une —
+                      logo sur plaque, sans le nom à côté. Sinon le monogramme et
+                      le nom reviennent ensemble.
+
+                      ⛔ C'est le COMPOSANT qui arbitre, pas cette page : lui seul
+                      sait si l'image a échoué. Masquer le nom ici sur la simple
+                      présence d'une URL laisserait un bloc « Régie » entièrement
+                      vide le jour où le CDN ne répond pas.
+
+                      ⚠ Le repli n'est pas un cas de bord : 61,2 % des 76 648
+                      annonces actives ont un logo (mesuré le 13.08.2026, APRÈS la
+                      reprise d'`agency_profiles`), et 17 496 des 29 730 restantes
+                      portent un nom.
+
+                      ⚠ Le chargement passe par le composant PARTAGÉ — mémo
+                      d'échec par URL, `no-referrer`, `lazy`. Réécrire une balise
+                      `img` ici dupliquerait la partie où les bugs se logent. */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                    <MrhAgencyLogo
+                      name={bien.agency}
+                      logoUrl={bien.agency_logo_url}
+                      sp={sp}
+                      line={line}
+                      gabarit="fiche"
+                      monogramme={
+                        <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'grid', placeItems: 'center', background: ACC, color: ONACC, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{agencyInit || '—'}</span>
+                      }
+                      nom={
+                        <span style={{ minWidth: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink, letterSpacing: -0.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{agencyName}</span>
+                      }
+                    />
+                  </div>
+                  {/* Portail et date restent SOUS la marque dans les deux
+                      branches : ce sont des faits sur l'annonce, pas sur la
+                      régie, et ils ne doivent pas disparaître avec le nom. */}
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 7, marginTop: 8, fontSize: 'var(--crm-text-sm)', color: sp.sub, fontWeight: 600 }}>
+                    <span>{portalLabel}</span>
+                    {/* ⛔ Le séparateur n'a plus de teinte à lui — voir `--ink-dim` :
+                        un jeton qui n'existe que pour être plus faible finit sous
+                        le plancher (1,67:1). `aria-hidden` : ponctuation VISUELLE. */}
+                    {bien.postedAt ? <><span aria-hidden="true">·</span><span>{bien.postedAt}</span></> : null}
                   </div>
                 </div>
                 {bien.agency_phone ? (
-                  <a href={'tel:' + bien.agency_phone.replace(/\s+/g, '')} style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 9, height: 42, padding: '0 14px', borderRadius: 12, background: chipBg, color: sp.ink, textDecoration: 'none', fontSize: 13.5, fontWeight: 700 }}>
+                  <a href={'tel:' + bien.agency_phone.replace(/\s+/g, '')} style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 9, height: 42, padding: '0 14px', borderRadius: 12, background: chipBg, color: sp.ink, textDecoration: 'none', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>
                     <RechIcon name="phone" size={15} stroke={sp.ink} /> {bien.agency_phone}
                   </a>
                 ) : null}
-                <button onClick={openPortal} style={{ marginTop: 18, width: '100%', height: 46, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, background: ACC, color: ONACC, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <button onClick={openPortal} style={{ marginTop: 18, width: '100%', height: 46, borderRadius: 999, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: ACC, color: ONACC, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   {t('recherche.detail.openOn', { portal: portalLabel })} <RechIcon name="arrowR" size={15} stroke={ONACC} />
                 </button>
                 {selectBtn(true)}
@@ -423,8 +469,8 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
             )}
           </div>
           <button onClick={() => setMapOpen(false)} title={t('recherche.detail.close')}
-            style={{ position: 'absolute', top: 18, right: 18, zIndex: 2, width: 42, height: 42, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? 'rgba(11,12,14,.72)' : 'rgba(255,255,255,.94)', boxShadow: '0 4px 14px rgba(15,23,42,.2)' }}>
-            <RechIcon name="close" size={18} stroke={dark ? '#fff' : '#0B0C0E'} />
+            style={{ position: 'absolute', top: 18, right: 18, zIndex: 2, width: 42, height: 42, borderRadius: 999, border: 0, cursor: 'pointer', display: 'grid', placeItems: 'center', padding: 0, background: dark ? 'rgba(3,3,3,.72)' : 'rgba(255,255,255,.94)', boxShadow: '0 4px 14px rgba(3,3,3,.2)' }}>
+            <RechIcon name="close" size={18} stroke={dark ? '#fff' : '#030303'} />
           </button>
         </div>,
         document.body,

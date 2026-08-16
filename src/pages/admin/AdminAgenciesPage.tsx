@@ -74,7 +74,7 @@ import {
   AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 
 /** Lignes rendues avant le « voir les N autres » (maquette). */
 const SHOW = 20
@@ -90,7 +90,7 @@ const KYB_PILL: Record<string, { key: string; tone: AdminToneName }> = {
 export default function AdminAgenciesPage() {
   const { t } = useTranslation('admin')
   const { agencies, isLoading, isError, refetch, updateStatus } = useAdminAgencies()
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
 
   const [search, setSearch] = useState('')
   const [filtre, setFiltre] = useState<'all' | 'active' | 'suspended' | 'trial'>('all')
@@ -137,7 +137,7 @@ export default function AdminAgenciesPage() {
 
   const th = { bg: sp.pageBg }
   const cellule: CSSProperties = {
-    padding: '12px', fontSize: 12.5, fontWeight: 600, color: sp.ink,
+    padding: '12px', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink,
     borderTop: surf.hairline, verticalAlign: 'middle',
   }
 
@@ -160,14 +160,14 @@ export default function AdminAgenciesPage() {
             style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink }}>{a.name}</span>
+              <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink }}>{a.name}</span>
               {a.status === 'suspended' && (
                 <AdminPill label={t('common.status.suspended')} tone="err" />
               )}
               {kyb && <AdminPill label={t(kyb.key)} tone={kyb.tone} />}
             </div>
             {identite && (
-              <div style={{ marginTop: 2, fontSize: 11.5, fontWeight: 500, color: sp.sub }}>{identite}</div>
+              <div style={{ marginTop: 2, fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub }}>{identite}</div>
             )}
           </Link>
         </td>
@@ -177,7 +177,7 @@ export default function AdminAgenciesPage() {
         </td>
 
         {/* Portefeuille — trois compteurs fondus en une cellule (maquette) */}
-        <td style={{ ...cellule, fontWeight: 500, color: sp.sub, fontSize: 11.5 }}>
+        <td style={{ ...cellule, fontWeight: 500, color: sp.sub, fontSize: 'var(--crm-text-xs)' }}>
           {[
             t('agencies.portfolio.agents', { count: a.agent_count }),
             t('agencies.portfolio.properties', { count: a.property_count }),
@@ -197,13 +197,13 @@ export default function AdminAgenciesPage() {
         <td style={cellule}>
           <span
             title={t(HEALTH_CAUSE_KEY[sante.cause])}
-            style={{ fontSize: 12.5, fontWeight: 700, color: couleurTon(sante.tone) }}
+            style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: couleurTon(sante.tone) }}
           >
             {t(HEALTH_WORD_KEY[sante.word])}
           </span>
         </td>
 
-        <td style={{ ...cellule, fontWeight: 500, color: sp.sub, fontSize: 11.5, whiteSpace: 'nowrap' }}>
+        <td style={{ ...cellule, fontWeight: 500, color: sp.sub, fontSize: 'var(--crm-text-xs)', whiteSpace: 'nowrap' }}>
           {a.last_activity_at ? formatRelativeDate(a.last_activity_at) : t('agencies.noEvent')}
         </td>
 
@@ -216,7 +216,7 @@ export default function AdminAgenciesPage() {
               disabled={updateStatus.isPending}
               style={{
                 height: 28, padding: '0 12px', borderRadius: ADMIN_RADII.pill, border: 0, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-xs)', fontWeight: 600, whiteSpace: 'nowrap',
                 background: surf.card, boxShadow: sp.shadowSm, color: tones.ok,
               }}
             >
@@ -234,7 +234,7 @@ export default function AdminAgenciesPage() {
       subtitle={t('agencies.subtitle', { count: agencies.length })}
       width="wide"
       actions={
-        <AdminGhostBtn onClick={() => setCreation(true)} icon={Plus} style={{ height: 30, fontSize: 12 }}>
+        <AdminGhostBtn onClick={() => setCreation(true)} icon={Plus} style={{ height: 30, fontSize: 'var(--crm-text-sm)' }}>
           {t('agencies.create')}
         </AdminGhostBtn>
       }
@@ -297,7 +297,7 @@ export default function AdminAgenciesPage() {
               style={{
                 marginTop: 12, alignSelf: 'flex-start', border: 0, background: 'transparent',
                 padding: '7px 10px', borderRadius: ADMIN_RADII.pill, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: sp.sub,
+                fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub,
               }}
             >
               {t('agencies.showMore', { count: reste })}

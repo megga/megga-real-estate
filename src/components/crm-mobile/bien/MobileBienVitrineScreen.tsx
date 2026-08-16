@@ -14,8 +14,10 @@ import type { Property } from '@/types/listing'
 import { formatCHF, formatRent, formatDate } from '@/lib/utils'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
-import SgActionMenu from '../primitives/SgActionMenu'
+import CrmActionMenu from '../primitives/CrmActionMenu'
 import { statusTone, typeKey, type BienType } from './shared'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface MobileBienVitrineScreenProps {
   /** Donnée figée (harnais /dev/mobile, no-auth) — bypasse useProperty. */
@@ -30,7 +32,7 @@ const num = (v: unknown): number | null => {
 
 /**
  * Fiche bien mobile (/dashboard/listings/:id) — re-skin Sugar Pure de la page
- * déjà câblée (BienDetailSugarV4Page). Lecture seule v1 : hero + galerie,
+ * déjà câblée (ListingDetailPage). Lecture seule v1 : hero + galerie,
  * identité, caractéristiques, performance (usePropertyStats), mandat, diffusion.
  * C2PA affiché UNIQUEMENT si `c2pa_verified` (jamais fabriqué). Différés :
  * acheteurs/matches, vendeur, édition inline, planif. visite in-fiche, carte.
@@ -69,8 +71,8 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
   if (!bien) {
     return (
       <div style={{ fontFamily: MOBILE_FONT, color: tk.ink, textAlign: 'center', padding: '64px 24px' }}>
-        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800 }}>{isError ? t('mobile.detailError') : t('detail.notFound')}</div>
-        <button type="button" onClick={() => navigate('/dashboard/listings')} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 800, background: tk.accent, color: tk.accentInk }}>
+        <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600 }}>{isError ? t('mobile.detailError') : t('detail.notFound')}</div>
+        <button type="button" onClick={() => navigate('/dashboard/listings')} style={{ marginTop: 16, height: 44, padding: '0 var(--crm-space-6xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, background: tk.accent, color: tk.accentInk }}>
           {t('title')}
         </button>
       </div>
@@ -109,19 +111,19 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
                 <MEIcon name="home" size={48} color={tk.ghost} />
               </div>
             )}
-            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(11,12,14,0.30) 0%, rgba(11,12,14,0) 32%, rgba(11,12,14,0) 60%, rgba(11,12,14,0.18) 100%)' }} />
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(3,3,3,0.30) 0%, rgba(3,3,3,0) 32%, rgba(3,3,3,0) 60%, rgba(3,3,3,0.18) 100%)' }} />
             <div style={{ position: 'absolute', top: 13, left: 13, display: 'flex', gap: 'var(--crm-space-md)' }}>
-              <span style={{ padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: statusTone(status), color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 800, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>{t(`status.${status}`, { defaultValue: status })}</span>
+              <span style={{ padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: statusTone(status), color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}>{t(`status.${status}`, { defaultValue: status })}</span>
               {bien.c2pa_verified ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.95)', color: '#0B0C0E', fontSize: 'var(--crm-text-sm)', fontWeight: 800 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.95)', color: MXC_COLOR.n100, fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>
                   <MEIcon name="shield" size={13} color="#0E9F6E" />
                   {t('mobile.c2pa')}
                 </span>
               ) : null}
             </div>
             {photos.length ? (
-              <span style={{ position: 'absolute', right: 13, bottom: 13, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 30, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.95)', color: '#0B0C0E', fontSize: 'var(--crm-text-md)', fontWeight: 800 }}>
-                <MEIcon name="gallery" size={14} color="#0B0C0E" />
+              <span style={{ position: 'absolute', right: 13, bottom: 13, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 30, padding: '0 var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: 'rgba(255,255,255,0.95)', color: MXC_COLOR.n100, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>
+                <MEIcon name="gallery" size={14} color={MXC_COLOR.n100} />
                 {t('mobile.photosCount', { count: photos.length })}
               </span>
             ) : null}
@@ -140,18 +142,18 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
 
         {/* Identité */}
         <div>
-          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted}}>
             {[bien.canton, t(isRent ? 'mobile.txRent' : 'mobile.txSale'), t(typeKey(frType(bien.type)))].filter(Boolean).join(' · ')}
           </div>
-          <h1 style={{ margin: '8px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.7, lineHeight: 1.15 }}>{bien.title}</h1>
+          <h1 style={{ margin: '8px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 500, color: tk.ink, letterSpacing: -0.7, lineHeight: 1.15 }}>{bien.title}</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginTop: 6 }}>
             <MEIcon name="location" size={14} color={tk.muted} strokeWidth={1.7} />
             <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted }}>{[bien.address, bien.city].filter(Boolean).join(', ')}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)', flexWrap: 'wrap', marginTop: 14 }}>
-            <span style={{ fontSize: 'var(--crm-text-7xl)', fontWeight: 800, color: tk.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums' }}>{priceLabel}</span>
-            {charges ? <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted }}>{t('mobile.chargesLine', { value: formatCHF(charges) })}</span> : null}
-            {pricePerM2 ? <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 700, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>{t('mobile.perM2', { value: formatCHF(pricePerM2) })}</span> : null}
+            <span style={{ fontSize: 'var(--crm-text-7xl)', fontWeight: 500, color: tk.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums' }}>{priceLabel}</span>
+            {charges ? <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted }}>{t('mobile.chargesLine', { value: formatCHF(charges) })}</span> : null}
+            {pricePerM2 ? <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>{t('mobile.perM2', { value: formatCHF(pricePerM2) })}</span> : null}
           </div>
         </div>
 
@@ -173,7 +175,7 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
             {bien.features?.length ? (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)', marginTop: 12 }}>
                 {bien.features.map((f) => (
-                  <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, color: tk.inkSoft, fontSize: 'var(--crm-text-sm)', fontWeight: 700 }}>
+                  <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', background: tk.cardSubtle, color: tk.inkSoft, fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>
                     <MEIcon name="check" size={12} color={tk.inkSoft} />
                     {f}
                   </span>
@@ -211,7 +213,7 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
           <Eyebrow tk={tk}>{t('mobile.diffusionTitle')}</Eyebrow>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 10 }}>
             <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: bien.published_at ? tk.goal : tk.ghost }} />
-            <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: tk.ink }}>
+            <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.ink }}>
               {bien.published_at ? t('mobile.diffusionOnline', { date: formatDate(bien.published_at) }) : t('mobile.diffusionOffline')}
             </span>
           </div>
@@ -219,7 +221,7 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
       </div>
 
       {/* Menu ••• */}
-      <SgActionMenu
+      <CrmActionMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         title={bien.title}
@@ -260,15 +262,15 @@ function Card({ tk, children }: { tk: Tk; children: ReactNode }) {
 }
 /** Sur-titre de section en petites capitales. */
 function Eyebrow({ tk, children }: { tk: Tk; children: ReactNode }) {
-  return <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 1.1, textTransform: 'uppercase' }}>{children}</div>
+  return <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted}}>{children}</div>
 }
 /** Cellule de la bande de specs : icône + valeur + label. */
 function RibbonSpec({ icon, label, value, tk }: { icon: 'surface' | 'home' | 'bed' | 'bath' | 'clock' | 'bolt'; label: string; value: string; tk: Tk }) {
   return (
     <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xs)', minWidth: 52 }}>
       <MEIcon name={icon} size={21} color={tk.inkSoft} strokeWidth={1.6} />
-      <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
-      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 0.4, textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.3, fontVariantNumeric: 'tabular-nums' }}>{value}</span>
+      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted}}>{label}</span>
     </div>
   )
 }
@@ -277,8 +279,8 @@ function Stat({ tk, icon, label, value }: { tk: Tk; icon: 'eye' | 'heart' | 'cal
   return (
     <div style={{ flex: 1, background: tk.cardSubtle, borderRadius: 'var(--crm-radius-2xl)', padding: 'var(--crm-space-2xl) var(--crm-space-xl)' }}>
       <MEIcon name={icon} size={18} color={tk.muted} />
-      <div style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 800, color: tk.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', marginTop: 8 }}>{value}</div>
-      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 800, color: tk.muted, letterSpacing: 0.4, textTransform: 'uppercase', marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 500, color: tk.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', marginTop: 8 }}>{value}</div>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: tk.muted, marginTop: 2 }}>{label}</div>
     </div>
   )
 }
@@ -287,7 +289,7 @@ function Row({ tk, label, value, last }: { tk: Tk; label: string; value: string;
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)', padding: 'var(--crm-space-lg) 0', borderBottom: last ? 'none' : `1px solid ${tk.cardSubtle}` }}>
       <span style={{ fontSize: 'var(--crm-text-md)', color: tk.muted, fontWeight: 600 }}>{label}</span>
-      <span style={{ fontSize: 'var(--crm-text-lg)', color: tk.ink, fontWeight: 700, textAlign: 'right' }}>{value}</span>
+      <span style={{ fontSize: 'var(--crm-text-lg)', color: tk.ink, fontWeight: 600, textAlign: 'right' }}>{value}</span>
     </div>
   )
 }
@@ -295,6 +297,7 @@ function Row({ tk, label, value, last }: { tk: Tk; label: string; value: string;
 /** Visionneuse photo plein écran : swipe tactile, flèches clavier, Échap pour fermer. */
 function Lightbox({ photos, index, onClose, onIndex, t }: { photos: string[]; index: number; onClose: () => void; onIndex: (i: number) => void; t: TFunction }) {
   const touch = useRef<number | null>(null)
+  const refPiegeFocus = useFocusTrap(true, onClose)
   const go = (dx: number) => {
     if (dx < -40) onIndex((index + 1) % photos.length)
     else if (dx > 40) onIndex((index - 1 + photos.length) % photos.length)
@@ -310,8 +313,10 @@ function Lightbox({ photos, index, onClose, onIndex, t }: { photos: string[]; in
   }, [index, photos.length, onClose, onIndex])
   return (
     <div
+      ref={refPiegeFocus}
       role="dialog"
       aria-modal="true"
+      aria-label={t('mobile.photoViewer')}
       onClick={onClose}
       style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,2,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onTouchStart={(e) => { touch.current = e.touches[0].clientX }}
@@ -321,7 +326,7 @@ function Lightbox({ photos, index, onClose, onIndex, t }: { photos: string[]; in
       <button type="button" onClick={(e) => { e.stopPropagation(); onClose() }} aria-label={t('common:actions.cancel')} style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top) + 14px)', right: 16, width: 40, height: 40, borderRadius: 'var(--crm-radius-pill)', border: 0, background: 'rgba(255,255,255,0.14)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
         <MEIcon name="close" size={20} color="#fff" />
       </button>
-      <span style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom) + 18px)', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.85)', fontSize: 'var(--crm-text-lg)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom) + 18px)', left: '50%', transform: 'translateX(-50%)', color: 'rgba(255,255,255,0.85)', fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
         {index + 1} / {photos.length}
       </span>
     </div>

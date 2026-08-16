@@ -4,7 +4,7 @@
 // boucle de match en 3 étapes et pointe vers le prérequis (créer un bien).
 //
 // EXCEPTION TOKENS ASSUMÉE — comme BiensFirstRun.tsx et ContactsFirstRun.tsx,
-// cette couverture est MONO-THÈME : fond sombre #0A0B0D et textes blancs en dur,
+// cette couverture est MONO-THÈME : fond sombre #030303 et textes blancs en dur,
 // quel que soit le thème de l'app. Ne PAS « corriger » ces couleurs vers les
 // tokens sp.* : la maquette repose dessus.
 //
@@ -16,7 +16,7 @@
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 
-/** Illustration plein cadre de la couverture. `null` ⇒ fond plat #0A0B0D. */
+/** Illustration plein cadre de la couverture. `null` ⇒ fond plat #030303. */
 const COVER_SRC: string | null = '/matching/matching-cover.png'
 
 /** Les 3 étapes de la boucle de match — icône + clé i18n. */
@@ -42,7 +42,7 @@ export default function MatchingFirstRun({ onCreateListing }: MatchingFirstRunPr
       style={{
         position: 'absolute',
         inset: 0,
-        background: '#0A0B0D',
+        background: '#030303',
         overflowY: 'auto',
         overflowX: 'hidden',
         fontFamily: '"Inter Tight", system-ui, sans-serif',
@@ -63,7 +63,7 @@ export default function MatchingFirstRun({ onCreateListing }: MatchingFirstRunPr
 
       <div style={{ position: 'relative', zIndex: 2, minHeight: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '56px 40px', paddingBottom: 180 }}>
         <div style={{ maxWidth: 920, width: '100%', textAlign: 'center' }}>
-          <h1 style={{ margin: 0, fontSize: 34, fontWeight: 700, letterSpacing: -1, lineHeight: 1.1, color: '#FFFFFF', textShadow: '0 0 24px rgba(255,255,255,0.5)' }}>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-8xl)', fontWeight: 600, letterSpacing: -1, lineHeight: 1.1, color: '#FFFFFF', textShadow: '0 0 24px rgba(255,255,255,0.5)' }}>
             {t('firstRun.title')}
           </h1>
         </div>
@@ -74,10 +74,10 @@ export default function MatchingFirstRun({ onCreateListing }: MatchingFirstRunPr
               <span aria-hidden="true" style={{ width: 56, height: 56, borderRadius: 999, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                 <MEIcon name={s.icon} size={34} />
               </span>
-              <div style={{ fontSize: 15.5, fontWeight: 700, letterSpacing: -0.3, color: '#FFFFFF', lineHeight: 1.25, marginTop: 16, textShadow: '0 0 20px rgba(0,0,0,0.5)' }}>
+              <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.3, color: '#FFFFFF', lineHeight: 1.25, marginTop: 16, textShadow: '0 0 20px rgba(0,0,0,0.5)' }}>
                 {t(`firstRun.${s.key}.title`)}
               </div>
-              <div style={{ fontSize: 12.5, fontWeight: 500, color: 'rgba(255,255,255,0.7)', marginTop: 6, textShadow: '0 0 16px rgba(0,0,0,0.5)' }}>
+              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: 'rgba(255,255,255,0.7)', marginTop: 6, textShadow: '0 0 16px rgba(0,0,0,0.5)' }}>
                 {t(`firstRun.${s.key}.sub`)}
               </div>
             </div>
@@ -89,7 +89,7 @@ export default function MatchingFirstRun({ onCreateListing }: MatchingFirstRunPr
           onClick={onCreateListing}
           style={{
             marginTop: 40, height: 48, padding: '0 30px', borderRadius: 999, border: 0, cursor: 'pointer',
-            fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, background: '#FFFFFF', color: '#0A0B0D',
+            fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, background: '#FFFFFF', color: '#030303',
             display: 'inline-flex', alignItems: 'center', gap: 9, boxShadow: '0 12px 32px rgba(0,0,0,0.45)',
           }}
         >

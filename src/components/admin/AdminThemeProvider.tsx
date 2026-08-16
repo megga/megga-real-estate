@@ -19,15 +19,15 @@
  */
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
-// Lecture de la préférence : source unique `@/lib/sugarDark`. Ce module en
+// Lecture de la préférence : source unique `@/lib/crmDark`. Ce module en
 // hébergeait une copie identique, jamais importée ailleurs — deux définitions à
 // garder en phase pour rien.
 import {
-  applySugarThemeAttribute,
+  applyCrmThemeAttribute,
   captureThemeAttribute,
-  readSugarDark,
-  SUGAR_DARK_KEY as STORAGE_KEY,
-} from '@/lib/sugarDark'
+  readCrmDark,
+  CRM_DARK_KEY as STORAGE_KEY,
+} from '@/lib/crmDark'
 
 interface AdminThemeState {
   dark: boolean
@@ -38,7 +38,7 @@ interface AdminThemeState {
 const AdminThemeContext = createContext<AdminThemeState | undefined>(undefined)
 
 export function AdminThemeProvider({ children }: { children: ReactNode }) {
-  const [dark, setDarkState] = useState(readSugarDark)
+  const [dark, setDarkState] = useState(readCrmDark)
 
   // Rendre `data-theme` au CRM en sortant. Déclaré AVANT l'effet ci-dessous
   // pour capturer la valeur d'origine : au montage, les effets s'exécutent dans
@@ -46,14 +46,14 @@ export function AdminThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => captureThemeAttribute(document.documentElement), [])
 
   useEffect(() => {
-    applySugarThemeAttribute(document.documentElement, dark)
+    applyCrmThemeAttribute(document.documentElement, dark)
     window.localStorage.setItem(STORAGE_KEY, dark ? '1' : '0')
   }, [dark])
 
   // Cross-onglet : deux consoles ouvertes suivent le même réglage.
   useEffect(() => {
     const sync = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setDarkState(readSugarDark())
+      if (e.key === STORAGE_KEY) setDarkState(readCrmDark())
     }
     window.addEventListener('storage', sync)
     return () => window.removeEventListener('storage', sync)

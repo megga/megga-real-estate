@@ -462,14 +462,6 @@
       "baths": "ba",
       "epc": "EPC"
     },
-    "score": {
-      "chaud": "Hot",
-      "a_animer": "To nurture",
-      "en_veille": "Idle",
-      "fallback": "Estimate",
-      "tooltip": "Property score, estimate",
-      "tooltipLimited": "Property score, estimate · limited data"
-    },
     "submissions": {
       "bannerTitle_one": "{{count}} new seller submission",
       "bannerTitle_other": "{{count}} new seller submissions",
@@ -629,7 +621,6 @@
     "onlineOn": "Listing live on {{portals}}",
     "notPublishedYet": "Property not published yet",
     "viewPhotos": "View {{count}} photos",
-    "c2paVerified": "Verified provenance · C2PA",
     "transactionRent": "Rental",
     "transactionSale": "Sale",
     "rentLabel": "Rent",
@@ -849,7 +840,6 @@
   },
   "wizard": {
     "steps": {
-      "start": "Start",
       "mandate": "Seller",
       "address": "Address",
       "specs": "Features",
@@ -860,51 +850,17 @@
     },
     "forOwner": "For {{name}}",
     "ownerVia": {
-      "submission": "via submission",
       "linked": "linked seller"
-    },
-    "step0": {
-      "eyebrow": "Step 1 of 8 · Start",
-      "title": "How would you like to create this property?",
-      "subtitle": "Three quick ways to start. You'll refine the content step by step afterwards.",
-      "manual": {
-        "title": "Enter manually",
-        "sub": "Section by section, you stay in control."
-      },
-      "import": {
-        "title": "Import a mandate",
-        "sub": "MEGGA AI extracts everything from the mandate PDF.",
-        "soon": "Soon"
-      },
-      "autosave": {
-        "title": "Draft saved automatically",
-        "note": "You can close the wizard at any time, your data is kept."
-      },
-      "submissions": {
-        "title": "Resume a submission",
-        "subtitle": "{{count}} owners have submitted their property. Select one to pre-fill.",
-        "emptyTitle": "No submissions",
-        "emptyBody": "No individual has submitted a property yet.",
-        "unknownVendor": "Unknown seller",
-        "subtitle_one": "1 individual has submitted their property.",
-        "subtitle_other": "{{count}} individuals have submitted their property.",
-        "selectVendor": "Select a seller",
-        "cap_one": "5 submissions shown at most; 1 older one in My properties.",
-        "cap_other": "5 submissions shown at most; {{count}} older ones in My properties."
-      }
     },
     "step1": {
       "vendor": {
-        "eyebrow": "Step 2 of 8 · Seller (1/2)",
         "title": "Who is the owner?",
-        "subtitle": "Link this property to an existing contact or create a new one.",
         "change": "Change",
         "searchPlaceholder": "Type the seller's name, email or phone…",
-        "newButton": "+ New",
+        "newButton": "New",
         "recentSellers": "Your recent sellers",
         "noMatchTitle": "No contact found for \"{{query}}\"",
-        "noMatchBody": "Create a new seller contact.",
-        "createNamed": "+ Create \"{{query}}\"",
+        "createNamed": "Create \"{{query}}\"",
         "sellerTag": "Seller",
         "newSeller": "New seller",
         "quickInfo": "A few quick details",
@@ -914,20 +870,17 @@
         "phone": "Phone",
         "phonePlaceholder": "+41 79 …",
         "kycNote": "KYC can be started after the mandate is signed. MEGGA can send the procedure to the seller, it's optional.",
-        "createContact": "Create contact"
+        "createContact": "Create contact",
+        "submissions_one": "1 pending submission",
+        "submissions_other": "{{count}} pending submissions",
+        "unknownVendor": "Unknown vendor"
       },
       "mandate": {
-        "eyebrow": "Step 2 of 8 · Mandate (2/2)",
         "title": "What type of mandate?",
-        "subtitle": "Import a signed mandate to save time, or set it up manually.",
-        "subtitleImported": "MEGGA AI has extracted the details from your mandate. Review and adjust if needed.",
         "field": {
-          "type": "Mandate type",
           "duration": "Duration",
           "commission": "Commission",
-          "fees": "Fees",
-          "signedAt": "Signature date",
-          "vendor": "Seller identified"
+          "fees": "Fees"
         },
         "type": {
           "exclusive": {
@@ -944,18 +897,6 @@
           }
         },
         "recommended": "Recommended",
-        "import": {
-          "title": "Import a signed mandate",
-          "hint": "Drop your PDF here. MEGGA AI automatically extracts the type, duration, commission and signature date.",
-          "choosePdf": "Choose PDF"
-        },
-        "reading": "Reading file…",
-        "analyzing": "MEGGA AI is analysing your mandate",
-        "searchingNextField": "Looking for the next field…",
-        "importedTitle": "Mandate imported and analysed",
-        "enterManually": "Enter manually",
-        "enterManuallyQuoted": "\"Enter manually\"",
-        "editHint": "To edit these values, click",
         "months": "{{count}} months",
         "feesOwner": "Paid by the seller",
         "feesBuyer": "Paid by the buyer",
@@ -964,7 +905,6 @@
         "statusLabel": "Status",
         "signed": "Signed",
         "notSigned": "Not signed",
-        "orManual": "or set it up manually",
         "proposedCommission": "Suggested commission",
         "settings": "Settings",
         "settingsTitle": "Adjust the mandate terms",
@@ -976,9 +916,7 @@
       }
     },
     "step2": {
-      "eyebrow": "Step 3 of 8 · Address",
       "title": "Where is the property located?",
-      "subtitle": "Type an address and MEGGA AI fills in the postal code, canton and coordinates.",
       "searchPlaceholder": "Street, number, city…",
       "confirmedTitle": "Address confirmed",
       "confirmedSubtitle": "Postal code, canton and coordinates detected automatically.",
@@ -1091,9 +1029,7 @@
     "photosCount_one": "{{count}} photo",
     "photosCount_other": "{{count}} photos",
     "step4": {
-      "eyebrow": "Step 5 of 8 · Photos",
       "title": "Add the property photos",
-      "intro": "Listings with 8 to 12 photos receive <strong>3× more enquiries</strong>. The first photo will be the cover on MEGGA.",
       "mode": {
         "pc": "From this computer",
         "mobile": "From your phone",
@@ -1316,20 +1252,10 @@
       "addressPlaceholder": "Address to be completed",
       "agentLine": "MEGGA · {{canton}} · Presented by the agent",
       "contact": "Contact",
-      "whenPublish": "When to publish",
       "publishNow": {
         "title": "Publish now",
         "sub": "The listing goes live within 30 seconds."
       },
-      "schedule": {
-        "title": "Schedule",
-        "sub": "Choose the go-live date and time."
-      },
-      "draft": {
-        "title": "Save as draft",
-        "sub": "Pick up later. No public date."
-      },
-      "scheduleDateLabel": "Date and time (Europe/Zurich)",
       "visibility": {
         "eyebrow": "Visibility",
         "public": "Public",
@@ -1372,8 +1298,6 @@
       },
       "mandateNote": "Mandate not signed: the listing will appear on MEGGA; Immobilier.ch distribution will start once it is signed.",
       "cta": {
-        "schedule": "Schedule publication",
-        "draft": "Save draft",
         "private": "Save privately",
         "publishIdx": "Publish on Immobilier.ch",
         "publishMegga": "Publish on MEGGA"
@@ -1395,29 +1319,14 @@
       "featuresLabel": "Amenities",
       "agentFallback": "Your agency",
       "optionsTitle": "Publishing options",
-      "when": {
-        "now": "Now",
-        "schedule": "Schedule",
-        "draft": "Draft"
-      },
-      "draftNote": "The property stays as a draft in My properties; nothing is distributed."
+      "savedNote": "This property is already saved as a draft in My properties. Publishing makes it visible."
     },
     "step8": {
-      "eyebrow": {
-        "now": "Publication confirmed",
-        "schedule": "Scheduled",
-        "draft": "Draft"
-      },
       "title": {
-        "now": "Listing published",
-        "schedule": "Publication scheduled",
-        "draft": "Draft saved"
+        "now": "Listing published"
       },
       "subtitle": {
-        "now": "Your property is now live on MEGGA.",
-        "schedule": "Publication will take place on {{date}}.",
-        "scheduleFallbackDate": "the chosen date",
-        "draft": "You can pick up again from your dashboard."
+        "now": "Your property is now live on MEGGA."
       },
       "noCover": "No cover",
       "noAddress": "Property without an address",
@@ -1452,23 +1361,20 @@
           "subtitle": "Dashboard and pipeline."
         }
       },
-      "confirmationEmail": "You'll receive a confirmation email at <strong>{{email}}</strong>.",
       "c2paNote": "All generated images are <strong>C2PA</strong>-signed · provenance verifiable by the buyer."
     },
     "shell": {
       "mandateTitle": "Mandate",
       "continue": "Continue",
       "publishing": "Publishing…",
-      "schedulePublish": "Schedule publication",
-      "saveDraft": "Save as draft",
       "publish": "Publish on MEGGA",
-      "photoRequired": "Add at least one photo to publish. Without a photo, save the listing as a draft and complete it later.",
       "publishError": "Publication failed: {{message}}",
       "unknownError": "Unknown error",
       "recommended": "Recommended",
       "choose": "Choose",
       "saved": "Saved",
-      "autosave": "Auto-saved"
+      "saving": "Saving…",
+      "saveFailed": "Not saved"
     },
     "kyc": {
       "verified": "KYC verified",
@@ -1695,7 +1601,8 @@
     "porte": {
       "choose": "Choose",
       "selected": "Selected"
-    }
+    },
+    "progress": "Step {{n}} of {{total}} · {{label}}"
   },
   "gallery": {
     "sort": "Sort"
@@ -1746,13 +1653,13 @@
       "expiresAt": "Expires on"
     },
     "photoIndex": "Photo {{i}} / {{total}}",
+    "photoViewer": "Property photos",
     "surfaceSuffix": "m²"
   },
   "wizardMobile": {
     "continue": "Continue",
     "publish": "Publish",
     "publishing": "Publishing…",
-    "saveDraft": "Save as draft",
     "publishError": "Publishing failed. Try again.",
     "doneTitle": "Property created",
     "doneDesc": "Your property is saved. Add photos from its listing.",
@@ -1763,10 +1670,10 @@
     "postCode": "ZIP",
     "city": "City",
     "canton": "Canton",
-    "specsTitle": "Characteristics",
+    "specsTitle": "What does the property include?",
     "energy": "Energy class",
     "features": "Features",
-    "priceTitle": "Price & publishing",
+    "priceTitle": "At what price?",
     "priceLabel": "Sale price",
     "rentLabel": "Monthly rent",
     "charges": "Charges",
@@ -1774,9 +1681,6 @@
     "mandate": "Mandate",
     "mandateExclusive": "Exclusive",
     "mandateSimple": "Simple",
-    "publishWhen": "Publishing",
-    "publishNow": "Publish now",
-    "draft": "Draft",
     "photosLater": "Photos can be added from the listing",
     "step": {
       "type": "Type",

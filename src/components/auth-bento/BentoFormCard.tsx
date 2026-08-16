@@ -65,10 +65,8 @@ function Divider({ tokens }: { tokens: BentoTokens }) {
         alignItems: 'center',
         gap: 12,
         color: tokens.mutedColor,
-        fontSize: 11,
+        fontSize: 'var(--crm-text-xs)',
         fontWeight: 500,
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
         transition: 'var(--bento-tx)',
       }}
     >
@@ -111,7 +109,7 @@ function PasswordChecklist({
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              fontSize: 12,
+              fontSize: 'var(--crm-text-sm)',
               fontWeight: 500,
               color: ok ? tokens.titleColor : tokens.mutedColor,
               transition: 'var(--bento-tx), color 0.18s ease',
@@ -173,7 +171,7 @@ function FooterLink({
         color: tokens.titleColor,
         fontWeight: 500,
         fontFamily: tokens.font,
-        fontSize: 13,
+        fontSize: 'var(--crm-text-md)',
         letterSpacing: tokens.letterSpacing,
         cursor: 'pointer',
         textDecoration: 'underline',
@@ -224,7 +222,7 @@ export function BentoFormCard({
         style={{
           margin: 0,
           fontFamily: tokens.font,
-          fontSize: 36,
+          fontSize: 'var(--crm-text-8xl)',
           fontWeight: 500,
           lineHeight: 1.05,
           letterSpacing: tokens.titleLetterSpacing,
@@ -342,12 +340,12 @@ function FormFields({
   if (portail === 'particulier' && etat === 'sent') {
     return (
       <>
-        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
+        <div style={{ fontSize: 'var(--crm-text-lg)', color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
           <Trans
             i18nKey="body.linkSentTo"
             ns="auth"
             values={{ email: currentEmail ?? email }}
-            components={{ strong: <strong style={{ color: tokens.titleColor }} /> }}
+            components={{ strong: <span style={{ color: tokens.titleColor, fontWeight: 600 }} /> }}
           />
         </div>
         <BentoCTA
@@ -372,7 +370,7 @@ function FormFields({
   if (portail === 'particulier' && etat === 'error') {
     return (
       <>
-        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
+        <div style={{ fontSize: 'var(--crm-text-lg)', color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
           {t('body.rateLimited')}
         </div>
         <BentoCTA
@@ -438,7 +436,7 @@ function FormFields({
               alignItems: 'center',
               gap: 8,
               marginTop: -10,
-              fontSize: 13,
+              fontSize: 'var(--crm-text-md)',
               fontWeight: 500,
               color: ERROR_COLOR,
               letterSpacing: tokens.letterSpacing,
@@ -454,7 +452,7 @@ function FormFields({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            fontSize: 13,
+            fontSize: 'var(--crm-text-md)',
             color: tokens.bodyColor,
             fontFamily: tokens.font,
             letterSpacing: tokens.letterSpacing,
@@ -531,7 +529,7 @@ function FormFields({
         />
         <div
           style={{
-            fontSize: 13,
+            fontSize: 'var(--crm-text-md)',
             color: tokens.bodyColor,
             fontFamily: tokens.font,
             letterSpacing: tokens.letterSpacing,
@@ -552,12 +550,12 @@ function FormFields({
   if (portail === 'agent' && etat === 'verifyEmail') {
     return (
       <>
-        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
+        <div style={{ fontSize: 'var(--crm-text-lg)', color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
           <Trans
             i18nKey="body.verifyEmailIntro"
             ns="auth"
             values={{ email: currentEmail ?? email }}
-            components={{ strong: <strong style={{ color: tokens.titleColor }} /> }}
+            components={{ strong: <span style={{ color: tokens.titleColor, fontWeight: 600 }} /> }}
           />
         </div>
         <BentoCTA
@@ -617,7 +615,7 @@ function FormFields({
       <>
         {setNewPasswordDone ? (
           <>
-            <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
               {t('body.passwordUpdated')}
             </div>
             <BentoCTA
@@ -628,7 +626,7 @@ function FormFields({
           </>
         ) : (
           <>
-            <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
+            <div style={{ fontSize: 'var(--crm-text-lg)', color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
               {t('body.setNewPasswordIntro')}
             </div>
             <BentoInput
@@ -667,7 +665,7 @@ function FormFields({
                   alignItems: 'center',
                   gap: 8,
                   marginTop: -10,
-                  fontSize: 13,
+                  fontSize: 'var(--crm-text-md)',
                   fontWeight: 500,
                   color: ERROR_COLOR,
                   letterSpacing: tokens.letterSpacing,
@@ -708,7 +706,7 @@ function FormFields({
                   alignItems: 'center',
                   gap: 8,
                   marginTop: -10,
-                  fontSize: 13,
+                  fontSize: 'var(--crm-text-md)',
                   fontWeight: 500,
                   color: ERROR_COLOR,
                   letterSpacing: tokens.letterSpacing,
@@ -729,12 +727,12 @@ function FormFields({
   if (portail === 'agent' && etat === 'resetsent') {
     return (
       <>
-        <div style={{ fontSize: 14, color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
+        <div style={{ fontSize: 'var(--crm-text-lg)', color: tokens.bodyColor, lineHeight: 1.5, transition: 'var(--bento-tx)' }}>
           <Trans
             i18nKey="body.resetSentTo"
             ns="auth"
             values={{ email: currentEmail ?? email }}
-            components={{ strong: <strong style={{ color: tokens.titleColor }} /> }}
+            components={{ strong: <span style={{ color: tokens.titleColor, fontWeight: 600 }} /> }}
           />
         </div>
         <BentoCTA

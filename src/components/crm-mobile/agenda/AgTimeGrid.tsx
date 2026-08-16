@@ -6,7 +6,7 @@
 import { useTranslation } from 'react-i18next'
 import { useMobileTokens } from '../useMobileTokens'
 import { agTone, fmtDur, fmtTime, type AgEventVM } from './vm'
-import { calNowColor } from '@/components/crm-sugar/calendar/data'
+import { calNowColor } from '@/components/crm/calendar/data'
 
 const PX_PER_MIN = 1.7
 const MIN_H = 38
@@ -101,7 +101,7 @@ export default function AgTimeGrid({ events, isToday, nowMin, onTap }: AgTimeGri
                   <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tone }}>
                     {t(`eventType.${e.type}`)}
                   </span>
-                  <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tk.ghost, fontVariantNumeric: 'tabular-nums' }}>
+                  <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: tk.muted, fontVariantNumeric: 'tabular-nums' }}>
                     {fmtTime(e.start)} · {fmtDur(e.durMin, t)}
                   </span>
                 </div>

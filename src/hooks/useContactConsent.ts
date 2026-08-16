@@ -175,7 +175,7 @@ export function useSetDoNotContact() {
       // Le cache `contacts` a bougé (wa_opt_in, wa_opt_out_at, wa_suppressed) : la fiche et
       // la liste le lisent toutes deux.
       void qc.invalidateQueries({ queryKey: ['contacts'] })
-      void qc.invalidateQueries({ queryKey: ['contacts-sugar'] })
+      void qc.invalidateQueries({ queryKey: ['contacts-screen'] })
     },
   })
 }

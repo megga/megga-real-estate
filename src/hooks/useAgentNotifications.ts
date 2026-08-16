@@ -12,7 +12,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import type { SugarNotif, NotifKind, NotifPriority, NotifGroup } from '@/components/crm-sugar/notifications/data'
+import type { CrmNotif, NotifKind, NotifPriority, NotifGroup } from '@/components/crm/notifications/data'
 
 const LAST_SEEN_KEY = 'megga-agent-notif-lastseen'
 const READ_IDS_KEY = 'megga-agent-notif-read'
@@ -110,7 +110,7 @@ function loadLastSeen(): number {
 }
 
 export interface AgentNotifications {
-  items: SugarNotif[]
+  items: CrmNotif[]
   unreadCount: number
   isLoading: boolean
   markRead: (id: string) => void
@@ -118,7 +118,7 @@ export interface AgentNotifications {
 }
 
 /**
- * Centre de notifications agent : dérive des `SugarNotif` depuis les
+ * Centre de notifications agent : dérive des `CrmNotif` depuis les
  * `activity_events` non-utilisateur, avec compteur non-lu (last-seen + set
  * localStorage) et rafraîchissement Realtime. `limit` borne la lecture.
  */
@@ -156,7 +156,7 @@ export function useAgentNotifications(limit = 30): AgentNotifications {
     }
   }, [queryClient, channelId])
 
-  const items = useMemo<SugarNotif[]>(() => {
+  const items = useMemo<CrmNotif[]>(() => {
     return (query.data ?? []).map((ev) => {
       const read = readIds.has(ev.id) || new Date(ev.created_at).getTime() <= lastSeen
       const { cta, ctaTo } = ctaFor()

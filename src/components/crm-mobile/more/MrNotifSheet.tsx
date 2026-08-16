@@ -8,14 +8,16 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
-import { KIND_META, type NotifGroup, type SugarNotif } from '@/components/crm-sugar/notifications/data'
+import { KIND_META, type NotifGroup, type CrmNotif } from '@/components/crm/notifications/data'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 interface MrNotifSheetProps {
   open: boolean
   onClose: () => void
-  items: SugarNotif[]
+  items: CrmNotif[]
   unreadCount: number
   markRead: (id: string) => void
   markAllRead: () => void
@@ -54,12 +56,13 @@ export default function MrNotifSheet({
   markAllRead,
 }: MrNotifSheetProps) {
   const reducedMotion = useReducedMotion()
+  const refPiegeFocus = useFocusTrap(open, onClose)
   const { t } = useTranslation('common')
   const { tk, isDark } = useMobileTokens()
 
   const priorities = items.filter((n) => n.priority === 'high' && !n.read)
 
-  const renderRow = (n: SugarNotif) => {
+  const renderRow = (n: CrmNotif) => {
     const meta = KIND_META[n.kind]
     const iconColor = isDark ? '#FFFFFF' : meta.dot
     return (
@@ -116,7 +119,7 @@ export default function MrNotifSheet({
             style={{
               display: 'block',
               fontSize: 'var(--crm-text-xl)',
-              fontWeight: n.read ? 700 : 800,
+              fontWeight: n.read ? 500 : 600,
               letterSpacing: -0.3,
               color: tk.ink,
               lineHeight: 1.3,
@@ -132,7 +135,7 @@ export default function MrNotifSheet({
             </span>
           ) : null}
           <span
-            style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.ghost, marginTop: 6, letterSpacing: -0.1 }}
+            style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, marginTop: 6, letterSpacing: -0.1 }}
           >
             {n.time}
           </span>
@@ -146,6 +149,7 @@ export default function MrNotifSheet({
       {open && (
         <div
           className="fixed inset-0 z-[100]"
+          ref={refPiegeFocus}
           role="dialog"
           aria-modal="true"
           aria-label={t('nav.notifications')}
@@ -185,7 +189,7 @@ export default function MrNotifSheet({
                 style={{ display: 'block', width: 40, height: 5, borderRadius: 'var(--crm-radius-pill)', background: tk.ghost, opacity: 0.5, margin: '0 auto 14px' }}
               />
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h2 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.7, color: tk.ink }}>
+                <h2 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 500, letterSpacing: -0.7, color: tk.ink }}>
                   {t('nav.notifications')}
                 </h2>
                 {unreadCount > 0 ? (
@@ -200,7 +204,7 @@ export default function MrNotifSheet({
                       cursor: 'pointer',
                       fontFamily: 'inherit',
                       fontSize: 'var(--crm-text-lg)',
-                      fontWeight: 700,
+                      fontWeight: 600,
                       color: tk.inkSoft,
                       background: tk.card,
                       boxShadow: tk.shadowSm,
@@ -239,10 +243,10 @@ export default function MrNotifSheet({
                       style={{
                         position: 'relative',
                         overflow: 'hidden',
-                        background: '#0B0C0E',
+                        background: MXC_COLOR.n100,
                         borderRadius: 'var(--crm-radius-4xl)',
                         padding: 'var(--crm-space-3xl) var(--crm-space-3xl) var(--crm-space-3xl)',
-                        boxShadow: '0 18px 44px rgba(11,12,14,0.4)',
+                        boxShadow: '0 18px 44px rgba(3,3,3,0.4)',
                       }}
                     >
                       <div aria-hidden="true" style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
@@ -279,12 +283,12 @@ export default function MrNotifSheet({
                             <MEIcon name="sparkle" size={15} color="#FFFFFF" strokeWidth={1.8} />
                           </span>
                           <span
-                            style={{ fontSize: 'var(--crm-text-md)', fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(255,255,255,0.82)' }}
+                            style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}
                           >
                             {t('notifications.essential')}
                           </span>
                         </div>
-                        <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 700, color: '#FFFFFF', lineHeight: 1.5, marginTop: 11 }}>
+                        <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: '#FFFFFF', lineHeight: 1.5, marginTop: 11 }}>
                           {t('notifications.digestPriorities', { count: priorities.length })}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)', marginTop: 13 }}>
@@ -317,7 +321,7 @@ export default function MrNotifSheet({
                                     flex: 1,
                                     minWidth: 0,
                                     fontSize: 'var(--crm-text-lg)',
-                                    fontWeight: 700,
+                                    fontWeight: 600,
                                     letterSpacing: -0.2,
                                     color: '#FFFFFF',
                                     whiteSpace: 'nowrap',
@@ -341,7 +345,7 @@ export default function MrNotifSheet({
                     return (
                       <div key={id}>
                         <div
-                          style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase', color: tk.muted, margin: '20px 4px 8px' }}
+                          style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, margin: '20px 4px 8px' }}
                         >
                           {t(labelKey)}
                         </div>

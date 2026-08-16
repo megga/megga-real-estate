@@ -7,19 +7,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import SgaIcon from './SgaIcon'
-import SgaQueue, { type SnoozedEntry } from './SgaQueue'
-import SgaListing from './SgaListing'
-import SgaWhy from './SgaWhy'
-import SgaConfirm from './SgaConfirm'
-import SgaOverlayHost from './SgaOverlayHost'
-import SgaSendSheet from './SgaSendSheet'
-import SgaAnnonceVue from './SgaAnnonceVue'
-import SgaAcheteurMode from './SgaAcheteurMode'
-import { sgaMatchQuery, sgaMatchTab } from './constants'
-import SgaCockpit from './SgaCockpit'
-import { SgaEmptyBody, SgaEmptyCockpit } from './SgaEmptyState'
-import { sgaReturnDate } from './format'
+import AtlIcon from './AtlIcon'
+import AtlQueue, { type SnoozedEntry } from './AtlQueue'
+import AtlListing from './AtlListing'
+import AtlWhy from './AtlWhy'
+import AtlConfirm from './AtlConfirm'
+import AtlOverlayHost from './AtlOverlayHost'
+import AtlSendSheet from './AtlSendSheet'
+import AtlAnnonceVue from './AtlAnnonceVue'
+import AtlAcheteurMode from './AtlAcheteurMode'
+import { atlMatchQuery, atlMatchTab } from './constants'
+import AtlCockpit from './AtlCockpit'
+import { AtlEmptyBody, AtlEmptyCockpit } from './AtlEmptyState'
+import { atlReturnDate } from './format'
 import { isSnoozed } from '@/hooks/useAtelierMatching'
 import type { AtelierGestes, PendingHandle } from './pendingTriage'
 import type { AtelierBuyer, AtelierPivot, AtelierPoolMatch, AtelierTab, TriageKind } from './types'
@@ -64,7 +64,7 @@ export interface AtelierStageProps {
   /**
    * Monté DANS le pager Matching (page 0) plutôt qu'en plein écran : l'étage
    * devient `position:absolute` dans le bento (cf. .sga-embedded) et le bouton
-   * « Fermer l'atelier » disparaît — la navigation est portée par la SugarTopNav
+   * « Fermer l'atelier » disparaît — la navigation est portée par la CrmTopNav
    * du pager, pas par l'étage.
    */
   embedded?: boolean
@@ -140,12 +140,12 @@ export default function AtelierStage({
   const doneCount = useMemo(() => triageable.filter(b => processed[b.matchId]).length, [triageable, processed])
 
   const isOpen = useCallback(
-    (b: AtelierBuyer) => !processed[b.matchId] && !isSnoozed(b.snoozedUntil) && sgaMatchTab(b, tab) && sgaMatchQuery(b, query),
+    (b: AtelierBuyer) => !processed[b.matchId] && !isSnoozed(b.snoozedUntil) && atlMatchTab(b, tab) && atlMatchQuery(b, query),
     [processed, tab, query],
   )
   const filtered = useMemo(() => buyers.filter(isOpen), [buyers, isOpen])
   const countFor = useCallback(
-    (key: AtelierTab) => buyers.filter(b => !processed[b.matchId] && !isSnoozed(b.snoozedUntil) && sgaMatchTab(b, key) && sgaMatchQuery(b, query)).length,
+    (key: AtelierTab) => buyers.filter(b => !processed[b.matchId] && !isSnoozed(b.snoozedUntil) && atlMatchTab(b, key) && atlMatchQuery(b, query)).length,
     [buyers, processed, query],
   )
   const selected = filtered.find(b => b.matchId === selId) ?? filtered[0] ?? null
@@ -173,7 +173,7 @@ export default function AtelierStage({
     const b = buyers.find(x => x.matchId === matchId)
     if (!b) return
     const nxt = nextAfter(matchId)
-    const ret = kind === 'later' ? sgaReturnDate() : null
+    const ret = kind === 'later' ? atlReturnDate() : null
 
     const handle =
       kind === 'sent' ? gestes.send(matchId, channel)
@@ -287,7 +287,7 @@ export default function AtelierStage({
       .filter((x): x is SnoozedEntry => Boolean(x.b)),
     ...buyers
       .filter(b => !processed[b.matchId] && isSnoozed(b.snoozedUntil))
-      .map(b => ({ b, until: sgaReturnDate(b.snoozedUntil ?? undefined) })),
+      .map(b => ({ b, until: atlReturnDate(b.snoozedUntil ?? undefined) })),
   ], [history, processed, laterInfo, buyers])
 
   const confirmBuyer = confirmSend ? buyers.find(x => x.matchId === confirmSend.matchId) ?? null : null
@@ -303,7 +303,7 @@ export default function AtelierStage({
       <div className="sga-top">
         {!embedded && (
           <button className="btn circle" title={t('atelier.closeAtelier')} onClick={onClose}>
-            <SgaIcon d="close" size={18} />
+            <AtlIcon d="close" size={18} />
           </button>
         )}
         {pivotBuyer ? (
@@ -317,7 +317,7 @@ export default function AtelierStage({
             </button>
           </>
         ) : pivot ? (
-          <SgaCockpit
+          <AtlCockpit
             listing={pivot.listing}
             pivots={pivots}
             currentKey={pivotKey}
@@ -336,14 +336,14 @@ export default function AtelierStage({
             <span className="t3 semi" style={{ color: 'var(--ink)' }}>{t('atelier.listingTitle')}</span>
           </div>
         ) : (
-          <SgaEmptyCockpit />
+          <AtlEmptyCockpit />
         )}
       </div>
 
       {/* ── triptyque ── */}
       <div className="sga-body">
         {pivotBuyer ? (
-          <SgaAcheteurMode key={pivotBuyer.id} b={pivotBuyer} pool={pool} gestes={gestes} onOpenDeal={onOpenDeal} />
+          <AtlAcheteurMode key={pivotBuyer.id} b={pivotBuyer} pool={pool} gestes={gestes} onOpenDeal={onOpenDeal} />
         ) : isLoading ? (
           <>
             <section className="sga-panel sga-enter" />
@@ -358,17 +358,17 @@ export default function AtelierStage({
                 <div className="t1 muted" style={{ maxWidth: 320 }}>{t('atelier.error.desc')}</div>
                 {onRetry && (
                   <button className="btn btn-ghost" onClick={onRetry}>
-                    <SgaIcon d="refresh" size={15} /> {t('atelier.error.retry')}
+                    <AtlIcon d="refresh" size={15} /> {t('atelier.error.retry')}
                   </button>
                 )}
               </div>
             </div>
           </section>
         ) : !pivot ? (
-          <SgaEmptyBody scan={emptyAction} onOpenContacts={onOpenContacts} />
+          <AtlEmptyBody scan={emptyAction} onOpenContacts={onOpenContacts} />
         ) : (
           <>
-            <SgaQueue
+            <AtlQueue
               filtered={filtered}
               selectedId={selected?.matchId ?? null}
               exiting={exiting}
@@ -383,7 +383,7 @@ export default function AtelierStage({
             {/* Panneau immersif : la photo EST le panneau, et TOUT clic mène à la
                 fiche annonce (handoff atelier-a.jsx:478) — plus de sortie vers la
                 lightbox depuis la colonne 2. */}
-            <SgaListing
+            <AtlListing
               L={pivot.listing}
               onOpenListing={() => setAnnonce(true)}
             />
@@ -394,7 +394,7 @@ export default function AtelierStage({
                 de l'acheteur lui-même, via sa page de réception. */}
             <section className="sga-panel sga-enter d2" aria-label="Pourquoi ça matche">
               {selected ? (
-                <SgaWhy
+                <AtlWhy
                   b={selected}
                   poolCount={poolCountFor(selected.id)}
                   onSend={() => requestSend(selected.matchId)}
@@ -421,8 +421,8 @@ export default function AtelierStage({
 
       {/* ── confirmation d'envoi / relance ── */}
       {confirmSend && confirmBuyer && pivot && (
-        <SgaOverlayHost dark={dark}>
-          <SgaConfirm
+        <AtlOverlayHost dark={dark}>
+          <AtlConfirm
             b={confirmBuyer}
             L={pivot.listing}
             relance={confirmSend.relance}
@@ -433,19 +433,19 @@ export default function AtelierStage({
               triage(confirmBuyer.matchId, rel ? 'relance' : 'sent')
             }}
           />
-        </SgaOverlayHost>
+        </AtlOverlayHost>
       )}
 
       {/* ── feuille d'envoi (lien privé réception — WhatsApp / lien copié, zéro email) ── */}
       {sendSheet && sendBuyer && pivot && (
-        <SgaOverlayHost dark={dark}>
-          <SgaSendSheet
+        <AtlOverlayHost dark={dark}>
+          <AtlSendSheet
             b={sendBuyer}
             L={pivot.listing}
             onClose={() => setSendSheet(null)}
             onSent={() => { const mid = sendSheet; setSendSheet(null); triage(mid, 'sent', 'reception') }}
           />
-        </SgaOverlayHost>
+        </AtlOverlayHost>
       )}
 
       {/* ── vue annonce complète (immersive) ──
@@ -460,14 +460,14 @@ export default function AtelierStage({
           alors que la vue était encore ouverte, et les points de page passaient
           par-dessus la feuille. Plein cadre = le rendu d'origine de la maquette. */}
       {annonce && pivot && (
-        <SgaOverlayHost dark={dark}>
-          <SgaAnnonceVue
+        <AtlOverlayHost dark={dark}>
+          <AtlAnnonceVue
             L={pivot.listing}
             buyer={selected}
             onClose={() => setAnnonce(false)}
             onPropose={selected ? () => { setAnnonce(false); requestSend(selected.matchId) } : null}
           />
-        </SgaOverlayHost>
+        </AtlOverlayHost>
       )}
 
 

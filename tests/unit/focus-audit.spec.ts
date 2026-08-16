@@ -4,7 +4,7 @@
 // posé QUE si le rawId est un uuid nu (sinon null → jamais d'erreur 22P02 en base).
 
 import { describe, it, expect } from 'vitest'
-import { focusAuditTarget, uuidOrNull } from '@/components/crm-sugar/today/focusAudit'
+import { focusAuditTarget, uuidOrNull } from '@/components/crm/today/focusAudit'
 
 const UUID = '11111111-2222-3333-4444-555555555555'
 

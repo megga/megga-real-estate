@@ -2,11 +2,16 @@
 //
 // `npm run email:preview` puis ouvrir `.email-preview/index.html`.
 //
-// POURQUOI CE BANC EXISTE. Douze gabarits fabriquent encore leur propre coquille (cf.
-// `scripts/check-email-shell.mjs`), et AUCUN n'est couvert par un test de rendu. Les
-// migrer à l'aveugle changerait l'apparence d'e-mails que des gens reçoivent déjà, sans
-// que personne ne le voie avant l'envoi. Ce banc rend tout d'un coup, hors ligne, pour
-// qu'on relise AVANT de livrer plutôt qu'après s'être plaint.
+// POURQUOI CE BANC EXISTE. Il est né quand douze gabarits fabriquaient encore leur
+// propre coquille et qu'aucun n'était couvert par un test de rendu : les migrer à
+// l'aveugle aurait changé l'apparence d'e-mails que des gens reçoivent déjà, sans que
+// personne ne le voie avant l'envoi. La migration est faite (`A_MIGRER` est vide dans
+// `scripts/check-email-shell.mjs`), et le banc garde tout son emploi : il rend tout
+// d'un coup, hors ligne, pour qu'on relise AVANT de livrer plutôt qu'après s'être
+// plaint.
+//
+// ⚠ CE QUI EST RENDU DOIT ÊTRE CE QUI PART. Un banc qui approxime un bloc ne le
+// couvre pas — il donne à croire qu'il le couvre, ce qui est pire que de l'omettre.
 //
 // Il sert aussi de constat : la planche de contact met côte à côte ce qui est passé à
 // MEGGA X et ce qui ne l'est pas. La dette cesse d'être un chiffre dans un script.
@@ -36,7 +41,27 @@ import { buildPropertyEmail } from '../supabase/functions/_shared/property-email
 import { buildRelanceEmail } from '../supabase/functions/_shared/relance-email.ts'
 import { buildContactReminderEmail } from '../supabase/functions/_shared/reminder-email.ts'
 import { buildOptinInviteEmail } from '../supabase/functions/_shared/whatsapp-optin-send.ts'
+import { optinCopy } from '../supabase/functions/_shared/whatsapp-optin-copy.ts'
 import { buildWeeklyReportEmail } from '../supabase/functions/_shared/weekly-report-email.ts'
+import { digestHtml } from '../supabase/functions/_shared/weekly-digest.ts'
+import { unsubscribeFooterHtml } from '../supabase/functions/_shared/email-guard.ts'
+
+/**
+ * ⛔ LE PIED DE DÉSINSCRIPTION EST LE VRAI, pas une imitation.
+ *
+ * Ce banc en fabriquait un à la main — autre police, autre taille, autres couleurs,
+ * autre texte — c'est-à-dire qu'il falsifiait le SEUL bloc légalement requis de
+ * l'e-mail, celui qu'on a le plus de raisons de relire. Le vrai part bien en
+ * production (`send-reminder-email`, `send-property-email`, `send-relance-email`
+ * appellent tous `unsubscribeFooterHtml`) : quelqu'un aurait pu le casser sans que
+ * le banc le montre.
+ *
+ * ⚠ L'hôte de démonstration est celui des EDGE FUNCTIONS, jamais `app.megga.ch` —
+ * l'en-tête d'`email-guard.ts` explique pourquoi : le repli SPA de l'app rend 200
+ * sur n'importe quel chemin et simulerait une désinscription réussie.
+ */
+const URL_DESINSCRIPTION_DEMO =
+  'https://eayczugyrvmtqnnmvjod.supabase.co/functions/v1/unsubscribe?token=jeton-de-demo'
 import { buildAdminAlertEmail } from '../supabase/functions/_shared/admin-alert-email.ts'
 
 const SORTIE = '.email-preview'
@@ -108,6 +133,26 @@ const CAS: Cas[] = [
   // Rapport hebdomadaire — migré le 15.08.2026. INTERNE à l'équipe MEGGA : aucune mention
   // légale, et une pilule qui mène à la console. Le cas montré porte des alertes non nulles,
   // celui qu'on veut regarder.
+  // ⛔ LE BILAN DU VENDREDI MANQUAIT À CE BANC, et c'est ce qui a permis à son
+  // ancien design de survivre à toute la migration : ni la porte (qui cherchait un
+  // `<!DOCTYPE>` absent d'un fragment) ni la relecture ne le regardaient. Un gabarit
+  // vivant qu'aucun des deux filets ne couvre finit par diverger en silence.
+  {
+    id: 'bilan-hebdomadaire-agent',
+    nom: 'Bilan de la semaine (agent)',
+    source: '_shared/weekly-digest.ts',
+    migre: true,
+    rendu: {
+      subject: 'Ton bilan de la semaine',
+      html: digestHtml(
+        'Cette semaine, trois dossiers ont avancé et tu as rencontré deux nouveaux vendeurs.\n'
+          + 'Deux correspondances attendent encore d\'être envoyées : c\'est le geste qui rapporte le plus la semaine prochaine.\n\n'
+          + 'Bon week-end.',
+        'Semaine au 15 août 2026',
+        'https://app.megga.ch/dashboard',
+      ),
+    },
+  },
   {
     id: 'rapport-hebdomadaire',
     nom: 'Rapport hebdomadaire (interne MEGGA)',
@@ -137,8 +182,7 @@ const CAS: Cas[] = [
       subject: 'Votre rendez-vous de demain',
       body: 'Bonjour Marie,\n\nPetit rappel : nous nous voyons demain à 14:00 pour la visite du 3.5 pièces de Carouge.\n\nÀ demain.',
       agentName: 'Gregory Lyonnet',
-      unsubscribeHtml: '<p style="margin:0;font-family:\'Inter Tight\',Arial,sans-serif;font-size:11px;color:#8a8a8f;">'
-        + '<a href="https://app.megga.ch/desinscription/jeton" style="color:#8a8a8f;">Se désinscrire de ces rappels</a></p>',
+      unsubscribeHtml: unsubscribeFooterHtml(URL_DESINSCRIPTION_DEMO),
     }),
   },
   {
@@ -148,11 +192,11 @@ const CAS: Cas[] = [
     migre: true,
     rendu: buildOptinInviteEmail({
       lang: 'fr',
-      copy: {
-        subject: 'Recevoir les messages de Régie du Rhône sur WhatsApp',
-        body: 'Bonjour,\n\nRégie du Rhône souhaite pouvoir vous écrire sur WhatsApp : réponses plus rapides, documents à portée de main.\n\nUn seul message suffit pour accepter.',
-        cta: 'Accepter sur WhatsApp',
-      },
+      // ⚠ La VRAIE copie, pas une paraphrase : c'est la pièce juridique du parcours
+      // (`whatsapp-optin-copy.ts`), archivée mot pour mot comme preuve du
+      // consentement. Un banc qui en montre une version approchée ne permet pas de
+      // relire ce qui part — et ne verrait pas non plus l'aperçu ni la mention légale.
+      copy: optinCopy('fr', 'Régie du Rhône'),
       agencyName: 'Régie du Rhône',
       lien: 'https://wa.me/41225551010?text=OPTIN%20jeton-de-demonstration',
     }),
@@ -183,8 +227,7 @@ const CAS: Cas[] = [
         source_agency: 'Régie du Rhône',
         source_portal: 'Homegate',
       },
-      unsubscribeHtml: '<p style="margin:0;font-family:\'Inter Tight\',Arial,sans-serif;font-size:11px;color:#8a8a8f;">'
-        + '<a href="https://app.megga.ch/desinscription/jeton" style="color:#8a8a8f;">Se désinscrire de ces envois</a></p>',
+      unsubscribeHtml: unsubscribeFooterHtml(URL_DESINSCRIPTION_DEMO),
     }),
   },
   {
@@ -197,8 +240,7 @@ const CAS: Cas[] = [
       body: 'Bonjour Marie,\n\nJe reviens vers vous au sujet du 3.5 pièces de Carouge. Il reste disponible, et deux visites sont prévues jeudi.\n\nSouhaitez-vous que je vous réserve un créneau ?',
       agentName: 'Gregory Lyonnet',
       agentSignature: null,
-      unsubscribeHtml: '<p style="margin:0;font-family:\'Inter Tight\',Arial,sans-serif;font-size:11px;color:#8a8a8f;">'
-        + '<a href="https://app.megga.ch/desinscription/jeton" style="color:#8a8a8f;">Se désinscrire de ces envois</a></p>',
+      unsubscribeHtml: unsubscribeFooterHtml(URL_DESINSCRIPTION_DEMO),
     }),
   },
 

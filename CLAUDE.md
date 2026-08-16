@@ -111,9 +111,9 @@ de Graphite ou d'une direction alternative dans ce document ou dans le cerveau
 décrit désormais le PASSÉ.
 
 Mécanique, à connaître avant de toucher au style :
-1. **Couleurs** — `crmSugarPalette(dark)` rend `mxCrmPalette(dark)`. Le nom a
+1. **Couleurs** — `crmPalette(dark)` rend `mxCrmPalette(dark)`. Le nom a
    survécu à la direction qu'il servait (33 points de construction et le type
-   `SugarPalette`) ; le renommer est un geste lexical à part.
+   `CrmPalette`) ; le renommer est un geste lexical à part.
 2. **Police et grammaire** — variables CSS déclarées dans le `:root` de
    [globals.css](src/styles/globals.css). Elles étaient une surcharge posée sur
    un sélecteur de direction ; la direction retirée, elles SONT l'échelle.
@@ -147,8 +147,8 @@ ont été retirées le 9 août 2026, la direction étant tranchée.
 **⚠ « Sugar Pure » — HISTORIQUE.** Sa grammaire (ombre douce sans bordure,
 accent noir unique, pilules à fond plein) a régi Pipeline, modale Nouveau deal et
 fiche deal V4 de juillet 2026 au 10 août 2026. Ces surfaces sont passées à
-MEGGA X. Ce qui SUBSISTE d'elle : les teintes d'étape `SG_STAGE_HUE` et les
-dérivations `sgMix`, gardées parce qu'elles **encodent une information** (l'étape
+MEGGA X. Ce qui SUBSISTE d'elle : les teintes d'étape `CRM_STAGE_HUE` et les
+dérivations `crmMix`, gardées parce qu'elles **encodent une information** (l'étape
 du deal), pas parce qu'elles décorent.
 
 **🌒 Sombre — échelle MEGGA X.** L'échelle « Graphite » (`#12161C`→`#21242F`,
@@ -189,11 +189,92 @@ lecteur de `CrmTheme.primary`) et
 d'écran n'est restée sur Graphite).
 
 **Règles visuelles clés :**
-- Bentos : `rounded-xl border border-theme-border` — PAS d'ombres
-- Boutons : style ghost `border border-theme-border text-theme-secondary` — JAMAIS `bg-accent text-white`
-- Badges : texte coloré sans fond (`text-red-500`, pas `bg-red-100 text-red-800`)
-- Modals : TOUJOURS `createPortal(document.body)` avec `z-[100]`
-- Steppers : monochrome (numéros + underline), pas de dots colorés
+
+> ⚠ **SEPT RÈGLES REMESURÉES LE 16 AOÛT 2026, UNE SEULE ÉTAIT ENCORE VRAIE.** Les
+> six autres décrivaient Sugar Pure, pas MEGGA X — et une règle fausse ici coûte
+> plus qu'un écart dans le code : c'est ce qu'un agent lit AVANT d'écrire, donc
+> elle se recopie sur chaque surface neuve. Chaque correction porte son chiffre et
+> sa méthode ; un chiffre sans date se périme sans prévenir.
+
+- Bentos : `rounded-xl border border-theme-border`. ⚠ **« PAS d'ombres » ÉTAIT FAUX
+  EN CLAIR, et un test EXIGE le contraire.** Mesuré : **740 `boxShadow` en style en
+  ligne sur 188 fichiers** (contre 6 classes `shadow-*`), et
+  [megga-x-crm-tokens.spec.ts:311](tests/unit/megga-x-crm-tokens.spec.ts) exige que
+  `SET_PALETTE.shadow` CONTIENNE `MXC_CARD_SHADOW` — une valeur confrontée ligne 106
+  à la feuille de la vitrine, donc **l'ombre de carte vient de la direction
+  elle-même**. La règle vraie est celle du mode : `MXC_CARD_SHADOW` en clair,
+  `shadow: 'none'` en sombre (ligne 316 l'interdit explicitement), parce que MEGGA X
+  y sépare par la BORDURE. Ce qui reste proscrit, ce sont les ombres de Tailwind
+  (`shadow-card`, `shadow-sm`), qui ne suivent aucun thème.
+- Boutons : ⚠ **CETTE RÈGLE DÉCRIT SUGAR PURE, corrigée le 15 août 2026.** Elle
+  disait « style ghost — JAMAIS `bg-accent text-white` », ce qui CONTREDIT la
+  décision du 10 août écrite quatre points plus haut. Mesuré sur `src/` : **120
+  sites peignent une affordance en accent** (102 `background: *.accent`, 18
+  `bg-accent`) dans 36 fichiers, contre **11** au ghost canonique. La règle vive
+  est celle du point 4 — **l'affordance PRIMAIRE porte l'accent**, le ghost est
+  le SECONDAIRE. ✅ **UN SEUL ACCENT depuis le 15 août 2026.** La rampe
+  Tailwind portait un second bleu (`#2563EB`) que rien ne rattachait à MEGGA X ;
+  elle adopte l'accent de marque. ⚠ Mais **deux JETONS, un par rôle**, parce
+  qu'aucune valeur unique ne tient les deux en sombre :
+  `--color-accent-solid` = `#424bfb` dans les deux thèmes (l'APLAT, 5,78:1 sous
+  blanc) ; `--color-accent` = `#424bfb` en clair et **`#8dc1ff`** en sombre
+  (l'ENCRE et les filets — l'accent y rend 2,95:1, sous l'AA ET sous le seuil des
+  filets, donc l'anneau de focus tomberait avec). `#8dc1ff` est
+  `MXC_SYSTEM.blue300`, le barreau déjà nommé pour ce cas. Gardé par
+  [accent-ramp.spec.ts](tests/unit/accent-ramp.spec.ts)
+- Badges : ⚠ **RÈGLE INVERSÉE, et une garde exige l'inverse.** Elle disait « texte
+  coloré sans fond (`text-red-500`, pas `bg-red-100 text-red-800`) ». Mesuré :
+  **25 des 27 fichiers de badge/pilule/puce posent un fond**, et
+  [contacts-contraste.spec.ts:250](tests/unit/contacts-contraste.spec.ts) assère
+  qu'une pilule porte bien `background:`. L'idiome vivant est **l'aplat sous une
+  encre lisible** — c'est d'ailleurs ce que gardent les dix specs de contraste. Ce
+  qui reste proscrit est la palette Tailwind BRUTE (`bg-red-100 text-red-800`) :
+  ni jeton de thème, ni jeton sémantique, elle ne bougera pas si la direction bouge.
+- Modals : `createPortal(document.body)`. ⚠ **« TOUJOURS … avec `z-[100]` » n'est
+  vrai ni pour l'un ni pour l'autre.** Mesuré : **33 des 36 fichiers de
+  modale/panneau/dialogue** appellent `createPortal` — la règle tient à trois près —
+  mais le z-index est un **désordre assumé nulle part** : **175 sites `zIndex`
+  portant 44 valeurs DISTINCTES**, dont seulement **10** valent 100. Aucune garde ne
+  le mesure. Poser `z-[100]` sans regarder ses voisins est donc un coup de dé, pas
+  une convention : lire l'empilement local d'abord.
+- **Steppers : l'étape courante porte l'ACCENT, et la progression se lit dans la
+  GÉOMÉTRIE.** ⛔ La règle précédente disait « monochrome (numéros + underline) » :
+  mesuré le 16 août 2026, **aucun stepper du dépôt n'a jamais utilisé
+  d'underline**, et l'accent a remplacé le monochrome le 10 août. Elle décrivait
+  Sugar Pure, pas MEGGA X. Trois idiomes coexistent, chacun justifié par le NOMBRE
+  d'étapes — ne pas en inventer un quatrième :
+  - **barre segmentée** quand les étapes n'ont pas de nom utile (`WizardShell`,
+    7 étapes : segments de 4 px, `i <= etape ? accent : line`) ;
+  - **pilules à libellé** quand elles en ont un et qu'on peut revenir en arrière
+    (`KwStepper`, 3 étapes : actif = pilule d'accent, fait = coche verte, à venir
+    = sourdine) ;
+  - **barre segmentée, encore** quand l'étape est une DONNÉE et non une position
+    dans un formulaire. ⛔ **CE POINT DISAIT « `dealStepper`, 8 CERCLES » : IL N'Y A
+    AUCUN CERCLE.** Mesuré le 16 août 2026 sur les deux seuls consommateurs —
+    `DealDetailPage:100` et `MobileDealDetailScreen:179` rendent tous deux
+    `CRM_STAGE_ORDER.map(...)` en `flex: 1, height: 4` : une **barre de 8 segments**,
+    la même forme que `WizardShell`. Le « 8 » était juste (8 colonnes UI pour 14
+    stades DB), la forme non.
+    ⚠ Et les deux segments ne se peignent pas pareil : le mobile met l'étape
+    courante en `accent`, le bureau la peint en `ink` — donc **le bureau n'applique
+    pas la règle du 10 août** (« l'élément ACTIF porte l'accent »). Écart réel, non
+    tranché.
+  - **cercles numérotés** — l'idiome que ce point ne nommait pas. `KycStepper`
+    (alias `SgStepper`, [primitives.tsx:341](src/components/crm-dossiers/primitives.tsx))
+    rend des pastilles de 32 px reliées par un trait de 2 px, portant `✓` si l'étape
+    est faite et **son rang sinon**. Unique consommateur hors primitives :
+    `ImportLeadPage:302`.
+  ⚠ **Pas de numéro de rang** : trois étapes alignées SONT 1, 2, 3, et l'accent dit
+  déjà laquelle est courante. Ce qui reste marqué est ce que la position ne dit
+  pas — « fait », par une coche. La règle annonçait **deux** exceptions ; il y en a
+  **trois**, et la troisième n'est pas une exception mais un OUBLI D'INVENTAIRE :
+  `IdentityShell` (onboarding KYB) suit la nav `.mx-stepper` de la VITRINE, dont
+  le numéro fait partie ; le wizard mobile affiche un compteur `n / N`, qui n'est
+  pas un rang mais une distance restante sur un écran sans place pour les
+  libellés ; et **`KycStepper` affiche bel et bien le rang** (`{done ? '✓' : i + 1}`),
+  sans motif écrit. Il porte pourtant DÉJÀ la coche que la règle prescrit — le
+  numéro y est donc redondant avec la position, exactement ce que la règle vise.
+  À trancher : le retirer, ou l'inscrire comme troisième exception.
 - Scrollbars : `.scrollbar-hide` sur modals et pipeline
 - Notifications sidebar : pas de dot rouge par défaut (système Messages retiré du CRM agent)
 
@@ -207,7 +288,82 @@ Tokens :      bg-theme-page, bg-theme-card, bg-theme-section, bg-theme-sidebar, 
 
 **JAMAIS utiliser** : `bg-white`, `text-gray-900`, `border-gray-200` (cassent le dark mode), `shadow-card`, `shadow-sm`
 
-**Typo :** DM Sans 400/500/600/700. Hero 4xl, Page 2xl, Section xl, Card lg, Body base, Small sm, Caption xs.
+> ⚠ **ET LA CLAUSE QUI GARDE `bg-white` NE LIT QUE LES CLASSES.** Mesuré le 16 août
+> 2026 : **6** occurrences de `bg-white` en `className` — que le cliquet compte et
+> plafonne — contre **17 fonds blancs écrits en STYLE EN LIGNE**
+> (`background: '#fff'`), qui lui sont invisibles. Le même défaut, dans l'autre
+> langage. Une partie est légitime (encre blanche sur aplat, papier A4 du rapport
+> KYC) ; la garde de valeur est [couleur-barreaux.spec.ts](tests/unit/couleur-barreaux.spec.ts).
+
+**Typo :** ⚠ **`--crm-font` vaut `"Inter Tight"`** (globals.css `:root`), pas DM Sans —
+cette ligne annonçait la police de **Sugar**, supprimée le 10 août 2026. Mesuré le
+15 août : DM Sans ne survit qu'en **repli** (`admin-console.css`, `index.html`) et
+dans deux fichiers de jetons archivés (`propertyx`, `auth-bento`). `index.html`
+charge quatre familles — Inter Tight, Manrope, DM Sans, Plus Jakarta Sans — dont
+une seule habille le CRM. Échelle : les 13 barreaux `--crm-text-*` (11 → 38 px),
+pas des noms de taille Tailwind.
+
+**🌐 LA FACE PUBLIQUE — ce que le CLIENT voit** (portée le 15 août 2026). Quatre
+surfaces sans compte : `/kyc/:token`, `/rendez-vous/:token`, `/reception/:token`,
+`/accept-invite/:token`. Elles suivent MEGGA X, avec **trois écarts assumés** :
+
+1. **Manrope**, pas Inter Tight — décision Julien. ⚠ Cette ligne disait « c'est,
+   avec le dégradé bleuté, **la seule chose qui distingue ces écrans du CRM** » :
+   **FAUX, et corrigé le 15 août 2026 avec le chiffre.** `MOBILE_FONT` vaut
+   Manrope et alimente **34 emplois dans 23 fichiers** du CRM mobile ; NEUF
+   fichiers du CRM de BUREAU l'écrivaient aussi (Analytics, « Aujourd'hui », la
+   recherche, deux pages agent). Mesuré à l'écran sur « Aujourd'hui » : **29
+   éléments rendaient en Inter Tight et 26 en Manrope** — deux polices se
+   partageaient le même écran, presque à parts égales.
+
+   ✅ **LA FRONTIÈRE EST DÉSORMAIS UNE RÈGLE, pas un constat** (décision Julien,
+   option (b) du plan « 100 % ») : **Inter Tight (`var(--crm-font)`) est la
+   police de l'agent au BUREAU ; Manrope est celle du MOBILE et de tout ce que
+   voit un CLIENT.** Le bureau est revenu au jeton — 15 sites, 8 fichiers.
+   Gardée dans les deux sens par [polices-domaines.spec.ts](tests/unit/polices-domaines.spec.ts).
+
+   ⚠ TROIS POLICES RESTENT HORS RÈGLE PARCE QU'ELLES ENCODENT, nommées dans la
+   garde : `ui-monospace` (une suite lue caractère par caractère),
+   `Caveat, cursive` (la SIGNATURE du rapport KYC — en Inter Tight ce n'est plus
+   une signature), `'Cormorant Garamond'` (la police que l'AGENT CHOISIT pour sa
+   galerie — une donnée saisie, pas un choix de direction).
+2. **Mono-thème.** Zéro `dark` / `prefers-color-scheme` / `matchMedia` sur les six
+   fichiers ; les deux gardes le DISENT et rougiront le jour où ça change.
+3. `inkSoft` / `soft` = `#3A3D44`, hors échelle par **mesure** (n400 est à 1,16:1
+   de n100 en clair — un doublon, pas un cran). Même valeur qu'Analytics.
+
+Deux objets de jetons, deux specs : `MLK` (kyc-magic-link, 2 surfaces) et `RC`
+(réception acheteur). ⛔ Le cliquet de grammaire **ne lisait pas du tout** ce
+dossier avant ce chantier, et sa clause « aucun élément cliquable peint en encre »
+y est **aveugle par le nom** — elle cherche `…ink`, le jeton s'appelait `black`.
+La règle est donc gardée dans `mlk-contraste.spec.ts`, testée sur la **valeur**.
+Cf. `megga/face-publique-meggax` et `megga/gardes-vacuites` n° 45-47.
+
+⚠ **« Elles suivent MEGGA X » ÉTAIT FAUX POUR `/accept-invite/:token`** — elle
+n'importait AUCUN jeton et portait 23 couleurs de palette Tailwind brute. C'est
+vrai depuis le 15 août 2026 : elle est portée, et **deux autres pages clientes
+l'ont rejointe** — `/visit/:id/edit` et `/visit/:id/feedback`, que cette section
+ne comptait pas parce qu'elles ne prennent pas leur jeton dans le chemin mais
+dans la QUERY. La face publique fait donc **SIX** surfaces sans compte, pas
+quatre.
+
+⛔ **DEUX ENCRES SÉMANTIQUES ÉTAIENT SOUS L'AA sur ces pages**, et c'est mesuré,
+pas préféré : `text-red-500` rendait **3,76:1** sur carte blanche et
+`text-emerald-600` **3,77:1**. Elles passent par `MLK_STATUT` — la famille qui
+ENCODE, tenue SÉPARÉE de `MLK` parce que la direction ne la gouverne pas :
+`#B91C1C` (6,47:1) et `#047857` (5,48:1). ⚠ L'ambre, lui, a été *baissé* de 7,09
+à 5,02:1 pour prendre la valeur que trois autres surfaces portent déjà — une
+encre d'alerte qui diffère d'un écran à l'autre coûte plus que deux points de
+contraste. Les étoiles de notation restent hors seuil **par écrit** : aucune
+teinte dorée n'atteint 3:1 sur blanc sans virer au brun, et c'est la POSITION de
+la coupure dans une rangée de cinq qui porte l'information.
+
+🧪 **Banc : `/dev/public` monte les SIX surfaces**, trois états chacune. ⚠ Les
+deux visites ne se branchent pas comme les autres — elles lisent une RPC
+(`get_visit_by_token`, la lecture directe de `visits` ayant été retirée en
+juillet 2026) et prennent leur jeton dans la QUERY. Une route de banc en
+`visite/:token` les monterait sans jeton : elles rendraient « lien invalide », et
+on corrigerait la fixture au lieu de la route.
 
 ---
 
@@ -301,10 +457,13 @@ useEffect(() => {
 - Validation KYC auto sans action humaine
 - Envoi auto au client sans validation agent
 - Couleurs hardcodées (`bg-white`, `text-gray-*`) → tokens thème
-- `bg-accent` plein sur boutons → style ghost
+- ⚠ ~~`bg-accent` plein sur boutons → style ghost~~ — **périmé**, voir §3 : c'est l'inverse depuis le 10 août 2026 (120 sites contre 11)
 - Ombres sur bentos
 - Modals inline → toujours `createPortal`
-- UPPERCASE dans les titres → capitalize
+- UPPERCASE dans les titres → capitalize — ✅ **la SEULE des sept règles visuelles
+  qui soit encore vraie ET gardée** (16 août 2026). Mesuré : 20 `textTransform:
+  'uppercase'` vivants, tous dans `kyc-report` (papier A4, exempté par écrit) et
+  `pages/dev` (bancs absents du bundle). Zéro sur une surface agent.
 - Dots rouges sidebar
 - Next.js / Vercel → React+Vite / Cloudflare Pages
 - `console.log` en production

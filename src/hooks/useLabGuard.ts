@@ -2,7 +2,7 @@
  * Garde LAB plein (route /dashboard/kyc, edge functions kyc-screening et
  * sign-document) — decide si une agence peut ouvrir un dossier KYC client ou
  * lancer une signature electronique. Consomme par LabGuardBanner (bandeau global,
- * AgentSugarLayout) et KycLabGuard (blocage plein de /dashboard/kyc, App.tsx).
+ * AgentLayout) et KycLabGuard (blocage plein de /dashboard/kyc, App.tsx).
  *
  * Reprend la FORME de useIdentityGate.ts (hook + fonction pure resolveXStatus,
  * testable sans rendu) et surtout ses garde-fous, sur la meme base : un gate

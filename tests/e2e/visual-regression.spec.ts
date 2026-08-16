@@ -22,6 +22,8 @@
 // Viewport fixed at 1280x720 — same as Playwright default Desktop Chrome.
 
 import { test, expect } from '@playwright/test'
+import { writeFileSync } from 'node:fs'
+import { CHEMIN_EMPREINTES, empreintesCourantes } from '../../scripts/_shared/visual-baseline-empreinte.mjs'
 
 // `/` and `/rent` were dropped after the deploy split (#490): `/` now just
 // redirects to `/dashboard`, and `/rent` lives on the V3 static storefront
@@ -41,7 +43,7 @@ const PAGES_TO_SNAPSHOT = [
 
 test.describe('Visual regression — key pages', () => {
   for (const { path, name } of PAGES_TO_SNAPSHOT) {
-    test(`${name} (${path})`, async ({ page }) => {
+    test(`${name} (${path})`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width: 1280, height: 720 })
       await page.goto(path)
       await page.waitForLoadState('networkidle')
@@ -55,6 +57,22 @@ test.describe('Visual regression — key pages', () => {
         // to avoid spurious diffs. Empty for now — add selectors if needed.
         mask: [],
       })
+
+      // ⛔ L'EMPREINTE S'ÉCRIT ICI, avec l'image, et pas dans le workflow.
+      //
+      // Elle rattache la capture aux sources qui la peignent — c'est elle que
+      // lit `tests/unit/visual-baseline-fraicheur.spec.ts` pour refuser une
+      // référence qui a survécu à son écran.
+      //
+      // ⚠ Une étape de `visual-baselines.yml` ne marcherait PAS : sur un
+      // événement `issue_comment`, GitHub exécute la définition du workflow de
+      // la BRANCHE PAR DÉFAUT, même s'il checkout la branche de PR ensuite.
+      // Mesuré le 15 août 2026 — l'étape ajoutée sur la PR n'apparaissait pas
+      // dans le journal, et l'empreinte est restée périmée après une
+      // régénération pourtant réussie. La SPEC, elle, vient du checkout.
+      if (testInfo.config.updateSnapshots === 'all') {
+        writeFileSync(CHEMIN_EMPREINTES, JSON.stringify(empreintesCourantes(), null, 2) + '\n')
+      }
     })
   }
 })

@@ -268,7 +268,7 @@ export default function FloorPlanEditor({
                         style={{ left: `${hs.x}%`, top: `${hs.y}%` }}
                         className={cn(
                           'absolute w-5 h-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white cursor-grab active:cursor-grabbing transition-all z-10 flex items-center justify-center animate-in zoom-in-50 duration-200',
-                          activeHotspot === hs.id ? 'bg-accent ring-2 ring-accent/30' : 'bg-accent hover:ring-2 hover:ring-accent/20'
+                          activeHotspot === hs.id ? 'bg-accent-solid ring-2 ring-accent/30' : 'bg-accent-solid hover:ring-2 hover:ring-accent/20'
                         )}
                         aria-label={t('editor.floorPlan.hotspotAria', { room: getRoomLabel(hs.roomKey) })}
                       >
@@ -323,7 +323,7 @@ export default function FloorPlanEditor({
                                   <img src={url} alt="" className="w-full h-full object-cover" decoding="async" />
                                   {hs.photoUrls.includes(url) && (
                                     <div className="absolute inset-0 bg-accent/20 flex items-center justify-center">
-                                      <div className="w-3 h-3 rounded-full bg-accent border border-white" />
+                                      <div className="w-3 h-3 rounded-full bg-accent-solid border border-white" />
                                     </div>
                                   )}
                                 </button>
@@ -376,7 +376,7 @@ export default function FloorPlanEditor({
                           key={hs.id}
                           className="inline-flex items-center gap-1 text-xs text-theme-secondary bg-theme-hover px-2 py-1 rounded-md"
                         >
-                          <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-accent-solid" />
                           {getRoomLabel(hs.roomKey)}
                           {hs.photoUrls.length > 0 && (
                             <span className="text-theme-muted">· {t('editor.floorPlan.photoCount', { count: hs.photoUrls.length })}</span>

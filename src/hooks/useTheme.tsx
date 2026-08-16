@@ -82,15 +82,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.setAttribute('data-theme-transitioning', '')
       requestAnimationFrame(() => {
         root.setAttribute('data-theme', t)
-        // Re-apply accent colors for the new theme mode
-        applyPreferences(getStoredPreferences(), t)
+        // ⚠ Les préférences ne dépendent PLUS du thème : la rampe d'accent est
+        // tranchée par rôle dans `globals.css`, et `applyPreferences` ne pose
+        // plus que le confort (arrondis, zoom, attributs). L'appel reste ici
+        // parce que ces réglages doivent survivre à la bascule.
+        applyPreferences(getStoredPreferences())
         // Remove transition class after animation completes (matches 0.3s CSS)
         setTimeout(() => root.removeAttribute('data-theme-transitioning'), 320)
       })
     } else {
       root.setAttribute('data-theme', t)
-      // Apply preferences with correct theme mode
-      applyPreferences(getStoredPreferences(), t)
+      applyPreferences(getStoredPreferences())
     }
     localStorage.setItem(STORAGE_KEY, t)
   }, [])

@@ -5,8 +5,9 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { focusTagKey, focusTy, type FocusItem, type FocusTypeDef } from '@/components/crm-sugar/today/focusQueue'
+import { focusTagKey, focusTy, type FocusItem, type FocusTypeDef } from '@/components/crm/today/focusQueue'
 import { useMobileTokens } from '../useMobileTokens'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 // Icônes des types Focus (RXIcon desktop) → MEIcon (source unique mobile).
 const FOCUS_ICON: Record<string, MEIconName> = {
@@ -156,7 +157,7 @@ export function MobileFocusHero({
         <div style={{ width: 58, height: 58, borderRadius: 'var(--crm-radius-pill)', background: tk.goal, display: 'grid', placeItems: 'center' }}>
           <MEIcon name="check" size={28} strokeWidth={2.4} color="#FFFFFF" />
         </div>
-        <h2 style={{ margin: '16px 0 0', fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.6, color: tk.ink }}>
+        <h2 style={{ margin: '16px 0 0', fontSize: 'var(--crm-text-4xl)', fontWeight: 500, letterSpacing: -0.6, color: tk.ink }}>
           {t('today.focus.queueDone')}
         </h2>
         <p style={{ margin: '6px 0 0', fontSize: 'var(--crm-text-lg)', color: tk.muted, fontWeight: 600, maxWidth: 240, lineHeight: 1.45 }}>
@@ -179,7 +180,7 @@ export function MobileFocusHero({
             color: tk.ink,
             fontFamily: 'inherit',
             fontSize: 'var(--crm-text-xl)',
-            fontWeight: 700,
+            fontWeight: 600,
           }}
         >
           <MEIcon name="arrow-right" size={16} color={tk.ink} />
@@ -248,7 +249,7 @@ export function MobileFocusHero({
               />
             ))}
           </div>
-          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 800, color: 'rgba(255,255,255,.78)', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: 'rgba(255,255,255,.78)', fontVariantNumeric: 'tabular-nums' }}>
             {idx + 1}
             <span style={{ color: 'rgba(255,255,255,.45)' }}> / {total}</span>
           </span>
@@ -269,7 +270,7 @@ export function MobileFocusHero({
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255,255,255,.18)',
               fontSize: 'var(--crm-text-sm)',
-              fontWeight: 800,
+              fontWeight: 600,
               letterSpacing: 0.3,
               color: '#fff',
               whiteSpace: 'nowrap',
@@ -296,14 +297,14 @@ export function MobileFocusHero({
           ) : null}
           <span
             title={t('today.focus.estimatedPriority')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 700, whiteSpace: 'nowrap', color: 'rgba(255,255,255,.62)' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-xs)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, whiteSpace: 'nowrap', color: 'rgba(255,255,255,.62)' }}
           >
             <MEIcon name="sparkle" size={12} color="#9b7cf0" />
             {t('today.focus.estimate')} · {item.displayScore}
           </span>
         </div>
 
-        <h2 style={{ margin: '12px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 800, letterSpacing: -0.8, lineHeight: 1.04, ...rise(1) }}>{item.contact}</h2>
+        <h2 style={{ margin: '12px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 500, letterSpacing: -0.8, lineHeight: 1.04, ...rise(1) }}>{item.contact}</h2>
         <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,.84)', lineHeight: 1.42, fontWeight: 500, fontSize: 'var(--crm-text-xl)', ...rise(2) }}>{item.sub}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-md)', color: 'rgba(255,255,255,.66)', marginTop: 6, ...rise(2) }}>
           <MEIcon name="sparkle" size={12} color="#9b7cf0" />
@@ -312,7 +313,7 @@ export function MobileFocusHero({
 
         {/* prix + actions */}
         <div style={{ marginTop: 15, paddingTop: 'var(--crm-space-2xl)', borderTop: '1px solid rgba(255,255,255,.18)', ...rise(3) }}>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 800, letterSpacing: -0.4, marginBottom: 12 }}>{item.bien.price}</div>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.4, marginBottom: 12 }}>{item.bien.price}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
             <button
               type="button"
@@ -329,10 +330,10 @@ export function MobileFocusHero({
                 cursor: 'pointer',
                 fontFamily: 'inherit',
                 fontSize: 'var(--crm-text-xl)',
-                fontWeight: 800,
+                fontWeight: 600,
                 whiteSpace: 'nowrap',
                 background: calling ? '#0B7A4B' : '#fff',
-                color: calling ? '#fff' : '#0B0C0E',
+                color: calling ? MXC_COLOR.n1000 : MXC_COLOR.n100,
                 boxShadow: '0 10px 26px -10px rgba(0,0,0,.55)',
                 transition: 'background .25s ease',
               }}
@@ -349,7 +350,7 @@ export function MobileFocusHero({
                 </>
               ) : (
                 <>
-                  <MEIcon name={typeIcon} size={18} strokeWidth={2} color="#0B0C0E" />
+                  <MEIcon name={typeIcon} size={18} strokeWidth={2} color={MXC_COLOR.n100} />
                   {primaryLabel}
                 </>
               )}

@@ -26,7 +26,7 @@ import {
   AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSegmentBtn, AdminSkeleton, AdminStat, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 
 const ITEMS_PER_PAGE = 15
 
@@ -55,7 +55,7 @@ const CLIP = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap
 
 /** Vignette d'annonce — photo de couverture, ou surface creuse à l'icône si l'annonce n'en a pas. */
 function Thumb({ src, width, height }: { src?: string; width: number; height: number }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   if (src) {
     return (
       <img
@@ -103,7 +103,7 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
 /** Page de modération : recherche + filtre statut, table responsive, dialog de confirmation. */
 export default function AdminModerationPage() {
   const { t } = useTranslation('admin')
-  const { sp, surf, dark, tones } = useAdminSugar()
+  const { sp, surf, dark, tones } = useAdminSurfaces()
   const { listings, isLoading, isError, refetch, stats, statsLoading, moderate } = useAdminModeration()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -166,7 +166,7 @@ export default function AdminModerationPage() {
       >
         <style>{`
           .admm-row { transition: background .15s ease; }
-          .admm-row:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(15,23,42,0.03)'}; }
+          .admm-row:hover { background: ${dark ? 'rgba(255,255,255,0.045)' : 'rgba(3, 3, 3, 0.03)'}; }
           .admm-act { opacity: 0; transition: opacity .15s ease; }
           .admm-row:hover .admm-act, .admm-row:focus-within .admm-act { opacity: 1; }
         `}</style>
@@ -238,10 +238,10 @@ export default function AdminModerationPage() {
               >
                 <Thumb src={listing.photos[0]} width={72} height={46} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, ...CLIP }}>
+                  <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink, ...CLIP }}>
                     {listing.title || t('admin:common.noTitle')}
                   </div>
-                  <div style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub, marginTop: 1, fontVariantNumeric: 'tabular-nums', ...CLIP }}>
+                  <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub, marginTop: 1, fontVariantNumeric: 'tabular-nums', ...CLIP }}>
                     {formatCHF(listing.price)}
                     {listing.canton ? ` · ${listing.canton}` : ''}
                   </div>
@@ -293,11 +293,11 @@ export default function AdminModerationPage() {
                       </AdminTd>
 
                       <AdminTd>
-                        <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, color: sp.ink, ...CLIP }}>
+                        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: sp.ink, ...CLIP }}>
                           {listing.title || t('admin:common.noTitle')}
                         </div>
                         {listing.city && (
-                          <div style={{ fontSize: 11.5, fontWeight: 500, color: sp.sub, ...CLIP }}>{listing.city}</div>
+                          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub, ...CLIP }}>{listing.city}</div>
                         )}
                       </AdminTd>
 
@@ -370,7 +370,7 @@ export default function AdminModerationPage() {
             >
               {t('admin:common.previous')}
             </AdminGhostBtn>
-            <span style={{ fontSize: 12, fontWeight: 700, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
               {page}/{totalPages}
             </span>
             <AdminGhostBtn

@@ -1,4 +1,4 @@
-// Regression — the contacts page (ContactsSugarV2Page) "Créer le contact"
+// Regression — the contacts page (ContactsPage) "Créer le contact"
 // modal previously silent-no-op'd: `handleNewContactSave` only fired a
 // toast, never called the mutation. This test mirrors the exact shape of
 // the insert the page now performs end-to-end so any future regression
@@ -11,7 +11,7 @@ import { serviceRoleClient } from './helpers/supabase'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 
-describe.skipIf(!HAS_KEYS)('regression — ContactsSugarV2Page modal insert', () => {
+describe.skipIf(!HAS_KEYS)('regression — ContactsPage modal insert', () => {
   let setup: TwoAgenciesSetup
   const createdIds: string[] = []
 

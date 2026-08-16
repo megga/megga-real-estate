@@ -7,7 +7,7 @@
 son entreprise au premier login, et bloquer l'accès au CRM tant qu'il ne l'a pas fait.
 
 **Architecture :** une route dédiée `/dashboard/identite` porte un wizard en cinq
-étapes ; `AgentSugarLayout` y redirige tant que `agencies.identity_submitted_at` est
+étapes ; `AgentLayout` y redirige tant que `agencies.identity_submitted_at` est
 nul. Le wizard écrit directement dans les tables KYB sous RLS, et une RPC de soumission
 valide la complétude, pose l'horodatage et journalise. Grammaire visuelle Sugar v2,
 calquée sur le wizard « Créer un bien ».
@@ -24,9 +24,9 @@ Playwright pour le parcours complet.
 ## Global Constraints
 
 - **TypeScript strict, jamais `any`.**
-- **Aucune couleur codée en dur.** Le wizard lit `SugarV2` (Proxy de thème) exactement
-  comme `crm-sugar-wizard` : `setSugarV2Dark(dark)` au début du render du shell, puis
-  `SugarV2.foo` lu au render dans chaque étape. Ne pas threader le thème en prop.
+- **Aucune couleur codée en dur.** Le wizard lit `WizardTokens` (Proxy de thème) exactement
+  comme `crm-wizard` : `setWizardDark(dark)` au début du render du shell, puis
+  `WizardTokens.foo` lu au render dans chaque étape. Ne pas threader le thème en prop.
 - **Boutons en style fantôme**, jamais `bg-accent` plein. Badges en texte coloré sans
   fond. Pas d'ombre sur les bentos. Pas de majuscules dans les titres.
 - **Modales** toujours via `createPortal(document.body)` avec `z-[100]`.
@@ -52,8 +52,8 @@ Playwright pour le parcours complet.
 
 | Sujet | Décision |
 |---|---|
-| Emplacement du gate | Route dédiée `/dashboard/identite`, redirection depuis `AgentSugarLayout` |
-| Grammaire visuelle | Sugar v2, calquée sur `src/components/crm-sugar-wizard` |
+| Emplacement du gate | Route dédiée `/dashboard/identite`, redirection depuis `AgentLayout` |
+| Grammaire visuelle | Sugar v2, calquée sur `src/components/crm-wizard` |
 | Mobile | Hors périmètre. Le gate redirige, et l'écran mobile invite à terminer sur ordinateur |
 | Accès après soumission | Complet, avec bandeau, et blocage des seules actions à risque LAB (étape 5) |
 | Exemption | `is_super_admin()` |
@@ -67,21 +67,21 @@ Playwright pour le parcours complet.
 | `supabase/migrations/<jour>_submit_agency_identity.sql` | RPC de soumission, garde de complétude, journalisation |
 | `src/hooks/useAgencyIdentity.ts` | Lecture de l'état d'identité, écritures des personnes et rôles, appel de la RPC |
 | `src/hooks/useIdentityGate.ts` | Le gate : décide si la redirection s'applique |
-| `src/components/crm-sugar-identity/tokens.ts` | Données du wizard, étapes, thème (calqué sur `crm-sugar-wizard/tokens.ts`) |
-| `src/components/crm-sugar-identity/IdentityShell.tsx` | Coquille, navigation, persistance, soumission |
-| `src/components/crm-sugar-identity/steps/StepSignataire.tsx` | Étape 1 |
-| `src/components/crm-sugar-identity/steps/StepAgence.tsx` | Étape 2 |
-| `src/components/crm-sugar-identity/steps/StepBeneficiaires.tsx` | Étape 3, conditionnelle |
-| `src/components/crm-sugar-identity/steps/StepPieceIdentite.tsx` | Étape 4 |
-| `src/components/crm-sugar-identity/steps/StepRecapitulatif.tsx` | Étape 5 |
-| `src/pages/agent/IdentitySugarPage.tsx` | Route `/dashboard/identite` |
+| `src/components/crm-identity/tokens.ts` | Données du wizard, étapes, thème (calqué sur `crm-wizard/tokens.ts`) |
+| `src/components/crm-identity/IdentityShell.tsx` | Coquille, navigation, persistance, soumission |
+| `src/components/crm-identity/steps/StepSignataire.tsx` | Étape 1 |
+| `src/components/crm-identity/steps/StepAgence.tsx` | Étape 2 |
+| `src/components/crm-identity/steps/StepBeneficiaires.tsx` | Étape 3, conditionnelle |
+| `src/components/crm-identity/steps/StepPieceIdentite.tsx` | Étape 4 |
+| `src/components/crm-identity/steps/StepRecapitulatif.tsx` | Étape 5 |
+| `src/pages/agent/IdentityPage.tsx` | Route `/dashboard/identite` |
 | `src/pages/agent/IdentityMobileNotice.tsx` | Écran mobile « terminer sur ordinateur » |
 | `src/i18n/locales/{fr,de,en,it}/onboarding.json` | Nouveau namespace i18n |
 | `tests/backend/agency-identity-submit.spec.ts` | Tests de la RPC |
 | `tests/unit/identity-gate.spec.ts` | Tests du gate |
 | `tests/e2e/onboarding-identite.spec.ts` | Parcours complet |
 
-**Le wizard de référence à imiter** est `src/components/crm-sugar-wizard/`
+**Le wizard de référence à imiter** est `src/components/crm-wizard/`
 (`WizardShell.tsx` 464 lignes, `tokens.ts` 438, `primitives.tsx` 211). Chaque tâche qui
 touche au rendu doit le lire avant d'écrire, et réutiliser ses primitives (`SgIcon`,
 `SgCircleBtn`, `SgBlackPill`, `SgGhostPill`) plutôt que d'en créer de nouvelles.
@@ -176,9 +176,9 @@ pour la création d'utilisateur.
 
 **Files:**
 - Créer : `src/hooks/useIdentityGate.ts`
-- Créer : `src/pages/agent/IdentitySugarPage.tsx` (coquille vide à ce stade)
+- Créer : `src/pages/agent/IdentityPage.tsx` (coquille vide à ce stade)
 - Créer : `src/pages/agent/IdentityMobileNotice.tsx`
-- Modifier : `src/components/layout/AgentSugarLayout.tsx`
+- Modifier : `src/components/layout/AgentLayout.tsx`
 - Modifier : `src/App.tsx`
 - Créer : `tests/unit/identity-gate.spec.ts`
 
@@ -215,12 +215,12 @@ motif `ResponsiveRoute` déjà employé partout dans `App.tsx`.
 ## Task 3 : coquille du wizard et étape 1, le signataire
 
 **Files:**
-- Créer : `src/components/crm-sugar-identity/tokens.ts`
-- Créer : `src/components/crm-sugar-identity/IdentityShell.tsx`
-- Créer : `src/components/crm-sugar-identity/steps/StepSignataire.tsx`
+- Créer : `src/components/crm-identity/tokens.ts`
+- Créer : `src/components/crm-identity/IdentityShell.tsx`
+- Créer : `src/components/crm-identity/steps/StepSignataire.tsx`
 - Créer : `src/hooks/useAgencyIdentity.ts`
 - **Étendre** : `src/i18n/locales/{fr,de,en,it}/onboarding.json`
-- Modifier : `src/pages/agent/IdentitySugarPage.tsx`
+- Modifier : `src/pages/agent/IdentityPage.tsx`
 
 ⚠ **Les quatre fichiers i18n existent déjà**, créés par la tâche 2 avec les clés `gate.*`
 du gate et de l'écran mobile, et ces clés sont couvertes par des tests. Les **étendre**,
@@ -228,8 +228,8 @@ jamais les récrire : un écrasement ferait disparaître silencieusement des cha
 validées dans les quatre langues. Le namespace est déjà câblé dans `src/i18n/index.ts`,
 il n'y a rien à y ajouter.
 
-**Avant d'écrire :** lire `src/components/crm-sugar-wizard/WizardShell.tsx` et
-`tokens.ts`. Le mécanisme de thème (Proxy `SugarV2` réassigné par `setSugarV2Dark`) doit
+**Avant d'écrire :** lire `src/components/crm-wizard/WizardShell.tsx` et
+`tokens.ts`. Le mécanisme de thème (Proxy `WizardTokens` réassigné par `setWizardDark`) doit
 être repris tel quel, pas réinventé. Réutiliser les primitives existantes.
 
 **Champs de l'étape 1 :** prénom, nom, date de naissance, nationalité, pouvoir de
@@ -247,7 +247,7 @@ de vérité ; ne pas inventer un stockage local parallèle.
 ## Task 4 : étape 2, l'agence
 
 **Files:**
-- Créer : `src/components/crm-sugar-identity/steps/StepAgence.tsx`
+- Créer : `src/components/crm-identity/steps/StepAgence.tsx`
 - Modifier : `src/hooks/useAgencyIdentity.ts`, `IdentityShell.tsx`, les 4 fichiers i18n
 
 **Champs :** pays du siège, forme juridique, raison sociale, nom commercial, numéro de
@@ -269,7 +269,7 @@ registre, TVA, adresse, NPA, ville, canton.
 ## Task 5 : étape 3, les bénéficiaires effectifs
 
 **Files:**
-- Créer : `src/components/crm-sugar-identity/steps/StepBeneficiaires.tsx`
+- Créer : `src/components/crm-identity/steps/StepBeneficiaires.tsx`
 - Modifier : `IdentityShell.tsx`, `useAgencyIdentity.ts`, les 4 fichiers i18n
 
 **Étape conditionnelle.** Elle est **sautée** quand la catégorie de la forme juridique
@@ -295,7 +295,7 @@ existante. C'est précisément pourquoi le schéma sépare les deux tables.
 ## Task 6 : étape 4, la pièce d'identité
 
 **Files:**
-- Créer : `src/components/crm-sugar-identity/steps/StepPieceIdentite.tsx`
+- Créer : `src/components/crm-identity/steps/StepPieceIdentite.tsx`
 - Modifier : `IdentityShell.tsx`, `useAgencyIdentity.ts`, les 4 fichiers i18n
 
 **Avant d'écrire :** vérifier les politiques du bucket Storage `documents` (le seul
@@ -324,7 +324,7 @@ backend.
 ## Task 7 : étape 5, récapitulatif et soumission
 
 **Files:**
-- Créer : `src/components/crm-sugar-identity/steps/StepRecapitulatif.tsx`
+- Créer : `src/components/crm-identity/steps/StepRecapitulatif.tsx`
 - Modifier : `IdentityShell.tsx`, `useAgencyIdentity.ts`, les 4 fichiers i18n
 
 **Contenu :** relecture de tout ce qui a été saisi, avec un lien de retour vers chaque

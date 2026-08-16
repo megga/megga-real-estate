@@ -23,6 +23,7 @@ import {
   MlkWordmark,
 } from './MlkPrimitives'
 import { MLK } from './mlkTokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -107,7 +108,7 @@ export function MlkLanding({
             padding: '6px 12px 6px 9px',
             borderRadius: 999,
             background: MLK.cardSubtle,
-            fontSize: 11.5,
+            fontSize: 'var(--crm-text-xs)',
             fontWeight: 600,
             color: MLK.inkSoft,
             letterSpacing: 0.1,
@@ -134,11 +135,9 @@ export function MlkLanding({
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 'var(--crm-text-xs)',
               fontWeight: 600,
               color: MLK.muted,
-              letterSpacing: 1.2,
-              textTransform: 'uppercase',
               marginBottom: 3,
             }}
           >
@@ -146,8 +145,8 @@ export function MlkLanding({
           </div>
           <div
             style={{
-              fontSize: 14.5,
-              fontWeight: 700,
+              fontSize: 'var(--crm-text-lg)',
+              fontWeight: 600,
               color: MLK.ink,
               letterSpacing: -0.2,
             }}
@@ -162,8 +161,8 @@ export function MlkLanding({
         className="mlk-h1"
         style={{
           margin: '0 0 16px',
-          fontSize: 38,
-          fontWeight: 700,
+          fontSize: 'var(--crm-text-9xl)',
+          fontWeight: 600,
           color: MLK.ink,
           letterSpacing: -0.9,
           lineHeight: 1.08,
@@ -176,7 +175,7 @@ export function MlkLanding({
       <p
         style={{
           margin: 0,
-          fontSize: 15,
+          fontSize: 'var(--crm-text-xl)',
           color: MLK.inkSoft,
           fontWeight: 500,
           lineHeight: 1.55,
@@ -184,9 +183,9 @@ export function MlkLanding({
         }}
       >
         {t('client.landing.subtitle_prefix')}
-        <strong style={{ color: MLK.ink, fontWeight: 700 }}>
+        <span style={{ color: MLK.ink, fontWeight: 600 }}>
           {t('client.landing.subtitle_duration')}
-        </strong>
+        </span>
         {t('client.landing.subtitle_suffix')}
       </p>
 
@@ -209,7 +208,7 @@ export function MlkLanding({
         style={{
           marginTop: 16,
           textAlign: 'center',
-          fontSize: 12,
+          fontSize: 'var(--crm-text-sm)',
           color: MLK.muted,
           fontWeight: 500,
         }}
@@ -307,18 +306,16 @@ export function MlkUpload({
         }}
       >
         <MlkWordmark size={16} />
-        <div style={{ fontSize: 11.5, color: MLK.muted, fontWeight: 500 }}>
+        <div style={{ fontSize: 'var(--crm-text-xs)', color: MLK.muted, fontWeight: 500 }}>
           {contactSummary}
         </div>
       </div>
 
       <div
         style={{
-          fontSize: 11,
+          fontSize: 'var(--crm-text-xs)',
           fontWeight: 600,
           color: MLK.muted,
-          letterSpacing: 1.2,
-          textTransform: 'uppercase',
           marginBottom: 14,
         }}
       >
@@ -328,8 +325,8 @@ export function MlkUpload({
         className="mlk-h1"
         style={{
           margin: '0 0 12px',
-          fontSize: 32,
-          fontWeight: 700,
+          fontSize: 'var(--crm-text-7xl)',
+          fontWeight: 600,
           color: MLK.ink,
           letterSpacing: -0.7,
           lineHeight: 1.1,
@@ -340,7 +337,7 @@ export function MlkUpload({
       <p
         style={{
           margin: '0 0 28px',
-          fontSize: 14.5,
+          fontSize: 'var(--crm-text-lg)',
           color: MLK.inkSoft,
           fontWeight: 500,
           lineHeight: 1.55,
@@ -353,11 +350,9 @@ export function MlkUpload({
       {/* Type sélecteur — 4 radio cards en grid 2x2 */}
       <div
         style={{
-          fontSize: 11,
+          fontSize: 'var(--crm-text-xs)',
           fontWeight: 600,
           color: MLK.muted,
-          letterSpacing: 1,
-          textTransform: 'uppercase',
           marginBottom: 10,
         }}
       >
@@ -387,7 +382,7 @@ export function MlkUpload({
                 borderRadius: 16,
                 background: isSelected ? MLK.card : MLK.cardSubtle,
                 boxShadow: isSelected ? MLK.shadow : 'none',
-                outline: isSelected ? `2px solid ${MLK.black}` : 'none',
+                outline: isSelected ? `2px solid ${MLK.accent}` : 'none',
                 fontFamily: 'inherit',
                 cursor: 'pointer',
                 display: 'flex',
@@ -402,10 +397,10 @@ export function MlkUpload({
                   height: 22,
                   borderRadius: 999,
                   flexShrink: 0,
-                  background: isSelected ? MLK.black : 'transparent',
+                  background: isSelected ? MLK.accent : 'transparent',
                   boxShadow: isSelected
                     ? 'none'
-                    : 'inset 0 0 0 1.5px rgba(11,12,14,0.25)',
+                    : `inset 0 0 0 1.5px ${crmVoileEncre(false, 0.25)}`,
                   display: 'grid',
                   placeItems: 'center',
                 }}
@@ -437,8 +432,8 @@ export function MlkUpload({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
-                    fontSize: 13.5,
-                    fontWeight: 700,
+                    fontSize: 'var(--crm-text-md)',
+                    fontWeight: 600,
                     color: MLK.ink,
                     letterSpacing: -0.1,
                   }}
@@ -447,7 +442,7 @@ export function MlkUpload({
                 </div>
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: 'var(--crm-text-xs)',
                     color: MLK.muted,
                     fontWeight: 500,
                     marginTop: 1,
@@ -476,11 +471,11 @@ export function MlkUpload({
         }}
         style={{
           padding: '44px 28px',
-          background: dragOver ? 'rgba(11,12,14,0.05)' : 'rgba(11,12,14,0.025)',
+          background: dragOver ? crmVoileEncre(false, 0.05) : crmVoileEncre(false, 0.025),
           borderRadius: 22,
           boxShadow: dragOver
-            ? `inset 0 0 0 2px ${MLK.black}`
-            : 'inset 0 0 0 1.5px rgba(11,12,14,0.10)',
+            ? `inset 0 0 0 2px ${MLK.accent}`
+            : `inset 0 0 0 1.5px ${crmVoileEncre(false, 0.10)}`,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -506,8 +501,8 @@ export function MlkUpload({
         <div>
           <div
             style={{
-              fontSize: 16,
-              fontWeight: 700,
+              fontSize: 'var(--crm-text-2xl)',
+              fontWeight: 600,
               color: MLK.ink,
               letterSpacing: -0.2,
             }}
@@ -516,7 +511,7 @@ export function MlkUpload({
           </div>
           <div
             style={{
-              fontSize: 12.5,
+              fontSize: 'var(--crm-text-sm)',
               color: MLK.muted,
               fontWeight: 500,
               marginTop: 4,
@@ -556,7 +551,7 @@ export function MlkUpload({
             background: 'rgba(239,68,68,0.10)',
             borderRadius: 12,
             marginBottom: 14,
-            fontSize: 12.5,
+            fontSize: 'var(--crm-text-sm)',
             color: '#B91C1C',
             fontWeight: 600,
             lineHeight: 1.5,
@@ -572,11 +567,9 @@ export function MlkUpload({
         <>
           <div
             style={{
-              fontSize: 11,
+              fontSize: 'var(--crm-text-xs)',
               fontWeight: 600,
               color: MLK.muted,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
               marginBottom: 10,
             }}
           >
@@ -623,8 +616,8 @@ export function MlkUpload({
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div
                       style={{
-                        fontSize: 13,
-                        fontWeight: 700,
+                        fontSize: 'var(--crm-text-md)',
+                        fontWeight: 600,
                         color: MLK.ink,
                         letterSpacing: -0.1,
                         whiteSpace: 'nowrap',
@@ -636,7 +629,7 @@ export function MlkUpload({
                     </div>
                     <div
                       style={{
-                        fontSize: 11,
+                        fontSize: 'var(--crm-text-xs)',
                         color: MLK.muted,
                         fontWeight: 500,
                         marginTop: 1,
@@ -654,8 +647,8 @@ export function MlkUpload({
                       borderRadius: 999,
                       background: 'rgba(16,185,129,0.10)',
                       color: '#0E7C5B',
-                      fontSize: 10.5,
-                      fontWeight: 700,
+                      fontSize: 'var(--crm-text-xs)',
+                      fontWeight: 600,
                       letterSpacing: 0.2,
                       flexShrink: 0,
                     }}
@@ -692,7 +685,7 @@ export function MlkUpload({
         <MlkIcon name="lock" size={14} stroke={MLK.muted} sw={1.8} />
         <div
           style={{
-            fontSize: 11.5,
+            fontSize: 'var(--crm-text-xs)',
             color: MLK.muted,
             fontWeight: 500,
             lineHeight: 1.5,
@@ -762,13 +755,13 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
           width: 96,
           height: 96,
           borderRadius: 999,
-          background: MLK.black,
+          background: MLK.ink,
           color: '#fff',
           margin: '0 auto 32px',
           display: 'grid',
           placeItems: 'center',
           boxShadow:
-            '0 24px 60px rgba(11,12,14,0.20), 0 8px 24px rgba(11,12,14,0.12)',
+            `0 24px 60px ${crmVoileEncre(false, 0.20)}, 0 8px 24px ${crmVoileEncre(false, 0.12)}`,
         }}
       >
         <MlkIcon name="check" size={42} stroke="#fff" sw={2.4} />
@@ -778,8 +771,8 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
         className="mlk-h1"
         style={{
           margin: '0 0 14px',
-          fontSize: 36,
-          fontWeight: 700,
+          fontSize: 'var(--crm-text-8xl)',
+          fontWeight: 600,
           color: MLK.ink,
           letterSpacing: -0.9,
           lineHeight: 1.1,
@@ -793,7 +786,7 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
       <p
         style={{
           margin: '0 0 36px',
-          fontSize: 15,
+          fontSize: 'var(--crm-text-xl)',
           color: MLK.inkSoft,
           fontWeight: 500,
           lineHeight: 1.6,
@@ -804,9 +797,9 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
         }}
       >
         {t('client.success.body_prefix', { agentName: agentFullName })}
-        <strong style={{ color: MLK.ink, fontWeight: 700 }}>
+        <span style={{ color: MLK.ink, fontWeight: 600 }}>
           {t('client.success.body_duration')}
-        </strong>
+        </span>
         {t('client.success.body_suffix')}
       </p>
 
@@ -827,8 +820,8 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
-              fontSize: 13.5,
-              fontWeight: 700,
+              fontSize: 'var(--crm-text-md)',
+              fontWeight: 600,
               color: MLK.ink,
               letterSpacing: -0.1,
             }}
@@ -837,7 +830,7 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
           </div>
           <div
             style={{
-              fontSize: 11.5,
+              fontSize: 'var(--crm-text-xs)',
               color: MLK.muted,
               fontWeight: 500,
               marginTop: 1,
@@ -901,8 +894,8 @@ export function MlkExpired({ agentFullName, agencyName }: ExpiredProps) {
         className="mlk-h1"
         style={{
           margin: '0 0 14px',
-          fontSize: 30,
-          fontWeight: 700,
+          fontSize: 'var(--crm-text-6xl)',
+          fontWeight: 600,
           color: MLK.ink,
           letterSpacing: -0.7,
           lineHeight: 1.15,
@@ -914,7 +907,7 @@ export function MlkExpired({ agentFullName, agencyName }: ExpiredProps) {
       <p
         style={{
           margin: '0 0 30px',
-          fontSize: 14.5,
+          fontSize: 'var(--crm-text-lg)',
           color: MLK.inkSoft,
           fontWeight: 500,
           lineHeight: 1.6,
@@ -925,9 +918,9 @@ export function MlkExpired({ agentFullName, agencyName }: ExpiredProps) {
         }}
       >
         {t('client.expired.body_prefix')}
-        <strong style={{ color: MLK.ink, fontWeight: 700 }}>
+        <span style={{ color: MLK.ink, fontWeight: 600 }}>
           {t('client.expired.body_duration')}
-        </strong>
+        </span>
         {t('client.expired.body_middle', { agentName })}
         {agencySuffix}
         {t('client.expired.body_suffix')}
@@ -937,7 +930,7 @@ export function MlkExpired({ agentFullName, agencyName }: ExpiredProps) {
         style={{
           marginTop: 14,
           textAlign: 'center',
-          fontSize: 12,
+          fontSize: 'var(--crm-text-sm)',
           color: MLK.muted,
           fontWeight: 500,
         }}
@@ -981,8 +974,8 @@ export function MlkPlaceholder({ title, message, iconName = 'alert' }: Placehold
         className="mlk-h1"
         style={{
           margin: '0 0 12px',
-          fontSize: 24,
-          fontWeight: 700,
+          fontSize: 'var(--crm-text-5xl)',
+          fontWeight: 600,
           color: MLK.ink,
           letterSpacing: -0.5,
           textAlign: 'center',
@@ -993,7 +986,7 @@ export function MlkPlaceholder({ title, message, iconName = 'alert' }: Placehold
       <p
         style={{
           margin: 0,
-          fontSize: 14,
+          fontSize: 'var(--crm-text-lg)',
           color: MLK.inkSoft,
           fontWeight: 500,
           lineHeight: 1.55,

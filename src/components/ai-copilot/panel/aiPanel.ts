@@ -1,9 +1,10 @@
 // MEGGA AI — Panneau latéral · helpers purs (palette dérivée, packs contextuels,
 // libellés d'écran, parsing des brouillons, phases de réflexion).
 // Port fidèle du handoff `crm-copilot-panel.jsx` (chantiers 1,4,5,6), adapté à la
-// vraie stack : zéro `window.*`, tokens issus du vrai `SugarPalette`.
+// vraie stack : zéro `window.*`, tokens issus du vrai `CrmPalette`.
 
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import type { CSSProperties } from 'react'
+import { crmVoileAssombrissant, crmVoileEncre, type CrmPalette } from '@/components/crm/tokens'
 import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 
 // ── Géométrie ───────────────────────────────────────────────────────────────
@@ -15,7 +16,7 @@ export const COPILOT_WIDTH = PANEL_W + 32
 
 // ── Bleu identité MEGGA AI (chantier 1) ─────────────────────────────────────
 // ── Palette dérivée du panneau ──────────────────────────────────────────────
-// Étend le SugarPalette de base avec les surfaces propres au panneau (canvas,
+// Étend le CrmPalette de base avec les surfaces propres au panneau (canvas,
 // composer, remplissages). Tout en DÉRIVE désormais : le dock portait son
 // propre accent — l'encre, règle Sugar Pure — et ses surfaces sombres passaient
 // par la forme à 3 arguments de `crmStep`, qui retombait sur ses littéraux
@@ -50,7 +51,7 @@ export interface AiPalette {
   rowHov: string
 }
 
-export function deriveAiPalette(base: SugarPalette, dark: boolean): AiPalette {
+export function deriveAiPalette(base: CrmPalette, dark: boolean): AiPalette {
   if (dark) {
     return {
       dark: true,
@@ -88,7 +89,7 @@ export function deriveAiPalette(base: SugarPalette, dark: boolean): AiPalette {
     aiInk: base.accent,
     panelBg: base.solidBg,
     panelShadow:
-      '0 28px 80px -16px rgba(15,23,42,.22), 0 8px 26px -12px rgba(15,23,42,.12)',
+      `0 28px 80px -16px ${crmVoileEncre(false, 0.22)}, 0 8px 26px -12px ${crmVoileEncre(false, 0.12)}`,
     fill: base.cardSubBg,
     fillStrong: base.focusSurface,
     cardBg2: base.cardSubBg,
@@ -359,4 +360,90 @@ export function thinkingPhases(q: string): string[] {
   if (/agenda|rendez|rdv|visite|calendrier|planifie|réserve|reserve/.test(t))
     return ["Lecture de l'agenda", 'Recherche de créneaux', 'Préparation de la réponse']
   return ['Réflexion', 'Collecte des infos', 'Préparation de la réponse']
+}
+
+/* ─── Grammaire des modales de revue ──────────────────────────────────────── */
+
+/**
+ * Le kit des CINQ modales de revue du dock (annonce, e-mail, lettre, publication,
+ * suppression de contact).
+ *
+ * ⛔ POURQUOI IL EXISTE. Mesurées le 15 août 2026, les cinq modales portaient la
+ * MÊME grammaire recopiée cinq fois — même voile de fond, même ombre, même
+ * `labelStyle` en micro-capitales 11/700/0.3, même surface `#17181C`, mêmes
+ * rayons 22/12/999 en littéraux, même police écrite en dur. Corriger cinq copies
+ * les aurait laissées diverger au premier ajout : c'est le geste du lot 2 du
+ * Pipeline (les trois palettes locales devenues des fonctions), appliqué à une
+ * grammaire au lieu d'une palette. Il n'y a plus de valeur à recopier, seulement
+ * un barreau à désigner.
+ *
+ * ⚠ La SURFACE ne se peignait pas non plus : `#17181C` est un palier Graphite
+ * bleuté, quand la palette du dock porte déjà `panelBg` — qui EST le `solidBg`
+ * de MEGGA X (n300, #090909), le palier de tout ce qui flotte. Troisième source de surfaces, comme `adminSurfaces()` sur la console
+ * et la doublure de la popover de notifications.
+ *
+ * ⚠ Tailles ramenées au barreau le plus proche, ÉGALITÉ VERS LE BAS : 17 → 2xl
+ * (16), 13.5 → md (13), 14 → lg (14), 11 → xs (11). Rayons : 22 → 4xl (20),
+ * 12 → lg, 999 → pill.
+ */
+export interface RevueKit {
+  /** Voile plein écran — c'est une ENCRE voilée, pas une surface. */
+  scrim: CSSProperties
+  /** La carte flottante. */
+  carte: CSSProperties
+  /** Le titre de la modale. */
+  titre: CSSProperties
+  /** Le sur-titre d'un champ — casse NORMALE : MEGGA X n'a aucun idiome de micro-capitale. */
+  libelle: CSSProperties
+  /** Fond et filet d'un champ de saisie. */
+  champ: CSSProperties
+  /** Texte d'aide, en bas de modale. */
+  aide: CSSProperties
+  /** Bouton secondaire (Annuler). */
+  boutonFantome: CSSProperties
+  /** Bouton primaire — il porte l'ACCENT, jamais l'encre. */
+  boutonPrincipal: (actif: boolean) => CSSProperties
+}
+
+export function revueKit(sp: AiPalette): RevueKit {
+  const dark = sp.dark
+  const bouton: CSSProperties = {
+    height: 40, padding: '0 18px', borderRadius: 'var(--crm-radius-pill)', border: 0,
+    fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
+  }
+  return {
+    scrim: {
+      position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center',
+      // Le voile REPOUSSE l'arrière-plan, il ne s'en détache pas : sombre dans les
+      // deux thèmes. `crmVoileEncre(dark, …)` rendrait ici un drap BLANC à 55 %.
+      background: crmVoileAssombrissant(dark ? 0.55 : 0.28),
+      backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+      padding: 20,
+    },
+    carte: {
+      width: 'min(540px, 100%)', maxHeight: '86vh', overflowY: 'auto',
+      background: sp.panelBg, borderRadius: 'var(--crm-radius-4xl)',
+      padding: '20px 22px 18px',
+      // Une ombre portée est une absence de lumière — jamais un halo clair.
+      boxShadow: `0 30px 80px -14px ${crmVoileAssombrissant(dark ? 0.7 : 0.28)}`,
+      display: 'flex', flexDirection: 'column', gap: 14,
+    },
+    titre: {
+      fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink,
+      letterSpacing: -0.3, flex: 1,
+    },
+    libelle: { fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub },
+    champ: {
+      background: sp.fill, border: `1px solid ${crmVoileEncre(dark, 0.08)}`,
+      borderRadius: 'var(--crm-radius-lg)', color: sp.ink,
+    },
+    aide: { fontSize: 'var(--crm-text-sm)', color: sp.sub, flex: 1 },
+    boutonFantome: { ...bouton, cursor: 'pointer', color: sp.soft, background: sp.fill },
+    boutonPrincipal: (actif) => ({
+      ...bouton, padding: '0 20px',
+      cursor: actif ? 'pointer' : 'default',
+      background: actif ? sp.accent : sp.fillStrong,
+      color: actif ? sp.onAccent : sp.sub,
+    }),
+  }
 }

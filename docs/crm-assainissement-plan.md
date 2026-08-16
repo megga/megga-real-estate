@@ -42,7 +42,7 @@ Réseau inter-agences, aiInsights/Parcours équipe). Sortie = liste figée + pé
 *(Exécutée avant la V2 : plus de valeur, moins de risque.)*
 6. **Surfacer le score de contact** (le plus haut ROI) — `calculate_contact_scores` calcule déjà **11 scores en prod** (RPC + cron) mais **aucune UI ne les lit**, alors que le score de bien l'est (asymétrie). → `useContactScores` (calque `usePropertyScores`) + pastille fiche/liste (calque `BnScoreBadge`), estimation + paliers. Backend 100% fait.
 7. **Câblage WhatsApp→contact qui n'écrit pas** — `source='whatsapp'=0`, outbound `contact_id` NULL, `last_interaction_at` 2/12 ; 126 messages n'enrichissent ni fiche, ni timeline, ni sourcing. Le back-link #660 est inbound-only sur `contacts.phone` → investiguer le chemin outbound / le champ source. Réparable sans usage.
-8. **En-tête « Aujourd'hui » hardcodé** — `src/components/crm-sugar/today/data.ts:58-59` (`agent.name='Gregory'`, `date='Dimanche 14 juin'`) ; rendu `PageAujourdhui.tsx:133-134`. → `useAuth().profile.full_name` + `new Date()` (i18n FR dispo). Premier écran de chaque session.
+8. **En-tête « Aujourd'hui » hardcodé** — `src/components/crm/today/data.ts:58-59` (`agent.name='Gregory'`, `date='Dimanche 14 juin'`) ; rendu `PageAujourdhui.tsx:133-134`. → `useAuth().profile.full_name` + `new Date()` (i18n FR dispo). Premier écran de chaque session.
 9. **Settings Notifications/Preferences non persistés** (0 hit supabase, toggles perdus au reload) + **autocomplete adresse agence mock** (`AgencySection.tsx:505-513`, cible swisstopo). → persister ; brancher ou retirer l'autocomplete.
 
 ## Vague 2 — Purge du code mort / dette
@@ -53,7 +53,7 @@ Réseau inter-agences, aiInsights/Parcours équipe). Sortie = liste figée + pé
 
 ## Vague 4 — Honnêteté UI (mock surfacé comme réel)
 14. **Réseau inter-agences** (`NetworkSugarV2Page`, 100% mock, `network/data.ts`, 3/5 vues « Coming soon », 0 table/RLS) = le plus gros écart UI-promet/backend-absent. POUR LA SANTÉ : **étiqueter « aperçu non livré »** (cheap). Le build réel (tables `agency_partners`/`shared_listings` + RLS cross-agence + templates) = **gros chantier séparé**, hors « santé ».
-15. **aiInsights calendrier = `[]`** (`CalendarSugarV2Page.tsx:482`) + **Parcours équipe mock** (`useParcoursSugar.ts:6` `PARCOURS_TEAM` + fallback `t-greg`, RBAC non câblé) → câbler OU retirer la promesse vide.
+15. **aiInsights calendrier = `[]`** (`CalendarPage.tsx:482`) + **Parcours équipe mock** (`useJourneyScreen.ts:6` `PARCOURS_TEAM` + fallback `t-greg`, RBAC non câblé) → câbler OU retirer la promesse vide.
 
 ## Vague 5 — Entretenir le cerveau
 Corriger les nœuds périmés (le « 11/14 », `project_today_refonte` « données démo » = FAUX, Calendar « HOT_BUYERS mock » = FAUX, claims Réseau). Marquer l'assainissement fait + ce qui reste data-gated. `npm run ruflo:seed`.

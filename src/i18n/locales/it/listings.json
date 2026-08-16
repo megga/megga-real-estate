@@ -462,14 +462,6 @@
       "baths": "bagni",
       "epc": "CECE"
     },
-    "score": {
-      "chaud": "Caldo",
-      "a_animer": "Da rilanciare",
-      "en_veille": "In pausa",
-      "fallback": "Stima",
-      "tooltip": "Punteggio immobile, stima",
-      "tooltipLimited": "Punteggio immobile, stima · dati limitati"
-    },
     "submissions": {
       "bannerTitle_one": "{{count}} nuova richiesta venditore",
       "bannerTitle_other": "{{count}} nuove richieste venditori",
@@ -629,7 +621,6 @@
     "onlineOn": "Annuncio online su {{portals}}",
     "notPublishedYet": "Immobile non ancora pubblicato",
     "viewPhotos": "Vedi tutte le {{count}} foto",
-    "c2paVerified": "Provenienza verificata · C2PA",
     "transactionRent": "Affitto",
     "transactionSale": "Vendita",
     "rentLabel": "Pigione",
@@ -849,7 +840,6 @@
   },
   "wizard": {
     "steps": {
-      "start": "Inizio",
       "mandate": "Venditore",
       "address": "Indirizzo",
       "specs": "Caratteristiche",
@@ -860,51 +850,17 @@
     },
     "forOwner": "Per {{name}}",
     "ownerVia": {
-      "submission": "tramite invio",
       "linked": "venditore collegato"
-    },
-    "step0": {
-      "eyebrow": "Passo 1 di 8 · Inizio",
-      "title": "Come vuoi creare questo immobile?",
-      "subtitle": "Tre modi per andare veloce. Il contenuto sarà poi affinato passo dopo passo.",
-      "manual": {
-        "title": "Inserisci manualmente",
-        "sub": "Sezione per sezione, mantieni il controllo."
-      },
-      "import": {
-        "title": "Importa un mandato",
-        "sub": "MEGGA AI estrae tutto dal PDF del mandato.",
-        "soon": "Presto"
-      },
-      "autosave": {
-        "title": "Bozza salvata automaticamente",
-        "note": "Puoi chiudere la procedura guidata in qualsiasi momento, i tuoi dati restano."
-      },
-      "submissions": {
-        "title": "Riprendi una proposta",
-        "subtitle": "{{count}} privati hanno proposto il loro immobile. Selezionane uno per precompilare.",
-        "emptyTitle": "Nessuna proposta",
-        "emptyBody": "Nessun privato ha ancora proposto un immobile.",
-        "unknownVendor": "Venditore sconosciuto",
-        "subtitle_one": "1 privato ha proposto il suo immobile.",
-        "subtitle_other": "{{count}} privati hanno proposto il loro immobile.",
-        "selectVendor": "Seleziona un venditore",
-        "cap_one": "Massimo 5 proposte visualizzate; 1 più vecchia in I miei immobili.",
-        "cap_other": "Massimo 5 proposte visualizzate; {{count}} più vecchie in I miei immobili."
-      }
     },
     "step1": {
       "vendor": {
-        "eyebrow": "Passaggio 2 di 8 · Venditore (1/2)",
         "title": "Chi è il proprietario?",
-        "subtitle": "Collega questo immobile a un contatto esistente o creane uno nuovo.",
         "change": "Cambia",
         "searchPlaceholder": "Digita il nome, l'email o il telefono del venditore…",
-        "newButton": "+ Nuovo",
+        "newButton": "Nuovo",
         "recentSellers": "I tuoi venditori recenti",
         "noMatchTitle": "Nessun contatto trovato per «{{query}}»",
-        "noMatchBody": "Crea un nuovo contatto venditore.",
-        "createNamed": "+ Crea «{{query}}»",
+        "createNamed": "Crea «{{query}}»",
         "sellerTag": "Venditore",
         "newSeller": "Nuovo venditore",
         "quickInfo": "Qualche informazione rapida",
@@ -914,20 +870,17 @@
         "phone": "Telefono",
         "phonePlaceholder": "+41 79 …",
         "kycNote": "Il KYC potrà essere avviato dopo la firma del mandato. MEGGA può inviare la procedura al venditore, è facoltativo.",
-        "createContact": "Crea il contatto"
+        "createContact": "Crea il contatto",
+        "submissions_one": "1 richiesta in attesa",
+        "submissions_other": "{{count}} richieste in attesa",
+        "unknownVendor": "Venditore sconosciuto"
       },
       "mandate": {
-        "eyebrow": "Passaggio 2 di 8 · Mandato (2/2)",
         "title": "Che tipo di mandato?",
-        "subtitle": "Importa un mandato firmato per risparmiare tempo, oppure configuralo manualmente.",
-        "subtitleImported": "MEGGA AI ha estratto le informazioni dal tuo mandato. Verifica e correggi se necessario.",
         "field": {
-          "type": "Tipo di mandato",
           "duration": "Durata",
           "commission": "Commission",
-          "fees": "Onorari",
-          "signedAt": "Data della firma",
-          "vendor": "Venditore identificato"
+          "fees": "Onorari"
         },
         "type": {
           "exclusive": {
@@ -944,18 +897,6 @@
           }
         },
         "recommended": "Consigliato",
-        "import": {
-          "title": "Importa un mandato firmato",
-          "hint": "Trascina qui il tuo PDF. MEGGA AI estrae automaticamente il tipo, la durata, la commissione e la data della firma.",
-          "choosePdf": "Scegli il PDF"
-        },
-        "reading": "Lettura del file…",
-        "analyzing": "MEGGA AI analizza il tuo mandato",
-        "searchingNextField": "Ricerca del campo successivo…",
-        "importedTitle": "Mandato importato e analizzato",
-        "enterManually": "Inserisci manualmente",
-        "enterManuallyQuoted": "«Inserisci manualmente»",
-        "editHint": "Per modificare questi valori, clicca su",
         "months": "{{count}} mesi",
         "feesOwner": "A carico del venditore",
         "feesBuyer": "A carico dell'acquirente",
@@ -964,7 +905,6 @@
         "statusLabel": "Stato",
         "signed": "Firmato",
         "notSigned": "Non firmato",
-        "orManual": "oppure configura a mano",
         "proposedCommission": "Commissione proposta",
         "settings": "Impostazioni",
         "settingsTitle": "Regola le condizioni del mandato",
@@ -976,9 +916,7 @@
       }
     },
     "step2": {
-      "eyebrow": "Passo 3 di 8 · Indirizzo",
       "title": "Dove si trova l'immobile?",
-      "subtitle": "Digita un indirizzo, MEGGA AI completa NPA, cantone e coordinate.",
       "searchPlaceholder": "Via, numero, città…",
       "confirmedTitle": "Indirizzo confermato",
       "confirmedSubtitle": "NPA, cantone e coordinate rilevati automaticamente.",
@@ -1091,9 +1029,7 @@
     "photosCount_one": "{{count}} photo",
     "photosCount_other": "{{count}} photos",
     "step4": {
-      "eyebrow": "Passaggio 5 di 8 · Foto",
       "title": "Aggiungi le foto dell'immobile",
-      "intro": "Gli annunci che hanno da 8 a 12 foto ricevono <strong>3× più richieste</strong>. La prima foto sarà la copertina su MEGGA.",
       "mode": {
         "pc": "Da questo computer",
         "mobile": "Dal tuo telefono",
@@ -1316,20 +1252,10 @@
       "addressPlaceholder": "Indirizzo da completare",
       "agentLine": "MEGGA · {{canton}} · Presentato dall'agente",
       "contact": "Contatti",
-      "whenPublish": "Quando pubblicare",
       "publishNow": {
         "title": "Pubblica ora",
         "sub": "L'annuncio diventa visibile entro 30 secondi."
       },
-      "schedule": {
-        "title": "Programma",
-        "sub": "Scegli la data e l'ora di pubblicazione."
-      },
-      "draft": {
-        "title": "Salva come bozza",
-        "sub": "Riprendi più tardi. Nessuna data pubblica."
-      },
-      "scheduleDateLabel": "Data e ora (Europe/Zurich)",
       "visibility": {
         "eyebrow": "Visibilità",
         "public": "Public",
@@ -1372,8 +1298,6 @@
       },
       "mandateNote": "Mandato non firmato: l'annuncio apparirà su MEGGA; la diffusione su Immobilier.ch partirà dalla firma.",
       "cta": {
-        "schedule": "Programma la pubblicazione",
-        "draft": "Salva la bozza",
         "private": "Salva in privato",
         "publishIdx": "Pubblica su Immobilier.ch",
         "publishMegga": "Pubblica su MEGGA"
@@ -1395,29 +1319,14 @@
       "featuresLabel": "Dotazioni",
       "agentFallback": "La tua agenzia",
       "optionsTitle": "Opzioni di pubblicazione",
-      "when": {
-        "now": "Ora",
-        "schedule": "Programma",
-        "draft": "Bozza"
-      },
-      "draftNote": "L'immobile resta come bozza in «I miei immobili», nulla viene diffuso."
+      "savedNote": "Questo immobile è già salvato come bozza in I miei immobili. Pubblicare lo rende visibile."
     },
     "step8": {
-      "eyebrow": {
-        "now": "Pubblicazione confermata",
-        "schedule": "Programmata",
-        "draft": "Bozza"
-      },
       "title": {
-        "now": "Annuncio pubblicato",
-        "schedule": "Pubblicazione programmata",
-        "draft": "Bozza salvata"
+        "now": "Annuncio pubblicato"
       },
       "subtitle": {
-        "now": "Il tuo immobile è ora online su MEGGA.",
-        "schedule": "La pubblicazione avverrà il {{date}}.",
-        "scheduleFallbackDate": "alla data scelta",
-        "draft": "Potrai riprendere dalla tua dashboard."
+        "now": "Il tuo immobile è ora online su MEGGA."
       },
       "noCover": "Nessuna copertina",
       "noAddress": "Immobile senza indirizzo",
@@ -1452,23 +1361,20 @@
           "subtitle": "Dashboard e pipeline."
         }
       },
-      "confirmationEmail": "Riceverai un'email di conferma a <strong>{{email}}</strong>.",
       "c2paNote": "Tutte le immagini generate sono firmate <strong>C2PA</strong> · provenienza verificabile dall'acquirente."
     },
     "shell": {
       "mandateTitle": "Mandato",
       "continue": "Continua",
       "publishing": "Pubblicazione…",
-      "schedulePublish": "Programma la pubblicazione",
-      "saveDraft": "Salva come bozza",
       "publish": "Pubblica su MEGGA",
-      "photoRequired": "Aggiungi almeno una foto per pubblicare. Senza foto, salva l'annuncio come bozza e completalo più tardi.",
       "publishError": "Pubblicazione non riuscita: {{message}}",
       "unknownError": "Errore sconosciuto",
       "recommended": "Consigliato",
       "choose": "Scegli",
       "saved": "Salvato",
-      "autosave": "Salvataggio automatico"
+      "saving": "Salvataggio…",
+      "saveFailed": "Non salvato"
     },
     "kyc": {
       "verified": "KYC verificato",
@@ -1695,7 +1601,8 @@
     "porte": {
       "choose": "Scegli",
       "selected": "Selezionato"
-    }
+    },
+    "progress": "Passaggio {{n}} di {{total}} · {{label}}"
   },
   "gallery": {
     "sort": "Ordina"
@@ -1746,13 +1653,13 @@
       "expiresAt": "Scade il"
     },
     "photoIndex": "Foto {{i}} / {{total}}",
+    "photoViewer": "Foto dell’immobile",
     "surfaceSuffix": "m²"
   },
   "wizardMobile": {
     "continue": "Continua",
     "publish": "Pubblica",
     "publishing": "Pubblicazione…",
-    "saveDraft": "Salva come bozza",
     "publishError": "Pubblicazione non riuscita. Riprova.",
     "doneTitle": "Immobile creato",
     "doneDesc": "Il tuo immobile è salvato. Aggiungi le foto dalla scheda.",
@@ -1763,10 +1670,10 @@
     "postCode": "CAP",
     "city": "Città",
     "canton": "Cantone",
-    "specsTitle": "Caratteristiche",
+    "specsTitle": "Cosa comprende l'immobile?",
     "energy": "Classe energetica",
     "features": "Caratteristiche",
-    "priceTitle": "Prezzo e pubblicazione",
+    "priceTitle": "A quale prezzo?",
     "priceLabel": "Prezzo di vendita",
     "rentLabel": "Affitto mensile",
     "charges": "Spese",
@@ -1774,9 +1681,6 @@
     "mandate": "Mandato",
     "mandateExclusive": "Esclusivo",
     "mandateSimple": "Semplice",
-    "publishWhen": "Pubblicazione",
-    "publishNow": "Pubblica ora",
-    "draft": "Bozza",
     "photosLater": "Le foto si aggiungono dalla scheda",
     "step": {
       "type": "Tipo",

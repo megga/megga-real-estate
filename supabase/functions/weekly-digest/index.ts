@@ -7,6 +7,7 @@
 // opt-out par agent (profiles.weekly_digest_opt_out). Fallback déterministe.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { appDashboardUrl } from '../_shared/app-url.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { logDeepSeekUsageWith } from '../_shared/ai-usage.ts'
 import {
@@ -114,7 +115,7 @@ serve(async (req) => {
   }
 
   const weekLabel = new Date().toLocaleDateString('fr-CH', { day: '2-digit', month: 'long', year: 'numeric' })
-  const html = digestHtml(bodyText, `Semaine au ${weekLabel}`)
+  const html = digestHtml(bodyText, `Semaine au ${weekLabel}`, appDashboardUrl())
   const resendKey = Deno.env.get('RESEND_API_KEY')
 
   let sent = 0

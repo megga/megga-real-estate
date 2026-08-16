@@ -10,7 +10,7 @@
  * celle du titre d'écran (31/800/-1.1), qui appartient au rail.
  */
 import type { ReactNode } from 'react'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 
 /**
  * Page de la console.
@@ -25,7 +25,7 @@ export default function AdminPage({ title, subtitle, actions, children, width = 
   children: ReactNode
   width?: 'normal' | 'wide' | 'full'
 }) {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const maxWidth = width === 'full' ? 'none' : width === 'wide' ? 1240 : 940
 
   return (
@@ -38,7 +38,7 @@ export default function AdminPage({ title, subtitle, actions, children, width = 
     >
       <header style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-3xl)', marginBottom: 20 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 800, letterSpacing: -0.6, color: sp.ink, lineHeight: 1.15 }}>
+          <h1 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 600, letterSpacing: -0.6, color: sp.ink, lineHeight: 1.15 }}>
             {title}
           </h1>
           {subtitle && (

@@ -19,7 +19,8 @@ import { AlertTriangle } from 'lucide-react'
 import Modal from '@/components/ui/modal'
 import { AdminGhostBtn, AdminIc } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 interface AdminConfirmProps {
   open: boolean
@@ -55,7 +56,7 @@ export default function AdminConfirm({
   busyLabel,
 }: AdminConfirmProps) {
   const { t } = useTranslation('admin')
-  const { sp, surf, dark, tones } = useAdminSugar()
+  const { sp, surf, dark, tones } = useAdminSurfaces()
   const [typed, setTyped] = useState('')
   const inputId = useId()
 
@@ -84,7 +85,7 @@ export default function AdminConfirm({
           <div style={{ marginTop: 16 }}>
             <label
               htmlFor={inputId}
-              style={{ display: 'block', marginBottom: 6, fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, color: sp.sub }}
+              style={{ display: 'block', marginBottom: 6, fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.2, color: sp.sub }}
             >
               {requireTextLabel}
             </label>
@@ -98,7 +99,7 @@ export default function AdminConfirm({
                 width: '100%', boxSizing: 'border-box', height: 38, padding: '0 var(--crm-space-xl)',
                 borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub, color: sp.ink,
                 fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, outline: 'none',
-                boxShadow: `0 0 0 1.5px ${dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)'} inset`,
+                boxShadow: `0 0 0 1.5px ${crmVoileEncre(dark, 0.07)} inset`,
               }}
             />
           </div>

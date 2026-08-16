@@ -25,7 +25,7 @@ import {
   AdminSkeleton, AdminSolidBtn, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminLearning, useSetLearnedStyle } from '@/hooks/useAdminLearning'
 
 /** Troncature d'une cellule : les colonnes du tableau ont une largeur figée. */
@@ -42,7 +42,7 @@ function statusTone(status: string): AdminToneName {
 
 export default function AdminLearningPage() {
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const { data: rows = [], isLoading, error } = useAdminLearning()
   const setStyle = useSetLearnedStyle()
 
@@ -67,7 +67,7 @@ export default function AdminLearningPage() {
       <AdminCard padding="14px 16px">
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
           <AdminIc icon={Sparkles} size={16} color={tones.info} style={{ marginTop: 2 }} />
-          <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.55, color: sp.sub }}>
+          <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', lineHeight: 1.55, color: sp.sub }}>
             {t('learning.observeNote')}
           </p>
         </div>
@@ -78,7 +78,7 @@ export default function AdminLearningPage() {
         <AdminCard padding="14px 16px">
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
             <AdminIc icon={AlertTriangle} size={16} color={tones.err} style={{ marginTop: 2 }} />
-            <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, lineHeight: 1.55, color: sp.ink }}>
+            <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 600, lineHeight: 1.55, color: sp.ink }}>
               {t('learning.error')}
             </p>
           </div>
@@ -134,8 +134,11 @@ export default function AdminLearningPage() {
                       <AdminTd style={{ ...CLIP, fontWeight: 600, textTransform: 'capitalize' }}>
                         {r.agent_name ?? '—'}
                       </AdminTd>
-                      <AdminTd style={{ ...CLIP, color: sp.sub, textTransform: 'uppercase' }}>
-                        {style?.language ?? '—'}
+                      {/* Le code de langue s'écrit en majuscules — c'est sa forme
+                          canonique, pas une composition. Le porter dans la DONNÉE
+                          plutôt qu'en CSS le rend aussi copiable tel quel. */}
+                      <AdminTd style={{ ...CLIP, color: sp.sub }}>
+                        {style?.language?.toUpperCase() ?? '—'}
                       </AdminTd>
                       <AdminTd style={{ ...CLIP, color: sp.sub, textTransform: 'capitalize' }}>
                         {style?.formality ?? '—'}
@@ -164,7 +167,7 @@ export default function AdminLearningPage() {
                     <tr style={{ background: rowBg }}>
                       <td colSpan={6} style={{ padding: '0 12px 11px', borderTop: 'none' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                          <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 700, color: sp.soft }}>
+                          <span style={{ flexShrink: 0, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft }}>
                             {t('learning.traits')}
                           </span>
                           {isEditing ? (
@@ -184,7 +187,7 @@ export default function AdminLearningPage() {
                                   flex: 1, minWidth: 0, height: 34, padding: '0 12px', boxSizing: 'border-box',
                                   borderRadius: ADMIN_RADII.row, border: 0,
                                   background: isActive ? surf.card : surf.cardSub,
-                                  color: sp.ink, fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                                  color: sp.ink, fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
                                   outline: 'none', transition: 'box-shadow .16s ease',
                                 }}
                               />
@@ -209,7 +212,7 @@ export default function AdminLearningPage() {
                                   laquelle le super-admin décide d'activer un style, la
                                   tronquer par ellipse lui retirait l'information. */}
                               <span style={{
-                                flex: 1, minWidth: 0, fontSize: 12.5, lineHeight: 1.45,
+                                flex: 1, minWidth: 0, fontSize: 'var(--crm-text-sm)', lineHeight: 1.45,
                                 color: sp.sub, overflowWrap: 'break-word',
                               }}>
                                 {style?.traits || '—'}

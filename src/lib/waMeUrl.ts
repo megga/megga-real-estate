@@ -3,7 +3,7 @@
 // d'amorce pré-rempli. Aucun branchement OpenWA / Meta requis.
 //
 // Vit ici, et non dans PxWhatsAppButton : deux des trois appelants sont les
-// feuilles d'envoi du matching (SgaSendSheet, MrhSendSheet), qui n'ont rien à
+// feuilles d'envoi du matching (AtlSendSheet, MrhSendSheet), qui n'ont rien à
 // voir avec la marketplace Property X.
 
 /**

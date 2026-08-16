@@ -2,8 +2,8 @@
  * Sceau « vérifié » — la coche bleue festonnée du CRM, sans aucune dépendance de thème.
  *
  * Le tracé existe déjà à cinq endroits du dépôt (`crm-mobile/contacts/ContactSeal`,
- * `crm-mobile/matching/MmVerifiedBadge`, `matching-atelier/SgaWhy` et `SgaQueue`,
- * `crm-sugar-v3` via la fiche contact). Les cinq lisent leur couleur dans un jeton de
+ * `crm-mobile/matching/MmVerifiedBadge`, `matching-atelier/AtlWhy` et `AtlQueue`,
+ * `crm-dossiers` via la fiche contact). Les cinq lisent leur couleur dans un jeton de
  * thème — `useMobileTokens()`, `sp.*` — et sont donc INUTILISABLES dans le parcours
  * d'onboarding, qui vit sous `<MeggaX>` hors de tout ThemeProvider : les monter là lève
  * à l'exécution.

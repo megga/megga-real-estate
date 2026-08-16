@@ -239,18 +239,17 @@
     },
     "start": {
       "title": "Wie möchten Sie dieses Dossier eröffnen?",
-      "subtitle": "Drei Wege, um die GwG-Pflicht zu erfüllen. Am schnellsten geht es, wenn Sie das Dossier mit einem Kontakt verknüpfen, den Ihr CRM bereits kennt.",
       "existing": {
         "title": "Mit bestehendem Kontakt verknüpfen",
-        "sub": "Der häufigste Weg: Sie wählen einen Käufer, Verkäufer oder Mieter, der bereits im CRM erfasst ist."
+        "sub": "Ein Käufer, Verkäufer oder Mieter, der bereits im CRM ist."
       },
       "import": {
-        "title": "Externes Dossier importieren (demnächst)",
-        "sub": "Import mit automatischer Auswertung (Persona-PDF, ComplyAdvantage, Bericht einer Partneragentur) folgt in einer kommenden Version. Verwenden Sie bis dahin «Mit bestehendem Kontakt verknüpfen»."
+        "title": "Externes Dossier importieren",
+        "sub": "Demnächst verfügbar."
       },
       "magic": {
         "title": "Dokumente anfordern",
-        "sub": "Der Kontakt erhält einen Magic Link und lädt seine Belege sicher selbst hoch."
+        "sub": "Der Kontakt lädt seine Belege selbst hoch."
       }
     },
     "contact": {
@@ -285,7 +284,6 @@
       }
     },
     "gate": {
-      "recommended": "Empfohlen",
       "selected": "Ausgewählt",
       "choose": "Auswählen"
     },

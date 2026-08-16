@@ -1,12 +1,11 @@
 /**
- * Console super-admin — feuille d'appoint de la grammaire Sugar.
+ * Console super-admin — feuille d'appoint de la grammaire MEGGA X.
  *
  * Elle fait deux choses. D'abord elle repointe les variables `--color-*` sur la
- * palette Sugar, ce qui teinte les restes écrits en classes sémantiques
- * (`bg-theme-card`, `text-theme-primary`…) : une poignée d'endroits seulement
- * aujourd'hui — l'alignement Sugar a fait passer les 17 pages au style inline
- * nourri par `useAdminSugar()`, alors qu'à l'origine ce repointage suffisait à
- * les reteindre toutes sans en toucher une seule.
+ * palette de la direction, ce qui teinte les restes écrits en classes
+ * sémantiques (`bg-theme-card`, `text-theme-primary`…). Il n'en subsiste
+ * qu'une poignée hors de `AdminKybReviewPage` — les 18 autres pages sont en
+ * style inline nourri par `useAdminSurfaces()`.
  *
  * Ensuite, et c'est devenu l'essentiel, elle porte ce que le style inline ne
  * PEUT pas exprimer : l'anneau de focus, les scrollbars, `::placeholder`, et
@@ -15,118 +14,138 @@
  * ⛔ NE PAS y réintroduire `outline: none` : c'est ce qui avait privé le rail,
  * la palette ⌘K et les listes de tout repère de focus au clavier.
  *
- * Les valeurs viennent de `CRM_TOKENS` (src/components/crm-sugar/tokens.ts) —
- * `light` et `graphite`, cette dernière étant la teinte sombre par DÉFAUT du
- * CRM. Elles y sont dupliquées à la main parce que le CSS ne lit pas le JS ;
- * toute évolution de tokens.ts doit être reportée ici.
+ * ── LES VALEURS SONT CELLES DE `mxCrmPalette()`, ET C'EST VÉRIFIÉ ────────────
+ * Le CSS ne lit pas le JS : ces triplets sont donc une COPIE. Jusqu'au 14 août
+ * 2026 la copie n'était vérifiée par rien, et cette feuille énonçait pourtant
+ * elle-même sa règle — « toute évolution de tokens.ts doit être reportée ici ».
+ * Elle disait vrai, et personne ne l'a fait : l'échelle GRAPHITE
+ * (`#12161C`→`#252A36`), retirée du CRM le 10 août, a survécu ici intacte,
+ * toutes portes vertes, parce qu'aucune garde du dépôt n'ouvrait un `.css` de
+ * ce dossier.
  *
- * ⚠ Le CSS ne suit PAS la teinte choisie par l'agent : il est figé sur le
- * défaut. Passer en Noir pur reteint les 17 pages (elles sont en style inline
- * nourri par `useAdminSugar()`, qui lui est vivant) mais laisse en graphite la
- * poignée de classes sémantiques restantes — 6 occurrences dans 4 fichiers.
+ * ⚠ Un fichier qui déclare sa norme et son arriéré se relit MOINS qu'un fichier
+ * négligé : il a l'air tenu.
  *
- * ⚠ SCOPÉ à `.megga-admin-console` (posé par `AdminShell`), et non plus à
- * `:root`. La console vit désormais DANS le CRM : repointer les variables
- * globales y aurait reteint toute l'application.
+ * `tests/unit/admin-console-css.spec.ts` DÉRIVE désormais chaque valeur
+ * attendue de `mxCrmPalette()` et la compare à ce qui est écrit ici. La copie
+ * ne peut plus dériver sans qu'une porte rougisse.
  *
- * Le sombre se lit sur `data-admin-dark`, PAS sur `data-theme`. Dans le CRM,
- * deux providers pilotent `data-theme` depuis deux clés de stockage sans lien
- * (`megga-theme` pour le CRM, `megga.sugar.dark` pour la console) et celui du
- * CRM gagne : mesuré `data-theme="light"` alors que la console était en sombre,
- * d'où des pages en texte quasi noir sur fond noir.
+ * ── CORRESPONDANCE PAR RÔLE, PAS PAR PALIER ─────────────────────────────────
+ * Graphite MONTAIT ses sous-surfaces, MEGGA X les CREUSE : la sous-carte passe
+ * SOUS la carte, et c'est la BORDURE qui sépare, pas l'écart de luminance
+ * (`CLAUDE.md` §3). Recopier « S1 → S1 » aurait gardé la logique de Graphite
+ * sous les valeurs de MEGGA X.
  *
- * Ce qui reste à faire dans les lots suivants : les badges à fond coloré, les
- * bentos séparés par bordure plutôt que par ombre, et l'iconographie lucide.
+ * ⚠ SCOPÉ à `.megga-admin-console` (posé par `AdminShell`), et non à `:root` :
+ * la console vit DANS le CRM, repointer les variables globales reteindrait
+ * toute l'application.
+ *
+ * ── POURQUOI `data-admin-dark` ET NON `data-theme` ──────────────────────────
+ * ✅ CONSERVÉ, décision du 14 août 2026, et la raison d'origine tient toujours.
+ * Dans le CRM, DEUX providers pilotent `data-theme` depuis deux clés de
+ * stockage sans lien (`megga-theme` pour le CRM, `megga.crm.dark` pour la
+ * console) et celui du CRM gagne : mesuré `data-theme="light"` alors que la
+ * console était en sombre, d'où des pages en texte quasi noir sur fond noir.
+ * La console est toujours montée sous `/dashboard/*`, donc les deux providers
+ * coexistent toujours.
+ *
+ * ⚠ Cet attribut est le SEUL lecteur du bloc sombre ci-dessous, et il n'a
+ * qu'un seul écrivain : `AdminShell`, sur le cadre. C'est aussi ce qui produit
+ * le piège de modale — une surface PORTÉE dans `document.body` reçoit la classe
+ * sans l'attribut si on la lui pose, et rend alors en CLAIR sur une console
+ * sombre. ⛔ Le bon geste reste : NE PAS poser `megga-admin-console` sur une
+ * modale ; elle suit alors le `data-theme` qu'`AdminThemeProvider` pose sur
+ * `documentElement` précisément pour les surfaces portées.
  */
 
 .megga-admin-console {
-  /* ── Surfaces (CRM_TOKENS.light) ── */
-  --color-bg-page: 250 251 253; /* #FAFBFD — bg */
-  --color-bg-card: 255 255 255; /* #FFFFFF — surface */
-  --color-bg-section: 246 248 250; /* #F6F8FA — proche de section */
-  --color-bg-sidebar: 255 255 255;
-  --color-bg-elevated: 255 255 255;
-  --color-bg-input: 245 247 250; /* #F5F7FA — surface2 */
-  --color-bg-hover: 245 247 250;
-  --color-bg-active: 237 240 244;
+  /* ── Surfaces — barreaux clairs de MEGGA X ── */
+  --color-bg-page: 249 249 249; /* #f9f9f9 — n900, sp.pageBg */
+  --color-bg-card: 255 255 255; /* #ffffff — n1000, sp.cardBg */
+  --color-bg-section: 249 249 249; /* #f9f9f9 — sp.cardSubBg */
+  --color-bg-sidebar: 255 255 255; /* sp.frameBg */
+  --color-bg-elevated: 255 255 255; /* sp.solidBg */
+  --color-bg-input: 249 249 249; /* sp.cardSubBg */
+  --color-bg-hover: 237 237 237; /* #ededed — n800, sp.focusSurface */
+  --color-bg-active: 237 237 237; /* sp.focusSurface */
 
   /* ── Encre ── */
-  --color-text-primary: 14 20 16; /* #0E1410 — ink */
-  --color-text-secondary: 63 70 64; /* #3F4640 — soft */
-  --color-text-tertiary: 122 128 121; /* #7A8079 — muted */
-  --color-text-muted: 122 128 121;
+  --color-text-primary: 3 3 3; /* #030303 — n100, sp.ink */
+  --color-text-secondary: 24 24 24; /* #181818 — n400, sp.soft */
+  --color-text-tertiary: 104 104 104; /* #686868 — n500, sp.sub */
+  --color-text-muted: 104 104 104;
 
-  /* ── Bordures : Sugar sépare par l'ombre, la bordure reste discrète ── */
-  --color-border: 226 230 236; /* #E2E6EC — border */
-  --color-border-subtle: 237 240 244;
+  /* ── Bordures : c'est ELLE qui sépare, pas l'ombre ── */
+  --color-border: 204 204 204; /* #cccccc — n700, sp.cardBorder */
+  --color-border-subtle: 237 237 237; /* #ededed — n800, un cran plus discret */
 }
 
 .megga-admin-console[data-admin-dark='true'] {
-  /* ── Surfaces (CRM_TOKENS.graphite — échelle opaque S0→S4) ── */
-  --color-bg-page: 18 22 28; /* #12161C — bg / S0 */
-  --color-bg-card: 26 29 38; /* #1A1D26 — surface / S2 */
-  --color-bg-section: 22 26 33; /* #161A21 — section / S1 */
-  --color-bg-sidebar: 26 29 38;
-  --color-bg-elevated: 29 33 42; /* #1D212A — surface2 / S3 */
-  --color-bg-input: 29 33 42;
-  --color-bg-hover: 29 33 42;
-  --color-bg-active: 37 42 54; /* #252A36 — border */
+  /* ── Surfaces — barreaux sombres de MEGGA X, et la sous-carte est CREUSÉE ── */
+  --color-bg-page: 3 3 3; /* #030303 — n100, sp.pageBg */
+  --color-bg-card: 9 9 9; /* #090909 — n300, sp.cardBg */
+  --color-bg-section: 5 5 5; /* #050505 — n200, sp.cardSubBg (SOUS la carte) */
+  --color-bg-sidebar: 5 5 5; /* sp.frameBg */
+  --color-bg-elevated: 9 9 9; /* sp.solidBg */
+  --color-bg-input: 5 5 5; /* sp.cardSubBg */
+  --color-bg-hover: 24 24 24; /* #181818 — n400, sp.focusSurface (ÉLEVÉE) */
+  --color-bg-active: 24 24 24; /* sp.focusSurface */
 
   /* ── Encre ── */
-  --color-text-primary: 236 237 243; /* #ECEDF3 — ink */
-  --color-text-secondary: 181 183 196; /* #B5B7C4 — soft */
-  --color-text-tertiary: 134 138 156; /* #868A9C — muted (remonté pour AA) */
-  --color-text-muted: 134 138 156;
+  --color-text-primary: 255 255 255; /* #ffffff — n1000, sp.ink */
+  --color-text-secondary: 237 237 237; /* #ededed — n800, sp.soft */
+  --color-text-tertiary: 163 163 163; /* #a3a3a3 — n600, sp.sub */
+  --color-text-muted: 163 163 163;
 
   /* ── Bordures ── */
-  --color-border: 37 42 54; /* #252A36 — border */
-  --color-border-subtle: 29 33 42;
+  --color-border: 24 24 24; /* #181818 — n400, sp.cardBorder */
+  --color-border-subtle: 9 9 9; /* #090909 — n300 */
 }
 
 /*
- * Police du chrome CRM. Le reste de l'app est en DM Sans ; les surfaces Sugar
- * sont en Inter Tight, et c'est une part de ce qui les rend reconnaissables.
+ * Police du chrome de la console.
+ *
+ * ⚠ Passe par `--crm-font` et non par un littéral : une police écrite en dur
+ * ÉCRASE la variable, donc la direction ne peut plus changer la typographie de
+ * cette région. Le repli nommé est la valeur actuelle — c'est la forme que
+ * `megga-x-crm-tokens.spec.ts` reconnaît comme correcte.
  */
 .megga-admin-console {
-  font-family: 'Inter Tight', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--crm-font, 'Inter Tight'), 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /*
- * Ombres Sugar (shadow1 / shadow2 de CRM_TOKENS), disponibles en classes
- * utilitaires pour le shell. Elles remplacent les bordures décoratives.
+ * ⛔ `.console-shadow` / `.console-shadow-lg` RETIRÉES le 14 août 2026 : zéro
+ * lecteur dans tout `src/` (mesuré), et elles portaient les DEUX seules ombres
+ * sombres de la feuille. En sombre, MEGGA X sépare par la BORDURE — `sp.shadow`
+ * vaut `'none'`. Dix-huit lignes qui contredisaient la direction sans que rien
+ * ne les rende.
  */
-.megga-admin-console .console-shadow {
-  box-shadow: 0 1px 2px rgba(14, 20, 16, 0.04), 0 0 0 1px rgba(14, 20, 16, 0.04);
-}
-.megga-admin-console .console-shadow-lg {
-  box-shadow: 0 8px 24px -8px rgba(14, 20, 16, 0.12), 0 0 0 1px rgba(14, 20, 16, 0.05);
-}
-.megga-admin-console[data-admin-dark='true'] .console-shadow {
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.04);
-}
-.megga-admin-console[data-admin-dark='true'] .console-shadow-lg {
-  box-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.045);
-}
 
 /*
  * WCAG 2.4.7 — anneau de focus qui SURVIT à un `outline: none` inline.
  *
- * La grammaire Sugar s'écrit en styles inline, et un champ Sugar pose
- * `outline: 'none'` pour ne pas doubler son liseré interne. Or une déclaration
- * inline l'emporte sur toute règle d'auteur non-`!important` : la règle globale
+ * La grammaire s'écrit en styles inline, et un champ pose `outline: 'none'`
+ * pour ne pas doubler son liseré interne. Or une déclaration inline l'emporte
+ * sur toute règle d'auteur non-`!important` : la règle globale
  * `input:focus-visible` de `globals.css` était donc neutralisée sur chaque
  * champ de la console, qui se retrouvait sans AUCUN repère de focus clavier.
  *
- * `!important` est ici le seul outil qui gagne contre l'inline — c'est un des
- * rares cas où il est justifié plutôt que paresseux : on ne surcharge pas un
- * choix de design, on garantit un plancher d'accessibilité que le style inline
- * ne doit pas pouvoir percer. `:where()` garde la spécificité à 0 pour ne pas
- * gêner d'éventuels styles de focus plus spécifiques.
+ * `!important` est ici le seul outil qui gagne contre l'inline — un des rares
+ * cas où il est justifié plutôt que paresseux : on ne surcharge pas un choix de
+ * design, on garantit un plancher d'accessibilité que l'inline ne doit pas
+ * pouvoir percer. `:where()` garde la spécificité à 0.
  *
  * `:focus-visible` (et non `:focus`) : pas de halo au clic souris.
+ *
+ * ⚠ L'ANNEAU PORTE L'ACCENT `#424bfb`, PLUS LE VIOLET (décision du 14 août
+ * 2026). La règle de la direction dit que l'élément ACTIF porte l'accent, et un
+ * anneau de focus marque bien l'actif ; le violet, lui, ne dit qu'une chose —
+ * « tu es dans la console » — et ses trois sites vivent dans `AdminShell`.
+ * ⛔ On change la COULEUR de l'anneau, JAMAIS son existence.
  */
 .megga-admin-console :where(button, a, input, textarea, select, [tabindex], [role='button'], [role='switch'], [role='link'], [role='option'], [role='menuitem']):focus-visible {
-  outline: 2px solid rgb(var(--color-admin-accent)) !important;
+  outline: 2px solid #424bfb !important;
   outline-offset: 2px;
 }
 
@@ -137,7 +156,6 @@
  * Tailwind de l'ancienne grammaire), et il n'existait AUCUNE règle globale pour
  * la remplacer — le navigateur retombait donc sur son gris par défaut
  * (~rgba(0,0,0,.54)), illisible sur la sous-surface quasi noire du thème sombre.
- * Ce plancher évite d'avoir à re-déclarer un `::placeholder` par composant.
  */
 .megga-admin-console :where(input, textarea)::placeholder {
   color: rgb(var(--color-text-tertiary));
@@ -155,26 +173,34 @@
   transition: background-color 0.16s ease, box-shadow 0.16s ease;
 }
 .megga-admin-console .adm-ghost:hover:not(:disabled) {
-  background: #f1f4f8 !important;
+  background: #ededed !important; /* n800 — la surface de survol de MEGGA X */
 }
 .megga-admin-console[data-admin-dark='true'] .adm-ghost:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: #181818 !important; /* n400 — son pendant sombre */
 }
 
 /*
  * Survol des lignes denses (tableaux, listes, options de menu).
  *
- * Même cause : une ligne Sugar déclare son fond en inline, donc un
+ * Même cause : une ligne déclare son fond en inline, donc un
  * `.classe:hover { background }` d'auteur ne s'applique jamais. Les surfaces
  * qui veulent un survol portent `.adm-row` et laissent leur fond de repos en
  * inline ; seul l'état de survol passe par cette règle.
+ *
+ * ⛔ ELLE PORTAIT LE GRIS-BLEU SLATE-900 — `rgba(15, 23, 42, 0.035)`, lu par
+ * HUIT fichiers. Septième dossier où cette teinte survit, et toujours par la
+ * même porte : une FRACTION D'OPACITÉ. Personne ne relit un alpha en cherchant
+ * une couleur, c'est un réglage de transparence à l'œil, et la teinte passe
+ * avec. Le voile garde son rôle — il laisse voir la bordure et la zébrure
+ * dessous, ce qu'un palier opaque effacerait — mais il est désormais teinté de
+ * l'ENCRE de l'échelle.
  */
 .megga-admin-console .adm-row {
   transition: background-color 0.16s ease;
 }
 .megga-admin-console .adm-row:hover {
-  background: rgba(15, 23, 42, 0.035) !important;
+  background: rgba(3, 3, 3, 0.04) !important; /* n100 en voile */
 }
 .megga-admin-console[data-admin-dark='true'] .adm-row:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: rgba(255, 255, 255, 0.05) !important; /* n1000 en voile */
 }

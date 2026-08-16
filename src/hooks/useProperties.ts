@@ -217,7 +217,7 @@ export function useUpdateProperty() {
 // journalise `bien_soft_deleted` dans activity_events — la trace survit à la
 // suppression (rétention LBA art. 7 al. 3). Les lectures filtrent
 // `.is('deleted_at', null)`, donc le bien disparaît des listes ; l'appelant
-// déclenche le refetch (useBiensSugar.refetch) après succès.
+// déclenche le refetch (useListingsScreen.refetch) après succès.
 
 /** Soft-delete d'un bien (RPC agency-scopée) — dépublie et retire des listes ; le trigger DB journalise l'audit. */
 export function useDeleteProperty() {

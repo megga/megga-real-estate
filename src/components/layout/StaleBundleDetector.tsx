@@ -94,7 +94,7 @@ export default function StaleBundleDetector() {
           'flex items-start gap-4 rounded-2xl bg-theme-card',
           'border border-theme-border',
           'pl-5 pr-4 py-4 max-w-md',
-          'shadow-[0_20px_40px_-15px_rgba(15,23,42,0.18)]',
+          'shadow-[0_20px_40px_-15px_rgba(3,3,3,0.18)]',
         )}
       >
         <div className="shrink-0 w-9 h-9 rounded-full bg-emerald-500/10 flex items-center justify-center">
@@ -117,7 +117,7 @@ export default function StaleBundleDetector() {
               className={cn(
                 'inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full border border-theme-border text-theme-primary hover:bg-theme-hover',
                 'text-xs font-medium transition-all hover:-translate-y-0.5',
-                'hover:shadow-[0_8px_20px_-8px_rgba(15,23,42,0.3)]',
+                'hover:shadow-[0_8px_20px_-8px_rgba(3,3,3,0.3)]',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20 dark:focus-visible:ring-white/30',
               )}
             >

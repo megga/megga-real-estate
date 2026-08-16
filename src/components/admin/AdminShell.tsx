@@ -1,21 +1,21 @@
 /**
- * Chrome de la console super-admin (`/dashboard/admin`), en grammaire Sugar.
+ * Chrome de la console super-admin (`/dashboard/admin`), en grammaire MEGGA X.
  *
  * Porté sur la coquille de l'écran Paramètres du CRM
- * (`SettingsSugarV2Page`) : le contenu ne court plus bord à bord, il vit dans le
+ * (`SettingsPage`) : le contenu ne court plus bord à bord, il vit dans le
  * PAGER — un cadre flottant de rayon 26 séparé du fond par l'ombre — avec le
  * rail de navigation de 300 px À L'INTÉRIEUR du cadre, et la page active dans le
  * bento de droite.
  *
  * Les valeurs (rayon, ombre, bordure de cadre, largeur de rail, grammaire des
- * lignes de nav) viennent de `useAdminSugar()`, donc de `tokens.ts` — pas d'une
+ * lignes de nav) viennent de `useAdminSurfaces()`, donc de `tokens.ts` — pas d'une
  * copie. `admin-console.css` continue de re-teinter les variables pour les
  * pages ; ici on lit la palette en JS pour obtenir le cadre exact.
  *
- * L'accent violet est CONSERVÉ, à contre-courant de l'accent unique de Sugar
- * Pure : c'est le seul signal qui dit « tu n'es plus dans ton agence, tu es dans
- * la plateforme ». Il est réduit à la pastille du rail et à l'item actif —
- * jamais un bouton plein, jamais un statut métier.
+ * Le violet est CONSERVÉ, à contre-courant de l'accent unique de la direction :
+ * c'est le seul signal qui dit « tu n'es plus dans ton agence, tu es dans la
+ * plateforme ». Il vit en TROIS sites, tous ici (`VIOLET_CONSOLE`) — jamais un
+ * bouton plein, jamais un statut métier, et jamais le ton du kit.
  *
  * Mise en page : le rail est dans le cadre au-delà de `lg`, en tiroir en
  * dessous (le cadre passe alors pleine largeur, sans rayon).
@@ -25,21 +25,32 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
 import { ADMIN_KEYFRAMES, ADMIN_RADII, ADMIN_RAIL_WIDTH } from '@/components/admin/kit/adminKitCore'
 // Le dock d'icônes du CRM, réutilisé tel quel (cf. `items` dans AdminShell).
-// SUGAR_KEYFRAMES est requis : le rail s'ouvre en `sugar-fade-up`, que
+// CRM_KEYFRAMES est requis : le rail s'ouvre en `crm-fade-up`, que
 // ADMIN_KEYFRAMES ne définit pas — sans lui le rail apparaîtrait sec.
-import { SugarIconRail, type RailItem } from '@/components/crm-sugar/LiquidGlassRail'
-import { SUGAR_KEYFRAMES } from '@/components/crm-sugar/SugarShell'
+import { CrmIconRail, type RailItem } from '@/components/crm/LiquidGlassRail'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 // Palette de la console. Importée ICI et non par une entrée d'app : c'est la
 // seule façon que les DEUX montages l'obtiennent. Elle est scopée à
 // `.megga-admin-console`, posée sur la racine ci-dessous — sans quoi elle
 // reteindrait tout le CRM.
 import '@/styles/admin-console.css'
+import { crmVoileEncre } from '@/components/crm/tokens'
+
+/**
+ * Le violet de la console — son unique repère de contexte, en TROIS sites, tous
+ * dans ce fichier : la pastille du rail, le badge « ADMIN » et le titre mobile.
+ *
+ * ⚠ Distinct de `tones.accent`, qui est l'accent MEGGA X offert au KIT. Les
+ * confondre est exactement ce qui s'était produit : deux des trois sites
+ * lisaient le ton du kit, si bien que repeindre le kit aurait effacé le repère.
+ */
+const VIOLET_CONSOLE = 'rgb(var(--color-admin-accent))'
 
 interface NavItem {
   labelKey: string
@@ -108,7 +119,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation(['common', 'admin'])
   const { signOut, profile } = useAuth()
   const { dark } = useAdminTheme()
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const navigate = useNavigate()
 
   const rowBase = {
@@ -118,20 +129,25 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
     fontFamily: 'inherit', textAlign: 'left' as const,
     background: 'transparent',
   }
-  const labelStyle = { flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 700, color: sp.ink } as const
+  const labelStyle = { flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink } as const
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, padding: '26px 18px 18px' }}>
       {/* Titre d'écran + repère de contexte (le violet, une seule fois) */}
       <div style={{ padding: '0 var(--crm-space-sm)', marginBottom: 18 }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 800, letterSpacing: -1.1, color: sp.ink, lineHeight: 1 }}>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-6xl)', fontWeight: 600, letterSpacing: -1.1, color: sp.ink, lineHeight: 1 }}>
           {t('nav.adminConsole')}
         </h1>
+        {/* ⛔ LE VIOLET, ET SEULEMENT ICI. Ces deux sites lisaient `tones.accent`,
+            qui sert désormais le KIT et vaut l'accent MEGGA X : ils liraient donc
+            du bleu, et le repère de contexte disparaîtrait. Le violet passe par
+            sa variable, comme le titre plus bas — trois sites, tous dans ce
+            fichier, tous des repères de contexte. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginTop: 9 }}>
-          <span style={{ width: 7, height: 7, borderRadius: ADMIN_RADII.pill, background: tones.accent, flexShrink: 0 }} />
+          <span style={{ width: 7, height: 7, borderRadius: ADMIN_RADII.pill, background: VIOLET_CONSOLE, flexShrink: 0 }} />
           {/* Le repère de contexte passe par la clé, pas par un littéral : les 17
               pages la rendaient avant, elle serait devenue orpheline. */}
-          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tones.accent, letterSpacing: -0.1 }}>{t('admin:common.adminBadge')}</span>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: VIOLET_CONSOLE, letterSpacing: -0.1 }}>{t('admin:common.adminBadge')}</span>
         </div>
       </div>
 
@@ -143,7 +159,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
         {NAV_SECTIONS.map((section) => (
           <div key={section.labelKey}>
             <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-xl) var(--crm-space-xs)' }}>
-              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, letterSpacing: 0.2, color: sp.sub, userSelect: 'none' }}>
+              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.2, color: sp.sub, userSelect: 'none' }}>
                 {t(section.labelKey)}
               </span>
             </div>
@@ -172,7 +188,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Pied de rail : retour CRM, compte */}
       <div style={{ flexShrink: 0, marginTop: 10 }}>
-        <div style={{ height: 1, background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.05)', margin: '0 6px 8px' }} />
+        <div style={{ height: 1, background: crmVoileEncre(dark, 0.07), margin: '0 6px 8px' }} />
 
         {/* Une ancre, mais une navigation par le routeur : l'ancre préserve le
             clic-milieu et le survol d'URL, le routeur évite le rechargement. */}
@@ -188,7 +204,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
           borderRadius: ADMIN_RADII.row, background: surf.cardSub,
         }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 700, color: sp.ink, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {profile?.full_name ?? profile?.email ?? '—'}
             </p>
             <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.sub, lineHeight: 1.3 }}>{t('nav.adminOverview')}</p>
@@ -220,7 +236,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
 export default function AdminShell() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const { sp, surf, dark } = useAdminSugar()
+  const { sp, surf, dark } = useAdminSurfaces()
   const { toggle } = useAdminTheme()
   const { t } = useTranslation(['common', 'admin'])
   const navigate = useNavigate()
@@ -229,7 +245,7 @@ export default function AdminShell() {
    * Outils du rail d'icônes, côté console.
    *
    * La liste par défaut du rail est celle du CRM et n'a pas de sens ici :
-   * `search` ouvrirait un hôte que seul `AgentSugarLayout` monte, et `relances`
+   * `search` ouvrirait un hôte que seul `AgentLayout` monte, et `relances`
    * interrogerait des données d'agence alors que le super-admin n'en a pas. On
    * fournit donc les outils de la console — le composant, lui, reste le même
    * que dans le CRM.
@@ -264,25 +280,27 @@ export default function AdminShell() {
       style={{
         position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',
-        fontFamily: '"Inter Tight", system-ui, sans-serif', color: sp.ink,
+        // ⚠ Par la VARIABLE : une police en dur écraserait `--crm-font` pour
+        // toute la console, et le défaut ne se verrait pas sous MEGGA X.
+        fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
         fontVariantNumeric: 'tabular-nums',
       }}
     >
       <style>{ADMIN_KEYFRAMES}</style>
-      <style>{SUGAR_KEYFRAMES}</style>
+      <style>{CRM_KEYFRAMES}</style>
       <style>{`
         /* Pas d'\`outline: none\` ici : c'est ce qui privait le rail, la palette ⌘K
            et la liste de notifications de tout repère de focus clavier. L'anneau
            vient de la règle WCAG d'admin-console.css. */
         .adm-nav { -webkit-tap-highlight-color: transparent; transition: background-color .18s ease; }
-        .adm-nav:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)'} !important; }
+        .adm-nav:hover { background: ${crmVoileEncre(dark, 0.05)} !important; }
         /* Champ de recherche du kit (\`AdminSearchInput\`). Ces deux règles ne
            s'expriment pas en style inline ; elles vivaient donc recopiées dans
            chaque écran, sous une classe différente à chaque fois. */
         .adm-search::placeholder { color: ${sp.sub}; font-weight: 500; }
         .adm-search:focus { box-shadow: inset 0 0 0 2px ${sp.accent}; }
         .adm-scroll::-webkit-scrollbar { width: 9px; }
-        .adm-scroll::-webkit-scrollbar-thumb { background: ${dark ? 'rgba(255,255,255,.12)' : 'rgba(15,23,42,.14)'}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+        .adm-scroll::-webkit-scrollbar-thumb { background: ${crmVoileEncre(dark, .12)}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
         /* Le dock d'icônes occupe la gouttière gauche (il porte sa propre
            largeur de 128 px), d'où l'absence de padding-left ici — même
            géométrie que l'écran Réglages du CRM. */
@@ -318,7 +336,7 @@ export default function AdminShell() {
         >
           <MEIcon name="menu" size={19} color={sp.soft} />
         </button>
-        <Link to={ADMIN_CONSOLE_PATH} style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 800, color: 'rgb(var(--color-admin-accent))', textDecoration: 'none' }}>
+        <Link to={ADMIN_CONSOLE_PATH} style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: VIOLET_CONSOLE, textDecoration: 'none' }}>
           {t('admin:common.adminBadge')}
         </Link>
       </header>
@@ -347,7 +365,7 @@ export default function AdminShell() {
             Aucun écran CRM n'étant actif ici, `active` ne matche rien : aucun
             bouton n'est allumé à tort. */}
         <div className="adm-icon-rail">
-          <SugarIconRail
+          <CrmIconRail
             active="admin"
             items={railItems}
             onNavigate={onRailNavigate}

@@ -51,13 +51,28 @@ describe('⛔ la mention de pied doit être VRAIE pour ce message', () => {
 describe('buildPropertyEmail', () => {
   it('le PRIX ouvre l’objet, sans tiret cadratin', () => {
     const { subject } = buildPropertyEmail(bien)
-    expect(subject).toMatch(/^CHF 1’190’000 · 3\.5 pièces avec terrasse$/)
+    // Apostrophe ASCII (U+0027) — cf. le test de `formatCHF` juste dessous.
+    expect(subject).toMatch(/^CHF 1'190'000 · 3\.5 pièces avec terrasse$/)
     expect(subject).not.toMatch(/[–—]/)
   })
 
-  it('formatCHF suit l’apostrophe suisse', () => {
-    expect(formatCHF(720000)).toBe('CHF 720’000')
-    expect(formatCHF(1190000)).toBe('CHF 1’190’000')
+  /**
+   * ⚠ L'APOSTROPHE EST L'ASCII `U+0027`, ET CE TEST A LONGTEMPS FIGÉ L'INVERSE.
+   *
+   * Il attendait `’` (U+2019, la typographique), en accord avec le `formatCHF` de
+   * `property-email.ts` — mais en désaccord avec TOUT le reste : `src/lib/utils.ts`,
+   * le `formatCHF` de `weekly-digest.ts` et sa propre spec, le code de
+   * `send-property-email` que ce module remplace, et l'exemple du CLAUDE.md §6.
+   * Mesuré au point de code le 16 août 2026 : les quatre portent `U+0027`.
+   *
+   * Les deux caractères sont indiscernables dans un diff comme à la relecture ;
+   * seul `ord()` les sépare. C'est pourquoi la valeur attendue est écrite ici en
+   * ÉCHAPPEMENT plutôt qu'en littéral : le test doit dire lequel des deux il exige.
+   */
+  it('formatCHF suit l’apostrophe suisse (ASCII U+0027, pas U+2019)', () => {
+    expect(formatCHF(720000)).toBe('CHF 720\u0027000')
+    expect(formatCHF(1190000)).toBe('CHF 1\u0027190\u0027000')
+    expect(formatCHF(720000)).not.toContain('’')
   })
 
   it('sans prix, dit « Prix sur demande » plutôt qu’un zéro', () => {

@@ -34,10 +34,8 @@ export default function MmEditField({ label, value, suffix, span2 }: MmEditField
       <span
         style={{
           fontSize: 'var(--crm-text-xs)',
-          fontWeight: 800,
+          fontWeight: 600,
           color: tk.muted,
-          letterSpacing: 0.6,
-          textTransform: 'uppercase',
         }}
       >
         {label}
@@ -46,7 +44,7 @@ export default function MmEditField({ label, value, suffix, span2 }: MmEditField
         <span
           style={{
             fontSize: 'var(--crm-text-xl)',
-            fontWeight: 800,
+            fontWeight: 600,
             color: tk.ink,
             letterSpacing: -0.3,
             fontVariantNumeric: 'tabular-nums',
@@ -58,7 +56,7 @@ export default function MmEditField({ label, value, suffix, span2 }: MmEditField
           {value}
         </span>
         {suffix ? (
-          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 700, color: tk.muted }}>{suffix}</span>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted }}>{suffix}</span>
         ) : null}
       </div>
     </div>

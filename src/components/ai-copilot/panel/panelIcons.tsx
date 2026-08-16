@@ -1,6 +1,7 @@
 // MEGGA AI — Panneau · icônes (stroke linéaire, zéro emoji) + glyphe étoile.
 // Port fidèle du handoff `crm-copilot-panel.jsx`.
 
+import { crmVoileEncre } from '@/components/crm/tokens'
 import type { ReactNode } from 'react'
 
 // Glyphe MEGGA AI — étoile 4 branches (version « pleine » du panneau, ligne fine)
@@ -59,7 +60,7 @@ export function AiGlyph({ size = 24, on, bg }: AiGlyphProps) {
     <span
       style={{
         width: size + 12, height: size + 12, borderRadius: 999,
-        background: bg || 'rgba(11,12,14,0.06)',
+        background: bg || crmVoileEncre(false, 0.06),
         display: 'grid', placeItems: 'center', flexShrink: 0,
       }}
     >

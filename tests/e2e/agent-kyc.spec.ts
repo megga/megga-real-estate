@@ -5,7 +5,7 @@
  * la page KYC : sous `VITE_DEV_BYPASS_AUTH`, le profil mock désignait une agence
  * (`dev-mock-agency`) absente de toute base, `useLabGuard()` n'obtenait donc aucun
  * statut et `KycLabGuard` REMPLAÇAIT les trois routes KYC par son écran « statut
- * illisible ». Mesuré par mutation : faire renvoyer `null` à KycSugarV3Page ne
+ * illisible ». Mesuré par mutation : faire renvoyer `null` à KycPage ne
  * changeait pas d'un caractère le body de /dashboard/kyc, et les tests restaient
  * verts. Le correctif tient en une ligne de donnée — DEV_BYPASS_AGENCY
  * (src/hooks/useAuth.tsx) déclare l'agence du mock VÉRIFIÉE, et useLabGuard la lit

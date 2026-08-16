@@ -17,8 +17,8 @@ import BootSplash from '@/components/layout/BootSplash'
  * Repli : toute route sans squelette dédié garde le spinner (`<DefaultLoader>`).
  */
 
-const SugarPageSkeleton = lazy(
-  () => import('@/components/skeletons/SugarPageSkeleton'),
+const CrmPageSkeleton = lazy(
+  () => import('@/components/skeletons/CrmPageSkeleton'),
 )
 
 /** Spinner générique — fallback pour toute route sans squelette dédié. */
@@ -46,7 +46,7 @@ export default function SmartPageLoader() {
   // coquille legacy `AgentLayout` a été retirée, et avec elle la liste de routes
   // tenue à la main qui distinguait les deux squelettes.
   const skeleton = pathname.startsWith('/dashboard')
-    ? <SugarPageSkeleton />
+    ? <CrmPageSkeleton />
     : <DefaultLoader />
 
   // Les squelettes sont lazy — on les enveloppe d'un Suspense imbriqué dont le

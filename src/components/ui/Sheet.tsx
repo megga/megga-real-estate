@@ -2,6 +2,7 @@ import { useEffect, type ReactNode, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, type PanInfo } from 'motion/react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { useFocusTrap } from '@/hooks/useFocusTrap'
 
 /**
  * `<Sheet>` — iOS-style sheet primitive that supports three orientations:
@@ -67,6 +68,7 @@ export default function Sheet({
   style,
 }: SheetProps) {
   const reducedMotion = useReducedMotion()
+  const refPiegeFocus = useFocusTrap(open, onClose)
 
   // Escape key + body scroll lock while open
   useEffect(() => {
@@ -156,6 +158,7 @@ export default function Sheet({
       {open && (
         <div
           className="fixed inset-0 z-[100]"
+          ref={refPiegeFocus}
           role="dialog"
           aria-modal="true"
           aria-label={ariaLabel}

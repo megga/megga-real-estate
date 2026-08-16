@@ -33,7 +33,7 @@ export default function MrhLightbox({ photos, index, onIndex, onClose }: Props) 
   const overlay = (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(6,7,9,.94)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', animation: 'sgFadeUp .22s cubic-bezier(.2,.8,.2,1) both' }}>
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px' }}>
-        <span style={{ fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,.9)', fontVariantNumeric: 'tabular-nums' }}>{t('recherche.detail.lbCounter', { index: index + 1, total: photos.length })}</span>
+        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: 'rgba(255,255,255,.9)', fontVariantNumeric: 'tabular-nums' }}>{t('recherche.detail.lbCounter', { index: index + 1, total: photos.length })}</span>
         <button onClick={onClose} title={t('recherche.detail.close')} style={{ ...NAV, width: 40, height: 40 }}><RechIcon name="close" size={17} stroke="#fff" /></button>
       </div>
       <div onClick={(e) => e.stopPropagation()} style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '0 18px' }}>

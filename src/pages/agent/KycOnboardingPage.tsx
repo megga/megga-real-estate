@@ -1,22 +1,24 @@
 // MEGGA CRM — KYC · Onboarding « Première ouverture »
 // Port fidèle de `CRMScreenKycOnboarding` (crm-kyc-onboarding.jsx) : bento plein
 // écran avec la cover PNG (lockup KYC aplati) + sur-impression CTA. Monté dans la
-// chrome CRM (SugarTopNav + SugarIconRail). Route : /dashboard/kyc/bienvenue.
+// chrome CRM (CrmTopNav + CrmIconRail). Route : /dashboard/kyc/bienvenue.
 //
-// Gating (empty-state) : posé par la page hôte (KycSugarV3Page) — flag
+// Gating (empty-state) : posé par la page hôte (KycPage) — flag
 // localStorage `megga.kyc.onboarded` + 0 dossier. Les CTA posent le flag puis
 // naviguent vers le pager (avec un state `openWizard` pour ouvrir le wizard).
 
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  SugarTopNav,
-  SugarIconRail,
-  SUGAR_KEYFRAMES,
-  type SugarScreenId,
-} from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+  CrmTopNav,
+  CrmIconRail,
+  CRM_KEYFRAMES,
+  type CrmScreenId,
+} from '@/components/crm/CrmShell'
+import { crmPalette } from '@/components/crm/tokens'
 import { markKycOnboarded } from '@/lib/kycOnboarding'
+import { readCrmDark } from '@/lib/crmDark'
 
 
 function ArrowGlyph({ color = '#FFFFFF' }: { color?: string }) {
@@ -32,14 +34,11 @@ export default function KycOnboardingPage() {
   const navigate = useNavigate()
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
-  const sp = useMemo(() => crmSugarPalette(dark), [dark])
+  const sp = useMemo(() => crmPalette(dark), [dark])
 
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onNavigate = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -49,7 +48,6 @@ export default function KycOnboardingPage() {
       case 'parcours': navigate('/dashboard/journey'); break
       case 'calendar': navigate('/dashboard/calendar'); break
       case 'kyc': navigate('/dashboard/kyc'); break
-      case 'julien': navigate('/dashboard/julien'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings': navigate('/dashboard/settings'); break
       default:
@@ -77,11 +75,11 @@ export default function KycOnboardingPage() {
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        fontFamily: 'Manrope, system-ui, sans-serif',
+        fontFamily: 'var(--crm-font)',
         color: sp.ink,
       }}
     >
-      <style>{SUGAR_KEYFRAMES}</style>
+      <style>{CRM_KEYFRAMES}</style>
       <style>{`
         @keyframes kobUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
         @media (prefers-reduced-motion: no-preference) {
@@ -89,10 +87,10 @@ export default function KycOnboardingPage() {
         }
       `}</style>
 
-      <SugarTopNav active={'kyc' as SugarScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
+      <CrmTopNav active={'kyc' as CrmScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail active="kyc" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmIconRail active="kyc" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
           <div
             style={{
@@ -139,18 +137,18 @@ export default function KycOnboardingPage() {
                   padding: '0 10px 0 22px',
                   borderRadius: 999,
                   background: '#FFFFFF',
-                  color: '#0B0C0E',
+                  color: MXC_COLOR.n100,
                   border: 0,
                   fontFamily: 'inherit',
-                  fontSize: 13.5,
-                  fontWeight: 700,
+                  fontSize: 'var(--crm-text-md)',
+                  fontWeight: 600,
                   letterSpacing: '-0.2px',
                   cursor: 'pointer',
                   boxShadow: '0 8px 26px rgba(0,0,0,0.32), 0 0 0 5px rgba(255,255,255,0.08)',
                 }}
               >
                 Ouvrir mon premier dossier
-                <span style={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 999, background: '#0B0C0E' }}>
+                <span style={{ display: 'grid', placeItems: 'center', width: 26, height: 26, borderRadius: 999, background: MXC_COLOR.n100 }}>
                   <ArrowGlyph color="#FFFFFF" />
                 </span>
               </button>
@@ -168,7 +166,7 @@ export default function KycOnboardingPage() {
                     color: '#FFFFFF',
                     border: '1px solid rgba(255,255,255,0.22)',
                     fontFamily: 'inherit',
-                    fontSize: 12.5,
+                    fontSize: 'var(--crm-text-sm)',
                     fontWeight: 600,
                     cursor: 'pointer',
                     backdropFilter: 'blur(8px)',
@@ -184,7 +182,7 @@ export default function KycOnboardingPage() {
                     background: 'transparent',
                     cursor: 'pointer',
                     fontFamily: 'inherit',
-                    fontSize: 12.5,
+                    fontSize: 'var(--crm-text-sm)',
                     fontWeight: 600,
                     color: 'rgba(255,255,255,0.62)',
                     padding: 0,

@@ -15,10 +15,10 @@ import { ESLint } from 'eslint'
 
 const LOCKED_GLOBS = [
   'src/components/crm-mobile/**/*.{ts,tsx}',
-  'src/components/crm-sugar/**/*.{ts,tsx}',
-  'src/components/crm-sugar-v3/**/*.{ts,tsx}',
-  'src/components/crm-sugar-wizard/**/*.{ts,tsx}',
-  'src/components/crm-sugar-identity/**/*.{ts,tsx}',
+  'src/components/crm/**/*.{ts,tsx}',
+  'src/components/crm-dossiers/**/*.{ts,tsx}',
+  'src/components/crm-wizard/**/*.{ts,tsx}',
+  'src/components/crm-identity/**/*.{ts,tsx}',
   'src/components/matching-atelier/**/*.{ts,tsx}',
   'src/components/ai-copilot/**/*.{ts,tsx}',
   'src/components/kyc-report/**/*.{ts,tsx}',

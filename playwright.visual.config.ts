@@ -28,7 +28,7 @@ export default defineConfig({
   expect: { timeout: 10_000 },
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5198',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -42,9 +42,17 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    command: 'npm run dev -- --port 5198 --strictPort',
+    url: 'http://localhost:5198',
+    // ⛔ PORT DÉDIÉ, ET AUCUNE RÉUTILISATION — mesuré le 15 août 2026.
+    // Avec `reuseExistingServer` et le port 5173, une régénération lancée en
+    // local a photographié le serveur d'un AUTRE worktree : trois `vite`
+    // tournent en permanence sur la machine de développement et occupent
+    // 5173/5174 pour d'autres checkouts. La capture produite aurait décrit un
+    // code que personne n'a écrit ici, et rien ne l'aurait signalé.
+    // En CI le drapeau valait déjà `false` ; c'est en LOCAL que la référence
+    // pouvait naître fausse.
+    reuseExistingServer: false,
     timeout: 120_000,
     env: {
       VITE_DEV_BYPASS_AUTH: 'true',

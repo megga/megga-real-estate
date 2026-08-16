@@ -14,12 +14,12 @@
  * sombre, le reset Webflow complet et ~260 Ko de feuille. Le CRM ne peut pas
  * vivre dedans. On recopie donc les valeurs, et le test garde la copie honnête.
  *
- * `mxCrmPalette()` rend une `SugarPalette` — le nom du TYPE a survécu à la
+ * `mxCrmPalette()` rend une `CrmPalette` — le nom du TYPE a survécu à la
  * direction Sugar, parce que 33 points de construction et toute l'arborescence
  * qui la reçoit en prop s'appuient dessus. Le renommer est un nettoyage à part.
  */
 
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import type { CrmPalette } from '@/components/crm/tokens'
 
 /** Neutres et accents, verbatim des variables de la vitrine. */
 export const MXC_COLOR = {
@@ -89,7 +89,61 @@ export const MXC_SYSTEM = {
 export const MXC_CARD_SHADOW = '0 2px 6px #15086b21'
 
 /**
- * Palette CRM dérivée de la vitrine, compatible `SugarPalette`.
+ * Luminance relative WCAG d'un `#rrggbb` OU d'un `rgb(r, g, b)`.
+ *
+ * ⛔ ELLE NE CONNAISSAIT QU'UNE NOTATION, et le mode d'échec était silencieux :
+ * `parseInt('rg', 16)` vaut `NaN`, donc la luminance vaut `NaN`, donc `encreSur`
+ * compare deux `NaN` et rend une encre — la mauvaise — sans lever d'erreur.
+ * Mesuré : `encreSur('rgb(65, 77, 161)')` rendait l'encre SOMBRE sur un bleu
+ * foncé. `crmMix` rendait précisément ce format. Même famille que la n° 1 de
+ * `megga/gardes-vacuites` (le motif qui ne connaît qu'une notation), mais côté
+ * production : ici ça ne rate pas un défaut, ça en fabrique un.
+ */
+function luminance(couleur: string): number {
+  const rgb = couleur.match(/rgba?\(([^)]+)\)/)
+  const p = rgb
+    ? rgb[1].split(',').slice(0, 3).map((s) => parseFloat(s.trim()))
+    : [0, 2, 4].map((i) => parseInt(couleur.replace('#', '').slice(i, i + 2), 16))
+  return p
+    .map((v) => {
+      const c = v / 255
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+    })
+    .reduce((acc, c, i) => acc + [0.2126, 0.7152, 0.0722][i] * c, 0)
+}
+
+/**
+ * Encre lisible SUR un aplat : celle des deux extrémités de l'échelle qui
+ * contraste le plus avec lui.
+ *
+ * ⛔ POURQUOI C'EST CALCULÉ, ET NON CHOISI. Plusieurs composants posaient du
+ * blanc sur tous leurs aplats, avec des exceptions écrites à la main quand le
+ * résultat devenait invisible. Mesuré le 12 août 2026 : les pilules de statut
+ * échouaient l'AA sur SIX des neuf combinaisons (« Réservé » en sombre, 3,11:1
+ * pour 12 px), la pilule « urgent » du bloc à-suivre sur les deux thèmes
+ * (4,37 / 3,11), et CINQ des huit couleurs d'avatar (`#F59E0B` : 2,15:1).
+ *
+ * Ajouter une exception de plus aurait reproduit le défaut à la teinte suivante.
+ * Dériver l'encre de l'aplat le rend impossible : changer un ton ne peut plus
+ * casser sa lisibilité, il déplace l'encre avec lui.
+ *
+ * C'est la règle que la direction pose déjà — « un remplissage pâle prend
+ * TOUJOURS l'encre sombre » (CLAUDE.md §3) — appliquée dans les DEUX sens, et
+ * mécaniquement plutôt que de mémoire.
+ *
+ * ⚠ Vaut pour un aplat OPAQUE. Sur un voile translucide, le fond réel est le
+ * MÉLANGE avec la surface au-dessous, et cette fonction s'y tromperait.
+ */
+export function encreSur(aplat: string): string {
+  const t = luminance(aplat)
+  const ratio = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)
+  return ratio(luminance(MXC_COLOR.n1000), t) >= ratio(luminance(MXC_COLOR.n100), t)
+    ? MXC_COLOR.n1000
+    : MXC_COLOR.n100
+}
+
+/**
+ * Palette CRM dérivée de la vitrine, compatible `CrmPalette`.
  *
  * Les encres suivent l'ordre de Sugar — `ink` le plus fort, puis `soft`, puis
  * `sub`. Le choix des barreaux n'est pas libre : `n600` (#a3a3a3) tombe à
@@ -97,11 +151,12 @@ export const MXC_CARD_SHADOW = '0 2px 6px #15086b21'
  * secondaire qu'en SOMBRE, où il donne 7,9:1. En clair c'est `n500` (5,3:1).
  * Le test verrouille ces seuils.
  */
-export function mxCrmPalette(dark: boolean): SugarPalette {
+export function mxCrmPalette(dark: boolean): CrmPalette {
   const C = MXC_COLOR
 
   if (!dark) {
     return {
+      isDark: false,
       pageBg: C.n900,
       frameBg: C.n1000,
       frameBorder: C.n700,
@@ -134,6 +189,7 @@ export function mxCrmPalette(dark: boolean): SugarPalette {
   }
 
   return {
+    isDark: true,
     pageBg: C.n100,
     frameBg: C.n200,
     frameBorder: C.n400,

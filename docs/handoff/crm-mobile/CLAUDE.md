@@ -144,12 +144,12 @@ color: #FFFFFF, fontWeight: 700
 - Assets : `assets/megga-logo.svg` (wordmark), `assets/megga-favicon.svg`, `assets/fonts/objectivity/*.woff2` (9 weights + italiques).
 
 ### Tokens CRM (Sugar Pure)
-- `crm-tokens.jsx` — `CRM_TOKENS` (light/dark), `CRM_STAGES`, `CRM_DENSITY`, `crmFmtCHF`, `crmFmtNum`, `crmRelative`, `crmInitials`, `crmSugarPalette(t, dark, tone)`.
-- `window.SugarV2Palette` (a.k.a. `SP`) — palette Sugar v2 utilisée dans le wizard.
+- `crm-tokens.jsx` — `CRM_TOKENS` (light/dark), `CRM_STAGES`, `CRM_DENSITY`, `crmFmtCHF`, `crmFmtNum`, `crmRelative`, `crmInitials`, `crmPalette(t, dark, tone)`.
+- `window.WizardPalette` (a.k.a. `SP`) — palette Sugar v2 utilisée dans le wizard.
 
 ### Shell & primitives
 - `crm-shell.jsx` — `CRMIcon`, `CRMSidebar`, drawer, AI bubble, cmd+K.
-- `crm-screen-today-sugar.jsx` — `SugarTopNav`, `SugarIconRail`, `SugarFrame`, `SugarTeamChip`, `SugarTaskCard`, `SugarRoundIconBtn`, `SugarConnector`.
+- `crm-screen-today-sugar.jsx` — `CrmTopNav`, `CrmIconRail`, `SugarFrame`, `SugarTeamChip`, `SugarTaskCard`, `CrmRoundIconBtn`, `SugarConnector`.
 
 ### Wizard Sugar v2
 - `crm-wizard-sugar-v2.jsx` — shell + Step 0 + primitives (`SgGateCard`, `SgBlackPill`, `SgGhostPill`, `SgCircleBtn`, stepper 8 cercles).

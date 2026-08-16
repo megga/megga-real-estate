@@ -23,6 +23,24 @@ export interface OptinCopy {
   body: string
   /** Libellé du lien `wa.me`. */
   cta: string
+  /**
+   * Ligne d'aperçu de la boîte de réception — lue AVANT l'ouverture, à côté de
+   * l'objet. Elle dit le coût et la sortie : la question du destinataire devant
+   * une demande de consentement est « à quoi je m'engage ».
+   */
+  preheader: string
+  /**
+   * Pied de l'e-mail, dans la coquille.
+   *
+   * ⛔ IL VIT ICI, PAS DANS LE CONSTRUCTEUR, parce qu'il est la PIÈCE JURIDIQUE de
+   * ce parcours et que la nLPD (art. 6 al. 6) exige une information préalable et
+   * ADÉQUATE. Écrit en dur côté constructeur, il partait en français dans un
+   * e-mail déclaré `lang="de"` : un destinataire germanophone recevait un objet
+   * et un corps allemands, puis la seule phrase qui explique ce qu'il consent en
+   * français. Une mention de consentement illisible par son destinataire manque
+   * son objet.
+   */
+  legalNote: string
 }
 
 const PRIVACY_EMAIL = 'privacy@megga.ch'
@@ -50,6 +68,10 @@ export function optinCopy(lang: OptinLang, agencyName: string): OptinCopy {
         `Si vous ne souhaitez pas de messages WhatsApp, ignorez simplement cet e-mail : ` +
         `rien ne change, et nous continuons de vous répondre comme aujourd'hui.`,
       cta: `Oui, écrivez-moi sur WhatsApp`,
+      preheader: `Un message, et vous pourrez répondre STOP à tout moment.`,
+      legalNote:
+        `Cet e-mail vous invite à consentir aux messages WhatsApp de votre agence. ` +
+        `Tant que vous n'avez pas répondu, aucun message ne vous sera envoyé sur ce canal.`,
     },
     de: {
       subject: `Unsere Angebote per WhatsApp erhalten?`,
@@ -66,6 +88,10 @@ export function optinCopy(lang: OptinLang, agencyName: string): OptinCopy {
         `Wenn Sie keine WhatsApp-Nachrichten wünschen, ignorieren Sie diese E-Mail einfach: ` +
         `es ändert sich nichts, und wir antworten Ihnen weiterhin wie bisher.`,
       cta: `Ja, schreiben Sie mir auf WhatsApp`,
+      preheader: `Eine Nachricht, und Sie können jederzeit mit STOP antworten.`,
+      legalNote:
+        `Diese E-Mail lädt Sie ein, den WhatsApp-Nachrichten Ihrer Agentur zuzustimmen. ` +
+        `Solange Sie nicht geantwortet haben, wird Ihnen über diesen Kanal keine Nachricht gesendet.`,
     },
     en: {
       subject: `Receive our listings on WhatsApp?`,
@@ -81,6 +107,10 @@ export function optinCopy(lang: OptinLang, agencyName: string): OptinCopy {
         `If you would rather not receive WhatsApp messages, simply ignore this email: nothing ` +
         `changes, and we keep replying to you as we do today.`,
       cta: `Yes, write to me on WhatsApp`,
+      preheader: `One message, and you can reply STOP at any time.`,
+      legalNote:
+        `This email invites you to consent to WhatsApp messages from your agency. ` +
+        `Until you reply, no message will be sent to you on this channel.`,
     },
     it: {
       subject: `Ricevere i nostri annunci su WhatsApp?`,
@@ -97,6 +127,10 @@ export function optinCopy(lang: OptinLang, agencyName: string): OptinCopy {
         `Se non desidera messaggi WhatsApp, ignori semplicemente questa e-mail: non cambia nulla, ` +
         `e continuiamo a risponderle come oggi.`,
       cta: `Sì, scrivetemi su WhatsApp`,
+      preheader: `Un messaggio, e potrà rispondere STOP in qualsiasi momento.`,
+      legalNote:
+        `Questa e-mail la invita ad acconsentire ai messaggi WhatsApp della sua agenzia. ` +
+        `Finché non avrà risposto, nessun messaggio le sarà inviato su questo canale.`,
     },
   }
   return T[lang] ?? T.fr

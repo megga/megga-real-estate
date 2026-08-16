@@ -2,7 +2,7 @@
 // Sprint 4.7.C — Calque pixel-près de handoff-kyc-magic-link/maquette/megga-kyc-magic-link.jsx
 // (préfixe Mlk* conservé pour fidélité au canon Claude Design).
 //
-// Important : ces primitives sont AUTONOMES (ne dépendent ni de SugarV3 ni
+// Important : ces primitives sont AUTONOMES (ne dépendent ni de DossierTokens ni
 // du layout agent). Elles servent UNIQUEMENT les écrans publics `/kyc/<token>`
 // que la cliente consulte sans compte MEGGA.
 
@@ -11,6 +11,7 @@ import type { CSSProperties, ReactNode } from 'react'
 // Jetons déplacés dans mlkTokens.ts : ce fichier n'exporte que des composants
 // (contrainte Fast Refresh). Voir l'en-tête de mlkTokens.ts.
 import { MLK } from './mlkTokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 // ─── Icônes line-stroke (subset utilisé par les écrans clients) ───────────
 
@@ -217,7 +218,12 @@ export function MlkBlackPill({
         padding: pad,
         borderRadius: 999,
         border: 0,
-        background: disabled ? MLK.ghost : hover ? MLK.blackHover : MLK.black,
+        // ⚠ Le survol ne change pas de TEINTE, il est GÉOMÉTRIQUE — le
+        // `translateY(-1px)` et l'ombre renforcée plus bas le portaient déjà.
+        // `MLK.blackHover` était donc un troisième signal pour le même état, et
+        // la direction ne donne pas de variante de ton à l'affordance (même
+        // retrait qu'au chantier KYC sur `kycPalette.blackHover`).
+        background: disabled ? MLK.ghost : MLK.accent,
         color: '#fff',
         fontFamily: 'inherit',
         fontSize: fs,
@@ -233,8 +239,8 @@ export function MlkBlackPill({
         boxShadow: disabled
           ? 'none'
           : hover
-            ? '0 14px 32px rgba(11,12,14,0.28)'
-            : '0 8px 20px rgba(11,12,14,0.20)',
+            ? `0 14px 32px ${crmVoileEncre(false, 0.28)}`
+            : `0 8px 20px ${crmVoileEncre(false, 0.20)}`,
         transform: hover && !disabled ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'all .18s ease',
       }}
@@ -278,7 +284,7 @@ export function MlkWordmark({ size = 18 }: { size?: number }) {
           display: 'none',
           fontFamily: 'Manrope, sans-serif',
           fontSize: size,
-          fontWeight: 800,
+          fontWeight: 600,
           letterSpacing: -1.5,
           color: MLK.ink,
         }}
@@ -311,7 +317,7 @@ export function MlkAgentAvatar({
         display: 'grid',
         placeItems: 'center',
         fontSize: Math.max(13, size * 0.34),
-        fontWeight: 700,
+        fontWeight: 600,
         flexShrink: 0,
         boxShadow: `0 0 0 4px ${color}26`,
       }}
@@ -356,8 +362,8 @@ export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
           </div>
           <div
             style={{
-              fontSize: 13,
-              fontWeight: 700,
+              fontSize: 'var(--crm-text-md)',
+              fontWeight: 600,
               color: MLK.ink,
               letterSpacing: -0.1,
               marginTop: 2,
@@ -367,7 +373,7 @@ export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
           </div>
           <div
             style={{
-              fontSize: 11.5,
+              fontSize: 'var(--crm-text-xs)',
               color: MLK.muted,
               fontWeight: 500,
               lineHeight: 1.5,
@@ -393,7 +399,7 @@ export function MlkFooter() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-end',
-        fontSize: 11,
+        fontSize: 'var(--crm-text-xs)',
         color: MLK.muted,
         fontWeight: 500,
       }}
@@ -502,10 +508,17 @@ export function MlkBackground({ children }: { children: ReactNode }) {
             border-radius: 22px !important;
           }
         }
-        /* Titres H1 plus petits sur mobile (pas de débordement < 380px) */
+        /* Titres H1 plus petits sur mobile (pas de débordement < 380px).
+           ⛔ ELLE NE DOIT JAMAIS AGRANDIR, et elle le faisait. Cette règle
+           s'applique à TOUS les .mlk-h1, dont le plus petit vaut 24 px : à
+           26 px, trois titres sortaient PLUS GRANDS sur téléphone que sur
+           bureau. Le défaut préexistait sur un site (l'écran de lien expiré) ;
+           la descente des tailles du lot 3 en a révélé deux autres.
+           Le barreau 5xl est le plancher des h1 de cette face — la règle
+           rétrécit toujours, ou ne fait rien. */
         @media (max-width: 480px) {
           .mlk-h1 {
-            font-size: 26px !important;
+            font-size: var(--crm-text-5xl) !important;
             letter-spacing: -0.5px !important;
             line-height: 1.15 !important;
           }

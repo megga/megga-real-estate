@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import type { PrefsData } from '@/components/crm-sugar/settings/PreferencesSection.types'
+import type { PrefsData } from '@/components/crm/settings/PreferencesSection.types'
 
 const DEFAULT_PREFS: PrefsData = {
   language: 'fr',
