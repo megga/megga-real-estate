@@ -153,6 +153,28 @@ jobs:
         # A_MIGRER, elle, ne fait que dater les douze qui restent.
         run: npm run lint:email-shell
 
+      - name: Fraîcheur de CLAUDE.md (prétentions chiffrées)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        # Garde-fou de la RÉFÉRENCE elle-même. Le 16.08.2026, sur les sept règles
+        # visuelles du §3, UNE SEULE était encore vraie : les six autres décrivaient
+        # Sugar Pure, direction supprimée six jours plus tôt.
+        #
+        # ⛔ C'est la seule porte de ce fichier qui protège un document plutôt que du
+        # code, et c'est justement ce qui la rend nécessaire : CLAUDE.md est ce qu'un
+        # agent lit AVANT d'écrire. Une règle fausse n'y dort pas, elle se recopie sur
+        # chaque surface neuve — l'erreur se propage par la main de ses lecteurs.
+        #
+        # Deux natures d'échec, deux gestes OPPOSÉS (le rapport le dit à l'écran) :
+        # `dur` = le code a régressé, on corrige le code ; `derive` = le doc est périmé,
+        # on corrige la prose puis `npm run lint:claude-md:update`. Confondre les deux
+        # inscrirait le défaut dans la référence.
+        #
+        # ⚠ Cette porte peut rougir sur une PR SANS RAPPORT : les décomptes d'usages
+        # dérivent avec les merges des autres. Les tolérances sont calibrées pour que
+        # ça reste rare ; si ça devient bruyant, élargir la tolérance de la prétention
+        # en cause (une ligne dans le registre) plutôt que de désactiver l'étape.
+        run: npm run lint:claude-md
+
       - name: Cache des dépendances Deno
         # Les Edge Functions importent 143 fois par URL (esm.sh, deno.land) ; sans cache,
         # chaque exécution retélécharge tout et met la CI à la merci d'un CDN tiers. Le
