@@ -7,12 +7,12 @@
  * cancelled / rescheduled.
  */
 import { useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { CalendarDays, MapPin, Check, X, Loader2 } from 'lucide-react'
 import { usePublicVisit, useRescheduleVisit, useCancelVisit, estRefus } from '@/hooks/useVisits'
-import PublicPageHeader from '@/components/layout/PublicPageHeader'
 import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+import { MlkBackground, MlkShell, MlkWordmark, MlkFooter } from '@/components/kyc-magic-link/MlkPrimitives'
 
 const TIME_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
 
@@ -23,11 +23,42 @@ const TIME_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00
  * ⚠ LE FILET EST UNE OMBRE INTERNE, PAS UNE BORDURE. Une bordure occupe de la
  * place et décale la mise en page dès qu'elle change au survol ou à la
  * sélection ; `inset 0 0 0 1px` se pose PAR-DESSUS.
+ *
+ * ⚠ SA TEINTE VIENT DE `MLK.line` DEPUIS LE 16 AOÛT. Elle s'écrivait
+ * `${MLK.ghost}33` — un jeton neutre suivi d'un suffixe d'opacité posé à la
+ * main, la porte par laquelle une teinte entre sans qu'on la relise. Le filet
+ * est un RÔLE, et il a un nom depuis la fusion des deux familles publiques.
  */
-const PAGE = { background: MLK.card, fontFamily: MLK.font, color: MLK.ink }
-const FILET = `inset 0 0 0 1px ${MLK.ghost}33`
+const FILET = `inset 0 0 0 1px ${MLK.line}`
 const TITRE = { fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, margin: 0 }
 const SOUS = { fontSize: 'var(--crm-text-lg)', color: MLK.muted }
+
+/**
+ * La coquille commune aux six vues de cette page.
+ *
+ * ⛔ ELLE REMPLACE `PublicPageHeader`, ET CE N'EST PAS QU'UNE QUESTION DE MARQUE.
+ * Cet en-tête était peint en jetons du CRM (`bg-theme-page`, `border-theme-border`)
+ * et portait un `dark:invert` — donc une BRANCHE DE THÈME SOMBRE sur une face
+ * que deux gardes déclarent mono-thème. Elles ne le voyaient pas : elles
+ * balaient les pages et `kyc-magic-link/`, pas `components/layout/`.
+ *
+ * ⚠ Le fond passe du BLANC au dégradé. Ces deux pages étaient les seules
+ * surfaces clientes posées sur `MLK.card` en pleine page ; les six autres
+ * vivent sur `MLK.bgGradient`, contenu dans une carte.
+ */
+function Coquille({ children }: { children: ReactNode }) {
+  return (
+    <MlkBackground>
+      <MlkShell width={448} pad={32}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--crm-space-6xl)' }}>
+          <MlkWordmark size={18} />
+        </div>
+        {children}
+        <MlkFooter />
+      </MlkShell>
+    </MlkBackground>
+  )
+}
 
 /** Le disque d'un écran de fin — une DONNÉE : rien ne s'y actionne. */
 const disque = (ton: 'ok' | 'err'): CSSProperties => ({
@@ -64,28 +95,26 @@ export default function VisitManagePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
+      <Coquille>
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <div
             className="h-8 w-8 rounded-full animate-spin mb-4"
-            style={{ border: `2px solid ${MLK.ghost}33`, borderTopColor: MLK.accent }}
+            style={{ border: `2px solid ${MLK.line}`, borderTopColor: MLK.accent }}
           />
           <p style={SOUS}>Chargement...</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   if (!visit || !token) {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
+      <Coquille>
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 8 }}>Lien invalide</p>
           <p style={SOUS}>Ce lien de gestion de visite est expiré ou invalide.</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
@@ -125,49 +154,45 @@ export default function VisitManagePage() {
 
   if (mode === 'cancelled') {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
-        <div className="max-w-md mx-auto px-4 py-16 text-center">
+      <Coquille>
+        <div className="text-center">
           <div className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4" style={disque('err')}>
             <X className="h-6 w-6" style={{ color: MLK_STATUT.errInk }} />
           </div>
           <h2 style={TITRE}>Visite annulée</h2>
           <p style={{ ...SOUS, marginTop: 8 }}>L'agent a été notifié de l'annulation.</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   if (mode === 'rescheduled') {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
-        <div className="max-w-md mx-auto px-4 py-16 text-center">
+      <Coquille>
+        <div className="text-center">
           <div className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4" style={disque('ok')}>
             <Check className="h-6 w-6" style={{ color: MLK_STATUT.okInk }} />
           </div>
           <h2 style={TITRE}>Visite reportée</h2>
           <p style={{ ...SOUS, marginTop: 8 }}>L'agent a été notifié du nouveau créneau.</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   if (visit.status === 'cancelled') {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
-        <div className="max-w-md mx-auto px-4 py-16 text-center">
+      <Coquille>
+        <div className="text-center">
           <p style={TITRE}>Cette visite a été annulée</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   return (
-    <div className="min-h-screen" style={PAGE}>
-      <PublicPageHeader />
-      <div className="max-w-md mx-auto px-4 py-12">
+    <Coquille>
+      <div>
         {/* Visit summary card */}
         <div className="rounded-xl overflow-hidden mb-8" style={{ boxShadow: FILET }}>
           {photo && (
@@ -305,6 +330,6 @@ export default function VisitManagePage() {
           </div>
         )}
       </div>
-    </div>
+    </Coquille>
   )
 }

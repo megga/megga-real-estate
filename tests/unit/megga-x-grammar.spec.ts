@@ -1008,7 +1008,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // tous. Une part de ces inventaires est donc du bruit, ici comme dans les autres zones
   // qui portent des classes `mx-`. Corriger le motif suppose de rebaser chaque zone : à
   // faire à part, pas au détour d'un bouton.
-  ['src/components/layout', { hors: 9, total: 109 }],
+  // ⚠ 107 → 105 le 16 août 2026 : `PublicPageHeader` a été retiré. Il n'avait que les
+  // deux pages de visite pour consommateurs, et elles sont passées à `MlkWordmark`.
+  // ⚠ 107, ET LES DEUX MOUVEMENTS CI-DESSUS S'ADDITIONNENT : +2 par le bandeau LAB de main,
+  // −2 par le retrait de PublicPageHeader, arrivés par deux branches (rebasage du 12.09.2026).
+  ['src/components/layout', { hors: 9, total: 107 }],
   ['src/components/listings', { hors: 39, total: 115 }],
   ['src/components/map', { hors: 0, total: 4 }],
   ['src/components/matching-atelier', { hors: 37, total: 50 }],
@@ -1056,12 +1060,13 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // crédit rendrait quatre littéraux réintroduits invisibles.
   ['src/pages/agent', { hors: 317, total: 922 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
-  // ⚠ 68 → 63 puis 259 → 253 → 248, le 16 août 2026, en portant `BuyerReceptionPage` puis
-  // `AcceptInvitePage` : la marque, le pied et les états-documents sont passés aux jetons,
-  // et les deux cartes faites main ont cédé la place à `MlkShell`. Le cliquet EXIGE qu'on
-  // descende le compte — un gain non inscrit se reperd au lot suivant sans que rien ne
-  // rougisse.
-  ['src/pages/public', { hors: 63, total: 248 }],
+  // ⚠ 68 → 63 et 259 → 230 sur l'étape 2 (16 août 2026), en portant `BuyerReceptionPage`,
+  // `AcceptInvitePage` puis les deux visites. La dernière baisse est la plus grosse (−18) et
+  // elle ne vient pas d'un dépeçage : les deux visites répétaient leur conteneur et leur
+  // centrage à chaque vue — dix fois en tout — et `MlkShell` les porte désormais une fois.
+  // Le cliquet EXIGE qu'on descende le compte : un gain non inscrit se reperd au lot suivant
+  // sans que rien ne rougisse.
+  ['src/pages/public', { hors: 63, total: 230 }],
 ])
 
 /** Les propriétés qui portent un rayon ou un espacement. */

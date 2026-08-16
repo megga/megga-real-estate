@@ -6,12 +6,12 @@
  * objections + intérêt d'offre ; le retour est anonymisé côté vendeur.
  */
 import { useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Star, Check, Loader2, MapPin } from 'lucide-react'
 import { usePublicVisit, useSubmitFeedback, estRefus } from '@/hooks/useVisits'
-import PublicPageHeader from '@/components/layout/PublicPageHeader'
 import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+import { MlkBackground, MlkShell, MlkWordmark, MlkFooter } from '@/components/kyc-magic-link/MlkPrimitives'
 
 /**
  * Les quatre formes que cette page répète — écrites une fois pour qu'elles ne
@@ -21,11 +21,35 @@ import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
  * place et décale la mise en page dès qu'elle change d'épaisseur au survol ou à
  * la sélection ; `inset 0 0 0 1px` se pose PAR-DESSUS. C'est ce que la face
  * publique déjà portée emploie.
+ *
+ * ⚠ SA TEINTE VIENT DE `MLK.line` DEPUIS LE 16 AOÛT — voir la page jumelle
+ * (`VisitManagePage`) : `${MLK.ghost}33` posait un suffixe d'opacité à la main.
  */
-const PAGE = { background: MLK.card, fontFamily: MLK.font, color: MLK.ink }
-const FILET = `inset 0 0 0 1px ${MLK.ghost}33`
+const FILET = `inset 0 0 0 1px ${MLK.line}`
 const CARTE = { boxShadow: FILET }
 const LABEL = { fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK.inkSoft }
+
+/**
+ * La coquille commune aux quatre vues — identique à celle de la page jumelle.
+ *
+ * ⛔ ELLE REMPLACE `PublicPageHeader`, qui était peint en jetons du CRM
+ * (`bg-theme-page`, `border-theme-border`) et portait un `dark:invert` : une
+ * branche de thème SOMBRE sur une face que deux gardes déclarent mono-thème.
+ * Elles balaient les pages et `kyc-magic-link/`, pas `components/layout/`.
+ */
+function Coquille({ children }: { children: ReactNode }) {
+  return (
+    <MlkBackground>
+      <MlkShell width={448} pad={32}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--crm-space-6xl)' }}>
+          <MlkWordmark size={18} />
+        </div>
+        {children}
+        <MlkFooter />
+      </MlkShell>
+    </MlkBackground>
+  )
+}
 
 /**
  * La pastille sélectionnable, en trois tons.
@@ -81,38 +105,35 @@ export default function VisitFeedbackPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
+      <Coquille>
         <div className="flex flex-col items-center justify-center h-[60vh]">
           {/* ⚠ LE ROULEAU GARDE UNE VRAIE BORDURE, contrairement au reste : c'est
               elle QUI EST le dessin — un anneau dont un quart porte l'accent.
               Une ombre interne ne peut pas rendre ça. */}
           <div
             className="h-8 w-8 rounded-full animate-spin mb-4"
-            style={{ border: `2px solid ${MLK.ghost}33`, borderTopColor: MLK.accent }}
+            style={{ border: `2px solid ${MLK.line}`, borderTopColor: MLK.accent }}
           />
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   if (!visit || !token) {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
+      <Coquille>
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 8 }}>Lien invalide</p>
           <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted }}>Ce lien de feedback est expiré ou invalide.</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   if (submitted) {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
-        <div className="max-w-md mx-auto px-4 py-16 text-center">
+      <Coquille>
+        <div className="text-center">
           {/* ⚠ DISQUE DE CONFIRMATION — une DONNÉE, pas une affordance : rien ne
               s'y actionne. Il garde donc son ton de succès au lieu de l'accent,
               même arbitrage qu'au parcours KYC. */}
@@ -129,7 +150,7 @@ export default function VisitFeedbackPage() {
             Votre avis aide l'agent à mieux comprendre vos attentes.
           </p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
@@ -155,9 +176,8 @@ export default function VisitFeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen" style={PAGE}>
-      <PublicPageHeader />
-      <div className="max-w-md mx-auto px-4 py-12">
+    <Coquille>
+      <div>
         {/* Property card */}
         <div className="rounded-xl overflow-hidden mb-8" style={CARTE}>
           {property?.photos?.[0] && (
@@ -331,6 +351,6 @@ export default function VisitFeedbackPage() {
           </p>
         </form>
       </div>
-    </div>
+    </Coquille>
   )
 }
