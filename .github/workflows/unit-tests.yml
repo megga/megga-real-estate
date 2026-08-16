@@ -145,6 +145,14 @@ jobs:
         run: npm run lint:edge-auth
 
       - name: Coquille des e-mails (direction MEGGA X)
+        # ⛔ CETTE CONDITION MANQUAIT, ET LA PORTE A ÉTÉ SAUTÉE POUR DE VRAI. Toutes ses
+        # soeurs la portent ; sans elle, GitHub Actions saute l'étape dès qu'une étape
+        # PRÉCÉDENTE a échoué. Constaté le 16.08.2026 sur la PR #1243 : `lint:roster` est
+        # tombé et cette porte est passée en `skipped` — sur la PR même qui touchait
+        # quatorze gabarits d'e-mail, donc exactement celle qu'elle existait pour garder.
+        # Une porte sautée ne rougit pas : elle disparaît du récit, et le job rouge se lit
+        # comme « un seul problème ».
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # Mesuré le 15.08.2026 : TREIZE fichiers fabriquaient chacun leur propre
         # `<!DOCTYPE html>`, onze en police système, huit fonds de page différents.
         # ⚠ Un module partagé ne suffit pas, on l'a déjà vérifié ici : `_shared/resend.ts`

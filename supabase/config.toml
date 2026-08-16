@@ -557,8 +557,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.email-preferences]
-# Publique par nécessité : la personne qui règle ses préférences n'a pas de compte. Le jeton
-# signé (k:'unsub') porte l'adresse et fait foi ; la garde est applicative, pas un JWT.
 verify_jwt = false
 
 [functions.email-unsubscribe]
