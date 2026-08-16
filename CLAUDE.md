@@ -692,6 +692,67 @@ CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN
 - **Project ref** : eayczugyrvmtqnnmvjod | **Region** : eu-west-1 | **Plan** : Pro
 - **Anon key** : hardcodée dans `src/lib/supabase.ts` (sécurité via RLS, pas par obscurité)
 
+### « Se connecter avec Google » — le client OAuth (migré le 16.08.2026)
+
+Le fournisseur Google de Supabase Auth tournait sur un client appartenant à un **ancien
+compte Google** (`178156637080-1d7r3cmb…`). Il vit désormais sur **hello@megga.ai**, projet
+**« My First Project » (`tribal-dispatch-504619-c1`)** — le même que le compte de service
+`megga-onboarding-calendar`, mais ce sont **deux mécaniques distinctes** : le compte de
+service sert l'agenda d'accueil (`GOOGLE_WORKSPACE_SA_KEY`), le client OAuth sert la
+connexion des agents. Changer l'un ne touche pas l'autre.
+
+```
+Client ID   833483825712-vh715spjupqcl86qffv3hvffsaqk0g8e.apps.googleusercontent.com
+Consentement  External · In production (publié le 16.08) · app « GET MEGGA »
+Scopes déclarés  userinfo.email, userinfo.profile, openid  (tous NON sensibles)
+```
+
+⚠ **L'URI de redirection est `https://api.megga.ch/auth/v1/callback`, PAS l'URL `.supabase.co`.**
+Le projet a un domaine personnalisé, et c'est cette URL-là que le panneau du fournisseur donne
+à enregistrer. `supabase.co` a été **délibérément écarté** des URI du client : Google inscrit
+d'office le domaine de chaque URI comme domaine autorisé du consentement, et `supabase.co`
+n'appartient pas à MEGGA — un domaine non possédé gênerait une soumission en vérification.
+
+⛔ **Google ne réaffiche PLUS un secret client après sa création** (« Viewing and downloading
+client secrets is no longer available »). Il n'est lisible qu'une fois, dans la boîte « OAuth
+client created » ; la page de détail n'en montre que les 4 derniers caractères. Le seul endroit
+où la valeur reste récupérable est le **bouton « Reveal » du panneau Google de Supabase**. Le
+perdre oblige à générer un nouveau secret.
+
+⛔ **`GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` NE SONT PAS POSÉS** (relevé le 16.08.2026 dans
+les secrets du projet). Trois chemins les lisent pour **rafraîchir** un jeton Google —
+[google-calendar-sync/index.ts:43](supabase/functions/google-calendar-sync/index.ts),
+[_shared/booking-oauth.ts:63](supabase/functions/_shared/booking-oauth.ts),
+[_shared/host-freebusy.ts:110](supabase/functions/_shared/host-freebusy.ts) — et tournent donc
+avec `client_id: ''`. Défaut **antérieur à la migration**, pas causé par elle : `google_calendar_tokens`
+compte **0 ligne**, la liaison Google Calendar n'a jamais été exercée de bout en bout. ⚠ Le mode
+d'échec est **silencieux** : `host-freebusy` passe `sync_enabled = false` sur échec de refresh, donc
+un agent qui connecte son agenda le verrait se déconnecter tout seul ~1 h plus tard, sans erreur.
+Google exige les identifiants **du client qui a émis le refresh token** : le jour où on pose ces
+secrets, ce sont ceux du client ci-dessus, pas ceux de l'ancien compte.
+
+⚠ **Le scope `https://www.googleapis.com/auth/calendar` n'est pas déclaré** dans Data Access.
+Conséquence, mesurée à la publication : la **connexion** est propre pour tout le monde (scopes
+non sensibles seulement, ni plafond ni avertissement), mais la liaison Calendar demande un scope
+sensible non approuvé — cet écran-là affiche « Google n'a pas validé cette application » et
+consomme le plafond de 100 utilisateurs. À déclarer avant toute soumission en vérification.
+
+⚠ **L'ancien client reste actif sur l'ancien compte, et hello@megga.ai n'y a AUCUN accès**
+(`resourcemanager.projects.get`, `oauthconfig.verification.get`, `iam.serviceAccounts.list`
+manquants). Il ne peut être supprimé que depuis l'ancien compte.
+
+⚠ **`MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` sont annoncés plus haut mais ABSENTS du
+projet** (même relevé). La voie OAuth Outlook est donc dans le même état que la voie Google.
+
+**Vérifier la bascule sans se connecter** — l'oracle est côté serveur, pas dans l'UI du dashboard :
+```bash
+curl -s -o /dev/null -w '%{redirect_url}' \
+  'https://api.megga.ch/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fapp.megga.ch%2Fauth%2Fcallback'
+```
+Lire le `client_id` de la redirection, puis suivre cette URL : une page « Sign in - Google Accounts »
+**sans** `redirect_uri_mismatch` / `invalid_client` / `unauthorized_client` prouve que le client et
+l'URI sont acceptés par Google.
+
 ### Prochaines priorités
 
 **✅ Résolu le 16.08.2026 — [issue #1061](https://github.com/megga/megga-real-estate/issues/1061), jeton Mapbox.**
