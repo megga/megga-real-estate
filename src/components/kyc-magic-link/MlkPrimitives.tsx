@@ -11,7 +11,7 @@ import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 // Jetons déplacés dans mlkTokens.ts : ce fichier n'exporte que des composants
 // (contrainte Fast Refresh). Voir l'en-tête de mlkTokens.ts.
-import { MLK } from './mlkTokens'
+import { MLK, MLK_STATUT } from './mlkTokens'
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 
@@ -439,6 +439,62 @@ export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
           </div>
         </div>
       ))}
+    </div>
+  )
+}
+
+/**
+ * La bannière qui dit qu'un geste de rendez-vous n'a pas abouti.
+ *
+ * ⛔ ELLE ÉTAIT ÉCRITE TROIS FOIS, À L'IDENTIQUE — `MlkBooking` (réservation) et
+ * les DEUX sites d'`AppointmentManagePage` (report, annulation). Pas seulement le
+ * même style : le même appel `t()`, au même défaut. Un premier correctif l'avait
+ * extraite en local dans la page, ce qui laissait la troisième copie dans l'état
+ * d'origine et creusait l'écart au lieu de le fermer. Elle vit donc ICI, avec les
+ * autres pièces partagées de la face publique.
+ *
+ * ⛔ SES COULEURS PASSENT À `MLK_STATUT`, ET L'ENCRE CHANGE PAR ARBITRAGE, PAS PAR
+ * CORRECTION. Le rouge sortant tenait déjà l'AA : `#B42318` sur `#FEF2F2` rend
+ * 6,01:1, contre 5,91:1 pour `MLK_STATUT.errInk`. Le sortant était donc MEILLEUR,
+ * de 0,10 — sous le seuil de ce qu'un œil distingue. Ce qui les départage est
+ * l'UNICITÉ : `errInk` nomme ce rôle sur toute la face publique, et une encre
+ * d'erreur qui diffère d'un écran à l'autre est l'incohérence que ce chantier
+ * retire. Même arbitrage, même raison, que l'ambre de `mlkTokens`. Les deux
+ * chiffres sont écrits pour qu'on puisse revenir dessus.
+ *
+ * ⚠ Le filet est AJOUTÉ : les deux pages de visite peignent leur bannière de refus
+ * `fill` + `line`, celle-ci n'avait que son aplat.
+ *
+ * ⚠ LA PROP DE STYLE NE PORTE QUE DES MARGES, et c'est délibéré : les trois sites
+ * ne différaient que par là. Un `CSSProperties` complet étalé en dernier aurait
+ * rendu réécrasables l'aplat, l'encre et le filet que cette extraction verrouille.
+ */
+export function MlkFailureNotice({
+  code,
+  style,
+}: {
+  code: string
+  style?: Pick<CSSProperties, 'margin' | 'marginTop' | 'marginBottom'>
+}) {
+  const { t } = useTranslation('kyc')
+  return (
+    <div
+      style={{
+        padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
+        borderRadius: 'var(--crm-radius-lg)',
+        background: MLK_STATUT.errFill,
+        boxShadow: `inset 0 0 0 1px ${MLK_STATUT.errLine}`,
+        fontSize: 'var(--crm-text-md)',
+        color: MLK_STATUT.errInk,
+        fontWeight: 500,
+        lineHeight: 1.5,
+        ...style,
+      }}
+    >
+      {/* `slot_taken` n'est pas une erreur du client : quelqu'un a simplement pris
+          le créneau entre l'affichage et le clic. La liste est déjà rechargée par
+          le hook — on l'invite à en choisir un autre. */}
+      {t(`client.booking.error_${code}`, { defaultValue: t('client.booking.error_default') })}
     </div>
   )
 }

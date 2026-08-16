@@ -999,7 +999,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // a emporté ses littéraux avec lui. Le cliquet redescend, il ne se justifie pas.
   ['src/components/crm/settings', { hors: 73, total: 93 }],
   ['src/components/crm/today', { hors: 43, total: 54 }],
-  ['src/components/kyc-magic-link', { hors: 80, total: 110 }],
+  // ⚠ total 110 → 107 le 17 août 2026 : la bannière d'échec de `MlkBooking` a cédé sa
+  // géométrie littérale à `MlkFailureNotice`, qui l'écrit en `var(--crm-*)`.
+  ['src/components/kyc-magic-link', { hors: 80, total: 107 }],
   // ⚠ 107 → 109 (18.08.2026) SANS qu'un seul littéral ait été ajouté : le bouton de
   // renvoi du bandeau LAB introduit les classes `mx-notice__actions` et
   // `mx-notice__close`, et B4_CLASSE les compte comme des utilitaires Tailwind — son
@@ -1066,7 +1068,13 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // centrage à chaque vue — dix fois en tout — et `MlkShell` les porte désormais une fois.
   // Le cliquet EXIGE qu'on descende le compte : un gain non inscrit se reperd au lot suivant
   // sans que rien ne rougisse.
-  ['src/pages/public', { hors: 63, total: 230 }],
+  // ⚠ 68 → 62 et 259 → 224 sur l'étape 2 (16-17 août 2026), en portant `BuyerReceptionPage`,
+  // `AcceptInvitePage`, les deux visites puis `AppointmentManagePage`. La plus grosse baisse
+  // (−18) ne vient pas d'un dépeçage : les deux visites répétaient leur conteneur et leur
+  // centrage à chaque vue — dix fois en tout — et `MlkShell` les porte désormais une fois.
+  // Le cliquet EXIGE qu'on descende le compte : un gain non inscrit se reperd au lot suivant
+  // sans que rien ne rougisse.
+  ['src/pages/public', { hors: 62, total: 224 }],
 ])
 
 /** Les propriétés qui portent un rayon ou un espacement. */
