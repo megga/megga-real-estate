@@ -165,8 +165,8 @@ const PAGES_PUBLIQUES = new Set([
   'AppointmentManagePage.tsx', 'AcceptInvitePage.tsx',
   // Lot 5 — les neuf dernières pages publiques.
   'AuthCallbackPage.tsx', 'KycPublicPage.tsx', 'KycReportRenderPage.tsx',
-  'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx', 'PrivacyPage.tsx',
-  'ResetPasswordPage.tsx', 'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
+  'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx',
+  'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
   'AuthBentoPage.tsx',
   // 16 août 2026 — la page publique de préférences d'e-mail, atteinte depuis le lien
   // « Se désinscrire » du pied de nos e-mails. Elle entre au cliquet comme les autres :
@@ -178,8 +178,8 @@ const PAGES_PUBLIQUES = new Set([
 const PAGES_PUBLIQUES_ACQUISES = [
   'BuyerReceptionPage.tsx', 'AppointmentManagePage.tsx', 'AcceptInvitePage.tsx',
   'AuthCallbackPage.tsx', 'KycPublicPage.tsx', 'KycReportRenderPage.tsx',
-  'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx', 'PrivacyPage.tsx',
-  'ResetPasswordPage.tsx', 'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
+  'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx',
+  'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
   'AuthBentoPage.tsx', 'DesinscriptionPage.tsx',
 ]
 
@@ -825,8 +825,6 @@ const CLASSES_ASSUMEES = new Map<string, { palette?: number; blanc?: number; ech
   // Les onze « blanc » n'en étaient pas : des `text-white` sur voile sombre.
   ['src/pages/agent/ListingFormPage.tsx', { echelle: 155 }],
   ['src/pages/dev/SentryTestPage.tsx', { echelle: 4 }],
-  ['src/pages/public/PrivacyPage.tsx', { echelle: 5 }],
-  ['src/pages/public/ResetPasswordPage.tsx', { blanc: 3, echelle: 10 }],
 ])
 
 /**
@@ -972,13 +970,14 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // centrage à chaque vue — dix fois en tout — et `MlkShell` les porte désormais une fois.
   // Le cliquet EXIGE qu'on descende le compte : un gain non inscrit se reperd au lot suivant
   // sans que rien ne rougisse.
-  // ⚠ 68 → 62 et 259 → 224 sur l'étape 2 (16-17 août 2026), en portant `BuyerReceptionPage`,
-  // `AcceptInvitePage`, les deux visites puis `AppointmentManagePage`. La plus grosse baisse
-  // (−18) ne vient pas d'un dépeçage : les deux visites répétaient leur conteneur et leur
-  // centrage à chaque vue — dix fois en tout — et `MlkShell` les porte désormais une fois.
-  // Le cliquet EXIGE qu'on descende le compte : un gain non inscrit se reperd au lot suivant
-  // sans que rien ne rougisse.
-  ['src/pages/public', { hors: 62, total: 224 }],
+  // ⚠ 68 → 62 et 259 → 193 sur l'étape 2 (16-17 août 2026), en portant `BuyerReceptionPage`,
+  // `AcceptInvitePage`, les deux visites puis `AppointmentManagePage`. Deux baisses ne
+  // viennent PAS d'un dépeçage : les deux visites répétaient leur conteneur et leur centrage
+  // à chaque vue — dix fois en tout — et `MlkShell` les porte désormais une fois (−18) ; puis
+  // `PrivacyPage` et `ResetPasswordPage` ont été RETIRÉES, doublons sans lien entrant, ce qui
+  // sort leur géométrie du compte (−31). Le cliquet EXIGE qu'on descende le compte : un gain
+  // non inscrit se reperd au lot suivant sans que rien ne rougisse.
+  ['src/pages/public', { hors: 62, total: 193 }],
 ])
 
 /** Les propriétés qui portent un rayon ou un espacement. */
@@ -1793,8 +1792,6 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
     const AVEUGLES = new Map<string, number>([
       ['NotFoundPage.tsx', 21],
       ['OnboardingCallManagePage.tsx', 30],
-      ['PrivacyPage.tsx', 8],
-      ['ResetPasswordPage.tsx', 19],
     ])
     const scanPublic = scanRoots([{ root: 'src/pages/public', keep: (n) => /\.tsx$/.test(n) }])
     expect(emptyRoots(scanPublic), 'racine vide : chemin cassé, pas surface propre').toEqual([])
