@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '@/hooks/useAuth'
+import { captureThemeAttribute } from '@/lib/crmDark'
 import { BENTO_GLOBAL_CSS, bentoTokens } from './tokens'
 import { BentoLogoGG } from './primitives'
 import { BentoPortalToggle, BentoThemeToggle, type Portail } from './toggles'
@@ -68,6 +69,33 @@ export function AuthBentoApp({
   const [theme, setTheme] = useState<'light' | 'dark'>(() => resolveInitialTheme())
   const tokens = useMemo(() => bentoTokens(theme === 'dark'), [theme])
   const isMobile = useIsMobile()
+
+  /**
+   * ⛔ CETTE SURFACE IMPOSE `data-theme` À TOUT LE DOCUMENT : elle doit le RENDRE
+   * en partant. C'est la règle écrite dans `captureThemeAttribute`, et l'incident
+   * qui l'a fait écrire est le même — la console admin laissait son mode au CRM.
+   * Même geste qu'`AdminThemeProvider`, à un effet près.
+   *
+   * ⚠ CE N'EST PAS UNE FUITE VIVE AUJOURD'HUI, et c'est écrit pour que personne ne
+   * la croie urgente ni ne la supprime comme inutile. Elle est inoffensive parce que
+   * DEUX invariants tiennent, tous deux hors de ce fichier : chaque sortie d'ici
+   * passe par `VitrineLoginRedirect`, donc une navigation de DOCUMENT qui jette
+   * l'attribut ; et `ThemeProvider` le repose INCONDITIONNELLEMENT au montage de
+   * l'`AgentLayout`, donc le CRM ne peut pas hériter. Le jour où l'un des deux
+   * bouge, la fuite devient vive sans que rien ne le signale — d'où la capture.
+   *
+   * ⚠ CET EFFET EST DÉCLARÉ AVANT CELUI QUI ÉCRIT : React les exécute dans l'ordre
+   * de déclaration, donc la capture lit la valeur d'ORIGINE et non celle qu'on
+   * vient de poser.
+   *
+   * ⛔ ET L'ÉCRITURE NE S'ENLÈVE PAS : elle ne sert à rien au rendu de cette
+   * surface — mesuré, aucun fichier d'`auth-bento/` ne lit `[data-theme]` ni un
+   * jeton `--color-*`, tout est peint depuis `bentoTokens` en style en ligne —
+   * mais `globals.css` porte `[data-theme="dark"] body`, qui peint le fond du
+   * DOCUMENT derrière le conteneur. Le retirer laisserait un fond clair
+   * apparaître au rebond de défilement derrière un écran sombre.
+   */
+  useEffect(() => captureThemeAttribute(document.documentElement), [])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
