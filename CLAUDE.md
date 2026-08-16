@@ -27,6 +27,7 @@
 > - Design system Property X (Marketplace — ⚠ ARCHIVÉ, marketplace désactivée) : [docs/design-system-propertyx.md](docs/design-system-propertyx.md)
 > - Roadmap sprints : [docs/roadmap.md](docs/roadmap.md)
 > - Changelog : [docs/CHANGELOG.md](docs/CHANGELOG.md)
+> - Langue des e-mails, ce qui reste : [docs/email-i18n-handoff.md](docs/email-i18n-handoff.md)
 >
 > **🎨 Vestiges Property X (marketplace désactivée — pivot CRM-first) :**
 > Le design system Property X, ses 11 pages `/design-system/*` et le catalogue `figma-catalog.ts`
