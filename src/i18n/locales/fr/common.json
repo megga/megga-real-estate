@@ -521,5 +521,9 @@
     "body": "Aucun écran ne répond à {{chemin}}. Vos onglets sont restés ouverts.",
     "action": "Revenir au tableau de bord",
     "tab": "Introuvable"
+  },
+  "legal": {
+    "notice": "Mentions légales",
+    "privacy": "Confidentialité"
   }
 }

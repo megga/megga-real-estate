@@ -521,5 +521,9 @@
     "body": "Kein Bildschirm antwortet auf {{chemin}}. Ihre Tabs sind weiterhin offen.",
     "action": "Zurück zum Dashboard",
     "tab": "Nicht gefunden"
+  },
+  "legal": {
+    "notice": "Impressum",
+    "privacy": "Datenschutz"
   }
 }

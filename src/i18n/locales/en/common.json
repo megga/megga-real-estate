@@ -521,5 +521,9 @@
     "body": "No screen answers to {{chemin}}. Your tabs are still open.",
     "action": "Back to the dashboard",
     "tab": "Not found"
+  },
+  "legal": {
+    "notice": "Legal notice",
+    "privacy": "Privacy"
   }
 }

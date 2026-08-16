@@ -8,10 +8,38 @@
 
 import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 // Jetons déplacés dans mlkTokens.ts : ce fichier n'exporte que des composants
 // (contrainte Fast Refresh). Voir l'en-tête de mlkTokens.ts.
 import { MLK } from './mlkTokens'
 import { crmVoileEncre } from '@/components/crm/tokens'
+
+/**
+ * ⛔ LES PAGES LÉGALES VIVENT SUR LA VITRINE, ET CE PIED POINTAIT DANS LE VIDE.
+ *
+ * Jusqu'au 17 août 2026, `MlkFooter` écrivait `/mentions-legales` et
+ * `/confidentialite` en chemins RELATIFS. Aucune des deux n'est déclarée dans
+ * `src/App.tsx` ni dans `public/_redirects` : sur `app.megga.ch`, le repli SPA
+ * rendait 200 puis `NotFoundPage`. Un client à qui on demande son passeport
+ * cliquait « Confidentialité » et tombait sur une page introuvable — sur les
+ * SEIZE sites où ce pied est rendu.
+ *
+ * Les alias existent, mais chez le voisin : `sites/megga-vitrine/_worker.js`
+ * mappe `/mentions-legales → /legal` et `/confidentialite → /privacy`. Il ne
+ * manquait donc que l'ORIGINE.
+ *
+ * ⚠ ET CES DEUX CIBLES SONT HORS DU GATE DE LA VITRINE, par décision écrite :
+ * `PUBLIC_PAGES` y retient `/legal`, `/privacy` et `/terms` parce que la case de
+ * consentement de l'inscription y renvoie — « un consentement à un texte
+ * illisible » sinon. Les liens tiennent donc que le gate soit ouvert ou fermé.
+ *
+ * ⚠ EN DUR, comme `VITRINE_URL` (src/App.tsx) et l'endpoint de `geoLanguage.ts`,
+ * et pour la raison qu'ils écrivent : c'est une constante de DÉPLOIEMENT, pas une
+ * configuration. Une `VITE_*` absente du build rendrait ici une URL vide et le
+ * lien échouerait en silence au lieu d'échouer à la construction.
+ */
+const VITRINE_MENTIONS_LEGALES = 'https://megga.ch/mentions-legales'
+const VITRINE_CONFIDENTIALITE = 'https://megga.ch/confidentialite'
 
 // ─── Icônes line-stroke (subset utilisé par les écrans clients) ───────────
 
@@ -388,9 +416,18 @@ export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
 }
 
 export function MlkFooter() {
-  // `rel="noreferrer"` empêche le token magic-link de fuiter dans le header
-  // Referer envoyé aux pages externes (mentions-legales, confidentialité).
-  // `target="_blank"` ouvre dans un nouvel onglet pour préserver le parcours KYC.
+  // ⛔ `rel="noreferrer"` empêche le token magic-link de fuiter dans le header
+  // Referer envoyé aux pages externes. La précaution était déjà juste ; elle
+  // devient INDISPENSABLE depuis que les liens sont absolus, donc CROSS-ORIGINE :
+  // sans elle, `app.megga.ch/kyc/<token>` partirait en clair vers megga.ch.
+  // `target="_blank"` ouvre dans un nouvel onglet pour préserver le parcours.
+  //
+  // ⚠ LES LIBELLÉS ÉTAIENT EN DUR EN FRANÇAIS sur une face servie en quatre
+  // langues — le parcours KYC rend 51 chaînes traduites et finissait sur deux
+  // mots qui ne l'étaient pas. Les valeurs viennent de `sites/megga-vitrine/i18n/`,
+  // reprises telles quelles : le pied nomme la page exactement comme la page
+  // qu'il ouvre se nomme elle-même.
+  const { t } = useTranslation('common')
   return (
     <div
       style={{
@@ -406,20 +443,20 @@ export function MlkFooter() {
     >
       <div style={{ display: 'flex', gap: 18 }}>
         <a
-          href="/mentions-legales"
+          href={VITRINE_MENTIONS_LEGALES}
           target="_blank"
           rel="noreferrer"
           style={{ color: 'inherit', textDecoration: 'none' }}
         >
-          Mentions légales
+          {t('legal.notice')}
         </a>
         <a
-          href="/confidentialite"
+          href={VITRINE_CONFIDENTIALITE}
           target="_blank"
           rel="noreferrer"
           style={{ color: 'inherit', textDecoration: 'none' }}
         >
-          Confidentialité
+          {t('legal.privacy')}
         </a>
       </div>
     </div>
