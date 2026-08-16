@@ -5,12 +5,38 @@
 // motif). Chaque réaction est transmise en direct (edge buyer-reception-react) et
 // remonte dans la fiche contact de l'agent. Port du proto handoff `reception-app.jsx`
 // (données LIVE, sans localStorage). FR-CH · Manrope · public (pas de compte).
+//
+// ── ⛔ POURQUOI LE FIL PRINCIPAL N'EST PAS DANS UN `MlkShell` (16 août 2026) ──────────
+// L'étape 2 du chantier prescrit `<MlkBackground><MlkShell>…</MlkShell></MlkBackground>`
+// pour chaque surface publique. Cette page prend la MARQUE et le PIED — ce qui manquait
+// vraiment — mais PAS la coquille sur son fil principal, et c'est mesuré, pas préféré :
+//
+//   · `MlkShell` est une CARTE de document (720 px par défaut, rayon 32, `shadowLg`,
+//     padding 56). Le fil d'ici est une application TÉLÉPHONE : 480 px, `100dvh`,
+//     `env(safe-area-inset-bottom)`, une galerie à `scroll-snap`, et des cartes de bien
+//     qui sont DÉJÀ des `MLK.card` avec `MLK.shadow`. La coquille y mettrait une carte
+//     dans une carte.
+//   · Les trois panneaux (détail, motif, récapitulatif) sont en `position: fixed` :
+//     ils sortiraient de la coquille de toute façon, donc elle n'unifierait rien.
+//   · `MlkBackground` impose `minHeight: 100vh` et `padding: '48px 16px'`. Sur un
+//     téléphone, `100vh` au lieu de `100dvh` est une RÉGRESSION (la barre du navigateur
+//     recouvre le bas), et 16 px de marge en plus des 18 px des cartes rétrécit le fil.
+//
+// ⚠ LES ÉTATS « CHARGEMENT » ET « LIEN INVALIDE » LA PRENNENT, EUX, EN ENTIER : ce sont
+// des documents — rien n'y défile ni ne s'y actionne. La règle n'est donc pas « cette
+// page échappe à la direction », c'est « la coquille habille un document, pas une
+// application ». Si un jour ce fil devient une page lue au bureau, il la reprendra.
 
 import { useMemo, useState } from 'react'
 import type { CSSProperties, UIEvent as ReactUIEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { useBuyerReception, useBuyerReactionMutation, type ReceptionBien } from '@/hooks/useBuyerReception'
 import { MLK } from '@/components/kyc-magic-link/mlkTokens'
+// ⛔ LES PRIMITIVES, PAS SEULEMENT LES JETONS. Cette page avait le dégradé, l'encre et
+// Manrope — donc « les bonnes couleurs » — mais ni la marque ni le pied. À côté de
+// `/kyc/:token`, elle ne ressemblait pas à la même maison. Prendre les jetons sans la
+// composition, c'est refaire la direction de mémoire.
+import { MlkBackground, MlkShell, MlkWordmark, MlkFooter } from '@/components/kyc-magic-link/MlkPrimitives'
 import { crmVoileEncre } from '@/components/crm/tokens'
 
 /** Alias local : `fontFamily` est écrit une dizaine de fois, et `MLK.font` y allongerait chaque ligne sans rien dire de plus. */
@@ -94,22 +120,36 @@ export default function BuyerReceptionPage() {
   const shell: CSSProperties = { maxWidth: 480, margin: '0 auto', position: 'relative', minHeight: '100dvh' }
 
   // ── États lien invalide / expiré / chargement ──
+  //
+  // ⚠ CES DEUX ÉTATS-LÀ SONT DES DOCUMENTS, PAS L'APPLICATION : rien ne défile, rien ne
+  // s'actionne. Ils prennent donc la composition canonique en entier — celle de
+  // `DesinscriptionPage` et de `/kyc/:token`. C'est le fil principal qui ne peut pas la
+  // prendre, et le pourquoi est écrit en tête de fichier.
   if (isLoading) {
-    return <div style={{ ...stage, display: 'grid', placeItems: 'center' }}><style>{KEYFRAMES}</style>
-      <div style={{ color: MLK.muted, fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>Chargement de votre sélection…</div></div>
+    return (
+      <MlkBackground>
+        <MlkShell width={480} pad={40}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--crm-space-4xl)' }}><MlkWordmark size={16} /></div>
+          <p style={{ margin: 0, textAlign: 'center', color: MLK.muted, fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>Chargement de votre sélection…</p>
+        </MlkShell>
+      </MlkBackground>
+    )
   }
   if (isError || !data || data.ok === false) {
     const expired = data?.reason === 'expired'
     return (
-      <div style={{ ...stage, display: 'grid', placeItems: 'center', padding: 24 }}>
-        <style>{KEYFRAMES}</style>
-        <div style={{ background: MLK.card, borderRadius: 22, boxShadow: MLK.shadow, padding: '32px 26px', textAlign: 'center', maxWidth: 360 }}>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.4 }}>{expired ? 'Ce lien a expiré' : "Ce lien n'est plus valide"}</div>
-          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: MLK.muted, marginTop: 10, lineHeight: 1.55 }}>
-            Contactez votre conseiller pour recevoir une nouvelle sélection.
+      <MlkBackground>
+        <MlkShell width={480} pad={40}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--crm-space-4xl)' }}><MlkWordmark size={16} /></div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.4 }}>{expired ? 'Ce lien a expiré' : "Ce lien n'est plus valide"}</div>
+            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: MLK.muted, marginTop: 10, lineHeight: 1.55 }}>
+              Contactez votre conseiller pour recevoir une nouvelle sélection.
+            </div>
           </div>
-        </div>
-      </div>
+          <MlkFooter />
+        </MlkShell>
+      </MlkBackground>
     )
   }
 
@@ -117,7 +157,18 @@ export default function BuyerReceptionPage() {
     <div style={stage}>
       <style>{KEYFRAMES}</style>
       <div style={shell}>
-        <div className="rc-scroll" style={{ paddingTop: 40, paddingBottom: 128 }}>
+        <div className="rc-scroll" style={{ paddingTop: 'var(--crm-space-6xl)', paddingBottom: 128 }}>
+          {/* ⚠ LA MARQUE ET SA MENTION, dans le couple `space-between` de la maison —
+              le même qu'en tête de `/kyc/:token`. La mention de lien privé traînait
+              tout en BAS de la page, orpheline ; elle appartient ici, à côté du
+              logotype qu'elle qualifie. */}
+          <div style={{ padding: '0 var(--crm-space-4xl)', marginBottom: 'var(--crm-space-6xl)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
+            <MlkWordmark size={18} />
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-2xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: MLK.cardSubtle, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: MLK.muted, whiteSpace: 'nowrap' }}>
+              <Icon d={ICO.lock} size={13} stroke={MLK.muted} /> Lien privé
+            </span>
+          </div>
+
           {/* En-tête conseiller */}
           <div style={{ padding: '0 20px 4px', animation: 'rcUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -197,10 +248,14 @@ export default function BuyerReceptionPage() {
             </div>
           )}
 
-          <div style={{ padding: '26px 20px 0', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: MLK.muted }}>
-              <Icon d={ICO.lock} size={13} stroke={MLK.muted} /> Lien privé sécurisé · transmis par {firstName} via MEGGA
+          {/* ⚠ LE PIED LÉGAL MANQUAIT ENTIÈREMENT. Mentions légales et confidentialité
+              sont sur toutes les autres surfaces clientes ; cette page — qui porte des
+              biens et une identité de contact — n'en avait aucune. */}
+          <div style={{ padding: '0 var(--crm-space-4xl)' }}>
+            <div style={{ textAlign: 'center', paddingTop: 'var(--crm-space-6xl)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: MLK.muted }}>
+              Sélection transmise par {firstName} via MEGGA
             </div>
+            <MlkFooter />
           </div>
         </div>
 
