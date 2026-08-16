@@ -25,6 +25,7 @@
  * Usage : node scripts/check-email-shell.mjs
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { sansCommentaires } from './_shared/wa-outbound-purpose.mjs';
 import { join } from 'node:path';
 
 const FUNCTIONS_DIR = 'supabase/functions';
@@ -52,6 +53,37 @@ const A_MIGRER = {};
 
 /** Marqueurs d'un document HTML complet — ce que seule la coquille a le droit d'écrire. */
 const MARQUEURS = [/<!DOCTYPE\s+html/i, /<html[\s>]/i];
+
+/**
+ * ⛔ MARQUEURS D'UNE COQUILLE QUI N'EN A PAS L'AIR — ajoutés le 16 août 2026, après
+ * qu'un gabarit VIVANT a traversé toute la migration sans être vu une seule fois.
+ *
+ * `_shared/weekly-digest.ts` (le bilan du vendredi, cron `weekly-digest-friday`)
+ * rendait un `<div>` autonome — police système, encre `#1c1c1e` en dur, pied écrit
+ * à la main — et le postait directement à Resend. Aucun `<!DOCTYPE>`, aucun
+ * `<html>` : les deux marqueurs ci-dessus ne pouvaient pas le voir. La porte a donc
+ * imprimé « Migration terminée » pendant que les agents recevaient chaque semaine
+ * le dernier e-mail d'avant MEGGA X. Une porte aveugle à une famille entière est
+ * pire qu'une porte absente : elle délivre un certificat.
+ *
+ * Ce qu'on cherche n'est donc pas la BALISE RACINE, c'est l'INTENTION D'ÊTRE UNE
+ * COQUILLE. Un conteneur qui fixe sa propre police ou sa propre largeur maximale se
+ * déclare enveloppe du message — c'est le geste d'un gabarit complet, jamais celui
+ * d'un fragment inséré dans un corps existant.
+ *
+ * ⚠ Volontairement étroit sur ces deux propriétés-là. `unsubscribeFooterHtml`
+ * (`email-guard.ts`) émet bien un `<p style="font-size:…">`, mais il ne fixe ni
+ * police ni largeur : il s'insère dans une coquille au lieu d'en tenir lieu, et
+ * reste donc hors du filet. Élargir aux `style=` en général rendrait la porte
+ * bruyante, et une porte bruyante finit désactivée.
+ */
+const MARQUEURS_FRAGMENT = [
+  /<(?:div|table|body)[^>]*style="[^"]*font-family:/i,
+  /<(?:div|table|body)[^>]*style="[^"]*max-width:/i,
+];
+
+/** La coquille commune, importée — la preuve qu'un fichier ne s'en fabrique pas une. */
+const IMPORTE_COQUILLE = /from\s+'[^']*email-shell\.ts'/;
 
 /**
  * Dans `src/`, seul un `<!DOCTYPE>` compte. `<html` y désigne presque toujours un
@@ -88,9 +120,22 @@ const listePerimee = [];
 for (const fichier of [...fichiersTs(FUNCTIONS_DIR), ...fichiersTs(SRC_DIR)]) {
   if (fichier === SHELL) continue;
   if (fichier in HORS_EMAIL) continue;
-  const source = readFileSync(fichier, 'utf8');
-  const motifs = fichier.startsWith(`${SRC_DIR}/`) ? MARQUEURS_SRC : MARQUEURS;
-  const emetDuHtml = motifs.some((m) => m.test(source));
+  // ⛔ ON SCANNE LE CODE, PAS LES COMMENTAIRES — mesuré le 16 août 2026 en écrivant
+  // la détection de fragment ci-dessus : le commentaire qui EXPLIQUE la porte citait
+  // « <html> », et la porte s'est dénoncée elle-même. Toute prose qui parle d'e-mails
+  // — un en-tête d'explication, un exemple, un TODO — devenait une coquille à ses yeux.
+  // L'assistant vient de `scripts/_shared/` et connaît les chaînes : un blanchiment naïf
+  // de `//` détruirait le guillemet fermant de la moindre URL.
+  const source = sansCommentaires(readFileSync(fichier, 'utf8'));
+  const dansSrc = fichier.startsWith(`${SRC_DIR}/`);
+  const motifs = dansSrc ? MARQUEURS_SRC : MARQUEURS;
+  // La détection de FRAGMENT ne vaut que pour les edge functions, et seulement pour
+  // qui n'importe pas la coquille : un gabarit qui la compose écrit légitimement des
+  // conteneurs stylés DANS son `bodyHtml`.
+  const seFabriqueUneCoquille = !dansSrc
+    && !IMPORTE_COQUILLE.test(source)
+    && MARQUEURS_FRAGMENT.some((m) => m.test(source));
+  const emetDuHtml = motifs.some((m) => m.test(source)) || seFabriqueUneCoquille;
 
   if (fichier in A_MIGRER) {
     // Un fichier migré qui resterait listé ferait croire à du travail restant, et pire :
