@@ -13,7 +13,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MLK } from './mlkTokens'
-import { MlkShell, MlkWordmark, MlkIcon, MlkBlackPill, MlkFooter } from './MlkPrimitives'
+import { MlkShell, MlkWordmark, MlkIcon, MlkBlackPill, MlkFooter, MlkFailureNotice } from './MlkPrimitives'
 import { MlkSlotPicker } from './MlkSlotPicker'
 import { inZone } from './mlkDateFormat'
 import {
@@ -266,19 +266,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
         </div>
       </div>
 
-      {failure && (
-        <div
-          style={{
-            padding: '12px 16px', borderRadius: 12, marginBottom: 16,
-            background: '#FEF2F2', fontSize: 'var(--crm-text-md)', color: '#B42318', fontWeight: 500, lineHeight: 1.5,
-          }}
-        >
-          {/* `slot_taken` n'est pas une erreur du client : quelqu'un a simplement
-              pris le créneau entre l'affichage et le clic. La liste est déjà
-              rechargée par le hook — on l'invite à en choisir un autre. */}
-          {t(`client.booking.error_${failure.code}`, { defaultValue: t('client.booking.error_default') })}
-        </div>
-      )}
+      {failure && <MlkFailureNotice code={failure.code} style={{ marginBottom: 'var(--crm-space-2xl)' }} />}
 
       <MlkBlackPill
         onClick={() => {

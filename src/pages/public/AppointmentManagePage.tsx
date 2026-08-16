@@ -14,7 +14,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { MLK } from '@/components/kyc-magic-link/mlkTokens'
-import { MlkBackground, MlkShell, MlkWordmark, MlkBlackPill, MlkFooter } from '@/components/kyc-magic-link/MlkPrimitives'
+import { MlkBackground, MlkShell, MlkWordmark, MlkBlackPill, MlkFooter, MlkFailureNotice } from '@/components/kyc-magic-link/MlkPrimitives'
 import { MlkAppointmentCard } from '@/components/kyc-magic-link/MlkBooking'
 import { MlkSlotPicker } from '@/components/kyc-magic-link/MlkSlotPicker'
 import { inZone } from '@/components/kyc-magic-link/mlkDateFormat'
@@ -154,11 +154,7 @@ export default function AppointmentManagePage() {
               activeDay={selectedDay}
               onDayChange={(k) => { setSelectedDay(k); setSelectedSlot(null) }}
             />
-            {failure && (
-              <div style={{ padding: '12px 16px', borderRadius: 12, marginBottom: 16, background: '#FEF2F2', fontSize: 'var(--crm-text-md)', color: '#B42318', fontWeight: 500, lineHeight: 1.5 }}>
-                {t(`client.booking.error_${failure.code}`, { defaultValue: t('client.booking.error_default') })}
-              </div>
-            )}
+            {failure && <MlkFailureNotice code={failure.code} style={{ marginBottom: 'var(--crm-space-2xl)' }} />}
             <MlkBlackPill
               full
               disabled={!selectedSlot || manageMut.isPending}
@@ -195,11 +191,7 @@ export default function AppointmentManagePage() {
       <>
         <MlkAppointmentCard appointment={appointment} />
         <Notice title={t('client.manage.confirm_cancel_title')} body={t('client.manage.confirm_cancel_body')} />
-        {failure && (
-          <div style={{ padding: '12px 16px', borderRadius: 12, margin: '16px 0 0', background: '#FEF2F2', fontSize: 'var(--crm-text-md)', color: '#B42318', fontWeight: 500, lineHeight: 1.5 }}>
-            {t(`client.booking.error_${failure.code}`, { defaultValue: t('client.booking.error_default') })}
-          </div>
-        )}
+        {failure && <MlkFailureNotice code={failure.code} style={{ margin: 'var(--crm-space-2xl) 0 0' }} />}
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
           <GhostButton onClick={() => { setMode('view'); manageMut.reset() }} disabled={manageMut.isPending}>
             {t('client.manage.keep')}
