@@ -157,7 +157,12 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/lib/crmAdapters.ts', 8],
   ['src/hooks/useAgentProfileScreen.ts', 7],
   ['src/hooks/useCalendarScreen.ts', 6],
-  ['src/pages/public', 6],
+  // ⚠ 6 → 4 le 16 août 2026 : `AcceptInvitePage` réécrivait `MLK_STATUT.errInk` et
+  // `.warnInk` en constantes locales, au caractère près. Elle les IMPORTE désormais.
+  // ⛔ Ce cliquet ne compte QUE le code — les hexadécimaux cités dans un commentaire
+  // lui sont invisibles. Une réplique naïve qui balaie le fichier entier en trouve
+  // neuf là où il en voit six, et conclut à tort qu'un lot a moins gagné qu'annoncé.
+  ['src/pages/public', 4],
   ['src/components/auth', 4],
   // ⚠ `src/components/buyer-reception` valait 4 — les trois arrêts de son dégradé
   // et son `soft` #3A3D44. La racine a disparu le 16 août avec `receptionTokens.ts`,
