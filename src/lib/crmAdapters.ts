@@ -1,7 +1,7 @@
 /**
  * MEGGA CRM Sugar v2 — Adaptateurs partagés Supabase → shapes mock (CrmContact / CrmBien / etc).
- * Centralise les mappings réutilisés par useMatchingSugar, useContactsScreen,
- * useDealsSugar, etc. Les pages UI continuent de consommer Crm* shapes du mock,
+ * Centralise les mappings réutilisés par useAtelierMatching, useContactsScreen,
+ * usePipelineScreen, etc. Les pages UI continuent de consommer Crm* shapes du mock,
  * et les hooks adapter remplissent le registry runtime de mockData.ts.
  */
 
@@ -117,7 +117,7 @@ export function contactToCrm(c: Contact, kyc: KycCase | undefined): CrmContact {
 }
 
 // ─── MatchResult.listing → CrmBien ─────────────────────────────────────
-// (utilisé par useMatchingSugar — exposé ici pour partage potentiel futur)
+// (utilisé par useAtelierMatching — exposé ici pour partage potentiel futur)
 // ─── TransactionStage DB → StageId mock ────────────────────────────────
 // Mock utilise des dashes ('new-lead'), DB utilise des underscores ('new_lead').
 // Plusieurs stages DB collapsent sur un seul StageId mock (negotiation/financing/

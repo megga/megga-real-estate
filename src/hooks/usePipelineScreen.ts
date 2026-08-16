@@ -3,7 +3,7 @@
 // associés, remplit le registry runtime (registerLiveContact/Bien) pour que les
 // lookups `crmContactById` / `crmBienById` de la page renvoient la version Supabase.
 //
-// Pattern aligné sur useContactsScreen et useMatchingSugar : la page UI continue
+// Pattern aligné sur useContactsScreen et useAtelierMatching : la page UI continue
 // d'appeler les helpers mock — seul le contenu retourné est désormais réel.
 
 import { useEffect, useMemo } from 'react'

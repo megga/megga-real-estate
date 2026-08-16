@@ -117,7 +117,7 @@ export function dossierPalette(dark: boolean) {
    *
    * `n500` est le barreau que MEGGA X donne à l'encre secondaire claire :
    * 5,57:1 sur la carte, 5,24 sur la sous-carte. Gardé par
-   * `sugar-v3-contraste.spec.ts`.
+   * `dossiers-contraste.spec.ts`.
    */
   muted: dark ? sp.sub : MXC_COLOR.n500,
   /**
@@ -252,7 +252,7 @@ export const DOSSIER_FONT = 'var(--crm-font, "Inter Tight"), system-ui, sans-ser
  *
  * ⛔ NE PAS L'IMPORTER DANS UN COMPOSANT. Un composant a accès au thème :
  * `dossierPalette(useCrmDark())`. S'en servir là serait recréer exactement le
- * défaut que cette fonction corrige, et la garde `sugar-v3-contraste.spec.ts`
+ * défaut que cette fonction corrige, et la garde `dossiers-contraste.spec.ts`
  * le refuse nommément.
  */
 const SV3_CLAIR = dossierPalette(false)
@@ -260,10 +260,23 @@ const SV3_CLAIR = dossierPalette(false)
 /**
  * Les deux tons THÉMÉS dont les maps de libellés ont besoin, lus au RENDU.
  *
- * `readCrmDark()` est la lecture partagée (`lib/sugarDark.ts`) — celle qui
+ * `readCrmDark()` est la lecture partagée (`lib/crmDark.ts`) — celle qui
  * porte le repli `prefers-color-scheme`, contrairement aux lectures en dur
  * `=== '1'` recopiées dans le dépôt. Un getter suffit : ces maps sont lues
  * pendant le rendu, et une bascule de thème déclenche un rendu.
+ *
+ * ⛔ MAIS LE GETTER DOIT ÊTRE DU CÔTÉ DU CONSOMMATEUR AUSSI. Écrire
+ * `tone: SV3_TON.ink` dans une map INVOQUE l'accesseur une seule fois, à
+ * l'évaluation du module, et fige la couleur du thème de démarrage — la
+ * paresse de `SV3_TON` ne sert alors plus à rien. Il faut
+ * `get tone() { return SV3_TON.ink }`, comme le `get label()` voisin.
+ *
+ * Mesuré le 16 août 2026 : les cinq entrées concernées de `KYC_STATUS_LABELS`,
+ * `KYC_RISK_LABELS` et `AUDIT_CATEGORIES` étaient figées. La bascule de thème
+ * étant une mise à jour EN PLACE (`setDark` depuis le rail, aucun rechargement),
+ * la portée de module n'est jamais réévaluée : après un passage sombre → clair,
+ * la catégorie « auth » de /dashboard/audit rendait son libellé et son icône en
+ * `#ffffff` sur fond clair — invisibles. Garde : `dossiers-contraste.spec.ts`.
  */
 const SV3_TON = {
   get muted() { return dossierPalette(readCrmDark()).muted },
@@ -336,7 +349,7 @@ export const KYC_STATUS_LABELS: Record<
   KycDossierStatus,
   { label: string; tone: string }
 > = {
-  none: { get label() { return i18n.t('kyc:dossierStatus.none') }, tone: SV3_TON.muted },
+  none: { get label() { return i18n.t('kyc:dossierStatus.none') }, get tone() { return SV3_TON.muted } },
   pending: { get label() { return i18n.t('kyc:dossierStatus.pending') }, tone: SV3_CLAIR.warn },
   verified: { get label() { return i18n.t('kyc:dossierStatus.verified') }, tone: SV3_CLAIR.ok },
   failed: { get label() { return i18n.t('kyc:dossierStatus.failed') }, tone: SV3_CLAIR.err },
@@ -351,7 +364,7 @@ export const KYC_RISK_LABELS: Record<
   low: { get label() { return i18n.t('kyc:riskBadge.low') }, tone: SV3_CLAIR.ok },
   medium: { get label() { return i18n.t('kyc:riskBadge.medium') }, tone: SV3_CLAIR.warn },
   high: { get label() { return i18n.t('kyc:riskBadge.high') }, tone: SV3_CLAIR.err },
-  unassessed: { get label() { return i18n.t('kyc:riskBadge.unassessed') }, tone: SV3_TON.muted },
+  unassessed: { get label() { return i18n.t('kyc:riskBadge.unassessed') }, get tone() { return SV3_TON.muted } },
 }
 
 /** Catégories audit nLPD — 8 valeurs (KYC_ENRICHISSEMENTS §7). */
@@ -361,11 +374,11 @@ export const AUDIT_CATEGORIES: Record<
 > = {
   kyc: { get label() { return i18n.t('common:audit.category.kyc') }, tone: '#1E5BC6' },
   deal: { get label() { return i18n.t('common:audit.category.deal') }, tone: '#0891B2' },
-  contact: { get label() { return i18n.t('common:audit.category.contact') }, tone: SV3_TON.muted },
+  contact: { get label() { return i18n.t('common:audit.category.contact') }, get tone() { return SV3_TON.muted } },
   bien: { get label() { return i18n.t('common:audit.category.bien') }, tone: '#C45A00' },
   doc: { get label() { return i18n.t('common:audit.category.doc') }, tone: SV3_CLAIR.okDark },
-  auth: { get label() { return i18n.t('common:audit.category.auth') }, tone: SV3_TON.ink },
-  settings: { get label() { return i18n.t('common:audit.category.settings') }, tone: SV3_TON.muted },
+  auth: { get label() { return i18n.t('common:audit.category.auth') }, get tone() { return SV3_TON.ink } },
+  settings: { get label() { return i18n.t('common:audit.category.settings') }, get tone() { return SV3_TON.muted } },
   ai: { get label() { return i18n.t('common:audit.category.ai') }, tone: '#7A4FD8' },
 }
 

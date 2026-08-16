@@ -10,7 +10,7 @@
 // dossier_status), adapte vers les shapes mock que ContactsListPane et
 // ContactsDetailPane consomment déjà sans modification.
 //
-// Pattern aligné sur useMatchingSugar : le hook remplit le registry runtime
+// Pattern aligné sur useAtelierMatching : le hook remplit le registry runtime
 // `registerLiveContact` pour que `crmContactById(id)` renvoie la version
 // Supabase quand un composant l'appelle (notamment ContactsPage
 // pour résoudre le contact sélectionné).

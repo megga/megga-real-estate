@@ -238,7 +238,7 @@ export const CRM_BIENS: CrmBien[] = [
 // ─── Matchs IA ───────────────────────────────────────────────────────────
 // ─── AI Suggestions (today screen) ───────────────────────────────────────
 // ─── Helpers ─────────────────────────────────────────────────────────────
-// Le Matching Sugar v2 peut être branché sur Supabase via `useMatchingSugar()`.
+// Le Matching Sugar v2 peut être branché sur Supabase via `useAtelierMatching()`.
 // Dans ce mode, l'adapter pousse les Contact/Bien Supabase dans ce registry
 // runtime — les composants UI continuent d'appeler `crmContactById`/`crmBienById`
 // sans changer de signature. Fallback transparent sur les arrays mock si absent.
