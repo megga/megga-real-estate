@@ -19,6 +19,71 @@ const USER = 'megga';
 const PASS = 'preview';
 
 /**
+ * UNE seule valeur ouvre la vitrine — `off` — d'où que la valeur vienne.
+ *
+ * La polarité est dans ce sens exprès, et c'est la décision qui porte tout le
+ * reste : un autre mot, une valeur vide, une faute de frappe, une clé jamais
+ * écrite, une variable absente ferment. Une préversion de branche, un
+ * `wrangler dev` local ou un projet Pages recréé n'héritent d'aucun réglage ;
+ * ils doivent hériter du comportement le plus sûr, pas du plus ouvert. Écrite
+ * dans l'autre sens (`on` ferme), cette même liste d'accidents publierait la
+ * vitrine de pré-lancement.
+ */
+function demandeOuverture(valeur) {
+  return String(valeur ?? '').trim().toLowerCase() === 'off';
+}
+
+/** Clé lue dans le KV. */
+const CLE_GATE = 'gate';
+
+/**
+ * Le gate est-il posé ? Deux sources, dans cet ordre (16 août 2026, Julien).
+ *
+ * 1. **KV `VITRINE_CONFIG`, clé `gate`** — la bascule VIVE. Écrire la valeur
+ *    depuis le tableau de bord suffit : aucun déploiement, aucune PR. C'est le
+ *    seul réglage de ce fichier qui n'exige pas de repasser par la CI.
+ * 2. **Variable `VITRINE_GATE`** — le réglage de repli, relu au déploiement
+ *    seulement. Il gouverne là où le KV n'est pas branché : préversions de
+ *    branche, `wrangler dev`, et la période avant que le binding existe.
+ *
+ * Un niveau ne parle que s'il a quelque chose à dire. Clé absente du KV
+ * (`null`) = « pas d'avis » → on descend à la variable. C'est l'état juste
+ * après la création du namespace, et il ne doit rien changer au comportement.
+ *
+ * ⛔ Une LECTURE EN ÉCHEC, elle, n'est pas une absence d'avis : elle ferme, et
+ * ne descend pas à la variable. Si le plan de contrôle est illisible, on ne
+ * sait pas ce qu'on est censé faire — et « on ne sait pas » vaut fermé. Sans
+ * cette distinction, une panne de KV pendant que la variable dit `off`
+ * ouvrirait le site au moment précis où l'on a le moins de visibilité.
+ *
+ * ⚠ Le binding KV lui-même s'ajoute au tableau de bord (Settings › Functions),
+ * et l'ATTACHER demande un déploiement — une fois. Ce sont les bascules
+ * suivantes qui sont gratuites.
+ *
+ * ⚠ La bascule n'est pas instantanée à la seconde près : `cacheTtl` est au
+ * plancher de Workers KV (60 s), et une écriture met jusqu'à ~60 s à se
+ * propager. Compter environ une minute avant que tous les points de présence
+ * soient d'accord.
+ *
+ * Tant que la vitrine est ouverte, elle est lisible et indexable par n'importe
+ * qui, contenu marketing de pré-lancement compris. La sonde de
+ * `.claude/hooks/session-start.sh` le rappelle à chaque session : « vitrine :
+ * 200 — le gate est OUVERT ⚠ ».
+ */
+async function gateActif(env) {
+  const kv = env?.VITRINE_CONFIG;
+  if (kv && typeof kv.get === 'function') {
+    try {
+      const valeur = await kv.get(CLE_GATE, { cacheTtl: 60 });
+      if (valeur !== null && valeur !== undefined) return !demandeOuverture(valeur);
+    } catch {
+      return true;
+    }
+  }
+  return !demandeOuverture(env?.VITRINE_GATE);
+}
+
+/**
  * Pages servies sans mot de passe : le gate protège le contenu marketing, pas la
  * porte d'entrée du produit.
  *
@@ -483,7 +548,11 @@ export default {
       });
     }
 
-    if (!isPublic(pathname)) {
+    // `isPublic` d'ABORD : il est local et gratuit, alors que `gateActif` peut
+    // toucher le KV. Dans cet ordre, les ressources, les pages d'auth et le
+    // sitemap ne déclenchent aucune lecture — seul un chemin réellement gaté
+    // en paie une (mise en cache 60 s au point de présence).
+    if (!isPublic(pathname) && (await gateActif(env))) {
       const expected = 'Basic ' + btoa(`${USER}:${PASS}`);
       if (request.headers.get('Authorization') !== expected) {
         return new Response('Authentication required', {
@@ -510,6 +579,7 @@ export default {
 export {
   LANGUE_PAR_CANTON,
   LANGUE_PAR_PAYS,
+  gateActif,
   languesAcceptees,
   normaliserPays,
   normaliserSubdivision,
