@@ -34,6 +34,7 @@ import {
   buildVerificationNotice,
 } from '../_shared/agency-verification-notice.ts'
 import { parseLocale, DEFAULT_LOCALE, type AppLocale } from '../_shared/recipient-language.ts'
+import { appDashboardUrl } from '../_shared/app-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -165,7 +166,9 @@ serve(async (req) => {
       parLangue.set(l, [...(parLangue.get(l) ?? []), adresse])
     }
 
-    const appUrl = Deno.env.get('APP_URL') ?? 'https://app.megga.ch'
+    // ⛔ IL LISAIT `APP_URL`, PAS `MEGGA_APP_URL` : une troisième orthographe du même
+    // réglage, qu'il aurait donc ignorée en silence le jour où le domaine change.
+    const appUrl = appDashboardUrl('')
     const agencyName = agency.legal_name ?? agency.name ?? 'votre agence'
 
     // 4. Envoi. Sans cle Resend, on ne pretend pas avoir envoye : meme discipline que les

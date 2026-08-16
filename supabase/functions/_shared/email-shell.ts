@@ -20,6 +20,8 @@
 // l'en-tête ne porte que ce qui ne peut PAS être inliné (media queries), et rien
 // d'essentiel n'en dépend — un client qui le jette rend quand même la carte.
 
+import { emailAssetsUrl } from './app-url.ts'
+
 // ── Jetons ──────────────────────────────────────────────────────────────────
 export const BRAND = '#424bfb'
 export const CARD = '#090909'
@@ -35,8 +37,13 @@ export const MUTED = '#8a8a8f'
  * C'était l'adresse de l'ancienne coquille, donc le logo était mort dans chaque e-mail
  * déjà parti. Les fichiers sont versionnés dans `public/email/` et servis en `image/png`
  * par l'app. Un test interdit le retour en arrière.
+ *
+ * ⚠ L'HÔTE VIENT DÉSORMAIS D'`app-url.ts`, comme les liens. Une image d'e-mail ne peut
+ * pas être relative — le client de messagerie n'a aucune origine à laquelle la rattacher —
+ * donc son hôte est aussi exposé qu'un lien à un changement de domaine, et plus silencieux
+ * encore quand il casse : l'e-mail part, il s'affiche, seul le logo manque.
  */
-export const ASSETS = 'https://app.megga.ch/email'
+export const ASSETS = emailAssetsUrl()
 
 export const FONT = "'Inter Tight','Helvetica Neue',Helvetica,Arial,sans-serif"
 

@@ -26,9 +26,14 @@ import {
   escapeHtml, shell, p, row, button,
 } from './email-shell.ts'
 import type { AppLocale } from './recipient-language.ts'
+import { appDashboardUrl } from './app-url.ts'
 
-/** ⚠ app.megga.ch, jamais megga.ch : cf. point 1 de l'en-tête. */
-const URL_SECURITE = 'https://app.megga.ch/security/sessions'
+/**
+ * ⚠ FONCTION, PAS CONSTANTE : une `const` de module fige la base au chargement de
+ * l'isolat, donc avant qu'un test puisse poser `MEGGA_APP_URL`. Même raison que
+ * l'en-tête d'`app-url.ts` donne pour ne pas exporter `appBaseUrl`.
+ */
+const urlSecurite = () => appDashboardUrl('/security/sessions')
 
 export interface DeviceAlertInput {
   name: string | null
@@ -187,7 +192,7 @@ export function buildDeviceAlertEmail(a: DeviceAlertInput): { subject: string; h
       // ⛔ JAMAIS la mention transactionnelle des autres e-mails : celle-ci dit pourquoi
       // le message arrive même sans action du destinataire, et ce fait-là est vrai.
       legalNote: t.legal,
-      headerCta: { href: 'https://app.megga.ch/dashboard', label: t.ctaEntete },
+      headerCta: { href: appDashboardUrl(), label: t.ctaEntete },
       bodyHtml: `
      ${glypheAlerte()}
      ${p(t.bonjour(escapeHtml(a.name ?? '')))}
@@ -200,7 +205,7 @@ export function buildDeviceAlertEmail(a: DeviceAlertInput): { subject: string; h
        ${row(t.date, escapeHtml(a.when))}
      </table>
      ${p(t.corps2, 28)}
-     <div style="margin:0 0 8px;">${button(URL_SECURITE, t.ctaSecuriser)}</div>
+     <div style="margin:0 0 8px;">${button(urlSecurite(), t.ctaSecuriser)}</div>
      <p style="margin:32px 0 0;font-family:${FONT};font-size:11.5px;color:${MUTED};line-height:1.5;">
        ${t.noteDetection}
      </p>

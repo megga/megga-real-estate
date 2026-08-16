@@ -170,3 +170,16 @@ export function kycReportRenderUrl(token: string): string {
 export function appDashboardUrl(chemin = '/dashboard'): string {
   return `${appBaseUrl()}${chemin}`
 }
+
+/**
+ * La base des IMAGES d'e-mail (`/email/megga-logo-white.png`, etc.).
+ *
+ * ⚠ Ce n'est pas une page : c'est un dossier statique servi par la même app, et
+ * c'est pour ça qu'il vit ici. Une image d'e-mail ne peut PAS être relative — le
+ * client de messagerie n'a aucune origine à laquelle la rattacher — donc son hôte
+ * est aussi exposé qu'un lien à un changement de domaine, et aussi silencieux
+ * quand il casse : l'e-mail part, il s'affiche, seul le logo manque.
+ */
+export function emailAssetsUrl(): string {
+  return `${appBaseUrl()}/email`
+}
