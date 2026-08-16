@@ -144,7 +144,7 @@ export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
   // et même reprise de la passe arrivée pendant une écriture. Suspendu pendant
   // et après la publication (sinon il repasserait le bien en `draft` juste
   // après l'avoir activé), et dans le harnais, qui n'écrit jamais.
-  const { etat: etatBrouillon } = useWizardDraft(d, set, !demo && !publishing && !done, mobileWizardPayload)
+  const { etat: etatBrouillon, attendreEcriture } = useWizardDraft(d, set, !demo && !publishing && !done, mobileWizardPayload)
 
   const canNext =
     step === 0 ? !!d.type :
@@ -163,8 +163,13 @@ export function MobileWizardScreen({ demo = false }: { demo?: boolean }) {
     if (demo) { setDone(true); return }
     try {
       const charge = mobileWizardPayload(d, 'active')
-      const bien = d._draftId
-        ? await updateProperty.mutateAsync({ id: d._draftId, ...charge })
+      // ⛔ Attendre l'enregistrement automatique AVANT de lire l'identifiant : sur
+      // mobile le prix se saisit à la dernière étape, juste avant ce bouton, donc la
+      // création du brouillon est souvent encore en vol. La lire dans la fermeture
+      // donnerait un identifiant vide et créerait le bien deux fois.
+      const brouillonId = await attendreEcriture()
+      const bien = brouillonId
+        ? await updateProperty.mutateAsync({ id: brouillonId, ...charge })
         : await createProperty.mutateAsync(charge)
       navigate(`/dashboard/listings/${bien.id}`)
     } catch {

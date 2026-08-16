@@ -96,9 +96,26 @@ describe('Wizard — le brouillon automatique existe vraiment', () => {
     expect(shell).not.toMatch(/TYPE_TO_ENUM/)
   })
 
-  it('la publication met à jour le brouillon au lieu d’en créer un second', () => {
-    const shell = lire('WizardShell.tsx')
-    expect(shell).toMatch(/data\._draftId[\s\S]{0,120}updateProperty\.mutateAsync/)
+  /**
+   * ⛔ CE TEST A ÉTÉ RENFORCÉ le 16 août 2026, parce qu'il passait sur du code qui
+   * doublait quand même le bien.
+   *
+   * Il vérifiait « `_draftId` puis `updateProperty` ». C'est vrai du code fautif :
+   * la publication LISAIT bien `_draftId` — mais dans une FERMETURE, celle du rendu
+   * d'avant. Tant qu'une création de brouillon était encore en vol, cette valeur
+   * était vide, la publication basculait sur `createProperty`, et l'agence se
+   * retrouvait avec deux lignes : le bien publié et un brouillon orphelin visible
+   * dans « Mes biens ».
+   *
+   * Ce qu'il faut donc exiger n'est pas la présence d'une branche, c'est l'ORDRE :
+   * attendre l'enregistrement automatique, et publier sur l'identifiant qu'il rend.
+   */
+  it('la publication ATTEND le brouillon en vol avant de choisir créer ou mettre à jour', () => {
+    const shell = sansCommentaires(lire('WizardShell.tsx'))
+    // L'attente précède la décision, et la décision porte sur ce qu'elle a rendu.
+    expect(shell).toMatch(/await attendreEcriture\(\)[\s\S]{0,200}updateProperty\.mutateAsync/)
+    // ⛔ Et la fermeture périmée n'est plus consultée pour cette décision.
+    expect(shell).not.toMatch(/data\._draftId\s*\n?\s*\?/)
   })
 
   /**
@@ -248,8 +265,24 @@ describe('Wizard mobile — le même brouillon que le bureau', () => {
     expect(src).toMatch(/TYPE_TO_ENUM/)
   })
 
-  it('la publication met à jour le brouillon au lieu d’en créer un second', () => {
-    expect(ecran()).toMatch(/_draftId[\s\S]{0,140}updateProperty\.mutateAsync/)
+  /**
+   * ⛔ CE TEST A ÉTÉ RENFORCÉ le 16 août 2026, parce qu'il passait sur du code qui
+   * doublait quand même le bien.
+   *
+   * Il vérifiait « `_draftId` puis `updateProperty` ». C'est vrai du code fautif :
+   * la publication LISAIT bien `_draftId` — mais dans une FERMETURE, celle du rendu
+   * d'avant. Tant qu'une création de brouillon était encore en vol, cette valeur
+   * était vide, la publication basculait sur `createProperty`, et l'agence se
+   * retrouvait avec deux lignes : le bien publié et un brouillon orphelin visible
+   * dans « Mes biens ».
+   *
+   * Ce qu'il faut donc exiger n'est pas la présence d'une branche, c'est l'ORDRE :
+   * attendre l'enregistrement automatique, et publier sur l'identifiant qu'il rend.
+   */
+  it('la publication ATTEND le brouillon en vol avant de choisir créer ou mettre à jour', () => {
+    const src = sansCommentaires(ecran())
+    expect(src).toMatch(/await attendreEcriture\(\)[\s\S]{0,200}updateProperty\.mutateAsync/)
+    expect(src).not.toMatch(/d\._draftId\s*\n?\s*\?/)
   })
 
   /**

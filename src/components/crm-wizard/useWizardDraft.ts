@@ -145,7 +145,7 @@ export function useWizardDraft<T extends WizardDraftable>(
   set: (patch: Partial<T>) => void,
   actif: boolean,
   payload: (d: T, status: 'draft' | 'active') => CreatePropertyInput,
-): { etat: EtatBrouillon } {
+): { etat: EtatBrouillon; attendreEcriture: () => Promise<string | null> } {
   const createProperty = useCreateProperty()
   const updateProperty = useUpdateProperty()
 
@@ -166,45 +166,91 @@ export function useWizardDraft<T extends WizardDraftable>(
    * toujours, parce qu'on cesse de le vérifier.
    */
   const enAttente = useRef(false)
+  /**
+   * L'écriture en cours, exposée pour être ATTENDUE.
+   *
+   * ⛔ POURQUOI `enVol` NE SUFFISAIT PAS. C'est un booléen : il ordonne les
+   * écritures du hook ENTRE ELLES, mais ne donne à personne d'autre de quoi
+   * attendre. Or `handlePublish` publie depuis une AUTRE instance de mutation.
+   * Si l'agent touche « Publier » pendant que la toute première écriture — une
+   * CRÉATION — est en vol, il lit un `_draftId` encore vide et crée le bien une
+   * SECONDE fois : deux lignes `properties`, une publiée et un brouillon orphelin
+   * que rien ne supprime et qui s'affiche dans « Mes biens ». Le cas est étroit au
+   * bureau (7 étapes) et réaliste sur mobile, où le prix se saisit juste avant le
+   * bouton.
+   */
+  const enVolPromesse = useRef<Promise<void> | null>(null)
+  /**
+   * L'identifiant du brouillon, lu SANS passer par le rendu.
+   *
+   * ⚠ Attendre l'écriture ne suffirait pas : `handlePublish` lit `data._draftId`
+   * dans une fermeture, et cette fermeture reste celle du rendu d'AVANT le `set()`.
+   * L'appelant a donc besoin de la valeur, pas seulement du signal de fin.
+   */
+  const draftId = useRef<string | null>(data._draftId ?? null)
+  if (data._draftId) draftId.current = data._draftId
   /** Lu dans le timer sans le relancer à chaque frappe. */
   const dernier = useRef(data)
   dernier.current = data
 
-  const ecrire = useCallback(async function ecrireImpl(): Promise<void> {
-    if (enVol.current) { enAttente.current = true; return }
+  const ecrire = useCallback(function ecrireImpl(): Promise<void> {
+    if (enVol.current) { enAttente.current = true; return enVolPromesse.current ?? Promise.resolve() }
     const d = dernier.current
-    if (!d.addr?.trim()) return
+    if (!d.addr?.trim()) return Promise.resolve()
     enVol.current = true
     enAttente.current = false
     setEtat('enregistrement')
-    try {
-      if (!d._draftId) {
-        const cree = await createProperty.mutateAsync(payload(d, 'draft'))
-        version.current = cree.updated_at
-        // `T` garantit `_draftId?: string`, mais TS ne sait pas prouver qu'un
-        // littéral le satisfait pour un T quelconque.
-        set({ _draftId: cree.id } as Partial<T>)
-      } else {
-        const maj = await updateProperty.mutateAsync({
-          id: d._draftId,
-          ...(version.current ? { expected_updated_at: version.current } : {}),
-          ...payload(d, 'draft'),
-        })
-        version.current = (maj as { updated_at?: string })?.updated_at ?? null
+    const passe = (async () => {
+      try {
+        if (!draftId.current) {
+          const cree = await createProperty.mutateAsync(payload(d, 'draft'))
+          version.current = cree.updated_at
+          draftId.current = cree.id
+          // `T` garantit `_draftId?: string`, mais TS ne sait pas prouver qu'un
+          // littéral le satisfait pour un T quelconque.
+          set({ _draftId: cree.id } as Partial<T>)
+        } else {
+          const maj = await updateProperty.mutateAsync({
+            id: draftId.current,
+            ...(version.current ? { expected_updated_at: version.current } : {}),
+            ...payload(d, 'draft'),
+          })
+          version.current = (maj as { updated_at?: string })?.updated_at ?? null
+        }
+        setEtat('enregistre')
+      } catch (err) {
+        // Un échec doit se VOIR : c'est tout l'objet de ce fichier. Le conflit de
+        // verrou (édition concurrente) tombe ici comme le reste.
+        console.warn('[wizard] brouillon non enregistré:', err)
+        setEtat('echec')
+      } finally {
+        enVol.current = false
+        // La frappe survenue pendant l'écriture n'est pas perdue : on repart
+        // aussitôt, avec `dernier.current` qui porte déjà la valeur à jour.
+        // ⚠ On l'ATTEND : sans ça, `attendreEcriture` rendrait la main entre deux
+        // passes de la chaîne, c'est-à-dire au moment précis où le verrou est levé
+        // mais le travail pas fini.
+        if (enAttente.current) { enAttente.current = false; await ecrireImpl() }
+        else enVolPromesse.current = null
       }
-      setEtat('enregistre')
-    } catch (err) {
-      // Un échec doit se VOIR : c'est tout l'objet de ce fichier. Le conflit de
-      // verrou (édition concurrente) tombe ici comme le reste.
-      console.warn('[wizard] brouillon non enregistré:', err)
-      setEtat('echec')
-    } finally {
-      enVol.current = false
-      // La frappe survenue pendant l'écriture n'est pas perdue : on repart
-      // aussitôt, avec `dernier.current` qui porte déjà la valeur à jour.
-      if (enAttente.current) { enAttente.current = false; void ecrireImpl() }
-    }
+    })()
+    enVolPromesse.current = passe
+    return passe
   }, [createProperty, updateProperty, set, payload])
+
+  /**
+   * Attend que l'enregistrement automatique ait fini, puis rend l'identifiant du
+   * brouillon — `null` si aucun n'a encore été créé.
+   *
+   * À appeler avant toute publication : c'est ce qui empêche la publication de
+   * doubler une création encore en vol. Ne déclenche RIEN par elle-même — une
+   * frappe non encore arrivée à échéance n'a pas de brouillon à attendre, et la
+   * publication la créera elle-même, une seule fois.
+   */
+  const attendreEcriture = useCallback(async (): Promise<string | null> => {
+    await enVolPromesse.current?.catch(() => {})
+    return draftId.current
+  }, [])
 
   useEffect(() => {
     if (!actif || !data.addr?.trim()) return
@@ -215,5 +261,5 @@ export function useWizardDraft<T extends WizardDraftable>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actif, data])
 
-  return { etat }
+  return { etat, attendreEcriture }
 }

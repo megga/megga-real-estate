@@ -153,7 +153,7 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
   // sans que rien ne soit persisté : fermer l'onglet perdait tout le parcours.
   // Suspendu pendant et après la publication, sinon la sauvegarde repasserait
   // le bien en `draft` juste après l'avoir activé.
-  const { etat: etatBrouillon } = useWizardDraft(data, set, !publishing && !published, wizardPayload)
+  const { etat: etatBrouillon, attendreEcriture } = useWizardDraft(data, set, !publishing && !published, wizardPayload)
 
   // Le gating de publication vit dans la checklist « Prêt à publier » du Step 7
   // (≥5 photos requis pour une publication PUBLIQUE ; brouillon & « Privé » jamais
@@ -228,8 +228,14 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
       // ajouté et l'agent publierait autre chose que ce qu'il a enregistré.
       // `photos` s'y ajoute ici seulement : l'upload exige l'id du bien.
       const charge = { ...wizardPayload(data, 'active'), title, photos: existingPhotoUrls }
-      const created = data._draftId
-        ? await updateProperty.mutateAsync({ id: data._draftId, ...charge })
+      // ⛔ ON ATTEND L'ENREGISTREMENT AUTOMATIQUE AVANT DE LIRE L'IDENTIFIANT.
+      // `data._draftId` vient d'une fermeture : si une CRÉATION est encore en vol,
+      // elle y est vide, et publier créerait le bien une seconde fois — un publié
+      // plus un brouillon orphelin, visible dans « Mes biens ». `attendreEcriture`
+      // rend l'identifiant réel, y compris celui posé pendant l'attente.
+      const brouillonId = await attendreEcriture()
+      const created = brouillonId
+        ? await updateProperty.mutateAsync({ id: brouillonId, ...charge })
         : await createProperty.mutateAsync(charge)
 
       // 2b) Upload des vraies photos maintenant qu'on a l'id, puis persistance
