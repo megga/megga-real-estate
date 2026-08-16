@@ -131,7 +131,7 @@ export function MlkLanding({
           marginBottom: 28,
         }}
       >
-        <MlkAgentAvatar name={agentFullName} color="#3B82F6" size={48} />
+        <MlkAgentAvatar name={agentFullName} size={48} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
@@ -816,7 +816,7 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
           marginBottom: 24,
         }}
       >
-        <MlkAgentAvatar name={agentFullName} color="#3B82F6" size={46} />
+        <MlkAgentAvatar name={agentFullName} size={46} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{

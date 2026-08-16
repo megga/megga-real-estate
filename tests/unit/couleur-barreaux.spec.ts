@@ -146,7 +146,11 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/components/listings', 37],
   ['src/pages/dev', 26],
   ['src/pages/agent', 4],
-  ['src/components/kyc-magic-link', 24],
+  // ⚠ 24 → 21 le 17 août 2026 : `#3B82F6` (blue-500 de Tailwind, hors échelle) a quitté
+  // la pastille d'agent et ses deux appels. Elle rendait 3,68:1 sous encre blanche sur le
+  // PREMIER et le DERNIER écran du parcours client ; elle prend l'encre, comme la pastille
+  // jumelle de la réception acheteur, et son encre est désormais DÉRIVÉE (`encreSur`).
+  ['src/components/kyc-magic-link', 21],
   ['src/components/auth-bento', 22],
   ['src/components/kyc-report', 22],
   ['src/components/matching-recherche', 23],
