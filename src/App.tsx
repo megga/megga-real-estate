@@ -47,6 +47,7 @@ const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
 const AppointmentManagePage = lazy(() => import('@/pages/public/AppointmentManagePage'))
 // Réception acheteur — page publique par token (boucle de match, refonte juil. 2026)
 const BuyerReceptionPage = lazy(() => import('@/pages/public/BuyerReceptionPage'))
+const DesinscriptionPage = lazy(() => import('@/pages/public/DesinscriptionPage'))
 // Sprint 4.7.D — Rendu PDF tokenisé pour Cloudflare Browser Rendering (rapport KYC WhatsApp)
 const KycReportRenderPage = lazy(() => import('@/pages/public/KycReportRenderPage'))
 
@@ -430,6 +431,10 @@ function AppRoutes() {
               <Route path="/kyc/:token" element={<KycPublicPage />} />
               {/* Réception acheteur — sélection de biens transmise par lien privé (boucle de match) */}
               <Route path="/reception/:token" element={<BuyerReceptionPage />} />
+              {/* Préférences d'e-mail — le lien « Se désinscrire » du pied de nos e-mails.
+                  ⚠ Le jeton est en QUERY (?t=), pas dans le chemin : il est signé et long,
+                  et certains clients de messagerie tronquent les chemins profonds. */}
+              <Route path="/desinscription" element={<DesinscriptionPage />} />
               {/* Gestion par le client de son RDV de vérification KYC (jeton k='appt').
                   Le jeton porte déjà l'id du rendez-vous : pas d'id dans l'URL. */}
               <Route path="/rendez-vous/:token" element={<AppointmentManagePage />} />

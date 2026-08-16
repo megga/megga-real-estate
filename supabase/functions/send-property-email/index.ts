@@ -89,7 +89,7 @@ serve(async (req) => {
     // ⛔ GARDE du canal e-mail. Un STOP reçu sur WhatsApp écrit `channel='all'` : sans
     // cette lecture, la personne continuerait de recevoir ces envois après avoir demandé
     // qu'on la laisse tranquille.
-    const verdict = await emailSendAllowed(admin, { to: body.to, purpose: 'relance' })
+    const verdict = await emailSendAllowed(admin, { to: body.to, purpose: 'bien' })
     if (!verdict.allowed) {
       return new Response(
         JSON.stringify({ error: verdict.reason, blocked: true }),

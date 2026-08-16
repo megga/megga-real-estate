@@ -168,6 +168,10 @@ const PAGES_PUBLIQUES = new Set([
   'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx', 'PrivacyPage.tsx',
   'ResetPasswordPage.tsx', 'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
   'AuthBentoPage.tsx',
+  // 16 août 2026 — la page publique de préférences d'e-mail, atteinte depuis le lien
+  // « Se désinscrire » du pied de nos e-mails. Elle entre au cliquet comme les autres :
+  // elle prend ses couleurs de `MLK`/`MLK_STATUT` et sa police de la face publique.
+  'DesinscriptionPage.tsx',
 ])
 
 /** Écrite à part, en dur — elle ne peut pas rétrécir avec l'ensemble surveillé (n°15). */
@@ -176,7 +180,7 @@ const PAGES_PUBLIQUES_ACQUISES = [
   'AuthCallbackPage.tsx', 'KycPublicPage.tsx', 'KycReportRenderPage.tsx',
   'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx', 'PrivacyPage.tsx',
   'ResetPasswordPage.tsx', 'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
-  'AuthBentoPage.tsx',
+  'AuthBentoPage.tsx', 'DesinscriptionPage.tsx',
 ]
 
 // ⚠ Typé `RootSpec[]`, pas une forme recopiée à la main : l'ancienne annotation

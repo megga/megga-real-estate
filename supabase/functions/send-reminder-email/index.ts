@@ -196,7 +196,7 @@ serve(async (req) => {
     // cette lecture, la personne continuerait de recevoir ces envois après avoir demandé
     // qu'on la laisse tranquille.
     const verdict = await emailSendAllowed(supabase, {
-      to: contact.email, purpose: 'relance', contactId: reminder.contact_id ?? null,
+      to: contact.email, purpose: 'rappel', contactId: reminder.contact_id ?? null,
     })
     if (!verdict.allowed) {
       return new Response(
