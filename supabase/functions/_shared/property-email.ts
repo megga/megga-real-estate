@@ -38,9 +38,19 @@ export interface PropertyEmailInput {
   unsubscribeHtml?: string
 }
 
-/** `CHF 720'000`, apostrophe suisse (règle §6 du CLAUDE.md). */
+/**
+ * `CHF 720'000`, apostrophe suisse (règle §6 du CLAUDE.md).
+ *
+ * ⚠ L'APOSTROPHE EST L'ASCII `U+0027`, PAS LA TYPOGRAPHIQUE `U+2019`. Les deux se
+ * ressemblent à l'écran et se distinguent au point de code : cette fonction est née
+ * avec `’`, alors que le code de `send-property-email` qu'elle remplace, le
+ * `formatCHF` de `weekly-digest.ts`, celui de `src/lib/utils.ts` et l'exemple du
+ * CLAUDE.md portent tous `'`. Comme la valeur alimente l'OBJET de l'e-mail, les
+ * annonces de bien affichaient `CHF 720’000` quand toutes les autres surfaces du
+ * produit écrivaient `CHF 720'000`.
+ */
 export function formatCHF(amount: number): string {
-  return `CHF ${amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '’')}`
+  return `CHF ${amount.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, "'")}`
 }
 
 export function buildPropertyEmail(i: PropertyEmailInput): { subject: string; html: string } {
