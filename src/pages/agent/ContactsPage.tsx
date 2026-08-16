@@ -123,9 +123,13 @@ export default function ContactsPage() {
         residence_country: data.residence_country,
         home_address: data.home_address,
         search_criteria: criteria as Record<string, unknown> | null,
+        // La langue est une COLONNE (`contacts.language`, migration 20260815190000), pas un
+        // champ de `form_data` : c'est elle que lisent les six chemins d'envoi (rappels
+        // automatiques, lien magique, RDV, WhatsApp). Écrite dans `form_data` seul, la langue
+        // choisie ici n'atteignait aucun envoi et le client recevait tout en français.
+        language: data.lang,
         form_data: {
           civility: data.civility,
-          lang: data.lang,
           canal: data.canal,
           photo: data.photo ?? null,
           offer,

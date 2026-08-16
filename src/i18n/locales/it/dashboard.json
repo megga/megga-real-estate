@@ -403,6 +403,18 @@
         "postponed_other": "rinviati",
         "explainer": "I lead rinviati torneranno domani; quelli scartati sono usciti dal ciclo.",
         "backToDashboard": "Torna alla dashboard"
+      },
+      "review": {
+        "title": "Rilettura · il messaggio parte in {{langue}}",
+        "notSent": "Questa versione non viene inviata. Le permette di rileggere prima di inviare.",
+        "loading": "Traduzione in corso…",
+        "unavailable": "La rilettura non è stata prodotta. La bozza resta inviabile così com’è.",
+        "lang": {
+          "fr": "francese",
+          "de": "tedesco",
+          "en": "inglese",
+          "it": "italiano"
+        }
       }
     },
     "h": {

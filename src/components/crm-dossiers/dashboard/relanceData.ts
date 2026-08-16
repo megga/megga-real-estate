@@ -30,6 +30,8 @@ export interface RelanceLead {
   email: string | null
   first: string
   last: string
+  /** `contacts.language` — langue de CORRESPONDANCE du client. NULL = jamais choisie. */
+  language: string | null
   avatarBg: string
   score: number
   bien: string

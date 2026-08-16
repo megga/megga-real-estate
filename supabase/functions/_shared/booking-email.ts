@@ -1,11 +1,12 @@
 // supabase/functions/_shared/booking-email.ts
 // Courriels du rendez-vous de vérification KYC : confirmation, report, annulation.
 //
-// Dates formatées dans le fuseau de l'AGENT, explicitement.
-// `send-visit-email` s'appuie sur `getHours()` du runtime — donc sur UTC en edge
-// function, ce qui annonce au client une heure décalée d'une à deux heures selon
-// la saison. Une convocation à une vérification d'identité ne peut pas se
-// permettre ça, d'où le formatage par Intl avec `timeZone` ici.
+// Dates formatées dans le fuseau de l'AGENT, explicitement, par Intl avec `timeZone`.
+//
+// ⚠ Cet en-tête disait que `send-visit-email` « s'appuie sur `getHours()` du runtime » :
+// PÉRIMÉ, ce défaut y a été corrigé le 15.08.2026. Le motif reste vrai en soi — lire
+// l'heure du runtime en edge function rend de l'UTC, donc une heure décalée d'une à deux
+// heures selon la saison, et un rendez-vous en soirée change carrément de jour.
 //
 // Meilleur effort : un échec d'envoi ne remet jamais en cause la réservation
 // elle-même (la page de confirmation affiche le rendez-vous de toute façon).
@@ -59,6 +60,18 @@ const T: Record<AppLocale, {
   suiteEmpechement: string
   fallbackConseiller: string
   legal: string
+  /**
+   * La préposition qui colle la date à l'heure.
+   *
+   * ⛔ ELLE ÉTAIT FIGÉE EN FRANÇAIS DANS LES QUATRE LANGUES (`${date} à ${time}`, ligne 253
+   * avant le 16.08.2026) : `INTL_TAG` traduisait bien les deux moitiés, mais la phrase qui
+   * les recolle ne l'était pas. Mesuré, l'allemand rendait
+   * « Montag, 17. August 2026 à 14:00 ». Le renommage `formatFr` → `formatWhen` avait acté
+   * « elle ne rend plus du français seul » ; le littéral, lui, était resté.
+   * Aucun test ne l'attrapait : le banc quatre langues vérifie le témoin de langue,
+   * `lang="xx"` et l'absence de cadratin, jamais une préposition.
+   */
+  jonctionDateHeure: string
 }> = {
   fr: {
     suffixeObjet: {
@@ -91,6 +104,7 @@ const T: Record<AppLocale, {
     suiteEmpechement: ' en un clic, sans avoir à vous connecter.',
     fallbackConseiller: 'votre conseiller',
     legal: 'Cet e-mail concerne un rendez-vous de vérification d’identité pris avec votre agence. Il ne s’agit pas d’une communication marketing : c’est pourquoi il ne contient pas de lien de désinscription.',
+    jonctionDateHeure: 'à',
   },
   de: {
     suffixeObjet: {
@@ -123,6 +137,7 @@ const T: Record<AppLocale, {
     suiteEmpechement: ' mit einem Klick, ohne Anmeldung.',
     fallbackConseiller: 'Ihre Beraterin oder Ihr Berater',
     legal: 'Diese E-Mail betrifft einen Termin zur Identitätsprüfung, der mit Ihrer Agentur vereinbart wurde. Es handelt sich nicht um eine Werbenachricht, deshalb enthält sie keinen Abmeldelink.',
+    jonctionDateHeure: 'um',
   },
   en: {
     suffixeObjet: {
@@ -155,6 +170,7 @@ const T: Record<AppLocale, {
     suiteEmpechement: ' in one click, no sign-in needed.',
     fallbackConseiller: 'your adviser',
     legal: 'This email is about an identity check appointment booked with your agency. It is not a marketing message, which is why it carries no unsubscribe link.',
+    jonctionDateHeure: 'at',
   },
   it: {
     suffixeObjet: {
@@ -187,6 +203,7 @@ const T: Record<AppLocale, {
     suiteEmpechement: ' con un clic, senza doversi connettere.',
     fallbackConseiller: 'il suo consulente',
     legal: 'Questa e-mail riguarda un appuntamento di verifica d\'identità fissato con la sua agenzia. Non è una comunicazione commerciale: per questo non contiene alcun link di disiscrizione.',
+    jonctionDateHeure: 'alle',
   },
 }
 
@@ -250,7 +267,7 @@ function formatWhen(iso: string, timeZone: string, locale: AppLocale): string {
   const time = new Intl.DateTimeFormat(INTL_TAG[locale], {
     timeZone, hour: '2-digit', minute: '2-digit', hour12: false,
   }).format(d)
-  return `${date} à ${time}`
+  return `${date} ${T[locale].jonctionDateHeure} ${time}`
 }
 
 /** Neutralise le HTML : ces valeurs viennent de la base et finissent dans un e-mail. */

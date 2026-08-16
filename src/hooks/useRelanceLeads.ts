@@ -49,6 +49,7 @@ function contactToLead(c: {
   email: string | null
   last_interaction_at: string | null
   score: string | null
+  language: string | null
 }, idx: number): RelanceLead {
   const dorm = daysSince(c.last_interaction_at)
   const kyc: KycStatus = 'none' // real KYC status lives on kyc_cases — fast-follow
@@ -66,6 +67,7 @@ function contactToLead(c: {
     email: c.email,
     first: c.first_name,
     last: c.last_name,
+    language: c.language ?? null,
     avatarBg: PALETTE[idx % PALETTE.length],
     score,
     bien: '—',
@@ -128,7 +130,9 @@ export function useRelanceLeads(): UseRelanceLeadsResult {
 
   const query = supabase
     .from('contacts')
-    .select('id, first_name, last_name, email, last_interaction_at, score')
+    // `language` : le brouillon se rédige dans la langue du CONTACT, jamais dans celle de
+    // l'agent. Sans cette colonne, elle n'atteignait pas le composant.
+    .select('id, first_name, last_name, email, last_interaction_at, score, language')
     // Filter: dormant OR never engaged. The `last_interaction_at.lt.X,last_interaction_at.is.null`
     // syntax is PostgREST's OR-in-a-single-filter.
     .or(`last_interaction_at.lt.${cutoff},last_interaction_at.is.null`)
@@ -147,6 +151,7 @@ export function useRelanceLeads(): UseRelanceLeadsResult {
     email: string | null
     last_interaction_at: string | null
     score: string | null
+    language: string | null
   }>).map(contactToLead)
 
   return {

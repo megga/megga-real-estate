@@ -10,6 +10,7 @@
 // se déduisent de la ligne `visits`, jamais du corps de la requête.
 
 import { buildVisitEmail } from '../_shared/visit-email.ts'
+import { parseLocale, DEFAULT_LOCALE } from '../_shared/recipient-language.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
@@ -80,7 +81,9 @@ serve(async (req) => {
     // Fetch visit with relations
     const { data: visit, error: visitError } = await supabaseAdmin
       .from('visits')
-      .select('*, property:properties(title, address, city, photos), contact:contacts(first_name, last_name, email)')
+      // `language` : les e-mails ACHETEUR partent dans la langue du client, et ce chemin
+      // est déclenché par un cron — il n'a aucune requête d'où la lire.
+      .select('*, property:properties(title, address, city, photos), contact:contacts(first_name, last_name, email, language)')
       .eq('id', visit_id)
       .single()
 
@@ -103,12 +106,27 @@ serve(async (req) => {
     const isVideo = visit.visit_type === 'video'
     const videoLabel = visit.video_platform === 'facetime' ? 'FaceTime' : 'Google Meet'
 
-    // Fetch agent email
-    const { data: agents } = await supabaseAdmin
-      .from('profiles')
-      .select('email, full_name')
-      .eq('agency_id', agency_id)
-      .limit(1)
+    // ⛔ CETTE REQUÊTE PRENAIT UN PROFIL ARBITRAIRE DE L'AGENCE. Ni `.eq('id',
+    // visit.agent_id)` ni `.order()` : sur une agence de plusieurs personnes, la
+    // notification (avec les coordonnées de l'acheteur) partait chez un collègue au hasard,
+    // et l'ordre pouvait changer d'un appel à l'autre. `visits.agent_id` existait et n'était
+    // jamais lu. Le défaut devient visible en ajoutant la langue — on aurait écrit dans
+    // celle d'un tiers — mais il précède ce chantier.
+    //
+    // Le repli sur un profil de l'agence est conservé : `agent_id` est nullable, et mieux
+    // vaut prévenir quelqu'un que personne.
+    const { data: agents } = visit.agent_id
+      ? await supabaseAdmin
+          .from('profiles')
+          .select('email, full_name, language')
+          .eq('id', visit.agent_id)
+          .limit(1)
+      : await supabaseAdmin
+          .from('profiles')
+          .select('email, full_name, language')
+          .eq('agency_id', agency_id)
+          .order('created_at', { ascending: true })
+          .limit(1)
     const agent = agents?.[0]
 
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
@@ -144,6 +162,8 @@ serve(async (req) => {
       ;({ subject, html } = buildVisitEmail({
         ...commun,
         kind: 'notification_agent',
+        // L'AGENT lit sa propre langue (`profiles.language`), pas celle du client.
+        locale: parseLocale(agent?.language) ?? DEFAULT_LOCALE,
         agentName: agent?.full_name ?? null,
         buyerEmail: (visit.buyer_email as string | null) ?? null,
         buyerPhone: (visit.buyer_phone as string | null) ?? null,
@@ -154,6 +174,11 @@ serve(async (req) => {
       to = visit.buyer_email || contact?.email || ''
       ;({ subject, html } = buildVisitEmail({
         ...commun,
+        // L'ACHETEUR lit `contacts.language`. ⚠ Quand la visite vient du site public, le
+        // destinataire est `visit.buyer_email` et peut n'avoir aucune fiche : la langue
+        // reste alors celle du contact rattaché à la visite (`contact_id` est NOT NULL),
+        // à défaut le français.
+        locale: parseLocale(contact?.language) ?? DEFAULT_LOCALE,
         kind: type === 'reminder' ? 'reminder' : 'confirmation_buyer',
       }))
       if (type === 'reminder') {

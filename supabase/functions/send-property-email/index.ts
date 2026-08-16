@@ -1,4 +1,5 @@
 import { buildPropertyEmail } from '../_shared/property-email.ts'
+import { parseLocale, DEFAULT_LOCALE } from '../_shared/recipient-language.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -9,13 +10,8 @@ interface PropertyPayload {
   price: number
   address: string
   city: string
-  rooms: number | null
-  surface_m2: number | null
-  type: string
   photo_url: string | null
   source_url: string
-  source_agency: string | null
-  source_portal: string
 }
 
 interface SendRequest {
@@ -25,6 +21,15 @@ interface SendRequest {
   agentPhone: string
   property: PropertyPayload
   message?: string
+  /**
+   * Langue du CONTACT, jointe par l'appelant.
+   *
+   * ⚠ ELLE NE PEUT PAS VENIR DE LA BASE ICI : cette fonction ne reçoit qu'une ADRESSE, sans
+   * `contact_id` — l'envoi peut viser quelqu'un qui n'a pas de fiche. C'est le front, qui a
+   * le contact sous la main, qui lit `contacts.language` et la joint. Valeur inconnue ou
+   * absente : `parseLocale` rend `null` et l'on retombe sur le français.
+   */
+  locale?: string
 }
 
 // Gabarit et formatage vivent dans `_shared/property-email.ts` depuis le 15.08.2026 :
@@ -96,9 +101,11 @@ serve(async (req) => {
     // être bloquée, mais pas se bloquer elle-même. Le jeton porte l'ADRESSE — cet envoi
     // part vers un destinataire qui n'a pas forcément de fiche chez nous.
     const unsub = await unsubscribeHeaders(body.to)
+    const locale = parseLocale(body.locale) ?? DEFAULT_LOCALE
     const { subject, html } = buildPropertyEmail({
       ...body,
-      unsubscribeHtml: unsub ? unsubscribeFooterHtml(unsub.url) : undefined,
+      locale,
+      unsubscribeHtml: unsub ? unsubscribeFooterHtml(unsub.url, locale) : undefined,
     })
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
