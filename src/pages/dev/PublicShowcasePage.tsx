@@ -40,8 +40,9 @@ import BuyerReceptionPage from '@/pages/public/BuyerReceptionPage'
 import VisitManagePage from '@/pages/public/VisitManagePage'
 import VisitFeedbackPage from '@/pages/public/VisitFeedbackPage'
 import AcceptInvitePage from '@/pages/public/AcceptInvitePage'
+import DesinscriptionPage from '@/pages/public/DesinscriptionPage'
 import { installerBanc, reglerBanc } from './bancSupabase'
-import { apptCreneaux, apptVue, invitationVue, mlkVue, receptionVue, visiteVue, type PublicEtat } from './publicFixtures'
+import { apptCreneaux, apptVue, desinscriptionVue, invitationVue, mlkVue, receptionVue, visiteVue, type PublicEtat } from './publicFixtures'
 
 const ETATS: { id: PublicEtat; label: string; titre: string }[] = [
   { id: 'nominal', label: 'Nominal', titre: 'Le parcours tel que le client l’ouvre' },
@@ -65,6 +66,11 @@ const SURFACES = [
   { chemin: 'visite?token=banc', label: 'Visite · modifier', route: '/visit/:id/edit' },
   { chemin: 'avis?token=banc', label: 'Visite · avis', route: '/visit/:id/feedback' },
   { chemin: 'invitation/banc', label: 'Invitation équipe', route: '/accept-invite/:token' },
+  // 16 août 2026 — la page atteinte depuis « Se désinscrire ». ⚠ Son jeton est en
+  // QUERY et non dans le chemin : une route en `desinscription/:token` la monterait
+  // sans jeton, elle rendrait « lien invalide », et on corrigerait la fixture au lieu
+  // de la route (le piège déjà payé sur les deux visites).
+  { chemin: 'desinscription?t=banc', label: 'Préférences d’e-mail', route: '/desinscription' },
 ]
 
 export default function PublicShowcasePage() {
@@ -114,6 +120,9 @@ function poserContrat(etat: PublicEtat) {
         // SIGNALE la fonction et l'écran montre une erreur au lieu d'un succès.
         'visit-reschedule': { ok: true },
         'visit-cancel': { ok: true },
+        // GET (lecture) et POST (écriture) partagent le nom : l'écriture n'a besoin
+        // que d'un 200 pour montrer l'écran de succès.
+        'email-preferences': desinscriptionVue(etat),
       },
   })
 }
@@ -137,7 +146,13 @@ function rendu(etat: PublicEtat, setEtat: (e: PublicEtat) => void, pathname: str
           return (
             <Link
               key={s.chemin}
-              to={s.chemin}
+              // ⛔ ABSOLU, ET NON RELATIF. Un `to={s.chemin}` se résout contre l'URL COURANTE :
+              // depuis `/dev/public/kyc/banc`, il rendait `/dev/public/kyc/banc/kyc/banc`, et
+              // ainsi de suite à chaque clic. Seul le PREMIER clic, depuis `/dev/public` nu,
+              // atterrissait juste — ce qui explique que le défaut ait survécu : on ne le voit
+              // qu'en passant d'une surface à une autre, et le banc sert surtout à en ouvrir
+              // une. Constaté le 16.08.2026 en montant la page de désinscription.
+              to={`/dev/public/${s.chemin}`}
               style={{
                 padding: '6px 12px', borderRadius: 999, textDecoration: 'none',
                 background: actif ? '#424bfb' : '#1c1c1e', color: '#ffffff',
@@ -177,6 +192,7 @@ function rendu(etat: PublicEtat, setEtat: (e: PublicEtat) => void, pathname: str
           <Route path="visite" element={<VisitManagePage />} />
           <Route path="avis" element={<VisitFeedbackPage />} />
           <Route path="invitation/:token" element={<AcceptInvitePage />} />
+          <Route path="desinscription" element={<DesinscriptionPage />} />
           <Route
             path="*"
             element={

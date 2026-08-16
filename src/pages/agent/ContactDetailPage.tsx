@@ -145,9 +145,10 @@ export default function ContactDetailPage() {
     verified: kyc?.dossier_status === 'verified',
     email: contact.email ?? '',
     phone: contact.phone ?? '',
-    // La langue vit dans form_data.lang (la table contacts n'a PAS de colonne
-    // `language` en prod) — cohérent avec le flux de création.
-    lang: typeof fd.lang === 'string' ? fd.lang : 'fr',
+    // La langue vit dans la COLONNE `contacts.language` (migration 20260815190000).
+    // ⚠ `form_data.lang` reste lu en repli pour les fiches saisies avant le 16.08.2026,
+    // quand ce flux écrivait là : sans lui, ces fiches perdraient la langue à l'affichage.
+    lang: contact.language ?? (typeof fd.lang === 'string' ? fd.lang : 'fr'),
     civ: typeof fd.civility === 'string' ? fd.civility : '',
     canal: typeof fd.canal === 'string' ? fd.canal : '',
     audience,
@@ -231,12 +232,16 @@ export default function ContactDetailPage() {
         if (user?.id) await invalidateKyc.mutateAsync({ contactId: id, actorId: user.id })
       }}
       onSaveCoord={async (v) => {
-        // Pas de colonne `language` en base : la langue va dans form_data.lang.
+        // La langue part dans la COLONNE : c'est la seule que lisent les envois. On retire
+        // au passage `lang` de form_data, pour ne pas laisser deux sources qui divergent
+        // (la fiche mobile lisait déjà la colonne, la fiche bureau form_data).
+        const { lang: _perime, ...fdSansLang } = fd
         await update.mutateAsync({
           id,
           email: v.email || null,
           phone: v.phone || null,
-          form_data: { ...fd, civility: v.civ, canal: v.canal, lang: v.lang },
+          language: v.lang || null,
+          form_data: { ...fdSansLang, civility: v.civ, canal: v.canal },
         })
         refreshList()
       }}

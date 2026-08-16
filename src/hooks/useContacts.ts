@@ -109,9 +109,12 @@ export function useCreateContact() {
         notes?: string
         /** Buyer/tenant search criteria (cantons, budget, types, rooms). */
         search_criteria?: Record<string, unknown> | null
-        /** Catch-all for non-mapped UI fields (civility, lang, assigned_to,
+        /** Catch-all for non-mapped UI fields (civility, assigned_to,
          * linked_bien, etc.) — preserved for future migration. */
         form_data?: Record<string, unknown> | null
+        /** Langue de correspondance du client (`fr|de|en|it`, CHECK en base). C'est elle que
+         * lisent les envois automatiques, qui n'ont aucune requête d'où lire une préférence. */
+        language?: string | null
         /** Identité LBA art. 3 — date ISO `yyyy-mm-dd`, pays en ISO 3166-1 alpha-2. */
         birth_date?: string | null
         nationality?: string | null
@@ -136,6 +139,7 @@ export function useCreateContact() {
           home_address: input.home_address ?? null,
           agency_id: input.agency_id ?? profile?.agency_id ?? null,
           user_id: user?.id ?? null,
+          language: input.language ?? null,
           search_criteria: (input.search_criteria ?? null) as unknown as import('@/types/database').Json | null,
           form_data: (input.form_data ?? null) as unknown as import('@/types/database').Json | null,
         },

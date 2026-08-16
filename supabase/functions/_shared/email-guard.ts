@@ -13,12 +13,22 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
+import { emailPreferencesUrl } from './app-url.ts'
 
 /**
  * `transactional` = réponse à un geste de la personne (confirmation de visite, lien qu'elle
  * a demandé). Les autres sont des envois que NOUS initions.
+ *
+ * ⚠ LES TROIS NATURES REFUSABLES SONT DISTINCTES DEPUIS LE 16.08.2026, et elles ne le
+ * pouvaient pas avant : les trois expéditeurs commerciaux passaient tous `'relance'`, donc
+ * une préférence par nature n'aurait rien pu distinguer. `bien` = une fiche de bien envoyée
+ * par l'agent, `rappel` = un suivi automatique, `relance` = un message que l'agent écrit.
+ * Elles doivent rester alignées sur le CHECK de `contact_suppressions.purpose`.
+ *
+ * `digest` reste hors registre : il va au STAFF, jamais à un client, et porte son propre
+ * `weekly_digest_opt_out`.
  */
-export type EmailPurpose = 'transactional' | 'relance' | 'digest'
+export type EmailPurpose = 'transactional' | 'relance' | 'bien' | 'rappel' | 'digest'
 
 export type EmailGuardVerdict =
   | { allowed: true; reason: 'ok' | 'ok_transactional' }
@@ -75,19 +85,31 @@ export async function unsubscribeHeaders(
     const token = await signMagicLinkToken({
       id: contactId ?? '-', exp: unix, k: 'unsub', e: to.trim().toLowerCase(),
     })
-    // ⛔ LE HÔTE DES EDGE FUNCTIONS, jamais `app.megga.ch`. Cloudflare Pages y sert un
-    // fallback SPA : mesuré le 15.08.2026, le GET du pied de page rend la coquille de l'app
-    // en `200 text/html` et le POST one-click de Gmail rend `405`. Le lien affichait donc
-    // « c'est fait » sans écrire une seule ligne dans `contact_suppressions` — un mécanisme
-    // légalement exigé qui échoue en signalant le succès. Le hôte Supabase, lui, rend du
-    // `application/json` : c'est le `content-type` qui distingue, jamais le code HTTP.
+
+    // ⛔ DEUX URL, ET C'EST LE POINT — elles n'ont ni le même appelant ni le même besoin.
+    //
+    // LA MACHINE (`headers`) reste sur l'EDGE. Le POST « one-click » (RFC 8058) est ce que
+    // Gmail et Outlook appellent depuis leur propre bouton, et il exige un point d'entrée qui
+    // répond à un POST sans navigateur. Cloudflare Pages y rend `405` : mesuré le 15.08.2026,
+    // c'est ce qui avait cassé ce mécanisme quand les deux URL n'en faisaient qu'une.
+    //
+    // L'HUMAIN (`url`) va sur la PAGE de l'app. L'edge ne peut pas servir de HTML : sur le
+    // domaine `<ref>.supabase.co`, la passerelle réécrit tout `text/html` en `text/plain` et
+    // ajoute une CSP `sandbox` (documenté). La personne recevait donc une page légalement
+    // exigée en texte brut. `app.megga.ch/desinscription` sert du vrai HTML, en quatre langues.
+    //
+    // ⚠ L'ANCIEN PIÈGE N'EST PAS REVENU, et la différence tient à un mot : la route
+    // `/desinscription` EXISTE désormais (App.tsx). C'est son absence qui faisait rendre la
+    // coquille de l'app en 200 sans rien écrire, pas le fait de viser la SPA.
     const base = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/+$/, '')
     if (!base) throw new Error('SUPABASE_URL absent')
-    const url = `${base}/functions/v1/email-unsubscribe?t=${encodeURIComponent(token)}`
+    const t = encodeURIComponent(token)
+    const urlMachine = `${base}/functions/v1/email-unsubscribe?t=${t}`
+    const urlHumain = emailPreferencesUrl(token)
     return {
-      url,
+      url: urlHumain,
       headers: {
-        'List-Unsubscribe': `<${url}>`,
+        'List-Unsubscribe': `<${urlMachine}>`,
         'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
       },
     }

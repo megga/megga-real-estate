@@ -556,6 +556,9 @@ verify_jwt = false
 [functions.detect-new-device]
 verify_jwt = false
 
+[functions.email-preferences]
+verify_jwt = false
+
 [functions.email-unsubscribe]
 verify_jwt = false
 

@@ -114,6 +114,25 @@ export function teamInviteAcceptUrl(token: string): string {
 }
 
 /**
+ * URL de la page publique de préférences d'e-mail (route `/desinscription`), celle que porte
+ * le lien « Se désinscrire » du pied de nos e-mails.
+ *
+ * ⛔ ELLE VISE L'APP, PAS L'EDGE, ET C'EST L'INVERSE DE SA VOISINE `List-Unsubscribe`.
+ * L'edge ne peut pas servir de HTML : sur `<ref>.supabase.co`, la passerelle Supabase
+ * réécrit tout `text/html` en `text/plain` et ajoute une CSP `sandbox` (mesuré le
+ * 15.08.2026 ; « Serving of HTML content is only supported with custom domains »). Une page
+ * légalement exigée arrivait donc en texte brut. L'en-tête `List-Unsubscribe`, lui, RESTE sur
+ * l'edge : son POST « one-click » (RFC 8058) veut un point d'entrée sans navigateur, et
+ * Cloudflare Pages y rend `405`.
+ *
+ * ⚠ Le jeton va en QUERY et non dans le chemin : il est long, et certains clients de
+ * messagerie tronquent ou réécrivent les chemins profonds.
+ */
+export function emailPreferencesUrl(token: string): string {
+  return `${appBaseUrl()}/desinscription?t=${encodeURIComponent(token)}`
+}
+
+/**
  * URL de gestion publique d'un appel d'accueil (route `/rendez-vous-accueil/:token`),
  * celle que porte le bouton « Replanifier / Annuler » des e-mails de l'appel.
  *

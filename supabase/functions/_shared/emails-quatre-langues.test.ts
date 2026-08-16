@@ -9,9 +9,18 @@ import { buildDeviceAlertEmail } from './device-alert-email'
 import { buildTeamInviteEmail } from './team-invite-email'
 import { buildVerificationNotice } from './agency-verification-notice'
 import { buildBookingEmail } from './booking-email'
+import { buildContactReminderEmail } from './reminder-email'
+import { reminderTemplate } from './reminder-templates'
+import { buildVisitEmail } from './visit-email'
+import { buildPropertyEmail } from './property-email'
 import type { AppLocale } from './recipient-language'
 
 const LANGUES: AppLocale[] = ['fr', 'de', 'en', 'it']
+
+// ⛔ `buildRelanceEmail` N'A PAS SA PLACE DANS `rendus()`, et l'essayer le prouve : son CORPS
+// est celui de l'agent, donc volontairement inchangé d'une langue à l'autre. La clause
+// « aucune langue ne retombe en français » le déclarerait fautif alors qu'il est conforme.
+// Sa garde vit dans `tests/unit/commercial-emails.spec.ts` et ne porte que sur le chrome.
 
 const rendus = (locale: AppLocale) => [
   buildDeviceAlertEmail({
@@ -33,17 +42,59 @@ const rendus = (locale: AppLocale) => [
     timeZone: 'Europe/Zurich', mode: 'video', videoLink: 'https://meet.google.com/abc',
     to: 'marie@example.ch', locale,
   }),
+  // Le rappel automatique : le SEUL de la planche dont la copie ne vit pas dans le
+  // gabarit. Elle est montée depuis `reminder-templates.ts`, donc ce banc rend bien ce
+  // qui part par cron, et non un corps de démonstration.
+  buildContactReminderEmail({
+    ...reminderTemplate('dormant_lead', locale),
+    agentName: 'Gregory Lyonnet', locale,
+  }),
+  // La visite a TROIS natures et DEUX destinataires : la notification parle à l'agent
+  // (`profiles.language`), les deux autres au client (`contacts.language`). Les trois sont
+  // montées, sinon une seule serait gardée.
+  buildVisitEmail({
+    kind: 'confirmation_buyer', scheduledAt: '2026-08-17T12:00:00.000Z',
+    propertyTitle: 'Appartement 4.5 pièces', propertyAddress: 'Rue de Carouge 12, Genève',
+    isVideo: false, videoLabel: 'Google Meet', videoLink: null,
+    manageUrl: 'https://app.megga.ch/visit/abc/edit', buyerName: 'Marie Dupont', locale,
+  }),
+  buildVisitEmail({
+    kind: 'reminder', scheduledAt: '2026-08-17T12:00:00.000Z',
+    propertyTitle: 'Appartement 4.5 pièces', propertyAddress: 'Rue de Carouge 12, Genève',
+    isVideo: true, videoLabel: 'Google Meet', videoLink: 'https://meet.google.com/abc',
+    manageUrl: 'https://app.megga.ch/visit/abc/edit', buyerName: 'Marie Dupont', locale,
+  }),
+  buildVisitEmail({
+    kind: 'notification_agent', scheduledAt: '2026-08-17T12:00:00.000Z',
+    propertyTitle: 'Appartement 4.5 pièces', propertyAddress: 'Rue de Carouge 12, Genève',
+    isVideo: false, videoLabel: 'Google Meet', videoLink: null,
+    manageUrl: 'https://app.megga.ch/visit/abc/edit', buyerName: 'Marie Dupont',
+    agentName: 'Gregory Lyonnet', buyerEmail: 'marie@example.ch', buyerPhone: '+41 79 111 22 33',
+    buyerMessage: 'Je suis disponible en fin de journée.', qualification: 'Budget : 1.2M', locale,
+  }),
+  buildPropertyEmail({
+    contactFirstName: 'Marie', agentName: 'Gregory Lyonnet', agentPhone: '+41 22 000 00 00',
+    property: {
+      title: 'Appartement 4.5 pièces', address: 'Rue de Carouge 12', city: 'Genève',
+      price: 1_250_000,
+      photo_url: null, source_url: 'https://exemple.ch/annonce',
+    },
+    locale,
+  }),
 ]
 
 describe('quatre gabarits, quatre langues', () => {
   it('aucune langue ne retombe en français', () => {
     // Le défaut d'origine : ces gabarits n'existaient QU'EN français. Un mot propre à
     // chaque langue suffit à prouver que la bascule a lieu partout.
+    // ⚠ Chaque témoin doit être un mot que la langue rend ET que le FRANÇAIS ne rendrait
+    // pas : c'est ce qui fait échouer le test si la bascule n'a pas lieu. « Immobilien… »
+    // n'est pas « immobilier », et « immobiliare » non plus.
     const temoin: Record<AppLocale, RegExp> = {
-      fr: /connexion|invitation|identité|rendez-vous/i,
-      de: /Anmeldung|Einladung|Identität|Termin/,
-      en: /sign-in|invitation|identity|appointment/i,
-      it: /accesso|invito|identità|appuntamento/i,
+      fr: /connexion|invitation|identité|rendez-vous|projet immobilier|visite|bien/i,
+      de: /Anmeldung|Einladung|Identität|Termin|Immobilienprojekt|Besichtigung|Immobilie/,
+      en: /sign-in|invitation|identity|appointment|property project|viewing|property/i,
+      it: /accesso|invito|identità|appuntamento|progetto immobiliare|visita|immobile/i,
     }
     for (const l of LANGUES) {
       for (const r of rendus(l)) {

@@ -40,6 +40,15 @@ import { buildVisitEmail } from '../supabase/functions/_shared/visit-email.ts'
 import { buildPropertyEmail } from '../supabase/functions/_shared/property-email.ts'
 import { buildRelanceEmail } from '../supabase/functions/_shared/relance-email.ts'
 import { buildContactReminderEmail } from '../supabase/functions/_shared/reminder-email.ts'
+import { reminderTemplate } from '../supabase/functions/_shared/reminder-templates.ts'
+import type { AppLocale } from '../supabase/functions/_shared/recipient-language.ts'
+
+/** Valeurs de démonstration des `{{variable}}` du rappel, mêmes clés que `send-reminder-email`. */
+const VARS_RAPPEL_DEMO: Record<string, string> = {
+  'contact.first_name': 'Marie',
+  'agent.full_name': 'Gregory Lyonnet',
+  'agency.name': 'Régie du Rhône',
+}
 import { buildOptinInviteEmail } from '../supabase/functions/_shared/whatsapp-optin-send.ts'
 import { optinCopy } from '../supabase/functions/_shared/whatsapp-optin-copy.ts'
 import { buildWeeklyReportEmail } from '../supabase/functions/_shared/weekly-report-email.ts'
@@ -173,18 +182,31 @@ const CAS: Cas[] = [
   },
 
   // Rappel automatique et consentement WhatsApp — migrés le 15.08.2026.
-  {
-    id: 'rappel-automatique',
-    nom: 'Rappel de rendez-vous (automation)',
-    source: '_shared/reminder-email.ts',
-    migre: true,
-    rendu: buildContactReminderEmail({
-      subject: 'Votre rendez-vous de demain',
-      body: 'Bonjour Marie,\n\nPetit rappel : nous nous voyons demain à 14:00 pour la visite du 3.5 pièces de Carouge.\n\nÀ demain.',
-      agentName: 'Gregory Lyonnet',
-      unsubscribeHtml: unsubscribeFooterHtml(URL_DESINSCRIPTION_DEMO),
-    }),
-  },
+  //
+  // ⚠ La copie ne vient PAS d'ici : elle est montée depuis `reminder-templates.ts`, la même
+  // source que l'envoi réel. Le banc montrait auparavant un corps inventé, ce qui donnait à
+  // croire qu'il couvrait un texte que personne n'avait jamais relu.
+  ...(['fr', 'de', 'en', 'it'] as AppLocale[]).map((locale) => {
+    // Les `{{variable}}` sont résolues à l'envoi par `send-reminder-email`. Les laisser
+    // brutes ici montrerait un message que personne ne reçoit : le banc doit rendre ce qui
+    // part, jusqu'au prénom.
+    const t = reminderTemplate('dormant_lead', locale)
+    const resolu = (s: string) =>
+      s.replace(/\{\{(\w+\.\w+)\}\}/g, (_m, k: string) => VARS_RAPPEL_DEMO[k] ?? '')
+    return {
+      id: `rappel-automatique-${locale}`,
+      nom: `Rappel automatique · relance dormante (${locale.toUpperCase()})`,
+      source: '_shared/reminder-email.ts + _shared/reminder-templates.ts',
+      migre: true,
+      rendu: buildContactReminderEmail({
+        subject: resolu(t.subject),
+        body: resolu(t.body),
+        agentName: 'Gregory Lyonnet',
+        locale,
+        unsubscribeHtml: unsubscribeFooterHtml(URL_DESINSCRIPTION_DEMO, locale),
+      }),
+    }
+  }),
   {
     id: 'consentement-whatsapp',
     nom: 'Consentement WhatsApp',
@@ -206,7 +228,11 @@ const CAS: Cas[] = [
   // mention de pied diffère donc de tous les autres, et c'est ce qu'il faut regarder ici.
   {
     id: 'fiche-de-bien',
-    nom: 'Fiche de bien envoyée à un contact',
+    // ⚠ La forme SANS photo est un cas réel (annonce sans cliché), mais ce n'est pas le cas
+    // dominant : en production `photo_url` vaut `listing.gallery[0]?.url`. Le nom le dit
+    // désormais, parce que ce banc a longtemps rendu cette seule forme — donc l'élément le
+    // plus grand de cet e-mail n'avait jamais été relu. Voir `fiche-de-bien-photo`.
+    nom: 'Fiche de bien · sans photo (annonce sans cliché)',
     source: '_shared/property-email.ts',
     migre: true,
     rendu: buildPropertyEmail({
@@ -219,13 +245,8 @@ const CAS: Cas[] = [
         address: 'Rue Ancienne 12, 1227 Carouge',
         city: 'Carouge',
         price: 1_190_000,
-        rooms: 3.5,
-        surface_m2: 92,
-        type: 'Appartement',
         photo_url: null,
         source_url: 'https://www.example.ch/annonce/12345',
-        source_agency: 'Régie du Rhône',
-        source_portal: 'Homegate',
       },
       unsubscribeHtml: unsubscribeFooterHtml(URL_DESINSCRIPTION_DEMO),
     }),
@@ -274,6 +295,73 @@ const CAS: Cas[] = [
       buyerMessage: 'Je serais intéressée par une visite en fin de journée si possible.',
       qualification: 'Budget : 1.2M · Financement : accord de principe',
       ...patch,
+    }),
+  })),
+
+  // Les trois autres langues, sur les DEUX populations : la confirmation parle au CLIENT
+  // (`contacts.language`), la notification à l'AGENT (`profiles.language`). Les registres
+  // diffèrent, et c'est précisément ce qu'on vient regarder ici.
+  ...(['de', 'en', 'it'] as AppLocale[]).flatMap((locale) =>
+    ([
+      ['confirmation', { kind: 'confirmation_buyer' as const }],
+      ['notification-agent', { kind: 'notification_agent' as const }],
+    ] as const).map(([id, patch]) => ({
+      id: `visite-${id}-${locale}`,
+      nom: `Visite de bien · ${id.replace(/-/g, ' ')} (${locale.toUpperCase()})`,
+      source: '_shared/visit-email.ts',
+      migre: true,
+      rendu: buildVisitEmail({
+        kind: 'confirmation_buyer',
+        // 22:30 UTC = le LENDEMAIN 00:30 à Genève. Le cas est gardé dans chaque langue :
+        // c'est lui qui prouve que le fuseau n'a pas suivi la locale.
+        scheduledAt: '2026-08-16T22:30:00.000Z',
+        propertyTitle: '3.5 pièces, Carouge',
+        propertyAddress: 'Rue Ancienne 12, 1227 Carouge',
+        isVideo: false,
+        videoLabel: 'Google Meet',
+        videoLink: null,
+        manageUrl: 'https://app.megga.ch/visite/jeton/modifier',
+        buyerName: 'Marie Favre',
+        agentName: 'Gregory Lyonnet',
+        buyerEmail: 'marie@example.ch',
+        buyerPhone: '+41 79 123 45 67',
+        buyerMessage: 'Je serais intéressée par une visite en fin de journée si possible.',
+        qualification: 'Budget : 1.2M · Financement : accord de principe',
+        locale,
+        ...patch,
+      }),
+    })),
+  ),
+
+  // La forme AVEC photo, dans les quatre langues : c'est le cas dominant en production, et
+  // la photo est le plus grand élément de cet e-mail.
+  //
+  // ⚠ URL RÉELLE, tirée de `market_listings.photos[1]` — c'est exactement ce que le front
+  // passe (`photo_url: listing.gallery[0]?.url`), donc un CDN externe. Elle peut se périmer :
+  // une image cassée ici signale une URL morte, pas un gabarit cassé. Ne pas la remplacer par
+  // une `data:` URI, qui masquerait le comportement réel (la plupart des clients de messagerie
+  // bloquent les images distantes par défaut, et c'est cela qu'on vient regarder).
+  ...(['fr', 'de', 'en', 'it'] as AppLocale[]).map((locale) => ({
+    id: `fiche-de-bien-photo${locale === 'fr' ? '' : `-${locale}`}`,
+    nom: `Fiche de bien · avec photo (${locale.toUpperCase()})`,
+    source: '_shared/property-email.ts',
+    migre: true,
+    rendu: buildPropertyEmail({
+      contactFirstName: 'Marie',
+      agentName: 'Gregory Lyonnet',
+      agentPhone: '+41 22 555 10 10',
+      // Sans message de l'agent : c'est la phrase par défaut du gabarit qu'on veut voir
+      // traduite, le mot libre restant dans la langue où l'agent l'a écrit.
+      property: {
+        title: '3.5 pièces avec terrasse',
+        address: 'Rue Ancienne 12, 1227 Carouge',
+        city: 'Carouge',
+        price: 1_190_000,
+        photo_url: 'https://cdn.flatfox.ch/listings/v2/p149/4003361478/image/b67c9aa2de1d07a6f6c7f543d3335415.jpg',
+        source_url: 'https://www.example.ch/annonce/12345',
+      },
+      locale,
+      unsubscribeHtml: unsubscribeFooterHtml(URL_DESINSCRIPTION_DEMO, locale),
     }),
   })),
 
@@ -442,6 +530,12 @@ function planche(cas: Cas[]): string {
 </body></html>`
 }
 
+// ⚠ ON PURGE AVANT D'ÉCRIRE. Le banc se contentait de `mkdir` : un cas renommé ou retiré
+// laissait son ancien rendu sur le disque, et rien ne le distinguait d'un rendu courant.
+// Mesuré le 16.08.2026 : 52 fichiers pour 49 gabarits annoncés — trois fiches de bien d'une
+// génération précédente traînaient, dont le nom promettait un contenu qu'elles n'avaient plus.
+// Un banc de relecture qui sert du périmé est pire qu'un banc absent : on y croit.
+await Deno.remove(SORTIE, { recursive: true }).catch(() => {})
 await Deno.mkdir(SORTIE, { recursive: true })
 for (const c of CAS) {
   await Deno.writeTextFile(`${SORTIE}/${c.id}.html`, c.rendu.html)

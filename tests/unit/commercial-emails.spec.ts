@@ -20,13 +20,8 @@ const bien = {
     address: 'Rue Ancienne 12, 1227 Carouge',
     city: 'Carouge',
     price: 1_190_000,
-    rooms: 3.5,
-    surface_m2: 92,
-    type: 'Appartement',
     photo_url: null,
     source_url: 'https://www.example.ch/annonce/12345',
-    source_agency: 'Régie du Rhône',
-    source_portal: 'Homegate',
   },
 }
 
@@ -81,12 +76,41 @@ describe('buildPropertyEmail', () => {
     expect(html).toContain('Prix sur demande')
   })
 
-  it('porte les faits, la source et le lien de l’annonce', () => {
+  it('porte le lien de l’annonce', () => {
     const html = buildPropertyEmail(bien).html
-    expect(html).toContain('3.5 pièces · 92 m² · Appartement')
-    expect(html).toContain('Régie du Rhône')
     expect(html).toContain('https://www.example.ch/annonce/12345')
     expect(html).toContain('Voir l’annonce')
+  })
+
+  it('⛔ les faits (pièces · m² · type) ne figurent NULLE PART', () => {
+    // Retirés le 16.08.2026 (décision Julien) : d'abord de la carte, où ils faisaient
+    // doublon avec le titre, puis de l'aperçu de boîte. La carte se réduit au prix, au
+    // titre, au lieu et au bouton.
+    //
+    // ⚠ Ce que la mesure disait au moment de la décision, pour qui voudrait revenir
+    // dessus : sur les 76 353 annonces actives de `market_listings`, le titre ne porte le
+    // nombre de pièces que dans 25 % des cas et la surface dans 11 %. Ces chiffres ne sont
+    // donc pas récupérables ailleurs dans l'e-mail — le retrait est un choix, pas un
+    // dédoublonnage.
+    // ⚠ On n'assère PAS l'absence du mot « pièces » : il vit légitimement dans le TITRE de
+    // l'annonce (« 3.5 pièces avec terrasse »), qui est la donnée de l'agence. Ce qu'on
+    // garde, ce sont les deux faits qui ne venaient QUE de cette ligne — la surface et le
+    // type — et la ligne composée elle-même.
+    const { subject, html } = buildPropertyEmail(bien)
+    for (const trace of ['m²', 'Appartement']) {
+      expect(html, trace).not.toContain(trace)
+      expect(subject, trace).not.toContain(trace)
+    }
+    expect(html).not.toMatch(/pièces\s*·\s*\d/)
+  })
+
+  it('⛔ n’attribue PLUS le bien à l’agence source ni au portail', () => {
+    // Retiré le 16.08.2026 (décision Julien) : ce bloc annonçait au client « via <agence>
+    // · <portail> » au bas de la carte. Le bouton « Voir l’annonce » mène toujours à la
+    // source — le retrait enlève le libellé, il ne masque pas la provenance.
+    const html = buildPropertyEmail(bien).html
+    expect(html).not.toMatch(/>\s*via /)
+    expect(html).not.toContain('Homegate')
   })
 
   it('⛔ échappe TOUT — rien ne l’était avant', () => {
@@ -95,7 +119,7 @@ describe('buildPropertyEmail', () => {
       contactFirstName: '<img src=x>',
       agentName: '<script>alert(1)</script>',
       message: 'Regardez <b>ceci</b>',
-      property: { ...bien.property, title: '<i>Titre</i>', source_agency: '<u>Agence</u>' },
+      property: { ...bien.property, title: '<i>Titre</i>' },
     }).html
     expect(html).not.toContain('<img src=x')
     expect(html).not.toContain('<script>alert(1)</script>')
@@ -152,5 +176,49 @@ describe('buildRelanceEmail', () => {
   it('sans nom ni signature, aucun bloc de signature vide', () => {
     const html = buildRelanceEmail(base).html
     expect(html).not.toContain('border-top:1px solid #181818;font-family')
+  })
+})
+
+describe('⛔ la relance : SEUL le chrome suit la langue, jamais le corps', () => {
+  const LANGUES = ['fr', 'de', 'en', 'it'] as const
+  // Un corps FRANÇAIS dans les quatre rendus, exprès : c'est le cas réel. L'agent (ou le
+  // copilote) a écrit en français ; le traduire serait réécrire ses mots.
+  const corpsAgent = 'Bonjour Marie,\n\nLe 3.5 pièces de Carouge est toujours disponible.'
+
+  it('le corps de l’agent n’est JAMAIS réécrit', () => {
+    for (const locale of LANGUES) {
+      const { html } = buildRelanceEmail({ subject: 'Objet', body: corpsAgent, locale })
+      expect(html, locale).toContain('Le 3.5 pièces de Carouge est toujours disponible.')
+    }
+  })
+
+  it('l’objet non plus : le titre EST l’objet de l’agent', () => {
+    for (const locale of LANGUES) {
+      const r = buildRelanceEmail({ subject: 'Une visite la semaine prochaine ?', body: corpsAgent, locale })
+      expect(r.subject, locale).toBe('Une visite la semaine prochaine ?')
+    }
+  })
+
+  it('mais la MENTION LÉGALE suit la langue du destinataire', () => {
+    // Elle était un littéral français en dur. C'est la seule prose que MEGGA écrit dans ce
+    // gabarit, et une mention légale doit être comprise pour valoir quelque chose.
+    const legal: Record<(typeof LANGUES)[number], RegExp> = {
+      fr: /en relation avec cette agence via MEGGA/,
+      de: /über MEGGA mit dieser Agentur in Kontakt/,
+      en: /in contact with this agency via MEGGA/,
+      it: /in contatto con questa agenzia tramite MEGGA/,
+    }
+    for (const locale of LANGUES) {
+      const { html } = buildRelanceEmail({ subject: 'Objet', body: corpsAgent, locale })
+      expect(html, locale).toMatch(legal[locale])
+    }
+  })
+
+  it('⛔ et le document se DÉCLARE dans la langue de son chrome', () => {
+    // Il annonçait `lang="fr"` en toutes circonstances : `shell()` ne recevait aucun `lang`.
+    for (const locale of LANGUES) {
+      const { html } = buildRelanceEmail({ subject: 'Objet', body: corpsAgent, locale })
+      expect(html, locale).toContain(`lang="${locale}"`)
+    }
   })
 })

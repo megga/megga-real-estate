@@ -183,6 +183,7 @@ export const hasExplicitLanguage: boolean = (() => {
 })()
 
 seedLanguageFromUrl()
+persisterLangueDArrivee()
 
 i18n
   .use(LanguageDetector)
@@ -325,6 +326,40 @@ export async function switchLanguage(lng: string): Promise<void> {
  * attendue : une bascule de langue ne doit pas dépendre du réseau, et une préférence
  * perdue se repose au clic suivant.
  */
+/**
+ * La langue ARRIVÉE DE LA VITRINE (`?lang=`) rejoint elle aussi `profiles.language`.
+ *
+ * ⛔ LE TROU QUE CECI FERME, ET POURQUOI CE N'EST PAS CELUI QU'ON CROYAIT. Le point de
+ * reprise décrivait le trou côté VITRINE : un agent qui bascule la langue sur megga.ch ne
+ * l'enregistre pas, faute de session sur cette origine. La correction annoncée était d'y
+ * brancher un client Supabase. Mesuré le 16.08.2026, elle n'aurait presque jamais écrit :
+ * seul quelqu'un connecté PAR MOT DE PASSE sur megga.ch même y a un jeton — ni les arrivées
+ * de Google, ni les inscriptions (la confirmation par e-mail ne rend aucune session), ni
+ * OAuth (les jetons naissent sur app.megga.ch), ni surtout l'agent connecté sur l'app qui
+ * revient sur la vitrine, qui EST le cas décrit. Et l'échec aurait été SILENCIEUX : sans
+ * session l'appel part en `anon`, dont l'UPDATE ne matche aucune ligne et rend `200 []`.
+ *
+ * Le vrai trou est ici : la langue TRAVERSE déjà par `?lang=`, mais `seedLanguageFromUrl`
+ * l'écrit dans la clé du détecteur et s'arrête là. `persisterLangueDeCorrespondance` n'est
+ * appelée que par `switchLanguage`, donc une langue venue de la vitrine n'atteignait jamais
+ * la base. Deux lignes ici valent 200 Ko de SDK sur 32 pages de la vitrine.
+ *
+ * ⚠ POURQUOI PAS D'`await` NI D'`onAuthStateChange`. L'écriture n'est jamais attendue : le
+ * premier rendu ne doit pas dépendre du réseau. Et écouter `onAuthStateChange` pour y
+ * awaiter Supabase est l'interblocage déjà payé sur l'onboarding.
+ *
+ * ✅ ET L'ARRIVÉE PAR LE CALLBACK D'AUTHENTIFICATION EST COUVERTE — vérifié dans le SDK,
+ * pas supposé : `getSession()` fait `await this.initializePromise` (auth-js,
+ * `GoTrueClient.js:2217-2218`), et cette initialisation comprend la détection de la session
+ * dans l'URL (`_initialize`, `:283-297`). La session née des jetons du fragment est donc
+ * déjà là quand `persisterLangueDeCorrespondance` interroge. C'est précisément le chemin
+ * `goToCrm` de la vitrine, celui qui compte.
+ */
+function persisterLangueDArrivee(): void {
+  const lng = languageFromUrl()
+  if (lng) void persisterLangueDeCorrespondance(lng)
+}
+
 async function persisterLangueDeCorrespondance(lng: string): Promise<void> {
   if (!['fr', 'de', 'en', 'it'].includes(lng)) return
   try {

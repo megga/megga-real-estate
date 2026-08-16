@@ -140,3 +140,55 @@ describe('⛔ échappement — rien n’était échappé avant', () => {
     expect(html).toContain('&lt;script&gt;')
   })
 })
+
+describe('⛔ la langue — et le fuseau qui ne doit PAS la suivre', () => {
+  const LANGUES = ['fr', 'de', 'en', 'it'] as const
+
+  it('le fuseau reste Europe/Zurich dans les QUATRE langues', () => {
+    // La régression qui guette ce lot : dériver le fuseau de la langue (« de ⇒
+    // Europe/Berlin »). Un germanophone à Zurich est à Europe/Zurich, et Berlin ne
+    // coïncide aujourd'hui que par accident. Le cas de bascule de jour le prouve seul :
+    // 22:30 UTC est le LENDEMAIN 00:30 à Genève.
+    for (const locale of LANGUES) {
+      expect(formatVisitTime('2026-08-17T12:00:00.000Z', locale), locale).toBe('14:00')
+      expect(formatVisitTime('2026-01-15T12:00:00.000Z', locale), locale).toBe('13:00')
+      expect(formatVisitTime('2026-08-16T22:30:00.000Z', locale), locale).toBe('00:30')
+      expect(formatVisitDate('2026-08-16T22:30:00.000Z', locale), locale).toContain('17')
+    }
+  })
+
+  it('la date est écrite dans la langue, pas seulement traduite autour', () => {
+    expect(formatVisitDate('2026-08-17T12:00:00.000Z', 'de')).toContain('August')
+    expect(formatVisitDate('2026-08-17T12:00:00.000Z', 'it')).toContain('agosto')
+    expect(formatVisitDate('2026-08-17T12:00:00.000Z', 'en')).toContain('August')
+    expect(formatVisitDate('2026-08-17T12:00:00.000Z', 'fr')).toContain('août')
+  })
+
+  it('⛔ la PRÉPOSITION qui colle la date à l’heure suit la langue', () => {
+    // Le défaut jumeau, trouvé dans `booking-email` en portant celui-ci : `INTL_TAG`
+    // traduisait les deux moitiés, mais le « à » qui les recolle restait français —
+    // « Montag, 17. August 2026 à 14:00 ». Aucun test ne le voyait.
+    const rendu = (locale: (typeof LANGUES)[number]) =>
+      buildVisitEmail({ ...base, locale }).html.replace(/<[^>]+>/g, ' ')
+    expect(rendu('de')).toMatch(/2026\s+um\s+14:00/)
+    expect(rendu('en')).toMatch(/2026\s+at\s+14:00/)
+    expect(rendu('it')).toMatch(/2026\s+alle\s+14:00/)
+    expect(rendu('fr')).toMatch(/2026\s+à\s+14:00/)
+  })
+
+  it('l’allemand de SUISSE : aucun eszett dans aucune des trois natures', () => {
+    for (const kind of ['confirmation_buyer', 'reminder', 'notification_agent'] as const) {
+      const { subject, html } = buildVisitEmail({ ...base, kind, locale: 'de' })
+      expect(`${subject} ${html}`, kind).not.toMatch(/ß/)
+    }
+  })
+
+  it('les deux POPULATIONS restent distinctes : la notification agent se traduit aussi', () => {
+    // `notification_agent` lit `profiles.language`, les deux autres `contacts.language`.
+    // Les confondre écrirait au client dans la langue de son courtier — mais oublier la
+    // notification laisserait l'agent germanophone en français.
+    const de = buildVisitEmail({ ...base, kind: 'notification_agent', locale: 'de' })
+    expect(de.subject).toContain('Besichtigungsanfrage')
+    expect(de.html).toContain('lang="de"')
+  })
+})

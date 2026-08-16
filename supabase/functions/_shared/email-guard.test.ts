@@ -75,21 +75,37 @@ describe('emailSendAllowed — le verdict', () => {
 })
 
 describe('unsubscribeHeaders — le lien qui doit ÉCRIRE', () => {
-  it('⛔ RÉGRESSION — pointe sur le hôte des EDGE FUNCTIONS, jamais sur app.megga.ch', async () => {
-    // `app.megga.ch` est du Cloudflare Pages avec fallback SPA : mesuré le 15.08.2026, le GET
-    // du pied de page y rend la coquille de l'app en `200 text/html` et le POST one-click de
-    // Gmail rend `405`. La personne voyait « c'est fait » et AUCUNE ligne
-    // `contact_suppressions` n'était écrite — un mécanisme légalement exigé qui échoue en
-    // signalant le succès.
+  it('⛔ DEUX URL, ET CHACUNE SUR SON HÔTE — la machine sur l’edge, l’humain sur l’app', async () => {
+    // Ce test disait l'inverse jusqu'au 16.08.2026, et il avait raison À L'ÉPOQUE : les deux
+    // URL n'en faisaient qu'une, donc la faire pointer sur `app.megga.ch` cassait le POST
+    // one-click (Cloudflare Pages y rend 405) et n'écrivait aucune ligne.
+    //
+    // Elles sont maintenant SÉPARÉES, parce qu'elles n'ont pas le même appelant :
+    //  · `headers` → l'EDGE. Gmail et Outlook y POSTent depuis leur propre bouton (RFC 8058),
+    //    sans navigateur. Cloudflare Pages ne sait pas répondre à ça.
+    //  · `url` → l'APP. C'est un humain qui clique, et il lui faut du HTML — que l'edge ne
+    //    peut PAS servir : la passerelle Supabase réécrit `text/html` en `text/plain` sur le
+    //    domaine par défaut. La page arrivait en texte brut.
     const u = await unsubscribeHeaders('a@b.ch')
     expect(u).not.toBeNull()
-    expect(u!.url.startsWith(`${SUPABASE_URL}/functions/v1/email-unsubscribe?t=`)).toBe(true)
-    expect(u!.url).not.toContain('app.megga.ch')
+
+    const machine = u!.headers['List-Unsubscribe'].replace(/^<|>$/g, '')
+    expect(machine.startsWith(`${SUPABASE_URL}/functions/v1/email-unsubscribe?t=`)).toBe(true)
+    expect(machine).not.toContain('app.megga.ch')
+
+    expect(u!.url).toContain('/desinscription?t=')
+    expect(u!.url).not.toContain('/functions/v1/')
+
+    // ⚠ Et le MÊME jeton des deux côtés : deux jetons voudraient dire deux gestes à révoquer.
+    const jetonMachine = new URL(machine).searchParams.get('t')
+    const jetonHumain = new URL(u!.url).searchParams.get('t')
+    expect(jetonHumain).toBe(jetonMachine)
   })
 
   it('porte le couple RFC 8058 que Gmail et Outlook attendent', async () => {
     const u = await unsubscribeHeaders('a@b.ch')
-    expect(u!.headers['List-Unsubscribe']).toBe(`<${u!.url}>`)
+    // ⛔ L'en-tête pointe sur l'EDGE, plus sur `u.url` : c'est un POST de machine.
+    expect(u!.headers['List-Unsubscribe']).toContain('/functions/v1/email-unsubscribe?t=')
     expect(u!.headers['List-Unsubscribe-Post']).toBe('List-Unsubscribe=One-Click')
   })
 

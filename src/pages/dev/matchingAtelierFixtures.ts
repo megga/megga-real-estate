@@ -81,6 +81,7 @@ function buyer(p: {
     matchId: `demo-match-${p.id}`,
     email: null,
     phone: null,
+    language: null,
     snoozedUntil: null,
     criteria: { budget_min: 900000, budget_max: 1300000, zones: ['Carouge'], type: 'Appartement', rooms_min: 4, surface_min: 90 },
     source: 'market',
