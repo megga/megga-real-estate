@@ -1,5 +1,5 @@
 // MEGGA CRM Sugar v2 Wizard — Step 4 : Photos (concept « Couverture héro + pellicule »)
-// Port du handoff « complet » (crm-wizard-sugar-step4.jsx — `SgStepPhotos` + `CrmCropModal`).
+// Port du handoff « complet » (crm-wizard-sugar-step4.jsx — `WzStepPhotos` + `CrmCropModal`).
 //
 // Upload RÉEL depuis l'ordinateur (drag-drop ou parcourir) → object URLs d'aperçu.
 // Couverture en grand + pellicule de vignettes : ★ promeut en couverture, corbeille

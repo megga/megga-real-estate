@@ -1,5 +1,5 @@
 // MEGGA CRM Sugar v2 Wizard — Step 5 : Prix puis Description (concept « séquentiel épuré »)
-// Port fidèle du handoff crm-wizard-sugar-step5.jsx (window.SgStepPriceDesc) :
+// Port fidèle du handoff crm-wizard-sugar-step5.jsx (window.WzStepPriceDesc) :
 //   • phase 0 (data.priceStep = 0) = LE PRIX — la page EST le prix (chiffre géant centré,
 //     pas de carte, pas d'en-tête aligné à gauche).
 //   • phase 1 (data.priceStep = 1) = LA DESCRIPTION — pilule rappel-prix, éditeur feuille,

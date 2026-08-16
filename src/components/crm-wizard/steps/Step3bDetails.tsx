@@ -1,6 +1,6 @@
 // MEGGA CRM Sugar v2 Wizard — Q7 « Les détails du bien » (liste Gregory).
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step3b.jsx —
-// `window.SgDetailsSections`). Accordéon rail + panneau dont les sections sont
+// `window.WzDetailsSections`). Accordéon rail + panneau dont les sections sont
 // STRICTEMENT conditionnelles à la famille du type (apt/house/terrain/commerce),
 // résolue par `sp4bFamily`. Monté par Step3Specs quand `data.specsQ === 6`.
 //

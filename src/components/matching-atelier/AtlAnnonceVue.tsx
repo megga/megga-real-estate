@@ -26,7 +26,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 
 /** Cellules « L'essentiel » — les champs nuls sont filtrés, jamais rendus « null ». */
-function sgiSpecCells(L: AtelierListing, t: (k: string, o?: Record<string, unknown>) => string) {
+function atlimmSpecCells(L: AtelierListing, t: (k: string, o?: Record<string, unknown>) => string) {
   const cells: Array<{ k: string; v: string }> = []
   if (L.rooms != null) cells.push({ k: t('atelier.specRooms'), v: `${L.rooms}` })
   if (L.area != null) cells.push({ k: t('atelier.specSurface'), v: `${L.area} m²` })
@@ -41,7 +41,7 @@ function sgiSpecCells(L: AtelierListing, t: (k: string, o?: Record<string, unkno
 }
 
 /** Pilule référence copiable (L.ref est dérivée de la source, pas fabriquée). */
-function SgiRefPill({ refCode }: { refCode: string }) {
+function AtlImmRefPill({ refCode }: { refCode: string }) {
   const { t } = useTranslation('matching')
   const [copied, setCopied] = useState(false)
   const copy = () => {
@@ -50,7 +50,7 @@ function SgiRefPill({ refCode }: { refCode: string }) {
     setTimeout(() => setCopied(false), 1600)
   }
   return (
-    <button className="chip sm chip-outline nums sgn-refchip" title={t('atelier.copyRef')} onClick={copy}>
+    <button className="chip sm chip-outline nums atlblk-refchip" title={t('atelier.copyRef')} onClick={copy}>
       <AtlIcon d={copied ? 'check' : 'copy'} size={11} />
       {copied ? t('atelier.refCopied') : refCode}
     </button>
@@ -69,18 +69,18 @@ function SgiRefPill({ refCode }: { refCode: string }) {
 const AGENT_AV = '#030303'
 
 /** Régie qui commercialise — uniquement sur une annonce de la veille marché. */
-function SgiAgence({ L }: { L: AtelierListing }) {
+function AtlImmAgence({ L }: { L: AtelierListing }) {
   const { t } = useTranslation('matching')
   const name = L.agency.name
   if (L.kind !== 'market' || !name) return null
   const init = name.split(/\s+/).filter(w => /^[A-ZÀ-Ž]/.test(w)).slice(0, 2).map(w => w[0]).join('') || 'R'
   return (
-    <div className="sgn-card">
+    <div className="atlblk-card">
       <span className="eyebrow">{t('atelier.marketing')}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <div className="av" style={{ width: 42, height: 42, background: AGENT_AV, color: encreSur(AGENT_AV), fontSize: 'var(--crm-text-md)' }}>{init}</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="t2 semi sgn-ell" style={{ color: 'var(--ink)' }}>{name}</div>
+          <div className="t2 semi atlblk-ell" style={{ color: 'var(--ink)' }}>{name}</div>
           {L.agency.phone && <div className="t1 muted nums" style={{ marginTop: 2 }}>{L.agency.phone}</div>}
         </div>
         {L.agency.phone && (
@@ -94,7 +94,7 @@ function SgiAgence({ L }: { L: AtelierListing }) {
 }
 
 /** États de la feuille — les deux états en « -ing » laissent jouer l'animation. */
-type SgiSheetState = 'open' | 'folding' | 'mini' | 'unfolding'
+type AtlImmSheetState = 'open' | 'folding' | 'mini' | 'unfolding'
 
 interface AtlAnnonceVueProps {
   L: AtelierListing
@@ -110,7 +110,7 @@ export default function AtlAnnonceVue({ L, buyer, onClose, onPropose }: AtlAnnon
   const hasImg = !!G[0]?.url
 
   const [idx, setIdx] = useState(0)
-  const [sheet, setSheet] = useState<SgiSheetState>('open')
+  const [sheet, setSheet] = useState<AtlImmSheetState>('open')
   const [filmOpen, setFilmOpen] = useState(false)
   const [closing, setClosing] = useState(false)
   const foldTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -152,11 +152,11 @@ export default function AtlAnnonceVue({ L, buyer, onClose, onPropose }: AtlAnnon
   const propose = () => (onPropose ? close(onPropose) : close())
 
   const cur = G[idx] ?? G[0] ?? null
-  const cells = sgiSpecCells(L, t).slice(0, 6)
+  const cells = atlimmSpecCells(L, t).slice(0, 6)
 
   return (
     <div
-      className={'sgi-stage' + (closing ? ' is-closing' : '')}
+      className={'atlimm-stage' + (closing ? ' is-closing' : '')}
       ref={refPiegeFocus}
       role="dialog"
       aria-modal="true"
@@ -164,30 +164,30 @@ export default function AtlAnnonceVue({ L, buyer, onClose, onPropose }: AtlAnnon
     >
       {/* ── photo pleine page (clic = photo suivante) ── */}
       <div
-        className={'sgi-photo' + (hasImg ? '' : ' noimg')}
+        className={'atlimm-photo' + (hasImg ? '' : ' noimg')}
         onClick={hasImg && G.length > 1 ? () => setIdx(i => (i + 1) % G.length) : undefined}
         title={hasImg && G.length > 1 ? t('atelier.nextPhoto') : undefined}
       >
         {hasImg && cur ? (
           <img key={idx} src={cur.url} alt={cur.label} draggable="false" />
         ) : (
-          <div className="sga-ph"><div className="ph-lbl"><AtlIcon d="camera" size={30} /><span>{t('atelier.noPhotoYet')}</span></div></div>
+          <div className="atl-ph"><div className="ph-lbl"><AtlIcon d="camera" size={30} /><span>{t('atelier.noPhotoYet')}</span></div></div>
         )}
 
-        <div className="sgi-chrome" onClick={e => e.stopPropagation()}>
-          <button className="sgi-xcircle" title={t('atelier.closeEsc')} onClick={() => close()}>
+        <div className="atlimm-chrome" onClick={e => e.stopPropagation()}>
+          <button className="atlimm-xcircle" title={t('atelier.closeEsc')} onClick={() => close()}>
             <AtlIcon d="close" size={16} />
           </button>
-          {hasImg && cur?.label && <span className="sgi-glass static">{cur.label}</span>}
+          {hasImg && cur?.label && <span className="atlimm-glass static">{cur.label}</span>}
         </div>
 
-        <div className="sgi-id" onClick={e => e.stopPropagation()}>
-          <h2 className="sgi-title">{L.title}</h2>
-          <div className="sgi-addr">
+        <div className="atlimm-id" onClick={e => e.stopPropagation()}>
+          <h2 className="atlimm-title">{L.title}</h2>
+          <div className="atlimm-addr">
             <AtlIcon d="location" size={15} /> {L.canton ? `${L.addr} · ${L.canton}` : L.addr}
           </div>
           {hasImg && (
-            <div className="sgi-film">
+            <div className="atlimm-film">
               {(filmOpen ? G : G.slice(0, 4)).map((p, i) => (
                 <button
                   // `xtra` = vignette apparue au dépliage : elle monte en cascade
@@ -217,26 +217,26 @@ export default function AtlAnnonceVue({ L, buyer, onClose, onPropose }: AtlAnnon
 
       {/* ── feuille dossier (réductible) ── */}
       {sheet === 'open' || sheet === 'folding' ? (
-        <aside className={'sgi-sheet' + (sheet === 'folding' ? ' is-folding' : '')}>
-          <div className="sgi-sh-head">
-            <div className="sgi-sh-toprow">
+        <aside className={'atlimm-sheet' + (sheet === 'folding' ? ' is-folding' : '')}>
+          <div className="atlimm-sh-head">
+            <div className="atlimm-sh-toprow">
               <div className="chips">
                 <span className="chip sm">{L.transaction}</span>
                 {L.type && <span className="chip sm">{L.type}</span>}
-                <SgiRefPill refCode={L.ref} />
+                <AtlImmRefPill refCode={L.ref} />
               </div>
-              <button className="sgi-fold" title={t('atelier.collapseSheet')} onClick={fold}>
+              <button className="atlimm-fold" title={t('atelier.collapseSheet')} onClick={fold}>
                 <AtlIcon d="chevron-right" size={15} />
               </button>
             </div>
-            <div className="sgi-price nums">{atlFmtCHF(L.price)}</div>
+            <div className="atlimm-price nums">{atlFmtCHF(L.price)}</div>
           </div>
 
-          <div className="sgi-sh-scroll">
+          <div className="atlimm-sh-scroll">
             {cells.length > 0 && (
-              <div className="sgn-block">
+              <div className="atlblk-block">
                 <span className="eyebrow">{t('atelier.sectionEssential')}</span>
-                <div className="sgi-bento-num">
+                <div className="atlimm-bento-num">
                   {cells.map(c => (
                     <div className="ncell" key={c.k}>
                       <span className="nv nums">{c.v}</span>
@@ -247,23 +247,23 @@ export default function AtlAnnonceVue({ L, buyer, onClose, onPropose }: AtlAnnon
               </div>
             )}
             {L.features.length > 0 && (
-              <div className="sgn-block">
+              <div className="atlblk-block">
                 <span className="eyebrow">{t('atelier.sectionFeatures')}</span>
-                <div className="sgn-feats">
-                  {L.features.map(f => <span className="sgn-feat" key={f}>{f}</span>)}
+                <div className="atlblk-feats">
+                  {L.features.map(f => <span className="atlblk-feat" key={f}>{f}</span>)}
                 </div>
               </div>
             )}
             {L.desc && (
-              <div className="sgn-block">
+              <div className="atlblk-block">
                 <span className="eyebrow">{t('atelier.sectionDescription')}</span>
-                <p className="sgn-desc">{L.desc}</p>
+                <p className="atlblk-desc">{L.desc}</p>
               </div>
             )}
-            <SgiAgence L={L} />
+            <AtlImmAgence L={L} />
           </div>
 
-          <div className="sgi-sh-foot">
+          <div className="atlimm-sh-foot">
             <button className="btn btn-ghost" onClick={() => close()}>{t('common:actions.close')}</button>
             <button className="btn btn-primary" style={{ flex: 1 }} onClick={propose}>
               <AtlIcon d="send" size={16} />
@@ -272,7 +272,7 @@ export default function AtlAnnonceVue({ L, buyer, onClose, onPropose }: AtlAnnon
           </div>
         </aside>
       ) : (
-        <div className={'sgi-mini' + (sheet === 'unfolding' ? ' is-closing' : '')}>
+        <div className={'atlimm-mini' + (sheet === 'unfolding' ? ' is-closing' : '')}>
           <button className="mopen" title={t('atelier.expandSheet')} onClick={unfold}>
             <AtlIcon d="chevron-right" size={15} style={{ transform: 'rotate(180deg)' }} />
           </button>

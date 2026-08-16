@@ -362,8 +362,8 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
       fontFamily: '"Inter Tight", system-ui, sans-serif', color: WizardTokens.ink,
       display: 'flex', flexDirection: 'column',
       overflow: 'hidden',
-      // Accent suivi par le thumb du slider natif (.sg-range) — voir CRM_ANIM_KEYFRAMES.
-      '--sg-accent': WizardTokens.black,
+      // Accent suivi par le thumb du slider natif (.wz-range) — voir CRM_ANIM_KEYFRAMES.
+      '--wz-accent': WizardTokens.black,
     } as CSSProperties}>
       <style>{CRM_ANIM_KEYFRAMES}</style>
 

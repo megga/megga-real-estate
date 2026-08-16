@@ -69,9 +69,9 @@ export default function AtlSendSheet({ b, L, onClose, onSent }: Props) {
   const busy = create.isPending
 
   return (
-    <div className="sga-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="sga-modal" style={{ width: 460, maxWidth: '92vw' }} ref={refPiegeFocus} role="dialog" aria-modal="true" aria-label={t('sendSheet.title', { name })}>
-        <div className="sga-modal-h">
+    <div className="atl-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="atl-modal" style={{ width: 460, maxWidth: '92vw' }} ref={refPiegeFocus} role="dialog" aria-modal="true" aria-label={t('sendSheet.title', { name })}>
+        <div className="atl-modal-h">
           <div className="av" style={{ width: 44, height: 44, background: b.av, color: encreSur(b.av), fontSize: 'var(--crm-text-xl)' }}>{atlInitials(b.first, b.last)}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="t4 semi" style={{ color: 'var(--ink)' }}>{t('sendSheet.title', { name })}</div>
@@ -93,7 +93,7 @@ export default function AtlSendSheet({ b, L, onClose, onSent }: Props) {
           </button>
           {!hasPhone && <p className="t2 muted" style={{ margin: '2px 0 0', lineHeight: 1.5 }}>{t('sendSheet.noPhone')}</p>}
         </div>
-        <div className="sga-modal-foot">
+        <div className="atl-modal-foot">
           <button className="btn btn-ghost" onClick={onClose}>{t('common:actions.cancel')}</button>
           <div style={{ flex: 1 }} />
           <button onClick={onPreview} disabled={busy}

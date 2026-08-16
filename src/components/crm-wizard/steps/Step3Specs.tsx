@@ -1,6 +1,6 @@
 // MEGGA CRM Sugar v2 Wizard — Step 3 : Caractéristiques (parcours GUIDÉ).
 // 1:1 port from the Claude Design bundle (crm-wizard-sugar-step3.jsx —
-// `window.SgStepSpecs`). Une question à la fois (Q1→Q7), indexée par `data.specsQ`.
+// `window.WzStepSpecs`). Une question à la fois (Q1→Q7), indexée par `data.specsQ`.
 //
 // Contrat de navigation : la COQUILLE (WizardShell) pilote Précédent/Continuer en
 // incrémentant/décrémentant `data.specsQ` (0→6) puis en montant Step4 après Q7. Ce

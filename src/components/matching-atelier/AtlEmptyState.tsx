@@ -12,7 +12,7 @@
 
 import { useTranslation } from 'react-i18next'
 import AtlIcon, { type AtlIconName } from './AtlIcon'
-import { SGA_TABS } from './constants'
+import { ATL_TABS } from './constants'
 
 /** Bloc centré d'un panneau vide : icône, titre, sous-titre, action optionnelle. */
 function AtlEmptyPanel({
@@ -27,7 +27,7 @@ function AtlEmptyPanel({
   busy?: boolean
 }) {
   return (
-    <div className="sga-empty" style={{ padding: '32px 26px' }}>
+    <div className="atl-empty" style={{ padding: '32px 26px' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: 288 }}>
         <span aria-hidden="true" style={{ display: 'grid', placeItems: 'center', color: 'var(--ink)', marginBottom: 18 }}>
           <AtlIcon d={icon} size={44} />
@@ -71,8 +71,8 @@ export function AtlEmptyCockpit() {
 
       {/* Onglets présents pour l'uniformité de la barre, inertes (rien à filtrer). */}
       <div className="seg sgk-seg" aria-hidden="true" style={{ pointerEvents: 'none', opacity: 0.6 }}>
-        {SGA_TABS.map((tb, i) => (
-          <button key={tb.key} type="button" tabIndex={-1} className="sga-seg-btn" data-active={i === 0}>
+        {ATL_TABS.map((tb, i) => (
+          <button key={tb.key} type="button" tabIndex={-1} className="atl-seg-btn" data-active={i === 0}>
             {tb.label}
           </button>
         ))}
@@ -92,11 +92,11 @@ export function AtlEmptyBody({ scan, onOpenContacts }: AtlEmptyBodyProps) {
   const { t } = useTranslation('matching')
   return (
     <>
-      <section className="sga-panel sga-enter" aria-label={t('atelier.emptyStage.queueAria')}>
-        <div className="sga-emptyhead">
+      <section className="atl-panel atl-enter" aria-label={t('atelier.emptyStage.queueAria')}>
+        <div className="atl-emptyhead">
           <div>
             <div className="eyebrow" style={{ marginBottom: 7 }}>{t('atelier.emptyStage.queueEyebrow')}</div>
-            <div className="sga-emptyhead-n nums">0</div>
+            <div className="atl-emptyhead-n nums">0</div>
           </div>
           {/* Libellé de tri sur deux lignes, aligné à droite (le `\n` de la clé). */}
           <div className="eyebrow" style={{ textAlign: 'right', color: 'var(--ink-muted)', whiteSpace: 'pre-line', lineHeight: 1.45 }}>
@@ -112,8 +112,8 @@ export function AtlEmptyBody({ scan, onOpenContacts }: AtlEmptyBodyProps) {
         />
       </section>
 
-      <section className="sga-panel sga-enter d1" aria-label={t('atelier.emptyStage.listingAria')} style={{ position: 'relative' }}>
-        <div className="sga-ph" aria-hidden="true" style={{ opacity: 0.55 }} />
+      <section className="atl-panel atl-enter d1" aria-label={t('atelier.emptyStage.listingAria')} style={{ position: 'relative' }}>
+        <div className="atl-ph" aria-hidden="true" style={{ opacity: 0.55 }} />
         <div style={{ position: 'relative', zIndex: 1, flex: 1, minHeight: 0, display: 'grid', placeItems: 'center' }}>
           <AtlEmptyPanel
             icon="home"
@@ -127,7 +127,7 @@ export function AtlEmptyBody({ scan, onOpenContacts }: AtlEmptyBodyProps) {
         </div>
       </section>
 
-      <section className="sga-panel sga-enter d2" aria-label={t('atelier.emptyStage.whyAria')}>
+      <section className="atl-panel atl-enter d2" aria-label={t('atelier.emptyStage.whyAria')}>
         <AtlEmptyPanel
           icon="sparkle"
           title={t('atelier.emptyStage.whyTitle')}

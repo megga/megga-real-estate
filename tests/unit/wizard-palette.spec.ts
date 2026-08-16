@@ -321,14 +321,14 @@ describe('Wizard « Créer un bien » — la palette descend de MEGGA X', () => 
 
   /**
    * L'accent du curseur `.sg-range` est posé en variable CSS par le shell
-   * (`--sg-accent`), mais `CRM_ANIM_KEYFRAMES` porte un REPLI en dur qui, lui, ne suit
+   * (`--wz-accent`), mais `CRM_ANIM_KEYFRAMES` porte un REPLI en dur qui, lui, ne suit
    * personne — il valait `#0B0C0E`, le noir de Sugar. Un repli hors échelle est
    * une couleur de la direction précédente qui attend une occasion de rendre.
    */
   it('le repli CSS du curseur est sur l’échelle', () => {
     const src = readFileSync(SRC, 'utf-8')
-    const replis = [...src.matchAll(/var\(--sg-accent,\s*(#[0-9A-Fa-f]{6})\)/g)].map((m) => m[1].toLowerCase())
-    expect(replis.length, 'le repli a disparu : vérifier que --sg-accent est toujours posé').toBeGreaterThan(0)
+    const replis = [...src.matchAll(/var\(--wz-accent,\s*(#[0-9A-Fa-f]{6})\)/g)].map((m) => m[1].toLowerCase())
+    expect(replis.length, 'le repli a disparu : vérifier que --wz-accent est toujours posé').toBeGreaterThan(0)
     for (const r of replis) expect(r, `repli hors échelle : ${r}`).toBe(MXC_COLOR.accent)
   })
 })

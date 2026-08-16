@@ -44,9 +44,9 @@ export default function AtlConfirm({ b, L, relance, onClose, onConfirm }: AtlCon
   }, [onClose]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="sga-overlay" onClick={e => { if (!doneRef.current && e.target === e.currentTarget) onClose() }}>
+    <div className="atl-overlay" onClick={e => { if (!doneRef.current && e.target === e.currentTarget) onClose() }}>
       <div
-        className="sga-modal"
+        className="atl-modal"
         style={{ width: 440, maxWidth: '92vw' }}
         ref={refPiegeFocus}
         role="dialog"
@@ -54,8 +54,8 @@ export default function AtlConfirm({ b, L, relance, onClose, onConfirm }: AtlCon
         aria-label={relance ? t('confirm.followUpTitle') : t('confirm.sendTitle')}
       >
         {done ? (
-          <div className="sga-success">
-            <div className="sga-success-badge">
+          <div className="atl-success">
+            <div className="atl-success-badge">
               <AtlIcon d="check" size={30} />
             </div>
             <div className="t4 semi" style={{ color: 'var(--ink)' }}>
@@ -69,7 +69,7 @@ export default function AtlConfirm({ b, L, relance, onClose, onConfirm }: AtlCon
           </div>
         ) : (
           <>
-            <div className="sga-modal-h">
+            <div className="atl-modal-h">
               <div className="av" style={{ width: 44, height: 44, background: b.av, color: encreSur(b.av), fontSize: 'var(--crm-text-xl)' }}>
                 {atlInitials(b.first, b.last)}
               </div>
@@ -89,7 +89,7 @@ export default function AtlConfirm({ b, L, relance, onClose, onConfirm }: AtlCon
                   : t('confirm.sendBody', { firstName: b.first })}
               </p>
             </div>
-            <div className="sga-modal-foot">
+            <div className="atl-modal-foot">
               <div style={{ flex: 1 }} />
               <button className="btn btn-ghost" onClick={onClose}>{t('common:actions.cancel')}</button>
               <button className="btn btn-primary" onClick={fire} autoFocus>

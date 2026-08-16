@@ -93,14 +93,14 @@ function contraste(a: string, b: string): number {
 const AA = 4.5
 
 /**
- * Corps de TOUS les blocs `.sga{…}` (clair) ou `.sga[data-theme="dark"]{…}`
+ * Corps de TOUS les blocs `.atl{…}` (clair) ou `.atl[data-theme="dark"]{…}`
  * (sombre) — la feuille en ouvre plusieurs, dont un tout en bas pour le sceau
  * KYC. N'en lire qu'un laisserait des variables hors de la garde.
  */
 function blocs(sombre: boolean): string {
   const motif = sombre
-    ? /\.sga\[data-theme="dark"\]\s*\{([^}]*)\}/g
-    : /(?<!\])\.sga\s*\{([^}]*)\}/g
+    ? /\.atl\[data-theme="dark"\]\s*\{([^}]*)\}/g
+    : /(?<!\])\.atl\s*\{([^}]*)\}/g
   return [...css.matchAll(motif)].map((m) => m[1]).join('\n')
 }
 
@@ -159,16 +159,16 @@ describe('Matching — l’encre reste lisible, et la garde lit le CSS', () => {
   /**
    * ⛔ L'AVATAR CHOISIT SON ENCRE AU LIEU DE LA DÉRIVER.
    *
-   * `.sga .av` posait `color:#fff` dans la feuille, sur un aplat qui vient de la
+   * `.atl .av` posait `color:#fff` dans la feuille, sur un aplat qui vient de la
    * DONNÉE (`b.av`, la teinte du contact). Mesuré au rendu : 1,88:1 sur le vert
    * et 2,92:1 sur l'ocre, dans les deux thèmes — l'élément le moins lisible de
    * sa propre colonne. Défaut identique à celui de Contacts, corrigé là-bas le
    * 12 août ; qu'il réapparaisse ici confirme qu'aucune garde ne le tenait.
    */
   it('la feuille ne fige plus l’encre de l’avatar', () => {
-    const regle = /\.sga\s+\.av\s*\{([^}]*)\}/.exec(css)
-    expect(regle, `règle .sga .av introuvable dans ${FEUILLE}`).not.toBeNull()
-    expect(regle?.[1], 'encre figée sur .sga .av — elle doit être dérivée de l’aplat')
+    const regle = /\.atl\s+\.av\s*\{([^}]*)\}/.exec(css)
+    expect(regle, `règle .atl .av introuvable dans ${FEUILLE}`).not.toBeNull()
+    expect(regle?.[1], 'encre figée sur .atl .av — elle doit être dérivée de l’aplat')
       .not.toMatch(/color\s*:\s*#/)
   })
 

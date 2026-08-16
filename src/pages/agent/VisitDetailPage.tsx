@@ -108,7 +108,7 @@ export default function VisitDetailPage() {
 
   return (
     <div
-      data-screen-label="Fiche Visite (Sugar v3)"
+      data-screen-label="Fiche Visite"
       style={{
         width: '100%',
         minHeight: '100vh',

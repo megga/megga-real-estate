@@ -32,8 +32,8 @@ const code = css.replace(/\/\*[\s\S]*?\*\//g, (b) => '\n'.repeat((b.match(/\n/g)
 
 const bloc = (sombre: boolean): string => {
   const motif = sombre
-    ? /\.sga\[data-theme="dark"\]\s*\{([^}]*)\}/g
-    : /(?<!\])\.sga\s*\{([^}]*)\}/g
+    ? /\.atl\[data-theme="dark"\]\s*\{([^}]*)\}/g
+    : /(?<!\])\.atl\s*\{([^}]*)\}/g
   return [...code.matchAll(motif)].map((m) => m[1]).join('\n')
 }
 
@@ -50,7 +50,7 @@ const bloc = (sombre: boolean): string => {
 const SEMANTIQUES = new Set([
   '#059669', '#C0453B', '#B45309', '#1E5BC6', // --sys-* (clair) — le jaune assombri pour l'AA
   '#34D399', '#F0857A', '#E89B5A', '#7FA8FF', // leurs pendants sombres
-  '#0041D9', '#6F8CFF',                       // --sga-kyc-seal, aligné sur le token mobile
+  '#0041D9', '#6F8CFF',                       // --atl-kyc-seal, aligné sur le token mobile
 ])
 
 /** L'accent et son survol dérivé — mesurés, pas choisis. Voir le test dédié. */

@@ -498,17 +498,17 @@ export const CRM_ANIM_KEYFRAMES = `
     10%  { opacity: 1; }
     100% { transform: translate3d(var(--dx), 700px, 0) rotate(var(--rot)); opacity: 0; }
   }
-  .sg-range::-webkit-slider-thumb {
+  .wz-range::-webkit-slider-thumb {
     -webkit-appearance: none; appearance: none;
     width: 24px; height: 24px; border-radius: 999px;
-    background: var(--sg-accent, #424bfb); cursor: pointer;
+    background: var(--wz-accent, #424bfb); cursor: pointer;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     transition: transform .15s ease;
   }
-  .sg-range::-webkit-slider-thumb:hover { transform: scale(1.15); }
-  .sg-range::-moz-range-thumb {
+  .wz-range::-webkit-slider-thumb:hover { transform: scale(1.15); }
+  .wz-range::-moz-range-thumb {
     width: 24px; height: 24px; border-radius: 999px;
-    background: var(--sg-accent, #424bfb); cursor: pointer; border: 0;
+    background: var(--wz-accent, #424bfb); cursor: pointer; border: 0;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
 `
