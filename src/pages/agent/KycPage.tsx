@@ -15,22 +15,23 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import {
-  SugarTopNav,
-  SugarIconRail,
-  SUGAR_KEYFRAMES,
-  type SugarScreenId,
-} from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { SUGAR_V3_FONT, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
+  CrmTopNav,
+  CrmIconRail,
+  CRM_KEYFRAMES,
+  type CrmScreenId,
+} from '@/components/crm/CrmShell'
+import { crmPalette } from '@/components/crm/tokens'
+import { DOSSIER_FONT, DOSSIER_KEYFRAMES } from '@/components/crm-dossiers/tokens'
 import {
   KycPaletteContext,
   buildKycPalette,
   KYC_KEYFRAMES,
-} from '@/components/crm-sugar-v3/kyc/kycPalette'
-import { KycPagerFrame, type KycWizardControl } from '@/components/crm-sugar-v3/kyc-pager/KycPagerFrame'
-import { kypSurf, KYP_KEYFRAMES } from '@/components/crm-sugar-v3/kyc-pager/kypTokens'
+} from '@/components/crm-dossiers/kyc/kycPalette'
+import { KycPagerFrame, type KycWizardControl } from '@/components/crm-dossiers/kyc-pager/KycPagerFrame'
+import { kypSurf, KYP_KEYFRAMES } from '@/components/crm-dossiers/kyc-pager/kypTokens'
 import { isKycOnboarded, markKycOnboarded } from '@/lib/kycOnboarding'
 import { useKycDossiers, useKycDossierByContact } from '@/hooks/useKycDossier'
+import { readCrmDark } from '@/lib/crmDark'
 
 export default function KycPage() {
   const navigate = useNavigate()
@@ -41,12 +42,9 @@ export default function KycPage() {
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
-  const sp = useMemo(() => crmSugarPalette(dark), [dark])
+  const sp = useMemo(() => crmPalette(dark), [dark])
   const kycSp = useMemo(() => buildKycPalette(dark, sp), [dark, sp])
   const surf = useMemo(() => kypSurf(dark), [dark])
 
@@ -120,7 +118,7 @@ export default function KycPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onNavigate = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -153,22 +151,22 @@ export default function KycPage() {
           height: '100vh',
           width: '100%',
           background: sp.pageBg,
-          fontFamily: SUGAR_V3_FONT,
+          fontFamily: DOSSIER_FONT,
           color: kycSp.ink,
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
         }}
       >
-        <style>{SUGAR_KEYFRAMES}</style>
-        <style>{SUGAR_V3_KEYFRAMES}</style>
+        <style>{CRM_KEYFRAMES}</style>
+        <style>{DOSSIER_KEYFRAMES}</style>
         <style>{KYC_KEYFRAMES}</style>
         <style>{KYP_KEYFRAMES}</style>
 
-        <SugarTopNav active={'kyc' as SugarScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
+        <CrmTopNav active={'kyc' as CrmScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-          <SugarIconRail active="kyc" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+          <CrmIconRail active="kyc" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
 
           <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', padding: '22px 24px 22px 0' }}>
             {gatePending ? (

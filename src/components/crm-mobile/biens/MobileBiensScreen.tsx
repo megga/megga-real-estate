@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { useBiensSugar } from '@/hooks/useBiensSugar'
-import type { CrmBien } from '@/components/crm-sugar/mockData'
+import { useListingsScreen } from '@/hooks/useListingsScreen'
+import type { CrmBien } from '@/components/crm/mockData'
 import { formatCHF, formatRent } from '@/lib/utils'
-import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
+import { openCrmSearch } from '@/components/crm/search/openSearch'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import MeggaWordmark from '../shell/MeggaWordmark'
-import SgActionMenu from '../primitives/SgActionMenu'
+import CrmActionMenu from '../primitives/CrmActionMenu'
 import { statusTone } from '../bien/shared'
 
 type StatusFilter = 'all' | 'active' | 'reserved' | 'draft'
@@ -33,16 +33,16 @@ function priceLabel(b: CrmBien): string {
 
 /**
  * « Mes biens » mobile (sous l'onglet « Plus ») — galerie de la portefeuille,
- * câblée `useBiensSugar` (données réelles, RLS agence). Carte → fiche
+ * câblée `useListingsScreen` (données réelles, RLS agence). Carte → fiche
  * (/dashboard/listings/:id). FAB → wizard de création. Seeds derrière `demo`.
  * v1 : liste + recherche + filtres de statut ; gestes destructifs (dupliquer,
- * statut, supprimer) différés (mutations non exposées par useBiensSugar).
+ * statut, supprimer) différés (mutations non exposées par useListingsScreen).
  */
 export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
   const navigate = useNavigate()
   const { t } = useTranslation('listings')
   const { tk } = useMobileTokens()
-  const { biens, isLoading, isError, refetch } = useBiensSugar()
+  const { biens, isLoading, isError, refetch } = useListingsScreen()
 
   const all = demo ? DEMO : biens
   const [query, setQuery] = useState('')
@@ -67,7 +67,7 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
         <MeggaWordmark color={tk.ink} height={22} />
         <button
           type="button"
-          onClick={() => openSugarSearch()}
+          onClick={() => openCrmSearch()}
           aria-label={t('common:nav.search')}
           style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}
         >
@@ -165,7 +165,7 @@ export function MobileBiensScreen({ demo = false }: { demo?: boolean }) {
         </button>
       ) : null}
 
-      <SgActionMenu
+      <CrmActionMenu
         open={menuBien !== null}
         onClose={() => setMenuBien(null)}
         title={menuBien?.title}

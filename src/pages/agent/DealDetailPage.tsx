@@ -8,7 +8,7 @@
  * Câblage prod : useTransaction/useContact/useProperty (Supabase), offres via
  * useOfferChain + useUpdateOfferStatus (accepter passe aussi status='completed' —
  * le deal gagné sort du board), prochaine action via useTransactionNextReminder,
- * matching lead = port exact de dsMatches sur le portefeuille actif (useBiensSugar,
+ * matching lead = port exact de dsMatches sur le portefeuille actif (useListingsScreen,
  * % calculé jamais stocké), « Transmettre » → /dashboard/matching?contact= (l'atelier
  * lit déjà ce param). Fix hérité de la V3 : le deep-link KYC utilise ?openContactId=
  * (la page KYC ne lit pas ?contactId=).
@@ -17,16 +17,16 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { SgIcon } from '@/components/crm-sugar-v3/icons'
-import { fmtDateTime } from '@/components/crm-sugar-v3/tokens'
+import { CrmIcon } from '@/components/crm-dossiers/icons'
+import { fmtDateTime } from '@/components/crm-dossiers/tokens'
 import {
-  CRM_STAGE_ORDER, crmSugarPalette, type StageId,
-} from '@/components/crm-sugar/tokens'
-import { mapTransactionStageToStepper } from '@/components/crm-sugar-v3/dealStepper'
-import OfferModalSugar from '@/components/crm-sugar-v3/offer-modal/OfferModalSugar'
+  CRM_STAGE_ORDER, crmPalette, type StageId,
+} from '@/components/crm/tokens'
+import { mapTransactionStageToStepper } from '@/components/crm-dossiers/dealStepper'
+import OfferModal from '@/components/crm-dossiers/offer-modal/OfferModal'
 import {
-  SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
-} from '@/components/crm-sugar/SugarShell'
+  CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId,
+} from '@/components/crm/CrmShell'
 import {
   useTransaction, useUpdateTransactionStage, useUpdateTransactionStatus,
   type ContactTransaction,
@@ -36,14 +36,15 @@ import { useProperty } from '@/hooks/useProperties'
 import { useOfferChain, lastOffer, useUpdateOfferStatus } from '@/hooks/useOffers'
 import { useKycDossierByContact } from '@/hooks/useKycDossier'
 import { useTransactionNextReminder } from '@/hooks/usePipelineNextActions'
-import { useBiensSugar } from '@/hooks/useBiensSugar'
-import { mapCriteria } from '@/lib/sugarAdapters'
-import { dsPalette, type DsPal } from '@/components/crm-sugar-v3/dealTokens'
+import { useListingsScreen } from '@/hooks/useListingsScreen'
+import { mapCriteria } from '@/lib/crmAdapters'
+import { dsPalette, type DsPal } from '@/components/crm-dossiers/dealTokens'
 import { encreSur } from '@/components/megga-x-crm/tokens'
-import type { CrmBien, CrmContact } from '@/components/crm-sugar/mockData'
+import type { CrmBien, CrmContact } from '@/components/crm/mockData'
 import type { Offer, OfferKind } from '@/types/offer'
 import type { Contact } from '@/types/contact'
 import type { Property } from '@/types/listing'
+import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 const dsFmt = (n: number | null | undefined) =>
   n == null ? '' : 'CHF ' + n.toLocaleString('fr-CH').replace(/\u202f|,/g, "'")
@@ -197,7 +198,7 @@ function DsOfferRow2({ o, current, p, t }: {
         background: counter ? 'transparent' : p.ink,
         boxShadow: counter ? `0 0 0 1.5px ${p.ghost} inset` : 'none',
       }}>
-        <SgIcon name={counter ? 'swap' : 'arrowR'} size={13} stroke={counter ? p.ink : p.onInk} sw={2} />
+        <CrmIcon name={counter ? 'swap' : 'arrowR'} size={13} stroke={counter ? p.ink : p.onInk} sw={2} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
@@ -269,18 +270,15 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
   // Thème dark/light, persisté (même clé que les autres pages Sugar).
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
     }
   }, [dark])
 
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   const p = dsPalette(dark, sp)
 
   // ⚠ Les sept hooks sont appelés DANS TOUS LES CAS (règle des hooks) ; en banc
@@ -291,7 +289,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
   const { data: offerChain } = useOfferChain(live.data?.id)
   const { data: kycDossier } = useKycDossierByContact(live.data?.contact_buyer_id ?? undefined)
   const { nextAction: liveNextAction } = useTransactionNextReminder(live.data?.id)
-  const { biens: liveBiens } = useBiensSugar()
+  const { biens: liveBiens } = useListingsScreen()
 
   const deal = banc ? banc.deal ?? undefined : live.data
   const contact = banc ? banc.contact ?? undefined : liveContact
@@ -351,7 +349,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
   }
 
   const onCmd = () => window.alert(t('board.commandPaletteComingSoon'))
-  const onNavigate = (navId: SugarScreenId | string) => {
+  const onNavigate = (navId: CrmScreenId | string) => {
     switch (navId) {
       case 'today':     go('/dashboard'); break
       case 'pipeline':  go('/dashboard/pipeline'); break
@@ -372,15 +370,15 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
       position: 'relative', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
       background: sp.pageBg, color: p.ink, fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif',
     }}>
-      <style>{SUGAR_KEYFRAMES}</style>
+      <style>{CRM_KEYFRAMES}</style>
       <style>{`
         .ds-scroll { scrollbar-width: thin; scrollbar-color: ${p.ghost} transparent; }
         .ds-scroll::-webkit-scrollbar { width: 10px; }
         .ds-scroll::-webkit-scrollbar-thumb { background: ${p.ghost}; border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
       `}</style>
-      <SugarTopNav active="pipeline" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
+      <CrmTopNav active="pipeline" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail active="pipeline" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmIconRail active="pipeline" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
         <main style={{
           flex: 1, minWidth: 0, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'column',
           paddingRight: 24, paddingTop: 22, paddingBottom: 22,
@@ -435,7 +433,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
 
   const cardStyle = (delay: number): CSSProperties => ({
     background: p.card, borderRadius: 24, boxShadow: p.shadow, padding: '28px 30px',
-    animation: `sugar-fade-up .5s cubic-bezier(.2,.8,.2,1) ${delay}s both`,
+    animation: `crm-fade-up .5s cubic-bezier(.2,.8,.2,1) ${delay}s both`,
     display: 'flex', flexDirection: 'column', minWidth: 0,
   })
 
@@ -453,7 +451,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
     <>
       <header style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 22px', flexShrink: 0 }}>
         <DsGhost p={p} onClick={() => go('/dashboard/pipeline')}>
-          <SgIcon name="arrowL" size={15} stroke={p.soft} />{t('title')}
+          <CrmIcon name="arrowL" size={15} stroke={p.soft} />{t('title')}
         </DsGhost>
       </header>
 
@@ -513,17 +511,17 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
                     display: 'flex', alignItems: 'center', gap: 11, padding: 0, background: 'transparent',
                     border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                   }}>
-                  <SgIcon name="shield" size={16} stroke={p.muted} sw={1.8} />
+                  <CrmIcon name="shield" size={16} stroke={p.muted} sw={1.8} />
                   <span style={{ flex: 1, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: p.soft }}>
                     {t('deal.kyc_to_complete')} <span style={{ color: p.muted, fontWeight: 500 }}>· {t('deal.optional')}</span>
                   </span>
-                  <SgIcon name="arrowR" size={14} stroke={p.muted} />
+                  <CrmIcon name="arrowR" size={14} stroke={p.muted} />
                 </button>
               </>
             )}
             <div style={{ marginTop: 'auto', paddingTop: 26 }}>
               <DsGhost p={p} onClick={() => contact && go(`/dashboard/contacts/${contact.id}`)}>
-                {t('deal.open_contact')} <SgIcon name="arrowR" size={14} stroke={p.soft} />
+                {t('deal.open_contact')} <CrmIcon name="arrowR" size={14} stroke={p.soft} />
               </DsGhost>
             </div>
           </div>
@@ -682,7 +680,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
 
       {/* Offre / contre-offre — épouse le bento (contained) */}
       {offerModalOpen && (
-        <OfferModalSugar
+        <OfferModal
           dealId={deal.id}
           kind={offerModalKind}
           parentOffer={offerModalKind === 'counter' ? last ?? null : null}
@@ -704,7 +702,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
           display: 'inline-flex', alignItems: 'center', gap: 10, padding: '13px 20px', borderRadius: 999,
           background: p.ink, color: p.onInk, fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap',
           boxShadow: '0 18px 44px rgba(0,0,0,0.30), 0 4px 14px rgba(0,0,0,0.20)',
-          animation: 'sugar-fade-up .3s cubic-bezier(.2,.8,.2,1) both',
+          animation: 'crm-fade-up .3s cubic-bezier(.2,.8,.2,1) both',
         }}>{toast}</div>
       )}
     </>,

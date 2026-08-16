@@ -11,9 +11,9 @@
  */
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
+import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { crmPalette } from '@/components/crm/tokens'
+import { crmThemeVars } from '@/components/crm/crmThemeVars'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { useTranslation, Trans } from 'react-i18next'
 import i18n from '@/i18n'
@@ -57,6 +57,7 @@ import {
 import { usePlanLimits } from '@/hooks/usePlanLimits'
 import { FLOOR_PLAN_ROOMS } from '@/types/floorPlan'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
+import { readCrmDark } from '@/lib/crmDark'
 
 // ─── Zod schemas per step ───
 
@@ -2209,12 +2210,12 @@ export default function ListingFormPage() {
   const navigate = useNavigate()
 
   const [dark, setDark] = useState<boolean>(() =>
-    typeof window !== 'undefined' && window.localStorage.getItem('megga.sugar.dark') === '1')
+    typeof window !== 'undefined' && readCrmDark())
 
   // Chrome Sugar porté ici : cette page vivait sous `AgentLayout` (sidebar
   // legacy). Chaque surface Sugar porte son propre chrome.
-  const sgSp = useMemo(() => crmSugarPalette(dark), [dark])
-  const onSugarNav = (id: SugarScreenId | string) => {
+  const sgSp = useMemo(() => crmPalette(dark), [dark])
+  const onCrmNav = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -2228,7 +2229,7 @@ export default function ListingFormPage() {
       default:
     }
   }
-  const onSugarCmd = () => {}
+  const onCrmCmd = () => {}
 
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -2823,11 +2824,11 @@ export default function ListingFormPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...sugarThemeVars(sgSp, dark) }}>
-      <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav active={'biens' as SugarScreenId} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
+    <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }}>
+      <style>{CRM_KEYFRAMES}</style>
+      <CrmTopNav active={'biens' as CrmScreenId} sp={sgSp} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} />
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        <SugarIconRail active={'biens' as SugarScreenId} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} setDark={setDark} sp={sgSp} />
+        <CrmIconRail active={'biens' as CrmScreenId} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} setDark={setDark} sp={sgSp} />
         <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}

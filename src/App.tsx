@@ -62,7 +62,7 @@ const AuthSetNewPasswordPage = lazy(() =>
 )
 
 // Layout shells agent — lazy car ils ne wrappent que les routes dashboard
-const AgentSugarLayout = lazy(() => import('@/components/layout/AgentSugarLayout'))
+const AgentLayout = lazy(() => import('@/components/layout/AgentLayout'))
 // Étape 5 KYB, tâche 4 — garde LAB plein sur les routes kyc/* (layout-route, aucun path propre).
 const KycLabGuard = lazy(() => import('@/components/layout/KycLabGuard'))
 
@@ -524,7 +524,7 @@ function AppRoutes() {
               <Route path="/dev/contacts" element={<ContactsShowcasePage />} />
               {/* Pipeline — la page RÉELLE par le slot `banc` : 3 vues, 8 colonnes,
                   états d'exception, modales, bascule de thème. Une seule vue à la
-                  fois : `SugarDealCard` porte un `layoutId` GLOBAL, et deux vues
+                  fois : `DealCard` porte un `layoutId` GLOBAL, et deux vues
                   montées ensemble videraient les colonnes jumelles. */}
               <Route path="/dev/pipeline" element={<PipelineShowcasePage />} />
               {/* Modales qu'aucun geste n'ouvre sans session : elles ne seraient
@@ -563,7 +563,7 @@ function AppRoutes() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <AgentSugarLayout />
+                    <AgentLayout />
                   </ProtectedRoute>
                 }
               >
@@ -588,7 +588,7 @@ function AppRoutes() {
                 <Route path="listings/new" element={<ResponsiveRoute desktop={<ListingWizardPage />} mobile={<MobileWizardPage />} />} />
                 <Route path="listings/:id/edit" element={<ByParam><ListingFormPage /></ByParam>} />
                 {/* Fiche contact — pager 2 pages (refonte Claude Design juil. 2026).
-                    Sous AgentSugarLayout (chrome Sugar auto-porté) pour cohérence
+                    Sous AgentLayout (chrome Sugar auto-porté) pour cohérence
                     liste↔fiche. Mobile (< 768px) : fiche détail P8/2. */}
                 <Route path="contacts/:id" element={<ByParam><ResponsiveRoute desktop={<ContactDetailPage />} mobile={<MobileContactDetailPage />} /></ByParam>} />
                 {/* Mes biens — mobile (< 768px) : galerie portefeuille (P7). */}
@@ -639,7 +639,7 @@ function AppRoutes() {
                   <Route path="kyc/:dossierId" element={<ByParam><ResponsiveRoute desktop={<KycPage />} mobile={<MobileKycDetailPage />} /></ByParam>} />
                 </Route>
                 {/* Étape 2 KYB — gate identité légale (useIdentityGate redirige ici depuis
-                    AgentSugarLayout tant que agencies.identity_submitted_at est nul).
+                    AgentLayout tant que agencies.identity_submitted_at est nul).
                     Mobile (< 768px) : la saisie se termine sur ordinateur uniquement. */}
                 <Route path="identite" element={<ResponsiveRoute desktop={<IdentityPage />} mobile={<IdentityMobileNotice />} />} />
                 {/* Étape 3 KYB — réservation de l'appel d'accueil, à la sortie du wizard. */}

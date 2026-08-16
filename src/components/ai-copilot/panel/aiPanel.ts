@@ -1,10 +1,10 @@
 // MEGGA AI — Panneau latéral · helpers purs (palette dérivée, packs contextuels,
 // libellés d'écran, parsing des brouillons, phases de réflexion).
 // Port fidèle du handoff `crm-copilot-panel.jsx` (chantiers 1,4,5,6), adapté à la
-// vraie stack : zéro `window.*`, tokens issus du vrai `SugarPalette`.
+// vraie stack : zéro `window.*`, tokens issus du vrai `CrmPalette`.
 
 import type { CSSProperties } from 'react'
-import { sgVoileEncre, type SugarPalette } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre, type CrmPalette } from '@/components/crm/tokens'
 import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 
 // ── Géométrie ───────────────────────────────────────────────────────────────
@@ -16,7 +16,7 @@ export const COPILOT_WIDTH = PANEL_W + 32
 
 // ── Bleu identité MEGGA AI (chantier 1) ─────────────────────────────────────
 // ── Palette dérivée du panneau ──────────────────────────────────────────────
-// Étend le SugarPalette de base avec les surfaces propres au panneau (canvas,
+// Étend le CrmPalette de base avec les surfaces propres au panneau (canvas,
 // composer, remplissages). Tout en DÉRIVE désormais : le dock portait son
 // propre accent — l'encre, règle Sugar Pure — et ses surfaces sombres passaient
 // par la forme à 3 arguments de `crmStep`, qui retombait sur ses littéraux
@@ -51,7 +51,7 @@ export interface AiPalette {
   rowHov: string
 }
 
-export function deriveAiPalette(base: SugarPalette, dark: boolean): AiPalette {
+export function deriveAiPalette(base: CrmPalette, dark: boolean): AiPalette {
   if (dark) {
     return {
       dark: true,
@@ -89,7 +89,7 @@ export function deriveAiPalette(base: SugarPalette, dark: boolean): AiPalette {
     aiInk: base.accent,
     panelBg: base.solidBg,
     panelShadow:
-      `0 28px 80px -16px ${sgVoileEncre(false, 0.22)}, 0 8px 26px -12px ${sgVoileEncre(false, 0.12)}`,
+      `0 28px 80px -16px ${crmVoileEncre(false, 0.22)}, 0 8px 26px -12px ${crmVoileEncre(false, 0.12)}`,
     fill: base.cardSubBg,
     fillStrong: base.focusSurface,
     cardBg2: base.cardSubBg,
@@ -414,7 +414,7 @@ export function revueKit(sp: AiPalette): RevueKit {
   return {
     scrim: {
       position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center',
-      background: sgVoileEncre(dark, dark ? 0.55 : 0.28),
+      background: crmVoileEncre(dark, dark ? 0.55 : 0.28),
       backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
       padding: 20,
     },
@@ -422,7 +422,7 @@ export function revueKit(sp: AiPalette): RevueKit {
       width: 'min(540px, 100%)', maxHeight: '86vh', overflowY: 'auto',
       background: sp.panelBg, borderRadius: 'var(--crm-radius-4xl)',
       padding: '20px 22px 18px',
-      boxShadow: `0 30px 80px -14px ${sgVoileEncre(dark, dark ? 0.7 : 0.28)}`,
+      boxShadow: `0 30px 80px -14px ${crmVoileEncre(dark, dark ? 0.7 : 0.28)}`,
       display: 'flex', flexDirection: 'column', gap: 14,
     },
     titre: {
@@ -431,7 +431,7 @@ export function revueKit(sp: AiPalette): RevueKit {
     },
     libelle: { fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: sp.sub },
     champ: {
-      background: sp.fill, border: `1px solid ${sgVoileEncre(dark, 0.08)}`,
+      background: sp.fill, border: `1px solid ${crmVoileEncre(dark, 0.08)}`,
       borderRadius: 'var(--crm-radius-lg)', color: sp.ink,
     },
     aide: { fontSize: 'var(--crm-text-sm)', color: sp.sub, flex: 1 },

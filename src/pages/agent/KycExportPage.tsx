@@ -6,7 +6,7 @@
 // puis l'agent fait Cmd+P (ou auto-trigger). Le navigateur génère un PDF natif
 // — pas de dépendance Puppeteer / jsPDF. Plus simple, plus léger.
 
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -181,7 +181,7 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
         alignItems: 'center',
         justifyContent: 'space-between',
         fontFamily: '"Inter Tight", system-ui, sans-serif',
-        boxShadow: `0 2px 8px ${sgVoileEncre(false, 0.04)}`,
+        boxShadow: `0 2px 8px ${crmVoileEncre(false, 0.04)}`,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -226,7 +226,7 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
           fontWeight: 600,
           letterSpacing: 0.1,
           cursor: 'pointer',
-          boxShadow: `0 6px 16px ${sgVoileEncre(false, 0.18)}`,
+          boxShadow: `0 6px 16px ${crmVoileEncre(false, 0.18)}`,
         }}
       >
         {t('report.export.print')}

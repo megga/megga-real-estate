@@ -10,8 +10,8 @@
  * ⚠ IL NE COUVRE QUE CE QUE LES AUTRES BANCS N'ATTEIGNENT PAS. Neuf modales ici ;
  * les autres sont déjà accessibles et doivent être éprouvées LÀ-BAS, sur leur
  * vrai écran, pas remontées ici en double :
- *   · `/dev/matching-atelier` → SgaConfirm, SgaSendSheet, SgaAnnonceVue
- *   · `/dev/mobile`           → SgBottomCard (et ses trois consommateurs),
+ *   · `/dev/matching-atelier` → AtlConfirm, AtlSendSheet, AtlAnnonceVue
+ *   · `/dev/mobile`           → CrmBottomCard (et ses trois consommateurs),
  *                               MrNotifSheet, la visionneuse photo du bien,
  *                               la confirmation « tout marquer » du KYC
  *   · `/dev/contacts`         → Nouveau contact, WhatsApp, et les trois de la fiche
@@ -25,7 +25,7 @@
  * modales qui portent un état d'erreur distinct ont un interrupteur dédié.
  */
 import { useState } from 'react'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmPalette } from '@/components/crm/tokens'
 import { deriveAiPalette } from '@/components/ai-copilot/panel/aiPanel'
 import type { MrhCtx } from '@/components/matching-recherche/mrhCtx'
 import EmailReviewModal from '@/components/ai-copilot/panel/EmailReviewModal'
@@ -34,14 +34,15 @@ import LetterReviewModal from '@/components/ai-copilot/panel/LetterReviewModal'
 import PublishReviewModal from '@/components/ai-copilot/panel/PublishReviewModal'
 import DeleteContactReviewModal from '@/components/ai-copilot/panel/DeleteContactReviewModal'
 import MrhSendSheet from '@/components/matching-recherche/MrhSendSheet'
-import { MlkAgentModal } from '@/components/crm-sugar-v3/kyc-wizard/MlkAgentModal'
-import { SourceOfFundsOverlay } from '@/components/crm-sugar-v3/kyc/KycSourceOfFundsCard'
+import { MlkAgentModal } from '@/components/crm-dossiers/kyc-wizard/MlkAgentModal'
+import { SourceOfFundsOverlay } from '@/components/crm-dossiers/kyc/KycSourceOfFundsCard'
 import MxModal from '@/components/megga-x/MxModal'
 import {
   DEMO_AI_EMAIL, DEMO_AI_ANNONCE, DEMO_AI_LETTER,
   DEMO_AI_PENDING_PUBLISH, DEMO_AI_PENDING_DELETE,
   DEMO_SEND_RESULT, DEMO_KYC_CASE, DEMO_KYC_DOCS,
 } from './demoFixtures'
+import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 /** Identifiants des neuf modales du banc — l'état ouvert en porte au plus une. */
 type Id =
@@ -69,10 +70,7 @@ export default function ModalesShowcasePage() {
   // modales sombres sur une page claire et fabriquerait de faux défauts.
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   const [ouverte, setOuverte] = useState<Id | null>(null)
   // ⛔ L'ÉCHEC EST UN ÉTAT À PART ENTIÈRE. Les deux modales de validation
@@ -81,7 +79,7 @@ export default function ModalesShowcasePage() {
   // chemin heureux serait jamais vu — le défaut exact que `/dev/biens` portait.
   const [echec, setEchec] = useState(false)
 
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   const ai = deriveAiPalette(sp, dark)
 
   const fermer = () => setOuverte(null)
@@ -154,7 +152,7 @@ export default function ModalesShowcasePage() {
         <button type="button" onClick={() => {
           const v = !dark
           setDark(v)
-          window.localStorage.setItem('megga.sugar.dark', v ? '1' : '0')
+          window.localStorage.setItem(CRM_DARK_KEY, v ? '1' : '0')
         }} style={pilule(dark)}>{dark ? 'Sombre' : 'Clair'}</button>
         <button type="button" onClick={() => setEchec((v) => !v)} aria-pressed={echec}
           title="Fait échouer l’exécution des actions en attente"

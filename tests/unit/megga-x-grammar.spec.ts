@@ -51,7 +51,7 @@ import { emptyRoots, readFileSafely, rel, repoPath, scanRoots, type RootSpec } f
 /**
  * Surfaces PORTÉES. Un lot qui nettoie une zone l'ajoute ici, pas avant.
  *
- * ⚠ `crm-sugar-v3/vitrine` est la palette ET le kit de la FICHE bien, dont
+ * ⚠ `crm-dossiers/vitrine` est la palette ET le kit de la FICHE bien, dont
  * `ListingDetailPage` est l'unique consommateur. Le plan de refonte ne la
  * listait pas — il rangeait la fiche avec la liste, sur la foi d'un grep qui ne
  * voyait que le fichier de page. Une surface n'est pas un dossier.
@@ -184,32 +184,32 @@ const PAGES_PUBLIQUES_ACQUISES = [
 // lot l'avait mal orthographié — le filtre serait tombé en silence et la zone
 // aurait aspiré les fichiers homonymes des autres lots.
 const ZONES: RootSpec[] = [
-  { root: 'src/components/crm-sugar-wizard', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar/biens', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar-v3/vitrine', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-wizard', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm/biens', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-dossiers/vitrine', keep: (n) => /\.tsx?$/.test(n) },
   // Le CRM mobile ENTIER depuis le 12 août 2026 — seize dossiers d'écrans, plus
   // la coquille et les primitives. Les trois dossiers de « Mes biens » y étaient
   // entrés seuls au lot 4 ; le reste portait encore 29 capitales, 295 graisses
   // ≥ 700, 22 interlettrages et 3 balises à graisse héritée.
   { root: 'src/components/crm-mobile', keep: (n) => /\.tsx?$/.test(n) },
-  // ⚠ CHROME PARTAGÉ, pas une surface de « Mes biens ». `SugarShell` porte la
+  // ⚠ CHROME PARTAGÉ, pas une surface de « Mes biens ». `CrmShell` porte la
   // barre supérieure et le rail de TOUTE l'app agent — 30 fichiers le montent,
   // de Today aux Réglages. Il entre dans le cliquet parce qu'il est rendu EN
   // PERMANENCE sur les écrans portés, et qu'il est mesuré propre : 0 capitale,
   // 0 graisse ≥ 700, 0 interlettrage, 0 taille en dur, 0 noir Sugar. Son seul
   // hex hors échelle est `#e53935`, le compteur de notifications — sémantique,
   // même famille que `err`.
-  // ⚠ CHROME PARTAGÉ — les fichiers posés À LA RACINE de `crm-sugar`, pas dans
-  // ses sous-dossiers. `SugarShell` porte la barre supérieure, `LiquidGlassRail`
+  // ⚠ CHROME PARTAGÉ — les fichiers posés À LA RACINE de `crm`, pas dans
+  // ses sous-dossiers. `CrmShell` porte la barre supérieure, `LiquidGlassRail`
   // le rail et ses icônes animées, `tokens.ts` la palette que TOUT le CRM lit.
   //
   // ⛔ `keepPath` N'EST PAS UN ORNEMENT. `collect()` récurse et `keep` ne voit
   // que le nom de base : sans lui, retenir `'tokens.ts'` ramènerait AUSSI
-  // `crm-sugar/analytics/tokens.ts` — une palette Sugar Pure complète (12 noirs
+  // `crm/analytics/tokens.ts` — une palette Sugar Pure complète (12 noirs
   // et gris-bleus) appartenant au lot Analytics, qui serait alors déclarée
   // portée sans que personne l'ait regardée. Mesuré avant d'écrire la zone.
   //
-  // ⚠ `mockData.ts` et `sugarThemeVars.ts` ENTRENT au lot 1 du chantier « 100 % »
+  // ⚠ `mockData.ts` et `crmThemeVars.ts` ENTRENT au lot 1 du chantier « 100 % »
   // (15 août 2026), et ils ne sont pas un oubli qu'on répare : ils étaient les
   // deux SEULS fichiers de la racine que le `keep` nommé laissait dehors, ce qui
   // rendait la zone couverte « à quatre noms près ». Mesurés avant d'entrer : 0
@@ -217,8 +217,8 @@ const ZONES: RootSpec[] = [
   // dernier interstice de cette racine — après quoi la liste des noms EST le
   // contenu du dossier, et c'est ce qui la rend vérifiable.
   {
-    root: 'src/components/crm-sugar',
-    keep: (n) => ['SugarShell.tsx', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'sugarThemeVars.ts'].includes(n),
+    root: 'src/components/crm',
+    keep: (n) => ['CrmShell.tsx', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts'].includes(n),
     keepPath: (p) => p.split('/').length === 4,
   },
   // Le chrome rendu par les 27 surfaces du CRM (lot 1 du chantier « CRM agent »,
@@ -230,7 +230,7 @@ const ZONES: RootSpec[] = [
   // graisses ≥ 700. La grammaire MEGGA X n'est donc pas encore ce que la main
   // écrit par défaut — ce qui fait du cliquet le livrable qui compte, pas de la
   // passe.
-  { root: 'src/components/crm-sugar/today', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm/today', keep: (n) => /\.tsx?$/.test(n) },
   // KYC — lot A2 (15 août 2026), éclaté sur TROIS dossiers. Le nom d'une surface
   // ne dit pas où elle est rangée : `kyc` (la palette et les cartes), `kyc-pager`
   // (les deux pages du pager) et `kyc-wizard` (l'entonnoir de collecte).
@@ -238,9 +238,9 @@ const ZONES: RootSpec[] = [
   // ⚠ SURFACE DE CONFORMITÉ : le lot ne touche qu'à la COMPOSITION. Aucun libellé,
   // aucun seuil, aucun statut n'a changé — seulement la casse, la graisse,
   // l'interlettrage, l'échelle et les deux teintes proscrites.
-  { root: 'src/components/crm-sugar-v3/kyc', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar-v3/kyc-pager', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar-v3/kyc-wizard', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-dossiers/kyc', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-dossiers/kyc-pager', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-dossiers/kyc-wizard', keep: (n) => /\.tsx?$/.test(n) },
   // Visites (lot A3), Analytics (A4) et le parcours d'import de lead — les trois
   // dernières surfaces jamais portées de la vague A.
   //
@@ -248,10 +248,10 @@ const ZONES: RootSpec[] = [
   // (/dashboard/analytics) et son nom de dossier ne coïncident pas, et sa page
   // s'appelle `AnalyticsPage`. Troisième fois que le nom d'une surface ne
   // dit pas où elle est rangée.
-  { root: 'src/components/crm-sugar-v3/visite-detail', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar-v3/audit', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar/analytics', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar/journey', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-dossiers/visite-detail', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-dossiers/audit', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm/analytics', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm/journey', keep: (n) => /\.tsx?$/.test(n) },
   // Vague B (16 août 2026) — les deux surfaces dont la COMPOSITION était déjà
   // portée et dont seule la COULEUR restait.
   //
@@ -260,8 +260,8 @@ const ZONES: RootSpec[] = [
   // grammaire et portait encore douze couleurs ; les Réglages (#1197), douze
   // grammaires contre quarante-trois couleurs. Les traiter comme « à refaire »
   // aurait coûté dix fois leur prix.
-  { root: 'src/components/crm-sugar/settings', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar/calendar', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm/settings', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm/calendar', keep: (n) => /\.tsx?$/.test(n) },
   // Vague C — ce que le plan rangeait sous « Reste (pages) », et qui n'est pas un
   // reste : les deux sélecteurs d'affichage de la fiche bien (rendus par
   // `/dashboard/listings/:id/edit`) et le bandeau de consentement.
@@ -284,9 +284,9 @@ const ZONES: RootSpec[] = [
   // sur des écrans que le cliquet déclarait propres.
   { root: 'src/components/listings', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/layout', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar/search', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar/notifications', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar/profile', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm/search', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm/notifications', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm/profile', keep: (n) => /\.tsx?$/.test(n) },
   // ⛔ LE DOCK MEGGA AI EST DU CHROME, ET AUCUN PLAN NE LE COMPTAIT. `App.tsx`
   // le monte par `CopilotPanelHost`, AU-DESSUS de `<Routes>`, donc sur TOUTE
   // route `/dashboard` — y compris les onze surfaces réputées portées. Mesuré le
@@ -299,16 +299,16 @@ const ZONES: RootSpec[] = [
   // lire ce fichier DEUX fois (`filesPerRoot` accumule en `+=`), et un doublon
   // dans le balayage compte double dans chaque clause.
   // « Contacts » EN ENTIER depuis le lot 4 — voir la note au-dessus de `PAGES`.
-  { root: 'src/components/crm-sugar/contacts-pager', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm/contacts-pager', keep: (n) => /\.tsx?$/.test(n) },
   // Le Pipeline EN ENTIER depuis le lot 4 du chantier MEGGA X (13 août 2026).
   // ⚠ Sa dette était l'INVERSE de celle des pages : 62 graisses ≥ 700 et ZÉRO
   // taille littérale, quand les deux pages portaient 51 tailles. Un lot qui
   // recopierait l'ordre du chantier précédent chercherait la mauvaise chose.
-  { root: 'src/components/crm-sugar/pipeline', keep: (n) => /\.tsx?$/.test(n) },
-  // La modale d'offre et les jetons de la fiche deal — la part de `crm-sugar-v3`
+  { root: 'src/components/crm/pipeline', keep: (n) => /\.tsx?$/.test(n) },
+  // La modale d'offre et les jetons de la fiche deal — la part de `crm-dossiers`
   // que la chaîne Pipeline REND réellement.
   //
-  // ⛔ ET SEULEMENT ELLE. `crm-sugar-v3` hors `vitrine` porte 199 marqueurs, dont
+  // ⛔ ET SEULEMENT ELLE. `crm-dossiers` hors `vitrine` porte 199 marqueurs, dont
   // 176 dans `kyc-wizard`, `kyc-pager`, `visite-detail`, `audit` et
   // `primitives` : des écrans que ce chantier n'a jamais ouverts, qui n'ont
   // aucun banc, et que la décision de périmètre (§3.1 du plan, 13 août 2026) a
@@ -316,13 +316,13 @@ const ZONES: RootSpec[] = [
   // que personne les ait regardés — l'inverse de ce à quoi sert un cliquet :
   // une zone absente n'est pas déclarée propre, elle est déclarée NON TRAITÉE.
   //
-  // ⚠ `tokens.ts` (`SugarV3`) reste dehors pour la même raison, et c'est une
+  // ⚠ `tokens.ts` (`DossierTokens`) reste dehors pour la même raison, et c'est une
   // décision, pas un oubli : il porte deux noirs Sugar, mais il alimente onze
   // pages hors périmètre. Le reciblage de la chaîne Pipeline est passé par ses
   // palettes LOCALES, pas par lui — la mesure d'ouverture a montré que la fiche
   // ne lui prend qu'un formateur de date.
   {
-    root: 'src/components/crm-sugar-v3',
+    root: 'src/components/crm-dossiers',
     // ⚠ `primitives.tsx` entre au lot A0 (15 août 2026) — il est le socle des
     // quatre surfaces de la vague A (KYC, Visites, Audit, Import lead), pas du
     // chrome : mesuré, les 27 écrans du CRM ne le montent PAS, et
@@ -332,7 +332,7 @@ const ZONES: RootSpec[] = [
     // ⛔ `tokens.ts` ENTRE au lot 2 du chantier KYC (16 août 2026), et la
     // décision qui le tenait dehors s'est PÉRIMÉE : elle disait « 13 lecteurs
     // dans des surfaces dont le lot n'est pas passé ». Mesuré à l'ouverture de
-    // ce lot, les douze occurrences de `SugarV3.black` vivent TOUTES dans des
+    // ce lot, les douze occurrences de `DossierTokens.black` vivent TOUTES dans des
     // fichiers déjà balayés — `audit/`, `visite-detail/`, `kyc-wizard/` et trois
     // pages de `PAGES`. Le verrou annoncé n'existait plus ; seul le fichier de
     // jetons restait dehors, et avec lui le noir de Sugar, que la clause
@@ -341,7 +341,7 @@ const ZONES: RootSpec[] = [
     //
     // ⚠ `keepPath` ancre les cinq noms sur le dossier IMMÉDIAT. Aucun homonyme
     // n'existe aujourd'hui, mais `collect()` RÉCURSE et `keep` ne voit que le
-    // nom de base : c'est exactement ainsi qu'une racine `crm-sugar` retenant
+    // nom de base : c'est exactement ainsi qu'une racine `crm` retenant
     // `tokens.ts` avait ramené la palette d'Analytics (vacuité n° 23).
     keep: (n) => ['icons.tsx', 'dealStepper.ts', 'dealTokens.ts', 'primitives.tsx', 'tokens.ts'].includes(n),
     keepPath: (p) => p.split('/').length === 4,
@@ -370,11 +370,11 @@ const ZONES: RootSpec[] = [
   // ⛔ LA PAGE **ET** SON MODULE DE JETONS (lot 2, 15 août 2026). Entrer la page
   // seule aurait suffi à faire passer la clause : les littéraux venaient d'être
   // sortis dans `receptionTokens.ts`, et le cliquet n'aurait plus vu que leur
-  // NOM. C'est exactement le piège que `crm-sugar-v3/tokens.ts` a posé pendant
+  // NOM. C'est exactement le piège que `crm-dossiers/tokens.ts` a posé pendant
   // six lots — le noir de Sugar vivait dans le fichier de jetons, hors balayage.
   { root: 'src/pages/public', keep: (n) => PAGES_PUBLIQUES.has(n) },
   { root: 'src/components/buyer-reception', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar-v3/offer-modal', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-dossiers/offer-modal', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
   // ⛔ « Matching · Recherche » entre SANS `MrhMapView.tsx`. La carte est GELÉE
   // par décision (13 août 2026) : le jeton Mapbox est absent du build, donc la
@@ -451,7 +451,7 @@ const ZONES: RootSpec[] = [
   // compte de CLAUSES — écrire lesquelles, sans quoi deux mesures du même dossier
   // ne se comparent pas.
   //
-  // ⚠ `crm-sugar-identity` : l'écart annoncé par le plan est TRANCHÉ, et il
+  // ⚠ `crm-identity` : l'écart annoncé par le plan est TRANCHÉ, et il
   // n'existait pas. Un agent y annonçait « 9 polices en dur » ; le dossier ne
   // contient AUCUN `fontFamily` ni `font:` — zéro au grep brut sur ses neuf
   // fichiers. L'écart venait de la clause des polices, qui ne connaît que
@@ -465,7 +465,7 @@ const ZONES: RootSpec[] = [
   { root: 'src/components/skeletons', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/auth', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/map', keep: (n) => /\.tsx?$/.test(n) },
-  { root: 'src/components/crm-sugar-identity', keep: (n) => /\.tsx?$/.test(n) },
+  { root: 'src/components/crm-identity', keep: (n) => /\.tsx?$/.test(n) },
   // ⚠ `auth-bento` — UNE route vivante sur huit coquilles exportées, et les sept
   // autres ont été retirées au même lot. Elle entre au cliquet plutôt que d'être
   // exemptée parce que `/auth/forgot-password/reset` est une surface CLIENT,
@@ -538,17 +538,17 @@ const TEMOINS_DE_ZONE = [
   // nommés parce qu'ils passent par un `keepPath` : si ce filtre se resserrait
   // par accident, la zone rendrait encore des fichiers et `emptyRoots` la
   // croirait saine.
-  'src/components/crm-sugar/tokens.ts',
-  'src/components/crm-sugar/LiquidGlassRail.tsx',
-  // ⚠ `crm-sugar-v3/tokens.ts` passe lui aussi par un `keepPath` (lot 2, 16 août
+  'src/components/crm/tokens.ts',
+  'src/components/crm/LiquidGlassRail.tsx',
+  // ⚠ `crm-dossiers/tokens.ts` passe lui aussi par un `keepPath` (lot 2, 16 août
   // 2026) : si ce filtre se resserrait par accident, la racine rendrait encore
   // ses quatre autres fichiers et `emptyRoots` la croirait saine — pendant que
   // le fichier de jetons, celui qui porte les couleurs, serait sorti du balayage.
-  'src/components/crm-sugar-v3/tokens.ts',
-  'src/components/crm-sugar/today/PageAujourdhuiH.tsx',
-  'src/components/crm-sugar/search/CrmSugarSearch.tsx',
-  'src/components/crm-sugar/notifications/SugarNotificationsPopover.tsx',
-  'src/components/crm-sugar/profile/SugarProfileDropdown.tsx',
+  'src/components/crm-dossiers/tokens.ts',
+  'src/components/crm/today/PageAujourdhuiH.tsx',
+  'src/components/crm/search/CrmSearch.tsx',
+  'src/components/crm/notifications/CrmNotificationsPopover.tsx',
+  'src/components/crm/profile/CrmProfileDropdown.tsx',
   'src/components/ai-copilot/panel/CopilotPanel.tsx',
   'src/components/layout/StaleBundleDetector.tsx',
   // ⚠ La zone la plus lourde du lot 1 : si le filtre de la face publique se
@@ -561,15 +561,15 @@ const TEMOINS_DE_ZONE = [
   // bruit, et cette liste ne vaut que si chaque entrée nomme un mode d'échec
   // qu'`emptyRoots` laisse passer :
   //
-  // · `mockData.ts` passe par le `keep` NOMMÉ de la racine `crm-sugar` ET par
+  // · `mockData.ts` passe par le `keep` NOMMÉ de la racine `crm` ET par
   //   son `keepPath`. Si l'un des deux se resserrait, la racine rendrait encore
   //   ses cinq autres fichiers et `emptyRoots` la croirait saine.
-  'src/components/crm-sugar/mockData.ts',
+  'src/components/crm/mockData.ts',
   // · `steps/StepAgence.tsx` vit dans un SOUS-DOSSIER. C'est la preuve que la
-  //   récursion de `collect()` atteint `crm-sugar-identity/steps/` — cinq des
+  //   récursion de `collect()` atteint `crm-identity/steps/` — cinq des
   //   neuf fichiers de la zone y vivent, et une racine qui ne rendrait que les
   //   quatre du premier niveau ne serait pas vide.
-  'src/components/crm-sugar-identity/steps/StepAgence.tsx',
+  'src/components/crm-identity/steps/StepAgence.tsx',
 ]
 
 /**
@@ -913,28 +913,28 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/auth', { hors: 0, total: 13 }],
   ['src/components/auth-bento', { hors: 16, total: 28 }],
   ['src/components/crm-mobile', { hors: 228, total: 319 }],
-  ['src/components/crm-sugar', { hors: 3, total: 3 }],
-  ['src/components/crm-sugar-identity', { hors: 1, total: 69 }],
-  ['src/components/crm-sugar-v3', { hors: 2, total: 3 }],
-  ['src/components/crm-sugar-v3/audit', { hors: 3, total: 4 }],
-  ['src/components/crm-sugar-v3/kyc', { hors: 10, total: 10 }],
-  ['src/components/crm-sugar-v3/kyc-pager', { hors: 22, total: 25 }],
-  ['src/components/crm-sugar-v3/kyc-wizard', { hors: 36, total: 46 }],
-  ['src/components/crm-sugar-v3/offer-modal', { hors: 15, total: 19 }],
-  ['src/components/crm-sugar-v3/visite-detail', { hors: 23, total: 30 }],
-  ['src/components/crm-sugar-v3/vitrine', { hors: 4, total: 4 }],
-  ['src/components/crm-sugar-wizard', { hors: 64, total: 100 }],
-  ['src/components/crm-sugar/analytics', { hors: 13, total: 29 }],
-  ['src/components/crm-sugar/biens', { hors: 43, total: 51 }],
-  ['src/components/crm-sugar/calendar', { hors: 18, total: 28 }],
-  ['src/components/crm-sugar/contacts-pager', { hors: 68, total: 92 }],
-  ['src/components/crm-sugar/journey', { hors: 3, total: 5 }],
-  ['src/components/crm-sugar/notifications', { hors: 4, total: 4 }],
-  ['src/components/crm-sugar/pipeline', { hors: 32, total: 38 }],
-  ['src/components/crm-sugar/profile', { hors: 2, total: 2 }],
-  ['src/components/crm-sugar/search', { hors: 8, total: 8 }],
-  ['src/components/crm-sugar/settings', { hors: 74, total: 95 }],
-  ['src/components/crm-sugar/today', { hors: 43, total: 54 }],
+  ['src/components/crm', { hors: 3, total: 3 }],
+  ['src/components/crm-identity', { hors: 1, total: 69 }],
+  ['src/components/crm-dossiers', { hors: 2, total: 3 }],
+  ['src/components/crm-dossiers/audit', { hors: 3, total: 4 }],
+  ['src/components/crm-dossiers/kyc', { hors: 10, total: 10 }],
+  ['src/components/crm-dossiers/kyc-pager', { hors: 22, total: 25 }],
+  ['src/components/crm-dossiers/kyc-wizard', { hors: 36, total: 46 }],
+  ['src/components/crm-dossiers/offer-modal', { hors: 15, total: 19 }],
+  ['src/components/crm-dossiers/visite-detail', { hors: 23, total: 30 }],
+  ['src/components/crm-dossiers/vitrine', { hors: 4, total: 4 }],
+  ['src/components/crm-wizard', { hors: 64, total: 100 }],
+  ['src/components/crm/analytics', { hors: 13, total: 29 }],
+  ['src/components/crm/biens', { hors: 43, total: 51 }],
+  ['src/components/crm/calendar', { hors: 18, total: 28 }],
+  ['src/components/crm/contacts-pager', { hors: 68, total: 92 }],
+  ['src/components/crm/journey', { hors: 3, total: 5 }],
+  ['src/components/crm/notifications', { hors: 4, total: 4 }],
+  ['src/components/crm/pipeline', { hors: 32, total: 38 }],
+  ['src/components/crm/profile', { hors: 2, total: 2 }],
+  ['src/components/crm/search', { hors: 8, total: 8 }],
+  ['src/components/crm/settings', { hors: 74, total: 95 }],
+  ['src/components/crm/today', { hors: 43, total: 54 }],
   ['src/components/kyc-magic-link', { hors: 80, total: 110 }],
   ['src/components/layout', { hors: 9, total: 107 }],
   ['src/components/listings', { hors: 39, total: 115 }],
@@ -986,7 +986,7 @@ function b4Compte(code: string, classes: string): { hors: number; total: number 
 }
 
 /** La zone la PLUS SPÉCIFIQUE qui contient ce chemin — sinon un fichier de
- *  `crm-sugar/today` tomberait dans `crm-sugar` et fausserait les deux comptes. */
+ *  `crm/today` tomberait dans `crm` et fausserait les deux comptes. */
 function b4Zone(chemin: string, racines: string[]): string {
   return (
     racines.filter((r) => chemin.startsWith(r + '/')).sort((a, b) => b.length - a.length)[0] ??
@@ -1022,7 +1022,7 @@ const ESPECES_CSS: { nom: 'graisse' | 'capitale' | 'interlettrage' | 'taille'; v
 /**
  * ⛔ CE QUE `keepPath` DOIT LAISSER DEHORS, nommé plutôt que supposé.
  *
- * Le filtre de chemin de la zone `crm-sugar` existe pour une raison précise :
+ * Le filtre de chemin de la zone `crm` existe pour une raison précise :
  * sans lui, `keep: n === 'tokens.ts'` ramenait la palette d'Analytics. Un test
  * qui se contenterait de vérifier la présence des témoins passerait au vert le
  * jour où le filtre disparaîtrait — c'est la vacuité n°22, « la couverture ne
@@ -1054,16 +1054,16 @@ const GRIS_BLEU_ASSUMES = new Map<string, number>([
   ['src/components/crm-mobile/matching/MmMatchingScreen.tsx', 1],
   ['src/components/crm-mobile/more/MrNotifSheet.tsx', 1],
   ['src/components/crm-mobile/tokens.ts', 4],
-  ['src/components/crm-sugar-v3/vitrine/vitrineTokens.ts', 3],
-  ['src/components/crm-sugar-wizard/steps/Step4Photos.tsx', 1],
-  ['src/components/crm-sugar-wizard/tokens.ts', 4],
-  ['src/components/crm-sugar/biens/gallery/GalCard.tsx', 2],
-  ['src/components/crm-sugar/biens/gallery/GalleryAtoms.tsx', 1],
-  ['src/components/crm-sugar/biens/pager/BpFollowupPage.tsx', 4],
-  ['src/components/crm-sugar/biens/pager/BpRenewModal.tsx', 1],
-  ['src/components/crm-sugar/contacts-pager/ContactDetailPager.tsx', 1],
-  ['src/components/crm-sugar/contacts-pager/ContactsPager.tsx', 4],
-  ['src/components/crm-sugar/contacts-pager/NewContactModal.tsx', 5],
+  ['src/components/crm-dossiers/vitrine/vitrineTokens.ts', 3],
+  ['src/components/crm-wizard/steps/Step4Photos.tsx', 1],
+  ['src/components/crm-wizard/tokens.ts', 4],
+  ['src/components/crm/biens/gallery/GalCard.tsx', 2],
+  ['src/components/crm/biens/gallery/GalleryAtoms.tsx', 1],
+  ['src/components/crm/biens/pager/BpFollowupPage.tsx', 4],
+  ['src/components/crm/biens/pager/BpRenewModal.tsx', 1],
+  ['src/components/crm/contacts-pager/ContactDetailPager.tsx', 1],
+  ['src/components/crm/contacts-pager/ContactsPager.tsx', 4],
+  ['src/components/crm/contacts-pager/NewContactModal.tsx', 5],
   ['src/pages/agent/ListingDetailPage.tsx', 4],
 ])
 
@@ -1077,7 +1077,7 @@ const HORS_ZONE_ATTENDUS = [
 ]
 
 /** La preuve que le scan voit encore l'arbre — sinon tout passe par vacuité. */
-const TEMOIN = 'src/components/crm-sugar-wizard/steps/Step7Publish.tsx'
+const TEMOIN = 'src/components/crm-wizard/steps/Step7Publish.tsx'
 
 /**
  * Littéraux de taille assumés, EXPRESSION PAR EXPRESSION — pas par fichier.
@@ -1165,7 +1165,7 @@ const TAILLES_ASSUMEES: { motif: RegExp; raison: string }[] = [
     // en couvre trois exempte les deux autres PAR ACCIDENT — quatrième forme de
     // `megga/gardes-vacuites`, ici dans sa variante « raison périmée ».
     // ⚠ COMPTE REVU LE 15 AOÛT 2026 : QUATRE sites depuis l'entrée de
-    // `crm-sugar-v3/primitives.tsx` au cliquet (son `SgBigStat`). La raison
+    // `crm-dossiers/primitives.tsx` au cliquet (son `SgBigStat`). La raison
     // annonçait 3 — et c'est exactement le mode d'échec qu'elle documente
     // elle-même : une raison qui donne un compte se périme sans que le motif
     // bouge. Recompté, jamais estimé.
@@ -1499,7 +1499,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
    * ⚠ Le motif lit `#rrggbb` ET `rgba(r,g,b,…)`. Onze de ces occurrences
    * étaient en décimal — `rgba(11,12,14,…)`, exactement la même couleur sous un
    * autre alphabet. Un garde-fou de couleur qui ne connaît qu'une notation ne
-   * garde rien, et c'est ainsi que le voile de `sgVeil()` a passé la relecture.
+   * garde rien, et c'est ainsi que le voile de `crmVeil()` a passé la relecture.
    *
    * Les teintes SÉMANTIQUES restent permises et sont nommées : elles encodent
    * une information que l'échelle ne sait pas porter (statut d'annonce, teinte
@@ -1531,7 +1531,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
    * vertes, et la mesure le dit.
    *
    * `rgba(15,23,42,…)` est le slate-900 de Tailwind (B−R = 27). Le Pipeline
-   * l'avait nommé (`sgVoileEncre`) et corrigé CHEZ LUI ; trois specs le gardent,
+   * l'avait nommé (`crmVoileEncre`) et corrigé CHEZ LUI ; trois specs le gardent,
    * chacune sur sa seule zone (`admin-console-css`, `pipeline-palettes`,
    * `matching-atelier-css`). Aucune ne couvrait le reste, et le cliquet de
    * grammaire n'interdisait que le noir de Sugar.
@@ -1679,7 +1679,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
   /**
    * ⛔ B6 — LA POLICE PAR UNE AUTRE CLÉ, deux formes que `fontFamily:` ne voit
    * pas : l'ATTRIBUT (`fontFamily="Manrope"`, sept sites, tous en SVG) et la clé
-   * RACCOURCIE `font:` (`crm-sugar-v3/tokens.ts:113` écrit
+   * RACCOURCIE `font:` (`crm-dossiers/tokens.ts:113` écrit
    * `font: '"Inter Tight", …'`).
    *
    * ⚠ QUELLE police a droit de cité, et OÙ, est gardé à part —
@@ -2099,14 +2099,14 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
   it('le cliquet ne recule pas', () => {
     const racines = ZONES.map((z) => z.root)
     for (const acquise of [
-      'src/components/crm-sugar-wizard',
-      'src/components/crm-sugar/biens',
-      'src/components/crm-sugar-v3/vitrine',
+      'src/components/crm-wizard',
+      'src/components/crm/biens',
+      'src/components/crm-dossiers/vitrine',
       'src/components/crm-mobile',
-      'src/components/crm-sugar',
-      'src/components/crm-sugar/contacts-pager',
-      'src/components/crm-sugar/pipeline',
-      'src/components/crm-sugar-v3/offer-modal',
+      'src/components/crm',
+      'src/components/crm/contacts-pager',
+      'src/components/crm/pipeline',
+      'src/components/crm-dossiers/offer-modal',
       // La face publique — lot 1 du chantier « la face publique en MEGGA X ».
       'src/components/kyc-magic-link',
       'src/pages/public',
@@ -2114,26 +2114,26 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       // ⚠ La racine NUE, celle qui porte `tokens.ts` depuis le lot 2 du chantier
       // KYC. Elle manquait à cette liste : les cinq fichiers qu'elle retient
       // pouvaient donc quitter le cliquet sans que rien ne rougisse.
-      'src/components/crm-sugar-v3',
+      'src/components/crm-dossiers',
       'src/pages/agent',
       'src/components/matching-recherche',
       'src/components/matching-atelier',
       'src/pages/admin',
       'src/components/admin',
-      'src/components/crm-sugar/today',
-      'src/components/crm-sugar-v3/kyc',
-      'src/components/crm-sugar-v3/kyc-pager',
-      'src/components/crm-sugar-v3/kyc-wizard',
-      'src/components/crm-sugar-v3/visite-detail',
-      'src/components/crm-sugar-v3/audit',
-      'src/components/crm-sugar/analytics',
-      'src/components/crm-sugar/journey',
-      'src/components/crm-sugar/settings',
-      'src/components/crm-sugar/calendar',
+      'src/components/crm/today',
+      'src/components/crm-dossiers/kyc',
+      'src/components/crm-dossiers/kyc-pager',
+      'src/components/crm-dossiers/kyc-wizard',
+      'src/components/crm-dossiers/visite-detail',
+      'src/components/crm-dossiers/audit',
+      'src/components/crm/analytics',
+      'src/components/crm/journey',
+      'src/components/crm/settings',
+      'src/components/crm/calendar',
       'src/components/listings',
-      'src/components/crm-sugar/search',
-      'src/components/crm-sugar/notifications',
-      'src/components/crm-sugar/profile',
+      'src/components/crm/search',
+      'src/components/crm/notifications',
+      'src/components/crm/profile',
       'src/components/ai-copilot/panel',
       'src/components/layout',
       // Lot 1 du chantier « 100 % » (15 août 2026).
@@ -2143,7 +2143,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/skeletons',
       'src/components/auth',
       'src/components/map',
-      'src/components/crm-sugar-identity',
+      'src/components/crm-identity',
     ]) expect(racines, `zone retirée du cliquet : ${acquise}`).toContain(acquise)
     // Et les zones acquises sont réellement ATTEINTES — une racine présente
     // dont un sous-dossier échappe au filtre passerait `emptyRoots`.
@@ -2152,7 +2152,7 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       expect(chemins, `zone non balayée : ${t}`).toContain(t)
     }
     // …et le filtre de chemin tient encore : ces fichiers portent le nom retenu
-    // par la zone `crm-sugar` mais vivent dans un sous-dossier d'un AUTRE lot.
+    // par la zone `crm` mais vivent dans un sous-dossier d'un AUTRE lot.
     for (const h of HORS_ZONE_ATTENDUS) {
       expect(chemins, `aspiré par accident, hors du lot : ${h}`).not.toContain(h)
     }

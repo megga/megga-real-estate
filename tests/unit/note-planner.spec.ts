@@ -20,7 +20,7 @@
  * `contacts-note-contrat.spec.ts` pour les deux témoins.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { creerNotePlanner, NOTE_DELAI_MS } from '@/components/crm-sugar/contacts-pager/notePlanner'
+import { creerNotePlanner, NOTE_DELAI_MS } from '@/components/crm/contacts-pager/notePlanner'
 
 beforeEach(() => { vi.useFakeTimers() })
 afterEach(() => { vi.useRealTimers() })

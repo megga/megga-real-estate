@@ -9,7 +9,7 @@
  * diffère du proscrit `#0A0B0D` d'un seul chiffre hexadécimal, et passait.
  *
  * ⚠ CE FICHIER NE PRÉTEND PAS JUGER LES 1 122. Beaucoup ENCODENT — les teintes
- * d'étape d'un deal (`SG_STAGE_HUE`), les palettes d'avatar, les séries d'un
+ * d'étape d'un deal (`CRM_STAGE_HUE`), les palettes d'avatar, les séries d'un
  * graphique, les couleurs de marque des icônes sociales. Elles sont hors de la
  * direction **par nature**, et le dépôt le dit déjà. Les bannir serait faux ; les
  * ignorer serait renoncer. La troisième voie est un PLAFOND : le compte est figé
@@ -138,10 +138,10 @@ const SURFACES_EXEMPTEES: { fichier: string; motif: string }[] = [
  * clause « aucune entrée ne garde de crédit » à chaque exécution.
  */
 const HORS_ASSUMES = new Map<string, number>([
-  ['src/components/crm-sugar', 538],
+  ['src/components/crm', 538],
   ['src/components/crm-mobile', 141],
-  ['src/components/crm-sugar-v3', 68],
-  ['src/components/crm-sugar-wizard', 48],
+  ['src/components/crm-dossiers', 68],
+  ['src/components/crm-wizard', 48],
   ['src/components/propertyx', 40],
   ['src/components/listings', 37],
   ['src/pages/dev', 26],
@@ -151,12 +151,12 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/components/kyc-report', 22],
   ['src/components/matching-recherche', 23],
   ['src/components/ai-copilot', 14],
-  ['src/hooks/useAdminSugar.ts', 10],
+  ['src/hooks/useAdminSurfaces.ts', 10],
   ['src/hooks/useAtelierMatching.ts', 8],
   ['src/hooks/useRelanceLeads.ts', 8],
-  ['src/lib/sugarAdapters.ts', 8],
-  ['src/hooks/useAgentProfileSugar.ts', 7],
-  ['src/hooks/useCalendarSugar.ts', 6],
+  ['src/lib/crmAdapters.ts', 8],
+  ['src/hooks/useAgentProfileScreen.ts', 7],
+  ['src/hooks/useCalendarScreen.ts', 6],
   ['src/pages/public', 6],
   ['src/components/auth', 4],
   ['src/components/buyer-reception', 4],
@@ -168,7 +168,7 @@ const HORS_ASSUMES = new Map<string, number>([
 ])
 
 /** Le témoin : la preuve que le balayage voit encore l'arbre. */
-const TEMOIN = 'src/components/crm-sugar/tokens.ts'
+const TEMOIN = 'src/components/crm/tokens.ts'
 
 describe('Couleur — les barreaux de MEGGA X, et ce qui s’en écarte', () => {
   it('le balayage voit l’arbre et les barreaux', () => {

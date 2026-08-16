@@ -8,8 +8,8 @@
  * même idiome que la piste d'`AdminSwitch` — dont le survol passe par une classe
  * scopée, une valeur inline ne pouvant pas porter d'état `:hover`.
  *
- * ⚠️ Ce composant vit dans le CRM (`AgentLayout`, `AgentSugarLayout`), hors de
- * `AdminThemeProvider` : il ne peut donc PAS appeler `useAdminSugar()`, qui lève
+ * ⚠️ Ce composant vit dans le CRM (`AgentLayout`, `AgentLayout`), hors de
+ * `AdminThemeProvider` : il ne peut donc PAS appeler `useAdminSurfaces()`, qui lève
  * hors du provider. Seules les constantes du kit (`ADMIN_RADII`) sont
  * utilisables ici.
  */

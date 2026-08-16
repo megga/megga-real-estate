@@ -7,7 +7,7 @@
  * `AuthProvider` appelle `getSession()` AVANT que le semis ait eu lieu, ne
  * trouve rien, pose `profile: null`, et n'y revient jamais (rien ne se connecte,
  * donc `onAuthStateChange` ne tire pas). `useIdentityGate` reste alors sur
- * `loading`, et `AgentSugarLayout` RETIENT l'écran sur `BootSplash` — pour
+ * `loading`, et `AgentLayout` RETIENT l'écran sur `BootSplash` — pour
  * toujours.
  *
  * Le symptôme est traître : le jeton EST dans le stockage quand on regarde, donc

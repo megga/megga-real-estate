@@ -26,8 +26,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import { encreSur } from '@/components/megga-x-crm/tokens'
-import { galStatus } from '@/components/crm-sugar/biens/gallery/galHelpers'
-import { pickAvatarBg } from '@/lib/sugarAdapters'
+import { galStatus } from '@/components/crm/biens/gallery/galHelpers'
+import { pickAvatarBg } from '@/lib/crmAdapters'
 
 const canal = (hex: string): [number, number, number] =>
   [0, 2, 4].map((i) => parseInt(hex.replace('#', '').slice(i, i + 2), 16)) as [number, number, number]
@@ -58,8 +58,8 @@ describe('La pastille de score n’est pas revenue', () => {
   it('son composant et ses jetons restent supprimés', async () => {
     const { existsSync } = await import('node:fs')
     for (const f of [
-      'src/components/crm-sugar/biens/BnScoreBadge.tsx',
-      'src/components/crm-sugar/biens/scoreTiers.ts',
+      'src/components/crm/biens/BnScoreBadge.tsx',
+      'src/components/crm/biens/scoreTiers.ts',
     ]) {
       expect(existsSync(f), `${f} est revenu`).toBe(false)
     }

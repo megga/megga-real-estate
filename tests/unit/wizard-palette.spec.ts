@@ -2,7 +2,7 @@
  * Garde-fou : la palette du wizard « Créer un bien » descend de MEGGA X, dans
  * LES DEUX thèmes.
  *
- * Pourquoi ce test existe. Au 11 août 2026, `crm-sugar-wizard/tokens.ts` était
+ * Pourquoi ce test existe. Au 11 août 2026, `crm-wizard/tokens.ts` était
  * le dernier fichier de jetons AUTONOME du CRM : pas une dérivation de
  * `mxCrmPalette()`, une palette écrite à la main. En clair il rendait le gris
  * bleuté de Sugar (`#EDEFF3` de canvas, `#0B0C0E` d'encre) et surtout un accent
@@ -29,9 +29,9 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { MXC_COLOR, MXC_SYSTEM, mxCrmPalette } from '@/components/megga-x-crm/tokens'
-import { SugarV2, setSugarV2Dark, sgOn, sgAcc } from '@/components/crm-sugar-wizard/tokens'
+import { WizardTokens, setWizardDark, crmOn, crmAcc } from '@/components/crm-wizard/tokens'
 
-const SRC = 'src/components/crm-sugar-wizard/tokens.ts'
+const SRC = 'src/components/crm-wizard/tokens.ts'
 
 /** Les barreaux que la vitrine publie — la seule source de couleur autorisée. */
 const ECHELLE = new Set(
@@ -49,13 +49,13 @@ const ECHELLE = new Set(
  *   rien à leur emprunter ici (cf. la JSDoc de `MXC_SYSTEM`).
  * - `pop1`…`pop4` : teintes d'avatar. `pop1` est écrit dans la DONNÉE du contact
  *   (`avatarBg`, Step1Vendor) — il ENCODE une identité, il ne décore pas. Même
- *   famille que `SG_STAGE_HUE` et `TYPE_COLOR`, arbitrés pareil.
+ *   famille que `CRM_STAGE_HUE` et `TYPE_COLOR`, arbitrés pareil.
  * - `line` : un VOILE (rgba), pas une couleur. Il se pose sur la surface au lieu
  *   de la remplacer, ce qu'aucun barreau opaque ne sait faire.
  * - `shadow*` / `pillShadow*` / `ringSoft` : des ombres, pas des couleurs.
  * - `blackHover` : le survol de l'accent. La vitrine n'en publie AUCUN barreau
  *   — son `.primary-button:hover` grandit au lieu de changer de teinte —, donc
- *   il est dérivé de l'accent par `sgMix`. ⚠ Il n'apparaissait pas ici tant que
+ *   il est dérivé de l'accent par `crmMix`. ⚠ Il n'apparaissait pas ici tant que
  *   `hexOf` ignorait `rgb()` : c'est la garde renforcée qui l'a fait surgir, pas
  *   une régression. Son contraste est verrouillé par un test dédié plus bas.
  *
@@ -78,7 +78,7 @@ const SEMANTIQUES = new Set([
  * ⚠ Une première version ne lisait que `#rrggbb`. Elle était donc aveugle à
  * `rgba(11,12,14,…)` — le noir de Sugar en décimal, exactement la même couleur
  * sous un autre alphabet. Quinze occurrences vivantes lui échappaient, dont le
- * voile de `sgVeil()` dans le fichier de jetons lui-même. Un garde-fou de
+ * voile de `crmVeil()` dans le fichier de jetons lui-même. Un garde-fou de
  * couleur qui ne connaît qu'une notation ne garde rien.
  *
  * Les canaux ALPHA sont ignorés : un voile translucide n'a pas à descendre sur
@@ -93,7 +93,7 @@ function hexOf(value: string): string[] {
 }
 
 /**
- * Accepte `#rrggbb` ET `rgb(r, g, b)` : `blackHover` est dérivé par `sgMix`, qui
+ * Accepte `#rrggbb` ET `rgb(r, g, b)` : `blackHover` est dérivé par `crmMix`, qui
  * rend du `rgb()`. Un parseur qui n'en lirait qu'une forme rendrait `NaN` — et
  * un `NaN` comparé à un seuil est TOUJOURS faux, donc le test passerait au vert
  * sans rien vérifier. Cf. `megga/shademix-nan-invisible`.
@@ -120,16 +120,16 @@ function contrast(a: string, b: string): number {
 }
 
 /**
- * `SugarV2` est un Proxy qui résout le thème actif à chaque lecture ; on le fige
- * en objet nu pour l'inspecter. `setSugarV2Dark` est l'API que le shell emploie
+ * `WizardTokens` est un Proxy qui résout le thème actif à chaque lecture ; on le fige
+ * en objet nu pour l'inspecter. `setWizardDark` est l'API que le shell emploie
  * déjà — le test n'ouvre donc aucune porte dérobée dans le module.
  */
 function palette(dark: boolean): Record<string, unknown> {
-  setSugarV2Dark(dark)
-  return { ...SugarV2 }
+  setWizardDark(dark)
+  return { ...WizardTokens }
 }
 
-afterEach(() => setSugarV2Dark(null))
+afterEach(() => setWizardDark(null))
 
 describe('Wizard « Créer un bien » — la palette descend de MEGGA X', () => {
   // Sans cette garde, une palette vidée rendrait tout le reste vrai par vacuité.
@@ -199,16 +199,16 @@ describe('Wizard « Créer un bien » — la palette descend de MEGGA X', () => 
   })
 
   /**
-   * ⛔ LA QUESTION `sgOn()`, TRANCHÉE : la fonction RESTE, la bascule de thème
+   * ⛔ LA QUESTION `crmOn()`, TRANCHÉE : la fonction RESTE, la bascule de thème
    * qu'elle portait DISPARAÎT.
    *
-   * `sgOn()` rendait `onBlack`, qui s'inversait avec le thème : Sugar peignait
+   * `crmOn()` rendait `onBlack`, qui s'inversait avec le thème : Sugar peignait
    * l'accent en noir le jour et en near-white la nuit, donc ce qui était posé
    * DESSUS devait s'inverser aussi. L'accent ne bascule plus — l'encre posée sur
    * `#424bfb` est blanche dans les deux thèmes, mesurée à 5,78:1.
    *
    * Pourquoi on ne remplace pas ses 45 appels par `MXC_COLOR.n1000` :
-   * 1. `sgOn()` nomme une RELATION — « l'encre posée sur l'accent » — et c'est
+   * 1. `crmOn()` nomme une RELATION — « l'encre posée sur l'accent » — et c'est
    *    ce que les 45 sites veulent dire. Le fait qu'elle se résolve aujourd'hui
    *    en une seule valeur est une CONSÉQUENCE mesurée de l'invariance de
    *    l'accent, pas une raison d'effacer leur intention. Si l'accent sombre
@@ -222,20 +222,20 @@ describe('Wizard « Créer un bien » — la palette descend de MEGGA X', () => 
    * Ce test verrouille la décision dans les deux sens : la valeur est celle de
    * l'encre sur l'accent, ET elle ne dépend plus du thème.
    */
-  it('sgOn() est l’encre de l’accent, et ne bascule plus avec le thème', () => {
-    setSugarV2Dark(false)
-    const clair = sgOn()
-    setSugarV2Dark(true)
-    const sombre = sgOn()
+  it('crmOn() est l’encre de l’accent, et ne bascule plus avec le thème', () => {
+    setWizardDark(false)
+    const clair = crmOn()
+    setWizardDark(true)
+    const sombre = crmOn()
     expect(clair).toBe(MXC_COLOR.n1000)
-    expect(sombre, 'sgOn() bascule encore avec le thème').toBe(clair)
+    expect(sombre, 'crmOn() bascule encore avec le thème').toBe(clair)
   })
 
   /**
-   * `sgAcc(a)` est le VOILE POSÉ SUR L'ACCENT — blanc dans les deux thèmes,
-   * pour la même raison que `sgOn()`.
+   * `crmAcc(a)` est le VOILE POSÉ SUR L'ACCENT — blanc dans les deux thèmes,
+   * pour la même raison que `crmOn()`.
    *
-   * ⛔ CE QUE CE TEST PROTÈGE VRAIMENT. Avant correctif, `sgAcc` servait DEUX
+   * ⛔ CE QUE CE TEST PROTÈGE VRAIMENT. Avant correctif, `crmAcc` servait DEUX
    * choses que rien ne distinguait, parce que l'inversion de l'accent les
    * faisait coïncider : en clair « voile sur l'accent noir » et « voile sur le
    * canvas clair » valaient tous deux du blanc ; en sombre, tous deux du sombre.
@@ -243,26 +243,26 @@ describe('Wizard « Créer un bien » — la palette descend de MEGGA X', () => 
    *
    * Les deux sites de `Step2Address` (pastille « placez le point » sur la carte,
    * pastille « carte indisponible ») sont des voiles de SURFACE : ils portent
-   * `SugarV2.muted` en encre, illisible sur `#424bfb`. Ils doivent suivre le
-   * thème. D'où `sgVeil(a)`, et la règle de `CLAUDE.md` : « un élément posé sur
+   * `WizardTokens.muted` en encre, illisible sur `#424bfb`. Ils doivent suivre le
+   * thème. D'où `crmVeil(a)`, et la règle de `CLAUDE.md` : « un élément posé sur
    * une surface teintée reste un VOILE translucide ».
    */
-  it('sgAcc() est le voile de l’accent — blanc dans les deux thèmes', () => {
-    setSugarV2Dark(false)
-    const clair = sgAcc(0.15)
-    setSugarV2Dark(true)
+  it('crmAcc() est le voile de l’accent — blanc dans les deux thèmes', () => {
+    setWizardDark(false)
+    const clair = crmAcc(0.15)
+    setWizardDark(true)
     expect(clair).toBe('rgba(255,255,255,0.15)')
-    expect(sgAcc(0.15), 'le voile de l’accent bascule encore avec le thème').toBe(clair)
+    expect(crmAcc(0.15), 'le voile de l’accent bascule encore avec le thème').toBe(clair)
   })
 
-  it('sgVeil() est le voile de SURFACE, et lui suit le thème', async () => {
-    const mod = await import('@/components/crm-sugar-wizard/tokens')
-    const sgVeil = (mod as Record<string, unknown>).sgVeil
-    expect(typeof sgVeil, 'sgVeil manque : les voiles de carte retomberaient sur sgAcc').toBe('function')
-    const veil = sgVeil as (a: number) => string
-    setSugarV2Dark(false)
+  it('crmVeil() est le voile de SURFACE, et lui suit le thème', async () => {
+    const mod = await import('@/components/crm-wizard/tokens')
+    const crmVeil = (mod as Record<string, unknown>).crmVeil
+    expect(typeof crmVeil, 'crmVeil manque : les voiles de carte retomberaient sur crmAcc').toBe('function')
+    const veil = crmVeil as (a: number) => string
+    setWizardDark(false)
     const clair = veil(0.85)
-    setSugarV2Dark(true)
+    setWizardDark(true)
     expect(veil(0.85), 'le voile de surface ne suit pas le thème').not.toBe(clair)
   })
 
@@ -280,7 +280,7 @@ describe('Wizard « Créer un bien » — la palette descend de MEGGA X', () => 
    * défaut d'accessibilité préexistant au lieu de le recopier sur l'échelle.
    */
   it.each([false, true])('ghostSolid porte l’encre blanche à l’AA (sombre=%s)', async (dark) => {
-    const mod = await import('@/components/crm-sugar-wizard/tokens')
+    const mod = await import('@/components/crm-wizard/tokens')
     const p = palette(dark)
     expect(typeof p.ghostSolid, 'ghostSolid manque : le CTA désactivé retombe sur ghost').toBe('string')
     expect(contrast(String(p.onBlack), String(p.ghostSolid))).toBeGreaterThanOrEqual(4.5)
@@ -299,11 +299,11 @@ describe('Wizard « Créer un bien » — la palette descend de MEGGA X', () => 
    *
    * Retiré des deux thèmes le 11 août 2026. Ce test empêche qu'il revienne par
    * copier-coller depuis un module voisin qui, lui, en a encore un
-   * (`crm-sugar-v3`, `kyc-magic-link`).
+   * (`crm-dossiers`, `kyc-magic-link`).
    */
   it('aucun dégradé de fond ne subsiste', () => {
     for (const f of ['tokens.ts', 'WizardShell.tsx']) {
-      expect(readFileSync(`src/components/crm-sugar-wizard/${f}`, 'utf-8'),
+      expect(readFileSync(`src/components/crm-wizard/${f}`, 'utf-8'),
         `${f} reparle de bgGradient`).not.toMatch(/bgGradient/)
     }
   })
@@ -321,7 +321,7 @@ describe('Wizard « Créer un bien » — la palette descend de MEGGA X', () => 
 
   /**
    * L'accent du curseur `.sg-range` est posé en variable CSS par le shell
-   * (`--sg-accent`), mais `SG_KEYFRAMES` porte un REPLI en dur qui, lui, ne suit
+   * (`--sg-accent`), mais `CRM_ANIM_KEYFRAMES` porte un REPLI en dur qui, lui, ne suit
    * personne — il valait `#0B0C0E`, le noir de Sugar. Un repli hors échelle est
    * une couleur de la direction précédente qui attend une occasion de rendre.
    */

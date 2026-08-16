@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
-import { KIND_META, type NotifGroup, type SugarNotif } from '@/components/crm-sugar/notifications/data'
+import { KIND_META, type NotifGroup, type CrmNotif } from '@/components/crm/notifications/data'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
@@ -17,7 +17,7 @@ import { useFocusTrap } from '@/hooks/useFocusTrap'
 interface MrNotifSheetProps {
   open: boolean
   onClose: () => void
-  items: SugarNotif[]
+  items: CrmNotif[]
   unreadCount: number
   markRead: (id: string) => void
   markAllRead: () => void
@@ -62,7 +62,7 @@ export default function MrNotifSheet({
 
   const priorities = items.filter((n) => n.priority === 'high' && !n.read)
 
-  const renderRow = (n: SugarNotif) => {
+  const renderRow = (n: CrmNotif) => {
     const meta = KIND_META[n.kind]
     const iconColor = isDark ? '#FFFFFF' : meta.dot
     return (

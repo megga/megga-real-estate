@@ -17,9 +17,9 @@ import { readdirSync, readFileSync } from 'node:fs'
 import {
   MXC_COLOR, MXC_CARD_SHADOW, MXC_SYSTEM, mxCrmPalette,
 } from '@/components/megga-x-crm/tokens'
-import { pfAccents, pfColors } from '@/components/crm-sugar/settings/focus/pfKitCore'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { applySetTheme, isSetDark, SET_PALETTE } from '@/components/crm-sugar/settings/data'
+import { pfAccents, pfColors } from '@/components/crm/settings/focus/pfKitCore'
+import { crmPalette } from '@/components/crm/tokens'
+import { applySetTheme, isSetDark, SET_PALETTE } from '@/components/crm/settings/data'
 
 const SHEET = 'src/styles/megga-x.generated.css'
 const css = readFileSync(SHEET, 'utf-8')
@@ -242,11 +242,11 @@ describe('MEGGA X CRM — la grammaire déclarée en CSS', () => {
 describe('MEGGA X CRM — la palette du CRM', () => {
   // 33 endroits construisent la palette et la transmettent en prop. C'est le
   // point unique : si la dérivation casse, tout le CRM se dépeint d'un coup.
-  it('crmSugarPalette rend exactement MEGGA X', () => {
+  it('crmPalette rend exactement MEGGA X', () => {
     for (const dark of [false, true]) {
-      expect(crmSugarPalette(dark)).toEqual(mxCrmPalette(dark))
+      expect(crmPalette(dark)).toEqual(mxCrmPalette(dark))
     }
-    expect(crmSugarPalette(false).accent).toBe(MXC_COLOR.accent)
+    expect(crmPalette(false).accent).toBe(MXC_COLOR.accent)
   })
 })
 
@@ -287,7 +287,7 @@ describe('MEGGA X CRM — les encres restent lisibles', () => {
 /**
  * La palette des Réglages — deuxième point de délégation.
  *
- * `SET_PALETTE` est le seul jeu de couleurs du CRM que `crmSugarPalette()` ne
+ * `SET_PALETTE` est le seul jeu de couleurs du CRM que `crmPalette()` ne
  * couvrait pas : Intégrations, Sécurité, les atomes et les modales le lisent
  * directement (~280 lectures). Il délègue désormais lui aussi, ce qui déplace
  * la question du « est-ce que ça bascule » vers « est-ce que ça bascule JUSTE ».
@@ -479,9 +479,9 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
    * chantier Contacts, qui traitent précisément les polices en dur.
    */
   const POLICES_ASSUMEES = new Set([
-    'src/components/crm-sugar-wizard/WizardShell.tsx',
-    'src/components/crm-sugar/biens/pager/BiensFirstRun.tsx',
-    'src/components/crm-sugar/biens/pager/BpRenewModal.tsx',
+    'src/components/crm-wizard/WizardShell.tsx',
+    'src/components/crm/biens/pager/BiensFirstRun.tsx',
+    'src/components/crm/biens/pager/BpRenewModal.tsx',
     'src/components/matching-atelier/MatchingFirstRun.tsx',
     'src/pages/agent/ListingDetailPage.tsx',
     'src/pages/agent/ListingsPage.tsx',
@@ -565,7 +565,7 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
    */
   it('l’accent hérité de CrmTheme n’a plus aucun lecteur (le CHEMIN, pas la teinte)', () => {
     const lecteurs = sources
-      .filter((s) => s.path !== 'src/components/crm-sugar/tokens.ts')
+      .filter((s) => s.path !== 'src/components/crm/tokens.ts')
       .filter((s) => /\bt\.primary\b/.test(s.code))
       .map((s) => s.path)
     expect(lecteurs).toEqual([])

@@ -23,7 +23,7 @@ import {
   MlkWordmark,
 } from './MlkPrimitives'
 import { MLK } from './mlkTokens'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -400,7 +400,7 @@ export function MlkUpload({
                   background: isSelected ? MLK.accent : 'transparent',
                   boxShadow: isSelected
                     ? 'none'
-                    : `inset 0 0 0 1.5px ${sgVoileEncre(false, 0.25)}`,
+                    : `inset 0 0 0 1.5px ${crmVoileEncre(false, 0.25)}`,
                   display: 'grid',
                   placeItems: 'center',
                 }}
@@ -471,11 +471,11 @@ export function MlkUpload({
         }}
         style={{
           padding: '44px 28px',
-          background: dragOver ? sgVoileEncre(false, 0.05) : sgVoileEncre(false, 0.025),
+          background: dragOver ? crmVoileEncre(false, 0.05) : crmVoileEncre(false, 0.025),
           borderRadius: 22,
           boxShadow: dragOver
             ? `inset 0 0 0 2px ${MLK.accent}`
-            : `inset 0 0 0 1.5px ${sgVoileEncre(false, 0.10)}`,
+            : `inset 0 0 0 1.5px ${crmVoileEncre(false, 0.10)}`,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -761,7 +761,7 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
           display: 'grid',
           placeItems: 'center',
           boxShadow:
-            `0 24px 60px ${sgVoileEncre(false, 0.20)}, 0 8px 24px ${sgVoileEncre(false, 0.12)}`,
+            `0 24px 60px ${crmVoileEncre(false, 0.20)}, 0 8px 24px ${crmVoileEncre(false, 0.12)}`,
         }}
       >
         <MlkIcon name="check" size={42} stroke="#fff" sw={2.4} />

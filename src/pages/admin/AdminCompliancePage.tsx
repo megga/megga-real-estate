@@ -22,7 +22,7 @@ import type { LucideIcon } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useAdminCompliance, useConsentStats, useAccountDeletions } from '@/hooks/useAdminCompliance'
 import type { ComplianceCase } from '@/hooks/useAdminCompliance'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useClientPagination } from '@/hooks/useClientPagination'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSegmentBtn, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
@@ -125,7 +125,7 @@ function EmptyState({ tab }: { tab: TabValue }) {
 
 /** En-tête d'une carte nLPD : icône + titre, puis filet de séparation. */
 function CardHead({ icon, title }: { icon: LucideIcon; title: string }) {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
@@ -140,7 +140,7 @@ function CardHead({ icon, title }: { icon: LucideIcon; title: string }) {
 /** Carte nLPD : couverture des consentements par type × version (P2 admin). */
 function ConsentStatsCard() {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const { data, isLoading } = useConsentStats()
 
   return (
@@ -182,7 +182,7 @@ function ConsentStatsCard() {
 /** Carte nLPD : journal des suppressions de comptes (delete-account, art. 32). */
 function AccountDeletionsCard() {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const { data, isLoading } = useAccountDeletions()
 
   return (
@@ -214,7 +214,7 @@ function AccountDeletionsCard() {
 
 /** Barre de progression compacte de complétude d'un dossier (valeur bornée 0–100). */
 function CompletionBar({ value }: { value: number }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
       <span style={{ width: 62, height: 6, borderRadius: ADMIN_RADII.pill, background: surf.cardSub, overflow: 'hidden', flexShrink: 0 }}>
@@ -233,7 +233,7 @@ function CompletionBar({ value }: { value: number }) {
 /** Écran compliance : KPIs, table de dossiers filtrable/paginée et cartes nLPD. */
 export default function AdminCompliancePage() {
   const { t } = useTranslation('admin')
-  const { sp, surf, dark, tones } = useAdminSugar()
+  const { sp, surf, dark, tones } = useAdminSurfaces()
   const { cases, isLoading, isError, refetch, stats, statsLoading } = useAdminCompliance()
   const [tab, setTab] = useState<TabValue>('all')
   const [search, setSearch] = useState('')

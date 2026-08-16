@@ -49,14 +49,14 @@ export const CHEMIN_EMPREINTES = 'tests/e2e/visual-regression.spec.ts-snapshots/
  * refuse un chemin qui n'existe plus, sinon une arborescence renommée viderait
  * l'empreinte en silence — et une empreinte de RIEN est stable pour toujours.
  *
- * `crm-sugar/tokens.ts` et `megga-x-crm/tokens.ts` en font partie : ils portent
- * `sgStageTint` et `crmSugarPalette`, donc la couleur de chaque colonne.
+ * `crm/tokens.ts` et `megga-x-crm/tokens.ts` en font partie : ils portent
+ * `crmStageTint` et `crmPalette`, donc la couleur de chaque colonne.
  */
 export const ECRANS = {
   'dashboard-pipeline': [
     'src/pages/agent/PipelinePage.tsx',
-    'src/components/crm-sugar/pipeline',
-    'src/components/crm-sugar/tokens.ts',
+    'src/components/crm/pipeline',
+    'src/components/crm/tokens.ts',
     'src/components/megga-x-crm/tokens.ts',
   ],
 }

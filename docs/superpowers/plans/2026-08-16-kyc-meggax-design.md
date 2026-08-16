@@ -149,25 +149,25 @@ mono-thème.** Une garde d'un seul thème serait passée au vert.
 ### ⛔ FAIT STRUCTURANT n° 2 — deux jetons « black » dans le MÊME entonnoir
 
 `kycPalette.black` vaut l'accent `#424bfb` depuis le lot A2 — 16 lecteurs dans
-les trois dossiers KYC. Mais `SugarV3.black` vaut toujours `#0B0C0E`, le noir de
+les trois dossiers KYC. Mais `DossierTokens.black` vaut toujours `#0B0C0E`, le noir de
 Sugar, et il a **11 lecteurs**, dont `MlkAgentModal` — qui vit **dans le wizard
 KYC**.
 
 Deux couleurs d'état actif sur le même écran. C'est le défaut exact que la fiche
 des Réglages décrit (`PfSwitch` noir pendant que `PxfSwitch` était déjà bleu), et
-il survit parce que **`crm-sugar-v3/tokens.ts` n'est PAS dans le cliquet** — une
+il survit parce que **`crm-dossiers/tokens.ts` n'est PAS dans le cliquet** — une
 décision datée du lot A0, prise quand ses lecteurs n'étaient pas encore portés.
 Ils le sont maintenant, sauf trois hors KYC (`audit`, `visite-detail`,
 `ImportLead`).
 
 ```bash
-grep -rn "SugarV3\.black" src --include='*.tsx' | cut -d: -f1 | sort -u
+grep -rn "DossierTokens\.black" src --include='*.tsx' | cut -d: -f1 | sort -u
 ```
 
 ### ⛔ FAIT STRUCTURANT n° 3 — `KYC_LIGHT` est une palette PARALLÈLE
 
 72 clés, dont **23 littéraux hexadécimaux** et seulement **11 dérivés** de
-`mxCrmPalette` / `MXC_COLOR` / `sgVoileEncre`. Le reste est écrit à la main.
+`mxCrmPalette` / `MXC_COLOR` / `crmVoileEncre`. Le reste est écrit à la main.
 
 C'est la troisième occurrence du motif que ce chantier a rencontré partout : la
 console (`adminSurfaces`), la popover de notifications (`#16181F`), les cinq
@@ -189,10 +189,10 @@ qu'une fois la bascule posée — aucune relecture ne l'aurait trouvé.
 
 - **`/dev/crm`** monte les dix surfaces sous leur vraie coquille, avec trois
   états (Nominal / Vide / Échec) et un compteur d'appels sans fixture.
-- **`EtatVide`** (`src/components/crm-sugar/EtatVide.tsx`) — l'idiome du vide,
+- **`EtatVide`** (`src/components/crm/EtatVide.tsx`) — l'idiome du vide,
   quatre registres, gardé par `etat-vide.spec.ts`. Le KYC n'y est PAS encore.
 - **`bancSupabase`** — une seule interception couvre REST, edges et `/auth/v1`.
-- **`sgVoileEncre`**, **`encreSur`** — ne pas ré-inventer.
+- **`crmVoileEncre`**, **`encreSur`** — ne pas ré-inventer.
 - Les cinq specs de contraste donnent la FORME d'une sixième.
 
 ---
@@ -253,7 +253,7 @@ sur son squelette.
 existantes : les DEUX thèmes, les rôles énumérés (pas seulement les zones), et
 une clause qui REFUSE une couleur qu'elle ne sait pas lire.
 
-**Lot 2 — un seul « black ».** Entrer `crm-sugar-v3/tokens.ts` dans le cliquet,
+**Lot 2 — un seul « black ».** Entrer `crm-dossiers/tokens.ts` dans le cliquet,
 ce qui exige d'avoir traité ses onze lecteurs. Trois sont hors KYC — les faire ou
 justifier de ne pas les faire.
 
@@ -327,7 +327,7 @@ Plus, propre à tout chantier de rendu :
 - **Il ne change pas un mot de ce qui est DIT.** Surface de conformité : aucun
   libellé, aucun seuil, aucun statut. Le lot A2 s'y est tenu — la bannière
   « CONFIANCE VÉRIFIÉE » est du texte, pas une capitale CSS, et elle reste.
-- **Il ne renomme pas** `crmSugarPalette`, `SugarV3`, ni les dossiers
+- **Il ne renomme pas** `crmPalette`, `DossierTokens`, ni les dossiers
   `crm-sugar*`. Geste lexical à part, des centaines d'imports.
 - **Il ne rouvre pas l'arbitrage actif/donnée** : les familles qui ENCODENT une
   information restent hors direction, décision rendue quatre fois.

@@ -15,29 +15,29 @@
 //
 // Spec : RED_TEAM_SPRINT_3.md §G.1 (D2 invalidé), §B.B3 (dédup), §F.F5.
 
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  sugarV3Palette,
-  SUGAR_V3_KEYFRAMES,
-  type SugarV3Palette,
-} from '@/components/crm-sugar-v3/tokens'
-import { useSugarDark } from '@/lib/sugarDark'
-import { SgIcon } from '@/components/crm-sugar-v3/icons'
+  dossierPalette,
+  DOSSIER_KEYFRAMES,
+  type DossierPalette,
+} from '@/components/crm-dossiers/tokens'
+import { useCrmDark } from '@/lib/crmDark'
+import { CrmIcon } from '@/components/crm-dossiers/icons'
 import {
-  SgBlackPill,
-  SgGhostPill,
-  SgStepper,
-} from '@/components/crm-sugar-v3/primitives'
-import { LEAD_SAMPLES } from '@/components/crm-sugar-v3/import-lead/samples'
+  CrmBlackPill,
+  CrmGhostPill,
+  CrmStepper,
+} from '@/components/crm-dossiers/primitives'
+import { LEAD_SAMPLES } from '@/components/crm-dossiers/import-lead/samples'
 import {
   INTENT_LABELS,
   URGENCY_LABELS,
   NEXT_ACTION_LABELS,
   formatBudget,
-} from '@/components/crm-sugar-v3/import-lead/labels'
+} from '@/components/crm-dossiers/import-lead/labels'
 import { useExtractLead, type ExtractedLead, type LeadIntent } from '@/hooks/useExtractLead'
 import { useFindContactDuplicates } from '@/hooks/useContactDuplicates'
 import { useImportLead } from '@/hooks/useImportLead'
@@ -99,8 +99,8 @@ export default function ImportLeadPage() {
   const { t } = useTranslation('contacts')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
 
   const steps = useMemo(
     () => STEP_IDS.map((id) => ({ id, label: t(`import.lead.steps.${id}`) })),
@@ -248,7 +248,7 @@ export default function ImportLeadPage() {
       }}
     >
       <style>{`
-        ${SUGAR_V3_KEYFRAMES}
+        ${DOSSIER_KEYFRAMES}
         @keyframes ilFadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes ilFieldIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes ilPulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.92); opacity: 0.85; } }
@@ -280,7 +280,7 @@ export default function ImportLeadPage() {
             boxShadow: S.shadowSm,
           }}
         >
-          <SgIcon name="close" size={18} stroke={S.inkSoft} />
+          <CrmIcon name="close" size={18} stroke={S.inkSoft} />
         </button>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -294,12 +294,12 @@ export default function ImportLeadPage() {
               gap: 8,
             }}
           >
-            <SgIcon name="sparkle" size={12} stroke={S.muted} sw={1.8} />
+            <CrmIcon name="sparkle" size={12} stroke={S.muted} sw={1.8} />
             {t('import.lead.eyebrow')}
           </div>
         </div>
 
-        <SgStepper steps={steps} current={step} />
+        <CrmStepper steps={steps} current={step} />
 
         {/* Crayon mode édition — Step 2 uniquement */}
         {step === 1 && extracted && !created && (
@@ -319,7 +319,7 @@ export default function ImportLeadPage() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 7,
-              boxShadow: editMode ? `0 6px 16px ${sgVoileEncre(false, 0.18)}` : S.shadowSm,
+              boxShadow: editMode ? `0 6px 16px ${crmVoileEncre(false, 0.18)}` : S.shadowSm,
               whiteSpace: 'nowrap',
             }}
           >
@@ -339,7 +339,7 @@ export default function ImportLeadPage() {
               </>
             ) : (
               <>
-                <SgIcon name="pencil" size={12} stroke={S.inkSoft} sw={2} />
+                <CrmIcon name="pencil" size={12} stroke={S.inkSoft} sw={2} />
                 {t('common:actions.edit')}
               </>
             )}
@@ -401,15 +401,15 @@ export default function ImportLeadPage() {
             gap: 14,
             flexShrink: 0,
             background: S.card,
-            boxShadow: `0 -8px 24px ${sgVoileEncre(false, 0.04)}`,
+            boxShadow: `0 -8px 24px ${crmVoileEncre(false, 0.04)}`,
           }}
         >
-          <SgGhostPill
-            icon={<SgIcon name="arrowL" size={15} stroke={S.inkSoft} />}
+          <CrmGhostPill
+            icon={<CrmIcon name="arrowL" size={15} stroke={S.inkSoft} />}
             onClick={() => (step > 0 ? setStep(0) : close())}
           >
             {step === 0 ? t('common:actions.cancel') : t('import.lead.repaste')}
-          </SgGhostPill>
+          </CrmGhostPill>
 
           <div style={{ flex: 1 }} />
 
@@ -418,7 +418,7 @@ export default function ImportLeadPage() {
           </div>
 
           {step === 0 ? (
-            <SgBlackPill
+            <CrmBlackPill
               size="lg"
               disabled={!text.trim() || extractMutation.isPending}
               icon={
@@ -431,10 +431,10 @@ export default function ImportLeadPage() {
                       display: 'inline-block',
                     }}
                   >
-                    <SgIcon name="sparkle" size={14} stroke="#fff" sw={2} />
+                    <CrmIcon name="sparkle" size={14} stroke="#fff" sw={2} />
                   </span>
                 ) : (
-                  <SgIcon name="sparkle" size={14} stroke="#fff" sw={2} />
+                  <CrmIcon name="sparkle" size={14} stroke="#fff" sw={2} />
                 )
               }
               onClick={runAnalysis}
@@ -442,20 +442,20 @@ export default function ImportLeadPage() {
               {extractMutation.isPending
                 ? t('import.lead.analyzing')
                 : t('import.lead.analyze')}
-            </SgBlackPill>
+            </CrmBlackPill>
           ) : editMode ? (
-            <SgBlackPill
+            <CrmBlackPill
               size="lg"
-              icon={<SgIcon name="check" size={14} stroke="#fff" sw={2.5} />}
+              icon={<CrmIcon name="check" size={14} stroke="#fff" sw={2.5} />}
               onClick={() => setEditMode(false)}
             >
               {t('import.lead.finishEditing')}
-            </SgBlackPill>
+            </CrmBlackPill>
           ) : (
-            <SgBlackPill
+            <CrmBlackPill
               size="lg"
               disabled={!canCreate || importMutation.isPending}
-              icon={<SgIcon name="check" size={14} stroke="#fff" sw={2.5} />}
+              icon={<CrmIcon name="check" size={14} stroke="#fff" sw={2.5} />}
               onClick={handleCreate}
             >
               {importMutation.isPending
@@ -465,7 +465,7 @@ export default function ImportLeadPage() {
                   : createDeal
                     ? t('import.lead.createContactAndDeal')
                     : t('import.lead.createContact')}
-            </SgBlackPill>
+            </CrmBlackPill>
           )}
         </footer>
       )}
@@ -489,8 +489,8 @@ function PasteStep({
   errorCode?: string
 }) {
   const { t } = useTranslation('contacts')
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
   return (
     <div
       style={{
@@ -615,7 +615,7 @@ function PasteStep({
             gap: 10,
           }}
         >
-          <SgIcon name="alert" size={16} stroke={S.err} sw={1.8} />
+          <CrmIcon name="alert" size={16} stroke={S.err} sw={1.8} />
           {errorCode === 'unauthorized'
             ? t('import.lead.errors.unauthorized')
             : errorCode === 'text_too_short'
@@ -667,8 +667,8 @@ function ReviewStep({
   error,
 }: ReviewStepProps) {
   const { t } = useTranslation('contacts')
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
   return (
     <div
       style={{
@@ -1057,8 +1057,8 @@ function ExtractedField({
   accentTone?: string
 }) {
   const { t } = useTranslation('contacts')
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
   return (
     <div
       style={{
@@ -1083,7 +1083,7 @@ function ExtractedField({
           flexShrink: 0,
         }}
       >
-        <SgIcon name={icon as never} size={16} stroke={S.ink} sw={1.8} />
+        <CrmIcon name={icon as never} size={16} stroke={S.ink} sw={1.8} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
@@ -1136,8 +1136,8 @@ function EditField({
   label: string
   children: React.ReactNode
 }) {
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
   return (
     <div
       style={{
@@ -1160,7 +1160,7 @@ function EditField({
             flexShrink: 0,
           }}
         >
-          <SgIcon name={icon as never} size={13} stroke={S.ink} sw={1.8} />
+          <CrmIcon name={icon as never} size={13} stroke={S.ink} sw={1.8} />
         </div>
         <div
           style={{
@@ -1179,7 +1179,7 @@ function EditField({
 
 // Helper de MODULE : il ne peut pas lire de hook, la palette lui est donc passée
 // par l'appelant (ReviewStep, seul lecteur).
-function editInputStyle(S: SugarV3Palette): React.CSSProperties {
+function editInputStyle(S: DossierPalette): React.CSSProperties {
   return {
     width: '100%',
     height: 40,
@@ -1207,8 +1207,8 @@ function SegmentedChoice<T extends string>({
   onChange: (v: T) => void
   options: { v: T; l: string }[]
 }) {
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
   return (
     <div style={{ display: 'flex', gap: 6 }}>
       {options.map((o) => (
@@ -1236,8 +1236,8 @@ function SegmentedChoice<T extends string>({
 }
 
 function ToggleSwitch({ active, onClick }: { active: boolean; onClick: () => void }) {
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
   return (
     <button
       onClick={onClick}
@@ -1251,7 +1251,7 @@ function ToggleSwitch({ active, onClick }: { active: boolean; onClick: () => voi
         cursor: 'pointer',
         transition: 'all .2s ease',
         boxShadow: active
-          ? `0 4px 12px ${sgVoileEncre(false, 0.18)}`
+          ? `0 4px 12px ${crmVoileEncre(false, 0.18)}`
           : `inset 0 0 0 2px ${S.ghost}`,
         flexShrink: 0,
       }}
@@ -1273,8 +1273,8 @@ function ToggleSwitch({ active, onClick }: { active: boolean; onClick: () => voi
 }
 
 function BannerInfo({ icon, title, body }: { icon: string; title: string; body: string }) {
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
   return (
     <div
       style={{
@@ -1300,7 +1300,7 @@ function BannerInfo({ icon, title, body }: { icon: string; title: string; body: 
           marginTop: 2,
         }}
       >
-        <SgIcon name={icon as never} size={14} stroke={S.inkSoft} sw={1.8} />
+        <CrmIcon name={icon as never} size={14} stroke={S.inkSoft} sw={1.8} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: S.ink, marginBottom: 2 }}>
@@ -1322,8 +1322,8 @@ function DuplicateBanner({
   onSelect: (id: string) => void
 }) {
   const { t } = useTranslation('contacts')
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
   return (
     <div
       style={{
@@ -1337,7 +1337,7 @@ function DuplicateBanner({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <SgIcon name="alert" size={16} stroke={S.warn} sw={2} />
+        <CrmIcon name="alert" size={16} stroke={S.warn} sw={2} />
         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: S.ink }}>
           {t('import.lead.duplicate.title', { count: candidates.length })}
         </div>
@@ -1380,7 +1380,7 @@ function DuplicateBanner({
             >
               {t('import.lead.duplicate.matchBadge', { kind: t(`import.lead.duplicate.kind.${c.match_kind}`) })}
             </span>
-            <SgIcon name="arrowR" size={14} stroke={S.inkSoft} sw={2} />
+            <CrmIcon name="arrowR" size={14} stroke={S.inkSoft} sw={2} />
           </button>
         ))}
       </div>
@@ -1411,8 +1411,8 @@ function CreatedView({
   onNavToDeal: () => void
 }) {
   const { t } = useTranslation('contacts')
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
   const fullName = `${extracted.firstName} ${extracted.lastName}`.trim() || t('import.lead.created.fallbackName')
   const initials = useMemo(
     () => `${(extracted.firstName[0] ?? '?')}${(extracted.lastName[0] ?? '')}`.toUpperCase(),
@@ -1441,7 +1441,7 @@ function CreatedView({
             margin: '0 auto 22px',
           }}
         >
-          <SgIcon name="check" size={28} stroke={S.ok} sw={2.5} />
+          <CrmIcon name="check" size={28} stroke={S.ok} sw={2.5} />
         </div>
         <h1
           style={{
@@ -1520,7 +1520,7 @@ function CreatedView({
               gap: 12,
             }}
           >
-            <SgIcon name="sparkle" size={16} stroke={S.ink} sw={1.8} />
+            <CrmIcon name="sparkle" size={16} stroke={S.ink} sw={1.8} />
             <div
               style={{
                 flex: 1,
@@ -1599,7 +1599,7 @@ function CreatedView({
             fontFamily: 'inherit',
             fontSize: 'var(--crm-text-md)',
             fontWeight: 600,
-            boxShadow: `0 6px 16px ${sgVoileEncre(false, 0.18)}`,
+            boxShadow: `0 6px 16px ${crmVoileEncre(false, 0.18)}`,
           }}
         >
           {t('common:actions.close')}

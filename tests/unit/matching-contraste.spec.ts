@@ -52,7 +52,7 @@ const css = readFileSync(FEUILLE, 'utf-8')
 /**
  * ⛔ SEPT SITES, SIX FICHIERS — pas deux.
  *
- * La première version de cette garde ne lisait que `SgaQueue.tsx`, les deux
+ * La première version de cette garde ne lisait que `AtlQueue.tsx`, les deux
  * initiales que la sonde au rendu avait montrées. Elle serait passée au VERT
  * pendant que cinq autres avatars — le mode acheteur, la confirmation, la
  * feuille d'envoi, le « pourquoi ça matche », la vue annonce — gardaient leur

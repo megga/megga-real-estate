@@ -26,7 +26,7 @@
 
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import type { CrmPalette } from '@/components/crm/tokens'
 
 /**
  * EXCEPTION ASSUMÉE à CLAUDE.md §5 (« Couleurs hardcodées → tokens thème »).
@@ -40,7 +40,7 @@ const LOGO_PLATE_BG = '#FFFFFF'
 interface Props {
   name: string | null
   logoUrl: string | null
-  sp: SugarPalette
+  sp: CrmPalette
   line: string
   /**
    * Où la marque est posée — les deux emplacements n'ont ni le même gabarit ni

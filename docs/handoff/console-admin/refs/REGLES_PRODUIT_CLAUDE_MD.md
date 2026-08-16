@@ -184,10 +184,10 @@ color: #FFFFFF, fontWeight: 700
 | **Dot / point de couleur dans une pilule de statut** | **Jamais de dot — pilule pleine + texte seul** |
 | **Point médian « · » comme séparateur dans un titre / compteur** (ex. « Deals en cours · 2 ») | **Jamais — écrire « 2 deals en cours » ou « Deals en cours (2) ». Pas de « · » décoratif dans les titres.** |
 | Pilule de statut/type à fond teinté clair (~12 %) + texte coloré | **Fond opaque plein de la couleur + texte BLANC** |
-| **Fond de page/écran gris ou dégradé propre à une fiche** (ex. `DdSP.bgGradient`, `CdSP.bgGradient`) | **Fond IDENTIQUE à Today / Pipeline : toujours `window.crmSugarPalette(t, dark, darkTone).pageBg`** |
-| **Cadre bento avec bordure/ombre ad hoc** | **Reprendre `sp.frameBorder` + `sp.shadow` de `crmSugarPalette`, comme le pager Pipeline** |
+| **Fond de page/écran gris ou dégradé propre à une fiche** (ex. `DdSP.bgGradient`, `CdSP.bgGradient`) | **Fond IDENTIQUE à Today / Pipeline : toujours `window.crmPalette(t, dark, darkTone).pageBg`** |
+| **Cadre bento avec bordure/ombre ad hoc** | **Reprendre `sp.frameBorder` + `sp.shadow` de `crmPalette`, comme le pager Pipeline** |
 
-> 🎨 **UNIFORMISATION DES FONDS (règle actée, à retenir).** Toute surface plein écran — **fiches détail** (deal, contact, bien, visite), pagers, écrans — doit poser son contenu sur **le même fond que les pages Today et Pipeline** : `sp.pageBg` issu de `window.crmSugarPalette(t, dark, darkTone)` (quasi-noir `t.bg` en sombre · `#EEF1F5` en clair). **Ne jamais** utiliser un dégradé/gris local propre à une palette de fiche (`DdSP.bgGradient`, `CdSP.bgGradient`, etc.) comme fond de page ou de pager. Le cadre « bento » reprend `sp.frameBorder` + `sp.shadow`. Les palettes de fiche (`Dd`, `Cd`) ne servent qu'aux **surfaces de cards** (`card`, `cardSubtle`) et au texte, pas au fond.
+> 🎨 **UNIFORMISATION DES FONDS (règle actée, à retenir).** Toute surface plein écran — **fiches détail** (deal, contact, bien, visite), pagers, écrans — doit poser son contenu sur **le même fond que les pages Today et Pipeline** : `sp.pageBg` issu de `window.crmPalette(t, dark, darkTone)` (quasi-noir `t.bg` en sombre · `#EEF1F5` en clair). **Ne jamais** utiliser un dégradé/gris local propre à une palette de fiche (`DdSP.bgGradient`, `CdSP.bgGradient`, etc.) comme fond de page ou de pager. Le cadre « bento » reprend `sp.frameBorder` + `sp.shadow`. Les palettes de fiche (`Dd`, `Cd`) ne servent qu'aux **surfaces de cards** (`card`, `cardSubtle`) et au texte, pas au fond.
 
 ---
 
@@ -199,12 +199,12 @@ color: #FFFFFF, fontWeight: 700
 - Assets : `assets/megga-logo.svg` (wordmark), `assets/megga-favicon.svg`, `assets/fonts/objectivity/*.woff2` (9 weights + italiques).
 
 ### Tokens CRM (Sugar Pure)
-- `crm-tokens.jsx` — `CRM_TOKENS` (light/graphite/noir), `CRM_GRAPHITE` (échelle S0→S4), `crmStep`, `CRM_DARK_TONES`, `crmDarkTone`, `CRM_STAGES`, `CRM_DENSITY`, `crmFmtCHF`, `crmFmtNum`, `crmRelative`, `crmInitials`, `crmSugarPalette(t, dark, tone)` (expose `sp.ramp` en Graphite).
-- `window.SugarV2Palette` (a.k.a. `SP`) — palette Sugar v2 utilisée dans le wizard.
+- `crm-tokens.jsx` — `CRM_TOKENS` (light/graphite/noir), `CRM_GRAPHITE` (échelle S0→S4), `crmStep`, `CRM_DARK_TONES`, `crmDarkTone`, `CRM_STAGES`, `CRM_DENSITY`, `crmFmtCHF`, `crmFmtNum`, `crmRelative`, `crmInitials`, `crmPalette(t, dark, tone)` (expose `sp.ramp` en Graphite).
+- `window.WizardPalette` (a.k.a. `SP`) — palette Sugar v2 utilisée dans le wizard.
 
 ### Shell & primitives
 - `crm-shell.jsx` — `CRMIcon`, `CRMSidebar`, drawer, AI bubble, cmd+K.
-- `crm-screen-today-sugar.jsx` — `SugarTopNav`, `SugarIconRail`, `SugarFrame`, `SugarTeamChip`, `SugarTaskCard`, `SugarRoundIconBtn`, `SugarConnector`.
+- `crm-screen-today-sugar.jsx` — `CrmTopNav`, `CrmIconRail`, `SugarFrame`, `SugarTeamChip`, `SugarTaskCard`, `CrmRoundIconBtn`, `SugarConnector`.
 
 ### Wizard Sugar v2
 - `crm-wizard-sugar-v2.jsx` — shell + Step 0 + primitives (`SgGateCard`, `SgBlackPill`, `SgGhostPill`, `SgCircleBtn`, stepper 8 cercles).

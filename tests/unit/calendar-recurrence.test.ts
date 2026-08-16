@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calExpandEvents, calConflicts, type CalEvent } from '@/components/crm-sugar/calendar/data'
+import { calExpandEvents, calConflicts, type CalEvent } from '@/components/crm/calendar/data'
 
 // Régression des correctifs de revue adverse (juil. 2026) :
 //  - récurrence mensuelle ancrée au jour du mois (pas de dérive via setMonth)

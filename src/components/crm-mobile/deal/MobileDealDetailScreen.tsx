@@ -13,11 +13,11 @@ import { useProperty } from '@/hooks/useProperties'
 import { useKycDossierByContact } from '@/hooks/useKycDossier'
 import { useOfferChain, useUpdateOfferStatus, lastOffer } from '@/hooks/useOffers'
 import { countActiveConditions, type Offer, type OfferStatus } from '@/types/offer'
-import { DEAL_STEPPER_ORDER, dealStepperIndex, isStageKycBlocking, mapTransactionStageToStepper } from '@/components/crm-sugar-v3/dealStepper'
+import { DEAL_STEPPER_ORDER, dealStepperIndex, isStageKycBlocking, mapTransactionStageToStepper } from '@/components/crm-dossiers/dealStepper'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
-import SgToast from '../primitives/SgToast'
-import { useSgToast } from '../primitives/useSgToast'
+import CrmToast from '../primitives/CrmToast'
+import { useCrmToast } from '../primitives/useCrmToast'
 
 type StageInput = Parameters<typeof mapTransactionStageToStepper>[0]
 
@@ -72,7 +72,7 @@ export function MobileDealDetailScreen({ demoData }: { demoData?: DealData }) {
   const navigate = useNavigate()
   const { t } = useTranslation('pipeline')
   const { tk } = useMobileTokens()
-  const { toast, showToast } = useSgToast()
+  const { toast, showToast } = useCrmToast()
 
   const live = !demoData
   const { data: deal, isLoading, isError } = useTransaction(live ? id : undefined)
@@ -331,7 +331,7 @@ export function MobileDealDetailScreen({ demoData }: { demoData?: DealData }) {
         )}
       </div>
 
-      <SgToast toast={toast} />
+      <CrmToast toast={toast} />
     </div>
   )
 }

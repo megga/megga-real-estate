@@ -13,7 +13,7 @@ import {
   useWizardDraft,
   wizardTitre,
   type EtatBrouillon,
-} from '@/components/crm-sugar-wizard/useWizardDraft'
+} from '@/components/crm-wizard/useWizardDraft'
 import { useCreateProperty, useUpdateProperty, type CreatePropertyInput } from '@/hooks/useProperties'
 import { CANTONS } from '@/lib/constants'
 import { MOBILE_FONT } from '../tokens'

@@ -24,9 +24,9 @@ import {
   FOCUS_DEFAULTS,
   type FocusScoreInput,
   type FocusRankable,
-} from '@/components/crm-sugar/today/focusScore'
-import { selectFocusQueue, FOCUS_QUEUE_DEMO, type FocusItem } from '@/components/crm-sugar/today/focusQueue'
-import { transactionToCrmDeal } from '@/lib/sugarAdapters'
+} from '@/components/crm/today/focusScore'
+import { selectFocusQueue, FOCUS_QUEUE_DEMO, type FocusItem } from '@/components/crm/today/focusQueue'
+import { transactionToCrmDeal } from '@/lib/crmAdapters'
 import type { ContactTransaction } from '@/hooks/useTransactions'
 import i18next from 'i18next'
 import frDashboard from '@/i18n/locales/fr/dashboard.json'

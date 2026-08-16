@@ -34,7 +34,7 @@ Grammaire visuelle des surfaces refondues (Pipeline kanban/liste/timeline, modal
 
 - **Séparation par ombre douce**, aucune bordure décorative 1px. Beaucoup d'air.
 - **Accent UI unique = noir** `#0B0C0E` (clair) / encre `#ECEDF3` (sombre) —
-  `sp.accent` / `sp.accentInk` de `crmSugarPalette`. Aucune couleur vive en accent.
+  `sp.accent` / `sp.accentInk` de `crmPalette`. Aucune couleur vive en accent.
 - **Teinte sombre par défaut = « Graphite »** — échelle de surfaces OPAQUES
   `#12161C` → `#21242F` en 5 paliers (`CRM_GRAPHITE`, `CRM_TOKENS.graphite`).
   Noir pur `#000000` reste offert. La teinte était **vivante** : `useDarkTone()`
@@ -48,11 +48,11 @@ Grammaire visuelle des surfaces refondues (Pipeline kanban/liste/timeline, modal
   a encore un lecteur**.
   et une palette montée une fois doit exposer des **getters**, sinon elle fige sa
   valeur au chargement. Barème et règles : `CLAUDE.md` §Échelle sombre.
-- **Teintes d'étape** : balayage continu `SG_STAGE_HUE` (indigo `#5B6BE6` →
-  orange `#E8892A`, `lost` rose `#C2607E` hors funnel). Dérivations `sgMix`
-  FIGÉES : fond de colonne clair `sgMix(hue,#FFF,.81)` / sombre
-  `sgMix(hue,#141517,.85)` ; compteur teinté `.45→#0B0C0E` / `.35→#FFF` ;
-  pilule à texte blanc `sgStagePillBg` = clair `sgMix(hue,#0B0C0E,.32)`,
+- **Teintes d'étape** : balayage continu `CRM_STAGE_HUE` (indigo `#5B6BE6` →
+  orange `#E8892A`, `lost` rose `#C2607E` hors funnel). Dérivations `crmMix`
+  FIGÉES : fond de colonne clair `crmMix(hue,#FFF,.81)` / sombre
+  `crmMix(hue,#141517,.85)` ; compteur teinté `.45→#0B0C0E` / `.35→#FFF` ;
+  pilule à texte blanc `crmStagePillBg` = clair `crmMix(hue,#0B0C0E,.32)`,
   sombre teinte pure. Les pastilles 8-9 px et les barres restent en teinte pure.
 - **Pilules de statut/type** : TOUJOURS fond opaque plein + texte blanc (jamais
   fond teinté clair + texte coloré, jamais de dot dans la pilule).

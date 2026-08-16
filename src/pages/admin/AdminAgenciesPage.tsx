@@ -74,7 +74,7 @@ import {
   AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 
 /** Lignes rendues avant le « voir les N autres » (maquette). */
 const SHOW = 20
@@ -90,7 +90,7 @@ const KYB_PILL: Record<string, { key: string; tone: AdminToneName }> = {
 export default function AdminAgenciesPage() {
   const { t } = useTranslation('admin')
   const { agencies, isLoading, isError, refetch, updateStatus } = useAdminAgencies()
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
 
   const [search, setSearch] = useState('')
   const [filtre, setFiltre] = useState<'all' | 'active' | 'suspended' | 'trial'>('all')

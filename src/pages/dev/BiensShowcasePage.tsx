@@ -16,7 +16,7 @@
  *
  * ⚠ Aucun échafaudage n'entre dans le code de production : `BiensPager` est
  * purement présentationnel (il reçoit `biens` en prop), donc ce harnais
- * l'alimente directement, sans toucher `useBiensSugar`.
+ * l'alimente directement, sans toucher `useListingsScreen`.
  *
  * ⚠ Le harnais fournit `ThemeProvider`. `WizardShell` reçoit pourtant `dark` en
  * prop — mais il appelle `useTheme()` AVANT de l'appliquer (`darkOverride ??
@@ -33,15 +33,16 @@
  * pas un aperçu du portefeuille réel.
  */
 import { useMemo, useState } from 'react'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { CRM_BIENS } from '@/components/crm-sugar/mockData'
-import { mxSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
-import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { BiensPager } from '@/components/crm-sugar/biens/pager/BiensPager'
-import WizardShell from '@/components/crm-sugar-wizard/WizardShell'
+import { crmPalette } from '@/components/crm/tokens'
+import { CRM_BIENS } from '@/components/crm/mockData'
+import { mxSurfaces } from '@/components/crm/biens/gallery/galHelpers'
+import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { BiensPager } from '@/components/crm/biens/pager/BiensPager'
+import WizardShell from '@/components/crm-wizard/WizardShell'
 import ListingDetailPage from '@/pages/agent/ListingDetailPage'
 import { DEMO_LISTING } from './demoFixtures'
 import { ThemeProvider } from '@/hooks/useTheme'
+import { readCrmDark } from '@/lib/crmDark'
 
 export default function BiensShowcasePage() {
   // ⚠ Même amorçage que `ListingsPage` : le CRM porte DEUX clés de thème
@@ -53,22 +54,19 @@ export default function BiensShowcasePage() {
   // clairs contre 3 sombres.
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   const [wizardOpen, setWizardOpen] = useState(false)
   const [surface, setSurface] = useState<'liste' | 'fiche'>('liste')
 
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   const surf = mxSurfaces(sp)
   const now = useMemo(() => new Date(), [])
 
   // Le harnais ne navigue nulle part : chaque cible mènerait à une surface
   // protégée, donc au rebond vers la production que cette page existe pour
   // éviter. Seuls le thème et l'ouverture du wizard agissent.
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onNavigate = (id: CrmScreenId | string) => {
     if (id === 'biens-new') setWizardOpen(true)
   }
 
@@ -79,7 +77,7 @@ export default function BiensShowcasePage() {
       display: 'flex', flexDirection: 'column',
       fontFamily: '"Inter Tight", system-ui, sans-serif', color: sp.ink,
     }}>
-      <style>{SUGAR_KEYFRAMES}</style>
+      <style>{CRM_KEYFRAMES}</style>
 
       <div style={{
         position: 'fixed', bottom: 14, left: 14, zIndex: 9500,
@@ -117,9 +115,9 @@ export default function BiensShowcasePage() {
         <ListingDetailPage demoData={DEMO_LISTING} />
       ) : (
         <>
-          <SugarTopNav active="biens" sp={sp} onNavigate={onNavigate} dark={dark} />
+          <CrmTopNav active="biens" sp={sp} onNavigate={onNavigate} dark={dark} />
           <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-            <SugarIconRail active="biens" onNavigate={onNavigate} onCmd={() => {}} dark={dark} setDark={setDark} sp={sp} />
+            <CrmIconRail active="biens" onNavigate={onNavigate} onCmd={() => {}} dark={dark} setDark={setDark} sp={sp} />
             <BiensPager
               biens={CRM_BIENS}
               sp={sp}

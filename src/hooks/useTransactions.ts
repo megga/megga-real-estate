@@ -225,7 +225,7 @@ export interface ContactTransaction {
   price_offered: number | null
   price_final: number | null
   updated_at: string
-  /** Agent assigné — optionnel : seul le pipeline (usePipelineSugar) le fournit. */
+  /** Agent assigné — optionnel : seul le pipeline (usePipelineScreen) le fournit. */
   assigned_to?: string | null
   /** Deal rangé hors pipeline — optionnel : seul le pipeline le fournit. */
   archived_at?: string | null

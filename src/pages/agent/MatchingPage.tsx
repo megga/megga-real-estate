@@ -19,13 +19,14 @@ import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react
 import type { ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
-import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
+import { crmPalette } from '@/components/crm/tokens'
+import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
+import { openCrmSearch } from '@/components/crm/search/openSearch'
 import MatchingAtelierPage from '@/pages/agent/MatchingAtelierPage'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 const MATCHING_PAGES = [
   { id: 'score', labelKey: 'pager.score' },
@@ -158,23 +159,20 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
   // ─── Thème: dark/light, calé sur le toggle du rail (comme Today) ────────
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
     }
   }, [dark])
 
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   const lightMode = !dark
 
-  const onCmd = () => openSugarSearch()
+  const onCmd = () => openCrmSearch()
 
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onNavigate = (id: CrmScreenId | string) => {
     if (banc) return
     switch (id) {
       case 'today': navigate('/dashboard'); break
@@ -367,10 +365,10 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
         .matching-scroll-hint:hover .msh-label, .matching-scroll-hint:focus-visible .msh-label { max-width: 220px !important; opacity: 1 !important; transform: translateX(0) !important; }
       `}</style>
 
-      <SugarTopNav active="matching" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
+      <CrmTopNav active="matching" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail
+        <CrmIconRail
           active="matching" onNavigate={onNavigate} onCmd={onCmd}
           dark={dark} setDark={setDark} sp={sp}
         />

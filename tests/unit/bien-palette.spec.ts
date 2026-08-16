@@ -7,11 +7,11 @@
  * couleurs y sont déjà bonnes, c'est le cas Réglages » — et sa mesure le
  * confirme : `ListingDetailPage.tsx` ne porte que 2 littéraux hexadécimaux.
  * Mais sa palette n'est pas dans ce fichier : elle vit un dossier plus loin,
- * dans `crm-sugar-v3/vitrine/` (754 lignes, 39 hex), que la liste de dossiers
+ * dans `crm-dossiers/vitrine/` (754 lignes, 39 hex), que la liste de dossiers
  * mesurée ne couvrait pas. La fiche en est l'UNIQUE consommateur.
  *
  * C'est le piège de comptage du calendrier, à l'identique : lui vivait dans
- * `crm-sugar/calendar/` ET `crm-mobile/agenda/`, et un grep sur le seul premier
+ * `crm/calendar/` ET `crm-mobile/agenda/`, et un grep sur le seul premier
  * annonçait 7 capitales quand il y en avait 12. Une surface n'est pas un
  * dossier. Voir `megga/calendrier-meggax`.
  *
@@ -23,7 +23,7 @@
  */
 import { describe, it, expect, afterEach } from 'vitest'
 import { MXC_COLOR, MXC_SYSTEM, mxCrmPalette } from '@/components/megga-x-crm/tokens'
-import { vxPalette } from '@/components/crm-sugar-v3/vitrine/vitrineTokens'
+import { vxPalette } from '@/components/crm-dossiers/vitrine/vitrineTokens'
 
 /** Les barreaux que la vitrine publie — la seule source de couleur autorisée. */
 const ECHELLE = new Set(
@@ -46,7 +46,7 @@ const SEMANTIQUES = new Set([
   'ok', 'okBg', 'warn', 'warnBg', 'info', 'infoBg',
   'hairline',
   'shadowSm', 'shadow', 'shadowHov',
-  // Survol de l'accent dérivé par `sgMix` : aucun barreau de vitrine ne le publie.
+  // Survol de l'accent dérivé par `crmMix` : aucun barreau de vitrine ne le publie.
   'blackHover',
 ])
 
@@ -64,7 +64,7 @@ function hexOf(value: string): string[] {
   return [...hex, ...rgb]
 }
 
-/** Accepte `#rrggbb` ET `rgb(r, g, b)` — `blackHover` est dérivé par `sgMix`. */
+/** Accepte `#rrggbb` ET `rgb(r, g, b)` — `blackHover` est dérivé par `crmMix`. */
 function rgbOf(color: string): [number, number, number] {
   const rgb = color.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/)
   if (rgb) return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])]
@@ -129,7 +129,7 @@ describe('Fiche bien — la palette descend de MEGGA X', () => {
    * L'accent de la marque, et rien d'autre. `black` portait un noir en clair et
    * un near-white en sombre — Sugar Pure faisait de l'accent l'encre. Même
    * correction que `SET.black` aux Réglages, `p.black` au calendrier et
-   * `SugarV2.black` au wizard.
+   * `WizardTokens.black` au wizard.
    */
   it.each([false, true])('l’accent est celui de la marque (sombre=%s)', (dark) => {
     const p = vxPalette(dark)

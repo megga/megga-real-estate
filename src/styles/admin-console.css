@@ -5,7 +5,7 @@
  * palette de la direction, ce qui teinte les restes écrits en classes
  * sémantiques (`bg-theme-card`, `text-theme-primary`…). Il n'en subsiste
  * qu'une poignée hors de `AdminKybReviewPage` — les 18 autres pages sont en
- * style inline nourri par `useAdminSugar()`.
+ * style inline nourri par `useAdminSurfaces()`.
  *
  * Ensuite, et c'est devenu l'essentiel, elle porte ce que le style inline ne
  * PEUT pas exprimer : l'anneau de focus, les scrollbars, `::placeholder`, et
@@ -43,7 +43,7 @@
  * ── POURQUOI `data-admin-dark` ET NON `data-theme` ──────────────────────────
  * ✅ CONSERVÉ, décision du 14 août 2026, et la raison d'origine tient toujours.
  * Dans le CRM, DEUX providers pilotent `data-theme` depuis deux clés de
- * stockage sans lien (`megga-theme` pour le CRM, `megga.sugar.dark` pour la
+ * stockage sans lien (`megga-theme` pour le CRM, `megga.crm.dark` pour la
  * console) et celui du CRM gagne : mesuré `data-theme="light"` alors que la
  * console était en sombre, d'où des pages en texte quasi noir sur fond noir.
  * La console est toujours montée sous `/dashboard/*`, donc les deux providers

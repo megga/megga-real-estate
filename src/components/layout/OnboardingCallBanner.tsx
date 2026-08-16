@@ -2,7 +2,7 @@
  * Rappel de l'appel d'accueil — bandeau persistant du CRM agent.
  *
  * Même emplacement et même grammaire que LabGuardBanner : monté dans
- * AgentSugarLayout, sans props, branché sur son propre hook.
+ * AgentLayout, sans props, branché sur son propre hook.
  *
  * Deux visages selon l'état :
  *   - aucun appel réservé et rappel non mis en sommeil : invitation à réserver ;

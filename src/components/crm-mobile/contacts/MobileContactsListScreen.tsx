@@ -9,13 +9,13 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { useContactsSugar } from '@/hooks/useContactsSugar'
-import type { CrmContact } from '@/components/crm-sugar/mockData'
-import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
+import { useContactsScreen } from '@/hooks/useContactsScreen'
+import type { CrmContact } from '@/components/crm/mockData'
+import { openCrmSearch } from '@/components/crm/search/openSearch'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import MeggaWordmark from '../shell/MeggaWordmark'
-import SgActionMenu from '../primitives/SgActionMenu'
+import CrmActionMenu from '../primitives/CrmActionMenu'
 import ContactSeal from './ContactSeal'
 import { CONTACT_SEGS, SEG_KEY, typeKey, type ContactSeg } from './shared'
 
@@ -34,7 +34,7 @@ const DEMO: CrmContact[] = [
 ]
 
 /**
- * « Contacts » mobile (sous l'onglet « Plus ») — liste câblée `useContactsSugar`
+ * « Contacts » mobile (sous l'onglet « Plus ») — liste câblée `useContactsScreen`
  * (RÉEL, RLS agence). Recherche + segments (tous/acheteurs/vendeurs). Ligne →
  * fiche (/dashboard/contacts/:id). FAB → création. Seeds derrière `demo`.
  * v1 : ••• = appeler/e-mail/voir ; suppression différée (mutation). Segment
@@ -44,7 +44,7 @@ export function MobileContactsListScreen({ demo = false }: { demo?: boolean }) {
   const navigate = useNavigate()
   const { t } = useTranslation('contacts')
   const { tk } = useMobileTokens()
-  const { contacts, isLoading, isError, refetch } = useContactsSugar()
+  const { contacts, isLoading, isError, refetch } = useContactsScreen()
 
   const all = demo ? DEMO : contacts
   const [query, setQuery] = useState('')
@@ -67,7 +67,7 @@ export function MobileContactsListScreen({ demo = false }: { demo?: boolean }) {
     <div style={{ fontFamily: MOBILE_FONT, color: tk.ink, position: 'relative', minHeight: '70vh' }}>
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'calc(env(safe-area-inset-top) + 14px) 18px 6px' }}>
         <MeggaWordmark color={tk.ink} height={22} />
-        <button type="button" onClick={() => openSugarSearch()} aria-label={t('common:nav.search')} style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}>
+        <button type="button" onClick={() => openCrmSearch()} aria-label={t('common:nav.search')} style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}>
           <MEIcon name="search" size={18} color={tk.ink} />
         </button>
       </header>
@@ -139,7 +139,7 @@ export function MobileContactsListScreen({ demo = false }: { demo?: boolean }) {
         </button>
       ) : null}
 
-      <SgActionMenu
+      <CrmActionMenu
         open={menu !== null}
         onClose={() => setMenu(null)}
         title={menu ? `${menu.firstName} ${menu.lastName}` : undefined}

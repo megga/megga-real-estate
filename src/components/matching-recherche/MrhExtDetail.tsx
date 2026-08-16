@@ -18,7 +18,7 @@
 //    `null` est simplement masqué.
 //  · Carte plein écran et lightbox sont PORTÉES dans `document.body` : la fiche
 //    vit sous le track translaté du pager, où `position: fixed` deviendrait un
-//    cadre local (même correctif que SgaOverlayHost côté atelier).
+//    cadre local (même correctif que AtlOverlayHost côté atelier).
 
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
@@ -30,7 +30,7 @@ import MrhAgencyLogo from './MrhAgencyLogo'
 import MrhLightbox from './MrhLightbox'
 import { useMarketListingDetail } from '@/hooks/useMatchingRecherche'
 import { formatCHF, formatDate } from '@/lib/utils'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import type { CrmPalette } from '@/components/crm/tokens'
 import { floorLabelKey, type MrhBien, type MrhBienDetail, type MrhContact } from './types'
 import { MRH_PRICE_DROP } from './mrhCtx'
 import type { MrhSurf } from './mrhCtx'
@@ -47,7 +47,7 @@ interface Spec { k: string; v: string; mono?: boolean }
  * La moyenne réelle est de 1 462 signes (max 9 335) : sans repli, la fiche
  * s'ouvre au milieu d'un pavé et le prix passe sous la ligne de flottaison.
  */
-function MrhDescription({ text, sp }: { text: string; sp: SugarPalette }) {
+function MrhDescription({ text, sp }: { text: string; sp: CrmPalette }) {
   const { t } = useTranslation('matching')
   const [open, setOpen] = useState(false)
   const long = text.length > 320
@@ -67,7 +67,7 @@ function MrhDescription({ text, sp }: { text: string; sp: SugarPalette }) {
 
 interface Props {
   bien: MrhBien
-  sp: SugarPalette
+  sp: CrmPalette
   surf: MrhSurf
   dark: boolean
   line: string

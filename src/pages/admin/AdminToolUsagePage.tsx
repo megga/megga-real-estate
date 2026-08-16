@@ -20,7 +20,7 @@ import AdminPage from '@/components/admin/kit/AdminPage'
 import {
   AdminCard, AdminIc, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminToolUsage, type ToolUsageRow } from '@/hooks/useAdminToolUsage'
 import { WHATSAPP_TOOL_CATALOG } from '@/lib/whatsapp-tools-catalog'
 import { AiCostsSection } from '@/components/admin/AdminOpsPanels'
@@ -39,7 +39,7 @@ const ERROR_RATE_ALERT = 0.2
 /** Table d'usage des outils (observés + jamais utilisés) suivie de la section coûts IA. */
 export default function AdminToolUsagePage() {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const { data: observed = [], isLoading, error } = useAdminToolUsage()
 
   // La RPC ne renvoie que les outils observés. On complète avec les outils JAMAIS utilisés du

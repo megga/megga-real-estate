@@ -15,7 +15,7 @@ import { Star, MessageSquare, TrendingUp, Users } from 'lucide-react'
 import { useAdminNps } from '@/hooks/useAdminNps'
 import type { NpsResponse } from '@/hooks/useAdminNps'
 import { formatRelativeDate } from '@/lib/utils'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminIc, AdminPill, AdminSkeleton, AdminStat } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
@@ -35,7 +35,7 @@ function npsScoreTone(score: number): AdminToneName {
  */
 function ResponseCard({ response, first }: { response: NpsResponse; first: boolean }) {
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
 
   return (
     <div
@@ -92,7 +92,7 @@ function ResponseCard({ response, first }: { response: NpsResponse; first: boole
 export default function AdminNpsPage() {
   const { t } = useTranslation('admin')
   const { data, isLoading, isError, refetch } = useAdminNps()
-  const { sp, tones, onTone } = useAdminSugar()
+  const { sp, tones, onTone } = useAdminSurfaces()
 
   const stats = data?.stats
   const responses = data?.responses ?? []

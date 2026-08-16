@@ -14,7 +14,7 @@ src/
 ├── hooks/
 │   ├── useOffers.ts                                     (NEW) useOfferChain + useCreateOffer + helpers
 │   └── useVisitDetail.ts                                (NEW) useVisitDetail + Realtime + signBon + saveRapport
-├── components/crm-sugar-v3/
+├── components/crm-dossiers/
 │   ├── dealStepper.ts                                   (NEW) mapping 14 stages DB → 8 cercles UI
 │   ├── bien-detail/
 │   │   └── BdShared.tsx                                 (NEW) BdEyebrow/BdCard/BdEditInput/BdStatusChip/BdPhoto + formatters
@@ -49,12 +49,12 @@ src/
 ├── App.tsx                                              +12 lignes (6 lazy imports + 6 routes Sprint 2)
 ├── types/listing.ts                                     +4 lignes (energy_class, mandate_commission_pct, etc.)
 ├── hooks/useProperties.ts                               +5 lignes (CreatePropertyInput export + Sprint 2 fields)
-└── components/crm-sugar-v3/
+└── components/crm-dossiers/
     ├── primitives.tsx                                   +14 lignes (alias Sg*)
     └── icons.tsx                                        +14 lignes (11 nouvelles icônes Sprint 2)
 ```
 
-## Routes ajoutées dans App.tsx (bloc AgentSugarLayout)
+## Routes ajoutées dans App.tsx (bloc AgentLayout)
 
 ```tsx
 <Route path="listings/:id" element={<BienDetailSugarV3Page />} />
@@ -70,7 +70,7 @@ src/
 - `npm run build` : ✓ (tsc -b + vite build, 0 erreur)
 - TypeScript strict respecté (pas de `any`)
 - Tous les composants en inline-styles pour pixel-fidélité (cohérent avec Sprint 1)
-- Tokens Sugar Pure (`SugarV3` + formatters) réutilisés systématiquement
+- Tokens Sugar Pure (`DossierTokens` + formatters) réutilisés systématiquement
 
 ## Déviations par rapport au canon JSX
 
@@ -134,7 +134,7 @@ Trois agents red-team lancés en parallèle (sécurité DB, conformité Sugar Pu
 | TS S1/S2 | Casts `as TxLite`/`as TransactionJoined` | Refactor recommandé : étendre `useTransaction` pour exposer les joins en types. |
 | TS S5 | `icon: string` au lieu de `SgIconName` strict | Cosmétique TS — pas de bug runtime. |
 | TS S8 | `bon`/`rapport` JSONB pas validés via Zod | Acceptable au stade actuel — à durcir si schéma évolue. |
-| Conf LOW-12 | Pas de SugarTopNav/IconRail dans pages | Le layout parent (`AgentSugarLayout`) les fournit déjà — pas de duplication nécessaire. |
+| Conf LOW-12 | Pas de CrmTopNav/IconRail dans pages | Le layout parent (`AgentLayout`) les fournit déjà — pas de duplication nécessaire. |
 
 ### Verdict red-team
 

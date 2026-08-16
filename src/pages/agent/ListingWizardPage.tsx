@@ -14,19 +14,20 @@
 
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import WizardShell from '@/components/crm-sugar-wizard/WizardShell'
-import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
+import WizardShell from '@/components/crm-wizard/WizardShell'
+import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { crmPalette } from '@/components/crm/tokens'
+import { crmThemeVars } from '@/components/crm/crmThemeVars'
+import { readCrmDark } from '@/lib/crmDark'
 
 export default function ListingWizardPage() {
   const navigate = useNavigate()
   const onClose = () => navigate('/dashboard/listings')
 
   const [dark, setDark] = useState<boolean>(() =>
-    typeof window !== 'undefined' && window.localStorage.getItem('megga.sugar.dark') === '1')
-  const sgSp = useMemo(() => crmSugarPalette(dark), [dark])
-  const onSugarNav = (id: SugarScreenId | string) => {
+    typeof window !== 'undefined' && readCrmDark())
+  const sgSp = useMemo(() => crmPalette(dark), [dark])
+  const onCrmNav = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -40,14 +41,14 @@ export default function ListingWizardPage() {
       default:
     }
   }
-  const onSugarCmd = () => {}
+  const onCrmCmd = () => {}
 
   return (
-    <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...sugarThemeVars(sgSp, dark) }}>
-      <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav active={'biens' as SugarScreenId} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
+    <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }}>
+      <style>{CRM_KEYFRAMES}</style>
+      <CrmTopNav active={'biens' as CrmScreenId} sp={sgSp} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} />
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        <SugarIconRail active={'biens' as SugarScreenId} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} setDark={setDark} sp={sgSp} />
+        <CrmIconRail active={'biens' as CrmScreenId} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} setDark={setDark} sp={sgSp} />
         <main style={{ flex: 1, minWidth: 0, padding: '92px 40px 40px' }}>
           <div style={{ position: 'relative', height: 'calc(100vh - 132px)', borderRadius: 26, overflow: 'hidden' }}>
             <WizardShell embedded dark={dark} onClose={onClose} />

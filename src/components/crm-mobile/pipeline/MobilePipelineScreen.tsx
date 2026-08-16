@@ -1,26 +1,26 @@
 /**
  * Écran Pipeline mobile (crm-mobile/pipeline) — contenu de la route
  * /dashboard/pipeline : onglets de stade + liste des affaires du stade actif.
- * Câblé sur les vrais deals (usePipelineSugar) ; seeds de démo derrière `demo`.
+ * Câblé sur les vrais deals (usePipelineScreen) ; seeds de démo derrière `demo`.
  */
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { CRM_STAGES, CRM_STAGE_ORDER, type StageId } from '@/components/crm-sugar/tokens'
-import { crmBienById, crmContactById, type CrmDeal } from '@/components/crm-sugar/mockData'
-import { usePipelineSugar } from '@/hooks/usePipelineSugar'
-import { stageIdToTransactionStage } from '@/lib/sugarAdapters'
+import { CRM_STAGES, CRM_STAGE_ORDER, type StageId } from '@/components/crm/tokens'
+import { crmBienById, crmContactById, type CrmDeal } from '@/components/crm/mockData'
+import { usePipelineScreen } from '@/hooks/usePipelineScreen'
+import { stageIdToTransactionStage } from '@/lib/crmAdapters'
 import { formatCHF } from '@/lib/utils'
-import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
+import { openCrmSearch } from '@/components/crm/search/openSearch'
 import { MOBILE_FONT, type MobileTokens } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import MeggaWordmark from '../shell/MeggaWordmark'
-import SgActionMenu from '../primitives/SgActionMenu'
-import SgConfirmDestructive from '../primitives/SgConfirmDestructive'
-import SgBottomCard from '../primitives/SgBottomCard'
-import SgToast from '../primitives/SgToast'
-import { useSgToast } from '../primitives/useSgToast'
+import CrmActionMenu from '../primitives/CrmActionMenu'
+import CrmConfirmDestructive from '../primitives/CrmConfirmDestructive'
+import CrmBottomCard from '../primitives/CrmBottomCard'
+import CrmToast from '../primitives/CrmToast'
+import { useCrmToast } from '../primitives/useCrmToast'
 
 interface DealVM {
   id: string
@@ -111,7 +111,7 @@ function ProbRing({ pct, color }: { pct: number; color: string }) {
  * Pipeline mobile — onglets de stade (scroll horizontal) + liste verticale des
  * affaires du stade actif. Pattern visuel du proto préservé, mais sur les VRAIS
  * 8 stades CRM (`CRM_STAGE_ORDER`, labels `t('stages.*')`, couleurs CRM_STAGES)
- * pour fidélité données + cohérence desktop. Câblé `usePipelineSugar` (mêmes
+ * pour fidélité données + cohérence desktop. Câblé `usePipelineScreen` (mêmes
  * deals/`updateStage` que le board desktop ; mutation = `transactions.stage`,
  * event émis par le trigger DB). **KYC non-bloquant** : rappel doux sur la carte,
  * jamais un verrou. Réutilise les primitives P1 (menu, confirmation, toast).
@@ -121,8 +121,8 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
   const navigate = useNavigate()
   const { t } = useTranslation('pipeline')
   const { tk, isDark } = useMobileTokens()
-  const { deals, updateStage, isLoading, isError, refetch } = usePipelineSugar()
-  const { toast, showToast } = useSgToast()
+  const { deals, updateStage, isLoading, isError, refetch } = usePipelineScreen()
+  const { toast, showToast } = useCrmToast()
 
   const vms = useMemo<DealVM[]>(() => (demo ? DEMO_VMS : deals.filter((d) => d.stage !== 'lost').map(dealToVM)), [demo, deals])
   const totalValue = demo ? 'CHF 7.6M' : `CHF ${(vms.reduce((s, v) => s + (v.value || 0), 0) / 1e6).toFixed(1)}M`
@@ -159,7 +159,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
         <MeggaWordmark color={tk.ink} height={22} />
         <button
           type="button"
-          onClick={() => { if (!demo) openSugarSearch() }}
+          onClick={() => { if (!demo) openCrmSearch() }}
           aria-label={t('common:nav.search')}
           style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${tk.cardBorder}`, cursor: 'pointer', background: tk.card, boxShadow: tk.shadowSm, display: 'grid', placeItems: 'center' }}
         >
@@ -292,7 +292,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
       )}
 
       {/* ••• menu */}
-      <SgActionMenu
+      <CrmActionMenu
         open={menuDeal !== null}
         onClose={() => setMenuDeal(null)}
         title={menuDeal?.name}
@@ -312,7 +312,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
       />
 
       {/* Changer d'étape */}
-      <SgBottomCard open={stagePick !== null} onClose={() => setStagePick(null)} ariaLabel={t('actions.changeStage')}>
+      <CrmBottomCard open={stagePick !== null} onClose={() => setStagePick(null)} ariaLabel={t('actions.changeStage')}>
         <div style={{ padding: 'var(--crm-space-4xl) var(--crm-space-3xl) var(--crm-space-sm)' }}>
           <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.4, color: tk.ink }}>{t('actions.changeStage')}</div>
           {stagePick ? <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tk.muted, marginTop: 3 }}>{stagePick.name}</div> : null}
@@ -341,10 +341,10 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
             )
           })}
         </div>
-      </SgBottomCard>
+      </CrmBottomCard>
 
       {/* Marquer perdue */}
-      <SgConfirmDestructive
+      <CrmConfirmDestructive
         open={confirmLost !== null}
         title={t('lost_dialog.title')}
         message={confirmLost ? t('lost_dialog.message', { name: confirmLost.name }) : undefined}
@@ -355,7 +355,7 @@ export function MobilePipelineScreen({ demo = false }: { demo?: boolean }) {
         onCancel={() => setConfirmLost(null)}
       />
 
-      <SgToast toast={toast} />
+      <CrmToast toast={toast} />
     </div>
   )
 }

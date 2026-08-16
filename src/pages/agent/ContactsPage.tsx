@@ -1,5 +1,5 @@
 // MEGGA CRM — Page « Contacts » (refonte Claude Design, conteneur).
-// Monte le chrome Sugar (SugarTopNav + SugarIconRail) puis le pager plein-écran
+// Monte le chrome Sugar (CrmTopNav + CrmIconRail) puis le pager plein-écran
 // (liste ↕ santé du portefeuille). Premier lancement (0 contact CHARGÉ AVEC SUCCÈS)
 // → ContactsFirstRun dans le cadre ; échec de chargement → écran d'erreur avec
 // réessai (jamais confondu avec un compte neuf).
@@ -12,18 +12,19 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
-import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
-import { useContactsSugar } from '@/hooks/useContactsSugar'
+import { crmPalette } from '@/components/crm/tokens'
+import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
+import { openCrmSearch } from '@/components/crm/search/openSearch'
+import { useContactsScreen } from '@/hooks/useContactsScreen'
 import { useCreateContact } from '@/hooks/useContacts'
 import { buildSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
-import ContactsPager from '@/components/crm-sugar/contacts-pager/ContactsPager'
-import ContactsFirstRun from '@/components/crm-sugar/contacts-pager/ContactsFirstRun'
+import ContactsPager from '@/components/crm/contacts-pager/ContactsPager'
+import ContactsFirstRun from '@/components/crm/contacts-pager/ContactsFirstRun'
 import NewContactModal, {
   type NewContactData,
-} from '@/components/crm-sugar/contacts-pager/NewContactModal'
+} from '@/components/crm/contacts-pager/NewContactModal'
+import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 export default function ContactsPage() {
   const navigate = useNavigate()
@@ -45,18 +46,15 @@ export default function ContactsPage() {
   // ── Thème dark/light, calé sur le toggle du rail (partagé Today/Pipeline) ──
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+    if (typeof window !== 'undefined') window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
   }, [dark])
 
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
 
-  const { contacts, isLoading, isError, refetch } = useContactsSugar()
+  const { contacts, isLoading, isError, refetch } = useContactsScreen()
   // `fresh` = compte réellement neuf. Un échec de chargement laisse aussi
   // `contacts` vide : sans le garde `!isError`, une panne réseau présenterait
   // le carnet de l'agent comme vide via l'écran premier lancement.
@@ -67,8 +65,8 @@ export default function ContactsPage() {
   const [createdId, setCreatedId] = useState<string | null>(null)
   const createContact = useCreateContact()
 
-  const onCmd = () => openSugarSearch()
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onCmd = () => openCrmSearch()
+  const onNavigate = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -134,9 +132,9 @@ export default function ContactsPage() {
         },
       })
       setCreatedId(created?.id ?? null)
-      // La liste (useContactsSugar) est un useQuery « plain » ['contacts-sugar'] :
+      // La liste (useContactsScreen) est un useQuery « plain » ['contacts-screen'] :
       // l'auto-invalidation cache-helpers ne la couvre pas → on invalide explicitement.
-      await qc.invalidateQueries({ queryKey: ['contacts-sugar'] })
+      await qc.invalidateQueries({ queryKey: ['contacts-screen'] })
     } catch (e) {
       setCreateError(e instanceof Error ? e.message : tr('list.toast.unknownError'))
       throw e
@@ -161,9 +159,9 @@ export default function ContactsPage() {
       position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
       display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
-      <SugarTopNav active="contacts" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
+      <CrmTopNav active="contacts" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail active="contacts" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmIconRail active="contacts" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
         <ContactsPager
           contacts={contacts}
           sp={sp}

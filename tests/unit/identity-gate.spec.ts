@@ -1,4 +1,4 @@
-// Gate identite legale (AgentSugarLayout) - decision pure et testable, sur le
+// Gate identite legale (AgentLayout) - decision pure et testable, sur le
 // meme motif que l'ancien resolveOnboardingGate (composants/layout/onboardingGate.ts,
 // retire en juillet 2026 avec l'ancien parcours onboarding/premier-jour).
 //
@@ -184,7 +184,7 @@ describe('shouldHoldForIdentityGate - le CRM ne se montre pas avant que le gate 
     }
   })
 
-  // Les deux predicats se lisent ensemble dans AgentSugarLayout : retenir
+  // Les deux predicats se lisent ensemble dans AgentLayout : retenir
   // d'abord, rediriger ensuite. Aucun etat ne doit permettre les deux a la fois,
   // sans quoi l'ordre des ternaires deciderait du comportement.
   it('aucun statut ne declenche a la fois la retenue et la redirection', () => {

@@ -17,7 +17,7 @@ import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAdminSearch, type AdminSearchResult } from '@/hooks/useAdminSearch'
 import { AdminDivider, AdminEmpty, AdminError, AdminGroupTitle } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 
 interface AdminSearchDialogProps {
   open: boolean
@@ -34,7 +34,7 @@ const TYPE_META: Record<AdminSearchResult['type'], { icon: MEIconName; i18nKey: 
 export default function AdminSearchDialog({ open, onClose }: AdminSearchDialogProps) {
   'use no memo'
   const { t } = useTranslation('admin')
-  const { sp, surf, dark } = useAdminSugar()
+  const { sp, surf, dark } = useAdminSurfaces()
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()

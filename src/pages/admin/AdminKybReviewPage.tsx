@@ -43,8 +43,8 @@ import { formatDate } from '@/lib/utils'
 // aussi bien que le dirigeant. La console partage le bundle et le client Supabase du CRM.
 import { useIdentityDocuments } from '@/hooks/useAgencyIdentity'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
-import { useAdminSugar, type AdminTones } from '@/hooks/useAdminSugar'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { useAdminSurfaces, type AdminTones } from '@/hooks/useAdminSurfaces'
+import type { CrmPalette } from '@/components/crm/tokens'
 import { useToast } from '@/components/ui/Toast'
 import Modal from '@/components/ui/modal'
 import PageTransition from '@/components/layout/PageTransition'
@@ -476,13 +476,13 @@ const REASON_META: Record<ReviewReasonCode, { icon: typeof AlertTriangle; tone: 
  * vaut `#B91C1C` en clair et `#F26B65` en sombre, mesurés sur les surfaces de
  * la console ; `text-red-500` valait `#ef4444` dans les deux.
  */
-function toneInk(tone: 'negative' | 'warn' | 'neutral', sp: SugarPalette, tones: AdminTones): string {
+function toneInk(tone: 'negative' | 'warn' | 'neutral', sp: CrmPalette, tones: AdminTones): string {
   if (tone === 'negative') return tones.err
   if (tone === 'warn') return tones.warn
   return sp.soft
 }
 
-function checkToneInk(tone: CheckTone, sp: SugarPalette, tones: AdminTones): string {
+function checkToneInk(tone: CheckTone, sp: CrmPalette, tones: AdminTones): string {
   if (tone === 'positive') return tones.ok
   if (tone === 'negative') return tones.err
   if (tone === 'pending') return tones.warn
@@ -500,7 +500,7 @@ const CHECK_TONE_ICON: Record<CheckTone, typeof CheckCircle2> = {
  *  la description reste visible en permanence, pas de dépendance à un hover. */
 function ReasonCard({ code }: { code: ReviewReasonCode }) {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const meta = REASON_META[code]
   const Icon = meta.icon
   const key = code.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
@@ -549,7 +549,7 @@ function CheckRow({ check, persons, expanded, onToggle }: {
   onToggle: () => void
 }) {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const tone = checkRowTone(check.result, check.isVeto)
   const ToneIcon = CHECK_TONE_ICON[tone]
   const weight = displayCheckWeight(check.applicableWeight, check.isVeto)
@@ -602,7 +602,7 @@ function CheckRow({ check, persons, expanded, onToggle }: {
  *  lisibles sans avoir lu ce dépôt, réponse brute consultable par ligne. */
 function ChecksTable({ checks, persons }: { checks: KybReviewCheckRow[]; persons: KybReviewPerson[] }) {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   if (checks.length === 0) {
@@ -663,7 +663,7 @@ function swissDate(iso: string): string {
 
 function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agencyId: string }) {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const today = new Date().toISOString().slice(0, 10)
 
   if (persons.length === 0) {
@@ -757,7 +757,7 @@ function PersonsList({ persons, agencyId }: { persons: KybReviewPerson[]; agency
  *  seule information que get_admin_agency_review_detail ne rend pas : elle vit ici. */
 function HistoryList({ events }: { events: KybReviewEvent[] }) {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
 
   if (events.length === 0) {
     return <p className="py-2" style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub }}>{t('kybReview.detail.historyEmpty')}</p>
@@ -803,7 +803,7 @@ function ReasonDialog({ open, onClose, onConfirm, pending, variant }: {
   variant: 'reject' | 'correction'
 }) {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const [reason, setReason] = useState('')
   const trimmed = reason.trim()
   const ns = variant === 'reject' ? 'kybReview.rejectDialog' : 'kybReview.correctionDialog'
@@ -867,7 +867,7 @@ function ReasonDialog({ open, onClose, onConfirm, pending, variant }: {
  */
 function IdDocumentFace({ label, signedUrl, path }: { label: string; signedUrl: string; path: string }) {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
   const [zoomed, setZoomed] = useState(false)
@@ -980,7 +980,7 @@ function IdDocumentFace({ label, signedUrl, path }: { label: string; signedUrl: 
  */
 function IdDocumentPreview({ agencyId, relatedPersonId }: { agencyId: string; relatedPersonId: string }) {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const [open, setOpen] = useState(false)
   const documents = useIdentityDocuments(agencyId, open ? relatedPersonId : null)
 
@@ -1046,7 +1046,7 @@ function ResolveIdDocumentSection({ agencyId, pending, persons, onResolve, busy 
   busy: boolean
 }) {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   if (pending.length === 0) return null
 
   return (
@@ -1097,7 +1097,7 @@ function ResolveIdDocumentSection({ agencyId, pending, persons, onResolve, busy 
 
 /** Section repliable (Vérifications / Personnes liées / Historique). */
 function DetailSection({ title, icon: Icon, children }: { title: string; icon: typeof Users; children: ReactNode }) {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   return (
     <div className="rounded-xl p-4" style={{ border: `1px solid ${sp.cardBorder}` }}>
       <div className="flex items-center gap-2 mb-3">
@@ -1114,7 +1114,7 @@ function DetailSection({ title, icon: Icon, children }: { title: string; icon: t
  *  et les 4 actions. */
 function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: () => void }) {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const toast = useToast()
   const drawerRef = useFocusTrap(true)
 
@@ -1343,7 +1343,7 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
 
 /** Placeholder pulsant de la file pendant le chargement. */
 function QueueSkeleton() {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   return (
     <>
       {Array.from({ length: 4 }).map((_, i) => (
@@ -1363,7 +1363,7 @@ function QueueSkeleton() {
 /** État vide : aucun dossier en attente de décision. */
 function QueueEmpty() {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   return (
     <div className="px-4 py-16" style={{ textAlign: 'center' }}>
       <CheckCircle2 className="h-8 w-8 mx-auto mb-3" style={{ color: sp.sub }} />
@@ -1376,7 +1376,7 @@ function QueueEmpty() {
 /** État d'erreur de la liste, avec reprise. */
 function QueueError({ onRetry }: { onRetry: () => void }) {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   return (
     <div className="px-4 py-16" style={{ textAlign: 'center' }}>
       <AlertTriangle className="h-8 w-8 mx-auto mb-3" style={{ color: tones.err }} />
@@ -1400,7 +1400,7 @@ function QueueRow({ row, onOpen, isLast }: {
   isLast: boolean
 }) {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const signal = queueRowSignal(row.verificationScore, row.verificationSweepAttempts)
 
   return (
@@ -1441,7 +1441,7 @@ function QueuePager({ view, total, onPrev, onNext }: {
   onNext: () => void
 }) {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const { page, pageCount, rangeStart, rangeEnd, hasPrev, hasNext } = view
 
   return (
@@ -1477,7 +1477,7 @@ function QueuePager({ view, total, onPrev, onNext }: {
 /** Écran : file KYB en manual_review, triée par score, paginée, et le tiroir de détail. */
 export default function AdminKybReviewPage() {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const [requestedPage, setRequestedPage] = useState(0)
   const { data, isLoading, isError, refetch } = useAdminKybReviewQueue(requestedPage * KYB_REVIEW_PAGE_SIZE)
   const [selectedAgencyId, setSelectedAgencyId] = useState<string | null>(null)

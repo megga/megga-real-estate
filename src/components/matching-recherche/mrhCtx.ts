@@ -2,7 +2,7 @@
 // (palette, surfaces, sélection, handlers). Évite le prop-drilling ; identité de
 // type stable pour ne pas remonter la grille à chaque rendu.
 
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import type { CrmPalette } from '@/components/crm/tokens'
 import type { MrhBien, MrhContact } from './types'
 
 export interface MrhSurf {
@@ -20,7 +20,7 @@ export interface MrhScore {
 }
 
 export interface MrhCtx {
-  sp: SugarPalette
+  sp: CrmPalette
   surf: MrhSurf
   dark: boolean
   /** noir Sugar (inversé en sombre) */

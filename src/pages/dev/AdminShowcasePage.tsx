@@ -56,7 +56,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { AdminThemeProvider, useAdminTheme } from '@/components/admin/AdminThemeProvider'
 import AdminConsoleRoutes from '@/components/admin/AdminConsoleRoutes'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmPalette } from '@/components/crm/tokens'
 import { desinstallerBanc, installerBanc, reglerBanc } from './bancSupabase'
 import { RPC, TABLES, type AdminBancEtat } from './adminFixtures'
 
@@ -81,7 +81,7 @@ function Commandes({ etat, setEtat, sansFixture }: {
 }) {
   const { dark } = useAdminTheme()
   const [replie, setReplie] = useState(false)
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
 
   const pilule = (actif: boolean) => ({
     border: 0, cursor: 'pointer', fontFamily: 'inherit',
@@ -153,7 +153,7 @@ function Commandes({ etat, setEtat, sansFixture }: {
 function SortieNeutralisee() {
   const navigate = useNavigate()
   const { dark } = useAdminTheme()
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   return (
     <div style={{
       height: '100vh', display: 'grid', placeItems: 'center',

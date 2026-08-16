@@ -18,7 +18,7 @@
  * aligné sur une référence périmée se relit MOINS qu'un fichier négligé : il a
  * l'air tenu.
  *
- * Les atomes lisent le thème eux-mêmes via `useAdminSugar()` : les pages ne
+ * Les atomes lisent le thème eux-mêmes via `useAdminSurfaces()` : les pages ne
  * portent aucune prop de palette. Constantes et types dans `adminKitCore.ts`
  * (règle `react-refresh/only-export-components`).
  */
@@ -26,10 +26,10 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { useAdminSugar, type AdminTones } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces, type AdminTones } from '@/hooks/useAdminSurfaces'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { ADMIN_ICON_SIZE, ADMIN_ICON_STROKE, ADMIN_RADII, type AdminToneName } from './adminKitCore'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 /* ─── Icône ─────────────────────────────────────────────────────────────────── */
 
@@ -77,7 +77,7 @@ export function AdminCard({ children, padding = 20, radius = ADMIN_RADII.card, c
   style?: CSSProperties
   onClick?: () => void
 }) {
-  const { surf } = useAdminSugar()
+  const { surf } = useAdminSurfaces()
   return (
     <div
       className={className}
@@ -100,8 +100,8 @@ export function AdminCard({ children, padding = 20, radius = ADMIN_RADII.card, c
 
 /** Filet de séparation interne d'un bento (l'équivalent de `hairSoft` des Réglages). */
 export function AdminDivider({ margin = '0' }: { margin?: string }) {
-  const { dark } = useAdminSugar()
-  return <div style={{ height: 1, background: sgVoileEncre(dark, 0.07), margin }} />
+  const { dark } = useAdminSurfaces()
+  return <div style={{ height: 1, background: crmVoileEncre(dark, 0.07), margin }} />
 }
 
 /* ─── Titres ────────────────────────────────────────────────────────────────── */
@@ -125,7 +125,7 @@ export function AdminGroupTitle({ label, tone = 'info', right, level = 2 }: {
   right?: ReactNode
   level?: 2 | 3 | 4
 }) {
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const Heading = (`h${level}` as const) satisfies 'h2' | 'h3' | 'h4'
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-lg) var(--crm-space-md)' }}>
@@ -165,7 +165,7 @@ export function AdminPill({ label, tone = 'neutral', icon, title, style }: {
   title?: string
   style?: CSSProperties
 }) {
-  const { tones, onTone } = useAdminSugar()
+  const { tones, onTone } = useAdminSurfaces()
   // Un libellé vide ne doit pas peindre une pilule : une facture sans statut
   // affichait un rectangle de couleur vide au lieu de ne rien afficher.
   if (!label && !icon) return null
@@ -245,7 +245,7 @@ export function AdminGhostBtn({ children, onClick, icon, disabled, title, style,
   /** Nom accessible quand le contenu visible n'en tient pas lieu. */
   label?: string
 }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   return (
     <button
       onClick={onClick} disabled={disabled} title={title}
@@ -283,7 +283,7 @@ export function AdminSolidBtn({ children, onClick, icon, disabled, title, style 
   title?: string
   style?: CSSProperties
 }) {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   return (
     <button
       onClick={onClick} disabled={disabled} title={title}
@@ -315,7 +315,7 @@ export function AdminSwitch({ on, onClick, label, disabled }: {
   label?: string
   disabled?: boolean
 }) {
-  const { sp, dark } = useAdminSugar()
+  const { sp, dark } = useAdminSurfaces()
   return (
     <button
       onClick={onClick} role="switch" aria-checked={on} aria-label={label} disabled={disabled}
@@ -358,7 +358,7 @@ export function AdminAvatar({ initials, size = 34, photo, alt }: {
   photo?: string | null
   alt?: string
 }) {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const [broken, setBroken] = useState(false)
   const showPhoto = !!photo && !broken
 
@@ -403,7 +403,7 @@ export function AdminStat({ label, value, icon, tone, hint, trend }: {
   hint?: string
   trend?: number
 }) {
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const iconColor = tone ? toneColor(tone, tones) : sp.sub
   return (
     <AdminCard padding="14px 16px">
@@ -438,7 +438,7 @@ export function AdminEmpty({ icon, title, hint, action }: {
   hint?: string
   action?: ReactNode
 }) {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   return (
     <div style={{ display: 'grid', placeItems: 'center', gap: 'var(--crm-space-lg)', padding: '44px 20px', textAlign: 'center' }}>
       {icon && <AdminIc icon={icon} size={26} color={sp.sub} />}
@@ -463,7 +463,7 @@ export function AdminSkeleton({ height = 40, radius = ADMIN_RADII.row, width = '
   width?: number | string
   label?: string
 }) {
-  const { surf } = useAdminSugar()
+  const { surf } = useAdminSurfaces()
   return (
     <div
       role={label ? 'status' : undefined}
@@ -481,7 +481,7 @@ export function AdminError({ message, onRetry, retryLabel }: {
   onRetry?: () => void
   retryLabel?: string
 }) {
-  const { tones } = useAdminSugar()
+  const { tones } = useAdminSurfaces()
   return (
     <div style={{ display: 'grid', placeItems: 'center', gap: 'var(--crm-space-xl)', padding: '36px 20px', textAlign: 'center' }}>
       <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: tones.err }}>{message}</div>
@@ -505,7 +505,7 @@ export function AdminTh({ children, align = 'left', width, bg }: {
    */
   bg?: string
 }) {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   return (
     <th style={{
       textAlign: align, width, padding: 'var(--crm-space-md) var(--crm-space-xl)', whiteSpace: 'nowrap',
@@ -524,11 +524,11 @@ export function AdminTd({ children, align = 'left', numeric, style }: {
   numeric?: boolean
   style?: CSSProperties
 }) {
-  const { sp, dark } = useAdminSugar()
+  const { sp, dark } = useAdminSurfaces()
   return (
     <td style={{
       textAlign: align, padding: 'var(--crm-space-lg) var(--crm-space-xl)', fontSize: 'var(--crm-text-md)', color: sp.ink,
-      borderTop: `1px solid ${sgVoileEncre(dark, 0.06)}`,
+      borderTop: `1px solid ${crmVoileEncre(dark, 0.06)}`,
       fontVariantNumeric: numeric ? 'tabular-nums' : undefined,
       ...style,
     }}>
@@ -558,7 +558,7 @@ export function AdminSearchInput({ value, onChange, placeholder, label, maxWidth
   /** Filtre logé dans une barre de titre : plus bas, et libre de rétrécir. */
   compact?: boolean
 }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const height = compact ? 30 : 36
   return (
     <div style={{ position: 'relative', flex: `1 1 ${compact ? 140 : 220}px`, minWidth: compact ? 130 : 200, maxWidth }}>
@@ -602,7 +602,7 @@ export function AdminPager({ page, totalPages, total, perPage, onPage }: {
   onPage: (page: number) => void
 }) {
   const { t } = useTranslation('admin')
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   if (totalPages <= 1) return null
 
   const btn: CSSProperties = {
@@ -691,7 +691,7 @@ export function AdminSegmentBtn({ on, onClick, children, variant = 'filter', tit
   variant?: 'filter' | 'tab' | 'hollow'
   title?: string
 }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const tab = variant === 'tab'
   const restBg = tab ? surf.card : variant === 'hollow' ? surf.cardSub : 'transparent'
   return (

@@ -614,7 +614,7 @@ async function runVatLookup(agency: AgencyForVerification, signal: AbortSignal):
 //
 // Corrige en revue finale de l'etape 6, et le defaut vaut d'etre ecrit ici plutot que
 // resume : `agencies.tva` est du TEXTE LIBRE -- ni le wizard
-// (src/components/crm-sugar-identity/steps/StepAgence.tsx) ni la base ne verifient que le
+// (src/components/crm-identity/steps/StepAgence.tsx) ni la base ne verifient que le
 // prefixe declare s'accorde avec le pays du siege. Un dossier CH peut donc porter une TVA
 // a prefixe UE, et VIES sait repondre sur ce numero-la : elle le faisait avant l'etape 6,
 // ou vatLookupSource n'avait AUCUN appliesTo et etait interrogee pour tout siege.

@@ -29,7 +29,7 @@ import {
   SENSITIVE_ACTIONS,
 
 } from '@/hooks/useSecurityAudit'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useClientPagination } from '@/hooks/useClientPagination'
 import SecurityRegistryView from '@/components/admin/SecurityRegistryView'
 import AdminPage from '@/components/admin/kit/AdminPage'
@@ -128,7 +128,7 @@ function SkeletonRows() {
 export default function AdminSecurityAuditPage() {
   const { t } = useTranslation('admin')
   const { data: entries, isLoading, isError, refetch } = useSecurityAudit({ limit: 500 })
-  const { sp, surf, dark } = useAdminSugar()
+  const { sp, surf, dark } = useAdminSurfaces()
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all')
   const [actionFilter, setActionFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')

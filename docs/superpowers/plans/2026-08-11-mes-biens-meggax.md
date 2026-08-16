@@ -54,8 +54,8 @@ Cinq zones, ~7 300 lignes. **Les chiffres ci-dessous sont à revérifier** avant
 commencer (le code aura bougé) :
 
 ```bash
-D=(src/components/crm-sugar/biens src/components/crm-mobile/biens \
-   src/components/crm-sugar-wizard src/pages/agent/ListingsPage.tsx \
+D=(src/components/crm/biens src/components/crm-mobile/biens \
+   src/components/crm-wizard src/pages/agent/ListingsPage.tsx \
    src/pages/agent/ListingDetailPage.tsx src/pages/agent/ListingWizardPage.tsx \
    src/pages/agent/ListingFormPage.tsx)
 grep -rho "textTransform: 'uppercase'" $D | wc -l
@@ -69,10 +69,10 @@ croit la surface propre. Je m'y suis fait prendre.
 
 | Zone | Lignes | Capitales | Graisses ≥ 700 | Hex | Palette |
 |---|---|---|---|---|---|
-| `crm-sugar/biens` (liste, pager) | 2 197 | 7 | 59 | 31 | `crmSugarPalette()` ✅ |
-| `ListingDetailPage` (fiche) | 1 039 | 9 | 37 | 2 | `crmSugarPalette()` ✅ |
-| `ListingFormPage` (édition) | 3 188 | **0** | **0** | 2 | `crmSugarPalette()` ✅ |
-| `crm-sugar-wizard` (création) | 4 832 | **33** | **94** | **97** | ⛔ **jetons propres** |
+| `crm/biens` (liste, pager) | 2 197 | 7 | 59 | 31 | `crmPalette()` ✅ |
+| `ListingDetailPage` (fiche) | 1 039 | 9 | 37 | 2 | `crmPalette()` ✅ |
+| `ListingFormPage` (édition) | 3 188 | **0** | **0** | 2 | `crmPalette()` ✅ |
+| `crm-wizard` (création) | 4 832 | **33** | **94** | **97** | ⛔ **jetons propres** |
 | `crm-mobile/biens` | 273 | 0 | 11 | 4 | jetons mobile |
 
 **Total : 49 capitales, 201 graisses, 136 hex.** Environ quatre fois la dette du
@@ -85,7 +85,7 @@ calendrier.
 
 ## 3. ⛔ Le vrai sujet : le wizard tourne encore en Sugar Pure
 
-`src/components/crm-sugar-wizard/tokens.ts` est un **fichier de jetons autonome**,
+`src/components/crm-wizard/tokens.ts` est un **fichier de jetons autonome**,
 pas une dérivation. En thème clair :
 
 ```
@@ -105,16 +105,16 @@ Le noir n'est pas qu'une valeur, c'est une **mécanique** :
 
 | Symbole | Occurrences | Rôle |
 |---|---|---|
-| `SugarV2.black` | 58 | l'accent |
-| `sgOn(…)` | 47 | l'encre à poser **sur** l'accent |
+| `WizardTokens.black` | 58 | l'accent |
+| `crmOn(…)` | 47 | l'encre à poser **sur** l'accent |
 | `.onBlack` | 6 | idem, en direct |
 
-`sgOn()` existe parce qu'en **sombre** l'accent devient un near-white `#ECEDF3` :
+`crmOn()` existe parce qu'en **sombre** l'accent devient un near-white `#ECEDF3` :
 ce qui est posé dessus doit alors s'inverser. Avec `#424bfb` dans les deux thèmes,
-l'encre est **toujours** blanche — `sgOn()` devient une constante et ses 47 appels
+l'encre est **toujours** blanche — `crmOn()` devient une constante et ses 47 appels
 deviennent une logique morte.
 
-**Décide explicitement** : soit tu gardes `sgOn()` comme indirection (et le test
+**Décide explicitement** : soit tu gardes `crmOn()` comme indirection (et le test
 doit dire pourquoi), soit tu la retires et les 47 sites passent en `MXC_COLOR.n1000`.
 Ne laisse pas la question implicite.
 
@@ -132,9 +132,9 @@ ici, le retirer change le rendu.
 
 ## 4. Découpage proposé
 
-**Lot 1 — la palette du wizard.** `crm-sugar-wizard/tokens.ts`.
+**Lot 1 — la palette du wizard.** `crm-wizard/tokens.ts`.
 Faire dériver la branche claire de `mxCrmPalette(false)`, comme la sombre l'est
-déjà. Trancher la question `sgOn()`.
+déjà. Trancher la question `crmOn()`.
 *Écrire le garde-fou AVANT le correctif* : sur les Réglages et le calendrier, c'est
 ce qui a trouvé ce que l'audit manuel avait manqué. Modèle :
 `tests/unit/calendar-palette.spec.ts` — il exempte **nommément** les jetons
@@ -144,7 +144,7 @@ sémantiques plutôt que d'interdire en bloc.
 Mécanique, à faire d'un bloc **après** le lot 1 (voir le contraste avant de
 toucher à la typographie évite de régler deux fois).
 
-**Lot 3 — liste + fiche.** `crm-sugar/biens` et `ListingDetailPage` : 16
+**Lot 3 — liste + fiche.** `crm/biens` et `ListingDetailPage` : 16
 capitales, 96 graisses. Les couleurs y sont déjà bonnes ; c'est le cas « Réglages ».
 
 **Lot 4 — mobile.** `crm-mobile/biens`, 11 graisses. **Ne le saute pas** : laisser

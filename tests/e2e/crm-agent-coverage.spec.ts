@@ -1,4 +1,4 @@
-// Parametric smoke coverage of the CRM agent (all routes under AgentSugarLayout
+// Parametric smoke coverage of the CRM agent (all routes under AgentLayout
 // that don't take a URL parameter). For each route we assert:
 //   1. the page renders something visible (body has > 50 chars of text)
 //   2. its `landmark`, WHEN one is declared — le seul point qui prouve que la

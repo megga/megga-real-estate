@@ -55,7 +55,7 @@ import { useTranslation } from 'react-i18next'
 import { ArrowLeft, Clock, Eye } from 'lucide-react'
 import { formatCHF, formatDate, formatRelativeDate } from '@/lib/utils'
 import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import { useAgencyOnboardingCalls } from '@/hooks/useAdminOnboardingCalls'
 import {
@@ -80,7 +80,7 @@ const STATUS_TONE: Record<string, AdminToneName> = { active: 'ok', suspended: 'e
 export default function AdminAgencyDetailPage() {
   const { id = '' } = useParams()
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const { data, isPending, isError, refetch } = useAdminAgencyDetail(id)
   const { updateStatus } = useAdminAgencies()
 
@@ -420,7 +420,7 @@ function AppelAccueil({ agencyId, section }: {
   section: (cle: string, titre: string, contenu: ReactNode) => ReactNode
 }) {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const { data: calls, isLoading } = useAgencyOnboardingCalls(agencyId)
 
   const trie = [...(calls ?? [])].sort((a, b) => Date.parse(b.scheduled_at) - Date.parse(a.scheduled_at))

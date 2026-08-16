@@ -476,7 +476,7 @@
   body {
     background-color: #ffffff;
     color: #1a1a1a;
-    /* Point unique de la police : 206 des 242 `fontFamily` de crm-sugar valent
+    /* Point unique de la police : 206 des 242 `fontFamily` de crm/ valent
        `inherit`, donc cette seule règle habille tout le CRM. Un composant qui
        écrit une police en dur la court-circuite — garde dans
        megga-x-crm-tokens.spec.ts. */
@@ -736,7 +736,7 @@ main {
    l'opacité après 120 ms, donc le squelette n'est visible que si l'attente
    est réelle. Le composant reste monté tout du long (aucune temporisation
    JS, aucun état à gérer) — c'est la peinture qui est différée.
-   Utilisé par src/components/skeletons/SugarPageSkeleton.tsx.
+   Utilisé par src/components/skeletons/CrmPageSkeleton.tsx.
    ────────────────────────────────────────────────────────────────────── */
 .megga-fallback {
   animation: megga-fallback-in 180ms ease 120ms both;

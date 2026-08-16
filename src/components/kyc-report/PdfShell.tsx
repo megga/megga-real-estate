@@ -4,7 +4,7 @@
 
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 import { PDF, PDF_W, PDF_H, PDF_PAD_X, PDF_PAD_TOP, PDF_PAD_BOT, pad2 } from './tokens'
 import { PdfIcon } from './PdfIcon'
 
@@ -27,9 +27,9 @@ export function PdfShell({ pageNum, pageTotal, children }: PdfShellProps) {
         // l'agent (`/dashboard/kyc/:id/export`) ; le rendu headless cadre la page
         // elle-même et ne la voit jamais. Elle entrait en gris-bleu slate-900,
         // par une fraction d'opacité — la porte habituelle de cette teinte, que
-        // personne ne relit en cherchant une couleur. `sgVoileEncre` la nomme.
+        // personne ne relit en cherchant une couleur. `crmVoileEncre` la nomme.
         boxShadow:
-          `0 24px 60px ${sgVoileEncre(false, 0.10)}, 0 4px 16px ${sgVoileEncre(false, 0.05)}`,
+          `0 24px 60px ${crmVoileEncre(false, 0.10)}, 0 4px 16px ${crmVoileEncre(false, 0.05)}`,
         fontFamily: 'Manrope, system-ui, sans-serif',
         color: PDF.ink,
         fontVariantNumeric: 'tabular-nums',

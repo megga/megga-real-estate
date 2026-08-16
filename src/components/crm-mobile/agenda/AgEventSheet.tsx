@@ -1,12 +1,12 @@
 /**
- * Bottom-sheet de détail d'un événement d'agenda (mobile), rendu dans `SgSheet`.
+ * Bottom-sheet de détail d'un événement d'agenda (mobile), rendu dans `CrmSheet`.
  * Composant présentationnel pur, en lecture seule (v1).
  */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { formatCHF } from '@/lib/utils'
 import { useMobileTokens } from '../useMobileTokens'
-import SgSheet from '../primitives/SgSheet'
+import CrmSheet from '../primitives/CrmSheet'
 import { agIcon, agTone, fmtDur, fmtTime, type AgEventVM } from './vm'
 
 interface AgEventSheetProps {
@@ -20,7 +20,7 @@ interface AgEventSheetProps {
  * Feuille de détail d'un événement (lecture seule v1) — type/horaire, bien lié,
  * lieu, contact (appel tel: réel), note, et action « Voir la visite ». Les gestes
  * replanifier/supprimer/marquer-fait sont différés (ils exigent la table source,
- * non exposée par `useCalendarSugar`).
+ * non exposée par `useCalendarScreen`).
  */
 export default function AgEventSheet({ event, onClose, onOpenVisit, onOpenProperty }: AgEventSheetProps) {
   const { tk, isDark } = useMobileTokens()
@@ -28,7 +28,7 @@ export default function AgEventSheet({ event, onClose, onOpenVisit, onOpenProper
   const tone = event ? agTone(event.type, isDark) : tk.ink
 
   return (
-    <SgSheet open={event !== null} onClose={onClose} ariaLabel={event?.title}>
+    <CrmSheet open={event !== null} onClose={onClose} ariaLabel={event?.title}>
       {event ? (
         <div style={{ padding: 'var(--crm-space-xs) var(--crm-space-5xl) var(--crm-space-6xl)' }}>
           {/* type + horaire */}
@@ -128,6 +128,6 @@ export default function AgEventSheet({ event, onClose, onOpenVisit, onOpenProper
           ) : null}
         </div>
       ) : null}
-    </SgSheet>
+    </CrmSheet>
   )
 }

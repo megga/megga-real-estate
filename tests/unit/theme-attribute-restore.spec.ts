@@ -11,7 +11,7 @@
  * de relancer son effet, son propre état n'ayant pas bougé.
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { applySugarThemeAttribute, captureThemeAttribute } from '@/lib/sugarDark'
+import { applyCrmThemeAttribute, captureThemeAttribute } from '@/lib/crmDark'
 
 describe('data-theme — emprunt et restitution', () => {
   let root: HTMLElement
@@ -25,7 +25,7 @@ describe('data-theme — emprunt et restitution', () => {
     root.setAttribute('data-theme', 'dark') // le CRM, avant l'entrée en console
 
     const restore = captureThemeAttribute(root)
-    applySugarThemeAttribute(root, false) // console en clair : l'attribut saute
+    applyCrmThemeAttribute(root, false) // console en clair : l'attribut saute
     expect(root.getAttribute('data-theme')).toBeNull()
 
     restore()
@@ -36,7 +36,7 @@ describe('data-theme — emprunt et restitution', () => {
     root.setAttribute('data-theme', 'light')
 
     const restore = captureThemeAttribute(root)
-    applySugarThemeAttribute(root, true)
+    applyCrmThemeAttribute(root, true)
     expect(root.getAttribute('data-theme')).toBe('dark')
 
     restore()
@@ -46,7 +46,7 @@ describe('data-theme — emprunt et restitution', () => {
   it("laisse l'attribut absent s'il l'était au départ", () => {
     // Cas d'une surface Sugar en clair : l'absence est un état, pas un oubli.
     const restore = captureThemeAttribute(root)
-    applySugarThemeAttribute(root, true)
+    applyCrmThemeAttribute(root, true)
     restore()
     expect(root.hasAttribute('data-theme')).toBe(false)
   })
@@ -55,9 +55,9 @@ describe('data-theme — emprunt et restitution', () => {
     // Bascules successives dans la console : seule la valeur capturée compte.
     root.setAttribute('data-theme', 'light')
     const restore = captureThemeAttribute(root)
-    applySugarThemeAttribute(root, true)
-    applySugarThemeAttribute(root, false)
-    applySugarThemeAttribute(root, true)
+    applyCrmThemeAttribute(root, true)
+    applyCrmThemeAttribute(root, false)
+    applyCrmThemeAttribute(root, true)
     restore()
     expect(root.getAttribute('data-theme')).toBe('light')
   })

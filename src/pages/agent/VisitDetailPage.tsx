@@ -12,19 +12,19 @@
 import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { sugarV3Palette, SUGAR_V3_KEYFRAMES } from '@/components/crm-sugar-v3/tokens'
-import { useSugarDark } from '@/lib/sugarDark'
-import { SgIcon } from '@/components/crm-sugar-v3/icons'
+import { dossierPalette, DOSSIER_KEYFRAMES } from '@/components/crm-dossiers/tokens'
+import { useCrmDark } from '@/lib/crmDark'
+import { CrmIcon } from '@/components/crm-dossiers/icons'
 import {
-  SgBlackPill,
-  SgGhostPill,
-} from '@/components/crm-sugar-v3/primitives'
+  CrmBlackPill,
+  CrmGhostPill,
+} from '@/components/crm-dossiers/primitives'
 import {
   VdEyebrow,
   VdCard,
   VdBonPanel,
   VdRapportPanel,
-} from '@/components/crm-sugar-v3/visite-detail/VdShared'
+} from '@/components/crm-dossiers/visite-detail/VdShared'
 import {
   useVisitDetail,
   useVisitRealtime,
@@ -48,8 +48,8 @@ export default function VisitDetailPage() {
   const { data: visit, isLoading, isError, error } = useVisitDetail(id)
   const { mutate: signBon } = useSignVisitBon()
   useVisitRealtime(id)
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
 
   if (isLoading) {
     return (
@@ -117,7 +117,7 @@ export default function VisitDetailPage() {
         fontFamily: S.font,
       }}
     >
-      <style>{SUGAR_V3_KEYFRAMES}</style>
+      <style>{DOSSIER_KEYFRAMES}</style>
       <style>{`
         @keyframes vdPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
       `}</style>
@@ -133,12 +133,12 @@ export default function VisitDetailPage() {
             flexWrap: 'wrap',
           }}
         >
-          <SgGhostPill
-            icon={<SgIcon name="arrowL" size={15} stroke={S.inkSoft} />}
+          <CrmGhostPill
+            icon={<CrmIcon name="arrowL" size={15} stroke={S.inkSoft} />}
             onClick={() => navigate('/dashboard/calendar')}
           >
             {t('visitDetail.backToCalendar')}
-          </SgGhostPill>
+          </CrmGhostPill>
           <span
             style={{
               fontFamily: 'JetBrains Mono, monospace',
@@ -154,9 +154,9 @@ export default function VisitDetailPage() {
           {/* "Modifier" icon button removed — no inline-edit page exists.
               Drag-drop on the calendar handles reschedule today. Inline
               edition is a separate chip. */}
-          <SgBlackPill
+          <CrmBlackPill
             icon={
-              <SgIcon
+              <CrmIcon
                 name={isDone ? 'check' : 'pen'}
                 size={14}
                 stroke="#fff"
@@ -188,7 +188,7 @@ export default function VisitDetailPage() {
               : visit.status === 'confirmed'
                 ? t('visitDetail.cta.markDone')
                 : t('visitDetail.cta.confirm')}
-          </SgBlackPill>
+          </CrmBlackPill>
         </header>
 
         {/* Hero */}
@@ -247,7 +247,7 @@ export default function VisitDetailPage() {
                     gap: 7,
                   }}
                 >
-                  <SgIcon name="cal" size={14} stroke={S.muted} />
+                  <CrmIcon name="cal" size={14} stroke={S.muted} />
                   {vdDateLong(visit.scheduled_at)}
                 </span>
                 <span>·</span>
@@ -258,7 +258,7 @@ export default function VisitDetailPage() {
                     gap: 7,
                   }}
                 >
-                  <SgIcon name="clock" size={14} stroke={S.muted} />
+                  <CrmIcon name="clock" size={14} stroke={S.muted} />
                   {new Date(visit.scheduled_at).toLocaleTimeString('fr-CH', {
                     hour: '2-digit',
                     minute: '2-digit',
@@ -275,7 +275,7 @@ export default function VisitDetailPage() {
                         gap: 7,
                       }}
                     >
-                      <SgIcon name="pin" size={14} stroke={S.muted} />
+                      <CrmIcon name="pin" size={14} stroke={S.muted} />
                       {visit.property.address}
                     </span>
                   </>

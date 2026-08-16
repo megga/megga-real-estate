@@ -2,7 +2,7 @@
 // Sprint 4.7.C — Calque pixel-près de handoff-kyc-magic-link/maquette/megga-kyc-magic-link.jsx
 // (préfixe Mlk* conservé pour fidélité au canon Claude Design).
 //
-// Important : ces primitives sont AUTONOMES (ne dépendent ni de SugarV3 ni
+// Important : ces primitives sont AUTONOMES (ne dépendent ni de DossierTokens ni
 // du layout agent). Elles servent UNIQUEMENT les écrans publics `/kyc/<token>`
 // que la cliente consulte sans compte MEGGA.
 
@@ -11,7 +11,7 @@ import type { CSSProperties, ReactNode } from 'react'
 // Jetons déplacés dans mlkTokens.ts : ce fichier n'exporte que des composants
 // (contrainte Fast Refresh). Voir l'en-tête de mlkTokens.ts.
 import { MLK } from './mlkTokens'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 // ─── Icônes line-stroke (subset utilisé par les écrans clients) ───────────
 
@@ -239,8 +239,8 @@ export function MlkBlackPill({
         boxShadow: disabled
           ? 'none'
           : hover
-            ? `0 14px 32px ${sgVoileEncre(false, 0.28)}`
-            : `0 8px 20px ${sgVoileEncre(false, 0.20)}`,
+            ? `0 14px 32px ${crmVoileEncre(false, 0.28)}`
+            : `0 8px 20px ${crmVoileEncre(false, 0.20)}`,
         transform: hover && !disabled ? 'translateY(-1px)' : 'translateY(0)',
         transition: 'all .18s ease',
       }}

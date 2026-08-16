@@ -21,7 +21,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { corpsDeFonction, valeurDePropJsx } from './helpers/ts-source'
 
-const FICHE = 'src/components/crm-sugar/contacts-pager/ContactDetailPager.tsx'
+const FICHE = 'src/components/crm/contacts-pager/ContactDetailPager.tsx'
 const PAGE = 'src/pages/agent/ContactDetailPage.tsx'
 
 const fiche = readFileSync(FICHE, 'utf8')

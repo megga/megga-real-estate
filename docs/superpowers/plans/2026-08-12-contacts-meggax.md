@@ -43,9 +43,9 @@ avait déjà donné la leçon. Ce périmètre-ci est dérivé de `src/App.tsx`.
 | `/dashboard/contacts/import` | `ContactImportPage` (pas de variante mobile) | — |
 | `/dashboard/contacts/:id` | `ContactDetailPage` | `MobileContactDetailPage` |
 
-Ces pages sont des **coquilles** : elles montent le chrome (`SugarTopNav`,
-`SugarIconRail`), câblent les hooks et délèguent le rendu à
-`src/components/crm-sugar/contacts-pager/` — 7 fichiers, 3 926 lignes.
+Ces pages sont des **coquilles** : elles montent le chrome (`CrmTopNav`,
+`CrmIconRail`), câblent les hooks et délèguent le rendu à
+`src/components/crm/contacts-pager/` — 7 fichiers, 3 926 lignes.
 
 **✅ Le mobile est DÉJÀ porté.** `src/components/crm-mobile/` est entré en entier
 dans le cliquet `megga-x-grammar.spec.ts` le 12 août : mesuré à **0 marqueur**
@@ -78,7 +78,7 @@ concentré, pas un balayage.
 ### ✅ Ce qui est déjà sain — à ne pas « corriger »
 
 - **Pas de fichier de jetons autonome.** La palette descend de
-  `crmSugarPalette()` et voyage en prop `sp`. C'était le gros du lot 1 de « Mes
+  `crmPalette()` et voyage en prop `sp`. C'était le gros du lot 1 de « Mes
   biens » ; ici il n'y a rien à faire.
 - **Aucune donnée fabriquée** dans `contacts-pager`. Pas de mock appliqué, pas
   d'animation d'extraction. (Le seul `import` de `mockData` est un **type**.)
@@ -205,7 +205,7 @@ le thème clair, et les captures avaient été prises en sombre.
 
 ### Lot 2 — Grammaire de `ContactsPager` + `ContactDetailPager`
 
-112 des 160 marqueurs. Ajouter `src/components/crm-sugar/contacts-pager` aux
+112 des 160 marqueurs. Ajouter `src/components/crm/contacts-pager` aux
 `ZONES` du cliquet **en même temps** qu'on nettoie — une zone absente n'est pas
 déclarée propre, elle est déclarée non traitée.
 

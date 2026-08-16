@@ -1,11 +1,11 @@
 // Agenda mobile — view-model + helpers + démo.
 //
-// Le calendrier réel (`useCalendarSugar`) ne produit que deux types d'events :
+// Le calendrier réel (`useCalendarScreen`) ne produit que deux types d'events :
 // `visite` (table `visits`) et `task` (table `reminders`). On projette les
 // `CalEvent` en `AgEventVM` (présentation pure) ; aucune donnée fabriquée.
 
 import type { TFunction } from 'i18next'
-import type { CalEvent } from '@/components/crm-sugar/calendar/data'
+import type { CalEvent } from '@/components/crm/calendar/data'
 
 export type AgEventType = 'visite' | 'task'
 

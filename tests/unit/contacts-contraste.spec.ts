@@ -25,8 +25,8 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { encreSur } from '@/components/megga-x-crm/tokens'
-import { CTP_FN } from '@/components/crm-sugar/contacts-pager/ctpTokens'
-import { pickAvatarBg } from '@/lib/sugarAdapters'
+import { CTP_FN } from '@/components/crm/contacts-pager/ctpTokens'
+import { pickAvatarBg } from '@/lib/crmAdapters'
 import { corpsDeFonction } from './helpers/ts-source'
 
 const canal = (hex: string): [number, number, number] =>
@@ -55,8 +55,8 @@ function contraste(a: string, b: string): number {
  */
 const AA = 4.5
 
-const LISTE = 'src/components/crm-sugar/contacts-pager/ContactsPager.tsx'
-const FICHE = 'src/components/crm-sugar/contacts-pager/ContactDetailPager.tsx'
+const LISTE = 'src/components/crm/contacts-pager/ContactsPager.tsx'
+const FICHE = 'src/components/crm/contacts-pager/ContactDetailPager.tsx'
 
 /**
  * Les tons d'aplat de la fiche (`buildPal`), par thème. Ils sont SÉMANTIQUES —

@@ -1,7 +1,7 @@
 // Helpers partagés contacts mobile (liste / nouveau) — segments, libellés de
 // type, tons KYC (non-bloquant).
 
-import type { CrmContact } from '@/components/crm-sugar/mockData'
+import type { CrmContact } from '@/components/crm/mockData'
 
 export type ContactSeg = 'all' | 'buyer' | 'seller'
 export const CONTACT_SEGS: ContactSeg[] = ['all', 'buyer', 'seller']

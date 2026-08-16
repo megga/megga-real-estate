@@ -7,11 +7,11 @@ import { useState, type CSSProperties } from 'react'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { MOBILE_FONT } from '@/components/crm-mobile/tokens'
 import { useMobileTokens } from '@/components/crm-mobile/useMobileTokens'
-import SgActionMenu from '@/components/crm-mobile/primitives/SgActionMenu'
-import SgConfirmDestructive from '@/components/crm-mobile/primitives/SgConfirmDestructive'
-import SgSheet from '@/components/crm-mobile/primitives/SgSheet'
-import SgToast from '@/components/crm-mobile/primitives/SgToast'
-import { useSgToast } from '@/components/crm-mobile/primitives/useSgToast'
+import CrmActionMenu from '@/components/crm-mobile/primitives/CrmActionMenu'
+import CrmConfirmDestructive from '@/components/crm-mobile/primitives/CrmConfirmDestructive'
+import CrmSheet from '@/components/crm-mobile/primitives/CrmSheet'
+import CrmToast from '@/components/crm-mobile/primitives/CrmToast'
+import { useCrmToast } from '@/components/crm-mobile/primitives/useCrmToast'
 import MobileMoreScreen from '@/components/crm-mobile/more/MobileMoreScreen'
 import { MobileTodayScreen } from '@/components/crm-mobile/today/MobileTodayScreen'
 import { MobilePipelineScreen } from '@/components/crm-mobile/pipeline/MobilePipelineScreen'
@@ -71,7 +71,7 @@ function ShowcaseInner() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const { toast, showToast } = useSgToast()
+  const { toast, showToast } = useCrmToast()
 
   const cta: CSSProperties = {
     height: 46,
@@ -134,7 +134,7 @@ function ShowcaseInner() {
 
       <MobileMoreScreen />
 
-      <SgActionMenu
+      <CrmActionMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         title="Bien · Réf MG-2026-101"
@@ -151,7 +151,7 @@ function ShowcaseInner() {
         }}
       />
 
-      <SgConfirmDestructive
+      <CrmConfirmDestructive
         open={confirmOpen}
         title="Supprimer le bien ?"
         message="Cette action est définitive. L'annonce et ses statistiques de diffusion seront retirées."
@@ -163,7 +163,7 @@ function ShowcaseInner() {
         onCancel={() => setConfirmOpen(false)}
       />
 
-      <SgSheet open={sheetOpen} onClose={() => setSheetOpen(false)} ariaLabel="Détail" bottomGap={24}>
+      <CrmSheet open={sheetOpen} onClose={() => setSheetOpen(false)} ariaLabel="Détail" bottomGap={24}>
         <div style={{ padding: '4px 18px 22px' }}>
           <h2 style={{ margin: 0, fontSize: 'var(--crm-text-3xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink }}>
             Filtrer les biens
@@ -186,9 +186,9 @@ function ShowcaseInner() {
             </div>
           ))}
         </div>
-      </SgSheet>
+      </CrmSheet>
 
-      <SgToast toast={toast} />
+      <CrmToast toast={toast} />
     </div>
   )
 }

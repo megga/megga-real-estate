@@ -140,7 +140,7 @@ détecteur) et persiste la préférence serveur. Les noms de langue viennent de
 
 ```bash
 npm run i18n:scan         # chaînes FR codées en dur restantes (chiffrage / vérif)
-npm run i18n:scan -- --list src/components/crm-sugar/today   # détail d'une surface
+npm run i18n:scan -- --list src/components/crm/today   # détail d'une surface
 npm run i18n:parity       # parité FR↔EN (clés manquantes / orphelines)
 npm run i18n:parity:ci    # idem, exit 1 si dérive (gate CI)
 ```

@@ -19,7 +19,7 @@ const ALLOW_FILES = new Set([
 // Symboles précis exemptés : `chemin:symbole`.
 const ALLOW_SYMBOLS = new Set([
   'src/components/propertyx/PxWhatsAppButton.tsx:default', // composant du cœur Px (buildWaMeUrl, lui, est utilisé)
-  'src/components/crm-sugar/SugarShell.tsx:SugarIconRailProps', // re-export type (faux positif ts-prune)
+  'src/components/crm/CrmShell.tsx:CrmIconRailProps', // re-export type (faux positif ts-prune)
   // Faux positif : le symbole EST importé (src/lib/geoLanguage.ts:29) et lu
   // (ligne 101), sur un chemin joignable depuis main.tsx. Preuve : retirer le
   // mot-clé `export` fait échouer tsc en TS2614. ts-prune ne compte pas l'usage
@@ -27,7 +27,7 @@ const ALLOW_SYMBOLS = new Set([
   'src/i18n/index.ts:hasExplicitLanguage',
   // Même angle mort, même fichier, ajouté le 03.08.2026 : `switchLanguage` EST importé
   // et appelé par src/components/crm-mobile/more/MobileMoreScreen.tsx:9 et
-  // src/components/crm-sugar-identity/IdentityShell.tsx:67, tous deux joignables depuis
+  // src/components/crm-identity/IdentityShell.tsx:67, tous deux joignables depuis
   // main.tsx. Preuve : retirer le mot-clé `export` fait échouer tsc. C'est LA fonction
   // qui charge le bundle de langue AVANT de basculer i18next — la retirer ramènerait le
   // détour par le français et le double `languageChanged` corrigés le même jour.

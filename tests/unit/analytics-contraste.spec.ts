@@ -4,12 +4,12 @@
  * ── POURQUOI CE FICHIER EXISTE ───────────────────────────────────────────────
  * ⛔ `AX` et `AX_DARK` n'étaient gardées par RIEN, et c'est STRUCTUREL, pas un
  * oubli. Les sept specs de contraste du dépôt gardent chacune une ZONE (admin,
- * biens, contacts, matching, pipeline, kyc, SugarV3). Un objet de jetons n'EST
+ * biens, contacts, matching, pipeline, kyc, DossierTokens). Un objet de jetons n'EST
  * pas une zone : il est lu PAR une zone, et tombe entre les mailles.
  * `graphite-scale` les NOMME — « `AX` et `AX_DARK` (Analytics) … dont AUCUNE
  * n'était couverte » — mais il cherche les barreaux de l'échelle Graphite, et
  * ceux d'`AX_DARK` n'en sont pas : il les déclare propres sans les mesurer. Le
- * cliquet de grammaire, lui, balaie `crm-sugar/analytics/` depuis longtemps et
+ * cliquet de grammaire, lui, balaie `crm/analytics/` depuis longtemps et
  * rend 0 marqueur — il mesure la COMPOSITION, jamais la couleur.
  *
  * Résultat : le plus gros écran du CRM affichait « tout vert » avec cinq encres
@@ -40,7 +40,7 @@
  * 1. L'inventaire des rôles est CONFRONTÉ à la source, par la LIAISON. Un jeton
  *    qui devient une encre fait rougir tant qu'on ne l'a pas mesuré (n° 15).
  * 2. Elle résout `const A = useAX()`, JAMAIS le nom de clé (n° 31). `muted` seul
- *    trouve 219 sites sous `tk.`, 89 sous `SugarV3.` — corriger sur cette
+ *    trouve 219 sites sous `tk.`, 89 sous `DossierTokens.` — corriger sur cette
  *    lecture repeindrait la moitié du CRM depuis un lot qui regarde Analytics.
  * 3. Elle REFUSE une couleur qu'elle ne sait pas lire, au lieu de la sauter
  *    (n° 14/17) : `NaN < 4.5` est FAUX, donc une lecture ratée passerait au vert.
@@ -53,8 +53,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { AX, AX_DARK, type AxTheme } from '@/components/crm-sugar/analytics/tokens'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { AX, AX_DARK, type AxTheme } from '@/components/crm/analytics/tokens'
+import { crmPalette } from '@/components/crm/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { repoPath, rel } from './helpers/fs-scan'
 
@@ -112,22 +112,22 @@ const arrondi = (n: number) => Math.round(n * 100) / 100
 
 /**
  * ⚠ LE CANVAS N'APPARTIENT PAS À `AX`. `AX.pageBg` a zéro lecteur : la page
- * peint son fond avec `crmSugarPalette(dark).pageBg`, et `AxGate`, `AxFirstRun`
+ * peint son fond avec `crmPalette(dark).pageBg`, et `AxGate`, `AxFirstRun`
  * et l'état d'erreur posent leur texte DESSUS, sans carte. Le mesurer depuis la
  * palette qui le rend vraiment est la seule lecture honnête — sinon la garde
  * mesure une surface que personne n'affiche.
  */
 const THEMES: { nom: string; dark: boolean; t: AxTheme; surfaces: Record<string, string> }[] = [
-  { nom: 'CLAIR', dark: false, t: AX, surfaces: { card: AX.card, cardSubtle: AX.cardSubtle, canvas: crmSugarPalette(false).pageBg } },
-  { nom: 'SOMBRE', dark: true, t: AX_DARK, surfaces: { card: AX_DARK.card, cardSubtle: AX_DARK.cardSubtle, canvas: crmSugarPalette(true).pageBg } },
+  { nom: 'CLAIR', dark: false, t: AX, surfaces: { card: AX.card, cardSubtle: AX.cardSubtle, canvas: crmPalette(false).pageBg } },
+  { nom: 'SOMBRE', dark: true, t: AX_DARK, surfaces: { card: AX_DARK.card, cardSubtle: AX_DARK.cardSubtle, canvas: crmPalette(true).pageBg } },
 ]
 
 /* ─── L'inventaire des rôles, confronté à la source par la LIAISON ───────────── */
 
 const FICHIERS = [
-  'src/components/crm-sugar/analytics/AxDashboard.tsx',
-  'src/components/crm-sugar/analytics/AxFirstRun.tsx',
-  'src/components/crm-sugar/analytics/AxGate.tsx',
+  'src/components/crm/analytics/AxDashboard.tsx',
+  'src/components/crm/analytics/AxFirstRun.tsx',
+  'src/components/crm/analytics/AxGate.tsx',
 ]
 const sansCommentaires = (c: string) =>
   c.replace(/\/\*[\s\S]*?\*\//g, (b) => '\n'.repeat((b.match(/\n/g) ?? []).length)).replace(/\/\/[^\n]*/g, ' ')
@@ -165,7 +165,7 @@ const ROLE_PAR_PROPRIETE: Record<string, string> = {
  *
  * ⛔ UNE GARDE QUI CHERCHE UN NOM DE CLÉ TROUVE N'IMPORTE QUEL OBJET (n° 31).
  * Mesuré le 17 août 2026 sur tout `src/` : `.muted` apparaît 219 fois sous `tk.`,
- * 89 sous `SugarV3.`, 59 sous `SugarV2.`, 46 sous `SET.` — et 19 seulement sous
+ * 89 sous `DossierTokens.`, 59 sous `WizardTokens.`, 46 sous `SET.` — et 19 seulement sous
  * la liaison d'Analytics. Une première passe du plan cherchait `ax.muted` /
  * `AX.muted` / `t.muted` et rendait ZÉRO sur toute la palette, ce qui se lit
  * « rien à faire ».
@@ -516,7 +516,7 @@ describe('Contraste Analytics — un objet de jetons que sept specs ont laissé 
       inkSoft: 'aucun barreau entre l’encre et le texte secondaire — mesuré 1,16:1 en clair, 1,06 en sombre',
       skBase: 'chatoiement : l’échelle ne porte pas deux paliers adjacents en sombre (3,19:1)',
       skShine: 'idem skBase',
-      hairline: 'voile composé, pas un aplat — dérive de sgVoileEncre',
+      hairline: 'voile composé, pas un aplat — dérive de crmVoileEncre',
       pillAhead: 'ENCODE « en avance » sur l’objectif',
       pillBehind: 'ENCODE « en retard » sur l’objectif',
       errInk: 'ENCODE une ERREUR — teinte foncée pour le texte, cf. da-meggax-crm',

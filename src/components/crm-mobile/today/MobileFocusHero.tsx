@@ -5,7 +5,7 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { focusTagKey, focusTy, type FocusItem, type FocusTypeDef } from '@/components/crm-sugar/today/focusQueue'
+import { focusTagKey, focusTy, type FocusItem, type FocusTypeDef } from '@/components/crm/today/focusQueue'
 import { useMobileTokens } from '../useMobileTokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 

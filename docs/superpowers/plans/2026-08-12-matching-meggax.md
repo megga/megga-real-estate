@@ -116,7 +116,7 @@ Corollaires mesurés :
 - `#424bfb` : **0 occurrence** dans tout le périmètre bureau.
 - `var(--crm-*)` : **0** dans `matching-atelier`, **2** dans `matching-recherche`
   — contre **139** dans `crm-mobile/matching`, qui est la référence de « porté ».
-- `AtelierStage.tsx` ne lit `crmSugarPalette` / `sp.` **aucune fois**.
+- `AtelierStage.tsx` ne lit `crmPalette` / `sp.` **aucune fois**.
 - `encreSur()` : **0 usage** dans tout le périmètre.
 
 ### ⛔ AUCUNE garde ne lit ces deux feuilles
@@ -245,7 +245,7 @@ un sens, pas une valeur. Les traiter comme un `sed` casserait l'écran.
 
 2. ⛔ **`--sys-green` · `--sys-red` · `--sys-yellow` · `--sys-blue` : NE PAS
    TOUCHER.** La feuille les documente elle-même comme **fonctionnelles** —
-   « données métier, jamais d'accent UI ». Même statut que `SG_STAGE_HUE` : elles
+   « données métier, jamais d'accent UI ». Même statut que `CRM_STAGE_HUE` : elles
    **encodent une information**, elles ne décorent pas. Les recibler effacerait
    du sens. ⚠ Vérifier en revanche leur contraste sur les NOUVELLES surfaces —
    `#059669` sur `#090909` n'est pas `#059669` sur `#17181A`.

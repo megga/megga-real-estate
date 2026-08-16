@@ -31,7 +31,7 @@
  * qui tronque en silence se lit « tout couvert ».
  *
  * ── TROIS MURS, PAS UN ───────────────────────────────────────────────────────
- * `ProtectedRoute` n'est que le premier. `AgentSugarLayout` retient l'écran sur
+ * `ProtectedRoute` n'est que le premier. `AgentLayout` retient l'écran sur
  * `BootSplash` tant que `useIdentityGate` n'a pas résolu, puis redirige vers
  * `/dashboard/identite` si l'identité n'est pas soumise ; `KycLabGuard` bloque
  * KYC tant que l'agence n'est pas validée. Les trois se lèvent par la DONNÉE
@@ -51,13 +51,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AiPanelProvider } from '@/hooks/useAiPanel'
 import { AuthProvider } from '@/hooks/useAuth'
 import { ToastProvider } from '@/components/ui/Toast'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import AgentSugarLayout from '@/components/layout/AgentSugarLayout'
+import { crmPalette } from '@/components/crm/tokens'
+import AgentLayout from '@/components/layout/AgentLayout'
 import KycLabGuard from '@/components/layout/KycLabGuard'
 import { SUPABASE_FUNCTIONS_URL } from '@/lib/supabase'
 import { desinstallerBanc, installerBanc, reglerBanc, type BancEtat } from './bancSupabase'
 import { CRM_RPC, CRM_RPC_VIDE, CRM_TABLES } from './crmFixtures'
 import { semerSessionBanc } from './bancSession'
+import { readCrmDark } from '@/lib/crmDark'
 
 /* ─── Les surfaces montées, dérivées du ROUTAGE de `App.tsx` ───────────────── */
 
@@ -126,10 +127,7 @@ const ETATS: { id: BancEtat; label: string; titre: string }[] = [
  * lui-même l'incohérence qu'il sert à débusquer. Même règle que `/dev/pipeline`.
  */
 function lireSombre(): boolean {
-  const s = window.localStorage.getItem('megga.sugar.dark')
-  if (s === '1') return true
-  if (s === '0') return false
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
+  return readCrmDark()
 }
 
 function Commandes({ etat, setEtat, sansFixture }: {
@@ -141,12 +139,12 @@ function Commandes({ etat, setEtat, sansFixture }: {
   const [replie, setReplie] = useState(false)
   const [dark, setDark] = useState(lireSombre)
   // Le rail bascule le thème sans notifier l'onglet courant (`storage` ne
-  // concerne que les autres) : on relit, comme le fait `AgentSugarLayout`.
+  // concerne que les autres) : on relit, comme le fait `AgentLayout`.
   useEffect(() => {
     const id = window.setInterval(() => setDark(lireSombre()), 400)
     return () => window.clearInterval(id)
   }, [])
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
 
   const pilule = (actif: boolean) => ({
     border: 0, cursor: 'pointer', fontFamily: 'inherit',
@@ -227,7 +225,7 @@ function Commandes({ etat, setEtat, sansFixture }: {
  */
 function SortieNeutralisee() {
   const navigate = useNavigate()
-  const sp = crmSugarPalette(lireSombre())
+  const sp = crmPalette(lireSombre())
   return (
     <div style={{
       minHeight: '100vh', display: 'grid', placeItems: 'center',
@@ -257,7 +255,7 @@ function SortieNeutralisee() {
 
 /**
  * L'arbre de routes du banc — la MÊME imbrication qu'`App.tsx` : les surfaces
- * sous `AgentSugarLayout`, et KYC sous `KycLabGuard`.
+ * sous `AgentLayout`, et KYC sous `KycLabGuard`.
  *
  * ⚠ Recopier cette imbrication est ce qui rend la coquille vérifiable : c'est
  * elle qui porte la bannière d'impersonation, celle de l'appel d'accueil, l'hôte
@@ -267,7 +265,7 @@ function SortieNeutralisee() {
 function RoutesBanc() {
   return (
     <Routes>
-      <Route path="/dashboard" element={<AgentSugarLayout />}>
+      <Route path="/dashboard" element={<AgentLayout />}>
         <Route index element={<TodayPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="calendar" element={<CalendarPage />} />

@@ -49,7 +49,7 @@ describe('Fraîcheur des captures de référence', () => {
       // fichier ajouté légitimement, un témoin décrit le BALAYAGE.
       expect(fichiers, `${nom} : la page n'est plus lue`).toContain('src/pages/agent/PipelinePage.tsx')
       expect(
-        fichiers.some((f: string) => f.includes('crm-sugar/pipeline/SugarStageColumn')),
+        fichiers.some((f: string) => f.includes('crm/pipeline/StageColumn')),
         `${nom} : la colonne de kanban n'est plus lue`,
       ).toBe(true)
     }

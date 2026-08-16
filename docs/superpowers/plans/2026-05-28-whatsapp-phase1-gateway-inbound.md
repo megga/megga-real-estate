@@ -39,7 +39,7 @@ CRM → useWhatsAppMessages(contactId) → SELECT whatsapp_messages (RLS agence)
 | `supabase/functions/whatsapp-webhook/index.ts` | Edge function réceptrice (signature → parse → insert → audit) |
 | `tests/backend/whatsapp-messages-rls.spec.ts` | Test d'isolation RLS cross-agence |
 | `src/hooks/useWhatsAppMessages.ts` | Hook React Query lecture seule |
-| `src/components/crm-sugar-v3/contact-detail/CdWhatsAppCard.tsx` | Carte read-only dans la fiche contact |
+| `src/components/crm-dossiers/contact-detail/CdWhatsAppCard.tsx` | Carte read-only dans la fiche contact |
 
 ---
 
@@ -705,13 +705,13 @@ git commit -m "feat(whatsapp): read-only useWhatsAppMessages hook"
 ## Task 7 : Carte read-only `CdWhatsAppCard` dans la fiche contact
 
 **Files:**
-- Create: `src/components/crm-sugar-v3/contact-detail/CdWhatsAppCard.tsx`
+- Create: `src/components/crm-dossiers/contact-detail/CdWhatsAppCard.tsx`
 - Modify: `src/pages/agent/ContactDetailPage.tsx` (monter la carte ; suivre l'emplacement des autres `Cd*Card`)
 
 - [ ] **Step 1: Écrire la carte**
 
 ```tsx
-// src/components/crm-sugar-v3/contact-detail/CdWhatsAppCard.tsx
+// src/components/crm-dossiers/contact-detail/CdWhatsAppCard.tsx
 // Affichage read-only des messages WhatsApp d'un contact (Phase 1 : miroir
 // entrant). Pas d'envoi ici — ce sera la Phase 2.
 
@@ -775,7 +775,7 @@ Expected: carte "WhatsApp · 0 message" + "Aucun message WhatsApp pour ce contac
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/components/crm-sugar-v3/contact-detail/CdWhatsAppCard.tsx src/pages/agent/ContactDetailPage.tsx
+git add src/components/crm-dossiers/contact-detail/CdWhatsAppCard.tsx src/pages/agent/ContactDetailPage.tsx
 git commit -m "feat(whatsapp): read-only WhatsApp thread card on contact detail"
 ```
 

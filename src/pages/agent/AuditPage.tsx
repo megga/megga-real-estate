@@ -11,26 +11,26 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import {
-  SugarTopNav,
-  SugarIconRail,
-  SUGAR_KEYFRAMES,
-  type SugarScreenId,
-} from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
+  CrmTopNav,
+  CrmIconRail,
+  CRM_KEYFRAMES,
+  type CrmScreenId,
+} from '@/components/crm/CrmShell'
+import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
 import {
-  sugarV3Palette,
-  SUGAR_V3_KEYFRAMES,
+  dossierPalette,
+  DOSSIER_KEYFRAMES,
   AUDIT_CATEGORIES,
   AUDIT_CAT_ICONS,
-} from '@/components/crm-sugar-v3/tokens'
-import { readSugarDark } from '@/lib/sugarDark'
+} from '@/components/crm-dossiers/tokens'
+import { readCrmDark } from '@/lib/crmDark'
 import {
   KycBlackPill,
   KycGhostPill,
   KycStatCard,
-} from '@/components/crm-sugar-v3/primitives'
-import { SgIcon } from '@/components/crm-sugar-v3/icons'
-import { AudDayGroup } from '@/components/crm-sugar-v3/audit/AudDayGroup'
+} from '@/components/crm-dossiers/primitives'
+import { CrmIcon } from '@/components/crm-dossiers/icons'
+import { AudDayGroup } from '@/components/crm-dossiers/audit/AudDayGroup'
 import { useAuditEvents } from '@/hooks/useAuditLog'
 import { downloadAuditCsv } from '@/lib/auditCsvExport'
 import { downloadAuditPdf } from '@/lib/auditPdfExport'
@@ -52,7 +52,7 @@ export default function AuditPage() {
   const navigate = useNavigate()
   const { t: tr } = useTranslation('common')
   /**
-   * ⚠ `readSugarDark()` et non `useSugarDark()` : le rail de cette page BASCULE
+   * ⚠ `readCrmDark()` et non `useCrmDark()` : le rail de cette page BASCULE
    * le thème (`setDark` lui est passé), et le hook est en lecture seule. Deux
    * sources — l'état local pour `sp`, le hook pour `S` — divergeraient au clic,
    * ce qui recréerait la demi-bascule qu'on corrige. C'est la MÊME lecture
@@ -60,9 +60,9 @@ export default function AuditPage() {
    * recopiée ici n'avait pas : une clé absente y rendait FAUX, donc un profil
    * neuf sous macOS sombre recevait une page claire.
    */
-  const [dark, setDark] = useState<boolean>(readSugarDark)
-  const sp = useMemo(() => crmSugarPalette(dark), [dark])
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const [dark, setDark] = useState<boolean>(readCrmDark)
+  const sp = useMemo(() => crmPalette(dark), [dark])
+  const S = useMemo(() => dossierPalette(dark), [dark])
 
   const [filterCat, setFilterCat] = useState<AuditCategory | 'all'>('all')
   const [filterSev, setFilterSev] = useState<AuditSeverity | 'all'>('all')
@@ -114,7 +114,7 @@ export default function AuditPage() {
     [groups],
   )
 
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onNavigate = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -140,11 +140,11 @@ export default function AuditPage() {
         color: S.ink,
       }}
     >
-      <style>{SUGAR_KEYFRAMES}</style>
-      <style>{SUGAR_V3_KEYFRAMES}</style>
+      <style>{CRM_KEYFRAMES}</style>
+      <style>{DOSSIER_KEYFRAMES}</style>
 
-      <SugarTopNav
-        active={'audit' as SugarScreenId}
+      <CrmTopNav
+        active={'audit' as CrmScreenId}
        
         sp={sp}
         onNavigate={onNavigate}
@@ -152,8 +152,8 @@ export default function AuditPage() {
       />
 
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        <SugarIconRail
-          active={'audit' as SugarScreenId}
+        <CrmIconRail
+          active={'audit' as CrmScreenId}
           onNavigate={onNavigate}
           onCmd={onCmd}
           dark={dark}
@@ -213,7 +213,7 @@ export default function AuditPage() {
               <div style={{ display: 'flex', gap: 10 }}>
                 <KycGhostPill
                   onClick={() => downloadAuditCsv(events)}
-                  icon={<SgIcon name="download" size={14} stroke={S.inkSoft} />}
+                  icon={<CrmIcon name="download" size={14} stroke={S.inkSoft} />}
                 >
                   {tr('audit.export.csv')}
                 </KycGhostPill>
@@ -244,7 +244,7 @@ export default function AuditPage() {
                       setPdfBusy(false)
                     }
                   }}
-                  icon={<SgIcon name="download" size={15} stroke="#fff" />}
+                  icon={<CrmIcon name="download" size={15} stroke="#fff" />}
                 >
                   {pdfBusy ? tr('audit.export.generating') : tr('audit.export.pdf')}
                 </KycBlackPill>
@@ -331,7 +331,7 @@ export default function AuditPage() {
                   maxWidth: 380,
                 }}
               >
-                <SgIcon name="search" size={16} stroke={S.muted} />
+                <CrmIcon name="search" size={16} stroke={S.muted} />
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -406,7 +406,7 @@ export default function AuditPage() {
                   onClick={() => setFilterCat(key as AuditCategory)}
                   size="sm"
                   icon={
-                    <SgIcon
+                    <CrmIcon
                       name={AUDIT_CAT_ICONS[key] || 'file'}
                       size={13}
                       stroke={filterCat === key ? '#fff' : c.tone}
@@ -420,7 +420,7 @@ export default function AuditPage() {
                 style={{
                   width: 1,
                   height: 22,
-                  background: `${sgVoileEncre(false, 0.08)}`,
+                  background: `${crmVoileEncre(false, 0.08)}`,
                   margin: '0 6px',
                 }}
               />
@@ -537,7 +537,7 @@ export default function AuditPage() {
                   flexShrink: 0,
                 }}
               >
-                <SgIcon name="lock" size={14} stroke={S.inkSoft} />
+                <CrmIcon name="lock" size={14} stroke={S.inkSoft} />
               </div>
               <div>
                 {tr('audit.footer.retention')}

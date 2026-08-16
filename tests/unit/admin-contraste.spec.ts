@@ -3,7 +3,7 @@
  * lisibles — dans leurs DEUX rôles et dans les DEUX thèmes.
  *
  * ⛔ POURQUOI CE FICHIER EXISTE. Mesuré le 14 août 2026 sur `/dev/admin` et à
- * la source. Aucune garde du dépôt ne lisait `useAdminSugar` : `megga-x-grammar`
+ * la source. Aucune garde du dépôt ne lisait `useAdminSurfaces` : `megga-x-grammar`
  * ne connaît pas le mot « admin », `megga-x-crm-tokens` s'arrête aux barreaux de
  * la vitrine, et les gardes d'écran (`pipeline-contraste`, `matching-contraste`)
  * balayent d'autres dossiers.
@@ -46,8 +46,8 @@
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { adminSurfaces, adminTones } from '@/hooks/useAdminSugar'
+import { crmPalette } from '@/components/crm/tokens'
+import { adminSurfaces, adminTones } from '@/hooks/useAdminSurfaces'
 
 const AA = 4.5
 /** Seuil WCAG 1.4.11 : un glyphe ou une pastille n'est pas du texte. */
@@ -111,7 +111,7 @@ const arrondi = (n: number) => Math.round(n * 100) / 100
  * sens. On les compose sur le canvas — piège de sonde (b).
  */
 function surfaces(dark: boolean): { nom: string; fond: string }[] {
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   const surf = adminSurfaces(dark)
   return [
     { nom: 'cadre', fond: aplatir(sp.pageBg, sp.pageBg) },
@@ -146,7 +146,7 @@ const ROLES: { ton: keyof ReturnType<typeof adminTones>; encre: boolean; aplat: 
 ]
 
 const SOURCE_KIT = 'src/components/admin/kit/adminKit.tsx'
-const SOURCE_HOOK = 'src/hooks/useAdminSugar.ts'
+const SOURCE_HOOK = 'src/hooks/useAdminSurfaces.ts'
 
 /**
  * Les écrans qui posent eux-mêmes une encre sur un ton, hors du kit.
@@ -213,7 +213,7 @@ describe('Console admin — les tons restent lisibles dans les deux thèmes', ()
       const t = adminTones(dark)
       for (const { ton, aplat } of ROLES) {
         if (!aplat) continue
-        const fond = aplatir(t[ton], crmSugarPalette(dark).pageBg)
+        const fond = aplatir(t[ton], crmPalette(dark).pageBg)
         // La pilule neutre porte `neutralInk`, pas l'encre dérivée : c'est le
         // seul ton qui dit « pas de signal », et il ne doit pas crier.
         const ink = ton === 'neutralBg' ? t.neutralInk : encreSur(fond)
@@ -313,7 +313,7 @@ describe('Console admin — les tons restent lisibles dans les deux thèmes', ()
 
     const sous: string[] = []
     for (const dark of [false, true]) {
-      const sp = crmSugarPalette(dark)
+      const sp = crmPalette(dark)
       const surf = adminSurfaces(dark)
       // ⛔ LES DEUX APLATS, PAS UN. Une première version ne mesurait que le
       // bouton FANTÔME — surface de carte, encre d'encre — qui tenait déjà

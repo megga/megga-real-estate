@@ -28,7 +28,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ShieldCheck, ExternalLink } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmPalette } from '@/components/crm/tokens'
 import { LEGAL_URLS, type RequiredConsentType } from '@/lib/consents'
 
 interface PendingConsent {
@@ -48,7 +48,7 @@ const DEV_BYPASS_AUTH =
 
 /**
  * Thème lu sur le document, pas par `useTheme()` : le ThemeProvider vit dans
- * AgentSugarLayout, donc DANS le contenu que cet écran remplace — le hook
+ * AgentLayout, donc DANS le contenu que cet écran remplace — le hook
  * lèverait. `data-theme` est posé par le script d'amorçage d'index.html, avant
  * même React ; sans attribut, on suit la préférence système comme lui.
  */
@@ -66,7 +66,7 @@ export default function ConsentGate({ children }: { children: React.ReactNode })
   const queryClient = useQueryClient()
 
   const dark = isDarkTheme()
-  const sp = useMemo(() => crmSugarPalette(dark), [dark])
+  const sp = useMemo(() => crmPalette(dark), [dark])
 
   const [checked, setChecked] = useState<Record<string, boolean>>({})
   const [marketing, setMarketing] = useState(false)

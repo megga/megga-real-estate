@@ -25,7 +25,7 @@ import {
   AdminSkeleton, AdminSolidBtn, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminLearning, useSetLearnedStyle } from '@/hooks/useAdminLearning'
 
 /** Troncature d'une cellule : les colonnes du tableau ont une largeur figée. */
@@ -42,7 +42,7 @@ function statusTone(status: string): AdminToneName {
 
 export default function AdminLearningPage() {
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const { data: rows = [], isLoading, error } = useAdminLearning()
   const setStyle = useSetLearnedStyle()
 

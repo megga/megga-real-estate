@@ -26,8 +26,8 @@ export const SGA_TABS: Array<{ key: AtelierTab; label: string }> = [
   { key: 'no-reply', get label() { return i18n.t('matching:tabs.no-reply') } },
 ]
 
-export const sgaMatchTab = (b: AtelierBuyer, tab: AtelierTab): boolean =>
+export const atlMatchTab = (b: AtelierBuyer, tab: AtelierTab): boolean =>
   tab === 'all' || b.status === tab
 
-export const sgaMatchQuery = (b: AtelierBuyer, q: string): boolean =>
+export const atlMatchQuery = (b: AtelierBuyer, q: string): boolean =>
   !q || `${b.first} ${b.last} ${b.type} ${b.zone}`.toLowerCase().includes(q.toLowerCase())

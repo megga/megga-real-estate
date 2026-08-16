@@ -22,7 +22,7 @@ import AdminPage from '@/components/admin/kit/AdminPage'
 import {
   AdminCard, AdminEmpty, AdminError, AdminIc, AdminPill, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminAutonomy } from '@/hooks/useAdminAutonomy'
 
 /** Troncature d'une cellule : les colonnes du tableau ont une largeur figée. */
@@ -34,7 +34,7 @@ const MONO = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monos
 /** Tableau des décisions d'autonomie ; met en évidence les lignes suggérant une reprise. */
 export default function AdminAutonomyPage() {
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const { data: rows = [], isLoading, error } = useAdminAutonomy()
   const suggestions = rows.filter((r) => r.suggest_resume)
   // React Query sert le cache et refetch en fond : `error` coexiste donc avec des

@@ -23,7 +23,7 @@
  *
  * ⚠ LE NOM DU FICHIER SURVIT À CE QU'IL SERVAIT — il ne contient plus aucun
  * preset d'accent. Le renommer est un geste lexical à part, comme
- * `crmSugarPalette` (`CLAUDE.md` §3).
+ * `crmPalette` (`CLAUDE.md` §3).
  */
 
 /* ─── Dashboard Preferences Types ─── */

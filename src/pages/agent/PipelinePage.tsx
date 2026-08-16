@@ -4,7 +4,7 @@
  * dans le cadre bento mono-page de crm-screen-pipeline-proto.jsx.
  *
  * Écarts prod assumés (plan Pipeline v2) :
- *   - données réelles : usePipelineSugar (transactions + reminders) + overlay
+ *   - données réelles : usePipelineScreen (transactions + reminders) + overlay
  *     optimiste de drag ; « maintenant » = date réelle (les données vivent, pas
  *     besoin de l'ancre « deal le plus récent » du proto aux données figées) ;
  *   - période par défaut « Tous » (0) — un défaut 30 j masquerait les dossiers
@@ -16,7 +16,7 @@
  *     factice) en plus de l'avancement d'étape du proto.
  *
  * ── SLOT `banc` (aperçu `/dev/pipeline`) ─────────────────────────────────────
- * Cette page tire TOUT d'`usePipelineSugar()`, gaté sur `profile.agency_id` :
+ * Cette page tire TOUT d'`usePipelineScreen()`, gaté sur `profile.agency_id` :
  * sans session elle ne rend qu'un board vide, et `ProtectedRoute` renvoie vers
  * la production avant même d'y arriver. Le slot `banc` substitue la SOURCE et
  * rend les ÉCRITURES inertes — la page, elle, reste la page : mêmes filtres,
@@ -27,21 +27,21 @@
  * dupliquerait la machine à états mesurerait sa copie.
  */
 
-import EtatVide from '@/components/crm-sugar/EtatVide'
+import EtatVide from '@/components/crm/EtatVide'
 import type { ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  CRM_STAGES, CRM_STAGE_ORDER, crmSugarPalette, type StageId,
-} from '@/components/crm-sugar/tokens'
-import { type CrmDeal } from '@/components/crm-sugar/mockData'
+  CRM_STAGES, CRM_STAGE_ORDER, crmPalette, type StageId,
+} from '@/components/crm/tokens'
+import { type CrmDeal } from '@/components/crm/mockData'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useLogAudit } from '@/hooks/useAuditLog'
-import { usePipelineSugar } from '@/hooks/usePipelineSugar'
+import { usePipelineScreen } from '@/hooks/usePipelineScreen'
 import { useAiPanel } from '@/hooks/useAiPanel'
-import { stageIdToTransactionStage } from '@/lib/sugarAdapters'
+import { stageIdToTransactionStage } from '@/lib/crmAdapters'
 import {
   useUpdateTransactionStatus, useArchiveTransaction, useReassignTransaction,
 } from '@/hooks/useTransactions'
@@ -49,23 +49,24 @@ import {
   usePipelineReminderCreators, useCancelTransactionReminders, useRescheduleReminder,
 } from '@/hooks/usePipelineNextActions'
 import {
-  SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
-} from '@/components/crm-sugar/SugarShell'
-import { CRM_STAGE_PROBS } from '@/components/crm-sugar/pipeline/stageConstants'
-import { SugarStageColumn } from '@/components/crm-sugar/pipeline/SugarStageColumn'
-import { PipelineList } from '@/components/crm-sugar/pipeline/PipelineList'
-import { PipelineTimeline } from '@/components/crm-sugar/pipeline/PipelineTimeline'
-import { SignedBento } from '@/components/crm-sugar/pipeline/SignedBento'
-import { LostConfirmModal } from '@/components/crm-sugar/pipeline/LostConfirmModal'
-import type { VisitSlot } from '@/components/crm-sugar/pipeline/SugarCardQuickActions'
+  CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId,
+} from '@/components/crm/CrmShell'
+import { CRM_STAGE_PROBS } from '@/components/crm/pipeline/stageConstants'
+import { StageColumn } from '@/components/crm/pipeline/StageColumn'
+import { PipelineList } from '@/components/crm/pipeline/PipelineList'
+import { PipelineTimeline } from '@/components/crm/pipeline/PipelineTimeline'
+import { SignedBento } from '@/components/crm/pipeline/SignedBento'
+import { LostConfirmModal } from '@/components/crm/pipeline/LostConfirmModal'
+import type { VisitSlot } from '@/components/crm/pipeline/CardQuickActions'
 import {
-  SugarSegmentedView, SugarFilterPill,
-  SugarStageFilter, SugarRiskFilter, SugarPeriodFilter,
+  SegmentedView, FilterPill,
+  StageFilter, RiskFilter, PeriodFilter,
   type PipelineView, type RiskFilterValue,
-} from '@/components/crm-sugar/pipeline/PipelineFilters'
-import { NewDealModal, type NewDealBanc, type NewDealPrefill } from '@/components/crm-sugar/pipeline/NewDealModal'
-import { SgInlineNewDeal } from '@/components/crm-sugar/pipeline/SgInlineNewDeal'
-import type { CrmContact, CrmBien } from '@/components/crm-sugar/mockData'
+} from '@/components/crm/pipeline/PipelineFilters'
+import { NewDealModal, type NewDealBanc, type NewDealPrefill } from '@/components/crm/pipeline/NewDealModal'
+import { CrmInlineNewDeal } from '@/components/crm/pipeline/CrmInlineNewDeal'
+import type { CrmContact, CrmBien } from '@/components/crm/mockData'
+import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 /**
  * Poignées du board, telles que l'agent les actionne. Le banc les reçoit pour
@@ -100,7 +101,7 @@ export interface PipelineBanc {
   onNavigate?: (vers: string) => void
   /**
    * Listes des DEUX surfaces de création, qui portent leurs propres sources
-   * (`useContactsSugar`, `useBiensSugar`). Elles sont fournies à part des index
+   * (`useContactsScreen`, `useListingsScreen`). Elles sont fournies à part des index
    * du board : l'état « vide · filtré » vide `contactsById` pour atteindre la
    * carte « affinez vos filtres », et la modale n'a pas à se vider avec lui.
    */
@@ -156,18 +157,15 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
   // ── Thème dark/light, persisté (partagé entre pages Sugar) ───────────
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
     }
   }, [dark])
 
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
 
   const [view, setView] = useState<PipelineView>('kanban')
   const [newDealOpen, setNewDealOpen] = useState(false)
@@ -180,11 +178,11 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
 
   const logAudit = useLogAudit()
 
-  // ── Source de vérité : Supabase via usePipelineSugar ────────────────
+  // ── Source de vérité : Supabase via usePipelineScreen ────────────────
   // ⚠ Le hook est appelé DANS TOUS LES CAS (règle des hooks) ; en banc son
   // résultat est simplement écarté. Sans session il ne part de toute façon
   // aucune requête : ses cinq queries sont gatées sur `agency_id`.
-  const live = usePipelineSugar()
+  const live = usePipelineScreen()
   const enBanc = banc !== undefined
   const liveDeals = banc ? banc.deals : live.deals
   const contactsById = banc ? banc.contactsById : live.contactsById
@@ -558,7 +556,7 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
 
   // ── Nav (partagé avec Today) ────────────────────────────────────────
   const onCmd = () => window.alert(t('board.commandPaletteComingSoon'))
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onNavigate = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today':     go('/dashboard'); break
       case 'pipeline':  go('/dashboard/pipeline'); break
@@ -610,7 +608,7 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
       display: 'flex', flexDirection: 'column',
       fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
-      <style>{SUGAR_KEYFRAMES}</style>
+      <style>{CRM_KEYFRAMES}</style>
       <style>{`
         /* ⛔ LA BARRE HORIZONTALE NE PREND PLUS DE HAUTEUR (15 août 2026).
            Depuis que les colonnes vont jusqu'au filet du bas, une barre classique
@@ -630,10 +628,10 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
         .sgPipeBoard::-webkit-scrollbar-corner{background:transparent}
       `}</style>
 
-      <SugarTopNav active="pipeline" sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
+      <CrmTopNav active="pipeline" sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail active="pipeline" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmIconRail active="pipeline" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
 
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
           {/* Grand cadre bento mono-page — clippe le corps du pipeline */}
@@ -675,7 +673,7 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
                     }}>×</button>
                   )}
                 </div>
-                <SugarFilterPill sp={sp} dark={dark} label={t('board.filter.label')}
+                <FilterPill sp={sp} dark={dark} label={t('board.filter.label')}
                   value={activeFilters > 0 ? String(activeFilters) : t('board.filter.none')}
                   active={activeFilters > 0}>
                   <div style={{
@@ -687,19 +685,19 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
                         fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                         color: sp.sub, padding: '2px 4px 8px',
                       }}>{t('filter.stage')}</div>
-                      <SugarStageFilter sp={sp} dark={dark} value={filterStages} onChange={setFilterStages} />
+                      <StageFilter sp={sp} dark={dark} value={filterStages} onChange={setFilterStages} />
                     </div>
                     <div>
                       <div style={{
                         fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                         color: sp.sub, padding: '2px 4px 8px',
                       }}>{t('board.filter.riskHeader')}</div>
-                      <SugarRiskFilter sp={sp} dark={dark} value={filterRisk} onChange={setFilterRisk} />
+                      <RiskFilter sp={sp} dark={dark} value={filterRisk} onChange={setFilterRisk} />
                       <div style={{
                         fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                         color: sp.sub, padding: '16px 4px 8px',
                       }}>{t('board.filter.periodHeader')}</div>
-                      <SugarPeriodFilter sp={sp} dark={dark} value={filterPeriod} onChange={setFilterPeriod} />
+                      <PeriodFilter sp={sp} dark={dark} value={filterPeriod} onChange={setFilterPeriod} />
                     </div>
                   </div>
                   {activeFilters > 0 && (
@@ -709,8 +707,8 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
                       textDecoration: 'underline', textUnderlineOffset: 2,
                     }}>{t('board.filter.resetAll')}</button>
                   )}
-                </SugarFilterPill>
-                <SugarSegmentedView sp={sp} value={view} onChange={setView} />
+                </FilterPill>
+                <SegmentedView sp={sp} value={view} onChange={setView} />
                 <button onClick={() => { setNewDealPrefill(null); setNewDealOpen(true) }} style={{
                   height: 40, padding: '0 20px', borderRadius: 999, border: 0,
                   background: sp.accent, color: sp.accentInk, fontWeight: 600, fontSize: 'var(--crm-text-md)',
@@ -767,7 +765,7 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
                 {view === 'kanban' && (
                   <div style={{ display: 'flex', height: '100%' }}>
                     {CRM_STAGE_ORDER.map((stage, i) => (
-                      <SugarStageColumn
+                      <StageColumn
                         key={stage} stage={stage} premiere={i === 0}
                         deals={filteredByStage(stage)}
                         sp={sp} dark={dark}
@@ -782,7 +780,7 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
                         onDragEnd={handleDragEnd}
                         onInlineOpen={() => setInlineStage(stage)}
                         inlineForm={inlineStage === stage ? (
-                          <SgInlineNewDeal
+                          <CrmInlineNewDeal
                             stage={stage} sp={sp} dark={dark}
                             banc={banc?.creation}
                             onCancel={() => setInlineStage(null)}
@@ -875,7 +873,7 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
           background: sp.ink, color: encreSur(sp.ink), padding: '13px 16px 13px 20px', borderRadius: 999,
           fontSize: 'var(--crm-text-md)', fontWeight: 600, zIndex: 240,
           display: 'flex', alignItems: 'center', gap: 16,
-          boxShadow: sp.shadow, animation: 'sugar-toast .2s ease-out',
+          boxShadow: sp.shadow, animation: 'crm-toast .2s ease-out',
         }}>
           <span>{pipeToast.message}</span>
           {pipeToast.undo && (

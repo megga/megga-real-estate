@@ -6,7 +6,7 @@
 
 **Architecture :** Pur frontend (display layer). La compréhension est produite par le cron `whatsapp-process` (DeepSeek) et stockée dans `whatsapp_conversation_insights` (un row par contact, RLS = lecture par l'agence). Le hook `useConversationInsight(contactId)` existe déjà et renvoie la bonne forme. On ajoute une carte `CdConversationInsight` dans la colonne principale de la fiche (après la carte WhatsApp), et on affiche le `transcript` des vocaux dans `CdWhatsAppCard`. **Aucune migration, aucune edge function, aucun changement de RLS.**
 
-**Tech Stack :** React 18 + Vite + React Query (hook existant), design-system Sugar v3 (`KycSection` + tokens `SugarV3.*` inline + `SgIcon`). DeepSeek côté backend (déjà en place, hors périmètre ici).
+**Tech Stack :** React 18 + Vite + React Query (hook existant), design-system Sugar v3 (`KycSection` + tokens `DossierTokens.*` inline + `SgIcon`). DeepSeek côté backend (déjà en place, hors périmètre ici).
 
 ---
 
@@ -22,7 +22,7 @@ Re-consulter au début de chaque tâche. **Ne pas modifier le seed** avant la de
 
 - **Pas de backend** : lecture seule via le hook existant. Aucune migration (donc pas de date-gate ici). Aucune écriture.
 - **Cadre IA (CLAUDE.md)** : la compréhension et la « prochaine action » sont une **assistance / estimation**, JAMAIS « automatique » ni « garantie ». Marqueur sparkle/IA + libellé « suggérée »/« estimation IA ». MEGGA propose, l'agent décide (la `next_action` est `proposé, jamais exécuté` — cf. commentaire de la migration).
-- **Design-system Sugar v3** : mirror EXACT du pattern des autres cartes `Cd*` (carte `KycSection`, tokens `SugarV3.*` inline, `SgIcon`, pills « soft » comme `CdKycCard`). PAS de `bg-white`/`text-gray-*`/`shadow-*` Tailwind, PAS de valeurs hardcodées hors tokens. Capitalize, pas d'UPPERCASE dans les titres (l'eyebrow uppercase est le pattern maison existant — OK).
+- **Design-system Sugar v3** : mirror EXACT du pattern des autres cartes `Cd*` (carte `KycSection`, tokens `DossierTokens.*` inline, `SgIcon`, pills « soft » comme `CdKycCard`). PAS de `bg-white`/`text-gray-*`/`shadow-*` Tailwind, PAS de valeurs hardcodées hors tokens. Capitalize, pas d'UPPERCASE dans les titres (l'eyebrow uppercase est le pattern maison existant — OK).
 - **i18n — décision assumée** : TOUTES les cartes `Cd*` de la fiche contact sont en **français codé en dur** (aucune n'utilise `useTranslation`). Pour rester cohérent avec le surface, `CdConversationInsight` et l'ajout transcript suivent la même convention (FR inline). L'i18n de tout le surface contact-detail est un refactor séparé, hors périmètre. (Documenté pour la revue : ce n'est pas un oubli.)
 - **États obligatoires** : loading, vide, erreur. Si aucune compréhension n'existe pour le contact → ne RIEN afficher (ne pas encombrer la fiche d'un contact sans conversation WhatsApp).
 - `npm run build` passe avant tout push (le vrai build, pas seulement `tsc --noEmit`).
@@ -38,12 +38,12 @@ Re-consulter au début de chaque tâche. **Ne pas modifier le seed** avant la de
 ## File Structure
 
 **Créer :**
-- `src/components/crm-sugar-v3/contact-detail/conversationInsight.helpers.ts` — fonctions PURES (libellés FR de `next_action.type`, ton du sentiment, libellés des critères).
+- `src/components/crm-dossiers/contact-detail/conversationInsight.helpers.ts` — fonctions PURES (libellés FR de `next_action.type`, ton du sentiment, libellés des critères).
 - `tests/unit/conversation-insight-helpers.test.ts` — tests des helpers (dans le glob `tests/unit/**`).
-- `src/components/crm-sugar-v3/contact-detail/CdConversationInsight.tsx` — la carte.
+- `src/components/crm-dossiers/contact-detail/CdConversationInsight.tsx` — la carte.
 
 **Modifier :**
-- `src/components/crm-sugar-v3/contact-detail/CdWhatsAppCard.tsx` — rendu transcript des vocaux.
+- `src/components/crm-dossiers/contact-detail/CdWhatsAppCard.tsx` — rendu transcript des vocaux.
 - `src/pages/agent/ContactDetailPage.tsx` — rendre `<CdConversationInsight contactId={contact.id} />` après `<CdWhatsAppCard .../>`.
 
 **Réutilisé sans changement :**
@@ -68,11 +68,11 @@ Re-consulter au début de chaque tâche. **Ne pas modifier le seed** avant la de
 
 ## Task 1 : Helpers purs (TDD)
 
-**Files:** Create `src/components/crm-sugar-v3/contact-detail/conversationInsight.helpers.ts` + `tests/unit/conversation-insight-helpers.test.ts`
+**Files:** Create `src/components/crm-dossiers/contact-detail/conversationInsight.helpers.ts` + `tests/unit/conversation-insight-helpers.test.ts`
 
 - [ ] **Step 1 : Test (échoue)** — `tests/unit/conversation-insight-helpers.test.ts` (mirror l'import des autres tests `tests/unit/*` — vérifier `import { describe, it, expect } from 'vitest'`)
 ```ts
-import { nextActionLabel, sentimentTone, entityChips } from '@/components/crm-sugar-v3/contact-detail/conversationInsight.helpers'
+import { nextActionLabel, sentimentTone, entityChips } from '@/components/crm-dossiers/contact-detail/conversationInsight.helpers'
 
 describe('nextActionLabel', () => {
   it('mappe les types connus en libellés FR', () => {
@@ -174,7 +174,7 @@ export function entityChips(entities: Record<string, unknown> | null | undefined
 
 - [ ] **Step 5 : Commit**
 ```bash
-git add src/components/crm-sugar-v3/contact-detail/conversationInsight.helpers.ts tests/unit/conversation-insight-helpers.test.ts
+git add src/components/crm-dossiers/contact-detail/conversationInsight.helpers.ts tests/unit/conversation-insight-helpers.test.ts
 git -c user.name="MEGGA" -c user.email="megga@megga.ch" commit -m "feat(crm): helpers purs pour la carte compréhension WhatsApp (TDD)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
@@ -184,25 +184,25 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 ## Task 2 : Carte `CdConversationInsight` + câblage dans la fiche
 
-> Mirror EXACT du pattern visuel de `CdKycCard` (même `KycSection`, mêmes tokens `SugarV3.*`, mêmes pills « soft », même usage `SgIcon`). LÉGER : une carte qui lit le hook existant et rend les champs.
+> Mirror EXACT du pattern visuel de `CdKycCard` (même `KycSection`, mêmes tokens `DossierTokens.*`, mêmes pills « soft », même usage `SgIcon`). LÉGER : une carte qui lit le hook existant et rend les champs.
 
-**Files:** Create `src/components/crm-sugar-v3/contact-detail/CdConversationInsight.tsx` ; Modify `src/pages/agent/ContactDetailPage.tsx`
+**Files:** Create `src/components/crm-dossiers/contact-detail/CdConversationInsight.tsx` ; Modify `src/pages/agent/ContactDetailPage.tsx`
 
-- [ ] **Step 1 : Lire d'abord** `src/components/crm-sugar-v3/contact-detail/CdKycCard.tsx` et `src/components/crm-sugar-v3/primitives.tsx` (exports `KycSection`, `SugarV3`) et `src/components/crm-sugar-v3/icons.tsx` (`SgIcon`, vérifier `name="sparkle"`). Copier les imports + le pattern de header (eyebrow/title/icon) + le pattern de pill exactement.
+- [ ] **Step 1 : Lire d'abord** `src/components/crm-dossiers/contact-detail/CdKycCard.tsx` et `src/components/crm-dossiers/primitives.tsx` (exports `KycSection`, `DossierTokens`) et `src/components/crm-dossiers/icons.tsx` (`SgIcon`, vérifier `name="sparkle"`). Copier les imports + le pattern de header (eyebrow/title/icon) + le pattern de pill exactement.
 
-- [ ] **Step 2 : Implémenter** `CdConversationInsight.tsx` (adapter les imports/le header au pattern réel de `CdKycCard` lu au Step 1 ; le squelette ci-dessous est la logique de données + les états, à habiller avec `KycSection`/`SugarV3` exactement comme les cartes voisines) :
+- [ ] **Step 2 : Implémenter** `CdConversationInsight.tsx` (adapter les imports/le header au pattern réel de `CdKycCard` lu au Step 1 ; le squelette ci-dessous est la logique de données + les états, à habiller avec `KycSection`/`DossierTokens` exactement comme les cartes voisines) :
 ```tsx
 import { useConversationInsight } from '@/hooks/useConversationInsight'
-import { KycSection, SugarV3 } from '@/components/crm-sugar-v3/primitives'      // ← aligner sur l'import réel de CdKycCard
-import { SgIcon } from '@/components/crm-sugar-v3/icons'                         // ← idem
+import { KycSection, DossierTokens } from '@/components/crm-dossiers/primitives'      // ← aligner sur l'import réel de CdKycCard
+import { SgIcon } from '@/components/crm-dossiers/icons'                         // ← idem
 import { nextActionLabel, sentimentTone, entityChips } from './conversationInsight.helpers'
 
 function Pill({ label, tone }: { label: string; tone: 'ok' | 'err' | 'neutral' }) {
   // Mirror le pill "soft" de CdKycCard : fond doux + texte coloré, jamais de bg plein.
   const map = {
-    ok: { bg: SugarV3.okSoft, fg: SugarV3.ok },
-    err: { bg: SugarV3.errSoft, fg: SugarV3.errDarker },
-    neutral: { bg: SugarV3.cardSubtle, fg: SugarV3.inkSoft },
+    ok: { bg: DossierTokens.okSoft, fg: DossierTokens.ok },
+    err: { bg: DossierTokens.errSoft, fg: DossierTokens.errDarker },
+    neutral: { bg: DossierTokens.cardSubtle, fg: DossierTokens.inkSoft },
   } as const
   const c = map[tone]
   return (
@@ -224,12 +224,12 @@ export function CdConversationInsight({ contactId }: { contactId: string }) {
   return (
     <KycSection eyebrow="Assistance IA" title="Compréhension MEGGA">
       {/* Si possible, ajouter <SgIcon name="sparkle" .../> dans le header comme CdKycCard place son icône. */}
-      {isLoading && <div style={{ color: SugarV3.muted, fontSize: 13 }}>Analyse de la conversation…</div>}
-      {error && <div style={{ color: SugarV3.errDarker, fontSize: 13 }}>Compréhension indisponible pour le moment.</div>}
+      {isLoading && <div style={{ color: DossierTokens.muted, fontSize: 13 }}>Analyse de la conversation…</div>}
+      {error && <div style={{ color: DossierTokens.errDarker, fontSize: 13 }}>Compréhension indisponible pour le moment.</div>}
       {insight && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {insight.summary && (
-            <p style={{ color: SugarV3.inkSoft, fontSize: 14, lineHeight: 1.5, margin: 0 }}>{insight.summary}</p>
+            <p style={{ color: DossierTokens.inkSoft, fontSize: 14, lineHeight: 1.5, margin: 0 }}>{insight.summary}</p>
           )}
 
           {(insight.intent || sent) && (
@@ -242,31 +242,31 @@ export function CdConversationInsight({ contactId }: { contactId: string }) {
           {chips.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {chips.map((c) => (
-                <span key={c} style={{ padding: '4px 10px', borderRadius: 999, background: SugarV3.cardSubtle, color: SugarV3.inkSoft, fontSize: 11, fontWeight: 600 }}>{c}</span>
+                <span key={c} style={{ padding: '4px 10px', borderRadius: 999, background: DossierTokens.cardSubtle, color: DossierTokens.inkSoft, fontSize: 11, fontWeight: 600 }}>{c}</span>
               ))}
             </div>
           )}
 
           {Array.isArray(insight.commitments) && insight.commitments.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, color: SugarV3.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Engagements</div>
-              <ul style={{ margin: 0, paddingLeft: 18, color: SugarV3.inkSoft, fontSize: 13, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 11, color: DossierTokens.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Engagements</div>
+              <ul style={{ margin: 0, paddingLeft: 18, color: DossierTokens.inkSoft, fontSize: 13, lineHeight: 1.5 }}>
                 {insight.commitments.map((c, i) => <li key={i}>{c}</li>)}
               </ul>
             </div>
           )}
 
           {insight.next_action && insight.next_action.type !== 'rien' && (
-            <div style={{ borderRadius: 14, background: SugarV3.cardSubtle, padding: '12px 14px' }}>
-              <div style={{ fontSize: 11, color: SugarV3.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Prochaine action suggérée</div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: SugarV3.ink, fontSize: 14, fontWeight: 600 }}>
-                <SgIcon name="sparkle" size={14} stroke={SugarV3.ink} sw={1.8} />
+            <div style={{ borderRadius: 14, background: DossierTokens.cardSubtle, padding: '12px 14px' }}>
+              <div style={{ fontSize: 11, color: DossierTokens.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Prochaine action suggérée</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: DossierTokens.ink, fontSize: 14, fontWeight: 600 }}>
+                <SgIcon name="sparkle" size={14} stroke={DossierTokens.ink} sw={1.8} />
                 {insight.next_action.label || nextActionLabel(insight.next_action.type)}
               </div>
             </div>
           )}
 
-          <div style={{ fontSize: 11, color: SugarV3.muted }}>
+          <div style={{ fontSize: 11, color: DossierTokens.muted }}>
             Estimation IA · {insight.source_message_count} message(s) analysé(s) · {new Date(insight.generated_at).toLocaleDateString('fr-CH')}
           </div>
         </div>
@@ -283,11 +283,11 @@ export function CdConversationInsight({ contactId }: { contactId: string }) {
     <CdConversationInsight contactId={contact.id} />
 ```
 
-- [ ] **Step 4 : Vérifier** `npm run build` → vert. Relire : tokens `SugarV3.*` (pas de Tailwind `bg-white`/`text-gray-*`/`shadow-*`), états loading/vide(=null)/erreur, cadre IA présent.
+- [ ] **Step 4 : Vérifier** `npm run build` → vert. Relire : tokens `DossierTokens.*` (pas de Tailwind `bg-white`/`text-gray-*`/`shadow-*`), états loading/vide(=null)/erreur, cadre IA présent.
 
 - [ ] **Step 5 : Commit**
 ```bash
-git add src/components/crm-sugar-v3/contact-detail/CdConversationInsight.tsx src/pages/agent/ContactDetailPage.tsx
+git add src/components/crm-dossiers/contact-detail/CdConversationInsight.tsx src/pages/agent/ContactDetailPage.tsx
 git -c user.name="MEGGA" -c user.email="megga@megga.ch" commit -m "feat(crm): carte « Compréhension MEGGA » dans la fiche contact (insights WhatsApp)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
@@ -297,7 +297,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 ## Task 3 : Transcript des vocaux dans `CdWhatsAppCard`
 
-**Files:** Modify `src/components/crm-sugar-v3/contact-detail/CdWhatsAppCard.tsx`
+**Files:** Modify `src/components/crm-dossiers/contact-detail/CdWhatsAppCard.tsx`
 
 - [ ] **Step 1 : Remplacer** le bloc média + corps (≈ l.53-56 : le `[{m.media_type}]` + `{m.body || ...}`) par un rendu qui, pour un vocal (`media_type === 'audio'`), montre 🎤 + le transcript (ou l'état de traitement), et garde le comportement actuel pour les autres types :
 ```tsx
@@ -325,7 +325,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 - [ ] **Step 3 : Commit**
 ```bash
-git add src/components/crm-sugar-v3/contact-detail/CdWhatsAppCard.tsx
+git add src/components/crm-dossiers/contact-detail/CdWhatsAppCard.tsx
 git -c user.name="MEGGA" -c user.email="megga@megga.ch" commit -m "feat(crm): afficher le transcript des notes vocales dans la carte WhatsApp
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
@@ -356,7 +356,7 @@ Ouvrir la PR vers `main`. (Aucune migration → pas de date-gate.) NE PAS merger
 
 - ✅ Affiche ce qui est déjà calculé : `useConversationInsight` (existant) + `useWhatsAppMessages` (existant) — zéro backend, zéro migration, zéro RLS.
 - ✅ Cadre IA : eyebrow « Assistance IA », sparkle, « action suggérée », « Estimation IA » ; aucune action déclenchée (lecture seule).
-- ✅ Design-system : `KycSection` + tokens `SugarV3.*` + `SgIcon`, mirror de `CdKycCard` ; pills soft ; pas de Tailwind interdit. `CdWhatsAppCard` garde son style `theme-*` existant (exception assumée du surface).
+- ✅ Design-system : `KycSection` + tokens `DossierTokens.*` + `SgIcon`, mirror de `CdKycCard` ; pills soft ; pas de Tailwind interdit. `CdWhatsAppCard` garde son style `theme-*` existant (exception assumée du surface).
 - ✅ États : loading, erreur, et vide = ne rien afficher (pas de clutter).
 - ✅ i18n : FR inline, cohérent avec TOUTES les cartes `Cd*` (décision documentée ; i18n du surface = refactor séparé).
 - ✅ TDD sur les helpers purs (Task 1) ; le reste vérifié via `npm run build` (comme la page admin T1).

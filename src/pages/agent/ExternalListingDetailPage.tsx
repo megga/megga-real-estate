@@ -15,9 +15,10 @@ import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import type { ExternalListing } from '@/hooks/useExternalMatching'
 import { useExternalListingActions } from '@/hooks/useExternalListingActions'
 import { useSendPropertyEmail } from '@/hooks/useSendEmail'
-import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
+import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { crmPalette } from '@/components/crm/tokens'
+import { crmThemeVars } from '@/components/crm/crmThemeVars'
+import { readCrmDark } from '@/lib/crmDark'
 
 const TYPE_KEYS: Record<string, string> = {
   APARTMENT: 'external.types.apartment', APPT: 'external.types.apartment', HOUSE: 'external.types.house', VILLA: 'external.types.villa',
@@ -57,11 +58,11 @@ export default function ExternalListingDetailPage() {
   const sendPropertyEmail = useSendPropertyEmail()
 
   const [dark, setDark] = useState<boolean>(() =>
-    typeof window !== 'undefined' && window.localStorage.getItem('megga.sugar.dark') === '1')
+    typeof window !== 'undefined' && readCrmDark())
 
   // Chrome Sugar porté ici : cette page vivait sous `AgentLayout`.
-  const sgSp = useMemo(() => crmSugarPalette(dark), [dark])
-  const onSugarNav = (id: SugarScreenId | string) => {
+  const sgSp = useMemo(() => crmPalette(dark), [dark])
+  const onCrmNav = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -75,17 +76,17 @@ export default function ExternalListingDetailPage() {
       default:
     }
   }
-  const onSugarCmd = () => {}
+  const onCrmCmd = () => {}
   const chromeOpen = (
     <>
-      <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav active={'matching' as SugarScreenId} sp={sgSp} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} />
+      <style>{CRM_KEYFRAMES}</style>
+      <CrmTopNav active={'matching' as CrmScreenId} sp={sgSp} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} />
     </>
   )
   const rail = (
-    <SugarIconRail active={'matching' as SugarScreenId} onNavigate={onSugarNav} onCmd={onSugarCmd} dark={dark} setDark={setDark} sp={sgSp} />
+    <CrmIconRail active={'matching' as CrmScreenId} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} setDark={setDark} sp={sgSp} />
   )
-  const shellStyle = { minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...sugarThemeVars(sgSp, dark) }
+  const shellStyle = { minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }
 
   if (!listing) {
     return (

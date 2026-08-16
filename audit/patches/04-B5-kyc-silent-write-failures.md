@@ -1,6 +1,6 @@
 # Patch 04 — B5 : échecs silencieux sur écritures KYC/LBA (MOYEN, compliance)
 
-**Fichier** : `src/components/crm-sugar-v3/kyc/KycDossierDetail.tsx`
+**Fichier** : `src/components/crm-dossiers/kyc/KycDossierDetail.tsx`
 
 ## Problème
 `handleMarkVerified` (l.240, `markCheck.mutate`) et `confirmMarkAll` (l.267, `markAll.mutate`) n'ont **aucun

@@ -3,11 +3,11 @@
  * QUE des barreaux MEGGA X ou des teintes sémantiques NOMMÉES.
  *
  * ⛔ POURQUOI CE FICHIER EXISTE. Le plan de ce chantier désignait
- * `crm-sugar-v3/tokens.ts` comme « le vrai second système de jetons ». La mesure
+ * `crm-dossiers/tokens.ts` comme « le vrai second système de jetons ». La mesure
  * a montré autre chose : la fiche n'en importe qu'un formateur de DATE, et la
  * modale d'offre rien du tout. Le second système, ce sont leurs palettes
  * LOCALES — `DsLIGHT/DsDARK` et `OM_LIGHT/OM_DARK` —, quatorze et vingt valeurs
- * recopiées de l'échelle grise de SugarV3, dont :
+ * recopiées de l'échelle grise de DossierTokens, dont :
  *
  *   · le noir Sugar `#0B0C0E`, et sa forme décimale `rgba(11,12,14,…)` que les
  *     gardes de composant interdisent déjà partout ailleurs ;
@@ -27,9 +27,9 @@
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { dsPalette } from '@/components/crm-sugar-v3/dealTokens'
-import { omPalette } from '@/components/crm-sugar-v3/offer-modal/omTokens'
+import { crmPalette } from '@/components/crm/tokens'
+import { dsPalette } from '@/components/crm-dossiers/dealTokens'
+import { omPalette } from '@/components/crm-dossiers/offer-modal/omTokens'
 
 /** Tout ce qu'une palette d'écran a le droit de contenir, sans le nommer. */
 const BARREAUX = new Set<string>([
@@ -79,10 +79,10 @@ const NOIR_SUGAR = /#0B0C0E\b|#0A0A0F\b|#0A0B0D\b|rgba?\(\s*11\s*,\s*12\s*,\s*14
 const GRIS_BLEU = /rgba?\(\s*15\s*,\s*23\s*,\s*42\b/i
 
 const PALETTES = [
-  { nom: 'fiche deal · clair', p: dsPalette(false, crmSugarPalette(false)) as Record<string, string> },
-  { nom: 'fiche deal · sombre', p: dsPalette(true, crmSugarPalette(true)) as Record<string, string> },
-  { nom: 'modale d’offre · clair', p: omPalette(false, crmSugarPalette(false)) as unknown as Record<string, string> },
-  { nom: 'modale d’offre · sombre', p: omPalette(true, crmSugarPalette(true)) as unknown as Record<string, string> },
+  { nom: 'fiche deal · clair', p: dsPalette(false, crmPalette(false)) as Record<string, string> },
+  { nom: 'fiche deal · sombre', p: dsPalette(true, crmPalette(true)) as Record<string, string> },
+  { nom: 'modale d’offre · clair', p: omPalette(false, crmPalette(false)) as unknown as Record<string, string> },
+  { nom: 'modale d’offre · sombre', p: omPalette(true, crmPalette(true)) as unknown as Record<string, string> },
 ]
 
 describe('Pipeline — les palettes d’écran ne portent que des barreaux MEGGA X', () => {
@@ -151,7 +151,7 @@ describe('Pipeline — les palettes d’écran ne portent que des barreaux MEGGA
    */
   it('aucun gris-bleu slate-900 dans les composants du périmètre', () => {
     const fautifs: string[] = []
-    for (const dossier of ['src/components/crm-sugar/pipeline']) {
+    for (const dossier of ['src/components/crm/pipeline']) {
       for (const nom of readdirSync(dossier).filter((n) => /\.tsx?$/.test(n))) {
         const chemin = `${dossier}/${nom}`
         readFileSync(chemin, 'utf-8')
@@ -175,12 +175,12 @@ describe('Pipeline — les palettes d’écran ne portent que des barreaux MEGGA
    * survécu à deux campagnes de retrait.
    */
   it('les palettes dérivent de la palette MEGGA X, elles ne la recopient pas', () => {
-    const clair = dsPalette(false, crmSugarPalette(false))
-    const sombre = dsPalette(true, crmSugarPalette(true))
-    expect(clair.ink).toBe(crmSugarPalette(false).ink)
-    expect(sombre.ink).toBe(crmSugarPalette(true).ink)
-    expect(clair.card).toBe(crmSugarPalette(false).cardBg)
-    expect(sombre.card).toBe(crmSugarPalette(true).cardBg)
+    const clair = dsPalette(false, crmPalette(false))
+    const sombre = dsPalette(true, crmPalette(true))
+    expect(clair.ink).toBe(crmPalette(false).ink)
+    expect(sombre.ink).toBe(crmPalette(true).ink)
+    expect(clair.card).toBe(crmPalette(false).cardBg)
+    expect(sombre.card).toBe(crmPalette(true).cardBg)
     // L'élément ACTIF porte l'accent — la règle du 10 août 2026.
     expect(clair.accent).toBe(MXC_COLOR.accent)
     expect(sombre.accent).toBe(MXC_COLOR.accent)

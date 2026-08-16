@@ -4,40 +4,38 @@
 // Matching) : un pager vertical à deux pages —
 //   Page 0 « Galerie »  (recherche · statut · tri · grille/liste)
 //   Page 1 « À suivre »  (mandats à renouveler · brouillons · [diffusion dormante])
-// Données réelles via useBiensSugar (RLS agency-scopée). Wizard « Créer un bien »
+// Données réelles via useListingsScreen (RLS agency-scopée). Wizard « Créer un bien »
 // embarqué dans le bento ; « Finir/Compléter » ouvre l'édition en place.
 
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import type { CrmBien } from '@/components/crm-sugar/mockData'
-import { mxSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
-import { useBiensSugar } from '@/hooks/useBiensSugar'
-import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { BiensPager } from '@/components/crm-sugar/biens/pager/BiensPager'
-import WizardShell from '@/components/crm-sugar-wizard/WizardShell'
+import { crmPalette } from '@/components/crm/tokens'
+import type { CrmBien } from '@/components/crm/mockData'
+import { mxSurfaces } from '@/components/crm/biens/gallery/galHelpers'
+import { useListingsScreen } from '@/hooks/useListingsScreen'
+import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { BiensPager } from '@/components/crm/biens/pager/BiensPager'
+import WizardShell from '@/components/crm-wizard/WizardShell'
+import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 export default function ListingsPage() {
   const navigate = useNavigate()
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
     }
   }, [dark])
 
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   const surf = mxSurfaces(sp)
 
-  // Source de vérité : Supabase via useBiensSugar (RLS agency-scopée).
-  const { biens, isLoading, isError, refetch } = useBiensSugar()
+  // Source de vérité : Supabase via useListingsScreen (RLS agency-scopée).
+  const { biens, isLoading, isError, refetch } = useListingsScreen()
   // Stable pour la fenêtre d'échéance des mandats (évite le churn de recalcul).
   const now = useMemo(() => new Date(), [])
   // Compte neuf : aucune donnée après chargement → couverture premier lancement.
@@ -46,7 +44,7 @@ export default function ListingsPage() {
   const [wizardOpen, setWizardOpen] = useState(false)
 
   const onCmd = () => { /* placeholder command palette */ }
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onNavigate = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -80,11 +78,11 @@ export default function ListingsPage() {
         color: sp.ink,
       }}
     >
-      <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav active="biens" sp={sp} onNavigate={onNavigate} dark={dark} />
+      <style>{CRM_KEYFRAMES}</style>
+      <CrmTopNav active="biens" sp={sp} onNavigate={onNavigate} dark={dark} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail active="biens" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmIconRail active="biens" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
         <BiensPager
           biens={biens}
           sp={sp}

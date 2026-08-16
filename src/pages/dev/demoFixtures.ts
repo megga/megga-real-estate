@@ -12,10 +12,10 @@
  * et `'house'` de l'autre).
  */
 import type { Property } from '@/types/listing'
-import { CRM_CONTACTS, type CrmContact } from '@/components/crm-sugar/mockData'
+import { CRM_CONTACTS, type CrmContact } from '@/components/crm/mockData'
 import type {
   FicheContact, FicheLoopItem, FicheNba, FicheReceptionLink,
-} from '@/components/crm-sugar/contacts-pager/ContactDetailPager'
+} from '@/components/crm/contacts-pager/ContactDetailPager'
 import type { KycCase, KycDocument } from '@/types/kyc'
 
 export const DEMO_LISTING: Property = {

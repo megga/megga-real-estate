@@ -73,7 +73,7 @@
 
   /* ── COULEURS FONCTIONNELLES — données métier, jamais d'accent UI ───────────
      ⛔ NE PAS LES RECIBLER : elles ENCODENT une information que les neutres ne
-     savent pas porter, même statut que `SG_STAGE_HUE`. Mesurées sur les
+     savent pas porter, même statut que `CRM_STAGE_HUE`. Mesurées sur les
      NOUVELLES surfaces (le reciblage change leur fond, pas leur teinte) : en
      clair `--sys-green` rend 3,58:1 et `--sys-yellow` 4,15:1 sur `--cardsub`.
      Elles ne servent d'ENCRE que dans les pastilles `.tone-*`, où le fond est un

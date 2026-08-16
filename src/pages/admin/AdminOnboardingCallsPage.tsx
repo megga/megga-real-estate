@@ -21,7 +21,7 @@ import {
 import type { AdminToneName } from '@/components/admin/kit/adminKitCore'
 import AdminConfirm from '@/components/admin/AdminConfirm'
 import OnboardingHostForm from '@/components/admin/OnboardingHostForm'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useClientPagination } from '@/hooks/useClientPagination'
 import {
   useAdminOnboardingCalls,
@@ -100,7 +100,7 @@ function CallsTab() {
   // Le namespace `onboarding` s'ajoute pour libeller les réponses de calibrage avec
   // les questions du wizard lui-même : une seule source pour la question ET ses options.
   const { t } = useTranslation(['admin', 'onboarding'])
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<string>('all')
   /** Appel dont la rangée de détail est dépliée — une seule à la fois suffit. */
@@ -383,7 +383,7 @@ function CallsTab() {
 
 function HostsTab() {
   const { t } = useTranslation('admin')
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const { data: hosts, isLoading, isError, refetch } = useAdminOnboardingHosts()
   const setActive = useSetOnboardingHostActive()
   // `null` = fermé ; `'new'` = création ; sinon l'hôte en cours de modification.

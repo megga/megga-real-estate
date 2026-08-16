@@ -30,12 +30,12 @@ import {
   type JournalSeverity,
   type JournalWindow,
 } from '@/hooks/useAdminSecurityJournal'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import {
   AdminCard, AdminEmpty, AdminError, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSkeleton,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 const PER_PAGE = 20
 
@@ -79,7 +79,7 @@ function summarizePairs(pairs: [string, string][] | null): string {
 /** Journal du registre MEGGA : fenêtre, filtre unique (sévérité OU famille), recherche. */
 export default function SecurityRegistryView() {
   const { t } = useTranslation('admin')
-  const { sp, surf, dark } = useAdminSugar()
+  const { sp, surf, dark } = useAdminSurfaces()
   const [win, setWin] = useState<JournalWindow>('today')
   const [filter, setFilter] = useState<JournalFilter>('all')
   const [search, setSearch] = useState('')
@@ -97,7 +97,7 @@ export default function SecurityRegistryView() {
   // (offset), donc rester en page 7 sur un filtre qui n'a que 2 pages rendrait du vide.
   const change = <T,>(set: (v: T) => void) => (v: T) => { set(v); setPage(1) }
 
-  const rowHair = sgVoileEncre(dark, 0.06)
+  const rowHair = crmVoileEncre(dark, 0.06)
 
   return (
     <>

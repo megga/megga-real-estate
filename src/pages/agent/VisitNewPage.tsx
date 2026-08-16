@@ -9,17 +9,17 @@
 // Route : /dashboard/visits/nouveau?bienId=X&contactId=Y
 // Au submit : useCreateAgentVisit → redirect /dashboard/visits/:newId
 
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  sugarV3Palette,
-  SUGAR_V3_KEYFRAMES,
-  type SugarV3Palette,
-} from '@/components/crm-sugar-v3/tokens'
-import { SgIcon } from '@/components/crm-sugar-v3/icons'
-import { useSugarDark } from '@/lib/sugarDark'
+  dossierPalette,
+  DOSSIER_KEYFRAMES,
+  type DossierPalette,
+} from '@/components/crm-dossiers/tokens'
+import { CrmIcon } from '@/components/crm-dossiers/icons'
+import { useCrmDark } from '@/lib/crmDark'
 import { useAgencyProperties } from '@/hooks/useProperties'
 import { useContacts } from '@/hooks/useContacts'
 import { useCreateAgentVisit } from '@/hooks/useVisitDetail'
@@ -34,7 +34,7 @@ const STEP_KEYS = [
  * Style des champs de saisie. Vit au niveau MODULE, donc hors de portée d'un
  * hook : la palette lui est passée en PARAMÈTRE par le composant appelant.
  */
-function makeInputStyle(S: SugarV3Palette): React.CSSProperties {
+function makeInputStyle(S: DossierPalette): React.CSSProperties {
   return {
     width: '100%',
     height: 50,
@@ -60,8 +60,8 @@ function Field({
   hint?: string
   children: React.ReactNode
 }) {
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
   return (
     <div>
       <label
@@ -100,8 +100,8 @@ export default function VisitNewPage() {
   const defaultContactId = params.get('contactId') ?? null
   const dealId = params.get('dealId') ?? null
 
-  const dark = useSugarDark()
-  const S = useMemo(() => sugarV3Palette(dark), [dark])
+  const dark = useCrmDark()
+  const S = useMemo(() => dossierPalette(dark), [dark])
   const inputStyle = useMemo(() => makeInputStyle(S), [S])
 
   const [step, setStep] = useState(0)
@@ -216,7 +216,7 @@ export default function VisitNewPage() {
         fontFamily: S.font,
       }}
     >
-      <style>{SUGAR_V3_KEYFRAMES}</style>
+      <style>{DOSSIER_KEYFRAMES}</style>
 
       <header
         style={{
@@ -243,7 +243,7 @@ export default function VisitNewPage() {
             boxShadow: S.shadowSm,
           }}
         >
-          <SgIcon name="close" size={18} stroke={S.inkSoft} />
+          <CrmIcon name="close" size={18} stroke={S.inkSoft} />
         </button>
         <div style={{ flex: 1 }}>
           <div
@@ -280,12 +280,12 @@ export default function VisitNewPage() {
                       display: 'grid',
                       placeItems: 'center',
                       boxShadow: active
-                        ? `0 0 0 5px ${sgVoileEncre(false, 0.10)}, 0 4px 12px ${sgVoileEncre(false, 0.18)}`
+                        ? `0 0 0 5px ${crmVoileEncre(false, 0.10)}, 0 4px 12px ${crmVoileEncre(false, 0.18)}`
                         : 'none',
                     }}
                   >
                     {done ? (
-                      <SgIcon name="check" size={13} stroke={S.invInk} sw={2.5} />
+                      <CrmIcon name="check" size={13} stroke={S.invInk} sw={2.5} />
                     ) : (
                       i + 1
                     )}
@@ -401,7 +401,7 @@ export default function VisitNewPage() {
                           pointerEvents: 'none',
                         }}
                       >
-                        <SgIcon name="search" size={15} stroke={S.muted} sw={1.8} />
+                        <CrmIcon name="search" size={15} stroke={S.muted} sw={1.8} />
                       </span>
                     </div>
                   </Field>
@@ -450,7 +450,7 @@ export default function VisitNewPage() {
                               placeItems: 'center',
                             }}
                           >
-                            <SgIcon name="home" size={15} stroke={S.invInk} sw={1.8} />
+                            <CrmIcon name="home" size={15} stroke={S.invInk} sw={1.8} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div
@@ -518,7 +518,7 @@ export default function VisitNewPage() {
                           pointerEvents: 'none',
                         }}
                       >
-                        <SgIcon name="search" size={15} stroke={S.muted} sw={1.8} />
+                        <CrmIcon name="search" size={15} stroke={S.muted} sw={1.8} />
                       </span>
                     </div>
                   </Field>
@@ -817,7 +817,7 @@ export default function VisitNewPage() {
                           placeItems: 'center',
                         }}
                       >
-                        <SgIcon name={r.icon} size={14} stroke="#fff" sw={1.8} />
+                        <CrmIcon name={r.icon} size={14} stroke="#fff" sw={1.8} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div
@@ -941,7 +941,7 @@ export default function VisitNewPage() {
                         }}
                       >
                         {opt.v && (
-                          <SgIcon name="check" size={13} stroke={S.invInk} sw={3} />
+                          <CrmIcon name="check" size={13} stroke={S.invInk} sw={3} />
                         )}
                       </div>
                     </button>
@@ -962,7 +962,7 @@ export default function VisitNewPage() {
           gap: 14,
           flexShrink: 0,
           background: S.card,
-          boxShadow: `0 -8px 24px ${sgVoileEncre(false, 0.04)}`,
+          boxShadow: `0 -8px 24px ${crmVoileEncre(false, 0.04)}`,
         }}
       >
         <button
@@ -983,7 +983,7 @@ export default function VisitNewPage() {
             gap: 9,
           }}
         >
-          <SgIcon name="arrowL" size={15} stroke={S.inkSoft} />
+          <CrmIcon name="arrowL" size={15} stroke={S.inkSoft} />
           {step === 0 ? t('visitModal.action.cancel') : t('visitModal.action.back')}
         </button>
         <div style={{ flex: 1 }} />
@@ -1027,12 +1027,12 @@ export default function VisitNewPage() {
               alignItems: 'center',
               gap: 9,
               boxShadow: canContinue
-                ? `0 6px 16px ${sgVoileEncre(false, 0.18)}`
+                ? `0 6px 16px ${crmVoileEncre(false, 0.18)}`
                 : 'none',
             }}
           >
             {t('visitModal.action.continue')}
-            <SgIcon name="arrowR" size={14} stroke="#fff" />
+            <CrmIcon name="arrowR" size={14} stroke="#fff" />
           </button>
         ) : (
           <button
@@ -1052,10 +1052,10 @@ export default function VisitNewPage() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 9,
-              boxShadow: `0 6px 16px ${sgVoileEncre(false, 0.18)}`,
+              boxShadow: `0 6px 16px ${crmVoileEncre(false, 0.18)}`,
             }}
           >
-            <SgIcon name="check" size={14} stroke="#fff" sw={2.5} />
+            <CrmIcon name="check" size={14} stroke="#fff" sw={2.5} />
             {isSaving ? t('visitModal.cta.scheduling') : t('visitModal.cta.schedule')}
           </button>
         )}

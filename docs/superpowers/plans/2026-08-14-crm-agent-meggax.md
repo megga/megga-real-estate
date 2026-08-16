@@ -28,7 +28,7 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory get -k "<clé>" -n megga
 |---|---|
 | `megga/gardes-vacuites` | **La plus importante.** Vingt-deux formes de « garde verte pendant que l'écran est faux », plus huit pièges de sonde. C'est le fichier le plus rentable du cerveau. |
 | `megga/console-admin-meggax` | Le chantier précédent, livré le 14 août. Sa méthode est celle à reprendre, et il a trouvé six formes de garde vacuité de plus. |
-| `megga/pipeline-meggax` | Le chantier d'avant. C'est lui qui a introduit `sgVoileEncre` et le banc par slot. |
+| `megga/pipeline-meggax` | Le chantier d'avant. C'est lui qui a introduit `crmVoileEncre` et le banc par slot. |
 | `megga/da-meggax-crm` | La direction, et l'arbitrage actif/donnée rendu quatre fois. |
 | `megga/reglages-meggax-composition` | ⚠ Dit que les Réglages ont été portés le 10 août. **C'est vrai pour la COMPOSITION et faux pour la COULEUR** — voir §2. |
 | `megga/today-v2-concept-h` | « Aujourd'hui » est une page NEUVE installée récemment ; savoir ce qu'elle est avant de la repeindre. |
@@ -52,11 +52,11 @@ le cliquet **est** la définition de « porté ».
 La source de vérité est `ZONES` + `PAGES` dans `megga-x-grammar.spec.ts` : une
 zone absente n'est pas déclarée propre, elle est déclarée **non traitée**.
 
-**Déjà porté** (14 racines, 9 pages nommées) : `crm-sugar-wizard`,
-`crm-sugar/biens`, `crm-sugar/contacts-pager`, `crm-sugar/pipeline`,
-`crm-sugar-v3/vitrine`, `crm-sugar-v3/offer-modal`, `crm-mobile`,
+**Déjà porté** (14 racines, 9 pages nommées) : `crm-wizard`,
+`crm/biens`, `crm/contacts-pager`, `crm/pipeline`,
+`crm-dossiers/vitrine`, `crm-dossiers/offer-modal`, `crm-mobile`,
 `matching-recherche`, `matching-atelier`, `pages/admin`, `components/admin`,
-plus `SugarShell.tsx` et trois fichiers de `crm-sugar-v3`.
+plus `CrmShell.tsx` et trois fichiers de `crm-dossiers`.
 
 ### Ce qui reste — 773 marqueurs, 113 fichiers, 37 133 lignes
 
@@ -121,7 +121,7 @@ marqueurs de grammaire y sont.
 
 ### ⛔ FAIT STRUCTURANT n° 2 — « Aujourd'hui » est la plus grosse, et la plus récente
 
-`crm-sugar/today` : **20 fichiers, 5 548 lignes, 134 marqueurs**, dont
+`crm/today` : **20 fichiers, 5 548 lignes, 134 marqueurs**, dont
 **94 graisses ≥ 700**. C'est le dossier le plus lourd du reste, et c'est aussi le
 plus RÉCEMMENT écrit (« concept H », page 0 installée).
 
@@ -140,7 +140,7 @@ Il en reste **deux non gardées** :
 | Feuille | Lignes | Hex | Lecteurs |
 |---|---|---|---|
 | `src/styles/megga-x-additions.css` | 1 335 | **8** | 10 fichiers, dont `MxModal`, `MxField`, l'onboarding identité |
-| `src/components/crm-sugar-v3/responsive.css` | 94 | **0** | `main.tsx` |
+| `src/components/crm-dossiers/responsive.css` | 94 | **0** | `main.tsx` |
 
 `responsive.css` ne porte aucune couleur — il est probablement sans risque, mais
 le VÉRIFIER plutôt que le supposer. `megga-x-additions.css` en porte huit et sert
@@ -149,11 +149,11 @@ la coquille d'identité : **c'est le candidat sérieux**.
 ### ⛔ FAIT STRUCTURANT n° 4 — le chrome partagé est rendu partout, et il n'est gardé nulle part
 
 `search` (18), `notifications` (14), `profile` (5), `LiquidGlassRail.tsx` (2),
-`crm-sugar/tokens.ts` (3), `crm-sugar-v3/primitives.tsx` (10),
-`crm-sugar-v3/tokens.ts` (6) — **58 marqueurs sur des surfaces rendues par les
+`crm/tokens.ts` (3), `crm-dossiers/primitives.tsx` (10),
+`crm-dossiers/tokens.ts` (6) — **58 marqueurs sur des surfaces rendues par les
 28 écrans du CRM**, y compris les onze déjà portés.
 
-⚠ `crm-sugar/tokens.ts` et `crm-sugar-v3/tokens.ts` sont des fichiers de JETONS :
+⚠ `crm/tokens.ts` et `crm-dossiers/tokens.ts` sont des fichiers de JETONS :
 ce qu'ils portent rayonne. Trois noirs de Sugar dans le premier, quatre gris-bleus
 et deux noirs dans le second.
 
@@ -165,11 +165,11 @@ vérifie sur au moins deux bancs, pas un.
 - **Huit bancs** existent : `/dev/pipeline`, `/dev/biens`, `/dev/contacts`,
   `/dev/matching-atelier`, `/dev/mobile`, `/dev/modales`, `/dev/onboarding`,
   `/dev/admin`. **Aucune** des dix surfaces restantes n'en a un.
-- **`graphite-scale.spec.ts` couvre déjà** `SugarV2` (wizard), `TK` (Aujourd'hui),
+- **`graphite-scale.spec.ts` couvre déjà** `WizardTokens` (wizard), `TK` (Aujourd'hui),
   `buildCalPalette` (Calendrier), `SET_PALETTE` (Réglages), `VxSP` (fiche bien),
   `MT` (mobile) et la console. La dette de couleur restante n'est donc **pas**
   Graphite : c'est le **noir de Sugar** et le **gris-bleu slate-900**.
-- **`sgVoileEncre(dark, alpha)`** existe et nomme le rôle par lequel le gris-bleu
+- **`crmVoileEncre(dark, alpha)`** existe et nomme le rôle par lequel le gris-bleu
   rentre à chaque fois. Ne pas ré-inventer, ne pas se contenter d'interdire le hex.
 - **`encreSur(aplat)`** existe et dérive l'encre d'un aplat. Toute pilule pleine
   doit l'appeler.
@@ -220,7 +220,7 @@ ne le sont pas.
   sur au moins deux bancs existants avant de toucher aux surfaces neuves.
 - **À la fin** : chaque banc construit d'ici là sert de témoin supplémentaire.
 
-⚠ Quelle que soit la réponse : `crm-sugar/tokens.ts` est un fichier de jetons lu
+⚠ Quelle que soit la réponse : `crm/tokens.ts` est un fichier de jetons lu
 par tout le CRM. Le toucher en dernier lot serait le toucher quand plus personne
 ne regarde.
 
@@ -254,7 +254,7 @@ Par ordre de poids décroissant, chacune livrable seule :
 Réglages (43), chrome partagé (26), Calendrier (12), Julien (11), Parcours (6),
 Reste (6), Audit (1). Une seule cible : le **noir de Sugar** et le **gris-bleu**,
 tous deux entrant par une fraction d'opacité, tous deux nommés par
-`sgVoileEncre`. ⚠ Julien porte en plus 29 grammaires — il n'appartient pas
+`crmVoileEncre`. ⚠ Julien porte en plus 29 grammaires — il n'appartient pas
 vraiment à cette vague ; le vérifier.
 
 ### Vague C — les gardes, et c'est le livrable qui dure
@@ -303,7 +303,7 @@ Plus, propre à tout chantier de rendu :
 ## §6 — Ce que ce plan ne fait PAS
 
 - **Il ne touche à aucun backend.** C'est un chantier de rendu.
-- **Il ne renomme pas `crmSugarPalette`, `useAdminSugar`, ni les dossiers
+- **Il ne renomme pas `crmPalette`, `useAdminSurfaces`, ni les dossiers
   `crm-sugar*`.** Les noms ont survécu à la direction qu'ils servaient ; les
   changer est un geste lexical à part, qui touche des centaines d'imports.
 - **Il ne touche pas au CRM mobile** (`crm-mobile`), porté en entier le 12 août.

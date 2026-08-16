@@ -26,7 +26,7 @@ import {
   AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPager, AdminPill, AdminSearchInput, AdminSegmentBtn, AdminSkeleton, AdminStat, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 
 const ITEMS_PER_PAGE = 15
 
@@ -55,7 +55,7 @@ const CLIP = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap
 
 /** Vignette d'annonce — photo de couverture, ou surface creuse à l'icône si l'annonce n'en a pas. */
 function Thumb({ src, width, height }: { src?: string; width: number; height: number }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   if (src) {
     return (
       <img
@@ -103,7 +103,7 @@ function EmptyState({ hasFilters }: { hasFilters: boolean }) {
 /** Page de modération : recherche + filtre statut, table responsive, dialog de confirmation. */
 export default function AdminModerationPage() {
   const { t } = useTranslation('admin')
-  const { sp, surf, dark, tones } = useAdminSugar()
+  const { sp, surf, dark, tones } = useAdminSurfaces()
   const { listings, isLoading, isError, refetch, stats, statsLoading, moderate } = useAdminModeration()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')

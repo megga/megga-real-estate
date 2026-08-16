@@ -2,7 +2,7 @@
 // vers les clés i18n, libellés. Tons fonctionnels (pastilles data-only), jamais
 // l'accent UI.
 
-import type { CrmBien } from '@/components/crm-sugar/mockData'
+import type { CrmBien } from '@/components/crm/mockData'
 
 // Union couvrant les DEUX sources : CrmBien (galerie démo, a 'paused') ET
 // Property/PropertyStatus (fiche live, a 'archived'). Évite le trou du cast

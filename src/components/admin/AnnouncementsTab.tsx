@@ -17,7 +17,7 @@ import {
   AdminCard, AdminEmpty, AdminError, AdminIc, AdminPill, AdminSkeleton, AdminSolidBtn,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 
 /** Ton de pilule de la sévérité d'une annonce (critique = err, avertissement = warn). */
 function severityTone(severity: Announcement['severity']): AdminToneName {
@@ -31,7 +31,7 @@ function severityTone(severity: Announcement['severity']): AdminToneName {
 /** Onglet « Annonces » : liste des annonces in-app, avec publication, édition et suppression. */
 export default function AnnouncementsTab() {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const { announcements, isLoading, isError, refetch, update, remove } = useAnnouncementsAdmin()
   const toast = useToast()
   // Annonce dont la suppression attend confirmation (`null` = aucune).

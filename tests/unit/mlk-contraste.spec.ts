@@ -5,10 +5,10 @@
  * ── POURQUOI CE FICHIER EXISTE ───────────────────────────────────────────────
  * ⛔ `MLK` n'était gardée par RIEN, et c'est STRUCTUREL (voir
  * `megga/gardes-vacuites` n° 38). Les huit specs de contraste du dépôt gardent
- * chacune une ZONE — admin, biens, contacts, matching, pipeline, kyc, SugarV3,
+ * chacune une ZONE — admin, biens, contacts, matching, pipeline, kyc, DossierTokens,
  * analytics. Un objet de jetons n'EST pas une zone : il est lu PAR les zones, et
  * tombe entre les mailles. C'est le TROISIÈME exemplaire du motif après
- * `SugarV3` et `AX`.
+ * `DossierTokens` et `AX`.
  *
  * ⚠ ET ICI LE CLIQUET DE GRAMMAIRE NE RATTRAPE MÊME PAS À MOITIÉ. Sur les deux
  * chantiers précédents il balayait déjà le dossier et ne mesurait que la
@@ -28,7 +28,7 @@
  *   · `muted` (#7A8088) — 17 emplois en `color:`, 3,98:1 sur la carte et 3,75:1
  *     sur la sous-surface. C'est la TROISIÈME fois que cette valeur exacte est
  *     mesurée sous l'AA : le Pipeline l'avait trouvée copiée dans trois palettes
- *     (lot 1, 13 août), le KYC dans `SugarV3.muted`. Elle n'avait jamais été
+ *     (lot 1, 13 août), le KYC dans `DossierTokens.muted`. Elle n'avait jamais été
  *     cherchée ici.
  *   · `ghost` (#B5BAC2) EN ENCRE — 1,95:1 sur la carte. Un seul site, et c'est
  *     le LIBELLÉ d'un bouton désactivé : le mot qui dit pourquoi on ne peut pas
@@ -49,7 +49,7 @@
  *    lecture à la ligne classait `${MLK.black}` d'un `boxShadow` en « autre »,
  *    et `stroke={MLK.ink}` d'un attribut JSX en « autre » aussi.
  * 3. Elle résout la LIAISON, jamais le nom de clé (n° 31). `muted` seul trouve
- *    des centaines de sites sous `tk.`, `SugarV3.`, `sp.` — corriger sur cette
+ *    des centaines de sites sous `tk.`, `DossierTokens.`, `sp.` — corriger sur cette
  *    lecture repeindrait le CRM depuis un lot qui regarde la face publique.
  * 4. Elle REFUSE une couleur qu'elle ne sait pas lire au lieu de la sauter
  *    (n° 14/17/40), et ses exemptions sont ÉNUMÉRÉES, jamais devinées par une
@@ -355,7 +355,7 @@ const NON_COULEURS: Record<string, string> = {
  * ⚠ LE MOTIF QUI DIT « CETTE FACE A GAGNÉ UN THÈME ». Il rend zéro aujourd'hui
  * sur les six fichiers, `mlkTokens.ts` compris.
  */
-const MOTIF_THEME = /\bdark\b|prefers-color-scheme|useDarkTone|useCrmDa|matchMedia|colorScheme|crmSugarPalette|mxCrmPalette/i
+const MOTIF_THEME = /\bdark\b|prefers-color-scheme|useDarkTone|useCrmDa|matchMedia|colorScheme|crmPalette|mxCrmPalette/i
 
 describe('Contraste MLK — l’objet de jetons des deux faces publiques', () => {
   /** Sans lui, tout le reste passerait par vacuité sur un balayage cassé. */

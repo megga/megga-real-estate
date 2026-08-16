@@ -17,7 +17,7 @@
  * l'implémentation fautive, et ne prouverait rien.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { birthDate } from '@/components/crm-sugar-identity/steps/StepRecapitulatif'
+import { birthDate } from '@/components/crm-identity/steps/StepRecapitulatif'
 
 const originalTZ = process.env.TZ
 

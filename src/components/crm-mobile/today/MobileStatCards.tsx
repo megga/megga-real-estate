@@ -4,9 +4,9 @@
  */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { usePipelineSugar } from '@/hooks/usePipelineSugar'
+import { usePipelineScreen } from '@/hooks/usePipelineScreen'
 import { useAxDashboardData } from '@/hooks/useAxDashboardData'
-import { axPace } from '@/components/crm-sugar/analytics/tokens'
+import { axPace } from '@/components/crm/analytics/tokens'
 import { useMobileTokens } from '../useMobileTokens'
 
 /** Jauge circulaire SVG (0-100 %, clampé) : anneau + arc de progression animé, pourcentage centré. */
@@ -56,14 +56,14 @@ function Ring({ pct, color }: { pct: number; color: string }) {
 
 /**
  * Cartes statistiques du cockpit : Pipeline (cumul live des deals actifs) +
- * Objectif (jauge projetée). Câblé `usePipelineSugar` + `useAxDashboardData`
+ * Objectif (jauge projetée). Câblé `usePipelineScreen` + `useAxDashboardData`
  * (mêmes hooks que le desktop, dédupés par React Query). Empty-states honnêtes ;
  * seeds uniquement derrière `demo`.
  */
 export function MobileStatCards({ demo = false }: { demo?: boolean }) {
   const { t } = useTranslation('dashboard')
   const { tk } = useMobileTokens()
-  const { deals } = usePipelineSugar()
+  const { deals } = usePipelineScreen()
   const { data: ax } = useAxDashboardData('year', 'me')
 
   const active = deals.filter((d) => d.stage !== 'lost')

@@ -27,8 +27,8 @@ import type {
 } from '@/types/kyc'
 import ContactSeal from '../contacts/ContactSeal'
 import { avatarColor, fmtDateFull } from '../contacts/detailShared'
-import SgToast from '../primitives/SgToast'
-import { useSgToast } from '../primitives/useSgToast'
+import CrmToast from '../primitives/CrmToast'
+import { useCrmToast } from '../primitives/useCrmToast'
 import { MOBILE_FONT, type MobileTokens } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -126,7 +126,7 @@ export function MobileKycDetailScreen({ demo = false }: { demo?: boolean }) {
 
   const [tab, setTab] = useState<TabId>('synthese')
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const { toast, showToast } = useSgToast()
+  const { toast, showToast } = useCrmToast()
 
   // nLPD art. 12 — log d'accès consultation (une fois par montage, ref-guardé,
   // LIVE seulement). Même règle que la fiche desktop.
@@ -257,7 +257,7 @@ export function MobileKycDetailScreen({ demo = false }: { demo?: boolean }) {
       </div>
 
       {confirmOpen && <ConfirmMarkAllOverlay ctx={ctx} dossier={dossier} pending={markAll.isPending} onCancel={() => setConfirmOpen(false)} onConfirm={confirmMarkAll} />}
-      <SgToast toast={toast} />
+      <CrmToast toast={toast} />
       <style>{'@keyframes kycmRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}'}</style>
     </div>
   )

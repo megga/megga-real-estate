@@ -25,7 +25,7 @@ import { readFileSync } from 'node:fs'
 import { mxCrmPalette } from '@/components/megga-x-crm/tokens'
 import { repoPath } from './helpers/fs-scan'
 
-const COMPOSANT = 'src/components/crm-sugar/EtatVide.tsx'
+const COMPOSANT = 'src/components/crm/EtatVide.tsx'
 const source = readFileSync(repoPath(COMPOSANT), 'utf-8')
 
 /** Les encres, relues DANS le composant — jamais recopiées ici. */
@@ -154,7 +154,7 @@ describe('État vide — un idiome, trois registres', () => {
    *  · `RelanceSession` pose un cadre en TIRETS avec un appel à l'action. Le
    *    tireté dit « quelque chose vient ici » — c'est une invitation, pas un
    *    constat d'absence.
-   *  · `SgaEmptyState` (atelier) est un ÉCRAN vide dessiné : quatorze libellés,
+   *  · `AtlEmptyState` (atelier) est un ÉCRAN vide dessiné : quatorze libellés,
    *    une file, une annonce et un panneau « pourquoi ». Le réduire à un titre
    *    et une phrase supprimerait ce qu'il explique.
    * Les couvertures de premier lancement (`*FirstRun`) sont hors sujet : elles
@@ -162,16 +162,16 @@ describe('État vide — un idiome, trois registres', () => {
    */
   it('les surfaces migrées passent par EtatVide', () => {
     const ACQUISES = [
-      'src/components/crm-sugar/today/PageAujourdhuiH.tsx',
-      'src/components/crm-sugar/today/PageCatalogue.tsx',
-      'src/components/crm-sugar/pipeline/PipelineTimeline.tsx',
+      'src/components/crm/today/PageAujourdhuiH.tsx',
+      'src/components/crm/today/PageCatalogue.tsx',
+      'src/components/crm/pipeline/PipelineTimeline.tsx',
       'src/pages/agent/PipelinePage.tsx',
-      'src/components/crm-sugar/contacts-pager/ContactsPager.tsx',
-      'src/components/crm-sugar/contacts-pager/ContactDetailPager.tsx',
-      'src/components/crm-sugar/notifications/SugarNotificationsPopover.tsx',
-      'src/components/crm-sugar/biens/pager/BpTopGallery.tsx',
-      'src/components/crm-sugar/settings/SecuritySection.tsx',
-      'src/components/crm-sugar-v3/kyc-wizard/KwStepContact.tsx',
+      'src/components/crm/contacts-pager/ContactsPager.tsx',
+      'src/components/crm/contacts-pager/ContactDetailPager.tsx',
+      'src/components/crm/notifications/CrmNotificationsPopover.tsx',
+      'src/components/crm/biens/pager/BpTopGallery.tsx',
+      'src/components/crm/settings/SecuritySection.tsx',
+      'src/components/crm-dossiers/kyc-wizard/KwStepContact.tsx',
       // Lot 4 du chantier KYC (16 août 2026). Les deux surfaces du pager
       // écrivaient leur vide à la main — une ligne alignée à gauche dans la
       // table, un bloc centré dans chaque colonne de la Vigie — soit deux
@@ -182,9 +182,9 @@ describe('État vide — un idiome, trois registres', () => {
       // `agencies`, donc le KYC tombait sur le mur d'identité et montrait
       // « Vérifiez l'identité de votre agence ». On croyait regarder une
       // surface, on regardait une garde. Le banc garde désormais un SOCLE.
-      'src/components/crm-sugar-v3/kyc-pager/KycListPage.tsx',
-      'src/components/crm-sugar-v3/kyc-pager/KycVigiePage.tsx',
-      'src/components/crm-sugar/analytics/AxDashboard.tsx',
+      'src/components/crm-dossiers/kyc-pager/KycListPage.tsx',
+      'src/components/crm-dossiers/kyc-pager/KycVigiePage.tsx',
+      'src/components/crm/analytics/AxDashboard.tsx',
       'src/components/matching-recherche/MatchingRechercheHybride.tsx',
     ]
     // ⛔ ON CHERCHE L'USAGE, PAS LE NOM. La première version testait

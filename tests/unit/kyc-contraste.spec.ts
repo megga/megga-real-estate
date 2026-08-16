@@ -20,8 +20,8 @@
  *
  * ⚠ **14, PAS 23** — et l'écart est instructif. Un premier comptage avait trouvé
  * 23 `color:` contenant `.muted` dans les quatre zones du KYC. Neuf d'entre eux
- * sont `SugarV3.muted` (`MlkAgentModal`), une palette DIFFÉRENTE qui porte par
- * hasard le même littéral `#7A8088`. Elle vit dans `crm-sugar-v3/tokens.ts`, hors
+ * sont `DossierTokens.muted` (`MlkAgentModal`), une palette DIFFÉRENTE qui porte par
+ * hasard le même littéral `#7A8088`. Elle vit dans `crm-dossiers/tokens.ts`, hors
  * du cliquet, et alimente onze pages au-delà du KYC : la corriger ici aurait
  * repeint l'Audit, les Visites et l'Import lead depuis un lot qui ne regarde que
  * le KYC. Elle attend son propre lot. Une garde qui cherche un NOM DE CLÉ trouve
@@ -59,10 +59,10 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
-import { KYC_LIGHT, buildKycPalette, type KycPalette } from '@/components/crm-sugar-v3/kyc/kycPalette'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { KYC_LIGHT, buildKycPalette, type KycPalette } from '@/components/crm-dossiers/kyc/kycPalette'
+import { crmPalette } from '@/components/crm/tokens'
 import { encreSur } from '@/components/megga-x-crm/tokens'
-import { kypSurf } from '@/components/crm-sugar-v3/kyc-pager/kypTokens'
+import { kypSurf } from '@/components/crm-dossiers/kyc-pager/kypTokens'
 
 const AA = 4.5
 /** Seuil des éléments NON textuels (WCAG 1.4.11) — une forme, un filet, une pastille. */
@@ -113,7 +113,7 @@ const arrondi = (n: number) => Math.round(n * 100) / 100
 /* ─── Les deux palettes, et leurs surfaces par thème ─────────────────────────── */
 
 const CLAIR = KYC_LIGHT
-const SOMBRE = buildKycPalette(true, crmSugarPalette(true))
+const SOMBRE = buildKycPalette(true, crmPalette(true))
 
 /**
  * Les surfaces sur lesquelles une encre KYC peut se poser, ÉNUMÉRÉES par thème.
@@ -130,9 +130,9 @@ const THEMES: { nom: string; p: KycPalette; surfaces: Record<string, string> }[]
 /* ─── L'inventaire des ENCRES, confronté à la source ─────────────────────────── */
 
 const ZONES = [
-  'src/components/crm-sugar-v3/kyc',
-  'src/components/crm-sugar-v3/kyc-pager',
-  'src/components/crm-sugar-v3/kyc-wizard',
+  'src/components/crm-dossiers/kyc',
+  'src/components/crm-dossiers/kyc-pager',
+  'src/components/crm-dossiers/kyc-wizard',
 ]
 const FICHIERS = [
   'src/pages/agent/KycPage.tsx',
@@ -149,11 +149,11 @@ const SOURCE = FICHIERS.map((n) => ({ nom: n, code: sansCommentaires(readFileSyn
  * ⛔ UNE GARDE QUI CHERCHE UN NOM DE CLÉ TROUVE N'IMPORTE QUEL OBJET. Première
  * version : elle cherchait `.muted` n'importe où dans un `color:`. Or trois
  * palettes différentes du KYC portent des clés HOMONYMES —
- * `SugarV3` (`crm-sugar-v3/tokens.ts`), `KypSurf` (`kypTokens.ts`) et
+ * `DossierTokens` (`crm-dossiers/tokens.ts`), `KypSurf` (`kypTokens.ts`) et
  * `KycPalette`. Mesuré : sur 23 `color:` contenant `.muted`, **9 sont
- * `SugarV3.muted`** (dans `MlkAgentModal`) et 14 seulement sont la palette KYC.
+ * `DossierTokens.muted`** (dans `MlkAgentModal`) et 14 seulement sont la palette KYC.
  * Elle accusait aussi `okDark`, qui n'a ZÉRO usage côté KYC — ses deux seuls
- * emplois sont des `stroke=` sur `SugarV3`. Corriger sur cette lecture aurait
+ * emplois sont des `stroke=` sur `DossierTokens`. Corriger sur cette lecture aurait
  * repeint la mauvaise palette, donc quatre écrans hors périmètre.
  *
  * La résolution passe donc par la LIAISON : `const <nom> = useKycPalette()`.
@@ -355,7 +355,7 @@ describe('Contraste KYC — les deux thèmes, les rôles énumérés', () => {
    * la porter.
    */
   it('chaque couleur de la palette descend de MEGGA X, sauf celles qui encodent', () => {
-    const src = readFileSync('src/components/crm-sugar-v3/kyc/kycPalette.ts', 'utf-8')
+    const src = readFileSync('src/components/crm-dossiers/kyc/kycPalette.ts', 'utf-8')
     const clair = src.slice(src.indexOf('export const KYC_LIGHT'), src.indexOf('export function buildKycPalette'))
     const sombre = src.slice(src.indexOf('return {', src.indexOf('if (!dark) return KYC_LIGHT')))
 

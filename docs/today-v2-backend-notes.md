@@ -22,9 +22,9 @@ bloc, overlay groupé).
 | Bloc | Source |
 |---|---|
 | prénom de l'en-tête | `useAuth().profile.full_name` |
-| la journée + fenêtre libre | `useCalendarSugar` (visites ∪ rappels ∪ RDV), fenêtre dérivée |
+| la journée + fenêtre libre | `useCalendarScreen` (visites ∪ rappels ∪ RDV), fenêtre dérivée |
 | What's new | `get_agent_changelog` |
-| total du Pipeline | `usePipelineSugar` |
+| total du Pipeline | `usePipelineScreen` |
 
 **✅ Lot 1 livré** — « Pendant ton absence » est vivant : réactions acheteur
 bornées par la présence, rappels échus de l'agence, groupés par nature.
@@ -42,7 +42,7 @@ Garde-fou : [tests/unit/today-h-day.spec.ts](../tests/unit/today-h-day.spec.ts)
 
 ⚠️ **L'ancien cockpit `PageAujourdhui` n'est plus rendu, mais reste au dépôt.**
 C'est lui qui porte le câblage Supabase vivant (`useFocusQueue`, `AgendaTile`
-sur `useCalendarSugar`, `PipelineTile`, `ObjectifTile`, `RelancesTile`). Il est
+sur `useCalendarScreen`, `PipelineTile`, `ObjectifTile`, `RelancesTile`). Il est
 exempté du garde-fou code mort avec ce motif, dans
 [scripts/check-dead-exports.mjs](../scripts/check-dead-exports.mjs). Le supprimer
 avant d'avoir hydraté le concept H reviendrait à jeter le câblage qu'il faut
@@ -83,10 +83,10 @@ partiellement · `❌` = à construire.
 | `kpis` | ✅ | `analytics_cockpit` (RPC) |
 | `objectif` | ✅ | `analytics_objectif` + `analytics_set_target` |
 | `catalogue` | ✅ à ~95 % | `focus_top_matches` (gating + cap + anti-IDOR **en SQL**) |
-| `day.blocks` | 🔶 | la fusion 3 sources est **déjà écrite** : `useCalendarSugar` (visits ∪ reminders ∪ appointments) |
+| `day.blocks` | 🔶 | la fusion 3 sources est **déjà écrite** : `useCalendarScreen` (visits ∪ reminders ∪ appointments) |
 | `day.free_windows` | 🔶 | `_shared/booking-slots.ts` — algorithme écrit **et testé**, mais derrière un endpoint public à jeton |
 | `news` | 🔶 | `get_agent_changelog(p_limit)` — **déjà livré, aucun appelant** |
-| `hot_deals` | 🔶 | deux sources partielles (`usePipelineSugar`, contacts `hot`/`warm`) ; aucun classement « dossier chaud » |
+| `hot_deals` | 🔶 | deux sources partielles (`usePipelineScreen`, contacts `hot`/`warm`) ; aucun classement « dossier chaud » |
 | `listing_actions` | 🔶 | `property_syndications` réelle, mais les actions agent sont en **localStorage** (`useExternalListingActions`) |
 | `relance` | 🔶 | `useRelanceLeads` réel ; la **session** n'est persistée nulle part |
 | `absence` | ❌ | **zéro backend** — ni table, ni colonne, ni concept |
@@ -146,7 +146,7 @@ Trois sont réellement à construire : `presence_touch`, `signal_ack`,
    porte authentifiée qui réutilise `computeSlots`, surtout pas assouplir celle-ci.
 
 6. **`dur_min` : le code actuel ment, et son commentaire aussi.**
-   `useCalendarSugar.ts:68` force 1 h « à raffiner si la table porte une durée » —
+   `useCalendarScreen.ts:68` force 1 h « à raffiner si la table porte une durée » —
    or `visits.duration_minutes` **existe**. Hydrater sans corriger graverait un
    60 min inventé dans le payload serveur. Et `reminders` n'aura jamais de durée
    honnête : assumer un `null`, pas les 30 min forcées.
@@ -174,7 +174,7 @@ dans le Lot 0 comme le reste. Or c'est le seul bloc à **zéro backend**, et le
 plus visible de la page. Il mérite son propre lot.
 
 **Lot 0 — hydrater ce qui existe déjà (aucune table nouvelle). ✅ FAIT.**
-`day.blocks` (via `useCalendarSugar`, `duration_minutes` corrigé au passage — la
+`day.blocks` (via `useCalendarScreen`, `duration_minutes` corrigé au passage — la
 colonne existait et le code forçait 1 h) · `news` (via `get_agent_changelog`) ·
 total du Pipeline · deep-links `navigate(id, ref)`.
 ⚠️ `kpis`, `objectif` et `catalogue` ne sont **pas** de ce lot : le concept H ne

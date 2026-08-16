@@ -15,10 +15,10 @@ import { type ReactNode, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
-import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
+import { crmPalette } from '@/components/crm/tokens'
+import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
+import { openCrmSearch } from '@/components/crm/search/openSearch'
 import { useAuth } from '@/hooks/useAuth'
 import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useContactSentMatches } from '@/hooks/useContactSentMatches'
@@ -27,16 +27,17 @@ import { useKycDossierByContact, useInvalidateKycForContact } from '@/hooks/useK
 import type { Contact } from '@/types/contact'
 import { buildSearchCriteria, parseSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
 import { formatSwissDate, identityToColumns } from '@/lib/contactIdentity'
-import { pickAvatarBg } from '@/lib/sugarAdapters'
+import { pickAvatarBg } from '@/lib/crmAdapters'
 import { supabase } from '@/lib/supabase'
 import ContactDetailPager, {
   type FicheContact,
   type FicheNba,
   type FicheRevokeResult,
-} from '@/components/crm-sugar/contacts-pager/ContactDetailPager'
+} from '@/components/crm/contacts-pager/ContactDetailPager'
 import { useContactNextAction } from '@/hooks/useContactNextAction'
 import { useContactConsent, useSetDoNotContact, useSendOptinInvite } from '@/hooks/useContactConsent'
 import { nbaToI18n } from '@/lib/contactNba'
+import { readCrmDark } from '@/lib/crmDark'
 
 export default function ContactDetailPage() {
   const { id = '' } = useParams()
@@ -46,12 +47,9 @@ export default function ContactDetailPage() {
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
 
   const { data: fetched, isLoading } = useContact(id)
   // La suppression retire la ligne du cache : sans cet instantané pris juste avant
@@ -74,13 +72,13 @@ export default function ContactDetailPage() {
   const del = useDeleteContact()
   const invalidateKyc = useInvalidateKycForContact()
   const qc = useQueryClient()
-  // La liste (useContactsSugar) est un useQuery « plain » ['contacts-sugar'] que
+  // La liste (useContactsScreen) est un useQuery « plain » ['contacts-screen'] que
   // les mutations cache-helpers n'invalident PAS → on la rafraîchit à la main
   // après chaque écriture (sinon suppression = ligne fantôme, édition non reflétée).
-  const refreshList = () => { void qc.invalidateQueries({ queryKey: ['contacts-sugar'] }) }
+  const refreshList = () => { void qc.invalidateQueries({ queryKey: ['contacts-screen'] }) }
 
-  const onCmd = () => openSugarSearch()
-  const onNavigate = (screen: SugarScreenId | string) => {
+  const onCmd = () => openCrmSearch()
+  const onNavigate = (screen: CrmScreenId | string) => {
     switch (screen) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -101,9 +99,9 @@ export default function ContactDetailPage() {
       position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
       display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
-      <SugarTopNav active="contacts" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
+      <CrmTopNav active="contacts" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail active="contacts" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmIconRail active="contacts" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
         {inner}
       </div>
     </div>

@@ -44,7 +44,7 @@
  * ouvre sa feuille sans minter de lien.
  */
 import { createContext, useContext, useMemo, useState } from 'react'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmPalette } from '@/components/crm/tokens'
 import AtelierStage from '@/components/matching-atelier/AtelierStage'
 import MatchingFirstRun from '@/components/matching-atelier/MatchingFirstRun'
 import type { AtelierGestes, PendingHandle } from '@/components/matching-atelier/pendingTriage'
@@ -154,7 +154,7 @@ function Chrome({ dark }: { dark: boolean }) {
   // donc sur leur pastille : même piège que `/dev/biens`, qui ne montrait jamais
   // la pastille de score, à ceci près qu'ici c'est le banc qui masque.
   const [replie, setReplie] = useState(false)
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   const pilule = (actif: boolean) => ({
     border: 0, cursor: 'pointer', fontFamily: 'inherit',
     padding: 'var(--crm-space-xs) var(--crm-space-lg)',

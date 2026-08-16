@@ -10,12 +10,12 @@
 // (MrhExtDetail) et la vue Carte arrivent en incrément C (clic carte → portail
 // pour l'instant). « Proches des critères » aussi.
 
-import EtatVide from '@/components/crm-sugar/EtatVide'
+import EtatVide from '@/components/crm/EtatVide'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmPalette } from '@/components/crm/tokens'
 import { useToast } from '@/components/ui/Toast'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useAuth } from '@/hooks/useAuth'
@@ -92,7 +92,7 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
   const { profile } = useAuth()
   const sendSel = useSendReceptionSelection()
   const ai = useAiPanel()
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   const surf: MrhSurf = {
     card: dark ? sp.cardBg : '#FFFFFF',
     // `cardSub` = fond des vignettes photo (et leur repli) → palier « sous-card ».

@@ -14,12 +14,12 @@
  * sombre, le reset Webflow complet et ~260 Ko de feuille. Le CRM ne peut pas
  * vivre dedans. On recopie donc les valeurs, et le test garde la copie honnête.
  *
- * `mxCrmPalette()` rend une `SugarPalette` — le nom du TYPE a survécu à la
+ * `mxCrmPalette()` rend une `CrmPalette` — le nom du TYPE a survécu à la
  * direction Sugar, parce que 33 points de construction et toute l'arborescence
  * qui la reçoit en prop s'appuient dessus. Le renommer est un nettoyage à part.
  */
 
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import type { CrmPalette } from '@/components/crm/tokens'
 
 /** Neutres et accents, verbatim des variables de la vitrine. */
 export const MXC_COLOR = {
@@ -95,7 +95,7 @@ export const MXC_CARD_SHADOW = '0 2px 6px #15086b21'
  * `parseInt('rg', 16)` vaut `NaN`, donc la luminance vaut `NaN`, donc `encreSur`
  * compare deux `NaN` et rend une encre — la mauvaise — sans lever d'erreur.
  * Mesuré : `encreSur('rgb(65, 77, 161)')` rendait l'encre SOMBRE sur un bleu
- * foncé. `sgMix` rendait précisément ce format. Même famille que la n° 1 de
+ * foncé. `crmMix` rendait précisément ce format. Même famille que la n° 1 de
  * `megga/gardes-vacuites` (le motif qui ne connaît qu'une notation), mais côté
  * production : ici ça ne rate pas un défaut, ça en fabrique un.
  */
@@ -143,7 +143,7 @@ export function encreSur(aplat: string): string {
 }
 
 /**
- * Palette CRM dérivée de la vitrine, compatible `SugarPalette`.
+ * Palette CRM dérivée de la vitrine, compatible `CrmPalette`.
  *
  * Les encres suivent l'ordre de Sugar — `ink` le plus fort, puis `soft`, puis
  * `sub`. Le choix des barreaux n'est pas libre : `n600` (#a3a3a3) tombe à
@@ -151,7 +151,7 @@ export function encreSur(aplat: string): string {
  * secondaire qu'en SOMBRE, où il donne 7,9:1. En clair c'est `n500` (5,3:1).
  * Le test verrouille ces seuils.
  */
-export function mxCrmPalette(dark: boolean): SugarPalette {
+export function mxCrmPalette(dark: boolean): CrmPalette {
   const C = MXC_COLOR
 
   if (!dark) {

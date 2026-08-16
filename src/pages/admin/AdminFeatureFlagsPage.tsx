@@ -20,7 +20,7 @@ import { useFeatureFlags, type FeatureFlag } from '@/hooks/useFeatureFlags'
 import { useToast } from '@/components/ui/Toast'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import { useTranslation } from 'react-i18next'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import { AdminCard, AdminDivider, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminSwitch } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
@@ -43,7 +43,7 @@ function AgencyTargetPicker({ flag, agencies, disabled, onUpdate }: {
   onUpdate: (ids: string[]) => void
 }) {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
 
@@ -171,7 +171,7 @@ export default function AdminFeatureFlagsPage() {
     updateFlag.mutate({ id, updates }, { onError: () => toast.error(t('admin:common.actionFailed')) })
   const { agencies } = useAdminAgencies()
   const { t } = useTranslation('admin')
-  const { sp, surf, dark, tones } = useAdminSugar()
+  const { sp, surf, dark, tones } = useAdminSurfaces()
 
   const agencyById = useMemo(() => new Map(agencies.map(a => [a.id, a])), [agencies])
 

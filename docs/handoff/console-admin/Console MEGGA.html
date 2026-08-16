@@ -32,16 +32,16 @@
 <script type="text/babel" src="front/crm-screen-admin-proto.jsx"></script>
 <script type="text/babel" data-presets="react">
 // Chrome CRM simplifiée pour le package (le vrai shell vit dans MEGGA CRM.html —
-// SugarTopNav / SugarIconRail hors périmètre backend). La console elle-même est
+// CrmTopNav / CrmIconRail hors périmètre backend). La console elle-même est
 // 100 % la maquette réelle, non modifiée.
 const { AdmIcon } = window;
-if (!window.SugarTopNav) window.SugarTopNav = ({ sp, dark }) => (
+if (!window.CrmTopNav) window.CrmTopNav = ({ sp, dark }) => (
   <div style={{ display: "flex", alignItems: "center", gap: 12, height: 54, padding: "0 24px", color: sp.ink }}>
     <span style={{ fontSize: 15, fontWeight: 800, letterSpacing: 2.5 }}>MEGGA</span>
     <span style={{ fontSize: 11.5, fontWeight: 600, color: sp.sub }}>Console super-admin — maquette autonome du package handoff (chrome CRM simplifiée)</span>
   </div>
 );
-if (!window.SugarIconRail) window.SugarIconRail = ({ sp, dark, setDark }) => (
+if (!window.CrmIconRail) window.CrmIconRail = ({ sp, dark, setDark }) => (
   <div style={{ width: 64, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: 22 }}>
     <div style={{ flex: 1 }}></div>
     <button onClick={() => setDark && setDark(!dark)} title={dark ? "Mode clair" : "Mode sombre"} style={{

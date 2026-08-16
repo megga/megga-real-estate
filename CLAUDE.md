@@ -111,9 +111,9 @@ de Graphite ou d'une direction alternative dans ce document ou dans le cerveau
 décrit désormais le PASSÉ.
 
 Mécanique, à connaître avant de toucher au style :
-1. **Couleurs** — `crmSugarPalette(dark)` rend `mxCrmPalette(dark)`. Le nom a
+1. **Couleurs** — `crmPalette(dark)` rend `mxCrmPalette(dark)`. Le nom a
    survécu à la direction qu'il servait (33 points de construction et le type
-   `SugarPalette`) ; le renommer est un geste lexical à part.
+   `CrmPalette`) ; le renommer est un geste lexical à part.
 2. **Police et grammaire** — variables CSS déclarées dans le `:root` de
    [globals.css](src/styles/globals.css). Elles étaient une surcharge posée sur
    un sélecteur de direction ; la direction retirée, elles SONT l'échelle.
@@ -147,8 +147,8 @@ ont été retirées le 9 août 2026, la direction étant tranchée.
 **⚠ « Sugar Pure » — HISTORIQUE.** Sa grammaire (ombre douce sans bordure,
 accent noir unique, pilules à fond plein) a régi Pipeline, modale Nouveau deal et
 fiche deal V4 de juillet 2026 au 10 août 2026. Ces surfaces sont passées à
-MEGGA X. Ce qui SUBSISTE d'elle : les teintes d'étape `SG_STAGE_HUE` et les
-dérivations `sgMix`, gardées parce qu'elles **encodent une information** (l'étape
+MEGGA X. Ce qui SUBSISTE d'elle : les teintes d'étape `CRM_STAGE_HUE` et les
+dérivations `crmMix`, gardées parce qu'elles **encodent une information** (l'étape
 du deal), pas parce qu'elles décorent.
 
 **🌒 Sombre — échelle MEGGA X.** L'échelle « Graphite » (`#12161C`→`#21242F`,
@@ -260,7 +260,7 @@ d'écran n'est restée sur Graphite).
     pas la règle du 10 août** (« l'élément ACTIF porte l'accent »). Écart réel, non
     tranché.
   - **cercles numérotés** — l'idiome que ce point ne nommait pas. `KycStepper`
-    (alias `SgStepper`, [primitives.tsx:341](src/components/crm-sugar-v3/primitives.tsx))
+    (alias `SgStepper`, [primitives.tsx:341](src/components/crm-dossiers/primitives.tsx))
     rend des pastilles de 32 px reliées par un trait de 2 px, portant `✓` si l'étape
     est faite et **son rang sinon**. Unique consommateur hors primitives :
     `ImportLeadPage:302`.

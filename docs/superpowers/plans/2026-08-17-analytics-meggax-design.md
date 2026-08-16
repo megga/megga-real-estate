@@ -74,7 +74,7 @@ Lire aussi `CLAUDE.md` §3 en entier.
 |---|---|
 | la route | `/dashboard/analytics` |
 | la page | **`AnalyticsPage`** (126 l.) — pas d'« AnalyticsPage » |
-| le dossier | **`crm-sugar/analytics/`** |
+| le dossier | **`crm/analytics/`** |
 
 Le cliquet le dit déjà en commentaire, et il a fallu s'y reprendre pour le voir.
 
@@ -173,14 +173,14 @@ fichier aligné sur une norme périmée se relit **moins** qu'un fichier néglig
   ⚠ **La fiche du cerveau qui annonce « 4 appels sans fixture sur Analytics » est
   PÉRIMÉE** — mesuré, les 4 restants sont ceux d'« Aujourd'hui » (`today_*`,
   `focus_*`). Analytics est couvert.
-- **`EtatVide`** (`crm-sugar/EtatVide.tsx`) — l'idiome du vide, 4 registres, gardé.
+- **`EtatVide`** (`crm/EtatVide.tsx`) — l'idiome du vide, 4 registres, gardé.
   `AxDashboard` y est **déjà** entré ; `AxFirstRun` et `AxGate` sont hors sujet
   (couvertures de premier lancement).
 - **`sugar-v3-contraste.spec.ts`** et **`kyc-contraste.spec.ts`** donnent la FORME
   d'une garde d'objet de jetons : inventaire des rôles **confronté à la source**,
   refus de toute couleur illisible, et une clause qui dit combien de thèmes on
   mesure.
-- **`sgVoileEncre`**, **`encreSur`**, **`mxCrmPalette`** — ne pas ré-inventer.
+- **`crmVoileEncre`**, **`encreSur`**, **`mxCrmPalette`** — ne pas ré-inventer.
 
 ---
 
@@ -296,7 +296,7 @@ Plus, propre à tout chantier de rendu :
   `SECURITY DEFINER` et agrègent des montants : rien de tout ça n'est en jeu.
 - **Il ne change pas un chiffre ni un libellé.** Un écran de commission se lit ;
   une valeur déplacée est une erreur comptable, pas un choix de design.
-- **Il ne renomme pas** `AX`, `AX_DARK`, `crmSugarPalette` ni les dossiers
+- **Il ne renomme pas** `AX`, `AX_DARK`, `crmPalette` ni les dossiers
   `crm-sugar*`. Geste lexical à part.
 - **Il ne rouvre pas l'arbitrage actif/donnée** : les familles qui ENCODENT restent
   hors direction, décision rendue quatre fois.

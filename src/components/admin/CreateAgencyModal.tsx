@@ -15,9 +15,9 @@ import { CANTONS } from '@/lib/constants'
 import { useAdminCreateAgency } from '@/hooks/useAdminCreateAgency'
 import { AdminGhostBtn, AdminSegmentBtn, AdminSolidBtn, AdminSwitch } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 const PLAN_IDS = ['starter', 'pro', 'entreprise'] as const
 
@@ -26,7 +26,7 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
   const toast = useToast()
   const navigate = useNavigate()
   const createAgency = useAdminCreateAgency()
-  const { sp, surf, dark } = useAdminSugar()
+  const { sp, surf, dark } = useAdminSurfaces()
 
   const [name, setName] = useState('')
   const [city, setCity] = useState('')
@@ -71,7 +71,7 @@ export default function CreateAgencyModal({ onClose }: { onClose: () => void }) 
     width: '100%', height: 38, padding: '0 var(--crm-space-xl)', borderRadius: ADMIN_RADII.row, border: 0,
     background: surf.cardSub, color: sp.ink,
     fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, outline: 'none',
-    boxShadow: `0 0 0 1.5px ${sgVoileEncre(dark, 0.07)} inset`,
+    boxShadow: `0 0 0 1.5px ${crmVoileEncre(dark, 0.07)} inset`,
   }
 
   return (

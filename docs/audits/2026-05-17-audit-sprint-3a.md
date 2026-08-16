@@ -180,7 +180,7 @@ Claude Sonnet retourne rarement < 0.5 même sur des messages courts (test empiri
 
 ### C.2 — `MINEUR` — Props deprecated dans `BdPhoto` et `BnPhoto`
 
-[BdShared.tsx:178-184](src/components/crm-sugar-v3/bien-detail/BdShared.tsx:178) et [BnPhoto.tsx:13](src/components/crm-sugar/biens/BnPhoto.tsx:13) — props `c2paVerified`, `photoCount`, `showBadge`, `signed` marquées `@deprecated` mais conservées. Compatibilité respectée mais dette tech.
+[BdShared.tsx:178-184](src/components/crm-dossiers/bien-detail/BdShared.tsx:178) et [BnPhoto.tsx:13](src/components/crm/biens/BnPhoto.tsx:13) — props `c2paVerified`, `photoCount`, `showBadge`, `signed` marquées `@deprecated` mais conservées. Compatibilité respectée mais dette tech.
 
 **Fix** : nettoyer les call sites pour ne plus passer ces props, puis retirer la signature. Backlog.
 
@@ -205,7 +205,7 @@ Si `contacts.insert` réussit puis `transactions.insert` échoue (ex. enum `tran
 
 ### C.5 — `MINEUR` — Sample WhatsApp grammaticalement faux
 
-[samples.ts:35](src/components/crm-sugar-v3/import-lead/samples.ts:35) — *« On sommes tous les deux salariés »* (faute, devrait être *« On est tous les deux salariés »* ou *« Nous sommes tous les deux salariés »*).
+[samples.ts:35](src/components/crm-dossiers/import-lead/samples.ts:35) — *« On sommes tous les deux salariés »* (faute, devrait être *« On est tous les deux salariés »* ou *« Nous sommes tous les deux salariés »*).
 
 Hérité de la maquette handoff (`crm-import-lead-modal.jsx`). Trivial mais visible sur le bouton "Essayer avec un exemple".
 

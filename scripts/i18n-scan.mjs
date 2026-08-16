@@ -22,9 +22,9 @@ const ROOT = process.cwd()
 
 // Dossiers du CRM agent encore en FR codé en dur (cf. plan i18n Phase 2).
 const DEFAULT_DIRS = [
-  'src/components/crm-sugar',
-  'src/components/crm-sugar-v3',
-  'src/components/crm-sugar-wizard',
+  'src/components/crm',
+  'src/components/crm-dossiers',
+  'src/components/crm-wizard',
   'src/pages/agent',
   'src/components/matching-atelier',
   'src/components/calendar',

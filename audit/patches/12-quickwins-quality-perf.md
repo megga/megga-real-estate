@@ -14,10 +14,10 @@ Réduit aussi une partie des 48 vulns `npm audit`. Ensuite : `npm audit fix` (re
 ## B) Supprimer les fichiers morts (Q6) — 0 référence
 ```bash
 git rm src/pages/agent/NetworkSugarV2Page.tsx            # 2314 LOC, route neutralisée (App.tsx:543-544)
-git rm src/components/crm-sugar/network/data.ts          # data-file du fichier mort
+git rm src/components/crm/network/data.ts          # data-file du fichier mort
 git rm src/components/crm/ContactTimeline.tsx            # + dossier crm/ (vide ensuite)
-git rm src/components/crm-sugar/SugarContactDetail.tsx   # doublon mort (routé = ContactDetailPage)
-git rm src/components/crm-sugar/contacts/ContactsDetailPane.tsx
+git rm src/components/crm/SugarContactDetail.tsx   # doublon mort (routé = ContactDetailPage)
+git rm src/components/crm/contacts/ContactsDetailPane.tsx
 ```
 > Vérifier `tsc -b` + `npm run build` après suppression (les routes `/network`/`/reseau` sont déjà des `Navigate`).
 
@@ -31,8 +31,8 @@ Les 46 erreurs tiennent sur 5 règles / ~12 fichiers, aucune de type :
 5. Puis retirer `|| true` : `run: npm run lint`.
 
 ## D) Perf ciblée
-- **P9 (Kanban)** `SugarStageColumn.tsx:118-129` : `useCallback` sur `onClick`/`onDragStart` (dispatch par id, sans
-  wrapper inline) + `memo()` sur `SugarStageColumn` → réactive le `memo` déjà écrit de `SugarDealCard`.
+- **P9 (Kanban)** `StageColumn.tsx:118-129` : `useCallback` sur `onClick`/`onDragStart` (dispatch par id, sans
+  wrapper inline) + `memo()` sur `StageColumn` → réactive le `memo` déjà écrit de `DealCard`.
 - **P8 (`useReminders.ts:362,368`)** : `count:'exact'` → `count:'estimated'`, et regrouper la boucle 3N en une
   agrégation unique / RPC.
 - **P10 (`useProperties.ts:187-190`)** : remplacer l'invalidation des listes entières par un `setQueryData`

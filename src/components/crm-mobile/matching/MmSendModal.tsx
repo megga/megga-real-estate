@@ -5,7 +5,7 @@
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useMobileTokens } from '../useMobileTokens'
-import SgBottomCard from '../primitives/SgBottomCard'
+import CrmBottomCard from '../primitives/CrmBottomCard'
 
 interface MmSendModalProps {
   open: boolean
@@ -39,7 +39,7 @@ export default function MmSendModal({
   const { t } = useTranslation('matching')
 
   return (
-    <SgBottomCard open={open} onClose={onCancel} ariaLabel={t('confirm.sendTitle')}>
+    <CrmBottomCard open={open} onClose={onCancel} ariaLabel={t('confirm.sendTitle')}>
       <div style={{ padding: 'var(--crm-space-5xl) var(--crm-space-5xl) var(--crm-space-3xl)' }}>
         <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, letterSpacing: -0.3, color: tk.ink }}>
           {t('confirm.sendTitle')}
@@ -175,6 +175,6 @@ export default function MmSendModal({
           </button>
         </div>
       </div>
-    </SgBottomCard>
+    </CrmBottomCard>
   )
 }

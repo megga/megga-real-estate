@@ -12,14 +12,14 @@
  * n'énumère les surfaces que d'UN thème passe au vert sur un écran cassé.
  *
  *   · Les pilules d'étape échouent en SOMBRE seulement (2,34:1 à 4,48:1 sur
- *     sept teintes) — en clair `sgStagePillBg` assombrit de 0,32 et tient.
+ *     sept teintes) — en clair `crmStagePillBg` assombrit de 0,32 et tient.
  *   · Les totaux de colonne échouent en CLAIR seulement (4,39 et 4,49 sur les
  *     deux teintes les plus froides) — en sombre le plancher est 5,63.
  *
  * Mesurer un seul thème aurait donc raté l'une ou l'autre, dans les deux sens.
  *
  * ── L'INVARIANT DOCUMENTÉ ET FAUX ────────────────────────────────────────────
- * ⛔ `sgStagePillBg` PROMET dans sa docstring « contraste ≥ 4.5:1 » et ne le
+ * ⛔ `crmStagePillBg` PROMET dans sa docstring « contraste ≥ 4.5:1 » et ne le
  * tient qu'en clair : sa branche sombre rend la teinte brute, sur laquelle
  * l'encre blanche descend à 2,34:1. C'est la forme la plus dure de la n° 10 —
  * un code aligné sur une norme qu'il énonce lui-même se relit moins qu'un code
@@ -32,7 +32,7 @@
  *    surfaces, dans les deux thèmes.
  * 2. Toute encre posée sur un aplat venu de la DONNÉE la DÉRIVE (`encreSur`) au
  *    lieu de la choisir — l'avatar (hachage d'id sur `AVATAR_PALETTE`) et la
- *    pilule d'étape (`SG_STAGE_HUE`). Personne ne relit ces aplats avant qu'ils
+ *    pilule d'étape (`CRM_STAGE_HUE`). Personne ne relit ces aplats avant qu'ils
  *    s'affichent.
  * 3. Les huit teintes d'étape et les huit teintes d'avatar restent lisibles
  *    SOUS l'encre dérivée — sinon on aurait déplacé la règle sans la satisfaire.
@@ -49,11 +49,11 @@
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { encreSur } from '@/components/megga-x-crm/tokens'
-import { CRM_STAGE_ORDER, crmSugarPalette, sgStagePillBg, sgStageTint } from '@/components/crm-sugar/tokens'
-import { AVATAR_PALETTE } from '@/lib/sugarAdapters'
-import { dsPalette } from '@/components/crm-sugar-v3/dealTokens'
-import { omPalette } from '@/components/crm-sugar-v3/offer-modal/omTokens'
-import { ndPalette } from '@/components/crm-sugar/pipeline/ndTokens'
+import { CRM_STAGE_ORDER, crmPalette, crmStagePillBg, crmStageTint } from '@/components/crm/tokens'
+import { AVATAR_PALETTE } from '@/lib/crmAdapters'
+import { dsPalette } from '@/components/crm-dossiers/dealTokens'
+import { omPalette } from '@/components/crm-dossiers/offer-modal/omTokens'
+import { ndPalette } from '@/components/crm/pipeline/ndTokens'
 
 const AA = 4.5
 
@@ -61,7 +61,7 @@ const AA = 4.5
  * ⛔ CETTE GARDE EST PASSÉE AU VERT SANS RIEN MESURER — quatorzième forme de
  * garde vacuité, trouvée en écrivant cette garde-ci, et cousine de la n° 1.
  *
- * `sgMix` — donc `sgStageTint().panel`, le fond des colonnes du kanban — rend
+ * `crmMix` — donc `crmStageTint().panel`, le fond des colonnes du kanban — rend
  * `rgb(224, 227, 250)`, PAS un `#hex`. Une première version de `canal` ne lisait
  * que l'hexadécimal : `parseInt('rg', 16)` vaut `NaN`, la luminance vaut `NaN`,
  * le contraste vaut `NaN`, et `NaN < 4.5` est **faux**. La clause des totaux de
@@ -126,14 +126,14 @@ function aplatir(couleur: string, dessous: string): string {
  * ⚠ `emptyRoots` en esprit : une racine qui rendrait zéro fichier ferait passer
  * les tests d'atome par VACUITÉ. On l'affirme explicitement plus bas.
  */
-const DOSSIER = 'src/components/crm-sugar/pipeline'
+const DOSSIER = 'src/components/crm/pipeline'
 const SOURCES = [
   ...readdirSync(DOSSIER).filter((n) => /\.tsx$/.test(n)).map((n) => `${DOSSIER}/${n}`),
   // ⚠ Le périmètre n'est PAS un dossier : la fiche deal et la modale d'offre
   // vivent ailleurs et portent la même dette. Les omettre aurait laissé la
   // pastille « Refusée » (3,00:1 en sombre) hors de toute garde.
   'src/pages/agent/DealDetailPage.tsx',
-  'src/components/crm-sugar-v3/offer-modal/OfferModalSugar.tsx',
+  'src/components/crm-dossiers/offer-modal/OfferModal.tsx',
 ].map((nom) => ({ nom, code: readFileSync(nom, 'utf-8') }))
 
 /** Retire les commentaires : sinon la note qui explique un retrait fait rougir. */
@@ -181,7 +181,7 @@ function blocsDeStyle(code: string): string[] {
 /** Noms locaux qui portent un aplat venu de la donnée (alias compris). */
 function aplatsDeDonnee(code: string): RegExp {
   const alias = new Set<string>(['avatarBg', 'hue'])
-  for (const m of code.matchAll(/(?:const|let)\s+(\w+)\s*=\s*[^\n]*\b(?:avatarBg|sgStagePillBg)\b/g)) {
+  for (const m of code.matchAll(/(?:const|let)\s+(\w+)\s*=\s*[^\n]*\b(?:avatarBg|crmStagePillBg)\b/g)) {
     alias.add(m[1])
   }
   return new RegExp(`background:\\s*(?:[\\w.]*\\.)?(?:${[...alias].join('|')})\\b`)
@@ -215,13 +215,13 @@ function aplatsDeDonnee(code: string): RegExp {
  * trouvait plus. C'est ce que `litPalette` exigeait, et c'est ce qui a évité
  * qu'un refactor la neutralise en silence.
  */
-const dsClair = dsPalette(false, crmSugarPalette(false))
-const dsSombre = dsPalette(true, crmSugarPalette(true))
-const omClair = omPalette(false, crmSugarPalette(false))
-const omSombre = omPalette(true, crmSugarPalette(true))
-const ndClair = ndPalette(false, crmSugarPalette(false))
-const ndSombre = ndPalette(true, crmSugarPalette(true))
-const CANVAS_SOMBRE = crmSugarPalette(true).pageBg
+const dsClair = dsPalette(false, crmPalette(false))
+const dsSombre = dsPalette(true, crmPalette(true))
+const omClair = omPalette(false, crmPalette(false))
+const omSombre = omPalette(true, crmPalette(true))
+const ndClair = ndPalette(false, crmPalette(false))
+const ndSombre = ndPalette(true, crmPalette(true))
+const CANVAS_SOMBRE = crmPalette(true).pageBg
 
 const PALETTES: { nom: string; encres: string[]; surfaces: string[] }[] = [
   {
@@ -274,12 +274,12 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
       }
     }
     // ⛔ Le verrou de la quatorzième forme : TOUTE couleur qui entre dans une
-    // mesure doit être lisible par `canal`. Sans lui, `sgMix` — qui rend
+    // mesure doit être lisible par `canal`. Sans lui, `crmMix` — qui rend
     // `rgb(…)` — rendait NaN, et NaN passe TOUS les seuils.
     const illisibles: string[] = []
     for (const dark of [false, true]) {
       for (const stage of CRM_STAGE_ORDER) {
-        for (const c of [sgStageTint(stage, dark).panel, sgStagePillBg(stage, dark)]) {
+        for (const c of [crmStageTint(stage, dark).panel, crmStagePillBg(stage, dark)]) {
           if (!lisible(c)) illisibles.push(`${dark ? 'sombre' : 'clair'} ${stage} : ${c}`)
         }
       }
@@ -293,7 +293,7 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
    *
    * ⛔ C'est le défaut le plus nombreux du périmètre, et de loin : 25 textes sous
    * l'AA dans la seule modale d'offre, 15 sur la fiche, 8 dans « Nouveau deal ».
-   * Tous la même valeur. Il descend de l'échelle grise de `SugarV3`, recopiée
+   * Tous la même valeur. Il descend de l'échelle grise de `DossierTokens`, recopiée
    * telle quelle dans chaque palette d'écran — un jeton, quatre exemplaires.
    *
    * ⚠ On mesure chaque encre sur CHACUNE des surfaces de son propre thème, pas
@@ -359,7 +359,7 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
   /**
    * FAMILLE C — la pilule d'étape.
    *
-   * ⛔ `sgStagePillBg` PROMET « contraste ≥ 4.5:1 » et ne le tient qu'en clair.
+   * ⛔ `crmStagePillBg` PROMET « contraste ≥ 4.5:1 » et ne le tient qu'en clair.
    * En sombre elle rend la teinte brute et l'encre blanche tombe à 2,34:1 sur
    * « Intérêt confirmé ». On fige donc la promesse au lieu de la croire.
    *
@@ -371,7 +371,7 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
     const fautes: string[] = []
     for (const dark of [false, true]) {
       for (const stage of CRM_STAGE_ORDER) {
-        const fond = sgStagePillBg(stage, dark)
+        const fond = crmStagePillBg(stage, dark)
         const rc = contraste(encreSur(fond), fond)
         if (rc < AA) fautes.push(`${dark ? 'sombre' : 'clair'} ${stage} (${fond}) → ${arrondi(rc)}:1`)
       }
@@ -390,7 +390,7 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
    * ⚠ ET ELLE A RÉFUTÉ MON PROPRE PROJET D'EXEMPTION. J'allais exempter la
    * célébration « Scellé » de la carte de deal en l'annonçant à 3,16:1, donc
    * au-dessus du seuil de GRAND texte. Mesure faite : blanc sur
-   * `SG_STAGE_HUE.signed` (#E8892A) rend **2,61:1**. Le chiffre était écrit
+   * `CRM_STAGE_HUE.signed` (#E8892A) rend **2,61:1**. Le chiffre était écrit
    * avant d'être mesuré — exactement ce que la fiche `matching-meggax` reproche
    * à `--ink-soft`. Il n'y a donc pas d'exemption : les six sites dérivent.
    */
@@ -407,7 +407,7 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
   /**
    * FAMILLE D — le total de colonne, sur le voile d'étape.
    *
-   * ⚠ Ici le fond est un VOILE, pas un aplat : `sgStageTint().panel` mélange la
+   * ⚠ Ici le fond est un VOILE, pas un aplat : `crmStageTint().panel` mélange la
    * teinte à la surface. `encreSur` s'y tromperait (sa docstring le dit) — on
    * mesure donc l'encre réelle contre le panneau composé, sans la dériver.
    *
@@ -419,7 +419,7 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
     const fautes: string[] = []
     for (const dark of [false, true]) {
       for (const stage of CRM_STAGE_ORDER) {
-        const { panel, tintInk } = sgStageTint(stage, dark)
+        const { panel, tintInk } = crmStageTint(stage, dark)
         const rc = contraste(tintInk, panel)
         if (rc < AA) fautes.push(`${dark ? 'sombre' : 'clair'} ${stage} : ${tintInk} sur ${panel} → ${arrondi(rc)}:1`)
       }
@@ -439,7 +439,7 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
    */
   it('sp.sub ne suffit PAS sur le voile d’étape — la raison du reciblage', () => {
     const sousAA = CRM_STAGE_ORDER
-      .filter((s) => contraste(crmSugarPalette(false).sub, sgStageTint(s, false).panel) < AA)
+      .filter((s) => contraste(crmPalette(false).sub, crmStageTint(s, false).panel) < AA)
     expect(sousAA.length, 'si ceci devient 0, la note ci-dessus a cessé d’être vraie').toBe(2)
   })
 
@@ -448,7 +448,7 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
    * générique. Ancré sur la fonction, pas sur l'expression du jour.
    */
   it('le total de colonne ne reprend pas l’encre secondaire générique', () => {
-    const col = SOURCES.find((s) => s.nom.endsWith('SugarStageColumn.tsx'))
+    const col = SOURCES.find((s) => s.nom.endsWith('StageColumn.tsx'))
     expect(col, 'fichier introuvable : la clause serait vraie par vacuité').toBeTruthy()
     const src = sansCommentaires(col!.code)
     const ligne = src.split('\n').find((l) => /crm-text-sm.*fontWeight: 600, color:/.test(l))
@@ -470,7 +470,7 @@ describe('Pipeline — l’encre reste lisible dans les deux thèmes', () => {
   it('aucune encre de thème sous l’AA, alpha composé', () => {
     const SURFACES = {
       clair: ['#FFFFFF', '#F9F9F9'],
-      sombre: [crmSugarPalette(true).pageBg, aplatir(crmSugarPalette(true).cardBg, crmSugarPalette(true).pageBg)],
+      sombre: [crmPalette(true).pageBg, aplatir(crmPalette(true).cardBg, crmPalette(true).pageBg)],
     }
     const fautes: string[] = []
     let paires = 0

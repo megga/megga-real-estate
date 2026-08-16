@@ -22,7 +22,7 @@ import {
   AdminCard, AdminEmpty, AdminError, AdminGhostBtn, AdminIc, AdminPill, AdminSkeleton, AdminStat,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminLiveFeed, type LiveEvent } from '@/hooks/useAdminLiveFeed'
 
 // ─── ACTION LABELS ─────────────────────────────────────────────────────────
@@ -139,7 +139,7 @@ const UNKNOWN_DOT: DotSignal = { hue: 'soft', ring: true }
 
 /** Pastille de type d'entité : teinte du kit + forme (voir `ENTITY_DOTS`). */
 function EntityDot({ entityType, size = 8 }: { entityType: string; size?: number }) {
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const { hue, ring } = ENTITY_DOTS[entityType] ?? UNKNOWN_DOT
   const color = hue === 'soft' ? sp.soft : tones[hue]
   return (
@@ -161,7 +161,7 @@ function EntityDot({ entityType, size = 8 }: { entityType: string; size?: number
 
 /** Ligne d'événement ; cliquable pour déplier le JSON metadata brut si présent. */
 function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: boolean; getActionLabel: (action: string) => string }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const [expanded, setExpanded] = useState(false)
   const metaSummary = summarizeMetadata(event.metadata)
   const hasMetadata = metaSummary.length > 0
@@ -244,7 +244,7 @@ function EventRow({ event, isNew, getActionLabel }: { event: LiveEvent; isNew: b
 /** Vue principale : bandeau stats, filtres et liste temps réel des 100 derniers events. */
 export default function AdminLiveFeedPage() {
   const { t } = useTranslation('admin')
-  const { sp, surf, dark } = useAdminSugar()
+  const { sp, surf, dark } = useAdminSurfaces()
   const { events, isLoading, isError, refetch } = useAdminLiveFeed(100)
   const [paused, setPaused] = useState(false)
   // Snapshot capturé à la mise en pause — le Realtime continue d'alimenter

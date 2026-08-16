@@ -137,7 +137,7 @@ dont **12 littéraux hexadécimaux**, qui **ne descend de rien** (zéro `MXC_COL
 zéro `mxCrmPalette`) et que **AUCUNE spec ne garde**.
 
 C'est la forme **n° 38** en plein — « l'objet de jetons partagé n'a de garde
-nulle part » — et c'est le troisième exemplaire après `SugarV3` et `AX`. Les
+nulle part » — et c'est le troisième exemplaire après `DossierTokens` et `AX`. Les
 neuf specs de contraste gardent chacune une ZONE ; un objet de jetons n'EST pas
 une zone.
 
@@ -172,7 +172,7 @@ appartient bien à l'élément peint.
 
 À vérifier avant de coder : ces pages sont-elles mono-thème ? Si oui, la garde
 de contraste qu'on écrira doit le DIRE et rougir le jour où l'une gagne une
-branche sombre — comme `sugar-v3-contraste.spec.ts` le fait pour `SugarV3`.
+branche sombre — comme `sugar-v3-contraste.spec.ts` le fait pour `DossierTokens`.
 Sinon elle ne mesurerait que la moitié de la vérité.
 
 ### Ce que le terrain offre déjà, et qu'il ne faut pas reconstruire
@@ -181,7 +181,7 @@ Sinon elle ne mesurerait que la moitié de la vérité.
   la FORME d'une garde d'objet de jetons : inventaire des rôles **confronté à la
   source par la LIAISON**, refus de toute couleur illisible, clause qui dit
   combien de thèmes on mesure, couples mesurés dans les DEUX sens.
-- **`sgVoileEncre`**, **`encreSur`**, **`mxCrmPalette`**, **`MXC_COLOR`** — ne pas
+- **`crmVoileEncre`**, **`encreSur`**, **`mxCrmPalette`**, **`MXC_COLOR`** — ne pas
   ré-inventer. Et **chercher la valeur avant d'en inventer une** : le dépôt porte
   déjà `#B45309`, `#B91C1C`, `#F0A05A`, `MXC_SYSTEM.blue300`.
 - **`EtatVide`** — l'idiome du vide, 4 registres, gardé.
@@ -206,7 +206,7 @@ STATUT reste hors direction, comme les teintes d'étape du pipeline.
 
 ### 2. Une garde de contraste par ZONE, ou une par OBJET ?
 
-Le dépôt a neuf specs par zone et trois par objet (`SugarV3`, `AX`, `MLK` à
+Le dépôt a neuf specs par zone et trois par objet (`DossierTokens`, `AX`, `MLK` à
 venir). La forme n° 38 dit que l'objet est le bon grain. ⚠ Mais `BuyerReceptionPage`
 n'a **pas** d'objet — ses 8 littéraux sont écrits dans la page. Il faudra donc
 soit lui en créer un, soit garder la page comme une zone.

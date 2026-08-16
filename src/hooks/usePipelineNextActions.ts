@@ -1,7 +1,7 @@
 /**
  * Prochaines actions du pipeline (Pipeline v2) — mutations et lecture ciblée
  * sur la table `reminders`, qui EST le stockage de la « prochaine action » d'un
- * deal (prochain reminder actif de la transaction ; cf. usePipelineSugar).
+ * deal (prochain reminder actif de la transaction ; cf. usePipelineScreen).
  *
  * Toutes les mutations passent par @supabase-cache-helpers → auto-invalidation
  * des listes reminders (pipeline, calendrier, action board) sans câblage manuel.
@@ -15,7 +15,7 @@ import {
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { reminderToNextAction, type PipelineReminderRow } from '@/lib/sugarAdapters'
+import { reminderToNextAction, type PipelineReminderRow } from '@/lib/crmAdapters'
 
 /** Prochain reminder actif d'une transaction (bloc « Prochaine action » de la
  *  fiche deal V4). null si aucune relance planifiée. */

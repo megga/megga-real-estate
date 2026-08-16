@@ -6,7 +6,7 @@
 import { useTranslation } from 'react-i18next'
 import { useMobileTokens } from '../useMobileTokens'
 import { agTone, fmtDur, fmtTime, type AgEventVM } from './vm'
-import { calNowColor } from '@/components/crm-sugar/calendar/data'
+import { calNowColor } from '@/components/crm/calendar/data'
 
 const PX_PER_MIN = 1.7
 const MIN_H = 38

@@ -4,9 +4,10 @@
 // de thème partagé.
 
 import { useEffect, useState } from 'react'
-import { CalendarApp } from '@/components/crm-sugar/calendar/CalendarApp'
+import { CalendarApp } from '@/components/crm/calendar/CalendarApp'
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
 import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
+import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 // Clé de l'ancien onboarding plein écran (retiré : il bloquait l'accès au
 // calendrier tant qu'aucun agenda n'était connecté). Conservée telle quelle
@@ -16,13 +17,10 @@ const INVITE_DISMISSED_KEY = 'megga.calendar.onboarded'
 function useDarkPref(): [boolean, (v: boolean) => void] {
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+    if (typeof window !== 'undefined') window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
   }, [dark])
   return [dark, setDark]
 }

@@ -19,7 +19,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
-import { buildCalPalette, type CalSugarPalette } from '@/components/crm-sugar/calendar/data'
+import { buildCalPalette, type CalPalette } from '@/components/crm/calendar/data'
 
 /** Les barreaux que la vitrine publie — la seule source de couleur autorisée. */
 const ECHELLE = new Set(
@@ -102,7 +102,7 @@ describe('Calendrier — la palette descend de MEGGA X', () => {
    * même correction qui a été faite sur `SET.black` aux Réglages.
    */
   it.each([false, true])('l’accent est celui de la marque (sombre=%s)', (dark) => {
-    const p: CalSugarPalette = buildCalPalette(dark)
+    const p: CalPalette = buildCalPalette(dark)
     expect(p.accent).toBe(MXC_COLOR.accent)
     expect(p.ring).toBe(MXC_COLOR.accent)
     expect(p.black).toBe(MXC_COLOR.accent)
@@ -128,7 +128,7 @@ describe('Calendrier — la palette descend de MEGGA X', () => {
    * SEPT, et elles sont DISTINCTES. Repeindre reste possible ; les confondre non.
    */
   it('les sept teintes de type restent sept, et distinctes', async () => {
-    const { CAL_EVENT_TYPES, eventTypeColors } = await import('@/components/crm-sugar/calendar/data')
+    const { CAL_EVENT_TYPES, eventTypeColors } = await import('@/components/crm/calendar/data')
     const types = Object.values(CAL_EVENT_TYPES)
     expect(types).toHaveLength(7)
     for (const dark of [false, true]) {
@@ -144,7 +144,7 @@ describe('Calendrier — la palette descend de MEGGA X', () => {
    * voisin qui, lui, en a un vrai (crm-sugar-wizard, crm-sugar-v3).
    */
   it('aucun dégradé de fond ne subsiste dans la source du calendrier', () => {
-    const src = readFileSync('src/components/crm-sugar/calendar/data.ts', 'utf-8')
+    const src = readFileSync('src/components/crm/calendar/data.ts', 'utf-8')
     expect(src).not.toMatch(/bgGradient/)
   })
 })

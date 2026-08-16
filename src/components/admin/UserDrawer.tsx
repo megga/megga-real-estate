@@ -32,8 +32,8 @@ import {
   AdminSkeleton, AdminSolidBtn,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 
 interface UserDrawerProps {
@@ -53,7 +53,7 @@ function InfoRow({ icon, label, first, children }: {
   first?: boolean
   children: ReactNode
 }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderTop: first ? undefined : surf.hairline }}>
       <AdminIc icon={icon} size={15} color={sp.sub} />
@@ -68,7 +68,7 @@ function InfoRow({ icon, label, first, children }: {
 /** Panneau de détail/gestion d'un compte, résolu depuis la liste `useAdminUsers` par `userId`. */
 export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
   const { t } = useTranslation('admin')
-  const { sp, surf, dark, tones } = useAdminSugar()
+  const { sp, surf, dark, tones } = useAdminSurfaces()
   const { users, updateRole } = useAdminUsers()
   const { data: activity, isLoading: activityLoading } = useUserActivity(userId)
   const dsarExport = useDsarExport()
@@ -111,7 +111,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
     <div role="dialog" aria-modal="true" className="fixed inset-0 z-[100] flex justify-end">
       <style>{`
         .audr-ev { transition: background .15s ease; }
-        .audr-ev:hover { background: ${sgVoileEncre(dark, 0.045)}; }
+        .audr-ev:hover { background: ${crmVoileEncre(dark, 0.045)}; }
         .audr-sel:focus { box-shadow: inset 0 0 0 2px ${sp.accent}; }
         .audr-link:hover { text-decoration: underline; }
       `}</style>

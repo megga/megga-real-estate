@@ -15,8 +15,8 @@ import { AlertTriangle, Building2, Trash2 } from 'lucide-react'
 import Modal from '@/components/ui/modal'
 import { AdminGhostBtn, AdminIc } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 interface ModerationActionDialogProps {
   open: boolean
@@ -44,7 +44,7 @@ export default function ModerationActionDialog({
   onConfirm,
 }: ModerationActionDialogProps) {
   const { t } = useTranslation('admin')
-  const { sp, surf, dark, tones } = useAdminSugar()
+  const { sp, surf, dark, tones } = useAdminSurfaces()
   const [selectedReason, setSelectedReason] = useState<string | null>(null)
   const [customReason, setCustomReason] = useState('')
 
@@ -147,7 +147,7 @@ export default function ModerationActionDialog({
               borderRadius: ADMIN_RADII.row, border: 0, background: surf.cardSub, color: sp.ink,
               fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.5,
               outline: 'none', resize: 'none',
-              boxShadow: `0 0 0 1.5px ${sgVoileEncre(dark, 0.07)} inset`,
+              boxShadow: `0 0 0 1.5px ${crmVoileEncre(dark, 0.07)} inset`,
             }}
           />
         )}

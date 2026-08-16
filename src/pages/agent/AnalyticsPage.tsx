@@ -3,32 +3,33 @@
 // projetée, trajectoire vers l'objectif, KPI, deals à signer, composition du
 // projeté, sources des deals, drawer de drill-down. 2 thèmes, 3 périodes.
 //
-// La page est wrappée par AgentSugarLayout (cf. App.tsx). Elle fournit son propre
-// chrome Sugar (SugarTopNav + SugarIconRail) comme les autres pages V3/V4 et
+// La page est wrappée par AgentLayout (cf. App.tsx). Elle fournit son propre
+// chrome Sugar (CrmTopNav + CrmIconRail) comme les autres pages V3/V4 et
 // embarque AxDashboardBody via le provider de thème analytics (AXCtx).
 
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  SugarTopNav,
-  SugarIconRail,
-  SUGAR_KEYFRAMES,
-  type SugarScreenId,
-} from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import AxDashboardBody from '@/components/crm-sugar/analytics/AxDashboard'
-import { AXCtx, AX, AX_DARK } from '@/components/crm-sugar/analytics/tokens'
+  CrmTopNav,
+  CrmIconRail,
+  CRM_KEYFRAMES,
+  type CrmScreenId,
+} from '@/components/crm/CrmShell'
+import { crmPalette } from '@/components/crm/tokens'
+import AxDashboardBody from '@/components/crm/analytics/AxDashboard'
+import { AXCtx, AX, AX_DARK } from '@/components/crm/analytics/tokens'
+import { readCrmDark } from '@/lib/crmDark'
 
 export default function AnalyticsPage() {
   const navigate = useNavigate()
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    return window.localStorage.getItem('megga.sugar.dark') === '1'
+    return readCrmDark()
   })
-  const sp = useMemo(() => crmSugarPalette(dark), [dark])
+  const sp = useMemo(() => crmPalette(dark), [dark])
   const axTheme = dark ? AX_DARK : AX
 
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onNavigate = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today':
         navigate('/dashboard')
@@ -86,10 +87,10 @@ export default function AnalyticsPage() {
         color: sp.ink,
       }}
     >
-      <style>{SUGAR_KEYFRAMES}</style>
+      <style>{CRM_KEYFRAMES}</style>
 
-      <SugarTopNav
-        active={'today' as SugarScreenId}
+      <CrmTopNav
+        active={'today' as CrmScreenId}
        
         sp={sp}
         onNavigate={onNavigate}
@@ -97,7 +98,7 @@ export default function AnalyticsPage() {
       />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail
+        <CrmIconRail
           active="dashboard"
           onNavigate={onNavigate}
           onCmd={onCmd}

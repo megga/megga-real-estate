@@ -8,8 +8,8 @@
 // note IA inventée, pas de prix non formaté).
 
 import { describe, it, expect } from 'vitest'
-import { mapEventsToBlocks, deriveDay } from '@/components/crm-sugar/today/useTodayH'
-import type { CalEvent } from '@/components/crm-sugar/calendar/data'
+import { mapEventsToBlocks, deriveDay } from '@/components/crm/today/useTodayH'
+import type { CalEvent } from '@/components/crm/calendar/data'
 
 // Traducteur de test : rend la clé, ce qui suffit à vérifier QUELLE clé est choisie.
 const tKey = (k: string) => k

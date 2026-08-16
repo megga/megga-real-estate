@@ -273,7 +273,7 @@ Quand tu doutes sur du visuel, ouvre dans l'ordre :
 
 1. `onboarding/megga-onboarding-step-agence.jsx` → autocomplete + states + anti-doublon = la référence canonique
 2. `onboarding/megga-onboarding-app.jsx` → `ObSplash` + `ObStepKYC` + `ObFinal` + shell + footer
-3. `refs/crm-wizard-sugar-v2.jsx` → SugarV2Palette + primitives Sg* (canon Sugar Pure)
+3. `refs/crm-wizard-sugar-v2.jsx` → WizardPalette + primitives Sg* (canon Sugar Pure)
 4. `refs/MEGGA-DESIGN-SYSTEM.md` → grammaire complète
 
 ---

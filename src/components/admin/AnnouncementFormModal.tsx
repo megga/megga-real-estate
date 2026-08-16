@@ -16,8 +16,8 @@ import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import { useAnnouncementsAdmin, type Announcement, type AnnouncementInput } from '@/hooks/useAnnouncementsAdmin'
 import { AdminCard, AdminDivider, AdminGhostBtn, AdminIc, AdminSolidBtn, AdminSwitch } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 const PLAN_IDS = ['starter', 'pro', 'entreprise'] as const
 const SEVERITIES = ['info', 'warning', 'critical'] as const
@@ -37,7 +37,7 @@ export default function AnnouncementFormModal({ existing, onClose }: {
   const toast = useToast()
   const { agencies } = useAdminAgencies()
   const { create, update } = useAnnouncementsAdmin()
-  const { sp, surf, dark } = useAdminSugar()
+  const { sp, surf, dark } = useAdminSurfaces()
 
   const [title, setTitle] = useState(existing?.title ?? '')
   const [body, setBody] = useState(existing?.body ?? '')
@@ -91,7 +91,7 @@ export default function AnnouncementFormModal({ existing, onClose }: {
     width: '100%', height: 38, padding: '0 var(--crm-space-xl)', borderRadius: ADMIN_RADII.row, border: 0,
     background: surf.cardSub, color: sp.ink,
     fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600, outline: 'none',
-    boxShadow: `0 0 0 1.5px ${sgVoileEncre(dark, 0.07)} inset`,
+    boxShadow: `0 0 0 1.5px ${crmVoileEncre(dark, 0.07)} inset`,
   }
   /** Segment de sélection (sévérité, plans) — accent plein quand actif. */
   const segmentStyle = (on: boolean): CSSProperties => ({
@@ -105,7 +105,7 @@ export default function AnnouncementFormModal({ existing, onClose }: {
   // ne sait pas exprimer, et qui doivent suivre le thème.
   const menuCss = `
     .annf-opt { transition: background-color .14s ease; }
-    .annf-opt:hover { background: ${sgVoileEncre(dark, 0.05)}; }
+    .annf-opt:hover { background: ${crmVoileEncre(dark, 0.05)}; }
     .annf-search::placeholder { color: ${sp.soft}; }
   `
 

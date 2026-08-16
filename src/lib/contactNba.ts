@@ -8,7 +8,7 @@
 // Doctrine : le NBA est une ESTIMATION (icône sparkle + tag « estimation » côté UI),
 // jamais une obligation ; la kyc_note est une information facultative, jamais l'action.
 
-import { crmFmtCHF } from '@/components/crm-sugar/tokens'
+import { crmFmtCHF } from '@/components/crm/tokens'
 
 export type NbaAction =
   | 'rappel' | 'offre_expirante' | 'visite_preparer' | 'visite_debrief'

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { collectConsoleErrors } from './helpers/console'
 
 // NOTE — drag-drop interactive test is intentionally absent from this suite.
-// `usePipelineSugar` loads deals from Supabase (filtered by agency_id), not from
+// `usePipelineScreen` loads deals from Supabase (filtered by agency_id), not from
 // the CRM_DEALS mock array. With VITE_DEV_BYPASS_AUTH=true the mock agent has
 // agency_id='dev-mock-agency' which matches no real transactions, so the
 // pipeline renders empty. To E2E-test a real drag-drop, we would need either
@@ -16,7 +16,7 @@ test.describe('Agent pipeline — structure & empty state', () => {
     await page.goto('/dashboard/pipeline')
     await page.waitForLoadState('networkidle')
 
-    // Columns from CRM_STAGE_ORDER (src/components/crm-sugar/tokens.ts).
+    // Columns from CRM_STAGE_ORDER (src/components/crm/tokens.ts).
     // No data-testid on columns — select by header text.
     const expectedColumns = [
       'Nouveau lead',

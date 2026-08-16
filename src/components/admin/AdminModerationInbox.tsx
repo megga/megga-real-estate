@@ -18,9 +18,9 @@ import { supabase } from '@/lib/supabase'
 import { useToast } from '@/components/ui/Toast'
 import { AdminCard, AdminDivider, AdminEmpty, AdminIc, AdminSkeleton } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import type { LucideIcon } from 'lucide-react'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 function fmtDateTime(iso: string): string {
   try {
@@ -37,7 +37,7 @@ function fmtDateTime(iso: string): string {
  * partagée, leurs en-têtes divergeaient à la première retouche.
  */
 function InboxBento({ icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   return (
     <AdminCard padding={0}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
@@ -52,12 +52,12 @@ function InboxBento({ icon, title, children }: { icon: LucideIcon; title: string
 
 /** Sélecteur Sugar : surface creuse + filet INTÉRIEUR, jamais de bordure décorative. */
 function useSelectStyle(): CSSProperties {
-  const { sp, surf, dark } = useAdminSugar()
+  const { sp, surf, dark } = useAdminSurfaces()
   return {
     height: 32, padding: '0 var(--crm-space-lg)', borderRadius: ADMIN_RADII.row, border: 0,
     background: surf.cardSub, color: sp.ink, cursor: 'pointer',
     fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, outline: 'none',
-    boxShadow: `0 0 0 1.5px ${sgVoileEncre(dark, 0.07)} inset`,
+    boxShadow: `0 0 0 1.5px ${crmVoileEncre(dark, 0.07)} inset`,
   }
 }
 
@@ -79,7 +79,7 @@ export function SellerLeadsInbox() {
   const toast = useToast()
   const queryClient = useQueryClient()
   const [assigning, setAssigning] = useState<string | null>(null)
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const selectStyle = useSelectStyle()
 
   const { data: leads, isLoading } = useQuery({
@@ -187,7 +187,7 @@ export function ContactMessagesInbox() {
   const { t } = useTranslation('admin')
   const toast = useToast()
   const queryClient = useQueryClient()
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const selectStyle = useSelectStyle()
 
   const { data: messages, isLoading } = useQuery({

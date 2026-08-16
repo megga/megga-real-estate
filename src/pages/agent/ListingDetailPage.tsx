@@ -7,7 +7,7 @@
 // cadre que Today / Pipeline / Mes biens, en-tête épinglé + corps scrollable,
 // colonne bridée à 1120 px). Route cible : /dashboard/listings/:id
 //
-// Fond : crmSugarPalette(dark).pageBg — le MÊME que Today/Pipeline
+// Fond : crmPalette(dark).pageBg — le MÊME que Today/Pipeline
 // (correctif clé vs V3 qui utilisait le dégradé local vxPalette.bgGradient).
 //
 // Honnêteté des données (cf. CLAUDE.md) :
@@ -28,19 +28,19 @@ import {
 import { useNavigate, useParams } from 'react-router-dom'
 import { Trans, useTranslation } from 'react-i18next'
 import {
-  crmSugarPalette, type SugarPalette,
-} from '@/components/crm-sugar/tokens'
+  crmPalette, type CrmPalette,
+} from '@/components/crm/tokens'
 import {
-  SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
-} from '@/components/crm-sugar/SugarShell'
+  CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId,
+} from '@/components/crm/CrmShell'
 import {
   VxIcon, VxGallery, VxLightbox, VxStatusPill, VxMetaPill, VxSectionHead,
   VxSpark, VxAvatar, type VxIconName,
-} from '@/components/crm-sugar-v3/vitrine/vitrineKit'
+} from '@/components/crm-dossiers/vitrine/vitrineKit'
 import {
   vxPalette, vxFmtCHF, vxFmtNum, vxCompact, type VxPalette,
-} from '@/components/crm-sugar-v3/vitrine/vitrineTokens'
-import { fmtDateShort } from '@/components/crm-sugar-v3/tokens'
+} from '@/components/crm-dossiers/vitrine/vitrineTokens'
+import { fmtDateShort } from '@/components/crm-dossiers/tokens'
 import {
   useProperty, useUpdateProperty, type CreatePropertyInput,
 } from '@/hooks/useProperties'
@@ -52,6 +52,7 @@ import { useMatching } from '@/hooks/useMatching'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Property } from '@/types/listing'
+import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 const BF_MAXW = 1120 // largeur max de la colonne de contenu (bride le « trop large »)
 
@@ -259,7 +260,7 @@ function BfPortal({
 }
 
 // ─── Toast (contenu dans le root, position absolute) ───────────────────────
-function BfToast({ toast, sp, dark }: { toast: Toast | null; sp: SugarPalette; dark: boolean }) {
+function BfToast({ toast, sp, dark }: { toast: Toast | null; sp: CrmPalette; dark: boolean }) {
   if (!toast) return null
   return (
     <div style={{ position: 'absolute', bottom: 22, left: '50%', transform: 'translateX(-50%)', zIndex: 120, background: dark ? sp.solidBg : sp.ink, color: '#fff', borderRadius: 18, padding: '15px 19px', boxShadow: '0 24px 60px rgba(15,23,42,.4)', maxWidth: 440, animation: 'bfUp .3s cubic-bezier(.2,.8,.2,1)' }}>
@@ -284,7 +285,7 @@ function BfEditModal({
   onClose: () => void
   bien: Property
   isRent: boolean
-  sp: SugarPalette
+  sp: CrmPalette
   vx: VxPalette
   dark: boolean
   onSave: (d: EditDraft) => void
@@ -347,7 +348,7 @@ function BfVisitModal({
   onClose: () => void
   title: string
   vx: VxPalette
-  sp: SugarPalette
+  sp: CrmPalette
   dark: boolean
   contacts: VisitContact[]
   onConfirm: (date: Date, time: string, contact: VisitContact | null) => void
@@ -450,15 +451,12 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   // Dark mode (clé localStorage partagée avec la galerie / la V3)
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+    if (typeof window !== 'undefined') window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
   }, [dark])
-  const sp = crmSugarPalette(dark) // cadre/shell (pageBg = Today/Pipeline)
+  const sp = crmPalette(dark) // cadre/shell (pageBg = Today/Pipeline)
   const vx = vxPalette(dark) // intérieur des cartes (palette vitrine)
 
   // ── Données réelles (identiques à la V3) ──
@@ -555,7 +553,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   }
 
   const onCmd = () => {}
-  const onNavigate = (screen: SugarScreenId | string) => {
+  const onNavigate = (screen: CrmScreenId | string) => {
     switch (screen) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -758,7 +756,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
         ...rootVars,
       }}
     >
-      <style>{SUGAR_KEYFRAMES}</style>
+      <style>{CRM_KEYFRAMES}</style>
       <style>{`
         @keyframes vxFade { from {opacity:0;} to {opacity:1;} }
         @keyframes bfUp { from { opacity:0; transform:translateY(14px);} to { opacity:1; transform:none;} }
@@ -772,9 +770,9 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
         @media (prefers-reduced-motion: reduce){ [style*="bfUp"]{ animation:none !important; opacity:1 !important; transform:none !important; } }
       `}</style>
 
-      <SugarTopNav active="biens" sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
+      <CrmTopNav active="biens" sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail active="biens" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmIconRail active="biens" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
           {/* BENTO central (look pager, sans slide) */}
           <div style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, display: 'flex', flexDirection: 'column' }}>

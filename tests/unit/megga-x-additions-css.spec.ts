@@ -38,7 +38,7 @@ import { repoPath } from './helpers/fs-scan'
 /**
  * Les DEUX feuilles, et ce que chacune est censée porter.
  *
- * ⚠ Elles étaient trois. `crm-sugar-v3/responsive.css` a été RETIRÉE le 15 août
+ * ⚠ Elles étaient trois. `crm-dossiers/responsive.css` a été RETIRÉE le 15 août
  * 2026 : neuf de ses quinze sélecteurs n'avaient aucun porteur, deux n'étaient
  * portés que par le wizard KYC — qui passe par `ResponsiveRoute` et ne rend
  * donc jamais sous 768 px —, et les trois derniers ne servaient qu'à
@@ -160,7 +160,7 @@ describe('Feuilles MEGGA X non gardées — additions, entrée, responsive', () 
 
   /**
    * Un VOILE ne part que de deux pôles : l'encre de la direction, ou son inverse.
-   * C'est la règle que `sgVoileEncre` applique côté TypeScript ; une feuille ne
+   * C'est la règle que `crmVoileEncre` applique côté TypeScript ; une feuille ne
    * peut pas appeler la fonction, mais elle doit respecter la même contrainte.
    *
    * ⚠ Exception NOMMÉE et mesurée : `rgba(127,127,127,.14)` — un gris neutre

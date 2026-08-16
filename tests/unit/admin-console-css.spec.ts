@@ -33,7 +33,7 @@
  * garde vacuité, celle qui rend un succès au lieu d'une erreur.
  *
  * ── LA TROISIÈME SOURCE, FERMÉE AU LOT SUIVANT ──────────────────────────────
- * `adminSurfaces()` (`src/hooks/useAdminSugar.ts`) écrivait ses cinq valeurs à
+ * `adminSurfaces()` (`src/hooks/useAdminSurfaces.ts`) écrivait ses cinq valeurs à
  * la main — transcription de `galSurfaces` du temps de Sugar Pure. La feuille
  * pouvait donc être vérifiée et juste pendant que le JS disait autre chose.
  *
@@ -51,8 +51,8 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { adminSurfaces } from '@/hooks/useAdminSugar'
+import { crmPalette } from '@/components/crm/tokens'
+import { adminSurfaces } from '@/hooks/useAdminSurfaces'
 
 const FEUILLE = 'src/styles/admin-console.css'
 const brut = readFileSync(FEUILLE, 'utf-8')
@@ -83,7 +83,7 @@ function triplet(bloc: string, variable: string): string | null {
  * MEGGA X les CREUSE. Recopier « S1 → S1 » aurait gardé la logique de Graphite
  * sous les valeurs de MEGGA X — l'erreur exacte que `CLAUDE.md` §3 décrit.
  */
-const ROLES: { variable: string; cle: keyof ReturnType<typeof crmSugarPalette>; role: string }[] = [
+const ROLES: { variable: string; cle: keyof ReturnType<typeof crmPalette>; role: string }[] = [
   { variable: '--color-bg-page', cle: 'pageBg', role: 'canvas' },
   { variable: '--color-bg-card', cle: 'cardBg', role: 'carte' },
   { variable: '--color-bg-section', cle: 'cardSubBg', role: 'sous-carte CREUSÉE' },
@@ -100,7 +100,7 @@ const ROLES: { variable: string; cle: keyof ReturnType<typeof crmSugarPalette>; 
 ]
 
 /**
- * `--color-border-subtle` n'a PAS de rôle dans `SugarPalette` — la palette ne
+ * `--color-border-subtle` n'a PAS de rôle dans `CrmPalette` — la palette ne
  * porte qu'une bordure. On fige donc le barreau, et le fait qu'il soit un cran
  * plus discret que `cardBorder` dans chaque thème.
  */
@@ -160,7 +160,7 @@ describe('admin-console.css — la feuille suit MEGGA X', () => {
   it('chaque variable ÉGALE le rôle correspondant de mxCrmPalette', () => {
     const ecarts: string[] = []
     for (const sombre of [false, true]) {
-      const sp = crmSugarPalette(sombre)
+      const sp = crmPalette(sombre)
       const bloc = blocs(sombre)
       for (const { variable, cle, role } of ROLES) {
         const lu = triplet(bloc, variable)
@@ -192,7 +192,7 @@ describe('admin-console.css — la feuille suit MEGGA X', () => {
   it('les surfaces JS descendent de la palette, comme la feuille', () => {
     const ecarts: string[] = []
     for (const sombre of [false, true]) {
-      const sp = crmSugarPalette(sombre)
+      const sp = crmPalette(sombre)
       const surf = adminSurfaces(sombre)
       const attendu: Record<string, string> = {
         card: sp.cardBg,

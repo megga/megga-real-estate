@@ -40,7 +40,7 @@ const bloc = (sombre: boolean): string => {
 /**
  * Teintes SÉMANTIQUES admises hors de l'échelle neutre — elles ENCODENT une
  * information que les neutres ne savent pas porter, exactement comme
- * `SG_STAGE_HUE` du pipeline. La feuille les documente elle-même : « couleurs
+ * `CRM_STAGE_HUE` du pipeline. La feuille les documente elle-même : « couleurs
  * fonctionnelles — données métier, jamais d'accent UI ».
  *
  * ⚠ Liste FERMÉE et nommée. Une exemption par famille (« tout ce qui est

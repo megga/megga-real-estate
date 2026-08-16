@@ -20,14 +20,14 @@ import {
 } from '@/hooks/useAtelierMatching'
 import { PendingRegistry, type AtelierGestes, type PendingHandle } from '@/components/matching-atelier/pendingTriage'
 import type { AtelierBuyer, AtelierListing, AtelierTab } from '@/components/matching-atelier/types'
-import { sgaReturnDate } from '@/components/matching-atelier/format'
+import { atlReturnDate } from '@/components/matching-atelier/format'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
+import { openCrmSearch } from '@/components/crm/search/openSearch'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import MeggaWordmark from '../shell/MeggaWordmark'
-import SgActionMenu from '../primitives/SgActionMenu'
-import SgConfirmDestructive from '../primitives/SgConfirmDestructive'
+import CrmActionMenu from '../primitives/CrmActionMenu'
+import CrmConfirmDestructive from '../primitives/CrmConfirmDestructive'
 import MmBuyerCard from './MmBuyerCard'
 import MmFocus from './MmFocus'
 import MmSendModal from './MmSendModal'
@@ -234,7 +234,7 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
 
   const snoozeGroup = useCallback((g: BuyerGroupVM) => {
     const name = buyerName(g)
-    const date = sgaReturnDate()
+    const date = atlReturnDate()
     setHidden((s) => new Set(s).add(g.id))
     const unhide = () => { setHidden((s) => { const n = new Set(s); n.delete(g.id); return n }); dismissToast() }
     if (demo) {
@@ -305,7 +305,7 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
           <div style={{ display: 'flex', gap: 'var(--crm-space-md)' }}>
             <button
               type="button"
-              onClick={() => openSugarSearch()}
+              onClick={() => openCrmSearch()}
               aria-label={t('common:nav.search')}
               style={iconBtn(tk)}
             >
@@ -441,7 +441,7 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
       ) : null}
 
       {/* Menu écran (••• → réglages) */}
-      <SgActionMenu
+      <CrmActionMenu
         open={screenMenu}
         onClose={() => setScreenMenu(false)}
         items={[{ id: 'settings', icon: 'settings', label: t('mobile.settings.title') }]}
@@ -452,7 +452,7 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
       />
 
       {/* Menu acheteur */}
-      <SgActionMenu
+      <CrmActionMenu
         open={menuGroup !== null}
         onClose={() => setMenuGroup(null)}
         title={menuGroup ? `${menuGroup.first} ${menuGroup.last}` : undefined}
@@ -475,7 +475,7 @@ export function MobileMatchingScreen({ demo = false }: { demo?: boolean }) {
       />
 
       {/* Retirer de la liste (écarter) */}
-      <SgConfirmDestructive
+      <CrmConfirmDestructive
         open={confirmExclude !== null}
         title={t('mobile.removeTitle')}
         message={confirmExclude ? t('mobile.removeBody', { name: `${confirmExclude.first} ${confirmExclude.last}` }) : undefined}

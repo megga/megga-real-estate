@@ -28,7 +28,7 @@
  * le calcul `dsMatches` mesurerait sa copie.
  *
  * ⛔ UNE SEULE VUE À LA FOIS, ET C'EST UNE CONTRAINTE, PAS UN CHOIX DE CONFORT.
- * `SugarDealCard` porte `layoutId={`sgdeal-${deal.id}`}` : l'identité de FLIP est
+ * `DealCard` porte `layoutId={`sgdeal-${deal.id}`}` : l'identité de FLIP est
  * GLOBALE à l'arbre `motion`. Deux vues montées ensemble — ou deux instances de
  * la page côte à côte pour comparer les thèmes — partageraient l'identité de
  * chaque carte, et `motion` les ferait s'aspirer d'un conteneur à l'autre :
@@ -42,8 +42,8 @@
  * ⛔ Données de DÉMONSTRATION. Rien ne vient de la base, aucun geste n'écrit.
  */
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
-import { CRM_BIENS, CRM_CONTACTS } from '@/components/crm-sugar/mockData'
+import { crmPalette } from '@/components/crm/tokens'
+import { CRM_BIENS, CRM_CONTACTS } from '@/components/crm/mockData'
 import PipelinePage, {
   type PipelineBanc, type PipelineBancGestes,
 } from '@/pages/agent/PipelinePage'
@@ -82,7 +82,7 @@ function useBanc(): BancEtat {
 
 // ── Atomes de commande, partagés par les deux chromes ────────────────────────
 function usePilule(dark: boolean) {
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   return {
     sp,
     pilule: (actif: boolean) => ({

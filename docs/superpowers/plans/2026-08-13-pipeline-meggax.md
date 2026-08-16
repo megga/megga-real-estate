@@ -25,7 +25,7 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory get -k "<clé>" -n megga
 | `megga/gardes-vacuites` | **La plus importante.** Treize formes de « garde verte pendant que l'écran est faux ». Les n° 6, 10, 11 et 13 se déclenchent tous sur ce chantier — voir §2. |
 | `megga/matching-meggax` | Le chantier précédent, livré le 13 août. Ses six pièges se répètent, et sa méthode (garde d'abord, contrôle négatif, banc avant de croire fini) est celle à reprendre. |
 | `megga/pipeline-v2-sugar-pure` | Ce qu'on remplace — et ⚠ elle affirme que l'écran « est passé à MEGGA X » le 10 août. C'est **vrai pour une moitié seulement** (§2). |
-| `megga/da-meggax-crm` | La direction. Contient l'arbitrage, **rendu quatre fois**, qui protège `SG_STAGE_HUE`. |
+| `megga/da-meggax-crm` | La direction. Contient l'arbitrage, **rendu quatre fois**, qui protège `CRM_STAGE_HUE`. |
 | `megga/pipeline-kanban` | Ce que la surface FAIT : 9 colonnes UI qui agrègent 14 stades DB, drag-drop HTML5 natif. Ne pas casser une affordance en la repeignant. |
 | `megga/deal-detail` | La fiche deal : stepper 8 cercles, **bannière KYC bloquante**, chaîne d'offres. |
 | `megga/pipeline-firstrun-ecartee` | ⛔ La couverture de premier lancement est **écartée définitivement** (verbatim Julien). Ne pas la réintroduire, ne pas redemander l'asset. |
@@ -53,8 +53,8 @@ périmètre-ci est dérivé de `src/App.tsx`.
 | Zone | Fichiers | Lignes | Marqueurs |
 |---|---|---|---|
 | `pages/agent` (les 3 pages) | 3 | 1 483 | **97** |
-| `crm-sugar/pipeline` | 11 | 2 321 | **94** |
-| `crm-sugar-v3` — part Pipeline | 5 + offer-modal | ~1 670 | ~30 |
+| `crm/pipeline` | 11 | 2 321 | **94** |
+| `crm-dossiers` — part Pipeline | 5 + offer-modal | ~1 670 | ~30 |
 | **Total** | | **≈ 5 500** | **≈ 220** |
 
 **✅ Le mobile est DÉJÀ porté — ne pas l'ouvrir.** `crm-mobile` est entré en
@@ -73,9 +73,9 @@ vu. Mais la mesure sépare nettement deux populations :
 
 | | `sp.` | `sp.accent` | hex distincts |
 |---|---|---|---|
-| `crm-sugar/pipeline/` (colonnes, cartes, modales) | **139** | **20** | — |
-| `PipelinePage` | lit `crmSugarPalette` | 0 | **1** (`#0B0C0E`) |
-| `DealDetailPage` | lit `crmSugarPalette` | 0 | **15** |
+| `crm/pipeline/` (colonnes, cartes, modales) | **139** | **20** | — |
+| `PipelinePage` | lit `crmPalette` | 0 | **1** (`#0B0C0E`) |
+| `DealDetailPage` | lit `crmPalette` | 0 | **15** |
 
 Les **composants** sont portés. Les **pages** délèguent la palette mais peignent
 encore à la main par-dessus — c'est exactement le constat d'ouverture de
@@ -86,10 +86,10 @@ campagne plus tard, sur les deux surfaces qu'elle n'avait pas atteintes.
 mesurer QUELLE PART.** C'est une variante du piège n° 6 — un verdict global sur
 une zone dont l'instrument n'a vu qu'une partie.
 
-### ⛔ Le vrai second système de jetons : `crm-sugar-v3/tokens.ts`
+### ⛔ Le vrai second système de jetons : `crm-dossiers/tokens.ts`
 
 C'est le fait structurant, et il est **plus lourd que celui du Matching**.
-`SugarV3` déclare une échelle de gris complète, **hors** de MEGGA X :
+`DossierTokens` déclare une échelle de gris complète, **hors** de MEGGA X :
 
 ```
 #0B0C0E  ⛔ le noir Sugar, interdit par le cliquet
@@ -103,7 +103,7 @@ est le kit commun de **onze pages** — KYC, Audit, Visites, Contacts, Biens,
 Import-lead, la fiche deal et la modale d'offre. Le toucher déborde du Pipeline.
 **C'est la décision n° 1 du §3.**
 
-⚠ Et **aucune garde ne l'ouvre** : seul `crm-sugar-v3/vitrine` (la fiche bien)
+⚠ Et **aucune garde ne l'ouvre** : seul `crm-dossiers/vitrine` (la fiche bien)
 est entré dans `megga-x-grammar.spec.ts` au lot 4 de « Mes biens ». Le reste du
 kit n'a jamais été mesuré — dixième forme de garde vacuité, la même qui a laissé
 Graphite survivre dans `atelier.css`.
@@ -128,19 +128,19 @@ partie du correctif**, ce n'est pas un nettoyage optionnel. Livrable chiffrable 
 | | graisses ≥700 | capitales | interlettrage | noir Sugar | tailles |
 |---|---|---|---|---|---|
 | pages (3) | 27 | 7 | 7 | 5 | **51** |
-| `crm-sugar/pipeline` | **62** | 9 | 8 | 14 | **1** |
+| `crm/pipeline` | **62** | 9 | 8 | 14 | **1** |
 
 ⚠ **L'inverse du Matching.** Là-bas, 97 tailles littérales et peu de graisses ;
-ici `crm-sugar/pipeline` est déjà tokenisé sur les tailles (1 seule littérale) et
+ici `crm/pipeline` est déjà tokenisé sur les tailles (1 seule littérale) et
 porte sa dette sur la **graisse**. Ne pas recopier l'ordre des lots du Matching.
 
 ### ✅ Ce qui est déjà sain — à ne pas « corriger »
 
 - Le **mobile** en entier (cliquet vert).
 - **Aucune palette parallèle** : ni `SET_PALETTE`, ni `TK`, ni `buildPal`. Les
-  deux pages appellent `crmSugarPalette(dark)`. C'est un dossier plus propre que
+  deux pages appellent `crmPalette(dark)`. C'est un dossier plus propre que
   les Réglages ne l'étaient.
-- ⛔ **`SG_STAGE_HUE` et `sgMix` RESTENT.** Arbitrage rendu **quatre fois**
+- ⛔ **`CRM_STAGE_HUE` et `crmMix` RESTENT.** Arbitrage rendu **quatre fois**
   (`megga/da-meggax-crm`) : ces teintes **encodent l'étape du deal**, elles ne
   décorent pas. Les dérivations sont figées (colonne .81/.85, tintInk .45/.35,
   pilule .32). Mesuré : 12 usages. ⚠ Comme pour les `--sys-*` du Matching, il
@@ -153,7 +153,7 @@ porte sa dette sur la **graisse**. Ne pas recopier l'ordre des lots du Matching.
    session, `ProtectedRoute` fait `window.location.replace('https://megga.ch/login')`
    — une redirection **absolue** : on relit `main` en croyant regarder localhost.
    C'est le Lot 0, et il est plus lourd qu'ailleurs (voir §4).
-2. ⛔ **`layoutId` sur `SugarDealCard`.** Le FLIP de `motion` est posé en
+2. ⛔ **`layoutId` sur `DealCard`.** Le FLIP de `motion` est posé en
    `layoutId={\`sgdeal-${deal.id}\`}`. `megga/crm-da-meggax-*` documente qu'un
    `layoutId` **global vide les colonnes jumelles** : deux vues montées en même
    temps (kanban + liste, ou le banc qui empile les états) partagent l'identité
@@ -171,13 +171,13 @@ porte sa dette sur la **graisse**. Ne pas recopier l'ordre des lots du Matching.
 Le plan du Matching a perdu du temps à laisser ses questions ouvertes jusqu'au
 milieu du chantier. Celles-ci se posent **maintenant**.
 
-### 1. `crm-sugar-v3/tokens.ts` — jusqu'où ?
+### 1. `crm-dossiers/tokens.ts` — jusqu'où ?
 
 | Option | Portée | Ce que ça coûte |
 |---|---|---|
 | **A · Périmètre strict** | ne toucher que ce que la chaîne Pipeline rend | La fiche deal reste sur une échelle grise étrangère à MEGGA X ; le gris-bleu survit ; on repasse forcément plus tard |
-| **B · Kit entier** | recibler `SugarV3` en une fois | **28 fichiers, 11 pages** — KYC, Audit, Visites, Contacts, Biens. Ce n'est plus un chantier Pipeline |
-| **C · Recibler les valeurs, garder le nom** | `SugarV3.*` pointe sur `mxCrmPalette` | Le geste du Matching sur `atelier.css`. Rayonne quand même sur 11 pages, mais **sans toucher un seul appelant** |
+| **B · Kit entier** | recibler `DossierTokens` en une fois | **28 fichiers, 11 pages** — KYC, Audit, Visites, Contacts, Biens. Ce n'est plus un chantier Pipeline |
+| **C · Recibler les valeurs, garder le nom** | `DossierTokens.*` pointe sur `mxCrmPalette` | Le geste du Matching sur `atelier.css`. Rayonne quand même sur 11 pages, mais **sans toucher un seul appelant** |
 
 ⚠ **C est probablement la bonne**, et c'est précisément ce qu'a fait le Matching :
 la feuille reste, ses valeurs changent. Mais le rayonnement doit être **assumé et
@@ -223,7 +223,7 @@ thème**, et les **modales** (NewDeal, LostConfirm, SignedBento, l'offre).
 Sonde à composition alpha sur le banc, **dans les deux thèmes**, avant tout
 correctif. Attendus d'après les chantiers précédents :
 
-- les teintes `SG_STAGE_HUE` en **encre** sur les nouvelles surfaces (le Matching
+- les teintes `CRM_STAGE_HUE` en **encre** sur les nouvelles surfaces (le Matching
   y a trouvé 4,37:1) ;
 - toute encre posée sur un aplat venu de la **donnée** → `encreSur()` ;
   **mesuré : 0 usage d'`encreSur` dans tout le périmètre** ;
@@ -232,7 +232,7 @@ correctif. Attendus d'après les chantiers précédents :
 
 Garde écrite **AVANT** le correctif, éprouvée par **contrôle négatif**.
 
-### Lot 2 — `crm-sugar-v3/tokens.ts` (le cœur, selon la décision §3.1)
+### Lot 2 — `crm-dossiers/tokens.ts` (le cœur, selon la décision §3.1)
 
 Recibler les ~22 valeurs. ⚠ Vérifier le rayonnement sur les 11 pages à chaque
 étape, pas à la fin. Le gris-bleu `#C8D5E0` (B−R = 24) et le noir Sugar `#0B0C0E`
@@ -244,16 +244,16 @@ interdisent déjà ailleurs.
 `DealDetailPage` (63) puis `PipelinePage` (34). Dette
 majoritairement de **taille** (51) — l'inverse du dossier de composants.
 
-### Lot 4 — `crm-sugar/pipeline` (94 marqueurs)
+### Lot 4 — `crm/pipeline` (94 marqueurs)
 
 Dette de **graisse** (62). Les tailles sont déjà tokenisées.
 
 ### Lot 5 — Les gardes, et c'est le livrable le plus durable
 
-1. Entrer `crm-sugar/pipeline`, `crm-sugar-v3` (hors `vitrine`, déjà couvert) et
+1. Entrer `crm/pipeline`, `crm-dossiers` (hors `vitrine`, déjà couvert) et
    les trois pages dans `megga-x-grammar.spec.ts`.
 2. Sortir les **six** fichiers de `POLICES_ASSUMEES` (28 → 22).
-3. Une garde de palette sur `SugarV3`, sur le modèle de
+3. Une garde de palette sur `DossierTokens`, sur le modèle de
    `matching-atelier-css.spec.ts` : chaque valeur est un barreau MEGGA X ou une
    teinte sémantique **nommée**.
 4. ⛔ Sans ça, tout le Lot 2 peut se défaire au premier commit suivant sans qu'une
@@ -291,8 +291,8 @@ Plus, propre à ce chantier :
   `nextAction` ← reminders. C'est un chantier de rendu.
 - ⛔ **Il ne réintroduit PAS la couverture de premier lancement** — écartée
   définitivement par Julien, verbatim, et l'asset n'existera pas.
-- **Il ne recible PAS `SG_STAGE_HUE`.** Il la **re-mesure**.
-- **Il ne renomme pas `crmSugarPalette` ni `SugarV3`.** Le nom a survécu à la
+- **Il ne recible PAS `CRM_STAGE_HUE`.** Il la **re-mesure**.
+- **Il ne renomme pas `crmPalette` ni `DossierTokens`.** Le nom a survécu à la
   direction qu'il servait ; le renommer est un geste lexical à part.
 
 ---

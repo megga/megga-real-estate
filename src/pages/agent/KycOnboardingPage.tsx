@@ -1,7 +1,7 @@
 // MEGGA CRM — KYC · Onboarding « Première ouverture »
 // Port fidèle de `CRMScreenKycOnboarding` (crm-kyc-onboarding.jsx) : bento plein
 // écran avec la cover PNG (lockup KYC aplati) + sur-impression CTA. Monté dans la
-// chrome CRM (SugarTopNav + SugarIconRail). Route : /dashboard/kyc/bienvenue.
+// chrome CRM (CrmTopNav + CrmIconRail). Route : /dashboard/kyc/bienvenue.
 //
 // Gating (empty-state) : posé par la page hôte (KycPage) — flag
 // localStorage `megga.kyc.onboarded` + 0 dossier. Les CTA posent le flag puis
@@ -11,13 +11,14 @@ import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  SugarTopNav,
-  SugarIconRail,
-  SUGAR_KEYFRAMES,
-  type SugarScreenId,
-} from '@/components/crm-sugar/SugarShell'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+  CrmTopNav,
+  CrmIconRail,
+  CRM_KEYFRAMES,
+  type CrmScreenId,
+} from '@/components/crm/CrmShell'
+import { crmPalette } from '@/components/crm/tokens'
 import { markKycOnboarded } from '@/lib/kycOnboarding'
+import { readCrmDark } from '@/lib/crmDark'
 
 
 function ArrowGlyph({ color = '#FFFFFF' }: { color?: string }) {
@@ -33,14 +34,11 @@ export default function KycOnboardingPage() {
   const navigate = useNavigate()
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
-  const sp = useMemo(() => crmSugarPalette(dark), [dark])
+  const sp = useMemo(() => crmPalette(dark), [dark])
 
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onNavigate = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -81,7 +79,7 @@ export default function KycOnboardingPage() {
         color: sp.ink,
       }}
     >
-      <style>{SUGAR_KEYFRAMES}</style>
+      <style>{CRM_KEYFRAMES}</style>
       <style>{`
         @keyframes kobUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
         @media (prefers-reduced-motion: no-preference) {
@@ -89,10 +87,10 @@ export default function KycOnboardingPage() {
         }
       `}</style>
 
-      <SugarTopNav active={'kyc' as SugarScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
+      <CrmTopNav active={'kyc' as CrmScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail active="kyc" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmIconRail active="kyc" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
           <div
             style={{

@@ -61,7 +61,7 @@ import {
   AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 
 /** Lignes rendues avant le « voir les N autres » (grammaire C5). */
 const SHOW = 20
@@ -75,7 +75,7 @@ const ROLE_TONE: Record<string, AdminToneName> = {
 export default function AdminUsersPage() {
   const { t } = useTranslation('admin')
   const { users, isLoading, isError, refetch } = useAdminUsers()
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
 
   const [search, setSearch] = useState('')
   const [flag, setFlag] = useState<UserFlagId | null>(null)

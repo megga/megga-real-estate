@@ -13,7 +13,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Trash2, X } from 'lucide-react'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminUsers } from '@/hooks/useAdminUsers'
 import { useUpsertOnboardingHost, type AdminOnboardingHost } from '@/hooks/useAdminOnboardingCalls'
 import { AdminGhostBtn, AdminIc, AdminSolidBtn } from '@/components/admin/kit/adminKit'
@@ -32,7 +32,7 @@ const TIMEZONES = ['Europe/Zurich', 'Europe/Paris', 'Europe/Berlin', 'Europe/Rom
 
 export default function OnboardingHostForm({ host, onClose }: OnboardingHostFormProps) {
   const { t } = useTranslation('admin')
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const upsert = useUpsertOnboardingHost()
   const { users } = useAdminUsers()
 

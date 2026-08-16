@@ -1,7 +1,7 @@
 /**
  * Blocage plein de la route /dashboard/kyc (étape 5, tâche 4) — layout-route
  * (Outlet) monté au-dessus de kyc, kyc/bienvenue et kyc/:dossierId dans
- * App.tsx, même motif que AgentSugarLayout (route parente sans path, enfants
+ * App.tsx, même motif que AgentLayout (route parente sans path, enfants
  * rendus via <Outlet/>). Remplace le contenu normal par un écran plein qui
  * explique pourquoi, tant que useLabGuard() renvoie un statut bloqué.
  *
@@ -18,7 +18,7 @@
  *
  * Quatrième écran, distinct des trois motifs de blocage : 'unavailable', quand la
  * LECTURE du statut a échoué (réseau, RLS, schéma). Ce layout remplaçant tout le
- * contenu de la page — les pages Sugar portent leur propre chrome, AgentSugarLayout
+ * contenu de la page — les pages Sugar portent leur propre chrome, AgentLayout
  * n'en fournit aucun — un spinner sans issue ici laisse une page entièrement muette,
  * sans un mot ni un bouton. L'écran « statut indisponible » dit donc ce qui est vrai
  * (on n'a pas pu lire, ce n'est pas une décision sur le dossier) et propose une
@@ -64,7 +64,7 @@ const SEVERITY: Record<BlockedStatus, { icon: typeof AlertTriangle; color: strin
  * ce qu'on attendait ni le dire à un support. Le libellé énonce l'attente en cours,
  * jamais un verdict — il reste vrai quelle que soit l'issue.
  *
- * min-h-full (pas min-h-screen, correctif revue, point mineur) : AgentSugarLayout
+ * min-h-full (pas min-h-screen, correctif revue, point mineur) : AgentLayout
  * enveloppe déjà l'Outlet dans un conteneur flex qui occupe toute la hauteur
  * disponible sous les bandeaux (ImpersonateBanner/LabGuardBanner) — un second
  * ancrage indépendant sur 100vh ICI ignorait la hauteur déjà prise par ces

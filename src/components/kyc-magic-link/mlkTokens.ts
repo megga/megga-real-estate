@@ -8,7 +8,7 @@
 // ── LA PALETTE DESCEND DE MEGGA X (15 août 2026) ─────────────────────────────
 // Elle ne descendait de RIEN : quinze clés, douze littéraux hexadécimaux, aucune
 // spec ne la gardait. C'était le troisième objet de jetons dans ce cas après
-// `SugarV3` et `AX` — un objet n'est pas une ZONE, et les huit specs de
+// `DossierTokens` et `AX` — un objet n'est pas une ZONE, et les huit specs de
 // contraste du dépôt gardent des zones. Trois familles étaient sous l'AA :
 //
 //   · `muted` #7A8088 — 3,98:1 sur la carte, 17 emplois en `color:`. Troisième
@@ -39,7 +39,7 @@
 // ⚠ CE QUI RESTE À FAIRE : les composants écrivent encore le noir de Sugar en
 // décimal (`rgba(11,12,14,…)`) dans leurs ombres locales, et `kyc-magic-link/`
 // n'est sous aucune racine du cliquet de grammaire. C'est le lot 1.
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 /**
@@ -61,7 +61,7 @@ import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
  * ⚠ LE TROISIÈME EST UN ARBITRAGE, PAS UNE CORRECTION, et il se lit à l'envers
  * des deux autres : l'ambre sortant était MEILLEUR (7,09 contre 5,02). J'ai pris
  * quand même la valeur du dépôt, parce qu'elle est nommée à ce rôle sur TROIS
- * surfaces (`SugarV3.warnDarker`, `EtatVide.aFaire`, `PDF.warnFg`) et qu'une
+ * surfaces (`DossierTokens.warnDarker`, `EtatVide.aFaire`, `PDF.warnFg`) et qu'une
  * encre d'alerte qui diffère d'un écran à l'autre est exactement l'incohérence
  * que ce chantier retire. Les deux passent l'AA ; ce qui les départage est
  * l'unicité, et le chiffre est écrit pour qu'on puisse revenir dessus.
@@ -120,7 +120,7 @@ export const MLK = {
    * plus de lecteur : il portait le MÊME barreau qu'`ink`. C'était le nom d'une
    * RÈGLE — « l'accent EST l'encre », celle de Sugar Pure — et pas d'une
    * couleur. La règle partie, le jeton n'avait plus de raison d'exister à côté
-   * d'`ink`. Même retrait que `SugarV3.black` au chantier KYC ; `tsc` interdit
+   * d'`ink`. Même retrait que `DossierTokens.black` au chantier KYC ; `tsc` interdit
    * désormais son retour.
    *
    * ⚠ Le composant garde son nom, `MlkBlackPill` : renommer est un geste
@@ -145,11 +145,11 @@ export const MLK = {
    * ⚠ LA GÉOMÉTRIE NE BOUGE PAS, seule la TEINTE descend. Ces trois ombres
    * portaient le gris-bleu slate-900, qui entre toujours par la même porte —
    * une fraction d'opacité, que personne ne relit en cherchant une couleur.
-   * `sgVoileEncre` est le rôle que le Pipeline a nommé pour ça.
+   * `crmVoileEncre` est le rôle que le Pipeline a nommé pour ça.
    */
-  shadowSm: `0 4px 16px ${sgVoileEncre(false, 0.04)}`,
-  shadow: `0 12px 40px ${sgVoileEncre(false, 0.06)}, 0 2px 8px ${sgVoileEncre(false, 0.03)}`,
-  shadowLg: `0 24px 60px ${sgVoileEncre(false, 0.08)}, 0 4px 16px ${sgVoileEncre(false, 0.04)}`,
+  shadowSm: `0 4px 16px ${crmVoileEncre(false, 0.04)}`,
+  shadow: `0 12px 40px ${crmVoileEncre(false, 0.06)}, 0 2px 8px ${crmVoileEncre(false, 0.03)}`,
+  shadowLg: `0 24px 60px ${crmVoileEncre(false, 0.08)}, 0 4px 16px ${crmVoileEncre(false, 0.04)}`,
   /** ⚠ GARDÉE HORS ÉCHELLE par décision — voir l'en-tête. */
   font: 'Manrope, system-ui, sans-serif',
 } as const

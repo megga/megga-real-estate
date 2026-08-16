@@ -20,13 +20,13 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { HL_TYPES, HL_KIND_TYPE } from '@/components/crm-sugar/today/dataH'
+import { HL_TYPES, HL_KIND_TYPE } from '@/components/crm/today/dataH'
 import {
   useTodayH, canMarkDone, markBlockDone,
   type TodayHBlock,
-} from '@/components/crm-sugar/today/useTodayH'
-import { useAbsenceSignals, type AbsenceSignal } from '@/components/crm-sugar/today/useAbsenceSignals'
-import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
+} from '@/components/crm/today/useTodayH'
+import { useAbsenceSignals, type AbsenceSignal } from '@/components/crm/today/useAbsenceSignals'
+import { openCrmSearch } from '@/components/crm/search/openSearch'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import MeggaWordmark from '../shell/MeggaWordmark'
@@ -144,7 +144,7 @@ export function MobileTodayHScreen() {
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'calc(env(safe-area-inset-top) + 14px) 2px 6px' }}>
         <MeggaWordmark color={tk.ink} height={22} />
         <button
-          onClick={() => openSugarSearch()} aria-label={t('today.h.searchAria')}
+          onClick={() => openCrmSearch()} aria-label={t('today.h.searchAria')}
           style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', border: 0, background: tk.cardSubtle, display: 'grid', placeItems: 'center', cursor: 'pointer' }}
         >
           <MEIcon name="search" size={18} color={tk.ink} strokeWidth={2.1} />

@@ -2,7 +2,7 @@
  * Fixtures du banc `/dev/pipeline` — voir `PipelineShowcasePage`.
  *
  * POURQUOI CE FICHIER EXISTE. `PipelinePage` tire toutes ses données
- * d'`usePipelineSugar()`, gaté sur la session (`profile.agency_id`). Sans banc,
+ * d'`usePipelineScreen()`, gaté sur la session (`profile.agency_id`). Sans banc,
  * les trois vues, les neuf colonnes, les modales et les états d'exception ne
  * sont regardables NULLE PART — et `ProtectedRoute` renvoie sur la production,
  * donc on croit relire localhost en relisant `main`.
@@ -11,7 +11,7 @@
  * mais inventées : c'est un banc visuel, pas un aperçu du portefeuille.
  *
  * ⚠ LES IDENTIFIANTS SONT CEUX DE `mockData` (`c-001…c-008`, `b-101…b-106`), et
- * c'est délibéré. `SugarDealCard` ne lit PAS la map `contactsById` que la page
+ * c'est délibéré. `DealCard` ne lit PAS la map `contactsById` que la page
  * lui passe : il appelle `crmContactById()`, le registre global — et fait
  * `if (!c) return null`. Une carte dont le contact n'est pas résolu ne rend donc
  * RIEN, silencieusement. Comme `crmContactById` retombe sur `CRM_CONTACTS`,
@@ -19,8 +19,8 @@
  * écrire dans le registre — donc sans fuite d'état vers le reste de l'app
  * (`registerLiveContact` est un Map de module, il survit au démontage).
  */
-import { CRM_BIENS, CRM_CONTACTS, type CrmBien, type CrmContact, type CrmDeal } from '@/components/crm-sugar/mockData'
-import type { StageId } from '@/components/crm-sugar/tokens'
+import { CRM_BIENS, CRM_CONTACTS, type CrmBien, type CrmContact, type CrmDeal } from '@/components/crm/mockData'
+import type { StageId } from '@/components/crm/tokens'
 import { EMPTY_OFFER_CONDITIONS, type Offer, type OfferStatus } from '@/types/offer'
 
 /**

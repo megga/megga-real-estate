@@ -6,7 +6,7 @@
 // aucune dépendance Supabase/React → vitest jsdom.
 //
 // Deux mappings parallèles co-existent et DIVERGENT volontairement :
-//   - mapStage (Kanban, src/lib/sugarAdapters.ts) : 8 colonnes + 'lost' hors-grille,
+//   - mapStage (Kanban, src/lib/crmAdapters.ts) : 8 colonnes + 'lost' hors-grille,
 //     to_recontact → 'to-qualify'.
 //   - mapTransactionStageToStepper (fiche Deal v3, dealStepper.ts) : 8 cercles SANS
 //     'lost', to_recontact → 'searching'.
@@ -14,13 +14,13 @@
 
 import { describe, it, expect } from 'vitest'
 import { TRANSACTION_STAGES, type TransactionStage } from '@/lib/constants'
-import { CRM_STAGES, CRM_STAGE_ORDER, type StageId } from '@/components/crm-sugar/tokens'
-import { mapStage } from '@/lib/sugarAdapters'
+import { CRM_STAGES, CRM_STAGE_ORDER, type StageId } from '@/components/crm/tokens'
+import { mapStage } from '@/lib/crmAdapters'
 import {
   mapTransactionStageToStepper,
   DEAL_STEPPER_ORDER,
   type DealStepperStage,
-} from '@/components/crm-sugar-v3/dealStepper'
+} from '@/components/crm-dossiers/dealStepper'
 
 // ── Attendu canonique : chaque stade DB → colonne Kanban (mapStage) ──
 // 14 stades. 'lost' sort de la grille des 8 colonnes mais reste un StageId valide.

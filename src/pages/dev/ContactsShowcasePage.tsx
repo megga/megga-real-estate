@@ -29,18 +29,19 @@
  * carnet réel. Les callbacks de persistance résolvent sans rien faire.
  */
 import { useState } from 'react'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmPalette } from '@/components/crm/tokens'
 import { encreSur, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
-import { SugarTopNav, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
-import ContactsPager from '@/components/crm-sugar/contacts-pager/ContactsPager'
-import ContactsFirstRun from '@/components/crm-sugar/contacts-pager/ContactsFirstRun'
-import NewContactModal from '@/components/crm-sugar/contacts-pager/NewContactModal'
-import WhatsAppConnectModal from '@/components/crm-sugar/contacts-pager/WhatsAppConnectModal'
-import ContactDetailPager from '@/components/crm-sugar/contacts-pager/ContactDetailPager'
+import { CrmTopNav, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
+import ContactsPager from '@/components/crm/contacts-pager/ContactsPager'
+import ContactsFirstRun from '@/components/crm/contacts-pager/ContactsFirstRun'
+import NewContactModal from '@/components/crm/contacts-pager/NewContactModal'
+import WhatsAppConnectModal from '@/components/crm/contacts-pager/WhatsAppConnectModal'
+import ContactDetailPager from '@/components/crm/contacts-pager/ContactDetailPager'
 import {
   DEMO_CONTACTS, DEMO_FICHE, DEMO_FICHE_LINKS, DEMO_FICHE_LOOP, DEMO_FICHE_NBA,
 } from './demoFixtures'
+import { readCrmDark } from '@/lib/crmDark'
 
 type Surface = 'liste' | 'fiche' | 'premier' | 'vide' | 'fiche-vide'
 
@@ -70,10 +71,7 @@ export default function ContactsShowcasePage() {
   // décide ici, comme en production.
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   const [surface, setSurface] = useState<Surface>('liste')
   const [modalOpen, setModalOpen] = useState(false)
@@ -85,12 +83,12 @@ export default function ContactsShowcasePage() {
   // faute de donnée pour la déclencher.
   const [ecritureCasse, setEcritureCasse] = useState(false)
 
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
 
   // Le harnais ne navigue nulle part : chaque cible mènerait à une surface
   // protégée, donc au rebond vers la production que cette page existe pour
   // éviter. Seuls le thème et les overlays agissent.
-  const onNavigate = (_id: SugarScreenId | string) => {}
+  const onNavigate = (_id: CrmScreenId | string) => {}
 
   const selecteur = (
     <div style={{
@@ -151,10 +149,10 @@ export default function ContactsShowcasePage() {
       display: 'flex', flexDirection: 'column',
       fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
-      <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav active="contacts" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={NOOP} />
+      <style>{CRM_KEYFRAMES}</style>
+      <CrmTopNav active="contacts" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={NOOP} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail active="contacts" onNavigate={onNavigate} onCmd={NOOP} dark={dark} setDark={setDark} sp={sp} />
+        <CrmIconRail active="contacts" onNavigate={onNavigate} onCmd={NOOP} dark={dark} setDark={setDark} sp={sp} />
 
         {surface === 'fiche' || surface === 'fiche-vide' ? (
           <ContactDetailPager

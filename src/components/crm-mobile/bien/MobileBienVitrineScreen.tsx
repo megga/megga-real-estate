@@ -14,7 +14,7 @@ import type { Property } from '@/types/listing'
 import { formatCHF, formatRent, formatDate } from '@/lib/utils'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
-import SgActionMenu from '../primitives/SgActionMenu'
+import CrmActionMenu from '../primitives/CrmActionMenu'
 import { statusTone, typeKey, type BienType } from './shared'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -221,7 +221,7 @@ export function MobileBienVitrineScreen({ demoData }: MobileBienVitrineScreenPro
       </div>
 
       {/* Menu ••• */}
-      <SgActionMenu
+      <CrmActionMenu
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
         title={bien.title}

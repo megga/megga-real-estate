@@ -10,8 +10,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/types/database'
-import { buildAxData, type CockpitJson, type ObjectifJson, type FunnelJson } from '@/components/crm-sugar/analytics/buildAxData'
-import type { AxPeriodId, AxPeriodData } from '@/components/crm-sugar/analytics/tokens'
+import { buildAxData, type CockpitJson, type ObjectifJson, type FunnelJson } from '@/components/crm/analytics/buildAxData'
+import type { AxPeriodId, AxPeriodData } from '@/components/crm/analytics/tokens'
 
 export type AxScope = 'me' | 'agency'
 

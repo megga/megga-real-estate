@@ -27,11 +27,11 @@ import {
   type SignataireDraft,
   type AgencyDraft,
   type PieceIdentiteDraft,
-} from '@/components/crm-sugar-identity/IdentityShell'
-import { SG_IDENTITY_STEPS } from '@/components/crm-sugar-identity/tokens'
+} from '@/components/crm-identity/IdentityShell'
+import { IDENTITY_STEPS } from '@/components/crm-identity/tokens'
 
 describe('clampIdentityStep — borne la navigation à [0, nombre d étapes - 1]', () => {
-  const COUNT = SG_IDENTITY_STEPS.length
+  const COUNT = IDENTITY_STEPS.length
 
   it('la coquille déclare bien les 5 étapes du parcours (signataire -> récapitulatif)', () => {
     // Cinq jusqu'au 03.08.2026 (retrait de « bénéficiaires effectifs »), quatre
@@ -225,13 +225,13 @@ describe('canAdvanceFromIdentityStep — gate le bouton Continuer du pied de pag
     // Revue tâche 3 : le bouton Continuer du pied de page restait actif sur ces
     // paliers (canNext valait `true` sans condition dès step > 0) — on pouvait
     // avancer jusqu'au récapitulatif sans rien renseigner. Depuis l'ajout de l'étape
-    // rendez-vous (04.08.2026), SG_IDENTITY_STEPS.length vaut 5 : les indices 0 à 3
+    // rendez-vous (04.08.2026), IDENTITY_STEPS.length vaut 5 : les indices 0 à 3
     // ont un écran réel dont la complétude est testée à part, l'indice 4 est le
     // récapitulatif, qui ne mène nulle part.
     expect(canAdvanceFromIdentityStep(4, completeSignataire, completeAgency)).toBe(false)
   })
 
-  it('indice hors de SG_IDENTITY_STEPS -> false, jamais une navigation vers un palier qui n\'existe pas', () => {
+  it('indice hors de IDENTITY_STEPS -> false, jamais une navigation vers un palier qui n\'existe pas', () => {
     expect(canAdvanceFromIdentityStep(5, completeSignataire, completeAgency)).toBe(false)
   })
 })
@@ -503,7 +503,7 @@ describe('canSubmitIdentity — gate le bouton Soumettre de l\'étape 4 (récapi
 })
 
 describe('shouldResetAttestationLeavingRecap — un seul point de reset de l\'attestation, quel que soit le chemin de sortie du récapitulatif (revue tâche 7, point 1)', () => {
-  const COUNT = SG_IDENTITY_STEPS.length
+  const COUNT = IDENTITY_STEPS.length
   // Le récapitulatif est TOUJOURS la dernière étape : le désigner par COUNT - 1 plutôt
   // que par un index en dur, sans quoi chaque étape ajoutée au parcours (rendez-vous,
   // 04.08.2026) fait tomber ce bloc entier sur une constante périmée.
@@ -591,7 +591,7 @@ describe('shouldShowIdentityWelcome - qui voit l\'écran d\'arrivée', () => {
     // Sans cette garde, le compte de personnes vaut 0 le temps de la requête :
     // un dirigeant qui a déjà tout saisi verrait l\'écran de bienvenue clignoter
     // avant que ses données n\'arrivent - la même classe de faux positif que le
-    // flash du CRM corrigé le même jour dans AgentSugarLayout.
+    // flash du CRM corrigé le même jour dans AgentLayout.
     expect(shouldShowIdentityWelcome(0, true, false)).toBe(false)
     expect(shouldShowIdentityWelcome(2, true, false)).toBe(false)
   })

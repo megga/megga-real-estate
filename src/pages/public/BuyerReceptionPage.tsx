@@ -11,7 +11,7 @@ import type { CSSProperties, UIEvent as ReactUIEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { useBuyerReception, useBuyerReactionMutation, type ReceptionBien } from '@/hooks/useBuyerReception'
 import { RC, RC_FONT as FONT } from '@/components/buyer-reception/receptionTokens'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 const MOTIFS = ['Trop cher', 'Quartier', 'Étage / luminosité', 'Trop petit', 'Pas le bon moment', 'Autre']
 // \s couvre déjà U+202F / U+00A0 (séparateurs de milliers fr-CH) — inutile de
@@ -34,7 +34,7 @@ function Icon({ d, size = 22, stroke = 'currentColor', fill = 'none', sw = 1.9 }
     </svg>
   )
 }
-const blackBtn = (extra?: CSSProperties): CSSProperties => ({ width: '100%', height: 52, borderRadius: 999, border: 0, cursor: 'pointer', background: RC.accent, color: '#fff', fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, boxShadow: `0 8px 20px ${sgVoileEncre(false, 0.20)}`, fontFamily: FONT, ...extra })
+const blackBtn = (extra?: CSSProperties): CSSProperties => ({ width: '100%', height: 52, borderRadius: 999, border: 0, cursor: 'pointer', background: RC.accent, color: '#fff', fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, boxShadow: `0 8px 20px ${crmVoileEncre(false, 0.20)}`, fontFamily: FONT, ...extra })
 const ghostBtn = (extra?: CSSProperties): CSSProperties => ({ height: 52, borderRadius: 999, border: 0, cursor: 'pointer', background: RC.sub, color: RC.soft, fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: FONT, ...extra })
 const KEYFRAMES = `@keyframes rcUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes rcFade{from{opacity:0}to{opacity:1}}
@@ -139,7 +139,7 @@ export default function BuyerReceptionPage() {
               <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.7, color: RC.ink }}>Votre sélection</h1>
               <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: RC.muted }}>{treated} sur {total}</span>
             </div>
-            <div style={{ marginTop: 12, height: 5, borderRadius: 999, background: sgVoileEncre(false, 0.07), overflow: 'hidden' }}>
+            <div style={{ marginTop: 12, height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.07), overflow: 'hidden' }}>
               <div style={{ height: '100%', width: (total ? (treated / total) * 100 : 0) + '%', background: RC.ink, borderRadius: 999, transition: 'width .45s cubic-bezier(.2,.8,.2,1)' }} />
             </div>
           </div>
@@ -155,7 +155,7 @@ export default function BuyerReceptionPage() {
                     <div style={{ position: 'relative', height: 208, background: RC.sub, opacity: st === 'rejected' ? 0.5 : 1, transition: 'opacity .3s' }}>
                       {b.photos[0] && <img src={b.photos[0]} alt={b.title} referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
                       {b.photos.length > 0 && (
-                        <span style={{ position: 'absolute', bottom: 14, right: 14, height: 26, padding: '0 11px', borderRadius: 999, background: sgVoileEncre(false, 0.66), color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ position: 'absolute', bottom: 14, right: 14, height: 26, padding: '0 11px', borderRadius: 999, background: crmVoileEncre(false, 0.66), color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                           <Icon d={ICO.camera} size={13} stroke="#fff" sw={1.7} /> {b.photos.length}
                         </span>
                       )}
@@ -229,9 +229,9 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 40, maxWidth: 480, margin: '0 auto' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: sgVoileEncre(false, 0.38), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: crmVoileEncre(false, 0.38), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 40, background: RC.card, borderRadius: '28px 28px 0 0', boxShadow: RC.sheetShadow, overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'rcSheet .38s cubic-bezier(.2,.85,.25,1) both' }}>
-        <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: sgVoileEncre(false, 0.14), zIndex: 3 }} />
+        <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.14), zIndex: 3 }} />
         <button onClick={onClose} aria-label="Fermer" style={{ position: 'absolute', top: 16, right: 16, zIndex: 3, width: 36, height: 36, borderRadius: 999, border: 0, cursor: 'pointer', background: 'rgba(255,255,255,.9)', boxShadow: RC.shadowSm, display: 'grid', placeItems: 'center' }}><Icon d={ICO.x} size={17} stroke={RC.ink} /></button>
         <div className="rc-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ position: 'relative' }}>
@@ -275,7 +275,7 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
             <div style={{ height: 12 }} />
           </div>
         </div>
-        <div style={{ flexShrink: 0, padding: '12px 18px calc(12px + env(safe-area-inset-bottom))', background: RC.card, boxShadow: `0 -8px 24px ${sgVoileEncre(false, 0.05)}` }}>
+        <div style={{ flexShrink: 0, padding: '12px 18px calc(12px + env(safe-area-inset-bottom))', background: RC.card, boxShadow: `0 -8px 24px ${crmVoileEncre(false, 0.05)}` }}>
           {!status ? (
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={onReject} style={ghostBtn({ flex: '0 0 auto', width: 58, padding: 0 })} aria-label="Écarter"><Icon d={ICO.x} size={21} stroke={RC.soft} /></button>
@@ -301,9 +301,9 @@ function ReceptionReject({ firstName, onClose, onConfirm }: { firstName: string;
   const [note, setNote] = useState('')
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, maxWidth: 480, margin: '0 auto' }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: sgVoileEncre(false, 0.42), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
+      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: crmVoileEncre(false, 0.42), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: RC.card, borderRadius: '28px 28px 0 0', boxShadow: RC.sheetShadow, padding: '22px 22px calc(20px + env(safe-area-inset-bottom))', animation: 'rcSheet .36s cubic-bezier(.2,.85,.25,1) both' }}>
-        <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: sgVoileEncre(false, 0.14) }} />
+        <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.14) }} />
         <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: RC.ink, letterSpacing: -0.5, marginTop: 6 }}>Ce bien ne convient pas ?</div>
         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: RC.muted, marginTop: 6, lineHeight: 1.5 }}>Optionnel — mais ça aide {firstName} à affiner les prochaines propositions.</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 18 }}>
@@ -330,7 +330,7 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: RC.bg, animation: 'rcFade .3s ease both', display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto', fontFamily: FONT }}>
       <div className="rc-scroll" style={{ flex: 1, overflowY: 'auto', padding: '72px 22px 28px', textAlign: 'center' }}>
-        <div style={{ width: 68, height: 68, borderRadius: 999, background: RC.ink, margin: '0 auto', display: 'grid', placeItems: 'center', boxShadow: `0 12px 30px ${sgVoileEncre(false, 0.25)}`, animation: 'rcPop .5s cubic-bezier(.2,.9,.3,1) both' }}><Icon d={ICO.check} size={30} stroke="#fff" sw={2.2} /></div>
+        <div style={{ width: 68, height: 68, borderRadius: 999, background: RC.ink, margin: '0 auto', display: 'grid', placeItems: 'center', boxShadow: `0 12px 30px ${crmVoileEncre(false, 0.25)}`, animation: 'rcPop .5s cubic-bezier(.2,.9,.3,1) both' }}><Icon d={ICO.check} size={30} stroke="#fff" sw={2.2} /></div>
         <h1 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: RC.ink }}>Merci {contactFirst} !</h1>
         <p style={{ margin: '10px auto 0', maxWidth: 300, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.55, color: RC.soft }}>
           Vos réponses sont transmises à {agent?.name || 'votre conseiller'}. Il revient vers vous très vite pour organiser les visites.

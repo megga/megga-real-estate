@@ -13,13 +13,13 @@ import { switchLanguage } from '@/i18n'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { useTheme } from '@/hooks/useTheme'
-import { useAgentProfileSugar } from '@/hooks/useAgentProfileSugar'
+import { useAgentProfileScreen } from '@/hooks/useAgentProfileScreen'
 import { useAgencySettings, type AgencySettingsData, type AgencyPlan } from '@/hooks/useAgencySettings'
 import { useAgencyTargets } from '@/hooks/useAgencyTargets'
-import { profileCompletionScore, type ProfileData } from '@/components/crm-sugar/settings/data'
+import { profileCompletionScore, type ProfileData } from '@/components/crm/settings/data'
 import { formatCHF } from '@/lib/utils'
-import SgToast from '../primitives/SgToast'
-import { useSgToast } from '../primitives/useSgToast'
+import CrmToast from '../primitives/CrmToast'
+import { useCrmToast } from '../primitives/useCrmToast'
 import { MOBILE_FONT, type MobileTokens } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 
@@ -58,7 +58,7 @@ const PLAN_KEYS: Record<AgencyPlan, string> = {
  * du proto `crm-settings-mobile`. Read-first + édits sûrs : Profil, Agence
  * (+ Objectif annuel), Facturation (plan lecture seule),
  * Préférences (thème + langue LIVE). 100 % câblé sur les hooks de réglages
- * (`useAgentProfileSugar`, `useAgencySettings`,
+ * (`useAgentProfileScreen`, `useAgencySettings`,
  * `useAgencyTargets`) ; thème/langue via `useTheme` + `i18n` (même canal que le
  * hub Plus). Différés : upload avatar/logo, Sécurité (2FA/sessions), Intégrations
  * OAuth, gestion Stripe — backend non porté ou écriture à effet de bord.
@@ -73,10 +73,10 @@ export function MobileSettingsScreen({ demo = false }: { demo?: boolean }) {
   const live = !demo
 
   const [view, setView] = useState<View>('hub')
-  const { toast, showToast } = useSgToast()
+  const { toast, showToast } = useCrmToast()
 
   // Hooks de réglages — gated en démo (pas de fetch ; profileId/agencyId nuls hors auth).
-  const prof = useAgentProfileSugar({ enabled: live })
+  const prof = useAgentProfileScreen({ enabled: live })
   const ag = useAgencySettings({ enabled: live })
   const targets = useAgencyTargets({ enabled: live })
 
@@ -188,7 +188,7 @@ export function MobileSettingsScreen({ demo = false }: { demo?: boolean }) {
         )}
       </div>
 
-      <SgToast toast={toast} />
+      <CrmToast toast={toast} />
       <style>{'@keyframes stmRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}'}</style>
     </div>
   )

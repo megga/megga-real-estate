@@ -14,10 +14,10 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { wizardPayload, wizardTitre } from '@/components/crm-sugar-wizard/useWizardDraft'
-import { EMPTY_WIZARD, type WizardData } from '@/components/crm-sugar-wizard/tokens'
+import { wizardPayload, wizardTitre } from '@/components/crm-wizard/useWizardDraft'
+import { EMPTY_WIZARD, type WizardData } from '@/components/crm-wizard/tokens'
 
-const SRC = 'src/components/crm-sugar-wizard'
+const SRC = 'src/components/crm-wizard'
 const lire = (f: string) => readFileSync(`${SRC}/${f}`, 'utf-8')
 
 /**
@@ -158,7 +158,7 @@ describe('Wizard — le brouillon automatique existe vraiment', () => {
  * honnête était fermée et celle qui fabriquait, ouverte — à un écran d'écart.
  */
 describe('Mandat — aucune valeur fabriquée', () => {
-  const MANDAT = 'src/components/crm-sugar-wizard/steps/Step1Mandate.tsx'
+  const MANDAT = 'src/components/crm-wizard/steps/Step1Mandate.tsx'
   const src = () => sansCommentaires(readFileSync(MANDAT, 'utf-8'))
 
   it('l’extraction simulée ne revient pas', () => {
@@ -226,7 +226,7 @@ describe('Wizard mobile — le même brouillon que le bureau', () => {
    */
   it('la mécanique d’écriture n’est pas recopiée', () => {
     const src = ecran()
-    expect(src).toMatch(/from '@\/components\/crm-sugar-wizard\/useWizardDraft'/)
+    expect(src).toMatch(/from '@\/components\/crm-wizard\/useWizardDraft'/)
     expect(src).not.toMatch(/expected_updated_at/)
   })
 

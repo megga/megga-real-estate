@@ -21,7 +21,7 @@ import { MLK } from '@/components/kyc-magic-link/mlkTokens'
  * en encre et `#F59E0B` 2,15 : sous l'AA tous les deux. La règle du dépôt est
  * « la teinte VIVE sur l'aplat, la FONCÉE sur le texte », et ces deux valeurs
  * sont celles que trois surfaces portent déjà au même rôle
- * (`SugarV3.errDarker`, `EtatVide`, `PDF.errFg` / `warnFg`).
+ * (`DossierTokens.errDarker`, `EtatVide`, `PDF.errFg` / `warnFg`).
  */
 const ERR_INK = '#B91C1C'
 const WARN_INK = '#B45309'

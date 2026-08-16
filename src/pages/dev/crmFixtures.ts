@@ -6,7 +6,7 @@
  * La console super-admin se regardait sans session : ses hooks lisent des RPC
  * qui ne dépendent pas d'un profil. Le CRM agent, non — mesuré, ses hooks sont
  * gatés sur `profile?.agency_id` (`useAgencySettings`, `useRelanceLeads`,
- * `useIdentityGate`…), et `AgentSugarLayout` RETIENT l'écran sur `BootSplash`
+ * `useIdentityGate`…), et `AgentLayout` RETIENT l'écran sur `BootSplash`
  * tant que le gate d'identité n'a pas résolu. Sans session, le banc n'aurait
  * montré qu'un écran d'attente : le mur n'est pas seulement `ProtectedRoute`.
  *

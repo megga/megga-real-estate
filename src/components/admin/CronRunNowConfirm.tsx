@@ -13,7 +13,7 @@
 import { useTranslation } from 'react-i18next'
 import Modal from '@/components/ui/modal'
 import { AdminGhostBtn, AdminSolidBtn } from '@/components/admin/kit/adminKit'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 
 /** Confirmation d'une relance sur un cron qui peut écrire à des clients ou des agents. */
 export default function CronRunNowConfirm({ jobname, messageFr, pending, onConfirm, onClose }: {
@@ -25,7 +25,7 @@ export default function CronRunNowConfirm({ jobname, messageFr, pending, onConfi
   onClose: () => void
 }) {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
 
   return (
     <Modal open onClose={onClose} title={t('monitoring.cronHealth.confirmTitle')} size="sm">

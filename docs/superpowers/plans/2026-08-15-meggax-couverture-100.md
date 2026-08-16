@@ -93,7 +93,7 @@ parseur est faux, pas le dépôt ».** À réécrire en premier.
 | `src/components/megga-x` | 18 | 0 | **la SOURCE de la direction** — exemption de nature |
 | `src/pages/dev` | 12 | 24 | bancs `import.meta.env.DEV`, jamais servis |
 | `src/components/layout` | 9 | 0 | 2 fichiers déjà couverts nommément |
-| `src/components/crm-sugar-identity` | 8 | 0 (⚠ un agent annonce 9 polices — à re-mesurer) | onboarding KYB |
+| `src/components/crm-identity` | 8 | 0 (⚠ un agent annonce 9 polices — à re-mesurer) | onboarding KYB |
 | `src/components/ui` | 6 | 0 | primitives shadcn |
 | `src/components/auth-bento` | 4 | 1 | ⚠ 1 route vivante sur 15 |
 | `src/components/kyc-report` | 4 (+1 `.ts`) | **45** | **PUBLIC** — 22 graisses ≥ 700, 16 micro-capitales, 7 polices |
@@ -102,8 +102,8 @@ parseur est faux, pas le dépôt ».** À réécrire en premier.
 | `listings`, `skeletons` | 2 + 2 | 0 | |
 | `auth`, `map`, `matching-recherche` | 1 + 1 + 1 | 25 | `MrhMapView` = **exemption déjà écrite** (carte gelée, issue #1061) |
 
-Plus, hors du compte des porteurs : `crm-sugar/mockData.ts` et
-`crm-sugar/sugarThemeVars.ts`, laissés dehors par le `keep` de la racine.
+Plus, hors du compte des porteurs : `crm/mockData.ts` et
+`crm/crmThemeVars.ts`, laissés dehors par le `keep` de la racine.
 
 ⛔ **`kyc-report` est le trou le plus grave, et c'est le piège du PÉRIMÈTRE
 retombé.** `KycReportRenderPage.tsx` **est** au cliquet depuis le lot 5 et ne
@@ -121,7 +121,7 @@ par des clients et des autorités.
 | **B3** | **Échelle en CLASSES.** `text-sm` est un barreau de Tailwind, pas `var(--crm-text-*)`. | 7 des 14 pages publiques sont peintes en classes (8 à 57 `className`, 0 `style={{`). |
 | **B4** | **Rayons et espacements.** | **0 citation** de `borderRadius`/`padding`/`--crm-space`/`--crm-radius` dans le cliquet — alors que CLAUDE.md §3.3 déclare qu'un tel littéral **est une régression**. Plusieurs centaines de sites (chiffre contesté, voir §6). |
 | **B5** | **Feuilles CSS.** La clause CSS ne lit que `globals.css`. | **8 feuilles.** `responsive.css` est importée par `main.tsx` et porte `font-size: 28px !important` — **28 n'est pas un barreau** (l'échelle saute 24 → 30). |
-| **B6** | **Police par une autre clé.** La garde s'ancre sur `fontFamily:`. | `crm-sugar-v3/tokens.ts:113` écrit `font: '"Inter Tight", …'` ; l'attribut SVG `fontFamily="Manrope"` passe aussi. |
+| **B6** | **Police par une autre clé.** La garde s'ancre sur `fontFamily:`. | `crm-dossiers/tokens.ts:113` écrit `font: '"Inter Tight", …'` ; l'attribut SVG `fontFamily="Manrope"` passe aussi. |
 
 ⚠ **B2 et B3 sont DÉJÀ INVENTORIÉS** par la clause « les pages publiques que
 l'instrument ne voit pas sont inventoriées », qui dit explicitement ce qu'il ne
@@ -139,7 +139,7 @@ ferme.**
 
 ### Ce qui n'est PAS un défaut, malgré les apparences
 
-⚠ **L'échelle Graphite dans `crm-sugar/tokens.ts` est un résidu GARDÉ, pas une
+⚠ **L'échelle Graphite dans `crm/tokens.ts` est un résidu GARDÉ, pas une
 direction vive.** Ses littéraux n'alimentent que `CRM_TOKENS.graphite`, et
 `graphite-scale.spec.ts` porte trois clauses qui l'encerclent : « n'alimente plus
 que le thème legacy », « aucun fichier de `src/` n'écrit un barreau de l'échelle
@@ -208,7 +208,7 @@ l'axe B s'applique d'un coup à toute la surface couverte.
 
 | Lot | Contenu | Taille attendue |
 |---|---|---|
-| **1** | Les zones **sans marqueur** entrent : `layout`, `ui`, `propertyx`, `onboarding-call`, `listings`, `skeletons`, `auth`, `map`, `crm-sugar-identity`, + les 2 fichiers de `crm-sugar`. | ~30 porteurs, entrée quasi mécanique. ⚠ Re-mesurer `crm-sugar-identity` : un agent y annonce 9 polices en dur, mon comptage en donne 0 — **l'écart doit être tranché avant d'entrer**. |
+| **1** | Les zones **sans marqueur** entrent : `layout`, `ui`, `propertyx`, `onboarding-call`, `listings`, `skeletons`, `auth`, `map`, `crm-identity`, + les 2 fichiers de `crm`. | ~30 porteurs, entrée quasi mécanique. ⚠ Re-mesurer `crm-identity` : un agent y annonce 9 polices en dur, mon comptage en donne 0 — **l'écart doit être tranché avant d'entrer**. |
 | **2** | **`kyc-report`** — 5 fichiers, 45 marqueurs, surface PUBLIQUE. Graisses ≥ 700, micro-capitales, polices en dur. | Le vrai lot de la phase I. ⚠ **C'est un PDF** : la casse et la graisse y portent peut-être une fonction (en-têtes officiels) — mesurer avant de raboter. |
 | **3** | **Les exemptions ÉCRITES** : `megga-x` (source de la direction), `pages/dev` (bancs), `MrhMapView` (gel adossé à #1061), `auth-bento` (selon §3.3). Chacune est une entrée nommée avec son MOTIF, testée. | Une exemption sans motif écrit est un oubli déguisé. |
 
@@ -276,7 +276,7 @@ soient `completed`, et que les NOMS soient identiques sur 3 lectures.
   zones : ils sont couverts. Ils ne bougeront que par ricochet des lots 4 à 7.
 - Il **ne touche à aucun libellé ni chiffre** sur les surfaces clientes.
 - Il **ne fige pas** le compte de rayons/espacements : mon relevé (189 dans
-  `crm-sugar`, 96 dans `crm-mobile`, 35 dans `components/admin`) et celui des
+  `crm`, 96 dans `crm-mobile`, 35 dans `components/admin`) et celui des
   agents (127, 67, 262) **divergent** parce que les définitions divergent — les
   leurs incluaient `pages/admin` et d'autres formes d'écriture. ⛔ **Le chiffre
   est à réétablir au lot 7, avec une définition écrite.** Ce qui n'est pas

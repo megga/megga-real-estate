@@ -13,7 +13,7 @@
 import { showIntercomArticle, showIntercomSpace, isIntercomEnabled } from './intercom'
 
 /**
- * Clé d'aide → ID d'article Help Center publié. Les clés reprennent les `SugarScreenId`
+ * Clé d'aide → ID d'article Help Center publié. Les clés reprennent les `CrmScreenId`
  * de la TopNav, plus quelques surfaces secondaires (kyc / settings / billing / whatsapp / portail).
  *
  * Tous les écrans de la TopNav ont désormais un article ; toute surface non mappée
@@ -26,7 +26,7 @@ export const HELP_ARTICLES: Record<string, string> = {
   matching: '15492029', // Lire un score de matching et proposer un bien
   calendar: '15424986', // Connecter Google, Outlook et la signature
   // ⛔ `julien: '15492030'` A ÉTÉ RETIRÉ le 17 août 2026 avec la page du même nom.
-  // Les clés d'aide reprennent les `SugarScreenId` ; `'julien'` n'en est plus un,
+  // Les clés d'aide reprennent les `CrmScreenId` ; `'julien'` n'en est plus un,
   // donc l'entrée était devenue INATTEIGNABLE — `openHelpFor(active)` ne peut plus
   // la produire. ⚠ L'ARTICLE, lui, existe toujours et reste juste : « Le copilote
   // MEGGA AI : ce qu'il fait, ses limites », id Intercom **15492030**. Ce qui

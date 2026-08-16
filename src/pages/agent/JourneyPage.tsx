@@ -1,20 +1,21 @@
 // MEGGA CRM — Parcours équipe (Tier 3.h)
-// 1:1 port from the Claude Design bundle (`crm-screen-parcours-sugar.jsx`).
+// 1:1 port from the Claude Design bundle (`crm-screen-journey-screen.jsx`).
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { crmSugarPalette } from '@/components/crm-sugar/tokens'
+import { crmPalette } from '@/components/crm/tokens'
 import {
-  SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId,
-} from '@/components/crm-sugar/SugarShell'
-import { PCDossierFrame } from '@/components/crm-sugar/journey/PCDossierFrame'
-import { PCFilters } from '@/components/crm-sugar/journey/PCFilters'
+  CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId,
+} from '@/components/crm/CrmShell'
+import { PCDossierFrame } from '@/components/crm/journey/PCDossierFrame'
+import { PCFilters } from '@/components/crm/journey/PCFilters'
 import {
   type StageId,
   type Urgency,
-} from '@/components/crm-sugar/journey/journeyData'
-import { useParcoursSugar } from '@/hooks/useParcoursSugar'
+} from '@/components/crm/journey/journeyData'
+import { useJourneyScreen } from '@/hooks/useJourneyScreen'
+import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 export default function JourneyPage() {
   const { t: tr } = useTranslation('pipeline')
@@ -22,22 +23,19 @@ export default function JourneyPage() {
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
     }
   }, [dark])
 
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
 
   // Source de vérité : transactions actives Supabase (1 dossier = 1 transaction).
   // Filtre Agent retiré (pas de table profiles/teammates wire) — réintroduit avec RBAC.
-  const { dossiers: liveDossiers } = useParcoursSugar()
+  const { dossiers: liveDossiers } = useJourneyScreen()
 
   const [stageFilter, setStageFilter] = useState<StageId | 'all'>('all')
   const [urgencyFilter, setUrgencyFilter] = useState<Urgency | 'all'>('all')
@@ -54,7 +52,7 @@ export default function JourneyPage() {
     /* placeholder */
   }
 
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onNavigate = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today':
         navigate('/dashboard'); break
@@ -91,8 +89,8 @@ export default function JourneyPage() {
         color: sp.ink,
       }}
     >
-      <style>{SUGAR_KEYFRAMES}</style>
-      <SugarTopNav
+      <style>{CRM_KEYFRAMES}</style>
+      <CrmTopNav
         active="parcours"
        
         sp={sp}
@@ -101,7 +99,7 @@ export default function JourneyPage() {
       />
 
       <div style={{ display: 'flex' }}>
-        <SugarIconRail
+        <CrmIconRail
           active="parcours"
           onNavigate={onNavigate}
           onCmd={onCmd}

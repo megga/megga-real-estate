@@ -8,17 +8,18 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { crmSugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
-import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { mxSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
-import { IntegrationsSection } from '@/components/crm-sugar/settings/IntegrationsSection'
-import { BillingSection } from '@/components/crm-sugar/settings/BillingSection'
-import { SecuritySection } from '@/components/crm-sugar/settings/SecuritySection'
-import { ProfileFocusSection } from '@/components/crm-sugar/settings/focus/ProfileFocusSection'
-import { AgencyFocusSection } from '@/components/crm-sugar/settings/focus/AgencyFocusSection'
-import { PreferencesFocusSection } from '@/components/crm-sugar/settings/focus/PreferencesFocusSection'
-import { SETTINGS_SECTIONS, applySetTheme, type SectionId } from '@/components/crm-sugar/settings/data'
-import { SETTINGS_KEYFRAMES } from '@/components/crm-sugar/settings/atoms'
+import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
+import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { mxSurfaces } from '@/components/crm/biens/gallery/galHelpers'
+import { IntegrationsSection } from '@/components/crm/settings/IntegrationsSection'
+import { BillingSection } from '@/components/crm/settings/BillingSection'
+import { SecuritySection } from '@/components/crm/settings/SecuritySection'
+import { ProfileFocusSection } from '@/components/crm/settings/focus/ProfileFocusSection'
+import { AgencyFocusSection } from '@/components/crm/settings/focus/AgencyFocusSection'
+import { PreferencesFocusSection } from '@/components/crm/settings/focus/PreferencesFocusSection'
+import { SETTINGS_SECTIONS, applySetTheme, type SectionId } from '@/components/crm/settings/data'
+import { SETTINGS_KEYFRAMES } from '@/components/crm/settings/atoms'
+import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte']
 const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations', 'security', 'billing']
@@ -46,18 +47,15 @@ export default function SettingsPage() {
 
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
     }
   }, [dark])
 
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   const surf = mxSurfaces(sp)
 
   // Les sections conservées (Integrations/Billing/Security) lisent SET_PALETTE :
@@ -74,7 +72,7 @@ export default function SettingsPage() {
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0 }, [active])
 
   const onCmd = () => { /* placeholder */ }
-  const onNavigate = (id: SugarScreenId | string) => {
+  const onNavigate = (id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'pipeline': navigate('/dashboard/pipeline'); break
@@ -112,7 +110,7 @@ export default function SettingsPage() {
   // sombre ; le contenu Facturation est transparent pour laisser passer le dégradé.
   const immersive = active === 'billing'
   const BILL_GRAD = '/billing/gradient.png'
-  const spR = immersive ? crmSugarPalette(true) : sp
+  const spR = immersive ? crmPalette(true) : sp
   const surfR = immersive ? mxSurfaces(spR) : surf
   const darkR = dark || immersive
 
@@ -130,7 +128,7 @@ export default function SettingsPage() {
         fontVariantNumeric: 'tabular-nums',
       }}
     >
-      <style>{SUGAR_KEYFRAMES}</style>
+      <style>{CRM_KEYFRAMES}</style>
       <style>{SETTINGS_KEYFRAMES}</style>
       <style>{`
         /* Pas d'\`outline: none\` : les lignes du rail sont des <button>, et le
@@ -143,15 +141,15 @@ export default function SettingsPage() {
            transparente de même épaisseur — c'est ce qui empêche le texte de
            sauter d'un pixel au changement de section. */
         .spg-nav { -webkit-tap-highlight-color: transparent; }
-        .spg-nav:hover { background: ${darkR ? 'rgba(255,255,255,0.05)' : sgVoileEncre(false, 0.035)}; }
+        .spg-nav:hover { background: ${darkR ? 'rgba(255,255,255,0.05)' : crmVoileEncre(false, 0.035)}; }
         .spg-scroll::-webkit-scrollbar { width: 9px; }
-        .spg-scroll::-webkit-scrollbar-thumb { background: ${darkR ? 'rgba(255,255,255,.12)' : sgVoileEncre(false, .14)}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+        .spg-scroll::-webkit-scrollbar-thumb { background: ${darkR ? 'rgba(255,255,255,.12)' : crmVoileEncre(false, .14)}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
       `}</style>
 
-      <SugarTopNav active={'settings' as SugarScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
+      <CrmTopNav active={'settings' as CrmScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <SugarIconRail active="settings" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmIconRail active="settings" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
 
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
           <div style={{
@@ -169,7 +167,7 @@ export default function SettingsPage() {
             {/* RAIL — titre + nav des sections (grammaire « À suivre ») */}
             {/* 30 px reste un littéral : au-delà de 24 c'est un décalage de
                 composition, pas un barreau de rythme (même règle que la
-                migration de `crm-sugar/`). */}
+                migration de `crm/`). */}
             <aside className="spg-scroll" style={{ padding: '30px var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', minHeight: 0, overflowY: 'auto' }}>
               {/* Titre en grammaire d'AFFICHAGE de la vitrine : ses `display-*` sont
                   réglés en 400/500/600, jamais en 800. Le 800 + `-1.1` venait de

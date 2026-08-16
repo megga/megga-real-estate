@@ -53,7 +53,7 @@ import { useTranslation } from 'react-i18next'
 import { Activity, AlertTriangle, Check, ChevronRight, CreditCard, Eye } from 'lucide-react'
 import { formatCHF, formatRelativeDate } from '@/lib/utils'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminOverview } from '@/hooks/useAdminOverview'
 import {
   sectionPath,
@@ -90,7 +90,7 @@ const DETAIL_ROWS = 9
 export default function AdminDashboardPage() {
   const { t } = useTranslation(['admin', 'common'])
   const navigate = useNavigate()
-  const { sp, surf, dark, tones } = useAdminSugar()
+  const { sp, surf, dark, tones } = useAdminSurfaces()
   const { data, isPending, isError, refetch } = useAdminOverview()
   const [maille, setMaille] = useState<'familles' | 'detail'>('familles')
   const [diagOuvert, setDiagOuvert] = useState(false)

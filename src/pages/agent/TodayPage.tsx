@@ -6,7 +6,7 @@
 // le câblage Supabase (useFocusQueue, agenda, pipeline, objectif) à reprendre
 // au « Lot 0 » d'hydratation du concept H.
 // Page 1 = catalogue de matchs. Pager molette vertical (1 cran = 1 page plein
-// écran), chrome CRM standard (SugarTopNav + SugarIconRail).
+// écran), chrome CRM standard (CrmTopNav + CrmIconRail).
 //
 // ⚠️ Port VISUEL sur DONNÉES DÉMO (cf. ./today/data.ts). Le handoff prescrit
 // « porter à l'identique d'abord, câbler ensuite » : le câblage live (Supabase)
@@ -20,14 +20,15 @@
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { crmSugarPalette, sgVoileEncre } from '@/components/crm-sugar/tokens'
-import { SugarTopNav, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
-import { SugarIconRail } from '@/components/crm-sugar/LiquidGlassRail'
-import { openSugarSearch } from '@/components/crm-sugar/search/openSearch'
-import { TK, applyTK } from '@/components/crm-sugar/today/tk'
-import { TodayNavProvider } from '@/components/crm-sugar/today/TodayNavContext'
-import { PageAujourdhuiH } from '@/components/crm-sugar/today/PageAujourdhuiH'
-import { PageCatalogue } from '@/components/crm-sugar/today/PageCatalogue'
+import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
+import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
+import { openCrmSearch } from '@/components/crm/search/openSearch'
+import { TK, applyTK } from '@/components/crm/today/tk'
+import { TodayNavProvider } from '@/components/crm/today/TodayNavContext'
+import { PageAujourdhuiH } from '@/components/crm/today/PageAujourdhuiH'
+import { PageCatalogue } from '@/components/crm/today/PageCatalogue'
+import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 // `labelKey` = clé i18n stable (namespace dashboard) ; le libellé est traduit
 // chez le consommateur (cf. § conventions i18n — module statique, pas de hook).
@@ -41,7 +42,7 @@ function TodayPageDots({ page, onGo, lightMode }: { page: number; onGo: (i: numb
   const { t } = useTranslation('dashboard')
   // Point de page ACTIF : même règle que partout ailleurs, il porte l'accent.
   const activeCol = TK.accent
-  const idleCol = sgVoileEncre(!lightMode, lightMode ? 0.18 : 0.22)
+  const idleCol = crmVoileEncre(!lightMode, lightMode ? 0.18 : 0.22)
   return (
     <div style={{
       position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', zIndex: 30,
@@ -108,28 +109,25 @@ export default function TodayPage() {
   // ─── Theme: dark/light, tied to the icon-rail toggle ─────────────────
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
-    const saved = window.localStorage.getItem('megga.sugar.dark')
-    if (saved === '1') return true
-    if (saved === '0') return false
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return readCrmDark()
   })
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('megga.sugar.dark', dark ? '1' : '0')
+      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
     }
   }, [dark])
 
-  const sp = crmSugarPalette(dark)
+  const sp = crmPalette(dark)
   // « allume » / éteint tout le cockpit selon l'ambiance (singleton muté en place).
   applyTK(dark)
   const lightMode = TK.frameSolid === '#FFFFFF'
 
-  const onCmd = () => openSugarSearch()
+  const onCmd = () => openCrmSearch()
 
   // `ref` = identifiant réel porté par le payload (uuid). Les cibles « détail »
   // n'existent qu'avec lui : sans référence, on ouvre la LISTE correspondante
   // plutôt que de laisser un bouton sans effet.
-  const onNavigate = (id: SugarScreenId | string, ref?: string) => {
+  const onNavigate = (id: CrmScreenId | string, ref?: string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
       case 'contact-detail': navigate(ref ? `/dashboard/contacts/${ref}` : '/dashboard/contacts'); break
@@ -330,10 +328,10 @@ export default function TodayPage() {
           @keyframes m2pulse { 0% { transform: scale(1); opacity: .7; } 75%, 100% { transform: scale(2.2); opacity: 0; } }
         `}</style>
 
-        <SugarTopNav active="today" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
+        <CrmTopNav active="today" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-          <SugarIconRail
+          <CrmIconRail
             active="today" onNavigate={onNavigate} onCmd={onCmd}
             dark={dark} setDark={setDark} sp={sp}
           />

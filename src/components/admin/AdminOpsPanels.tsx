@@ -5,7 +5,7 @@
 // Rendu en grammaire Sugar (kit `adminKit`) : bentos séparés par l'ombre,
 // sous-groupes annoncés par une pastille de ton, compteurs en chiffres
 // tabulaires, et les textes `text-red-500` / `text-amber-500` remplacés par les
-// tons fonctionnels de `useAdminSugar()`.
+// tons fonctionnels de `useAdminSurfaces()`.
 
 import { useTranslation } from 'react-i18next'
 import { Coins, Radio } from 'lucide-react'
@@ -14,8 +14,8 @@ import { useSyndicationHealth, useWhatsAppHealth, useAiCosts } from '@/hooks/use
 import {
   AdminCard, AdminEmpty, AdminError, AdminGroupTitle, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
-import { useAdminSugar, type AdminTones } from '@/hooks/useAdminSugar'
-import type { SugarPalette } from '@/components/crm-sugar/tokens'
+import { useAdminSurfaces, type AdminTones } from '@/hooks/useAdminSurfaces'
+import type { CrmPalette } from '@/components/crm/tokens'
 
 function formatDateTime(iso: string | null): string {
   if (!iso) return '—'
@@ -33,7 +33,7 @@ function formatDateTime(iso: string | null): string {
  * valeur, et une pilule pleine par statut ferait quatre pavés de couleur sur une
  * seule ligne.
  */
-function statusCountColor(status: string, tones: AdminTones, sp: SugarPalette): string {
+function statusCountColor(status: string, tones: AdminTones, sp: CrmPalette): string {
   switch (status) {
     case 'published': return tones.ok
     case 'queued': return tones.warn
@@ -52,7 +52,7 @@ function statusCountColor(status: string, tones: AdminTones, sp: SugarPalette): 
  * encadrerait chaque chiffre dans un panneau qui l'est déjà.
  */
 function OpsStat({ label, value, color }: { label: string; value: string | number; color?: string }) {
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   return (
     <div>
       <p style={{ margin: 0, fontSize: 'var(--crm-text-sm)', color: sp.soft }}>{label}</p>
@@ -69,7 +69,7 @@ function OpsStat({ label, value, color }: { label: string; value: string | numbe
 // ── Syndication IDX ──────────────────────────────────────────────────────────
 export function SyndicationHealthPanel() {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const { data, isLoading, isError } = useSyndicationHealth()
 
   return (
@@ -160,7 +160,7 @@ export function SyndicationHealthPanel() {
 // ── WhatsApp ops ─────────────────────────────────────────────────────────────
 export function WhatsAppOpsPanel() {
   const { t } = useTranslation('admin')
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   const { data, isLoading, isError } = useWhatsAppHealth()
 
   const failureRate7d =
@@ -260,7 +260,7 @@ export function WhatsAppOpsPanel() {
 // ── Coûts IA par agence (AdminToolUsagePage) ─────────────────────────────────
 export function AiCostsSection() {
   const { t } = useTranslation('admin')
-  const { sp } = useAdminSugar()
+  const { sp } = useAdminSurfaces()
   const { data, isLoading, isError } = useAiCosts(6)
 
   // Totaux par mois pour la ligne de tendance (les coûts sont en USD — on

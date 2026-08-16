@@ -32,7 +32,7 @@ import {
   AdminPill, AdminSearchInput, AdminSkeleton, AdminTd, AdminTh,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { formatRelativeDate } from '@/lib/utils'
@@ -47,7 +47,7 @@ const FLATFOX_SYNC_MAX_AGE_MS = 25 * 60 * 60 * 1000
 
 export default function AdminMonitoringPage() {
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const { health, healthLoading, healthError, edgeFunctions, edgeFunctionsLoading, errorLogs, errorLogsLoading } = useAdminMonitoring()
 
   const deepseekBalance = useDeepSeekBalance()
@@ -677,7 +677,7 @@ function HealthTile({ icon, label, value, valueColor, gauge, hint }: {
   gauge?: { percent: number; color: string }
   hint?: ReactNode
 }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   return (
     <AdminCard padding="14px 16px">
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 7 }}>

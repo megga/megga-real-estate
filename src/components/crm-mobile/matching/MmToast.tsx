@@ -21,7 +21,7 @@ export interface MmToastState {
 
 /**
  * Toast d'action Sugar (accent plein, au-dessus de la barre d'onglets) avec
- * actions « Annuler » / « Voir le deal → ». La primitive `SgToast` est
+ * actions « Annuler » / « Voir le deal → ». La primitive `CrmToast` est
  * volontairement passive (display-only) ; le contrat undo 5 s du matching exige
  * un toast cliquable, d'où ce composant dédié.
  */

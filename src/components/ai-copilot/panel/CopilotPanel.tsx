@@ -10,11 +10,11 @@ import {
   useState, useRef, useEffect, useMemo, useCallback,
   type ReactNode, type KeyboardEvent as ReactKeyboardEvent, type ChangeEvent as ReactChangeEvent,
 } from 'react'
-import { crmSugarPalette, crmFmtCHF, CRM_STAGES, sgVoileEncre, type StageId } from '@/components/crm-sugar/tokens'
+import { crmPalette, crmFmtCHF, CRM_STAGES, crmVoileEncre, type StageId } from '@/components/crm/tokens'
 import { useCopilot, type PendingActionCard } from '@/hooks/useCopilot'
 import { useUploadChatPhoto } from '@/hooks/useProperties'
 import { useAuth } from '@/hooks/useAuth'
-import { usePipelineSugar } from '@/hooks/usePipelineSugar'
+import { usePipelineScreen } from '@/hooks/usePipelineScreen'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useImpersonate } from '@/hooks/useImpersonate'
 import { CpIcon, AiGlyph } from './panelIcons'
@@ -28,21 +28,15 @@ import {
   PANEL_W, deriveAiPalette, packFor, screenLabel, parseSegments, detectEmailDraft, isAnnonceRequest, isLettreRequest, thinkingPhases,
   type AiPalette,
 } from './aiPanel'
+import { readCrmDark } from '@/lib/crmDark'
 
 // ── Mode sombre Sugar (même clé localStorage que les pages) ─────────────────
-function readSugarDark(): boolean {
-  if (typeof window === 'undefined') return false
-  const s = window.localStorage.getItem('megga.sugar.dark')
-  if (s === '1') return true
-  if (s === '0') return false
-  return window.matchMedia('(prefers-color-scheme: dark)').matches
-}
 // Réactif : `storage` (cross-onglet) + relecture courte tant que le panneau est
 // ouvert (capte un toggle same-tab sans toucher au code partagé du rail).
 function usePanelDark(active: boolean): boolean {
-  const [dark, setDark] = useState(readSugarDark)
+  const [dark, setDark] = useState(readCrmDark)
   useEffect(() => {
-    const sync = () => setDark(readSugarDark())
+    const sync = () => setDark(readCrmDark())
     window.addEventListener('storage', sync)
     let id: number | undefined
     if (active) id = window.setInterval(sync, 400)
@@ -267,7 +261,7 @@ function CpDraftCard({ lang, body, open, sp, onInsertEmail, onUseAnnonce, onGene
             display: 'flex', alignItems: 'center', gap: 6, border: 0, cursor: 'pointer',
             fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.1, height: 34, padding: '0 13px',
             borderRadius: 999, color: copied ? sp.ink : sp.soft, background: sp.dark ? sp.fill : '#FFFFFF',
-            boxShadow: sp.dark ? 'none' : `0 1px 4px ${sgVoileEncre(false, 0.06)}`, transition: 'background .14s',
+            boxShadow: sp.dark ? 'none' : `0 1px 4px ${crmVoileEncre(false, 0.06)}`, transition: 'background .14s',
           }}>
             <CpIcon name={copied ? 'check' : 'copy'} size={13} color={copied ? sp.ink : sp.soft} sw={2} />
             {copied ? 'Copié' : 'Copier'}
@@ -557,7 +551,7 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, conversationId, c
 }) {
   const { sendMessageStream, executePending, isLoading, clearHistory, resumeConversation } = useCopilot()
   const { profile } = useAuth()
-  const { deals } = usePipelineSugar()
+  const { deals } = usePipelineScreen()
   const { entity } = useAiPanel()
   const [messages, setMessages] = useState<PanelMsg[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -793,11 +787,11 @@ export default function CopilotPanel() {
   const { impersonating } = useImpersonate()
   const dark = usePanelDark(isOpen)
   const sp = useMemo<AiPalette>(() => {
-    const base = crmSugarPalette(dark)
+    const base = crmPalette(dark)
     return deriveAiPalette(base, dark)
   }, [dark])
 
-  // Monté à la 1re ouverture : aucune requête (usePipelineSugar) tant que MEGGA
+  // Monté à la 1re ouverture : aucune requête (usePipelineScreen) tant que MEGGA
   // AI n'a pas été ouvert ; ensuite le contenu reste monté (conversation préservée).
   const [mounted, setMounted] = useState(false)
   useEffect(() => { if (isOpen) setMounted(true) }, [isOpen])

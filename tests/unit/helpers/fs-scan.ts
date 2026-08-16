@@ -139,8 +139,8 @@ export interface RootSpec {
    * {@link keep}. Optionnel : sans lui, le comportement est inchangé.
    *
    * ⛔ POURQUOI IL EXISTE. `collect()` RÉCURSE, et `keep` ne voit que le nom de
-   * base : une racine `src/components/crm-sugar` qui retient `'tokens.ts'`
-   * ramène AUSSI `crm-sugar/analytics/tokens.ts` — une palette Sugar Pure
+   * base : une racine `src/components/crm` qui retient `'tokens.ts'`
+   * ramène AUSSI `crm/analytics/tokens.ts` — une palette Sugar Pure
    * complète appartenant à un autre lot. Le cliquet de grammaire l'aurait alors
    * déclarée portée sans que personne la regarde, ce qui est exactement
    * l'inverse de ce à quoi sert un cliquet.

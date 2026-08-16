@@ -37,7 +37,7 @@ import { useId, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Search, ShieldAlert } from 'lucide-react'
 import { Modal } from '@/components/ui/modal'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminAgencies } from '@/hooks/useAdminAgencies'
 import { useKycLinkLookup, useKycLinkRegenerate } from '@/hooks/useKycLinkDiagnostic'
 import {
@@ -70,7 +70,7 @@ interface Props {
 
 export default function KycLinkDiagnosticModal({ onClose, onGoToJournal }: Props) {
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const { agencies, isLoading: agencesEnVol, isError: agencesEnEchec, refetch } = useAdminAgencies()
   const lookup = useKycLinkLookup()
   const regenerate = useKycLinkRegenerate()

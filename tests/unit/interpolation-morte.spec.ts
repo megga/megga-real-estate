@@ -4,7 +4,7 @@
  * Une interpolation morte, c'est `${…}` écrit dans une chaîne à guillemets
  * SIMPLES ou DOUBLES. JavaScript n'y voit que du texte — seuls les gabarits
  * (backticks) interpolent. La valeur produite est donc la chaîne littérale
- * `'0 12px 40px ${sgVoileEncre(false, 0.06)}'`.
+ * `'0 12px 40px ${crmVoileEncre(false, 0.06)}'`.
  *
  * ── POURQUOI ÇA MÉRITE UNE GARDE À PART ──────────────────────────────────────
  * ⛔ AUCUNE PORTE DU DÉPÔT NE PEUT LA VOIR. `tsc` est vert : c'est un `string`

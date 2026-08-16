@@ -1,5 +1,5 @@
 // Matching · Recherche — carte annonce (grille). Port du proto handoff `MrhCard`,
-// adapté aux vraies photos market_listings + i18n + icônes SgaIcon.
+// adapté aux vraies photos market_listings + i18n + icônes AtlIcon.
 
 import { useMemo, useState } from 'react'
 import type { MouseEvent as ReactMouseEvent } from 'react'

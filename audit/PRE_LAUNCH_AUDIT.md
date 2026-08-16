@@ -66,7 +66,7 @@ en prod (S3 requalifié), secrets bien côté serveur, webhooks signés, hygièn
 | **S3** | ~~MOYEN~~ | ⛔ Requalifié (INFO) | Escalade de rôle via `profiles.role` : **NON exploitable**. La base live applique 3 couches : trigger `trg_profiles_guard_role_agency` (lève si `role`/`agency_id` change), `role`/`agency_id` **exclus** des colonnes UPDATE accordées à `authenticated` (grant colonne par colonne), policy `profiles_update_own` avec `WITH CHECK` épinglant role+agency. La migration de verrou `20260627120000` **est appliquée** (le bookkeeping la disait « non appliquée » — faux, cf. §Annexe drift). Résidu : `signUp()` `update({role})` = **code mort** à nettoyer. | `src/hooks/useAuth.tsx:288-291` ; `supabase/migrations/20260627120000_profiles_privilege_escalation_lockdown.sql` |
 | **S-RLS** | — | ✅ Confirmé live | **Toutes les tables applicatives ont RLS activée.** Seule table sans RLS = `spatial_ref_sys` (table système PostGIS, bénin). | schéma `public` |
 | **S4** | MOYEN | 📄 Confirmé source | Audit trail d'impersonation super-admin en fire-and-forget **côté client** (contournable) ; impersonation purement `localStorage`, pas d'échange de token serveur. Un log d'impersonation peut être sauté. | `src/hooks/useImpersonate.ts:29,34-73` |
-| **S6** | FAIBLE | 📄 Confirmé source | Sanitizer XSS regex maison contournable (SVG/`data:`/entités) sur aperçu de signature email. Durcir via DOMPurify. Surtout self-XSS (contenu saisi par l'utilisateur lui-même). | `src/components/crm-sugar/settings/ProfileSection.tsx:66-74,222` |
+| **S6** | FAIBLE | 📄 Confirmé source | Sanitizer XSS regex maison contournable (SVG/`data:`/entités) sur aperçu de signature email. Durcir via DOMPurify. Surtout self-XSS (contenu saisi par l'utilisateur lui-même). | `src/components/crm/settings/ProfileSection.tsx:66-74,222` |
 | **S8** | FAIBLE | 📄 Confirmé source | `.gitignore` ne couvre que `*.local` — `.env` / `.env.production` non ignorés (risque de commit accidentel de secrets). | `.gitignore:13,29` |
 | **S9** | FAIBLE | 📄 Confirmé source | Insertions anonymes non bornées (`article_feedback`, `article_views`) → spam/flood. | `baseline_remote_schema.sql:6928,6932` |
 
@@ -187,14 +187,14 @@ d'uploads par lien), `extract-property-pdf` (OK).
 | ID | Gravité | Finding | Emplacement |
 |----|---------|---------|-------------|
 | **P1** | MOYEN | `count:'exact'` sur `market_listings` (**125 759** rows). ✅ EXPLAIN live : **indexé** (BitmapAnd, coût ~18.7k, ~44k rows comptés) — pas un seq-scan catastrophe, mais `count:'estimated'` serait instantané. | `AdminMonitoringPage.tsx:29` |
-| **P2** | MOYEN | `@tanstack/react-virtual` installé mais **0 usage** ; listes Pipeline/Biens/Contacts en `.map()`, hooks `useContacts`/`useProperties`/`useContactsSugar`/`usePipelineSugar` **sans `.limit`/`.range`**. | `src/hooks/*` |
+| **P2** | MOYEN | `@tanstack/react-virtual` installé mais **0 usage** ; listes Pipeline/Biens/Contacts en `.map()`, hooks `useContacts`/`useProperties`/`useContactsScreen`/`usePipelineScreen` **sans `.limit`/`.range`**. | `src/hooks/*` |
 | **P3** | FAIBLE | Join `market_listings(*)` charge colonnes lourdes `description`+`photos` en contexte matches. | `useAtelierMatching.ts:278` ; `useMatching.ts:221` |
 | **P4** | FAIBLE | `.toFixed()` sur valeurs de formulaire (risque `NaN`). | `ListingFormPage.tsx:398,403,424` ; `Step1Mandate.tsx:326,474` |
-| **P5** | FAIBLE | Formateurs CHF manuels dupliqués contournant `formatCHF` type-defensive (≥8 fichiers). | `crm-sugar/**/helpers.ts`, etc. |
+| **P5** | FAIBLE | Formateurs CHF manuels dupliqués contournant `formatCHF` type-defensive (≥8 fichiers). | `crm/**/helpers.ts`, etc. |
 | **P6** | FAIBLE | Un seul Error Boundary racine ; pas d'`onError` global React Query. | `src/App.tsx:618-622,209-224` |
 | **P7** | INFO | Memoization quasi nulle (3 `memo`). | pages CRM |
 | **P8** | MOYEN | **N+1 sériel + `count:'exact'` en boucle** : par règle d'automation, 3 requêtes `await` séquentielles dont 2 `count:'exact'` sur `reminders` ; relancé à chaque mutation via invalidation `['automation-rules']`. | `useReminders.ts:358-384` |
-| **P9** | MOYEN | **`memo` du Kanban défait** : `SugarDealCard` (memo + comparateur sur `onClick`/`onDragStart`) reçoit des **handlers inline recréés** → jamais skippé ; `SugarStageColumn` non mémoïsé → tout le board recompute à chaque survol pendant le drag. | `SugarStageColumn.tsx:118-129` ; `PipelinePage.tsx:138,449-463` |
+| **P9** | MOYEN | **`memo` du Kanban défait** : `DealCard` (memo + comparateur sur `onClick`/`onDragStart`) reçoit des **handlers inline recréés** → jamais skippé ; `StageColumn` non mémoïsé → tout le board recompute à chaque survol pendant le drag. | `StageColumn.tsx:118-129` ; `PipelinePage.tsx:138,449-463` |
 | **P10** | MOYEN | **Invalidations larges** : `updateProperty` invalide `['agency-properties']`/`['agency-listings']`/`['listings']` (listes entières `select('*')`) à chaque édition → refetch massif. Modèle ciblé à généraliser (`useKyc`/`useOffers` invalidant par id = bon). | `useProperties.ts:187-190` |
 
 **Confirmés OK** : Realtime `useId()` 5/5 channels, `.in()` jamais sur `market_listings`, états
@@ -211,8 +211,8 @@ loading/empty/error présents, code-splitting agressif (101 `lazy()`), cascades 
 | **Q2** | MOYEN | **Lint non-bloquant au deploy** (`lint \|\| true`) masquant **46 erreurs** réparties sur **5 règles** / ~12 fichiers (27 `react-refresh/only-export-components`, 13 `react-hooks/static-components` dans 1 fichier, 3 whitespace auto-fixables, 2 `react-hooks/refs`, 1 tooling). **Aucune erreur de type** → lint bloquant réaliste en 1 passe. + 28 `set-state-in-effect` / 15 `react-hooks/purity` (vrais red flags render). | `.github/workflows/deploy.yml:60` |
 | **Q3** | FAIBLE | Pas de Prettier ; pas de budget de bundle (`index` ~452 KB). | `vite.config.ts`, `package.json` |
 | **Q4** | FAIBLE | **~9 dépendances mortes** (0 import `src/`) : `react-use`, `@giphy/react-components`+`js-fetch-api`, `langsmith`, `motion` (doublon `framer-motion`), `emoji-mart`×3, `cmdk`, `@stripe/stripe-js` (front). Suppression = quick-win + réduit les 48 vulns. | `package.json` |
-| **Q6** | FAIBLE | **Fichiers/dossiers morts** (0 réf) à supprimer : `NetworkSugarV2Page.tsx` (**2314 LOC**, route neutralisée) + `crm-sugar/network/data.ts`, `crm/ContactTimeline.tsx`, `crm-sugar/SugarContactDetail.tsx`, `contacts/ContactsDetailPane.tsx`. | divers |
-| **Q5** | INFO | Fichiers >1000 LOC actifs à refactorer : `ListingFormPage.tsx` (3131, prioritaire car actif + 0 test), `SecuritySection` (1636), `ImportLead` (1596), `AgencySection` (1499), `MfaModals` (1447), `NewDealDrawer` (1373), `KycWizardModal` (1283). Nomenclature `SugarV2/V3/V4` incohérente (dette cognitive). | pages/composants |
+| **Q6** | FAIBLE | **Fichiers/dossiers morts** (0 réf) à supprimer : `NetworkSugarV2Page.tsx` (**2314 LOC**, route neutralisée) + `crm/network/data.ts`, `crm/ContactTimeline.tsx`, `crm/SugarContactDetail.tsx`, `contacts/ContactsDetailPane.tsx`. | divers |
+| **Q5** | INFO | Fichiers >1000 LOC actifs à refactorer : `ListingFormPage.tsx` (3131, prioritaire car actif + 0 test), `SecuritySection` (1636), `ImportLead` (1596), `AgencySection` (1499), `MfaModals` (1447), `NewDealDrawer` (1373), `KycWizardModal` (1283). Nomenclature `WizardTokens/V3/V4` incohérente (dette cognitive). | pages/composants |
 
 **Confirmés OK** : 0 `console.log`, 0 `@ts-ignore`, 2 `any`, tsconfig strict, CI mature (~123 fichiers de test).
 

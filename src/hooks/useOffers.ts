@@ -208,7 +208,7 @@ export function useUpdateOfferStatus() {
     onSuccess: (offer) => {
       queryClient.invalidateQueries({ queryKey: ['offer-chain', offer.deal_id] })
       queryClient.invalidateQueries({ queryKey: ['transaction', offer.deal_id] })
-      // Board pipeline (usePipelineSugar) — même invalidation que useUpdateTransactionStage.
+      // Board pipeline (usePipelineScreen) — même invalidation que useUpdateTransactionStage.
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['audit-events'] })
     },

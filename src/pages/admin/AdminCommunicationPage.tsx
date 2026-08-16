@@ -60,7 +60,7 @@ import {
   AdminSkeleton, AdminSolidBtn,
 } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII, type AdminToneName } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 
 type Tab = 'changelog' | 'announcements'
 
@@ -98,7 +98,7 @@ export default function AdminCommunicationPage() {
 /** Onglet Changelog — la feuille d'abord, l'historique dessous. */
 function ChangelogSheet() {
   const { t } = useTranslation('admin')
-  const { sp, surf, tones } = useAdminSugar()
+  const { sp, surf, tones } = useAdminSurfaces()
   const toast = useToast()
   const {
     entries, isLoading, isError, refetch,

@@ -30,7 +30,7 @@ import { useAdminPlansBoard, type PlansBoardRow } from '@/hooks/useAdminPlansBoa
 import { supabase } from '@/lib/supabase'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/ui/Toast'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import AdminPage from '@/components/admin/kit/AdminPage'
 import {
   AdminEmpty,
@@ -64,7 +64,7 @@ function PlanChangeDropdown({ currentPlan, agencyId }: { currentPlan: string; ag
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
   const toast = useToast()
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
 
   // Échap ferme le menu. L'écoute est posée sur le DOCUMENT et non sur le voile :
   // un `<div>` sans `tabIndex` n'est jamais focusable, donc le `onKeyDown` qu'il
@@ -186,7 +186,7 @@ function PlanQueue({ title, rows, dot, amount, onOpen }: {
   amount: (row: PlansBoardRow) => string
   onOpen: (row: PlansBoardRow) => void
 }) {
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   if (rows.length === 0) return null
   return (
     <div>
@@ -225,7 +225,7 @@ function PlanQueue({ title, rows, dot, amount, onOpen }: {
 export default function AdminPlansPage() {
   const { t } = useTranslation('admin')
   const navigate = useNavigate()
-  const { sp, surf, dark, tones } = useAdminSugar()
+  const { sp, surf, dark, tones } = useAdminSurfaces()
   const { data: board, isPending, isError, refetch } = useAdminPlansBoard()
   // Jointure d'AFFICHAGE seulement (ville, compte de biens) : aucune règle n'est
   // recalculée ici — le MRR et les états viennent du serveur (§4.3).

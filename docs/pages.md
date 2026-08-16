@@ -24,7 +24,7 @@ rendent plus aucune page.
 
 ### 1. CRM agent — `/dashboard/*` (authentifié)
 
-Monté sous `ProtectedRoute`. Deux layouts cohabitent : `AgentSugarLayout` (chrome
+Monté sous `ProtectedRoute`. Deux layouts cohabitent : `AgentLayout` (chrome
 courant, la majorité des routes) et `AgentLayout` (génération précédente, encore
 active sur l'import de contacts, le détail marché et le formulaire de bien). La
 console super-admin, elle, porte son propre chrome (`AdminShell`).

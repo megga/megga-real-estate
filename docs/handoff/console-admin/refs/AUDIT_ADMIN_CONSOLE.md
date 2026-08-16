@@ -104,13 +104,13 @@ Pouls de santé (pilule saine / attention requise, dérivé des KYC à risque) �
 | T5 | Deux surfaces de facturation séparées : `BillingDashboard` (dans la Vue d'ensemble) et **Plans & quotas** (page à part). | Regrouper sous une seule entrée « Revenus ». |
 | T6 | Trois pages « IA » distinctes (Autonomie, Styles appris, Usage des outils), chacune peu dense. | Fusionner en **« Copilote IA »** à onglets. |
 | T7 | Le rail de la console a un **hover animé** (`transition: background-color .18s`) — la préférence actée du projet est **aucune animation de survol**. | Passer en changement de fond instantané. |
-| T8 | `admin-console.css` **duplique à la main** les tokens Sugar (commentaire explicite : « toute évolution de tokens.ts doit être reportée ici »). | Dette connue ; sans objet dans le prototype (on lit `crmSugarPalette`). |
+| T8 | `admin-console.css` **duplique à la main** les tokens Sugar (commentaire explicite : « toute évolution de tokens.ts doit être reportée ici »). | Dette connue ; sans objet dans le prototype (on lit `crmPalette`). |
 
 ---
 
 ## 5. Intégration dans le pager du CRM — **acté (26 juil. 2026)**
 
-**Écran** `admin` du prototype → `crm-screen-admin-proto.jsx` (`window.CRMScreenAdminProto`), même shell que Paramètres : `SugarTopNav` + `SugarIconRail` + cadre r=26 + rail 300 px + bento à droite. Titre de rail « Console » + **pilule pleine noire « Admin MEGGA »** (le violet du repo est supprimé — accent noir unique).
+**Écran** `admin` du prototype → `crm-screen-admin-proto.jsx` (`window.CRMScreenAdminProto`), même shell que Paramètres : `CrmTopNav` + `CrmIconRail` + cadre r=26 + rail 300 px + bento à droite. Titre de rail « Console » + **pilule pleine noire « Admin MEGGA »** (le violet du repo est supprimé — accent noir unique).
 
 **Fichiers** : `admin-kit.jsx` (atomes Sugar) · `admin-data.jsx` (démo CH) · `admin-overview.jsx` (Vue d'ensemble) · `admin-agencies.jsx` (Agences + création) · `admin-users.jsx` (Utilisateurs + drawer + Clients finaux) · `crm-screen-admin-proto.jsx` (shell + 14 entrées).
 

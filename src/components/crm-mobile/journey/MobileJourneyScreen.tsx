@@ -7,8 +7,8 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { useParcoursSugar } from '@/hooks/useParcoursSugar'
-import { PARCOURS_STAGES, type ParcoursDossier, type ParcoursTask, type StageId, type Urgency } from '@/components/crm-sugar/journey/journeyData'
+import { useJourneyScreen } from '@/hooks/useJourneyScreen'
+import { PARCOURS_STAGES, type ParcoursDossier, type ParcoursTask, type StageId, type Urgency } from '@/components/crm/journey/journeyData'
 import { MOBILE_FONT, type MobileTokens } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 
@@ -40,7 +40,7 @@ const DEMO: ParcoursDossier[] = [
 
 /**
  * Parcours mobile (P9) — vue panoramique des dossiers (transactions actives),
- * read-focused. Câblé `useParcoursSugar` (RÉEL, RLS agence) : cartes dossier
+ * read-focused. Câblé `useJourneyScreen` (RÉEL, RLS agence) : cartes dossier
  * (titre, sous-titre, urgence, stepper 4 étapes, tâche en cours), filtre par
  * urgence, tap → fiche deal. Bandeau équipe / avatars / drill détail = différés
  * (équipe RBAC `team=[]`, pas de table `parcours_tasks` → on ne fabrique rien ;
@@ -51,7 +51,7 @@ export function MobileJourneyScreen({ demo = false }: { demo?: boolean }) {
   const { t } = useTranslation('pipeline')
   const { tk } = useMobileTokens()
   const live = !demo
-  const { dossiers: liveDossiers, isLoading, isError, refetch } = useParcoursSugar()
+  const { dossiers: liveDossiers, isLoading, isError, refetch } = useJourneyScreen()
   const dossiers = demo ? DEMO : liveDossiers
 
   const [filter, setFilter] = useState<Urgency | 'all'>('all')

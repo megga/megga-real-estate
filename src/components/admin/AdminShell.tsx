@@ -8,7 +8,7 @@
  * bento de droite.
  *
  * Les valeurs (rayon, ombre, bordure de cadre, largeur de rail, grammaire des
- * lignes de nav) viennent de `useAdminSugar()`, donc de `tokens.ts` — pas d'une
+ * lignes de nav) viennent de `useAdminSurfaces()`, donc de `tokens.ts` — pas d'une
  * copie. `admin-console.css` continue de re-teinter les variables pour les
  * pages ; ici on lit la palette en JS pour obtenir le cadre exact.
  *
@@ -25,22 +25,22 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
 import { ADMIN_KEYFRAMES, ADMIN_RADII, ADMIN_RAIL_WIDTH } from '@/components/admin/kit/adminKitCore'
 // Le dock d'icônes du CRM, réutilisé tel quel (cf. `items` dans AdminShell).
-// SUGAR_KEYFRAMES est requis : le rail s'ouvre en `sugar-fade-up`, que
+// CRM_KEYFRAMES est requis : le rail s'ouvre en `crm-fade-up`, que
 // ADMIN_KEYFRAMES ne définit pas — sans lui le rail apparaîtrait sec.
-import { SugarIconRail, type RailItem } from '@/components/crm-sugar/LiquidGlassRail'
-import { SUGAR_KEYFRAMES } from '@/components/crm-sugar/SugarShell'
+import { CrmIconRail, type RailItem } from '@/components/crm/LiquidGlassRail'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 // Palette de la console. Importée ICI et non par une entrée d'app : c'est la
 // seule façon que les DEUX montages l'obtiennent. Elle est scopée à
 // `.megga-admin-console`, posée sur la racine ci-dessous — sans quoi elle
 // reteindrait tout le CRM.
 import '@/styles/admin-console.css'
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 
 /**
  * Le violet de la console — son unique repère de contexte, en TROIS sites, tous
@@ -119,7 +119,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation(['common', 'admin'])
   const { signOut, profile } = useAuth()
   const { dark } = useAdminTheme()
-  const { sp, surf } = useAdminSugar()
+  const { sp, surf } = useAdminSurfaces()
   const navigate = useNavigate()
 
   const rowBase = {
@@ -188,7 +188,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
 
       {/* Pied de rail : retour CRM, compte */}
       <div style={{ flexShrink: 0, marginTop: 10 }}>
-        <div style={{ height: 1, background: sgVoileEncre(dark, 0.07), margin: '0 6px 8px' }} />
+        <div style={{ height: 1, background: crmVoileEncre(dark, 0.07), margin: '0 6px 8px' }} />
 
         {/* Une ancre, mais une navigation par le routeur : l'ancre préserve le
             clic-milieu et le survol d'URL, le routeur évite le rechargement. */}
@@ -236,7 +236,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
 export default function AdminShell() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
-  const { sp, surf, dark } = useAdminSugar()
+  const { sp, surf, dark } = useAdminSurfaces()
   const { toggle } = useAdminTheme()
   const { t } = useTranslation(['common', 'admin'])
   const navigate = useNavigate()
@@ -245,7 +245,7 @@ export default function AdminShell() {
    * Outils du rail d'icônes, côté console.
    *
    * La liste par défaut du rail est celle du CRM et n'a pas de sens ici :
-   * `search` ouvrirait un hôte que seul `AgentSugarLayout` monte, et `relances`
+   * `search` ouvrirait un hôte que seul `AgentLayout` monte, et `relances`
    * interrogerait des données d'agence alors que le super-admin n'en a pas. On
    * fournit donc les outils de la console — le composant, lui, reste le même
    * que dans le CRM.
@@ -287,20 +287,20 @@ export default function AdminShell() {
       }}
     >
       <style>{ADMIN_KEYFRAMES}</style>
-      <style>{SUGAR_KEYFRAMES}</style>
+      <style>{CRM_KEYFRAMES}</style>
       <style>{`
         /* Pas d'\`outline: none\` ici : c'est ce qui privait le rail, la palette ⌘K
            et la liste de notifications de tout repère de focus clavier. L'anneau
            vient de la règle WCAG d'admin-console.css. */
         .adm-nav { -webkit-tap-highlight-color: transparent; transition: background-color .18s ease; }
-        .adm-nav:hover { background: ${sgVoileEncre(dark, 0.05)} !important; }
+        .adm-nav:hover { background: ${crmVoileEncre(dark, 0.05)} !important; }
         /* Champ de recherche du kit (\`AdminSearchInput\`). Ces deux règles ne
            s'expriment pas en style inline ; elles vivaient donc recopiées dans
            chaque écran, sous une classe différente à chaque fois. */
         .adm-search::placeholder { color: ${sp.sub}; font-weight: 500; }
         .adm-search:focus { box-shadow: inset 0 0 0 2px ${sp.accent}; }
         .adm-scroll::-webkit-scrollbar { width: 9px; }
-        .adm-scroll::-webkit-scrollbar-thumb { background: ${sgVoileEncre(dark, .12)}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
+        .adm-scroll::-webkit-scrollbar-thumb { background: ${crmVoileEncre(dark, .12)}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
         /* Le dock d'icônes occupe la gouttière gauche (il porte sa propre
            largeur de 128 px), d'où l'absence de padding-left ici — même
            géométrie que l'écran Réglages du CRM. */
@@ -365,7 +365,7 @@ export default function AdminShell() {
             Aucun écran CRM n'étant actif ici, `active` ne matche rien : aucun
             bouton n'est allumé à tort. */}
         <div className="adm-icon-rail">
-          <SugarIconRail
+          <CrmIconRail
             active="admin"
             items={railItems}
             onNavigate={onRailNavigate}

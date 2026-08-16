@@ -11,7 +11,7 @@
 // ⚠ LE MODULE ENTRE AU CLIQUET EN MÊME TEMPS QUE LA PAGE. Extraire les
 // littéraux sans balayer leur nouveau domicile aurait fait passer les clauses de
 // couleur pour rien : le cliquet n'aurait plus vu que le NOM des jetons. C'est
-// le piège que `crm-sugar-v3/tokens.ts` a posé pendant six lots.
+// le piège que `crm-dossiers/tokens.ts` a posé pendant six lots.
 //
 // ⚠ C'est un SECOND objet, pas une rallonge de `MLK`. Ils partagent la moitié de
 // leurs valeurs et divergent sur le reste — la sous-surface (`#F4F6F9` contre
@@ -22,7 +22,7 @@
 // ── LA PALETTE DESCEND DE MEGGA X (15 août 2026) ─────────────────────────────
 // Même décision que pour `MLK`, même geste. `muted` valait `#7A8088` — 3,98:1
 // sur la carte, 15 emplois en `color:` — QUATRIÈME mesure sous l'AA de cette
-// valeur exacte dans le dépôt, après `SugarV3`, les trois palettes du Pipeline
+// valeur exacte dans le dépôt, après `DossierTokens`, les trois palettes du Pipeline
 // et `MLK`. Elle voyage par copier-coller, et aucune spec ne la cherchait ici.
 //
 // Le filet et les trois ombres portaient le gris-bleu slate-900 en DÉCIMAL :
@@ -34,7 +34,7 @@
 // pas un cran, tandis que cette valeur tient 10,88:1 sur la carte.
 //
 // Le nom `RC` ne bouge pas : renommer est un geste lexical à part.
-import { sgVoileEncre } from '@/components/crm-sugar/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 export const RC = {
@@ -58,14 +58,14 @@ export const RC = {
   soft: '#3A3D44',
   muted: MXC_COLOR.n500,
   /**
-   * ⚠ LA GÉOMÉTRIE NE BOUGE PAS, seule la TEINTE descend. `sgVoileEncre` est le
+   * ⚠ LA GÉOMÉTRIE NE BOUGE PAS, seule la TEINTE descend. `crmVoileEncre` est le
    * rôle que le Pipeline a nommé pour cette porte d'entrée précise : personne ne
    * relit `rgba(15,23,42,0.06)` en cherchant une couleur.
    */
-  line: sgVoileEncre(false, 0.06),
-  shadow: `0 12px 40px ${sgVoileEncre(false, 0.06)}, 0 2px 8px ${sgVoileEncre(false, 0.03)}`,
-  shadowSm: `0 4px 16px ${sgVoileEncre(false, 0.04)}`,
-  sheetShadow: `0 -18px 60px ${sgVoileEncre(false, 0.18)}, 0 -4px 16px ${sgVoileEncre(false, 0.08)}`,
+  line: crmVoileEncre(false, 0.06),
+  shadow: `0 12px 40px ${crmVoileEncre(false, 0.06)}, 0 2px 8px ${crmVoileEncre(false, 0.03)}`,
+  shadowSm: `0 4px 16px ${crmVoileEncre(false, 0.04)}`,
+  sheetShadow: `0 -18px 60px ${crmVoileEncre(false, 0.18)}, 0 -4px 16px ${crmVoileEncre(false, 0.08)}`,
 }
 
 /** ⚠ Gardée hors direction par décision du 15 août 2026 — voir l'en-tête. */

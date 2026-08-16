@@ -18,7 +18,7 @@
  * ── CE QUE LA MESURE A TROUVÉ (15 août 2026) ─────────────────────────────────
  *   · `muted` (#7A8088) — 15 emplois en `color:`, 3,98:1 sur la carte et 3,68:1
  *     sur la sous-surface. C'est la QUATRIÈME fois que cette valeur exacte est
- *     mesurée sous l'AA dans ce dépôt : `SugarV3`, les trois palettes du
+ *     mesurée sous l'AA dans ce dépôt : `DossierTokens`, les trois palettes du
  *     Pipeline, `MLK`, et maintenant ici. Elle voyage par copier-coller, et
  *     aucune des huit specs de contraste ne la cherchait sur cette page.
  *   · Les DIX clés ont un lecteur. Aucune n'est morte — contrairement au KYC
@@ -214,7 +214,7 @@ const NON_COULEURS: Record<string, string> = {
   sheetShadow: 'chaîne de box-shadow',
 }
 
-const MOTIF_THEME = /\bdark\b|prefers-color-scheme|useDarkTone|useCrmDa|matchMedia|colorScheme|crmSugarPalette|mxCrmPalette/i
+const MOTIF_THEME = /\bdark\b|prefers-color-scheme|useDarkTone|useCrmDa|matchMedia|colorScheme|crmPalette|mxCrmPalette/i
 
 describe('Contraste RC — la réception acheteur, second objet de la face publique', () => {
   it('le balayage voit la source, et lit toutes les couleurs', () => {

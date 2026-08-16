@@ -3,7 +3,7 @@
  */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { useCalendarSugar } from '@/hooks/useCalendarSugar'
+import { useCalendarScreen } from '@/hooks/useCalendarScreen'
 import { useMobileTokens } from '../useMobileTokens'
 
 interface AgendaRow {
@@ -85,7 +85,7 @@ function Row({ a, last }: { a: AgendaRow; last: boolean }) {
 }
 
 /**
- * Agenda du jour — câblé `useCalendarSugar` (mêmes events que le desktop),
+ * Agenda du jour — câblé `useCalendarScreen` (mêmes events que le desktop),
  * filtré au jour, marquage fait/maintenant en temps réel. Empty-state honnête
  * (« journée dégagée ») ; seeds derrière `demo`. Lecture seule (pas de mutation
  * persistée — comme le desktop).
@@ -93,7 +93,7 @@ function Row({ a, last }: { a: AgendaRow; last: boolean }) {
 export function MobileAgenda({ demo = false, onSeeAll }: { demo?: boolean; onSeeAll?: () => void }) {
   const { t } = useTranslation('dashboard')
   const { tk } = useMobileTokens()
-  const { events } = useCalendarSugar()
+  const { events } = useCalendarScreen()
 
   let rows: AgendaRow[]
   if (demo) {

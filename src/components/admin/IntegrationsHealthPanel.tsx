@@ -10,7 +10,7 @@ import { useAdminIntegrationsHealth } from '@/hooks/useAdminIntegrationsHealth'
 import { useRealtimeHealth } from '@/hooks/useRealtimeHealth'
 import { AdminCard, AdminGroupTitle, AdminIc, AdminSkeleton } from '@/components/admin/kit/adminKit'
 import { ADMIN_RADII } from '@/components/admin/kit/adminKitCore'
-import { useAdminSugar } from '@/hooks/useAdminSugar'
+import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import type { LucideIcon } from 'lucide-react'
 
 type Level = 'ok' | 'warn' | 'down' | 'idle'
@@ -18,7 +18,7 @@ type Level = 'ok' | 'warn' | 'down' | 'idle'
 function HealthCard({ icon: Icon, title, level, lines }: {
   icon: LucideIcon; title: string; level: Level; lines: string[]
 }) {
-  const { sp, tones } = useAdminSugar()
+  const { sp, tones } = useAdminSurfaces()
   // `idle` n'est pas un signal : la pastille reste encre douce, pas un ton vif.
   const dot: Record<Level, string> = {
     ok: tones.ok,

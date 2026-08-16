@@ -119,8 +119,8 @@ Refaire ces mesures avant de coder et **dire si elles ont bougé**.
 
 ### ✅ La bonne nouvelle, et elle change l'ordre des lots
 
-**Les couleurs sont DÉJÀ MEGGA X sur 18 pages sur 19.** `useAdminSugar()`
-(`src/hooks/useAdminSugar.ts:83`) rend `crmSugarPalette(dark)` — qui, depuis le
+**Les couleurs sont DÉJÀ MEGGA X sur 18 pages sur 19.** `useAdminSurfaces()`
+(`src/hooks/useAdminSurfaces.ts:83`) rend `crmPalette(dark)` — qui, depuis le
 10 août, **est** `mxCrmPalette(dark)`. Les 18 pages en style inline en
 descendent.
 
@@ -134,7 +134,7 @@ ni une fonction nommée `palette` : c'est un **hook**. Chercher `use*Sugar`,
 Ce qui reste en couleur tient en deux endroits :
 
 ```
-adminSurfaces(dark)   5 clés écrites à la main (useAdminSugar.ts:38)
+adminSurfaces(dark)   5 clés écrites à la main (useAdminSurfaces.ts:38)
 AdminTones            8 hex écrits à la main (ok/warn/err/info/cyan…)
 ```
 
@@ -188,7 +188,7 @@ reporte les évolutions, et personne ne l'a fait depuis le 10 août.
 
 | Clé / attribut | Qui l'écrit | Qui le lit |
 |---|---|---|
-| `megga.sugar.dark` | le CRM et la console | `useAdminTheme`, `crmSugarPalette` |
+| `megga.sugar.dark` | le CRM et la console | `useAdminTheme`, `crmPalette` |
 | `data-theme` (sur `<html>`) | `AdminThemeProvider`, et le provider du CRM | `globals.css`, **les surfaces PORTÉES** |
 | `data-admin-dark` | `AdminShell`, sur le cadre | `admin-console.css` **seul** |
 
@@ -233,12 +233,12 @@ Six pages concentrent 60 % des marqueurs :
 ### Le gris-bleu slate-900 revient — septième dossier
 
 `rgba(15,23,42,…)` (B−R = 27) est dans **16 fichiers** du périmètre, plus 3
-occurrences dans `useAdminSugar` (le filet et deux ombres) et 1 dans la feuille.
+occurrences dans `useAdminSurfaces` (le filet et deux ombres) et 1 dans la feuille.
 
 ⚠ **Il entre TOUJOURS par une fraction d'opacité** — c'est la leçon du Pipeline,
 où il avait onze exemplaires tous en `rgba(15,23,42,0.0xx)`. Personne ne relit
-un alpha en cherchant une couleur. `sgVoileEncre(dark, alpha)`
-(`crm-sugar/tokens.ts`) existe depuis le 13 août et nomme ce rôle.
+un alpha en cherchant une couleur. `crmVoileEncre(dark, alpha)`
+(`crm/tokens.ts`) existe depuis le 13 août et nomme ce rôle.
 
 ### ⚠ Trois limites du terrain, à connaître avant de promettre un écran
 
@@ -267,7 +267,7 @@ la réponse — et parce qu'une décision dont on a perdu le motif se rouvre.
 ### 1. ✅ TRANCHÉE — `AdminKybReviewPage` passe au style en ligne
 
 **Décision Julien, 14 août 2026.** Les 154 `className` deviennent des styles en
-ligne nourris par `useAdminSugar()`, comme les 18 autres pages. La console
+ligne nourris par `useAdminSurfaces()`, comme les 18 autres pages. La console
 n'aura plus qu'une grammaire, et la page rejoint le cliquet.
 
 ⚠ Ce que la décision coûte, à accepter d'emblée : **1 503 lignes**, la plus
@@ -451,9 +451,9 @@ Plus, propre à ce chantier :
   le 404 du CRM. Gardes existantes : `admin-console-paths.spec.ts`,
   `redirects-guard.spec.ts`.
 - **Il ne remet pas le 2FA** (retiré, #873) et ne touche pas au mur d'accès.
-- **Il ne renomme pas `useAdminSugar`.** Le nom a survécu à la direction qu'il
+- **Il ne renomme pas `useAdminSurfaces`.** Le nom a survécu à la direction qu'il
   servait ; le renommer est un geste lexical à part — même arbitrage que
-  `crmSugarPalette`.
+  `crmPalette`.
 
 ---
 
