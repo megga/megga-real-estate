@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next'
 // (contrainte Fast Refresh). Voir l'en-tête de mlkTokens.ts.
 import { MLK } from './mlkTokens'
 import { crmVoileEncre } from '@/components/crm/tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 
 /**
  * ⛔ LES PAGES LÉGALES VIVENT SUR LA VITRINE, ET CE PIED POINTAIT DANS LE VIDE.
@@ -323,9 +324,36 @@ export function MlkWordmark({ size = 18 }: { size?: number }) {
   )
 }
 
+/**
+ * La pastille de l'agent, sur les écrans que le CLIENT voit.
+ *
+ * ⛔ ELLE RENDAIT 3,68:1, ET C'EST LE PREMIER ET LE DERNIER ÉCRAN DU PARCOURS.
+ * Son aplat était `#3B82F6` — le blue-500 brut de Tailwind, ABSENT de l'échelle
+ * MEGGA X — sous une encre blanche FIGÉE. Les initiales rendent 15,6 à 16,3 px
+ * en graisse 600, donc du texte NORMAL au sens WCAG : le seuil est 4,5, pas 3.
+ *
+ * ⚠ LE DÉPÔT AVAIT DÉJÀ MESURÉ CETTE VALEUR, DEUX FOIS, et corrigé le jumeau —
+ * `globals.css` écrit que `#3B82F6` « ne porte pas l'encre blanche : 3,68:1 »,
+ * et `crm-wizard/primitives.tsx` DÉRIVE son encre par `encreSur` depuis que
+ * cinq des huit couleurs d'avatar y échouaient l'AA. Le correctif existait donc
+ * côté AGENT et manquait côté CLIENT. Défaut propagé par copie, pas par oubli
+ * de mesure.
+ *
+ * ⛔ POURQUOI L'ENCRE, ET PAS UN BLEU PLUS SOMBRE. `BuyerReceptionPage` — l'autre
+ * surface où un client voit la pastille de son conseiller — la peint déjà
+ * `MLK.ink` sous blanc. Deux avatars clients ne doivent pas différer. Et c'est
+ * l'arbitrage rendu quatre fois dans ce dépôt : un avatar est une DONNÉE, rien
+ * ne s'y actionne, donc il garde l'encre au lieu de prendre l'accent.
+ * Mesuré : 3,68:1 → 20,62:1.
+ *
+ * ⚠ L'ENCRE EST DÉRIVÉE, pas réécrite en dur, et ça ferme la CLASSE plutôt que
+ * ce cas : `encreSur` choisit le barreau lisible de l'aplat reçu, donc un
+ * appelant qui passerait une couleur ne peut plus retomber sous le seuil. Le
+ * halo suit l'aplat par construction.
+ */
 export function MlkAgentAvatar({
   name,
-  color = '#3B82F6',
+  color = MLK.ink,
   size = 56,
 }: {
   name: string
@@ -341,7 +369,7 @@ export function MlkAgentAvatar({
         height: size,
         borderRadius: 999,
         background: color,
-        color: '#fff',
+        color: encreSur(color),
         display: 'grid',
         placeItems: 'center',
         fontSize: Math.max(13, size * 0.34),
