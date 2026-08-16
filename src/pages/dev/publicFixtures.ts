@@ -21,6 +21,15 @@ import type { MagicLinkPublicView } from '@/types/magicLink'
 import type { PublicAppointment, SlotsView } from '@/hooks/useAppointmentBooking'
 import type { ReceptionBien } from '@/hooks/useBuyerReception'
 
+/* ─── `/desinscription` — email-preferences ──────────────────────────────────
+ *
+ * ⚠ LA LANGUE FAIT PARTIE DE LA FIXTURE, et c'est délibéré : cette page se rend
+ * dans la langue du CONTACT (`contacts.language`, portée par la réponse de l'edge),
+ * jamais dans celle du navigateur. Un banc qui la montrerait toujours en français
+ * cacherait précisément ce qui la distingue. L'état `termine` la rend donc en
+ * ALLEMAND, tout coupé — deux choses à regarder d'un coup.
+ */
+
 /** Les états qu'on fait jouer aux surfaces. */
 export type PublicEtat = 'nominal' | 'termine' | 'expire'
 
@@ -170,5 +179,22 @@ export function invitationVue(etat: PublicEtat) {
     agencyName: 'Agence Démo',
     inviterName: 'Agent Démo',
     expiresAt: jours(6),
+  }
+}
+
+/**
+ * Préférences d'e-mail. Les trois états du banc s'y lisent naturellement :
+ * `nominal` = rien de refusé, `termine` = tout coupé (et en allemand), `expire` =
+ * jeton refusé, l'écran d'impasse.
+ */
+export function desinscriptionVue(etat: PublicEtat) {
+  if (etat === 'expire') return { error: 'invalid_token' }
+  const tout = etat === 'termine'
+  return {
+    email: 'demo@exemple.ch',
+    locale: tout ? 'de' : 'fr',
+    allBlocked: tout,
+    blocked: tout ? ['relance', 'bien', 'rappel'] : ['bien'],
+    natures: ['relance', 'bien', 'rappel'],
   }
 }
