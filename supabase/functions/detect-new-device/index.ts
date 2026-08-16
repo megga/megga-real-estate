@@ -19,6 +19,7 @@
 // Returns: { ok: true, isNew: boolean }
 
 import { buildDeviceAlertEmail } from '../_shared/device-alert-email.ts'
+import { profileLocale } from '../_shared/recipient-language.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -198,7 +199,11 @@ serve(async (req) => {
       const when = new Date().toLocaleString('fr-CH', { timeZone: 'Europe/Zurich' })
       const nameMeta = user.user_metadata?.full_name
       const name = typeof nameMeta === 'string' ? nameMeta.split(' ')[0] : ''
-      const { subject, html } = buildDeviceAlertEmail({ name, browser, os, city, country, ip, when })
+      // La langue de correspondance du compte concerné. Aucune requête d'où la lire ici
+      // — cette fonction réagit à une CONNEXION, pas à un geste dans l'interface — donc
+      // c'est profiles.language qui décide, et lui seul.
+      const locale = await profileLocale(admin, user.id)
+      const { subject, html } = buildDeviceAlertEmail({ name, browser, os, city, country, ip, when, locale })
       await sendDeviceAlert(user.email, subject, html)
     }
 

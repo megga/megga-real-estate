@@ -24,6 +24,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { verifyMagicLinkToken, signMagicLinkToken } from '../_shared/magic-link-token.ts'
 import { createBookingEvent } from '../_shared/booking-calendar-write.ts'
 import { sendBookingEmail } from '../_shared/booking-email.ts'
+import { parseLocale, DEFAULT_LOCALE } from '../_shared/recipient-language.ts'
 import type { TokenTable } from '../_shared/booking-oauth.ts'
 
 const corsHeaders = {
@@ -126,7 +127,7 @@ serve(async (req) => {
   const [{ data: appt }, { data: contact }, { data: agency }, { data: agent }, { data: settings }] =
     await Promise.all([
       db.rpc('get_kyc_appointment_public', { p_appointment_id: apptId }),
-      db.from('contacts').select('first_name, last_name, email').eq('id', link.contact_id).maybeSingle(),
+      db.from('contacts').select('first_name, last_name, email, language').eq('id', link.contact_id).maybeSingle(),
       db.from('agencies').select('name').eq('id', link.agency_id).maybeSingle(),
       db.from('profiles').select('full_name').eq('id', link.created_by).maybeSingle(),
       db.from('agent_booking_settings').select('timezone').eq('agent_id', link.created_by).maybeSingle(),
@@ -174,6 +175,10 @@ serve(async (req) => {
       const exp = Math.floor(new Date(endIso).getTime() / 1000) + 86_400
       const manageToken = await signMagicLinkToken({ id: apptId, exp, k: 'appt' })
       await sendBookingEmail({
+        // ⚠ La langue du CONTACT, pas celle de l'agent : c'est lui qui lit ce message.
+        // `contacts.language` et `profiles.language` sont deux colonnes pour deux
+        // populations, et les confondre écrirait au client dans la langue de son courtier.
+        locale: parseLocale(contact?.language) ?? DEFAULT_LOCALE,
         kind: 'confirmed',
         to: contact.email,
         contactName,

@@ -1,4 +1,5 @@
 import { buildTeamInviteEmail } from '../_shared/team-invite-email.ts'
+import { parseLocale, DEFAULT_LOCALE } from '../_shared/recipient-language.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // L'adresse d'acceptation s'est déjà bâtie ici depuis l'en-tête `Origin`, que
@@ -69,7 +70,7 @@ serve(async (req) => {
     // Get caller profile
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, agency_id, full_name, role')
+      .select('id, agency_id, full_name, role, language')
       .eq('id', user.id)
       .single()
 
@@ -185,6 +186,10 @@ serve(async (req) => {
       const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
       if (RESEND_API_KEY) {
         const { subject, html } = buildTeamInviteEmail({
+          // Faute de mieux : le destinataire n'a pas de compte, donc aucune préférence
+          // enregistrée. La langue de celle ou celui qui invite est la seule information
+          // disponible, et la meilleure approximation (même agence, même marché).
+          locale: parseLocale(profile.language) ?? DEFAULT_LOCALE,
           inviterName: profile.full_name,
           agencyName: agency.name,
           role: invitation.role,
@@ -333,6 +338,7 @@ serve(async (req) => {
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (RESEND_API_KEY) {
       const { subject, html } = buildTeamInviteEmail({
+        locale: parseLocale(profile.language) ?? DEFAULT_LOCALE,
         inviterName: profile.full_name,
         agencyName: agency.name,
         role: body.role,

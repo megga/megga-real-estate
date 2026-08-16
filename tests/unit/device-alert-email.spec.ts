@@ -65,9 +65,15 @@ describe('buildDeviceAlertEmail', () => {
     expect(html).toContain('Localisation inconnue')
   })
 
-  it('sans nom, la salutation reste correcte ; sans IP, un tiret', () => {
+  it('sans nom, la salutation reste correcte ; sans IP, un mot, PAS un tiret', () => {
+    // ⛔ L'IP absente rendait un tiret cadratin, interdit par la règle maison — et il
+    // n'apprenait rien : un mot dit ce qu'un trait laisse deviner. Il suit la langue,
+    // comme le reste du gabarit depuis le 16.08.2026.
     expect(buildDeviceAlertEmail({ ...base, name: null }).html).toContain('Bonjour,')
-    expect(buildDeviceAlertEmail({ ...base, ip: null }).html).toContain('—')
+    const sansIp = buildDeviceAlertEmail({ ...base, ip: null }).html
+    expect(sansIp).toContain('Inconnue')
+    expect(sansIp).not.toMatch(/[–—]/)
+    expect(buildDeviceAlertEmail({ ...base, ip: null, locale: 'de' }).html).toContain('Unbekannt')
   })
 
   it('l’aperçu porte l’ACTION, pas un résumé de l’objet', () => {

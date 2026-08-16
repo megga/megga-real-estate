@@ -17,17 +17,23 @@
 //      `parseUA` ne les recopie pas, il les compose à partir de captures numériques.
 //   3. TUTOIEMENT, seul de tout le produit (« ton compte », « change ton mot de passe »).
 //      Passé au vouvoiement, comme partout ailleurs.
+//   4. FRANÇAIS SEUL (16.08.2026). Le produit annonce quatre langues et cet e-mail n'en
+//      parlait qu'une. Une alerte de sécurité que le destinataire ne lit pas est une
+//      alerte perdue : c'est le gabarit où la langue compte le PLUS, pas le moins.
 
 import {
   MUTED, INK, FONT,
   escapeHtml, shell, p, row, button,
 } from './email-shell.ts'
+import type { AppLocale } from './recipient-language.ts'
 
 /** ⚠ app.megga.ch, jamais megga.ch : cf. point 1 de l'en-tête. */
 const URL_SECURITE = 'https://app.megga.ch/security/sessions'
 
 export interface DeviceAlertInput {
   name: string | null
+  /** Langue de correspondance du destinataire (profiles.language). Défaut : français. */
+  locale?: AppLocale
   /** Composé par `parseUA` — jamais la chaîne User-Agent brute. */
   browser: string
   os: string
@@ -36,6 +42,119 @@ export interface DeviceAlertInput {
   ip: string | null
   /** Déjà formaté par l'appelant, dans le fuseau du destinataire. */
   when: string
+}
+
+/**
+ * Le texte de l'alerte, dans les quatre langues du produit.
+ *
+ * ⛔ LA MENTION LÉGALE EST PROPRE À CE GABARIT et doit le rester : sa seconde moitié
+ * (« même si vous vous êtes désabonné ») n'existe dans aucun autre e-mail. Elle dit
+ * pourquoi ce message arrive sans action ni abonnement, et c'est vrai ici seulement.
+ * La remplacer par la mention transactionnelle des autres gabarits serait un mensonge.
+ *
+ * ⚠ « Vai al mio spazio » a été écarté pour l'italien, bien que ce soit l'étiquette de
+ * l'interface : « Vai » est un impératif de deuxième personne, donc un tutoiement, seul
+ * de tout le produit italien qui emploie partout ailleurs la forme de courtoisie ou
+ * l'infinitif (« Prenoti », « Partecipare », « Scegliere »). L'infinitif s'aligne sur
+ * cette grammaire-là plutôt que sur une chaîne isolée.
+ */
+const T: Record<AppLocale, {
+  objet: string
+  titre: string
+  apercu: string
+  legal: string
+  ctaEntete: string
+  bonjour: (nom: string) => string
+  corps1: string
+  navigateur: string
+  systeme: string
+  localisation: string
+  ip: string
+  date: string
+  lieuInconnu: string
+  ipInconnue: string
+  corps2: string
+  ctaSecuriser: string
+  noteDetection: string
+  signature: string
+}> = {
+  fr: {
+    objet: 'Nouvelle connexion sur votre compte MEGGA',
+    titre: 'Nouvelle connexion détectée',
+    apercu: 'Si ce n’était pas vous, changez votre mot de passe maintenant.',
+    legal: 'Cet e-mail est une notification de sécurité liée à votre compte. Il ne s’agit pas '
+      + 'd’une communication marketing : c’est pourquoi il ne contient pas de lien de désinscription '
+      + 'et vous le recevez même si vous vous êtes désabonné de nos communications.',
+    ctaEntete: 'Ouvrir mon espace',
+    bonjour: (n) => (n ? `Bonjour ${n},` : 'Bonjour,'),
+    corps1: 'Une connexion vient d’être effectuée sur votre compte MEGGA depuis un appareil que nous ne reconnaissons pas.',
+    navigateur: 'Navigateur', systeme: 'Système', localisation: 'Localisation', ip: 'Adresse IP', date: 'Date',
+    lieuInconnu: 'Localisation inconnue',
+    ipInconnue: 'Inconnue',
+    corps2: 'Si vous reconnaissez cette connexion, vous pouvez ignorer ce message. Sinon, changez votre mot de passe sans attendre.',
+    ctaSecuriser: 'Sécuriser mon compte',
+    noteDetection: 'Vous recevez cet e-mail parce que la détection d’appareils est active sur votre compte.',
+    signature: 'Merci,',
+  },
+  de: {
+    objet: 'Neue Anmeldung in Ihrem MEGGA Konto',
+    titre: 'Neue Anmeldung erkannt',
+    apercu: 'Wenn Sie das nicht waren, ändern Sie jetzt Ihr Passwort.',
+    legal: 'Diese E-Mail ist eine Sicherheitsbenachrichtigung zu Ihrem Konto. Es handelt sich nicht '
+      + 'um eine Werbenachricht: deshalb enthält sie keinen Abmeldelink, und Sie erhalten sie auch '
+      + 'dann, wenn Sie sich von unseren Mitteilungen abgemeldet haben.',
+    ctaEntete: 'Zu meinem Bereich',
+    bonjour: (n) => (n ? `Guten Tag ${n},` : 'Guten Tag,'),
+    corps1: 'Soeben wurde in Ihrem MEGGA Konto eine Anmeldung von einem Gerät vorgenommen, das wir nicht wiedererkennen.',
+    navigateur: 'Browser', systeme: 'System', localisation: 'Standort', ip: 'IP-Adresse', date: 'Datum',
+    lieuInconnu: 'Unbekannter Standort',
+    ipInconnue: 'Unbekannt',
+    corps2: 'Wenn Sie diese Anmeldung wiedererkennen, können Sie diese Nachricht ignorieren. Andernfalls ändern Sie Ihr Passwort umgehend.',
+    ctaSecuriser: 'Mein Konto sichern',
+    noteDetection: 'Sie erhalten diese E-Mail, weil die Geräteerkennung in Ihrem Konto aktiv ist.',
+    signature: 'Danke,',
+  },
+  en: {
+    objet: 'New sign-in on your MEGGA account',
+    titre: 'New sign-in detected',
+    apercu: 'If this was not you, change your password now.',
+    legal: 'This email is a security notification about your account. It is not a marketing '
+      + 'message: that is why it carries no unsubscribe link, and you receive it even if you have '
+      + 'unsubscribed from our communications.',
+    ctaEntete: 'Go to my workspace',
+    bonjour: (n) => (n ? `Hello ${n},` : 'Hello,'),
+    corps1: 'A sign-in to your MEGGA account has just been made from a device we do not recognise.',
+    navigateur: 'Browser', systeme: 'System', localisation: 'Location', ip: 'IP address', date: 'Date',
+    lieuInconnu: 'Unknown location',
+    ipInconnue: 'Unknown',
+    corps2: 'If you recognise this sign-in, you can ignore this message. Otherwise, change your password without delay.',
+    ctaSecuriser: 'Secure my account',
+    noteDetection: 'You are receiving this email because device detection is active on your account.',
+    signature: 'Thank you,',
+  },
+  it: {
+    objet: 'Nuovo accesso al suo account MEGGA',
+    titre: 'Nuovo accesso rilevato',
+    apercu: 'Se non è stato Lei, cambi ora la sua password.',
+    legal: 'Questa e-mail è una notifica di sicurezza relativa al suo account. Non è una '
+      + 'comunicazione commerciale: per questo non contiene alcun link di disiscrizione e la riceve '
+      + 'anche se si è disiscritto dalle nostre comunicazioni.',
+    ctaEntete: 'Aprire il mio spazio',
+    bonjour: (n) => (n ? `Buongiorno ${n},` : 'Buongiorno,'),
+    corps1: 'Un accesso al suo account MEGGA è appena stato effettuato da un dispositivo che non riconosciamo.',
+    navigateur: 'Browser', systeme: 'Sistema', localisation: 'Posizione', ip: 'Indirizzo IP', date: 'Data',
+    lieuInconnu: 'Posizione sconosciuta',
+    ipInconnue: 'Sconosciuto',
+    corps2: 'Se riconosce questo accesso, può ignorare questo messaggio. Altrimenti cambi la sua password senza attendere.',
+    ctaSecuriser: 'Proteggere il mio account',
+    noteDetection: 'Riceve questa e-mail perché il rilevamento dei dispositivi è attivo sul suo account.',
+    signature: 'Grazie,',
+  },
+}
+
+/** Le nom d'équipe ne se traduit pas ; sa ligne d'introduction, si. */
+const EQUIPE: Record<AppLocale, string> = {
+  fr: 'L’équipe MEGGA', de: 'Ihr MEGGA Team', en: 'The MEGGA team', it: 'Il team MEGGA',
 }
 
 /**
@@ -54,39 +173,38 @@ function glypheAlerte(): string {
 }
 
 export function buildDeviceAlertEmail(a: DeviceAlertInput): { subject: string; html: string } {
-  const lieu = [a.city, a.country].filter(Boolean).join(', ') || 'Localisation inconnue'
-  const salutation = a.name ? `Bonjour ${escapeHtml(a.name)},` : 'Bonjour,'
+  const t = T[a.locale ?? 'fr']
+  const lieu = [a.city, a.country].filter(Boolean).join(', ') || t.lieuInconnu
 
   return {
-    subject: 'Nouvelle connexion sur votre compte MEGGA',
+    subject: t.objet,
     html: shell({
-      title: 'Nouvelle connexion détectée',
+      lang: a.locale ?? 'fr',
+      title: t.titre,
       // L'aperçu porte l'ACTION à mener si ce n'était pas vous : c'est la seule raison
       // d'ouvrir ce message dans la seconde.
-      preheader: 'Si ce n’était pas vous, changez votre mot de passe maintenant.',
+      preheader: t.apercu,
       // ⛔ JAMAIS la mention transactionnelle des autres e-mails : celle-ci dit pourquoi
       // le message arrive même sans action du destinataire, et ce fait-là est vrai.
-      legalNote: 'Cet e-mail est une notification de sécurité liée à votre compte. Il ne s’agit pas '
-        + 'd’une communication marketing : c’est pourquoi il ne contient pas de lien de désinscription '
-        + 'et vous le recevez même si vous vous êtes désabonné de nos communications.',
-      headerCta: { href: 'https://app.megga.ch/dashboard', label: 'Ouvrir mon espace' },
+      legalNote: t.legal,
+      headerCta: { href: 'https://app.megga.ch/dashboard', label: t.ctaEntete },
       bodyHtml: `
      ${glypheAlerte()}
-     ${p(salutation)}
-     ${p('Une connexion vient d’être effectuée sur votre compte MEGGA depuis un appareil que nous ne reconnaissons pas.', 28)}
+     ${p(t.bonjour(escapeHtml(a.name ?? '')))}
+     ${p(t.corps1, 28)}
      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0 0 28px;">
-       ${row('Navigateur', escapeHtml(a.browser))}
-       ${row('Système', escapeHtml(a.os))}
-       ${row('Localisation', escapeHtml(lieu))}
-       ${row('Adresse IP', `<span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">${escapeHtml(a.ip || '—')}</span>`)}
-       ${row('Date', escapeHtml(a.when))}
+       ${row(t.navigateur, escapeHtml(a.browser))}
+       ${row(t.systeme, escapeHtml(a.os))}
+       ${row(t.localisation, escapeHtml(lieu))}
+       ${row(t.ip, `<span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">${escapeHtml(a.ip || t.ipInconnue)}</span>`)}
+       ${row(t.date, escapeHtml(a.when))}
      </table>
-     ${p('Si vous reconnaissez cette connexion, vous pouvez ignorer ce message. Sinon, changez votre mot de passe sans attendre.', 28)}
-     <div style="margin:0 0 8px;">${button(URL_SECURITE, 'Sécuriser mon compte')}</div>
+     ${p(t.corps2, 28)}
+     <div style="margin:0 0 8px;">${button(URL_SECURITE, t.ctaSecuriser)}</div>
      <p style="margin:32px 0 0;font-family:${FONT};font-size:11.5px;color:${MUTED};line-height:1.5;">
-       Vous recevez cet e-mail parce que la détection d’appareils est active sur votre compte.
+       ${t.noteDetection}
      </p>
-     <div style="padding:24px 0 0;">${p(`Merci,<br /><span style="color:${INK};">L’équipe MEGGA</span>`, 0)}</div>`,
+     <div style="padding:24px 0 0;">${p(`${t.signature}<br /><span style="color:${INK};">${EQUIPE[a.locale ?? 'fr']}</span>`, 0)}</div>`,
     }),
   }
 }

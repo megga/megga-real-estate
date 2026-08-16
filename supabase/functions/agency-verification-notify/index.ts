@@ -33,6 +33,7 @@ import {
   noticeRecipients,
   buildVerificationNotice,
 } from '../_shared/agency-verification-notice.ts'
+import { parseLocale, DEFAULT_LOCALE, type AppLocale } from '../_shared/recipient-language.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -117,7 +118,7 @@ serve(async (req) => {
     // 2. Les destinataires : les dirigeants, jamais toute l'equipe (voir le module partage).
     const { data: members, error: membersErr } = await supabase
       .from('profiles')
-      .select('email, role')
+      .select('email, role, language')
       .eq('agency_id', agencyId)
     if (membersErr) throw membersErr
 
@@ -146,12 +147,26 @@ serve(async (req) => {
     const latest = events?.[0] as { metadata?: { reason?: unknown } } | undefined
     if (typeof latest?.metadata?.reason === 'string') reason = latest.metadata.reason
 
-    const notice = buildVerificationNotice({
-      status,
-      agencyName: agency.legal_name ?? agency.name ?? 'votre agence',
-      reason,
-      appUrl: Deno.env.get('APP_URL') ?? 'https://app.megga.ch',
-    })
+    // ⚠ UN ENVOI PAR LANGUE, pas un envoi pour tous. Les dirigeants d'une agence peuvent
+    // avoir choisi des langues differentes ; un `to: [a, b]` unique en imposerait une aux
+    // deux. Le groupement se fait sur la preference enregistree (profiles.language), avec
+    // le francais pour qui n'a jamais choisi.
+    //
+    // ⚠ L'adresse de contact de l'agence (agency.email), quand `noticeRecipients` la
+    // retient, n'appartient a aucun profil : elle n'a donc pas de langue et tombe dans le
+    // groupe francais. C'est le repli du produit, pas un oubli.
+    const langueDe = new Map<string, AppLocale>()
+    for (const m of (members ?? []) as Array<{ email?: string | null; language?: string | null }>) {
+      if (m.email) langueDe.set(m.email, parseLocale(m.language) ?? DEFAULT_LOCALE)
+    }
+    const parLangue = new Map<AppLocale, string[]>()
+    for (const adresse of recipients) {
+      const l = langueDe.get(adresse) ?? DEFAULT_LOCALE
+      parLangue.set(l, [...(parLangue.get(l) ?? []), adresse])
+    }
+
+    const appUrl = Deno.env.get('APP_URL') ?? 'https://app.megga.ch'
+    const agencyName = agency.legal_name ?? agency.name ?? 'votre agence'
 
     // 4. Envoi. Sans cle Resend, on ne pretend pas avoir envoye : meme discipline que les
     // connecteurs KYB, ou une source injoignable produit `unavailable` et non un verdict.
@@ -165,20 +180,23 @@ serve(async (req) => {
       return json({ ok: true, skipped: 'resend_key_missing', status })
     }
 
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
-      body: JSON.stringify({
-        from: 'MEGGA Immobilier <noreply@megga.ch>',
-        to: recipients,
-        subject: notice.subject,
-        html: notice.html,
-      }),
-    })
-    if (!res.ok) {
-      // Le statut seul, jamais le corps : il peut contenir un echo de la requete, donc des
-      // adresses -- et raw_response comme activity_events sont conserves dix ans.
-      throw new Error(`Resend a repondu ${res.status}`)
+    for (const [langue, adresses] of parLangue) {
+      const notice = buildVerificationNotice({ status, agencyName, reason, appUrl, locale: langue })
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
+        body: JSON.stringify({
+          from: 'MEGGA Immobilier <noreply@megga.ch>',
+          to: adresses,
+          subject: notice.subject,
+          html: notice.html,
+        }),
+      })
+      if (!res.ok) {
+        // Le statut seul, jamais le corps : il peut contenir un echo de la requete, donc des
+        // adresses -- et raw_response comme activity_events sont conserves dix ans.
+        throw new Error(`Resend a repondu ${res.status}`)
+      }
     }
 
     // 5. Trace. `recipients` compte, mais les adresses elles-memes n'entrent PAS dans le
