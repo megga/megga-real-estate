@@ -43,6 +43,17 @@ const REGISTRE = 'scripts/_data/claude-md-claims.json';
 const DOC = 'CLAUDE.md';
 const MAJ = process.argv.includes('--update');
 
+/**
+ * `--prod` : les prétentions de base de données sont le SEUL intérêt de l'appel, donc un
+ * jeton absent doit ÉCHOUER au lieu d'être signalé.
+ *
+ * ⛔ Convention reprise de check-types-freshness.mjs, qui la porte pour avoir payé le
+ * défaut : « sans le drapeau, le script passait au vert en ayant sauté toutes ses
+ * assertions de prod ». C'est le même piège que l'étape sautée en silence — un
+ * avertissement dans une sortie verte se lit comme un succès dès que personne ne lit.
+ */
+const PROD = process.argv.includes('--prod');
+
 /** Dossiers qu'on ne traverse jamais — ni dépendances, ni sorties de build. */
 const IGNORES = new Set(['node_modules', 'dist', 'build', '.git', 'coverage', 'playwright-report']);
 
@@ -114,6 +125,50 @@ function regex(motif, mot) {
   return new RegExp(mot ? borne(motif) : motif, 'g');
 }
 
+const PROJECT_REF = 'eayczugyrvmtqnnmvjod';
+const JETON = process.env.SUPABASE_ACCESS_TOKEN;
+
+/**
+ * Couture d'ESSAI — le jeton de production ne quitte pas la CI, donc sans elle le
+ * chemin HTTP partirait en production sans avoir jamais tourné une seule fois.
+ * Les requêtes, elles, sont éprouvées séparément contre la vraie base. Même idiome
+ * que `DRIFT_TRIES` / `DRIFT_DELAY_MS` dans check-migration-drift.mjs.
+ */
+const API_BASE = process.env.SUPABASE_API_URL ?? 'https://api.supabase.com';
+
+/**
+ * Mesure une prétention de BASE DE DONNÉES contre la production.
+ *
+ * ⛔ POURQUOI CETTE FAMILLE EST À PART. Les prétentions du §7 et des volumes ne se
+ * lisent dans AUCUN fichier : « 41 jobs pg_cron », « ~173k market_listings » ne sont
+ * vraies que d'un serveur. Elles périment donc sans qu'aucun diff ne bouge — le pire
+ * régime pour un document, puisque même une relecture attentive du dépôt ne peut pas
+ * les démentir. Mesuré le 17.08.2026 : le compte de jobs avait pris +9 depuis le
+ * 29 juillet, et §8 annonçait 90k annonces pour 207 599 réelles.
+ *
+ * ⚠ Elles ne peuvent PAS tourner dans unit-tests.yml, qui est statique et sans secret
+ * par conception (« la comparaison à la production vit dans migration-drift.yml, le
+ * seul workflow qui l'interroge »). Sans jeton on les IGNORE — mais on le DIT, sinon
+ * une exécution partielle se lirait comme une exécution complète.
+ *
+ * Même endpoint et même jeton que check-migration-drift.mjs.
+ */
+async function mesurerSql(sql) {
+  const res = await fetch(`${API_BASE}/v1/projects/${PROJECT_REF}/database/query`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${JETON}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: sql }),
+  });
+  if (!res.ok) throw new Error(`API Supabase ${res.status} : ${(await res.text()).slice(0, 200)}`);
+  const lignes = await res.json();
+  if (!Array.isArray(lignes) || lignes.length !== 1) {
+    throw new Error(`la requête doit rendre UNE ligne, elle en rend ${lignes?.length}`);
+  }
+  const valeurs = Object.values(lignes[0]);
+  if (valeurs.length !== 1) throw new Error(`la requête doit rendre UNE colonne, elle en rend ${valeurs.length}`);
+  return { valeur: Number(valeurs[0]) };
+}
+
 /** Applique une `mesure` du registre et rend `{ occurrences, fichiers, valeursDistinctes, present }`. */
 function mesurer(mesure) {
   // — Cas 1 : présence d'un littéral dans un fichier nommé.
@@ -156,6 +211,15 @@ const docNormalise = readFileSync(DOC, 'utf8').replace(/\s+/g, ' ');
 
 const registre = JSON.parse(readFileSync(REGISTRE, 'utf8'));
 
+if (PROD && !JETON) {
+  console.error(
+    'SUPABASE_ACCESS_TOKEN manquant — `--prod` existe pour que ce cas ÉCHOUE.\n' +
+      "  Les prétentions de base de données sont le seul intérêt de cet appel ; passer au vert\n" +
+      '  en les ayant toutes sautées certifierait un document que personne n\'a vérifié.',
+  );
+  process.exit(2);
+}
+
 const perimes = [];   // la phrase a disparu du doc
 const regressions = []; // prétention `dur` violée → le CODE a bougé
 const derives = [];   // prétention `derive` hors tolérance → le DOC est périmé
@@ -171,13 +235,33 @@ const verts = [];
  */
 const toutesDerives = [];
 
+/** Prétentions de base de données non mesurées faute de jeton — comptées, jamais tues. */
+const ignorees = [];
+/** Requête partie en erreur : ni vert ni rouge, un TROU. Doit se voir comme un échec. */
+const echecsSql = [];
+
 for (const claim of registre.claims) {
   if (!docNormalise.includes(claim.phrase.replace(/\s+/g, ' '))) {
     perimes.push(claim);
     continue;
   }
 
-  const reel = mesurer(claim.mesure);
+  let reel;
+  if (claim.mesure.sql) {
+    if (!JETON) {
+      ignorees.push(claim);
+      continue;
+    }
+    try {
+      reel = await mesurerSql(claim.mesure.sql);
+    } catch (erreur) {
+      echecsSql.push({ claim, message: erreur.message });
+      continue;
+    }
+  } else {
+    reel = mesurer(claim.mesure);
+  }
+
   if (claim.severite === 'derive') toutesDerives.push({ claim, reel });
   const ecarts = [];
 
@@ -307,12 +391,31 @@ if (MAJ) {
   process.exit(0);
 }
 
-const echec = perimes.length + regressions.length + derives.length;
+if (echecsSql.length) {
+  console.error(`\n✖ ${echecsSql.length} requête(s) de mesure en ERREUR — ni vérifiées, ni démenties :\n`);
+  for (const { claim, message } of echecsSql) console.error(`    ${claim.id}\n      ${message}`);
+  console.error(`
+  Un trou n'est pas un succès. Corriger la requête du registre, ou le droit
+  du jeton — mais ne pas retirer la prétention pour faire taire l'erreur.\n`);
+}
+
+const echec = perimes.length + regressions.length + derives.length + echecsSql.length;
 
 if (!echec) {
   console.log(`✓ Fraîcheur ${DOC} : ${verts.length} prétention(s) chiffrée(s) vérifiées, aucun écart.`);
 } else {
   console.error(`✖ ${echec} écart(s) sur ${registre.claims.length} prétention(s) — ${verts.length} vérifiée(s).`);
+}
+
+// ⚠ TOUJOURS imprimé, vert compris. Une exécution partielle qui se tait se lit comme
+// une exécution complète — c'est exactement ainsi qu'une étape « skipped » a certifié
+// la porte des e-mails pendant des mois.
+if (ignorees.length) {
+  console.log(
+    `\n⚠ ${ignorees.length} prétention(s) de BASE DE DONNÉES non mesurées : SUPABASE_ACCESS_TOKEN absent.` +
+      '\n  Elles tournent dans migration-drift.yml, le seul workflow qui interroge la production.' +
+      `\n  Localement : SUPABASE_ACCESS_TOKEN=… npm run lint:claude-md\n  ${ignorees.map((c) => c.id).join(', ')}\n`,
+  );
 }
 
 process.exit(echec ? 1 : 0);

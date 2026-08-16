@@ -135,11 +135,46 @@ finit désactivée.
    déclarer, mais y penser en lisant un compte : une occurrence isolée est presque
    toujours une note, pas un appel.
 
+## Les prétentions de BASE DE DONNÉES
+
+Onze entrées portent `mesure.sql` au lieu d'un motif. Elles couvrent le §7 (jobs pg_cron
+par nom ET horaire, index de `market_listings`), les volumes des §2 et §8, la règle RLS,
+et deux retraits que le doc affirmait sans que rien ne les vérifie.
+
+⛔ **Elles périment dans un régime pire que les autres** : elles ne se lisent dans AUCUN
+fichier — « 41 jobs pg_cron » n'est vrai que d'un serveur. Aucun diff ne les dément, donc
+même une relecture attentive du dépôt les laisse passer. Mesuré à leur inscription le
+17.08.2026 : **+9 jobs cron** depuis le 29 juillet, et le §8 annonçait 90k annonces
+Flatfox pour **117k** réelles — le « 90k » désignant en fait RealAdvisor.
+
+**Où elles tournent** — pas là où tu crois :
+
+| Contexte | Commande | Portée |
+|---|---|---|
+| Chaque PR (`unit-tests.yml`) | `npm run lint:claude-md` | Les 18 statiques. Les 11 autres sont **ignorées, et le dire fait partie de la sortie** |
+| Hebdo + après chaque deploy (`migration-drift.yml`) | `… --prod` | Les 29 |
+| En local | `SUPABASE_ACCESS_TOKEN=… npm run lint:claude-md` | Les 29 |
+
+`unit-tests.yml` est **statique et sans secret par conception** ; la production ne
+s'interroge que depuis `migration-drift.yml`. Ne pas déplacer ces étapes.
+
+⛔ **`--prod` fait ÉCHOUER un jeton absent**, au lieu de le signaler. Convention reprise
+de `check-types-freshness.mjs`, qui la porte pour avoir payé le défaut : sans le drapeau,
+le script passe au vert *en ayant sauté toutes ses mesures*. Un avertissement dans une
+sortie verte se lit comme un succès dès que personne ne lit.
+
+**Écrire la requête.** Elle doit rendre **une ligne et une colonne** — le runner refuse
+toute autre forme plutôt que de deviner. Deux réflexes :
+
+- **Parler l'unité du doc.** Le §2 dit « ~208k » : la requête rend donc des milliers
+  (`round(count(*)/1000.0)::int`), pas 207 599. Un compte exact rendrait la prétention
+  instable par construction et imposerait un chiffre illisible dans une phrase qui dit « ~ ».
+- **Nommer ce qu'on compte dans la requête.** « ~90k Flatfox » était numériquement proche
+  de la vérité et désignait la mauvaise source. Une prétention peut être fausse sans que
+  son chiffre le paraisse.
+
 ## Ce que cette boucle ne fait pas
 
-- **Les prétentions de BASE DE DONNÉES** (« 41 jobs pg_cron », « ~173k market_listings »,
-  les index du §7) — elles demandent une connexion Supabase. Elles périment aussi, et
-  personne ne les vérifie. C'est le prolongement naturel de ce registre, pas encore fait.
 - **Les affirmations non chiffrées** (« la séparation vient de la bordure »). Elles ne
   sont pas moins périssables, seulement pas mécanisables.
 - **Les autres docs** — `docs/system-map.md` et le seed du cerveau portent les mêmes
