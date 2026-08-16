@@ -642,7 +642,25 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, conversationId, c
   const sendRef = useRef(send)
   useEffect(() => { sendRef.current = send }, [send])
 
-  const reset = useCallback(() => { setMessages([]); clearHistory() }, [clearHistory])
+  /**
+   * Garde anti-rejeu de la reprise de conversation (l'effet vit plus bas).
+   *
+   * ⛔ DÉCLARÉE ICI PARCE QUE `reset` DOIT LA REMETTRE À ZÉRO. Elle n'était vidée
+   * qu'à la FERMETURE du panneau : après un « Nouvelle conversation », elle gardait
+   * l'identifiant du fil qu'on venait d'effacer, si bien que le rouvrir depuis ⌘K
+   * ne faisait plus rien du tout — l'effet sortait sur `reprisRef.current === id`,
+   * les bulles restaient vides, et le message suivant ouvrait une conversation
+   * neuve côté serveur. Soit exactement le doublon que le double amorçage prévient.
+   */
+  const reprisRef = useRef<string | null>(null)
+
+  const reset = useCallback(() => {
+    setMessages([])
+    clearHistory()
+    // Le fil affiché est abandonné : la garde doit l'oublier pour qu'une réouverture
+    // du MÊME fil soit de nouveau possible.
+    reprisRef.current = null
+  }, [clearHistory])
 
   // Amorce externe (chantier 3) : une puce proactive ouvre le panneau avec une
   // question pré-remplie → envoyée une fois, puis purgée.
@@ -673,15 +691,19 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, conversationId, c
    * conversation pour le même échange.
    */
   const { data: repris } = useConversationMessages(conversationId)
-  const reprisRef = useRef<string | null>(null)
   useEffect(() => { if (!isOpen) reprisRef.current = null }, [isOpen])
   useEffect(() => {
-    if (!repris || reprisRef.current === repris.id) return
+    if (!repris) return
+    // ⛔ LE JETON D'OUVERTURE SE CONSOMME DÈS QU'IL EST LU, avant même de savoir si
+    // le fil est déjà à l'écran. Sortir plus haut le laissait en place, et
+    // `conversationId` restait bloqué sur ce fil : plus aucune réouverture ne
+    // pouvait aboutir tant que le panneau n'était pas fermé.
+    consumeConversation()
+    if (reprisRef.current === repris.id) return
     reprisRef.current = repris.id
     idRef.current = repris.messages.length
     setMessages(repris.messages.map((m, i) => ({ id: i + 1, role: m.role, content: m.content })))
     resumeConversation(repris.id, repris.messages)
-    consumeConversation()
   }, [repris, resumeConversation, consumeConversation])
 
   // Suivi de contexte (chantier 5) : changement d'écran panneau ouvert → marqueur.
