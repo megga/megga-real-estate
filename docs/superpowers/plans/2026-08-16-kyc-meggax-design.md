@@ -91,7 +91,7 @@ faces, et le portage n'en a couvert que trois.
 | **PDF · rapport** | `/kyc-report/:token` | 7 | 1 844 | ⛔ **jamais** | **109** |
 | Mobile | via `crm-mobile` | 4 | 871 | ✅ porté | 0 |
 
-Plus trois pages routées : `KycSugarV3Page` (202 l.), `KycOnboardingPage`
+Plus trois pages routées : `KycPage` (202 l.), `KycOnboardingPage`
 (203 l.), `KycExportPage` (258 l.) — toutes portées.
 
 ### ⛔ Ce que ce tableau dit, et qui décide du chantier

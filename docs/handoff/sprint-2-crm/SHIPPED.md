@@ -25,8 +25,8 @@ src/
 └── pages/agent/
     ├── BienDetailSugarV3Page.tsx                        (NEW) Fiche Bien + édition inline + toast 5s
     ├── DealDetailSugarV3Page.tsx                        (NEW) Fiche Deal + stepper + bannière KYC
-    ├── OfferModalSugarV3Page.tsx                        (NEW) Modal Offre 3 étapes
-    ├── VisitModalSugarV3Page.tsx                        (NEW) Modal Visite 3 étapes
+    ├── OfferPage.tsx                        (NEW) Modal Offre 3 étapes
+    ├── VisitNewPage.tsx                        (NEW) Modal Visite 3 étapes
     ├── VisiteDetailSugarV3Page.tsx                      (NEW) Fiche Visite desktop + iPhone embedded
     └── VisitCompanionPage.tsx                           (NEW) Vue mobile 375px responsive
 
@@ -59,8 +59,8 @@ src/
 ```tsx
 <Route path="listings/:id" element={<BienDetailSugarV3Page />} />
 <Route path="transactions/:id" element={<DealDetailSugarV3Page />} />
-<Route path="transactions/:id/offre/:kind" element={<OfferModalSugarV3Page />} />
-<Route path="visites/nouveau" element={<VisitModalSugarV3Page />} />
+<Route path="transactions/:id/offre/:kind" element={<OfferPage />} />
+<Route path="visites/nouveau" element={<VisitNewPage />} />
 <Route path="visites/:id" element={<VisiteDetailSugarV3Page />} />
 <Route path="visites/:id/companion" element={<VisitCompanionPage />} />
 ```

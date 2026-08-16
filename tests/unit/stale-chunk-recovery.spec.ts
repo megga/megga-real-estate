@@ -24,7 +24,7 @@ import {
 
 /** Message réel observé dans le Chrome de l'incident (Sentry + console). */
 const CHROME_MESSAGE =
-  'Failed to fetch dynamically imported module: https://app.megga.ch/assets/IdentitySugarPage-UNAb1wxY.js'
+  'Failed to fetch dynamically imported module: https://app.megga.ch/assets/IdentityPage-UNAb1wxY.js'
 
 describe('isStaleChunkError', () => {
   it('reconnaît chacun des motifs du catalogue, en Error comme en chaîne', () => {
@@ -50,7 +50,7 @@ describe('isStaleChunkError', () => {
 describe('extractChunkUrl', () => {
   it('extrait l\'URL absolue du message Chrome/Firefox', () => {
     expect(extractChunkUrl(new Error(CHROME_MESSAGE)))
-      .toBe('https://app.megga.ch/assets/IdentitySugarPage-UNAb1wxY.js')
+      .toBe('https://app.megga.ch/assets/IdentityPage-UNAb1wxY.js')
   })
 
   it('extrait une URL relative /assets/…', () => {

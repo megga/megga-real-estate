@@ -1,4 +1,4 @@
-// Regression — `documents.contact_id` query used by ContactDetailSugarV3Page.
+// Regression — `documents.contact_id` query used by ContactDetailPage.
 //
 // The page was flagged with a chip "documents.contact_id investigation" back
 // when the column had been silently dropped from the local baseline
@@ -119,7 +119,7 @@ describe.skipIf(!HAS_KEYS)('regression — documents.contact_id query', () => {
   })
 
   it('agent A sees document attached to contact A via .eq("contact_id", id)', async () => {
-    // Exact shape of the query in src/pages/agent/ContactDetailSugarV3Page.tsx
+    // Exact shape of the query in src/pages/agent/ContactDetailPage.tsx
     const { data, error } = await setup.clientA
       .from('documents')
       .select('id, name, created_at')

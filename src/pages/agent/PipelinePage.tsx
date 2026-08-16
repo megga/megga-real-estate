@@ -137,7 +137,7 @@ const PIPE_PAD_X = 34
  */
 const PIPE_PAD_B = 22
 
-export default function PipelineSugarV2Page({ banc }: { banc?: PipelineBanc } = {}) {
+export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
   const { t } = useTranslation('pipeline')
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()

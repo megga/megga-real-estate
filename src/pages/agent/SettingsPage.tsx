@@ -1,4 +1,4 @@
-// MEGGA CRM Sugar v2 — Écran « Paramètres » (refonte finale — shell « À suivre »).
+// MEGGA CRM — Écran « Paramètres » (refonte finale — shell « À suivre »).
 // Shell deux colonnes : rail de nav 300px à gauche + bento à droite qui rend la
 // section active. 3 sections « Focus » (Profil, Agence, Préférences)
 // reçoivent {sp, surf, dark, setDark} ; 3 sections conservées (Intégrations,
@@ -40,7 +40,7 @@ function SpgIcon({ name, size = 17, stroke = 'currentColor' }: { name: string; s
   )
 }
 
-export default function SettingsSugarV2Page() {
+export default function SettingsPage() {
   const navigate = useNavigate()
   const { t: tr } = useTranslation('settings')
 

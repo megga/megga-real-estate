@@ -9,7 +9,7 @@
  * 31 juillet 2026 (« aucun export CSV, nulle part dans la console ») ; le PDF de
  * la chaîne d'audit PLATEFORME est parti le 14 août 2026, sur décision de
  * Julien. `downloadAuditPdf` et l'edge `audit-pdf-export` restent VIVANTS —
- * l'export par agence de la fiche d'audit agent (`AuditSugarPage`) les appelle
+ * l'export par agence de la fiche d'audit agent (`AuditPage`) les appelle
  * toujours. Ce qui a disparu est la piste PLATEFORME complète, pas le mécanisme.
  *
  * Présentation en grammaire MEGGA X (kit `adminKit`) : journal dans un bento

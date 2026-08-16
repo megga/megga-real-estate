@@ -1,6 +1,6 @@
 # Patch 03 — B1 : piste d'audit pipeline faussée (ÉLEVÉ, compliance)
 
-**Fichier** : `src/pages/agent/PipelineSugarV2Page.tsx`
+**Fichier** : `src/pages/agent/PipelinePage.tsx`
 
 ## Problème
 `handleDrop` (l.147-157) appelle `applyDrop` puis émet **inconditionnellement** `logAudit.mutate('Étape changée')`.

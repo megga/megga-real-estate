@@ -1,4 +1,4 @@
-// MEGGA CRM Sugar — Calendrier (refonte « façon Google »)
+// MEGGA CRM — Calendrier (refonte « façon Google »)
 // Écran d'entrée : monte le calendrier — toujours, sans condition — et décide
 // s'il faut y afficher l'invitation à connecter un agenda externe. Porte l'état
 // de thème partagé.
@@ -27,7 +27,7 @@ function useDarkPref(): [boolean, (v: boolean) => void] {
   return [dark, setDark]
 }
 
-export default function CalendarSugarV2Page() {
+export default function CalendarPage() {
   const [dark, setDark] = useDarkPref()
   const google = useGoogleCalendar()
   const outlook = useOutlookCalendar()

@@ -152,7 +152,7 @@ export interface MatchingPagerBanc {
   Chrome?: (p: { dark: boolean }) => ReactNode
 }
 
-export default function MatchingPagerPage({ banc }: { banc?: MatchingPagerBanc } = {}) {
+export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}) {
   const navigate = useNavigate()
 
   // ─── Thème: dark/light, calé sur le toggle du rail (comme Today) ────────

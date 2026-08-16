@@ -44,10 +44,10 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
 import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { CRM_BIENS, CRM_CONTACTS } from '@/components/crm-sugar/mockData'
-import PipelineSugarV2Page, {
+import PipelinePage, {
   type PipelineBanc, type PipelineBancGestes,
-} from '@/pages/agent/PipelineSugarV2Page'
-import DealDetailSugarV4Page, { type DealDetailBanc } from '@/pages/agent/DealDetailSugarV4Page'
+} from '@/pages/agent/PipelinePage'
+import DealDetailPage, { type DealDetailBanc } from '@/pages/agent/DealDetailPage'
 import {
   FICHE_BIEN, FICHE_CONTACT, FICHE_DEAL, FICHE_ETATS, FICHE_KYC,
   FICHE_NEXT_ACTION, FICHE_OFFRES,
@@ -265,8 +265,8 @@ export default function PipelineShowcasePage() {
   return (
     <BancCtx.Provider value={ctx}>
       {ecran === 'board'
-        ? <PipelineSugarV2Page banc={bancBoard} />
-        : <DealDetailSugarV4Page banc={bancFiche} />}
+        ? <PipelinePage banc={bancBoard} />
+        : <DealDetailPage banc={bancFiche} />}
     </BancCtx.Provider>
   )
 }

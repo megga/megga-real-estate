@@ -464,8 +464,8 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
    * après le guillemet ouvrant, or le dépôt écrit soit
    * `fontFamily: "'Inter Tight', …"` soit `fontFamily: '"Inter Tight", …'` —
    * un guillemet s'intercale dans les deux cas. Mesuré le 12.08.2026 en
-   * réparant le motif : 29 fichiers (24 après les lots 2-4 de « Contacts », qui ont vidé son dossier), dont `BienDetailSugarV4Page` et
-   * `BiensSugarV2Page`, qui sont pourtant DANS le cliquet de grammaire depuis
+   * réparant le motif : 29 fichiers (24 après les lots 2-4 de « Contacts », qui ont vidé son dossier), dont `ListingDetailPage` et
+   * `ListingsPage`, qui sont pourtant DANS le cliquet de grammaire depuis
    * le lot 4 de « Mes biens ». La garde n'attrapait rien du tout.
    *
    * Les nommer les COMPTE le temps que leur surface soit portée. Sans cette
@@ -483,9 +483,9 @@ describe('MEGGA X CRM — ce qui court-circuite la direction', () => {
     'src/components/crm-sugar/biens/pager/BiensFirstRun.tsx',
     'src/components/crm-sugar/biens/pager/BpRenewModal.tsx',
     'src/components/matching-atelier/MatchingFirstRun.tsx',
-    'src/pages/agent/BienDetailSugarV4Page.tsx',
-    'src/pages/agent/BiensSugarV2Page.tsx',
-    'src/pages/agent/JourneySugarV2Page.tsx',
+    'src/pages/agent/ListingDetailPage.tsx',
+    'src/pages/agent/ListingsPage.tsx',
+    'src/pages/agent/JourneyPage.tsx',
     'src/pages/agent/KycExportPage.tsx',
     'src/pages/dev/BiensShowcasePage.tsx',
   ])

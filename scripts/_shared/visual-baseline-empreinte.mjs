@@ -54,7 +54,7 @@ export const CHEMIN_EMPREINTES = 'tests/e2e/visual-regression.spec.ts-snapshots/
  */
 export const ECRANS = {
   'dashboard-pipeline': [
-    'src/pages/agent/PipelineSugarV2Page.tsx',
+    'src/pages/agent/PipelinePage.tsx',
     'src/components/crm-sugar/pipeline',
     'src/components/crm-sugar/tokens.ts',
     'src/components/megga-x-crm/tokens.ts',

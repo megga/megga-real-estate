@@ -1,18 +1,18 @@
 /**
- * Adapter Supabase → `CrmContact[]` pour ContactsSugarV2Page (design Sugar v2).
+ * Adapter Supabase → `CrmContact[]` pour ContactsPage (design Sugar v2).
  *
  * Charge les contacts de l'agence + leur dossier KYC acheteur, adapte vers les
  * shapes que les panes Sugar consomment déjà, et alimente le registry runtime
  * `registerLiveContact` (nettoyé au démontage) pour `crmContactById`.
  */
-// MEGGA CRM Sugar v2 — Adapter Supabase → CrmContact[] pour ContactsSugarV2Page.
+// MEGGA CRM Sugar v2 — Adapter Supabase → CrmContact[] pour ContactsPage.
 // Charge tous les contacts de l'agence + leurs dossiers KYC (Sprint 1
 // dossier_status), adapte vers les shapes mock que ContactsListPane et
 // ContactsDetailPane consomment déjà sans modification.
 //
 // Pattern aligné sur useMatchingSugar : le hook remplit le registry runtime
 // `registerLiveContact` pour que `crmContactById(id)` renvoie la version
-// Supabase quand un composant l'appelle (notamment ContactsSugarV2Page
+// Supabase quand un composant l'appelle (notamment ContactsPage
 // pour résoudre le contact sélectionné).
 
 import { useEffect, useMemo } from 'react'

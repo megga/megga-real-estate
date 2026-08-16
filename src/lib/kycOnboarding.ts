@@ -1,5 +1,5 @@
 // MEGGA CRM — KYC · état du gate onboarding « Première ouverture »
-// Partagé entre KycOnboardingPage (pose le flag) et KycSugarV3Page (le lit pour
+// Partagé entre KycOnboardingPage (pose le flag) et KycPage (le lit pour
 // décider d'afficher l'onboarding ou le pager). Module non-composant : évite le
 // warning react-refresh d'un export de fonction depuis un fichier de page.
 

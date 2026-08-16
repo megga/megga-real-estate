@@ -22,7 +22,7 @@ import { readFileSync } from 'node:fs'
 import { corpsDeFonction, valeurDePropJsx } from './helpers/ts-source'
 
 const FICHE = 'src/components/crm-sugar/contacts-pager/ContactDetailPager.tsx'
-const PAGE = 'src/pages/agent/ContactDetailSugarV3Page.tsx'
+const PAGE = 'src/pages/agent/ContactDetailPage.tsx'
 
 const fiche = readFileSync(FICHE, 'utf8')
 const page = readFileSync(PAGE, 'utf8')

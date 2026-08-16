@@ -258,7 +258,7 @@ export interface DealDetailBanc {
   Chrome?: (p: { dark: boolean }) => ReactNode
 }
 
-export default function DealDetailSugarV4Page({ banc }: { banc?: DealDetailBanc } = {}) {
+export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {}) {
   const { t } = useTranslation('pipeline')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()

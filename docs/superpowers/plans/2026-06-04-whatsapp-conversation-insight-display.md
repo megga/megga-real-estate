@@ -44,7 +44,7 @@ Re-consulter au début de chaque tâche. **Ne pas modifier le seed** avant la de
 
 **Modifier :**
 - `src/components/crm-sugar-v3/contact-detail/CdWhatsAppCard.tsx` — rendu transcript des vocaux.
-- `src/pages/agent/ContactDetailSugarV3Page.tsx` — rendre `<CdConversationInsight contactId={contact.id} />` après `<CdWhatsAppCard .../>`.
+- `src/pages/agent/ContactDetailPage.tsx` — rendre `<CdConversationInsight contactId={contact.id} />` après `<CdWhatsAppCard .../>`.
 
 **Réutilisé sans changement :**
 - `src/hooks/useConversationInsight.ts` — renvoie déjà `{ contact_id, summary, intent, entities, commitments, sentiment, next_action, source_message_count, generated_at }`.
@@ -186,7 +186,7 @@ Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"
 
 > Mirror EXACT du pattern visuel de `CdKycCard` (même `KycSection`, mêmes tokens `SugarV3.*`, mêmes pills « soft », même usage `SgIcon`). LÉGER : une carte qui lit le hook existant et rend les champs.
 
-**Files:** Create `src/components/crm-sugar-v3/contact-detail/CdConversationInsight.tsx` ; Modify `src/pages/agent/ContactDetailSugarV3Page.tsx`
+**Files:** Create `src/components/crm-sugar-v3/contact-detail/CdConversationInsight.tsx` ; Modify `src/pages/agent/ContactDetailPage.tsx`
 
 - [ ] **Step 1 : Lire d'abord** `src/components/crm-sugar-v3/contact-detail/CdKycCard.tsx` et `src/components/crm-sugar-v3/primitives.tsx` (exports `KycSection`, `SugarV3`) et `src/components/crm-sugar-v3/icons.tsx` (`SgIcon`, vérifier `name="sparkle"`). Copier les imports + le pattern de header (eyebrow/title/icon) + le pattern de pill exactement.
 
@@ -277,7 +277,7 @@ export function CdConversationInsight({ contactId }: { contactId: string }) {
 ```
 > Cadre IA respecté : eyebrow « Assistance IA », icône sparkle, « action suggérée », footer « Estimation IA ». Jamais « automatique »/« garanti ». La carte ne déclenche AUCUNE action (lecture seule).
 
-- [ ] **Step 3 : Câbler dans la fiche** — `src/pages/agent/ContactDetailSugarV3Page.tsx` : importer `{ CdConversationInsight }` et le rendre dans la **colonne principale** juste après `<CdWhatsAppCard contactId={contact.id} />` :
+- [ ] **Step 3 : Câbler dans la fiche** — `src/pages/agent/ContactDetailPage.tsx` : importer `{ CdConversationInsight }` et le rendre dans la **colonne principale** juste après `<CdWhatsAppCard contactId={contact.id} />` :
 ```tsx
     <CdWhatsAppCard contactId={contact.id} />
     <CdConversationInsight contactId={contact.id} />
@@ -287,7 +287,7 @@ export function CdConversationInsight({ contactId }: { contactId: string }) {
 
 - [ ] **Step 5 : Commit**
 ```bash
-git add src/components/crm-sugar-v3/contact-detail/CdConversationInsight.tsx src/pages/agent/ContactDetailSugarV3Page.tsx
+git add src/components/crm-sugar-v3/contact-detail/CdConversationInsight.tsx src/pages/agent/ContactDetailPage.tsx
 git -c user.name="MEGGA" -c user.email="megga@megga.ch" commit -m "feat(crm): carte « Compréhension MEGGA » dans la fiche contact (insights WhatsApp)
 
 Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>"

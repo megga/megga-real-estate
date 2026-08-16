@@ -8,6 +8,6 @@
  */
 import IdentityShell from '@/components/crm-sugar-identity/IdentityShell'
 
-export default function IdentitySugarPage() {
+export default function IdentityPage() {
   return <IdentityShell />
 }

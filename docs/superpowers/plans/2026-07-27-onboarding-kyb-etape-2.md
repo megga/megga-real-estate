@@ -74,7 +74,7 @@ Playwright pour le parcours complet.
 | `src/components/crm-sugar-identity/steps/StepBeneficiaires.tsx` | Étape 3, conditionnelle |
 | `src/components/crm-sugar-identity/steps/StepPieceIdentite.tsx` | Étape 4 |
 | `src/components/crm-sugar-identity/steps/StepRecapitulatif.tsx` | Étape 5 |
-| `src/pages/agent/IdentitySugarPage.tsx` | Route `/dashboard/identite` |
+| `src/pages/agent/IdentityPage.tsx` | Route `/dashboard/identite` |
 | `src/pages/agent/IdentityMobileNotice.tsx` | Écran mobile « terminer sur ordinateur » |
 | `src/i18n/locales/{fr,de,en,it}/onboarding.json` | Nouveau namespace i18n |
 | `tests/backend/agency-identity-submit.spec.ts` | Tests de la RPC |
@@ -176,7 +176,7 @@ pour la création d'utilisateur.
 
 **Files:**
 - Créer : `src/hooks/useIdentityGate.ts`
-- Créer : `src/pages/agent/IdentitySugarPage.tsx` (coquille vide à ce stade)
+- Créer : `src/pages/agent/IdentityPage.tsx` (coquille vide à ce stade)
 - Créer : `src/pages/agent/IdentityMobileNotice.tsx`
 - Modifier : `src/components/layout/AgentSugarLayout.tsx`
 - Modifier : `src/App.tsx`
@@ -220,7 +220,7 @@ motif `ResponsiveRoute` déjà employé partout dans `App.tsx`.
 - Créer : `src/components/crm-sugar-identity/steps/StepSignataire.tsx`
 - Créer : `src/hooks/useAgencyIdentity.ts`
 - **Étendre** : `src/i18n/locales/{fr,de,en,it}/onboarding.json`
-- Modifier : `src/pages/agent/IdentitySugarPage.tsx`
+- Modifier : `src/pages/agent/IdentityPage.tsx`
 
 ⚠ **Les quatre fichiers i18n existent déjà**, créés par la tâche 2 avec les clés `gate.*`
 du gate et de l'écran mobile, et ces clés sont couvertes par des tests. Les **étendre**,

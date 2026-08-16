@@ -16,7 +16,7 @@ const KYC_ONBOARDED_KEY = 'megga.kyc.onboarded'
  * Fait passer l'agent pour « déjà passé par l'onboarding KYC », AVANT le premier
  * script de la page (addInitScript, donc avant que React lise le flag).
  *
- * Sans ça, /dashboard/kyc n'est jamais le pager : KycSugarV3Page monte son gate
+ * Sans ça, /dashboard/kyc n'est jamais le pager : KycPage monte son gate
  * d'empty-state, la lecture de `kyc_cases` revient vide (anon, sans session, sous
  * RLS) et la page redirige aussitôt vers /dashboard/kyc/bienvenue. Le pager —
  * l'écran que ces vérifications prétendent couvrir — ne serait donc jamais rendu.

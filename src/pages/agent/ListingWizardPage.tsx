@@ -1,9 +1,9 @@
-// MEGGA CRM Sugar v2 — page « Créer un bien » (/dashboard/listings/new).
+// MEGGA CRM — page « Créer un bien » (/dashboard/listings/new).
 //
 // Le wizard épouse le PAGER : `WizardShell` est un plein écran par défaut
 // (`position: fixed`, z-index 9000), on le monte donc en `embedded`
 // (`position: absolute`, z-index 1) pour qu'il vive dans la coquille Sugar,
-// à côté du rail — même mécanisme que `MatchingPagerPage`.
+// à côté du rail — même mécanisme que `MatchingPage`.
 //
 // Le conteneur du wizard est `position: relative` et porte une hauteur : sans
 // elle, un enfant en `position: absolute; inset: 0` s'effondrerait à zéro.
@@ -19,7 +19,7 @@ import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from 
 import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import { sugarThemeVars } from '@/components/crm-sugar/sugarThemeVars'
 
-export default function WizardSugarV2Page() {
+export default function ListingWizardPage() {
   const navigate = useNavigate()
   const onClose = () => navigate('/dashboard/listings')
 

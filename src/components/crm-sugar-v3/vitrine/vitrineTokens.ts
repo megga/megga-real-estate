@@ -15,7 +15,7 @@ import { sgMix } from '@/components/crm-sugar/tokens'
 // Sugar de bout en bout — accent compris, `black` valant `#0B0C0E` sous la règle
 // « l'accent EST l'encre » que la décision du 10 août a remplacée.
 //
-// ⚠ Ce module ne se voit pas depuis `BienDetailSugarV4Page.tsx` : la page ne
+// ⚠ Ce module ne se voit pas depuis `ListingDetailPage.tsx` : la page ne
 // porte que 2 littéraux, la palette en porte 39. La fiche en est l'unique
 // consommateur. Garde-fou : `tests/unit/bien-palette.spec.ts`.
 

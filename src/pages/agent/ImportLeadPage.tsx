@@ -1,4 +1,4 @@
-// MEGGA CRM Sprint 3 — Page Import Lead IA (Sugar Pure plein écran)
+// MEGGA CRM — Page Import Lead IA (plein écran)
 // Port pixel-près de crm-import-lead-modal.jsx (handoff Sprint 3).
 //
 // Format : page route plein écran 2 étapes
@@ -95,7 +95,7 @@ function clearStoredState() {
   try { sessionStorage.removeItem(STORAGE_KEY) } catch { /* noop */ }
 }
 
-export default function ImportLeadSugarV3Page() {
+export default function ImportLeadPage() {
   const { t } = useTranslation('contacts')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()

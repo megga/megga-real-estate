@@ -55,8 +55,8 @@ commencer (le code aura bougé) :
 
 ```bash
 D=(src/components/crm-sugar/biens src/components/crm-mobile/biens \
-   src/components/crm-sugar-wizard src/pages/agent/BiensSugarV2Page.tsx \
-   src/pages/agent/BienDetailSugarV4Page.tsx src/pages/agent/WizardSugarV2Page.tsx \
+   src/components/crm-sugar-wizard src/pages/agent/ListingsPage.tsx \
+   src/pages/agent/ListingDetailPage.tsx src/pages/agent/ListingWizardPage.tsx \
    src/pages/agent/ListingFormPage.tsx)
 grep -rho "textTransform: 'uppercase'" $D | wc -l
 grep -rho "fontWeight: [78]00" $D | wc -l
@@ -70,7 +70,7 @@ croit la surface propre. Je m'y suis fait prendre.
 | Zone | Lignes | Capitales | Graisses ≥ 700 | Hex | Palette |
 |---|---|---|---|---|---|
 | `crm-sugar/biens` (liste, pager) | 2 197 | 7 | 59 | 31 | `crmSugarPalette()` ✅ |
-| `BienDetailSugarV4Page` (fiche) | 1 039 | 9 | 37 | 2 | `crmSugarPalette()` ✅ |
+| `ListingDetailPage` (fiche) | 1 039 | 9 | 37 | 2 | `crmSugarPalette()` ✅ |
 | `ListingFormPage` (édition) | 3 188 | **0** | **0** | 2 | `crmSugarPalette()` ✅ |
 | `crm-sugar-wizard` (création) | 4 832 | **33** | **94** | **97** | ⛔ **jetons propres** |
 | `crm-mobile/biens` | 273 | 0 | 11 | 4 | jetons mobile |
@@ -144,7 +144,7 @@ sémantiques plutôt que d'interdire en bloc.
 Mécanique, à faire d'un bloc **après** le lot 1 (voir le contraste avant de
 toucher à la typographie évite de régler deux fois).
 
-**Lot 3 — liste + fiche.** `crm-sugar/biens` et `BienDetailSugarV4Page` : 16
+**Lot 3 — liste + fiche.** `crm-sugar/biens` et `ListingDetailPage` : 16
 capitales, 96 graisses. Les couleurs y sont déjà bonnes ; c'est le cas « Réglages ».
 
 **Lot 4 — mobile.** `crm-mobile/biens`, 11 graisses. **Ne le saute pas** : laisser

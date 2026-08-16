@@ -47,7 +47,7 @@ describe('Fraîcheur des captures de référence', () => {
       expect(empreinte, `${nom} : empreinte vide`).toMatch(/^[0-9a-f]{16}$/)
       // Témoins NOMMÉS plutôt qu'un compte : un compte se périme au premier
       // fichier ajouté légitimement, un témoin décrit le BALAYAGE.
-      expect(fichiers, `${nom} : la page n'est plus lue`).toContain('src/pages/agent/PipelineSugarV2Page.tsx')
+      expect(fichiers, `${nom} : la page n'est plus lue`).toContain('src/pages/agent/PipelinePage.tsx')
       expect(
         fichiers.some((f: string) => f.includes('crm-sugar/pipeline/SugarStageColumn')),
         `${nom} : la colonne de kanban n'est plus lue`,

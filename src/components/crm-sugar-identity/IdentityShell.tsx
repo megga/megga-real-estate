@@ -1,6 +1,6 @@
 /**
  * Wizard « Identité légale » (KYB) — coquille, navigation, persistance, soumission.
- * Rendu par la route /dashboard/identite (src/pages/agent/IdentitySugarPage.tsx),
+ * Rendu par la route /dashboard/identite (src/pages/agent/IdentityPage.tsx),
  * tant que useIdentityGate() renvoie 'required'.
  *
  * HABILLAGE : MEGGA X, la transcription verbatim de la vitrine megga.ch, et non

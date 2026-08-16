@@ -25,7 +25,7 @@ import NewContactModal, {
   type NewContactData,
 } from '@/components/crm-sugar/contacts-pager/NewContactModal'
 
-export default function ContactsSugarV2Page() {
+export default function ContactsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const qc = useQueryClient()
@@ -97,7 +97,7 @@ export default function ContactsSugarV2Page() {
     const criteria = buyerSide && data.criteria ? buildSearchCriteria(data.criteria) : null
     // Vendeur/Bailleur : le bien proposé n'est PAS un critère de recherche (aucun
     // matching). Il se range dans form_data.offer, la clé que la fiche relit
-    // (ContactDetailSugarV3Page « crit »). L'écrire sous `linked_bien` le rendait
+    // (ContactDetailPage « crit »). L'écrire sous `linked_bien` le rendait
     // invisible : personne ne lisait cette clé.
     const offer: CriteriaInput | null = !buyerSide && data.linkedBien
       ? {

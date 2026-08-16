@@ -1,4 +1,4 @@
-// MEGGA CRM Sprint 2 — Modal Planifier une visite Sugar Pure
+// MEGGA CRM — Modal Planifier une visite
 // Port pixel-près de crm-visit-modal-sugar.jsx (handoff Sprint 2).
 //
 // 3 étapes :
@@ -92,7 +92,7 @@ function Field({
   )
 }
 
-export default function VisitModalSugarV3Page() {
+export default function VisitNewPage() {
   const { t } = useTranslation('calendar')
   const navigate = useNavigate()
   const [params] = useSearchParams()

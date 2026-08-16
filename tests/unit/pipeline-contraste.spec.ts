@@ -132,7 +132,7 @@ const SOURCES = [
   // ⚠ Le périmètre n'est PAS un dossier : la fiche deal et la modale d'offre
   // vivent ailleurs et portent la même dette. Les omettre aurait laissé la
   // pastille « Refusée » (3,00:1 en sombre) hors de toute garde.
-  'src/pages/agent/DealDetailSugarV4Page.tsx',
+  'src/pages/agent/DealDetailPage.tsx',
   'src/components/crm-sugar-v3/offer-modal/OfferModalSugar.tsx',
 ].map((nom) => ({ nom, code: readFileSync(nom, 'utf-8') }))
 

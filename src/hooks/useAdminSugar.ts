@@ -1,7 +1,7 @@
 /**
  * Palette Sugar de la console super-admin, dérivée du thème admin.
  *
- * Les Paramètres du CRM (`SettingsSugarV2Page`) calculent leur palette au
+ * Les Paramètres du CRM (`SettingsPage`) calculent leur palette au
  * render — `crmSugarPalette(dark)` → `adminSurfaces(dark)` — puis la font
  * descendre en props. La console, elle, a 19 pages et 24 composants : enfiler
  * `sp`/`surf`/`dark` partout serait un carnage d'imports.

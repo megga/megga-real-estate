@@ -1352,7 +1352,7 @@ ne cassent rien.
 | `src/hooks/useAgencySettings.ts` | lecture/écriture des réglages agence |
 | `src/components/crm-sugar-identity/IdentityShell.tsx` + `tokens.ts` | coquille du wizard, navigation et persistance |
 | `src/components/crm-sugar-identity/steps/Step{Signataire,Agence,Beneficiaires,PieceIdentite,Recapitulatif}.tsx` | les 5 étapes |
-| `src/pages/agent/IdentitySugarPage.tsx`, `IdentityMobileNotice.tsx` | route `/dashboard/identite`, desktop et mobile |
+| `src/pages/agent/IdentityPage.tsx`, `IdentityMobileNotice.tsx` | route `/dashboard/identite`, desktop et mobile |
 | `src/pages/admin/AdminKybReviewPage.tsx` | écran de la file de revue |
 | `src/components/layout/KycLabGuard.tsx`, `LabGuardBanner.tsx` | blocage et bandeau de rappel |
 | `src/components/crm-sugar/settings/focus/pfKit{,Core}.tsx` | mode « choix unique » ajouté à `PfEditField` |

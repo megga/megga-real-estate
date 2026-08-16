@@ -45,11 +45,11 @@ s'est trompé trois fois. Ce périmètre-ci est dérivé de `src/App.tsx:547`.
 
 ```
 /dashboard/matching → ResponsiveRoute
-                        desktop = MatchingPagerPage      (src/pages/agent/)
+                        desktop = MatchingPage      (src/pages/agent/)
                         mobile  = MobileMatchingPage     (src/components/crm-mobile/matching/)
 ```
 
-`MatchingPagerPage` (346 lignes) est un **pager à deux pages**, pas une page :
+`MatchingPage` (346 lignes) est un **pager à deux pages**, pas une page :
 
 | Page | Composant | Dossier |
 |---|---|---|
@@ -356,7 +356,7 @@ mesure sous les yeux, pas avant.
 
 ### Lot 4 — Les restes et la garde qui manque
 
-1. `MatchingPagerPage` + `MatchingAtelierPage` (8 marqueurs).
+1. `MatchingPage` + `MatchingAtelierPage` (8 marqueurs).
 2. `MatchingFirstRun` (11).
 3. ⛔ **Faire lire le CSS du périmètre par le cliquet.** Sans ça, tout le Lot 2
    peut se défaire au premier commit suivant sans qu'une porte bouge — c'est

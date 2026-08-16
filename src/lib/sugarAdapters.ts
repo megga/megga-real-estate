@@ -146,7 +146,7 @@ export function mapStage(s: TransactionStage): StageId {
 }
 
 // ─── StageId UI → TransactionStage DB (inverse de mapStage) ─────────────
-// Utilisé par PipelineSugarV2Page lors du drag-drop d'une colonne UI vers une
+// Utilisé par PipelinePage lors du drag-drop d'une colonne UI vers une
 // autre. Note : 'offer' DB est un sur-ensemble (negotiation/reserved/financing/
 // notary collapsent sur 'offer' UI). Si l'agent drop sur la colonne 'offer'
 // alors que la transaction est déjà en negotiation, le code page court-circuite

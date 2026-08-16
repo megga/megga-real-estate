@@ -42,7 +42,7 @@ import { repoPath } from './helpers/fs-scan'
  * 2026 : neuf de ses quinze sélecteurs n'avaient aucun porteur, deux n'étaient
  * portés que par le wizard KYC — qui passe par `ResponsiveRoute` et ne rend
  * donc jamais sous 768 px —, et les trois derniers ne servaient qu'à
- * `AuditSugarPage`, seule surface agent sans variante mobile. Ses règles
+ * `AuditPage`, seule surface agent sans variante mobile. Ses règles
  * vivent désormais DANS la page, sur `useIsMobile()`. Une feuille chargée par
  * `main.tsx` sur TOUTES les pages pour trois règles utiles à une seule.
  */

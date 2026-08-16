@@ -165,7 +165,7 @@ describe('État vide — un idiome, trois registres', () => {
       'src/components/crm-sugar/today/PageAujourdhuiH.tsx',
       'src/components/crm-sugar/today/PageCatalogue.tsx',
       'src/components/crm-sugar/pipeline/PipelineTimeline.tsx',
-      'src/pages/agent/PipelineSugarV2Page.tsx',
+      'src/pages/agent/PipelinePage.tsx',
       'src/components/crm-sugar/contacts-pager/ContactsPager.tsx',
       'src/components/crm-sugar/contacts-pager/ContactDetailPager.tsx',
       'src/components/crm-sugar/notifications/SugarNotificationsPopover.tsx',

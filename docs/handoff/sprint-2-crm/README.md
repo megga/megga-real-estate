@@ -8,8 +8,8 @@ Implémentation des 5 livrables Sprint 2 (Fiches Bien/Deal/Visite + modals Offre
 |---|---|---|---|---|
 | 1 | **Fiche Bien** + édition inline 12+ champs | `/dashboard/listings/:id` | `BienDetailSugarV3Page.tsx` | `bien-detail/BdShared.tsx` |
 | 2 | **Fiche Deal** + stepper 8 + bannière KYC indicative | `/dashboard/transactions/:id` | `DealDetailSugarV3Page.tsx` | `deal-detail/DdShared.tsx` |
-| 3 | **Modal Offre / Contre-offre** Sugar plein écran 3 étapes | `/dashboard/transactions/:id/offre/{nouvelle,contre}` | `OfferModalSugarV3Page.tsx` | inline |
-| 4 | **Modal Planifier Visite** Sugar plein écran 3 étapes | `/dashboard/visites/nouveau?bienId=&contactId=` | `VisitModalSugarV3Page.tsx` | inline |
+| 3 | **Modal Offre / Contre-offre** Sugar plein écran 3 étapes | `/dashboard/transactions/:id/offre/{nouvelle,contre}` | `OfferPage.tsx` | inline |
+| 4 | **Modal Planifier Visite** Sugar plein écran 3 étapes | `/dashboard/visites/nouveau?bienId=&contactId=` | `VisitNewPage.tsx` | inline |
 | 5 | **Fiche Visite** desktop + iPhone compagnon embedded | `/dashboard/visites/:id` | `VisiteDetailSugarV3Page.tsx` | `visite-detail/VdShared.tsx` |
 | 5b | **Vue mobile compagnon** responsive 375px | `/dashboard/visites/:id/companion` | `VisitCompanionPage.tsx` | réutilise `VdMobileCompanion` |
 

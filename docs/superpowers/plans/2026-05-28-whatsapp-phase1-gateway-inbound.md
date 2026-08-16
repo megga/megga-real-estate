@@ -706,7 +706,7 @@ git commit -m "feat(whatsapp): read-only useWhatsAppMessages hook"
 
 **Files:**
 - Create: `src/components/crm-sugar-v3/contact-detail/CdWhatsAppCard.tsx`
-- Modify: `src/pages/agent/ContactDetailSugarV3Page.tsx` (monter la carte ; suivre l'emplacement des autres `Cd*Card`)
+- Modify: `src/pages/agent/ContactDetailPage.tsx` (monter la carte ; suivre l'emplacement des autres `Cd*Card`)
 
 - [ ] **Step 1: Écrire la carte**
 
@@ -762,9 +762,9 @@ export function CdWhatsAppCard({ contactId }: Props) {
 
 - [ ] **Step 2: Monter la carte dans la fiche contact**
 
-Dans `src/pages/agent/ContactDetailSugarV3Page.tsx`, importer et rendre `<CdWhatsAppCard contactId={contact.id} />` à côté des autres cartes (`CdTimelineCard`, `CdNotesCard`…). Récupérer le nom exact de la variable contact id dans ce fichier.
+Dans `src/pages/agent/ContactDetailPage.tsx`, importer et rendre `<CdWhatsAppCard contactId={contact.id} />` à côté des autres cartes (`CdTimelineCard`, `CdNotesCard`…). Récupérer le nom exact de la variable contact id dans ce fichier.
 
-Run d'abord: `grep -n "CdNotesCard\|CdTimelineCard\|contact.id\|contactId" src/pages/agent/ContactDetailSugarV3Page.tsx | head`
+Run d'abord: `grep -n "CdNotesCard\|CdTimelineCard\|contact.id\|contactId" src/pages/agent/ContactDetailPage.tsx | head`
 Puis insérer l'import en haut et le composant au bon endroit du JSX.
 
 - [ ] **Step 3: Vérifier visuellement**
@@ -775,7 +775,7 @@ Expected: carte "WhatsApp · 0 message" + "Aucun message WhatsApp pour ce contac
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/components/crm-sugar-v3/contact-detail/CdWhatsAppCard.tsx src/pages/agent/ContactDetailSugarV3Page.tsx
+git add src/components/crm-sugar-v3/contact-detail/CdWhatsAppCard.tsx src/pages/agent/ContactDetailPage.tsx
 git commit -m "feat(whatsapp): read-only WhatsApp thread card on contact detail"
 ```
 
@@ -843,7 +843,7 @@ Expected: 1 seule ligne par message.
 **Points à confirmer pendant l'exécution (non bloquants, signalés dans les steps) :**
 - Nom exact du helper RLS d'agence (`current_agency_id` vs autre) — Task 1 step 2
 - Colonnes exactes d'`activity_events` (`actor_kind`, `entity_id`) — Task 4 step 2
-- Emplacement de montage de la carte dans `ContactDetailSugarV3Page` — Task 7 step 2
+- Emplacement de montage de la carte dans `ContactDetailPage` — Task 7 step 2
 
 **Décision infra :** migration + edge function déployées d'abord sur une **branche Supabase** (pas prod). Merge sur prod seulement après Task 8 validée.
 

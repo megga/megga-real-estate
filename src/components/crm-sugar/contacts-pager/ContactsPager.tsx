@@ -3,14 +3,14 @@
 //   Page 0 → La liste (sous-nav audience, lignes)                      [en haut]
 //   Page 1 → Santé du portefeuille (agrégats + segments cliquables)   [en bas]
 // Pas de champ de recherche local : la recherche globale est assurée par
-// `openSugarSearch()` (câblé sur `onCmd` dans ContactsSugarV2Page). Ne pas en
+// `openSugarSearch()` (câblé sur `onCmd` dans ContactsPage). Ne pas en
 // réintroduire un ici — ni le handoff Beta v1 ni le port n'en prévoient.
 // Cliquer un segment de la Santé filtre la liste et remonte en page 0.
 // Molette (accumulateur) / flèches + PageUp-Down / swipe / points latéraux.
 // Réf. handoff : `crm-screen-contacts-proto.jsx` (CRMScreenContactsProto).
 //
 // Le chrome (SugarTopNav + SugarIconRail) est monté par la page conteneur
-// (ContactsSugarV2Page) ; ce composant remplit le <main> avec le viewport.
+// (ContactsPage) ; ce composant remplit le <main> avec le viewport.
 
 import EtatVide from '@/components/crm-sugar/EtatVide'
 import {
@@ -698,7 +698,7 @@ export default function ContactsPager({
       if (accTimer.current) clearTimeout(accTimer.current)
       // Seuil du handoff : un geste FRANC (560 accumulés, fenêtre 220 ms) fait
       // tourner la page. Descendre ce seuil rend le pager fébrile au trackpad
-      // et le désaligne de MatchingPagerPage, qui partage la même grammaire.
+      // et le désaligne de MatchingPage, qui partage la même grammaire.
       accTimer.current = setTimeout(() => { acc.current = 0 }, 220)
       if (Math.abs(acc.current) > 560) {
         const dir = acc.current > 0 ? 1 : -1

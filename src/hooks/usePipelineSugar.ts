@@ -1,4 +1,4 @@
-// MEGGA CRM Sugar v2 — Adapter Supabase → CrmDeal[] pour PipelineSugarV2Page.
+// MEGGA CRM Sugar v2 — Adapter Supabase → CrmDeal[] pour PipelinePage.
 // Charge les transactions de l'agence + contacts + KYC + properties + reminders
 // associés, remplit le registry runtime (registerLiveContact/Bien) pour que les
 // lookups `crmContactById` / `crmBienById` de la page renvoient la version Supabase.
@@ -53,7 +53,7 @@ export interface UsePipelineSugarReturn {
 }
 
 /**
- * Adapter Supabase → `CrmDeal[]` de PipelineSugarV2Page : charge transactions +
+ * Adapter Supabase → `CrmDeal[]` de PipelinePage : charge transactions +
  * contacts + KYC acheteur + properties de l'agence, hydrate le registry runtime
  * (registerLive*) et expose des index par id (contacts/biens/KYC) pour les items Focus.
  */

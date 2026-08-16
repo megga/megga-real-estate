@@ -52,7 +52,7 @@ import { emptyRoots, readFileSafely, rel, repoPath, scanRoots, type RootSpec } f
  * Surfaces PORTÉES. Un lot qui nettoie une zone l'ajoute ici, pas avant.
  *
  * ⚠ `crm-sugar-v3/vitrine` est la palette ET le kit de la FICHE bien, dont
- * `BienDetailSugarV4Page` est l'unique consommateur. Le plan de refonte ne la
+ * `ListingDetailPage` est l'unique consommateur. Le plan de refonte ne la
  * listait pas — il rangeait la fiche avec la liste, sur la foi d'un grep qui ne
  * voyait que le fichier de page. Une surface n'est pas un dossier.
  *
@@ -62,35 +62,35 @@ import { emptyRoots, readFileSafely, rel, repoPath, scanRoots, type RootSpec } f
  * mais mieux vaut ne pas poser le piège.
  */
 const PAGES = new Set([
-  'BienDetailSugarV4Page.tsx', 'BiensSugarV2Page.tsx',
-  'ContactDetailSugarV3Page.tsx', 'ContactsSugarV2Page.tsx',
+  'ListingDetailPage.tsx', 'ListingsPage.tsx',
+  'ContactDetailPage.tsx', 'ContactsPage.tsx',
   // Le pager Matching et son conteneur d'atelier — les deux dernières surfaces
   // du périmètre bureau. `MatchingAtelierPage` était déjà propre (0 marqueur) ;
   // l'entrer quand même est ce qui empêche qu'il cesse de l'être.
-  'MatchingPagerPage.tsx', 'MatchingAtelierPage.tsx',
-  // Les trois pages du Pipeline (lot 3, 13 août 2026). `OfferModalSugarV3Page`
+  'MatchingPage.tsx', 'MatchingAtelierPage.tsx',
+  // Les trois pages du Pipeline (lot 3, 13 août 2026). `OfferPage`
   // était déjà propre — 44 lignes qui ne font que monter la modale ; l'entrer
   // quand même est ce qui empêche qu'il cesse de l'être.
-  'PipelineSugarV2Page.tsx', 'DealDetailSugarV4Page.tsx', 'OfferModalSugarV3Page.tsx',
+  'PipelinePage.tsx', 'DealDetailPage.tsx', 'OfferPage.tsx',
   // « Aujourd'hui », la page d'accueil du CRM (lot A1, 15 août 2026). Elle ne
   // porte que le pager et le chrome — les deux pages vivent dans `today/`.
-  'TodaySugarPage.tsx',
+  'TodayPage.tsx',
   // Les trois pages KYC (lot A2). `KycExportPage` et `KycOnboardingPage` sont
   // ROUTÉES — /dashboard/kyc/:id/export et kyc/bienvenue — et le plan du chantier
   // les avait ratées en groupant par DOSSIER : 15 marqueurs invisibles.
-  'KycSugarV3Page.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
-  'VisitModalSugarV3Page.tsx', 'VisitDetailSugarV3Page.tsx', 'DashboardSugarV4Page.tsx',
-  'ImportLeadSugarV3Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
-  'SettingsSugarV2Page.tsx', 'CalendarSugarV2Page.tsx',
+  'KycPage.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
+  'VisitNewPage.tsx', 'VisitDetailPage.tsx', 'AnalyticsPage.tsx',
+  'ImportLeadPage.tsx', 'JourneyPage.tsx', 'AuditPage.tsx',
+  'SettingsPage.tsx', 'CalendarPage.tsx',
   'ListingFormPage.tsx',
   // Lot 5 (15 août 2026) — les pages réputées PROPRES entrent enfin. Un cliquet
   // ne sert pas qu'à constater : il empêche qu'une surface cesse de l'être.
-  // ⚠ `IdentitySugarPage` (14 lignes) et `AuthCallbackPage` ne peignent RIEN ;
-  // `WizardSugarV2Page` et `KycReportRenderPage` sont en styles en ligne, donc
+  // ⚠ `IdentityPage` (14 lignes) et `AuthCallbackPage` ne peignent RIEN ;
+  // `ListingWizardPage` et `KycReportRenderPage` sont en styles en ligne, donc
   // pleinement vues ; les autres sont en CLASSES et ne sont mesurées que sur la
   // casse, la graisse et l'interlettrage — voir l'inventaire de cécité plus bas.
-  'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentitySugarPage.tsx',
-  'OnboardingCallPage.tsx', 'WizardSugarV2Page.tsx',
+  'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentityPage.tsx',
+  'OnboardingCallPage.tsx', 'ListingWizardPage.tsx',
 ])
 
 /**
@@ -107,24 +107,24 @@ const PAGES = new Set([
  * `PAGES`. Même idiome que la liste des racines acquises.
  */
 const PAGES_ACQUISES = [
-  'BienDetailSugarV4Page.tsx', 'BiensSugarV2Page.tsx',
-  'ContactDetailSugarV3Page.tsx', 'ContactsSugarV2Page.tsx',
-  'MatchingPagerPage.tsx', 'MatchingAtelierPage.tsx',
-  'PipelineSugarV2Page.tsx', 'DealDetailSugarV4Page.tsx', 'OfferModalSugarV3Page.tsx',
-  'TodaySugarPage.tsx',
-  'KycSugarV3Page.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
-  'VisitModalSugarV3Page.tsx', 'VisitDetailSugarV3Page.tsx', 'DashboardSugarV4Page.tsx',
-  'ImportLeadSugarV3Page.tsx', 'JourneySugarV2Page.tsx', 'AuditSugarPage.tsx',
-  'SettingsSugarV2Page.tsx', 'CalendarSugarV2Page.tsx',
+  'ListingDetailPage.tsx', 'ListingsPage.tsx',
+  'ContactDetailPage.tsx', 'ContactsPage.tsx',
+  'MatchingPage.tsx', 'MatchingAtelierPage.tsx',
+  'PipelinePage.tsx', 'DealDetailPage.tsx', 'OfferPage.tsx',
+  'TodayPage.tsx',
+  'KycPage.tsx', 'KycOnboardingPage.tsx', 'KycExportPage.tsx',
+  'VisitNewPage.tsx', 'VisitDetailPage.tsx', 'AnalyticsPage.tsx',
+  'ImportLeadPage.tsx', 'JourneyPage.tsx', 'AuditPage.tsx',
+  'SettingsPage.tsx', 'CalendarPage.tsx',
   'ListingFormPage.tsx',
   // Lot 5 (15 août 2026) — les pages réputées PROPRES entrent enfin. Un cliquet
   // ne sert pas qu'à constater : il empêche qu'une surface cesse de l'être.
-  // ⚠ `IdentitySugarPage` (14 lignes) et `AuthCallbackPage` ne peignent RIEN ;
-  // `WizardSugarV2Page` et `KycReportRenderPage` sont en styles en ligne, donc
+  // ⚠ `IdentityPage` (14 lignes) et `AuthCallbackPage` ne peignent RIEN ;
+  // `ListingWizardPage` et `KycReportRenderPage` sont en styles en ligne, donc
   // pleinement vues ; les autres sont en CLASSES et ne sont mesurées que sur la
   // casse, la graisse et l'interlettrage — voir l'inventaire de cécité plus bas.
-  'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentitySugarPage.tsx',
-  'OnboardingCallPage.tsx', 'WizardSugarV2Page.tsx',
+  'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentityPage.tsx',
+  'OnboardingCallPage.tsx', 'ListingWizardPage.tsx',
 ]
 
 /**
@@ -246,7 +246,7 @@ const ZONES: RootSpec[] = [
   //
   // ⚠ Analytics vit dans `analytics/`, PAS dans `dashboard/` : son nom de route
   // (/dashboard/analytics) et son nom de dossier ne coïncident pas, et sa page
-  // s'appelle `DashboardSugarV4Page`. Troisième fois que le nom d'une surface ne
+  // s'appelle `AnalyticsPage`. Troisième fois que le nom d'une surface ne
   // dit pas où elle est rangée.
   { root: 'src/components/crm-sugar-v3/visite-detail', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-sugar-v3/audit', keep: (n) => /\.tsx?$/.test(n) },
@@ -326,7 +326,7 @@ const ZONES: RootSpec[] = [
     // ⚠ `primitives.tsx` entre au lot A0 (15 août 2026) — il est le socle des
     // quatre surfaces de la vague A (KYC, Visites, Audit, Import lead), pas du
     // chrome : mesuré, les 27 écrans du CRM ne le montent PAS, et
-    // `BienDetailSugarV4Page`, la seule surface portée qui touche à ce dossier,
+    // `ListingDetailPage`, la seule surface portée qui touche à ce dossier,
     // ne lui prend rien.
     //
     // ⛔ `tokens.ts` ENTRE au lot 2 du chantier KYC (16 août 2026), et la
@@ -494,7 +494,7 @@ const ZONES: RootSpec[] = [
   // sortir maintenant ferait de « c'est gelé » un motif d'exemption — le même
   // glissement que « c'est vert » en serait un. Ils sont entrés PROPRES, et une
   // zone propre reste au cliquet précisément pour qu'elle le demeure : c'est
-  // l'argument déjà écrit pour `MatchingAtelierPage` et `OfferModalSugarV3Page`.
+  // l'argument déjà écrit pour `MatchingAtelierPage` et `OfferPage`.
   // Les quatre exemptés, eux, le sont parce qu'ils SÈMENT un état (session,
   // intercepteur de fetch) — c'est ce qui les rend inexerçables, pas leur
   // absence du bundle.
@@ -1064,7 +1064,7 @@ const GRIS_BLEU_ASSUMES = new Map<string, number>([
   ['src/components/crm-sugar/contacts-pager/ContactDetailPager.tsx', 1],
   ['src/components/crm-sugar/contacts-pager/ContactsPager.tsx', 4],
   ['src/components/crm-sugar/contacts-pager/NewContactModal.tsx', 5],
-  ['src/pages/agent/BienDetailSugarV4Page.tsx', 4],
+  ['src/pages/agent/ListingDetailPage.tsx', 4],
 ])
 
 // ⚠ `today/data.ts` (lot A1) et `analytics/tokens.ts` (lot A4) en sont SORTIS

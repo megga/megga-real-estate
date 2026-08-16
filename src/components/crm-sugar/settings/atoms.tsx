@@ -767,7 +767,7 @@ export function Toast({ open, label }: ToastProps) {
 
 
 // ─── Keyframes partagées de l'écran Settings ────────────────────────────────
-// Montées une fois par la page racine (SettingsSugarV2Page). Si une section est
+// Montées une fois par la page racine (SettingsPage). Si une section est
 // rendue isolément (test, story), inclure ce bloc sinon les `animation:` muettes.
 export const SETTINGS_KEYFRAMES = `
 @keyframes setFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }

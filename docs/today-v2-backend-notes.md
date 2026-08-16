@@ -262,7 +262,7 @@ une session interrompue est perdue : les seules traces sont `ai-copilot`,
 ## 5 · Dette front laissée en l'état, à trancher
 
 1. ~~Cinq CTA sans cible.~~ **Résolu au Lot 0** : `TodayNav.navigate(id, ref)`
-   transporte l'identifiant réel, `TodaySugarPage` route
+   transporte l'identifiant réel, `TodayPage` route
    `contact-detail`/`deal-detail`/`visite-detail`/`biens-detail`, et un CTA sans
    référence ouvre la LISTE au lieu de ne rien faire.
 2. **Seuil de molette du pager : 560 (maquette) vs 36 (code), timer 220 ms vs

@@ -113,15 +113,15 @@ par COPIE :
 
 ### Les 14 pages PROPRES mais NON GARDÉES
 
-`IdentitySugarPage`, `IdentityMobileNotice`, `OnboardingCallPage`,
-`WizardSugarV2Page`, `ExternalListingDetailPage`, `KycPublicPage`,
+`IdentityPage`, `IdentityMobileNotice`, `OnboardingCallPage`,
+`ListingWizardPage`, `ExternalListingDetailPage`, `KycPublicPage`,
 `VisitManagePage`, `VisitFeedbackPage`, `OnboardingCallManagePage`,
 `AuthCallbackPage`, `ResetPasswordPage`, `KycReportRenderPage`, `PrivacyPage`,
 `NotFoundPage`.
 
 ⚠ Elles rendent 0 marqueur **aujourd'hui**. Les entrer au cliquet est ce qui
 empêche qu'elles cessent de l'être — c'est l'argument déjà écrit dans le cliquet
-pour `MatchingAtelierPage` et `OfferModalSugarV3Page`. Bon marché, à faire en
+pour `MatchingAtelierPage` et `OfferPage`. Bon marché, à faire en
 dernier, quand elles ne bougeront plus.
 
 ---

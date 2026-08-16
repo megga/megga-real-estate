@@ -2,7 +2,7 @@
  * Chrome de la console super-admin (`/dashboard/admin`), en grammaire MEGGA X.
  *
  * Porté sur la coquille de l'écran Paramètres du CRM
- * (`SettingsSugarV2Page`) : le contenu ne court plus bord à bord, il vit dans le
+ * (`SettingsPage`) : le contenu ne court plus bord à bord, il vit dans le
  * PAGER — un cadre flottant de rayon 26 séparé du fond par l'ombre — avec le
  * rail de navigation de 300 px À L'INTÉRIEUR du cadre, et la page active dans le
  * bento de droite.

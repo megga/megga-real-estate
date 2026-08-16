@@ -1,6 +1,6 @@
 // MEGGA CRM — Dashboard Analytics « Le Cockpit Commission ».
 // Jetons AX/AX_DARK, formatters CHF, modèle de données des 3 périodes, helper
-// d'objectif. Route /dashboard/analytics → DashboardSugarV4Page → AxDashboard.
+// d'objectif. Route /dashboard/analytics → AnalyticsPage → AxDashboard.
 //
 // ⛔ DIRECTION : MEGGA X, dans les DEUX thèmes (17 août 2026).
 // L'en-tête annonçait jusqu'ici « Grammaire Sugar Pure : surfaces blanches,

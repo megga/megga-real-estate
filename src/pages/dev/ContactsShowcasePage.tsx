@@ -12,7 +12,7 @@
  * ⚠ Aucun échafaudage n'entre dans le code de production. `ContactsPager` et
  * `ContactDetailPager` sont purement présentationnels (le conteneur porte les
  * requêtes et les callbacks), donc ce harnais les alimente directement : ni
- * `ContactsSugarV2Page` ni `ContactDetailSugarV3Page` n'ont besoin d'une prop de
+ * `ContactsPage` ni `ContactDetailPage` n'ont besoin d'une prop de
  * démonstration.
  *
  * ⚠ Le harnais lit `megga.sugar.dark` ('1' / '0', **pas** 'true'), la clé que
@@ -64,7 +64,7 @@ const NOOP_ASYNC = async () => {}
 const REFUS = async () => { throw new Error('écriture refusée (banc d’essai)') }
 
 export default function ContactsShowcasePage() {
-  // ⚠ Même amorçage que `ContactsSugarV2Page`. Le CRM porte DEUX clés de thème
+  // ⚠ Même amorçage que `ContactsPage`. Le CRM porte DEUX clés de thème
   // sans lien — `megga-theme` (lue par `useTheme`) et `megga.sugar.dark` (lue
   // par les surfaces Sugar, basculée par leur rail). C'est la seconde qui
   // décide ici, comme en production.

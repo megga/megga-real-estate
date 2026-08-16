@@ -135,7 +135,7 @@ const ZONES = [
   'src/components/crm-sugar-v3/kyc-wizard',
 ]
 const FICHIERS = [
-  'src/pages/agent/KycSugarV3Page.tsx',
+  'src/pages/agent/KycPage.tsx',
   ...ZONES.flatMap((z) => readdirSync(z).filter((n) => /\.tsx?$/.test(n)).map((n) => `${z}/${n}`)),
 ]
 const sansCommentaires = (c: string) =>

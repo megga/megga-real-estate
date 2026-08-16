@@ -39,12 +39,12 @@ import { mxSurfaces } from '@/components/crm-sugar/biens/gallery/galHelpers'
 import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from '@/components/crm-sugar/SugarShell'
 import { BiensPager } from '@/components/crm-sugar/biens/pager/BiensPager'
 import WizardShell from '@/components/crm-sugar-wizard/WizardShell'
-import BienDetailSugarV4Page from '@/pages/agent/BienDetailSugarV4Page'
+import ListingDetailPage from '@/pages/agent/ListingDetailPage'
 import { DEMO_LISTING } from './demoFixtures'
 import { ThemeProvider } from '@/hooks/useTheme'
 
 export default function BiensShowcasePage() {
-  // ⚠ Même amorçage que `BiensSugarV2Page` : le CRM porte DEUX clés de thème
+  // ⚠ Même amorçage que `ListingsPage` : le CRM porte DEUX clés de thème
   // sans lien — `megga-theme` (lue par `useTheme`, donc par `data-theme`) et
   // `megga.sugar.dark` (lue par les surfaces Sugar, basculée par leur rail).
   // Un harnais qui démarre en dur sur `false` rend donc les bentos CLAIRS dans
@@ -114,7 +114,7 @@ export default function BiensShowcasePage() {
           affichait DEUX barres l'une sous l'autre. Elle remplace donc tout, et
           le harnais ne garde que sa pastille et son sélecteur. */}
       {surface === 'fiche' ? (
-        <BienDetailSugarV4Page demoData={DEMO_LISTING} />
+        <ListingDetailPage demoData={DEMO_LISTING} />
       ) : (
         <>
           <SugarTopNav active="biens" sp={sp} onNavigate={onNavigate} dark={dark} />

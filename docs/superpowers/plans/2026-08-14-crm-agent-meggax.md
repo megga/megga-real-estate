@@ -85,7 +85,7 @@ chantier, c'est une série. Le §4 le découpe en surfaces livrables séparémen
 # ce que le cliquet déclare porté
 grep -oE "root: '[^']+'" tests/unit/megga-x-grammar.spec.ts | sort -u
 # la route d'une page, sans passer par une description
-grep -n "<TodaySugarPage" src/App.tsx
+grep -n "<TodayPage" src/App.tsx
 ```
 
 ⚠ **Les routes passent par `ResponsiveRoute` (desktop/mobile) et par `ByParam`.**
@@ -242,7 +242,7 @@ Par ordre de poids décroissant, chacune livrable seule :
    ⚠ Surface de CONFORMITÉ : ne rien changer à ce qui est dit, seulement à la
    façon dont c'est composé.
 3. **Visites** — 105 sur 3 fichiers seulement, donc la plus DENSE (1 marqueur
-   toutes les 22 lignes). `VisitModalSugarV3Page` est une modale : elle relève du
+   toutes les 22 lignes). `VisitNewPage` est une modale : elle relève du
    piège de modale, et `/dev/modales` existe déjà pour l'accueillir.
 4. **Analytics** — 82. ⚠ Contient des graphiques : la sonde de rendu y trouvera
    du texte sur aplat coloré, et le piège (g) — texte sur image/dégradé, fond non

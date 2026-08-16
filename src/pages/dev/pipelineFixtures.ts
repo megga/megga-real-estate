@@ -1,7 +1,7 @@
 /**
  * Fixtures du banc `/dev/pipeline` — voir `PipelineShowcasePage`.
  *
- * POURQUOI CE FICHIER EXISTE. `PipelineSugarV2Page` tire toutes ses données
+ * POURQUOI CE FICHIER EXISTE. `PipelinePage` tire toutes ses données
  * d'`usePipelineSugar()`, gaté sur la session (`profile.agency_id`). Sans banc,
  * les trois vues, les neuf colonnes, les modales et les états d'exception ne
  * sont regardables NULLE PART — et `ProtectedRoute` renvoie sur la production,
@@ -130,7 +130,7 @@ export const PIPELINE_DEAL_PERDU = 'dv-11'
 export const PIPELINE_STAGE_INLINE: StageId = 'to-qualify'
 
 // ═══════════════════════════════════════════════════════════════════════
-// FICHE DEAL — `DealDetailSugarV4Page`
+// FICHE DEAL — `DealDetailPage`
 //
 // ⚠ Vue-modèle, pas des lignes de base : la page lit une projection étroite de
 // cinq types DB. Voir `DealDetailBanc` pour le pourquoi.

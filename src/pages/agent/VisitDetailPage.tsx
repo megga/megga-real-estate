@@ -1,4 +1,4 @@
-// MEGGA CRM Sprint 2 — Fiche Visite Sugar Pure (desktop)
+// MEGGA CRM — Fiche Visite (desktop)
 // Port pixel-près de crm-screen-visite-sugar.jsx (handoff Sprint 2).
 //
 // Layout :
@@ -41,7 +41,7 @@ function vdDateLong(iso: string): string {
   })
 }
 
-export default function VisitDetailSugarV3Page() {
+export default function VisitDetailPage() {
   const { t } = useTranslation('calendar')
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()

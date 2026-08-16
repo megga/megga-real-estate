@@ -1,5 +1,5 @@
 // Mode sombre des pages Sugar — même clé localStorage que le reste du CRM
-// (KycSugarV3Page, ContactDetailSugarV3Page…) : l'atelier SUIT le thème
+// (KycPage, ContactDetailPage…) : l'atelier SUIT le thème
 // global, il n'a pas de toggle propre.
 
 import { useEffect, useState } from 'react'

@@ -381,7 +381,7 @@ describe('Contraste Analytics — un objet de jetons que sept specs ont laissé 
    * vérité — en silence, comme `sugar-v3-contraste` avant sa clause mono-thème.
    */
   it('la page ne monte que les deux thèmes mesurés ici', () => {
-    const page = sansCommentaires(readFileSync(repoPath('src/pages/agent/DashboardSugarV4Page.tsx'), 'utf-8'))
+    const page = sansCommentaires(readFileSync(repoPath('src/pages/agent/AnalyticsPage.tsx'), 'utf-8'))
     const montages = [...page.matchAll(/AXCtx\.Provider\s+value=\{(\w+)\}/g)].map((m) => m[1]!)
     expect(montages, 'aucun provider trouvé : la clause ne mesure rien').toHaveLength(1)
     const decl = new RegExp(`const\\s+${montages[0]}\\s*=\\s*([^\\n]+)`).exec(page)?.[1] ?? ''

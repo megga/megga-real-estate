@@ -42,11 +42,11 @@ périmètre-ci est dérivé de `src/App.tsx`.
 
 ```
 /dashboard/pipeline            → ResponsiveRoute
-                                   desktop = PipelineSugarV2Page      (767 l.)
+                                   desktop = PipelinePage      (767 l.)
                                    mobile  = MobilePipelinePage       ✅ DÉJÀ PORTÉ
-/dashboard/transactions/:id    → desktop = DealDetailSugarV4Page      (673 l.)
+/dashboard/transactions/:id    → desktop = DealDetailPage      (673 l.)
                                    mobile  = MobileDealDetailPage     ✅ DÉJÀ PORTÉ
-/dashboard/transactions/:id/offre/:kind → OfferModalSugarV3Page (43 l.)
+/dashboard/transactions/:id/offre/:kind → OfferPage (43 l.)
                                             → crm-sugar-v3/offer-modal (909 l.)
 ```
 
@@ -74,8 +74,8 @@ vu. Mais la mesure sépare nettement deux populations :
 | | `sp.` | `sp.accent` | hex distincts |
 |---|---|---|---|
 | `crm-sugar/pipeline/` (colonnes, cartes, modales) | **139** | **20** | — |
-| `PipelineSugarV2Page` | lit `crmSugarPalette` | 0 | **1** (`#0B0C0E`) |
-| `DealDetailSugarV4Page` | lit `crmSugarPalette` | 0 | **15** |
+| `PipelinePage` | lit `crmSugarPalette` | 0 | **1** (`#0B0C0E`) |
+| `DealDetailPage` | lit `crmSugarPalette` | 0 | **15** |
 
 Les **composants** sont portés. Les **pages** délèguent la palette mais peignent
 encore à la main par-dessus — c'est exactement le constat d'ouverture de
@@ -115,8 +115,8 @@ encore une police en dur. Six appartiennent à cette chaîne :
 
 ```
 crm-sugar/pipeline/LostConfirmModal.tsx      crm-sugar-v3/offer-modal/OfferModalSugar.tsx
-crm-sugar/pipeline/NewDealModal.tsx          pages/agent/DealDetailSugarV4Page.tsx
-crm-sugar/pipeline/SignedBento.tsx           pages/agent/PipelineSugarV2Page.tsx
+crm-sugar/pipeline/NewDealModal.tsx          pages/agent/DealDetailPage.tsx
+crm-sugar/pipeline/SignedBento.tsx           pages/agent/PipelinePage.tsx
 ```
 
 ⚠ Le test refuse toute entrée devenue morte : les sortir de la liste **fait
@@ -241,7 +241,7 @@ interdisent déjà ailleurs.
 
 ### Lot 3 — Les deux pages (97 marqueurs)
 
-`DealDetailSugarV4Page` (63) puis `PipelineSugarV2Page` (34). Dette
+`DealDetailPage` (63) puis `PipelinePage` (34). Dette
 majoritairement de **taille** (51) — l'inverse du dossier de composants.
 
 ### Lot 4 — `crm-sugar/pipeline` (94 marqueurs)

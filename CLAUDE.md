@@ -251,7 +251,7 @@ d'écran n'est restée sur Graphite).
   - **barre segmentée, encore** quand l'étape est une DONNÉE et non une position
     dans un formulaire. ⛔ **CE POINT DISAIT « `dealStepper`, 8 CERCLES » : IL N'Y A
     AUCUN CERCLE.** Mesuré le 16 août 2026 sur les deux seuls consommateurs —
-    `DealDetailSugarV4Page:100` et `MobileDealDetailScreen:179` rendent tous deux
+    `DealDetailPage:100` et `MobileDealDetailScreen:179` rendent tous deux
     `CRM_STAGE_ORDER.map(...)` en `flex: 1, height: 4` : une **barre de 8 segments**,
     la même forme que `WizardShell`. Le « 8 » était juste (8 colonnes UI pour 14
     stades DB), la forme non.
@@ -263,7 +263,7 @@ d'écran n'est restée sur Graphite).
     (alias `SgStepper`, [primitives.tsx:341](src/components/crm-sugar-v3/primitives.tsx))
     rend des pastilles de 32 px reliées par un trait de 2 px, portant `✓` si l'étape
     est faite et **son rang sinon**. Unique consommateur hors primitives :
-    `ImportLeadSugarV3Page:302`.
+    `ImportLeadPage:302`.
   ⚠ **Pas de numéro de rang** : trois étapes alignées SONT 1, 2, 3, et l'accent dit
   déjà laquelle est courante. Ce qui reste marqué est ce que la position ne dit
   pas — « fait », par une coche. La règle annonçait **deux** exceptions ; il y en a

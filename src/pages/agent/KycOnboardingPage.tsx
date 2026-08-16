@@ -3,7 +3,7 @@
 // écran avec la cover PNG (lockup KYC aplati) + sur-impression CTA. Monté dans la
 // chrome CRM (SugarTopNav + SugarIconRail). Route : /dashboard/kyc/bienvenue.
 //
-// Gating (empty-state) : posé par la page hôte (KycSugarV3Page) — flag
+// Gating (empty-state) : posé par la page hôte (KycPage) — flag
 // localStorage `megga.kyc.onboarded` + 0 dossier. Les CTA posent le flag puis
 // naviguent vers le pager (avec un state `openWizard` pour ouvrir le wizard).
 

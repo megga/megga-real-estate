@@ -1,4 +1,4 @@
-// MEGGA CRM Sugar v3 — Journal d'audit nLPD
+// MEGGA CRM — Journal d'audit nLPD
 // Port 1:1 de crm-screen-audit-sugar.jsx (CRMScreenAuditSugar lignes 271-483).
 //
 // Conformité : nLPD art. 12 + LBA art. 7 — append-only, conservation 10 ans.
@@ -36,10 +36,10 @@ import { downloadAuditCsv } from '@/lib/auditCsvExport'
 import { downloadAuditPdf } from '@/lib/auditPdfExport'
 import type { AuditCategory, AuditSeverity, AuditEvent } from '@/types/kyc'
 
-export default function AuditSugarPage() {
+export default function AuditPage() {
   /**
    * ⛔ CETTE PAGE N'A PAS DE VARIANTE MOBILE, contrairement au KYC et au wizard :
-   * sa route est `<Route path="audit" element={<AuditSugarPage />} />`, sans
+   * sa route est `<Route path="audit" element={<AuditPage />} />`, sans
    * `ResponsiveRoute`. Elle rend donc TELLE QUELLE à 375 px, et ses trois
    * collapses étaient portés par `responsive.css` — une feuille chargée sur
    * TOUTES les pages de l'app pour trois règles utiles ici.

@@ -1,4 +1,4 @@
-// MEGGA CRM Sugar v3 — Page KYC (pager 2 pages + fiche stricte + onboarding)
+// MEGGA CRM — Page KYC (pager 2 pages + fiche stricte + onboarding)
 // Refonte « nouveau KYC » (handoff KYC.zip) : l'écran KYC devient un PAGER à
 // deux pages verticales (Dossiers · Vigie) dans un cadre bento, avec la fiche en
 // overlay et le wizard embedded. La donnée reste Supabase LIVE.
@@ -32,7 +32,7 @@ import { kypSurf, KYP_KEYFRAMES } from '@/components/crm-sugar-v3/kyc-pager/kypT
 import { isKycOnboarded, markKycOnboarded } from '@/lib/kycOnboarding'
 import { useKycDossiers, useKycDossierByContact } from '@/hooks/useKycDossier'
 
-export default function KycSugarV3Page() {
+export default function KycPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { dossierId: routeDossierId } = useParams<{ dossierId?: string }>()

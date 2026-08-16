@@ -102,7 +102,7 @@ function TodayScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: num
   )
 }
 
-export default function TodaySugarPage() {
+export default function TodayPage() {
   const navigate = useNavigate()
 
   // ─── Theme: dark/light, tied to the icon-rail toggle ─────────────────

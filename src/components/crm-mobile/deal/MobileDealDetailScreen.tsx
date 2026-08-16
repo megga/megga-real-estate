@@ -63,7 +63,7 @@ function fullState(mono: string, font: string): CSSProperties {
  * Hero (parties + valeur + stage), stepper 8 étapes **read-only**, bannière KYC
  * **informative non-bloquante**, cartes Acheteur/Bien, négociation (chaîne
  * d'offres `useOfferChain` + accepter/refuser via `useUpdateOfferStatus`, création
- * via la route `/offre/:kind` = `OfferModalSugarV3Page`), notes privées
+ * via la route `/offre/:kind` = `OfferPage`), notes privées
  * (`useUpdateTransactionNotes`), timeline + documents **dérivés** (comme le
  * desktop). `demoData` injecte un jeu de démo pour le harnais ; en prod, hooks.
  */

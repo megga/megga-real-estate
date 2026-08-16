@@ -38,7 +38,7 @@ import { useContactNextAction } from '@/hooks/useContactNextAction'
 import { useContactConsent, useSetDoNotContact, useSendOptinInvite } from '@/hooks/useContactConsent'
 import { nbaToI18n } from '@/lib/contactNba'
 
-export default function ContactDetailSugarV3Page() {
+export default function ContactDetailPage() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()

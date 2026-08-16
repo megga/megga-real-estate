@@ -1,4 +1,4 @@
-// MEGGA CRM — Fiche bien « Sugar Pure » V4 (mono-page dans le bento)
+// MEGGA CRM — Fiche bien (mono-page dans le bento)
 // ─────────────────────────────────────────────────────────────────────────
 // RE-LAYOUT du handoff Claude Design (crm-screen-bien-fiche.jsx) posé sur le
 // MÊME câblage réel que la V3 (BienDetailSugarV3Page). Ce n'est PAS un nouveau
@@ -441,7 +441,7 @@ interface BienDetailProps {
   demoData?: Property
 }
 
-export default function BienDetailSugarV4Page({ demoData }: BienDetailProps = {}) {
+export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   const { id: idRoute } = useParams<{ id: string }>()
   const id = demoData ? undefined : idRoute
   const navigate = useNavigate()

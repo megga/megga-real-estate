@@ -27,7 +27,7 @@ Le chrome Sugar (`SugarTopNav` + `SugarIconRail` 128px) **n'est pas dans le layo
 
 ### Masquage du chrome desktop dans les pages
 
-Le chrome desktop est rendu **dans chaque page** (ex. `TodaySugarPage` L325). Pour ne pas l'afficher sur mobile **sans dupliquer la page**, deux options possibles :
+Le chrome desktop est rendu **dans chaque page** (ex. `TodayPage` L325). Pour ne pas l'afficher sur mobile **sans dupliquer la page**, deux options possibles :
 - **(retenu)** Le mobile vit dans des **fichiers `*MobilePage.tsx` séparés** → `ResponsiveRoute` rend l'un OU l'autre. Le fichier desktop n'est jamais modifié, donc aucun risque de toucher un pixel desktop. Pas besoin d'early-return dans les pages desktop.
 - (rejeté) Early-return conditionnel `if (isMobile) return null` autour des `<SugarTopNav/>` dans ~12 pages : plus invasif, touche les fichiers desktop.
 
@@ -212,7 +212,7 @@ La revue adversariale a trouvé 2 blocages d'archi/compliance réels (lignes con
 **Décision retenue : rendre `AgentLayout` mobile-aware** (et NON déplacer des routes — déplacer stripperait la nav desktop des pages legacy `ListingFormPage`/`ExternalListingDetailPage`). Dans `AgentLayoutInner`, `const isMobile = useIsMobile()` ; si `isMobile`, retourner uniquement `<>{ImpersonateBanner}<main>{Outlet}</main></>` — **pas** de Sidebar, **pas** de header `md:hidden`, **pas** de Breadcrumb, **pas** de `BottomTabBar`. La page mobile (via `ResponsiveRoute`) fournit son propre `MobileShell`. **Desktop ≥768 strictement inchangé** (neutralisation gatée sur `isMobile`).
 - `AgentSugarLayout` reste tel quel (déjà sans chrome) — rien à neutraliser.
 - **Note admin** : `admin/*` étant aussi sous `AgentLayout`, un super-admin sur mobile perdra la tab bar legacy. **Accepté** (admin = outil desktop super-admin, hors cible mobile V1). À documenter, pas un blocage.
-- **Bonus desktop** : `ContactDetailSugarV3Page` rend déjà son propre `SugarTopNav` tout en étant sous `AgentLayout` (Sidebar) → double chrome **desktop existant aujourd'hui**. Hors scope strict, mais à signaler dans la réconciliation desktop.
+- **Bonus desktop** : `ContactDetailPage` rend déjà son propre `SugarTopNav` tout en étant sous `AgentLayout` (Sidebar) → double chrome **desktop existant aujourd'hui**. Hors scope strict, mais à signaler dans la réconciliation desktop.
 
 ### 9.2 BLOQUANT — le garde-fou i18n ne couvre PAS `crm-mobile/**`
 **Fait** : `eslint.config.js` `lockedFamilies` verrouille `crm-sugar/**`, `crm-sugar-v3/**`, `crm-sugar-wizard/**`, `matching-atelier/**`, `ai-copilot/**`, `kyc-report/**`, `pages/agent/**` — **pas** `src/components/crm-mobile/**` (où vivra ~tout le code mobile). Le risque #1 du §8 (« une chaîne FR casse la CI ») est donc **FAUX en l'état** : les écrans mobiles échapperaient silencieusement au `no-literal-string`.

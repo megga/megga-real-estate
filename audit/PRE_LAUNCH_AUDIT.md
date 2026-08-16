@@ -194,7 +194,7 @@ d'uploads par lien), `extract-property-pdf` (OK).
 | **P6** | FAIBLE | Un seul Error Boundary racine ; pas d'`onError` global React Query. | `src/App.tsx:618-622,209-224` |
 | **P7** | INFO | Memoization quasi nulle (3 `memo`). | pages CRM |
 | **P8** | MOYEN | **N+1 sériel + `count:'exact'` en boucle** : par règle d'automation, 3 requêtes `await` séquentielles dont 2 `count:'exact'` sur `reminders` ; relancé à chaque mutation via invalidation `['automation-rules']`. | `useReminders.ts:358-384` |
-| **P9** | MOYEN | **`memo` du Kanban défait** : `SugarDealCard` (memo + comparateur sur `onClick`/`onDragStart`) reçoit des **handlers inline recréés** → jamais skippé ; `SugarStageColumn` non mémoïsé → tout le board recompute à chaque survol pendant le drag. | `SugarStageColumn.tsx:118-129` ; `PipelineSugarV2Page.tsx:138,449-463` |
+| **P9** | MOYEN | **`memo` du Kanban défait** : `SugarDealCard` (memo + comparateur sur `onClick`/`onDragStart`) reçoit des **handlers inline recréés** → jamais skippé ; `SugarStageColumn` non mémoïsé → tout le board recompute à chaque survol pendant le drag. | `SugarStageColumn.tsx:118-129` ; `PipelinePage.tsx:138,449-463` |
 | **P10** | MOYEN | **Invalidations larges** : `updateProperty` invalide `['agency-properties']`/`['agency-listings']`/`['listings']` (listes entières `select('*')`) à chaque édition → refetch massif. Modèle ciblé à généraliser (`useKyc`/`useOffers` invalidant par id = bon). | `useProperties.ts:187-190` |
 
 **Confirmés OK** : Realtime `useId()` 5/5 channels, `.in()` jamais sur `market_listings`, états
@@ -222,12 +222,12 @@ loading/empty/error présents, code-splitting agressif (101 `lazy()`), cascades 
 
 | ID | Gravité | Bug | Emplacement |
 |----|---------|-----|-------------|
-| **B1** | ÉLEVÉ (compliance) | Piste d'audit faussée : `logAudit.mutate('Étape changée')` émis **inconditionnellement** après `applyDrop`, même si la mutation de stade échoue (overlay reverté) → `activity_event` trace un déplacement annulé ; en succès, **double log** possible (client + trigger DB `trg_transaction_lifecycle`). | `PipelineSugarV2Page.tsx:147-157` |
+| **B1** | ÉLEVÉ (compliance) | Piste d'audit faussée : `logAudit.mutate('Étape changée')` émis **inconditionnellement** après `applyDrop`, même si la mutation de stade échoue (overlay reverté) → `activity_event` trace un déplacement annulé ; en succès, **double log** possible (client + trigger DB `trg_transaction_lifecycle`). | `PipelinePage.tsx:147-157` |
 | **B2** | ÉLEVÉ (données) | Ordre des photos corrompu : `uploadPendingPhotos` renvoie `[...existingUrls, ...newUrls]` → l'ordre inter-classé arrangé au drag-drop (dnd-kit) est **perdu** à la sauvegarde (photo hero / galerie ≠ UI). | `ListingFormPage.tsx:2481-2486,1276-1304` |
 | **B3** | MOYEN | Deal dupliqué : lookup `from('transactions')` **sans capture d'`error`** → sur erreur, `existing=null` → crée un **nouveau deal** alors qu'un actif existe peut-être. | `useAtelierMatching.ts:475-483` |
 | **B4** | MOYEN | Écriture multi-étapes **sans transaction/rollback** : `execSendDossier` met le match à `sent` puis crée deal/timeline/reminder ; échec ultérieur → match `sent` orphelin, état non ré-entrant. | `useAtelierMatching.ts:467-539` |
 | **B5** | MOYEN (compliance) | Échecs **silencieux** sur écritures LBA : `handleMarkVerified`/`confirmMarkAll` sans `onError` → l'agent croit avoir validé un contrôle (attestation LBA art. 9) alors que l'écriture a échoué. | `KycDossierDetail.tsx:240,265-268` |
-| **B6** | FAIBLE-MOYEN (UX) | Course overlay optimiste : `onSettled` retire `pendingStage` avant que le refetch async n'ait rendu `liveDeals` → la carte **flashe** dans l'ancienne colonne puis re-avance. | `PipelineSugarV2Page.tsx:124-131` ; `useTransactions.ts:162-165` |
+| **B6** | FAIBLE-MOYEN (UX) | Course overlay optimiste : `onSettled` retire `pendingStage` avant que le refetch async n'ait rendu `liveDeals` → la carte **flashe** dans l'ancienne colonne puis re-avance. | `PipelinePage.tsx:124-131` ; `useTransactions.ts:162-165` |
 | **B7** | FAIBLE-MOYEN | Contact orphelin : `createContact` réussit puis `createTransaction` échoue → contact créé sans rollback/cleanup ; retry recrée un contact. | `NewDealDrawer.tsx:203-241` |
 | **B8** | FAIBLE | Fuite mémoire : `URL.createObjectURL(pendingFiles[0])` **inline dans le render**, jamais `revokeObjectURL` → un blob URL par render. | `ListingFormPage.tsx:3020` |
 | **B9** | FAIBLE (latent) | `value ?? min` ne protège pas contre `NaN` (`NaN ?? min === NaN`) → stepper figé / `"NaN"` affiché / persisté. Pas de chemin d'entrée NaN actuel. | `ListingFormPage.tsx:398,403,424` |

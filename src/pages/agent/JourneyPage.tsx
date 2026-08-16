@@ -1,4 +1,4 @@
-// MEGGA CRM Sugar v2 — Parcours équipe (Tier 3.h)
+// MEGGA CRM — Parcours équipe (Tier 3.h)
 // 1:1 port from the Claude Design bundle (`crm-screen-parcours-sugar.jsx`).
 
 import { useEffect, useMemo, useState } from 'react'
@@ -16,7 +16,7 @@ import {
 } from '@/components/crm-sugar/journey/journeyData'
 import { useParcoursSugar } from '@/hooks/useParcoursSugar'
 
-export default function JourneySugarV2Page() {
+export default function JourneyPage() {
   const { t: tr } = useTranslation('pipeline')
   const navigate = useNavigate()
 

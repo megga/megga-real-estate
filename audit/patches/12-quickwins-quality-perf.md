@@ -16,7 +16,7 @@ Réduit aussi une partie des 48 vulns `npm audit`. Ensuite : `npm audit fix` (re
 git rm src/pages/agent/NetworkSugarV2Page.tsx            # 2314 LOC, route neutralisée (App.tsx:543-544)
 git rm src/components/crm-sugar/network/data.ts          # data-file du fichier mort
 git rm src/components/crm/ContactTimeline.tsx            # + dossier crm/ (vide ensuite)
-git rm src/components/crm-sugar/SugarContactDetail.tsx   # doublon mort (routé = ContactDetailSugarV3Page)
+git rm src/components/crm-sugar/SugarContactDetail.tsx   # doublon mort (routé = ContactDetailPage)
 git rm src/components/crm-sugar/contacts/ContactsDetailPane.tsx
 ```
 > Vérifier `tsc -b` + `npm run build` après suppression (les routes `/network`/`/reseau` sont déjà des `Navigate`).

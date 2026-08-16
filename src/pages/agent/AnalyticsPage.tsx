@@ -1,4 +1,4 @@
-// MEGGA CRM Sugar — Dashboard Analytics « Le Cockpit Commission »
+// MEGGA CRM — Dashboard Analytics « Le Cockpit Commission »
 // Port du handoff Claude Design `design_handoff_analytics_dashboard` : commission
 // projetée, trajectoire vers l'objectif, KPI, deals à signer, composition du
 // projeté, sources des deals, drawer de drill-down. 2 thèmes, 3 périodes.
@@ -19,7 +19,7 @@ import { crmSugarPalette } from '@/components/crm-sugar/tokens'
 import AxDashboardBody from '@/components/crm-sugar/analytics/AxDashboard'
 import { AXCtx, AX, AX_DARK } from '@/components/crm-sugar/analytics/tokens'
 
-export default function DashboardSugarV4Page() {
+export default function AnalyticsPage() {
   const navigate = useNavigate()
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false

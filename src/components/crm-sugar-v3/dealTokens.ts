@@ -1,5 +1,5 @@
 /**
- * Jetons de la FICHE DEAL (`DealDetailSugarV4Page`) — dérivés de MEGGA X.
+ * Jetons de la FICHE DEAL (`DealDetailPage`) — dérivés de MEGGA X.
  *
  * ⛔ POURQUOI CE FICHIER EXISTE, ET POURQUOI C'EST UNE FONCTION.
  * La fiche portait deux objets figés, `DsLIGHT` et `DsDARK`, recopiés de

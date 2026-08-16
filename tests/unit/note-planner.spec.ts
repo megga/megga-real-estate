@@ -4,7 +4,7 @@
  *
  * ⛔ CE QUI A MOTIVÉ CE FICHIER. `onSaveNote` était un `(v: string) => void`
  * sans retour, appelé à chaque caractère, et la page le débouçait avec un
- * `setTimeout` que RIEN ne nettoyait — `ContactDetailSugarV3Page` n'a aucun
+ * `setTimeout` que RIEN ne nettoyait — `ContactDetailPage` n'a aucun
  * `useEffect`. Un échec d'écriture ne se voyait donc nulle part : l'agent a
  * tapé, il croit que c'est parti.
  *

@@ -1,4 +1,4 @@
-// MEGGA CRM Sugar v2 — Source de vérité pour CalendarSugarV2Page.
+// MEGGA CRM Sugar v2 — Source de vérité pour CalendarPage.
 // Assemble les CalEvent affichés par les 4 vues (Day/Week/Month/Agenda) :
 //   - Visites (table `visits`) → type='visite'
 //   - Reminders actifs (table `reminders`) → type='task'
@@ -198,7 +198,7 @@ function warmScore(row: HotBuyerRow): number {
 }
 
 /**
- * Source de données de CalendarSugarV2Page : agrège visites + reminders actifs +
+ * Source de données de CalendarPage : agrège visites + reminders actifs +
  * rendez-vous de vérification KYC en
  * `CalEvent` (fenêtre ±60 j) et expose le top 5 des acheteurs chauds/tièdes.
  */

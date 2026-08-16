@@ -1,4 +1,4 @@
-// MEGGA CRM Sugar v2 — Adapter Supabase → CrmBien[] pour BiensSugarV2Page.
+// MEGGA CRM Sugar v2 — Adapter Supabase → CrmBien[] pour ListingsPage.
 // Charge les biens de l'agence (RLS agency-scopée via useAgencyProperties),
 // adapte vers le shape mock que BnRow / BnDetailOverlay consomment.
 //
@@ -23,7 +23,7 @@ export interface UseBiensSugarReturn {
 }
 
 /**
- * Biens de l'agence adaptés au shape mock CrmBien pour BiensSugarV2Page : injecte
+ * Biens de l'agence adaptés au shape mock CrmBien pour ListingsPage : injecte
  * vues/favoris réels (jointure listings) + score de bien, et publie chaque bien au
  * registry runtime Sugar pour crmBienById().
  */

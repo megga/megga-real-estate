@@ -53,7 +53,7 @@ Réseau inter-agences, aiInsights/Parcours équipe). Sortie = liste figée + pé
 
 ## Vague 4 — Honnêteté UI (mock surfacé comme réel)
 14. **Réseau inter-agences** (`NetworkSugarV2Page`, 100% mock, `network/data.ts`, 3/5 vues « Coming soon », 0 table/RLS) = le plus gros écart UI-promet/backend-absent. POUR LA SANTÉ : **étiqueter « aperçu non livré »** (cheap). Le build réel (tables `agency_partners`/`shared_listings` + RLS cross-agence + templates) = **gros chantier séparé**, hors « santé ».
-15. **aiInsights calendrier = `[]`** (`CalendarSugarV2Page.tsx:482`) + **Parcours équipe mock** (`useParcoursSugar.ts:6` `PARCOURS_TEAM` + fallback `t-greg`, RBAC non câblé) → câbler OU retirer la promesse vide.
+15. **aiInsights calendrier = `[]`** (`CalendarPage.tsx:482`) + **Parcours équipe mock** (`useParcoursSugar.ts:6` `PARCOURS_TEAM` + fallback `t-greg`, RBAC non câblé) → câbler OU retirer la promesse vide.
 
 ## Vague 5 — Entretenir le cerveau
 Corriger les nœuds périmés (le « 11/14 », `project_today_refonte` « données démo » = FAUX, Calendar « HOT_BUYERS mock » = FAUX, claims Réseau). Marquer l'assainissement fait + ce qui reste data-gated. `npm run ruflo:seed`.

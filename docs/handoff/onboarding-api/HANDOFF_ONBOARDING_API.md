@@ -1097,7 +1097,7 @@ invité.
 | `src/hooks/useAgencySettings.ts` | réglages agence (voir défaut D) |
 | `src/components/crm-sugar-identity/IdentityShell.tsx` | coquille du wizard, navigation et persistance |
 | `src/components/crm-sugar-identity/steps/Step*.tsx` | les 5 étapes |
-| `src/pages/agent/IdentitySugarPage.tsx`, `IdentityMobileNotice.tsx` | route `/dashboard/identite` |
+| `src/pages/agent/IdentityPage.tsx`, `IdentityMobileNotice.tsx` | route `/dashboard/identite` |
 | `src/pages/admin/AdminKybReviewPage.tsx` | écran de la file de revue |
 | `src/components/layout/KycLabGuard.tsx`, `LabGuardBanner.tsx` | blocage et bandeau |
 | `src/i18n/locales/{fr,de,en,it}/onboarding.json` | 129 clés, 4 langues, à parité |

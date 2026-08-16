@@ -38,10 +38,10 @@ avait déjà donné la leçon. Ce périmètre-ci est dérivé de `src/App.tsx`.
 
 | Route | Bureau | Mobile |
 |---|---|---|
-| `/dashboard/contacts` | `ContactsSugarV2Page` | `MobileContactsListPage` |
+| `/dashboard/contacts` | `ContactsPage` | `MobileContactsListPage` |
 | `/dashboard/contacts/new` | → redirige vers la liste | `MobileNewContactPage` |
 | `/dashboard/contacts/import` | `ContactImportPage` (pas de variante mobile) | — |
-| `/dashboard/contacts/:id` | `ContactDetailSugarV3Page` | `MobileContactDetailPage` |
+| `/dashboard/contacts/:id` | `ContactDetailPage` | `MobileContactDetailPage` |
 
 Ces pages sont des **coquilles** : elles montent le chrome (`SugarTopNav`,
 `SugarIconRail`), câblent les hooks et délèguent le rendu à
@@ -68,8 +68,8 @@ Refaire ces mesures avant de coder et **dire si elles ont bougé**.
 | `contacts-pager/WhatsAppConnectModal.tsx` | 189 | 8 |
 | `contacts-pager/ContactsFirstRun.tsx` | 251 | 3 |
 | `glyphs.tsx`, `ncvIcon.tsx` | 106 | 2 |
-| `pages/agent/ContactDetailSugarV3Page.tsx` | 271 | 5 |
-| `pages/agent/ContactsSugarV2Page.tsx` | 198 | **0** |
+| `pages/agent/ContactDetailPage.tsx` | 271 | 5 |
+| `pages/agent/ContactsPage.tsx` | 198 | **0** |
 | `pages/agent/ContactImportPage.tsx` | 669 | **0** |
 
 **≈ 160 marqueurs**, dont **142 dans trois fichiers**. C'est un chantier
@@ -83,7 +83,7 @@ concentré, pas un balayage.
 - **Aucune donnée fabriquée** dans `contacts-pager`. Pas de mock appliqué, pas
   d'animation d'extraction. (Le seul `import` de `mockData` est un **type**.)
 - **La sauvegarde de la note écrit vraiment** — `update.mutateAsync` après un
-  débounce de 600 ms ([ContactDetailSugarV3Page.tsx:244](../../../src/pages/agent/ContactDetailSugarV3Page.tsx#L244)).
+  débounce de 600 ms ([ContactDetailPage.tsx:244](../../../src/pages/agent/ContactDetailPage.tsx#L244)).
   Ce n'est pas le mensonge du wizard. Mais voir §3.
 
 ### ⛔ Les défauts, par gravité
@@ -233,7 +233,7 @@ police du CRM.
 ### Lot 4 — Les restes
 
 `WhatsAppConnectModal` (8), `ContactsFirstRun` (3, **grammaire seulement**),
-`ContactDetailSugarV3Page` (5), glyphes (2).
+`ContactDetailPage` (5), glyphes (2).
 
 ---
 

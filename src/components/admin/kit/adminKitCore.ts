@@ -15,7 +15,7 @@
  * Les SEULS rayons de la console.
  *
  * `frame` 26 vient du pager Sugar (`KycPagerFrame`, `BiensPager`,
- * `SettingsSugarV2Page`) ; `card` 18 et `row` 14 de la grammaire des Réglages ;
+ * `SettingsPage`) ; `card` 18 et `row` 14 de la grammaire des Réglages ;
  * `pill` 999 des pilules de statut. Toute autre valeur est un écart.
  */
 export const ADMIN_RADII = {

@@ -25,7 +25,7 @@
  *    de peinture casse sans qu'on le voie. `/dev/biens` avait déjà caché la
  *    pastille de score faute de donnée pour la déclencher.
  *
- * ⚠ La MÉCANIQUE du pager n'est pas recopiée ici : `MatchingPagerPage` est monté
+ * ⚠ La MÉCANIQUE du pager n'est pas recopiée ici : `MatchingPage` est monté
  * tel quel et reçoit ses contenus par le slot `banc`. Un banc qui dupliquerait la
  * molette, le clavier et les points de page mesurerait sa copie.
  *
@@ -50,7 +50,7 @@ import MatchingFirstRun from '@/components/matching-atelier/MatchingFirstRun'
 import type { AtelierGestes, PendingHandle } from '@/components/matching-atelier/pendingTriage'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
 import type { MrhDemoEtat } from '@/components/matching-recherche/mrhDemo'
-import MatchingPagerPage, { type MatchingPagerBanc } from '@/pages/agent/MatchingPagerPage'
+import MatchingPage, { type MatchingPagerBanc } from '@/pages/agent/MatchingPage'
 import { ATELIER_BUYERS, ATELIER_PIVOT, atelierPoolFor } from './matchingAtelierFixtures'
 import '@/components/matching-atelier/atelier.css'
 
@@ -224,7 +224,7 @@ export default function MatchingShowcasePage() {
 
   return (
     <BancCtx.Provider value={etat}>
-      <MatchingPagerPage banc={BANC} />
+      <MatchingPage banc={BANC} />
     </BancCtx.Provider>
   )
 }

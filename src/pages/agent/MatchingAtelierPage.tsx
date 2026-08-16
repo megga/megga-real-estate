@@ -12,7 +12,7 @@
 //   - Par annonce  : 1 annonce pivot → N acheteurs scorés
 //   - Par acheteur : 1 acheteur pivot → N biens scorés (lien « +N biens »)
 // Deep-links : ?annonce=p:<uuid>|m:<uuid> (pivot) · ?contact=<uuid> (acheteur).
-// Rendu plein écran par-dessus le shell (pattern OfferModalSugarV3Page).
+// Rendu plein écran par-dessus le shell (pattern OfferPage).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -42,7 +42,7 @@ export default function MatchingAtelierPage(
   { embedded = false, dark: darkOverride, onOpenRecherche }: {
     embedded?: boolean
     dark?: boolean
-    /** glisse le pager vers la page Recherche — fourni par MatchingPagerPage seul */
+    /** glisse le pager vers la page Recherche — fourni par MatchingPage seul */
     onOpenRecherche?: () => void
   } = {},
 ) {

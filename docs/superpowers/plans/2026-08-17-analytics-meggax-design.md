@@ -73,7 +73,7 @@ Lire aussi `CLAUDE.md` §3 en entier.
 | Ce qu'on cherche | Ce que c'est vraiment |
 |---|---|
 | la route | `/dashboard/analytics` |
-| la page | **`DashboardSugarV4Page`** (126 l.) — pas d'« AnalyticsPage » |
+| la page | **`AnalyticsPage`** (126 l.) — pas d'« AnalyticsPage » |
 | le dossier | **`crm-sugar/analytics/`** |
 
 Le cliquet le dit déjà en commentaire, et il a fallu s'y reprendre pour le voir.
@@ -81,7 +81,7 @@ Le cliquet le dit déjà en commentaire, et il a fallu s'y reprendre pour le voi
 | Face | Fichiers | Lignes | Cliquet | Marqueurs |
 |---|---|---|---|---|
 | `analytics/` (AxDashboard, AxFirstRun, AxGate, buildAxData, tokens) | 5 | 1 474 | ✅ porté | **0** |
-| `DashboardSugarV4Page` | 1 | 126 | ✅ dans `PAGES` | **0** |
+| `AnalyticsPage` | 1 | 126 | ✅ dans `PAGES` | **0** |
 | Mobile (`crm-mobile/analytics/`) | | | ✅ porté | 0 |
 
 **Commandes qui régénèrent ce tableau :**
@@ -151,7 +151,7 @@ erreurs dans le même chantier.
 
 ### ⛔ FAIT n° 4 — la liaison est `A`, pas `ax` ni `t`
 
-`const A = useAX()` dans `AxDashboard.tsx` ; `DashboardSugarV4Page` fait
+`const A = useAX()` dans `AxDashboard.tsx` ; `AnalyticsPage` fait
 `const axTheme = dark ? AX_DARK : AX` et le passe par `AXCtx`.
 
 ⚠ **Toute mesure de rôle doit résoudre la LIAISON, jamais le nom de clé** (forme

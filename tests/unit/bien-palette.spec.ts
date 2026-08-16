@@ -5,7 +5,7 @@
  * ⚠ POURQUOI CE FICHIER EXISTE ALORS QUE LE PLAN DISAIT LA SURFACE PROPRE.
  * Le plan de refonte de « Mes biens » range la fiche avec la liste — « les
  * couleurs y sont déjà bonnes, c'est le cas Réglages » — et sa mesure le
- * confirme : `BienDetailSugarV4Page.tsx` ne porte que 2 littéraux hexadécimaux.
+ * confirme : `ListingDetailPage.tsx` ne porte que 2 littéraux hexadécimaux.
  * Mais sa palette n'est pas dans ce fichier : elle vit un dossier plus loin,
  * dans `crm-sugar-v3/vitrine/` (754 lignes, 39 hex), que la liste de dossiers
  * mesurée ne couvrait pas. La fiche en est l'UNIQUE consommateur.

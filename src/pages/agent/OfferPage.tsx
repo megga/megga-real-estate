@@ -14,7 +14,7 @@ import { useOfferChain, lastOffer } from '@/hooks/useOffers'
 import { useSugarDark } from '@/lib/sugarDark'
 import type { OfferKind } from '@/types/offer'
 
-export default function OfferModalSugarV3Page() {
+export default function OfferPage() {
   const { id, kind: rawKind } = useParams<{ id: string; kind: string }>()
   const navigate = useNavigate()
   const dark = useSugarDark()

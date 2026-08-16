@@ -32,7 +32,7 @@ export interface NotePlanner {
   enAttente(): boolean
 }
 
-/** Délai par défaut — celui que portait `ContactDetailSugarV3Page`. */
+/** Délai par défaut — celui que portait `ContactDetailPage`. */
 export const NOTE_DELAI_MS = 600
 
 export function creerNotePlanner(delaiMs: number = NOTE_DELAI_MS): NotePlanner {

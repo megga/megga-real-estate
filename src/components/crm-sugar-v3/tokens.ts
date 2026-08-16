@@ -90,8 +90,8 @@ export function sugarV3Palette(dark: boolean) {
    *
    *   · DIX affordances → `accent` : les quatre états sélectionnés de
    *     `MlkAgentModal`, les CTA « Signer » (`VdShared`), les deux CTA de
-   *     `VisitModalSugarV3Page`, l'accent d'`AuditSugarPage`, le mode édition et
-   *     le CTA de fermeture d'`ImportLeadSugarV3Page`.
+   *     `VisitNewPage`, l'accent d'`AuditPage`, le mode édition et
+   *     le CTA de fermeture d'`ImportLeadPage`.
    *   · DEUX qui ENCODENT → `ink`, et c'est le seul geste qui préserve leur
    *     sens : la teinte de la catégorie d'audit `auth` (huit catégories, huit
    *     teintes — la peindre en accent l'aurait rendue indiscernable du bleu

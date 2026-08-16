@@ -1,4 +1,4 @@
-// MEGGA CRM Sugar v2 — Mes biens (design final : pager plein écran)
+// MEGGA CRM — Mes biens (design final : pager plein écran)
 // Port du handoff Claude Design (crm-screen-biens-proto.jsx). La page « Mes
 // biens » adopte l'architecture bento des autres surfaces CRM (Today / Contacts /
 // Matching) : un pager vertical à deux pages —
@@ -17,7 +17,7 @@ import { SugarTopNav, SugarIconRail, SUGAR_KEYFRAMES, type SugarScreenId } from 
 import { BiensPager } from '@/components/crm-sugar/biens/pager/BiensPager'
 import WizardShell from '@/components/crm-sugar-wizard/WizardShell'
 
-export default function BiensSugarV2Page() {
+export default function ListingsPage() {
   const navigate = useNavigate()
 
   const [dark, setDark] = useState<boolean>(() => {

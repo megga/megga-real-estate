@@ -61,18 +61,18 @@ import { semerSessionBanc } from './bancSession'
 
 /* ─── Les surfaces montées, dérivées du ROUTAGE de `App.tsx` ───────────────── */
 
-const TodaySugarPage = lazy(() => import('@/pages/agent/TodaySugarPage'))
-const KycSugarV3Page = lazy(() => import('@/pages/agent/KycSugarV3Page'))
+const TodayPage = lazy(() => import('@/pages/agent/TodayPage'))
+const KycPage = lazy(() => import('@/pages/agent/KycPage'))
 const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))
 const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
-const VisitModalSugarV3Page = lazy(() => import('@/pages/agent/VisitModalSugarV3Page'))
-const VisitDetailSugarV3Page = lazy(() => import('@/pages/agent/VisitDetailSugarV3Page'))
-const DashboardSugarV4Page = lazy(() => import('@/pages/agent/DashboardSugarV4Page'))
-const ImportLeadSugarV3Page = lazy(() => import('@/pages/agent/ImportLeadSugarV3Page'))
-const SettingsSugarV2Page = lazy(() => import('@/pages/agent/SettingsSugarV2Page'))
-const JourneySugarV2Page = lazy(() => import('@/pages/agent/JourneySugarV2Page'))
-const AuditSugarPage = lazy(() => import('@/pages/agent/AuditSugarPage'))
-const CalendarSugarV2Page = lazy(() => import('@/pages/agent/CalendarSugarV2Page'))
+const VisitNewPage = lazy(() => import('@/pages/agent/VisitNewPage'))
+const VisitDetailPage = lazy(() => import('@/pages/agent/VisitDetailPage'))
+const AnalyticsPage = lazy(() => import('@/pages/agent/AnalyticsPage'))
+const ImportLeadPage = lazy(() => import('@/pages/agent/ImportLeadPage'))
+const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
+const JourneyPage = lazy(() => import('@/pages/agent/JourneyPage'))
+const AuditPage = lazy(() => import('@/pages/agent/AuditPage'))
+const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 
 /**
  * Le panneau MEGGA AI — CHROME, pas une surface.
@@ -268,19 +268,19 @@ function RoutesBanc() {
   return (
     <Routes>
       <Route path="/dashboard" element={<AgentSugarLayout />}>
-        <Route index element={<TodaySugarPage />} />
-        <Route path="analytics" element={<DashboardSugarV4Page />} />
-        <Route path="calendar" element={<CalendarSugarV2Page />} />
-        <Route path="journey" element={<JourneySugarV2Page />} />
-        <Route path="settings" element={<SettingsSugarV2Page />} />
-        <Route path="audit" element={<AuditSugarPage />} />
-        <Route path="import-lead" element={<ImportLeadSugarV3Page />} />
-        <Route path="visits/new" element={<VisitModalSugarV3Page />} />
-        <Route path="visits/:id" element={<VisitDetailSugarV3Page />} />
+        <Route index element={<TodayPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="calendar" element={<CalendarPage />} />
+        <Route path="journey" element={<JourneyPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="audit" element={<AuditPage />} />
+        <Route path="import-lead" element={<ImportLeadPage />} />
+        <Route path="visits/new" element={<VisitNewPage />} />
+        <Route path="visits/:id" element={<VisitDetailPage />} />
         <Route element={<KycLabGuard />}>
-          <Route path="kyc" element={<KycSugarV3Page />} />
+          <Route path="kyc" element={<KycPage />} />
           <Route path="kyc/bienvenue" element={<KycOnboardingPage />} />
-          <Route path="kyc/:dossierId" element={<KycSugarV3Page />} />
+          <Route path="kyc/:dossierId" element={<KycPage />} />
           {/* ⚠ Le RAPPORT n'avait aucun banc, et c'est la surface la plus
               difficile à relire de tête : trois pages A4 en pixels absolus,
               montées par DEUX routes (l'aperçu agent ici, le rendu headless sur

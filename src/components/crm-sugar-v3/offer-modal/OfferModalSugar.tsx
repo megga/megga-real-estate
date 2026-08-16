@@ -11,8 +11,8 @@
 //   dealId, kind='offer'|'counter', parentOffer, dark, contained, onSubmit, onClose
 //
 // Réutilisé par :
-//   - OfferModalSugarV3Page (route /dashboard/transactions/:id/offre/:kind, plein écran)
-//   - DealDetailSugarV4Page (embarquée `contained` dans le bento de la fiche)
+//   - OfferPage (route /dashboard/transactions/:id/offre/:kind, plein écran)
+//   - DealDetailPage (embarquée `contained` dans le bento de la fiche)
 
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
