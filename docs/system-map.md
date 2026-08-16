@@ -562,7 +562,21 @@ trois propriétés (aucun client casté dans `src/`, aucune RPC appelée hors de
 absente) — statique sur chaque PR, moitié production dans `migration-drift.yml`. ⚠ Elle ne compare PAS les
 fonctions : 770 vivantes contre 420 émises, le filtre du générateur nous échappe.
 
-**Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur 8 familles CRM verrouillées : crm-mobile/crm/crm-dossiers/crm-wizard/matching-atelier/ai-copilot/kyc-report + pages/agent) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
+**Garde-fous i18n en CI (BLOQUANTS, durcis PR #708 — cf. brain `megga/i18n-guard-ci`)** : `lint:i18n` (ESLint `no-literal-string` mode `jsx-text-only`, **error** sur **9** familles CRM verrouillées : crm-mobile/crm/crm-dossiers/crm-wizard/**crm-identity**/matching-atelier/ai-copilot/kyc-report + pages/agent) · `i18n:parity:ci` (parité FR↔EN, FR = référence, EN doit couvrir) · `lint:prose` (tue em/en-dash dans i18n). `deno check` bloquant sur `supabase/functions/**` (les Edge ne sont pas dans `tsc`/`vitest`).
+
+> ⛔ **CETTE LISTE VIT À DEUX ENDROITS, ET LE RENOMMAGE N'EN A CORRIGÉ QU'UN.** `eslint.config.js`
+> (`lockedFamilies`) décide de la SÉVÉRITÉ, `scripts/lint-i18n-hardcoded.mjs` (`LOCKED_GLOBS`) décide
+> de ce qui est LU — et le script ne compte que la sévérité 2. Mesuré le 16 août 2026 : le renommage
+> « plus aucun Sugar » avait mis à jour ce document ET le script, mais pas la config, restée sur quatre
+> dossiers `crm-sugar*` disparus. Un chemin ne proteste pas quand il cesse d'exister : ESLint appliquait
+> simplement la règle à l'ensemble vide, et la porte imprimait son « ✓ » sur **158 fichiers** de
+> composants CRM qu'elle ne regardait plus (0 message sur les 25 fichiers de `crm-dossiers`).
+> Le vert d'une porte aveugle est indiscernable du vert d'un dépôt sain.
+>
+> Gardé depuis par [`tests/unit/i18n-globs-vivants.spec.ts`](../tests/unit/i18n-globs-vivants.spec.ts) :
+> tout glob des trois listes doit viser au moins un fichier RÉEL, et les deux listes verrouillées
+> doivent coïncider mot pour mot. **Renommer un dossier verrouillé exige donc de corriger les deux
+> fichiers** — la spec dira lequel manque.
 
 ---
 
