@@ -93,7 +93,7 @@ Hosting :      Cloudflare Pages — 2 projets : megga-real-estate (megga.ch vitr
 CI/CD :        GitHub Actions → Cloudflare Pages + Supabase Edge Functions auto-deploy
 
 Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine megga.ch
-               Backend conservé : market_listings ~173k (dont ~35k flatfox actives) + flatfox-sync
+               Backend conservé : market_listings ~208k (dont ~35k flatfox actives) + flatfox-sync
                (pg_cron 04:00 UTC)
                sert uniquement le matching CRM, aucun affichage public dans cette app
 ```
@@ -453,7 +453,7 @@ useEffect(() => {
 
 ### DO ✅
 - TypeScript strict (pas de `any`)
-- RLS activé sur CHAQUE table Supabase
+- RLS activé sur CHAQUE table Supabase — **une seule exception**, `spatial_ref_sys` (table de PostGIS, non modifiable, écart accepté et gardé : toute AUTRE table sans RLS fait rougir la porte)
 - `cn()` pour classes conditionnelles
 - Prix : `CHF 720'000` (apostrophe suisse) — utiliser `formatCHF()` (type-defensive, accepte string/null)
 - Labels UI en français par défaut
@@ -541,8 +541,11 @@ Fichiers concernés : `useAdminNotifications.ts`, `useAdminLiveFeed.ts`, `useMes
 
 ### pg_cron actifs
 
-**41 jobs actifs** au 29 juil. 2026 (relevés dans `cron.job`) — cette section n'en listait que 2.
-Inventaire complet et à jour dans le cerveau : `megga/pg-cron`. Les plus structurants :
+**50 jobs actifs** au 17 août 2026 (relevés dans `cron.job`) — cette section n'en listait que 2,
+et annonçait encore 41 jobs, chiffre du 29 juillet : **neuf jobs sont nés sans que ce compte bouge.**
+C'est le régime de péremption propre aux prétentions de base de données — elles ne se lisent dans
+aucun fichier, donc aucun diff ne les dément, et même une relecture attentive du dépôt les laisse
+passer. Inventaire complet dans le cerveau : `megga/pg-cron`. Les plus structurants :
 
 | Job | Schedule | Cible |
 |---|---|---|
@@ -557,6 +560,10 @@ Inventaire complet et à jour dans le cerveau : `megga/pg-cron`. Les plus struct
 
 ⚠ Identifier un job par son **jobname**, jamais par son `jobid` : il change à chaque recréation.
 
+Les dix jobs de ce tableau sont vérifiés par NOM ET PAR HORAIRE contre la production
+(`migration-drift.yml`, cf. skill `claude-md-freshness`) : un horaire déplacé sans que ce
+tableau suive fait rougir la porte. Les deux index ci-dessus le sont aussi, par existence.
+
 ---
 
 ## 8. ÉTAT D'IMPLÉMENTATION (mise à jour : 14 juin 2026 — pivot CRM-first)
@@ -567,7 +574,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **Marketplace publique : DÉSACTIVÉE (pivot CRM-first) :**
 - `/acheter` + `/louer` (+ `/buy` `/rent` `/propriete`) → `MarketplaceDisabledRedirect` vers la vitrine `megga.ch`
-- Backend conservé intact : `market_listings` (~90k Flatfox, ~50k active), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
+- Backend conservé intact : `market_listings` (~117k Flatfox, ~91k RealAdvisor, ~77k actives — remesuré le 17.08.2026 ; ⚠ ce point annonçait « ~90k Flatfox, ~50k active », faux DEUX fois : Flatfox est à 117k, et le 90k correspondait en réalité à RealAdvisor), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
 **CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · wizard « Créer un bien » Sugar v2 7 étapes · fiche V4), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.

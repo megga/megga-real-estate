@@ -74,3 +74,24 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node scripts/check-types-freshness.mjs --prod
+
+      # Quatrième dérive, et la seule qui porte sur un DOCUMENT plutôt que sur du schéma.
+      # Les prétentions de base de données de CLAUDE.md — « 41 jobs pg_cron », « ~173k
+      # market_listings », les index du §7 — ne se lisent dans AUCUN fichier : elles ne
+      # sont vraies que d'un serveur. Elles périment donc sans qu'aucun diff ne bouge, ce
+      # qui est le pire régime possible, puisque même une relecture attentive du dépôt ne
+      # peut pas les démentir. Mesuré à leur inscription le 17.08.2026 : +9 jobs cron
+      # depuis le 29 juillet, et le §8 annonçait 90k annonces Flatfox pour 117k réelles —
+      # le « 90k » désignant en fait RealAdvisor.
+      #
+      # Sa moitié STATIQUE (18 prétentions lues dans src/) tourne sur chaque PR dans
+      # unit-tests.yml ; ici la moitié PRODUCTION, comme pour l'étape ci-dessus.
+      #
+      # ⚠ `if: always()` : quatrième dérive indépendante des trois autres.
+      # ⚠ `--prod` : même raison qu'au-dessus, et le même piège évité — sans le drapeau,
+      # un jeton absent ferait passer l'étape au vert en ayant sauté ses onze mesures.
+      - name: Fraîcheur de CLAUDE.md (prétentions de base de données)
+        if: always()
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/check-claude-md-freshness.mjs --prod

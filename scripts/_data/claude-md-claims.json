@@ -28,7 +28,19 @@
     "Deux réflexes : plus la grandeur est PETITE, plus la tolérance doit être LARGE (à 7",
     "occurrences, 15 % c'est ±1 — un seul bouton la fait rougir) ; et la borne utile est",
     "celle qui protège la CONCLUSION, pas le chiffre (« 740 boxShadow contre 6 classes",
-    "shadow-* » supporte ±15 % sans que rien de ce qu'elle affirme ne bouge)."
+    "shadow-* » supporte ±15 % sans que rien de ce qu'elle affirme ne bouge).",
+    "",
+    "PRÉTENTIONS DE BASE DE DONNÉES (`mesure.sql`, ajoutées le 17.08.2026). Elles ne se lisent",
+    "dans AUCUN fichier : « 41 jobs pg_cron », « ~173k market_listings » ne sont vraies que d'un",
+    "serveur. Elles périment donc sans qu'aucun diff ne bouge — le pire régime pour un document,",
+    "puisque même une relecture attentive du dépôt ne peut pas les démentir. Mesuré le jour de",
+    "leur ajout : +9 jobs cron depuis le 29 juillet, et §8 annonçait 90k annonces Flatfox pour",
+    "117k réelles — le 90k désignant en fait RealAdvisor.",
+    "",
+    "⚠ Elles ne tournent PAS dans unit-tests.yml, statique et sans secret par conception ; elles",
+    "vivent dans migration-drift.yml, seul workflow qui interroge la production. Sans jeton le",
+    "runner les IGNORE et le DIT — une exécution partielle muette se lirait comme une complète.",
+    "La requête doit rendre UNE ligne et UNE colonne ; le runner refuse toute autre forme."
   ],
   "claims": [
     {
@@ -427,6 +439,165 @@
         "occurrences": 58,
         "fichiers": 24
       }
+    },
+    {
+      "id": "cron-jobs-actifs",
+      "section": "§7 — pg_cron",
+      "phrase": "50 jobs actifs",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select count(*) from cron.job where active"
+      },
+      "attendu": {
+        "valeur": 50
+      },
+      "tolerance": 0.2,
+      "note": "Tolérance large : un job naît à chaque source ou sonde ajoutée. Ce que la prétention soutient est l'ORDRE DE GRANDEUR — « cette section n'en listait que 2 » reste vrai de 41 comme de 50. Ce qui doit alerter, c'est le doc qui n'a pas bougé pendant que neuf jobs naissaient."
+    },
+    {
+      "id": "cron-jobs-documentes",
+      "section": "§7 — pg_cron",
+      "phrase": "Les dix jobs de ce tableau sont vérifiés par NOM ET PAR HORAIRE",
+      "severite": "dur",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select count(*) from cron.job where (jobname, schedule) in (('flatfox-sync-daily','0 4 * * *'),('realadvisor-fresh-daily','30 3 * * *'),('realadvisor-rolling-daily','0 22 * * *'),('realadvisor-probe-fire','0 * * * *'),('realadvisor-probe-collect','10 * * * *'),('realadvisor-probe-sweep','30 1 * * *'),('realadvisor-revive-fire','30 2 * * *'),('realadvisor-revive-collect','45 2 * * *'),('realadvisor-health-daily','0 9 * * *'),('platform-metrics-hourly','15 * * * *'))"
+      },
+      "attendu": {
+        "valeur": 10
+      },
+      "note": "⚠ Vérifié par (jobname, schedule) — la PAIRE, pas le nom seul : un horaire déplacé sans que le tableau suive est exactement le genre d'écart qu'un inventaire ne montre pas. Et jamais par `jobid`, que le §7 dit lui-même changer à chaque recréation."
+    },
+    {
+      "id": "index-market-listings",
+      "section": "§7 — Index existants",
+      "phrase": "Les deux index ci-dessus le sont aussi, par existence",
+      "severite": "dur",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select count(*) from pg_indexes where schemaname='public' and indexname in ('idx_ml_rent_active_created','idx_market_listings_tx_type_status')"
+      },
+      "attendu": {
+        "valeur": 2
+      },
+      "note": "Ces deux index sont la raison pour laquelle /louer ne tombe pas en statement timeout. En perdre un lors d'une migration ne casse RIEN visiblement — jusqu'à la première requête sur 200k lignes."
+    },
+    {
+      "id": "ml-volume-total",
+      "section": "§2 — Marketplace",
+      "phrase": "market_listings ~208k",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select round(count(*)/1000.0)::int from market_listings"
+      },
+      "attendu": {
+        "valeur": 208
+      },
+      "tolerance": 0.15,
+      "note": "⚠ Mesure en MILLIERS, pour parler l'unité du doc. Un compte exact rendrait la prétention instable par construction (la table grossit chaque nuit) et forcerait un chiffre illisible dans une phrase qui dit « ~ »."
+    },
+    {
+      "id": "ml-flatfox-actives",
+      "section": "§2 — Marketplace",
+      "phrase": "~35k flatfox actives",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select round(count(*) filter (where source_portal='flatfox' and status='active')/1000.0)::int from market_listings"
+      },
+      "attendu": {
+        "valeur": 35
+      },
+      "tolerance": 0.15,
+      "note": "Le seul chiffre de volume que le doc avait JUSTE (35 145 le 17.08.2026). Inscrit pour qu'il le reste."
+    },
+    {
+      "id": "ml-flatfox-total",
+      "section": "§8 — Backend conservé",
+      "phrase": "~117k Flatfox",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select round(count(*) filter (where source_portal='flatfox')/1000.0)::int from market_listings"
+      },
+      "attendu": {
+        "valeur": 117
+      },
+      "tolerance": 0.15
+    },
+    {
+      "id": "ml-realadvisor-total",
+      "section": "§8 — Backend conservé",
+      "phrase": "~91k RealAdvisor",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select round(count(*) filter (where source_portal='realadvisor')/1000.0)::int from market_listings"
+      },
+      "attendu": {
+        "valeur": 91
+      },
+      "tolerance": 0.15,
+      "note": "⚠ C'est ce chiffre que le doc attribuait à FLATFOX (« ~90k Flatfox »). Une prétention peut être numériquement proche et désigner la mauvaise chose — le registre nomme donc la source dans la requête."
+    },
+    {
+      "id": "ml-actives-total",
+      "section": "§8 — Backend conservé",
+      "phrase": "~77k actives",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select round(count(*) filter (where status='active')/1000.0)::int from market_listings"
+      },
+      "attendu": {
+        "valeur": 77
+      },
+      "tolerance": 0.15
+    },
+    {
+      "id": "rls-partout-sauf-postgis",
+      "section": "§5 — DO",
+      "phrase": "une seule exception**, `spatial_ref_sys`",
+      "severite": "dur",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select count(*) from pg_tables t where t.schemaname='public' and t.tablename <> 'spatial_ref_sys' and not exists (select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=t.tablename and c.relrowsecurity)"
+      },
+      "attendu": {
+        "valeur": 0
+      },
+      "note": "⛔ La règle du §5 disait « CHAQUE table » sans exception, alors qu'il y en a une depuis toujours. Une règle absolue qu'on sait fausse s'érode : on finit par ne plus la lire. Écrite avec son exception NOMMÉE, elle redevient vérifiable — et toute AUTRE table sans RLS est un incident."
+    },
+    {
+      "id": "seller-portals-retirees",
+      "section": "§8 — Portail vendeur",
+      "phrase": "les tables `seller_portals` / `seller_preferences` (migration `20260726180000`)",
+      "severite": "dur",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select count(*) from pg_tables where schemaname='public' and tablename in ('seller_portals','seller_preferences')"
+      },
+      "attendu": {
+        "valeur": 0
+      },
+      "note": "Le §8 affirme un RETRAIT. Rien ne le vérifiait — et une table revenue par une migration de restauration se lirait exactement comme une table jamais partie."
+    },
+    {
+      "id": "google-calendar-tokens-vide",
+      "section": "§8 — secrets Google",
+      "phrase": "`google_calendar_tokens` compte toujours **0 ligne**",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select count(*) from google_calendar_tokens"
+      },
+      "attendu": {
+        "valeur": 0
+      },
+      "tolerance": 0,
+      "note": "⚠ Tolérance ZÉRO, et l'écart serait une BONNE nouvelle : le §8 s'appuie sur ce 0 pour dire que la liaison Google Calendar n'a jamais tourné de bout en bout. Le jour où un agenda est connecté, c'est tout le paragraphe qui doit être réécrit, pas seulement le chiffre."
     }
   ]
 }
