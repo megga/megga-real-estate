@@ -950,7 +950,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/settings', { hors: 74, total: 95 }],
   ['src/components/crm/today', { hors: 43, total: 54 }],
   ['src/components/kyc-magic-link', { hors: 80, total: 110 }],
-  ['src/components/layout', { hors: 9, total: 107 }],
+  // ⚠ 107 → 105 le 16 août 2026 : `PublicPageHeader` a été retiré. Il n'avait que les
+  // deux pages de visite pour consommateurs, et elles sont passées à `MlkWordmark`.
+  ['src/components/layout', { hors: 9, total: 105 }],
   ['src/components/listings', { hors: 39, total: 115 }],
   ['src/components/map', { hors: 0, total: 4 }],
   ['src/components/matching-atelier', { hors: 37, total: 50 }],
@@ -962,12 +964,13 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/pages/admin', { hors: 225, total: 464 }],
   ['src/pages/agent', { hors: 331, total: 936 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
-  // ⚠ 68 → 63 puis 259 → 253 → 248, le 16 août 2026, en portant `BuyerReceptionPage` puis
-  // `AcceptInvitePage` : la marque, le pied et les états-documents sont passés aux jetons,
-  // et les deux cartes faites main ont cédé la place à `MlkShell`. Le cliquet EXIGE qu'on
-  // descende le compte — un gain non inscrit se reperd au lot suivant sans que rien ne
-  // rougisse.
-  ['src/pages/public', { hors: 63, total: 248 }],
+  // ⚠ 68 → 63 et 259 → 230 sur l'étape 2 (16 août 2026), en portant `BuyerReceptionPage`,
+  // `AcceptInvitePage` puis les deux visites. La dernière baisse est la plus grosse (−18) et
+  // elle ne vient pas d'un dépeçage : les deux visites répétaient leur conteneur et leur
+  // centrage à chaque vue — dix fois en tout — et `MlkShell` les porte désormais une fois.
+  // Le cliquet EXIGE qu'on descende le compte : un gain non inscrit se reperd au lot suivant
+  // sans que rien ne rougisse.
+  ['src/pages/public', { hors: 63, total: 230 }],
 ])
 
 /** Les propriétés qui portent un rayon ou un espacement. */
