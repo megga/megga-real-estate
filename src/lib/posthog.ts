@@ -36,7 +36,7 @@ function readConsent(): CookieConsent | null {
 /** Initialise le SDK (idempotent). No-op sans clé ; à réserver au cas consenti. */
 export function initPostHog() {
   if (!POSTHOG_KEY || posthogInitialized) return
-  // Même règle que GTM/gtag et Sentry : rien sur une route à lien tokenisé.
+  // Même règle que Sentry et Intercom : rien sur une route à lien tokenisé.
   // `capture_pageview` enverrait `$current_url` — le jeton compris — et
   // `autocapture` le renverrait à chaque clic. Le garde-fou est posé maintenant
   // parce que la clé est aujourd'hui absente du déploiement : le jour où on
