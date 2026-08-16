@@ -118,37 +118,44 @@ export default defineConfig([
         ],
       },
     }
+    // ⚠ CES GLOBS SONT DES CHEMINS, DONC ILS MEURENT EN SILENCE À CHAQUE RENOMMAGE.
+    // Mesuré le 16 août 2026 : le renommage « plus aucun Sugar » avait mis à jour
+    // `scripts/lint-i18n-hardcoded.mjs` mais pas cette liste, restée sur quatre
+    // dossiers `crm-sugar*` disparus. Le script ne compte que la sévérité 2 : la
+    // règle ne s'appliquant plus du tout aux héritiers, 158 fichiers de composants
+    // CRM sortaient de la garde sans qu'aucune porte rougisse (0 message sur les
+    // 25 fichiers de `crm-dossiers`). Renommer un dossier verrouillé EXIGE de
+    // corriger ici ET dans le script — la garde est `tests/unit/i18n-globs-vivants.spec.ts`.
     const lockedFamilies = [
       'src/components/crm-mobile/**/*.{ts,tsx}',
-      'src/components/crm-sugar/**/*.{ts,tsx}',
-      'src/components/crm-sugar-v3/**/*.{ts,tsx}',
-      'src/components/crm-sugar-wizard/**/*.{ts,tsx}',
-      'src/components/crm-sugar-identity/**/*.{ts,tsx}',
+      'src/components/crm/**/*.{ts,tsx}',
+      'src/components/crm-dossiers/**/*.{ts,tsx}',
+      'src/components/crm-wizard/**/*.{ts,tsx}',
+      'src/components/crm-identity/**/*.{ts,tsx}',
       'src/components/matching-atelier/**/*.{ts,tsx}',
       'src/components/ai-copilot/**/*.{ts,tsx}',
       'src/components/kyc-report/**/*.{ts,tsx}',
       'src/pages/agent/**/*.{ts,tsx}',
     ]
-    // Surfaces différées (non encore bilingues : réseau inter-agences « en
-    // construction », signature de mandat vendeur). On les laisse en WARN —
-    // flaggées mais non bloquantes — jusqu'à leur migration.
-    // NB : NetworkSugarV2Page vit sous pages/agent/ (verrouillé) mais reste « en
-    // construction » → on la repasse en WARN ici (ce bloc vient après le bloc
-    // verrouillé : pour ce fichier, le dernier match l'emporte).
+    // Surfaces différées (non encore bilingues). On les laisse en WARN — flaggées
+    // mais non bloquantes — jusqu'à leur migration.
+    //
+    // ⚠ Trois entrées ont été RETIRÉES le 16 août 2026, leurs cibles ayant disparu
+    // avec leurs fonctionnalités : `seller-portal/**` (portail vendeur retiré le
+    // 26 juil.), `NetworkSugarV2Page.tsx` (réseau inter-agences retiré) et
+    // `crm-sugar/ai/**` (jamais reporté sous `crm/`). Un glob différé qui ne vise
+    // rien n'est pas inoffensif : il donne à lire une exemption vivante là où il
+    // n'y a plus de surface.
     const deferredFamilies = [
-      'src/components/seller-portal/**/*.{ts,tsx}',
-      'src/pages/agent/NetworkSugarV2Page.tsx',
-      // MEGGA AI (Partie 1) — nouvelle surface FR-only, non encore bilingue.
-      // WARN jusqu'à sa migration i18n (comme les familles ci-dessus). Ces globs
-      // sont plus spécifiques que crm-sugar/** et ai-copilot/** ci-dessus : ce
-      // bloc venant après le bloc verrouillé, le dernier match l'emporte → WARN.
+      // MEGGA AI (Partie 1) — surface FR-only, non encore bilingue. WARN jusqu'à
+      // sa migration i18n. Ce glob est plus spécifique qu'`ai-copilot/**` ci-dessus :
+      // ce bloc venant après le bloc verrouillé, le dernier match l'emporte → WARN.
       'src/components/ai-copilot/panel/**/*.{ts,tsx}',
-      'src/components/crm-sugar/ai/**/*.{ts,tsx}',
       // Refonte KYC (nouveau pager / vigie / fiche stricte / onboarding / import) —
       // surface FR-first (« FR d'abord »), i18n bilingue différée comme ci-dessus.
-      // Plus spécifique que crm-sugar-v3/** et pages/agent/** → WARN (dernier match).
-      'src/components/crm-sugar-v3/kyc-pager/**/*.{ts,tsx}',
-      'src/components/crm-sugar-v3/kyc-wizard/KwStepImport.tsx',
+      // Plus spécifique que crm-dossiers/** et pages/agent/** → WARN (dernier match).
+      'src/components/crm-dossiers/kyc-pager/**/*.{ts,tsx}',
+      'src/components/crm-dossiers/kyc-wizard/KwStepImport.tsx',
       'src/pages/agent/KycOnboardingPage.tsx',
     ]
     return [
