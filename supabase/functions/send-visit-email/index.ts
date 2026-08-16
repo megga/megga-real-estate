@@ -20,8 +20,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 }
 
+/**
+ * Les trois seuls types acceptés, en VALEURS — le type TypeScript ci-dessous
+ * disparaît au build et ne peut rien refuser à l'exécution.
+ */
+const TYPES_CONNUS = ['confirmation_buyer', 'notification_agent', 'reminder'] as const
+
 interface RequestBody {
-  type: 'confirmation_buyer' | 'notification_agent' | 'reminder'
+  type: (typeof TYPES_CONNUS)[number]
   visit_id: string
 }
 
@@ -56,6 +62,20 @@ serve(async (req) => {
     }
 
     const { type, visit_id }: RequestBody = await req.json()
+
+    // ⛔ `RequestBody` NE VALIDE RIEN — c'est une annotation posée sur un `req.json()`
+    // non vérifié, effacée à l'exécution. Sans ce contrôle, le `else` plus bas traite
+    // TOUT ce qui n'est pas `notification_agent` comme une confirmation acheteur : un
+    // type mal orthographié n'échouait pas, il ENVOYAIT à l'acheteur un « Visite
+    // confirmée » pour une visite déjà passée, et rendait 200. La version d'avant la
+    // migration vers la coquille échouait, elle, en 400 (« No recipient email ») — un
+    // message trompeur, mais au moins un refus. On restaure le refus, avec son motif.
+    if (!TYPES_CONNUS.includes(type)) {
+      return new Response(
+        JSON.stringify({ error: `Unknown type: ${String(type)}`, expected: TYPES_CONNUS }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
 
     // Fetch visit with relations
     const { data: visit, error: visitError } = await supabaseAdmin
