@@ -131,7 +131,7 @@ export default function AuditPage() {
 
   return (
     <div
-      data-screen-label="CRM Audit nLPD (sugar v3)"
+      data-screen-label="CRM Audit nLPD"
       style={{
         minHeight: '100vh',
         width: '100%',

@@ -42,30 +42,30 @@ export default function AtlListing({ L, onOpenListing }: AtlListingProps) {
   if (L.floor != null && L.floor > 0) specs.push(t('atelier.floorOrdinal', { floor: L.floor }))
 
   return (
-    <section className="sga-panel sga-enter d1 sga-immersive" aria-label={t('atelier.listing')}>
+    <section className="atl-panel atl-enter d1 atl-immersive" aria-label={t('atelier.listing')}>
       <button
         type="button"
-        className={`sga-stagephoto${hasImg ? '' : ' noimg'}`}
+        className={`atl-stagephoto${hasImg ? '' : ' noimg'}`}
         aria-label={t('atelier.viewFullListing')}
         onClick={onOpenListing}
       >
         {hasImg ? (
-          <img className="sga-hero-img" src={G[0].url} alt={G[0].label} draggable="false" />
+          <img className="atl-hero-img" src={G[0].url} alt={G[0].label} draggable="false" />
         ) : (
-          <div className="sga-ph">
+          <div className="atl-ph">
             <div className="ph-lbl"><AtlIcon d="camera" size={26} /><span>{t('atelier.noPhotoYet')}</span></div>
           </div>
         )}
       </button>
 
-      <div className="sga-lst-top">
-        <button type="button" className="sga-glasspill" title={t('atelier.viewFullListing')} onClick={onOpenListing}>
+      <div className="atl-lst-top">
+        <button type="button" className="atl-glasspill" title={t('atelier.viewFullListing')} onClick={onOpenListing}>
           {t('atelier.viewListing')}
         </button>
       </div>
 
       {strip.length > 0 && (
-        <div className="sga-filmstrip">
+        <div className="atl-filmstrip">
           {strip.map((p, i) => (
             <button
               type="button"
@@ -74,7 +74,7 @@ export default function AtlListing({ L, onOpenListing }: AtlListingProps) {
               aria-label={t('atelier.viewFullListing')}
               onClick={onOpenListing}
             >
-              <img className="sga-hero-img" src={p.url} alt={p.label} draggable="false" />
+              <img className="atl-hero-img" src={p.url} alt={p.label} draggable="false" />
               {i === strip.length - 1 && remaining > 0 && (
                 <span className="more nums">{`+${remaining}`}</span>
               )}
@@ -83,7 +83,7 @@ export default function AtlListing({ L, onOpenListing }: AtlListingProps) {
         </div>
       )}
 
-      <div className={`sga-lst-bottom${hasImg ? '' : ' noimg'}`}>
+      <div className={`atl-lst-bottom${hasImg ? '' : ' noimg'}`}>
         <div className="row">
           <div style={{ minWidth: 0 }}>
             <div className="ttl">{L.title}</div>
@@ -100,7 +100,7 @@ export default function AtlListing({ L, onOpenListing }: AtlListingProps) {
         </div>
         {specs.length > 0 && (
           <div className="gspecs">
-            {specs.map(s => <span className="sga-gspec nums" key={s}>{s}</span>)}
+            {specs.map(s => <span className="atl-gspec nums" key={s}>{s}</span>)}
           </div>
         )}
       </div>

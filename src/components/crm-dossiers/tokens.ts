@@ -248,14 +248,14 @@ export const DOSSIER_FONT = 'var(--crm-font, "Inter Tight"), system-ui, sans-ser
  * ⚠ LA PALETTE CLAIRE, POUR LES SEULS EMPLOIS QUI NE PEUVENT PAS ÊTRE THÉMÉS :
  * les maps de libellés ci-dessous vivent au niveau MODULE et ne peuvent donc pas
  * appeler de hook. Leurs tons dépendants du thème passent par un GETTER (voir
- * `SV3_TON`), à l'image des libellés i18n juste à côté.
+ * `DOSSIER_TON`), à l'image des libellés i18n juste à côté.
  *
  * ⛔ NE PAS L'IMPORTER DANS UN COMPOSANT. Un composant a accès au thème :
  * `dossierPalette(useCrmDark())`. S'en servir là serait recréer exactement le
  * défaut que cette fonction corrige, et la garde `dossiers-contraste.spec.ts`
  * le refuse nommément.
  */
-const SV3_CLAIR = dossierPalette(false)
+const DOSSIER_CLAIR = dossierPalette(false)
 
 /**
  * Les deux tons THÉMÉS dont les maps de libellés ont besoin, lus au RENDU.
@@ -266,10 +266,10 @@ const SV3_CLAIR = dossierPalette(false)
  * pendant le rendu, et une bascule de thème déclenche un rendu.
  *
  * ⛔ MAIS LE GETTER DOIT ÊTRE DU CÔTÉ DU CONSOMMATEUR AUSSI. Écrire
- * `tone: SV3_TON.ink` dans une map INVOQUE l'accesseur une seule fois, à
+ * `tone: DOSSIER_TON.ink` dans une map INVOQUE l'accesseur une seule fois, à
  * l'évaluation du module, et fige la couleur du thème de démarrage — la
- * paresse de `SV3_TON` ne sert alors plus à rien. Il faut
- * `get tone() { return SV3_TON.ink }`, comme le `get label()` voisin.
+ * paresse de `DOSSIER_TON` ne sert alors plus à rien. Il faut
+ * `get tone() { return DOSSIER_TON.ink }`, comme le `get label()` voisin.
  *
  * Mesuré le 16 août 2026 : les cinq entrées concernées de `KYC_STATUS_LABELS`,
  * `KYC_RISK_LABELS` et `AUDIT_CATEGORIES` étaient figées. La bascule de thème
@@ -278,7 +278,7 @@ const SV3_CLAIR = dossierPalette(false)
  * la catégorie « auth » de /dashboard/audit rendait son libellé et son icône en
  * `#ffffff` sur fond clair — invisibles. Garde : `dossiers-contraste.spec.ts`.
  */
-const SV3_TON = {
+const DOSSIER_TON = {
   get muted() { return dossierPalette(readCrmDark()).muted },
   get ink() { return dossierPalette(readCrmDark()).ink },
 }
@@ -349,11 +349,11 @@ export const KYC_STATUS_LABELS: Record<
   KycDossierStatus,
   { label: string; tone: string }
 > = {
-  none: { get label() { return i18n.t('kyc:dossierStatus.none') }, get tone() { return SV3_TON.muted } },
-  pending: { get label() { return i18n.t('kyc:dossierStatus.pending') }, tone: SV3_CLAIR.warn },
-  verified: { get label() { return i18n.t('kyc:dossierStatus.verified') }, tone: SV3_CLAIR.ok },
-  failed: { get label() { return i18n.t('kyc:dossierStatus.failed') }, tone: SV3_CLAIR.err },
-  stale: { get label() { return i18n.t('kyc:dossierStatus.stale') }, tone: SV3_CLAIR.warn },
+  none: { get label() { return i18n.t('kyc:dossierStatus.none') }, get tone() { return DOSSIER_TON.muted } },
+  pending: { get label() { return i18n.t('kyc:dossierStatus.pending') }, tone: DOSSIER_CLAIR.warn },
+  verified: { get label() { return i18n.t('kyc:dossierStatus.verified') }, tone: DOSSIER_CLAIR.ok },
+  failed: { get label() { return i18n.t('kyc:dossierStatus.failed') }, tone: DOSSIER_CLAIR.err },
+  stale: { get label() { return i18n.t('kyc:dossierStatus.stale') }, tone: DOSSIER_CLAIR.warn },
 }
 
 /** Labels risque 3 niveaux (handoff). */
@@ -361,10 +361,10 @@ export const KYC_RISK_LABELS: Record<
   'low' | 'medium' | 'high' | 'unassessed',
   { label: string; tone: string }
 > = {
-  low: { get label() { return i18n.t('kyc:riskBadge.low') }, tone: SV3_CLAIR.ok },
-  medium: { get label() { return i18n.t('kyc:riskBadge.medium') }, tone: SV3_CLAIR.warn },
-  high: { get label() { return i18n.t('kyc:riskBadge.high') }, tone: SV3_CLAIR.err },
-  unassessed: { get label() { return i18n.t('kyc:riskBadge.unassessed') }, get tone() { return SV3_TON.muted } },
+  low: { get label() { return i18n.t('kyc:riskBadge.low') }, tone: DOSSIER_CLAIR.ok },
+  medium: { get label() { return i18n.t('kyc:riskBadge.medium') }, tone: DOSSIER_CLAIR.warn },
+  high: { get label() { return i18n.t('kyc:riskBadge.high') }, tone: DOSSIER_CLAIR.err },
+  unassessed: { get label() { return i18n.t('kyc:riskBadge.unassessed') }, get tone() { return DOSSIER_TON.muted } },
 }
 
 /** Catégories audit nLPD — 8 valeurs (KYC_ENRICHISSEMENTS §7). */
@@ -374,11 +374,11 @@ export const AUDIT_CATEGORIES: Record<
 > = {
   kyc: { get label() { return i18n.t('common:audit.category.kyc') }, tone: '#1E5BC6' },
   deal: { get label() { return i18n.t('common:audit.category.deal') }, tone: '#0891B2' },
-  contact: { get label() { return i18n.t('common:audit.category.contact') }, get tone() { return SV3_TON.muted } },
+  contact: { get label() { return i18n.t('common:audit.category.contact') }, get tone() { return DOSSIER_TON.muted } },
   bien: { get label() { return i18n.t('common:audit.category.bien') }, tone: '#C45A00' },
-  doc: { get label() { return i18n.t('common:audit.category.doc') }, tone: SV3_CLAIR.okDark },
-  auth: { get label() { return i18n.t('common:audit.category.auth') }, get tone() { return SV3_TON.ink } },
-  settings: { get label() { return i18n.t('common:audit.category.settings') }, get tone() { return SV3_TON.muted } },
+  doc: { get label() { return i18n.t('common:audit.category.doc') }, tone: DOSSIER_CLAIR.okDark },
+  auth: { get label() { return i18n.t('common:audit.category.auth') }, get tone() { return DOSSIER_TON.ink } },
+  settings: { get label() { return i18n.t('common:audit.category.settings') }, get tone() { return DOSSIER_TON.muted } },
   ai: { get label() { return i18n.t('common:audit.category.ai') }, tone: '#7A4FD8' },
 }
 

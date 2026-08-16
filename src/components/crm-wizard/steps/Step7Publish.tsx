@@ -1,5 +1,5 @@
 // MEGGA CRM Sugar v2 Wizard — Step 7 : Publication (concept E — annonce complète)
-// Port du handoff « complet » (crm-wizard-sugar-step7.jsx — `SgStepPublish`).
+// Port du handoff « complet » (crm-wizard-sugar-step7.jsx — `WzStepPublish`).
 //
 // Checklist « Prêt à publier » (miroir UI du contrôle backend — l'API reste la
 // source de vérité) + aperçu exhaustif de l'annonce + options de publication +

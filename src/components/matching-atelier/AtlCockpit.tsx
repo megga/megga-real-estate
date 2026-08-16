@@ -7,18 +7,18 @@
 // d'annonce autrement que par deep-link `?annonce=`.
 //
 // Le concept B « Régie » du handoff n'est pas porté (variante non retenue), pas
-// plus que la jauge à crans `SgkTicks` — définie dans la maquette mais jamais
+// plus que la jauge à crans `AtlTicks` — définie dans la maquette mais jamais
 // rendue par le code acté, qui utilise la jauge continue.
 
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import AtlIcon from './AtlIcon'
-import { SGA_TABS } from './constants'
+import { ATL_TABS } from './constants'
 import { atlFmtCHF } from './format'
 import type { AtelierListing, AtelierPivot, AtelierTab } from './types'
 
 /** Vignette carrée de l'annonce — repli sur une icône appareil photo si sans visuel. */
-function SgkThumb({ url, size = 44, radius = 12 }: { url?: string | null; size?: number; radius?: number }) {
+function AtlThumb({ url, size = 44, radius = 12 }: { url?: string | null; size?: number; radius?: number }) {
   return (
     <div className="sgk-thumb" style={{ width: size, height: size, borderRadius: radius }}>
       {url
@@ -29,7 +29,7 @@ function SgkThumb({ url, size = 44, radius = 12 }: { url?: string | null; size?:
 }
 
 /** Menu de bascule d'annonce — liste les annonces ayant des acheteurs en file. */
-function SgkPivotMenu({
+function AtlPivotMenu({
   pivots, currentKey, onPick, onOpenRecherche, onClose,
 }: {
   pivots: AtelierPivot[]
@@ -55,7 +55,7 @@ function SgkPivotMenu({
             data-current={current}
             onClick={() => { if (!current) onPick(p.listing.key) }}
           >
-            <SgkThumb url={p.listing.gallery?.[0]?.url} size={40} radius={10} />
+            <AtlThumb url={p.listing.gallery?.[0]?.url} size={40} radius={10} />
             <div className="sgk-menu-txt">
               <div className="ttl">{p.listing.title}</div>
               <div className="meta nums">{atlFmtCHF(p.listing.price)}</div>
@@ -133,7 +133,7 @@ export default function AtlCockpit({
         aria-haspopup={canSwitch ? 'menu' : undefined}
         aria-expanded={canSwitch ? menuOpen : undefined}
       >
-        <SgkThumb url={listing.gallery?.[0]?.url} />
+        <AtlThumb url={listing.gallery?.[0]?.url} />
         <div className="sgk-id-txt">
           <div className="sgk-id-line">
             <span className="sgk-title">{listing.title}</span>
@@ -174,12 +174,12 @@ export default function AtlCockpit({
       <div className="sgk-flex" />
 
       <div className="seg sgk-seg" role="tablist" aria-label={t('cockpit.filterAria')}>
-        {SGA_TABS.map(tb => (
+        {ATL_TABS.map(tb => (
           <button
             key={tb.key}
             role="tab"
             aria-selected={tab === tb.key}
-            className="sga-seg-btn"
+            className="atl-seg-btn"
             data-active={tab === tb.key}
             onClick={() => setTab(tb.key)}
           >
@@ -189,7 +189,7 @@ export default function AtlCockpit({
       </div>
 
       {menuOpen && canSwitch && (
-        <SgkPivotMenu
+        <AtlPivotMenu
           pivots={pivots}
           currentKey={currentKey}
           onPick={key => { setMenuOpen(false); onPickPivot(key) }}

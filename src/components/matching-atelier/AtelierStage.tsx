@@ -63,7 +63,7 @@ export interface AtelierStageProps {
   emptyAction?: { label: string; busy: boolean; run: () => void }
   /**
    * Monté DANS le pager Matching (page 0) plutôt qu'en plein écran : l'étage
-   * devient `position:absolute` dans le bento (cf. .sga-embedded) et le bouton
+   * devient `position:absolute` dans le bento (cf. .atl-embedded) et le bouton
    * « Fermer l'atelier » disparaît — la navigation est portée par la CrmTopNav
    * du pager, pas par l'étage.
    */
@@ -295,12 +295,12 @@ export default function AtelierStage({
 
   return (
     <div
-      className={`sga sga-stage${embedded ? ' sga-embedded' : ''}`}
+      className={`atl atl-stage${embedded ? ' atl-embedded' : ''}`}
       data-theme={dark ? 'dark' : 'light'}
       data-density="confort"
     >
       {/* ── top bar ── */}
-      <div className="sga-top">
+      <div className="atl-top">
         {!embedded && (
           <button className="btn circle" title={t('atelier.closeAtelier')} onClick={onClose}>
             <AtlIcon d="close" size={18} />
@@ -341,18 +341,18 @@ export default function AtelierStage({
       </div>
 
       {/* ── triptyque ── */}
-      <div className="sga-body">
+      <div className="atl-body">
         {pivotBuyer ? (
           <AtlAcheteurMode key={pivotBuyer.id} b={pivotBuyer} pool={pool} gestes={gestes} onOpenDeal={onOpenDeal} />
         ) : isLoading ? (
           <>
-            <section className="sga-panel sga-enter" />
-            <section className="sga-panel sga-enter d1" />
-            <section className="sga-panel sga-enter d2" />
+            <section className="atl-panel atl-enter" />
+            <section className="atl-panel atl-enter d1" />
+            <section className="atl-panel atl-enter d2" />
           </>
         ) : isError ? (
-          <section className="sga-panel sga-enter" style={{ gridColumn: '1 / -1' }}>
-            <div className="sga-empty">
+          <section className="atl-panel atl-enter" style={{ gridColumn: '1 / -1' }}>
+            <div className="atl-empty">
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
                 <div className="t4 semi" style={{ color: 'var(--ink)' }}>{t('atelier.error.title')}</div>
                 <div className="t1 muted" style={{ maxWidth: 320 }}>{t('atelier.error.desc')}</div>
@@ -392,7 +392,7 @@ export default function AtelierStage({
                 colonne 3 (la maquette les en a retirés). Les gestes restent joignables :
                 `i` et `v` au clavier ci-dessus, et « pas intéressé » vient normalement
                 de l'acheteur lui-même, via sa page de réception. */}
-            <section className="sga-panel sga-enter d2" aria-label="Pourquoi ça matche">
+            <section className="atl-panel atl-enter d2" aria-label="Pourquoi ça matche">
               {selected ? (
                 <AtlWhy
                   b={selected}
@@ -405,7 +405,7 @@ export default function AtelierStage({
                   onStartKyc={() => onStartKyc(selected.id)}
                 />
               ) : (
-                <div className="sga-empty">
+                <div className="atl-empty">
                   <div>
                     <div className="t4 semi" style={{ marginBottom: 6, color: 'var(--ink)' }}>{t('atelier.queueDone.title')}</div>
                     <div className="t1 muted" style={{ maxWidth: 240 }}>
@@ -473,7 +473,7 @@ export default function AtelierStage({
 
       {/* ── toast triage (undo 5 s · voir le deal) ── */}
       {toast && (
-        <div className="sga-toast" key={toast.key}>
+        <div className="atl-toast" key={toast.key}>
           <span>{toast.msg}</span>
           {toast.deal && (
             <button

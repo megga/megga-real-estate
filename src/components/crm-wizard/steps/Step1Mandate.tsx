@@ -1,5 +1,5 @@
 // MEGGA CRM Sugar v2 Wizard — Step 1b : Mandat
-// 1:1 port from the Claude Design bundle (crm-wizard-sugar-step1.jsx — `SgStepMandate`).
+// 1:1 port from the Claude Design bundle (crm-wizard-sugar-step1.jsx — `WzStepMandate`).
 
 import { Trans, useTranslation } from 'react-i18next'
 import { WizardTokens, crmOn, crmAcc, type WizardData } from '../tokens'
@@ -201,7 +201,7 @@ export function Step1Mandate({ data, set }: StepProps) {
                   </div>
                   <input type="range" min="2" max="6" step="0.1" value={m.commission}
                     onChange={e => setM({ commission: parseFloat(e.target.value) })}
-                    className="sg-range"
+                    className="wz-range"
                     style={{
                       width: '100%', appearance: 'none', WebkitAppearance: 'none',
                       height: 4, borderRadius: 'var(--crm-radius-pill)',

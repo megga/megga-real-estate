@@ -1,5 +1,5 @@
 // MEGGA CRM Sugar v2 Wizard — Step 1a : Vendeur (recherche + création)
-// 1:1 port from the Claude Design bundle (crm-wizard-sugar-step1.jsx — `SgStepVendor`).
+// 1:1 port from the Claude Design bundle (crm-wizard-sugar-step1.jsx — `WzStepVendor`).
 
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'

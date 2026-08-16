@@ -1,7 +1,7 @@
 // MEGGA CRM — Fiche bien (mono-page dans le bento)
 // ─────────────────────────────────────────────────────────────────────────
 // RE-LAYOUT du handoff Claude Design (crm-screen-bien-fiche.jsx) posé sur le
-// MÊME câblage réel que la V3 (BienDetailSugarV3Page). Ce n'est PAS un nouveau
+// MÊME câblage réel que la fiche V3 qui l'a précédée. Ce n'est PAS un nouveau
 // branchement : hooks, dérivations et mutations sont repris tels quels de la V3
 // — seule la mise en page change (look « pager » : bento central arrondi, même
 // cadre que Today / Pipeline / Mes biens, en-tête épinglé + corps scrollable,

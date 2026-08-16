@@ -357,7 +357,7 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
     }}>
       <style>{`
         /* L'atelier (page 0) est un stage plein écran (position:fixed) : la classe
-           .sga-embedded le rend absolu pour qu'il glisse avec le track du pager,
+           .atl-embedded le rend absolu pour qu'il glisse avec le track du pager,
            embarqué dans le bento. */
         .matching-scroll-hint { opacity: .55; transition: opacity .35s ease; }
         .matching-scroll-hint:hover, .matching-scroll-hint:focus-visible { opacity: 1; }

@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import AtlIcon from './AtlIcon'
 import AtlConfirm from './AtlConfirm'
-import { SGA_KYC } from './constants'
+import { ATL_KYC } from './constants'
 import { fmtM, atlFmtCHF, atlInitials, atlReturnDate, atlScoreColor } from './format'
 import { isSnoozed } from '@/hooks/useAtelierMatching'
 import type { AtelierBuyer, AtelierPoolMatch, TriageKind } from './types'
@@ -16,7 +16,7 @@ import type { AtelierGestes, PendingHandle } from './pendingTriage'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 
 /* ── Col 1 · rangée bien ─────────────────────────────────────────────── */
-function SgbLRow({ m, selected, exiting, onClick }: {
+function AtlLRow({ m, selected, exiting, onClick }: {
   m: AtelierPoolMatch
   selected: boolean
   exiting: string | null
@@ -37,9 +37,9 @@ function SgbLRow({ m, selected, exiting, onClick }: {
 }
 
 /* ── Col 2 · profil de recherche (pivot) ─────────────────────────────── */
-function SgbProfile({ b }: { b: AtelierBuyer }) {
+function AtlProfile({ b }: { b: AtelierBuyer }) {
   const { t } = useTranslation('matching')
-  const kyc = SGA_KYC[b.kyc]
+  const kyc = ATL_KYC[b.kyc]
   const c = b.criteria
   const rows: Array<{ lb: string; vl: string }> = []
   if (c?.budget_min && c?.budget_max) rows.push({ lb: t('atelier.budget'), vl: `CHF ${fmtM(c.budget_min)} – ${fmtM(c.budget_max)}` })
@@ -50,7 +50,7 @@ function SgbProfile({ b }: { b: AtelierBuyer }) {
   if (c?.type) rows.push({ lb: t('atelier.type'), vl: c.type })
 
   return (
-    <section className="sga-panel sga-enter d1" aria-label={t('atelier.searchProfile')}>
+    <section className="atl-panel atl-enter d1" aria-label={t('atelier.searchProfile')}>
       <div className="sgb-pivot-scroll">
         <div className="sgb-id">
           <div className="av" style={{ width: 72, height: 72, background: b.av, color: encreSur(b.av), fontSize: 'var(--crm-text-5xl)', boxShadow: `0 0 0 6px ${b.av}1c` }}>
@@ -66,7 +66,7 @@ function SgbProfile({ b }: { b: AtelierBuyer }) {
           </div>
         </div>
 
-        <div className="sga-aicard">
+        <div className="atl-aicard">
           <span className="spark"><AtlIcon d="sparkle" size={15} /></span>
           <div style={{ flex: 1 }}>
             <div className="t1 semi" style={{ marginBottom: 2, color: 'var(--ink)' }}>MEGGA AI</div>
@@ -93,7 +93,7 @@ function SgbProfile({ b }: { b: AtelierBuyer }) {
 }
 
 /* ── Col 3 · pourquoi ce bien matche ─────────────────────────────────── */
-function SgbWhyBien({ m, onSend, onSkip, onLater }: {
+function AtlWhyBien({ m, onSend, onSkip, onLater }: {
   m: AtelierPoolMatch
   onSend: () => void
   onSkip: () => void
@@ -106,12 +106,12 @@ function SgbWhyBien({ m, onSend, onSkip, onLater }: {
   const negSum = m.reasons.filter(r => !r.ok).reduce((s, r) => s + Math.abs(r.pts), 0)
   const ph = L.gallery[0]
   return (
-    <div className="sga-why-anim" key={m.lid}>
+    <div className="atl-why-anim" key={m.lid}>
       <div className="sgb-hero">
         {ph?.url ? <img src={ph.url} alt={L.title} draggable="false" /> : null}
         {m.current && <span className="sgb-current chip sm">{t('atelier.currentListing')}</span>}
       </div>
-      <div className="sga-why-head" style={{ paddingTop: 14 }}>
+      <div className="atl-why-head" style={{ paddingTop: 14 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="t4 semi" style={{ color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {L.title}
@@ -120,26 +120,26 @@ function SgbWhyBien({ m, onSend, onSkip, onLater }: {
             {atlFmtCHF(L.price)} · {L.rooms != null ? t('atelier.roomsCount', { count: L.rooms }) : t('atelier.roomsLabel', { value: '—' })} · {L.area ?? '—'} m² · {L.quartier}
           </div>
         </div>
-        <div className="sga-bigscore" title={t('atelier.compatibilityScoreEst')}>
+        <div className="atl-bigscore" title={t('atelier.compatibilityScoreEst')}>
           <span className="v nums" style={{ color: atlScoreColor(m.score) }}>{m.score}</span>
           <span className="pct">/100</span>
         </div>
       </div>
 
-      <div className="sga-gauge"><i style={{ width: `${m.score}%` }} /></div>
+      <div className="atl-gauge"><i style={{ width: `${m.score}%` }} /></div>
 
-      <div className="sga-why-scroll">
+      <div className="atl-why-scroll">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 9 }}>
             <span className="eyebrow">{t('atelier.whyMatchesCriteria', { count: m.reasons.length })}</span>
             <span style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-              <span className="sga-sumpill pos">+{posSum}</span>
-              {negSum > 0 && <span className="sga-sumpill neg">−{negSum}</span>}
+              <span className="atl-sumpill pos">+{posSum}</span>
+              {negSum > 0 && <span className="atl-sumpill neg">−{negSum}</span>}
             </span>
           </div>
-          <div className="sga-reasons">
+          <div className="atl-reasons">
             {reasons.map((r, i) => (
-              <div className={`sga-reason ${r.ok ? 'pos' : 'neg'}`} key={i}>
+              <div className={`atl-reason ${r.ok ? 'pos' : 'neg'}`} key={i}>
                 <span className="lbl">{r.label}<em>{r.detail}</em></span>
                 <span className="pts nums">{r.pts > 0 ? '+' : ''}{r.pts}</span>
               </div>
@@ -148,7 +148,7 @@ function SgbWhyBien({ m, onSend, onSkip, onLater }: {
         </div>
       </div>
 
-      <div className="sga-triage">
+      <div className="atl-triage">
         <div className="btns" data-cols="3">
           <button className="btn btn-ghost" onClick={onSkip}>
             <AtlIcon d="close" size={16} /> {t('atelier.dismiss')}
@@ -173,7 +173,7 @@ interface AtlAcheteurModeProps {
   onOpenDeal: (dealId: string | null) => void
 }
 
-interface SgbToast {
+interface AtlToast {
   msg: string
   deal: boolean
   key: number
@@ -186,7 +186,7 @@ export default function AtlAcheteurMode({ b, pool, gestes, onOpenDeal }: AtlAche
   const [laterInfo, setLaterInfo] = useState<Record<string, string>>({})
   const [history, setHistory] = useState<string[]>([])
   const [exiting, setExiting] = useState<{ id: string; dir: string } | null>(null)
-  const [toast, setToast] = useState<SgbToast | null>(null)
+  const [toast, setToast] = useState<AtlToast | null>(null)
   const [confirmLid, setConfirmLid] = useState<string | null>(null)
   const handles = useRef(new Map<string, PendingHandle>())
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -314,8 +314,8 @@ export default function AtlAcheteurMode({ b, pool, gestes, onOpenDeal }: AtlAche
   return (
     <>
       {/* ── col 1 · biens matchés ── */}
-      <section className="sga-panel sga-enter" aria-label={t('atelier.matchedListings')}>
-        <div className="sga-queue-h">
+      <section className="atl-panel atl-enter" aria-label={t('atelier.matchedListings')}>
+        <div className="atl-queue-h">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span className="eyebrow" style={{ whiteSpace: 'nowrap' }}>{t('atelier.matchedListingsCount', { count: open.length })}</span>
             <span className="t1 dim" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -323,9 +323,9 @@ export default function AtlAcheteurMode({ b, pool, gestes, onOpenDeal }: AtlAche
             </span>
           </div>
         </div>
-        <div className="sga-queue-list">
+        <div className="atl-queue-list">
           {open.length === 0 && (
-            <div className="sga-empty">
+            <div className="atl-empty">
               <div>
                 <div className="t4 med" style={{ marginBottom: 6, color: 'var(--ink)' }}>{t('atelier.queueProcessed')}</div>
                 <div className="t1 muted">{t('atelier.allListingsSorted', { name: b.first })}</div>
@@ -333,7 +333,7 @@ export default function AtlAcheteurMode({ b, pool, gestes, onOpenDeal }: AtlAche
             </div>
           )}
           {open.map(m => (
-            <SgbLRow
+            <AtlLRow
               key={m.lid}
               m={m}
               selected={selected != null && m.lid === selected.lid}
@@ -343,17 +343,17 @@ export default function AtlAcheteurMode({ b, pool, gestes, onOpenDeal }: AtlAche
           ))}
         </div>
         {snoozed.length > 0 && (
-          <div className="sga-snoozed" data-open="true">
-            <button className="sga-snoozed-h" style={{ cursor: 'default' }}>
+          <div className="atl-snoozed" data-open="true">
+            <button className="atl-snoozed-h" style={{ cursor: 'default' }}>
               <AtlIcon d="clock" size={13} />
               <span>{t('atelier.snoozed')}</span>
               <span className="cnt nums">{snoozed.length}</span>
             </button>
-            <div className="sga-snoozed-body">
+            <div className="atl-snoozed-body">
               <div className="inner">
                 {snoozed.map(({ m, until }, i) => (
                   <div
-                    className="sga-snooze-row"
+                    className="atl-snooze-row"
                     key={m.lid}
                     style={{ animationDelay: `${i * 40}ms` }}
                     onClick={() => wake(m.lid)}
@@ -373,19 +373,19 @@ export default function AtlAcheteurMode({ b, pool, gestes, onOpenDeal }: AtlAche
       </section>
 
       {/* ── col 2 · profil pivot ── */}
-      <SgbProfile b={b} />
+      <AtlProfile b={b} />
 
       {/* ── col 3 · pourquoi ce bien ── */}
-      <section className="sga-panel sga-enter d2" aria-label={t('atelier.whyThisListing')}>
+      <section className="atl-panel atl-enter d2" aria-label={t('atelier.whyThisListing')}>
         {selected ? (
-          <SgbWhyBien
+          <AtlWhyBien
             m={selected}
             onSend={() => requestSend(selected.lid)}
             onSkip={() => triage(selected.lid, 'skipped')}
             onLater={() => triage(selected.lid, 'later')}
           />
         ) : (
-          <div className="sga-empty">
+          <div className="atl-empty">
             <div>
               <div className="t4 semi" style={{ marginBottom: 6, color: 'var(--ink)' }}>{t('atelier.queueProcessed')}</div>
               <div className="t1 muted" style={{ maxWidth: 240 }}>
@@ -408,7 +408,7 @@ export default function AtlAcheteurMode({ b, pool, gestes, onOpenDeal }: AtlAche
 
       {/* ── toast ── */}
       {toast && (
-        <div className="sga-toast" key={toast.key}>
+        <div className="atl-toast" key={toast.key}>
           <span>{toast.msg}</span>
           {toast.deal && (
             <button

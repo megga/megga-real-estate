@@ -6,20 +6,20 @@ import type { AtelierBuyer, AtelierKyc, AtelierStatus, AtelierTab } from './type
 import i18n from '@/i18n'
 
 // Rappel doux, non bloquant — décision mai 2026 (le KYC ne gate aucun geste)
-export const SGA_KYC: Record<AtelierKyc, { tone: 'green' | 'yellow'; label: string }> = {
+export const ATL_KYC: Record<AtelierKyc, { tone: 'green' | 'yellow'; label: string }> = {
   verified: { tone: 'green', get label() { return i18n.t('matching:atelierKyc.verified') } },
   pending: { tone: 'yellow', get label() { return i18n.t('matching:atelierKyc.pending') } },
   stale: { tone: 'yellow', get label() { return i18n.t('matching:atelierKyc.stale') } },
   none: { tone: 'yellow', get label() { return i18n.t('matching:atelierKyc.none') } },
 }
 
-export const SGA_ENGAGE_TONE: Record<AtelierStatus, string> = {
+export const ATL_ENGAGE_TONE: Record<AtelierStatus, string> = {
   engaged: 'green',
   'to-send': 'blue',
   'no-reply': 'ink',
 }
 
-export const SGA_TABS: Array<{ key: AtelierTab; label: string }> = [
+export const ATL_TABS: Array<{ key: AtelierTab; label: string }> = [
   { key: 'all', get label() { return i18n.t('matching:tabs.all') } },
   { key: 'to-send', get label() { return i18n.t('matching:tabs.to-send') } },
   { key: 'engaged', get label() { return i18n.t('matching:tabs.engaged') } },
