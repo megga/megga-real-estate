@@ -11,7 +11,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'motion/react'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
-import { type CrmPalette, crmVoileEncre } from '../tokens'
+import { type CrmPalette, crmVoileAssombrissant } from '../tokens'
 
 interface Props {
   sp: CrmPalette
@@ -53,7 +53,9 @@ export function SignedBento({
   return createPortal(
     <div onClick={onFinish} style={{
       position: 'fixed', inset: 0, zIndex: 150,
-      background: crmVoileEncre(dark, dark ? 0.55 : 0.28),
+      // Voile de célébration : il REPOUSSE le pipeline derrière lui, donc sombre
+      // dans les deux thèmes. En `crmVoileEncre(dark, …)` il virait au blanc.
+      background: crmVoileAssombrissant(dark ? 0.55 : 0.28),
       backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
       display: 'grid', placeItems: 'center', animation: 'sgSignVeil .25s ease-out both',
     }}>

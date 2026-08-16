@@ -4,7 +4,7 @@
 // vraie stack : zéro `window.*`, tokens issus du vrai `CrmPalette`.
 
 import type { CSSProperties } from 'react'
-import { crmVoileEncre, type CrmPalette } from '@/components/crm/tokens'
+import { crmVoileAssombrissant, crmVoileEncre, type CrmPalette } from '@/components/crm/tokens'
 import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 
 // ── Géométrie ───────────────────────────────────────────────────────────────
@@ -414,7 +414,9 @@ export function revueKit(sp: AiPalette): RevueKit {
   return {
     scrim: {
       position: 'fixed', inset: 0, zIndex: 100, display: 'grid', placeItems: 'center',
-      background: crmVoileEncre(dark, dark ? 0.55 : 0.28),
+      // Le voile REPOUSSE l'arrière-plan, il ne s'en détache pas : sombre dans les
+      // deux thèmes. `crmVoileEncre(dark, …)` rendrait ici un drap BLANC à 55 %.
+      background: crmVoileAssombrissant(dark ? 0.55 : 0.28),
       backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
       padding: 20,
     },
@@ -422,7 +424,8 @@ export function revueKit(sp: AiPalette): RevueKit {
       width: 'min(540px, 100%)', maxHeight: '86vh', overflowY: 'auto',
       background: sp.panelBg, borderRadius: 'var(--crm-radius-4xl)',
       padding: '20px 22px 18px',
-      boxShadow: `0 30px 80px -14px ${crmVoileEncre(dark, dark ? 0.7 : 0.28)}`,
+      // Une ombre portée est une absence de lumière — jamais un halo clair.
+      boxShadow: `0 30px 80px -14px ${crmVoileAssombrissant(dark ? 0.7 : 0.28)}`,
       display: 'flex', flexDirection: 'column', gap: 14,
     },
     titre: {

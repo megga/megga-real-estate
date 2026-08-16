@@ -265,6 +265,35 @@ export function crmVoileEncre(dark: boolean, alpha: number): string {
   return dark ? `rgba(255,255,255,${alpha})` : `rgba(3,3,3,${alpha})`
 }
 
+/**
+ * Voile qui ASSOMBRIT — toujours sombre, quel que soit le thème.
+ *
+ * ⛔ POURQUOI IL EXISTE À CÔTÉ DE `crmVoileEncre`, QUI LUI RESSEMBLE. Les deux
+ * rendent un noir translucide en clair, et c'est là le piège : ils divergent
+ * seulement en SOMBRE, donc une confusion ne se voit jamais dans le thème où l'on
+ * développe par défaut.
+ *
+ * `crmVoileEncre` est RELATIF au thème : il pose « ce qui s'oppose à la surface »,
+ * donc du blanc sur un canevas sombre. C'est juste pour un survol, un filet, une
+ * pastille — tout ce qui doit se détacher. Mesuré le 16 août 2026 : 31 des 33
+ * appels l'emploient ainsi, à des opacités de 0,04 à 0,12.
+ *
+ * Un voile de modale ne demande PAS cela. Il ne cherche pas à se détacher : il
+ * repousse l'arrière-plan pour désigner ce qui est au premier plan, et repousser
+ * veut dire assombrir dans les DEUX thèmes. Les deux appels restants — le voile
+ * des cinq modales de revue du copilote et celui du panneau « Signé » du pipeline —
+ * étaient passés à `crmVoileEncre(dark, 0.55)` lors du port MEGGA X : en thème
+ * sombre, ils noyaient l'écran sous un drap BLANC à 55 % au lieu de l'assombrir.
+ * Avant le port, les deux écrivaient un noir en dur dans les deux thèmes.
+ *
+ * ⚠ La règle de choix tient en une question : ce voile doit-il SE DÉTACHER de la
+ * surface (`crmVoileEncre`) ou la REPOUSSER (celui-ci) ? Garde :
+ * `tests/unit/voile-modale.spec.ts`.
+ */
+export function crmVoileAssombrissant(alpha: number): string {
+  return `rgba(3,3,3,${alpha})`
+}
+
 /** Fond des pilules d'étape à texte blanc : teinte assombrie en clair
  *  (contraste ≥ 4.5:1), teinte vive inchangée en sombre. Réservé aux aplats
  *  portant du texte — pastilles 8-9 px et barres restent en CRM_STAGE_HUE pur. */
