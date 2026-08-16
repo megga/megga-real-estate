@@ -18,10 +18,11 @@ import {
   MUTED,
   escapeHtml, shell, p, note, button,
 } from './email-shell.ts'
+import { appDashboardUrl } from './app-url.ts'
 import type { Alert } from './admin-alerts.ts'
 
 /** ⚠ app.megga.ch, jamais megga.ch : la vitrine est derrière un mot de passe (401). */
-const URL_MONITORING = 'https://app.megga.ch/dashboard/admin/monitoring'
+const URL_MONITORING = appDashboardUrl('/dashboard/admin/monitoring')
 
 /**
  * Horodatage lisible, dans le fuseau où travaille l'équipe.

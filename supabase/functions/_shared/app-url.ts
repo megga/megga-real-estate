@@ -47,11 +47,20 @@
  * d'emprunter la base.
  */
 function appBaseUrl(): string {
+  // ⚠ `Deno` EST TESTÉ AVANT D'ÊTRE LU, et ce n'est pas de la prudence de principe.
+  // Les gabarits d'e-mail de `_shared` sont PURS et tournent sous vitest, donc sous
+  // NODE, où l'objet `Deno` n'existe pas : le simple fait d'importer ce module depuis
+  // l'un d'eux faisait tomber sa spec en `ReferenceError: Deno is not defined`
+  // (mesuré le 16 août 2026 sur admin-alert-email, visit-email et weekly-report).
+  // Sans ce garde-fou, le choix se réduisait à figer l'adresse dans chaque gabarit —
+  // c'est-à-dire à recréer les copies que ce module existe pour supprimer.
+  // Hors Deno, il n'y a de toute façon aucun secret à lire : le repli est la valeur.
+  const env = typeof Deno === 'undefined' ? undefined : Deno.env.get('MEGGA_APP_URL')
   // `??` ne retombe que sur null/undefined, PAS sur la chaîne vide — or vider un secret est
   // la façon la plus courante de le « désactiver » côté Supabase. Sans ce `||`, une valeur
   // posée-mais-vide donnait une base `''`, donc des URL RELATIVES dans un e-mail : le lien
   // ne mène nulle part, et la panne a exactement la signature de celle qu'on vient de fermer.
-  const brut = (Deno.env.get('MEGGA_APP_URL') ?? '').trim()
+  const brut = (env ?? '').trim()
   return (brut || 'https://app.megga.ch').replace(/\/+$/, '')
 }
 
@@ -138,4 +147,26 @@ export function onboardingCallManageUrl(token: string): string {
  */
 export function kycReportRenderUrl(token: string): string {
   return `${appBaseUrl()}/kyc-report/${token}`
+}
+
+/**
+ * Une page du CRM, derrière l'authentification — la cible des pilules « Ouvrir
+ * mon espace » que la coquille pose en en-tête.
+ *
+ * ⛔ POURQUOI ELLE EXISTE, ALORS QUE LES AUTRES CONSTRUCTEURS SERVENT DES PARCOURS
+ * PUBLICS. Mesuré le 16 août 2026 : trois fichiers neufs figeaient
+ * `https://app.megga.ch/…` en dur — `admin-alert-email.ts` (monitoring),
+ * `weekly-report-email.ts` (console, dont l'en-tête se compte lui-même comme
+ * « TROISIÈME occurrence de cette confusion ») et `visit-email.ts` (tableau de
+ * bord). C'est exactement la répétition que l'incident d'`onboarding-call-reminder`
+ * raconte plus haut : une QUATRIÈME copie de la même adresse, qu'un changement de
+ * domaine n'aurait pas atteinte.
+ *
+ * Le fait que la page exige une session ne change rien à l'argument : ce qui doit
+ * rester unique, c'est la BASE, pas la nature du destinataire.
+ *
+ * @param chemin chemin absolu dans l'app, avec sa barre de tête (`/dashboard`).
+ */
+export function appDashboardUrl(chemin = '/dashboard'): string {
+  return `${appBaseUrl()}${chemin}`
 }

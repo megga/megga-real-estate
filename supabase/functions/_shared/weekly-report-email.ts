@@ -14,9 +14,10 @@
 // adresse pour un lien applicatif.
 
 import { INK, MUTED, FONT, escapeHtml, shell, p, row, button } from './email-shell.ts'
+import { appDashboardUrl } from './app-url.ts'
 
 /** ⚠ app.megga.ch, jamais megga.ch : cf. l'en-tête. */
-const URL_CONSOLE = 'https://app.megga.ch/dashboard/admin'
+const URL_CONSOLE = appDashboardUrl('/dashboard/admin')
 
 /**
  * Une ligne du rapport. `delta` n'est rendu que s'il est positif : « +0 » n'apprend rien,
