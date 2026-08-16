@@ -403,6 +403,18 @@
         "postponed_other": "verschoben",
         "explainer": "Verschobene Leads kommen morgen zurück; verworfene Leads sind aus der Schleife.",
         "backToDashboard": "Zurück zum Dashboard"
+      },
+      "review": {
+        "title": "Gegenlesen · die Nachricht geht auf {{langue}} raus",
+        "notSent": "Diese Fassung wird nicht gesendet. Sie dient Ihnen zum Gegenlesen vor dem Versand.",
+        "loading": "Übersetzung läuft…",
+        "unavailable": "Das Gegenlesen konnte nicht erstellt werden. Der Entwurf bleibt unverändert versandbereit.",
+        "lang": {
+          "fr": "Französisch",
+          "de": "Deutsch",
+          "en": "Englisch",
+          "it": "Italienisch"
+        }
       }
     },
     "h": {

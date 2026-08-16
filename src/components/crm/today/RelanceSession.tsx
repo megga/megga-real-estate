@@ -22,6 +22,7 @@ import type { Json } from '@/types/database'
 import { uuidOrNull } from './focusAudit'
 import { useRelanceLeads } from '@/hooks/useRelanceLeads'
 import { useRelanceSession } from './useRelanceSession'
+import { langueClient, parseDraft, type Langue } from './relanceLangue'
 
 // La couleur reste un token de présentation ; le libellé de température est une
 // clé i18n stable (code → clé), traduite au point d'usage.
@@ -51,6 +52,8 @@ interface RSLead {
   temp: string
   age?: string
   email: string | null
+  /** `contacts.language` — langue de CORRESPONDANCE du client, pas celle de l'agent. */
+  language: string | null
   why: string
   // subject/draft : présents uniquement sur les leads de démo (fallback). Pour
   // les vrais leads, le brouillon est généré par DeepSeek à la demande.
@@ -66,6 +69,40 @@ function RSCopyIcon({ size = 17, sw = 2 }: { size?: number; sw?: number }) {
       <rect x="9" y="9" width="11" height="11" rx="2.5" />
       <path d="M5 15V5a2 2 0 0 1 2-2h8" />
     </svg>
+  )
+}
+
+/**
+ * Relecture assistée — le brouillon rendu dans la langue de l'AGENT.
+ *
+ * ⛔ RIEN D'ICI NE PART. Le brouillon envoyé reste celui de la carte au-dessus, dans la
+ * langue du client. Ce bloc existe parce que la validation humaine est la règle du produit
+ * (CLAUDE.md) et qu'un agent qui ne lit pas l'allemand ne valide rien en cliquant « Envoyer »
+ * sur un texte allemand : il acquiesce. En lecture seule, et dit qu'il ne part pas.
+ *
+ * Une glose absente (échec de génération) n'empêche jamais l'envoi : on affiche alors la
+ * seule chose honnête, à savoir que la relecture n'a pas pu être produite.
+ */
+function RSRelecture({ langue, glose, enCours }: { langue: Langue; glose: string | null; enCours: boolean }) {
+  const { t } = useTranslation('dashboard')
+  return (
+    <div style={{ marginTop: 'var(--crm-space-lg)', border: `1px dashed ${TK.border}`, borderRadius: 'var(--crm-radius-2xl)',
+      background: 'transparent', padding: 'var(--crm-space-2xl) var(--crm-space-3xl)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginBottom: 'var(--crm-space-md)' }}>
+        <RXIcon name="edit" size={12} sw={2} />
+        <span style={{ fontSize: 'var(--crm-text-sm)', color: TK.sub, fontWeight: 600 }}>
+          {t('today.relance.review.title', { langue: t(`today.relance.review.lang.${langue}`) })}
+        </span>
+      </div>
+      <p style={{ margin: 0, fontSize: 'var(--crm-text-md)', color: TK.faint, lineHeight: 1.5 }}>
+        {t('today.relance.review.notSent')}
+      </p>
+      {enCours
+        ? <p style={{ margin: 'var(--crm-space-md) 0 0', fontSize: 'var(--crm-text-md)', color: TK.faint }}>{t('today.relance.review.loading')}</p>
+        : glose
+          ? <p style={{ margin: 'var(--crm-space-md) 0 0', fontSize: 'var(--crm-text-lg)', color: TK.sub, lineHeight: 1.6, whiteSpace: 'pre-line' }}>{glose}</p>
+          : <p style={{ margin: 'var(--crm-space-md) 0 0', fontSize: 'var(--crm-text-md)', color: TK.faint }}>{t('today.relance.review.unavailable')}</p>}
+    </div>
   )
 }
 
@@ -165,21 +202,6 @@ const tempFromScore = (score: number): string => (score >= 80 ? 'chaud' : score 
 
 const PALETTE = ['#5b6cff', '#8B5CF6', '#2370ff', '#E0617A', '#74d184', '#39B7C9', '#E08A45', '#9b7cf0']
 
-// Type minimal du traducteur i18next (injection §5A — fonction pure non-composant).
-type TFunc = (key: string, params?: Record<string, unknown>) => string
-
-// Sépare un « Objet : … » d'en-tête du corps du message rédigé par l'IA.
-function parseDraft(text: string, lead: RSLead, t: TFunc): { subject: string; body: string } {
-  const trimmed = (text || '').trim()
-  const nl = trimmed.indexOf('\n')
-  const firstLine = (nl === -1 ? trimmed : trimmed.slice(0, nl)).trim()
-  const m = firstLine.match(/^objet\s*:?\s*(.+)$/i)
-  if (m) {
-    return { subject: m[1].trim(), body: trimmed.slice(nl + 1).replace(/^\s+/, '') }
-  }
-  return { subject: t('today.relance.draft.fallbackSubject', { name: lead.name.split(' ')[0] }), body: trimmed }
-}
-
 // ═══════════════════════════════════════════════════════════════════════════
 // SESSION OVERLAY
 // ═══════════════════════════════════════════════════════════════════════════
@@ -188,6 +210,10 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   const [asked, setAsked] = useState(false) // l'IA a-t-elle été sollicitée
   const [gen, setGen] = useState(false) // génération en cours
   const [copied, setCopied] = useState(false)
+  // Relecture assistée : le brouillon rendu dans la langue de l'AGENT quand il est rédigé
+  // dans une autre. Lecture seule, jamais envoyé.
+  const [glose, setGlose] = useState<string | null>(null)
+  const [gloseEnCours, setGloseEnCours] = useState(false)
   const [sending, setSending] = useState(false) // envoi MEGGA en cours
   const [sent, setSent] = useState(false) // envoyé depuis MEGGA
   const [done, setDone] = useState(false)
@@ -199,7 +225,10 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   const [sendError, setSendError] = useState(false) // échec d'envoi MEGGA
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const { t } = useTranslation('dashboard')
+  const { t, i18n } = useTranslation('dashboard')
+  // La langue de l'AGENT : celle de son interface. Elle sert au chat du copilote et à la
+  // relecture assistée — jamais à décider dans quelle langue écrire AU CLIENT.
+  const langueAgent = langueClient(i18n.language?.slice(0, 2))
   const { user, profile } = useAuth()
   const { leads: realLeads, isLoading, isEmpty } = useRelanceLeads()
   // Lot 4 — la session survit à la fermeture. La reprise se lit par DIFFÉRENCE
@@ -220,6 +249,7 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
         name: `${l.first} ${l.last}`.trim(),
         temp: tempFromScore(l.score),
         email: l.email,
+        language: l.language,
         why: l.reason,
       }))
     : []
@@ -238,9 +268,16 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
       const { data, error } = await supabase.functions.invoke('ai-copilot', {
         body: {
           action: 'draft_email',
-          message: `Rédige une relance email courtoise et personnalisée pour ${lead.name}. Objectif : reprendre contact après une période sans nouvelle, sans pression commerciale. Commence ta réponse par une ligne « Objet : … », puis une ligne vide, puis le corps de l'email (vouvoiement, formules suisses, signature « ${agentName} — MEGGA »).`,
+          // ⚠ La consigne d'en-tête reste écrite en français (c'est une instruction AU
+          // MODÈLE, pas du texte envoyé) ; `recipient_locale` dit dans quelle langue RÉDIGER.
+          // La ligne d'en-tête est nommée dans les quatre langues, sinon le modèle écrit
+          // « Betreff : » et `parseDraft` doit deviner.
+          message: `Rédige une relance email courtoise et personnalisée pour ${lead.name}. Objectif : reprendre contact après une période sans nouvelle, sans pression commerciale. Commence ta réponse par une ligne d'objet (« Objet : », « Betreff: », « Subject: » ou « Oggetto: » selon la langue de rédaction), puis une ligne vide, puis le corps de l'email, signé « ${agentName} · MEGGA ».`,
           context: { contact: lead.name, raison_relance: lead.why, email: lead.email },
-          language: 'fr',
+          // `language` = celle de l'AGENT (le chat du copilote). `recipient_locale` = celle
+          // du CLIENT, qui gouverne le texte produit. Les deux sont distinctes par nature.
+          language: langueAgent,
+          recipient_locale: langueClient(lead.language),
         },
       })
       if (error) throw error
@@ -250,10 +287,42 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
       setSubject(parsed.subject)
       setDraft(parsed.body)
       setAsked(true)
+      // Relecture assistée : si le brouillon n'est pas dans la langue de l'agent, il ne peut
+      // pas le VALIDER — or la validation humaine est la règle du produit. On lui rend donc
+      // une version dans SA langue, en lecture seule, qui ne part jamais.
+      setGlose(null)
+      if (langueClient(lead.language) !== langueAgent) void genererGlose(parsed.subject, parsed.body)
     } catch {
       setGenError(true)
     } finally {
       setGen(false)
+    }
+  }
+
+  /**
+   * Traduction de courtoisie du brouillon, dans la langue de l'AGENT.
+   *
+   * ⛔ ELLE N'EST JAMAIS ENVOYÉE : c'est une aide à la relecture, pas un contenu. Un échec
+   * la laisse absente plutôt que de bloquer l'envoi — l'agent garde le brouillon d'origine,
+   * qui reste, lui, la seule chose qui parte.
+   */
+  const genererGlose = async (objet: string, corps: string) => {
+    setGloseEnCours(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-copilot', {
+        body: {
+          action: 'chat',
+          message: `Traduis fidèlement cet e-mail pour que l'agent puisse le relire avant de l'envoyer. Ne commente pas, ne réécris pas, ne corrige pas : rends la traduction seule, en conservant l'objet en première ligne.\n\nObjet : ${objet}\n\n${corps}`,
+          language: langueAgent,
+        },
+      })
+      if (error) throw error
+      const r = (data as { result?: string } | null)?.result
+      setGlose(r?.trim() || null)
+    } catch {
+      setGlose(null)
+    } finally {
+      setGloseEnCours(false)
     }
   }
   const ask = () => { void generate() }
@@ -515,6 +584,9 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
                   onSubject={(v) => { setSubject(v); setCopied(false) }}
                   onDraft={(v) => { setDraft(v); setCopied(false) }}
                   onRegen={regen} />
+                {langueClient(lead.language) !== langueAgent && (
+                  <RSRelecture langue={langueClient(lead.language)} glose={glose} enCours={gloseEnCours} />
+                )}
 
                 {/* ACTIONS — copier = geste central ; envoi MEGGA = chemin intégré */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>

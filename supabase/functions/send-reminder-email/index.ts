@@ -3,6 +3,8 @@
 // Appelée par automation-engine quand auto_send = true sur une règle
 
 import { buildContactReminderEmail } from '../_shared/reminder-email.ts'
+import { reminderTemplate } from '../_shared/reminder-templates.ts'
+import { parseLocale, DEFAULT_LOCALE } from '../_shared/recipient-language.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
@@ -18,80 +20,11 @@ interface RequestBody {
   agency_id: string
 }
 
-// ── Templates par défaut (utilisés si pas de template en base) ──────────────
-
-interface DefaultTemplate {
-  subject: string
-  body: string
-}
-
-const DEFAULT_TEMPLATES: Record<string, DefaultTemplate> = {
-  follow_up_sent_property: {
-    subject: 'Suite à notre sélection de biens',
-    body: `Bonjour {{contact.first_name}},
-
-Je vous ai envoyé récemment une sélection de biens qui correspond à vos critères de recherche.
-
-Avez-vous eu l'occasion de la consulter ? Je reste à votre disposition pour organiser des visites ou répondre à vos questions.
-
-Cordialement,
-{{agent.full_name}}
-{{agency.name}}`,
-  },
-  post_visit_feedback: {
-    subject: 'Votre avis suite à la visite',
-    body: `Bonjour {{contact.first_name}},
-
-Suite à notre visite récente, j'aimerais connaître votre impression.
-
-Quels sont les points qui vous ont plu ? Y a-t-il des éléments qui ne correspondent pas à vos attentes ?
-
-Votre retour m'aidera à affiner ma recherche pour mieux répondre à vos critères.
-
-Cordialement,
-{{agent.full_name}}`,
-  },
-  dormant_lead: {
-    subject: 'Des nouvelles de votre projet immobilier',
-    body: `Bonjour {{contact.first_name}},
-
-Je me permets de prendre de vos nouvelles concernant votre projet immobilier.
-
-De nouveaux biens sont disponibles qui pourraient correspondre à vos critères. Souhaitez-vous que je vous envoie une sélection actualisée ?
-
-N'hésitez pas à me contacter si votre projet a évolué.
-
-Cordialement,
-{{agent.full_name}}
-{{agency.name}}`,
-  },
-  missing_document: {
-    subject: 'Document requis pour votre dossier',
-    body: `Bonjour {{contact.first_name}},
-
-Afin de poursuivre le traitement de votre dossier, il nous manque encore certains documents.
-
-Pourriez-vous nous les transmettre à votre meilleure convenance ? Cela nous permettra d'avancer rapidement.
-
-Je reste disponible si vous avez des questions.
-
-Cordialement,
-{{agent.full_name}}
-{{agency.name}}`,
-  },
-  custom: {
-    subject: 'Point sur votre projet immobilier',
-    body: `Bonjour {{contact.first_name}},
-
-Je souhaitais faire un point avec vous concernant votre projet immobilier.
-
-N'hésitez pas à me contacter pour en discuter. Je suis à votre disposition.
-
-Cordialement,
-{{agent.full_name}}
-{{agency.name}}`,
-  },
-}
+// ── Copie par défaut ────────────────────────────────────────────────────────
+//
+// Les cinq gabarits par défaut vivent dans `_shared/reminder-templates.ts` depuis le
+// 16.08.2026, dans les quatre langues. Ils étaient ici, en français seul : hors de portée
+// du banc de rendu et de tout test, alors que ce sont eux qui partent réellement.
 
 // ── HTML email builder ──────────────────────────────────────────────────────
 
@@ -192,29 +125,50 @@ serve(async (req) => {
     const agencyName = agency?.name || 'MEGGA Immobilier'
 
     // ── 4. Resolve template ──
+    //
+    // LA LANGUE VIENT DE LA FICHE, et de nulle part ailleurs : ce chemin est déclenché par
+    // `automation-engine` depuis un cron, il n'a aucune requête d'où lire une préférence.
+    // `contacts.language` porte déjà le CHECK (fr|de|en|it) ; `parseLocale` reste là pour
+    // le cas NULL, qui veut dire « jamais renseignée » et non « français demandé ».
+    const locale = parseLocale(contact.language) ?? DEFAULT_LOCALE
+
     let subject: string
     let body: string
 
-    // Try to load DB template first
-    if (reminder.message_template) {
+    // ⚠ SURCHARGE EN BASE : conservée telle quelle, et NON traduite. Ce sont les mots de
+    // l'agence, pas ceux de MEGGA ; les réécrire dans la langue du contact serait décider à
+    // sa place. La table ne gagne donc pas de colonne de langue.
+    //
+    // ⛔ CE CHEMIN NE PEUT PAS ABOUTIR AUJOURD'HUI, et c'est mesuré (16.08.2026) :
+    // `message_templates` compte 0 ligne, aucun écrivain n'existe dans le dépôt, et surtout
+    // `reminders.message_template` est un `text` où TOUS les producteurs réels écrivent une
+    // PHRASE lisible (« Premier suivi », les raisons du radar…), jamais un uuid. Le
+    // `.eq('id', …)` ci-dessous partait donc en `invalid input syntax for type uuid`, erreur
+    // avalée parce que seul `data` était déstructuré. Le garde d'UUID évite une requête
+    // vouée à échouer ; il ne retire aucune capacité.
+    const estUuid = (v: unknown): v is string =>
+      typeof v === 'string' &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
+
+    const defauts = reminderTemplate(reminder.type, locale)
+
+    if (estUuid(reminder.message_template)) {
       const { data: tpl } = await supabase
         .from('message_templates')
         .select('subject, body')
         .eq('id', reminder.message_template)
-        .single()
+        .maybeSingle()
 
-      if (tpl) {
-        subject = tpl.subject || DEFAULT_TEMPLATES[reminder.type]?.subject || 'Information MEGGA'
+      if (tpl?.body) {
+        subject = tpl.subject || defauts.subject
         body = tpl.body
       } else {
-        const defaults = DEFAULT_TEMPLATES[reminder.type] || DEFAULT_TEMPLATES.custom
-        subject = defaults.subject
-        body = defaults.body
+        subject = defauts.subject
+        body = defauts.body
       }
     } else {
-      const defaults = DEFAULT_TEMPLATES[reminder.type] || DEFAULT_TEMPLATES.custom
-      subject = defaults.subject
-      body = defaults.body
+      subject = defauts.subject
+      body = defauts.body
     }
 
     // Build variable map
@@ -259,7 +213,8 @@ serve(async (req) => {
       subject: resolvedSubject,
       body: resolvedBody,
       agentName,
-      unsubscribeHtml: unsub ? unsubscribeFooterHtml(unsub.url, contact.language ?? 'fr') : undefined,
+      locale,
+      unsubscribeHtml: unsub ? unsubscribeFooterHtml(unsub.url, locale) : undefined,
     })
 
     const resendResponse = await fetch('https://api.resend.com/emails', {

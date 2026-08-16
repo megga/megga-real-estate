@@ -5,6 +5,7 @@
 // MEGGA AI in the relance editor) so the agent owns the wording.
 
 import { buildRelanceEmail } from '../_shared/relance-email.ts'
+import { parseLocale, DEFAULT_LOCALE } from '../_shared/recipient-language.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
@@ -87,7 +88,13 @@ serve(async (req) => {
     // (channel='all') la bloque, tout comme un clic « se désinscrire » sur un e-mail
     // précédent. C'est le trou que ce chantier ferme — le refus était enregistré et
     // opposable, et ce canal-ci l'ignorait.
-    const verdict = await emailSendAllowed(admin, { to: body.to, purpose: 'relance' })
+    // ⛔ `contactId` N'ÉTAIT PAS PASSÉ, et c'était un trou dans cette garde même. Le registre
+    // se lit par ADRESSE mais AUSSI par contact : un STOP reçu sur WhatsApp écrit
+    // `channel='all'` sur le NUMÉRO, pas sur l'e-mail. Sans ce second chemin, quelqu'un qui
+    // avait demandé qu'on le laisse tranquille continuait de recevoir des relances.
+    // `leadId` EST un `contacts.id` chez les trois appelants — il ne servait que de tag Resend.
+    const contactId = body.leadId ?? null
+    const verdict = await emailSendAllowed(admin, { to: body.to, purpose: 'relance', contactId })
     if (!verdict.allowed) {
       return new Response(
         JSON.stringify({ error: verdict.reason, blocked: true }),
@@ -95,10 +102,24 @@ serve(async (req) => {
       )
     }
 
-    const unsub = await unsubscribeHeaders(body.to)
+    // La langue du DESTINATAIRE, lue en base. Elle ne gouverne que ce que MEGGA écrit
+    // (mention de pied, désinscription, attribut `lang`) — le corps reste dans la langue où
+    // l'agent l'a rédigé. Une langue absente ou un `leadId` qui n'est pas un contact : le
+    // français, sans bruit, comme partout ailleurs.
+    let locale = DEFAULT_LOCALE
+    if (contactId) {
+      const { data: contact } = await admin
+        .from('contacts').select('language').eq('id', contactId).maybeSingle()
+      locale = parseLocale(contact?.language) ?? DEFAULT_LOCALE
+    }
+
+    const unsub = await unsubscribeHeaders(body.to, contactId)
     const { html } = buildRelanceEmail({
       ...body,
-      unsubscribeHtml: unsub ? unsubscribeFooterHtml(unsub.url) : undefined,
+      locale,
+      // ⚠ Le 2ᵉ argument manquait : ce pied est quadrilingue depuis toujours et partait
+      // pourtant TOUJOURS en français.
+      unsubscribeHtml: unsub ? unsubscribeFooterHtml(unsub.url, locale) : undefined,
     })
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
