@@ -14,6 +14,7 @@ import {
   BRAND, BODY_INK, FONT,
   escapeHtml, shell, p, h2, row, button,
 } from './email-shell.ts'
+import { appDashboardUrl } from './app-url.ts'
 
 export interface OnboardingCallEmailData {
   callId: string
@@ -219,7 +220,7 @@ const T: Record<CallLocale, {
 
 /** Pilule d'en-tête des e-mails client : la même cible, l'étiquette de la langue. */
 function headerCta(l: CallLocale) {
-  return { href: 'https://app.megga.ch/dashboard', label: T[l].ctaEspace }
+  return { href: appDashboardUrl(), label: T[l].ctaEspace }
 }
 
 /** Bloc de faits partagé par la confirmation et le rappel. */
@@ -463,7 +464,7 @@ export function buildCancellationEmail(d: OnboardingCallEmailData): { subject: s
       bodyHtml: `
      ${p(t.confBonjour(escapeHtml(d.attendeeName)))}
      ${p(t.annulCorps, 32)}
-     <div style="margin:0 0 8px;">${button('https://app.megga.ch/dashboard', t.annulCta)}</div>
+     <div style="margin:0 0 8px;">${button(appDashboardUrl(), t.annulCta)}</div>
      ${signature(d.locale)}`,
     }),
   }
