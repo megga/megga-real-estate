@@ -573,7 +573,8 @@ Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel e
 ```
 DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
 MEGGA_MAGIC_LINK_HMAC_SECRET,
-MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET,
+MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET (⛔ ABSENTS du projet — relevé le 16.08.2026),
+GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (✅ posés le 16.08.2026 — voir ci-dessous),
 GOOGLE_WORKSPACE_SA_KEY (✅ posé le 09.08.2026 — voir ci-dessous),
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_IDENTITY_FLOW_ID,
 MAPBOX_TOKEN,
@@ -719,17 +720,29 @@ client created » ; la page de détail n'en montre que les 4 derniers caractère
 où la valeur reste récupérable est le **bouton « Reveal » du panneau Google de Supabase**. Le
 perdre oblige à générer un nouveau secret.
 
-⛔ **`GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` NE SONT PAS POSÉS** (relevé le 16.08.2026 dans
-les secrets du projet). Trois chemins les lisent pour **rafraîchir** un jeton Google —
+✅ **`GOOGLE_CLIENT_ID` et `GOOGLE_CLIENT_SECRET` sont posés** (16.08.2026, 17:03 UTC). Ils
+manquaient encore le matin même, et ce document l'a affirmé pendant quelques heures — c'est corrigé.
+Trois chemins les lisent pour **rafraîchir** un jeton Google :
 [google-calendar-sync/index.ts:43](supabase/functions/google-calendar-sync/index.ts),
 [_shared/booking-oauth.ts:63](supabase/functions/_shared/booking-oauth.ts),
-[_shared/host-freebusy.ts:110](supabase/functions/_shared/host-freebusy.ts) — et tournent donc
-avec `client_id: ''`. Défaut **antérieur à la migration**, pas causé par elle : `google_calendar_tokens`
-compte **0 ligne**, la liaison Google Calendar n'a jamais été exercée de bout en bout. ⚠ Le mode
-d'échec est **silencieux** : `host-freebusy` passe `sync_enabled = false` sur échec de refresh, donc
-un agent qui connecte son agenda le verrait se déconnecter tout seul ~1 h plus tard, sans erreur.
-Google exige les identifiants **du client qui a émis le refresh token** : le jour où on pose ces
-secrets, ce sont ceux du client ci-dessus, pas ceux de l'ancien compte.
+[_shared/host-freebusy.ts:110](supabase/functions/_shared/host-freebusy.ts).
+⚠ Google exige les identifiants **du client qui a émis le refresh token** : ce sont donc ceux du
+client ci-dessus. Si le client change, ces deux secrets doivent changer avec lui.
+
+⛔ **POSÉS N'EST PAS ÉPROUVÉ.** `google_calendar_tokens` compte toujours **0 ligne** : la liaison
+Google Calendar n'a jamais tourné de bout en bout, et poser les secrets ne le démontre pas. ⚠ Son
+mode d'échec est **silencieux** — `host-freebusy` passe `sync_enabled = false` sur échec de refresh,
+donc un agent qui connecte son agenda le verrait se déconnecter seul ~1 h plus tard, sans erreur.
+La seule preuve est un agenda réellement connecté, revu une heure après.
+
+**Éprouver une valeur de secret sans la lire.** La colonne « Digest SHA256 » du tableau des secrets
+est le `sha256` de la valeur **brute** : `printf '%s' "<valeur>" | shasum -a 256` doit rendre le même
+digest — vérifié sur `GOOGLE_CLIENT_ID` (`43032e97…`). Ça détecte au passage l'espace ou le saut de
+ligne collé par mégarde, qu'aucune UI ne montre. Pour éprouver le **COUPLE** id + secret sans rien
+déployer, appeler `https://oauth2.googleapis.com/token` en `grant_type=refresh_token` avec un jeton
+volontairement faux : `invalid_grant` ⇒ le couple est valide (seul le jeton est rejeté),
+`invalid_client` ⇒ le secret ne correspond pas au client. Même oracle que `no_secret` vs
+`invalid_signature` pour `MEGGA_MAGIC_LINK_HMAC_SECRET`.
 
 ⚠ **Le scope `https://www.googleapis.com/auth/calendar` n'est pas déclaré** dans Data Access.
 Conséquence, mesurée à la publication : la **connexion** est propre pour tout le monde (scopes
@@ -741,8 +754,10 @@ consomme le plafond de 100 utilisateurs. À déclarer avant toute soumission en 
 (`resourcemanager.projects.get`, `oauthconfig.verification.get`, `iam.serviceAccounts.list`
 manquants). Il ne peut être supprimé que depuis l'ancien compte.
 
-⚠ **`MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` sont annoncés plus haut mais ABSENTS du
-projet** (même relevé). La voie OAuth Outlook est donc dans le même état que la voie Google.
+⛔ **`MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` restent ABSENTS du projet** (relevé du
+16.08.2026, toujours vrai après la pose des secrets Google). La voie OAuth Outlook est donc dans
+l'état qu'avait la voie Google avant ce jour-là : `booking-oauth.ts:64` lit ces deux variables pour
+rafraîchir un jeton Microsoft et tourne avec `client_id: ''`. Même mode d'échec silencieux.
 
 **Vérifier la bascule sans se connecter** — l'oracle est côté serveur, pas dans l'UI du dashboard :
 ```bash
