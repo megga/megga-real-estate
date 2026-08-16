@@ -26,13 +26,26 @@ import { useEffect, useState } from 'react'
 // (surfaces, encre, police), `MLK_STATUT` porte ce qui ENCODE un état (erreur, succès) —
 // la direction ne gouverne pas le sens. Ne pas les fusionner.
 import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+import { SUPABASE_FUNCTIONS_URL } from '@/lib/supabase'
 import { DESINSCRIPTION_COPIE, type LangueDesinscription } from './desinscriptionCopie'
 
 /** Les natures refusables. Le transactionnel n'en est pas : il répond à un geste. */
 const NATURES = ['relance', 'bien', 'rappel'] as const
 type Nature = (typeof NATURES)[number]
 
-const EDGE = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/email-preferences`
+/**
+ * ⛔ PAR LA CONSTANTE PARTAGÉE, JAMAIS PAR `import.meta.env` EN DIRECT.
+ *
+ * Cette page lisait `import.meta.env.VITE_SUPABASE_URL` elle-même. Mesuré au banc le
+ * 16.08.2026 : la variable est absente en développement, l'URL devenait donc
+ * `undefined/functions/v1/email-preferences`, le `fetch` échouait, et la page affichait
+ * « Ce lien n'est plus valide » — c'est-à-dire qu'une page légalement exigée annonçait à la
+ * personne que son lien était mort alors que le sien était bon.
+ *
+ * `SUPABASE_FUNCTIONS_URL` porte le même env AVEC son repli en dur (`supabase.ts:29`), qui
+ * est ce que tout le reste de l'app utilise. Réécrire la constante, c'était en perdre le filet.
+ */
+const EDGE = `${SUPABASE_FUNCTIONS_URL}/email-preferences`
 
 /** Ramène une langue déclarée aux quatre du produit. Une table, jamais un ternaire. */
 function langue(l: string | null | undefined): LangueDesinscription {
