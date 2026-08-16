@@ -42,6 +42,8 @@
     "lint:migrations": "node scripts/check-migration-idempotence.mjs",
     "lint:whatsapp-outbound": "node scripts/check-whatsapp-outbound.mjs",
     "lint:spec-sql": "node scripts/check-spec-sql-blocks.mjs",
+    "lint:claude-md": "node scripts/check-claude-md-freshness.mjs",
+    "lint:claude-md:update": "node scripts/check-claude-md-freshness.mjs --update",
     "test:e2e:admin": "playwright test --config=playwright.admin.config.ts"
   },
   "dependencies": {

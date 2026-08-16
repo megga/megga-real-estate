@@ -18,6 +18,14 @@
 > (sinon il se périme). Routine : éditer le seed JSON (+ `docs/system-map.md` si besoin),
 > puis `npm run ruflo:seed`. Détails : section « Maintenir le cerveau » de docs/system-map.md.
 >
+> **ET CE DOCUMENT SE PÉRIME AUSSI — il est le seul dont l'erreur se propage par la main
+> de ses lecteurs.** Le 16 août 2026, sur les sept règles visuelles du §3, **une seule
+> était encore vraie** ; les six autres décrivaient une direction supprimée six jours
+> plus tôt, et un agent les recopiait sur chaque surface neuve. `npm run lint:claude-md`
+> remesure les 18 prétentions chiffrées d'ici contre le code. À lancer après toute PR de
+> DA, de jetons, de police ou d'archi. Mode d'emploi (et surtout : quel écart se corrige
+> dans le doc, lequel dans le code) : skill `claude-md-freshness`.
+>
 > **Docs détaillés (externalisés pour économiser des tokens) :**
 > - 🧠 Carte système / rouages : [docs/system-map.md](docs/system-map.md)
 > - Schéma DB complet : [docs/schema.md](docs/schema.md)
@@ -209,9 +217,16 @@ d'écran n'est restée sur Graphite).
   (`shadow-card`, `shadow-sm`), qui ne suivent aucun thème.
 - Boutons : ⚠ **CETTE RÈGLE DÉCRIT SUGAR PURE, corrigée le 15 août 2026.** Elle
   disait « style ghost — JAMAIS `bg-accent text-white` », ce qui CONTREDIT la
-  décision du 10 août écrite quatre points plus haut. Mesuré sur `src/` : **120
-  sites peignent une affordance en accent** (102 `background: *.accent`, 18
-  `bg-accent`) dans 36 fichiers, contre **11** au ghost canonique. La règle vive
+  décision du 10 août écrite quatre points plus haut. Remesuré le 17 août 2026 par
+  `npm run lint:claude-md` : **113 sites peignent une affordance en accent**
+  (106 `background: *.accent`, 7 `bg-accent`) dans 70 fichiers, contre **11** au
+  ghost canonique. ⚠ Deux des trois chiffres ont bougé pour des raisons opposées.
+  `bg-accent` tombe de 18 à 7 **sans qu'une ligne ait été retirée** : la mesure
+  borne désormais l'identifiant, et `bg-accent-solid` — l'autre jeton, créé le 15
+  août trois lignes plus bas — cessait d'être compté comme un emploi du premier.
+  Le « 36 fichiers », lui, n'est reproductible par AUCUNE règle essayée (`.tsx`
+  seuls, commentaires blanchis ou non, bornée ou non) ; 70 est la valeur de la
+  règle désormais écrite dans le registre, et c'est elle qui fait foi. La règle vive
   est celle du point 4 — **l'affordance PRIMAIRE porte l'accent**, le ghost est
   le SECONDAIRE. ✅ **UN SEUL ACCENT depuis le 15 août 2026.** La rampe
   Tailwind portait un second bleu (`#2563EB`) que rien ne rattachait à MEGGA X ;
@@ -311,7 +326,9 @@ surfaces sans compte : `/kyc/:token`, `/rendez-vous/:token`, `/reception/:token`
 1. **Manrope**, pas Inter Tight — décision Julien. ⚠ Cette ligne disait « c'est,
    avec le dégradé bleuté, **la seule chose qui distingue ces écrans du CRM** » :
    **FAUX, et corrigé le 15 août 2026 avec le chiffre.** `MOBILE_FONT` vaut
-   Manrope et alimente **34 emplois dans 23 fichiers** du CRM mobile ; NEUF
+   Manrope et alimente **58 emplois dans 24 fichiers** du CRM mobile (remesuré le
+   17 août 2026 : +24 emplois pour UN fichier de plus en deux jours — la police
+   se densifie dans les écrans qui la portaient déjà, elle ne s'étend pas) ; NEUF
    fichiers du CRM de BUREAU l'écrivaient aussi (Analytics, « Aujourd'hui », la
    recherche, deux pages agent). Mesuré à l'écran sur « Aujourd'hui » : **29
    éléments rendaient en Inter Tight et 26 en Manrope** — deux polices se

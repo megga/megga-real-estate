@@ -1,0 +1,432 @@
+{
+  "$commentaire": [
+    "REGISTRE DES PRÉTENTIONS CHIFFRÉES DE CLAUDE.md.",
+    "",
+    "Chaque entrée dit TROIS choses : ce que le doc affirme (`phrase`, citée verbatim),",
+    "COMMENT on l'a mesuré (`mesure` — la règle à graduations, exécutable), et ce qu'on",
+    "a trouvé ce jour-là (`attendu` + `mesureLe`).",
+    "",
+    "⛔ LA COLONNE QUI MANQUAIT AU DOC EST `mesure`. CLAUDE.md dit « 120 sites dans 36",
+    "fichiers » sans dire avec quelle règle : personne ne peut savoir si un écart signifie",
+    "que le code a bougé ou qu'on ne compte pas pareil. Mesuré le 17.08.2026 en écrivant ce",
+    "registre : la même prétention rend 36, 70 ou 71 fichiers selon qu'on inclut `.ts`, et",
+    "« 18 `bg-accent` » ne se reproduit avec aucune règle — la valeur bornée en rend 7, la",
+    "valeur libre 15. Un chiffre sans sa règle n'est pas vérifiable, il est seulement écrit.",
+    "",
+    "`severite` :",
+    "  dur    — toute déviation est un défaut de CODE. Typiquement une absence (0) ou une",
+    "           valeur littérale. On corrige le code, jamais le chiffre.",
+    "  derive — le nombre bouge à chaque commit ; ce qui compte est la CONCLUSION qu'il",
+    "           soutient. Au-delà de `tolerance`, le doc est périmé : on le rafraîchit.",
+    "",
+    "Ajouter une prétention : voir .claude/skills/claude-md-freshness/SKILL.md",
+    "",
+    "RÉGLER UNE `tolerance` (recalibré le 17.08.2026, à l'entrée en CI bloquante). Elle se",
+    "règle sur la ROTATION du compteur, pas sur la précision qu'on aimerait avoir : cette",
+    "porte peut rougir sur une PR SANS RAPPORT, puisque les décomptes d'usages dérivent avec",
+    "les merges des autres. Trop serrée, elle taxe la mauvaise personne et finit désactivée.",
+    "Deux réflexes : plus la grandeur est PETITE, plus la tolérance doit être LARGE (à 7",
+    "occurrences, 15 % c'est ±1 — un seul bouton la fait rougir) ; et la borne utile est",
+    "celle qui protège la CONCLUSION, pas le chiffre (« 740 boxShadow contre 6 classes",
+    "shadow-* » supporte ±15 % sans que rien de ce qu'elle affirme ne bouge)."
+  ],
+  "claims": [
+    {
+      "id": "sugar-supprimee",
+      "section": "§3 — direction unique",
+      "phrase": "plus de hook `useCrmDa`, plus d'attribut `<html data-crm-da>`",
+      "severite": "dur",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "motifs": [
+          "useCrmDa",
+          "data-crm-da",
+          "megga\\.da"
+        ],
+        "mot": true,
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx",
+          ".css"
+        ]
+      },
+      "attendu": {
+        "occurrences": 0
+      },
+      "note": "⚠ `mot: true` est VITAL ici : `useCrmDa` est un préfixe de `useCrmDark`, un hook bien vivant et sans rapport (mode sombre). Sans bornage, cette prétention rend 44 occurrences et dénonce une régression qui n'existe pas."
+    },
+    {
+      "id": "graphite-retiree",
+      "section": "§3 — échelle sombre",
+      "phrase": "`useDarkTone` et `megga.darkTone` sont supprimés",
+      "severite": "dur",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "motifs": [
+          "crmStep",
+          "useDarkTone",
+          "darkTone"
+        ],
+        "mot": true,
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "occurrences": 0
+      },
+      "note": "⚠ Trois occurrences de `crmStep` subsistent dans des COMMENTAIRES qui racontent son retrait. Le blanchiment des commentaires est ce qui distingue « le code appelle crmStep » de « le code explique pourquoi il ne l'appelle plus »."
+    },
+    {
+      "id": "crm-font-inter-tight",
+      "section": "§3 — Typo",
+      "phrase": "`--crm-font` vaut `\"Inter Tight\"`",
+      "severite": "dur",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "fichier": "src/styles/globals.css",
+        "contient": "--crm-font: \"Inter Tight\""
+      },
+      "attendu": {
+        "present": true
+      }
+    },
+    {
+      "id": "barreaux-texte",
+      "section": "§3 — Typo",
+      "phrase": "les 13 barreaux `--crm-text-*` (11 → 38 px)",
+      "severite": "dur",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "fichier": "src/styles/globals.css",
+        "motif": "--crm-text-[a-z0-9]+:",
+        "distinctes": true
+      },
+      "attendu": {
+        "valeursDistinctes": 13
+      },
+      "note": "Le nombre de barreaux est `dur`, pas `derive` : en ajouter un n'est pas une dérive, c'est une DÉCISION sur l'échelle. Le test megga-x-crm-tokens.spec.ts fige déjà l'écart 11/13 px avec la vitrine pour cette raison."
+    },
+    {
+      "id": "quatre-familles-chargees",
+      "section": "§3 — Typo",
+      "phrase": "`index.html` charge quatre familles",
+      "severite": "dur",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "fichier": "index.html",
+        "motif": "family=([A-Za-z+]+)",
+        "capture": 1,
+        "distinctes": true
+      },
+      "attendu": {
+        "valeursDistinctes": 4
+      },
+      "note": "Inter Tight, Manrope, DM Sans, Plus Jakarta Sans — dont une seule habille le CRM. En charger une cinquième sans le dire coûte un aller-retour réseau à chaque visite."
+    },
+    {
+      "id": "ombre-en-ligne-domine-tailwind",
+      "section": "§3 — Bentos",
+      "phrase": "740 `boxShadow` en style en ligne sur 188 fichiers",
+      "severite": "derive",
+      "tolerance": 0.15,
+      "mesureLe": "2026-08-16",
+      "mesure": {
+        "motif": "boxShadow",
+        "mot": true,
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "occurrences": 740,
+        "fichiers": 188
+      }
+    },
+    {
+      "id": "classes-shadow-tailwind",
+      "section": "§3 — Bentos",
+      "phrase": "contre 6 classes `shadow-*`",
+      "severite": "derive",
+      "tolerance": 0.5,
+      "mesureLe": "2026-08-16",
+      "mesure": {
+        "motif": "shadow-[a-z]",
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "occurrences": 6
+      },
+      "note": "Tolérance large parce que la grandeur est PETITE : à 6, un seul ajout fait +17 %. Ce que la prétention soutient est un ORDRE DE GRANDEUR (l'ombre vient de la direction, pas de Tailwind), pas un décompte. Le jour où ce chiffre approche celui des `boxShadow`, c'est la conclusion du §3 qui tombe — et c'est ça qu'il faut voir."
+    },
+    {
+      "id": "accent-aplat-domine-ghost",
+      "section": "§3 — Boutons",
+      "phrase": "113 sites peignent une affordance en accent",
+      "severite": "derive",
+      "tolerance": 0.15,
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "motifs": [
+          "background: [A-Za-z_]+\\.accent",
+          "bg-accent"
+        ],
+        "mot": true,
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "occurrences": 113
+      }
+    },
+    {
+      "id": "accent-background-en-ligne",
+      "section": "§3 — Boutons",
+      "phrase": "106 `background: *.accent`",
+      "severite": "derive",
+      "tolerance": 0.15,
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "motif": "background: [A-Za-z_]+\\.accent",
+        "mot": true,
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "occurrences": 106
+      }
+    },
+    {
+      "id": "accent-classe-tailwind",
+      "section": "§3 — Boutons",
+      "phrase": "7 `bg-accent`",
+      "severite": "derive",
+      "tolerance": 0.5,
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "motif": "bg-accent",
+        "mot": true,
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "occurrences": 7
+      },
+      "note": "⚠ `mot: true` sépare `bg-accent` de `bg-accent-solid`, qui sont DEUX jetons depuis le 15.08 (l'encre et l'aplat). Sans bornage la mesure rend 15 au lieu de 7 : elle compterait le second jeton comme des emplois du premier, c'est-à-dire exactement la distinction que le §3 vient d'établir."
+    },
+    {
+      "id": "accent-detail-fichiers",
+      "section": "§3 — Boutons",
+      "phrase": "dans 70 fichiers",
+      "severite": "derive",
+      "tolerance": 0.15,
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "motifs": [
+          "background: [A-Za-z_]+\\.accent",
+          "bg-accent"
+        ],
+        "mot": true,
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "fichiers": 70
+      },
+      "note": "⚠ RÈGLE D'ORIGINE INCONNUE — le seul écart de ce registre qu'on ne sache pas reproduire. La règle ci-dessus rend 70 fichiers contre 36 annoncés : un facteur deux ne s'explique pas par un jour de commits, et aucune variante essayée (`.tsx` seuls, avec ou sans commentaires, bornée ou non) ne retombe sur 36. Ne pas « corriger » le 36 en 70 sans dire lequel des deux on garde comme référence."
+    },
+    {
+      "id": "modales-portees",
+      "section": "§3 — Modals",
+      "phrase": "33 des 36 fichiers de modale/panneau/dialogue",
+      "severite": "derive",
+      "tolerance": 0.1,
+      "mesureLe": "2026-08-16",
+      "mesure": {
+        "motif": "createPortal",
+        "mot": true,
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "fichiers": 33
+      }
+    },
+    {
+      "id": "zindex-desordre",
+      "section": "§3 — Modals",
+      "phrase": "175 sites `zIndex` portant 44 valeurs DISTINCTES",
+      "severite": "derive",
+      "tolerance": 0.15,
+      "mesureLe": "2026-08-16",
+      "mesure": {
+        "motif": "zIndex: *(\\d+)",
+        "capture": 1,
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "occurrences": 175,
+        "valeursDistinctes": 44
+      },
+      "note": "Aucune garde ne mesure l'empilement ; cette entrée est la seule chose qui le regarde. Elle ne prescrit rien — elle empêche seulement d'écrire « convention » là où il y a 45 valeurs."
+    },
+    {
+      "id": "zindex-cent",
+      "section": "§3 — Modals",
+      "phrase": "dont seulement **10** valent 100",
+      "severite": "derive",
+      "tolerance": 0.3,
+      "mesureLe": "2026-08-16",
+      "mesure": {
+        "motif": "zIndex: *100(?!\\d)",
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "occurrences": 10
+      }
+    },
+    {
+      "id": "uppercase-confine",
+      "section": "§5 — DON'T",
+      "phrase": "20 `textTransform: 'uppercase'` vivants",
+      "severite": "derive",
+      "tolerance": 0.15,
+      "mesureLe": "2026-08-16",
+      "mesure": {
+        "motif": "textTransform: *'uppercase'",
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "occurrences": 20
+      }
+    },
+    {
+      "id": "uppercase-zero-hors-exemptes",
+      "section": "§5 — DON'T",
+      "phrase": "Zéro sur une surface agent.",
+      "severite": "dur",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "motif": "textTransform: *'uppercase'",
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ],
+        "exclure": [
+          "kyc-report",
+          "pages/dev"
+        ]
+      },
+      "attendu": {
+        "occurrences": 0
+      },
+      "note": "La moitié DURE de la prétention précédente. Le total peut bouger sans rien dire — le papier A4 du rapport KYC a le droit de crier ; ce qui est interdit, c'est une capitale sur un écran d'agent. Deux entrées parce que ce sont deux affirmations, et une seule des deux est une règle."
+    },
+    {
+      "id": "bg-white-classes",
+      "section": "§3 — thème",
+      "phrase": "**6** occurrences de `bg-white` en `className`",
+      "severite": "derive",
+      "tolerance": 0.2,
+      "mesureLe": "2026-08-16",
+      "mesure": {
+        "motif": "bg-white",
+        "mot": true,
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "occurrences": 6
+      },
+      "note": "Cette prétention EST le cliquet : le §3 dit que la garde plafonne ce compte. Le voir monter est le seul signal qu'on repeint en dur."
+    },
+    {
+      "id": "manrope-mobile",
+      "section": "§3 — face publique",
+      "phrase": "58 emplois dans 24 fichiers",
+      "severite": "derive",
+      "tolerance": 0.2,
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "motif": "MOBILE_FONT",
+        "mot": true,
+        "portee": [
+          "src"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "occurrences": 58,
+        "fichiers": 24
+      }
+    }
+  ]
+}
