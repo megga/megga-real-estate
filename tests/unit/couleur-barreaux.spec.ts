@@ -152,7 +152,18 @@ const HORS_ASSUMES = new Map<string, number>([
   // l'encre — comme la pastille jumelle de la réception — avec une encre DÉRIVÉE
   // (`encreSur`). Puis `#FEF2F2`/`#B42318`, la bannière d'échec de `MlkBooking`, absorbée
   // par `MlkFailureNotice` avec les deux copies d'`AppointmentManagePage`.
-  ['src/components/kyc-magic-link', 19],
+  // ⚠ 24 → 21 → 19 → 15, les 16 et 17 août 2026. D'abord `#3B82F6` (blue-500 de Tailwind,
+  // hors échelle), qui rendait 3,68:1 sous encre blanche sur le PREMIER et le DERNIER écran
+  // du parcours client ; puis `#FEF2F2`/`#B42318`, la bannière d'échec de `MlkBooking`,
+  // absorbée par `MlkFailureNotice` ; puis les valeurs que `MlkScreens` réécrivait à la
+  // place de `MLK_STATUT` (bannière d'upload, pilule « reçu »).
+  //
+  // ⛔ ET CE DERNIER LOT EN A RETIRÉ SIX POUR UNE BAISSE DE QUATRE, parce que ce cliquet ne
+  // lit QUE l'hexadécimal : les deux aplats étaient écrits `rgba(239,68,68,.10)` et
+  // `rgba(16,185,129,.10)`, invisibles à son motif. Ils auraient survécu indéfiniment à un
+  // compte qui se croyait exhaustif — même leçon que les commentaires qu'il retire : savoir
+  // ce que la garde mesure VRAIMENT fait partie de la garde.
+  ['src/components/kyc-magic-link', 15],
   ['src/components/auth-bento', 22],
   ['src/components/kyc-report', 22],
   ['src/components/matching-recherche', 23],

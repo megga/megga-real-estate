@@ -22,7 +22,7 @@ import {
   MlkShell,
   MlkWordmark,
 } from './MlkPrimitives'
-import { MLK } from './mlkTokens'
+import { MLK, MLK_STATUT } from './mlkTokens'
 import { crmVoileEncre } from '@/components/crm/tokens'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -548,16 +548,23 @@ export function MlkUpload({
             alignItems: 'flex-start',
             gap: 10,
             padding: '12px 14px',
-            background: 'rgba(239,68,68,0.10)',
+            // ⚠ L'APLAT PASSE DE TRANSLUCIDE À OPAQUE, ET C'EST INVISIBLE : composé
+            // sur la carte blanche, `rgba(239,68,68,.10)` donne `#fdecec`, à 1,04:1
+            // d'`errFill`. Ce que le changement retire n'est pas une teinte, c'est
+            // une SECONDE définition du même aplat — celle qui se met à diverger le
+            // jour où la famille bouge.
+            background: MLK_STATUT.errFill,
+            boxShadow: `inset 0 0 0 1px ${MLK_STATUT.errLine}`,
             borderRadius: 12,
             marginBottom: 14,
             fontSize: 'var(--crm-text-sm)',
-            color: '#B91C1C',
+            // `#B91C1C` était `errInk` au caractère près, écrit deux fois.
+            color: MLK_STATUT.errInk,
             fontWeight: 600,
             lineHeight: 1.5,
           }}
         >
-          <MlkIcon name="alert" size={14} stroke="#B91C1C" sw={1.8} />
+          <MlkIcon name="alert" size={14} stroke={MLK_STATUT.errInk} sw={1.8} />
           {uploadError}
         </div>
       )}
@@ -645,20 +652,32 @@ export function MlkUpload({
                       gap: 6,
                       padding: '4px 10px',
                       borderRadius: 999,
-                      background: 'rgba(16,185,129,0.10)',
-                      color: '#0E7C5B',
+                      // Même mesure que la bannière d'erreur : le voile à 10 % donne
+                      // `#e7f8f2`, à 1,04:1 d'`okFill`. ⚠ Ces deux valeurs venaient de
+                      // `PDF.okBg`/`okDot` — la famille du RAPPORT A4, recopiée sur un
+                      // écran client qui n'a rien à voir avec elle.
+                      background: MLK_STATUT.okFill,
+                      // `#0E7C5B` était une TROISIÈME encre verte pour le rôle
+                      // qu'`okInk` nomme déjà. Le jeton est aussi meilleur : 4,92 → 5,21:1.
+                      color: MLK_STATUT.okInk,
                       fontSize: 'var(--crm-text-xs)',
                       fontWeight: 600,
                       letterSpacing: 0.2,
                       flexShrink: 0,
                     }}
                   >
+                    {/* ⛔ LE SEUL DES CINQ QUI ÉTAIT UN VRAI DÉFAUT, pas seulement une
+                        valeur hors famille : `#10B981` rendait 2,41:1 sur son propre
+                        aplat, sous le seuil de 3 des éléments NON TEXTUELS. `okLine`
+                        aurait été pire encore (1,45:1) ; `okInk` est le seul barreau de
+                        la famille qui tienne (5,21:1), et il aligne la pastille sur
+                        l'encre du mot qu'elle accompagne. */}
                     <span
                       style={{
                         width: 5,
                         height: 5,
                         borderRadius: 999,
-                        background: '#10B981',
+                        background: MLK_STATUT.okInk,
                       }}
                     />
                     {t('client.upload.received_pill')}
