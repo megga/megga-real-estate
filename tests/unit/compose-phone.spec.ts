@@ -38,6 +38,23 @@ describe('composePhone', () => {
     expect(composePhone('CH', '')).toHaveLength(0)
   })
 
+  /**
+   * ⛔ CE QUI MANQUAIT AU TEST CI-DESSUS, ET QUI L'A LAISSÉ VERT SUR UN INVARIANT
+   * FAUX : il n'éprouvait que la chaîne VIDE. Or la garde portait sur la saisie
+   * brute, si bien que tout ce qui s'efface APRÈS elle produisait l'indicatif
+   * seul — au premier rang « 0 », qui est justement la première frappe d'un
+   * numéro suisse. Le titre annonçait « JAMAIS » ; il vérifiait « pas quand
+   * c'est vide ».
+   */
+  it('ne rend pas l’indicatif seul sur une saisie qui s’efface', () => {
+    // Le « 0 » de tête est retiré : il ne reste aucun chiffre.
+    expect(composePhone('CH', '0')).toBe('')
+    expect(composePhone('CH', '000')).toBe('')
+    // Ponctuation de formatage seule, collée ou espacée.
+    expect(composePhone('CH', '-')).toBe('')
+    expect(composePhone('FR', ' ( ) ')).toBe('')
+  })
+
   it('retire le zéro de composition nationale', () => {
     expect(composePhone('CH', '079 874 94 84')).toBe('+41798749484')
     expect(composePhone('CH', '0798749484')).toBe('+41798749484')
