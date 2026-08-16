@@ -40,12 +40,27 @@ export const ASSETS = 'https://app.megga.ch/email'
 
 export const FONT = "'Inter Tight','Helvetica Neue',Helvetica,Arial,sans-serif"
 
+/**
+ * Échappe les cinq caractères qui peuvent sortir d'un texte pour entrer dans le
+ * BALISAGE — y compris l'apostrophe simple.
+ *
+ * ⚠ `'` N'EST PAS FACULTATIF, même si tous les attributs de ce fichier sont
+ * aujourd'hui à guillemets doubles. Les deux assistants que cette fonction a
+ * remplacés (`send-relance-email` et `whatsapp-optin-send`) l'échappaient ; la
+ * version partagée l'avait perdu au passage. L'invariant tacite devenait alors
+ * « aucun gabarit n'écrira jamais `attr='${…}'` » — une règle que personne n'a
+ * écrite, dans un dépôt qui privilégie les apostrophes simples partout ailleurs.
+ * Le jour où elle serait enfreinte, une valeur contrôlée par un contact sortirait
+ * de son attribut chez le destinataire. Deux caractères de correctif valent mieux
+ * qu'une convention non dite.
+ */
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 export interface ShellOptions {
