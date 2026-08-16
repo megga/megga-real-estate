@@ -376,8 +376,13 @@ const ZONES: RootSpec[] = [
   // sortis dans `receptionTokens.ts`, et le cliquet n'aurait plus vu que leur
   // NOM. C'est exactement le piège que `crm-dossiers/tokens.ts` a posé pendant
   // six lots — le noir de Sugar vivait dans le fichier de jetons, hors balayage.
+  //
+  // ⚠ LA RACINE `buyer-reception` A DISPARU AVEC SON DOSSIER (16 août 2026).
+  // `RC` est fondue dans `MLK`, `receptionTokens.ts` retiré — et le dossier ne
+  // contenait que lui. Le module de jetons de la réception reste donc balayé,
+  // mais par la racine `kyc-magic-link` ci-dessus, qui l'héberge désormais : le
+  // piège que ce commentaire décrit n'est pas rouvert, il a changé d'adresse.
   { root: 'src/pages/public', keep: (n) => PAGES_PUBLIQUES.has(n) },
-  { root: 'src/components/buyer-reception', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-dossiers/offer-modal', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
   // ⛔ « Matching · Recherche » entre SANS `MrhMapView.tsx`. La carte est GELÉE
@@ -559,7 +564,12 @@ const TEMOINS_DE_ZONE = [
   // resserrait par accident, la racine rendrait encore ses cinq autres fichiers
   // et `emptyRoots` la croirait saine.
   'src/components/kyc-magic-link/MlkScreens.tsx',
-  'src/components/buyer-reception/receptionTokens.ts',
+  // ⚠ A REMPLACÉ `buyer-reception/receptionTokens.ts`, retiré le 16 août avec la
+  // fusion de `RC` dans `MLK`. Le mode d'échec surveillé est le MÊME, déplacé
+  // d'une racine à un `keep` NOMMÉ : cette page ne passe que par
+  // `PAGES_PUBLIQUES`, donc si l'ensemble se resserrait, la racine rendrait
+  // encore ses autres pages et `emptyRoots` la croirait saine.
+  'src/pages/public/BuyerReceptionPage.tsx',
   // Lot 1 du chantier « 100 % » (15 août 2026). Deux témoins, deux raisons
   // DISTINCTES — un témoin qui ne prouve rien de plus qu'`emptyRoots` est du
   // bruit, et cette liste ne vaut que si chaque entrée nomme un mode d'échec
@@ -2112,9 +2122,10 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm/pipeline',
       'src/components/crm-dossiers/offer-modal',
       // La face publique — lot 1 du chantier « la face publique en MEGGA X ».
+      // ⚠ `src/components/buyer-reception` a été retirée le 16 août : le dossier
+      // ne contenait que `receptionTokens.ts`, fondu dans `MLK`.
       'src/components/kyc-magic-link',
       'src/pages/public',
-      'src/components/buyer-reception',
       // ⚠ La racine NUE, celle qui porte `tokens.ts` depuis le lot 2 du chantier
       // KYC. Elle manquait à cette liste : les cinq fichiers qu'elle retient
       // pouvaient donc quitter le cliquet sans que rien ne rougisse.

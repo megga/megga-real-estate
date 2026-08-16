@@ -159,7 +159,11 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/hooks/useCalendarScreen.ts', 6],
   ['src/pages/public', 6],
   ['src/components/auth', 4],
-  ['src/components/buyer-reception', 4],
+  // ⚠ `src/components/buyer-reception` valait 4 — les trois arrêts de son dégradé
+  // et son `soft` #3A3D44. La racine a disparu le 16 août avec `receptionTokens.ts`,
+  // fondu dans `MLK` : ces quatre écarts ne se sont pas déplacés vers
+  // `kyc-magic-link`, ils étaient les DOUBLONS de valeurs qu'elle comptait déjà.
+  // Le total du dépôt baisse donc de 4, et c'est la preuve chiffrée de la fusion.
   ['src/types/visit.ts', 4],
   ['src/components/matching-atelier', 3],
   ['src/components/admin', 2],
