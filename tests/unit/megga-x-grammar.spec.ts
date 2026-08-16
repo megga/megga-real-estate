@@ -1056,7 +1056,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // crédit rendrait quatre littéraux réintroduits invisibles.
   ['src/pages/agent', { hors: 317, total: 922 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
-  ['src/pages/public', { hors: 68, total: 259 }],
+  // ⚠ 68 → 63 et 259 → 253 le 16 août 2026, en portant `BuyerReceptionPage` : la marque,
+  // le pied et les deux états-documents sont passés aux jetons, et l'en-tête du fil avec
+  // eux. Le cliquet EXIGE qu'on descende le compte — un gain non inscrit se reperd au
+  // lot suivant sans que rien ne rougisse.
+  ['src/pages/public', { hors: 63, total: 253 }],
 ])
 
 /** Les propriétés qui portent un rayon ou un espacement. */
