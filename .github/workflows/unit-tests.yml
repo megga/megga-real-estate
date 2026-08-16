@@ -145,6 +145,13 @@ jobs:
         run: npm run lint:edge-auth
 
       - name: Coquille des e-mails (direction MEGGA X)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        # ⚠ La garde ci-dessus MANQUAIT — seule des vingt étapes, relevé le 17.08.2026.
+        # Sans `if`, GitHub Actions saute une étape dès qu'une précédente a échoué : cette
+        # porte ne tournait donc PAS les jours où la CI était déjà rouge, et son absence se
+        # lisait « skipped » plutôt que « manquante ». Reste du défaut corrigé partout
+        # ailleurs (cf. les autres étapes) ; elle y a échappé pour avoir été ajoutée après.
+        #
         # Mesuré le 15.08.2026 : TREIZE fichiers fabriquaient chacun leur propre
         # `<!DOCTYPE html>`, onze en police système, huit fonds de page différents.
         # ⚠ Un module partagé ne suffit pas, on l'a déjà vérifié ici : `_shared/resend.ts`
