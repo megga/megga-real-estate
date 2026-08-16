@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { openHelpFor } from '@/lib/help-articles'
 import { openCrmSearch } from './search/openSearch'
 import { useAiPanel } from '@/hooks/useAiPanel'
+import { useHideIntercomLauncher } from '@/hooks/useIntercomLauncher'
 
 // ─── Détachement de la barre pendant le dock MEGGA AI ──────────────────
 // Hauteur de repli de la barre (24 + 44 + 14) — c'est aussi le `navH` dont part
@@ -78,6 +79,10 @@ export function CrmTopNav({ active = 'today', sp, onNavigate, dark = false }: Cr
   const navigate = useNavigate()
   const { t: tc } = useTranslation('common')
   const { signOut, profile, user } = useAuth()
+  // La barre porte le bouton d'aide ci-dessous : la bulle Intercom native ferait
+  // doublon (et passerait devant le panneau MEGGA AI). On la masque tant qu'elle
+  // est montée — donc sur toutes les pages CRM de bureau, qui montent cette barre.
+  useHideIntercomLauncher()
   // MEGGA AI — le bouton ✦ ouvre le panneau docké (via AiPanelProvider).
   // ⛔ Il n'y a plus de repli : la page « Julien » a été supprimée le 17 août 2026,
   // et le copilote n'a qu'une surface. Hors provider (`enabled: false`), le bouton
