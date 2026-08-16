@@ -480,5 +480,9 @@
   },
   "announcements": {
     "dismiss": "Dismiss"
+  },
+  "legal": {
+    "notice": "Legal notice",
+    "privacy": "Privacy"
   }
 }
