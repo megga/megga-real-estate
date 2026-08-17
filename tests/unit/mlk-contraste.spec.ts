@@ -377,6 +377,19 @@ const HORS_SEUIL: Record<string, string> = {
    */
   'autre:font': 'alias local `const FONT = MLK.font` — la police est mesurée par sa propre clause',
   /**
+   * ⚠ `autre:` POUR LA MÊME RAISON QUE `font` — une limite de la remontée, pas un
+   * rôle inconnu. C'est un APLAT, et il est déjà mesuré comme tel (`aplat:card`) :
+   * la barre collante du CTA mobile et son fondu peignent le fond de la carte,
+   * pour que le contenu qui défile dessous ne se lise pas à travers.
+   *
+   * Mais ils vivent dans la FEUILLE CSS de `MlkBackground`, écrite dans un
+   * gabarit : la propriété porteuse y est du texte, pas une clé d'objet, donc la
+   * remontée par bloc ne peut pas l'attribuer. Le jour où cette feuille peindrait
+   * une ENCRE, elle atterrirait ici de la même façon — et il faudrait alors la
+   * mesurer, pas l'inscrire.
+   */
+  'autre:card': 'aplat écrit en CSS de gabarit (barre CTA collante + son fondu) — même valeur qu’`aplat:card`, déjà mesurée',
+  /**
    * ⚠ `autre:` POUR LA MÊME RAISON QUE `font` : c'est une CONSTANTE, pas un site
    * de peinture. Les deux pages de visite écrivent `const FILET = \`inset 0 0 0
    * 1px ${MLK.line}\`` en tête de fichier ; la propriété porteuse d'un `const`
