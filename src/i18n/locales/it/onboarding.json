@@ -19,10 +19,22 @@
       "body": {
         "verified": "30 minuti con il nostro team per rivedere insieme la configurazione.",
         "processing": "La verifica è in corso. Può proseguire, alleghiamo l'esito alla Sua pratica.",
-        "incomplete": "La verifica non si è conclusa. La riprenda per continuare."
+        "incomplete": "La verifica non si è conclusa. La riprenda per continuare.",
+        "gap": "Un punto da verificare prima di continuare."
       },
       "bookCta": "Prenota un orario",
-      "retryCta": "Riprendi la verifica"
+      "retryCta": "Riprendi la verifica",
+      "gap": {
+        "title": "Il documento verificato non corrisponde all'identità che hai dichiarato.",
+        "fields": "Campo interessato: {{fields}}. Puoi continuare, un revisore controllerà comunque. Correggere ora ti evita un secondo passaggio.",
+        "separator": ", ",
+        "field": {
+          "firstName": "il nome",
+          "lastName": "il cognome",
+          "dateOfBirth": "la data di nascita"
+        },
+        "fixCta": "Correggi i miei dati"
+      }
     },
     "submitted": {
       "title": "Il Suo appuntamento è confermato",
@@ -249,7 +261,8 @@
       "correctionRequested": {
         "title": "Correzione richiesta",
         "body": "Le è stata richiesta una correzione per e-mail. Riapra il modulo, quindi invii di nuovo."
-      }
+      },
+      "dismiss": "Nascondi questo banner"
     },
     "block": {
       "checking": "Verifica dello stato della Sua agenzia…",

@@ -19,10 +19,22 @@
       "body": {
         "verified": "30 Minuten mit unserem Team, um Ihre Einrichtung durchzugehen.",
         "processing": "Die Prüfung läuft. Sie können weitergehen, wir hängen das Ergebnis an Ihr Dossier an.",
-        "incomplete": "Die Prüfung ist nicht abgeschlossen. Nehmen Sie sie wieder auf, um fortzufahren."
+        "incomplete": "Die Prüfung ist nicht abgeschlossen. Nehmen Sie sie wieder auf, um fortzufahren.",
+        "gap": "Ein Punkt ist noch zu prüfen."
       },
       "bookCta": "Termin buchen",
-      "retryCta": "Prüfung wieder aufnehmen"
+      "retryCta": "Prüfung wieder aufnehmen",
+      "gap": {
+        "title": "Das geprüfte Dokument stimmt nicht mit der von Ihnen angegebenen Identität überein.",
+        "fields": "Betroffenes Feld: {{fields}}. Sie können fortfahren, eine Prüfperson sieht es sich ohnehin an. Eine Korrektur jetzt erspart Ihnen einen zweiten Durchgang.",
+        "separator": ", ",
+        "field": {
+          "firstName": "der Vorname",
+          "lastName": "der Nachname",
+          "dateOfBirth": "das Geburtsdatum"
+        },
+        "fixCta": "Angaben korrigieren"
+      }
     },
     "submitted": {
       "title": "Ihr Termin ist bestätigt",
@@ -249,7 +261,8 @@
       "correctionRequested": {
         "title": "Korrektur angefordert",
         "body": "Wir haben Sie per E-Mail um eine Korrektur gebeten. Öffnen Sie das Formular erneut und senden Sie es nochmals ab."
-      }
+      },
+      "dismiss": "Diesen Hinweis ausblenden"
     },
     "block": {
       "checking": "Status Ihrer Agentur wird geprüft…",

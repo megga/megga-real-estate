@@ -34,6 +34,7 @@ import KycOnboardingPage from '@/pages/agent/KycOnboardingPage'
 import type { AgencySettingsData } from '@/hooks/useAgencySettings'
 import type { IdentityPersonWithRoles } from '@/hooks/useAgencyIdentity'
 import type { OnboardingCallRow } from '@/hooks/useOnboardingCall'
+import type { KybIdReadRecord } from '@/types/kybIdRead'
 
 /**
  * `null` et non un uuid : sans session, `useAuth().profile` est null, donc
@@ -93,7 +94,24 @@ const AGENCY_FIXTURE: AgencySettingsData = {
 }
 
 /** Personne enregistrée à l'étape 1 — sa présence est ce qui fait qu'on n'est plus « à l'arrivée ». */
-function signataireFixture(verified: boolean): IdentityPersonWithRoles {
+/**
+ * Le verdict de correspondance d'un dossier où la PIÈCE CONTREDIT le nom déclaré.
+ *
+ * Reproduit le cas réel du 17.08.2026 (changement de nom légal : ancien nom saisi à
+ * l'étape 1, pièce au nouveau nom), qui a révélé que le sceau de l'écran de retour se
+ * posait sur le seul statut de session. Sans cette fixture, le bandeau d'écart n'est
+ * visible sur AUCUN écran du banc — donc invérifiable sans refaire une vraie capture.
+ */
+const VERDICT_ECART: KybIdReadRecord = {
+  provider: 'stripe_identity',
+  verdict: 'mismatch',
+  fields: { firstName: 'exact', lastName: 'differs', dateOfBirth: 'unreadable' },
+  documentTypeMatches: null,
+  expiresOn: null,
+  expired: null,
+}
+
+function signataireFixture(verified: boolean, ecart = false): IdentityPersonWithRoles {
   return {
     id: '00000000-0000-4000-8000-000000000001',
     firstName: 'Gregory',
@@ -106,7 +124,7 @@ function signataireFixture(verified: boolean): IdentityPersonWithRoles {
     // l'instant du verdict. Sans eux, la section « Vérification » du récapitulatif se
     // réduit à une ligne de statut et on ne juge pas la forme réelle de la relecture.
     idDocumentType: verified ? 'passport' : null,
-    idDocumentRead: null,
+    idDocumentRead: ecart ? VERDICT_ECART : null,
     verificationStatus: verified ? 'verified' : null,
     verificationErrorCode: null,
     verifiedAt: verified ? '2026-08-06T09:12:00.000Z' : null,
@@ -189,8 +207,22 @@ function makeClient(dossier: Dossier, ecranId: string): QueryClient {
     client.setQueryData(['agency-identity-persons', AGENCY_ID], [])
     return client
   }
-  client.setQueryData(['agency-identity-persons', AGENCY_ID], [signataireFixture(dossier === 'verifie')])
+  // L'écran « écart » impose son propre dossier : il n'a de sens que VÉRIFIÉ (c'est le
+  // statut qui fait le sceau) ET contredit (c'est le verdict qui le retire). Le laisser
+  // dépendre du sélecteur de dossier le rendrait invisible une fois sur deux.
+  const ecart = ecranId === 'retour-ecart'
+  client.setQueryData(
+    ['agency-identity-persons', AGENCY_ID],
+    [signataireFixture(ecart || dossier === 'verifie', ecart)],
+  )
   client.setQueryData(['agency-settings', AGENCY_ID], { settings: AGENCY_FIXTURE, plan: 'pro', identitySubmittedAt: null })
+  // ⛔ NE PAS semer ici la lecture de `useLabGuard` : le bandeau LAB est INMONTRABLE sur
+  // ce banc, et ce n'est pas une graine qui manque. Sous `VITE_DEV_BYPASS_AUTH`, le hook
+  // n'interroge pas le réseau du tout (`enabled: … && !DEV_BYPASS_AUTH`) et lit
+  // `DEV_BYPASS_AGENCY`, qui vaut `validated` — donc « clear », donc rien. Sans bypass,
+  // il n'y a aucun profil, donc aucun agencyId, donc la lecture est désactivée. Une
+  // graine y serait du code mort dans les deux cas. Le bandeau et son renvoi se
+  // vérifient par tests/unit/lab-guard-banner.spec.ts, qui monte le composant.
   // Rendez-vous semé selon l'ÉCRAN, pas selon le dossier — les deux surfaces qui le
   // lisent en veulent l'inverse :
   //   · étape « Rendez-vous » : PAS de réservation, sinon la carte de confirmation
@@ -229,6 +261,10 @@ const ECRANS: Ecran[] = [
   // Retour du prestataire d'identité. Le sceau ne s'affiche que sur le dossier
   // « Vérifié » : c'est le statut de la personne, pas l'écran, qui le décide.
   { id: 'retour', label: 'Retour de Stripe', groupe: 'Wizard identité', route: '/dashboard/identite?verification=done', render: wizard({ screen: 'verificationReturn' }) },
+  // Le MÊME écran, sur un dossier dont la pièce contredit le nom déclaré : pas de sceau,
+  // et l'écart nommé. Deux entrées et non un sélecteur, parce que c'est la différence
+  // entre les deux qu'il faut pouvoir regarder d'un clic.
+  { id: 'retour-ecart', label: 'Retour de Stripe (nom qui diffère)', groupe: 'Wizard identité', route: '/dashboard/identite?verification=done', render: wizard({ screen: 'verificationReturn' }) },
   // ⚠ Le lien Meet de la fixture n'existe PAS en production tant qu'aucun agenda
   // d'hôte n'est branché (cf. l'en-tête d'IdentitySubmittedScreen) : cet aperçu
   // montre donc l'écran dans sa forme COMPLÈTE, celle que #1168 rendra atteignable.
