@@ -155,6 +155,25 @@ export function PfEditField({ c, row, value, editing, saved, draft, setDraft, on
               return value
             })()}
           </div>
+        ) : row.hint ? (
+          // ⛔ `row.hint` N'AVAIT QU'UN LECTEUR, ET IL ÉTAIT HORS D'ATTEINTE. Il ne servait
+          // que d'infobulle au cadenas des lignes VERROUILLÉES (plus bas). La ligne
+          // « Numéro WhatsApp » n'est pas verrouillée : son indice n'a donc jamais été
+          // rendu, pas même au survol. Résultat mesuré le 17.08.2026 : sur le bureau, un
+          // agent sans numéro vérifié voit une ligne vide de plus, au milieu de six autres
+          // lignes vides portant le même bouton « Ajouter » — RIEN ne dit que ce champ-là
+          // ne se saisit pas, qu'il vient d'une vérification WhatsApp, ni où la faire. Le
+          // CRM mobile, lui, l'écrivait déjà. C'est l'écart que Julien a formulé en
+          // « je ne voyais pas non plus le changement de numéro ».
+          //
+          // Rendu SEULEMENT quand la ligne est vide : une fois le numéro là, il se lit
+          // lui-même et l'indice deviendrait du bruit sous chaque valeur.
+          // ⚠ Pas de `marginTop` optique comme sur la ligne de VALEUR juste au-dessus :
+          // le cliquet de grammaire compte tout littéral d'espacement, et 2 px ne sont pas
+          // un barreau de l'échelle (le plus petit vaut 4). L'interligne du libellé suffit.
+          <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 400, color: c.ghost, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {row.hint}
+          </div>
         ) : null}
       </div>
       {editing ? (

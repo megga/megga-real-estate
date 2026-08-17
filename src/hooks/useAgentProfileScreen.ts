@@ -230,7 +230,14 @@ export function useAgentProfileScreen(options?: { enabled?: boolean }): UseAgent
             bio: next.bio || null,
             languages: next.languages,
             specialties: next.specialties,
-            phone: next.phone || null,
+            // ⛔ `phone` RETIRÉ de cette écriture le 17.08.2026, même motif que sur
+            // `profiles` : le numéro n'est plus une donnée de formulaire, il vient de la
+            // vérification WhatsApp (`trg_sync_profile_phone_from_wa_link` → `profiles.phone`).
+            // Le recopier ici depuis l'instantané client fabriquait une SECONDE copie que
+            // rien ne tient à jour : vérifier un nouveau numéro corrigeait `profiles`, et
+            // `agent_profiles` gardait l'ancien jusqu'à la prochaine sauvegarde du profil.
+            // ⚠ La table compte 0 ligne en production (mesuré le 17.08) — la dérive n'a
+            // donc jamais eu lieu. C'est le moment de la fermer, pas après.
             website_url: next.website || null,
             linkedin_url: next.linkedin || null,
           })

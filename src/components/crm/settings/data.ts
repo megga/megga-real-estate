@@ -260,7 +260,10 @@ export function isSetDark(): boolean {
  * l'écran Profil ne porte plus qu'UN numéro, alimenté par la vérification WhatsApp.
  * Le laisser aurait plafonné tous les agents à 90 % sans qu'aucun geste puisse
  * combler le dixième manquant — un score qu'on ne peut pas finir cesse d'être lu.
- * `phone` reste, lui : il se remplit désormais en appairant son WhatsApp.
+ * `phone` reste, lui : il se remplit en vérifiant son numéro WhatsApp, dans Intégrations.
+ * ⚠ Ce commentaire disait « en appairant son WhatsApp » ; l'appairage a été retiré de
+ * l'écran le 17.08.2026 et le seul geste qui remplit ce champ est désormais la réception
+ * d'un code. Un score qu'on ne sait plus finir cesse d'être lu : le nommer juste importe.
  */
 export function profileCompletionScore(p: ProfileData): number {
   const fields: (keyof ProfileData)[] = [

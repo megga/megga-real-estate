@@ -21,6 +21,27 @@ const CARTE = readFileSync('src/components/crm/settings/WhatsAppPairingCard.tsx'
 /** Blanchit les commentaires : ce fichier RACONTE le retrait, il ne doit pas s'auto-accuser. */
 const code = CARTE.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
 
+describe("fiche profil — l'indice de la ligne WhatsApp est ATTEIGNABLE", () => {
+  const KIT = readFileSync('src/components/crm/settings/focus/pfKit.tsx', 'utf8')
+
+  it('rend `row.hint` en dehors de la branche `locked`', () => {
+    // ⛔ DÉFAUT MESURÉ, ET IL EXPLIQUE UN CONSTAT UTILISATEUR. `row.hint` n'avait qu'un
+    // lecteur : `title={row.hint}` sur le cadenas des lignes VERROUILLÉES. La ligne
+    // « Numéro WhatsApp » n'est pas verrouillée — son indice n'était donc rendu nulle
+    // part, pas même en infobulle. Sur le bureau, un agent sans numéro vérifié voyait
+    // une ligne vide de plus, indiscernable des six autres, sans un mot sur l'endroit
+    // où la remplir. Le CRM mobile, lui, l'écrivait déjà : deux écrans du même produit
+    // ne disaient pas la même chose du même champ.
+    const lecteurs = KIT.match(/row\.hint/g) ?? []
+    expect(
+      lecteurs.length,
+      'row.hint doit avoir un lecteur hors du cadenas, sinon l\'indice est mort',
+    ).toBeGreaterThan(1)
+    // Et ce lecteur doit vivre dans la branche « ligne vide » : c'est là qu'il renseigne.
+    expect(KIT).toMatch(/\) : row\.hint \? \(/)
+  })
+})
+
 describe('carte WhatsApp des Réglages — la saisie du code est le seul chemin', () => {
   it("n'appelle plus la génération de code d'appairage", () => {
     expect(code).not.toMatch(/generateCode/)
@@ -61,6 +82,34 @@ describe('la copie ne renvoie plus vers un bouton qui n\'existe pas', () => {
       const textes = [...Object.values(otp.errors as Record<string, string>), otp.probeFailed]
       const coupables = textes.filter((s) => RENVOIS.some((r) => r.test(s)))
       expect(coupables).toEqual([])
+    })
+
+    it(`${langue} : l'indice de la fiche profil de BUREAU non plus`, () => {
+      // ⚠ TROIS BLOCS DE COPIE POUR LE MÊME CHAMP, et j'en ai raté un à chaque passe.
+      // `integrations.whatsapp.*` habille la carte, `profile.*` la fiche MOBILE, et
+      // `focus.profile.*` la fiche de BUREAU. Corriger l'un ne corrige pas les autres :
+      // le bureau a continué d'annoncer « Vérifié par appairage WhatsApp » une passe
+      // entière après que l'appairage a disparu de l'écran voisin.
+      const bloc = JSON.parse(readFileSync(`src/i18n/locales/${langue}/settings.json`, 'utf8'))
+      const focus = bloc.focus.profile as Record<string, string>
+      const textes = Object.entries(focus)
+        .filter(([k]) => /whatsapp/i.test(k))
+        .map(([, v]) => v)
+      expect(textes.filter((s) => RENVOIS.some((r) => r.test(s)))).toEqual([])
+    })
+
+    it(`${langue} : la fiche profil MOBILE non plus`, () => {
+      // ⛔ OUBLI RÉEL, trouvé après coup. La première passe n'avait nettoyé que le bloc
+      // `integrations.whatsapp` — celui de la carte. La fiche profil, elle, vit sous
+      // `profile.*` et continuait d'annoncer « Vérifié par appairage WhatsApp » et
+      // « Appairez WhatsApp depuis le CRM sur ordinateur » : une consigne qui désigne un
+      // bouton supprimé, sur l'écran même où l'agent vient chercher son numéro.
+      const bloc = JSON.parse(readFileSync(`src/i18n/locales/${langue}/settings.json`, 'utf8'))
+      const profil = bloc.profile as Record<string, string>
+      const textes = Object.entries(profil)
+        .filter(([k]) => /whatsapp/i.test(k))
+        .map(([, v]) => v)
+      expect(textes.filter((s) => RENVOIS.some((r) => r.test(s)))).toEqual([])
     })
   }
 })

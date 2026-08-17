@@ -62,8 +62,8 @@
     "contactTitle": "Contact",
     "emailPro": "Email professionale",
     "whatsapp": "Numero WhatsApp",
-    "whatsappHint": "Verificato tramite collegamento WhatsApp",
-    "whatsappUnverified": "Nessun numero verificato. Colleghi WhatsApp dal CRM su computer.",
+    "whatsappHint": "Verificato tramite codice ricevuto su WhatsApp",
+    "whatsappUnverified": "Nessun numero verificato. Verifichi il Suo numero dal CRM su computer.",
     "agency": "Agenzia",
     "agencyHint": "Modificabile dalla scheda «La mia agenzia»",
     "publicPresentationTitle": "Presentazione pubblica",
@@ -978,7 +978,7 @@
       },
       "emailHint": "Indirizzo di accesso, non modificabile qui",
       "agencyHint": "Modificabile da La mia agenzia",
-      "whatsappHint": "Verificato tramite collegamento WhatsApp, in Integrazioni",
+      "whatsappHint": "Si verifica tramite codice ricevuto su WhatsApp, in Integrazioni",
       "whatsappVerified": "Verificato"
     },
     "agency": {
