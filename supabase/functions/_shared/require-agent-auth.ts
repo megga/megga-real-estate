@@ -14,14 +14,28 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isNonUserToken } from './bearer-token.ts'
 
+/**
+ * Le contexte rendu quand l'agence est EXIGÉE (le défaut) : `agency_id` y est non nul,
+ * parce que le garde a refusé avant de rendre.
+ */
 export interface AgentAuthContext {
   user: { id: string; email?: string }
-  /**
-   * ⚠ `agency_id` peut être NULL quand l'appelant a passé `allowNoAgency` — le cas du
-   * super-admin, qui n'appartient à aucune agence. Les appelants par défaut le reçoivent
-   * toujours non nul (le garde refuse avant), mais le type le dit pour que l'opt-in ne
-   * puisse pas se faire en oubliant de traiter le cas.
-   */
+  profile: { id: string; agency_id: string; role: string | null }
+  supabase: SupabaseClient
+}
+
+/**
+ * Le contexte rendu sous `allowNoAgency` : `agency_id` peut être NULL.
+ *
+ * ⛔ DEUX TYPES ET NON UN SEUL ÉLARGI, et l'écart n'est pas cosmétique. Élargir
+ * `AgentAuthContext` en `string | null` a fait rougir SEPT appelants qui, eux, exigent
+ * l'agence : le garde la leur garantit, mais le type ne le disait plus. Le remède aurait
+ * été sept `!` ou sept `?? ''` — c'est-à-dire éteindre partout la vérification pour un
+ * cas qui ne les concerne pas, et perdre le jour où l'un d'eux prendrait vraiment l'opt-in.
+ * La surcharge fait porter la nullité par le SEUL appelant qui la demande.
+ */
+export interface AgentAuthContextSansAgence {
+  user: { id: string; email?: string }
   profile: { id: string; agency_id: string | null; role: string | null }
   supabase: SupabaseClient
 }
@@ -31,11 +45,25 @@ export interface AgentAuthOptions {
   allowNoAgency?: boolean
 }
 
+export function requireAgentAuth(
+  req: Request,
+  corsHeaders: Record<string, string>,
+): Promise<AgentAuthContext | Response>
+export function requireAgentAuth(
+  req: Request,
+  corsHeaders: Record<string, string>,
+  options: { allowNoAgency: true },
+): Promise<AgentAuthContextSansAgence | Response>
+export function requireAgentAuth(
+  req: Request,
+  corsHeaders: Record<string, string>,
+  options?: AgentAuthOptions,
+): Promise<AgentAuthContext | Response>
 export async function requireAgentAuth(
   req: Request,
   corsHeaders: Record<string, string>,
   options?: AgentAuthOptions,
-): Promise<AgentAuthContext | Response> {
+): Promise<AgentAuthContextSansAgence | Response> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
