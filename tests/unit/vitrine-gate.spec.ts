@@ -7,12 +7,16 @@
  * rien ici ne peut relire. Le seul endroit où la règle reste vérifiable est ce
  * fichier.
  *
- * ⚠ LE DÉFAUT A BASCULÉ DEUX FOIS EN DEUX JOURS — fermé, puis ouvert le 16 août
- * 2026 (#1240), puis refermé le 17 (#1250). Il vaut `on` aujourd'hui, mais ce
- * n'est pas sur quoi ce fichier s'appuie : **toute assertion demande son état
- * explicitement**, `FERMÉ` ou `OUVERT`. Ne rien passer n'éprouverait que le
- * défaut du moment, et la moitié du fichier passerait au vert pour la mauvaise
- * raison à la bascule suivante — laquelle, on le sait maintenant, arrive.
+ * ⚠ LE DÉFAUT A BASCULÉ TROIS FOIS EN DEUX JOURS — ouvert le 16 août 2026
+ * (#1240), refermé le 17 (#1250), rouvert le 17 (#1257). Il vaut `off`
+ * aujourd'hui, mais ce n'est pas sur quoi ce fichier s'appuie : **toute
+ * assertion demande son état explicitement**, `FERMÉ` ou `OUVERT`. Ne rien
+ * passer n'éprouverait que le défaut du moment, et la moitié du fichier
+ * passerait au vert pour la mauvaise raison à la bascule suivante — laquelle,
+ * au rythme constaté, arrive.
+ *
+ * C'est ce qui rend ces bascules bon marché côté tests : seules DEUX assertions
+ * changent, celles dont le défaut EST l'objet. Les 34 autres ne bougent pas.
  *
  * Un seul test lit le défaut sans le demander, et c'est son objet : il dit à
  * voix haute ce que vaut la production quand aucun réglage n'est posé.
@@ -61,19 +65,19 @@ describe('gate de la vitrine — le défaut, quand aucun réglage ne répond', (
   // ⚠ C'est l'état de la production : ni binding KV, ni variable. Ce test dit
   // à voix haute ce que vaut le site sans réglage — si quelqu'un s'interroge,
   // c'est ici qu'il faut le lire, pas dans un tableau de bord.
-  it('FERME la vitrine sans aucun réglage', async () => {
+  it('OUVRE la vitrine sans aucun réglage', async () => {
     const r = await appeler(PAGE_GATEE)
-    expect(r.status).toBe(401)
-    expect(r.headers.get('WWW-Authenticate')).toContain('Basic realm=')
+    expect(r.status).toBe(200)
+    expect(r.headers.get('WWW-Authenticate')).toBeNull()
   })
 
-  it('ferme aussi quand `env` lui-même manque', async () => {
-    expect(await gateActif(undefined)).toBe(true)
-    expect(await gateActif({})).toBe(true)
+  it('ouvre aussi quand `env` lui-même manque', async () => {
+    expect(await gateActif(undefined)).toBe(false)
+    expect(await gateActif({})).toBe(false)
   })
 
-  it('se laisse ouvrir par la variable, sans toucher au code', async () => {
-    expect((await appeler(PAGE_GATEE, OUVERT)).status).toBe(200)
+  it('se laisse refermer par la variable, sans toucher au code', async () => {
+    expect((await appeler(PAGE_GATEE, FERMÉ)).status).toBe(401)
   })
 })
 

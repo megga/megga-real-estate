@@ -36,26 +36,31 @@ function demandeOuverture(valeur) {
 const CLE_GATE = 'gate';
 
 /**
- * Ce que vaut le gate quand aucun réglage ne répond — `on`, donc FERMÉ.
+ * Ce que vaut le gate quand aucun réglage ne répond — `off`, donc OUVERT.
  *
- * C'est l'état par défaut de la vitrine de pré-lancement, et le seul qui soit
- * sûr : ni le KV ni la variable n'existent en production, donc c'est cette
- * constante qui gouverne. Une préversion de branche, un `wrangler dev` local ou
- * un projet Pages recréé n'héritent d'aucun réglage non plus, et héritent donc
- * du comportement fermé — c'est voulu.
+ * Ni le KV ni la variable n'existent en production : c'est donc cette constante
+ * qui gouverne `megga.ch`, et le site est en accès libre.
  *
- * Ouvrir, au choix, du plus vif au plus définitif :
- *   1. clé `gate` du KV `VITRINE_CONFIG` → `off` (~60 s, sans déploiement) ;
- *   2. variable `VITRINE_GATE` → `off`, effectif au déploiement suivant ;
- *   3. cette constante → `'off'`, qui n'exige aucun accès au tableau de bord.
+ * Refermer, au choix, du plus vif au plus définitif :
+ *   1. clé `gate` du KV `VITRINE_CONFIG` → `on` (~60 s, sans déploiement) ;
+ *   2. variable `VITRINE_GATE` → `on`, effectif au déploiement suivant ;
+ *   3. cette constante → `'on'`, qui n'exige aucun accès au tableau de bord.
  *
- * ⚠ Historique utile, parce que le va-et-vient a laissé des traces : la
- * constante a valu `off` le 16 août 2026 (#1240), sur demande, pour ouvrir le
- * site sans passer par Cloudflare. Elle est revenue à `on` le 17 (#1250), la
- * parenthèse étant refermée. Les deux plans de contrôle au-dessus datent de
- * cet épisode (#1239) et restent le moyen d'ouvrir sans toucher au code.
+ * ⚠ CETTE CONSTANTE A BASCULÉ TROIS FOIS EN DEUX JOURS — `off` le 16 août 2026
+ * (#1240), `on` le 17 (#1250), `off` de nouveau le 17 (#1257), à chaque fois sur
+ * demande. Ce n'est pas de l'indécision : c'est que **le levier 1 n'existe
+ * toujours pas**. Le binding KV n'a jamais été créé au tableau de bord, donc la
+ * bascule « 60 s sans déploiement » reste théorique, et chaque changement d'avis
+ * coûte une PR, une CI et un déploiement — environ sept minutes. Poser le
+ * binding une fois supprimerait ce coût pour toutes les fois suivantes.
+ *
+ * ⛔ Tant que la valeur est `off`, la vitrine de pré-lancement est lisible ET
+ * indexable par n'importe qui — `robots.txt` porte `Allow: /`, et le gate est la
+ * seule chose qui tenait les moteurs à distance. La sonde de
+ * `.claude/hooks/session-start.sh` est le seul rappel à l'écran : « vitrine :
+ * 200 — le gate est OUVERT ⚠ ».
  */
-const GATE_PAR_DEFAUT = 'on';
+const GATE_PAR_DEFAUT = 'off';
 
 /**
  * Le gate est-il posé ? Deux sources, dans cet ordre (16 août 2026, Julien).
@@ -66,8 +71,8 @@ const GATE_PAR_DEFAUT = 'on';
  * 2. **Variable `VITRINE_GATE`** — le réglage de repli, relu au déploiement
  *    seulement. Il gouverne là où le KV n'est pas branché : préversions de
  *    branche, `wrangler dev`, et la période avant que le binding existe.
- * 3. **`GATE_PAR_DEFAUT`** — quand ni l'un ni l'autre n'existe. Il vaut `on`,
- *    donc **l'état par défaut est FERMÉ** : c'est ce qui gouverne la production
+ * 3. **`GATE_PAR_DEFAUT`** — quand ni l'un ni l'autre n'existe. Il vaut `off`,
+ *    donc **l'état par défaut est OUVERT** : c'est ce qui gouverne la production
  *    aujourd'hui, où aucun des deux réglages n'est posé.
  *
  * Un niveau ne parle que s'il a quelque chose à dire. Clé absente du KV
