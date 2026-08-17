@@ -24,8 +24,6 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync, globSync } from 'node:fs'
 import { segment, grouper, contenuLocalise, normaliserRecherche } from '../../scripts/vitrine-aide.mjs'
 
-const WORKER = readFileSync('sites/megga-vitrine/_worker.js', 'utf-8')
-
 /** Forme réelle de l'API Intercom 2.11, réduite à ce que le générateur lit. */
 const ARTICLES = [
   {
