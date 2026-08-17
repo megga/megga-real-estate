@@ -26,6 +26,7 @@ export type WaTemplateKey =
   | 'new_listings'
   | 'agent_daily_brief'
   | 'kyc_documents_missing'
+  | 'number_verification'
 
 export const WA_TEMPLATE_KEYS: WaTemplateKey[] = [
   'followup',
@@ -33,6 +34,7 @@ export const WA_TEMPLATE_KEYS: WaTemplateKey[] = [
   'new_listings',
   'agent_daily_brief',
   'kyc_documents_missing',
+  'number_verification',
 ]
 
 export interface WaTemplateContext {
@@ -42,6 +44,7 @@ export interface WaTemplateContext {
   extra?: string             // availability : objet du créneau (ex. « une visite »)
   agentFirstName?: string    // agent_daily_brief : prénom de l'AGENT destinataire ({{1}})
   itemCount?: number         // agent_daily_brief : nombre d'éléments à traiter ({{2}})
+  verificationCode?: string  // number_verification : le code à 6 chiffres ({{1}}, seule variable)
   /** Langue du DESTINATAIRE. Prime sur la surcharge d'env. Valeur inconnue = ignorée. */
   lang?: string
 }
@@ -52,6 +55,12 @@ export type WaTemplateLang = 'fr' | 'de' | 'en' | 'it'
 export const WA_TEMPLATE_LANGS: WaTemplateLang[] = ['fr', 'de', 'en', 'it']
 
 interface WaTemplateDef {
+  /**
+   * Template de catégorie AUTHENTICATION : Meta écrit et traduit le corps lui-même, et
+   * exige un composant `button` à l'envoi (le code y est répété pour le presse-papier).
+   * Les templates ordinaires n'ont ni l'un ni l'autre.
+   */
+  authentication?: boolean
   /** Env var portant le nom Meta APPROUVÉ (vide/absent = template non activé). */
   nameEnv: string
   /** Env var pour surcharger la langue ; sinon defaultLang. */
@@ -202,6 +211,43 @@ const REGISTRY: Record<WaTemplateKey, WaTemplateDef> = {
     },
     bodyParams: (c, l) => [nonEmpty(c.clientFirstName, FALLBACK[l].person), nonEmpty(c.agentName, FALLBACK[l].agency)],
   },
+  // Code de vérification d'un numéro que l'AGENT vient de saisir dans ses réglages.
+  //
+  // ⛔ CATÉGORIE **AUTHENTICATION**, ET C'EST UNE CORRECTION. Ce commentaire disait
+  // l'inverse — « soumettre en UTILITY, jamais AUTHENTICATION » — en raisonnant à
+  // l'envers : il déduisait la catégorie de ce que notre passerelle savait construire,
+  // alors que la catégorie est imposée par la POLITIQUE de Meta. Vérifié le 17.08.2026
+  // dans la documentation Meta : seuls les templates d'authentification peuvent porter un
+  // code à usage unique, et un template UTILITY qui en contient un est REFUSÉ. Le
+  // correctif n'était donc pas de choisir la catégorie que le code supportait, mais
+  // d'apprendre à la passerelle à envoyer un bouton OTP (fait : `otpButtonCode`).
+  //
+  // ⚠ CONSÉQUENCE SUR CE REGISTRE : le corps d'un template d'authentification n'est PAS
+  // le nôtre. Meta le génère, traduit, dans chaque langue. Les `bodyTexts` ci-dessous ne
+  // sont donc PAS soumis : ils DOCUMENTENT ce que le destinataire lira, pour que le reste
+  // du dépôt (revue, support, capture d'écran) sache à quoi s'attendre. Ne pas les
+  // « corriger » en croyant changer le message : seuls `add_security_recommendation` et
+  // `code_expiration_minutes`, posés à la création, en modifient quoi que ce soit.
+  //
+  // ✅ SOUMIS ET APPROUVÉ le 17.08.2026 dans les quatre langues (WABA « Megga »,
+  // `megga_number_verification`, statut Actif, mode COPY_CODE, expiration 10 min). Les
+  // textes ci-dessous sont RELEVÉS À L'ÉCRAN sur l'aperçu de Meta, pas reconstitués.
+  //
+  // ⚠ ET ILS TUTOIENT EN DE ET EN IT. MEGGA vouvoie partout ailleurs — c'est une règle de
+  // voix du dépôt — mais ces phrases-là appartiennent à Meta et ne se modifient pas. Le
+  // noter ici évite qu'on ouvre un jour un ticket « incohérence de ton » contre du texte
+  // sur lequel personne n'a la main.
+  number_verification: {
+    nameEnv: 'WA_TEMPLATE_NUMBER_VERIFICATION', langEnv: 'WA_TEMPLATE_NUMBER_VERIFICATION_LANG', defaultLang: 'fr',
+    authentication: true,
+    bodyTexts: {
+      fr: 'Votre code de vérification est {{1}}. Pour votre sécurité, ne le partagez pas.',
+      de: 'Dein Verifizierungscode lautet {{1}}. Aus Sicherheitsgründen solltest du den Code nicht teilen.',
+      en: '{{1}} is your verification code. For your security, do not share this code.',
+      it: '{{1}} è il tuo codice di verifica. Per garantire la tua sicurezza, ti consigliamo di non condividere questo codice.',
+    },
+    bodyParams: (c) => [nonEmpty(c.verificationCode, '------')],
+  },
 }
 
 /** Corps d'un template dans une langue donnée (documentation + soumission Meta). */
@@ -240,7 +286,17 @@ export function buildTemplateMessage(
     asLang((ctx.lang ?? '').trim()) ??
     asLang((env(def.langEnv) ?? '').trim()) ??
     def.defaultLang
-  return { toPhone, templateName: name, languageCode: lang, bodyParams: def.bodyParams(ctx, lang) }
+  const bodyParams = def.bodyParams(ctx, lang)
+  return {
+    toPhone,
+    templateName: name,
+    languageCode: lang,
+    bodyParams,
+    // Le code répété pour le bouton « Copier ». Il vient du PREMIER paramètre de corps,
+    // et non d'un champ à part : un template d'authentification n'a qu'une variable, et
+    // les faire diverger afficherait un code et en copierait un autre.
+    ...(def.authentication ? { otpButtonCode: bodyParams[0] } : {}),
+  }
 }
 
 /** Liste des clés de template ACTIVÉES (nom approuvé présent dans l'env). */

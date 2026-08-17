@@ -5994,8 +5994,14 @@ export type Database = {
           created_at: string
           id: string
           morning_brief_enabled: boolean
+          otp_attempts: number
+          otp_expires_at: string | null
+          otp_hash: string | null
+          otp_sent_count: number
+          otp_window_started_at: string | null
           pairing_code: string | null
           pairing_expires_at: string | null
+          pending_number: string | null
           profile_id: string
           verified: boolean
           verified_at: string | null
@@ -6006,8 +6012,14 @@ export type Database = {
           created_at?: string
           id?: string
           morning_brief_enabled?: boolean
+          otp_attempts?: number
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          otp_sent_count?: number
+          otp_window_started_at?: string | null
           pairing_code?: string | null
           pairing_expires_at?: string | null
+          pending_number?: string | null
           profile_id: string
           verified?: boolean
           verified_at?: string | null
@@ -6018,8 +6030,14 @@ export type Database = {
           created_at?: string
           id?: string
           morning_brief_enabled?: boolean
+          otp_attempts?: number
+          otp_expires_at?: string | null
+          otp_hash?: string | null
+          otp_sent_count?: number
+          otp_window_started_at?: string | null
           pairing_code?: string | null
           pairing_expires_at?: string | null
+          pending_number?: string | null
           profile_id?: string
           verified?: boolean
           verified_at?: string | null
@@ -7427,6 +7445,17 @@ export type Database = {
         Args: { p_invite_id: string; p_message_id?: string; p_wa_phone: string }
         Returns: string
       }
+      cancel_whatsapp_number_verification: {
+        Args: never
+        Returns: undefined
+      }
+      confirm_whatsapp_number_verification: {
+        Args: { p_code: string }
+        Returns: {
+          ok: boolean
+          reason: string
+        }[]
+      }
       contact_next_action: {
         Args: { p_agency: string; p_contact: string }
         Returns: Json
@@ -8737,6 +8766,14 @@ export type Database = {
         Args: { p_property_id: string }
         Returns: boolean
       }
+      start_whatsapp_number_verification: {
+        Args: { p_number: string; p_profile_id: string }
+        Returns: {
+          code: string
+          ok: boolean
+          reason: string
+        }[]
+      }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
@@ -9369,6 +9406,7 @@ export type Database = {
       }
       today_absence: { Args: { p_fallback_hours?: number }; Returns: Json }
       unaccent: { Args: { "": string }; Returns: string }
+      unlink_whatsapp_number: { Args: never; Returns: undefined }
       unlockrows: { Args: { "": string }; Returns: number }
       unpublish_expired_mandates: { Args: never; Returns: number }
       updategeometrysrid: {

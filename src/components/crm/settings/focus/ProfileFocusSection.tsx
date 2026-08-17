@@ -15,11 +15,21 @@ import type { ProfileData } from '../data'
 import { PfIc, PfEditField, PfAvatar, PfPhotoModal, type FocusSectionProps, type PfRow, type PfColors, type PfEditLabels } from './pfKit'
 import { pfColors, PF_KEYFRAMES } from './pfKitCore'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
+import { formatInternationalPhone } from '@/lib/countries'
 
 // Clés éditables = clés string de ProfileData rendues par la section.
-type RowKey =
-  | 'firstName' | 'lastName' | 'title' | 'email' | 'mobile' | 'phone' | 'agency'
+type ProfileRowKey =
+  | 'firstName' | 'lastName' | 'title' | 'email' | 'agency'
   | 'bio' | 'languages' | 'specialties' | 'website' | 'linkedin'
+
+/**
+ * `whatsapp` n'est PAS une clé de ProfileData : sa valeur vit dans
+ * `whatsapp_agent_links.wa_number` et ne s'écrit que par une vérification. Elle est
+ * donc traitée à part de bout en bout — lecture, rendu, action — au lieu d'être un
+ * champ de formulaire de plus.
+ */
+type RowKey = ProfileRowKey | 'whatsapp'
 
 // Champs stockés UNIQUEMENT dans agent_profiles (pas de repli sur profiles) :
 // ne persistent que si la fiche annuaire existe (cf. useAgentProfileScreen.hasAgentProfile).
@@ -38,10 +48,17 @@ const PF_GROUPS: GroupDef[] = [
     { key: 'lastName', icon: 'user' },
     { key: 'title', icon: 'briefcase', labelKey: 'role' },
   ] },
+  // ⚠ « Téléphone mobile » et « Téléphone fixe » ont été RETIRÉS le 17.08.2026 au
+  // profit d'un numéro unique et PROUVÉ (décision Julien). Deux champs libres pour la
+  // même personne produisaient surtout de la divergence : mesuré en prod le même jour,
+  // le seul agent apparié portait `+41 79 899 93 79` dans son profil et
+  // `+41 76 608 04 08` sur son WhatsApp vérifié. C'est le premier que voyait l'acheteur.
+  // `profiles.phone` continue d'exister et d'alimenter la réception acheteur et les
+  // e-mails de matching — il est désormais écrit par le trigger de vérification
+  // (20260817133211), plus par une saisie libre.
   { id: 'contact', rows: [
     { key: 'email', icon: 'mail', locked: true, hintKey: 'emailHint' },
-    { key: 'mobile', icon: 'smartphone' },
-    { key: 'phone', icon: 'phone' },
+    { key: 'whatsapp', icon: 'smartphone', hintKey: 'whatsappHint' },
     { key: 'agency', icon: 'building', locked: true, hintKey: 'agencyHint' },
   ] },
   { id: 'presentation', rows: [
@@ -55,12 +72,15 @@ const PF_GROUPS: GroupDef[] = [
   ] },
 ]
 
-export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
+export function ProfileFocusSection({ sp, surf, dark, onGoToSection }: FocusSectionProps) {
   const { t } = useTranslation('settings')
   const c: PfColors = pfColors(sp, surf, dark)
   const toast = useToast()
   const { profile, hasBackend, hasAgentProfile, save } = useAgentProfileScreen()
   const { avatarUrl, saveDataUrl } = useAvatar()
+  const { status: waStatus } = useWhatsAppPairing()
+  const waLink = waStatus.data
+  const waVerified = waLink?.verified === true
 
   const [local, setLocal] = useState<ProfileData>(profile)
   useEffect(() => { setLocal(profile) }, [profile])
@@ -91,14 +111,28 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
   }), [t])
 
   const strVal = (key: RowKey): string => {
+    // Le numéro WhatsApp ne sort pas du formulaire : il n'existe QUE vérifié. Tant que
+    // le lien ne l'est pas, la ligne est vide — donc la carte propose « Ajouter »,
+    // et n'affiche jamais un numéro en attente comme s'il était acquis.
+    if (key === 'whatsapp') return waVerified ? formatInternationalPhone(waLink?.wa_number ?? '') : ''
     const v = local[key]
     return Array.isArray(v) ? v.join(', ') : (v ?? '')
   }
-  const startEdit = (key: RowKey) => { setEditKey(key); setDraft(strVal(key)) }
+
+  // La ligne WhatsApp n'ouvre pas d'éditeur : elle renvoie vers la carte d'appairage,
+  // seul endroit où un numéro peut être prouvé. Le bouton de la ligne est donc le même
+  // (grammaire « Ajouter » / « Modifier »), mais son geste est une navigation.
+  const startEdit = (key: RowKey) => {
+    if (key === 'whatsapp') { onGoToSection?.('integrations'); return }
+    setEditKey(key); setDraft(strVal(key))
+  }
 
   const saveField = async () => {
     const key = editKey
     if (!key) return
+    // Inatteignable par l'UI (`startEdit` navigue au lieu d'ouvrir l'éditeur), mais c'est
+    // ce qui garantit au type que `key` indexe bien ProfileData en dessous.
+    if (key === 'whatsapp') { setEditKey(null); return }
     if (!hasBackend) { setEditKey(null); toast.error(t('focus.toast.sessionExpired')); return }
     // Champ d'annuaire non persistable tant que la fiche agent_profiles n'existe pas :
     // on ferme l'éditeur SANS appliquer la valeur ni afficher « Enregistré » (le save
@@ -134,6 +168,11 @@ export function ProfileFocusSection({ sp, surf, dark }: FocusSectionProps) {
     key: r.key, icon: r.icon, label: t(`focus.profile.fields.${r.labelKey ?? r.key}`),
     multiline: r.multiline, chips: r.chips, placeholder: r.placeholder, locked: r.locked,
     hint: r.hintKey ? t(`focus.profile.${r.hintKey}`) : undefined,
+    // Le sceau ne se pose QUE sur le WhatsApp vérifié. C'est le seul champ de cet écran
+    // dont la valeur ait été confrontée à quoi que ce soit : le reste est déclaratif, et
+    // sceller du déclaratif viderait le sceau de son sens.
+    verified: r.key === 'whatsapp' && waVerified,
+    verifiedLabel: r.key === 'whatsapp' ? t('focus.profile.whatsappVerified') : undefined,
   })
 
   return (

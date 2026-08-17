@@ -61,8 +61,9 @@
     "rcc": "Numéro RCC",
     "contactTitle": "Contact",
     "emailPro": "Email professionnel",
-    "mobile": "Téléphone mobile",
-    "landline": "Téléphone fixe",
+    "whatsapp": "Numéro WhatsApp",
+    "whatsappHint": "Vérifié par appairage WhatsApp",
+    "whatsappUnverified": "Aucun numéro vérifié. Appairez WhatsApp depuis le CRM sur ordinateur.",
     "agency": "Agence",
     "agencyHint": "Modifiable depuis l'onglet Mon agence",
     "publicPresentationTitle": "Présentation publique",
@@ -660,10 +661,43 @@
       "waiting": {
         "sendCode": "Envoyez ce code à <strong>{{number}}</strong> sur WhatsApp (valable 15 min).",
         "title": "En attente de votre message…",
-        "desc": "Le lien s'active dès réception du code."
+        "desc": "Le lien s'active dès réception du code.",
+        "openWhatsapp": "Ouvrir WhatsApp"
       },
       "regenerateCode": "Régénérer un code",
       "generating": "Génération…",
+      "unlink": "Délier ce numéro",
+      "unlinking": "Déliaison…",
+      "otp": {
+        "countryLabel": "Pays du numéro",
+        "numberLabel": "Numéro de téléphone",
+        "send": "Recevoir un code",
+        "sending": "Envoi…",
+        "sent": "Code envoyé à <strong>{{number}}</strong> sur WhatsApp. Il expire dans 10 minutes.",
+        "codeLabel": "Code à 6 chiffres",
+        "verify": "Vérifier",
+        "verifying": "Vérification…",
+        "attemptsLeft_one": "Encore {{count}} essai",
+        "attemptsLeft_other": "Encore {{count}} essais",
+        "resend": "Renvoyer un code",
+        "cancel": "Annuler",
+        "errors": {
+          "template_not_configured": "L'envoi de code n'est pas encore activé. Utilisez « Générer un code » ci-dessous : vous enverrez le code depuis votre WhatsApp.",
+          "number_taken": "Ce numéro est déjà vérifié sur un autre compte MEGGA.",
+          "rate_limited": "Trop de codes demandés. Réessayez dans une heure.",
+          "invalid_phone": "Ce numéro n'est pas exploitable. Vérifiez le pays et les chiffres.",
+          "wrong_code": "Code incorrect.",
+          "expired": "Ce code a expiré. Demandez-en un nouveau.",
+          "too_many_attempts": "Trop de tentatives. Demandez un nouveau code.",
+          "no_pending": "Aucune vérification en cours.",
+          "phone_suppressed": "Ce numéro a demandé à ne plus recevoir de messages.",
+          "not_contactable": "Ce numéro ne peut pas être contacté.",
+          "generic": "La vérification a échoué. Réessayez.",
+          "platform_rate_limited": "Trop de vérifications sur l'ensemble de la plateforme aujourd'hui. Réessayez demain ou contactez le support.",
+          "number_rate_limited": "Ce numéro a déjà reçu plusieurs codes aujourd'hui. Réessayez demain.",
+          "too_many_numbers": "Vous avez vérifié trop de numéros différents aujourd'hui. Réessayez demain."
+        }
+      },
       "unlinked": {
         "body": "Pilotez MEGGA depuis WhatsApp. Vos RDV, vos relances et vos contacts directement par message, sans ouvrir le CRM. Générez un code, puis envoyez-le à MEGGA au <strong>{{number}}</strong>."
       },
@@ -942,8 +976,7 @@
         "lastName": "Nom",
         "role": "Fonction",
         "email": "Email professionnel",
-        "mobile": "Mobile",
-        "phone": "Téléphone fixe",
+        "whatsapp": "Numéro WhatsApp",
         "agency": "Agence",
         "bio": "Biographie publique",
         "languages": "Langues parlées",
@@ -952,7 +985,9 @@
         "linkedin": "Profil LinkedIn"
       },
       "emailHint": "Adresse de connexion, non modifiable ici",
-      "agencyHint": "Modifiable depuis Mon agence"
+      "agencyHint": "Modifiable depuis Mon agence",
+      "whatsappHint": "Vérifié par appairage WhatsApp, dans Intégrations",
+      "whatsappVerified": "Vérifié"
     },
     "agency": {
       "banner": "Ces informations apparaissent sur vos documents, mandats et annonces publiques.",

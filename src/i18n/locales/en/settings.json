@@ -61,8 +61,9 @@
     "rcc": "RCC number",
     "contactTitle": "Contact",
     "emailPro": "Work email",
-    "mobile": "Mobile phone",
-    "landline": "Landline",
+    "whatsapp": "WhatsApp number",
+    "whatsappHint": "Verified by WhatsApp pairing",
+    "whatsappUnverified": "No verified number. Pair WhatsApp from the CRM on desktop.",
     "agency": "Agency",
     "agencyHint": "Editable from the My agency tab",
     "publicPresentationTitle": "Public presentation",
@@ -660,10 +661,43 @@
       "waiting": {
         "sendCode": "Send this code to <strong>{{number}}</strong> on WhatsApp (valid for 15 min).",
         "title": "Waiting for your message…",
-        "desc": "The link activates as soon as the code is received."
+        "desc": "The link activates as soon as the code is received.",
+        "openWhatsapp": "Open WhatsApp"
       },
       "regenerateCode": "Regenerate a code",
       "generating": "Generating…",
+      "unlink": "Unlink this number",
+      "unlinking": "Unlinking…",
+      "otp": {
+        "countryLabel": "Number country",
+        "numberLabel": "Phone number",
+        "send": "Receive a code",
+        "sending": "Sending…",
+        "sent": "Code sent to <strong>{{number}}</strong> on WhatsApp. It expires in 10 minutes.",
+        "codeLabel": "6-digit code",
+        "verify": "Verify",
+        "verifying": "Verifying…",
+        "attemptsLeft_one": "{{count}} attempt left",
+        "attemptsLeft_other": "{{count}} attempts left",
+        "resend": "Send a new code",
+        "cancel": "Cancel",
+        "errors": {
+          "template_not_configured": "Code sending is not enabled yet. Use \"Generate a code\" below: you will send the code from your own WhatsApp.",
+          "number_taken": "This number is already verified on another MEGGA account.",
+          "rate_limited": "Too many codes requested. Try again in an hour.",
+          "invalid_phone": "This number cannot be used. Check the country and the digits.",
+          "wrong_code": "Incorrect code.",
+          "expired": "This code has expired. Request a new one.",
+          "too_many_attempts": "Too many attempts. Request a new code.",
+          "no_pending": "No verification in progress.",
+          "phone_suppressed": "This number asked to stop receiving messages.",
+          "not_contactable": "This number cannot be contacted.",
+          "generic": "Verification failed. Try again.",
+          "platform_rate_limited": "Too many verifications across the platform today. Try again tomorrow or contact support.",
+          "number_rate_limited": "This number has already received several codes today. Try again tomorrow.",
+          "too_many_numbers": "You have verified too many different numbers today. Try again tomorrow."
+        }
+      },
       "unlinked": {
         "body": "Drive MEGGA from WhatsApp. Your appointments, follow-ups and contacts straight by message, without opening the CRM. Generate a code, then send it to MEGGA at <strong>{{number}}</strong>."
       },
@@ -942,8 +976,7 @@
         "lastName": "Last name",
         "role": "Role",
         "email": "Work email",
-        "mobile": "Mobile",
-        "phone": "Landline",
+        "whatsapp": "WhatsApp number",
         "agency": "Agency",
         "bio": "Public bio",
         "languages": "Languages spoken",
@@ -952,7 +985,9 @@
         "linkedin": "LinkedIn profile"
       },
       "emailHint": "Sign-in address, not editable here",
-      "agencyHint": "Editable from My agency"
+      "agencyHint": "Editable from My agency",
+      "whatsappHint": "Verified by WhatsApp pairing, under Integrations",
+      "whatsappVerified": "Verified"
     },
     "agency": {
       "banner": "This information appears on your documents, mandates and public listings.",

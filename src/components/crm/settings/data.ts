@@ -253,10 +253,19 @@ export function isSetDark(): boolean {
   return setThemeDark
 }
 
+/**
+ * Part du profil renseignée, en %.
+ *
+ * ⚠ `mobile` a été RETIRÉ du décompte le 17.08.2026 en même temps que son champ :
+ * l'écran Profil ne porte plus qu'UN numéro, alimenté par la vérification WhatsApp.
+ * Le laisser aurait plafonné tous les agents à 90 % sans qu'aucun geste puisse
+ * combler le dixième manquant — un score qu'on ne peut pas finir cesse d'être lu.
+ * `phone` reste, lui : il se remplit désormais en appairant son WhatsApp.
+ */
 export function profileCompletionScore(p: ProfileData): number {
   const fields: (keyof ProfileData)[] = [
     'firstName', 'lastName', 'title', 'agency',
-    'email', 'phone', 'mobile', 'rcc', 'bio', 'signature',
+    'email', 'phone', 'rcc', 'bio', 'signature',
   ]
   const filled = fields.filter(f => {
     const v = p[f]
