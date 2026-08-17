@@ -696,7 +696,9 @@
           "platform_rate_limited": "Heute zu viele Verifizierungen auf der gesamten Plattform. Versuchen Sie es morgen erneut oder wenden Sie sich an den Support.",
           "number_rate_limited": "Diese Nummer hat heute bereits mehrere Codes erhalten. Versuchen Sie es morgen erneut.",
           "too_many_numbers": "Sie haben heute zu viele verschiedene Nummern verifiziert. Versuchen Sie es morgen erneut."
-        }
+        },
+        "notEnabled": "Der Codeversand per WhatsApp ist für dieses Konto noch nicht aktiviert.",
+        "probeFailed": "Die Verfügbarkeit des Codeversands konnte nicht geprüft werden. Versuchen Sie es erneut oder nutzen Sie die Verknüpfung unten."
       },
       "unlinked": {
         "body": "Steuern Sie MEGGA über WhatsApp. Ihre Termine, Ihre Nachfassungen und Ihre Kontakte direkt per Nachricht, ohne das CRM zu öffnen. Generieren Sie einen Code und senden Sie ihn an MEGGA unter <strong>{{number}}</strong>."

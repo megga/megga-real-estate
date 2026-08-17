@@ -696,7 +696,9 @@
           "platform_rate_limited": "Trop de vérifications sur l'ensemble de la plateforme aujourd'hui. Réessayez demain ou contactez le support.",
           "number_rate_limited": "Ce numéro a déjà reçu plusieurs codes aujourd'hui. Réessayez demain.",
           "too_many_numbers": "Vous avez vérifié trop de numéros différents aujourd'hui. Réessayez demain."
-        }
+        },
+        "notEnabled": "L'envoi de code par WhatsApp n'est pas encore activé sur ce compte.",
+        "probeFailed": "Impossible de vérifier si l'envoi de code est disponible. Réessayez, ou utilisez l'appairage ci-dessous."
       },
       "unlinked": {
         "body": "Pilotez MEGGA depuis WhatsApp. Vos RDV, vos relances et vos contacts directement par message, sans ouvrir le CRM. Générez un code, puis envoyez-le à MEGGA au <strong>{{number}}</strong>."

@@ -696,7 +696,9 @@
           "platform_rate_limited": "Oggi troppe verifiche sull'intera piattaforma. Riprovi domani o contatti l'assistenza.",
           "number_rate_limited": "Questo numero ha già ricevuto diversi codici oggi. Riprovi domani.",
           "too_many_numbers": "Oggi ha verificato troppi numeri diversi. Riprovi domani."
-        }
+        },
+        "notEnabled": "L'invio del codice via WhatsApp non è ancora attivo su questo account.",
+        "probeFailed": "Non è stato possibile verificare se l'invio del codice è disponibile. Riprovi, o usi il collegamento qui sotto."
       },
       "unlinked": {
         "body": "Gestisca MEGGA da WhatsApp. I Suoi appuntamenti, i Suoi solleciti e i Suoi contatti direttamente via messaggio, senza aprire il CRM. Generi un codice, poi lo invii a MEGGA al <strong>{{number}}</strong>."
