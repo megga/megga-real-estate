@@ -386,7 +386,14 @@ export function MlkAgentAvatar({
 interface ReassureItem {
   icon: MlkIconName
   title: string
-  sub: string
+  /**
+   * ⚠ FACULTATIF depuis le 17 août 2026. Les quatre sous-titres du parcours KYC
+   * disaient « AES-256, transit TLS 1.3 » et « LBA art. 7, puis supprimé » — de
+   * la technique et du droit, à un client qui dépose son passeport. Les titres
+   * seuls se lisent d'un coup d'œil ; le reste chargeait l'écran sans rien
+   * ajouter à ce qu'il doit FAIRE.
+   */
+  sub?: string
 }
 
 export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
@@ -427,16 +434,18 @@ export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
           >
             {it.title}
           </div>
-          <div
-            style={{
-              fontSize: 'var(--crm-text-xs)',
-              color: MLK.muted,
-              fontWeight: 500,
-              lineHeight: 1.5,
-            }}
-          >
-            {it.sub}
-          </div>
+          {it.sub && (
+            <div
+              style={{
+                fontSize: 'var(--crm-text-xs)',
+                color: MLK.muted,
+                fontWeight: 500,
+                lineHeight: 1.5,
+              }}
+            >
+              {it.sub}
+            </div>
+          )}
         </div>
       ))}
     </div>

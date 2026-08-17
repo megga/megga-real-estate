@@ -69,22 +69,18 @@ export function MlkLanding({
     {
       icon: 'swiss' as const,
       title: t('client.landing.reassure_swiss_title'),
-      sub: t('client.landing.reassure_swiss_sub'),
     },
     {
       icon: 'lock' as const,
       title: t('client.landing.reassure_lock_title'),
-      sub: t('client.landing.reassure_lock_sub'),
     },
     {
       icon: 'shield' as const,
       title: t('client.landing.reassure_shield_title'),
-      sub: t('client.landing.reassure_shield_sub'),
     },
     {
       icon: 'clock' as const,
       title: t('client.landing.reassure_clock_title'),
-      sub: t('client.landing.reassure_clock_sub'),
     },
   ]
 
@@ -133,16 +129,6 @@ export function MlkLanding({
       >
         <MlkAgentAvatar name={agentFullName} size={48} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div
-            style={{
-              fontSize: 'var(--crm-text-xs)',
-              fontWeight: 600,
-              color: MLK.muted,
-              marginBottom: 3,
-            }}
-          >
-            {t('client.landing.agent_label')}
-          </div>
           <div
             style={{
               fontSize: 'var(--crm-text-lg)',
@@ -235,8 +221,6 @@ interface UploadedFileLite {
 
 interface UploadProps {
   firstName: string
-  agentFullName: string
-  agencyName: string
   contactSummary: string             // ex: "Sophie Bernard · 4 pièces Eaux-Vives"
   uploaded: UploadedFileLite[]
   isUploading: boolean
@@ -248,8 +232,6 @@ interface UploadProps {
 
 export function MlkUpload({
   firstName,
-  agentFullName,
-  agencyName,
   contactSummary,
   uploaded,
   isUploading,
@@ -311,16 +293,6 @@ export function MlkUpload({
         </div>
       </div>
 
-      <div
-        style={{
-          fontSize: 'var(--crm-text-xs)',
-          fontWeight: 600,
-          color: MLK.muted,
-          marginBottom: 14,
-        }}
-      >
-        {t('client.upload.section_label')}
-      </div>
       <h1
         className="mlk-h1"
         style={{
@@ -334,18 +306,6 @@ export function MlkUpload({
       >
         {t('client.upload.title', { firstName })}
       </h1>
-      <p
-        style={{
-          margin: '0 0 28px',
-          fontSize: 'var(--crm-text-lg)',
-          color: MLK.inkSoft,
-          fontWeight: 500,
-          lineHeight: 1.55,
-          maxWidth: 600,
-        }}
-      >
-        {t('client.upload.subtitle')}
-      </p>
 
       {/* Type sélecteur — 4 radio cards en grid 2x2 */}
       <div
@@ -688,31 +648,6 @@ export function MlkUpload({
           </div>
         </>
       )}
-
-      {/* Tip sécurité */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 10,
-          padding: '12px 14px',
-          background: MLK.cardSubtle,
-          borderRadius: 12,
-          marginBottom: 28,
-        }}
-      >
-        <MlkIcon name="lock" size={14} stroke={MLK.muted} sw={1.8} />
-        <div
-          style={{
-            fontSize: 'var(--crm-text-xs)',
-            color: MLK.muted,
-            fontWeight: 500,
-            lineHeight: 1.5,
-          }}
-        >
-          {t('client.upload.security_tip', { agentName: agentFullName, agencyName })}
-        </div>
-      </div>
 
       {/* Footer CTA */}
       <div

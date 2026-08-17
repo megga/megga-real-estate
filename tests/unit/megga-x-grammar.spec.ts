@@ -997,9 +997,12 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // a emporté ses littéraux avec lui. Le cliquet redescend, il ne se justifie pas.
   ['src/components/crm/settings', { hors: 73, total: 93 }],
   ['src/components/crm/today', { hors: 43, total: 54 }],
-  // ⚠ total 110 → 107 le 17 août 2026 : la bannière d'échec de `MlkBooking` a cédé sa
-  // géométrie littérale à `MlkFailureNotice`, qui l'écrit en `var(--crm-*)`.
-  ['src/components/kyc-magic-link', { hors: 80, total: 107 }],
+  // ⚠ total 110 → 107 → 100, et hors échelle 80 → 74, le 17 août 2026. D'abord la bannière
+  // d'échec de `MlkBooking`, qui a cédé sa géométrie littérale à `MlkFailureNotice`. Puis
+  // l'allègement du parcours KYC (décision Julien) : cinq blocs de texte retirés — les
+  // sous-titres de réassurance, l'accroche du dépôt, le conseil de sécurité, deux surtitres
+  // — et leur mise en page avec eux. Un texte supprimé emporte sa géométrie.
+  ['src/components/kyc-magic-link', { hors: 74, total: 100 }],
   // ⚠ 107 → 109 (18.08.2026) SANS qu'un seul littéral ait été ajouté : le bouton de
   // renvoi du bandeau LAB introduit les classes `mx-notice__actions` et
   // `mx-notice__close`, et B4_CLASSE les compte comme des utilitaires Tailwind — son

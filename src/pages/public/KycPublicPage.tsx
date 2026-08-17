@@ -262,8 +262,6 @@ export default function KycPublicPage() {
       ) : (
         <MlkUpload
           firstName={firstName}
-          agentFullName={agentFullName}
-          agencyName={agencyName}
           contactSummary={contactSummary}
           uploaded={allUploads.map((u) => ({
             id: u.upload_id,
