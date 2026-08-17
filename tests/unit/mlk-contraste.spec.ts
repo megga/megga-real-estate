@@ -74,7 +74,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { MLK } from '@/components/kyc-magic-link/mlkTokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
-import { repoPath, rel } from './helpers/fs-scan'
+import { repoPath, rel, scanRoots } from './helpers/fs-scan'
 
 const AA = 4.5
 /** Seuil des éléments NON textuels (WCAG 1.4.11) — une forme, un filet, un tracé. */
@@ -129,24 +129,36 @@ const arrondi = (n: number) => Math.round(n * 100) / 100
 /* ─── La source, et la résolution des rôles PAR LE BLOC ───────────────────────── */
 
 /**
- * Les SIX fichiers qui lisent `MLK`. `KycPublicPage` n'y est pas : elle monte
- * les écrans et ne peint rien elle-même — mesuré, elle ne porte ni `style={{`
- * ni `className`.
+ * ⛔ LA LISTE EST DÉRIVÉE, PLUS FIGÉE — un correctif, pas un raffinement.
  *
- * ⚠ `BuyerReceptionPage` est le sixième depuis la fusion du 16 août. Elle
- * écrivait `RC` ; ses 80 sites portent désormais les noms de `MLK`.
+ * Elle était écrite à la main et annonçait « les SIX fichiers qui lisent `MLK` ».
+ * Mesuré le 17 août 2026 : ils étaient DIX. Quatre pages — `AcceptInvitePage`,
+ * `VisitManagePage`, `VisitFeedbackPage`, `DesinscriptionPage` — peignaient du
+ * `MLK` HORS du champ de cette garde, et rien ne pouvait le dire : une liste
+ * figée ne rougit pas quand la famille grandit, elle rétrécit en silence. Le
+ * commentaire, lui, comptait juste au jour où il a été écrit.
+ *
+ * ⚠ C'EST LA MÊME FORME QUE LE DÉFAUT `data-theme` DE LA VEILLE : une garde qui
+ * mesure un PÉRIMÈTRE choisi au lieu de la RÈGLE. Le remède est le même —
+ * mesurer la liaison réelle.
+ *
+ * ⚠ `KycPublicPage` reste dehors SANS QU'ON AIT À L'ÉCRIRE : elle monte les
+ * écrans et ne peint rien, donc elle n'importe pas `MLK`. La dérivation obtient
+ * gratuitement ce que l'exception disait à la main.
+ *
+ * ⚠ `\bMLK\b` NE MATCHE PAS `MLK_STATUT` — `_` est un caractère de mot. Un
+ * fichier qui ne lirait que la famille qui ENCODE n'entre donc pas ici, et c'est
+ * voulu : cette spec garde `MLK`, la direction, pas le sens.
  */
-const FICHIERS = [
-  'src/components/kyc-magic-link/MlkScreens.tsx',
-  'src/components/kyc-magic-link/MlkBooking.tsx',
-  'src/components/kyc-magic-link/MlkPrimitives.tsx',
-  'src/components/kyc-magic-link/MlkSlotPicker.tsx',
-  'src/pages/public/AppointmentManagePage.tsx',
-  'src/pages/public/BuyerReceptionPage.tsx',
-]
 const sansCommentaires = (c: string) =>
   c.replace(/\/\*[\s\S]*?\*\//g, (b) => '\n'.repeat((b.match(/\n/g) ?? []).length)).replace(/\/\/[^\n]*/g, ' ')
-const SOURCE = FICHIERS.map((n) => ({ nom: rel(repoPath(n)), code: sansCommentaires(readFileSync(repoPath(n), 'utf-8')) }))
+
+/** La liaison qui fait entrer un fichier ici — l'import NOMMÉ, jamais le nom de clé. */
+const LIAISON = /import\s*\{[^}]*\bMLK\b[^}]*\}\s*from/
+const SOURCE = scanRoots([{ root: 'src', keep: (n) => /\.tsx?$/.test(n) }]).files
+  .map((abs) => ({ nom: rel(abs), code: sansCommentaires(readFileSync(abs, 'utf-8')) }))
+  .filter((f) => LIAISON.test(f.code))
+  .sort((a, b) => a.nom.localeCompare(b.nom))
 
 /** Propriétés qui portent une COULEUR. `borderRadius`/`borderWidth` en sont exclus. */
 const PROPRIETES = new Set([
@@ -260,13 +272,25 @@ function rolesEmployes(): Map<string, string[]> {
  */
 const SURFACES: Record<string, string> = { card: MLK.card, cardSubtle: MLK.cardSubtle }
 
-/** Clés employées en `color:` — le seuil de TEXTE s'y applique. */
-const ENCRES = ['ink', 'inkSoft', 'muted', 'ghost']
 /**
- * Clés employées en `stroke=` — le seuil des objets graphiques s'y applique.
- * ⚠ `inkSoft` est venu de la réception acheteur, qui trace des glyphes avec.
+ * Clés employées en `color:` — le seuil de TEXTE s'y applique.
+ *
+ * ⚠ `accent` N'Y ÉTAIT PAS, et ce n'est pas un oubli d'inventaire : les deux pages
+ * qui l'emploient en ENCRE (les visites, sur leur pastille active) vivaient hors du
+ * périmètre figé de cette garde. La dérivation les a fait entrer, et le rôle avec.
+ * Mesuré à cette occasion : 5,78:1 sur la carte, 5,49:1 sur la sous-surface, et
+ * 5,37:1 sur son propre lavis à 5 % — l'AA tient partout. `CLAUDE.md` §3 ne donnait
+ * ce chiffre que dans l'autre sens (« l'encre blanche sur l'aplat d'accent ») ; le
+ * contraste étant symétrique, c'est le même 5,78.
  */
-const GLYPHES = ['ink', 'inkSoft', 'muted']
+const ENCRES = ['ink', 'inkSoft', 'muted', 'ghost', 'accent']
+/**
+ * Clés employées en `stroke=` / `accentColor` — le seuil des objets graphiques
+ * s'y applique.
+ * ⚠ `inkSoft` est venu de la réception acheteur, qui trace des glyphes avec ;
+ * `accent` de la case à cocher de `DesinscriptionPage` (`accentColor`), 5,78:1.
+ */
+const GLYPHES = ['ink', 'inkSoft', 'muted', 'accent']
 
 /**
  * ⛔ LES COUPLES APLAT × ENCRE, DANS LE SENS OÙ ILS SONT PEINTS (n° 37).
@@ -352,6 +376,14 @@ const HORS_SEUIL: Record<string, string> = {
    * clause dédiée en fin de fichier, sur la valeur.
    */
   'autre:font': 'alias local `const FONT = MLK.font` — la police est mesurée par sa propre clause',
+  /**
+   * ⚠ `autre:` POUR LA MÊME RAISON QUE `font` : c'est une CONSTANTE, pas un site
+   * de peinture. Les deux pages de visite écrivent `const FILET = \`inset 0 0 0
+   * 1px ${MLK.line}\`` en tête de fichier ; la propriété porteuse d'un `const`
+   * n'est pas colorante, donc la remontée rend `autre`. Le filet lui-même est
+   * mesuré comme `filet:line` là où il est POSÉ.
+   */
+  'autre:line': 'constante `FILET` des deux pages de visite — le filet est mesuré à ses sites de pose',
 }
 
 /**
@@ -410,7 +442,20 @@ const MOTIF_THEME = /\bdark\b|prefers-color-scheme|useDarkTone|useCrmDa|matchMed
 describe('Contraste MLK — l’objet de jetons des deux faces publiques', () => {
   /** Sans lui, tout le reste passerait par vacuité sur un balayage cassé. */
   it('le balayage voit la source, et lit toutes les couleurs', () => {
-    expect(SOURCE.length, 'zone vide : chemin cassé, pas surface propre').toBe(6)
+    // ⛔ PLUS UN COMPTE, DES TÉMOINS NOMMÉS (n° 33). Un `toBe(6)` figeait le
+    // périmètre autant que la liste qu'il gardait : il rougissait à l'ARRIVÉE
+    // d'un lecteur — le geste sain — et restait vert quand la liste en oubliait
+    // quatre. On exige donc que la dérivation voie les deux extrémités de la
+    // famille : sa zone partagée, et une page qui n'y est entrée qu'en la portant.
+    expect(SOURCE.length, 'zone vide : chemin cassé, pas surface propre').toBeGreaterThan(0)
+    for (const t of [
+      'src/components/kyc-magic-link/MlkScreens.tsx',
+      'src/components/kyc-magic-link/MlkPrimitives.tsx',
+      'src/pages/public/BuyerReceptionPage.tsx',
+      'src/pages/public/VisitManagePage.tsx',
+    ]) {
+      expect(SOURCE.map((s) => s.nom), `lecteur de MLK non vu : la liaison a changé (${t})`).toContain(t)
+    }
     for (const { nom, code } of SOURCE) {
       expect(/import\s*\{[^}]*\bMLK\b[^}]*\}\s*from/.test(code), `${nom} ne lie plus MLK : la liaison a changé`).toBe(true)
       expect(code.length, `${nom} vide : une source vidée rendrait tous les tests vrais`).toBeGreaterThan(0)
