@@ -15,7 +15,12 @@
 
 import { cn } from '@/lib/utils'
 
-type Props = React.InputHTMLAttributes<HTMLInputElement>
+// `ComponentPropsWithRef` et non `InputHTMLAttributes` : sous React 19 `ref` est une
+// prop ordinaire d'un composant fonction et traverse le `...rest` jusqu'à l'<input>
+// sans `forwardRef` — mais le type, lui, ne la connaît pas. Sans cet élargissement,
+// poser un `ref` (OcBooking, pour amener le focus sur le premier champ vide) ne
+// compile pas alors que le rendu, lui, marcherait.
+type Props = React.ComponentPropsWithRef<'input'>
 
 export default function MxInput({ className, ...rest }: Props) {
   return <input className={cn('input w-input', className)} {...rest} />
