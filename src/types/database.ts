@@ -7445,6 +7445,10 @@ export type Database = {
         Args: { p_invite_id: string; p_message_id?: string; p_wa_phone: string }
         Returns: string
       }
+      cancel_whatsapp_number_verification: {
+        Args: never
+        Returns: undefined
+      }
       confirm_whatsapp_number_verification: {
         Args: { p_code: string }
         Returns: {

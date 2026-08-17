@@ -135,7 +135,8 @@ function WALinkedBadge({ t }: { t: TFunction }) {
 function WABody() {
   const { t, i18n } = useTranslation('settings')
   const {
-    status, generateCode, unlink, startVerification, confirmVerification, businessNumber,
+    status, generateCode, unlink, startVerification, confirmVerification,
+    cancelVerification, businessNumber,
   } = useWhatsAppPairing()
   const link = status.data
   // Le numéro auquel l'agent doit écrire. Affiché groupé (il va être RECOPIÉ à la main
@@ -482,11 +483,14 @@ function WABody() {
               : t('integrations.whatsapp.otp.verify')}
           </WAPrimaryButton>
           {/* Sortie de secours : dix minutes d'attente sans rien recevoir doivent pouvoir
-              se solder autrement que par un rechargement de page. */}
+              se solder autrement que par un rechargement de page.
+              ⚠ `cancelVerification` et NON `unlink` : ce dernier supprimait la ligne, donc
+              le compteur d'envois avec elle — envoyer/annuler/recommencer donnait des
+              envois illimités vers un numéro arbitraire. */}
           <WAGhostButton
             icon={<SetIcon name="arrowR" size={16} stroke={SET.inkSoft} sw={2} />}
-            onClick={() => { setErreur(null); unlink.mutate() }}
-            disabled={unlink.isPending}
+            onClick={() => { setErreur(null); setCodeSaisi(''); cancelVerification.mutate() }}
+            disabled={cancelVerification.isPending}
           >
             {t('integrations.whatsapp.otp.cancel')}
           </WAGhostButton>

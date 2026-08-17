@@ -1,6 +1,6 @@
 // MEGGA CRM Sugar v2 — Source de vérité pour ProfileSection (Réglages).
 // Lit/écrit le profile agent à travers 3 tables :
-//   - `profiles`        : full_name, phone, mobile_phone, agent_role, rcc,
+//   - `profiles`        : full_name, agent_role, rcc,  (phone/mobile_phone : LUS seulement)
 //                         email_signature, email_signature_html, signature_mode,
 //                         email, avatar_url, agency_id
 //   - `agencies`        : name (champ `agency` lecture seule côté ce form)
@@ -9,8 +9,10 @@
 // Mapping ProfileData ↔ DB :
 //   firstName/lastName : split de profiles.full_name (et stockés aussi sur agent_profiles)
 //   email              : profiles.email (read-only — passe par auth.users)
-//   phone              : profiles.phone (ligne fixe)
-//   mobile             : profiles.mobile_phone
+//   phone              : profiles.phone — LECTURE SEULE depuis le 17.08.2026. La colonne
+//                        appartient au trigger de vérification WhatsApp ; save() n'y
+//                        touche plus (cf. le commentaire de la mutation).
+//   mobile             : profiles.mobile_phone — idem, plus aucune UI ne le règle.
 //   title              : profiles.agent_role
 //   rcc                : profiles.rcc
 //   agency             : agencies.name via agency_id (read-only)
@@ -176,15 +178,32 @@ export function useAgentProfileScreen(options?: { enabled?: boolean }): UseAgent
     mutationFn: async (next: ProfileData) => {
       if (!profileId) throw new Error('Profil non chargé')
 
-      // 1. profiles : identité + contact + signature.
+      // 1. profiles : identité + signature.
       //    avatar_url N'EST PAS écrit ici — géré par useAvatar (upload Storage).
+      //
+      // ⛔ `phone` ET `mobile_phone` NE SONT PLUS ÉCRITS, et les retirer est un CORRECTIF,
+      // pas un nettoyage. Depuis le 17.08.2026, `profiles.phone` appartient au trigger
+      // `trg_sync_profile_phone_from_wa_link` : c'est le numéro WhatsApp VÉRIFIÉ, et les
+      // deux champs de saisie ont quitté l'écran. Or ce `update` partait à chaque
+      // enregistrement de N'IMPORTE QUEL champ — prénom, fonction, bio — en réécrivant
+      // `phone` depuis `next`, c'est-à-dire depuis un instantané client que rien
+      // n'invalide (la requête `['agent-profile']` a `staleTime: 60_000`, et aucune
+      // mutation de `useWhatsAppPairing` ne la touche).
+      //
+      // Le parcours qui perdait la donnée est exactement celui que cette série crée :
+      // vérifier son numéro, revenir sur Profil dans la minute, corriger sa « Fonction »
+      // → le cache rend encore `phone: ''` → `phone` repart à NULL. Le numéro vérifié
+      // disparaissait des trois surfaces clientes (réception acheteur, e-mails de
+      // matching, RDV d'accueil) SANS qu'aucun écran ne puisse le montrer ni le
+      // restaurer : seule une déliaison suivie d'une nouvelle vérification y parvenait.
+      //
+      // ⚠ `mobile_phone` part avec, pour la même raison inverse : plus aucune UI ne le
+      // règle, donc l'écrire ne peut plus rien faire d'autre que l'effacer.
       const full_name = `${next.firstName} ${next.lastName}`.trim()
       const { error: pErr } = await supabase
         .from('profiles')
         .update({
           full_name,
-          phone: next.phone || null,
-          mobile_phone: next.mobile || null,
           agent_role: next.title || null,
           rcc: next.rcc || null,
           email_signature: next.signature || null,

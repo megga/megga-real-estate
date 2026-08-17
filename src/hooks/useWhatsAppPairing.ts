@@ -123,6 +123,20 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['whatsapp-agent-link'] }) },
   })
 
+  // Annuler ≠ délier, et les confondre coûtait cher : le bouton « Annuler » de l'écran
+  // OTP appelait `unlink`, qui SUPPRIMAIT la ligne — donc le compteur d'envois avec elle.
+  // Saisir un numéro, envoyer, annuler, recommencer donnait des envois illimités vers un
+  // numéro arbitraire. Ici on abandonne le code en vol, rien d'autre : aucune preuve
+  // acquise n'est retirée, `profiles.phone` n'est pas touché, et le jeton reste consommé
+  // puisque le message est bel et bien parti.
+  const cancelVerification = useMutation({
+    mutationFn: async (): Promise<void> => {
+      const { error } = await supabase.rpc('cancel_whatsapp_number_verification')
+      if (error) throw error
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['whatsapp-agent-link'] }) },
+  })
+
   const confirmVerification = useMutation({
     mutationFn: async (code: string): Promise<void> => {
       const { data, error } = await supabase.rpc('confirm_whatsapp_number_verification', {
@@ -143,6 +157,7 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
     unlink,
     startVerification,
     confirmVerification,
+    cancelVerification,
     /** Chiffres seuls (format wa.me). Jamais vide : repli sur la constante plateforme. */
     businessNumber: business.data ?? MEGGA_WA_BUSINESS_DIGITS,
   }

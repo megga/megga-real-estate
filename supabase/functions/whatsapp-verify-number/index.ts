@@ -110,6 +110,20 @@ serve(async (req) => {
   })
 
   if (!sent.ok) {
+    // ⛔ DÉFAIRE L'ARMEMENT. La RPC pose `pending_number` et `otp_expires_at` AVANT que
+    // l'envoi soit tenté — c'est inévitable, il faut le code pour l'envoyer. Sans ce
+    // rattrapage, un refus (kill-switch) ou une panne Meta laissait ces colonnes posées :
+    // l'agent voyait l'erreur, puis au retour sur l'onglet (`refetchOnWindowFocus`) la
+    // carte basculait sur « Code envoyé, il expire dans 10 minutes ». Il attendait dix
+    // minutes un code jamais parti. L'abandon rend aussi le jeton de débit — rien n'est
+    // parti, donc rien n'a été consommé.
+    //
+    // Best-effort : si CE nettoyage échoue à son tour, l'agent garde un écran menteur,
+    // mais on ne transforme pas un refus explicable en 500 opaque.
+    await admin.rpc('abort_whatsapp_number_verification', { p_profile_id: profile.id })
+      .then(() => {}, (e: unknown) => {
+        console.error('abort_whatsapp_number_verification:', String((e as Error)?.message ?? e).slice(0, 120))
+      })
     // Le motif PUBLIC, jamais le précis : `publicReason` existe pour ne pas révéler à un
     // appelant qu'un numéro a dit STOP ailleurs.
     return json({ error: sent.blocked ? sent.publicReason : 'send_failed' }, sent.blocked ? 409 : 502)
