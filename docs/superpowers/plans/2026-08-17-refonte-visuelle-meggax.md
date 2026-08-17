@@ -111,9 +111,37 @@ Deux surfaces sur huit n'ont rien reçu, correctement : `DesinscriptionPage` ét
 tokenisée (écrite le 16 août, après la migration), et `OnboardingCallManagePage` suit les
 classes Webflow de la vitrine, pas les jetons du CRM.
 
-**Reste ouvert :** le dédoublonnage des douze noms (2 786 emplois, sa propre PR) et les
-barreaux au-dessus de 24 px (renverser une décision écrite = un arbitrage, pas un
-nettoyage).
+### ⛔ Le dédoublonnage des douze noms : ÉCARTÉ le 17 août, et ne pas le re-proposer
+
+Le §0 le donnait comme « le gain gratuit » — **c'est faux, et une décision écrite le disait
+déjà** dans [megga-x-crm-tokens.spec.ts:155](../../../tests/unit/megga-x-crm-tokens.spec.ts),
+avec une garde qui l'applique (`ALIAS_ASSUMES`).
+
+Les paires ne sont pas des doublons de négligence : la bascule MEGGA X a **écrasé deux
+valeurs distinctes l'une sur l'autre**. Vérifié sur `3167d8e8` contre `HEAD` :
+
+| | avant la bascule | aujourd'hui |
+|---|---|---|
+| `lg` / `xl` | **10** / 12 | 12 / 12 |
+| `2xl` / `3xl` | **14** / 16 | 16 / 16 |
+| `4xl` / `5xl` | **18** / 20 | 20 / 20 |
+
+Et **2 725 des 2 968 emplois (92 %) datent d'avant la bascule** : le nom y reste le seul
+enregistrement de ce que l'auteur voulait. `lg` disait 10, `xl` disait 12 — la valeur ne
+les distingue plus, le nom si. Fondre les noms brûle cette information **irrécupérablement**.
+
+⛔ **ET C'EST EXACTEMENT L'INFORMATION QUE LA MESURE DU LOT 1 RÉCLAME.** Les deux pics sans
+barreau relevés sur la face cliente sont **10 px** (18 sites) et **18 px** (17 sites) : les
+valeurs mêmes que la bascule a supprimées. **Le dédoublonnage et le retour à une échelle
+plus fine sont mutuellement exclusifs, et le dédoublonnage est celui qu'on ne peut pas
+défaire.**
+
+**Décision de Julien, 17 août : ne rien fondre tant que la question de l'échelle n'est pas
+tranchée.** Elle est en amont : l'échelle reste-t-elle au pas de 4, ou regagne-t-elle 10 et
+18 ? Coût de l'attente : nul — les alias sont déjà écrits et gardés.
+
+**Reste ouvert :** la question de l'échelle ci-dessus, et les barreaux au-dessus de 24 px
+(renverser une décision écrite = un arbitrage, pas un nettoyage).
 
 ---
 
