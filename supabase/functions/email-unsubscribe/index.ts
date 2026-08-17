@@ -103,10 +103,9 @@ serve(async (req) => {
   // distinguer les deux dirait à un tiers si une adresse est dans notre fichier.
   return oneClick
     ? new Response('ok', { status: 200, headers: CORS })
-    : page(
-        'C’est fait',
-        'Vous ne recevrez plus d’e-mails de notre part.\n'
-      + 'Pour accéder à vos données, les corriger ou les supprimer : privacy@megga.ch',
-        200,
-      )
+    // ⚠ La mention de droits nLPD a été retirée le 17 août 2026 (décision Julien), ici
+    // comme sur la page SPA jumelle — c'était la même phrase servie à la même personne.
+    // ⛔ Les DEUX sorties manuelles restent, elles : les messages d'échec plus haut
+    // portent toujours `privacy@megga.ch`, et ce sont eux le recours quand le lien casse.
+    : page('C’est fait', 'Vous ne recevrez plus d’e-mails de notre part.', 200)
 })
