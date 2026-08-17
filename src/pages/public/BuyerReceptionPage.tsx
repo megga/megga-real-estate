@@ -159,7 +159,6 @@ export default function BuyerReceptionPage() {
   const liked = items.filter((b) => statusOf(b) === 'liked')
   const total = items.length
   const agent = data?.agent
-  const firstName = agent?.name?.split(' ')[0] || 'votre conseiller'
 
   const detailBien = detailId ? items.find((b) => b.match_id === detailId) ?? null : null
   const rejectBien = rejectId ? items.find((b) => b.match_id === rejectId) ?? null : null
@@ -299,9 +298,6 @@ export default function BuyerReceptionPage() {
               sont sur toutes les autres surfaces clientes ; cette page — qui porte des
               biens et une identité de contact — n'en avait aucune. */}
           <div style={{ padding: '0 var(--crm-space-4xl)' }}>
-            <div style={{ textAlign: 'center', paddingTop: 'var(--crm-space-6xl)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: MLK.muted }}>
-              Sélection transmise par {firstName} via MEGGA
-            </div>
             <MlkFooter />
           </div>
         </div>
@@ -309,7 +305,7 @@ export default function BuyerReceptionPage() {
         {/* Feuille détail */}
         {detailBien && <ReceptionDetail bien={detailBien} status={statusOf(detailBien)} motif={motifOf(detailBien)} onClose={() => setDetailId(null)} onLike={() => like(detailBien.match_id)} onReject={() => openReject(detailBien.match_id)} onBack={() => backTo(detailBien.match_id)} />}
         {/* Feuille motif */}
-        {rejectBien && <ReceptionReject firstName={firstName} onClose={() => setRejectId(null)} onConfirm={(m, n) => confirmReject(rejectBien.match_id, m, n)} />}
+        {rejectBien && <ReceptionReject onClose={() => setRejectId(null)} onConfirm={(m, n) => confirmReject(rejectBien.match_id, m, n)} />}
         {/* Récap */}
         {done && <ReceptionDone liked={liked} total={total} contactFirst={data.contact.firstName} agent={agent} onReview={() => setDone(false)} />}
       </div>
@@ -401,7 +397,7 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
 }
 
 // ── Feuille motif d'écartement ──────────────────────────────────────────
-function ReceptionReject({ firstName, onClose, onConfirm }: { firstName: string; onClose: () => void; onConfirm: (motif: string | null, note: string | null) => void }) {
+function ReceptionReject({ onClose, onConfirm }: { onClose: () => void; onConfirm: (motif: string | null, note: string | null) => void }) {
   const [motif, setMotif] = useState<string | null>(null)
   const [note, setNote] = useState('')
   return (
@@ -410,7 +406,6 @@ function ReceptionReject({ firstName, onClose, onConfirm }: { firstName: string;
       <div className="rc-feuille" style={{ background: MLK.card, borderRadius: '28px 28px 0 0', boxShadow: MLK.sheetShadow, padding: '22px 22px calc(20px + env(safe-area-inset-bottom))', animation: 'rcSheet .36s cubic-bezier(.2,.85,.25,1) both' }}>
         <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.14) }} />
         <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.5, marginTop: 6 }}>Ce bien ne convient pas ?</div>
-        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: MLK.muted, marginTop: 6, lineHeight: 1.5 }}>Optionnel — mais ça aide {firstName} à affiner les prochaines propositions.</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 18 }}>
           {MOTIFS.map((m) => {
             const on = motif === m
@@ -438,7 +433,7 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
         <div style={{ width: 68, height: 68, borderRadius: 999, background: MLK.ink, margin: '0 auto', display: 'grid', placeItems: 'center', boxShadow: `0 12px 30px ${crmVoileEncre(false, 0.25)}`, animation: 'rcPop .5s cubic-bezier(.2,.9,.3,1) both' }}><Icon d={ICO.check} size={30} stroke="#fff" sw={2.2} /></div>
         <h1 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: MLK.ink }}>Merci {contactFirst} !</h1>
         <p style={{ margin: '10px auto 0', maxWidth: 300, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.55, color: MLK.inkSoft }}>
-          Vos réponses sont transmises à {agent?.name || 'votre conseiller'}. Il revient vers vous très vite pour organiser les visites.
+          Vos réponses sont transmises à {agent?.name || 'votre conseiller'}.
         </p>
         <div style={{ marginTop: 26, background: MLK.card, borderRadius: 20, boxShadow: MLK.shadow, padding: '18px 18px 10px', textAlign: 'left' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -454,9 +449,8 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
               </div>
             </div>
           ))}
-          {liked.length === 0 && <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: MLK.muted, lineHeight: 1.5, padding: '4px 0 8px' }}>Pas de souci — {firstName} vous prépare d'autres biens plus proches de vos attentes.</div>}
         </div>
-        {rejected > 0 && <div style={{ marginTop: 12, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted }}>{rejected} bien{rejected > 1 ? 's' : ''} écarté{rejected > 1 ? 's' : ''} — pris en compte.</div>}
+        {rejected > 0 && <div style={{ marginTop: 12, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted }}>{rejected} bien{rejected > 1 ? 's' : ''} écarté{rejected > 1 ? 's' : ''}</div>}
       </div>
       <div style={{ flexShrink: 0, padding: '12px 18px calc(16px + env(safe-area-inset-bottom))' }}>
         {agent?.phone && <a href={'tel:' + agent.phone.replace(/\s+/g, '')} style={{ ...blackBtn(), textDecoration: 'none', marginBottom: 10 }}><Icon d={ICO.phone} size={17} stroke="#fff" /> Appeler {firstName}</a>}
