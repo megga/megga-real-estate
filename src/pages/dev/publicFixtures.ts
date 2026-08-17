@@ -30,8 +30,22 @@ import type { ReceptionBien } from '@/hooks/useBuyerReception'
  * ALLEMAND, tout coupé — deux choses à regarder d'un coup.
  */
 
-/** Les états qu'on fait jouer aux surfaces. */
-export type PublicEtat = 'nominal' | 'termine' | 'expire'
+/**
+ * Les états qu'on fait jouer aux surfaces.
+ *
+ * ⛔ `erreur` A ÉTÉ AJOUTÉ LE 17 AOÛT 2026, ET IL COMBLE UN TROU QUI A COÛTÉ TROIS
+ * FOIS. Les bannières d'échec de GESTE — report refusé, annulation refusée, dépôt
+ * de pièce rejeté — n'étaient atteignables dans AUCUN état : le banc couvrait les
+ * chemins heureux (`nominal`) et les états TERMINAUX (`termine`, `expire`), jamais
+ * ce qui se passe quand un geste échoue. Trois correctifs de ce chantier ont donc
+ * dû être prouvés par sonde au lieu d'une capture.
+ *
+ * ⚠ IL NE FAIT ÉCHOUER QUE LES ÉCRITURES. Faire échouer la lecture ne montrerait
+ * pas une page en erreur mais « lien invalide » — l'absence de page. C'est
+ * exactement ce que fait `contrat.etat = 'erreur'` de `bancSupabase`, et c'est
+ * pourquoi il ne convenait pas ici.
+ */
+export type PublicEtat = 'nominal' | 'termine' | 'expire' | 'erreur'
 
 const jours = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString()
 
@@ -49,7 +63,19 @@ export function mlkVue(etat: PublicEtat): MagicLinkPublicView {
     contact: { first_name: 'Démo', last_name: 'Démo' },
     agency: { name: 'Agence Démo', slug: 'agence-demo' },
     agent: { full_name: 'Agent Démo' },
-    uploads: [],
+    /**
+     * ⛔ ELLE VALAIT `[]` DANS LES QUATRE ÉTATS, Y COMPRIS CELUI DONT LE LIBELLÉ
+     * PROMET « Pièces déposées ». Conséquence : la pilule « reçu » de chaque
+     * fichier — et son point, qui rendait 2,41:1 avant correction — n'était
+     * visible dans AUCUN état du banc. Un état qui contredit son propre titre est
+     * pire qu'un état manquant : on le regarde en croyant l'avoir vu.
+     */
+    uploads: etat === 'termine' || etat === 'erreur'
+      ? [
+          { id: 'demo-1', type: 'identity', filename: 'passeport.pdf', size_bytes: 842_133, uploaded_at: jours(-1), confirmed_by_client: true, ocr_fields: null },
+          { id: 'demo-2', type: 'address', filename: 'facture-sig.pdf', size_bytes: 214_880, uploaded_at: jours(-1), confirmed_by_client: true, ocr_fields: null },
+        ]
+      : [],
   }
 }
 

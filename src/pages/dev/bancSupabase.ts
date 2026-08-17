@@ -28,6 +28,38 @@ export type BancEtat = 'nominal' | 'vide' | 'erreur'
 /** Une fixture de RPC : une valeur, ou une fonction de ses arguments. */
 export type FixtureRpc = unknown | ((args: Record<string, unknown>) => unknown)
 
+/** Marqueur d'une fixture d'edge qui doit répondre en ÉCHEC HTTP. */
+const STATUT = '__bancStatut'
+
+/**
+ * Réponse d'edge en ÉCHEC CIBLÉ — une fonction, pas tout le banc.
+ *
+ * ⛔ POURQUOI ÇA MANQUAIT, ET CE QUE ÇA CACHAIT. `contrat.etat === 'erreur'`
+ * existait déjà, mais il fait échouer TOUT : edges et PostgREST ensemble. Sur la
+ * face publique, qui LIT son écran par une edge, ça ne montre pas une page en
+ * erreur — ça montre « lien invalide », c'est-à-dire l'absence de page. Les
+ * bannières d'échec des gestes (report, annulation, dépôt de pièce refusé)
+ * n'étaient donc atteignables dans AUCUN état du banc.
+ *
+ * ⚠ ET LE CORPS NE SUFFIT PAS : les hooks décident sur `!res.ok`, jamais sur la
+ * forme du corps (`useAppointmentBooking`, `useMagicLinkClient`). Une fixture qui
+ * rendait `{ error: … }` en 200 était donc lue comme un SUCCÈS, et la page
+ * affichait son écran de confirmation sur un geste refusé. Il fallait pouvoir
+ * rendre un STATUT.
+ *
+ * Combiné à une fixture-FONCTION, ça permet ce que la face publique demande :
+ * la même edge sert la LECTURE normalement et refuse l'ÉCRITURE.
+ */
+export function echecEdge(statut: number, corps: Record<string, unknown> = {}): Record<string, unknown> {
+  return { [STATUT]: statut, ...corps }
+}
+
+function statutDe(fixture: unknown): number | null {
+  if (!fixture || typeof fixture !== 'object') return null
+  const v = (fixture as Record<string, unknown>)[STATUT]
+  return typeof v === 'number' ? v : null
+}
+
 const BASE = SUPABASE_FUNCTIONS_URL.replace(/\/functions\/v1$/, '')
 const REST = `${BASE}/rest/v1/`
 const FN = `${BASE}/functions/v1/`
@@ -263,6 +295,17 @@ function repondre(url: string, init?: RequestInit): Response | null {
     const fixture = typeof brut === 'function'
       ? (brut as (a: Record<string, unknown>) => unknown)(lireArguments(init))
       : brut
+    // ⚠ ÉCHEC CIBLÉ AVANT TOUT LE RESTE : une fixture peut demander un statut HTTP
+    // précis (cf. `echecEdge`). C'est le seul moyen d'atteindre les bannières
+    // d'échec de geste, les hooks décidant sur `!res.ok` et non sur le corps.
+    const statut = statutDe(fixture)
+    if (statut !== null) {
+      const { [STATUT]: _, ...corps } = fixture as Record<string, unknown>
+      return new Response(JSON.stringify(corps), {
+        status: statut,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      })
+    }
     // ⚠ « Vide » n'a pas de sens universel pour une edge : une fonction qui rend
     // un OBJET doit rendre l'objet ZÉRO, pas `null` — sinon la page reste sur son
     // squelette et on croit regarder un état vide (même piège que `rpcVide`).
