@@ -67,27 +67,53 @@ le dédoublonnage touche **2 786 emplois** de `--crm-space-*` sur tout le dépô
 minimum à réécrire), donc il est CROSS-CUTTING et relève de sa propre PR — la règle du §4
 est « une famille = une PR ».
 
-Les deux barreaux hauts prennent donc les noms libres qui prolongent la suite,
-**`--crm-space-8xl: 32px`** et **`--crm-space-9xl: 56px`** — cohérents avec
-`--crm-text-*`, qui monte déjà jusqu'à `9xl`. Purement additif : aucun nom existant n'est
-touché, aucune valeur existante ne bouge.
+⛔ **ET LES DEUX BARREAUX HAUTS N'ONT FINALEMENT PAS ÉTÉ AJOUTÉS DU TOUT.** En allant les
+poser, j'ai lu le commentaire qui coiffe l'échelle : « au-delà (56, 64…) ce sont des
+décalages de mise en page propres à une composition, pas du rythme réutilisable : **ils
+restent en littéral** ». C'est une décision écrite, que MEGGA X n'a jamais renversée. Les
+24 valeurs au-dessus de 24 px restent donc telles quelles, et **le lot ne touche pas
+`globals.css`**.
 
-**La correspondance appliquée au lot 1**, un seul nom par valeur (le doublon est ignoré,
-pas retiré — c'est l'autre PR) :
+**La correspondance appliquée**, un seul nom par valeur (le doublon est ignoré, pas
+retiré — c'est l'autre PR). D'où la suite en apparence trouée, qui saute `2xs`, `md`,
+`xl`, `3xl`, `5xl`, `7xl` :
 
-| valeurs mesurées | barreau | px |
-|---|---|---|
-| 4 · 5 | `--crm-space-xs` | 4 |
-| 6 · 7 · 8 · 9 | `--crm-space-sm` | 8 |
-| 10 · 11 · 12 · 13 | `--crm-space-lg` | 12 |
-| 14 · 15 · 16 | `--crm-space-2xl` | 16 |
-| 18 · 20 · 22 | `--crm-space-4xl` | 20 |
-| 24 · 26 | `--crm-space-6xl` | 24 |
-| 28 · 30 · 32 · 36 | `--crm-space-8xl` **neuf** | 32 |
-| 56 | `--crm-space-9xl` **neuf** | 56 |
+| valeurs mesurées | barreau | px | sites |
+|---|---|---|---|
+| 4 · 5 | `--crm-space-xs` | 4 | 13 |
+| 6 · 7 · 8 · 9 | `--crm-space-sm` | 8 | 34 |
+| 10 · 11 · 12 · 13 | `--crm-space-lg` | 12 | 41 |
+| 14 · 15 · 16 | `--crm-space-2xl` | 16 | 37 |
+| 18 · 20 | `--crm-space-4xl` | 20 | 24 |
+| 22 · 24 | `--crm-space-6xl` | 24 | 17 |
 
-⚠ 44 (×2), 48 et 72 restent en littéral : trop loin d'un barreau pour tomber sans
-décision, à regarder un par un.
+### ✅ Lot 1 livré — `9e83e4b9`
+
+147 déclarations passent du littéral au jeton sur neuf fichiers, soit 166 valeurs.
+Inventaires descendus : `kyc-magic-link` **74/99 → 32/36**, `pages/public`
+**58/189 → 15/111** — 85 valeurs hors échelle en moins. Portes : `tsc` 0, eslint 140
+(inchangé), vitest 2 646, deadcode 0, i18n/prose/parity OK, build `MEGGA_BUILD_TARGET=app`
+OK, quatre surfaces relues à l'écran.
+
+⚠ **« RESSERRER » N'A PAS DENSIFIÉ, ET C'EST MESURÉ** : la table de MEGGA X arrondit vers
+le **haut**, donc le premier écran du KYC **GRANDIT de 6 px** (921 → 927). Ce que le lot
+achète est l'unicité du rythme, pas la densité. Les deux se confondent facilement — si
+c'est la densité qui est voulue, elle demande une décision séparée : *abaisser* des
+valeurs, pas les aligner.
+
+⛔ **ET LA RELECTURE À L'ÉCRAN A MENTI D'ABORD.** Le volet caché rend `innerWidth: 0`, ce
+qui fait matcher la media query `max-width: 560px` de `MlkShell` : je mesurais une fausse
+mise en page mobile (carte à 56 px de large, coquille à 28 px au lieu de 56). Une capture
+force la peinture et rétablit 1280. **Un `getComputedStyle` sur une valeur dépendant d'une
+media query n'est pas fiable tant qu'une capture n'a pas eu lieu.**
+
+Deux surfaces sur huit n'ont rien reçu, correctement : `DesinscriptionPage` était déjà
+tokenisée (écrite le 16 août, après la migration), et `OnboardingCallManagePage` suit les
+classes Webflow de la vitrine, pas les jetons du CRM.
+
+**Reste ouvert :** le dédoublonnage des douze noms (2 786 emplois, sa propre PR) et les
+barreaux au-dessus de 24 px (renverser une décision écrite = un arbitrage, pas un
+nettoyage).
 
 ---
 
