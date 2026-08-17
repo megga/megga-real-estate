@@ -25,7 +25,10 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   // routées (/a-propos /blog /properties…) retombent sur la 404 in-app.
 
   // ── Légal ──────────────────────────────────────────────────────────────
-  { path: '/privacy', label: 'Privacy / LPD' },
+  // Plus de page in-app : `/privacy` sort au bord vers megga.ch (301), comme
+  // `/aide`. La vitrine sert la page canonique, et `src/lib/consents.ts` y
+  // pointait DÉJÀ le consentement nLPD — celle de l'app en était un doublon
+  // court que plus rien ne liait. Retirée le 17 août 2026.
 
   // ── Help center ────────────────────────────────────────────────────────
   // Plus de page in-app : /help/* et /aide/* sortent vers intercom.help/megga/fr
@@ -35,8 +38,14 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   // ── Auth ───────────────────────────────────────────────────────────────
   // Le modal de connexion vit sur la vitrine (megga.ch/login) : /login,
   // /register, /auth/login… redirigent hors app → voir marketplace-disabled.
-  // /reset-password reste in-app (cible des e-mails de réinitialisation).
-  { path: '/reset-password', label: 'Reset password' },
+  // ⛔ CE COMMENTAIRE DISAIT « /reset-password reste in-app (cible des e-mails de
+  // réinitialisation) » : mesuré le 17 août 2026, c'est FAUX, et ça l'était déjà.
+  // La récupération de l'app pose `redirectTo: /auth/callback?type=recovery`
+  // (`useAuth.tsx`), et `AuthCallbackPage` route ce cas sur
+  // `/auth/forgot-password/reset` ; celle de la vitrine part sur
+  // `megga.ch/reset-password` (`megga-auth.js`, quatre langues). AUCUN e-mail ne
+  // visait cette route. La page est retirée et l'URL redirigée au bord vers
+  // l'écran vivant de même fonction — un fragment de session survit au 301.
 ]
 
 test.describe('Marketplace publique — parametric route coverage', () => {

@@ -16,11 +16,22 @@
  * racines. La face publique n'était donc lue par personne, ni pour sa
  * composition ni pour sa couleur.
  *
- * ⚠ `MLK` alimente DEUX surfaces publiques — `/kyc/:token` (via `KycPublicPage`,
- * qui ne rend elle-même aucun style) et `/rendez-vous/:token`
- * (`AppointmentManagePage`). Grouper par DOSSIER fait donc rater le périmètre :
- * la page qui porte le parcours KYC client rend ZÉRO marqueur, et la zone
- * partagée qu'elle monte en porte sept clauses.
+ * ⚠ `MLK` alimente PLUSIEURS surfaces publiques — `/kyc/:token` (via
+ * `KycPublicPage`, qui ne rend elle-même aucun style), `/rendez-vous/:token`
+ * (`AppointmentManagePage`) et `/reception/:token` (`BuyerReceptionPage`).
+ * Grouper par DOSSIER fait donc rater le périmètre : la page qui porte le
+ * parcours KYC client rend ZÉRO marqueur, et la zone partagée qu'elle monte en
+ * porte sept clauses.
+ *
+ * ── ELLE A ABSORBÉ `rc-contraste.spec.ts` (16 août 2026) ────────────────────
+ * `RC` a été fondue dans `MLK` (décision Julien), donc sa garde jumelle n'avait
+ * plus d'objet à garder : deux specs pour une famille, c'est la même dette au
+ * carré. Tout ce que `rc-contraste` mesurait est ici — ses quatre couples, ses
+ * rôles de filet et d'ombre de feuille, et sa clause de police.
+ *
+ * ⚠ CE QUE LA FUSION A RENDU FAUX DANS CE FICHIER, et qui est corrigé plus bas :
+ * l'ancien `it.skip` final déclarait `RC` « hors périmètre — un second objet,
+ * donc une seconde garde ». Il n'y a plus de second objet.
  *
  * ── CE QUE LA MESURE A TROUVÉ (15 août 2026) ─────────────────────────────────
  * Trois familles, toutes en thème clair — le seul qu'ait cette face.
@@ -63,7 +74,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { MLK } from '@/components/kyc-magic-link/mlkTokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
-import { repoPath, rel } from './helpers/fs-scan'
+import { repoPath, rel, scanRoots } from './helpers/fs-scan'
 
 const AA = 4.5
 /** Seuil des éléments NON textuels (WCAG 1.4.11) — une forme, un filet, un tracé. */
@@ -118,20 +129,36 @@ const arrondi = (n: number) => Math.round(n * 100) / 100
 /* ─── La source, et la résolution des rôles PAR LE BLOC ───────────────────────── */
 
 /**
- * Les CINQ fichiers qui lisent `MLK`. `KycPublicPage` n'y est pas : elle monte
- * les écrans et ne peint rien elle-même — mesuré, elle ne porte ni `style={{`
- * ni `className`.
+ * ⛔ LA LISTE EST DÉRIVÉE, PLUS FIGÉE — un correctif, pas un raffinement.
+ *
+ * Elle était écrite à la main et annonçait « les SIX fichiers qui lisent `MLK` ».
+ * Mesuré le 17 août 2026 : ils étaient DIX. Quatre pages — `AcceptInvitePage`,
+ * `VisitManagePage`, `VisitFeedbackPage`, `DesinscriptionPage` — peignaient du
+ * `MLK` HORS du champ de cette garde, et rien ne pouvait le dire : une liste
+ * figée ne rougit pas quand la famille grandit, elle rétrécit en silence. Le
+ * commentaire, lui, comptait juste au jour où il a été écrit.
+ *
+ * ⚠ C'EST LA MÊME FORME QUE LE DÉFAUT `data-theme` DE LA VEILLE : une garde qui
+ * mesure un PÉRIMÈTRE choisi au lieu de la RÈGLE. Le remède est le même —
+ * mesurer la liaison réelle.
+ *
+ * ⚠ `KycPublicPage` reste dehors SANS QU'ON AIT À L'ÉCRIRE : elle monte les
+ * écrans et ne peint rien, donc elle n'importe pas `MLK`. La dérivation obtient
+ * gratuitement ce que l'exception disait à la main.
+ *
+ * ⚠ `\bMLK\b` NE MATCHE PAS `MLK_STATUT` — `_` est un caractère de mot. Un
+ * fichier qui ne lirait que la famille qui ENCODE n'entre donc pas ici, et c'est
+ * voulu : cette spec garde `MLK`, la direction, pas le sens.
  */
-const FICHIERS = [
-  'src/components/kyc-magic-link/MlkScreens.tsx',
-  'src/components/kyc-magic-link/MlkBooking.tsx',
-  'src/components/kyc-magic-link/MlkPrimitives.tsx',
-  'src/components/kyc-magic-link/MlkSlotPicker.tsx',
-  'src/pages/public/AppointmentManagePage.tsx',
-]
 const sansCommentaires = (c: string) =>
   c.replace(/\/\*[\s\S]*?\*\//g, (b) => '\n'.repeat((b.match(/\n/g) ?? []).length)).replace(/\/\/[^\n]*/g, ' ')
-const SOURCE = FICHIERS.map((n) => ({ nom: rel(repoPath(n)), code: sansCommentaires(readFileSync(repoPath(n), 'utf-8')) }))
+
+/** La liaison qui fait entrer un fichier ici — l'import NOMMÉ, jamais le nom de clé. */
+const LIAISON = /import\s*\{[^}]*\bMLK\b[^}]*\}\s*from/
+const SOURCE = scanRoots([{ root: 'src', keep: (n) => /\.tsx?$/.test(n) }]).files
+  .map((abs) => ({ nom: rel(abs), code: sansCommentaires(readFileSync(abs, 'utf-8')) }))
+  .filter((f) => LIAISON.test(f.code))
+  .sort((a, b) => a.nom.localeCompare(b.nom))
 
 /** Propriétés qui portent une COULEUR. `borderRadius`/`borderWidth` en sont exclus. */
 const PROPRIETES = new Set([
@@ -245,10 +272,25 @@ function rolesEmployes(): Map<string, string[]> {
  */
 const SURFACES: Record<string, string> = { card: MLK.card, cardSubtle: MLK.cardSubtle }
 
-/** Clés employées en `color:` — le seuil de TEXTE s'y applique. */
-const ENCRES = ['ink', 'inkSoft', 'muted', 'ghost']
-/** Clés employées en `stroke=` — le seuil des objets graphiques s'y applique. */
-const GLYPHES = ['ink', 'muted']
+/**
+ * Clés employées en `color:` — le seuil de TEXTE s'y applique.
+ *
+ * ⚠ `accent` N'Y ÉTAIT PAS, et ce n'est pas un oubli d'inventaire : les deux pages
+ * qui l'emploient en ENCRE (les visites, sur leur pastille active) vivaient hors du
+ * périmètre figé de cette garde. La dérivation les a fait entrer, et le rôle avec.
+ * Mesuré à cette occasion : 5,78:1 sur la carte, 5,49:1 sur la sous-surface, et
+ * 5,37:1 sur son propre lavis à 5 % — l'AA tient partout. `CLAUDE.md` §3 ne donnait
+ * ce chiffre que dans l'autre sens (« l'encre blanche sur l'aplat d'accent ») ; le
+ * contraste étant symétrique, c'est le même 5,78.
+ */
+const ENCRES = ['ink', 'inkSoft', 'muted', 'ghost', 'accent']
+/**
+ * Clés employées en `stroke=` / `accentColor` — le seuil des objets graphiques
+ * s'y applique.
+ * ⚠ `inkSoft` est venu de la réception acheteur, qui trace des glyphes avec ;
+ * `accent` de la case à cocher de `DesinscriptionPage` (`accentColor`), 5,78:1.
+ */
+const GLYPHES = ['ink', 'inkSoft', 'muted', 'accent']
 
 /**
  * ⛔ LES COUPLES APLAT × ENCRE, DANS LE SENS OÙ ILS SONT PEINTS (n° 37).
@@ -271,6 +313,25 @@ const COUPLES: { aplat: string; encre: string; seuil: number; site: string; moti
     motif: /background: isCancelled \? MLK\.ghost : MLK\.ink,[\s\S]{0,200}?stroke="(#fff)"/ },
   { aplat: 'ink', encre: '#fff', seuil: AA_FORME, site: 'MlkScreens — le disque de confirmation',
     motif: /background: MLK\.ink,\s*\n\s*color: '(#fff)',/ },
+
+  /* ── Venus de `rc-contraste`, sur la réception acheteur ─────────────────── */
+  // ⚠ ANCRÉ SUR `cursor: 'pointer'`, ET C'EST UN CONTRÔLE NÉGATIF QUI L'A EXIGÉ.
+  // Le motif nu (`background: …cardSubtle, color: …inkSoft`) matche DEUX sites —
+  // ce bouton et la puce de caractéristique, qui portent le même couple. `exec`
+  // ne rend que le premier : une encre changée ici serait restée masquée par
+  // l'autre site, et la clause aurait rendu vert. La puce reste mesurée, mais par
+  // la clause des encres (`inkSoft` sur `cardSubtle`), pas par celle-ci.
+  { aplat: 'cardSubtle', encre: MLK.inkSoft, seuil: AA, site: 'réception — ghostBtn, le bouton secondaire',
+    motif: /cursor: 'pointer', background: MLK\.cardSubtle, color: (MLK\.inkSoft)/ },
+  { aplat: 'ink', encre: '#fff', seuil: AA_FORME, site: 'réception — le disque de confirmation et son glyphe',
+    motif: /background: MLK\.ink, margin: '0 auto'[\s\S]{0,220}?stroke="(#fff)"/ },
+  // ⛔ L'ACCENT NE TIENT EN APLAT QUE PARCE QUE SON ENCRE EST BLANCHE
+  // (`CLAUDE.md` §3 : 5,78:1). Le mesurer dans ce sens est ce qui empêche qu'un
+  // lot inverse l'encre et casse la propriété sur laquelle la règle s'appuie.
+  { aplat: 'accent', encre: '#fff', seuil: AA, site: 'réception — blackBtn, le bouton principal, ACTIF',
+    motif: /background: MLK\.accent, color: '(#fff)'/ },
+  { aplat: 'accent', encre: '#fff', seuil: AA, site: 'réception — la pastille de motif SÉLECTIONNÉE',
+    motif: /background: on \? MLK\.accent : MLK\.cardSubtle, color: on \? '(#fff)'/ },
 ]
 
 /**
@@ -303,6 +364,39 @@ const HORS_SEUIL: Record<string, string> = {
   'ombre:shadowSm': 'ombre',
   'ombre:shadowLg': 'ombre',
   'police:font': 'une pile de polices, pas une couleur',
+  /* ── Rôles venus de la réception acheteur ───────────────────────────────── */
+  'filet:line': 'filet de séparation, voile assumé',
+  'ombre:line': 'le même voile en anneau inset (le champ de note)',
+  'ombre:sheetShadow': 'ombre de la feuille montante',
+  /**
+   * ⚠ `autre:` PARCE QUE C'EST UN ALIAS, pas parce que le rôle est inconnu.
+   * `BuyerReceptionPage` écrit `const FONT = MLK.font` puis `fontFamily: FONT`
+   * une dizaine de fois ; la propriété porteuse d'un `const` n'est pas
+   * colorante, donc la remontée rend `autre`. La police reste mesurée — par la
+   * clause dédiée en fin de fichier, sur la valeur.
+   */
+  'autre:font': 'alias local `const FONT = MLK.font` — la police est mesurée par sa propre clause',
+  /**
+   * ⚠ `autre:` POUR LA MÊME RAISON QUE `font` — une limite de la remontée, pas un
+   * rôle inconnu. C'est un APLAT, et il est déjà mesuré comme tel (`aplat:card`) :
+   * la barre collante du CTA mobile et son fondu peignent le fond de la carte,
+   * pour que le contenu qui défile dessous ne se lise pas à travers.
+   *
+   * Mais ils vivent dans la FEUILLE CSS de `MlkBackground`, écrite dans un
+   * gabarit : la propriété porteuse y est du texte, pas une clé d'objet, donc la
+   * remontée par bloc ne peut pas l'attribuer. Le jour où cette feuille peindrait
+   * une ENCRE, elle atterrirait ici de la même façon — et il faudrait alors la
+   * mesurer, pas l'inscrire.
+   */
+  'autre:card': 'aplat écrit en CSS de gabarit (barre CTA collante + son fondu) — même valeur qu’`aplat:card`, déjà mesurée',
+  /**
+   * ⚠ `autre:` POUR LA MÊME RAISON QUE `font` : c'est une CONSTANTE, pas un site
+   * de peinture. Les deux pages de visite écrivent `const FILET = \`inset 0 0 0
+   * 1px ${MLK.line}\`` en tête de fichier ; la propriété porteuse d'un `const`
+   * n'est pas colorante, donc la remontée rend `autre`. Le filet lui-même est
+   * mesuré comme `filet:line` là où il est POSÉ.
+   */
+  'autre:line': 'constante `FILET` des deux pages de visite — le filet est mesuré à ses sites de pose',
 }
 
 /**
@@ -348,6 +442,7 @@ const NON_COULEURS: Record<string, string> = {
   shadow: 'chaîne de box-shadow',
   shadowSm: 'chaîne de box-shadow',
   shadowLg: 'chaîne de box-shadow',
+  sheetShadow: 'chaîne de box-shadow (feuille montante)',
   font: 'une pile de polices',
 }
 
@@ -360,7 +455,20 @@ const MOTIF_THEME = /\bdark\b|prefers-color-scheme|useDarkTone|useCrmDa|matchMed
 describe('Contraste MLK — l’objet de jetons des deux faces publiques', () => {
   /** Sans lui, tout le reste passerait par vacuité sur un balayage cassé. */
   it('le balayage voit la source, et lit toutes les couleurs', () => {
-    expect(SOURCE.length, 'zone vide : chemin cassé, pas surface propre').toBe(5)
+    // ⛔ PLUS UN COMPTE, DES TÉMOINS NOMMÉS (n° 33). Un `toBe(6)` figeait le
+    // périmètre autant que la liste qu'il gardait : il rougissait à l'ARRIVÉE
+    // d'un lecteur — le geste sain — et restait vert quand la liste en oubliait
+    // quatre. On exige donc que la dérivation voie les deux extrémités de la
+    // famille : sa zone partagée, et une page qui n'y est entrée qu'en la portant.
+    expect(SOURCE.length, 'zone vide : chemin cassé, pas surface propre').toBeGreaterThan(0)
+    for (const t of [
+      'src/components/kyc-magic-link/MlkScreens.tsx',
+      'src/components/kyc-magic-link/MlkPrimitives.tsx',
+      'src/pages/public/BuyerReceptionPage.tsx',
+      'src/pages/public/VisitManagePage.tsx',
+    ]) {
+      expect(SOURCE.map((s) => s.nom), `lecteur de MLK non vu : la liaison a changé (${t})`).toContain(t)
+    }
     for (const { nom, code } of SOURCE) {
       expect(/import\s*\{[^}]*\bMLK\b[^}]*\}\s*from/.test(code), `${nom} ne lie plus MLK : la liaison a changé`).toBe(true)
       expect(code.length, `${nom} vide : une source vidée rendrait tous les tests vrais`).toBeGreaterThan(0)
@@ -369,7 +477,10 @@ describe('Contraste MLK — l’objet de jetons des deux faces publiques', () =>
     // ⚠ TÉMOINS NOMMÉS, jamais un compte (n° 33) : un seuil décrit un ÉTAT et se
     // périme au premier retrait légitime ; un témoin décrit le BALAYAGE.
     const vus = rolesEmployes()
-    for (const t of ['texte:ink', 'texte:muted', 'texte:ghost', 'aplat:card', 'aplat:ghost', 'glyphe:ink', 'ombre:accent']) {
+    // ⚠ Les deux derniers ne vivent QUE sur la réception acheteur : sans eux, le
+    // sixième fichier pourrait sortir du balayage sans que rien ne rougisse.
+    for (const t of ['texte:ink', 'texte:muted', 'texte:ghost', 'aplat:card', 'aplat:ghost', 'glyphe:ink', 'ombre:accent',
+      'glyphe:inkSoft', 'ombre:sheetShadow']) {
       expect([...vus.keys()], `rôle non vu : le balayage ne lit plus la source (${t})`).toContain(t)
     }
 
@@ -581,7 +692,7 @@ describe('Contraste MLK — l’objet de jetons des deux faces publiques', () =>
     }
     // ⚠ TÉMOINS NOMMÉS, pas un compte (n° 33) : `> N clés lues` s'était périmé le
     // jour même où dix clés mortes ont été retirées, au chantier KYC.
-    for (const t of ['card', 'cardSubtle', 'ink', 'accent', 'muted', 'ghost']) {
+    for (const t of ['card', 'cardSubtle', 'ink', 'accent', 'muted', 'ghost', 'line', 'sheetShadow']) {
       expect(Object.keys(MLK), `clé non lue : le découpage a changé (${t})`).toContain(t)
     }
     expect(nus, `couleur écrite à la main, hors de l'échelle MEGGA X :\n  ${nus.join('\n  ')}`).toEqual([])
@@ -649,6 +760,20 @@ describe('Contraste MLK — l’objet de jetons des deux faces publiques', () =>
   })
 
   /**
+   * ⚠ Manrope est gardée PAR DÉCISION (Julien, 15 août 2026), et cette clause
+   * l'écrit plutôt que de la laisser passer en silence : c'est une exception
+   * assumée, pas un oubli, et elle rougira si quelqu'un la remplace sans le dire.
+   *
+   * ⚠ ELLE VIENT DE `rc-contraste`, et elle compte DOUBLE depuis la fusion :
+   * `BuyerReceptionPage` passe par un alias local (`const FONT = MLK.font`), donc
+   * la remontée de rôle la classe en `autre`. C'est ici, sur la VALEUR, que la
+   * police de cette page est réellement mesurée.
+   */
+  it('la police de la face publique est celle qui a été décidée', () => {
+    expect(MLK.font, 'la police de la face publique a changé sans décision').toMatch(/^Manrope,/)
+  })
+
+  /**
    * ⛔ CE QUE CETTE GARDE NE MESURE PAS, ET POURQUOI C'EST ÉCRIT.
    *
    * Les DEUX couleurs écrites à la main d'`AppointmentManagePage` — la bannière
@@ -657,9 +782,10 @@ describe('Contraste MLK — l’objet de jetons des deux faces publiques', () =>
    * ici ferait de cette spec la garde d'une PAGE au lieu d'un OBJET, ce qui est
    * exactement la confusion que la forme n° 38 décrit.
    *
-   * De même l'objet `RC` de `BuyerReceptionPage` : dix clés, mêmes valeurs pour
-   * la moitié, et AUCUN lien avec `MLK`. C'est un second objet, donc une seconde
-   * garde — pas une rallonge de celle-ci.
+   * ⚠ CE PARAGRAPHE NOMMAIT AUSSI `RC` — « un second objet, donc une seconde
+   * garde ». Il n'y en a plus qu'un depuis le 16 août : `RC` est fondue dans
+   * `MLK`, et `rc-contraste.spec.ts` est retirée. Ce qui reste hors périmètre,
+   * c'est ce qui ENCODE, pas ce qui appartient à une autre famille.
    */
   it.skip('les couleurs hors MLK des pages publiques — hors périmètre, voir le commentaire', () => {})
 })

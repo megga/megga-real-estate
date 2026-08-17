@@ -8,10 +8,39 @@
 
 import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 // Jetons déplacés dans mlkTokens.ts : ce fichier n'exporte que des composants
 // (contrainte Fast Refresh). Voir l'en-tête de mlkTokens.ts.
-import { MLK } from './mlkTokens'
+import { MLK, MLK_STATUT } from './mlkTokens'
 import { crmVoileEncre } from '@/components/crm/tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
+
+/**
+ * ⛔ LES PAGES LÉGALES VIVENT SUR LA VITRINE, ET CE PIED POINTAIT DANS LE VIDE.
+ *
+ * Jusqu'au 17 août 2026, `MlkFooter` écrivait `/mentions-legales` et
+ * `/confidentialite` en chemins RELATIFS. Aucune des deux n'est déclarée dans
+ * `src/App.tsx` ni dans `public/_redirects` : sur `app.megga.ch`, le repli SPA
+ * rendait 200 puis `NotFoundPage`. Un client à qui on demande son passeport
+ * cliquait « Confidentialité » et tombait sur une page introuvable — sur les
+ * SEIZE sites où ce pied est rendu.
+ *
+ * Les alias existent, mais chez le voisin : `sites/megga-vitrine/_worker.js`
+ * mappe `/mentions-legales → /legal` et `/confidentialite → /privacy`. Il ne
+ * manquait donc que l'ORIGINE.
+ *
+ * ⚠ ET CES DEUX CIBLES SONT HORS DU GATE DE LA VITRINE, par décision écrite :
+ * `PUBLIC_PAGES` y retient `/legal`, `/privacy` et `/terms` parce que la case de
+ * consentement de l'inscription y renvoie — « un consentement à un texte
+ * illisible » sinon. Les liens tiennent donc que le gate soit ouvert ou fermé.
+ *
+ * ⚠ EN DUR, comme `VITRINE_URL` (src/App.tsx) et l'endpoint de `geoLanguage.ts`,
+ * et pour la raison qu'ils écrivent : c'est une constante de DÉPLOIEMENT, pas une
+ * configuration. Une `VITE_*` absente du build rendrait ici une URL vide et le
+ * lien échouerait en silence au lieu d'échouer à la construction.
+ */
+const VITRINE_MENTIONS_LEGALES = 'https://megga.ch/mentions-legales'
+const VITRINE_CONFIDENTIALITE = 'https://megga.ch/confidentialite'
 
 // ─── Icônes line-stroke (subset utilisé par les écrans clients) ───────────
 
@@ -233,7 +262,7 @@ export function MlkBlackPill({
         display: full ? 'flex' : 'inline-flex',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 10,
+        gap: 'var(--crm-space-lg)',
         whiteSpace: 'nowrap',
         width: full ? '100%' : 'auto',
         boxShadow: disabled
@@ -262,7 +291,7 @@ export function MlkWordmark({ size = 18 }: { size?: number }) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
+        gap: 'var(--crm-space-sm)',
       }}
     >
       <img
@@ -295,9 +324,36 @@ export function MlkWordmark({ size = 18 }: { size?: number }) {
   )
 }
 
+/**
+ * La pastille de l'agent, sur les écrans que le CLIENT voit.
+ *
+ * ⛔ ELLE RENDAIT 3,68:1, ET C'EST LE PREMIER ET LE DERNIER ÉCRAN DU PARCOURS.
+ * Son aplat était `#3B82F6` — le blue-500 brut de Tailwind, ABSENT de l'échelle
+ * MEGGA X — sous une encre blanche FIGÉE. Les initiales rendent 15,6 à 16,3 px
+ * en graisse 600, donc du texte NORMAL au sens WCAG : le seuil est 4,5, pas 3.
+ *
+ * ⚠ LE DÉPÔT AVAIT DÉJÀ MESURÉ CETTE VALEUR, DEUX FOIS, et corrigé le jumeau —
+ * `globals.css` écrit que `#3B82F6` « ne porte pas l'encre blanche : 3,68:1 »,
+ * et `crm-wizard/primitives.tsx` DÉRIVE son encre par `encreSur` depuis que
+ * cinq des huit couleurs d'avatar y échouaient l'AA. Le correctif existait donc
+ * côté AGENT et manquait côté CLIENT. Défaut propagé par copie, pas par oubli
+ * de mesure.
+ *
+ * ⛔ POURQUOI L'ENCRE, ET PAS UN BLEU PLUS SOMBRE. `BuyerReceptionPage` — l'autre
+ * surface où un client voit la pastille de son conseiller — la peint déjà
+ * `MLK.ink` sous blanc. Deux avatars clients ne doivent pas différer. Et c'est
+ * l'arbitrage rendu quatre fois dans ce dépôt : un avatar est une DONNÉE, rien
+ * ne s'y actionne, donc il garde l'encre au lieu de prendre l'accent.
+ * Mesuré : 3,68:1 → 20,62:1.
+ *
+ * ⚠ L'ENCRE EST DÉRIVÉE, pas réécrite en dur, et ça ferme la CLASSE plutôt que
+ * ce cas : `encreSur` choisit le barreau lisible de l'aplat reçu, donc un
+ * appelant qui passerait une couleur ne peut plus retomber sous le seuil. Le
+ * halo suit l'aplat par construction.
+ */
 export function MlkAgentAvatar({
   name,
-  color = '#3B82F6',
+  color = MLK.ink,
   size = 56,
 }: {
   name: string
@@ -313,7 +369,7 @@ export function MlkAgentAvatar({
         height: size,
         borderRadius: 999,
         background: color,
-        color: '#fff',
+        color: encreSur(color),
         display: 'grid',
         placeItems: 'center',
         fontSize: Math.max(13, size * 0.34),
@@ -327,75 +383,80 @@ export function MlkAgentAvatar({
   )
 }
 
-interface ReassureItem {
-  icon: MlkIconName
-  title: string
-  sub: string
-}
-
-export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
-  // Desktop : N colonnes (1 par item). Mobile < 560px : 2 colonnes (grid auto-fit).
-  // Le CSS @media est injecté en bas via MlkBackground (composant racine).
+/**
+ * La bannière qui dit qu'un geste de rendez-vous n'a pas abouti.
+ *
+ * ⛔ ELLE ÉTAIT ÉCRITE TROIS FOIS, À L'IDENTIQUE — `MlkBooking` (réservation) et
+ * les DEUX sites d'`AppointmentManagePage` (report, annulation). Pas seulement le
+ * même style : le même appel `t()`, au même défaut. Un premier correctif l'avait
+ * extraite en local dans la page, ce qui laissait la troisième copie dans l'état
+ * d'origine et creusait l'écart au lieu de le fermer. Elle vit donc ICI, avec les
+ * autres pièces partagées de la face publique.
+ *
+ * ⛔ SES COULEURS PASSENT À `MLK_STATUT`, ET L'ENCRE CHANGE PAR ARBITRAGE, PAS PAR
+ * CORRECTION. Le rouge sortant tenait déjà l'AA : `#B42318` sur `#FEF2F2` rend
+ * 6,01:1, contre 5,91:1 pour `MLK_STATUT.errInk`. Le sortant était donc MEILLEUR,
+ * de 0,10 — sous le seuil de ce qu'un œil distingue. Ce qui les départage est
+ * l'UNICITÉ : `errInk` nomme ce rôle sur toute la face publique, et une encre
+ * d'erreur qui diffère d'un écran à l'autre est l'incohérence que ce chantier
+ * retire. Même arbitrage, même raison, que l'ambre de `mlkTokens`. Les deux
+ * chiffres sont écrits pour qu'on puisse revenir dessus.
+ *
+ * ⚠ Le filet est AJOUTÉ : les deux pages de visite peignent leur bannière de refus
+ * `fill` + `line`, celle-ci n'avait que son aplat.
+ *
+ * ⚠ LA PROP DE STYLE NE PORTE QUE DES MARGES, et c'est délibéré : les trois sites
+ * ne différaient que par là. Un `CSSProperties` complet étalé en dernier aurait
+ * rendu réécrasables l'aplat, l'encre et le filet que cette extraction verrouille.
+ */
+export function MlkFailureNotice({
+  code,
+  style,
+}: {
+  code: string
+  style?: Pick<CSSProperties, 'margin' | 'marginTop' | 'marginBottom'>
+}) {
+  const { t } = useTranslation('kyc')
   return (
-    <div className="mlk-reassure-row" data-cols={items.length}>
-      {items.map((it, i) => (
-        <div
-          key={i}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            padding: '16px 4px 4px',
-          }}
-        >
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 999,
-              background: MLK.cardSubtle,
-              display: 'grid',
-              placeItems: 'center',
-            }}
-          >
-            <MlkIcon name={it.icon} size={17} stroke={MLK.ink} sw={1.7} />
-          </div>
-          <div
-            style={{
-              fontSize: 'var(--crm-text-md)',
-              fontWeight: 600,
-              color: MLK.ink,
-              letterSpacing: -0.1,
-              marginTop: 2,
-            }}
-          >
-            {it.title}
-          </div>
-          <div
-            style={{
-              fontSize: 'var(--crm-text-xs)',
-              color: MLK.muted,
-              fontWeight: 500,
-              lineHeight: 1.5,
-            }}
-          >
-            {it.sub}
-          </div>
-        </div>
-      ))}
+    <div
+      style={{
+        padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
+        borderRadius: 'var(--crm-radius-lg)',
+        background: MLK_STATUT.errFill,
+        boxShadow: `inset 0 0 0 1px ${MLK_STATUT.errLine}`,
+        fontSize: 'var(--crm-text-md)',
+        color: MLK_STATUT.errInk,
+        fontWeight: 500,
+        lineHeight: 1.5,
+        ...style,
+      }}
+    >
+      {/* `slot_taken` n'est pas une erreur du client : quelqu'un a simplement pris
+          le créneau entre l'affichage et le clic. La liste est déjà rechargée par
+          le hook — on l'invite à en choisir un autre. */}
+      {t(`client.booking.error_${code}`, { defaultValue: t('client.booking.error_default') })}
     </div>
   )
 }
 
 export function MlkFooter() {
-  // `rel="noreferrer"` empêche le token magic-link de fuiter dans le header
-  // Referer envoyé aux pages externes (mentions-legales, confidentialité).
-  // `target="_blank"` ouvre dans un nouvel onglet pour préserver le parcours KYC.
+  // ⛔ `rel="noreferrer"` empêche le token magic-link de fuiter dans le header
+  // Referer envoyé aux pages externes. La précaution était déjà juste ; elle
+  // devient INDISPENSABLE depuis que les liens sont absolus, donc CROSS-ORIGINE :
+  // sans elle, `app.megga.ch/kyc/<token>` partirait en clair vers megga.ch.
+  // `target="_blank"` ouvre dans un nouvel onglet pour préserver le parcours.
+  //
+  // ⚠ LES LIBELLÉS ÉTAIENT EN DUR EN FRANÇAIS sur une face servie en quatre
+  // langues — le parcours KYC rend 51 chaînes traduites et finissait sur deux
+  // mots qui ne l'étaient pas. Les valeurs viennent de `sites/megga-vitrine/i18n/`,
+  // reprises telles quelles : le pied nomme la page exactement comme la page
+  // qu'il ouvre se nomme elle-même.
+  const { t } = useTranslation('common')
   return (
     <div
       style={{
         marginTop: 32,
-        paddingTop: 22,
+        paddingTop: 'var(--crm-space-6xl)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-end',
@@ -404,22 +465,22 @@ export function MlkFooter() {
         fontWeight: 500,
       }}
     >
-      <div style={{ display: 'flex', gap: 18 }}>
+      <div style={{ display: 'flex', gap: 'var(--crm-space-4xl)' }}>
         <a
-          href="/mentions-legales"
+          href={VITRINE_MENTIONS_LEGALES}
           target="_blank"
           rel="noreferrer"
           style={{ color: 'inherit', textDecoration: 'none' }}
         >
-          Mentions légales
+          {t('legal.notice')}
         </a>
         <a
-          href="/confidentialite"
+          href={VITRINE_CONFIDENTIALITE}
           target="_blank"
           rel="noreferrer"
           style={{ color: 'inherit', textDecoration: 'none' }}
         >
-          Confidentialité
+          {t('legal.privacy')}
         </a>
       </div>
     </div>
@@ -476,7 +537,7 @@ export function MlkBackground({ children }: { children: ReactNode }) {
       style={{
         minHeight: '100vh',
         background: MLK.bgGradient,
-        padding: '48px 16px',
+        padding: '48px var(--crm-space-2xl)',
         fontFamily: MLK.font,
         color: MLK.ink,
       }}
@@ -486,26 +547,62 @@ export function MlkBackground({ children }: { children: ReactNode }) {
           from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        /* Grid réassurance : N colonnes desktop, 2 colonnes < 560px */
-        .mlk-reassure-row {
-          display: grid;
-          gap: 16px;
-        }
-        .mlk-reassure-row[data-cols="1"] { grid-template-columns: 1fr; }
-        .mlk-reassure-row[data-cols="2"] { grid-template-columns: repeat(2, 1fr); }
-        .mlk-reassure-row[data-cols="3"] { grid-template-columns: repeat(3, 1fr); }
-        .mlk-reassure-row[data-cols="4"] { grid-template-columns: repeat(4, 1fr); }
-        @media (max-width: 560px) {
-          .mlk-reassure-row[data-cols="3"],
-          .mlk-reassure-row[data-cols="4"] {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
+        /* ⛔ LA GRILLE DE RÉASSURANCE A ÉTÉ RETIRÉE le 17 août 2026, avec le
+           redessin de l'accueil. Ses quatre colonnes occupaient toute la largeur
+           juste au-dessus du seul bouton de l'écran, sans jamais dire au client
+           quels documents aller chercher — alors que l'écran SUIVANT en réclame
+           quatre types, chacun avec ses exigences (« facture < 3 mois »).
+           Elle est devenue une ligne de texte SOUS le bouton, là où le doute
+           survient, et la place gagnée sert la liste « à préparer ».
+           La primitive n'avait qu'un consommateur : la garder aurait laissé un
+           export mort. */
         /* Shell padding réduit sur mobile pour gagner de l'espace */
         @media (max-width: 560px) {
           .mlk-shell {
             padding: calc(var(--mlk-shell-pad) * 0.5) !important;
             border-radius: 22px !important;
+          }
+
+          /* ⛔ LE BOUTON COLLE EN BAS SUR TÉLÉPHONE, et c'est une mesure qui l'a
+             décidé (17 août 2026, décision Julien). Le redessin de l'accueil a
+             fait passer la carte de 736 à 1012 px : sur un 375 × 812, « Commencer »
+             tombait 35 px SOUS la ligne de flottaison — au premier rendu, le
+             client ne voyait aucun bouton, alors que c'est le seul geste de
+             l'écran.
+
+             STICKY et non FIXED : il se libère de lui-même quand on atteint sa
+             place naturelle, donc le consentement et le pied restent accessibles
+             sans qu'une barre leur reste dessus. ⚠ Aucun ancêtre ne porte
+             overflow — vérifié, c'est ce qui tue un sticky sans rien dire.
+
+             ⛔ ET AUCUN ACCENT GRAVE DANS CE COMMENTAIRE : il vit dans un gabarit,
+             donc un backtick y ferme la chaîne et rend tsc illisible sur des
+             lignes qui ressemblent à du texte. Quatrième fois que ce dépôt paie
+             ce piège — la troisième est écrite dans le plan du 17 août.
+
+             ⚠ Le fond est OPAQUE et déborde jusqu'aux bords de la carte : la
+             coquille divise son padding par deux ici, d'où les demi-valeurs. Sans
+             ce débord, le texte défilerait dans la gouttière à côté du bouton. */
+          .mlk-cta {
+            position: sticky;
+            bottom: 0;
+            z-index: 2;
+            background: ${MLK.card};
+            margin-inline: calc(var(--mlk-shell-pad) * -0.5);
+            padding: var(--crm-space-lg) calc(var(--mlk-shell-pad) * 0.5)
+                     calc(var(--crm-space-lg) + env(safe-area-inset-bottom, 0px));
+          }
+          /* Un fondu plutôt qu'une coupe nette : le contenu qui passe dessous
+             s'efface au lieu de disparaître sur une arête. */
+          .mlk-cta::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 100%;
+            height: var(--crm-space-5xl);
+            background: linear-gradient(to top, ${MLK.card}, transparent);
+            pointer-events: none;
           }
         }
         /* Titres H1 plus petits sur mobile (pas de débordement < 380px).

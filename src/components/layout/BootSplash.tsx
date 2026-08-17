@@ -22,6 +22,7 @@
  * feraient précisément le clignotement qu'on cherche à supprimer.
  */
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   /** `megga-boot is-done` pour lancer le fondu de sortie (cf. index.html). */
@@ -30,6 +31,7 @@ interface Props {
 
 /** Écran plein cadre : logo MEGGA, barre de progression, mention retardée. */
 export default function BootSplash({ className }: Props) {
+  const { t } = useTranslation('common')
   return (
     <div className={cn('megga-boot', className)} role="status" aria-live="polite">
       {/* Halo bas — le dégradé du pied de page vitrine, servi depuis public/.
@@ -50,7 +52,7 @@ export default function BootSplash({ className }: Props) {
         <polygon points="475.11 419 370.91 419 370.69 251.26 475.21 95.29 475.11 419" />
       </svg>
       <div className="megga-boot__bar" />
-      <p className="megga-boot__hint">Ouverture de votre espace</p>
+      <p className="megga-boot__hint">{t('boot.opening')}</p>
     </div>
   )
 }

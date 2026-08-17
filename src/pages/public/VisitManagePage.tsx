@@ -7,12 +7,15 @@
  * cancelled / rescheduled.
  */
 import { useState } from 'react'
-import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
+import { format } from 'date-fns'
+import { dfLocale } from '@/lib/utils'
+import type { CSSProperties, ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { CalendarDays, MapPin, Check, X, Loader2 } from 'lucide-react'
 import { usePublicVisit, useRescheduleVisit, useCancelVisit, estRefus } from '@/hooks/useVisits'
-import PublicPageHeader from '@/components/layout/PublicPageHeader'
 import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+import { MlkBackground, MlkShell, MlkWordmark, MlkFooter } from '@/components/kyc-magic-link/MlkPrimitives'
 
 const TIME_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
 
@@ -23,11 +26,42 @@ const TIME_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00
  * ⚠ LE FILET EST UNE OMBRE INTERNE, PAS UNE BORDURE. Une bordure occupe de la
  * place et décale la mise en page dès qu'elle change au survol ou à la
  * sélection ; `inset 0 0 0 1px` se pose PAR-DESSUS.
+ *
+ * ⚠ SA TEINTE VIENT DE `MLK.line` DEPUIS LE 16 AOÛT. Elle s'écrivait
+ * `${MLK.ghost}33` — un jeton neutre suivi d'un suffixe d'opacité posé à la
+ * main, la porte par laquelle une teinte entre sans qu'on la relise. Le filet
+ * est un RÔLE, et il a un nom depuis la fusion des deux familles publiques.
  */
-const PAGE = { background: MLK.card, fontFamily: MLK.font, color: MLK.ink }
-const FILET = `inset 0 0 0 1px ${MLK.ghost}33`
+const FILET = `inset 0 0 0 1px ${MLK.line}`
 const TITRE = { fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, margin: 0 }
 const SOUS = { fontSize: 'var(--crm-text-lg)', color: MLK.muted }
+
+/**
+ * La coquille commune aux six vues de cette page.
+ *
+ * ⛔ ELLE REMPLACE `PublicPageHeader`, ET CE N'EST PAS QU'UNE QUESTION DE MARQUE.
+ * Cet en-tête était peint en jetons du CRM (`bg-theme-page`, `border-theme-border`)
+ * et portait un `dark:invert` — donc une BRANCHE DE THÈME SOMBRE sur une face
+ * que deux gardes déclarent mono-thème. Elles ne le voyaient pas : elles
+ * balaient les pages et `kyc-magic-link/`, pas `components/layout/`.
+ *
+ * ⚠ Le fond passe du BLANC au dégradé. Ces deux pages étaient les seules
+ * surfaces clientes posées sur `MLK.card` en pleine page ; les six autres
+ * vivent sur `MLK.bgGradient`, contenu dans une carte.
+ */
+function Coquille({ children }: { children: ReactNode }) {
+  return (
+    <MlkBackground>
+      <MlkShell width={448} pad={32}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--crm-space-6xl)' }}>
+          <MlkWordmark size={18} />
+        </div>
+        {children}
+        <MlkFooter />
+      </MlkShell>
+    </MlkBackground>
+  )
+}
 
 /** Le disque d'un écran de fin — une DONNÉE : rien ne s'y actionne. */
 const disque = (ton: 'ok' | 'err'): CSSProperties => ({
@@ -60,38 +94,40 @@ export default function VisitManagePage() {
 
   const [mode, setMode] = useState<'view' | 'reschedule' | 'cancelled' | 'rescheduled'>('view')
   const [newDate, setNewDate] = useState('')
+  const { t } = useTranslation('kyc')
   const [newTime, setNewTime] = useState('')
 
   if (isLoading) {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
+      <Coquille>
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <div
             className="h-8 w-8 rounded-full animate-spin mb-4"
-            style={{ border: `2px solid ${MLK.ghost}33`, borderTopColor: MLK.accent }}
+            style={{ border: `2px solid ${MLK.line}`, borderTopColor: MLK.accent }}
           />
-          <p style={SOUS}>Chargement...</p>
+          <p style={SOUS}>{t('client.visit_manage.loading')}</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   if (!visit || !token) {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
+      <Coquille>
         <div className="flex flex-col items-center justify-center h-[60vh]">
-          <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 8 }}>Lien invalide</p>
-          <p style={SOUS}>Ce lien de gestion de visite est expiré ou invalide.</p>
+          <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 'var(--crm-space-sm)' }}>{t('client.visit_manage.invalid_title')}</p>
+          <p style={SOUS}>{t('client.visit_manage.invalid_body')}</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   const visitDate = new Date(visit.scheduled_at)
-  const dateFR = visitDate.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-  const timeFR = visitDate.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' })
+  // ⛔ La locale suivait la LANGUE DU CODE, pas celle du client : `fr-CH` en dur
+  // rendait « lundi 1 septembre » à un acheteur zurichois. `dfLocale()` lit i18n,
+  // comme le fait déjà la page rendez-vous.
+  const dateFR = format(visitDate, 'EEEE d MMMM yyyy', { locale: dfLocale() })
+  const timeFR = format(visitDate, 'HH:mm')
   const property = visit.property
   const photo = property?.photos?.[0]
 
@@ -125,49 +161,45 @@ export default function VisitManagePage() {
 
   if (mode === 'cancelled') {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
-        <div className="max-w-md mx-auto px-4 py-16 text-center">
+      <Coquille>
+        <div className="text-center">
           <div className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4" style={disque('err')}>
             <X className="h-6 w-6" style={{ color: MLK_STATUT.errInk }} />
           </div>
-          <h2 style={TITRE}>Visite annulée</h2>
-          <p style={{ ...SOUS, marginTop: 8 }}>L'agent a été notifié de l'annulation.</p>
+          <h2 style={TITRE}>{t('client.visit_manage.cancelled_title')}</h2>
+          <p style={{ ...SOUS, marginTop: 'var(--crm-space-sm)' }}>{t('client.visit_manage.cancelled_body')}</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   if (mode === 'rescheduled') {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
-        <div className="max-w-md mx-auto px-4 py-16 text-center">
+      <Coquille>
+        <div className="text-center">
           <div className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4" style={disque('ok')}>
             <Check className="h-6 w-6" style={{ color: MLK_STATUT.okInk }} />
           </div>
-          <h2 style={TITRE}>Visite reportée</h2>
-          <p style={{ ...SOUS, marginTop: 8 }}>L'agent a été notifié du nouveau créneau.</p>
+          <h2 style={TITRE}>{t('client.visit_manage.rescheduled_title')}</h2>
+          <p style={{ ...SOUS, marginTop: 'var(--crm-space-sm)' }}>{t('client.visit_manage.rescheduled_body')}</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   if (visit.status === 'cancelled') {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
-        <div className="max-w-md mx-auto px-4 py-16 text-center">
-          <p style={TITRE}>Cette visite a été annulée</p>
+      <Coquille>
+        <div className="text-center">
+          <p style={TITRE}>{t('client.visit_manage.already_cancelled')}</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   return (
-    <div className="min-h-screen" style={PAGE}>
-      <PublicPageHeader />
-      <div className="max-w-md mx-auto px-4 py-12">
+    <Coquille>
+      <div>
         {/* Visit summary card */}
         <div className="rounded-xl overflow-hidden mb-8" style={{ boxShadow: FILET }}>
           {photo && (
@@ -178,7 +210,7 @@ export default function VisitManagePage() {
             </div>
           )}
           <div className="p-5 space-y-3">
-            <h2 style={TITRE}>{property?.title || 'Visite planifiée'}</h2>
+            <h2 style={TITRE}>{property?.title || t('client.visit_manage.property_fallback')}</h2>
             {property?.address && (
               <div className="flex items-center gap-2" style={SOUS}>
                 <MapPin className="h-4 w-4 flex-shrink-0" />
@@ -187,7 +219,7 @@ export default function VisitManagePage() {
             )}
             <div className="flex items-center gap-2" style={{ fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft }}>
               <CalendarDays className="h-4 w-4 flex-shrink-0" style={{ color: MLK.accent }} />
-              <span className="font-medium capitalize">{dateFR}</span> à <span className="font-medium">{timeFR}</span>
+              <span className="font-medium capitalize">{t('client.visit_manage.date_at_time', { date: dateFR, time: timeFR })}</span>
             </div>
           </div>
         </div>
@@ -203,16 +235,16 @@ export default function VisitManagePage() {
           >
             {estRefus(cancel.error) || estRefus(reschedule.error) ? (
               <>
-                <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>Ce lien ne permet plus cette action</p>
-                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
-                  La visite a peut-être déjà été annulée ou clôturée. Contactez votre agent pour la modifier.
+                <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>{t('client.visit_manage.refused_title')}</p>
+                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 'var(--crm-space-xs)' }}>
+                  {t('client.visit_manage.refused_body')}
                 </p>
               </>
             ) : (
               <>
-                <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>L'action n'a pas abouti</p>
-                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
-                  Vérifiez votre connexion et réessayez.
+                <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>{t('client.visit_manage.failed_title')}</p>
+                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 'var(--crm-space-xs)' }}>
+                  {t('client.visit_manage.failed_body')}
                 </p>
               </>
             )}
@@ -227,7 +259,7 @@ export default function VisitManagePage() {
               className="w-full h-11 rounded-xl transition-colors"
               style={{ fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, border: 0, cursor: 'pointer', background: MLK.accent, color: '#FFFFFF' }}
             >
-              Reporter la visite
+              {t('client.visit_manage.cta_reschedule')}
             </button>
             <button
               onClick={handleCancel}
@@ -236,7 +268,7 @@ export default function VisitManagePage() {
               style={{ fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, border: 0, cursor: 'pointer', background: 'transparent', color: MLK_STATUT.errInk, boxShadow: `inset 0 0 0 1px ${MLK_STATUT.errLine}` }}
             >
               {cancel.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Annuler la visite
+              {t('client.visit_manage.cta_cancel')}
             </button>
           </div>
         )}
@@ -244,11 +276,11 @@ export default function VisitManagePage() {
         {/* Reschedule form */}
         {mode === 'reschedule' && (
           <div className="space-y-4">
-            <h3 style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: MLK.ink, margin: 0 }}>Choisir une nouvelle date</h3>
+            <h3 style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: MLK.ink, margin: 0 }}>{t('client.visit_manage.pick_date')}</h3>
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
               {dates.map((d) => {
                 const key = d.toISOString().split('T')[0]
-                const dayName = d.toLocaleDateString('fr-CH', { weekday: 'short' })
+                const dayName = format(d, 'EEE', { locale: dfLocale() })
                 const dayNum = d.getDate()
                 return (
                   <button
@@ -285,7 +317,7 @@ export default function VisitManagePage() {
                 className="flex-1 h-10 rounded-lg transition-colors"
                 style={{ fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', border: 0, cursor: 'pointer', background: 'transparent', color: MLK.inkSoft, boxShadow: FILET }}
               >
-                Retour
+                {t('client.visit_manage.back')}
               </button>
               <button
                 onClick={handleReschedule}
@@ -299,12 +331,12 @@ export default function VisitManagePage() {
                 }}
               >
                 {reschedule.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Confirmer
+                {t('client.visit_manage.confirm')}
               </button>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </Coquille>
   )
 }

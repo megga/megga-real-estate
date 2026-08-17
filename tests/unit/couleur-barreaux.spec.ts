@@ -146,7 +146,24 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/components/listings', 37],
   ['src/pages/dev', 26],
   ['src/pages/agent', 4],
-  ['src/components/kyc-magic-link', 24],
+  // ⚠ 24 → 21 → 19 le 17 août 2026. D'abord `#3B82F6` (blue-500 de Tailwind, hors échelle),
+  // qui a quitté la pastille d'agent et ses deux appels : elle rendait 3,68:1 sous encre
+  // blanche sur le PREMIER et le DERNIER écran du parcours client, et prend désormais
+  // l'encre — comme la pastille jumelle de la réception — avec une encre DÉRIVÉE
+  // (`encreSur`). Puis `#FEF2F2`/`#B42318`, la bannière d'échec de `MlkBooking`, absorbée
+  // par `MlkFailureNotice` avec les deux copies d'`AppointmentManagePage`.
+  // ⚠ 24 → 21 → 19 → 15, les 16 et 17 août 2026. D'abord `#3B82F6` (blue-500 de Tailwind,
+  // hors échelle), qui rendait 3,68:1 sous encre blanche sur le PREMIER et le DERNIER écran
+  // du parcours client ; puis `#FEF2F2`/`#B42318`, la bannière d'échec de `MlkBooking`,
+  // absorbée par `MlkFailureNotice` ; puis les valeurs que `MlkScreens` réécrivait à la
+  // place de `MLK_STATUT` (bannière d'upload, pilule « reçu »).
+  //
+  // ⛔ ET CE DERNIER LOT EN A RETIRÉ SIX POUR UNE BAISSE DE QUATRE, parce que ce cliquet ne
+  // lit QUE l'hexadécimal : les deux aplats étaient écrits `rgba(239,68,68,.10)` et
+  // `rgba(16,185,129,.10)`, invisibles à son motif. Ils auraient survécu indéfiniment à un
+  // compte qui se croyait exhaustif — même leçon que les commentaires qu'il retire : savoir
+  // ce que la garde mesure VRAIMENT fait partie de la garde.
+  ['src/components/kyc-magic-link', 15],
   ['src/components/auth-bento', 22],
   ['src/components/kyc-report', 22],
   ['src/components/matching-recherche', 23],
@@ -157,9 +174,26 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/lib/crmAdapters.ts', 8],
   ['src/hooks/useAgentProfileScreen.ts', 7],
   ['src/hooks/useCalendarScreen.ts', 6],
-  ['src/pages/public', 6],
+  // ⚠ 6 → 4 le 16 août 2026 : `AcceptInvitePage` réécrivait `MLK_STATUT.errInk` et
+  // `.warnInk` en constantes locales, au caractère près. Elle les IMPORTE désormais.
+  // ⛔ Ce cliquet ne compte QUE le code — les hexadécimaux cités dans un commentaire
+  // lui sont invisibles. Une réplique naïve qui balaie le fichier entier en trouve
+  // neuf là où il en voit six, et conclut à tort qu'un lot a moins gagné qu'annoncé.
+  // ⛔ `src/pages/public` A QUITTÉ CET INVENTAIRE LE 17 AOÛT 2026, ET C'EST L'ARRIVÉE : la
+  // zone ne porte plus AUCUNE couleur hors barreaux. 6 → 4 (`AcceptInvitePage` cessait de
+  // réécrire `MLK_STATUT` en constantes locales) → 0 (les deux bannières
+  // d'`AppointmentManagePage` sont passées à `MlkFailureNotice`, partagée). Une entrée qui
+  // ne garde plus rien fait rougir la clause « zone absente du balayage » : ce cliquet
+  // refuse aussi les inventaires PÉRIMÉS, pas seulement les dépassements.
+  // ⚠ Il ne compte QUE le code — un hexadécimal cité en COMMENTAIRE lui est invisible. Une
+  // réplique naïve qui balaie le fichier entier en trouve neuf là où il en voit six, et
+  // conclut à tort qu'un lot a moins gagné qu'annoncé.
   ['src/components/auth', 4],
-  ['src/components/buyer-reception', 4],
+  // ⚠ `src/components/buyer-reception` valait 4 — les trois arrêts de son dégradé
+  // et son `soft` #3A3D44. La racine a disparu le 16 août avec `receptionTokens.ts`,
+  // fondu dans `MLK` : ces quatre écarts ne se sont pas déplacés vers
+  // `kyc-magic-link`, ils étaient les DOUBLONS de valeurs qu'elle comptait déjà.
+  // Le total du dépôt baisse donc de 4, et c'est la preuve chiffrée de la fusion.
   ['src/types/visit.ts', 4],
   ['src/components/matching-atelier', 3],
   ['src/components/admin', 2],

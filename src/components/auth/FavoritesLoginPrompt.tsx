@@ -4,6 +4,7 @@
  * masqué dès qu'une session existe ou tant que le prompt n'est pas déclenché.
  */
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { useFavoritesLoginPrompt } from '@/hooks/useFavorites'
 import { useAuth } from '@/hooks/useAuth'
@@ -22,6 +23,7 @@ function GoogleIcon({ className }: { className?: string }) {
 
 /** Carte bottom-sheet : titre, boutons Google/Email vers /login, et « Pas maintenant ». */
 export default function FavoritesLoginPrompt() {
+  const { t } = useTranslation('common')
   const { showLoginPrompt, dismissLoginPrompt } = useFavoritesLoginPrompt()
   const { user } = useAuth()
 
@@ -40,10 +42,10 @@ export default function FavoritesLoginPrompt() {
         </button>
 
         <p className="text-sm font-medium text-theme-primary mb-1">
-          Connectez-vous pour sauvegarder vos favoris
+          {t('app.fav_title')}
         </p>
         <p className="text-xs text-theme-tertiary mb-4">
-          Retrouvez vos biens favoris sur tous vos appareils.
+          {t('app.fav_body')}
         </p>
 
         <div className="flex items-center gap-2">
@@ -53,14 +55,15 @@ export default function FavoritesLoginPrompt() {
             className="flex-1 h-9 rounded-lg border border-theme-border text-sm font-medium text-theme-secondary hover:bg-theme-hover transition-colors flex items-center justify-center gap-2"
           >
             <GoogleIcon className="h-4 w-4" />
-            Google
+            {/* Nom de marque : identique dans les quatre langues, isolé comme le prescrit le script de garde. */}
+            {'Google'}
           </Link>
           <Link
             to="/login"
             onClick={dismissLoginPrompt}
             className="flex-1 h-9 rounded-lg border border-theme-border text-sm font-medium text-theme-secondary hover:bg-theme-hover transition-colors flex items-center justify-center gap-2"
           >
-            Email
+            {'Email'}
           </Link>
         </div>
 
@@ -68,7 +71,7 @@ export default function FavoritesLoginPrompt() {
           onClick={dismissLoginPrompt}
           className="w-full text-xs text-theme-tertiary hover:text-theme-secondary mt-3 transition-colors"
         >
-          Pas maintenant
+          {t('app.fav_later')}
         </button>
       </div>
     </div>

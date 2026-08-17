@@ -165,8 +165,8 @@ const PAGES_PUBLIQUES = new Set([
   'AppointmentManagePage.tsx', 'AcceptInvitePage.tsx',
   // Lot 5 — les neuf dernières pages publiques.
   'AuthCallbackPage.tsx', 'KycPublicPage.tsx', 'KycReportRenderPage.tsx',
-  'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx', 'PrivacyPage.tsx',
-  'ResetPasswordPage.tsx', 'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
+  'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx',
+  'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
   'AuthBentoPage.tsx',
   // 16 août 2026 — la page publique de préférences d'e-mail, atteinte depuis le lien
   // « Se désinscrire » du pied de nos e-mails. Elle entre au cliquet comme les autres :
@@ -178,8 +178,8 @@ const PAGES_PUBLIQUES = new Set([
 const PAGES_PUBLIQUES_ACQUISES = [
   'BuyerReceptionPage.tsx', 'AppointmentManagePage.tsx', 'AcceptInvitePage.tsx',
   'AuthCallbackPage.tsx', 'KycPublicPage.tsx', 'KycReportRenderPage.tsx',
-  'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx', 'PrivacyPage.tsx',
-  'ResetPasswordPage.tsx', 'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
+  'NotFoundPage.tsx', 'OnboardingCallManagePage.tsx',
+  'VisitFeedbackPage.tsx', 'VisitManagePage.tsx',
   'AuthBentoPage.tsx', 'DesinscriptionPage.tsx',
 ]
 
@@ -376,8 +376,13 @@ const ZONES: RootSpec[] = [
   // sortis dans `receptionTokens.ts`, et le cliquet n'aurait plus vu que leur
   // NOM. C'est exactement le piège que `crm-dossiers/tokens.ts` a posé pendant
   // six lots — le noir de Sugar vivait dans le fichier de jetons, hors balayage.
+  //
+  // ⚠ LA RACINE `buyer-reception` A DISPARU AVEC SON DOSSIER (16 août 2026).
+  // `RC` est fondue dans `MLK`, `receptionTokens.ts` retiré — et le dossier ne
+  // contenait que lui. Le module de jetons de la réception reste donc balayé,
+  // mais par la racine `kyc-magic-link` ci-dessus, qui l'héberge désormais : le
+  // piège que ce commentaire décrit n'est pas rouvert, il a changé d'adresse.
   { root: 'src/pages/public', keep: (n) => PAGES_PUBLIQUES.has(n) },
-  { root: 'src/components/buyer-reception', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm-dossiers/offer-modal', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/pages/agent', keep: (n) => PAGES.has(n) },
   // ⛔ « Matching · Recherche » entre SANS `MrhMapView.tsx`. La carte est GELÉE
@@ -559,7 +564,12 @@ const TEMOINS_DE_ZONE = [
   // resserrait par accident, la racine rendrait encore ses cinq autres fichiers
   // et `emptyRoots` la croirait saine.
   'src/components/kyc-magic-link/MlkScreens.tsx',
-  'src/components/buyer-reception/receptionTokens.ts',
+  // ⚠ A REMPLACÉ `buyer-reception/receptionTokens.ts`, retiré le 16 août avec la
+  // fusion de `RC` dans `MLK`. Le mode d'échec surveillé est le MÊME, déplacé
+  // d'une racine à un `keep` NOMMÉ : cette page ne passe que par
+  // `PAGES_PUBLIQUES`, donc si l'ensemble se resserrait, la racine rendrait
+  // encore ses autres pages et `emptyRoots` la croirait saine.
+  'src/pages/public/BuyerReceptionPage.tsx',
   // Lot 1 du chantier « 100 % » (15 août 2026). Deux témoins, deux raisons
   // DISTINCTES — un témoin qui ne prouve rien de plus qu'`emptyRoots` est du
   // bruit, et cette liste ne vaut que si chaque entrée nomme un mode d'échec
@@ -815,8 +825,6 @@ const CLASSES_ASSUMEES = new Map<string, { palette?: number; blanc?: number; ech
   // Les onze « blanc » n'en étaient pas : des `text-white` sur voile sombre.
   ['src/pages/agent/ListingFormPage.tsx', { echelle: 155 }],
   ['src/pages/dev/SentryTestPage.tsx', { echelle: 4 }],
-  ['src/pages/public/PrivacyPage.tsx', { echelle: 5 }],
-  ['src/pages/public/ResetPasswordPage.tsx', { blanc: 3, echelle: 10 }],
 ])
 
 /**
@@ -939,8 +947,15 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/search', { hors: 8, total: 8 }],
   ['src/components/crm/settings', { hors: 74, total: 95 }],
   ['src/components/crm/today', { hors: 43, total: 54 }],
-  ['src/components/kyc-magic-link', { hors: 80, total: 110 }],
-  ['src/components/layout', { hors: 9, total: 107 }],
+  // ⚠ total 110 → 107 → 100, et hors échelle 80 → 74, le 17 août 2026. D'abord la bannière
+  // d'échec de `MlkBooking`, qui a cédé sa géométrie littérale à `MlkFailureNotice`. Puis
+  // l'allègement du parcours KYC (décision Julien) : cinq blocs de texte retirés — les
+  // sous-titres de réassurance, l'accroche du dépôt, le conseil de sécurité, deux surtitres
+  // — et leur mise en page avec eux. Un texte supprimé emporte sa géométrie.
+  ['src/components/kyc-magic-link', { hors: 32, total: 35 }],
+  // ⚠ 107 → 105 le 16 août 2026 : `PublicPageHeader` a été retiré. Il n'avait que les
+  // deux pages de visite pour consommateurs, et elles sont passées à `MlkWordmark`.
+  ['src/components/layout', { hors: 9, total: 105 }],
   ['src/components/listings', { hors: 39, total: 115 }],
   ['src/components/map', { hors: 0, total: 4 }],
   ['src/components/matching-atelier', { hors: 37, total: 50 }],
@@ -952,7 +967,29 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/pages/admin', { hors: 225, total: 464 }],
   ['src/pages/agent', { hors: 331, total: 936 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
-  ['src/pages/public', { hors: 68, total: 259 }],
+  // ⚠ 68 → 63 et 259 → 230 sur l'étape 2 (16 août 2026), en portant `BuyerReceptionPage`,
+  // `AcceptInvitePage` puis les deux visites. La dernière baisse est la plus grosse (−18) et
+  // elle ne vient pas d'un dépeçage : les deux visites répétaient leur conteneur et leur
+  // centrage à chaque vue — dix fois en tout — et `MlkShell` les porte désormais une fois.
+  // Le cliquet EXIGE qu'on descende le compte : un gain non inscrit se reperd au lot suivant
+  // sans que rien ne rougisse.
+  // ⚠ 68 → 62 et 259 → 193 sur l'étape 2 (16-17 août 2026), en portant `BuyerReceptionPage`,
+  // `AcceptInvitePage`, les deux visites puis `AppointmentManagePage`. Deux baisses ne
+  // viennent PAS d'un dépeçage : les deux visites répétaient leur conteneur et leur centrage
+  // à chaque vue — dix fois en tout — et `MlkShell` les porte désormais une fois (−18) ; puis
+  // `PrivacyPage` et `ResetPasswordPage` ont été RETIRÉES, doublons sans lien entrant, ce qui
+  // sort leur géométrie du compte (−31). Le cliquet EXIGE qu'on descende le compte : un gain
+  // non inscrit se reperd au lot suivant sans que rien ne rougisse.
+  // ⚠ 62 → 60 et 193 → 191 le 17 août : la réception acheteur passe au bureau, et sa mise
+  // en page quitte les styles en ligne pour des classes `rc-*`. ⛔ Le cliquet COMPTE AUSSI
+  // LE CSS d'un littéral de gabarit — la première version, qui y recopiait ses valeurs en
+  // pixels, l'a fait MONTER de 62 à 63. Les passer en `var(--crm-space-*)` là où un barreau
+  // existe rend le gain : une feuille de style n'échappe pas à la grammaire.
+  // ⚠ 60 → 58 et 191 → 189 : cinq textes de remplissage retirés de la réception acheteur
+  // (décision Julien, 17 août), et leur géométrie avec eux. Un texte qu'on supprime emporte
+  // sa mise en page — c'est le seul cas où ce cliquet baisse sans qu'on ait tokenisé quoi
+  // que ce soit.
+  ['src/pages/public', { hors: 15, total: 111 }],
 ])
 
 /** Les propriétés qui portent un rayon ou un espacement. */
@@ -1767,8 +1804,6 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
     const AVEUGLES = new Map<string, number>([
       ['NotFoundPage.tsx', 21],
       ['OnboardingCallManagePage.tsx', 30],
-      ['PrivacyPage.tsx', 8],
-      ['ResetPasswordPage.tsx', 19],
     ])
     const scanPublic = scanRoots([{ root: 'src/pages/public', keep: (n) => /\.tsx$/.test(n) }])
     expect(emptyRoots(scanPublic), 'racine vide : chemin cassé, pas surface propre').toEqual([])
@@ -2112,9 +2147,10 @@ describe('Grammaire MEGGA X — casse, graisse, interlettrage, échelle', () => 
       'src/components/crm/pipeline',
       'src/components/crm-dossiers/offer-modal',
       // La face publique — lot 1 du chantier « la face publique en MEGGA X ».
+      // ⚠ `src/components/buyer-reception` a été retirée le 16 août : le dossier
+      // ne contenait que `receptionTokens.ts`, fondu dans `MLK`.
       'src/components/kyc-magic-link',
       'src/pages/public',
-      'src/components/buyer-reception',
       // ⚠ La racine NUE, celle qui porte `tokens.ts` depuis le lot 2 du chantier
       // KYC. Elle manquait à cette liste : les cinq fichiers qu'elle retient
       // pouvaient donc quitter le cliquet sans que rien ne rougisse.

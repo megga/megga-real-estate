@@ -480,5 +480,29 @@
   },
   "announcements": {
     "dismiss": "Schliessen"
+  },
+  "legal": {
+    "notice": "Impressum",
+    "privacy": "Datenschutz"
+  },
+  "not_found": {
+    "title": "Seite nicht gefunden",
+    "body": "Diese Seite existiert nicht oder hat die Adresse gewechselt. Bei Ihnen ist nichts kaputt: gehen wir von Ihrem Dashboard aus weiter.",
+    "back": "Zurück zum Dashboard",
+    "help": "Hilfecenter",
+    "image_alt": "Seite nicht gefunden · MEGGA"
+  },
+  "boot": {
+    "opening": "Ihr Bereich wird geöffnet"
+  },
+  "app": {
+    "fav_title": "Melden Sie sich an, um Ihre Favoriten zu sichern",
+    "fav_body": "Finden Sie Ihre Favoriten auf allen Geräten wieder.",
+    "fav_later": "Jetzt nicht",
+    "stale_title": "Eine neue Version ist verfügbar",
+    "stale_body_prefix": "Automatisches Neuladen in ",
+    "stale_reload": "Jetzt neu laden",
+    "stale_later": "Später",
+    "close": "Schliessen"
   }
 }

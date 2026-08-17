@@ -480,5 +480,29 @@
   },
   "announcements": {
     "dismiss": "Dismiss"
+  },
+  "legal": {
+    "notice": "Legal notice",
+    "privacy": "Privacy"
+  },
+  "not_found": {
+    "title": "Page not found",
+    "body": "This page does not exist, or it has moved. Nothing is broken on your side: let us start again from your dashboard.",
+    "back": "Back to dashboard",
+    "help": "Help centre",
+    "image_alt": "Page not found · MEGGA"
+  },
+  "boot": {
+    "opening": "Opening your workspace"
+  },
+  "app": {
+    "fav_title": "Sign in to save your favourites",
+    "fav_body": "Find your saved properties on all your devices.",
+    "fav_later": "Not now",
+    "stale_title": "A new version is available",
+    "stale_body_prefix": "Reloading automatically in ",
+    "stale_reload": "Reload now",
+    "stale_later": "Later",
+    "close": "Close"
   }
 }

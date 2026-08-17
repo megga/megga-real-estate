@@ -480,5 +480,29 @@
   },
   "announcements": {
     "dismiss": "Chiudi"
+  },
+  "legal": {
+    "notice": "Note legali",
+    "privacy": "Privacy"
+  },
+  "not_found": {
+    "title": "Pagina non trovata",
+    "body": "Questa pagina non esiste, oppure ha cambiato indirizzo. Da parte sua non c'è nulla di rotto: ripartiamo dalla sua dashboard.",
+    "back": "Torna alla dashboard",
+    "help": "Centro assistenza",
+    "image_alt": "Pagina non trovata · MEGGA"
+  },
+  "boot": {
+    "opening": "Apertura del suo spazio"
+  },
+  "app": {
+    "fav_title": "Acceda per salvare i suoi preferiti",
+    "fav_body": "Ritrovi i suoi immobili preferiti su tutti i dispositivi.",
+    "fav_later": "Non ora",
+    "stale_title": "È disponibile una nuova versione",
+    "stale_body_prefix": "Ricaricamento automatico tra ",
+    "stale_reload": "Ricaricare ora",
+    "stale_later": "Più tardi",
+    "close": "Chiudere"
   }
 }

@@ -480,5 +480,29 @@
   },
   "announcements": {
     "dismiss": "Fermer"
+  },
+  "legal": {
+    "notice": "Mentions légales",
+    "privacy": "Confidentialité"
+  },
+  "not_found": {
+    "title": "Page introuvable",
+    "body": "Cette page n'existe pas, ou elle a changé d'adresse. Rien de cassé chez vous : reprenons depuis votre tableau de bord.",
+    "back": "Retour au tableau de bord",
+    "help": "Centre d'aide",
+    "image_alt": "Page introuvable · MEGGA"
+  },
+  "boot": {
+    "opening": "Ouverture de votre espace"
+  },
+  "app": {
+    "fav_title": "Connectez-vous pour sauvegarder vos favoris",
+    "fav_body": "Retrouvez vos biens favoris sur tous vos appareils.",
+    "fav_later": "Pas maintenant",
+    "stale_title": "Une nouvelle version est disponible",
+    "stale_body_prefix": "Rechargement automatique dans ",
+    "stale_reload": "Recharger maintenant",
+    "stale_later": "Plus tard",
+    "close": "Fermer"
   }
 }

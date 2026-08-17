@@ -153,7 +153,6 @@ export default function DesinscriptionPage() {
           <>
             <h1 style={{ margin: '0 0 var(--crm-space-md)', fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK_STATUT.okInk }}>{t.T13}</h1>
             <p style={{ margin: '0 0 var(--crm-space-4xl)', color: MLK.inkSoft, fontSize: 'var(--crm-text-xl)', lineHeight: 1.6 }}>{t.T14}</p>
-            <p style={{ margin: 0, color: MLK.muted, fontSize: 'var(--crm-text-md)', lineHeight: 1.6 }}>{t.T19}</p>
           </>
         )}
 
@@ -181,7 +180,6 @@ export default function DesinscriptionPage() {
               {t.T12}
             </button>
 
-            <p style={{ margin: 'var(--crm-space-3xl) 0 0', color: MLK.muted, fontSize: 'var(--crm-text-sm)', lineHeight: 1.6 }}>{t.T19}</p>
           </>
         )}
       </main>

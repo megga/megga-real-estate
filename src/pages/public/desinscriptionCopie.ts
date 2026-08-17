@@ -51,8 +51,6 @@ export interface CopieDesinscription {
   T17: string
   /** aide du jeton refusé */
   T18: string
-  /** mention nLPD */
-  T19: string
   /** chargement */
   T20: string
 }
@@ -78,7 +76,6 @@ export const DESINSCRIPTION_COPIE: Record<LangueDesinscription, CopieDesinscript
     T16: "Écrivez-nous à privacy@megga.ch et nous le ferons à la main.",
     T17: "Ce lien n'est plus valide.",
     T18: "Écrivez-nous à privacy@megga.ch et nous vous désinscrirons à la main.",
-    T19: "Pour accéder à vos données, les corriger ou les supprimer : privacy@megga.ch",
     T20: "Chargement de vos préférences…",
   },
   // allemand de Suisse : « ss », jamais d'eszett
@@ -101,7 +98,6 @@ export const DESINSCRIPTION_COPIE: Record<LangueDesinscription, CopieDesinscript
     T16: "Schreiben Sie uns an privacy@megga.ch, und wir erledigen es von Hand.",
     T17: "Dieser Link ist nicht mehr gültig.",
     T18: "Schreiben Sie uns an privacy@megga.ch, und wir melden Sie von Hand ab.",
-    T19: "Zugang zu Ihren Daten, Berichtigung oder Löschung: privacy@megga.ch",
     T20: "Ihre Einstellungen werden geladen…",
   },
   // anglais
@@ -124,7 +120,6 @@ export const DESINSCRIPTION_COPIE: Record<LangueDesinscription, CopieDesinscript
     T16: "Write to us at privacy@megga.ch and we will do it manually.",
     T17: "This link is no longer valid.",
     T18: "Write to us at privacy@megga.ch and we will unsubscribe you manually.",
-    T19: "To access, correct or delete your data: privacy@megga.ch",
     T20: "Loading your preferences…",
   },
   // italien, forme de courtoisie « Lei »
@@ -147,7 +142,6 @@ export const DESINSCRIPTION_COPIE: Record<LangueDesinscription, CopieDesinscript
     T16: "Ci scriva a privacy@megga.ch e provvederemo manualmente.",
     T17: "Questo link non è più valido.",
     T18: "Ci scriva a privacy@megga.ch e La cancelleremo manualmente.",
-    T19: "Per accedere ai Suoi dati, correggerli o cancellarli: privacy@megga.ch",
     T20: "Caricamento delle Sue preferenze…",
   },
 }

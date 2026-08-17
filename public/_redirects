@@ -52,6 +52,25 @@
 /dashboard/reseau                            /dashboard/network                301
 /dashboard/marche/:externalId                /dashboard/market/:externalId     301
 
+# Doublons retirés le 17 août 2026, redirigés au BORD plutôt que supprimés — le
+# motif du dépôt pour une route qui n'a plus de page (cf. /aide ci-dessus) : un
+# lien externe que le dépôt ne peut pas inventorier (vieil e-mail, signet) atterrit
+# encore quelque part d'utile, sans charger l'app React au passage.
+#
+# `/privacy` : la vitrine sert la page canonique (13,9 Ko, structurée) et
+# `src/lib/consents.ts` y pointait DÉJÀ le consentement nLPD. La page in-app en
+# était une version courte que plus rien ne liait.
+#
+# `/reset-password` : cible d'AUCUN e-mail. La récupération de l'app passe par
+# `/auth/callback?type=recovery` (useAuth.tsx) puis `/auth/forgot-password/reset` ;
+# celle de la vitrine part sur `megga.ch/reset-password` (megga-auth.js). On
+# renvoie donc vers l'écran VIVANT de même fonction, et non vers la vitrine :
+# ⚠ un fragment d'URL (`#access_token=…`) n'est jamais envoyé au serveur, donc le
+# navigateur le REPOSE sur la cible — une session de récupération survit au 301,
+# et l'utilisateur définit son mot de passe au lieu de tout recommencer.
+/privacy                                     https://megga.ch/privacy          301
+/reset-password                              /auth/forgot-password/reset       301
+
 # Console super-admin : AUCUNE règle ici. Elle est redevenue une surface du CRM
 # (/dashboard/admin/*, cf. src/App.tsx), donc le fallback SPA ci-dessous suffit.
 # Une réécriture vers un autre hôte est évaluée AU BORD, avant ce fallback :
