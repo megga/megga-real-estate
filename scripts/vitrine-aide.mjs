@@ -93,6 +93,42 @@ const MOTS = {
   },
 };
 
+/**
+ * Ce build a-t-il le DROIT de dégrader au lieu de casser ?
+ *
+ * ⛔ La règle n'est pas « suis-je en CI » mais « ce que je fabrique peut-il
+ * atteindre la production ». Trois constructeurs bâtissent cette vitrine :
+ *
+ *   1. GitHub Actions → `wrangler pages deploy dist` : c'est la production.
+ *   2. Cloudflare Pages sur la branche de production : c'en est une aussi.
+ *   3. Cloudflare Pages sur toute autre branche : une PRÉVISUALISATION de PR,
+ *      que personne ne sert au public.
+ *
+ * Les deux premiers doivent ÉCHOUER si le corpus est hors d'atteinte — un
+ * centre d'aide vide publié est pire qu'un déploiement qui s'arrête. Le
+ * troisième n'a rien à protéger : le casser ne fait que peindre en rouge une
+ * PR dont le code est sain, et ce rouge-là finit par ne plus rien vouloir dire.
+ *
+ * ⚠ Un build de prévisualisation dégradé porte la page d'attente, qui DIT
+ * qu'elle est une page d'attente. Elle ne peut pas se faire passer pour le vrai
+ * centre d'aide auprès de quelqu'un qui relit la PR.
+ *
+ * `CF_PAGES` et `CF_PAGES_BRANCH` sont posés par Cloudflare Pages lui-même.
+ */
+const BRANCHE_DE_PRODUCTION = 'main';
+
+/**
+ * Vrai quand l'artefact peut atteindre le public : l'échec doit alors être bruyant.
+ * Exportée pour être ÉPROUVÉE — une règle de ce genre se relit bien et se casse
+ * en silence, et son défaut ne se verrait qu'au déploiement suivant.
+ */
+export function doitEchouerSur(env = process.env) {
+  const previsualisation = env.CF_PAGES === '1' && (env.CF_PAGES_BRANCH || '') !== BRANCHE_DE_PRODUCTION;
+  return Boolean(env.CI) && !previsualisation;
+}
+
+const doitEchouer = doitEchouerSur(process.env);
+
 const echapper = (s) =>
   String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -481,8 +517,8 @@ async function generer() {
   try {
     client = creerClientIntercom();
   } catch {
-    if (process.env.CI) {
-      console.error(`✗ [aide] ${AIDE_JETON_MANQUANT}\n` + "  En CI, un centre d'aide vide ne doit pas partir en production.");
+    if (doitEchouer) {
+      console.error(`✗ [aide] ${AIDE_JETON_MANQUANT}\n` + "  Ce build peut atteindre la production : un centre d'aide vide n'en partira pas.");
       process.exit(1);
     }
     ecrirePagesDAttente();
@@ -514,7 +550,12 @@ async function generer() {
     console.error(`  Où : la variable INTERCOM_ACCESS_TOKEN de CE build (GitHub Actions, ou Cloudflare Pages → Variables and Secrets, Production ET Preview).`);
     console.error(`  Éprouver le jeton sans dépenser un build :`);
     console.error(`    curl -s -o /dev/null -w '%{http_code}\\n' -H "Authorization: Bearer <jeton>" -H "Intercom-Version: 2.11" "https://api.intercom.io/articles?per_page=1"`);
-    process.exit(1);
+    // Même règle que pour le jeton absent : seul un build qui peut atteindre le
+    // public casse. Une prévisualisation dégrade — le diagnostic ci-dessus reste
+    // dans son journal, mais la PR ne rougit pas pour un secret d'infrastructure.
+    if (doitEchouer) process.exit(1);
+    ecrirePagesDAttente();
+    return;
   }
 
   const publies = liste.filter((a) => a.state === 'published');

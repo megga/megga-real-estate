@@ -22,7 +22,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, globSync } from 'node:fs'
-import { segment, grouper, contenuLocalise, normaliserRecherche } from '../../scripts/vitrine-aide.mjs'
+import { segment, grouper, contenuLocalise, normaliserRecherche, doitEchouerSur } from '../../scripts/vitrine-aide.mjs'
 
 /** Forme réelle de l'API Intercom 2.11, réduite à ce que le générateur lit. */
 const ARTICLES = [
@@ -119,9 +119,37 @@ describe("centre d'aide généré — plomberie", () => {
 
   it("refuse de publier un centre d'aide vide", () => {
     const src = readFileSync('scripts/vitrine-aide.mjs', 'utf-8')
-    // Deux refus distincts : corpus vide rendu par l'API, et jeton absent en CI.
+    // Un corpus vide rendu par l'API ne doit jamais devenir une page publiée.
     expect(src).toMatch(/if \(!articles\.length\)[\s\S]{0,200}process\.exit\(1\)/)
-    expect(src).toMatch(/process\.env\.CI[\s\S]{0,300}process\.exit\(1\)/)
+  })
+
+  it('ne casse que les builds qui peuvent atteindre le public', () => {
+    // ⛔ LA RÈGLE N'EST PAS « SUIS-JE EN CI ». Elle l'a été, et ça se payait :
+    // le build de PRÉVISUALISATION de Cloudflare — qui ne sert personne — faisait
+    // rougir la PR pour un secret d'infrastructure absent de SON environnement,
+    // pendant que GitHub Actions, lui, construisait la vraie page sans broncher.
+    // Un rouge qui ne désigne rien d'actionnable dans le code finit par ne plus
+    // être lu, et c'est le prochain rouge, celui qui compte, qu'on rate.
+    //
+    // Ce qui doit casser, c'est ce qui peut PUBLIER : Actions, et Cloudflare sur
+    // la branche de production. Le reste dégrade vers la page d'attente, qui dit
+    // elle-même ce qu'elle est.
+    expect(doitEchouerSur({ CI: 'true' }), 'GitHub Actions publie').toBe(true)
+    expect(
+      doitEchouerSur({ CI: 'true', CF_PAGES: '1', CF_PAGES_BRANCH: 'main' }),
+      'Cloudflare sur main publie aussi',
+    ).toBe(true)
+    expect(
+      doitEchouerSur({ CI: 'true', CF_PAGES: '1', CF_PAGES_BRANCH: 'une-branche' }),
+      'une prévisualisation ne sert personne',
+    ).toBe(false)
+    expect(doitEchouerSur({}), 'un poste local ne publie rien').toBe(false)
+    // ⚠ `CF_PAGES` seul ne suffit pas à se dire prévisualisation : sans lui, une
+    // variable de branche traînant dans un autre CI ouvrirait une échappatoire.
+    expect(
+      doitEchouerSur({ CI: 'true', CF_PAGES_BRANCH: 'une-branche' }),
+      'hors Cloudflare, la branche ne veut rien dire',
+    ).toBe(true)
   })
 
   it('porte le même lien « Aide » dans les 31 blocs de nav', () => {
