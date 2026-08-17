@@ -123,7 +123,7 @@ export default function VisitFeedbackPage() {
     return (
       <Coquille>
         <div className="flex flex-col items-center justify-center h-[60vh]">
-          <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 8 }}>Lien invalide</p>
+          <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 'var(--crm-space-sm)' }}>Lien invalide</p>
           <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted }}>Ce lien de feedback est expiré ou invalide.</p>
         </div>
       </Coquille>
@@ -146,7 +146,7 @@ export default function VisitFeedbackPage() {
           <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, margin: 0 }}>
             Merci pour votre retour
           </h2>
-          <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 8 }}>
+          <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 'var(--crm-space-sm)' }}>
             Votre avis aide l'agent à mieux comprendre vos attentes.
           </p>
         </div>
@@ -203,7 +203,7 @@ export default function VisitFeedbackPage() {
           </div>
         </div>
 
-        <h1 style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 24 }}>
+        <h1 style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 'var(--crm-space-6xl)' }}>
           Comment s'est passée la visite ?
         </h1>
 
@@ -322,7 +322,7 @@ export default function VisitFeedbackPage() {
               <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>
                 Votre avis n'a pas pu être enregistré
               </p>
-              <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
+              <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 'var(--crm-space-xs)' }}>
                 {estRefus(submitFeedback.error)
                   ? 'Un avis a peut-être déjà été déposé pour cette visite, ou celle-ci a été annulée.'
                   : 'Vérifiez votre connexion et réessayez.'}

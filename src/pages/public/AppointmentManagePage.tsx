@@ -50,8 +50,8 @@ function GhostButton({ onClick, children, disabled }: {
 
 function Notice({ title, body }: { title: string; body: string }) {
   return (
-    <div style={{ padding: '26px 24px', background: MLK.cardSubtle, borderRadius: 18, textAlign: 'center' }}>
-      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: MLK.ink, marginBottom: 6 }}>{title}</div>
+    <div style={{ padding: '26px var(--crm-space-6xl)', background: MLK.cardSubtle, borderRadius: 18, textAlign: 'center' }}>
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: MLK.ink, marginBottom: 'var(--crm-space-sm)' }}>{title}</div>
       <div style={{ fontSize: 'var(--crm-text-md)', color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6 }}>{body}</div>
     </div>
   )
@@ -109,7 +109,7 @@ export default function AppointmentManagePage() {
   if (done) {
     return shell(
       <>
-        <h1 className="mlk-h1" style={{ margin: '0 0 12px', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.7, textAlign: 'center' }}>
+        <h1 className="mlk-h1" style={{ margin: '0 0 var(--crm-space-lg)', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.7, textAlign: 'center' }}>
           {done.status === 'cancelled' ? t('client.manage.cancelled_title') : t('client.manage.rescheduled_title')}
         </h1>
         <p style={{ margin: '0 auto 26px', fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6, textAlign: 'center', maxWidth: 400 }}>
@@ -136,7 +136,7 @@ export default function AppointmentManagePage() {
     const failure = manageMut.error
     return shell(
       <>
-        <h1 className="mlk-h1" style={{ margin: '0 0 22px', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.6, textAlign: 'center' }}>
+        <h1 className="mlk-h1" style={{ margin: '0 0 var(--crm-space-6xl)', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.6, textAlign: 'center' }}>
           {t('client.manage.reschedule_title')}
         </h1>
 
@@ -175,7 +175,7 @@ export default function AppointmentManagePage() {
           </>
         )}
 
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: 'var(--crm-space-lg)' }}>
           <GhostButton onClick={() => { setMode('view'); manageMut.reset() }}>
             {t('client.manage.back')}
           </GhostButton>
@@ -192,7 +192,7 @@ export default function AppointmentManagePage() {
         <MlkAppointmentCard appointment={appointment} />
         <Notice title={t('client.manage.confirm_cancel_title')} body={t('client.manage.confirm_cancel_body')} />
         {failure && <MlkFailureNotice code={failure.code} style={{ margin: 'var(--crm-space-2xl) 0 0' }} />}
-        <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-4xl)' }}>
           <GhostButton onClick={() => { setMode('view'); manageMut.reset() }} disabled={manageMut.isPending}>
             {t('client.manage.keep')}
           </GhostButton>
@@ -214,17 +214,17 @@ export default function AppointmentManagePage() {
   // ── Vue par défaut ──
   return shell(
     <>
-      <h1 className="mlk-h1" style={{ margin: '0 0 10px', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.6, textAlign: 'center' }}>
+      <h1 className="mlk-h1" style={{ margin: '0 0 var(--crm-space-lg)', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.6, textAlign: 'center' }}>
         {t('client.manage.title')}
       </h1>
-      <p style={{ margin: '0 auto 24px', fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6, textAlign: 'center', maxWidth: 400 }}>
+      <p style={{ margin: '0 auto var(--crm-space-6xl)', fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6, textAlign: 'center', maxWidth: 400 }}>
         {t('client.manage.subtitle', { when: when.full })}
       </p>
 
       <MlkAppointmentCard appointment={appointment} />
 
       {appointment.can_change ? (
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)' }}>
           <GhostButton onClick={() => setMode('reschedule')}>{t('client.manage.reschedule')}</GhostButton>
           <GhostButton onClick={() => setMode('confirm_cancel')}>{t('client.manage.cancel')}</GhostButton>
         </div>

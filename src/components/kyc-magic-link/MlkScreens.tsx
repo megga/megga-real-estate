@@ -100,8 +100,8 @@ export function MlkLanding({
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 7,
-            padding: '6px 12px 6px 9px',
+            gap: 'var(--crm-space-sm)',
+            padding: 'var(--crm-space-sm) var(--crm-space-lg) var(--crm-space-sm) var(--crm-space-sm)',
             borderRadius: 999,
             background: MLK.cardSubtle,
             fontSize: 'var(--crm-text-xs)',
@@ -120,8 +120,8 @@ export function MlkLanding({
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 16,
-          padding: '16px 18px',
+          gap: 'var(--crm-space-2xl)',
+          padding: 'var(--crm-space-2xl) var(--crm-space-4xl)',
           background: MLK.cardSubtle,
           borderRadius: 18,
           marginBottom: 28,
@@ -146,7 +146,7 @@ export function MlkLanding({
       <h1
         className="mlk-h1"
         style={{
-          margin: '0 0 16px',
+          margin: '0 0 var(--crm-space-2xl)',
           fontSize: 'var(--crm-text-9xl)',
           fontWeight: 600,
           color: MLK.ink,
@@ -192,7 +192,7 @@ export function MlkLanding({
 
       <div
         style={{
-          marginTop: 16,
+          marginTop: 'var(--crm-space-2xl)',
           textAlign: 'center',
           fontSize: 'var(--crm-text-sm)',
           color: MLK.muted,
@@ -296,7 +296,7 @@ export function MlkUpload({
       <h1
         className="mlk-h1"
         style={{
-          margin: '0 0 12px',
+          margin: '0 0 var(--crm-space-lg)',
           fontSize: 'var(--crm-text-7xl)',
           fontWeight: 600,
           color: MLK.ink,
@@ -313,7 +313,7 @@ export function MlkUpload({
           fontSize: 'var(--crm-text-xs)',
           fontWeight: 600,
           color: MLK.muted,
-          marginBottom: 10,
+          marginBottom: 'var(--crm-space-lg)',
         }}
       >
         {t('client.upload.type_label')}
@@ -322,8 +322,8 @@ export function MlkUpload({
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: 10,
-          marginBottom: 22,
+          gap: 'var(--crm-space-lg)',
+          marginBottom: 'var(--crm-space-6xl)',
         }}
       >
         {(Object.keys(uploadTypeDefs) as UploadType[]).map((typeKey) => {
@@ -338,7 +338,7 @@ export function MlkUpload({
                 width: '100%',
                 textAlign: 'left',
                 border: 0,
-                padding: '14px 16px',
+                padding: 'var(--crm-space-2xl) var(--crm-space-2xl)',
                 borderRadius: 16,
                 background: isSelected ? MLK.card : MLK.cardSubtle,
                 boxShadow: isSelected ? MLK.shadow : 'none',
@@ -347,7 +347,7 @@ export function MlkUpload({
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
+                gap: 'var(--crm-space-lg)',
                 transition: 'all .18s ease',
               }}
             >
@@ -439,9 +439,9 @@ export function MlkUpload({
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: 14,
+          gap: 'var(--crm-space-2xl)',
           textAlign: 'center',
-          marginBottom: 14,
+          marginBottom: 'var(--crm-space-2xl)',
           transition: 'all .18s ease',
         }}
       >
@@ -477,7 +477,7 @@ export function MlkUpload({
           style={{ display: 'none' }}
           onChange={(e) => handleFiles(e.target.files)}
         />
-        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', marginTop: 'var(--crm-space-xs)' }}>
           <MlkBlackPill
             onClick={() => fileInputRef.current?.click()}
             icon={<MlkIcon name="file" size={14} stroke="#fff" sw={1.8} />}
@@ -496,8 +496,8 @@ export function MlkUpload({
           style={{
             display: 'flex',
             alignItems: 'flex-start',
-            gap: 10,
-            padding: '12px 14px',
+            gap: 'var(--crm-space-lg)',
+            padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
             // ⚠ L'APLAT PASSE DE TRANSLUCIDE À OPAQUE, ET C'EST INVISIBLE : composé
             // sur la carte blanche, `rgba(239,68,68,.10)` donne `#fdecec`, à 1,04:1
             // d'`errFill`. Ce que le changement retire n'est pas une teinte, c'est
@@ -506,7 +506,7 @@ export function MlkUpload({
             background: MLK_STATUT.errFill,
             boxShadow: `inset 0 0 0 1px ${MLK_STATUT.errLine}`,
             borderRadius: 12,
-            marginBottom: 14,
+            marginBottom: 'var(--crm-space-2xl)',
             fontSize: 'var(--crm-text-sm)',
             // `#B91C1C` était `errInk` au caractère près, écrit deux fois.
             color: MLK_STATUT.errInk,
@@ -527,7 +527,7 @@ export function MlkUpload({
               fontSize: 'var(--crm-text-xs)',
               fontWeight: 600,
               color: MLK.muted,
-              marginBottom: 10,
+              marginBottom: 'var(--crm-space-lg)',
             }}
           >
             {t(uploaded.length === 1 ? 'client.upload.received_one' : 'client.upload.received_other', { count: uploaded.length })}
@@ -536,8 +536,8 @@ export function MlkUpload({
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: 8,
-              marginBottom: 24,
+              gap: 'var(--crm-space-sm)',
+              marginBottom: 'var(--crm-space-6xl)',
             }}
           >
             {uploaded.map((f) => {
@@ -551,8 +551,8 @@ export function MlkUpload({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 14,
-                    padding: '12px 16px',
+                    gap: 'var(--crm-space-2xl)',
+                    padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
                     background: MLK.cardSubtle,
                     borderRadius: 14,
                   }}
@@ -599,8 +599,8 @@ export function MlkUpload({
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
-                      gap: 6,
-                      padding: '4px 10px',
+                      gap: 'var(--crm-space-sm)',
+                      padding: 'var(--crm-space-xs) var(--crm-space-lg)',
                       borderRadius: 999,
                       // Même mesure que la bannière d'erreur : le voile à 10 % donne
                       // `#e7f8f2`, à 1,04:1 d'`okFill`. ⚠ Ces deux valeurs venaient de
@@ -645,8 +645,8 @@ export function MlkUpload({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          gap: 16,
-          paddingTop: 4,
+          gap: 'var(--crm-space-2xl)',
+          paddingTop: 'var(--crm-space-xs)',
         }}
       >
         <MlkBlackPill
@@ -714,7 +714,7 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
       <h1
         className="mlk-h1"
         style={{
-          margin: '0 0 14px',
+          margin: '0 0 var(--crm-space-2xl)',
           fontSize: 'var(--crm-text-8xl)',
           fontWeight: 600,
           color: MLK.ink,
@@ -752,12 +752,12 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 14,
-          padding: '16px 18px',
+          gap: 'var(--crm-space-2xl)',
+          padding: 'var(--crm-space-2xl) var(--crm-space-4xl)',
           background: MLK.card,
           borderRadius: 18,
           boxShadow: MLK.shadow,
-          marginBottom: 24,
+          marginBottom: 'var(--crm-space-6xl)',
         }}
       >
         <MlkAgentAvatar name={agentFullName} size={46} />
@@ -786,7 +786,7 @@ export function MlkSuccess({ firstName, agentFullName, agencyName, onBook }: Suc
       </div>
 
       {onBook && (
-        <div style={{ marginTop: 4 }}>
+        <div style={{ marginTop: 'var(--crm-space-xs)' }}>
           <MlkBlackPill onClick={onBook} full>
             {t('client.booking.cta_open')}
           </MlkBlackPill>
@@ -837,7 +837,7 @@ export function MlkExpired({ agentFullName, agencyName }: ExpiredProps) {
       <h1
         className="mlk-h1"
         style={{
-          margin: '0 0 14px',
+          margin: '0 0 var(--crm-space-2xl)',
           fontSize: 'var(--crm-text-6xl)',
           fontWeight: 600,
           color: MLK.ink,
@@ -872,7 +872,7 @@ export function MlkExpired({ agentFullName, agencyName }: ExpiredProps) {
 
       <div
         style={{
-          marginTop: 14,
+          marginTop: 'var(--crm-space-2xl)',
           textAlign: 'center',
           fontSize: 'var(--crm-text-sm)',
           color: MLK.muted,
@@ -907,7 +907,7 @@ export function MlkPlaceholder({ title, message, iconName = 'alert' }: Placehold
           height: 72,
           borderRadius: 999,
           background: MLK.cardSubtle,
-          margin: '0 auto 22px',
+          margin: '0 auto var(--crm-space-6xl)',
           display: 'grid',
           placeItems: 'center',
         }}
@@ -917,7 +917,7 @@ export function MlkPlaceholder({ title, message, iconName = 'alert' }: Placehold
       <h1
         className="mlk-h1"
         style={{
-          margin: '0 0 12px',
+          margin: '0 0 var(--crm-space-lg)',
           fontSize: 'var(--crm-text-5xl)',
           fontWeight: 600,
           color: MLK.ink,
