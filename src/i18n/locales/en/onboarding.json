@@ -19,10 +19,22 @@
       "body": {
         "verified": "30 minutes with our team to walk through your setup.",
         "processing": "Verification is under way. You can move on, we will attach the result to your file.",
-        "incomplete": "Verification did not complete. Start it again to continue."
+        "incomplete": "Verification did not complete. Start it again to continue.",
+        "gap": "One thing to check before you continue."
       },
       "bookCta": "Book a slot",
-      "retryCta": "Start verification again"
+      "retryCta": "Start verification again",
+      "gap": {
+        "title": "The verified document does not match the identity you declared.",
+        "fields": "Field concerned: {{fields}}. You can continue, a reviewer will check either way. Correcting it now saves you a round trip.",
+        "separator": ", ",
+        "field": {
+          "firstName": "first name",
+          "lastName": "last name",
+          "dateOfBirth": "date of birth"
+        },
+        "fixCta": "Correct my details"
+      }
     },
     "submitted": {
       "title": "Your call is confirmed",
