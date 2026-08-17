@@ -907,6 +907,8 @@ export interface IdentityShellPreview {
  */
 const INDEX_ETAPE_PIECE_IDENTITE = IDENTITY_STEPS.findIndex((s) => s.id === 'pieceIdentite')
 const INDEX_ETAPE_RENDEZ_VOUS = IDENTITY_STEPS.findIndex((s) => s.id === 'rendezVous')
+/** Où l'on renvoie quelqu'un dont la pièce contredit l'identité qu'il a déclarée. */
+const INDEX_ETAPE_SIGNATAIRE = IDENTITY_STEPS.findIndex((s) => s.id === 'signataire')
 
 /**
  * Cadence et plafond du rappel de statut sur l'écran de retour.
@@ -1428,8 +1430,13 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
         // sur rien, sur l'écran qui doit nommer la personne vérifiée.
         fullName={[existingSignatory?.firstName, existingSignatory?.lastName]
           .filter(Boolean).join(' ').trim() || (user?.email ?? '')}
+        // Le verdict de correspondance décide du SCEAU. Sans lui, l'écran posait la coche
+        // sur le seul statut de session et affirmait une concordance jamais consultée
+        // (cf. resolveDeclaredIdentityGap).
+        idRead={existingSignatory?.idDocumentRead ?? null}
         onBook={() => quitterRetour(INDEX_ETAPE_RENDEZ_VOUS)}
         onRetryDocument={() => quitterRetour(INDEX_ETAPE_PIECE_IDENTITE)}
+        onFixDeclaredIdentity={() => quitterRetour(INDEX_ETAPE_SIGNATAIRE)}
       />
     )
   }

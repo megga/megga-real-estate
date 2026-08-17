@@ -19,10 +19,22 @@
       "body": {
         "verified": "30 minutes avec notre équipe pour faire le tour de votre installation.",
         "processing": "La vérification est en cours. Vous pouvez avancer, nous rattacherons le résultat à votre dossier.",
-        "incomplete": "La vérification n'a pas abouti. Reprenez-la pour continuer."
+        "incomplete": "La vérification n'a pas abouti. Reprenez-la pour continuer.",
+        "gap": "Un point à vérifier avant de continuer."
       },
       "bookCta": "Réserver un créneau",
-      "retryCta": "Reprendre la vérification"
+      "retryCta": "Reprendre la vérification",
+      "gap": {
+        "title": "La pièce vérifiée ne correspond pas à l'identité que vous avez déclarée.",
+        "fields": "Champ concerné : {{fields}}. Vous pouvez continuer, un relecteur vérifiera de toute façon. Corriger maintenant vous évite un aller-retour.",
+        "separator": ", ",
+        "field": {
+          "firstName": "le prénom",
+          "lastName": "le nom",
+          "dateOfBirth": "la date de naissance"
+        },
+        "fixCta": "Corriger mes informations"
+      }
     },
     "submitted": {
       "title": "Votre rendez-vous est confirmé",
