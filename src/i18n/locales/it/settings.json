@@ -61,8 +61,9 @@
     "rcc": "Numero RCC",
     "contactTitle": "Contact",
     "emailPro": "Email professionale",
-    "mobile": "Telefono cellulare",
-    "landline": "Telefono fisso",
+    "whatsapp": "Numero WhatsApp",
+    "whatsappHint": "Verificato tramite codice ricevuto su WhatsApp",
+    "whatsappUnverified": "Nessun numero verificato. Verifichi il Suo numero dal CRM su computer.",
     "agency": "Agenzia",
     "agencyHint": "Modificabile dalla scheda «La mia agenzia»",
     "publicPresentationTitle": "Presentazione pubblica",
@@ -657,17 +658,42 @@
         "desc": "Al momento non è possibile verificare la connessione WhatsApp.",
         "retry": "Riprova"
       },
-      "waiting": {
-        "sendCode": "Invii questo codice a <strong>{{number}}</strong> su WhatsApp (valido 15 min).",
-        "title": "In attesa del Suo messaggio…",
-        "desc": "Il collegamento si attiva appena il codice viene ricevuto."
+      "unlink": "Scollega questo numero",
+      "unlinking": "Scollegamento…",
+      "otp": {
+        "countryLabel": "Paese del numero",
+        "numberLabel": "Numero di telefono",
+        "send": "Ricevi un codice",
+        "sending": "Invio…",
+        "sent": "Codice inviato a <strong>{{number}}</strong> su WhatsApp. Scade tra 10 minuti.",
+        "codeLabel": "Codice a 6 cifre",
+        "verify": "Verifica",
+        "verifying": "Verifica in corso…",
+        "attemptsLeft_one": "Ancora {{count}} tentativo",
+        "attemptsLeft_other": "Ancora {{count}} tentativi",
+        "resend": "Invia un nuovo codice",
+        "cancel": "Annulla",
+        "errors": {
+          "template_not_configured": "L'invio del codice non è ancora attivo su questo account. Contatti l'assistenza.",
+          "number_taken": "Questo numero è già verificato su un altro account MEGGA.",
+          "rate_limited": "Troppi codici richiesti. Riprovi tra un'ora.",
+          "invalid_phone": "Questo numero non è utilizzabile. Verifichi il paese e le cifre.",
+          "wrong_code": "Codice errato.",
+          "expired": "Questo codice è scaduto. Ne richieda uno nuovo.",
+          "too_many_attempts": "Troppi tentativi. Richieda un nuovo codice.",
+          "no_pending": "Nessuna verifica in corso.",
+          "phone_suppressed": "Questo numero ha chiesto di non ricevere più messaggi.",
+          "not_contactable": "Questo numero non può essere contattato.",
+          "generic": "Verifica non riuscita. Riprovi.",
+          "platform_rate_limited": "Oggi troppe verifiche sull'intera piattaforma. Riprovi domani o contatti l'assistenza.",
+          "number_rate_limited": "Questo numero ha già ricevuto diversi codici oggi. Riprovi domani.",
+          "too_many_numbers": "Oggi ha verificato troppi numeri diversi. Riprovi domani."
+        },
+        "probeFailed": "Non è stato possibile verificare se l'invio del codice è disponibile. Richieda il codice: la risposta lo dirà."
       },
-      "regenerateCode": "Rigenera un codice",
-      "generating": "Generazione…",
       "unlinked": {
-        "body": "Gestisca MEGGA da WhatsApp. I Suoi appuntamenti, i Suoi solleciti e i Suoi contatti direttamente via messaggio, senza aprire il CRM. Generi un codice, poi lo invii a MEGGA al <strong>{{number}}</strong>."
-      },
-      "generateCode": "Genera un codice"
+        "body": "Gestisca MEGGA da WhatsApp. I Suoi appuntamenti, i Suoi solleciti e i Suoi contatti direttamente via messaggio, senza aprire il CRM. Inserisca il Suo numero: le inviamo un codice a 6 cifre dal <strong>{{number}}</strong>."
+      }
     },
     "esign": {
       "title": "Collega Skribble",
@@ -942,8 +968,7 @@
         "lastName": "Cognome",
         "role": "Funzione",
         "email": "Email professionale",
-        "mobile": "Cellulare",
-        "phone": "Telefono fisso",
+        "whatsapp": "Numero WhatsApp",
         "agency": "Agenzia",
         "bio": "Biografia pubblica",
         "languages": "Lingue parlate",
@@ -952,7 +977,9 @@
         "linkedin": "Profilo LinkedIn"
       },
       "emailHint": "Indirizzo di accesso, non modificabile qui",
-      "agencyHint": "Modificabile da La mia agenzia"
+      "agencyHint": "Modificabile da La mia agenzia",
+      "whatsappHint": "Si verifica tramite codice ricevuto su WhatsApp, in Integrazioni",
+      "whatsappVerified": "Verificato"
     },
     "agency": {
       "banner": "Queste informazioni compaiono sui vostri documenti, mandati e annunci pubblici.",

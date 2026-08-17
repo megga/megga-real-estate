@@ -105,7 +105,7 @@ export default function SettingsPage() {
 
   const renderContent = () => {
     switch (active) {
-      case 'profile': return <ProfileFocusSection sp={sp} surf={surf} dark={dark} />
+      case 'profile': return <ProfileFocusSection sp={sp} surf={surf} dark={dark} onGoToSection={setActive} />
       case 'agency': return <AgencyFocusSection sp={sp} surf={surf} dark={dark} />
       case 'preferences': return <PreferencesFocusSection sp={sp} surf={surf} dark={dark} setDark={setDark} />
       case 'integrations': return <IntegrationsSection />

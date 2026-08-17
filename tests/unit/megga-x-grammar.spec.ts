@@ -933,7 +933,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/pipeline', { hors: 32, total: 38 }],
   ['src/components/crm/profile', { hors: 2, total: 2 }],
   ['src/components/crm/search', { hors: 8, total: 8 }],
-  ['src/components/crm/settings', { hors: 74, total: 95 }],
+  // 74/95 → 73/93 (17.08.2026) : le retrait de l'écran d'appairage de la carte WhatsApp
+  // a emporté ses littéraux avec lui. Le cliquet redescend, il ne se justifie pas.
+  ['src/components/crm/settings', { hors: 73, total: 93 }],
   ['src/components/crm/today', { hors: 43, total: 54 }],
   ['src/components/kyc-magic-link', { hors: 80, total: 110 }],
   ['src/components/layout', { hors: 9, total: 107 }],

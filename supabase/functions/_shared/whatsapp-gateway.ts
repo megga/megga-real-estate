@@ -60,6 +60,16 @@ export interface OutboundTemplateMessage {
   templateName: string      // nom EXACT du template approuvé
   languageCode: string      // ex. 'fr', 'fr_CH', 'en' — doit matcher l'approbation
   bodyParams?: string[]     // variables du corps {{1}}, {{2}}… dans l'ordre (omis si aucune)
+  /**
+   * Code à recopier dans le BOUTON d'un template d'AUTHENTIFICATION.
+   *
+   * ⚠ Meta exige que le code figure DEUX FOIS dans l'envoi : une fois en paramètre de
+   * corps (le texte affiché) et une fois en paramètre de bouton (ce que le bouton
+   * « Copier » met dans le presse-papier). Omettre le composant `button` fait échouer
+   * l'envoi d'un template d'authentification — c'est la seule catégorie où le payload
+   * ne se réduit pas au corps.
+   */
+  otpButtonCode?: string
 }
 
 export interface SendConfig {
@@ -388,12 +398,26 @@ class MetaProvider implements WhatsAppProvider {
       name: msg.templateName,
       language: { code: msg.languageCode },
     }
+    const components: Record<string, unknown>[] = []
     if (msg.bodyParams && msg.bodyParams.length > 0) {
-      template.components = [{
+      components.push({
         type: 'body',
         parameters: msg.bodyParams.map((text) => ({ type: 'text', text })),
-      }]
+      })
     }
+    // Template d'AUTHENTIFICATION : le bouton « Copier le code » est un composant à part
+    // entière, et Meta REFUSE l'envoi s'il manque. Le code y est répété — le corps
+    // l'affiche, le bouton le met dans le presse-papier. `sub_type: 'url'` et `index: '0'`
+    // sont imposés par Meta pour le bouton OTP, quel que soit son `otp_type`.
+    if (msg.otpButtonCode) {
+      components.push({
+        type: 'button',
+        sub_type: 'url',
+        index: '0',
+        parameters: [{ type: 'text', text: msg.otpButtonCode }],
+      })
+    }
+    if (components.length > 0) template.components = components
     return {
       url: `https://graph.facebook.com/${apiVersion}/${config.metaPhoneNumberId}/messages`,
       method: 'POST',

@@ -5,6 +5,10 @@
 import { crmVoileEncre } from '@/components/crm/tokens'
 import type { CrmPalette } from '../../tokens'
 import type { GalSurfaces } from '../../biens/gallery/galHelpers'
+// ⚠ Le type des sections vient de `data.ts`, il n'est pas recopié : la liste y était
+// réécrite à la main dans la signature d'`onGoToSection`, si bien qu'ajouter une section
+// aux Réglages demandait deux éditions et qu'un oubli ne se voyait qu'à l'appel.
+import type { SectionId } from '../data'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 
 /** Props communes aux sections « Focus » (rendues dans le bento des Réglages). */
@@ -13,6 +17,15 @@ export interface FocusSectionProps {
   surf: GalSurfaces
   dark: boolean
   setDark?: (v: boolean) => void
+  /**
+   * Bascule vers une autre section des Réglages, depuis l'intérieur d'une section.
+   *
+   * Nécessaire parce que la section active est un ÉTAT LOCAL de `SettingsPage`, pas
+   * une route : un `navigate('…?tab=integrations')` ne rouvrirait rien (le `?tab=` n'est
+   * lu qu'au montage). La ligne « Numéro WhatsApp » du Profil en a besoin pour renvoyer
+   * vers la carte d'appairage, qui reste l'unique endroit où le lien se fait.
+   */
+  onGoToSection?: (id: SectionId) => void
 }
 
 /* ─── Icônes (SVG stroke line 1.7) ─────────────────────────────────────────── */

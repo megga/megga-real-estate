@@ -23,7 +23,7 @@
  */
 
 /** Domaine fermé de `OutboundPurpose` (whatsapp-outbound-guard.ts). */
-export const PURPOSES = ['service', 'utility', 'marketing', 'lpd_notice', 'opt_out_ack'];
+export const PURPOSES = ['service', 'utility', 'marketing', 'lpd_notice', 'opt_out_ack', 'number_verification'];
 
 /** Fin d'une chaîne ouverte en `i`. -1 si elle n'est jamais refermée (expression illisible). */
 function finChaine(e, i) {
