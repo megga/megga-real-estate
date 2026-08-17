@@ -977,7 +977,12 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // `PrivacyPage` et `ResetPasswordPage` ont été RETIRÉES, doublons sans lien entrant, ce qui
   // sort leur géométrie du compte (−31). Le cliquet EXIGE qu'on descende le compte : un gain
   // non inscrit se reperd au lot suivant sans que rien ne rougisse.
-  ['src/pages/public', { hors: 62, total: 193 }],
+  // ⚠ 62 → 60 et 193 → 191 le 17 août : la réception acheteur passe au bureau, et sa mise
+  // en page quitte les styles en ligne pour des classes `rc-*`. ⛔ Le cliquet COMPTE AUSSI
+  // LE CSS d'un littéral de gabarit — la première version, qui y recopiait ses valeurs en
+  // pixels, l'a fait MONTER de 62 à 63. Les passer en `var(--crm-space-*)` là où un barreau
+  // existe rend le gain : une feuille de style n'échappe pas à la grammaire.
+  ['src/pages/public', { hors: 60, total: 191 }],
 ])
 
 /** Les propriétés qui portent un rayon ou un espacement. */

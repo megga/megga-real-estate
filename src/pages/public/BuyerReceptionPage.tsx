@@ -25,7 +25,24 @@
 // ⚠ LES ÉTATS « CHARGEMENT » ET « LIEN INVALIDE » LA PRENNENT, EUX, EN ENTIER : ce sont
 // des documents — rien n'y défile ni ne s'y actionne. La règle n'est donc pas « cette
 // page échappe à la direction », c'est « la coquille habille un document, pas une
-// application ». Si un jour ce fil devient une page lue au bureau, il la reprendra.
+// application ».
+//
+// ── ET ELLE SE LIT AUSSI AU BUREAU DEPUIS LE 17 AOÛT 2026 (demande de Julien) ────────
+// La clause ci-dessus se terminait par « si un jour ce fil devient une page lue au
+// bureau, il reprendra la coquille ». Ce jour est arrivé, et la réponse est plus fine
+// que prévu : le fil ne reprend TOUJOURS pas `MlkShell`, parce que les trois raisons
+// mesurées plus haut tiennent encore — les cartes de bien sont déjà des cartes, les
+// panneaux sont en `position: fixed`, et `100dvh` reste juste sur téléphone.
+//
+// ⛔ CE QUI CHANGE EST LA FORME, PAS LA COQUILLE. Une sélection de biens se COMPARE :
+// en colonne unique sur un écran large, on fait défiler pour tenir deux cartes en tête,
+// ce que la grille donne d'un regard. C'est précisément ce qui distingue cette surface
+// de `/kyc/:token`, un document qu'on LIT et qui reste donc en colonne.
+//
+// Tout est en CSS (classes `rc-*` + une seule requête de média à 768 px), sans état
+// React ni `matchMedia` : pas de rendu intermédiaire, pas de branche à tenir. Les trois
+// panneaux cessent d'être des feuilles montantes pour devenir des modales centrées —
+// collés en bas d'un écran large, ils lisaient comme un tiroir de téléphone égaré.
 
 import { useMemo, useState } from 'react'
 import type { CSSProperties, UIEvent as ReactUIEvent } from 'react'
@@ -70,7 +87,38 @@ const KEYFRAMES = `@keyframes rcUp{from{opacity:0;transform:translateY(14px)}to{
 @keyframes rcSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
 @keyframes rcPop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
 .rc-scroll::-webkit-scrollbar{display:none}
-@media (prefers-reduced-motion: reduce){*{animation-duration:.001ms!important}}`
+@media (prefers-reduced-motion: reduce){*{animation-duration:.001ms!important}}
+
+/* ── Le fil, en colonne de téléphone par défaut ──────────────────────────── */
+.rc-shell{max-width:480px;margin:0 auto;position:relative;min-height:100dvh}
+.rc-cartes{display:flex;flex-direction:column;gap:18px;padding:var(--crm-space-2xs) 18px 0}
+/* Les trois panneaux : des feuilles qui remontent du bas. */
+.rc-panneau{position:fixed;inset:0;max-width:480px;margin:0 auto}
+.rc-feuille{position:absolute;left:0;right:0;bottom:0}
+.rc-feuille-haute{top:40px}
+
+/* ── AU BUREAU ────────────────────────────────────────────────────────────
+   ⛔ CE N'EST PAS « LA MÊME PAGE PLUS LARGE ». Une sélection de biens se
+   COMPARE : en colonne unique sur 1400 px, on fait défiler pour tenir deux
+   cartes en tête, ce que la grille donne d'un regard. C'est ce qui distingue
+   cette surface de /kyc/:token, qui est un document qu'on LIT et reste donc
+   en colonne.
+
+   ⚠ auto-fill + minmax, pas un nombre de colonnes figé : la grille rend 2
+   ou 3 cartes selon la place, sans point de rupture supplémentaire à tenir.
+
+   ⚠ LES PANNEAUX CESSENT D'ÊTRE DES FEUILLES. Collés en bas d'un écran large,
+   ils lisent comme un tiroir de téléphone égaré ; centrés, ce sont des modales.
+   Leurs coins s'arrondissent des quatre côtés — une feuille n'arrondit que le
+   haut parce que le bas sort de l'écran, ce qui n'est plus vrai au centre. */
+@media (min-width:768px){
+  .rc-shell{max-width:1040px}
+  .rc-cartes{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));padding:var(--crm-space-2xs) var(--crm-space-6xl) 0}
+  .rc-panneau{max-width:none;display:grid;place-items:center;padding:var(--crm-space-6xl)}
+  .rc-feuille{position:relative;inset:auto;width:100%;max-width:560px;border-radius:28px!important;
+    max-height:calc(100dvh - 64px);animation-name:rcPop!important}
+  .rc-feuille-haute{top:auto;max-height:calc(100dvh - 64px)}
+}`
 
 type UiStatus = 'liked' | 'rejected' | null
 
@@ -117,7 +165,6 @@ export default function BuyerReceptionPage() {
   const rejectBien = rejectId ? items.find((b) => b.match_id === rejectId) ?? null : null
 
   const stage: CSSProperties = { minHeight: '100dvh', background: MLK.bgGradient, fontFamily: FONT, color: MLK.ink, fontVariantNumeric: 'tabular-nums' }
-  const shell: CSSProperties = { maxWidth: 480, margin: '0 auto', position: 'relative', minHeight: '100dvh' }
 
   // ── États lien invalide / expiré / chargement ──
   //
@@ -156,7 +203,7 @@ export default function BuyerReceptionPage() {
   return (
     <div style={stage}>
       <style>{KEYFRAMES}</style>
-      <div style={shell}>
+      <div className="rc-shell">
         <div className="rc-scroll" style={{ paddingTop: 'var(--crm-space-6xl)', paddingBottom: 128 }}>
           {/* ⚠ LA MARQUE ET SA MENTION, dans le couple `space-between` de la maison —
               le même qu'en tête de `/kyc/:token`. La mention de lien privé traînait
@@ -199,7 +246,7 @@ export default function BuyerReceptionPage() {
           </div>
 
           {/* Cartes */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: '4px 18px 0' }}>
+          <div className="rc-cartes">
             {items.map((b, i) => {
               const st = statusOf(b)
               const p = priceOf(b)
@@ -286,9 +333,9 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
   const onScroll = (e: ReactUIEvent<HTMLDivElement>) => { const w = e.currentTarget.clientWidth || 1; setPi(Math.round(e.currentTarget.scrollLeft / w)) }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 40, maxWidth: 480, margin: '0 auto' }}>
+    <div className="rc-panneau" style={{ zIndex: 40 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: crmVoileEncre(false, 0.38), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, top: 40, background: MLK.card, borderRadius: '28px 28px 0 0', boxShadow: MLK.sheetShadow, overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'rcSheet .38s cubic-bezier(.2,.85,.25,1) both' }}>
+      <div className="rc-feuille rc-feuille-haute" style={{ background: MLK.card, borderRadius: '28px 28px 0 0', boxShadow: MLK.sheetShadow, overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'rcSheet .38s cubic-bezier(.2,.85,.25,1) both' }}>
         <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.14), zIndex: 3 }} />
         <button onClick={onClose} aria-label="Fermer" style={{ position: 'absolute', top: 16, right: 16, zIndex: 3, width: 36, height: 36, borderRadius: 999, border: 0, cursor: 'pointer', background: 'rgba(255,255,255,.9)', boxShadow: MLK.shadowSm, display: 'grid', placeItems: 'center' }}><Icon d={ICO.x} size={17} stroke={MLK.ink} /></button>
         <div className="rc-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -358,9 +405,9 @@ function ReceptionReject({ firstName, onClose, onConfirm }: { firstName: string;
   const [motif, setMotif] = useState<string | null>(null)
   const [note, setNote] = useState('')
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 50, maxWidth: 480, margin: '0 auto' }}>
+    <div className="rc-panneau" style={{ zIndex: 50 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: crmVoileEncre(false, 0.42), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: MLK.card, borderRadius: '28px 28px 0 0', boxShadow: MLK.sheetShadow, padding: '22px 22px calc(20px + env(safe-area-inset-bottom))', animation: 'rcSheet .36s cubic-bezier(.2,.85,.25,1) both' }}>
+      <div className="rc-feuille" style={{ background: MLK.card, borderRadius: '28px 28px 0 0', boxShadow: MLK.sheetShadow, padding: '22px 22px calc(20px + env(safe-area-inset-bottom))', animation: 'rcSheet .36s cubic-bezier(.2,.85,.25,1) both' }}>
         <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.14) }} />
         <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.5, marginTop: 6 }}>Ce bien ne convient pas ?</div>
         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: MLK.muted, marginTop: 6, lineHeight: 1.5 }}>Optionnel — mais ça aide {firstName} à affiner les prochaines propositions.</div>
@@ -386,7 +433,7 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
   const rejected = total - liked.length
   const firstName = agent?.name?.split(' ')[0] || 'votre conseiller'
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: MLK.bgGradient, animation: 'rcFade .3s ease both', display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto', fontFamily: FONT }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: MLK.bgGradient, animation: 'rcFade .3s ease both', display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto', fontFamily: FONT, width: '100%' }}>
       <div className="rc-scroll" style={{ flex: 1, overflowY: 'auto', padding: '72px 22px 28px', textAlign: 'center' }}>
         <div style={{ width: 68, height: 68, borderRadius: 999, background: MLK.ink, margin: '0 auto', display: 'grid', placeItems: 'center', boxShadow: `0 12px 30px ${crmVoileEncre(false, 0.25)}`, animation: 'rcPop .5s cubic-bezier(.2,.9,.3,1) both' }}><Icon d={ICO.check} size={30} stroke="#fff" sw={2.2} /></div>
         <h1 style={{ margin: '20px 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: MLK.ink }}>Merci {contactFirst} !</h1>

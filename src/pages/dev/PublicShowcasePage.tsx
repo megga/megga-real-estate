@@ -32,7 +32,7 @@
  * ⛔ Données de DÉMONSTRATION, et rien n'écrit : l'intercepteur répond aussi aux
  * POST (dépôt de pièce, réservation, réaction acheteur).
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, Route, Routes, useLocation } from 'react-router-dom'
 import KycPublicPage from '@/pages/public/KycPublicPage'
@@ -115,10 +115,27 @@ export default function PublicShowcasePage() {
    *
    * ⚠ APRÈS `poserContrat`, jamais avant : les requêtes relancées par la purge
    * doivent tomber sur le NOUVEAU contrat.
+   *
+   * ⛔ ET ELLE NE PURGE PAS AU MONTAGE, CE QUI M'A COÛTÉ DEUX ALLERS-RETOURS. Sans
+   * garde-fou, l'effet tourne aussi au premier rendu — donc APRÈS que les enfants
+   * aient lancé leur requête, et `clear()` la jette EN VOL : la page reste
+   * indéfiniment sur « Chargement… », l'edge ayant pourtant répondu 200. Le contrat
+   * initial est déjà posé par l'initialiseur de `useState` plus haut ; il n'y a rien
+   * à purger au montage, seulement aux BASCULES.
+   *
+   * ⛔ ET LE GARDE-FOU « PREMIER RENDU » NE MARCHE PAS, C'EST LE PIÈGE : sous
+   * StrictMode l'effet est invoqué DEUX FOIS au montage. Le premier passage consomme
+   * le drapeau, le second purge quand même — la panne était identique, et le drapeau
+   * donnait l'illusion de l'avoir traitée. On compare donc l'état PRÉCÉDENT, pas un
+   * rang de rendu : deux invocations du même montage portent le même `etat`, une
+   * bascule seule les distingue.
    */
   const qc = useQueryClient()
+  const etatPrecedent = useRef(etat)
   useEffect(() => {
     poserContrat(etat)
+    if (etatPrecedent.current === etat) return
+    etatPrecedent.current = etat
     qc.clear()
   }, [etat, qc])
 
