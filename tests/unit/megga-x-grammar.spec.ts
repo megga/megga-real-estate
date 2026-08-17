@@ -1002,7 +1002,7 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // l'allègement du parcours KYC (décision Julien) : cinq blocs de texte retirés — les
   // sous-titres de réassurance, l'accroche du dépôt, le conseil de sécurité, deux surtitres
   // — et leur mise en page avec eux. Un texte supprimé emporte sa géométrie.
-  ['src/components/kyc-magic-link', { hors: 32, total: 36 }],
+  ['src/components/kyc-magic-link', { hors: 32, total: 35 }],
   // ⚠ 107 → 109 (18.08.2026) SANS qu'un seul littéral ait été ajouté : le bouton de
   // renvoi du bandeau LAB introduit les classes `mx-notice__actions` et
   // `mx-notice__close`, et B4_CLASSE les compte comme des utilitaires Tailwind — son

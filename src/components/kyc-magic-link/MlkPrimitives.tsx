@@ -383,75 +383,6 @@ export function MlkAgentAvatar({
   )
 }
 
-interface ReassureItem {
-  icon: MlkIconName
-  title: string
-  /**
-   * ⚠ FACULTATIF depuis le 17 août 2026. Les quatre sous-titres du parcours KYC
-   * disaient « AES-256, transit TLS 1.3 » et « LBA art. 7, puis supprimé » — de
-   * la technique et du droit, à un client qui dépose son passeport. Les titres
-   * seuls se lisent d'un coup d'œil ; le reste chargeait l'écran sans rien
-   * ajouter à ce qu'il doit FAIRE.
-   */
-  sub?: string
-}
-
-export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
-  // Desktop : N colonnes (1 par item). Mobile < 560px : 2 colonnes (grid auto-fit).
-  // Le CSS @media est injecté en bas via MlkBackground (composant racine).
-  return (
-    <div className="mlk-reassure-row" data-cols={items.length}>
-      {items.map((it, i) => (
-        <div
-          key={i}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--crm-space-sm)',
-            padding: 'var(--crm-space-2xl) var(--crm-space-xs) var(--crm-space-xs)',
-          }}
-        >
-          <div
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 999,
-              background: MLK.cardSubtle,
-              display: 'grid',
-              placeItems: 'center',
-            }}
-          >
-            <MlkIcon name={it.icon} size={17} stroke={MLK.ink} sw={1.7} />
-          </div>
-          <div
-            style={{
-              fontSize: 'var(--crm-text-md)',
-              fontWeight: 600,
-              color: MLK.ink,
-              letterSpacing: -0.1,
-              marginTop: 2,
-            }}
-          >
-            {it.title}
-          </div>
-          {it.sub && (
-            <div
-              style={{
-                fontSize: 'var(--crm-text-xs)',
-                color: MLK.muted,
-                fontWeight: 500,
-                lineHeight: 1.5,
-              }}
-            >
-              {it.sub}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
-
 /**
  * La bannière qui dit qu'un geste de rendez-vous n'a pas abouti.
  *
@@ -616,21 +547,15 @@ export function MlkBackground({ children }: { children: ReactNode }) {
           from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        /* Grid réassurance : N colonnes desktop, 2 colonnes < 560px */
-        .mlk-reassure-row {
-          display: grid;
-          gap: 16px;
-        }
-        .mlk-reassure-row[data-cols="1"] { grid-template-columns: 1fr; }
-        .mlk-reassure-row[data-cols="2"] { grid-template-columns: repeat(2, 1fr); }
-        .mlk-reassure-row[data-cols="3"] { grid-template-columns: repeat(3, 1fr); }
-        .mlk-reassure-row[data-cols="4"] { grid-template-columns: repeat(4, 1fr); }
-        @media (max-width: 560px) {
-          .mlk-reassure-row[data-cols="3"],
-          .mlk-reassure-row[data-cols="4"] {
-            grid-template-columns: repeat(2, 1fr);
-          }
-        }
+        /* ⛔ LA GRILLE DE RÉASSURANCE A ÉTÉ RETIRÉE le 17 août 2026, avec le
+           redessin de l'accueil. Ses quatre colonnes occupaient toute la largeur
+           juste au-dessus du seul bouton de l'écran, sans jamais dire au client
+           quels documents aller chercher — alors que l'écran SUIVANT en réclame
+           quatre types, chacun avec ses exigences (« facture < 3 mois »).
+           Elle est devenue une ligne de texte SOUS le bouton, là où le doute
+           survient, et la place gagnée sert la liste « à préparer ».
+           La primitive n'avait qu'un consommateur : la garder aurait laissé un
+           export mort. */
         /* Shell padding réduit sur mobile pour gagner de l'espace */
         @media (max-width: 560px) {
           .mlk-shell {
