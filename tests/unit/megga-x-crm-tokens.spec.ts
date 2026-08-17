@@ -141,9 +141,32 @@ describe('MEGGA X CRM — la grammaire déclarée en CSS', () => {
    * désormais l'échelle ENTIÈRE — tant que la grammaire vivait dans un bloc de
    * surcharge, ils n'en voyaient que les 16 barreaux surchargés.
    */
-  it('les espacements sortent TOUS de la vitrine', () => {
+  /**
+   * ⚠ L'ESPACEMENT S'ÉCARTE SUR 10 ET 18 PX — même mécanique que les 11 et 13 px
+   * du TEXTE plus bas, et pour la même raison : la vitrine ne les a pas
+   * (`--main-spacers--*` va 4·8·12·16·20·24·32·40…, un pas de 4 pur), le CRM en
+   * a besoin, donc l'écart est ÉCRIT plutôt qu'interdit. En ajouter un demande
+   * de l'inscrire ici, donc d'en décider.
+   *
+   * ⛔ CE N'EST PAS UN OUBLI DE LA BASCULE, C'EST UN RENVERSEMENT DÉLIBÉRÉ
+   * (Julien, 17 août 2026). `f427e894` avait arrondi l'échelle du pas de 2 au
+   * pas de 4 pour l'aligner sur la vitrine ; ce sont DEUX crans de cette bascule
+   * qui sont repris, et deux seulement. La mesure qui les justifie : sur les huit
+   * surfaces clientes, 10 px était demandé 18 fois et 18 px 17 fois — plus que
+   * 20 et 24 réunis (15) — sans qu'aucun barreau sache les dire, d'où 47 % des
+   * espacements écrits à la main.
+   *
+   * ⚠ `lg` et `4xl` RETROUVENT leur valeur de naissance (`3167d8e8`) au lieu d'en
+   * recevoir une neuve. C'est ce qui rend l'opération juste : sur les 92 % de
+   * sites antérieurs à la bascule, le NOM est le seul enregistrement survivant de
+   * l'intention — `lg` disait 10, `xl` disait 12, et la valeur ne les distinguait
+   * plus. C'est exactement l'information que le bloc ALIAS_ASSUMES ci-dessous
+   * refusait de brûler.
+   */
+  it('les espacements ne s’écartent de la vitrine que sur 10 et 18 px', () => {
     const source = new Set(pxValues('main-spacers'))
-    for (const v of rungs('space')) expect(source, `espacement ${v}px`).toContain(v)
+    const hors = [...new Set(rungs('space').filter((v) => !source.has(v)))].sort((a, b) => a - b)
+    expect(hors).toEqual([10, 18])
   })
 
   // Écarts assumés : 2 et 4 px sont des micro-rayons (pastilles, cases à
@@ -185,12 +208,28 @@ describe('MEGGA X CRM — la grammaire déclarée en CSS', () => {
    * Ce qui se décide ici, c'est donc : les alias RESTENT, mais ils sont ÉCRITS,
    * et l'ensemble ne peut que RÉTRÉCIR. Un nom neuf qui doublerait une valeur
    * existante devra s'inscrire ici, donc se justifier.
+   *
+   * ── ✅ ET DEUX COLLISIONS ONT ÉTÉ RÉSOLUES LE 17 AOÛT, PAS FONDUES ──────────
+   * `space` en perd deux : 12 px (`lg`·`xl`) et 20 px (`4xl`·`5xl`). Elles n'ont
+   * PAS été résolues en supprimant un nom — ce que ce bloc interdisait — mais en
+   * rendant à `lg` et `4xl` leur valeur de naissance, 10 et 18 px. Le paragraphe
+   * ci-dessus l'avait exactement anticipé : « si l'échelle regagnait un cran à
+   * 10 px, l'information pour le placer serait perdue ». Elle ne l'était pas ;
+   * elle a servi. C'est la lecture inverse d'un dédoublonnage, et la seule qui
+   * ne détruise rien.
+   *
+   * ⚠ Les quatre paires restantes sont dans le même cas : chacune tient DEUX
+   * valeurs de l'échelle de naissance écrasées l'une sur l'autre (`2xs` valait 2
+   * contre 4 pour `xs`, `sm` 6 contre 8 pour `md`, `2xl` 14 contre 16 pour `3xl`,
+   * `6xl` 22 contre 24 pour `7xl`). Les fondre reste donc proscrit pour la même
+   * raison, et les rouvrir se ferait de la même façon que 10 et 18 : par mesure
+   * de la demande, pas par goût de la symétrie.
    */
   const ALIAS_ASSUMES: Record<'radius' | 'space', Record<number, string[]>> = {
     radius: { 8: ['sm', 'md'], 16: ['xl', '2xl', '3xl'], 20: ['4xl', '5xl'] },
     space: {
-      4: ['2xs', 'xs'], 8: ['sm', 'md'], 12: ['lg', 'xl'],
-      16: ['2xl', '3xl'], 20: ['4xl', '5xl'], 24: ['6xl', '7xl'],
+      4: ['2xs', 'xs'], 8: ['sm', 'md'],
+      16: ['2xl', '3xl'], 24: ['6xl', '7xl'],
     },
   }
 

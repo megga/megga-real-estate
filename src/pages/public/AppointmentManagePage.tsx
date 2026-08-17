@@ -109,7 +109,7 @@ export default function AppointmentManagePage() {
   if (done) {
     return shell(
       <>
-        <h1 className="mlk-h1" style={{ margin: '0 0 var(--crm-space-lg)', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.7, textAlign: 'center' }}>
+        <h1 className="mlk-h1" style={{ margin: '0 0 var(--crm-space-xl)', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.7, textAlign: 'center' }}>
           {done.status === 'cancelled' ? t('client.manage.cancelled_title') : t('client.manage.rescheduled_title')}
         </h1>
         <p style={{ margin: '0 auto 26px', fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6, textAlign: 'center', maxWidth: 400 }}>
@@ -175,7 +175,7 @@ export default function AppointmentManagePage() {
           </>
         )}
 
-        <div style={{ marginTop: 'var(--crm-space-lg)' }}>
+        <div style={{ marginTop: 'var(--crm-space-xl)' }}>
           <GhostButton onClick={() => { setMode('view'); manageMut.reset() }}>
             {t('client.manage.back')}
           </GhostButton>
@@ -192,7 +192,7 @@ export default function AppointmentManagePage() {
         <MlkAppointmentCard appointment={appointment} />
         <Notice title={t('client.manage.confirm_cancel_title')} body={t('client.manage.confirm_cancel_body')} />
         {failure && <MlkFailureNotice code={failure.code} style={{ margin: 'var(--crm-space-2xl) 0 0' }} />}
-        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-4xl)' }}>
+        <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-5xl)' }}>
           <GhostButton onClick={() => { setMode('view'); manageMut.reset() }} disabled={manageMut.isPending}>
             {t('client.manage.keep')}
           </GhostButton>

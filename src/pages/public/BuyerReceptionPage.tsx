@@ -80,7 +80,7 @@ function Icon({ d, size = 22, stroke = 'currentColor', fill = 'none', sw = 1.9 }
     </svg>
   )
 }
-const blackBtn = (extra?: CSSProperties): CSSProperties => ({ width: '100%', height: 52, borderRadius: 999, border: 0, cursor: 'pointer', background: MLK.accent, color: '#fff', fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-sm)', boxShadow: `0 8px 20px ${crmVoileEncre(false, 0.20)}`, fontFamily: FONT, ...extra })
+const blackBtn = (extra?: CSSProperties): CSSProperties => ({ width: '100%', height: 52, borderRadius: 999, border: 0, cursor: 'pointer', background: MLK.accent, color: '#fff', fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-lg)', boxShadow: `0 8px 20px ${crmVoileEncre(false, 0.20)}`, fontFamily: FONT, ...extra })
 const ghostBtn = (extra?: CSSProperties): CSSProperties => ({ height: 52, borderRadius: 999, border: 0, cursor: 'pointer', background: MLK.cardSubtle, color: MLK.inkSoft, fontSize: 'var(--crm-text-xl)', fontWeight: 600, letterSpacing: -0.2, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-sm)', fontFamily: FONT, ...extra })
 const KEYFRAMES = `@keyframes rcUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes rcFade{from{opacity:0}to{opacity:1}}
@@ -216,7 +216,7 @@ export default function BuyerReceptionPage() {
           </div>
 
           {/* En-tête conseiller */}
-          <div style={{ padding: '0 var(--crm-space-4xl) var(--crm-space-xs)', animation: 'rcUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
+          <div style={{ padding: '0 var(--crm-space-5xl) var(--crm-space-xs)', animation: 'rcUp .5s cubic-bezier(.2,.8,.2,1) both' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)' }}>
               {agent?.avatar
                 ? <img src={agent.avatar} alt={agent.name} referrerPolicy="no-referrer" style={{ width: 56, height: 56, borderRadius: 999, objectFit: 'cover', flexShrink: 0, boxShadow: MLK.shadowSm, background: MLK.cardSubtle }} />
@@ -234,12 +234,12 @@ export default function BuyerReceptionPage() {
           </div>
 
           {/* Progression */}
-          <div style={{ padding: 'var(--crm-space-6xl) var(--crm-space-4xl) var(--crm-space-sm)' }}>
+          <div style={{ padding: 'var(--crm-space-6xl) var(--crm-space-5xl) var(--crm-space-sm)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
               <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.7, color: MLK.ink }}>Votre sélection</h1>
               <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted }}>{treated} sur {total}</span>
             </div>
-            <div style={{ marginTop: 'var(--crm-space-lg)', height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.07), overflow: 'hidden' }}>
+            <div style={{ marginTop: 'var(--crm-space-xl)', height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.07), overflow: 'hidden' }}>
               <div style={{ height: '100%', width: (total ? (treated / total) * 100 : 0) + '%', background: MLK.ink, borderRadius: 999, transition: 'width .45s cubic-bezier(.2,.8,.2,1)' }} />
             </div>
           </div>
@@ -255,14 +255,14 @@ export default function BuyerReceptionPage() {
                     <div style={{ position: 'relative', height: 208, background: MLK.cardSubtle, opacity: st === 'rejected' ? 0.5 : 1, transition: 'opacity .3s' }}>
                       {b.photos[0] && <img src={b.photos[0]} alt={b.title} referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
                       {b.photos.length > 0 && (
-                        <span style={{ position: 'absolute', bottom: 14, right: 14, height: 26, padding: '0 var(--crm-space-lg)', borderRadius: 999, background: crmVoileEncre(false, 0.66), color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
+                        <span style={{ position: 'absolute', bottom: 14, right: 14, height: 26, padding: '0 var(--crm-space-xl)', borderRadius: 999, background: crmVoileEncre(false, 0.66), color: '#fff', fontSize: 'var(--crm-text-xs)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
                           <Icon d={ICO.camera} size={13} stroke="#fff" sw={1.7} /> {b.photos.length}
                         </span>
                       )}
                     </div>
                   </button>
                   <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-4xl) var(--crm-space-4xl)' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--crm-space-xl)' }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.4 }}>{b.title}</div>
                         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: MLK.muted, marginTop: 3 }}>{[b.quartier, b.rooms != null ? b.rooms + ' pièces' : null, b.area != null ? b.area + ' m²' : null].filter(Boolean).join(' · ')}</div>
@@ -275,7 +275,7 @@ export default function BuyerReceptionPage() {
                         <button onClick={() => like(b.match_id)} style={blackBtn({ flex: 1, height: 52 })}><Icon d={ICO.heart} size={19} stroke="#fff" fill="#fff" sw={1.4} /> Ça m'intéresse</button>
                       </div>
                     ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-2xl)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)', marginTop: 'var(--crm-space-2xl)' }}>
                         {st === 'liked'
                           ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 999, background: MLK.ink, color: '#fff', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}><Icon d={ICO.heart} size={15} stroke="#fff" fill="#fff" sw={1.4} /> Ça vous intéresse</span>
                           : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 999, background: MLK.cardSubtle, color: MLK.muted, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>Écarté{motifOf(b) ? ' · ' + motifOf(b) : ''}</span>}
@@ -349,7 +349,7 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
               </div>
             )}
           </div>
-          <div style={{ padding: 'var(--crm-space-4xl) var(--crm-space-6xl) var(--crm-space-lg)' }}>
+          <div style={{ padding: 'var(--crm-space-5xl) var(--crm-space-6xl) var(--crm-space-xl)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)' }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.6 }}>{bien.title}</div>
@@ -360,14 +360,14 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
             {facts.length > 0 && (
               <div style={{ marginTop: 'var(--crm-space-4xl)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--crm-space-lg)' }}>
                 {facts.map((f) => (
-                  <div key={f.k} style={{ background: MLK.cardSubtle, borderRadius: 14, padding: 'var(--crm-space-lg) var(--crm-space-lg)' }}>
+                  <div key={f.k} style={{ background: MLK.cardSubtle, borderRadius: 14, padding: 'var(--crm-space-xl) var(--crm-space-xl)' }}>
                     <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: MLK.muted }}>{f.k}</div>
                     <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: MLK.ink, marginTop: 'var(--crm-space-xs)', letterSpacing: -0.3 }}>{f.v}</div>
                   </div>
                 ))}
               </div>
             )}
-            {bien.desc && <div style={{ marginTop: 'var(--crm-space-4xl)', fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.6, color: MLK.inkSoft }}>{bien.desc}</div>}
+            {bien.desc && <div style={{ marginTop: 'var(--crm-space-5xl)', fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.6, color: MLK.inkSoft }}>{bien.desc}</div>}
             {bien.features.length > 0 && (
               <div style={{ marginTop: 'var(--crm-space-4xl)', display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)' }}>
                 {bien.features.map((f) => <span key={f} style={{ display: 'inline-flex', alignItems: 'center', height: 34, padding: '0 var(--crm-space-2xl)', borderRadius: 999, background: MLK.cardSubtle, color: MLK.inkSoft, fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>{f}</span>)}
@@ -376,14 +376,14 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
             <div style={{ height: 12 }} />
           </div>
         </div>
-        <div style={{ flexShrink: 0, padding: 'var(--crm-space-lg) var(--crm-space-4xl) calc(var(--crm-space-lg) + env(safe-area-inset-bottom))', background: MLK.card, boxShadow: `0 -8px 24px ${crmVoileEncre(false, 0.05)}` }}>
+        <div style={{ flexShrink: 0, padding: 'var(--crm-space-xl) var(--crm-space-4xl) calc(var(--crm-space-xl) + env(safe-area-inset-bottom))', background: MLK.card, boxShadow: `0 -8px 24px ${crmVoileEncre(false, 0.05)}` }}>
           {!status ? (
             <div style={{ display: 'flex', gap: 'var(--crm-space-lg)' }}>
               <button onClick={onReject} style={ghostBtn({ flex: '0 0 auto', width: 58, padding: 0 })} aria-label="Écarter"><Icon d={ICO.x} size={21} stroke={MLK.inkSoft} /></button>
               <button onClick={onLike} style={blackBtn({ flex: 1 })}><Icon d={ICO.heart} size={19} stroke="#fff" fill="#fff" sw={1.4} /> Ça m'intéresse</button>
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: status === 'liked' ? MLK.ink : MLK.muted }}>
                 {status === 'liked' ? <><Icon d={ICO.heart} size={17} stroke={MLK.ink} fill={MLK.ink} sw={1.4} /> Ça vous intéresse</> : 'Écarté' + (motif ? ' · ' + motif : '')}
               </span>
@@ -403,7 +403,7 @@ function ReceptionReject({ onClose, onConfirm }: { onClose: () => void; onConfir
   return (
     <div className="rc-panneau" style={{ zIndex: 50 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: crmVoileEncre(false, 0.42), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
-      <div className="rc-feuille" style={{ background: MLK.card, borderRadius: '28px 28px 0 0', boxShadow: MLK.sheetShadow, padding: 'var(--crm-space-6xl) var(--crm-space-6xl) calc(var(--crm-space-4xl) + env(safe-area-inset-bottom))', animation: 'rcSheet .36s cubic-bezier(.2,.85,.25,1) both' }}>
+      <div className="rc-feuille" style={{ background: MLK.card, borderRadius: '28px 28px 0 0', boxShadow: MLK.sheetShadow, padding: 'var(--crm-space-6xl) var(--crm-space-6xl) calc(var(--crm-space-5xl) + env(safe-area-inset-bottom))', animation: 'rcSheet .36s cubic-bezier(.2,.85,.25,1) both' }}>
         <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.14) }} />
         <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.5, marginTop: 'var(--crm-space-sm)' }}>Ce bien ne convient pas ?</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)', marginTop: 'var(--crm-space-4xl)' }}>
@@ -413,7 +413,7 @@ function ReceptionReject({ onClose, onConfirm }: { onClose: () => void; onConfir
           })}
         </div>
         <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Préciser (facultatif)…" rows={2}
-          style={{ marginTop: 'var(--crm-space-2xl)', width: '100%', resize: 'none', borderRadius: 14, border: 0, background: MLK.cardSubtle, padding: 'var(--crm-space-lg) var(--crm-space-2xl)', fontFamily: FONT, fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK.ink, outline: 'none', boxShadow: 'inset 0 0 0 1px ' + MLK.line, boxSizing: 'border-box' }} />
+          style={{ marginTop: 'var(--crm-space-2xl)', width: '100%', resize: 'none', borderRadius: 14, border: 0, background: MLK.cardSubtle, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', fontFamily: FONT, fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK.ink, outline: 'none', boxShadow: 'inset 0 0 0 1px ' + MLK.line, boxSizing: 'border-box' }} />
         <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-2xl)' }}>
           <button onClick={onClose} style={ghostBtn({ flex: 1 })}>Annuler</button>
           <button onClick={() => onConfirm(motif, note.trim() || null)} style={blackBtn({ flex: 1.4 })}>Écarter ce bien</button>
@@ -431,7 +431,7 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: MLK.bgGradient, animation: 'rcFade .3s ease both', display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto', fontFamily: FONT, width: '100%' }}>
       <div className="rc-scroll" style={{ flex: 1, overflowY: 'auto', padding: '72px var(--crm-space-6xl) 28px', textAlign: 'center' }}>
         <div style={{ width: 68, height: 68, borderRadius: 999, background: MLK.ink, margin: '0 auto', display: 'grid', placeItems: 'center', boxShadow: `0 12px 30px ${crmVoileEncre(false, 0.25)}`, animation: 'rcPop .5s cubic-bezier(.2,.9,.3,1) both' }}><Icon d={ICO.check} size={30} stroke="#fff" sw={2.2} /></div>
-        <h1 style={{ margin: 'var(--crm-space-4xl) 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: MLK.ink }}>Merci {contactFirst} !</h1>
+        <h1 style={{ margin: 'var(--crm-space-5xl) 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: MLK.ink }}>Merci {contactFirst} !</h1>
         <p style={{ margin: 'var(--crm-space-lg) auto 0', maxWidth: 300, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.55, color: MLK.inkSoft }}>
           Vos réponses sont transmises à {agent?.name || 'votre conseiller'}.
         </p>
@@ -441,7 +441,7 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
             <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: MLK.ink }}>{liked.length === 0 ? 'Aucun bien retenu' : liked.length + (liked.length > 1 ? ' biens vous intéressent' : ' bien vous intéresse')}</span>
           </div>
           {liked.map((b) => (
-            <div key={b.match_id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) 0', borderTop: '1px solid ' + MLK.line }}>
+            <div key={b.match_id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) 0', borderTop: '1px solid ' + MLK.line }}>
               {b.photos[0] && <img src={b.photos[0]} alt="" referrerPolicy="no-referrer" style={{ width: 52, height: 52, borderRadius: 12, objectFit: 'cover', flexShrink: 0, background: MLK.cardSubtle }} />}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: MLK.ink, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}{b.quartier ? ' · ' + b.quartier : ''}</div>
@@ -450,9 +450,9 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
             </div>
           ))}
         </div>
-        {rejected > 0 && <div style={{ marginTop: 'var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted }}>{rejected} bien{rejected > 1 ? 's' : ''} écarté{rejected > 1 ? 's' : ''}</div>}
+        {rejected > 0 && <div style={{ marginTop: 'var(--crm-space-xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted }}>{rejected} bien{rejected > 1 ? 's' : ''} écarté{rejected > 1 ? 's' : ''}</div>}
       </div>
-      <div style={{ flexShrink: 0, padding: 'var(--crm-space-lg) var(--crm-space-4xl) calc(var(--crm-space-2xl) + env(safe-area-inset-bottom))' }}>
+      <div style={{ flexShrink: 0, padding: 'var(--crm-space-xl) var(--crm-space-4xl) calc(var(--crm-space-2xl) + env(safe-area-inset-bottom))' }}>
         {agent?.phone && <a href={'tel:' + agent.phone.replace(/\s+/g, '')} style={{ ...blackBtn(), textDecoration: 'none', marginBottom: 'var(--crm-space-lg)' }}><Icon d={ICO.phone} size={17} stroke="#fff" /> Appeler {firstName}</a>}
         <button onClick={onReview} style={ghostBtn({ width: '100%' })}>Revoir ma sélection</button>
       </div>

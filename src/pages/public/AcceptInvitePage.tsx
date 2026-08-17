@@ -106,7 +106,7 @@ export default function AcceptInvitePage() {
           {loading && (
             <div className="flex flex-col items-center py-8">
               <Loader2 className="w-6 h-6 animate-spin" style={{ color: MLK.muted }} />
-              <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 'var(--crm-space-lg)' }}>
+              <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 'var(--crm-space-xl)' }}>
                 {t('team.acceptInvite.loading')}
               </p>
             </div>

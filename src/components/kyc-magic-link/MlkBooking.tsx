@@ -41,7 +41,7 @@ export function MlkAppointmentCard({ appointment }: { appointment: PublicAppoint
         opacity: isCancelled ? 0.6 : 1,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', marginBottom: 'var(--crm-space-2xl)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', marginBottom: 'var(--crm-space-2xl)' }}>
         <div
           style={{
             width: 38, height: 38, borderRadius: 999,
@@ -144,7 +144,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
         <h1
           className="mlk-h1"
           style={{
-            margin: '0 0 var(--crm-space-lg)', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink,
+            margin: '0 0 var(--crm-space-xl)', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink,
             letterSpacing: -0.8, lineHeight: 1.15, textAlign: 'center',
           }}
         >
@@ -225,7 +225,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
       <h1
         className="mlk-h1"
         style={{
-          margin: '0 0 var(--crm-space-lg)', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink,
+          margin: '0 0 var(--crm-space-xl)', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink,
           letterSpacing: -0.8, lineHeight: 1.15, textAlign: 'center',
         }}
       >
@@ -252,8 +252,8 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
       {/* Lieu / mode */}
       <div
         style={{
-          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
-          background: MLK.cardSubtle, borderRadius: 14, marginBottom: 'var(--crm-space-4xl)',
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
+          background: MLK.cardSubtle, borderRadius: 14, marginBottom: 'var(--crm-space-5xl)',
         }}
       >
         <MlkIcon name={data.mode === 'video' ? 'lock' : 'home'} size={17} stroke={MLK.muted} />
