@@ -53,6 +53,11 @@ const CONSTRUCTEURS = [
 const RESERVEES = {
   lpd_notice: ['supabase/functions/whatsapp-process/index.ts'],
   opt_out_ack: ['supabase/functions/_shared/whatsapp-stop.ts'],
+  // `number_verification` écrit à un numéro NON vérifié — c'est la seule finalité qui le
+  // puisse. La borner à sa fonction est ce qui l'empêche de devenir le laissez-passer
+  // qu'on tend à réutiliser « juste une fois » : elle n'a de sens qu'à l'endroit où une
+  // vérification vient d'être demandée, et nulle part ailleurs.
+  number_verification: ['supabase/functions/whatsapp-verify-number/index.ts'],
 };
 
 function sources(dir) {

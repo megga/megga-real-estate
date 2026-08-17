@@ -26,6 +26,7 @@ export type WaTemplateKey =
   | 'new_listings'
   | 'agent_daily_brief'
   | 'kyc_documents_missing'
+  | 'number_verification'
 
 export const WA_TEMPLATE_KEYS: WaTemplateKey[] = [
   'followup',
@@ -33,6 +34,7 @@ export const WA_TEMPLATE_KEYS: WaTemplateKey[] = [
   'new_listings',
   'agent_daily_brief',
   'kyc_documents_missing',
+  'number_verification',
 ]
 
 export interface WaTemplateContext {
@@ -42,6 +44,7 @@ export interface WaTemplateContext {
   extra?: string             // availability : objet du créneau (ex. « une visite »)
   agentFirstName?: string    // agent_daily_brief : prénom de l'AGENT destinataire ({{1}})
   itemCount?: number         // agent_daily_brief : nombre d'éléments à traiter ({{2}})
+  verificationCode?: string  // number_verification : le code à 6 chiffres ({{1}}, seule variable)
   /** Langue du DESTINATAIRE. Prime sur la surcharge d'env. Valeur inconnue = ignorée. */
   lang?: string
 }
@@ -201,6 +204,28 @@ const REGISTRY: Record<WaTemplateKey, WaTemplateDef> = {
       it: 'Buongiorno {{1}}, alla Sua pratica presso {{2}} mancano ancora uno o più documenti. Desidera ricevere il link sicuro per il caricamento?',
     },
     bodyParams: (c, l) => [nonEmpty(c.clientFirstName, FALLBACK[l].person), nonEmpty(c.agentName, FALLBACK[l].agency)],
+  },
+  // Code de vérification d'un numéro que l'AGENT vient de saisir dans ses réglages.
+  //
+  // ⚠ SOUMETTRE EN CATÉGORIE **UTILITY**, PAS `AUTHENTICATION`. C'est le seul point de ce
+  // registre où la catégorie Meta change la forme du PAYLOAD, et pas seulement la
+  // facturation : un template d'authentification impose un composant `button`
+  // (copy-code / one-tap) dans la requête d'envoi, que `buildSendTemplateRequest` ne
+  // construit pas — il n'émet qu'un composant `body`. Un template approuvé en
+  // AUTHENTICATION serait donc refusé à l'envoi, avec une erreur qui parle de composants
+  // et non de catégorie. En UTILITY, un corps portant {{1}} passe tel quel.
+  //
+  // Le corps ne nomme ni client ni agence : il s'adresse à l'utilisateur du service, sur
+  // base contractuelle, et son unique variable est le code.
+  number_verification: {
+    nameEnv: 'WA_TEMPLATE_NUMBER_VERIFICATION', langEnv: 'WA_TEMPLATE_NUMBER_VERIFICATION_LANG', defaultLang: 'fr',
+    bodyTexts: {
+      fr: 'Votre code de vérification MEGGA est {{1}}. Il expire dans 10 minutes. Si vous n\'avez rien demandé, ignorez ce message.',
+      de: 'Ihr MEGGA-Bestätigungscode lautet {{1}}. Er läuft in 10 Minuten ab. Falls Sie ihn nicht angefordert haben, ignorieren Sie diese Nachricht.',
+      en: 'Your MEGGA verification code is {{1}}. It expires in 10 minutes. If you did not request it, ignore this message.',
+      it: 'Il Suo codice di verifica MEGGA è {{1}}. Scade tra 10 minuti. Se non lo ha richiesto, ignori questo messaggio.',
+    },
+    bodyParams: (c) => [nonEmpty(c.verificationCode, '------')],
   },
 }
 

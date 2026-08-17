@@ -16,6 +16,8 @@ import { useTheme } from '@/hooks/useTheme'
 import { useAgentProfileScreen } from '@/hooks/useAgentProfileScreen'
 import { useAgencySettings, type AgencySettingsData, type AgencyPlan } from '@/hooks/useAgencySettings'
 import { useAgencyTargets } from '@/hooks/useAgencyTargets'
+import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
+import { formatWaBusinessNumber } from '@/lib/whatsappBusiness'
 import { profileCompletionScore, type ProfileData } from '@/components/crm/settings/data'
 import { formatCHF } from '@/lib/utils'
 import CrmToast from '../primitives/CrmToast'
@@ -36,6 +38,10 @@ const DEMO_PROFILE: ProfileData = {
   website: '', linkedin: '',
   initials: 'GL', avatarBg: '#0041D9', signatureMode: 'text', signatureHtml: '', avatarUrl: null,
 }
+// Numéro WhatsApp du harnais : chiffres seuls, comme `whatsapp_agent_links.wa_number`
+// (c'est cette forme-là que la vue met en page, pas une chaîne déjà groupée).
+const DEMO_WA_NUMBER = '41794128821'
+
 const DEMO_AGENCY: AgencySettingsData = {
   name: 'MEGGA Genève', address: 'Rue du Rhône 100', city: 'Genève', canton: 'GE',
   phone: '+41 22 555 01 00', email: 'contact@megga.ch', website: 'megga.ch', logoUrl: '',
@@ -79,6 +85,7 @@ export function MobileSettingsScreen({ demo = false }: { demo?: boolean }) {
   const prof = useAgentProfileScreen({ enabled: live })
   const ag = useAgencySettings({ enabled: live })
   const targets = useAgencyTargets({ enabled: live })
+  const waLink = useWhatsAppPairing({ enabled: live }).status.data
 
   // Formulaires : base (hook ou démo) + couche d'édits locale (les édits priment,
   // donc un refetch ne clobbe jamais une saisie en cours). On vide les édits au save.
@@ -152,6 +159,7 @@ export function MobileSettingsScreen({ demo = false }: { demo?: boolean }) {
             editable={profileEditable}
             isSaving={prof.isSaving}
             signedOut={live && !prof.hasBackend}
+            waNumber={demo ? DEMO_WA_NUMBER : (waLink?.verified ? waLink.wa_number : null)}
             onChange={(p) => setProfileEdits((e) => ({ ...e, ...p }))}
             onSave={saveProfile}
             onBack={() => setView('hub')}
@@ -453,9 +461,11 @@ function Hub({
 // ════════════════════════════════════════════════════════════════════════════
 /** Section Profil : identité, contacts, présentation publique (e-mail en lecture seule). */
 function ProfileSection({
-  ctx, form, editable, isSaving, signedOut, onChange, onSave, onBack,
+  ctx, form, editable, isSaving, signedOut, waNumber, onChange, onSave, onBack,
 }: {
   ctx: SectionCtx; form: ProfileData; editable: boolean; isSaving: boolean; signedOut: boolean
+  /** Numéro WhatsApp VÉRIFIÉ (chiffres), ou null tant que le lien ne l'est pas. */
+  waNumber: string | null
   onChange: (p: Partial<ProfileData>) => void; onSave: () => void; onBack: () => void
 }) {
   const { t, tk } = ctx
@@ -489,10 +499,20 @@ function ProfileSection({
       <Card tk={tk} title={t('settings:profile.contactTitle')}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)' }}>
           <Field tk={tk} label={t('settings:profile.emailPro')} value={form.email} type="email" disabled hint={t('settings:profile.emailHint')} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
-            <Field tk={tk} label={t('settings:profile.mobile')} value={form.mobile} type="tel" inputMode="tel" disabled={!editable} onChange={(v) => onChange({ mobile: v })} />
-            <Field tk={tk} label={t('settings:profile.landline')} value={form.phone} type="tel" inputMode="tel" disabled={!editable} onChange={(v) => onChange({ phone: v })} />
-          </div>
+          {/* Un seul numéro, et il ne se SAISIT pas : il se prouve. « Mobile » et
+              « Téléphone fixe » ont été retirés le 17.08.2026 avec leurs jumeaux du
+              bureau. Le champ est en lecture seule ici parce que l'appairage n'existe
+              que sur l'écran Intégrations (bureau) : offrir un champ modifiable sur
+              mobile rendrait une valeur non vérifiée, donc exactement la divergence
+              qu'on supprime. */}
+          <Field
+            tk={tk}
+            label={t('settings:profile.whatsapp')}
+            value={waNumber ? formatWaBusinessNumber(waNumber) : ''}
+            type="tel"
+            disabled
+            hint={waNumber ? t('settings:profile.whatsappHint') : t('settings:profile.whatsappUnverified')}
+          />
         </div>
       </Card>
 

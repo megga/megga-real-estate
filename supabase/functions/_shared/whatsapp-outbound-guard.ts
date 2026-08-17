@@ -31,6 +31,15 @@ import { isWhatsAppEnabled } from './whatsapp-config.ts'
 
 export type OutboundPurpose =
   | 'service' | 'utility' | 'marketing' | 'lpd_notice' | 'opt_out_ack'
+  /**
+   * Code de vérification d'un numéro que l'agent vient de saisir. TROISIÈME finalité
+   * PRIVILÉGIÉE — c'est la seule qui écrive à un numéro NON vérifié, donc la seule
+   * capable de servir de démarchage si elle traînait. Comme `lpd_notice` et
+   * `opt_out_ack`, elle est bornée géographiquement par la porte CI à un unique
+   * fichier, et la RPC ne l'honore que s'il existe une vérification en cours, non
+   * expirée, pour CE numéro et demandée par CET agent.
+   */
+  | 'number_verification'
 
 /** Motif PRÉCIS — journalisé, jamais affiché tel quel à un agent. */
 export type GuardReason =
@@ -38,6 +47,8 @@ export type GuardReason =
   | 'ack_without_suppression' | 'ack_already_sent' | 'ack_not_requested'
   | 'agent_link_unverified' | 'do_not_contact' | 'opted_out' | 'no_opt_in'
   | 'marketing_requires_consent' | 'window_closed' | 'kill_switch'
+  /** `number_verification` demandée sans vérification en cours pour ce numéro. */
+  | 'no_pending_verification'
 
 /** Motif EXPOSABLE — ce que le site d'appel a le droit de montrer. */
 export type PublicReason = GuardReason | 'not_contactable'

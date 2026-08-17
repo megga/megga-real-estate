@@ -1,0 +1,120 @@
+// supabase/functions/whatsapp-verify-number/index.ts
+// Envoie à l'agent, SUR WHATSAPP, un code à 6 chiffres pour vérifier le numéro qu'il vient
+// de saisir dans ses réglages.
+//
+// ── Pourquoi cette fonction existe, alors que l'appairage suffisait ──────────
+// L'appairage historique va dans l'autre sens : MEGGA affiche un code, l'agent l'envoie
+// depuis son WhatsApp. Il prouve DAVANTAGE (que la personne pilote ce compte) et ne coûte
+// rien. Celui-ci existe pour l'agent qui préfère saisir son numéro et attendre. Les deux
+// aboutissent au même état — `whatsapp_agent_links.verified` — et l'appairage reste le
+// chemin par défaut.
+//
+// ── Pourquoi le code ne transite PAS par le client ──────────────────────────
+// La RPC `start_whatsapp_number_verification` RETOURNE le code en clair, et c'est pour ça
+// qu'elle n'est exécutable que par `service_role`. Cette fonction le lit, l'envoie à Meta,
+// et ne le remet à personne : la réponse HTTP ne contient jamais le code. Un code qui
+// ferait l'aller-retour par le navigateur ne prouverait plus rien — l'agent pourrait le
+// lire sans jamais recevoir le message.
+//
+// ── Ce qui la garde honnête ─────────────────────────────────────────────────
+//  · JWT agent obligatoire (`requireAgentAuth`) — le profil vient du jeton, jamais du corps ;
+//  · la RPC borne le débit (3 envois/heure) et refuse un numéro déjà tenu par un autre ;
+//  · l'envoi passe par `sendOutboundGuarded`, qui applique la SUPPRESSION par numéro : un
+//    numéro qui a écrit STOP ne reçoit pas de code parce qu'un agent l'a saisi ;
+//  · sans template Meta configuré, la fonction ne tente RIEN et le dit — le CRM retombe
+//    alors sur l'appairage, qui lui n'a besoin de rien.
+
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { sendOutboundGuarded } from '../_shared/whatsapp-outbound-guard.ts'
+import { buildTemplateMessage } from '../_shared/whatsapp-templates.ts'
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+}
+
+const json = (o: unknown, status: number) =>
+  new Response(JSON.stringify(o), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
+
+/** Refus MÉTIER de la RPC → code HTTP. Aucun n'est une panne : le CRM doit expliquer, pas réessayer. */
+const STATUS: Record<string, number> = {
+  no_profile: 403,
+  invalid_phone: 400,
+  number_taken: 409,
+  rate_limited: 429,
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
+
+  const auth = await requireAgentAuth(req, CORS)
+  if (auth instanceof Response) return auth
+  const { profile } = auth
+
+  const { number, lang } = (await req.json().catch(() => ({}))) as { number?: string; lang?: string }
+  if (!number || typeof number !== 'string') return json({ error: 'number required' }, 400)
+
+  const admin = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  )
+
+  // Le template AVANT la RPC. Dans l'ordre inverse, un déploiement sans template
+  // consommerait un jeton du plafond horaire et écrirait un OTP en base à chaque clic,
+  // pour un envoi qui n'aura jamais lieu — l'agent verrait « trop de tentatives » sans
+  // avoir rien reçu. On échoue donc là où c'est gratuit.
+  //
+  // ⚠ Le code réel n'est pas encore connu : on ne construit ici qu'une SONDE pour savoir
+  // si le template est configuré. Le message envoyé est reconstruit plus bas avec le vrai
+  // code — `buildTemplateMessage` est pur, l'appeler deux fois ne coûte rien.
+  const configured = buildTemplateMessage(
+    'number_verification', number, { verificationCode: '000000', lang }, (k) => Deno.env.get(k),
+  )
+  if (!configured) {
+    // 501 et non 500 : rien n'est cassé, la capacité n'est simplement pas activée. Le CRM
+    // lit `fallback` et propose l'appairage, qui ne dépend d'aucun template.
+    return json({ error: 'template_not_configured', fallback: 'pairing' }, 501)
+  }
+
+  const { data, error } = await admin.rpc('start_whatsapp_number_verification', {
+    p_profile_id: profile.id,
+    p_number: number,
+  })
+  if (error) {
+    console.error('start_whatsapp_number_verification:', error.message.slice(0, 160))
+    return json({ error: 'verification_start_failed' }, 500)
+  }
+  const row = (data as { ok: boolean; reason: string; code: string | null }[] | null)?.[0]
+  if (!row) return json({ error: 'verification_start_failed' }, 500)
+  if (!row.ok) return json({ error: row.reason }, STATUS[row.reason] ?? 400)
+
+  const message = buildTemplateMessage(
+    'number_verification', number, { verificationCode: row.code ?? '', lang }, (k) => Deno.env.get(k),
+  )
+  if (!message) return json({ error: 'template_not_configured', fallback: 'pairing' }, 501)
+
+  const sent = await sendOutboundGuarded({
+    admin,
+    to: number,
+    // ⚠ Littéral, exigé par la porte CI `check-whatsapp-outbound.mjs` — et c'est ce
+    // fichier, et lui seul, qui a le droit d'écrire cette finalité.
+    purpose: 'number_verification',
+    payload: { type: 'template', message, templateKey: 'number_verification' },
+    profileId: profile.id,
+    agencyId: profile.agency_id,
+    isAutomated: true,
+  })
+
+  if (!sent.ok) {
+    // Le motif PUBLIC, jamais le précis : `publicReason` existe pour ne pas révéler à un
+    // appelant qu'un numéro a dit STOP ailleurs.
+    return json({ error: sent.blocked ? sent.publicReason : 'send_failed' }, sent.blocked ? 409 : 502)
+  }
+
+  // Jamais le code. La réponse ne porte que de quoi afficher l'écran de saisie.
+  return json({ ok: true, expires_in_minutes: 10 }, 200)
+})

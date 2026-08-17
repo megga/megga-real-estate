@@ -13,6 +13,15 @@ export interface FocusSectionProps {
   surf: GalSurfaces
   dark: boolean
   setDark?: (v: boolean) => void
+  /**
+   * Bascule vers une autre section des Réglages, depuis l'intérieur d'une section.
+   *
+   * Nécessaire parce que la section active est un ÉTAT LOCAL de `SettingsPage`, pas
+   * une route : un `navigate('…?tab=integrations')` ne rouvrirait rien (le `?tab=` n'est
+   * lu qu'au montage). La ligne « Numéro WhatsApp » du Profil en a besoin pour renvoyer
+   * vers la carte d'appairage, qui reste l'unique endroit où le lien se fait.
+   */
+  onGoToSection?: (id: 'profile' | 'agency' | 'preferences' | 'integrations' | 'security' | 'billing') => void
 }
 
 /* ─── Icônes (SVG stroke line 1.7) ─────────────────────────────────────────── */

@@ -99,6 +99,7 @@ describe('whatsapp-templates — registre', () => {
       WA_TEMPLATE_NEW_LISTINGS: 'c',
       WA_TEMPLATE_AGENT_DAILY_BRIEF: 'd',
       WA_TEMPLATE_KYC_DOCUMENTS_MISSING: 'e',
+      WA_TEMPLATE_NUMBER_VERIFICATION: 'f',
     })
     expect(configuredTemplateKeys(all)).toEqual(WA_TEMPLATE_KEYS)
   })

@@ -691,6 +691,9 @@ verify_jwt = false
 [functions.whatsapp-optin-invite]
 verify_jwt = false
 
+[functions.whatsapp-verify-number]
+verify_jwt = false
+
 [functions.whatsapp-webhook]
 verify_jwt = false
 
