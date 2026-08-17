@@ -7,12 +7,15 @@
  * rien ici ne peut relire. Le seul endroit où la règle reste vérifiable est ce
  * fichier.
  *
- * ⚠ LE DÉFAUT EST OUVERT depuis le 16 août 2026 (`GATE_PAR_DEFAUT = 'off'`) :
- * en production, aucun des deux réglages n'est posé, donc c'est cette constante
- * qui gouverne. Conséquence pour les tests : **ne rien passer n'éprouve plus
- * rien**. Toute assertion qui veut un gate FERMÉ doit le demander
- * explicitement, d'où `FERMÉ` ci-dessous. Sans ça, la moitié de ce fichier
- * passerait au vert pour la mauvaise raison le jour où le défaut rebascule.
+ * ⚠ LE DÉFAUT A BASCULÉ DEUX FOIS EN DEUX JOURS — fermé, puis ouvert le 16 août
+ * 2026 (#1240), puis refermé le 17 (#1250). Il vaut `on` aujourd'hui, mais ce
+ * n'est pas sur quoi ce fichier s'appuie : **toute assertion demande son état
+ * explicitement**, `FERMÉ` ou `OUVERT`. Ne rien passer n'éprouverait que le
+ * défaut du moment, et la moitié du fichier passerait au vert pour la mauvaise
+ * raison à la bascule suivante — laquelle, on le sait maintenant, arrive.
+ *
+ * Un seul test lit le défaut sans le demander, et c'est son objet : il dit à
+ * voix haute ce que vaut la production quand aucun réglage n'est posé.
  *
  * Le gate est éprouvé à travers le vrai `fetch`, pas seulement `gateActif` : le
  * risque n'est pas la fonction, c'est son CÂBLAGE — un gate correct mais non
@@ -44,8 +47,9 @@ const kvEnPanne = (): KV => ({
   },
 })
 
-/** Le réglage qui FERME. À passer partout où l'assertion porte sur un gate posé. */
+/** Les deux réglages explicites. À passer partout où l'assertion porte sur un état donné. */
 const FERMÉ = { VITRINE_GATE: 'on' }
+const OUVERT = { VITRINE_GATE: 'off' }
 
 const appeler = (path: string, env: Partial<Env> = {}) =>
   handler.fetch(new Request('https://megga.ch' + path), { ...env, ASSETS } as Env)
@@ -55,21 +59,21 @@ const PAGE_GATEE = '/pricing'
 
 describe('gate de la vitrine — le défaut, quand aucun réglage ne répond', () => {
   // ⚠ C'est l'état de la production : ni binding KV, ni variable. Ce test dit
-  // à voix haute que le site est en accès libre — si quelqu'un le trouve
-  // surprenant, c'est ici qu'il faut le lire, pas dans un tableau de bord.
-  it('OUVRE la vitrine sans aucun réglage', async () => {
+  // à voix haute ce que vaut le site sans réglage — si quelqu'un s'interroge,
+  // c'est ici qu'il faut le lire, pas dans un tableau de bord.
+  it('FERME la vitrine sans aucun réglage', async () => {
     const r = await appeler(PAGE_GATEE)
-    expect(r.status).toBe(200)
-    expect(r.headers.get('WWW-Authenticate')).toBeNull()
+    expect(r.status).toBe(401)
+    expect(r.headers.get('WWW-Authenticate')).toContain('Basic realm=')
   })
 
-  it('ouvre aussi quand `env` lui-même manque', async () => {
-    expect(await gateActif(undefined)).toBe(false)
-    expect(await gateActif({})).toBe(false)
+  it('ferme aussi quand `env` lui-même manque', async () => {
+    expect(await gateActif(undefined)).toBe(true)
+    expect(await gateActif({})).toBe(true)
   })
 
-  it('se laisse refermer par la variable, sans toucher au code', async () => {
-    expect((await appeler(PAGE_GATEE, FERMÉ)).status).toBe(401)
+  it('se laisse ouvrir par la variable, sans toucher au code', async () => {
+    expect((await appeler(PAGE_GATEE, OUVERT)).status).toBe(200)
   })
 })
 
@@ -113,7 +117,7 @@ describe('gate de la vitrine — le KV est la bascule vive, et il prime', () => 
   // Il ne doit RIEN changer — sinon brancher le KV refermerait un site ouvert.
   it('descend à la variable quand la clé est absente du KV', async () => {
     expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: kv(null), ...FERMÉ })).status).toBe(401)
-    expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: kv(null) })).status).toBe(200)
+    expect((await appeler(PAGE_GATEE, { VITRINE_CONFIG: kv(null), ...OUVERT })).status).toBe(200)
   })
 
   // ⛔ L'invariant qui coûterait le plus cher à perdre : une panne n'est pas une
@@ -166,7 +170,7 @@ describe('gate de la vitrine — ce que le réglage ne doit PAS changer', () => 
 
   it.each([
     ['gate fermé', FERMÉ],
-    ['gate ouvert par défaut', {}],
+    ['gate ouvert par la variable', OUVERT],
     ['gate ouvert par KV', { VITRINE_CONFIG: kv('off') }],
   ])('redirige les anciennes URLs — %s', async (_cas, env) => {
     const r = await appeler('/tarifs', env)

@@ -24,10 +24,9 @@ const PASS = 'preview';
  * Un autre mot, une valeur vide, une faute de frappe ferment : une valeur qu'on
  * n'a pas su lire ne doit pas ouvrir.
  *
- * ⚠ Ce qui est ABSENT, en revanche, ne passe plus par ici : il prend
- * `GATE_PAR_DEFAUT`, qui vaut aujourd'hui `off`. Cette fonction ne décide donc
- * plus du sort d'une préversion ni d'un projet Pages recréé — c'est la
- * constante qui le fait, et elle les OUVRE.
+ * ⚠ Ce qui est ABSENT, en revanche, ne passe pas par ici : il prend
+ * `GATE_PAR_DEFAUT`. Cette fonction ne décide donc pas du sort d'une préversion
+ * ni d'un projet Pages recréé — c'est la constante qui le fait.
  */
 function demandeOuverture(valeur) {
   return String(valeur ?? '').trim().toLowerCase() === 'off';
@@ -37,27 +36,26 @@ function demandeOuverture(valeur) {
 const CLE_GATE = 'gate';
 
 /**
- * ⚠ CE QUE VAUT LE GATE QUAND AUCUN RÉGLAGE NE RÉPOND — `off`, donc OUVERT
- * (16 août 2026, demande de Julien).
+ * Ce que vaut le gate quand aucun réglage ne répond — `on`, donc FERMÉ.
  *
- * `megga.ch` est en accès libre. Ni le KV ni la variable n'ont besoin d'exister
- * pour ça : c'est cette valeur qui gouverne, et elle n'exige aucun geste au
- * tableau de bord. C'était la demande d'origine, et les deux plans de contrôle
- * ajoutés au-dessus ne la servaient pas — ils la remettaient à plus tard.
+ * C'est l'état par défaut de la vitrine de pré-lancement, et le seul qui soit
+ * sûr : ni le KV ni la variable n'existent en production, donc c'est cette
+ * constante qui gouverne. Une préversion de branche, un `wrangler dev` local ou
+ * un projet Pages recréé n'héritent d'aucun réglage non plus, et héritent donc
+ * du comportement fermé — c'est voulu.
  *
- * Refermer, au choix, du plus vif au plus définitif :
- *   1. clé `gate` du KV `VITRINE_CONFIG` → `on` (ou n'importe quoi sauf `off`) ;
- *   2. variable `VITRINE_GATE` → `on`, effectif au déploiement suivant ;
- *   3. cette constante → `'on'`, qui rétablit le défaut fermé.
+ * Ouvrir, au choix, du plus vif au plus définitif :
+ *   1. clé `gate` du KV `VITRINE_CONFIG` → `off` (~60 s, sans déploiement) ;
+ *   2. variable `VITRINE_GATE` → `off`, effectif au déploiement suivant ;
+ *   3. cette constante → `'off'`, qui n'exige aucun accès au tableau de bord.
  *
- * ⛔ Tant qu'elle vaut `off`, la vitrine de pré-lancement est lisible ET
- * indexable par n'importe qui, préversions de branche comprises. C'est un état
- * VOULU, pas un oubli — mais c'est aussi celui qui se périme le plus mal, parce
- * que plus rien à l'écran ne le signale. La sonde de
- * `.claude/hooks/session-start.sh` est le seul rappel : « vitrine : 200 — le
- * gate est OUVERT ⚠ ».
+ * ⚠ Historique utile, parce que le va-et-vient a laissé des traces : la
+ * constante a valu `off` le 16 août 2026 (#1240), sur demande, pour ouvrir le
+ * site sans passer par Cloudflare. Elle est revenue à `on` le 17 (#1250), la
+ * parenthèse étant refermée. Les deux plans de contrôle au-dessus datent de
+ * cet épisode (#1239) et restent le moyen d'ouvrir sans toucher au code.
  */
-const GATE_PAR_DEFAUT = 'off';
+const GATE_PAR_DEFAUT = 'on';
 
 /**
  * Le gate est-il posé ? Deux sources, dans cet ordre (16 août 2026, Julien).
@@ -68,9 +66,9 @@ const GATE_PAR_DEFAUT = 'off';
  * 2. **Variable `VITRINE_GATE`** — le réglage de repli, relu au déploiement
  *    seulement. Il gouverne là où le KV n'est pas branché : préversions de
  *    branche, `wrangler dev`, et la période avant que le binding existe.
- * 3. **`GATE_PAR_DEFAUT`** — quand ni l'un ni l'autre n'existe. Il vaut `off`,
- *    donc **l'état par défaut est OUVERT** : c'est ce qui gouverne la
- *    production aujourd'hui, où aucun des deux réglages n'est posé.
+ * 3. **`GATE_PAR_DEFAUT`** — quand ni l'un ni l'autre n'existe. Il vaut `on`,
+ *    donc **l'état par défaut est FERMÉ** : c'est ce qui gouverne la production
+ *    aujourd'hui, où aucun des deux réglages n'est posé.
  *
  * Un niveau ne parle que s'il a quelque chose à dire. Clé absente du KV
  * (`null`) = « pas d'avis » → on descend à la variable. C'est l'état juste
