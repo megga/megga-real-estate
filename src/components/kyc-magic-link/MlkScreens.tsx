@@ -101,7 +101,7 @@ export function MlkLanding({
             display: 'inline-flex',
             alignItems: 'center',
             gap: 'var(--crm-space-sm)',
-            padding: 'var(--crm-space-sm) var(--crm-space-lg) var(--crm-space-sm) var(--crm-space-sm)',
+            padding: 'var(--crm-space-sm) var(--crm-space-xl) var(--crm-space-sm) var(--crm-space-lg)',
             borderRadius: 999,
             background: MLK.cardSubtle,
             fontSize: 'var(--crm-text-xs)',
@@ -296,7 +296,7 @@ export function MlkUpload({
       <h1
         className="mlk-h1"
         style={{
-          margin: '0 0 var(--crm-space-lg)',
+          margin: '0 0 var(--crm-space-xl)',
           fontSize: 'var(--crm-text-7xl)',
           fontWeight: 600,
           color: MLK.ink,
@@ -347,7 +347,7 @@ export function MlkUpload({
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 'var(--crm-space-lg)',
+                gap: 'var(--crm-space-xl)',
                 transition: 'all .18s ease',
               }}
             >
@@ -497,7 +497,7 @@ export function MlkUpload({
             display: 'flex',
             alignItems: 'flex-start',
             gap: 'var(--crm-space-lg)',
-            padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
+            padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
             // ⚠ L'APLAT PASSE DE TRANSLUCIDE À OPAQUE, ET C'EST INVISIBLE : composé
             // sur la carte blanche, `rgba(239,68,68,.10)` donne `#fdecec`, à 1,04:1
             // d'`errFill`. Ce que le changement retire n'est pas une teinte, c'est
@@ -552,7 +552,7 @@ export function MlkUpload({
                     display: 'flex',
                     alignItems: 'center',
                     gap: 'var(--crm-space-2xl)',
-                    padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
+                    padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
                     background: MLK.cardSubtle,
                     borderRadius: 14,
                   }}
@@ -917,7 +917,7 @@ export function MlkPlaceholder({ title, message, iconName = 'alert' }: Placehold
       <h1
         className="mlk-h1"
         style={{
-          margin: '0 0 var(--crm-space-lg)',
+          margin: '0 0 var(--crm-space-xl)',
           fontSize: 'var(--crm-text-5xl)',
           fontWeight: 600,
           color: MLK.ink,

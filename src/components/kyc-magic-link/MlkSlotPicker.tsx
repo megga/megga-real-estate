@@ -86,7 +86,7 @@ export function MlkSlotPicker({
               type="button"
               onClick={() => onSelect(s.start)}
               style={{
-                padding: 'var(--crm-space-lg) var(--crm-space-sm)', borderRadius: 14, cursor: 'pointer',
+                padding: 'var(--crm-space-xl) var(--crm-space-sm)', borderRadius: 14, cursor: 'pointer',
                 fontFamily: MLK.font, fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.1,
                 border: on ? `1.5px solid ${MLK.accent}` : '1.5px solid transparent',
                 background: on ? MLK.accent : MLK.card,
