@@ -25,9 +25,14 @@ export interface WhatsAppLinkStatus {
 
 /**
  * Statut du lien WhatsApp de l'agent (`status`), numéro Business à composer
- * (`businessNumber`, chiffres seuls), génération d'un code d'appairage
- * (`generateCode`, RPC `generate_whatsapp_pairing_code`) et déliaison (`unlink`,
- * RPC `unlink_whatsapp_number`). Les mutations invalident le statut.
+ * (`businessNumber`, chiffres seuls), vérification par code reçu
+ * (`startVerification` / `confirmVerification` / `cancelVerification`, edge
+ * `whatsapp-verify-number`) et déliaison (`unlink`, RPC `unlink_whatsapp_number`).
+ * Les mutations invalident le statut.
+ *
+ * ⚠ `generateCode` (appairage, RPC `generate_whatsapp_pairing_code`) n'a plus qu'UN
+ * appelant depuis le 17.08.2026 : la modale de premier lancement des Contacts. La carte
+ * des Réglages ne l'offre plus. Le supprimer demande de traiter cette modale d'abord.
  */
 export function useWhatsAppPairing(options?: { enabled?: boolean }) {
   const qc = useQueryClient()

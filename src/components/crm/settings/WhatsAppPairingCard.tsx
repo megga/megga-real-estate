@@ -2,14 +2,19 @@
 // Re-skin Sugar Pure de wa-pairing-card.jsx / wa-pairing-tokens.jsx : surface
 // neutre (SET_PALETTE.*), glyphe WhatsApp vert pour l'ancrage de marque, bouton
 // ghost DS-conforme. Câblé au hook réel useWhatsAppPairing (table
-// whatsapp_agent_links + RPC generate_whatsapp_pairing_code).
+// whatsapp_agent_links + edge `whatsapp-verify-number`).
+//
+// ⚠ LE NOM DU FICHIER DIT « PAIRING », LA CARTE NE L'OFFRE PLUS. L'appairage — MEGGA
+// affiche huit chiffres, l'agent les envoie depuis son WhatsApp — a été retiré de cet
+// écran le 17.08.2026 : il obligeait à quitter le CRM pour établir ce qu'un code REÇU
+// établit sans rien quitter. Le renommage est un geste à part, qui touche ses importateurs.
 //
 // États dérivés du back :
 //   - loading : status.isLoading            → squelette
 //   - error   : status.isError              → bandeau « Statut indisponible » + réessayer
 //   - linked  : link.verified === true      → numéro masqué + exemples + délier (RPC unlink_whatsapp_number)
-//   - waiting : pairing_code présent, pas encore vérifié → code à 8 chiffres + lien d'envoi direct + ping
-//   - unlinked: défaut                       → CTA « Générer un code »
+//   - otp     : pending_number + échéance devant nous → champ à 6 chiffres, renvoyer, annuler
+//   - unlinked: défaut                       → indicatif + numéro → « Recevoir un code »
 //
 // `bare` : rend le corps sans la carte extérieure (pour l'embarquer dans une modale Sugar).
 
