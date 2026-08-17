@@ -244,8 +244,17 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
     cancelVerification,
     /** Chiffres seuls (format wa.me). Jamais vide : repli sur la constante plateforme. */
     businessNumber: business.data ?? MEGGA_WA_BUSINESS_DIGITS,
-    /** La voie « recevoir un code » est-elle activée ? `false` tant qu'on ne sait pas. */
-    otpAvailable: otpDispo.data === 'available',
+    /**
+     * La voie « recevoir un code » est-elle activée ?
+     *
+     * ⚠ TROIS ÉTATS, et le troisième n'est pas un détail de typage. Ce champ rendait un
+     * booléen — `otpDispo.data === 'available'` — qui écrasait « pas encore su » sur
+     * « non ». Tant qu'il ne servait qu'à masquer un bloc, l'amalgame passait ; il ne
+     * passe plus depuis que l'écran AVERTIT au lieu de cacher, parce qu'un `false`
+     * pendant le chargement affiche « capacité non activée » une seconde, puis se
+     * dédit. `null` = on ne sait pas encore (ou la sonde a échoué), et l'écran se tait.
+     */
+    otpAvailable: otpDispo.data === undefined ? null : otpDispo.data === 'available',
     /**
      * La sonde n'a pas pu conclure (fonction absente, réseau, erreur inattendue). À
      * distinguer d'une capacité simplement éteinte : ici on ne SAIT pas, et l'écran doit

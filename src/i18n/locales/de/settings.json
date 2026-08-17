@@ -658,14 +658,6 @@
         "desc": "Die WhatsApp-Verbindung kann momentan nicht geprüft werden.",
         "retry": "Erneut versuchen"
       },
-      "waiting": {
-        "sendCode": "Senden Sie diesen Code per WhatsApp an <strong>{{number}}</strong> (15 Min. gültig).",
-        "title": "Warten auf Ihre Nachricht…",
-        "desc": "Die Verknüpfung wird aktiv, sobald der Code eingeht.",
-        "openWhatsapp": "WhatsApp öffnen"
-      },
-      "regenerateCode": "Code neu generieren",
-      "generating": "Wird generiert…",
       "unlink": "Diese Nummer trennen",
       "unlinking": "Wird getrennt…",
       "otp": {
@@ -682,7 +674,7 @@
         "resend": "Neuen Code senden",
         "cancel": "Abbrechen",
         "errors": {
-          "template_not_configured": "Der Codeversand ist noch nicht aktiviert. Nutzen Sie unten «Code generieren»: Sie senden den Code aus Ihrem eigenen WhatsApp.",
+          "template_not_configured": "Der Codeversand ist für dieses Konto noch nicht aktiviert. Wenden Sie sich an den Support.",
           "number_taken": "Diese Nummer ist bereits mit einem anderen MEGGA-Konto verifiziert.",
           "rate_limited": "Zu viele Codes angefordert. Versuchen Sie es in einer Stunde erneut.",
           "invalid_phone": "Diese Nummer ist nicht verwendbar. Prüfen Sie Land und Ziffern.",
@@ -697,14 +689,11 @@
           "number_rate_limited": "Diese Nummer hat heute bereits mehrere Codes erhalten. Versuchen Sie es morgen erneut.",
           "too_many_numbers": "Sie haben heute zu viele verschiedene Nummern verifiziert. Versuchen Sie es morgen erneut."
         },
-        "notEnabled": "Der Codeversand per WhatsApp ist für dieses Konto noch nicht aktiviert.",
-        "probeFailed": "Die Verfügbarkeit des Codeversands konnte nicht geprüft werden. Versuchen Sie es erneut oder nutzen Sie die Verknüpfung unten."
+        "probeFailed": "Die Verfügbarkeit des Codeversands konnte nicht geprüft werden. Fordern Sie den Code an: die Antwort zeigt es."
       },
       "unlinked": {
-        "body": "Steuern Sie MEGGA über WhatsApp. Ihre Termine, Ihre Nachfassungen und Ihre Kontakte direkt per Nachricht, ohne das CRM zu öffnen. Generieren Sie einen Code und senden Sie ihn an MEGGA unter <strong>{{number}}</strong>."
-      },
-      "generateCode": "Code generieren",
-      "abandonPairing": "Abbrechen"
+        "body": "Steuern Sie MEGGA über WhatsApp. Ihre Termine, Ihre Nachfassungen und Ihre Kontakte direkt per Nachricht, ohne das CRM zu öffnen. Geben Sie Ihre Nummer ein: Wir senden Ihnen einen 6-stelligen Code von <strong>{{number}}</strong>."
+      }
     },
     "esign": {
       "title": "Skribble verbinden",

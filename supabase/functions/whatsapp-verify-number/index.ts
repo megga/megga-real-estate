@@ -57,7 +57,10 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
-  const auth = await requireAgentAuth(req, CORS)
+  // ⚠ `allowNoAgency` : vérifier SON PROPRE numéro ne concerne pas une agence, et un
+  // super-admin n'en a pas. Sans cet opt-in, le garde rendait 403 à chaque appel — y
+  // compris la sonde de disponibilité, dont l'échec effaçait la voie OTP de l'écran.
+  const auth = await requireAgentAuth(req, CORS, { allowNoAgency: true })
   if (auth instanceof Response) return auth
   const { profile } = auth
 

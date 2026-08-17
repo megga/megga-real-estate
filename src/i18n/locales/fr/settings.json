@@ -658,14 +658,6 @@
         "desc": "Impossible de vérifier la connexion WhatsApp pour le moment.",
         "retry": "Réessayer"
       },
-      "waiting": {
-        "sendCode": "Envoyez ce code à <strong>{{number}}</strong> sur WhatsApp (valable 15 min).",
-        "title": "En attente de votre message…",
-        "desc": "Le lien s'active dès réception du code.",
-        "openWhatsapp": "Ouvrir WhatsApp"
-      },
-      "regenerateCode": "Régénérer un code",
-      "generating": "Génération…",
       "unlink": "Délier ce numéro",
       "unlinking": "Déliaison…",
       "otp": {
@@ -682,7 +674,7 @@
         "resend": "Renvoyer un code",
         "cancel": "Annuler",
         "errors": {
-          "template_not_configured": "L'envoi de code n'est pas encore activé. Utilisez « Générer un code » ci-dessous : vous enverrez le code depuis votre WhatsApp.",
+          "template_not_configured": "L'envoi de code n'est pas encore activé sur ce compte. Contactez le support.",
           "number_taken": "Ce numéro est déjà vérifié sur un autre compte MEGGA.",
           "rate_limited": "Trop de codes demandés. Réessayez dans une heure.",
           "invalid_phone": "Ce numéro n'est pas exploitable. Vérifiez le pays et les chiffres.",
@@ -697,14 +689,11 @@
           "number_rate_limited": "Ce numéro a déjà reçu plusieurs codes aujourd'hui. Réessayez demain.",
           "too_many_numbers": "Vous avez vérifié trop de numéros différents aujourd'hui. Réessayez demain."
         },
-        "notEnabled": "L'envoi de code par WhatsApp n'est pas encore activé sur ce compte.",
-        "probeFailed": "Impossible de vérifier si l'envoi de code est disponible. Réessayez, ou utilisez l'appairage ci-dessous."
+        "probeFailed": "Impossible de vérifier si l'envoi de code est disponible. Demandez le code : la réponse le dira."
       },
       "unlinked": {
-        "body": "Pilotez MEGGA depuis WhatsApp. Vos RDV, vos relances et vos contacts directement par message, sans ouvrir le CRM. Générez un code, puis envoyez-le à MEGGA au <strong>{{number}}</strong>."
-      },
-      "generateCode": "Générer un code",
-      "abandonPairing": "Abandonner"
+        "body": "Pilotez MEGGA depuis WhatsApp. Vos RDV, vos relances et vos contacts directement par message, sans ouvrir le CRM. Saisissez votre numéro : nous vous envoyons un code à 6 chiffres depuis le <strong>{{number}}</strong>."
+      }
     },
     "esign": {
       "title": "Connecter Skribble",

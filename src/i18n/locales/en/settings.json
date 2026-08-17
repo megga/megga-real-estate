@@ -658,14 +658,6 @@
         "desc": "Unable to verify the WhatsApp connection right now.",
         "retry": "Retry"
       },
-      "waiting": {
-        "sendCode": "Send this code to <strong>{{number}}</strong> on WhatsApp (valid for 15 min).",
-        "title": "Waiting for your message…",
-        "desc": "The link activates as soon as the code is received.",
-        "openWhatsapp": "Open WhatsApp"
-      },
-      "regenerateCode": "Regenerate a code",
-      "generating": "Generating…",
       "unlink": "Unlink this number",
       "unlinking": "Unlinking…",
       "otp": {
@@ -682,7 +674,7 @@
         "resend": "Send a new code",
         "cancel": "Cancel",
         "errors": {
-          "template_not_configured": "Code sending is not enabled yet. Use \"Generate a code\" below: you will send the code from your own WhatsApp.",
+          "template_not_configured": "Code sending is not enabled on this account yet. Contact support.",
           "number_taken": "This number is already verified on another MEGGA account.",
           "rate_limited": "Too many codes requested. Try again in an hour.",
           "invalid_phone": "This number cannot be used. Check the country and the digits.",
@@ -697,14 +689,11 @@
           "number_rate_limited": "This number has already received several codes today. Try again tomorrow.",
           "too_many_numbers": "You have verified too many different numbers today. Try again tomorrow."
         },
-        "notEnabled": "Sending a code by WhatsApp is not enabled on this account yet.",
-        "probeFailed": "Could not check whether code sending is available. Try again, or use the pairing below."
+        "probeFailed": "Could not check whether code sending is available. Request the code: the answer will tell you."
       },
       "unlinked": {
-        "body": "Drive MEGGA from WhatsApp. Your appointments, follow-ups and contacts straight by message, without opening the CRM. Generate a code, then send it to MEGGA at <strong>{{number}}</strong>."
-      },
-      "generateCode": "Generate a code",
-      "abandonPairing": "Give up"
+        "body": "Drive MEGGA from WhatsApp. Your appointments, follow-ups and contacts straight by message, without opening the CRM. Enter your number: we send you a 6-digit code from <strong>{{number}}</strong>."
+      }
     },
     "esign": {
       "title": "Connect Skribble",
