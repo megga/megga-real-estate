@@ -83,7 +83,10 @@
       "error_min_one": "Téléversez au moins un document avant de valider.",
       "error_size": "Fichier trop volumineux (max 10 Mo, le vôtre fait {{mb}} Mo).",
       "error_format": "Format non accepté ({{type}}). Utilisez PDF, JPG, PNG, WEBP ou HEIC.",
-      "error_default": "Échec du téléversement. Réessayez."
+      "error_default": "Échec du téléversement. Réessayez.",
+      "error_link": "Ce lien n'est plus valable. Demandez-en un nouveau à votre conseiller.",
+      "error_link_superseded": "Un lien plus récent vous a été envoyé. Reprenez le dernier message reçu.",
+      "error_refused": "Ce document n'a pas été accepté. Vérifiez son format et sa taille, puis réessayez."
     },
     "upload_types": {
       "identity_title": "Pièce d'identité",

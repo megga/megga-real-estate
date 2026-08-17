@@ -83,7 +83,10 @@
       "error_min_one": "Laden Sie mindestens ein Dokument hoch, bevor Sie bestätigen.",
       "error_size": "Datei zu gross (max. 10 MB, Ihre hat {{mb}} MB).",
       "error_format": "Format nicht akzeptiert ({{type}}). Verwenden Sie PDF, JPG, PNG, WEBP oder HEIC.",
-      "error_default": "Hochladen fehlgeschlagen. Bitte erneut versuchen."
+      "error_default": "Hochladen fehlgeschlagen. Bitte erneut versuchen.",
+      "error_link": "Dieser Link ist nicht mehr gültig. Fordern Sie bei Ihrer Beraterin oder Ihrem Berater einen neuen an.",
+      "error_link_superseded": "Ihnen wurde ein neuerer Link gesendet. Verwenden Sie die zuletzt erhaltene Nachricht.",
+      "error_refused": "Dieses Dokument wurde nicht akzeptiert. Prüfen Sie Format und Grösse und versuchen Sie es erneut."
     },
     "upload_types": {
       "identity_title": "Ausweisdokument",

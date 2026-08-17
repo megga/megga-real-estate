@@ -143,7 +143,11 @@ export default function PublicShowcasePage() {
  */
 const REFUS: Record<string, unknown> = {
   // Dépôt de pièce rejeté → la bannière d'erreur d'upload de `MlkScreens`.
-  'magic-link-upload': echecEdge(413, { error: 'file_too_large' }),
+  // ⚠ 400 ET CE CORPS EXACT, parce que c'est ce que l'edge rend VRAIMENT pour une
+  // pièce trop lourde (`magic-link-upload/index.ts:169`) — un 413 inventé aurait
+  // exercé un chemin qui n'existe pas, et la bannière serait tombée sur le repli
+  // générique en donnant l'illusion d'avoir testé le cas.
+  'magic-link-upload': echecEdge(400, { error: 'file size invalid (max 10 MB)' }),
   // Réservation refusée → `MlkFailureNotice` dans `MlkBooking`.
   'appointment-book': echecEdge(409, { reason: 'slot_taken' }),
   // Report / annulation refusés → `MlkFailureNotice` sur les DEUX sites
