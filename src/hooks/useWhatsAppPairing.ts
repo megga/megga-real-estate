@@ -25,9 +25,14 @@ export interface WhatsAppLinkStatus {
 
 /**
  * Statut du lien WhatsApp de l'agent (`status`), numéro Business à composer
- * (`businessNumber`, chiffres seuls), génération d'un code d'appairage
- * (`generateCode`, RPC `generate_whatsapp_pairing_code`) et déliaison (`unlink`,
- * RPC `unlink_whatsapp_number`). Les mutations invalident le statut.
+ * (`businessNumber`, chiffres seuls), vérification par code reçu
+ * (`startVerification` / `confirmVerification` / `cancelVerification`, edge
+ * `whatsapp-verify-number`) et déliaison (`unlink`, RPC `unlink_whatsapp_number`).
+ * Les mutations invalident le statut.
+ *
+ * ⚠ `generateCode` (appairage, RPC `generate_whatsapp_pairing_code`) n'a plus qu'UN
+ * appelant depuis le 17.08.2026 : la modale de premier lancement des Contacts. La carte
+ * des Réglages ne l'offre plus. Le supprimer demande de traiter cette modale d'abord.
  */
 export function useWhatsAppPairing(options?: { enabled?: boolean }) {
   const qc = useQueryClient()
@@ -244,8 +249,17 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
     cancelVerification,
     /** Chiffres seuls (format wa.me). Jamais vide : repli sur la constante plateforme. */
     businessNumber: business.data ?? MEGGA_WA_BUSINESS_DIGITS,
-    /** La voie « recevoir un code » est-elle activée ? `false` tant qu'on ne sait pas. */
-    otpAvailable: otpDispo.data === 'available',
+    /**
+     * La voie « recevoir un code » est-elle activée ?
+     *
+     * ⚠ TROIS ÉTATS, et le troisième n'est pas un détail de typage. Ce champ rendait un
+     * booléen — `otpDispo.data === 'available'` — qui écrasait « pas encore su » sur
+     * « non ». Tant qu'il ne servait qu'à masquer un bloc, l'amalgame passait ; il ne
+     * passe plus depuis que l'écran AVERTIT au lieu de cacher, parce qu'un `false`
+     * pendant le chargement affiche « capacité non activée » une seconde, puis se
+     * dédit. `null` = on ne sait pas encore (ou la sonde a échoué), et l'écran se tait.
+     */
+    otpAvailable: otpDispo.data === undefined ? null : otpDispo.data === 'available',
     /**
      * La sonde n'a pas pu conclure (fonction absente, réseau, erreur inattendue). À
      * distinguer d'une capacité simplement éteinte : ici on ne SAIT pas, et l'écran doit

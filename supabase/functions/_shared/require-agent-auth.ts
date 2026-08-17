@@ -14,16 +14,56 @@
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isNonUserToken } from './bearer-token.ts'
 
+/**
+ * Le contexte rendu quand l'agence est EXIGÉE (le défaut) : `agency_id` y est non nul,
+ * parce que le garde a refusé avant de rendre.
+ */
 export interface AgentAuthContext {
   user: { id: string; email?: string }
   profile: { id: string; agency_id: string; role: string | null }
   supabase: SupabaseClient
 }
 
+/**
+ * Le contexte rendu sous `allowNoAgency` : `agency_id` peut être NULL.
+ *
+ * ⛔ DEUX TYPES ET NON UN SEUL ÉLARGI, et l'écart n'est pas cosmétique. Élargir
+ * `AgentAuthContext` en `string | null` a fait rougir SEPT appelants qui, eux, exigent
+ * l'agence : le garde la leur garantit, mais le type ne le disait plus. Le remède aurait
+ * été sept `!` ou sept `?? ''` — c'est-à-dire éteindre partout la vérification pour un
+ * cas qui ne les concerne pas, et perdre le jour où l'un d'eux prendrait vraiment l'opt-in.
+ * La surcharge fait porter la nullité par le SEUL appelant qui la demande.
+ */
+export interface AgentAuthContextSansAgence {
+  user: { id: string; email?: string }
+  profile: { id: string; agency_id: string | null; role: string | null }
+  supabase: SupabaseClient
+}
+
+export interface AgentAuthOptions {
+  /** Accepte un profil SANS agence. Réservé aux gestes qui concernent la personne. */
+  allowNoAgency?: boolean
+}
+
+export function requireAgentAuth(
+  req: Request,
+  corsHeaders: Record<string, string>,
+): Promise<AgentAuthContext | Response>
+export function requireAgentAuth(
+  req: Request,
+  corsHeaders: Record<string, string>,
+  options: { allowNoAgency: true },
+): Promise<AgentAuthContextSansAgence | Response>
+export function requireAgentAuth(
+  req: Request,
+  corsHeaders: Record<string, string>,
+  options?: AgentAuthOptions,
+): Promise<AgentAuthContext | Response>
 export async function requireAgentAuth(
   req: Request,
   corsHeaders: Record<string, string>,
-): Promise<AgentAuthContext | Response> {
+  options?: AgentAuthOptions,
+): Promise<AgentAuthContextSansAgence | Response> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
@@ -76,7 +116,25 @@ export async function requireAgentAuth(
     .eq('id', userData.user.id)
     .single()
 
-  if (profileError || !profile?.agency_id) {
+  // ⛔ L'AGENCE N'EST PAS TOUJOURS REQUISE, et l'exiger partout a coûté un parcours entier.
+  // Un super-admin n'a pas d'`agency_id` (mesuré le 17.08.2026 : `hello@juarts.com`,
+  // agence NULL). Toute fonction passant par ce garde lui rendait donc 403 — y compris la
+  // simple sonde « la vérification par code est-elle disponible ? », dont l'échec faisait
+  // silencieusement disparaître la voie OTP de l'écran. L'appairage, lui, passe par une RPC
+  // directe qui n'a jamais eu cette contrainte : d'où une asymétrie invisible où l'un des
+  // deux chemins marchait et l'autre pas, sans que rien ne le dise.
+  //
+  // ⚠ `allowNoAgency` est un OPT-IN : le défaut reste l'exigence, parce que la plupart des
+  // fonctions écrivent des données scopées au tenant et qu'un `agency_id` nul y serait un
+  // trou. Ne l'activer que là où le geste concerne la PERSONNE et non son agence — vérifier
+  // son propre numéro, par exemple.
+  if (profileError || !profile) {
+    return new Response(
+      JSON.stringify({ error: 'Agent profile or agency missing' }),
+      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    )
+  }
+  if (!profile.agency_id && !options?.allowNoAgency) {
     return new Response(
       JSON.stringify({ error: 'Agent profile or agency missing' }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

@@ -2,14 +2,19 @@
 // Re-skin Sugar Pure de wa-pairing-card.jsx / wa-pairing-tokens.jsx : surface
 // neutre (SET_PALETTE.*), glyphe WhatsApp vert pour l'ancrage de marque, bouton
 // ghost DS-conforme. Câblé au hook réel useWhatsAppPairing (table
-// whatsapp_agent_links + RPC generate_whatsapp_pairing_code).
+// whatsapp_agent_links + edge `whatsapp-verify-number`).
+//
+// ⚠ LE NOM DU FICHIER DIT « PAIRING », LA CARTE NE L'OFFRE PLUS. L'appairage — MEGGA
+// affiche huit chiffres, l'agent les envoie depuis son WhatsApp — a été retiré de cet
+// écran le 17.08.2026 : il obligeait à quitter le CRM pour établir ce qu'un code REÇU
+// établit sans rien quitter. Le renommage est un geste à part, qui touche ses importateurs.
 //
 // États dérivés du back :
 //   - loading : status.isLoading            → squelette
 //   - error   : status.isError              → bandeau « Statut indisponible » + réessayer
 //   - linked  : link.verified === true      → numéro masqué + exemples + délier (RPC unlink_whatsapp_number)
-//   - waiting : pairing_code présent, pas encore vérifié → code à 8 chiffres + lien d'envoi direct + ping
-//   - unlinked: défaut                       → CTA « Générer un code »
+//   - otp     : pending_number + échéance devant nous → champ à 6 chiffres, renvoyer, annuler
+//   - unlinked: défaut                       → indicatif + numéro → « Recevoir un code »
 //
 // `bare` : rend le corps sans la carte extérieure (pour l'embarquer dans une modale Sugar).
 
@@ -20,7 +25,6 @@ import type { TFunction } from 'i18next'
 import { SET_PALETTE } from './data'
 import { SetIcon } from './atoms'
 import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
-import { buildWaMeUrl } from '@/lib/waMeUrl'
 import { composePhone, dialCodeOptions, formatInternationalPhone, PHONE_EXAMPLES } from '@/lib/countries'
 
 const SET = SET_PALETTE
@@ -134,7 +138,7 @@ function WALinkedBadge({ t }: { t: TFunction }) {
 function WABody() {
   const { t, i18n } = useTranslation('settings')
   const {
-    status, generateCode, unlink, startVerification, confirmVerification,
+    status, unlink, startVerification, confirmVerification,
     cancelVerification, businessNumber, otpAvailable, otpProbeFailed,
   } = useWhatsAppPairing()
   const link = status.data
@@ -199,12 +203,6 @@ function WABody() {
   // appris qu'en réessayant. Le tirer du lien le rend aussi persistant à travers les
   // re-rendus, là où `erreur` s'efface à la première frappe.
   const murAtteint = !!link && link.otp_attempts >= 5
-
-  const codeAppairage = link?.pairing_code
-    && link.pairing_expires_at
-    && new Date(link.pairing_expires_at).getTime() > maintenant
-    ? link.pairing_code
-    : null
 
   // — loading —
   if (status.isLoading) {
@@ -379,97 +377,17 @@ function WABody() {
   }
 
   // — waiting : un code a été généré, en attente de vérification webhook —
-  if (codeAppairage) {
-    return (
-      <div style={{ display: 'grid', gap: 'var(--crm-space-4xl)' }}>
-        <WAHeader t={t} />
-        {/* Code à 8 chiffres à envoyer (8 depuis le durcissement du 05.07.2026 :
-            l'espace à 10^6 se devinait, cf. 20260705110000_whatsapp_pairing_hardening) */}
-        <div
-          style={{
-            padding: 'var(--crm-space-4xl) var(--crm-space-3xl)',
-            borderRadius: 'var(--crm-radius-xl)',
-            background: SET.cardSubtle,
-            boxShadow: `inset 0 0 0 1px ${crmVoileEncre(false, 0.04)}`,
-            textAlign: 'center',
-          }}
-        >
-          <div
-            style={{
-              fontSize: 'var(--crm-text-6xl)',
-              fontWeight: 600,
-              color: SET.ink,
-              letterSpacing: 8,
-              fontVariantNumeric: 'tabular-nums',
-              fontFeatureSettings: '"tnum" 1',
-            }}
-          >
-            {codeAppairage}
-          </div>
-          <div style={{ fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 500, marginTop: 8, lineHeight: 1.5 }}>
-            <Trans
-              i18nKey="integrations.whatsapp.waiting.sendCode"
-              t={t}
-              values={{ number: businessDisplay }}
-              components={{ strong: <span style={{ color: SET.inkSoft, fontWeight: 600 }} /> }}
-            />
-          </div>
-        </div>
-        {/* Bandeau d'attente */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 'var(--crm-space-xl)',
-            padding: 'var(--crm-space-xl) var(--crm-space-2xl)',
-            borderRadius: 'var(--crm-radius-lg)',
-            background: SET.cardSubtle,
-            boxShadow: `inset 0 0 0 1px ${crmVoileEncre(false, 0.04)}`,
-          }}
-        >
-          <span style={{ position: 'relative', width: 9, height: 9, flexShrink: 0 }}>
-            <span style={{ position: 'absolute', inset: 0, borderRadius: 'var(--crm-radius-pill)', background: SET.ok }} />
-            <span
-              style={{
-                position: 'absolute',
-                inset: -3,
-                borderRadius: 'var(--crm-radius-pill)',
-                border: `2px solid ${SET.ok}`,
-                animation: 'setPing 1.4s cubic-bezier(0,0,.2,1) infinite',
-              }}
-            />
-          </span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: SET.ink, letterSpacing: -0.1 }}>
-              {t('integrations.whatsapp.waiting.title')}
-            </div>
-            <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SET.muted, marginTop: 1 }}>
-              {t('integrations.whatsapp.waiting.desc')}
-            </div>
-          </div>
-        </div>
-        {/* Envoi en UN geste. C'est la réponse ergonomique à « recopier huit chiffres
-            dans WhatsApp » : le lien ouvre la conversation avec le bon numéro ET le code
-            déjà écrit, il ne reste qu'à appuyer sur envoyer. Le sens de la preuve ne
-            change pas — c'est toujours le TÉLÉPHONE de l'agent qui parle, donc
-            l'appairage prouve toujours qu'il contrôle ce compte WhatsApp. */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-xl)', alignItems: 'center' }}>
-          <WAPrimaryLink href={buildWaMeUrl(businessNumber, codeAppairage)}>
-            {t('integrations.whatsapp.waiting.openWhatsapp')}
-          </WAPrimaryLink>
-          <WAGhostButton
-            icon={<SetIcon name="arrowR" size={16} stroke={SET.inkSoft} sw={2} />}
-            onClick={() => generateCode.mutate()}
-            disabled={generateCode.isPending}
-          >
-            {generateCode.isPending
-              ? t('integrations.whatsapp.generating')
-              : t('integrations.whatsapp.regenerateCode')}
-          </WAGhostButton>
-        </div>
-      </div>
-    )
-  }
+  // ⛔ L'ÉCRAN « EN ATTENTE DE VOTRE MESSAGE » A ÉTÉ RETIRÉ AVEC LA VOIE QU'IL SERVAIT.
+  // Le garder « pour absorber les liens en vol » aurait été le pire des deux mondes : il
+  // passait AVANT la branche OTP, donc l'agent qui avait un code d'appairage en cours,
+  // celui-là même qui demandait la saisie du code reçu, serait resté devant huit chiffres
+  // à recopier sans pouvoir atteindre le champ. C'est exactement ce qu'il a signalé.
+  // ⚠ Aucune migration ne vient effacer les codes encore en vol, et c'est délibéré : ils
+  // portent une échéance de quinze minutes qui s'occupe d'eux. Ce qui reste dans la base
+  // n'est plus lu par cet écran, et le webhook qui les honore ne fait de mal à personne.
+  // ⚠ Un SECOND générateur subsiste hors des Réglages, dans la modale de premier lancement
+  // des Contacts (`WhatsAppConnectModal`) : elle affiche le code chez elle, donc elle ne
+  // dépend pas de ce qui vient d'être retiré. Le geste n'a pas été porté jusque-là.
 
   // — otp : un code a été ENVOYÉ au numéro saisi, on attend sa saisie —
   // Lu sur le LIEN et non sur un état local : sans ça, un rechargement de page pendant
@@ -599,16 +517,27 @@ function WABody() {
         />
       </p>
 
-      {/* Voie 1 — saisir son numéro et recevoir un code.
-          Présentée en PREMIER parce que c'est celle que l'agent demande spontanément,
-          mais RENDUE SEULEMENT si elle est armée : elle dépend d'un template Meta
-          approuvé, et le hook interroge la fonction edge pour le savoir.
-          ⛔ Avant cette garde, l'écran l'affichait toujours et en accent — l'agent
-          saisissait son numéro, cliquait, attendait un aller-retour réseau, et lisait
-          « pas encore activé » avant d'être renvoyé vers le bouton discret d'en dessous.
-          Tant que Meta n'a pas approuvé le template, c'était le parcours de CHACUN. */}
-      {otpAvailable && (
+      {/* Saisir son numéro, recevoir un code — le SEUL chemin depuis le 17.08.2026.
+          ⛔ CE BLOC ÉTAIT CONDITIONNÉ À `otpAvailable`, ET LA CONDITION EST DEVENUE UN
+          ÉCRAN VIDE. Elle se justifiait tant que l'appairage servait de repli : inutile
+          d'offrir ce qui n'est pas armé quand un autre bouton marche. L'appairage retiré,
+          la même garde ne cachait plus une voie sur deux mais la seule qui reste — et
+          quand la sonde échouait (elle échouait, 403 sur agence nulle), la carte ne
+          montrait qu'un titre et un paragraphe, sans un seul geste possible.
+          On rend donc TOUJOURS la saisie. Ce que la sonde apprend sert à AVERTIR au-dessus,
+          jamais à effacer. */}
       <div style={{ display: 'grid', gap: 'var(--crm-space-xl)' }}>
+        {/* Deux avertissements pour deux faits distincts, et ils ne disent pas la même
+            chose : `otpAvailable === false` est une RÉPONSE (le template n'est pas
+            configuré, réessayer n'y changera rien) ; `otpProbeFailed` est une ABSENCE de
+            réponse (on ne sait pas, l'envoi tranchera). Les fondre priverait l'agent du
+            seul renseignement qui décide s'il doit insister. */}
+        {otpAvailable === false && <WAErreur t={t} motif="template_not_configured" />}
+        {otpProbeFailed && (
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SET.muted }}>
+            {t('integrations.whatsapp.otp.probeFailed')}
+          </span>
+        )}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)' }}>
           <select
             value={paysIso}
@@ -658,47 +587,18 @@ function WABody() {
             : t('integrations.whatsapp.otp.send')}
         </WAPrimaryButton>
       </div>
-      )}
 
-      {/* Voie 2 — l'appairage historique. C'est LUI qui marche sans rien : aucun
-          template, et il prouve davantage (l'agent écrit depuis son propre WhatsApp).
-          ⚠ Son rang visuel SUIT la disponibilité de l'autre voie : ghost tant qu'une
-          voie primaire existe à côté, ACCENT quand il est le seul chemin. Peindre en
-          secondaire l'unique geste possible, c'est laisser l'agent chercher lequel des
-          deux boutons est le bon — alors qu'il n'y en a qu'un. */}
-      {/* ⚠ Quand la voie OTP est absente, DIRE POURQUOI. La faire disparaître sans un mot
-          laissait l'agent qui vient de poser le secret sans aucun moyen de distinguer
-          « pas activé » de « la sonde a échoué » — un écran vide qui ressemble à une
-          réponse. Discret, sous les boutons : c'est un diagnostic, pas une alerte. */}
-      {!otpAvailable && (
-        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SET.muted, lineHeight: 1.45 }}>
-          {otpProbeFailed
-            ? t('integrations.whatsapp.otp.probeFailed')
-            : t('integrations.whatsapp.otp.notEnabled')}
-        </span>
-      )}
+      {/* ⛔ LA GÉNÉRATION DE CODE A ÉTÉ RETIRÉE DE CET ÉCRAN le 17.08.2026, sur décision
+          de Julien, répétée trois fois avant que je l'applique. L'appairage — « générez un
+          code, envoyez-le à MEGGA » — demandait à l'agent de sortir du CRM, d'ouvrir
+          WhatsApp et de recopier huit chiffres pour prouver ce qu'un code reçu prouve
+          aussi. Deux chemins pour une même fin, dont l'un place la charge sur l'agent.
+          Il ne reste donc que la saisie du numéro ci-dessus.
 
-      {otpAvailable ? (
-        <WAGhostButton
-          icon={<WAGlyphSolid size={18} />}
-          onClick={() => generateCode.mutate()}
-          disabled={generateCode.isPending}
-        >
-          {generateCode.isPending
-            ? t('integrations.whatsapp.generating')
-            : t('integrations.whatsapp.generateCode')}
-        </WAGhostButton>
-      ) : (
-        <WAPrimaryButton
-          onClick={() => generateCode.mutate()}
-          disabled={generateCode.isPending}
-        >
-          <WAGlyphSolid size={18} />
-          {generateCode.isPending
-            ? t('integrations.whatsapp.generating')
-            : t('integrations.whatsapp.generateCode')}
-        </WAPrimaryButton>
-      )}
+          ⚠ Le webhook d'appairage reste VIVANT côté serveur, et l'écran « en attente »
+          juste au-dessus aussi : un lien déjà commencé par cette voie doit pouvoir
+          s'achever ou s'abandonner. C'est l'ENTRÉE qui disparaît, pas la mécanique —
+          la retirer entièrement casserait les liens en vol. */}
     </div>
   )
 }
@@ -816,49 +716,6 @@ function WAPrimaryButton({
     >
       {children}
     </button>
-  )
-}
-
-// ── Lien primaire (accent) ────────────────────────────────────────────────
-// `<a>` et non `<button>` : la cible est une URL externe, donc elle doit se
-// comporter comme un lien (clic milieu, « ouvrir dans un onglet », lecture par un
-// lecteur d'écran comme un lien). L'accent parce que c'est l'affordance PRIMAIRE
-// de l'état — la régénération à côté reste secondaire, donc ghost.
-function WAPrimaryLink({ href, children }: { href: string; children: ReactNode }) {
-  const [hover, setHover] = useState(false)
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 'var(--crm-space-md)',
-        width: 'fit-content',
-        minHeight: 46,
-        padding: '0 var(--crm-space-4xl)',
-        borderRadius: 'var(--crm-radius-lg)',
-        background: hover ? SET.blackHover : SET.black,
-        color: SET.blackInk,
-        textDecoration: 'none',
-        fontFamily: 'inherit',
-        fontSize: 'var(--crm-text-xl)',
-        fontWeight: 600,
-        letterSpacing: -0.1,
-        transition: 'background .16s ease',
-      }}
-    >
-      {/* Pastille verte officielle, PAS ré-encrée sur l'accent : `WAGlyphSolid` peint
-          son chemin en blanc en dur, donc lui passer l'encre du bouton (blanche) rendrait
-          un carré blanc sur blanc. Le vert de marque garde le glyphe lisible sur l'accent
-          et reste le seul endroit où cette couleur est admise (jamais un fond, jamais un bouton). */}
-      <WAGlyphSolid size={18} />
-      {children}
-    </a>
   )
 }
 
