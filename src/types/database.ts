@@ -6844,6 +6844,45 @@ export type Database = {
           },
         ]
       }
+      whatsapp_verification_sends: {
+        Row: {
+          agency_id: string | null
+          created_at: string
+          id: number
+          profile_id: string
+          wa_norm: string
+        }
+        Insert: {
+          agency_id?: string | null
+          created_at?: string
+          id?: number
+          profile_id: string
+          wa_norm: string
+        }
+        Update: {
+          agency_id?: string | null
+          created_at?: string
+          id?: number
+          profile_id?: string
+          wa_norm?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_verification_sends_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_verification_sends_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       cantonal_price_medians: {
