@@ -214,7 +214,8 @@
       "cta_cancel": "Annuler la visite",
       "pick_date": "Choisir une nouvelle date",
       "back": "Retour",
-      "confirm": "Confirmer"
+      "confirm": "Confirmer",
+      "date_at_time": "{{date}} à {{time}}"
     },
     "visit_feedback": {
       "invalid_title": "Lien invalide",
@@ -306,7 +307,10 @@
         "other": "Autre"
       },
       "rooms_one": "{{count}} pièce",
-      "rooms_other": "{{count}} pièces"
+      "rooms_other": "{{count}} pièces",
+      "thanks": "Merci {{firstName}} !",
+      "transmitted": "Vos réponses sont transmises à {{agentName}}.",
+      "call": "Appeler {{firstName}}"
     },
     "invite": {
       "tagline": "Immobilier Suisse"

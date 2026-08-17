@@ -214,7 +214,8 @@
       "cta_cancel": "Besichtigung absagen",
       "pick_date": "Neues Datum wählen",
       "back": "Zurück",
-      "confirm": "Bestätigen"
+      "confirm": "Bestätigen",
+      "date_at_time": "{{date}} um {{time}}"
     },
     "visit_feedback": {
       "invalid_title": "Ungültiger Link",
@@ -306,7 +307,10 @@
         "other": "Anderes"
       },
       "rooms_one": "{{count}} Zimmer",
-      "rooms_other": "{{count}} Zimmer"
+      "rooms_other": "{{count}} Zimmer",
+      "thanks": "Danke {{firstName}}!",
+      "transmitted": "Ihre Antworten wurden an {{agentName}} übermittelt.",
+      "call": "{{firstName}} anrufen"
     },
     "invite": {
       "tagline": "Schweizer Immobilien"
