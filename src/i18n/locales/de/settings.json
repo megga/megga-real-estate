@@ -677,6 +677,7 @@
         "codeLabel": "6-stelliger Code",
         "verify": "Bestätigen",
         "verifying": "Wird geprüft…",
+        "resend": "Neuen Code senden",
         "cancel": "Abbrechen",
         "errors": {
           "template_not_configured": "Der Codeversand ist noch nicht aktiviert. Nutzen Sie unten «Code generieren»: Sie senden den Code aus Ihrem eigenen WhatsApp.",

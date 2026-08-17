@@ -677,6 +677,7 @@
         "codeLabel": "6-digit code",
         "verify": "Verify",
         "verifying": "Verifying…",
+        "resend": "Send a new code",
         "cancel": "Cancel",
         "errors": {
           "template_not_configured": "Code sending is not enabled yet. Use \"Generate a code\" below: you will send the code from your own WhatsApp.",

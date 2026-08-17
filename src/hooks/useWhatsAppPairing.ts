@@ -9,6 +9,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import { MEGGA_WA_BUSINESS_DIGITS } from '@/lib/whatsappBusiness'
 
 export interface WhatsAppLinkStatus {
@@ -30,14 +31,27 @@ export interface WhatsAppLinkStatus {
  */
 export function useWhatsAppPairing(options?: { enabled?: boolean }) {
   const qc = useQueryClient()
+  const { profile: authProfile } = useAuth()
+  const profileId = authProfile?.id
   // Même convention que useAgentProfileScreen / useAgencySettings : les écrans de
   // démonstration montent les mêmes composants hors session, et une requête qui part
   // en anon ne rend pas une erreur mais un `null` — donc un « non vérifié » silencieux
   // impossible à distinguer d'un vrai. Mieux vaut ne pas la lancer.
-  const enabled = options?.enabled ?? true
+  const enabled = (options?.enabled ?? true) && !!profileId
 
+  // ⛔ `profileId` DANS LA CLÉ, et ce n'est pas cosmétique. Les clés étaient globales
+  // (`['whatsapp-agent-link']` nu) alors que la déconnexion NE VIDE PAS le cache React
+  // Query — `handleSignOut` (useAuth.tsx) remet session/profile à null et appelle
+  // `supabase.auth.signOut()`, rien de plus ; aucun `clear()`/`removeQueries` n'existe
+  // dans tout `src/`. Sur un poste d'agence PARTAGÉ, l'agent B qui ouvrait Réglages après
+  // l'agent A recevait donc, au premier rendu et pendant tout le `staleTime`, le numéro
+  // masqué de A et son état « Lié ». La même donnée alimente la ligne « Numéro WhatsApp »
+  // du Profil. `useAgentProfileScreen` s'en gardait déjà par `['agent-profile', profileId]`.
+  //
+  // ⚠ Les invalidations restent écrites SANS l'id : React Query fait un appariement par
+  // PRÉFIXE, donc `['whatsapp-agent-link']` couvre `['whatsapp-agent-link', <id>]`.
   const status = useQuery({
-    queryKey: ['whatsapp-agent-link'],
+    queryKey: ['whatsapp-agent-link', profileId],
     enabled,
     staleTime: 10_000,
     queryFn: async (): Promise<WhatsAppLinkStatus | null> => {
@@ -64,7 +78,9 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
   // PARTAGÉ, et aucune des agences réelles n'a de ligne dans ce registre — le
   // registre sert le routage multi-tenant à venir, pas l'affichage d'aujourd'hui.
   const business = useQuery({
-    queryKey: ['whatsapp-business-number'],
+    // Idem : la RLS borne la lecture à l'agence de l'agent, donc la valeur est
+    // PROPRE À L'UTILISATEUR et n'a rien à faire sous une clé partagée.
+    queryKey: ['whatsapp-business-number', profileId],
     enabled,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<string> => {

@@ -106,6 +106,14 @@ serve(async (req) => {
     payload: { type: 'template', message, templateKey: 'number_verification' },
     profileId: profile.id,
     agencyId: profile.agency_id,
+    // ⛔ L'ACTEUR, et pas seulement le sujet. `profileId` dit DE QUI on parle ;
+    // `sentByProfileId` dit QUI a déclenché — c'est lui qui atterrit dans
+    // `whatsapp_messages.sent_by_profile_id` (whatsapp-outbound-guard.ts). Les quatre
+    // sites d'envoi du webhook le renseignent ; l'omettre ici serait le pire endroit,
+    // puisque `number_verification` est la SEULE finalité qui écrive à un numéro que
+    // l'agent vient de TAPER, donc potentiellement celui d'un tiers. Sans lui, la ligne
+    // porte le destinataire et l'agence mais personne : un abus resterait anonyme.
+    sentByProfileId: profile.id,
     isAutomated: true,
   })
 

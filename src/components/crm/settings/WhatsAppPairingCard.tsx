@@ -169,8 +169,27 @@ function WABody() {
   // écran de saisie pour un code mort depuis des heures.
   const otpEnCours = !!link?.pending_number
     && !!link?.otp_expires_at
-    && maintenant > 0
     && new Date(link.otp_expires_at).getTime() > maintenant
+
+  // ⛔ MÊME TEST D'ÉCHÉANCE POUR L'APPAIRAGE, et son absence figeait l'écran. Rien
+  // n'efface `pairing_code` à l'expiration : le webhook ne le met à NULL qu'en cas
+  // d'appairage RÉUSSI. Tester la seule présence du code laissait donc l'agent qui en
+  // génère un sans jamais l'envoyer bloqué DÉFINITIVEMENT sur « En attente de votre
+  // message… », devant huit chiffres morts — la saisie de numéro et l'envoi un-clic
+  // devenant inatteignables. La branche OTP juste au-dessus testait bien son échéance ;
+  // celle-ci ne testait rien.
+  //
+  // ⚠ Une échéance ABSENTE compte comme expirée : une ligne d'avant l'ajout de la colonne
+  // ne doit pas geler l'écran. Le sens du repli est celui qui LIBÈRE l'agent.
+  //
+  // La VALEUR plutôt qu'un booléen : un `boolean` calculé à part ne restreint pas le type
+  // de `link.pairing_code` pour TypeScript, et l'affichage se retrouverait à répéter
+  // `?? ''` sur chaque usage — trois occasions d'afficher une chaîne vide comme un code.
+  const codeAppairage = link?.pairing_code
+    && link.pairing_expires_at
+    && new Date(link.pairing_expires_at).getTime() > maintenant
+    ? link.pairing_code
+    : null
 
   // — loading —
   if (status.isLoading) {
@@ -345,7 +364,7 @@ function WABody() {
   }
 
   // — waiting : un code a été généré, en attente de vérification webhook —
-  if (link?.pairing_code) {
+  if (codeAppairage) {
     return (
       <div style={{ display: 'grid', gap: 'var(--crm-space-4xl)' }}>
         <WAHeader t={t} />
@@ -370,7 +389,7 @@ function WABody() {
               fontFeatureSettings: '"tnum" 1',
             }}
           >
-            {link.pairing_code}
+            {codeAppairage}
           </div>
           <div style={{ fontSize: 'var(--crm-text-md)', color: SET.muted, fontWeight: 500, marginTop: 8, lineHeight: 1.5 }}>
             <Trans
@@ -420,7 +439,7 @@ function WABody() {
             change pas — c'est toujours le TÉLÉPHONE de l'agent qui parle, donc
             l'appairage prouve toujours qu'il contrôle ce compte WhatsApp. */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-xl)', alignItems: 'center' }}>
-          <WAPrimaryLink href={buildWaMeUrl(businessNumber, link.pairing_code)}>
+          <WAPrimaryLink href={buildWaMeUrl(businessNumber, codeAppairage)}>
             {t('integrations.whatsapp.waiting.openWhatsapp')}
           </WAPrimaryLink>
           <WAGhostButton
@@ -482,6 +501,32 @@ function WABody() {
               ? t('integrations.whatsapp.otp.verifying')
               : t('integrations.whatsapp.otp.verify')}
           </WAPrimaryButton>
+          {/* ⛔ RENVOYER — sans ce bouton l'écran était une IMPASSE, et il le disait
+              lui-même : au 5e code faux la RPC rend `too_many_attempts`, dont le texte
+              demande à l'agent « un nouveau code »… qu'aucune affordance ne proposait.
+              « Vérifier » retombait indéfiniment sur le même refus, et l'échéance de dix
+              minutes n'étant pas atteinte, l'écran ne se refermait pas non plus. Même
+              mismatch pour `expired`.
+              Le renvoi relance `start_…`, dont l'upsert remet `otp_attempts` à 0 : c'est
+              donc lui, et lui seul, qui rouvre la porte. Le plafond de 3 envois par heure
+              reste opposable — un renvoi est un envoi. */}
+          <WAGhostButton
+            icon={<WAGlyphSolid size={16} />}
+            onClick={() => {
+              setErreur(null)
+              setCodeSaisi('')
+              // `pending_number` est en chiffres seuls ; l'edge normalise, mais le « + »
+              // garde la valeur lisible dans les journaux et sans ambiguïté de format.
+              startVerification.mutate(`+${link?.pending_number ?? ''}`, {
+                onError: (e) => setErreur((e as Error).message),
+              })
+            }}
+            disabled={startVerification.isPending}
+          >
+            {startVerification.isPending
+              ? t('integrations.whatsapp.otp.sending')
+              : t('integrations.whatsapp.otp.resend')}
+          </WAGhostButton>
           {/* Sortie de secours : dix minutes d'attente sans rien recevoir doivent pouvoir
               se solder autrement que par un rechargement de page.
               ⚠ `cancelVerification` et NON `unlink` : ce dernier supprimait la ligne, donc

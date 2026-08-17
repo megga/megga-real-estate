@@ -677,6 +677,7 @@
         "codeLabel": "Code à 6 chiffres",
         "verify": "Vérifier",
         "verifying": "Vérification…",
+        "resend": "Renvoyer un code",
         "cancel": "Annuler",
         "errors": {
           "template_not_configured": "L'envoi de code n'est pas encore activé. Utilisez « Générer un code » ci-dessous : vous enverrez le code depuis votre WhatsApp.",
