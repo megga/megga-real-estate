@@ -98,7 +98,7 @@ export default function AcceptInvitePage() {
         {/* En-tête : la VRAIE marque, pas le mot « MEGGA » composé à la main. */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 'var(--crm-space-6xl)' }}>
           <MlkWordmark size={18} />
-          <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted, marginTop: 'var(--crm-space-2xs)' }}>Immobilier Suisse</p>
+          <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted, marginTop: 'var(--crm-space-2xs)' }}>{t('client.invite.tagline')}</p>
         </div>
 
         <div>

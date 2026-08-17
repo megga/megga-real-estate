@@ -45,6 +45,7 @@
 // collés en bas d'un écran large, ils lisaient comme un tiroir de téléphone égaré.
 
 import { useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { CSSProperties, UIEvent as ReactUIEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { useBuyerReception, useBuyerReactionMutation, type ReceptionBien } from '@/hooks/useBuyerReception'
@@ -59,7 +60,14 @@ import { crmVoileEncre } from '@/components/crm/tokens'
 /** Alias local : `fontFamily` est écrit une dizaine de fois, et `MLK.font` y allongerait chaque ligne sans rien dire de plus. */
 const FONT = MLK.font
 
-const MOTIFS = ['Trop cher', 'Quartier', 'Étage / luminosité', 'Trop petit', 'Pas le bon moment', 'Autre']
+/**
+ * ⛔ CLÉS STABLES, PAS DES LIBELLÉS. Ces motifs partent dans `reaction_motif`
+ * (table `matches`) via l'edge `buyer-reception-react` : traduits, ils auraient
+ * stocké « Zu teuer » pour un client alémanique et « Trop cher » pour un romand.
+ * ⚠ Sans migration parce que la colonne est VIDE — 1 775 matches, 0 motif au
+ * 17 août 2026.
+ */
+const MOTIFS = ['price', 'area', 'light', 'size', 'timing', 'other'] as const
 // \s couvre déjà U+202F / U+00A0 (séparateurs de milliers fr-CH) — inutile de
 // les répéter en clair dans la classe : invisibles en relecture.
 const fmtCHF = (n: number) => 'CHF ' + Math.round(n).toLocaleString('fr-CH').replace(/[\s,]/g, "'")
@@ -123,6 +131,7 @@ const KEYFRAMES = `@keyframes rcUp{from{opacity:0;transform:translateY(14px)}to{
 type UiStatus = 'liked' | 'rejected' | null
 
 export default function BuyerReceptionPage() {
+  const { t } = useTranslation('kyc')
   const { token } = useParams<{ token: string }>()
   const { data, isLoading, isError } = useBuyerReception(token)
   const reactM = useBuyerReactionMutation()
@@ -176,7 +185,7 @@ export default function BuyerReceptionPage() {
       <MlkBackground>
         <MlkShell width={480} pad={40}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--crm-space-4xl)' }}><MlkWordmark size={16} /></div>
-          <p style={{ margin: 0, textAlign: 'center', color: MLK.muted, fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>Chargement de votre sélection…</p>
+          <p style={{ margin: 0, textAlign: 'center', color: MLK.muted, fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>{t('client.reception.loading')}</p>
         </MlkShell>
       </MlkBackground>
     )
@@ -188,9 +197,9 @@ export default function BuyerReceptionPage() {
         <MlkShell width={480} pad={40}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--crm-space-4xl)' }}><MlkWordmark size={16} /></div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.4 }}>{expired ? 'Ce lien a expiré' : "Ce lien n'est plus valide"}</div>
+            <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.4 }}>{t(expired ? 'client.reception.expired_title' : 'client.reception.invalid_title')}</div>
             <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: MLK.muted, marginTop: 'var(--crm-space-lg)', lineHeight: 1.55 }}>
-              Contactez votre conseiller pour recevoir une nouvelle sélection.
+              {t('client.reception.invalid_body')}
             </div>
           </div>
           <MlkFooter />
@@ -211,7 +220,7 @@ export default function BuyerReceptionPage() {
           <div style={{ padding: '0 var(--crm-space-4xl)', marginBottom: 'var(--crm-space-6xl)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
             <MlkWordmark size={18} />
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-2xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: MLK.cardSubtle, fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: MLK.muted, whiteSpace: 'nowrap' }}>
-              <Icon d={ICO.lock} size={13} stroke={MLK.muted} /> Lien privé
+              <Icon d={ICO.lock} size={13} stroke={MLK.muted} /> {t('client.reception.private_link')}
             </span>
           </div>
 
@@ -222,13 +231,13 @@ export default function BuyerReceptionPage() {
                 ? <img src={agent.avatar} alt={agent.name} referrerPolicy="no-referrer" style={{ width: 56, height: 56, borderRadius: 999, objectFit: 'cover', flexShrink: 0, boxShadow: MLK.shadowSm, background: MLK.cardSubtle }} />
                 : <span style={{ width: 56, height: 56, borderRadius: 999, flexShrink: 0, display: 'grid', placeItems: 'center', background: MLK.ink, color: '#fff', fontSize: 'var(--crm-text-3xl)', fontWeight: 600 }}>{(agent?.name || '?').split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()}</span>}
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.4 }}>{agent?.name || 'Votre conseiller'}</div>
-                <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted, marginTop: 2 }}>Votre conseiller{agent?.agency ? ' · ' + agent.agency : ''}</div>
+                <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.4 }}>{agent?.name || t('client.reception.adviser')}</div>
+                <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted, marginTop: 2 }}>{t('client.reception.adviser')}{agent?.agency ? ' · ' + agent.agency : ''}</div>
               </div>
             </div>
             <div style={{ marginTop: 'var(--crm-space-2xl)', background: MLK.card, borderRadius: 18, boxShadow: MLK.shadow, padding: 'var(--crm-space-2xl) var(--crm-space-4xl)' }}>
               <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.55, color: MLK.inkSoft }}>
-                Bonjour {data.contact.firstName || ''}, voici une sélection de biens qui collent à votre recherche. Dites-moi lesquels vous parlent — j'organise les visites dans la foulée.
+                {t('client.reception.greeting', { firstName: data.contact.firstName || '' })}
               </div>
             </div>
           </div>
@@ -236,8 +245,8 @@ export default function BuyerReceptionPage() {
           {/* Progression */}
           <div style={{ padding: 'var(--crm-space-6xl) var(--crm-space-5xl) var(--crm-space-sm)' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-              <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.7, color: MLK.ink }}>Votre sélection</h1>
-              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted }}>{treated} sur {total}</span>
+              <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.7, color: MLK.ink }}>{t('client.reception.selection_title')}</h1>
+              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted }}>{t('client.reception.progress', { treated, total })}</span>
             </div>
             <div style={{ marginTop: 'var(--crm-space-xl)', height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.07), overflow: 'hidden' }}>
               <div style={{ height: '100%', width: (total ? (treated / total) * 100 : 0) + '%', background: MLK.ink, borderRadius: 999, transition: 'width .45s cubic-bezier(.2,.8,.2,1)' }} />
@@ -265,21 +274,21 @@ export default function BuyerReceptionPage() {
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 'var(--crm-space-xl)' }}>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.4 }}>{b.title}</div>
-                        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: MLK.muted, marginTop: 3 }}>{[b.quartier, b.rooms != null ? b.rooms + ' pièces' : null, b.area != null ? b.area + ' m²' : null].filter(Boolean).join(' · ')}</div>
+                        <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: MLK.muted, marginTop: 3 }}>{[b.quartier, b.rooms != null ? t('client.reception.rooms', { count: b.rooms }) : null, b.area != null ? b.area + ' m²' : null].filter(Boolean).join(' · ')}</div>
                       </div>
-                      <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.4, whiteSpace: 'nowrap', flexShrink: 0 }}>{p ? fmtCHF(p) : '—'}{b.transaction === 'location' && p ? <span style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted }}>/mois</span> : null}</div>
+                      <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.4, whiteSpace: 'nowrap', flexShrink: 0 }}>{p ? fmtCHF(p) : '—'}{b.transaction === 'location' && p ? <span style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted }}>{t('client.reception.per_month')}</span> : null}</div>
                     </div>
                     {!st ? (
                       <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-2xl)' }}>
-                        <button onClick={() => openReject(b.match_id)} style={ghostBtn({ flex: '0 0 auto', width: 56, padding: 0 })} aria-label="Écarter ce bien"><Icon d={ICO.x} size={20} stroke={MLK.inkSoft} /></button>
-                        <button onClick={() => like(b.match_id)} style={blackBtn({ flex: 1, height: 52 })}><Icon d={ICO.heart} size={19} stroke="#fff" fill="#fff" sw={1.4} /> Ça m'intéresse</button>
+                        <button onClick={() => openReject(b.match_id)} style={ghostBtn({ flex: '0 0 auto', width: 56, padding: 0 })} aria-label={t('client.reception.reject_aria')}><Icon d={ICO.x} size={20} stroke={MLK.inkSoft} /></button>
+                        <button onClick={() => like(b.match_id)} style={blackBtn({ flex: 1, height: 52 })}><Icon d={ICO.heart} size={19} stroke="#fff" fill="#fff" sw={1.4} /> {t('client.reception.interested')}</button>
                       </div>
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)', marginTop: 'var(--crm-space-2xl)' }}>
                         {st === 'liked'
-                          ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 999, background: MLK.ink, color: '#fff', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}><Icon d={ICO.heart} size={15} stroke="#fff" fill="#fff" sw={1.4} /> Ça vous intéresse</span>
-                          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 999, background: MLK.cardSubtle, color: MLK.muted, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>Écarté{motifOf(b) ? ' · ' + motifOf(b) : ''}</span>}
-                        <button onClick={() => backTo(b.match_id)} style={{ border: 0, background: 'none', cursor: 'pointer', color: MLK.inkSoft, fontSize: 'var(--crm-text-md)', fontWeight: 600, padding: 'var(--crm-space-sm) var(--crm-space-sm)', fontFamily: FONT }}>Revenir</button>
+                          ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 999, background: MLK.ink, color: '#fff', fontSize: 'var(--crm-text-md)', fontWeight: 600 }}><Icon d={ICO.heart} size={15} stroke="#fff" fill="#fff" sw={1.4} /> {t('client.reception.interested_done')}</span>
+                          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 999, background: MLK.cardSubtle, color: MLK.muted, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{t('client.reception.rejected')}{motifOf(b) ? ' · ' + t(`client.reception.motifs.${motifOf(b)}`) : ''}</span>}
+                        <button onClick={() => backTo(b.match_id)} style={{ border: 0, background: 'none', cursor: 'pointer', color: MLK.inkSoft, fontSize: 'var(--crm-text-md)', fontWeight: 600, padding: 'var(--crm-space-sm) var(--crm-space-sm)', fontFamily: FONT }}>{t('client.reception.back')}</button>
                       </div>
                     )}
                   </div>
@@ -290,7 +299,7 @@ export default function BuyerReceptionPage() {
 
           {total > 0 && treated === total && (
             <div style={{ padding: 'var(--crm-space-6xl) var(--crm-space-4xl) 0' }}>
-              <button onClick={() => setDone(true)} style={blackBtn()}>Voir le récapitulatif</button>
+              <button onClick={() => setDone(true)} style={blackBtn()}>{t('client.reception.see_summary')}</button>
             </div>
           )}
 
@@ -315,16 +324,17 @@ export default function BuyerReceptionPage() {
 
 // ── Feuille détail ──────────────────────────────────────────────────────
 function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBack }: { bien: ReceptionBien; status: UiStatus; motif: string | null; onClose: () => void; onLike: () => void; onReject: () => void; onBack: () => void }) {
+  const { t } = useTranslation('kyc')
   const [pi, setPi] = useState(0)
   const p = priceOf(bien)
   const isRent = bien.transaction === 'location'
   const facts: Array<{ k: string; v: string }> = [
-    bien.rooms != null ? { k: 'Pièces', v: String(bien.rooms) } : null,
-    bien.area != null ? { k: 'Surface', v: bien.area + ' m²' } : null,
-    bien.floor != null ? { k: 'Étage', v: String(bien.floor) } : null,
-    bien.year != null ? { k: 'Année', v: String(bien.year) } : null,
-    bien.charges != null ? { k: 'Charges', v: fmtCHF(bien.charges) + '/mois' } : null,
-    bien.price_per_m2 != null ? { k: isRent ? 'Loyer / m²' : 'Prix / m²', v: fmtCHF(bien.price_per_m2) } : null,
+    bien.rooms != null ? { k: t('client.reception.fact_rooms'), v: String(bien.rooms) } : null,
+    bien.area != null ? { k: t('client.reception.fact_area'), v: bien.area + ' m²' } : null,
+    bien.floor != null ? { k: t('client.reception.fact_floor'), v: String(bien.floor) } : null,
+    bien.year != null ? { k: t('client.reception.fact_year'), v: String(bien.year) } : null,
+    bien.charges != null ? { k: t('client.reception.fact_charges'), v: fmtCHF(bien.charges) + t('client.reception.per_month') } : null,
+    bien.price_per_m2 != null ? { k: t(isRent ? 'client.reception.fact_rent_m2' : 'client.reception.fact_price_m2'), v: fmtCHF(bien.price_per_m2) } : null,
   ].filter((f): f is { k: string; v: string } => !!f)
   const onScroll = (e: ReactUIEvent<HTMLDivElement>) => { const w = e.currentTarget.clientWidth || 1; setPi(Math.round(e.currentTarget.scrollLeft / w)) }
 
@@ -333,7 +343,7 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: crmVoileEncre(false, 0.38), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
       <div className="rc-feuille rc-feuille-haute" style={{ background: MLK.card, borderRadius: '28px 28px 0 0', boxShadow: MLK.sheetShadow, overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: 'rcSheet .38s cubic-bezier(.2,.85,.25,1) both' }}>
         <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.14), zIndex: 3 }} />
-        <button onClick={onClose} aria-label="Fermer" style={{ position: 'absolute', top: 16, right: 16, zIndex: 3, width: 36, height: 36, borderRadius: 999, border: 0, cursor: 'pointer', background: 'rgba(255,255,255,.9)', boxShadow: MLK.shadowSm, display: 'grid', placeItems: 'center' }}><Icon d={ICO.x} size={17} stroke={MLK.ink} /></button>
+        <button onClick={onClose} aria-label={t('client.reception.close')} style={{ position: 'absolute', top: 16, right: 16, zIndex: 3, width: 36, height: 36, borderRadius: 999, border: 0, cursor: 'pointer', background: 'rgba(255,255,255,.9)', boxShadow: MLK.shadowSm, display: 'grid', placeItems: 'center' }}><Icon d={ICO.x} size={17} stroke={MLK.ink} /></button>
         <div className="rc-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ position: 'relative' }}>
             <div onScroll={onScroll} className="rc-scroll" style={{ display: 'flex', overflowX: 'auto', scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
@@ -379,15 +389,17 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
         <div style={{ flexShrink: 0, padding: 'var(--crm-space-xl) var(--crm-space-4xl) calc(var(--crm-space-xl) + env(safe-area-inset-bottom))', background: MLK.card, boxShadow: `0 -8px 24px ${crmVoileEncre(false, 0.05)}` }}>
           {!status ? (
             <div style={{ display: 'flex', gap: 'var(--crm-space-lg)' }}>
-              <button onClick={onReject} style={ghostBtn({ flex: '0 0 auto', width: 58, padding: 0 })} aria-label="Écarter"><Icon d={ICO.x} size={21} stroke={MLK.inkSoft} /></button>
-              <button onClick={onLike} style={blackBtn({ flex: 1 })}><Icon d={ICO.heart} size={19} stroke="#fff" fill="#fff" sw={1.4} /> Ça m'intéresse</button>
+              <button onClick={onReject} style={ghostBtn({ flex: '0 0 auto', width: 58, padding: 0 })} aria-label={t('client.reception.reject')}><Icon d={ICO.x} size={21} stroke={MLK.inkSoft} /></button>
+              <button onClick={onLike} style={blackBtn({ flex: 1 })}><Icon d={ICO.heart} size={19} stroke="#fff" fill="#fff" sw={1.4} /> {t('client.reception.interested')}</button>
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-xl)' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: status === 'liked' ? MLK.ink : MLK.muted }}>
-                {status === 'liked' ? <><Icon d={ICO.heart} size={17} stroke={MLK.ink} fill={MLK.ink} sw={1.4} /> Ça vous intéresse</> : 'Écarté' + (motif ? ' · ' + motif : '')}
+                {status === 'liked'
+                  ? <><Icon d={ICO.heart} size={17} stroke={MLK.ink} fill={MLK.ink} sw={1.4} /> {t('client.reception.interested_done')}</>
+                  : t('client.reception.rejected') + (motif ? ' · ' + t(`client.reception.motifs.${motif}`) : '')}
               </span>
-              <button onClick={onBack} style={ghostBtn({ padding: '0 var(--crm-space-4xl)', height: 44 })}>Revenir</button>
+              <button onClick={onBack} style={ghostBtn({ padding: '0 var(--crm-space-4xl)', height: 44 })}>{t('client.reception.back')}</button>
             </div>
           )}
         </div>
@@ -398,6 +410,7 @@ function ReceptionDetail({ bien, status, motif, onClose, onLike, onReject, onBac
 
 // ── Feuille motif d'écartement ──────────────────────────────────────────
 function ReceptionReject({ onClose, onConfirm }: { onClose: () => void; onConfirm: (motif: string | null, note: string | null) => void }) {
+  const { t } = useTranslation('kyc')
   const [motif, setMotif] = useState<string | null>(null)
   const [note, setNote] = useState('')
   return (
@@ -405,18 +418,18 @@ function ReceptionReject({ onClose, onConfirm }: { onClose: () => void; onConfir
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: crmVoileEncre(false, 0.42), backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'rcFade .25s ease both' }} />
       <div className="rc-feuille" style={{ background: MLK.card, borderRadius: '28px 28px 0 0', boxShadow: MLK.sheetShadow, padding: 'var(--crm-space-6xl) var(--crm-space-6xl) calc(var(--crm-space-5xl) + env(safe-area-inset-bottom))', animation: 'rcSheet .36s cubic-bezier(.2,.85,.25,1) both' }}>
         <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', width: 40, height: 5, borderRadius: 999, background: crmVoileEncre(false, 0.14) }} />
-        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.5, marginTop: 'var(--crm-space-sm)' }}>Ce bien ne convient pas ?</div>
+        <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.5, marginTop: 'var(--crm-space-sm)' }}>{t('client.reception.reject_title')}</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)', marginTop: 'var(--crm-space-4xl)' }}>
           {MOTIFS.map((m) => {
             const on = motif === m
             return <button key={m} onClick={() => setMotif(on ? null : m)} aria-pressed={on} style={{ height: 40, padding: '0 var(--crm-space-2xl)', borderRadius: 999, border: 0, cursor: 'pointer', fontSize: 'var(--crm-text-md)', fontWeight: 600, fontFamily: FONT, background: on ? MLK.accent : MLK.cardSubtle, color: on ? '#fff' : MLK.inkSoft, transition: 'background .15s, color .15s' }}>{m}</button>
           })}
         </div>
-        <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Préciser (facultatif)…" rows={2}
+        <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('client.reception.reject_note_placeholder')} rows={2}
           style={{ marginTop: 'var(--crm-space-2xl)', width: '100%', resize: 'none', borderRadius: 14, border: 0, background: MLK.cardSubtle, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', fontFamily: FONT, fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK.ink, outline: 'none', boxShadow: 'inset 0 0 0 1px ' + MLK.line, boxSizing: 'border-box' }} />
         <div style={{ display: 'flex', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-2xl)' }}>
-          <button onClick={onClose} style={ghostBtn({ flex: 1 })}>Annuler</button>
-          <button onClick={() => onConfirm(motif, note.trim() || null)} style={blackBtn({ flex: 1.4 })}>Écarter ce bien</button>
+          <button onClick={onClose} style={ghostBtn({ flex: 1 })}>{t('client.reception.cancel')}</button>
+          <button onClick={() => onConfirm(motif, note.trim() || null)} style={blackBtn({ flex: 1.4 })}>{t('client.reception.reject_confirm')}</button>
         </div>
       </div>
     </div>
@@ -425,6 +438,7 @@ function ReceptionReject({ onClose, onConfirm }: { onClose: () => void; onConfir
 
 // ── Écran de fin ────────────────────────────────────────────────────────
 function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked: ReceptionBien[]; total: number; contactFirst: string; agent: { name: string; phone: string | null } | null | undefined; onReview: () => void }) {
+  const { t } = useTranslation('kyc')
   const rejected = total - liked.length
   const firstName = agent?.name?.split(' ')[0] || 'votre conseiller'
   return (
@@ -438,7 +452,7 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
         <div style={{ marginTop: 26, background: MLK.card, borderRadius: 20, boxShadow: MLK.shadow, padding: 'var(--crm-space-4xl) var(--crm-space-4xl) var(--crm-space-lg)', textAlign: 'left' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginBottom: 'var(--crm-space-xs)' }}>
             <Icon d={ICO.heart} size={16} stroke={MLK.ink} fill={MLK.ink} sw={1.4} />
-            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: MLK.ink }}>{liked.length === 0 ? 'Aucun bien retenu' : liked.length + (liked.length > 1 ? ' biens vous intéressent' : ' bien vous intéresse')}</span>
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: MLK.ink }}>{liked.length === 0 ? t('client.reception.none_kept') : t('client.reception.liked', { count: liked.length })}</span>
           </div>
           {liked.map((b) => (
             <div key={b.match_id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) 0', borderTop: '1px solid ' + MLK.line }}>
@@ -450,11 +464,11 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
             </div>
           ))}
         </div>
-        {rejected > 0 && <div style={{ marginTop: 'var(--crm-space-xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted }}>{rejected} bien{rejected > 1 ? 's' : ''} écarté{rejected > 1 ? 's' : ''}</div>}
+        {rejected > 0 && <div style={{ marginTop: 'var(--crm-space-xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted }}>{t('client.reception.rejected_count', { count: rejected })}</div>}
       </div>
       <div style={{ flexShrink: 0, padding: 'var(--crm-space-xl) var(--crm-space-4xl) calc(var(--crm-space-2xl) + env(safe-area-inset-bottom))' }}>
         {agent?.phone && <a href={'tel:' + agent.phone.replace(/\s+/g, '')} style={{ ...blackBtn(), textDecoration: 'none', marginBottom: 'var(--crm-space-lg)' }}><Icon d={ICO.phone} size={17} stroke="#fff" /> Appeler {firstName}</a>}
-        <button onClick={onReview} style={ghostBtn({ width: '100%' })}>Revoir ma sélection</button>
+        <button onClick={onReview} style={ghostBtn({ width: '100%' })}>{t('client.reception.review')}</button>
       </div>
     </div>
   )
