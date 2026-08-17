@@ -62,8 +62,8 @@
     "contactTitle": "Contact",
     "emailPro": "Geschäftliche E-Mail",
     "whatsapp": "WhatsApp-Nummer",
-    "whatsappHint": "Per WhatsApp-Verknüpfung verifiziert",
-    "whatsappUnverified": "Keine verifizierte Nummer. Verknüpfen Sie WhatsApp im CRM am Computer.",
+    "whatsappHint": "Per Code auf WhatsApp verifiziert",
+    "whatsappUnverified": "Keine verifizierte Nummer. Verifizieren Sie Ihre Nummer im CRM am Computer.",
     "agency": "Agentur",
     "agencyHint": "Änderbar über den Tab «Meine Agentur»",
     "publicPresentationTitle": "Öffentliche Präsentation",
@@ -978,7 +978,7 @@
       },
       "emailHint": "Anmeldeadresse, hier nicht änderbar",
       "agencyHint": "Änderbar unter Meine Agentur",
-      "whatsappHint": "Per WhatsApp-Verknüpfung verifiziert, unter Integrationen",
+      "whatsappHint": "Wird per Code auf WhatsApp verifiziert, unter Integrationen",
       "whatsappVerified": "Verifiziert"
     },
     "agency": {

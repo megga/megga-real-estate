@@ -62,8 +62,8 @@
     "contactTitle": "Contact",
     "emailPro": "Work email",
     "whatsapp": "WhatsApp number",
-    "whatsappHint": "Verified by WhatsApp pairing",
-    "whatsappUnverified": "No verified number. Pair WhatsApp from the CRM on desktop.",
+    "whatsappHint": "Verified by a code received on WhatsApp",
+    "whatsappUnverified": "No verified number. Verify yours from the CRM on desktop.",
     "agency": "Agency",
     "agencyHint": "Editable from the My agency tab",
     "publicPresentationTitle": "Public presentation",
@@ -978,7 +978,7 @@
       },
       "emailHint": "Sign-in address, not editable here",
       "agencyHint": "Editable from My agency",
-      "whatsappHint": "Verified by WhatsApp pairing, under Integrations",
+      "whatsappHint": "Verified by a code received on WhatsApp, under Integrations",
       "whatsappVerified": "Verified"
     },
     "agency": {
