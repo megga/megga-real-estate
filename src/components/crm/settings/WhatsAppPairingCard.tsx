@@ -135,7 +135,7 @@ function WABody() {
   const { t, i18n } = useTranslation('settings')
   const {
     status, generateCode, unlink, startVerification, confirmVerification,
-    cancelVerification, businessNumber, otpAvailable,
+    cancelVerification, businessNumber, otpAvailable, otpProbeFailed,
   } = useWhatsAppPairing()
   const link = status.data
   // Le numéro auquel l'agent doit écrire. Affiché groupé (il va être RECOPIÉ à la main
@@ -666,6 +666,18 @@ function WABody() {
           voie primaire existe à côté, ACCENT quand il est le seul chemin. Peindre en
           secondaire l'unique geste possible, c'est laisser l'agent chercher lequel des
           deux boutons est le bon — alors qu'il n'y en a qu'un. */}
+      {/* ⚠ Quand la voie OTP est absente, DIRE POURQUOI. La faire disparaître sans un mot
+          laissait l'agent qui vient de poser le secret sans aucun moyen de distinguer
+          « pas activé » de « la sonde a échoué » — un écran vide qui ressemble à une
+          réponse. Discret, sous les boutons : c'est un diagnostic, pas une alerte. */}
+      {!otpAvailable && (
+        <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SET.muted, lineHeight: 1.45 }}>
+          {otpProbeFailed
+            ? t('integrations.whatsapp.otp.probeFailed')
+            : t('integrations.whatsapp.otp.notEnabled')}
+        </span>
+      )}
+
       {otpAvailable ? (
         <WAGhostButton
           icon={<WAGlyphSolid size={18} />}

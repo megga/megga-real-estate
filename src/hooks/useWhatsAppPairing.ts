@@ -66,27 +66,42 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
     },
   })
 
-  // Numéro Business de l'agence, quand elle en a un déclaré. La RLS de
-  // `agency_wa_numbers` borne déjà la lecture à l'agence de l'agent — aucun filtre
-  // client à écrire, et rien à voir des autres tenants.
+  // Numéro Business de l'agence, quand elle en a un déclaré.
+  //
+  // ⛔ LE FILTRE D'AGENCE EST EXPLICITE, ET SON ABSENCE A RESSUSCITÉ LE NUMÉRO MORT.
+  // La version précédente s'en remettait à la RLS : « elle borne déjà la lecture à
+  // l'agence de l'agent, aucun filtre client à écrire ». C'est faux pour un rôle dont la
+  // policy est plus large. `agency_wa_numbers` en porte DEUX : `…_agency_select`
+  // (agency_id = get_my_agency_id()) et `…_super_admin_all` (FOR ALL, is_super_admin()).
+  // Un super-admin voit donc TOUTES les lignes, et `created_at DESC LIMIT 1` lui rendait
+  // celle d'une autre agence — en l'occurrence la seule du registre, qui porte le numéro
+  // pilote décommissionné le 14.08. L'écran lui demandait d'envoyer son code à un numéro
+  // qui ne reçoit plus, c'est-à-dire exactement le défaut que cette série corrigeait.
+  // Mesuré le 17.08.2026 sur `hello@juarts.com` (super_admin, agence NULL).
+  //
+  // La leçon : **la RLS est un PLANCHER, pas un filtre.** Elle garantit qu'on ne voit pas
+  // TROP ; elle ne garantit pas qu'on voit ce qu'on croit. Une requête « ma ligne » doit
+  // dire laquelle.
+  //
+  // ⚠ Agence NULL (le cas du super-admin) : on ne cherche RIEN et on prend la constante.
+  // Interroger sans filtre lui rendrait la ligne d'un tenant au hasard.
   //
   // `created_at DESC` : au pilote une agence n'a qu'un numéro, mais le jour où elle en
   // enregistre un nouveau (bascule de portefeuille Meta), c'est le DERNIER inscrit qui
-  // reçoit. Prendre le premier ferait revivre exactement le bug qu'on corrige.
-  //
-  // Repli sur la constante de plateforme : le pilote tourne sur un numéro MEGGA
-  // PARTAGÉ, et aucune des agences réelles n'a de ligne dans ce registre — le
-  // registre sert le routage multi-tenant à venir, pas l'affichage d'aujourd'hui.
+  // reçoit. Prendre le premier ferait revivre le même bug par l'autre bout.
+  const agencyId = authProfile?.agency_id ?? null
   const business = useQuery({
-    // Idem : la RLS borne la lecture à l'agence de l'agent, donc la valeur est
-    // PROPRE À L'UTILISATEUR et n'a rien à faire sous une clé partagée.
-    queryKey: ['whatsapp-business-number', profileId],
+    // La valeur dépend de l'AGENCE, pas seulement du profil : deux agents d'agences
+    // différentes ne doivent pas se partager une entrée de cache.
+    queryKey: ['whatsapp-business-number', agencyId],
     enabled,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<string> => {
+      if (!agencyId) return MEGGA_WA_BUSINESS_DIGITS
       const { data, error } = await supabase
         .from('agency_wa_numbers')
         .select('wa_number')
+        .eq('agency_id', agencyId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
@@ -104,16 +119,33 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
   // ⚠ Repli sur `false` en cas d'échec : mieux vaut proposer l'appairage — qui marche
   // toujours — que d'ouvrir une voie dont on ne sait pas si elle mène quelque part.
   // `retry: false` parce qu'une capacité absente n'est pas une panne à réessayer.
+  // ⚠ TRI-ÉTAT, et pas un booléen. La première version rendait `false` aussi bien quand la
+  // capacité est éteinte que quand la SONDE a échoué — deux faits très différents réduits
+  // au même écran vide. L'agent qui vient de poser le secret et ne voit toujours rien n'a
+  // alors aucun moyen de savoir s'il s'est trompé de nom, si la fonction n'est pas
+  // déployée, ou si tout va bien et que c'est autre chose. Le silence ressemblait à une
+  // réponse.
   const otpDispo = useQuery({
-    queryKey: ['whatsapp-otp-available'],
+    queryKey: ['whatsapp-otp-available', profileId],
     enabled,
     staleTime: 10 * 60_000,
     retry: false,
-    queryFn: async (): Promise<boolean> => {
-      const { data } = await supabase.functions.invoke('whatsapp-verify-number', {
+    queryFn: async (): Promise<'available' | 'unavailable'> => {
+      const { data, error } = await supabase.functions.invoke('whatsapp-verify-number', {
         body: { action: 'status' },
       })
+      // Un 501 `template_not_configured` remonte en `error` avec un corps lisible : c'est
+      // une réponse, pas une panne. On la déballe pour ne pas la confondre avec un échec.
+      if (error) {
+        const corps = await (error as { context?: { json?: () => Promise<unknown> } })
+          .context?.json?.().catch(() => null)
+        const motif = (corps as { error?: string } | null)?.error
+        if (motif === 'template_not_configured') return 'unavailable'
+        throw error
+      }
       return (data as { otp_available?: boolean } | null)?.otp_available === true
+        ? 'available'
+        : 'unavailable'
     },
   })
 
@@ -213,6 +245,12 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
     /** Chiffres seuls (format wa.me). Jamais vide : repli sur la constante plateforme. */
     businessNumber: business.data ?? MEGGA_WA_BUSINESS_DIGITS,
     /** La voie « recevoir un code » est-elle activée ? `false` tant qu'on ne sait pas. */
-    otpAvailable: otpDispo.data === true,
+    otpAvailable: otpDispo.data === 'available',
+    /**
+     * La sonde n'a pas pu conclure (fonction absente, réseau, erreur inattendue). À
+     * distinguer d'une capacité simplement éteinte : ici on ne SAIT pas, et l'écran doit
+     * le dire plutôt que de faire disparaître la voie sans un mot.
+     */
+    otpProbeFailed: otpDispo.isError,
   }
 }

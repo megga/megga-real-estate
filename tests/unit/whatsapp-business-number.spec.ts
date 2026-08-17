@@ -113,3 +113,42 @@ describe('formatInternationalPhone — indicatifs partagés entre pays', () => {
     expect(formatInternationalPhone('79123456789')).toBe('+7 912 345 67 89')
   })
 })
+
+// ── La RLS est un PLANCHER, pas un filtre ───────────────────────────────────
+//
+// ⛔ DÉFAUT MESURÉ EN PRODUCTION LE 17.08.2026, et c'est le bug d'origine qui revient par
+// une autre porte. La requête du numéro Business ne filtrait PAS par agence : elle s'en
+// remettait à la RLS, avec ce commentaire — « elle borne déjà la lecture à l'agence de
+// l'agent, aucun filtre client à écrire ».
+//
+// C'est faux dès qu'un rôle a une policy plus large. `agency_wa_numbers` en porte deux, et
+// la seconde est `…_super_admin_all` (FOR ALL, is_super_admin()). Un super-admin voit donc
+// TOUTES les lignes, et `created_at DESC LIMIT 1` lui rendait celle d'une autre agence :
+// en l'occurrence la seule du registre, qui porte le numéro pilote décommissionné. L'écran
+// lui demandait d'envoyer son code à un numéro qui ne reçoit plus.
+//
+// Le super-admin est précisément celui qui teste — c'est lui qui l'a vu.
+describe('numéro Business — la requête filtre par agence, elle ne délègue pas à la RLS', () => {
+  const HOOK = readFileSync('src/hooks/useWhatsAppPairing.ts', 'utf8')
+
+  /** Le corps de la requête `agency_wa_numbers`, du `.from(` jusqu'à la fin du queryFn. */
+  function requeteNumero(): string {
+    const debut = HOOK.indexOf("from('agency_wa_numbers')")
+    expect(debut, "la requête `agency_wa_numbers` est introuvable").toBeGreaterThan(-1)
+    return HOOK.slice(debut, HOOK.indexOf('})', debut))
+  }
+
+  it('borne explicitement sur agency_id', () => {
+    expect(
+      /\.eq\('agency_id',/.test(requeteNumero()),
+      "la requête ne filtre pas par agence : un rôle à policy large (super_admin) reçoit " +
+        "la ligne d'un autre tenant, donc potentiellement un numéro décommissionné",
+    ).toBe(true)
+  })
+
+  it("une agence NULL prend la constante plutôt qu'une ligne au hasard", () => {
+    // Le cas du super-admin, qui n'a pas d'agence : interroger sans agence lui rendrait
+    // le registre entier.
+    expect(HOOK).toMatch(/if \(!agencyId\) return MEGGA_WA_BUSINESS_DIGITS/)
+  })
+})
