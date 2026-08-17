@@ -562,6 +562,48 @@ export function MlkBackground({ children }: { children: ReactNode }) {
             padding: calc(var(--mlk-shell-pad) * 0.5) !important;
             border-radius: 22px !important;
           }
+
+          /* ⛔ LE BOUTON COLLE EN BAS SUR TÉLÉPHONE, et c'est une mesure qui l'a
+             décidé (17 août 2026, décision Julien). Le redessin de l'accueil a
+             fait passer la carte de 736 à 1012 px : sur un 375 × 812, « Commencer »
+             tombait 35 px SOUS la ligne de flottaison — au premier rendu, le
+             client ne voyait aucun bouton, alors que c'est le seul geste de
+             l'écran.
+
+             STICKY et non FIXED : il se libère de lui-même quand on atteint sa
+             place naturelle, donc le consentement et le pied restent accessibles
+             sans qu'une barre leur reste dessus. ⚠ Aucun ancêtre ne porte
+             overflow — vérifié, c'est ce qui tue un sticky sans rien dire.
+
+             ⛔ ET AUCUN ACCENT GRAVE DANS CE COMMENTAIRE : il vit dans un gabarit,
+             donc un backtick y ferme la chaîne et rend tsc illisible sur des
+             lignes qui ressemblent à du texte. Quatrième fois que ce dépôt paie
+             ce piège — la troisième est écrite dans le plan du 17 août.
+
+             ⚠ Le fond est OPAQUE et déborde jusqu'aux bords de la carte : la
+             coquille divise son padding par deux ici, d'où les demi-valeurs. Sans
+             ce débord, le texte défilerait dans la gouttière à côté du bouton. */
+          .mlk-cta {
+            position: sticky;
+            bottom: 0;
+            z-index: 2;
+            background: ${MLK.card};
+            margin-inline: calc(var(--mlk-shell-pad) * -0.5);
+            padding: var(--crm-space-lg) calc(var(--mlk-shell-pad) * 0.5)
+                     calc(var(--crm-space-lg) + env(safe-area-inset-bottom, 0px));
+          }
+          /* Un fondu plutôt qu'une coupe nette : le contenu qui passe dessous
+             s'efface au lieu de disparaître sur une arête. */
+          .mlk-cta::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 100%;
+            height: var(--crm-space-5xl);
+            background: linear-gradient(to top, ${MLK.card}, transparent);
+            pointer-events: none;
+          }
         }
         /* Titres H1 plus petits sur mobile (pas de débordement < 380px).
            ⛔ ELLE NE DOIT JAMAIS AGRANDIR, et elle le faisait. Cette règle

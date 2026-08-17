@@ -327,8 +327,8 @@ export function MlkLanding({
         </div>
       </div>
 
-      {/* CTA */}
-      <div style={{ marginTop: 32 }}>
+      {/* CTA — `mlk-cta` le rend COLLANT sous 560 px, voir MlkBackground. */}
+      <div className="mlk-cta" style={{ marginTop: 32 }}>
         <MlkBlackPill
           onClick={onStart}
           iconRight={<MlkIcon name="arrowR" size={18} stroke="#fff" sw={2} />}
