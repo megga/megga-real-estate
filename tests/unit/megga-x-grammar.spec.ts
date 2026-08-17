@@ -947,9 +947,12 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/search', { hors: 8, total: 8 }],
   ['src/components/crm/settings', { hors: 74, total: 95 }],
   ['src/components/crm/today', { hors: 43, total: 54 }],
-  // ⚠ total 110 → 107 le 17 août 2026 : la bannière d'échec de `MlkBooking` a cédé sa
-  // géométrie littérale à `MlkFailureNotice`, qui l'écrit en `var(--crm-*)`.
-  ['src/components/kyc-magic-link', { hors: 80, total: 107 }],
+  // ⚠ total 110 → 107 → 100, et hors échelle 80 → 74, le 17 août 2026. D'abord la bannière
+  // d'échec de `MlkBooking`, qui a cédé sa géométrie littérale à `MlkFailureNotice`. Puis
+  // l'allègement du parcours KYC (décision Julien) : cinq blocs de texte retirés — les
+  // sous-titres de réassurance, l'accroche du dépôt, le conseil de sécurité, deux surtitres
+  // — et leur mise en page avec eux. Un texte supprimé emporte sa géométrie.
+  ['src/components/kyc-magic-link', { hors: 74, total: 100 }],
   // ⚠ 107 → 105 le 16 août 2026 : `PublicPageHeader` a été retiré. Il n'avait que les
   // deux pages de visite pour consommateurs, et elles sont passées à `MlkWordmark`.
   ['src/components/layout', { hors: 9, total: 105 }],

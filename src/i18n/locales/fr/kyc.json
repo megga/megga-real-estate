@@ -48,27 +48,20 @@
   "client": {
     "landing": {
       "lock_label": "Lien chiffré · expire le {{date}}",
-      "agent_label": "Demande de votre agent",
       "title_part1": "Bonjour {{firstName}},",
       "title_part2": "finalisons votre dossier.",
-      "subtitle_prefix": "La loi suisse anti-blanchiment (LBA) nous oblige à vérifier votre identité et, selon le dossier, l'origine des fonds. Comptez ",
+      "subtitle_prefix": "La loi suisse (LBA) nous oblige à vérifier votre identité. Comptez ",
       "subtitle_duration": "5 à 8 minutes",
       "subtitle_suffix": ".",
       "cta_start": "Commencer",
       "consent": "En continuant, vous acceptez le traitement de vos données conformément à la nLPD.",
       "reassure_swiss_title": "Données en Suisse",
-      "reassure_swiss_sub": "Hébergement Genève",
       "reassure_lock_title": "Chiffré bout-en-bout",
-      "reassure_lock_sub": "AES-256, transit TLS 1.3",
       "reassure_shield_title": "Vu par 2 personnes",
-      "reassure_shield_sub": "Votre agent + conformité",
-      "reassure_clock_title": "Conservé 10 ans",
-      "reassure_clock_sub": "LBA art. 7, puis supprimé"
+      "reassure_clock_title": "Conservé 10 ans"
     },
     "upload": {
-      "section_label": "Pièces justificatives",
       "title": "Bonjour {{firstName}}, déposez vos documents",
-      "subtitle": "Joignez votre pièce d'identité, un justificatif de domicile récent et tout élément démontrant l'origine des fonds. Vous pouvez ajouter les pièces une par une.",
       "type_label": "Type de pièce",
       "drop_title": "Glissez votre document ici",
       "drop_hint": "PDF, JPG, PNG, WEBP ou HEIC · max 10 Mo",
@@ -77,7 +70,6 @@
       "received_one": "{{count}} document reçu",
       "received_other": "{{count}} documents reçus",
       "received_pill": "Reçu",
-      "security_tip": "Vos documents sont chiffrés dès le téléversement. Personne d'autre que {{agentName}} et l'équipe conformité de {{agencyName}} n'y aura accès.",
       "cta_confirm": "Valider et envoyer",
       "cta_confirming": "Envoi en cours…",
       "error_min_one": "Téléversez au moins un document avant de valider.",

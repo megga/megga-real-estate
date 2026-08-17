@@ -48,27 +48,20 @@
   "client": {
     "landing": {
       "lock_label": "Encrypted link · expires on {{date}}",
-      "agent_label": "Request from your agent",
       "title_part1": "Hello {{firstName}},",
       "title_part2": "let's complete your file.",
-      "subtitle_prefix": "Swiss anti-money laundering law (AMLA) requires us to verify your identity and, depending on the case, the source of funds. Allow ",
+      "subtitle_prefix": "Swiss anti-money-laundering law requires us to verify your identity. Allow ",
       "subtitle_duration": "5 to 8 minutes",
       "subtitle_suffix": ".",
       "cta_start": "Get started",
       "consent": "By continuing, you accept the processing of your data in accordance with the Swiss FADP.",
       "reassure_swiss_title": "Data stored in Switzerland",
-      "reassure_swiss_sub": "Geneva-based hosting",
       "reassure_lock_title": "End-to-end encrypted",
-      "reassure_lock_sub": "AES-256, TLS 1.3 in transit",
       "reassure_shield_title": "Seen by 2 people",
-      "reassure_shield_sub": "Your agent + compliance",
-      "reassure_clock_title": "Kept for 10 years",
-      "reassure_clock_sub": "AMLA art. 7, then deleted"
+      "reassure_clock_title": "Kept for 10 years"
     },
     "upload": {
-      "section_label": "Supporting documents",
       "title": "Hello {{firstName}}, upload your documents",
-      "subtitle": "Attach your ID, a recent proof of address, and any evidence of the source of funds. You can add documents one by one.",
       "type_label": "Document type",
       "drop_title": "Drop your document here",
       "drop_hint": "PDF, JPG, PNG, WEBP or HEIC · max 10 MB",
@@ -77,7 +70,6 @@
       "received_one": "{{count}} document received",
       "received_other": "{{count}} documents received",
       "received_pill": "Received",
-      "security_tip": "Your documents are encrypted upon upload. Only {{agentName}} and the compliance team at {{agencyName}} will have access.",
       "cta_confirm": "Submit and send",
       "cta_confirming": "Sending…",
       "error_min_one": "Please upload at least one document before submitting.",
