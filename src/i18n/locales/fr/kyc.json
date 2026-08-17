@@ -64,7 +64,6 @@
       "title": "Bonjour {{firstName}}, déposez vos documents",
       "type_label": "Type de pièce",
       "drop_title": "Glissez votre document ici",
-      "drop_hint": "PDF, JPG, PNG, WEBP ou HEIC · max 10 Mo",
       "browse": "Parcourir",
       "uploading": "Téléversement…",
       "received_one": "{{count}} document reçu",

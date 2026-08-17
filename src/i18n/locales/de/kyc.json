@@ -64,7 +64,6 @@
       "title": "Hallo {{firstName}}, laden Sie Ihre Dokumente hoch",
       "type_label": "Dokumenttyp",
       "drop_title": "Ziehen Sie Ihr Dokument hierher",
-      "drop_hint": "PDF, JPG, PNG, WEBP oder HEIC · max. 10 MB",
       "browse": "Durchsuchen",
       "uploading": "Wird hochgeladen…",
       "received_one": "{{count}} Dokument erhalten",

@@ -64,7 +64,6 @@
       "title": "Buongiorno {{firstName}}, carichi i Suoi documenti",
       "type_label": "Tipo di documento",
       "drop_title": "Trascini il Suo documento qui",
-      "drop_hint": "PDF, JPG, PNG, WEBP o HEIC · max 10 MB",
       "browse": "Sfogliare",
       "uploading": "Caricamento in corso…",
       "received_one": "{{count}} documento ricevuto",

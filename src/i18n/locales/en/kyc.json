@@ -64,7 +64,6 @@
       "title": "Hello {{firstName}}, upload your documents",
       "type_label": "Document type",
       "drop_title": "Drop your document here",
-      "drop_hint": "PDF, JPG, PNG, WEBP or HEIC · max 10 MB",
       "browse": "Browse",
       "uploading": "Uploading…",
       "received_one": "{{count}} document received",
