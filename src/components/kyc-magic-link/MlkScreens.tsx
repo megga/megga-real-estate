@@ -469,16 +469,6 @@ export function MlkUpload({
           >
             {t('client.upload.drop_title')}
           </div>
-          <div
-            style={{
-              fontSize: 'var(--crm-text-sm)',
-              color: MLK.muted,
-              fontWeight: 500,
-              marginTop: 4,
-            }}
-          >
-            {t('client.upload.drop_hint')}
-          </div>
         </div>
         <input
           ref={fileInputRef}

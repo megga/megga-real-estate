@@ -952,7 +952,7 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // l'allègement du parcours KYC (décision Julien) : cinq blocs de texte retirés — les
   // sous-titres de réassurance, l'accroche du dépôt, le conseil de sécurité, deux surtitres
   // — et leur mise en page avec eux. Un texte supprimé emporte sa géométrie.
-  ['src/components/kyc-magic-link', { hors: 74, total: 100 }],
+  ['src/components/kyc-magic-link', { hors: 74, total: 99 }],
   // ⚠ 107 → 105 le 16 août 2026 : `PublicPageHeader` a été retiré. Il n'avait que les
   // deux pages de visite pour consommateurs, et elles sont passées à `MlkWordmark`.
   ['src/components/layout', { hors: 9, total: 105 }],
