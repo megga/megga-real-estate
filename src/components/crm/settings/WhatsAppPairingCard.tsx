@@ -748,6 +748,9 @@ const MOTIFS_CONNUS = new Set([
   'template_not_configured', 'number_taken', 'rate_limited', 'invalid_phone',
   'wrong_code', 'expired', 'too_many_attempts', 'no_pending', 'phone_suppressed',
   'not_contactable',
+  // Plafonds de plateforme (20260817160000). Distingués parce que le geste qui débloque
+  // n'est pas le même : attendre, viser un autre numéro, ou appeler le support.
+  'platform_rate_limited', 'number_rate_limited', 'too_many_numbers',
 ])
 
 function WAErreur({ t, motif }: { t: TFunction; motif: string }) {

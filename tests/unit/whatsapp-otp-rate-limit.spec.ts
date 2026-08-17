@@ -135,3 +135,54 @@ describe('profiles.phone — le formulaire de Profil ne le réécrit plus', () =
     expect(payload).toContain('full_name')
   })
 })
+
+// ── Plafonds de PLATEFORME ──────────────────────────────────────────────────
+//
+// ⛔ Le plafond horaire par agent ne borne QUE l'agent : il se multiplie par le nombre de
+// comptes, et ne protège pas du tout la personne qu'on cible en boucle. Trois plafonds ont
+// été ajoutés le 17.08.2026 (20260817163814), et ce qui compte ici n'est pas leur valeur
+// — elle se règle en base — mais l'endroit où vit leur COMPTEUR.
+//
+// ⚠ Deux socles ont été explicitement ÉCARTÉS, et cette garde interdit d'y revenir :
+//   · `whatsapp_agent_links` — l'agent la fait disparaître par déliaison. C'est le défaut
+//     déjà corrigé plus haut dans ce fichier ;
+//   · `whatsapp_messages` — persistance BEST-EFFORT (le guard rend `ok` même si l'insert
+//     échoue) et marqueur de template en CHAÎNE dans `body`. Un plafond adossé à un format
+//     de chaîne tombe silencieusement à zéro le jour où ce format change.
+describe('plafonds de plateforme — le compteur est hors de portée du client', () => {
+  const MIGRATION = 'supabase/migrations/20260817163814_whatsapp_verification_platform_caps.sql'
+  const sql = readFileSync(MIGRATION, 'utf8')
+
+  it('le registre ne donne AUCUN droit à anon ni authenticated', () => {
+    expect(sql).toMatch(/REVOKE ALL ON public\.whatsapp_verification_sends FROM anon, authenticated/i)
+    // RLS active SANS policy : le verrou est l'absence de porte, pas une porte étroite.
+    expect(sql).toMatch(/ALTER TABLE public\.whatsapp_verification_sends ENABLE ROW LEVEL SECURITY/i)
+    expect(
+      /CREATE POLICY[^;]*whatsapp_verification_sends/i.test(sql),
+      'une policy sur le registre rouvrirait au client la table qui le borne',
+    ).toBe(false)
+  })
+
+  it('ne compte PAS dans whatsapp_messages', () => {
+    const start = sql.slice(sql.indexOf('FUNCTION public.start_whatsapp_number_verification'))
+    expect(
+      /whatsapp_messages/i.test(start),
+      'le plafond lit whatsapp_messages — persistance best-effort et marqueur en chaîne : ' +
+        'il tomberait silencieusement à zéro',
+    ).toBe(false)
+  })
+
+  it('les plafonds ont un repli CONSERVATEUR quand la config manque', () => {
+    // Une clé absente, illisible ou mal formée ne doit pas rendre le chemin illimité.
+    expect(sql).toMatch(/coalesce\(\(v_caps->>'platform_daily'\)::int,\s*50\)/)
+    expect(sql).toMatch(/coalesce\(\(v_caps->>'distinct_numbers_per_agent_daily'\)::int,\s*3\)/)
+    expect(sql).toMatch(/coalesce\(\(v_caps->>'per_number_daily'\)::int,\s*2\)/)
+    // Et un JSON invalide ne doit pas faire ÉCHOUER le parcours : il doit fermer.
+    expect(sql).toMatch(/EXCEPTION WHEN others THEN\s+v_caps := NULL/)
+  })
+
+  it("l'abandon rembourse le registre, pas seulement le compteur horaire", () => {
+    const abort = sql.slice(sql.indexOf('FUNCTION public.abort_whatsapp_number_verification'))
+    expect(abort).toMatch(/DELETE FROM public\.whatsapp_verification_sends/i)
+  })
+})

@@ -692,7 +692,10 @@
           "no_pending": "Keine Verifizierung im Gange.",
           "phone_suppressed": "Diese Nummer hat um Einstellung der Nachrichten gebeten.",
           "not_contactable": "Diese Nummer kann nicht kontaktiert werden.",
-          "generic": "Die Verifizierung ist fehlgeschlagen. Versuchen Sie es erneut."
+          "generic": "Die Verifizierung ist fehlgeschlagen. Versuchen Sie es erneut.",
+          "platform_rate_limited": "Heute zu viele Verifizierungen auf der gesamten Plattform. Versuchen Sie es morgen erneut oder wenden Sie sich an den Support.",
+          "number_rate_limited": "Diese Nummer hat heute bereits mehrere Codes erhalten. Versuchen Sie es morgen erneut.",
+          "too_many_numbers": "Sie haben heute zu viele verschiedene Nummern verifiziert. Versuchen Sie es morgen erneut."
         }
       },
       "unlinked": {

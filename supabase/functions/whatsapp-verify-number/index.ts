@@ -44,7 +44,13 @@ const STATUS: Record<string, number> = {
   no_profile: 403,
   invalid_phone: 400,
   number_taken: 409,
+  // Les quatre plafonds rendent 429 : c'est bien « trop de demandes », que la borne soit
+  // celle de l'agent, du numéro visé ou de la plateforme. Le CORPS distingue lequel, pour
+  // que l'écran puisse dire quoi faire — un 429 générique laisserait l'agent réessayer.
   rate_limited: 429,
+  platform_rate_limited: 429,
+  number_rate_limited: 429,
+  too_many_numbers: 429,
 }
 
 serve(async (req) => {

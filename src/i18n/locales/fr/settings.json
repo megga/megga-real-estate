@@ -692,7 +692,10 @@
           "no_pending": "Aucune vérification en cours.",
           "phone_suppressed": "Ce numéro a demandé à ne plus recevoir de messages.",
           "not_contactable": "Ce numéro ne peut pas être contacté.",
-          "generic": "La vérification a échoué. Réessayez."
+          "generic": "La vérification a échoué. Réessayez.",
+          "platform_rate_limited": "Trop de vérifications sur l'ensemble de la plateforme aujourd'hui. Réessayez demain ou contactez le support.",
+          "number_rate_limited": "Ce numéro a déjà reçu plusieurs codes aujourd'hui. Réessayez demain.",
+          "too_many_numbers": "Vous avez vérifié trop de numéros différents aujourd'hui. Réessayez demain."
         }
       },
       "unlinked": {
