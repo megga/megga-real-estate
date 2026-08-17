@@ -9,6 +9,36 @@ import { useAuth } from '@/hooks/useAuth'
 import { calendarAuthMethod, calendarRedirectTo, type CalendarConnectOrigin } from '@/lib/calendarOauth'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
 
+// ── Scopes OAuth ──
+
+/**
+ * Scopes demandés à la liaison Google Calendar : DEUX scopes étroits plutôt que
+ * `…/auth/calendar`, qui les couvrait tous les deux mais est sensible ET annonce
+ * à l'agent « supprimer définitivement tous les agendas auxquels vous avez
+ * accès » — mal défendable sur un CRM, et à la revue Google comme à l'écran.
+ *
+ * - `calendar.events` (sensible) : les 5 appels de `google-calendar-sync` et les
+ *   3 de `booking-calendar-write`, tous sur `/calendars/primary/events`.
+ * - `calendar.freebusy` (NON sensible) : le `freeBusy.query` de
+ *   `booking-freebusy`, qui alimente les créneaux proposés au client.
+ *   ⚠ `calendar.events` n'autorise PAS cet appel — sans ce second scope,
+ *   `appointment-slots` cesse de voir l'occupation de l'agent et propose des
+ *   créneaux déjà pris.
+ *
+ * Un seul des deux étant sensible, un seul passe par la vérification Google
+ * (Data Access → soumission). Tant qu'elle n'est pas accordée, l'écran « Google
+ * n'a pas validé cette application » s'affiche et la liaison consomme le
+ * plafond de 100 utilisateurs.
+ *
+ * ⚠ Sans rapport avec `CALENDAR_SCOPE` de `_shared/google-service-account.ts`,
+ * resté au scope complet : celui-là passe par la délégation à l'échelle du
+ * domaine Workspace, que l'écran de consentement ne gouverne pas.
+ */
+const GOOGLE_CALENDAR_SCOPES = [
+  'https://www.googleapis.com/auth/calendar.events',
+  'https://www.googleapis.com/auth/calendar.freebusy',
+].join(' ')
+
 // ── Types ──
 
 interface GoogleCalendarToken {
@@ -126,7 +156,7 @@ export function useGoogleCalendar(dateRange?: { start: Date; end: Date }) {
   // ⚠ `linkIdentity` exige « Manual linking » activé sur le projet Supabase.
   async function connectGoogleCalendar(opts?: { from?: CalendarConnectOrigin }): Promise<{ error: string | null }> {
     const options = {
-      scopes: 'https://www.googleapis.com/auth/calendar',
+      scopes: GOOGLE_CALENDAR_SCOPES,
       redirectTo: calendarRedirectTo(window.location.origin, 'google', opts?.from),
       queryParams: {
         access_type: 'offline',

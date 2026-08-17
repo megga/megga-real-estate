@@ -768,11 +768,42 @@ volontairement faux : `invalid_grant` ⇒ le couple est valide (seul le jeton es
 `invalid_client` ⇒ le secret ne correspond pas au client. Même oracle que `no_secret` vs
 `invalid_signature` pour `MEGGA_MAGIC_LINK_HMAC_SECRET`.
 
-⚠ **Le scope `https://www.googleapis.com/auth/calendar` n'est pas déclaré** dans Data Access.
-Conséquence, mesurée à la publication : la **connexion** est propre pour tout le monde (scopes
-non sensibles seulement, ni plafond ni avertissement), mais la liaison Calendar demande un scope
-sensible non approuvé — cet écran-là affiche « Google n'a pas validé cette application » et
-consomme le plafond de 100 utilisateurs. À déclarer avant toute soumission en vérification.
+⚠ **AUCUN scope Calendar n'est déclaré dans Data Access** — vérifié dans la console le
+17.08.2026 : « Your sensitive scopes » → **No rows to display**. Conséquence : la **connexion**
+est propre pour tout le monde (scopes non sensibles seulement, ni plafond ni avertissement),
+mais la liaison Calendar demande un scope sensible non approuvé — cet écran-là affiche
+« Google n'a pas validé cette application » et consomme le plafond de 100 utilisateurs.
+
+⛔ **LE VERIFICATION CENTER NE LIT QUE LES SCOPES DÉCLARÉS, jamais ceux réellement demandés.**
+Ses deux cartes sont au vert et l'une des deux ment : « Branding status : ✅ verified » (c'est
+la validation accordée le 17.08 au matin — automatique, quelques minutes) et « Data access
+status : ⓘ **Verification is not required since your app is not requesting any sensitive or
+restricted scopes** », alors que le CRM demande bel et bien un scope sensible. Une console au
+vert ne prouve donc RIEN sur ce que l'app demande. ⚠ Ne pas confondre les deux validations :
+le **branding** (nom + logo) est automatique ; la **data access** prend *jusqu'à 10 jours* et
+exige la déclaration du scope, une justification écrite par scope + pourquoi un scope plus
+étroit ne suffit pas, et une **vidéo** du consentement et de l'usage. Ordre imposé : branding
+d'abord.
+
+✅ **Le CRM demande DEUX scopes étroits depuis le 17.08.2026** (décision Julien), au lieu du
+scope complet `…/auth/calendar` qui annonçait « supprimer définitivement tous les agendas » :
+`calendar.events` (**sensible** — les 5 appels de `google-calendar-sync` et les 3 de
+`booking-calendar-write`, tous sur `/calendars/primary/events`) et `calendar.freebusy`
+(**NON sensible** — le `freeBusy.query` de `booking-freebusy` qui alimente les créneaux
+proposés au client). ⛔ `calendar.events` **n'autorise PAS** `freeBusy.query` : le second scope
+n'est pas un confort, sans lui `appointment-slots` propose des créneaux déjà pris. Un seul des
+deux étant sensible, un seul passe la vérification.
+
+⚠ La sensibilité d'un scope se lit dans le **sélecteur de la console** (Data Access → « Add or
+remove scopes » → filtre « Google Calendar API »), à l'icône cadenas — les pages de doc Google
+ne la portent pas. Relevé sur les 17 scopes Calendar : non sensibles = `calendar.freebusy`,
+`calendar.events.freebusy`, `calendar.app.created`, `calendar.calendarlist.readonly`,
+`calendar.events.public.readonly`, `calendar.settings.readonly` ; tous les autres sont
+sensibles, `calendar.events` compris.
+
+⚠ **Sans rapport avec `CALENDAR_SCOPE` de `_shared/google-service-account.ts`**, resté au scope
+complet : il passe par la délégation à l'échelle du domaine Workspace, que l'écran de
+consentement ne gouverne pas.
 
 ⚠ **L'ancien client reste actif sur l'ancien compte, et hello@megga.ai n'y a AUCUN accès**
 (`resourcemanager.projects.get`, `oauthconfig.verification.get`, `iam.serviceAccounts.list`
@@ -800,12 +831,17 @@ scores (`1.000` sur les deux dossiers de test, contre 13 dossiers à `NULL` depu
 Ce qui reste de cet épisode est écrit plus haut, dans les deux encadrés des secrets.
 
 **🟠 Reste à faire, par ordre d'effet :**
-1. **Deux jetons Mapbox distincts.** Le même est aujourd'hui posé aux deux endroits, donc le
+1. **Déclarer les deux scopes Calendar dans Data Access** (geste humain, console Google Auth
+   Platform, projet `tribal-dispatch-504619-c1`, compte hello@megga.ai) : `calendar.events` +
+   `calendar.freebusy`, puis soumettre la vérification data access du premier — justification
+   écrite + vidéo, jusqu'à 10 jours. Le code demande déjà ces deux scopes ; tant que la
+   déclaration manque, la liaison Calendar affiche « Google n'a pas validé cette application ».
+2. **Deux jetons Mapbox distincts.** Le même est aujourd'hui posé aux deux endroits, donc le
    jeton du navigateur est **sans restriction et lisible par tous** dans le bundle public.
    Dupliquer, et restreindre la copie navigateur à `app.megga.ch`.
-2. **Registre UID** (`UID_REGISTER_API_URL` / `_CREDENTIAL`) : sans lui `vat_lookup` reste
+3. **Registre UID** (`UID_REGISTER_API_URL` / `_CREDENTIAL`) : sans lui `vat_lookup` reste
    `unavailable` et le score suisse ne repose que sur UN check.
-3. **`Step2Address.tsx` invente des adresses** quand le géocodage échoue : son `catch` retombe
+4. **`Step2Address.tsx` invente des adresses** quand le géocodage échoue : son `catch` retombe
    sur `mockSuggestions` sans rien dire à l'écran. Décider ce que l'utilisateur doit voir.
 
 ---
