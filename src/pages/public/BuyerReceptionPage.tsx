@@ -445,9 +445,9 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
     <div style={{ position: 'fixed', inset: 0, zIndex: 60, background: MLK.bgGradient, animation: 'rcFade .3s ease both', display: 'flex', flexDirection: 'column', maxWidth: 480, margin: '0 auto', fontFamily: FONT, width: '100%' }}>
       <div className="rc-scroll" style={{ flex: 1, overflowY: 'auto', padding: '72px var(--crm-space-6xl) 28px', textAlign: 'center' }}>
         <div style={{ width: 68, height: 68, borderRadius: 999, background: MLK.ink, margin: '0 auto', display: 'grid', placeItems: 'center', boxShadow: `0 12px 30px ${crmVoileEncre(false, 0.25)}`, animation: 'rcPop .5s cubic-bezier(.2,.9,.3,1) both' }}><Icon d={ICO.check} size={30} stroke="#fff" sw={2.2} /></div>
-        <h1 style={{ margin: 'var(--crm-space-5xl) 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: MLK.ink }}>Merci {contactFirst} !</h1>
+        <h1 style={{ margin: 'var(--crm-space-5xl) 0 0', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: MLK.ink }}>{t('client.reception.thanks', { firstName: contactFirst })}</h1>
         <p style={{ margin: 'var(--crm-space-lg) auto 0', maxWidth: 300, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.55, color: MLK.inkSoft }}>
-          Vos réponses sont transmises à {agent?.name || 'votre conseiller'}.
+          {t('client.reception.transmitted', { agentName: agent?.name || t('client.reception.adviser') })}
         </p>
         <div style={{ marginTop: 26, background: MLK.card, borderRadius: 20, boxShadow: MLK.shadow, padding: 'var(--crm-space-4xl) var(--crm-space-4xl) var(--crm-space-lg)', textAlign: 'left' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', marginBottom: 'var(--crm-space-xs)' }}>
@@ -467,7 +467,7 @@ function ReceptionDone({ liked, total, contactFirst, agent, onReview }: { liked:
         {rejected > 0 && <div style={{ marginTop: 'var(--crm-space-xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: MLK.muted }}>{t('client.reception.rejected_count', { count: rejected })}</div>}
       </div>
       <div style={{ flexShrink: 0, padding: 'var(--crm-space-xl) var(--crm-space-4xl) calc(var(--crm-space-2xl) + env(safe-area-inset-bottom))' }}>
-        {agent?.phone && <a href={'tel:' + agent.phone.replace(/\s+/g, '')} style={{ ...blackBtn(), textDecoration: 'none', marginBottom: 'var(--crm-space-lg)' }}><Icon d={ICO.phone} size={17} stroke="#fff" /> Appeler {firstName}</a>}
+        {agent?.phone && <a href={'tel:' + agent.phone.replace(/\s+/g, '')} style={{ ...blackBtn(), textDecoration: 'none', marginBottom: 'var(--crm-space-lg)' }}><Icon d={ICO.phone} size={17} stroke="#fff" /> {t('client.reception.call', { firstName })}</a>}
         <button onClick={onReview} style={ghostBtn({ width: '100%' })}>{t('client.reception.review')}</button>
       </div>
     </div>

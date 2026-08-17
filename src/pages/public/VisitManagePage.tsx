@@ -219,7 +219,7 @@ export default function VisitManagePage() {
             )}
             <div className="flex items-center gap-2" style={{ fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft }}>
               <CalendarDays className="h-4 w-4 flex-shrink-0" style={{ color: MLK.accent }} />
-              <span className="font-medium capitalize">{dateFR}</span> à <span className="font-medium">{timeFR}</span>
+              <span className="font-medium capitalize">{t('client.visit_manage.date_at_time', { date: dateFR, time: timeFR })}</span>
             </div>
           </div>
         </div>

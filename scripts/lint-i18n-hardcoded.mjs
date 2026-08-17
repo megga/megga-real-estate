@@ -11,6 +11,31 @@
 //   eslint.config.js → ignorées ici.
 //
 // ⚠ Garder cette liste synchronisée avec le bloc « verrouillées » d'eslint.config.js.
+//
+// ── ⛔ POURQUOI CETTE LISTE A GAGNÉ QUATRE ENTRÉES LE 18 AOÛT 2026 ────────────
+// Elle était une LISTE BLANCHE, donc tout ce qui n'y figurait pas était dehors
+// SANS QUE RIEN NE LE DISE. Mesuré : trois surfaces CLIENTES — la réception
+// acheteur et les deux pages de visite — n'avaient aucune traduction et
+// portaient ~66 chaînes françaises en dur. Un acheteur alémanique recevait sa
+// sélection de biens en français. La garde ne les voyait pas parce qu'elles
+// n'étaient pas dans la liste, et rien ne signale une absence.
+//
+// ⚠ ET LE MÊME BALAYAGE A TROUVÉ TROIS AUTRES ZONES du même genre : le 404
+// (« Page introuvable », qu'un client atteint avec un lien fautif), l'écran
+// d'ouverture (« Ouverture de votre espace », que TOUT LE MONDE voit) et le
+// bandeau de bundle périmé. Toutes ajoutées ici.
+//
+// ⛔ CE QUI RESTE VOLONTAIREMENT DEHORS, ET IL FAUT L'ÉCRIRE :
+//   · `src/components/admin/**` et `src/pages/admin/**` — la console
+//     super-admin. Audience d'UNE personne, francophone ; la traduire coûterait
+//     ~350 entrées pour zéro lecteur. C'est une décision, pas un oubli.
+//   · `src/pages/dev/**` — les bancs, absents du bundle déployé.
+//   · `src/components/megga-x/**` et `propertyx/**` — le port de la vitrine et
+//     les vestiges d'icônes ; leur copie vient de Webflow, pas du catalogue.
+//
+// ⚠ Une zone neuve de `src/components/` n'entre PAS ici toute seule : ce script
+// reste une liste. La garde qui mesure la RÈGLE plutôt qu'un périmètre est
+// `tests/unit/face-publique-i18n.spec.ts`, et elle dérive le sien du dossier.
 import { ESLint } from 'eslint'
 
 const LOCKED_GLOBS = [
@@ -23,6 +48,11 @@ const LOCKED_GLOBS = [
   'src/components/ai-copilot/**/*.{ts,tsx}',
   'src/components/kyc-report/**/*.{ts,tsx}',
   'src/pages/agent/**/*.{ts,tsx}',
+  // Ajoutées le 18 août 2026 — voir l'en-tête.
+  'src/pages/public/**/*.{ts,tsx}',
+  'src/components/kyc-magic-link/**/*.{ts,tsx}',
+  'src/components/layout/**/*.{ts,tsx}',
+  'src/components/auth/**/*.{ts,tsx}',
 ]
 
 const RULE = 'i18next/no-literal-string'

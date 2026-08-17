@@ -34,7 +34,12 @@ const DOSSIER = 'src/pages/public'
  * sans motif n'a rien à faire ici : c'est le motif qui force la décision.
  */
 const EXEMPTES: Record<string, string> = {
-  'NotFoundPage.tsx': 'un 404 — aucune copie de parcours',
+  // ⛔ `NotFoundPage` A ÉTÉ RETIRÉE DE CETTE LISTE le 18 août 2026, et l'erreur
+  // valait d'être écrite : je l'avais exemptée avec le motif « un 404, aucune
+  // copie de parcours ». Elle en porte quatre — « Page introuvable », « Cette
+  // page n'existe pas… », « Retour au tableau de bord », « Centre d'aide » — et
+  // c'est une page qu'un CLIENT atteint avec un lien fautif. Un motif d'exemption
+  // qui n'a pas été vérifié vaut une exemption fausse.
   'AuthCallbackPage.tsx': "un écran d'attente technique, jamais lu",
   'AuthBentoPage.tsx': 'coquille morte, une seule route vivante sur quinze',
   'KycReportRenderPage.tsx':
@@ -61,6 +66,32 @@ function phrasesEnDur(src: string): string[] {
 
   for (const m of code.matchAll(/>\s*([A-ZÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ][^<>{}\n]{3,})\s*</g)) {
     trouve.push(m[1]!.trim())
+  }
+
+  /**
+   * ⛔ LA PHRASE INTERPOLÉE — le trou que cette garde avait à sa première
+   * écriture, et qui lui a fait déclarer PROPRE un fichier qui ne l'était pas.
+   *
+   * Le motif ci-dessus exclut les accolades (`[^<>{}\n]`), donc
+   * `>Merci {prenom} !<` lui était invisible. Or c'est exactement la forme la
+   * plus susceptible d'être de la prose : une phrase qui nomme le client.
+   * `BuyerReceptionPage` en portait trois — « Merci {contactFirst} ! »,
+   * « Vos réponses sont transmises à {…}. », « Appeler {firstName} » — que
+   * `i18next/no-literal-string` a vues et que celle-ci ratait.
+   *
+   * Ici on retire d'abord les expressions, puis on regarde ce qui RESTE : s'il
+   * subsiste plusieurs mots accentués autour du trou, c'est une phrase.
+   */
+  // ⚠ BORNÉ À UNE LIGNE, et les deux `\n` exclus le sont par MESURE : sans eux, le
+  // motif traversait le fichier et attrapait le gabarit `@keyframes` de la
+  // réception — un faux positif qui aurait fait désarmer la clause entière.
+  for (const m of code.matchAll(/>\s*([^<>{}\n]*\{[^{}<>\n]*\}[^<>{}\n]*)\s*</g)) {
+    const mots = m[1]!.replace(/\{[^{}]*\}/g, ' ').replace(/\s+/g, ' ').trim()
+    // Deux mots, ou un seul capitalisé d'au moins quatre lettres : de la prose,
+    // pas une unité (« m² », « CHF ») ni une ponctuation isolée.
+    if (/[A-Za-zÀ-ÿ]{3}\s+[A-Za-zÀ-ÿ]{2}/.test(mots) || /^[A-ZÀ-Ü][a-zà-ÿ]{3,}$/.test(mots)) {
+      trouve.push(mots.slice(0, 60))
+    }
   }
   for (const m of code.matchAll(
     /(?:placeholder|aria-label|alt|title|label)\s*=\s*["']([A-ZÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ][^"'\n]{3,})["']/g,

@@ -214,7 +214,8 @@
       "cta_cancel": "Cancel viewing",
       "pick_date": "Choose a new date",
       "back": "Back",
-      "confirm": "Confirm"
+      "confirm": "Confirm",
+      "date_at_time": "{{date}} at {{time}}"
     },
     "visit_feedback": {
       "invalid_title": "Invalid link",
@@ -306,7 +307,10 @@
         "other": "Other"
       },
       "rooms_one": "{{count}} room",
-      "rooms_other": "{{count}} rooms"
+      "rooms_other": "{{count}} rooms",
+      "thanks": "Thank you {{firstName}}!",
+      "transmitted": "Your answers have been sent to {{agentName}}.",
+      "call": "Call {{firstName}}"
     },
     "invite": {
       "tagline": "Swiss real estate"
