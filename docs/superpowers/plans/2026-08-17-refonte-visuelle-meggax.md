@@ -74,18 +74,10 @@ restent en littéral** ». C'est une décision écrite, que MEGGA X n'a jamais r
 24 valeurs au-dessus de 24 px restent donc telles quelles, et **le lot ne touche pas
 `globals.css`**.
 
-**La correspondance appliquée**, un seul nom par valeur (le doublon est ignoré, pas
-retiré — c'est l'autre PR). D'où la suite en apparence trouée, qui saute `2xs`, `md`,
-`xl`, `3xl`, `5xl`, `7xl` :
-
-| valeurs mesurées | barreau | px | sites |
-|---|---|---|---|
-| 4 · 5 | `--crm-space-xs` | 4 | 13 |
-| 6 · 7 · 8 · 9 | `--crm-space-sm` | 8 | 34 |
-| 10 · 11 · 12 · 13 | `--crm-space-lg` | 12 | 41 |
-| 14 · 15 · 16 | `--crm-space-2xl` | 16 | 37 |
-| 18 · 20 | `--crm-space-4xl` | 20 | 24 |
-| 22 · 24 | `--crm-space-6xl` | 24 | 17 |
+⛔ **CETTE TABLE À SIX BARREAUX A ÉTÉ REMPLACÉE LE MÊME JOUR — voir §0 bis.** Elle
+fusionnait 10 avec 12 et 18 avec 20, exactement la distinction que le rétablissement de
+l'échelle a ensuite eu besoin de lire. Le lot 1 a donc été **repris de zéro**, pas rapiécé.
+La table vivante est celle du §0 bis, à huit barreaux.
 
 ### ✅ Lot 1 livré — `9e83e4b9`
 
@@ -137,11 +129,60 @@ plus fine sont mutuellement exclusifs, et le dédoublonnage est celui qu'on ne p
 défaire.**
 
 **Décision de Julien, 17 août : ne rien fondre tant que la question de l'échelle n'est pas
-tranchée.** Elle est en amont : l'échelle reste-t-elle au pas de 4, ou regagne-t-elle 10 et
-18 ? Coût de l'attente : nul — les alias sont déjà écrits et gardés.
+tranchée.** Puis, dans la foulée, il l'a tranchée — voir ci-dessous.
 
-**Reste ouvert :** la question de l'échelle ci-dessus, et les barreaux au-dessus de 24 px
-(renverser une décision écrite = un arbitrage, pas un nettoyage).
+---
+
+## §0 bis — L'ÉCHELLE REGAGNE 10 ET 18 PX (17 août 2026, `52922dbf`)
+
+**Décision de Julien.** `--crm-space-lg` retrouve **10 px** et `--crm-space-4xl` **18 px**,
+leurs valeurs de naissance. Deux lignes de `globals.css`, **626 sites déplacés de 2 px**.
+
+⛔ **CE N'EST PAS UNE CORRECTION DE BOGUE, C'EST UN RENVERSEMENT PARTIEL DE `f427e894`**,
+qui avait arrondi l'échelle du pas de 2 au pas de 4 **délibérément**, chaque ligne annotée,
+pour l'aligner sur `--main-spacers--*` de la vitrine — laquelle va `4·8·12·16·20·24·32·40…`,
+un pas de 4 pur. Deux crans sont repris, et deux seulement.
+
+⚠ **10 ET 18 N'EXISTENT PAS DANS LA VITRINE**, et c'est **écrit** plutôt que contourné : la
+garde `les espacements sortent TOUS de la vitrine` devient `ne s'écartent que sur 10 et
+18 px` — exactement la forme que le TEXTE emploie déjà pour ses 11 et 13 px. En ajouter un
+demandera de l'inscrire, donc d'en décider.
+
+⚠ **POURQUOI RENDRE LEUR VALEUR À `lg` ET `4xl` PLUTÔT QUE CRÉER DEUX NOMS.** Sur les 92 %
+de sites antérieurs à la bascule, le nom est le seul enregistrement survivant de
+l'intention. `ALIAS_ASSUMES` l'avait anticipé mot pour mot — « si l'échelle regagnait un
+cran à 10 px, l'information pour le placer serait perdue ». Elle ne l'était pas ; elle a
+servi. **Deux collisions sortent donc de la liste (12 px, 20 px), résolues sans supprimer
+un seul nom.** C'est la lecture inverse d'un dédoublonnage, et la seule qui ne détruise rien.
+
+**La table vivante, à huit barreaux :**
+
+| valeurs mesurées | barreau | px |
+|---|---|---|
+| 4 · 5 | `--crm-space-xs` | 4 |
+| 6 · 7 · 8 | `--crm-space-sm` | 8 |
+| 9 · 10 | `--crm-space-lg` | **10** |
+| 11 · 12 · 13 | `--crm-space-xl` | 12 |
+| 14 · 15 · 16 | `--crm-space-2xl` | 16 |
+| 17 · 18 | `--crm-space-4xl` | **18** |
+| 19 · 20 · 21 | `--crm-space-5xl` | 20 |
+| 22 · 23 · 24 | `--crm-space-6xl` | 24 |
+
+⚠ **Le lot 1 a été REPRIS DE ZÉRO**, les neuf fichiers repartant de `9e83e4b9^`. Mêmes 147
+déclarations, mais chaque valeur tombe désormais à **2 px près et non 4**.
+
+⚠ **~100 sites écrits DEPUIS la bascule glissent de 2 px** : leur auteur visait 12 et 20.
+Prix assumé, petit, et dans le sens de l'échelle.
+
+⛔ **LA RÉFÉRENCE DE RÉGRESSION VISUELLE EST PÉRIMÉE.** `/dashboard/pipeline` est la seule
+page photographiée du dépôt et son espacement bouge. À régénérer par le commentaire
+`/regenerate-visual-baselines` sur la PR — impossible en local, la référence étant produite
+sous Linux.
+
+**Reste ouvert :** les barreaux au-dessus de 24 px (renverser une décision écrite = un
+arbitrage, pas un nettoyage), et les quatre paires d'alias restantes — chacune tient encore
+deux valeurs de naissance écrasées (`2xs` 2/4, `sm` 6/8, `2xl` 14/16, `6xl` 22/24), à
+rouvrir de la même façon : **par mesure de la demande, jamais par goût de la symétrie**.
 
 ---
 
