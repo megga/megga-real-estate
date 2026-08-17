@@ -16,6 +16,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
+import { HELP_CENTER_URL } from '@/lib/help-articles'
 
 const FILE = 'public/_redirects'
 
@@ -64,6 +65,33 @@ describe('public/_redirects', () => {
       dead,
       `admin.megga.ch a été retiré, plus aucune règle ne doit y pointer :\n${dead.map(r => `  ligne ${r.line} : ${r.from} → ${r.to}`).join('\n')}`,
     ).toEqual([])
+  })
+
+  it("envoie /aide et /help vers la MÊME cible que HELP_CENTER_URL", () => {
+    // Le centre d'aide est nommé à SIX endroits : deux constantes TypeScript
+    // (`src/lib/help-articles.ts`, `src/App.tsx`) et les QUATRE règles de bord
+    // ci-dessous. Ce sont les règles qui servent la production — la route React
+    // d'`App.tsx` n'est atteinte qu'en `vite dev`, Cloudflare répondant 301 avant
+    // que l'app ne se charge. Changer l'URL dans les constantes seules laisserait
+    // donc la prod rediriger vers l'ancienne adresse, sans que rien ne rougisse :
+    // ni la CI, qui ne lit pas ce fichier, ni le dev, qui ne l'exécute pas.
+    const url = HELP_CENTER_URL
+    const help = rules.filter(r => /^\/(aide|help)(\/\*)?$/.test(r.from))
+    expect(help.map(r => r.from).sort()).toEqual(['/aide', '/aide/*', '/help', '/help/*'])
+    const divergentes = help.filter(r => r.to !== url)
+    expect(
+      divergentes,
+      `règle(s) de bord désaccordées avec HELP_CENTER_URL (${url}) :\n${divergentes.map(r => `  ligne ${r.line} : ${r.from} → ${r.to}`).join('\n')}`,
+    ).toEqual([])
+  })
+
+  it("garde la constante d'App.tsx accordée à celle de help-articles.ts", () => {
+    // Deuxième copie littérale de la même URL, hors de portée de l'import : le
+    // composant de redirection la réécrit en dur pour ne pas tirer le catalogue
+    // d'aide dans le chunk d'entrée.
+    const app = readFileSync('src/App.tsx', 'utf-8')
+    const found = app.match(/const HELP_CENTER_URL = '([^']+)'/)
+    expect(found?.[1], "App.tsx doit répéter exactement HELP_CENTER_URL").toBe(HELP_CENTER_URL)
   })
 
   it('garde le fallback SPA en dernier', () => {

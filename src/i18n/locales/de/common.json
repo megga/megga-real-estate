@@ -59,7 +59,7 @@
     "backToCrm": "Zurück zum CRM",
     "journey": "Verlauf",
     "aiAgent": "Megga, KI-Agent",
-    "help": "Hilfe",
+    "helpCenter": "Hilfe-Center",
     "notifications": "Notifications",
     "callbacksToday": "Wiedervorlagen heute",
     "importLeads": "Leads importieren",
@@ -353,7 +353,7 @@
     "preferences": "Präferenzen",
     "security": "Sicherheit & Sitzungen",
     "billing": "Abrechnung & Abonnement",
-    "help": "Hilfe-Center",
+    "help": "Hilfe zu diesem Bildschirm",
     "adminConsole": "Admin-Konsole",
     "platformSection": "Plattform"
   },

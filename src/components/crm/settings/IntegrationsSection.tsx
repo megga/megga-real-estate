@@ -30,6 +30,7 @@ import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
 import { WhatsAppPairingCard } from './WhatsAppPairingCard'
 import { useEsignSignature } from '@/hooks/useEsignSignature'
 import { EsignConnectModal } from './EsignConnectModal'
+import { openHelpFor } from '@/lib/help-articles'
 
 const SET = SET_PALETTE
 
@@ -834,7 +835,29 @@ function WhatsAppPairModal({ onClose, t }: { onClose: () => void; t: TFunction }
           animation: 'setScaleIn .25s cubic-bezier(.2,.8,.2,1) both',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--crm-space-xs)', marginBottom: 4 }}>
+          {/* Seul point d'entrée de l'article « Piloter le CRM depuis WhatsApp ».
+              La liaison WhatsApp vit dans une modale, pas dans un écran : elle n'a
+              pas d'onglet, donc pas de clé d'aide déductible. Sans ce bouton,
+              l'article restait publié et injoignable — comme il l'était depuis
+              son écriture. */}
+          <button
+            onClick={() => openHelpFor('whatsapp')}
+            aria-label={t('common:nav.helpCenter')}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 'var(--crm-radius-pill)',
+              border: 0,
+              background: SET.cardSubtle,
+              color: SET.inkSoft,
+              cursor: 'pointer',
+              display: 'grid',
+              placeItems: 'center',
+            }}
+          >
+            <SetIcon name="help" size={15} stroke={SET.inkSoft} sw={2} />
+          </button>
           <button
             onClick={onClose}
             aria-label={t('common:actions.close')}
