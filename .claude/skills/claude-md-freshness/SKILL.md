@@ -1,9 +1,9 @@
 ---
 name: claude-md-freshness
-description: Use to re-verify that CLAUDE.md's measured claims still match the code — weekly, after merging a design-system or architecture PR, or whenever a rule in CLAUDE.md looks suspicious. Runs `npm run lint:claude-md`, then corrects the doc, the ledger, or the code depending on the verdict.
+description: Use to re-verify that the measured claims in CLAUDE.md and docs/system-map.md still match the code and the production database — weekly, after merging a design-system, architecture or migration PR, or whenever a documented rule or figure looks suspicious. Runs `npm run lint:claude-md`, then corrects the doc, the ledger, or the code depending on the verdict.
 ---
 
-# Fraîcheur de CLAUDE.md
+# Fraîcheur des documents de référence
 
 ## Pourquoi cette boucle existe
 
@@ -41,9 +41,11 @@ Vert (`✓ … aucun écart`) → **la boucle s'arrête ici.** Ne rien « améli
 
 | Verdict | Ce que ça veut dire | Ce qu'on corrige |
 |---|---|---|
-| `✖ phrase ABSENTE de CLAUDE.md` | Le registre a survécu à la phrase qu'il gardait | Le **registre** : reformuler `phrase`, ou retirer l'entrée si le doc l'a retirée |
+| `✖ phrase ABSENTE` | Le registre a survécu à la phrase qu'il gardait | Le **registre** : reformuler `phrase`, ou retirer l'entrée si le doc l'a retirée |
 | `✖ prétention DURE violée` | Le **code** a régressé | Le **code**. Jamais le chiffre — `--update` refuse d'y toucher |
-| `⚠ a DÉRIVÉ` | Le **doc** est périmé | La **prose** de CLAUDE.md, puis le registre |
+| `⚠ a DÉRIVÉ` | Le **doc** est périmé | La **prose** du document, puis le registre |
+| `✖ grandeur avec DEUX chiffres` | Deux endroits se **contredisent** | **Trancher**, corriger les DEUX, puis le registre |
+| `✖ requête en ERREUR` | Ni vérifiée ni démentie : un **trou** | La requête, ou le droit du jeton. Jamais retirer l'entrée pour faire taire l'erreur |
 
 ⚠ **Ne jamais traiter une dérive comme une régression, ni l'inverse.** C'est la seule
 erreur qui abîme durablement : rafraîchir un chiffre pour faire taire une régression
@@ -90,7 +92,9 @@ n'est pas le chiffre, c'est qu'on puisse écrire sa **règle à graduations**.
 ```json
 {
   "id": "kebab-case",
+  "doc": "docs/system-map.md",
   "section": "§3 — Boutons",
+  "grandeur": "edge-functions",
   "phrase": "extrait VERBATIM de CLAUDE.md, citant le chiffre",
   "severite": "dur | derive",
   "tolerance": 0.1,
@@ -105,7 +109,9 @@ n'est pas le chiffre, c'est qu'on puisse écrire sa **règle à graduations**.
     "fichier": "src/styles/globals.css",
     "contient": "littéral",
     "capture": 1,
-    "distinctes": true
+    "distinctes": true,
+    "compterFichiers": true,
+    "sql": "select … -- UNE ligne, UNE colonne"
   },
   "attendu": { "occurrences": 0, "fichiers": 0, "valeursDistinctes": 0, "present": true },
   "note": "le pourquoi, s'il y en a un"
@@ -134,6 +140,12 @@ finit désactivée.
    commentaire CSS. → Les commentaires sont blanchis d'office (JS/TS et CSS). Rien à
    déclarer, mais y penser en lisant un compte : une occurrence isolée est presque
    toujours une note, pas un appel.
+3. ⛔ **Le motif ancré rend ZÉRO en silence.** `^\s*'[a-z0-9-]+',` comptait 0 entrée du
+   roster au lieu de 81 : `^` désignait le début du FICHIER. Les motifs sont désormais
+   compilés en `gm`, donc `^` vaut par ligne — mais le piège vaut d'être connu, parce que
+   **zéro est une valeur plausible** : l'erreur ne se lit pas comme un bug, elle se lit
+   comme une dérive à corriger dans la prose. Un motif défaillant qui accuse le document
+   est la pire façon de se tromper ici.
 
 ## Les prétentions de BASE DE DONNÉES
 
@@ -151,9 +163,9 @@ Flatfox pour **117k** réelles — le « 90k » désignant en fait RealAdvisor.
 
 | Contexte | Commande | Portée |
 |---|---|---|
-| Chaque PR (`unit-tests.yml`) | `npm run lint:claude-md` | Les 18 statiques. Les 11 autres sont **ignorées, et le dire fait partie de la sortie** |
-| Hebdo + après chaque deploy (`migration-drift.yml`) | `… --prod` | Les 29 |
-| En local | `SUPABASE_ACCESS_TOKEN=… npm run lint:claude-md` | Les 29 |
+| Chaque PR (`unit-tests.yml`) | `npm run lint:claude-md` | Les 24 statiques. Les 17 autres sont **ignorées, et le dire fait partie de la sortie** |
+| Hebdo + après chaque migration (`migration-drift.yml`) | `… --prod` | Les 41 |
+| En local | `SUPABASE_ACCESS_TOKEN=… npm run lint:claude-md` | Les 41 |
 
 `unit-tests.yml` est **statique et sans secret par conception** ; la production ne
 s'interroge que depuis `migration-drift.yml`. Ne pas déplacer ces étapes.
@@ -173,12 +185,33 @@ toute autre forme plutôt que de deviner. Deux réflexes :
   de la vérité et désignait la mauvaise source. Une prétention peut être fausse sans que
   son chiffre le paraisse.
 
+## Deux documents, une grandeur partagée
+
+`doc` désigne le fichier gardé (défaut `CLAUDE.md` ; `docs/system-map.md` pour le reste).
+`grandeur` regroupe les entrées qui parlent de **la même chose**, où qu'elles soient
+écrites — et deux entrées d'une même grandeur doivent porter le même chiffre.
+
+⛔ **Ce contrôle attrape ce que ni la mesure ni la tolérance ne voient.** Relevé le
+17.08.2026 : `docs/system-map.md` annonçait **67** edge functions ligne 91 et **71** au
+titre de son §5 — deux chiffres, un objet, un seul document. Prise isolément, chaque
+affirmation est juste « fausse » ; c'est leur **confrontation** qui dit qu'un lecteur ne
+peut pas savoir laquelle croire, et qu'il choisira au hasard.
+
+⚠ **Ce n'est pas le prestige du document qui tranche, c'est la mesure.** Sur les pages de
+la console admin, c'est `CLAUDE.md` qui avait tort (17) et le system-map raison (19) — le
+document que j'allais traiter comme « le périmé » était le bon. Mesurer d'abord, décider
+ensuite.
+
+C'est un contrôle **documentaire** : il compare les entrées entre elles, jamais au réel.
+Il tourne donc sans jeton, y compris sur les prétentions de base de données non mesurées.
+
 ## Ce que cette boucle ne fait pas
 
 - **Les affirmations non chiffrées** (« la séparation vient de la bordure »). Elles ne
   sont pas moins périssables, seulement pas mécanisables.
-- **Les autres docs** — `docs/system-map.md` et le seed du cerveau portent les mêmes
-  chiffres et dérivent en parallèle.
+- **Le seed du cerveau** (`.claude-flow/knowledge/megga-memory.seed.json`) porte les mêmes
+  chiffres et dérive en parallèle. Une seule entrée le garde — le NOMBRE de ses entrées —
+  ce qui ne protège pas son contenu. Troisième chantier, pas encore fait.
 
 ## Budget
 

@@ -17,7 +17,7 @@
 ## 🧠 Le cerveau : comment ça marche & comment le maintenir
 
 Ce document **+** [`.claude-flow/knowledge/megga-memory.seed.json`](../.claude-flow/knowledge/megga-memory.seed.json)
-(~220 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
+(258 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
 **local** (embeddings ONNX, recherche HNSW) et **gratuit** (0 appel API).
 
 **Ce qui est automatique :**
@@ -87,8 +87,9 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "comment fonctio
 
 SaaS immobilier suisse **AI-native, compliance-first**, recentré **CRM-first** (pivot juin 2026) :
 CRM transactionnel agent + pipeline LAB/KYC + copilote IA + console super-admin.
-Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~90k
-`market_listings`, ~50k active) conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 67 edge functions,
+Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~117k Flatfox sur ~208k
+`market_listings`, ~77k actives — remesuré le 17.08.2026 ; ce point annonçait « ~90k, ~50k active »)
+conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 81 edge functions,
 RLS, pg_cron). L'IA est **compliance-enabling**, jamais compliance-replacing (validation
 humaine obligatoire).
 
@@ -328,7 +329,7 @@ et ça ne ressemble pas à une erreur. Cf. `megga/crm-agent-meggax-banc`.
 - `crm-wizard/` — wizard « Créer un bien » (`/dashboard/listings/new`, `WizardShell` + **7 étapes** — refonte « complet » juil. 2026 : Step 0 trois portes `SgPorteCard` → Vendeur/Mandat → Adresse → **Caractéristiques guidées** (10 types, 7 questions `data.specsQ` + **accordéon détails `Step3bDetails`** conditionnel au type) → **Photos couverture-héro + pellicule** (upload réel, recadrage canvas → File) → Prix/Description 2 phases (DeepSeek réel) → **Publication checklist 5 critères** bloquants en public seulement. **Pas de Staging Studio** : `crm-staging-studio.jsx` du bundle handoff est un fichier ORPHELIN, monté nulle part). **Dark mode** : `WizardTokens` (`tokens.ts`) est un **Proxy** qui résout la palette light/dark à chaque lecture depuis `document.documentElement[data-theme]` (pas de mutation de global au render → robuste React 18 StrictMode/concurrent). **Les deux thèmes descendent de `mxCrmPalette()` depuis le 11 août 2026** (avant : dernier jeu de jetons autonome du CRM, accent NOIR, `#424bfb` absent de ses 4 832 lignes). L'accent ne s'inversant plus, `crmOn()` — l'encre posée **sur l'accent** — est devenue une constante (`n1000`) et `crmAcc()` un voile blanc ; le voile de **surface**, lui, suit le thème et s'appelle `crmVeil()` (les deux se confondaient tant que l'accent basculait). `ghostSolid` = remplissage d'un contrôle désactivé, distinct de `ghost` qui ne sert plus qu'au trait faible. Cerveau : `megga/mesbiens-meggax`. Header minimal (× fermer seul, flottant) + indicateur d'autosave en footer ; nav Précédent/Continuer, le CTA de publication vit dans le Step 7. Système distinct du wizard KYC (`kyc-wizard/`, `KycPaletteContext`). **Embedded (juil. 2026, #871)** : prop `embedded` → `position:absolute` (au lieu de `fixed z-9000`), monté en overlay dans le bento du pager Mes biens. **Porte « Importer un mandat » désactivée** : l'ancien chemin injectait un mandat fictif (exclusif, 3.5 %, signé) en base pour n'importe quel PDF — dormante jusqu'à un vrai OCR.
 - Domaines : `search/` `listings/` `matching/` `transactions/` `kyc*/` `documents/` `calendar/` `messaging/` `admin/` `directory/` `map/` `ai-copilot/` `skeletons/` `auth-bento/`.
 
-### Hooks (`src/hooks/`, ~100, React Query)
+### Hooks (`src/hooks/`, 119, React Query)
 Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`useContacts`, `useContactsScreen`, `useContactTimeline`…) · **biens** (`useListings`, `useListingsScreen`, `useProperties`, `usePropertyScores`, `usePropertyStats`) · **transactions** (`useTransactions`, `useUpdateTransactionStage`, `usePipelineScreen`) · **KYC** (`useKycDossiers`, `useKycVigie` [dérivation Vigie + décisions], `useMarkKycCheck`, `useCreateKycDossier`) · **matching** (`useMatching`, `useExternalMatching`) · **dashboard** (`useAxDashboardData` [analytics live, 3 RPC], `useAgencyTargets`, `useDailyBrief`, `useContactNextAction`) · **calendrier** (`useCalendarScreen`, `useGoogleCalendar`, `useOutlookCalendar`) · **IA** (`useCopilot`, `useExtractLead`, `useTranslatedDescription`) · **admin** (`useAdminUsers/Agencies/Monitoring/Compliance`, `useAuditLog`, `useAdminLiveFeed`).
 
 > ⚠️ Realtime : **toujours** `useId()` pour le nom de channel (sinon crash au re-mount). Cf. `useAdminLiveFeed`, `useAdminNotifications`, `useAgentNotifications` (centre de notif agent réel, dérivé d'`activity_events` non-user).
@@ -391,12 +392,12 @@ Plomberie qui capture les signaux temporels (fondation de la couche v2 ; cerveau
 
 ## 4. Pipeline marketplace (Flatfox / market_listings) ⚙️
 
-- **Source** : API Flatfox (location, ~50k actifs, 26 cantons, 8 types). Aussi RealAdvisor via `market-scraper(-batch)`.
+- **Source** : API Flatfox (location, ~35k actifs, 26 cantons, 8 types). Aussi RealAdvisor via `market-scraper(-batch)`.
 - **Cron** : `flatfox-sync-daily` `0 4 * * *` (04:00 UTC) → edge `flatfox-sync` (chunked self-invoke, 5 pages/chunk, rate-limit 1 req/s, lock singleton).
 - **Opérations** : UPSERT (source_id UNIQUE, last_seen_at), mark removed (safety ≥80% vus avant sweep), photos → Cloudflare R2 (`photos_cf` via `photo-processor`), `quality_score`, `relevance_score` (GENERATED).
 - **Observabilité** : `flatfox_sync_runs` (status, totaux, chunks) → dashboard admin.
 
-### 🔴 Règles de perf (statement timeout 3-8s sur 33k rows) — voir CLAUDE.md §7
+### 🔴 Règles de perf (statement timeout 3-8s sur 208k rows) — voir CLAUDE.md §7
 | Règle | Pourquoi |
 |---|---|
 | **JAMAIS `count: 'exact'`** > 5k rows | seq scan → timeout. Utiliser `estimated` ou pas de count |
@@ -416,7 +417,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > `sites/_marketplace-phase-ulterieure/` depuis le pivot, a été **SUPPRIMÉ du dépôt**
 > (juillet 2026, 373 fichiers / 22 Mo). Il reste récupérable dans l'historique git
 > (commit `0b321bc5` et antérieurs) si la marketplace est un jour relancée — mais il
-> n'encombre plus l'arbre de travail. La table `market_listings` (~90k biens) **reste
+> n'encombre plus l'arbre de travail. La table `market_listings` (~208k biens) **reste
 > active** : elle nourrit le CRM (matching, estimation, stats copilote).
 
 > **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
@@ -433,7 +434,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > (12 sections) + `confidentialite.html` · About refondu (rôle Reto Brunner). **Reste** : image hero encore CodeAI.
 
 ---
-## 5. Edge functions (71) — catalogue par domaine
+## 5. Edge functions (81) — catalogue par domaine
 
 > Deno, dans `supabase/functions/`. Déclencheurs : HTTP (défaut), `pg_cron`, webhook Stripe, hooks auth.
 
