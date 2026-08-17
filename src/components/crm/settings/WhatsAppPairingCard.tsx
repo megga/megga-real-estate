@@ -20,9 +20,8 @@ import type { TFunction } from 'i18next'
 import { SET_PALETTE } from './data'
 import { SetIcon } from './atoms'
 import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
-import { formatWaBusinessNumber } from '@/lib/whatsappBusiness'
 import { buildWaMeUrl } from '@/lib/waMeUrl'
-import { composePhone, dialCodeOptions, PHONE_EXAMPLES } from '@/lib/countries'
+import { composePhone, dialCodeOptions, formatInternationalPhone, PHONE_EXAMPLES } from '@/lib/countries'
 
 const SET = SET_PALETTE
 
@@ -141,7 +140,7 @@ function WABody() {
   const link = status.data
   // Le numéro auquel l'agent doit écrire. Affiché groupé (il va être RECOPIÉ à la main
   // par ceux qui n'utilisent pas le lien direct) et non plus figé dans ce fichier.
-  const businessDisplay = formatWaBusinessNumber(businessNumber)
+  const businessDisplay = formatInternationalPhone(businessNumber)
 
   const [paysIso, setPaysIso] = useState('CH')
   const [numeroLocal, setNumeroLocal] = useState('')
@@ -185,6 +184,22 @@ function WABody() {
   // La VALEUR plutôt qu'un booléen : un `boolean` calculé à part ne restreint pas le type
   // de `link.pairing_code` pour TypeScript, et l'affichage se retrouverait à répéter
   // `?? ''` sur chaque usage — trois occasions d'afficher une chaîne vide comme un code.
+  // 5 est le plafond de `confirm_whatsapp_number_verification` ; `otp_attempts` compte
+  // les codes REFUSÉS. `null` tant qu'aucun n'a été refusé, et au moment où le mur est
+  // atteint : là, ce n'est plus un compte à rebours mais le message d'erreur qui parle,
+  // et le bouton « Renvoyer un code » qui rouvre la porte.
+  const essaisRestants = link && link.otp_attempts > 0 && link.otp_attempts < 5
+    ? 5 - link.otp_attempts
+    : null
+
+  // Le mur, dérivé du LIEN et non d'une erreur transitoire. Sans lui, le 5e code faux
+  // laissait l'écran dans un état incohérent : le compteur disparaissait (plus d'essai à
+  // annoncer) pendant que le message affiché restait « Code incorrect » — vrai, mais
+  // périmé, et muet sur le fait que l'agent venait d'épuiser ses essais. Il ne l'aurait
+  // appris qu'en réessayant. Le tirer du lien le rend aussi persistant à travers les
+  // re-rendus, là où `erreur` s'efface à la première frappe.
+  const murAtteint = !!link && link.otp_attempts >= 5
+
   const codeAppairage = link?.pairing_code
     && link.pairing_expires_at
     && new Date(link.pairing_expires_at).getTime() > maintenant
@@ -468,7 +483,7 @@ function WABody() {
           <Trans
             i18nKey="integrations.whatsapp.otp.sent"
             t={t}
-            values={{ number: formatWaBusinessNumber(link?.pending_number ?? '') }}
+            values={{ number: formatInternationalPhone(link?.pending_number ?? '') }}
             components={{ strong: <span style={{ color: SET.ink, fontWeight: 600 }} /> }}
           />
         </p>
@@ -488,14 +503,32 @@ function WABody() {
             boxShadow: `inset 0 0 0 1px ${SET.line}`,
           }}
         />
-        {erreur && <WAErreur t={t} motif={erreur} />}
+        {/* Le mur PRIME sur l'erreur du moment : « Trop de tentatives, demandez un
+            nouveau code » dit quoi faire, « Code incorrect » ne dit plus rien d'utile
+            une fois le cinquième essai consommé. */}
+        {(murAtteint || erreur) && (
+          <WAErreur t={t} motif={murAtteint ? 'too_many_attempts' : (erreur as string)} />
+        )}
+        {/* Essais restants — la donnée était RAMENÉE du serveur et lue par personne.
+            Elle n'a de valeur qu'avant le mur : au 5e code faux la RPC refuse, et jusqu'à
+            l'ajout du bouton « Renvoyer » c'était une impasse. Annoncer le compte fait
+            arriver l'agent au mur en le sachant, au lieu de le découvrir. Rien affiché
+            tant qu'aucun code n'a été refusé : un compteur qui démarre à 5 alarme sans
+            raison quelqu'un qui n'a encore rien tapé. */}
+        {essaisRestants !== null && (
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, color: SET.muted }}>
+            {t('integrations.whatsapp.otp.attemptsLeft', { count: essaisRestants })}
+          </span>
+        )}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-xl)', alignItems: 'center' }}>
           <WAPrimaryButton
             onClick={() => {
               setErreur(null)
               confirmVerification.mutate(codeSaisi, { onError: (e) => setErreur((e as Error).message) })
             }}
-            disabled={codeSaisi.length < 6 || confirmVerification.isPending}
+            // Désactivé au mur : la RPC refusera de toute façon, et laisser le bouton
+            // vif invite à s'acharner sur le seul geste qui ne peut plus rien donner.
+            disabled={codeSaisi.length < 6 || confirmVerification.isPending || murAtteint}
           >
             {confirmVerification.isPending
               ? t('integrations.whatsapp.otp.verifying')

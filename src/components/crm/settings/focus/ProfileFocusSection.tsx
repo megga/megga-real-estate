@@ -16,7 +16,7 @@ import { PfIc, PfEditField, PfAvatar, PfPhotoModal, type FocusSectionProps, type
 import { pfColors, PF_KEYFRAMES } from './pfKitCore'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
-import { formatWaBusinessNumber } from '@/lib/whatsappBusiness'
+import { formatInternationalPhone } from '@/lib/countries'
 
 // Clés éditables = clés string de ProfileData rendues par la section.
 type ProfileRowKey =
@@ -114,7 +114,7 @@ export function ProfileFocusSection({ sp, surf, dark, onGoToSection }: FocusSect
     // Le numéro WhatsApp ne sort pas du formulaire : il n'existe QUE vérifié. Tant que
     // le lien ne l'est pas, la ligne est vide — donc la carte propose « Ajouter »,
     // et n'affiche jamais un numéro en attente comme s'il était acquis.
-    if (key === 'whatsapp') return waVerified ? formatWaBusinessNumber(waLink?.wa_number ?? '') : ''
+    if (key === 'whatsapp') return waVerified ? formatInternationalPhone(waLink?.wa_number ?? '') : ''
     const v = local[key]
     return Array.isArray(v) ? v.join(', ') : (v ?? '')
   }

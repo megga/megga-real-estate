@@ -420,3 +420,60 @@ export function countryForDialCode(dial: string): string | null {
   const nu = dial.replace('+', '')
   return COUNTRIES.find((c) => COUNTRY_DIAL_CODES[c.code] === nu)?.code ?? null
 }
+
+/**
+ * Met en forme un numéro international pour l'AFFICHAGE, en suivant le groupement du
+ * pays qui le porte : `41225670075` → `+41 22 567 00 75`, `33612345678` →
+ * `+33 6 12 34 56 78`.
+ *
+ * ⛔ POURQUOI ICI, ET PAS DANS LE MODULE WHATSAPP. Le premier formateur vivait dans
+ * `whatsappBusiness.ts` sous le nom `formatWaBusinessNumber`, et ne savait grouper QUE
+ * le suisse à onze chiffres — ce qui était juste tant qu'il ne servait qu'au numéro
+ * Business de MEGGA, suisse par construction. Il a ensuite été réemployé pour le numéro
+ * PERSONNEL de l'agent, sur trois surfaces : un agent français voyait alors
+ * « +33612345678 » d'un bloc, à l'endroit même où le champ de saisie venait de lui
+ * proposer « 6 12 34 56 78 » en exemple. La connaissance des numéros vit ici, avec les
+ * indicatifs et les exemples ; le module WhatsApp ne garde que SON numéro.
+ *
+ * ⚠ Le groupement n'est PAS inventé : il est DÉRIVÉ de `PHONE_EXAMPLES`, dont l'en-tête
+ * dit que chaque entrée a été vérifiée et non devinée. On lit la forme de l'exemple
+ * (« 79 874 94 84 » → 2-3-2-2) et on l'applique. Un format inventé serait pire que pas
+ * de format, exactement pour la raison que ce tableau donne déjà.
+ *
+ * ⚠ Et il n'est appliqué QUE si les longueurs coïncident. Un numéro plus court ou plus
+ * long que l'exemple de son pays (numéro spécial, saisie partielle, pays à plans
+ * multiples) ressort avec l'indicatif détaché mais la partie nationale intacte : mieux
+ * vaut un numéro non groupé qu'un numéro DÉCOUPÉ FAUX, qui se recopie de travers sans
+ * que rien ne signale l'erreur.
+ */
+export function formatInternationalPhone(value: string | null | undefined): string {
+  const digits = (value ?? '').replace(/\D/g, '')
+  if (!digits) return ''
+
+  const { dial, local } = splitDialCode(`+${digits}`)
+  if (!dial || !local) return `+${digits}`
+
+  // ⛔ PAS `countryForDialCode`, et la nuance a des conséquences MESURÉES. Cette
+  // fonction-là rend le PREMIER pays de COUNTRIES portant l'indicatif, ce qui est le bon
+  // choix pour repositionner un sélecteur mais pas pour trouver un groupement : `+1` rend
+  // « BS » (Bahamas) et `+7` rend « KZ », deux pays SANS exemple. Les entrées US, CA et RU
+  // de PHONE_EXAMPLES étaient donc inatteignables, et un numéro américain ressortait
+  // « +1 2015550123 » d'un bloc — précisément le défaut que cette fonction corrige.
+  //
+  // On cherche donc le premier pays de cet indicatif qui ait un exemple. C'est licite
+  // parce que les pays partageant un indicatif partagent leur plan de numérotation :
+  // tout le +1 est en 10 chiffres (NANP), RU et KZ aussi.
+  const indicatif = dial.replace('+', '')
+  const iso = COUNTRIES.find(
+    (c) => COUNTRY_DIAL_CODES[c.code] === indicatif && PHONE_EXAMPLES[c.code],
+  )?.code
+  const exemple = iso ? PHONE_EXAMPLES[iso] : undefined
+  const groupes = (exemple ?? '').split(' ').filter(Boolean).map((g) => g.length)
+  const attendu = groupes.reduce((n, g) => n + g, 0)
+  if (!attendu || attendu !== local.length) return `${dial} ${local}`
+
+  const morceaux: string[] = []
+  let i = 0
+  for (const taille of groupes) { morceaux.push(local.slice(i, i + taille)); i += taille }
+  return `${dial} ${morceaux.join(' ')}`
+}

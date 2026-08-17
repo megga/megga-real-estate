@@ -195,7 +195,12 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
       const row = (data as { ok: boolean; reason: string }[] | null)?.[0]
       if (!row?.ok) throw new Error(row?.reason ?? 'unknown')
     },
-    onSuccess: invalideLienEtProfil,
+    // ⚠ `onSettled` et NON `onSuccess`, et l'écart est visible à l'écran : un code REFUSÉ
+    // lève (donc passe par onError), alors qu'il vient d'INCRÉMENTER `otp_attempts` en
+    // base. Avec `onSuccess`, le compteur d'essais restants n'aurait été rafraîchi qu'au
+    // succès — c'est-à-dire jamais, puisqu'au succès l'écran disparaît. Il aurait affiché
+    // un nombre périmé exactement quand il compte, à un essai du mur.
+    onSettled: invalideLienEtProfil,
   })
 
   return {

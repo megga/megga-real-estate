@@ -677,6 +677,8 @@
         "codeLabel": "Codice a 6 cifre",
         "verify": "Verifica",
         "verifying": "Verifica in corso…",
+        "attemptsLeft_one": "Ancora {{count}} tentativo",
+        "attemptsLeft_other": "Ancora {{count}} tentativi",
         "resend": "Invia un nuovo codice",
         "cancel": "Annulla",
         "errors": {

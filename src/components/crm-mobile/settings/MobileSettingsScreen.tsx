@@ -17,7 +17,7 @@ import { useAgentProfileScreen } from '@/hooks/useAgentProfileScreen'
 import { useAgencySettings, type AgencySettingsData, type AgencyPlan } from '@/hooks/useAgencySettings'
 import { useAgencyTargets } from '@/hooks/useAgencyTargets'
 import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
-import { formatWaBusinessNumber } from '@/lib/whatsappBusiness'
+import { formatInternationalPhone } from '@/lib/countries'
 import { profileCompletionScore, type ProfileData } from '@/components/crm/settings/data'
 import { formatCHF } from '@/lib/utils'
 import CrmToast from '../primitives/CrmToast'
@@ -508,7 +508,7 @@ function ProfileSection({
           <Field
             tk={tk}
             label={t('settings:profile.whatsapp')}
-            value={waNumber ? formatWaBusinessNumber(waNumber) : ''}
+            value={waNumber ? formatInternationalPhone(waNumber) : ''}
             type="tel"
             disabled
             hint={waNumber ? t('settings:profile.whatsappHint') : t('settings:profile.whatsappUnverified')}

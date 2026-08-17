@@ -677,6 +677,8 @@
         "codeLabel": "6-digit code",
         "verify": "Verify",
         "verifying": "Verifying…",
+        "attemptsLeft_one": "{{count}} attempt left",
+        "attemptsLeft_other": "{{count}} attempts left",
         "resend": "Send a new code",
         "cancel": "Cancel",
         "errors": {

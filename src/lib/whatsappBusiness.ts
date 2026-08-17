@@ -29,17 +29,11 @@
  */
 export const MEGGA_WA_BUSINESS_DIGITS = '41225670075'
 
-/**
- * Mise en forme suisse d'un numéro international : `41225670075` → `+41 22 567 00 75`.
- *
- * Le groupement EST l'information — un Suisse reconnaît son propre format et recopie
- * sans faute ; une suite de onze chiffres collés se recopie de travers. Hypothèse
- * assumée : indicatif à 2 chiffres puis national à 9 (E.164 CH). Tout numéro qui ne
- * rentre pas dans ce moule est rendu tel quel, précédé d'un `+` — mieux vaut un
- * numéro non groupé qu'un numéro mal découpé.
- */
-export function formatWaBusinessNumber(digits: string = MEGGA_WA_BUSINESS_DIGITS): string {
-  const d = (digits || '').replace(/\D/g, '')
-  if (d.length !== 11 || !d.startsWith('41')) return d ? `+${d}` : ''
-  return `+${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4, 7)} ${d.slice(7, 9)} ${d.slice(9)}`
-}
+// ⛔ `formatWaBusinessNumber` a été RETIRÉ d'ici le 17.08.2026. Il ne savait grouper que
+// le suisse à onze chiffres, ce qui était juste tant qu'il ne servait qu'au numéro
+// ci-dessus — suisse par construction. Réemployé pour le numéro PERSONNEL de l'agent sur
+// trois surfaces, il rendait « +33612345678 » d'un bloc à un agent français, à l'endroit
+// même où le champ de saisie venait de lui montrer « 6 12 34 56 78 ». La mise en forme
+// vit désormais dans `@/lib/countries` sous le nom `formatInternationalPhone`, avec les
+// indicatifs et les exemples dont elle dérive son groupement. Ce module ne garde que ce
+// qui lui appartient vraiment : LE numéro de MEGGA.
