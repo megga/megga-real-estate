@@ -54,3 +54,12 @@ if (i18n.status !== 0) {
   console.error('[postbuild] génération des langues en échec');
   process.exit(i18n.status ?? 1);
 }
+
+// Le centre d'aide vient APRÈS les langues : il prélève le chrome anglais sur
+// `dist/en/index.html` plutôt que de le retraduire, et repointe les liens
+// allemands et italiens vers la version anglaise (seules langues du corpus).
+const aide = spawnSync(process.execPath, [resolve(root, 'scripts/vitrine-aide.mjs')], { stdio: 'inherit' });
+if (aide.status !== 0) {
+  console.error("[postbuild] génération du centre d'aide en échec");
+  process.exit(aide.status ?? 1);
+}

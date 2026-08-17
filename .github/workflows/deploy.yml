@@ -95,11 +95,26 @@ jobs:
           VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
           # Sentry source maps upload — no-op si le secret est absent
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          # Centre d'aide de la vitrine : `scripts/vitrine-aide.mjs` lit les 18
+          # articles chez Intercom au postbuild. ⛔ Contrairement aux autres, ce
+          # secret n'est PAS optionnel ici — sans lui le générateur SORT EN
+          # ERREUR (CI=true), parce qu'un centre d'aide vide publié est pire
+          # qu'un déploiement qui s'arrête. En local il écrit une page d'attente.
+          # (GitHub Actions pose CI=true de lui-même : c'est ce que lit le script.)
+          INTERCOM_ACCESS_TOKEN: ${{ secrets.INTERCOM_ACCESS_TOKEN }}
 
       # NOTE: the V3 static storefront is overlaid onto dist/ by the npm
       # `postbuild` hook (scripts/overlay-storefront.mjs), so it runs for
       # BOTH this workflow AND the git-connected Cloudflare Pages build.
       # No overlay step is needed here.
+      #
+      # ⚠ CONSÉQUENCE POUR LE CENTRE D'AIDE : ce même hook lance désormais
+      # `vitrine-aide.mjs`, qui SORT EN ERREUR quand `CI` est posé et que
+      # `INTERCOM_ACCESS_TOKEN` manque. Cloudflare pose `CI=true` lui aussi —
+      # donc si le build git-connecté est encore actif côté Cloudflare, il faut
+      # y déclarer le même secret (Pages → Settings → Environment variables),
+      # sinon ce build-là échouera alors que celui-ci passe. Le déploiement réel
+      # part d'ici (`wrangler pages deploy dist`), pas de lui.
 
       - name: Setup Supabase CLI
         if: env.DEPLOIE_PROD == 'true'
