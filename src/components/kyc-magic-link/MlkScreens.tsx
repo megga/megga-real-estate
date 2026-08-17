@@ -1,10 +1,20 @@
 // MEGGA — Écrans du parcours client KYC Magic Link
 // Sprint 4.7.C — Port pixel-près de handoff-kyc-magic-link/maquette/megga-kyc-magic-link.jsx
 // Sprint 4.7.F — Brancher i18n (FR/DE/EN/IT) + responsive mobile (@media query
-// sur le grid de réassurance et les tailles de titre).
+// sur les tailles de titre).
 //
 // 4 écrans :
-//   1. MlkLanding  — accueil rassurant (Bonjour <prénom>, finalisons votre dossier)
+//   1. MlkLanding  — accueil : QUI demande, QUOI préparer, combien de temps
+//
+//      ⛔ REDESSINÉ LE 17 AOÛT 2026, et le motif est mesuré. L'écran s'appelait
+//      « accueil rassurant » et le portait : quatre icônes de réassurance
+//      occupaient toute la largeur juste au-dessus du seul bouton. Or l'écran
+//      SUIVANT réclame quatre types de pièces, chacun avec ses exigences
+//      (« facture < 3 mois », « permis C ») — et l'accueil n'en nommait AUCUN.
+//      Le client cliquait, découvrait la demande, s'interrompait pour aller
+//      fouiller. La bande de réassurance est devenue une LIGNE sous le bouton ;
+//      la place gagnée nomme les pièces à réunir avant de commencer.
+//
 //   2. MlkUpload   — drop zone + sélecteur type + liste uploaded + CTA confirm
 //   3. MlkSuccess  — confirmation finale
 //   4. MlkExpired  — lien expiré
@@ -18,7 +28,6 @@ import {
   MlkBlackPill,
   MlkFooter,
   MlkIcon,
-  MlkReassureRow,
   MlkShell,
   MlkWordmark,
 } from './MlkPrimitives'
@@ -65,23 +74,40 @@ export function MlkLanding({
 }: LandingProps) {
   const { t, i18n } = useTranslation('kyc')
 
-  const reassureItems = [
-    {
-      icon: 'swiss' as const,
-      title: t('client.landing.reassure_swiss_title'),
-    },
-    {
-      icon: 'lock' as const,
-      title: t('client.landing.reassure_lock_title'),
-    },
-    {
-      icon: 'shield' as const,
-      title: t('client.landing.reassure_shield_title'),
-    },
-    {
-      icon: 'clock' as const,
-      title: t('client.landing.reassure_clock_title'),
-    },
+  /**
+   * ⛔ LES QUATRE TYPES SONT UNE LISTE FIXE, ET C'EST VÉRIFIÉ, PAS SUPPOSÉ.
+   *
+   * Avant de nommer ces documents ici, il fallait savoir si un dossier pouvait
+   * n'en réclamer qu'un sous-ensemble — sinon cet écran demande au client de
+   * préparer des pièces dont personne ne veut. Relevé le 17 août 2026 : la
+   * charge utile du lien magique porte `agency`, `agent`, `contact`,
+   * `expires_at`, `message`, `reason`, `status` et `uploads`, et
+   * `magic-link-verify` ne mentionne aucun type. `MlkUpload` les propose tous
+   * les quatre AU CHOIX DU CLIENT. Il n'existe donc pas de sous-ensemble.
+   *
+   * ⚠ `message` n'en est pas un non plus : il ne sert qu'au placeholder de lien
+   * expiré, ce n'est pas une note d'agent.
+   *
+   * ⚠ Le jour où un dossier saura exiger deux types sur quatre, CETTE LISTE DOIT
+   * SUIVRE — sans quoi elle ment. C'est le seul point où cet écran dépend du
+   * backend.
+   *
+   * Les libellés sont ceux de l'écran de dépôt (`client.upload_types.*`), pas
+   * des paraphrases : le client doit reconnaître au dépôt ce qu'on lui a demandé
+   * de préparer.
+   */
+  const prepareItems = [
+    { key: 'identity' as const, optional: false },
+    { key: 'address' as const, optional: false },
+    { key: 'funds' as const, optional: false },
+    { key: 'other' as const, optional: true },
+  ]
+
+  const assuranceItems = [
+    t('client.landing.reassure_swiss_title'),
+    t('client.landing.reassure_lock_title'),
+    t('client.landing.reassure_shield_title'),
+    t('client.landing.reassure_clock_title'),
   ]
 
   return (
@@ -115,29 +141,48 @@ export function MlkLanding({
         </div>
       </div>
 
-      {/* Agent block */}
+      {/*
+        L'agent — RANGÉE, plus sous-carte (17 août 2026).
+        Six mots dans une surface pleine avaient le poids d'une section sans
+        avoir celui d'une personne. C'est pourtant l'ancre de confiance : un
+        client qui reçoit un lien lui réclamant son passeport vérifie d'abord
+        QUI demande. Le nom passe donc sur deux niveaux, et un filet suffit à
+        séparer.
+      */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 'var(--crm-space-2xl)',
-          padding: 'var(--crm-space-2xl) var(--crm-space-4xl)',
-          background: MLK.cardSubtle,
-          borderRadius: 18,
-          marginBottom: 28,
+          paddingBottom: 'var(--crm-space-5xl)',
+          borderBottom: `1px solid ${MLK.line}`,
+          // ⚠ 32 en littéral, et c'est la règle : l'échelle s'arrête à 24 px, et
+          // globals.css l'écrit — « au-delà, ce sont des décalages de mise en
+          // page propres à une composition, pas du rythme réutilisable ».
+          marginBottom: 32,
         }}
       >
         <MlkAgentAvatar name={agentFullName} size={48} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div
             style={{
-              fontSize: 'var(--crm-text-lg)',
+              fontSize: 'var(--crm-text-2xl)',
               fontWeight: 600,
               color: MLK.ink,
               letterSpacing: -0.2,
+              lineHeight: 1.25,
             }}
           >
-            {agentFullName} · {agencyName}
+            {agentFullName}
+          </div>
+          <div
+            style={{
+              fontSize: 'var(--crm-text-md)',
+              color: MLK.muted,
+              fontWeight: 500,
+            }}
+          >
+            {agencyName} · {t('client.landing.agent_role')}
           </div>
         </div>
       </div>
@@ -175,20 +220,149 @@ export function MlkLanding({
         {t('client.landing.subtitle_suffix')}
       </p>
 
-      {/* Reassurance bullets — 4 colonnes desktop, 2x2 mobile */}
-      <div style={{ marginTop: 36, marginBottom: 36 }}>
-        <MlkReassureRow items={reassureItems} />
+      {/*
+        « À préparer » — le seul AJOUT d'information de l'écran, et son motif.
+        L'écran de dépôt réclame quatre types de pièces, chacun avec ses
+        exigences propres (« facture de moins de 3 mois », « permis C »), et
+        l'accueil n'en nommait aucun. Le client cliquait, découvrait la demande
+        à l'écran suivant, et devait s'interrompre pour aller fouiller. Nommer
+        les pièces ICI lui permet de les réunir AVANT de commencer.
+      */}
+      <div style={{ marginTop: 32 }}>
+        {/*
+          ⛔ PAS DE MICRO-CAPITALES ICI, et ce n'est pas un détail de goût. La
+          maquette portait un libellé en `textTransform: 'uppercase'` avec
+          `letterSpacing: 0.8` et `fontWeight: 700` — l'idiome d'eyebrow que
+          j'avais sous les yeux dans le document de présentation. Les trois
+          clauses de `megga-x-grammar` l'ont refusé, et elles ont raison : la
+          casse haute dans un titre est la SEULE des règles visuelles de
+          CLAUDE.md qui n'ait jamais été démentie. Un libellé de section se lit
+          en casse normale, à 600 au plus.
+        */}
+        <div
+          style={{
+            fontSize: 'var(--crm-text-lg)',
+            fontWeight: 600,
+            color: MLK.inkSoft,
+            marginBottom: 'var(--crm-space-2xl)',
+          }}
+        >
+          {t('client.landing.prepare_title')}
+        </div>
+        <div
+          style={{
+            border: `1px solid ${MLK.line}`,
+            borderRadius: 18,
+            overflow: 'hidden',
+          }}
+        >
+          {prepareItems.map(({ key, optional }, i) => (
+            <div
+              key={key}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 'var(--crm-space-2xl)',
+                padding: 'var(--crm-space-4xl) var(--crm-space-5xl)',
+                borderTop: i === 0 ? undefined : `1px solid ${MLK.line}`,
+              }}
+            >
+              <div
+                style={{
+                  width: 26,
+                  height: 26,
+                  flexShrink: 0,
+                  borderRadius: 'var(--crm-radius-md)',
+                  background: MLK.cardSubtle,
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontSize: 'var(--crm-text-sm)',
+                  fontWeight: 600,
+                  color: MLK.inkSoft,
+                }}
+              >
+                {optional ? '+' : i + 1}
+              </div>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div
+                  style={{
+                    fontSize: 'var(--crm-text-lg)',
+                    fontWeight: 600,
+                    color: MLK.ink,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {t(`client.upload_types.${key}_title`)}
+                </div>
+                <div
+                  style={{
+                    fontSize: 'var(--crm-text-md)',
+                    color: MLK.muted,
+                    fontWeight: 500,
+                    lineHeight: 1.35,
+                    marginTop: 2,
+                  }}
+                >
+                  {t(`client.upload_types.${key}_sub`)}
+                </div>
+              </div>
+              {optional && (
+                <div
+                  style={{
+                    flexShrink: 0,
+                    fontSize: 'var(--crm-text-sm)',
+                    color: MLK.muted,
+                    fontWeight: 500,
+                    background: MLK.cardSubtle,
+                    borderRadius: 'var(--crm-radius-pill)',
+                    padding: 'var(--crm-space-xs) var(--crm-space-lg)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {t('client.landing.prepare_optional')}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* CTA */}
-      <MlkBlackPill
-        onClick={onStart}
-        iconRight={<MlkIcon name="arrowR" size={18} stroke="#fff" sw={2} />}
-        size="lg"
-        full
+      <div style={{ marginTop: 32 }}>
+        <MlkBlackPill
+          onClick={onStart}
+          iconRight={<MlkIcon name="arrowR" size={18} stroke="#fff" sw={2} />}
+          size="lg"
+          full
+        >
+          {t('client.landing.cta_start')}
+        </MlkBlackPill>
+      </div>
+
+      {/*
+        La réassurance, repliée en UNE ligne et déplacée SOUS le bouton. Elle ne
+        disparaît pas : elle cesse de retarder l'action et se place là où le
+        doute survient vraiment, au moment de cliquer.
+      */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          gap: 'var(--crm-space-sm) var(--crm-space-2xl)',
+          marginTop: 'var(--crm-space-5xl)',
+          fontSize: 'var(--crm-text-md)',
+          color: MLK.muted,
+          fontWeight: 500,
+        }}
       >
-        {t('client.landing.cta_start')}
-      </MlkBlackPill>
+        {assuranceItems.map((label, i) => (
+          <span key={label} style={{ display: 'inline-flex', gap: 'var(--crm-space-2xl)' }}>
+            {i > 0 && <span aria-hidden="true">·</span>}
+            {label}
+          </span>
+        ))}
+      </div>
 
       <div
         style={{
