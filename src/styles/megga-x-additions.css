@@ -1037,6 +1037,54 @@
   color: var(--system-colors--red-400);
 }
 
+/* Les gestes du bandeau, alignés à droite. `gap` et non une marge sur le bouton :
+   le lien « contacter le support » n'existe que sur un dossier refusé, et une marge
+   laisserait un vide les trois autres fois. */
+.megga-x .mx-notice__actions {
+  align-items: center;
+  gap: var(--main-spacers--3x-extra-small);
+  flex-shrink: 0;
+}
+
+/* Le renvoi du bandeau. Discret par défaut — il ne rivalise pas avec le message qu'il
+   ferme — mais sa CIBLE fait 32 px, pas la taille du glyphe : un geste de fermeture
+   qu'on rate est pire que pas de fermeture du tout. */
+.megga-x .mx-notice__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  /* `100%`, comme `circle-button-secondary` de la vitrine — et non `var(--radius--full)`,
+     qui n'est DÉCLARÉE nulle part : une variable inconnue rend la déclaration invalide,
+     donc un rayon de 0. */
+  border-radius: 100%;
+  background-color: transparent;
+  color: var(--neutral-colors--600);
+  cursor: pointer;
+  transition: background-color .2s, color .2s;
+}
+
+/* La géométrie du glyphe, ici et pas dans le TSX : sans `width`/`height` un SVG retombe
+   sur 300×150, et LabGuardBanner ne pose aucune taille (cf. son en-tête). */
+.megga-x .mx-notice__close svg {
+  width: 14px;
+  height: 14px;
+}
+
+.megga-x .mx-notice__close:hover {
+  background-color: var(--neutral-colors--300);
+  color: var(--neutral-colors--800);
+}
+
+/* ⛔ Pas d'`outline: none` ici : c'est le piège qui avait tué la navigation au clavier
+   sur les atomes Sugar. Le focus visible reste celui du navigateur. */
+.megga-x .mx-notice__close:focus-visible {
+  color: var(--neutral-colors--800);
+}
+
 /* ───────────────────────────────────────────────────────────────────────────
  * 17. Prise de rendez-vous en DEUX temps (MEGGA Calendar). La vitrine ne prend
  *    aucun rendez-vous : ni panneau d'hôte, ni confirmation en deux écrans.

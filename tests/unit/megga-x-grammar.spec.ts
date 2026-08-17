@@ -938,7 +938,15 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/settings', { hors: 73, total: 93 }],
   ['src/components/crm/today', { hors: 43, total: 54 }],
   ['src/components/kyc-magic-link', { hors: 80, total: 110 }],
-  ['src/components/layout', { hors: 9, total: 107 }],
+  // ⚠ 107 → 109 (18.08.2026) SANS qu'un seul littéral ait été ajouté : le bouton de
+  // renvoi du bandeau LAB introduit les classes `mx-notice__actions` et
+  // `mx-notice__close`, et B4_CLASSE les compte comme des utilitaires Tailwind — son
+  // alternative `m[xytrbl]?-[\w.]+` matche `mx-` suivi de n'importe quoi, donc TOUT nom
+  // de classe MEGGA X. Mesuré : `mx-notice`, `mx-appshell`, `mx-notice__close` matchent
+  // tous. Une part de ces inventaires est donc du bruit, ici comme dans les autres zones
+  // qui portent des classes `mx-`. Corriger le motif suppose de rebaser chaque zone : à
+  // faire à part, pas au détour d'un bouton.
+  ['src/components/layout', { hors: 9, total: 109 }],
   ['src/components/listings', { hors: 39, total: 115 }],
   ['src/components/map', { hors: 0, total: 4 }],
   ['src/components/matching-atelier', { hors: 37, total: 50 }],
