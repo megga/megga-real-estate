@@ -703,7 +703,8 @@
       "unlinked": {
         "body": "Pilotez MEGGA depuis WhatsApp. Vos RDV, vos relances et vos contacts directement par message, sans ouvrir le CRM. Générez un code, puis envoyez-le à MEGGA au <strong>{{number}}</strong>."
       },
-      "generateCode": "Générer un code"
+      "generateCode": "Générer un code",
+      "abandonPairing": "Abandonner"
     },
     "esign": {
       "title": "Connecter Skribble",

@@ -703,7 +703,8 @@
       "unlinked": {
         "body": "Gestisca MEGGA da WhatsApp. I Suoi appuntamenti, i Suoi solleciti e i Suoi contatti direttamente via messaggio, senza aprire il CRM. Generi un codice, poi lo invii a MEGGA al <strong>{{number}}</strong>."
       },
-      "generateCode": "Genera un codice"
+      "generateCode": "Genera un codice",
+      "abandonPairing": "Rinuncia"
     },
     "esign": {
       "title": "Collega Skribble",

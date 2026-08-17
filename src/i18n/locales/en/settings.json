@@ -703,7 +703,8 @@
       "unlinked": {
         "body": "Drive MEGGA from WhatsApp. Your appointments, follow-ups and contacts straight by message, without opening the CRM. Generate a code, then send it to MEGGA at <strong>{{number}}</strong>."
       },
-      "generateCode": "Generate a code"
+      "generateCode": "Generate a code",
+      "abandonPairing": "Give up"
     },
     "esign": {
       "title": "Connect Skribble",

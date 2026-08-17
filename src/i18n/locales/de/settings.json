@@ -703,7 +703,8 @@
       "unlinked": {
         "body": "Steuern Sie MEGGA über WhatsApp. Ihre Termine, Ihre Nachfassungen und Ihre Kontakte direkt per Nachricht, ohne das CRM zu öffnen. Generieren Sie einen Code und senden Sie ihn an MEGGA unter <strong>{{number}}</strong>."
       },
-      "generateCode": "Code generieren"
+      "generateCode": "Code generieren",
+      "abandonPairing": "Abbrechen"
     },
     "esign": {
       "title": "Skribble verbinden",

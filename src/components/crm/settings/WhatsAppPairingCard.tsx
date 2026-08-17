@@ -466,6 +466,21 @@ function WABody() {
               ? t('integrations.whatsapp.generating')
               : t('integrations.whatsapp.regenerateCode')}
           </WAGhostButton>
+          {/* ⛔ LA SORTIE MANQUAIT, ET C'EST UN CUL-DE-SAC MESURÉ. Cet écran n'offrait que
+              « Ouvrir WhatsApp » et « Régénérer » : deux gestes qui RESTENT dans
+              l'appairage. Un agent qui génère un code puis change d'avis — parce qu'il
+              veut la voie OTP, ou parce qu'il s'est trompé — était enfermé ici pour les
+              quinze minutes de validité du code, sans rien à cliquer pour en sortir.
+              Constaté en production : « je ne peux pas rentrer l'OTP ».
+              Même geste que dans l'écran OTP, et même RPC — elle n'efface que le code en
+              vol, sans toucher au compteur d'envois ni à `profiles.phone`. */}
+          <WAGhostButton
+            icon={<SetIcon name="x" size={16} stroke={SET.inkSoft} sw={2} />}
+            onClick={() => cancelVerification.mutate()}
+            disabled={cancelVerification.isPending}
+          >
+            {t('integrations.whatsapp.abandonPairing')}
+          </WAGhostButton>
         </div>
       </div>
     )
