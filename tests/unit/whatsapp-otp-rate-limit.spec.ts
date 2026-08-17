@@ -93,3 +93,45 @@ describe('plafond OTP — il survit à la déliaison', () => {
     expect(bloc).toContain('cancelVerification.mutate()')
   })
 })
+
+// ── Propriété voisine, même famille de régression ───────────────────────────
+//
+// ⛔ `profiles.phone` appartient au trigger de vérification WhatsApp depuis le
+// 17.08.2026, et l'écran de Profil n'a plus de champ pour le saisir. Or `save()` le
+// réécrivait à CHAQUE enregistrement de n'importe quel champ, depuis un instantané client
+// que rien n'invalide : vérifier son numéro, revenir sur Profil dans la minute, corriger
+// sa « Fonction » suffisait à le remettre à NULL. Le correctif tient en DEUX LIGNES
+// SUPPRIMÉES — exactement le genre de chose qu'une PR ultérieure remet sans y penser,
+// pour une conséquence (perte silencieuse du numéro sur les trois surfaces clientes, sans
+// aucun écran pour la voir ni la réparer) hors de proportion avec la taille du diff.
+describe('profiles.phone — le formulaire de Profil ne le réécrit plus', () => {
+  const SRC = readFileSync('src/hooks/useAgentProfileScreen.ts', 'utf8')
+
+  /** Le seul objet passé à `.update()` sur la table `profiles`. */
+  function payloadProfiles(): string {
+    const ancre = SRC.indexOf(".from('profiles')")
+    expect(ancre, "l'update de `profiles` est introuvable").toBeGreaterThan(-1)
+    const debut = SRC.indexOf('.update({', ancre)
+    expect(debut, '`.update({` introuvable après `.from(\'profiles\')`').toBeGreaterThan(-1)
+    const fin = SRC.indexOf('})', debut)
+    return SRC.slice(debut, fin)
+  }
+
+  it("n'écrit ni phone ni mobile_phone", () => {
+    const payload = payloadProfiles()
+    // Bornés au début de propriété : un commentaire qui NOMME `phone` (il y en a un long,
+    // et c'est lui qui explique pourquoi la ligne est partie) ne doit pas faire rougir.
+    expect(
+      /^\s*phone:/m.test(payload),
+      '`save()` réécrit `profiles.phone` — la colonne appartient au trigger de vérification, ' +
+        'et le formulaire la remettrait à NULL depuis un cache périmé',
+    ).toBe(false)
+    expect(
+      /^\s*mobile_phone:/m.test(payload),
+      '`save()` réécrit `profiles.mobile_phone` alors qu\'aucune UI ne le règle plus : ' +
+        "l'écrire ne peut plus rien faire d'autre que l'effacer",
+    ).toBe(false)
+    // Contre-preuve de non-vacuité : le payload doit rester celui qu'on croit lire.
+    expect(payload).toContain('full_name')
+  })
+})

@@ -136,7 +136,7 @@ function WABody() {
   const { t, i18n } = useTranslation('settings')
   const {
     status, generateCode, unlink, startVerification, confirmVerification,
-    cancelVerification, businessNumber,
+    cancelVerification, businessNumber, otpAvailable,
   } = useWhatsAppPairing()
   const link = status.data
   // Le numéro auquel l'agent doit écrire. Affiché groupé (il va être RECOPIÉ à la main
@@ -567,11 +567,14 @@ function WABody() {
       </p>
 
       {/* Voie 1 — saisir son numéro et recevoir un code.
-          Elle est présentée EN PREMIER parce que c'est celle que l'agent demande
-          spontanément, mais elle dépend d'un template Meta approuvé. Quand il manque,
-          l'edge rend `template_not_configured` et `WAErreur` renvoie explicitement vers
-          la voie 2 — plutôt qu'un « une erreur est survenue » qui laisserait croire à
-          une panne alors que l'autre chemin, juste en dessous, fonctionne. */}
+          Présentée en PREMIER parce que c'est celle que l'agent demande spontanément,
+          mais RENDUE SEULEMENT si elle est armée : elle dépend d'un template Meta
+          approuvé, et le hook interroge la fonction edge pour le savoir.
+          ⛔ Avant cette garde, l'écran l'affichait toujours et en accent — l'agent
+          saisissait son numéro, cliquait, attendait un aller-retour réseau, et lisait
+          « pas encore activé » avant d'être renvoyé vers le bouton discret d'en dessous.
+          Tant que Meta n'a pas approuvé le template, c'était le parcours de CHACUN. */}
+      {otpAvailable && (
       <div style={{ display: 'grid', gap: 'var(--crm-space-xl)' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-md)' }}>
           <select
@@ -622,19 +625,35 @@ function WABody() {
             : t('integrations.whatsapp.otp.send')}
         </WAPrimaryButton>
       </div>
+      )}
 
-      {/* Voie 2 — l'appairage historique. Secondaire à l'écran, mais c'est LUI qui marche
-          sans rien : aucun template, et il prouve davantage (l'agent écrit depuis son
-          propre WhatsApp). D'où le ghost : secondaire ne veut pas dire dégradé. */}
-      <WAGhostButton
-        icon={<WAGlyphSolid size={18} />}
-        onClick={() => generateCode.mutate()}
-        disabled={generateCode.isPending}
-      >
-        {generateCode.isPending
-          ? t('integrations.whatsapp.generating')
-          : t('integrations.whatsapp.generateCode')}
-      </WAGhostButton>
+      {/* Voie 2 — l'appairage historique. C'est LUI qui marche sans rien : aucun
+          template, et il prouve davantage (l'agent écrit depuis son propre WhatsApp).
+          ⚠ Son rang visuel SUIT la disponibilité de l'autre voie : ghost tant qu'une
+          voie primaire existe à côté, ACCENT quand il est le seul chemin. Peindre en
+          secondaire l'unique geste possible, c'est laisser l'agent chercher lequel des
+          deux boutons est le bon — alors qu'il n'y en a qu'un. */}
+      {otpAvailable ? (
+        <WAGhostButton
+          icon={<WAGlyphSolid size={18} />}
+          onClick={() => generateCode.mutate()}
+          disabled={generateCode.isPending}
+        >
+          {generateCode.isPending
+            ? t('integrations.whatsapp.generating')
+            : t('integrations.whatsapp.generateCode')}
+        </WAGhostButton>
+      ) : (
+        <WAPrimaryButton
+          onClick={() => generateCode.mutate()}
+          disabled={generateCode.isPending}
+        >
+          <WAGlyphSolid size={18} />
+          {generateCode.isPending
+            ? t('integrations.whatsapp.generating')
+            : t('integrations.whatsapp.generateCode')}
+        </WAPrimaryButton>
+      )}
     </div>
   )
 }

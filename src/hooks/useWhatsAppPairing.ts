@@ -97,6 +97,26 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
     },
   })
 
+  // La voie OTP est-elle ARMÉE ? Seule la fonction edge le sait — le nom du template
+  // approuvé vit dans son env. Sans cette sonde, la carte peignait la saisie de numéro en
+  // affordance primaire et l'agent découvrait après le clic qu'elle n'est pas activée.
+  //
+  // ⚠ Repli sur `false` en cas d'échec : mieux vaut proposer l'appairage — qui marche
+  // toujours — que d'ouvrir une voie dont on ne sait pas si elle mène quelque part.
+  // `retry: false` parce qu'une capacité absente n'est pas une panne à réessayer.
+  const otpDispo = useQuery({
+    queryKey: ['whatsapp-otp-available'],
+    enabled,
+    staleTime: 10 * 60_000,
+    retry: false,
+    queryFn: async (): Promise<boolean> => {
+      const { data } = await supabase.functions.invoke('whatsapp-verify-number', {
+        body: { action: 'status' },
+      })
+      return (data as { otp_available?: boolean } | null)?.otp_available === true
+    },
+  })
+
   const generateCode = useMutation({
     mutationFn: async (): Promise<string> => {
       const { data, error } = await supabase.rpc('generate_whatsapp_pairing_code')
@@ -106,12 +126,23 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['whatsapp-agent-link'] }) },
   })
 
+  // ⚠ Les DEUX gestes qui touchent `profiles.phone` invalident aussi le PROFIL. La
+  // déliaison l'efface directement, la confirmation le réécrit par le trigger
+  // `trg_sync_profile_phone_from_wa_link` — dans les deux cas la base change sous une
+  // query (`['agent-profile', profileId]`, staleTime 60 s) que rien ne prévenait. Pendant
+  // une minute, `profileCompletionScore` comptait donc l'ancien numéro et tout lecteur de
+  // `profile.phone` servait une valeur déjà périmée.
+  const invalideLienEtProfil = () => {
+    qc.invalidateQueries({ queryKey: ['whatsapp-agent-link'] })
+    qc.invalidateQueries({ queryKey: ['agent-profile'] })
+  }
+
   const unlink = useMutation({
     mutationFn: async (): Promise<void> => {
       const { error } = await supabase.rpc('unlink_whatsapp_number')
       if (error) throw error
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['whatsapp-agent-link'] }) },
+    onSuccess: invalideLienEtProfil,
   })
 
   // ── Vérification par code ENVOYÉ (l'agent saisit son numéro) ────────────────
@@ -164,7 +195,7 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
       const row = (data as { ok: boolean; reason: string }[] | null)?.[0]
       if (!row?.ok) throw new Error(row?.reason ?? 'unknown')
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['whatsapp-agent-link'] }) },
+    onSuccess: invalideLienEtProfil,
   })
 
   return {
@@ -176,5 +207,7 @@ export function useWhatsAppPairing(options?: { enabled?: boolean }) {
     cancelVerification,
     /** Chiffres seuls (format wa.me). Jamais vide : repli sur la constante plateforme. */
     businessNumber: business.data ?? MEGGA_WA_BUSINESS_DIGITS,
+    /** La voie « recevoir un code » est-elle activée ? `false` tant qu'on ne sait pas. */
+    otpAvailable: otpDispo.data === true,
   }
 }

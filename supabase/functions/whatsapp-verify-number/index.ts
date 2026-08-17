@@ -55,8 +55,35 @@ serve(async (req) => {
   if (auth instanceof Response) return auth
   const { profile } = auth
 
-  const { number, lang } = (await req.json().catch(() => ({}))) as { number?: string; lang?: string }
+  const body = (await req.json().catch(() => ({}))) as { action?: string; number?: string; lang?: string }
+  const { number, lang } = body
+
+  // ── `action: 'status'` — la capacité est-elle armée ? ──────────────────────
+  //
+  // ⛔ SANS CETTE SONDE, L'ÉCRAN PROPOSE CE QUI NE PEUT PAS MARCHER. Le CRM n'avait
+  // aucun moyen de savoir si le template Meta est configuré : il peignait donc la saisie
+  // de numéro en affordance PRIMAIRE, et l'agent ne découvrait qu'après le clic, un
+  // aller-retour réseau plus tard, que la capacité n'est pas activée — pour se faire
+  // renvoyer vers le bouton discret d'en dessous, celui qui fonctionne. Tant que le
+  // template n'est pas approuvé par Meta, c'est le parcours de CHAQUE agent.
+  //
+  // La réponse est ici et nulle part ailleurs : le nom approuvé vit dans l'env de cette
+  // fonction. Le dupliquer dans un drapeau `app_config` créerait deux sources de vérité
+  // pour un même fait, donc une dérive de plus à surveiller.
+  //
+  // ⚠ Ne touche NI la base NI Meta : `buildTemplateMessage` est pur, on lit seulement
+  // s'il rend quelque chose. Aucun jeton de débit consommé, aucun OTP armé.
+  if (body.action === 'status') {
+    const arme = buildTemplateMessage(
+      'number_verification', '41000000000', { verificationCode: '000000' }, (k) => Deno.env.get(k),
+    )
+    return json({ ok: true, otp_available: !!arme }, 200)
+  }
+
   if (!number || typeof number !== 'string') return json({ error: 'number required' }, 400)
+  // `lang` vient du corps de requête : le valider AVANT de le passer plus loin, où il
+  // atteindrait un `.trim()` et sortirait en 500 nu, sans en-têtes CORS.
+  const langue = typeof lang === 'string' ? lang : undefined
 
   const admin = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',
@@ -72,7 +99,7 @@ serve(async (req) => {
   // si le template est configuré. Le message envoyé est reconstruit plus bas avec le vrai
   // code — `buildTemplateMessage` est pur, l'appeler deux fois ne coûte rien.
   const configured = buildTemplateMessage(
-    'number_verification', number, { verificationCode: '000000', lang }, (k) => Deno.env.get(k),
+    'number_verification', number, { verificationCode: '000000', lang: langue }, (k) => Deno.env.get(k),
   )
   if (!configured) {
     // 501 et non 500 : rien n'est cassé, la capacité n'est simplement pas activée. Le CRM
@@ -93,7 +120,7 @@ serve(async (req) => {
   if (!row.ok) return json({ error: row.reason }, STATUS[row.reason] ?? 400)
 
   const message = buildTemplateMessage(
-    'number_verification', number, { verificationCode: row.code ?? '', lang }, (k) => Deno.env.get(k),
+    'number_verification', number, { verificationCode: row.code ?? '', lang: langue }, (k) => Deno.env.get(k),
   )
   if (!message) return json({ error: 'template_not_configured', fallback: 'pairing' }, 501)
 
