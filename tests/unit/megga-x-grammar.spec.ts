@@ -952,7 +952,7 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // l'allègement du parcours KYC (décision Julien) : cinq blocs de texte retirés — les
   // sous-titres de réassurance, l'accroche du dépôt, le conseil de sécurité, deux surtitres
   // — et leur mise en page avec eux. Un texte supprimé emporte sa géométrie.
-  ['src/components/kyc-magic-link', { hors: 74, total: 99 }],
+  ['src/components/kyc-magic-link', { hors: 32, total: 36 }],
   // ⚠ 107 → 105 le 16 août 2026 : `PublicPageHeader` a été retiré. Il n'avait que les
   // deux pages de visite pour consommateurs, et elles sont passées à `MlkWordmark`.
   ['src/components/layout', { hors: 9, total: 105 }],
@@ -989,7 +989,7 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // (décision Julien, 17 août), et leur géométrie avec eux. Un texte qu'on supprime emporte
   // sa mise en page — c'est le seul cas où ce cliquet baisse sans qu'on ait tokenisé quoi
   // que ce soit.
-  ['src/pages/public', { hors: 58, total: 189 }],
+  ['src/pages/public', { hors: 15, total: 111 }],
 ])
 
 /** Les propriétés qui portent un rayon ou un espacement. */

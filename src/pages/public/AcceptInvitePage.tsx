@@ -106,7 +106,7 @@ export default function AcceptInvitePage() {
           {loading && (
             <div className="flex flex-col items-center py-8">
               <Loader2 className="w-6 h-6 animate-spin" style={{ color: MLK.muted }} />
-              <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 12 }}>
+              <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 'var(--crm-space-lg)' }}>
                 {t('team.acceptInvite.loading')}
               </p>
             </div>
@@ -118,7 +118,7 @@ export default function AcceptInvitePage() {
               {/* ⛔ L'ENCRE D'ERREUR PREND LA VARIANTE FONCÉE : la vive rend 3,76:1 sur une
                   carte blanche, sous l'AA. « La teinte vive sur l'aplat, la foncée sur le
                   texte » — la valeur vit dans `MLK_STATUT`, pas ici. */}
-              <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK_STATUT.errInk, marginBottom: 16 }}>{error}</p>
+              <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK_STATUT.errInk, marginBottom: 'var(--crm-space-2xl)' }}>{error}</p>
               <Link to="/" style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted }}>
                 {t('team.acceptInvite.backHome')}
               </Link>
@@ -132,7 +132,7 @@ export default function AcceptInvitePage() {
                 <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, margin: 0 }}>
                   {t('team.acceptInvite.title')}
                 </h2>
-                <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 8 }}>
+                <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 'var(--crm-space-sm)' }}>
                   <span style={{ fontWeight: 600, color: MLK.inkSoft }}>{invitation.inviterName}</span>
                   {' '}{t('team.acceptInvite.invitesYou')}{' '}
                   <span style={{ fontWeight: 600, color: MLK.inkSoft }}>{invitation.agencyName}</span>
@@ -140,7 +140,7 @@ export default function AcceptInvitePage() {
               </div>
 
               <div className="rounded-lg p-4 text-center" style={{ background: MLK.cardSubtle }}>
-                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted, marginBottom: 4 }}>
+                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted, marginBottom: 'var(--crm-space-xs)' }}>
                   {t('team.acceptInvite.yourRole')}
                 </p>
                 <p style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: MLK.ink, margin: 0 }}>

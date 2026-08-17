@@ -47,7 +47,7 @@ export function MlkSlotPicker({
   return (
     <>
       <div
-        style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6, marginBottom: 18 }}
+        style={{ display: 'flex', gap: 'var(--crm-space-sm)', overflowX: 'auto', paddingBottom: 'var(--crm-space-sm)', marginBottom: 'var(--crm-space-4xl)' }}
         className="scrollbar-hide"
       >
         {days.map(d => {
@@ -58,7 +58,7 @@ export function MlkSlotPicker({
               type="button"
               onClick={() => onDayChange(d.key)}
               style={{
-                flexShrink: 0, padding: '10px 16px', borderRadius: 999, border: 'none',
+                flexShrink: 0, padding: 'var(--crm-space-lg) var(--crm-space-2xl)', borderRadius: 999, border: 'none',
                 cursor: 'pointer', fontFamily: MLK.font, fontSize: 'var(--crm-text-md)', fontWeight: 600,
                 letterSpacing: -0.1, whiteSpace: 'nowrap',
                 background: on ? MLK.accent : MLK.card,
@@ -75,7 +75,7 @@ export function MlkSlotPicker({
       <div
         style={{
           display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))',
-          gap: 8, marginBottom: 22,
+          gap: 'var(--crm-space-sm)', marginBottom: 'var(--crm-space-6xl)',
         }}
       >
         {visible.map(s => {
@@ -86,7 +86,7 @@ export function MlkSlotPicker({
               type="button"
               onClick={() => onSelect(s.start)}
               style={{
-                padding: '13px 8px', borderRadius: 14, cursor: 'pointer',
+                padding: 'var(--crm-space-lg) var(--crm-space-sm)', borderRadius: 14, cursor: 'pointer',
                 fontFamily: MLK.font, fontSize: 'var(--crm-text-lg)', fontWeight: 600, letterSpacing: -0.1,
                 border: on ? `1.5px solid ${MLK.accent}` : '1.5px solid transparent',
                 background: on ? MLK.accent : MLK.card,

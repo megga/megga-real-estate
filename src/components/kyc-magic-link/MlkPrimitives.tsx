@@ -262,7 +262,7 @@ export function MlkBlackPill({
         display: full ? 'flex' : 'inline-flex',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: 10,
+        gap: 'var(--crm-space-lg)',
         whiteSpace: 'nowrap',
         width: full ? '100%' : 'auto',
         boxShadow: disabled
@@ -291,7 +291,7 @@ export function MlkWordmark({ size = 18 }: { size?: number }) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 8,
+        gap: 'var(--crm-space-sm)',
       }}
     >
       <img
@@ -407,8 +407,8 @@ export function MlkReassureRow({ items }: { items: ReassureItem[] }) {
           style={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 8,
-            padding: '16px 4px 4px',
+            gap: 'var(--crm-space-sm)',
+            padding: 'var(--crm-space-2xl) var(--crm-space-xs) var(--crm-space-xs)',
           }}
         >
           <div
@@ -525,7 +525,7 @@ export function MlkFooter() {
     <div
       style={{
         marginTop: 32,
-        paddingTop: 22,
+        paddingTop: 'var(--crm-space-6xl)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'flex-end',
@@ -534,7 +534,7 @@ export function MlkFooter() {
         fontWeight: 500,
       }}
     >
-      <div style={{ display: 'flex', gap: 18 }}>
+      <div style={{ display: 'flex', gap: 'var(--crm-space-4xl)' }}>
         <a
           href={VITRINE_MENTIONS_LEGALES}
           target="_blank"
@@ -606,7 +606,7 @@ export function MlkBackground({ children }: { children: ReactNode }) {
       style={{
         minHeight: '100vh',
         background: MLK.bgGradient,
-        padding: '48px 16px',
+        padding: '48px var(--crm-space-2xl)',
         fontFamily: MLK.font,
         color: MLK.ink,
       }}

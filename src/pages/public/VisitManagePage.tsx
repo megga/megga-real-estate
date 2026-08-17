@@ -111,7 +111,7 @@ export default function VisitManagePage() {
     return (
       <Coquille>
         <div className="flex flex-col items-center justify-center h-[60vh]">
-          <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 8 }}>Lien invalide</p>
+          <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 'var(--crm-space-sm)' }}>Lien invalide</p>
           <p style={SOUS}>Ce lien de gestion de visite est expiré ou invalide.</p>
         </div>
       </Coquille>
@@ -160,7 +160,7 @@ export default function VisitManagePage() {
             <X className="h-6 w-6" style={{ color: MLK_STATUT.errInk }} />
           </div>
           <h2 style={TITRE}>Visite annulée</h2>
-          <p style={{ ...SOUS, marginTop: 8 }}>L'agent a été notifié de l'annulation.</p>
+          <p style={{ ...SOUS, marginTop: 'var(--crm-space-sm)' }}>L'agent a été notifié de l'annulation.</p>
         </div>
       </Coquille>
     )
@@ -174,7 +174,7 @@ export default function VisitManagePage() {
             <Check className="h-6 w-6" style={{ color: MLK_STATUT.okInk }} />
           </div>
           <h2 style={TITRE}>Visite reportée</h2>
-          <p style={{ ...SOUS, marginTop: 8 }}>L'agent a été notifié du nouveau créneau.</p>
+          <p style={{ ...SOUS, marginTop: 'var(--crm-space-sm)' }}>L'agent a été notifié du nouveau créneau.</p>
         </div>
       </Coquille>
     )
@@ -229,14 +229,14 @@ export default function VisitManagePage() {
             {estRefus(cancel.error) || estRefus(reschedule.error) ? (
               <>
                 <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>Ce lien ne permet plus cette action</p>
-                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
+                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 'var(--crm-space-xs)' }}>
                   La visite a peut-être déjà été annulée ou clôturée. Contactez votre agent pour la modifier.
                 </p>
               </>
             ) : (
               <>
                 <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>L'action n'a pas abouti</p>
-                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
+                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 'var(--crm-space-xs)' }}>
                   Vérifiez votre connexion et réessayez.
                 </p>
               </>

@@ -33,15 +33,15 @@ export function MlkAppointmentCard({ appointment }: { appointment: PublicAppoint
   return (
     <div
       style={{
-        padding: '22px 24px',
+        padding: 'var(--crm-space-6xl) var(--crm-space-6xl)',
         background: MLK.card,
         borderRadius: 20,
         boxShadow: MLK.shadow,
-        marginBottom: 24,
+        marginBottom: 'var(--crm-space-6xl)',
         opacity: isCancelled ? 0.6 : 1,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', marginBottom: 'var(--crm-space-2xl)' }}>
         <div
           style={{
             width: 38, height: 38, borderRadius: 999,
@@ -84,14 +84,14 @@ function BookingNotice({ title, body }: { title: string; body: string }) {
   return (
     <div
       style={{
-        padding: '26px 24px',
+        padding: '26px var(--crm-space-6xl)',
         background: MLK.cardSubtle,
         borderRadius: 18,
-        marginBottom: 24,
+        marginBottom: 'var(--crm-space-6xl)',
         textAlign: 'center',
       }}
     >
-      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: MLK.ink, marginBottom: 6 }}>{title}</div>
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: MLK.ink, marginBottom: 'var(--crm-space-sm)' }}>{title}</div>
       <div style={{ fontSize: 'var(--crm-text-md)', color: MLK.inkSoft, fontWeight: 500, lineHeight: 1.6 }}>{body}</div>
     </div>
   )
@@ -144,7 +144,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
         <h1
           className="mlk-h1"
           style={{
-            margin: '0 0 12px', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink,
+            margin: '0 0 var(--crm-space-lg)', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink,
             letterSpacing: -0.8, lineHeight: 1.15, textAlign: 'center',
           }}
         >
@@ -159,7 +159,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
           {t('client.booking.confirmed_body', { agentName: agentFullName, agencyName })}
         </p>
         <MlkAppointmentCard appointment={confirmed} />
-        <p style={{ margin: '0 0 8px', fontSize: 'var(--crm-text-sm)', color: MLK.muted, textAlign: 'center', lineHeight: 1.6 }}>
+        <p style={{ margin: '0 0 var(--crm-space-sm)', fontSize: 'var(--crm-text-sm)', color: MLK.muted, textAlign: 'center', lineHeight: 1.6 }}>
           {t('client.booking.confirmed_email')}
         </p>
         <MlkFooter />
@@ -225,7 +225,7 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
       <h1
         className="mlk-h1"
         style={{
-          margin: '0 0 12px', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink,
+          margin: '0 0 var(--crm-space-lg)', fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: MLK.ink,
           letterSpacing: -0.8, lineHeight: 1.15, textAlign: 'center',
         }}
       >
@@ -252,8 +252,8 @@ export function MlkBooking({ token, firstName, agentFullName, agencyName }: Book
       {/* Lieu / mode */}
       <div
         style={{
-          display: 'flex', alignItems: 'center', gap: 10, padding: '13px 16px',
-          background: MLK.cardSubtle, borderRadius: 14, marginBottom: 20,
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
+          background: MLK.cardSubtle, borderRadius: 14, marginBottom: 'var(--crm-space-4xl)',
         }}
       >
         <MlkIcon name={data.mode === 'video' ? 'lock' : 'home'} size={17} stroke={MLK.muted} />
