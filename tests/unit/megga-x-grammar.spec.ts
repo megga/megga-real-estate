@@ -982,7 +982,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // LE CSS d'un littéral de gabarit — la première version, qui y recopiait ses valeurs en
   // pixels, l'a fait MONTER de 62 à 63. Les passer en `var(--crm-space-*)` là où un barreau
   // existe rend le gain : une feuille de style n'échappe pas à la grammaire.
-  ['src/pages/public', { hors: 60, total: 191 }],
+  // ⚠ 60 → 58 et 191 → 189 : cinq textes de remplissage retirés de la réception acheteur
+  // (décision Julien, 17 août), et leur géométrie avec eux. Un texte qu'on supprime emporte
+  // sa mise en page — c'est le seul cas où ce cliquet baisse sans qu'on ait tokenisé quoi
+  // que ce soit.
+  ['src/pages/public', { hors: 58, total: 189 }],
 ])
 
 /** Les propriétés qui portent un rayon ou un espacement. */
