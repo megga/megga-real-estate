@@ -81,20 +81,27 @@ describe("centre d'aide généré — fonctions pures", () => {
 })
 
 describe("centre d'aide généré — plomberie", () => {
-  it('est exempté du gate, index ET articles, dans les deux langues', () => {
-    const pages = WORKER.match(/const PUBLIC_PAGES = new Set\(\[([\s\S]*?)\]\)/)?.[1] ?? ''
-    const prefixes = WORKER.match(/const PUBLIC_PREFIXES = (\[[^\]]*\])/)?.[1] ?? ''
-    // `sansLangue` ramène `/en/help` sur `/help` : les deux index tiennent en
-    // deux entrées, mais les articles passent par les préfixes.
-    expect(pages, "l'index français doit être public").toContain("'/aide'")
-    expect(pages, "l'index anglais doit être public").toContain("'/help'")
-    expect(prefixes, 'les articles français doivent être publics').toContain("'/aide/'")
-    expect(prefixes, 'les articles anglais doivent être publics').toContain("'/help/'")
-    // Le test du préfixe doit tourner AUSSI hors langue, sinon `/en/help/…`
-    // reste muré alors que son index est ouvert.
-    expect(WORKER, 'isPublic doit comparer le chemin hors langue aux préfixes').toMatch(
-      /horsLangue\s*=\s*sansLangue\(path\)/,
-    )
+  it('passe le gate — index ET articles, dans les deux langues, sans ouvrir le reste', async () => {
+    // ⛔ MESURE, pas lecture de fichier. On appelle le VRAI worker avec le gate
+    // à son défaut (fermé depuis le 17.08.2026) : c'est le seul oracle qui
+    // distingue « la constante contient /aide » de « la requête passe ».
+    //
+    // Exempter l'index sans ses articles donnerait une table des matières dont
+    // chaque lien répond 401 — le défaut décrit dans
+    // `project_edge_gate_breaks_session_handover`. Et les articles anglais
+    // vivent sous `/en/help/…`, que seul un test HORS LANGUE attrape.
+    const { default: worker } = await import('../../sites/megga-vitrine/_worker.js')
+    const env = { ASSETS: { fetch: async () => new Response('ok', { status: 200 }) } }
+    const statut = async (chemin: string) =>
+      (await worker.fetch(new Request('https://megga.ch' + chemin), env)).status
+
+    for (const chemin of ['/aide', '/aide/15424977-un-article', '/en/help', '/en/help/15424977-an-article']) {
+      expect(await statut(chemin), `${chemin} doit passer le gate`).toBe(200)
+    }
+    // ⚠ Les témoins portent autant que les cas : sans eux, un gate accidentellement
+    // grand ouvert ferait passer le test au vert.
+    expect(await statut('/pricing'), 'le gate doit rester fermé ailleurs').toBe(401)
+    expect(await statut('/legal'), 'les pages publiques préexistantes le restent').toBe(200)
   })
 
   it('est branché dans la chaîne de build', () => {
