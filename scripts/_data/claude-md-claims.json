@@ -40,7 +40,18 @@
     "⚠ Elles ne tournent PAS dans unit-tests.yml, statique et sans secret par conception ; elles",
     "vivent dans migration-drift.yml, seul workflow qui interroge la production. Sans jeton le",
     "runner les IGNORE et le DIT — une exécution partielle muette se lirait comme une complète.",
-    "La requête doit rendre UNE ligne et UNE colonne ; le runner refuse toute autre forme."
+    "La requête doit rendre UNE ligne et UNE colonne ; le runner refuse toute autre forme.",
+    "",
+    "DEUX DOCUMENTS, ET UNE GRANDEUR PARTAGÉE (17.08.2026). `doc` désigne le fichier gardé",
+    "(défaut CLAUDE.md) ; `grandeur` regroupe les entrées qui parlent de LA MÊME chose, où",
+    "qu'elles soient écrites. Deux entrées d'une même grandeur doivent porter le même chiffre.",
+    "",
+    "⛔ CE CONTRÔLE ATTRAPE CE QUE NI LA MESURE NI LA TOLÉRANCE NE VOIENT. system-map annonçait",
+    "67 edge functions ligne 91 et 71 au titre du §5 — deux chiffres, un objet, un document.",
+    "Prise isolément chaque affirmation est juste « fausse » ; c'est leur CONFRONTATION qui dit",
+    "qu'un lecteur ne peut pas savoir laquelle croire. Et sur les pages de console admin, c'est",
+    "CLAUDE.md qui avait tort (17) et le system-map raison (19) : ce n'est pas le prestige du",
+    "document qui tranche, c'est la mesure."
   ],
   "claims": [
     {
@@ -496,7 +507,8 @@
         "valeur": 208
       },
       "tolerance": 0.15,
-      "note": "⚠ Mesure en MILLIERS, pour parler l'unité du doc. Un compte exact rendrait la prétention instable par construction (la table grossit chaque nuit) et forcerait un chiffre illisible dans une phrase qui dit « ~ »."
+      "note": "⚠ Mesure en MILLIERS, pour parler l'unité du doc. Un compte exact rendrait la prétention instable par construction (la table grossit chaque nuit) et forcerait un chiffre illisible dans une phrase qui dit « ~ ».",
+      "grandeur": "ml-volume-total"
     },
     {
       "id": "ml-flatfox-actives",
@@ -511,7 +523,8 @@
         "valeur": 35
       },
       "tolerance": 0.15,
-      "note": "Le seul chiffre de volume que le doc avait JUSTE (35 145 le 17.08.2026). Inscrit pour qu'il le reste."
+      "note": "Le seul chiffre de volume que le doc avait JUSTE (35 145 le 17.08.2026). Inscrit pour qu'il le reste.",
+      "grandeur": "ml-flatfox-actives"
     },
     {
       "id": "ml-flatfox-total",
@@ -525,7 +538,8 @@
       "attendu": {
         "valeur": 117
       },
-      "tolerance": 0.15
+      "tolerance": 0.15,
+      "grandeur": "ml-flatfox-total"
     },
     {
       "id": "ml-realadvisor-total",
@@ -554,7 +568,8 @@
       "attendu": {
         "valeur": 77
       },
-      "tolerance": 0.15
+      "tolerance": 0.15,
+      "grandeur": "ml-actives-total"
     },
     {
       "id": "rls-partout-sauf-postgis",
@@ -598,6 +613,212 @@
       },
       "tolerance": 0,
       "note": "⚠ Tolérance ZÉRO, et l'écart serait une BONNE nouvelle : le §8 s'appuie sur ce 0 pour dire que la liaison Google Calendar n'a jamais tourné de bout en bout. Le jour où un agenda est connecté, c'est tout le paragraphe qui doit être réécrit, pas seulement le chiffre."
+    },
+    {
+      "id": "claude-admin-pages",
+      "section": "§8 — Super-Admin",
+      "phrase": "19 pages lazy",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "fichier": "src/components/admin/AdminConsoleRoutes.tsx",
+        "motif": "lazy\\("
+      },
+      "attendu": {
+        "occurrences": 19
+      },
+      "tolerance": 0.1,
+      "grandeur": "admin-pages",
+      "note": "⛔ Cette prétention n'était pas au registre, et elle était FAUSSE (17). C'est `docs/system-map.md` qui portait la bonne valeur — le document que je m'apprêtais à traiter comme « le périmé » avait raison là où la référence avait tort. D'où la grandeur partagée : ce n'est pas le prestige du document qui tranche, c'est la mesure."
+    },
+    {
+      "id": "sm-edge-functions-entete",
+      "section": "§0 — En une phrase",
+      "phrase": "81 edge functions",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "fichier": "src/lib/edgeFunctionRoster.ts",
+        "motif": "^\\s*'[a-z0-9-]+',"
+      },
+      "attendu": {
+        "occurrences": 81
+      },
+      "doc": "docs/system-map.md",
+      "tolerance": 0.1,
+      "grandeur": "edge-functions",
+      "note": "⚠ Mesuré sur le ROSTER GÉNÉRÉ, pas sur le dossier : `lint:roster` garde déjà que `edgeFunctionRoster.ts` colle à `supabase/functions/`. Compter le roster rattache donc la prose à la source de vérité que le dépôt maintient DÉJÀ, au lieu d'en créer une seconde."
+    },
+    {
+      "id": "sm-edge-functions-titre",
+      "section": "§5 — Edge functions",
+      "phrase": "Edge functions (81) — catalogue par domaine",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "fichier": "src/lib/edgeFunctionRoster.ts",
+        "motif": "^\\s*'[a-z0-9-]+',"
+      },
+      "attendu": {
+        "occurrences": 81
+      },
+      "doc": "docs/system-map.md",
+      "tolerance": 0.1,
+      "grandeur": "edge-functions",
+      "note": "La JUMELLE de l'entrée précédente, et la raison d'être du contrôle de cohérence : le doc disait 67 ici et 71 là, pour 81 réelles. Deux entrées séparées auraient signalé deux dérives sans jamais dire qu'elles se contredisaient."
+    },
+    {
+      "id": "sm-hooks",
+      "section": "§2 — Hooks",
+      "phrase": "`src/hooks/`, 119, React Query",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "compterFichiers": true,
+        "portee": [
+          "src/hooks"
+        ],
+        "ext": [
+          ".ts",
+          ".tsx"
+        ]
+      },
+      "attendu": {
+        "fichiers": 119
+      },
+      "doc": "docs/system-map.md",
+      "tolerance": 0.15
+    },
+    {
+      "id": "sm-cerveau-entrees",
+      "section": "§ cerveau",
+      "phrase": "(258 entrées curées)",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "fichier": ".claude-flow/knowledge/megga-memory.seed.json",
+        "motif": "\"key\":"
+      },
+      "attendu": {
+        "occurrences": 258
+      },
+      "doc": "docs/system-map.md",
+      "tolerance": 0.15,
+      "note": "Le cerveau porte les mêmes chiffres que les deux docs et dérive en parallèle. Compter ses entrées ne le garde pas — c'est le troisième chantier — mais ça garde au moins l'affirmation qui le décrit."
+    },
+    {
+      "id": "sm-admin-pages",
+      "section": "§2 — routes DEV",
+      "phrase": "les 19 pages de la console super-admin",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "fichier": "src/components/admin/AdminConsoleRoutes.tsx",
+        "motif": "lazy\\("
+      },
+      "attendu": {
+        "occurrences": 19
+      },
+      "doc": "docs/system-map.md",
+      "tolerance": 0.1,
+      "grandeur": "admin-pages"
+    },
+    {
+      "id": "sm-ml-total",
+      "section": "§0 — En une phrase",
+      "phrase": "~208k\n`market_listings`",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select round(count(*)/1000.0)::int from market_listings"
+      },
+      "attendu": {
+        "valeur": 208
+      },
+      "doc": "docs/system-map.md",
+      "tolerance": 0.15,
+      "grandeur": "ml-volume-total"
+    },
+    {
+      "id": "sm-ml-flatfox",
+      "section": "§0 — En une phrase",
+      "phrase": "~117k Flatfox",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select round(count(*) filter (where source_portal='flatfox')/1000.0)::int from market_listings"
+      },
+      "attendu": {
+        "valeur": 117
+      },
+      "doc": "docs/system-map.md",
+      "tolerance": 0.15,
+      "grandeur": "ml-flatfox-total"
+    },
+    {
+      "id": "sm-ml-actives",
+      "section": "§0 — En une phrase",
+      "phrase": "~77k actives",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select round(count(*) filter (where status='active')/1000.0)::int from market_listings"
+      },
+      "attendu": {
+        "valeur": 77
+      },
+      "doc": "docs/system-map.md",
+      "tolerance": 0.15,
+      "grandeur": "ml-actives-total"
+    },
+    {
+      "id": "sm-flatfox-actifs",
+      "section": "§4 — Pipeline",
+      "phrase": "~35k actifs, 26 cantons",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select round(count(*) filter (where source_portal='flatfox' and status='active')/1000.0)::int from market_listings"
+      },
+      "attendu": {
+        "valeur": 35
+      },
+      "doc": "docs/system-map.md",
+      "tolerance": 0.15,
+      "grandeur": "ml-flatfox-actives"
+    },
+    {
+      "id": "sm-perf-rows",
+      "section": "§4 — Règles de perf",
+      "phrase": "statement timeout 3-8s sur 208k rows",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select round(count(*)/1000.0)::int from market_listings"
+      },
+      "attendu": {
+        "valeur": 208
+      },
+      "doc": "docs/system-map.md",
+      "tolerance": 0.15,
+      "grandeur": "ml-volume-total",
+      "note": "⛔ Ce chiffre n'est pas décoratif : il est la JUSTIFICATION des règles de perf du §7. Calibré sur 33k, il en faisait des précautions ; à 208k elles sont une nécessité. Une prétention périmée peut affaiblir une règle sans la contredire."
+    },
+    {
+      "id": "sm-ml-biens",
+      "section": "§4bis — Vitrine",
+      "phrase": "`market_listings` (~208k biens)",
+      "severite": "derive",
+      "mesureLe": "2026-08-17",
+      "mesure": {
+        "sql": "select round(count(*)/1000.0)::int from market_listings"
+      },
+      "attendu": {
+        "valeur": 208
+      },
+      "doc": "docs/system-map.md",
+      "tolerance": 0.15,
+      "grandeur": "ml-volume-total"
     }
   ]
 }

@@ -121,8 +121,15 @@ function borne(motif) {
   return `(?<![\\w-])(?:${motif})(?![\\w-])`;
 }
 
+/**
+ * ⚠ Drapeau `m` — sans lui, `^` ne désigne que le début du FICHIER, pas de la ligne, et
+ * un motif ancré rend silencieusement 0. Relevé le 17.08.2026 : `^\s*'[a-z0-9-]+',`
+ * comptait zéro entrée du roster au lieu de 81. Zéro est une valeur plausible, donc
+ * l'erreur se lisait comme une dérive à corriger dans le doc — un motif défaillant qui
+ * accuse la prose est la pire façon de se tromper ici.
+ */
 function regex(motif, mot) {
-  return new RegExp(mot ? borne(motif) : motif, 'g');
+  return new RegExp(mot ? borne(motif) : motif, 'gm');
 }
 
 const PROJECT_REF = 'eayczugyrvmtqnnmvjod';
@@ -176,10 +183,20 @@ function mesurer(mesure) {
     return { present: source(mesure.fichier).includes(mesure.contient) };
   }
 
-  const motifs = mesure.motifs ?? [mesure.motif];
   const cibles = mesure.fichier
     ? [mesure.fichier]
     : mesure.portee.flatMap((racine) => fichiersSous(racine, mesure.ext));
+
+  // — Cas 2 : compter les FICHIERS eux-mêmes, sans motif. `fichiers` compte ailleurs les
+  // fichiers qui CONTIENNENT une occurrence ; « ~100 hooks » parle du dossier, pas d'un
+  // contenu, et le forcer dans un motif universel donnerait une mesure qu'on ne saurait
+  // plus relire.
+  if (mesure.compterFichiers) {
+    const gardes = cibles.filter((c) => !mesure.exclure?.some((frag) => c.includes(frag)));
+    return { fichiers: gardes.length };
+  }
+
+  const motifs = mesure.motifs ?? [mesure.motif];
 
   let occurrences = 0;
   const fichiers = new Set();
@@ -201,13 +218,24 @@ function mesurer(mesure) {
 }
 
 /**
- * CLAUDE.md, espaces normalisés.
+ * Un document, espaces normalisés. Lu une seule fois.
  *
- * Le doc est enveloppé à ~90 colonnes : « 175 sites `zIndex`\n  portant 44 valeurs »
+ * Les docs sont enveloppés à ~90 colonnes : « 175 sites `zIndex`\n  portant 44 valeurs »
  * est UNE phrase coupée en deux. Comparer sans replier ferait échouer la garde
  * doc→registre sur la mise en page plutôt que sur le fond.
  */
-const docNormalise = readFileSync(DOC, 'utf8').replace(/\s+/g, ' ');
+const cacheDoc = new Map();
+function docNormalise(chemin) {
+  if (!cacheDoc.has(chemin)) cacheDoc.set(chemin, readFileSync(chemin, 'utf8').replace(/\s+/g, ' '));
+  return cacheDoc.get(chemin);
+}
+
+/**
+ * Le document d'une prétention. `DOC` par défaut — les 29 premières entrées ont été
+ * écrites quand le registre n'en gardait qu'un, et les réécrire toutes pour rendre
+ * explicite ce qui est déjà la règle ajouterait du bruit sans ajouter de garantie.
+ */
+const docDe = (claim) => claim.doc ?? DOC;
 
 const registre = JSON.parse(readFileSync(REGISTRE, 'utf8'));
 
@@ -241,7 +269,7 @@ const ignorees = [];
 const echecsSql = [];
 
 for (const claim of registre.claims) {
-  if (!docNormalise.includes(claim.phrase.replace(/\s+/g, ' '))) {
+  if (!docNormalise(docDe(claim)).includes(claim.phrase.replace(/\s+/g, ' '))) {
     perimes.push(claim);
     continue;
   }
@@ -281,6 +309,45 @@ for (const claim of registre.claims) {
   else derives.push({ claim, ecarts, reel });
 }
 
+// ── Cohérence : une même grandeur, un seul chiffre ─────────────────────────────────
+
+/**
+ * Deux affirmations sur LA MÊME grandeur doivent porter le même chiffre.
+ *
+ * ⛔ CE DÉFAUT-LÀ ÉCHAPPE À TOUT LE RESTE, et c'est pour ça qu'il fallait un
+ * troisième contrôle. Relevé le 17.08.2026 : `docs/system-map.md` annonce **67**
+ * edge functions à sa ligne 91 et **71** au titre de son §5 — deux chiffres, un
+ * seul objet, dans le même document. Et CLAUDE.md compte **17** pages de console
+ * admin là où le system-map en compte **19**, la bonne réponse.
+ *
+ * Ni la mesure ni la tolérance ne peuvent le voir : prise ISOLÉMENT, chaque
+ * affirmation est simplement fausse à sa manière, et deux dérives séparées ne
+ * disent pas qu'elles se contredisent. Or c'est l'incohérence qui coûte le plus
+ * cher à un lecteur — face à deux chiffres, il ne sait pas lequel croire, et
+ * choisit au hasard.
+ *
+ * ⚠ Contrôle DOCUMENTAIRE, pas de production : il compare les entrées entre elles,
+ * jamais au réel. Il tourne donc même sans jeton, et même sur les prétentions de
+ * base de données qui n'ont pas été mesurées.
+ */
+const parGrandeur = new Map();
+for (const claim of registre.claims) {
+  if (!claim.grandeur) continue;
+  if (!parGrandeur.has(claim.grandeur)) parGrandeur.set(claim.grandeur, []);
+  parGrandeur.get(claim.grandeur).push(claim);
+}
+
+const incoherences = [];
+for (const [grandeur, groupe] of parGrandeur) {
+  if (groupe.length < 2) continue;
+  const cles = new Set(groupe.flatMap((c) => Object.keys(c.attendu)));
+  for (const cle of cles) {
+    const portant = groupe.filter((c) => cle in c.attendu);
+    const valeurs = new Set(portant.map((c) => c.attendu[cle]));
+    if (valeurs.size > 1) incoherences.push({ grandeur, cle, portant });
+  }
+}
+
 // ── Rapport ────────────────────────────────────────────────────────────────────────
 
 const ligne = (e) => `${e.cle} : doc ${e.attendu} → réel ${e.obtenu}`;
@@ -308,15 +375,16 @@ if (regressions.length) {
 }
 
 if (derives.length) {
-  console.error(`\n⚠ ${derives.length} prétention(s) chiffrée(s) ont DÉRIVÉ — ${DOC} est périmé :\n`);
+  const docsTouches = [...new Set(derives.map(({ claim }) => docDe(claim)))];
+  console.error(`\n⚠ ${derives.length} prétention(s) chiffrée(s) ont DÉRIVÉ — ${docsTouches.join(' et ')} périmé(s) :\n`);
   for (const { claim, ecarts } of derives) {
-    console.error(`    ${claim.id}  (${claim.section}, mesuré le ${claim.mesureLe})`);
+    console.error(`    ${claim.id}  (${docDe(claim)} · ${claim.section}, mesuré le ${claim.mesureLe})`);
     console.error(`      « ${claim.phrase} »`);
     for (const e of ecarts) console.error(`      → ${ligne(e)}`);
     if (claim.note) console.error(`      ↳ ${claim.note}`);
   }
   console.error(`
-  Corriger ${DOC} — le chiffre ET, s'il la renverse, la conclusion qu'il portait —
+  Corriger le document — le chiffre ET, s'il la renverse, la conclusion qu'il portait —
   puis \`node scripts/check-claude-md-freshness.mjs --update\` pour réaligner le
   registre. Dater la correction dans le doc : un chiffre sans date se périme sans
   prévenir.\n`);
@@ -391,6 +459,20 @@ if (MAJ) {
   process.exit(0);
 }
 
+if (incoherences.length) {
+  console.error(`\n✖ ${incoherences.length} grandeur(s) affirmée(s) avec DEUX chiffres différents :\n`);
+  for (const { grandeur, cle, portant } of incoherences) {
+    console.error(`    « ${grandeur} » (${cle}) :`);
+    for (const c of portant) {
+      console.error(`      ${c.attendu[cle]}  ${docDe(c)} — ${c.section}`);
+      console.error(`         « ${c.phrase} »`);
+    }
+  }
+  console.error(`
+  Un lecteur face à deux chiffres ne sait pas lequel croire, et choisit au
+  hasard. Trancher, corriger les DEUX endroits, puis réaligner le registre.\n`);
+}
+
 if (echecsSql.length) {
   console.error(`\n✖ ${echecsSql.length} requête(s) de mesure en ERREUR — ni vérifiées, ni démenties :\n`);
   for (const { claim, message } of echecsSql) console.error(`    ${claim.id}\n      ${message}`);
@@ -399,10 +481,14 @@ if (echecsSql.length) {
   du jeton — mais ne pas retirer la prétention pour faire taire l'erreur.\n`);
 }
 
-const echec = perimes.length + regressions.length + derives.length + echecsSql.length;
+const echec = perimes.length + regressions.length + derives.length + echecsSql.length + incoherences.length;
+const docsGardes = [...new Set(registre.claims.map(docDe))];
 
 if (!echec) {
-  console.log(`✓ Fraîcheur ${DOC} : ${verts.length} prétention(s) chiffrée(s) vérifiées, aucun écart.`);
+  console.log(
+    `✓ Fraîcheur : ${verts.length} prétention(s) chiffrée(s) vérifiées sur ${docsGardes.length} document(s)` +
+      ` (${docsGardes.join(', ')}), aucun écart.`,
+  );
 } else {
   console.error(`✖ ${echec} écart(s) sur ${registre.claims.length} prétention(s) — ${verts.length} vérifiée(s).`);
 }
