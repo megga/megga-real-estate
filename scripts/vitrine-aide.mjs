@@ -489,8 +489,34 @@ async function generer() {
     return;
   }
 
-  const collections = await client.listAll('/help_center/collections');
-  const liste = await client.listAll('/articles');
+  // ⛔ L'ERREUR BRUTE NE SUFFIT PAS ICI. Ce script tourne dans des builds dont
+  // on ne lit pas toujours le journal soi-même — Cloudflare Pages ne transmet à
+  // GitHub qu'un « Build failed » sans texte. Une pile d'appels sur un rejet
+  // non traité oblige alors à ouvrir un tableau de bord pour apprendre qu'il
+  // manquait un scope. Le message porte donc son propre diagnostic.
+  let collections;
+  let liste;
+  try {
+    collections = await client.listAll('/help_center/collections');
+    liste = await client.listAll('/articles');
+  } catch (err) {
+    const msg = String(err?.message ?? err);
+    const code = msg.match(/HTTP (\d{3})/)?.[1];
+    const quoi =
+      code === '401'
+        ? "jeton REFUSÉ par Intercom (401). Il est présent mais invalide : mal recopié, ou l'app qui le porte n'est pas installée sur l'espace de travail."
+        : code === '403'
+          ? "jeton VALIDE mais scope insuffisant (403). Il lui faut « Read content data »."
+          : code === '429'
+            ? 'Intercom limite le débit (429). Relancer le build.'
+            : `appel à l'API en échec — ${msg}`;
+    console.error(`✗ [aide] ${quoi}`);
+    console.error(`  Où : la variable INTERCOM_ACCESS_TOKEN de CE build (GitHub Actions, ou Cloudflare Pages → Variables and Secrets, Production ET Preview).`);
+    console.error(`  Éprouver le jeton sans dépenser un build :`);
+    console.error(`    curl -s -o /dev/null -w '%{http_code}\\n' -H "Authorization: Bearer <jeton>" -H "Intercom-Version: 2.11" "https://api.intercom.io/articles?per_page=1"`);
+    process.exit(1);
+  }
+
   const publies = liste.filter((a) => a.state === 'published');
   // Le corps entier n'est PAS dans la liste : il faut un GET par article.
   const articles = [];
