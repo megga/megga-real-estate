@@ -80,16 +80,24 @@ describe("centre d'aide généré — fonctions pures", () => {
 
 describe("centre d'aide généré — plomberie", () => {
   it('passe le gate — index ET articles, dans les deux langues, sans ouvrir le reste', async () => {
-    // ⛔ MESURE, pas lecture de fichier. On appelle le VRAI worker avec le gate
-    // à son défaut (fermé depuis le 17.08.2026) : c'est le seul oracle qui
-    // distingue « la constante contient /aide » de « la requête passe ».
+    // ⛔ MESURE, pas lecture de fichier : on appelle le VRAI worker. C'est le
+    // seul oracle qui distingue « la constante contient /aide » de « la requête
+    // passe ».
+    //
+    // ⚠ ET LE GATE EST FORCÉ FERMÉ (`VITRINE_GATE: 'on'`), pas laissé à son
+    // défaut. Ce test a été écrit le 17.08.2026, quand le défaut était FERMÉ ;
+    // il a rougi le lendemain — non pas parce que l'exemption avait cassé, mais
+    // parce que megga.ch était repassée en accès libre (#1259) et que le témoin
+    // `/pricing` répondait 200. Un test qui suit l'humeur de la production ne
+    // mesure pas ce qu'il prétend : l'exemption doit tenir CHAQUE FOIS que le
+    // gate est fermé, quel que soit son réglage du jour.
     //
     // Exempter l'index sans ses articles donnerait une table des matières dont
     // chaque lien répond 401 — le défaut décrit dans
     // `project_edge_gate_breaks_session_handover`. Et les articles anglais
     // vivent sous `/en/help/…`, que seul un test HORS LANGUE attrape.
     const { default: worker } = await import('../../sites/megga-vitrine/_worker.js')
-    const env = { ASSETS: { fetch: async () => new Response('ok', { status: 200 }) } }
+    const env = { VITRINE_GATE: 'on', ASSETS: { fetch: async () => new Response('ok', { status: 200 }) } }
     const statut = async (chemin: string) =>
       (await worker.fetch(new Request('https://megga.ch' + chemin), env)).status
 
@@ -98,7 +106,7 @@ describe("centre d'aide généré — plomberie", () => {
     }
     // ⚠ Les témoins portent autant que les cas : sans eux, un gate accidentellement
     // grand ouvert ferait passer le test au vert.
-    expect(await statut('/pricing'), 'le gate doit rester fermé ailleurs').toBe(401)
+    expect(await statut('/pricing'), 'le gate fermé doit rester fermé ailleurs').toBe(401)
     expect(await statut('/legal'), 'les pages publiques préexistantes le restent').toBe(200)
   })
 
