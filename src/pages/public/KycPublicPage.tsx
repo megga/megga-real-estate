@@ -18,6 +18,7 @@ import {
   useMagicLinkConfirmClient,
   useMagicLinkUploadClient,
   type UploadResponse,
+  type UploadFailure,
 } from '@/hooks/useMagicLinkClient'
 import { MlkBackground } from '@/components/kyc-magic-link/MlkPrimitives'
 import {
@@ -30,6 +31,32 @@ import {
 import { MlkBooking } from '@/components/kyc-magic-link/MlkBooking'
 
 type LocalScreen = 'landing' | 'upload' | 'booking'
+
+/**
+ * La clé i18n d'un dépôt refusé — jamais le message du serveur.
+ *
+ * ⛔ CETTE PAGE AFFICHAIT LE CORPS BRUT DE LA RÉPONSE. Elle retirait le préfixe
+ * `Upload failed: HTTP 413 ` et posait le RESTE dans la bannière, si bien qu'un
+ * client suisse déposant son passeport lisait `{"error":"Link expired"}` — du
+ * JSON, en anglais, sur la surface de conformité, dans une page par ailleurs
+ * traduite en quatre langues. Vu à l'écran le 17 août 2026, sur le banc.
+ *
+ * ⚠ LE TRI SE FAIT SUR LE STATUT, PAS SUR LE TEXTE. Le champ `error` de l'edge
+ * est de la prose anglaise, et l'une de ses valeurs est interpolée avec la taille
+ * maximale : construire dessus serait bâtir sur une phrase. Le statut est stable,
+ * et il sépare exactement ce que le client peut FAIRE — redemander un lien,
+ * reprendre le dernier reçu, corriger son fichier, ou réessayer.
+ *
+ * ⚠ `regenerated` mérite sa phrase : il ne dit pas « lien mort » mais « un plus
+ * récent existe », et l'action n'est pas la même.
+ */
+function cleEchecDepot(err: unknown): string {
+  const e = err as Partial<UploadFailure> | null
+  if (e?.reason === 'regenerated') return 'client.upload.error_link_superseded'
+  if (e?.status === 404 || e?.status === 410) return 'client.upload.error_link'
+  if (e?.status === 400) return 'client.upload.error_refused'
+  return 'client.upload.error_default'
+}
 
 export default function KycPublicPage() {
   const { token } = useParams<{ token: string }>()
@@ -207,13 +234,7 @@ export default function KycPublicPage() {
         onSuccess: (resp) => {
           setLocalUploads((prev) => [...prev, resp])
         },
-        onError: (err) => {
-          setUploadError(
-            err instanceof Error
-              ? err.message.replace(/^Upload failed: HTTP \d+ /, '')
-              : t('client.upload.error_default'),
-          )
-        },
+        onError: (err) => setUploadError(t(cleEchecDepot(err))),
       },
     )
   }

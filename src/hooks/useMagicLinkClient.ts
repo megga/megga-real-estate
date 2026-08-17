@@ -97,6 +97,18 @@ export interface UploadResponse {
   status: 'received'
 }
 
+/**
+ * Échec d'un dépôt, sous une forme que l'UI peut TRADUIRE — jamais le corps brut
+ * du serveur. Même parti que `BookingFailure` sur le parcours de réservation, qui
+ * rend un `code` et laisse la page choisir sa phrase.
+ */
+export interface UploadFailure {
+  /** Statut HTTP : ce que l'edge rend de plus stable. */
+  status: number
+  /** Motif court, seulement quand l'edge en donne un (`expired`, `invalid`, `regenerated`). */
+  reason: string | null
+}
+
 /** Téléverse une pièce (multipart) côté client ; rafraîchit la vue du lien au succès. */
 export function useMagicLinkUploadClient() {
   const queryClient = useQueryClient()
@@ -111,8 +123,20 @@ export function useMagicLinkUploadClient() {
         body: form,
       })
       if (!res.ok) {
-        const errBody = await res.text()
-        throw new Error(`Upload failed: HTTP ${res.status} ${errBody}`)
+        // ⛔ LE CORPS DU SERVEUR NE REMONTE PLUS À L'APPELANT. Il partait entier
+        // dans le message d'`Error`, et `KycPublicPage` n'en retirait que le
+        // préfixe HTTP avant de l'AFFICHER : un client suisse qui déposait son
+        // passeport lisait `{"error":"Link expired"}`, en anglais, sur la surface
+        // de conformité. Deux des onze réponses d'erreur de l'edge portent en
+        // plus un `details` qui recopie le message brut de Supabase Storage.
+        //
+        // ⚠ ON NE GARDE QUE CE QUI EST STABLE. Le champ `error` est de la PROSE
+        // anglaise, et l'une de ses valeurs est même interpolée avec la taille
+        // maximale : le mapper serait bâtir sur du texte. Le STATUT l'est, et le
+        // `reason` l'est quand l'edge en donne un (3 réponses sur 11).
+        const corps = (await res.json().catch(() => ({}))) as Record<string, unknown>
+        const reason = typeof corps.reason === 'string' ? corps.reason : null
+        throw { status: res.status, reason } satisfies UploadFailure
       }
       return (await res.json()) as UploadResponse
     },

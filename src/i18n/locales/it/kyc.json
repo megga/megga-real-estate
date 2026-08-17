@@ -83,7 +83,10 @@
       "error_min_one": "Carichi almeno un documento prima di confermare.",
       "error_size": "File troppo grande (max 10 MB, il Suo è {{mb}} MB).",
       "error_format": "Formato non accettato ({{type}}). Usi PDF, JPG, PNG, WEBP o HEIC.",
-      "error_default": "Caricamento fallito. Riprovi."
+      "error_default": "Caricamento fallito. Riprovi.",
+      "error_link": "Questo link non è più valido. Ne richieda uno nuovo al suo consulente.",
+      "error_link_superseded": "Le è stato inviato un link più recente. Utilizzi l'ultimo messaggio ricevuto.",
+      "error_refused": "Questo documento non è stato accettato. Verifichi il formato e la dimensione, poi riprovi."
     },
     "upload_types": {
       "identity_title": "Documento d'identità",

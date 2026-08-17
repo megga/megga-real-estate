@@ -83,7 +83,10 @@
       "error_min_one": "Please upload at least one document before submitting.",
       "error_size": "File too large (max 10 MB, yours is {{mb}} MB).",
       "error_format": "Format not accepted ({{type}}). Use PDF, JPG, PNG, WEBP or HEIC.",
-      "error_default": "Upload failed. Please try again."
+      "error_default": "Upload failed. Please try again.",
+      "error_link": "This link is no longer valid. Ask your adviser for a new one.",
+      "error_link_superseded": "A more recent link was sent to you. Please use the latest message you received.",
+      "error_refused": "This document was not accepted. Check its format and size, then try again."
     },
     "upload_types": {
       "identity_title": "ID document",
