@@ -600,18 +600,36 @@ MEGGA_MAGIC_LINK_HMAC_SECRET,
 MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET (⛔ ABSENTS du projet — relevé le 16.08.2026),
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (✅ posés le 16.08.2026 — voir ci-dessous),
 GOOGLE_WORKSPACE_SA_KEY (✅ posé le 09.08.2026 — voir ci-dessous),
-STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_IDENTITY_FLOW_ID,
+STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_IDENTITY_FLOW_ID (⛔ PLUS AUCUN LECTEUR
+  depuis le 17.08.2026 — voir ci-dessous ; à supprimer),
 MAPBOX_TOKEN,
 UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 ```
 
-> ⚠ **`STRIPE_IDENTITY_FLOW_ID` n'est pas un secret, mais il doit rester hors du dépôt.**
-> C'est l'identifiant (`vf_…`) du flux de vérification configuré dans le tableau de bord
-> Stripe (Identity, décision du 03.08.2026 : passeport + carte d'identité, selfie exigé,
-> capture en direct, ni numéro de pièce ni e-mail ni téléphone). Le mode TEST et le mode
-> RÉEL en portent **deux distincts** — en figer un dans le code casserait l'autre, même
-> raison que les `STRIPE_PRICE_*`. Absent, `kyb-identity-verify` retombe sur les mêmes
-> options posées en clair : le parcours tourne, il n'échoue pas.
+> ⛔ **`STRIPE_IDENTITY_FLOW_ID` A ÉTÉ DÉBRANCHÉ LE 17.08.2026 : le flux Stripe COÛTAIT
+> le retour du dirigeant dans le wizard.** Il portait (décision du 03.08.2026) passeport
+> + carte d'identité, selfie exigé, capture en direct, ni numéro de pièce ni e-mail ni
+> téléphone — `vf_1U0PPiRNzm4ajaDa63xeKeL3`, « KYB dirigeant agence ».
+>
+> **`verification_flow` et `return_url` ne se combinent pas, et Stripe ne le dit nulle
+> part** : ni la référence de l'API (qui donne `return_url` comme un paramètre ordinaire),
+> ni le guide des flux (qui ne le mentionne pas). Mesuré sur la session
+> `vs_1U5Y6HRNzm4ajaDaoMv1BMNI` (journal d'API Stripe, `req_WZUCE21ewpBdBS`) : le corps
+> POST portait `return_url=https://app.megga.ch/dashboard/identite?verification=done`, la
+> réponse **200 OK ne portait aucun champ `return_url`**. Paramètre accepté, jeté en
+> silence.
+>
+> Effet : le dirigeant photographie sa pièce, tombe sur l'écran « Vous pouvez à présent
+> fermer cet onglet » de Stripe, et **n'arrive jamais** sur `IdentityVerificationReturnScreen`
+> ni sur l'étape « Rendez-vous ». Le parcours s'arrête au milieu alors que TOUT a marché
+> (webhook passé, personne `verified`) — panne muette, aucun rouge nulle part. Le seul
+> retour restant était « précédent » deux fois.
+>
+> ⚠ Le flux ne portait **aucun réglage d'URL de retour** à mettre à la place (relevé dans
+> sa page du tableau de bord le 17.08) : il n'existait pas de correctif côté Stripe. Les
+> quatre options sont donc reposées en clair dans `kyb-identity-verify`, à l'identique —
+> ce qui ramène au passage les contrôles de conformité sous relecture de code. Gardé par
+> [kyb-identity-return-url.spec.ts](tests/unit/kyb-identity-return-url.spec.ts).
 >
 > ⛔ **`MEGGA_APP_URL` doit rester ABSENTE — ne pas « réparer » son absence.** Constaté le
 > 03.08.2026 : elle n'est posée nulle part, et c'est la bonne configuration. Son repli en

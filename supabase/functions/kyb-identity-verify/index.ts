@@ -20,11 +20,36 @@
 //
 // ── Où vivent les contrôles exigés ──────────────────────────────────────────────────
 //
-// Dans un FLUX du tableau de bord Stripe (`STRIPE_IDENTITY_FLOW_ID`), décision du
-// 3 août 2026. À défaut d'identifiant, les mêmes options sont posées en clair ici —
-// ce repli fait tourner le parcours sur un compte où le flux n'existe pas encore
-// (mode test neuf, préversion) plutôt que d'échouer sur un identifiant vide.
-// Les deux ne se combinent pas : `type` n'est exigé que sans flux.
+// ICI, en clair. Ils ont vécu du 3 au 17 août 2026 dans un FLUX du tableau de bord
+// Stripe (`STRIPE_IDENTITY_FLOW_ID` = `vf_1U0PPiRNzm4ajaDa63xeKeL3`, « KYB dirigeant
+// agence »), et ce flux est retiré parce qu'il COÛTAIT LE RETOUR DE L'UTILISATEUR.
+//
+// ⛔ **`verification_flow` et `return_url` NE SE COMBINENT PAS, et Stripe ne le dit
+// nulle part** — ni dans la référence de l'API, qui donne `return_url` comme un
+// paramètre ordinaire, ni dans le guide des flux, qui ne le mentionne pas du tout.
+// Mesuré le 17 août 2026 sur la session `vs_1U5Y6HRNzm4ajaDaoMv1BMNI` (journal d'API
+// Stripe, `req_WZUCE21ewpBdBS`) : le corps POST portait bien
+// `return_url=https://app.megga.ch/dashboard/identite?verification=done`, la réponse
+// **200 OK ne portait AUCUN champ `return_url`**. Stripe accepte le paramètre et le
+// JETTE EN SILENCE dès qu'un flux est passé. Aucune erreur, aucun avertissement.
+//
+// Effet vécu : le dirigeant photographie sa pièce, arrive sur l'écran « Vous pouvez à
+// présent fermer cet onglet » de Stripe, et **n'est jamais renvoyé** sur
+// IdentityVerificationReturnScreen — donc jamais sur l'étape « Rendez-vous ». Le
+// parcours s'arrête net au milieu, alors que tout a fonctionné : le webhook passe, la
+// personne est `verified`. Le seul chemin de retour restant était le bouton « précédent »
+// du navigateur, deux fois.
+//
+// ⚠ Le flux ne portait AUCUN réglage d'URL de retour à mettre à la place (relevé dans
+// sa page du tableau de bord le 17.08 : Type Document, selfie exigé, capture en direct,
+// passeport + carte d'identité — et rien d'autre). Il n'y avait donc pas de correctif
+// côté Stripe, seulement celui-ci.
+//
+// Les quatre options ci-dessous sont la transcription EXACTE de ce que le flux
+// configurait : ce changement ne modifie rien de ce que Stripe demande au dirigeant,
+// il ne fait que rendre le retour possible. Il ramène au passage ces contrôles sous
+// relecture de code, ce que l'en-tête d'origine notait déjà comme la contrepartie
+// assumée du choix du tableau de bord.
 //
 // ── Une session déjà ouverte se REPREND ─────────────────────────────────────────────
 //
@@ -61,22 +86,6 @@ const RETURN_PATH = '/dashboard/identite?verification=done'
 
 /** Statuts pour lesquels une session existante se REPREND au lieu de se recréer. */
 const RESUMABLE = ['requires_input', 'processing']
-
-/**
- * Flux de vérification configuré dans le tableau de bord Stripe (`vf_...`).
- *
- * Vide = les options sont posées en clair à la création (cf. plus bas). Ce n'est pas
- * un secret — c'est un identifiant de configuration, du même ordre que les
- * `STRIPE_PRICE_*` déjà en place — mais il DOIT rester hors du dépôt : le mode test et
- * le mode réel en portent deux distincts, et en figer un casserait l'autre.
- *
- * ⚠ Contrepartie assumée du choix de configurer chez Stripe plutôt qu'ici : les
- * contrôles exigés (selfie, capture en direct, types de documents) deviennent
- * modifiables depuis le tableau de bord, sans relecture ni trace côté produit. Ce qui
- * reste vérifiable a posteriori, c'est la SESSION : son `vs_...` est stocké sur la
- * personne, et Stripe conserve la configuration exacte qui l'a produite.
- */
-const identityFlowId = Deno.env.get('STRIPE_IDENTITY_FLOW_ID') ?? ''
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -148,52 +157,39 @@ Deno.serve(async (req) => {
   let session: Stripe.Identity.VerificationSession
   try {
     session = await stripe.identity.verificationSessions.create({
-      // Flux configuré dans le tableau de bord Stripe quand STRIPE_IDENTITY_FLOW_ID
-      // est posé, options en clair sinon. Les deux ne se combinent pas : `type` n'est
-      // exigé QUE si aucun flux n'est passé, et rien dans la documentation ne décrit
-      // ce que produirait un mélange des deux — on ne l'essaie donc pas.
-      //
-      // L'identifiant vit dans une variable d'environnement et jamais dans le dépôt :
-      // un flux du mode TEST et son équivalent du mode RÉEL portent deux `vf_...`
-      // distincts, exactement comme les `STRIPE_PRICE_*` déjà en place.
-      //
-      // Le repli en clair n'est pas décoratif : il fait tourner le parcours sur un
-      // compte où le flux n'a pas encore été créé (mode test tout neuf, environnement
-      // de préversion) au lieu de faire échouer la création avec un identifiant vide.
-      ...(identityFlowId
-        ? { verification_flow: identityFlowId }
-        : {
-          type: 'document' as const,
-          options: {
-            document: {
-              // Passeport et carte d'identité SEULEMENT. Le permis de conduire, que
-              // Stripe accepte pourtant, est écarté : l'identification d'une personne
-              // physique dans un dossier LAB suisse se fait sur un document officiel
-              // d'IDENTITÉ, et un permis n'en est pas un. L'autoriser produirait des
-              // vérifications « réussies » que l'équipe conformité refuserait ensuite —
-              // le pire des deux mondes, un utilisateur qui a fait le travail pour rien.
-              //
-              // Le titre de séjour, lui, n'existe PAS chez Stripe : un dirigeant au
-              // livret B/C passe par son passeport, ou par le dépôt manuel. Voir
-              // l'en-tête de _shared/kyb-identity-stripe.ts.
-              allowed_types: ['passport', 'id_card'] as Array<'passport' | 'id_card'>,
-              // Le contrôle du vivant, c'est-à-dire ce que le catalogue de checks promet
-              // depuis l'origine (« Pièce d'identité et détection du vivant ») et que le
-              // dépôt d'un fichier ne pourra jamais offrir.
-              require_matching_selfie: true,
-              // Interdit le téléversement d'une image existante : la pièce doit être
-              // photographiée sur place. Une capture d'écran d'un document volé ne passe pas.
-              require_live_capture: true,
-              // NON : le numéro de pièce est la PII que le dépôt désigne comme sensible,
-              // et rien ne le consomme. Ne pas le demander, c'est ne pas avoir à le protéger.
-              require_id_number: false,
-            },
-          },
-        }),
-      // `origin` et non l'URL de retour du flux : celle du tableau de bord est une
-      // valeur FIGÉE, donc juste en production et fausse partout ailleurs. Passée ici,
-      // elle suit l'hôte réel — local, préversion Cloudflare, production. Vide (appel
-      // hors navigateur) -> Stripe affiche son écran de fin sans bouton de retour.
+      // ⛔ NE PAS RÉINTRODUIRE `verification_flow` ICI : il annule `return_url` en
+      // silence, et avec lui tout le retour du dirigeant dans le wizard (cf. l'en-tête,
+      // mesuré le 17.08.2026). Ces quatre options SONT la configuration que portait le
+      // flux, transcrite à l'identique.
+      type: 'document' as const,
+      options: {
+        document: {
+          // Passeport et carte d'identité SEULEMENT. Le permis de conduire, que
+          // Stripe accepte pourtant, est écarté : l'identification d'une personne
+          // physique dans un dossier LAB suisse se fait sur un document officiel
+          // d'IDENTITÉ, et un permis n'en est pas un. L'autoriser produirait des
+          // vérifications « réussies » que l'équipe conformité refuserait ensuite —
+          // le pire des deux mondes, un utilisateur qui a fait le travail pour rien.
+          //
+          // Le titre de séjour, lui, n'existe PAS chez Stripe : un dirigeant au
+          // livret B/C passe par son passeport, ou par le dépôt manuel. Voir
+          // l'en-tête de _shared/kyb-identity-stripe.ts.
+          allowed_types: ['passport', 'id_card'] as Array<'passport' | 'id_card'>,
+          // Le contrôle du vivant, c'est-à-dire ce que le catalogue de checks promet
+          // depuis l'origine (« Pièce d'identité et détection du vivant ») et que le
+          // dépôt d'un fichier ne pourra jamais offrir.
+          require_matching_selfie: true,
+          // Interdit le téléversement d'une image existante : la pièce doit être
+          // photographiée sur place. Une capture d'écran d'un document volé ne passe pas.
+          require_live_capture: true,
+          // NON : le numéro de pièce est la PII que le dépôt désigne comme sensible,
+          // et rien ne le consomme. Ne pas le demander, c'est ne pas avoir à le protéger.
+          require_id_number: false,
+        },
+      },
+      // Suit l'hôte RÉEL (local, préversion Cloudflare, production) plutôt qu'une valeur
+      // figée. Vide (appel hors navigateur) -> Stripe affiche son écran de fin sans
+      // bouton de retour, ce qui est alors le comportement juste.
       ...(origin ? { return_url: `${origin}${RETURN_PATH}` } : {}),
       provided_details: user.email ? { email: user.email } : undefined,
       metadata: {

@@ -68,17 +68,29 @@ nul sur les 3 personnes liées existantes).
 |---|---|---|---|
 | 1 | Abonner l'endpoint webhook aux événements `identity.verification_session.*` (les 4 : `verified`, `requires_input`, `processing`, `canceled`) | Stripe › Developers › Webhooks › l'endpoint `stripe-webhook` | Stripe › Webhooks › onglet des tentatives : un événement `identity.*` y apparaît après le passage de test |
 | 2 | Soumettre le formulaire d'activation Identity — motif **Regulatory Compliance** | Stripe › Identity › Get started | L'API cesse de refuser `verificationSessions.create` ; côté produit, le bouton ne retombe plus sur `verification_unavailable` (503) |
-| 3 | Poser `STRIPE_IDENTITY_FLOW_ID` (`vf_…`) dans les secrets Supabase | Supabase › Settings › Edge Functions › Secrets | Aucun oracle externe : le repli est **silencieux**. Se lit dans le tableau de bord Stripe, sur la session produite (`vs_…`), qui porte la configuration qui l'a créée |
+| 3 | ~~Poser `STRIPE_IDENTITY_FLOW_ID` (`vf_…`) dans les secrets Supabase~~ ⛔ **ANNULÉ le 17.08.2026** — le flux annule `return_url` (voir plus bas). Le secret n'a plus de lecteur ; les options sont en clair dans `kyb-identity-verify` | — | — |
 
 ⛔ **Le n° 1 est le seul dont l'oubli ne se voit pas.** Sans abonnement, la session
 s'ouvre, le dirigeant fait tout le parcours, Stripe conclut — et rien ne redescend :
 la ligne reste en `processing` indéfiniment. Le parcours a l'air de marcher jusqu'au
 bout. Le vérifier **avant** le passage de test, pas après.
 
-⚠ Le n° 3 doit correspondre au **mode** de `STRIPE_SECRET_KEY` : un flux du mode test et
-son équivalent du mode réel portent deux `vf_…` distincts. Absent, `kyb-identity-verify`
-repose les mêmes options en clair (passeport + carte d'identité, selfie, capture en
-direct) — le parcours tourne, mais ce n'est plus le tableau de bord qui fait foi.
+⛔ **Le n° 3 est ANNULÉ, et il faut savoir pourquoi avant de le rétablir.** Un flux
+(`verification_flow`) **annule `return_url` en silence** : Stripe accepte le paramètre,
+répond 200, et la session créée n'en porte aucune trace. Mesuré le 17.08.2026 sur
+`vs_1U5Y6HRNzm4ajaDaoMv1BMNI` (journal d'API `req_WZUCE21ewpBdBS`) — corps POST avec
+`return_url=https://app.megga.ch/dashboard/identite?verification=done`, réponse sans le
+champ. Rien dans la documentation Stripe ne l'annonce.
+
+Coût vécu : le dirigeant finit sa capture, lit « Vous pouvez à présent fermer cet onglet »
+et **n'est jamais renvoyé** dans le wizard — donc jamais sur l'étape « Rendez-vous ». Le
+webhook passe, la personne est `verified`, aucune erreur nulle part : le parcours a l'air
+de marcher, et s'arrête au milieu. Même famille de panne muette que le n° 1.
+
+Le flux ne portait **aucun réglage d'URL de retour** de son côté. Les quatre options
+(passeport + carte d'identité, selfie, capture en direct, pas de numéro de pièce) sont
+donc posées en clair dans `kyb-identity-verify`, à l'identique — ce n'est plus le tableau
+de bord qui fait foi, c'est la relecture de code.
 
 ⚠ La Suisse est en **bêta self-serve** chez Stripe Identity, pas en disponibilité
 générale. Un refus d'activation est un résultat possible du n° 2, et il n'a rien à voir
