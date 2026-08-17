@@ -84,6 +84,14 @@ jobs:
         # Baseline nettoyée (PR #848). Allowlist des gardes intentionnels dans le script.
         run: npm run lint:deadcode
 
+      - name: Dépendances orphelines (installées, jamais importées)
+        if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
+        # Angle mort complémentaire du précédent : `lint:deadcode` raisonne sur les
+        # EXPORTS du dépôt, jamais sur ce qu'il INSTALLE. `fuse.js` est ainsi resté
+        # en `dependencies` du 20 juillet au 17 août 2026, son dernier import parti
+        # avec la SPA d'aide — invisible pour tsc, ESLint et ts-prune à la fois.
+        run: npm run lint:deps
+
       - name: Typage Supabase (client casté / RPC hors types)
         if: ${{ !cancelled() && steps.deps.outcome == 'success' }}
         # Garde-fou typage : `src/types/database.ts` est auto-généré et RIEN ne
