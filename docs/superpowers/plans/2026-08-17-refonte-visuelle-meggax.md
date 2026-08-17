@@ -7,6 +7,87 @@
 > ⚠ **Tous les chiffres portent leur date et se re-mesurent avant d'être crus.** Les
 > commandes qui les produisent sont dans le corps du texte. Relevés sur
 > `claude/face-publique-megga-x-2ba9fa` (24 commits d'avance sur `main`), HEAD `14aa3586`.
+>
+> ✅ **RE-MESURÉ INTÉGRALEMENT LE 17 AOÛT** sur `claude/meggax-visual-redesign-d507ff`
+> (même commit que la branche ci-dessus), HEAD `5fb69cfb`, 25 d'avance. §2 tient à
+> l'unité près (41 zones, 1 797/3 538, 1 060 couleurs / 25 zones, table du top-5
+> comprise) ; §5 aussi (`tsc` 0, eslint **140** warnings, vitest **2 646** + 3 skipped,
+> deadcode 0) ; §8 aussi ([#1243](https://github.com/megga/megga-real-estate/pull/1243)
+> ouverte ET ancêtre de HEAD — rebaser perdrait bien `DesinscriptionPage`). **Trois
+> énoncés ne tenaient pas** : ils sont corrigés en place au §1, au §4 et au §5, chacun
+> avec sa mesure.
+
+---
+
+## §0 — LA DÉCISION DU §3, RENDUE PAR JULIEN LE 17 AOÛT 2026
+
+Le §3 ci-dessous posait trois questions ; elles sont tranchées. **Ce qui suit n'est plus
+une option mais le cadre du programme.**
+
+| Question | Décision |
+|---|---|
+| §3.1 — nature | **Resserrer ce qui existe, puis redessiner 2-3 familles pilotes.** Densité, rythme vertical, échelle typographique et hiérarchie d'abord, sur les compositions en place ; le redessin ne vaut que pour quelques familles, avec dessin de référence. |
+| §3.2 — ordre | **Par audience : public → agent → admin.** Le client voit le résultat le plus tôt, et le pilote est petit. |
+| §3.3 — méthode | **Une maquette pour le PILOTE seulement, puis à l'écran.** Un seul dessin de référence fixe la hiérarchie ; les familles suivantes s'y alignent sur les bancs `/dev/*`, sans payer une maquette chacune. |
+
+⛔ **CE QUE CETTE DÉCISION INTERDIT.** Pas de nouvelle échelle, pas de nouveaux barreaux,
+pas de nouvelle grammaire : l'option 3 du §3.1 est écartée, donc **les 41 inventaires de
+cliquet et les dix chantiers d'août restent debout**. Une refonte qui ferait MONTER un
+inventaire de cliquet contredit la décision, elle ne l'applique pas.
+
+⛔ **ET CE QU'ELLE IMPOSE COMME PREMIER GESTE : la maquette du pilote, pas du code.**
+L'ordre retenu place la face publique en tête (§4, chantier 1). Tant que son dessin de
+référence n'existe pas, porter une deuxième famille est prématuré — c'est exactement le
+risque de divergence que le §1 annonce.
+
+✅ **LA MAQUETTE DU PILOTE EXISTE** (17 août) :
+[claude.ai/code/artifact/c005b6a8](https://claude.ai/code/artifact/c005b6a8-96be-42ee-88fd-c0fc0b5c9e0f).
+Elle porte sur **l'espacement seul** — la couleur et la police de cette face sont réglées
+et gardées, donc il n'y a rien à y décider. Ce qu'elle a trouvé, et qui commande le
+chantier : `--crm-space-*` a **12 noms pour 6 valeurs** (chaque barreau est nommé deux
+fois) et **plafonne à 24 px**. Sur les 8 surfaces clientes, 217 espacements littéraux —
+90 sur un barreau, **103 entre deux**, **24 au-dessus du plafond**. Les pics de 10 px
+(18 sites) et 18 px (17 sites) n'ont aucun barreau, alors qu'ils servent plus que 20 et 24
+réunis. **La cause est structurelle aux deux tiers : l'échelle ne sait pas dire ce que ces
+écrans demandent.**
+
+⚠ **UNE MESURE A ÉTÉ FAUSSE UNE FOIS, ET DANS LE SENS QUI MINIMISE.** Le premier relevé ne
+lisait que `padding:` et `gap:` — il ratait les **93 marges**, là où vit le grand rythme
+vertical, et annonçait 7 dépassements de plafond au lieu de 24. Un comptage d'espacement
+qui omet les marges décrit l'intérieur des composants, jamais la composition. Détail et
+remède dans le cerveau : `megga/echelle-espacement`.
+
+✅ **ARBITRAGE RENDU PAR JULIEN LE 17 AOÛT : « fais-les tomber ».** 10 et 18 ne deviennent
+pas des barreaux ; ils rejoignent leur voisin (10 → 12, 18 → 20). Le lot 1 peut commencer.
+
+⛔ **ET LA MAQUETTE AVAIT UNE ERREUR DE NOMS, TROUVÉE À L'IMPLÉMENTATION.** Elle proposait
+`2xl:32` et `3xl:56` — or **ces deux noms EXISTENT DÉJÀ, tous deux à 16 px**. Sa table
+supposait le dédoublonnage fait, ce qui n'est pas le cas et ne le sera pas dans ce lot :
+le dédoublonnage touche **2 786 emplois** de `--crm-space-*` sur tout le dépôt (1 174 au
+minimum à réécrire), donc il est CROSS-CUTTING et relève de sa propre PR — la règle du §4
+est « une famille = une PR ».
+
+Les deux barreaux hauts prennent donc les noms libres qui prolongent la suite,
+**`--crm-space-8xl: 32px`** et **`--crm-space-9xl: 56px`** — cohérents avec
+`--crm-text-*`, qui monte déjà jusqu'à `9xl`. Purement additif : aucun nom existant n'est
+touché, aucune valeur existante ne bouge.
+
+**La correspondance appliquée au lot 1**, un seul nom par valeur (le doublon est ignoré,
+pas retiré — c'est l'autre PR) :
+
+| valeurs mesurées | barreau | px |
+|---|---|---|
+| 4 · 5 | `--crm-space-xs` | 4 |
+| 6 · 7 · 8 · 9 | `--crm-space-sm` | 8 |
+| 10 · 11 · 12 · 13 | `--crm-space-lg` | 12 |
+| 14 · 15 · 16 | `--crm-space-2xl` | 16 |
+| 18 · 20 · 22 | `--crm-space-4xl` | 20 |
+| 24 · 26 | `--crm-space-6xl` | 24 |
+| 28 · 30 · 32 · 36 | `--crm-space-8xl` **neuf** | 32 |
+| 56 | `--crm-space-9xl` **neuf** | 56 |
+
+⚠ 44 (×2), 48 et 72 restent en littéral : trop loin d'un barreau pour tomber sans
+décision, à regarder un par un.
 
 ---
 
@@ -40,9 +121,32 @@ au sens des dix chantiers menés du 11 au 17 août (`mes-biens`, `contacts`, `ma
 cliquet, retirer le noir de Sugar. Vérifiable en une commande :
 
 ```bash
-# les deux marqueurs de la direction RETIRÉE, dans les DEUX notations
+# ⛔ NE PAS UTILISER TELLE QUELLE — voir l'encadré juste dessous. Conservée parce que
+# c'est la commande qui figurait ici et qu'un lecteur la retrouvera dans l'historique.
 grep -rnE "#0[Bb]0[Cc]0[Ee]|rgba?\(\s*11\s*,\s*12\s*,\s*14|rgba?\(\s*15\s*,\s*23\s*,\s*42" src/ | wc -l
 ```
+
+⛔ **CETTE COMMANDE EST UN ORACLE FAUX, et c'est le premier piège que ce plan tendait.**
+Re-mesurée le 17 août : elle rend **68**, pas 0. Décomposé — 32 en COMMENTAIRE (des notes
+qui expliquent précisément que la teinte a été retirée), **36 en code vivant, et ZÉRO
+`#0B0C0E` vivant**. Les 36 sont tous `rgba(15,23,42,…)`, le gris-bleu slate-900, employé
+en **ombre** (23) et en **filet ou aplat discret** (13).
+
+La thèse du §1 tient donc — l'encre de Sugar a bel et bien disparu des surfaces — mais sa
+preuve rougit, et de deux façons opposées : un agent en session neuve conclura que la
+descente n'est pas finie, ou bien « corrigera » 36 ombres qui relèvent d'une autre
+question. **Une garde qui compte ses propres commentaires ne mesure pas ce qu'elle croit.**
+
+```bash
+# l'oracle JUSTE : l'encre de Sugar dans du code, commentaires exclus
+grep -rnE "#0[Bb]0[Cc]0[Ee]|rgba?\(\s*11\s*,\s*12\s*,\s*14" src/ \
+  | grep -vE ':\s*(//|\*|/\*)' | wc -l    # attendu : 0
+```
+
+⚠ **La question du slate-900 est RÉELLE, simplement distincte.** L'ombre de la direction
+est `MXC_CARD_SHADOW = '0 2px 6px #15086b21'` — une teinte violette. Sur les 734 `boxShadow`
+en ligne du dépôt, **9 ombrent encore au slate-900**. C'est un point de resserrage légitime
+(§3.1 option 1), pas un reste de Sugar.
 
 ⚠ **ET C'EST POURQUOI LA DEMANDE EST D'UNE AUTRE NATURE.** Ce que Julien voit n'est pas du
 Sugar résiduel : c'est que les surfaces **ressemblent encore à ce qu'elles étaient**, simplement
@@ -150,12 +254,31 @@ fonctionné dix fois ; s'en écarter est le risque principal de ce programme.
 
 | # | Famille | Surfaces | Pourquoi ce rang |
 |---|---|---|---|
-| 1 | **Face publique** | 11 | Déjà la plus avancée (cette session), et c'est le CLIENT qui la voit. Sert de PILOTE pour établir la grammaire de refonte. |
+| 1 | **Face publique** | **8** (⚠ pas 11) | Déjà la plus avancée (cette session), et c'est le CLIENT qui la voit. Sert de PILOTE pour établir la grammaire de refonte. |
 | 2 | **Cockpit agent** | `Aujourd'hui`, `Pipeline`, `Contacts` | Ouvertes chaque jour. Le gain se sent immédiatement. |
 | 3 | **Fiches et listes** | `Mes biens`, `ContactDetail`, `DealDetail` | Même famille de gabarit — à refondre ensemble ou elles divergent. |
 | 4 | **CRM mobile** | `crm-mobile` (228 hors échelle) | La poche la plus lourde. ⚠ Elle a sa propre police (Manrope) et ses propres règles : la traiter comme une variante de bureau serait une erreur. |
 | 5 | **Console admin** | `pages/admin` (225) | Audience d'une personne. En dernier, sans regret. |
 | 6 | **Dock MEGGA AI** | `ai-copilot/panel` (97) | Transverse : il se superpose à tout le reste, donc il doit venir APRÈS que la grammaire soit fixée. |
+
+⚠ **« 11 » COMPTAIT LES PAGES ROUTÉES, PAS LES SURFACES DESSINÉES** — corrigé le 17 août,
+et l'écart change la nature du pilote. Les 11 de `src/pages/public` incluent trois pages
+qui n'enseignent rien sur la composition : `NotFoundPage` (un 404), `AuthCallbackPage` (un
+écran d'attente), et `KycReportRenderPage` (le papier A4 du rapport, que CLAUDE.md exempte
+NOMMÉMENT des règles de direction — c'est là que vivent les 20 `uppercase` tolérés).
+
+Le parcours client dessiné en fait **8** : les sept montées par `/dev/public` — KYC,
+rendez-vous, réception acheteur, visite · modifier, visite · avis, invitation équipe,
+préférences d'e-mail — plus `OnboardingCallManagePage`, absente du banc (§8.4).
+
+⚠ Et **le « SIX surfaces sans compte » de CLAUDE.md est périmé lui aussi** : il précède
+`DesinscriptionPage` (16 août) et ne comptait pas l'appel d'accueil. Huit est le chiffre
+au 17 août.
+
+C'est une bonne nouvelle pour un pilote : plus il est petit, plus vite la grammaire se
+fixe. Mais **la première surface à porter n'est pas la première de la liste** — la
+maquette doit se dessiner sur celle qui porte le plus de composition, pas sur la plus
+courte.
 
 **Pour chaque chantier, le même squelette** — c'est ce qui a rendu les dix précédents
 vérifiables :
@@ -193,6 +316,22 @@ conformité aux jetons — ils diront « tu as bien employé `var(--crm-space-4x
    seuil par pixel. Mesuré sur macOS le plancher est nul et un redesign complet vaut 11,55 % ;
    la même chose vaut 1,09 % en CI. **Une refonte sans ce réglage avance à l'aveugle sur ce
    qui change à l'image** — c'est le premier travail à faire si l'ordre du §3 est (2).
+
+   ⛔ **CE POINT DÉCRIVAIT LE PLUS PETIT DES DEUX TROUS.** Re-mesuré le 17 août : la garde
+   ne photographie **qu'UNE page** — `PAGES_TO_SNAPSHOT` ne contient que
+   `/dashboard/pipeline`, visitée SANS session, donc dans son état erreur + vide (quatre
+   colonnes de teinte plate, aucune carte). **Une référence PNG pour tout le dépôt.**
+
+   La conséquence commande le programme : refondre les surfaces les laisserait non
+   photographiées **à 36 sur 37**, quel que soit le seuil par pixel. Régler le seuil sur un
+   pipeline vide n'achète presque rien ici. ⚠ Le préalable d'un redessin est donc la
+   **COUVERTURE** — quelles surfaces entrent sous capture, et dans quel état — et le
+   réglage de seuil vient après, sur un jeu qui vaut la peine d'être gardé.
+
+   ⚠ Et le seuil actuel documente déjà son propre aveuglement : le passage du kanban en
+   feuille continue, un redessin complet de la page, a mesuré **1,09 % contre une barre à
+   1 %**. Passé d'un cheveu, et le commit suivant est repassé au vert contre une référence
+   périmée. Une garde qui ne tranche un redessin qu'à 9 centièmes près ne tranche rien.
 
 ---
 
