@@ -728,7 +728,8 @@ connexion des agents. Changer l'un ne touche pas l'autre.
 
 ```
 Client ID   833483825712-vh715spjupqcl86qffv3hvffsaqk0g8e.apps.googleusercontent.com
-Consentement  External · In production (publié le 16.08) · app « GET MEGGA »
+Consentement  External · In production (publié le 16.08) · app « MEGGA » (relevé 17.08 ;
+              ce document a annoncé « GET MEGGA » pendant un jour)
 Scopes déclarés  userinfo.email, userinfo.profile, openid  (tous NON sensibles)
 ```
 
@@ -831,11 +832,15 @@ scores (`1.000` sur les deux dossiers de test, contre 13 dossiers à `NULL` depu
 Ce qui reste de cet épisode est écrit plus haut, dans les deux encadrés des secrets.
 
 **🟠 Reste à faire, par ordre d'effet :**
-1. **Déclarer les deux scopes Calendar dans Data Access** (geste humain, console Google Auth
-   Platform, projet `tribal-dispatch-504619-c1`, compte hello@megga.ai) : `calendar.events` +
-   `calendar.freebusy`, puis soumettre la vérification data access du premier — justification
-   écrite + vidéo, jusqu'à 10 jours. Le code demande déjà ces deux scopes ; tant que la
-   déclaration manque, la liaison Calendar affiche « Google n'a pas validé cette application ».
+1. **Soumettre la vérification data access** (jusqu'à 10 jours). ✅ Fait le 17.08.2026 : les
+   deux scopes sont déclarés dans Data Access et la justification écrite est enregistrée ; le
+   Verification Center dit désormais « Your app's data access is not verified. Verification is
+   required because your app requests sensitive or restricted scopes. » ⛔ Deux choses bloquent
+   encore, aucune dans le dépôt : (a) **la vidéo de démonstration**, seul champ que le
+   formulaire de Google déclare manquant — elle désactive le bouton Confirm ; (b)
+   **`https://megga.ch/` répond 401** (portail de la vitrine), donc la page d'accueil déclarée
+   est inaccessible au relecteur. `/privacy` et `/terms` sont bien à 200 — mesuré. Le
+   formulaire ne détecte pas le 401 ; la revue humaine, si.
 2. **Deux jetons Mapbox distincts.** Le même est aujourd'hui posé aux deux endroits, donc le
    jeton du navigateur est **sans restriction et lisible par tous** dans le bundle public.
    Dupliquer, et restreindre la copie navigateur à `app.megga.ch`.
