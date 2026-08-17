@@ -80,6 +80,25 @@ const PLAN = {
       it: ['Fabio', 'Studio Immobiliare Lugano SA'],
     },
   },
+  // ⛔ SEUL TEMPLATE D'AUTHENTIFICATION, et il ne se soumet PAS comme les autres.
+  //
+  // Meta impose la catégorie AUTHENTICATION dès qu'un message porte un code à usage
+  // unique : un template UTILITY qui en contient un est REFUSÉ (vérifié dans la
+  // documentation Meta le 17.08.2026). En contrepartie, le corps n'est PAS le nôtre —
+  // Meta l'écrit et le traduit, texte figé « <CODE> is your verification code. ». On ne
+  // soumet donc ni texte ni exemple, mais TROIS composants imposés :
+  //   · BODY   avec `add_security_recommendation` (ajoute « ne partagez pas ce code ») ;
+  //   · FOOTER avec `code_expiration_minutes` (doit valoir le TTL réel de la RPC : 10) ;
+  //   · BUTTONS avec un bouton OTP `COPY_CODE`.
+  //
+  // ⚠ `COPY_CODE` et non `ONE_TAP` : le remplissage automatique exige de déclarer les
+  // applications autorisées (`supported_apps`, signature de paquet Android / bundle iOS).
+  // MEGGA est une application WEB — il n'y a rien à déclarer, et un ONE_TAP sans
+  // `supported_apps` est refusé.
+  number_verification: {
+    name: 'megga_number_verification', category: 'AUTHENTICATION',
+    authentication: { codeExpirationMinutes: 10, securityRecommendation: true },
+  },
 };
 
 /**
@@ -165,11 +184,15 @@ for (const [key, def] of Object.entries(registry)) {
   for (const [lang, body] of Object.entries(def.bodies)) {
     if (langArg && lang !== langArg) continue;
 
+    // Template d'AUTHENTIFICATION : ni texte ni exemple à fournir, Meta les génère.
+    // Les contrôles de variables et d'exemples qui suivent n'ont donc pas d'objet.
+    const auth = plan.authentication;
+
     const example = plan.examples?.[lang];
-    if (!example) { console.log(`· ${plan.name} (${lang}) : pas d'exemples, ignoré`); continue; }
+    if (!auth && !example) { console.log(`· ${plan.name} (${lang}) : pas d'exemples, ignoré`); continue; }
 
     const expected = varCount(body);
-    if (example.length !== expected) {
+    if (!auth && example.length !== expected) {
       // Un exemple qui ne couvre pas toutes les variables fait rejeter le
       // template, et l'erreur Meta ne dit pas laquelle manque.
       console.log(`\x1b[31m✗\x1b[0m ${plan.name} (${lang}) : ${expected} variable(s) mais ${example.length} exemple(s)`);
@@ -184,8 +207,14 @@ for (const [key, def] of Object.entries(registry)) {
 
     if (dryRun) {
       console.log(`\n── ${plan.name} · ${lang} · ${plan.category}`);
-      console.log(body);
-      console.log(`exemples : ${example.join(' | ')}`);
+      if (auth) {
+        console.log(`corps ÉCRIT PAR META (préréglage traduit) — rendu attendu : ${body}`);
+        console.log(`expiration : ${auth.codeExpirationMinutes} min · bouton : COPY_CODE`
+          + `${auth.securityRecommendation ? ' · avertissement de sécurité' : ''}`);
+      } else {
+        console.log(body);
+        console.log(`exemples : ${example.join(' | ')}`);
+      }
       continue;
     }
 
@@ -204,7 +233,18 @@ for (const [key, def] of Object.entries(registry)) {
           name: plan.name,
           language: lang,
           category,
-          components: [{ type: 'BODY', text: body, example: { body_text: [example] } }],
+          components: auth
+            ? [
+              // Aucun `text` : Meta fournit le corps traduit. Le seul réglage est
+              // l'ajout (ou non) de la phrase « ne partagez pas ce code ».
+              { type: 'BODY', add_security_recommendation: auth.securityRecommendation },
+              // Le pied affiche « expire dans N minutes ». Doit valoir le TTL RÉEL de
+              // `start_whatsapp_number_verification`, sinon le message ment.
+              { type: 'FOOTER', code_expiration_minutes: auth.codeExpirationMinutes },
+              // Le libellé du bouton est traduit par Meta ; seul `otp_type` compte.
+              { type: 'BUTTONS', buttons: [{ type: 'OTP', otp_type: 'COPY_CODE' }] },
+            ]
+            : [{ type: 'BODY', text: body, example: { body_text: [example] } }],
         }),
         signal: AbortSignal.timeout(45000),
       });

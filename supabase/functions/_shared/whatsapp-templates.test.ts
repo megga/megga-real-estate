@@ -81,7 +81,17 @@ describe('whatsapp-templates — registre', () => {
         expect(body.length, `${k}/${lang} vide`).toBeGreaterThan(0)
         expect([...body.matchAll(/\{\{(\d+)\}\}/g)].map((m) => m[1]), `${k}/${lang}`).toEqual(refs)
         // Règles Meta de forme : pas de variable en tout début ni en toute fin.
-        expect(body.trimStart().startsWith('{{'), `${k}/${lang} commence par une variable`).toBe(false)
+        //
+        // ⚠ EXEMPTÉ pour les templates d'AUTHENTIFICATION, et l'exception dit quelque
+        // chose de vrai plutôt que de contourner la règle : ces corps-là ne sont pas les
+        // nôtres. Meta les écrit et les traduit lui-même — le préréglage est
+        // « <CODE> is your verification code. », qui COMMENCE par la variable. La règle
+        // vise les corps qu'on SOUMET, où Meta la fait respecter ; ici il l'enfreint
+        // lui-même, parce que c'est lui l'auteur. Nos `bodyTexts` ne sont dans ce cas
+        // qu'une documentation de ce que le destinataire lira.
+        if (k !== 'number_verification') {
+          expect(body.trimStart().startsWith('{{'), `${k}/${lang} commence par une variable`).toBe(false)
+        }
         expect(body.trimEnd().endsWith('}}'), `${k}/${lang} finit par une variable`).toBe(false)
         expect(body, `${k}/${lang} variables adjacentes`).not.toMatch(/\}\}\s*\{\{/)
       }
@@ -154,5 +164,26 @@ describe('whatsapp-gateway — buildSendTemplateRequest (Meta)', () => {
   // l'expose — l'envoi hors fenêtre 24 h en dépend.
   it('Meta expose bien buildSendTemplateRequest — l\'envoi hors fenêtre 24 h en dépend', () => {
     expect(getProvider('meta').buildSendTemplateRequest).toBeTypeOf('function')
+  })
+})
+
+describe('template d\'AUTHENTIFICATION — le bouton OTP fait partie de l\'envoi', () => {
+  // ⛔ Meta REFUSE un envoi de template d'authentification sans composant `button` : le
+  // code doit y être répété pour que « Copier le code » mette la bonne valeur dans le
+  // presse-papier. C'est la seule catégorie où le payload ne se réduit pas au corps, et
+  // c'est précisément ce que le premier jet avait manqué — au point de choisir la
+  // mauvaise CATÉGORIE pour éviter d'avoir à le construire.
+  const env = (k: string) => (k === 'WA_TEMPLATE_NUMBER_VERIFICATION' ? 'megga_number_verification' : undefined)
+
+  it('porte otpButtonCode, égal au paramètre de corps', () => {
+    const m = buildTemplateMessage('number_verification', '41791112233', { verificationCode: '482913' }, env)
+    expect(m?.bodyParams).toEqual(['482913'])
+    expect(m?.otpButtonCode).toBe('482913')
+  })
+
+  it('les templates ORDINAIRES ne portent pas de bouton', () => {
+    const envF = (k: string) => (k === 'WA_TEMPLATE_FOLLOWUP' ? 'megga_followup' : undefined)
+    const m = buildTemplateMessage('followup', '41791112233', { clientFirstName: 'Marie' }, envF)
+    expect(m?.otpButtonCode).toBeUndefined()
   })
 })
