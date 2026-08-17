@@ -261,7 +261,8 @@
       "correctionRequested": {
         "title": "Correction demandée",
         "body": "Une correction vous a été demandée par e-mail. Reprenez le formulaire, puis soumettez à nouveau."
-      }
+      },
+      "dismiss": "Masquer ce bandeau"
     },
     "block": {
       "checking": "Vérification du statut de votre agence…",

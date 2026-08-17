@@ -261,7 +261,8 @@
       "correctionRequested": {
         "title": "Correzione richiesta",
         "body": "Le è stata richiesta una correzione per e-mail. Riapra il modulo, quindi invii di nuovo."
-      }
+      },
+      "dismiss": "Nascondi questo banner"
     },
     "block": {
       "checking": "Verifica dello stato della Sua agenzia…",

@@ -38,6 +38,7 @@
  * `.mx-notice` (megga-x-additions.css, point 16). Suppose d'être rendu dans le
  * `<MeggaX>` de la coquille.
  */
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
@@ -61,12 +62,75 @@ const TONE: Record<BlockedStatus, 'todo' | 'waiting' | 'refused'> = {
   blocked_rejected: 'refused',
 }
 
+const DISMISS_STORAGE_KEY = 'megga.labguard-dismissed'
+
+/**
+ * Ce qu'un renvoi mémorise : l'AGENCE et l'ÉTAT, jamais « ce bandeau ».
+ *
+ * ⚠ C'est l'état dans la clé qui fait toute la règle. Mémoriser un simple booléen
+ * « fermé » ferait taire la SUITE : quelqu'un qui écarte « non soumise » n'entendrait
+ * plus « Correction demandée » — or ce bandeau-là est, d'après l'en-tête de ce fichier,
+ * la SEULE chose qui explique pourquoi son formulaire vient de se rouvrir. Le message
+ * n'est pas « un bandeau », c'est « votre dossier est dans l'état X » : une fois X
+ * acquitté, le répéter n'apprend rien, et tout passage à Y doit se redire.
+ *
+ * L'agence y est aussi : sur un poste qui a vu deux agences (super-admin, impersonation),
+ * le renvoi de l'une ne doit pas éteindre le bandeau de l'autre.
+ *
+ * Une VALEUR unique plutôt qu'une liste de clés cochées : elle se remplace à chaque
+ * renvoi, donc le stockage ne grossit jamais et rien n'est à purger.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/lab-guard-dismiss.spec.ts), même motif que resolveDeclaredIdentityGap.
+export function labGuardDismissKey(agencyId: string | null | undefined, status: BlockedStatus): string {
+  return `${agencyId ?? 'sans-agence'}:${status}`
+}
+
+/**
+ * ⚠ `window.localStorage` N'EST PAS TOUJOURS LÀ, ET SON ACCÈS PEUT LEVER.
+ *
+ * Safari en navigation privée et Firefox avec le stockage DOM désactivé jettent une
+ * `SecurityError` sur la simple LECTURE de la propriété — pas sur `getItem`, sur
+ * `window.localStorage` lui-même. Un `typeof window !== 'undefined'` ne protège donc de
+ * rien, et sous jsdom la propriété EXISTE en valant `undefined` (mesuré : `'localStorage'
+ * in window` est vrai, `typeof window.localStorage` vaut `undefined`).
+ *
+ * Sans ces deux enveloppes, une exception ici ferait tomber `LabGuardBanner`, donc
+ * `IdentityShell`, donc TOUT le wizard d'onboarding — un écran blanc, pour un confort
+ * d'affichage. Le renvoi est la seule chose qui a le droit d'échouer : il redevient
+ * simplement sans mémoire.
+ */
+function lireRenvoi(): string | null {
+  try {
+    return window.localStorage?.getItem(DISMISS_STORAGE_KEY) ?? null
+  } catch {
+    return null
+  }
+}
+
+function ecrireRenvoi(cle: string): void {
+  try {
+    window.localStorage?.setItem(DISMISS_STORAGE_KEY, cle)
+  } catch {
+    // Stockage indisponible ou plein : le bandeau se referme pour cette visite et
+    // reviendra au prochain montage. Rien à dire à l'utilisateur.
+  }
+}
+
 export default function LabGuardBanner() {
   const { t } = useTranslation('onboarding')
   const { profile } = useAuth()
   const status = useLabGuard()
+  // L'état porte la VALEUR mémorisée, pas un booléen « masqué » : la comparer à la clé
+  // du rendu courant fait réapparaître le bandeau au changement d'état sans le moindre
+  // effet de synchronisation. Lu une fois, à l'initialisation — `localStorage` ne
+  // change pas sous nos pieds pour cette clé, et le lire à chaque rendu serait un accès
+  // synchrone gratuit.
+  const [renvoye, setRenvoye] = useState<string | null>(lireRenvoi)
 
   if (status === 'loading' || status === 'unavailable' || status === 'clear') return null
+
+  const cleRenvoi = labGuardDismissKey(profile?.agency_id, status)
+  if (renvoye === cleRenvoi) return null
 
   const canAct = profile != null && canActOnLabGuard(profile.role)
 
@@ -93,11 +157,40 @@ export default function LabGuardBanner() {
           {/* Aucun lien vers la page d'identité : ce bandeau n'est plus rendu QUE
               là-bas. Le seul geste qui reste est d'écrire au support, et seulement
               quand il n'y a plus rien à corriger soi-même. */}
-          {status === 'blocked_rejected' && (
-            <MxLink onClick={() => showIntercomSpace('messages')}>
-              {t('labGuard.banner.contactSupport')}
-            </MxLink>
-          )}
+          <div className="flex-horizontal mx-notice__actions">
+            {status === 'blocked_rejected' && (
+              <MxLink onClick={() => showIntercomSpace('messages')}>
+                {t('labGuard.banner.contactSupport')}
+              </MxLink>
+            )}
+            {/* ⚠ Le renvoi NE LÈVE RIEN : le blocage réel est côté serveur
+                (_shared/agency-lab-guard.ts), ce bandeau n'a jamais fait que l'annoncer
+                à l'avance. Le fermer ne fait donc pas courir de risque — il retire une
+                phrase que le wizard juste en dessous dit déjà. Et il revient de lui-même
+                à tout changement d'état, cf. labGuardDismissKey. */}
+            <button
+              type="button"
+              className="mx-notice__close"
+              onClick={() => {
+                ecrireRenvoi(cleRenvoi)
+                setRenvoye(cleRenvoi)
+              }}
+              aria-label={t('labGuard.banner.dismiss')}
+              title={t('labGuard.banner.dismiss')}
+            >
+              {/* Deux traits dans un viewBox carré, jamais le caractère « × » : son encre
+                  se pose sur l'axe mathématique de la police, donc au-dessus du milieu de
+                  la ligne. Même glyphe que MxModal, même raison.
+
+                  Sans `width`/`height` — la taille vient de `.mx-notice__close svg`, comme
+                  tout le reste de ce fichier (cf. son en-tête : aucune valeur de couleur,
+                  de taille ni de rayon posée ici). C'est aussi ce qu'exige le cliquet de
+                  grammaire, qui compte les littéraux de taille par zone. */}
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                <path d="M3 3l10 10M13 3L3 13" />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>

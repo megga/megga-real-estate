@@ -261,7 +261,8 @@
       "correctionRequested": {
         "title": "Korrektur angefordert",
         "body": "Wir haben Sie per E-Mail um eine Korrektur gebeten. Öffnen Sie das Formular erneut und senden Sie es nochmals ab."
-      }
+      },
+      "dismiss": "Diesen Hinweis ausblenden"
     },
     "block": {
       "checking": "Status Ihrer Agentur wird geprüft…",

@@ -261,7 +261,8 @@
       "correctionRequested": {
         "title": "Correction requested",
         "body": "A correction was requested by email. Reopen the form, then submit again."
-      }
+      },
+      "dismiss": "Hide this banner"
     },
     "block": {
       "checking": "Checking your agency's status…",

@@ -216,6 +216,13 @@ function makeClient(dossier: Dossier, ecranId: string): QueryClient {
     [signataireFixture(ecart || dossier === 'verifie', ecart)],
   )
   client.setQueryData(['agency-settings', AGENCY_ID], { settings: AGENCY_FIXTURE, plan: 'pro', identitySubmittedAt: null })
+  // ⛔ NE PAS semer ici la lecture de `useLabGuard` : le bandeau LAB est INMONTRABLE sur
+  // ce banc, et ce n'est pas une graine qui manque. Sous `VITE_DEV_BYPASS_AUTH`, le hook
+  // n'interroge pas le réseau du tout (`enabled: … && !DEV_BYPASS_AUTH`) et lit
+  // `DEV_BYPASS_AGENCY`, qui vaut `validated` — donc « clear », donc rien. Sans bypass,
+  // il n'y a aucun profil, donc aucun agencyId, donc la lecture est désactivée. Une
+  // graine y serait du code mort dans les deux cas. Le bandeau et son renvoi se
+  // vérifient par tests/unit/lab-guard-banner.spec.ts, qui monte le composant.
   // Rendez-vous semé selon l'ÉCRAN, pas selon le dossier — les deux surfaces qui le
   // lisent en veulent l'inverse :
   //   · étape « Rendez-vous » : PAS de réservation, sinon la carte de confirmation
