@@ -16,7 +16,22 @@ import i18nIdentity from '@/i18n' // labels d'étapes i18n (getters IDENTITY_STE
 import type { MxAddressLabels, MxCompanyLabels, MxDatePickerLabels, MxFrenchCompanyLabels } from '@/components/megga-x'
 
 // ─── Étapes du wizard ───────────────────────────────────────────────────
-// CINQ étapes : signataire → agence → pièce d'identité → rendez-vous → récapitulatif.
+// QUATRE étapes : signataire → agence → pièce d'identité → rendez-vous.
+//
+// L'étape « récapitulatif » a été RETIRÉE le 18 août 2026 (décision Julien). Le
+// parcours se termine désormais sur l'écran de CONFIRMATION (IdentitySubmittedScreen,
+// créneau + lien de visioconférence), et non sur une relecture de ce qu'on vient de
+// saisir écran par écran.
+//
+// ⚠ CE QUE CE RETRAIT EMPORTE, et qu'il faut savoir : l'attestation d'exactitude ne
+// disparaît pas — elle descend au bas de l'étape « Rendez-vous », avec le bouton
+// Soumettre — mais elle ne surplombe plus rien de RELU. Le dirigeant certifie exactes
+// des données qu'aucun écran ne lui remet sous les yeux au moment de cocher. C'est un
+// affaiblissement assumé de la déclaration, pas un effet de bord.
+//
+// ⚠ Et le bouton Soumettre exige maintenant EN PLUS un rendez-vous complet
+// (canSubmitIdentity) : l'étape étant devenue la dernière, son garde `canNext` ne
+// s'applique plus, et sans ce report on aurait pu attester puis soumettre sans créneau.
 //
 // L'étape « rendez-vous » a été AJOUTÉE le 4 août 2026, en avant-dernière position.
 // La réservation de l'appel d'accueil vivait jusque-là APRÈS la soumission, sur une
@@ -46,7 +61,6 @@ export const IDENTITY_STEPS = [
   { id: 'agence', get label() { return i18nIdentity.t('onboarding:wizard.steps.agence') } },
   { id: 'pieceIdentite', get label() { return i18nIdentity.t('onboarding:wizard.steps.pieceIdentite') } },
   { id: 'rendezVous', get label() { return i18nIdentity.t('onboarding:wizard.steps.rendezVous') } },
-  { id: 'recapitulatif', get label() { return i18nIdentity.t('onboarding:wizard.steps.recapitulatif') } },
 ] as const
 
 // ─── Champ date ─────────────────────────────────────────────────────────

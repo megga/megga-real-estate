@@ -22,9 +22,11 @@
  * vérité ; aucun stockage local parallèle (le brouillon d'étape en cours vit en
  * mémoire React le temps de la saisie, rien d'autre).
  *
- * CINQ étapes, toutes avec un écran réel : 0 (StepSignataire), 1 (StepAgence),
- * 2 (StepPieceIdentite), 3 (StepRendezVous) et 4 (StepRecapitulatif — relecture de
- * tout ce qui a été saisi, attestation d'exactitude, soumission finale). La soumission
+ * QUATRE étapes, toutes avec un écran réel : 0 (StepSignataire), 1 (StepAgence),
+ * 2 (StepPieceIdentite) et 3 (StepRendezVous). Cette dernière l'est devenue le
+ * 18.08.2026 avec le RETRAIT du récapitulatif (décision Julien : finir sur l'écran de
+ * confirmation et son lien de visioconférence) — elle porte donc désormais l'attestation
+ * d'exactitude et le bouton Soumettre. La soumission
  * (handleSubmit, plus bas) N'EST PAS un bloc de persistCurrentStep comme les
  * précédents : c'est une action explicite distincte, déclenchée par le bouton Soumettre
  * du pied de page, jamais par next()/prev()/goToStep() — voir le dernier cas de
@@ -97,7 +99,6 @@ import { StepSignataire } from './steps/StepSignataire'
 import { StepAgence } from './steps/StepAgence'
 import { StepPieceIdentite } from './steps/StepPieceIdentite'
 import { StepRendezVous } from './steps/StepRendezVous'
-import { StepRecapitulatif } from './steps/StepRecapitulatif'
 
 /**
  * Brouillon local de l'étape 1, contrôlé par IdentityShell (cf. en-tête de StepSignataire).
@@ -432,8 +433,20 @@ export function identitySubmissionErrorStep(code: IdentitySubmissionErrorCode | 
  * migration 20260728110000) que cette tâche comble.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que isSignataireStepComplete.
-export function canSubmitIdentity(attestationChecked: boolean, signatoryId: string | null): boolean {
-  return attestationChecked && signatoryId != null
+export function canSubmitIdentity(
+  attestationChecked: boolean,
+  signatoryId: string | null,
+  /**
+   * ⚠ TROISIÈME CONDITION, ajoutée le 18 août 2026 avec le retrait du récapitulatif.
+   * « Rendez-vous » étant devenue la DERNIÈRE étape, son garde `canNext` ne s'applique
+   * plus à elle — le pied de page n'y affiche plus Continuer mais Soumettre. Sans ce
+   * report, un dirigeant pouvait cocher l'attestation et envoyer son dossier sans avoir
+   * retenu le moindre créneau. La règle est la même qu'avant (isRendezVousStepComplete),
+   * elle a seulement changé de porte.
+   */
+  rendezVousComplet: boolean,
+): boolean {
+  return attestationChecked && signatoryId != null && rendezVousComplet
 }
 
 /**
@@ -452,7 +465,7 @@ export function canSubmitIdentity(attestationChecked: boolean, signatoryId: stri
  * réinitialiser.
  */
 // eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que canSubmitIdentity.
-export function shouldResetAttestationLeavingRecap(previousStep: number, nextStep: number, stepCount: number): boolean {
+export function shouldResetAttestationLeavingLastStep(previousStep: number, nextStep: number, stepCount: number): boolean {
   const recapStep = stepCount - 1
   return previousStep === recapStep && nextStep !== recapStep
 }
@@ -545,7 +558,7 @@ export function resolveIdentityScreen(
   return 'wizard'
 }
 
-// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldResetAttestationLeavingRecap.
+// eslint-disable-next-line react-refresh/only-export-components -- fonction pure testée directement (tests/unit/identity-shell-navigation.spec.ts), même motif que shouldResetAttestationLeavingLastStep.
 export function shouldShowIdentityWelcome(
   personsCount: number,
   isLoading: boolean,
@@ -1031,12 +1044,12 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
   // l'en-tête, prev() — bouton Précédent, ou le setStep de handleSubmit après un refus
   // de la RPC) — UN SEUL point de reset plutôt que de dupliquer
   // setAttestationChecked(false) dans chacun de ces appelants (cf. JSDoc de
-  // shouldResetAttestationLeavingRecap ci-dessus). previousStepRef porte la valeur de
+  // shouldResetAttestationLeavingLastStep ci-dessus). previousStepRef porte la valeur de
   // `step` d'AVANT la transition en cours : un useState seul ne connaît que la valeur
   // courante, incapable à lui seul de détecter qu'on est en train de QUITTER l'étape 4.
   const previousStepRef = useRef(step)
   useEffect(() => {
-    if (shouldResetAttestationLeavingRecap(previousStepRef.current, step, IDENTITY_STEPS.length)) {
+    if (shouldResetAttestationLeavingLastStep(previousStepRef.current, step, IDENTITY_STEPS.length)) {
       setAttestationChecked(false)
     }
     previousStepRef.current = step
@@ -1332,7 +1345,7 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
    * précisément ce que cette tâche câble (cf. l'en-tête du fichier).
    */
   const handleSubmit = async (): Promise<void> => {
-    if (!canSubmitIdentity(attestationChecked, signatoryId) || saving) return
+    if (!canSubmitIdentity(attestationChecked, signatoryId, isRendezVousStepComplete(rendezVous, rdvChoice)) || saving) return
     setSaving(true)
     setError(null)
     try {
@@ -1594,35 +1607,14 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
         ) : step === 3 ? (
           // `setRendezVous`/`setRdvChoice` sont stables (setters de useState) : OcBooking peut donc
           // les appeler dans un effet sans risque de boucle, cf. son en-tête.
-          <StepRendezVous onStateChange={setRendezVous} choice={rdvChoice} onChoiceChange={setRdvChoice} />
-        ) : step === 4 ? (
-          <StepRecapitulatif
-            signataire={signataire}
-            agencyDraft={agencyDraft}
-            documentType={null}
-            verificationStatus={pieceIdentiteDraft.verificationStatus}
-            // Ce que le PRESTATAIRE a établi, relu depuis la personne : la nature de la
-            // pièce qu'il a lue et l'instant du verdict. Ni l'une ni l'autre n'est
-            // déclarée — c'est ce qui les rend dignes d'une relecture de conformité.
-            verifiedDocumentType={existingSignatory?.idDocumentType ?? null}
-            verifiedAt={existingSignatory?.verifiedAt ?? null}
-            recto={null}
-            verso={null}
-            identityRead={existingSignatory?.idDocumentRead ?? null}
-            identityDocumentsLoading={false}
-            identityDocumentsError={false}
-            // Un rendez-vous EN BASE (agence repassée par le wizard après une
-            // réservation) l'emporte sur le créneau seulement retenu : c'est la
-            // réalité contre l'intention. Le créneau retenu, lui, vit en mémoire —
-            // la base ne le connaîtra qu'à la soumission (cf. handleSubmit).
-            rendezVous={bookedCall.data ?? null}
-            rendezVousChoisi={rdvChoice}
-            rendezVousTimezone={rendezVousTimezone}
+          <StepRendezVous
+            onStateChange={setRendezVous}
+            choice={rdvChoice}
+            onChoiceChange={setRdvChoice}
             attestationChecked={attestationChecked}
             onAttestationChange={setAttestationChecked}
-            onEditStep={(target) => { void goToStep(target) }}
           />
-              ) : null}
+        ) : null}
             </main>
 
             {/* Bannière d'erreur : au-dessus du pied d'actions, pas en surimpression
@@ -1663,7 +1655,7 @@ export default function IdentityShell({ preview }: { preview?: IdentityShellPrev
                     // Dernière étape (récapitulatif) : Soumettre remplace Continuer — gate
                     // sur l'attestation ET un signataire réellement désigné
                     // (canSubmitIdentity), jamais sur canNext (toujours false ici).
-                    <MxButton type="button" onClick={() => { void handleSubmit() }} disabled={!canSubmitIdentity(attestationChecked, signatoryId) || saving}>
+                    <MxButton type="button" onClick={() => { void handleSubmit() }} disabled={!canSubmitIdentity(attestationChecked, signatoryId, isRendezVousStepComplete(rendezVous, rdvChoice)) || saving}>
                       {saving ? t('wizard.footer.submitting') : t('wizard.footer.submit')}
                     </MxButton>
                   )}

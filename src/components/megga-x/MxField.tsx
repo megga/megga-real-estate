@@ -10,12 +10,17 @@
 // `MxInput` est un passe-plat sur `<input class="input">` — ni libellé, ni aide.
 // Sans ce composant, chaque appelant réinventerait les deux.
 //
-// PAS d'état d'erreur par champ, et c'est délibéré : le wizard valide en
-// tout-ou-rien à l'étape (isAgencyStepComplete & co. gâtent le bouton
-// Continuer), aucun appelant n'a donc d'erreur à afficher SOUS un champ.
-// L'ajouter ici en prévision créerait la prop, la classe CSS et la règle de
-// style que personne ne consomme — exactement le code mort que le dépôt
-// proscrit. À rétablir d'un bloc le jour où la validation devient par champ.
+// ÉTAT D'ERREUR PAR CHAMP — rétabli le 18 août 2026, « d'un bloc », comme cette
+// note l'annonçait. Il était absent parce que le wizard validait en tout-ou-rien
+// (le bouton Continuer se grise), et que la prop aurait été du code mort.
+//
+// ⛔ CE QUE CE TOUT-OU-RIEN A COÛTÉ, et pourquoi il ne suffit plus : sur la prise
+// de rendez-vous d'accueil, `identiteComplete` exige un TÉLÉPHONE que rien ne
+// signale. Un dirigeant a choisi son créneau, répondu aux questions, puis s'est
+// trouvé devant un bouton mort — sans un mot, sans un rouge, sans savoir quoi
+// remplir. Un bouton grisé dit « non » ; il ne dit jamais « pourquoi ».
+//
+// La prop est donc consommée (OcBooking), pas posée en prévision.
 
 import { useId, type ReactNode } from 'react'
 
@@ -41,10 +46,24 @@ interface Props {
    * libellé vise le champ, cliquer le « i » ouvre l'aide.
    */
   labelAction?: ReactNode
+  /**
+   * Ce qui ne va pas dans CE champ, affiché sous lui en rouge. `null`/absent =
+   * rien à dire.
+   *
+   * ⚠ `role="alert"` : le message apparaît APRÈS coup, en réponse à un geste
+   * (une tentative d'envoi). Sans lui, quelqu'un qui navigue au lecteur d'écran
+   * verrait le focus bouger sans jamais entendre le motif — c'est-à-dire le même
+   * cul-de-sac que le bouton grisé, transposé.
+   *
+   * Il REMPLACE `help` à l'affichage quand les deux sont posés : empiler une
+   * précision et une erreur sous un même champ fait lire deux phrases pour en
+   * trouver une, et c'est celle qui bloque qui doit rester seule.
+   */
+  error?: ReactNode
   className?: string
 }
 
-export default function MxField({ label, children, help, labelAction, className }: Props) {
+export default function MxField({ label, children, help, labelAction, error, className }: Props) {
   const id = useId()
   // `for` UNIQUEMENT quand un contrôle a reçu cet id (enfant en fonction). En
   // nœud simple — groupe de radios, zone de dépôt — aucun élément ne le porte :
@@ -66,11 +85,15 @@ export default function MxField({ label, children, help, labelAction, className 
         </div>
       )}
       {hasControl ? children(id) : children}
-      {help != null && (
+      {error != null ? (
+        <div className="mg-top-5x-extra-small">
+          <p className="paragraph-small mx-field__error" role="alert">{error}</p>
+        </div>
+      ) : help != null ? (
         <div className="mg-top-5x-extra-small">
           <p className="paragraph-small mx-field__help">{help}</p>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

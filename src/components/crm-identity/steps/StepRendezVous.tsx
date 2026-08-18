@@ -1,8 +1,14 @@
 /**
- * Wizard « Identité légale » (KYB) — étape 4, le CHOIX du rendez-vous d'accueil.
+ * Wizard « Identité légale » (KYB) — DERNIÈRE étape : le choix du rendez-vous d'accueil,
+ * puis l'attestation d'exactitude et la soumission du dossier.
  *
- * POURQUOI ELLE EST ICI, ET POURQUOI ELLE NE RÉSERVE PLUS. L'étape choisit le créneau
- * avant le récapitulatif — donc relu avec le reste avant d'attester — mais depuis le
+ * ⚠ Elle est devenue la dernière le 18 août 2026, le récapitulatif ayant été retiré
+ * (décision Julien : finir sur la confirmation et son lien de visioconférence). Deux
+ * conséquences portées ici : l'attestation descend en bas de cet écran, et le garde
+ * « un créneau doit être retenu » migre de `canNext` vers `canSubmitIdentity` — sans
+ * quoi on pourrait attester puis soumettre sans avoir rien réservé.
+ *
+ * POURQUOI ELLE NE RÉSERVE PLUS. L'étape choisit le créneau, mais depuis le
  * 15.08.2026 (décision client, renversant celle du 04.08) la RÉSERVATION part avec le
  * dossier, dans `handleSubmit` : réserver ici générait le lien de visioconférence et
  * l'e-mail de confirmation avant même que le dossier soit soumis, et un abandon au
@@ -23,6 +29,7 @@
  * rayon ou ombre posée ici. Suppose d'être rendue dans le `<MeggaX>` de la coquille.
  */
 import { useTranslation } from 'react-i18next'
+import { MxCheckbox } from '@/components/megga-x'
 import OcBooking, { type OcBookingChoice, type OcBookingState } from '@/components/onboarding-call/OcBooking'
 
 interface StepRendezVousProps {
@@ -32,10 +39,15 @@ interface StepRendezVousProps {
   choice: OcBookingChoice | null
   /** Remonte le créneau retenu ; la coquille en est la mémoire jusqu'à la soumission. */
   onChoiceChange: (choice: OcBookingChoice | null) => void
+  /** Attestation d'exactitude — descendue ici avec le retrait du récapitulatif (18.08.2026). */
+  attestationChecked: boolean
+  onAttestationChange: (checked: boolean) => void
 }
 
-/** Étape 4 du wizard identité : choix du rendez-vous d'accueil. */
-export function StepRendezVous({ onStateChange, choice, onChoiceChange }: StepRendezVousProps) {
+/** DERNIÈRE étape du wizard identité : choix du rendez-vous d'accueil, puis attestation. */
+export function StepRendezVous({
+  onStateChange, choice, onChoiceChange, attestationChecked, onAttestationChange,
+}: StepRendezVousProps) {
   const { t } = useTranslation('onboarding')
 
   // PLUS LARGE que les quatre autres étapes (634 px), et c'est délibéré : la prise de
@@ -54,6 +66,25 @@ export function StepRendezVous({ onStateChange, choice, onChoiceChange }: StepRe
 
       <div className="mg-top-medium">
         <OcBooking mode="deferred" choice={choice} onChoiceChange={onChoiceChange} onStateChange={onStateChange} />
+      </div>
+
+      {/* L'ATTESTATION, arrivée ici le 18 août 2026 avec le retrait du récapitulatif.
+          Sur toute la largeur et détachée du bloc de réservation : c'est un engagement
+          juridique et le verrou du bouton Soumettre, pas une ligne du formulaire.
+
+          ⚠ Elle ne surplombe plus une relecture. Là où elle suivait quatre sections
+          rappelant ce qu'on avait saisi, elle suit désormais un calendrier : le
+          dirigeant certifie exactes des données qu'aucun écran ne lui remet sous les
+          yeux à cet instant. C'est le prix, assumé, de finir sur la confirmation. */}
+      <div className="card mg-top-small">
+        <div className="pd---content-inside-card">
+          <MxCheckbox
+            className="paragraph-small"
+            checked={attestationChecked}
+            onCheckedChange={onAttestationChange}
+            label={t('wizard.recap.attestation')}
+          />
+        </div>
       </div>
     </div>
   )

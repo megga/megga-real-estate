@@ -230,6 +230,10 @@ function makeClient(dossier: Dossier, ecranId: string): QueryClient {
   //     surfaces qu'on retouche ;
   //   · « Récapitulatif » : une réservation, sinon la section relit « Aucun rendez-vous »
   //     et on ne voit jamais la forme normale de cette relecture.
+  // ⚠ L'étape « Rendez-vous » ne doit PAS voir de réservation en base : la carte de
+  // confirmation remplacerait tout le bloc et masquerait le calendrier comme le
+  // formulaire, c'est-à-dire les deux surfaces qu'on vient regarder. Le récapitulatif,
+  // qui était l'autre lecteur de cette clé, a été retiré le 18.08.2026.
   if (ecranId !== 'step3') client.setQueryData(['onboarding-call', AGENCY_ID], CALL_FIXTURE)
   return client
 }
@@ -256,7 +260,6 @@ const ECRANS: Ecran[] = [
   // le rail du wizard le dit déjà — ce rail-ci ne doit pas raconter autre chose.
   { id: 'step2', label: '3. Vérification', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'wizard', step: 2 }) },
   { id: 'step3', label: '4. Rendez-vous', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'wizard', step: 3 }) },
-  { id: 'step4', label: '5. Récapitulatif', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'wizard', step: 4 }) },
   { id: 'exit', label: 'Reprendre plus tard', groupe: 'Wizard identité', route: '/dashboard/identite', render: wizard({ screen: 'exit' }) },
   // Retour du prestataire d'identité. Le sceau ne s'affiche que sur le dossier
   // « Vérifié » : c'est le statut de la personne, pas l'écran, qui le décide.

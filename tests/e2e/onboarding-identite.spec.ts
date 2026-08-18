@@ -379,7 +379,8 @@ async function fillSignataireStep(page: Page, s: SignataireFixture): Promise<voi
  * `legalFormLabel` est le libellé AFFICHÉ dans le menu déroulant, pas un code : c'est le
  * SEUL champ qui distingue le parcours société anonyme du parcours raison individuelle.
  * Il ne commande plus aucune bifurcation depuis le retrait de l'étape « bénéficiaires
- * effectifs » (03.08.2026) — les deux formes suivent désormais les mêmes cinq étapes.
+ * effectifs » (03.08.2026) — les deux formes suivent désormais les mêmes QUATRE étapes
+ * (le récapitulatif a été retiré le 18.08.2026).
  */
 interface AgenceFixture {
   legalFormLabel: string
@@ -457,54 +458,63 @@ async function fillPieceIdentiteStep(page: Page): Promise<void> {
 }
 
 /**
- * Franchit l'étape 3 (rendez-vous d'accueil), ajoutée le 04.08.2026 en avant-dernière
- * position.
+ * Franchit l'étape « Rendez-vous d'accueil ».
  *
- * ⚠ ÉTAPE BLOQUANTE, mais jamais un cul-de-sac : Continuer exige un rendez-vous pris,
- * SAUF quand il n'y a rien à réserver (aucun hôte actif dans le pool, ou aucun créneau
- * libre sur l'horizon), auquel cas l'exigence tombe. Ce helper couvre les DEUX chemins
- * plutôt que de parier sur l'état du banc :
+ * ⛔ ELLE N'A PLUS DE BOUTON « CONTINUER » depuis le 18.08.2026 : le récapitulatif
+ * retiré, elle est devenue la DERNIÈRE étape et son pied affiche « Soumettre le
+ * dossier ». Ce helper attendait `Continuer` et expirait donc au bout de 15 s sur les
+ * trois parcours de ce fichier — signature trompeuse, l'erreur pointait la lecture des
+ * créneaux alors que le bouton attendu n'existait simplement plus. Il ne franchit donc
+ * plus rien : il PRÉPARE l'étape, et c'est `submitDerniereEtape` qui la clôt.
+ *
+ * ⚠ ÉTAPE BLOQUANTE, mais jamais un cul-de-sac : la soumission exige un rendez-vous
+ * pris, SAUF quand il n'y a rien à réserver (aucun hôte actif, ou aucun créneau libre
+ * sur l'horizon), auquel cas l'exigence tombe — `isRendezVousStepComplete` la reporte
+ * dans `canSubmitIdentity`. Ce helper couvre les DEUX chemins plutôt que de parier sur
+ * l'état du banc :
  *
  *   - pool vide (l'état attendu ici : `onboarding_hosts` n'est semée par aucune fixture
- *     de ce fichier) -> l'écran l'annonce et Continuer s'active seul ;
+ *     de ce fichier) -> l'écran l'annonce, et il n'y a rien à retenir ;
  *   - un créneau existe -> on le prend pour de vrai, ce qui éprouve le chemin nominal.
  *
  * Sans le second cas, semer un hôte un jour ferait tomber tous les parcours de ce
- * fichier sur un bouton désactivé, sans que le message ne dise pourquoi.
+ * fichier sur une soumission refusée, sans que le message ne dise pourquoi.
  */
 async function passRendezVousStep(page: Page): Promise<void> {
-  const continuer = page.getByRole('button', { name: 'Continuer' })
   const premierCreneau = page.locator('.mx-slotpicker__slot').first()
+  // Les deux formulations de « rien à réserver » (pool vide / plus aucun créneau) : le
+  // helper ne doit pas dépendre de LAQUELLE des deux le banc produit.
+  const rienAReserver = page.getByText(/Aucun créneau n'est ouvert|Plus aucun créneau libre/)
 
-  // La liste des créneaux arrive de l'edge function : on attend que l'écran ait TRANCHÉ,
-  // dans un sens ou dans l'autre.
-  //
-  // ⚠ Surtout pas `expect(premierCreneau.or(continuer)).toBeVisible()` : quand des
-  // créneaux existent, Continuer est visible LUI AUSSI (désactivé, mais rendu), donc le
-  // locator résout deux éléments et le mode strict fait échouer l'attente — précisément
-  // sur le chemin nominal qu'on cherche à couvrir. Une condition qui se retente dit la
-  // même chose sans dépendre du nombre d'éléments rendus.
+  // La liste arrive de l'edge function : on attend que l'écran ait TRANCHÉ, dans un sens
+  // ou dans l'autre. Une condition qui se retente plutôt qu'un `.or()` : le mode strict
+  // de Playwright échoue dès que le locator résout deux éléments.
   await expect(async () => {
     const aDesCreneaux = await premierCreneau.isVisible()
-    const franchissable = await continuer.isEnabled()
-    expect(aDesCreneaux || franchissable).toBe(true)
+    const vide = await rienAReserver.isVisible()
+    expect(aDesCreneaux || vide).toBe(true)
   }).toPass({ timeout: 15_000 })
 
   if (await premierCreneau.isVisible()) {
     await premierCreneau.click()
-    await page.getByRole('button', { name: 'Confirmer le rendez-vous' }).click()
+    await page.getByRole('button', { name: 'Suivant' }).click()
+    // ⚠ LE FORMULAIRE EXIGE QUATRE CHAMPS, et depuis le 18.08.2026 il le DIT au lieu de
+    // griser le bouton en silence. Prénom, nom et e-mail arrivent préremplis du compte ;
+    // le téléphone, jamais — c'est précisément l'oubli qui a bloqué un dirigeant.
+    await page.getByRole('textbox', { name: /WhatsApp|téléphone/i }).fill('791234567')
+    await page.getByRole('button', { name: 'Retenir ce créneau' }).click()
   }
-
-  await expect(continuer).toBeEnabled({ timeout: 15_000 })
-  await continuer.click()
 }
 
 /**
- * Coche l'attestation d'exactitude et soumet depuis le récapitulatif (dernière étape).
- * Toujours la SEULE case de l'écran, d'où le rôle sans nom ; le clic passe par son
- * étiquette (cf. checkByLabel — MxCheckbox masque l'input natif).
+ * Coche l'attestation d'exactitude et soumet depuis la DERNIÈRE étape.
+ *
+ * ⚠ Cette étape est « Rendez-vous » depuis le 18.08.2026 : le récapitulatif a été retiré
+ * et l'attestation est descendue avec le bouton Soumettre. La case reste la SEULE de
+ * l'écran, d'où le rôle sans nom ; le clic passe par son étiquette (cf. checkByLabel —
+ * MxCheckbox masque l'input natif).
  */
-async function submitRecapitulatif(page: Page): Promise<void> {
+async function submitDerniereEtape(page: Page): Promise<void> {
   await checkByLabel(page, page.getByRole('checkbox'))
   await page.getByRole('button', { name: 'Soumettre le dossier' }).click()
 
@@ -532,12 +542,12 @@ async function submitRecapitulatif(page: Page): Promise<void> {
  *
  * ⚠ On n'y arrive plus DIRECTEMENT depuis le 10.08.2026 : un écran de confirmation du
  * rendez-vous s'intercale, sans changer d'URL, et c'est son bouton qui navigue (cf.
- * submitRecapitulatif). La destination finale, elle, est la même.
+ * submitDerniereEtape). La destination finale, elle, est la même.
  */
 const APRES_SOUMISSION = /\/dashboard$/
 
 test.describe('Onboarding KYB — gate et wizard identité', () => {
-  test('parcours complet : connexion, gate, cinq étapes, soumission, dashboard, déconnexion, reconnexion sans reboucle', async ({ page }) => {
+  test('parcours complet : connexion, gate, quatre étapes, soumission, dashboard, déconnexion, reconnexion sans reboucle', async ({ page }) => {
     const founder = await createFounder()
     try {
       // 1. Connexion d'un dirigeant dont l'agence n'a pas soumis son identité —
@@ -553,7 +563,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // la première saisie, cf. expectWizardShellMounted ci-dessus.
       await expectWizardShellMounted(page)
 
-      // 3. Saisie des cinq étapes.
+      // 3. Saisie des quatre étapes.
 
       // Étape 0 — signataire.
       await fillSignataireStep(page, {
@@ -578,9 +588,10 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // Étape 3 — rendez-vous d'accueil (bloquante, sauf s'il n'y a rien à réserver).
       await passRendezVousStep(page)
 
-      // Étape 4 — récapitulatif, attestation, soumission.
+      // L'attestation et la soumission vivent au bas de l'étape « Rendez-vous » depuis
+      // le retrait du récapitulatif (18.08.2026) : plus d'écran intermédiaire.
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
-      await submitRecapitulatif(page)
+      await submitDerniereEtape(page)
 
       // 4. Soumission — puis 5. accès au dashboard, sans redirection retour.
       // handleSubmit() navigue via useNavigate() (react-router, déjà client-side).
@@ -739,9 +750,9 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
    * la comptait pas, la section absente du récapitulatif. L'étape ayant été retirée
    * du parcours pour TOUT LE MONDE (décision client), il n'y a plus de saut à
    * éprouver : ce chemin n'a plus rien de particulier, et c'est précisément ce que
-   * ce test affirme désormais — cinq étapes, comme une société.
+   * ce test affirme désormais — quatre étapes, comme une société.
    */
-  test('raison individuelle (forme du client de référence) : même parcours à cinq étapes, soumission aboutie', async ({ page }) => {
+  test('raison individuelle (forme du client de référence) : même parcours à quatre étapes, soumission aboutie', async ({ page }) => {
     const founder = await createFounder()
     try {
       await signInLive(page, founder.email, PW, { firstEver: true })
@@ -768,12 +779,12 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       })
 
       // Le parcours d'une raison individuelle est désormais celui de tout le monde :
-      // l'agence mène droit à la pièce d'identité, et le rail compte cinq paliers.
+      // l'agence mène droit à la pièce d'identité, et le rail compte QUATRE paliers
+      // depuis le retrait du récapitulatif (18.08.2026).
       await expect(page.getByRole('heading', { name: 'Vérifiez votre identité' })).toBeVisible()
-      await expect(page.getByRole('button', { name: /^\d\.\s/ })).toHaveCount(5)
+      await expect(page.getByRole('button', { name: /^\d\.\s/ })).toHaveCount(4)
       await expect(page.getByRole('button', { name: '3. Vérification' })).toBeVisible()
       await expect(page.getByRole('button', { name: '4. Rendez-vous' })).toBeVisible()
-      await expect(page.getByRole('button', { name: '5. Récapitulatif' })).toBeVisible()
 
       // Le parcours ne dépose plus aucun fichier : la sortie de secours suffit à
       // franchir l'étape, et c'est ce que ce test éprouve de bout en bout.
@@ -781,7 +792,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await passRendezVousStep(page)
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
 
-      await submitRecapitulatif(page)
+      await submitDerniereEtape(page)
       await expectNoBounceBack(page, APRES_SOUMISSION)
 
       // La soumission finale doit aboutir sur ce chemin aussi (même
@@ -845,7 +856,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       })
       await fillPieceIdentiteStep(page)
       await passRendezVousStep(page)
-      await submitRecapitulatif(page)
+      await submitDerniereEtape(page)
       await expect(page).toHaveURL(APRES_SOUMISSION)
 
       // 2. Le relecteur renvoie le dossier. Posé en service_role plutôt qu'en montant une
@@ -914,7 +925,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       })
       await fillPieceIdentiteStep(page)
       await passRendezVousStep(page)
-      await submitRecapitulatif(page)
+      await submitDerniereEtape(page)
 
       // 5. Retour au CRM, et AUCUNE reboucle : c'est la vérification que ce cas existe pour
       // faire. Si le gate régressait sur ce chemin, cette navigation finirait au wizard.

@@ -58,8 +58,7 @@
       "signataire": "Signataire",
       "agence": "Agence",
       "pieceIdentite": "Vérification",
-      "rendezVous": "Rendez-vous",
-      "recapitulatif": "Récapitulatif"
+      "rendezVous": "Rendez-vous"
     },
     "header": {
       "language": "Langue de l'interface",
@@ -210,28 +209,7 @@
       }
     },
     "recap": {
-      "title": "Vérifiez votre dossier avant de le soumettre",
-      "notProvided": "Non renseigné",
-      "pieceIdentite": {
-        "uploaded": "Déposé",
-        "missing": "Manquant",
-        "loading": "Vérification des documents déposés…",
-        "loadFailed": "Impossible de vérifier les documents déposés. Réessayez.",
-        "statusLabel": "Vérification",
-        "verifiedAtLabel": "Vérifiée le",
-        "verified": "Identité vérifiée chez notre prestataire",
-        "processing": "Vérification en cours de traitement",
-        "manualReview": "Aucune vérification en ligne aboutie. Notre équipe conformité établira votre identité."
-      },
-      "rendezVous": {
-        "whenLabel": "Date",
-        "hostLabel": "Avec",
-        "durationLabel": "Durée",
-        "duration": "{{minutes}} min",
-        "none": "Aucun rendez-vous pour l'instant. Nous vous écrirons dès qu'un créneau s'ouvre.",
-        "pending": "Sera confirmé à l'envoi du dossier."
-      },
-      "attestation": "J'atteste que les informations ci-dessus sont exactes et complètes, à ma connaissance.",
+      "attestation": "J'atteste que les informations transmises dans ce parcours sont exactes et complètes, à ma connaissance.",
       "errors": {
         "legalName": "Raison sociale manquante. Complétez l'étape Agence.",
         "legalForm": "Forme juridique manquante. Complétez l'étape Agence.",
@@ -332,7 +310,8 @@
       "email": "E-mail",
       "whatsapp": "Numéro WhatsApp",
       "dialCode": "Indicatif",
-      "whatsappPlaceholder": "79 874 94 84"
+      "whatsappPlaceholder": "79 874 94 84",
+      "required": "Champ requis"
     },
     "actions": {
       "confirm": "Confirmer le rendez-vous",
