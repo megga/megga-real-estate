@@ -20,8 +20,8 @@
  * Mise en page : le rail est dans le cadre au-delà de `lg`, en tiroir en
  * dessous (le cadre passe alors pleine largeur, sans rayon).
  */
-import { useState } from 'react'
-import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
@@ -236,6 +236,32 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
 export default function AdminShell() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const colonne = useRef<HTMLDivElement>(null)
+  const { pathname } = useLocation()
+
+  /**
+   * Remet la colonne de contenu en haut à chaque changement de page.
+   *
+   * Ici, ce n'est PAS la fenêtre qui défile : le cadre est en `overflow: hidden`
+   * (c'est lui qui clippe les coins arrondis) et le défilement appartient à cette
+   * colonne. Or la colonne appartient à la coquille, donc elle SURVIT au
+   * changement de page — c'est même ce qui rend la transition douce. Personne ne
+   * remettait son `scrollTop` à zéro, et rien dans l'arbre du CRM ne le fait non
+   * plus : mesuré, on passait d'Agences à Utilisateurs puis à Monitoring en
+   * gardant 400 px de défilement, donc en ouvrant chaque page en plein milieu,
+   * titre hors écran. Ça se lit comme une page à moitié rendue.
+   *
+   * `useLayoutEffect` et non `useEffect` : le navigateur ne doit pas peindre une
+   * seule image de la nouvelle page à l'ancienne hauteur, sinon on remplace un
+   * défaut par un sursaut.
+   *
+   * Sur le CHEMIN seul, jamais sur la recherche ni le fragment : un filtre, un
+   * onglet ou un tri s'écrivent dans la query, et renvoyer l'admin en haut de
+   * page à chaque case cochée serait un second défaut.
+   */
+  useLayoutEffect(() => {
+    colonne.current?.scrollTo({ top: 0 })
+  }, [pathname])
   const { sp, surf, dark } = useAdminSurfaces()
   const { toggle } = useAdminTheme()
   const { t } = useTranslation(['common', 'admin'])
@@ -387,7 +413,7 @@ export default function AdminShell() {
               <ShellNav />
             </aside>
 
-            <div className="adm-scroll" style={{ minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
+            <div ref={colonne} className="adm-scroll" style={{ minWidth: 0, minHeight: 0, overflowY: 'auto' }}>
               <Outlet />
             </div>
           </div>

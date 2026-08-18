@@ -123,3 +123,66 @@ describe('cibles de navigation de la console admin', () => {
     ).toEqual([])
   })
 })
+
+/**
+ * Les DEUX pièces qui rendent le changement de page fluide dans la console.
+ *
+ * Elles ont en commun de ne casser strictement rien en disparaissant : l'app
+ * compile, les tests passent, la console s'affiche, et le défaut ne se voit qu'à
+ * l'usage, sur un écran déjà défilé ou sur une seconde fiche agence. C'est
+ * exactement le régime de péremption qui justifie un test statique.
+ */
+/**
+ * Lit un fichier NOMMÉ EN DUR, ou échoue en le disant.
+ *
+ * Passe par `repoPath` + `readFileSafely` comme le reste de ce module : les
+ * chemins sont ancrés sur le dépôt et non sur `process.cwd()`, sinon le test
+ * change de verdict selon le répertoire d'où vitest est lancé. Et l'absence
+ * n'est pas tolérée ici — un fichier renommé doit faire rougir la porte, pas
+ * rendre le test creux.
+ */
+function lireOuEchouer(chemin: string): string {
+  const brut = readFileSafely(repoPath(chemin))
+  if (brut.status !== 'ok') {
+    throw new Error(`${chemin} illisible : ${brut.status === 'unreadable' ? brut.error : 'absent'}`)
+  }
+  return brut.value
+}
+
+describe('fluidité des changements de page de la console', () => {
+  it('remet la colonne de contenu en haut à chaque changement de chemin', () => {
+    const shell = lireOuEchouer(SHELL)
+
+    // Le défilement n'appartient PAS à la fenêtre ici : le cadre est en
+    // `overflow: hidden` et la colonne de contenu porte l'ascenseur. Comme elle
+    // appartient à la coquille, elle survit au changement de page — mesuré, on
+    // gardait 400 px d'une page à l'autre.
+    expect(shell, 'la colonne de contenu n’est plus référencée').toMatch(/ref=\{colonne\}/)
+    expect(shell, 'plus de remise à zéro du défilement').toMatch(/colonne\.current\?\.scrollTo/)
+
+    // `useLayoutEffect` et non `useEffect` : sinon le navigateur peint une image
+    // de la nouvelle page à l'ancienne hauteur, et le défaut devient un sursaut.
+    const effet = shell.match(/use(Layout)?Effect\(\(\) => \{\s*colonne\.current[\s\S]*?\}, \[([^\]]*)\]\)/)
+    expect(effet, 'effet de remise à zéro introuvable').not.toBeNull()
+    expect(effet![1], 'la remise à zéro doit être avant peinture (useLayoutEffect)').toBe('Layout')
+
+    // Sur le CHEMIN seul : un filtre ou un onglet s'écrit dans la query, et
+    // renvoyer l'admin en haut de page à chaque case cochée serait un second défaut.
+    expect(effet![2].trim()).toBe('pathname')
+  })
+
+  it('remonte CHAQUE feuille dont l’identité vient de l’URL', () => {
+    const routes = lireOuEchouer('src/components/admin/AdminConsoleRoutes.tsx')
+    const dynamiques = [...routes.matchAll(/<Route\s+path="([^"]*:[^"]*)"\s+element=\{([^}]*)\}/g)]
+
+    expect(dynamiques.length, 'aucune route dynamique trouvée — sélecteur périmé ?').toBeGreaterThan(0)
+
+    for (const [, chemin, element] of dynamiques) {
+      // Sans clé sur <Routes> (et il ne faut pas en remettre), passer d'une fiche
+      // à l'autre garde le MÊME élément monté : l'état local de la précédente —
+      // message de confirmation, modale ouverte — s'affiche sur la suivante.
+      expect(element, `la route « ${chemin} » n’est pas enveloppée de ByParam`).toContain('ByParam')
+    }
+  })
+})
+

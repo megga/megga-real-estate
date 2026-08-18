@@ -7,7 +7,7 @@
  * désactivée (pivot CRM-first) : ses routes redirigent vers la vitrine megga.ch.
  * Route racine « / » → /dashboard.
  */
-import { Fragment, lazy, Suspense } from 'react'
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import ResponsiveRoute from '@/components/crm-mobile/shell/ResponsiveRoute'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -32,6 +32,7 @@ import ErrorBoundary from '@/components/layout/ErrorBoundary'
 import ProtectedRoute from '@/components/layout/ProtectedRoute'
 import { ToastProvider } from '@/components/ui/Toast'
 import AdminConsoleRoute from '@/components/admin/AdminConsoleRoute'
+import ByParam from '@/components/layout/ByParam'
 import ImpersonationHandoff from '@/components/admin/ImpersonationHandoff'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
@@ -305,19 +306,6 @@ const queryClient = new QueryClient({
  * propre `AnimatePresence` et ne dépendent pas de ce niveau.
  */
 
-/**
- * Force le remontage d'une feuille dont l'IDENTITÉ vient de l'URL.
- *
- * Sans clé sur `<Routes>`, passer de `/dashboard/contacts/a` à `.../b` garde le
- * même élément monté : seuls les params changent, et l'état local de la page
- * (brouillons d'édition, page du pager, défilement) survivrait d'une fiche à
- * l'autre. On rétablit ici la sémantique d'avant — mais SEULEMENT sur la
- * feuille, donc sans remonter le shell ni la frontière Suspense.
- */
-function ByParam({ children }: { children: React.ReactNode }) {
-  const params = useParams()
-  return <Fragment key={Object.values(params).join('/')}>{children}</Fragment>
-}
 // Param-preserving redirects — <Navigate> doesn't interpolate :id, so wrap
 // useParams + Navigate when a legacy FR route needs to keep its dynamic segment.
 function VisitModifyRedirect() {
