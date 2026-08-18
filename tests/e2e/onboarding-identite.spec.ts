@@ -457,46 +457,52 @@ async function fillPieceIdentiteStep(page: Page): Promise<void> {
 }
 
 /**
- * Franchit l'étape 3 (rendez-vous d'accueil), ajoutée le 04.08.2026 en avant-dernière
- * position.
+ * Franchit l'étape « Rendez-vous d'accueil ».
  *
- * ⚠ ÉTAPE BLOQUANTE, mais jamais un cul-de-sac : Continuer exige un rendez-vous pris,
- * SAUF quand il n'y a rien à réserver (aucun hôte actif dans le pool, ou aucun créneau
- * libre sur l'horizon), auquel cas l'exigence tombe. Ce helper couvre les DEUX chemins
- * plutôt que de parier sur l'état du banc :
+ * ⛔ ELLE N'A PLUS DE BOUTON « CONTINUER » depuis le 18.08.2026 : le récapitulatif
+ * retiré, elle est devenue la DERNIÈRE étape et son pied affiche « Soumettre le
+ * dossier ». Ce helper attendait `Continuer` et expirait donc au bout de 15 s sur les
+ * trois parcours de ce fichier — signature trompeuse, l'erreur pointait la lecture des
+ * créneaux alors que le bouton attendu n'existait simplement plus. Il ne franchit donc
+ * plus rien : il PRÉPARE l'étape, et c'est `submitDerniereEtape` qui la clôt.
+ *
+ * ⚠ ÉTAPE BLOQUANTE, mais jamais un cul-de-sac : la soumission exige un rendez-vous
+ * pris, SAUF quand il n'y a rien à réserver (aucun hôte actif, ou aucun créneau libre
+ * sur l'horizon), auquel cas l'exigence tombe — `isRendezVousStepComplete` la reporte
+ * dans `canSubmitIdentity`. Ce helper couvre les DEUX chemins plutôt que de parier sur
+ * l'état du banc :
  *
  *   - pool vide (l'état attendu ici : `onboarding_hosts` n'est semée par aucune fixture
- *     de ce fichier) -> l'écran l'annonce et Continuer s'active seul ;
+ *     de ce fichier) -> l'écran l'annonce, et il n'y a rien à retenir ;
  *   - un créneau existe -> on le prend pour de vrai, ce qui éprouve le chemin nominal.
  *
  * Sans le second cas, semer un hôte un jour ferait tomber tous les parcours de ce
- * fichier sur un bouton désactivé, sans que le message ne dise pourquoi.
+ * fichier sur une soumission refusée, sans que le message ne dise pourquoi.
  */
 async function passRendezVousStep(page: Page): Promise<void> {
-  const continuer = page.getByRole('button', { name: 'Continuer' })
   const premierCreneau = page.locator('.mx-slotpicker__slot').first()
+  // Les deux formulations de « rien à réserver » (pool vide / plus aucun créneau) : le
+  // helper ne doit pas dépendre de LAQUELLE des deux le banc produit.
+  const rienAReserver = page.getByText(/Aucun créneau n'est ouvert|Plus aucun créneau libre/)
 
-  // La liste des créneaux arrive de l'edge function : on attend que l'écran ait TRANCHÉ,
-  // dans un sens ou dans l'autre.
-  //
-  // ⚠ Surtout pas `expect(premierCreneau.or(continuer)).toBeVisible()` : quand des
-  // créneaux existent, Continuer est visible LUI AUSSI (désactivé, mais rendu), donc le
-  // locator résout deux éléments et le mode strict fait échouer l'attente — précisément
-  // sur le chemin nominal qu'on cherche à couvrir. Une condition qui se retente dit la
-  // même chose sans dépendre du nombre d'éléments rendus.
+  // La liste arrive de l'edge function : on attend que l'écran ait TRANCHÉ, dans un sens
+  // ou dans l'autre. Une condition qui se retente plutôt qu'un `.or()` : le mode strict
+  // de Playwright échoue dès que le locator résout deux éléments.
   await expect(async () => {
     const aDesCreneaux = await premierCreneau.isVisible()
-    const franchissable = await continuer.isEnabled()
-    expect(aDesCreneaux || franchissable).toBe(true)
+    const vide = await rienAReserver.isVisible()
+    expect(aDesCreneaux || vide).toBe(true)
   }).toPass({ timeout: 15_000 })
 
   if (await premierCreneau.isVisible()) {
     await premierCreneau.click()
-    await page.getByRole('button', { name: 'Confirmer le rendez-vous' }).click()
+    await page.getByRole('button', { name: 'Suivant' }).click()
+    // ⚠ LE FORMULAIRE EXIGE QUATRE CHAMPS, et depuis le 18.08.2026 il le DIT au lieu de
+    // griser le bouton en silence. Prénom, nom et e-mail arrivent préremplis du compte ;
+    // le téléphone, jamais — c'est précisément l'oubli qui a bloqué un dirigeant.
+    await page.getByRole('textbox', { name: /WhatsApp|téléphone/i }).fill('791234567')
+    await page.getByRole('button', { name: 'Retenir ce créneau' }).click()
   }
-
-  await expect(continuer).toBeEnabled({ timeout: 15_000 })
-  await continuer.click()
 }
 
 /**
@@ -540,7 +546,7 @@ async function submitDerniereEtape(page: Page): Promise<void> {
 const APRES_SOUMISSION = /\/dashboard$/
 
 test.describe('Onboarding KYB — gate et wizard identité', () => {
-  test('parcours complet : connexion, gate, cinq étapes, soumission, dashboard, déconnexion, reconnexion sans reboucle', async ({ page }) => {
+  test('parcours complet : connexion, gate, quatre étapes, soumission, dashboard, déconnexion, reconnexion sans reboucle', async ({ page }) => {
     const founder = await createFounder()
     try {
       // 1. Connexion d'un dirigeant dont l'agence n'a pas soumis son identité —
@@ -745,7 +751,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
    * éprouver : ce chemin n'a plus rien de particulier, et c'est précisément ce que
    * ce test affirme désormais — cinq étapes, comme une société.
    */
-  test('raison individuelle (forme du client de référence) : même parcours à cinq étapes, soumission aboutie', async ({ page }) => {
+  test('raison individuelle (forme du client de référence) : même parcours à quatre étapes, soumission aboutie', async ({ page }) => {
     const founder = await createFounder()
     try {
       await signInLive(page, founder.email, PW, { firstEver: true })
