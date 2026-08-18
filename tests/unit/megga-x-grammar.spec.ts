@@ -926,7 +926,10 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm-dossiers/visite-detail', { hors: 23, total: 30 }],
   ['src/components/crm-dossiers/vitrine', { hors: 4, total: 4 }],
   ['src/components/crm-wizard', { hors: 64, total: 100 }],
-  ['src/components/crm/analytics', { hors: 13, total: 29 }],
+  // 13/29 → 12/28 (19.08.2026) : le sur-titre « Première connexion » a été retiré
+  // de la porte, et son `marginTop: 34` avec lui. Le titre a repris cet écart —
+  // un littéral déplacé, pas deux. Le cliquet redescend, il ne se justifie pas.
+  ['src/components/crm/analytics', { hors: 12, total: 28 }],
   ['src/components/crm/biens', { hors: 43, total: 51 }],
   ['src/components/crm/calendar', { hors: 18, total: 28 }],
   ['src/components/crm/contacts-pager', { hors: 68, total: 92 }],

@@ -59,8 +59,11 @@ export default function AxGate({ dark, saving, onDone }: { dark: boolean; saving
       <img className="ax-gate-icon ax-gate-in1" src="/iconly-glass/Activity.svg" alt=""
         style={{ width: 170, filter: `drop-shadow(0 24px 48px ${dark ? 'rgba(0,0,0,0.55)' : `${crmVoileEncre(false, 0.28)}`})` }} />
 
-      <div className="ax-gate-in2" style={{ marginTop: 34, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted }}>{tr('analytics.gate.eyebrow')}</div>
-      <h1 className="ax-gate-in2" style={{ margin: '14px 0 0', fontSize: 44, fontWeight: 600, letterSpacing: -1.6, lineHeight: 1.06, color: A.ink, textAlign: 'center' }}>{tr('analytics.gate.title')}</h1>
+      {/* ⚠ Le sur-titre « Première connexion » est RETIRÉ (19 août 2026, décision
+          Julien). Le titre reprend son écart à l'icône — 34 px, la valeur que le
+          sur-titre portait — plutôt qu'un nouveau : l'axe vertical du monument
+          ne bouge pas, seule la ligne disparaît. */}
+      <h1 className="ax-gate-in2" style={{ margin: '34px 0 0', fontSize: 44, fontWeight: 600, letterSpacing: -1.6, lineHeight: 1.06, color: A.ink, textAlign: 'center' }}>{tr('analytics.gate.title')}</h1>
 
       <div className="ax-gate-in3" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)', marginTop: 36, width: 340 }}>
         <div className="ax-gate-input" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: A.card, border: `1px solid ${A.border}`, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-xs) var(--crm-space-xs) var(--crm-space-xs) var(--crm-space-4xl)', boxShadow: A.shadow }}>
