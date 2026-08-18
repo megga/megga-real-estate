@@ -143,6 +143,34 @@ describe('horloge partagée de l’écran d’arrivée', () => {
     expect(tete.indexOf('megga-booting')).toBeLessThan(tete.indexOf('megga-boot-glow.png'))
   })
 
+  it('cale le fondu du halo sur son CHARGEMENT, pas sur l’horloge', () => {
+    const html = readFileSync(INDEX, 'utf8')
+    const halo = feuilleDeLEcran()
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .match(/\.megga-boot__glow\s*\{([^}]*)\}/)
+    if (!halo) throw new Error(`.megga-boot__glow introuvable dans ${INDEX}`)
+
+    // Le halo est le SEUL fondu à ne pas partir de l'horloge du document : ses
+    // 294 Ko peuvent arriver après 0,85 s, où le fondu chorégraphié est fini
+    // depuis longtemps — l'image se posait alors d'un coup, à pleine opacité.
+    expect(halo[1], 'le fondu du halo est reparti sur une horloge fixe')
+      .toMatch(/animation-delay:\s*calc\(\s*var\(--megga-halo-t0/)
+
+    // Le repli n'est pas décoratif : tant que les pixels n'existent pas, il doit
+    // être ÉNORME pour que `fill: both` tienne l'état de départ, donc l'invisible.
+    const repli = halo[1].match(/var\(--megga-halo-t0,\s*(\d+)ms\)/)
+    expect(repli, 'le repli du retard a disparu — le halo surgirait avant son image').not.toBeNull()
+    expect(Number(repli![1])).toBeGreaterThan(60_000)
+
+    // Et quelqu'un doit publier cet instant au chargement de l'image.
+    const tete = html.slice(0, html.indexOf('</head>'))
+    expect(tete).toMatch(/onload/)
+    expect(tete).toMatch(/--megga-halo-t0/)
+    // Plancher : image en cache, la charge est quasi immédiate, et sans lui le
+    // halo devancerait le logo au lieu de s'installer derrière lui.
+    expect(tete).toMatch(/Math\.max\(150,/)
+  })
+
   it('fait lire l’horloge au jumeau React', () => {
     const source = readFileSync(SPLASH, 'utf8')
     expect(source).toContain('__MEGGA_BOOT_T0')
