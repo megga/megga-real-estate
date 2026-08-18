@@ -185,6 +185,47 @@ export function buildStripeIdentityRecord(
 }
 
 /**
+ * Cette vérification RÉSOUT-elle le check `id_document`, ou faut-il un œil humain ?
+ *
+ * ── Ce qu'elle remplace ─────────────────────────────────────────────────────────────
+ *
+ * `submit_agency_identity()` pose `id_document / pending_manual_review`, et le moteur
+ * refuse d'auto-valider tant qu'un check est en attente. Mesuré le 18.08.2026 : les DEUX
+ * seules agences ayant soumis portaient un score de 1.000 — le maximum — et restaient en
+ * `manual_review` depuis 16 jours. `auto_validated` était structurellement inatteignable,
+ * et le déblocage tenait à un clic que personne ne faisait.
+ *
+ * Ce qu'on demandait à ce relecteur, c'était de RE-REGARDER une pièce que le prestataire
+ * avait déjà authentifiée, avec détection du vivant et selfie comparé à la photo. Une
+ * tâche qui n'apprend rien ne se fait pas.
+ *
+ * ── ⚠ `match` STRICT, jamais `partial` ─────────────────────────────────────────────
+ *
+ * `partial` veut dire qu'un champ est approximatif ou illisible — prénom composé
+ * partiellement déclaré, date de naissance absente de la déclaration. C'est exactement le
+ * cas où un œil humain apprend quelque chose, et le relâcher ici viderait la revue de son
+ * seul contenu utile. `unreadable` et `mismatch` non plus, pour la même raison inverse.
+ *
+ * ⚠ LE STATUT NE SUFFIT PAS. `verified` dit « le document est authentique et le visage
+ * correspond » — il ne dit rien de la concordance avec l'identité DÉCLARÉE à l'étape 1.
+ * C'est précisément l'écart qui a produit un dossier « vérifié » au nom d'un autre
+ * (changement de nom légal, 17.08.2026). Les deux conditions sont donc exigées.
+ *
+ * ── ⛔ CE QUE CETTE FONCTION N'OUVRE PAS ────────────────────────────────────────────
+ *
+ * Elle retire UNE condition sur cinq. Les VÉTOS restent entiers et gardent la porte :
+ * `v_veto_failed` exige `match` EXACT sur chacun des quatre vétos d'entité (existence au
+ * registre, raison sociale, pays, format du numéro) — `partial` ne suffit pas. S'y
+ * ajoutent le score minimum (0.85), l'exigence d'un signataire actif, et les vétos de
+ * PERSONNE dont le screening PEP/sanctions. Éprouvé en transaction annulée sur la
+ * production : un dossier dont la raison sociale ne colle pas au registre reste en
+ * `manual_review` même avec ce `match` posé.
+ */
+export function resolvesIdDocumentCheck(record: Pick<StripeIdentityRecord, 'status' | 'verdict'>): boolean {
+  return record.status === 'verified' && record.verdict === 'match'
+}
+
+/**
  * Les codes `last_error.code` que l'écran sait expliquer, et pour lesquels il existe une
  * phrase traduite. Tout autre code retombe sur un message générique plutôt que d'être
  * affiché brut : `selfie_document_missing_photo` n'a aucun sens pour un dirigeant.
