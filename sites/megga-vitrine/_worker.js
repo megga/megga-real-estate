@@ -267,6 +267,7 @@ const SLUGS_PAR_LANGUE = {
     '/integration-intercom': '/integrazione-intercom',
     '/integration-microsoft-outlook': '/integrazione-microsoft-outlook',
     '/integration-skribble': '/integrazione-skribble',
+    '/integration-stripe': '/integrazione-stripe',
     '/integration-whatsapp': '/integrazione-whatsapp',
   },
 };

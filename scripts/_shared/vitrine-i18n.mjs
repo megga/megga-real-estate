@@ -50,6 +50,7 @@ export const PAGES = {
     it: 'integrazione-microsoft-outlook',
   },
   'integration-skribble.html': { de: 'integration-skribble', en: 'integration-skribble', it: 'integrazione-skribble' },
+  'integration-stripe.html': { de: 'integration-stripe', en: 'integration-stripe', it: 'integrazione-stripe' },
   'integration-whatsapp.html': { de: 'integration-whatsapp', en: 'integration-whatsapp', it: 'integrazione-whatsapp' },
   'integrations.html': { de: 'integrationen', en: 'integrations', it: 'integrazioni' },
   'login.html': { de: 'anmelden', en: 'login', it: 'accedi' },
