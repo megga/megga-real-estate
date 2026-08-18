@@ -89,6 +89,59 @@
         var p = location.pathname;
         if (p === '/' || p === '/auth/callback' || p.indexOf('/dashboard') === 0) {
           document.documentElement.classList.add('megga-booting');
+          // Origine de l'HORLOGE PARTAGÉE de l'écran d'arrivée. Le même écran est
+          // monté jusqu'à QUATRE fois de suite sur le trajet d'arrivée — jumeau
+          // HTML, AuthCallbackPage, le gate `loading` de ProtectedRoute, puis
+          // BootCurtain — et un élément neuf redémarre TOUJOURS ses animations
+          // CSS à zéro. Sans cette origine, chaque relais refaisait apparaître le
+          // logo, remettait la barre à gauche et réarmait le retard de la mention.
+          // Les jumeaux React s'en servent pour poser un `animation-delay` NÉGATIF
+          // et reprendre l'animation où le précédent l'avait laissée.
+          // Estampillé ici et pas via `performance.now()` seul : l'origine de
+          // celui-ci est le début de la navigation, donc le TÉLÉCHARGEMENT du
+          // document en fait partie — sur un lien lent, les jumeaux seraient en
+          // avance d'une demi-seconde sur le premier.
+          window.__MEGGA_BOOT_T0 = performance.now();
+          // Le halo est demandé ICI, pas quand le style l'atteint : c'est une
+          // image de FOND, donc le navigateur ne la découvre qu'une fois
+          // `.megga-boot__glow` construit et mis en page, après l'analyse du
+          // corps. Le préchargement avance ce départ à l'analyse de l'en-tête.
+          //
+          // ⚠ Conditionnel, et c'est pour ça qu'il est en script plutôt qu'en
+          // balise : hors du trajet d'arrivée l'écran n'existe pas, et une
+          // balise statique ferait télécharger 294 Ko pour rien sur toutes les
+          // pages publiques — en signalant au passage un « preloaded but not
+          // used » dans la console, que 35 tests E2E exigent vierge.
+          var halo = document.createElement('link');
+          halo.rel = 'preload';
+          halo.as = 'image';
+          halo.href = '/megga-boot-glow.png';
+          document.head.appendChild(halo);
+
+          // …et son fondu part de SON CHARGEMENT, pas d'une horloge.
+          //
+          // Précharger avance le départ de la requête, jamais la fin du
+          // transfert : 294 Ko peuvent arriver après 0,85 s, et le fondu censé
+          // masquer leur arrivée est alors terminé depuis longtemps — l'image se
+          // posait d'un coup, à pleine opacité. On publie donc l'instant où les
+          // pixels existent, et la feuille cale le fondu dessus.
+          //
+          // `max(150, …)` : jamais AVANT le temps chorégraphié du halo. Image en
+          // cache, la charge est quasi immédiate, et sans ce plancher le halo
+          // devancerait le logo au lieu de s'installer derrière lui.
+          //
+          // Tant que rien n'est publié, la feuille lit son repli — un retard
+          // énorme, donc un halo invisible. C'est aussi le bon comportement si
+          // l'image n'arrive jamais : pas de halo plutôt qu'un aplat surgi.
+          var pixels = new Image();
+          pixels.onload = function () {
+            var t = Math.max(150, Math.round(performance.now() - window.__MEGGA_BOOT_T0));
+            document.documentElement.style.setProperty('--megga-halo-t0', t + 'ms');
+          };
+          // Même URL que le préchargement : une seule requête réseau, et cet
+          // objet-ci sert uniquement de signal (`load` arrive après le décodage,
+          // donc au moment où l'image est réellement peignable).
+          pixels.src = '/megga-boot-glow.png';
         }
       })();
     </script>
@@ -143,8 +196,29 @@
         background-repeat: no-repeat;
         background-size: cover;
         /* Un peu plus lente et décalée que le logo : le halo s'installe derrière
-           lui, et le fondu masque l'arrivée tardive de l'image. */
-        animation: megga-boot-in 0.7s ease 0.15s both;
+           lui.
+
+           ⚠ Ce fondu est le SEUL à ne pas partir de l'horloge du document : il
+           part du CHARGEMENT de l'image, publié en `--megga-halo-t0` par le
+           script du <head>. Une horloge fixe promettait de « masquer l'arrivée
+           tardive de l'image » et ne le pouvait pas : elle est finie à 0,85 s
+           (0,15 + 0,7), donc les 294 Ko arrivés après se posaient d'un coup, à
+           pleine opacité. Précharger avance le départ de la requête, jamais la
+           fin du transfert.
+
+           Le repli de 999999ms n'est pas un garde-fou décoratif : tant que les
+           pixels n'existent pas, le retard est immense, `both` tient donc l'état
+           de départ, et le halo reste invisible. Il ne se montre qu'une fois
+           peignable, où qu'en soit le reste de l'écran.
+
+           `--megga-boot-t` reste soustrait pour la même raison qu'ailleurs : un
+           relais monté plus tard reprend le fondu en cours au lieu de le rejouer.
+
+           ⚠ Volontairement ABSENT du bloc `prefers-reduced-motion` : y couper
+           l'animation ferait réapparaître exactement le à-coup qu'elle existe
+           pour supprimer. */
+        animation: megga-boot-in 0.7s ease both;
+        animation-delay: calc(var(--megga-halo-t0, 999999ms) - var(--megga-boot-t, 0s));
       }
       /* Le halo est positionné, donc il peindrait PAR-DESSUS le contenu en flux
          sur un écran court. On repasse le contenu au-dessus. */
@@ -158,6 +232,7 @@
         height: auto;
         fill: currentColor;
         animation: megga-boot-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        animation-delay: calc(0s - var(--megga-boot-t, 0s));
       }
 
       .megga-boot__bar {
@@ -177,6 +252,10 @@
         border-radius: 2px;
         background: #424bfb; /* vitrine --primary-colors--100 */
         animation: megga-boot-run 1.15s ease-in-out infinite;
+        /* Retard négatif = décalage de PHASE : la barre du relais reprend la
+           course là où celle du jumeau précédent en était, au lieu de resauter à
+           gauche. C'est ce saut que l'agent voyait deux ou trois fois. */
+        animation-delay: calc(0s - var(--megga-boot-t, 0s));
       }
 
       .megga-boot__hint {
@@ -185,9 +264,17 @@
         font-weight: 500;
         letter-spacing: 0.01em;
         color: #686868; /* vitrine --neutral-colors--500 */
-        /* Retardée : une connexion rapide passe sans texte clignotant, une lente
-           dit à l'agent ce qui se passe. */
-        animation: megga-boot-in 0.4s ease 0.9s both;
+        /* Décalée derrière le logo — c'est le dernier temps de l'entrée.
+           Le retard valait 0,9 s, du temps où l'écran pouvait passer en un
+           éclair et où l'on voulait épargner un texte clignotant aux connexions
+           rapides. Ce cas n'existe plus : `MIN_VISIBLE_MS` (BootCurtain) tient
+           l'écran au moins 1,6 s, donc la mention s'affiche TOUJOURS. Elle n'avait
+           plus que 0,7 s à l'écran — et zéro dès qu'un relais réarmait son retard,
+           ce qui est exactement « je ne vois pas la barre entièrement ». À 0,55 s
+           elle reste lisible une seconde pleine, plancher garanti.
+           ⚠ Doit rester sous MIN_VISIBLE_MS, cf. tests/unit/boot-curtain-timings. */
+        animation: megga-boot-in 0.4s ease both;
+        animation-delay: calc(0.55s - var(--megga-boot-t, 0s));
       }
 
       @keyframes megga-boot-in {

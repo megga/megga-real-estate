@@ -24,6 +24,27 @@ import { readFileSync } from 'node:fs'
 
 const CURTAIN = 'src/components/layout/BootCurtain.tsx'
 const INDEX = 'index.html'
+const SPLASH = 'src/components/layout/BootSplash.tsx'
+
+/** Le bloc `<style id="megga-boot-style">` d'index.html, hors mouvement réduit. */
+function feuilleDeLEcran(): string {
+  const html = readFileSync(INDEX, 'utf8')
+  const bloc = html.match(/<style id="megga-boot-style">([\s\S]*?)<\/style>/)
+  if (!bloc) throw new Error(`bloc de style de l’écran d’arrivée introuvable dans ${INDEX}`)
+  // La requête `prefers-reduced-motion` coupe toutes les animations : elle n’a
+  // pas de retard à décaler, et l’y exiger ferait rougir un test pour rien.
+  return bloc[1].replace(/@media \(prefers-reduced-motion[\s\S]*$/, '')
+}
+
+/** Règles CSS (`sélecteur { corps }`) d’un fragment de feuille, commentaires ôtés. */
+function regles(css: string): { selecteur: string, corps: string }[] {
+  const propre = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  const out: { selecteur: string, corps: string }[] = []
+  const re = /([^{}]+)\{([^{}]*)\}/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(propre)) !== null) out.push({ selecteur: m[1].trim(), corps: m[2] })
+  return out
+}
 
 /** Valeur d'une constante `const NOM = <nombre>` du composant. */
 function constant(name: string): number {
@@ -56,5 +77,120 @@ describe('durées de l’écran d’arrivée', () => {
     if (!match) throw new Error(`transition d’opacité introuvable dans ${INDEX}`)
 
     expect(Math.round(Number(match[1]) * 1000)).toBe(constant('FADE_MS'))
+  })
+})
+
+/**
+ * L'HORLOGE PARTAGÉE de l'écran d'arrivée.
+ *
+ * Sur le trajet d'arrivée, le MÊME écran est monté jusqu'à quatre fois de suite —
+ * jumeau HTML d'index.html, `AuthCallbackPage`, le gate `loading` de
+ * `ProtectedRoute`, puis `BootCurtain`. Un élément neuf redémarre toujours ses
+ * animations CSS à zéro : sans horloge commune, chaque relais refait apparaître le
+ * logo, remet la barre à gauche et réarme le retard de la mention — au point que
+ * « Ouverture de votre espace » pouvait ne jamais s'afficher avant que le rideau
+ * ne se lève.
+ *
+ * Le mécanisme tient à trois pièces dans trois fichiers, et aucune ne casse quoi
+ * que ce soit en disparaissant : l'app compile, les tests passent, l'écran
+ * s'affiche. Seul le raccord redevient un saut, ce qui ne se voit qu'à l'œil, une
+ * fois, à la connexion.
+ */
+describe('horloge partagée de l’écran d’arrivée', () => {
+  it('retranche l’horloge du retard de CHAQUE animation', () => {
+    const animees = regles(feuilleDeLEcran())
+      .filter((r) => /animation:\s*megga-boot-/.test(r.corps))
+
+    // Quatre temps : halo, logo, barre, mention. Si ce compte change, le test
+    // doit être relu — pas contourné.
+    expect(animees.length).toBeGreaterThanOrEqual(4)
+
+    for (const { selecteur, corps } of animees) {
+      expect(corps, `${selecteur} : animation sans horloge partagée`)
+        .toMatch(/animation-delay:\s*calc\([^;]*var\(--megga-boot-t/)
+      // Un retard laissé DANS le raccourci `animation` écraserait le
+      // `animation-delay` qui suit… ou serait écrasé par lui, selon l'ordre.
+      // Les deux sont des pièges silencieux : le raccourci n'en porte aucun.
+      expect(corps.match(/animation:\s*megga-boot-[^;]*/)?.[0], `${selecteur} : retard resté dans le raccourci`)
+        .not.toMatch(/\d(\.\d+)?s\s+[\d.]+s/)
+    }
+  })
+
+  it('estampille l’origine de l’horloge avant que le corps ne se peigne', () => {
+    const html = readFileSync(INDEX, 'utf8')
+    const tete = html.slice(0, html.indexOf('</head>'))
+    // Dans le <head>, avec la classe qui borne l'écran au trajet d'arrivée :
+    // une origine posée plus tard daterait d'après la première frame.
+    expect(tete).toContain('__MEGGA_BOOT_T0')
+    expect(tete.indexOf('megga-booting')).toBeLessThan(tete.indexOf('__MEGGA_BOOT_T0'))
+  })
+
+  it('précharge le halo sur le trajet d’arrivée, et là seulement', () => {
+    const html = readFileSync(INDEX, 'utf8')
+    const tete = html.slice(0, html.indexOf('</head>'))
+
+    // Image de FOND : sans préchargement, sa requête ne part qu'une fois
+    // `.megga-boot__glow` mis en page, donc après l'analyse du corps.
+    expect(tete, 'le halo n’est plus préchargé').toMatch(/rel\s*=\s*'preload'/)
+    expect(tete).toMatch(/megga-boot-glow\.png/)
+
+    // ⚠ Conditionnel : une balise <link rel=preload> STATIQUE téléchargerait
+    // 294 Ko sur chaque page publique, où cet écran n'existe pas, et signalerait
+    // un « preloaded but not used » dans une console que 35 tests E2E veulent vierge.
+    expect(html, 'préchargement statique : il partirait sur toutes les pages')
+      .not.toMatch(/<link[^>]*rel="preload"[^>]*megga-boot-glow/)
+    // Dans le même bloc que le gate, donc sous la même condition de chemin.
+    expect(tete.indexOf('megga-booting')).toBeLessThan(tete.indexOf('megga-boot-glow.png'))
+  })
+
+  it('cale le fondu du halo sur son CHARGEMENT, pas sur l’horloge', () => {
+    const html = readFileSync(INDEX, 'utf8')
+    const halo = feuilleDeLEcran()
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .match(/\.megga-boot__glow\s*\{([^}]*)\}/)
+    if (!halo) throw new Error(`.megga-boot__glow introuvable dans ${INDEX}`)
+
+    // Le halo est le SEUL fondu à ne pas partir de l'horloge du document : ses
+    // 294 Ko peuvent arriver après 0,85 s, où le fondu chorégraphié est fini
+    // depuis longtemps — l'image se posait alors d'un coup, à pleine opacité.
+    expect(halo[1], 'le fondu du halo est reparti sur une horloge fixe')
+      .toMatch(/animation-delay:\s*calc\(\s*var\(--megga-halo-t0/)
+
+    // Le repli n'est pas décoratif : tant que les pixels n'existent pas, il doit
+    // être ÉNORME pour que `fill: both` tienne l'état de départ, donc l'invisible.
+    const repli = halo[1].match(/var\(--megga-halo-t0,\s*(\d+)ms\)/)
+    expect(repli, 'le repli du retard a disparu — le halo surgirait avant son image').not.toBeNull()
+    expect(Number(repli![1])).toBeGreaterThan(60_000)
+
+    // Et quelqu'un doit publier cet instant au chargement de l'image.
+    const tete = html.slice(0, html.indexOf('</head>'))
+    expect(tete).toMatch(/onload/)
+    expect(tete).toMatch(/--megga-halo-t0/)
+    // Plancher : image en cache, la charge est quasi immédiate, et sans lui le
+    // halo devancerait le logo au lieu de s'installer derrière lui.
+    expect(tete).toMatch(/Math\.max\(150,/)
+  })
+
+  it('fait lire l’horloge au jumeau React', () => {
+    const source = readFileSync(SPLASH, 'utf8')
+    expect(source).toContain('__MEGGA_BOOT_T0')
+    expect(source).toMatch(/'--megga-boot-t'/)
+    // Gelée au montage : recalculée à chaque rendu, elle ferait repartir les
+    // animations quand `BootCurtain` passe `is-done` — le saut, à la dernière image.
+    expect(source).toMatch(/useState\(ecouleDepuisLaPremiereFrame\)/)
+  })
+
+  it('laisse la mention s’afficher avant que le rideau ne se lève', () => {
+    const mention = feuilleDeLEcran()
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .match(/\.megga-boot__hint\s*\{[^}]*animation-delay:\s*calc\(([\d.]+)s/)
+    if (!mention) throw new Error(`retard de .megga-boot__hint introuvable dans ${INDEX}`)
+
+    const retardMs = Number(mention[1]) * 1000
+    // Le plancher tient l'écran au moins MIN_VISIBLE_MS ; la mention doit
+    // apparaître AVANT, et rester assez longtemps pour être lue. 400 ms est la
+    // durée de son propre fondu : moins que ça, elle n'a pas fini d'arriver
+    // qu'elle repart déjà.
+    expect(retardMs + 400).toBeLessThan(constant('MIN_VISIBLE_MS'))
   })
 })

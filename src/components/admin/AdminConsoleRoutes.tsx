@@ -13,6 +13,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import AdminShell from '@/components/admin/AdminShell'
+import ByParam from '@/components/layout/ByParam'
 
 const AdminDashboardPage = lazy(() => import('@/pages/admin/AdminDashboardPage'))
 const AdminAgenciesPage = lazy(() => import('@/pages/admin/AdminAgenciesPage'))
@@ -50,7 +51,11 @@ export default function AdminConsoleRoutes() {
           <Route element={<AdminShell />}>
             <Route index element={<AdminDashboardPage />} />
             <Route path="agencies" element={<AdminAgenciesPage />} />
-            <Route path="agencies/:id" element={<AdminAgencyDetailPage />} />
+            {/* `ByParam` comme les 9 feuilles `:id` du CRM : sans lui, passer
+                d'une agence à l'autre gardait le MÊME élément monté, donc le
+                message de confirmation de la précédente (« Agence suspendue »)
+                restait affiché sur la suivante. */}
+            <Route path="agencies/:id" element={<ByParam><AdminAgencyDetailPage /></ByParam>} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="end-users" element={<AdminEndUsersPage />} />
             <Route path="monitoring" element={<AdminMonitoringPage />} />
