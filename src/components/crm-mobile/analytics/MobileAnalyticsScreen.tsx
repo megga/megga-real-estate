@@ -36,7 +36,12 @@ const DEMO_AX: AxPeriodData = {
   ],
   kpis: [
     { label: 'Volume signé', value: 'CHF 21.4M', delta: 12, spark: [3, 4, 3, 5, 6, 7, 8] },
-    { label: 'Transactions', value: '14', delta: 3, spark: [], abs: true },
+    // ⚠ PAS de `abs` : `delta_deals` est une VARIATION EN %
+    // (`ROUND((deals − prev) * 100 / prev)` côté SQL), pas un écart de deals.
+    // La démo portait `abs: true`, qui masque le suffixe — « +3 » à côté de
+    // 14 transactions se lisait « trois deals de plus ». Elle enseignait donc la
+    // mauvaise lecture, à l'écran même qui sert à relire cet écran.
+    { label: 'Transactions', value: '14', delta: 3, spark: [] },
     { label: 'Commission moy.', value: 'CHF 76k', delta: -4, spark: [] },
     { label: 'Taux de conversion', value: '28 %', delta: 5, spark: [], pts: true },
   ],
