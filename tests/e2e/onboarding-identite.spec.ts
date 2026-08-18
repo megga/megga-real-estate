@@ -379,7 +379,8 @@ async function fillSignataireStep(page: Page, s: SignataireFixture): Promise<voi
  * `legalFormLabel` est le libellé AFFICHÉ dans le menu déroulant, pas un code : c'est le
  * SEUL champ qui distingue le parcours société anonyme du parcours raison individuelle.
  * Il ne commande plus aucune bifurcation depuis le retrait de l'étape « bénéficiaires
- * effectifs » (03.08.2026) — les deux formes suivent désormais les mêmes cinq étapes.
+ * effectifs » (03.08.2026) — les deux formes suivent désormais les mêmes QUATRE étapes
+ * (le récapitulatif a été retiré le 18.08.2026).
  */
 interface AgenceFixture {
   legalFormLabel: string
@@ -562,7 +563,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // la première saisie, cf. expectWizardShellMounted ci-dessus.
       await expectWizardShellMounted(page)
 
-      // 3. Saisie des cinq étapes.
+      // 3. Saisie des quatre étapes.
 
       // Étape 0 — signataire.
       await fillSignataireStep(page, {
@@ -749,7 +750,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
    * la comptait pas, la section absente du récapitulatif. L'étape ayant été retirée
    * du parcours pour TOUT LE MONDE (décision client), il n'y a plus de saut à
    * éprouver : ce chemin n'a plus rien de particulier, et c'est précisément ce que
-   * ce test affirme désormais — cinq étapes, comme une société.
+   * ce test affirme désormais — quatre étapes, comme une société.
    */
   test('raison individuelle (forme du client de référence) : même parcours à quatre étapes, soumission aboutie', async ({ page }) => {
     const founder = await createFounder()
