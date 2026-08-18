@@ -32,7 +32,6 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { summarizeKybEvidence, isBlockingCheck } from '@/lib/kybCheckEvidence'
-import { useVerticalPager } from '@/hooks/useVerticalPager'
 import type { TFunction } from 'i18next'
 import {
   AlertTriangle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleSlash, Clock,
@@ -506,12 +505,13 @@ function ReasonCard({ code }: { code: ReviewReasonCode }) {
   const Icon = meta.icon
   const key = code.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
   return (
-    <div className="flex items-start gap-3 rounded-lg p-3" style={{ border: `1px solid ${sp.cardBorder}` }}>
-      <Icon className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: toneInk(meta.tone, sp, tones) }} />
-      <div className="min-w-0">
-        <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: toneInk(meta.tone, sp, tones) }}>{t(`kybReview.reason.${key}.title`)}</p>
-        <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t(`kybReview.reason.${key}.description`)}</p>
-      </div>
+    // ⛔ UNE SEULE LIGNE, et la description est PARTIE. « Aucun signataire actif » était
+    // suivi de « Aucune personne habilitée à engager l'agence n'a été identifiée. » — la
+    // même phrase en plus long, sous un titre qui se suffisait. Répétée par motif, elle
+    // faisait de la page une suite de paragraphes là où le relecteur veut une liste.
+    <div className="flex items-center gap-2" style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: toneInk(meta.tone, sp, tones) }}>
+      <Icon className="h-4 w-4 flex-shrink-0" />
+      <span className="min-w-0">{t(`kybReview.reason.${key}.title`)}</span>
     </div>
   )
 }
@@ -1194,15 +1194,6 @@ function KybReviewPager({ row, onClose }: { row: KybReviewQueueRow; onClose: () 
     [checks.data],
   )
 
-  // ⛔ GELÉ pendant une modale : sans ce gel, une molette dans la boîte « motif du rejet »
-  // ferait tourner la page DERRIÈRE elle, et le relecteur perdrait le contexte de la
-  // décision qu'il est en train d'écrire.
-  // ⚠ DÉSTRUCTURÉ, jamais gardé en objet : `react-hooks/refs` traite tout accès
-  // `objet.maRef` pendant le rendu comme une lecture de ref et refuse le fichier. Les
-  // sortir ici les rend à leur nature de refs ordinaires.
-  const { page: pagerPage, goTo: pagerGoTo, viewportRef: pagerViewport, trackRef: pagerTrack } =
-    useVerticalPager({ pageCount: 2, frozen: rejectOpen || correctionOpen })
-  const pageLabels = [t('kybReview.pager.decide'), t('kybReview.pager.everything')]
 
   return (
     <div className="flex flex-col h-full min-h-0">
@@ -1237,7 +1228,6 @@ function KybReviewPager({ row, onClose }: { row: KybReviewQueueRow; onClose: () 
             </span>
           </p>
         </div>
-        <PagerDots page={pagerPage} onGo={pagerGoTo} labels={pageLabels} sp={sp} />
       </header>
 
       {isLoading ? (
@@ -1245,64 +1235,67 @@ function KybReviewPager({ row, onClose }: { row: KybReviewQueueRow; onClose: () 
       ) : isError ? (
         <p className="py-4" style={{ fontSize: 'var(--crm-text-lg)', color: tones.err }}>{t('kybReview.detail.error')}</p>
       ) : (
-        <div ref={pagerViewport} className="relative flex-1 min-h-0 overflow-hidden">
-          <div ref={pagerTrack} style={{ height: '200%' }}>
+        /* ⛔ PLUS DE PAGER, ET C'EST UNE CORRECTION, pas un renoncement. Deux pages
+            imposent à chacune la hauteur de l'écran : un dossier dont les motifs tiennent
+            en deux lignes laissait alors un vide de 600 px avant le pied d'actions.
+            Constaté au banc sur « Ticino Case Sagl ». Le pager convient à des pages
+            TOUJOURS pleines (une galerie, une liste) ; ici le contenu est court et
+            variable, donc le vide était garanti.
 
-            {/* ── Page 0 — TRANCHER. Ce qui sert à décider, et rien d'autre. ── */}
-            <section className="overflow-y-auto scrollbar-hide pr-1" style={{ height: '50%' }} aria-label={pageLabels[0]}>
-              <div className="py-4 space-y-4">
-                <div>
-                  <h3 className="mb-2" style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{t('kybReview.detail.whySection')}</h3>
-                  <div className="space-y-2">
-                    {reasons.map((r) => <ReasonCard key={r.code} code={r.code} />)}
-                  </div>
-                </div>
+            Ce que le chantier visait est acquis autrement : le détail n'est plus un tiroir
+            de 576 px collé à droite mais une page de 1024 px, et les colonnes qui décident
+            (résultat, poids, date) tiennent enfin sans défilement horizontal.
 
-                {pendingIdDocs.length > 0 && (
-                  <ResolveIdDocumentSection
-                    agencyId={agencyId}
-                    pending={pendingIdDocs}
-                    persons={persons.data ?? []}
-                    busy={anyActionPending}
-                    onResolve={(checkId, result) => {
-                      resolveIdentityDocument.mutate({ checkId, result }, {
-                        onSuccess: () => toast.success(t('kybReview.actions.resolveSuccess')),
-                        onError: handleError,
-                      })
-                    }}
-                  />
-                )}
+            L'ORDRE porte ce que les deux pages portaient : ce qui retient d'abord, le
+            reste ensuite. Un relecteur qui a tranché n'a jamais besoin de descendre. */
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide pr-1">
+          <div className="py-4 space-y-3">
+            {/* Les motifs, en bloc compact et SANS titre de section : trois mots en
+                couleur disent déjà « voici ce qui coince ». */}
+            <div className="rounded-lg p-3 space-y-1.5" style={{ border: `1px solid ${sp.cardBorder}` }}>
+              {reasons.map((r) => <ReasonCard key={r.code} code={r.code} />)}
+            </div>
 
-                {/* ⛔ SEULS LES CONTRÔLES QUI RETIENNENT. Sept lignes vertes noient la
-                    seule rouge : c'est ce que le tiroir faisait, et c'est ce qui rendait
-                    la décision longue. Le reste vit page 2. */}
-                <DetailSection title={t('kybReview.detail.blockingSection')} icon={ScanSearch}>
-                  {blocking.length === 0 ? (
-                    <p style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub }}>{t('kybReview.detail.blockingNone')}</p>
-                  ) : (
-                    <ChecksTable checks={blocking} persons={persons.data ?? []} />
-                  )}
-                </DetailSection>
+            {pendingIdDocs.length > 0 && (
+              <ResolveIdDocumentSection
+                agencyId={agencyId}
+                pending={pendingIdDocs}
+                persons={persons.data ?? []}
+                busy={anyActionPending}
+                onResolve={(checkId, result) => {
+                  resolveIdentityDocument.mutate({ checkId, result }, {
+                    onSuccess: () => toast.success(t('kybReview.actions.resolveSuccess')),
+                    onError: handleError,
+                  })
+                }}
+              />
+            )}
 
-                <DetailSection title={t('kybReview.detail.personsSection')} icon={Users}>
-                  <PersonsList persons={persons.data ?? []} agencyId={agencyId} />
-                </DetailSection>
-              </div>
-            </section>
+            {/* ⛔ RENDUES SEULEMENT SI ELLES ONT QUELQUE CHOSE À DIRE. Elles s'affichaient
+                toujours, avec « Aucun contrôle ne retient ce dossier » et « Aucune
+                personne déclarée » — deux grandes cartes pour dire qu'il n'y a rien à
+                lire. Une absence se signale par l'absence. */}
+            {blocking.length > 0 && (
+              <DetailSection title={t('kybReview.detail.blockingSection')} icon={ScanSearch}>
+                <ChecksTable checks={blocking} persons={persons.data ?? []} />
+              </DetailSection>
+            )}
 
-            {/* ── Page 1 — TOUT VOIR. Ce qu'on ne consulte qu'en cas de doute. ── */}
-            <section className="overflow-y-auto scrollbar-hide pr-1" style={{ height: '50%' }} aria-label={pageLabels[1]}>
-              <div className="py-4 space-y-4">
-                <DetailSection title={t('kybReview.detail.checksSection')} icon={ScanSearch}>
-                  <ChecksTable checks={checks.data ?? []} persons={persons.data ?? []} />
-                </DetailSection>
+            {(persons.data ?? []).length > 0 && (
+              <DetailSection title={t('kybReview.detail.personsSection')} icon={Users}>
+                <PersonsList persons={persons.data ?? []} agencyId={agencyId} />
+              </DetailSection>
+            )}
 
-                <DetailSection title={t('kybReview.detail.historySection')} icon={History}>
-                  <HistoryList events={events.data ?? []} />
-                </DetailSection>
-              </div>
-            </section>
+            <DetailSection title={t('kybReview.detail.checksSection')} icon={ScanSearch}>
+              <ChecksTable checks={checks.data ?? []} persons={persons.data ?? []} />
+            </DetailSection>
 
+            {(events.data ?? []).length > 0 && (
+              <DetailSection title={t('kybReview.detail.historySection')} icon={History}>
+                <HistoryList events={events.data ?? []} />
+              </DetailSection>
+            )}
           </div>
         </div>
       )}
@@ -1387,40 +1380,6 @@ function KybReviewPager({ row, onClose }: { row: KybReviewQueueRow; onClose: () 
           })
         }}
       />
-    </div>
-  )
-}
-
-/**
- * Les deux points de page. À droite de l'en-tête et non flottants sur le côté : le pager
- * vit ICI dans la coquille de la console (le rail reste), pas en plein écran comme celui
- * de Mes biens — un repère flottant y chevaucherait le contenu au lieu de le border.
- */
-function PagerDots({ page, onGo, labels, sp }: {
-  page: number; onGo: (i: number) => void; labels: string[]; sp: ReturnType<typeof useAdminSurfaces>['sp']
-}) {
-  return (
-    <div className="flex items-center gap-1.5 flex-shrink-0" role="tablist">
-      {labels.map((label, i) => (
-        <button
-          key={label}
-          role="tab"
-          aria-selected={i === page}
-          aria-label={label}
-          title={label}
-          onClick={() => onGo(i)}
-          style={{
-            height: 6,
-            width: i === page ? 22 : 6,
-            borderRadius: 'var(--crm-radius-pill)',
-            border: 0,
-            padding: 0,
-            cursor: 'pointer',
-            background: i === page ? sp.ink : sp.cardBorder,
-            transition: 'width .4s cubic-bezier(.76,0,.24,1), background .3s ease',
-          }}
-        />
-      ))}
     </div>
   )
 }
