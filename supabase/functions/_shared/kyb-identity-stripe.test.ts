@@ -11,6 +11,7 @@ import {
   knownErrorCode,
   requiresManualFallback,
   type StripeVerificationInput,
+  resolvesIdDocumentCheck,
 } from './kyb-identity-stripe.ts'
 
 const DECLARED = { firstName: 'Grégory', lastName: 'Lyonnet', dateOfBirth: '1980-05-12' }
@@ -183,5 +184,45 @@ describe('knownErrorCode / requiresManualFallback', () => {
     expect(requiresManualFallback('selfie_face_mismatch')).toBe(false)
     expect(requiresManualFallback('abandoned')).toBe(false)
     expect(requiresManualFallback(null)).toBe(false)
+  })
+})
+
+/**
+ * ⛔ CE BLOC GARDE LA SEULE PORTE QUI S'OUVRE AUTOMATIQUEMENT DANS LE KYB.
+ *
+ * `resolvesIdDocumentCheck` décide si la vérification du prestataire dispense d'une revue
+ * humaine de la pièce. Introduite le 18.08.2026 pour une raison mesurée : les deux seules
+ * agences ayant soumis portaient un score de 1.000 et restaient bloquées en
+ * `manual_review` depuis 16 jours, parce que `submit_agency_identity()` pose toujours
+ * `id_document / pending_manual_review` et que le moteur refuse d'auto-valider tant qu'un
+ * check est en attente.
+ *
+ * La relâcher, c'est ouvrir le CRM complet — dossiers KYC et signatures — à une agence
+ * dont l'identité du dirigeant n'a pas été confirmée. D'où un cas par façon de se tromper.
+ */
+describe('resolvesIdDocumentCheck', () => {
+  it('verified + match résout, et c\'est le seul cas', () => {
+    expect(resolvesIdDocumentCheck({ status: 'verified', verdict: 'match' })).toBe(true)
+  })
+
+  it('⚠ `partial` NE résout PAS', () => {
+    // `partial` = un champ approximatif ou illisible (prénom composé partiellement
+    // déclaré, date de naissance absente de la déclaration). C'est exactement le cas où
+    // un œil humain apprend quelque chose : le relâcher viderait la revue de son contenu.
+    expect(resolvesIdDocumentCheck({ status: 'verified', verdict: 'partial' })).toBe(false)
+  })
+
+  it('mismatch et unreadable ne résolvent pas', () => {
+    expect(resolvesIdDocumentCheck({ status: 'verified', verdict: 'mismatch' })).toBe(false)
+    expect(resolvesIdDocumentCheck({ status: 'verified', verdict: 'unreadable' })).toBe(false)
+  })
+
+  it('⛔ le STATUT seul ne suffit jamais', () => {
+    // `verified` dit « document authentique, visage concordant » — jamais « le nom que
+    // nous détenons est le bon ». C'est cet écart qui a produit un dossier vérifié au nom
+    // d'un autre le 17.08.2026 (changement de nom légal).
+    expect(resolvesIdDocumentCheck({ status: 'processing', verdict: 'match' })).toBe(false)
+    expect(resolvesIdDocumentCheck({ status: 'requires_input', verdict: 'match' })).toBe(false)
+    expect(resolvesIdDocumentCheck({ status: 'canceled', verdict: 'match' })).toBe(false)
   })
 })

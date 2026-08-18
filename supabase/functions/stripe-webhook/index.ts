@@ -10,6 +10,7 @@ import { reportEdgeError } from '../_shared/audit-edge-error.ts'
 import {
   buildStripeIdentityRecord,
   isStripeVerificationStatus,
+  resolvesIdDocumentCheck,
 } from '../_shared/kyb-identity-stripe.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
@@ -97,7 +98,7 @@ async function handleIdentityVerification(
 
   const query = supabaseAdmin
     .from('agency_related_persons')
-    .select('id, first_name, last_name, date_of_birth')
+    .select('id, agency_id, first_name, last_name, date_of_birth')
   const { data: person } = relatedPersonId
     ? await query.eq('id', relatedPersonId).maybeSingle()
     : await query.eq('identity_verification_session_id', session.id).maybeSingle()
@@ -166,6 +167,97 @@ async function handleIdentityVerification(
       ...(record.documentType ? { id_document_type: record.documentType } : {}),
     })
     .eq('id', person.id as string)
+
+  await resolveIdDocumentCheck(person.id as string, person.agency_id as string, record)
+}
+
+/**
+ * La vérification du prestataire RÉSOUT le check `id_document` quand elle ne laisse
+ * aucune question ouverte — et seulement dans ce cas.
+ *
+ * ── Pourquoi ce chemin existe ───────────────────────────────────────────────────────
+ *
+ * `submit_agency_identity()` pose `id_document / pending_manual_review`, et le moteur
+ * refuse d'auto-valider tant qu'un check est en attente (`v_has_pending`). Résultat
+ * mesuré le 18.08.2026 : les DEUX seules agences ayant soumis portaient un score de
+ * 1.000 — le maximum — et restaient en `manual_review`. `auto_validated` était
+ * structurellement inatteignable, et le déblocage tenait à un clic que personne ne
+ * faisait : 16 jours d'attente, 16 rappels quotidiens sans effet.
+ *
+ * Ce qu'on demandait à ce relecteur, c'était de RE-REGARDER une pièce que Stripe avait
+ * déjà authentifiée, avec détection du vivant et selfie comparé à la photo. Une tâche
+ * qui n'apprend rien ne se fait pas — et le socle attendait ce chemin depuis l'origine :
+ * `source` autorise `id_vendor` depuis 20260729150300 sans qu'aucun code ne l'écrive.
+ *
+ * ── ⛔ CE QUE CE CHEMIN N'OUVRE PAS ─────────────────────────────────────────────────
+ *
+ * Il retire UNE condition sur cinq. Les VÉTOS restent entiers, et ce sont eux qui
+ * gardent la porte : `v_veto_failed` exige `match` EXACT sur chacun des quatre vétos
+ * d'entité (existence au registre, raison sociale, pays, format du numéro) — `partial`
+ * ne suffit pas. Mesuré sur les deux dossiers réels : `registry_legal_name_match` en
+ * `mismatch` et `registry_lookup` en `partial` les recalent, et continueraient de les
+ * recaler après ce changement. S'y ajoutent le score minimum (0.85), l'exigence d'un
+ * signataire actif, et les vétos de PERSONNE (dont le screening PEP/sanctions).
+ *
+ * Autrement dit : ne franchit la barre qu'une agence réellement trouvée au registre, au
+ * bon nom, dans le bon pays, dont le dirigeant a passé le prestataire ET dont l'identité
+ * déclarée correspond à sa pièce. La revue humaine garde tout le reste.
+ *
+ * ── ⚠ `match` STRICT, jamais `partial` ─────────────────────────────────────────────
+ *
+ * `partial` veut dire qu'un champ est approximatif ou illisible — un prénom composé
+ * partiellement déclaré, une date de naissance absente. C'est exactement le cas où un
+ * œil humain apprend quelque chose. Seul `match` (les trois champs `exact`) résout.
+ *
+ * Best-effort : un échec ici laisse le dossier en revue manuelle, c'est-à-dire dans
+ * l'état d'AVANT ce chemin. Il ne doit jamais faire échouer le webhook, sans quoi Stripe
+ * rejouerait l'événement et le statut de la personne, lui, est déjà écrit.
+ */
+async function resolveIdDocumentCheck(
+  personId: string,
+  agencyId: string | null,
+  record: Parameters<typeof resolvesIdDocumentCheck>[0],
+): Promise<void> {
+  if (!resolvesIdDocumentCheck(record)) return
+
+  // Client ouvert ICI et non reçu en paramètre — même raison que
+  // `handleIdentityVerification` et `applySubscriptionState`, toutes deux annotées :
+  // `ReturnType<typeof createClient>` ne se réconcilie pas avec le client réellement
+  // construit (les paramètres de type par défaut résolvent en `never`), et `deno check`,
+  // bloquant en CI, le refuse. Un client Supabase est un objet de configuration.
+  const supabaseAdmin = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  )
+
+  try {
+    const { error } = await supabaseAdmin
+      .from('agency_person_verification_checks')
+      .insert({
+        related_person_id: personId,
+        check_type: 'id_document',
+        source: 'id_vendor',
+        result: 'match',
+      })
+    if (error) throw new Error(error.message)
+
+    // ⚠ Le moteur n'est relancé QUE si le dossier a été soumis. Sans cette condition, une
+    // agence encore dans le wizard — qui n'a rien déclaré complet, rien attesté — pourrait
+    // basculer en `auto_validated` à la seconde où son dirigeant photographie sa pièce.
+    // La soumission est l'acte par lequel elle demande un verdict ; avant, il n'y a rien à
+    // trancher.
+    if (!agencyId) return
+    const { data: agence } = await supabaseAdmin
+      .from('agencies')
+      .select('identity_submitted_at')
+      .eq('id', agencyId)
+      .maybeSingle()
+    if (!agence?.identity_submitted_at) return
+
+    await supabaseAdmin.rpc('recompute_agency_verification', { p_agency_id: agencyId })
+  } catch (e) {
+    console.error('identity: résolution du check id_document impossible', (e as Error)?.message)
+  }
 }
 
 /** Ce qu'a fait une écriture d'état d'abonnement. */
