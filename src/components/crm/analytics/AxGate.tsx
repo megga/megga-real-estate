@@ -70,7 +70,7 @@ export default function AxGate({ dark, saving, onDone }: { dark: boolean; saving
             onKeyDown={e => { if (e.key === 'Enter') submit() }}
             style={{ flex: 1, minWidth: 0, border: 0, background: 'transparent', fontFamily: 'inherit', fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.6, color: A.ink, padding: 'var(--crm-space-xl) var(--crm-space-2xl) var(--crm-space-xl) 0', fontVariantNumeric: 'tabular-nums', outline: 'none' }} />
         </div>
-        <button className="ax-gate-cta" onClick={submit} disabled={!canSubmit} style={{
+        <button onClick={submit} disabled={!canSubmit} style={{
           height: 48, borderRadius: 'var(--crm-radius-pill)', border: 0, background: A.accent, color: A.accentInk,
           fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)', fontWeight: 600, cursor: canSubmit ? 'pointer' : 'default',
           opacity: canSubmit ? 1 : 0.45, width: '100%',
