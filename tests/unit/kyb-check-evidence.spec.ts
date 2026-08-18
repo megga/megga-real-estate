@@ -13,7 +13,7 @@
  * Les formes testées ici sont les preuves RÉELLES lues en production, pas des inventions.
  */
 import { describe, it, expect } from 'vitest'
-import { summarizeKybEvidence } from '@/lib/kybCheckEvidence'
+import { summarizeKybEvidence, isBlockingCheck } from '@/lib/kybCheckEvidence'
 
 describe('summarizeKybEvidence', () => {
   it('LE CAS RÉEL : raison sociale déclarée face à celle du registre', () => {
@@ -85,5 +85,36 @@ describe('summarizeKybEvidence', () => {
     expect(summarizeKybEvidence('registry_country_match', {
       declared_country: '  ', registry_country: 'CH',
     })).toEqual({ found: 'CH' })
+  })
+})
+
+/**
+ * ⛔ `isBlockingCheck` est le MIROIR de `recompute_agency_verification`. Si les deux
+ * divergent, l'écran range en « ce qui bloque » un contrôle que le moteur laisse passer
+ * (ou l'inverse) — et le relecteur décide sur une carte fausse.
+ */
+describe('isBlockingCheck', () => {
+  it('un véto ne passe QUE sur match exact', () => {
+    expect(isBlockingCheck({ result: 'match', isVeto: true })).toBe(false)
+    expect(isBlockingCheck({ result: 'partial', isVeto: true })).toBe(true)
+    expect(isBlockingCheck({ result: 'mismatch', isVeto: true })).toBe(true)
+  })
+
+  it('⚠ une source INJOIGNABLE retient sur un véto, et sur lui seul', () => {
+    // Contre-intuitif : `unavailable` est neutre au score (exclu du numérateur ET du
+    // dénominateur) mais fait échouer un véto, qui exige `match`. C'est le cas de
+    // registry_lookup en Suisse, et c'est ce qui doit se voir sur la ligne.
+    expect(isBlockingCheck({ result: 'unavailable', isVeto: true })).toBe(true)
+    expect(isBlockingCheck({ result: 'unavailable', isVeto: false })).toBe(false)
+  })
+
+  it('une revue humaine en attente retient, quel que soit le type', () => {
+    expect(isBlockingCheck({ result: 'pending_manual_review', isVeto: false })).toBe(true)
+    expect(isBlockingCheck({ result: 'pending_manual_review', isVeto: true })).toBe(true)
+  })
+
+  it('⛔ un mismatch NON véto ne retient PAS — il pèse sur le score, sans plus', () => {
+    expect(isBlockingCheck({ result: 'mismatch', isVeto: false })).toBe(false)
+    expect(isBlockingCheck({ result: 'partial', isVeto: false })).toBe(false)
   })
 })

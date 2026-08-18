@@ -98,3 +98,33 @@ export function summarizeKybEvidence(checkType: string, raw: unknown): KybEviden
   const complet: KybEvidenceSummary = { ...resume, ...(note && note !== 'error' ? { note } : {}) }
   return complet.declared || complet.found || complet.note ? complet : null
 }
+
+/** Ce qu'il faut d'un check pour savoir s'il RETIENT le dossier. */
+export interface KybBlockingInput {
+  result: string
+  isVeto: boolean
+}
+
+/**
+ * Ce contrôle retient-il le dossier ?
+ *
+ * ⚠ MIROIR DE `recompute_agency_verification`, et il faut le lire dans ce sens-là :
+ * l'écran ne décide de rien, il montre ce que le moteur a déjà décidé. Deux clauses de
+ * `v_needs_review` se voient ligne par ligne —
+ *
+ *   · `v_veto_failed` : un véto ne passe QUE sur `match` EXACT. `partial` ne suffit pas,
+ *     et `unavailable` non plus — une source injoignable sur un véto retient donc le
+ *     dossier, alors qu'elle est neutre partout ailleurs. C'est contre-intuitif et c'est
+ *     précisément pour ça que la ligne doit le dire.
+ *   · `v_has_pending` : un check en attente de revue humaine, quel que soit son type.
+ *
+ * Les deux autres clauses (score sous le seuil, aucun signataire actif) ne se rattachent
+ * à AUCUNE ligne : elles portent sur le dossier entier, et l'écran les montre ailleurs.
+ *
+ * ⛔ Un `mismatch` NON véto ne retient pas : il pèse sur le score, sans plus. Le ranger
+ * ici ferait croire à un blocage qu'un score suffisant lève tout seul.
+ */
+export function isBlockingCheck(check: KybBlockingInput): boolean {
+  if (check.result === 'pending_manual_review') return true
+  return check.isVeto && check.result !== 'match'
+}
