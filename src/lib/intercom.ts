@@ -75,16 +75,27 @@ export function shutdownIntercom() {
 /** Espaces du Messenger Intercom. */
 export type IntercomSpace = 'home' | 'messages' | 'help' | 'news' | 'tasks' | 'tickets'
 
-/** Ouvre un espace précis du Messenger (ex. 'help' pour le Help Center, 'news' pour les Actualités). */
-export function showIntercomSpace(space: IntercomSpace) {
-  if (!APP_ID || !booted) return
+// ⚠ Les deux ouvertures ci-dessous rendent un BOOLÉEN, contrairement au reste du
+// module. Ce sont les seules dont l'appel naît d'un CLIC : `booted` est faux
+// pendant le démarrage du Messenger, et un clic sur « ? » à cet instant sortait
+// sans rien faire — ni fenêtre, ni erreur, ni message. L'appelant a besoin de
+// savoir que rien ne s'est ouvert pour proposer le centre d'aide public à la
+// place ; les no-op silencieux (`update`, `track`) n'ont, eux, aucun spectateur.
+
+/** Ouvre un espace précis du Messenger (ex. 'help' pour le Help Center, 'news' pour les Actualités).
+ *  Rend `false` si le Messenger ne peut pas répondre (App ID absent, ou pas encore booté). */
+export function showIntercomSpace(space: IntercomSpace): boolean {
+  if (!APP_ID || !booted) return false
   sdkShowSpace(space)
+  return true
 }
 
-/** Ouvre un article du Help Center par son ID Intercom (aide contextuelle). */
-export function showIntercomArticle(articleId: string) {
-  if (!APP_ID || !booted) return
+/** Ouvre un article du Help Center par son ID Intercom (aide contextuelle).
+ *  Rend `false` si le Messenger ne peut pas répondre (App ID absent, ou pas encore booté). */
+export function showIntercomArticle(articleId: string): boolean {
+  if (!APP_ID || !booted) return false
   sdkShowArticle(articleId)
+  return true
 }
 
 /** Registre central des events produit MEGGA → Intercom (Fin / Series / Outbound / ciblage).

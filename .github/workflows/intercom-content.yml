@@ -16,6 +16,8 @@ on:
         type: choice
         options:
           - audit
+          - articles-unpublish-dry
+          - articles-unpublish
           - articles-publish
           - articles-promote-dry
           - articles-promote
@@ -28,6 +30,13 @@ on:
           - delete-demo
           - news-audit
           - news-publish
+      unpublish_ids:
+        description: >-
+          articles-unpublish : IDs à dépublier (CSV). OBLIGATOIRE — ce mode refuse
+          de tourner à vide, « tout dépublier » n'étant jamais l'intention.
+        required: false
+        default: ''
+        type: string
       promote_ids:
         description: 'articles-promote : IDs ciblés (CSV, vide = tous les brouillons hors démo)'
         required: false
@@ -54,6 +63,7 @@ jobs:
           INTERCOM_ACCESS_TOKEN: ${{ secrets.INTERCOM_ACCESS_TOKEN }}
           MODE: ${{ inputs.mode }}
           PROMOTE_IDS: ${{ inputs.promote_ids }}
+          UNPUBLISH_IDS: ${{ inputs.unpublish_ids }}
         run: |
           if [[ "$MODE" == news-* ]]; then
             node scripts/intercom-news.mjs "$MODE"

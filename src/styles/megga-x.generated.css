@@ -10518,3 +10518,50 @@
 .megga-x .header-logo img,.megga-x 
 .footer-logo img { filter: brightness(0) invert(1); height: 30px; width: auto; }
 .megga-x .footer-logo img { height: 34px; }
+
+/* Centre d'aide généré depuis Intercom (17.08.2026) — les corps d'articles
+   emploient huit balises ; .rich-text en stylait déjà six. Ces deux-là
+   manquaient, et sans elles une citation et un séparateur rendaient nus.
+   ⚠ L'échelle de neutres de la vitrine part du SOMBRE : --neutral-colors--100
+   EST le canvas (#030303) et 1000 est le blanc. Un séparateur pris dans le bas
+   de l'échelle (300 = #090909) est donc invisible sur la page — mesuré. 400
+   (#181818) est le premier barreau qui se voit, et c'est celui que MEGGA X
+   emploie pour séparer par la bordure plutôt que par l'écart de luminance.
+   De même, l'accent est --primary-colors--100 : le 300 est un cyan (#1abcfe). */
+.megga-x .rich-text blockquote {
+  margin: var(--main-spacers--small) 0;
+  padding: var(--main-spacers--2x-extra-small) var(--main-spacers--extra-small);
+  border-left: 3px solid var(--primary-colors--100);
+  color: var(--neutral-colors--700);
+}
+.megga-x .rich-text hr {
+  height: 1px;
+  margin: var(--main-spacers--medium) 0;
+  border: 0;
+  background-color: var(--neutral-colors--400);
+}
+
+/* Carte d'article : le lien enveloppe la carte entière, et Webflow souligne les
+   liens par défaut — sans ce retrait, titre ET résumé s'affichent barrés d'un
+   trait, et la carte se lit comme un paragraphe cliqué. Les cartes du blog s'en
+   sortent par `---grid-link` ; celles-ci ont besoin de leur propre classe. */
+.megga-x .aide-carte {
+  text-decoration: none;
+}
+
+/* Champ de recherche du centre d'aide. `.input` de la vitrine donne déjà la
+   boîte ; il reste à cacher le libellé (l'intitulé visible est le placeholder,
+   mais un lecteur d'écran a besoin du vrai) et à retirer la croix native de
+   WebKit, qui se pose sur le fond sombre en clair et devient invisible. */
+.megga-x .aide-recherche-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.megga-x .aide-recherche::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}

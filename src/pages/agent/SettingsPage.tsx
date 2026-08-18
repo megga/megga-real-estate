@@ -24,6 +24,20 @@ import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte']
 const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations', 'security', 'billing']
 
+/**
+ * Section de réglages → clé du catalogue d'aide.
+ *
+ * Cet écran n'a qu'un onglet pour six sections : la TopNav ne recevait que
+ * `'settings'`, donc l'aide y parlait toujours des intégrations, quelle que soit
+ * la section ouverte — et les articles « Facturation » et « Agence » existaient
+ * sans que rien ne puisse les demander. Les sections absentes d'ici retombent
+ * volontairement sur `settings` : mieux vaut l'article voisin que l'onglet racine.
+ */
+const SECTION_HELP: Partial<Record<SectionId, string>> = {
+  agency: 'agence',
+  billing: 'billing',
+}
+
 // Icônes du rail (mêmes tracés que le proto SpgIcon).
 const SPG_PATHS: Record<string, ReactNode> = {
   user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
@@ -146,7 +160,7 @@ export default function SettingsPage() {
         .spg-scroll::-webkit-scrollbar-thumb { background: ${darkR ? 'rgba(255,255,255,.12)' : crmVoileEncre(false, .14)}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
       `}</style>
 
-      <CrmTopNav active={'settings' as CrmScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
+      <CrmTopNav active={'settings' as CrmScreenId} helpKey={SECTION_HELP[active] ?? 'settings'} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <CrmIconRail active="settings" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />

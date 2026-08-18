@@ -69,12 +69,20 @@ export type CrmScreenId =
 
 interface CrmTopNavProps {
   active?: CrmScreenId
+  /**
+   * Clé d'aide de la surface courante, quand elle ne se déduit pas de l'onglet.
+   * Les Réglages n'ont qu'un onglet (`settings`) pour six sections : sans cette
+   * prop, « Facturation » et « Agence » n'avaient aucun moyen de nommer leur
+   * article, et les clés existaient dans le catalogue sans que rien ne les émette.
+   * Par défaut on retombe sur `active`, qui reste juste pour les écrans à onglet.
+   */
+  helpKey?: string
   sp: CrmPalette
   onNavigate?: (id: CrmScreenId) => void
   onCmd?: () => void
   dark?: boolean
 }
-export function CrmTopNav({ active = 'today', sp, onNavigate, dark = false }: CrmTopNavProps) {
+export function CrmTopNav({ active = 'today', helpKey, sp, onNavigate, dark = false }: CrmTopNavProps) {
   const navigate = useNavigate()
   const { t: tc } = useTranslation('common')
   const { signOut, profile, user } = useAuth()
@@ -263,9 +271,13 @@ export function CrmTopNav({ active = 'today', sp, onNavigate, dark = false }: Cr
       </nav>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)' }}>
         <CrmRoundIconBtn sp={sp} title={tc('nav.search')} onClick={() => openCrmSearch()}><AnimatedTopIcon name="search" color={sp.soft} size={TOPNAV_ICON} /></CrmRoundIconBtn>
-        {/* Aide contextuelle : ouvre l'article Help Center de l'écran courant (ou le
-            Centre d'aide à défaut, public si Intercom n'est pas configuré). */}
-        <CrmRoundIconBtn sp={sp} title={tc('nav.help')} onClick={() => openHelpFor(active)}><AnimatedTopIcon name="help" color={sp.soft} size={TOPNAV_ICON} /></CrmRoundIconBtn>
+        {/* Centre d'aide : ouvre l'onglet Aide du Messenger — les 18 articles, la
+            recherche et Fin. L'article de l'ÉCRAN, lui, est au menu de l'avatar.
+            ⚠ C'était l'inverse jusqu'au 17 août 2026, et le saut direct coûtait
+            cher : douze articles sont mappés sur dix-huit publiés, et rien d'autre
+            que ce bouton ne montrait qu'une recherche existait. On met devant ce
+            qui donne accès à TOUT ; le raccourci reste, d'un cran plus loin. */}
+        <CrmRoundIconBtn sp={sp} title={tc('nav.helpCenter')} onClick={() => openHelpFor()}><AnimatedTopIcon name="help" color={sp.soft} size={TOPNAV_ICON} /></CrmRoundIconBtn>
         {/* Bouton Megga — ouvre le panneau MEGGA AI docké. */}
         <button
           onClick={() => { if (ai.enabled) ai.open() }}
@@ -359,7 +371,7 @@ export function CrmTopNav({ active = 'today', sp, onNavigate, dark = false }: Cr
               onSettings={() => navigate('/dashboard/settings')}
               onKyc={() => navigate('/dashboard/kyc')}
               onAgencyPublic={() => window.open('/agencies', '_blank', 'noopener,noreferrer')}
-              onHelp={() => openHelpFor()}
+              onHelp={() => openHelpFor(helpKey ?? active)}
               onLogout={async () => { await signOut(); navigate('/login') }}
             />
           )}

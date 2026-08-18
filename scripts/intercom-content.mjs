@@ -15,58 +15,25 @@
 // Scope requis pour l'audit : "Read content data". (Write content data pour migrate.)
 
 import { readFileSync } from 'node:fs'
+// Client partagé depuis le 17 août 2026 : `scripts/vitrine-aide.mjs` lit le même
+// corpus pour générer megga.ch/aide. Auth, version d'API et pagination y vivent
+// une seule fois.
+import { creerClientIntercom, BASE_PAR_DEFAUT, VERSION_PAR_DEFAUT } from './_shared/intercom-api.mjs'
 
-const TOKEN = process.env.INTERCOM_ACCESS_TOKEN
-const BASE = process.env.INTERCOM_API_BASE || 'https://api.intercom.io'
-const API_VERSION = process.env.INTERCOM_API_VERSION || '2.11'
+const BASE = BASE_PAR_DEFAUT
+const API_VERSION = VERSION_PAR_DEFAUT
 const mode = (process.argv[2] || 'audit').toLowerCase()
 
-if (!TOKEN) {
-  console.error(
-    '✗ INTERCOM_ACCESS_TOKEN manquant.\n' +
-      '  GitHub : Settings → Secrets and variables → Actions → New repository secret\n' +
-      '           name = INTERCOM_ACCESS_TOKEN (scope Intercom : Read content data).\n' +
-      '  Local  : ajoute INTERCOM_ACCESS_TOKEN=... dans .env.local (gitignoré).',
-  )
+// Ce script n'a rien à faire sans jeton : il sort. (Le générateur de la vitrine,
+// lui, distingue la CI du poste local — voir vitrine-aide.mjs.)
+let client
+try {
+  client = creerClientIntercom()
+} catch (e) {
+  console.error(`✗ ${e.message}`)
   process.exit(1)
 }
-
-const headers = {
-  Authorization: `Bearer ${TOKEN}`,
-  Accept: 'application/json',
-  'Content-Type': 'application/json',
-  'Intercom-Version': API_VERSION,
-}
-
-async function api(path, init = {}) {
-  const res = await fetch(`${BASE}${path}`, { ...init, headers: { ...headers, ...(init.headers || {}) } })
-  const text = await res.text()
-  let body
-  try {
-    body = text ? JSON.parse(text) : null
-  } catch {
-    body = text
-  }
-  if (!res.ok) {
-    const detail = typeof body === 'string' ? body : JSON.stringify(body)
-    throw new Error(`HTTP ${res.status} ${res.statusText} on ${path} — ${detail}`)
-  }
-  return body
-}
-
-// Liste paginée (curseur Intercom : pages.next.starting_after).
-async function listAll(path) {
-  const out = []
-  let startingAfter = null
-  do {
-    const sep = path.includes('?') ? '&' : '?'
-    const url = `${path}${sep}per_page=150${startingAfter ? `&starting_after=${encodeURIComponent(startingAfter)}` : ''}`
-    const body = await api(url)
-    if (Array.isArray(body?.data)) out.push(...body.data)
-    startingAfter = body?.pages?.next?.starting_after ?? null
-  } while (startingAfter)
-  return out
-}
+const { api, listAll } = client
 
 function localesOf(article) {
   const tc = article?.translated_content
@@ -421,6 +388,13 @@ async function attributesDeclare() {
 // codée en dur). Restreignable via PROMOTE_IDS="id1,id2" (sécurité / publication ciblée).
 // Toujours faire un `articles-promote-dry` d'abord pour relire la liste exacte.
 
+// Identifiants ciblés par `articles-unpublish`. ⛔ Sans eux le mode refuse de
+// tourner : « tout dépublier » n'est jamais l'intention.
+const UNPUBLISH_IDS = (process.env.UNPUBLISH_IDS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean)
+
 const PROMOTE_IDS = (process.env.PROMOTE_IDS || '')
   .split(',')
   .map((s) => s.trim())
@@ -579,10 +553,91 @@ async function articlesUpdateRun(dry) {
   if (failed) process.exitCode = 1
 }
 
+/**
+ * Dépublie des articles (publié → brouillon). Symétrique d'`articles-promote`.
+ *
+ * POURQUOI CE MODE EXISTE. Un article qui documente une fonctionnalité RETIRÉE
+ * est pire qu'un article absent : il se lit comme vrai. « Le portail vendeur »
+ * (15492031) décrit une surface supprimée du produit le 26 juillet 2026, tables
+ * comprises — sa clé d'aide est partie du CRM, mais l'article restait `published`,
+ * donc visible dans le centre d'aide public ET dans le corpus de Fin, qui s'en
+ * servait pour répondre.
+ *
+ * ⛔ CIBLAGE OBLIGATOIRE. Contrairement à `articles-promote`, qui peut traiter
+ * « tous les brouillons », ce mode REFUSE de tourner sans `UNPUBLISH_IDS` : son
+ * cas dégénéré dépublierait le centre d'aide entier.
+ */
+async function articlesUnpublish(dry) {
+  console.log(`→ Articles unpublish (publié → brouillon)${dry ? ' [DRY-RUN]' : ''} (${BASE}, API ${API_VERSION})`)
+  if (!UNPUBLISH_IDS.length) {
+    console.error('✗ UNPUBLISH_IDS est vide. Ce mode exige des identifiants explicites (CSV).')
+    process.exit(1)
+  }
+  console.log(`  cible: ${UNPUBLISH_IDS.join(', ')}\n`)
+
+  const plans = []
+  for (const id of UNPUBLISH_IDS) {
+    let full
+    try {
+      full = await api(`/articles/${id}`)
+    } catch (err) {
+      console.error(`✗ [${id}] introuvable — ${err.message}`)
+      process.exitCode = 1
+      continue
+    }
+    plans.push({ id: String(full.id), title: full.title, state: full.state, full })
+  }
+  for (const p of plans) {
+    console.log(`• [${p.id}] ${p.title}`)
+    console.log(`    état: ${p.state} → draft`)
+  }
+  if (dry) {
+    console.log(`\nDRY-RUN : aucune écriture (${plans.length} article(s) seraient dépubliés).`)
+    return
+  }
+
+  let done = 0
+  let failed = 0
+  for (const p of plans) {
+    if (p.state === 'draft') {
+      console.log(`= [${p.id}] ${p.title} — déjà en brouillon, rien à faire`)
+      continue
+    }
+    // Chaque locale repasse en draft : laisser une locale `published` garderait
+    // l'article visible dans SA langue, ce qui est exactement le défaut qu'on ferme.
+    const tc = p.full.translated_content || {}
+    const out = {}
+    for (const [loc, content] of Object.entries(tc)) {
+      if (loc === 'type' || !content || typeof content !== 'object') continue
+      out[loc] = writableLocale(content, { state: 'draft' })
+    }
+    try {
+      await api(`/articles/${p.id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ state: 'draft', translated_content: out }),
+      })
+      console.log(`✓ [${p.id}] ${p.title} — dépublié (${Object.keys(out).join(', ')})`)
+      done++
+    } catch (err) {
+      console.error(`✗ [${p.id}] ${p.title} — ${err.message}`)
+      failed++
+    }
+  }
+  console.log(`\n──────── Résultat ────────\nDépubliés: ${done} | échecs: ${failed}`)
+  console.log('Vérif : mode "audit" (état attendu : draft) + https://intercom.help/megga/fr')
+  if (failed) process.exitCode = 1
+}
+
 async function main() {
   switch (mode) {
     case 'audit':
       await audit()
+      break
+    case 'articles-unpublish-dry':
+      await articlesUnpublish(true)
+      break
+    case 'articles-unpublish':
+      await articlesUnpublish(false)
       break
     case 'articles-publish':
       await articlesPublish()
@@ -615,7 +670,7 @@ async function main() {
       await deleteDemo()
       break
     default:
-      console.error(`✗ mode inconnu: "${mode}". Attendu : audit | articles-publish | articles-promote-dry | articles-promote | articles-update-dry | articles-update | attributes-declare | migrate-dry | migrate | migrate-collections | delete-demo`)
+      console.error(`✗ mode inconnu: "${mode}". Attendu : audit | articles-unpublish-dry | articles-unpublish | articles-publish | articles-promote-dry | articles-promote | articles-update-dry | articles-update | attributes-declare | migrate-dry | migrate | migrate-collections | delete-demo`)
       process.exit(2)
   }
 }

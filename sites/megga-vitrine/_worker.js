@@ -152,6 +152,14 @@ const PUBLIC_PAGES = new Set([
   '/privacy',
   '/terms',
   '/sitemap.xml',
+  // Centre d'aide généré depuis Intercom : un centre d'aide derrière un mot de
+  // passe ne sert personne, et l'indexation qu'il vise disparaît avec le 401.
+  // ⚠ `sansLangue` ramène `/en/help` sur `/help`, d'où les deux entrées seules ;
+  // les ARTICLES, eux, vivent sous `/aide/…` et `/en/help/…` et sont couverts
+  // par PUBLIC_PREFIXES — exempter l'index sans ses articles n'ouvrirait qu'une
+  // table des matières dont chaque lien répond 401.
+  '/aide',
+  '/help',
 ]);
 
 /**
@@ -192,7 +200,7 @@ const LEGACY_REDIRECTS = new Map([
  * même origine une fois celui-ci franchi. Laisser le préfixe ouvert n'aurait
  * plus servi aucune page publique : ce n'aurait été que de la surface.
  */
-const PUBLIC_PREFIXES = ['/css/', '/js/', '/images/', '/fonts/'];
+const PUBLIC_PREFIXES = ['/css/', '/js/', '/images/', '/fonts/', '/aide/', '/help/'];
 
 /**
  * Chemin décodé, ou `null` s'il cherche à remonter l'arborescence.
@@ -548,8 +556,14 @@ function isPublic(pathname) {
   const path = safePath(pathname);
   if (path === null) return false;
   if (PUBLIC_PAGES.has(canonicalPage(sansLangue(path)))) return true;
+  // Le préfixe se teste AUSSI hors langue : les articles d'aide anglais vivent
+  // sous `/en/help/…`, et ne comparer que le chemin brut les aurait laissés
+  // murés alors que leur index, lui, était ouvert — une table des matières dont
+  // chaque lien répond 401. Les préfixes de ressources, eux, sont à la racine :
+  // les passer par `sansLangue` n'ouvre rien de plus.
   const lower = path.toLowerCase();
-  return PUBLIC_PREFIXES.some((prefix) => lower.startsWith(prefix));
+  const horsLangue = sansLangue(path).toLowerCase();
+  return PUBLIC_PREFIXES.some((prefix) => lower.startsWith(prefix) || horsLangue.startsWith(prefix));
 }
 
 export default {

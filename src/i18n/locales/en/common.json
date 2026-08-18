@@ -66,7 +66,7 @@
     "backToCrm": "Back to the CRM",
     "journey": "Journey",
     "aiAgent": "Megga, AI agent",
-    "help": "Help",
+    "helpCenter": "Help center",
     "notifications": "Notifications",
     "callbacksToday": "Today's callbacks",
     "importLeads": "Import leads",
@@ -360,7 +360,7 @@
     "preferences": "Preferences",
     "security": "Security & sessions",
     "billing": "Billing & subscription",
-    "help": "Help center",
+    "help": "Help for this screen",
     "adminConsole": "Admin console",
     "platformSection": "Platform"
   },

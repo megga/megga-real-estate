@@ -95,11 +95,38 @@ jobs:
           VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
           # Sentry source maps upload — no-op si le secret est absent
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          # Centre d'aide de la vitrine : `scripts/vitrine-aide.mjs` lit les
+          # articles chez Intercom au postbuild. ⛔ Contrairement aux autres, ce
+          # secret n'est PAS optionnel ici — sans lui le générateur SORT EN
+          # ERREUR (CI=true), parce qu'un centre d'aide vide publié est pire
+          # qu'un déploiement qui s'arrête. En local il écrit une page d'attente.
+          # (GitHub Actions pose CI=true de lui-même : c'est ce que lit le script.)
+          #
+          # ⚠ CE JETON N'EST PAS LE SEUL. Le build git-connecté de Cloudflare
+          # Pages construit la MÊME vitrine, et Cloudflare pose `CI=true` aussi :
+          # il lui faut donc sa propre copie, déclarée dans Pages → Settings →
+          # Variables and Secrets, sur Production ET Preview. Elle vient d'une
+          # app Intercom SÉPARÉE (« Cloudflare »), en lecture seule.
+          # ⛔ Ne pas supprimer l'app d'origine en la croyant remplacée : c'est
+          # ELLE qui porte `Write content data`, donc le mode `articles-unpublish`.
+          INTERCOM_ACCESS_TOKEN: ${{ secrets.INTERCOM_ACCESS_TOKEN }}
 
       # NOTE: the V3 static storefront is overlaid onto dist/ by the npm
       # `postbuild` hook (scripts/overlay-storefront.mjs), so it runs for
       # BOTH this workflow AND the git-connected Cloudflare Pages build.
       # No overlay step is needed here.
+      #
+      # ⚠ CONSÉQUENCE POUR LE CENTRE D'AIDE : ce même hook lance désormais
+      # `vitrine-aide.mjs`, qui SORT EN ERREUR quand `CI` est posé et que
+      # `INTERCOM_ACCESS_TOKEN` manque — et Cloudflare pose `CI=true` lui aussi.
+      #
+      # ✅ MESURÉ sur la PR #1253 (17.08.2026) : le build git-connecté EXISTE
+      # bien — il rend le check « Cloudflare Pages », qui a échoué exactement là.
+      # ⚠ ET LES DEUX CHEMINS NE FONT PAS LE MÊME TRAVAIL, contrairement à ce
+      # qu'on pourrait croire d'un doublon : l'étape wrangler ci-dessous est
+      # gardée par `DEPLOIE_PROD` et ne déploie donc QUE sur `main`, tandis que
+      # le build git-connecté est le SEUL à produire les prévisualisations de PR.
+      # Le débrancher pour « supprimer le doublon » les supprimerait avec.
 
       - name: Setup Supabase CLI
         if: env.DEPLOIE_PROD == 'true'
