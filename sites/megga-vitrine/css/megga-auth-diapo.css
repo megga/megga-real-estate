@@ -1,0 +1,654 @@
+/* Vitrine MEGGA — le diaporama du CRM qui occupe la moitié gauche de
+ * `signup.html`.
+ *
+ * Il remplace la capture PNG du gabarit Webflow (« AI code editor », un écran
+ * d'analytics qui n'a jamais été le nôtre) par une fenêtre de navigateur qui
+ * montre MEGGA, et qui défile : quatre vues du CRM s'enchaînent pendant que
+ * l'agent remplit son formulaire.
+ *
+ * Port de la maquette Claude Design « Auth X — Diapo Concepts ». La maquette
+ * anime en React + framer-motion ; la vitrine est du HTML statique sans build,
+ * donc les mouvements sont retranscrits en `@keyframes`, aux MÊMES durées, aux
+ * mêmes retards et à la même courbe (`cubic-bezier(.2,.8,.2,1)`). Chaque retard
+ * arrive de `js/megga-auth-diapo.js` par `--d`, exactement comme la maquette le
+ * passait à `rise(d)`.
+ *
+ * Aucune couleur n'est inventée : la maquette a été dessinée SUR l'échelle de
+ * la vitrine, et ses neuf teintes sont neuf variables d'ici — #030303 = 100,
+ * #050505 = 200, #090909 = 300, #181818 = 400, #686868 = 500, #a3a3a3 = 600,
+ * #ededed = 800, #424bfb = primary-100, #8dc1ff = system blue-300.
+ *
+ * ⚠ Les classes internes sont TOUTES préfixées `dp-`. Les noms courts de la
+ * maquette (`.card`, `.tab`, `.chip`, `.avatar`) existent déjà dans
+ * styles.css : les reprendre tels quels aurait fait hériter à chaque bloc du
+ * diaporama les règles de la vitrine, en plus des siennes.
+ *
+ * Chargé par signup.html SEULE — login.html et reset-password.html n'ont pas
+ * de diaporama et n'ont pas à en télécharger la feuille.
+ */
+
+/* ── Le cadre ──────────────────────────────────────────────────────────
+ *
+ * La maquette pose une scène fixe de 1440 × 900 qu'elle met à l'échelle par
+ * transform. Ici la scène, c'est la page : la fenêtre garde sa largeur de
+ * dessin (1030 px, dont dépendent toutes les proportions internes) et c'est
+ * un facteur d'échelle continu qui l'accorde à la fenêtre du navigateur.
+ * Continu et non par paliers : le formulaire à côté, lui, se redimensionne de
+ * façon fluide, et une capture qui saute à 991 px pendant que son voisin glisse
+ * se lit comme un défaut d'alignement. */
+.megga-diapo {
+  --dp-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  width: 1030px;
+  flex: none;
+  /* La fenêtre épouse son contenu. Le conteneur du gabarit est un `flex` qui
+     étire ses enfants sur toute la hauteur de la section : le masque se serait
+     alors étalé sur 965 px de boîte pour 730 px de dessin, et le fondu aurait
+     mangé le tiers inférieur de la capture au lieu de mourir avec elle. */
+  align-self: flex-start;
+  margin-top: 20px;
+  /* Le bord droit de la fenêtre tombe à 45 % de la largeur de l'écran, comme
+     dans la maquette (648 px sur 1440). Le conteneur du gabarit s'arrête, lui,
+     à 47 % : sans ce retrait, trois pour cent de fenêtre de plus entraient dans
+     l'écran et le bloc de titre, ferré à droite, se décalait d'autant. */
+  margin-right: 2vw;
+  /* `--dp-scale` et `--dp-h` sont posés par le script, jamais écrits ici.
+     Une première version calculait l'échelle en CSS —
+     `clamp(0.42, 100vw / 1440, 1)` — et ne mettait RIEN à l'échelle : diviser
+     `100vw` par un nombre rend une LONGUEUR, que `clamp()` refuse de comparer à
+     `0.42`, donc la déclaration entière était jetée. Sans bruit : ni erreur de
+     console, ni règle barrée, juste une fenêtre restée à sa taille de dessin.
+     Le repli `1` compte donc autant que la valeur — script absent, la capture
+     s'affiche en grand plutôt que de disparaître. */
+  transform: scale(var(--dp-scale, 1));
+  transform-origin: 100% 0;
+  font-family: var(--main-font);
+  color: var(--neutral-colors--1000);
+  pointer-events: none;
+
+  /* Le bas de la fenêtre se dissout au lieu d'être coupé net.
+     C'est ce dégradé de masque qui fait entrer la capture dans la page : sans
+     lui, un rectangle s'arrête au milieu du noir et redevient une vignette
+     posée là.
+
+     Bornes REPORTÉES, pas recopiées : la maquette masque sa scène de 900 px
+     (58 % → 97 %) alors qu'ici le masque porte sur la fenêtre seule, haute de
+     730 px et posée 130 px plus bas. Les mêmes deux lignes de fondu tombent
+     donc à 54 % et 102 % de cette hauteur-ci. */
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 54%, transparent 102%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 54%, transparent 102%);
+}
+
+/* Le fondu enchaîné d'une vue à l'autre — `AnimatePresence mode="wait"` de la
+   maquette : la sortante s'efface AVANT que l'entrante paraisse, sinon les deux
+   fenêtres se superposent une demi-seconde et le texte devient illisible. */
+.megga-diapo__slide {
+  animation: dpSlideIn 0.35s linear both;
+}
+
+.megga-diapo--sortie .megga-diapo__slide {
+  animation: dpSlideOut 0.25s linear both;
+}
+
+.dp-crm {
+  background-color: var(--neutral-colors--200);
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: 20px;
+  overflow: hidden;
+  animation: dpCrmIn 0.8s var(--dp-ease) both;
+}
+
+.dp-chrome {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--neutral-colors--400);
+}
+
+.dp-urlbar {
+  flex: 0 0 420px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background-color: var(--neutral-colors--300);
+  border: 1px solid var(--neutral-colors--400);
+  font-size: 13px;
+  color: var(--neutral-colors--600);
+}
+
+.dp-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 14px 18px 0;
+}
+
+.dp-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--neutral-colors--500);
+}
+
+.dp-tab.is-on {
+  background-color: var(--neutral-colors--400);
+  color: var(--neutral-colors--1000);
+}
+
+/* ── La vue : le titre à gauche, la carte à droite ─────────────────── */
+
+.dp-view {
+  padding: 22px 26px 24px;
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  gap: 26px;
+  align-items: start;
+}
+
+/* Le bloc de titre est ferré à DROITE. La fenêtre déborde par la gauche : sa
+   moitié gauche est hors écran, et un texte aligné à gauche y disparaîtrait.
+   Ferré à droite, il se serre contre la carte, donc contre la partie visible. */
+.dp-view > div:first-child {
+  text-align: right;
+}
+
+.dp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--neutral-colors--600);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.dp-eyebrow i {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background-color: var(--primary-colors--100);
+}
+
+.dp-big {
+  font-size: 42px;
+  font-weight: 600;
+  line-height: 1.15em;
+  margin-bottom: 6px;
+  white-space: nowrap;
+}
+
+.dp-sub {
+  font-size: 14px;
+  color: var(--neutral-colors--500);
+  margin-bottom: 22px;
+  white-space: nowrap;
+}
+
+.dp-pace {
+  height: 8px;
+  border-radius: 999px;
+  background-color: var(--neutral-colors--400);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.dp-pace i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background-color: var(--primary-colors--100);
+  width: var(--dp-pace, 0);
+  animation: dpPace 1s var(--dp-ease) 0.7s both;
+}
+
+.dp-legend {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--neutral-colors--500);
+  margin-bottom: 24px;
+}
+
+.dp-chips {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.dp-chip {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dp-chip.is-primary {
+  background-color: var(--primary-colors--100);
+  color: var(--neutral-colors--1000);
+}
+
+.dp-chip.is-ghost {
+  border: 1px solid var(--neutral-colors--400);
+  color: var(--neutral-colors--800);
+}
+
+/* ── Cartes, KPI, lignes ───────────────────────────────────────────── */
+
+.dp-card {
+  background-color: var(--neutral-colors--300);
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  z-index: 2;
+}
+
+.dp-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.dp-card-title {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.dp-period {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background-color: var(--neutral-colors--400);
+  font-size: 12px;
+  color: var(--neutral-colors--800);
+}
+
+.dp-leg-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.dp-mini {
+  font-size: 12px;
+  color: var(--neutral-colors--600);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.dp-lower {
+  padding: 0 26px 26px;
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  gap: 26px;
+}
+
+.dp-lower .dp-kpis {
+  justify-content: flex-end;
+}
+
+.dp-lower .dp-kpi {
+  flex: 0 0 200px;
+}
+
+.dp-rowcard {
+  background-color: var(--neutral-colors--300);
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.dp-rowline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--neutral-colors--800);
+}
+
+.dp-rowline em {
+  font-style: normal;
+  margin-left: auto;
+  color: var(--neutral-colors--600);
+}
+
+.dp-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background-color: var(--neutral-colors--400);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--neutral-colors--600);
+  flex: none;
+}
+
+.dp-kpis {
+  display: flex;
+  gap: 16px;
+}
+
+.dp-kpi {
+  flex: 1;
+  background-color: var(--neutral-colors--300);
+  border: 1px solid var(--neutral-colors--400);
+  border-radius: 16px;
+  padding: 16px 18px;
+}
+
+.dp-kpi b {
+  display: block;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.15em;
+  margin-bottom: 2px;
+}
+
+.dp-kpi span {
+  font-size: 12px;
+  color: var(--neutral-colors--500);
+}
+
+.dp-spark {
+  margin-top: 10px;
+  display: block;
+}
+
+/* ── Les quatre corps de carte ─────────────────────────────────────── */
+
+.dp-tm {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  height: 252px;
+}
+
+.dp-tm > div {
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background-color: var(--neutral-colors--400);
+  animation: dpPop 0.5s var(--dp-ease) var(--d, 0s) both;
+}
+
+.dp-tm b {
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.dp-tm span {
+  font-size: 12px;
+  color: var(--neutral-colors--600);
+}
+
+.dp-tm .is-hot {
+  background-color: var(--primary-colors--100);
+  grid-row: 1 / 3;
+}
+
+.dp-tm .is-hot span {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.dp-cols {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  height: 228px;
+}
+
+.dp-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 9px;
+  text-align: center;
+}
+
+.dp-col .dp-bar {
+  display: block;
+  border-radius: 8px;
+  background-color: var(--neutral-colors--400);
+  transform-origin: bottom;
+  animation: dpGrow 0.7s var(--dp-ease) var(--d, 0s) both;
+}
+
+.dp-col.is-hot .dp-bar {
+  background-color: var(--primary-colors--100);
+}
+
+.dp-col b {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dp-col span {
+  font-size: 11.5px;
+  color: var(--neutral-colors--500);
+}
+
+.dp-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dp-frow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background-color: var(--neutral-colors--200);
+  border: 1px solid var(--neutral-colors--400);
+  animation: dpSlideLeft 0.5s var(--dp-ease) var(--d, 0s) both;
+}
+
+.dp-thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  flex: none;
+  background-image: linear-gradient(135deg, var(--neutral-colors--400), #2a2a2a);
+}
+
+.dp-frow b {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dp-frow span {
+  font-size: 12px;
+  color: var(--neutral-colors--500);
+}
+
+.dp-heart {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  background-color: var(--primary-colors--100);
+  animation: dpPopIn 0.4s var(--dp-ease) var(--d, 0s) both;
+}
+
+.dp-pct {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--system-colors--blue-300);
+}
+
+/* Chiffres alignés en colonne : les tabulaires évitent que « CHF 1'840'000 »
+   tremble d'une vue à l'autre pendant le fondu. */
+.dp-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Les mouvements ────────────────────────────────────────────────── */
+
+.dp-rise {
+  animation: dpRise 0.6s var(--dp-ease) var(--d, 0s) both;
+}
+
+/* Tracé qui se dessine. `pathLength="1"` normalise la longueur du chemin :
+   sans lui il faudrait mesurer chaque courbe en JavaScript pour connaître son
+   `stroke-dasharray`, et une valeur trop courte laisse le trait tronqué. */
+.dp-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: dpDraw var(--dur, 1.1s) ease-out var(--d, 0s) both;
+}
+
+.dp-fade {
+  animation: dpFade var(--dur, 0.6s) linear var(--d, 0s) both;
+}
+
+.dp-scale {
+  transform: scale(0);
+  transform-origin: center;
+  animation: dpScale 0.35s var(--dp-ease) var(--d, 0s) both;
+}
+
+@keyframes dpRise {
+  from { opacity: 0; transform: translateY(26px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes dpCrmIn {
+  from { opacity: 0; transform: translateX(-120px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes dpPace {
+  from { width: 0; }
+  to   { width: var(--dp-pace, 0); }
+}
+
+@keyframes dpPop {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes dpPopIn {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
+@keyframes dpGrow {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+@keyframes dpSlideLeft {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes dpDraw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes dpFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes dpScale {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
+@keyframes dpSlideIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes dpSlideOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* ── Sous 991 px : la fenêtre passe SOUS le formulaire ─────────────── */
+
+/* `.section-full-image-left.sign-up` quitte l'absolu à cette largeur (cf.
+   styles.css) : la capture se range sous le formulaire au lieu de l'accompagner.
+   Le cadrage change avec elle — c'est le seul endroit où ce port s'écarte de la
+   maquette, qui ne compose que le bureau.
+ *
+ * Ce que le gabarit faisait ici — `width: 140%` et `right: 44%` — recadrait une
+ * IMAGE : la décaler pour en montrer un morceau flatteur. La fenêtre du
+ * diaporama n'est pas une image, elle a une partie qui porte l'information (la
+ * carte de droite, 440 px) et une qui n'en porte plus dès qu'elle sort du cadre
+ * (le bloc de titre, ferré à droite contre la carte). Gardé tel quel, le décalage
+ * de 44 % rognait la carte et poussait le titre hors champ : sur un téléphone il
+ * ne restait qu'un tronçon illisible, coupé du mauvais côté.
+ *
+ * On reprend donc la boîte en plein cadre et on laisse la fenêtre déborder par la
+ * GAUCHE, comme au bureau — le débord est coupé par l'`overflow: hidden` de la
+ * section, donc sans défilement horizontal. Le retrait droit de la carte (27 px,
+ * bordure + rembourrage de la vue) fait la gouttière. */
+@media screen and (max-width: 991px) {
+  .section-full-image-left.sign-up {
+    width: 100%;
+    right: auto;
+  }
+
+  /* La boîte n'a plus de hauteur imposée par la section, et une boîte réduite par
+     `transform` occupe TOUJOURS sa place d'avant dans le flux — d'où le grand
+     vide noir qu'il faut reprendre ici. */
+  .megga-diapo {
+    margin-top: 0;
+    margin-right: 0;
+    margin-bottom: calc((var(--dp-scale, 1) - 1) * var(--dp-h, 660px));
+  }
+}
+
+/* ── Mouvement réduit ──────────────────────────────────────────────── */
+
+/* Tout arrive posé, et le diaporama ne tourne plus (le script lit la même
+   requête média et s'arrête sur la première vue) : une capture qui se remplace
+   toute seule est exactement ce que ce réglage demande d'éviter. */
+@media (prefers-reduced-motion: reduce) {
+  .megga-diapo *,
+  .megga-diapo__slide {
+    animation: none !important;
+  }
+
+  .dp-pace i { width: var(--dp-pace, 0); }
+  .dp-draw   { stroke-dashoffset: 0; }
+  .dp-scale  { transform: none; }
+}
