@@ -1138,7 +1138,7 @@ function DetailSection({ title, icon: Icon, children }: { title: string; icon: t
 /** Tiroir de détail d'un dossier — createPortal(document.body), z-[100] (règle DS
  *  « modals toujours en portail »). Assemble raisons, checks, personnes, historique
  *  et les 4 actions. */
-function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: () => void }) {
+function KybReviewPager({ row, onClose }: { row: KybReviewQueueRow; onClose: () => void }) {
   const { t } = useTranslation('admin')
   const { sp, tones } = useAdminSurfaces()
   const toast = useToast()
@@ -1588,6 +1588,23 @@ export default function AdminKybReviewPage() {
   // l'écrase).
   const drawerRow = rows.find((r) => r.agencyId === selectedAgencyId) ?? null
 
+  // ⛔ LE DÉTAIL REMPLACE LA FILE, il ne s'ajoute pas sous elle. Le tiroir était un
+  // portail : il flottait, donc son point de rendu n'avait aucune importance. Le pager,
+  // lui, est dans le flux — rendu à la suite de la file, il laissait la liste au-dessus
+  // et empilait ses deux pages faute de hauteur bornée. Constaté au banc, pas déduit.
+  if (drawerRow) {
+    return (
+      // `h-full` jusqu'ici, sans quoi le pager n'a pas de hauteur DÉFINIE et ne masque
+      // rien : la chaîne du shell est bornée (100vh -> flex-1 -> frame 100 %), mais elle
+      // se rompt au premier maillon qui repasse en hauteur automatique.
+      <PageTransition className="h-full">
+        <div className="max-w-5xl mx-auto h-full min-h-0">
+          <KybReviewPager row={drawerRow} onClose={() => setSelectedAgencyId(null)} />
+        </div>
+      </PageTransition>
+    )
+  }
+
   return (
     <PageTransition>
       <div className="max-w-3xl mx-auto space-y-5">
@@ -1636,9 +1653,6 @@ export default function AdminKybReviewPage() {
         </div>
       </div>
 
-      {drawerRow && (
-        <KybReviewDrawer row={drawerRow} onClose={() => setSelectedAgencyId(null)} />
-      )}
     </PageTransition>
   )
 }
