@@ -254,17 +254,31 @@ export function buildAxData(
     {
       label: t('analytics.kpi.volume'),
       value: (cockpit.volume_signed && cockpit.volume_signed > 0) ? formatCHF(cockpit.volume_signed) : 'CHF —',
-      // pas de N-1 de volume calculé : on n'affiche PAS delta_deals (variation du NOMBRE
-      // de deals) à côté d'un montant CHF — ce serait un delta trompeur.
+      // pas de N-1 de volume calculé : on n'affiche PAS `delta_deals` (variation
+      // en % du nombre de deals) à côté d'un montant CHF — ce serait un delta
+      // trompeur, il ne parle pas de la même grandeur.
       delta: 0,
       spark: volumeSpark,
     },
     {
       label: t('analytics.kpi.transactions'),
       value: String(cockpit.deals ?? 0),
+      /**
+       * ⛔ `delta_deals` EST UN POURCENTAGE, et il s'affichait comme un COMPTE.
+       *
+       * Le SQL rend `ROUND((deals − deals_prev) * 100 / deals_prev)` — une
+       * variation en %, pas un écart de deals. La tuile portait `abs: true`, qui
+       * masque le suffixe : sur « 12 transactions », un `delta_deals` de 2 se
+       * lisait « +2 » — donc « deux deals de plus », alors que la donnée dit
+       * « +2 % ». Le commentaire de la tuile au-dessus portait la même
+       * méprise, et c'est probablement lui qui a fait poser `abs`.
+       *
+       * ⚠ Une lecture du seul client ne pouvait pas trancher : les deux
+       * interprétations rendent un petit entier plausible à côté d'un compte.
+       * L'oracle est le SQL — `20260614150000_analytics_rpcs.sql`.
+       */
       delta: cockpit.delta_deals ?? 0,
       spark: [],
-      abs: true,
     },
     {
       label: t('analytics.kpi.avgCommission'),
@@ -277,9 +291,7 @@ export function buildAxData(
     {
       label: t('analytics.kpi.conversionRate'),
       value: conversion === null || conversion === undefined ? t('analytics.insufficientData') : `${conversion} %`,
-      delta: (conversion !== null && conversion !== undefined && convPrev !== null && convPrev !== undefined)
-        ? conversion - convPrev
-        : 0,
+      delta: deltaPts(conversion, convPrev),
       spark: [],
       pts: true,
     },
@@ -340,9 +352,47 @@ export function buildAxData(
   }
 }
 
+/* ── Les deux deltas, côte à côte ─────────────────────────────────────────────
+ *
+ * ⚠ DEUX FONCTIONS, PAS UNE : elles ne calculent pas la même chose. `deltaPct`
+ * rend une variation RELATIVE en % (« ce canal a fait 20 % de plus »),
+ * `deltaPts` un écart ABSOLU en points entre deux pourcentages (« le taux est
+ * passé de 21 % à 26 %, soit +5 points »). Les fondre donnerait une variation
+ * relative d'un pourcentage — un nombre que personne ne sait lire.
+ *
+ * Ce qu'elles ont en commun est la seule chose qui compte ici : elles ARRONDISSENT
+ * à la frontière. Tout delta qui entre dans `AxKpi.delta` ou `AxSource.delta`
+ * passe par l'une des deux ; un nouveau delta a désormais un endroit évident où
+ * aller, au lieu d'une soustraction posée en ligne.
+ */
+
+/** Variation RELATIVE, en % — `prev` nul ⇒ 100 % si l'on part de zéro. */
 function deltaPct(curr: number, prev: number): number {
   if (!prev) return curr > 0 ? 100 : 0
   return Math.round(((curr - prev) / prev) * 100)
+}
+
+/**
+ * Écart ABSOLU entre deux pourcentages, en POINTS — arrondi, et nul si l'une
+ * des deux valeurs manque.
+ *
+ * ⛔ L'ARRONDI EST LE POINT. L'écart s'écrivait `conversion - convPrev`, en
+ * ligne, sans arrondi : la seule soustraction du fichier qui faisait CONFIANCE
+ * à la précision de son entrée. Le RPC rend aujourd'hui deux entiers
+ * (`ROUND(…)::int`), donc la production n'a jamais vu le défaut — mais un
+ * flottant de chaque côté suffit à afficher « +0.0500000000000000 pt »
+ * (mesuré sur le banc `/dev/crm`, dont la fixture portait des ratios). Une
+ * garde de rendu ne l'aurait pas attrapé : la pilule était peinte correctement,
+ * c'est son CONTENU qui était faux.
+ *
+ * ⚠ Arrondi à l'ENTIER, comme `deltaPct`, parce que la VALEUR comparée est un
+ * entier (`ROUND(n_signed * 100 / total)::int`). Un delta plus précis que la
+ * valeur qu'il commente serait un faux gain. Le jour où le RPC rendrait des
+ * décimales, c'est ici qu'il faut revenir.
+ */
+function deltaPts(curr: number | null | undefined, prev: number | null | undefined): number {
+  if (curr === null || curr === undefined || prev === null || prev === undefined) return 0
+  return Math.round(curr - prev)
 }
 
 // Ré-exporté pour le typage du Drawer dégradé (records null).

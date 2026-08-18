@@ -287,8 +287,21 @@ const AX_COCKPIT = {
     { name: 'Cologny · villa', stage: 'offre', amount: 61_000, price_missing: false, pct_default: true },
   ],
   deals: 12, n_signed: 3, volume_signed: 2_800_000,
-  conversion: 0.26, conversion_prev: 0.21,
-  delta_deals: 2, velocity: 34, kyc_risk: 1, kyc_urgent: 0, kyc_risk_prev: 2,
+  /**
+   * ⛔ DES ENTIERS, PAS DES RATIOS — la fixture portait `0.26` / `0.21` et le
+   * banc affichait « 0.26 % » comme taux de conversion, puis « +0.05 pt » de
+   * variation. Le RPC rend `ROUND(n_signed * 100 / total)::int` : un POURCENTAGE
+   * ENTIER (26, 21).
+   *
+   * ⚠ C'est le mode d'échec que l'en-tête de ce fichier décrit pour les clés
+   * ABSENTES, pris par l'autre bout : ici la clé est là, du bon TYPE, et c'est
+   * son UNITÉ qui diffère. Recopier une interface champ par champ ne l'attrape
+   * pas — `number` accepte les deux. L'oracle est le SQL, pas le TypeScript.
+   */
+  conversion: 26, conversion_prev: 21,
+  // Idem : `delta_deals` est une VARIATION EN % (ROUND((deals − prev) * 100 / prev)),
+  // pas un écart de deals. 12 deals contre 10 le mois d'avant ⇒ +20 %.
+  delta_deals: 20, velocity: 34, kyc_risk: 1, kyc_urgent: 0, kyc_risk_prev: 2,
 }
 
 const AX_OBJECTIF = {
