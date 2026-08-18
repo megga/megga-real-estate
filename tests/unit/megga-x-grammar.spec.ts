@@ -957,9 +957,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/propertyx', { hors: 2, total: 3 }],
   ['src/components/skeletons', { hors: 8, total: 12 }],
   ['src/components/ui', { hors: 0, total: 29 }],
-  // 464 -> 460 (18.08.2026) : le tiroir latéral de la revue KYB a cédé la place à un
-  // pager en deux pages, et ses littéraux sont partis avec lui. Le cliquet redescend.
-  ['src/pages/admin', { hors: 225, total: 460 }],
+  // 464 -> 461 (18.08.2026) : le tiroir latéral de la revue KYB a cédé la place à un
+  // pager en deux pages. Net de -3 : le tiroir emporte ses littéraux, la nouvelle mise en
+  // page en ramène quelques-uns (largeur du détail, hauteurs du track). Le cliquet
+  // descend quand même — c'est ce qu'il demande d'une zone qui maigrit.
+  ['src/pages/admin', { hors: 225, total: 461 }],
   ['src/pages/agent', { hors: 331, total: 936 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 68, total: 259 }],
