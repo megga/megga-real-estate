@@ -17,10 +17,22 @@
  * et le balisage des deux jumeaux doit rester identique — sinon la bascule
  * HTML → React clignote.
  *
+ * ⚠ « DEUX jumeaux » sous-estimait le problème : sur le trajet d'arrivée, cet
+ * écran est monté jusqu'à QUATRE fois de suite — jumeau HTML, `AuthCallbackPage`,
+ * le gate `loading` de `ProtectedRoute`, puis `BootCurtain`. Un balisage
+ * identique ne suffit donc pas, parce qu'un élément NEUF redémarre toujours ses
+ * animations CSS à zéro : le logo réapparaissait à chaque relais, la barre
+ * resautait à gauche, et le retard de la mention se réarmait — si bien qu'elle
+ * pouvait ne jamais s'afficher avant que le rideau ne se lève. C'est ce que
+ * `--megga-boot-t` corrige : l'horloge de l'écran est comptée depuis le document,
+ * pas depuis le montage, et chaque relais reprend la course en cours.
+ *
  * Texte en français seul, comme la vitrine et l'écran de connexion d'où l'agent
  * arrive : le jumeau HTML n'a pas accès à i18next, et deux libellés divergents
  * feraient précisément le clignotement qu'on cherche à supprimer.
  */
+import { useState } from 'react'
+import type { CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
 
 interface Props {
@@ -28,10 +40,36 @@ interface Props {
   className?: string
 }
 
-/** Écran plein cadre : logo MEGGA, barre de progression, mention retardée. */
+/**
+ * Temps écoulé depuis la première peinture de l'écran, en millisecondes.
+ *
+ * L'origine est estampillée par le script du `<head>` d'index.html, sur le même
+ * trajet qui pose `megga-booting`. Absente — page hors trajet d'arrivée, test
+ * unitaire, rendu serveur — on renvoie 0 : cet écran est alors le premier à
+ * l'affiche et doit jouer son entrée normalement.
+ */
+function ecouleDepuisLaPremiereFrame(): number {
+  if (typeof window === 'undefined' || typeof performance === 'undefined') return 0
+  const origine = (window as { __MEGGA_BOOT_T0?: number }).__MEGGA_BOOT_T0
+  if (typeof origine !== 'number') return 0
+  return Math.max(0, Math.round(performance.now() - origine))
+}
+
+/** Écran plein cadre : logo MEGGA, barre de progression, mention. */
 export default function BootSplash({ className }: Props) {
+  // Gelé au montage, et surtout PAS recalculé à chaque rendu : `BootCurtain`
+  // re-rend cet écran pour lui passer `is-done`, et une horloge qui bougerait à
+  // ce moment-là ferait repartir les animations pendant le fondu de sortie —
+  // le saut qu'on vient de supprimer, réintroduit à la dernière image.
+  const [horloge] = useState(ecouleDepuisLaPremiereFrame)
+
   return (
-    <div className={cn('megga-boot', className)} role="status" aria-live="polite">
+    <div
+      className={cn('megga-boot', className)}
+      style={{ '--megga-boot-t': `${horloge}ms` } as CSSProperties}
+      role="status"
+      aria-live="polite"
+    >
       {/* Halo bas — le dégradé du pied de page vitrine, servi depuis public/.
           Surtout pas en data-URI : il pèse 287 Ko et index.html est sur le
           chemin critique de tout le reste. En image de fond il ne retarde rien,

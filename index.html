@@ -89,6 +89,19 @@
         var p = location.pathname;
         if (p === '/' || p === '/auth/callback' || p.indexOf('/dashboard') === 0) {
           document.documentElement.classList.add('megga-booting');
+          // Origine de l'HORLOGE PARTAGÉE de l'écran d'arrivée. Le même écran est
+          // monté jusqu'à QUATRE fois de suite sur le trajet d'arrivée — jumeau
+          // HTML, AuthCallbackPage, le gate `loading` de ProtectedRoute, puis
+          // BootCurtain — et un élément neuf redémarre TOUJOURS ses animations
+          // CSS à zéro. Sans cette origine, chaque relais refaisait apparaître le
+          // logo, remettait la barre à gauche et réarmait le retard de la mention.
+          // Les jumeaux React s'en servent pour poser un `animation-delay` NÉGATIF
+          // et reprendre l'animation où le précédent l'avait laissée.
+          // Estampillé ici et pas via `performance.now()` seul : l'origine de
+          // celui-ci est le début de la navigation, donc le TÉLÉCHARGEMENT du
+          // document en fait partie — sur un lien lent, les jumeaux seraient en
+          // avance d'une demi-seconde sur le premier.
+          window.__MEGGA_BOOT_T0 = performance.now();
         }
       })();
     </script>
@@ -144,7 +157,8 @@
         background-size: cover;
         /* Un peu plus lente et décalée que le logo : le halo s'installe derrière
            lui, et le fondu masque l'arrivée tardive de l'image. */
-        animation: megga-boot-in 0.7s ease 0.15s both;
+        animation: megga-boot-in 0.7s ease both;
+        animation-delay: calc(0.15s - var(--megga-boot-t, 0s));
       }
       /* Le halo est positionné, donc il peindrait PAR-DESSUS le contenu en flux
          sur un écran court. On repasse le contenu au-dessus. */
@@ -158,6 +172,7 @@
         height: auto;
         fill: currentColor;
         animation: megga-boot-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+        animation-delay: calc(0s - var(--megga-boot-t, 0s));
       }
 
       .megga-boot__bar {
@@ -177,6 +192,10 @@
         border-radius: 2px;
         background: #424bfb; /* vitrine --primary-colors--100 */
         animation: megga-boot-run 1.15s ease-in-out infinite;
+        /* Retard négatif = décalage de PHASE : la barre du relais reprend la
+           course là où celle du jumeau précédent en était, au lieu de resauter à
+           gauche. C'est ce saut que l'agent voyait deux ou trois fois. */
+        animation-delay: calc(0s - var(--megga-boot-t, 0s));
       }
 
       .megga-boot__hint {
@@ -185,9 +204,17 @@
         font-weight: 500;
         letter-spacing: 0.01em;
         color: #686868; /* vitrine --neutral-colors--500 */
-        /* Retardée : une connexion rapide passe sans texte clignotant, une lente
-           dit à l'agent ce qui se passe. */
-        animation: megga-boot-in 0.4s ease 0.9s both;
+        /* Décalée derrière le logo — c'est le dernier temps de l'entrée.
+           Le retard valait 0,9 s, du temps où l'écran pouvait passer en un
+           éclair et où l'on voulait épargner un texte clignotant aux connexions
+           rapides. Ce cas n'existe plus : `MIN_VISIBLE_MS` (BootCurtain) tient
+           l'écran au moins 1,6 s, donc la mention s'affiche TOUJOURS. Elle n'avait
+           plus que 0,7 s à l'écran — et zéro dès qu'un relais réarmait son retard,
+           ce qui est exactement « je ne vois pas la barre entièrement ». À 0,55 s
+           elle reste lisible une seconde pleine, plancher garanti.
+           ⚠ Doit rester sous MIN_VISIBLE_MS, cf. tests/unit/boot-curtain-timings. */
+        animation: megga-boot-in 0.4s ease both;
+        animation-delay: calc(0.55s - var(--megga-boot-t, 0s));
       }
 
       @keyframes megga-boot-in {
