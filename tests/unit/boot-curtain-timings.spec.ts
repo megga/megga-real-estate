@@ -125,6 +125,24 @@ describe('horloge partagée de l’écran d’arrivée', () => {
     expect(tete.indexOf('megga-booting')).toBeLessThan(tete.indexOf('__MEGGA_BOOT_T0'))
   })
 
+  it('précharge le halo sur le trajet d’arrivée, et là seulement', () => {
+    const html = readFileSync(INDEX, 'utf8')
+    const tete = html.slice(0, html.indexOf('</head>'))
+
+    // Image de FOND : sans préchargement, sa requête ne part qu'une fois
+    // `.megga-boot__glow` mis en page, donc après l'analyse du corps.
+    expect(tete, 'le halo n’est plus préchargé').toMatch(/rel\s*=\s*'preload'/)
+    expect(tete).toMatch(/megga-boot-glow\.png/)
+
+    // ⚠ Conditionnel : une balise <link rel=preload> STATIQUE téléchargerait
+    // 294 Ko sur chaque page publique, où cet écran n'existe pas, et signalerait
+    // un « preloaded but not used » dans une console que 35 tests E2E veulent vierge.
+    expect(html, 'préchargement statique : il partirait sur toutes les pages')
+      .not.toMatch(/<link[^>]*rel="preload"[^>]*megga-boot-glow/)
+    // Dans le même bloc que le gate, donc sous la même condition de chemin.
+    expect(tete.indexOf('megga-booting')).toBeLessThan(tete.indexOf('megga-boot-glow.png'))
+  })
+
   it('fait lire l’horloge au jumeau React', () => {
     const source = readFileSync(SPLASH, 'utf8')
     expect(source).toContain('__MEGGA_BOOT_T0')

@@ -102,6 +102,21 @@
           // document en fait partie — sur un lien lent, les jumeaux seraient en
           // avance d'une demi-seconde sur le premier.
           window.__MEGGA_BOOT_T0 = performance.now();
+          // Le halo est demandé ICI, pas quand le style l'atteint : c'est une
+          // image de FOND, donc le navigateur ne la découvre qu'une fois
+          // `.megga-boot__glow` construit et mis en page, après l'analyse du
+          // corps. Le préchargement avance ce départ à l'analyse de l'en-tête.
+          //
+          // ⚠ Conditionnel, et c'est pour ça qu'il est en script plutôt qu'en
+          // balise : hors du trajet d'arrivée l'écran n'existe pas, et une
+          // balise statique ferait télécharger 294 Ko pour rien sur toutes les
+          // pages publiques — en signalant au passage un « preloaded but not
+          // used » dans la console, que 35 tests E2E exigent vierge.
+          var halo = document.createElement('link');
+          halo.rel = 'preload';
+          halo.as = 'image';
+          halo.href = '/megga-boot-glow.png';
+          document.head.appendChild(halo);
         }
       })();
     </script>
@@ -156,7 +171,14 @@
         background-repeat: no-repeat;
         background-size: cover;
         /* Un peu plus lente et décalée que le logo : le halo s'installe derrière
-           lui, et le fondu masque l'arrivée tardive de l'image. */
+           lui.
+           ⚠ « le fondu masque l'arrivée tardive de l'image » était une promesse
+           trop large : le fondu est fini à 0,85 s (0,15 + 0,7), donc il ne masque
+           que ce qui arrive AVANT. Au-delà, l'image se pose d'un coup, à pleine
+           opacité. Le préchargement posé dans le <head> avance le départ de la
+           requête ; il ne raccourcit pas le transfert des 294 Ko. Pour supprimer
+           vraiment le à-coup il faudrait lier ce fondu au chargement de l'image
+           plutôt qu'à une horloge — non fait, et assumé. */
         animation: megga-boot-in 0.7s ease both;
         animation-delay: calc(0.15s - var(--megga-boot-t, 0s));
       }
