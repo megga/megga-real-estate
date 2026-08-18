@@ -29,7 +29,7 @@
  *
  * HABILLAGE : MEGGA X. Suppose d'être rendu dans un conteneur `<MeggaX>`.
  */
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MxButton, MxField, MxInput, MxLink, MxSelect } from '@/components/megga-x'
 import { useAuth } from '@/hooks/useAuth'
@@ -106,6 +106,31 @@ function monthBounds(month: Date): { from: string; to: string } {
   }
 }
 
+/** Les quatre champs sans lesquels la réservation ne peut pas partir. */
+export type ChampRequis = 'firstName' | 'lastName' | 'email' | 'phone'
+
+/** L'ordre est celui de LECTURE du formulaire : c'est lui qui décide où va le focus. */
+// eslint-disable-next-line react-refresh/only-export-components -- règle pure testée directement (tests/unit/onboarding-call-required.spec.ts), même motif que resolveDeclaredIdentityGap.
+export const CHAMPS_REQUIS: readonly ChampRequis[] = ['firstName', 'lastName', 'email', 'phone']
+
+/**
+ * Lesquels de ces champs sont vides, dans l'ordre du formulaire.
+ *
+ * ⛔ CETTE FONCTION EXISTE PARCE QUE LA RÈGLE ÉTAIT MUETTE. Jusqu'au 18 août 2026 elle
+ * vivait inline, dans le seul `disabled` du bouton Confirmer : un dirigeant qui avait
+ * choisi son créneau et répondu aux quatre questions tombait sur un bouton mort, sans
+ * une marque rouge ni une phrase. Le TÉLÉPHONE était le champ manquant — en pratique le
+ * seul qu'on puisse laisser vide, les trois autres étant préremplis et verrouillés dès
+ * que l'identité est vérifiée. Un bouton grisé dit « non », jamais « pourquoi ».
+ *
+ * Sortie d'ici, la règle se teste sans monter l'écran, et le composant s'en sert pour
+ * DIRE ce qui manque au lieu de se contenter de refuser.
+ */
+// eslint-disable-next-line react-refresh/only-export-components -- règle pure testée directement (tests/unit/onboarding-call-required.spec.ts), même motif que resolveDeclaredIdentityGap.
+export function champsRequisManquants(valeurs: Record<ChampRequis, string>): ChampRequis[] {
+  return CHAMPS_REQUIS.filter((cle) => (valeurs[cle] ?? '').trim() === '')
+}
+
 export default function OcBooking({ onStateChange, mode = 'immediate', choice = null, onChoiceChange, secondaryAction }: OcBookingProps) {
   const { t, i18n } = useTranslation('onboarding')
   const deferred = mode === 'deferred'
@@ -164,6 +189,23 @@ export default function OcBooking({ onStateChange, mode = 'immediate', choice = 
     if (iso) setPaysTel(iso)
     setNumeroLocal(local)
   }
+  // Pour amener l'œil ET le focus sur le premier champ vide au clic : un message
+  // rouge hors de l'écran ne corrige rien.
+  const refPrenom = useRef<HTMLInputElement>(null)
+  const refNom = useRef<HTMLInputElement>(null)
+  const refEmail = useRef<HTMLInputElement>(null)
+  const refTel = useRef<HTMLInputElement>(null)
+  /**
+   * Ce que le dernier clic a trouvé vide. Vide tant qu'on n'a rien tenté : on
+   * n'accuse personne d'un champ vide avant qu'il ait dit avoir fini.
+   *
+   * ⛔ DÉCLARÉ ICI, ET PAS PRÈS DE SON USAGE : la carte « créneau retenu » rend un
+   * RETOUR ANTICIPÉ quelques lignes plus bas. Un `useState` posé après lui ne
+   * s'exécuterait pas sur ce rendu, le nombre de hooks changerait d'un rendu à
+   * l'autre, et React ferait tomber l'écran (« rendered fewer hooks than
+   * expected »). Les consts qui le consomment, eux, peuvent rester en bas.
+   */
+  const [manquants, setManquants] = useState<readonly string[]>([])
   const telPrerempli = useRef(choice?.phone != null)
   const [note, setNote] = useState(() => choice?.note ?? '')
 
@@ -351,7 +393,32 @@ export default function OcBooking({ onStateChange, mode = 'immediate', choice = 
     { cle: 'priority', options: ['mandates', 'buyers', 'admin', 'compliance'] },
   ] as const
 
-  const identiteComplete = prenom.trim() !== '' && nom.trim() !== '' && email.trim() !== '' && phone.trim() !== ''
+
+  /**
+   * Les champs exigés qui sont vides — nommés, pour que l'écran puisse le DIRE.
+   *
+   * ⛔ POURQUOI CETTE MÉCANIQUE EXISTE. Jusqu'au 18 août 2026, `identiteComplete`
+   * ne faisait que griser le bouton Confirmer. Un dirigeant a choisi son créneau,
+   * répondu aux quatre questions, et s'est trouvé devant un bouton mort : aucune
+   * marque rouge, aucune phrase, aucun moyen de savoir que le TÉLÉPHONE manquait.
+   * Les trois autres champs étant préremplis et verrouillés dès que l'identité est
+   * vérifiée, c'est en pratique le seul qu'on puisse laisser vide — donc le seul
+   * cul-de-sac possible, et il était muet.
+   *
+   * ⚠ Le commentaire de l'intro du formulaire l'annonçait depuis le 9 août :
+   * « l'écran ne l'annonce nulle part ». C'était vrai, et c'était le défaut.
+   */
+  const CHAMPS_EXIGES = [
+    { cle: 'firstName', valeur: prenom, ref: refPrenom },
+    { cle: 'lastName', valeur: nom, ref: refNom },
+    { cle: 'email', valeur: email, ref: refEmail },
+    { cle: 'phone', valeur: numeroLocal, ref: refTel },
+  ] as const satisfies ReadonlyArray<{ cle: ChampRequis; valeur: string; ref: RefObject<HTMLInputElement | null> }>
+
+  // Un champ qu'on vient de remplir cesse d'être en faute IMMÉDIATEMENT, sans
+  // attendre un second clic — sinon le rouge survit à sa cause.
+  const enFaute = (cle: string) =>
+    manquants.includes(cle) && (CHAMPS_EXIGES.find((c) => c.cle === cle)?.valeur.trim() ?? '') === ''
 
   /* Volet gauche — l'hôte. IDENTIQUE d'un écran à l'autre, à ceci près que le créneau
      retenu s'y ajoute au second : c'est ce qui fait que passer au formulaire ne
@@ -459,22 +526,26 @@ export default function OcBooking({ onStateChange, mode = 'immediate', choice = 
               </p>
 
               <div className="grid-2-columns mg-top-small">
-                <MxField label={t('call.form.firstName')}>
-                  {(id) => <MxInput id={id} value={prenom} onChange={(e) => setPrenom(e.target.value)} readOnly={identiteVerrouillee} />}
+                <MxField label={t('call.form.firstName')} error={enFaute('firstName') ? t('call.form.required') : null}>
+                  {(id) => <MxInput id={id} ref={refPrenom} value={prenom} onChange={(e) => setPrenom(e.target.value)} readOnly={identiteVerrouillee} />}
                 </MxField>
-                <MxField label={t('call.form.lastName')}>
-                  {(id) => <MxInput id={id} value={nom} onChange={(e) => setNom(e.target.value)} readOnly={identiteVerrouillee} />}
+                <MxField label={t('call.form.lastName')} error={enFaute('lastName') ? t('call.form.required') : null}>
+                  {(id) => <MxInput id={id} ref={refNom} value={nom} onChange={(e) => setNom(e.target.value)} readOnly={identiteVerrouillee} />}
                 </MxField>
               </div>
 
-              <MxField className="mg-top-4x-extra-small" label={t('call.form.email')}>
-                {(id) => <MxInput id={id} type="email" value={email} onChange={(e) => setEmail(e.target.value)} readOnly={emailVerrouille} />}
+              <MxField className="mg-top-4x-extra-small" label={t('call.form.email')} error={enFaute('email') ? t('call.form.required') : null}>
+                {(id) => <MxInput id={id} ref={refEmail} type="email" value={email} onChange={(e) => setEmail(e.target.value)} readOnly={emailVerrouille} />}
               </MxField>
 
               {/* Le SEUL champ qui n'est pas prérempli : le profil ne porte pas de numéro
                   WhatsApp, et supposer que le téléphone du compte en est un enverrait les
                   confirmations dans le vide. */}
-              <MxField className="mg-top-4x-extra-small" label={t('call.form.whatsapp')}>
+              <MxField
+                className="mg-top-4x-extra-small"
+                label={t('call.form.whatsapp')}
+                error={enFaute('phone') ? t('call.form.required') : null}
+              >
                 {(id) => (
                   // `mx-equal-columns` (point 13) : sans lui, `1fr` cède devant la largeur
                   // intrinsèque du <select>, et la colonne du numéro se fait écraser par
@@ -490,7 +561,7 @@ export default function OcBooking({ onStateChange, mode = 'immediate', choice = 
                         décoratif, il diffère d'un pays à l'autre et c'est lui qu'on
                         recopie. Vide pour un pays dont le format n'a pas été vérifié —
                         cf. PHONE_EXAMPLES, un exemple faux vaut moins que pas d'exemple. */}
-                    <MxInput id={id} type="tel" inputMode="tel" value={numeroLocal} onChange={(e) => setNumeroLocal(e.target.value)} placeholder={PHONE_EXAMPLES[paysTel] ?? ''} />
+                    <MxInput id={id} ref={refTel} type="tel" inputMode="tel" value={numeroLocal} onChange={(e) => setNumeroLocal(e.target.value)} placeholder={PHONE_EXAMPLES[paysTel] ?? ''} />
                   </div>
                 )}
               </MxField>
@@ -532,6 +603,22 @@ export default function OcBooking({ onStateChange, mode = 'immediate', choice = 
                   type="button"
                   onClick={() => {
                     if (!selectedSlot) return
+                    // ⛔ LA VALIDATION EST ICI, PLUS DANS `disabled`. Un bouton grisé dit
+                    // « non » sans jamais dire « pourquoi » : c'est ce qui a bloqué un
+                    // dirigeant sur un téléphone manquant, écran muet. Le clic devient donc
+                    // le moment où l'écran répond.
+                    const vides = champsRequisManquants(
+                      Object.fromEntries(CHAMPS_EXIGES.map((c) => [c.cle, c.valeur])) as Record<ChampRequis, string>,
+                    ).map((cle) => CHAMPS_EXIGES.find((c) => c.cle === cle)!)
+                    if (vides.length > 0) {
+                      setManquants(vides.map((c) => c.cle))
+                      // Le PREMIER dans l'ordre de lecture, jamais un autre : c'est celui
+                      // qu'on corrige d'abord, et le focus doit suivre l'œil.
+                      vides[0].ref.current?.focus()
+                      vides[0].ref.current?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                      return
+                    }
+                    setManquants([])
                     const saisie = {
                       slot: selectedSlot,
                       phone: phone.trim() || undefined,
@@ -547,7 +634,10 @@ export default function OcBooking({ onStateChange, mode = 'immediate', choice = 
                     }
                     book.mutate(saisie)
                   }}
-                  disabled={!selectedSlot || !identiteComplete || book.isPending}
+                  // ⚠ `identiteComplete` N'EST PLUS ICI — c'est tout l'objet du correctif.
+                  // Ne restent que les deux cas où cliquer n'aurait AUCUN sens : pas de
+                  // créneau retenu, ou un envoi déjà en vol.
+                  disabled={!selectedSlot || book.isPending}
                 >
                   {deferred
                     ? t('call.actions.choose')

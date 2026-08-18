@@ -17,7 +17,7 @@ import {
   identitySubmissionErrorCode,
   identitySubmissionErrorStep,
   canSubmitIdentity,
-  shouldResetAttestationLeavingRecap,
+  shouldResetAttestationLeavingLastStep,
   shouldShowIdentityWelcome,
   shouldDecideIdentityWelcome,
   resolveIdentityScreen,
@@ -33,12 +33,12 @@ import { IDENTITY_STEPS } from '@/components/crm-identity/tokens'
 describe('clampIdentityStep — borne la navigation à [0, nombre d étapes - 1]', () => {
   const COUNT = IDENTITY_STEPS.length
 
-  it('la coquille déclare bien les 5 étapes du parcours (signataire -> récapitulatif)', () => {
+  it('la coquille déclare bien les 4 étapes du parcours (signataire -> rendez-vous)', () => {
     // Cinq jusqu'au 03.08.2026 (retrait de « bénéficiaires effectifs »), quatre
-    // ensuite, cinq de nouveau depuis le 04.08.2026 : l'étape « rendez-vous » a été
-    // insérée en avant-dernière position, la réservation de l'appel d'accueil se
-    // faisant jusque-là APRÈS la soumission, sur une route à part.
-    expect(COUNT).toBe(5)
+    // ensuite, cinq de nouveau le 04.08.2026 (insertion de « rendez-vous »), et QUATRE
+    // depuis le 18.08.2026 : le récapitulatif a été retiré, le parcours se terminant
+    // désormais sur l'écran de confirmation et son lien de visioconférence.
+    expect(COUNT).toBe(4)
   })
 
   it('un pas normal (avancer ou reculer) passe tel quel', () => {
@@ -50,7 +50,7 @@ describe('clampIdentityStep — borne la navigation à [0, nombre d étapes - 1]
     expect(clampIdentityStep(-1, COUNT)).toBe(0)
   })
 
-  it('ne dépasse jamais la dernière étape (avancer depuis le récapitulatif)', () => {
+  it('ne dépasse jamais la dernière étape (avancer depuis le rendez-vous)', () => {
     expect(clampIdentityStep(COUNT, COUNT)).toBe(COUNT - 1)
     expect(clampIdentityStep(COUNT + 3, COUNT)).toBe(COUNT - 1)
   })
@@ -484,84 +484,62 @@ describe('identitySubmissionErrorStep — ramène l\'utilisateur à l\'étape fa
   })
 })
 
-describe('canSubmitIdentity — gate le bouton Soumettre de l\'étape 4 (récapitulatif)', () => {
+describe('canSubmitIdentity — gate le bouton Soumettre de la DERNIÈRE étape (rendez-vous)', () => {
   it('attestation non cochée -> jamais soumissible, même avec un signataire désigné', () => {
-    expect(canSubmitIdentity(false, 'person-1')).toBe(false)
+    expect(canSubmitIdentity(false, 'person-1', true)).toBe(false)
   })
 
   it('attestation cochée mais aucun signataire désigné -> jamais soumissible : la pièce déposée à l\'étape précédente resterait sans preuve, faute de p_related_person_id (brief tâche 7)', () => {
-    expect(canSubmitIdentity(true, null)).toBe(false)
+    expect(canSubmitIdentity(true, null, true)).toBe(false)
   })
 
   it('attestation cochée ET signataire désigné -> soumissible', () => {
-    expect(canSubmitIdentity(true, 'person-1')).toBe(true)
+    expect(canSubmitIdentity(true, 'person-1', true)).toBe(true)
   })
 
   it('ni l\'un ni l\'autre -> jamais soumissible', () => {
-    expect(canSubmitIdentity(false, null)).toBe(false)
+    expect(canSubmitIdentity(false, null, true)).toBe(false)
+  })
+
+  it('⛔ attestation cochée ET signataire désigné MAIS aucun créneau -> refusé', () => {
+    // Le garde du créneau vivait dans `canNext` tant que « Rendez-vous » n'était pas la
+    // dernière étape. Elle l'est devenue le 18.08.2026 avec le retrait du récapitulatif,
+    // et le pied de page n'y affiche plus Continuer mais Soumettre : sans ce report, on
+    // aurait pu attester puis envoyer un dossier sans le moindre rendez-vous.
+    expect(canSubmitIdentity(true, 'person-1', false)).toBe(false)
   })
 })
 
-describe('shouldResetAttestationLeavingRecap — un seul point de reset de l\'attestation, quel que soit le chemin de sortie du récapitulatif (revue tâche 7, point 1)', () => {
+describe('shouldResetAttestationLeavingLastStep — un seul point de reset de l\'attestation, quel que soit le chemin de sortie de la dernière étape (revue tâche 7, point 1)', () => {
   const COUNT = IDENTITY_STEPS.length
-  // Le récapitulatif est TOUJOURS la dernière étape : le désigner par COUNT - 1 plutôt
-  // que par un index en dur, sans quoi chaque étape ajoutée au parcours (rendez-vous,
-  // 04.08.2026) fait tomber ce bloc entier sur une constante périmée.
-  const RECAP = COUNT - 1
+  // L'attestation vit TOUJOURS sur la dernière étape : la désigner par COUNT - 1 plutôt
+  // que par un index en dur, sans quoi chaque mouvement du parcours (ajout de
+  // « rendez-vous » le 04.08.2026, retrait du récapitulatif le 18.08.2026) fait tomber ce
+  // bloc entier sur une constante périmée. Elle a changé d'écran deux fois ; la règle, non.
+  const DERNIERE = COUNT - 1
 
-  it('récapitulatif -> étape signataire (renvoi automatique après refus "signatory") -> reset', () => {
-    expect(shouldResetAttestationLeavingRecap(RECAP, 0, COUNT)).toBe(true)
+  it('dernière étape -> étape signataire (renvoi automatique après refus "signatory") -> reset', () => {
+    expect(shouldResetAttestationLeavingLastStep(DERNIERE, 0, COUNT)).toBe(true)
   })
 
-  it('récapitulatif -> étape agence (renvoi automatique après refus "legalName"/"legalForm"/"country") -> reset', () => {
-    expect(shouldResetAttestationLeavingRecap(RECAP, 1, COUNT)).toBe(true)
+  it('dernière étape -> étape agence (renvoi automatique après refus "legalName"/"legalForm"/"country") -> reset', () => {
+    expect(shouldResetAttestationLeavingLastStep(DERNIERE, 1, COUNT)).toBe(true)
   })
 
-  it('récapitulatif -> étape pièce d\'identité (bouton Précédent OU « Modifier » du récapitulatif, tous deux via goToStep) -> reset', () => {
-    expect(shouldResetAttestationLeavingRecap(RECAP, 2, COUNT)).toBe(true)
+  it('dernière étape -> étape pièce d\'identité (bouton Précédent, via goToStep) -> reset', () => {
+    expect(shouldResetAttestationLeavingLastStep(DERNIERE, 2, COUNT)).toBe(true)
   })
 
-  it('récapitulatif -> étape rendez-vous (bouton Précédent, ou « Modifier » de la section rendez-vous) -> reset', () => {
-    expect(shouldResetAttestationLeavingRecap(RECAP, 3, COUNT)).toBe(true)
+  it('re-clic sur la dernière étape déjà active (aucune navigation réelle) -> pas de reset', () => {
+    expect(shouldResetAttestationLeavingLastStep(DERNIERE, DERNIERE, COUNT)).toBe(false)
   })
 
-  it('re-clic sur le récapitulatif déjà actif (aucune navigation réelle) -> pas de reset', () => {
-    expect(shouldResetAttestationLeavingRecap(RECAP, RECAP, COUNT)).toBe(false)
+  it('arrivée SUR la dernière étape depuis la précédente -> pas de reset (rien à réinitialiser en y entrant)', () => {
+    expect(shouldResetAttestationLeavingLastStep(DERNIERE - 1, DERNIERE, COUNT)).toBe(false)
   })
 
-  it('arrivée SUR le récapitulatif depuis l\'étape précédente -> pas de reset (rien à réinitialiser en y entrant)', () => {
-    expect(shouldResetAttestationLeavingRecap(RECAP - 1, RECAP, COUNT)).toBe(false)
-  })
-
-  it('navigation entre deux étapes qui ne sont ni l\'une ni l\'autre le récapitulatif -> pas de reset', () => {
-    expect(shouldResetAttestationLeavingRecap(0, 1, COUNT)).toBe(false)
-    expect(shouldResetAttestationLeavingRecap(2, 1, COUNT)).toBe(false)
-  })
-
-  it('scénario complet de la revue : coche, soumission refusée (signataire manquant), retour étape 0, correction, ré-avance jusqu\'au récapitulatif -> l\'attestation est bien redemandée, jamais remise à true automatiquement', () => {
-    let attestationChecked = true // l'utilisateur avait coché avant de soumettre
-    let step = RECAP // au récapitulatif au moment du clic sur Soumettre
-
-    // handleSubmit échoue avec la cause "signatory" -> identitySubmissionErrorStep renvoie 0.
-    const targetStep = identitySubmissionErrorStep('signatory')
-    expect(targetStep).not.toBeNull()
-    if (shouldResetAttestationLeavingRecap(step, targetStep as number, COUNT)) attestationChecked = false
-    step = targetStep as number
-
-    expect(attestationChecked, 'déjà remise à zéro au moment du renvoi automatique').toBe(false)
-
-    // L'utilisateur corrige puis clique Continuer à chaque étape (next()) jusqu'à
-    // revenir au récapitulatif — rien ne doit jamais recocher l'attestation.
-    for (let i = 0; i < COUNT - 1; i += 1) {
-      // next() n'est plus qu'un bornage depuis le retrait de l'étape conditionnelle
-      // (bénéficiaires, 03.08.2026) : plus de nextIdentityStep, plus de saut à gérer.
-      const next = clampIdentityStep(step + 1, COUNT)
-      if (shouldResetAttestationLeavingRecap(step, next, COUNT)) attestationChecked = false
-      step = next
-    }
-
-    expect(step, 'de retour au récapitulatif').toBe(COUNT - 1)
-    expect(attestationChecked, 'jamais remise à true automatiquement : l\'utilisateur doit la recocher').toBe(false)
+  it('navigation entre deux étapes qui ne sont ni l\'une ni l\'autre la dernière -> pas de reset', () => {
+    expect(shouldResetAttestationLeavingLastStep(0, 1, COUNT)).toBe(false)
   })
 })
 

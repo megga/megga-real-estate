@@ -914,7 +914,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/auth-bento', { hors: 16, total: 28 }],
   ['src/components/crm-mobile', { hors: 228, total: 319 }],
   ['src/components/crm', { hors: 3, total: 3 }],
-  ['src/components/crm-identity', { hors: 1, total: 69 }],
+  // 69 -> 61 (18.08.2026) : le retrait de l'étape « Récapitulatif » a emporté ses
+  // littéraux avec elle. Le cliquet redescend, il ne se justifie pas.
+  ['src/components/crm-identity', { hors: 1, total: 61 }],
   ['src/components/crm-dossiers', { hors: 2, total: 3 }],
   ['src/components/crm-dossiers/audit', { hors: 3, total: 4 }],
   ['src/components/crm-dossiers/kyc', { hors: 10, total: 10 }],
