@@ -544,7 +544,7 @@ export default function OcBooking({ onStateChange, mode = 'immediate', choice = 
               <MxField
                 className="mg-top-4x-extra-small"
                 label={t('call.form.whatsapp')}
-                error={enFaute('phone') ? t('call.form.requiredPhone') : null}
+                error={enFaute('phone') ? t('call.form.required') : null}
               >
                 {(id) => (
                   // `mx-equal-columns` (point 13) : sans lui, `1fr` cède devant la largeur

@@ -333,8 +333,7 @@
       "whatsapp": "WhatsApp number",
       "dialCode": "Country code",
       "whatsappPlaceholder": "79 874 94 84",
-      "required": "This field is needed to confirm the appointment.",
-      "requiredPhone": "A number is needed so we can reach you on the day of the call."
+      "required": "Required field"
     },
     "actions": {
       "confirm": "Confirm the appointment",

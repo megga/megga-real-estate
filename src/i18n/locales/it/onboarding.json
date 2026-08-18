@@ -333,8 +333,7 @@
       "whatsapp": "Numero WhatsApp",
       "dialCode": "Prefisso",
       "whatsappPlaceholder": "79 874 94 84",
-      "required": "Questo campo è necessario per confermare l'appuntamento.",
-      "requiredPhone": "Un numero è necessario per raggiungerti il giorno della chiamata."
+      "required": "Campo obbligatorio"
     },
     "actions": {
       "confirm": "Confermare l'appuntamento",
