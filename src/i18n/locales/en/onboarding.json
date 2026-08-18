@@ -58,8 +58,7 @@
       "signataire": "Signatory",
       "agence": "Agency",
       "pieceIdentite": "Verification",
-      "rendezVous": "Appointment",
-      "recapitulatif": "Summary"
+      "rendezVous": "Appointment"
     },
     "header": {
       "language": "Interface language",
@@ -210,28 +209,7 @@
       }
     },
     "recap": {
-      "title": "Review your file before submitting it",
-      "notProvided": "Not provided",
-      "pieceIdentite": {
-        "uploaded": "Uploaded",
-        "missing": "Missing",
-        "loading": "Checking the uploaded documents…",
-        "loadFailed": "Could not check the uploaded documents. Please try again.",
-        "statusLabel": "Verification",
-        "verifiedAtLabel": "Verified on",
-        "verified": "Identity verified at our provider",
-        "processing": "Verification being processed",
-        "manualReview": "No completed online verification. Our compliance team will establish your identity."
-      },
-      "rendezVous": {
-        "whenLabel": "Date",
-        "hostLabel": "With",
-        "durationLabel": "Duration",
-        "duration": "{{minutes}} min",
-        "none": "No appointment yet. We will write to you as soon as a slot opens.",
-        "pending": "Will be confirmed when the file is sent."
-      },
-      "attestation": "I confirm that the information above is accurate and complete to the best of my knowledge.",
+      "attestation": "I certify that the information provided in this process is accurate and complete, to the best of my knowledge.",
       "errors": {
         "legalName": "Registered name missing. Complete the Agency step.",
         "legalForm": "Legal form missing. Complete the Agency step.",

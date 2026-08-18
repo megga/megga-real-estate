@@ -58,8 +58,7 @@
       "signataire": "Unterzeichner",
       "agence": "Agentur",
       "pieceIdentite": "Verifizierung",
-      "rendezVous": "Termin",
-      "recapitulatif": "Zusammenfassung"
+      "rendezVous": "Termin"
     },
     "header": {
       "language": "Sprache der Oberfläche",
@@ -210,28 +209,7 @@
       }
     },
     "recap": {
-      "title": "Prüfen Sie Ihre Angaben, bevor Sie sie einreichen",
-      "notProvided": "Nicht angegeben",
-      "pieceIdentite": {
-        "uploaded": "Hochgeladen",
-        "missing": "Fehlt",
-        "loading": "Hochgeladene Dokumente werden geprüft…",
-        "loadFailed": "Die hochgeladenen Dokumente konnten nicht geprüft werden. Versuchen Sie es erneut.",
-        "statusLabel": "Prüfung",
-        "verifiedAtLabel": "Geprüft am",
-        "verified": "Identität bei unserem Dienstleister bestätigt",
-        "processing": "Prüfung wird bearbeitet",
-        "manualReview": "Keine erfolgreiche Online-Prüfung. Unser Compliance-Team stellt Ihre Identität fest."
-      },
-      "rendezVous": {
-        "whenLabel": "Datum",
-        "hostLabel": "Mit",
-        "durationLabel": "Dauer",
-        "duration": "{{minutes}} Min.",
-        "none": "Noch kein Termin. Wir schreiben Ihnen, sobald einer frei wird.",
-        "pending": "Wird beim Absenden des Dossiers bestätigt."
-      },
-      "attestation": "Ich bestätige, dass die obigen Angaben nach meinem Wissen richtig und vollständig sind.",
+      "attestation": "Ich bestätige, dass die in diesem Ablauf übermittelten Angaben nach bestem Wissen richtig und vollständig sind.",
       "errors": {
         "legalName": "Firmenbezeichnung fehlt. Vervollständigen Sie den Schritt Agentur.",
         "legalForm": "Rechtsform fehlt. Vervollständigen Sie den Schritt Agentur.",

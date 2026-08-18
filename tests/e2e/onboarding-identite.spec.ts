@@ -500,11 +500,14 @@ async function passRendezVousStep(page: Page): Promise<void> {
 }
 
 /**
- * Coche l'attestation d'exactitude et soumet depuis le récapitulatif (dernière étape).
- * Toujours la SEULE case de l'écran, d'où le rôle sans nom ; le clic passe par son
- * étiquette (cf. checkByLabel — MxCheckbox masque l'input natif).
+ * Coche l'attestation d'exactitude et soumet depuis la DERNIÈRE étape.
+ *
+ * ⚠ Cette étape est « Rendez-vous » depuis le 18.08.2026 : le récapitulatif a été retiré
+ * et l'attestation est descendue avec le bouton Soumettre. La case reste la SEULE de
+ * l'écran, d'où le rôle sans nom ; le clic passe par son étiquette (cf. checkByLabel —
+ * MxCheckbox masque l'input natif).
  */
-async function submitRecapitulatif(page: Page): Promise<void> {
+async function submitDerniereEtape(page: Page): Promise<void> {
   await checkByLabel(page, page.getByRole('checkbox'))
   await page.getByRole('button', { name: 'Soumettre le dossier' }).click()
 
@@ -532,7 +535,7 @@ async function submitRecapitulatif(page: Page): Promise<void> {
  *
  * ⚠ On n'y arrive plus DIRECTEMENT depuis le 10.08.2026 : un écran de confirmation du
  * rendez-vous s'intercale, sans changer d'URL, et c'est son bouton qui navigue (cf.
- * submitRecapitulatif). La destination finale, elle, est la même.
+ * submitDerniereEtape). La destination finale, elle, est la même.
  */
 const APRES_SOUMISSION = /\/dashboard$/
 
@@ -578,9 +581,10 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       // Étape 3 — rendez-vous d'accueil (bloquante, sauf s'il n'y a rien à réserver).
       await passRendezVousStep(page)
 
-      // Étape 4 — récapitulatif, attestation, soumission.
+      // L'attestation et la soumission vivent au bas de l'étape « Rendez-vous » depuis
+      // le retrait du récapitulatif (18.08.2026) : plus d'écran intermédiaire.
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
-      await submitRecapitulatif(page)
+      await submitDerniereEtape(page)
 
       // 4. Soumission — puis 5. accès au dashboard, sans redirection retour.
       // handleSubmit() navigue via useNavigate() (react-router, déjà client-side).
@@ -768,12 +772,12 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       })
 
       // Le parcours d'une raison individuelle est désormais celui de tout le monde :
-      // l'agence mène droit à la pièce d'identité, et le rail compte cinq paliers.
+      // l'agence mène droit à la pièce d'identité, et le rail compte QUATRE paliers
+      // depuis le retrait du récapitulatif (18.08.2026).
       await expect(page.getByRole('heading', { name: 'Vérifiez votre identité' })).toBeVisible()
-      await expect(page.getByRole('button', { name: /^\d\.\s/ })).toHaveCount(5)
+      await expect(page.getByRole('button', { name: /^\d\.\s/ })).toHaveCount(4)
       await expect(page.getByRole('button', { name: '3. Vérification' })).toBeVisible()
       await expect(page.getByRole('button', { name: '4. Rendez-vous' })).toBeVisible()
-      await expect(page.getByRole('button', { name: '5. Récapitulatif' })).toBeVisible()
 
       // Le parcours ne dépose plus aucun fichier : la sortie de secours suffit à
       // franchir l'étape, et c'est ce que ce test éprouve de bout en bout.
@@ -781,7 +785,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       await passRendezVousStep(page)
       await expect(page).toHaveURL(/\/dashboard\/identite$/)
 
-      await submitRecapitulatif(page)
+      await submitDerniereEtape(page)
       await expectNoBounceBack(page, APRES_SOUMISSION)
 
       // La soumission finale doit aboutir sur ce chemin aussi (même
@@ -845,7 +849,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       })
       await fillPieceIdentiteStep(page)
       await passRendezVousStep(page)
-      await submitRecapitulatif(page)
+      await submitDerniereEtape(page)
       await expect(page).toHaveURL(APRES_SOUMISSION)
 
       // 2. Le relecteur renvoie le dossier. Posé en service_role plutôt qu'en montant une
@@ -914,7 +918,7 @@ test.describe('Onboarding KYB — gate et wizard identité', () => {
       })
       await fillPieceIdentiteStep(page)
       await passRendezVousStep(page)
-      await submitRecapitulatif(page)
+      await submitDerniereEtape(page)
 
       // 5. Retour au CRM, et AUCUNE reboucle : c'est la vérification que ce cas existe pour
       // faire. Si le gate régressait sur ce chemin, cette navigation finirait au wizard.

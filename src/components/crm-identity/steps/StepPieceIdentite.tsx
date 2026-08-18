@@ -29,7 +29,6 @@ import {
   knownVerificationError,
   type IdentityVerificationStatus, type VerificationStartFailure,
 } from '@/hooks/useAgencyIdentity'
-import type { KybIdReadRecord } from '@/types/kybIdRead'
 
 interface StepPieceIdentiteProps {
   /** Statut de la vérification chez le prestataire — null si aucune n'a été lancée. */
@@ -85,74 +84,6 @@ function FaceScanGlyph() {
       <path d="M8.23834 17.1213C8.9253 15.5547 8.55371 13.9168 7.74922 12.4768C7.17425 11.4473 7.04693 10.3433 7.53317 9.22298C8.25599 7.55669 9.99998 6.78841 11.7304 6.74995C12.7678 6.72687 13.7525 6.90794 14.5634 7.59185C15.6044 8.46982 16.2133 9.54401 15.898 10.9724C15.73 11.7338 16.2859 12.5987 16.6798 13.1278C16.8532 13.3607 16.7658 13.6728 16.4948 13.7773L15.9821 13.9751C15.8341 14.0321 15.7261 14.1614 15.6962 14.3171L15.5247 15.7783C15.4678 16.1576 15.1454 16.3377 14.7852 16.2619L13.2458 15.9148C12.7425 15.8038 12.7645 15.3485 12.633 14.8721" strokeLinejoin="miter" />
     </svg>
   )
-}
-
-/**
- * Ce que la lecture assistée a trouvé — jamais un obstacle, toujours une remarque.
- *
- * Exporté et partagé avec le récapitulatif : le dirigeant doit lire la MÊME phrase aux
- * deux endroits, sans quoi la seconde ressemblerait à un second avis.
- *
- * Trois règles de fond, dans cet ordre :
- *  1. rien ici ne bloque le bouton Continuer, et la mention le dit en toutes lettres —
- *     c'est notre équipe conformité qui tranche, pas un modèle ;
- *  2. la péremption est une ligne À PART du verdict de concordance : une pièce
- *     périmée peut parfaitement appartenir à la bonne personne, et les confondre
- *     ferait chercher au dirigeant un problème d'identité qui n'existe pas ;
- *  3. « illisible » n'accuse personne — c'est une photo à reprendre, pas un soupçon.
- */
-export function IdentityReadNotice({
-  read, reading,
-}: { read: KybIdReadRecord | null; reading: boolean }) {
-  const { t } = useTranslation('onboarding')
-
-  if (reading) {
-    return (
-      <div className="mg-top-3x-extra-small">
-        <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
-          {t('wizard.pieceIdentite.read.running')}
-        </p>
-      </div>
-    )
-  }
-  if (read == null) return null
-
-  return (
-    <div className="mg-top-3x-extra-small">
-      {/* `role="status"` et non `alert` même pour un mismatch : rien n'a échoué, et
-          une alerte pousserait un lecteur d'écran à interrompre la saisie en cours. */}
-      <p className="paragraph-small text-color-neutral-600" role="status" aria-live="polite">
-        {t(`wizard.pieceIdentite.read.verdict.${read.verdict}`)}
-      </p>
-      {read.expired === true && (
-        <p className="paragraph-small text-color-neutral-600">
-          {t('wizard.pieceIdentite.read.expired', { date: swissDate(read.expiresOn) })}
-        </p>
-      )}
-      {read.documentTypeMatches === false && (
-        <p className="paragraph-small text-color-neutral-600">
-          {t('wizard.pieceIdentite.read.typeDiffers')}
-        </p>
-      )}
-      <p className="paragraph-small text-color-neutral-600">
-        {t('wizard.pieceIdentite.read.disclaimer')}
-      </p>
-    </div>
-  )
-}
-
-/**
- * Date suisse (31.12.2030) depuis l'ISO rendu par la lecture.
- *
- * Réécriture de CHAÎNE, jamais `formatDate()` : mesuré le 03.08.2026, une date-seule
- * passée par `new Date()` puis réaffichée en heure locale sort la VEILLE dès que le
- * fuseau de la session est à l'ouest de UTC. Même piège, même parade qu'à la date de
- * naissance du récapitulatif (birthDate, StepRecapitulatif.tsx).
- */
-function swissDate(iso: string | null): string {
-  if (!iso) return ''
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
-  return m ? `${m[3]}.${m[2]}.${m[1]}` : iso
 }
 
 

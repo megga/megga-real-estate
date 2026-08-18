@@ -58,8 +58,7 @@
       "signataire": "Firmatario",
       "agence": "Agenzia",
       "pieceIdentite": "Verifica",
-      "rendezVous": "Appuntamento",
-      "recapitulatif": "Riepilogo"
+      "rendezVous": "Appuntamento"
     },
     "header": {
       "language": "Lingua dell'interfaccia",
@@ -210,28 +209,7 @@
       }
     },
     "recap": {
-      "title": "Verifichi il Suo fascicolo prima di inviarlo",
-      "notProvided": "Non indicato",
-      "pieceIdentite": {
-        "uploaded": "Caricato",
-        "missing": "Mancante",
-        "loading": "Verifica dei documenti caricati…",
-        "loadFailed": "Impossibile verificare i documenti caricati. Riprovi.",
-        "statusLabel": "Verifica",
-        "verifiedAtLabel": "Verificata il",
-        "verified": "Identità verificata presso il nostro fornitore",
-        "processing": "Verifica in corso di elaborazione",
-        "manualReview": "Nessuna verifica online conclusa. Il nostro team compliance accerterà la Sua identità."
-      },
-      "rendezVous": {
-        "whenLabel": "Data",
-        "hostLabel": "Con",
-        "durationLabel": "Durata",
-        "duration": "{{minutes}} min",
-        "none": "Nessun appuntamento per ora. Le scriveremo appena si libera un orario.",
-        "pending": "Sarà confermato all'invio del dossier."
-      },
-      "attestation": "Attesto che le informazioni sopra riportate sono esatte e complete, per quanto a mia conoscenza.",
+      "attestation": "Dichiaro che le informazioni fornite in questo percorso sono esatte e complete, per quanto a mia conoscenza.",
       "errors": {
         "legalName": "Ragione sociale mancante. Completi il passaggio Agenzia.",
         "legalForm": "Forma giuridica mancante. Completi il passaggio Agenzia.",
