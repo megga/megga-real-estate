@@ -35,11 +35,19 @@ export default function AxGate({ dark, saving, onDone }: { dark: boolean; saving
       <style>{`
         @keyframes agFloat{from{transform:translateY(0)}to{transform:translateY(-10px)}}
         @keyframes agUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
-        .ax-gate-input{outline:none !important}
-        .ax-gate-input:focus-within{box-shadow:inset 0 0 0 2px ${A.ink}}
+        /* L'anneau de focus prend l'accent-ENCRE : sur fond sombre l'aplat
+           #424bfb rendrait 3,44:1, sous le seuil des filets.
+
+           ⛔ ET IL LUI FAUT LA PRIORITÉ, sinon il ne peint RIEN. Le champ porte
+           son ombre en style EN LIGNE, qui l'emporte sur toute règle de feuille
+           sans priorité — l'anneau était donc écrit, lu par personne, depuis le
+           premier port. La maquette porte le même défaut ; il ne se voit qu'en
+           relisant le box-shadow CALCULÉ pendant que le champ a le focus. */
+        .ax-gate-input:focus-within{box-shadow:inset 0 0 0 2px ${A.accText} !important}
         .ax-gate-input input::placeholder{color:${A.ghost}}
-        .ax-gate-cta{outline:none !important}
-        .ax-gate-cta:hover{background:${dark ? '#E4E6EA' : '#1F2024'} !important}
+        /* Zéro état de survol : la nappe a banni les transitions d'affordance,
+           et le survol qui vivait ici repeignait le CTA en GRIS — un reste de
+           l'époque où l'affordance primaire était l'encre, pas l'accent. */
         @media (prefers-reduced-motion: no-preference){
           .ax-gate-icon{animation:agFloat 6s ease-in-out infinite alternate}
           .ax-gate-in1{animation:agUp .5s cubic-bezier(.2,.8,.2,1) both}
@@ -55,7 +63,7 @@ export default function AxGate({ dark, saving, onDone }: { dark: boolean; saving
       <h1 className="ax-gate-in2" style={{ margin: '14px 0 0', fontSize: 44, fontWeight: 600, letterSpacing: -1.6, lineHeight: 1.06, color: A.ink, textAlign: 'center' }}>{tr('analytics.gate.title')}</h1>
 
       <div className="ax-gate-in3" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-xl)', marginTop: 36, width: 340 }}>
-        <div className="ax-gate-input" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: A.card, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-xs) var(--crm-space-xs) var(--crm-space-xs) var(--crm-space-4xl)', boxShadow: A.shadowSm }}>
+        <div className="ax-gate-input" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: A.card, border: `1px solid ${A.border}`, borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-xs) var(--crm-space-xs) var(--crm-space-xs) var(--crm-space-4xl)', boxShadow: A.shadow }}>
           <span style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: A.muted, flexShrink: 0 }}>CHF</span>
           <input autoFocus inputMode="numeric" placeholder={tr('analytics.gate.placeholder')} value={val}
             onChange={e => setVal(agFmtInput(e.target.value))}

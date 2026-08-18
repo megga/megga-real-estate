@@ -958,7 +958,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/skeletons', { hors: 8, total: 12 }],
   ['src/components/ui', { hors: 0, total: 29 }],
   ['src/pages/admin', { hors: 225, total: 464 }],
-  ['src/pages/agent', { hors: 331, total: 936 }],
+  // 331/936 → 330/935 (18.08.2026) : `AnalyticsPage` a perdu la marge qu'elle
+  // posait autour du cockpit (`padding: '20px 24px 22px'`) — la nappe fusionnée
+  // épouse le cadre bord à bord, et les états qui restent centrés portent
+  // désormais leur marge eux-mêmes, en jetons.
+  ['src/pages/agent', { hors: 330, total: 935 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 68, total: 259 }],
 ])

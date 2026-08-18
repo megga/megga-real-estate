@@ -1,12 +1,27 @@
 // MEGGA CRM — Dashboard « Cockpit Commission » — écran FUSION (mono-écran).
-// Port du handoff `analytics-fusion.jsx` (refonte juillet 2026) : Performance +
-// Analyse sur un seul écran, zéro-scroll, l'ancien pager 2 pages est supprimé.
-//   Rangée haute  : héro « double stat » (commission projetée) · trajectoire
-//                   immersive + cône (sélecteur de période intégré).
-//   Rangée basse  : treemap de composition (drill = popover ancré) · sources en
-//                   colonnes · 4 KPI sparkline.
-// Accent dataviz : périwinkle #6F8CFF — RÉSERVÉ aux graphiques. L'UI reste Sugar
-//   Pure : titres noirs, sélection noire, ombres douces, zéro bordure décorative.
+// Port du handoff `analytics-fusion.jsx` (« cockpit fusionné », 18 août 2026) :
+// Performance + Analyse sur un seul écran, zéro-scroll, l'ancien pager 2 pages
+// est supprimé.
+//   Colonne gauche : héro « double stat » (commission projetée) · treemap de
+//                    composition (drill = popover ancré).
+//   Colonne droite : trajectoire immersive + cône (sélecteur de période
+//                    intégré) · bandeau sources en colonnes + 4 KPI sparkline.
+//
+// ⛔ LES CINQ CARTES SONT UNE SEULE SURFACE. Il n'y a plus ni gouttière, ni
+// rayon de cellule, ni ombre de carte : la grille pose `background: A.border`
+// et un `gap` d'un pixel, chaque cellule est un aplat OPAQUE `A.card`, et les
+// filets qu'on voit sont les gouttières laissant passer le fond. Seuls les
+// quatre coins du CADRE sont arrondis — il vit dans `AnalyticsPage`, avec son
+// `overflow: hidden`. Un `borderRadius` réintroduit sur une cellule rouvrirait
+// le coin sur le filet ; une ombre y dessinerait un halo au milieu de la nappe.
+//
+// Accent : celui de MEGGA X, aux deux jetons (`CLAUDE.md` §3) — `#424bfb` en
+// APLAT dans les deux thèmes (thumb du segment, pace-bar, colonnes de canal,
+// bloc « Sécurisé »), et l'ENCRE `#424bfb` en clair / `#8dc1ff` en sombre pour
+// tout ce qui est TRAIT ou TEXTE (courbe, cône, sparklines, liens, « Reste »).
+// Le périwinkle #6F8CFF de la maquette de juillet est SUPPRIMÉ : c'était une
+// exception Sugar, devenue sans objet le jour où l'accent de la direction est
+// lui-même bleu.
 //
 // Différences prod assumées vs la maquette :
 //  - données 100 % live via useAxDashboardData (3 RPC analytics_*), jamais de fixture ;
@@ -16,8 +31,7 @@
 //    PAS en localStorage (l'ancien 'megga-analytics-target' a été supprimé).
 
 import EtatVide from '@/components/crm/EtatVide'
-import { crmVoileEncre } from '@/components/crm/tokens'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { useState, useEffect, useRef, useLayoutEffect, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAxDashboardData } from '@/hooks/useAxDashboardData'
@@ -25,16 +39,9 @@ import { useAgencyTargets } from '@/hooks/useAgencyTargets'
 import AxGate from './AxGate'
 import AxFirstRun from './AxFirstRun'
 import {
-  useAX, useAxDark, axCHF, axShort, axPace, type AxPeriodId, type AxPeriodData,
-  type AxBucketId, type AxBucket,
+  useAX, useAxDark, axCHF, axShort, axPace, AX_FILET, AXF_ACCENTS, type AxfAccent,
+  type AxPeriodId, type AxPeriodData, type AxBucketId, type AxBucket,
 } from './tokens'
-
-// ── Accent dataviz périwinkle (déclinaisons) — jamais en accent UI ────────────
-export interface AxfAccent { accent: string; soft: string; ghost: string; area: string }
-const AXF_ACCENTS: { light: AxfAccent; dark: AxfAccent } = {
-  light: { accent: '#6F8CFF', soft: '#A9BBFF', ghost: '#DDE5FF', area: 'rgba(111,140,255,0.13)' },
-  dark: { accent: '#8CA3FF', soft: '#5B70C9', ghost: '#2E3552', area: 'rgba(140,163,255,0.16)' },
-}
 
 // Couleur de pilule d'état dans le popover (couleurs de phase MEGGA, par bucket).
 const AXF_BUCKET_TONE: Record<AxBucketId, string> = { secured: '#059669', probable: '#C45A00', possible: '#1E5BC6' }
@@ -113,6 +120,7 @@ function AxfDelta({ v, pts, abs }: { v: number; pts?: boolean; abs?: boolean }) 
 // ═══════════════════════════════════════════════════════════════════════════
 function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; onGoSettings: (() => void) | null }) {
   const A = useAX()
+  const dark = useAxDark()
   const { t: tr } = useTranslation('dashboard')
   const pace = axPace(d)
   const num = useCountUp(d.projectedEnd)
@@ -124,7 +132,7 @@ function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; on
   const [on, setOn] = useState(false)
   useEffect(() => { const t = window.setTimeout(() => setOn(true), 60); return () => window.clearTimeout(t) }, [])
   return (
-    <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: '24px 28px', boxShadow: A.shadowLg, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 'var(--crm-space-4xl)', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div style={{ background: A.card, padding: '24px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 'var(--crm-space-4xl)', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       <div>
         <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted }}>{tr('analytics.hero.eyebrow')}</div>
         <div style={{ marginTop: 12, fontSize: 'clamp(30px, 2.45vw, 46px)', fontWeight: 600, letterSpacing: -1.6, color: A.ink, lineHeight: 0.96, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
@@ -146,22 +154,22 @@ function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; on
         <div style={{ width: 1, background: A.hairline, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0, paddingLeft: 'var(--crm-space-4xl)' }}>
           <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: A.muted }}>{tr('analytics.hero.remaining')}</div>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: acc.accent, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(reste)}</div>
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: A.accText, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(reste)}</div>
         </div>
       </div>
       {/* pace bar muette + objectif */}
       <div>
-        <div style={{ position: 'relative', height: 12, borderRadius: 'var(--crm-radius-pill)', background: A.cardSubtle }}>
+        <div style={{ position: 'relative', height: 12, borderRadius: 'var(--crm-radius-pill)', background: A.cardSubtle, border: `1px solid ${A.hairline}` }}>
           <div style={{ position: 'absolute', inset: 0, borderRadius: 'var(--crm-radius-pill)', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: on ? `${projPct}%` : 0, background: acc.ghost, borderRadius: 'var(--crm-radius-pill)', transition: 'width .9s cubic-bezier(.2,.8,.2,1) .15s' }} />
-            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: on ? `${realPct}%` : 0, background: acc.accent, borderRadius: 'var(--crm-radius-pill)', transition: 'width .9s cubic-bezier(.2,.8,.2,1)' }} />
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: on ? `${projPct}%` : 0, background: acc.soft, opacity: dark ? 0.38 : 0.45, borderRadius: 'var(--crm-radius-pill)', transition: 'width .9s cubic-bezier(.2,.8,.2,1) .15s' }} />
+            <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: on ? `${realPct}%` : 0, background: acc.solid, borderRadius: 'var(--crm-radius-pill)', transition: 'width .9s cubic-bezier(.2,.8,.2,1)' }} />
           </div>
           <div title={tr('analytics.hero.paceMarkerTitle')} style={{ position: 'absolute', top: -4, bottom: -4, left: `${pacePct}%`, width: 2.5, borderRadius: 'var(--crm-radius-2xs)', background: A.ink }} />
         </div>
         <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted }}>
           <span>{tr('analytics.hero.objectiveLabel')} <span style={{ color: A.ink, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{axCHF(d.target)}</span></span>
           {onGoSettings && (
-            <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 2 }}>
+            <button onClick={onGoSettings} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.accText, textDecoration: 'underline', textUnderlineOffset: 2 }}>
               · {tr('analytics.hero.modify')}
             </button>
           )}
@@ -174,13 +182,15 @@ function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; on
 // ═══════════════════════════════════════════════════════════════════════════
 //   TRAJECTOIRE — sélecteur de période intégré (thumb qui glisse)
 // ═══════════════════════════════════════════════════════════════════════════
-function AxfSeg({ items, value, onChange, dark }: { items: { id: AxPeriodId; label: string }[]; value: AxPeriodId; onChange: (id: AxPeriodId) => void; dark: boolean }) {
+function AxfSeg({ items, value, onChange }: { items: { id: AxPeriodId; label: string }[]; value: AxPeriodId; onChange: (id: AxPeriodId) => void }) {
   const A = useAX()
   const idx = Math.max(0, items.findIndex(it => it.id === value))
   const n = items.length
   return (
-    <div role="tablist" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${n}, 1fr)`, background: A.cardSubtle, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-2xs)', boxShadow: dark ? 'inset 0 1px 3px rgba(0,0,0,.35)' : `inset 0 1px 3px ${crmVoileEncre(false, .07)}` }}>
-      <div aria-hidden="true" style={{ position: 'absolute', top: 3, bottom: 3, left: 3, width: `calc((100% - 6px) / ${n})`, transform: `translateX(${idx * 100}%)`, transition: 'transform .38s cubic-bezier(.2,.8,.2,1)', borderRadius: 'var(--crm-radius-pill)', background: A.accent, boxShadow: dark ? '0 2px 8px rgba(0,0,0,.30)' : `0 2px 8px ${crmVoileEncre(false, .18)}` }} />
+    // ⚠ La piste se dessine par une BORDURE, plus par une ombre portée en creux :
+    // l'inset ne se voyait pas en sombre, et la nappe a banni le relief.
+    <div role="tablist" style={{ position: 'relative', display: 'grid', gridTemplateColumns: `repeat(${n}, 1fr)`, background: A.cardSubtle, border: `1px solid ${A.border}`, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-2xs)' }}>
+      <div aria-hidden="true" style={{ position: 'absolute', top: 3, bottom: 3, left: 3, width: `calc((100% - 6px) / ${n})`, transform: `translateX(${idx * 100}%)`, transition: 'transform .38s cubic-bezier(.2,.8,.2,1)', borderRadius: 'var(--crm-radius-pill)', background: A.accent }} />
       {items.map(it => {
         const active = it.id === value
         return (
@@ -198,7 +208,7 @@ function AxfSeg({ items, value, onChange, dark }: { items: { id: AxPeriodId; lab
 
 // Trajectoire immersive + cône : zéro grille, aire + courbe réalisé, projection
 // pointillée + cône d'incertitude, ligne objectif, survol fluide (écart coloré).
-function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; acc: AxfAccent; dark: boolean }) {
+function AxfTrajectory({ d, vbH, acc }: { d: AxPeriodData; vbH: number; acc: AxfAccent }) {
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
   const s = d.series
@@ -259,12 +269,12 @@ function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; ac
       <svg viewBox={`0 0 ${VBW} ${VBH}`} width="100%" style={{ display: 'block', width: '100%', height: 'auto' }}>
         <defs>
           <linearGradient id="axfArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={acc.accent} stopOpacity="0.38" />
+            <stop offset="0" stopColor={acc.accent} stopOpacity="0.34" />
             <stop offset="1" stopColor={acc.accent} stopOpacity="0" />
           </linearGradient>
           <linearGradient id="axfCone" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stopColor={acc.accent} stopOpacity="0.20" />
-            <stop offset="1" stopColor={acc.accent} stopOpacity="0.07" />
+            <stop offset="0" stopColor={acc.accent} stopOpacity="0.18" />
+            <stop offset="1" stopColor={acc.accent} stopOpacity="0.06" />
           </linearGradient>
         </defs>
         {/* objectif */}
@@ -285,15 +295,17 @@ function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; ac
         <circle cx={px0} cy={py0} r="11" fill={acc.accent} opacity="0.22" />
         <circle cx={px0} cy={py0} r="5.5" fill={acc.accent} />
         <circle cx={px0} cy={py0} r="5.5" fill="none" stroke={A.card} strokeWidth="2" />
+        {/* ⚠ La chip prend l'encre du thème OPPOSÉ (noire en clair, blanche en
+            sombre) : c'est ce qui la détache de la courbe qu'elle chevauche. */}
         <g>
-          <rect x={rx0} y={py0 - 46} width={rw} height={26} rx="13" fill="#1A1C20" stroke="rgba(255,255,255,0.12)" />
-          <text x={rx0 + rw / 2} y={py0 - 28} textAnchor="middle" fontSize="12" fontWeight="600" fill="#FFFFFF">{rv}</text>
+          <rect x={rx0} y={py0 - 46} width={rw} height={26} rx="13" fill={A.chipBg} />
+          <text x={rx0 + rw / 2} y={py0 - 28} textAnchor="middle" fontSize="12" fontWeight="600" fill={A.chipInk}>{rv}</text>
         </g>
         {/* projeté (fin de période) */}
         {hasProj && (
           <g>
-            <rect x={xEnd - pw} y={y(d.projectedEnd) - 13} width={pw} height={26} rx="13" fill="#1A1C20" stroke="rgba(255,255,255,0.12)" />
-            <text x={xEnd - pw / 2} y={y(d.projectedEnd) + 4} textAnchor="middle" fontSize="12" fontWeight="600" fill={acc.accent}>{pv}</text>
+            <rect x={xEnd - pw} y={y(d.projectedEnd) - 13} width={pw} height={26} rx="13" fill={A.chipBg} />
+            <text x={xEnd - pw / 2} y={y(d.projectedEnd) + 4} textAnchor="middle" fontSize="12" fontWeight="600" fill={A.chipAcc}>{pv}</text>
           </g>
         )}
         {/* repères X épars */}
@@ -307,7 +319,7 @@ function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; ac
             <rect x="-1.25" width="2.5" rx="1.25"
               y={Math.min(y(hovVal), y(hovGoal))}
               height={Math.max(2, Math.abs(y(hovVal) - y(hovGoal)))}
-              fill={hovDiff >= 0 ? (dark ? '#3FCF8E' : '#1C7A4E') : (dark ? '#F0A05A' : '#B4612A')}
+              fill={hovDiff >= 0 ? A.okInk : A.warnInk}
               style={{ transition: 'y .16s cubic-bezier(.2,.8,.2,1), height .16s cubic-bezier(.2,.8,.2,1)' }} />
             <circle cx="0" cy={y(hovGoal)} r="4.5" fill={A.card} stroke={A.goal} strokeWidth="2" style={{ transition: 'cy .16s cubic-bezier(.2,.8,.2,1)' }} />
             <circle cx="0" cy={y(hovVal)} r="5.5" fill={A.card} stroke={acc.accent} strokeWidth="2.5" style={{ transition: 'cy .16s cubic-bezier(.2,.8,.2,1)' }} />
@@ -320,15 +332,14 @@ function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; ac
           transform: `translateX(${hov > nSafe * 0.7 ? '-104%' : hov < nSafe * 0.3 ? '4%' : '-50%'})`,
           transition: 'left .16s cubic-bezier(.2,.8,.2,1), transform .16s cubic-bezier(.2,.8,.2,1)',
           display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
-          background: MXC_COLOR.n400, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-sm) var(--crm-space-xl)',
-          boxShadow: '0 10px 28px rgba(0,0,0,0.38)', border: '1px solid rgba(255,255,255,0.10)',
+          background: A.chipBg, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-sm) var(--crm-space-xl)',
           pointerEvents: 'none', whiteSpace: 'nowrap', fontFamily: 'var(--crm-font)',
         }}>
-          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: 'rgba(255,255,255,0.55)' }}>
+          <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.chipInk, opacity: 0.6 }}>
             {(d.axisLabels[hov] || `${d.pointWord || tr('analytics.trajectory.pointWordFallback')} ${hov + 1}`)}{hov > s.elapsed ? ` · ${tr('analytics.trajectory.projectedShort')}` : ''}
           </span>
-          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>{axCHF(hovVal)}</span>
-          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: hovDiff >= 0 ? '#3FCF8E' : '#F0A05A', fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: A.chipInk, fontVariantNumeric: 'tabular-nums' }}>{axCHF(hovVal)}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: hovDiff >= 0 ? A.chipOk : A.chipWarn, fontVariantNumeric: 'tabular-nums' }}>
             {hovDiff >= 0 ? '▲ +' : '▼ −'}{axCHF(Math.abs(hovDiff)).replace('CHF ', '')}
           </span>
         </div>
@@ -337,7 +348,7 @@ function AxfTrajectory({ d, vbH, acc, dark }: { d: AxPeriodData; vbH: number; ac
   )
 }
 
-function AxfChartCard({ d, acc, dark, seg }: { d: AxPeriodData; acc: AxfAccent; dark: boolean; seg: ReactNode }) {
+function AxfChartCard({ d, acc, seg }: { d: AxPeriodData; acc: AxfAccent; seg: ReactNode }) {
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
   const bodyRef = useRef<HTMLDivElement>(null)
@@ -355,7 +366,7 @@ function AxfChartCard({ d, acc, dark, seg }: { d: AxPeriodData; acc: AxfAccent; 
     return () => ro.disconnect()
   }, [])
   return (
-    <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: '20px 26px 12px', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div style={{ background: A.card, padding: '20px 26px 12px', display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-2xl)', flexWrap: 'wrap', flexShrink: 0 }}>
         <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: A.ink, letterSpacing: -0.4 }}>{tr('analytics.chart.title')}</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)', flexWrap: 'wrap' }}>
@@ -370,7 +381,7 @@ function AxfChartCard({ d, acc, dark, seg }: { d: AxPeriodData; acc: AxfAccent; 
       </div>
       <div ref={bodyRef} style={{ flex: 1, minHeight: 0, marginTop: 8 }}>
         <div key={d.key} style={{ height: '100%', animation: 'axfFade .35s ease both' }}>
-          <AxfTrajectory key={vbH} d={d} vbH={vbH} acc={acc} dark={dark} />
+          <AxfTrajectory key={vbH} d={d} vbH={vbH} acc={acc} />
         </div>
       </div>
     </div>
@@ -381,17 +392,18 @@ function AxfChartCard({ d, acc, dark, seg }: { d: AxPeriodData; acc: AxfAccent; 
 //   COMPOSITION — treemap vertical (le % EST le bloc, clic → popover ancré)
 // ═══════════════════════════════════════════════════════════════════════════
 export interface AxDrill { bucket: AxBucketId; rect: DOMRect }
-function AxfCompositionCard({ d, acc, dark, onDrill }: { d: AxPeriodData; acc: AxfAccent; dark: boolean; onDrill: (x: AxDrill) => void }) {
+function AxfCompositionCard({ d, acc, onDrill }: { d: AxPeriodData; acc: AxfAccent; onDrill: (x: AxDrill) => void }) {
   const axDark = useAxDark()
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
   const total = d.composition.reduce((s, c) => s + c.v, 0)
-  const colOf: Record<AxBucketId, string> = { secured: acc.accent, probable: acc.soft, possible: acc.ghost }
-  const txtOf: Record<AxBucketId, string> = dark
-    ? { secured: MXC_COLOR.n100, probable: '#FFFFFF', possible: A.ink }
-    : { secured: MXC_COLOR.n100, probable: MXC_COLOR.n100, possible: MXC_COLOR.n100 }
+  // La rampe ENCODE trois parts d'une même grandeur : plein accent → blue300 →
+  // neutre. ⛔ L'encre de chaque bloc se DÉRIVE de son aplat, jamais posée à la
+  // main : c'est ce qui empêche qu'un changement de teinte casse la lisibilité
+  // (le neutre clair prend l'encre sombre, l'accent prend le blanc).
+  const colOf: Record<AxBucketId, string> = { secured: acc.rampA, probable: acc.rampB, possible: acc.rampC }
   return (
-    <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl) var(--crm-space-5xl)', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div style={{ background: A.card, padding: 'var(--crm-space-4xl) var(--crm-space-6xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.composition.title')}</h3>
       {total === 0 ? (
         <EtatVide dark={axDark} titre={tr('analytics.composition.empty')} />
@@ -404,7 +416,7 @@ function AxfCompositionCard({ d, acc, dark, onDrill }: { d: AxPeriodData; acc: A
               <button key={c.k} className="axf-block" onClick={e => onDrill({ bucket: c.k, rect: e.currentTarget.getBoundingClientRect() })} style={{
                 flexGrow: Math.max(0.0001, c.v), flexShrink: 1, flexBasis: '0%', minHeight: 40, border: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
                 transition: 'flex-grow .65s cubic-bezier(.2,.8,.2,1)',
-                background: colOf[c.k], color: txtOf[c.k], borderRadius: 'var(--crm-radius-2xl)',
+                background: colOf[c.k], color: encreSur(colOf[c.k]), borderRadius: 'var(--crm-radius-lg)',
                 padding: big ? '13px 16px' : '8px 16px',
                 display: 'flex', flexDirection: big ? 'column' : 'row', justifyContent: 'space-between',
                 alignItems: big ? 'stretch' : 'center', gap: big ? 4 : 10,
@@ -466,12 +478,14 @@ function AxfDrillPopover({ drill, bucket, compValue, onClose, onNavigate }: {
   const fitsRight = r.right + 14 + W <= vw - 12
   const left = fitsRight ? r.right + 14 : Math.max(12, r.left - W - 14)
   const top = Math.max(12, Math.min(r.top + r.height / 2 - H / 3, vh - H - 12))
-  const arrowY = Math.max(18, Math.min(r.top + r.height / 2 - top - 7, H - 32))
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'transparent' }} />
-      <div style={{ position: 'absolute', left, top, width: W, maxHeight: H, background: A.card, borderRadius: 'var(--crm-radius-4xl)', boxShadow: A.shadowLg, padding: 'var(--crm-space-4xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', animation: 'axRise .3s cubic-bezier(.2,.8,.2,1) both' }}>
-        <div style={{ position: 'absolute', [fitsRight ? 'left' : 'right']: -7, top: arrowY, width: 14, height: 14, background: A.card, transform: 'rotate(45deg)', borderRadius: 'var(--crm-radius-2xs)' } as CSSProperties} />
+      {/* ⚠ Surface FLOTTANTE : elle garde un contour explicite (le seul endroit
+          avec le champ de la porte), là où la nappe se sépare par ses filets.
+          L'ombre ne pèse qu'en clair — `A.shadow` vaut `'none'` en sombre.
+          La flèche décorative est supprimée : le popover est déjà ancré. */}
+      <div style={{ position: 'absolute', left, top, width: W, maxHeight: H, background: A.card, border: `1px solid ${A.border}`, borderRadius: 'var(--crm-radius-xl)', boxShadow: A.shadow, padding: 'var(--crm-space-4xl) var(--crm-space-5xl)', display: 'flex', flexDirection: 'column', animation: 'axRise .3s cubic-bezier(.2,.8,.2,1) both' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', flexShrink: 0 }}>
           <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: A.ink, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bucket.label}</span>
           {compValue > 0 && <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{axCHF(compValue)}</span>}
@@ -495,7 +509,7 @@ function AxfDrillPopover({ drill, bucket, compValue, onClose, onNavigate }: {
           </>
         )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 10, flexShrink: 0 }}>
-          <button onClick={() => { onClose(); onNavigate?.('pipeline') }} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.ink, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+          <button onClick={() => { onClose(); onNavigate?.('pipeline') }} style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.accText, textDecoration: 'underline', textUnderlineOffset: 3 }}>
             {tr('analytics.drill.openInPipeline')}
           </button>
         </div>
@@ -519,7 +533,7 @@ function AxfSourcesCard({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
   const [on, setOn] = useState(false)
   useEffect(() => { const t = window.setTimeout(() => setOn(true), 60); return () => window.clearTimeout(t) }, [])
   return (
-    <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', padding: 'var(--crm-space-4xl) var(--crm-space-6xl) var(--crm-space-3xl)', boxShadow: A.shadow, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div style={{ background: A.card, padding: 'var(--crm-space-4xl) var(--crm-space-6xl) var(--crm-space-3xl)', display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
       <h3 style={{ margin: 0, fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: A.ink, letterSpacing: -0.4, flexShrink: 0 }}>{tr('analytics.sources.commissionTitle')}</h3>
       {chans.length === 0 ? (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', textAlign: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: A.muted }}>
@@ -531,7 +545,7 @@ function AxfSourcesCard({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
             <div key={i} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-sm)' }} title={`${s.label} · ${axCHF(s.comm)} · ${tr('analytics.sources.wonDeals', { count: s.won ?? 0 })}`}>
               <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: A.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axShort(s.comm)}</span>
               <div style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative', borderRadius: 'var(--crm-radius-md)', background: A.cardSubtle, overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: on ? `${Math.max(5, (s.comm / maxComm) * 100)}%` : 0, background: acc.accent, opacity: opac[i] ?? 0.3, borderRadius: 'var(--crm-radius-md)', transition: `height .8s cubic-bezier(.2,.8,.2,1) ${i * 0.07}s` }} />
+                <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: on ? `${Math.max(5, (s.comm / maxComm) * 100)}%` : 0, background: acc.solid, opacity: opac[i] ?? 0.3, borderRadius: 'var(--crm-radius-md)', transition: `height .8s cubic-bezier(.2,.8,.2,1) ${i * 0.07}s` }} />
               </div>
               <span style={{ maxWidth: '100%', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span>
             </div>
@@ -565,9 +579,11 @@ function AxfAreaSpark({ data, acc, h = 40 }: { data: number[]; acc: AxfAccent; h
 function AxfKpiGrid({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
   const A = useAX()
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 'var(--crm-space-xl)', minHeight: 0, minWidth: 0, width: '100%', height: '100%' }}>
+    // Les quatre tuiles suivent le régime de la nappe : filets de 1 px, plus de
+    // tuiles flottantes — c'est la MÊME grille, imbriquée d'un cran.
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: AX_FILET, background: A.border, minHeight: 0, minWidth: 0, width: '100%', height: '100%' }}>
       {d.kpis.map((k, i) => (
-        <div key={i} style={{ position: 'relative', background: A.card, borderRadius: 'var(--crm-radius-3xl)', boxShadow: A.shadowSm, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+        <div key={i} style={{ position: 'relative', background: A.card, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
           <div style={{ position: 'relative', zIndex: 1, padding: 'var(--crm-space-xl) var(--crm-space-2xl) 0' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
               <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={k.label}>{k.label}</span>
@@ -593,23 +609,31 @@ function AxSk({ h = 14, w = '100%', r = 8, style }: { h?: number; w?: number | s
     }} />
   )
 }
+/**
+ * Le squelette de chargement épouse la NAPPE, pas une grille de cartes : mêmes
+ * fractions, mêmes filets, mêmes paddings. C'est la même exigence que pour le
+ * compte neuf — l'écran réel « s'allume » dans la géométrie où il chargeait,
+ * sans saut de mise en page.
+ */
 function AxSkeleton() {
   const A = useAX()
-  const card = (children: ReactNode, extra?: CSSProperties): ReactNode => (
-    <div style={{ background: A.card, borderRadius: 'var(--crm-radius-6xl)', boxShadow: A.shadow, padding: 'var(--crm-space-5xl) var(--crm-space-7xl)', display: 'flex', flexDirection: 'column', minHeight: 0, ...extra }}>{children}</div>
+  const cell = (children: ReactNode, extra?: CSSProperties): ReactNode => (
+    <div style={{ background: A.card, padding: 'var(--crm-space-4xl) var(--crm-space-6xl)', display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, overflow: 'hidden', ...extra }}>{children}</div>
   )
   return (
-    <div className="axf-grid" style={{ height: '100%', width: '100%', display: 'flex', gap: 'var(--crm-space-3xl)', animation: 'axSkIn .2s ease both' }}>
-      <div className="axf-col-left" style={{ flex: '0 0 clamp(300px, 27%, 396px)', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
-        <div style={{ flex: '0.86 1 0', minHeight: 0, display: 'grid' }}>{card(<><AxSk h={12} w={140} r={6} /><AxSk h={42} w="70%" r={12} style={{ marginTop: 16 }} /><AxSk h={22} w={180} r={999} style={{ marginTop: 16 }} /><AxSk h={12} w="100%" r={999} style={{ marginTop: 'auto' }} /></>, { justifyContent: 'center' })}</div>
-        <div style={{ flex: '1.14 1 0', minHeight: 0, display: 'grid' }}>{card(<><AxSk h={14} w={160} r={6} /><div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 14 }}><AxSk h={0} w="100%" r={16} style={{ flex: 58 }} /><AxSk h={0} w="100%" r={16} style={{ flex: 28 }} /><AxSk h={0} w="100%" r={16} style={{ flex: 14 }} /></div></>)}</div>
+    <div className="axf-merge" style={{ position: 'absolute', inset: 0, background: A.border, display: 'grid', gridTemplateColumns: 'clamp(300px, 27%, 396px) 1fr', gap: AX_FILET, animation: 'axSkIn .2s ease both' }}>
+      <div className="axf-col-left" style={{ display: 'grid', gridTemplateRows: '0.86fr 1.14fr', gap: AX_FILET, background: A.border, minWidth: 0, minHeight: 0 }}>
+        {cell(<><AxSk h={12} w={140} r={6} /><AxSk h={42} w="70%" r={12} style={{ marginTop: 16 }} /><AxSk h={22} w={180} r={999} style={{ marginTop: 16 }} /><AxSk h={12} w="100%" r={999} style={{ marginTop: 'auto' }} /></>, { justifyContent: 'center' })}
+        {cell(<><AxSk h={14} w={160} r={6} /><div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 14 }}><AxSk h={0} w="100%" r={12} style={{ flex: 58 }} /><AxSk h={0} w="100%" r={12} style={{ flex: 28 }} /><AxSk h={0} w="100%" r={12} style={{ flex: 14 }} /></div></>)}
       </div>
-      <div className="axf-col-right" style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
-        <div style={{ flex: '1.9 1 0', minHeight: 0, display: 'grid' }}>{card(<><div style={{ display: 'flex', justifyContent: 'space-between' }}><AxSk h={16} w={180} r={6} /><AxSk h={28} w={200} r={999} /></div><AxSk h={0} w="100%" r={14} style={{ flex: 1, marginTop: 16 }} /></>)}</div>
-        <div className="axf-strip" style={{ flex: '1 1 0', minHeight: 0, display: 'flex', gap: 'var(--crm-space-3xl)' }}>
-          <div style={{ flex: '1.42 1 0', minWidth: 0, display: 'grid' }}>{card(<><AxSk h={14} w={140} r={6} /><div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-xl)', marginTop: 14 }}>{[100, 68, 44, 27, 15].map((hh, i) => <AxSk key={i} h={0} w="100%" r={10} style={{ flex: 1, alignSelf: 'stretch', minHeight: `${hh}%` }} />)}</div></>)}</div>
-          <div style={{ flex: '1.05 1 0', minWidth: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 'var(--crm-space-xl)' }}>
-            {[0, 1, 2, 3].map(i => <div key={i} style={{ background: A.card, borderRadius: 'var(--crm-radius-3xl)', boxShadow: A.shadowSm, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}><AxSk h={9} w="55%" r={999} /><AxSk h={16} w="72%" r={999} /></div>)}
+      <div className="axf-col-right" style={{ display: 'grid', gridTemplateRows: '1.9fr 1fr', gap: AX_FILET, background: A.border, minWidth: 0, minHeight: 0 }}>
+        <div className="axf-cell-chart" style={{ display: 'grid', minWidth: 0, minHeight: 0 }}>
+          {cell(<><div style={{ display: 'flex', justifyContent: 'space-between' }}><AxSk h={16} w={180} r={6} /><AxSk h={28} w={200} r={999} /></div><AxSk h={0} w="100%" r={14} style={{ flex: 1, marginTop: 16 }} /></>)}
+        </div>
+        <div className="axf-strip" style={{ display: 'grid', gridTemplateColumns: '1.42fr 1.05fr', gap: AX_FILET, background: A.border, minWidth: 0, minHeight: 0 }}>
+          {cell(<><AxSk h={14} w={140} r={6} /><div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: 'var(--crm-space-xl)', marginTop: 14 }}>{[100, 68, 44, 27, 15].map((hh, i) => <AxSk key={i} h={0} w="100%" r={8} style={{ flex: 1, alignSelf: 'stretch', minHeight: `${hh}%` }} />)}</div></>)}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: AX_FILET, background: A.border, minWidth: 0, minHeight: 0 }}>
+            {[0, 1, 2, 3].map(i => <div key={i} style={{ background: A.card, padding: 'var(--crm-space-xl) var(--crm-space-2xl)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0, minHeight: 0, overflow: 'hidden' }}><AxSk h={9} w="55%" r={999} /><AxSk h={16} w="72%" r={999} /></div>)}
           </div>
         </div>
       </div>
@@ -617,7 +641,7 @@ function AxSkeleton() {
   )
 }
 
-// ── Styles locaux de la grille (hover statiques + responsive) ────────────────
+// ── Styles locaux de la nappe (survols instantanés + responsive) ─────────────
 export function AxfStyles({ dark }: { dark: boolean }) {
   const A = useAX()
   return (
@@ -626,34 +650,49 @@ export function AxfStyles({ dark }: { dark: boolean }) {
          (l'un ouvre le tiroir de détail, l'autre est un onglet role="tab") : les
          priver d'outline les privait de tout repère de focus clavier. L'anneau
          vient de globals.css, en :focus-visible — donc jamais au clic souris,
-         qui était le seul motif légitime de couper l'outline.
+         qui était le seul motif légitime de couper l'outline. La maquette coupe
+         l'outline sur ces trois classes : c'est le seul point où l'on s'en
+         écarte, et le stub de démo n'avait pas de clavier à servir.
          .axf-row est un <div> non focusable : la déclaration n'y servait à rien. */
       .axf-row { -webkit-tap-highlight-color: transparent; }
-      .axf-row:hover { background: ${dark ? 'rgba(255,255,255,0.05)' : `${crmVoileEncre(false, 0.035)}`} !important; }
+      .axf-row:hover { background: ${A.focus} !important; }
       .axf-block { -webkit-tap-highlight-color: transparent; }
       .axf-block:hover { filter: brightness(${dark ? '1.07' : '0.97'}); }
       .axf-seg-btn { -webkit-tap-highlight-color: transparent; }
       .axf-seg-btn:not([aria-selected="true"]):hover { color: ${A.inkSoft} !important; }
+      /* Responsive ADDITIF : la nappe passe en bloc scrollable, jamais en fork.
+         Les colonnes gardent leurs filets — c'est la grille du haut qui cède. */
       @media (max-width: 1180px) {
-        .axf-grid { flex-direction: column !important; overflow-y: auto !important; }
-        .axf-col-left, .axf-col-right { flex: none !important; }
-        .axf-col-left { flex-direction: row !important; }
-        .axf-col-left > * { flex: 1 1 0 !important; min-height: 260px; }
-        .axf-col-right > *:first-child { min-height: 340px; }
-        .axf-strip { flex-direction: column !important; }
-        .axf-strip > * { min-height: 220px; }
+        .axf-merge { display: block !important; overflow-y: auto !important; }
+        .axf-col-left { grid-template-rows: none !important; grid-template-columns: 1fr 1fr !important; }
+        .axf-col-left > * { min-height: 300px !important; }
+        .axf-col-right { grid-template-rows: none !important; }
+        .axf-cell-chart { min-height: 400px !important; }
+        .axf-strip > * { min-height: 250px !important; }
       }
       @media (max-width: 760px) {
-        .axf-col-left { flex-direction: column !important; }
+        .axf-col-left { grid-template-columns: 1fr !important; }
+        .axf-strip { grid-template-columns: 1fr !important; }
       }
     `}</style>
   )
 }
 
-// ── Grille fusion présentationnelle (drill interne) — réutilisable/testable ───
-export function AxFusionGrid({ d, dark, acc, seg, onNavigate }: {
-  d: AxPeriodData; dark: boolean; acc: AxfAccent; seg: ReactNode; onNavigate?: (id: string) => void
+/**
+ * La NAPPE — une seule surface, cinq cellules, des filets d'un pixel.
+ *
+ * ⛔ Le fond de chaque grille est `A.border` et son `gap` vaut le filet : ce
+ * sont les GOUTTIÈRES qui dessinent les traits, pas des bordures posées sur les
+ * cellules. Une bordure par cellule doublerait chaque trait intérieur ; c'est
+ * pour la même raison qu'aucune cellule ne porte plus de rayon ni d'ombre.
+ *
+ * Les fractions viennent du handoff : gauche `clamp(300px, 27%, 396px)` en
+ * 0.86 / 1.14, droite 1.9 / 1 puis 1.42 / 1.05 pour le bandeau.
+ */
+export function AxFusionGrid({ d, acc, seg, onNavigate }: {
+  d: AxPeriodData; acc: AxfAccent; seg: ReactNode; onNavigate?: (id: string) => void
 }) {
+  const A = useAX()
   const [drill, setDrill] = useState<AxDrill | null>(null)
   const goSettings = onNavigate ? () => onNavigate('settings') : null
   const compItem = drill ? d.composition.find(c => c.k === drill.bucket) : null
@@ -662,26 +701,20 @@ export function AxFusionGrid({ d, dark, acc, seg, onNavigate }: {
     : null
   return (
     <>
-      <div className="axf-grid" style={{ height: '100%', width: '100%', display: 'flex', gap: 'var(--crm-space-3xl)' }}>
-        <div className="axf-col-left" style={{ flex: '0 0 clamp(300px, 27%, 396px)', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
-          <div style={{ flex: '0.86 1 0', minHeight: 0, minWidth: 0, display: 'grid' }}>
-            <AxfHero d={d} acc={acc} onGoSettings={goSettings} />
-          </div>
-          <div style={{ flex: '1.14 1 0', minHeight: 0, minWidth: 0, display: 'grid' }}>
-            <AxfCompositionCard d={d} acc={acc} dark={dark} onDrill={setDrill} />
-          </div>
+      <div className="axf-merge" style={{ position: 'absolute', inset: 0, background: A.border, display: 'grid', gridTemplateColumns: 'clamp(300px, 27%, 396px) 1fr', gap: AX_FILET }}>
+        {/* Colonne gauche : héro (commission) + composition (treemap) */}
+        <div className="axf-col-left" style={{ display: 'grid', gridTemplateRows: '0.86fr 1.14fr', gap: AX_FILET, background: A.border, minWidth: 0, minHeight: 0 }}>
+          <AxfHero d={d} acc={acc} onGoSettings={goSettings} />
+          <AxfCompositionCard d={d} acc={acc} onDrill={setDrill} />
         </div>
-        <div className="axf-col-right" style={{ flex: '1 1 0', minWidth: 0, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)' }}>
-          <div style={{ flex: '1.9 1 0', minHeight: 0, minWidth: 0, display: 'grid' }}>
-            <AxfChartCard d={d} acc={acc} dark={dark} seg={seg} />
+        {/* Colonne droite : trajectoire dominante + bandeau sources / KPI */}
+        <div className="axf-col-right" style={{ display: 'grid', gridTemplateRows: '1.9fr 1fr', gap: AX_FILET, background: A.border, minWidth: 0, minHeight: 0 }}>
+          <div className="axf-cell-chart" style={{ display: 'grid', minWidth: 0, minHeight: 0 }}>
+            <AxfChartCard d={d} acc={acc} seg={seg} />
           </div>
-          <div className="axf-strip" style={{ flex: '1 1 0', minHeight: 0, minWidth: 0, display: 'flex', gap: 'var(--crm-space-3xl)' }}>
-            <div style={{ flex: '1.42 1 0', minWidth: 0, minHeight: 0, display: 'grid' }}>
-              <AxfSourcesCard d={d} acc={acc} />
-            </div>
-            <div style={{ flex: '1.05 1 0', minWidth: 0, minHeight: 0, display: 'grid' }}>
-              <AxfKpiGrid d={d} acc={acc} />
-            </div>
+          <div className="axf-strip" style={{ display: 'grid', gridTemplateColumns: '1.42fr 1.05fr', gap: AX_FILET, background: A.border, minWidth: 0, minHeight: 0 }}>
+            <AxfSourcesCard d={d} acc={acc} />
+            <AxfKpiGrid d={d} acc={acc} />
           </div>
         </div>
       </div>
@@ -719,15 +752,22 @@ export default function AxDashboardBody({ dark = false, onNavigate }: AxDashboar
   const onPeriod = (p: AxPeriodId) => { if (p !== period) setPeriod(p) }
   const goSettings = onNavigate ? () => onNavigate('settings') : null
 
-  const seg = <AxfSeg items={AX_PERIODS.map(p => ({ id: p.id, label: tr(p.labelKey) }))} value={period} onChange={onPeriod} dark={dark} />
+  const seg = <AxfSeg items={AX_PERIODS.map(p => ({ id: p.id, label: tr(p.labelKey) }))} value={period} onChange={onPeriod} />
 
   // ── États : erreur · chargement · porte (objectif absent) · fantôme · réel ──
+  //
+  // ⚠ TROIS D'ENTRE EUX SONT BORD À BORD (nappe, squelette, compte neuf) et
+  // deux sont CENTRÉS dans une marge (erreur, porte) : la marge appartient donc
+  // à l'état, pas au cadre. C'est ce qui permet à la nappe de toucher les quatre
+  // bords du bento sans que la porte s'y colle.
+  const marge = 'var(--crm-space-4xl) var(--crm-space-6xl) var(--crm-space-5xl)'
   let content: ReactNode
   if (isError && !d) {
     content = (
-      <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-3xl)', textAlign: 'center', color: A.ink }}>
+      <div style={{ position: 'absolute', inset: 0, padding: marge, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-3xl)', textAlign: 'center', color: A.ink }}>
         <div style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600 }}>{tr('analytics.error.title')}</div>
         <div style={{ fontSize: 'var(--crm-text-lg)', opacity: 0.7, lineHeight: 1.5, maxWidth: 360 }}>{tr('analytics.error.body')}</div>
+        {/* Affordance PRIMAIRE : l'aplat d'accent, comme le CTA de la porte. */}
         <button onClick={() => refetch()} style={{ height: 40, padding: '0 var(--crm-space-5xl)', borderRadius: 'var(--crm-radius-pill)', background: A.accent, color: A.accentInk, border: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>{tr('analytics.error.retry')}</button>
       </div>
     )
@@ -737,16 +777,18 @@ export default function AxDashboardBody({ dark = false, onNavigate }: AxDashboar
     const targetSet = d.targetIsSet ?? d.target > 0
     const hasActivity = d.realizedNow > 0 || d.projectedEnd > 0 || d.composition.some(c => c.v > 0)
     if (!targetSet) {
-      content = <AxGate dark={dark} saving={isSaving} onDone={saveYearly} />
+      content = <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', padding: marge }}><AxGate dark={dark} saving={isSaving} onDone={saveYearly} /></div>
     } else if (!hasActivity) {
-      content = <AxFirstRun acc={acc} dark={dark} target={d.target} onGoSettings={goSettings} />
+      content = <AxFirstRun acc={acc} target={d.target} onGoSettings={goSettings} />
     } else {
-      content = <AxFusionGrid d={d} dark={dark} acc={acc} seg={seg} onNavigate={onNavigate} />
+      content = <AxFusionGrid d={d} acc={acc} seg={seg} onNavigate={onNavigate} />
     }
   }
 
+  // `position: relative` : c'est LUI qui donne son cadre aux `inset: 0` des
+  // états bord à bord — la nappe épouse ce que la page lui laisse, sans marge.
   return (
-    <div style={{ height: '100%', width: '100%', minHeight: 0, minWidth: 0, fontFamily: 'var(--crm-font)' }}>
+    <div style={{ position: 'relative', height: '100%', width: '100%', minHeight: 0, minWidth: 0, fontFamily: 'var(--crm-font)' }}>
       <AxfStyles dark={dark} />
       {content}
     </div>

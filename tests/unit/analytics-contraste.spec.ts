@@ -53,9 +53,10 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { AX, AX_DARK, type AxTheme } from '@/components/crm/analytics/tokens'
+import { AX, AX_DARK, AXF_ACCENTS, type AxTheme } from '@/components/crm/analytics/tokens'
 import { crmPalette } from '@/components/crm/tokens'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_CARD_SHADOW, MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
+import { encreSur } from '@/components/megga-x-crm/tokens'
 import { repoPath, rel } from './helpers/fs-scan'
 
 const AA = 4.5
@@ -234,8 +235,34 @@ function rolesEmployes(): Set<string> {
  * C'est elle qui rend SÛRE l'exemption des aplats et des ombres, qui ne portent
  * aucun seuil de texte.
  */
-const ENCRES = ['ink', 'inkSoft', 'muted', 'ghost', 'errInk']
-const GLYPHES = ['muted', 'inkSoft', 'goal', 'ink']
+const ENCRES = ['ink', 'inkSoft', 'muted', 'ghost', 'errInk', 'accText']
+const GLYPHES = ['muted', 'inkSoft', 'goal', 'ink', 'okInk', 'warnInk']
+
+/**
+ * Encres posées sur une CHIP du graphe — leur fond est `chipBg`, l'encre du
+ * thème OPPOSÉ, pas la carte.
+ *
+ * ⛔ C'EST LA MÊME FORME QUE LES PILULES, et elle mérite d'être mesurée pour la
+ * même raison : une chip qui reprendrait les encres de la carte serait illisible
+ * sans qu'aucune clause ne le voie. Mesuré : `accText` sombre (#8dc1ff) posé sur
+ * une chip BLANCHE rend 1,79:1 — c'est exactement ce que `chipAcc` évite en
+ * reprenant l'aplat.
+ */
+const ENCRES_SUR_CHIP = ['chipInk', 'chipAcc', 'chipOk', 'chipWarn']
+
+/**
+ * ⚠ ET LES RÔLES SE PARTAGENT : la chip existe en DEUX rendus. Celle du graphe
+ * est un `<rect>` SVG surmonté d'un `<text fill=…>` (rôle « glyphe ») ; celle du
+ * survol est une `<div>` en `color:` (rôle « texte »). Le même jeton n'a donc pas
+ * le même rôle des deux côtés, et l'inventaire le dit site par site plutôt que
+ * d'inscrire les huit combinaisons — dont quatre seraient mortes.
+ *
+ * ⛔ Les deux se mesurent à l'AA, pas au seuil des formes : un `fill` posé sur un
+ * `<text>` de 12 px reste du TEXTE. Le rôle dit d'où vient la couleur, pas ce
+ * qu'elle doit tenir.
+ */
+const CHIP_TEXTE = ['chipInk', 'chipOk', 'chipWarn']
+const CHIP_GLYPHE = ['chipInk', 'chipAcc']
 
 /**
  * Encres posées sur l'ACCENT — leur fond n'est pas une surface, c'est `accent`.
@@ -263,6 +290,12 @@ const PILULES = ['pillAhead', 'pillBehind']
 const HORS_SEUIL: Record<string, string> = {
   'aplat:card': 'la surface elle-même',
   'aplat:cardSubtle': 'sous-surface (rail de la pace-bar, segment, encart)',
+  'aplat:border': 'LE FOND DE LA NAPPE — ce que ses gouttières de 1 px laissent voir',
+  'filet:border': 'le même jeton en bordure : segment, popover, champ de la porte',
+  'filet:hairline': 'filet de la pace-bar et séparateur Réalisé/Reste',
+  'aplat:focus': 'surface de survol d’une ligne du popover',
+  'aplat:chipBg': 'le fond de la chip — mesuré comme couple avec ce qui s’y pose',
+  'glyphe:chipBg': 'le même fond, en `fill` : les chips du graphe sont des <rect>',
   'aplat:ink': 'repère de rythme — un trait de 2,5 px sur cardSubtle, à 19:1',
   'aplat:accent': 'aplat d’accent — mesuré comme couple avec accentInk',
   'aplat:pillAhead.bg': 'aplat de pilule — mesuré comme couple avec son fg',
@@ -271,15 +304,12 @@ const HORS_SEUIL: Record<string, string> = {
   'aplat:skShine': 'dégradé de squelette — aucune information portée',
   'glyphe:card': 'trou dans la courbe : le disque DOIT valoir la carte',
   'ombre:shadow': 'ombre',
-  'ombre:shadowSm': 'ombre',
-  'ombre:shadowLg': 'ombre',
-  'ombre:ink': 'anneau de focus du champ d’objectif (inset 2 px), pas une encre',
+  'ombre:accText': 'anneau de focus du champ d’objectif (inset 2 px), pas une encre',
   'ombre:pillAhead.sh': 'ombre de pilule',
   'ombre:pillBehind.sh': 'ombre de pilule',
   'filet:goal': 'contour du marqueur d’objectif — mesuré comme glyphe',
   'autre:pillAhead': 'objet de pilule, déréférencé par un alias',
   'autre:pillBehind': 'objet de pilule, déréférencé par un alias',
-  'autre:ink': 'table de teintes du treemap, appliquée en `color:` plus bas',
 }
 
 /**
@@ -328,7 +358,7 @@ const MORTES: string[] = []
  */
 const NON_COULEURS: Record<string, string> = {
   pageBg: 'dégradé radial de la page — zéro lecteur, mesuré nulle part',
-  shadow: 'chaîne de box-shadow', shadowSm: 'chaîne de box-shadow', shadowLg: 'chaîne de box-shadow',
+  shadow: 'chaîne de box-shadow en clair, le mot-clé `none` en sombre',
 }
 /** Sous-champs de pilule qui ne sont pas des couleurs. */
 const NON_COULEURS_PILULE = new Set(['sh'])
@@ -401,6 +431,8 @@ describe('Contraste Analytics — un objet de jetons que sept specs ont laissé 
       ...ENCRES_SUR_ACCENT.map((c) => `texte:${c}`),
       ...PILULES.map((c) => `texte:${c}.fg`),
       ...PILULES.map((c) => `aplat:${c}.bg`),
+      ...CHIP_TEXTE.map((c) => `texte:${c}`),
+      ...CHIP_GLYPHE.map((c) => `glyphe:${c}`),
       ...Object.keys(HORS_SEUIL),
     ])
     const vus = rolesEmployes()
@@ -471,34 +503,126 @@ describe('Contraste Analytics — un objet de jetons que sept specs ont laissé 
   }
 
   /**
-   * ⛔ EN SOMBRE, LA SÉPARATION EST UN FILET — PAS UNE OMBRE (lot 2).
+   * ⛔ LA NAPPE NE POSE PLUS D'OMBRE — une seule valeur, et le SENS du mode.
    *
-   * `mxCrmPalette(true)` rend `shadow: 'none'` : sur un canvas `#030303`, une
-   * ombre noire ne dessine rien. Mesuré au rendu avant ce lot, la carte sortait
-   * à `#191B1F` avec `borderWidth: 0px` — l'écart de luminance de 1,13:1 était le
-   * SEUL séparateur, et descendre l'échelle sans poser le filet l'aurait ramené
-   * à 1,04:1.
+   * Ce que cette clause gardait avant la fusion : un ANNEAU INSET en sombre
+   * (`inset 0 0 0 1px n400`), parce que la carte y flottait sans rien pour la
+   * détacher — mesuré au rendu, elle sortait à #191B1F sur un cadre #030303,
+   * l'écart de luminance de 1,13:1 étant le SEUL séparateur.
    *
-   * ⚠ Aucune clause de contraste ne peut l'attraper : les encres restent
-   * lisibles pendant que la CARTE disparaît. C'est la forme n° 32 appliquée non
-   * plus à une pastille mais à la surface entière.
+   * Le cockpit fusionné supprime la question : les cellules ne flottent plus,
+   * la gouttière de 1 px les sépare, et l'anneau conservé aurait DOUBLÉ chaque
+   * filet. Reste `MXC_CARD_SHADOW` en clair — l'unique ombre de carte de la
+   * vitrine, portée par ce qui FLOTTE (popover de drill, champ de la porte) —
+   * et `'none'` en sombre, comme `mxCrmPalette(true)`.
+   *
+   * ⚠ La clause garde les DEUX SENS. Une ombre douce réintroduite en sombre
+   * rougit ; un filet inset réintroduit en clair aussi. C'est le mode qui décide,
+   * et ni l'un ni l'autre ne doit revenir par copier-coller depuis une surface
+   * non migrée.
    */
-  it('en sombre, chaque ombre est un filet tiré d’un barreau réel', () => {
+  it('l’ombre suit le mode : celle de la vitrine en clair, aucune en sombre', () => {
     const fautes: string[] = []
-    for (const cle of ['shadow', 'shadowSm', 'shadowLg'] as const) {
-      const v = AX_DARK[cle]
-      if (!/^inset 0 0 0 1px /.test(v)) { fautes.push(`${cle} n'est pas un filet : ${v}`); continue }
-      const teinte = v.replace('inset 0 0 0 1px ', '').trim()
-      if (!Object.values(MXC_COLOR).includes(teinte as never)) fautes.push(`${cle} tire son filet hors de l'échelle : ${teinte}`)
-      const r = contraste(teinte, AX_DARK.card)
-      if (r < 1.1) fautes.push(`${cle} : filet ${teinte} sur la carte ${AX_DARK.card} = ${arrondi(r)}:1 — il ne sépare pas`)
+    if (AX.shadow !== MXC_CARD_SHADOW) fautes.push(`CLAIR.shadow n'est pas l'ombre de la vitrine : ${AX.shadow}`)
+    if (AX_DARK.shadow !== 'none') fautes.push(`SOMBRE.shadow n'est pas 'none' : ${AX_DARK.shadow}`)
+    if (/inset/.test(AX.shadow)) fautes.push("CLAIR.shadow porte un filet inset : l'idiome clair est l'ombre douce")
+    /**
+     * …et AUCUNE CELLULE de la nappe ne porte d'ombre ni de rayon : ce sont ses
+     * gouttières qui dessinent. Deux précisions, chacune payée d'un faux positif
+     * lors de l'écriture de cette clause :
+     *
+     * ⛔ `A.card` doit être BORNÉ. Sans la borne, le motif attrape
+     * `A.cardSubtle` — la piste du segment, le rail de la pace-bar, la gouttière
+     * des barres de canal — qui sont des SOUS-SURFACES arrondies, et le sont
+     * légitimement. Forme n° 31 : une garde qui cherche un nom trouve tout ce
+     * qui commence pareil.
+     * ⚠ Et le partage nappe / flottant est STRUCTUREL : ce qui flotte est
+     * positionné (`position: 'absolute'`), ce qui vit dans la nappe est placé
+     * par la grille. Seuls les deux écrans qui RENDENT la nappe sont balayés —
+     * la porte n'en a pas, son champ est une surface flottante de plein droit.
+     */
+    const NAPPE = ['AxDashboard.tsx', 'AxFirstRun.tsx']
+    for (const { nom, code } of SOURCE.filter((f) => NAPPE.some((n) => f.nom.endsWith(n)))) {
+      const fautives = code.split('\n').filter((l) =>
+        /background: A\.card(?![A-Za-z])/.test(l) && /boxShadow|borderRadius/.test(l) && !/position: 'absolute'/.test(l))
+      for (const l of fautives) fautes.push(`${nom} — cellule de nappe ombrée ou arrondie : ${l.trim().slice(0, 70)}`)
     }
-    // …et le CLAIR garde ses ombres douces : l'inverse doit rougir aussi, sinon
-    // la clause laisserait passer un filet posé là où l'idiome est l'ombre.
-    for (const cle of ['shadow', 'shadowSm', 'shadowLg'] as const) {
-      if (/inset/.test(AX[cle])) fautes.push(`CLAIR.${cle} porte un filet : l'idiome clair est l'ombre douce sans bordure`)
+    expect(fautes, `la séparation a changé de nature :\n  ${fautes.join('\n  ')}`).toEqual([])
+  })
+
+  /**
+   * ⛔ LA CHIP SE MESURE CONTRE SON PROPRE FOND, jamais contre la carte — et ce
+   * fond est l'encre du thème OPPOSÉ.
+   *
+   * C'est la même forme que le couple de pilules, et elle mérite sa clause pour
+   * la même raison : rien, dans une clause qui mesure contre la carte, ne verrait
+   * une chip devenue illisible. Le contre-exemple est à portée de copier-coller —
+   * `accText` en sombre (#8dc1ff) posé sur une chip BLANCHE rend 1,79:1, et c'est
+   * exactement ce que `chipAcc` évite en reprenant l'aplat d'accent.
+   */
+  for (const { nom, t } of THEMES) {
+    it(`les encres de chip tiennent sur le fond INVERSÉ — ${nom}`, () => {
+      const faibles: string[] = []
+      for (const cle of ENCRES_SUR_CHIP) {
+        const encre = t[cle as keyof AxTheme] as string
+        expect(lisible(encre), `${cle} illisible en ${nom} : ${encre}`).toBe(true)
+        const r = contraste(encre, t.chipBg)
+        if (r < AA) faibles.push(`${cle} (${encre}) sur chipBg (${t.chipBg}) = ${arrondi(r)}:1`)
+      }
+      // Et le fond de la chip DOIT s'opposer à la carte : une chip de la couleur
+      // de la surface qu'elle survole ne se détache plus du tracé.
+      const contre = contraste(t.chipBg, t.card)
+      if (contre < AA) faibles.push(`chipBg (${t.chipBg}) ne se détache pas de la carte (${t.card}) = ${arrondi(contre)}:1`)
+      expect(faibles, `chip illisible en ${nom} :\n  ${faibles.join('\n  ')}`).toEqual([])
+    })
+  }
+
+  /**
+   * ⛔ L'ACCENT DE LA DATAVIZ EST GARDÉ ICI, ET IL NE L'ÉTAIT PAR RIEN.
+   *
+   * `AXF_ACCENTS` vit dans `AxDashboard`, pas dans la palette : la clause qui
+   * mesure `AX`/`AX_DARK` ne le voyait donc pas, et c'est LUI qui peint la
+   * courbe, le cône, les colonnes de canal et les trois blocs du treemap. Le
+   * périwinkle #6F8CFF y a survécu à la direction qui le justifiait — une
+   * exception Sugar, gardée nulle part.
+   *
+   * Trois choses sont figées :
+   * · chaque teinte est un BARREAU (les voiles `area` exceptés, qui sont des
+   *   rgba() dérivés du trait qu'ils accompagnent) ;
+   * · l'aplat et l'encre de l'accent sont les DEUX jetons de `CLAUDE.md` §3 —
+   *   `solid` identique dans les deux thèmes, `accent` viré au `blue300` en
+   *   sombre ;
+   * · ⛔ l'encre de chaque bloc du treemap est celle que rend `encreSur`, et
+   *   elle tient l'AA. C'est la garde qui rend SÛR le fait de ne plus poser
+   *   d'encre à la main : le jour où un barreau de la rampe change, la clause
+   *   dit si l'encre suit.
+   */
+  it('la rampe de la dataviz descend de MEGGA X, et son encre tient', () => {
+    const BARREAUX = new Set<string>([...Object.values(MXC_COLOR), ...Object.values(MXC_SYSTEM)])
+    const fautes: string[] = []
+    for (const [nom, acc] of Object.entries(AXF_ACCENTS)) {
+      for (const [cle, v] of Object.entries(acc)) {
+        if (cle === 'area') {
+          // Voile : il se compose sur la carte avant d'exister. Ce qu'on exige,
+          // c'est qu'il soit LISIBLE (donc mesurable), pas qu'il soit un barreau.
+          if (!lisible(v)) fautes.push(`${nom}.${cle} illisible : ${v}`)
+          continue
+        }
+        if (!BARREAUX.has(v)) fautes.push(`${nom}.${cle} = ${v} — hors de l'échelle MEGGA X`)
+      }
+      if (acc.solid !== MXC_COLOR.accent) fautes.push(`${nom}.solid n'est pas l'aplat d'accent : ${acc.solid}`)
+      for (const cle of ['rampA', 'rampB', 'rampC'] as const) {
+        const aplat = acc[cle]
+        const r = contraste(encreSur(aplat), aplat)
+        if (r < AA) fautes.push(`${nom}.${cle} : ${encreSur(aplat)} sur ${aplat} = ${arrondi(r)}:1`)
+      }
     }
-    expect(fautes, `la séparation sombre a changé de nature :\n  ${fautes.join('\n  ')}`).toEqual([])
+    // Le SENS de la règle des deux jetons : l'encre s'écarte de l'aplat en
+    // sombre, et NE s'en écarte PAS en clair. Une valeur unique casserait l'un
+    // des deux thèmes — c'est la mesure qui a imposé deux jetons.
+    if (AXF_ACCENTS.light.accent !== MXC_COLOR.accent) fautes.push('clair : l’encre d’accent devrait être l’aplat')
+    if (AXF_ACCENTS.dark.accent !== MXC_SYSTEM.blue300) fautes.push('sombre : l’encre d’accent devrait être blue300')
+    expect(fautes, `la rampe a quitté l'échelle :\n  ${fautes.join('\n  ')}`).toEqual([])
   })
 
   /**
@@ -513,15 +637,24 @@ describe('Contraste Analytics — un objet de jetons que sept specs ont laissé 
    */
   it('chaque couleur descend de MEGGA X, sauf celles qui sont nommées', () => {
     const HORS_ECHELLE: Record<string, string> = {
-      inkSoft: 'aucun barreau entre l’encre et le texte secondaire — mesuré 1,16:1 en clair, 1,06 en sombre',
       skBase: 'chatoiement : l’échelle ne porte pas deux paliers adjacents en sombre (3,19:1)',
       skShine: 'idem skBase',
-      hairline: 'voile composé, pas un aplat — dérive de crmVoileEncre',
       pillAhead: 'ENCODE « en avance » sur l’objectif',
       pillBehind: 'ENCODE « en retard » sur l’objectif',
       errInk: 'ENCODE une ERREUR — teinte foncée pour le texte, cf. da-meggax-crm',
+      okInk: 'ENCODE l’écart à l’objectif — mêmes teintes que les pilules en clair',
+      warnInk: 'idem okInk',
+      chipOk: 'idem okInk, sur le fond INVERSÉ de la chip',
+      chipWarn: 'idem okInk, sur le fond INVERSÉ de la chip',
     }
-    const BARREAUX = new Set<string>(Object.values(MXC_COLOR))
+    /**
+     * ⚠ `MXC_SYSTEM` FAIT PARTIE DES BARREAUX, et son absence d'ici aurait fait
+     * rougir `accText` en sombre. `blue300` (#8dc1ff) est le barreau que
+     * `CLAUDE.md` §3 NOMME pour l'encre d'accent sur fond sombre : l'exclure
+     * reviendrait à demander d'écrire à la main la seule valeur que la direction
+     * prescrit. Les deux familles sont gardées par `megga-x-crm-tokens.spec.ts`.
+     */
+    const BARREAUX = new Set<string>([...Object.values(MXC_COLOR), ...Object.values(MXC_SYSTEM)])
     const nus: string[] = []
     const exemptionsMortes: string[] = []
     for (const { nom, t } of THEMES) {
@@ -539,7 +672,7 @@ describe('Contraste Analytics — un objet de jetons que sept specs ont laissé 
     }
     // ⚠ TÉMOINS NOMMÉS, pas un compte : un `> 15 clés lues` s'était périmé le
     // jour même où dix clés mortes ont été retirées, au chantier KYC.
-    for (const t of ['card', 'muted', 'goal', 'accent']) {
+    for (const t of ['card', 'muted', 'goal', 'accent', 'border', 'accText']) {
       expect(Object.keys(AX), `clé non lue : le découpage a changé (${t})`).toContain(t)
     }
     expect(nus, `couleur écrite à la main, hors inventaire :\n  ${nus.join('\n  ')}`).toEqual([])

@@ -13,41 +13,119 @@
 //    reste écrit à la main est nommé, avec la mesure qui le justifie ;
 //  · en SOMBRE la carte est `n300` et la séparation vient d'un FILET, pas d'une
 //    ombre — `mxCrmPalette(true)` rend `shadow: 'none'` ;
-//  · en CLAIR les cartes gardent leurs ombres douces et n'ont pas de bordure ;
-//  · l'accent dataviz (périwinkle) ne vit PAS ici mais dans `AxDashboard`
-//    (`AXF_ACCENTS`, `AXF_BUCKET_TONE`) : c'est lui qui peint la décomposition.
+//  · l'accent de la DATAVIZ (`AXF_ACCENTS`) vit ici depuis la nappe. Il vivait
+//    dans `AxDashboard`, où la règle `react-refresh/only-export-components`
+//    interdit d'exporter autre chose qu'un composant — et sans export, ni
+//    `AxFirstRun` ni la garde de contraste ne pouvaient le lire. Une rampe que
+//    personne ne peut mesurer est exactement ce qui avait laissé survivre le
+//    périwinkle à la direction qui le justifiait.
 //
 // ⚠ Ce fichier portait TREIZE clés sans aucun lecteur, dont `secured`,
 // `probable` et `possible` — qui ressemblaient à la décomposition de la
 // commission, donc à une famille qui ENCODE, donc intouchable. Mesuré, elles ne
 // peignaient RIEN depuis la refonte fusion. Une clé sans lecteur n'est pas
 // « hors direction », elle est MORTE. Gardé par `tests/unit/analytics-contraste.spec.ts`.
+//
+// ── NAPPE FUSIONNÉE (handoff du 18 août 2026) ────────────────────────────────
+// Les cinq cartes du cockpit deviennent UNE surface continue : une grille au
+// `gap: 1px` posée sur `border`, dont chaque cellule est un aplat opaque `card`.
+// Les filets SONT les gouttières. Trois conséquences pour cette palette :
+//
+//  · `border` naît ici, et il est le MÊME jeton que la bordure du cadre
+//    (`mxCrmPalette().frameBorder`) : le filet interne et le contour du bento
+//    doivent être une seule ligne, pas deux valeurs qui se ressemblent ;
+//  · les ombres quittent les cellules. En CLAIR il ne reste que
+//    `MXC_CARD_SHADOW` — celle de la vitrine, portée par le CADRE et par les
+//    deux surfaces flottantes (popover de drill, champ de la porte) ; en SOMBRE
+//    elles valent `'none'`, sans exception, comme le reste de MEGGA X ;
+//  · les chips du graphe s'inversent : leur fond est l'encre du thème OPPOSÉ,
+//    donc leurs encres ne se mesurent pas contre la carte mais contre `chipBg`.
 
-import { crmVoileEncre } from '@/components/crm/tokens'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { MXC_CARD_SHADOW, MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { createContext, useContext } from 'react'
 
+/**
+ * LE FILET DE LA NAPPE, en pixels — la gouttière qui sépare deux cellules du
+ * cockpit fusionné.
+ *
+ * ⚠ Une constante, et pas un `1` répété douze fois : c'est UNE ligne, tracée
+ * par six grilles imbriquées (nappe, colonne gauche, colonne droite, bandeau,
+ * tuiles KPI, et les mêmes côté compte neuf). Écrite en clair elle se lirait
+ * comme un espacement — elle n'en est pas un, l'échelle `--crm-space-*`
+ * commence à 4 px — et rien ne dirait que les douze sites bougent ensemble.
+ *
+ * Elle vit ici plutôt que dans `AxDashboard` pour que `AxFirstRun`, qui rend la
+ * MÊME nappe, la lise sans créer d'import circulaire entre les deux écrans.
+ */
+export const AX_FILET = 1
+
 export interface AxPill { bg: string; fg: string; sh: string }
+
+/**
+ * L'ACCENT DE LA DATAVIZ, décliné — les valeurs de `AXF_ACCENTS` de la maquette
+ * font foi, et chacune est un barreau de MEGGA X.
+ *
+ * · `solid` — l'APLAT, `#424bfb` dans les deux thèmes (thumb du segment,
+ *   pace-bar, colonnes de canal, bloc « Sécurisé ») ;
+ * · `accent` — l'ENCRE et le TRAIT : `blue300` en sombre, où l'aplat tomberait
+ *   à 3,44:1 (courbe, cône, sparklines) ;
+ * · `soft` — la part PROJETÉE de la pace-bar, posée en voile sous la réalisée ;
+ * · `area` — le remplissage sous la courbe, voile du trait qui le borde ;
+ * · `rampA/B/C` — la rampe du treemap. Famille qui ENCODE (trois parts d'une
+ *   même grandeur), d'où l'ordre imposé : plein accent → `blue300` → neutre.
+ *   L'encre de chaque bloc se dérive par `encreSur`, jamais posée à la main.
+ *
+ * ⛔ LE PÉRIWINKLE #6F8CFF EST SUPPRIMÉ. C'était l'exception dataviz de Sugar,
+ * dont le motif — « l'accent de l'UI est l'encre noire, il faut donc une autre
+ * teinte pour les graphiques » — a disparu le jour où l'accent de la direction
+ * est lui-même devenu bleu. Il a survécu un mois à sa raison d'être.
+ */
+export interface AxfAccent { solid: string; accent: string; soft: string; area: string; rampA: string; rampB: string; rampC: string }
+export const AXF_ACCENTS: { light: AxfAccent; dark: AxfAccent } = {
+  light: { solid: '#424bfb', accent: '#424bfb', soft: '#8dc1ff', area: 'rgba(66,75,251,0.12)', rampA: '#424bfb', rampB: '#8dc1ff', rampC: '#ededed' },
+  dark: { solid: '#424bfb', accent: '#8dc1ff', soft: '#8dc1ff', area: 'rgba(141,193,255,0.14)', rampA: '#424bfb', rampB: '#8dc1ff', rampC: '#181818' },
+}
 
 export interface AxTheme {
   card: string
   cardSubtle: string
   ink: string
   /**
-   * ⚠ ÉCRIT À LA MAIN, et l'échelle est la raison. Le cran intermédiaire entre
-   * l'encre et le texte secondaire n'existe pas dans `MXC_COLOR` : en clair
-   * `n400` (#181818) sort à **1,16:1** de `n100`, en sombre `n800` à **1,17:1**
-   * du blanc — ils ne feraient pas un cran, ils feraient un DOUBLON. Les valeurs
-   * d'ici tiennent 1,90 et 1,97. Le jour où la vitrine gagne ce barreau, ces deux
-   * lignes doivent partir.
+   * ⚠ IL DESCEND DE L'ÉCHELLE DEPUIS LA NAPPE (18 août 2026), et c'est un
+   * ARBITRAGE, pas une correction. Il valait `#3A3D44` / `#B4B9C2`, écrits à la
+   * main parce que le cran intermédiaire n'existe pas : en clair `n400`
+   * (#181818) sort à **1,16:1** de `n100`, en sombre `n800` à **1,17:1** du
+   * blanc — un DOUBLON de l'encre plutôt qu'un cran sous elle.
+   *
+   * Le handoff de la nappe tranche l'autre sens : il inscrit `n400` / `n800` au
+   * tableau des encres, et la hiérarchie passe alors par la GRAISSE et la
+   * TAILLE, pas par un demi-ton. Deux valeurs écrites à la main en moins ; le
+   * doublon assumé est le prix, et il est écrit ici pour qu'on ne le
+   * « corrige » pas en le rendant à nouveau unique.
    */
   inkSoft: string
   muted: string
   ghost: string
   hairline: string
-  shadowSm: string
+  /**
+   * LE FILET — celui qui sépare les cellules de la nappe, et le même que la
+   * bordure du cadre. C'est un jeton d'APLAT autant que de bordure : la grille
+   * pose `background: border` et laisse ses gouttières de 1 px le montrer.
+   */
+  border: string
+  /** La surface de SURVOL d'une ligne (un cran au-dessus de la carte). */
+  focus: string
+  /**
+   * ⛔ `'none'` EN SOMBRE, SANS EXCEPTION — et `MXC_CARD_SHADOW` en clair.
+   *
+   * Les trois valeurs étaient un ANNEAU INSET en sombre (`inset 0 0 0 1px n400`)
+   * : la carte s'y séparait toute seule, faute de mieux. La nappe rend cet
+   * anneau nuisible — un filet posé sur chaque cellule DOUBLERAIT la gouttière
+   * qui les sépare déjà, et le popover flottant en hériterait sans le vouloir.
+   * La séparation vient désormais de la GRILLE (et d'une `border` explicite sur
+   * les deux surfaces flottantes), donc l'ombre n'a plus rien à porter.
+   */
   shadow: string
-  shadowLg: string
   goal: string
   pillAhead: AxPill
   pillBehind: AxPill
@@ -82,6 +160,42 @@ export interface AxTheme {
   accent: string
   accentInk: string
   /**
+   * L'ACCENT EN ENCRE — l'autre moitié de la règle des deux jetons (`CLAUDE.md`
+   * §3). `accent` est l'APLAT, `#424bfb` dans les deux thèmes, et c'est l'encre
+   * blanche posée dessus qui porte le contraste (5,78:1). Posé en TEXTE ou en
+   * TRAIT sur une surface sombre, le même bleu rend **3,44:1** — sous l'AA et
+   * sous le seuil des filets. `MXC_SYSTEM.blue300` est le barreau que la
+   * direction nomme pour ce cas exact (10,6:1).
+   *
+   * Il peint : le « Reste » du héro, les liens « Modifier » et « Ouvrir dans le
+   * Pipeline », la courbe et le cône de la trajectoire, les sparklines.
+   */
+  accText: string
+  /**
+   * LES CHIPS DU GRAPHE — étiquettes « aujourd'hui », « projeté » et infobulle
+   * de survol.
+   *
+   * ⛔ LEUR FOND EST L'ENCRE DU THÈME OPPOSÉ : noir en clair, blanc en sombre.
+   * C'est ce qui les détache d'un tracé qu'elles chevauchent, et c'est aussi ce
+   * qui INVERSE tout ce qui se pose dessus — l'accent y prend la valeur de
+   * l'autre thème (`chipAcc`), et le vert/orangé d'écart aussi (`chipOk`,
+   * `chipWarn`, à ne pas confondre avec `okInk`/`warnInk`, qui se posent sur la
+   * CARTE). Une chip qui reprendrait les encres de la carte serait illisible :
+   * `accText` sombre (#8dc1ff) sur une chip blanche rend 1,79:1.
+   */
+  chipBg: string
+  chipInk: string
+  chipAcc: string
+  chipOk: string
+  chipWarn: string
+  /**
+   * L'ÉCART À L'OBJECTIF au survol de la trajectoire — un segment de 2,5 px
+   * entre la courbe et la ligne d'objectif. Famille qui ENCODE (au-dessus /
+   * en dessous), donc hors direction, mais tenue au seuil des formes (3:1).
+   */
+  okInk: string
+  warnInk: string
+  /**
    * ⚠ ÉCRITS À LA MAIN EN SOMBRE, pour la même raison que `inkSoft` : un
    * chatoiement demande deux paliers ADJACENTS. En clair `n800 → n900` rend
    * 1,11:1, exactement la douceur d'origine. En sombre l'échelle saute de `n400`
@@ -99,7 +213,7 @@ export const AX: AxTheme = {
   // avait déjà (1,07). En sombre le raisonnement s'inverse : voir `AX_DARK`.
   cardSubtle: MXC_COLOR.n900,
   ink: MXC_COLOR.n100,
-  inkSoft: '#3A3D44',
+  inkSoft: MXC_COLOR.n400,
   /**
    * ⛔ `muted` et `ghost` PRENNENT LES BARREAUX DU SYSTÈME (lot 1, 17 août 2026).
    *
@@ -116,13 +230,24 @@ export const AX: AxTheme = {
    * précisément le défaut. La clé reste séparée parce que son RÔLE l'est.
    */
   muted: MXC_COLOR.n500,
+  /**
+   * ⚠ `ghost` GARDE `n500` ALORS QUE LE HANDOFF ÉCRIT `n600`, et la raison est
+   * une mesure, pas une préférence : son unique site est le `::placeholder` du
+   * champ d'objectif — le mot qui dit quoi taper. `n600` (#a3a3a3) rend
+   * **2,52:1** sur la carte blanche, très en dessous de l'AA. Le lot « encres
+   * AA » du plan du 17 août, que le handoff déclare toujours valide, l'avait
+   * précisément descendu pour cette raison.
+   */
   ghost: MXC_COLOR.n500,
-  hairline: `${crmVoileEncre(false, 0.07)}`,
-  // ⚠ Les ombres douces RESTENT en clair : c'est l'idiome de cette surface —
-  // aucune carte n'y porte de bordure. C'est en SOMBRE qu'elles disparaissent.
-  shadowSm: `0 4px 16px ${crmVoileEncre(false, 0.05)}`,
-  shadow: `0 14px 44px ${crmVoileEncre(false, 0.07)}, 0 2px 8px ${crmVoileEncre(false, 0.04)}`,
-  shadowLg: `0 28px 70px ${crmVoileEncre(false, 0.10)}, 0 6px 18px ${crmVoileEncre(false, 0.05)}`,
+  hairline: MXC_COLOR.n800,
+  border: MXC_COLOR.n700,
+  focus: MXC_COLOR.n800,
+  // ⚠ UNE SEULE OMBRE, ET UNE SEULE CLÉ. Elles étaient trois (`sm`, nu, `lg`)
+  // du temps où chaque carte choisissait sa profondeur ; la nappe n'en peint
+  // plus aucune, et les deux surfaces qui FLOTTENT — popover de drill, champ de
+  // la porte — portent la même. Garder trois noms pour une valeur et deux
+  // lecteurs, c'était fabriquer une clé morte à chaque relecture.
+  shadow: MXC_CARD_SHADOW,
   /**
    * La LIGNE D'OBJECTIF de la trajectoire — un tracé, donc le seuil non textuel
    * (WCAG 1.4.11, 3:1), pas l'AA.
@@ -150,6 +275,16 @@ export const AX: AxTheme = {
   errInk: '#B45309',
   accent: MXC_COLOR.accent,
   accentInk: MXC_COLOR.n1000,
+  accText: MXC_COLOR.accent,
+  // La chip est NOIRE en clair : ce qui se pose dessus prend les valeurs du
+  // thème sombre — l'accent-encre y est `blue300`, l'écart y est vert/jaune vifs.
+  chipBg: MXC_COLOR.n100,
+  chipInk: MXC_COLOR.n1000,
+  chipAcc: MXC_SYSTEM.blue300,
+  chipOk: MXC_SYSTEM.green400,
+  chipWarn: MXC_SYSTEM.yellow400,
+  okInk: '#15643F',
+  warnInk: '#A0521E',
   skBase: MXC_COLOR.n800,
   skShine: MXC_COLOR.n900,
 }
@@ -172,54 +307,65 @@ export const AX_DARK: AxTheme = {
   ...AX,
   card: MXC_COLOR.n300,
   /**
-   * ⛔ ÉLEVÉE, PAS CREUSÉE — et c'est une mesure, pas une préférence.
+   * ⛔ CREUSÉE (`n200`) DEPUIS LA NAPPE, alors qu'elle était ÉLEVÉE (`n400`) —
+   * et le renversement se lit dans ce qui BORDE, pas dans la teinte.
    *
-   * Les TROIS emplois de `cardSubtle` sont des GOUTTIÈRES DE JAUGE : le rail de
-   * la pace-bar, celui du sélecteur de période, et la colonne de fond des barres
-   * « Commission par canal ». Une gouttière porte l'ÉCHELLE — c'est elle qui dit
-   * jusqu'où va le 100 %. La faire disparaître retire la référence, pas un décor.
+   * Les emplois de `cardSubtle` sont des GOUTTIÈRES DE JAUGE : le rail de la
+   * pace-bar, la piste du sélecteur de période, la colonne de fond des barres
+   * « Commission par canal ». Une gouttière porte l'ÉCHELLE — elle dit jusqu'où
+   * va le 100 %. `n200` rend **1,02:1** sur une carte `n300` : seule, elle
+   * disparaît, et c'est ce qui avait fait remonter le jeton à `n400`.
    *
-   * Or `n200` (la sous-surface creusée de `CLAUDE.md`) rend **1,02:1** sur une
-   * carte `n300` : l'écart que `CLAUDE.md` §3 cite lui-même comme ne séparant
-   * PAS. `n400` rend **1,12:1** — exactement l'écart que cet écran avait avant ce
-   * lot (1,14:1), et celui de l'anneau qui borde les cartes. Le mode de
-   * conversion mécanique vers le palier creusé est le défaut qu'avait produit la
-   * migration Graphite du pipeline ; on ne le rejoue pas.
+   * La nappe change la donnée du problème : les deux premières gouttières
+   * portent désormais une `border` de 1 px (`hairline` pour la pace-bar,
+   * `border` pour le segment), donc leur contour ne dépend plus de la
+   * luminance. La troisième — la piste des barres de canal — reste sans filet,
+   * et c'est l'écart assumé du handoff : sa référence est la colonne PLEINE,
+   * pas son fond.
    *
-   * Mesuré dessus : `muted` 7,04 · `goal` 3,19 · l'aplat d'accent du segment 3,07.
+   * Mesuré sur `n200` : `muted` 8,20 · `goal` 3,66 · l'aplat d'accent 3,58.
    */
-  cardSubtle: MXC_COLOR.n400,
+  cardSubtle: MXC_COLOR.n200,
   // ⚠ `ink` valait `#F3F4F6` — attrapé par la clause « chaque couleur descend »,
   // pas à l'œil : l'écart avec le blanc pur est de 1,04:1, invisible. C'est
   // précisément ce qu'une garde voit et qu'une relecture ne voit pas.
-  ink: MXC_COLOR.n1000, inkSoft: '#B4B9C2',
+  ink: MXC_COLOR.n1000, inkSoft: MXC_COLOR.n800,
   // `muted` sortait à 4,41:1 sur la carte et 3,88 sur la gouttière ; `ghost`,
   // le placeholder, à 1,91. Le plan ne les avait relevés qu'en CLAIR — une
   // garde d'un seul thème serait passée au vert dans les deux sens.
+  // ⚠ `ghost` garde `n600` là où le handoff écrit `n500` : sur la carte sombre,
+  // `n500` rend 3,58:1 — sous l'AA pour le mot qui dit quoi taper.
   muted: MXC_COLOR.n600, ghost: MXC_COLOR.n600,
-  hairline: 'rgba(255,255,255,0.08)',
+  hairline: MXC_COLOR.n400,
+  border: MXC_COLOR.n400,
+  focus: MXC_COLOR.n400,
   /**
-   * ⛔ AUCUNE OMBRE EN SOMBRE — `mxCrmPalette(true)` rend `'none'`, et la
-   * séparation vient de la BORDURE. Le filet est posé en ANNEAU INSET plutôt
-   * qu'en `border`, et ce n'est pas un raccourci :
+   * ⛔ AUCUNE OMBRE EN SOMBRE, ET PLUS D'ANNEAU NON PLUS.
    *
-   * · il suit le JETON. Les quatorze cartes le reçoivent par les `shadow*`
-   *   qu'elles portent déjà — trois valeurs à écrire au lieu d'une passe de
-   *   substitution sur quinze sites, dont une s'emballe (14 141 lignes ajoutées
-   *   à ce fichier lors d'un lot précédent) ;
-   * · il exclut la quinzième. Le seul `background: A.card` SANS ombre est la
-   *   FLÈCHE du popover de drill — un carré de 14 px pivoté à 45°. Un `border`
-   *   y aurait dessiné un losange en travers de la carte ; une passe mécanique
-   *   l'aurait touchée, le jeton ne la voit pas ;
-   * · il ne coûte aucune boîte, là où un `border` en dépend du `box-sizing`.
+   * Ces trois clés portaient un filet `inset 0 0 0 1px n400` : c'est ainsi que
+   * les quatorze cartes se séparaient du cadre quand elles flottaient encore.
+   * La nappe leur retire ce travail — la gouttière de 1 px les sépare déjà — et
+   * un anneau conservé DOUBLERAIT chaque filet, en épaississant les croisements.
+   *
+   * Ce qui reste à border est ce qui FLOTTE (popover, champ de la porte), et
+   * ces deux-là portent une `border` explicite, visible à la lecture de leur
+   * propre style plutôt que déduite d'un jeton d'ombre.
    */
-  shadowSm: `inset 0 0 0 1px ${MXC_COLOR.n400}`,
-  shadow: `inset 0 0 0 1px ${MXC_COLOR.n400}`,
-  shadowLg: `inset 0 0 0 1px ${MXC_COLOR.n400}`,
+  shadow: 'none',
   goal: MXC_COLOR.n500,
   errInk: '#F0A05A',
   accent: MXC_COLOR.accent,
   accentInk: MXC_COLOR.n1000,
+  accText: MXC_SYSTEM.blue300,
+  // La chip est BLANCHE en sombre : l'accent y reprend l'aplat `#424bfb`
+  // (5,78:1) et l'écart, les teintes foncées des pilules.
+  chipBg: MXC_COLOR.n1000,
+  chipInk: MXC_COLOR.n100,
+  chipAcc: MXC_COLOR.accent,
+  chipOk: '#15643F',
+  chipWarn: '#A0521E',
+  okInk: MXC_SYSTEM.green400,
+  warnInk: MXC_SYSTEM.yellow400,
   skBase: '#23262B', skShine: '#2F333A',
 }
 

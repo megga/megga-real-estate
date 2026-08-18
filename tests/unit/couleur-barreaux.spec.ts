@@ -138,7 +138,12 @@ const SURFACES_EXEMPTEES: { fichier: string; motif: string }[] = [
  * clause « aucune entrée ne garde de crédit » à chaque exécution.
  */
 const HORS_ASSUMES = new Map<string, number>([
-  ['src/components/crm', 538],
+  // 538 → 522 (18.08.2026) : la nappe fusionnée d'Analytics a repris SEIZE
+  // couleurs écrites à la main — le périwinkle de la dataviz et ses trois
+  // déclinaisons, les deux fonds de chip, les quatre teintes d'écart au survol,
+  // la table d'encres du treemap (désormais dérivée par `encreSur`) et les
+  // voiles d'ombre du segment. Le cliquet redescend, il ne se justifie pas.
+  ['src/components/crm', 522],
   ['src/components/crm-mobile', 141],
   ['src/components/crm-dossiers', 68],
   ['src/components/crm-wizard', 48],

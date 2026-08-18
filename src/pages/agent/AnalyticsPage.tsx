@@ -108,8 +108,15 @@ export default function AnalyticsPage() {
         />
 
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
-          <div style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, background: sp.pageBg }}>
-            <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', padding: '20px 24px 22px' }}>
+          {/* ⛔ LE CADRE NE PORTE PLUS DE MARGE. La nappe fusionnée épouse le
+              bento bord à bord : le padding qui vivait ici l'aurait décollée des
+              quatre côtés, et l'`overflow: hidden` du cadre est ce qui coupe ses
+              cellules aux coins arrondis. Les états qui restent centrés (porte,
+              erreur) portent leur marge eux-mêmes, dans `AxDashboardBody`.
+              Le fond passe à `frameBg` : sous une nappe opaque il ne se voit que
+              dans les filets, et c'est la teinte du cadre que MEGGA X y attend. */}
+          <div style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, background: sp.frameBg }}>
+            <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
               <AXCtx.Provider value={axTheme}>
                 <AxDashboardBody embedded dark={dark} setDark={setDark} onNavigate={onNavigate} />
               </AXCtx.Provider>
