@@ -17,9 +17,29 @@
     /* neutralise aussi le flou des entrées IX2 pour un rendu net */
     [style*="blur"] { filter: none !important; }
 
-    /* Hero CRM — scène perspective (maquette « CRM Hero A - Dark ») + dégradé conservé
-       (ces classes vivent inline dans index.html, pas dans styles.css → embarquées ici) */
-    .crm-hero-visual{position:relative;width:100%;aspect-ratio:2880/1496;margin-top:64px;}
+    /* Ce qui suit est la COPIE CONFORME du bloc inline de index.html : ces
+       classes ne vivent pas dans styles.css, elles sont écrites à la main dans
+       la page. ⚠ La preview n'a aucun JS, donc `--hero-descente` reste à 0 :
+       c'est la pose de repos qui s'affiche ici, jamais la descente.
+
+       Hero CRM — scène perspective 3D (maquette « Matching — couverture 3D ») + dégradé conservé.
+       Géométrie en unités RELATIVES à la boîte du visuel : la pose de la maquette
+       (écran DE FACE, basculé de 52°, à peine vrillé de 10°) tient telle quelle à
+       toutes les largeurs. La hauteur du hero reste réglée par le seul
+       `aspect-ratio` ci-dessous — aucune transformation ne la fait grandir, donc la
+       ligne de logos qui suit ne bouge pas d'un pixel.
+       ⚠ Un seul écart à la maquette, et il est voulu : elle pose le bord haut de
+       l'écran à 34 % parce qu'elle réserve son tiers haut au titre de couverture.
+       Ici ce tiers est occupé par le titre du hero, donc l'écran commence juste
+       sous les boutons (4 %). Le point de fuite reste AU-DESSUS de ce bord (-10 %,
+       soit hors de la boîte) : c'est lui qui donne le regard plongeant, et le
+       remettre à 20 % ferait bomber le haut de l'écran vers le ciel.
+       `--hero-rx/rz/scale` = la pose de repos, `--hero-d*` = le chemin parcouru
+       pendant la descente. Le script n'écrit QUE `--hero-descente` (0 → 1) : la
+       géométrie reste entièrement ici, points de rupture compris. */
+    .crm-hero-visual{position:relative;width:100%;aspect-ratio:2880/1496;margin-top:64px;
+      --hero-rx:52deg;--hero-rz:-10deg;--hero-scale:.68;
+      --hero-descente:0;--hero-drx:20deg;--hero-drz:10deg;--hero-dscale:.12;--hero-dy:-52px;}
     .section.hero---br.v3 .buttons-row{margin-top:24px;}
     .crm-hero-glow{position:absolute;z-index:3;left:-3%;right:-3%;bottom:0;height:46%;pointer-events:none;
       background:linear-gradient(90deg,
@@ -29,21 +49,33 @@
       -webkit-mask-image:linear-gradient(to top,#000 0%,#000 6%,rgba(0,0,0,.6) 34%,transparent 86%);
       mask-image:linear-gradient(to top,#000 0%,#000 6%,rgba(0,0,0,.6) 34%,transparent 86%);
       filter:blur(8px);}
-    .crm-hero-stage{position:absolute;z-index:2;left:50%;top:2%;width:2000px;height:920px;transform:translateX(-50%);perspective:2600px;perspective-origin:50% 12%;}
-    .crm-hero-device{position:absolute;left:50%;top:0;width:2040px;transform:translateX(calc(-50% + 210px)) rotateX(49deg) rotateZ(-31deg);transform-origin:50% 0;border-radius:20px;overflow:hidden;background:#0a0a0c;border:1px solid rgba(255,255,255,.08);
-      box-shadow:0 60px 110px -34px rgba(0,0,0,.85),0 24px 60px -40px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.03) inset;}
+    /* La scène épouse le visuel. La focale suit la largeur de page (104vw ≈ les
+       2000px de la maquette sur ses 1920px de large) : figée en pixels, elle
+       aplatirait l'écran sur grand moniteur et le creuserait sur petit. */
+    .crm-hero-stage{position:absolute;z-index:2;inset:0;perspective:104vw;perspective-origin:50% -10%;}
+    .crm-hero-device{position:absolute;left:50%;top:4%;width:130%;
+      transform:translateX(-50%)
+        translateY(calc(var(--hero-descente) * var(--hero-dy)))
+        rotateX(calc(var(--hero-rx) - var(--hero-descente) * var(--hero-drx)))
+        rotateZ(calc(var(--hero-rz) + var(--hero-descente) * var(--hero-drz)))
+        scale(calc(var(--hero-scale) + var(--hero-descente) * var(--hero-dscale)));
+      transform-origin:50% 0;border-radius:30px;overflow:hidden;background:#0a0a0c;border:1px solid rgba(255,255,255,.08);
+      box-shadow:0 80px 160px -24px rgba(0,0,0,.6),0 24px 60px -40px rgba(0,0,0,.7),0 0 0 1px rgba(255,255,255,.03) inset;
+      will-change:transform;}
     .crm-hero-device img{display:block;width:100%;height:auto;}
-    @media screen and (max-width:991px){
-      .crm-hero-stage{top:2%;width:1500px;}
-      .crm-hero-device{width:1500px;transform:translateX(calc(-50% + 150px)) rotateX(49deg) rotateZ(-31deg);}
-    }
+    /* Sous 768px la boîte est très large pour sa hauteur : on redresse un peu et
+       on rapproche, sinon l'écran se réduit à une bande illisible. */
     @media screen and (max-width:767px){
-      .crm-hero-stage{top:0%;width:1060px;}
-      .crm-hero-device{width:1060px;transform:translateX(calc(-50% + 80px)) rotateX(47deg) rotateZ(-29deg);}
+      .crm-hero-visual{--hero-rx:46deg;--hero-rz:-8deg;--hero-scale:.74;--hero-drx:14deg;--hero-drz:8deg;--hero-dy:-30px;}
+    }
+    /* Personne n'a demandé à voyager : sans mouvement, il reste la pose de la
+       maquette, qui se tient toute seule. */
+    @media (prefers-reduced-motion:reduce){
+      .crm-hero-visual{--hero-drx:0deg;--hero-drz:0deg;--hero-dscale:0;--hero-dy:0px;}
     }
   </style>
 </head>
 <body>
-<section class="section hero---br v3"><div class="w-layout-blockcontainer container-default w-container"><div class="inner-container _618px center"><div class="position-relative---z-index-1"><div class="text-center position-relative---z-index-2"><h1 data-w-id="879dff87-9fd1-8a5d-24b1-81b8e3c6adfe" style="opacity:0;filter:blur(8px)">Votre CRM se pilote depuis WhatsApp.</h1><div class="mg-top-small"><div class="buttons-row" data-w-id="879dff87-9fd1-8a5d-24b1-81b8e3c6ae04" style="opacity:0;filter:blur(8px)"><a class="primary-button w-inline-block" href="signup.html"><div class="link-content-flex"><div>Commencer</div></div></a><a class="secondary-button w-inline-block" href="contact.html"><div class="link-content-flex"><div>Voir les fonctionnalités</div></div></a></div></div></div></div></div></div><div class="crm-hero-visual mg-top--3 width-100" data-w-id="879dff87-9fd1-8a5d-24b1-81b8e3c6ae0a" style="opacity:0;filter:blur(8px)"><div class="crm-hero-glow"></div><div class="crm-hero-stage"><div class="crm-hero-device"><img alt="MEGGA CRM — écran Aujourd'hui (mode nuit)" loading="eager" src="../images/crm-today-dark-dash.png"/></div></div></div></section>
+<section class="section hero---br v3"><div class="w-layout-blockcontainer container-default w-container"><div class="inner-container _618px center"><div class="position-relative---z-index-1"><div class="text-center position-relative---z-index-2"><h1 data-w-id="879dff87-9fd1-8a5d-24b1-81b8e3c6adfe" style="opacity:0;filter:blur(8px)">Votre CRM se pilote depuis WhatsApp.</h1><div class="mg-top-small"><div class="buttons-row" data-w-id="879dff87-9fd1-8a5d-24b1-81b8e3c6ae04" style="opacity:0;filter:blur(8px)"><a class="primary-button w-inline-block" href="signup.html"><div class="link-content-flex"><div>Commencer</div></div></a><a class="secondary-button w-inline-block" href="contact.html"><div class="link-content-flex"><div>Voir les fonctionnalités</div></div></a></div></div></div></div></div></div><div class="crm-hero-visual mg-top--3 width-100" data-w-id="879dff87-9fd1-8a5d-24b1-81b8e3c6ae0a" style="opacity:0;filter:blur(8px)"><div class="crm-hero-glow"></div><div class="crm-hero-stage"><div class="crm-hero-device"><img alt="MEGGA CRM — écran Matching (mode nuit)" height="1992" loading="eager" src="../images/crm-matching-dark-3d.webp" width="3072"/></div></div></div></section>
 </body>
 </html>
