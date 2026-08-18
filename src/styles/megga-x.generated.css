@@ -10565,3 +10565,82 @@
   -webkit-appearance: none;
   appearance: none;
 }
+
+/* ── Centre d'aide : ce que les composants de la vitrine demandent en plus ──
+   Chacune de ces règles répond à une MESURE, pas à un goût.
+
+   1. `.link-heading` peint le titre en blanc (--neutral-colors--1000) et elle est
+      déclarée à l'octet 103008, soit APRÈS `.text-color-neutral-100` (87925) : à
+      spécificité égale, elle gagne par l'ordre. Sur une carte claire, le titre
+      rendait donc blanc sur blanc — invisible, et invisible aussi dans le
+      balisage, qui portait pourtant la bonne classe. Ce bloc étant en fin de
+      feuille, il tranche.
+   2. `.badge` est un `display:flex` : livré à lui-même il occupe toute la largeur
+      de son parent. Dans la vitrine il vit toujours dans une rangée flex qui le
+      contraint ; ici il lui faut son propre `inline-flex`.
+   3. `.input` ne porte aucune largeur — la vitrine la tient de `w-input`, qui
+      n'est pas dans cette feuille. Sans elle, le champ fait 238 px et le bouton
+      `button-inside-input-wrapper`, positionné en absolu, atterrit à côté.
+   4. `.icon-card-wrapper` fait 100 px de côté, mais `.icon-card` ne remplit pas
+      sa hauteur quand son contenu est un SVG plutôt qu'une image en `_w-h-100`. */
+
+.megga-x .aide-carte .link-heading {
+  color: var(--neutral-colors--100);
+}
+.megga-x .aide-collection {
+  text-decoration: none;
+  display: block;
+}
+.megga-x .aide-collection .badge,.megga-x 
+.aide-groupe .badge {
+  display: inline-flex;
+}
+.megga-x .aide-collection-nom {
+  color: var(--neutral-colors--900);
+}
+.megga-x .aide-collection .icon-card,.megga-x 
+.aide-collection-vignette {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+.megga-x .aide-collection-vignette svg {
+  width: 26px;
+  height: 26px;
+}
+.megga-x .aide-recherche {
+  width: 100%;
+}
+
+/* Sommaire d'article.
+   ⚠ `_1-78fr-right---center-content` porte bien son nom : elle CENTRE
+   verticalement. Sur deux colonnes de hauteurs très inégales — six entrées de
+   sommaire contre 3000 signes de corps — le sommaire se retrouvait au milieu de
+   l'article, à 840 px sous le premier paragraphe. Mesuré en construisant.
+   Le sélecteur porte DEUX classes parce que celui de la vitrine en porte deux :
+   à une seule, il perdait en spécificité et la règle ne s'appliquait pas. */
+.megga-x .grid-2-columns.aide-article-grille {
+  align-items: start;
+}
+.megga-x .aide-sommaire-liste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--main-spacers--4x-extra-small);
+  margin: 0;
+  padding: 0;
+}
+.megga-x .aide-sommaire-liste a {
+  color: var(--neutral-colors--700);
+  text-decoration: none;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.megga-x .aide-sommaire-liste a:hover {
+  color: var(--neutral-colors--900);
+}
+/* Les titres visés par une ancre ne doivent pas se caler sous la barre de nav
+   fixe quand on saute dessus. */
+.megga-x .rich-text h2[id] {
+  scroll-margin-top: 96px;
+}
