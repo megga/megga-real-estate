@@ -30,6 +30,7 @@
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { summarizeKybEvidence } from '@/lib/kybCheckEvidence'
 import type { TFunction } from 'i18next'
 import { createPortal } from 'react-dom'
 import {
@@ -553,11 +554,36 @@ function CheckRow({ check, persons, expanded, onToggle }: {
   const tone = checkRowTone(check.result, check.isVeto)
   const ToneIcon = CHECK_TONE_ICON[tone]
   const weight = displayCheckWeight(check.applicableWeight, check.isVeto)
+  // ⛔ CE QUI A ÉTÉ COMPARÉ, SOUS LE LIBELLÉ. Sans lui, « Ne correspond pas » se lit sans
+  // qu'on sache quoi ne correspond pas à quoi : le relecteur devait déplier la ligne et
+  // lire du JSON pour apprendre que le registre dit « Juarts - Julien Ahmedi » quand
+  // l'agence a déclaré « Juarts ». Deux gestes et un décodage pour comparer deux chaînes,
+  // sur le contrôle qui décide de presque tous les dossiers suisses (une raison
+  // individuelle y est toujours inscrite « nom commercial - nom du titulaire »).
+  const preuve = summarizeKybEvidence(check.checkType, check.rawResponse)
 
   return (
     <>
       <tr style={{ borderBottom: `1px solid ${sp.frameBorder}` }}>
-        <td className="py-2.5 pr-3" style={{ fontSize: 'var(--crm-text-lg)', color: sp.ink }}>{labelForCheckType(t, check.checkType)}</td>
+        <td className="py-2.5 pr-3" style={{ fontSize: 'var(--crm-text-lg)', color: sp.ink }}>
+          {labelForCheckType(t, check.checkType)}
+          {preuve && (
+            // Une seule ligne, en sourdine : c'est un appui à la lecture du verdict, pas
+            // une seconde colonne. Le détail complet reste sous le chevron.
+            <div style={{ marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
+              {preuve.declared && (
+                <span>{t('kybReview.checks.declared')} <span style={{ color: sp.soft }}>{preuve.declared}</span></span>
+              )}
+              {preuve.declared && preuve.found && <span aria-hidden> · </span>}
+              {preuve.found && (
+                <span>{t('kybReview.checks.found')} <span style={{ color: sp.soft }}>{preuve.found}</span></span>
+              )}
+              {preuve.note && (
+                <div style={{ color: sp.sub }}>{t(`kybReview.checks.reason.${preuve.note}`, { defaultValue: preuve.note })}</div>
+              )}
+            </div>
+          )}
+        </td>
         <td className="py-2.5 pr-3 whitespace-nowrap" style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft }}>{labelForSource(t, check.source)}</td>
         <td className="py-2.5 pr-3 whitespace-nowrap" style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft }}>
           {personLabel(t, check.relatedPersonId, persons)}
