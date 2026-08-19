@@ -1,0 +1,69 @@
+/* Vitrine MEGGA — la capture inclinée du hero des pages d'intégration.
+ *
+ * ⚠ LA POSE EST RELEVÉE SUR LE GABARIT, ELLE NE SE CHOISIT PAS. Le placeholder
+ * d'origine (`…_html-main-image-codeai-x-webflow-template.png`, 4248x2188, fond
+ * TRANSPARENT — un seuil de luminance y lit le vide, il faut passer par le canal
+ * alpha) portait sa perspective CUITE DANS LE PNG : `.hero-image-bottom.v3` n'a
+ * jamais eu la moindre transformation, rien qu'un `z-index` et des marges
+ * négatives. C'est ce qui a fait échouer les reprises précédentes — on cherchait
+ * un CSS qui n'existait pas.
+ *
+ * Mesuré sur ce PNG, et c'est la RÈGLE que toute capture posée ici doit tenir :
+ *   · arête haute   -14,00°  (résidu 0,5px sur 36 points)
+ *   · arête gauche  +42,44°  par rapport à la verticale
+ *   · coin haut-gauche à (0, 486) dans la boîte, soit 0 % / 44,3 %
+ *
+ * ⚠ LES ANGLES DE ROTATION, EUX, DÉPENDENT DU RAPPORT DE L'IMAGE. Deux captures
+ * de formats différents demandent deux triplets rotateX/Y/Z pour rendre les
+ * MÊMES arêtes. Chaque page pose donc ses `--shot-r*`, obtenus par ajustement
+ * numérique SUR L'ÉLÉMENT RÉEL — un banc d'essai séparé donne 0,7° d'erreur, son
+ * plan et son point de fuite n'étant pas concentriques.
+ *
+ * ⚠ La focale et le plan sont en `cqw` : la projection dépend du RAPPORT
+ * focale/taille du plan, pas de leurs valeurs. Figée en pixels, la pose se
+ * déformerait à chaque largeur d'écran.
+ */
+.hero-shot-3d {
+  container-type: inline-size;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4248/2188;   /* la boîte du gabarit, pour ne pas bouger la page */
+  /* `overflow` reproduit le rognage du gabarit : son PNG était coupé par ses
+     propres bords, la fenêtre y débordait déjà. */
+  overflow: hidden;
+}
+
+.hero-shot-3d__stage {
+  position: absolute;
+  inset: 0;
+  perspective: 260cqw;
+  /* Le point de fuite suit le plan. Déplacer l'un sans l'autre désaxe la
+     projection : au premier essai, les arêtes dérivaient de -14,01° à -15,06°. */
+  perspective-origin: var(--shot-left, 60.8%) var(--shot-top, 57.84%);
+}
+
+/* Le calage aussi est relevé : le coin haut-gauche du gabarit tombait à
+   (0, 486) dans la boîte, soit +10,80 % et +7,84 % par rapport au centre.
+   ⚠ Ces deux valeurs dépendent elles aussi du RAPPORT de l'image : à format
+   différent, le même pourcentage ne pose pas le coin au même endroit. D'où les
+   variables — la page Agenda garde les valeurs par défaut, WhatsApp les décale. */
+.hero-shot-3d__plane {
+  position: absolute;
+  left: var(--shot-left, 60.8%);
+  top: var(--shot-top, 57.84%);
+  width: 100cqw;
+  transform: translate(-50%, -50%)
+    rotateX(var(--shot-rx)) rotateY(var(--shot-ry)) rotateZ(var(--shot-rz));
+  transform-origin: 50% 50%;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #0C0D11;
+  box-shadow: 0 60px 140px rgba(0, 0, 0, .55);
+  outline: 1px solid rgba(255, 255, 255, .06);
+}
+
+.hero-shot-3d__plane img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
