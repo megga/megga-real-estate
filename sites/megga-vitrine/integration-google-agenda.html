@@ -29,8 +29,13 @@
    ses propres bords, la fenêtre y débordait déjà. Sans ça notre plan déborde
    de 230px à gauche et de 246px sous la boîte. */
 .cal-3d{container-type:inline-size;position:relative;width:100%;aspect-ratio:4248/2188;overflow:hidden;}
-.cal-3d__stage{position:absolute;inset:0;perspective:260cqw;perspective-origin:50% 50%;}
-.cal-3d__plane{position:absolute;left:50%;top:50%;width:100cqw;
+.cal-3d__stage{position:absolute;inset:0;perspective:260cqw;perspective-origin:60.8% 57.84%;}
+/* ⚠ LE CALAGE AUSSI EST RELEVÉ SUR LE GABARIT, pas ajusté à vue : son coin
+   haut-gauche tombait à (0, 486) dans la boîte, le nôtre arrivait à
+   (-230, 400) — trop haut de 86px et trop à gauche de 230px, soit +10,80 %
+   et +7,84 % de la boîte. Sans ce décalage, l'arête haute passe à y=181 au
+   bord droit du texte et la capture remonte SOUS le paragraphe. */
+.cal-3d__plane{position:absolute;left:60.8%;top:57.84%;width:100cqw;
   transform:translate(-50%,-50%) rotateX(54deg) rotateY(13.5deg) rotateZ(-40.5deg);
   transform-origin:50% 50%;border-radius:22px;overflow:hidden;background:#0C0D11;
   box-shadow:0 60px 140px rgba(0,0,0,.55);outline:1px solid rgba(255,255,255,.06);}
