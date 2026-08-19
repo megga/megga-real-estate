@@ -36,7 +36,10 @@
 .hero-shot-3d__stage {
   position: absolute;
   inset: 0;
-  perspective: 260cqw;
+  /* ⚠ LA FOCALE SUIT LA LARGEUR DU PLAN, elle ne peut pas être une constante :
+     la projection dépend de leur RAPPORT (2,6). Réduire le plan sans réduire
+     la focale fait dériver les arêtes — mesuré, -14,00° devient -17,12°. */
+  perspective: calc(2.6 * var(--shot-width, 100cqw));
   /* Le point de fuite suit le plan. Déplacer l'un sans l'autre désaxe la
      projection : au premier essai, les arêtes dérivaient de -14,01° à -15,06°. */
   perspective-origin: var(--shot-left, 60.8%) var(--shot-top, 57.84%);
@@ -46,12 +49,16 @@
    (0, 486) dans la boîte, soit +10,80 % et +7,84 % par rapport au centre.
    ⚠ Ces deux valeurs dépendent elles aussi du RAPPORT de l'image : à format
    différent, le même pourcentage ne pose pas le coin au même endroit. D'où les
-   variables — la page Agenda garde les valeurs par défaut, WhatsApp les décale. */
+   variables — la page Agenda garde les valeurs par défaut, WhatsApp les décale.
+   ⚠ `--shot-width` existe pour la même raison : un format quasi carré posé sur
+   toute la largeur produit un quadrilatère de 2700x1814 dans une boîte de
+   2130x1097, et le sujet ressort rogné. Réduire le plan ne touche NI les angles
+   NI le coin — la règle porte sur les arêtes et le calage, pas sur la taille. */
 .hero-shot-3d__plane {
   position: absolute;
   left: var(--shot-left, 60.8%);
   top: var(--shot-top, 57.84%);
-  width: 100cqw;
+  width: var(--shot-width, 100cqw);
   transform: translate(-50%, -50%)
     rotateX(var(--shot-rx)) rotateY(var(--shot-ry)) rotateZ(var(--shot-rz));
   transform-origin: 50% 50%;
