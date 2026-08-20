@@ -43,6 +43,7 @@ export const PAGES = {
     en: 'integration-google-calendar',
     it: 'integrazione-google-calendar',
   },
+  'integration-claude.html': { de: 'integration-claude', en: 'integration-claude', it: 'integrazione-claude' },
   'integration-intercom.html': { de: 'integration-intercom', en: 'integration-intercom', it: 'integrazione-intercom' },
   'integration-microsoft-outlook.html': {
     de: 'integration-microsoft-outlook',

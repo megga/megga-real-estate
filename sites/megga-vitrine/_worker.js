@@ -264,6 +264,7 @@ const SLUGS_PAR_LANGUE = {
     '/about': '/chi-siamo', '/contact': '/contatto', '/integrations': '/integrazioni',
     '/login': '/accedi', '/pricing': '/prezzi', '/reset-password': '/nuova-password',
     '/signup': '/registrazione', '/integration-google-agenda': '/integrazione-google-calendar',
+    '/integration-claude': '/integrazione-claude',
     '/integration-intercom': '/integrazione-intercom',
     '/integration-microsoft-outlook': '/integrazione-microsoft-outlook',
     '/integration-skribble': '/integrazione-skribble',
