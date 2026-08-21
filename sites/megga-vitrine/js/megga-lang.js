@@ -1,7 +1,9 @@
 /* Vitrine MEGGA — sélecteur de langue.
  *
- * Le pied de page porte une pastille ; elle ouvre un dialogue qui liste les
- * quatre langues du produit (FR/DE/EN/IT, les mêmes que le CRM). Choisir une
+ * Le pied de page porte un bouton discret ; il ouvre un petit menu ancré juste
+ * au-dessus, qui liste les quatre langues du produit (FR/DE/EN/IT, les mêmes
+ * que le CRM). Ni fond flouté, ni titre, ni croix : choisir entre quatre
+ * langues ne justifie pas de couvrir le site. Choisir une
  * langue emmène sur la version correspondante de LA PAGE COURANTE, pas sur
  * l'accueil : on ne perd pas sa lecture en changeant de langue.
  *
@@ -66,37 +68,40 @@
   }
 
   /**
-   * Libellés du dialogue, par langue.
+   * Libellés du menu, par langue.
    *
-   * Le dialogue est construit en JavaScript : ses propres textes ne passent pas
-   * par le générateur, il faut donc les porter ici. Une modale française sur une
-   * page allemande signalerait que la traduction s'arrête à la surface.
+   * Le menu est construit en JavaScript : ses propres textes ne passent pas par
+   * le générateur, il faut donc les porter ici. Un menu français sur une page
+   * allemande signalerait que la traduction s'arrête à la surface.
    */
   var LIBELLES = {
-    fr: { titre: 'Choisir la langue', actuelle: 'Langue actuelle', versAccueil: 'Vers l’accueil', fermer: 'Fermer' },
-    de: { titre: 'Sprache wählen', actuelle: 'Aktuelle Sprache', versAccueil: 'Zur Startseite', fermer: 'Schliessen' },
-    en: { titre: 'Choose language', actuelle: 'Current language', versAccueil: 'To the home page', fermer: 'Close' },
-    it: { titre: 'Scegli la lingua', actuelle: 'Lingua attuale', versAccueil: 'Alla pagina iniziale', fermer: 'Chiudi' },
+    fr: { titre: 'Choisir la langue', versAccueil: 'Vers l’accueil' },
+    de: { titre: 'Sprache wählen', versAccueil: 'Zur Startseite' },
+    en: { titre: 'Choose language', versAccueil: 'To the home page' },
+    it: { titre: 'Scegli la lingua', versAccueil: 'Alla pagina iniziale' },
   };
 
-  function icone(nom) {
-    if (nom === 'globe') {
-      return '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true" focusable="false">'
-        + '<circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.3"/>'
-        + '<path d="M1.6 8h12.8M8 1.6c1.7 1.8 2.6 4 2.6 6.4S9.7 12.6 8 14.4C6.3 12.6 5.4 10.4 5.4 8S6.3 3.4 8 1.6z"'
-        + ' fill="none" stroke="currentColor" stroke-width="1.3"/></svg>';
-    }
-    return '<svg viewBox="0 0 14 14" width="14" height="14" aria-hidden="true" focusable="false">'
-      + '<path d="M1.5 1.5 12.5 12.5M12.5 1.5 1.5 12.5" fill="none" stroke="currentColor"'
-      + ' stroke-width="1.6" stroke-linecap="round"/></svg>';
-  }
-
-  function construireDialogue(code) {
+  /**
+   * Le menu de langues, construit une fois et posé sur le `body`.
+   *
+   * ⚠ POSÉ SUR LE `body`, ET C'EST STRUCTUREL, pas une commodité. Le pied de
+   * page porte des animations Webflow IX2 qui lui écrivent un `transform` : un
+   * élément `position: fixed` à l'intérieur se positionne alors par rapport à
+   * cet ancêtre transformé, pas par rapport à la fenêtre. Rangé sur le `body`,
+   * il n'a plus d'ancêtre transformé et le calcul redevient celui qu'on croit.
+   *
+   * Ce n'est plus un dialogue : ni fond flouté, ni titre, ni croix, ni page
+   * verrouillée derrière. Choisir entre quatre langues ne justifie pas de
+   * couvrir le site. Ce qui reste : les quatre noms, la courante en pleine
+   * encre, et — seulement quand c'est vrai — la mention que la page n'existe
+   * pas dans cette langue et qu'on arrivera sur son accueil.
+   */
+  function construireMenu(code) {
     var mots = LIBELLES[code] || LIBELLES.fr;
-    var modal = document.createElement('div');
-    modal.className = 'megga-lang-modal';
-    modal.id = 'megga-lang-modal';
-    modal.hidden = true;
+    var menu = document.createElement('div');
+    menu.className = 'megga-lang-pop';
+    menu.id = 'megga-lang-pop';
+    menu.hidden = true;
 
     var options = LANGUES.map(function (l) {
       var courante = l.code === code;
@@ -104,26 +109,26 @@
       // page. Sur le blog ou une page légale, il n'y en a qu'un : le français.
       var traduite = courante ? null : urlDansLaLangue(l.code);
       // Pas de traduction de CETTE page → l'accueil de la langue, plutôt qu'une
-      // option morte. Le dialogue le dit, on n'y arrive pas par surprise.
+      // option morte. Le menu le dit, on n'y arrive pas par surprise.
       var cible = courante ? null : (traduite || accueilDeLaLangue(l.code));
-      var attrs = 'class="megga-lang-option" data-langue="' + l.code + '"'
+      var attrs = 'class="megga-lang-option" role="menuitem" data-langue="' + l.code + '"'
         + (cible ? ' data-cible="' + cible + '"' : '')
         + ' aria-current="' + (courante ? 'true' : 'false') + '"'
         + (l.disponible || courante ? '' : ' aria-disabled="true"');
-      var note = courante ? '<span class="megga-lang-option__note">' + mots.actuelle + '</span>'
-        : (traduite ? '' : '<span class="megga-lang-option__note">' + mots.versAccueil + '</span>');
-      return '<li><button type="button" ' + attrs + '><span>' + l.nom + '</span>' + note + '</button></li>';
+      // Aucune mention affichée. « Langue actuelle » ne renseignait personne — le
+      // bouton du pied de page nomme déjà la langue courante et l'encre pleine la
+      // redit ici. « Vers l'accueil », lui, dit quelque chose de VRAI : sur le
+      // blog ou les pages légales, la page n'existe pas dans l'autre langue et
+      // l'on atterrit sur son accueil. Retiré de l'affichage (décision Julien),
+      // il survit en `title` : rien à l'écran, mais la personne qui survole ou
+      // qui écoute la page l'apprend avant de cliquer, pas après.
+      var titre = (courante || traduite) ? '' : ' title="' + mots.versAccueil + '"'
+        + ' aria-label="' + l.nom + ' — ' + mots.versAccueil + '"';
+      return '<li role="none"><button type="button" ' + attrs + titre + '><span>' + l.nom + '</span></button></li>';
     }).join('');
 
-    modal.innerHTML =
-      '<div class="megga-lang-modal__backdrop" data-megga-lang-close></div>'
-      + '<div class="megga-lang-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="megga-lang-titre">'
-      + '<button class="megga-lang-modal__close" type="button" aria-label="' + mots.fermer + '" data-megga-lang-close>'
-      + icone('croix') + '</button>'
-      + '<h2 class="megga-lang-modal__title" id="megga-lang-titre">' + mots.titre + '</h2>'
-      + '<ul class="megga-lang-list">' + options + '</ul>'
-      + '</div>';
-    return modal;
+    menu.innerHTML = '<ul class="megga-lang-list" role="menu" aria-label="' + mots.titre + '">' + options + '</ul>';
+    return menu;
   }
 
   /* ── Suggestion d'après le pays du visiteur ───────────────────────────────
@@ -272,36 +277,85 @@
     var actuelle = LANGUES.filter(function (l) { return l.code === code; })[0];
     if (etiquette && actuelle) etiquette.textContent = actuelle.nom;
 
-    var modal = construireDialogue(code);
-    document.body.appendChild(modal);
+    var mots = LIBELLES[code] || LIBELLES.fr;
+    var menu = construireMenu(code);
+    document.body.appendChild(menu);
+
+    // Le HTML des 34 pages annonce encore un dialogue ; il ouvre désormais un
+    // menu. On corrige ici, là où le comportement est écrit, plutôt que de
+    // repasser sur 34 fichiers pour trois attributs.
+    bouton.setAttribute('aria-haspopup', 'true');
+    bouton.setAttribute('aria-controls', 'megga-lang-pop');
+    bouton.setAttribute('aria-expanded', 'false');
+    // Lu seul, « Français » ne dit pas ce que fait le bouton.
+    if (actuelle) bouton.setAttribute('aria-label', mots.titre + ' : ' + actuelle.nom);
 
     var focusAvant = null;
 
+    /**
+     * Pose le menu au-dessus du bouton, ou dessous s'il n'y a pas la place.
+     *
+     * Le bouton vit dans le pied de page, donc « au-dessus » est le cas normal ;
+     * le repli existe pour les fenêtres courtes, où le pied de page arrive haut.
+     */
+    function placer() {
+      var b = bouton.getBoundingClientRect();
+      var m = menu.getBoundingClientRect();
+      var marge = 8;
+      var haut = b.top - m.height - marge;
+      menu.style.top = (haut >= marge ? haut : b.bottom + marge) + 'px';
+      menu.style.left = Math.max(marge, Math.min(b.left, window.innerWidth - m.width - marge)) + 'px';
+    }
+
     function ouvrir() {
       focusAvant = document.activeElement;
-      modal.hidden = false;
-      document.body.classList.add('megga-lang-open');
-      var premier = modal.querySelector('.megga-lang-option:not([aria-disabled="true"])');
+      menu.hidden = false;
+      placer();
+      bouton.setAttribute('aria-expanded', 'true');
+      var premier = menu.querySelector('.megga-lang-option[aria-current="true"]')
+        || menu.querySelector('.megga-lang-option:not([aria-disabled="true"])');
       if (premier) premier.focus();
     }
 
-    function fermer() {
-      modal.hidden = true;
-      document.body.classList.remove('megga-lang-open');
-      if (focusAvant && focusAvant.focus) focusAvant.focus();
+    function fermer(rendreLeFocus) {
+      if (menu.hidden) return;
+      menu.hidden = true;
+      bouton.setAttribute('aria-expanded', 'false');
+      if (rendreLeFocus !== false && focusAvant && focusAvant.focus) focusAvant.focus();
     }
 
-    bouton.addEventListener('click', ouvrir);
+    bouton.addEventListener('click', function () {
+      if (menu.hidden) ouvrir(); else fermer();
+    });
 
-    Array.prototype.forEach.call(modal.querySelectorAll('[data-megga-lang-close]'), function (el) {
-      el.addEventListener('click', fermer);
+    // Plus de fond qui couvre la page : c'est le document qui ferme. Un clic
+    // ailleurs ne rend PAS le focus au bouton — le curseur est déjà parti, le
+    // lui reprendre serait un saut non demandé.
+    document.addEventListener('click', function (e) {
+      if (menu.hidden) return;
+      if (menu.contains(e.target) || bouton.contains(e.target)) return;
+      fermer(false);
     });
 
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !modal.hidden) fermer();
+      if (e.key === 'Escape' && !menu.hidden) fermer();
     });
 
-    Array.prototype.forEach.call(modal.querySelectorAll('.megga-lang-option'), function (el) {
+    // Quitter le menu au clavier le referme, sinon il resterait ouvert derrière
+    // le reste de la navigation.
+    menu.addEventListener('focusout', function (e) {
+      if (menu.hidden) return;
+      var vers = e.relatedTarget;
+      if (vers && (menu.contains(vers) || vers === bouton)) return;
+      fermer(false);
+    });
+
+    // Le menu est en `fixed` : il ne suit pas la page. Tant qu'il est ouvert on
+    // le replace, plutôt que de le fermer au moindre défilement.
+    window.addEventListener('scroll', function () { if (!menu.hidden) placer(); }, { passive: true });
+    window.addEventListener('resize', function () { if (!menu.hidden) placer(); });
+
+    Array.prototype.forEach.call(menu.querySelectorAll('.megga-lang-option'), function (el) {
       el.addEventListener('click', function () {
         if (el.getAttribute('aria-disabled') === 'true') return;
         var choix = el.getAttribute('data-langue');

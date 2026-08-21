@@ -1,13 +1,21 @@
-/* Vitrine MEGGA — sélecteur de langue : pastille en pied de page + dialogue.
+/* Vitrine MEGGA — sélecteur de langue : bouton de pied de page + petit menu.
  *
  * Fichier SÉPARÉ de css/styles.css à dessein : styles.css est l'export Webflow
  * et sert de source à la transcription de l'app (scripts/build-megga-x-css.mjs).
  * Y écrire à la main polluerait le design system côté CRM.
  *
  * Aucune couleur n'est réinventée : tout lit les variables `--neutral-colors--*`
- * de la vitrine, pour que le dialogue soit de la même matière que les cartes du
+ * de la vitrine, pour que le menu soit de la même matière que les cartes du
  * site (fond profond, filet discret, rayon généreux).
- */
+ *
+ * ⚠ C'ÉTAIT UN DIALOGUE PLEIN ÉCRAN (fond flouté, titre, croix, page verrouillée
+ * derrière, quatre lignes encadrées de 420px de large). Il a été ramené à un
+ * menu de 176px : quatre langues ne valent pas qu'on couvre le site pour les
+ * montrer. Ce qui a été RETIRÉ et qu'il ne faut pas rétablir par réflexe : le
+ * fond, le titre, la croix, les cadres de ligne, et la mention « Langue
+ * actuelle » — le bouton nomme déjà la langue courante. Ce qui a été GARDÉ
+ * parce que ce n'est pas de la décoration : la mention « Vers l'accueil » sur
+ * les langues où cette page n'existe pas, et le contour de focus. */
 
 /* Le bouton se range avec le copyright, à gauche de la barre de pied de page :
    même famille d'information, et le bord droit reste au sigle Swiss Made — un
@@ -22,25 +30,28 @@
   gap: 8px 16px;
 }
 
+/* Le déclencheur se range avec le copyright : même famille d'information, même
+   encre sourde. Pas de contour — un cadre autour de deux mots dans un pied de
+   page fait plus de bruit que le contrôle n'en mérite. Le globe suffit à dire
+   ce que c'est ; l'encre pleine, au survol comme à l'ouverture, dit qu'il vit. */
 .megga-lang-button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border: 1px solid var(--neutral-colors--400);
-  border-radius: 100px;
+  gap: 7px;
+  padding: 4px 2px;
+  border: 0;
   background: transparent;
-  color: var(--neutral-colors--700);
+  color: var(--neutral-colors--600);
   font-family: inherit;
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
-  transition: color 0.2s, border-color 0.2s;
+  transition: color 0.18s;
 }
 
-.megga-lang-button:hover {
+.megga-lang-button:hover,
+.megga-lang-button[aria-expanded='true'] {
   color: var(--neutral-colors--1000);
-  border-color: var(--neutral-colors--600);
 }
 
 .megga-lang-button svg {
@@ -48,110 +59,73 @@
   flex-shrink: 0;
 }
 
-.megga-lang-modal[hidden] {
+/* ── Le menu ───────────────────────────────────────────────────────────────
+ *
+ * `position: fixed` et posé sur le `body` : le pied de page reçoit un
+ * `transform` des animations Webflow, et un `fixed` sous un ancêtre transformé
+ * se positionne par rapport à LUI, pas par rapport à la fenêtre. Les
+ * coordonnées sont calculées à l'ouverture (cf. `placer()` dans megga-lang.js).
+ */
+.megga-lang-pop[hidden] {
   display: none;
 }
 
-.megga-lang-modal {
+/* La carte est NOIRE, du même noir que la page (`--neutral-colors--100`,
+   #030303) : c'est le FILET qui la détache, pas un écart de luminosité.
+   ⚠ Le filet de la feuille ne peut pas tenir ce rôle — `--300` (#090909) rend
+   1,04:1 sur ce fond, c'est-à-dire rien du tout ; il ne se voyait que sous le
+   voile flouté du dialogue d'avant, qui assombrissait tout le reste. D'où un
+   blanc translucide, seule valeur qui trace un bord sur du noir. */
+.megga-lang-pop {
   position: fixed;
-  inset: 0;
   z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
-.megga-lang-modal__backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(3, 3, 3, 0.72);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  animation: meggaLangFade 0.2s ease both;
-}
-
-.megga-lang-modal__dialog {
-  position: relative;
-  width: min(420px, 100%);
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 32px;
-  border: 1px solid var(--neutral-colors--300);
-  border-radius: 24px;
+  min-width: 152px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
   background: var(--neutral-colors--100);
-  animation: meggaLangRise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-.megga-lang-modal__title {
-  margin: 0 0 20px;
-  color: var(--neutral-colors--1000);
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
-.megga-lang-modal__close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: 1px solid var(--neutral-colors--400);
-  border-radius: 100%;
-  background: transparent;
-  color: var(--neutral-colors--700);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: color 0.2s, border-color 0.2s;
-}
-
-.megga-lang-modal__close:hover {
-  color: var(--neutral-colors--1000);
-  border-color: var(--neutral-colors--600);
-}
-
-.megga-lang-modal__close svg {
-  display: block;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+  animation: meggaLangPop 0.16s ease both;
 }
 
 .megga-lang-list {
   display: grid;
-  gap: 8px;
+  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* Les lignes n'ont plus de cadre : c'est le survol qui les détache, et l'encre
+   qui désigne la langue courante. Quatre rectangles empilés dessinaient une
+   grille là où il n'y a qu'une liste. */
 .megga-lang-option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  display: block;
   width: 100%;
-  padding: 14px 18px;
-  border: 1px solid var(--neutral-colors--300);
-  border-radius: 14px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
   background: transparent;
-  color: var(--neutral-colors--900);
+  color: var(--neutral-colors--700);
   font-family: inherit;
-  font-size: 16px;
+  font-size: 14px;
+  line-height: 1.2;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s, background-color 0.2s;
+  transition: background-color 0.15s, color 0.15s;
 }
 
 .megga-lang-option:hover {
-  border-color: var(--neutral-colors--600);
+  background: rgba(255, 255, 255, 0.07);
   color: var(--neutral-colors--1000);
 }
 
-/* Langue courante : le filet suffit à la désigner, sans aplat de couleur. */
+/* Langue courante : l'encre pleine suffit. Les deux mentions d'origine — « Langue
+   actuelle » et « Vers l'accueil » — ont été retirées de l'affichage. La seconde
+   disait quelque chose de vrai (sur le blog ou les pages légales, la page n'existe
+   pas dans l'autre langue et l'on arrive sur son accueil) : elle survit en
+   `title`/`aria-label`, sans peser un pixel. */
 .megga-lang-option[aria-current='true'] {
-  border-color: var(--neutral-colors--1000);
   color: var(--neutral-colors--1000);
 }
 
@@ -159,26 +133,25 @@
    mieux vaut l'annoncer que servir un lien mort. */
 .megga-lang-option[aria-disabled='true'] {
   cursor: default;
-  opacity: 0.45;
+  opacity: 0.4;
 }
 
 .megga-lang-option[aria-disabled='true']:hover {
-  border-color: var(--neutral-colors--300);
-  color: var(--neutral-colors--900);
+  background: transparent;
+  color: var(--neutral-colors--700);
 }
 
-.megga-lang-option__note {
-  font-size: 13px;
-  color: var(--neutral-colors--600);
+/* Le contour du focus est POSÉ, jamais retiré : la vitrine a déjà connu un
+   `outline: none` qui rendait la navigation au clavier invisible. */
+.megga-lang-button:focus-visible,
+.megga-lang-option:focus-visible {
+  outline: 2px solid var(--neutral-colors--1000);
+  outline-offset: 2px;
 }
 
-body.megga-lang-open {
-  overflow: hidden;
-}
-
-@keyframes meggaLangFade {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+@keyframes meggaLangPop {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes meggaLangRise {
@@ -187,19 +160,8 @@ body.megga-lang-open {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .megga-lang-modal__backdrop,
-  .megga-lang-modal__dialog {
+  .megga-lang-pop {
     animation: none;
-  }
-}
-
-@media screen and (max-width: 479px) {
-  .megga-lang-modal {
-    padding: 16px;
-  }
-
-  .megga-lang-modal__dialog {
-    padding: 24px;
   }
 }
 
