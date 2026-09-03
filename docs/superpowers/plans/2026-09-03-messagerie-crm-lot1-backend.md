@@ -1524,7 +1524,7 @@ git commit -m "feat(messagerie): types partagés et MIME (adresses, RFC 2047, ba
 - Test: `supabase/functions/_shared/mail/secrets.test.ts`
 - Modify: `vitest.config.ts`
 
-- [ ] **Step 1 : Test (rouge)**
+- [x] **Step 1 : Test (rouge)**
 
 ```ts
 // supabase/functions/_shared/mail/secrets.test.ts
@@ -1632,7 +1632,7 @@ npx vitest run supabase/functions/_shared/mail/secrets.test.ts
 ```
 Attendu : FAIL (module absent).
 
-- [ ] **Step 2 : Implémentation**
+- [x] **Step 2 : Implémentation**
 
 ```ts
 // supabase/functions/_shared/mail/secrets.ts
@@ -1767,7 +1767,7 @@ export async function getValidAccessToken(
 }
 ```
 
-- [ ] **Step 3 : Vert, puis commit**
+- [x] **Step 3 : Vert, puis commit**
 
 ```bash
 npx vitest run supabase/functions/_shared/mail/secrets.test.ts
