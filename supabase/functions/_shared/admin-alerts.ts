@@ -296,7 +296,12 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
 
   // 1. Crons en retard / en échec (RPC gardée is_super_admin OR is_service_role).
   try {
-    const { data: cronRows } = await admin.rpc('get_cron_health')
+    // ⚠ DÉSTRUCTURER `error` N'EST PAS COSMÉTIQUE. PostgREST ne LÈVE PAS sur un timeout :
+    // il rend `{data: null, error}`. Sans cette ligne, `cronRows ?? []` valait `[]`, la boucle
+    // ci-dessous ne parcourait rien, et le `catch` ne se déclenchait jamais — l'alerting des
+    // 50 crons était aveugle 22 fois sur 24 (audit du 03.09.2026) en paraissant sain.
+    const { data: cronRows, error: cronError } = await admin.rpc('get_cron_health')
+    if (cronError) throw new Error(cronError.message)
     // Registre de première observation : `cron.job` ne date pas ses créations, donc on
     // s'en souvient nous-mêmes. Sans lui, un job mensuel créé hier est « en panne »
     // pendant un mois (cf. `jobMuetEstSuspect`).
@@ -327,7 +332,15 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
       )
     }
   } catch (e) {
-    console.error('[admin-alerts] cron health read failed:', (e as Error)?.message)
+    // « Je ne peux pas me prononcer » n'est pas « tout va bien » : on ALERTE sur l'illisibilité
+    // elle-même, sinon la panne du chien de garde reste indiscernable d'une infrastructure saine.
+    const motif = (e as Error)?.message ?? 'erreur inconnue'
+    console.error('[admin-alerts] cron health read failed:', motif)
+    alerts.push({
+      key: 'cron:sante-illisible',
+      subject: 'Santé des crons illisible',
+      body: `La lecture de get_cron_health a échoué (${motif}). Tant qu'elle échoue, AUCUN retard ni échec de job pg_cron ne peut être détecté : l'absence d'alerte cron ne prouve plus rien.`,
+    })
   }
 
   // 2. Sync Flatfox en retard.
