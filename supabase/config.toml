@@ -616,6 +616,9 @@ verify_jwt = false
 [functions.mail-oauth]
 verify_jwt = false
 
+[functions.mail-sync]
+verify_jwt = false
+
 [functions.market-scraper]
 verify_jwt = false
 

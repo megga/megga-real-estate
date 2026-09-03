@@ -3284,7 +3284,7 @@ Attendu : `deno check` sans erreur (⚠ `tsc -b` ne couvre pas ce dossier).
 - Create: `supabase/functions/mail-oauth/index.ts`
 - Modify: `supabase/config.toml` (bloc `[functions.mail-oauth]`)
 
-- [ ] **Step 1 : Écrire l'edge**
+- [x] **Step 1 : Écrire l'edge**
 
 ```ts
 // supabase/functions/mail-oauth/index.ts
@@ -3456,7 +3456,7 @@ serve(async (req: Request) => {
 })
 ```
 
-- [ ] **Step 2 : Déclarer la fonction**
+- [x] **Step 2 : Déclarer la fonction**
 
 ⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
 `supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
@@ -3480,7 +3480,7 @@ Le bloc produit est bien :
 verify_jwt = false
 ```
 
-- [ ] **Step 3 : Type-check, servir en local, commit**
+- [x] **Step 3 : Type-check, servir en local, commit**
 
 ```bash
 deno check supabase/functions/mail-oauth/index.ts
@@ -3496,10 +3496,20 @@ curl -s -X POST http://127.0.0.1:54321/functions/v1/mail-oauth -H 'Content-Type:
 ```
 Attendu : `{"error":"Authentication required"}` (401, la garde parle avant tout).
 
+⛔ **`supabase functions serve` N'A PAS PU TOURNER, et ce n'est pas un oubli** (mesuré le
+04.09.2026) : la CLI démarre le runtime edge dans un CONTENEUR, et cette machine n'en a
+aucun — `docker`, `podman` et `colima` sont tous « not found ». Le 401 attendu ci-dessus
+reste la bonne prédiction, il n'a simplement pas été observé ici. Les preuves réellement
+obtenues sont `deno check` (le SEUL type-check que voie ce dossier, `tsc -b` ne le couvrant
+pas) et le job backend de la CI. Ne pas installer Docker pour cette ligne.
+
 ```bash
-git add supabase/functions/mail-oauth/index.ts supabase/config.toml
+git add supabase/functions/mail-oauth/index.ts supabase/config.toml src/lib/edgeFunctionRoster.ts
 git commit -m "feat(messagerie): edge mail-oauth (start, exchange PKCE, disconnect, update)"
 ```
+
+⚠ `src/lib/edgeFunctionRoster.ts` s'ajoute au commit : `--write` régénère les DEUX fichiers,
+et laisser le roster de côté ferait rougir `lint:roster` au commit suivant.
 
 ---
 
@@ -3509,7 +3519,7 @@ git commit -m "feat(messagerie): edge mail-oauth (start, exchange PKCE, disconne
 - Create: `supabase/functions/mail-sync/index.ts`
 - Modify: `supabase/config.toml`
 
-- [ ] **Step 1 : Écrire l'edge**
+- [x] **Step 1 : Écrire l'edge**
 
 ```ts
 // supabase/functions/mail-sync/index.ts
@@ -3600,7 +3610,7 @@ serve(async (req: Request) => {
 })
 ```
 
-- [ ] **Step 2 : Déclarer, vérifier, commit**
+- [x] **Step 2 : Déclarer, vérifier, commit**
 
 ⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
 `supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
@@ -3625,7 +3635,7 @@ verify_jwt = false
 ```
 ```bash
 deno check supabase/functions/mail-sync/index.ts
-git add supabase/functions/mail-sync/index.ts supabase/config.toml
+git add supabase/functions/mail-sync/index.ts supabase/config.toml src/lib/edgeFunctionRoster.ts
 git commit -m "feat(messagerie): edge mail-sync (balayage cron verrouillé, synchro ciblée)"
 ```
 
