@@ -11,6 +11,7 @@ import { gmailGetMessage, gmailHistory, gmailIdentity, gmailListInitial, history
 import { deltaToChanges, graphDelta, graphFolderIds, graphGetBody, graphListAttachments, normalizeGraphMessage, resolveGraphRemoval } from './graph.ts'
 import { applyRemoteChanges, ingestMessages } from './ingest.ts'
 import type { RemoteChange } from './types.ts'
+import { MailOwnerLeftError, assertOwnerStillInAgency } from './guard.ts'
 import type { ProviderConfig } from './guard.ts'
 
 export interface SyncDeps { fetch?: typeof fetch; now?: () => number }
@@ -41,6 +42,9 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
   const start = now()
   const out: SyncOutcome = { inserted: 0, updated: 0, changes: 0, done: true, error: null }
   try {
+    // AVANT le moindre appel fournisseur : une boîte dont le propriétaire a quitté
+    // l'agence ne s'ingère plus (guard.ts, miroir écriture de `mail_account_visible`).
+    await assertOwnerStillInAgency(admin, account)
     let cursor: SyncCursor
     if (account.provider === 'gmail') cursor = await syncGmail(admin, account, cfg, budgetMs, start, deps, out)
     else if (account.provider === 'outlook') cursor = await syncGraph(admin, account, cfg, budgetMs, start, deps, out)
@@ -70,7 +74,12 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
     // laissaient la boîte `active` à réessayer toutes les 10 minutes pour toujours —
     // indiscernable, pour l'agent comme pour le lot 2, d'une boîte sans courrier neuf.
     const failures = (account.sync_failures ?? 0) + 1
-    const terminal = reauth ? 'reauth_required' : failures >= MAX_CONSECUTIVE_FAILURES ? 'error' : null
+    // Le départ du propriétaire est TERMINAL et immédiat : pas un échec transitoire à
+    // réessayer cinq fois, mais une boîte qui ne doit plus jamais être ingérée dans
+    // cette agence. `disabled` la retire de `mail_accounts_due_idx` dès ce tick.
+    const terminal = e instanceof MailOwnerLeftError
+      ? 'disabled'
+      : reauth ? 'reauth_required' : failures >= MAX_CONSECUTIVE_FAILURES ? 'error' : null
     const { error: eWrite } = await admin.from('mail_accounts').update({
       last_error: msg.slice(0, 500),
       sync_failures: failures,

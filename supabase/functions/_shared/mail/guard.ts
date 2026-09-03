@@ -24,6 +24,41 @@ export function accountVisibleTo(account: Pick<MailAccountRow, 'owner_id' | 'age
   return account.agency_id === ctx.agencyId && (account.visibility === 'agency' || account.owner_id === ctx.userId)
 }
 
+/** Le propriétaire de la boîte a quitté l'agence : plus rien ne doit être ingéré pour elle. */
+export class MailOwnerLeftError extends Error {
+  constructor(detail: string) { super(`owner_left_agency: ${detail}`) }
+}
+
+/**
+ * MIROIR CÔTÉ ÉCRITURE du test d'agence CONJOINT d'`accountVisibleTo` /
+ * `mail_account_visible`. La garde ci-dessus ferme la LECTURE ; sans celle-ci, le
+ * flux d'INGESTION restait ouvert, et c'est le même départ qui l'ouvre :
+ * `team_remove_member` ne fait qu'un `update profiles set agency_id = null` — la ligne
+ * `mail_accounts` survit, `status` reste 'active', le jeton de rafraîchissement reste
+ * dans Vault, et `mail_accounts_due_idx` ne regarde que `status`. Le balayage de deux
+ * minutes continuait donc d'écrire dans l'ANCIENNE agence chaque message, corps et
+ * pièce de la boîte d'un agent passé chez un concurrent — indéfiniment, sans que rien
+ * ne l'expire.
+ *
+ * Levée plutôt que « saut silencieux » : `syncAccount` la transforme en
+ * `status = 'disabled'` + `last_error`, donc la boîte quitte la file au lieu d'y
+ * brûler un créneau à chaque tick, et la raison est LISIBLE. Appelée au tout début de
+ * `syncAccount`, c'est-à-dire avant le moindre appel fournisseur — et les quatre
+ * chemins de synchro (balayage cron, `mail-sync` ciblé, `mail-actions sync_now`,
+ * première passe lancée par `mail-oauth exchange`) passent tous par là : aucun ne peut
+ * la contourner.
+ */
+export async function assertOwnerStillInAgency(admin: SupabaseClient, account: Pick<MailAccountRow, 'id' | 'owner_id' | 'agency_id'>): Promise<void> {
+  const { data, error } = await admin.from('profiles').select('agency_id').eq('id', account.owner_id).maybeSingle()
+  // Une lecture en échec ne vaut PAS « il est parti » (on éteindrait des boîtes saines
+  // sur un timeout) ni « il est resté » (on rouvrirait la fuite) : c'est une erreur de
+  // passe ordinaire, réessayée au backoff.
+  if (error) throw new Error(`owner agency lookup: ${error.message}`)
+  const ownerAgency = (data as { agency_id: string | null } | null)?.agency_id ?? null
+  if (ownerAgency === account.agency_id) return
+  throw new MailOwnerLeftError(`compte ${account.id}: propriétaire ${account.owner_id} rattaché à ${ownerAgency ?? 'aucune agence'}`)
+}
+
 /** Charge le compte si l'appelant a le droit de le voir, sinon null. */
 export async function loadVisibleAccount(admin: SupabaseClient, accountId: string, ctx: CallerCtx): Promise<MailAccountRow | null> {
   if (!/^[0-9a-f-]{36}$/i.test(accountId ?? '')) return null

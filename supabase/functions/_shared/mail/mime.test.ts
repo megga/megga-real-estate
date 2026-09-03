@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseAddress, parseAddressList, decodeRfc2047, htmlToText, textToHtml, snippetOf,
   base64UrlDecodeToString, base64UrlEncodeString, buildMime, makeMessageId, encodeHeaderWord,
+  attachmentServing, base64ByteLength,
 } from './mime.ts'
 
 describe('adresses', () => {
@@ -72,5 +73,46 @@ describe('buildMime', () => {
     expect(makeMessageId('agence.ch')).toMatch(/^<[0-9a-f-]{36}@agence\.ch>$/)
     expect(encodeHeaderWord('ascii only')).toBe('ascii only')
     expect(encodeHeaderWord('Zoé')).toBe('=?UTF-8?B?Wm/DqQ==?=')
+  })
+})
+
+describe('attachmentServing — le type déclaré par l expéditeur ne traverse pas', () => {
+  it('rend en ligne les six essences de la liste blanche, et elles seules', () => {
+    expect(attachmentServing('application/pdf')).toEqual({ contentType: 'application/pdf', disposition: 'inline' })
+    expect(attachmentServing('image/png')).toEqual({ contentType: 'image/png', disposition: 'inline' })
+    expect(attachmentServing('image/jpeg')).toEqual({ contentType: 'image/jpeg', disposition: 'inline' })
+    expect(attachmentServing('image/webp')).toEqual({ contentType: 'image/webp', disposition: 'inline' })
+    expect(attachmentServing('image/gif')).toEqual({ contentType: 'image/gif', disposition: 'inline' })
+    // Le jeu de caractères est imposé, il ne vient pas de l'expéditeur.
+    expect(attachmentServing('text/plain; charset=utf-7')).toEqual({ contentType: 'text/plain; charset=utf-8', disposition: 'inline' })
+  })
+  it('force le téléchargement de TOUT ce qui pourrait s exécuter dans la session de l agent', () => {
+    // Les trois essences par lesquelles un expéditeur obtiendrait un XSS stocké.
+    for (const evil of ['text/html', 'image/svg+xml', 'application/xhtml+xml', 'TEXT/HTML', ' text/html ; charset=utf-8']) {
+      expect(attachmentServing(evil), evil).toEqual({ contentType: 'application/octet-stream', disposition: 'attachment' })
+    }
+  })
+  it('un type absent, vide ou inconnu se télécharge, il ne se devine pas', () => {
+    for (const v of [null, undefined, '', 'application/zip', 'application/vnd.ms-excel', 'nawak']) {
+      expect(attachmentServing(v).disposition).toBe('attachment')
+      expect(attachmentServing(v).contentType).toBe('application/octet-stream')
+    }
+  })
+})
+
+describe('base64ByteLength', () => {
+  it('compte les octets réels, bourrage et repli compris', () => {
+    expect(base64ByteLength('')).toBe(0)
+    expect(base64ByteLength('QQ==')).toBe(1)
+    expect(base64ByteLength('QUI=')).toBe(2)
+    expect(base64ByteLength('QUJD')).toBe(3)
+    // Replié à 76 colonnes par le fournisseur : les CRLF ne sont pas des octets.
+    expect(base64ByteLength('QUJD\r\nQUJD')).toBe(6)
+  })
+  it('ne surestime plus : 3 Mo pile ne dépassent pas le plafond de 3 Mo', () => {
+    const exactly3MB = 'A'.repeat((3 * 1024 * 1024 * 4) / 3)
+    expect(base64ByteLength(exactly3MB)).toBe(3 * 1024 * 1024)
+    expect(Math.ceil(exactly3MB.length * 0.75)).toBe(3 * 1024 * 1024) // l'ancienne formule, ici d'accord
+    expect(base64ByteLength('QQ==')).toBeLessThan(Math.ceil('QQ=='.length * 0.75)) // et là non : 1 contre 3
   })
 })

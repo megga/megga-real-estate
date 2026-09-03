@@ -118,6 +118,11 @@ serve(async (req: Request) => {
       console.error('[mail-sync] file des comptes dus illisible:', error.message)
       return json({ error: 'due_query_failed', detail: error.message }, 500)
     }
+    // ⚠ `status = 'active'` ne dit RIEN de l'appartenance du propriétaire : le départ
+    // d'un agent (`team_remove_member`) ne touche pas `mail_accounts`. C'est
+    // `assertOwnerStillInAgency`, au premier geste de `syncAccount`, qui refuse la
+    // passe et bascule la boîte en `disabled` — elle sort alors de cette file d'
+    // elle-même, sans qu'un seul message ait été écrit dans l'ancienne agence.
     for (const account of (due ?? []) as MailAccountRow[]) {
       if (Date.now() - started > SWEEP_BUDGET_MS) break
       const r = await syncAccount(admin, account, cfg, Math.min(PER_ACCOUNT_BUDGET_MS, SWEEP_BUDGET_MS - (Date.now() - started)))

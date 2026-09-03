@@ -1,6 +1,8 @@
 // supabase/functions/mail-attachment/index.ts
 // GET  ?id=<mail_attachments.id>       → octets de la pièce, streamés depuis le fournisseur
-//                                        (jamais d'URL publique ; content-type de la pièce).
+//                                        (jamais d'URL publique ; type SERVI décidé par la
+//                                        liste blanche `attachmentServing`, jamais celui
+//                                        que l'expéditeur a déclaré).
 // POST { action:'file', attachment_id, contact_id, document_type, name?, category? }
 //                                      → copie dans le bucket `documents` + ligne `documents`
 //                                        (contact_id, sha256), mail_attachments.document_id posé.
@@ -8,6 +10,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { accountVisibleTo, providerConfigFromEnv } from '../_shared/mail/guard.ts'
+import { attachmentServing } from '../_shared/mail/mime.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
 import { gmailAttachment } from '../_shared/mail/gmail.ts'
 import { graphAttachmentBytes } from '../_shared/mail/graph.ts'
@@ -70,15 +73,23 @@ serve(async (req: Request) => {
     let bytes: Uint8Array
     try { bytes = await fetchBytes(admin, a) } catch (e) { return json({ error: 'provider_failed', detail: e instanceof Error ? e.message : String(e) }, 502) }
     const name = encodeURIComponent(a.att.filename).replace(/['()]/g, escape)
+    // Le type vient de l'EXPÉDITEUR du courrier : il ne traverse jamais tel quel.
+    // `attachmentServing` (mime.ts) rend l'essence autorisée pour un rendu en ligne, ou
+    // `application/octet-stream` + `attachment` pour tout le reste — sans quoi une pièce
+    // déclarée `text/html` s'exécutait dans la session de l'agent.
+    const serving = attachmentServing(a.att.mime_type)
     return new Response(toBuffer(bytes), {
       status: 200,
       headers: {
         ...corsHeaders,
-        'Content-Type': a.att.mime_type || 'application/octet-stream',
+        'Content-Type': serving.contentType,
         'Content-Length': String(bytes.byteLength),
-        'Content-Disposition': `inline; filename*=UTF-8''${name}`,
+        'Content-Disposition': `${serving.disposition}; filename*=UTF-8''${name}`,
         'Cache-Control': 'private, max-age=300',
         'X-Content-Type-Options': 'nosniff',
+        // Ceinture et bretelles : même si un jour une essence scriptable entrait dans la
+        // liste, la page servie ici n'a droit à rien.
+        'Content-Security-Policy': "default-src 'none'; sandbox",
       },
     })
   }

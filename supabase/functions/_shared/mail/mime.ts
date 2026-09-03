@@ -160,6 +160,59 @@ export function makeMessageId(domain: string): string {
   return `<${crypto.randomUUID()}@${domain}>`
 }
 
+/**
+ * Taille RÉELLE d'un contenu base64, en octets.
+ *
+ * ⚠ `longueur * 0.75` surestime de 1 à 2 octets par le bourrage `=` et déborde dès
+ * qu'un retour à la ligne traîne (les fournisseurs replient à 76 colonnes). Ce n'est
+ * pas de la coquetterie : la valeur sert deux PLAFONDS de refus — le total de 20 Mo et
+ * les 3 Mo par pièce que Graph impose —, et une pièce refusée à tort est un envoi
+ * impossible sans explication.
+ */
+export function base64ByteLength(b64: string): number {
+  const clean = (b64 ?? '').replace(/[^A-Za-z0-9+/=_-]/g, '')
+  if (!clean) return 0
+  const pad = clean.endsWith('==') ? 2 : clean.endsWith('=') ? 1 : 0
+  return Math.max(0, Math.floor((clean.length * 3) / 4) - pad)
+}
+
+/**
+ * Comment servir une pièce jointe : type RENDU et disposition.
+ *
+ * ⛔ LE TYPE DÉCLARÉ PAR LE FOURNISSEUR NE TRAVERSE JAMAIS. `mail_attachments.mime_type`
+ * est recopié de `part.mimeType` (Gmail) ou `a.contentType` (Graph) — c'est-à-dire du
+ * texte choisi par L'EXPÉDITEUR du courrier. Le rendre tel quel avec
+ * `Content-Disposition: inline` faisait de toute boîte connectée un vecteur de XSS
+ * stocké : un inconnu envoie une pièce déclarée `text/html` contenant un `<script>`,
+ * l'agent ouvre le message, le front la lit avec son jeton, et le script tourne dans la
+ * session du CRM. `X-Content-Type-Options: nosniff` n'y peut rien — il empêche de
+ * DEVINER un type, pas d'en honorer un déclaré.
+ *
+ * D'où une liste blanche de RENDU, jamais une liste noire : ce qui n'y est pas est
+ * servi en `application/octet-stream` + `attachment`, donc téléchargé, jamais exécuté.
+ * `text/html`, `image/svg+xml` et `application/xhtml+xml` en sont exclus par
+ * construction — un SVG est un document scriptable, pas une image.
+ */
+export interface AttachmentServing { contentType: string; disposition: 'inline' | 'attachment' }
+const INLINE_SAFE_MIME: Record<string, string> = {
+  'application/pdf': 'application/pdf',
+  'image/png': 'image/png',
+  'image/jpeg': 'image/jpeg',
+  'image/webp': 'image/webp',
+  'image/gif': 'image/gif',
+  // Le jeu de caractères est IMPOSÉ : sans lui, un texte en UTF-7 peut se faire lire
+  // comme du balisage par les moteurs qui devinent encore l'encodage.
+  'text/plain': 'text/plain; charset=utf-8',
+}
+export function attachmentServing(declared: string | null | undefined): AttachmentServing {
+  // Un type est `type/sous-type` + paramètres : on ne compare que l'essence.
+  const essence = (declared ?? '').split(';')[0].trim().toLowerCase()
+  const safe = INLINE_SAFE_MIME[essence]
+  return safe
+    ? { contentType: safe, disposition: 'inline' }
+    : { contentType: 'application/octet-stream', disposition: 'attachment' }
+}
+
 // ── Construction RFC 5322 ─────────────────────────────────────────────────────
 function boundary(tag: string): string {
   return `=_megga_${tag}_${crypto.randomUUID().replace(/-/g, '')}`
