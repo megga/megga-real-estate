@@ -7,8 +7,10 @@
 //     avec défauts sûrs — pas de redéploiement pour ajuster.
 //   * Dédup 24h par type d'alerte via app_config.admin_alert_state
 //     ({ [alert_key]: lastSentISO }) — un incident persistant ne spamme pas.
-//   * Destinataires = RPC super_admin_allowlist() (source unique, migration
-//     20260705160000). Envoi Resend direct (pattern send-email).
+//   * Destinataires = RPC admin_alert_recipients() = super_admin_allowlist()
+//     MOINS app_config.admin_alert_optout (migration 20260803220000). La liste
+//     de diffusion est ainsi découplée de l'IDENTITÉ super-admin : un admin
+//     peut sortir des mails sans perdre son accès. Envoi Resend direct.
 //   * Best-effort de bout en bout : toute erreur est loggée, jamais propagée —
 //     l'alerting ne casse pas la collecte de métriques.
 
@@ -589,8 +591,8 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
   })
   if (due.length === 0) return
 
-  // Destinataires = allowlist SQL (source unique).
-  const { data: recipients, error: allowErr } = await admin.rpc('super_admin_allowlist')
+  // Destinataires = allowlist SQL moins opt-out (admin_alert_recipients).
+  const { data: recipients, error: allowErr } = await admin.rpc('admin_alert_recipients')
   if (allowErr || !Array.isArray(recipients) || recipients.length === 0) {
     console.error('[admin-alerts] allowlist read failed:', allowErr?.message ?? 'empty')
     return
