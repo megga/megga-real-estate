@@ -178,6 +178,27 @@ export function normalizeGmailMessage(m: GmailMessage, boxEmail: string): Normal
   }
 }
 
+/**
+ * Où en est la synchro incrémentale APRÈS avoir traité une page d'historique.
+ *
+ * ⛔ `page.historyId` n'est PAS le dernier enregistrement de la page : la référence
+ * Gmail le définit comme « the ID of the mailbox's current history record », donc la
+ * TÊTE de la boîte au moment de la réponse — et Gmail le rend sur CHAQUE page, y
+ * compris celles qui portent un `nextPageToken`. L'adopter après la page 1 sur N
+ * faisait repartir le tick suivant de la tête : les pages 2..N n'étaient jamais lues,
+ * définitivement, sans erreur ni `last_error` (mesuré comme la moitié du courrier
+ * d'un retour de congés qui n'arrivait jamais dans le CRM). Le curseur n'avance donc
+ * que quand la pagination est DRAINÉE ; tant qu'elle ne l'est pas, c'est le
+ * `pageToken` qui est persisté et repris au tick suivant.
+ */
+export function nextHistoryCursor(
+  current: string | null, page: GmailHistoryPage,
+): { historyId: string | null; pageToken: string | null } {
+  const pageToken = page.nextPageToken ?? null
+  if (pageToken) return { historyId: current, pageToken }
+  return { historyId: page.historyId ? String(page.historyId) : current, pageToken: null }
+}
+
 /** history.list → ids à charger + opérations d'état. Les libellés Gmail deviennent des drapeaux. */
 export function historyToChanges(page: GmailHistoryPage): { added: string[]; changes: RemoteChange[] } {
   const added: string[] = []

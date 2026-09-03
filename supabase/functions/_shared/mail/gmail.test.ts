@@ -1,6 +1,6 @@
 // supabase/functions/_shared/mail/gmail.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { normalizeGmailMessage, historyToChanges, gmailListInitial, gmailHistory, type GmailMessage, type GmailHistoryPage } from './gmail.ts'
+import { normalizeGmailMessage, historyToChanges, nextHistoryCursor, gmailListInitial, gmailHistory, type GmailMessage, type GmailHistoryPage } from './gmail.ts'
 import { base64UrlEncodeString } from './mime.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
@@ -89,6 +89,35 @@ describe('historyToChanges', () => {
       { kind: 'flags', providerMessageId: 'm1', isStarred: true, isRead: true, inInbox: false },
       { kind: 'flags', providerMessageId: 'm2', isTrashed: true },
     ])
+  })
+})
+
+describe('nextHistoryCursor', () => {
+  // Gmail rend `historyId` = la TÊTE de la boîte sur CHAQUE page, nextPageToken compris.
+  // L'adopter avant la fin de la pagination sautait les pages restantes pour toujours :
+  // la moitié du courrier d'un retour de congés n'arrivait jamais, sans une erreur.
+  it('page NON finale : le curseur ne bouge pas, le pageToken est rendu', () => {
+    expect(nextHistoryCursor('1000', { historyId: '9999', nextPageToken: 'p2' }))
+      .toEqual({ historyId: '1000', pageToken: 'p2' })
+  })
+  it('page finale : le curseur adopte la tête et la pagination est close', () => {
+    expect(nextHistoryCursor('1000', { historyId: '9999' }))
+      .toEqual({ historyId: '9999', pageToken: null })
+  })
+  it('page finale sans historyId : on garde le curseur courant plutôt que de le perdre', () => {
+    expect(nextHistoryCursor('1000', {})).toEqual({ historyId: '1000', pageToken: null })
+  })
+  it('cinq pages : le curseur n avance qu à la dernière', () => {
+    const pages: GmailHistoryPage[] = [
+      { historyId: '9999', nextPageToken: 'p2' }, { historyId: '9999', nextPageToken: 'p3' },
+      { historyId: '9999', nextPageToken: 'p4' }, { historyId: '9999', nextPageToken: 'p5' },
+      { historyId: '9999' },
+    ]
+    let cursor: string | null = '1000'
+    const vus: (string | null)[] = []
+    for (const p of pages) { const n = nextHistoryCursor(cursor, p); cursor = n.historyId; vus.push(n.pageToken) }
+    expect(vus).toEqual(['p2', 'p3', 'p4', 'p5', null])
+    expect(cursor).toBe('9999')
   })
 })
 

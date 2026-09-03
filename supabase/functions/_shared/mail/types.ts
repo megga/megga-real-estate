@@ -27,6 +27,15 @@ export interface MailAccountRow {
   next_sync_at: string
   last_sync_at: string | null
   last_error: string | null
+  /**
+   * Échecs consécutifs de synchronisation (remis à 0 dès qu'une passe aboutit).
+   * Existe pour que `status` puisse dire « cette boîte est morte » : sans ce compteur,
+   * seul `reauth_required` sortait du balayage, et un 403 de quota, un pointeur Vault
+   * orphelin ou une erreur d'ingestion laissaient le compte `active` à réessayer toutes
+   * les 10 minutes — indiscernable d'une boîte saine sans courrier neuf.
+   * Optionnel : une lecture qui ne projette pas la colonne rend `undefined`.
+   */
+  sync_failures?: number
   imap_config: ImapConfig | null
 }
 
@@ -96,6 +105,14 @@ export interface GmailCursor {
   /** pageToken de la première passe (90 jours) tant qu'elle n'est pas finie. */
   initialPageToken: string | null
   initialDone: boolean
+  /**
+   * pageToken de la pagination `history.list` EN COURS, null quand elle est drainée.
+   * ⚠ Sans lui, une pagination interrompue par le budget de temps n'était pas
+   * reprenable : le tick suivant repartait sans pageToken et les pages restantes
+   * n'étaient jamais lues (courrier perdu, en silence). Absent des curseurs écrits
+   * avant le 04.09.2026 — toujours lu en `?? null`.
+   */
+  historyPageToken?: string | null
 }
 
 export interface GraphCursor {
