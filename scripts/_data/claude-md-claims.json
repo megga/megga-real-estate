@@ -454,14 +454,14 @@
     {
       "id": "cron-jobs-actifs",
       "section": "§7 — pg_cron",
-      "phrase": "50 jobs actifs",
+      "phrase": "51 jobs actifs",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "sql": "select count(*) from cron.job where active"
       },
       "attendu": {
-        "valeur": 50
+        "valeur": 51
       },
       "tolerance": 0.2,
       "note": "Tolérance large : un job naît à chaque source ou sonde ajoutée. Ce que la prétention soutient est l'ORDRE DE GRANDEUR — « cette section n'en listait que 2 » reste vrai de 41 comme de 50. Ce qui doit alerter, c'est le doc qui n'a pas bougé pendant que neuf jobs naissaient."
@@ -497,14 +497,14 @@
     {
       "id": "ml-volume-total",
       "section": "§2 — Marketplace",
-      "phrase": "market_listings ~208k",
+      "phrase": "market_listings ~253k",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "sql": "select round(count(*)/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 208
+        "valeur": 253
       },
       "tolerance": 0.15,
       "note": "⚠ Mesure en MILLIERS, pour parler l'unité du doc. Un compte exact rendrait la prétention instable par construction (la table grossit chaque nuit) et forcerait un chiffre illisible dans une phrase qui dit « ~ ».",
@@ -529,14 +529,14 @@
     {
       "id": "ml-flatfox-total",
       "section": "§8 — Backend conservé",
-      "phrase": "~117k Flatfox",
+      "phrase": "~130k Flatfox",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "sql": "select round(count(*) filter (where source_portal='flatfox')/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 117
+        "valeur": 130
       },
       "tolerance": 0.15,
       "grandeur": "ml-flatfox-total"
@@ -544,14 +544,14 @@
     {
       "id": "ml-realadvisor-total",
       "section": "§8 — Backend conservé",
-      "phrase": "~91k RealAdvisor",
+      "phrase": "~123k RealAdvisor",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "sql": "select round(count(*) filter (where source_portal='realadvisor')/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 91
+        "valeur": 123
       },
       "tolerance": 0.15,
       "note": "⚠ C'est ce chiffre que le doc attribuait à FLATFOX (« ~90k Flatfox »). Une prétention peut être numériquement proche et désigner la mauvaise chose — le registre nomme donc la source dans la requête."
@@ -559,14 +559,14 @@
     {
       "id": "ml-actives-total",
       "section": "§8 — Backend conservé",
-      "phrase": "~77k actives",
+      "phrase": "~91k actives",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "sql": "select round(count(*) filter (where status='active')/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 77
+        "valeur": 91
       },
       "tolerance": 0.15,
       "grandeur": "ml-actives-total"
@@ -726,14 +726,14 @@
     {
       "id": "sm-ml-total",
       "section": "§0 — En une phrase",
-      "phrase": "~208k\n`market_listings`",
+      "phrase": "~253k\n`market_listings`",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "sql": "select round(count(*)/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 208
+        "valeur": 253
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,
@@ -742,14 +742,14 @@
     {
       "id": "sm-ml-flatfox",
       "section": "§0 — En une phrase",
-      "phrase": "~117k Flatfox",
+      "phrase": "~130k Flatfox",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "sql": "select round(count(*) filter (where source_portal='flatfox')/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 117
+        "valeur": 130
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,
@@ -758,14 +758,14 @@
     {
       "id": "sm-ml-actives",
       "section": "§0 — En une phrase",
-      "phrase": "~77k actives",
+      "phrase": "~91k actives",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "sql": "select round(count(*) filter (where status='active')/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 77
+        "valeur": 91
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,
@@ -790,14 +790,14 @@
     {
       "id": "sm-perf-rows",
       "section": "§4 — Règles de perf",
-      "phrase": "statement timeout 3-8s sur 208k rows",
+      "phrase": "statement timeout 3-8s sur 253k rows",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "sql": "select round(count(*)/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 208
+        "valeur": 253
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,
@@ -807,14 +807,14 @@
     {
       "id": "sm-ml-biens",
       "section": "§4bis — Vitrine",
-      "phrase": "`market_listings` (~208k biens)",
+      "phrase": "`market_listings` (~253k biens)",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "sql": "select round(count(*)/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 208
+        "valeur": 253
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,
