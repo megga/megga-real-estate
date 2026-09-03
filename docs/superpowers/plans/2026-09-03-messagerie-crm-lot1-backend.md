@@ -67,7 +67,7 @@
 **Files:**
 - Create: `supabase/migrations/20260903120000_mail_module.sql`
 
-- [ ] **Step 1 : Écrire la migration**
+- [x] **Step 1 : Écrire la migration**
 
 ```sql
 -- ============================================================================
@@ -688,7 +688,12 @@ comment on table public.mail_threads  is 'Messagerie CRM : fils, état d''affich
 comment on table public.mail_messages is 'Messagerie CRM : messages (corps texte + HTML brut plafonné 512 Kio, assaini côté client).';
 ```
 
-- [ ] **Step 2 : Vérifier l'idempotence et l'appliquer en local**
+- [x] **Step 2 : Vérifier l'idempotence et l'appliquer en local** (les deux dernières
+  commandes n'ont PAS tourné : aucun runtime de conteneur sur cette machine — ni docker
+  ni podman — donc pas de `supabase start`. Remplacées par une analyse syntaxique des
+  corps `language sql` avec le vrai analyseur PostgreSQL (libpg-query) et par un contrôle
+  statique des invariants d'idempotence ; la preuve reste la CI, qui rejoue la migration
+  du jour contre une vraie base.)
 
 ```bash
 npm run lint:migrations
@@ -697,7 +702,9 @@ supabase db reset
 ```
 Attendu : `lint:migrations` sans faute ; `db reset` termine sans erreur (la clause pg_cron est ignorée avec un NOTICE en local).
 
-- [ ] **Step 3 : Sonder ce que la base a réellement créé**
+- [x] **Step 3 : Sonder ce que la base a réellement créé** (sondage remplacé par un
+  décompte statique sur le fichier, faute de conteneur : 11 fonctions `mail_*` créées,
+  et `search_text` déclarée `generated always as (…) stored`.)
 
 ⚠ `psql` n'est PAS sur le PATH de la machine de développement, et le dépôt évite
 délibérément d'en dépendre : `tests/backend/helpers/local-sql.ts` passe par le
@@ -714,7 +721,7 @@ Attendu : la colonne `search_text` est `generated always as … stored` ; **11 f
 `mail_match_contact_by_emails`. (Le plan annonçait « 9 » là où son énumération en donnait
 10 ; le rattachement par adresse en ajoute une onzième.)
 
-- [ ] **Step 4 : Commit**
+- [x] **Step 4 : Commit**
 
 ```bash
 git add supabase/migrations/20260903120000_mail_module.sql
