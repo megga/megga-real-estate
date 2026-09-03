@@ -165,10 +165,19 @@ const NPA_MIN = 1000
 /**
  * Code canton à 2 lettres pour un code postal suisse.
  *
- * `state` est le libellé de canton tel que la source le fournit (RealAdvisor le
- * donne sur 100 % de ses annonces ; Flatfox ne le donne pas). Il sert à deux
+ * `state` est le libellé de canton tel que la source le fournit. Il sert à deux
  * choses : trancher les NPA à cheval sur deux cantons, et rattraper les codes
  * postaux hors registre.
+ *
+ * ⚠ « Flatfox ne le donne pas » — CORRIGÉ LE 03.09.2026, c'était faux. Flatfox porte
+ * un champ `state` renseigné sur ~74 % de ses annonces. Deux raisons pour lesquelles
+ * flatfox-sync ne le passe malgré tout pas, toutes deux mesurées :
+ *   · il est NULL sur les 17 annonces dont le NPA ne se résout pas — donc il ne
+ *     rattrape aucun des cas qui échouent ;
+ *   · Flatfox le donne en code à 2 lettres (« ZH »), or STATE_MAP indexe des libellés
+ *     en toutes lettres (« Zurich ») : `mapped` resterait null et le code tomberait
+ *     dans le repli final. Étendre STATE_MAP aux codes à 2 lettres le rendrait utile
+ *     pour les 31 NPA ambigus — geste à part, il touche aussi realadvisor-sync.
  *
  * Renvoie 'FL' pour le Liechtenstein (9485-9498), qui est desservi par la Poste
  * suisse mais n'est pas un canton — à l'appelant de décider s'il garde la ligne.
