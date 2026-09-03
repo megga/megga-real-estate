@@ -29,14 +29,43 @@ const TARGETED_BUDGET_MS = 20_000
 const MAX_ACCOUNTS_PER_TICK = 25
 const LOCK_TTL_MS = 180_000
 
-async function acquireLock(admin: SupabaseClient): Promise<boolean> {
+type LockResult =
+  | { ok: true; until: string }
+  | { ok: false; reason: 'locked' }
+  | { ok: false; reason: 'error'; detail: string }
+
+/**
+ * Prend le bail du balayage.
+ *
+ * ⛔ Zéro ligne mise à jour ne prouve PAS qu'un autre balayage tient le bail : la ligne
+ * peut ne pas exister du tout (base fraîche, purge manuelle), la migration étant son
+ * unique créatrice. Chaque balayage répondait alors `{ ok: true, skipped: 'locked' }`
+ * en 200, POUR TOUJOURS — la synchro morte, pg_cron au vert. Le semis
+ * `on conflict do nothing` (`ignoreDuplicates`) répare ce cas sans jamais écraser un
+ * bail tenu ; et une erreur PostgREST n'est plus rendue comme un « quelqu'un d'autre
+ * travaille », mais comme une erreur.
+ */
+async function acquireLock(admin: SupabaseClient): Promise<LockResult> {
+  const seed = await admin.from('mail_cron_locks')
+    .upsert({ job: 'mail-sync', locked_until: new Date(0).toISOString() }, { onConflict: 'job', ignoreDuplicates: true })
+  if (seed.error) return { ok: false, reason: 'error', detail: `lock seed: ${seed.error.message}` }
   const until = new Date(Date.now() + LOCK_TTL_MS).toISOString()
-  const { data } = await admin.from('mail_cron_locks').update({ locked_until: until })
+  const { data, error } = await admin.from('mail_cron_locks').update({ locked_until: until })
     .eq('job', 'mail-sync').lt('locked_until', new Date().toISOString()).select('job')
-  return (data ?? []).length === 1
+  if (error) return { ok: false, reason: 'error', detail: `lock acquire: ${error.message}` }
+  return (data ?? []).length === 1 ? { ok: true, until } : { ok: false, reason: 'locked' }
 }
-async function releaseLock(admin: SupabaseClient): Promise<void> {
-  await admin.from('mail_cron_locks').update({ locked_until: new Date().toISOString() }).eq('job', 'mail-sync')
+
+/**
+ * Rend le bail — et SEULEMENT le sien. La libération était inconditionnelle : un
+ * balayage qui dépassait le TTL de 180 s libérait, en finissant, le bail qu'un
+ * successeur venait de prendre, et un troisième démarrait à côté du deuxième — deux
+ * balayages en course sur le même `sync_cursor`, sans le moindre signal.
+ */
+async function releaseLock(admin: SupabaseClient, until: string): Promise<void> {
+  const { error } = await admin.from('mail_cron_locks').update({ locked_until: new Date().toISOString() })
+    .eq('job', 'mail-sync').eq('locked_until', until)
+  if (error) console.error('[mail-sync] libération du bail refusée:', error.message)
 }
 
 serve(async (req: Request) => {
@@ -67,20 +96,35 @@ serve(async (req: Request) => {
   // ── Balayage cron ──────────────────────────────────────────────────────────
   if (!(await isServiceSecret(admin, req))) return json({ error: 'unauthorized' }, 401)
   const cfg = providerConfigFromEnv((k) => Deno.env.get(k))
-  if (!(await acquireLock(admin))) return json({ ok: true, skipped: 'locked' })
+  const lock = await acquireLock(admin)
+  if (!lock.ok && lock.reason === 'error') {
+    console.error('[mail-sync] bail:', lock.detail)
+    return json({ error: 'lock_failed', detail: lock.detail }, 500)
+  }
+  if (!lock.ok) return json({ ok: true, skipped: 'locked' })
   const started = Date.now()
   const results: Record<string, unknown>[] = []
   try {
-    const { data: due } = await admin.from('mail_accounts').select('*')
+    // ⛔ La file de travail est LUE, ou le balayage échoue. Sans le contrôle d'erreur,
+    // une lecture ratée (cache de schéma périmé juste après le déploiement, timeout)
+    // rendait `due = null`, la boucle ne tournait pas, et la réponse était
+    // `{ ok: true, synced: 0 }` en 200 : pg_cron au vert, aucun `last_error` écrit —
+    // toute la messagerie du produit arrêtée sans un seul signal rouge. C'est
+    // exactement la panne muette de la synchro d'agenda.
+    const { data: due, error } = await admin.from('mail_accounts').select('*')
       .eq('status', 'active').lte('next_sync_at', new Date().toISOString())
       .order('next_sync_at', { ascending: true }).limit(MAX_ACCOUNTS_PER_TICK)
+    if (error) {
+      console.error('[mail-sync] file des comptes dus illisible:', error.message)
+      return json({ error: 'due_query_failed', detail: error.message }, 500)
+    }
     for (const account of (due ?? []) as MailAccountRow[]) {
       if (Date.now() - started > SWEEP_BUDGET_MS) break
       const r = await syncAccount(admin, account, cfg, Math.min(PER_ACCOUNT_BUDGET_MS, SWEEP_BUDGET_MS - (Date.now() - started)))
       results.push({ account_id: account.id, provider: account.provider, ...r })
     }
   } finally {
-    await releaseLock(admin)
+    await releaseLock(admin, lock.until)
   }
   return json({ ok: true, synced: results.length, elapsed_ms: Date.now() - started, results })
 })

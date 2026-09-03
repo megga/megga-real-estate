@@ -78,8 +78,11 @@ serve(async (req: Request) => {
   }
 
   const threadId = String(body.thread_id ?? '')
-  const { data: thread } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed, contact_id')
+  const { data: thread, error: eThread } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed, contact_id')
     .eq('id', threadId).eq('account_id', account.id).maybeSingle()
+  // Une lecture en échec n'est pas un fil absent : la dire 404 enverrait l'agent
+  // chercher un fil qu'il voit pourtant à l'écran.
+  if (eThread) return json({ error: 'thread_query_failed', detail: eThread.message }, 500)
   if (!thread) return json({ error: 'thread_not_found' }, 404)
 
   if (action === 'link_contact') {
@@ -95,13 +98,28 @@ serve(async (req: Request) => {
   }
 
   if (!THREAD_ACTIONS.includes(action as ThreadAction)) return json({ error: 'unknown_action' }, 400)
-  const { data: msgs } = await admin.from('mail_messages').select('id, provider_message_id, direction').eq('thread_id', thread.id)
+  // ⛔ Ce que le fournisseur doit recevoir, on refuse de le DEVINER. La lecture ne
+  // vérifiait pas son erreur : `msgs = null` donnait une liste vide, la boucle de
+  // `pushToProvider` « réussissait » sans rien envoyer, l'état local était écrit quand
+  // même et l'API répondait `{ ok: true }`. L'agent archivait un fil : archivé dans le
+  // CRM, intact dans Gmail — et le balayage de 2 minutes le rétablissait. Rien nulle
+  // part ne pointait vers la cause. Un fil sans message est, lui, une anomalie : la
+  // ligne de fil naît AVEC son premier message et `recomputeThread` la supprime dès
+  // qu'elle se vide — mieux vaut le dire que le traiter comme un succès vide.
+  const { data: msgs, error: eMsgs } = await admin.from('mail_messages').select('id, provider_message_id, direction').eq('thread_id', thread.id)
+  if (eMsgs) return json({ error: 'messages_query_failed', detail: eMsgs.message }, 500)
+  if (!msgs || msgs.length === 0) {
+    console.error(`[mail-actions] fil ${thread.id} sans message — geste ${action} refusé`)
+    return json({ error: 'thread_empty' }, 409)
+  }
 
   try {
     const token = await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook)
-    const renamed = await pushToProvider(account, token, action as ThreadAction, (msgs ?? []) as MsgRow[])
+    const renamed = await pushToProvider(account, token, action as ThreadAction, msgs as MsgRow[])
     for (const [oldId, newId] of Object.entries(renamed)) {
-      await admin.from('mail_messages').update({ provider_message_id: newId }).eq('account_id', account.id).eq('provider_message_id', oldId)
+      if (oldId === newId) continue // id immuable : le déplacement ne le change plus
+      const { error } = await admin.from('mail_messages').update({ provider_message_id: newId }).eq('account_id', account.id).eq('provider_message_id', oldId)
+      if (error) throw new Error(`renommage d'id: ${error.message}`)
     }
   } catch (e) {
     return json({ error: 'provider_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
@@ -109,8 +127,10 @@ serve(async (req: Request) => {
 
   const patch: Record<string, unknown> = {}
   if (action === 'mark_read' || action === 'mark_unread') {
-    await admin.from('mail_messages').update({ is_read: action === 'mark_read' }).eq('thread_id', thread.id)
-    await recomputeThread(admin, thread.id)
+    const { error } = await admin.from('mail_messages').update({ is_read: action === 'mark_read' }).eq('thread_id', thread.id)
+    if (error) return json({ error: 'local_write_failed', detail: error.message }, 500)
+    try { await recomputeThread(admin, thread.id) }
+    catch (e) { return json({ error: 'local_write_failed', detail: e instanceof Error ? e.message : String(e) }, 500) }
   }
   if (action === 'star') patch.is_starred = true
   if (action === 'unstar') patch.is_starred = false
@@ -118,8 +138,13 @@ serve(async (req: Request) => {
   if (action === 'unarchive') patch.is_archived = false
   if (action === 'trash') { patch.is_trashed = true }
   if (action === 'untrash') { patch.is_trashed = false; patch.is_archived = false }
-  if (Object.keys(patch).length) await admin.from('mail_threads').update(patch).eq('id', thread.id)
+  if (Object.keys(patch).length) {
+    const { error } = await admin.from('mail_threads').update(patch).eq('id', thread.id)
+    if (error) return json({ error: 'local_write_failed', detail: error.message }, 500)
+  }
 
-  const { data: after } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed').eq('id', thread.id).single()
+  const { data: after, error: eAfter } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed').eq('id', thread.id).single()
+  // `{ ok: true, thread: null }` disait « c'est fait » sur un fil devenu illisible.
+  if (eAfter || !after) return json({ error: 'thread_reload_failed', detail: eAfter?.message ?? 'aucune ligne' }, 500)
   return json({ ok: true, thread: after })
 })
