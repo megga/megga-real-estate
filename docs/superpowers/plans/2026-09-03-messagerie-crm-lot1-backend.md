@@ -797,7 +797,12 @@ git commit -m "feat(messagerie): socle SQL — comptes, fils, messages, Vault, R
 **Files:**
 - Create: `tests/backend/mail-rls.spec.ts`
 
-- [ ] **Step 1 : Écrire le spec (il doit rougir si une policy manque)**
+- [x] **Step 1 : Écrire le spec (il doit rougir si une policy manque)** (écrit, plus
+  QUATRE ajouts issus de la revue de sécurité de la task 1.1 — 15 `it()` au total au lieu
+  des 9 ci-dessous : la fuite d'offboarding que ferme le ET conjoint de
+  `mail_account_visible`, le super-admin qui ne lit aucun message, les trois WITH CHECK
+  resserrés, et l'aller-retour Vault complet — `mail_secret_update` n'ayant aucun
+  précédent au dépôt, rien d'autre ne l'éprouvera.)
 
 ```ts
 // RLS de la Messagerie : visibilité owner/agency, isolation inter-agences, Vault
@@ -972,14 +977,25 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
 })
 ```
 
-- [ ] **Step 2 : Lancer, lire les échecs, corriger la migration si une policy manque**
+- [x] **Step 2 : Lancer, lire les échecs, corriger la migration si une policy manque**
+  (⛔ **LA SUITE N'A PAS ÉTÉ EXÉCUTÉE ICI** : aucun runtime de conteneur sur la machine —
+  `docker`, `podman` et `colima` sont absents du PATH — donc ni `supabase start` ni
+  `npm run test:backend`. Et sans `.env.test.local`, le `describe.skipIf` ignorerait de
+  toute façon les 15 tests en silence. La preuve est en CI :
+  `.github/workflows/backend.yml` lance `supabase start -x studio,…` puis
+  `npm run test:backend`. Contrôles statiques passés à la place : `tsc` en strict sur le
+  fichier, `npm run lint` (0 erreur), `npm run lint:spec-sql` (vert ; le fichier ne porte
+  pas `@sql-blocks-check` — il n'écrit aucun `do $$ … $$`), et une confrontation
+  identifiant par identifiant — tables, colonnes, noms de RPC **et noms d'arguments**,
+  ces derniers étant passés PAR NOM par `.rpc()` et donc invisibles au type-check —
+  contre `supabase/migrations/20260903120000_mail_module.sql`.)
 
 ```bash
 npm run test:backend -- tests/backend/mail-rls.spec.ts
 ```
-Attendu : 9 tests verts. Si « permission denied for table mail_labels » : le `grant` de §13 manque ; si le test « colonne accordée » rougit avec 42501 : le `grant update (label_id)` manque.
+Attendu : 15 tests verts (9 du plan + 4 ajouts, dont trois `it()` pour les WITH CHECK). Si « permission denied for table mail_labels » : le `grant` de §13 manque ; si le test « colonne accordée » rougit avec 42501 : le `grant update (label_id)` manque.
 
-- [ ] **Step 3 : Commit**
+- [x] **Step 3 : Commit**
 
 ```bash
 git add tests/backend/mail-rls.spec.ts
