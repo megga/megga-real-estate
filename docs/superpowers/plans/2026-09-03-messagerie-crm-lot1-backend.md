@@ -4197,7 +4197,7 @@ git commit -m "feat(messagerie): edge mail-attachment (flux authentifié, classe
 - Create: `tests/backend/mail-edges.spec.ts`
 - Modify: `src/lib/edgeFunctionRoster.ts` (régénéré), `src/types/database.ts` (régénéré)
 
-- [ ] **Step 1 : Roster, garde d'auth, idempotence**
+- [x] **Step 1 : Roster, garde d'auth, idempotence**
 
 ```bash
 node scripts/check-edge-roster.mjs --write
@@ -4207,16 +4207,43 @@ npm run lint:migrations
 ```
 Attendu : roster régénéré avec `mail-actions`, `mail-attachment`, `mail-oauth`, `mail-send`, `mail-sync` ; `lint:edge-auth` vert (chaque `index.ts` contient `requireAgentAuth` ou `isServiceSecret`) ; migrations vertes.
 
-- [ ] **Step 2 : Types**
+Mesuré le 04.09.2026 : `✓ Roster edge functions en phase avec le tree (87 fonctions).` /
+`✓ supabase/config.toml déclare les 87 fonctions du tree.` ; `✓ Gardes edge : 85 fonction(s)
+authentifient leur appelant, 2 ouverte(s) par conception et justifiée(s).` ;
+`✓ Migrations rejouables (312 vérifiées, 3 historiques exclues).` Les cinq `mail-*` sont bien
+dans `src/lib/edgeFunctionRoster.ts` (l. 59-63) et dans `supabase/config.toml` (l. 616-629).
+
+- [x] **Step 2 : Types — ⛔ DÉLIBÉRÉMENT NON RÉGÉNÉRÉS, et c'est l'état JUSTE**
 
 ```bash
 supabase db reset
 npx supabase gen types typescript --local > src/types/database.ts
 npm run build
 ```
-Attendu : build vert. ⚠ `npm run lint:types-freshness` compare au projet **distant** ; il ne passera qu'après déploiement de la migration (merge). Le noter dans la PR, ne pas caster le client pour compiler.
+⛔ **CES DEUX PREMIÈRES LIGNES SONT INEXÉCUTABLES ICI, ET LES CONTOURNER SERAIT PIRE QUE DE
+S'EN PASSER.** Mesuré le 04.09.2026 : aucun runtime de conteneur sur la machine (`docker`,
+`podman`, `colima`, `nerdctl` tous absents), donc pas de base locale à générer. Et générer
+depuis la **production** ne réparerait rien : la migration n'y est pas encore appliquée, la
+sortie n'aurait donc **aucune table `mail_*`** — soit un fichier identique (churn pour rien),
+soit un fichier appauvri qui casserait les lots 2 et 3.
 
-- [ ] **Step 3 : Spec des contrats HTTP**
+`src/types/database.ts` est donc laissé **intact**, et c'est prouvé plutôt que supposé :
+- `npm run lint:types-freshness` → vert. Il le dit lui-même : `SUPABASE_ACCESS_TOKEN absent —
+  contrôles statiques seuls (la comparaison à la prod est SAUTÉE).` Les deux côtés qu'il
+  compare — le fichier et la production — sont **d'accord parce que ni l'un ni l'autre n'a la
+  migration**. C'est un vert honnête, pas un vert creux : le script refuse explicitement
+  d'annoncer « aucune relation manquante » sans avoir interrogé la base.
+- La comparaison réelle vit dans `.github/workflows/migration-drift.yml:76`
+  (`check-types-freshness.mjs --prod`), déclenché sur `push: main` — donc **APRÈS le merge**,
+  jamais sur la PR (`unit-tests.yml:104` lance la version statique).
+- `npm run build` → vert (`✓ built in 2.26s`). Rien dans `src/` ne référence encore une table
+  `mail_*` : le lot 1 est du backend seul.
+- Aucun client casté dans le code neuf. Les seuls `as unknown as` du module sont des `fetch`
+  factices dans les `*.test.ts` de `_shared/mail/`, hors du périmètre `src/` de la porte.
+
+**La conséquence est reportée au merge : voir la section finale de ce document.**
+
+- [x] **Step 3 : Spec des contrats HTTP**
 
 ```ts
 // tests/backend/mail-edges.spec.ts
@@ -4321,25 +4348,175 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
 supabase start   # déjà démarré = sans effet
 npm run test:backend -- tests/backend/mail-edges.spec.ts tests/backend/mail-rls.spec.ts
 ```
-Attendu : 15 tests verts (6 + 9).
+Attendu : 16 tests verts (7 + 9).
 
-- [ ] **Step 4 : Toutes les portes, puis commit**
+⛔ **NON EXÉCUTÉE ICI — même mur qu'au Step 2 et qu'à la task 1.2** : aucun runtime de
+conteneur, donc pas de `supabase start`, et `.env.test.local` n'existe pas (les clés `HAS_KEYS`
+sont absentes ⇒ `describe.skipIf` sauterait le fichier entier, ce qui ne prouverait rien).
+Vérifiée **statiquement**, le 04.09.2026 :
+- `npx tsc --noEmit --skipLibCheck --strict --target ES2023 --lib ES2023 --module ESNext
+  --moduleResolution bundler --verbatimModuleSyntax --moduleDetection force --types node
+  tests/backend/mail-edges.spec.ts` → exit 0, aucun `any`.
+- `npx eslint tests/backend/mail-edges.spec.ts` → exit 0. `npm run lint:spec-sql` → exit 0.
+- Chaque nom d'edge, d'action, de champ et chaque code de statut relu contre les cinq
+  `index.ts` livrés (tableau de recoupement dans la PR).
+
+Trois écarts au bloc d'origine, tous imposés par le code livré — la spec a été corrigée, pas
+l'edge :
+1. **Sept `it()` et non six.** Ajout de « mail-send sans destinataire → 400 », §7.2 du plan
+   maître, que ce lot ne couvrait pas. ⚠ Il exige une boîte que l'appelant **VOIT** : sur
+   `boxB`, `loadVisibleAccount` rend `null` et l'edge répond 404 **avant** d'atteindre le
+   contrôle de destinataire — le test serait vert pour la mauvaise raison. `beforeAll` sème
+   donc une seconde boîte, dans l'agence A. Elle est `status = 'active'` par défaut
+   (migration 20260903120000), le 409 `account_not_active` ne s'interpose pas.
+2. **Les corps des refus sont assertés, pas seulement les statuts** — `invalid_origin`,
+   `invalid_state`, `not_found`, `unknown_action`, `recipient_required`, `unauthorized`,
+   `provider_not_configured`. Un statut seul ne distingue pas le gestionnaire de la passerelle.
+3. **`SERVICE_JWT` en `||` et non `??`** : en CI la variable peut être exportée VIDE, que `??`
+   ne rattraperait pas. Repli identique à `agency-verification-run.spec.ts:115`.
+
+- [x] **Step 4 : Toutes les portes, puis commit**
 
 ```bash
 npm run build && npm run lint && npm run test:unit && npm run lint:deadcode && npm run lint:email-shell
 git add -A
-git commit -m "test(messagerie): contrats HTTP des edges, roster, types régénérés"
+git commit -m "test(messagerie): contrats HTTP des edges, portes du lot"
 ```
+Les dix-sept portes du dépôt ont été passées, pas seulement ces cinq — résultats dans la PR.
 
 - [ ] **Step 5 : Épreuve de bout en bout (§7.4 du maître, points 1-2 et 8) — SANS UI**
 
-Après merge (les edges se déploient seules), depuis la console du navigateur sur `app.megga.ch`, connecté :
-```js
-const { data } = await supabase.functions.invoke('mail-oauth', { body: { action: 'start', provider: 'gmail', origin: location.origin } })
-window.open(data.url, 'megga-mail-oauth', 'popup,width=520,height=680')
-// dans la pop-up, après consentement, l'URL est /oauth/mail/callback?code=…&state=… (page 404 tant que le lot 2 n'est pas là : copier code+state)
-await supabase.functions.invoke('mail-oauth', { body: { action: 'exchange', code: '<code>', state: '<state>' } })
-```
-Attendu : `{ account }` ; deux minutes plus tard `select count(*) from mail_threads` > 0 pour ce compte, `last_sync_at` posé, `last_error` nul. Puis `disconnect` : 0 fil, secret Vault absent (`select count(*) from vault.secrets where name like 'mail:%'` via le SQL editor du dashboard).
+⛔ **RESTE OUVERTE, ET NE PEUT PAS ÊTRE COCHÉE DEPUIS LE DÉPÔT.** Elle exige trois choses qui
+vivent toutes hors d'ici : la migration appliquée en production, l'**API Gmail activée** et
+l'URI de redirection enregistrée sur le client OAuth (cf. la section finale, point 3). Tant
+qu'elles manquent, `mail-oauth start` répond `503 provider_not_configured` ou Google refuse la
+redirection — aucun des deux ne dit quoi que ce soit du code.
 
-Consigner le résultat (compte de fils, durée de la première synchro) dans la PR.
+**Procédure, à dérouler par un humain APRÈS le merge.** Console du navigateur sur
+`app.megga.ch`, session d'agent ouverte :
+
+```js
+// 1. Démarrer
+const { data } = await supabase.functions.invoke('mail-oauth', { body: { action: 'start', provider: 'gmail', origin: location.origin } })
+// 2. Ouvrir la pop-up et consentir
+window.open(data.url, 'megga-mail-oauth', 'popup,width=520,height=680')
+// 3. La pop-up finit sur /oauth/mail/callback?code=…&state=…
+//    ⚠ page 404 tant que le lot 2 n'est pas livré — c'est ATTENDU : relever code et state dans la barre d'adresse.
+// 4. Échanger
+await supabase.functions.invoke('mail-oauth', { body: { action: 'exchange', code: '<code>', state: '<state>' } })
+// attendu : { account: { id, email, status: 'active', … } }
+```
+
+Puis, SQL editor du dashboard, **deux minutes après** l'échange (la première synchro tourne en
+`EdgeRuntime.waitUntil`) :
+
+```sql
+select status, vault_secret_id is not null as secret_pose, last_sync_at, last_error
+  from mail_accounts where id = '<account.id>';
+-- attendu : active | true | horodatage non nul | null
+
+select count(*) from mail_threads where account_id = '<account.id>';
+-- attendu : > 0
+```
+
+Déconnexion, dans la même console :
+
+```js
+await supabase.functions.invoke('mail-oauth', { body: { action: 'disconnect', account_id: '<account.id>' } })
+```
+
+Puis, SQL editor :
+
+```sql
+select count(*) from mail_threads where account_id = '<account.id>';   -- attendu : 0
+select count(*) from vault.secrets where name like 'mail:%';           -- attendu : 0
+select count(*) from documents where id = '<document_id classé>';      -- attendu : 1 (le document classé SURVIT)
+```
+
+Consigner dans la PR : compte de fils, durée de la première synchro, et le fait que le document
+classé a survécu à la déconnexion.
+
+---
+
+## À faire au merge (hors dépôt et post-merge)
+
+> Écrit le 04.09.2026, à la clôture de la task 1.15. Trois choses que le lot 1 ne peut pas
+> faire lui-même, et qui échouent toutes **en silence** si on les oublie : aucune ne fait
+> rougir la PR.
+
+### 1. Faire ARRIVER la migration en production
+
+`supabase/migrations/20260903120000_mail_module.sql`.
+
+⛔ **`deploy.yml:220` n'applique qu'une migration dont la DATE du nom est `>= TODAY` (UTC).**
+Son propre commentaire le dit sans détour : une fois `stamp < TODAY`, « aucun déploiement
+ultérieur ne les rattrapera ». Une migration horodatée `20260903` mergée le 4 septembre ou
+plus tard est donc **sautée POUR TOUJOURS**, avec pour seule trace un `::warning` que
+personne ne lit. Le même commentaire enregistre que l'application manuelle par le MCP
+Supabase (`apply_migration`) **est le flux normal de ce dépôt** — 19 migrations étaient
+déjà dans ce cas au 19.07.2026, et c'est la discipline humaine qui a tenu, pas la CI.
+
+Deux voies, au choix, le jour du merge :
+- `git mv supabase/migrations/20260903120000_mail_module.sql supabase/migrations/<AAAAMMJJ>120000_mail_module.sql`
+  avec la date du jour du merge, pour que le filtre la prenne ; **ou**
+- l'appliquer à la main (MCP `apply_migration`) avant de merger.
+
+⚠ **Vérifier qu'elle a atterri se fait en LISANT la base, jamais en regardant un pipeline
+vert** — un pipeline vert est exactement ce que rend une migration sautée :
+
+```sql
+select version from supabase_migrations.schema_migrations where version = '20260903120000';
+-- (ou la version renommée) ; une ligne = appliquée. Zéro ligne = elle n'existe pas en prod.
+select count(*) from information_schema.tables where table_schema = 'public' and table_name like 'mail\_%';
+-- attendu : 9 — accounts, oauth_states, labels, threads, messages, attachments, drafts,
+--               contact_aliases, cron_locks
+```
+
+### 2. Régénérer `src/types/database.ts`, ensuite — et le committer
+
+Une fois la migration en production, et **pas avant** :
+
+```bash
+npx supabase gen types typescript --project-id eayczugyrvmtqnnmvjod > src/types/database.ts
+```
+
+⚠ Le fichier porte un en-tête `/** */` maison que le générateur n'émet pas : le remettre en
+tête après régénération (le script `check-types-freshness.mjs` le rappelle dans son propre
+message d'échec).
+
+⛔ **Sans ça, `migration-drift.yml` passe au ROUGE sur `main`** : il lance
+`check-types-freshness.mjs --prod`, qui compare `pg_class` au fichier et signalera les neuf
+relations `mail_*` comme « vivantes en production, absentes de `src/types/database.ts` ».
+C'est la porte qui **échoue vraiment**, à la différence de l'avertissement du point 1 — donc
+la seule des deux qui se remarque, et elle se remarque une fois le mal fait.
+
+⚠ Il tourne sur `push: main` : la PR reste verte quoi qu'il arrive. Ne pas prendre le vert de
+la PR pour une preuve de fraîcheur des types.
+
+### 3. Les deux prérequis hors dépôt — aucun agent ne peut les poser
+
+**Google — console Cloud, compte `hello@megga.ai`, projet `tribal-dispatch-504619-c1`, client
+OAuth `833483825712-vh715spjupqcl86qffv3hvffsaqk0g8e`** (le même que « Se connecter avec
+Google » : c'est bien ce client-là qu'il faut étendre, pas un nouveau) :
+1. Ajouter deux URI de redirection autorisées : `https://app.megga.ch/oauth/mail/callback` et
+   `http://localhost:5173/oauth/mail/callback`. Elles doivent correspondre **au caractère
+   près** à `redirectUriFor()` (`_shared/mail/guard.ts:47`).
+2. **Activer l'API Gmail** sur le projet. Elle ne l'est pas : seule l'API Calendar l'a été.
+3. Déclarer le scope `https://www.googleapis.com/auth/gmail.modify` dans *Data Access*.
+   ⚠ Il est **RESTRICTED**, un cran au-dessus des scopes *sensibles* de Calendar : tant que la
+   vérification n'est pas accordée, Google affiche l'écran « application non validée » et
+   plafonne à **100 utilisateurs**. Acceptable pour le pilote, et c'est la décision prise —
+   mais à savoir avant de le montrer à un client.
+
+**Microsoft — Azure / Entra** :
+1. Enregistrer l'application, y ajouter les deux mêmes URI de redirection.
+2. Accorder les permissions **déléguées** `Mail.ReadWrite`, `Mail.Send`, `User.Read`,
+   `offline_access` — exactement `MS_MAIL_SCOPE` (`_shared/mail/secrets.ts:32`).
+3. Poser `MICROSOFT_CLIENT_ID` et `MICROSOFT_CLIENT_SECRET` dans les secrets Edge Function de
+   Supabase.
+
+⛔ **Ces deux secrets sont ABSENTS du projet aujourd'hui** (constat inchangé depuis le
+16.08.2026, cf. CLAUDE.md §8). Conséquence assumée et **codée**, pas subie :
+`mail-oauth` avec `provider: 'outlook'` répond `503 provider_not_configured` — un refus
+lisible, rendu APRÈS la garde d'authentification. La moitié Outlook de l'épreuve de bout en
+bout (Step 5) ne peut donc pas tourner tant qu'ils ne sont pas posés.
