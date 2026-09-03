@@ -1785,7 +1785,7 @@ Attendu : 8 tests PASS.
 - Test: `supabase/functions/_shared/mail/oauth.test.ts`
 - Modify: `vitest.config.ts`
 
-- [ ] **Step 1 : Test (rouge)**
+- [x] **Step 1 : Test (rouge)**
 
 ```ts
 // supabase/functions/_shared/mail/oauth.test.ts
@@ -1862,7 +1862,7 @@ describe('fetchIdentity', () => {
 
 Ajouter `'supabase/functions/_shared/mail/oauth.test.ts',` à `vitest.config.ts` ; lancer → FAIL (module absent).
 
-- [ ] **Step 2 : Implémentation**
+- [x] **Step 2 : Implémentation**
 
 ```ts
 // supabase/functions/_shared/mail/oauth.ts
@@ -1971,7 +1971,7 @@ export async function revokeToken(provider: OAuthProvider, token: string, deps: 
 }
 ```
 
-- [ ] **Step 3 : Vert, commit**
+- [x] **Step 3 : Vert, commit**
 
 ```bash
 npx vitest run supabase/functions/_shared/mail/oauth.test.ts
