@@ -160,9 +160,31 @@ export interface GraphOutgoing {
 const rcpt = (a: { name: string | null; email: string }) => ({ emailAddress: { address: a.email, name: a.name ?? undefined } })
 
 /**
+ * Plafond par pièce imposé par Graph : « This operation limits the size of the
+ * attachment you can add to under 3 MB » (message: post attachments, v1.0). Au-delà il
+ * faut `createUploadSession`, que ce build n'implémente pas — d'où un refus EXPLICITE
+ * en amont, dans mail-send, plutôt qu'un 502 illisible au moment de l'envoi.
+ */
+export const GRAPH_ATTACHMENT_MAX_BYTES = 3 * 1024 * 1024
+
+/**
  * Envoi : brouillon (POST /me/messages ou createReply/createForward) → PATCH du
- * contenu → POST send. Le brouillon porte notre internetMessageId, ce qui permet
- * de rapprocher la copie « Envoyés » quand le delta la rend.
+ * contenu → POST des pièces → POST send. Le brouillon porte notre internetMessageId,
+ * ce qui permet de rapprocher la copie « Envoyés » quand le delta la rend.
+ *
+ * ⛔ LES PIÈCES NE PASSENT PAS PAR LE PATCH. `attachments` est une propriété de
+ * NAVIGATION : la référence « Update message » énumère ce qui est modifiable
+ * (body, subject, toRecipients, internetMessageId… « Updatable only if isDraft =
+ * true ») et `attachments` n'y figure pas. Les deux issues étaient mauvaises et
+ * aucune n'était testée : ou Graph refusait le PATCH — 502 `send_failed`, et le
+ * brouillon créé par createReply RESTAIT dans les Brouillons de l'agent —, ou il
+ * ignorait la propriété et la réponse partait au client SANS sa pièce pendant que le
+ * CRM enregistrait `has_attachments = true`. Chaque pièce est donc POSTée dans la
+ * collection du brouillon, avant l'envoi.
+ *
+ * ⛔ Et le brouillon est NETTOYÉ si la suite échoue : sans cela, chaque tentative
+ * ratée laissait un brouillon de plus dans la boîte de l'agent, sans rien pour dire
+ * d'où il venait.
  */
 export async function graphSend(
   token: string, m: GraphOutgoing, mode: { kind: 'new' } | { kind: 'reply' | 'forward'; providerMessageId: string }, deps: GraphDeps = {},
@@ -174,7 +196,6 @@ export async function graphSend(
     ccRecipients: m.cc.map(rcpt),
     bccRecipients: m.bcc.map(rcpt),
     internetMessageId: m.internetMessageId,
-    attachments: m.attachments.map((a) => ({ '@odata.type': '#microsoft.graph.fileAttachment', name: a.filename, contentType: a.mimeType, contentBytes: a.base64 })),
   }
   let draftId: string
   if (mode.kind === 'new') {
@@ -184,9 +205,25 @@ export async function graphSend(
     const verb = mode.kind === 'reply' ? 'createReply' : 'createForward'
     const d = await gcall<{ id: string }>(token, `/me/messages/${encodeURIComponent(mode.providerMessageId)}/${verb}`, deps, { method: 'POST', body: '{}' })
     draftId = d.id
-    await gcall(token, `/me/messages/${encodeURIComponent(draftId)}`, deps, { method: 'PATCH', body: JSON.stringify(payload) })
   }
-  await gcall(token, `/me/messages/${encodeURIComponent(draftId)}/send`, deps, { method: 'POST' })
+  try {
+    if (mode.kind !== 'new') {
+      await gcall(token, `/me/messages/${encodeURIComponent(draftId)}`, deps, { method: 'PATCH', body: JSON.stringify(payload) })
+    }
+    for (const a of m.attachments) {
+      await gcall(token, `/me/messages/${encodeURIComponent(draftId)}/attachments`, deps, {
+        method: 'POST',
+        body: JSON.stringify({ '@odata.type': '#microsoft.graph.fileAttachment', name: a.filename, contentType: a.mimeType, contentBytes: a.base64 }),
+      })
+    }
+    await gcall(token, `/me/messages/${encodeURIComponent(draftId)}/send`, deps, { method: 'POST' })
+  } catch (e) {
+    // Le nettoyage ne doit JAMAIS masquer la cause : son propre échec se journalise,
+    // l'erreur d'origine remonte telle quelle.
+    try { await gcall(token, `/me/messages/${encodeURIComponent(draftId)}`, deps, { method: 'DELETE' }) }
+    catch (e2) { console.error(`[mail graph] brouillon orphelin ${draftId} non supprimé:`, e2 instanceof Error ? e2.message : String(e2)) }
+    throw e
+  }
   return { draftId }
 }
 
@@ -249,6 +286,18 @@ export interface GraphRemoval { id: string; reason: string }
  * `reason: "changed"`, que Graph documente comme une suppression RESTAURABLE, était
  * détruit. Qui tranche, c'est `resolveGraphRemoval` : un GET sur l'id (immuable, donc
  * il survit au déplacement).
+ *
+ * ⛔ ET UNE PROPRIÉTÉ ABSENTE N'EST PAS UNE PROPRIÉTÉ FAUSSE. La référence du delta est
+ * explicite : « Updated instances are represented by their id with *at least* the
+ * updated properties, but other properties might be included » — donc une charge utile
+ * PARTIELLE est le cas NORMAL, pas l'exception. Le code construisait pourtant les
+ * quatre drapeaux sans condition : `!!it.isRead` sur un `isRead` absent rendait `false`
+ * (le CRM remettait en non-lu un message lu), un `flag` absent déétoilait, et surtout
+ * un `parentFolderId` absent donnait `inInbox: false, isTrashed: false`, ce que
+ * `applyRemoteChanges` écrit en `is_archived = true` : mettre un simple drapeau sur un
+ * courrier dans Outlook faisait DISPARAÎTRE la conversation de la Réception du CRM.
+ * On n'émet donc que ce que la charge utile PORTE — comme `historyToChanges` (gmail.ts)
+ * qui laisse tomber les enregistrements de drapeaux vides.
  */
 export function deltaToChanges(items: GraphMessage[], known: Set<string>, folderIds: Record<string, string>): { added: GraphMessage[]; changes: RemoteChange[]; removed: GraphRemoval[] } {
   const added: GraphMessage[] = []
@@ -257,11 +306,17 @@ export function deltaToChanges(items: GraphMessage[], known: Set<string>, folder
   for (const it of items) {
     if (it['@removed']) { removed.push({ id: it.id, reason: it['@removed'].reason ?? 'unknown' }); continue }
     if (!known.has(it.id)) { added.push(it); continue }
-    changes.push({
-      kind: 'flags', providerMessageId: it.id,
-      isRead: !!it.isRead, isStarred: it.flag?.flagStatus === 'flagged',
-      inInbox: it.parentFolderId === folderIds.inbox, isTrashed: it.parentFolderId === folderIds.deleteditems,
-    })
+    const f: Extract<RemoteChange, { kind: 'flags' }> = { kind: 'flags', providerMessageId: it.id }
+    if ('isRead' in it) f.isRead = !!it.isRead
+    if (it.flag) f.isStarred = it.flag.flagStatus === 'flagged'
+    // Les deux se lisent sur le MÊME champ : ou il est là, ou aucun des deux n'est su.
+    if (it.parentFolderId !== undefined) {
+      f.inInbox = it.parentFolderId === folderIds.inbox
+      f.isTrashed = it.parentFolderId === folderIds.deleteditems
+    }
+    // `kind` + `providerMessageId` = un changement qui ne change RIEN : inutile de le
+    // faire descendre jusqu'à une lecture en base (même seuil que historyToChanges).
+    if (Object.keys(f).length > 2) changes.push(f)
   }
   return { added, changes, removed }
 }

@@ -169,7 +169,7 @@ export function makeMessageId(domain: string): string {
  * les 3 Mo par pièce que Graph impose —, et une pièce refusée à tort est un envoi
  * impossible sans explication.
  */
-export function base64ByteLength(b64: string): number {
+export function base64ByteLength(b64: string | null | undefined): number {
   const clean = (b64 ?? '').replace(/[^A-Za-z0-9+/=_-]/g, '')
   if (!clean) return 0
   const pad = clean.endsWith('==') ? 2 : clean.endsWith('=') ? 1 : 0

@@ -118,6 +118,13 @@ serve(async (req: Request) => {
     const renamed = await pushToProvider(account, token, action as ThreadAction, msgs as MsgRow[])
     for (const [oldId, newId] of Object.entries(renamed)) {
       if (oldId === newId) continue // id immuable : le déplacement ne le change plus
+      // ⚠ Si un id CHANGE malgré `Prefer: IdType="ImmutableId"`, ce n'est pas seulement
+      // `mail_messages` qui dérive : les `provider_attachment_id` d'Exchange sont
+      // rattachés à l'item PARENT, donc ils cessent de résoudre avec lui, et
+      // mail-attachment rendrait 502 sur un mandat PDF archivé. Ce cas ne devrait plus
+      // exister ; s'il réapparaît, il doit se voir dans les journaux avant d'être
+      // découvert par un agent.
+      console.error(`[mail-actions] id Graph modifié malgré l'id immuable (${oldId} → ${newId}) — pièces jointes du message potentiellement irrésolubles`)
       const { error } = await admin.from('mail_messages').update({ provider_message_id: newId }).eq('account_id', account.id).eq('provider_message_id', oldId)
       if (error) throw new Error(`renommage d'id: ${error.message}`)
     }

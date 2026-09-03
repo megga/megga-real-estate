@@ -11,9 +11,9 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
-import { base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, textToHtml } from '../_shared/mail/mime.ts'
+import { base64ByteLength, base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, textToHtml } from '../_shared/mail/mime.ts'
 import { gmailAttachment, gmailGetMessage, gmailSend, normalizeGmailMessage } from '../_shared/mail/gmail.ts'
-import { graphSend } from '../_shared/mail/graph.ts'
+import { GRAPH_ATTACHMENT_MAX_BYTES, graphSend } from '../_shared/mail/graph.ts'
 import { ingestMessages, recomputeThread } from '../_shared/mail/ingest.ts'
 import type { MailAddress, OutgoingMessage } from '../_shared/mail/types.ts'
 
@@ -60,7 +60,7 @@ serve(async (req: Request) => {
   const bcc = addrList(body.bcc)
   let subject = typeof body.subject === 'string' ? body.subject.trim() : ''
   const attachments = (Array.isArray(body.attachments) ? body.attachments : []) as { filename: string; mime_type: string; base64: string }[]
-  if (attachments.reduce((n, a) => n + Math.ceil((a.base64?.length ?? 0) * 0.75), 0) > MAX_TOTAL_ATTACHMENT_BYTES) return json({ error: 'attachments_too_large' }, 413)
+  if (attachments.reduce((n, a) => n + base64ByteLength(a.base64), 0) > MAX_TOTAL_ATTACHMENT_BYTES) return json({ error: 'attachments_too_large' }, 413)
 
   // Original (réponse/transfert) — TOUJOURS relu par account_id : un id étranger rend 404.
   let original: OriginalRow | null = null
@@ -103,12 +103,27 @@ serve(async (req: Request) => {
     }
   }
 
+  // ⛔ Graph refuse une pièce de 3 Mo ou plus dans la collection d'un brouillon
+  // (« limits the size of the attachment you can add to under 3 MB ») et ce build
+  // n'implémente pas `createUploadSession`. Sans ce contrôle, un PDF de 4 Mo envoyé à
+  // un acheteur passait sur Gmail et rendait 502 `send_failed` sur Outlook, sans que
+  // rien ne dise que la TAILLE était en cause.
+  if (account.provider === 'outlook') {
+    const tooBig = outAtts.find((a) => base64ByteLength(a.base64) >= GRAPH_ATTACHMENT_MAX_BYTES)
+    if (tooBig) return json({ error: 'attachment_too_large_outlook', filename: tooBig.filename, limit_bytes: GRAPH_ATTACHMENT_MAX_BYTES }, 413)
+  }
+
   const messageId = makeMessageId(account.email.split('@')[1] ?? 'megga.ch')
+  // ⛔ UN TRANSFERT N'EST PAS UNE RÉPONSE. Coller `In-Reply-To`/`References` de
+  // l'original sur un transfert le range, chez le DESTINATAIRE, dans une conversation
+  // à laquelle il n'a jamais participé (RFC 5322 : ces en-têtes désignent le message
+  // auquel on RÉPOND). Ils ne sont posés que pour `reply`.
+  const isReply = kind === 'reply'
   const outgoing: OutgoingMessage = {
     from: { name: account.display_name ?? (prof?.full_name as string | null) ?? null, email: account.email },
     to, cc, bcc, subject, text: fullText, html: fullHtml,
-    inReplyTo: original?.rfc822_message_id ?? null,
-    references: original ? [...(original.in_reply_to ? [original.in_reply_to] : []), ...(original.rfc822_message_id ? [original.rfc822_message_id] : [])] : [],
+    inReplyTo: isReply ? (original?.rfc822_message_id ?? null) : null,
+    references: isReply && original ? [...(original.in_reply_to ? [original.in_reply_to] : []), ...(original.rfc822_message_id ? [original.rfc822_message_id] : [])] : [],
     messageId, attachments: outAtts,
   }
 
@@ -117,7 +132,17 @@ serve(async (req: Request) => {
   try {
     if (account.provider === 'gmail') {
       const { data: th } = threadId ? await admin.from('mail_threads').select('provider_thread_id').eq('id', threadId).single() : { data: null }
-      const sent = await gmailSend(token, base64UrlEncode(new TextEncoder().encode(buildMime(outgoing))), th?.provider_thread_id ?? null)
+      // ⛔ PAS DE threadId POUR UN TRANSFERT. Le guide d'envoi de Gmail pose les
+      // conditions pour qu'un message rejoigne un fil existant : « The Subject headers
+      // match » et « The References and In-Reply-To headers follow the RFC 2822
+      // standard ». Un transfert porte `Fwd: <objet>`, qui ne concorde PAS. Les deux
+      // issues étaient mauvaises : ou Gmail refusait l'envoi (502 `send_failed`, le
+      // transfert devenait impossible), ou il l'acceptait en ouvrant un fil à part —
+      // et le CRM gardait le transfert dans l'ancien fil pendant que Gmail le rangeait
+      // ailleurs, les deux boîtes divergeant définitivement. Le fil CRM suit désormais
+      // le fournisseur : la ligne relue après ingestion porte le vrai `thread_id`.
+      const providerThreadId = kind === 'forward' ? null : (th?.provider_thread_id ?? null)
+      const sent = await gmailSend(token, base64UrlEncode(new TextEncoder().encode(buildMime(outgoing))), providerThreadId)
       const full = await gmailGetMessage(token, sent.id)
       await ingestMessages(admin, account, [normalizeGmailMessage(full, account.email)], { skipAudit: true })
       const { data: row } = await admin.from('mail_messages').select('id, thread_id').eq('account_id', account.id).eq('provider_message_id', sent.id).single()

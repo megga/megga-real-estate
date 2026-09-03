@@ -58,7 +58,21 @@ export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessa
   })()
   const inboundSender = m.direction === 'inbound' ? m.from : null
   const from = inboundSender && (newer || !existing?.from_email) ? inboundSender : (existing ? { name: existing.from_name, email: existing.from_email ?? '' } : (parts[0] ?? { name: null, email: '' }))
-  const latestInbound = m.direction === 'inbound' && newer
+  /**
+   * ⛔ « ARCHIVÉ » SE LIT SUR LE MESSAGE ENTRANT LE PLUS RÉCENT, jamais sur le dernier
+   * message tout court. La condition était `m.direction === 'inbound' && newer` : dès
+   * que le dernier mot du fil était celui de l'AGENT, plus aucun message ne pouvait
+   * jamais décider, et `is_archived` restait à sa valeur de semis. Or la passe
+   * initiale de Gmail liste du plus récent au plus ancien : le premier message ingéré
+   * d'un tel fil est sortant, `existing` est null, `is_archived` naît donc `false` —
+   * et les messages suivants, plus vieux, ne peuvent plus le corriger même s'ils
+   * n'ont AUCUN libellé INBOX. Comme « l'agent a eu le dernier mot » décrit la
+   * plupart des conversations réglées, le tout premier écran après la connexion d'une
+   * boîte était une Réception pleine de fils clos vieux de plusieurs mois, et Archivé
+   * quasi vide. Invisible en incrémental — `applyRemoteChanges` traite bien un archivage
+   * ultérieur — donc introuvable autrement qu'à l'accueil d'un nouvel agent.
+   */
+  const newestInbound = m.direction === 'inbound' && (!existing?.last_inbound_at || m.sentAt >= existing.last_inbound_at)
   return {
     subject: existing?.subject ?? m.subject,
     snippet: newer ? m.snippet : (existing?.snippet ?? m.snippet),
@@ -76,7 +90,7 @@ export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessa
     has_attachments: (existing?.has_attachments ?? false) || m.attachments.some((a) => !a.isInline),
     is_read: (existing?.is_read ?? true) && m.isRead,
     is_starred: (existing?.is_starred ?? false) || m.isStarred,
-    is_archived: latestInbound ? (!m.inInbox && !m.isTrashed) : (existing?.is_archived ?? false),
+    is_archived: newestInbound ? (!m.inInbox && !m.isTrashed) : (existing?.is_archived ?? false),
     is_trashed: newer ? m.isTrashed : (existing?.is_trashed ?? false),
   }
 }

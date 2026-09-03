@@ -53,6 +53,36 @@ describe('deriveThreadPatch', () => {
     expect(p.last_message_at).toBe('2026-09-03T08:00:00.000Z')
     expect(p.message_count).toBe(2)
   })
+
+  // ⛔ Le fil archivé dont le DERNIER mot est celui de l'agent. La passe initiale de
+  // Gmail liste du plus récent au plus ancien : le premier message ingéré est le
+  // sortant, et l'ancienne condition (`inbound && plus récent`) ne laissait plus
+  // AUCUN message décider ensuite — `is_archived` restait à `false` et le fil clos
+  // remontait dans la Réception du CRM. Ce test rejoue exactement cet ordre.
+  it('import initial, dernier mot à l agent : le fil suit son message ENTRANT le plus récent', () => {
+    const sortant = msg({
+      providerMessageId: 'm2', direction: 'outbound', from: { name: 'G', email: BOX },
+      to: [{ name: 'Zoé', email: 'zoe@ex.ch' }], sentAt: '2026-09-03T09:00:00.000Z',
+      isRead: true, inInbox: false,
+    })
+    const semis = { ...(deriveThreadPatch(null, sortant, BOX, true) as ThreadRow), id: 'T', account_id: 'A', label_id: null, contact_id: null }
+    expect(semis.is_archived).toBe(false) // rien ne le sait encore : aucun entrant lu
+    // Message suivant de la MÊME passe : l'entrant, plus ancien, sans libellé INBOX.
+    const entrant = msg({ providerMessageId: 'm1', inInbox: false, isRead: true, sentAt: '2026-09-03T08:00:00.000Z' })
+    expect(deriveThreadPatch(semis, entrant, BOX, true).is_archived).toBe(true)
+  })
+  it('un entrant PLUS ANCIEN que le dernier entrant connu ne décide plus de l archivage', () => {
+    const recent = { ...(deriveThreadPatch(null, msg(), BOX, true) as ThreadRow), id: 'T', account_id: 'A', label_id: null, contact_id: null }
+    expect(recent.is_archived).toBe(false) // le plus récent est en Réception
+    const vieux = msg({ providerMessageId: 'm0', inInbox: false, sentAt: '2026-09-01T08:00:00.000Z' })
+    expect(deriveThreadPatch(recent, vieux, BOX, true).is_archived).toBe(false)
+  })
+  it('un message SORTANT ne peut ni archiver ni désarchiver le fil', () => {
+    const archive = { ...(deriveThreadPatch(null, msg({ inInbox: false }), BOX, true) as ThreadRow), id: 'T', account_id: 'A', label_id: null, contact_id: null }
+    expect(archive.is_archived).toBe(true)
+    const reponse = msg({ providerMessageId: 'm3', direction: 'outbound', from: { name: 'G', email: BOX }, sentAt: '2026-09-04T08:00:00.000Z', inInbox: false, isRead: true })
+    expect(deriveThreadPatch(archive, reponse, BOX, true).is_archived).toBe(true)
+  })
 })
 
 describe('pickContact', () => {
