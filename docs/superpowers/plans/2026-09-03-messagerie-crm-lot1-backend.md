@@ -64,8 +64,18 @@
 
 ### Task 1.1 : Migration `mail_module`
 
+> ⚠ **Revue adverse du 04.09.2026 — une SECONDE migration.** La revue a trouvé que
+> `status = 'error'`, pourtant autorisé par le CHECK de ce fichier, n'était écrit par
+> AUCUN chemin de code : seule la reconnexion sortait une boîte du balayage, et les cinq
+> autres façons de mourir (403 de quota, pointeur Vault orphelin, erreur d'ingestion,
+> refus Graph, ligne `imap`) la laissaient `active` à réessayer toutes les 10 minutes,
+> pour toujours. Ajouté : `supabase/migrations/20260904000000_mail_sync_failures.sql`
+> (colonne `sync_failures`, contrainte, grant de colonne). ⛔ **Ce fichier-ci n'a PAS
+> été touché** — il est relu et committé, et la CI le rejoue.
+
 **Files:**
 - Create: `supabase/migrations/20260903120000_mail_module.sql`
+- Create (04.09.2026, revue adverse) : `supabase/migrations/20260904000000_mail_sync_failures.sql`
 
 - [x] **Step 1 : Écrire la migration**
 
@@ -750,6 +760,56 @@ comment on table public.mail_threads  is 'Messagerie CRM : fils, état d''affich
 comment on table public.mail_messages is 'Messagerie CRM : messages (corps texte + HTML brut plafonné 512 Kio, assaini côté client).';
 ```
 
+- [x] **Step 1 bis : la migration du compteur d'échecs (ajoutée le 04.09.2026, revue adverse)**
+
+```sql
+-- ============================================================================
+-- Messagerie CRM — compteur d'échecs consécutifs de synchronisation.
+--
+-- POURQUOI. `mail_accounts.status` autorise 'error' depuis le socle
+-- (20260903120000_mail_module.sql:97) mais AUCUN chemin de code ne l'écrivait :
+-- seule la reconnexion (`reauth_required`) sortait une boîte du balayage. Les
+-- cinq autres façons de mourir — 403 Gmail (scope réduit, quota, projet
+-- suspendu), 403/429 Graph, pointeur Vault orphelin (`no_secret`), erreur
+-- d'ingestion, ligne `imap` non gérée par ce build — écrivaient `last_error` et
+-- repartaient pour 10 minutes, indéfiniment. Or `last_error` n'est lu par
+-- personne (le lot 2 n'existe pas) : une boîte morte était rigoureusement
+-- indiscernable d'une boîte saine sans courrier neuf, tout en brûlant un des 25
+-- créneaux du balayage toutes les 10 minutes.
+--
+-- Le compteur donne à `status` de quoi le dire : `_shared/mail/sync.ts`
+-- l'incrémente à chaque échec, le remet à 0 dès qu'une passe aboutit, élargit le
+-- backoff en proportion, et bascule `status = 'error'` au 5e échec d'affilée.
+-- ⚠ Pas de verdict sur le seul code HTTP : le 403 de Gmail couvre aussi
+-- `rateLimitExceeded`, transitoire — un état terminal au premier 403 éteindrait
+-- une boîte saine pendant un pic de quota.
+--
+-- IDEMPOTENT : la CI rejoue toute migration dont le préfixe de date est >= au
+-- jour UTC courant (backend.yml « Rejouer les migrations du jour »), et
+-- deploy.yml en fait autant à chaque push. `add column if not exists` ; et pour
+-- la contrainte, la paire `drop … if exists` PUIS `add` — un bloc `do $$` ne rend
+-- rien rejouable (un second `add constraint` lève 42710 dedans comme dehors) et
+-- check-migration-idempotence.mjs blanchit les régions dollar-quotées avant de
+-- scanner, donc il ne verrait rien.
+-- ============================================================================
+
+alter table public.mail_accounts
+  add column if not exists sync_failures integer not null default 0;
+
+alter table public.mail_accounts drop constraint if exists mail_accounts_sync_failures_chk;
+alter table public.mail_accounts add constraint mail_accounts_sync_failures_chk
+  check (sync_failures >= 0);
+
+-- Le SELECT de `mail_accounts` est accordé COLONNE PAR COLONNE (le socle refuse
+-- un SELECT de table, qui exposerait `sync_cursor`, `imap_config` et
+-- `vault_secret_id`). Sans cette ligne, le lot 2 pourrait afficher `status` sans
+-- jamais pouvoir dire depuis combien de passes la boîte échoue.
+grant select (sync_failures) on public.mail_accounts to authenticated;
+
+comment on column public.mail_accounts.sync_failures is
+  'Échecs de synchronisation consécutifs ; remis à 0 par une passe réussie. Au 5e, _shared/mail/sync.ts bascule status=''error'' et la boîte quitte le balayage.';
+```
+
 - [x] **Step 2 : Vérifier l'idempotence et l'appliquer en local** (les deux dernières
   commandes n'ont PAS tourné : aucun runtime de conteneur sur cette machine — ni docker
   ni podman — donc pas de `supabase start`. Remplacées par une analyse syntaxique des
@@ -1006,6 +1066,12 @@ git commit -m "test(messagerie): RLS owner/agency, isolation, Vault, RPC de list
 
 ### Task 1.3 : Types partagés + MIME (`_shared/mail/types.ts`, `mime.ts`)
 
+> ⚠ **Revue adverse du 04.09.2026 — deux champs ajoutés.** `GmailCursor.historyPageToken`
+> (le pageToken de `history.list` vivait dans une variable LOCALE : une pagination coupée
+> par le budget n'était pas reprenable) et `MailAccountRow.sync_failures` (pour que
+> `status` puisse enfin dire « cette boîte est morte »). Les deux sont optionnels : les
+> curseurs et les lectures écrits avant cette date ne les portent pas.
+
 **Files:**
 - Create: `supabase/functions/_shared/mail/types.ts`
 - Create: `supabase/functions/_shared/mail/mime.ts`
@@ -1044,6 +1110,15 @@ export interface MailAccountRow {
   next_sync_at: string
   last_sync_at: string | null
   last_error: string | null
+  /**
+   * Échecs consécutifs de synchronisation (remis à 0 dès qu'une passe aboutit).
+   * Existe pour que `status` puisse dire « cette boîte est morte » : sans ce compteur,
+   * seul `reauth_required` sortait du balayage, et un 403 de quota, un pointeur Vault
+   * orphelin ou une erreur d'ingestion laissaient le compte `active` à réessayer toutes
+   * les 10 minutes — indiscernable d'une boîte saine sans courrier neuf.
+   * Optionnel : une lecture qui ne projette pas la colonne rend `undefined`.
+   */
+  sync_failures?: number
   imap_config: ImapConfig | null
 }
 
@@ -1113,6 +1188,14 @@ export interface GmailCursor {
   /** pageToken de la première passe (90 jours) tant qu'elle n'est pas finie. */
   initialPageToken: string | null
   initialDone: boolean
+  /**
+   * pageToken de la pagination `history.list` EN COURS, null quand elle est drainée.
+   * ⚠ Sans lui, une pagination interrompue par le budget de temps n'était pas
+   * reprenable : le tick suivant repartait sans pageToken et les pages restantes
+   * n'étaient jamais lues (courrier perdu, en silence). Absent des curseurs écrits
+   * avant le 04.09.2026 — toujours lu en `?? null`.
+   */
+  historyPageToken?: string | null
 }
 
 export interface GraphCursor {
@@ -1984,6 +2067,14 @@ Attendu : 8 tests PASS.
 
 ### Task 1.6 : Adaptateur Gmail — `_shared/mail/gmail.ts`
 
+> ⚠ **Revue adverse du 04.09.2026 — `nextHistoryCursor` ajoutée.** Le `historyId` d'une
+> réponse `users.history.list` est « the ID of the mailbox's **current** history record »,
+> donc la TÊTE de la boîte au moment de la réponse — et Gmail le rend sur CHAQUE page,
+> `nextPageToken` compris. L'adopter après la page 1 sur N sautait définitivement les
+> pages 2..N : la moitié du courrier d'un retour de congés n'arrivait jamais dans le CRM,
+> sans erreur, sans `last_error`, le compte restant « synchronisé il y a 1 minute ». La
+> règle est extraite en fonction PURE pour être testable ; quatre tests la couvrent.
+
 **Files:**
 - Create: `supabase/functions/_shared/mail/gmail.ts`
 - Test: `supabase/functions/_shared/mail/gmail.test.ts`
@@ -1994,7 +2085,7 @@ Attendu : 8 tests PASS.
 ```ts
 // supabase/functions/_shared/mail/gmail.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { normalizeGmailMessage, historyToChanges, gmailListInitial, gmailHistory, type GmailMessage, type GmailHistoryPage } from './gmail.ts'
+import { normalizeGmailMessage, historyToChanges, nextHistoryCursor, gmailListInitial, gmailHistory, type GmailMessage, type GmailHistoryPage } from './gmail.ts'
 import { base64UrlEncodeString } from './mime.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
@@ -2083,6 +2174,35 @@ describe('historyToChanges', () => {
       { kind: 'flags', providerMessageId: 'm1', isStarred: true, isRead: true, inInbox: false },
       { kind: 'flags', providerMessageId: 'm2', isTrashed: true },
     ])
+  })
+})
+
+describe('nextHistoryCursor', () => {
+  // Gmail rend `historyId` = la TÊTE de la boîte sur CHAQUE page, nextPageToken compris.
+  // L'adopter avant la fin de la pagination sautait les pages restantes pour toujours :
+  // la moitié du courrier d'un retour de congés n'arrivait jamais, sans une erreur.
+  it('page NON finale : le curseur ne bouge pas, le pageToken est rendu', () => {
+    expect(nextHistoryCursor('1000', { historyId: '9999', nextPageToken: 'p2' }))
+      .toEqual({ historyId: '1000', pageToken: 'p2' })
+  })
+  it('page finale : le curseur adopte la tête et la pagination est close', () => {
+    expect(nextHistoryCursor('1000', { historyId: '9999' }))
+      .toEqual({ historyId: '9999', pageToken: null })
+  })
+  it('page finale sans historyId : on garde le curseur courant plutôt que de le perdre', () => {
+    expect(nextHistoryCursor('1000', {})).toEqual({ historyId: '1000', pageToken: null })
+  })
+  it('cinq pages : le curseur n avance qu à la dernière', () => {
+    const pages: GmailHistoryPage[] = [
+      { historyId: '9999', nextPageToken: 'p2' }, { historyId: '9999', nextPageToken: 'p3' },
+      { historyId: '9999', nextPageToken: 'p4' }, { historyId: '9999', nextPageToken: 'p5' },
+      { historyId: '9999' },
+    ]
+    let cursor: string | null = '1000'
+    const vus: (string | null)[] = []
+    for (const p of pages) { const n = nextHistoryCursor(cursor, p); cursor = n.historyId; vus.push(n.pageToken) }
+    expect(vus).toEqual(['p2', 'p3', 'p4', 'p5', null])
+    expect(cursor).toBe('9999')
   })
 })
 
@@ -2288,6 +2408,27 @@ export function normalizeGmailMessage(m: GmailMessage, boxEmail: string): Normal
   }
 }
 
+/**
+ * Où en est la synchro incrémentale APRÈS avoir traité une page d'historique.
+ *
+ * ⛔ `page.historyId` n'est PAS le dernier enregistrement de la page : la référence
+ * Gmail le définit comme « the ID of the mailbox's current history record », donc la
+ * TÊTE de la boîte au moment de la réponse — et Gmail le rend sur CHAQUE page, y
+ * compris celles qui portent un `nextPageToken`. L'adopter après la page 1 sur N
+ * faisait repartir le tick suivant de la tête : les pages 2..N n'étaient jamais lues,
+ * définitivement, sans erreur ni `last_error` (mesuré comme la moitié du courrier
+ * d'un retour de congés qui n'arrivait jamais dans le CRM). Le curseur n'avance donc
+ * que quand la pagination est DRAINÉE ; tant qu'elle ne l'est pas, c'est le
+ * `pageToken` qui est persisté et repris au tick suivant.
+ */
+export function nextHistoryCursor(
+  current: string | null, page: GmailHistoryPage,
+): { historyId: string | null; pageToken: string | null } {
+  const pageToken = page.nextPageToken ?? null
+  if (pageToken) return { historyId: current, pageToken }
+  return { historyId: page.historyId ? String(page.historyId) : current, pageToken: null }
+}
+
 /** history.list → ids à charger + opérations d'état. Les libellés Gmail deviennent des drapeaux. */
 export function historyToChanges(page: GmailHistoryPage): { added: string[]; changes: RemoteChange[] } {
   const added: string[] = []
@@ -2331,6 +2472,23 @@ Attendu : 6 tests PASS.
 
 ### Task 1.7 : Adaptateur Microsoft Graph — `_shared/mail/graph.ts`
 
+> ⚠ **Revue adverse du 04.09.2026 — l'archivage Outlook DÉTRUISAIT la conversation.**
+> Le delta est PAR DOSSIER : archiver un message — le geste Outlook le plus courant — le
+> sort de la Réception, qui le signale `@removed` exactement comme un message effacé.
+> `deltaToChanges` en faisait un `message_deleted`, et `applyRemoteChanges` supprimait la
+> ligne puis le fil entier en cascade. Même `reason: "changed"`, que Graph documente
+> comme une suppression RESTAURABLE, était détruit. Deux changements, indissociables :
+> (1) `Prefer: IdType="ImmutableId"` sur CHAQUE appel — Microsoft le documente
+> exactement pour ce problème (concepts/outlook-immutable-id : l'id « changes when the
+> item is moved from one container … to another. To change this behavior, use the Prefer:
+> IdType header ») ; l'id survit alors au déplacement, ce SANS QUOI le GET de
+> vérification rendrait 404 sur l'ancien id et l'on redétruirait. Les `nextLink` /
+> `deltaLink` sont compatibles avec les deux formats, et le module n'a aucune donnée en
+> production : pas de migration d'ids à prévoir. (2) Les disparus sortent dans leur
+> propre panier (`removed`), que `resolveGraphRemoval` tranche par un GET : 404 ⇒
+> vraiment parti, 200 ⇒ déplacé (on reclasse depuis `parentFolderId`, les quatre dossiers
+> étant déjà résolus), autre erreur ⇒ indéterminé, on ne touche à rien.
+
 **Files:**
 - Create: `supabase/functions/_shared/mail/graph.ts`
 - Test: `supabase/functions/_shared/mail/graph.test.ts`
@@ -2339,7 +2497,7 @@ Attendu : 6 tests PASS.
 Faits Graph qui décident du code (vérifiés dans la référence v1.0) :
 - `…/mailFolders/{inbox|sentitems}/messages/delta` accepte `$select` et un `$filter=receivedDateTime ge <ISO>` **au premier appel seulement** ; ensuite on suit `@odata.nextLink` puis on garde `@odata.deltaLink`. Un élément supprimé arrive comme `{ id, "@removed": { reason } }`.
 - `parentFolderId` est un id **opaque** : pour savoir si un message est dans la réception on résout une fois `GET /me/mailFolders/inbox?$select=id` (et `sentitems`, `archive`, `deleteditems`) → `cursor.folderIds`.
-- **Déplacer un message change son id** (`POST /me/messages/{id}/move` rend un nouvel objet). L'action met à jour `provider_message_id`.
+- ~~**Déplacer un message change son id**~~ — **plus vrai depuis le 04.09.2026** : avec `Prefer: IdType="ImmutableId"` sur chaque appel, l'id survit au déplacement tant que l'item reste dans la même boîte (il ne change qu'au passage en boîte d'archivage EN LIGNE ou à un export/réimport). `POST /me/messages/{id}/move` rend toujours un objet, dont l'id est désormais le même ; `mail-actions` garde le rapprochement `ancien → nouveau` mais l'ignore quand les deux coïncident. C'est cette stabilité qui permet de lever en doute un `@removed` par un simple GET.
 - Le corps HTML et les en-têtes (`In-Reply-To`, `References`) demandent un second appel `GET /me/messages/{id}?$select=body,internetMessageHeaders`.
 - `internetMessageId` est **modifiable sur un brouillon** : on le pose à la création pour rapprocher le message envoyé quand `sentitems` le rend (`pending:` → id réel).
 
@@ -2348,7 +2506,7 @@ Faits Graph qui décident du code (vérifiés dans la référence v1.0) :
 ```ts
 // supabase/functions/_shared/mail/graph.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { normalizeGraphMessage, deltaToChanges, graphDelta, type GraphMessage } from './graph.ts'
+import { normalizeGraphMessage, deltaToChanges, graphDelta, resolveGraphRemoval, IMMUTABLE_ID_PREFER, type GraphMessage } from './graph.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
 const FOLDERS = { inbox: 'F-IN', sentitems: 'F-SENT', archive: 'F-ARC', deleteditems: 'F-DEL' }
@@ -2391,17 +2549,76 @@ describe('normalizeGraphMessage', () => {
 })
 
 describe('deltaToChanges', () => {
-  it('sépare nouveaux, supprimés et drapeaux', () => {
+  // ⚠ Test RÉÉCRIT le 04.09.2026 : il figeait le défaut. Il exigeait qu'un `@removed`
+  // devienne un `message_deleted`, ce qui faisait disparaître du CRM tout message
+  // ARCHIVÉ dans Outlook (le delta est par dossier, archiver = quitter la Réception).
+  // Les disparus sortent maintenant dans leur propre panier, que `resolveGraphRemoval`
+  // tranche par un GET.
+  it('sépare nouveaux, drapeaux et DISPARUS — un @removed n est pas une suppression', () => {
     const r = deltaToChanges([
       { ...M, id: 'N1' },
       { id: 'GONE', '@removed': { reason: 'deleted' } },
       { ...M, id: 'K1', isRead: true, flag: { flagStatus: 'notFlagged' }, parentFolderId: 'F-ARC' },
     ], new Set(['K1']), FOLDERS)
     expect(r.added.map((m) => m.id)).toEqual(['N1'])
+    expect(r.removed).toEqual([{ id: 'GONE', reason: 'deleted' }])
     expect(r.changes).toEqual([
-      { kind: 'message_deleted', providerMessageId: 'GONE' },
       { kind: 'flags', providerMessageId: 'K1', isRead: true, isStarred: false, inInbox: false, isTrashed: false },
     ])
+    expect(r.changes.some((c) => c.kind === 'message_deleted')).toBe(false)
+  })
+})
+
+describe('resolveGraphRemoval', () => {
+  it('404 : le message n existe plus ⇒ suppression', async () => {
+    const fetch = vi.fn(async () => new Response('not found', { status: 404 }))
+    const r = await resolveGraphRemoval('tok', { id: 'X', reason: 'deleted' }, FOLDERS, { fetch: F(fetch) })
+    expect(r).toEqual({ kind: 'message_deleted', providerMessageId: 'X' })
+  })
+  it('200 dans Archive : DÉPLACÉ ⇒ hors réception, jamais supprimé', async () => {
+    const fetch = vi.fn(async (u: string) => {
+      expect(u).toContain('/me/messages/X')
+      return new Response(JSON.stringify({ id: 'X', parentFolderId: 'F-ARC' }), { status: 200 })
+    })
+    const r = await resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(fetch) })
+    expect(r).toEqual({ kind: 'flags', providerMessageId: 'X', inInbox: false, isTrashed: false })
+  })
+  it('200 dans Éléments supprimés : corbeille, pas destruction', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ id: 'X', parentFolderId: 'F-DEL' }), { status: 200 }))
+    const r = await resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(fetch) })
+    expect(r).toEqual({ kind: 'flags', providerMessageId: 'X', inInbox: false, isTrashed: true })
+  })
+  it('erreur autre que 404 : INDÉTERMINÉ, on ne touche à rien', async () => {
+    for (const status of [429, 500]) {
+      const fetch = vi.fn(async () => new Response('boom', { status }))
+      expect(await resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(fetch) })).toBeNull()
+    }
+  })
+  it('401 remonte : c est une reconnexion, pas un doute sur un message', async () => {
+    const fetch = vi.fn(async () => new Response('nope', { status: 401 }))
+    await expect(resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(fetch) }))
+      .rejects.toMatchObject({ code: 'reauth_required' })
+  })
+})
+
+describe('Prefer: IdType="ImmutableId"', () => {
+  // Sans cet en-tête l'id change au déplacement, le GET de `resolveGraphRemoval` sur
+  // l'ancien id rend 404, et « archivé » redevient indiscernable de « supprimé ».
+  it('part sur CHAQUE appel, et se compose avec odata.maxpagesize', async () => {
+    const seen: string[] = []
+    const fetch = vi.fn(async (_u: string, init?: RequestInit) => {
+      seen.push((init?.headers as Record<string, string>)['Prefer'])
+      return new Response(JSON.stringify({ value: [], '@odata.deltaLink': 'https://graph.microsoft.com/v1.0/d?t=1' }), { status: 200 })
+    })
+    await graphDelta('tok', 'inbox', null, '2026-06-05T00:00:00.000Z', { fetch: F(fetch) })
+    expect(seen[0]).toBe(`odata.maxpagesize=50, ${IMMUTABLE_ID_PREFER}`)
+
+    const solo = vi.fn(async (_u: string, init?: RequestInit) => {
+      expect((init?.headers as Record<string, string>)['Prefer']).toBe('IdType="ImmutableId"')
+      return new Response(JSON.stringify({ id: 'X', parentFolderId: 'F-IN' }), { status: 200 })
+    })
+    await resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(solo) })
+    expect(solo).toHaveBeenCalledOnce()
   })
 })
 
@@ -2410,7 +2627,7 @@ describe('graphDelta', () => {
     const calls: string[] = []
     const fetch = vi.fn(async (u: string, init?: RequestInit) => {
       calls.push(u)
-      expect((init?.headers as Record<string, string>)['Prefer']).toBe('odata.maxpagesize=50')
+      expect((init?.headers as Record<string, string>)['Prefer']).toBe(`odata.maxpagesize=50, ${IMMUTABLE_ID_PREFER}`)
       if (calls.length === 1) return new Response(JSON.stringify({ value: [{ id: 'a' }], '@odata.nextLink': 'https://graph.microsoft.com/v1.0/next' }), { status: 200 })
       return new Response(JSON.stringify({ value: [{ id: 'b' }], '@odata.deltaLink': 'https://graph.microsoft.com/v1.0/delta?token=Z' }), { status: 200 })
     })
@@ -2481,11 +2698,35 @@ export class GraphApiError extends Error {
   constructor(public status: number, message: string) { super(message) }
 }
 
+/**
+ * ⛔ SUR CHAQUE APPEL, SANS EXCEPTION. Par défaut l'id d'un message Outlook CHANGE
+ * quand l'item change de dossier (« this value changes when the item is moved from one
+ * container … to another. To change this behavior, use the Prefer: IdType header »,
+ * concepts/outlook-immutable-id). Or le delta est PAR DOSSIER : archiver — le geste
+ * Outlook le plus courant — sortait le message de la Réception, qui le signalait
+ * `@removed` sous son ANCIEN id ; l'ancien id ne résolvait plus, et le code supprimait
+ * la ligne (puis le fil, en cascade). Avec l'id immuable, l'id survit au déplacement,
+ * donc un `@removed` peut être LEVÉ EN DOUTE par un simple GET : 404 ⇒ vraiment parti,
+ * 200 ⇒ déplacé, et son `parentFolderId` dit où.
+ *
+ * L'en-tête ne vaut que pour la requête qui le porte. Les `@odata.nextLink` /
+ * `@odata.deltaLink` sont compatibles avec les deux formats d'id : aucun resynchro à
+ * prévoir. Les dossiers (mailFolder) ne connaissent pas l'id immuable — leurs ids
+ * étaient déjà constants, `graphFolderIds` est donc inchangé.
+ */
+export const IMMUTABLE_ID_PREFER = 'IdType="ImmutableId"'
+
+/** Fusionne notre `Prefer` avec celui de l'appelant (odata.maxpagesize) — un seul en-tête. */
+function withImmutableId(headers: Record<string, string> = {}): Record<string, string> {
+  const own = headers.Prefer
+  return { ...headers, Prefer: own ? `${own}, ${IMMUTABLE_ID_PREFER}` : IMMUTABLE_ID_PREFER }
+}
+
 async function gcall<T>(token: string, url: string, deps: GraphDeps, init: RequestInit = {}): Promise<T> {
   const f = deps.fetch ?? globalThis.fetch
   const res = await f(url.startsWith('https://') ? url : `${BASE}${url}`, {
     ...init,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+    headers: withImmutableId({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...((init.headers ?? {}) as Record<string, string>) }),
   })
   if (res.status === 401) throw new MailAuthError('reauth_required', 'graph: 401')
   if (res.status === 202 || res.status === 204) return undefined as T
@@ -2533,7 +2774,9 @@ export async function graphListAttachments(token: string, id: string, deps: Grap
 
 export async function graphAttachmentBytes(token: string, messageId: string, attachmentId: string, deps: GraphDeps = {}): Promise<Uint8Array> {
   const f = deps.fetch ?? globalThis.fetch
-  const res = await f(`${BASE}/me/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}/$value`, { headers: { Authorization: `Bearer ${token}` } })
+  // Même en-tête que partout ailleurs : les ids stockés (message ET pièce) viennent
+  // d'appels immuables, cette lecture doit vivre dans le même espace d'identifiants.
+  const res = await f(`${BASE}/me/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}/$value`, { headers: withImmutableId({ Authorization: `Bearer ${token}` }) })
   if (res.status === 401) throw new MailAuthError('reauth_required', 'graph: 401')
   if (!res.ok) throw new GraphApiError(res.status, `graph attachment: http ${res.status}`)
   return new Uint8Array(await res.arrayBuffer())
@@ -2638,12 +2881,28 @@ export function normalizeGraphMessage(
   }
 }
 
-/** Items du delta → nouveaux à charger (inconnus) / drapeaux (connus) / supprimés. */
-export function deltaToChanges(items: GraphMessage[], known: Set<string>, folderIds: Record<string, string>): { added: GraphMessage[]; changes: RemoteChange[] } {
+/** Un item que le delta du dossier ne voit plus : à lever en doute, pas à supprimer. */
+export interface GraphRemoval { id: string; reason: string }
+
+/**
+ * Items du delta → nouveaux à charger (inconnus) / drapeaux (connus) / DISPARUS.
+ *
+ * ⛔ Les disparus sortent dans leur propre panier, PAS en `message_deleted`. Le delta
+ * est une opération PAR DOSSIER : un message archivé, mis à la corbeille ou rangé dans
+ * un dossier personnel quitte la Réception et y est signalé `@removed` exactement comme
+ * un message effacé. Les confondre supprimait la ligne — et le fil entier quand c'était
+ * le seul message —, si bien qu'archiver un courrier client dans Outlook le faisait
+ * disparaître du CRM, de la Réception, du dossier Archivé et de la fiche contact. Même
+ * `reason: "changed"`, que Graph documente comme une suppression RESTAURABLE, était
+ * détruit. Qui tranche, c'est `resolveGraphRemoval` : un GET sur l'id (immuable, donc
+ * il survit au déplacement).
+ */
+export function deltaToChanges(items: GraphMessage[], known: Set<string>, folderIds: Record<string, string>): { added: GraphMessage[]; changes: RemoteChange[]; removed: GraphRemoval[] } {
   const added: GraphMessage[] = []
   const changes: RemoteChange[] = []
+  const removed: GraphRemoval[] = []
   for (const it of items) {
-    if (it['@removed']) { changes.push({ kind: 'message_deleted', providerMessageId: it.id }); continue }
+    if (it['@removed']) { removed.push({ id: it.id, reason: it['@removed'].reason ?? 'unknown' }); continue }
     if (!known.has(it.id)) { added.push(it); continue }
     changes.push({
       kind: 'flags', providerMessageId: it.id,
@@ -2651,7 +2910,42 @@ export function deltaToChanges(items: GraphMessage[], known: Set<string>, folder
       inInbox: it.parentFolderId === folderIds.inbox, isTrashed: it.parentFolderId === folderIds.deleteditems,
     })
   }
-  return { added, changes }
+  return { added, changes, removed }
+}
+
+/**
+ * Que faire d'un `@removed` : GET du message par son id immuable.
+ *   404            ⇒ il n'existe plus dans la boîte : suppression (`message_deleted`).
+ *   200 + dossier  ⇒ il a DÉMÉNAGÉ : on reclasse le fil (archivé / corbeille), on ne
+ *                    supprime rien. `graphFolderIds` résout déjà les quatre dossiers.
+ *   autre erreur   ⇒ INDÉTERMINÉ : `null`, on ne touche à rien. Détruire sur un 500 ou
+ *                    un 429 serait irréversible ; lever bloquerait la boîte à chaque
+ *                    passe sur ce seul message. Le delta l'a consommé, mais un état de
+ *                    drapeau raté se rattrape, une conversation perdue non.
+ * ⚠ Le 401 continue de remonter (MailAuthError levée par `gcall`) : c'est bien une
+ * demande de reconnexion, pas une incertitude sur un message.
+ */
+export async function resolveGraphRemoval(
+  token: string, r: GraphRemoval, folderIds: Record<string, string>, deps: GraphDeps = {},
+): Promise<RemoteChange | null> {
+  let parentFolderId: string | undefined
+  try {
+    const j = await gcall<{ parentFolderId?: string }>(token, `/me/messages/${encodeURIComponent(r.id)}?$select=id,parentFolderId`, deps)
+    parentFolderId = j?.parentFolderId
+  } catch (e) {
+    if (e instanceof GraphApiError && e.status === 404) return { kind: 'message_deleted', providerMessageId: r.id }
+    if (e instanceof GraphApiError) {
+      console.error(`[mail graph] @removed ${r.reason} non résolu (http ${e.status}) — aucun changement appliqué`)
+      return null
+    }
+    throw e
+  }
+  if (!parentFolderId) return null
+  return {
+    kind: 'flags', providerMessageId: r.id,
+    inInbox: parentFolderId === folderIds.inbox,
+    isTrashed: parentFolderId === folderIds.deleteditems,
+  }
 }
 ```
 
@@ -2668,6 +2962,24 @@ Attendu : **4** tests PASS (le spec compte 4 `it()`, pas 5).
 
 ### Task 1.8 : Ingestion — `_shared/mail/ingest.ts`
 
+> ⚠ **Revue adverse du 04.09.2026 — une injection PostgREST et une suppression sur
+> erreur.** (1) Le `.or()` de dédoublonnage recopiait le `Message-ID` de l'expéditeur
+> — du texte d'ATTAQUANT, qui traverse même `decodeRfc2047` — dans le paramètre
+> `or=(…)` : postgrest-js n'y échappe RIEN (vérifié dans
+> `node_modules/@supabase/postgrest-js/dist/index.mjs`, là où `in()` cite les caractères
+> réservés). Une virgule ajoutait un terme au OU, un `provider_message_id.not.is.null`
+> rendait un message quelconque de la boîte, et la suite l'écrasait avec le contenu de
+> l'attaquant en supprimant ses pièces : un e-mail reçu, une conversation cliente
+> détruite. Une virgule NUE, elle, rendait le filtre invalide — 400 jeté faute d'être
+> destructuré, insertion, 23505, et la boîte ne se synchronisait plus jamais. Remplacé
+> par deux `.eq()` séparés (`findKnownMessage`), dont les valeurs sont percent-encodées.
+> (2) `recomputeThread` lisait `!msgs` comme « fil vide » et SUPPRIMAIT le fil : un
+> timeout ou un cache de schéma PostgREST périmé — donc les minutes qui suivent le
+> déploiement de la migration — effaçait objet, corps et pièces par les deux
+> `on delete cascade`. La suppression est maintenant conditionnée à un compte de zéro
+> positivement constaté. Toutes les lectures et écritures de ce fichier vérifient leur
+> `error` et lèvent ; le catch de `syncAccount` en fait `last_error` + backoff.
+
 **Files:**
 - Create: `supabase/functions/_shared/mail/ingest.ts`
 - Test: `supabase/functions/_shared/mail/ingest.test.ts`
@@ -2678,8 +2990,8 @@ Attendu : **4** tests PASS (le spec compte 4 `it()`, pas 5).
 ```ts
 // supabase/functions/_shared/mail/ingest.test.ts
 import { describe, it, expect } from 'vitest'
-import { deriveThreadPatch, externalParticipants, pickContact, capHtml, type ThreadRow } from './ingest.ts'
-import type { NormalizedMessage } from './types.ts'
+import { deriveThreadPatch, externalParticipants, ingestMessages, pickContact, capHtml, recomputeThread, type ThreadRow } from './ingest.ts'
+import type { MailAccountRow, NormalizedMessage } from './types.ts'
 
 const BOX = 'g@agence.ch'
 const msg = (over: Partial<NormalizedMessage> = {}): NormalizedMessage => ({
@@ -2747,6 +3059,138 @@ describe('capHtml', () => {
     const big = capHtml('y'.repeat(600 * 1024))
     expect(big.truncated).toBe(true)
     expect(big.html.length).toBe(512 * 1024)
+  })
+})
+
+// ── Faux client PostgREST : on veut voir les REQUÊTES, pas simuler une base ────
+// Chaque appel est enregistré sous la forme (table, opération, filtres) ; un
+// « or » y apparaîtrait sous ce nom, ce qui rend le défaut d'injection visible
+// depuis un test au lieu d'être une lecture de code.
+interface FakeCall { table: string; op: string; filters: [string, unknown][] }
+type Reply = { data: unknown; error: { message: string } | null }
+
+function fakeAdmin(reply: (c: FakeCall) => Reply) {
+  const calls: FakeCall[] = []
+  const from = (table: string) => {
+    const rec: FakeCall = { table, op: '', filters: [] }
+    const settle = () => { calls.push(rec); return reply(rec) }
+    const b = {
+      select: () => { if (!rec.op) rec.op = 'select'; return b },
+      insert: () => { rec.op = 'insert'; return b },
+      update: () => { rec.op = 'update'; return b },
+      upsert: () => { rec.op = 'upsert'; return b },
+      delete: () => { rec.op = 'delete'; return b },
+      eq: (col: string, val: unknown) => { rec.filters.push([`eq:${col}`, val]); return b },
+      in: (col: string, val: unknown) => { rec.filters.push([`in:${col}`, val]); return b },
+      is: (col: string, val: unknown) => { rec.filters.push([`is:${col}`, val]); return b },
+      or: (f: string) => { rec.filters.push(['or', f]); return b },
+      order: () => b,
+      limit: () => b,
+      maybeSingle: async () => settle(),
+      single: async () => settle(),
+      then: (res: (v: Reply) => unknown, rej?: (e: unknown) => unknown) =>
+        Promise.resolve().then(settle).then(res, rej),
+    }
+    return b
+  }
+  const rpc = async () => ({ data: [], error: null })
+  return { admin: { from, rpc } as never, calls }
+}
+
+const account: MailAccountRow = {
+  id: 'acc-1', agency_id: 'ag-1', owner_id: 'u-1', provider: 'gmail', email: BOX,
+  display_name: null, visibility: 'owner', status: 'active', vault_secret_id: 'v-1',
+  sync_cursor: {}, next_sync_at: '', last_sync_at: null, last_error: null, imap_config: null,
+}
+const vide = (c: FakeCall): Reply =>
+  c.op === 'insert' ? { data: { id: `${c.table}-1` }, error: null }
+    : c.op === 'select' && c.table === 'mail_contact_aliases' ? { data: [], error: null }
+      : { data: null, error: null }
+
+describe('ingestMessages : recherche du message déjà connu', () => {
+  // ⛔ Le filtre était construit par concaténation dans `.or()`, que postgrest-js
+  // recopie tel quel dans l'URL (aucun échappement, contrairement à `.in()`). Le
+  // `Message-ID` d'un e-mail entrant est du texte d'ATTAQUANT : une virgule y
+  // ajoutait un terme au OU, `provider_message_id.not.is.null` rendait un message
+  // quelconque de la boîte, et la suite l'écrasait avec le contenu de l'attaquant.
+  const PIEGE = '<a),provider_message_id.not.is.null,and(id.not.is.null'
+
+  it('un Message-ID piégé ne peut désigner aucune autre ligne : deux .eq(), jamais de .or()', async () => {
+    const { admin, calls } = fakeAdmin(vide)
+    await ingestMessages(admin, account, [msg({ providerMessageId: 'm-neuf', rfc822MessageId: PIEGE })])
+
+    expect(calls.some((c) => c.filters.some(([k]) => k === 'or'))).toBe(false)
+    const lookups = calls.filter((c) => c.table === 'mail_messages' && c.op === 'select')
+    expect(lookups).toHaveLength(2)
+    // Le texte de l'attaquant reste UNE valeur, dans un paramètre à lui.
+    expect(lookups[0].filters).toEqual([['eq:account_id', 'acc-1'], ['eq:provider_message_id', 'm-neuf']])
+    expect(lookups[1].filters).toEqual([['eq:account_id', 'acc-1'], ['eq:provider_message_id', `pending:${PIEGE}`]])
+    // Et il ne s'échappe nulle part ailleurs : aucune requête ne le porte comme filtre
+    // structurel, seulement comme valeur de `provider_message_id`.
+    for (const c of calls) {
+      for (const [cle, val] of c.filters) {
+        if (typeof val === 'string' && val.includes(PIEGE)) expect(cle).toBe('eq:provider_message_id')
+      }
+    }
+  })
+
+  it('la boîte est TOUJOURS dans le filtre : un message piégé ne sort pas du compte', async () => {
+    const { admin, calls } = fakeAdmin(vide)
+    await ingestMessages(admin, account, [msg({ rfc822MessageId: PIEGE })])
+    for (const c of calls.filter((x) => x.table === 'mail_messages' && x.op === 'select')) {
+      expect(c.filters[0]).toEqual(['eq:account_id', 'acc-1'])
+    }
+  })
+
+  it('sans rfc822MessageId, une seule lecture', async () => {
+    const { admin, calls } = fakeAdmin(vide)
+    await ingestMessages(admin, account, [msg({ rfc822MessageId: null })])
+    expect(calls.filter((c) => c.table === 'mail_messages' && c.op === 'select')).toHaveLength(1)
+  })
+
+  it('un message déjà connu arrête la recherche à la première lecture', async () => {
+    const { admin, calls } = fakeAdmin((c) =>
+      c.table === 'mail_messages' && c.op === 'select'
+        ? { data: { id: 'M1', thread_id: 'T1', provider_message_id: 'm1' }, error: null }
+        : vide(c))
+    await ingestMessages(admin, account, [msg()])
+    expect(calls.filter((c) => c.table === 'mail_messages' && c.op === 'select')).toHaveLength(1)
+  })
+
+  it('une erreur PostgREST est LEVÉE, jamais lue comme « message inconnu »', async () => {
+    // Avaler l'erreur menait à une insertion, donc au 23505 de l'index unique, donc à
+    // une passe qui mourait à chaque tick : la boîte ne se synchronisait plus jamais.
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'mail_messages' && c.op === 'select' ? { data: null, error: { message: 'boom' } } : vide(c))
+    await expect(ingestMessages(admin, account, [msg()])).rejects.toThrow(/message lookup: boom/)
+  })
+})
+
+describe('recomputeThread', () => {
+  it('une lecture en échec ne supprime RIEN — elle lève', async () => {
+    // `!msgs` valait « fil vide » : un timeout ou un cache de schéma périmé suffisait à
+    // effacer le fil, et les deux `on delete cascade` emportaient corps et pièces.
+    const { admin, calls } = fakeAdmin((c) =>
+      c.table === 'mail_messages' ? { data: null, error: { message: 'timeout' } } : vide(c))
+    await expect(recomputeThread(admin, 'T1')).rejects.toThrow(/recompute select: timeout/)
+    expect(calls.some((c) => c.op === 'delete')).toBe(false)
+  })
+
+  it('zéro message POSITIVEMENT constaté : là, le fil est supprimé', async () => {
+    const { admin, calls } = fakeAdmin((c) =>
+      c.table === 'mail_messages' ? { data: [], error: null } : { data: null, error: null })
+    await recomputeThread(admin, 'T1')
+    expect(calls.filter((c) => c.table === 'mail_threads' && c.op === 'delete')).toHaveLength(1)
+  })
+
+  it('des messages : agrégats recalculés, aucune suppression', async () => {
+    const { admin, calls } = fakeAdmin((c) =>
+      c.table === 'mail_messages'
+        ? { data: [{ sent_at: '2026-09-03T08:00:00.000Z', direction: 'inbound', is_read: true, has_attachments: false, snippet: 'a' }], error: null }
+        : { data: null, error: null })
+    await recomputeThread(admin, 'T1')
+    expect(calls.some((c) => c.op === 'delete')).toBe(false)
+    expect(calls.filter((c) => c.table === 'mail_threads' && c.op === 'update')).toHaveLength(1)
   })
 })
 ```
@@ -2890,6 +3334,37 @@ export interface IngestOptions {
   skipAudit?: boolean
 }
 
+interface KnownMessageRow { id: string; thread_id: string; provider_message_id: string }
+
+/**
+ * Le message est-il déjà en base ? Deux lectures `.eq()` SÉPARÉES, jamais un `.or()`.
+ *
+ * ⛔ `.or('provider_message_id.eq.X,and(provider_message_id.eq.pending:Y)')` recopiait
+ * `Y` — l'en-tête `Message-ID` de l'EXPÉDITEUR, du texte d'attaquant qui traverse même
+ * `decodeRfc2047` — tel quel dans le paramètre `or=(…)` : postgrest-js n'échappe rien
+ * dans `or()` (contrairement à `in()`, qui cite les caractères réservés). Une virgule
+ * suffisait à ajouter un terme au OU : `Message-ID: <a),provider_message_id.not.is.null`
+ * rendait un message QUELCONQUE de la boîte, que la suite écrasait avec le contenu de
+ * l'attaquant (`update … .eq('id', known.id)`) et dont elle supprimait les pièces —
+ * un e-mail reçu, une conversation cliente détruite. Une virgule NUE, elle, rendait le
+ * filtre invalide : PostgREST 400, erreur jetée faute d'être destructurée, insertion,
+ * puis 23505 à chaque tick — la boîte ne se synchronisait plus jamais.
+ *
+ * Une valeur dans un paramètre `col=eq.valeur` est percent-encodée par URLSearchParams :
+ * elle ne peut ni ouvrir un terme ni en fermer un. Et l'erreur est LEVÉE, pour qu'un
+ * défaut futur casse bruyamment au lieu de se déguiser en « message inconnu ».
+ */
+async function findKnownMessage(admin: SupabaseClient, accountId: string, m: NormalizedMessage): Promise<KnownMessageRow | null> {
+  const base = () => admin.from('mail_messages').select('id, thread_id, provider_message_id').eq('account_id', accountId)
+  const { data: byProvider, error: e1 } = await base().eq('provider_message_id', m.providerMessageId).maybeSingle()
+  if (e1) throw new Error(`message lookup: ${e1.message}`)
+  if (byProvider) return byProvider as KnownMessageRow
+  if (!m.rfc822MessageId) return null
+  const { data: byPending, error: e2 } = await base().eq('provider_message_id', `pending:${m.rfc822MessageId}`).maybeSingle()
+  if (e2) throw new Error(`message lookup (pending): ${e2.message}`)
+  return (byPending as KnownMessageRow | null) ?? null
+}
+
 /** Ingère des messages normalisés (idempotent sur (account_id, provider_message_id)). */
 export async function ingestMessages(admin: SupabaseClient, account: MailAccountRow, msgs: NormalizedMessage[], opts: IngestOptions = {}): Promise<{ inserted: number; updated: number }> {
   let inserted = 0
@@ -2898,22 +3373,24 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
     if (m.isDraft) continue
 
     // Message déjà connu ? (ou copie « Envoyés » d'un envoi CRM en attente : pending:<Message-ID>)
-    const { data: known } = await admin.from('mail_messages')
-      .select('id, thread_id, provider_message_id')
-      .eq('account_id', account.id)
-      .or(`provider_message_id.eq.${m.providerMessageId}${m.rfc822MessageId ? `,and(provider_message_id.eq.pending:${m.rfc822MessageId})` : ''}`)
-      .limit(1).maybeSingle()
+    const known = await findKnownMessage(admin, account.id, m)
     const isNew = !known
 
     if (known && known.provider_message_id.startsWith('pending:')) {
       // Copie « Envoyés » d'un envoi CRM (Graph) : le fil provisoire prend l'id de
       // conversation réel s'il n'existe pas encore sous ce nom.
-      const { data: real } = await admin.from('mail_threads').select('id').eq('account_id', account.id).eq('provider_thread_id', m.providerThreadId).maybeSingle()
-      if (!real) await admin.from('mail_threads').update({ provider_thread_id: m.providerThreadId }).eq('id', known.thread_id)
+      const { data: real, error: eReal } = await admin.from('mail_threads').select('id').eq('account_id', account.id).eq('provider_thread_id', m.providerThreadId).maybeSingle()
+      if (eReal) throw new Error(`thread lookup (pending): ${eReal.message}`)
+      if (!real) {
+        const { error } = await admin.from('mail_threads').update({ provider_thread_id: m.providerThreadId }).eq('id', known.thread_id)
+        if (error) throw new Error(`thread rename: ${error.message}`)
+      }
     }
 
-    // Fil
-    const { data: existing } = await admin.from('mail_threads').select('*').eq('account_id', account.id).eq('provider_thread_id', m.providerThreadId).maybeSingle()
+    // Fil — une lecture en échec vaudrait « fil inconnu », donc une INSERTION d'un
+    // fil jumeau (ou un 23505) : on lève au lieu de deviner.
+    const { data: existing, error: eThread } = await admin.from('mail_threads').select('*').eq('account_id', account.id).eq('provider_thread_id', m.providerThreadId).maybeSingle()
+    if (eThread) throw new Error(`thread lookup: ${eThread.message}`)
     const patch = deriveThreadPatch((existing as ThreadRow | null) ?? null, m, account.email, isNew)
     let threadId: string
     let contactId: string | null = existing?.contact_id ?? null
@@ -2955,7 +3432,8 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
     }
 
     // Pièces (remplacement intégral : la liste du fournisseur fait foi)
-    await admin.from('mail_attachments').delete().eq('message_id', messageId)
+    const { error: eDelAtt } = await admin.from('mail_attachments').delete().eq('message_id', messageId)
+    if (eDelAtt) throw new Error(`attachments delete: ${eDelAtt.message}`)
     if (m.attachments.length) {
       const { error } = await admin.from('mail_attachments').insert(m.attachments.map((a) => ({
         message_id: messageId, account_id: account.id, agency_id: account.agency_id,
@@ -2972,19 +3450,33 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
   return { inserted, updated }
 }
 
-/** Recalcule les agrégats d'un fil depuis ses messages ; supprime le fil s'il est vide. */
+/**
+ * Recalcule les agrégats d'un fil depuis ses messages ; supprime le fil s'il est vide.
+ *
+ * ⛔ La suppression est conditionnée à un COMPTE de zéro POSITIVEMENT constaté, jamais
+ * à `!msgs`. La lecture ne destructurait pas son `error` : un timeout, un cache de
+ * schéma PostgREST périmé (donc les minutes qui suivent le déploiement de la migration)
+ * ou une connexion coupée rendaient `data = null`, ce que le code lisait « ce fil n'a
+ * plus de message » — il supprimait alors le fil, et les deux `on delete cascade`
+ * emportaient objet, corps et pièces. Une simple « marquer comme lu » pouvait ainsi
+ * faire disparaître une conversation, et l'edge répondait `{ ok: true }`. Lever est le
+ * bon geste ici : le catch de `syncAccount` le transforme en `last_error` + backoff.
+ */
 export async function recomputeThread(admin: SupabaseClient, threadId: string): Promise<void> {
-  const { data: msgs } = await admin.from('mail_messages')
+  const { data: msgs, error } = await admin.from('mail_messages')
     .select('sent_at, direction, is_read, has_attachments, snippet')
     .eq('thread_id', threadId).order('sent_at', { ascending: true })
-  if (!msgs || msgs.length === 0) {
-    await admin.from('mail_threads').delete().eq('id', threadId)
+  if (error) throw new Error(`recompute select: ${error.message}`)
+  if (!msgs) throw new Error('recompute select: aucune ligne rendue et aucune erreur')
+  if (msgs.length === 0) {
+    const { error: eDel } = await admin.from('mail_threads').delete().eq('id', threadId)
+    if (eDel) throw new Error(`recompute delete: ${eDel.message}`)
     return
   }
   const last = msgs[msgs.length - 1]
   const inbound = msgs.filter((x) => x.direction === 'inbound')
   const outbound = msgs.filter((x) => x.direction === 'outbound')
-  await admin.from('mail_threads').update({
+  const { error: eUpd } = await admin.from('mail_threads').update({
     message_count: msgs.length,
     last_message_at: last.sent_at,
     snippet: last.snippet,
@@ -2993,27 +3485,38 @@ export async function recomputeThread(admin: SupabaseClient, threadId: string): 
     has_attachments: msgs.some((x) => x.has_attachments),
     is_read: msgs.every((x) => x.is_read),
   }).eq('id', threadId)
+  if (eUpd) throw new Error(`recompute update: ${eUpd.message}`)
 }
 
 /** Applique les gestes faits chez le fournisseur (lu, étoile, archive, corbeille, suppression). */
 export async function applyRemoteChanges(admin: SupabaseClient, account: MailAccountRow, changes: RemoteChange[]): Promise<number> {
   let applied = 0
   for (const c of changes) {
-    const { data: msg } = await admin.from('mail_messages').select('id, thread_id, direction')
+    // Une lecture en échec vaudrait « ce message n'existe pas ici » et le changement
+    // serait perdu sans trace : on lève, le backoff de syncAccount rejouera la passe.
+    const { data: msg, error: eMsg } = await admin.from('mail_messages').select('id, thread_id, direction')
       .eq('account_id', account.id).eq('provider_message_id', c.providerMessageId).maybeSingle()
+    if (eMsg) throw new Error(`remote change lookup: ${eMsg.message}`)
     if (!msg) continue
     if (c.kind === 'message_deleted') {
-      await admin.from('mail_messages').delete().eq('id', msg.id)
+      const { error } = await admin.from('mail_messages').delete().eq('id', msg.id)
+      if (error) throw new Error(`remote delete: ${error.message}`)
       await recomputeThread(admin, msg.thread_id)
       applied++
       continue
     }
-    if (c.isRead !== undefined) await admin.from('mail_messages').update({ is_read: c.isRead }).eq('id', msg.id)
+    if (c.isRead !== undefined) {
+      const { error } = await admin.from('mail_messages').update({ is_read: c.isRead }).eq('id', msg.id)
+      if (error) throw new Error(`remote read flag: ${error.message}`)
+    }
     const patch: Record<string, unknown> = {}
     if (c.isStarred !== undefined) patch.is_starred = c.isStarred
     if (c.isTrashed !== undefined) patch.is_trashed = c.isTrashed
     if (c.inInbox !== undefined && msg.direction === 'inbound') patch.is_archived = !c.inInbox && !(c.isTrashed ?? false)
-    if (Object.keys(patch).length) await admin.from('mail_threads').update(patch).eq('id', msg.thread_id)
+    if (Object.keys(patch).length) {
+      const { error } = await admin.from('mail_threads').update(patch).eq('id', msg.thread_id)
+      if (error) throw new Error(`remote flags: ${error.message}`)
+    }
     if (c.isRead !== undefined) await recomputeThread(admin, msg.thread_id)
     applied++
   }
@@ -3045,6 +3548,20 @@ Attendu : **7** tests PASS (le spec compte 7 `it()`, pas 8).
 ---
 
 ### Task 1.9 : Orchestration d'une synchro + garde IDOR — `_shared/mail/sync.ts`, `guard.ts`
+
+> ⚠ **Revue adverse du 04.09.2026 — trois défauts.** (1) L'écriture du curseur ne
+> vérifiait pas son `error` : muette, elle laissait `{ done: true, error: null }` sur une
+> passe qui n'avait rien mémorisé — la passe initiale retéléchargeait les 50 mêmes
+> messages toutes les 2 minutes sans jamais dépasser le 50e, `next_sync_at` ne bougeait
+> pas (le compte affamait les autres, en tête de file), et `last_error` gardait l'erreur
+> de la veille. (2) Le curseur d'historique Gmail avançait à la TÊTE après chaque page :
+> voir Task 1.6. La pagination est désormais reprise d'un tick à l'autre par
+> `historyPageToken`. (3) `status = 'error'` n'était écrit nulle part : compteur
+> d'échecs consécutifs, backoff élargi (10 → 60 min), bascule au 5e. ⚠ Le 403 n'est
+> volontairement PAS traité comme terminal en soi — celui de Gmail couvre aussi
+> `rateLimitExceeded`, transitoire, et un verdict immédiat éteindrait une boîte saine
+> pendant un pic de quota ; le compteur y arrive en ~2 h de panne ininterrompue, sans ce
+> risque. Ajouté aussi : la résolution des `@removed` Graph (Task 1.7).
 
 **Files:**
 - Create: `supabase/functions/_shared/mail/guard.ts`
@@ -3133,9 +3650,10 @@ pop-up sur-le-champ et à l'écran. L'exemption est donc posée dans le spec, av
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { GmailCursor, GraphCursor, MailAccountRow, NormalizedMessage, SyncCursor } from './types.ts'
 import { MailAuthError, getValidAccessToken } from './secrets.ts'
-import { gmailGetMessage, gmailHistory, gmailIdentity, gmailListInitial, historyToChanges, normalizeGmailMessage } from './gmail.ts'
-import { deltaToChanges, graphDelta, graphFolderIds, graphGetBody, graphListAttachments, normalizeGraphMessage } from './graph.ts'
+import { gmailGetMessage, gmailHistory, gmailIdentity, gmailListInitial, historyToChanges, nextHistoryCursor, normalizeGmailMessage } from './gmail.ts'
+import { deltaToChanges, graphDelta, graphFolderIds, graphGetBody, graphListAttachments, normalizeGraphMessage, resolveGraphRemoval } from './graph.ts'
 import { applyRemoteChanges, ingestMessages } from './ingest.ts'
+import type { RemoteChange } from './types.ts'
 import type { ProviderConfig } from './guard.ts'
 
 export interface SyncDeps { fetch?: typeof fetch; now?: () => number }
@@ -3144,6 +3662,18 @@ export interface SyncOutcome { inserted: number; updated: number; changes: numbe
 const INITIAL_WINDOW_DAYS = 90
 const NEXT_TICK_MS = 2 * 60_000
 const BACKOFF_MS = 10 * 60_000
+
+/**
+ * Échecs consécutifs après lesquels le compte quitte le balayage (`status = 'error'`).
+ * ⚠ Un seuil, pas un verdict immédiat sur le code HTTP : le 403 de Gmail couvre AUSSI
+ * `rateLimitExceeded` / `userRateLimitExceeded`, transitoires par construction —
+ * l'utiliser comme état terminal éteindrait une boîte saine pendant un pic de quota.
+ * Cinq échecs d'affilée, avec le backoff élargi ci-dessous, valent ~2 h de panne
+ * ininterrompue : plus aucune chance que ce soit passager.
+ */
+const MAX_CONSECUTIVE_FAILURES = 5
+/** Le backoff s'élargit avec les échecs (10, 20, 30… min), plafonné à 1 h. */
+const MAX_BACKOFF_MS = 60 * 60_000
 
 function since(now: number): string {
   return new Date(now - INITIAL_WINDOW_DAYS * 86_400_000).toISOString()
@@ -3158,23 +3688,41 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
     if (account.provider === 'gmail') cursor = await syncGmail(admin, account, cfg, budgetMs, start, deps, out)
     else if (account.provider === 'outlook') cursor = await syncGraph(admin, account, cfg, budgetMs, start, deps, out)
     else throw new Error(`provider ${account.provider} not supported by this build`)
-    await admin.from('mail_accounts').update({
+    // ⛔ L'écriture du curseur est VÉRIFIÉE. Muette, elle laissait `{ done: true,
+    // error: null }` sur une passe qui n'avait rien mémorisé : la passe initiale
+    // retéléchargeait les 50 mêmes messages toutes les 2 minutes sans jamais dépasser
+    // le 50e, `next_sync_at` ne bougeait pas — le compte restait en tête de la file et
+    // affamait les autres — et `last_error` gardait l'erreur de la veille. Lever
+    // renvoie dans le catch, qui écrit `last_error` et un backoff.
+    const { error } = await admin.from('mail_accounts').update({
       sync_cursor: cursor,
       last_sync_at: new Date(now()).toISOString(),
       last_error: null,
+      sync_failures: 0,
       next_sync_at: new Date(now() + (out.done ? NEXT_TICK_MS : 0)).toISOString(),
     }).eq('id', account.id)
+    if (error) throw new Error(`cursor write: ${error.message}`)
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     out.error = msg
     out.done = true
     const reauth = e instanceof MailAuthError && e.code === 'reauth_required'
-    await admin.from('mail_accounts').update({
+    // Compteur d'échecs consécutifs : sans lui, `status` ne pouvait dire « cassée »
+    // que pour la reconnexion, et les cinq autres façons de mourir (403 de quota,
+    // pointeur Vault orphelin, erreur d'ingestion, provider non gelé, refus Graph)
+    // laissaient la boîte `active` à réessayer toutes les 10 minutes pour toujours —
+    // indiscernable, pour l'agent comme pour le lot 2, d'une boîte sans courrier neuf.
+    const failures = (account.sync_failures ?? 0) + 1
+    const terminal = reauth ? 'reauth_required' : failures >= MAX_CONSECUTIVE_FAILURES ? 'error' : null
+    const { error: eWrite } = await admin.from('mail_accounts').update({
       last_error: msg.slice(0, 500),
-      next_sync_at: new Date(now() + BACKOFF_MS).toISOString(),
-      ...(reauth ? { status: 'reauth_required' } : {}),
+      sync_failures: failures,
+      next_sync_at: new Date(now() + Math.min(BACKOFF_MS * failures, MAX_BACKOFF_MS)).toISOString(),
+      ...(terminal ? { status: terminal } : {}),
     }).eq('id', account.id)
-    console.error(`[mail-sync] ${account.provider} ${account.id}: ${msg}`)
+    // Dernier filet : si même cette écriture échoue, l'échec n'existe NULLE PART.
+    if (eWrite) console.error(`[mail-sync] ${account.id}: last_error non écrit (${eWrite.message})`)
+    console.error(`[mail-sync] ${account.provider} ${account.id} (échec ${failures}${terminal ? `, statut ${terminal}` : ''}): ${msg}`)
   }
   return out
 }
@@ -3185,7 +3733,7 @@ async function syncGmail(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
   const token = await getValidAccessToken(admin, account, cfg.gmail, deps)
   const c: GmailCursor = (account.sync_cursor as GmailCursor)?.kind === 'gmail'
     ? (account.sync_cursor as GmailCursor)
-    : { kind: 'gmail', historyId: null, initialPageToken: null, initialDone: false }
+    : { kind: 'gmail', historyId: null, initialPageToken: null, initialDone: false, historyPageToken: null }
 
   if (!c.initialDone) {
     // Le historyId est capturé AVANT la première page : tout ce qui bouge pendant
@@ -3204,12 +3752,16 @@ async function syncGmail(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
     return c
   }
 
-  let pageToken: string | null = null
+  // ⛔ La pagination reprend là où le tick précédent l'a laissée. Le pageToken vivait
+  // dans une variable LOCALE : une pagination coupée par le budget était perdue, et
+  // comme le curseur était déjà avancé à la tête, les pages restantes n'étaient jamais
+  // lues (cf. `nextHistoryCursor`). Il est désormais dans le curseur persisté.
+  let pageToken: string | null = c.historyPageToken ?? null
   for (let i = 0; i < 5 && now() - start < budgetMs; i++) {
     const h = await gmailHistory(token, c.historyId!, pageToken, deps)
     if (h.expired) {
       // Historique trop ancien côté Google : on repart sur 90 jours, sans boucle d'erreur.
-      return { kind: 'gmail', historyId: null, initialPageToken: null, initialDone: false }
+      return { kind: 'gmail', historyId: null, initialPageToken: null, initialDone: false, historyPageToken: null }
     }
     const { added, changes } = historyToChanges(h.page!)
     const msgs: NormalizedMessage[] = []
@@ -3220,10 +3772,12 @@ async function syncGmail(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
     const r = await ingestMessages(admin, account, msgs)
     out.inserted += r.inserted; out.updated += r.updated
     out.changes += await applyRemoteChanges(admin, account, changes)
-    if (h.page!.historyId) c.historyId = String(h.page!.historyId)
-    pageToken = h.page!.nextPageToken ?? null
+    const nxt = nextHistoryCursor(c.historyId, h.page!)
+    c.historyId = nxt.historyId
+    pageToken = nxt.pageToken
     if (!pageToken) break
   }
+  c.historyPageToken = pageToken
   out.done = pageToken === null
   return c
 }
@@ -3243,11 +3797,20 @@ async function syncGraph(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
     if (now() - start >= budgetMs) { allSettled = false; break }
     const d = await graphDelta(token, f.name, c[f.key], since(now()), deps)
     const ids = d.items.filter((i) => !i['@removed']).map((i) => i.id)
-    const { data: knownRows } = ids.length
+    const { data: knownRows, error: eKnown } = ids.length
       ? await admin.from('mail_messages').select('provider_message_id').eq('account_id', account.id).in('provider_message_id', ids)
-      : { data: [] as { provider_message_id: string }[] }
+      : { data: [] as { provider_message_id: string }[], error: null }
+    // Une lecture en échec ferait passer TOUS les messages connus pour neufs : autant
+    // de GET de corps et de pièces inutiles, et un `update` complet de chaque ligne.
+    if (eKnown) throw new Error(`known ids lookup: ${eKnown.message}`)
     const known = new Set((knownRows ?? []).map((r: { provider_message_id: string }) => r.provider_message_id))
-    const { added, changes } = deltaToChanges(d.items, known, c.folderIds)
+    const { added, changes, removed } = deltaToChanges(d.items, known, c.folderIds)
+    // Un `@removed` n'est PAS une suppression tant qu'un GET ne l'a pas dit (le delta
+    // est par dossier : archiver produit le même signal qu'effacer).
+    for (const r of removed) {
+      const resolved: RemoteChange | null = await resolveGraphRemoval(token, r, c.folderIds, deps)
+      if (resolved) changes.push(resolved)
+    }
     const msgs: NormalizedMessage[] = []
     for (const m of added) {
       const body = await graphGetBody(token, m.id, deps)
@@ -3515,6 +4078,17 @@ et laisser le roster de côté ferait rougir `lint:roster` au commit suivant.
 
 ### Task 1.11 : Edge `mail-sync` (balayage cron + ciblé)
 
+> ⚠ **Revue adverse du 04.09.2026 — deux arrêts silencieux, tous deux en 200.** (1) La
+> file des comptes dus ne vérifiait pas son `error` : une lecture ratée rendait
+> `{ ok: true, synced: 0 }`, pg_cron enregistrait un succès, aucun `last_error` n'était
+> écrit — toute la messagerie du produit arrêtée sans un signal rouge (la panne d'agenda,
+> à l'identique). Elle rend 500 désormais. (2) `acquireLock` lisait « zéro ligne mise à
+> jour » comme « un autre balayage tient le bail » : or la ligne `mail_cron_locks` n'est
+> créée que par la migration, et si elle manque (base fraîche, purge) CHAQUE balayage
+> répondait `skipped: 'locked'` pour toujours. Semis `on conflict do nothing` avant la
+> prise, erreur distinguée du refus, et libération devenue compare-and-release : un
+> balayage qui dépassait le TTL libérait, en finissant, le bail de son successeur.
+
 **Files:**
 - Create: `supabase/functions/mail-sync/index.ts`
 - Modify: `supabase/config.toml`
@@ -3553,14 +4127,43 @@ const TARGETED_BUDGET_MS = 20_000
 const MAX_ACCOUNTS_PER_TICK = 25
 const LOCK_TTL_MS = 180_000
 
-async function acquireLock(admin: SupabaseClient): Promise<boolean> {
+type LockResult =
+  | { ok: true; until: string }
+  | { ok: false; reason: 'locked' }
+  | { ok: false; reason: 'error'; detail: string }
+
+/**
+ * Prend le bail du balayage.
+ *
+ * ⛔ Zéro ligne mise à jour ne prouve PAS qu'un autre balayage tient le bail : la ligne
+ * peut ne pas exister du tout (base fraîche, purge manuelle), la migration étant son
+ * unique créatrice. Chaque balayage répondait alors `{ ok: true, skipped: 'locked' }`
+ * en 200, POUR TOUJOURS — la synchro morte, pg_cron au vert. Le semis
+ * `on conflict do nothing` (`ignoreDuplicates`) répare ce cas sans jamais écraser un
+ * bail tenu ; et une erreur PostgREST n'est plus rendue comme un « quelqu'un d'autre
+ * travaille », mais comme une erreur.
+ */
+async function acquireLock(admin: SupabaseClient): Promise<LockResult> {
+  const seed = await admin.from('mail_cron_locks')
+    .upsert({ job: 'mail-sync', locked_until: new Date(0).toISOString() }, { onConflict: 'job', ignoreDuplicates: true })
+  if (seed.error) return { ok: false, reason: 'error', detail: `lock seed: ${seed.error.message}` }
   const until = new Date(Date.now() + LOCK_TTL_MS).toISOString()
-  const { data } = await admin.from('mail_cron_locks').update({ locked_until: until })
+  const { data, error } = await admin.from('mail_cron_locks').update({ locked_until: until })
     .eq('job', 'mail-sync').lt('locked_until', new Date().toISOString()).select('job')
-  return (data ?? []).length === 1
+  if (error) return { ok: false, reason: 'error', detail: `lock acquire: ${error.message}` }
+  return (data ?? []).length === 1 ? { ok: true, until } : { ok: false, reason: 'locked' }
 }
-async function releaseLock(admin: SupabaseClient): Promise<void> {
-  await admin.from('mail_cron_locks').update({ locked_until: new Date().toISOString() }).eq('job', 'mail-sync')
+
+/**
+ * Rend le bail — et SEULEMENT le sien. La libération était inconditionnelle : un
+ * balayage qui dépassait le TTL de 180 s libérait, en finissant, le bail qu'un
+ * successeur venait de prendre, et un troisième démarrait à côté du deuxième — deux
+ * balayages en course sur le même `sync_cursor`, sans le moindre signal.
+ */
+async function releaseLock(admin: SupabaseClient, until: string): Promise<void> {
+  const { error } = await admin.from('mail_cron_locks').update({ locked_until: new Date().toISOString() })
+    .eq('job', 'mail-sync').eq('locked_until', until)
+  if (error) console.error('[mail-sync] libération du bail refusée:', error.message)
 }
 
 serve(async (req: Request) => {
@@ -3591,20 +4194,35 @@ serve(async (req: Request) => {
   // ── Balayage cron ──────────────────────────────────────────────────────────
   if (!(await isServiceSecret(admin, req))) return json({ error: 'unauthorized' }, 401)
   const cfg = providerConfigFromEnv((k) => Deno.env.get(k))
-  if (!(await acquireLock(admin))) return json({ ok: true, skipped: 'locked' })
+  const lock = await acquireLock(admin)
+  if (!lock.ok && lock.reason === 'error') {
+    console.error('[mail-sync] bail:', lock.detail)
+    return json({ error: 'lock_failed', detail: lock.detail }, 500)
+  }
+  if (!lock.ok) return json({ ok: true, skipped: 'locked' })
   const started = Date.now()
   const results: Record<string, unknown>[] = []
   try {
-    const { data: due } = await admin.from('mail_accounts').select('*')
+    // ⛔ La file de travail est LUE, ou le balayage échoue. Sans le contrôle d'erreur,
+    // une lecture ratée (cache de schéma périmé juste après le déploiement, timeout)
+    // rendait `due = null`, la boucle ne tournait pas, et la réponse était
+    // `{ ok: true, synced: 0 }` en 200 : pg_cron au vert, aucun `last_error` écrit —
+    // toute la messagerie du produit arrêtée sans un seul signal rouge. C'est
+    // exactement la panne muette de la synchro d'agenda.
+    const { data: due, error } = await admin.from('mail_accounts').select('*')
       .eq('status', 'active').lte('next_sync_at', new Date().toISOString())
       .order('next_sync_at', { ascending: true }).limit(MAX_ACCOUNTS_PER_TICK)
+    if (error) {
+      console.error('[mail-sync] file des comptes dus illisible:', error.message)
+      return json({ error: 'due_query_failed', detail: error.message }, 500)
+    }
     for (const account of (due ?? []) as MailAccountRow[]) {
       if (Date.now() - started > SWEEP_BUDGET_MS) break
       const r = await syncAccount(admin, account, cfg, Math.min(PER_ACCOUNT_BUDGET_MS, SWEEP_BUDGET_MS - (Date.now() - started)))
       results.push({ account_id: account.id, provider: account.provider, ...r })
     }
   } finally {
-    await releaseLock(admin)
+    await releaseLock(admin, lock.until)
   }
   return json({ ok: true, synced: results.length, elapsed_ms: Date.now() - started, results })
 })
@@ -3642,6 +4260,15 @@ git commit -m "feat(messagerie): edge mail-sync (balayage cron verrouillé, sync
 ---
 
 ### Task 1.12 : Edge `mail-actions` (état des fils, rattachement, sync_now)
+
+> ⚠ **Revue adverse du 04.09.2026 — `{ ok: true }` sur un geste jamais envoyé.** La
+> lecture des messages du fil ne vérifiait pas son `error` : `msgs = null` donnait une
+> liste vide, la boucle de `pushToProvider` « réussissait » sans rien envoyer, l'état
+> local était écrit et l'API répondait `{ ok: true }`. L'agent archivait un fil : archivé
+> dans le CRM, intact dans Gmail — et le balayage de 2 minutes le rétablissait, sans que
+> rien ne pointe vers la cause. La lecture rend 500 sur erreur ; un fil sans message est
+> refusé en 409 plutôt que traité comme un succès vide ; et le rechargement final ne peut
+> plus répondre `{ ok: true, thread: null }`.
 
 **Files:**
 - Create: `supabase/functions/mail-actions/index.ts`
@@ -3730,8 +4357,11 @@ serve(async (req: Request) => {
   }
 
   const threadId = String(body.thread_id ?? '')
-  const { data: thread } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed, contact_id')
+  const { data: thread, error: eThread } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed, contact_id')
     .eq('id', threadId).eq('account_id', account.id).maybeSingle()
+  // Une lecture en échec n'est pas un fil absent : la dire 404 enverrait l'agent
+  // chercher un fil qu'il voit pourtant à l'écran.
+  if (eThread) return json({ error: 'thread_query_failed', detail: eThread.message }, 500)
   if (!thread) return json({ error: 'thread_not_found' }, 404)
 
   if (action === 'link_contact') {
@@ -3747,13 +4377,28 @@ serve(async (req: Request) => {
   }
 
   if (!THREAD_ACTIONS.includes(action as ThreadAction)) return json({ error: 'unknown_action' }, 400)
-  const { data: msgs } = await admin.from('mail_messages').select('id, provider_message_id, direction').eq('thread_id', thread.id)
+  // ⛔ Ce que le fournisseur doit recevoir, on refuse de le DEVINER. La lecture ne
+  // vérifiait pas son erreur : `msgs = null` donnait une liste vide, la boucle de
+  // `pushToProvider` « réussissait » sans rien envoyer, l'état local était écrit quand
+  // même et l'API répondait `{ ok: true }`. L'agent archivait un fil : archivé dans le
+  // CRM, intact dans Gmail — et le balayage de 2 minutes le rétablissait. Rien nulle
+  // part ne pointait vers la cause. Un fil sans message est, lui, une anomalie : la
+  // ligne de fil naît AVEC son premier message et `recomputeThread` la supprime dès
+  // qu'elle se vide — mieux vaut le dire que le traiter comme un succès vide.
+  const { data: msgs, error: eMsgs } = await admin.from('mail_messages').select('id, provider_message_id, direction').eq('thread_id', thread.id)
+  if (eMsgs) return json({ error: 'messages_query_failed', detail: eMsgs.message }, 500)
+  if (!msgs || msgs.length === 0) {
+    console.error(`[mail-actions] fil ${thread.id} sans message — geste ${action} refusé`)
+    return json({ error: 'thread_empty' }, 409)
+  }
 
   try {
     const token = await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook)
-    const renamed = await pushToProvider(account, token, action as ThreadAction, (msgs ?? []) as MsgRow[])
+    const renamed = await pushToProvider(account, token, action as ThreadAction, msgs as MsgRow[])
     for (const [oldId, newId] of Object.entries(renamed)) {
-      await admin.from('mail_messages').update({ provider_message_id: newId }).eq('account_id', account.id).eq('provider_message_id', oldId)
+      if (oldId === newId) continue // id immuable : le déplacement ne le change plus
+      const { error } = await admin.from('mail_messages').update({ provider_message_id: newId }).eq('account_id', account.id).eq('provider_message_id', oldId)
+      if (error) throw new Error(`renommage d'id: ${error.message}`)
     }
   } catch (e) {
     return json({ error: 'provider_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
@@ -3761,8 +4406,10 @@ serve(async (req: Request) => {
 
   const patch: Record<string, unknown> = {}
   if (action === 'mark_read' || action === 'mark_unread') {
-    await admin.from('mail_messages').update({ is_read: action === 'mark_read' }).eq('thread_id', thread.id)
-    await recomputeThread(admin, thread.id)
+    const { error } = await admin.from('mail_messages').update({ is_read: action === 'mark_read' }).eq('thread_id', thread.id)
+    if (error) return json({ error: 'local_write_failed', detail: error.message }, 500)
+    try { await recomputeThread(admin, thread.id) }
+    catch (e) { return json({ error: 'local_write_failed', detail: e instanceof Error ? e.message : String(e) }, 500) }
   }
   if (action === 'star') patch.is_starred = true
   if (action === 'unstar') patch.is_starred = false
@@ -3770,9 +4417,14 @@ serve(async (req: Request) => {
   if (action === 'unarchive') patch.is_archived = false
   if (action === 'trash') { patch.is_trashed = true }
   if (action === 'untrash') { patch.is_trashed = false; patch.is_archived = false }
-  if (Object.keys(patch).length) await admin.from('mail_threads').update(patch).eq('id', thread.id)
+  if (Object.keys(patch).length) {
+    const { error } = await admin.from('mail_threads').update(patch).eq('id', thread.id)
+    if (error) return json({ error: 'local_write_failed', detail: error.message }, 500)
+  }
 
-  const { data: after } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed').eq('id', thread.id).single()
+  const { data: after, error: eAfter } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed').eq('id', thread.id).single()
+  // `{ ok: true, thread: null }` disait « c'est fait » sur un fil devenu illisible.
+  if (eAfter || !after) return json({ error: 'thread_reload_failed', detail: eAfter?.message ?? 'aucune ligne' }, 500)
   return json({ ok: true, thread: after })
 })
 ```
