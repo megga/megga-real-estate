@@ -1,7 +1,7 @@
 // supabase/functions/_shared/mail/ingest.test.ts
 import { describe, it, expect } from 'vitest'
-import { deriveThreadPatch, externalParticipants, pickContact, capHtml, type ThreadRow } from './ingest.ts'
-import type { NormalizedMessage } from './types.ts'
+import { deriveThreadPatch, externalParticipants, ingestMessages, pickContact, capHtml, recomputeThread, type ThreadRow } from './ingest.ts'
+import type { MailAccountRow, NormalizedMessage } from './types.ts'
 
 const BOX = 'g@agence.ch'
 const msg = (over: Partial<NormalizedMessage> = {}): NormalizedMessage => ({
@@ -69,5 +69,137 @@ describe('capHtml', () => {
     const big = capHtml('y'.repeat(600 * 1024))
     expect(big.truncated).toBe(true)
     expect(big.html.length).toBe(512 * 1024)
+  })
+})
+
+// ── Faux client PostgREST : on veut voir les REQUÊTES, pas simuler une base ────
+// Chaque appel est enregistré sous la forme (table, opération, filtres) ; un
+// « or » y apparaîtrait sous ce nom, ce qui rend le défaut d'injection visible
+// depuis un test au lieu d'être une lecture de code.
+interface FakeCall { table: string; op: string; filters: [string, unknown][] }
+type Reply = { data: unknown; error: { message: string } | null }
+
+function fakeAdmin(reply: (c: FakeCall) => Reply) {
+  const calls: FakeCall[] = []
+  const from = (table: string) => {
+    const rec: FakeCall = { table, op: '', filters: [] }
+    const settle = () => { calls.push(rec); return reply(rec) }
+    const b = {
+      select: () => { if (!rec.op) rec.op = 'select'; return b },
+      insert: () => { rec.op = 'insert'; return b },
+      update: () => { rec.op = 'update'; return b },
+      upsert: () => { rec.op = 'upsert'; return b },
+      delete: () => { rec.op = 'delete'; return b },
+      eq: (col: string, val: unknown) => { rec.filters.push([`eq:${col}`, val]); return b },
+      in: (col: string, val: unknown) => { rec.filters.push([`in:${col}`, val]); return b },
+      is: (col: string, val: unknown) => { rec.filters.push([`is:${col}`, val]); return b },
+      or: (f: string) => { rec.filters.push(['or', f]); return b },
+      order: () => b,
+      limit: () => b,
+      maybeSingle: async () => settle(),
+      single: async () => settle(),
+      then: (res: (v: Reply) => unknown, rej?: (e: unknown) => unknown) =>
+        Promise.resolve().then(settle).then(res, rej),
+    }
+    return b
+  }
+  const rpc = async () => ({ data: [], error: null })
+  return { admin: { from, rpc } as never, calls }
+}
+
+const account: MailAccountRow = {
+  id: 'acc-1', agency_id: 'ag-1', owner_id: 'u-1', provider: 'gmail', email: BOX,
+  display_name: null, visibility: 'owner', status: 'active', vault_secret_id: 'v-1',
+  sync_cursor: {}, next_sync_at: '', last_sync_at: null, last_error: null, imap_config: null,
+}
+const vide = (c: FakeCall): Reply =>
+  c.op === 'insert' ? { data: { id: `${c.table}-1` }, error: null }
+    : c.op === 'select' && c.table === 'mail_contact_aliases' ? { data: [], error: null }
+      : { data: null, error: null }
+
+describe('ingestMessages : recherche du message déjà connu', () => {
+  // ⛔ Le filtre était construit par concaténation dans `.or()`, que postgrest-js
+  // recopie tel quel dans l'URL (aucun échappement, contrairement à `.in()`). Le
+  // `Message-ID` d'un e-mail entrant est du texte d'ATTAQUANT : une virgule y
+  // ajoutait un terme au OU, `provider_message_id.not.is.null` rendait un message
+  // quelconque de la boîte, et la suite l'écrasait avec le contenu de l'attaquant.
+  const PIEGE = '<a),provider_message_id.not.is.null,and(id.not.is.null'
+
+  it('un Message-ID piégé ne peut désigner aucune autre ligne : deux .eq(), jamais de .or()', async () => {
+    const { admin, calls } = fakeAdmin(vide)
+    await ingestMessages(admin, account, [msg({ providerMessageId: 'm-neuf', rfc822MessageId: PIEGE })])
+
+    expect(calls.some((c) => c.filters.some(([k]) => k === 'or'))).toBe(false)
+    const lookups = calls.filter((c) => c.table === 'mail_messages' && c.op === 'select')
+    expect(lookups).toHaveLength(2)
+    // Le texte de l'attaquant reste UNE valeur, dans un paramètre à lui.
+    expect(lookups[0].filters).toEqual([['eq:account_id', 'acc-1'], ['eq:provider_message_id', 'm-neuf']])
+    expect(lookups[1].filters).toEqual([['eq:account_id', 'acc-1'], ['eq:provider_message_id', `pending:${PIEGE}`]])
+    // Et il ne s'échappe nulle part ailleurs : aucune requête ne le porte comme filtre
+    // structurel, seulement comme valeur de `provider_message_id`.
+    for (const c of calls) {
+      for (const [cle, val] of c.filters) {
+        if (typeof val === 'string' && val.includes(PIEGE)) expect(cle).toBe('eq:provider_message_id')
+      }
+    }
+  })
+
+  it('la boîte est TOUJOURS dans le filtre : un message piégé ne sort pas du compte', async () => {
+    const { admin, calls } = fakeAdmin(vide)
+    await ingestMessages(admin, account, [msg({ rfc822MessageId: PIEGE })])
+    for (const c of calls.filter((x) => x.table === 'mail_messages' && x.op === 'select')) {
+      expect(c.filters[0]).toEqual(['eq:account_id', 'acc-1'])
+    }
+  })
+
+  it('sans rfc822MessageId, une seule lecture', async () => {
+    const { admin, calls } = fakeAdmin(vide)
+    await ingestMessages(admin, account, [msg({ rfc822MessageId: null })])
+    expect(calls.filter((c) => c.table === 'mail_messages' && c.op === 'select')).toHaveLength(1)
+  })
+
+  it('un message déjà connu arrête la recherche à la première lecture', async () => {
+    const { admin, calls } = fakeAdmin((c) =>
+      c.table === 'mail_messages' && c.op === 'select'
+        ? { data: { id: 'M1', thread_id: 'T1', provider_message_id: 'm1' }, error: null }
+        : vide(c))
+    await ingestMessages(admin, account, [msg()])
+    expect(calls.filter((c) => c.table === 'mail_messages' && c.op === 'select')).toHaveLength(1)
+  })
+
+  it('une erreur PostgREST est LEVÉE, jamais lue comme « message inconnu »', async () => {
+    // Avaler l'erreur menait à une insertion, donc au 23505 de l'index unique, donc à
+    // une passe qui mourait à chaque tick : la boîte ne se synchronisait plus jamais.
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'mail_messages' && c.op === 'select' ? { data: null, error: { message: 'boom' } } : vide(c))
+    await expect(ingestMessages(admin, account, [msg()])).rejects.toThrow(/message lookup: boom/)
+  })
+})
+
+describe('recomputeThread', () => {
+  it('une lecture en échec ne supprime RIEN — elle lève', async () => {
+    // `!msgs` valait « fil vide » : un timeout ou un cache de schéma périmé suffisait à
+    // effacer le fil, et les deux `on delete cascade` emportaient corps et pièces.
+    const { admin, calls } = fakeAdmin((c) =>
+      c.table === 'mail_messages' ? { data: null, error: { message: 'timeout' } } : vide(c))
+    await expect(recomputeThread(admin, 'T1')).rejects.toThrow(/recompute select: timeout/)
+    expect(calls.some((c) => c.op === 'delete')).toBe(false)
+  })
+
+  it('zéro message POSITIVEMENT constaté : là, le fil est supprimé', async () => {
+    const { admin, calls } = fakeAdmin((c) =>
+      c.table === 'mail_messages' ? { data: [], error: null } : { data: null, error: null })
+    await recomputeThread(admin, 'T1')
+    expect(calls.filter((c) => c.table === 'mail_threads' && c.op === 'delete')).toHaveLength(1)
+  })
+
+  it('des messages : agrégats recalculés, aucune suppression', async () => {
+    const { admin, calls } = fakeAdmin((c) =>
+      c.table === 'mail_messages'
+        ? { data: [{ sent_at: '2026-09-03T08:00:00.000Z', direction: 'inbound', is_read: true, has_attachments: false, snippet: 'a' }], error: null }
+        : { data: null, error: null })
+    await recomputeThread(admin, 'T1')
+    expect(calls.some((c) => c.op === 'delete')).toBe(false)
+    expect(calls.filter((c) => c.table === 'mail_threads' && c.op === 'update')).toHaveLength(1)
   })
 })

@@ -132,6 +132,37 @@ export interface IngestOptions {
   skipAudit?: boolean
 }
 
+interface KnownMessageRow { id: string; thread_id: string; provider_message_id: string }
+
+/**
+ * Le message est-il déjà en base ? Deux lectures `.eq()` SÉPARÉES, jamais un `.or()`.
+ *
+ * ⛔ `.or('provider_message_id.eq.X,and(provider_message_id.eq.pending:Y)')` recopiait
+ * `Y` — l'en-tête `Message-ID` de l'EXPÉDITEUR, du texte d'attaquant qui traverse même
+ * `decodeRfc2047` — tel quel dans le paramètre `or=(…)` : postgrest-js n'échappe rien
+ * dans `or()` (contrairement à `in()`, qui cite les caractères réservés). Une virgule
+ * suffisait à ajouter un terme au OU : `Message-ID: <a),provider_message_id.not.is.null`
+ * rendait un message QUELCONQUE de la boîte, que la suite écrasait avec le contenu de
+ * l'attaquant (`update … .eq('id', known.id)`) et dont elle supprimait les pièces —
+ * un e-mail reçu, une conversation cliente détruite. Une virgule NUE, elle, rendait le
+ * filtre invalide : PostgREST 400, erreur jetée faute d'être destructurée, insertion,
+ * puis 23505 à chaque tick — la boîte ne se synchronisait plus jamais.
+ *
+ * Une valeur dans un paramètre `col=eq.valeur` est percent-encodée par URLSearchParams :
+ * elle ne peut ni ouvrir un terme ni en fermer un. Et l'erreur est LEVÉE, pour qu'un
+ * défaut futur casse bruyamment au lieu de se déguiser en « message inconnu ».
+ */
+async function findKnownMessage(admin: SupabaseClient, accountId: string, m: NormalizedMessage): Promise<KnownMessageRow | null> {
+  const base = () => admin.from('mail_messages').select('id, thread_id, provider_message_id').eq('account_id', accountId)
+  const { data: byProvider, error: e1 } = await base().eq('provider_message_id', m.providerMessageId).maybeSingle()
+  if (e1) throw new Error(`message lookup: ${e1.message}`)
+  if (byProvider) return byProvider as KnownMessageRow
+  if (!m.rfc822MessageId) return null
+  const { data: byPending, error: e2 } = await base().eq('provider_message_id', `pending:${m.rfc822MessageId}`).maybeSingle()
+  if (e2) throw new Error(`message lookup (pending): ${e2.message}`)
+  return (byPending as KnownMessageRow | null) ?? null
+}
+
 /** Ingère des messages normalisés (idempotent sur (account_id, provider_message_id)). */
 export async function ingestMessages(admin: SupabaseClient, account: MailAccountRow, msgs: NormalizedMessage[], opts: IngestOptions = {}): Promise<{ inserted: number; updated: number }> {
   let inserted = 0
@@ -140,22 +171,24 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
     if (m.isDraft) continue
 
     // Message déjà connu ? (ou copie « Envoyés » d'un envoi CRM en attente : pending:<Message-ID>)
-    const { data: known } = await admin.from('mail_messages')
-      .select('id, thread_id, provider_message_id')
-      .eq('account_id', account.id)
-      .or(`provider_message_id.eq.${m.providerMessageId}${m.rfc822MessageId ? `,and(provider_message_id.eq.pending:${m.rfc822MessageId})` : ''}`)
-      .limit(1).maybeSingle()
+    const known = await findKnownMessage(admin, account.id, m)
     const isNew = !known
 
     if (known && known.provider_message_id.startsWith('pending:')) {
       // Copie « Envoyés » d'un envoi CRM (Graph) : le fil provisoire prend l'id de
       // conversation réel s'il n'existe pas encore sous ce nom.
-      const { data: real } = await admin.from('mail_threads').select('id').eq('account_id', account.id).eq('provider_thread_id', m.providerThreadId).maybeSingle()
-      if (!real) await admin.from('mail_threads').update({ provider_thread_id: m.providerThreadId }).eq('id', known.thread_id)
+      const { data: real, error: eReal } = await admin.from('mail_threads').select('id').eq('account_id', account.id).eq('provider_thread_id', m.providerThreadId).maybeSingle()
+      if (eReal) throw new Error(`thread lookup (pending): ${eReal.message}`)
+      if (!real) {
+        const { error } = await admin.from('mail_threads').update({ provider_thread_id: m.providerThreadId }).eq('id', known.thread_id)
+        if (error) throw new Error(`thread rename: ${error.message}`)
+      }
     }
 
-    // Fil
-    const { data: existing } = await admin.from('mail_threads').select('*').eq('account_id', account.id).eq('provider_thread_id', m.providerThreadId).maybeSingle()
+    // Fil — une lecture en échec vaudrait « fil inconnu », donc une INSERTION d'un
+    // fil jumeau (ou un 23505) : on lève au lieu de deviner.
+    const { data: existing, error: eThread } = await admin.from('mail_threads').select('*').eq('account_id', account.id).eq('provider_thread_id', m.providerThreadId).maybeSingle()
+    if (eThread) throw new Error(`thread lookup: ${eThread.message}`)
     const patch = deriveThreadPatch((existing as ThreadRow | null) ?? null, m, account.email, isNew)
     let threadId: string
     let contactId: string | null = existing?.contact_id ?? null
@@ -197,7 +230,8 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
     }
 
     // Pièces (remplacement intégral : la liste du fournisseur fait foi)
-    await admin.from('mail_attachments').delete().eq('message_id', messageId)
+    const { error: eDelAtt } = await admin.from('mail_attachments').delete().eq('message_id', messageId)
+    if (eDelAtt) throw new Error(`attachments delete: ${eDelAtt.message}`)
     if (m.attachments.length) {
       const { error } = await admin.from('mail_attachments').insert(m.attachments.map((a) => ({
         message_id: messageId, account_id: account.id, agency_id: account.agency_id,
@@ -214,19 +248,33 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
   return { inserted, updated }
 }
 
-/** Recalcule les agrégats d'un fil depuis ses messages ; supprime le fil s'il est vide. */
+/**
+ * Recalcule les agrégats d'un fil depuis ses messages ; supprime le fil s'il est vide.
+ *
+ * ⛔ La suppression est conditionnée à un COMPTE de zéro POSITIVEMENT constaté, jamais
+ * à `!msgs`. La lecture ne destructurait pas son `error` : un timeout, un cache de
+ * schéma PostgREST périmé (donc les minutes qui suivent le déploiement de la migration)
+ * ou une connexion coupée rendaient `data = null`, ce que le code lisait « ce fil n'a
+ * plus de message » — il supprimait alors le fil, et les deux `on delete cascade`
+ * emportaient objet, corps et pièces. Une simple « marquer comme lu » pouvait ainsi
+ * faire disparaître une conversation, et l'edge répondait `{ ok: true }`. Lever est le
+ * bon geste ici : le catch de `syncAccount` le transforme en `last_error` + backoff.
+ */
 export async function recomputeThread(admin: SupabaseClient, threadId: string): Promise<void> {
-  const { data: msgs } = await admin.from('mail_messages')
+  const { data: msgs, error } = await admin.from('mail_messages')
     .select('sent_at, direction, is_read, has_attachments, snippet')
     .eq('thread_id', threadId).order('sent_at', { ascending: true })
-  if (!msgs || msgs.length === 0) {
-    await admin.from('mail_threads').delete().eq('id', threadId)
+  if (error) throw new Error(`recompute select: ${error.message}`)
+  if (!msgs) throw new Error('recompute select: aucune ligne rendue et aucune erreur')
+  if (msgs.length === 0) {
+    const { error: eDel } = await admin.from('mail_threads').delete().eq('id', threadId)
+    if (eDel) throw new Error(`recompute delete: ${eDel.message}`)
     return
   }
   const last = msgs[msgs.length - 1]
   const inbound = msgs.filter((x) => x.direction === 'inbound')
   const outbound = msgs.filter((x) => x.direction === 'outbound')
-  await admin.from('mail_threads').update({
+  const { error: eUpd } = await admin.from('mail_threads').update({
     message_count: msgs.length,
     last_message_at: last.sent_at,
     snippet: last.snippet,
@@ -235,27 +283,38 @@ export async function recomputeThread(admin: SupabaseClient, threadId: string): 
     has_attachments: msgs.some((x) => x.has_attachments),
     is_read: msgs.every((x) => x.is_read),
   }).eq('id', threadId)
+  if (eUpd) throw new Error(`recompute update: ${eUpd.message}`)
 }
 
 /** Applique les gestes faits chez le fournisseur (lu, étoile, archive, corbeille, suppression). */
 export async function applyRemoteChanges(admin: SupabaseClient, account: MailAccountRow, changes: RemoteChange[]): Promise<number> {
   let applied = 0
   for (const c of changes) {
-    const { data: msg } = await admin.from('mail_messages').select('id, thread_id, direction')
+    // Une lecture en échec vaudrait « ce message n'existe pas ici » et le changement
+    // serait perdu sans trace : on lève, le backoff de syncAccount rejouera la passe.
+    const { data: msg, error: eMsg } = await admin.from('mail_messages').select('id, thread_id, direction')
       .eq('account_id', account.id).eq('provider_message_id', c.providerMessageId).maybeSingle()
+    if (eMsg) throw new Error(`remote change lookup: ${eMsg.message}`)
     if (!msg) continue
     if (c.kind === 'message_deleted') {
-      await admin.from('mail_messages').delete().eq('id', msg.id)
+      const { error } = await admin.from('mail_messages').delete().eq('id', msg.id)
+      if (error) throw new Error(`remote delete: ${error.message}`)
       await recomputeThread(admin, msg.thread_id)
       applied++
       continue
     }
-    if (c.isRead !== undefined) await admin.from('mail_messages').update({ is_read: c.isRead }).eq('id', msg.id)
+    if (c.isRead !== undefined) {
+      const { error } = await admin.from('mail_messages').update({ is_read: c.isRead }).eq('id', msg.id)
+      if (error) throw new Error(`remote read flag: ${error.message}`)
+    }
     const patch: Record<string, unknown> = {}
     if (c.isStarred !== undefined) patch.is_starred = c.isStarred
     if (c.isTrashed !== undefined) patch.is_trashed = c.isTrashed
     if (c.inInbox !== undefined && msg.direction === 'inbound') patch.is_archived = !c.inInbox && !(c.isTrashed ?? false)
-    if (Object.keys(patch).length) await admin.from('mail_threads').update(patch).eq('id', msg.thread_id)
+    if (Object.keys(patch).length) {
+      const { error } = await admin.from('mail_threads').update(patch).eq('id', msg.thread_id)
+      if (error) throw new Error(`remote flags: ${error.message}`)
+    }
     if (c.isRead !== undefined) await recomputeThread(admin, msg.thread_id)
     applied++
   }
