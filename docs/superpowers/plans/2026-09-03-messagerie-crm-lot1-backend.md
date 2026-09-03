@@ -3814,7 +3814,7 @@ git commit -m "feat(messagerie): edge mail-actions (lu, étoile, archive, corbei
 - Create: `supabase/functions/mail-send/index.ts`
 - Modify: `supabase/config.toml`
 
-- [ ] **Step 1 : Écrire l'edge**
+- [x] **Step 1 : Écrire l'edge**
 
 ```ts
 // supabase/functions/mail-send/index.ts
@@ -3834,7 +3834,7 @@ import { base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, te
 import { gmailAttachment, gmailGetMessage, gmailSend, normalizeGmailMessage } from '../_shared/mail/gmail.ts'
 import { graphSend } from '../_shared/mail/graph.ts'
 import { ingestMessages, recomputeThread } from '../_shared/mail/ingest.ts'
-import type { MailAddress, MailAccountRow, OutgoingMessage } from '../_shared/mail/types.ts'
+import type { MailAddress, OutgoingMessage } from '../_shared/mail/types.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -3988,7 +3988,14 @@ serve(async (req: Request) => {
 })
 ```
 
-- [ ] **Step 2 : Déclarer, vérifier, commit**
+⚠ **`MailAccountRow` a été RETIRÉ de l'import de types** (04.09.2026) : ce fichier ne le
+nomme nulle part — `loadVisibleAccount` rend déjà le type, et aucune annotation locale ne
+le redit. `deno check` ne se plaint pas d'un import inutilisé (c'est une règle de lint, pas
+de types) et le dépôt ne fait pas tourner `deno lint`, donc rien ne l'aurait signalé : le
+corriger ici évite qu'il se recopie. Les deux autres, `MailAddress` et `OutgoingMessage`,
+servent bien.
+
+- [x] **Step 2 : Déclarer, vérifier, commit**
 
 ⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
 `supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
@@ -4013,7 +4020,7 @@ verify_jwt = false
 ```
 ```bash
 deno check supabase/functions/mail-send/index.ts
-git add supabase/functions/mail-send/index.ts supabase/config.toml supabase/functions/_shared/mail/ingest.ts
+git add supabase/functions/mail-send/index.ts supabase/config.toml src/lib/edgeFunctionRoster.ts
 git commit -m "feat(messagerie): edge mail-send (nouveau, réponse, transfert ; Gmail raw, Graph brouillon+send)"
 ```
 
