@@ -616,6 +616,9 @@ verify_jwt = false
 [functions.mail-actions]
 verify_jwt = false
 
+[functions.mail-attachment]
+verify_jwt = false
+
 [functions.mail-oauth]
 verify_jwt = false
 

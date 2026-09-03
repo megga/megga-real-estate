@@ -4032,7 +4032,7 @@ git commit -m "feat(messagerie): edge mail-send (nouveau, réponse, transfert ; 
 - Create: `supabase/functions/mail-attachment/index.ts`
 - Modify: `supabase/config.toml`
 
-- [ ] **Step 1 : Écrire l'edge**
+- [x] **Step 1 : Écrire l'edge**
 
 ```ts
 // supabase/functions/mail-attachment/index.ts
@@ -4160,7 +4160,7 @@ serve(async (req: Request) => {
 })
 ```
 
-- [ ] **Step 2 : Déclarer, vérifier, commit**
+- [x] **Step 2 : Déclarer, vérifier, commit**
 
 ⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
 `supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
@@ -4185,7 +4185,7 @@ verify_jwt = false
 ```
 ```bash
 deno check supabase/functions/mail-attachment/index.ts
-git add supabase/functions/mail-attachment/index.ts supabase/config.toml
+git add supabase/functions/mail-attachment/index.ts supabase/config.toml src/lib/edgeFunctionRoster.ts
 git commit -m "feat(messagerie): edge mail-attachment (flux authentifié, classement au dossier avec SHA-256)"
 ```
 
