@@ -1989,7 +1989,7 @@ Attendu : 8 tests PASS.
 - Test: `supabase/functions/_shared/mail/gmail.test.ts`
 - Modify: `vitest.config.ts`
 
-- [ ] **Step 1 : Test (rouge) avec une charge utile Gmail réaliste**
+- [x] **Step 1 : Test (rouge) avec une charge utile Gmail réaliste**
 
 ```ts
 // supabase/functions/_shared/mail/gmail.test.ts
@@ -2105,7 +2105,7 @@ describe('appels HTTP', () => {
 
 Ajouter `'supabase/functions/_shared/mail/gmail.test.ts',` à `vitest.config.ts` ; lancer → FAIL.
 
-- [ ] **Step 2 : Implémentation**
+- [x] **Step 2 : Implémentation**
 
 ```ts
 // supabase/functions/_shared/mail/gmail.ts
@@ -2318,7 +2318,7 @@ export function historyToChanges(page: GmailHistoryPage): { added: string[]; cha
 }
 ```
 
-- [ ] **Step 3 : Vert, commit**
+- [x] **Step 3 : Vert, commit**
 
 ```bash
 npx vitest run supabase/functions/_shared/mail/gmail.test.ts
