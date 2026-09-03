@@ -120,12 +120,36 @@ serve(async (req) => {
     let flatfoxLastSeen: string | null = null
     try {
       const [countRes, lastRes] = await Promise.all([
+        // ⚠ CE COMPTAGE EST LENT ET LE RESTE — seule sa façon d'ÉCHOUER est corrigée ici.
+        // Mesuré le 03.09.2026 : 17 933 ms à froid (bitmap heap scan, 23 625 blocs de tas),
+        // ~480 ms à chaud. D'où 19 timeouts par 24 h dans les journaux postgres.
+        // Le vrai dégât n'était pas la lenteur mais le `?? 0` plus bas : un échec publiait la
+        // métrique à ZÉRO, indiscernable d'un corpus Flatfox réellement effondré.
+        //
+        // ⛔ TROIS PISTES ESSAYÉES ET ÉCARTÉES PAR LA MESURE, ne pas les redérouler :
+        //  1. `count: 'estimated'` — le planificateur donne 45 178 pour 35 340 lignes réelles,
+        //     après ANALYZE. 10 000 annonces d'écart sur la carte qui sert justement à repérer
+        //     une synchro en panne : c'est le chiffre lui-même qui perdrait son sens.
+        //  2. Index partiel dédié `(status) WHERE source_portal='flatfox' AND status='active'`
+        //     (256 ko, 35 340 entrées) — CRÉÉ ET MESURÉ : le planificateur ne le choisit PAS.
+        //     La carte de visibilité de market_listings n'est à jour qu'à 58 % des pages
+        //     (table écrite en continu), donc un index-only scan devrait aller chercher ~42 %
+        //     des lignes dans le tas et coûte plus cher que le bitmap. L'index a été retiré.
+        //  3. `idx_ml_flatfox_sync` — l'index que le commentaire d'AdminMonitoringPage crédite
+        //     de 166 ms : vrai à 173k lignes, faux à 250k, le planificateur ne le prend plus.
+        //
+        // Ce qui reste à trancher (décision produit, pas technique) : soit accepter la lenteur,
+        // soit lire `total_seen` du dernier `flatfox_sync_runs` — bon marché et fidèle au but
+        // affiché de la carte (« la synchro a-t-elle tourné ? »), mais ce n'est plus le même
+        // chiffre, et le libellé i18n `admin:monitoring.flatfox.activeListings` devrait suivre.
         supabaseAdmin.from('market_listings').select('id', { count: 'exact', head: true })
           .eq('source_portal', 'flatfox').eq('status', 'active'),
         supabaseAdmin.from('market_listings').select('last_seen_at')
           .eq('source_portal', 'flatfox').order('last_seen_at', { ascending: false }).limit(1),
       ])
-      flatfoxActiveCount = countRes.count ?? 0
+      // -1 (et non 0) quand le compte est indisponible : la page doit pouvoir distinguer
+      // « zéro annonce » de « je n'ai pas pu compter ».
+      flatfoxActiveCount = countRes.count ?? -1
       flatfoxLastSeen = lastRes.data?.[0]?.last_seen_at ?? null
     } catch { /* non-critical */ }
 

@@ -58,12 +58,25 @@ export default function AdminMonitoringPage() {
 
   // Santé de la synchro Flatfox.
   //
-  // `count: 'exact'` sur `market_listings` (173k lignes) est ici une exception
-  // ASSUMÉE à la règle §7, et elle tient à un index. Sans lui, ce comptage
-  // prenait 17 s (bitmap heap scan, 19 934 blocs) — au-delà du statement_timeout
-  // de 8 s du rôle `authenticated` : la carte échouait tout simplement. Avec
-  // `idx_ml_flatfox_sync` (partiel sur flatfox, INCLUDE status), c'est un
-  // index-only scan à 166 ms, mesuré.
+  // `count: 'exact'` sur `market_listings` (250k lignes au 03.09.2026) est ici une
+  // exception ASSUMÉE à la règle §7, et elle tient à un index. Sans lui, ce comptage
+  // prend ~18 s (bitmap heap scan) — au-delà du statement_timeout de 8 s du rôle
+  // `authenticated` : la carte échoue tout simplement.
+  //
+  // ⚠ L'INDEX QUI LA TENAIT NE LA TIENT PLUS, et la carte expire donc à froid.
+  // `idx_ml_flatfox_sync` (partiel sur flatfox, clé `last_seen_at`, INCLUDE status)
+  // donnait 166 ms quand la table faisait 173k lignes. Remesuré le 03.09.2026 à 250k :
+  // le planificateur ne le choisit plus et retombe sur un BitmapAnd — **17 933 ms** à
+  // froid, ~480 ms à chaud. Une exception de performance justifiée par une mesure se
+  // périme avec le volume qui l'a rendue vraie.
+  // Un index partiel dédié a été essayé et RETIRÉ : la carte de visibilité n'est à jour
+  // qu'à 58 % des pages, donc le planificateur préfère le bitmap. Voir le commentaire de
+  // supabase/functions/admin-monitoring/index.ts pour les trois pistes écartées et la
+  // décision qui reste à prendre.
+  //
+  // Pourquoi toujours pas `estimated` : l'estimation du planificateur donne 46 023 pour
+  // 35 340 lignes réelles. Sur une carte qui sert à repérer une synchro en panne,
+  // 10 000 annonces d'écart valent moins que quelques centaines de millisecondes.
   //
   // Pourquoi pas `estimated` : l'estimation du planificateur donne 46 023 pour
   // 35 341 lignes réelles. Sur une carte qui sert à repérer une synchro en
