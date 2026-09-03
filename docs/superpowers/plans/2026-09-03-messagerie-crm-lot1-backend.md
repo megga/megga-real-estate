@@ -1012,7 +1012,7 @@ git commit -m "test(messagerie): RLS owner/agency, isolation, Vault, RPC de list
 - Test: `supabase/functions/_shared/mail/mime.test.ts`
 - Modify: `vitest.config.ts` (liste `include`)
 
-- [ ] **Step 1 : Écrire les types**
+- [x] **Step 1 : Écrire les types**
 
 ```ts
 // supabase/functions/_shared/mail/types.ts
@@ -1170,7 +1170,7 @@ export interface OutgoingMessage {
 }
 ```
 
-- [ ] **Step 2 : Écrire le test MIME (rouge)**
+- [x] **Step 2 : Écrire le test MIME (rouge)**
 
 ```ts
 // supabase/functions/_shared/mail/mime.test.ts
@@ -1251,21 +1251,23 @@ describe('buildMime', () => {
 })
 ```
 
-- [ ] **Step 3 : Ajouter le spec à la liste EN DUR de `vitest.config.ts`**
+- [x] **Step 3 : Ajouter le spec à la liste EN DUR de `vitest.config.ts`**
 
 Dans `include: [...]`, après `'supabase/functions/_shared/emails-quatre-langues.test.ts'`, ajouter :
 ```ts
 'supabase/functions/_shared/mail/mime.test.ts',
 ```
 
-- [ ] **Step 4 : Lancer — rouge attendu**
+- [x] **Step 4 : Lancer — rouge attendu**
 
 ```bash
 npx vitest run supabase/functions/_shared/mail/mime.test.ts
 ```
-Attendu : FAIL, `Cannot find module './mime.ts'`.
+Attendu : FAIL. ⚠ Message réel de vite (corrigé le 04.09.2026, mesuré) : `Failed to resolve import "./mime.ts" from "…/mime.test.ts". Does the file exist?` — et non `Cannot find module`. Le spec EST bien chargé : c'est la preuve que vitest résout un chemin imbriqué sous `_shared/`.
 
-- [ ] **Step 5 : Écrire `mime.ts`**
+- [x] **Step 5 : Écrire `mime.ts`**
+
+⚠ **Corrigé le 04.09.2026 : la classe de caractères de `htmlToText` portait un NBSP LITTÉRAL** (`/[ \t<U+00A0>]+/`). Le comportement visé est juste — replier l'espace insécable sur une espace ordinaire — mais un caractère invisible dans le source fait rougir `no-irregular-whitespace` (1 erreur eslint, mesurée). Écrit `\u00a0` : même sémantique, gate verte. À reprendre tel quel dans les six tâches sœurs.
 
 ```ts
 // supabase/functions/_shared/mail/mime.ts
@@ -1403,7 +1405,7 @@ export function htmlToText(html: string): string {
       .replace(/<\/(p|div|tr|li|h[1-6]|blockquote|pre|table)>/gi, '\n')
       .replace(/<[^>]+>/g, ''),
   )
-    .replace(/[ \t ]+/g, ' ')
+    .replace(/[ \t\u00a0]+/g, ' ')
     .replace(/ *\n */g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim()
@@ -1499,14 +1501,14 @@ export function buildMime(m: OutgoingMessage): string {
 }
 ```
 
-- [ ] **Step 6 : Vert**
+- [x] **Step 6 : Vert**
 
 ```bash
 npx vitest run supabase/functions/_shared/mail/mime.test.ts
 ```
 Attendu : 10 tests PASS.
 
-- [ ] **Step 7 : Commit**
+- [x] **Step 7 : Commit**
 
 ```bash
 git add supabase/functions/_shared/mail/types.ts supabase/functions/_shared/mail/mime.ts supabase/functions/_shared/mail/mime.test.ts vitest.config.ts
