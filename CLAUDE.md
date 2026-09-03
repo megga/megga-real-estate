@@ -93,7 +93,7 @@ Hosting :      Cloudflare Pages — 2 projets : megga-real-estate (megga.ch vitr
 CI/CD :        GitHub Actions → Cloudflare Pages + Supabase Edge Functions auto-deploy
 
 Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine megga.ch
-               Backend conservé : market_listings ~208k (dont ~35k flatfox actives) + flatfox-sync
+               Backend conservé : market_listings ~253k (dont ~35k flatfox actives) + flatfox-sync
                (pg_cron 04:00 UTC)
                sert uniquement le matching CRM, aucun affichage public dans cette app
 ```
@@ -541,8 +541,15 @@ Fichiers concernés : `useAdminNotifications.ts`, `useAdminLiveFeed.ts`, `useMes
 
 ### pg_cron actifs
 
-**50 jobs actifs** au 17 août 2026 (relevés dans `cron.job`) — cette section n'en listait que 2,
-et annonçait encore 41 jobs, chiffre du 29 juillet : **neuf jobs sont nés sans que ce compte bouge.**
+**51 jobs actifs** au 4 septembre 2026 (relevés dans `cron.job`) — cette section n'en listait que 2,
+et a annoncé successivement 41 jobs (chiffre du 29 juillet, alors que neuf étaient nés sans que le
+compte bouge) puis 50 (17 août). Le passage de 50 à 51 est net de trois gestes du 3 septembre :
+`visit-reminder-hourly` RETIRÉ (il lisait deux GUC inexistants et n'a jamais envoyé un rappel ;
+son doublon `visit-reminders-j1` couvrait déjà une fenêtre plus large), et deux jobs d'hygiène
+ajoutés — `pg-net-response-vacuum-hourly` (`50 * * * *`, empêche `net._http_response` de reprendre
+le gigaoctet par mois qu'un VACUUM FULL vient de rendre) et `cron-job-run-details-retention`
+(`55 3 * * *`, 30 jours ; sans elle `get_cron_health` expirait 22 fois sur 24 et l'alerting des
+crons était aveugle).
 C'est le régime de péremption propre aux prétentions de base de données — elles ne se lisent dans
 aucun fichier, donc aucun diff ne les dément, et même une relecture attentive du dépôt les laisse
 passer. Inventaire complet dans le cerveau : `megga/pg-cron`. Les plus structurants :
@@ -574,7 +581,9 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **Marketplace publique : DÉSACTIVÉE (pivot CRM-first) :**
 - `/acheter` + `/louer` (+ `/buy` `/rent` `/propriete`) → `MarketplaceDisabledRedirect` vers la vitrine `megga.ch`
-- Backend conservé intact : `market_listings` (~117k Flatfox, ~91k RealAdvisor, ~77k actives — remesuré le 17.08.2026 ; ⚠ ce point annonçait « ~90k Flatfox, ~50k active », faux DEUX fois : Flatfox est à 117k, et le 90k correspondait en réalité à RealAdvisor), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
+- Backend conservé intact : `market_listings` (~130k Flatfox, ~123k RealAdvisor, ~91k actives — **remesuré le 03.09.2026**), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
+  ⚠ **Le +32k de RealAdvisor en 17 jours n'est PAS de la collecte, c'est de la rétention subie** — ne pas le lire comme une croissance du catalogue. Le sweep de retrait est plafonné à un POURCENTAGE du vivier qu'il régule (3 % du live), donc plus on sur-détient, plus on a le droit de retirer, mais moins vite que l'arriéré ne grossit : 16 nuits `capped` d'affilée du 19.08 au 03.09. Mesuré le 03.09 : notre live valait 53 047 contre **41 369 annonces que RealAdvisor déclare** (somme des 26 cantons = total_count national, à l'unité près) — ~11 700 biens de trop, soit **un bien sur quatre servi au matching qui n'est plus en vente**. Plafond porté à 6 % le 03.09 (`app_config.realadvisor_sweep_cap_pct`), à remettre à 3 % une fois le live redescendu. Un gate empirique `id_in` sur 360 candidats donne 1,1 % de faux absents : la détection est saine, c'est le drainage qui était trop lent.
+  ⚠ Le point annonçait « ~117k Flatfox, ~91k RealAdvisor » (17.08), et avant cela « ~90k Flatfox, ~50k active », faux DEUX fois — le 90k désignait en réalité RealAdvisor. La prétention nomme désormais la source dans sa requête.
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
 **CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · wizard « Créer un bien » Sugar v2 7 étapes · fiche V4), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.

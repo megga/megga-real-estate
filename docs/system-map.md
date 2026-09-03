@@ -87,8 +87,8 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "comment fonctio
 
 SaaS immobilier suisse **AI-native, compliance-first**, recentré **CRM-first** (pivot juin 2026) :
 CRM transactionnel agent + pipeline LAB/KYC + copilote IA + console super-admin.
-Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~117k Flatfox sur ~208k
-`market_listings`, ~77k actives — remesuré le 17.08.2026 ; ce point annonçait « ~90k, ~50k active »)
+Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~130k Flatfox sur ~253k
+`market_listings`, ~91k actives — remesuré le 03.09.2026 ; ce point annonçait « ~90k, ~50k active »)
 conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 81 edge functions,
 RLS, pg_cron). L'IA est **compliance-enabling**, jamais compliance-replacing (validation
 humaine obligatoire).
@@ -397,7 +397,7 @@ Plomberie qui capture les signaux temporels (fondation de la couche v2 ; cerveau
 - **Opérations** : UPSERT (source_id UNIQUE, last_seen_at), mark removed (safety ≥80% vus avant sweep), photos → Cloudflare R2 (`photos_cf` via `photo-processor`), `quality_score`, `relevance_score` (GENERATED).
 - **Observabilité** : `flatfox_sync_runs` (status, totaux, chunks) → dashboard admin.
 
-### 🔴 Règles de perf (statement timeout 3-8s sur 208k rows) — voir CLAUDE.md §7
+### 🔴 Règles de perf (statement timeout 3-8s sur 253k rows) — voir CLAUDE.md §7
 | Règle | Pourquoi |
 |---|---|
 | **JAMAIS `count: 'exact'`** > 5k rows | seq scan → timeout. Utiliser `estimated` ou pas de count |
@@ -417,7 +417,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > `sites/_marketplace-phase-ulterieure/` depuis le pivot, a été **SUPPRIMÉ du dépôt**
 > (juillet 2026, 373 fichiers / 22 Mo). Il reste récupérable dans l'historique git
 > (commit `0b321bc5` et antérieurs) si la marketplace est un jour relancée — mais il
-> n'encombre plus l'arbre de travail. La table `market_listings` (~208k biens) **reste
+> n'encombre plus l'arbre de travail. La table `market_listings` (~253k biens) **reste
 > active** : elle nourrit le CRM (matching, estimation, stats copilote).
 
 > **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
