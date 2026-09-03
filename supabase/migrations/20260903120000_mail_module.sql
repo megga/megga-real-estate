@@ -308,15 +308,26 @@ insert into public.mail_cron_locks (job, locked_until)
 -- ── 12. Visibilité (D14) ─────────────────────────────────────────────────────
 -- SECURITY DEFINER pour que les policies des tables filles lisent mail_accounts
 -- sans dépendre de la policy de mail_accounts elle-même (pas de récursion).
+--
+-- ⛔ L'APPARTENANCE À L'AGENCE EST CONJOINTE, ET CE N'EST PAS UN DOUBLON DE
+-- `visibility` — ne pas la retirer. `visibility` dit qui voit la boîte DANS
+-- l'agence ; elle ne dit rien de l'agence du LECTEUR. Sans ce ET, la branche
+-- `owner_id = auth.uid()` est une porte de sortie qui survit au départ :
+-- `team_remove_member` (20260627120000_profiles_privilege_escalation_lockdown.sql:286)
+-- ne fait qu'un `update profiles set agency_id = null, role = 'buyer'` — la ligne
+-- profiles SURVIT, donc la clé étrangère `owner_id … on delete cascade` ne se
+-- déclenche jamais et le compte reste 'active'. `accept-team-invite/index.ts:148`
+-- réécrit ensuite `profiles.agency_id` vers une NOUVELLE agence. L'ex-membre,
+-- passé chez un concurrent, continuerait de lire les fils, les corps et les
+-- pièces de son ancienne agence — y compris tout ce que le balayage de 2 minutes
+-- ingère APRÈS son départ, `mail_accounts_due_idx` ne regardant que `status`.
 create or replace function public.mail_account_visible(p_account_id uuid)
 returns boolean language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from public.mail_accounts a
     where a.id = p_account_id
-      and (
-        (a.visibility = 'agency' and a.agency_id = public.get_my_agency_id())
-        or a.owner_id = auth.uid()
-      )
+      and a.agency_id = public.get_my_agency_id()
+      and (a.visibility = 'agency' or a.owner_id = auth.uid())
   );
 $$;
 revoke all on function public.mail_account_visible(uuid) from public, anon;
@@ -339,15 +350,22 @@ revoke all on public.mail_accounts, public.mail_oauth_states, public.mail_labels
   public.mail_threads, public.mail_messages, public.mail_attachments, public.mail_drafts,
   public.mail_contact_aliases, public.mail_cron_locks from anon, authenticated;
 
-grant select on public.mail_accounts, public.mail_threads, public.mail_messages,
+grant select on public.mail_threads, public.mail_messages,
   public.mail_attachments to authenticated;
+-- ⚠ mail_accounts en LISTE DE COLONNES. Un SELECT de table exposerait
+-- `sync_cursor` (historyId Gmail, deltaLink Graph), `imap_config` (hôte, port,
+-- utilisateur) et `vault_secret_id` — que personne ne projette : les `select('*')`
+-- des lots 1-3 sur cette table passent tous par le client service-role.
+grant select (id, agency_id, owner_id, provider, email, display_name, visibility,
+  status, last_sync_at, last_error, created_at) on public.mail_accounts to authenticated;
 grant select, insert, update, delete on public.mail_labels, public.mail_drafts,
   public.mail_contact_aliases to authenticated;
 grant update (label_id) on public.mail_threads to authenticated;
 
 drop policy if exists mail_accounts_select on public.mail_accounts;
 create policy mail_accounts_select on public.mail_accounts for select to authenticated
-  using ((visibility = 'agency' and agency_id = public.get_my_agency_id()) or owner_id = auth.uid());
+  using (agency_id = public.get_my_agency_id()
+         and (visibility = 'agency' or owner_id = auth.uid()));
 
 drop policy if exists mail_labels_all on public.mail_labels;
 create policy mail_labels_all on public.mail_labels for all to authenticated
@@ -360,7 +378,17 @@ create policy mail_threads_select on public.mail_threads for select to authentic
 drop policy if exists mail_threads_update_label on public.mail_threads;
 create policy mail_threads_update_label on public.mail_threads for update to authenticated
   using (public.mail_account_visible(account_id))
-  with check (public.mail_account_visible(account_id));
+  -- Le libellé se valide ici : la clé étrangère vers mail_labels est aveugle à
+  -- l'agence, et un PATCH sur son propre fil suffirait sinon à y coller l'id
+  -- d'un libellé d'une AUTRE agence — qui gouvernerait dès lors le champ
+  -- (`on delete set null` le viderait à distance).
+  with check (
+    public.mail_account_visible(account_id)
+    and (label_id is null or exists (
+      select 1 from public.mail_labels l
+      where l.id = label_id and l.agency_id = public.get_my_agency_id()
+    ))
+  );
 
 drop policy if exists mail_messages_select on public.mail_messages;
 create policy mail_messages_select on public.mail_messages for select to authenticated
@@ -372,13 +400,26 @@ create policy mail_attachments_select on public.mail_attachments for select to a
 
 drop policy if exists mail_drafts_own on public.mail_drafts;
 create policy mail_drafts_own on public.mail_drafts for all to authenticated
-  using (author_id = auth.uid())
-  with check (author_id = auth.uid() and public.mail_account_visible(account_id));
+  using (author_id = auth.uid() and public.mail_account_visible(account_id))
+  with check (author_id = auth.uid()
+              and agency_id = public.get_my_agency_id()
+              and public.mail_account_visible(account_id));
 
 drop policy if exists mail_contact_aliases_agency on public.mail_contact_aliases;
 create policy mail_contact_aliases_agency on public.mail_contact_aliases for all to authenticated
   using (agency_id = public.get_my_agency_id())
-  with check (agency_id = public.get_my_agency_id());
+  -- `agency_id` seul ne suffit pas : un alias de SON agence pointant vers le
+  -- contact d'une autre serait recopié tel quel sur `mail_threads.contact_id`
+  -- par l'ingestion (service-role, donc hors RLS). Le fil se lirait « rattaché »
+  -- tout en restant vide, sans la moindre erreur.
+  with check (
+    agency_id = public.get_my_agency_id()
+    and exists (
+      select 1 from public.contacts c
+      where c.id = contact_id and c.agency_id = public.get_my_agency_id()
+    )
+    and (learned_by is null or learned_by = auth.uid())
+  );
 
 -- mail_oauth_states et mail_cron_locks : RLS activée, AUCUNE policy = service_role seul.
 
@@ -424,8 +465,17 @@ language sql stable security invoker set search_path = public as $$
     and (p_label_id is null or t.label_id = p_label_id)
     and (not p_unread_only or not t.is_read)
     and (not p_att_only or t.has_attachments)
-    and (q.needle = '' or t.search_text like '%' || replace(replace(q.needle, '%', '\%'), '_', '\_') || '%')
-  order by t.last_message_at desc
+    -- ⚠ La contre-oblique s'échappe EN PREMIER : c'est le caractère d'échappement
+    -- par défaut de LIKE, et l'oublier se trompe dans les deux sens à la fois —
+    -- `'ab' like '%a\b%'` rend TRUE (un fil sans contre-oblique remonte) et
+    -- `'a\b' like '%a\b%'` rend FALSE (celui qu'on cherche disparaît).
+    and (q.needle = '' or t.search_text like
+         '%' || replace(replace(replace(q.needle, '\', '\\'), '%', '\%'), '_', '\_') || '%')
+  -- Départage stable : une première synchro écrit des fils au même horodatage,
+  -- et sans second critère Postgres peut les ordonner autrement d'une page à
+  -- l'autre — un fil vu deux fois, un autre jamais. L'index fournit toujours la
+  -- tête de tri.
+  order by t.last_message_at desc, t.id desc
   limit (select per_page from q) offset (select page * per_page from q);
 $$;
 revoke all on function public.mail_list_threads(uuid, text, uuid, text, boolean, boolean, integer, integer) from public, anon;
@@ -480,7 +530,7 @@ language sql stable security invoker set search_path = public as $$
   -- ligne entièrement nulle.
   with toks as (
     select (array_remove(
-      regexp_split_to_array(lower(regexp_replace(coalesce(p_q, ''), '[,()%*]', ' ', 'g')), '\s+'),
+      regexp_split_to_array(lower(regexp_replace(coalesce(p_q, ''), '[,()%*_\\]', ' ', 'g')), '\s+'),
       ''
     ))[1:5] as t
   )
@@ -541,6 +591,12 @@ do $$ begin
   end if;
 end $$;
 
+-- ⚠ Avec la REPLICA IDENTITY par défaut, l'ancienne ligne d'un DELETE ne porte
+-- que la clé primaire : pas d'`agency_id`, donc le filtre serveur du lot 2 jette
+-- l'événement. Or des fils disparaissent pour de bon (recomputeThread supprime un
+-- fil dont le dernier message s'est évaporé chez le fournisseur). Rejouable : SET.
+alter table public.mail_threads replica identity full;
+
 -- ── 16. Rétention : 'messaging' rejoint le seau « info > 3 ans » (D15) ───────
 -- Recopie intégrale de 20260705171000 avec UNE catégorie de plus. Sans cette
 -- ligne, les événements messaging info seraient conservés sans borne — ce qui
@@ -585,6 +641,11 @@ end;
 $$;
 
 -- ── 17. Cron : balayage toutes les 2 minutes (patron 20260803214110) ─────────
+-- La commande purge d'abord les états OAuth périmés. Ils portent un code_verifier
+-- PKCE et un login_hint (adresse) ; la callback ne fait qu'estampiller
+-- `consumed_at`, et un parcours abandonné n'est même pas estampillé — sans cette
+-- ligne la table croîtrait sans fin. Même raisonnement qu'au §16 : l'index
+-- mail_oauth_states_expires_idx disait déjà qu'une purge était prévue.
 do $$
 begin
   if not exists (select 1 from pg_extension where extname = 'pg_cron') then
@@ -598,6 +659,7 @@ begin
     'mail-sync-2min',
     '*/2 * * * *',
     $cmd$
+    delete from public.mail_oauth_states where expires_at < now() - interval '1 day';
     select net.http_post(
       url := 'https://eayczugyrvmtqnnmvjod.supabase.co/functions/v1/mail-sync',
       headers := jsonb_build_object(
