@@ -46,8 +46,18 @@
 -- (30 j → 7 j) si le temps de réponse redevient un problème.
 --
 -- 1) L'arriéré, en une passe. Ré-exécutable : un rejeu ne trouve plus rien à supprimer.
-delete from cron.job_run_details
- where coalesce(end_time, start_time) < now() - interval '30 days';
+--    ⚠ GARDÉ par l'existence du schéma `cron`, comme le `schedule` plus bas : une base de CI
+--    fraîche n'a pas pg_cron, et un `delete` NU sur `cron.job_run_details` y échoue en
+--    `42P01 relation does not exist` — ce qui fait tomber toute la suite de migrations.
+--    En PL/pgSQL l'instruction n'est analysée qu'à l'exécution, donc la branche non prise ne
+--    résout jamais le nom de la table.
+do $$
+begin
+  if exists (select 1 from pg_namespace where nspname = 'cron') then
+    delete from cron.job_run_details
+     where coalesce(end_time, start_time) < now() - interval '30 days';
+  end if;
+end $$;
 
 -- 2) L'entretien. Même montage que les autres crons du dépôt (unschedule avalé, schedule
 --    gardé par l'existence du schéma cron pour une base de CI sans pg_cron).
