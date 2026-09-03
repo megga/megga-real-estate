@@ -13,7 +13,7 @@
 
 **Architecture:** Une migration (`mail_*` + Vault + RPC + cron) ; un dossier `supabase/functions/_shared/mail/` de modules **purs et testables sous Node** (MIME, adaptateurs Gmail/Graph, ingestion, jetons) ; cinq edge functions minces (`mail-oauth`, `mail-sync`, `mail-actions`, `mail-send`, `mail-attachment`) qui n'ont que la garde, la validation et le dispatch.
 
-**Tech Stack:** Postgres 15 (RLS, Vault, pg_cron, pg_net), Deno (edge), Vitest (unit + backend contre `supabase start`).
+**Tech Stack:** Postgres **17** en local et en CI (`supabase/config.toml` `major_version = 17` — mesuré le 03.09.2026 ; le plan annonçait 15), RLS, Vault, pg_cron, pg_net ; Deno (edge) ; Vitest (unit + backend contre `supabase start`).
 
 ---
 
@@ -25,7 +25,10 @@
 4. ⛔ **Toute edge est publique** (`--no-verify-jwt`) : la garde (`requireAgentAuth` / `isServiceSecret`) vient **avant** toute lecture de configuration, et sort par `return`, jamais par `throw`.
 5. ⛔ **Service-role = pas de RLS** : chaque `account_id` venu du corps se revérifie contre `auth` (`ownerOrAgencyMember(account, ctx)`), sinon IDOR.
 6. **Migration idempotente** (`npm run lint:migrations`) ; un seul fichier pour le lot, horodaté `20260903120000`.
-7. `activity_events` : `severity` ∈ `info|warn|critical`, `category='messaging'`, `actor_kind='system'` ⇒ `actor_id` NULL.
+7. `activity_events` : `severity` ∈ `info|warn|critical`, `category='messaging'`, `actor_kind='system'` ⇒ `actor_id` NULL. ⚠ Et **`entity_id` DOIT porter le `contact_id`** : `useContactTimeline` ne filtre que sur `entity_id` (son commentaire ligne 27 promet un « OU metadata », qui n'est pas implémenté) — un événement qui ne nomme le contact que dans `metadata` n'apparaît nulle part.
+8. ⚠ **`supabase/functions/_shared/mail/` est le PREMIER dossier imbriqué** de `supabase/functions/` (mesuré le 03.09.2026 : `find … -mindepth 2 -type d` ne rend rien). Inoffensif pour `deno check` (son `find` est récursif), pour `deploy.yml` (il n'itère que `supabase/functions/*/` et exige un `index.ts`) et pour le roster (il exclut `_shared`). Mais **vitest ne le voit pas** : cf. règle 1.
+9. ⛔ **Ne jamais écrire un bloc `[functions.*]` à la main dans `supabase/config.toml`** : les lignes 482→700 sont générées et comparées texte pour texte. `node scripts/check-edge-roster.mjs --write` (cf. tâches 1.10-1.14).
+10. **Le nom de fichier de la migration doit valoir le jour du MERGE.** `deploy.yml:220` n'applique une migration que si `stamp_date >= TODAY` (UTC) et, plus bas, se contente d'un `::warning` pour celles qu'il saute : une migration datée du 03.09 fusionnée le 04.09 **ne partirait jamais en production**, toutes portes au vert. Re-dater par `git mv` avant de fusionner.
 
 ---
 
@@ -74,11 +77,26 @@
 -- Modèle   : §5.  Ce fichier est la source ; le plan est la justification.
 --
 -- IDEMPOTENT : la CI rejoue toute migration datée du jour à chaque push
--- (scripts/check-migration-idempotence.mjs). IF NOT EXISTS partout ; DROP … IF
--- EXISTS avant CREATE POLICY / TRIGGER ; contraintes dans des blocs DO.
+-- (backend.yml « Rejouer les migrations du jour », et deploy.yml à chaque
+-- déploiement). IF NOT EXISTS partout ; DROP … IF EXISTS avant CREATE POLICY /
+-- TRIGGER ; et pour les contraintes, `drop constraint if exists` AVANT chaque
+-- `add constraint`.
+-- ⚠ LE BLOC DO NE REND RIEN REJOUABLE — corrigé le 03.09.2026. Un second
+-- `alter table … add constraint` lève 42710 qu'il soit dans un DO ou non, et le
+-- linter n'y voit rien : check-migration-idempotence.mjs blanchit les régions
+-- dollar-quotées avant de scanner, et ne contrôle jamais ADD CONSTRAINT. Ce qui
+-- protège ici, c'est UNIQUEMENT la paire drop-puis-add. Ajouter une contrainte
+-- sans son `drop … if exists` passerait toutes les portes au vert et ne casserait
+-- qu'au rejeu du jour — c'est-à-dire en tuant le déploiement.
 -- ============================================================================
 
 -- ── 1. Vault : ponts service-role (patron esign_secret_*, 20260607183000) ──────
+-- ⚠ Le patron n'a que TROIS fonctions (store / read / delete) — mesuré le
+-- 03.09.2026 : `esign_secret_update` n'existe ni au dépôt ni en prod, et
+-- `vault.update_secret` n'est appelée nulle part. `mail_secret_update` est donc
+-- ÉCRITE, pas recopiée. Vérifiée en prod malgré tout : vault.update_secret a
+-- 5 paramètres dont 4 à défaut et fait `coalesce(new_name, s.name)`, donc l'appel
+-- à 2 arguments préserve le nom et la description du secret.
 -- Un client (anon/authenticated) ne peut JAMAIS lire un jeton : les quatre
 -- fonctions sont SECURITY DEFINER, search_path vide, révoquées de tout sauf
 -- service_role. mail_accounts.vault_secret_id n'est qu'un pointeur.
@@ -519,29 +537,70 @@ grant execute on function public.mail_folder_counts(uuid) to authenticated;
 create or replace function public.mail_search_contacts(p_q text)
 returns table (id uuid, first_name text, last_name text, email text, phone text)
 language sql stable security invoker set search_path = public as $$
+  -- ⚠ LES PARENTHÈSES AUTOUR DE array_remove NE SONT PAS DU STYLE. Mesuré le
+  -- 03.09.2026 avec le vrai analyseur PostgreSQL (libpg-query) : `array_remove(…)[1:5]`
+  -- rend « syntax error at or near "[" » — un appel de fonction ne se souscrit pas
+  -- directement. Et un corps `language sql` est validé À LA CRÉATION
+  -- (check_function_bodies), donc la faute aurait tué `supabase db reset`, puis
+  -- l'étape migration de deploy.yml, et avec elle le déploiement des edge functions.
+  --
+  -- ⚠ LES coalesce NON PLUS. `contacts.email` est NULLABLE (mesuré : 3 des 15
+  -- contacts vivants ont NULL) : sans coalesce, `lower(c.email) like …` rend NULL,
+  -- `bool_and` IGNORE les NULL, et le ET de jetons dégénère en OU dès qu'un seul
+  -- jeton correspond — sur les contacts sans adresse, ceux-là mêmes qu'on cherche
+  -- pour leur en attacher une. Le coalesce final rend FALSE plutôt que NULL sur une
+  -- ligne entièrement nulle.
   with toks as (
-    select array_remove(
+    select (array_remove(
       regexp_split_to_array(lower(regexp_replace(coalesce(p_q, ''), '[,()%*]', ' ', 'g')), '\s+'),
       ''
-    )[1:5] as t
+    ))[1:5] as t
   )
   select c.id, c.first_name, c.last_name, c.email, c.phone
   from public.contacts c, toks
   where c.agency_id = public.get_my_agency_id()
     and cardinality(toks.t) > 0
-    and (
+    and coalesce((
       select bool_and(
-        lower(c.first_name) like '%' || tok || '%'
-        or lower(c.last_name) like '%' || tok || '%'
-        or lower(c.email) like '%' || tok || '%'
+        lower(coalesce(c.first_name, '')) like '%' || tok || '%'
+        or lower(coalesce(c.last_name, '')) like '%' || tok || '%'
+        or lower(coalesce(c.email, '')) like '%' || tok || '%'
         or coalesce(c.phone, '') like '%' || tok || '%'
       ) from unnest(toks.t) as tok
-    )
+    ), false)
   order by c.last_name, c.first_name
   limit 10;
 $$;
 revoke all on function public.mail_search_contacts(text) from public, anon;
 grant execute on function public.mail_search_contacts(text) to authenticated;
+
+-- Rattachement automatique (D11) : la recherche d'un contact PAR ADRESSE passe par
+-- ici et non par un filtre PostgREST. Deux raisons mesurées le 03.09.2026 :
+--   1. `idx_contacts_agency_email_lower` est `btree (agency_id, lower(email))
+--      WHERE email IS NOT NULL` — une EXPRESSION. Un prédicat sur la colonne nue
+--      `email` ne peut PAS s'en servir (EXPLAIN forcé : « Index Scan using
+--      idx_contacts_agency_created » + « Filter: (email = …) »), alors que
+--      `lower(email) = any(…)` donne « Index Cond ». Ce chemin tourne à chaque
+--      message de chaque synchro, toutes les 2 minutes par compte.
+--   2. `.in('email', …)` compare EN RESPECTANT LA CASSE. Rien ne normalise
+--      `contacts.email` à l'écriture (src/hooks/useContacts.ts:126) : un contact
+--      saisi « Jean.Dupont@ex.ch » ne serait jamais rattaché à un « jean.dupont@ex.ch »
+--      entrant. Panne muette — aucune erreur, le fil reste « Adresse non rattachée »,
+--      aucun activity_events, rien sur la timeline. 0 des 15 contacts vivants porte
+--      une majuscule : le défaut n'apparaîtrait qu'au premier import CSV.
+-- PostgREST ne sait pas écrire `lower(email) in (…)` : d'où la RPC.
+-- SECURITY DEFINER + agence passée en paramètre : l'appelant est le service-role de
+-- l'ingestion, qui n'a pas d'auth.uid() — l'agence vient du compte, jamais du réseau.
+create or replace function public.mail_match_contact_by_emails(p_agency_id uuid, p_emails text[])
+returns setof uuid language sql stable security definer set search_path = '' as $$
+  select c.id
+  from public.contacts c
+  where c.agency_id = p_agency_id
+    and c.email is not null
+    and lower(c.email) = any (p_emails)   -- p_emails est DÉJÀ en minuscules (appelant)
+$$;
+revoke all on function public.mail_match_contact_by_emails(uuid, text[]) from public, anon, authenticated;
+grant execute on function public.mail_match_contact_by_emails(uuid, text[]) to service_role;
 
 -- ── 15. Realtime (fils seulement : le client invalide ses requêtes) ──────────
 do $$ begin
@@ -640,11 +699,20 @@ Attendu : `lint:migrations` sans faute ; `db reset` termine sans erreur (la clau
 
 - [ ] **Step 3 : Sonder ce que la base a réellement créé**
 
+⚠ `psql` n'est PAS sur le PATH de la machine de développement, et le dépôt évite
+délibérément d'en dépendre : `tests/backend/helpers/local-sql.ts` passe par le
+conteneur. Même chemin ici (le nom vient du `project_id` de `supabase/config.toml`) :
+
 ```bash
-psql "$(supabase status -o env | grep DB_URL | cut -d= -f2- | tr -d '"')" -c "\d public.mail_threads" | head -40
-psql "$(supabase status -o env | grep DB_URL | cut -d= -f2- | tr -d '"')" -c "select proname from pg_proc where proname like 'mail_%' order by 1"
+CONT=$(docker ps --filter name=supabase_db_ --format '{{.Names}}' | head -1)
+docker exec -i "$CONT" psql -U postgres -d postgres -c "\d public.mail_threads" | head -40
+docker exec -i "$CONT" psql -U postgres -d postgres -c "select proname from pg_proc where proname like 'mail_%' order by 1"
 ```
-Attendu : la colonne `search_text` est `generated always as … stored` ; 9 fonctions `mail_*` (4 Vault + `mail_account_visible` + `mail_list_threads` + `mail_unread_counts` + `mail_folder_counts` + `mail_search_contacts` + `mail_touch_updated_at` = 10).
+Attendu : la colonne `search_text` est `generated always as … stored` ; **11 fonctions
+`mail_*`** — 4 ponts Vault, `mail_touch_updated_at`, `mail_account_visible`,
+`mail_list_threads`, `mail_unread_counts`, `mail_folder_counts`, `mail_search_contacts`,
+`mail_match_contact_by_emails`. (Le plan annonçait « 9 » là où son énumération en donnait
+10 ; le rattachement par adresse en ajoute une onzième.)
 
 - [ ] **Step 4 : Commit**
 
@@ -2507,7 +2575,7 @@ npx vitest run supabase/functions/_shared/mail/graph.test.ts
 git add supabase/functions/_shared/mail/graph.ts supabase/functions/_shared/mail/graph.test.ts vitest.config.ts
 git commit -m "feat(messagerie): adaptateur Microsoft Graph (delta, corps, pièces, patch/move, envoi)"
 ```
-Attendu : 5 tests PASS.
+Attendu : **4** tests PASS (le spec compte 4 `it()`, pas 5).
 
 ---
 
@@ -2689,11 +2757,26 @@ export function pickContact(rows: { contact_id: string }[]): string | null {
   return ids.length === 1 ? ids[0] : null
 }
 
+/**
+ * Cherche LE contact d'une adresse, dans la fiche puis dans les alias appris.
+ *
+ * ⚠ La recherche dans `contacts` passe par la RPC `mail_match_contact_by_emails` et
+ * non par un `.in('email', …)`. Deux raisons mesurées le 03.09.2026, la première
+ * muette : (1) `.in('email', …)` compare EN RESPECTANT LA CASSE et rien ne normalise
+ * `contacts.email` à l'écriture — un contact « Jean.Dupont@ex.ch » ne serait jamais
+ * rattaché à un « jean.dupont@ex.ch » entrant, sans erreur, le fil restant « Adresse
+ * non rattachée » ; (2) l'index est `btree (agency_id, lower(email))`, une EXPRESSION,
+ * qu'un prédicat sur la colonne nue ne peut pas utiliser — et ce chemin tourne à
+ * chaque message de chaque synchro.
+ *
+ * `mail_contact_aliases`, lui, garde son filtre direct : sa colonne porte un CHECK
+ * `email = lower(email)` et son index unique est sur la colonne nue.
+ */
 async function matchContact(admin: SupabaseClient, agencyId: string, emails: string[]): Promise<string | null> {
   if (emails.length === 0) return null
   const lowered = emails.map((e) => e.toLowerCase())
-  const { data: direct } = await admin.from('contacts').select('id').eq('agency_id', agencyId).in('email', lowered)
-  const byContact = pickContact((direct ?? []).map((r: { id: string }) => ({ contact_id: r.id })))
+  const { data: direct } = await admin.rpc('mail_match_contact_by_emails', { p_agency_id: agencyId, p_emails: lowered })
+  const byContact = pickContact(((direct ?? []) as string[]).map((id) => ({ contact_id: id })))
   if (byContact) return byContact
   const { data: alias } = await admin.from('mail_contact_aliases').select('contact_id').eq('agency_id', agencyId).in('email', lowered)
   return pickContact((alias ?? []) as { contact_id: string }[])
@@ -2870,7 +2953,7 @@ npx vitest run supabase/functions/_shared/mail/ingest.test.ts
 git add supabase/functions/_shared/mail/ingest.ts supabase/functions/_shared/mail/ingest.test.ts vitest.config.ts
 git commit -m "feat(messagerie): ingestion (fils, messages, pièces, contact, audit) et changements distants"
 ```
-Attendu : 8 tests PASS.
+Attendu : **7** tests PASS (le spec compte 7 `it()`, pas 8).
 
 ---
 
@@ -3099,7 +3182,6 @@ Attendu : `deno check` sans erreur (⚠ `tsc -b` ne couvre pas ce dossier).
 //   update     → { account }               (display_name, visibility — propriétaire seul)
 // Garde : requireAgentAuth AVANT toute lecture de configuration (règle 4 du lot).
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { buildAuthorizeUrl, exchangeCode, fetchIdentity, pkceChallenge, randomToken, revokeToken, type OAuthProvider } from '../_shared/mail/oauth.ts'
 import { deleteAccountSecret, readAccountSecret, storeAccountSecret } from '../_shared/mail/secrets.ts'
@@ -3185,7 +3267,11 @@ serve(async (req: Request) => {
     }
     // Une boîte déjà connectée (même agence, même adresse) est RÉAUTORISÉE, pas dupliquée.
     const { data: existing } = await admin.from('mail_accounts').select('id, vault_secret_id')
-      .eq('agency_id', profile.agency_id).eq('provider', provider).ilike('email', identity.email).maybeSingle()
+      // ⚠ `.eq` et non `.ilike` : dans un motif LIKE, `_` et `%` sont des JOKERS —
+      // `john_doe@x.ch` apparierait `johnXdoe@x.ch`, et `.maybeSingle()` lèverait sur
+      // deux résultats. `identity.email` est déjà en minuscules (fetchIdentity) et
+      // l'index unique est sur lower(email) : l'égalité est correcte ET indexée.
+      .eq('agency_id', profile.agency_id).eq('provider', provider).eq('email', identity.email).maybeSingle()
     let accountId: string
     if (existing) {
       if (existing.vault_secret_id) await deleteAccountSecret(admin, existing.vault_secret_id).catch(() => undefined)
@@ -3216,7 +3302,13 @@ serve(async (req: Request) => {
 
     // Première synchro en arrière-plan : l'assistant affiche « Boîte connectée » sans attendre.
     const { data: account } = await admin.from('mail_accounts').select('*').eq('id', accountId).single()
-    EdgeRuntime.waitUntil(syncAccount(admin, account as MailAccountRow, cfg, 45_000))
+    // ⚠ Gardé comme le fait flatfox-sync/index.ts:768-771, et pour une raison
+    // précise : à ce point la ligne mail_accounts EST écrite et le secret EST dans
+    // Vault. Un `EdgeRuntime` absent lèverait un ReferenceError APRÈS le succès —
+    // l'assistant verrait un 500 pour une boîte pourtant connectée.
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+      EdgeRuntime.waitUntil(syncAccount(admin, account as MailAccountRow, cfg, 45_000))
+    }
     const { data: pub } = await admin.from('mail_accounts').select(PUBLIC_COLS).eq('id', accountId).single()
     return json({ account: pub })
   }
@@ -3253,7 +3345,23 @@ serve(async (req: Request) => {
 
 - [ ] **Step 2 : Déclarer la fonction**
 
-Dans `supabase/config.toml`, à la suite du dernier bloc `[functions.*]` (ordre alphabétique du roster : après `[functions.magic-link-send-email]` s'il existe, sinon en fin de section) :
+⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
+`supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
+`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` / `— fin ──`, et elle porte
+69 des 82 blocs (les 13 autres, écrits à la main avec leur justification, vivent AU-DESSUS
+du marqueur). Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` (l. 610) et
+`matching-engine` (l. 619) — donc DEDANS. Le script ne compte comme « documenté » que ce
+qui est hors marqueurs, puis régénère la région et compare le fichier **texte pour texte** :
+un bloc inséré à la main y fait rougir `npm run lint:roster`, avec un diagnostic qui ne
+nomme même pas la fonction (« ✗ supabase/config.toml a dérivé du source tree »).
+
+La façon juste — elle régénère `supabase/config.toml` ET `src/lib/edgeFunctionRoster.ts`
+en une passe :
+```bash
+node scripts/check-edge-roster.mjs --write
+npm run lint:roster    # attendu : exit 0
+```
+Le bloc produit est bien :
 ```toml
 [functions.mail-oauth]
 verify_jwt = false
@@ -3263,7 +3371,11 @@ verify_jwt = false
 
 ```bash
 deno check supabase/functions/mail-oauth/index.ts
-supabase functions serve mail-oauth --no-verify-jwt --env-file supabase/.env.local
+# ⚠ `supabase/.env.local` N'EXISTE PAS et n'est pas la convention du dépôt :
+# .gitignore:37 nomme `supabase/.env` comme le fichier que lit la CLI (--env-file).
+# Le créer au besoin (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET) ; sans lui, la
+# branche attendue de `start` est le `503 provider_not_configured` documenté.
+supabase functions serve mail-oauth --no-verify-jwt --env-file supabase/.env
 ```
 Dans un second terminal, sans jeton :
 ```bash
@@ -3297,6 +3409,7 @@ git commit -m "feat(messagerie): edge mail-oauth (start, exchange PKCE, disconne
 // = double coût fournisseur et curseurs en course. Le TTL (180 s) est le filet.
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard.ts'
@@ -3317,13 +3430,13 @@ const TARGETED_BUDGET_MS = 20_000
 const MAX_ACCOUNTS_PER_TICK = 25
 const LOCK_TTL_MS = 180_000
 
-async function acquireLock(admin: ReturnType<typeof createClient>): Promise<boolean> {
+async function acquireLock(admin: SupabaseClient): Promise<boolean> {
   const until = new Date(Date.now() + LOCK_TTL_MS).toISOString()
   const { data } = await admin.from('mail_cron_locks').update({ locked_until: until })
     .eq('job', 'mail-sync').lt('locked_until', new Date().toISOString()).select('job')
   return (data ?? []).length === 1
 }
-async function releaseLock(admin: ReturnType<typeof createClient>): Promise<void> {
+async function releaseLock(admin: SupabaseClient): Promise<void> {
   await admin.from('mail_cron_locks').update({ locked_until: new Date().toISOString() }).eq('job', 'mail-sync')
 }
 
@@ -3331,15 +3444,20 @@ serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405)
 
+  // Le client service-role est la SEULE lecture de configuration autorisée avant la
+  // garde : `isServiceSecret` en a besoin pour lire `app_config`. Les secrets des
+  // fournisseurs, eux, se lisent APRÈS — règle 4 du lot (corrigé le 03.09.2026 :
+  // la version d'origine lisait les quatre secrets et interrogeait app_config avant
+  // de refuser un appelant anonyme).
   const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
   let body: Record<string, unknown> = {}
   try { body = await req.json() } catch { /* corps vide = balayage */ }
-  const cfg = providerConfigFromEnv((k) => Deno.env.get(k))
 
   // ── Appel ciblé par un agent ───────────────────────────────────────────────
   if (typeof body.account_id === 'string') {
     const auth = await requireAgentAuth(req, corsHeaders)
     if (auth instanceof Response) return auth
+    const cfg = providerConfigFromEnv((k) => Deno.env.get(k))
     const account = await loadVisibleAccount(auth.supabase, body.account_id, { userId: auth.user.id, agencyId: auth.profile.agency_id })
     if (!account) return json({ error: 'not_found' }, 404)
     if (account.status !== 'active') return json({ error: 'account_not_active', status: account.status }, 409)
@@ -3349,6 +3467,7 @@ serve(async (req: Request) => {
 
   // ── Balayage cron ──────────────────────────────────────────────────────────
   if (!(await isServiceSecret(admin, req))) return json({ error: 'unauthorized' }, 401)
+  const cfg = providerConfigFromEnv((k) => Deno.env.get(k))
   if (!(await acquireLock(admin))) return json({ ok: true, skipped: 'locked' })
   const started = Date.now()
   const results: Record<string, unknown>[] = []
@@ -3370,7 +3489,23 @@ serve(async (req: Request) => {
 
 - [ ] **Step 2 : Déclarer, vérifier, commit**
 
-`supabase/config.toml` :
+⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
+`supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
+`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` / `— fin ──`, et elle porte
+69 des 82 blocs (les 13 autres, écrits à la main avec leur justification, vivent AU-DESSUS
+du marqueur). Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` (l. 610) et
+`matching-engine` (l. 619) — donc DEDANS. Le script ne compte comme « documenté » que ce
+qui est hors marqueurs, puis régénère la région et compare le fichier **texte pour texte** :
+un bloc inséré à la main y fait rougir `npm run lint:roster`, avec un diagnostic qui ne
+nomme même pas la fonction (« ✗ supabase/config.toml a dérivé du source tree »).
+
+La façon juste — elle régénère `supabase/config.toml` ET `src/lib/edgeFunctionRoster.ts`
+en une passe :
+```bash
+node scripts/check-edge-roster.mjs --write
+npm run lint:roster    # attendu : exit 0
+```
+Le bloc produit est bien :
 ```toml
 [functions.mail-sync]
 verify_jwt = false
@@ -3521,7 +3656,23 @@ serve(async (req: Request) => {
 
 - [ ] **Step 2 : Déclarer, vérifier, commit**
 
-`supabase/config.toml` :
+⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
+`supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
+`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` / `— fin ──`, et elle porte
+69 des 82 blocs (les 13 autres, écrits à la main avec leur justification, vivent AU-DESSUS
+du marqueur). Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` (l. 610) et
+`matching-engine` (l. 619) — donc DEDANS. Le script ne compte comme « documenté » que ce
+qui est hors marqueurs, puis régénère la région et compare le fichier **texte pour texte** :
+un bloc inséré à la main y fait rougir `npm run lint:roster`, avec un diagnostic qui ne
+nomme même pas la fonction (« ✗ supabase/config.toml a dérivé du source tree »).
+
+La façon juste — elle régénère `supabase/config.toml` ET `src/lib/edgeFunctionRoster.ts`
+en une passe :
+```bash
+node scripts/check-edge-roster.mjs --write
+npm run lint:roster    # attendu : exit 0
+```
+Le bloc produit est bien :
 ```toml
 [functions.mail-actions]
 verify_jwt = false
@@ -3689,7 +3840,10 @@ serve(async (req: Request) => {
       localMessageId = m?.id ?? null
       await admin.from('mail_threads').update({ last_message_at: new Date().toISOString(), last_outbound_at: new Date().toISOString(), snippet: text.slice(0, 160) }).eq('id', threadId)
       // Le compteur et les dates viennent des messages : la ligne provisoire compte déjà.
-      await recomputeThread(admin, threadId)
+      // ⚠ `threadId` est `string | null` ici pour TypeScript (il vient de `original?.thread_id`) :
+      // sans cette garde, `deno check` rend TS2345 et l'étape CI « Type-check Edge Functions »,
+      // déclarée bloquante, rougit.
+      if (threadId) await recomputeThread(admin, threadId)
     } else {
       return json({ error: 'provider_not_supported' }, 501)
     }
@@ -3713,7 +3867,23 @@ serve(async (req: Request) => {
 
 - [ ] **Step 2 : Déclarer, vérifier, commit**
 
-`supabase/config.toml` :
+⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
+`supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
+`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` / `— fin ──`, et elle porte
+69 des 82 blocs (les 13 autres, écrits à la main avec leur justification, vivent AU-DESSUS
+du marqueur). Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` (l. 610) et
+`matching-engine` (l. 619) — donc DEDANS. Le script ne compte comme « documenté » que ce
+qui est hors marqueurs, puis régénère la région et compare le fichier **texte pour texte** :
+un bloc inséré à la main y fait rougir `npm run lint:roster`, avec un diagnostic qui ne
+nomme même pas la fonction (« ✗ supabase/config.toml a dérivé du source tree »).
+
+La façon juste — elle régénère `supabase/config.toml` ET `src/lib/edgeFunctionRoster.ts`
+en une passe :
+```bash
+node scripts/check-edge-roster.mjs --write
+npm run lint:roster    # attendu : exit 0
+```
+Le bloc produit est bien :
 ```toml
 [functions.mail-send]
 verify_jwt = false
@@ -3742,6 +3912,7 @@ git commit -m "feat(messagerie): edge mail-send (nouveau, réponse, transfert ; 
 //                                      → copie dans le bucket `documents` + ligne `documents`
 //                                        (contact_id, sha256), mail_attachments.document_id posé.
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { accountVisibleTo, providerConfigFromEnv } from '../_shared/mail/guard.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
@@ -3767,7 +3938,7 @@ const CATEGORY_BY_TYPE: Record<string, string> = { piece_identite: 'identity', j
 
 interface AttRow { id: string; message_id: string; account_id: string; agency_id: string; provider_attachment_id: string; filename: string; mime_type: string; size_bytes: number; document_id: string | null }
 
-async function loadAttachment(admin: ReturnType<typeof import('https://esm.sh/@supabase/supabase-js@2').createClient>, id: string, ctx: { userId: string; agencyId: string }) {
+async function loadAttachment(admin: SupabaseClient, id: string, ctx: { userId: string; agencyId: string }) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null
   const { data: att } = await admin.from('mail_attachments').select('*').eq('id', id).maybeSingle()
   if (!att) return null
@@ -3777,7 +3948,7 @@ async function loadAttachment(admin: ReturnType<typeof import('https://esm.sh/@s
   return { att: att as AttRow, account: account as MailAccountRow, providerMessageId: msg!.provider_message_id as string }
 }
 
-async function fetchBytes(admin: Parameters<typeof loadAttachment>[0], a: NonNullable<Awaited<ReturnType<typeof loadAttachment>>>): Promise<Uint8Array> {
+async function fetchBytes(admin: SupabaseClient, a: NonNullable<Awaited<ReturnType<typeof loadAttachment>>>): Promise<Uint8Array> {
   const cfg = providerConfigFromEnv((k) => Deno.env.get(k))
   const token = await getValidAccessToken(admin, a.account, a.account.provider === 'gmail' ? cfg.gmail : cfg.outlook)
   if (a.account.provider === 'gmail') return gmailAttachment(token, a.providerMessageId, a.att.provider_attachment_id)
@@ -3861,7 +4032,23 @@ serve(async (req: Request) => {
 
 - [ ] **Step 2 : Déclarer, vérifier, commit**
 
-`supabase/config.toml` :
+⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
+`supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
+`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` / `— fin ──`, et elle porte
+69 des 82 blocs (les 13 autres, écrits à la main avec leur justification, vivent AU-DESSUS
+du marqueur). Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` (l. 610) et
+`matching-engine` (l. 619) — donc DEDANS. Le script ne compte comme « documenté » que ce
+qui est hors marqueurs, puis régénère la région et compare le fichier **texte pour texte** :
+un bloc inséré à la main y fait rougir `npm run lint:roster`, avec un diagnostic qui ne
+nomme même pas la fonction (« ✗ supabase/config.toml a dérivé du source tree »).
+
+La façon juste — elle régénère `supabase/config.toml` ET `src/lib/edgeFunctionRoster.ts`
+en une passe :
+```bash
+node scripts/check-edge-roster.mjs --write
+npm run lint:roster    # attendu : exit 0
+```
+Le bloc produit est bien :
 ```toml
 [functions.mail-attachment]
 verify_jwt = false
@@ -3996,7 +4183,12 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
 ```
 
 ```bash
-supabase functions serve --no-verify-jwt --env-file supabase/.env.local
+# ⚠ NE PAS lancer `functions serve` ici : c'est un processus BLOQUANT au premier plan,
+# la ligne suivante ne s'exécuterait jamais. Et ce n'est pas ainsi que le dépôt sert
+# ses edges aux tests — backend.yml fait `supabase start` en gardant `edge-runtime`,
+# qui sert supabase/functions/ tout seul. (`supabase/.env.local` n'existe pas non plus :
+# la convention est `supabase/.env`, cf. .gitignore:37.)
+supabase start   # déjà démarré = sans effet
 npm run test:backend -- tests/backend/mail-edges.spec.ts tests/backend/mail-rls.spec.ts
 ```
 Attendu : 15 tests verts (6 + 9).
