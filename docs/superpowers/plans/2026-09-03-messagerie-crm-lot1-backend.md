@@ -3647,7 +3647,7 @@ git commit -m "feat(messagerie): edge mail-sync (balayage cron verrouillé, sync
 - Create: `supabase/functions/mail-actions/index.ts`
 - Modify: `supabase/config.toml`
 
-- [ ] **Step 1 : Écrire l'edge**
+- [x] **Step 1 : Écrire l'edge**
 
 ```ts
 // supabase/functions/mail-actions/index.ts
@@ -3777,7 +3777,7 @@ serve(async (req: Request) => {
 })
 ```
 
-- [ ] **Step 2 : Déclarer, vérifier, commit**
+- [x] **Step 2 : Déclarer, vérifier, commit**
 
 ⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
 `supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
@@ -3802,7 +3802,7 @@ verify_jwt = false
 ```
 ```bash
 deno check supabase/functions/mail-actions/index.ts
-git add supabase/functions/mail-actions/index.ts supabase/config.toml
+git add supabase/functions/mail-actions/index.ts supabase/config.toml src/lib/edgeFunctionRoster.ts
 git commit -m "feat(messagerie): edge mail-actions (lu, étoile, archive, corbeille, rattachement, sync_now)"
 ```
 

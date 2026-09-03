@@ -56,6 +56,7 @@ export const EDGE_FUNCTION_ROSTER = [
   'magic-link-get',
   'magic-link-send-email',
   'magic-link-upload',
+  'mail-actions',
   'mail-oauth',
   'mail-sync',
   'market-scraper',
