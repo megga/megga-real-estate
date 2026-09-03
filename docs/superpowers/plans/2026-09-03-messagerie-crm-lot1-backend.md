@@ -2673,7 +2673,7 @@ Attendu : **4** tests PASS (le spec compte 4 `it()`, pas 5).
 - Test: `supabase/functions/_shared/mail/ingest.test.ts`
 - Modify: `vitest.config.ts`
 
-- [ ] **Step 1 : Test des parties pures (rouge)**
+- [x] **Step 1 : Test des parties pures (rouge)**
 
 ```ts
 // supabase/functions/_shared/mail/ingest.test.ts
@@ -2753,7 +2753,7 @@ describe('capHtml', () => {
 
 Ajouter `'supabase/functions/_shared/mail/ingest.test.ts',` à `vitest.config.ts` ; lancer → FAIL.
 
-- [ ] **Step 2 : Implémentation**
+- [x] **Step 2 : Implémentation**
 
 ```ts
 // supabase/functions/_shared/mail/ingest.ts
@@ -3033,7 +3033,7 @@ export async function linkThreadToContact(admin: SupabaseClient, account: MailAc
 }
 ```
 
-- [ ] **Step 3 : Vert, commit**
+- [x] **Step 3 : Vert, commit**
 
 ```bash
 npx vitest run supabase/functions/_shared/mail/ingest.test.ts

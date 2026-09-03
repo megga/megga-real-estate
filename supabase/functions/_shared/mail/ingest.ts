@@ -1,0 +1,275 @@
+// supabase/functions/_shared/mail/ingest.ts
+// Écrit ce que les adaptateurs ont lu : fils, messages, pièces (métadonnées),
+// rattachement au contact (D11), événement d'audit (timeline). Service-role :
+// TOUT est filtré par account.agency_id, jamais par une valeur venue du réseau.
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import type { MailAccountRow, MailAddress, NormalizedMessage, RemoteChange } from './types.ts'
+
+export const HTML_CAP = 512 * 1024
+
+export interface ThreadRow {
+  id: string
+  account_id: string
+  subject: string | null
+  snippet: string | null
+  participants: MailAddress[]
+  from_name: string | null
+  from_email: string | null
+  last_message_at: string
+  last_inbound_at: string | null
+  last_outbound_at: string | null
+  message_count: number
+  has_attachments: boolean
+  is_read: boolean
+  is_starred: boolean
+  is_archived: boolean
+  is_trashed: boolean
+  label_id: string | null
+  contact_id: string | null
+}
+export type ThreadPatch = Omit<ThreadRow, 'id' | 'account_id' | 'label_id' | 'contact_id'>
+
+export function externalParticipants(m: NormalizedMessage, boxEmail: string): MailAddress[] {
+  const box = boxEmail.toLowerCase()
+  const seen = new Set<string>()
+  const out: MailAddress[] = []
+  for (const a of [m.from, ...m.to, ...m.cc]) {
+    const e = a.email.toLowerCase()
+    if (!e || e === box || seen.has(e)) continue
+    seen.add(e)
+    out.push({ name: a.name, email: e })
+  }
+  return out
+}
+
+export function capHtml(html: string | null): { html: string | null; truncated: boolean } {
+  if (!html) return { html: null, truncated: false }
+  return html.length > HTML_CAP ? { html: html.slice(0, HTML_CAP), truncated: true } : { html, truncated: false }
+}
+
+/** Dérive l'état du fil après ce message. `isNew` = le message n'était pas connu. */
+export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessage, boxEmail: string, isNew: boolean): ThreadPatch {
+  const parts = externalParticipants(m, boxEmail)
+  const newer = !existing || m.sentAt >= existing.last_message_at
+  const mergedParticipants = (() => {
+    const acc: MailAddress[] = [...(existing?.participants ?? [])]
+    for (const p of parts) if (!acc.some((x) => x.email === p.email)) acc.push(p)
+    return acc.slice(0, 8)
+  })()
+  const inboundSender = m.direction === 'inbound' ? m.from : null
+  const from = inboundSender && (newer || !existing?.from_email) ? inboundSender : (existing ? { name: existing.from_name, email: existing.from_email ?? '' } : (parts[0] ?? { name: null, email: '' }))
+  const latestInbound = m.direction === 'inbound' && newer
+  return {
+    subject: existing?.subject ?? m.subject,
+    snippet: newer ? m.snippet : (existing?.snippet ?? m.snippet),
+    participants: mergedParticipants,
+    from_name: from.name,
+    from_email: from.email || null,
+    last_message_at: newer ? m.sentAt : existing!.last_message_at,
+    last_inbound_at: m.direction === 'inbound'
+      ? (existing?.last_inbound_at && existing.last_inbound_at > m.sentAt ? existing.last_inbound_at : m.sentAt)
+      : (existing?.last_inbound_at ?? null),
+    last_outbound_at: m.direction === 'outbound'
+      ? (existing?.last_outbound_at && existing.last_outbound_at > m.sentAt ? existing.last_outbound_at : m.sentAt)
+      : (existing?.last_outbound_at ?? null),
+    message_count: (existing?.message_count ?? 0) + (isNew ? 1 : 0),
+    has_attachments: (existing?.has_attachments ?? false) || m.attachments.some((a) => !a.isInline),
+    is_read: (existing?.is_read ?? true) && m.isRead,
+    is_starred: (existing?.is_starred ?? false) || m.isStarred,
+    is_archived: latestInbound ? (!m.inInbox && !m.isTrashed) : (existing?.is_archived ?? false),
+    is_trashed: newer ? m.isTrashed : (existing?.is_trashed ?? false),
+  }
+}
+
+export function pickContact(rows: { contact_id: string }[]): string | null {
+  const ids = Array.from(new Set(rows.map((r) => r.contact_id)))
+  return ids.length === 1 ? ids[0] : null
+}
+
+/**
+ * Cherche LE contact d'une adresse, dans la fiche puis dans les alias appris.
+ *
+ * ⚠ La recherche dans `contacts` passe par la RPC `mail_match_contact_by_emails` et
+ * non par un `.in('email', …)`. Deux raisons mesurées le 03.09.2026, la première
+ * muette : (1) `.in('email', …)` compare EN RESPECTANT LA CASSE et rien ne normalise
+ * `contacts.email` à l'écriture — un contact « Jean.Dupont@ex.ch » ne serait jamais
+ * rattaché à un « jean.dupont@ex.ch » entrant, sans erreur, le fil restant « Adresse
+ * non rattachée » ; (2) l'index est `btree (agency_id, lower(email))`, une EXPRESSION,
+ * qu'un prédicat sur la colonne nue ne peut pas utiliser — et ce chemin tourne à
+ * chaque message de chaque synchro.
+ *
+ * `mail_contact_aliases`, lui, garde son filtre direct : sa colonne porte un CHECK
+ * `email = lower(email)` et son index unique est sur la colonne nue.
+ */
+async function matchContact(admin: SupabaseClient, agencyId: string, emails: string[]): Promise<string | null> {
+  if (emails.length === 0) return null
+  const lowered = emails.map((e) => e.toLowerCase())
+  const { data: direct } = await admin.rpc('mail_match_contact_by_emails', { p_agency_id: agencyId, p_emails: lowered })
+  const byContact = pickContact(((direct ?? []) as string[]).map((id) => ({ contact_id: id })))
+  if (byContact) return byContact
+  const { data: alias } = await admin.from('mail_contact_aliases').select('contact_id').eq('agency_id', agencyId).in('email', lowered)
+  return pickContact((alias ?? []) as { contact_id: string }[])
+}
+
+async function audit(admin: SupabaseClient, account: MailAccountRow, action: 'email_received' | 'email_sent', threadId: string, messageId: string, contactId: string, m: NormalizedMessage): Promise<void> {
+  const { error } = await admin.from('activity_events').insert({
+    agency_id: account.agency_id,
+    actor_id: null,
+    actor_kind: 'system',
+    action,
+    category: 'messaging',
+    severity: 'info',
+    entity_type: 'contact',
+    entity_id: contactId,
+    object_label: m.subject || '(sans objet)',
+    metadata: { thread_id: threadId, message_id: messageId, account_id: account.id, from: m.from.email, to: m.to.map((a) => a.email) },
+  })
+  if (error) console.error('[mail ingest] activity_events refused', error.message)
+}
+
+export interface IngestOptions {
+  /** true = ne journalise pas (mail-send écrit lui-même l'événement avec l'acteur). */
+  skipAudit?: boolean
+}
+
+/** Ingère des messages normalisés (idempotent sur (account_id, provider_message_id)). */
+export async function ingestMessages(admin: SupabaseClient, account: MailAccountRow, msgs: NormalizedMessage[], opts: IngestOptions = {}): Promise<{ inserted: number; updated: number }> {
+  let inserted = 0
+  let updated = 0
+  for (const m of msgs) {
+    if (m.isDraft) continue
+
+    // Message déjà connu ? (ou copie « Envoyés » d'un envoi CRM en attente : pending:<Message-ID>)
+    const { data: known } = await admin.from('mail_messages')
+      .select('id, thread_id, provider_message_id')
+      .eq('account_id', account.id)
+      .or(`provider_message_id.eq.${m.providerMessageId}${m.rfc822MessageId ? `,and(provider_message_id.eq.pending:${m.rfc822MessageId})` : ''}`)
+      .limit(1).maybeSingle()
+    const isNew = !known
+
+    if (known && known.provider_message_id.startsWith('pending:')) {
+      // Copie « Envoyés » d'un envoi CRM (Graph) : le fil provisoire prend l'id de
+      // conversation réel s'il n'existe pas encore sous ce nom.
+      const { data: real } = await admin.from('mail_threads').select('id').eq('account_id', account.id).eq('provider_thread_id', m.providerThreadId).maybeSingle()
+      if (!real) await admin.from('mail_threads').update({ provider_thread_id: m.providerThreadId }).eq('id', known.thread_id)
+    }
+
+    // Fil
+    const { data: existing } = await admin.from('mail_threads').select('*').eq('account_id', account.id).eq('provider_thread_id', m.providerThreadId).maybeSingle()
+    const patch = deriveThreadPatch((existing as ThreadRow | null) ?? null, m, account.email, isNew)
+    let threadId: string
+    let contactId: string | null = existing?.contact_id ?? null
+    if (contactId === null) contactId = await matchContact(admin, account.agency_id, externalParticipants(m, account.email).map((a) => a.email))
+    if (existing) {
+      threadId = existing.id
+      const { error } = await admin.from('mail_threads').update({ ...patch, contact_id: contactId }).eq('id', threadId)
+      if (error) throw new Error(`thread update: ${error.message}`)
+    } else {
+      const { data: t, error } = await admin.from('mail_threads').insert({
+        account_id: account.id, agency_id: account.agency_id, provider_thread_id: m.providerThreadId, ...patch, contact_id: contactId,
+      }).select('id').single()
+      if (error) throw new Error(`thread insert: ${error.message}`)
+      threadId = t.id
+    }
+
+    // Message
+    const { html, truncated } = capHtml(m.bodyHtml)
+    const row = {
+      thread_id: threadId, account_id: account.id, agency_id: account.agency_id,
+      provider_message_id: m.providerMessageId, rfc822_message_id: m.rfc822MessageId, in_reply_to: m.inReplyTo,
+      direction: m.direction, from_name: m.from.name, from_email: m.from.email,
+      to: m.to, cc: m.cc, bcc: m.bcc, reply_to: m.replyTo, subject: m.subject, snippet: m.snippet,
+      body_text: m.bodyText, body_html: html, body_truncated: truncated, sent_at: m.sentAt,
+      is_read: m.isRead, has_attachments: m.attachments.some((a) => !a.isInline), provider_labels: m.providerLabels,
+      contact_id: contactId,
+    }
+    let messageId: string
+    if (known) {
+      const { error } = await admin.from('mail_messages').update(row).eq('id', known.id)
+      if (error) throw new Error(`message update: ${error.message}`)
+      messageId = known.id
+      updated++
+    } else {
+      const { data: ins, error } = await admin.from('mail_messages').insert(row).select('id').single()
+      if (error) throw new Error(`message insert: ${error.message}`)
+      messageId = ins.id
+      inserted++
+    }
+
+    // Pièces (remplacement intégral : la liste du fournisseur fait foi)
+    await admin.from('mail_attachments').delete().eq('message_id', messageId)
+    if (m.attachments.length) {
+      const { error } = await admin.from('mail_attachments').insert(m.attachments.map((a) => ({
+        message_id: messageId, account_id: account.id, agency_id: account.agency_id,
+        provider_attachment_id: a.providerAttachmentId, filename: a.filename, mime_type: a.mimeType,
+        size_bytes: a.sizeBytes, is_inline: a.isInline, content_id: a.contentId,
+      })))
+      if (error) throw new Error(`attachments insert: ${error.message}`)
+    }
+
+    if (isNew && contactId && !opts.skipAudit) {
+      await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, messageId, contactId, m)
+    }
+  }
+  return { inserted, updated }
+}
+
+/** Recalcule les agrégats d'un fil depuis ses messages ; supprime le fil s'il est vide. */
+export async function recomputeThread(admin: SupabaseClient, threadId: string): Promise<void> {
+  const { data: msgs } = await admin.from('mail_messages')
+    .select('sent_at, direction, is_read, has_attachments, snippet')
+    .eq('thread_id', threadId).order('sent_at', { ascending: true })
+  if (!msgs || msgs.length === 0) {
+    await admin.from('mail_threads').delete().eq('id', threadId)
+    return
+  }
+  const last = msgs[msgs.length - 1]
+  const inbound = msgs.filter((x) => x.direction === 'inbound')
+  const outbound = msgs.filter((x) => x.direction === 'outbound')
+  await admin.from('mail_threads').update({
+    message_count: msgs.length,
+    last_message_at: last.sent_at,
+    snippet: last.snippet,
+    last_inbound_at: inbound.length ? inbound[inbound.length - 1].sent_at : null,
+    last_outbound_at: outbound.length ? outbound[outbound.length - 1].sent_at : null,
+    has_attachments: msgs.some((x) => x.has_attachments),
+    is_read: msgs.every((x) => x.is_read),
+  }).eq('id', threadId)
+}
+
+/** Applique les gestes faits chez le fournisseur (lu, étoile, archive, corbeille, suppression). */
+export async function applyRemoteChanges(admin: SupabaseClient, account: MailAccountRow, changes: RemoteChange[]): Promise<number> {
+  let applied = 0
+  for (const c of changes) {
+    const { data: msg } = await admin.from('mail_messages').select('id, thread_id, direction')
+      .eq('account_id', account.id).eq('provider_message_id', c.providerMessageId).maybeSingle()
+    if (!msg) continue
+    if (c.kind === 'message_deleted') {
+      await admin.from('mail_messages').delete().eq('id', msg.id)
+      await recomputeThread(admin, msg.thread_id)
+      applied++
+      continue
+    }
+    if (c.isRead !== undefined) await admin.from('mail_messages').update({ is_read: c.isRead }).eq('id', msg.id)
+    const patch: Record<string, unknown> = {}
+    if (c.isStarred !== undefined) patch.is_starred = c.isStarred
+    if (c.isTrashed !== undefined) patch.is_trashed = c.isTrashed
+    if (c.inInbox !== undefined && msg.direction === 'inbound') patch.is_archived = !c.inInbox && !(c.isTrashed ?? false)
+    if (Object.keys(patch).length) await admin.from('mail_threads').update(patch).eq('id', msg.thread_id)
+    if (c.isRead !== undefined) await recomputeThread(admin, msg.thread_id)
+    applied++
+  }
+  return applied
+}
+
+/** Apprend un alias et rattache le fil (modale « Rapprocher l'adresse »). */
+export async function linkThreadToContact(admin: SupabaseClient, account: MailAccountRow, threadId: string, contactId: string, email: string, learnedBy: string): Promise<void> {
+  const { data: contact } = await admin.from('contacts').select('id').eq('id', contactId).eq('agency_id', account.agency_id).maybeSingle()
+  if (!contact) throw new Error('contact_not_in_agency')
+  await admin.from('mail_contact_aliases').upsert(
+    { agency_id: account.agency_id, email: email.toLowerCase(), contact_id: contactId, learned_by: learnedBy },
+    { onConflict: 'agency_id,email', ignoreDuplicates: false },
+  )
+  await admin.from('mail_threads').update({ contact_id: contactId }).eq('id', threadId).eq('account_id', account.id)
+  await admin.from('mail_messages').update({ contact_id: contactId }).eq('thread_id', threadId).is('contact_id', null)
+}
