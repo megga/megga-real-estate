@@ -3052,7 +3052,7 @@ Attendu : **7** tests PASS (le spec compte 7 `it()`, pas 8).
 
 Pas de test unitaire dédié : `sync.ts` n'est que de l'assemblage des modules testés (1.5-1.8) ; il est éprouvé par `mail-edges.spec.ts` (1.15) et par l'épreuve §7.4 du maître.
 
-- [ ] **Step 1 : `guard.ts`**
+- [x] **Step 1 : `guard.ts`**
 
 ```ts
 // supabase/functions/_shared/mail/guard.ts
@@ -3066,8 +3066,19 @@ import type { OAuthClientConfig } from './secrets.ts'
 
 export interface CallerCtx { userId: string; agencyId: string }
 
+// ⛔ Jumelle TypeScript de `mail_account_visible` (20260903120000_mail_module.sql) :
+// les deux doivent dire la même chose, et ne jamais dériver. L'appartenance à l'agence
+// est CONJOINTE ; `visibility` ne dit que qui voit la boîte DANS l'agence, jamais de
+// quelle agence est le LECTEUR. En disjonction, `owner_id === ctx.userId` serait une
+// porte qui survit au départ : `team_remove_member`
+// (20260627120000_profiles_privilege_escalation_lockdown.sql:286) ne fait qu'un
+// `update profiles set agency_id = null, role = 'buyer'` — la ligne profiles SURVIT,
+// donc le `on delete cascade` d'`owner_id` ne se déclenche jamais et le compte reste
+// 'active' — puis `accept-team-invite/index.ts:148` réécrit `profiles.agency_id` vers
+// une NOUVELLE agence. L'ex-membre, passé chez un concurrent, garderait la lecture,
+// l'envoi et les pièces jointes de la boîte de son ancienne agence, par tous les edges.
 export function accountVisibleTo(account: Pick<MailAccountRow, 'owner_id' | 'agency_id' | 'visibility'>, ctx: CallerCtx): boolean {
-  return account.owner_id === ctx.userId || (account.visibility === 'agency' && account.agency_id === ctx.agencyId)
+  return account.agency_id === ctx.agencyId && (account.visibility === 'agency' || account.owner_id === ctx.userId)
 }
 
 /** Charge le compte si l'appelant a le droit de le voir, sinon null. */
@@ -3095,7 +3106,22 @@ export function redirectUriFor(origin: string): string | null {
 }
 ```
 
-- [ ] **Step 2 : `sync.ts`**
+⚠ **Ce bloc ne passe pas seul : `tests/unit/app-url-unique.spec.ts` rougit dessus.** Mesuré le
+03.09.2026 en lançant la suite complète — `supabase/functions/_shared/mail/guard.ts:46`, le
+littéral `https://app.megga.ch` de `MAIL_OAUTH_ORIGINS`. La garde interdit cette adresse dans
+tout code de `supabase/functions/` hors `_shared/app-url.ts`.
+
+Ici c'est la garde qui doit céder, et elle prévoit elle-même comment : une entrée dans
+`EXEMPTES` **avec sa raison**. `MAIL_OAUTH_ORIGINS` n'est pas une adresse *construite* mais une
+liste blanche d'origines *acceptées* — `redirectUriFor` bâtit son URI sur l'origine de
+l'APPELANT, une fois celle-ci trouvée dans la liste. La faire dériver d'`appBaseUrl()` la
+rendrait pilotable par `MEGGA_APP_URL`, or cette URI doit correspondre caractère pour caractère
+à celle enregistrée chez Google et chez Microsoft : poser le réglage casserait la connexion des
+boîtes (`redirect_uri_mismatch`). Et la panne que la garde redoute — muette, découverte au
+changement de domaine — n'est pas possible sur une liste blanche : une origine absente refuse la
+pop-up sur-le-champ et à l'écran. L'exemption est donc posée dans le spec, avec ce motif écrit.
+
+- [x] **Step 2 : `sync.ts`**
 
 ```ts
 // supabase/functions/_shared/mail/sync.ts
@@ -3241,7 +3267,7 @@ async function syncGraph(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
 }
 ```
 
-- [ ] **Step 3 : Type-check Deno et commit**
+- [x] **Step 3 : Type-check Deno et commit**
 
 ```bash
 deno check supabase/functions/_shared/mail/sync.ts supabase/functions/_shared/mail/guard.ts
