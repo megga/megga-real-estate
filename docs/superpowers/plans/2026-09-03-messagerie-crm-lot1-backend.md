@@ -2343,7 +2343,7 @@ Faits Graph qui décident du code (vérifiés dans la référence v1.0) :
 - Le corps HTML et les en-têtes (`In-Reply-To`, `References`) demandent un second appel `GET /me/messages/{id}?$select=body,internetMessageHeaders`.
 - `internetMessageId` est **modifiable sur un brouillon** : on le pose à la création pour rapprocher le message envoyé quand `sentitems` le rend (`pending:` → id réel).
 
-- [ ] **Step 1 : Test (rouge)**
+- [x] **Step 1 : Test (rouge)**
 
 ```ts
 // supabase/functions/_shared/mail/graph.test.ts
@@ -2425,7 +2425,7 @@ describe('graphDelta', () => {
 
 Ajouter `'supabase/functions/_shared/mail/graph.test.ts',` à `vitest.config.ts` ; lancer → FAIL.
 
-- [ ] **Step 2 : Implémentation**
+- [x] **Step 2 : Implémentation**
 
 ```ts
 // supabase/functions/_shared/mail/graph.ts
@@ -2655,7 +2655,7 @@ export function deltaToChanges(items: GraphMessage[], known: Set<string>, folder
 }
 ```
 
-- [ ] **Step 3 : Vert, commit**
+- [x] **Step 3 : Vert, commit**
 
 ```bash
 npx vitest run supabase/functions/_shared/mail/graph.test.ts
