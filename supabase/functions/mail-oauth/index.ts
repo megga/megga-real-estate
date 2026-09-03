@@ -98,7 +98,14 @@ serve(async (req: Request) => {
       .eq('agency_id', profile.agency_id).eq('provider', provider).eq('email', identity.email).maybeSingle()
     let accountId: string
     if (existing) {
-      if (existing.vault_secret_id) await deleteAccountSecret(admin, existing.vault_secret_id).catch(() => undefined)
+      // ⚠ Une RÉAUTORISATION n'a pas à échouer parce que l'ANCIEN secret ne s'efface
+      // pas : le nouveau va le remplacer dans la ligne, la boîte doit repartir. Mais
+      // l'ancien devient alors un secret orphelin dans Vault — c'est écrit, ça ne
+      // disparaît plus en silence à chaque reconnexion.
+      if (existing.vault_secret_id) {
+        await deleteAccountSecret(admin, existing.vault_secret_id)
+          .catch((e) => console.error(`[mail-oauth] ancien secret ${existing.vault_secret_id} ORPHELIN (compte ${existing.id}):`, e instanceof Error ? e.message : String(e)))
+      }
       const vaultId = await storeAccountSecret(admin, `mail:${provider}:${identity.email}`, secret)
       const { error } = await admin.from('mail_accounts').update({
         vault_secret_id: vaultId, status: 'active', last_error: null, owner_id: user.id,
@@ -112,7 +119,12 @@ serve(async (req: Request) => {
         agency_id: profile.agency_id, owner_id: user.id, provider, email: identity.email, display_name: identity.name,
         visibility: st.visibility, status: 'active', vault_secret_id: vaultId,
       }).select('id').single()
-      if (error) { await deleteAccountSecret(admin, vaultId).catch(() => undefined); return json({ error: 'account_insert_failed', detail: error.message }, 500) }
+      if (error) {
+        // Retour arrière : sans ligne pour le porter, le secret n'aurait plus de nom.
+        await deleteAccountSecret(admin, vaultId)
+          .catch((e) => console.error(`[mail-oauth] secret ${vaultId} ORPHELIN après échec d'insertion:`, e instanceof Error ? e.message : String(e)))
+        return json({ error: 'account_insert_failed', detail: error.message }, 500)
+      }
       accountId = ins.id
     }
 
@@ -141,13 +153,52 @@ serve(async (req: Request) => {
     const account = await loadVisibleAccount(admin, String(body.account_id ?? ''), ctx)
     if (!account) return json({ error: 'not_found' }, 404)
     if (account.owner_id !== user.id && !['admin', 'manager'].includes(profile.role ?? '')) return json({ error: 'forbidden' }, 403)
+    /**
+     * ⛔ ON RÉVOQUE ET ON EFFACE AVANT DE SUPPRIMER LA LIGNE, et aucun des trois gestes
+     * n'est avalé. La version d'origine faisait `.catch(() => null)` sur la lecture Vault
+     * (la révocation sautait alors en silence), `.catch(() => undefined)` sur
+     * l'effacement, puis supprimait `mail_accounts` — c'est-à-dire LE SEUL POINTEUR vers
+     * `vault_secret_id` — et répondait `{ ok: true }`. Au pire des cas MEGGA conservait
+     * un jeton de rafraîchissement Google chiffré, NON révoqué et plus référencé par
+     * rien, pour une boîte que l'utilisateur croyait déconnectée ; au cas courant,
+     * l'autorisation restait simplement active chez Google.
+     *
+     * En cas d'échec, la LIGNE RESTE (en `disabled`) : le pointeur survit, la
+     * déconnexion est réessayable, et la réponse le dit au lieu de mentir.
+     */
     if (account.vault_secret_id) {
-      const secret = await readAccountSecret<OAuthSecret>(admin, account.vault_secret_id).catch(() => null)
-      if (secret && 'refresh_token' in secret && (account.provider === 'gmail' || account.provider === 'outlook')) await revokeToken(account.provider, secret.refresh_token)
-      await deleteAccountSecret(admin, account.vault_secret_id).catch(() => undefined)
+      // ⚠ Deux issues à ne PAS confondre. Une LEVÉE = Vault n'a pas répondu, on ne sait
+      // pas si le jeton existe : refuser, garder la ligne, réessayable. Un `null` = la
+      // ligne de secret n'est plus là (déconnexion déjà à demi faite, purge) : il n'y a
+      // rien à révoquer ni à effacer, et bloquer là condamnerait le compte à ne jamais
+      // pouvoir être supprimé.
+      let secret: OAuthSecret | null = null
+      try { secret = await readAccountSecret<OAuthSecret>(admin, account.vault_secret_id) }
+      catch (e) {
+        const detail = e instanceof Error ? e.message : String(e)
+        console.error(`[mail-oauth] secret ${account.vault_secret_id} illisible (compte ${account.id}):`, detail)
+        await admin.from('mail_accounts').update({ status: 'disabled', last_error: 'disconnect: secret illisible, révocation impossible' }).eq('id', account.id)
+        return json({ error: 'revocation_failed', detail: 'secret_unreadable', account_id: account.id }, 502)
+      }
+      if (!secret) console.error(`[mail-oauth] compte ${account.id} : aucun secret sous ${account.vault_secret_id} — rien à révoquer`)
+      if (secret && 'refresh_token' in secret && (account.provider === 'gmail' || account.provider === 'outlook')) {
+        if (!await revokeToken(account.provider, secret.refresh_token)) {
+          await admin.from('mail_accounts').update({ status: 'disabled', last_error: 'disconnect: révocation refusée par le fournisseur' }).eq('id', account.id)
+          return json({ error: 'revocation_failed', detail: 'provider_refused', account_id: account.id }, 502)
+        }
+      }
+      try { if (secret) await deleteAccountSecret(admin, account.vault_secret_id) }
+      catch (e) {
+        const detail = e instanceof Error ? e.message : String(e)
+        console.error(`[mail-oauth] secret ${account.vault_secret_id} non effacé (compte ${account.id}):`, detail)
+        // Le jeton est révoqué, donc inoffensif — mais il reste dans Vault : garder la
+        // ligne est ce qui laisse une chance de le retrouver et de réessayer.
+        await admin.from('mail_accounts').update({ status: 'disabled', last_error: `disconnect: secret non effacé (${detail.slice(0, 200)})` }).eq('id', account.id)
+        return json({ ok: false, error: 'vault_delete_failed', detail, account_id: account.id }, 500)
+      }
     }
     const { error } = await admin.from('mail_accounts').delete().eq('id', account.id)
-    if (error) return json({ error: 'delete_failed' }, 500)
+    if (error) return json({ error: 'delete_failed', detail: error.message }, 500)
     return json({ ok: true })
   }
 

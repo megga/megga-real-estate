@@ -96,9 +96,26 @@ export async function fetchIdentity(provider: OAuthProvider, accessToken: string
   return { email: email.toLowerCase(), name: (provider === 'gmail' ? j.name : j.displayName) ?? null }
 }
 
-/** Google révoque ; Microsoft n'a pas d'endpoint de révocation de jeton (on efface Vault). */
-export async function revokeToken(provider: OAuthProvider, token: string, deps: OAuthDeps = {}): Promise<void> {
-  if (provider !== 'gmail') return
+/**
+ * Google révoque ; Microsoft n'a pas d'endpoint de révocation de jeton (on efface Vault).
+ *
+ * ⛔ L'ÉCHEC EST RENDU, PLUS AVALÉ. Le `.catch(() => undefined)` d'origine rendait
+ * INVISIBLE un 400 ou un 500 de Google : l'utilisateur voyait « déconnectée », et
+ * l'autorisation restait vivante chez Google — MEGGA gardant le droit de lire sa boîte.
+ * `false` ⇒ l'appelant décide (garder la ligne pour pouvoir réessayer, prévenir), et
+ * la raison est journalisée avec le compte.
+ */
+export async function revokeToken(provider: OAuthProvider, token: string, deps: OAuthDeps = {}): Promise<boolean> {
+  // Microsoft n'expose rien à révoquer : ce n'est pas un échec, il n'y a rien à faire.
+  if (provider !== 'gmail') return true
   const f = deps.fetch ?? globalThis.fetch
-  await f(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, { method: 'POST' }).catch(() => undefined)
+  try {
+    const res = await f(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, { method: 'POST' })
+    if (res.ok) return true
+    console.error(`[mail oauth] révocation Google refusée: http ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`)
+    return false
+  } catch (e) {
+    console.error('[mail oauth] révocation Google injoignable:', e instanceof Error ? e.message : String(e))
+    return false
+  }
 }

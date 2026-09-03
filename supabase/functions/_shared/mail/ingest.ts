@@ -118,10 +118,20 @@ export function pickContact(rows: { contact_id: string }[]): string | null {
 async function matchContact(admin: SupabaseClient, agencyId: string, emails: string[]): Promise<string | null> {
   if (emails.length === 0) return null
   const lowered = emails.map((e) => e.toLowerCase())
-  const { data: direct } = await admin.rpc('mail_match_contact_by_emails', { p_agency_id: agencyId, p_emails: lowered })
+  // ⛔ « JE N'AI PAS PU CHERCHER » N'EST PAS « IL N'Y A PERSONNE ». Les deux lectures
+  // laissaient tomber leur `error` : sur un échec, `contact_id` était écrit null sur le
+  // fil ET sur le message, et comme `audit()` est gardé par `&& contactId`, le courrier
+  // n'entrait pas non plus dans la timeline du contact — une trace d'audit
+  // append-only à laquelle il manque une entrée ne se rattrape pas, même si la passe
+  // suivante rattache enfin le fil. L'agent, lui, lisait « Adresse non rattachée » sur
+  // un contact parfaitement appariable, sans un mot nulle part. Ironie du fichier :
+  // trente lignes plus haut, on corrige une AUTRE cause du même symptôme muet.
+  const { data: direct, error: eDirect } = await admin.rpc('mail_match_contact_by_emails', { p_agency_id: agencyId, p_emails: lowered })
+  if (eDirect) throw new Error(`contact match: ${eDirect.message}`)
   const byContact = pickContact(((direct ?? []) as string[]).map((id) => ({ contact_id: id })))
   if (byContact) return byContact
-  const { data: alias } = await admin.from('mail_contact_aliases').select('contact_id').eq('agency_id', agencyId).in('email', lowered)
+  const { data: alias, error: eAlias } = await admin.from('mail_contact_aliases').select('contact_id').eq('agency_id', agencyId).in('email', lowered)
+  if (eAlias) throw new Error(`contact alias match: ${eAlias.message}`)
   return pickContact((alias ?? []) as { contact_id: string }[])
 }
 
@@ -335,14 +345,33 @@ export async function applyRemoteChanges(admin: SupabaseClient, account: MailAcc
   return applied
 }
 
-/** Apprend un alias et rattache le fil (modale « Rapprocher l'adresse »). */
+/**
+ * Apprend un alias et rattache le fil (modale « Rapprocher l'adresse »).
+ *
+ * ⛔ LES TROIS ÉCRITURES SONT VÉRIFIÉES. Aucune ne levait, et le `try` de mail-actions
+ * ne rattrape que ce qui lève : l'edge répondait `{ ok: true, contact_id }` alors que
+ * l'alias pouvait n'avoir pas été appris (violation d'unicité) ou le fil pas rattaché
+ * (zéro ligne appariée). Le premier cas est le pire : l'agent voit « rattaché », et le
+ * PROCHAIN courrier de la même adresse repart non apparié — c'est-à-dire exactement le
+ * service que tout le mécanisme d'alias existe pour rendre. Levée : mail-actions la
+ * convertit déjà en 400 portant le message.
+ */
 export async function linkThreadToContact(admin: SupabaseClient, account: MailAccountRow, threadId: string, contactId: string, email: string, learnedBy: string): Promise<void> {
-  const { data: contact } = await admin.from('contacts').select('id').eq('id', contactId).eq('agency_id', account.agency_id).maybeSingle()
+  const { data: contact, error: eContact } = await admin.from('contacts').select('id').eq('id', contactId).eq('agency_id', account.agency_id).maybeSingle()
+  // Une lecture en échec ne prouve PAS que le contact est hors agence : le dire
+  // fermerait la porte sur une panne passagère avec un message de sécurité trompeur.
+  if (eContact) throw new Error(`contact lookup: ${eContact.message}`)
   if (!contact) throw new Error('contact_not_in_agency')
-  await admin.from('mail_contact_aliases').upsert(
+  const { error: eAlias } = await admin.from('mail_contact_aliases').upsert(
     { agency_id: account.agency_id, email: email.toLowerCase(), contact_id: contactId, learned_by: learnedBy },
     { onConflict: 'agency_id,email', ignoreDuplicates: false },
   )
-  await admin.from('mail_threads').update({ contact_id: contactId }).eq('id', threadId).eq('account_id', account.id)
-  await admin.from('mail_messages').update({ contact_id: contactId }).eq('thread_id', threadId).is('contact_id', null)
+  if (eAlias) throw new Error(`alias upsert: ${eAlias.message}`)
+  const { data: linked, error: eThread } = await admin.from('mail_threads').update({ contact_id: contactId }).eq('id', threadId).eq('account_id', account.id).select('id')
+  if (eThread) throw new Error(`thread link: ${eThread.message}`)
+  // Zéro ligne appariée = le fil n'appartient pas à ce compte, ou n'existe plus. Sans
+  // ce contrôle, l'appelant lisait « rattaché » sur un fil que personne n'a touché.
+  if (!linked || linked.length === 0) throw new Error('thread_not_in_account')
+  const { error: eMsgs } = await admin.from('mail_messages').update({ contact_id: contactId }).eq('thread_id', threadId).is('contact_id', null)
+  if (eMsgs) throw new Error(`messages backfill: ${eMsgs.message}`)
 }

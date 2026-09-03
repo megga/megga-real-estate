@@ -1,6 +1,6 @@
 // supabase/functions/_shared/mail/oauth.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { randomToken, pkceChallenge, buildAuthorizeUrl, exchangeCode, fetchIdentity } from './oauth.ts'
+import { randomToken, pkceChallenge, buildAuthorizeUrl, exchangeCode, fetchIdentity, revokeToken } from './oauth.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
 
@@ -66,5 +66,31 @@ describe('fetchIdentity', () => {
   it('Microsoft : /me → mail sinon userPrincipalName', async () => {
     const fetch = vi.fn(async () => new Response(JSON.stringify({ mail: null, userPrincipalName: 'x@Outlook.com', displayName: 'X' }), { status: 200 }))
     expect(await fetchIdentity('outlook', 'at', { fetch: F(fetch) })).toEqual({ email: 'x@outlook.com', name: 'X' })
+  })
+})
+
+// ⛔ La révocation était un `.catch(() => undefined)` MUET : un refus de Google restait
+// invisible, l'utilisateur lisait « déconnectée » et l'autorisation vivait toujours.
+describe('revokeToken', () => {
+  it('révocation acceptée ⇒ true', async () => {
+    const fetch = vi.fn(async (u: string, init?: RequestInit) => {
+      expect(u).toContain('https://oauth2.googleapis.com/revoke?token=rt-1')
+      expect(init?.method).toBe('POST')
+      return new Response(null, { status: 200 })
+    })
+    expect(await revokeToken('gmail', 'rt-1', { fetch: F(fetch) })).toBe(true)
+  })
+  it('refus du fournisseur ⇒ false, pas un succès silencieux', async () => {
+    const fetch = vi.fn(async () => new Response('{"error":"invalid_token"}', { status: 400 }))
+    expect(await revokeToken('gmail', 'rt-1', { fetch: F(fetch) })).toBe(false)
+  })
+  it('réseau injoignable ⇒ false, jamais une exception qui remonte au milieu d une déconnexion', async () => {
+    const fetch = vi.fn(async () => { throw new Error('ECONNRESET') })
+    expect(await revokeToken('gmail', 'rt-1', { fetch: F(fetch) })).toBe(false)
+  })
+  it('Microsoft n a rien à révoquer : true, et AUCUN appel réseau', async () => {
+    const fetch = vi.fn(async () => new Response(null, { status: 200 }))
+    expect(await revokeToken('outlook', 'rt-1', { fetch: F(fetch) })).toBe(true)
+    expect(fetch).not.toHaveBeenCalled()
   })
 })

@@ -1,6 +1,6 @@
 // supabase/functions/_shared/mail/ingest.test.ts
 import { describe, it, expect } from 'vitest'
-import { deriveThreadPatch, externalParticipants, ingestMessages, pickContact, capHtml, recomputeThread, type ThreadRow } from './ingest.ts'
+import { deriveThreadPatch, externalParticipants, ingestMessages, linkThreadToContact, pickContact, capHtml, recomputeThread, type ThreadRow } from './ingest.ts'
 import type { MailAccountRow, NormalizedMessage } from './types.ts'
 
 const BOX = 'g@agence.ch'
@@ -109,7 +109,7 @@ describe('capHtml', () => {
 interface FakeCall { table: string; op: string; filters: [string, unknown][] }
 type Reply = { data: unknown; error: { message: string } | null }
 
-function fakeAdmin(reply: (c: FakeCall) => Reply) {
+function fakeAdmin(reply: (c: FakeCall) => Reply, rpcReply: () => Reply = () => ({ data: [], error: null })) {
   const calls: FakeCall[] = []
   const from = (table: string) => {
     const rec: FakeCall = { table, op: '', filters: [] }
@@ -133,7 +133,7 @@ function fakeAdmin(reply: (c: FakeCall) => Reply) {
     }
     return b
   }
-  const rpc = async () => ({ data: [], error: null })
+  const rpc = async () => rpcReply()
   return { admin: { from, rpc } as never, calls }
 }
 
@@ -231,5 +231,57 @@ describe('recomputeThread', () => {
     await recomputeThread(admin, 'T1')
     expect(calls.some((c) => c.op === 'delete')).toBe(false)
     expect(calls.filter((c) => c.table === 'mail_threads' && c.op === 'update')).toHaveLength(1)
+  })
+})
+
+
+// ⛔ « Je n'ai pas pu chercher » n'est pas « il n'y a personne ». Une erreur avalée
+// écrivait `contact_id: null` sur le fil ET sur le message, et sautait l'événement
+// d'audit (gardé par `&& contactId`) : une trace append-only à laquelle il manque une
+// entrée ne se rattrape pas, même quand la passe suivante rattache enfin le fil.
+describe('matchContact : une recherche en échec est LEVÉE', () => {
+  it('RPC de rapprochement en erreur', async () => {
+    const { admin } = fakeAdmin(vide, () => ({ data: null, error: { message: 'rpc down' } }))
+    await expect(ingestMessages(admin, account, [msg()])).rejects.toThrow(/contact match: rpc down/)
+  })
+  it('lecture des alias appris en erreur', async () => {
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'mail_contact_aliases' ? { data: null, error: { message: 'alias down' } } : vide(c))
+    await expect(ingestMessages(admin, account, [msg()])).rejects.toThrow(/contact alias match: alias down/)
+  })
+})
+
+describe('linkThreadToContact : « Rapprocher l adresse » ne dit plus ok sur un travail non fait', () => {
+  const ok = (c: FakeCall): Reply =>
+    c.table === 'contacts' ? { data: { id: 'c1' }, error: null }
+      : c.table === 'mail_threads' && c.op === 'update' ? { data: [{ id: 'T1' }], error: null }
+        : { data: null, error: null }
+
+  it('le chemin nominal apprend l alias, rattache le fil et complète les messages', async () => {
+    const { admin, calls } = fakeAdmin(ok)
+    await linkThreadToContact(admin, account, 'T1', 'c1', 'Zoe@Ex.ch', 'u-1')
+    expect(calls.map((c) => `${c.table}:${c.op}`)).toEqual([
+      'contacts:select', 'mail_contact_aliases:upsert', 'mail_threads:update', 'mail_messages:update',
+    ])
+  })
+  it('alias refusé : levée — sinon le PROCHAIN courrier de l adresse repart non apparié', async () => {
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'mail_contact_aliases' ? { data: null, error: { message: 'duplicate key' } } : ok(c))
+    await expect(linkThreadToContact(admin, account, 'T1', 'c1', 'zoe@ex.ch', 'u-1')).rejects.toThrow(/alias upsert: duplicate key/)
+  })
+  it('aucun fil apparié (fil d un autre compte) : levée, jamais un ok:true', async () => {
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'mail_threads' && c.op === 'update' ? { data: [], error: null } : ok(c))
+    await expect(linkThreadToContact(admin, account, 'T-autre', 'c1', 'zoe@ex.ch', 'u-1')).rejects.toThrow(/thread_not_in_account/)
+  })
+  it('complément des messages en erreur : levée', async () => {
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'mail_messages' && c.op === 'update' ? { data: null, error: { message: 'boom' } } : ok(c))
+    await expect(linkThreadToContact(admin, account, 'T1', 'c1', 'zoe@ex.ch', 'u-1')).rejects.toThrow(/messages backfill: boom/)
+  })
+  it('lecture du contact en erreur : ce n est PAS « hors agence »', async () => {
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'contacts' ? { data: null, error: { message: 'timeout' } } : ok(c))
+    await expect(linkThreadToContact(admin, account, 'T1', 'c1', 'zoe@ex.ch', 'u-1')).rejects.toThrow(/contact lookup: timeout/)
   })
 })

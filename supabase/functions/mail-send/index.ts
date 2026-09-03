@@ -129,6 +129,25 @@ serve(async (req: Request) => {
 
   let localMessageId: string | null = null
   let threadId: string | null = original?.thread_id ?? null
+  if (account.provider !== 'gmail' && account.provider !== 'outlook') return json({ error: 'provider_not_supported' }, 501)
+
+  /**
+   * ⛔ DEUX PHASES, DEUX VERDICTS — et la frontière est l'ACCEPTATION PAR LE
+   * FOURNISSEUR. Un seul `try` couvrait l'appel fournisseur ET toute la comptabilité
+   * locale : `gmailSend` réussissait (le courrier est PARTI, le client l'a), puis
+   * `ingestMessages` levait sur n'importe quelle écriture — insertion de fil, de
+   * message, de pièce — et l'edge répondait `send_failed` en 502. Côté Outlook,
+   * `t!.id` sur une insertion non vérifiée levait un TypeError dans le même catch.
+   * L'agent lit « échec », renvoie, et le client reçoit le message DEUX fois. Rien ne
+   * distinguait « le fournisseur a refusé » de « le fournisseur a accepté et nous
+   * n'avons pas su l'écrire ».
+   *
+   * Après acceptation, la réponse est donc 200 avec un drapeau que le lot 2 peut
+   * afficher (« envoyé ; copie locale incomplète, elle se rattrapera à la synchro »),
+   * jamais une erreur d'envoi. Le rattrapage existe : Gmail réingère le message à la
+   * passe suivante, et Graph rapproche la copie « Envoyés » par Message-ID.
+   */
+  let sentProviderMessageId: string | null = null
   try {
     if (account.provider === 'gmail') {
       const { data: th } = threadId ? await admin.from('mail_threads').select('provider_thread_id').eq('id', threadId).single() : { data: null }
@@ -143,45 +162,65 @@ serve(async (req: Request) => {
       // le fournisseur : la ligne relue après ingestion porte le vrai `thread_id`.
       const providerThreadId = kind === 'forward' ? null : (th?.provider_thread_id ?? null)
       const sent = await gmailSend(token, base64UrlEncode(new TextEncoder().encode(buildMime(outgoing))), providerThreadId)
-      const full = await gmailGetMessage(token, sent.id)
-      await ingestMessages(admin, account, [normalizeGmailMessage(full, account.email)], { skipAudit: true })
-      const { data: row } = await admin.from('mail_messages').select('id, thread_id').eq('account_id', account.id).eq('provider_message_id', sent.id).single()
-      localMessageId = row?.id ?? null; threadId = row?.thread_id ?? threadId
-    } else if (account.provider === 'outlook') {
+      sentProviderMessageId = sent.id
+    } else {
       const mode = original ? { kind: kind as 'reply' | 'forward', providerMessageId: original.provider_message_id } : { kind: 'new' as const }
       await graphSend(token, { subject, html: fullHtml, to, cc, bcc, internetMessageId: messageId, attachments: outAtts }, mode)
+    }
+  } catch (e) {
+    return json({ error: 'send_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
+  }
+
+  // ── Le courrier est PARTI. Tout ce qui suit est de la comptabilité locale. ───────
+  let bookkeeping: string | null = null
+  try {
+    if (account.provider === 'gmail') {
+      // Gmail rend l'id du message envoyé ; sans lui il n'y a rien à réingérer.
+      if (!sentProviderMessageId) throw new Error('gmail: aucun id de message rendu par messages.send')
+      const full = await gmailGetMessage(token, sentProviderMessageId)
+      await ingestMessages(admin, account, [normalizeGmailMessage(full, account.email)], { skipAudit: true })
+      const { data: row, error } = await admin.from('mail_messages').select('id, thread_id').eq('account_id', account.id).eq('provider_message_id', sentProviderMessageId).maybeSingle()
+      if (error) throw new Error(`relecture du message envoyé: ${error.message}`)
+      localMessageId = row?.id ?? null; threadId = row?.thread_id ?? threadId
+    } else {
       // Ligne provisoire : la synchro « Envoyés » la rapproche par Message-ID.
       if (!threadId) {
-        const { data: t } = await admin.from('mail_threads').insert({
+        const { data: t, error } = await admin.from('mail_threads').insert({
           account_id: account.id, agency_id: account.agency_id, provider_thread_id: `pending-thread:${messageId}`,
           subject, snippet: text.slice(0, 160), participants: to, from_name: outgoing.from.name, from_email: account.email,
           last_message_at: new Date().toISOString(), last_outbound_at: new Date().toISOString(), message_count: 0, is_read: true,
         }).select('id').single()
-        threadId = t!.id
+        // ⚠ `t!.id` sur un résultat non vérifié levait un TypeError — dans l'ancien
+        // `try` unique, cela devenait `send_failed` sur un courrier DÉJÀ PARTI.
+        if (error || !t) throw new Error(`fil provisoire: ${error?.message ?? 'aucune ligne rendue'}`)
+        threadId = t.id
       }
-      const { data: m } = await admin.from('mail_messages').insert({
+      const { data: m, error: eMsg } = await admin.from('mail_messages').insert({
         thread_id: threadId, account_id: account.id, agency_id: account.agency_id,
         provider_message_id: `pending:${messageId}`, rfc822_message_id: messageId, in_reply_to: outgoing.inReplyTo,
         direction: 'outbound', from_name: outgoing.from.name, from_email: account.email, to, cc, bcc,
         subject, snippet: text.slice(0, 160), body_text: fullText, body_html: fullHtml, sent_at: new Date().toISOString(),
         is_read: true, has_attachments: outAtts.length > 0,
       }).select('id').single()
+      if (eMsg) throw new Error(`message provisoire: ${eMsg.message}`)
       localMessageId = m?.id ?? null
-      await admin.from('mail_threads').update({ last_message_at: new Date().toISOString(), last_outbound_at: new Date().toISOString(), snippet: text.slice(0, 160) }).eq('id', threadId)
+      const { error: eThread } = await admin.from('mail_threads').update({ last_message_at: new Date().toISOString(), last_outbound_at: new Date().toISOString(), snippet: text.slice(0, 160) }).eq('id', threadId)
+      if (eThread) throw new Error(`fil, dates: ${eThread.message}`)
       // Le compteur et les dates viennent des messages : la ligne provisoire compte déjà.
       // ⚠ `threadId` est `string | null` ici pour TypeScript (il vient de `original?.thread_id`) :
       // sans cette garde, `deno check` rend TS2345 et l'étape CI « Type-check Edge Functions »,
       // déclarée bloquante, rougit.
       if (threadId) await recomputeThread(admin, threadId)
-    } else {
-      return json({ error: 'provider_not_supported' }, 501)
     }
   } catch (e) {
-    return json({ error: 'send_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
+    // JAMAIS 502 ici : le fournisseur a accepté. Un refus renvoyé à l'agent le ferait
+    // renvoyer, et le client recevrait le courrier deux fois.
+    bookkeeping = e instanceof Error ? e.message : String(e)
+    console.error(`[mail-send] ${account.provider} ${account.id}: envoyé mais NON enregistré — ${bookkeeping}`)
   }
 
   // Audit avec l'acteur (l'ingestion a été appelée en skipAudit).
-  const { data: th } = threadId ? await admin.from('mail_threads').select('contact_id').eq('id', threadId).single() : { data: null }
+  const { data: th } = threadId ? await admin.from('mail_threads').select('contact_id').eq('id', threadId).maybeSingle() : { data: null }
   if (th?.contact_id) {
     await admin.from('activity_events').insert({
       agency_id: account.agency_id, actor_id: user.id, actor_kind: 'user', action: 'email_sent', category: 'messaging', severity: 'info',
@@ -190,5 +229,9 @@ serve(async (req: Request) => {
     })
   }
   if (typeof body.draft_id === 'string') await admin.from('mail_drafts').delete().eq('id', body.draft_id).eq('author_id', user.id)
-  return json({ ok: true, message_id: localMessageId, thread_id: threadId })
+  // `ok: true` parce que le courrier est parti — `warning` dit que la copie locale est
+  // incomplète, pour que l'UI l'annonce au lieu d'inviter à renvoyer.
+  return json(bookkeeping
+    ? { ok: true, message_id: localMessageId, thread_id: threadId, warning: 'sent_but_not_recorded', detail: bookkeeping.slice(0, 300) }
+    : { ok: true, message_id: localMessageId, thread_id: threadId })
 })
