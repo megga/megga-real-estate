@@ -51,11 +51,35 @@ export class GraphApiError extends Error {
   constructor(public status: number, message: string) { super(message) }
 }
 
+/**
+ * ⛔ SUR CHAQUE APPEL, SANS EXCEPTION. Par défaut l'id d'un message Outlook CHANGE
+ * quand l'item change de dossier (« this value changes when the item is moved from one
+ * container … to another. To change this behavior, use the Prefer: IdType header »,
+ * concepts/outlook-immutable-id). Or le delta est PAR DOSSIER : archiver — le geste
+ * Outlook le plus courant — sortait le message de la Réception, qui le signalait
+ * `@removed` sous son ANCIEN id ; l'ancien id ne résolvait plus, et le code supprimait
+ * la ligne (puis le fil, en cascade). Avec l'id immuable, l'id survit au déplacement,
+ * donc un `@removed` peut être LEVÉ EN DOUTE par un simple GET : 404 ⇒ vraiment parti,
+ * 200 ⇒ déplacé, et son `parentFolderId` dit où.
+ *
+ * L'en-tête ne vaut que pour la requête qui le porte. Les `@odata.nextLink` /
+ * `@odata.deltaLink` sont compatibles avec les deux formats d'id : aucun resynchro à
+ * prévoir. Les dossiers (mailFolder) ne connaissent pas l'id immuable — leurs ids
+ * étaient déjà constants, `graphFolderIds` est donc inchangé.
+ */
+export const IMMUTABLE_ID_PREFER = 'IdType="ImmutableId"'
+
+/** Fusionne notre `Prefer` avec celui de l'appelant (odata.maxpagesize) — un seul en-tête. */
+function withImmutableId(headers: Record<string, string> = {}): Record<string, string> {
+  const own = headers.Prefer
+  return { ...headers, Prefer: own ? `${own}, ${IMMUTABLE_ID_PREFER}` : IMMUTABLE_ID_PREFER }
+}
+
 async function gcall<T>(token: string, url: string, deps: GraphDeps, init: RequestInit = {}): Promise<T> {
   const f = deps.fetch ?? globalThis.fetch
   const res = await f(url.startsWith('https://') ? url : `${BASE}${url}`, {
     ...init,
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+    headers: withImmutableId({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...((init.headers ?? {}) as Record<string, string>) }),
   })
   if (res.status === 401) throw new MailAuthError('reauth_required', 'graph: 401')
   if (res.status === 202 || res.status === 204) return undefined as T
@@ -103,7 +127,9 @@ export async function graphListAttachments(token: string, id: string, deps: Grap
 
 export async function graphAttachmentBytes(token: string, messageId: string, attachmentId: string, deps: GraphDeps = {}): Promise<Uint8Array> {
   const f = deps.fetch ?? globalThis.fetch
-  const res = await f(`${BASE}/me/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}/$value`, { headers: { Authorization: `Bearer ${token}` } })
+  // Même en-tête que partout ailleurs : les ids stockés (message ET pièce) viennent
+  // d'appels immuables, cette lecture doit vivre dans le même espace d'identifiants.
+  const res = await f(`${BASE}/me/messages/${encodeURIComponent(messageId)}/attachments/${encodeURIComponent(attachmentId)}/$value`, { headers: withImmutableId({ Authorization: `Bearer ${token}` }) })
   if (res.status === 401) throw new MailAuthError('reauth_required', 'graph: 401')
   if (!res.ok) throw new GraphApiError(res.status, `graph attachment: http ${res.status}`)
   return new Uint8Array(await res.arrayBuffer())
@@ -208,12 +234,28 @@ export function normalizeGraphMessage(
   }
 }
 
-/** Items du delta → nouveaux à charger (inconnus) / drapeaux (connus) / supprimés. */
-export function deltaToChanges(items: GraphMessage[], known: Set<string>, folderIds: Record<string, string>): { added: GraphMessage[]; changes: RemoteChange[] } {
+/** Un item que le delta du dossier ne voit plus : à lever en doute, pas à supprimer. */
+export interface GraphRemoval { id: string; reason: string }
+
+/**
+ * Items du delta → nouveaux à charger (inconnus) / drapeaux (connus) / DISPARUS.
+ *
+ * ⛔ Les disparus sortent dans leur propre panier, PAS en `message_deleted`. Le delta
+ * est une opération PAR DOSSIER : un message archivé, mis à la corbeille ou rangé dans
+ * un dossier personnel quitte la Réception et y est signalé `@removed` exactement comme
+ * un message effacé. Les confondre supprimait la ligne — et le fil entier quand c'était
+ * le seul message —, si bien qu'archiver un courrier client dans Outlook le faisait
+ * disparaître du CRM, de la Réception, du dossier Archivé et de la fiche contact. Même
+ * `reason: "changed"`, que Graph documente comme une suppression RESTAURABLE, était
+ * détruit. Qui tranche, c'est `resolveGraphRemoval` : un GET sur l'id (immuable, donc
+ * il survit au déplacement).
+ */
+export function deltaToChanges(items: GraphMessage[], known: Set<string>, folderIds: Record<string, string>): { added: GraphMessage[]; changes: RemoteChange[]; removed: GraphRemoval[] } {
   const added: GraphMessage[] = []
   const changes: RemoteChange[] = []
+  const removed: GraphRemoval[] = []
   for (const it of items) {
-    if (it['@removed']) { changes.push({ kind: 'message_deleted', providerMessageId: it.id }); continue }
+    if (it['@removed']) { removed.push({ id: it.id, reason: it['@removed'].reason ?? 'unknown' }); continue }
     if (!known.has(it.id)) { added.push(it); continue }
     changes.push({
       kind: 'flags', providerMessageId: it.id,
@@ -221,5 +263,40 @@ export function deltaToChanges(items: GraphMessage[], known: Set<string>, folder
       inInbox: it.parentFolderId === folderIds.inbox, isTrashed: it.parentFolderId === folderIds.deleteditems,
     })
   }
-  return { added, changes }
+  return { added, changes, removed }
+}
+
+/**
+ * Que faire d'un `@removed` : GET du message par son id immuable.
+ *   404            ⇒ il n'existe plus dans la boîte : suppression (`message_deleted`).
+ *   200 + dossier  ⇒ il a DÉMÉNAGÉ : on reclasse le fil (archivé / corbeille), on ne
+ *                    supprime rien. `graphFolderIds` résout déjà les quatre dossiers.
+ *   autre erreur   ⇒ INDÉTERMINÉ : `null`, on ne touche à rien. Détruire sur un 500 ou
+ *                    un 429 serait irréversible ; lever bloquerait la boîte à chaque
+ *                    passe sur ce seul message. Le delta l'a consommé, mais un état de
+ *                    drapeau raté se rattrape, une conversation perdue non.
+ * ⚠ Le 401 continue de remonter (MailAuthError levée par `gcall`) : c'est bien une
+ * demande de reconnexion, pas une incertitude sur un message.
+ */
+export async function resolveGraphRemoval(
+  token: string, r: GraphRemoval, folderIds: Record<string, string>, deps: GraphDeps = {},
+): Promise<RemoteChange | null> {
+  let parentFolderId: string | undefined
+  try {
+    const j = await gcall<{ parentFolderId?: string }>(token, `/me/messages/${encodeURIComponent(r.id)}?$select=id,parentFolderId`, deps)
+    parentFolderId = j?.parentFolderId
+  } catch (e) {
+    if (e instanceof GraphApiError && e.status === 404) return { kind: 'message_deleted', providerMessageId: r.id }
+    if (e instanceof GraphApiError) {
+      console.error(`[mail graph] @removed ${r.reason} non résolu (http ${e.status}) — aucun changement appliqué`)
+      return null
+    }
+    throw e
+  }
+  if (!parentFolderId) return null
+  return {
+    kind: 'flags', providerMessageId: r.id,
+    inInbox: parentFolderId === folderIds.inbox,
+    isTrashed: parentFolderId === folderIds.deleteditems,
+  }
 }

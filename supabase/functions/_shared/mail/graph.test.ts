@@ -1,6 +1,6 @@
 // supabase/functions/_shared/mail/graph.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { normalizeGraphMessage, deltaToChanges, graphDelta, type GraphMessage } from './graph.ts'
+import { normalizeGraphMessage, deltaToChanges, graphDelta, resolveGraphRemoval, IMMUTABLE_ID_PREFER, type GraphMessage } from './graph.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
 const FOLDERS = { inbox: 'F-IN', sentitems: 'F-SENT', archive: 'F-ARC', deleteditems: 'F-DEL' }
@@ -43,17 +43,76 @@ describe('normalizeGraphMessage', () => {
 })
 
 describe('deltaToChanges', () => {
-  it('sépare nouveaux, supprimés et drapeaux', () => {
+  // ⚠ Test RÉÉCRIT le 04.09.2026 : il figeait le défaut. Il exigeait qu'un `@removed`
+  // devienne un `message_deleted`, ce qui faisait disparaître du CRM tout message
+  // ARCHIVÉ dans Outlook (le delta est par dossier, archiver = quitter la Réception).
+  // Les disparus sortent maintenant dans leur propre panier, que `resolveGraphRemoval`
+  // tranche par un GET.
+  it('sépare nouveaux, drapeaux et DISPARUS — un @removed n est pas une suppression', () => {
     const r = deltaToChanges([
       { ...M, id: 'N1' },
       { id: 'GONE', '@removed': { reason: 'deleted' } },
       { ...M, id: 'K1', isRead: true, flag: { flagStatus: 'notFlagged' }, parentFolderId: 'F-ARC' },
     ], new Set(['K1']), FOLDERS)
     expect(r.added.map((m) => m.id)).toEqual(['N1'])
+    expect(r.removed).toEqual([{ id: 'GONE', reason: 'deleted' }])
     expect(r.changes).toEqual([
-      { kind: 'message_deleted', providerMessageId: 'GONE' },
       { kind: 'flags', providerMessageId: 'K1', isRead: true, isStarred: false, inInbox: false, isTrashed: false },
     ])
+    expect(r.changes.some((c) => c.kind === 'message_deleted')).toBe(false)
+  })
+})
+
+describe('resolveGraphRemoval', () => {
+  it('404 : le message n existe plus ⇒ suppression', async () => {
+    const fetch = vi.fn(async () => new Response('not found', { status: 404 }))
+    const r = await resolveGraphRemoval('tok', { id: 'X', reason: 'deleted' }, FOLDERS, { fetch: F(fetch) })
+    expect(r).toEqual({ kind: 'message_deleted', providerMessageId: 'X' })
+  })
+  it('200 dans Archive : DÉPLACÉ ⇒ hors réception, jamais supprimé', async () => {
+    const fetch = vi.fn(async (u: string) => {
+      expect(u).toContain('/me/messages/X')
+      return new Response(JSON.stringify({ id: 'X', parentFolderId: 'F-ARC' }), { status: 200 })
+    })
+    const r = await resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(fetch) })
+    expect(r).toEqual({ kind: 'flags', providerMessageId: 'X', inInbox: false, isTrashed: false })
+  })
+  it('200 dans Éléments supprimés : corbeille, pas destruction', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ id: 'X', parentFolderId: 'F-DEL' }), { status: 200 }))
+    const r = await resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(fetch) })
+    expect(r).toEqual({ kind: 'flags', providerMessageId: 'X', inInbox: false, isTrashed: true })
+  })
+  it('erreur autre que 404 : INDÉTERMINÉ, on ne touche à rien', async () => {
+    for (const status of [429, 500]) {
+      const fetch = vi.fn(async () => new Response('boom', { status }))
+      expect(await resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(fetch) })).toBeNull()
+    }
+  })
+  it('401 remonte : c est une reconnexion, pas un doute sur un message', async () => {
+    const fetch = vi.fn(async () => new Response('nope', { status: 401 }))
+    await expect(resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(fetch) }))
+      .rejects.toMatchObject({ code: 'reauth_required' })
+  })
+})
+
+describe('Prefer: IdType="ImmutableId"', () => {
+  // Sans cet en-tête l'id change au déplacement, le GET de `resolveGraphRemoval` sur
+  // l'ancien id rend 404, et « archivé » redevient indiscernable de « supprimé ».
+  it('part sur CHAQUE appel, et se compose avec odata.maxpagesize', async () => {
+    const seen: string[] = []
+    const fetch = vi.fn(async (_u: string, init?: RequestInit) => {
+      seen.push((init?.headers as Record<string, string>)['Prefer'])
+      return new Response(JSON.stringify({ value: [], '@odata.deltaLink': 'https://graph.microsoft.com/v1.0/d?t=1' }), { status: 200 })
+    })
+    await graphDelta('tok', 'inbox', null, '2026-06-05T00:00:00.000Z', { fetch: F(fetch) })
+    expect(seen[0]).toBe(`odata.maxpagesize=50, ${IMMUTABLE_ID_PREFER}`)
+
+    const solo = vi.fn(async (_u: string, init?: RequestInit) => {
+      expect((init?.headers as Record<string, string>)['Prefer']).toBe('IdType="ImmutableId"')
+      return new Response(JSON.stringify({ id: 'X', parentFolderId: 'F-IN' }), { status: 200 })
+    })
+    await resolveGraphRemoval('tok', { id: 'X', reason: 'changed' }, FOLDERS, { fetch: F(solo) })
+    expect(solo).toHaveBeenCalledOnce()
   })
 })
 
@@ -62,7 +121,7 @@ describe('graphDelta', () => {
     const calls: string[] = []
     const fetch = vi.fn(async (u: string, init?: RequestInit) => {
       calls.push(u)
-      expect((init?.headers as Record<string, string>)['Prefer']).toBe('odata.maxpagesize=50')
+      expect((init?.headers as Record<string, string>)['Prefer']).toBe(`odata.maxpagesize=50, ${IMMUTABLE_ID_PREFER}`)
       if (calls.length === 1) return new Response(JSON.stringify({ value: [{ id: 'a' }], '@odata.nextLink': 'https://graph.microsoft.com/v1.0/next' }), { status: 200 })
       return new Response(JSON.stringify({ value: [{ id: 'b' }], '@odata.deltaLink': 'https://graph.microsoft.com/v1.0/delta?token=Z' }), { status: 200 })
     })
