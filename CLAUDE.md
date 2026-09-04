@@ -83,7 +83,10 @@ Charts :       Recharts
 i18n :         react-i18next (FR/DE/EN/IT)
 
 Backend :      Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1)
-               PostgreSQL 15+ / Edge Functions (Deno) / Auth / Storage / Realtime / pgvector / pg_cron
+               PostgreSQL 17.6 / Edge Functions (Deno) / Auth / Storage / Realtime / pg_cron
+               (⛔ `pgvector` retiré le 04.09.2026 : jamais installée — `pg_extension` en rend
+               douze, aucune n'est `vector`. La version est mesurée, pas « 15+ » : prod 17.6,
+               local et CI 17.)
 IA :           DeepSeek (deepseek-chat) pour TOUT le texte via Edge Functions — décision coût
                Vision/OCR/PDF : Gemini (Google) — DeepSeek n'a pas de vision. AUCUN Claude/Anthropic.
 Email :        Resend (megga.ch DKIM/SPF)

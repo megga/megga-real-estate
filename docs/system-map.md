@@ -104,8 +104,8 @@ fragmenté.
 ```
 Frontend   React 18 / TS / Vite / Tailwind · React Router v6 · React Query (+ supabase-cache-helpers)
            i18n react-i18next (FR/DE/EN/IT) · Mapbox GL (lazy) · Recharts · Sentry · PostHog
-Backend    Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1) — Postgres 15, Auth, Storage,
-           Realtime, pgvector, pg_cron, pg_net · 67 Edge Functions (Deno)
+Backend    Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1) — Postgres 17.6, Auth, Storage,
+           Realtime, pg_cron, pg_net, postgis · Edge Functions (Deno, décompte au §5)
 IA         Texte = DeepSeek (deepseek-chat) PARTOUT · Vision/OCR/PDF = Gemini
            (_shared/vision.ts, photo-vision.ts) · AUCUN Claude/Anthropic au runtime
            (retiré PR #829 ; 0 appel api.anthropic.com). Abstraction
@@ -118,6 +118,25 @@ Intégr.    Stripe · Resend · Dilisense (KYC) · Google/Microsoft Calendar · 
            Gmail API + Microsoft Graph (messagerie agent — état et date au §6ter)
 Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge auto-deploy
 ```
+
+> ⛔ **Trois chiffres de ce bloc étaient faux, remesurés le 04.09.2026** — et le troisième
+> est celui qui a coûté le plus longtemps, parce qu'il ne se contredisait pas tout seul.
+> **`67 Edge Functions` était le TROISIÈME chiffre du même objet dans ce document** : le
+> §1 disait 67, le titre du §5 disait 71, et la réalité valait 81 puis 87. Deux d'entre eux
+> ont été repris le 04.09 (avec le report de leur `phrase` au registre) ; celui-ci ne
+> l'était pas et contredisait alors les deux autres **à l'œil nu**. Il ne porte plus de
+> nombre du tout : un décompte se maintient à UN endroit, et c'est le §5, que
+> `sm-edge-functions-titre` garde. Un quatrième chiffre à périmer n'aurait rien réglé.
+> **`pgvector`** n'a jamais été installé — mesuré : `select extname from pg_extension`
+> rend douze extensions, aucune n'est `vector`, et aucune migration du dépôt ne crée de
+> colonne `vector(...)`. **`Postgres 15`** enfin : la production tourne en **17.6**
+> (`current_setting('server_version')`), et le local comme la CI en 17
+> (`supabase/config.toml`, `major_version = 17`).
+>
+> ⚠ Aucun de ces trois-là n'était cité par une entrée de
+> `scripts/_data/claude-md-claims.json` — vérifié champ par champ sur les 41 prétentions :
+> `npm run lint:claude-md` était donc **vert sur les trois**. Une porte ne garde que ce
+> qu'on lui a nommé.
 
 **Frontières & flux global :**
 ```
@@ -345,7 +364,12 @@ FR (défaut, eager) + DE/EN/IT (lazy). 12 namespaces : `common, dashboard, setti
 
 ## 3. Base de données (Supabase Postgres)
 
-> Détail complet : [schema.md](schema.md). Extensions actives : `pg_cron`, `pg_net`, `citext`, `pgvector`.
+> Détail complet : [schema.md](schema.md). Extensions actives — **les douze, relevées le
+> 04.09.2026** : `btree_gist`, `citext`, `pg_cron`, `pg_net`, `pg_stat_statements`,
+> `pg_trgm`, `pgcrypto`, `plpgsql`, `postgis`, `supabase_vault`, `unaccent`, `uuid-ossp`.
+> ⛔ **`pgvector` N'EST PAS installée** et ne l'a jamais été : elle figurait ici et au §1
+> comme une extension active, sans qu'aucune migration ne crée jamais de colonne
+> `vector(...)`. Deux documents l'annonçaient, zéro base la portait.
 
 ### Tables par domaine
 - **Tenant & équipes** : `agencies` (root, plan), `profiles` (rôles agent/manager/admin/assistant/seller/buyer), `agency_profiles` / `agent_profiles` (annuaires publics, tsvector), `team_invitations`. ⚠️ **`agency_profiles` n'est pas un annuaire propre : c'est un agrégat de LIBELLÉS de portails.** Flatfox tient *une* organisation et un libellé d'annonceur **libre par annonce**, si bien que notre sync fabriquait une ligne par libellé — 22 pour Wincasa, 13 pour ImmoSky, 6 pour de Rham (dont `de — SA`, un nom coupé au mauvais endroit). Grand nettoyage du 13 août 2026 : **6195 → 6152 lignes**, ~3200 annonces regroupées, 0 orpheline. Les quatre signaux de rapprochement, par force croissante — raison sociale nue, logo, **adresse (rue ET commune)**, puis **fiche d'organisation du portail** — et leurs pièges (`'' = ''` fabrique de faux doublons, `Postfach` est une adresse vide déguisée, un siège de groupe n'est pas un doublon) sont dans `scripts/realadvisor-agencies/reconcile-duplicates.sql` et les brains `megga/agences-deduplication`, `megga/agences-annuaire-realadvisor`, `megga/agences-uid-che-registre`. ⚠️ `market_listings.agency_profile_id` est **`ON DELETE SET NULL`** : supprimer un doublon détache ses annonces **en silence** — repointer avant. La réversibilité tient à `market_listings.agency_name`, qui conserve le libellé d'origine 1:1.
