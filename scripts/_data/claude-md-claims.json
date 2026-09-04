@@ -634,15 +634,15 @@
     {
       "id": "sm-edge-functions-entete",
       "section": "§0 — En une phrase",
-      "phrase": "81 edge functions",
+      "phrase": "87 edge functions",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "fichier": "src/lib/edgeFunctionRoster.ts",
         "motif": "^\\s*'[a-z0-9-]+',"
       },
       "attendu": {
-        "occurrences": 81
+        "occurrences": 87
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.1,
@@ -652,15 +652,15 @@
     {
       "id": "sm-edge-functions-titre",
       "section": "§5 — Edge functions",
-      "phrase": "Edge functions (81) — catalogue par domaine",
+      "phrase": "Edge functions (87) — catalogue par domaine",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "fichier": "src/lib/edgeFunctionRoster.ts",
         "motif": "^\\s*'[a-z0-9-]+',"
       },
       "attendu": {
-        "occurrences": 81
+        "occurrences": 87
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.1,
@@ -692,15 +692,15 @@
     {
       "id": "sm-cerveau-entrees",
       "section": "§ cerveau",
-      "phrase": "(258 entrées curées)",
+      "phrase": "(264 entrées curées au 04.09.2026)",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-04",
       "mesure": {
         "fichier": ".claude-flow/knowledge/megga-memory.seed.json",
         "motif": "\"key\":"
       },
       "attendu": {
-        "occurrences": 258
+        "occurrences": 264
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,
