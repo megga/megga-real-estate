@@ -69,6 +69,29 @@ describe('buildMime', () => {
     expect(raw).toContain('Content-Disposition: attachment; filename="plan.pdf"')
     expect(raw).toContain('\r\nJVBERi0=\r\n')
   })
+  // ⛔ Le `mime_type` d'une pièce vient du CORPS de la requête mail-send : c'est du texte
+  // d'appelant, posé dans un en-tête de partie. Sans validation, un CRLF y ouvrait un
+  // en-tête à soi.
+  it('un type de pièce ne peut pas ouvrir un en-tête de partie', () => {
+    const raw = buildMime({
+      ...base,
+      attachments: [{ filename: 'f.txt', mimeType: 'text/plain\r\nX-Injected: yes', base64: 'QQ==' }],
+    })
+    expect(raw).not.toContain('X-Injected')
+    expect(raw).toContain('Content-Type: application/octet-stream; name="f.txt"')
+  })
+  it('un type valide passe, ses paramètres sont jetés, tout le reste retombe sur octet-stream', () => {
+    const of = (mimeType: string) =>
+      buildMime({ ...base, attachments: [{ filename: 'f', mimeType, base64: 'QQ==' }] })
+        .split('\r\n').find((l) => l.startsWith('Content-Type:') && l.includes('name='))
+    expect(of('application/pdf')).toBe('Content-Type: application/pdf; name="f"')
+    expect(of('APPLICATION/PDF')).toBe('Content-Type: application/pdf; name="f"')
+    // Le paramètre est jeté : c'est là qu'on cacherait un guillemet ou un point-virgule.
+    expect(of('text/plain; charset=utf-8')).toBe('Content-Type: text/plain; name="f"')
+    for (const nawak of ['', 'nawak', 'text/', '/plain', 'text/plain"; x="y', 'text/pl ain']) {
+      expect(of(nawak), nawak).toBe('Content-Type: application/octet-stream; name="f"')
+    }
+  })
   it('Message-ID et mot d en-tête', () => {
     expect(makeMessageId('agence.ch')).toMatch(/^<[0-9a-f-]{36}@agence\.ch>$/)
     expect(encodeHeaderWord('ascii only')).toBe('ascii only')

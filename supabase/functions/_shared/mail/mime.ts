@@ -268,9 +268,24 @@ export function buildMime(m: OutgoingMessage): string {
   ]
   for (const a of m.attachments) {
     const name = a.filename.replace(/["\r\n]/g, '')
+    // ⛔ LE TYPE EST DU TEXTE D'APPELANT, EXACTEMENT COMME LE NOM — et il atterrit dans un
+    // EN-TÊTE. Le nom voisin était nettoyé depuis l'origine, le type ne l'était pas :
+    // `{"mime_type": "text/plain\r\nX-Injected: yes"}` posté à mail-send rendait
+    // littéralement `Content-Type: text/plain` / `X-Injected: yes; name="f.txt"`. De là on
+    // forge n'importe quel en-tête de partie, on referme la frontière, on ajoute une pièce.
+    // L'enveloppe, elle, est propre (`encodeHeaderWord` encode tout CRLF, `isAddr` refuse
+    // une adresse qui en porte) : le trou n'était que dans les parties — assez pour ne pas
+    // le laisser.
+    //
+    // On ne NETTOIE pas, on VALIDE : un type est `type/sous-type`, et ce qui n'a pas cette
+    // forme n'est pas un type. ⚠ Les PARAMÈTRES sont volontairement jetés (`; charset=…`) —
+    // `attachmentServing`, trente lignes plus haut, ne compare déjà que l'essence, et un
+    // paramètre est précisément l'endroit où l'on cacherait un guillemet ou un point-virgule.
+    const essence = a.mimeType.split(';')[0].trim().toLowerCase()
+    const type = /^[a-z0-9][\w.+-]*\/[a-z0-9][\w.+-]*$/.test(essence) ? essence : 'application/octet-stream'
     parts.push(
       `--${mixed}`,
-      `Content-Type: ${a.mimeType}; name="${name}"`,
+      `Content-Type: ${type}; name="${name}"`,
       'Content-Transfer-Encoding: base64',
       `Content-Disposition: attachment; filename="${name}"`,
       '',

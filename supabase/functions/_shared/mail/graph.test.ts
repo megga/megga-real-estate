@@ -215,4 +215,28 @@ describe('graphDelta', () => {
     expect(r.items.map((i) => i.id)).toEqual(['a', 'b'])
     expect(r.deltaLink).toBe('https://graph.microsoft.com/v1.0/delta?token=Z')
   })
+
+  // ⛔ Les URLs absolues rejouées par la synchro viennent du curseur PERSISTÉ. Le jour où
+  // un chemin laisserait écrire ce curseur, un `nextLink` chez un tiers enverrait le jeton
+  // Graph de l'agent à cet hôte. L'invariant se vérifie au point d'appel, pas ailleurs.
+  it('un lien absolu hors graph.microsoft.com n emporte JAMAIS le jeton', async () => {
+    for (const evil of [
+      'https://evil.example/v1.0/next',
+      'https://graph.microsoft.com.evil.example/v1.0/next', // passe un startsWith naïf
+      'https://graph.microsoft.com@evil.example/v1.0/next', // userinfo : idem
+      'https://GRAPH.microsoft.com.evil.example/next',
+    ]) {
+      const fetch = vi.fn(async () => new Response('{}', { status: 200 }))
+      await expect(graphDelta('tok', 'inbox', evil, '2026-06-05T00:00:00.000Z', { fetch: F(fetch) }), evil)
+        .rejects.toThrow(/hôte refusé/)
+      expect(fetch, evil).not.toHaveBeenCalled()
+    }
+  })
+
+  it('un lien absolu chez Graph reste accepté, quelle que soit la casse de l hôte', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ value: [], '@odata.deltaLink': 'https://graph.microsoft.com/v1.0/d' }), { status: 200 }))
+    const r = await graphDelta('tok', 'inbox', 'https://GRAPH.microsoft.com/v1.0/next', '2026-06-05T00:00:00.000Z', { fetch: F(fetch) })
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(r.deltaLink).toBe('https://graph.microsoft.com/v1.0/d')
+  })
 })

@@ -67,6 +67,29 @@ export async function loadVisibleAccount(admin: SupabaseClient, accountId: strin
   return accountVisibleTo(data as MailAccountRow, ctx) ? (data as MailAccountRow) : null
 }
 
+/**
+ * Charge le compte s'il appartient à l'AGENCE de l'appelant — sans regarder `visibility`.
+ *
+ * ⛔ POUR RÉVOQUER, PAS POUR LIRE. `loadVisibleAccount` est la bonne porte partout où l'on
+ * touche au CONTENU d'une boîte ; elle est la mauvaise pour `disconnect`, et le défaut
+ * était exactement inversé : la branche « admin ou manager » de `mail-oauth disconnect`
+ * était INATTEIGNABLE pour les boîtes qui la motivent. Une boîte en `visibility: 'owner'`
+ * d'un autre membre rend `null` — donc 404 — AVANT le contrôle de rôle ; la branche ne
+ * s'ouvrait que sur les boîtes 'agency', celles où l'admin était le moins nécessaire.
+ * Conséquence : au départ d'un agent, aucun admin de l'agence ne pouvait couper la
+ * connexion, effacer le courrier ingéré, ni arrêter le balayage — la seule issue était une
+ * écriture directe en base.
+ *
+ * La visibilité gouverne QUI LIT une boîte ; elle n'a jamais eu à gouverner qui la révoque.
+ * L'appartenance à l'agence reste, elle, la barrière : un id d'une autre agence rend `null`,
+ * donc le même 404 qu'avant (contrat figé par tests/backend/mail-edges.spec.ts).
+ */
+export async function loadAgencyAccount(admin: SupabaseClient, accountId: string, ctx: CallerCtx): Promise<MailAccountRow | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(accountId ?? '')) return null
+  const { data } = await admin.from('mail_accounts').select('*').eq('id', accountId).eq('agency_id', ctx.agencyId).maybeSingle()
+  return (data as MailAccountRow | null) ?? null
+}
+
 export interface ProviderConfig { gmail: OAuthClientConfig; outlook: OAuthClientConfig }
 
 /** Lit les quatre secrets. Un secret vide n'est PAS une erreur ici : c'est l'échange qui échouera, lisiblement. */

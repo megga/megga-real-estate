@@ -28,6 +28,8 @@ const PER_ACCOUNT_BUDGET_MS = 20_000
 const TARGETED_BUDGET_MS = 20_000
 const MAX_ACCOUNTS_PER_TICK = 25
 const LOCK_TTL_MS = 180_000
+/** `{}` ou `{"account_id":"<uuid>"}` : rien de légitime ne dépasse quelques dizaines d'octets. */
+const MAX_BODY_BYTES = 4_096
 
 type LockResult =
   | { ok: true; until: string }
@@ -77,6 +79,18 @@ serve(async (req: Request) => {
   // fournisseurs, eux, se lisent APRÈS — règle 4 du lot (corrigé le 03.09.2026 :
   // la version d'origine lisait les quatre secrets et interrogeait app_config avant
   // de refuser un appelant anonyme).
+  // ⛔ LE CORPS EST BORNÉ AVANT D'ÊTRE LU. Cette edge est déployée `--no-verify-jwt` :
+  // n'importe qui peut la POSTer, et `await req.json()` sans plafond faisait tamponner au
+  // runtime un corps de plusieurs centaines de Mo AVANT la moindre garde. Or les deux seuls
+  // corps légitimes sont `{}` (balayage) et `{"account_id":"<uuid>"}` : quelques dizaines
+  // d'octets. ⚠ `Content-Length` est absent d'un envoi en `chunked` — le plafond n'est donc
+  // pas une preuve, c'est le coût d'entrée d'un abus trivial qu'il retire. La lecture
+  // d'`app_config` par `isServiceSecret`, elle, est déjà précédée du contrôle d'en-tête
+  // `Authorization` (require-service-secret.ts:24) : un POST anonyme SANS en-tête ne coûte
+  // aucun aller-retour en base.
+  const declared = Number(req.headers.get('content-length') ?? '0')
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return json({ error: 'payload_too_large' }, 413)
+
   const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
   let body: Record<string, unknown> = {}
   try { body = await req.json() } catch { /* corps vide = balayage */ }

@@ -3,13 +3,14 @@
 //   start      → { url, state }            (state + code_verifier gardés en base)
 //   exchange   → { account }               (échange PKCE, identité, Vault, 1re synchro en fond)
 //   disconnect → { ok }                    (révocation, Vault effacé, cascade)
-//   update     → { account }               (display_name, visibility — propriétaire seul)
+//   update     → { account }               (display_name, visibility, status active⇄disabled
+//                                           — propriétaire seul)
 // Garde : requireAgentAuth AVANT toute lecture de configuration (règle 4 du lot).
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { buildAuthorizeUrl, exchangeCode, fetchIdentity, pkceChallenge, randomToken, revokeToken, type OAuthProvider } from '../_shared/mail/oauth.ts'
 import { deleteAccountSecret, readAccountSecret, storeAccountSecret } from '../_shared/mail/secrets.ts'
-import { loadVisibleAccount, providerConfigFromEnv, redirectUriFor } from '../_shared/mail/guard.ts'
+import { loadAgencyAccount, loadVisibleAccount, providerConfigFromEnv, redirectUriFor } from '../_shared/mail/guard.ts'
 import { syncAccount } from '../_shared/mail/sync.ts'
 import type { MailAccountRow, OAuthSecret } from '../_shared/mail/types.ts'
 
@@ -71,9 +72,30 @@ serve(async (req: Request) => {
     const code = String(body.code ?? '')
     const state = String(body.state ?? '')
     if (!code || !/^[0-9a-f]{64}$/.test(state)) return json({ error: 'invalid_state' }, 403)
-    const { data: st } = await admin.from('mail_oauth_states').select('*').eq('state', state).eq('user_id', user.id).maybeSingle()
-    if (!st || st.consumed_at || new Date(st.expires_at).getTime() < Date.now()) return json({ error: 'invalid_state' }, 403)
-    await admin.from('mail_oauth_states').update({ consumed_at: new Date().toISOString() }).eq('state', state)
+    /**
+     * ⛔ LA CONSOMMATION EST LA GARDE, en UNE instruction. La version d'origine lisait la
+     * ligne, refusait un `consumed_at` non nul, PUIS marquait — un contrôle-puis-agit que
+     * deux `exchange` concurrents sur le même `{code, state}` passaient tous les deux. La
+     * propriété annoncée (« un state ne sert qu'une fois ») n'était donc pas tenue ici mais
+     * chez Google/Microsoft, qui rendent `invalid_grant` au second échange — un 502 après
+     * coup. Et sur un fournisseur lent, les deux appels atteignaient `storeAccountSecret` :
+     * un secret Vault orphelin de plus à chaque course.
+     *
+     * L'UPDATE conditionnel tranche : `consumed_at is null and expires_at > now()` sont
+     * évalués et écrits dans la même instruction, donc une seule des deux requêtes voit une
+     * ligne rendue. Zéro ligne = état inconnu, déjà consommé, ou périmé — indistinctement
+     * `invalid_state`, comme avant (aucun oracle offert à l'appelant).
+     */
+    const { data: consumed, error: eState } = await admin.from('mail_oauth_states')
+      .update({ consumed_at: new Date().toISOString() })
+      .eq('state', state).eq('user_id', user.id)
+      .is('consumed_at', null).gt('expires_at', new Date().toISOString())
+      .select('*')
+    // Une lecture en échec n'est pas un état invalide : le dire 403 enverrait l'agent
+    // recommencer une autorisation qui n'a rien de fautif.
+    if (eState) return json({ error: 'state_consume_failed', detail: eState.message }, 500)
+    const st = (consumed ?? [])[0]
+    if (!st) return json({ error: 'invalid_state' }, 403)
     const provider = st.provider as OAuthProvider
 
     let tokens: { access_token: string; refresh_token: string; expires_in: number }
@@ -90,7 +112,7 @@ serve(async (req: Request) => {
       expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
     }
     // Une boîte déjà connectée (même agence, même adresse) est RÉAUTORISÉE, pas dupliquée.
-    const { data: existing } = await admin.from('mail_accounts').select('id, vault_secret_id')
+    const { data: existing } = await admin.from('mail_accounts').select('id, vault_secret_id, owner_id, visibility')
       // ⚠ `.eq` et non `.ilike` : dans un motif LIKE, `_` et `%` sont des JOKERS —
       // `john_doe@x.ch` apparierait `johnXdoe@x.ch`, et `.maybeSingle()` lèverait sur
       // deux résultats. `identity.email` est déjà en minuscules (fetchIdentity) et
@@ -107,9 +129,29 @@ serve(async (req: Request) => {
           .catch((e) => console.error(`[mail-oauth] ancien secret ${existing.vault_secret_id} ORPHELIN (compte ${existing.id}):`, e instanceof Error ? e.message : String(e)))
       }
       const vaultId = await storeAccountSecret(admin, `mail:${provider}:${identity.email}`, secret)
+      /**
+       * ⛔ UNE RÉAUTORISATION NE CHANGE PAS DE MAIN. Le patch écrivait `owner_id: user.id`
+       * ET `visibility: st.visibility` : n'importe quel membre de l'agence connaissant le
+       * mot de passe de la boîte PARTAGÉE — c'est précisément ce que « partagée » veut dire
+       * — la reconnectait en `{visibility:'owner'}` et en devenait propriétaire. La boîte et
+       * TOUT son historique ingéré sortaient alors de la vue du directeur et de chaque
+       * admin (`loadVisibleAccount` rend null pour eux) : plus de lecture, plus de `update`,
+       * plus de `disconnect` par aucun edge. Rattrapable seulement par écriture directe en
+       * base. Le geste demandé était « redonner un jeton », le geste obtenu était « prendre
+       * la boîte ».
+       *
+       * ⚠ On REFUSE la prise, pas la réautorisation : la boîte partagée dont le jeton a
+       * expiré doit pouvoir être réparée par le collègue qui a les identifiants, sans quoi
+       * l'agence attend le retour de congés du propriétaire. Seuls le secret, le statut et
+       * le nom d'affichage bougent. Le propriétaire et la visibilité ne se changent que par
+       * l'action `update`, réservée au propriétaire.
+       */
+      if (existing.owner_id !== user.id) {
+        console.error(`[mail-oauth] compte ${existing.id} réautorisé par ${user.id}, propriétaire ${existing.owner_id} — jeton remplacé, propriété INCHANGÉE`)
+      }
       const { error } = await admin.from('mail_accounts').update({
-        vault_secret_id: vaultId, status: 'active', last_error: null, owner_id: user.id,
-        visibility: st.visibility, display_name: identity.name, next_sync_at: new Date().toISOString(),
+        vault_secret_id: vaultId, status: 'active', last_error: null, sync_failures: 0,
+        display_name: identity.name, next_sync_at: new Date().toISOString(),
       }).eq('id', existing.id)
       if (error) return json({ error: 'account_update_failed' }, 500)
       accountId = existing.id
@@ -150,7 +192,13 @@ serve(async (req: Request) => {
   }
 
   if (action === 'disconnect') {
-    const account = await loadVisibleAccount(admin, String(body.account_id ?? ''), ctx)
+    // ⛔ CHARGÉ PAR L'AGENCE, PAS PAR LA VISIBILITÉ (loadAgencyAccount, guard.ts). Avec
+    // `loadVisibleAccount`, la branche « admin ou manager » juste en dessous était
+    // INATTEIGNABLE pour les boîtes qui la justifient : une boîte `visibility: 'owner'`
+    // d'un autre membre rendait 404 avant même le contrôle de rôle. Le rôle vient d'une
+    // source de confiance (select serveur dans require-agent-auth), et l'agence reste la
+    // barrière — un compte d'une autre agence rend toujours 404.
+    const account = await loadAgencyAccount(admin, String(body.account_id ?? ''), ctx)
     if (!account) return json({ error: 'not_found' }, 404)
     if (account.owner_id !== user.id && !['admin', 'manager'].includes(profile.role ?? '')) return json({ error: 'forbidden' }, 403)
     /**
@@ -209,6 +257,30 @@ serve(async (req: Request) => {
     const patch: Record<string, unknown> = {}
     if (typeof body.display_name === 'string') patch.display_name = body.display_name.slice(0, 80)
     if (body.visibility === 'owner' || body.visibility === 'agency') patch.visibility = body.visibility
+    /**
+     * METTRE EN PAUSE — le troisième champ que le plan maître §5 promet au propriétaire
+     * (« UPDATE limité à `display_name`, `visibility`, `status='disabled'` »), et qui
+     * n'existait nulle part. Sans lui, arrêter une boîte passait par `disconnect`, qui
+     * révoque le jeton et emporte en cascade fils, messages et pièces : une réponse
+     * DESTRUCTIVE à une demande réversible (« je pars trois semaines »).
+     *
+     * ⚠ La bascule ne vaut qu'entre `active` et `disabled`. Les trois autres états sont
+     * des VERDICTS du système — `reauth_required` (le fournisseur a coupé),
+     * `error` (cinq échecs d'affilée), et le `disabled` posé par le départ du
+     * propriétaire — qu'un clic ne doit pas pouvoir effacer : les remettre `active`
+     * relancerait un balayage condamné, ou, dans le dernier cas, l'ingestion du courrier
+     * d'un agent parti. Ces états-là se réparent par une RÉAUTORISATION, pas par un
+     * interrupteur. D'où un 409 explicite plutôt qu'un champ ignoré en silence.
+     */
+    if (body.status === 'disabled' || body.status === 'active') {
+      if (account.status !== 'active' && account.status !== 'disabled') {
+        return json({ error: 'status_not_togglable', status: account.status }, 409)
+      }
+      patch.status = body.status
+      // Redémarrer, c'est repartir propre ET tout de suite : sinon la boîte traînerait
+      // le dernier `last_error` et le backoff écrit avant la pause.
+      if (body.status === 'active') { patch.last_error = null; patch.sync_failures = 0; patch.next_sync_at = new Date().toISOString() }
+    }
     const { data: pub, error } = await admin.from('mail_accounts').update(patch).eq('id', account.id).select(PUBLIC_COLS).single()
     if (error) return json({ error: 'update_failed' }, 500)
     return json({ account: pub })

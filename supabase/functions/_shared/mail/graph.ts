@@ -75,9 +75,35 @@ function withImmutableId(headers: Record<string, string> = {}): Record<string, s
   return { ...headers, Prefer: own ? `${own}, ${IMMUTABLE_ID_PREFER}` : IMMUTABLE_ID_PREFER }
 }
 
+/**
+ * ⛔ AUCUN APPEL PORTANT LE JETON NE SORT DE `graph.microsoft.com`.
+ *
+ * `gcall` accepte une URL ABSOLUE, et ces URLs-là ne viennent pas du code : ce sont les
+ * `@odata.nextLink` / `@odata.deltaLink` que `sync.ts` persiste dans
+ * `mail_accounts.sync_cursor` et rejoue au tick suivant avec `Authorization: Bearer
+ * <jeton Graph de l'utilisateur>`. Aujourd'hui aucun appelant ne peut écrire ce curseur —
+ * `sync_cursor` est hors de la liste de colonnes accordée à `authenticated`, et la table
+ * n'a aucun grant d'UPDATE : seul le service-role l'écrit. C'est pourquoi ce n'est pas un
+ * trou, et c'est aussi pourquoi l'invariant se pose ICI : il suffirait d'un futur chemin
+ * qui laisse « réparer » un curseur depuis un corps de requête pour que ce `fetch`
+ * devienne une exfiltration de jeton vers l'hôte d'un tiers. Une promesse tenue au
+ * bord ne se vérifie pas ; une promesse tenue au point d'appel, si.
+ *
+ * L'hôte est comparé sur l'URL ANALYSÉE, jamais par préfixe de chaîne :
+ * `https://graph.microsoft.com.evil.ch/` et `https://graph.microsoft.com@evil.ch/`
+ * passent un `startsWith` naïf.
+ */
+export function graphUrl(url: string): string {
+  const target = url.startsWith('https://') ? url : `${BASE}${url}`
+  let host: string
+  try { host = new URL(target).host } catch { throw new GraphApiError(0, `graph: URL illisible (${target.slice(0, 60)})`) }
+  if (host !== 'graph.microsoft.com') throw new GraphApiError(0, `graph: hôte refusé (${host})`)
+  return target
+}
+
 async function gcall<T>(token: string, url: string, deps: GraphDeps, init: RequestInit = {}): Promise<T> {
   const f = deps.fetch ?? globalThis.fetch
-  const res = await f(url.startsWith('https://') ? url : `${BASE}${url}`, {
+  const res = await f(graphUrl(url), {
     ...init,
     headers: withImmutableId({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...((init.headers ?? {}) as Record<string, string>) }),
   })
