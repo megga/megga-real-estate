@@ -33,6 +33,39 @@
 > ids d'attachement après un déplacement Graph — que `Prefer: IdType="ImmutableId"` rend
 > sans objet.
 
+> ### Troisième passe de revue adverse — 04.09.2026 (les 24 défauts « mineurs »)
+>
+> « Mineur » est le rang que la revue leur a donné, pas une dispense. Trois d'entre eux
+> étaient des défauts de SÉCURITÉ ; deux sont **délibérément laissés**, avec leur raison
+> écrite dans le code. Les blocs de ce document sont re-synchronisés une troisième fois.
+>
+> | Famille | Où | Ce qui était faux |
+> |---|---|---|
+> | Sécurité | 1.6 · 1.10 · 1.13 | le `mime_type` d'une pièce atteignait l'en-tête MIME SANS nettoyage, quand le `filename` voisin l'était depuis toujours (`text/plain\r\nX-Injected: yes` forge un en-tête de partie) ; le `state` OAuth était consommé par un contrôle-puis-agit (deux échanges concurrents passaient) ; une RÉAUTORISATION réécrivait `owner_id` et `visibility`, donc quiconque a le mot de passe d'une boîte partagée la prenait et la cachait à toute l'agence ; la branche admin de `disconnect` était inatteignable pour les boîtes qui la motivent |
+> | Justesse fournisseur | 1.7 · 1.8 · 1.12 | `untrash` ajoutait INBOX aux copies « Envoyés » (l'agent retrouvait ses réponses dans sa Réception) ; un 404 sur le dossier Archive briquait la synchro d'une boîte Outlook ; les dates du fil se comparaient en CHAÎNES entre deux rendus ISO différents |
+> | Ordonnancement | 1.9 · 1.11 · 1.12 | budget vérifié seulement en TÊTE de page (50 `messages.get` séquentiels de dépassement) ; aucun bail par compte sur les quatre chemins de synchro ; une passe initiale inachevée repassait en tête de file à CHAQUE tick et affamait toutes les autres boîtes |
+> | Trace | 1.8 · 1.13 · 1.14 | trois écritures `activity_events` sur quatre ignoraient leur résultat, deux sans même un journal ; `msg!` sur une lecture non contrôlée rendait un 500 sans corps ; le marquage `document_id` — ce qui empêche de classer deux fois — n'était pas vérifié |
+> | Documentation | 1.10-1.15 · maître | « streamés » (le maître avait déjà corrigé la phrase la veille) ; « pages de 100 » et un `sync_cursor.page_token` inexistant ; deux comptes de tests faux ; la note « région GÉNÉRÉE », copiée dans cinq tâches avec des numéros de ligne déjà périmés |
+>
+> **Deux défauts LAISSÉS, et c'est écrit sur place** — un mauvais correctif coûte plus que
+> pas de correctif :
+> 1. **`References` ne s'accumule pas** (mail-send). La RFC 5322 §3.6.4 veut « References du
+>    parent + son Message-ID » ; on n'en pose que deux. Réparer demande une colonne
+>    `references text[]`, son écriture à l'ingestion, puis la concaténation — un changement de
+>    schéma pour un effet BORNÉ : le lien au parent immédiat est correct, donc Gmail, Outlook
+>    et Apple Mail enfilent la conversation ; se dégrade seulement pour le participant ajouté
+>    en cours de fil et pour les archives qui rebâtissent l'arbre par `References` seul. À
+>    reprendre au lot 2.
+> 2. **Le plafond de 5 000 messages du delta Graph sous `$filter`** — limite DOCUMENTÉE du
+>    fournisseur, pas un défaut d'ici. Le contourner veut dire retirer le `$filter` et
+>    parcourir la boîte ENTIÈRE pour n'en garder que 90 jours, sous un budget de 20 s par
+>    compte. Le plafond est le moindre mal ; ce qui manque est de le DIRE dans l'UI (lot 2).
+>
+> ⚠ **Un point de la revue est écarté par mesure, pas par choix** : « un POST anonyme sur
+> `mail-sync` coûte une lecture d'`app_config` ». `isServiceSecret` contrôle l'en-tête
+> `Authorization` (require-service-secret.ts:24) AVANT d'interroger la base : sans en-tête,
+> aucun aller-retour. Seul le plafond de corps manquait, il est posé.
+
 **Tech Stack:** Postgres **17** en local et en CI (`supabase/config.toml` `major_version = 17` — mesuré le 03.09.2026 ; le plan annonçait 15), RLS, Vault, pg_cron, pg_net ; Deno (edge) ; Vitest (unit + backend contre `supabase start`).
 
 ---
@@ -47,7 +80,7 @@
 6. **Migration idempotente** (`npm run lint:migrations`) ; un seul fichier pour le lot, horodaté `20260903120000`.
 7. `activity_events` : `severity` ∈ `info|warn|critical`, `category='messaging'`, `actor_kind='system'` ⇒ `actor_id` NULL. ⚠ Et **`entity_id` DOIT porter le `contact_id`** : `useContactTimeline` ne filtre que sur `entity_id` (son commentaire ligne 27 promet un « OU metadata », qui n'est pas implémenté) — un événement qui ne nomme le contact que dans `metadata` n'apparaît nulle part.
 8. ⚠ **`supabase/functions/_shared/mail/` est le PREMIER dossier imbriqué** de `supabase/functions/` (mesuré le 03.09.2026 : `find … -mindepth 2 -type d` ne rend rien). Inoffensif pour `deno check` (son `find` est récursif), pour `deploy.yml` (il n'itère que `supabase/functions/*/` et exige un `index.ts`) et pour le roster (il exclut `_shared`). Mais **vitest ne le voit pas** : cf. règle 1.
-9. ⛔ **Ne jamais écrire un bloc `[functions.*]` à la main dans `supabase/config.toml`** : les lignes 482→700 sont générées et comparées texte pour texte. `node scripts/check-edge-roster.mjs --write` (cf. tâches 1.10-1.14).
+9. ⛔ **Ne jamais écrire un bloc `[functions.*]` à la main dans `supabase/config.toml`** : la région entre les marqueurs `# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ── / — fin ──` est générée et comparée texte pour texte. `node scripts/check-edge-roster.mjs --write` (cf. tâches 1.10-1.14). ⚠ Cette règle a porté « les lignes 482→700 » jusqu'au 04.09.2026 : elles étaient déjà 494→727 — les marqueurs, eux, ne bougent pas.
 10. **Le nom de fichier de la migration doit valoir le jour du MERGE.** `deploy.yml:220` n'applique une migration que si `stamp_date >= TODAY` (UTC) et, plus bas, se contente d'un `::warning` pour celles qu'il saute : une migration datée du 03.09 fusionnée le 04.09 **ne partirait jamais en production**, toutes portes au vert. Re-dater par `git mv` avant de fusionner.
 
 ---
@@ -891,7 +924,7 @@ git commit -m "feat(messagerie): socle SQL — comptes, fils, messages, Vault, R
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
-import { serviceRoleClient } from './helpers/supabase'
+import { anonClient, serviceRoleClient } from './helpers/supabase'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 const URL = process.env.SUPABASE_TEST_URL ?? 'http://127.0.0.1:54321'
@@ -909,6 +942,12 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
   let threadOwnerId: string
   let threadSharedId: string
   let labelAId: string
+  let labelBId: string        // libellé de l'agence B — cible du WITH CHECK de mail_threads
+  let contactAId: string      // contact de l'agence A — cas passant des alias
+  let contactBId: string      // contact de l'agence B — cible du WITH CHECK des alias
+  let messageOwnerId: string  // message de la boîte perso : super-admin ET offboarding
+  let superAdminId: string
+  let superClient: SupabaseClient
 
   const mkAccount = async (agencyId: string, ownerId: string, email: string, visibility: 'owner' | 'agency') => {
     const { data, error } = await service.from('mail_accounts').insert({
@@ -927,6 +966,13 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
     if (error) throw new Error(`mail_threads ${subject}: ${error.message}`)
     return data.id as string
   }
+  const mkContact = async (agencyId: string, firstName: string, lastName: string, email: string) => {
+    const { data, error } = await service.from('contacts').insert({
+      agency_id: agencyId, first_name: firstName, last_name: lastName, email, type: 'buyer',
+    }).select('id').single()
+    if (error) throw new Error(`contacts ${email}: ${error.message}`)
+    return data.id as string
+  }
 
   beforeAll(async () => {
     s = await setupTwoAgencies()
@@ -938,6 +984,18 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
     threadSharedId = await mkThread(sharedBoxId, s.agencyAId, 'Partagé A')
     await mkThread(sharedBoxId, s.agencyAId, 'Archivé A', { is_archived: true, is_read: true })
     await mkThread(boxBId, s.agencyBId, 'Agence B')
+
+    // Un message dans la boîte PERSO : c'est le corps du courriel, la donnée que le
+    // super-admin ne doit pas lire et que l'ex-membre doit perdre en partant.
+    const { data: msg, error: mErr } = await service.from('mail_messages').insert({
+      thread_id: threadOwnerId, account_id: ownerBoxId, agency_id: s.agencyAId,
+      provider_message_id: `m-perso-${s.stamp}`, direction: 'inbound',
+      from_name: 'Alice Martin', from_email: 'alice@example.ch',
+      subject: 'Perso A', snippet: 'extrait', body_text: 'corps confidentiel',
+      sent_at: new Date().toISOString(),
+    }).select('id').single()
+    if (mErr) throw new Error(`mail_messages: ${mErr.message}`)
+    messageOwnerId = msg.id as string
 
     // Second agent DANS l'agence A : voit la boîte partagée, pas la boîte perso.
     const emailA2 = `agent-a2-${s.stamp}@megga-test.local`
@@ -955,16 +1013,44 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
     const { error: sErr } = await clientA2.auth.signInWithPassword({ email: emailA2, password: PASSWORD })
     if (sErr) throw new Error(sErr.message)
 
+    // Super-admin : agency_id NULL, domaine allowlisté par setupTwoAgencies
+    // (app_config.super_admin_test_domain) — c'est ce que lit is_super_admin().
+    const emailSu = `mail-super-${s.stamp}@megga-test.local`
+    const { data: su, error: suErr } = await service.auth.admin.createUser({
+      email: emailSu, password: PASSWORD, email_confirm: true,
+      user_metadata: { full_name: 'Super Mail', role: 'agent' },
+    })
+    if (suErr) throw new Error(suErr.message)
+    superAdminId = su!.user!.id
+    const { error: spErr } = await service.from('profiles').upsert(
+      { id: superAdminId, email: emailSu, full_name: 'Super Mail', role: 'super_admin', agency_id: null },
+      { onConflict: 'id' },
+    )
+    if (spErr) throw new Error(spErr.message)
+    superClient = anonClient()
+    const { error: ssErr } = await superClient.auth.signInWithPassword({ email: emailSu, password: PASSWORD })
+    if (ssErr) throw new Error(ssErr.message)
+
     const { data: lab, error: lErr } = await s.clientA.from('mail_labels')
       .insert({ agency_id: s.agencyAId, name: `À traiter ${s.stamp}`, color: '#fe566b' }).select('id').single()
     if (lErr) throw new Error(lErr.message)
     labelAId = lab.id
+
+    const { data: labB, error: lbErr } = await service.from('mail_labels')
+      .insert({ agency_id: s.agencyBId, name: `Chez B ${s.stamp}`, color: '#00aa55' }).select('id').single()
+    if (lbErr) throw new Error(lbErr.message)
+    labelBId = labB.id as string
+
+    contactAId = await mkContact(s.agencyAId, 'Paul', 'Dumont', `paul-${s.stamp}@ex.ch`)
+    contactBId = await mkContact(s.agencyBId, 'Bea', 'Berger', `bea-${s.stamp}@ex.ch`)
   }, 60_000)
 
   afterAll(async () => {
     await service.from('mail_accounts').delete().in('id', [ownerBoxId, sharedBoxId, boxBId])
-    await service.from('mail_labels').delete().eq('id', labelAId)
+    await service.from('mail_labels').delete().in('id', [labelAId, labelBId])
+    await service.from('contacts').delete().in('id', [contactAId, contactBId])
     if (agentA2Id) await service.auth.admin.deleteUser(agentA2Id)
+    if (superAdminId) await service.auth.admin.deleteUser(superAdminId)
     await s.cleanup()
   })
 
@@ -992,9 +1078,18 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
       .update({ is_read: true }).eq('id', threadSharedId).select('id')
     // La colonne is_read n'est pas accordée à authenticated : PostgREST refuse (42501).
     expect(e1).not.toBeNull()
+    const emailKo = `refus-compte-${s.stamp}@y.test`
     const { error: e2 } = await s.clientA.from('mail_accounts')
-      .insert({ agency_id: s.agencyAId, owner_id: s.agentAId, provider: 'gmail', email: 'x@y.test' })
+      .insert({ agency_id: s.agencyAId, owner_id: s.agentAId, provider: 'gmail', email: emailKo })
     expect(e2).not.toBeNull()
+    // ⚠ MÊME RÈGLE QU'AUX BROUILLONS ET AUX ALIAS PLUS BAS : une erreur non nulle ne
+    // prouve pas qu'aucune ligne n'a été écrite — PostgREST sait répondre 201 avec un
+    // corps vide sur certaines formes de requête. Ce fichier appliquait la relecture
+    // service-role aux deux autres refus et pas à celui-ci, qui est pourtant le plus
+    // lourd : une ligne `mail_accounts` écrite par un client est un compte de courrier
+    // fabriqué de toutes pièces.
+    const { data: resteCompte } = await service.from('mail_accounts').select('id').eq('email', emailKo)
+    expect(resteCompte ?? []).toEqual([])
     const { data: st, error: e3 } = await s.clientA.from('mail_oauth_states').select('state')
     expect(e3).not.toBeNull()
     expect(st ?? []).toEqual([])
@@ -1014,6 +1109,38 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
     expect(String(error?.message)).toMatch(/permission denied|not found|42501/i)
   })
 
+  // AJOUT — un refus ne prouve pas qu'un pont FONCTIONNE. `vault.secrets` compte 0 ligne
+  // en production : le patron esign_secret_* recopié ici n'a jamais tourné pour de vrai,
+  // et `mail_secret_update` n'a AUCUN précédent au dépôt (esign n'a que store/read/delete,
+  // et `vault.update_secret` n'est appelée nulle part). Rien d'autre ne l'éprouvera jamais.
+  it('le service-role fait l aller-retour complet dans le Vault', async () => {
+    const nom = `mail:test:${s.stamp}`
+    const avant = '{"a":1}'
+    const apres = '{"a":2}'
+
+    const store = await service.rpc('mail_secret_store', { p_secret: avant, p_name: nom })
+    expect(store.error).toBeNull()
+    expect(String(store.data)).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+    const secretId = store.data as string
+
+    try {
+      const lu = await service.rpc('mail_secret_read', { p_id: secretId })
+      expect(lu.error).toBeNull()
+      expect(String(lu.data)).toBe(avant)
+
+      const maj = await service.rpc('mail_secret_update', { p_id: secretId, p_secret: apres })
+      expect(maj.error).toBeNull()
+      const relu = await service.rpc('mail_secret_read', { p_id: secretId })
+      expect(String(relu.data)).toBe(apres)
+    } finally {
+      const del = await service.rpc('mail_secret_delete', { p_id: secretId })
+      expect(del.error).toBeNull()
+    }
+    const disparu = await service.rpc('mail_secret_read', { p_id: secretId })
+    expect(disparu.error).toBeNull()
+    expect(disparu.data).toBeNull()
+  })
+
   it('mail_list_threads : dossiers, total, recherche', async () => {
     const inbox = await s.clientA.rpc('mail_list_threads', { p_account_id: sharedBoxId, p_folder: 'in' })
     expect(inbox.error).toBeNull()
@@ -1029,11 +1156,23 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
     expect(none.data ?? []).toEqual([])
 
     // Un compte invisible rend une liste vide, pas une erreur (la RLS filtre avant).
+    // ⚠ `error` EST asserté : sans lui, un `grant execute` révoqué sur
+    // `mail_list_threads` satisferait cette isolation — la RPC échouerait, `data` serait
+    // null, et le test verrait le vide qu'il attend. Il ne tenait que par le contrôle
+    // d'erreur du cas passant, quinze lignes plus haut, dans le même `it()`.
     const foreign = await s.clientB.rpc('mail_list_threads', { p_account_id: sharedBoxId, p_folder: 'in' })
+    expect(foreign.error).toBeNull()
     expect(foreign.data ?? []).toEqual([])
   })
 
   it('mail_unread_counts et mail_folder_counts', async () => {
+    // ⚠ Le libellé est posé ICI et non hérité du test précédent : `label_counts` dépendait
+    // de l'ordre de DÉCLARATION des `it()`, un couplage que rien n'écrivait et que le
+    // premier réordonnancement — ou un `--shard` — aurait cassé sans que la cause se voie.
+    const { error: eLabel } = await s.clientA.from('mail_threads')
+      .update({ label_id: labelAId }).eq('id', threadSharedId)
+    expect(eLabel).toBeNull()
+
     const { data } = await s.clientA.rpc('mail_unread_counts')
     const row = (data ?? []).find((r: { account_id: string }) => r.account_id === sharedBoxId)
     expect(Number(row?.unread)).toBe(1)
@@ -1054,6 +1193,129 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
     expect((miss.data ?? []).map((r: { id: string }) => r.id)).not.toContain(c!.id)
     await service.from('contacts').delete().eq('id', c!.id)
   })
+
+  // AJOUT — le plan maître (§7.2) promet que le super-admin ne lit AUCUN corps de
+  // courriel. Aucune policy `is_super_admin()` n'existe sur mail_messages, et son
+  // agency_id vaut NULL : la propriété tient par un `=` avec NULL, ce qui est exactement
+  // le genre de garantie qui se casse à la première policy « de confort » ajoutée plus tard.
+  it('un super-admin ne lit aucun message', async () => {
+    const visible = await s.clientA.from('mail_messages').select('id').eq('id', messageOwnerId)
+    expect((visible.data ?? []).map((r) => r.id)).toEqual([messageOwnerId])
+
+    // ⛔ TÉMOIN POSITIF D'ABORD. Une lecture vide se produit aussi bien parce que la
+    // policy tient que parce que la session est morte (jeton expiré, connexion ratée
+    // avalée) — et « vide pour une raison qui n'est pas la bonne » est exactement la
+    // forme de test que cette revue traque. Le témoin choisi prouve les DEUX prémisses en
+    // une lecture : `super_admin_read_all_profiles` (USING `is_super_admin()`) est la
+    // seule policy qui rende à cette session le profil d'un agent d'une agence à laquelle
+    // elle n'appartient pas. Non vide ⇒ la session vit ET `is_super_admin()` répond vrai.
+    // C'est bien un super-admin PUISSANT qui, ci-dessous, ne lit aucun courrier.
+    const temoin = await superClient.from('profiles').select('id').eq('id', s.agentAId)
+    expect(temoin.error, 'la session super-admin ne lit RIEN — le vide ci-dessous ne prouverait rien').toBeNull()
+    expect((temoin.data ?? []).map((r) => r.id), 'is_super_admin() ne répond pas vrai pour cette session').toEqual([s.agentAId])
+
+    const { data: rien, error } = await superClient.from('mail_messages').select('id')
+    expect(error).toBeNull()
+    expect(rien ?? []).toEqual([])
+  })
+
+  // AJOUT — les trois WITH CHECK resserrés à la revue de la task 1.1. Chacun refuse une
+  // écriture INTER-AGENCES que la seule clé étrangère laisserait passer.
+  it('un brouillon estampillé d une autre agence est refusé', async () => {
+    const sujetOk = `brouillon-ok-${s.stamp}`
+    const sujetKo = `brouillon-refus-${s.stamp}`
+
+    // Cas passant d'abord : sans lui, un refus ne prouverait pas que le chemin d'écriture
+    // existe — un brouillon refusé pour un motif quelconque passerait pour une preuve.
+    const ok = await s.clientA.from('mail_drafts').insert({
+      account_id: sharedBoxId, agency_id: s.agencyAId, author_id: s.agentAId, subject: sujetOk,
+    }).select('id').single()
+    expect(ok.error).toBeNull()
+    await s.clientA.from('mail_drafts').delete().eq('id', ok.data!.id)
+
+    const { error } = await s.clientA.from('mail_drafts').insert({
+      account_id: sharedBoxId, agency_id: s.agencyBId, author_id: s.agentAId, subject: sujetKo,
+    })
+    expect(error).not.toBeNull()
+    // ⚠ L'erreur ne suffit pas : PostgREST sait répondre 201 avec un corps vide sur
+    // certaines formes de requête. On relit avec le service-role, hors RLS.
+    const { data: reste } = await service.from('mail_drafts').select('id').eq('subject', sujetKo)
+    expect(reste ?? []).toEqual([])
+  })
+
+  it('un libellé d une autre agence ne peut pas être posé sur un fil', async () => {
+    const ok = await s.clientA.from('mail_threads')
+      .update({ label_id: labelAId }).eq('id', threadSharedId)
+    expect(ok.error).toBeNull()
+
+    const { error } = await s.clientA.from('mail_threads')
+      .update({ label_id: labelBId }).eq('id', threadSharedId)
+    expect(error).not.toBeNull()
+    const { data: apres } = await service.from('mail_threads')
+      .select('label_id').eq('id', threadSharedId).single()
+    expect(apres?.label_id).toBe(labelAId)
+  })
+
+  it('un alias vers le contact d une autre agence est refusé', async () => {
+    const emailOk = `alias-ok-${s.stamp}@ex.ch`
+    const emailKo = `alias-refus-${s.stamp}@ex.ch`
+
+    const ok = await s.clientA.from('mail_contact_aliases').insert({
+      agency_id: s.agencyAId, email: emailOk, contact_id: contactAId, learned_by: s.agentAId,
+    }).select('id').single()
+    expect(ok.error).toBeNull()
+    await s.clientA.from('mail_contact_aliases').delete().eq('id', ok.data!.id)
+
+    // agency_id reste celui de l'appelant : c'est le contact qui appartient à l'agence B.
+    // Sans le `exists` du WITH CHECK, l'ingestion (service-role, hors RLS) recopierait ce
+    // contact étranger sur mail_threads.contact_id — un fil « rattaché » et vide.
+    const { error } = await s.clientA.from('mail_contact_aliases').insert({
+      agency_id: s.agencyAId, email: emailKo, contact_id: contactBId, learned_by: s.agentAId,
+    })
+    expect(error).not.toBeNull()
+    const { data: reste } = await service.from('mail_contact_aliases').select('id').eq('email', emailKo)
+    expect(reste ?? []).toEqual([])
+  })
+
+  // AJOUT, ET LE DERNIER DE LA LISTE (la suite est sérielle : ce test déplace un profil
+  // puis le remet, et l'ordre de déclaration est donc l'ordre d'exécution).
+  //
+  // La fuite que le ET conjoint de mail_account_visible ferme : `team_remove_member` ne
+  // fait qu'un `update profiles set agency_id = null, role = 'buyer'` — la ligne profiles
+  // SURVIT, donc la clé étrangère `owner_id … on delete cascade` ne se déclenche jamais et
+  // le compte reste 'active'. `accept-team-invite` réécrit ensuite `profiles.agency_id`
+  // vers une NOUVELLE agence. Sans le ET, la branche `owner_id = auth.uid()` suivrait
+  // l'ex-membre chez le concurrent.
+  //
+  // ⚠ Le JWT de s.clientA n'est PAS renouvelé, et c'est le cœur du test : la policy
+  // réévalue get_my_agency_id() à chaque instruction, elle n'est pas figée dans le jeton.
+  it('une boîte ne suit pas son propriétaire qui change d agence', async () => {
+    const avantComptes = await s.clientA.from('mail_accounts').select('id').eq('id', ownerBoxId)
+    expect((avantComptes.data ?? []).map((r) => r.id)).toEqual([ownerBoxId])
+    const avantFils = await s.clientA.from('mail_threads').select('id').eq('id', threadOwnerId)
+    expect((avantFils.data ?? []).map((r) => r.id)).toEqual([threadOwnerId])
+    const avantMsg = await s.clientA.from('mail_messages').select('id').eq('id', messageOwnerId)
+    expect((avantMsg.data ?? []).map((r) => r.id)).toEqual([messageOwnerId])
+    const avantListe = await s.clientA.rpc('mail_list_threads', { p_account_id: ownerBoxId, p_folder: 'in' })
+    expect(avantListe.data?.length).toBe(1)
+
+    try {
+      const { error: movErr } = await service.from('profiles')
+        .update({ agency_id: s.agencyBId }).eq('id', s.agentAId)
+      expect(movErr).toBeNull()
+
+      const { data: comptes } = await s.clientA.from('mail_accounts').select('id').eq('id', ownerBoxId)
+      expect(comptes ?? []).toEqual([])
+      const { data: fils } = await s.clientA.from('mail_threads').select('id').eq('account_id', ownerBoxId)
+      expect(fils ?? []).toEqual([])
+      const { data: msgs } = await s.clientA.from('mail_messages').select('id').eq('account_id', ownerBoxId)
+      expect(msgs ?? []).toEqual([])
+      const apresListe = await s.clientA.rpc('mail_list_threads', { p_account_id: ownerBoxId, p_folder: 'in' })
+      expect(apresListe.data ?? []).toEqual([])
+    } finally {
+      await service.from('profiles').update({ agency_id: s.agencyAId }).eq('id', s.agentAId)
+    }
+  })
 })
 ```
 
@@ -1073,7 +1335,7 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
 ```bash
 npm run test:backend -- tests/backend/mail-rls.spec.ts
 ```
-Attendu : 15 tests verts (9 du plan + 4 ajouts, dont trois `it()` pour les WITH CHECK). Si « permission denied for table mail_labels » : le `grant` de §13 manque ; si le test « colonne accordée » rougit avec 42501 : le `grant update (label_id)` manque.
+Attendu : 15 tests verts (9 du plan + 6 `it()` ajoutés, regroupés en quatre sujets : les trois WITH CHECK, le Vault, la cécité du super-admin, et la boîte qui ne suit pas son propriétaire). ⚠ Le « + 4 » d'origine ne sommait pas à 15 — corrigé le 04.09.2026. Si « permission denied for table mail_labels » : le `grant` de §13 manque ; si le test « colonne accordée » rougit avec 42501 : le `grant update (label_id)` manque.
 
 - [x] **Step 3 : Commit**
 
@@ -1199,6 +1461,11 @@ export interface NormalizedMessage {
   attachments: NormalizedAttachment[]
 }
 
+/** Les huit gestes que `mail-actions` répercute sur un fil (et sur chacun de ses messages). */
+export type MailThreadAction =
+  | 'mark_read' | 'mark_unread' | 'star' | 'unstar'
+  | 'archive' | 'unarchive' | 'trash' | 'untrash'
+
 /** Changement d'état venu du fournisseur (geste fait dans Gmail/Outlook). */
 export type RemoteChange =
   | { kind: 'message_deleted'; providerMessageId: string }
@@ -1291,6 +1558,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseAddress, parseAddressList, decodeRfc2047, htmlToText, textToHtml, snippetOf,
   base64UrlDecodeToString, base64UrlEncodeString, buildMime, makeMessageId, encodeHeaderWord,
+  attachmentServing, base64ByteLength,
 } from './mime.ts'
 
 describe('adresses', () => {
@@ -1356,10 +1624,74 @@ describe('buildMime', () => {
     expect(raw).toContain('Content-Disposition: attachment; filename="plan.pdf"')
     expect(raw).toContain('\r\nJVBERi0=\r\n')
   })
+  // ⛔ Le `mime_type` d'une pièce vient du CORPS de la requête mail-send : c'est du texte
+  // d'appelant, posé dans un en-tête de partie. Sans validation, un CRLF y ouvrait un
+  // en-tête à soi.
+  it('un type de pièce ne peut pas ouvrir un en-tête de partie', () => {
+    const raw = buildMime({
+      ...base,
+      attachments: [{ filename: 'f.txt', mimeType: 'text/plain\r\nX-Injected: yes', base64: 'QQ==' }],
+    })
+    expect(raw).not.toContain('X-Injected')
+    expect(raw).toContain('Content-Type: application/octet-stream; name="f.txt"')
+  })
+  it('un type valide passe, ses paramètres sont jetés, tout le reste retombe sur octet-stream', () => {
+    const of = (mimeType: string) =>
+      buildMime({ ...base, attachments: [{ filename: 'f', mimeType, base64: 'QQ==' }] })
+        .split('\r\n').find((l) => l.startsWith('Content-Type:') && l.includes('name='))
+    expect(of('application/pdf')).toBe('Content-Type: application/pdf; name="f"')
+    expect(of('APPLICATION/PDF')).toBe('Content-Type: application/pdf; name="f"')
+    // Le paramètre est jeté : c'est là qu'on cacherait un guillemet ou un point-virgule.
+    expect(of('text/plain; charset=utf-8')).toBe('Content-Type: text/plain; name="f"')
+    for (const nawak of ['', 'nawak', 'text/', '/plain', 'text/plain"; x="y', 'text/pl ain']) {
+      expect(of(nawak), nawak).toBe('Content-Type: application/octet-stream; name="f"')
+    }
+  })
   it('Message-ID et mot d en-tête', () => {
     expect(makeMessageId('agence.ch')).toMatch(/^<[0-9a-f-]{36}@agence\.ch>$/)
     expect(encodeHeaderWord('ascii only')).toBe('ascii only')
     expect(encodeHeaderWord('Zoé')).toBe('=?UTF-8?B?Wm/DqQ==?=')
+  })
+})
+
+describe('attachmentServing — le type déclaré par l expéditeur ne traverse pas', () => {
+  it('rend en ligne les six essences de la liste blanche, et elles seules', () => {
+    expect(attachmentServing('application/pdf')).toEqual({ contentType: 'application/pdf', disposition: 'inline' })
+    expect(attachmentServing('image/png')).toEqual({ contentType: 'image/png', disposition: 'inline' })
+    expect(attachmentServing('image/jpeg')).toEqual({ contentType: 'image/jpeg', disposition: 'inline' })
+    expect(attachmentServing('image/webp')).toEqual({ contentType: 'image/webp', disposition: 'inline' })
+    expect(attachmentServing('image/gif')).toEqual({ contentType: 'image/gif', disposition: 'inline' })
+    // Le jeu de caractères est imposé, il ne vient pas de l'expéditeur.
+    expect(attachmentServing('text/plain; charset=utf-7')).toEqual({ contentType: 'text/plain; charset=utf-8', disposition: 'inline' })
+  })
+  it('force le téléchargement de TOUT ce qui pourrait s exécuter dans la session de l agent', () => {
+    // Les trois essences par lesquelles un expéditeur obtiendrait un XSS stocké.
+    for (const evil of ['text/html', 'image/svg+xml', 'application/xhtml+xml', 'TEXT/HTML', ' text/html ; charset=utf-8']) {
+      expect(attachmentServing(evil), evil).toEqual({ contentType: 'application/octet-stream', disposition: 'attachment' })
+    }
+  })
+  it('un type absent, vide ou inconnu se télécharge, il ne se devine pas', () => {
+    for (const v of [null, undefined, '', 'application/zip', 'application/vnd.ms-excel', 'nawak']) {
+      expect(attachmentServing(v).disposition).toBe('attachment')
+      expect(attachmentServing(v).contentType).toBe('application/octet-stream')
+    }
+  })
+})
+
+describe('base64ByteLength', () => {
+  it('compte les octets réels, bourrage et repli compris', () => {
+    expect(base64ByteLength('')).toBe(0)
+    expect(base64ByteLength('QQ==')).toBe(1)
+    expect(base64ByteLength('QUI=')).toBe(2)
+    expect(base64ByteLength('QUJD')).toBe(3)
+    // Replié à 76 colonnes par le fournisseur : les CRLF ne sont pas des octets.
+    expect(base64ByteLength('QUJD\r\nQUJD')).toBe(6)
+  })
+  it('ne surestime plus : 3 Mo pile ne dépassent pas le plafond de 3 Mo', () => {
+    const exactly3MB = 'A'.repeat((3 * 1024 * 1024 * 4) / 3)
+    expect(base64ByteLength(exactly3MB)).toBe(3 * 1024 * 1024)
+    expect(Math.ceil(exactly3MB.length * 0.75)).toBe(3 * 1024 * 1024) // l'ancienne formule, ici d'accord
+    expect(base64ByteLength('QQ==')).toBeLessThan(Math.ceil('QQ=='.length * 0.75)) // et là non : 1 contre 3
   })
 })
 ```
@@ -1653,9 +1985,24 @@ export function buildMime(m: OutgoingMessage): string {
   ]
   for (const a of m.attachments) {
     const name = a.filename.replace(/["\r\n]/g, '')
+    // ⛔ LE TYPE EST DU TEXTE D'APPELANT, EXACTEMENT COMME LE NOM — et il atterrit dans un
+    // EN-TÊTE. Le nom voisin était nettoyé depuis l'origine, le type ne l'était pas :
+    // `{"mime_type": "text/plain\r\nX-Injected: yes"}` posté à mail-send rendait
+    // littéralement `Content-Type: text/plain` / `X-Injected: yes; name="f.txt"`. De là on
+    // forge n'importe quel en-tête de partie, on referme la frontière, on ajoute une pièce.
+    // L'enveloppe, elle, est propre (`encodeHeaderWord` encode tout CRLF, `isAddr` refuse
+    // une adresse qui en porte) : le trou n'était que dans les parties — assez pour ne pas
+    // le laisser.
+    //
+    // On ne NETTOIE pas, on VALIDE : un type est `type/sous-type`, et ce qui n'a pas cette
+    // forme n'est pas un type. ⚠ Les PARAMÈTRES sont volontairement jetés (`; charset=…`) —
+    // `attachmentServing`, trente lignes plus haut, ne compare déjà que l'essence, et un
+    // paramètre est précisément l'endroit où l'on cacherait un guillemet ou un point-virgule.
+    const essence = a.mimeType.split(';')[0].trim().toLowerCase()
+    const type = /^[a-z0-9][\w.+-]*\/[a-z0-9][\w.+-]*$/.test(essence) ? essence : 'application/octet-stream'
     parts.push(
       `--${mixed}`,
-      `Content-Type: ${a.mimeType}; name="${name}"`,
+      `Content-Type: ${type}; name="${name}"`,
       'Content-Transfer-Encoding: base64',
       `Content-Disposition: attachment; filename="${name}"`,
       '',
@@ -1961,7 +2308,7 @@ Attendu : 8 tests PASS.
 ```ts
 // supabase/functions/_shared/mail/oauth.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { randomToken, pkceChallenge, buildAuthorizeUrl, exchangeCode, fetchIdentity } from './oauth.ts'
+import { randomToken, pkceChallenge, buildAuthorizeUrl, exchangeCode, fetchIdentity, revokeToken } from './oauth.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
 
@@ -2027,6 +2374,32 @@ describe('fetchIdentity', () => {
   it('Microsoft : /me → mail sinon userPrincipalName', async () => {
     const fetch = vi.fn(async () => new Response(JSON.stringify({ mail: null, userPrincipalName: 'x@Outlook.com', displayName: 'X' }), { status: 200 }))
     expect(await fetchIdentity('outlook', 'at', { fetch: F(fetch) })).toEqual({ email: 'x@outlook.com', name: 'X' })
+  })
+})
+
+// ⛔ La révocation était un `.catch(() => undefined)` MUET : un refus de Google restait
+// invisible, l'utilisateur lisait « déconnectée » et l'autorisation vivait toujours.
+describe('revokeToken', () => {
+  it('révocation acceptée ⇒ true', async () => {
+    const fetch = vi.fn(async (u: string, init?: RequestInit) => {
+      expect(u).toContain('https://oauth2.googleapis.com/revoke?token=rt-1')
+      expect(init?.method).toBe('POST')
+      return new Response(null, { status: 200 })
+    })
+    expect(await revokeToken('gmail', 'rt-1', { fetch: F(fetch) })).toBe(true)
+  })
+  it('refus du fournisseur ⇒ false, pas un succès silencieux', async () => {
+    const fetch = vi.fn(async () => new Response('{"error":"invalid_token"}', { status: 400 }))
+    expect(await revokeToken('gmail', 'rt-1', { fetch: F(fetch) })).toBe(false)
+  })
+  it('réseau injoignable ⇒ false, jamais une exception qui remonte au milieu d une déconnexion', async () => {
+    const fetch = vi.fn(async () => { throw new Error('ECONNRESET') })
+    expect(await revokeToken('gmail', 'rt-1', { fetch: F(fetch) })).toBe(false)
+  })
+  it('Microsoft n a rien à révoquer : true, et AUCUN appel réseau', async () => {
+    const fetch = vi.fn(async () => new Response(null, { status: 200 }))
+    expect(await revokeToken('outlook', 'rt-1', { fetch: F(fetch) })).toBe(true)
+    expect(fetch).not.toHaveBeenCalled()
   })
 })
 ```
@@ -2190,7 +2563,7 @@ Attendu : 8 tests PASS.
 ```ts
 // supabase/functions/_shared/mail/gmail.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { normalizeGmailMessage, historyToChanges, nextHistoryCursor, gmailListInitial, gmailHistory, type GmailMessage, type GmailHistoryPage } from './gmail.ts'
+import { normalizeGmailMessage, historyToChanges, nextHistoryCursor, gmailLabelPatch, gmailListInitial, gmailHistory, type GmailMessage, type GmailHistoryPage } from './gmail.ts'
 import { base64UrlEncodeString } from './mime.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
@@ -2326,6 +2699,39 @@ describe('appels HTTP', () => {
     expect(await gmailHistory('tok', '1', null, { fetch: F(fetch) })).toEqual({ expired: true, page: null })
   })
 })
+
+// ⛔ Un geste de `mail-actions` s'applique à CHAQUE message du fil, copies « Envoyés »
+// comprises. `untrash: [['INBOX'], …]` posait donc INBOX sur des messages qui ne l'avaient
+// jamais eu : après avoir sorti une conversation de la corbeille, l'agent retrouvait ses
+// PROPRES réponses dans sa Réception Gmail.
+describe('gmailLabelPatch — INBOX ne se pose que sur un message entrant', () => {
+  it('untrash et unarchive n ajoutent INBOX qu au courrier reçu', () => {
+    expect(gmailLabelPatch('untrash', 'inbound')).toEqual({ add: ['INBOX'], remove: ['TRASH'] })
+    expect(gmailLabelPatch('untrash', 'outbound')).toEqual({ add: [], remove: ['TRASH'] })
+    expect(gmailLabelPatch('unarchive', 'inbound')).toEqual({ add: ['INBOX'], remove: [] })
+    // Rien à faire du tout sur une copie « Envoyés » : mail-actions saute l'appel.
+    expect(gmailLabelPatch('unarchive', 'outbound')).toEqual({ add: [], remove: [] })
+  })
+  it('RETIRER un libellé reste indifférencié — c est sans effet sur qui ne l a pas', () => {
+    for (const d of ['inbound', 'outbound'] as const) {
+      expect(gmailLabelPatch('archive', d), d).toEqual({ add: [], remove: ['INBOX'] })
+      expect(gmailLabelPatch('trash', d), d).toEqual({ add: ['TRASH'], remove: ['INBOX'] })
+      expect(gmailLabelPatch('mark_read', d), d).toEqual({ add: [], remove: ['UNREAD'] })
+      expect(gmailLabelPatch('mark_unread', d), d).toEqual({ add: ['UNREAD'], remove: [] })
+      expect(gmailLabelPatch('star', d), d).toEqual({ add: ['STARRED'], remove: [] })
+      expect(gmailLabelPatch('unstar', d), d).toEqual({ add: [], remove: ['STARRED'] })
+    }
+  })
+  it('aucun geste ne pose SENT ni DRAFT — Gmail les refuse (« can be manually applied: no »)', () => {
+    for (const a of ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash'] as const) {
+      for (const d of ['inbound', 'outbound'] as const) {
+        const p = gmailLabelPatch(a, d)
+        expect([...p.add, ...p.remove], `${a}/${d}`).not.toContain('SENT')
+        expect([...p.add, ...p.remove], `${a}/${d}`).not.toContain('DRAFT')
+      }
+    }
+  })
+})
 ```
 
 Ajouter `'supabase/functions/_shared/mail/gmail.test.ts',` à `vitest.config.ts` ; lancer → FAIL.
@@ -2339,7 +2745,7 @@ Ajouter `'supabase/functions/_shared/mail/gmail.test.ts',` à `vitest.config.ts`
 // history.list depuis le dernier historyId. Un 404 sur history = historique
 // expiré côté Google : on repart en passe initiale (jamais une boucle d'erreur).
 // PUR : `fetch` injectable ; aucune écriture en base ici (c'est ingest.ts).
-import type { NormalizedAttachment, NormalizedMessage, RemoteChange } from './types.ts'
+import type { MailDirection, MailThreadAction, NormalizedAttachment, NormalizedMessage, RemoteChange } from './types.ts'
 import { base64UrlDecodeToString, decodeRfc2047, htmlToText, parseAddress, parseAddressList, snippetOf } from './mime.ts'
 import { MailAuthError } from './secrets.ts'
 
@@ -2429,6 +2835,38 @@ export async function gmailModify(
 ): Promise<void> {
   const path = scope === 'thread' ? `/threads/${encodeURIComponent(id)}/modify` : `/messages/${encodeURIComponent(id)}/modify`
   await gcall(token, path, deps, { method: 'POST', body: JSON.stringify({ addLabelIds: add, removeLabelIds: remove }) })
+}
+
+/**
+ * Les libellés à poser et à retirer pour un geste, SUR CE MESSAGE-LÀ.
+ *
+ * ⛔ INBOX NE SE POSE QUE SUR UN MESSAGE ENTRANT, et c'est tout l'objet de cette fonction.
+ * Un geste de `mail-actions` s'applique à TOUS les messages du fil, copies « Envoyés »
+ * comprises — or celles-ci n'ont jamais porté INBOX. La table était pourtant
+ * `untrash: [['INBOX'], ['TRASH']]` sans distinction : après avoir restauré une
+ * conversation depuis la corbeille, l'agent retrouvait ses PROPRES réponses dans sa
+ * Réception Gmail. `unarchive` avait la même forme et le même défaut. Retirer un libellé
+ * reste juste pour tout le monde (retirer INBOX d'un message qui ne l'a pas est sans
+ * effet) ; c'est l'AJOUT qui doit être dirigé.
+ *
+ * ⚠ On reste sur `messages.modify` plutôt que sur les endpoints dédiés `/trash` et
+ * `/untrash`. Le guide « Manage labels » donne TRASH « can be manually applied: yes »
+ * (seuls SENT et DRAFT sont à « no » — relu le 04.09.2026) : la voie actuelle est légale
+ * et ne rendra pas 502. `users.messages.untrash` serait plus élégant, puisqu'il rendrait
+ * au message son état d'avant — mais sa référence ne documente NULLE PART qu'il restaure
+ * les libellés, INBOX compris. Échanger un défaut mesuré contre un comportement non
+ * documenté n'est pas un progrès.
+ */
+export function gmailLabelPatch(action: MailThreadAction, direction: MailDirection): { add: string[]; remove: string[] } {
+  const inbox = direction === 'inbound' ? ['INBOX'] : []
+  const table: Record<MailThreadAction, [string[], string[]]> = {
+    mark_read: [[], ['UNREAD']], mark_unread: [['UNREAD'], []],
+    star: [['STARRED'], []], unstar: [[], ['STARRED']],
+    archive: [[], ['INBOX']], unarchive: [inbox, []],
+    trash: [['TRASH'], ['INBOX']], untrash: [inbox, ['TRASH']],
+  }
+  const [add, remove] = table[action]
+  return { add, remove }
 }
 
 export async function gmailSend(token: string, rawBase64Url: string, threadId: string | null, deps: GmailDeps = {}): Promise<{ id: string; threadId: string }> {
@@ -2627,7 +3065,7 @@ Faits Graph qui décident du code (vérifiés dans la référence v1.0) :
 ```ts
 // supabase/functions/_shared/mail/graph.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { normalizeGraphMessage, deltaToChanges, graphDelta, resolveGraphRemoval, IMMUTABLE_ID_PREFER, type GraphMessage } from './graph.ts'
+import { normalizeGraphMessage, deltaToChanges, graphDelta, graphFolderIds, graphSend, resolveGraphRemoval, GRAPH_ATTACHMENT_MAX_BYTES, IMMUTABLE_ID_PREFER, type GraphMessage } from './graph.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
 const FOLDERS = { inbox: 'F-IN', sentitems: 'F-SENT', archive: 'F-ARC', deleteditems: 'F-DEL' }
@@ -2687,6 +3125,90 @@ describe('deltaToChanges', () => {
       { kind: 'flags', providerMessageId: 'K1', isRead: true, isStarred: false, inInbox: false, isTrashed: false },
     ])
     expect(r.changes.some((c) => c.kind === 'message_deleted')).toBe(false)
+  })
+
+  // ⛔ « Updated instances are represented by their id with *at least* the updated
+  // properties, but other properties might be included » (delta query overview) : une
+  // charge utile PARTIELLE est le cas normal. Ces trois cas rougissent si l'un des
+  // drapeaux redevient inconditionnel.
+  it('n émet QUE les drapeaux que la charge utile porte', () => {
+    const r = deltaToChanges([{ id: 'K1', isRead: true }], new Set(['K1']), FOLDERS)
+    expect(r.changes).toEqual([{ kind: 'flags', providerMessageId: 'K1', isRead: true }])
+  })
+  it('parentFolderId absent : ni inInbox ni isTrashed — sinon poser un drapeau dans Outlook archivait le fil', () => {
+    const r = deltaToChanges([{ id: 'K1', flag: { flagStatus: 'flagged' } }], new Set(['K1']), FOLDERS)
+    expect(r.changes).toEqual([{ kind: 'flags', providerMessageId: 'K1', isStarred: true }])
+    const only = r.changes[0] as { inInbox?: boolean; isTrashed?: boolean; isRead?: boolean }
+    expect('inInbox' in only).toBe(false)
+    expect('isTrashed' in only).toBe(false)
+    expect('isRead' in only).toBe(false) // un isRead absent ne remet pas le message en non-lu
+  })
+  it('isRead: false EXPLICITE est bien transmis (absence ≠ false)', () => {
+    const r = deltaToChanges([{ id: 'K1', isRead: false }], new Set(['K1']), FOLDERS)
+    expect(r.changes).toEqual([{ kind: 'flags', providerMessageId: 'K1', isRead: false }])
+  })
+  it('un item connu SANS aucune propriété suivie ne descend pas jusqu à la base', () => {
+    expect(deltaToChanges([{ id: 'K1' }], new Set(['K1']), FOLDERS).changes).toEqual([])
+  })
+})
+
+describe('graphSend', () => {
+  const okJson = (b: unknown) => new Response(JSON.stringify(b), { status: 200, headers: { 'Content-Type': 'application/json' } })
+  const OUT = {
+    subject: 'Re: Visite', html: '<p>ok</p>',
+    to: [{ name: null, email: 'zoe@ex.ch' }], cc: [], bcc: [],
+    internetMessageId: '<m1@agence.ch>',
+    attachments: [{ filename: 'plan.pdf', mimeType: 'application/pdf', base64: 'JVBERi0=' }],
+  }
+  const trace = () => {
+    const calls: { url: string; method: string; body: string }[] = []
+    const fetch = vi.fn(async (u: string, init?: RequestInit) => {
+      calls.push({ url: u, method: init?.method ?? 'GET', body: String(init?.body ?? '') })
+      if (u.endsWith('/send')) return new Response(null, { status: 202 })
+      // Graph rend 200 + l'objet message sur un PATCH, et 201 + la pièce sur un POST
+      // dans /attachments : le mock ne doit pas être plus pauvre que le fournisseur.
+      return okJson({ id: 'DRAFT1' })
+    })
+    return { calls, fetch }
+  }
+
+  // ⛔ `attachments` est une propriété de NAVIGATION : la référence « Update message »
+  // ne la liste pas parmi les modifiables. Envoyée dans le PATCH, la pièce était ou
+  // refusée (502 + brouillon orphelin) ou ignorée (client sans pièce jointe).
+  it('réponse : le PATCH ne porte AUCUNE pièce, chacune est POSTée dans la collection du brouillon', async () => {
+    const { calls, fetch } = trace()
+    await graphSend('tok', OUT, { kind: 'reply', providerMessageId: 'AAMk1' }, { fetch: F(fetch) })
+    const patch = calls.find((c) => c.method === 'PATCH')!
+    expect(patch.body).not.toContain('attachments')
+    expect(patch.body).not.toContain('JVBERi0=')
+    const post = calls.find((c) => c.url.endsWith('/attachments'))!
+    expect(post.method).toBe('POST')
+    expect(post.url).toContain('/me/messages/DRAFT1/attachments')
+    expect(JSON.parse(post.body)).toMatchObject({ '@odata.type': '#microsoft.graph.fileAttachment', name: 'plan.pdf', contentBytes: 'JVBERi0=' })
+    // L'ordre compte : la pièce doit être posée AVANT l'envoi.
+    expect(calls.findIndex((c) => c.url.endsWith('/attachments'))).toBeLessThan(calls.findIndex((c) => c.url.endsWith('/send')))
+  })
+  it('nouveau message : pas de PATCH du tout, et les pièces passent par la collection', async () => {
+    const { calls, fetch } = trace()
+    await graphSend('tok', OUT, { kind: 'new' }, { fetch: F(fetch) })
+    expect(calls.some((c) => c.method === 'PATCH')).toBe(false)
+    expect(JSON.parse(calls[0].body).attachments).toBeUndefined()
+    expect(calls.some((c) => c.url.endsWith('/attachments') && c.method === 'POST')).toBe(true)
+  })
+  it('un échec après création SUPPRIME le brouillon — sinon il reste dans les Brouillons de l agent', async () => {
+    const calls: { url: string; method: string }[] = []
+    const fetch = vi.fn(async (u: string, init?: RequestInit) => {
+      calls.push({ url: u, method: init?.method ?? 'GET' })
+      if (u.endsWith('/attachments')) return new Response('too big', { status: 413 })
+      if (init?.method === 'DELETE') return new Response(null, { status: 204 })
+      return okJson({ id: 'DRAFT1' })
+    })
+    await expect(graphSend('tok', OUT, { kind: 'new' }, { fetch: F(fetch) })).rejects.toThrow(/http 413/)
+    expect(calls.some((c) => c.method === 'DELETE' && c.url.includes('/me/messages/DRAFT1'))).toBe(true)
+    expect(calls.some((c) => c.url.endsWith('/send'))).toBe(false)
+  })
+  it('le plafond Graph par pièce est bien « sous 3 Mo »', () => {
+    expect(GRAPH_ATTACHMENT_MAX_BYTES).toBe(3 * 1024 * 1024)
   })
 })
 
@@ -2757,6 +3279,70 @@ describe('graphDelta', () => {
     expect(decodeURIComponent(calls[0])).toContain('$filter=receivedDateTime ge 2026-06-05T00:00:00.000Z')
     expect(r.items.map((i) => i.id)).toEqual(['a', 'b'])
     expect(r.deltaLink).toBe('https://graph.microsoft.com/v1.0/delta?token=Z')
+  })
+
+  // ⛔ Les URLs absolues rejouées par la synchro viennent du curseur PERSISTÉ. Le jour où
+  // un chemin laisserait écrire ce curseur, un `nextLink` chez un tiers enverrait le jeton
+  // Graph de l'agent à cet hôte. L'invariant se vérifie au point d'appel, pas ailleurs.
+  it('un lien absolu hors graph.microsoft.com n emporte JAMAIS le jeton', async () => {
+    for (const evil of [
+      'https://evil.example/v1.0/next',
+      'https://graph.microsoft.com.evil.example/v1.0/next', // passe un startsWith naïf
+      'https://graph.microsoft.com@evil.example/v1.0/next', // userinfo : idem
+      'https://GRAPH.microsoft.com.evil.example/next',
+    ]) {
+      const fetch = vi.fn(async () => new Response('{}', { status: 200 }))
+      await expect(graphDelta('tok', 'inbox', evil, '2026-06-05T00:00:00.000Z', { fetch: F(fetch) }), evil)
+        .rejects.toThrow(/hôte refusé/)
+      expect(fetch, evil).not.toHaveBeenCalled()
+    }
+  })
+
+  it('un lien absolu chez Graph reste accepté, quelle que soit la casse de l hôte', async () => {
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ value: [], '@odata.deltaLink': 'https://graph.microsoft.com/v1.0/d' }), { status: 200 }))
+    const r = await graphDelta('tok', 'inbox', 'https://GRAPH.microsoft.com/v1.0/next', '2026-06-05T00:00:00.000Z', { fetch: F(fetch) })
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(r.deltaLink).toBe('https://graph.microsoft.com/v1.0/d')
+  })
+})
+
+// ⛔ Une boîte sans dossier Archive faisait lever `graphFolderIds` AVANT le premier
+// message : `last_error` portait un 404 Graph, le compte restait « active », et comme
+// `folderIds` n'est persisté qu'en cas de succès, la passe suivante rejouait la même
+// recherche — pour toujours. Or `archive` et `deleteditems` ne servent qu'à CLASSER.
+describe('graphFolderIds — deux dossiers portent la synchro, deux la décorent', () => {
+  const rep = (f: string, status: number) =>
+    status === 200 ? new Response(JSON.stringify({ id: `F-${f}` }), { status }) : new Response('{"error":{"code":"ErrorItemNotFound"}}', { status })
+  const serveur = (codes: Record<string, number>) =>
+    vi.fn(async (u: string) => {
+      const f = String(u.split('/mailFolders/')[1]).split('?')[0]
+      return rep(f, codes[f] ?? 200)
+    })
+
+  it('un 404 sur Archive dégrade le classement, il n arrête pas la synchro', async () => {
+    const fetch = serveur({ archive: 404 })
+    const ids = await graphFolderIds('tok', { fetch: F(fetch) })
+    expect(ids).toEqual({ inbox: 'F-inbox', sentitems: 'F-sentitems', deleteditems: 'F-deleteditems' })
+    expect(fetch).toHaveBeenCalledTimes(4) // la boucle va au bout
+  })
+
+  it('la table incomplète ne fait pas d un dossier ABSENT la corbeille', async () => {
+    const ids = await graphFolderIds('tok', { fetch: F(serveur({ deleteditems: 404 })) })
+    // `undefined === undefined` aurait dit « oui » : un message à parentFolderId absent
+    // — la charge utile PARTIELLE est le cas normal du delta — serait passé pour effacé.
+    const n = normalizeGraphMessage({ ...M, parentFolderId: undefined }, BODY, [], ids, 'g@agence.ch')
+    expect(n.isTrashed).toBe(false)
+    expect(n.inInbox).toBe(false)
+  })
+
+  it('un 404 sur Réception ou Envoyés LÈVE : sans eux il n y a rien à synchroniser', async () => {
+    for (const f of ['inbox', 'sentitems']) {
+      await expect(graphFolderIds('tok', { fetch: F(serveur({ [f]: 404 })) }), f).rejects.toThrow(/http 404/)
+    }
+  })
+
+  it('une panne serveur LÈVE même sur un dossier de confort — 404 n est pas 500', async () => {
+    await expect(graphFolderIds('tok', { fetch: F(serveur({ archive: 500 })) })).rejects.toThrow(/http 500/)
   })
 })
 ```
@@ -2843,9 +3429,35 @@ function withImmutableId(headers: Record<string, string> = {}): Record<string, s
   return { ...headers, Prefer: own ? `${own}, ${IMMUTABLE_ID_PREFER}` : IMMUTABLE_ID_PREFER }
 }
 
+/**
+ * ⛔ AUCUN APPEL PORTANT LE JETON NE SORT DE `graph.microsoft.com`.
+ *
+ * `gcall` accepte une URL ABSOLUE, et ces URLs-là ne viennent pas du code : ce sont les
+ * `@odata.nextLink` / `@odata.deltaLink` que `sync.ts` persiste dans
+ * `mail_accounts.sync_cursor` et rejoue au tick suivant avec `Authorization: Bearer
+ * <jeton Graph de l'utilisateur>`. Aujourd'hui aucun appelant ne peut écrire ce curseur —
+ * `sync_cursor` est hors de la liste de colonnes accordée à `authenticated`, et la table
+ * n'a aucun grant d'UPDATE : seul le service-role l'écrit. C'est pourquoi ce n'est pas un
+ * trou, et c'est aussi pourquoi l'invariant se pose ICI : il suffirait d'un futur chemin
+ * qui laisse « réparer » un curseur depuis un corps de requête pour que ce `fetch`
+ * devienne une exfiltration de jeton vers l'hôte d'un tiers. Une promesse tenue au
+ * bord ne se vérifie pas ; une promesse tenue au point d'appel, si.
+ *
+ * L'hôte est comparé sur l'URL ANALYSÉE, jamais par préfixe de chaîne :
+ * `https://graph.microsoft.com.evil.ch/` et `https://graph.microsoft.com@evil.ch/`
+ * passent un `startsWith` naïf.
+ */
+export function graphUrl(url: string): string {
+  const target = url.startsWith('https://') ? url : `${BASE}${url}`
+  let host: string
+  try { host = new URL(target).host } catch { throw new GraphApiError(0, `graph: URL illisible (${target.slice(0, 60)})`) }
+  if (host !== 'graph.microsoft.com') throw new GraphApiError(0, `graph: hôte refusé (${host})`)
+  return target
+}
+
 async function gcall<T>(token: string, url: string, deps: GraphDeps, init: RequestInit = {}): Promise<T> {
   const f = deps.fetch ?? globalThis.fetch
-  const res = await f(url.startsWith('https://') ? url : `${BASE}${url}`, {
+  const res = await f(graphUrl(url), {
     ...init,
     headers: withImmutableId({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...((init.headers ?? {}) as Record<string, string>) }),
   })
@@ -2855,16 +3467,68 @@ async function gcall<T>(token: string, url: string, deps: GraphDeps, init: Reque
   return (await res.json()) as T
 }
 
+/**
+ * Ids des quatre dossiers connus, résolus une fois puis persistés dans le curseur.
+ *
+ * ⛔ DEUX SONT PORTEURS, DEUX SONT DE CONFORT — et confondre les deux BRIQUAIT le compte.
+ * `inbox` et `sentitems` sont les dossiers que le delta parcourt : sans eux il n'y a rien
+ * à synchroniser. `archive` et `deleteditems` ne servent qu'à CLASSER (`inInbox`,
+ * `isTrashed`). Or la boucle laissait `gcall` lever sur n'importe lequel des quatre : une
+ * boîte sans dossier Archive — ou un 404/403 passager sur une seule recherche — faisait
+ * échouer `syncGraph` AVANT le premier message. `syncAccount` écrivait `last_error` et un
+ * backoff de 10 minutes, et comme `folderIds` n'est persisté qu'en cas de SUCCÈS, la passe
+ * suivante rejouait la même recherche : le compte affichait `active`, portait un 404 Graph
+ * en `last_error`, et ne synchronisait plus jamais un seul message.
+ *
+ * Un id de classement absent vaut donc « ni archivé ni en corbeille » — ce que
+ * `sameFolder` traduit déjà d'une clé manquante, sans jamais faire d'`undefined ===
+ * undefined` une égalité de dossiers.
+ */
 export async function graphFolderIds(token: string, deps: GraphDeps = {}): Promise<Record<string, string>> {
   const out: Record<string, string> = {}
   for (const f of GRAPH_FOLDERS) {
-    const j = await gcall<{ id: string }>(token, `/me/mailFolders/${f}?$select=id`, deps)
-    out[f] = j.id
+    const porteur = f === 'inbox' || f === 'sentitems'
+    try {
+      const j = await gcall<{ id: string }>(token, `/me/mailFolders/${f}?$select=id`, deps)
+      out[f] = j.id
+    } catch (e) {
+      if (porteur || !(e instanceof GraphApiError && (e.status === 404 || e.status === 403))) throw e
+      console.error(`[mail graph] dossier ${f} indisponible (http ${e.status}) — classement dégradé, synchro poursuivie`)
+    }
   }
   return out
 }
 
-/** Une passe de delta : suit les nextLink jusqu'au deltaLink (ou jusqu'à `maxPages`). */
+/**
+ * Deux dossiers sont-ils le même ? ⚠ `a === b` ne suffit PAS : depuis que `graphFolderIds`
+ * peut rendre une table incomplète, `undefined === undefined` dirait « oui » — un message
+ * à `parentFolderId` absent (charge utile partielle, le cas NORMAL du delta) serait alors
+ * déclaré dans la corbeille d'une boîte sans dossier Éléments supprimés.
+ */
+const sameFolder = (a: string | undefined, b: string | undefined): boolean => !!a && !!b && a === b
+
+/**
+ * Une passe de delta : suit les nextLink jusqu'au deltaLink (ou jusqu'à `maxPages`).
+ *
+ * ⚠ LE `$filter` DE 90 JOURS PLAFONNE L'IMPORT INITIAL À 5 000 MESSAGES PAR DOSSIER, et
+ * c'est une limite du fournisseur, pas un défaut d'ici. La page « Get incremental changes
+ * to messages in a folder » l'écrit juste après avoir autorisé
+ * `$filter=receivedDateTime ge {value}` : « Applying `$filter` in a delta query returns
+ * only up to 5,000 messages » (relu le 04.09.2026). Une Réception d'agence chargée dépasse
+ * ce compte sur 90 jours ; la passe se termine alors sur un `deltaLink` normal,
+ * `initialDone` passe à true, `last_error` reste nul — l'historique est tronqué SANS que
+ * rien ne le dise, et Gmail, qui n'a pas d'équivalent, en importe davantage sur la même
+ * fenêtre.
+ *
+ * NON CORRIGÉ, ET C'EST UN CHOIX (04.09.2026) : la seule parade est de retirer le
+ * `$filter` et de borner la fenêtre en lisant la date de CHAQUE item — Graph ne garantit
+ * l'ordre qu'avec `$orderby=receivedDateTime desc`, donc on ne peut pas s'arrêter au
+ * premier message trop vieux. Cela remplace un plafond de 5 000 par le parcours de la
+ * boîte ENTIÈRE (dix ans de courrier pour en garder trois mois), au budget de 20 s par
+ * compte. Le plafond est le moindre mal tant que l'import initial n'a pas son propre
+ * mécanisme de reprise ; ce qu'il faut, c'est que le lot 2 le DISE (« les 5 000 messages
+ * les plus récents ») au lieu de laisser croire à un import complet.
+ */
 export async function graphDelta(
   token: string, folder: GraphFolder, deltaLink: string | null, sinceIso: string, deps: GraphDeps = {}, maxPages = 4,
 ): Promise<{ items: GraphMessage[]; deltaLink: string | null; nextLink: string | null }> {
@@ -3003,7 +3667,7 @@ export function normalizeGraphMessage(
   m: GraphMessage, body: GraphBody, atts: GraphAttachment[], folderIds: Record<string, string>, boxEmail: string,
 ): NormalizedMessage {
   const from = addr(m.from) ?? { name: null, email: '' }
-  const inSent = m.parentFolderId === folderIds.sentitems
+  const inSent = sameFolder(m.parentFolderId, folderIds.sentitems)
   const outbound = inSent || from.email === boxEmail.toLowerCase()
   const html = body.body?.contentType?.toLowerCase() === 'html' ? body.body.content : null
   const text = html ? htmlToText(html) : (body.body?.content ?? null)
@@ -3031,8 +3695,8 @@ export function normalizeGraphMessage(
     sentAt: new Date(m.receivedDateTime ?? m.sentDateTime ?? Date.now()).toISOString(),
     isRead: !!m.isRead,
     isStarred: m.flag?.flagStatus === 'flagged',
-    inInbox: m.parentFolderId === folderIds.inbox,
-    isTrashed: m.parentFolderId === folderIds.deleteditems,
+    inInbox: sameFolder(m.parentFolderId, folderIds.inbox),
+    isTrashed: sameFolder(m.parentFolderId, folderIds.deleteditems),
     isDraft: !!m.isDraft,
     providerLabels: m.parentFolderId ? [m.parentFolderId] : [],
     attachments,
@@ -3079,8 +3743,8 @@ export function deltaToChanges(items: GraphMessage[], known: Set<string>, folder
     if (it.flag) f.isStarred = it.flag.flagStatus === 'flagged'
     // Les deux se lisent sur le MÊME champ : ou il est là, ou aucun des deux n'est su.
     if (it.parentFolderId !== undefined) {
-      f.inInbox = it.parentFolderId === folderIds.inbox
-      f.isTrashed = it.parentFolderId === folderIds.deleteditems
+      f.inInbox = sameFolder(it.parentFolderId, folderIds.inbox)
+      f.isTrashed = sameFolder(it.parentFolderId, folderIds.deleteditems)
     }
     // `kind` + `providerMessageId` = un changement qui ne change RIEN : inutile de le
     // faire descendre jusqu'à une lecture en base (même seuil que historyToChanges).
@@ -3119,8 +3783,8 @@ export async function resolveGraphRemoval(
   if (!parentFolderId) return null
   return {
     kind: 'flags', providerMessageId: r.id,
-    inInbox: parentFolderId === folderIds.inbox,
-    isTrashed: parentFolderId === folderIds.deleteditems,
+    inInbox: sameFolder(parentFolderId, folderIds.inbox),
+    isTrashed: sameFolder(parentFolderId, folderIds.deleteditems),
   }
 }
 ```
@@ -3181,7 +3845,7 @@ Attendu : **4** tests PASS (le spec compte 4 `it()`, pas 5).
 ```ts
 // supabase/functions/_shared/mail/ingest.test.ts
 import { describe, it, expect } from 'vitest'
-import { deriveThreadPatch, externalParticipants, ingestMessages, pickContact, capHtml, recomputeThread, type ThreadRow } from './ingest.ts'
+import { deriveThreadPatch, externalParticipants, ingestMessages, linkThreadToContact, pickContact, capHtml, recomputeThread, type ThreadRow } from './ingest.ts'
 import type { MailAccountRow, NormalizedMessage } from './types.ts'
 
 const BOX = 'g@agence.ch'
@@ -3234,6 +3898,97 @@ describe('deriveThreadPatch', () => {
     expect(p.last_message_at).toBe('2026-09-03T08:00:00.000Z')
     expect(p.message_count).toBe(2)
   })
+
+  // ⛔ Le fil archivé dont le DERNIER mot est celui de l'agent. La passe initiale de
+  // Gmail liste du plus récent au plus ancien : le premier message ingéré est le
+  // sortant, et l'ancienne condition (`inbound && plus récent`) ne laissait plus
+  // AUCUN message décider ensuite — `is_archived` restait à `false` et le fil clos
+  // remontait dans la Réception du CRM. Ce test rejoue exactement cet ordre.
+  it('import initial, dernier mot à l agent : le fil suit son message ENTRANT le plus récent', () => {
+    const sortant = msg({
+      providerMessageId: 'm2', direction: 'outbound', from: { name: 'G', email: BOX },
+      to: [{ name: 'Zoé', email: 'zoe@ex.ch' }], sentAt: '2026-09-03T09:00:00.000Z',
+      isRead: true, inInbox: false,
+    })
+    const semis = { ...(deriveThreadPatch(null, sortant, BOX, true) as ThreadRow), id: 'T', account_id: 'A', label_id: null, contact_id: null }
+    expect(semis.is_archived).toBe(false) // rien ne le sait encore : aucun entrant lu
+    // Message suivant de la MÊME passe : l'entrant, plus ancien, sans libellé INBOX.
+    const entrant = msg({ providerMessageId: 'm1', inInbox: false, isRead: true, sentAt: '2026-09-03T08:00:00.000Z' })
+    expect(deriveThreadPatch(semis, entrant, BOX, true).is_archived).toBe(true)
+  })
+  it('un entrant PLUS ANCIEN que le dernier entrant connu ne décide plus de l archivage', () => {
+    const recent = { ...(deriveThreadPatch(null, msg(), BOX, true) as ThreadRow), id: 'T', account_id: 'A', label_id: null, contact_id: null }
+    expect(recent.is_archived).toBe(false) // le plus récent est en Réception
+    const vieux = msg({ providerMessageId: 'm0', inInbox: false, sentAt: '2026-09-01T08:00:00.000Z' })
+    expect(deriveThreadPatch(recent, vieux, BOX, true).is_archived).toBe(false)
+  })
+  it('un message SORTANT ne peut ni archiver ni désarchiver le fil', () => {
+    const archive = { ...(deriveThreadPatch(null, msg({ inInbox: false }), BOX, true) as ThreadRow), id: 'T', account_id: 'A', label_id: null, contact_id: null }
+    expect(archive.is_archived).toBe(true)
+    const reponse = msg({ providerMessageId: 'm3', direction: 'outbound', from: { name: 'G', email: BOX }, sentAt: '2026-09-04T08:00:00.000Z', inInbox: false, isRead: true })
+    expect(deriveThreadPatch(archive, reponse, BOX, true).is_archived).toBe(true)
+  })
+
+  // ⛔ LE PIÈGE QUE LES FIXTURES CI-DESSUS NE POUVAIENT PAS VOIR : elles écrivent la forme
+  // `Z` des DEUX côtés. En vrai, `m.sentAt` vient de `toISOString()`
+  // (`…T08:00:00.000Z`) et `existing.last_*_at` vient de PostgREST, qui rend un
+  // `timestamptz` en `…T08:00:00+00:00`. Comparées en CHAÎNES, les deux divergent à
+  // l'index 19 — c'est le préfixe date-heure qui décidait, et à la seconde près
+  // `'.' > '+'` faisait toujours gagner l'entrant. Ces trois cas comparent des INSTANTS.
+  describe('les dates du fil viennent de PostgREST, pas de toISOString', () => {
+    const enBase = (m: NormalizedMessage): ThreadRow => {
+      const p = deriveThreadPatch(null, m, BOX, true) as ThreadRow
+      // Ce que PostgREST rend RÉELLEMENT pour un timestamptz sous une session UTC.
+      const pg = (iso: string | null) => (iso ? iso.replace(/\.\d{3}Z$/, '+00:00') : iso)
+      return { ...p, id: 'T', account_id: 'A', label_id: null, contact_id: null,
+        last_message_at: pg(p.last_message_at)!, last_inbound_at: pg(p.last_inbound_at), last_outbound_at: pg(p.last_outbound_at) }
+    }
+    it('à la seconde PRÈS, un message plus ancien ne devient pas le dernier du fil', () => {
+      const existing = enBase(msg({ snippet: 'Le vrai dernier' }))
+      expect(existing.last_message_at).toBe('2026-09-03T08:00:00+00:00')
+      // MÊME seconde, mais c'est déjà connu : rien ne doit rétrograder.
+      const jumeau = msg({ providerMessageId: 'm9', snippet: 'Jumeau', sentAt: '2026-09-03T08:00:00.000Z' })
+      expect(deriveThreadPatch(existing, jumeau, BOX, false).last_message_at).toBe('2026-09-03T08:00:00.000Z')
+      // Plus ANCIEN d'une seconde : le fil garde sa date et son extrait.
+      const vieux = msg({ providerMessageId: 'm0', snippet: 'Vieux', sentAt: '2026-09-03T07:59:59.000Z' })
+      const p = deriveThreadPatch(existing, vieux, BOX, true)
+      expect(p.last_message_at).toBe('2026-09-03T08:00:00+00:00')
+      expect(p.snippet).toBe('Le vrai dernier')
+    })
+    it('last_inbound_at et last_outbound_at gardent le plus récent des deux formes', () => {
+      const existing = enBase(msg())
+      const vieuxEntrant = msg({ providerMessageId: 'm0', sentAt: '2026-09-02T08:00:00.000Z' })
+      expect(deriveThreadPatch(existing, vieuxEntrant, BOX, true).last_inbound_at).toBe('2026-09-03T08:00:00+00:00')
+      const sortantRecent = msg({ providerMessageId: 'm2', direction: 'outbound', from: { name: 'G', email: BOX }, sentAt: '2026-09-04T08:00:00.000Z' })
+      expect(deriveThreadPatch(existing, sortantRecent, BOX, true).last_outbound_at).toBe('2026-09-04T08:00:00.000Z')
+    })
+    it('un entrant plus ancien ne décide toujours pas de l archivage sous la forme PostgREST', () => {
+      const existing = enBase(msg()) // le plus récent est en Réception
+      const vieux = msg({ providerMessageId: 'm0', inInbox: false, sentAt: '2026-09-01T08:00:00.000Z' })
+      expect(deriveThreadPatch(existing, vieux, BOX, true).is_archived).toBe(false)
+    })
+
+    // ⛔ LE CAS QUI SÉPARE VRAIMENT LES DEUX IMPLÉMENTATIONS. Sous une session non UTC,
+    // PostgREST rend le MÊME instant en `+02:00`. Comparé en chaînes,
+    // `'2026-09-03T09:00:00.000Z' >= '2026-09-03T10:00:00+02:00'` est FAUX (divergence dès
+    // l'heure) : un message POSTÉRIEUR d'une heure cessait de mettre le fil à jour — ni sa
+    // date, ni son extrait, ni son état d'archivage. Comparés en instants, 09:00Z suit bien
+    // 10:00+02:00 (soit 08:00Z).
+    it('un fuseau de session non UTC ne renverse pas l ordre du fil', () => {
+      const existing: ThreadRow = {
+        ...(deriveThreadPatch(null, msg(), BOX, true) as ThreadRow),
+        id: 'T', account_id: 'A', label_id: null, contact_id: null,
+        last_message_at: '2026-09-03T10:00:00+02:00', // = 08:00Z, le même instant qu'au-dessus
+        last_inbound_at: '2026-09-03T10:00:00+02:00',
+      }
+      const suivant = msg({ providerMessageId: 'm2', snippet: 'Le plus récent', inInbox: false, sentAt: '2026-09-03T09:00:00.000Z' })
+      const p = deriveThreadPatch(existing, suivant, BOX, true)
+      expect(p.last_message_at).toBe('2026-09-03T09:00:00.000Z')
+      expect(p.last_inbound_at).toBe('2026-09-03T09:00:00.000Z')
+      expect(p.snippet).toBe('Le plus récent')
+      expect(p.is_archived).toBe(true)
+    })
+  })
 })
 
 describe('pickContact', () => {
@@ -3260,7 +4015,7 @@ describe('capHtml', () => {
 interface FakeCall { table: string; op: string; filters: [string, unknown][] }
 type Reply = { data: unknown; error: { message: string } | null }
 
-function fakeAdmin(reply: (c: FakeCall) => Reply) {
+function fakeAdmin(reply: (c: FakeCall) => Reply, rpcReply: () => Reply = () => ({ data: [], error: null })) {
   const calls: FakeCall[] = []
   const from = (table: string) => {
     const rec: FakeCall = { table, op: '', filters: [] }
@@ -3284,7 +4039,7 @@ function fakeAdmin(reply: (c: FakeCall) => Reply) {
     }
     return b
   }
-  const rpc = async () => ({ data: [], error: null })
+  const rpc = async () => rpcReply()
   return { admin: { from, rpc } as never, calls }
 }
 
@@ -3384,6 +4139,58 @@ describe('recomputeThread', () => {
     expect(calls.filter((c) => c.table === 'mail_threads' && c.op === 'update')).toHaveLength(1)
   })
 })
+
+
+// ⛔ « Je n'ai pas pu chercher » n'est pas « il n'y a personne ». Une erreur avalée
+// écrivait `contact_id: null` sur le fil ET sur le message, et sautait l'événement
+// d'audit (gardé par `&& contactId`) : une trace append-only à laquelle il manque une
+// entrée ne se rattrape pas, même quand la passe suivante rattache enfin le fil.
+describe('matchContact : une recherche en échec est LEVÉE', () => {
+  it('RPC de rapprochement en erreur', async () => {
+    const { admin } = fakeAdmin(vide, () => ({ data: null, error: { message: 'rpc down' } }))
+    await expect(ingestMessages(admin, account, [msg()])).rejects.toThrow(/contact match: rpc down/)
+  })
+  it('lecture des alias appris en erreur', async () => {
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'mail_contact_aliases' ? { data: null, error: { message: 'alias down' } } : vide(c))
+    await expect(ingestMessages(admin, account, [msg()])).rejects.toThrow(/contact alias match: alias down/)
+  })
+})
+
+describe('linkThreadToContact : « Rapprocher l adresse » ne dit plus ok sur un travail non fait', () => {
+  const ok = (c: FakeCall): Reply =>
+    c.table === 'contacts' ? { data: { id: 'c1' }, error: null }
+      : c.table === 'mail_threads' && c.op === 'update' ? { data: [{ id: 'T1' }], error: null }
+        : { data: null, error: null }
+
+  it('le chemin nominal apprend l alias, rattache le fil et complète les messages', async () => {
+    const { admin, calls } = fakeAdmin(ok)
+    await linkThreadToContact(admin, account, 'T1', 'c1', 'Zoe@Ex.ch', 'u-1')
+    expect(calls.map((c) => `${c.table}:${c.op}`)).toEqual([
+      'contacts:select', 'mail_contact_aliases:upsert', 'mail_threads:update', 'mail_messages:update',
+    ])
+  })
+  it('alias refusé : levée — sinon le PROCHAIN courrier de l adresse repart non apparié', async () => {
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'mail_contact_aliases' ? { data: null, error: { message: 'duplicate key' } } : ok(c))
+    await expect(linkThreadToContact(admin, account, 'T1', 'c1', 'zoe@ex.ch', 'u-1')).rejects.toThrow(/alias upsert: duplicate key/)
+  })
+  it('aucun fil apparié (fil d un autre compte) : levée, jamais un ok:true', async () => {
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'mail_threads' && c.op === 'update' ? { data: [], error: null } : ok(c))
+    await expect(linkThreadToContact(admin, account, 'T-autre', 'c1', 'zoe@ex.ch', 'u-1')).rejects.toThrow(/thread_not_in_account/)
+  })
+  it('complément des messages en erreur : levée', async () => {
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'mail_messages' && c.op === 'update' ? { data: null, error: { message: 'boom' } } : ok(c))
+    await expect(linkThreadToContact(admin, account, 'T1', 'c1', 'zoe@ex.ch', 'u-1')).rejects.toThrow(/messages backfill: boom/)
+  })
+  it('lecture du contact en erreur : ce n est PAS « hors agence »', async () => {
+    const { admin } = fakeAdmin((c) =>
+      c.table === 'contacts' ? { data: null, error: { message: 'timeout' } } : ok(c))
+    await expect(linkThreadToContact(admin, account, 'T1', 'c1', 'zoe@ex.ch', 'u-1')).rejects.toThrow(/contact lookup: timeout/)
+  })
+})
 ```
 
 Ajouter `'supabase/functions/_shared/mail/ingest.test.ts',` à `vitest.config.ts` ; lancer → FAIL.
@@ -3440,10 +4247,29 @@ export function capHtml(html: string | null): { html: string | null; truncated: 
   return html.length > HTML_CAP ? { html: html.slice(0, HTML_CAP), truncated: true } : { html, truncated: false }
 }
 
+/**
+ * ⛔ ON COMPARE DES INSTANTS, PAS DES CHAÎNES — les deux côtés ne parlent pas la même
+ * langue. `m.sentAt` sort d'un `new Date().toISOString()`
+ * (`2026-09-03T08:00:00.000Z`) ; `existing.last_message_at` sort de PostgREST, qui
+ * sérialise un `timestamptz` selon le fuseau de la SESSION
+ * (`2026-09-03T08:00:00+00:00`). Les deux chaînes divergent à l'index 19 (`.` contre
+ * `+`), si bien que `>=` n'était juste QUE par le préfixe date-heure : à la seconde
+ * près, `'.' > '+'` faisait toujours gagner le message entrant. Sous une session non
+ * UTC, PostgREST rendrait `+02:00` et l'ordre serait faux de deux heures — le fil
+ * cesserait de suivre son dernier message. Les tests unitaires ne le voient pas : leurs
+ * fixtures écrivent la forme `Z` des deux côtés ; seul un aller-retour réel l'expose.
+ *
+ * ⚠ `laterThan(iso, at)` répond « cet ISO est POSTÉRIEUR à cet instant ». Une date
+ * illisible (`NaN`) vaut « le message entrant est le plus récent », comme un `existing`
+ * absent : le défaut écrit une valeur fraîche au lieu d'en figer une vieille.
+ */
+const laterThan = (iso: string | null | undefined, at: number): boolean => !!iso && Date.parse(iso) > at
+
 /** Dérive l'état du fil après ce message. `isNew` = le message n'était pas connu. */
 export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessage, boxEmail: string, isNew: boolean): ThreadPatch {
   const parts = externalParticipants(m, boxEmail)
-  const newer = !existing || m.sentAt >= existing.last_message_at
+  const at = Date.parse(m.sentAt)
+  const newer = !existing || !laterThan(existing.last_message_at, at)
   const mergedParticipants = (() => {
     const acc: MailAddress[] = [...(existing?.participants ?? [])]
     for (const p of parts) if (!acc.some((x) => x.email === p.email)) acc.push(p)
@@ -3465,7 +4291,7 @@ export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessa
    * quasi vide. Invisible en incrémental — `applyRemoteChanges` traite bien un archivage
    * ultérieur — donc introuvable autrement qu'à l'accueil d'un nouvel agent.
    */
-  const newestInbound = m.direction === 'inbound' && (!existing?.last_inbound_at || m.sentAt >= existing.last_inbound_at)
+  const newestInbound = m.direction === 'inbound' && !laterThan(existing?.last_inbound_at, at)
   return {
     subject: existing?.subject ?? m.subject,
     snippet: newer ? m.snippet : (existing?.snippet ?? m.snippet),
@@ -3474,10 +4300,10 @@ export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessa
     from_email: from.email || null,
     last_message_at: newer ? m.sentAt : existing!.last_message_at,
     last_inbound_at: m.direction === 'inbound'
-      ? (existing?.last_inbound_at && existing.last_inbound_at > m.sentAt ? existing.last_inbound_at : m.sentAt)
+      ? (laterThan(existing?.last_inbound_at, at) ? existing!.last_inbound_at : m.sentAt)
       : (existing?.last_inbound_at ?? null),
     last_outbound_at: m.direction === 'outbound'
-      ? (existing?.last_outbound_at && existing.last_outbound_at > m.sentAt ? existing.last_outbound_at : m.sentAt)
+      ? (laterThan(existing?.last_outbound_at, at) ? existing!.last_outbound_at : m.sentAt)
       : (existing?.last_outbound_at ?? null),
     message_count: (existing?.message_count ?? 0) + (isNew ? 1 : 0),
     has_attachments: (existing?.has_attachments ?? false) || m.attachments.some((a) => !a.isInline),
@@ -3528,7 +4354,17 @@ async function matchContact(admin: SupabaseClient, agencyId: string, emails: str
   return pickContact((alias ?? []) as { contact_id: string }[])
 }
 
-async function audit(admin: SupabaseClient, account: MailAccountRow, action: 'email_received' | 'email_sent', threadId: string, messageId: string, contactId: string, m: NormalizedMessage): Promise<void> {
+/**
+ * Écrit l'entrée de timeline. Rend `false` si `activity_events` a refusé la ligne.
+ *
+ * ⚠ ON CONTINUE SUR ÉCHEC — perdre le courrier pour sauver la ligne d'audit serait pire —
+ * MAIS ON LE COMPTE. `console.error` seul rendait l'échec INDÉCOUVRABLE : il atterrit dans
+ * les journaux d'edge, que rien n'alerte, et le `SyncOutcome` du balayage ne portait aucun
+ * compteur. Dans un produit LAB/KYC où CLAUDE.md fait de `activity_events` la trace de
+ * CHAQUE action, un courrier reçu sans son entrée de timeline se découvre à l'audit, des
+ * mois plus tard. Le compte remonte désormais jusqu'au `results` de `mail-sync`.
+ */
+async function audit(admin: SupabaseClient, account: MailAccountRow, action: 'email_received' | 'email_sent', threadId: string, messageId: string, contactId: string, m: NormalizedMessage): Promise<boolean> {
   const { error } = await admin.from('activity_events').insert({
     agency_id: account.agency_id,
     actor_id: null,
@@ -3541,7 +4377,8 @@ async function audit(admin: SupabaseClient, account: MailAccountRow, action: 'em
     object_label: m.subject || '(sans objet)',
     metadata: { thread_id: threadId, message_id: messageId, account_id: account.id, from: m.from.email, to: m.to.map((a) => a.email) },
   })
-  if (error) console.error('[mail ingest] activity_events refused', error.message)
+  if (error) console.error(`[mail ingest] activity_events refuse ${action} (fil ${threadId}, message ${messageId}):`, error.message)
+  return !error
 }
 
 export interface IngestOptions {
@@ -3581,9 +4418,10 @@ async function findKnownMessage(admin: SupabaseClient, accountId: string, m: Nor
 }
 
 /** Ingère des messages normalisés (idempotent sur (account_id, provider_message_id)). */
-export async function ingestMessages(admin: SupabaseClient, account: MailAccountRow, msgs: NormalizedMessage[], opts: IngestOptions = {}): Promise<{ inserted: number; updated: number }> {
+export async function ingestMessages(admin: SupabaseClient, account: MailAccountRow, msgs: NormalizedMessage[], opts: IngestOptions = {}): Promise<{ inserted: number; updated: number; auditFailures: number }> {
   let inserted = 0
   let updated = 0
+  let auditFailures = 0
   for (const m of msgs) {
     if (m.isDraft) continue
 
@@ -3659,10 +4497,10 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
     }
 
     if (isNew && contactId && !opts.skipAudit) {
-      await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, messageId, contactId, m)
+      if (!await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, messageId, contactId, m)) auditFailures++
     }
   }
-  return { inserted, updated }
+  return { inserted, updated, auditFailures }
 }
 
 /**
@@ -3889,6 +4727,29 @@ export async function loadVisibleAccount(admin: SupabaseClient, accountId: strin
   return accountVisibleTo(data as MailAccountRow, ctx) ? (data as MailAccountRow) : null
 }
 
+/**
+ * Charge le compte s'il appartient à l'AGENCE de l'appelant — sans regarder `visibility`.
+ *
+ * ⛔ POUR RÉVOQUER, PAS POUR LIRE. `loadVisibleAccount` est la bonne porte partout où l'on
+ * touche au CONTENU d'une boîte ; elle est la mauvaise pour `disconnect`, et le défaut
+ * était exactement inversé : la branche « admin ou manager » de `mail-oauth disconnect`
+ * était INATTEIGNABLE pour les boîtes qui la motivent. Une boîte en `visibility: 'owner'`
+ * d'un autre membre rend `null` — donc 404 — AVANT le contrôle de rôle ; la branche ne
+ * s'ouvrait que sur les boîtes 'agency', celles où l'admin était le moins nécessaire.
+ * Conséquence : au départ d'un agent, aucun admin de l'agence ne pouvait couper la
+ * connexion, effacer le courrier ingéré, ni arrêter le balayage — la seule issue était une
+ * écriture directe en base.
+ *
+ * La visibilité gouverne QUI LIT une boîte ; elle n'a jamais eu à gouverner qui la révoque.
+ * L'appartenance à l'agence reste, elle, la barrière : un id d'une autre agence rend `null`,
+ * donc le même 404 qu'avant (contrat figé par tests/backend/mail-edges.spec.ts).
+ */
+export async function loadAgencyAccount(admin: SupabaseClient, accountId: string, ctx: CallerCtx): Promise<MailAccountRow | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(accountId ?? '')) return null
+  const { data } = await admin.from('mail_accounts').select('*').eq('id', accountId).eq('agency_id', ctx.agencyId).maybeSingle()
+  return (data as MailAccountRow | null) ?? null
+}
+
 export interface ProviderConfig { gmail: OAuthClientConfig; outlook: OAuthClientConfig }
 
 /** Lit les quatre secrets. Un secret vide n'est PAS une erreur ici : c'est l'échange qui échouera, lisiblement. */
@@ -3941,11 +4802,41 @@ import { MailOwnerLeftError, assertOwnerStillInAgency } from './guard.ts'
 import type { ProviderConfig } from './guard.ts'
 
 export interface SyncDeps { fetch?: typeof fetch; now?: () => number }
-export interface SyncOutcome { inserted: number; updated: number; changes: number; done: boolean; error: string | null }
+export interface SyncOutcome {
+  inserted: number
+  updated: number
+  changes: number
+  /** Entrées de timeline refusées par `activity_events` — la passe a continué, mais ça se voit. */
+  auditFailures: number
+  done: boolean
+  error: string | null
+  /** Une autre passe tenait le bail de ce compte : rien n'a été fait, rien n'est perdu. */
+  skipped?: 'locked'
+}
 
 const INITIAL_WINDOW_DAYS = 90
 const NEXT_TICK_MS = 2 * 60_000
+/**
+ * Délai d'une passe initiale INACHEVÉE. ⚠ Ce n'était pas un délai mais `0` — un compte en
+ * cours d'import 90 jours était donc TOUJOURS dû, avec le `next_sync_at` le plus ancien de
+ * la file : il repassait en tête de `order('next_sync_at')` à chaque tick. Trois ou quatre
+ * agences accueillies le même jour monopolisaient tous les ticks, et TOUTES les autres
+ * boîtes du produit cessaient de se synchroniser — `status` restant 'active', `last_error`
+ * nul, un `last_sync_at` de plus en plus vieux que personne ne lit. Quinze secondes suffisent
+ * à les faire céder le pas aux comptes de la cadence normale sans ralentir l'import.
+ */
+const INITIAL_RESUME_MS = 15_000
 const BACKOFF_MS = 10 * 60_000
+/**
+ * Marge du bail par compte au-delà du budget de la passe. Le bail existe parce que les
+ * quatre chemins de synchro (balayage cron, `mail-sync` ciblé, `mail-actions sync_now`,
+ * première passe de `mail-oauth exchange`) n'en prenaient AUCUN : seul le balayage était
+ * sérialisé, contre lui-même. Un membre pouvait donc boucler `sync_now` sur une boîte
+ * partagée — chaque appel brûlant le quota fournisseur de tous ses collègues — et deux
+ * passes concurrentes écrivaient `sync_cursor` sans compare-and-set, chacune pouvant
+ * rembobiner l'autre (courrier réingéré, ou sauté).
+ */
+const LEASE_MARGIN_MS = 30_000
 
 /**
  * Échecs consécutifs après lesquels le compte quitte le balayage (`status = 'error'`).
@@ -3963,11 +4854,56 @@ function since(now: number): string {
   return new Date(now - INITIAL_WINDOW_DAYS * 86_400_000).toISOString()
 }
 
+/**
+ * Prend le bail d'UN compte, même mécanique que le bail de balayage (mail-sync/index.ts) et
+ * pour la même raison : `mail_cron_locks` est une table de baux, `job` en est la clé.
+ *
+ * ⚠ La ligne du compte n'existe pas à la première passe : on tente d'abord la prise (le cas
+ * courant, une seule instruction), et on ne sème que si elle n'a rien appariée. Semer
+ * d'abord coûterait un aller-retour à chaque synchro de chaque compte. `ignoreDuplicates`
+ * garantit qu'un semis n'écrase jamais un bail tenu.
+ */
+async function acquireAccountLease(admin: SupabaseClient, job: string, until: string, nowIso: string): Promise<boolean> {
+  const take = async (): Promise<boolean> => {
+    const { data, error } = await admin.from('mail_cron_locks').update({ locked_until: until })
+      .eq('job', job).lt('locked_until', nowIso).select('job')
+    if (error) throw new Error(`account lease: ${error.message}`)
+    return (data ?? []).length === 1
+  }
+  if (await take()) return true
+  const { error } = await admin.from('mail_cron_locks')
+    .upsert({ job, locked_until: new Date(0).toISOString() }, { onConflict: 'job', ignoreDuplicates: true })
+  if (error) throw new Error(`account lease seed: ${error.message}`)
+  return take()
+}
+
+/** Rend le bail — et SEULEMENT le sien (`locked_until` sert de jeton, cf. `releaseLock`). */
+async function releaseAccountLease(admin: SupabaseClient, job: string, until: string, nowIso: string): Promise<void> {
+  const { error } = await admin.from('mail_cron_locks').update({ locked_until: nowIso })
+    .eq('job', job).eq('locked_until', until)
+  if (error) console.error(`[mail-sync] bail ${job} non relâché:`, error.message)
+}
+
 export async function syncAccount(admin: SupabaseClient, account: MailAccountRow, cfg: ProviderConfig, budgetMs: number, deps: SyncDeps = {}): Promise<SyncOutcome> {
   const now = deps.now ?? Date.now
   const start = now()
-  const out: SyncOutcome = { inserted: 0, updated: 0, changes: 0, done: true, error: null }
+  const out: SyncOutcome = { inserted: 0, updated: 0, changes: 0, auditFailures: 0, done: true, error: null }
+  // ⛔ UNE SEULE PASSE À LA FOIS PAR COMPTE, quel que soit le chemin d'appel. Le bail est
+  // pris ici et non chez les appelants, parce qu'il y en a quatre et qu'un seul d'entre eux
+  // se souvenait de se protéger. TTL = budget + marge : au pire, un compte reste bloqué le
+  // temps d'une passe morte, jamais plus.
+  const job = `mail-sync:${account.id}`
+  const leaseUntil = new Date(now() + budgetMs + LEASE_MARGIN_MS).toISOString()
+  let held = false
   try {
+    held = await acquireAccountLease(admin, job, leaseUntil, new Date(now()).toISOString())
+    if (!held) {
+      // Ni erreur ni succès : une autre passe travaille sur ce compte. `next_sync_at` n'est
+      // pas touché, donc il reste dû et repassera au tick suivant.
+      out.done = false
+      out.skipped = 'locked'
+      return out
+    }
     // AVANT le moindre appel fournisseur : une boîte dont le propriétaire a quitté
     // l'agence ne s'ingère plus (guard.ts, miroir écriture de `mail_account_visible`).
     await assertOwnerStillInAgency(admin, account)
@@ -3986,7 +4922,7 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
       last_sync_at: new Date(now()).toISOString(),
       last_error: null,
       sync_failures: 0,
-      next_sync_at: new Date(now() + (out.done ? NEXT_TICK_MS : 0)).toISOString(),
+      next_sync_at: new Date(now() + (out.done ? NEXT_TICK_MS : INITIAL_RESUME_MS)).toISOString(),
     }).eq('id', account.id)
     if (error) throw new Error(`cursor write: ${error.message}`)
   } catch (e) {
@@ -4015,8 +4951,20 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
     // Dernier filet : si même cette écriture échoue, l'échec n'existe NULLE PART.
     if (eWrite) console.error(`[mail-sync] ${account.id}: last_error non écrit (${eWrite.message})`)
     console.error(`[mail-sync] ${account.provider} ${account.id} (échec ${failures}${terminal ? `, statut ${terminal}` : ''}): ${msg}`)
+  } finally {
+    // Rendu quoi qu'il arrive : un bail oublié bloquerait le compte jusqu'au TTL.
+    if (held) await releaseAccountLease(admin, job, leaseUntil, new Date(now()).toISOString())
   }
   return out
+}
+
+/** Ids fournisseur déjà en base parmi ceux-ci (une lecture en échec LÈVE, elle ne devine pas). */
+async function knownProviderIds(admin: SupabaseClient, accountId: string, ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set()
+  const { data, error } = await admin.from('mail_messages').select('provider_message_id')
+    .eq('account_id', accountId).in('provider_message_id', ids)
+  if (error) throw new Error(`known ids lookup: ${error.message}`)
+  return new Set((data ?? []).map((r: { provider_message_id: string }) => r.provider_message_id))
 }
 
 // ── Gmail ─────────────────────────────────────────────────────────────────────
@@ -4033,10 +4981,29 @@ async function syncGmail(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
     if (!c.historyId) c.historyId = (await gmailIdentity(token, deps)).historyId
     while (now() - start < budgetMs) {
       const page = await gmailListInitial(token, c.initialPageToken, deps)
+      // Les ids DÉJÀ en base ne se retéléchargent pas — même pré-contrôle que le côté
+      // Graph. Sans lui, une page reprise après un dépassement de budget rejouait ses 50
+      // `messages.get` à chaque tick sans jamais progresser : le budget ne suffisant pas
+      // la première fois, il ne suffirait jamais.
+      const known = await knownProviderIds(admin, account.id, page.ids)
       const msgs: NormalizedMessage[] = []
-      for (const id of page.ids) msgs.push(normalizeGmailMessage(await gmailGetMessage(token, id, deps), account.email))
+      let exhausted = false
+      for (const id of page.ids) {
+        // ⛔ LE BUDGET SE VÉRIFIE DANS LA BOUCLE DES MESSAGES, pas seulement en tête de
+        // page. Une page = jusqu'à 50 `messages.get` SÉQUENTIELS : entamée à une
+        // milliseconde de la fin du budget, elle allait au bout — ~8 s de dépassement à
+        // 150 ms l'appel, bien plus sur un compte limité en débit. Le balayage tient un
+        // bail de 180 s pendant que pg_cron tire toutes les 120 s : c'est ce
+        // dépassement-là qui finit par faire tourner deux balayages côte à côte.
+        if (now() - start >= budgetMs) { exhausted = true; break }
+        if (known.has(id)) continue
+        msgs.push(normalizeGmailMessage(await gmailGetMessage(token, id, deps), account.email))
+      }
       const r = await ingestMessages(admin, account, msgs)
-      out.inserted += r.inserted; out.updated += r.updated
+      out.inserted += r.inserted; out.updated += r.updated; out.auditFailures += r.auditFailures
+      // ⚠ Le `pageToken` n'avance QUE si la page a été lue en entier. Sinon le tick suivant
+      // la reliste et saute ce qui est déjà écrit — au lieu de sauter ce qui ne l'est pas.
+      if (exhausted) break
       c.initialPageToken = page.nextPageToken
       if (!page.nextPageToken) { c.initialDone = true; break }
     }
@@ -4049,6 +5016,7 @@ async function syncGmail(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
   // comme le curseur était déjà avancé à la tête, les pages restantes n'étaient jamais
   // lues (cf. `nextHistoryCursor`). Il est désormais dans le curseur persisté.
   let pageToken: string | null = c.historyPageToken ?? null
+  let exhausted = false
   for (let i = 0; i < 5 && now() - start < budgetMs; i++) {
     const h = await gmailHistory(token, c.historyId!, pageToken, deps)
     if (h.expired) {
@@ -4058,19 +5026,30 @@ async function syncGmail(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
     const { added, changes } = historyToChanges(h.page!)
     const msgs: NormalizedMessage[] = []
     for (const id of added) {
+      // Même borne qu'à la passe initiale : une page d'historique peut porter jusqu'à
+      // 100 enregistrements, donc autant de `messages.get` séquentiels.
+      if (now() - start >= budgetMs) { exhausted = true; break }
       try { msgs.push(normalizeGmailMessage(await gmailGetMessage(token, id, deps), account.email)) }
       catch (e) { if (!(e instanceof Error && /http 404/.test(e.message))) throw e } // supprimé entre-temps
     }
     const r = await ingestMessages(admin, account, msgs)
-    out.inserted += r.inserted; out.updated += r.updated
+    out.inserted += r.inserted; out.updated += r.updated; out.auditFailures += r.auditFailures
     out.changes += await applyRemoteChanges(admin, account, changes)
+    // ⚠ Page abandonnée en cours : le curseur NE BOUGE PAS. `historyId` et `pageToken`
+    // restent ceux d'avant, donc la même page d'historique est rejouée au tick suivant —
+    // les messages déjà écrits y sont réingérés à l'identique (idempotent), ceux qui
+    // manquaient sont enfin chargés. Avancer ici les perdrait définitivement.
+    if (exhausted) break
     const nxt = nextHistoryCursor(c.historyId, h.page!)
     c.historyId = nxt.historyId
     pageToken = nxt.pageToken
     if (!pageToken) break
   }
   c.historyPageToken = pageToken
-  out.done = pageToken === null
+  // ⚠ `done` dit « il ne reste rien à faire ». Une page abandonnée en cours de budget en
+  // laisse, même quand la pagination était drainée : sans ce `!exhausted`, la passe se
+  // déclarait finie et `next_sync_at` repartait à deux minutes au lieu de quinze secondes.
+  out.done = !exhausted && pageToken === null
   return c
 }
 
@@ -4089,13 +5068,9 @@ async function syncGraph(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
     if (now() - start >= budgetMs) { allSettled = false; break }
     const d = await graphDelta(token, f.name, c[f.key], since(now()), deps)
     const ids = d.items.filter((i) => !i['@removed']).map((i) => i.id)
-    const { data: knownRows, error: eKnown } = ids.length
-      ? await admin.from('mail_messages').select('provider_message_id').eq('account_id', account.id).in('provider_message_id', ids)
-      : { data: [] as { provider_message_id: string }[], error: null }
     // Une lecture en échec ferait passer TOUS les messages connus pour neufs : autant
     // de GET de corps et de pièces inutiles, et un `update` complet de chaque ligne.
-    if (eKnown) throw new Error(`known ids lookup: ${eKnown.message}`)
-    const known = new Set((knownRows ?? []).map((r: { provider_message_id: string }) => r.provider_message_id))
+    const known = await knownProviderIds(admin, account.id, ids)
     const { added, changes, removed } = deltaToChanges(d.items, known, c.folderIds)
     // Un `@removed` n'est PAS une suppression tant qu'un GET ne l'a pas dit (le delta
     // est par dossier : archiver produit le même signal qu'effacer).
@@ -4104,14 +5079,24 @@ async function syncGraph(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
       if (resolved) changes.push(resolved)
     }
     const msgs: NormalizedMessage[] = []
+    let exhausted = false
     for (const m of added) {
+      // Chaque message ajouté coûte un `graphGetBody` PLUS un `graphListAttachments` :
+      // une page de 50 vaut donc jusqu'à 100 allers-retours séquentiels, contrôlés
+      // jusqu'ici par le seul test d'entrée de dossier.
+      if (now() - start >= budgetMs) { exhausted = true; break }
       const body = await graphGetBody(token, m.id, deps)
       const atts = m.hasAttachments ? await graphListAttachments(token, m.id, deps) : []
       msgs.push(normalizeGraphMessage(m, body, atts, c.folderIds, account.email))
     }
     const r = await ingestMessages(admin, account, msgs)
-    out.inserted += r.inserted; out.updated += r.updated
+    out.inserted += r.inserted; out.updated += r.updated; out.auditFailures += r.auditFailures
     out.changes += await applyRemoteChanges(admin, account, changes)
+    // ⛔ Dossier abandonné en cours : le curseur de CE dossier ne bouge pas. L'avancer
+    // consommerait le delta des messages jamais chargés — perdus sans une trace. Rejoué
+    // au tick suivant, le même delta les rend `added` (les autres sont désormais connus,
+    // donc de simples drapeaux) : la passe progresse au lieu de tourner en rond.
+    if (exhausted) { allSettled = false; break }
     // deltaLink = passe finie pour ce dossier ; nextLink = il reste des pages (curseur provisoire).
     c[f.key] = d.deltaLink ?? d.nextLink
     if (!d.deltaLink) allSettled = false
@@ -4158,13 +5143,14 @@ Attendu : `deno check` sans erreur (⚠ `tsc -b` ne couvre pas ce dossier).
 //   start      → { url, state }            (state + code_verifier gardés en base)
 //   exchange   → { account }               (échange PKCE, identité, Vault, 1re synchro en fond)
 //   disconnect → { ok }                    (révocation, Vault effacé, cascade)
-//   update     → { account }               (display_name, visibility — propriétaire seul)
+//   update     → { account }               (display_name, visibility, status active⇄disabled
+//                                           — propriétaire seul)
 // Garde : requireAgentAuth AVANT toute lecture de configuration (règle 4 du lot).
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { buildAuthorizeUrl, exchangeCode, fetchIdentity, pkceChallenge, randomToken, revokeToken, type OAuthProvider } from '../_shared/mail/oauth.ts'
 import { deleteAccountSecret, readAccountSecret, storeAccountSecret } from '../_shared/mail/secrets.ts'
-import { loadVisibleAccount, providerConfigFromEnv, redirectUriFor } from '../_shared/mail/guard.ts'
+import { loadAgencyAccount, loadVisibleAccount, providerConfigFromEnv, redirectUriFor } from '../_shared/mail/guard.ts'
 import { syncAccount } from '../_shared/mail/sync.ts'
 import type { MailAccountRow, OAuthSecret } from '../_shared/mail/types.ts'
 
@@ -4226,9 +5212,30 @@ serve(async (req: Request) => {
     const code = String(body.code ?? '')
     const state = String(body.state ?? '')
     if (!code || !/^[0-9a-f]{64}$/.test(state)) return json({ error: 'invalid_state' }, 403)
-    const { data: st } = await admin.from('mail_oauth_states').select('*').eq('state', state).eq('user_id', user.id).maybeSingle()
-    if (!st || st.consumed_at || new Date(st.expires_at).getTime() < Date.now()) return json({ error: 'invalid_state' }, 403)
-    await admin.from('mail_oauth_states').update({ consumed_at: new Date().toISOString() }).eq('state', state)
+    /**
+     * ⛔ LA CONSOMMATION EST LA GARDE, en UNE instruction. La version d'origine lisait la
+     * ligne, refusait un `consumed_at` non nul, PUIS marquait — un contrôle-puis-agit que
+     * deux `exchange` concurrents sur le même `{code, state}` passaient tous les deux. La
+     * propriété annoncée (« un state ne sert qu'une fois ») n'était donc pas tenue ici mais
+     * chez Google/Microsoft, qui rendent `invalid_grant` au second échange — un 502 après
+     * coup. Et sur un fournisseur lent, les deux appels atteignaient `storeAccountSecret` :
+     * un secret Vault orphelin de plus à chaque course.
+     *
+     * L'UPDATE conditionnel tranche : `consumed_at is null and expires_at > now()` sont
+     * évalués et écrits dans la même instruction, donc une seule des deux requêtes voit une
+     * ligne rendue. Zéro ligne = état inconnu, déjà consommé, ou périmé — indistinctement
+     * `invalid_state`, comme avant (aucun oracle offert à l'appelant).
+     */
+    const { data: consumed, error: eState } = await admin.from('mail_oauth_states')
+      .update({ consumed_at: new Date().toISOString() })
+      .eq('state', state).eq('user_id', user.id)
+      .is('consumed_at', null).gt('expires_at', new Date().toISOString())
+      .select('*')
+    // Une lecture en échec n'est pas un état invalide : le dire 403 enverrait l'agent
+    // recommencer une autorisation qui n'a rien de fautif.
+    if (eState) return json({ error: 'state_consume_failed', detail: eState.message }, 500)
+    const st = (consumed ?? [])[0]
+    if (!st) return json({ error: 'invalid_state' }, 403)
     const provider = st.provider as OAuthProvider
 
     let tokens: { access_token: string; refresh_token: string; expires_in: number }
@@ -4245,7 +5252,7 @@ serve(async (req: Request) => {
       expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
     }
     // Une boîte déjà connectée (même agence, même adresse) est RÉAUTORISÉE, pas dupliquée.
-    const { data: existing } = await admin.from('mail_accounts').select('id, vault_secret_id')
+    const { data: existing } = await admin.from('mail_accounts').select('id, vault_secret_id, owner_id, visibility')
       // ⚠ `.eq` et non `.ilike` : dans un motif LIKE, `_` et `%` sont des JOKERS —
       // `john_doe@x.ch` apparierait `johnXdoe@x.ch`, et `.maybeSingle()` lèverait sur
       // deux résultats. `identity.email` est déjà en minuscules (fetchIdentity) et
@@ -4262,9 +5269,29 @@ serve(async (req: Request) => {
           .catch((e) => console.error(`[mail-oauth] ancien secret ${existing.vault_secret_id} ORPHELIN (compte ${existing.id}):`, e instanceof Error ? e.message : String(e)))
       }
       const vaultId = await storeAccountSecret(admin, `mail:${provider}:${identity.email}`, secret)
+      /**
+       * ⛔ UNE RÉAUTORISATION NE CHANGE PAS DE MAIN. Le patch écrivait `owner_id: user.id`
+       * ET `visibility: st.visibility` : n'importe quel membre de l'agence connaissant le
+       * mot de passe de la boîte PARTAGÉE — c'est précisément ce que « partagée » veut dire
+       * — la reconnectait en `{visibility:'owner'}` et en devenait propriétaire. La boîte et
+       * TOUT son historique ingéré sortaient alors de la vue du directeur et de chaque
+       * admin (`loadVisibleAccount` rend null pour eux) : plus de lecture, plus de `update`,
+       * plus de `disconnect` par aucun edge. Rattrapable seulement par écriture directe en
+       * base. Le geste demandé était « redonner un jeton », le geste obtenu était « prendre
+       * la boîte ».
+       *
+       * ⚠ On REFUSE la prise, pas la réautorisation : la boîte partagée dont le jeton a
+       * expiré doit pouvoir être réparée par le collègue qui a les identifiants, sans quoi
+       * l'agence attend le retour de congés du propriétaire. Seuls le secret, le statut et
+       * le nom d'affichage bougent. Le propriétaire et la visibilité ne se changent que par
+       * l'action `update`, réservée au propriétaire.
+       */
+      if (existing.owner_id !== user.id) {
+        console.error(`[mail-oauth] compte ${existing.id} réautorisé par ${user.id}, propriétaire ${existing.owner_id} — jeton remplacé, propriété INCHANGÉE`)
+      }
       const { error } = await admin.from('mail_accounts').update({
-        vault_secret_id: vaultId, status: 'active', last_error: null, owner_id: user.id,
-        visibility: st.visibility, display_name: identity.name, next_sync_at: new Date().toISOString(),
+        vault_secret_id: vaultId, status: 'active', last_error: null, sync_failures: 0,
+        display_name: identity.name, next_sync_at: new Date().toISOString(),
       }).eq('id', existing.id)
       if (error) return json({ error: 'account_update_failed' }, 500)
       accountId = existing.id
@@ -4305,7 +5332,13 @@ serve(async (req: Request) => {
   }
 
   if (action === 'disconnect') {
-    const account = await loadVisibleAccount(admin, String(body.account_id ?? ''), ctx)
+    // ⛔ CHARGÉ PAR L'AGENCE, PAS PAR LA VISIBILITÉ (loadAgencyAccount, guard.ts). Avec
+    // `loadVisibleAccount`, la branche « admin ou manager » juste en dessous était
+    // INATTEIGNABLE pour les boîtes qui la justifient : une boîte `visibility: 'owner'`
+    // d'un autre membre rendait 404 avant même le contrôle de rôle. Le rôle vient d'une
+    // source de confiance (select serveur dans require-agent-auth), et l'agence reste la
+    // barrière — un compte d'une autre agence rend toujours 404.
+    const account = await loadAgencyAccount(admin, String(body.account_id ?? ''), ctx)
     if (!account) return json({ error: 'not_found' }, 404)
     if (account.owner_id !== user.id && !['admin', 'manager'].includes(profile.role ?? '')) return json({ error: 'forbidden' }, 403)
     /**
@@ -4364,6 +5397,30 @@ serve(async (req: Request) => {
     const patch: Record<string, unknown> = {}
     if (typeof body.display_name === 'string') patch.display_name = body.display_name.slice(0, 80)
     if (body.visibility === 'owner' || body.visibility === 'agency') patch.visibility = body.visibility
+    /**
+     * METTRE EN PAUSE — le troisième champ que le plan maître §5 promet au propriétaire
+     * (« UPDATE limité à `display_name`, `visibility`, `status='disabled'` »), et qui
+     * n'existait nulle part. Sans lui, arrêter une boîte passait par `disconnect`, qui
+     * révoque le jeton et emporte en cascade fils, messages et pièces : une réponse
+     * DESTRUCTIVE à une demande réversible (« je pars trois semaines »).
+     *
+     * ⚠ La bascule ne vaut qu'entre `active` et `disabled`. Les trois autres états sont
+     * des VERDICTS du système — `reauth_required` (le fournisseur a coupé),
+     * `error` (cinq échecs d'affilée), et le `disabled` posé par le départ du
+     * propriétaire — qu'un clic ne doit pas pouvoir effacer : les remettre `active`
+     * relancerait un balayage condamné, ou, dans le dernier cas, l'ingestion du courrier
+     * d'un agent parti. Ces états-là se réparent par une RÉAUTORISATION, pas par un
+     * interrupteur. D'où un 409 explicite plutôt qu'un champ ignoré en silence.
+     */
+    if (body.status === 'disabled' || body.status === 'active') {
+      if (account.status !== 'active' && account.status !== 'disabled') {
+        return json({ error: 'status_not_togglable', status: account.status }, 409)
+      }
+      patch.status = body.status
+      // Redémarrer, c'est repartir propre ET tout de suite : sinon la boîte traînerait
+      // le dernier `last_error` et le backoff écrit avant la pause.
+      if (body.status === 'active') { patch.last_error = null; patch.sync_failures = 0; patch.next_sync_at = new Date().toISOString() }
+    }
     const { data: pub, error } = await admin.from('mail_accounts').update(patch).eq('id', account.id).select(PUBLIC_COLS).single()
     if (error) return json({ error: 'update_failed' }, 500)
     return json({ account: pub })
@@ -4375,15 +5432,20 @@ serve(async (req: Request) => {
 
 - [x] **Step 2 : Déclarer la fonction**
 
-⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
-`supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
-`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` / `— fin ──`, et elle porte
-69 des 82 blocs (les 13 autres, écrits à la main avec leur justification, vivent AU-DESSUS
-du marqueur). Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` (l. 610) et
-`matching-engine` (l. 619) — donc DEDANS. Le script ne compte comme « documenté » que ce
-qui est hors marqueurs, puis régénère la région et compare le fichier **texte pour texte** :
-un bloc inséré à la main y fait rougir `npm run lint:roster`, avec un diagnostic qui ne
-nomme même pas la fonction (« ✗ supabase/config.toml a dérivé du source tree »).
+⛔ **NE PAS écrire ce bloc à la main.** La quasi-totalité de `supabase/config.toml` est une
+**région GÉNÉRÉE**, délimitée par les marqueurs
+`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` et `— fin ──` ; les rares blocs
+écrits à la main, avec leur justification, vivent AU-DESSUS du marqueur d'ouverture.
+Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` et `matching-engine` — donc
+DEDANS. Le script ne compte comme « documenté » que ce qui est hors marqueurs, puis régénère
+la région et compare le fichier **texte pour texte** : un bloc inséré à la main y fait rougir
+`npm run lint:roster`, avec un diagnostic qui ne nomme même pas la fonction
+(« ✗ supabase/config.toml a dérivé du source tree »).
+⚠ Cette note portait trois NUMÉROS DE LIGNE et deux comptes, copiés-collés dans cinq tâches
+et déjà faux le lendemain (mesuré le 04.09.2026 : les marqueurs sont aux lignes 494 et 727,
+la région porte 74 des 87 blocs, 13 restent au-dessus). Un numéro de ligne dans une note que
+l'on lit JUSTE AVANT d'éditer le fichier envoie au mauvais endroit ; les noms de marqueurs,
+eux, ne dérivent pas.
 
 La façon juste — elle régénère `supabase/config.toml` ET `src/lib/edgeFunctionRoster.ts`
 en une passe :
@@ -4458,6 +5520,13 @@ et laisser le roster de côté ferait rougir `lint:roster` au commit suivant.
 // Un bail en base (mail_cron_locks) empêche deux balayages simultanés : le budget
 // (60 s) dépasse l'intervalle (120 s) rarement, mais un tick lent + un tick suivant
 // = double coût fournisseur et curseurs en course. Le TTL (180 s) est le filet.
+// ⚠ Le TTL ne tient que parce que le dépassement d'une passe est BORNÉ : depuis le
+// 04.09.2026, `syncAccount` vérifie son budget DANS la boucle des messages et non plus
+// seulement en tête de page (une page = jusqu'à 50 `messages.get` séquentiels, soit
+// plusieurs secondes de débordement). 60 s de budget + le temps d'un message restent très
+// en deçà des 180 s. Et chaque compte porte en plus son propre bail
+// (`mail-sync:<account_id>`, sync.ts), qui sérialise le balayage contre les trois chemins
+// déclenchés par un agent.
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -4480,6 +5549,8 @@ const PER_ACCOUNT_BUDGET_MS = 20_000
 const TARGETED_BUDGET_MS = 20_000
 const MAX_ACCOUNTS_PER_TICK = 25
 const LOCK_TTL_MS = 180_000
+/** `{}` ou `{"account_id":"<uuid>"}` : rien de légitime ne dépasse quelques dizaines d'octets. */
+const MAX_BODY_BYTES = 4_096
 
 type LockResult =
   | { ok: true; until: string }
@@ -4529,6 +5600,18 @@ serve(async (req: Request) => {
   // fournisseurs, eux, se lisent APRÈS — règle 4 du lot (corrigé le 03.09.2026 :
   // la version d'origine lisait les quatre secrets et interrogeait app_config avant
   // de refuser un appelant anonyme).
+  // ⛔ LE CORPS EST BORNÉ AVANT D'ÊTRE LU. Cette edge est déployée `--no-verify-jwt` :
+  // n'importe qui peut la POSTer, et `await req.json()` sans plafond faisait tamponner au
+  // runtime un corps de plusieurs centaines de Mo AVANT la moindre garde. Or les deux seuls
+  // corps légitimes sont `{}` (balayage) et `{"account_id":"<uuid>"}` : quelques dizaines
+  // d'octets. ⚠ `Content-Length` est absent d'un envoi en `chunked` — le plafond n'est donc
+  // pas une preuve, c'est le coût d'entrée d'un abus trivial qu'il retire. La lecture
+  // d'`app_config` par `isServiceSecret`, elle, est déjà précédée du contrôle d'en-tête
+  // `Authorization` (require-service-secret.ts:24) : un POST anonyme SANS en-tête ne coûte
+  // aucun aller-retour en base.
+  const declared = Number(req.headers.get('content-length') ?? '0')
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) return json({ error: 'payload_too_large' }, 413)
+
   const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
   let body: Record<string, unknown> = {}
   try { body = await req.json() } catch { /* corps vide = balayage */ }
@@ -4556,6 +5639,8 @@ serve(async (req: Request) => {
   if (!lock.ok) return json({ ok: true, skipped: 'locked' })
   const started = Date.now()
   const results: Record<string, unknown>[] = []
+  let budgetExhausted = false
+  let dueCount = 0
   try {
     // ⛔ La file de travail est LUE, ou le balayage échoue. Sans le contrôle d'erreur,
     // une lecture ratée (cache de schéma périmé juste après le déploiement, timeout)
@@ -4575,29 +5660,39 @@ serve(async (req: Request) => {
     // `assertOwnerStillInAgency`, au premier geste de `syncAccount`, qui refuse la
     // passe et bascule la boîte en `disabled` — elle sort alors de cette file d'
     // elle-même, sans qu'un seul message ait été écrit dans l'ancienne agence.
+    dueCount = (due ?? []).length
     for (const account of (due ?? []) as MailAccountRow[]) {
-      if (Date.now() - started > SWEEP_BUDGET_MS) break
+      // ⚠ Sortir par ÉPUISEMENT DU BUDGET et sortir par « plus rien à faire » sont deux
+      // états opposés que la réponse confondait : `{ ok: true, synced: 3 }` dans les deux
+      // cas. Le premier veut dire qu'il reste des boîtes en file à chaque tick — le
+      // symptôme de l'affamement, qu'aucun `last_error` n'écrit puisque personne n'échoue.
+      if (Date.now() - started > SWEEP_BUDGET_MS) { budgetExhausted = true; break }
       const r = await syncAccount(admin, account, cfg, Math.min(PER_ACCOUNT_BUDGET_MS, SWEEP_BUDGET_MS - (Date.now() - started)))
       results.push({ account_id: account.id, provider: account.provider, ...r })
     }
   } finally {
     await releaseLock(admin, lock.until)
   }
-  return json({ ok: true, synced: results.length, elapsed_ms: Date.now() - started, results })
+  return json({ ok: true, synced: results.length, due: dueCount, budget_exhausted: budgetExhausted, elapsed_ms: Date.now() - started, results })
 })
 ```
 
 - [x] **Step 2 : Déclarer, vérifier, commit**
 
-⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
-`supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
-`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` / `— fin ──`, et elle porte
-69 des 82 blocs (les 13 autres, écrits à la main avec leur justification, vivent AU-DESSUS
-du marqueur). Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` (l. 610) et
-`matching-engine` (l. 619) — donc DEDANS. Le script ne compte comme « documenté » que ce
-qui est hors marqueurs, puis régénère la région et compare le fichier **texte pour texte** :
-un bloc inséré à la main y fait rougir `npm run lint:roster`, avec un diagnostic qui ne
-nomme même pas la fonction (« ✗ supabase/config.toml a dérivé du source tree »).
+⛔ **NE PAS écrire ce bloc à la main.** La quasi-totalité de `supabase/config.toml` est une
+**région GÉNÉRÉE**, délimitée par les marqueurs
+`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` et `— fin ──` ; les rares blocs
+écrits à la main, avec leur justification, vivent AU-DESSUS du marqueur d'ouverture.
+Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` et `matching-engine` — donc
+DEDANS. Le script ne compte comme « documenté » que ce qui est hors marqueurs, puis régénère
+la région et compare le fichier **texte pour texte** : un bloc inséré à la main y fait rougir
+`npm run lint:roster`, avec un diagnostic qui ne nomme même pas la fonction
+(« ✗ supabase/config.toml a dérivé du source tree »).
+⚠ Cette note portait trois NUMÉROS DE LIGNE et deux comptes, copiés-collés dans cinq tâches
+et déjà faux le lendemain (mesuré le 04.09.2026 : les marqueurs sont aux lignes 494 et 727,
+la région porte 74 des 87 blocs, 13 restent au-dessus). Un numéro de ligne dans une note que
+l'on lit JUSTE AVANT d'éditer le fichier envoie au mauvais endroit ; les noms de marqueurs,
+eux, ne dérivent pas.
 
 La façon juste — elle régénère `supabase/config.toml` ET `src/lib/edgeFunctionRoster.ts`
 en une passe :
@@ -4657,11 +5752,11 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
-import { gmailModify } from '../_shared/mail/gmail.ts'
+import { gmailLabelPatch, gmailModify } from '../_shared/mail/gmail.ts'
 import { graphMove, graphPatch } from '../_shared/mail/graph.ts'
 import { linkThreadToContact, recomputeThread } from '../_shared/mail/ingest.ts'
 import { syncAccount } from '../_shared/mail/sync.ts'
-import type { MailAccountRow } from '../_shared/mail/types.ts'
+import type { MailAccountRow, MailThreadAction } from '../_shared/mail/types.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -4671,7 +5766,9 @@ function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 }
 
-type ThreadAction = 'mark_read' | 'mark_unread' | 'star' | 'unstar' | 'archive' | 'unarchive' | 'trash' | 'untrash'
+// Le type vit dans `types.ts` : `gmailLabelPatch` (gmail.ts) en dépend, et deux unions
+// jumelles qui dérivent l'une de l'autre est exactement le défaut que ce module ne veut pas.
+type ThreadAction = MailThreadAction
 const THREAD_ACTIONS: ThreadAction[] = ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash']
 
 interface MsgRow { id: string; provider_message_id: string; direction: 'inbound' | 'outbound' }
@@ -4682,12 +5779,11 @@ async function pushToProvider(account: MailAccountRow, token: string, action: Th
   for (const m of msgs) {
     if (m.provider_message_id.startsWith('pending:')) continue
     if (account.provider === 'gmail') {
-      const [add, remove] = ({
-        mark_read: [[], ['UNREAD']], mark_unread: [['UNREAD'], []],
-        star: [['STARRED'], []], unstar: [[], ['STARRED']],
-        archive: [[], ['INBOX']], unarchive: [['INBOX'], []],
-        trash: [['TRASH'], ['INBOX']], untrash: [['INBOX'], ['TRASH']],
-      } as Record<ThreadAction, [string[], string[]]>)[action]
+      // La table des libellés vit dans `gmail.ts` — pure, donc éprouvée par un test
+      // unitaire. Elle dépend de la DIRECTION du message : voir son en-tête (INBOX ne se
+      // pose jamais sur une copie « Envoyés »).
+      const { add, remove } = gmailLabelPatch(action, m.direction)
+      if (add.length === 0 && remove.length === 0) continue
       await gmailModify(token, m.provider_message_id, add, remove)
     } else if (account.provider === 'outlook') {
       if (action === 'mark_read' || action === 'mark_unread') await graphPatch(token, m.provider_message_id, { isRead: action === 'mark_read' })
@@ -4805,15 +5901,20 @@ serve(async (req: Request) => {
 
 - [x] **Step 2 : Déclarer, vérifier, commit**
 
-⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
-`supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
-`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` / `— fin ──`, et elle porte
-69 des 82 blocs (les 13 autres, écrits à la main avec leur justification, vivent AU-DESSUS
-du marqueur). Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` (l. 610) et
-`matching-engine` (l. 619) — donc DEDANS. Le script ne compte comme « documenté » que ce
-qui est hors marqueurs, puis régénère la région et compare le fichier **texte pour texte** :
-un bloc inséré à la main y fait rougir `npm run lint:roster`, avec un diagnostic qui ne
-nomme même pas la fonction (« ✗ supabase/config.toml a dérivé du source tree »).
+⛔ **NE PAS écrire ce bloc à la main.** La quasi-totalité de `supabase/config.toml` est une
+**région GÉNÉRÉE**, délimitée par les marqueurs
+`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` et `— fin ──` ; les rares blocs
+écrits à la main, avec leur justification, vivent AU-DESSUS du marqueur d'ouverture.
+Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` et `matching-engine` — donc
+DEDANS. Le script ne compte comme « documenté » que ce qui est hors marqueurs, puis régénère
+la région et compare le fichier **texte pour texte** : un bloc inséré à la main y fait rougir
+`npm run lint:roster`, avec un diagnostic qui ne nomme même pas la fonction
+(« ✗ supabase/config.toml a dérivé du source tree »).
+⚠ Cette note portait trois NUMÉROS DE LIGNE et deux comptes, copiés-collés dans cinq tâches
+et déjà faux le lendemain (mesuré le 04.09.2026 : les marqueurs sont aux lignes 494 et 727,
+la région porte 74 des 87 blocs, 13 restent au-dessus). Un numéro de ligne dans une note que
+l'on lit JUSTE AVANT d'éditer le fichier envoie au mauvais endroit ; les noms de marqueurs,
+eux, ne dérivent pas.
 
 La façon juste — elle régénère `supabase/config.toml` ET `src/lib/edgeFunctionRoster.ts`
 en une passe :
@@ -4980,6 +6081,23 @@ serve(async (req: Request) => {
   // à laquelle il n'a jamais participé (RFC 5322 : ces en-têtes désignent le message
   // auquel on RÉPOND). Ils ne sont posés que pour `reply`.
   const isReply = kind === 'reply'
+  /**
+   * ⚠ `References` NE S'ACCUMULE PAS, et c'est un écart ASSUMÉ à la RFC 5322 §3.6.4 (qui
+   * veut « References du parent, puis Message-ID du parent »). Ici c'est
+   * « In-Reply-To du parent, puis son Message-ID » : deux identifiants au maximum, quelle
+   * que soit la longueur du fil.
+   *
+   * NON CORRIGÉ le 04.09.2026, faute de la donnée : `NormalizedMessage.references` existe
+   * (types.ts) mais `ingest.ts` ne l'écrit nulle part et `mail_messages` n'a pas de colonne
+   * pour la porter. Réparer demande donc une colonne `references text[]`, son écriture à
+   * l'ingestion, puis la concaténation ici — un changement de schéma pour un défaut dont
+   * l'effet est BORNÉ : le lien au parent immédiat est correct, donc Gmail, Outlook et
+   * Apple Mail continuent d'enfiler la conversation. Ce qui se dégrade est le cas du
+   * participant ajouté au huitième message, dont le client ne peut pas recoudre la réponse
+   * à une racine qu'il n'a jamais reçue — et les archives qui reconstruisent l'arbre par
+   * `References` seul (Thunderbird, mutt) après un trou. À reprendre au lot 2, avec la
+   * troncature d'usage aux ~20 derniers identifiants.
+   */
   const outgoing: OutgoingMessage = {
     from: { name: account.display_name ?? (prof?.full_name as string | null) ?? null, email: account.email },
     to, cc, bcc, subject, text: fullText, html: fullHtml,
@@ -5083,11 +6201,16 @@ serve(async (req: Request) => {
   // Audit avec l'acteur (l'ingestion a été appelée en skipAudit).
   const { data: th } = threadId ? await admin.from('mail_threads').select('contact_id').eq('id', threadId).maybeSingle() : { data: null }
   if (th?.contact_id) {
-    await admin.from('activity_events').insert({
+    // ⛔ Le résultat de cette insertion était jeté — pas de `error`, pas de journal. Un
+    // `email_sent` manquant dans la timeline d'un contact ne laissait alors AUCUNE trace,
+    // nulle part, alors que CLAUDE.md §5 fait d'`activity_events` la trace de chaque
+    // action. On ne refuse pas l'envoi pour autant : le courrier est parti.
+    const { error: eAudit } = await admin.from('activity_events').insert({
       agency_id: account.agency_id, actor_id: user.id, actor_kind: 'user', action: 'email_sent', category: 'messaging', severity: 'info',
       entity_type: 'contact', entity_id: th.contact_id, object_label: subject,
       metadata: { thread_id: threadId, message_id: localMessageId, account_id: account.id, to: to.map((a) => a.email), kind },
     })
+    if (eAudit) console.error(`[mail-send] activity_events refuse email_sent (fil ${threadId}, contact ${th.contact_id}):`, eAudit.message)
   }
   if (typeof body.draft_id === 'string') await admin.from('mail_drafts').delete().eq('id', body.draft_id).eq('author_id', user.id)
   // `ok: true` parce que le courrier est parti — `warning` dit que la copie locale est
@@ -5107,15 +6230,20 @@ servent bien.
 
 - [x] **Step 2 : Déclarer, vérifier, commit**
 
-⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
-`supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
-`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` / `— fin ──`, et elle porte
-69 des 82 blocs (les 13 autres, écrits à la main avec leur justification, vivent AU-DESSUS
-du marqueur). Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` (l. 610) et
-`matching-engine` (l. 619) — donc DEDANS. Le script ne compte comme « documenté » que ce
-qui est hors marqueurs, puis régénère la région et compare le fichier **texte pour texte** :
-un bloc inséré à la main y fait rougir `npm run lint:roster`, avec un diagnostic qui ne
-nomme même pas la fonction (« ✗ supabase/config.toml a dérivé du source tree »).
+⛔ **NE PAS écrire ce bloc à la main.** La quasi-totalité de `supabase/config.toml` est une
+**région GÉNÉRÉE**, délimitée par les marqueurs
+`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` et `— fin ──` ; les rares blocs
+écrits à la main, avec leur justification, vivent AU-DESSUS du marqueur d'ouverture.
+Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` et `matching-engine` — donc
+DEDANS. Le script ne compte comme « documenté » que ce qui est hors marqueurs, puis régénère
+la région et compare le fichier **texte pour texte** : un bloc inséré à la main y fait rougir
+`npm run lint:roster`, avec un diagnostic qui ne nomme même pas la fonction
+(« ✗ supabase/config.toml a dérivé du source tree »).
+⚠ Cette note portait trois NUMÉROS DE LIGNE et deux comptes, copiés-collés dans cinq tâches
+et déjà faux le lendemain (mesuré le 04.09.2026 : les marqueurs sont aux lignes 494 et 727,
+la région porte 74 des 87 blocs, 13 restent au-dessus). Un numéro de ligne dans une note que
+l'on lit JUSTE AVANT d'éditer le fichier envoie au mauvais endroit ; les noms de marqueurs,
+eux, ne dérivent pas.
 
 La façon juste — elle régénère `supabase/config.toml` ET `src/lib/edgeFunctionRoster.ts`
 en une passe :
@@ -5136,7 +6264,7 @@ git commit -m "feat(messagerie): edge mail-send (nouveau, réponse, transfert ; 
 
 ---
 
-### Task 1.14 : Edge `mail-attachment` (flux + classement au dossier)
+### Task 1.14 : Edge `mail-attachment` (octets authentifiés + classement au dossier)
 
 > ⛔ **Revue adverse « importante » du 04.09.2026 — XSS STOCKÉ PAR PIÈCE JOINTE.** Le GET
 > recopiait `mail_attachments.mime_type` — écrit par `ingest.ts` depuis `part.mimeType`
@@ -5158,8 +6286,17 @@ git commit -m "feat(messagerie): edge mail-send (nouveau, réponse, transfert ; 
 
 ```ts
 // supabase/functions/mail-attachment/index.ts
-// GET  ?id=<mail_attachments.id>       → octets de la pièce, streamés depuis le fournisseur
-//                                        (jamais d'URL publique ; content-type de la pièce).
+// GET  ?id=<mail_attachments.id>       → octets de la pièce, TÉLÉCHARGÉS EN MÉMOIRE avec le
+//                                        jeton du compte puis rendus (jamais d'URL publique,
+//                                        jamais d'objet Storage signable ; type SERVI décidé
+//                                        par la liste blanche `attachmentServing`, jamais
+//                                        celui que l'expéditeur a déclaré).
+//   ⚠ CE N'EST PAS UN FLUX, et l'en-tête a dit le contraire jusqu'au 04.09.2026 — le plan
+//   maître, lui, avait déjà corrigé la phrase le 03.09. Les deux adaptateurs matérialisent
+//   l'objet ENTIER : `gmailAttachment` décode tout le base64 dans un `Uint8Array`,
+//   `graphAttachmentBytes` fait un `arrayBuffer()`, et le `Content-Length` ci-dessous se lit
+//   sur un tampon complet. Conséquence à connaître avant de toucher au plafond de 25 Mio :
+//   deux téléchargements simultanés font 50 Mio résidents dans l'isolat.
 // POST { action:'file', attachment_id, contact_id, document_type, name?, category? }
 //                                      → copie dans le bucket `documents` + ligne `documents`
 //                                        (contact_id, sha256), mail_attachments.document_id posé.
@@ -5197,8 +6334,18 @@ async function loadAttachment(admin: SupabaseClient, id: string, ctx: { userId: 
   if (!att) return null
   const { data: account } = await admin.from('mail_accounts').select('*').eq('id', att.account_id).maybeSingle()
   if (!account || !accountVisibleTo(account as MailAccountRow, ctx)) return null
-  const { data: msg } = await admin.from('mail_messages').select('provider_message_id').eq('id', att.message_id).single()
-  return { att: att as AttRow, account: account as MailAccountRow, providerMessageId: msg!.provider_message_id as string }
+  // ⛔ `msg!.provider_message_id` sur une lecture NON contrôLÉE, hors de tout `try` : les
+  // deux appelants de `loadAttachment` n'en ont aucun, donc un message disparu entre-temps
+  // (course avec la cascade de `recomputeThread`) ou une simple erreur de lecture levait un
+  // TypeError qui traversait `serve` — l'appelant recevait le 500 générique de la
+  // plateforme, sans corps, sans rien à diagnostiquer. Un `null` rend le 404 que les deux
+  // chemins savent déjà écrire, et la cause part dans les journaux.
+  const { data: msg, error: eMsg } = await admin.from('mail_messages').select('provider_message_id').eq('id', att.message_id).maybeSingle()
+  if (eMsg || !msg) {
+    console.error(`[mail-attachment] pièce ${id}: message ${att.message_id} illisible —`, eMsg?.message ?? 'aucune ligne')
+    return null
+  }
+  return { att: att as AttRow, account: account as MailAccountRow, providerMessageId: msg.provider_message_id as string }
 }
 
 async function fetchBytes(admin: SupabaseClient, a: NonNullable<Awaited<ReturnType<typeof loadAttachment>>>): Promise<Uint8Array> {
@@ -5281,27 +6428,48 @@ serve(async (req: Request) => {
     await admin.storage.from('documents').remove([storagePath])
     return json({ error: 'document_insert_failed', detail: insErr.message }, 500)
   }
-  await admin.from('mail_attachments').update({ document_id: documentId }).eq('id', a.att.id)
-  await admin.from('activity_events').insert({
+  // ⚠ CE MARQUAGE EST CE QUI EMPÊCHE DE CLASSER DEUX FOIS. Son résultat n'était pas lu :
+  // un échec ici laissait `document_id` nul alors que le fichier EST déposé et la ligne
+  // `documents` insérée — la même pièce se reclassait, produisant un doublon dans
+  // `documents` ET un second événement d'audit. On ne défait rien (le classement a bien eu
+  // lieu, le défaire serait pire), on le DIT, pour que le lot 2 n'affiche pas « à classer »
+  // sur une pièce déjà au dossier.
+  const { error: eMark } = await admin.from('mail_attachments').update({ document_id: documentId }).eq('id', a.att.id)
+  if (eMark) console.error(`[mail-attachment] pièce ${a.att.id} classée en ${documentId} mais NON marquée:`, eMark.message)
+  // ⛔ L'AUDIT EST OBLIGATOIRE ICI (CLAUDE.md §5 : `activity_events` pour toute action), et
+  // son résultat était jeté sans même un journal. Un document versé au dossier d'un contact
+  // sans sa ligne d'audit est un trou de conformité qui ne se découvre qu'à l'audit, des
+  // mois plus tard. On continue — le document est classé, le refuser après coup ne
+  // rendrait rien — mais l'échec existe désormais quelque part.
+  const { error: eAudit } = await admin.from('activity_events').insert({
     agency_id: profile.agency_id, actor_id: user.id, actor_kind: 'user', action: 'document_filed_from_email', category: 'doc', severity: 'info',
     entity_type: 'contact', entity_id: contactId, object_label: name,
     metadata: { document_id: documentId, attachment_id: a.att.id, message_id: a.att.message_id, document_type: docType },
   })
-  return json({ ok: true, document_id: documentId, storage_path: storagePath })
+  if (eAudit) console.error(`[mail-attachment] activity_events refuse document_filed_from_email (document ${documentId}, contact ${contactId}):`, eAudit.message)
+  const warning = eMark ? 'not_marked_filed' : eAudit ? 'not_audited' : null
+  return json(warning
+    ? { ok: true, document_id: documentId, storage_path: storagePath, warning }
+    : { ok: true, document_id: documentId, storage_path: storagePath })
 })
 ```
 
 - [x] **Step 2 : Déclarer, vérifier, commit**
 
-⛔ **NE PAS écrire ce bloc à la main.** Mesuré le 03.09.2026 : les lignes 482→700 de
-`supabase/config.toml` sont une **région GÉNÉRÉE**, délimitée par
-`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` / `— fin ──`, et elle porte
-69 des 82 blocs (les 13 autres, écrits à la main avec leur justification, vivent AU-DESSUS
-du marqueur). Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` (l. 610) et
-`matching-engine` (l. 619) — donc DEDANS. Le script ne compte comme « documenté » que ce
-qui est hors marqueurs, puis régénère la région et compare le fichier **texte pour texte** :
-un bloc inséré à la main y fait rougir `npm run lint:roster`, avec un diagnostic qui ne
-nomme même pas la fonction (« ✗ supabase/config.toml a dérivé du source tree »).
+⛔ **NE PAS écrire ce bloc à la main.** La quasi-totalité de `supabase/config.toml` est une
+**région GÉNÉRÉE**, délimitée par les marqueurs
+`# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ──` et `— fin ──` ; les rares blocs
+écrits à la main, avec leur justification, vivent AU-DESSUS du marqueur d'ouverture.
+Alphabétiquement, `mail-*` tombe entre `magic-link-send-email` et `matching-engine` — donc
+DEDANS. Le script ne compte comme « documenté » que ce qui est hors marqueurs, puis régénère
+la région et compare le fichier **texte pour texte** : un bloc inséré à la main y fait rougir
+`npm run lint:roster`, avec un diagnostic qui ne nomme même pas la fonction
+(« ✗ supabase/config.toml a dérivé du source tree »).
+⚠ Cette note portait trois NUMÉROS DE LIGNE et deux comptes, copiés-collés dans cinq tâches
+et déjà faux le lendemain (mesuré le 04.09.2026 : les marqueurs sont aux lignes 494 et 727,
+la région porte 74 des 87 blocs, 13 restent au-dessus). Un numéro de ligne dans une note que
+l'on lit JUSTE AVANT d'éditer le fichier envoie au mauvais endroit ; les noms de marqueurs,
+eux, ne dérivent pas.
 
 La façon juste — elle régénère `supabase/config.toml` ET `src/lib/edgeFunctionRoster.ts`
 en une passe :
@@ -5741,7 +6909,11 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
 supabase start   # déjà démarré = sans effet
 npm run test:backend -- tests/backend/mail-edges.spec.ts tests/backend/mail-rls.spec.ts
 ```
-Attendu : 16 tests verts (7 + 9).
+Attendu : **24 tests verts (9 + 15)**. ⚠ Le « 16 (7 + 9) » d'origine contredisait la ligne du
+Step 1 de la task 1.2 dans ce même document, et les deux fichiers livrés — corrigé le
+04.09.2026 : `mail-edges.spec.ts` porte 9 `it()` (7 du plan + les 2 de la revue adverse) et
+`mail-rls.spec.ts` en porte 15. Qui lance la commande après le merge doit lire 24, sans avoir
+à décider si huit tests sont apparus de nulle part.
 
 ⛔ **NON EXÉCUTÉE ICI — même mur qu'au Step 2 et qu'à la task 1.2** : aucun runtime de
 conteneur, donc pas de `supabase start`, et `.env.test.local` n'existe pas (les clés `HAS_KEYS`
@@ -5756,7 +6928,9 @@ Vérifiée **statiquement**, le 04.09.2026 :
 
 Trois écarts au bloc d'origine, tous imposés par le code livré — la spec a été corrigée, pas
 l'edge :
-1. **Sept `it()` et non six.** Ajout de « mail-send sans destinataire → 400 », §7.2 du plan
+1. **Sept `it()` et non six** — puis NEUF, la revue adverse en ayant ajouté deux (04.09.2026 :
+   « une boîte d'une AUTRE agence dont l'appelant est propriétaire » et « les octets d'une autre
+   agence », cf. l'encadré ci-dessous). Ajout de « mail-send sans destinataire → 400 », §7.2 du plan
    maître, que ce lot ne couvrait pas. ⚠ Il exige une boîte que l'appelant **VOIT** : sur
    `boxB`, `loadVisibleAccount` rend `null` et l'edge répond 404 **avant** d'atteindre le
    contrôle de destinataire — le test serait vert pour la mauvaise raison. `beforeAll` sème
@@ -5870,9 +7044,9 @@ classé a survécu à la déconnexion.
 
 ## À faire au merge (hors dépôt et post-merge)
 
-> Écrit le 04.09.2026, à la clôture de la task 1.15. Trois choses que le lot 1 ne peut pas
-> faire lui-même, et qui échouent toutes **en silence** si on les oublie : aucune ne fait
-> rougir la PR.
+> Écrit le 04.09.2026, à la clôture de la task 1.15 ; un **quatrième** point ajouté le même
+> jour par la revue adverse. Quatre choses que le lot 1 ne peut pas faire lui-même, et qui
+> échouent toutes **en silence** si on les oublie : aucune ne fait rougir la PR.
 
 ### 1. Faire ARRIVER la migration en production
 
@@ -5953,3 +7127,31 @@ depuis le 04.09.2026 une valeur de test (`[edge_runtime.secrets]`) : la branche 
 donc plus atteignable, seule la construction de l'URL l'est. Rien n'est posé en production
 par ce fichier. La moitié Outlook de l'épreuve de bout en
 bout (Step 5) ne peut donc pas tourner tant qu'ils ne sont pas posés.
+
+### 4. Mettre le cerveau et les docs à jour — §10 du plan maître, obligation par LOT
+
+Le maître §8 le dit sans réserve : « Après **chaque** lot : … puis **mettre le cerveau à jour**
+(§10). » Ce lot n'a touché ni `.claude-flow/knowledge/megga-memory.seed.json`, ni
+`docs/system-map.md`, ni `docs/schema.md`, ni `docs/CHANGELOG.md`.
+
+⛔ **Aucune porte ne surveille ça**, et deux affirmations deviennent fausses à la seconde où
+la première boîte se connecte :
+- `docs/system-map.md`, section « Messaging » : « `message_threads`, `messages`,
+  `email_messages_cache` … n'existent plus en base » reste vrai, mais la ligne dit aussi que
+  le canal réel du CRM **est** WhatsApp — il y en a désormais deux, et neuf tables `mail_*`.
+- `CLAUDE.md` §7 annonce **50 jobs pg_cron** ; avec `mail-sync-2min` il y en a 51.
+  ⚠ `scripts/check-claude-md-freshness.mjs` nomme explicitement le compte de jobs pg_cron
+  comme la classe de prétention qu'il **ne peut lire d'aucun fichier** : rien ne rougira
+  jamais dessus, c'est la discipline humaine ou rien.
+
+À faire au merge, dans cet ordre :
+1. Semer les trois clés de §10.1 dans `.claude-flow/knowledge/megga-memory.seed.json` —
+   `megga/messagerie-architecture`, `megga/messagerie-oauth-popup`, `megga/messagerie-portes`
+   — puis `npm run ruflo:seed`.
+2. `docs/system-map.md` : section « Messagerie (e-mail) », et corriger la ligne « Messaging ».
+3. `docs/schema.md` : ajouter les neuf tables `mail_*`.
+4. `CLAUDE.md` §7 : passer le compte de jobs à 51 et inscrire `mail-sync-2min` au tableau ;
+   puis `npm run lint:claude-md`.
+5. `docs/CHANGELOG.md`.
+
+⚠ `docs/pages.md` (§10.4) attend le **lot 2** : ce lot ne livre aucune route.
