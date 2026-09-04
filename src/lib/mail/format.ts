@@ -6,7 +6,15 @@
  * « hier » est une frontière de journée civile, et un agent qui voyage verrait
  * sinon ses mails changer d'étiquette sans que rien n'ait bougé.
  */
-export interface MailAddress { name: string | null; email: string }
+/**
+ * ⚠ ALIAS DE TYPE, PAS `interface`, et ce n'est pas un goût : une `interface` ne
+ * reçoit PAS de signature d'index implicite, donc `MailAddress[]` n'est pas
+ * assignable à `Json` — écrire les destinataires d'un brouillon dans la colonne
+ * `jsonb` `mail_drafts.to` échouait en TS2345 (mesuré le 04.09.2026). L'alias,
+ * lui, en reçoit une. La seule autre issue était un `as unknown as Json` à
+ * chaque site d'écriture.
+ */
+export type MailAddress = { name: string | null; email: string }
 
 const YESTERDAY: Record<string, string> = { fr: 'Hier', de: 'Gestern', en: 'Yesterday', it: 'Ieri' }
 const TZ = 'Europe/Zurich'

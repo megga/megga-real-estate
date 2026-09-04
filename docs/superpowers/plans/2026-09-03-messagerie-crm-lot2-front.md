@@ -451,6 +451,14 @@ export default function MessagerieShowcasePage() {
   )
 }
 ```
+⚠ **CE QUE LE BANC REND À CE STADE, mesuré le 04.09.2026** : le chrome, le bento (grille
+`296px | 1fr`, rayon 24 px, 1 px de filet, `MXC_CARD_SHADOW` en clair, Inter Tight) et un
+panneau droit VIDE — pas même l'état vide. Raison : `/dev/messagerie` n'a pas de session,
+la requête des comptes est donc `enabled: false`, et une requête désactivée reste
+`pending` **pour toujours** en TanStack v5. Sur la vraie route (sous `ProtectedRoute`) la
+requête tourne et l'état vide s'affiche ; c'est bien le banc, et lui seul, que les fixtures
+de T2.13 réparent.
+
 (`fixtures.tsx` avec un `MailFixturesProvider` qui rend `state` par contexte est écrit en T2.13 ; d'ici là, créer le fichier avec le provider vide : `export type MailFixtureState = 'full'|'empty'|'none'; export const MailFixturesContext = createContext<MailFixtureState|null>(null); export function MailFixturesProvider({state, children}) { return <MailFixturesContext.Provider value={state}>{children}</MailFixturesContext.Provider> }`.)
 
 - [ ] **Step 8 : Build, lint, commit**
@@ -593,7 +601,10 @@ Attendu : FAIL (modules absents).
 ```ts
 // src/lib/mail/format.ts
 // Formats d'affichage de la Messagerie (README §2 « Date » : '08:29' | 'Hier' | '23.08').
-export interface MailAddress { name: string | null; email: string }
+// ⛔ ALIAS DE TYPE, PAS `interface` (corrigé le 04.09.2026, TS2345) : une `interface` ne
+// reçoit pas de signature d'index implicite, donc `MailAddress[]` n'est PAS assignable à
+// `Json` — écrire les destinataires d'un brouillon dans `mail_drafts.to` échouait.
+export type MailAddress = { name: string | null; email: string }
 
 const YESTERDAY: Record<string, string> = { fr: 'Hier', de: 'Gestern', en: 'Yesterday', it: 'Ieri' }
 const TZ = 'Europe/Zurich'
@@ -736,8 +747,8 @@ et à mesure : `oauthPopup` dès T2.3, `format` en T2.5, `sanitize` en T2.6.
 ### Task 2.3 : Hooks de données
 
 **Files:**
-- Create: `src/lib/mail/invoke.ts`
-- Create: `src/hooks/useMailAccounts.ts`, `src/hooks/useMailLabels.ts`, `src/hooks/useMailThreads.ts`, `src/hooks/useMailThread.ts`, `src/hooks/useMailActions.ts`, `src/hooks/useMailSend.ts`, `src/hooks/useMailDrafts.ts`, `src/hooks/useMailRealtime.ts`, `src/hooks/useMailOAuthPopup.ts`, `src/hooks/useMailAttachmentBlob.ts`
+- ⚠ **Déjà livrés en T2.1** : `src/lib/mail/invoke.ts` (step 1) et `src/hooks/useMailAccounts.ts` (step 2) — `MessagerieApp` les importe, donc ils ne pouvaient pas attendre. Les deux blocs de code restent écrits ci-dessous, tels qu'ils ont été posés.
+- Create: `src/hooks/useMailLabels.ts`, `src/hooks/useMailThreads.ts`, `src/hooks/useMailThread.ts`, `src/hooks/useMailActions.ts`, `src/hooks/useMailSend.ts`, `src/hooks/useMailDrafts.ts`, `src/hooks/useMailRealtime.ts`, `src/hooks/useMailOAuthPopup.ts`, `src/hooks/useMailAttachmentBlob.ts`
 
 - [ ] **Step 0 : Vérifier deux prérequis**
 
@@ -941,7 +952,9 @@ export function useMailThreads(accountId: string | null, f: MailThreadFilters) {
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<{ rows: MailThreadRow[]; total: number }> => {
       const { data, error } = await supabase.rpc('mail_list_threads', {
-        p_account_id: accountId, p_folder: f.folder, p_label_id: f.labelId, p_q: f.q || null,
+        // ⛔ `undefined`, JAMAIS `null` (corrigé le 04.09.2026, TS2322) : les paramètres
+        // à défaut de la RPC sont typés `p_label_id?: string`, pas `string | null`.
+        p_account_id: accountId, p_folder: f.folder, p_label_id: f.labelId ?? undefined, p_q: f.q || undefined,
         p_unread_only: f.unreadOnly, p_att_only: f.attOnly, p_page: f.page, p_per_page: MAIL_PER_PAGE,
       })
       if (error) throw error
@@ -1259,9 +1272,22 @@ export function useMailOAuthPopup() {
 
 ```bash
 npm run build && npm run lint
-git add src/lib/mail/invoke.ts src/hooks/useMail*.ts
+git add src/lib/mail/invoke.ts src/hooks/useMail*.ts scripts/check-dead-exports.mjs
 git commit -m "feat(messagerie): hooks comptes, libellés, fils, gestes optimistes, envoi, brouillons, Realtime, pop-up"
 ```
+
+⚠ **Trois corrections de typage, toutes mesurées le 04.09.2026** — le lot 1 a régénéré
+`database.ts` depuis la production, et c'est LUI qui décide, pas ce plan :
+1. `MailAddress` devient un ALIAS (voir T2.2) : sans quoi `mail_drafts.to` refuse le tableau.
+2. Les paramètres à défaut d'une RPC sont `?: string`, donc `?? undefined` et jamais `null`.
+3. `p_account_id` / `p_thread_id` sont `string`, pas `string | null` : chaque `queryFn`
+   gardée par `enabled` porte un `if (!id) throw` — le drapeau `enabled` n'est pas connu du
+   typage, et une assertion `!` mentirait là où une garde dit la même chose sans mentir.
+
+⛔ **Et `lint:deadcode` rougit sur les DIX hooks** : rien ne les monte avant T2.4. Même
+reprise qu'en T2.2 — une entrée par hook dans `ALLOW_SYMBOLS`, chacune nommant la tâche qui
+la consommera et donc la retirera. Les deux exemptions d'`oauthPopup` s'en vont ici, parce
+que `useMailOAuthPopup` les lit.
 
 ---
 
