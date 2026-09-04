@@ -957,7 +957,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/propertyx', { hors: 2, total: 3 }],
   ['src/components/skeletons', { hors: 8, total: 12 }],
   ['src/components/ui', { hors: 0, total: 29 }],
-  ['src/pages/admin', { hors: 225, total: 464 }],
+  // 464 -> 454 (18.08.2026) : le tiroir latéral de la revue KYB a cédé la place à une page
+  // pleine largeur, et ses littéraux sont partis avec lui.
+  ['src/pages/admin', { hors: 225, total: 454 }],
   ['src/pages/agent', { hors: 331, total: 936 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 68, total: 259 }],

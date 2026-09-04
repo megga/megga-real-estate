@@ -29,12 +29,13 @@
  * mentirait sur la décision d'hier.
  */
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
+import { summarizeKybEvidence, isBlockingCheck } from '@/lib/kybCheckEvidence'
+import type { TFunction } from 'i18next'
 import {
   AlertTriangle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleSlash, Clock,
-  History, IdCard, Loader2, RotateCw, ScanSearch, ShieldAlert, TrendingDown, UserX, Users, X,
+  History, IdCard, Loader2, RotateCw, ScanSearch, ShieldAlert, TrendingDown, UserX, Users,
   XCircle,
 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
@@ -42,7 +43,6 @@ import { formatDate } from '@/lib/utils'
 // paramètres et ne lit jamais l'agence de l'appelant, donc il sert le relecteur super-admin
 // aussi bien que le dirigeant. La console partage le bundle et le client Supabase du CRM.
 import { useIdentityDocuments } from '@/hooks/useAgencyIdentity'
-import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { useAdminSurfaces, type AdminTones } from '@/hooks/useAdminSurfaces'
 import type { CrmPalette } from '@/components/crm/tokens'
 import { useToast } from '@/components/ui/Toast'
@@ -505,12 +505,13 @@ function ReasonCard({ code }: { code: ReviewReasonCode }) {
   const Icon = meta.icon
   const key = code.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
   return (
-    <div className="flex items-start gap-3 rounded-lg p-3" style={{ border: `1px solid ${sp.cardBorder}` }}>
-      <Icon className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: toneInk(meta.tone, sp, tones) }} />
-      <div className="min-w-0">
-        <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: toneInk(meta.tone, sp, tones) }}>{t(`kybReview.reason.${key}.title`)}</p>
-        <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t(`kybReview.reason.${key}.description`)}</p>
-      </div>
+    // ⛔ UNE SEULE LIGNE, et la description est PARTIE. « Aucun signataire actif » était
+    // suivi de « Aucune personne habilitée à engager l'agence n'a été identifiée. » — la
+    // même phrase en plus long, sous un titre qui se suffisait. Répétée par motif, elle
+    // faisait de la page une suite de paragraphes là où le relecteur veut une liste.
+    <div className="flex items-center gap-2" style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: toneInk(meta.tone, sp, tones) }}>
+      <Icon className="h-4 w-4 flex-shrink-0" />
+      <span className="min-w-0">{t(`kybReview.reason.${key}.title`)}</span>
     </div>
   )
 }
@@ -553,11 +554,36 @@ function CheckRow({ check, persons, expanded, onToggle }: {
   const tone = checkRowTone(check.result, check.isVeto)
   const ToneIcon = CHECK_TONE_ICON[tone]
   const weight = displayCheckWeight(check.applicableWeight, check.isVeto)
+  // ⛔ CE QUI A ÉTÉ COMPARÉ, SOUS LE LIBELLÉ. Sans lui, « Ne correspond pas » se lit sans
+  // qu'on sache quoi ne correspond pas à quoi : le relecteur devait déplier la ligne et
+  // lire du JSON pour apprendre que le registre dit « Juarts - Julien Ahmedi » quand
+  // l'agence a déclaré « Juarts ». Deux gestes et un décodage pour comparer deux chaînes,
+  // sur le contrôle qui décide de presque tous les dossiers suisses (une raison
+  // individuelle y est toujours inscrite « nom commercial - nom du titulaire »).
+  const preuve = summarizeKybEvidence(check.checkType, check.rawResponse)
 
   return (
     <>
       <tr style={{ borderBottom: `1px solid ${sp.frameBorder}` }}>
-        <td className="py-2.5 pr-3" style={{ fontSize: 'var(--crm-text-lg)', color: sp.ink }}>{labelForCheckType(t, check.checkType)}</td>
+        <td className="py-2.5 pr-3" style={{ fontSize: 'var(--crm-text-lg)', color: sp.ink }}>
+          {labelForCheckType(t, check.checkType)}
+          {preuve && (
+            // Une seule ligne, en sourdine : c'est un appui à la lecture du verdict, pas
+            // une seconde colonne. Le détail complet reste sous le chevron.
+            <div style={{ marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
+              {preuve.declared && (
+                <span>{t('kybReview.checks.declared')} <span style={{ color: sp.soft }}>{preuve.declared}</span></span>
+              )}
+              {preuve.declared && preuve.found && <span aria-hidden> · </span>}
+              {preuve.found && (
+                <span>{t('kybReview.checks.found')} <span style={{ color: sp.soft }}>{preuve.found}</span></span>
+              )}
+              {preuve.note && (
+                <div style={{ color: sp.sub }}>{t(`kybReview.checks.reason.${preuve.note}`, { defaultValue: preuve.note })}</div>
+              )}
+            </div>
+          )}
+        </td>
         <td className="py-2.5 pr-3 whitespace-nowrap" style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft }}>{labelForSource(t, check.source)}</td>
         <td className="py-2.5 pr-3 whitespace-nowrap" style={{ fontSize: 'var(--crm-text-lg)', color: sp.soft }}>
           {personLabel(t, check.relatedPersonId, persons)}
@@ -1112,11 +1138,10 @@ function DetailSection({ title, icon: Icon, children }: { title: string; icon: t
 /** Tiroir de détail d'un dossier — createPortal(document.body), z-[100] (règle DS
  *  « modals toujours en portail »). Assemble raisons, checks, personnes, historique
  *  et les 4 actions. */
-function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: () => void }) {
+function KybReviewPager({ row, onClose }: { row: KybReviewQueueRow; onClose: () => void }) {
   const { t } = useTranslation('admin')
   const { sp, tones } = useAdminSurfaces()
   const toast = useToast()
-  const drawerRef = useFocusTrap(true)
 
   // `row` vient de la page courante de la file plutôt que d'une seconde lecture de la
   // RPC : depuis la pagination (correctif étape 6), re-interroger la file ici ne
@@ -1164,101 +1189,121 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
     })
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[100]">
-      <div className="absolute inset-0 backdrop-blur-sm" style={{ background: 'rgba(3, 3, 3, 0.5)' }} onClick={onClose} />
-      <div
-        ref={drawerRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={row.agencyName}
-        /* ⛔ `sp.solidBg` et non `surf.card` : une surface FLOTTANTE est un
-           palier OPAQUE. `surf.card` est un voile à 5 % en sombre, et le tiroir
-           l'empilait DEUX fois — panneau puis barres collantes — au-dessus du
-           voile de fond. Mesuré au rendu : la pile sortait `#323232`, une
-           couleur d'aucune échelle, sur laquelle « Valider » tombait à 4,06:1 et
-           « Rejeter » à 4,31:1. Aucune lecture de source ne compose une pile de
-           trois alphas ; aucune sonde de rendu ne voit un tiroir fermé. */
-        className="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto scrollbar-hide" style={{ background: sp.solidBg, borderLeft: `1px solid ${sp.cardBorder}` }}
-      >
-        <div className="sticky top-0 px-5 py-4 flex items-start justify-between gap-3 z-10" style={{ background: sp.solidBg, borderBottom: `1px solid ${sp.cardBorder}` }}>
-          <div className="min-w-0">
-            <h2 className="truncate" style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink }}>{row.agencyName}</h2>
-            <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
-              {row.country ?? '—'} · {row.identitySubmittedAt
-                ? t('kybReview.detail.submittedAt') + ' ' + formatDate(row.identitySubmittedAt)
-                : t('kybReview.detail.notSubmitted')}
-            </p>
-          </div>
-          <button onClick={onClose} aria-label={t('common.close')} className="p-1.5 rounded-lg hover:bg-theme-hover hover:text-theme-primary transition-colors flex-shrink-0" style={{ color: sp.sub }}>
-            <X className="h-4 w-4" />
+  const blocking = useMemo(
+    () => (checks.data ?? []).filter((c) => isBlockingCheck({ result: c.result, isVeto: c.isVeto === true })),
+    [checks.data],
+  )
+
+
+  return (
+    <div className="flex flex-col h-full min-h-0">
+      {/* En-tête : le retour, l'identité du dossier, et les chiffres EN PETIT.
+          ⚠ Le score occupait deux grandes cartes en haut du tiroir — or il ne décide de
+          rien quand un véto tombe (mesuré : 1.000 sur un dossier retenu). Lui donner la
+          place la plus visible enseignait l'inverse de la règle. */}
+      <header className="flex items-start justify-between gap-3 pb-3" style={{ borderBottom: `1px solid ${sp.cardBorder}` }}>
+        <div className="min-w-0">
+          <button
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 hover:text-theme-primary transition-colors"
+            style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            {t('kybReview.detail.backToQueue')}
           </button>
+          <h2 className="truncate" style={{ marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: sp.ink }}>{row.agencyName}</h2>
+          <p style={{ marginTop: 'var(--crm-space-2xs)', fontSize: 'var(--crm-text-sm)', color: sp.sub }}>
+            {row.country ?? '—'}
+            {' · '}
+            {row.identitySubmittedAt
+              ? t('kybReview.detail.submittedAt') + ' ' + formatDate(row.identitySubmittedAt)
+              : t('kybReview.detail.notSubmitted')}
+            {' · '}
+            {t('kybReview.detail.score')} <span style={{ color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>
+              {row.verificationScore != null ? row.verificationScore.toFixed(3) : t('kybReview.scoreNone')}
+            </span>
+            {' · '}
+            {t('kybReview.detail.sweepAttempts')} <span style={{ color: sp.soft, fontVariantNumeric: 'tabular-nums' }}>
+              {row.verificationSweepAttempts} / {SWEEP_MAX_ATTEMPTS}
+            </span>
+          </p>
         </div>
+      </header>
 
-        <div className="p-5 space-y-4">
-          {isLoading ? (
-            <p style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub }}>{t('kybReview.detail.loading')}</p>
-          ) : isError ? (
-            <p style={{ fontSize: 'var(--crm-text-lg)', color: tones.err }}>{t('kybReview.detail.error')}</p>
-          ) : (
-            <>
-              {/* Score + tentatives du filet — les chiffres bruts, toujours visibles. */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl p-3" style={{ border: `1px solid ${sp.cardBorder}` }}>
-                  <p style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('kybReview.detail.score')}</p>
-                  <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
-                    {row.verificationScore != null ? row.verificationScore.toFixed(3) : t('kybReview.scoreNone')}
-                  </p>
-                </div>
-                <div className="rounded-xl p-3" style={{ border: `1px solid ${sp.cardBorder}` }}>
-                  <p style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub }}>{t('kybReview.detail.sweepAttempts')}</p>
-                  <p className="mt-0.5" style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
-                    {row.verificationSweepAttempts} / {SWEEP_MAX_ATTEMPTS}
-                  </p>
-                </div>
-              </div>
+      {isLoading ? (
+        <p className="py-4" style={{ fontSize: 'var(--crm-text-lg)', color: sp.sub }}>{t('kybReview.detail.loading')}</p>
+      ) : isError ? (
+        <p className="py-4" style={{ fontSize: 'var(--crm-text-lg)', color: tones.err }}>{t('kybReview.detail.error')}</p>
+      ) : (
+        /* ⛔ PLUS DE PAGER, ET C'EST UNE CORRECTION, pas un renoncement. Deux pages
+            imposent à chacune la hauteur de l'écran : un dossier dont les motifs tiennent
+            en deux lignes laissait alors un vide de 600 px avant le pied d'actions.
+            Constaté au banc sur « Ticino Case Sagl ». Le pager convient à des pages
+            TOUJOURS pleines (une galerie, une liste) ; ici le contenu est court et
+            variable, donc le vide était garanti.
 
-              {/* Pourquoi ce dossier est ici — la section centrale du brief. */}
-              <div>
-                <h3 className="mb-2" style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{t('kybReview.detail.whySection')}</h3>
-                <div className="space-y-2">
-                  {reasons.map((r) => <ReasonCard key={r.code} code={r.code} />)}
-                </div>
-              </div>
+            Ce que le chantier visait est acquis autrement : le détail n'est plus un tiroir
+            de 576 px collé à droite mais une page de 1024 px, et les colonnes qui décident
+            (résultat, poids, date) tiennent enfin sans défilement horizontal.
 
-              {pendingIdDocs.length > 0 && (
-                <ResolveIdDocumentSection
-                  agencyId={agencyId}
-                  pending={pendingIdDocs}
-                  persons={persons.data ?? []}
-                  busy={anyActionPending}
-                  onResolve={(checkId, result) => {
-                    resolveIdentityDocument.mutate({ checkId, result }, {
-                      onSuccess: () => toast.success(t('kybReview.actions.resolveSuccess')),
-                      onError: handleError,
-                    })
-                  }}
-                />
-              )}
+            L'ORDRE porte ce que les deux pages portaient : ce qui retient d'abord, le
+            reste ensuite. Un relecteur qui a tranché n'a jamais besoin de descendre. */
+        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide pr-1">
+          <div className="py-4 space-y-3">
+            {/* Les motifs, en bloc compact et SANS titre de section : trois mots en
+                couleur disent déjà « voici ce qui coince ». */}
+            <div className="rounded-lg p-3 space-y-1.5" style={{ border: `1px solid ${sp.cardBorder}` }}>
+              {reasons.map((r) => <ReasonCard key={r.code} code={r.code} />)}
+            </div>
 
-              <DetailSection title={t('kybReview.detail.checksSection')} icon={ScanSearch}>
-                <ChecksTable checks={checks.data ?? []} persons={persons.data ?? []} />
+            {pendingIdDocs.length > 0 && (
+              <ResolveIdDocumentSection
+                agencyId={agencyId}
+                pending={pendingIdDocs}
+                persons={persons.data ?? []}
+                busy={anyActionPending}
+                onResolve={(checkId, result) => {
+                  resolveIdentityDocument.mutate({ checkId, result }, {
+                    onSuccess: () => toast.success(t('kybReview.actions.resolveSuccess')),
+                    onError: handleError,
+                  })
+                }}
+              />
+            )}
+
+            {/* ⛔ RENDUES SEULEMENT SI ELLES ONT QUELQUE CHOSE À DIRE. Elles s'affichaient
+                toujours, avec « Aucun contrôle ne retient ce dossier » et « Aucune
+                personne déclarée » — deux grandes cartes pour dire qu'il n'y a rien à
+                lire. Une absence se signale par l'absence. */}
+            {blocking.length > 0 && (
+              <DetailSection title={t('kybReview.detail.blockingSection')} icon={ScanSearch}>
+                <ChecksTable checks={blocking} persons={persons.data ?? []} />
               </DetailSection>
+            )}
 
+            {(persons.data ?? []).length > 0 && (
               <DetailSection title={t('kybReview.detail.personsSection')} icon={Users}>
                 <PersonsList persons={persons.data ?? []} agencyId={agencyId} />
               </DetailSection>
+            )}
 
+            <DetailSection title={t('kybReview.detail.checksSection')} icon={ScanSearch}>
+              <ChecksTable checks={checks.data ?? []} persons={persons.data ?? []} />
+            </DetailSection>
+
+            {(events.data ?? []).length > 0 && (
               <DetailSection title={t('kybReview.detail.historySection')} icon={History}>
                 <HistoryList events={events.data ?? []} />
               </DetailSection>
-            </>
-          )}
+            )}
+          </div>
         </div>
+      )}
 
-        {/* Actions — toujours visibles, même en erreur de chargement du détail (une
-            décision reste possible avec ce que la file elle-même a déjà montré). */}
-        <div className="sticky bottom-0 px-5 py-3 flex flex-wrap items-center gap-2" style={{ background: sp.solidBg, borderTop: `1px solid ${sp.cardBorder}` }}>
+      {/* Actions — ancrées, jamais dans le track : une décision doit rester à portée
+          quelle que soit la page qu'on lit. Rendues même en erreur de chargement du
+          détail, la file ayant déjà montré de quoi trancher. */}
+      <div className="flex flex-wrap items-center gap-2 pt-3" style={{ borderTop: `1px solid ${sp.cardBorder}` }}>
           <button
             onClick={() => validate.mutate(undefined, {
               onSuccess: () => toast.success(t('kybReview.actions.validateSuccess')),
@@ -1295,7 +1340,6 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
             {relaunch.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {relaunch.isPending ? t('kybReview.actions.relaunching') : t('kybReview.actions.relaunch')}
           </button>
-        </div>
       </div>
 
       {/* `key` qui change à l'ouverture : React remonte la modale, donc son champ de motif
@@ -1336,8 +1380,7 @@ function KybReviewDrawer({ row, onClose }: { row: KybReviewQueueRow; onClose: ()
           })
         }}
       />
-    </div>,
-    document.body,
+    </div>
   )
 }
 
@@ -1504,6 +1547,23 @@ export default function AdminKybReviewPage() {
   // l'écrase).
   const drawerRow = rows.find((r) => r.agencyId === selectedAgencyId) ?? null
 
+  // ⛔ LE DÉTAIL REMPLACE LA FILE, il ne s'ajoute pas sous elle. Le tiroir était un
+  // portail : il flottait, donc son point de rendu n'avait aucune importance. Le pager,
+  // lui, est dans le flux — rendu à la suite de la file, il laissait la liste au-dessus
+  // et empilait ses deux pages faute de hauteur bornée. Constaté au banc, pas déduit.
+  if (drawerRow) {
+    return (
+      // `h-full` jusqu'ici, sans quoi le pager n'a pas de hauteur DÉFINIE et ne masque
+      // rien : la chaîne du shell est bornée (100vh -> flex-1 -> frame 100 %), mais elle
+      // se rompt au premier maillon qui repasse en hauteur automatique.
+      <PageTransition className="h-full">
+        <div className="max-w-5xl mx-auto h-full min-h-0">
+          <KybReviewPager row={drawerRow} onClose={() => setSelectedAgencyId(null)} />
+        </div>
+      </PageTransition>
+    )
+  }
+
   return (
     <PageTransition>
       <div className="max-w-3xl mx-auto space-y-5">
@@ -1552,9 +1612,6 @@ export default function AdminKybReviewPage() {
         </div>
       </div>
 
-      {drawerRow && (
-        <KybReviewDrawer row={drawerRow} onClose={() => setSelectedAgencyId(null)} />
-      )}
     </PageTransition>
   )
 }
