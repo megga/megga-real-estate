@@ -480,8 +480,15 @@ séparer est exactement le faux-vert que cette garde existe pour empêcher. La r
 - [ ] **Step 1 : Dépendance**
 
 ```bash
-npm install dompurify@3 && npm install --save-dev @types/dompurify
+npm install dompurify@3
 ```
+
+⛔ **PAS de `@types/dompurify`** (corrigé le 04.09.2026) : depuis la 3.0.6, dompurify livre
+ses propres définitions (`dist/purify.es.d.mts`, `exports['.'].import.types`), et le paquet
+DefinitelyTyped n'est plus qu'un **stub déprécié** qui dit lui-même de ne pas l'installer.
+⚠ La dépendance était déjà là en TRANSITIF (par `posthog-js`, en 3.3.3) : la déclarer la
+fige à notre compte — sans quoi une montée de version d'un paquet tiers changerait le
+comportement du rendu des mails. `npm install` l'a portée à **3.4.14** pour tout le dépôt.
 
 - [ ] **Step 2 : Tests (rouges)**
 
@@ -528,7 +535,11 @@ describe('sanitizeMailHtml', () => {
     expect(out).not.toContain('<script')
     expect(out).not.toContain('onclick')
     expect(out).not.toContain('<iframe')
-    expect(out).not.toContain('https://t.example')
+    // ⛔ CES DEUX LIGNES SE CONTREDISAIENT (corrigé le 04.09.2026) : l'URL SURVIT dans
+    // `data-blocked-src` — c'est elle que « Afficher les images » restaure. Ce qui doit
+    // disparaître est l'attribut CHARGEABLE. ⚠ Et la borne ne peut pas être `src="` nu :
+    // `data-blocked-src="` le contient littéralement.
+    expect(out).not.toMatch(/\ssrc="https?:/)
     expect(out).toContain('data-blocked-src="https://t.example/p.gif"')
   })
   it('garde les images distantes quand on les a demandées', () => {
@@ -699,10 +710,26 @@ export function openOAuthPopup(url: string): Window | null {
 
 ```bash
 npx vitest run tests/unit/mail-format.spec.ts tests/unit/mail-sanitize.spec.ts tests/unit/mail-oauth-popup.spec.ts
-git add src/lib/mail tests/unit/mail-format.spec.ts tests/unit/mail-sanitize.spec.ts tests/unit/mail-oauth-popup.spec.ts package.json package-lock.json
+git add src/lib/mail tests/unit/mail-format.spec.ts tests/unit/mail-sanitize.spec.ts tests/unit/mail-oauth-popup.spec.ts package.json package-lock.json scripts/check-dead-exports.mjs
 git commit -m "feat(messagerie): format de liste, sanitisation HTML (DOMPurify + CSP), contrat de pop-up"
 ```
 Attendu : 10 tests PASS.
+
+⛔ **`lint:email-shell` ROUGIT SUR `sanitize.ts`, et le plan maître ne l'avait vu qu'à
+moitié** : sa D10 dit que la porte « n'est pas concernée », mais elle raisonnait sur les
+EDGES, alors que la porte scanne aussi `src/` depuis le 15.08.2026 (un `<!DOCTYPE>` y suffit)
+— et `buildBodySrcdoc` en écrit un. La reprise n'est PAS `A_MIGRER` (rien à migrer) mais
+`HORS_EMAIL`, la liste des documents de `src/` qui ne sont pas des e-mails : ce fichier
+enveloppe le HTML de QUELQU'UN D'AUTRE pour l'afficher sans le laisser s'exécuter. Lui
+appliquer la coquille MEGGA poserait notre en-tête et un lien de désinscription autour du
+message d'un client.
+
+⛔ **UNE BIBLIOTHÈQUE PURE LIVRÉE AVANT SES ÉCRANS NE PASSE PAS `lint:deadcode`** (mesuré le
+04.09.2026 : les huit exports signalés). `ts-prune` tourne sur `tsconfig.app.json`, dont
+l'`include` vaut `["src"]` : un module que seules les SPECS lisent lui paraît mort. C'est
+l'angle mort déjà exempté pour `formatSurface`, et la reprise est la même — huit entrées
+dans `ALLOW_SYMBOLS` avec leur motif et la tâche qui les consommera. ⛔ Les retirer au fur
+et à mesure : `oauthPopup` dès T2.3, `format` en T2.5, `sanitize` en T2.6.
 
 ---
 

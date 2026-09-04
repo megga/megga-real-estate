@@ -43,6 +43,20 @@ const ALLOW_SYMBOLS = new Set([
   'src/lib/constants.ts:Canton', 'src/lib/constants.ts:KycStatus', 'src/lib/constants.ts:KycType',
   'src/lib/constants.ts:FATF_HIGH_RISK_COUNTRIES', 'src/lib/constants.ts:FATF_INCREASED_MONITORING',
   'src/lib/utils.ts:formatSurface',          // formatteur m² testé (tests/unit/utils.spec.ts)
+  // ── Messagerie CRM, lot 2 T2.2 : la bibliothèque PURE précède ses écrans ────
+  // ⚠ Même angle mort que `formatSurface` : `ts-prune` tourne sur
+  // `tsconfig.app.json`, dont l'`include` est `["src"]` — un module que seules
+  // les specs lisent lui paraît mort. Ces six-là ONT un lecteur
+  // (`tests/unit/mail-format.spec.ts`, `mail-sanitize.spec.ts`), et ils en
+  // auront un second dans l'écran : `format` en T2.5 (la ligne de liste),
+  // `sanitize` en T2.6 (le corps du message).
+  // ⛔ À RETIRER quand ces tâches livrent : une exemption qui survit à son motif
+  // couvre le fichier entier pour toujours.
+  'src/lib/mail/format.ts:mailDateLabel', 'src/lib/mail/format.ts:initialsOf',
+  'src/lib/mail/format.ts:displayAddress', 'src/lib/mail/format.ts:fileSizeLabel',
+  'src/lib/mail/sanitize.ts:sanitizeMailHtml', 'src/lib/mail/sanitize.ts:buildBodySrcdoc',
+  // Les deux de la pop-up sortent de la liste dès T2.3 (`useMailOAuthPopup` les lit).
+  'src/lib/mail/oauthPopup.ts:isOAuthReply', 'src/lib/mail/oauthPopup.ts:openOAuthPopup',
   // Sortie du générateur Supabase, pas du code écrit à la main : les versions
   // récentes émettent `Constants` (valeurs des enums Postgres) que rien
   // n'importe encore. Le retirer reviendrait à éditer un fichier auto-généré,

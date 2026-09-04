@@ -93,12 +93,14 @@ const IMPORTE_COQUILLE = /from\s+'[^']*email-shell\.ts'/;
 const MARQUEURS_SRC = [/<!DOCTYPE\s+html/i];
 
 /**
- * Documents HTML de `src/` qui ne sont PAS des e-mails. Une seule entrée, et elle porte
- * sa raison comme les autres listes de ce dépôt.
+ * Documents HTML de `src/` qui ne sont PAS des e-mails. Chaque entrée porte sa raison,
+ * comme les autres listes de ce dépôt.
  */
 const HORS_EMAIL = {
   'src/components/ai-copilot/panel/LetterReviewModal.tsx':
     "Lettre A4 IMPRIMABLE (`@page { size: A4 }`), pas un e-mail : elle part chez un imprimeur ou un PDF, jamais dans une boîte. La coquille d'e-mail lui donnerait un fond noir et un pied de désinscription sur du papier.",
+  'src/lib/mail/sanitize.ts':
+    "Le VISIONNEUR d'un mail REÇU (Messagerie, D9), pas un mail émis : `buildBodySrcdoc` fabrique le document d'une `<iframe sandbox srcdoc>` dont la CSP bloque script, connexions et images distantes. Il enveloppe le HTML de QUELQU'UN D'AUTRE — lui appliquer la coquille MEGGA poserait notre en-tête, notre pied et un lien de désinscription autour du message d'un client. Le sens de la porte est inversé ici : ce fichier ne compose pas un e-mail, il en affiche un sans le laisser s'exécuter.",
 };
 
 function fichiersTs(dir) {
