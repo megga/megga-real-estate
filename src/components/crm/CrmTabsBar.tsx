@@ -776,14 +776,26 @@ function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded 
       aria-expanded={haspopup ? expanded : undefined}
       style={{
         width: H_PASTILLE, height: H_PASTILLE, flexShrink: 0,
-        borderRadius: 'var(--crm-radius-pill)', border: 0,
+        // ⚠ `border-box` : la bordure d'un pixel doit se prendre SUR les 26, sinon
+        // les deux commandes grandissent de 2 px et se désalignent de la pastille
+        // « +N », qui est leur voisine immédiate.
+        boxSizing: 'border-box',
+        borderRadius: 'var(--crm-radius-pill)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', fontFamily: 'inherit',
-        // Actif = aplat d'accent, comme la puce active et la ligne de la barre
-        // latérale : c'est la règle du 10 août 2026, l'élément ACTIF porte l'accent.
-        background: actif ? sp.accent : survol ? sp.focusSurface : 'transparent',
+        // ⚠ CERCLE VISIBLE AU REPOS (demande de Julien, 4 septembre 2026) : au
+        // premier jet ces deux-là étaient des glyphes nus, et rien ne disait qu'on
+        // pouvait cliquer. Elles prennent l'habillage de la pastille « +N » — fond
+        // de carte, filet d'un pixel — pour que les trois commandes de droite se
+        // lisent comme une seule famille.
+        //
+        // Actif = aplat d'accent, comme la puce active : c'est la règle du 10 août
+        // 2026, l'élément ACTIF porte l'accent. Le filet disparaît alors dans
+        // l'aplat plutôt que de le cerner d'un liseré plus clair.
+        background: actif ? sp.accent : survol ? sp.focusSurface : sp.cardBg,
+        border: `1px solid ${actif ? sp.accent : survol ? sp.soft : sp.cardBorder}`,
         color: actif ? sp.accentInk : survol ? sp.ink : sp.sub,
-        transition: 'background-color .18s ease, color .18s ease',
+        transition: 'background-color .18s ease, border-color .18s ease, color .18s ease',
       }}
     >
       <MEIcon name={icone} size={15} strokeWidth={1.7} />
