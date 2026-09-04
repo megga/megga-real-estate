@@ -312,11 +312,17 @@ export function useCrmTabsMachine(): CrmTabsApi {
         // Une autre fenêtre a écrit entre-temps. On ADOPTE son état plutôt que de
         // l'écraser : sinon l'agent voit ses onglets disparaître dans une fenêtre
         // sans avoir rien fermé.
-        setEtat({
-          tabs: Array.isArray(paquet.tabs) ? paquet.tabs : tabs,
-          active: paquet.active_index ?? 0,
-          revision: paquet.revision ?? null,
-        })
+        //
+        // ⚠ Mais SEULEMENT si le contenu diffère vraiment. Poser un objet neuf à
+        // contenu identique déplacerait l'empreinte, relancerait la persistance, et
+        // deux fenêtres se renverraient la balle indéfiniment — chacune rendant l'autre
+        // périmée. Quand seul le jeton a bougé, on ne met à jour que lui.
+        const servi = Array.isArray(paquet.tabs) ? paquet.tabs : tabs
+        const memeContenu = JSON.stringify(servi) === JSON.stringify(tabs)
+          && (paquet.active_index ?? 0) === active
+        setEtat((prev) => (memeContenu
+          ? (prev.revision === (paquet.revision ?? null) ? prev : { ...prev, revision: paquet.revision ?? null })
+          : { tabs: servi, active: paquet.active_index ?? 0, revision: paquet.revision ?? null }))
       } else if (typeof paquet.revision === 'number') {
         setEtat((prev) => (prev.revision === paquet.revision ? prev : { ...prev, revision: paquet.revision! }))
       }
@@ -327,13 +333,32 @@ export function useCrmTabsMachine(): CrmTabsApi {
     }
   }, [user?.id])
 
+  /**
+   * Empreinte du CONTENU, et non l'objet d'état.
+   *
+   * ⛔ LA SAUVEGARDE SE RÉAMORÇAIT ELLE-MÊME. L'effet dépendait de `etat` ; or une
+   * écriture réussie repose la `revision` rendue par le serveur, donc change `etat`, donc
+   * relance l'effet, qui replanifie une écriture, qui incrémente la révision… Une écriture
+   * Supabase toutes les 800 ms, sans fin, pour un agent qui ne touche à rien.
+   *
+   * L'empreinte ne bouge que quand la PILE bouge — la révision, l'indicateur de
+   * chargement et les identités de fonction n'y entrent pas.
+   */
+  const empreinte = useMemo(
+    () => JSON.stringify({ t: etat.tabs, a: etat.active }),
+    [etat.tabs, etat.active],
+  )
+
   useEffect(() => {
-    ecrireMiroir(etat)
+    ecrireMiroir(etatRef.current)
     if (chargement || !user?.id) return
     if (sauverRef.current) window.clearTimeout(sauverRef.current)
     sauverRef.current = window.setTimeout(() => { void sauver() }, 800)
     return () => { if (sauverRef.current) window.clearTimeout(sauverRef.current) }
-  }, [etat, chargement, user?.id, sauver])
+    // ⚠ `sauver` est volontairement HORS des dépendances : son identité change avec
+    // `user?.id`, déjà présent, et l'y mettre rouvrirait la boucle par un autre chemin.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empreinte, chargement, user?.id])
 
   useEffect(() => {
     // ⚠ `pagehide`, pas `beforeunload` : le second ne part pas sur iOS et sur les
@@ -345,26 +370,43 @@ export function useCrmTabsMachine(): CrmTabsApi {
 
   // ── Gestes ─────────────────────────────────────────────────────────────────
   /** Bascule : pose l'actif, puis navigue — et arme la fenêtre de silence du gel. */
+  /**
+   * Arme la fenêtre de silence du gel — et SEULEMENT si la navigation va réellement
+   * changer d'emplacement.
+   *
+   * ⛔ SANS CETTE GARDE, le gel se tait POUR LE RESTE DE LA SESSION. `attenduRef` n'est
+   * désarmé que par l'effet qui suit `location` ; naviguer vers l'emplacement où l'on est
+   * déjà ne produit aucun changement de `location`, donc aucun passage de l'effet, donc
+   * une ref qui reste armée. Toute navigation ultérieure était alors avalée par la
+   * première branche de l'effet, et plus aucun onglet ne suivait son écran. Le cas est
+   * ordinaire : « + » sur `/dashboard` alors qu'on y est, ou « fermer » un voisin.
+   */
+  const viser = useCallback((href: string): boolean => {
+    if (href === `${location.pathname}${location.search}`) return false
+    attenduRef.current = href
+    return true
+  }, [location.pathname, location.search])
+
   const selectionner = useCallback((i: number) => {
     const { tabs, active } = etatRef.current
     if (i < 0 || i >= tabs.length || i === active) return
-    const cible = tabs[i]
-    const href = crmTabHref(cible)
-    attenduRef.current = href
+    const href = crmTabHref(tabs[i])
     setEtat((prev) => ({ ...prev, active: i }))
-    navigate(href)
-  }, [navigate])
+    if (viser(href)) navigate(href)
+  }, [navigate, viser])
 
   const ouvrirDans = useCallback((href: string, label?: string) => {
     const [path, q] = href.split('?')
     const search = q ? `?${q}` : ''
-    attenduRef.current = href
     setEtat((prev) => {
-      const tabs = crmApplyCap([...prev.tabs, crmMakeTab(path, search, Date.now(), { label })], null)
+      // ⚠ Le plafond garde l'onglet NEUF : il vient d'être demandé, le fermer aussitôt
+      // serait absurde. `crmApplyCap` ferme les plus anciens non épinglés à la place.
+      const avec = [...prev.tabs, crmMakeTab(path, search, Date.now(), { label })]
+      const tabs = crmApplyCap(avec, avec[avec.length - 1].id)
       return { ...prev, tabs, active: tabs.length - 1 }
     })
-    navigate(href)
-  }, [navigate])
+    if (viser(href)) navigate(href)
+  }, [navigate, viser])
 
   const ouvrirNouvel = useCallback(() => { ouvrirDans('/dashboard') }, [ouvrirDans])
 
@@ -399,11 +441,8 @@ export function useCrmTabsMachine(): CrmTabsApi {
     const active = crmResolveActive(restants, i === prev.active ? null : actifId, voisinId)
     setEtat({ ...prev, tabs: restants, active })
     const cible = crmTabHref(restants[active])
-    if (cible !== `${location.pathname}${location.search}`) {
-      attenduRef.current = cible
-      navigate(cible)
-    }
-  }, [navigate, location.pathname, location.search, messageSale])
+    if (viser(cible)) navigate(cible)
+  }, [navigate, viser, messageSale])
 
   /** Les gestes qui bougent les index et gardent l'actif PAR SON id. */
   const parId = useCallback((calcul: (tabs: CrmTab[]) => CrmTab[], viseId?: string) => {
@@ -414,16 +453,37 @@ export function useCrmTabsMachine(): CrmTabsApi {
     setEtat({ ...prev, tabs, active: crmResolveActive(tabs, actifId, viseId ?? null) })
   }, [])
 
+  /**
+   * « Fermer les autres » — garde la puce visée ET les épinglées.
+   *
+   * ⛔ IL NE NAVIGUE PAS VERS LA PUCE VISÉE, et c'est un défaut corrigé le 4 septembre
+   * 2026 : l'actif SURVIT dès qu'il est épinglé (ou qu'il EST la puce visée). Naviguer
+   * vers la visée changeait alors d'écran sans changer d'onglet actif — la barre
+   * désignait une puce, l'écran en montrait une autre, et la puce active devenait
+   * inerte (`selectionner` sort tôt quand `i === active`).
+   *
+   * ⚠ Il ne passe donc plus par `parId` : il lui faut l'index actif RÉSOLU pour savoir
+   * où naviguer, et `parId` ne le rend pas. Même forme que `fermer`.
+   */
   const fermerAutres = useCallback((i: number) => {
-    const vise = etatRef.current.tabs[i]?.id
-    parId((tabs) => crmCloseOthers(tabs, i), vise)
     const prev = etatRef.current
-    const cible = prev.tabs[i] ? crmTabHref(prev.tabs[i]) : null
-    if (cible && cible !== `${location.pathname}${location.search}`) {
-      attenduRef.current = cible
-      navigate(cible)
+    const actifId = prev.tabs[prev.active]?.id ?? null
+    const viseId = prev.tabs[i]?.id ?? null
+    const restants = crmCloseOthers(prev.tabs, i)
+    if (restants === prev.tabs || !restants.length) return
+    // ⚠ Le MÊME filet que `fermer` : « fermer les autres » ferme aussi l'onglet ACTIF
+    // dès qu'il n'est ni la puce visée ni épinglé — c'est-à-dire le cas courant. Sans
+    // ce garde, le geste emportait la saisie en cours sans rien demander, alors que la
+    // croix, elle, demandait.
+    if (actifId && !restants.some((t) => t.id === actifId) && saleRef.current) {
+      if (!window.confirm(messageSale)) return
+      saleRef.current = false
     }
-  }, [parId, navigate, location.pathname, location.search])
+    const active = crmResolveActive(restants, actifId, viseId)
+    setEtat({ ...prev, tabs: restants, active })
+    const cible = crmTabHref(restants[active])
+    if (viser(cible)) navigate(cible)
+  }, [navigate, viser, messageSale])
 
   const basculerEpingle = useCallback((i: number) => { parId((tabs) => crmTogglePin(tabs, i)) }, [parId])
   const dupliquer = useCallback((i: number) => { parId((tabs) => crmDuplicateTab(tabs, i, Date.now())) }, [parId])
@@ -515,8 +575,16 @@ export function useTabScopedState<T>(
   // pile serveur charge (un écran ne doit pas attendre le réseau pour rendre).
   const [local, setLocal] = useState<T>(initial)
 
+  // ⚠ SOUS FOURNISSEUR, l'absence de clé vaut `initial` — PAS l'état local.
+  //
+  // Retomber sur `local` faisait partager une valeur entre onglets : l'écran n'est pas
+  // remonté quand on bascule de A vers B (même route), donc `local` porte encore ce que
+  // A y avait mis, et B — qui n'a rien dans sa tranche — l'affichait comme s'il était le
+  // sien. `local` ne sert qu'au repli HORS fournisseur (mobile, console, bancs).
   const stocke = api ? api.lireUi(cleComplete) : undefined
-  const valeur = (stocke === undefined ? local : stocke) as T
+  const valeur = (api
+    ? (stocke === undefined ? initial : stocke)
+    : local) as T
 
   // ⚠ Il accepte la forme FONCTION (`setPage(p => p + 1)`) autant que la valeur.
   // C'est ce qui en fait un remplaçant de `useState` sans relire l'appelant : sur

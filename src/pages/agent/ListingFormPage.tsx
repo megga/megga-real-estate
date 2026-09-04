@@ -2275,12 +2275,18 @@ export default function ListingFormPage() {
   const autoSavePropertyId = useRef<string | null>(id || null)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   /**
-   * Saisie faite mais pas encore écrite (la sauvegarde automatique a 30 s de
-   * retard). Déclaré à la barre d'onglets, qui demandera confirmation avant de
-   * fermer l'onglet — et au navigateur, avant de fermer la fenêtre.
+   * Saisie faite mais pas encore écrite. Déclaré à la barre d'onglets, qui demandera
+   * confirmation avant de fermer l'onglet — et au navigateur, avant de fermer la fenêtre.
+   *
+   * ⛔ IL NE PEUT PAS DESCENDRE DU MINUTEUR D'AUTOSAVE, et c'est mesuré : cette page
+   * n'est routée QUE sur `listings/:id/edit` (App.tsx:577), donc `id` est toujours posé,
+   * donc `isEditMode` est toujours vrai, donc l'effet d'autosave sort à sa première ligne
+   * et n'arme jamais rien. Un drapeau branché là serait mort — il l'était.
+   *
+   * `formState.isDirty` de react-hook-form est le signal réel en mode édition : il monte
+   * à la première frappe et retombe au `reset()` qui suit un enregistrement.
    */
   const [saisieNonEcrite, setSaisieNonEcrite] = useState(false)
-  useTabDirty(saisieNonEcrite)
   // Synchronous mutex against the double-click race: `setIsSaving(true)` only
   // takes effect after the next React render, so a second click landing in
   // the same micro-task can call handlePublish twice and create duplicate
@@ -2404,6 +2410,11 @@ export default function ListingFormPage() {
     },
     mode: 'onTouched',
   })
+
+  // ⚠ Le drapeau de saisie non enregistrée, posé APRÈS `useForm` (il en descend).
+  // En mode édition, `isDirty` monte à la première frappe et retombe au `reset()` qui
+  // suit un enregistrement ; en mode création, le tampon d'autosave prend le relais.
+  useTabDirty(form.formState.isDirty || saisieNonEcrite)
 
   // Reset form when existing data loads
   useEffect(() => {

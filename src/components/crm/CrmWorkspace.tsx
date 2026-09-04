@@ -32,11 +32,18 @@
  * ferait s'effondrer le contenu des cinq surfaces défilantes.
  */
 
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { CrmSidebar, type CrmSidebarProps } from './CrmSidebar'
 import CrmTabsBar from './CrmTabsBar'
 import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+
+/**
+ * Hauteur totale prise par la bande : la puce (36) plus sa gouttière haute (12).
+ * ⚠ Elle est publiée en `--crm-tabs-h` pour que les rares surfaces qui calculent
+ * contre `100vh` puissent la défalquer sans la recopier.
+ */
+const H_BANDE = 48
 
 interface Props extends CrmSidebarProps {
   children: ReactNode
@@ -61,7 +68,19 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
   return (
     <>
       <CrmSidebar {...sidebar} />
-      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0 }}>
+      <div style={{
+        display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0,
+        // ⚠ La hauteur que la bande PREND, publiée en variable CSS.
+        //
+        // Les surfaces à hauteur FIGÉE n'en ont pas besoin (leur `<main>` est un
+        // `flex: 1` qui se répartit tout seul). Mais celles qui calculent une hauteur
+        // contre `100vh` — `ListingWizardPage` posait `height: calc(100vh - 64px)` en
+        // supposant que son `<main>` commençait en haut de la fenêtre — débordaient
+        // d'exactement cette valeur : la page se mettait à défiler et le pied du wizard
+        // passait sous le pli. Elles lisent donc `var(--crm-tabs-h, 0px)`, qui vaut zéro
+        // partout où la bande n'est pas rendue (mobile, bancs sans fournisseur).
+        ['--crm-tabs-h' as string]: avecOnglets ? `${H_BANDE}px` : '0px',
+      } as CSSProperties}>
         {avecOnglets && (
           <div style={{
             flexShrink: 0,

@@ -35,8 +35,11 @@ export default function ListingWizardPage() {
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
         <CrmWorkspace active="biens" sp={sgSp} dark={dark} setDark={setDark}>
         <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 40px' }}>
-          {/* Hauteur = 100vh moins les marges verticales de `main` (24 + 40) */}
-          <div style={{ position: 'relative', height: 'calc(100vh - 64px)', borderRadius: 26, overflow: 'hidden' }}>
+          {/* Hauteur = 100vh moins les marges verticales de `main` (24 + 40) ET la bande
+              d'onglets, qui pousse ce `<main>` vers le bas. ⚠ `var(--crm-tabs-h)` vaut 0
+              là où la bande n'est pas rendue (mobile, bancs) : sans elle, la page
+              débordait de 48 px et le pied du wizard passait sous le pli. */}
+          <div style={{ position: 'relative', height: 'calc(100vh - 64px - var(--crm-tabs-h, 0px))', borderRadius: 26, overflow: 'hidden' }}>
             <WizardShell embedded dark={dark} onClose={onClose} />
           </div>
         </main>

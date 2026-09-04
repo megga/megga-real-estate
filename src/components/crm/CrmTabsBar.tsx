@@ -41,6 +41,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from './tokens'
+import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
 import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
 import { crmChipMaxWidth, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
 import { useAiPanel } from '@/hooks/useAiPanel'
@@ -173,11 +174,17 @@ function Puce({ tb, i, actif, fermable, maxW, sp, badge, libelle }: PuceProps) {
  */
 function Badge({ n, urgent, actif, sp }: { n: number; urgent?: boolean; actif: boolean; sp: CrmPalette }) {
   const { t } = useTranslation('common')
-  // ⛔ Aucune couleur en dur : le cliquet des couleurs plafonne la zone
-  // `src/components/crm` au chiffre EXACT de ses hex actuels. `focusBg`/`focusInk`
-  // portent la paire d'alerte du thème, et suivent le mode clair/sombre.
-  const fond = actif ? sp.accentInk : urgent ? sp.focusBg : sp.accent
-  const encre = actif ? sp.accent : urgent ? sp.focusInk : sp.accentInk
+  // ⛔ CE TERNAIRE ÉTAIT MORT jusqu'au 4 septembre 2026 : il peignait l'urgence avec
+  // `sp.focusBg`/`sp.focusInk`, or `mxCrmPalette` les définit comme `C.accent`/`C.n1000` —
+  // c'est-à-dire EXACTEMENT la paire d'accent de la branche ordinaire. Les deux variantes
+  // rendaient donc le même badge, et la « variante rouge » du handoff n'existait pas.
+  //
+  // ⚠ `MXC_SYSTEM.red400` est un barreau DÉRIVÉ, pas un littéral : le cliquet des couleurs
+  // (zone `src/components/crm` plafonnée au chiffre EXACT de ses hex) ne le compte pas.
+  // Et il est PÂLE, réglé pour un aplat : `encreSur` lui pose donc l'encre sombre, comme
+  // la règle des couleurs de système l'exige. Un blanc dessus rendrait 1,9:1.
+  const fond = actif ? sp.accentInk : urgent ? MXC_SYSTEM.red400 : sp.accent
+  const encre = actif ? sp.accent : urgent ? encreSur(MXC_SYSTEM.red400) : sp.accentInk
   return (
     <span
       title={urgent ? t('tabs.badgeUrgent') : t('tabs.badgeCount')}
@@ -211,6 +218,8 @@ export function CrmTabsBar({ sp, badges: override }: Props) {
   // du bouton qui l'ouvre (vu à l'écran le 4 septembre 2026).
   const plusRef = useRef<HTMLButtonElement | null>(null)
   const [menuPlus, setMenuPlus] = useState(false)
+  const [survolPlus, setSurvolPlus] = useState(false)
+  const [survolNeuf, setSurvolNeuf] = useState(false)
   const [ctx, setCtx] = useState<{ i: number; x: number; y: number } | null>(null)
 
   const { tabs, active } = api
@@ -368,11 +377,26 @@ export function CrmTabsBar({ sp, badges: override }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, nettoyer])
 
+  /**
+   * Retrait des écouteurs AU DÉMONTAGE, et au démontage seulement.
+   *
+   * ⛔ AVEC `[onPointerMove, onPointerUp]` EN DÉPENDANCES, CET EFFET TUAIT LE GLISSER
+   * EN COURS. `onPointerUp` se referme sur `api`, dont l'identité change à chaque
+   * changement d'état — et un glisser EN produit (le survol d'une puce, une sauvegarde
+   * qui revient). Le nettoyage partait alors au milieu du geste, retirait les écouteurs,
+   * et la puce restait collée au curseur sans que rien ne valide le déplacement.
+   *
+   * ⚠ Les handlers passent donc par des refs, et l'effet n'a plus AUCUNE dépendance :
+   * il ne peut plus partir qu'au démontage réel.
+   */
+  const moveRef = useRef(onPointerMove)
+  const upRef = useRef(onPointerUp)
+  useEffect(() => { moveRef.current = onPointerMove; upRef.current = onPointerUp })
   useEffect(() => () => {
-    window.removeEventListener('pointermove', onPointerMove)
-    window.removeEventListener('pointerup', onPointerUp)
-    window.removeEventListener('pointercancel', onPointerUp)
-  }, [onPointerMove, onPointerUp])
+    window.removeEventListener('pointermove', moveRef.current)
+    window.removeEventListener('pointerup', upRef.current)
+    window.removeEventListener('pointercancel', upRef.current)
+  }, [])
 
   // ── Clavier ───────────────────────────────────────────────────────────────
   // ⛔ Ni Ctrl+W ni Ctrl+1..9 : le navigateur se les réserve et ne les rend pas
@@ -445,14 +469,20 @@ export function CrmTabsBar({ sp, badges: override }: Props) {
           ref={plusRef}
           type="button"
           onClick={() => { setMenuPlus((v) => !v); setCtx(null) }}
+          onMouseEnter={() => setSurvolPlus(true)}
+          onMouseLeave={() => setSurvolPlus(false)}
           title={t('tabs.more')}
           aria-haspopup="menu"
           aria-expanded={menuPlus}
           style={{
             height: H_PASTILLE, padding: '0 var(--crm-space-lg)',
             borderRadius: 'var(--crm-radius-pill)',
-            background: sp.cardBg, border: `1px solid ${sp.cardBorder}`,
+            background: sp.cardBg,
+            // La maquette fait foncer la BORDURE au survol, pas le fond : la pastille
+            // porte déjà un fond, l'assombrir la ferait passer pour un état actif.
+            border: `1px solid ${survolPlus ? sp.soft : sp.cardBorder}`,
             display: 'flex', alignItems: 'center', flexShrink: 0,
+            transition: 'border-color .18s ease',
             fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub,
             cursor: 'pointer', fontFamily: 'inherit',
           }}
@@ -464,14 +494,19 @@ export function CrmTabsBar({ sp, badges: override }: Props) {
       <button
         type="button"
         onClick={() => api.ouvrirNouvel()}
+        onMouseEnter={() => setSurvolNeuf(true)}
+        onMouseLeave={() => setSurvolNeuf(false)}
         title={t('tabs.new')}
         aria-label={t('tabs.new')}
         style={{
           width: H_PASTILLE, height: H_PASTILLE, flexShrink: 0,
           borderRadius: 'var(--crm-radius-pill)', border: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', background: 'transparent', color: sp.sub,
-          fontFamily: 'inherit',
+          cursor: 'pointer', fontFamily: 'inherit',
+          // Sans fond au repos, comme la maquette ; le survol le révèle.
+          background: survolNeuf ? sp.focusSurface : 'transparent',
+          color: survolNeuf ? sp.ink : sp.sub,
+          transition: 'background-color .18s ease, color .18s ease',
         }}
       >
         <MEIcon name="plus" size={14} strokeWidth={1.9} />
@@ -486,7 +521,7 @@ export function CrmTabsBar({ sp, badges: override }: Props) {
         <>
           <div onClick={() => setMenuPlus(false)} style={{ position: 'fixed', inset: 0, zIndex: Z_MENU - 1 }} />
           <MenuDebordement
-            caches={caches} tabs={tabs} sp={sp} libelleDe={libelleDe}
+            caches={caches} tabs={tabs} sp={sp} libelleDe={libelleDe} badges={badges}
             ancre={plusRef.current}
             onChoisir={(i) => { setMenuPlus(false); api.selectionner(i) }}
             onFermer={(i) => { setMenuPlus(false); api.fermer(i) }}
@@ -570,10 +605,11 @@ function LigneMenu({ icone, libelle, onClick, sp }: {
 }
 
 /** Le menu « +N » — même famille que le menu contextuel, un cran plus large. */
-function MenuDebordement({ caches, tabs, sp, libelleDe, ancre, onChoisir, onFermer }: {
+function MenuDebordement({ caches, tabs, sp, libelleDe, ancre, badges, onChoisir, onFermer }: {
   caches: number[]; tabs: CrmTab[]; sp: CrmPalette
   libelleDe: (t: CrmTab) => string
   ancre: HTMLElement | null
+  badges?: Record<string, { n: number; urgent?: boolean }>
   onChoisir: (i: number) => void; onFermer: (i: number) => void
 }) {
   const { t } = useTranslation('common')
@@ -610,6 +646,7 @@ function MenuDebordement({ caches, tabs, sp, libelleDe, ancre, onChoisir, onFerm
         <LigneDebordement
           key={tabs[i].id} sp={sp} libelle={libelleDe(tabs[i])}
           fermable={tabs.length > 1 && !tabs[i].pinned}
+          badge={tabs[i].section ? badges?.[tabs[i].section] : undefined}
           onClick={() => onChoisir(i)} onFermer={() => onFermer(i)}
           labelFermer={t('tabs.close')}
         />
@@ -618,8 +655,9 @@ function MenuDebordement({ caches, tabs, sp, libelleDe, ancre, onChoisir, onFerm
   )
 }
 
-function LigneDebordement({ libelle, fermable, onClick, onFermer, sp, labelFermer }: {
+function LigneDebordement({ libelle, fermable, badge, onClick, onFermer, sp, labelFermer }: {
   libelle: string; fermable: boolean; onClick: () => void; onFermer: () => void
+  badge?: { n: number; urgent?: boolean }
   sp: CrmPalette; labelFermer: string
 }) {
   const [survol, setSurvol] = useState(false)
@@ -639,6 +677,7 @@ function LigneDebordement({ libelle, fermable, onClick, onFermer, sp, labelFerme
       <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {libelle}
       </span>
+      {badge && badge.n > 0 && <Badge n={badge.n} urgent={badge.urgent} actif={false} sp={sp} />}
       {fermable && (
         <span
           role="button" aria-label={labelFermer}
