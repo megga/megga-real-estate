@@ -16,7 +16,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { crmPalette } from '@/components/crm/tokens'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import { useTabLabel } from '@/hooks/useCrmTabs'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { useAuth } from '@/hooks/useAuth'
 import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useContactSentMatches } from '@/hooks/useContactSentMatches'
@@ -55,6 +56,10 @@ export default function ContactDetailPage() {
   // « Contact supprimé » (le retour à la liste est piloté par onBack, ~1,1 s plus tard).
   const [ghost, setGhost] = useState<Contact | null>(null)
   const contact = fetched ?? ghost
+  // Le libellé de l'onglet, donné par l'écran qui a déjà la donnée en main.
+  // Le serveur sait aussi le résoudre (`crm_tabs_resolve_labels`, pour les onglets
+  // restaurés qu'on n'a pas encore ouverts) ; ici c'est immédiat et sans requête.
+  useTabLabel(contact ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') : null)
   const loop = useContactSentMatches(id)
   const receptionLinks = useReceptionLinks(id)
   const revokeLink = useRevokeReceptionLink()
@@ -81,8 +86,9 @@ export default function ContactDetailPage() {
       display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmSidebar active="contacts" sp={sp} dark={dark} setDark={setDark} />
+        <CrmWorkspace active="contacts" sp={sp} dark={dark} setDark={setDark}>
         {inner}
+        </CrmWorkspace>
       </div>
     </div>
   )

@@ -35,6 +35,11 @@ export type MEIconName =
   | 'moon' | 'sun' | 'layers' | 'bolt'
   | 'broadcast' | 'flowchart' | 'megaphone' | 'magic-wand' | 'close-circle'
   | 'flame' | 'banknote'
+  // ⚠ `pin` est DESSINÉ ici et non délégué à PxIconFont : le glyphe de la fonte
+  // est PLEIN (`fill={color}`), et posé à côté des tracés 1,6-1,8 de la barre
+  // d'onglets il se lit comme une tache. C'est le seul glyphe que la barre
+  // d'onglets demandait et que ce fichier n'avait pas.
+  | 'pin'
 
 const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>,
@@ -117,6 +122,10 @@ const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   // refonte « Aujourd'hui » (carte OFFRE du focus + intention chaude du catalogue).
   flame: <path d="M12 3c2 3 5 4 5 8a5 5 0 0 1-10 0c0-1.5.6-2.7 1.5-3.5C8.7 8.5 10 7 12 3Z" />,
   banknote: <><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="2.6" /><path d="M6 9.5v.01M18 14.5v.01" /></>,
+  // Punaise vue de face : la tête trapézoïdale, puis la pointe. Reprise du tracé
+  // de la maquette d'onglets, qui la dessine à 11 px — la pointe descend donc
+  // jusqu'à 20 pour rester lisible une fois réduite.
+  pin: <><path d="M9 4h6l-1 6 3.5 3.5H6.5L10 10z" /><path d="M12 13.5V20" /></>,
 }
 
 const FONT_FALLBACK: Partial<Record<MEIconName, PxIconFontName>> = {

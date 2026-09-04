@@ -16,7 +16,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import WizardShell from '@/components/crm-wizard/WizardShell'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import { crmThemeVars } from '@/components/crm/crmThemeVars'
 import { readCrmDark } from '@/lib/crmDark'
@@ -33,13 +33,14 @@ export default function ListingWizardPage() {
     <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }}>
       <style>{CRM_KEYFRAMES}</style>
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        <CrmSidebar active="biens" sp={sgSp} dark={dark} setDark={setDark} />
+        <CrmWorkspace active="biens" sp={sgSp} dark={dark} setDark={setDark}>
         <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 40px' }}>
           {/* Hauteur = 100vh moins les marges verticales de `main` (24 + 40) */}
           <div style={{ position: 'relative', height: 'calc(100vh - 64px)', borderRadius: 26, overflow: 'hidden' }}>
             <WizardShell embedded dark={dark} onClose={onClose} />
           </div>
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

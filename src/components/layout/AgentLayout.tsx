@@ -20,6 +20,7 @@ import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import BootSplash from '@/components/layout/BootSplash'
 import OnboardingCallBanner from '@/components/layout/OnboardingCallBanner'
 import CrmSearchHost from '@/components/crm/search/CrmSearchHost'
+import { CrmTabsProvider } from '@/components/crm/CrmTabsProvider'
 import { useIdentityGate, shouldRedirectToIdentityGate, shouldHoldForIdentityGate, IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
 import { readCrmDark } from '@/lib/crmDark'
 
@@ -154,7 +155,19 @@ export default function AgentLayout() {
   return (
     <ThemeProvider>
       <CopilotContextProvider>
-        <AgentLayoutInner />
+        {/* ⚠ Le FOURNISSEUR d'onglets est hissé ici, la BARRE ne l'est pas — et
+            l'asymétrie est délibérée. Ce layout ne se remonte plus à la
+            navigation (les routes ne sont plus keyées par `pathname`) : c'est le
+            seul endroit d'où une pile d'onglets peut survivre à un clic. La
+            barre, elle, reste montée par chaque surface, comme la barre
+            latérale — la hisser la poserait sur la console super-admin, sur
+            `IdentityShell` et sur quatre routes qui n'en veulent pas, et la
+            retirerait des bancs `/dev/*`. Un fournisseur ne peint rien : le
+            poser sur une route sans barre ne coûte rien, et `crmTabsEligible`
+            l'empêche d'ouvrir un onglet pour ces routes-là. */}
+        <CrmTabsProvider>
+          <AgentLayoutInner />
+        </CrmTabsProvider>
       </CopilotContextProvider>
     </ThemeProvider>
   )

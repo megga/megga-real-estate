@@ -14,7 +14,7 @@ import type { CrmBien } from '@/components/crm/mockData'
 import { mxSurfaces } from '@/components/crm/biens/gallery/galHelpers'
 import { useListingsScreen } from '@/hooks/useListingsScreen'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { BiensPager } from '@/components/crm/biens/pager/BiensPager'
 import WizardShell from '@/components/crm-wizard/WizardShell'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
@@ -65,7 +65,7 @@ export default function ListingsPage() {
       <style>{CRM_KEYFRAMES}</style>
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         {/* Le geste « Créer » de la barre est, sur cet écran, le wizard « Créer un bien ». */}
-        <CrmSidebar active="biens" sp={sp} dark={dark} setDark={setDark} onCmd={() => setWizardOpen(true)} />
+        <CrmWorkspace active="biens" sp={sp} dark={dark} setDark={setDark} onCmd={() => setWizardOpen(true)}>
         <BiensPager
           biens={biens}
           sp={sp}
@@ -86,6 +86,7 @@ export default function ListingsPage() {
           wizardOpen={wizardOpen}
           wizardSlot={<WizardShell embedded dark={dark} onClose={() => setWizardOpen(false)} />}
         />
+        </CrmWorkspace>
       </div>
     </div>
   )

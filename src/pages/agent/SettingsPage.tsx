@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { mxSurfaces } from '@/components/crm/biens/gallery/galHelpers'
 import { IntegrationsSection } from '@/components/crm/settings/IntegrationsSection'
 import { BillingSection } from '@/components/crm/settings/BillingSection'
@@ -20,6 +20,7 @@ import { AgencyFocusSection } from '@/components/crm/settings/focus/AgencyFocusS
 import { PreferencesFocusSection } from '@/components/crm/settings/focus/PreferencesFocusSection'
 import { SETTINGS_SECTIONS, applySetTheme, type SectionId } from '@/components/crm/settings/data'
 import { SETTINGS_KEYFRAMES } from '@/components/crm/settings/atoms'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte']
@@ -77,10 +78,15 @@ export default function SettingsPage() {
   applySetTheme(dark)
 
   const [searchParams] = useSearchParams()
-  const [active, setActive] = useState<SectionId>(() => {
-    const tab = (searchParams.get('tab') ?? '') as SectionId
-    return ALLOWED.includes(tab) ? tab : 'profile'
-  })
+  // La section active est une POSITION D'ÉCRAN : portée par l'onglet, elle revient
+  // quand on rouvre cet onglet au lieu de retomber sur « Profil ». Le `?tab=` reste
+  // la valeur de DÉPART (deep-link) et n'est toujours pas réécrit dans l'URL —
+  // défaut documenté dans `settings/focus/pfKitCore.tsx` (21-25).
+  const tabParam = (searchParams.get('tab') ?? '') as SectionId
+  const [active, setActive] = useTabScopedState<SectionId>(
+    'sousOnglet',
+    ALLOWED.includes(tabParam) ? tabParam : 'profile',
+  )
 
   const scrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0 }, [active])
@@ -144,7 +150,7 @@ export default function SettingsPage() {
       `}</style>
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmSidebar active="settings" helpKey={SECTION_HELP[active] ?? 'settings'} sp={sp} dark={dark} setDark={setDark} />
+        <CrmWorkspace active="settings" helpKey={SECTION_HELP[active] ?? 'settings'} sp={sp} dark={dark} setDark={setDark}>
 
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
           <div style={{
@@ -211,6 +217,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

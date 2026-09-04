@@ -20,11 +20,12 @@ import type { ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmPalette } from '@/components/crm/tokens'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import MatchingAtelierPage from '@/pages/agent/MatchingAtelierPage'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 
 const MATCHING_PAGES = [
   { id: 'score', labelKey: 'pager.score' },
@@ -178,11 +179,39 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
       ? Math.max(0, MATCHING_PAGES.findIndex((pg) => pg.id === 'score'))
       : LANDING_PAGE,
   )
-  const [page, setPage] = useState(initialPage)
+  const [pageStockee, setPage] = useTabScopedState('pager', initialPage)
+  /**
+   * ⚠ LE PIVOT L'EMPORTE SUR LA TRANCHE MÉMORISÉE.
+   *
+   * `useTabScopedState` rend la valeur STOCKÉE dès qu'elle existe. Dans un onglet
+   * qui avait déjà servi à Matching et bougé son pager, une arrivée pivotée
+   * (« Transmettre à … » depuis une fiche deal) atterrirait sur la page mémorisée
+   * au lieu de l'Atelier : le geste qu'on vient de demander serait ignoré au
+   * profit d'un souvenir.
+   *
+   * Règle : une INTENTION EXPRIMÉE MAINTENANT (le paramètre d'URL) passe devant
+   * une position retenue.
+   *
+   * ⛔ La correction se lit au RENDU et s'écrit dans un EFFET — jamais l'inverse.
+   * Poser la valeur pendant le rendu écrirait dans le fournisseur d'onglets
+   * depuis le rendu d'un autre composant, ce que React refuse ; et la poser
+   * seulement dans l'effet ferait afficher une frame sur la mauvaise page avant
+   * de glisser vers l'Atelier.
+   */
+  const pivot = searchParams.has('contact') || searchParams.has('annonce')
+  const [pivotConsomme, setPivotConsomme] = useState(!pivot)
+  const page = pivotConsomme ? pageStockee : initialPage
+  useEffect(() => {
+    if (pivotConsomme) return
+    setPage(initialPage)
+    setPivotConsomme(true)
+  }, [pivotConsomme, initialPage, setPage])
   // `pageRef` sert au positionnement initial SANS animation (useLayoutEffect plus
   // bas) : il doit démarrer sur la page d'atterrissage, sinon on verrait l'Atelier
-  // une frame avant de glisser vers Recherche.
-  const pageRef = useRef(initialPage)
+  // une frame avant de glisser vers Recherche. ⚠ Il lit `page` et non
+  // `initialPage` : dans un onglet rouvert, la page RETROUVÉE est celle qu'il
+  // faut poser d'emblée.
+  const pageRef = useRef(page)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const posRef = useRef(0)
@@ -221,13 +250,13 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
 
   const go = useCallback((dir: number) => {
     setPage((p) => Math.min(MATCHING_PAGES.length - 1, Math.max(0, p + dir)))
-  }, [])
+  }, [setPage])
   const goTo = useCallback((i: number) => {
     if (lock.current) return
     lock.current = true
     setPage(i)
     setTimeout(() => { lock.current = false }, 820)
-  }, [])
+  }, [setPage])
   // Extrait de la vue : `goTo` lit `lock.current`, et le passer inline à un slot
   // APPELÉ pendant le rendu déclenche `react-hooks/refs`. Le stabiliser ici règle
   // le grief à sa source plutôt que de le taire — et évite au passage une
@@ -344,7 +373,7 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
       `}</style>
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmSidebar active="matching" sp={sp} dark={dark} setDark={setDark} />
+        <CrmWorkspace active="matching" sp={sp} dark={dark} setDark={setDark}>
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
           {/* Viewport pager — clippe les deux pages, capte la molette */}
           <div ref={viewportRef} style={{
@@ -365,6 +394,7 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
             <MatchingPageDots page={page} onGo={goTo} lightMode={lightMode} />
           </div>
         </main>
+        </CrmWorkspace>
       </div>
 
       <MatchingScrollHint page={page} onGo={goTo} sub={sp.sub} ink={sp.ink} />

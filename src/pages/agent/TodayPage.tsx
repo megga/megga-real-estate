@@ -22,9 +22,10 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
 import type { CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { TK, applyTK } from '@/components/crm/today/tk'
 import { TodayNavProvider } from '@/components/crm/today/TodayNavContext'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { PageAujourdhuiH } from '@/components/crm/today/PageAujourdhuiH'
 import { PageCatalogue } from '@/components/crm/today/PageCatalogue'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
@@ -150,8 +151,11 @@ export default function TodayPage() {
   }
 
   // ─── Pager molette ──────────────────────────────────────────────────
-  const [page, setPage] = useState(0)
-  const pageRef = useRef(0)
+  const [page, setPage] = useTabScopedState('pager', 0)
+  // ⚠ Initialisé sur `page`, pas sur 0 : quand l'onglet rend une page restaurée,
+  // c'est cette valeur que le `useLayoutEffect` de placement lit — la lire à 0
+  // ferait démarrer en haut puis défiler sur 720 ms vers la page retrouvée.
+  const pageRef = useRef(page)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const posRef = useRef(0)
@@ -188,18 +192,14 @@ export default function TodayPage() {
   }, [])
 
   const go = useCallback((dir: number) => {
-    setPage((p) => {
-      const n = Math.min(TODAY_PAGES.length - 1, Math.max(0, p + dir))
-      if (n !== p) localStorage.setItem('megga_crm_today_page', String(n))
-      return n
-    })
-  }, [])
+    setPage((p) => Math.min(TODAY_PAGES.length - 1, Math.max(0, p + dir)))
+  }, [setPage])
   const goTo = useCallback((i: number) => {
     if (lock.current) return
     lock.current = true
-    setPage(() => { localStorage.setItem('megga_crm_today_page', String(i)); return i })
+    setPage(i)
     setTimeout(() => { lock.current = false }, 850)
-  }, [])
+  }, [setPage])
 
   // Position initiale (sans animation) + repositionnement au resize.
   useLayoutEffect(() => {
@@ -327,7 +327,7 @@ export default function TodayPage() {
         `}</style>
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-          <CrmSidebar active="today" sp={sp} dark={dark} setDark={setDark} />
+          <CrmWorkspace active="today" sp={sp} dark={dark} setDark={setDark}>
           <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
             {/* Viewport pager — clippe les deux pages, capte la molette */}
             <div ref={viewportRef} style={{
@@ -346,6 +346,7 @@ export default function TodayPage() {
               <TodayPageDots page={page} onGo={goTo} lightMode={lightMode} />
             </div>
           </main>
+          </CrmWorkspace>
         </div>
 
         {/* Indice molette — coin bas-gauche, discret */}

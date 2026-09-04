@@ -144,19 +144,39 @@ export default function CrmPageSkeleton() {
         </div>
       </aside>
 
-      {/* Surface de travail unique. Les insets répondent EXACTEMENT à ceux des
-          <main> réels — 12 px à gauche et en haut, 24 à droite, 22 en bas — pour
-          que le cadre ne bouge pas d'un pixel à la bascule squelette → page. */}
-      <div
-        style={{
-          flex: 1, minWidth: 0,
-          margin: 'var(--crm-space-lg) 24px 22px var(--crm-space-lg)',
-          borderRadius: 26,
-          border: `1px solid ${sp.frameBorder}`,
-          background: sp.cardBg,
-          boxShadow: sp.shadow,
-        }}
-      />
+      {/* La colonne de travail : bande d'onglets PUIS surface. Les insets
+          répondent EXACTEMENT à ceux des <main> réels — 12 px à gauche et en
+          haut, 24 à droite, 22 en bas — pour que le cadre ne bouge pas d'un
+          pixel à la bascule squelette → page.
+
+          ⚠ La bande d'onglets DOIT être dessinée ici, et pas seulement la
+          surface : `CrmWorkspace` lui prend 48 px (36 de puce + 12 de gouttière)
+          en tête de colonne. Un squelette qui ne montrerait que le cadre le
+          ferait sauter de 48 px à chaque bascule — le saut exact que ce
+          composant existe pour empêcher. */}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{
+          flexShrink: 0, display: 'flex', alignItems: 'center',
+          gap: 'var(--crm-space-2xs)',
+          padding: 'var(--crm-space-lg) var(--crm-space-lg) 0',
+        }}>
+          {/* Deux puces muettes : une pile fraîche en porte au moins une, et une
+              seule barre grise se lirait comme un titre, pas comme des onglets. */}
+          <div style={{ width: 128, height: 36, borderRadius: 'var(--crm-radius-pill)', background: sp.iconBtnBg }} />
+          <div style={{ width: 96, height: 36, borderRadius: 'var(--crm-radius-pill)', background: sp.iconBtnBg, opacity: 0.55 }} />
+          <div style={{ width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', background: sp.iconBtnBg, opacity: 0.4 }} />
+        </div>
+        <div
+          style={{
+            flex: 1, minHeight: 0,
+            margin: 'var(--crm-space-lg) 24px 22px var(--crm-space-lg)',
+            borderRadius: 26,
+            border: `1px solid ${sp.frameBorder}`,
+            background: sp.cardBg,
+            boxShadow: sp.shadow,
+          }}
+        />
+      </div>
     </div>
   )
 }

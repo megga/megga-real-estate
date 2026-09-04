@@ -32,6 +32,7 @@ import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { creerNotePlanner } from '@/components/crm/contacts-pager/notePlanner'
 import { CTP_FN } from '@/components/crm/contacts-pager/ctpTokens'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 // ⚠ `formatDate` et non `toLocaleDateString('fr-CH')` : le format suisse DD.MM.YYYY est la
 // règle de MAISON, valable dans les quatre langues (CLAUDE.md §6), et il vit dans un seul
 // helper. Figer `'fr-CH'` au site d'appel donnait le même rendu par coïncidence, en le
@@ -1654,8 +1655,16 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
   const P = buildPal(sp, dark)
   const pageLabels = [t('fiche.page.infos'), t('fiche.page.loop')]
 
-  const [page, setPage] = useState(0)
-  const pageRef = useRef(0)
+  // ⚠ `pagerFiche`, et NON `pager` : la clé est préfixée par la SECTION, et une
+  // fiche contact vit dans la même section que la liste (`crmSidebarActiveFor`
+  // rend `contacts` pour les deux). Sous la clé `pager`, lire la Santé du
+  // portefeuille puis ouvrir un contact ouvrirait la fiche sur « La boucle »,
+  // et l'inverse au retour — deux écrans qui se volent leur position.
+  const [page, setPage] = useTabScopedState('pagerFiche', 0)
+  // ⚠ Initialisé sur `page`, pas sur 0 : c'est la valeur que lit le
+  // `useLayoutEffect` de placement, et un onglet rouvert sur « La boucle » doit
+  // s'y poser d'emblée plutôt que d'y défiler depuis le haut.
+  const pageRef = useRef(page)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const posRef = useRef(0)
@@ -1682,8 +1691,8 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
     rafRef.current = requestAnimationFrame(tick)
   }, [])
 
-  const go = useCallback((dir: number) => setPage((p) => Math.min(1, Math.max(0, p + dir))), [])
-  const goTo = useCallback((i: number) => { if (lock.current) return; lock.current = true; setPage(i); setTimeout(() => { lock.current = false }, 820) }, [])
+  const go = useCallback((dir: number) => setPage((p) => Math.min(1, Math.max(0, p + dir))), [setPage])
+  const goTo = useCallback((i: number) => { if (lock.current) return; lock.current = true; setPage(i); setTimeout(() => { lock.current = false }, 820) }, [setPage])
 
   useLayoutEffect(() => {
     animateTo(pageRef.current, true)

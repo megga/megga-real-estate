@@ -41,6 +41,7 @@ import MEIcon from '@/components/propertyx/MEIcon'
 import { useLogAudit } from '@/hooks/useAuditLog'
 import { usePipelineScreen } from '@/hooks/usePipelineScreen'
 import { useAiPanel } from '@/hooks/useAiPanel'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { stageIdToTransactionStage } from '@/lib/crmAdapters'
 import {
   useUpdateTransactionStatus, useArchiveTransaction, useReassignTransaction,
@@ -49,7 +50,7 @@ import {
   usePipelineReminderCreators, useCancelTransactionReminders, useRescheduleReminder,
 } from '@/hooks/usePipelineNextActions'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { CRM_STAGE_PROBS } from '@/components/crm/pipeline/stageConstants'
 import { StageColumn } from '@/components/crm/pipeline/StageColumn'
 import { PipelineList } from '@/components/crm/pipeline/PipelineList'
@@ -169,7 +170,8 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
 
   const sp = crmPalette(dark)
 
-  const [view, setView] = useState<PipelineView>('kanban')
+  // Vue du board (kanban/liste/timeline) : position d'écran, portée par l'onglet.
+  const [view, setView] = useTabScopedState<PipelineView>('vue', 'kanban')
   const [newDealOpen, setNewDealOpen] = useState(false)
   const [newDealPrefill, setNewDealPrefill] = useState<NewDealPrefill | null>(null)
   // Création inline (concept B) : quelle colonne a sa carte fantôme ouverte.
@@ -399,12 +401,16 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
   }, [view])
 
   // ── Recherche + filtres ──────────────────────────────────────────────
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useTabScopedState('recherche', '')
+  // ⚠ `filterStages` reste en `useState` : il est INJECTÉ depuis `?stage=` puis
+  // l'URL est nettoyée pour que F5 ne le ré-applique pas (effet juste dessous).
+  // Le porter par l'onglet le ferait survivre à ce nettoyage — l'inverse de la
+  // décision écrite ici.
   const [filterStages, setFilterStages] = useState<StageId[]>(initialFilterStages)
-  const [filterRisk, setFilterRisk] = useState<RiskFilterValue>('all')
+  const [filterRisk, setFilterRisk] = useTabScopedState<RiskFilterValue>('risque', 'all')
   // Défaut = « Tous » (0). Un défaut à 30 j masquerait silencieusement tout deal
   // dont la dernière activité date de plus d'un mois (dossier qui dort).
-  const [filterPeriod, setFilterPeriod] = useState(0)
+  const [filterPeriod, setFilterPeriod] = useTabScopedState('periode', 0)
 
   // Consomme le `?stage=` : injecté dans filterStages au mount, puis retiré de
   // l'URL pour que F5 ne re-applique pas le filtre.
@@ -613,7 +619,7 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
       `}</style>
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmSidebar active="pipeline" sp={sp} dark={dark} setDark={setDark} />
+        <CrmWorkspace active="pipeline" sp={sp} dark={dark} setDark={setDark}>
 
         <main style={{
           flex: 1, minWidth: 0, minHeight: 0, height: '100%',
@@ -832,6 +838,7 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
             />
           </div>
         </main>
+        </CrmWorkspace>
       </div>
 
       {/* Overlays */}

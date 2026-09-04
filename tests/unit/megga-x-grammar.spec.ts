@@ -223,7 +223,13 @@ const ZONES: RootSpec[] = [
     // fichier le plus peint du CRM — serait « déclarée non traitée » : la
     // clause de fermeture la signale en orpheline, mais AUCUNE des douze
     // clauses de grammaire ne la lirait.
-    keep: (n) => ['CrmShell.tsx', 'CrmSidebar.tsx', 'crmSidebarNav.ts', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts'].includes(n),
+    // ⚠ `CrmTabsBar.tsx` et `CrmWorkspace.tsx` entrent le 4 septembre 2026 avec la
+    // barre d'onglets, et pour la même raison que les deux précédents : sans leur
+    // nom ici, la barre la plus peinte du chantier serait « déclarée non
+    // traitée ». Ils entrent en apportant ZÉRO littéral — chaque rayon et chaque
+    // espacement y est écrit en `var(--crm-*)`, y compris là où la maquette
+    // demandait 6, 11 et 14 px, arrondis aux barreaux.
+    keep: (n) => ['CrmShell.tsx', 'CrmSidebar.tsx', 'CrmTabsBar.tsx', 'CrmWorkspace.tsx', 'crmSidebarNav.ts', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts'].includes(n),
     keepPath: (p) => p.split('/').length === 4,
   },
   // Le chrome rendu par les 27 surfaces du CRM (lot 1 du chantier « CRM agent »,

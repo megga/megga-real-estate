@@ -10,7 +10,7 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import AxDashboardBody from '@/components/crm/analytics/AxDashboard'
 import { AXCtx, AX, AX_DARK } from '@/components/crm/analytics/tokens'
@@ -85,7 +85,7 @@ export default function AnalyticsPage() {
       <style>{CRM_KEYFRAMES}</style>
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmSidebar active="dashboard" sp={sp} dark={dark} setDark={setDark} />
+        <CrmWorkspace active="dashboard" sp={sp} dark={dark} setDark={setDark}>
 
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
           <div style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, background: sp.pageBg }}>
@@ -96,6 +96,7 @@ export default function AnalyticsPage() {
             </div>
           </div>
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

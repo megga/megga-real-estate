@@ -486,5 +486,20 @@
   },
   "announcements": {
     "dismiss": "Dismiss"
+  },
+  "tabs": {
+    "badgeCount": "To handle",
+    "badgeUrgent": "Overdue",
+    "bar": "Open tabs",
+    "close": "Close tab",
+    "closeOthers": "Close others",
+    "closeThis": "Close this tab",
+    "confirmClose": "This tab has unsaved changes. Close it anyway?",
+    "duplicate": "Duplicate tab",
+    "more": "Other tabs",
+    "new": "New tab",
+    "pin": "Pin to the left",
+    "unpin": "Unpin",
+    "untitled": "Tab"
   }
 }

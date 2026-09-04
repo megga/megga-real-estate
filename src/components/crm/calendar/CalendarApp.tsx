@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { CalIcon } from './CalIcon'
 import { CalCircleBtn, CalViewToggle, type CalViewId } from './CalToolbar'
 import { CalWeekView } from './CalWeekView'
@@ -443,7 +443,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
         `}</style>
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-          <CrmSidebar active="calendar" sp={sp} dark={dark} setDark={setDark} />
+          <CrmWorkspace active="calendar" sp={sp} dark={dark} setDark={setDark}>
 
           <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
             <div style={{
@@ -481,6 +481,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
               </div>
             </div>
           </main>
+          </CrmWorkspace>
         </div>
 
         {popover && selectedEvent && (

@@ -32,7 +32,7 @@ import { useState } from 'react'
 import { crmPalette } from '@/components/crm/tokens'
 import { encreSur, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import ContactsPager from '@/components/crm/contacts-pager/ContactsPager'
 import ContactsFirstRun from '@/components/crm/contacts-pager/ContactsFirstRun'
 import NewContactModal from '@/components/crm/contacts-pager/NewContactModal'
@@ -153,7 +153,7 @@ export default function ContactsShowcasePage() {
             d'elle-même sous `/dev/*` (cf. sa garde `enBanc`). Pas de `onCmd` : le
             banc n'a pas de geste « créer » à offrir, et une ligne qui ne fait
             rien vaut moins que pas de ligne. */}
-        <CrmSidebar active="contacts" sp={sp} dark={dark} setDark={setDark} />
+        <CrmWorkspace active="contacts" sp={sp} dark={dark} setDark={setDark}>
 
         {surface === 'fiche' || surface === 'fiche-vide' ? (
           <ContactDetailPager
@@ -206,6 +206,7 @@ export default function ContactsShowcasePage() {
             }
           />
         )}
+        </CrmWorkspace>
       </div>
     </div>
   )

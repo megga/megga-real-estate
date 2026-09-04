@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
 import {
   dossierPalette,
@@ -123,7 +123,7 @@ export default function AuditPage() {
       <style>{DOSSIER_KEYFRAMES}</style>
 
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        <CrmSidebar sp={sp} dark={dark} setDark={setDark} />
+        <CrmWorkspace sp={sp} dark={dark} setDark={setDark}>
 
         <main style={{ flex: 1, minWidth: 0, padding: etroit ? '24px 16px 120px 16px' : '24px 40px 120px 40px' }}>
           <div style={{ maxWidth: 1280, margin: '0 auto' }}>
@@ -511,6 +511,7 @@ export default function AuditPage() {
             </div>
           </div>
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

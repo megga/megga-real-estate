@@ -14,6 +14,7 @@ import type { GalSurfaces } from '@/components/crm/biens/gallery/galHelpers'
 import { BpTopGallery } from './BpTopGallery'
 import { BpFollowupPage } from './BpFollowupPage'
 import { BiensFirstRun, BiensFollowEmpty } from './BiensFirstRun'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 
 const PAGE_COUNT = 2
 
@@ -76,10 +77,13 @@ export function BiensPager({
 }: BiensPagerProps) {
   const { t } = useTranslation('listings')
   const pageLabels = [t('title'), t('biens.followUp.title')]
-  const [page, setPage] = useState(0)
+  const [page, setPage] = useTabScopedState('pager', 0)
   const [childModal, setChildModal] = useState(false)
 
-  const pageRef = useRef(0)
+  // ⚠ Initialisé sur `page`, pas sur 0 : c'est la valeur que lit le
+  // `useLayoutEffect` de placement, et un onglet rouvert sur la page « à suivre »
+  // doit s'y poser d'emblée plutôt que d'y défiler depuis le haut.
+  const pageRef = useRef(page)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const posRef = useRef(0)
@@ -115,13 +119,13 @@ export function BiensPager({
 
   const go = useCallback((dir: number) => {
     setPage((p) => Math.min(PAGE_COUNT - 1, Math.max(0, p + dir)))
-  }, [])
+  }, [setPage])
   const goTo = useCallback((i: number) => {
     if (lock.current) return
     lock.current = true
     setPage(i)
     setTimeout(() => { lock.current = false }, 820)
-  }, [])
+  }, [setPage])
 
   useLayoutEffect(() => {
     animateTo(pageRef.current, true)

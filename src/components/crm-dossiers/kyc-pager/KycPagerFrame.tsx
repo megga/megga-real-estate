@@ -8,8 +8,9 @@
 
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import type { CrmPalette } from '@/components/crm/tokens'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { KycWizardModal } from '../kyc-wizard/KycWizardModal'
 import { type KypSurf } from './kypTokens'
 import { KycListPage } from './KycListPage'
@@ -142,7 +143,7 @@ export function KycPagerFrame({
   onWizardCreated,
   onNavigate,
 }: Props) {
-  const [page, setPage] = useState(0)
+  const [page, setPage] = useTabScopedState('pager', 0)
 
   const ficheOpen = !!dossierId
   // Gel de la mécanique pager quand fiche/wizard ouverts. On met à jour la ref
@@ -153,7 +154,10 @@ export function KycPagerFrame({
     wizRef.current = !!wizard || ficheOpen
   }, [wizard, ficheOpen])
 
-  const pageRef = useRef(0)
+  // ⚠ Initialisé sur `page`, pas sur 0 : c'est la valeur que lit le
+  // `useLayoutEffect` de placement, et un onglet rouvert sur la Vigie doit s'y
+  // poser d'emblée plutôt que d'y défiler depuis le haut.
+  const pageRef = useRef(page)
   const viewportRef = useRef<HTMLDivElement | null>(null)
   const trackRef = useRef<HTMLDivElement | null>(null)
   const posRef = useRef(0)
@@ -190,7 +194,7 @@ export function KycPagerFrame({
 
   const go = useCallback((dir: number) => {
     setPage((p) => Math.min(KYP_PAGES.length - 1, Math.max(0, p + dir)))
-  }, [])
+  }, [setPage])
 
   const goTo = useCallback((i: number) => {
     if (lock.current) return
@@ -199,7 +203,7 @@ export function KycPagerFrame({
     setTimeout(() => {
       lock.current = false
     }, 820)
-  }, [])
+  }, [setPage])
 
   useLayoutEffect(() => {
     animateTo(pageRef.current, true)

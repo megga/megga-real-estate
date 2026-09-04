@@ -15,7 +15,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
 import { CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import { DOSSIER_FONT, DOSSIER_KEYFRAMES } from '@/components/crm-dossiers/tokens'
 import {
@@ -159,7 +159,7 @@ export default function KycPage() {
         <style>{KYP_KEYFRAMES}</style>
 
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-          <CrmSidebar active="kyc" sp={sp} dark={dark} setDark={setDark} />
+          <CrmWorkspace active="kyc" sp={sp} dark={dark} setDark={setDark}>
 
           <main
             style={{
@@ -192,6 +192,7 @@ export default function KycPage() {
               />
             )}
           </main>
+          </CrmWorkspace>
         </div>
       </div>
     </KycPaletteContext.Provider>

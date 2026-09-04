@@ -486,5 +486,20 @@
   },
   "announcements": {
     "dismiss": "Fermer"
+  },
+  "tabs": {
+    "badgeCount": "À traiter",
+    "badgeUrgent": "En retard",
+    "bar": "Onglets ouverts",
+    "close": "Fermer l'onglet",
+    "closeOthers": "Fermer les autres",
+    "closeThis": "Fermer cet onglet",
+    "confirmClose": "Cet onglet contient des modifications non enregistrées. Le fermer ?",
+    "duplicate": "Dupliquer l'onglet",
+    "more": "Autres onglets",
+    "new": "Nouvel onglet",
+    "pin": "Épingler à gauche",
+    "unpin": "Détacher",
+    "untitled": "Onglet"
   }
 }

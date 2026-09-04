@@ -25,7 +25,7 @@ import {
 import { mapTransactionStageToStepper } from '@/components/crm-dossiers/dealStepper'
 import OfferModal from '@/components/crm-dossiers/offer-modal/OfferModal'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import {
   useTransaction, useUpdateTransactionStage, useUpdateTransactionStatus,
   type ContactTransaction,
@@ -359,7 +359,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
         .ds-scroll::-webkit-scrollbar-thumb { background: ${p.ghost}; border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
       `}</style>
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmSidebar active="pipeline" sp={sp} dark={dark} setDark={setDark} />
+        <CrmWorkspace active="pipeline" sp={sp} dark={dark} setDark={setDark}>
         <main style={{
           flex: 1, minWidth: 0, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'column',
           paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)',
@@ -373,6 +373,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
             {children}
           </div>
         </main>
+        </CrmWorkspace>
       </div>
       {/* ⚠ À la RACINE : le cadre bento porte `overflow: hidden` et clipperait
           les commandes. Le thème est reçu, jamais relu — voir le banc Pipeline. */}

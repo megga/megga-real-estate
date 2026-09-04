@@ -486,5 +486,20 @@
   },
   "announcements": {
     "dismiss": "Chiudi"
+  },
+  "tabs": {
+    "badgeCount": "Da gestire",
+    "badgeUrgent": "In ritardo",
+    "bar": "Schede aperte",
+    "close": "Chiudi scheda",
+    "closeOthers": "Chiudi le altre",
+    "closeThis": "Chiudi questa scheda",
+    "confirmClose": "Questa scheda contiene modifiche non salvate. Chiuderla comunque?",
+    "duplicate": "Duplica scheda",
+    "more": "Altre schede",
+    "new": "Nuova scheda",
+    "pin": "Fissa a sinistra",
+    "unpin": "Sblocca",
+    "untitled": "Scheda"
   }
 }

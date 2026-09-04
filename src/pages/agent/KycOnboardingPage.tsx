@@ -11,7 +11,7 @@ import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import { markKycOnboarded } from '@/lib/kycOnboarding'
 import { readCrmDark } from '@/lib/crmDark'
@@ -67,7 +67,7 @@ export default function KycOnboardingPage() {
       `}</style>
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmSidebar active="kyc" sp={sp} dark={dark} setDark={setDark} />
+        <CrmWorkspace active="kyc" sp={sp} dark={dark} setDark={setDark}>
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
           <div
             style={{
@@ -171,6 +171,7 @@ export default function KycOnboardingPage() {
             </div>
           </div>
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

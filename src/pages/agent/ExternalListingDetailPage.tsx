@@ -16,7 +16,7 @@ import type { ExternalListing } from '@/hooks/useExternalMatching'
 import { useExternalListingActions } from '@/hooks/useExternalListingActions'
 import { useSendPropertyEmail } from '@/hooks/useSendEmail'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import { crmThemeVars } from '@/components/crm/crmThemeVars'
 import { readCrmDark } from '@/lib/crmDark'
@@ -65,9 +65,9 @@ export default function ExternalListingDetailPage() {
   const sgSp = useMemo(() => crmPalette(dark), [dark])
   // Animations partagées du CRM — les popovers de la barre latérale en dépendent.
   const crmKeyframes = <style>{CRM_KEYFRAMES}</style>
-  const sidebar = (
-    <CrmSidebar active="matching" sp={sgSp} dark={dark} setDark={setDark} />
-  )
+  // Chrome monté DEUX fois (état « introuvable » et vue normale). `CrmWorkspace`
+  // portant des enfants, la balise s'ouvre sur place dans chaque rangée : une
+  // fonction-composant locale, elle, remonterait le sous-arbre à chaque rendu.
   const shellStyle = { minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }
 
   if (!listing) {
@@ -75,7 +75,7 @@ export default function ExternalListingDetailPage() {
       <div style={shellStyle}>
         {crmKeyframes}
         <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-          {sidebar}
+          <CrmWorkspace active="matching" sp={sgSp} dark={dark} setDark={setDark}>
           <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 120px' }}>
         <div className="max-w-4xl mx-auto py-20 text-center">
           <p className="text-sm text-theme-tertiary">{t('external.notFound')}</p>
@@ -84,6 +84,7 @@ export default function ExternalListingDetailPage() {
           </Link>
         </div>
           </main>
+          </CrmWorkspace>
         </div>
       </div>
     )
@@ -155,7 +156,7 @@ export default function ExternalListingDetailPage() {
     <div style={shellStyle}>
       {crmKeyframes}
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        {sidebar}
+        <CrmWorkspace active="matching" sp={sgSp} dark={dark} setDark={setDark}>
         <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 120px' }}>
       <div className="max-w-4xl mx-auto space-y-5">
         {/* Back + imported badge */}
@@ -515,6 +516,7 @@ export default function ExternalListingDetailPage() {
         </div>
       </div>
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

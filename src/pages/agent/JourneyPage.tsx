@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { crmPalette } from '@/components/crm/tokens'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { PCDossierFrame } from '@/components/crm/journey/PCDossierFrame'
 import { PCFilters } from '@/components/crm/journey/PCFilters'
 import {
@@ -14,6 +14,7 @@ import {
   type Urgency,
 } from '@/components/crm/journey/journeyData'
 import { useJourneyScreen } from '@/hooks/useJourneyScreen'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 export default function JourneyPage() {
@@ -36,8 +37,9 @@ export default function JourneyPage() {
   // Filtre Agent retiré (pas de table profiles/teammates wire) — réintroduit avec RBAC.
   const { dossiers: liveDossiers } = useJourneyScreen()
 
-  const [stageFilter, setStageFilter] = useState<StageId | 'all'>('all')
-  const [urgencyFilter, setUrgencyFilter] = useState<Urgency | 'all'>('all')
+  // Les deux filtres de la liste : position d'écran, portée par l'onglet.
+  const [stageFilter, setStageFilter] = useTabScopedState<StageId | 'all'>('filtreEtape', 'all')
+  const [urgencyFilter, setUrgencyFilter] = useTabScopedState<Urgency | 'all'>('filtreUrgence', 'all')
 
   const dossiers = useMemo(() => {
     return liveDossiers.filter(d => {
@@ -59,7 +61,7 @@ export default function JourneyPage() {
       <style>{CRM_KEYFRAMES}</style>
 
       <div style={{ display: 'flex' }}>
-        <CrmSidebar active="parcours" sp={sp} dark={dark} setDark={setDark} />
+        <CrmWorkspace active="parcours" sp={sp} dark={dark} setDark={setDark}>
         <main
           style={{
             flex: 1,
@@ -152,6 +154,7 @@ export default function JourneyPage() {
             )}
           </div>
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

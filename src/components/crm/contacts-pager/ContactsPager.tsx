@@ -14,7 +14,7 @@
 
 import EtatVide from '@/components/crm/EtatVide'
 import {
-  useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState,
+  useCallback, useEffect, useLayoutEffect, useMemo, useRef,
   type CSSProperties, type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -23,6 +23,7 @@ import { type CrmPalette } from '@/components/crm/tokens'
 import { crmInitials } from '@/components/crm/tokens'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 import { CTP_FN, FN_BUYER_INK } from '@/components/crm/contacts-pager/ctpTokens'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 
 type Audience = 'buyer' | 'seller' | 'tenant'
 
@@ -608,8 +609,10 @@ export default function ContactsPager({
   fresh, firstRunSlot, modalOpen, modalSlot,
 }: ContactsPagerProps) {
   const { t } = useTranslation('contacts')
-  const [page, setPage] = useState(0)
-  const [filter, setFilter] = useState<Filter>({ type: 'audience', value: 'all' })
+  const [page, setPage] = useTabScopedState('pager', 0)
+  // Le filtre de liste est une position d'écran (petit objet : type + valeur +
+  // libellé), pas un jeu de données — il tient dans la tranche de l'onglet.
+  const [filter, setFilter] = useTabScopedState<Filter>('filtre', { type: 'audience', value: 'all' })
   // Premier lancement ET erreur de chargement réduisent le pager à une seule
   // page : dans les deux cas la Santé du portefeuille n'a rien à agréger.
   const mono = fresh || loadError
@@ -617,7 +620,10 @@ export default function ContactsPager({
   const pageLabels = [t('pager.title'), t('health.title')]
   const goLabel = useCallback((target: string) => t('pager.goToPage', { page: target }), [t])
 
-  const pageRef = useRef(0)
+  // ⚠ Initialisé sur `page`, pas sur 0 : c'est la valeur que lit le
+  // `useLayoutEffect` de placement, et un onglet rouvert sur la page 1 doit s'y
+  // poser d'emblée plutôt que d'y défiler depuis le haut.
+  const pageRef = useRef(page)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const posRef = useRef(0)
@@ -628,7 +634,7 @@ export default function ContactsPager({
   const modalOpenRef = useRef(modalOpen)
   useEffect(() => { modalOpenRef.current = modalOpen }, [modalOpen])
   const monoRef = useRef(mono)
-  useEffect(() => { monoRef.current = mono; if (mono) setPage(0) }, [mono])
+  useEffect(() => { monoRef.current = mono; if (mono) setPage(0) }, [mono, setPage])
 
   const animateTo = useCallback((target: number, instant?: boolean) => {
     const vp = viewportRef.current, track = trackRef.current
@@ -654,16 +660,16 @@ export default function ContactsPager({
   const go = useCallback((dir: number) => {
     const max = (monoRef.current ? 1 : 2) - 1
     setPage((p) => Math.min(max, Math.max(0, p + dir)))
-  }, [])
+  }, [setPage])
   const goTo = useCallback((i: number) => {
     if (lock.current) return
     lock.current = true
     setPage(i)
     setTimeout(() => { lock.current = false }, 820)
-  }, [])
+  }, [setPage])
 
   // Clic sur un segment Santé → filtre + remontée page 0 (sans verrou résiduel).
-  const applySegment = useCallback((seg: Filter) => { setFilter(seg); lock.current = false; setPage(0) }, [])
+  const applySegment = useCallback((seg: Filter) => { setFilter(seg); lock.current = false; setPage(0) }, [setPage, setFilter])
 
   useLayoutEffect(() => {
     animateTo(pageRef.current, true)

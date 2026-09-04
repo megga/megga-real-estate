@@ -37,7 +37,7 @@ import { crmPalette } from '@/components/crm/tokens'
 import { CRM_BIENS } from '@/components/crm/mockData'
 import { mxSurfaces } from '@/components/crm/biens/gallery/galHelpers'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { BiensPager } from '@/components/crm/biens/pager/BiensPager'
 import WizardShell from '@/components/crm-wizard/WizardShell'
 import ListingDetailPage from '@/pages/agent/ListingDetailPage'
@@ -116,10 +116,10 @@ export default function BiensShowcasePage() {
                 surfaces protégées : la barre se tait d'elle-même sous `/dev/*`
                 (cf. sa garde `enBanc`), sans quoi un clic ferait rebondir le banc
                 vers la production. */}
-            <CrmSidebar
+            <CrmWorkspace
               active="biens" sp={sp} dark={dark} setDark={setDark}
               onCmd={() => setWizardOpen(true)}
-            />
+            >
             <BiensPager
               biens={CRM_BIENS}
               sp={sp}
@@ -137,6 +137,7 @@ export default function BiensShowcasePage() {
               wizardOpen={wizardOpen}
               wizardSlot={<WizardShell embedded dark={dark} onClose={() => setWizardOpen(false)} />}
             />
+            </CrmWorkspace>
           </div>
         </>
       )}

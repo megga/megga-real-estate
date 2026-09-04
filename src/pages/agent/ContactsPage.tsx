@@ -13,7 +13,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { crmPalette } from '@/components/crm/tokens'
-import { CrmSidebar } from '@/components/crm/CrmSidebar'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { useContactsScreen } from '@/hooks/useContactsScreen'
 import { useCreateContact } from '@/hooks/useContacts'
 import { buildSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
@@ -140,7 +140,7 @@ export default function ContactsPage() {
       display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmSidebar active="contacts" sp={sp} dark={dark} setDark={setDark} />
+        <CrmWorkspace active="contacts" sp={sp} dark={dark} setDark={setDark}>
         <ContactsPager
           contacts={contacts}
           sp={sp}
@@ -167,6 +167,7 @@ export default function ContactsPage() {
             />
           }
         />
+        </CrmWorkspace>
       </div>
     </div>
   )
