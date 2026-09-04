@@ -13,6 +13,26 @@
 
 **Architecture:** Une migration (`mail_*` + Vault + RPC + cron) ; un dossier `supabase/functions/_shared/mail/` de modules **purs et testables sous Node** (MIME, adaptateurs Gmail/Graph, ingestion, jetons) ; cinq edge functions minces (`mail-oauth`, `mail-sync`, `mail-actions`, `mail-send`, `mail-attachment`) qui n'ont que la garde, la validation et le dispatch.
 
+> ### Deuxième passe de revue adverse — 04.09.2026 (les 18 défauts « importants »)
+>
+> Ce document porte le code **VERBATIM** : laissé tel quel, il aurait réintroduit chaque
+> défaut dans les six lots suivants qui le prennent pour modèle. Les blocs sont donc
+> re-synchronisés sur le code livré, et chaque tâche touchée porte en tête l'encadré de ce
+> qui a changé et POURQUOI. Quatre familles, quatre commits :
+>
+> | Famille | Où | Ce qui était faux |
+> |---|---|---|
+> | Sécurité | 1.9 · 1.14 (+1.3) | la boîte d'un agent parti continuait d'alimenter son ancienne agence ; le type MIME d'une pièce, écrit par l'expéditeur, était servi `inline` |
+> | Justesse fournisseur | 1.7 · 1.8 · 1.13 | une propriété absente du delta Graph lue comme `false` ; les pièces d'une réponse Outlook dans un PATCH ; `is_archived` jamais recalculé quand l'agent a le dernier mot ; un transfert Gmail avec le `threadId` de l'original |
+> | Panne muette | 1.8 · 1.10 · 1.13 | un envoi ACCEPTÉ par le fournisseur annoncé « échoué » (donc renvoyé, donc reçu deux fois) ; une déconnexion qui laisse le jeton vivant ; deux rattachements de contact qui échouent en répondant `ok` |
+> | Tests creux | 1.15 | quatre `it()` sur sept ne pouvaient pas rougir, dont celui qui devait garder le 404 inter-agences |
+>
+> ⚠ **Sept défauts avaient déjà été fermés par la passe « bloquante »** (d7a46911,
+> 601a2a5b, 3323c7c7, 52a57dc6) : l'injection PostgREST dans `.or()`,
+> `applyRemoteChanges` en échec ouvert, le `knownRows` non vérifié de `syncGraph`, et les
+> ids d'attachement après un déplacement Graph — que `Prefer: IdType="ImmutableId"` rend
+> sans objet.
+
 **Tech Stack:** Postgres **17** en local et en CI (`supabase/config.toml` `major_version = 17` — mesuré le 03.09.2026 ; le plan annonçait 15), RLS, Vault, pg_cron, pg_net ; Deno (edge) ; Vitest (unit + backend contre `supabase start`).
 
 ---
@@ -1066,6 +1086,16 @@ git commit -m "test(messagerie): RLS owner/agency, isolation, Vault, RPC de list
 
 ### Task 1.3 : Types partagés + MIME (`_shared/mail/types.ts`, `mime.ts`)
 
+> ⚠ **Revue adverse « importante » du 04.09.2026 — deux fonctions ajoutées à `mime.ts`.**
+> (1) `attachmentServing` : le `mime_type` d'une pièce est du texte d'EXPÉDITEUR, et
+> `mail-attachment` le recopiait en `Content-Type` avec `Content-Disposition: inline` —
+> une pièce déclarée `text/html` s'exécutait dans la session de l'agent (XSS stocké,
+> jeton Supabase à portée). Liste blanche de RENDU (pdf, png, jpeg, webp, gif, texte
+> brut) ; tout le reste en `application/octet-stream` + `attachment`. (2)
+> `base64ByteLength` : `longueur * 0.75` surestimait de deux octets et débordait sur un
+> contenu replié, or la valeur sert deux plafonds de REFUS (20 Mo au total, 3 Mo par
+> pièce côté Graph).
+
 > ⚠ **Revue adverse du 04.09.2026 — deux champs ajoutés.** `GmailCursor.historyPageToken`
 > (le pageToken de `history.list` vivait dans une variable LOCALE : une pagination coupée
 > par le budget n'était pas reprenable) et `MailAccountRow.sync_failures` (pour que
@@ -1515,6 +1545,59 @@ export function makeMessageId(domain: string): string {
   return `<${crypto.randomUUID()}@${domain}>`
 }
 
+/**
+ * Taille RÉELLE d'un contenu base64, en octets.
+ *
+ * ⚠ `longueur * 0.75` surestime de 1 à 2 octets par le bourrage `=` et déborde dès
+ * qu'un retour à la ligne traîne (les fournisseurs replient à 76 colonnes). Ce n'est
+ * pas de la coquetterie : la valeur sert deux PLAFONDS de refus — le total de 20 Mo et
+ * les 3 Mo par pièce que Graph impose —, et une pièce refusée à tort est un envoi
+ * impossible sans explication.
+ */
+export function base64ByteLength(b64: string | null | undefined): number {
+  const clean = (b64 ?? '').replace(/[^A-Za-z0-9+/=_-]/g, '')
+  if (!clean) return 0
+  const pad = clean.endsWith('==') ? 2 : clean.endsWith('=') ? 1 : 0
+  return Math.max(0, Math.floor((clean.length * 3) / 4) - pad)
+}
+
+/**
+ * Comment servir une pièce jointe : type RENDU et disposition.
+ *
+ * ⛔ LE TYPE DÉCLARÉ PAR LE FOURNISSEUR NE TRAVERSE JAMAIS. `mail_attachments.mime_type`
+ * est recopié de `part.mimeType` (Gmail) ou `a.contentType` (Graph) — c'est-à-dire du
+ * texte choisi par L'EXPÉDITEUR du courrier. Le rendre tel quel avec
+ * `Content-Disposition: inline` faisait de toute boîte connectée un vecteur de XSS
+ * stocké : un inconnu envoie une pièce déclarée `text/html` contenant un `<script>`,
+ * l'agent ouvre le message, le front la lit avec son jeton, et le script tourne dans la
+ * session du CRM. `X-Content-Type-Options: nosniff` n'y peut rien — il empêche de
+ * DEVINER un type, pas d'en honorer un déclaré.
+ *
+ * D'où une liste blanche de RENDU, jamais une liste noire : ce qui n'y est pas est
+ * servi en `application/octet-stream` + `attachment`, donc téléchargé, jamais exécuté.
+ * `text/html`, `image/svg+xml` et `application/xhtml+xml` en sont exclus par
+ * construction — un SVG est un document scriptable, pas une image.
+ */
+export interface AttachmentServing { contentType: string; disposition: 'inline' | 'attachment' }
+const INLINE_SAFE_MIME: Record<string, string> = {
+  'application/pdf': 'application/pdf',
+  'image/png': 'image/png',
+  'image/jpeg': 'image/jpeg',
+  'image/webp': 'image/webp',
+  'image/gif': 'image/gif',
+  // Le jeu de caractères est IMPOSÉ : sans lui, un texte en UTF-7 peut se faire lire
+  // comme du balisage par les moteurs qui devinent encore l'encodage.
+  'text/plain': 'text/plain; charset=utf-8',
+}
+export function attachmentServing(declared: string | null | undefined): AttachmentServing {
+  // Un type est `type/sous-type` + paramètres : on ne compare que l'essence.
+  const essence = (declared ?? '').split(';')[0].trim().toLowerCase()
+  const safe = INLINE_SAFE_MIME[essence]
+  return safe
+    ? { contentType: safe, disposition: 'inline' }
+    : { contentType: 'application/octet-stream', disposition: 'attachment' }
+}
+
 // ── Construction RFC 5322 ─────────────────────────────────────────────────────
 function boundary(tag: string): string {
   return `=_megga_${tag}_${crypto.randomUUID().replace(/-/g, '')}`
@@ -1863,6 +1946,11 @@ Attendu : 8 tests PASS.
 
 ### Task 1.5 : OAuth (URL d'autorisation, PKCE, échange, identité) — `_shared/mail/oauth.ts`
 
+> ⚠ **Revue adverse « importante » du 04.09.2026 — `revokeToken` rend un booléen.** Le
+> `.catch(() => undefined)` muet rendait invisible un refus de Google : l'utilisateur
+> lisait « déconnectée » et l'autorisation restait vivante. L'appelant décide désormais,
+> et la raison est journalisée (voir la task 1.10).
+
 **Files:**
 - Create: `supabase/functions/_shared/mail/oauth.ts`
 - Test: `supabase/functions/_shared/mail/oauth.test.ts`
@@ -2046,11 +2134,28 @@ export async function fetchIdentity(provider: OAuthProvider, accessToken: string
   return { email: email.toLowerCase(), name: (provider === 'gmail' ? j.name : j.displayName) ?? null }
 }
 
-/** Google révoque ; Microsoft n'a pas d'endpoint de révocation de jeton (on efface Vault). */
-export async function revokeToken(provider: OAuthProvider, token: string, deps: OAuthDeps = {}): Promise<void> {
-  if (provider !== 'gmail') return
+/**
+ * Google révoque ; Microsoft n'a pas d'endpoint de révocation de jeton (on efface Vault).
+ *
+ * ⛔ L'ÉCHEC EST RENDU, PLUS AVALÉ. Le `.catch(() => undefined)` d'origine rendait
+ * INVISIBLE un 400 ou un 500 de Google : l'utilisateur voyait « déconnectée », et
+ * l'autorisation restait vivante chez Google — MEGGA gardant le droit de lire sa boîte.
+ * `false` ⇒ l'appelant décide (garder la ligne pour pouvoir réessayer, prévenir), et
+ * la raison est journalisée avec le compte.
+ */
+export async function revokeToken(provider: OAuthProvider, token: string, deps: OAuthDeps = {}): Promise<boolean> {
+  // Microsoft n'expose rien à révoquer : ce n'est pas un échec, il n'y a rien à faire.
+  if (provider !== 'gmail') return true
   const f = deps.fetch ?? globalThis.fetch
-  await f(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, { method: 'POST' }).catch(() => undefined)
+  try {
+    const res = await f(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, { method: 'POST' })
+    if (res.ok) return true
+    console.error(`[mail oauth] révocation Google refusée: http ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`)
+    return false
+  } catch (e) {
+    console.error('[mail oauth] révocation Google injoignable:', e instanceof Error ? e.message : String(e))
+    return false
+  }
 }
 ```
 
@@ -2472,6 +2577,22 @@ Attendu : 6 tests PASS.
 
 ### Task 1.7 : Adaptateur Microsoft Graph — `_shared/mail/graph.ts`
 
+> ⚠ **Revue adverse « importante » du 04.09.2026 — deux défauts de plus.**
+> (1) **`deltaToChanges` lisait une propriété ABSENTE comme `false`.** La référence du
+> delta dit qu'un item modifié est rendu « with *at least* the updated properties » : une
+> charge utile PARTIELLE est le cas normal. Un `parentFolderId` absent donnait
+> `inInbox: false`, qu'`applyRemoteChanges` écrit `is_archived = true` — poser un simple
+> drapeau dans Outlook faisait disparaître la conversation de la Réception du CRM ; un
+> `isRead` absent la remettait en non-lu. On n'émet que ce que la charge utile PORTE.
+> (2) **Les pièces d'une réponse partaient dans le PATCH.** `attachments` est une
+> propriété de NAVIGATION : « Update message » ne la liste pas parmi les modifiables. Ou
+> Graph refusait (502, et le brouillon de `createReply` restait dans les Brouillons de
+> l'agent), ou il l'ignorait et la réponse arrivait SANS pièce pendant que le CRM
+> enregistrait `has_attachments = true`. Chaque pièce est POSTée dans
+> `/me/messages/{draftId}/attachments` avant l'envoi, un échec supprime le brouillon
+> orphelin, et le plafond documenté (« under 3 MB » par pièce) sort en constante lue par
+> `mail-send`.
+
 > ⚠ **Revue adverse du 04.09.2026 — l'archivage Outlook DÉTRUISAIT la conversation.**
 > Le delta est PAR DOSSIER : archiver un message — le geste Outlook le plus courant — le
 > sort de la Réception, qui le signale `@removed` exactement comme un message effacé.
@@ -2807,9 +2928,31 @@ export interface GraphOutgoing {
 const rcpt = (a: { name: string | null; email: string }) => ({ emailAddress: { address: a.email, name: a.name ?? undefined } })
 
 /**
+ * Plafond par pièce imposé par Graph : « This operation limits the size of the
+ * attachment you can add to under 3 MB » (message: post attachments, v1.0). Au-delà il
+ * faut `createUploadSession`, que ce build n'implémente pas — d'où un refus EXPLICITE
+ * en amont, dans mail-send, plutôt qu'un 502 illisible au moment de l'envoi.
+ */
+export const GRAPH_ATTACHMENT_MAX_BYTES = 3 * 1024 * 1024
+
+/**
  * Envoi : brouillon (POST /me/messages ou createReply/createForward) → PATCH du
- * contenu → POST send. Le brouillon porte notre internetMessageId, ce qui permet
- * de rapprocher la copie « Envoyés » quand le delta la rend.
+ * contenu → POST des pièces → POST send. Le brouillon porte notre internetMessageId,
+ * ce qui permet de rapprocher la copie « Envoyés » quand le delta la rend.
+ *
+ * ⛔ LES PIÈCES NE PASSENT PAS PAR LE PATCH. `attachments` est une propriété de
+ * NAVIGATION : la référence « Update message » énumère ce qui est modifiable
+ * (body, subject, toRecipients, internetMessageId… « Updatable only if isDraft =
+ * true ») et `attachments` n'y figure pas. Les deux issues étaient mauvaises et
+ * aucune n'était testée : ou Graph refusait le PATCH — 502 `send_failed`, et le
+ * brouillon créé par createReply RESTAIT dans les Brouillons de l'agent —, ou il
+ * ignorait la propriété et la réponse partait au client SANS sa pièce pendant que le
+ * CRM enregistrait `has_attachments = true`. Chaque pièce est donc POSTée dans la
+ * collection du brouillon, avant l'envoi.
+ *
+ * ⛔ Et le brouillon est NETTOYÉ si la suite échoue : sans cela, chaque tentative
+ * ratée laissait un brouillon de plus dans la boîte de l'agent, sans rien pour dire
+ * d'où il venait.
  */
 export async function graphSend(
   token: string, m: GraphOutgoing, mode: { kind: 'new' } | { kind: 'reply' | 'forward'; providerMessageId: string }, deps: GraphDeps = {},
@@ -2821,7 +2964,6 @@ export async function graphSend(
     ccRecipients: m.cc.map(rcpt),
     bccRecipients: m.bcc.map(rcpt),
     internetMessageId: m.internetMessageId,
-    attachments: m.attachments.map((a) => ({ '@odata.type': '#microsoft.graph.fileAttachment', name: a.filename, contentType: a.mimeType, contentBytes: a.base64 })),
   }
   let draftId: string
   if (mode.kind === 'new') {
@@ -2831,9 +2973,25 @@ export async function graphSend(
     const verb = mode.kind === 'reply' ? 'createReply' : 'createForward'
     const d = await gcall<{ id: string }>(token, `/me/messages/${encodeURIComponent(mode.providerMessageId)}/${verb}`, deps, { method: 'POST', body: '{}' })
     draftId = d.id
-    await gcall(token, `/me/messages/${encodeURIComponent(draftId)}`, deps, { method: 'PATCH', body: JSON.stringify(payload) })
   }
-  await gcall(token, `/me/messages/${encodeURIComponent(draftId)}/send`, deps, { method: 'POST' })
+  try {
+    if (mode.kind !== 'new') {
+      await gcall(token, `/me/messages/${encodeURIComponent(draftId)}`, deps, { method: 'PATCH', body: JSON.stringify(payload) })
+    }
+    for (const a of m.attachments) {
+      await gcall(token, `/me/messages/${encodeURIComponent(draftId)}/attachments`, deps, {
+        method: 'POST',
+        body: JSON.stringify({ '@odata.type': '#microsoft.graph.fileAttachment', name: a.filename, contentType: a.mimeType, contentBytes: a.base64 }),
+      })
+    }
+    await gcall(token, `/me/messages/${encodeURIComponent(draftId)}/send`, deps, { method: 'POST' })
+  } catch (e) {
+    // Le nettoyage ne doit JAMAIS masquer la cause : son propre échec se journalise,
+    // l'erreur d'origine remonte telle quelle.
+    try { await gcall(token, `/me/messages/${encodeURIComponent(draftId)}`, deps, { method: 'DELETE' }) }
+    catch (e2) { console.error(`[mail graph] brouillon orphelin ${draftId} non supprimé:`, e2 instanceof Error ? e2.message : String(e2)) }
+    throw e
+  }
   return { draftId }
 }
 
@@ -2896,6 +3054,18 @@ export interface GraphRemoval { id: string; reason: string }
  * `reason: "changed"`, que Graph documente comme une suppression RESTAURABLE, était
  * détruit. Qui tranche, c'est `resolveGraphRemoval` : un GET sur l'id (immuable, donc
  * il survit au déplacement).
+ *
+ * ⛔ ET UNE PROPRIÉTÉ ABSENTE N'EST PAS UNE PROPRIÉTÉ FAUSSE. La référence du delta est
+ * explicite : « Updated instances are represented by their id with *at least* the
+ * updated properties, but other properties might be included » — donc une charge utile
+ * PARTIELLE est le cas NORMAL, pas l'exception. Le code construisait pourtant les
+ * quatre drapeaux sans condition : `!!it.isRead` sur un `isRead` absent rendait `false`
+ * (le CRM remettait en non-lu un message lu), un `flag` absent déétoilait, et surtout
+ * un `parentFolderId` absent donnait `inInbox: false, isTrashed: false`, ce que
+ * `applyRemoteChanges` écrit en `is_archived = true` : mettre un simple drapeau sur un
+ * courrier dans Outlook faisait DISPARAÎTRE la conversation de la Réception du CRM.
+ * On n'émet donc que ce que la charge utile PORTE — comme `historyToChanges` (gmail.ts)
+ * qui laisse tomber les enregistrements de drapeaux vides.
  */
 export function deltaToChanges(items: GraphMessage[], known: Set<string>, folderIds: Record<string, string>): { added: GraphMessage[]; changes: RemoteChange[]; removed: GraphRemoval[] } {
   const added: GraphMessage[] = []
@@ -2904,11 +3074,17 @@ export function deltaToChanges(items: GraphMessage[], known: Set<string>, folder
   for (const it of items) {
     if (it['@removed']) { removed.push({ id: it.id, reason: it['@removed'].reason ?? 'unknown' }); continue }
     if (!known.has(it.id)) { added.push(it); continue }
-    changes.push({
-      kind: 'flags', providerMessageId: it.id,
-      isRead: !!it.isRead, isStarred: it.flag?.flagStatus === 'flagged',
-      inInbox: it.parentFolderId === folderIds.inbox, isTrashed: it.parentFolderId === folderIds.deleteditems,
-    })
+    const f: Extract<RemoteChange, { kind: 'flags' }> = { kind: 'flags', providerMessageId: it.id }
+    if ('isRead' in it) f.isRead = !!it.isRead
+    if (it.flag) f.isStarred = it.flag.flagStatus === 'flagged'
+    // Les deux se lisent sur le MÊME champ : ou il est là, ou aucun des deux n'est su.
+    if (it.parentFolderId !== undefined) {
+      f.inInbox = it.parentFolderId === folderIds.inbox
+      f.isTrashed = it.parentFolderId === folderIds.deleteditems
+    }
+    // `kind` + `providerMessageId` = un changement qui ne change RIEN : inutile de le
+    // faire descendre jusqu'à une lecture en base (même seuil que historyToChanges).
+    if (Object.keys(f).length > 2) changes.push(f)
   }
   return { added, changes, removed }
 }
@@ -2961,6 +3137,21 @@ Attendu : **4** tests PASS (le spec compte 4 `it()`, pas 5).
 ---
 
 ### Task 1.8 : Ingestion — `_shared/mail/ingest.ts`
+
+> ⚠ **Revue adverse « importante » du 04.09.2026 — trois défauts de plus.**
+> (1) **`is_archived` ne se recalculait que si le dernier message était ENTRANT.** La
+> passe initiale de Gmail liste du plus récent au plus ancien : pour tout fil dont
+> l'agent a eu le dernier mot — la plupart des conversations réglées — le semis `false`
+> ne pouvait plus jamais être corrigé, et l'import des 90 jours déversait les fils
+> archivés dans la Réception. L'état se lit désormais sur le message ENTRANT le plus
+> récent. Invisible en incrémental, donc introuvable autrement qu'à l'accueil d'un
+> nouvel agent. (2) **`matchContact` jetait l'`error` de ses deux lectures** : un échec
+> devenait « aucun contact », et comme `audit()` est gardé par `&& contactId`, le
+> courrier n'entrait pas non plus dans la timeline — une trace append-only à laquelle il
+> manque une entrée ne se rattrape pas. (3) **`linkThreadToContact` jetait le résultat
+> de ses trois écritures** : l'edge répondait `{ ok: true }` alors que l'alias pouvait
+> n'avoir pas été appris, donc que le prochain courrier de la même adresse repartirait
+> non apparié — précisément le service que le mécanisme existe pour rendre.
 
 > ⚠ **Revue adverse du 04.09.2026 — une injection PostgREST et une suppression sur
 > erreur.** (1) Le `.or()` de dédoublonnage recopiait le `Message-ID` de l'expéditeur
@@ -3260,7 +3451,21 @@ export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessa
   })()
   const inboundSender = m.direction === 'inbound' ? m.from : null
   const from = inboundSender && (newer || !existing?.from_email) ? inboundSender : (existing ? { name: existing.from_name, email: existing.from_email ?? '' } : (parts[0] ?? { name: null, email: '' }))
-  const latestInbound = m.direction === 'inbound' && newer
+  /**
+   * ⛔ « ARCHIVÉ » SE LIT SUR LE MESSAGE ENTRANT LE PLUS RÉCENT, jamais sur le dernier
+   * message tout court. La condition était `m.direction === 'inbound' && newer` : dès
+   * que le dernier mot du fil était celui de l'AGENT, plus aucun message ne pouvait
+   * jamais décider, et `is_archived` restait à sa valeur de semis. Or la passe
+   * initiale de Gmail liste du plus récent au plus ancien : le premier message ingéré
+   * d'un tel fil est sortant, `existing` est null, `is_archived` naît donc `false` —
+   * et les messages suivants, plus vieux, ne peuvent plus le corriger même s'ils
+   * n'ont AUCUN libellé INBOX. Comme « l'agent a eu le dernier mot » décrit la
+   * plupart des conversations réglées, le tout premier écran après la connexion d'une
+   * boîte était une Réception pleine de fils clos vieux de plusieurs mois, et Archivé
+   * quasi vide. Invisible en incrémental — `applyRemoteChanges` traite bien un archivage
+   * ultérieur — donc introuvable autrement qu'à l'accueil d'un nouvel agent.
+   */
+  const newestInbound = m.direction === 'inbound' && (!existing?.last_inbound_at || m.sentAt >= existing.last_inbound_at)
   return {
     subject: existing?.subject ?? m.subject,
     snippet: newer ? m.snippet : (existing?.snippet ?? m.snippet),
@@ -3278,7 +3483,7 @@ export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessa
     has_attachments: (existing?.has_attachments ?? false) || m.attachments.some((a) => !a.isInline),
     is_read: (existing?.is_read ?? true) && m.isRead,
     is_starred: (existing?.is_starred ?? false) || m.isStarred,
-    is_archived: latestInbound ? (!m.inInbox && !m.isTrashed) : (existing?.is_archived ?? false),
+    is_archived: newestInbound ? (!m.inInbox && !m.isTrashed) : (existing?.is_archived ?? false),
     is_trashed: newer ? m.isTrashed : (existing?.is_trashed ?? false),
   }
 }
@@ -3306,10 +3511,20 @@ export function pickContact(rows: { contact_id: string }[]): string | null {
 async function matchContact(admin: SupabaseClient, agencyId: string, emails: string[]): Promise<string | null> {
   if (emails.length === 0) return null
   const lowered = emails.map((e) => e.toLowerCase())
-  const { data: direct } = await admin.rpc('mail_match_contact_by_emails', { p_agency_id: agencyId, p_emails: lowered })
+  // ⛔ « JE N'AI PAS PU CHERCHER » N'EST PAS « IL N'Y A PERSONNE ». Les deux lectures
+  // laissaient tomber leur `error` : sur un échec, `contact_id` était écrit null sur le
+  // fil ET sur le message, et comme `audit()` est gardé par `&& contactId`, le courrier
+  // n'entrait pas non plus dans la timeline du contact — une trace d'audit
+  // append-only à laquelle il manque une entrée ne se rattrape pas, même si la passe
+  // suivante rattache enfin le fil. L'agent, lui, lisait « Adresse non rattachée » sur
+  // un contact parfaitement appariable, sans un mot nulle part. Ironie du fichier :
+  // trente lignes plus haut, on corrige une AUTRE cause du même symptôme muet.
+  const { data: direct, error: eDirect } = await admin.rpc('mail_match_contact_by_emails', { p_agency_id: agencyId, p_emails: lowered })
+  if (eDirect) throw new Error(`contact match: ${eDirect.message}`)
   const byContact = pickContact(((direct ?? []) as string[]).map((id) => ({ contact_id: id })))
   if (byContact) return byContact
-  const { data: alias } = await admin.from('mail_contact_aliases').select('contact_id').eq('agency_id', agencyId).in('email', lowered)
+  const { data: alias, error: eAlias } = await admin.from('mail_contact_aliases').select('contact_id').eq('agency_id', agencyId).in('email', lowered)
+  if (eAlias) throw new Error(`contact alias match: ${eAlias.message}`)
   return pickContact((alias ?? []) as { contact_id: string }[])
 }
 
@@ -3523,16 +3738,35 @@ export async function applyRemoteChanges(admin: SupabaseClient, account: MailAcc
   return applied
 }
 
-/** Apprend un alias et rattache le fil (modale « Rapprocher l'adresse »). */
+/**
+ * Apprend un alias et rattache le fil (modale « Rapprocher l'adresse »).
+ *
+ * ⛔ LES TROIS ÉCRITURES SONT VÉRIFIÉES. Aucune ne levait, et le `try` de mail-actions
+ * ne rattrape que ce qui lève : l'edge répondait `{ ok: true, contact_id }` alors que
+ * l'alias pouvait n'avoir pas été appris (violation d'unicité) ou le fil pas rattaché
+ * (zéro ligne appariée). Le premier cas est le pire : l'agent voit « rattaché », et le
+ * PROCHAIN courrier de la même adresse repart non apparié — c'est-à-dire exactement le
+ * service que tout le mécanisme d'alias existe pour rendre. Levée : mail-actions la
+ * convertit déjà en 400 portant le message.
+ */
 export async function linkThreadToContact(admin: SupabaseClient, account: MailAccountRow, threadId: string, contactId: string, email: string, learnedBy: string): Promise<void> {
-  const { data: contact } = await admin.from('contacts').select('id').eq('id', contactId).eq('agency_id', account.agency_id).maybeSingle()
+  const { data: contact, error: eContact } = await admin.from('contacts').select('id').eq('id', contactId).eq('agency_id', account.agency_id).maybeSingle()
+  // Une lecture en échec ne prouve PAS que le contact est hors agence : le dire
+  // fermerait la porte sur une panne passagère avec un message de sécurité trompeur.
+  if (eContact) throw new Error(`contact lookup: ${eContact.message}`)
   if (!contact) throw new Error('contact_not_in_agency')
-  await admin.from('mail_contact_aliases').upsert(
+  const { error: eAlias } = await admin.from('mail_contact_aliases').upsert(
     { agency_id: account.agency_id, email: email.toLowerCase(), contact_id: contactId, learned_by: learnedBy },
     { onConflict: 'agency_id,email', ignoreDuplicates: false },
   )
-  await admin.from('mail_threads').update({ contact_id: contactId }).eq('id', threadId).eq('account_id', account.id)
-  await admin.from('mail_messages').update({ contact_id: contactId }).eq('thread_id', threadId).is('contact_id', null)
+  if (eAlias) throw new Error(`alias upsert: ${eAlias.message}`)
+  const { data: linked, error: eThread } = await admin.from('mail_threads').update({ contact_id: contactId }).eq('id', threadId).eq('account_id', account.id).select('id')
+  if (eThread) throw new Error(`thread link: ${eThread.message}`)
+  // Zéro ligne appariée = le fil n'appartient pas à ce compte, ou n'existe plus. Sans
+  // ce contrôle, l'appelant lisait « rattaché » sur un fil que personne n'a touché.
+  if (!linked || linked.length === 0) throw new Error('thread_not_in_account')
+  const { error: eMsgs } = await admin.from('mail_messages').update({ contact_id: contactId }).eq('thread_id', threadId).is('contact_id', null)
+  if (eMsgs) throw new Error(`messages backfill: ${eMsgs.message}`)
 }
 ```
 
@@ -3548,6 +3782,20 @@ Attendu : **7** tests PASS (le spec compte 7 `it()`, pas 8).
 ---
 
 ### Task 1.9 : Orchestration d'une synchro + garde IDOR — `_shared/mail/sync.ts`, `guard.ts`
+
+> ⛔ **Revue adverse « importante » du 04.09.2026 — LE MIROIR ÉCRITURE DE LA GARDE
+> MANQUAIT.** `accountVisibleTo` teste l'agence en CONJONCTION (58f250a8), mais rien
+> n'arrêtait l'INGESTION : `team_remove_member` ne fait qu'un
+> `update profiles set agency_id = null`, la ligne `mail_accounts` survit `active` avec
+> son jeton dans Vault, et `mail_accounts_due_idx` ne regarde que `status`. Le balayage
+> de deux minutes continuait donc d'écrire dans l'agence QUITTÉE chaque message, corps et
+> pièce de la boîte d'un agent passé chez un concurrent — indéfiniment, et invisible en
+> `visibility = 'owner'` (rien à l'écran, tout en base). `assertOwnerStillInAgency`
+> (guard.ts) refuse la passe avant le moindre appel fournisseur, et `syncAccount` la
+> traduit en `status = 'disabled'` : la boîte sort de la file au lieu d'y brûler un
+> créneau. Placée au premier geste de `syncAccount`, elle couvre les QUATRE chemins —
+> balayage cron, `mail-sync` ciblé, `mail-actions sync_now`, première passe de
+> `mail-oauth exchange` — sans qu'aucun puisse la contourner.
 
 > ⚠ **Revue adverse du 04.09.2026 — trois défauts.** (1) L'écriture du curseur ne
 > vérifiait pas son `error` : muette, elle laissait `{ done: true, error: null }` sur une
@@ -3596,6 +3844,41 @@ export interface CallerCtx { userId: string; agencyId: string }
 // l'envoi et les pièces jointes de la boîte de son ancienne agence, par tous les edges.
 export function accountVisibleTo(account: Pick<MailAccountRow, 'owner_id' | 'agency_id' | 'visibility'>, ctx: CallerCtx): boolean {
   return account.agency_id === ctx.agencyId && (account.visibility === 'agency' || account.owner_id === ctx.userId)
+}
+
+/** Le propriétaire de la boîte a quitté l'agence : plus rien ne doit être ingéré pour elle. */
+export class MailOwnerLeftError extends Error {
+  constructor(detail: string) { super(`owner_left_agency: ${detail}`) }
+}
+
+/**
+ * MIROIR CÔTÉ ÉCRITURE du test d'agence CONJOINT d'`accountVisibleTo` /
+ * `mail_account_visible`. La garde ci-dessus ferme la LECTURE ; sans celle-ci, le
+ * flux d'INGESTION restait ouvert, et c'est le même départ qui l'ouvre :
+ * `team_remove_member` ne fait qu'un `update profiles set agency_id = null` — la ligne
+ * `mail_accounts` survit, `status` reste 'active', le jeton de rafraîchissement reste
+ * dans Vault, et `mail_accounts_due_idx` ne regarde que `status`. Le balayage de deux
+ * minutes continuait donc d'écrire dans l'ANCIENNE agence chaque message, corps et
+ * pièce de la boîte d'un agent passé chez un concurrent — indéfiniment, sans que rien
+ * ne l'expire.
+ *
+ * Levée plutôt que « saut silencieux » : `syncAccount` la transforme en
+ * `status = 'disabled'` + `last_error`, donc la boîte quitte la file au lieu d'y
+ * brûler un créneau à chaque tick, et la raison est LISIBLE. Appelée au tout début de
+ * `syncAccount`, c'est-à-dire avant le moindre appel fournisseur — et les quatre
+ * chemins de synchro (balayage cron, `mail-sync` ciblé, `mail-actions sync_now`,
+ * première passe lancée par `mail-oauth exchange`) passent tous par là : aucun ne peut
+ * la contourner.
+ */
+export async function assertOwnerStillInAgency(admin: SupabaseClient, account: Pick<MailAccountRow, 'id' | 'owner_id' | 'agency_id'>): Promise<void> {
+  const { data, error } = await admin.from('profiles').select('agency_id').eq('id', account.owner_id).maybeSingle()
+  // Une lecture en échec ne vaut PAS « il est parti » (on éteindrait des boîtes saines
+  // sur un timeout) ni « il est resté » (on rouvrirait la fuite) : c'est une erreur de
+  // passe ordinaire, réessayée au backoff.
+  if (error) throw new Error(`owner agency lookup: ${error.message}`)
+  const ownerAgency = (data as { agency_id: string | null } | null)?.agency_id ?? null
+  if (ownerAgency === account.agency_id) return
+  throw new MailOwnerLeftError(`compte ${account.id}: propriétaire ${account.owner_id} rattaché à ${ownerAgency ?? 'aucune agence'}`)
 }
 
 /** Charge le compte si l'appelant a le droit de le voir, sinon null. */
@@ -3654,6 +3937,7 @@ import { gmailGetMessage, gmailHistory, gmailIdentity, gmailListInitial, history
 import { deltaToChanges, graphDelta, graphFolderIds, graphGetBody, graphListAttachments, normalizeGraphMessage, resolveGraphRemoval } from './graph.ts'
 import { applyRemoteChanges, ingestMessages } from './ingest.ts'
 import type { RemoteChange } from './types.ts'
+import { MailOwnerLeftError, assertOwnerStillInAgency } from './guard.ts'
 import type { ProviderConfig } from './guard.ts'
 
 export interface SyncDeps { fetch?: typeof fetch; now?: () => number }
@@ -3684,6 +3968,9 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
   const start = now()
   const out: SyncOutcome = { inserted: 0, updated: 0, changes: 0, done: true, error: null }
   try {
+    // AVANT le moindre appel fournisseur : une boîte dont le propriétaire a quitté
+    // l'agence ne s'ingère plus (guard.ts, miroir écriture de `mail_account_visible`).
+    await assertOwnerStillInAgency(admin, account)
     let cursor: SyncCursor
     if (account.provider === 'gmail') cursor = await syncGmail(admin, account, cfg, budgetMs, start, deps, out)
     else if (account.provider === 'outlook') cursor = await syncGraph(admin, account, cfg, budgetMs, start, deps, out)
@@ -3713,7 +4000,12 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
     // laissaient la boîte `active` à réessayer toutes les 10 minutes pour toujours —
     // indiscernable, pour l'agent comme pour le lot 2, d'une boîte sans courrier neuf.
     const failures = (account.sync_failures ?? 0) + 1
-    const terminal = reauth ? 'reauth_required' : failures >= MAX_CONSECUTIVE_FAILURES ? 'error' : null
+    // Le départ du propriétaire est TERMINAL et immédiat : pas un échec transitoire à
+    // réessayer cinq fois, mais une boîte qui ne doit plus jamais être ingérée dans
+    // cette agence. `disabled` la retire de `mail_accounts_due_idx` dès ce tick.
+    const terminal = e instanceof MailOwnerLeftError
+      ? 'disabled'
+      : reauth ? 'reauth_required' : failures >= MAX_CONSECUTIVE_FAILURES ? 'error' : null
     const { error: eWrite } = await admin.from('mail_accounts').update({
       last_error: msg.slice(0, 500),
       sync_failures: failures,
@@ -3843,6 +4135,17 @@ Attendu : `deno check` sans erreur (⚠ `tsc -b` ne couvre pas ce dossier).
 
 ### Task 1.10 : Edge `mail-oauth` (start · exchange · disconnect · update)
 
+> ⛔ **Revue adverse « importante » du 04.09.2026 — `disconnect` ne déconnectait pas.**
+> Lecture Vault en `.catch(() => null)` (la révocation sautait alors sans un mot),
+> effacement en `.catch(() => undefined)`, puis suppression de `mail_accounts` — LE SEUL
+> pointeur vers `vault_secret_id` — et `{ ok: true }`. Au pire, MEGGA gardait un jeton
+> Google chiffré, NON révoqué et référencé par rien, pour une boîte que l'utilisateur
+> croyait déconnectée. On révoque et on efface AVANT de supprimer la ligne ; en cas
+> d'échec la ligne reste (`disabled`), le pointeur survit et la réponse le dit. ⚠ Un
+> secret ABSENT (`null`) n'est pas un échec : bloquer là condamnerait le compte à ne
+> jamais pouvoir être supprimé. Les deux `deleteAccountSecret` de l'échange journalisent
+> désormais l'orphelin qu'ils laissent.
+
 **Files:**
 - Create: `supabase/functions/mail-oauth/index.ts`
 - Modify: `supabase/config.toml` (bloc `[functions.mail-oauth]`)
@@ -3950,7 +4253,14 @@ serve(async (req: Request) => {
       .eq('agency_id', profile.agency_id).eq('provider', provider).eq('email', identity.email).maybeSingle()
     let accountId: string
     if (existing) {
-      if (existing.vault_secret_id) await deleteAccountSecret(admin, existing.vault_secret_id).catch(() => undefined)
+      // ⚠ Une RÉAUTORISATION n'a pas à échouer parce que l'ANCIEN secret ne s'efface
+      // pas : le nouveau va le remplacer dans la ligne, la boîte doit repartir. Mais
+      // l'ancien devient alors un secret orphelin dans Vault — c'est écrit, ça ne
+      // disparaît plus en silence à chaque reconnexion.
+      if (existing.vault_secret_id) {
+        await deleteAccountSecret(admin, existing.vault_secret_id)
+          .catch((e) => console.error(`[mail-oauth] ancien secret ${existing.vault_secret_id} ORPHELIN (compte ${existing.id}):`, e instanceof Error ? e.message : String(e)))
+      }
       const vaultId = await storeAccountSecret(admin, `mail:${provider}:${identity.email}`, secret)
       const { error } = await admin.from('mail_accounts').update({
         vault_secret_id: vaultId, status: 'active', last_error: null, owner_id: user.id,
@@ -3964,7 +4274,12 @@ serve(async (req: Request) => {
         agency_id: profile.agency_id, owner_id: user.id, provider, email: identity.email, display_name: identity.name,
         visibility: st.visibility, status: 'active', vault_secret_id: vaultId,
       }).select('id').single()
-      if (error) { await deleteAccountSecret(admin, vaultId).catch(() => undefined); return json({ error: 'account_insert_failed', detail: error.message }, 500) }
+      if (error) {
+        // Retour arrière : sans ligne pour le porter, le secret n'aurait plus de nom.
+        await deleteAccountSecret(admin, vaultId)
+          .catch((e) => console.error(`[mail-oauth] secret ${vaultId} ORPHELIN après échec d'insertion:`, e instanceof Error ? e.message : String(e)))
+        return json({ error: 'account_insert_failed', detail: error.message }, 500)
+      }
       accountId = ins.id
     }
 
@@ -3993,13 +4308,52 @@ serve(async (req: Request) => {
     const account = await loadVisibleAccount(admin, String(body.account_id ?? ''), ctx)
     if (!account) return json({ error: 'not_found' }, 404)
     if (account.owner_id !== user.id && !['admin', 'manager'].includes(profile.role ?? '')) return json({ error: 'forbidden' }, 403)
+    /**
+     * ⛔ ON RÉVOQUE ET ON EFFACE AVANT DE SUPPRIMER LA LIGNE, et aucun des trois gestes
+     * n'est avalé. La version d'origine faisait `.catch(() => null)` sur la lecture Vault
+     * (la révocation sautait alors en silence), `.catch(() => undefined)` sur
+     * l'effacement, puis supprimait `mail_accounts` — c'est-à-dire LE SEUL POINTEUR vers
+     * `vault_secret_id` — et répondait `{ ok: true }`. Au pire des cas MEGGA conservait
+     * un jeton de rafraîchissement Google chiffré, NON révoqué et plus référencé par
+     * rien, pour une boîte que l'utilisateur croyait déconnectée ; au cas courant,
+     * l'autorisation restait simplement active chez Google.
+     *
+     * En cas d'échec, la LIGNE RESTE (en `disabled`) : le pointeur survit, la
+     * déconnexion est réessayable, et la réponse le dit au lieu de mentir.
+     */
     if (account.vault_secret_id) {
-      const secret = await readAccountSecret<OAuthSecret>(admin, account.vault_secret_id).catch(() => null)
-      if (secret && 'refresh_token' in secret && (account.provider === 'gmail' || account.provider === 'outlook')) await revokeToken(account.provider, secret.refresh_token)
-      await deleteAccountSecret(admin, account.vault_secret_id).catch(() => undefined)
+      // ⚠ Deux issues à ne PAS confondre. Une LEVÉE = Vault n'a pas répondu, on ne sait
+      // pas si le jeton existe : refuser, garder la ligne, réessayable. Un `null` = la
+      // ligne de secret n'est plus là (déconnexion déjà à demi faite, purge) : il n'y a
+      // rien à révoquer ni à effacer, et bloquer là condamnerait le compte à ne jamais
+      // pouvoir être supprimé.
+      let secret: OAuthSecret | null = null
+      try { secret = await readAccountSecret<OAuthSecret>(admin, account.vault_secret_id) }
+      catch (e) {
+        const detail = e instanceof Error ? e.message : String(e)
+        console.error(`[mail-oauth] secret ${account.vault_secret_id} illisible (compte ${account.id}):`, detail)
+        await admin.from('mail_accounts').update({ status: 'disabled', last_error: 'disconnect: secret illisible, révocation impossible' }).eq('id', account.id)
+        return json({ error: 'revocation_failed', detail: 'secret_unreadable', account_id: account.id }, 502)
+      }
+      if (!secret) console.error(`[mail-oauth] compte ${account.id} : aucun secret sous ${account.vault_secret_id} — rien à révoquer`)
+      if (secret && 'refresh_token' in secret && (account.provider === 'gmail' || account.provider === 'outlook')) {
+        if (!await revokeToken(account.provider, secret.refresh_token)) {
+          await admin.from('mail_accounts').update({ status: 'disabled', last_error: 'disconnect: révocation refusée par le fournisseur' }).eq('id', account.id)
+          return json({ error: 'revocation_failed', detail: 'provider_refused', account_id: account.id }, 502)
+        }
+      }
+      try { if (secret) await deleteAccountSecret(admin, account.vault_secret_id) }
+      catch (e) {
+        const detail = e instanceof Error ? e.message : String(e)
+        console.error(`[mail-oauth] secret ${account.vault_secret_id} non effacé (compte ${account.id}):`, detail)
+        // Le jeton est révoqué, donc inoffensif — mais il reste dans Vault : garder la
+        // ligne est ce qui laisse une chance de le retrouver et de réessayer.
+        await admin.from('mail_accounts').update({ status: 'disabled', last_error: `disconnect: secret non effacé (${detail.slice(0, 200)})` }).eq('id', account.id)
+        return json({ ok: false, error: 'vault_delete_failed', detail, account_id: account.id }, 500)
+      }
     }
     const { error } = await admin.from('mail_accounts').delete().eq('id', account.id)
-    if (error) return json({ error: 'delete_failed' }, 500)
+    if (error) return json({ error: 'delete_failed', detail: error.message }, 500)
     return json({ ok: true })
   }
 
@@ -4216,6 +4570,11 @@ serve(async (req: Request) => {
       console.error('[mail-sync] file des comptes dus illisible:', error.message)
       return json({ error: 'due_query_failed', detail: error.message }, 500)
     }
+    // ⚠ `status = 'active'` ne dit RIEN de l'appartenance du propriétaire : le départ
+    // d'un agent (`team_remove_member`) ne touche pas `mail_accounts`. C'est
+    // `assertOwnerStillInAgency`, au premier geste de `syncAccount`, qui refuse la
+    // passe et bascule la boîte en `disabled` — elle sort alors de cette file d'
+    // elle-même, sans qu'un seul message ait été écrit dans l'ancienne agence.
     for (const account of (due ?? []) as MailAccountRow[]) {
       if (Date.now() - started > SWEEP_BUDGET_MS) break
       const r = await syncAccount(admin, account, cfg, Math.min(PER_ACCOUNT_BUDGET_MS, SWEEP_BUDGET_MS - (Date.now() - started)))
@@ -4260,6 +4619,14 @@ git commit -m "feat(messagerie): edge mail-sync (balayage cron verrouillé, sync
 ---
 
 ### Task 1.12 : Edge `mail-actions` (état des fils, rattachement, sync_now)
+
+> ⚠ **Revue adverse « importante » du 04.09.2026 — un id Graph qui change n'est plus
+> muet.** Avec `Prefer: IdType="ImmutableId"` partout (task 1.7), `graphMove` rend le
+> même id et le rapprochement `ancien → nouveau` ne s'exécute plus. S'il s'exécutait
+> quand même, ce ne serait pas seulement `mail_messages` qui dériverait : les
+> `provider_attachment_id` d'Exchange sont rattachés à l'item PARENT et cesseraient de
+> résoudre avec lui — `mail-attachment` rendrait 502 sur un mandat PDF archivé. Le cas
+> est journalisé pour être vu avant d'être découvert par un agent.
 
 > ⚠ **Revue adverse du 04.09.2026 — `{ ok: true }` sur un geste jamais envoyé.** La
 > lecture des messages du fil ne vérifiait pas son `error` : `msgs = null` donnait une
@@ -4397,6 +4764,13 @@ serve(async (req: Request) => {
     const renamed = await pushToProvider(account, token, action as ThreadAction, msgs as MsgRow[])
     for (const [oldId, newId] of Object.entries(renamed)) {
       if (oldId === newId) continue // id immuable : le déplacement ne le change plus
+      // ⚠ Si un id CHANGE malgré `Prefer: IdType="ImmutableId"`, ce n'est pas seulement
+      // `mail_messages` qui dérive : les `provider_attachment_id` d'Exchange sont
+      // rattachés à l'item PARENT, donc ils cessent de résoudre avec lui, et
+      // mail-attachment rendrait 502 sur un mandat PDF archivé. Ce cas ne devrait plus
+      // exister ; s'il réapparaît, il doit se voir dans les journaux avant d'être
+      // découvert par un agent.
+      console.error(`[mail-actions] id Graph modifié malgré l'id immuable (${oldId} → ${newId}) — pièces jointes du message potentiellement irrésolubles`)
       const { error } = await admin.from('mail_messages').update({ provider_message_id: newId }).eq('account_id', account.id).eq('provider_message_id', oldId)
       if (error) throw new Error(`renommage d'id: ${error.message}`)
     }
@@ -4462,6 +4836,22 @@ git commit -m "feat(messagerie): edge mail-actions (lu, étoile, archive, corbei
 
 ### Task 1.13 : Edge `mail-send` (nouveau · réponse · transfert)
 
+> ⛔ **Revue adverse « importante » du 04.09.2026 — trois défauts, dont un DOUBLE ENVOI.**
+> (1) Un seul `try` couvrait l'appel fournisseur ET la comptabilité locale : `gmailSend`
+> réussissait — le client A le courrier — puis `ingestMessages` levait sur n'importe
+> quelle écriture, et l'edge répondait `send_failed` en 502 ; côté Outlook, `t!.id` sur
+> une insertion non vérifiée levait un TypeError dans le même catch. L'agent lit
+> « échec », renvoie, le client reçoit le message DEUX fois. Deux phases désormais, la
+> frontière étant l'acceptation par le fournisseur : avant, 502 ; après, **200 avec
+> `warning: 'sent_but_not_recorded'`** et un journal. (2) Le transfert Gmail passait le
+> `threadId` de l'original avec un objet `Fwd:` — le guide d'envoi exige « The Subject
+> headers match » : ou Gmail refuse, ou il ouvre un fil à part et les deux boîtes
+> divergent pour toujours. `threadId = null` pour un transfert, et plus de
+> `In-Reply-To`/`References` collés dessus (sous RFC 5322 ils rangeaient le transfert,
+> chez le destinataire, dans une conversation à laquelle il n'a jamais participé).
+> (3) Le plafond de 3 Mo par pièce de Graph est refusé en amont par un 413 nommé, au lieu
+> d'un 502 muet propre à Outlook.
+
 **Files:**
 - Create: `supabase/functions/mail-send/index.ts`
 - Modify: `supabase/config.toml`
@@ -4482,9 +4872,9 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
-import { base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, textToHtml } from '../_shared/mail/mime.ts'
+import { base64ByteLength, base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, textToHtml } from '../_shared/mail/mime.ts'
 import { gmailAttachment, gmailGetMessage, gmailSend, normalizeGmailMessage } from '../_shared/mail/gmail.ts'
-import { graphSend } from '../_shared/mail/graph.ts'
+import { GRAPH_ATTACHMENT_MAX_BYTES, graphSend } from '../_shared/mail/graph.ts'
 import { ingestMessages, recomputeThread } from '../_shared/mail/ingest.ts'
 import type { MailAddress, OutgoingMessage } from '../_shared/mail/types.ts'
 
@@ -4531,7 +4921,7 @@ serve(async (req: Request) => {
   const bcc = addrList(body.bcc)
   let subject = typeof body.subject === 'string' ? body.subject.trim() : ''
   const attachments = (Array.isArray(body.attachments) ? body.attachments : []) as { filename: string; mime_type: string; base64: string }[]
-  if (attachments.reduce((n, a) => n + Math.ceil((a.base64?.length ?? 0) * 0.75), 0) > MAX_TOTAL_ATTACHMENT_BYTES) return json({ error: 'attachments_too_large' }, 413)
+  if (attachments.reduce((n, a) => n + base64ByteLength(a.base64), 0) > MAX_TOTAL_ATTACHMENT_BYTES) return json({ error: 'attachments_too_large' }, 413)
 
   // Original (réponse/transfert) — TOUJOURS relu par account_id : un id étranger rend 404.
   let original: OriginalRow | null = null
@@ -4574,60 +4964,124 @@ serve(async (req: Request) => {
     }
   }
 
+  // ⛔ Graph refuse une pièce de 3 Mo ou plus dans la collection d'un brouillon
+  // (« limits the size of the attachment you can add to under 3 MB ») et ce build
+  // n'implémente pas `createUploadSession`. Sans ce contrôle, un PDF de 4 Mo envoyé à
+  // un acheteur passait sur Gmail et rendait 502 `send_failed` sur Outlook, sans que
+  // rien ne dise que la TAILLE était en cause.
+  if (account.provider === 'outlook') {
+    const tooBig = outAtts.find((a) => base64ByteLength(a.base64) >= GRAPH_ATTACHMENT_MAX_BYTES)
+    if (tooBig) return json({ error: 'attachment_too_large_outlook', filename: tooBig.filename, limit_bytes: GRAPH_ATTACHMENT_MAX_BYTES }, 413)
+  }
+
   const messageId = makeMessageId(account.email.split('@')[1] ?? 'megga.ch')
+  // ⛔ UN TRANSFERT N'EST PAS UNE RÉPONSE. Coller `In-Reply-To`/`References` de
+  // l'original sur un transfert le range, chez le DESTINATAIRE, dans une conversation
+  // à laquelle il n'a jamais participé (RFC 5322 : ces en-têtes désignent le message
+  // auquel on RÉPOND). Ils ne sont posés que pour `reply`.
+  const isReply = kind === 'reply'
   const outgoing: OutgoingMessage = {
     from: { name: account.display_name ?? (prof?.full_name as string | null) ?? null, email: account.email },
     to, cc, bcc, subject, text: fullText, html: fullHtml,
-    inReplyTo: original?.rfc822_message_id ?? null,
-    references: original ? [...(original.in_reply_to ? [original.in_reply_to] : []), ...(original.rfc822_message_id ? [original.rfc822_message_id] : [])] : [],
+    inReplyTo: isReply ? (original?.rfc822_message_id ?? null) : null,
+    references: isReply && original ? [...(original.in_reply_to ? [original.in_reply_to] : []), ...(original.rfc822_message_id ? [original.rfc822_message_id] : [])] : [],
     messageId, attachments: outAtts,
   }
 
   let localMessageId: string | null = null
   let threadId: string | null = original?.thread_id ?? null
+  if (account.provider !== 'gmail' && account.provider !== 'outlook') return json({ error: 'provider_not_supported' }, 501)
+
+  /**
+   * ⛔ DEUX PHASES, DEUX VERDICTS — et la frontière est l'ACCEPTATION PAR LE
+   * FOURNISSEUR. Un seul `try` couvrait l'appel fournisseur ET toute la comptabilité
+   * locale : `gmailSend` réussissait (le courrier est PARTI, le client l'a), puis
+   * `ingestMessages` levait sur n'importe quelle écriture — insertion de fil, de
+   * message, de pièce — et l'edge répondait `send_failed` en 502. Côté Outlook,
+   * `t!.id` sur une insertion non vérifiée levait un TypeError dans le même catch.
+   * L'agent lit « échec », renvoie, et le client reçoit le message DEUX fois. Rien ne
+   * distinguait « le fournisseur a refusé » de « le fournisseur a accepté et nous
+   * n'avons pas su l'écrire ».
+   *
+   * Après acceptation, la réponse est donc 200 avec un drapeau que le lot 2 peut
+   * afficher (« envoyé ; copie locale incomplète, elle se rattrapera à la synchro »),
+   * jamais une erreur d'envoi. Le rattrapage existe : Gmail réingère le message à la
+   * passe suivante, et Graph rapproche la copie « Envoyés » par Message-ID.
+   */
+  let sentProviderMessageId: string | null = null
   try {
     if (account.provider === 'gmail') {
       const { data: th } = threadId ? await admin.from('mail_threads').select('provider_thread_id').eq('id', threadId).single() : { data: null }
-      const sent = await gmailSend(token, base64UrlEncode(new TextEncoder().encode(buildMime(outgoing))), th?.provider_thread_id ?? null)
-      const full = await gmailGetMessage(token, sent.id)
-      await ingestMessages(admin, account, [normalizeGmailMessage(full, account.email)], { skipAudit: true })
-      const { data: row } = await admin.from('mail_messages').select('id, thread_id').eq('account_id', account.id).eq('provider_message_id', sent.id).single()
-      localMessageId = row?.id ?? null; threadId = row?.thread_id ?? threadId
-    } else if (account.provider === 'outlook') {
+      // ⛔ PAS DE threadId POUR UN TRANSFERT. Le guide d'envoi de Gmail pose les
+      // conditions pour qu'un message rejoigne un fil existant : « The Subject headers
+      // match » et « The References and In-Reply-To headers follow the RFC 2822
+      // standard ». Un transfert porte `Fwd: <objet>`, qui ne concorde PAS. Les deux
+      // issues étaient mauvaises : ou Gmail refusait l'envoi (502 `send_failed`, le
+      // transfert devenait impossible), ou il l'acceptait en ouvrant un fil à part —
+      // et le CRM gardait le transfert dans l'ancien fil pendant que Gmail le rangeait
+      // ailleurs, les deux boîtes divergeant définitivement. Le fil CRM suit désormais
+      // le fournisseur : la ligne relue après ingestion porte le vrai `thread_id`.
+      const providerThreadId = kind === 'forward' ? null : (th?.provider_thread_id ?? null)
+      const sent = await gmailSend(token, base64UrlEncode(new TextEncoder().encode(buildMime(outgoing))), providerThreadId)
+      sentProviderMessageId = sent.id
+    } else {
       const mode = original ? { kind: kind as 'reply' | 'forward', providerMessageId: original.provider_message_id } : { kind: 'new' as const }
       await graphSend(token, { subject, html: fullHtml, to, cc, bcc, internetMessageId: messageId, attachments: outAtts }, mode)
+    }
+  } catch (e) {
+    return json({ error: 'send_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
+  }
+
+  // ── Le courrier est PARTI. Tout ce qui suit est de la comptabilité locale. ───────
+  let bookkeeping: string | null = null
+  try {
+    if (account.provider === 'gmail') {
+      // Gmail rend l'id du message envoyé ; sans lui il n'y a rien à réingérer.
+      if (!sentProviderMessageId) throw new Error('gmail: aucun id de message rendu par messages.send')
+      const full = await gmailGetMessage(token, sentProviderMessageId)
+      await ingestMessages(admin, account, [normalizeGmailMessage(full, account.email)], { skipAudit: true })
+      const { data: row, error } = await admin.from('mail_messages').select('id, thread_id').eq('account_id', account.id).eq('provider_message_id', sentProviderMessageId).maybeSingle()
+      if (error) throw new Error(`relecture du message envoyé: ${error.message}`)
+      localMessageId = row?.id ?? null; threadId = row?.thread_id ?? threadId
+    } else {
       // Ligne provisoire : la synchro « Envoyés » la rapproche par Message-ID.
       if (!threadId) {
-        const { data: t } = await admin.from('mail_threads').insert({
+        const { data: t, error } = await admin.from('mail_threads').insert({
           account_id: account.id, agency_id: account.agency_id, provider_thread_id: `pending-thread:${messageId}`,
           subject, snippet: text.slice(0, 160), participants: to, from_name: outgoing.from.name, from_email: account.email,
           last_message_at: new Date().toISOString(), last_outbound_at: new Date().toISOString(), message_count: 0, is_read: true,
         }).select('id').single()
-        threadId = t!.id
+        // ⚠ `t!.id` sur un résultat non vérifié levait un TypeError — dans l'ancien
+        // `try` unique, cela devenait `send_failed` sur un courrier DÉJÀ PARTI.
+        if (error || !t) throw new Error(`fil provisoire: ${error?.message ?? 'aucune ligne rendue'}`)
+        threadId = t.id
       }
-      const { data: m } = await admin.from('mail_messages').insert({
+      const { data: m, error: eMsg } = await admin.from('mail_messages').insert({
         thread_id: threadId, account_id: account.id, agency_id: account.agency_id,
         provider_message_id: `pending:${messageId}`, rfc822_message_id: messageId, in_reply_to: outgoing.inReplyTo,
         direction: 'outbound', from_name: outgoing.from.name, from_email: account.email, to, cc, bcc,
         subject, snippet: text.slice(0, 160), body_text: fullText, body_html: fullHtml, sent_at: new Date().toISOString(),
         is_read: true, has_attachments: outAtts.length > 0,
       }).select('id').single()
+      if (eMsg) throw new Error(`message provisoire: ${eMsg.message}`)
       localMessageId = m?.id ?? null
-      await admin.from('mail_threads').update({ last_message_at: new Date().toISOString(), last_outbound_at: new Date().toISOString(), snippet: text.slice(0, 160) }).eq('id', threadId)
+      const { error: eThread } = await admin.from('mail_threads').update({ last_message_at: new Date().toISOString(), last_outbound_at: new Date().toISOString(), snippet: text.slice(0, 160) }).eq('id', threadId)
+      if (eThread) throw new Error(`fil, dates: ${eThread.message}`)
       // Le compteur et les dates viennent des messages : la ligne provisoire compte déjà.
       // ⚠ `threadId` est `string | null` ici pour TypeScript (il vient de `original?.thread_id`) :
       // sans cette garde, `deno check` rend TS2345 et l'étape CI « Type-check Edge Functions »,
       // déclarée bloquante, rougit.
       if (threadId) await recomputeThread(admin, threadId)
-    } else {
-      return json({ error: 'provider_not_supported' }, 501)
     }
   } catch (e) {
-    return json({ error: 'send_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
+    // JAMAIS 502 ici : le fournisseur a accepté. Un refus renvoyé à l'agent le ferait
+    // renvoyer, et le client recevrait le courrier deux fois.
+    bookkeeping = e instanceof Error ? e.message : String(e)
+    console.error(`[mail-send] ${account.provider} ${account.id}: envoyé mais NON enregistré — ${bookkeeping}`)
   }
 
   // Audit avec l'acteur (l'ingestion a été appelée en skipAudit).
-  const { data: th } = threadId ? await admin.from('mail_threads').select('contact_id').eq('id', threadId).single() : { data: null }
+  const { data: th } = threadId ? await admin.from('mail_threads').select('contact_id').eq('id', threadId).maybeSingle() : { data: null }
   if (th?.contact_id) {
     await admin.from('activity_events').insert({
       agency_id: account.agency_id, actor_id: user.id, actor_kind: 'user', action: 'email_sent', category: 'messaging', severity: 'info',
@@ -4636,7 +5090,11 @@ serve(async (req: Request) => {
     })
   }
   if (typeof body.draft_id === 'string') await admin.from('mail_drafts').delete().eq('id', body.draft_id).eq('author_id', user.id)
-  return json({ ok: true, message_id: localMessageId, thread_id: threadId })
+  // `ok: true` parce que le courrier est parti — `warning` dit que la copie locale est
+  // incomplète, pour que l'UI l'annonce au lieu d'inviter à renvoyer.
+  return json(bookkeeping
+    ? { ok: true, message_id: localMessageId, thread_id: threadId, warning: 'sent_but_not_recorded', detail: bookkeeping.slice(0, 300) }
+    : { ok: true, message_id: localMessageId, thread_id: threadId })
 })
 ```
 
@@ -4680,6 +5138,18 @@ git commit -m "feat(messagerie): edge mail-send (nouveau, réponse, transfert ; 
 
 ### Task 1.14 : Edge `mail-attachment` (flux + classement au dossier)
 
+> ⛔ **Revue adverse « importante » du 04.09.2026 — XSS STOCKÉ PAR PIÈCE JOINTE.** Le GET
+> recopiait `mail_attachments.mime_type` — écrit par `ingest.ts` depuis `part.mimeType`
+> (Gmail) ou `a.contentType` (Graph), donc choisi par l'EXPÉDITEUR du courrier — en
+> `Content-Type`, avec `Content-Disposition: inline`. Un inconnu envoyait une pièce
+> déclarée `text/html` portant un `<script>`, l'agent ouvrait le message, le front la
+> lisait avec son jeton : script dans la session du CRM, et compromission inter-agences
+> si la victime est super-admin. `X-Content-Type-Options: nosniff` n'y peut rien — il
+> empêche de DEVINER un type, pas d'en honorer un déclaré. `attachmentServing`
+> (`_shared/mail/mime.ts`, task 1.3) décide désormais : liste blanche de rendu, tout le
+> reste en `application/octet-stream` + `attachment`, plus une CSP `default-src 'none';
+> sandbox` en ceinture.
+
 **Files:**
 - Create: `supabase/functions/mail-attachment/index.ts`
 - Modify: `supabase/config.toml`
@@ -4697,6 +5167,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { accountVisibleTo, providerConfigFromEnv } from '../_shared/mail/guard.ts'
+import { attachmentServing } from '../_shared/mail/mime.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
 import { gmailAttachment } from '../_shared/mail/gmail.ts'
 import { graphAttachmentBytes } from '../_shared/mail/graph.ts'
@@ -4759,15 +5230,23 @@ serve(async (req: Request) => {
     let bytes: Uint8Array
     try { bytes = await fetchBytes(admin, a) } catch (e) { return json({ error: 'provider_failed', detail: e instanceof Error ? e.message : String(e) }, 502) }
     const name = encodeURIComponent(a.att.filename).replace(/['()]/g, escape)
+    // Le type vient de l'EXPÉDITEUR du courrier : il ne traverse jamais tel quel.
+    // `attachmentServing` (mime.ts) rend l'essence autorisée pour un rendu en ligne, ou
+    // `application/octet-stream` + `attachment` pour tout le reste — sans quoi une pièce
+    // déclarée `text/html` s'exécutait dans la session de l'agent.
+    const serving = attachmentServing(a.att.mime_type)
     return new Response(toBuffer(bytes), {
       status: 200,
       headers: {
         ...corsHeaders,
-        'Content-Type': a.att.mime_type || 'application/octet-stream',
+        'Content-Type': serving.contentType,
         'Content-Length': String(bytes.byteLength),
-        'Content-Disposition': `inline; filename*=UTF-8''${name}`,
+        'Content-Disposition': `${serving.disposition}; filename*=UTF-8''${name}`,
         'Cache-Control': 'private, max-age=300',
         'X-Content-Type-Options': 'nosniff',
+        // Ceinture et bretelles : même si un jour une essence scriptable entrait dans la
+        // liste, la page servie ici n'a droit à rien.
+        'Content-Security-Policy': "default-src 'none'; sandbox",
       },
     })
   }
@@ -4898,10 +5377,37 @@ soit un fichier appauvri qui casserait les lots 2 et 3.
 - [x] **Step 3 : Spec des contrats HTTP**
 
 ```ts
-// tests/backend/mail-edges.spec.ts
 // Contrats HTTP des cinq edges de la Messagerie contre le runtime edge LOCAL.
-// On asserte le CORPS des refus (pas seulement le statut) : la passerelle locale
-// répond aussi 401, avec un autre message (mémoire project_activity_events_emission_rules).
+//
+// ⚠ ON ASSERTE LE CORPS DES REFUS, PAS SEULEMENT LE STATUT. La passerelle locale
+// répond elle aussi 401, avec un autre message : un test qui ne regarde que le
+// code prouverait qu'un gestionnaire jamais atteint refuse bien. Même raison que
+// tests/backend/edge-service-secret-guard.spec.ts, qui l'écrit en tête.
+//
+// ⛔ 404 ET JAMAIS 403 POUR UN COMPTE D'UNE AUTRE AGENCE. `loadVisibleAccount`
+// (_shared/mail/guard.ts) rend `null` aussi bien pour un id inexistant que pour
+// un id appartenant à un tiers, et les cinq edges le traduisent en `not_found`.
+// Un 403 dirait « cet id existe, mais pas pour vous » : un oracle d'existence
+// inter-agences, exactement ce que la garde est là pour ne pas offrir. Ce fichier
+// fige le 404 dans les QUATRE edges qui décident d'une visibilité : mail-actions,
+// mail-send et mail-oauth par leur `account_id`, et mail-attachment — le seul qui
+// rende des OCTETS — par le compte qu'il déduit de l'`attachment_id`. La version
+// livrée annonçait « les trois edges qui prennent un account_id », ce qui excluait
+// en silence le cas de plus grande valeur.
+//
+// ⛔ ET LA FIXTURE DÉCISIVE EST `boxAinB` : une boîte de l'AGENCE B dont le
+// PROPRIÉTAIRE est l'agent A. C'est la seule forme qui distingue le prédicat
+// CONJOINT (`agence == agence && (visibilité=='agency' || propriétaire==moi)`) de
+// sa régression en DISJONCTION — celle que 58f250a8 a dû corriger, et qui rend un
+// ex-employé lecteur à vie de son ancienne boîte. Une boîte de l'agence B possédée
+// par l'agent B rend `false` sous les DEUX prédicats : le test restait vert pendant
+// que tous les edges fuyaient.
+//
+// Ordre des refus, tel que le code le pose — un test qui l'ignore mesure autre
+// chose que ce qu'il annonce :
+//   mail-oauth start    provider (400) → origine (400) → clientId (503)
+//   mail-send           auth (401) → compte visible (404) → statut (409) → destinataire (400)
+//   mail-sync           account_id présent ? auth agent : secret de service (401)
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { setupTwoAgencies, type TwoAgenciesSetup } from './helpers/two-agencies'
 import { serviceRoleClient } from './helpers/supabase'
@@ -4909,21 +5415,40 @@ import { waitForEdgeWorker } from './helpers/edge'
 
 const HAS_KEYS = !!(process.env.SUPABASE_TEST_ANON_KEY && process.env.SUPABASE_TEST_SERVICE_ROLE_KEY)
 const URL = process.env.SUPABASE_TEST_URL ?? 'http://127.0.0.1:54321'
-const SERVICE_JWT = process.env.SUPABASE_TEST_SERVICE_ROLE_JWT ?? process.env.SUPABASE_TEST_SERVICE_ROLE_KEY ?? ''
+
+// ⚠ `||` et non `??` : en CI la variable peut être exportée VIDE, et `??` ne
+// retomberait pas. Même repli que agency-verification-run.spec.ts:115.
+// Le JWT legacy est ce que le runtime edge injecte sous SUPABASE_SERVICE_ROLE_KEY ;
+// une clé `sb_secret_…` est un credential valide mais AUTRE, et rendrait 401.
+const SERVICE_JWT = process.env.SUPABASE_TEST_SERVICE_ROLE_JWT || process.env.SUPABASE_TEST_SERVICE_ROLE_KEY || ''
+
 const FN = (name: string) => `${URL}/functions/v1/${name}`
 const NAMES = ['mail-oauth', 'mail-sync', 'mail-actions', 'mail-send', 'mail-attachment']
+
+/** Edges dont la garde est `requireAgentAuth` — leur refus anonyme dit « Authentication required ». */
+const AGENT_EDGES = ['mail-oauth', 'mail-actions', 'mail-send']
 
 describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
   let s: TwoAgenciesSetup
   let jwtA: string
+  let boxAId: string
   let boxBId: string
+  /** Agence B, propriétaire = agent A : la forme d'après-départ (voir l'en-tête). */
+  let boxAinBId: string
+  /** Pièce jointe portée par `boxAinBId` (agence B) et par `boxBId`. */
+  let attInBId: string
+  let attOfBId: string
 
   const call = async (name: string, body: unknown, jwt?: string, method = 'POST') => {
-    const res = await fetch(FN(name), { method, headers: { 'Content-Type': 'application/json', ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}) }, body: method === 'GET' ? undefined : JSON.stringify(body) })
+    const res = await fetch(FN(name), {
+      method,
+      headers: { 'Content-Type': 'application/json', ...(jwt ? { Authorization: `Bearer ${jwt}` } : {}) },
+      body: method === 'GET' ? undefined : JSON.stringify(body),
+    })
     const text = await res.text()
     let json: Record<string, unknown> = {}
-    try { json = JSON.parse(text) } catch { json = { raw: text } }
-    return { status: res.status, json, headers: res.headers }
+    try { json = JSON.parse(text) as Record<string, unknown> } catch { json = { raw: text } }
+    return { status: res.status, json, text }
   }
 
   beforeAll(async () => {
@@ -4931,62 +5456,278 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
     const { data } = await s.clientA.auth.getSession()
     jwtA = data.session!.access_token
     const service = serviceRoleClient()
-    const { data: b } = await service.from('mail_accounts').insert({ agency_id: s.agencyBId, owner_id: s.agentBId, provider: 'gmail', email: `b-${s.stamp}@b.test`, visibility: 'agency' }).select('id').single()
-    boxBId = b!.id
+    // Deux boîtes : l'une INVISIBLE à l'agent A (autre agence) pour éprouver le 404,
+    // l'autre VISIBLE (la sienne) pour atteindre les contrôles qui viennent APRÈS
+    // la garde. Sans la seconde, « mail-send sans destinataire » rendrait 404 sur le
+    // compte et passerait pour la bonne raison sans jamais toucher le bon code.
+    // `status` vaut 'active' par défaut (migration 20260903120000) : le contrôle 409
+    // ne s'interpose donc pas.
+    const mk = async (agencyId: string, ownerId: string, email: string, visibility: 'agency' | 'owner' = 'agency') => {
+      const { data: row, error } = await service.from('mail_accounts')
+        .insert({ agency_id: agencyId, owner_id: ownerId, provider: 'gmail', email, visibility })
+        .select('id').single()
+      if (error) throw new Error(`mail_accounts ${email}: ${error.message}`)
+      return row.id as string
+    }
+    boxAId = await mk(s.agencyAId, s.agentAId, `a-${s.stamp}@a.test`)
+    boxBId = await mk(s.agencyBId, s.agentBId, `b-${s.stamp}@b.test`)
+    // ⚠ `visibility: 'owner'` en plus de l'agence étrangère : sous le prédicat correct
+    // les DEUX moitiés refusent, sous la disjonction régressée `owner_id === moi` suffit
+    // à ouvrir. C'est ce compte-là qui rend la conjonction porteuse.
+    boxAinBId = await mk(s.agencyBId, s.agentAId, `ab-${s.stamp}@b.test`, 'owner')
+
+    // Une pièce jointe réelle dans chacune des deux boîtes de l'agence B : sans ligne,
+    // mail-attachment sort au premier `.eq('id', …)` et n'atteint JAMAIS le contrôle de
+    // visibilité — c'est ce que faisait l'unique sonde sur l'UUID nul.
+    const seedAttachment = async (accountId: string, agencyId: string, tag: string) => {
+      const { data: th, error: eTh } = await service.from('mail_threads')
+        .insert({ account_id: accountId, agency_id: agencyId, provider_thread_id: `t-${tag}-${s.stamp}`, subject: 'Mandat' })
+        .select('id').single()
+      if (eTh) throw new Error(`mail_threads ${tag}: ${eTh.message}`)
+      const { data: m, error: eM } = await service.from('mail_messages').insert({
+        thread_id: th.id, account_id: accountId, agency_id: agencyId,
+        provider_message_id: `m-${tag}-${s.stamp}`, direction: 'inbound', sent_at: new Date().toISOString(),
+        has_attachments: true,
+      }).select('id').single()
+      if (eM) throw new Error(`mail_messages ${tag}: ${eM.message}`)
+      const { data: a, error: eA } = await service.from('mail_attachments').insert({
+        message_id: m.id, account_id: accountId, agency_id: agencyId,
+        provider_attachment_id: `att-${tag}-${s.stamp}`, filename: 'mandat.pdf', mime_type: 'application/pdf', size_bytes: 1024,
+      }).select('id').single()
+      if (eA) throw new Error(`mail_attachments ${tag}: ${eA.message}`)
+      return a.id as string
+    }
+    attInBId = await seedAttachment(boxAinBId, s.agencyBId, 'ab')
+    attOfBId = await seedAttachment(boxBId, s.agencyBId, 'b')
     await Promise.all(NAMES.map((n) => waitForEdgeWorker(FN(n))))
   }, 180_000)
 
   afterAll(async () => {
-    await serviceRoleClient().from('mail_accounts').delete().eq('id', boxBId)
+    const service = serviceRoleClient()
+    // Les fils, messages et pièces partent en cascade avec les comptes.
+    await service.from('mail_accounts').delete().in('id', [boxAId, boxBId, boxAinBId])
     await s.cleanup()
   })
 
   it('sans jeton : chaque edge agent refuse AVANT toute configuration', async () => {
-    for (const n of ['mail-oauth', 'mail-actions', 'mail-send']) {
+    for (const n of AGENT_EDGES) {
       const r = await call(n, { action: 'start' })
-      expect(r.status, n).toBe(401)
+      expect(r.status, `${n} : ${r.text.slice(0, 200)}`).toBe(401)
       expect(String(r.json.error), n).toMatch(/Authentication required/i)
     }
+    // mail-attachment garde AVANT de trancher GET/POST : la sonde GET refuse pareil.
     const g = await call('mail-attachment', null, undefined, 'GET')
     expect(g.status).toBe(401)
+    expect(String(g.json.error)).toMatch(/Authentication required/i)
   })
 
-  it('mail-oauth start : URL Google + state, ou 503 lisible si le client n est pas configuré en local', async () => {
-    const r = await call('mail-oauth', { action: 'start', provider: 'gmail', origin: 'http://localhost:5173' }, jwtA)
-    if (r.status === 503) { expect(r.json.error).toBe('provider_not_configured'); return }
-    expect(r.status).toBe(200)
-    expect(String(r.json.url)).toContain('https://accounts.google.com/o/oauth2/v2/auth?')
-    expect(String(r.json.url)).toContain('gmail.modify')
-    expect(String(r.json.state)).toMatch(/^[0-9a-f]{64}$/)
+  // ⛔ L'ÉCHAPPATOIRE 503 A ÉTÉ RETIRÉE, ET C'EST TOUT L'INTÉRÊT DU TEST. `GOOGLE_CLIENT_ID`
+  // n'était pas injecté dans le runtime local, donc `mail-oauth:56` court-circuitait en 503
+  // à CHAQUE exécution : la construction de l'URL d'autorisation, le défi PKCE,
+  // `randomToken` et l'insertion dans `mail_oauth_states` n'étaient exercés PAR RIEN — un
+  // scope erroné ou un défi cassé serait passé au vert. Le secret est désormais posé en
+  // valeur de test dans `[edge_runtime.secrets]` (supabase/config.toml) ; aucun appel n'est
+  // fait vers Google, seule la CONSTRUCTION est éprouvée. Et la justification d'origine
+  // était fausse par-dessus le marché : le 503 ne prouvait pas que la garde avait couru
+  // avant la configuration, seulement que le clientId était vide — cet ordre-là est prouvé
+  // par le test anonyme 401 ci-dessus.
+  it('mail-oauth start : URL d autorisation, scope, PKCE et ligne mail_oauth_states', async () => {
+    const r = await call('mail-oauth', { action: 'start', provider: 'gmail', origin: 'http://localhost:5173', visibility: 'agency' }, jwtA)
+    expect(r.status, r.text.slice(0, 200)).toBe(200)
+    const url = new globalThis.URL(String(r.json.url))
+    expect(`${url.origin}${url.pathname}`).toBe('https://accounts.google.com/o/oauth2/v2/auth')
+    expect(url.searchParams.get('scope')).toContain('gmail.modify')
+    expect(url.searchParams.get('response_type')).toBe('code')
+    expect(url.searchParams.get('code_challenge_method')).toBe('S256')
+    // base64url de 32 octets = 43 caractères sans bourrage.
+    expect(String(url.searchParams.get('code_challenge'))).toMatch(/^[A-Za-z0-9_-]{43}$/)
+    expect(url.searchParams.get('redirect_uri')).toBe('http://localhost:5173/oauth/mail/callback')
+    // Sans `access_type=offline` + `prompt=consent`, Google ne rend pas de refresh_token
+    // à une seconde autorisation du même compte : la boîte se déconnecterait toute seule.
+    expect(url.searchParams.get('access_type')).toBe('offline')
+    expect(url.searchParams.get('prompt')).toBe('consent')
+    // randomToken(32) → 32 octets en hexadécimal = 64 caractères.
+    const state = String(r.json.state)
+    expect(state).toMatch(/^[0-9a-f]{64}$/)
+    expect(url.searchParams.get('state')).toBe(state)
+
+    // La ligne EXISTE et porte le verifier : sans elle, l'échange qui suit est perdu.
+    const service = serviceRoleClient()
+    const { data: row, error } = await service.from('mail_oauth_states')
+      .select('code_verifier, redirect_uri, provider, visibility, user_id, agency_id, consumed_at')
+      .eq('state', state).maybeSingle()
+    if (error) throw new Error(`mail_oauth_states: ${error.message}`)
+    expect(row, 'aucune ligne mail_oauth_states pour ce state').toBeTruthy()
+    expect(String(row!.code_verifier)).toMatch(/^[0-9a-f]{96}$/) // randomToken(48)
+    expect(row!.redirect_uri).toBe('http://localhost:5173/oauth/mail/callback')
+    expect(row!.provider).toBe('gmail')
+    expect(row!.visibility).toBe('agency')
+    expect(row!.user_id).toBe(s.agentAId)
+    expect(row!.agency_id).toBe(s.agencyAId)
+    expect(row!.consumed_at).toBeNull()
+    await service.from('mail_oauth_states').delete().eq('state', state)
   })
 
-  it('mail-oauth : origine hors liste → 400 ; state inconnu → 403', async () => {
+  it('mail-oauth : origine hors liste → 400 invalid_origin ; state inconnu → 403 invalid_state', async () => {
+    // `evil.example` n'est pas dans MAIL_OAUTH_ORIGINS : le refus tombe AVANT la
+    // lecture du client, donc ce cas ne dépend pas de la configuration locale.
     const bad = await call('mail-oauth', { action: 'start', provider: 'gmail', origin: 'https://evil.example' }, jwtA)
-    expect(bad.status).toBe(400)
+    expect(bad.status, bad.text.slice(0, 200)).toBe(400)
+    expect(bad.json.error).toBe('invalid_origin')
+    // 64 caractères hexadécimaux : la FORME est valide, la ligne n'existe pas.
+    // Un state mal formé rendrait le même 403 sans jamais interroger la base — on
+    // veut ici le refus qui vient de la LECTURE, pas de la validation de syntaxe.
     const ex = await call('mail-oauth', { action: 'exchange', code: 'x', state: 'a'.repeat(64) }, jwtA)
-    expect(ex.status).toBe(403)
+    expect(ex.status, ex.text.slice(0, 200)).toBe(403)
     expect(ex.json.error).toBe('invalid_state')
   })
 
   it('mail-actions / mail-send / mail-oauth disconnect : un compte d une autre agence est introuvable (404), jamais 403', async () => {
-    expect((await call('mail-actions', { action: 'mark_read', account_id: boxBId, thread_id: 'x' }, jwtA)).status).toBe(404)
-    expect((await call('mail-send', { account_id: boxBId, kind: 'new', to: [{ email: 'a@b.ch' }], subject: 's', body_text: 'b' }, jwtA)).status).toBe(404)
-    expect((await call('mail-oauth', { action: 'disconnect', account_id: boxBId }, jwtA)).status).toBe(404)
+    const cases: Array<[string, Record<string, unknown>]> = [
+      ['mail-actions', { action: 'mark_read', account_id: boxBId, thread_id: 'x' }],
+      ['mail-send', { account_id: boxBId, kind: 'new', to: [{ email: 'a@b.ch' }], subject: 's', body_text: 'b' }],
+      ['mail-oauth', { action: 'disconnect', account_id: boxBId }],
+    ]
+    for (const [name, body] of cases) {
+      const r = await call(name, body, jwtA)
+      expect(r.status, `${name} : ${r.text.slice(0, 200)}`).toBe(404)
+      expect(r.json.error, name).toBe('not_found')
+    }
   })
 
-  it('mail-attachment GET inconnu → 404 ; POST sans action → 400', async () => {
-    const g = await fetch(`${FN('mail-attachment')}?id=00000000-0000-0000-0000-000000000000`, { headers: { Authorization: `Bearer ${jwtA}` } })
+  // ⛔ LE SEUL CAS QUI RENDE LA CONJONCTION PORTEUSE (voir l'en-tête). `boxAinB` est
+  // possédée par l'APPELANT mais vit dans l'agence B : sous le prédicat correct les deux
+  // moitiés refusent ; sous la disjonction régressée — celle que 58f250a8 a corrigée —
+  // `owner_id === ctx.userId` ouvre tout, et `mail-oauth disconnect` SUPPRIMERAIT la
+  // boîte d'une autre agence en répondant 200. C'est la forme d'après-départ :
+  // `team_remove_member` laisse la ligne mail_accounts intacte, puis l'ex-membre est
+  // rattaché ailleurs.
+  it('une boîte d une AUTRE agence dont l appelant est propriétaire reste introuvable (404)', async () => {
+    const cases: Array<[string, Record<string, unknown>]> = [
+      ['mail-actions', { action: 'mark_read', account_id: boxAinBId, thread_id: 'x' }],
+      ['mail-actions', { action: 'sync_now', account_id: boxAinBId }],
+      ['mail-send', { account_id: boxAinBId, kind: 'new', to: [{ email: 'a@b.ch' }], subject: 's', body_text: 'b' }],
+      ['mail-oauth', { action: 'disconnect', account_id: boxAinBId }],
+      ['mail-oauth', { action: 'update', account_id: boxAinBId, display_name: 'volé' }],
+      ['mail-sync', { account_id: boxAinBId }],
+    ]
+    for (const [name, body] of cases) {
+      const r = await call(name, body, jwtA)
+      expect(r.status, `${name} ${String(body.action ?? '')} : ${r.text.slice(0, 200)}`).toBe(404)
+      expect(r.json.error, `${name} ${String(body.action ?? '')}`).toBe('not_found')
+    }
+    // Et la boîte est TOUJOURS là : un `disconnect` qui aurait passé la garde l'aurait
+    // effacée, et les cinq assertions ci-dessus n'en sauraient rien.
+    const service = serviceRoleClient()
+    const { data } = await service.from('mail_accounts').select('id').eq('id', boxAinBId).maybeSingle()
+    expect(data, 'la boîte de l agence B a été supprimée par l agent A').toBeTruthy()
+  })
+
+  it('mail-attachment : GET inconnu → 404 ; POST sans action → 400', async () => {
+    const g = await fetch(`${FN('mail-attachment')}?id=00000000-0000-0000-0000-000000000000`, {
+      headers: { Authorization: `Bearer ${jwtA}` },
+    })
     expect(g.status).toBe(404)
-    expect((await call('mail-attachment', { action: 'nope' }, jwtA)).status).toBe(400)
+    const p = await call('mail-attachment', { action: 'nope' }, jwtA)
+    expect(p.status, p.text.slice(0, 200)).toBe(400)
+    expect(p.json.error).toBe('unknown_action')
   })
 
-  it('mail-sync : sans secret 401 ; avec la clé service, balayage vide OK et verrou relâché', async () => {
-    expect((await call('mail-sync', {})).status).toBe(401)
+  // ⛔ mail-attachment est le SEUL edge qui rende des octets de message, et il déduit le
+  // compte de l'`attachment_id` : `accountVisibleTo` (index.ts) y est l'unique barrière
+  // inter-locataires. La sonde sur l'UUID nul sortait au premier `.eq('id', …)` sans
+  // JAMAIS l'atteindre — la garde pouvait être retirée, la suite restait verte. Ces deux
+  // pièces EXISTENT, donc le refus vient bien du contrôle de visibilité.
+  it('mail-attachment : les octets d une autre agence restent hors de portée (404), GET et classement', async () => {
+    for (const [libelle, id] of [['agence B, propriétaire agent B', attOfBId], ['agence B, propriétaire APPELANT', attInBId]] as const) {
+      const g = await fetch(`${FN('mail-attachment')}?id=${id}`, { headers: { Authorization: `Bearer ${jwtA}` } })
+      const gText = await g.text()
+      expect(g.status, `GET ${libelle} : ${gText.slice(0, 200)}`).toBe(404)
+      expect(JSON.parse(gText).error, `GET ${libelle}`).toBe('not_found')
+      const p = await call('mail-attachment', { action: 'file', attachment_id: id, contact_id: '00000000-0000-0000-0000-000000000001', document_type: 'mandat' }, jwtA)
+      expect(p.status, `POST file ${libelle} : ${p.text.slice(0, 200)}`).toBe(404)
+      expect(p.json.error, `POST file ${libelle}`).toBe('not_found')
+    }
+  })
+
+  it('mail-send : sans destinataire → 400, sur une boîte que l appelant VOIT', async () => {
+    // §7.2 du plan maître. La boîte est celle de l'agence A : la garde passe, le
+    // statut est 'active', et le refus vient donc bien du contrôle de destinataire.
+    const r = await call('mail-send', { account_id: boxAId, kind: 'new', subject: 's', body_text: 'b' }, jwtA)
+    expect(r.status, r.text.slice(0, 200)).toBe(400)
+    expect(r.json.error).toBe('recipient_required')
+  })
+
+  // ⛔ `expect(r.json.ok).toBe(true)` NE MESURAIT RIEN. Il passait quand les deux comptes
+  // échouaient, quand ZÉRO compte était lu — c'est-à-dire dans la panne la plus dangereuse
+  // du module, la file illisible qui rend `{ ok: true, synced: 0 }` avec pg_cron au vert —
+  // et le contrôle du verrou passait même si le second balayage rendait 500, `skipped`
+  // étant alors simplement absent d'un corps non analysable. On asserte donc la FORME, le
+  // CONTENU, et l'état laissé en base.
+  it('mail-sync : sans secret 401 ; avec la clé service, les comptes dus sont RÉELLEMENT traités et le verrou relâché', async () => {
+    // Message propre à cette edge : sa garde est `isServiceSecret`, pas
+    // `requireAgentAuth` — d'où `unauthorized` et non « Authentication required ».
+    const anon = await call('mail-sync', {})
+    expect(anon.status, anon.text.slice(0, 200)).toBe(401)
+    expect(anon.json.error).toBe('unauthorized')
+
+    const service = serviceRoleClient()
+    const nos = [boxAId, boxBId, boxAinBId]
+    // Date volontairement très ancienne : le balayage prend les 25 plus anciens dus, et
+    // rien ne garantit qu'une autre spec n'a pas laissé de comptes en file.
+    const { error: eDue } = await service.from('mail_accounts')
+      .update({ next_sync_at: '2000-01-01T00:00:00Z', last_error: null, sync_failures: 0, status: 'active' })
+      .in('id', nos)
+    if (eDue) throw new Error(`mise en file: ${eDue.message}`)
+
     const r = await call('mail-sync', {}, SERVICE_JWT)
-    expect(r.status).toBe(200)
+    expect(r.status, r.text.slice(0, 200)).toBe(200)
     expect(r.json.ok).toBe(true)
+    const results = r.json.results as { account_id: string; error: string | null }[]
+    expect(Array.isArray(results), `results absent : ${r.text.slice(0, 200)}`).toBe(true)
+    // `synced` DOIT décrire `results` : c'est ce compte que pg_cron voit passer.
+    expect(r.json.synced).toBe(results.length)
+    for (const id of nos) {
+      const ligne = results.find((x) => x.account_id === id)
+      expect(ligne, `le compte ${id} était dû et n a pas été traité`).toBeTruthy()
+      // Aucun de ces comptes n'a de secret Vault : la passe DOIT échouer, et le dire.
+      expect(ligne!.error, `le compte ${id} n a pas rendu d erreur alors qu il n a aucun secret`).toBeTruthy()
+    }
+
+    // L'échec doit être ÉCRIT : sans `last_error`, une boîte morte est indiscernable
+    // d'une boîte saine sans courrier neuf.
+    const { data: apres, error: eApres } = await service.from('mail_accounts')
+      .select('id, status, last_error, sync_failures').in('id', nos)
+    if (eApres) throw new Error(`relecture: ${eApres.message}`)
+    for (const id of nos) {
+      const row = apres!.find((x) => x.id === id)!
+      expect(row.last_error, `last_error non écrit pour ${id}`).toBeTruthy()
+      expect(row.sync_failures, `sync_failures non incrémenté pour ${id}`).toBeGreaterThanOrEqual(1)
+    }
+    // ⛔ ET LA BOÎTE DE L'AGENCE B DONT LE PROPRIÉTAIRE EST AILLEURS EST DÉSARMÉE.
+    // C'est le miroir écriture de `mail_account_visible` : sans lui, le balayage
+    // continuait d'ingérer le courrier d'un agent parti dans son ANCIENNE agence, toutes
+    // les deux minutes, indéfiniment. `disabled` la sort de `mail_accounts_due_idx`.
+    const parti = apres!.find((x) => x.id === boxAinBId)!
+    expect(parti.status, 'la boîte au propriétaire hors agence est restée dans le balayage').toBe('disabled')
+    expect(String(parti.last_error)).toMatch(/owner_left_agency/)
+    // Les deux boîtes saines, elles, échouent de façon TRANSITOIRE (secret absent) et
+    // restent actives : un seul échec ne doit pas éteindre une boîte.
+    for (const id of [boxAId, boxBId]) expect(apres!.find((x) => x.id === id)!.status, id).toBe('active')
+
+    // Le verrou est pris puis relâché dans un `finally` : un second balayage doit
+    // pouvoir le reprendre. S'il restait posé, la synchro s'arrêterait 180 s après
+    // chaque tick sans une seule erreur.
     const again = await call('mail-sync', {}, SERVICE_JWT)
+    expect(again.status, `second balayage : ${again.text.slice(0, 200)}`).toBe(200)
     expect(again.json.skipped, 'le verrou doit être relâché après un balayage').toBeUndefined()
+    // Lu en base plutôt qu'inféré : `skipped` absent d'un corps illisible ne prouve rien.
+    const { data: bail, error: eBail } = await service.from('mail_cron_locks')
+      .select('locked_until').eq('job', 'mail-sync').maybeSingle()
+    if (eBail) throw new Error(`mail_cron_locks: ${eBail.message}`)
+    expect(bail, 'la ligne de bail mail-sync est absente').toBeTruthy()
+    expect(new Date(String(bail!.locked_until)).getTime(), 'le bail est encore tenu après le balayage')
+      .toBeLessThanOrEqual(Date.now())
   })
 })
 ```
@@ -5026,6 +5767,43 @@ l'edge :
    `provider_not_configured`. Un statut seul ne distingue pas le gestionnaire de la passerelle.
 3. **`SERVICE_JWT` en `||` et non `??`** : en CI la variable peut être exportée VIDE, que `??`
    ne rattraperait pas. Repli identique à `agency-verification-run.spec.ts:115`.
+
+> ⚠ **Revue adverse du 04.09.2026 — QUATRE des sept `it()` ne mesuraient rien, et le
+> fichier est réécrit ci-dessus.** Aucune des deux specs backend du lot n'a jamais été
+> exécutée (pas de runtime de conteneur sur cette machine, cf. Step 2) : un test qui ne peut
+> pas rougir y est pire qu'absent, c'est un reçu.
+> 1. **Le balayage cron.** `expect(r.json.ok).toBe(true)` passait quand les deux comptes
+>    échouaient, et surtout quand ZÉRO compte était lu — la panne la plus dangereuse du
+>    module, la file illisible qui rend `{ ok: true, synced: 0 }` avec pg_cron au vert.
+>    On asserte désormais la forme (`synced` décrit `results`), le contenu (chaque compte dû
+>    est présent et rend son erreur), l'état laissé en base (`last_error`, `sync_failures`),
+>    et le bail est LU dans `mail_cron_locks` au lieu d'être inféré d'un `skipped` absent —
+>    qui l'est aussi d'un corps illisible après un 500.
+> 2. **Le 404 inter-agences ne pouvait pas détecter son propre défaut.** La fixture était une
+>    boîte de l'agence B possédée par l'agent B : sous le prédicat CONJOINT comme sous sa
+>    régression en DISJONCTION, les deux moitiés rendent `false`. Réintroduire la disjonction
+>    corrigée par 58f250a8 laissait les trois cas verts pendant que tous les edges fuyaient.
+>    La fixture décisive est `boxAinB` — agence B, propriétaire = l'appelant —, la seule
+>    forme qui les distingue, et c'est la forme d'après-départ.
+> 3. **Les octets n'étaient gardés par aucun test.** `mail-attachment` déduit le compte de
+>    l'`attachment_id` ; la sonde n'utilisait qu'un UUID nul, qui sort au premier
+>    `.eq('id', …)` sans jamais atteindre `accountVisibleTo`. Deux pièces réelles sont semées
+>    dans l'agence B, et l'en-tête cesse d'annoncer « les trois edges qui prennent un
+>    account_id ».
+> 4. **`mail-oauth start` prenait TOUJOURS la branche 503.** Faute de `GOOGLE_CLIENT_ID` dans
+>    le runtime local, l'URL d'autorisation, le scope, le défi PKCE, `randomToken` et
+>    l'insertion dans `mail_oauth_states` n'étaient exercés par RIEN. Deux valeurs de TEST
+>    sont posées dans `[edge_runtime.secrets]` de `supabase/config.toml` — aucun appel n'est
+>    fait vers Google, seule la CONSTRUCTION est éprouvée —, l'échappatoire est retirée et la
+>    ligne d'état est relue en base. La justification écrite était fausse en prime : le 503 ne
+>    prouvait pas l'ordre garde-puis-configuration, seulement qu'un clientId était vide.
+>
+> ```toml
+> # supabase/config.toml, sous [edge_runtime.secrets]
+> GOOGLE_CLIENT_ID = "test-only-local.apps.googleusercontent.com"
+> MICROSOFT_CLIENT_ID = "test-only-local-microsoft-client"
+> ```
+> ⚠ Un `supabase start` déjà en cours ne les voit pas : `supabase stop && supabase start`.
 
 - [x] **Step 4 : Toutes les portes, puis commit**
 
@@ -5170,5 +5948,8 @@ Google » : c'est bien ce client-là qu'il faut étendre, pas un nouveau) :
 ⛔ **Ces deux secrets sont ABSENTS du projet aujourd'hui** (constat inchangé depuis le
 16.08.2026, cf. CLAUDE.md §8). Conséquence assumée et **codée**, pas subie :
 `mail-oauth` avec `provider: 'outlook'` répond `503 provider_not_configured` — un refus
-lisible, rendu APRÈS la garde d'authentification. La moitié Outlook de l'épreuve de bout en
+lisible, rendu APRÈS la garde d'authentification. ⚠ En LOCAL, `MICROSOFT_CLIENT_ID` porte
+depuis le 04.09.2026 une valeur de test (`[edge_runtime.secrets]`) : la branche 503 n'y est
+donc plus atteignable, seule la construction de l'URL l'est. Rien n'est posé en production
+par ce fichier. La moitié Outlook de l'épreuve de bout en
 bout (Step 5) ne peut donc pas tourner tant qu'ils ne sont pas posés.
