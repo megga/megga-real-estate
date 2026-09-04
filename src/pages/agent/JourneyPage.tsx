@@ -5,9 +5,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { crmPalette } from '@/components/crm/tokens'
-import {
-  CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId,
-} from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import { PCDossierFrame } from '@/components/crm/journey/PCDossierFrame'
 import { PCFilters } from '@/components/crm/journey/PCFilters'
 import {
@@ -48,38 +47,6 @@ export default function JourneyPage() {
     })
   }, [liveDossiers, stageFilter, urgencyFilter])
 
-  const onCmd = () => {
-    /* placeholder */
-  }
-
-  const onNavigate = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today':
-        navigate('/dashboard'); break
-      case 'pipeline':
-        navigate('/dashboard/pipeline'); break
-      case 'matching':
-        navigate('/dashboard/matching'); break
-      case 'contacts':
-        navigate('/dashboard/contacts'); break
-      case 'biens':
-        navigate('/dashboard/listings'); break
-      case 'biens-new':
-        navigate('/dashboard/listings/new'); break
-      case 'parcours':
-        break
-      case 'calendar':
-        navigate('/dashboard/calendar'); break
-      case 'kyc':
-        navigate('/dashboard/kyc'); break
-      case 'dashboard':
-        navigate('/dashboard/analytics'); break
-      case 'settings':
-        navigate('/dashboard/settings'); break
-      default:
-    }
-  }
-
   return (
     <div
       style={{
@@ -90,27 +57,15 @@ export default function JourneyPage() {
       }}
     >
       <style>{CRM_KEYFRAMES}</style>
-      <CrmTopNav
-        active="parcours"
-       
-        sp={sp}
-        onNavigate={onNavigate}
-        onCmd={onCmd}
-      />
 
       <div style={{ display: 'flex' }}>
-        <CrmIconRail
-          active="parcours"
-          onNavigate={onNavigate}
-          onCmd={onCmd}
-          dark={dark}
-          setDark={setDark}
-          sp={sp}
-        />
+        <CrmSidebar active="parcours" sp={sp} dark={dark} setDark={setDark} />
         <main
           style={{
             flex: 1,
-            padding: '32px 40px 80px 0',
+            // La gouttière de gauche venait du rail (capsule centrée dans ses
+            // 128 px) : la barre est désormais une carte pleine, il faut la poser ici.
+            padding: '32px 40px 80px var(--crm-space-lg)',
             minWidth: 0,
           }}
         >

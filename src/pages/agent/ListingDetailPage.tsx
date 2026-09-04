@@ -31,8 +31,9 @@ import {
   crmPalette, type CrmPalette,
 } from '@/components/crm/tokens'
 import {
-  CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId,
+  CRM_KEYFRAMES, type CrmScreenId,
 } from '@/components/crm/CrmShell'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import {
   VxIcon, VxGallery, VxLightbox, VxStatusPill, VxMetaPill, VxSectionHead,
   VxSpark, VxAvatar, type VxIconName,
@@ -552,7 +553,6 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
     }
   }
 
-  const onCmd = () => {}
   const onNavigate = (screen: CrmScreenId | string) => {
     switch (screen) {
       case 'today': navigate('/dashboard'); break
@@ -770,10 +770,9 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
         @media (prefers-reduced-motion: reduce){ [style*="bfUp"]{ animation:none !important; opacity:1 !important; transform:none !important; } }
       `}</style>
 
-      <CrmTopNav active="biens" sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="biens" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+        <CrmSidebar active="biens" sp={sp} dark={dark} setDark={setDark} />
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
           {/* BENTO central (look pager, sans slide) */}
           <div style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, display: 'flex', flexDirection: 'column' }}>
 

@@ -14,12 +14,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import {
-  CrmTopNav,
-  CrmIconRail,
-  CRM_KEYFRAMES,
-  type CrmScreenId,
-} from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import { crmPalette } from '@/components/crm/tokens'
 import { DOSSIER_FONT, DOSSIER_KEYFRAMES } from '@/components/crm-dossiers/tokens'
 import {
@@ -135,7 +131,6 @@ export default function KycPage() {
       default:
     }
   }
-  const onCmd = () => {}
 
   // Anti-flash : tant que le gate n'est pas résolu, écran neutre (pas de pager
   // clignotant avant la redirection vers l'onboarding).
@@ -163,12 +158,18 @@ export default function KycPage() {
         <style>{KYC_KEYFRAMES}</style>
         <style>{KYP_KEYFRAMES}</style>
 
-        <CrmTopNav active={'kyc' as CrmScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
-
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-          <CrmIconRail active="kyc" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+          <CrmSidebar active="kyc" sp={sp} dark={dark} setDark={setDark} />
 
-          <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', padding: '22px 24px 22px 0' }}>
+          <main
+            style={{
+              flex: 1,
+              minWidth: 0,
+              minHeight: 0,
+              height: '100%',
+              padding: 'var(--crm-space-lg) 24px 22px var(--crm-space-lg)',
+            }}
+          >
             {gatePending ? (
               <div style={{ height: '100%', borderRadius: 26, background: sp.pageBg }} />
             ) : (

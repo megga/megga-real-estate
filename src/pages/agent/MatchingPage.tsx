@@ -17,12 +17,10 @@
 
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import type { ReactNode } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmPalette } from '@/components/crm/tokens'
-import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
-import { openCrmSearch } from '@/components/crm/search/openSearch'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import MatchingAtelierPage from '@/pages/agent/MatchingAtelierPage'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
@@ -113,14 +111,15 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
  * Contenus de substitution du banc `/dev/matching-atelier`, et rien d'autre.
  *
  * ⚠ La MÉCANIQUE reste celle de la production — chrome, molette, clavier, points
- * de page, bascule de thème du rail. C'est elle qu'on vient éprouver : un banc
- * qui recopierait le pager mesurerait sa copie, et les deux divergeraient au
- * premier correctif. Seul le CONTENU est fourni de l'extérieur, pour que les
- * fixtures ne descendent pas dans le bundle de production.
+ * de page, bascule de thème de la barre latérale. C'est elle qu'on vient
+ * éprouver : un banc qui recopierait le pager mesurerait sa copie, et les deux
+ * divergeraient au premier correctif. Seul le CONTENU est fourni de l'extérieur,
+ * pour que les fixtures ne descendent pas dans le bundle de production.
  *
- * Sa présence rend aussi la navigation du chrome INERTE : chaque cible mène à
- * une surface protégée, donc au rebond vers la production que le banc existe
- * précisément pour éviter.
+ * ⚠ La barre latérale navigue ELLE-MÊME (elle porte la table des routes, pour
+ * qu'il n'y ait plus vingt-et-un aiguillages divergents), et se TAIT sous
+ * `/dev/*` : sans cette garde, chaque ligne mènerait à une surface protégée — et
+ * au rebond vers la production que le banc existe précisément pour éviter.
  *
  * ⚠ Des COMPOSANTS, pas des fonctions à appeler. Deux raisons, et la seconde a
  * mordu :
@@ -145,18 +144,17 @@ export interface MatchingPagerBanc {
    * les commandes glisseraient avec la page au lieu de rester à l'écran.
    *
    * ⚠ Et elles ne peuvent pas non plus vivre dans le banc au-dessus du pager :
-   * c'est le pager qui POSSÈDE le thème (bouton du rail + `megga.sugar.dark`).
-   * Un banc qui relirait la clé pour son compte peindrait ses commandes dans le
-   * thème d'avant la dernière bascule — un banc qui fabrique lui-même une
-   * incohérence de thème, défaut déjà vécu sur `/dev/biens`.
+   * c'est le pager qui POSSÈDE le thème (bouton de la barre latérale +
+   * `megga.sugar.dark`). Un banc qui relirait la clé pour son compte peindrait
+   * ses commandes dans le thème d'avant la dernière bascule — un banc qui
+   * fabrique lui-même une incohérence de thème, défaut déjà vécu sur
+   * `/dev/biens`.
    */
   Chrome?: (p: { dark: boolean }) => ReactNode
 }
 
 export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}) {
-  const navigate = useNavigate()
-
-  // ─── Thème: dark/light, calé sur le toggle du rail (comme Today) ────────
+  // ─── Thème: dark/light, calé sur la barre latérale (comme Today) ────────
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return readCrmDark()
@@ -169,26 +167,6 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
 
   const sp = crmPalette(dark)
   const lightMode = !dark
-
-  const onCmd = () => openCrmSearch()
-
-  const onNavigate = (id: CrmScreenId | string) => {
-    if (banc) return
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'biens-new': navigate('/dashboard/listings/new'); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings': navigate('/dashboard/settings'); break
-      default:
-    }
-  }
 
   // ─── Pager molette ──────────────────────────────────────────────────
   // Arrivée pivotée (fiche deal V4 « Transmettre à … », fiche contact) : un
@@ -365,14 +343,9 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
         .matching-scroll-hint:hover .msh-label, .matching-scroll-hint:focus-visible .msh-label { max-width: 220px !important; opacity: 1 !important; transform: translateX(0) !important; }
       `}</style>
 
-      <CrmTopNav active="matching" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
-
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail
-          active="matching" onNavigate={onNavigate} onCmd={onCmd}
-          dark={dark} setDark={setDark} sp={sp}
-        />
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+        <CrmSidebar active="matching" sp={sp} dark={dark} setDark={setDark} />
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
           {/* Viewport pager — clippe les deux pages, capte la molette */}
           <div ref={viewportRef} style={{
             position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',

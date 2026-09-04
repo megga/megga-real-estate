@@ -190,7 +190,7 @@ export function BiensPager({
   }, [go])
 
   return (
-    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
+    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
       <style>{`
         .bpg-scroll-hint { opacity: .55; transition: opacity .35s ease; }
         .bpg-scroll-hint:hover, .bpg-scroll-hint:focus-visible { opacity: 1; }

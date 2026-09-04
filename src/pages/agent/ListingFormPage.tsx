@@ -11,7 +11,8 @@
  */
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import { crmPalette } from '@/components/crm/tokens'
 import { crmThemeVars } from '@/components/crm/crmThemeVars'
 import { useForm, type UseFormReturn } from 'react-hook-form'
@@ -2212,24 +2213,9 @@ export default function ListingFormPage() {
   const [dark, setDark] = useState<boolean>(() =>
     typeof window !== 'undefined' && readCrmDark())
 
-  // Chrome Sugar porté ici : cette page vivait sous `AgentLayout` (sidebar
-  // legacy). Chaque surface Sugar porte son propre chrome.
+  // Chrome porté ici : cette page vivait sous `AgentLayout` (sidebar legacy).
+  // Chaque surface de bureau monte sa propre `CrmSidebar`.
   const sgSp = useMemo(() => crmPalette(dark), [dark])
-  const onCrmNav = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'settings': navigate('/dashboard/settings'); break
-      default:
-    }
-  }
-  const onCrmCmd = () => {}
 
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -2826,10 +2812,9 @@ export default function ListingFormPage() {
   return (
     <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }}>
       <style>{CRM_KEYFRAMES}</style>
-      <CrmTopNav active={'biens' as CrmScreenId} sp={sgSp} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} />
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        <CrmIconRail active={'biens' as CrmScreenId} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} setDark={setDark} sp={sgSp} />
-        <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>
+        <CrmSidebar active="biens" sp={sgSp} dark={dark} setDark={setDark} />
+        <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 120px' }}>
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">

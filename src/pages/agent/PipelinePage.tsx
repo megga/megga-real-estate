@@ -48,9 +48,8 @@ import {
 import {
   usePipelineReminderCreators, useCancelTransactionReminders, useRescheduleReminder,
 } from '@/hooks/usePipelineNextActions'
-import {
-  CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId,
-} from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import { CRM_STAGE_PROBS } from '@/components/crm/pipeline/stageConstants'
 import { StageColumn } from '@/components/crm/pipeline/StageColumn'
 import { PipelineList } from '@/components/crm/pipeline/PipelineList'
@@ -96,7 +95,10 @@ export interface PipelineBanc {
    * → `ProtectedRoute` → `window.location.replace('https://megga.ch/login')`. Le
    * banc éjecte alors vers la PRODUCTION — mesuré à l'écran, pas déduit : c'est
    * exactement le piège pour lequel ce banc existe, et la première version l'a
-   * livré avec. Vaut aussi pour la barre supérieure et le rail.
+   * livré avec.
+   *
+   * ⚠ Elle ne couvre PAS la barre latérale : `CrmSidebar` navigue elle-même
+   * (elle porte sa propre carte écran → route) et ne prend aucun `onNavigate`.
    */
   onNavigate?: (vers: string) => void
   /**
@@ -554,24 +556,6 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
     else if (dealId) openDeal(dealId)
   }
 
-  // ── Nav (partagé avec Today) ────────────────────────────────────────
-  const onCmd = () => window.alert(t('board.commandPaletteComingSoon'))
-  const onNavigate = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today':     go('/dashboard'); break
-      case 'pipeline':  go('/dashboard/pipeline'); break
-      case 'matching':  go('/dashboard/matching'); break
-      case 'contacts':  go('/dashboard/contacts'); break
-      case 'biens':     go('/dashboard/listings'); break
-      case 'biens-new': go('/dashboard/listings/new'); break
-      case 'calendar':  go('/dashboard/calendar'); break
-      case 'kyc':       go('/dashboard/kyc'); break
-      case 'dashboard': go('/dashboard/analytics'); break
-      case 'settings':  go('/dashboard/settings'); break
-      default: break
-    }
-  }
-
   // ── Poignées offertes au banc ───────────────────────────────────────
   // Ce sont celles de l'agent, pas des raccourcis : « perdu » passe par le même
   // `setLostConfirm` que le menu de carte, « signé » par le même `setSignedDeal`
@@ -628,12 +612,14 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
         .sgPipeBoard::-webkit-scrollbar-corner{background:transparent}
       `}</style>
 
-      <CrmTopNav active="pipeline" sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
-
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="pipeline" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmSidebar active="pipeline" sp={sp} dark={dark} setDark={setDark} />
 
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+        <main style={{
+          flex: 1, minWidth: 0, minHeight: 0, height: '100%',
+          paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)',
+          paddingRight: 24, paddingBottom: 22,
+        }}>
           {/* Grand cadre bento mono-page — clippe le corps du pipeline */}
           <div style={{
             position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',

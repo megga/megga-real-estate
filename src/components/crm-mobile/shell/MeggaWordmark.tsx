@@ -7,6 +7,12 @@ interface MeggaWordmarkProps {
 /**
  * Wordmark MEGGA en SVG inline (ratio 694.81 × 419.02), repris du chrome
  * desktop. Monochrome via `color`. Composant décoratif du shell mobile.
+ *
+ * ⚠ MOBILE UNIQUEMENT, et c'est un choix, pas un oubli. Le bureau l'a porté un
+ * jour — quand la barre du haut a laissé la place à la barre latérale, sa marque
+ * y avait suivi — puis Julien l'a retirée le 5 septembre 2026 : le haut d'une
+ * colonne de 264 px appartient à l'AGENCE, pas au produit. Sur mobile la
+ * question ne se pose pas, l'en-tête n'y porte rien d'autre.
  */
 export default function MeggaWordmark({ color = MXC_COLOR.n100, height = 26 }: MeggaWordmarkProps) {
   const width = (694.81 / 419.02) * height

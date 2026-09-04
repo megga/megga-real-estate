@@ -13,7 +13,8 @@ import { crmPalette } from '@/components/crm/tokens'
 import type { CrmBien } from '@/components/crm/mockData'
 import { mxSurfaces } from '@/components/crm/biens/gallery/galHelpers'
 import { useListingsScreen } from '@/hooks/useListingsScreen'
-import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import { BiensPager } from '@/components/crm/biens/pager/BiensPager'
 import WizardShell from '@/components/crm-wizard/WizardShell'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
@@ -43,23 +44,6 @@ export default function ListingsPage() {
 
   const [wizardOpen, setWizardOpen] = useState(false)
 
-  const onCmd = () => { /* placeholder command palette */ }
-  const onNavigate = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': break
-      case 'biens-new': setWizardOpen(true); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings': navigate('/dashboard/settings'); break
-      default: /* no-op */
-    }
-  }
-
   const onOpenBien = (bienId: string) => navigate(`/dashboard/listings/${bienId}`)
   // Reprise de brouillon → surface d'édition en place (édite le bien existant,
   // jamais de doublon), plutôt qu'un ré-amorçage du wizard.
@@ -79,10 +63,9 @@ export default function ListingsPage() {
       }}
     >
       <style>{CRM_KEYFRAMES}</style>
-      <CrmTopNav active="biens" sp={sp} onNavigate={onNavigate} dark={dark} />
-
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="biens" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        {/* Le geste « Créer » de la barre est, sur cet écran, le wizard « Créer un bien ». */}
+        <CrmSidebar active="biens" sp={sp} dark={dark} setDark={setDark} onCmd={() => setWizardOpen(true)} />
         <BiensPager
           biens={biens}
           sp={sp}

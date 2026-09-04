@@ -15,7 +15,8 @@ import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
 import type { ExternalListing } from '@/hooks/useExternalMatching'
 import { useExternalListingActions } from '@/hooks/useExternalListingActions'
 import { useSendPropertyEmail } from '@/hooks/useSendEmail'
-import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import { crmPalette } from '@/components/crm/tokens'
 import { crmThemeVars } from '@/components/crm/crmThemeVars'
 import { readCrmDark } from '@/lib/crmDark'
@@ -60,41 +61,22 @@ export default function ExternalListingDetailPage() {
   const [dark, setDark] = useState<boolean>(() =>
     typeof window !== 'undefined' && readCrmDark())
 
-  // Chrome Sugar porté ici : cette page vivait sous `AgentLayout`.
+  // Chrome CRM porté ici : cette page vivait sous `AgentLayout`.
   const sgSp = useMemo(() => crmPalette(dark), [dark])
-  const onCrmNav = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'settings': navigate('/dashboard/settings'); break
-      default:
-    }
-  }
-  const onCrmCmd = () => {}
-  const chromeOpen = (
-    <>
-      <style>{CRM_KEYFRAMES}</style>
-      <CrmTopNav active={'matching' as CrmScreenId} sp={sgSp} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} />
-    </>
-  )
-  const rail = (
-    <CrmIconRail active={'matching' as CrmScreenId} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} setDark={setDark} sp={sgSp} />
+  // Animations partagées du CRM — les popovers de la barre latérale en dépendent.
+  const crmKeyframes = <style>{CRM_KEYFRAMES}</style>
+  const sidebar = (
+    <CrmSidebar active="matching" sp={sgSp} dark={dark} setDark={setDark} />
   )
   const shellStyle = { minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }
 
   if (!listing) {
     return (
       <div style={shellStyle}>
-        {chromeOpen}
+        {crmKeyframes}
         <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-          {rail}
-          <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>
+          {sidebar}
+          <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 120px' }}>
         <div className="max-w-4xl mx-auto py-20 text-center">
           <p className="text-sm text-theme-tertiary">{t('external.notFound')}</p>
           <Link to="/dashboard/matching" className="mt-3 inline-block text-xs text-accent hover:text-accent/80 transition-colors">
@@ -171,10 +153,10 @@ export default function ExternalListingDetailPage() {
 
   return (
     <div style={shellStyle}>
-      {chromeOpen}
+      {crmKeyframes}
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        {rail}
-        <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>
+        {sidebar}
+        <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 120px' }}>
       <div className="max-w-4xl mx-auto space-y-5">
         {/* Back + imported badge */}
         <div className="flex items-center justify-between">

@@ -16,9 +16,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { crmPalette } from '@/components/crm/tokens'
-import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
-import { openCrmSearch } from '@/components/crm/search/openSearch'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import { useAuth } from '@/hooks/useAuth'
 import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useContactSentMatches } from '@/hooks/useContactSentMatches'
@@ -77,31 +75,13 @@ export default function ContactDetailPage() {
   // après chaque écriture (sinon suppression = ligne fantôme, édition non reflétée).
   const refreshList = () => { void qc.invalidateQueries({ queryKey: ['contacts-screen'] }) }
 
-  const onCmd = () => openCrmSearch()
-  const onNavigate = (screen: CrmScreenId | string) => {
-    switch (screen) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings': navigate('/dashboard/settings'); break
-      default:
-    }
-  }
-
   const shell = (inner: ReactNode) => (
     <div style={{
       position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
       display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
-      <CrmTopNav active="contacts" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="contacts" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmSidebar active="contacts" sp={sp} dark={dark} setDark={setDark} />
         {inner}
       </div>
     </div>

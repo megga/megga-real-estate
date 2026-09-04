@@ -1,7 +1,7 @@
 // MEGGA CRM — KYC · Onboarding « Première ouverture »
 // Port fidèle de `CRMScreenKycOnboarding` (crm-kyc-onboarding.jsx) : bento plein
 // écran avec la cover PNG (lockup KYC aplati) + sur-impression CTA. Monté dans la
-// chrome CRM (CrmTopNav + CrmIconRail). Route : /dashboard/kyc/bienvenue.
+// chrome CRM (CrmSidebar). Route : /dashboard/kyc/bienvenue.
 //
 // Gating (empty-state) : posé par la page hôte (KycPage) — flag
 // localStorage `megga.kyc.onboarded` + 0 dossier. Les CTA posent le flag puis
@@ -10,12 +10,8 @@
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  CrmTopNav,
-  CrmIconRail,
-  CRM_KEYFRAMES,
-  type CrmScreenId,
-} from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import { crmPalette } from '@/components/crm/tokens'
 import { markKycOnboarded } from '@/lib/kycOnboarding'
 import { readCrmDark } from '@/lib/crmDark'
@@ -37,23 +33,6 @@ export default function KycOnboardingPage() {
     return readCrmDark()
   })
   const sp = useMemo(() => crmPalette(dark), [dark])
-
-  const onNavigate = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings': navigate('/dashboard/settings'); break
-      default:
-    }
-  }
-  const onCmd = () => {}
 
   const dismiss = () => markKycOnboarded()
   const startWizard = (mode: 'new' | 'import') => {
@@ -87,11 +66,9 @@ export default function KycOnboardingPage() {
         }
       `}</style>
 
-      <CrmTopNav active={'kyc' as CrmScreenId} sp={sp} onNavigate={onNavigate} onCmd={onCmd} dark={dark} />
-
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="kyc" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+        <CrmSidebar active="kyc" sp={sp} dark={dark} setDark={setDark} />
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
           <div
             style={{
               position: 'relative',

@@ -208,7 +208,9 @@ sœur à l'autre, et React garde la page précédente à l'écran pendant le té
 wrapper `ByParam` d'`App.tsx`. Quand un fallback est malgré tout nécessaire,
 [`SmartPageLoader`](../src/components/skeletons/SmartPageLoader.tsx) aiguille sur **deux** squelettes, car
 `/dashboard` recouvre deux chromes : [`CrmPageSkeleton`](../src/components/skeletons/CrmPageSkeleton.tsx)
-(top-nav + rail d'icônes, couleurs lues sur `megga.sugar.dark`) pour les surfaces Sugar, et `DashboardSkeleton`
+(gabarit de la **barre latérale** `CrmSidebar` — 264/84 px selon `megga.crm.sidebar`, couleurs lues
+sur la même préférence sombre que les pages ; c'était top-nav + rail d'icônes avant le 04.09.2026) pour
+les surfaces CRM, et `DashboardSkeleton`
 (sidebar + header) pour les routes `AgentLayout` (`/dashboard/admin*`, `contacts/import`, `listings/new`,
 `listings/:id/edit`, `market/:externalId`). ⚠️ Le nettoyage de `data-theme` dans `useTheme` est **ref-compté** :
 sans ça, le démontage de l'ancien `ThemeProvider` arrachait l'attribut que le nouveau venait de poser.

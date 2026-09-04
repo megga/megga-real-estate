@@ -9,7 +9,7 @@
 // Molette (accumulateur) / flèches + PageUp-Down / swipe / points latéraux.
 // Réf. handoff : `crm-screen-contacts-proto.jsx` (CRMScreenContactsProto).
 //
-// Le chrome (CrmTopNav + CrmIconRail) est monté par la page conteneur
+// Le chrome (CrmSidebar) est monté par la page conteneur
 // (ContactsPage) ; ce composant remplit le <main> avec le viewport.
 
 import EtatVide from '@/components/crm/EtatVide'
@@ -735,7 +735,7 @@ export default function ContactsPager({
   }, [go])
 
   return (
-    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
+    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
       <style>{`
         .ctp-scroll-hint { opacity: .55; transition: opacity .35s ease; }
         .ctp-scroll-hint:hover, .ctp-scroll-hint:focus-visible { opacity: 1; }

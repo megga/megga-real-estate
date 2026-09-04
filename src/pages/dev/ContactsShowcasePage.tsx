@@ -16,13 +16,13 @@
  * démonstration.
  *
  * ⚠ Le harnais lit `megga.sugar.dark` ('1' / '0', **pas** 'true'), la clé que
- * basculent les rails Sugar. Un harnais démarrant en dur sur `false` rendrait
- * clair dans une page sombre et FABRIQUERAIT des défauts qu'on chercherait
- * ensuite dans le composant.
+ * bascule la barre latérale du CRM. Un harnais démarrant en dur sur `false`
+ * rendrait clair dans une page sombre et FABRIQUERAIT des défauts qu'on
+ * chercherait ensuite dans le composant.
  *
  * ⚠ Le chemin ne contient pas `/dashboard` : le script d'amorçage d'`index.html`
  * ne pose `data-theme="dark"` que si l'URL le contient. Le thème se pilote donc
- * ici, par le bouton du rail.
+ * ici, par le bouton de la barre latérale.
  *
  * ⛔ Données de DÉMONSTRATION (`DEMO_*` de `demoFixtures`). Rien ne vient de la
  * base, aucune action n'écrit : c'est un banc d'essai visuel, pas un aperçu du
@@ -31,8 +31,8 @@
 import { useState } from 'react'
 import { crmPalette } from '@/components/crm/tokens'
 import { encreSur, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
-import { CrmTopNav, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import ContactsPager from '@/components/crm/contacts-pager/ContactsPager'
 import ContactsFirstRun from '@/components/crm/contacts-pager/ContactsFirstRun'
 import NewContactModal from '@/components/crm/contacts-pager/NewContactModal'
@@ -84,11 +84,6 @@ export default function ContactsShowcasePage() {
   const [ecritureCasse, setEcritureCasse] = useState(false)
 
   const sp = crmPalette(dark)
-
-  // Le harnais ne navigue nulle part : chaque cible mènerait à une surface
-  // protégée, donc au rebond vers la production que cette page existe pour
-  // éviter. Seuls le thème et les overlays agissent.
-  const onNavigate = (_id: CrmScreenId | string) => {}
 
   const selecteur = (
     <div style={{
@@ -150,9 +145,15 @@ export default function ContactsShowcasePage() {
       fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
       <style>{CRM_KEYFRAMES}</style>
-      <CrmTopNav active="contacts" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={NOOP} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="contacts" onNavigate={onNavigate} onCmd={NOOP} dark={dark} setDark={setDark} sp={sp} />
+        {/* La barre navigue d'elle-même, et son chemin ne dit pas l'écran ici :
+            `active` reste posé à la main. ⚠ Ses cibles sont des surfaces
+            `/dashboard/*` protégées — les suivre sans session ramène au rebond
+            vers la production décrit en tête de fichier — la barre se tait donc
+            d'elle-même sous `/dev/*` (cf. sa garde `enBanc`). Pas de `onCmd` : le
+            banc n'a pas de geste « créer » à offrir, et une ligne qui ne fait
+            rien vaut moins que pas de ligne. */}
+        <CrmSidebar active="contacts" sp={sp} dark={dark} setDark={setDark} />
 
         {surface === 'fiche' || surface === 'fiche-vide' ? (
           <ContactDetailPager

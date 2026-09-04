@@ -6,7 +6,7 @@
 // le câblage Supabase (useFocusQueue, agenda, pipeline, objectif) à reprendre
 // au « Lot 0 » d'hydratation du concept H.
 // Page 1 = catalogue de matchs. Pager molette vertical (1 cran = 1 page plein
-// écran), chrome CRM standard (CrmTopNav + CrmIconRail).
+// écran), chrome CRM standard (CrmSidebar).
 //
 // ⚠️ Port VISUEL sur DONNÉES DÉMO (cf. ./today/data.ts). Le handoff prescrit
 // « porter à l'identique d'abord, câbler ensuite » : le câblage live (Supabase)
@@ -21,9 +21,8 @@ import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
-import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
-import { openCrmSearch } from '@/components/crm/search/openSearch'
+import type { CrmScreenId } from '@/components/crm/CrmShell'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import { TK, applyTK } from '@/components/crm/today/tk'
 import { TodayNavProvider } from '@/components/crm/today/TodayNavContext'
 import { PageAujourdhuiH } from '@/components/crm/today/PageAujourdhuiH'
@@ -122,7 +121,6 @@ export default function TodayPage() {
   applyTK(dark)
   const lightMode = TK.frameSolid === '#FFFFFF'
 
-  const onCmd = () => openCrmSearch()
 
   // `ref` = identifiant réel porté par le payload (uuid). Les cibles « détail »
   // n'existent qu'avec lui : sans référence, on ouvre la LISTE correspondante
@@ -328,14 +326,9 @@ export default function TodayPage() {
           @keyframes m2pulse { 0% { transform: scale(1); opacity: .7; } 75%, 100% { transform: scale(2.2); opacity: 0; } }
         `}</style>
 
-        <CrmTopNav active="today" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
-
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-          <CrmIconRail
-            active="today" onNavigate={onNavigate} onCmd={onCmd}
-            dark={dark} setDark={setDark} sp={sp}
-          />
-          <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+          <CrmSidebar active="today" sp={sp} dark={dark} setDark={setDark} />
+          <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
             {/* Viewport pager — clippe les deux pages, capte la molette */}
             <div ref={viewportRef} style={{
               position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',

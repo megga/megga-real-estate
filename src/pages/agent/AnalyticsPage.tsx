@@ -4,17 +4,13 @@
 // projeté, sources des deals, drawer de drill-down. 2 thèmes, 3 périodes.
 //
 // La page est wrappée par AgentLayout (cf. App.tsx). Elle fournit son propre
-// chrome Sugar (CrmTopNav + CrmIconRail) comme les autres pages V3/V4 et
-// embarque AxDashboardBody via le provider de thème analytics (AXCtx).
+// chrome Sugar (CrmSidebar) comme les autres pages V3/V4 et embarque
+// AxDashboardBody via le provider de thème analytics (AXCtx).
 
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  CrmTopNav,
-  CrmIconRail,
-  CRM_KEYFRAMES,
-  type CrmScreenId,
-} from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import { crmPalette } from '@/components/crm/tokens'
 import AxDashboardBody from '@/components/crm/analytics/AxDashboard'
 import { AXCtx, AX, AX_DARK } from '@/components/crm/analytics/tokens'
@@ -70,7 +66,6 @@ export default function AnalyticsPage() {
       default:
     }
   }
-  const onCmd = () => {}
 
   return (
     <div
@@ -89,25 +84,10 @@ export default function AnalyticsPage() {
     >
       <style>{CRM_KEYFRAMES}</style>
 
-      <CrmTopNav
-        active={'today' as CrmScreenId}
-       
-        sp={sp}
-        onNavigate={onNavigate}
-        onCmd={onCmd}
-      />
-
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail
-          active="dashboard"
-          onNavigate={onNavigate}
-          onCmd={onCmd}
-          dark={dark}
-          setDark={setDark}
-          sp={sp}
-        />
+        <CrmSidebar active="dashboard" sp={sp} dark={dark} setDark={setDark} />
 
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
           <div style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, background: sp.pageBg }}>
             <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', padding: '20px 24px 22px' }}>
               <AXCtx.Provider value={axTheme}>

@@ -12,7 +12,7 @@
 //
 // Conventions : inline styles (PAS de Tailwind), 'Inter Tight', composants au
 // NIVEAU MODULE (hors render) pour ne pas perdre le focus des inputs.
-// Le chrome (CrmTopNav + CrmIconRail) est monté par la page conteneur ; ce
+// Le chrome (CrmSidebar) est monté par la page conteneur ; ce
 // composant remplit le <main> avec le viewport. AUCUN appel Supabase : le parent
 // fournit les données normalisées + les callbacks de persistance.
 
@@ -1746,7 +1746,7 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
   }, [go])
 
   return (
-    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)', background: P.pageBg, fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: P.ink }}>
+    <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)', background: P.pageBg, fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: P.ink }}>
       <style>{`
         @keyframes cdpMenuIn { from { opacity: 0; transform: translateY(-6px) scale(.97) } to { opacity: 1; transform: none } }
         @keyframes cdpFade { from { opacity: 0 } to { opacity: 1 } }

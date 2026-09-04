@@ -1,5 +1,5 @@
 // MEGGA CRM — Page « Contacts » (refonte Claude Design, conteneur).
-// Monte le chrome Sugar (CrmTopNav + CrmIconRail) puis le pager plein-écran
+// Monte le chrome CRM (CrmSidebar) puis le pager plein-écran
 // (liste ↕ santé du portefeuille). Premier lancement (0 contact CHARGÉ AVEC SUCCÈS)
 // → ContactsFirstRun dans le cadre ; échec de chargement → écran d'erreur avec
 // réessai (jamais confondu avec un compte neuf).
@@ -13,9 +13,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { crmPalette } from '@/components/crm/tokens'
-import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
-import { openCrmSearch } from '@/components/crm/search/openSearch'
+import { CrmSidebar } from '@/components/crm/CrmSidebar'
 import { useContactsScreen } from '@/hooks/useContactsScreen'
 import { useCreateContact } from '@/hooks/useContacts'
 import { buildSearchCriteria, type CriteriaInput } from '@/lib/contactCriteria'
@@ -43,7 +41,7 @@ export default function ContactsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // ── Thème dark/light, calé sur le toggle du rail (partagé Today/Pipeline) ──
+  // ── Thème dark/light, calé sur le toggle de la barre latérale (partagé Today/Pipeline) ──
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return readCrmDark()
@@ -64,24 +62,6 @@ export default function ContactsPage() {
   const [createError, setCreateError] = useState<string | null>(null)
   const [createdId, setCreatedId] = useState<string | null>(null)
   const createContact = useCreateContact()
-
-  const onCmd = () => openCrmSearch()
-  const onNavigate = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'contacts': break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'biens-new': navigate('/dashboard/listings/new'); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings': navigate('/dashboard/settings'); break
-      default:
-    }
-  }
 
   const openModal = () => { setCreateError(null); setModalOpen(true) }
 
@@ -159,9 +139,8 @@ export default function ContactsPage() {
       position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
       display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
-      <CrmTopNav active="contacts" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="contacts" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmSidebar active="contacts" sp={sp} dark={dark} setDark={setDark} />
         <ContactsPager
           contacts={contacts}
           sp={sp}

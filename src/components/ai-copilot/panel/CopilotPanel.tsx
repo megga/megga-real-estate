@@ -834,7 +834,13 @@ export default function CopilotPanel() {
   }, [isOpen])
 
   const margin = 16
-  const navH = 82
+  // ⛔ VALAIT 82 — la hauteur de la barre du HAUT, qui n'existe plus. Le chrome
+  // du CRM est passé à une barre LATÉRALE le 4 septembre 2026 : il n'y a plus
+  // rien à dégager en haut de l'écran, et le panneau restait suspendu 90 px sous
+  // un bord vide. Il flotte désormais symétriquement — même gouttière en haut,
+  // en bas et à droite. Le décalage d'usurpation, lui, reste : ce bandeau-là est
+  // toujours empilé au-dessus du contenu.
+  const topInset = margin
   // `sp.panelShadow` porte DÉJÀ le filet du dock, et de la bonne couleur. La
   // surcharge sombre qui vivait ici posait un `rgba(255,255,255,0.06)` — un
   // blanc translucide, que la direction n'admet plus comme séparateur.
@@ -848,7 +854,7 @@ export default function CopilotPanel() {
         aria-label="MEGGA AI"
         inert={!isOpen}
         style={{
-          position: 'fixed', zIndex: 70, top: navH + 8 + (impersonating ? 40 : 0), bottom: margin, right: margin,
+          position: 'fixed', zIndex: 70, top: topInset + (impersonating ? 40 : 0), bottom: margin, right: margin,
           width: PANEL_W, maxWidth: 'calc(100vw - 24px)',
           background: sp.panelBg, borderRadius: 22, border: 'none', boxShadow: cardShadow,
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
