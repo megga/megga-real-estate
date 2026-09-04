@@ -158,9 +158,18 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
       .update({ is_read: true }).eq('id', threadSharedId).select('id')
     // La colonne is_read n'est pas accordée à authenticated : PostgREST refuse (42501).
     expect(e1).not.toBeNull()
+    const emailKo = `refus-compte-${s.stamp}@y.test`
     const { error: e2 } = await s.clientA.from('mail_accounts')
-      .insert({ agency_id: s.agencyAId, owner_id: s.agentAId, provider: 'gmail', email: 'x@y.test' })
+      .insert({ agency_id: s.agencyAId, owner_id: s.agentAId, provider: 'gmail', email: emailKo })
     expect(e2).not.toBeNull()
+    // ⚠ MÊME RÈGLE QU'AUX BROUILLONS ET AUX ALIAS PLUS BAS : une erreur non nulle ne
+    // prouve pas qu'aucune ligne n'a été écrite — PostgREST sait répondre 201 avec un
+    // corps vide sur certaines formes de requête. Ce fichier appliquait la relecture
+    // service-role aux deux autres refus et pas à celui-ci, qui est pourtant le plus
+    // lourd : une ligne `mail_accounts` écrite par un client est un compte de courrier
+    // fabriqué de toutes pièces.
+    const { data: resteCompte } = await service.from('mail_accounts').select('id').eq('email', emailKo)
+    expect(resteCompte ?? []).toEqual([])
     const { data: st, error: e3 } = await s.clientA.from('mail_oauth_states').select('state')
     expect(e3).not.toBeNull()
     expect(st ?? []).toEqual([])
@@ -227,11 +236,23 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
     expect(none.data ?? []).toEqual([])
 
     // Un compte invisible rend une liste vide, pas une erreur (la RLS filtre avant).
+    // ⚠ `error` EST asserté : sans lui, un `grant execute` révoqué sur
+    // `mail_list_threads` satisferait cette isolation — la RPC échouerait, `data` serait
+    // null, et le test verrait le vide qu'il attend. Il ne tenait que par le contrôle
+    // d'erreur du cas passant, quinze lignes plus haut, dans le même `it()`.
     const foreign = await s.clientB.rpc('mail_list_threads', { p_account_id: sharedBoxId, p_folder: 'in' })
+    expect(foreign.error).toBeNull()
     expect(foreign.data ?? []).toEqual([])
   })
 
   it('mail_unread_counts et mail_folder_counts', async () => {
+    // ⚠ Le libellé est posé ICI et non hérité du test précédent : `label_counts` dépendait
+    // de l'ordre de DÉCLARATION des `it()`, un couplage que rien n'écrivait et que le
+    // premier réordonnancement — ou un `--shard` — aurait cassé sans que la cause se voie.
+    const { error: eLabel } = await s.clientA.from('mail_threads')
+      .update({ label_id: labelAId }).eq('id', threadSharedId)
+    expect(eLabel).toBeNull()
+
     const { data } = await s.clientA.rpc('mail_unread_counts')
     const row = (data ?? []).find((r: { account_id: string }) => r.account_id === sharedBoxId)
     expect(Number(row?.unread)).toBe(1)
@@ -260,6 +281,18 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
   it('un super-admin ne lit aucun message', async () => {
     const visible = await s.clientA.from('mail_messages').select('id').eq('id', messageOwnerId)
     expect((visible.data ?? []).map((r) => r.id)).toEqual([messageOwnerId])
+
+    // ⛔ TÉMOIN POSITIF D'ABORD. Une lecture vide se produit aussi bien parce que la
+    // policy tient que parce que la session est morte (jeton expiré, connexion ratée
+    // avalée) — et « vide pour une raison qui n'est pas la bonne » est exactement la
+    // forme de test que cette revue traque. Le témoin choisi prouve les DEUX prémisses en
+    // une lecture : `super_admin_read_all_profiles` (USING `is_super_admin()`) est la
+    // seule policy qui rende à cette session le profil d'un agent d'une agence à laquelle
+    // elle n'appartient pas. Non vide ⇒ la session vit ET `is_super_admin()` répond vrai.
+    // C'est bien un super-admin PUISSANT qui, ci-dessous, ne lit aucun courrier.
+    const temoin = await superClient.from('profiles').select('id').eq('id', s.agentAId)
+    expect(temoin.error, 'la session super-admin ne lit RIEN — le vide ci-dessous ne prouverait rien').toBeNull()
+    expect((temoin.data ?? []).map((r) => r.id), 'is_super_admin() ne répond pas vrai pour cette session').toEqual([s.agentAId])
 
     const { data: rien, error } = await superClient.from('mail_messages').select('id')
     expect(error).toBeNull()
