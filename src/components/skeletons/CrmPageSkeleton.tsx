@@ -162,9 +162,9 @@ export default function CrmPageSkeleton() {
         }}>
           {/* Deux puces muettes : une pile fraîche en porte au moins une, et une
               seule barre grise se lirait comme un titre, pas comme des onglets. */}
-          <div style={{ width: 128, height: 36, borderRadius: 'var(--crm-radius-pill)', background: sp.iconBtnBg }} />
-          <div style={{ width: 96, height: 36, borderRadius: 'var(--crm-radius-pill)', background: sp.iconBtnBg, opacity: 0.55 }} />
-          <div style={{ width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)', background: sp.iconBtnBg, opacity: 0.4 }} />
+          <div style={{ width: 128, height: 30, borderRadius: 'var(--crm-radius-pill)', background: sp.iconBtnBg }} />
+          <div style={{ width: 96, height: 30, borderRadius: 'var(--crm-radius-pill)', background: sp.iconBtnBg, opacity: 0.55 }} />
+          <div style={{ width: 26, height: 26, borderRadius: 'var(--crm-radius-pill)', background: sp.iconBtnBg, opacity: 0.4 }} />
         </div>
         <div
           style={{

@@ -46,12 +46,25 @@ import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
 import { crmChipMaxWidth, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
 import { useAiPanel } from '@/hooks/useAiPanel'
 
-/** Hauteur d'une puce. Une HAUTEUR n'est pas un espacement : aucun barreau ne la couvre. */
-const H_PUCE = 36
+/**
+ * Hauteur d'une puce. Une HAUTEUR n'est pas un espacement : aucun barreau ne la couvre.
+ *
+ * ⚠ 30, et NON les 36 de la maquette (retour de Julien, 4 septembre 2026 : « encore plus
+ * fin, que le pager soit un peu plus haut »). La bande prenait 48 px au cadre bento, soit
+ * 7 % de sa hauteur à 1280x720 — cher pour du chrome. Les six pixels sont repris ICI et
+ * pas sur les gouttières : ce sont elles qui portent l'alignement de la première puce sur
+ * le haut de la carte latérale, et le décalage se verrait bien plus qu'une puce d'un cran
+ * plus basse.
+ *
+ * ⛔ Plancher mesuré, ne pas descendre sous 28 : la puce loge une croix ronde (20), un
+ * badge (16) et un libellé de 12 px. À 28 la croix n'a plus que 4 px de respiration,
+ * au-dessous elle touche le bord de la pilule.
+ */
+const H_PUCE = 30
 /** Pastille « +N » et bouton « + » — un cran sous la puce, comme la maquette. */
-const H_PASTILLE = 30
+const H_PASTILLE = 26
 /** Rond de la croix, et de son homologue dans le menu de débordement. */
-const D_CROIX = 22
+const D_CROIX = 20
 
 /**
  * Nombre de puces visibles. Quatre quand le dock MEGGA AI est ouvert : il prend

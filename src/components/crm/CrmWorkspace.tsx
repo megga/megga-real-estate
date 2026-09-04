@@ -39,11 +39,11 @@ import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 
 /**
- * Hauteur totale prise par la bande : la puce (36) plus sa gouttière haute (12).
+ * Hauteur totale prise par la bande : la puce (30) plus sa gouttière haute (12).
  * ⚠ Elle est publiée en `--crm-tabs-h` pour que les rares surfaces qui calculent
  * contre `100vh` puissent la défalquer sans la recopier.
  */
-const H_BANDE = 48
+const H_BANDE = 42
 
 interface Props extends CrmSidebarProps {
   children: ReactNode
