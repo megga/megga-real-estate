@@ -159,7 +159,11 @@ describe('capHtml', () => {
     expect(capHtml('x'.repeat(10))).toEqual({ html: 'x'.repeat(10), truncated: false })
     const big = capHtml('y'.repeat(600 * 1024))
     expect(big.truncated).toBe(true)
-    expect(big.html.length).toBe(512 * 1024)
+    // `html` est `string | null` : l'affirmer non nul AVANT d'en lire la longueur, sinon
+    // `deno check` refuse la ligne (TS18047). La CI ne type-vérifie pas les *.test.ts —
+    // raison de plus pour que le fichier passe quand on l'y soumet à la main.
+    expect(big.html).not.toBeNull()
+    expect(big.html?.length).toBe(512 * 1024)
   })
 })
 
