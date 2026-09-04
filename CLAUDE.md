@@ -22,7 +22,7 @@
 > de ses lecteurs.** Le 16 août 2026, sur les sept règles visuelles du §3, **une seule
 > était encore vraie** ; les six autres décrivaient une direction supprimée six jours
 > plus tôt, et un agent les recopiait sur chaque surface neuve. `npm run lint:claude-md`
-> remesure les 18 prétentions chiffrées d'ici contre le code. À lancer après toute PR de
+> remesure **41 prétentions chiffrées** — 30 d'ici, 11 de `docs/system-map.md` — contre le code ET contre la production (chiffre du 04.09.2026 ; le « 18 » écrit ici datait du jour de naissance de la porte, et rien ne le gardait). ⚠ Sans `SUPABASE_ACCESS_TOKEN` la porte n'en mesure que **24** et le DIT : les 17 autres ne se lisent que d'un serveur et tournent dans `migration-drift.yml`. À lancer après toute PR de
 > DA, de jetons, de police ou d'archi. Mode d'emploi (et surtout : quel écart se corrige
 > dans le doc, lequel dans le code) : skill `claude-md-freshness`.
 >
@@ -83,7 +83,10 @@ Charts :       Recharts
 i18n :         react-i18next (FR/DE/EN/IT)
 
 Backend :      Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1)
-               PostgreSQL 15+ / Edge Functions (Deno) / Auth / Storage / Realtime / pgvector / pg_cron
+               PostgreSQL 17.6 / Edge Functions (Deno) / Auth / Storage / Realtime / pg_cron
+               (⛔ `pgvector` retiré le 04.09.2026 : jamais installée — `pg_extension` en rend
+               douze, aucune n'est `vector`. La version est mesurée, pas « 15+ » : prod 17.6,
+               local et CI 17.)
 IA :           DeepSeek (deepseek-chat) pour TOUT le texte via Edge Functions — décision coût
                Vision/OCR/PDF : Gemini (Google) — DeepSeek n'a pas de vision. AUCUN Claude/Anthropic.
 Email :        Resend (megga.ch DKIM/SPF)
@@ -534,7 +537,7 @@ idx_market_listings_tx_type_status ON market_listings (transaction_type, status,
 const channelId = useId()
 const channel = supabase.channel(`nom-${channelId}`)
 ```
-Fichiers concernés : `useAdminNotifications.ts`, `useAdminLiveFeed.ts`, `useMessaging.ts` (tous fixés).
+Fichiers concernés — ⛔ **remesuré le 04.09.2026, la liste précédente était fausse aux deux tiers** : elle nommait `useAdminNotifications.ts` et `useMessaging.ts`, qui **n'existent plus dans `src/`**. Les **cinq** abonnements vivants sont `useAdminLiveFeed.ts`, `useAgentNotifications.ts`, `useVisitDetail.ts`, `useContactSentMatches.ts` et `useRealtimeHealth.ts` — tous en `useId()`. ⚠ Un fichier nommé ici qui n'existe pas est pire qu'une absence de liste : il donne l'illusion d'un inventaire, et personne ne rouvre un inventaire.
 
 ### Formatters type-defensive
 `formatCHF(amount)` et `formatRent(amount)` acceptent `number | string | null | undefined`. Retournent `'CHF —'` pour les valeurs invalides. Ne JAMAIS appeler `.toFixed()` directement sur une valeur de formulaire.
@@ -586,7 +589,7 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
   ⚠ Le point annonçait « ~117k Flatfox, ~91k RealAdvisor » (17.08), et avant cela « ~90k Flatfox, ~50k active », faux DEUX fois — le 90k désignait en réalité RealAdvisor. La prétention nomme désormais la source dans sa requête.
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
-**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · wizard « Créer un bien » Sugar v2 7 étapes · fiche V4), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Chat, Dashboard, cockpit Aujourd'hui, Analytics.
+**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · wizard « Créer un bien » Sugar v2 7 étapes · fiche V4), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existe pas.** Mesuré — aucune route (`grep path=` sur `App.tsx` : 0), aucune page, aucun hook ; le namespace i18n `messages` est bien déclaré (`src/i18n/index.ts:29`) mais consommé par **personne** (`useTranslation('messages')` : 0 emploi dans tout `src/`). Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**, et un lecteur ne pouvait pas savoir laquelle croire. La messagerie qui arrive n'est pas ce « Chat » : voir le point Messagerie ci-dessus.
 
 **Réseau inter-agences : ❌ RETIRÉ (hors périmètre v1).** L'ancien prototype `NetworkSugarV2Page` (données d'exemple, aucun backend, jamais routé) a été supprimé lors du nettoyage code mort ; les routes `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`. Le module réel (partage de biens inter-agences + RLS cross-agence + modèles PDF) reste à construire plus tard.
 
@@ -594,19 +597,30 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **Portail vendeur : ❌ RETIRÉ (26 juillet 2026).** Il n'avait jamais servi — `seller_portals` comptait 0 ligne depuis sa création, aucun lien personnel n'a jamais été émis, et l'UI de création avait déjà disparu de la fiche contact. Retiré en entier : routes (`/portal*` et `/portail*` redirigent vers la vitrine), pages, `components/seller-portal/`, hooks, section « Portails vendeurs » de la console admin, drapeau de plan `sellerPortal`, edge `seller-portal-action`, et les tables `seller_portals` / `seller_preferences` (migration `20260726180000`).
 
+**Messagerie (e-mail) : ⚠ LIVRÉE SUR BRANCHE, PAS EN PRODUCTION.** Lot 1 « socle backend » sur `claude/crm-messaging-lot1-backend-79297b`, **[PR #1274](https://github.com/megga/megga-real-estate/pull/1274) OUVERTE au 04.09.2026** — `main` ne la contient pas, et la production non plus : requête directe le 04.09, **0 table `mail_%`, 0 fonction `mail_%`, 0 job cron `mail%`**. Tant que la PR n'est pas mergée, rien de ce paragraphe ne décrit un serveur.
+
+Ce que la branche porte : **2 migrations** — `20260904074500_mail_module.sql` (**9 tables `mail_*`**, **11 fonctions `mail_*`** plus `purge_activity_events_retention` étendue à la catégorie `messaging`, RLS sur les 9, `mail_threads` en `replica identity full` et publiée en Realtime, cron `mail-sync-2min` `*/2 * * * *` avec 25 comptes par tick) et `20260904074600_mail_sync_failures.sql` (compteur d'échecs consécutifs, `status='error'` au 5ᵉ) · **9 modules purs** dans `supabase/functions/_shared/mail/` (types, mime, secrets, oauth, gmail, graph, ingest, sync, guard), dont **6 seulement portent des specs**, soit **103 tests** — `sync.ts`, `guard.ts` et `types.ts` n'ont pas de spec propre et ne sont exercés que par les specs backend · **5 edge functions** (`mail-oauth`, `mail-sync`, `mail-actions`, `mail-send`, `mail-attachment`) · **2 specs backend** (`mail-rls.spec.ts` 15 tests, `mail-edges.spec.ts` 9 tests, **0 sauté**). CI de la PR au 04.09.2026 : **6/6 vert**, migrations du jour rejouées sans erreur.
+
+⛔ **Les jetons ne sont JAMAIS en colonne.** Ils vivent dans Supabase Vault, atteints par quatre ponts `SECURITY DEFINER` à `search_path` vide (`mail_secret_store` / `_read` / `_update` / `_delete`), révoqués de `public`/`anon`/`authenticated` et accordés au seul `service_role` ; `mail_accounts.vault_secret_id` n'est qu'un pointeur. L'OAuth est un **code + PKCE en pop-up, hors GoTrue** — Supabase Auth ne sait pas détenir un jeton fournisseur pour un usage serveur. ⚠ **L'URI de redirection ne dérive PAS de `MEGGA_APP_URL`** : `redirectUriFor` la bâtit sur l'origine de l'APPELANT, une fois celle-ci trouvée dans la liste blanche `MAIL_OAUTH_ORIGINS` (`_shared/mail/guard.ts`). La rendre pilotable par un réglage casserait la connexion de toutes les boîtes (`redirect_uri_mismatch`), l'URI devant correspondre **caractère pour caractère** à celle enregistrée chez Google et chez Microsoft — exemption inscrite dans `tests/unit/app-url-unique.spec.ts`.
+
+⛔ **CE QUI N'EST PAS ÉPROUVÉ, et qu'un 6/6 vert ne dit pas.** **Aucun appel réel à Google ni à Microsoft n'a jamais eu lieu** : tous les tests d'adaptateur injectent un faux `fetch` — ils éprouvent la construction des requêtes et le décodage des réponses, pas le fournisseur. Manquent **hors dépôt** : l'URI `https://app.megga.ch/oauth/mail/callback` dans le client OAuth Google, l'activation de l'API Gmail, la déclaration du scope **`gmail.modify` — RESTRICTED**, donc plus strict que les deux scopes Calendar déjà en attente de vérification (voir « Se connecter avec Google » plus bas) ; côté Microsoft, l'inscription Entra ID et les deux secrets. Manque **dans le dépôt** : la route `/oauth/mail/callback`, qui est du **lot 2** — donc **aucune boîte ne peut être connectée depuis l'app aujourd'hui**.
+
+⚠ **Le jour du merge, deux prétentions de ce document deviennent fausses sans qu'aucune porte ne rougisse.** Le §7 passera de **51 à 52 jobs pg_cron** (`mail-sync-2min`) : l'écart vaut 2 % pour une tolérance de 20 %, donc `lint:claude-md` restera **vert sur une prose périmée** — corriger le compte ET le récit des « trois gestes du 3 septembre » à la main. Et `docs/system-map.md` devra ouvrir une section « Messagerie », retirer sa mention « Chat » et corriger sa puce « Messaging ». Plans : [maître](docs/superpowers/plans/2026-09-03-messagerie-crm.md) (D1-D16 ; §10 « après livraison » liste les six documents à reprendre) et [lot 1](docs/superpowers/plans/2026-09-03-messagerie-crm-lot1-backend.md).
+
 **Super-Admin :** **surface du CRM** montée sous `/dashboard/admin/*` (`App.tsx` → `AdminConsoleRoute` → `AdminConsoleRoutes` → `AdminShell` + 19 pages lazy — ⚠ ce point annonçait 17 ; `docs/system-map.md` disait 19, et c'est LUI qui avait raison, mesuré le 17.08.2026). L'application autonome `admin.megga.ch` a été retirée le 28.07.2026 : plus de `build:admin`, plus de projet Pages dédié, plus de passage de session par fragment d'URL. Accent violet réservé au repère de contexte du rail ; nav groupée en 5 sections ; chrome et atomes dans `src/components/admin/kit/`.
 
 Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel est en base (`is_super_admin()` = rôle **ET** e-mail allowlisté, lu dans `auth.users`) et sur les edges (`_shared/require-super-admin.ts`). ⚠️ Aucun contrôle AAL2 : le 2FA a été retiré (#873). Entrée par le dropdown profil Sugar et ⌘K (`src/lib/adminEntry.ts`) ; chaque entrée est journalisée (`admin_console_entered`) et l'impersonation reste audit-first (`admin_log_impersonation`, bloquante) via `?impersonate=<id>`.
 
 ⚠️ Les cibles de navigation de la console DOIVENT être préfixées par `ADMIN_CONSOLE_PATH` — une cible nue tombe sur le 404 du CRM, voire sur une redirection publique. Garde-fous : `tests/unit/admin-console-paths.spec.ts` et `tests/unit/redirects-guard.spec.ts` (ce dernier interdit toute règle de bord qui expulserait `/dashboard/*` vers un autre hôte : c'est ce qui avait rendu la console injoignable).
 
-**Intégrations :** Resend, Stripe, Google/Outlook Calendar (OAuth), virtual staging (Gemini), Flatfox sync.
+**Intégrations :** Resend, Stripe, Google/Outlook Calendar (OAuth), virtual staging (Gemini), Flatfox sync. ⚠ **Resend est le sortant TRANSACTIONNEL de la plateforme** — confirmations, alertes, invitations — il n'a jamais lu une boîte. La lecture et l'envoi depuis la boîte de l'agent passent par **l'API Gmail et Microsoft Graph**, volontairement ABSENTES de cette liste au 04.09.2026 : elles ne sont pas en production, elles vivent sur la PR #1274 (voir Messagerie ci-dessus). Les inscrire ici le jour du merge, pas avant.
 
 ### Secrets Supabase
 ```
 DEEPSEEK_API_KEY, GEMINI_API_KEY, RESEND_API_KEY, DILISENSE_API_KEY,
 MEGGA_MAGIC_LINK_HMAC_SECRET,
-MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET (⛔ ABSENTS du projet — relevé le 16.08.2026),
+MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET (⛔ ABSENTS du projet — relevé le 16.08.2026,
+  NON re-mesuré depuis ; DEUX lecteurs désormais, voir ci-dessous),
 GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET (✅ posés le 16.08.2026 — voir ci-dessous),
 GOOGLE_WORKSPACE_SA_KEY (✅ posé le 09.08.2026 — voir ci-dessous),
 STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_IDENTITY_FLOW_ID (⛔ PLUS AUCUN LECTEUR
@@ -841,6 +855,25 @@ manquants). Il ne peut être supprimé que depuis l'ancien compte.
 16.08.2026, toujours vrai après la pose des secrets Google). La voie OAuth Outlook est donc dans
 l'état qu'avait la voie Google avant ce jour-là : `booking-oauth.ts:64` lit ces deux variables pour
 rafraîchir un jeton Microsoft et tourne avec `client_id: ''`. Même mode d'échec silencieux.
+
+⚠ **Ils ont un SECOND lecteur depuis la PR #1274** — sur branche, pas en production :
+`_shared/mail/guard.ts::providerConfigFromEnv` les lit pour la messagerie, aux côtés des deux
+secrets Google. Le mode d'échec y est en revanche **bruyant** : un `clientId` vide fait
+court-circuiter `mail-oauth start` en 503 `provider_not_configured`, visible à l'écran. C'est
+d'ailleurs pourquoi `supabase/config.toml` pose deux `clientId` de test **pour le runtime local
+seul** (`test-only-local…`) — sans valeur non vide, la construction de l'URL d'autorisation, le
+défi PKCE et l'insertion dans `mail_oauth_states` n'étaient exercés par RIEN, et un scope erroné
+serait parti au vert. Aucun appel n'est fait vers Google ou Microsoft avec.
+
+⛔ **Poser les deux secrets ne suffira PAS à connecter une boîte Outlook.** Il faut d'abord
+l'inscription **Entra ID** (App registrations → « MEGGA », comptes organisationnels ET personnels ;
+permissions **déléguées** Microsoft Graph `Mail.ReadWrite`, `Mail.Send`, `User.Read`,
+`offline_access` ; URI de redirection `https://app.megga.ch/oauth/mail/callback`). Et cette inscription
+sert DEUX mécaniques qui se configurent à DEUX endroits : le fournisseur **Azure de Supabase
+Auth** pour le `linkIdentity` du calendrier Outlook (`useOutlookCalendar.ts:121`), et les deux
+secrets Supabase pour le rafraîchissement côté edge (`booking-oauth.ts`) comme pour la
+messagerie. Poser l'un ne pose pas l'autre — c'est le couple de secrets, et lui seul, qui
+explique le `client_id: ''` du paragraphe ci-dessus.
 
 **Vérifier la bascule sans se connecter** — l'oracle est côté serveur, pas dans l'UI du dashboard :
 ```bash

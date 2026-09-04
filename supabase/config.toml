@@ -377,6 +377,18 @@ deno_version = 2
 # In production, override with a real secret via MEGGA_MAGIC_LINK_HMAC_SECRET env var.
 MEGGA_MAGIC_LINK_HMAC_SECRET = "env(MEGGA_MAGIC_LINK_HMAC_SECRET)"
 
+# ⛔ VALEURS DE TEST, POUR LE RUNTIME LOCAL SEUL — et elles existent pour qu'un test
+# CESSE d'être creux. Sans un clientId non vide, `mail-oauth start` court-circuite en
+# 503 (`provider_not_configured`) à chaque exécution : la construction de l'URL
+# d'autorisation, le défi PKCE, `randomToken` et l'insertion dans `mail_oauth_states`
+# n'étaient exercés PAR RIEN, et un scope erroné ou un défi cassé partait au vert
+# (tests/backend/mail-edges.spec.ts).
+# Aucun appel n'est fait vers Google ou Microsoft avec : seule la CONSTRUCTION de l'URL
+# est éprouvée, l'échange de code exigerait un vrai code d'autorisation. En production,
+# les deux valeurs viennent des secrets du projet Supabase — jamais d'ici.
+GOOGLE_CLIENT_ID = "test-only-local.apps.googleusercontent.com"
+MICROSOFT_CLIENT_ID = "test-only-local-microsoft-client"
+
 [analytics]
 # Disabled: supabase_vector container fails on Colima
 # (docker.sock mount not supported). Not needed for backend tests.
@@ -611,6 +623,21 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.magic-link-upload]
+verify_jwt = false
+
+[functions.mail-actions]
+verify_jwt = false
+
+[functions.mail-attachment]
+verify_jwt = false
+
+[functions.mail-oauth]
+verify_jwt = false
+
+[functions.mail-send]
+verify_jwt = false
+
+[functions.mail-sync]
 verify_jwt = false
 
 [functions.market-scraper]

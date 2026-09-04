@@ -114,9 +114,6 @@ properties (
   -- status: 'draft' | 'active' | 'reserved' | 'sold' | 'off_market' | 'archived'
   -- condition: 'new' | 'renovated' | 'good' | 'to_renovate'
 
--- Listings (annonces publiées)
-listings (id, property_id, agency_id, title, description_ai, price_display, is_featured, is_hot, views_count, favorites_count, published_at, expires_at)
-
 -- Recherches clients (sauvegardes)
 client_searches (
   id, agency_id, contact_id,
@@ -223,31 +220,133 @@ documents (id, agency_id, kyc_case_id, transaction_id, contact_id, property_id, 
   -- status: 'pending' | 'validated' | 'rejected'
   -- type: 'mandate' | 'visit_voucher' | 'property_sheet' | 'offer' | 'kyc' | 'contract' | 'other'
 
--- Messages (email + WhatsApp unifiés)
-messages (id, thread_id, sender_id, sender_type, channel, content, read_at, created_at)
-  -- channel: 'internal' | 'email' | 'whatsapp'
-message_threads (id, agency_id, property_id, contact_id, channel, participants, last_message_at)
+-- ─── Messagerie CRM (boîte mail intégrée) ───────────────────────────────────
+-- ⚠ ÉTAT AU 04.09.2026 : livré sur la branche claude/crm-messaging-lot1-backend-79297b
+-- (PR #1274, OUVERTE), donc PAS EN PRODUCTION. Vérifié le 04.09.2026 par requête
+-- directe sur eayczugyrvmtqnnmvjod : 0 table mail_%, 0 fonction mail_%, 0 job cron
+-- mail%. Ce bloc décrit les MIGRATIONS, pas encore la base.
+-- Source : 20260904074500_mail_module.sql (socle) + 20260904074600_mail_sync_failures.sql
+-- Décisions D1-D16 : docs/superpowers/plans/2026-09-03-messagerie-crm.md
+--
+-- ⛔ AUCUN JETON EN COLONNE. Les identifiants OAuth/IMAP vivent dans Supabase
+-- Vault ; mail_accounts.vault_secret_id n'est qu'un pointeur, et seuls les ponts
+-- mail_secret_store / _read / _update / _delete (SECURITY DEFINER, search_path
+-- vide, exécution révoquée sauf service_role) savent le déréférencer.
 
--- Favoris
-favorites (id, user_id, listing_id, created_at)
+-- Boîtes connectées. Une ligne = un compte fournisseur d'un agent.
+mail_accounts (
+  id, agency_id, owner_id,
+  provider,          -- 'gmail' | 'outlook' | 'imap'
+  email, display_name,
+  visibility,        -- 'owner' (défaut) | 'agency' — qui voit la boîte DANS l'agence
+  status,            -- 'active' | 'reauth_required' | 'error' | 'disabled'
+  vault_secret_id,   -- pointeur Vault ; jamais le secret lui-même
+  sync_cursor,       -- jsonb : historyId Gmail / deltaLink Graph
+  next_sync_at, last_sync_at, last_error,
+  sync_failures,     -- échecs consécutifs (20260904074600) ; remis à 0 par une passe
+                     --   réussie, au 5e _shared/mail/sync.ts bascule status='error'
+  imap_config,       -- jsonb : hôte, port, utilisateur — JAMAIS le mot de passe
+  created_at, updated_at
+)
+  -- unique (agency_id, provider, lower(email)) : reconnecter une boîte partagée
+  --   ne la vole pas à son propriétaire
+  -- index partiel (next_sync_at) WHERE status = 'active' : file du balayage cron
+
+-- États OAuth code+PKCE, côté serveur (D1). Le flux ne passe PAS par GoTrue.
+mail_oauth_states (
+  state,             -- clé primaire (opaque, à usage unique)
+  user_id, agency_id, provider, code_verifier, login_hint, visibility, redirect_uri,
+  created_at,
+  expires_at,        -- défaut now() + 10 minutes
+  consumed_at
+)
+  -- purgés par la commande du cron (expires_at < now() - 1 jour) : un parcours
+  --   abandonné n'est jamais estampillé, la table croîtrait sans fin
+
+-- Libellés, par agence (D12) — pas par boîte : un fil se range pareil pour tous.
+mail_labels (id, agency_id, name, color, position, is_default, created_at, updated_at)
+  -- color : CHECK ^#[0-9a-fA-F]{6}$ | name : CHECK 1..40 caractères après trim
+  -- unique (agency_id, lower(name))
+
+-- Fils. Portent l'état d'affichage ET les agrégats de liste (pas de vue calculée).
+mail_threads (
+  id, account_id, agency_id,
+  provider_thread_id,
+  subject, snippet,
+  participants,      -- jsonb [{name,email}] hors adresse de la boîte
+  from_name, from_email,
+  last_message_at, last_inbound_at, last_outbound_at,
+  message_count, has_attachments,
+  is_read, is_starred, is_archived, is_trashed,
+  label_id,          -- FK mail_labels ON DELETE SET NULL
+  contact_id,        -- FK contacts ON DELETE SET NULL — rattachement D11
+  search_text,       -- GENERATED ALWAYS … STORED : lower(from_name+from_email+subject+snippet)
+  created_at, updated_at
+)
+  -- unique (account_id, provider_thread_id)
+  -- ⚠ IL N'Y A PAS DE COLONNE « dossier » : les dossiers SONT des requêtes (D8),
+  --   dérivées de is_archived / is_starred / is_trashed / last_inbound_at /
+  --   last_outbound_at par mail_list_threads(p_folder in 'in'|'arch'|'star'|'sent')
+  -- REPLICA IDENTITY FULL + table publiée dans supabase_realtime : sans elle
+  --   l'ancienne ligne d'un DELETE ne porte que la PK, donc pas d'agency_id, et
+  --   le filtre serveur du lot 2 jetterait l'événement
+
+-- Messages. Corps stockés tels quels ; le HTML est assaini à l'affichage.
+mail_messages (
+  id, thread_id, account_id, agency_id,
+  provider_message_id, rfc822_message_id, in_reply_to,
+  direction,         -- 'inbound' | 'outbound'
+  from_name, from_email, "to", cc, bcc, reply_to,   -- "to"/cc/bcc : jsonb [{name,email}]
+  subject, snippet,
+  body_text, body_html, body_truncated,             -- HTML plafonné à 512 Kio
+  sent_at, is_read, has_attachments,
+  provider_labels,   -- text[] : libellés du fournisseur, distincts de mail_labels
+  contact_id, created_at
+)
+  -- unique (account_id, provider_message_id) : l'idempotence de l'ingestion
+  -- index (thread_id, sent_at) et (account_id, rfc822_message_id) partiel
+  -- pas d'updated_at, pas de policy d'écriture : seule l'ingestion service-role écrit
+
+-- Pièces jointes : MÉTADONNÉES SEULEMENT (D9). Les octets restent chez le
+-- fournisseur et transitent par l'edge mail-attachment ; document_id n'est posé
+-- que si l'agent enregistre la pièce dans le CRM.
+mail_attachments (
+  id, message_id, account_id, agency_id,
+  provider_attachment_id, filename, mime_type, size_bytes,
+  is_inline, content_id,
+  document_id,       -- FK documents ON DELETE SET NULL
+  created_at
+)
+
+-- Brouillons LOCAUX (D7) : jamais poussés chez le fournisseur.
+mail_drafts (
+  id, account_id, agency_id, author_id,
+  kind,              -- 'new' | 'reply' | 'forward'
+  thread_id, in_reply_to_message_id,
+  "to", cc, subject, body_text,
+  attachments,       -- jsonb [{name,size,storage_path}] : pièces déjà déposées
+  created_at, updated_at
+)
+
+-- Alias appris (D11) : « cette adresse est ce contact », mémorisé une fois.
+mail_contact_aliases (id, agency_id, email, contact_id, learned_by, created_at)
+  -- CHECK email = lower(email) : l'index unique reste simple, donc ciblable par
+  --   un upsert PostgREST (onConflict ne sait pas viser un index d'expression)
+  -- unique (agency_id, email)
+
+-- Verrou du balayage (patron whatsapp_cron_locks). Semé avec la ligne 'mail-sync'.
+mail_cron_locks (job, locked_until)
+  -- cron 'mail-sync-2min' (*/2 * * * *) → edge mail-sync
+
+-- RPC de lecture (SECURITY INVOKER : la RLS filtre, les totaux sont calculés sur
+-- ce que l'appelant a le droit de voir) : mail_list_threads, mail_unread_counts,
+-- mail_folder_counts, mail_search_contacts.
+-- mail_match_contact_by_emails(agency_id, emails[]) est la seule SECURITY DEFINER
+-- de lecture : appelée par l'ingestion service-role, qui n'a pas d'auth.uid() —
+-- l'agence vient du compte, jamais du réseau.
 
 -- Audit trail
 activity_events (id, agency_id, actor_id, action, entity_type, entity_id, metadata, created_at)
-
--- Embeddings pour recherche IA
-listing_embeddings (id, listing_id, embedding vector(1536), content_text, updated_at)
-
--- Actions du jour (générées par IA, rafraîchies quotidiennement)
-daily_actions (
-  id, agency_id, agent_id,
-  priority,         -- 'urgent' | 'high' | 'medium' | 'low'
-  category,         -- 'follow_up' | 'match_found' | 'visit_confirm' | 'document_missing' | 'deal_at_risk' | 'suggestion'
-  title, description,
-  entity_type, entity_id, -- Lien vers le contact/deal/bien concerné
-  action_type,      -- 'call' | 'email' | 'whatsapp' | 'send_property' | 'plan_visit' | 'review_document' | 'adjust_price'
-  is_completed,
-  generated_at, completed_at
-)
 ```
 
 ### Row Level Security (RLS)
@@ -275,6 +374,37 @@ simple n'a aucune raison de lire l'identité de l'actionnaire de son agence.
   inviterait à optimiser sa saisie pour franchir le seuil d'auto-validation.
 - legal_forms / legal_form_aliases / verification_check_types : `using (true)` assumé
   (données de référence, aucune PII) ; écriture sans policy → migrations seulement.
+
+EXCEPTION — tables mail_* (messagerie CRM ; PAS EN PRODUCTION au 04.09.2026, cf. le
+groupe correspondant ci-dessus) : le filtrage par agence ne suffit pas non plus, mais
+pour la raison INVERSE du KYB — une boîte peut être privée à l'intérieur de son agence.
+Tout passe par mail_account_visible(account_id), SECURITY DEFINER pour que les policies
+des tables filles lisent mail_accounts sans dépendre de la policy de mail_accounts (pas
+de récursion) :
+    agency_id = get_my_agency_id() ET (visibility = 'agency' OU owner_id = auth.uid())
+⛔ LE « ET » N'EST PAS UN DOUBLON de visibility — ne pas le retirer. visibility dit qui
+  voit la boîte DANS l'agence, jamais de quelle agence est le LECTEUR. Sans lui, la
+  branche owner_id survit au départ : team_remove_member ne fait qu'un `update profiles
+  set agency_id = null, role = 'buyer'` (20260627120000:286), donc la ligne profiles
+  SURVIT, `owner_id … on delete cascade` ne se déclenche jamais, et un ex-membre passé
+  chez un concurrent continuerait de lire les fils, les corps et les pièces de son
+  ancienne agence — y compris ce que le balayage ingère APRÈS son départ.
+- mail_accounts : SELECT accordé COLONNE PAR COLONNE, jamais sur la table — un SELECT de
+  table exposerait vault_secret_id, sync_cursor et imap_config. Aucune écriture client :
+  connexion, synchronisation et gestes passent par les edge functions (service_role).
+- mail_threads / mail_messages / mail_attachments : SELECT seul via mail_account_visible.
+  Unique écriture client : UPDATE (label_id) sur mail_threads — et son WITH CHECK
+  revalide que le libellé est de l'agence, la clé étrangère vers mail_labels étant
+  aveugle à l'agence (sinon un PATCH sur son propre fil y collerait le libellé d'une
+  autre agence, qui gouvernerait dès lors le champ).
+- mail_labels / mail_drafts / mail_contact_aliases : CRUD client. mail_drafts est
+  restreinte à son auteur (author_id = auth.uid()) ; mail_contact_aliases vérifie EN PLUS
+  que le contact visé est de l'agence — sans quoi l'ingestion (service-role, donc hors
+  RLS) recopierait un contact étranger sur mail_threads.contact_id, et le fil se lirait
+  « rattaché » tout en restant vide.
+- mail_oauth_states / mail_cron_locks : RLS activée, AUCUNE policy → service_role seul.
+- Les privilèges par défaut du projet accordent trop à anon : le socle fait un
+  REVOKE ALL … FROM anon, authenticated sur les neuf tables AVANT d'accorder le strict.
 ```
 
 ---
