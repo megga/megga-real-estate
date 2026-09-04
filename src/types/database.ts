@@ -17,7 +17,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -2383,6 +2383,30 @@ export type Database = {
           },
         ]
       }
+      crm_open_tabs: {
+        Row: {
+          active_index: number
+          revision: number
+          tabs: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_index?: number
+          revision?: number
+          tabs?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_index?: number
+          revision?: number
+          tabs?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           agency_id: string | null
@@ -3300,6 +3324,624 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      mail_accounts: {
+        Row: {
+          agency_id: string
+          created_at: string
+          display_name: string | null
+          email: string
+          id: string
+          imap_config: Json | null
+          last_error: string | null
+          last_sync_at: string | null
+          next_sync_at: string
+          owner_id: string
+          provider: string
+          status: string
+          sync_cursor: Json
+          sync_failures: number
+          updated_at: string
+          vault_secret_id: string | null
+          visibility: string
+        }
+        Insert: {
+          agency_id: string
+          created_at?: string
+          display_name?: string | null
+          email: string
+          id?: string
+          imap_config?: Json | null
+          last_error?: string | null
+          last_sync_at?: string | null
+          next_sync_at?: string
+          owner_id: string
+          provider: string
+          status?: string
+          sync_cursor?: Json
+          sync_failures?: number
+          updated_at?: string
+          vault_secret_id?: string | null
+          visibility?: string
+        }
+        Update: {
+          agency_id?: string
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          id?: string
+          imap_config?: Json | null
+          last_error?: string | null
+          last_sync_at?: string | null
+          next_sync_at?: string
+          owner_id?: string
+          provider?: string
+          status?: string
+          sync_cursor?: Json
+          sync_failures?: number
+          updated_at?: string
+          vault_secret_id?: string | null
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mail_accounts_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_accounts_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mail_attachments: {
+        Row: {
+          account_id: string
+          agency_id: string
+          content_id: string | null
+          created_at: string
+          document_id: string | null
+          filename: string
+          id: string
+          is_inline: boolean
+          message_id: string
+          mime_type: string
+          provider_attachment_id: string
+          size_bytes: number
+        }
+        Insert: {
+          account_id: string
+          agency_id: string
+          content_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          filename: string
+          id?: string
+          is_inline?: boolean
+          message_id: string
+          mime_type: string
+          provider_attachment_id: string
+          size_bytes?: number
+        }
+        Update: {
+          account_id?: string
+          agency_id?: string
+          content_id?: string | null
+          created_at?: string
+          document_id?: string | null
+          filename?: string
+          id?: string
+          is_inline?: boolean
+          message_id?: string
+          mime_type?: string
+          provider_attachment_id?: string
+          size_bytes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mail_attachments_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "mail_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_attachments_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_attachments_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_attachments_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "mail_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mail_contact_aliases: {
+        Row: {
+          agency_id: string
+          contact_id: string
+          created_at: string
+          email: string
+          id: string
+          learned_by: string | null
+        }
+        Insert: {
+          agency_id: string
+          contact_id: string
+          created_at?: string
+          email: string
+          id?: string
+          learned_by?: string | null
+        }
+        Update: {
+          agency_id?: string
+          contact_id?: string
+          created_at?: string
+          email?: string
+          id?: string
+          learned_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mail_contact_aliases_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_contact_aliases_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_contact_aliases_learned_by_fkey"
+            columns: ["learned_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mail_cron_locks: {
+        Row: {
+          job: string
+          locked_until: string
+        }
+        Insert: {
+          job: string
+          locked_until?: string
+        }
+        Update: {
+          job?: string
+          locked_until?: string
+        }
+        Relationships: []
+      }
+      mail_drafts: {
+        Row: {
+          account_id: string
+          agency_id: string
+          attachments: Json
+          author_id: string
+          body_text: string | null
+          cc: Json
+          created_at: string
+          id: string
+          in_reply_to_message_id: string | null
+          kind: string
+          subject: string | null
+          thread_id: string | null
+          to: Json
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          agency_id: string
+          attachments?: Json
+          author_id: string
+          body_text?: string | null
+          cc?: Json
+          created_at?: string
+          id?: string
+          in_reply_to_message_id?: string | null
+          kind?: string
+          subject?: string | null
+          thread_id?: string | null
+          to?: Json
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          agency_id?: string
+          attachments?: Json
+          author_id?: string
+          body_text?: string | null
+          cc?: Json
+          created_at?: string
+          id?: string
+          in_reply_to_message_id?: string | null
+          kind?: string
+          subject?: string | null
+          thread_id?: string | null
+          to?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mail_drafts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "mail_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_drafts_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_drafts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_drafts_in_reply_to_message_id_fkey"
+            columns: ["in_reply_to_message_id"]
+            isOneToOne: false
+            referencedRelation: "mail_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_drafts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "mail_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mail_labels: {
+        Row: {
+          agency_id: string
+          color: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          color: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          color?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mail_labels_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mail_messages: {
+        Row: {
+          account_id: string
+          agency_id: string
+          bcc: Json
+          body_html: string | null
+          body_text: string | null
+          body_truncated: boolean
+          cc: Json
+          contact_id: string | null
+          created_at: string
+          direction: string
+          from_email: string | null
+          from_name: string | null
+          has_attachments: boolean
+          id: string
+          in_reply_to: string | null
+          is_read: boolean
+          provider_labels: string[]
+          provider_message_id: string
+          reply_to: string | null
+          rfc822_message_id: string | null
+          sent_at: string
+          snippet: string | null
+          subject: string | null
+          thread_id: string
+          to: Json
+        }
+        Insert: {
+          account_id: string
+          agency_id: string
+          bcc?: Json
+          body_html?: string | null
+          body_text?: string | null
+          body_truncated?: boolean
+          cc?: Json
+          contact_id?: string | null
+          created_at?: string
+          direction: string
+          from_email?: string | null
+          from_name?: string | null
+          has_attachments?: boolean
+          id?: string
+          in_reply_to?: string | null
+          is_read?: boolean
+          provider_labels?: string[]
+          provider_message_id: string
+          reply_to?: string | null
+          rfc822_message_id?: string | null
+          sent_at: string
+          snippet?: string | null
+          subject?: string | null
+          thread_id: string
+          to?: Json
+        }
+        Update: {
+          account_id?: string
+          agency_id?: string
+          bcc?: Json
+          body_html?: string | null
+          body_text?: string | null
+          body_truncated?: boolean
+          cc?: Json
+          contact_id?: string | null
+          created_at?: string
+          direction?: string
+          from_email?: string | null
+          from_name?: string | null
+          has_attachments?: boolean
+          id?: string
+          in_reply_to?: string | null
+          is_read?: boolean
+          provider_labels?: string[]
+          provider_message_id?: string
+          reply_to?: string | null
+          rfc822_message_id?: string | null
+          sent_at?: string
+          snippet?: string | null
+          subject?: string | null
+          thread_id?: string
+          to?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mail_messages_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "mail_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_messages_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_messages_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "mail_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mail_oauth_states: {
+        Row: {
+          agency_id: string
+          code_verifier: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          login_hint: string | null
+          provider: string
+          redirect_uri: string
+          state: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          agency_id: string
+          code_verifier: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          login_hint?: string | null
+          provider: string
+          redirect_uri: string
+          state: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          agency_id?: string
+          code_verifier?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          login_hint?: string | null
+          provider?: string
+          redirect_uri?: string
+          state?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mail_oauth_states_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_oauth_states_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mail_threads: {
+        Row: {
+          account_id: string
+          agency_id: string
+          contact_id: string | null
+          created_at: string
+          from_email: string | null
+          from_name: string | null
+          has_attachments: boolean
+          id: string
+          is_archived: boolean
+          is_read: boolean
+          is_starred: boolean
+          is_trashed: boolean
+          label_id: string | null
+          last_inbound_at: string | null
+          last_message_at: string
+          last_outbound_at: string | null
+          message_count: number
+          participants: Json
+          provider_thread_id: string
+          search_text: string | null
+          snippet: string | null
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          agency_id: string
+          contact_id?: string | null
+          created_at?: string
+          from_email?: string | null
+          from_name?: string | null
+          has_attachments?: boolean
+          id?: string
+          is_archived?: boolean
+          is_read?: boolean
+          is_starred?: boolean
+          is_trashed?: boolean
+          label_id?: string | null
+          last_inbound_at?: string | null
+          last_message_at?: string
+          last_outbound_at?: string | null
+          message_count?: number
+          participants?: Json
+          provider_thread_id: string
+          search_text?: string | null
+          snippet?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          agency_id?: string
+          contact_id?: string | null
+          created_at?: string
+          from_email?: string | null
+          from_name?: string | null
+          has_attachments?: boolean
+          id?: string
+          is_archived?: boolean
+          is_read?: boolean
+          is_starred?: boolean
+          is_trashed?: boolean
+          label_id?: string | null
+          last_inbound_at?: string | null
+          last_message_at?: string
+          last_outbound_at?: string | null
+          message_count?: number
+          participants?: Json
+          provider_thread_id?: string
+          search_text?: string | null
+          snippet?: string | null
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mail_threads_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "mail_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_threads_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_threads_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mail_threads_label_id_fkey"
+            columns: ["label_id"]
+            isOneToOne: false
+            referencedRelation: "mail_labels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       market_listings: {
         Row: {
@@ -7059,6 +7701,10 @@ export type Database = {
         Returns: unknown
       }
       _st_within: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      abort_whatsapp_number_verification: {
+        Args: { p_profile_id: string }
+        Returns: undefined
+      }
       accept_followup_suggestion: { Args: { p_id: string }; Returns: string }
       addauth: { Args: { "": string }; Returns: boolean }
       addgeometrycolumn:
@@ -7404,6 +8050,7 @@ export type Database = {
         Returns: undefined
       }
       cancel_visit_by_token: { Args: { p_token: string }; Returns: boolean }
+      cancel_whatsapp_number_verification: { Args: never; Returns: undefined }
       changelog_publish_due: { Args: never; Returns: number }
       check_email_exists: { Args: { p_email: string }; Returns: boolean }
       claim_pending_role: { Args: never; Returns: string }
@@ -7480,20 +8127,16 @@ export type Database = {
       cleanup_orphan_property_drafts: { Args: never; Returns: number }
       compute_agent_preferences: { Args: { p_agent_id: string }; Returns: Json }
       compute_platform_mrr_estimate: { Args: never; Returns: number }
-      consume_wa_optin_invite: {
-        Args: { p_invite_id: string; p_message_id?: string; p_wa_phone: string }
-        Returns: string
-      }
-      cancel_whatsapp_number_verification: {
-        Args: never
-        Returns: undefined
-      }
       confirm_whatsapp_number_verification: {
         Args: { p_code: string }
         Returns: {
           ok: boolean
           reason: string
         }[]
+      }
+      consume_wa_optin_invite: {
+        Args: { p_invite_id: string; p_message_id?: string; p_wa_phone: string }
+        Returns: string
       }
       contact_next_action: {
         Args: { p_agency: string; p_contact: string }
@@ -7595,6 +8238,11 @@ export type Database = {
           responded_at: string
           status: Database["public"]["Enums"]["crm_offer_status"]
         }[]
+      }
+      crm_tabs_resolve_labels: { Args: { p_refs: Json }; Returns: Json }
+      crm_tabs_save: {
+        Args: { p_active: number; p_revision?: number; p_tabs: Json }
+        Returns: Json
       }
       crm_visits_by_property: {
         Args: { p_property_id: string }
@@ -8520,6 +9168,78 @@ export type Database = {
         Returns: string
       }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      mail_account_visible: { Args: { p_account_id: string }; Returns: boolean }
+      mail_folder_counts: {
+        Args: { p_account_id: string }
+        Returns: {
+          archived: number
+          drafts: number
+          inbox_unread: number
+          label_counts: Json
+        }[]
+      }
+      mail_list_threads: {
+        Args: {
+          p_account_id: string
+          p_att_only?: boolean
+          p_folder?: string
+          p_label_id?: string
+          p_page?: number
+          p_per_page?: number
+          p_q?: string
+          p_unread_only?: boolean
+        }
+        Returns: {
+          account_id: string
+          contact_id: string
+          from_email: string
+          from_name: string
+          has_attachments: boolean
+          id: string
+          is_archived: boolean
+          is_read: boolean
+          is_starred: boolean
+          is_trashed: boolean
+          label_id: string
+          last_message_at: string
+          message_count: number
+          participants: Json
+          snippet: string
+          subject: string
+          total: number
+        }[]
+      }
+      mail_match_contact_by_emails: {
+        Args: { p_agency_id: string; p_emails: string[] }
+        Returns: string[]
+      }
+      mail_search_contacts: {
+        Args: { p_q: string }
+        Returns: {
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          phone: string
+        }[]
+      }
+      mail_secret_delete: { Args: { p_id: string }; Returns: undefined }
+      mail_secret_read: { Args: { p_id: string }; Returns: string }
+      mail_secret_store: {
+        Args: { p_name: string; p_secret: string }
+        Returns: string
+      }
+      mail_secret_update: {
+        Args: { p_id: string; p_secret: string }
+        Returns: undefined
+      }
+      mail_unread_counts: {
+        Args: never
+        Returns: {
+          account_id: string
+          unread: number
+        }[]
+      }
       mark_stale_kyc_dossiers: {
         Args: never
         Returns: {
@@ -8804,14 +9524,6 @@ export type Database = {
       soft_delete_property: {
         Args: { p_property_id: string }
         Returns: boolean
-      }
-      start_whatsapp_number_verification: {
-        Args: { p_number: string; p_profile_id: string }
-        Returns: {
-          code: string
-          ok: boolean
-          reason: string
-        }[]
       }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
@@ -9394,6 +10106,14 @@ export type Database = {
         Args: { geom: unknown; move: number; wrap: number }
         Returns: unknown
       }
+      start_whatsapp_number_verification: {
+        Args: { p_number: string; p_profile_id: string }
+        Returns: {
+          code: string
+          ok: boolean
+          reason: string
+        }[]
+      }
       storage_size_mb: { Args: never; Returns: number }
       submit_agency_identity: {
         Args: { p_related_person_id?: string }
@@ -9604,12 +10324,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -9633,11 +10353,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -9658,11 +10378,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -9683,11 +10403,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -9700,11 +10420,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
