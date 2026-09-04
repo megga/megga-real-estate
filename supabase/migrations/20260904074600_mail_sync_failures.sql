@@ -2,7 +2,7 @@
 -- Messagerie CRM — compteur d'échecs consécutifs de synchronisation.
 --
 -- POURQUOI. `mail_accounts.status` autorise 'error' depuis le socle
--- (20260903120000_mail_module.sql:97) mais AUCUN chemin de code ne l'écrivait :
+-- (20260904074500_mail_module.sql:97) mais AUCUN chemin de code ne l'écrivait :
 -- seule la reconnexion (`reauth_required`) sortait une boîte du balayage. Les
 -- cinq autres façons de mourir — 403 Gmail (scope réduit, quota, projet
 -- suspendu), 403/429 Graph, pointeur Vault orphelin (`no_secret`), erreur

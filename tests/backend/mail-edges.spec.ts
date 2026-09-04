@@ -81,7 +81,7 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
     // l'autre VISIBLE (la sienne) pour atteindre les contrôles qui viennent APRÈS
     // la garde. Sans la seconde, « mail-send sans destinataire » rendrait 404 sur le
     // compte et passerait pour la bonne raison sans jamais toucher le bon code.
-    // `status` vaut 'active' par défaut (migration 20260903120000) : le contrôle 409
+    // `status` vaut 'active' par défaut (migration 20260904074500) : le contrôle 409
     // ne s'interpose donc pas.
     const mk = async (agencyId: string, ownerId: string, email: string, visibility: 'agency' | 'owner' = 'agency') => {
       const { data: row, error } = await service.from('mail_accounts')

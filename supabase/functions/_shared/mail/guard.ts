@@ -9,7 +9,7 @@ import type { OAuthClientConfig } from './secrets.ts'
 
 export interface CallerCtx { userId: string; agencyId: string }
 
-// ⛔ Jumelle TypeScript de `mail_account_visible` (20260903120000_mail_module.sql) :
+// ⛔ Jumelle TypeScript de `mail_account_visible` (20260904074500_mail_module.sql) :
 // les deux doivent dire la même chose, et ne jamais dériver. L'appartenance à l'agence
 // est CONJOINTE ; `visibility` ne dit que qui voit la boîte DANS l'agence, jamais de
 // quelle agence est le LECTEUR. En disjonction, `owner_id === ctx.userId` serait une

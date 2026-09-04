@@ -77,7 +77,7 @@
 3. ⛔ **`deno check` refuse `Uint8Array<ArrayBufferLike>` comme `BufferSource`** : rendre des `ArrayBuffer` (`bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)`).
 4. ⛔ **Toute edge est publique** (`--no-verify-jwt`) : la garde (`requireAgentAuth` / `isServiceSecret`) vient **avant** toute lecture de configuration, et sort par `return`, jamais par `throw`.
 5. ⛔ **Service-role = pas de RLS** : chaque `account_id` venu du corps se revérifie contre `auth` (`ownerOrAgencyMember(account, ctx)`), sinon IDOR.
-6. **Migration idempotente** (`npm run lint:migrations`) ; un seul fichier pour le lot, horodaté `20260903120000`.
+6. **Migration idempotente** (`npm run lint:migrations`) ; un seul fichier pour le lot, horodaté `20260904074500`.
 7. `activity_events` : `severity` ∈ `info|warn|critical`, `category='messaging'`, `actor_kind='system'` ⇒ `actor_id` NULL. ⚠ Et **`entity_id` DOIT porter le `contact_id`** : `useContactTimeline` ne filtre que sur `entity_id` (son commentaire ligne 27 promet un « OU metadata », qui n'est pas implémenté) — un événement qui ne nomme le contact que dans `metadata` n'apparaît nulle part.
 8. ⚠ **`supabase/functions/_shared/mail/` est le PREMIER dossier imbriqué** de `supabase/functions/` (mesuré le 03.09.2026 : `find … -mindepth 2 -type d` ne rend rien). Inoffensif pour `deno check` (son `find` est récursif), pour `deploy.yml` (il n'itère que `supabase/functions/*/` et exige un `index.ts`) et pour le roster (il exclut `_shared`). Mais **vitest ne le voit pas** : cf. règle 1.
 9. ⛔ **Ne jamais écrire un bloc `[functions.*]` à la main dans `supabase/config.toml`** : la région entre les marqueurs `# ── GÉNÉRÉ par scripts/check-edge-roster.mjs — début ── / — fin ──` est générée et comparée texte pour texte. `node scripts/check-edge-roster.mjs --write` (cf. tâches 1.10-1.14). ⚠ Cette règle a porté « les lignes 482→700 » jusqu'au 04.09.2026 : elles étaient déjà 494→727 — les marqueurs, eux, ne bougent pas.
@@ -89,7 +89,7 @@
 
 | Créé | Rôle |
 |---|---|
-| `supabase/migrations/20260903120000_mail_module.sql` | tables, Vault, RLS, RPC, Realtime, rétention, cron, verrou |
+| `supabase/migrations/20260904074500_mail_module.sql` | tables, Vault, RLS, RPC, Realtime, rétention, cron, verrou |
 | `supabase/functions/_shared/mail/types.ts` | types partagés (compte, message normalisé, curseurs, opérations) |
 | `supabase/functions/_shared/mail/mime.ts` (+ `.test.ts`) | adresses, RFC 2047, base64url, HTML↔texte, construction MIME |
 | `supabase/functions/_shared/mail/secrets.ts` (+ `.test.ts`) | Vault + rafraîchissement de jeton |
@@ -122,13 +122,13 @@
 > AUCUN chemin de code : seule la reconnexion sortait une boîte du balayage, et les cinq
 > autres façons de mourir (403 de quota, pointeur Vault orphelin, erreur d'ingestion,
 > refus Graph, ligne `imap`) la laissaient `active` à réessayer toutes les 10 minutes,
-> pour toujours. Ajouté : `supabase/migrations/20260904000000_mail_sync_failures.sql`
+> pour toujours. Ajouté : `supabase/migrations/20260904074600_mail_sync_failures.sql`
 > (colonne `sync_failures`, contrainte, grant de colonne). ⛔ **Ce fichier-ci n'a PAS
 > été touché** — il est relu et committé, et la CI le rejoue.
 
 **Files:**
-- Create: `supabase/migrations/20260903120000_mail_module.sql`
-- Create (04.09.2026, revue adverse) : `supabase/migrations/20260904000000_mail_sync_failures.sql`
+- Create: `supabase/migrations/20260904074500_mail_module.sql`
+- Create (04.09.2026, revue adverse) : `supabase/migrations/20260904074600_mail_sync_failures.sql`
 
 - [x] **Step 1 : Écrire la migration**
 
@@ -820,7 +820,7 @@ comment on table public.mail_messages is 'Messagerie CRM : messages (corps texte
 -- Messagerie CRM — compteur d'échecs consécutifs de synchronisation.
 --
 -- POURQUOI. `mail_accounts.status` autorise 'error' depuis le socle
--- (20260903120000_mail_module.sql:97) mais AUCUN chemin de code ne l'écrivait :
+-- (20260904074500_mail_module.sql:97) mais AUCUN chemin de code ne l'écrivait :
 -- seule la reconnexion (`reauth_required`) sortait une boîte du balayage. Les
 -- cinq autres façons de mourir — 403 Gmail (scope réduit, quota, projet
 -- suspendu), 403/429 Graph, pointeur Vault orphelin (`no_secret`), erreur
@@ -899,7 +899,7 @@ Attendu : la colonne `search_text` est `generated always as … stored` ; **11 f
 - [x] **Step 4 : Commit**
 
 ```bash
-git add supabase/migrations/20260903120000_mail_module.sql
+git add supabase/migrations/20260904074500_mail_module.sql
 git commit -m "feat(messagerie): socle SQL — comptes, fils, messages, Vault, RLS, RPC, cron"
 ```
 
@@ -1330,7 +1330,7 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
   pas `@sql-blocks-check` — il n'écrit aucun `do $$ … $$`), et une confrontation
   identifiant par identifiant — tables, colonnes, noms de RPC **et noms d'arguments**,
   ces derniers étant passés PAR NOM par `.rpc()` et donc invisibles au type-check —
-  contre `supabase/migrations/20260903120000_mail_module.sql`.)
+  contre `supabase/migrations/20260904074500_mail_module.sql`.)
 
 ```bash
 npm run test:backend -- tests/backend/mail-rls.spec.ts
@@ -4673,7 +4673,7 @@ import type { OAuthClientConfig } from './secrets.ts'
 
 export interface CallerCtx { userId: string; agencyId: string }
 
-// ⛔ Jumelle TypeScript de `mail_account_visible` (20260903120000_mail_module.sql) :
+// ⛔ Jumelle TypeScript de `mail_account_visible` (20260904074500_mail_module.sql) :
 // les deux doivent dire la même chose, et ne jamais dériver. L'appartenance à l'agence
 // est CONJOINTE ; `visibility` ne dit que qui voit la boîte DANS l'agence, jamais de
 // quelle agence est le LECTEUR. En disjonction, `owner_id === ctx.userId` serait une
@@ -6632,7 +6632,7 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
     // l'autre VISIBLE (la sienne) pour atteindre les contrôles qui viennent APRÈS
     // la garde. Sans la seconde, « mail-send sans destinataire » rendrait 404 sur le
     // compte et passerait pour la bonne raison sans jamais toucher le bon code.
-    // `status` vaut 'active' par défaut (migration 20260903120000) : le contrôle 409
+    // `status` vaut 'active' par défaut (migration 20260904074500) : le contrôle 409
     // ne s'interpose donc pas.
     const mk = async (agencyId: string, ownerId: string, email: string, visibility: 'agency' | 'owner' = 'agency') => {
       const { data: row, error } = await service.from('mail_accounts')
@@ -6939,7 +6939,7 @@ l'edge :
    `boxB`, `loadVisibleAccount` rend `null` et l'edge répond 404 **avant** d'atteindre le
    contrôle de destinataire — le test serait vert pour la mauvaise raison. `beforeAll` sème
    donc une seconde boîte, dans l'agence A. Elle est `status = 'active'` par défaut
-   (migration 20260903120000), le 409 `account_not_active` ne s'interpose pas.
+   (migration 20260904074500), le 409 `account_not_active` ne s'interpose pas.
 2. **Les corps des refus sont assertés, pas seulement les statuts** — `invalid_origin`,
    `invalid_state`, `not_found`, `unknown_action`, `recipient_required`, `unauthorized`,
    `provider_not_configured`. Un statut seul ne distingue pas le gestionnaire de la passerelle.
@@ -7054,7 +7054,7 @@ classé a survécu à la déconnexion.
 
 ### 1. Faire ARRIVER la migration en production
 
-`supabase/migrations/20260903120000_mail_module.sql`.
+`supabase/migrations/20260904074500_mail_module.sql`.
 
 ⛔ **`deploy.yml:220` n'applique qu'une migration dont la DATE du nom est `>= TODAY` (UTC).**
 Son propre commentaire le dit sans détour : une fois `stamp < TODAY`, « aucun déploiement
@@ -7064,16 +7064,25 @@ personne ne lit. Le même commentaire enregistre que l'application manuelle par 
 Supabase (`apply_migration`) **est le flux normal de ce dépôt** — 19 migrations étaient
 déjà dans ce cas au 19.07.2026, et c'est la discipline humaine qui a tenu, pas la CI.
 
-Deux voies, au choix, le jour du merge :
-- `git mv supabase/migrations/20260903120000_mail_module.sql supabase/migrations/<AAAAMMJJ>120000_mail_module.sql`
-  avec la date du jour du merge, pour que le filtre la prenne ; **ou**
-- l'appliquer à la main (MCP `apply_migration`) avant de merger.
+✅ **Re-daté le 04.09.2026 à 07:45 UTC** — les deux migrations du lot portent désormais
+une date du 4 septembre : `20260904074500_mail_module.sql` puis
+`20260904074600_mail_sync_failures.sql` (l'ordre compte, la seconde ajoute une colonne à
+une table que la première crée). Le piège s'était refermé pendant la nuit : le lot avait
+été écrit le 3, et à 07:41 UTC le 4 le filtre `>= TODAY` sautait déjà la première.
+
+⚠ **Et il se refermera de nouveau si le merge glisse au 5.** Ce n'est pas une case à
+cocher une fois pour toutes : c'est une date qui périme chaque minuit UTC. Deux voies, au
+choix, le jour du merge :
+- re-dater les DEUX fichiers par `git mv` en gardant leur ordre relatif — et reprendre
+  leurs quatre références (ce plan, `_shared/mail/guard.ts`, `tests/backend/mail-edges.spec.ts`,
+  et l'en-tête de `mail_sync_failures` qui nomme sa base) ; **ou**
+- les appliquer à la main (MCP `apply_migration`) avant de merger.
 
 ⚠ **Vérifier qu'elle a atterri se fait en LISANT la base, jamais en regardant un pipeline
 vert** — un pipeline vert est exactement ce que rend une migration sautée :
 
 ```sql
-select version from supabase_migrations.schema_migrations where version = '20260903120000';
+select version from supabase_migrations.schema_migrations where version = '20260904074500';
 -- (ou la version renommée) ; une ligne = appliquée. Zéro ligne = elle n'existe pas en prod.
 select count(*) from information_schema.tables where table_schema = 'public' and table_name like 'mail\_%';
 -- attendu : 9 — accounts, oauth_states, labels, threads, messages, attachments, drafts,
