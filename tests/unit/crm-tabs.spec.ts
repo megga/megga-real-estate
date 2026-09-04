@@ -12,7 +12,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   CRM_TABS_CAP, crmApplyCap, crmApplyLabels, crmChipMaxWidth, crmCloseOthers,
-  crmCloseTab, crmDuplicateTab, crmMakeTab, crmMoveTab, crmPinnedCount,
+  crmCloseTab, crmDragBounds, crmDuplicateTab, crmMakeTab, crmMoveTab, crmPinnedCount,
   crmResolveActive, crmTabFallbackPath, crmTabRecordRef, crmTabRefs,
   crmTogglePin, crmVisibleWindow, type CrmTab,
 } from '@/lib/crmTabs'
@@ -222,5 +222,56 @@ describe('crmTabs — plafond', () => {
   it('sous le plafond, rend la MÊME référence (aucun rendu inutile)', () => {
     const tabs = [tab('a'), tab('b')]
     expect(crmApplyCap(tabs, 'a')).toBe(tabs)
+  })
+})
+
+describe('crmTabs — bornes du glisser à grand nombre', () => {
+  const jamaisEpingle = () => false
+
+  it('⛔ NE LAISSE PAS DÉPOSER sur le créneau EMPRUNTÉ par l’actif', () => {
+    // 15 onglets, actif au rang 12 : la barre montre [0,1,2,3,4,12]. Le dernier
+    // créneau n'est pas « la position 6 », c'est un siège emprunté. Sans cette borne,
+    // tirer d'UN cran (créneau 4 → 5) déplaçait la puce de HUIT rangs (4 → 12) et la
+    // faisait sortir du champ visible — mesuré le 4 septembre 2026.
+    const rangs = [0, 1, 2, 3, 4, 12]
+    expect(crmDragBounds(rangs, 4, jamaisEpingle)).toEqual({ lo: 0, hi: 4 })
+    // Et depuis le siège emprunté lui-même, il n'y a nulle part où aller.
+    expect(crmDragBounds(rangs, 5, jamaisEpingle)).toEqual({ lo: 5, hi: 5 })
+  })
+
+  it('laisse tout le champ quand la fenêtre est contiguë', () => {
+    expect(crmDragBounds([0, 1, 2, 3, 4, 5], 2, jamaisEpingle)).toEqual({ lo: 0, hi: 5 })
+  })
+
+  it('⚠ s’arrête à la frontière du bloc épinglé', () => {
+    // Rangs 0-1 épinglés, 2-5 non : une puce détachée ne remonte pas dans le bloc.
+    const epingle = (rang: number) => rang < 2
+    expect(crmDragBounds([0, 1, 2, 3, 4, 5], 3, epingle)).toEqual({ lo: 2, hi: 5 })
+    expect(crmDragBounds([0, 1, 2, 3, 4, 5], 0, epingle)).toEqual({ lo: 0, hi: 1 })
+  })
+})
+
+describe('crmTabs — le régime à GRAND NOMBRE', () => {
+  it('mémorise la pile ENTIÈRE, pas la fenêtre visible', () => {
+    // La question posée par Julien : « si on ouvre une quinzaine d'onglets, il faut
+    // que tout ça soit mémorisé aussi ». `crmVisibleWindow` ne sert QU'À l'affichage :
+    // elle rend des INDEX, jamais une pile tronquée.
+    const { visibles, caches } = crmVisibleWindow(15, 14, 6)
+    expect(visibles).toHaveLength(6)
+    expect(caches).toHaveLength(9)
+    // Aucun index n'est perdu entre les deux : la pile reste entière.
+    expect([...visibles, ...caches].sort((a, b) => a - b)).toEqual(
+      Array.from({ length: 15 }, (_, i) => i),
+    )
+  })
+
+  it('⚠ au-delà de six ÉPINGLÉS, certains passent au menu — limite assumée', () => {
+    // Avec 8 épinglés et 6 créneaux, les épinglés 5-7 tombent dans le « +N ». Ce n'est
+    // pas un défaut réparable : le handoff impose que l'ACTIF soit toujours visible, et
+    // 8 épingles + 1 actif ne tiennent pas dans 6 créneaux. Les épinglés gardent la
+    // priorité (ils sont le préfixe) ; au-delà de la capacité, quelque chose doit céder.
+    const { visibles, caches } = crmVisibleWindow(15, 12, 6)
+    expect(visibles).toEqual([0, 1, 2, 3, 4, 12])
+    expect(caches.filter((i) => i < 8)).toEqual([5, 6, 7])
   })
 })

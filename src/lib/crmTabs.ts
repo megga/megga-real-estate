@@ -305,6 +305,37 @@ export function crmVisibleWindow(total: number, active: number, vis: number): {
 }
 
 /**
+ * Bornes d'un glisser : le bloc CONTIGU de rangs réels autour de la puce tirée, de
+ * même épinglage.
+ *
+ * ⛔ LA FENÊTRE VISIBLE N'EST PAS TOUJOURS CONTIGUË. Quand l'onglet actif est hors
+ * fenêtre, il EMPRUNTE le dernier créneau : à 15 onglets avec l'actif au rang 12, la
+ * barre montre les rangs [0,1,2,3,4,12]. Tirer la puce du créneau 4 vers le créneau 5
+ * — UN cran à l'écran — la déplaçait du rang 4 au rang 12 : huit rangs franchis, et la
+ * puce SORTAIT du champ visible à l'arrivée. Mesuré le 4 septembre 2026.
+ *
+ * Le dernier créneau n'est pas « la position 6 de la pile », c'est un siège emprunté :
+ * on n'y dépose rien. Le glisser se limite donc aux créneaux dont les rangs réels se
+ * suivent. On réordonne ce qu'on voit, et rien ne se téléporte.
+ *
+ * @param rangs rang RÉEL de chaque créneau visible, dans l'ordre d'affichage
+ * @param from  créneau tiré (indice dans `rangs`)
+ * @param epingle prédicat « ce rang est épinglé »
+ */
+export function crmDragBounds(
+  rangs: number[],
+  from: number,
+  epingle: (rang: number) => boolean,
+): { lo: number; hi: number } {
+  const meme = (k: number) => epingle(rangs[k]) === epingle(rangs[from])
+  let lo = from
+  let hi = from
+  while (lo > 0 && rangs[lo - 1] === rangs[lo] - 1 && meme(lo - 1)) lo -= 1
+  while (hi < rangs.length - 1 && rangs[hi + 1] === rangs[hi] + 1 && meme(hi + 1)) hi += 1
+  return { lo, hi }
+}
+
+/**
  * Largeur maximale d'une puce — elle se resserre avec le nombre d'onglets.
  *
  * Les valeurs de la maquette (240 / 170 / 128, moins 30 quand le dock est ouvert)
@@ -365,11 +396,18 @@ export function crmTabRefs(tabs: CrmTab[]): CrmTabRecordRef[] {
 }
 
 /**
- * Applique le plafond en fermant les plus ANCIENS onglets non épinglés.
+ * Applique le plafond en fermant les onglets les plus À GAUCHE, non épinglés.
+ *
+ * ⚠ « À gauche », et non « les plus anciens » comme le disait cette phrase : un
+ * onglet ne porte aucune date de dernier accès, et l'ordre de la pile est celui
+ * que l'agent a choisi au glisser — il ne dit rien de l'ancienneté. Le plus à
+ * gauche est simplement le plus loin de la zone de travail courante ; c'est un
+ * choix de position, pas une mesure de fraîcheur.
  *
  * ⚠ Jamais l'actif, jamais un épinglé. Si tout est épinglé, la pile dépasse le
- * plafond plutôt que de trahir une épingle — le CHECK serveur (24) est plus haut
- * que ce que la barre laisse ouvrir, donc ce cas ne peut pas casser l'écriture.
+ * plafond plutôt que de trahir une épingle : le garde-fou serveur est à 32,
+ * strictement au-dessus du plafond client (24), donc ce dépassement transitoire
+ * ne peut pas faire échouer l'écriture.
  */
 export function crmApplyCap(tabs: CrmTab[], activeId: string | null): CrmTab[] {
   if (tabs.length <= CRM_TABS_CAP) return tabs

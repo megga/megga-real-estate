@@ -43,7 +43,7 @@ import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from './tokens'
 import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
 import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
-import { crmChipMaxWidth, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
+import { crmChipMaxWidth, crmDragBounds, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
 import { useAiPanel } from '@/hooks/useAiPanel'
 
 /**
@@ -309,13 +309,30 @@ export function CrmTabsBar({ sp, badges: override }: Props) {
 
     const idx = puces.map((c) => Number(c.dataset.tabi))
     const from = puces.indexOf(el)
-    const epingle = !!tabs[idx[from]]?.pinned
-    // Une puce épinglée ne se déplace que parmi les épinglées.
-    const permis = puces.map((_, k) => k).filter((k) => !!tabs[idx[k]]?.pinned === epingle)
+
+    /**
+     * Bornes du glisser : le bloc CONTIGU de rangs réels qui entoure la puce tirée,
+     * et de même épinglage.
+     *
+     * ⛔ LA FENÊTRE VISIBLE N'EST PAS TOUJOURS CONTIGUË, et c'est ce qui rendait le
+     * glisser faux au-delà de six onglets. Quand l'actif est hors fenêtre, il EMPRUNTE
+     * le dernier créneau : à 15 onglets avec l'actif au rang 12, la barre montre les
+     * rangs [0,1,2,3,4,12]. Tirer la puce du créneau 4 vers le créneau 5 — UN cran à
+     * l'écran — la déplaçait alors du rang 4 au rang 12 : huit rangs franchis, et la
+     * puce SORTAIT du champ visible à l'arrivée. Mesuré le 4 septembre 2026.
+     *
+     * Le dernier créneau n'est pas « la position 6 de la pile », c'est un siège
+     * emprunté. On ne peut donc pas y déposer quoi que ce soit : le glisser se limite
+     * aux créneaux dont les rangs réels se suivent. On réordonne ce qu'on voit, et rien
+     * ne se téléporte.
+     */
+    const { lo, hi } = crmDragBounds(idx, from, (rang) => !!tabs[rang]?.pinned)
+    // Rien à réordonner : la puce est seule dans son bloc contigu.
+    if (lo === hi) return
 
     dragRef.current = {
       el, puces, idx, from, target: from,
-      lo: Math.min(...permis), hi: Math.max(...permis),
+      lo, hi,
       // ⚠ Les rects sont mesurés UNE fois et servent de référence pour tout le
       // geste. Les relire pendant le glisser lirait un layout déjà déformé par
       // les transforms qu'on vient de poser, et les puces se mettraient à osciller.

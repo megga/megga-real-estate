@@ -156,7 +156,12 @@ export function useCrmTabs(): CrmTabsApi {
  * détourner. La pile fournit le CONTEXTE (les autres onglets, leur ordre, leurs
  * tranches), jamais la destination.
  */
-function reconcilier(prev: CrmTabsState, pathname: string, search: string): CrmTabsState {
+function reconcilier(
+  prev: CrmTabsState,
+  pathname: string,
+  search: string,
+  opts?: { hydratation?: boolean },
+): CrmTabsState {
   // Un onglet vise déjà cet emplacement ? On l'active au lieu d'en créer un
   // second — sinon un aller-retour entre deux écrans empilerait des doublons.
   const dejaLa = prev.tabs.findIndex((t) => crmSameLocation(t, pathname, search))
@@ -165,6 +170,33 @@ function reconcilier(prev: CrmTabsState, pathname: string, search: string): CrmT
   const section = crmSidebarActiveFor(pathname)
   if (!prev.tabs.length) {
     return { ...prev, tabs: [crmMakeTab(pathname, search, Date.now())], active: 0 }
+  }
+
+  /**
+   * ⛔ À L'HYDRATATION, ON OUVRE — ON NE CONSOMME PAS.
+   *
+   * La branche « navigation ordinaire » plus bas RÉÉCRIT l'onglet actif. C'est juste
+   * quand l'agent vient de cliquer : son onglet suit son geste. Mais au DÉMARRAGE il
+   * n'y a aucun geste — l'agent rouvre `app.megga.ch`, atterrit sur `/dashboard`, et
+   * l'onglet actif de sa pile de quinze (mettons un dossier KYC ouvert la veille) était
+   * ÉCRASÉ : `path`, `search` et `label` remplacés. Le compte restait à quinze, donc
+   * rien ne se voyait — et 800 ms plus tard la perte était gravée côté serveur.
+   *
+   * La règle « l'URL d'arrivée gagne » vaut pour la DESTINATION, pas pour un contexte :
+   * on ajoute une entrée et on l'active.
+   *
+   * ⚠ Et une route HORS ONGLETS ne déplace rien du tout. `HORS_ONGLETS` le dit déjà
+   * pour la navigation ; l'hydratation l'ignorait, si bien qu'un rechargement direct
+   * sur la console super-admin réécrivait l'onglet actif avec un chemin `/dashboard/admin/…`
+   * — précisément l'onglet que cette liste interdit de créer.
+   */
+  if (opts?.hydratation) {
+    if (!crmTabsEligible(pathname)) return prev
+    const neuf = crmMakeTab(pathname, search, Date.now())
+    const tabs = crmApplyCap([...prev.tabs, neuf], neuf.id)
+    // ⚠ Retrouvé par `id` et non par `tabs.length - 1` : le plafond a pu retirer des
+    // entrées AVANT lui, donc son rang final n'est pas forcément le dernier.
+    return { ...prev, tabs, active: Math.max(0, tabs.findIndex((t) => t.id === neuf.id)) }
   }
   // Navigation ORDINAIRE : l'onglet actif suit, comme un onglet de navigateur
   // suit ses liens. Ouvrir un onglet neuf à chaque clic ferait de la barre un
@@ -249,7 +281,7 @@ export function useCrmTabsMachine(): CrmTabsApi {
         tabs,
         active: Math.min(Math.max(data.active_index ?? 0, 0), Math.max(tabs.length - 1, 0)),
         revision: typeof data.revision === 'number' ? data.revision : null,
-      }, locationRef.current.pathname, locationRef.current.search))
+      }, locationRef.current.pathname, locationRef.current.search, { hydratation: true }))
       setChargement(false)
 
       // Libellés et disparus, en une passe. Le résultat n'est pas bloquant : la
@@ -288,11 +320,20 @@ export function useCrmTabsMachine(): CrmTabsApi {
   // d'onglet ne doit pas coûter un POST. Le `pagehide` ferme le dernier trou.
   const sauverRef = useRef<number | undefined>(undefined)
   const enVolRef = useRef(false)
+  /** Une modification est arrivée pendant qu'une écriture était en vol. */
+  const relanceRef = useRef(false)
 
   const sauver = useCallback(async (immediat = false) => {
     const { tabs, active, revision } = etatRef.current
     if (!user?.id || !tabs.length) return
-    if (enVolRef.current && !immediat) return
+    if (enVolRef.current && !immediat) {
+      // ⛔ NE PAS ABANDONNER : sans ce drapeau, la modification faite pendant qu'une
+      // écriture était en vol n'était JAMAIS persistée — l'effet ne se relance qu'au
+      // changement suivant, et `pagehide` part avec l'état d'alors. Le dernier geste
+      // d'une session (fermer un onglet, réordonner) se perdait silencieusement.
+      relanceRef.current = true
+      return
+    }
     enVolRef.current = true
     try {
       const { data, error } = await supabase.rpc('crm_tabs_save', {
@@ -330,8 +371,17 @@ export function useCrmTabsMachine(): CrmTabsApi {
       // Écriture best-effort : la pile vaut pour la session même si le réseau tombe.
     } finally {
       enVolRef.current = false
+      if (relanceRef.current) {
+        relanceRef.current = false
+        // Une modification est arrivée pendant l'écriture : on la porte tout de suite.
+        void sauverRef2.current?.()
+      }
     }
   }, [user?.id])
+  // ⚠ Ref d'auto-référence : `sauver` ne peut pas se citer dans son propre corps
+  // (elle n'existe pas encore au moment où le `useCallback` la construit).
+  const sauverRef2 = useRef<((immediat?: boolean) => Promise<void>) | null>(null)
+  sauverRef2.current = sauver
 
   /**
    * Empreinte du CONTENU, et non l'objet d'état.
@@ -486,7 +536,25 @@ export function useCrmTabsMachine(): CrmTabsApi {
   }, [navigate, viser, messageSale])
 
   const basculerEpingle = useCallback((i: number) => { parId((tabs) => crmTogglePin(tabs, i)) }, [parId])
-  const dupliquer = useCallback((i: number) => { parId((tabs) => crmDuplicateTab(tabs, i, Date.now())) }, [parId])
+  /**
+   * Duplication — plafonnée, comme l'ouverture.
+   *
+   * ⛔ Elle ne l'était pas : `crmDuplicateTab` ajoute une entrée sans regarder le
+   * plafond. Dupliquer sur une pile pleine produisait 25, 26… entrées, et au-delà du
+   * garde-fou serveur (32) le CHECK rejetait l'écriture ENTIÈRE — or le client avale
+   * ses erreurs d'écriture à dessein, donc la persistance mourait sans un mot.
+   *
+   * ⚠ Le plafond garde la COPIE (elle vient d'être demandée) et ferme un ancien non
+   * épinglé à la place.
+   */
+  const dupliquer = useCallback((i: number) => {
+    parId((tabs) => {
+      const avec = crmDuplicateTab(tabs, i, Date.now())
+      if (avec === tabs) return tabs
+      const copie = avec[Math.min(i + 1, avec.length - 1)]
+      return crmApplyCap(avec, copie?.id ?? null)
+    })
+  }, [parId])
   const deplacer = useCallback((from: number, to: number) => { parId((tabs) => crmMoveTab(tabs, from, to)) }, [parId])
 
   const poserLibelle = useCallback((label: string) => {

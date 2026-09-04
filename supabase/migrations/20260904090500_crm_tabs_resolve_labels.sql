@@ -42,10 +42,12 @@ begin
     return jsonb_build_object('labels', v_labels, 'missing', v_missing);
   end if;
 
-  -- Borne dure : la pile est plafonnée à 24 entrées (crm_open_tabs_taille). 24 aussi ici,
-  -- pour qu'un appel fabriqué ne puisse pas transformer la fonction en balayage.
+  -- Borne dure, alignée sur le garde-fou de la table (crm_open_tabs_taille = 32) et non
+  -- sur le plafond du CLIENT (24). Bornée à 24, la fonction laissait sans libellé les
+  -- onglets au-delà du 24e d'une pile transitoirement plus longue — ils s'affichaient
+  -- sous leur nom de section au lieu du nom du client.
   for v_ref in
-    select value from jsonb_array_elements(p_refs) limit 24
+    select value from jsonb_array_elements(p_refs) limit 32
   loop
     v_kind := v_ref ->> 'kind';
     v_id   := v_ref ->> 'id';
