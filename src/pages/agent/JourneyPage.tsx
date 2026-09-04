@@ -70,6 +70,8 @@ export default function JourneyPage() {
         break
       case 'calendar':
         navigate('/dashboard/calendar'); break
+      case 'messagerie':
+        navigate('/dashboard/messagerie'); break
       case 'kyc':
         navigate('/dashboard/kyc'); break
       case 'dashboard':

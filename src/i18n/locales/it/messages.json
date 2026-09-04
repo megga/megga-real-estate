@@ -113,5 +113,17 @@
         "dormant": "Dormant"
       }
     }
+  },
+  "mail": {
+    "empty": {
+      "noAccount": {
+        "title": "Nessuna casella collegata",
+        "body": "Collega la casella dell'agenzia o la tua per leggere e rispondere qui."
+      },
+      "noMessage": "Nessun messaggio corrisponde."
+    },
+    "add": {
+      "cta": "Aggiungi una casella"
+    }
   }
 }

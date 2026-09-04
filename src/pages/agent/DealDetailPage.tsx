@@ -357,6 +357,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
       case 'contacts':  go('/dashboard/contacts'); break
       case 'biens':     go('/dashboard/listings'); break
       case 'calendar':  go('/dashboard/calendar'); break
+      case 'messagerie': navigate('/dashboard/messagerie'); break
       case 'kyc':       go('/dashboard/kyc'); break
       case 'parcours':  go('/dashboard/journey'); break
       case 'dashboard': go('/dashboard/analytics'); break

@@ -124,6 +124,11 @@ const ImportLeadPage = lazy(() => import('@/pages/agent/ImportLeadPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const JourneyPage = lazy(() => import('@/pages/agent/JourneyPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
+// Messagerie (boîte mail intégrée) — l'écran, son mobile minimal (D16) et le
+// retour d'autorisation de la pop-up OAuth.
+const MessageriePage = lazy(() => import('@/pages/agent/MessageriePage'))
+const MobileMessagerieScreen = lazy(() => import('@/components/crm-mobile/messagerie/MobileMessagerieScreen'))
+const MailOAuthCallbackPage = lazy(() => import('@/pages/agent/MailOAuthCallbackPage'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
 const ListingWizardPage = lazy(() => import('@/pages/agent/ListingWizardPage'))
@@ -177,6 +182,12 @@ const PipelineShowcasePage = import.meta.env.DEV
   : () => null
 const ModalesShowcasePage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/ModalesShowcasePage'))
+  : () => null
+// Banc de la Messagerie — même ternaire, même raison que les sept gelés le
+// 15 août 2026 : un `lazy()` nu émettrait un chunk et servirait le banc sur
+// app.megga.ch (`dev-bancs-frontiere.spec.ts` le mesure).
+const MessagerieShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/MessagerieShowcasePage'))
   : () => null
 // ⛔ CONDITIONNÉ AU MODE DEV, comme `/dev/crm`, et pour la MÊME raison : ce banc
 // appelle `installerBanc()`, qui remplace `window.fetch` pour TOUTE la session.
@@ -518,6 +529,10 @@ function AppRoutes() {
               {/* Modales qu'aucun geste n'ouvre sans session : elles ne seraient
                   JAMAIS rendues hors production, donc jamais éprouvées. */}
               <Route path="/dev/modales" element={<ModalesShowcasePage />} />
+              {/* Messagerie — l'écran réel sur fixtures : boîte pleine, boîte
+                  vide, aucune boîte. Sans session, la vraie route renverrait
+                  vers la production (ProtectedRoute). */}
+              <Route path="/dev/messagerie" element={<MessagerieShowcasePage />} />
               {/* La FACE PUBLIQUE — les trois surfaces qu'un client ouvre sans
                   compte. ⚠ `/*` : le banc porte des routes IMBRIQUÉES, qui sont
                   ce qui donne aux pages le `:token` qu'elles lisent. Sans jeton
@@ -535,6 +550,19 @@ function AppRoutes() {
                   <Router>. Il est branché plus bas, dans `App()`, AVANT
                   <BrowserRouter>. */}
 
+
+              {/* Messagerie — retour d'autorisation de la pop-up OAuth. Hors du
+                  layout : la fenêtre ne vit que le temps de relayer `{code, state}`
+                  à son opener. Protégée, car le repli sans opener échange le code
+                  lui-même et a besoin de la session. */}
+              <Route
+                path="/oauth/mail/callback"
+                element={
+                  <ProtectedRoute>
+                    <MailOAuthCallbackPage />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Sprint 4.4 — Export PDF dossier KYC (protected, no layout — print-friendly) */}
               <Route
@@ -608,6 +636,8 @@ function AppRoutes() {
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
                 {/* Agenda — mobile (< 768px) : jour liste + time-block (P6). */}
                 <Route path="calendar" element={<ResponsiveRoute desktop={<CalendarPage />} mobile={<MobileAgendaPage />} />} />
+                {/* Messagerie — bento 296px | 1fr. Mobile (< 768px) : lecture seule (D16). */}
+                <Route path="messagerie" element={<ResponsiveRoute desktop={<MessageriePage />} mobile={<MobileMessagerieScreen />} />} />
                 {/* Réglages — mobile (< 768px) : hub de réglages (P9). */}
                 <Route path="settings" element={<ResponsiveRoute desktop={<SettingsPage />} mobile={<MobileSettingsPage />} />} />
                 {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}

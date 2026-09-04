@@ -438,6 +438,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
       case 'biens-new': navigate('/dashboard/listings/new'); break
       case 'parcours': navigate('/dashboard/journey'); break
       case 'calendar': break
+      case 'messagerie': navigate('/dashboard/messagerie'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings': navigate('/dashboard/settings?tab=integrations'); break

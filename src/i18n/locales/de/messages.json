@@ -113,5 +113,17 @@
         "dormant": "Dormant"
       }
     }
+  },
+  "mail": {
+    "empty": {
+      "noAccount": {
+        "title": "Kein Postfach verbunden",
+        "body": "Verbinden Sie das Postfach der Agentur oder Ihr eigenes, um hier zu lesen und zu antworten."
+      },
+      "noMessage": "Keine Nachricht entspricht der Suche."
+    },
+    "add": {
+      "cta": "Postfach hinzufügen"
+    }
   }
 }

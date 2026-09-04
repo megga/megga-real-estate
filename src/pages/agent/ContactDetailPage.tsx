@@ -86,6 +86,7 @@ export default function ContactDetailPage() {
       case 'contacts': navigate('/dashboard/contacts'); break
       case 'biens': navigate('/dashboard/listings'); break
       case 'calendar': navigate('/dashboard/calendar'); break
+      case 'messagerie': navigate('/dashboard/messagerie'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'parcours': navigate('/dashboard/journey'); break
       case 'dashboard': navigate('/dashboard/analytics'); break

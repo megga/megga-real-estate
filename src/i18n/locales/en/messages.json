@@ -113,5 +113,17 @@
         "dormant": "Dormant"
       }
     }
+  },
+  "mail": {
+    "empty": {
+      "noAccount": {
+        "title": "No mailbox connected",
+        "body": "Connect the agency mailbox or your own to read and reply here."
+      },
+      "noMessage": "No message matches."
+    },
+    "add": {
+      "cta": "Add a mailbox"
+    }
   }
 }

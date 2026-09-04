@@ -123,6 +123,7 @@ export default function AuditPage() {
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'audit': break
       case 'calendar': navigate('/dashboard/calendar'); break
+      case 'messagerie': navigate('/dashboard/messagerie'); break
       case 'settings': navigate('/dashboard/settings'); break
       default:
     }

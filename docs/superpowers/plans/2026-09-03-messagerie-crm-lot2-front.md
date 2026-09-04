@@ -48,7 +48,7 @@
 | `src/components/crm/messagerie/MailAddAccountModal.tsx` · `MailProviderLogo.tsx` | « Ajouter une boîte » |
 | `src/components/crm/messagerie/MailLinkContactModal.tsx` | « Rapprocher l'adresse » |
 | `src/components/crm/messagerie/MailFileAttachmentModal.tsx` · `MailAttachmentPreviewModal.tsx` | « Classer dans le dossier » · « Aperçu de la pièce » |
-| `src/components/crm/messagerie/fixtures.ts` | données du banc |
+| `src/components/crm/messagerie/fixtures.tsx` | données du banc (⚠ `.tsx` : le fournisseur rend du JSX, corrigé le 04.09.2026) |
 | `src/components/crm-mobile/messagerie/MobileMessagerieScreen.tsx` | mobile minimal (D16) |
 | `src/hooks/useMailAccounts.ts` · `useMailLabels.ts` · `useMailThreads.ts` · `useMailThread.ts` · `useMailActions.ts` · `useMailSend.ts` · `useMailDrafts.ts` · `useMailRealtime.ts` · `useMailOAuthPopup.ts` · `useMailAttachmentBlob.ts` | données |
 | `src/lib/mail/format.ts` · `src/lib/mail/sanitize.ts` · `src/lib/mail/oauthPopup.ts` | pur, testé |
@@ -72,7 +72,22 @@
 - Create: `src/components/crm/messagerie/mailTokens.ts`
 - Create: `src/components/crm/messagerie/mailState.ts`
 - Create: `src/pages/dev/MessagerieShowcasePage.tsx`
-- Modify: `src/App.tsx`, `src/components/crm/CrmShell.tsx:66-68,142-150`, `src/pages/agent/*.tsx` (switch `onNavigate`), `src/i18n/locales/*/common.json`, `src/i18n/locales/*/messages.json`
+- Modify: `src/App.tsx`, `src/components/crm/CrmShell.tsx:66-68,142-150`, `src/pages/agent/*.tsx` (switch `onNavigate`), `src/i18n/locales/*/common.json`, `src/i18n/locales/*/messages.json`, `tests/unit/megga-x-grammar.spec.ts`
+
+⛔ **CETTE TÂCHE DÉPEND DE DEUX FICHIERS DE LA 2.3, et ce n'est pas négociable** (mesuré
+le 04.09.2026) : `MessagerieApp` importe `useMailAccounts` pour savoir s'il a une boîte à
+montrer, et ce hook importe `invokeMail`. Sans eux, `tsc -b` échoue et l'étape 8 ne peut
+pas être verte. `src/lib/mail/invoke.ts` (T2.3 step 1) et `src/hooks/useMailAccounts.ts`
+(T2.3 step 2) sont donc écrits ICI, à l'identique ; la 2.3 livre les neuf autres hooks.
+
+⛔ **ET TROIS CLAUSES DU CLIQUET DE GRAMMAIRE ROUGISSENT DÈS CETTE TÂCHE**, pas en T2.12 :
+la clause de fermeture (« tout porteur de `src/` est couvert ») voit `MessagerieApp.tsx`
+le jour où il est écrit, et la clause « aucune page n'échappe au cliquet » voit les deux
+pages neuves. Il faut donc, dans le MÊME commit : ajouter
+`{ root: 'src/components/crm/messagerie', keep: (n) => /\.tsx?$/.test(n) }` à `ZONES`, et
+`MessageriePage.tsx` + `MailOAuthCallbackPage.tsx` à `PAGES` **et** `PAGES_ACQUISES` (les
+deux listes, la seconde étant écrite à part exprès). La zone entre VIDE de dette — c'est la
+règle 1 du lot, elle ne coûte rien tant qu'on ne pose aucun littéral.
 
 - [ ] **Step 1 : Onglet + id d'écran**
 
@@ -164,6 +179,11 @@ export const MAIL_TRANSITION = 'background-color .18s ease, border-color .18s ea
 /** Pilule (`border-radius:999px`). */
 export const PILL = 'var(--crm-radius-pill)'
 ```
+
+⛔ **`MAIL_TRANSITION` et `PILL` N'ENTRENT PAS EN T2.1 mais en T2.4**, avec leur premier
+consommateur : `npm run lint:deadcode` refuse un export que rien ne lit, et il les a
+nommés tous les deux (mesuré le 04.09.2026). Les poser d'avance aurait coûté une exemption
+dans `scripts/check-dead-exports.mjs` pour deux constantes de trois lignes.
 
 - [ ] **Step 3 : État d'écran (les clés de la maquette)**
 
@@ -282,7 +302,7 @@ import { useTranslation } from 'react-i18next'
 import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
 import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
 import { crmPalette } from '@/components/crm/tokens'
-import { EtatVide } from '@/components/crm/EtatVide'
+import EtatVide from '@/components/crm/EtatVide' // ⚠ export DEFAULT (corrigé le 04.09.2026)
 import { useMailAccounts } from '@/hooks/useMailAccounts'
 import { mailReducer, initialMailState } from './mailState'
 import { mailSurfaces } from './mailTokens'
@@ -346,7 +366,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
             <section style={{ minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
               {accounts.isLoading ? null : accounts.list.length === 0 ? (
                 <div style={{ margin: 'auto' }}>
-                  <EtatVide dark={dark} registre="a-faire" titre={t('mail.empty.noAccount.title')} corps={t('mail.empty.noAccount.body')}
+                  <EtatVide dark={dark} registre="aFaire" titre={t('mail.empty.noAccount.title')} corps={t('mail.empty.noAccount.body')}
                     action={{ libelle: t('mail.add.cta'), onClick: () => dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } }) }} />
                 </div>
               ) : null}
@@ -382,6 +402,14 @@ et dans le bloc `/dev/*` :
 ```tsx
 <Route path="/dev/messagerie" element={<MessagerieShowcasePage />} />
 ```
+⛔ **La déclaration du banc passe par le TERNAIRE, jamais par un `lazy()` nu** :
+`dev-bancs-frontiere.spec.ts` énumère `src/pages/dev` depuis l'arbre et exige que tout banc
+routé soit gelé — un `lazy()` nu émet un chunk et sert le banc sur `app.megga.ch`.
+```ts
+const MessagerieShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/MessagerieShowcasePage'))
+  : () => null
+```
 Tant que T2.9 n'a pas écrit `MailOAuthCallbackPage` et T2.14 le mobile, créer les deux fichiers comme composants vides `export default function X() { return null }` — ils sont remplacés dans leurs tâches.
 
 - [ ] **Step 6 : Clés i18n minimales (les autres arrivent avec chaque composant, T2.12 les consolide)**
@@ -413,7 +441,7 @@ export default function MessagerieShowcasePage() {
   const [state, setState] = useState<MailFixtureState>('full')
   return (
     <MailFixturesProvider state={state}>
-      <div style={{ position: 'fixed', top: 8, right: 8, zIndex: 400, display: 'flex', gap: 6 }}>
+      <div style={{ position: 'fixed', top: 8, right: 8, zIndex: 400, display: 'flex', gap: 'var(--crm-space-sm)' }}>
         {(['full', 'empty', 'none'] as MailFixtureState[]).map((s) => (
           <button key={s} onClick={() => setState(s)} style={{ fontWeight: s === state ? 700 : 400 }}>{s}</button>
         ))}
@@ -423,7 +451,7 @@ export default function MessagerieShowcasePage() {
   )
 }
 ```
-(`fixtures.ts` avec un `MailFixturesProvider` qui rend `state` par contexte est écrit en T2.13 ; d'ici là, créer le fichier avec le provider vide : `export type MailFixtureState = 'full'|'empty'|'none'; export const MailFixturesContext = createContext<MailFixtureState|null>(null); export function MailFixturesProvider({state, children}) { return <MailFixturesContext.Provider value={state}>{children}</MailFixturesContext.Provider> }`.)
+(`fixtures.tsx` avec un `MailFixturesProvider` qui rend `state` par contexte est écrit en T2.13 ; d'ici là, créer le fichier avec le provider vide : `export type MailFixtureState = 'full'|'empty'|'none'; export const MailFixturesContext = createContext<MailFixtureState|null>(null); export function MailFixturesProvider({state, children}) { return <MailFixturesContext.Provider value={state}>{children}</MailFixturesContext.Provider> }`.)
 
 - [ ] **Step 8 : Build, lint, commit**
 
@@ -432,6 +460,13 @@ npm run build && npm run lint:i18n && npm run i18n:parity:ci
 git add -A
 git commit -m "feat(messagerie): onglet, route, page, bento 296px et état d'écran"
 ```
+
+⚠ **`tests/unit/visual-baseline-fraicheur.spec.ts` ROUGIT, et c'est attendu** : le
+`case 'messagerie'` ajouté à `PipelinePage.tsx` change l'empreinte de l'écran photographié,
+même sans déplacer un pixel (la garde est conservatrice par écrit). ⛔ Ne PAS éditer
+`empreintes.json` à la main : l'empreinte et l'image doivent voyager ensemble, et les
+séparer est exactement le faux-vert que cette garde existe pour empêcher. La reprise est
+`/regenerate-visual-baselines` en commentaire de PR.
 
 ---
 

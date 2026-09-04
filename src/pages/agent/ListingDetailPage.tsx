@@ -562,6 +562,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
       case 'biens': navigate('/dashboard/listings'); break
       case 'biens-new': navigate('/dashboard/listings/new'); break
       case 'calendar': navigate('/dashboard/calendar'); break
+      case 'messagerie': navigate('/dashboard/messagerie'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings': navigate('/dashboard/settings'); break

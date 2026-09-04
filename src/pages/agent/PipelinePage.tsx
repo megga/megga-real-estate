@@ -565,6 +565,7 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
       case 'biens':     go('/dashboard/listings'); break
       case 'biens-new': go('/dashboard/listings/new'); break
       case 'calendar':  go('/dashboard/calendar'); break
+      case 'messagerie': navigate('/dashboard/messagerie'); break
       case 'kyc':       go('/dashboard/kyc'); break
       case 'dashboard': go('/dashboard/analytics'); break
       case 'settings':  go('/dashboard/settings'); break

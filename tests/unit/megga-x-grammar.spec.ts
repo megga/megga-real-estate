@@ -91,6 +91,10 @@ const PAGES = new Set([
   // casse, la graisse et l'interlettrage — voir l'inventaire de cécité plus bas.
   'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentityPage.tsx',
   'OnboardingCallPage.tsx', 'ListingWizardPage.tsx',
+  // Messagerie (lot 2, T2.1). `MessageriePage` ne fait que monter l'app et porter
+  // la préférence sombre ; `MailOAuthCallbackPage` ne peint rien du tout — elles
+  // entrent quand même, parce qu'un cliquet ne sert pas qu'à constater.
+  'MessageriePage.tsx', 'MailOAuthCallbackPage.tsx',
 ])
 
 /**
@@ -125,6 +129,7 @@ const PAGES_ACQUISES = [
   // casse, la graisse et l'interlettrage — voir l'inventaire de cécité plus bas.
   'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentityPage.tsx',
   'OnboardingCallPage.tsx', 'ListingWizardPage.tsx',
+  'MessageriePage.tsx', 'MailOAuthCallbackPage.tsx',
 ]
 
 /**
@@ -262,6 +267,12 @@ const ZONES: RootSpec[] = [
   // aurait coûté dix fois leur prix.
   { root: 'src/components/crm/settings', keep: (n) => /\.tsx?$/.test(n) },
   { root: 'src/components/crm/calendar', keep: (n) => /\.tsx?$/.test(n) },
+  // Messagerie (boîte mail intégrée) — la zone entre AVEC son premier fichier, et
+  // non à la fin du lot comme le plan l'annonçait : la clause de fermeture
+  // (« tout porteur de src/ est couvert ») rougit dès que `MessagerieApp` existe.
+  // Elle entre donc vide de dette : le lot s'interdit tout littéral de couleur,
+  // de rayon, d'espacement, de taille et de police (règle 1 du lot 2).
+  { root: 'src/components/crm/messagerie', keep: (n) => /\.tsx?$/.test(n) },
   // Vague C — ce que le plan rangeait sous « Reste (pages) », et qui n'est pas un
   // reste : les deux sélecteurs d'affichage de la fiche bien (rendus par
   // `/dashboard/listings/:id/edit`) et le bandeau de consentement.

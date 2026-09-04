@@ -96,6 +96,7 @@ export default function SettingsPage() {
       case 'biens-new': navigate('/dashboard/listings/new'); break
       case 'parcours': navigate('/dashboard/journey'); break
       case 'calendar': navigate('/dashboard/calendar'); break
+      case 'messagerie': navigate('/dashboard/messagerie'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings': break

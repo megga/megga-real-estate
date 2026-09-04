@@ -65,7 +65,7 @@ export function CrmRoundIconBtn({ children, dot, onClick, sp, title }: CrmRoundI
 // ─── Top navigation (logo + horizontal tabs + actions) ─────────────────
 export type CrmScreenId =
   | 'today' | 'pipeline' | 'matching' | 'parcours' | 'contacts'
-  | 'biens' | 'calendar'
+  | 'biens' | 'calendar' | 'messagerie'
 
 interface CrmTopNavProps {
   active?: CrmScreenId
@@ -147,6 +147,9 @@ export function CrmTopNav({ active = 'today', helpKey, sp, onNavigate, dark = fa
     { id: 'contacts',  label: tc('nav.contacts') },
     { id: 'biens',     label: tc('nav.listings') },
     { id: 'calendar',  label: tc('nav.calendar') },
+    // Messagerie (boîte mail intégrée) — la maquette porte une entrée de sidebar,
+    // le CRM n'en a pas : elle devient un onglet, après le calendrier.
+    { id: 'messagerie', label: tc('nav.messagerie') },
   ]
   // ✦ actif = panneau MEGGA AI ouvert. La disjonction avec la page « Julien » est
   // partie avec elle : il n'y a plus qu'une façon d'avoir le copilote à l'écran.

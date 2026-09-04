@@ -53,6 +53,7 @@ export default function ListingsPage() {
       case 'biens': break
       case 'biens-new': setWizardOpen(true); break
       case 'calendar': navigate('/dashboard/calendar'); break
+      case 'messagerie': navigate('/dashboard/messagerie'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'dashboard': navigate('/dashboard/analytics'); break
       case 'settings': navigate('/dashboard/settings'); break

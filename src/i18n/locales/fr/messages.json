@@ -113,5 +113,17 @@
         "dormant": "Dormant"
       }
     }
+  },
+  "mail": {
+    "empty": {
+      "noAccount": {
+        "title": "Aucune boîte connectée",
+        "body": "Connectez la boîte de l'agence ou la vôtre pour lire et répondre ici."
+      },
+      "noMessage": "Aucun message ne correspond."
+    },
+    "add": {
+      "cta": "Ajouter une boîte"
+    }
   }
 }

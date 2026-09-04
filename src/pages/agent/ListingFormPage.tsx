@@ -2223,6 +2223,7 @@ export default function ListingFormPage() {
       case 'biens': navigate('/dashboard/listings'); break
       case 'kyc': navigate('/dashboard/kyc'); break
       case 'calendar': navigate('/dashboard/calendar'); break
+      case 'messagerie': navigate('/dashboard/messagerie'); break
       case 'matching': navigate('/dashboard/matching'); break
       case 'parcours': navigate('/dashboard/journey'); break
       case 'settings': navigate('/dashboard/settings'); break
