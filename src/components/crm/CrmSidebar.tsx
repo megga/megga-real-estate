@@ -633,22 +633,13 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
               />
             ))}
 
-            {/* MEGGA AI — seule ligne à porter un état persistant (le panneau
-                docké reste ouvert d'un écran à l'autre), donc seule à s'allumer
-                sans être une page. Hors provider, le bouton serait inerte : on
-                ne le rend pas. */}
-            {ai.enabled && (
-              <SidebarRow
-                icon="sparkle"
-                label={t('nav.aiAgent')}
-                active={ai.isOpen}
-                collapsed={collapsed}
-                onClick={() => ai.open()}
-                sp={sp}
-                haspopup="dialog"
-                expanded={ai.isOpen}
-              />
-            )}
+            {/* ⚠ MEGGA AI N'EST PLUS ICI (4 septembre 2026) : ✦ a migré dans le
+                quart droit de la barre d'onglets. Le panneau s'ouvre PAR LA DROITE,
+                donc un déclencheur ancré à droite dit d'où vient la chose — et la
+                bande d'onglets laissait 241 px vides à 1280 px, ~880 à 1920.
+                Déplacé, jamais dupliqué : deux boutons pour un même panneau, chacun
+                portant l'état « ouvert », se contredisent dès qu'on en regarde un
+                seul. */}
             </div>
           </div>
         </div>

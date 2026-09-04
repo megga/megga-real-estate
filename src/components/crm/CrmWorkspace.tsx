@@ -84,11 +84,14 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
         {avecOnglets && (
           <div style={{
             flexShrink: 0,
-            // Aligné sur la gouttière gauche du `<main>` (`--crm-space-lg`), pour
-            // que la première puce tombe à l'aplomb du bord du cadre bento.
-            padding: 'var(--crm-space-lg) var(--crm-space-lg) 0',
+            // ⚠ Gouttières ASYMÉTRIQUES, et c'est ce que fait le `<main>` : 12 px à
+            // gauche, 24 à droite. La première puce tombe donc à l'aplomb du bord
+            // GAUCHE du cadre bento, et la dernière commande de droite à l'aplomb de
+            // son bord DROIT. Avec 12 px des deux côtés — le premier jet — la grappe
+            // ✦ / thème dépassait le cadre de 12 px, mesuré.
+            padding: 'var(--crm-space-lg) var(--crm-space-7xl) 0 var(--crm-space-lg)',
           }}>
-            <CrmTabsBar sp={sidebar.sp} badges={badges} />
+            <CrmTabsBar sp={sidebar.sp} dark={sidebar.dark} setDark={sidebar.setDark} badges={badges} />
           </div>
         )}
         {children}

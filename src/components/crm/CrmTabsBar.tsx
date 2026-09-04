@@ -45,6 +45,7 @@ import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
 import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
 import { crmChipMaxWidth, crmDragBounds, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
 import { useAiPanel } from '@/hooks/useAiPanel'
+import { useCrmSidebarCollapsed } from '@/lib/crmSidebar'
 
 /**
  * Hauteur d'une puce. Une HAUTEUR n'est pas un espacement : aucun barreau ne la couvre.
@@ -67,11 +68,22 @@ const H_PASTILLE = 26
 const D_CROIX = 20
 
 /**
- * Nombre de puces visibles. Quatre quand le dock MEGGA AI est ouvert : il prend
- * 404 px, et six puces de 128 px n'y tiennent plus sans déborder sur le dock.
+ * Largeur PLANCHER d'une puce, pour décider combien il en tient.
+ *
+ * ⛔ LE NOMBRE DE PUCES ÉTAIT FIGÉ À SIX (quatre dock ouvert), quelle que soit la
+ * largeur de l'écran. Mesuré le 4 septembre 2026 à 1280 px : la bande s'arrêtait à
+ * x=1015 pour un cadre allant à 1256 — 241 px vides, un quart de la largeur. À
+ * 1920 px il en serait resté ~880, soit plus de la moitié, avec des onglets cachés
+ * derrière « +N » pendant que la place existait. Une barre d'onglets aveugle à sa
+ * propre largeur.
+ *
+ * 100 px : de quoi porter un libellé ellipsé et sa croix (« Marie D… ✕ »). Les
+ * puces s'ellipsent au-delà — elles ne débordent jamais, la règle de la maquette
+ * est inchangée — mais on cesse de leur refuser la place qui existe.
  */
-const VIS_LARGE = 6
-const VIS_DOCK = 4
+const CHIP_MIN = 100
+/** Gouttière entre deux puces — `--crm-space-2xs`, lue ici pour le calcul. */
+const TAB_GAP = 4
 
 /** Strate d'empilement — lue sur les voisins, pas copiée d'une convention. */
 // La barre latérale est à 75, le dock MEGGA AI à 70, le bandeau d'usurpation à 90.
@@ -81,8 +93,74 @@ const VIS_DOCK = 4
 const Z_BARRE = 60
 const Z_MENU = 9000
 
+/** Durée de la sonde qui suit une transition de largeur (le pli de la barre dure 250 ms). */
+const SONDE_MS = 400
+
+/**
+ * Largeur réellement disponible pour les puces.
+ *
+ * ⛔ SANS `ResizeObserver`, ET C'EST MESURÉ, PAS PRÉFÉRÉ. Le dépôt l'avait déjà écrit
+ * pour `useSideAnchor` — « zéro livraison en 500 ms » — et j'ai quand même compté sur
+ * lui pour les changements ultérieurs. Remesuré ici le 4 septembre 2026, sur la piste
+ * réellement rendue : **zéro rappel**, ni initial ni après un changement de largeur.
+ * Un observateur qui n'observe rien est pire qu'aucun observateur : la barre restait
+ * bloquée à huit puces sur un écran de 1600 px qui en tenait onze, sans un signe.
+ *
+ * On remesure donc sur les SIGNAUX qui font vraiment bouger la largeur :
+ *   • le montage (`queueMicrotask` — il tire toujours, contrairement à rAF, gelé dès
+ *     que le rendu l'est : onglet d'arrière-plan, volet d'aperçu masqué) ;
+ *   • le redimensionnement de la fenêtre ;
+ *   • l'ouverture du dock MEGGA AI et le repli de la barre latérale, qui sont des
+ *     ÉTATS que ce composant connaît déjà — on n'a pas besoin de les observer, il
+ *     suffit d'en dépendre ;
+ *   • le nombre d'onglets, qui refait couler les puces.
+ *
+ * ⚠ Et une sonde rAF BORNÉE après chaque signal : le pli de la barre latérale dure
+ * 250 ms, donc la largeur finale n'est pas celle de l'instant du clic. Bornée à
+ * {@link SONDE_MS}, jamais continue.
+ *
+ * ⚠ Le `setState` court-circuite sur l'égalité : une largeur stable ne provoque aucun
+ * re-rendu, sans quoi la mesure et le rendu s'entretiendraient.
+ */
+function useLargeurPuces(
+  piste: React.RefObject<HTMLDivElement | null>,
+  vide: React.RefObject<HTMLDivElement | null>,
+  signaux: unknown[],
+): number {
+  const [largeur, setLargeur] = useState(0)
+  useEffect(() => {
+    const p = piste.current
+    if (!p) return
+    const mesurer = () => {
+      // Place OCCUPÉE par les puces + place ENCORE LIBRE : c'est ce dont la piste
+      // pourrait disposer si elle en avait besoin.
+      const l = Math.round(
+        p.getBoundingClientRect().width + (vide.current?.getBoundingClientRect().width ?? 0),
+      )
+      setLargeur((prev) => (prev === l ? prev : l))
+    }
+    queueMicrotask(mesurer)
+
+    let brut = 0
+    const debut = performance.now()
+    const sonde = () => {
+      mesurer()
+      if (performance.now() - debut < SONDE_MS) brut = requestAnimationFrame(sonde)
+    }
+    brut = requestAnimationFrame(sonde)
+
+    window.addEventListener('resize', mesurer)
+    return () => { cancelAnimationFrame(brut); window.removeEventListener('resize', mesurer) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [piste, vide, ...signaux])
+  return largeur
+}
+
 interface Props {
   sp: CrmPalette
+  /** Thème courant et son écriture — pour la bascule clair/sombre ancrée à droite. */
+  dark: boolean
+  setDark: (v: boolean) => void
   /**
    * Compteurs par section. Omis, la barre les lit ELLE-MÊME (`crm_tab_badges`).
    *
@@ -217,15 +295,21 @@ function Badge({ n, urgent, actif, sp }: { n: number; urgent?: boolean; actif: b
 
 // ─── La barre ───────────────────────────────────────────────────────────────
 
-export function CrmTabsBar({ sp, badges: override }: Props) {
+export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
   const { t } = useTranslation('common')
   const api = useCrmTabs()
   const serveur = useCrmTabBadges()
   const badges = override ?? serveur
   const ai = useAiPanel()
   const dockOuvert = !!(ai.enabled && ai.isOpen)
+  // ⚠ Le repli de la barre latérale rend 180 px à la colonne : c'est un SIGNAL de
+  // remesure, pas une information d'affichage — la barre d'onglets n'en fait rien d'autre.
+  const [barreRepliee] = useCrmSidebarCollapsed()
 
   const barreRef = useRef<HTMLDivElement | null>(null)
+  /** La piste des puces, et l'espace encore libre à sa droite. */
+  const pistRef = useRef<HTMLDivElement | null>(null)
+  const videRef = useRef<HTMLDivElement | null>(null)
   // ⚠ Le menu de débordement s'aligne sur la PASTILLE « +N », pas sur la barre :
   // ancré à la barre il s'ouvrait à gauche de l'écran, à des centaines de pixels
   // du bouton qui l'ouvre (vu à l'écran le 4 septembre 2026).
@@ -237,7 +321,19 @@ export function CrmTabsBar({ sp, badges: override }: Props) {
 
   const { tabs, active } = api
   const nTabs = tabs.length
-  const vis = dockOuvert ? VIS_DOCK : VIS_LARGE
+  const largeur = useLargeurPuces(pistRef, videRef, [dockOuvert, barreRepliee, nTabs])
+  /**
+   * Combien de puces tiennent réellement.
+   *
+   * ⚠ Le cas du dock MEGGA AI ne demande plus de constante à part : le dock
+   * comprime la colonne, donc la piste mesure moins, donc il tient moins de puces.
+   * La mesure subsume la règle « quatre quand l'assistant est ouvert », et elle est
+   * plus juste — elle vaut aussi pour la barre latérale repliée et pour un 1920.
+   *
+   * ⚠ Plancher à 1 tant que la mesure n'est pas revenue (première frame) : rendre
+   * zéro puce ferait clignoter la barre à chaque montage.
+   */
+  const vis = Math.max(1, Math.floor((largeur + TAB_GAP) / (CHIP_MIN + TAB_GAP)) || 1)
   const maxW = crmChipMaxWidth(nTabs, dockOuvert)
   const { visibles, caches } = useMemo(
     () => crmVisibleWindow(nTabs, active, vis),
@@ -465,15 +561,20 @@ export function CrmTabsBar({ sp, badges: override }: Props) {
   return (
     <div
       ref={barreRef}
-      role="tablist"
-      aria-label={t('tabs.bar')}
       style={{
         display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)',
         minWidth: 0, position: 'relative', zIndex: Z_BARRE,
         height: H_PUCE, fontFamily: 'inherit',
       }}
     >
+      {/* ⚠ `role="tablist"` est ICI, sur les seules puces — et non sur la barre
+          entière comme au premier jet. Un `tablist` ne doit contenir que des
+          `tab` ; y ranger « +N », « + » et les deux commandes de droite les
+          faisait annoncer comme des onglets par un lecteur d'écran. */}
       <div
+        ref={pistRef}
+        role="tablist"
+        aria-label={t('tabs.bar')}
         onClick={onClic}
         onPointerDown={onPointerDown}
         onContextMenu={onCtx}
@@ -542,6 +643,44 @@ export function CrmTabsBar({ sp, badges: override }: Props) {
         <MEIcon name="plus" size={14} strokeWidth={1.9} />
       </button>
 
+      {/* ── Le quart droit ────────────────────────────────────────────────────
+          Mesuré le 4 septembre 2026 : la bande laissait 241 px vides à 1280 px
+          (25 % du cadre) et en laisserait ~880 à 1920 — la barre s'arrête aux
+          trois quarts. Deux commandes viennent l'occuper, et elles sont
+          DÉPLACÉES, pas dupliquées : deux déclencheurs pour un même état sont
+          une gêne, pas un confort.
+
+          ⚠ ✦ MEGGA AI GAGNE À ÊTRE ICI : le panneau s'ouvre par la droite, donc
+          un déclencheur ancré à droite dit d'où vient la chose. Il portait un
+          état actif dans la barre latérale — il le garde. */}
+      {/* ⚠ L'espaceur n'est pas décoratif : sa largeur EST la place encore libre, et
+          c'est elle qu'on additionne à celle de la piste pour savoir combien de puces
+          il tiendrait. Il garde au passage « + » collé à la dernière puce — dans un
+          navigateur, c'est là que la main le cherche. */}
+      <div ref={videRef} style={{ flex: 1, minWidth: 'var(--crm-space-lg)' }} aria-hidden />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flexShrink: 0 }}>
+        {ai.enabled && (
+          <CommandeRonde
+            sp={sp}
+            icone="sparkle"
+            actif={ai.isOpen}
+            libelle={t('nav.aiAgent')}
+            haspopup="dialog"
+            expanded={ai.isOpen}
+            onClick={() => (ai.isOpen ? ai.close() : ai.open())}
+          />
+        )}
+        <CommandeRonde
+          sp={sp}
+          icone={dark ? 'moon' : 'sun'}
+          actif={false}
+          // Le nom dit ce que le clic FERA, pas l'état courant : un bouton
+          // annoncé « Sombre » alors qu'on y est déjà se lit comme un état.
+          libelle={dark ? t('nav.light') : t('nav.dark')}
+          onClick={() => setDark(!dark)}
+        />
+      </div>
+
       {/* ── Menu de débordement ──────────────────────────────────────────────
           PORTÉ dans document.body, comme la popover des notifications : un
           ancêtre qui porterait un `backdrop-filter` deviendrait bloc conteneur de
@@ -607,6 +746,48 @@ export function CrmTabsBar({ sp, badges: override }: Props) {
         document.body,
       )}
     </div>
+  )
+}
+
+/**
+ * Commande ronde du quart droit — même diamètre que la pastille « +N », pour que
+ * les trois se lisent comme une seule famille.
+ */
+function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded }: {
+  sp: CrmPalette
+  icone: 'sparkle' | 'sun' | 'moon'
+  actif: boolean
+  libelle: string
+  onClick: () => void
+  haspopup?: 'dialog'
+  expanded?: boolean
+}) {
+  const [survol, setSurvol] = useState(false)
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setSurvol(true)}
+      onMouseLeave={() => setSurvol(false)}
+      title={libelle}
+      aria-label={libelle}
+      aria-pressed={haspopup ? undefined : actif}
+      aria-haspopup={haspopup}
+      aria-expanded={haspopup ? expanded : undefined}
+      style={{
+        width: H_PASTILLE, height: H_PASTILLE, flexShrink: 0,
+        borderRadius: 'var(--crm-radius-pill)', border: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: 'pointer', fontFamily: 'inherit',
+        // Actif = aplat d'accent, comme la puce active et la ligne de la barre
+        // latérale : c'est la règle du 10 août 2026, l'élément ACTIF porte l'accent.
+        background: actif ? sp.accent : survol ? sp.focusSurface : 'transparent',
+        color: actif ? sp.accentInk : survol ? sp.ink : sp.sub,
+        transition: 'background-color .18s ease, color .18s ease',
+      }}
+    >
+      <MEIcon name={icone} size={15} strokeWidth={1.7} />
+    </button>
   )
 }
 
