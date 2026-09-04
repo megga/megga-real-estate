@@ -83,6 +83,67 @@ describe('deriveThreadPatch', () => {
     const reponse = msg({ providerMessageId: 'm3', direction: 'outbound', from: { name: 'G', email: BOX }, sentAt: '2026-09-04T08:00:00.000Z', inInbox: false, isRead: true })
     expect(deriveThreadPatch(archive, reponse, BOX, true).is_archived).toBe(true)
   })
+
+  // ⛔ LE PIÈGE QUE LES FIXTURES CI-DESSUS NE POUVAIENT PAS VOIR : elles écrivent la forme
+  // `Z` des DEUX côtés. En vrai, `m.sentAt` vient de `toISOString()`
+  // (`…T08:00:00.000Z`) et `existing.last_*_at` vient de PostgREST, qui rend un
+  // `timestamptz` en `…T08:00:00+00:00`. Comparées en CHAÎNES, les deux divergent à
+  // l'index 19 — c'est le préfixe date-heure qui décidait, et à la seconde près
+  // `'.' > '+'` faisait toujours gagner l'entrant. Ces trois cas comparent des INSTANTS.
+  describe('les dates du fil viennent de PostgREST, pas de toISOString', () => {
+    const enBase = (m: NormalizedMessage): ThreadRow => {
+      const p = deriveThreadPatch(null, m, BOX, true) as ThreadRow
+      // Ce que PostgREST rend RÉELLEMENT pour un timestamptz sous une session UTC.
+      const pg = (iso: string | null) => (iso ? iso.replace(/\.\d{3}Z$/, '+00:00') : iso)
+      return { ...p, id: 'T', account_id: 'A', label_id: null, contact_id: null,
+        last_message_at: pg(p.last_message_at)!, last_inbound_at: pg(p.last_inbound_at), last_outbound_at: pg(p.last_outbound_at) }
+    }
+    it('à la seconde PRÈS, un message plus ancien ne devient pas le dernier du fil', () => {
+      const existing = enBase(msg({ snippet: 'Le vrai dernier' }))
+      expect(existing.last_message_at).toBe('2026-09-03T08:00:00+00:00')
+      // MÊME seconde, mais c'est déjà connu : rien ne doit rétrograder.
+      const jumeau = msg({ providerMessageId: 'm9', snippet: 'Jumeau', sentAt: '2026-09-03T08:00:00.000Z' })
+      expect(deriveThreadPatch(existing, jumeau, BOX, false).last_message_at).toBe('2026-09-03T08:00:00.000Z')
+      // Plus ANCIEN d'une seconde : le fil garde sa date et son extrait.
+      const vieux = msg({ providerMessageId: 'm0', snippet: 'Vieux', sentAt: '2026-09-03T07:59:59.000Z' })
+      const p = deriveThreadPatch(existing, vieux, BOX, true)
+      expect(p.last_message_at).toBe('2026-09-03T08:00:00+00:00')
+      expect(p.snippet).toBe('Le vrai dernier')
+    })
+    it('last_inbound_at et last_outbound_at gardent le plus récent des deux formes', () => {
+      const existing = enBase(msg())
+      const vieuxEntrant = msg({ providerMessageId: 'm0', sentAt: '2026-09-02T08:00:00.000Z' })
+      expect(deriveThreadPatch(existing, vieuxEntrant, BOX, true).last_inbound_at).toBe('2026-09-03T08:00:00+00:00')
+      const sortantRecent = msg({ providerMessageId: 'm2', direction: 'outbound', from: { name: 'G', email: BOX }, sentAt: '2026-09-04T08:00:00.000Z' })
+      expect(deriveThreadPatch(existing, sortantRecent, BOX, true).last_outbound_at).toBe('2026-09-04T08:00:00.000Z')
+    })
+    it('un entrant plus ancien ne décide toujours pas de l archivage sous la forme PostgREST', () => {
+      const existing = enBase(msg()) // le plus récent est en Réception
+      const vieux = msg({ providerMessageId: 'm0', inInbox: false, sentAt: '2026-09-01T08:00:00.000Z' })
+      expect(deriveThreadPatch(existing, vieux, BOX, true).is_archived).toBe(false)
+    })
+
+    // ⛔ LE CAS QUI SÉPARE VRAIMENT LES DEUX IMPLÉMENTATIONS. Sous une session non UTC,
+    // PostgREST rend le MÊME instant en `+02:00`. Comparé en chaînes,
+    // `'2026-09-03T09:00:00.000Z' >= '2026-09-03T10:00:00+02:00'` est FAUX (divergence dès
+    // l'heure) : un message POSTÉRIEUR d'une heure cessait de mettre le fil à jour — ni sa
+    // date, ni son extrait, ni son état d'archivage. Comparés en instants, 09:00Z suit bien
+    // 10:00+02:00 (soit 08:00Z).
+    it('un fuseau de session non UTC ne renverse pas l ordre du fil', () => {
+      const existing: ThreadRow = {
+        ...(deriveThreadPatch(null, msg(), BOX, true) as ThreadRow),
+        id: 'T', account_id: 'A', label_id: null, contact_id: null,
+        last_message_at: '2026-09-03T10:00:00+02:00', // = 08:00Z, le même instant qu'au-dessus
+        last_inbound_at: '2026-09-03T10:00:00+02:00',
+      }
+      const suivant = msg({ providerMessageId: 'm2', snippet: 'Le plus récent', inInbox: false, sentAt: '2026-09-03T09:00:00.000Z' })
+      const p = deriveThreadPatch(existing, suivant, BOX, true)
+      expect(p.last_message_at).toBe('2026-09-03T09:00:00.000Z')
+      expect(p.last_inbound_at).toBe('2026-09-03T09:00:00.000Z')
+      expect(p.snippet).toBe('Le plus récent')
+      expect(p.is_archived).toBe(true)
+    })
+  })
 })
 
 describe('pickContact', () => {

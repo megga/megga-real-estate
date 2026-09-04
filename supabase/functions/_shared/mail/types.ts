@@ -86,6 +86,11 @@ export interface NormalizedMessage {
   attachments: NormalizedAttachment[]
 }
 
+/** Les huit gestes que `mail-actions` répercute sur un fil (et sur chacun de ses messages). */
+export type MailThreadAction =
+  | 'mark_read' | 'mark_unread' | 'star' | 'unstar'
+  | 'archive' | 'unarchive' | 'trash' | 'untrash'
+
 /** Changement d'état venu du fournisseur (geste fait dans Gmail/Outlook). */
 export type RemoteChange =
   | { kind: 'message_deleted'; providerMessageId: string }

@@ -119,6 +119,23 @@ serve(async (req: Request) => {
   // à laquelle il n'a jamais participé (RFC 5322 : ces en-têtes désignent le message
   // auquel on RÉPOND). Ils ne sont posés que pour `reply`.
   const isReply = kind === 'reply'
+  /**
+   * ⚠ `References` NE S'ACCUMULE PAS, et c'est un écart ASSUMÉ à la RFC 5322 §3.6.4 (qui
+   * veut « References du parent, puis Message-ID du parent »). Ici c'est
+   * « In-Reply-To du parent, puis son Message-ID » : deux identifiants au maximum, quelle
+   * que soit la longueur du fil.
+   *
+   * NON CORRIGÉ le 04.09.2026, faute de la donnée : `NormalizedMessage.references` existe
+   * (types.ts) mais `ingest.ts` ne l'écrit nulle part et `mail_messages` n'a pas de colonne
+   * pour la porter. Réparer demande donc une colonne `references text[]`, son écriture à
+   * l'ingestion, puis la concaténation ici — un changement de schéma pour un défaut dont
+   * l'effet est BORNÉ : le lien au parent immédiat est correct, donc Gmail, Outlook et
+   * Apple Mail continuent d'enfiler la conversation. Ce qui se dégrade est le cas du
+   * participant ajouté au huitième message, dont le client ne peut pas recoudre la réponse
+   * à une racine qu'il n'a jamais reçue — et les archives qui reconstruisent l'arbre par
+   * `References` seul (Thunderbird, mutt) après un trou. À reprendre au lot 2, avec la
+   * troncature d'usage aux ~20 derniers identifiants.
+   */
   const outgoing: OutgoingMessage = {
     from: { name: account.display_name ?? (prof?.full_name as string | null) ?? null, email: account.email },
     to, cc, bcc, subject, text: fullText, html: fullHtml,
@@ -222,11 +239,16 @@ serve(async (req: Request) => {
   // Audit avec l'acteur (l'ingestion a été appelée en skipAudit).
   const { data: th } = threadId ? await admin.from('mail_threads').select('contact_id').eq('id', threadId).maybeSingle() : { data: null }
   if (th?.contact_id) {
-    await admin.from('activity_events').insert({
+    // ⛔ Le résultat de cette insertion était jeté — pas de `error`, pas de journal. Un
+    // `email_sent` manquant dans la timeline d'un contact ne laissait alors AUCUNE trace,
+    // nulle part, alors que CLAUDE.md §5 fait d'`activity_events` la trace de chaque
+    // action. On ne refuse pas l'envoi pour autant : le courrier est parti.
+    const { error: eAudit } = await admin.from('activity_events').insert({
       agency_id: account.agency_id, actor_id: user.id, actor_kind: 'user', action: 'email_sent', category: 'messaging', severity: 'info',
       entity_type: 'contact', entity_id: th.contact_id, object_label: subject,
       metadata: { thread_id: threadId, message_id: localMessageId, account_id: account.id, to: to.map((a) => a.email), kind },
     })
+    if (eAudit) console.error(`[mail-send] activity_events refuse email_sent (fil ${threadId}, contact ${th.contact_id}):`, eAudit.message)
   }
   if (typeof body.draft_id === 'string') await admin.from('mail_drafts').delete().eq('id', body.draft_id).eq('author_id', user.id)
   // `ok: true` parce que le courrier est parti — `warning` dit que la copie locale est

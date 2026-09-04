@@ -4,7 +4,7 @@
 // history.list depuis le dernier historyId. Un 404 sur history = historique
 // expiré côté Google : on repart en passe initiale (jamais une boucle d'erreur).
 // PUR : `fetch` injectable ; aucune écriture en base ici (c'est ingest.ts).
-import type { NormalizedAttachment, NormalizedMessage, RemoteChange } from './types.ts'
+import type { MailDirection, MailThreadAction, NormalizedAttachment, NormalizedMessage, RemoteChange } from './types.ts'
 import { base64UrlDecodeToString, decodeRfc2047, htmlToText, parseAddress, parseAddressList, snippetOf } from './mime.ts'
 import { MailAuthError } from './secrets.ts'
 
@@ -94,6 +94,38 @@ export async function gmailModify(
 ): Promise<void> {
   const path = scope === 'thread' ? `/threads/${encodeURIComponent(id)}/modify` : `/messages/${encodeURIComponent(id)}/modify`
   await gcall(token, path, deps, { method: 'POST', body: JSON.stringify({ addLabelIds: add, removeLabelIds: remove }) })
+}
+
+/**
+ * Les libellés à poser et à retirer pour un geste, SUR CE MESSAGE-LÀ.
+ *
+ * ⛔ INBOX NE SE POSE QUE SUR UN MESSAGE ENTRANT, et c'est tout l'objet de cette fonction.
+ * Un geste de `mail-actions` s'applique à TOUS les messages du fil, copies « Envoyés »
+ * comprises — or celles-ci n'ont jamais porté INBOX. La table était pourtant
+ * `untrash: [['INBOX'], ['TRASH']]` sans distinction : après avoir restauré une
+ * conversation depuis la corbeille, l'agent retrouvait ses PROPRES réponses dans sa
+ * Réception Gmail. `unarchive` avait la même forme et le même défaut. Retirer un libellé
+ * reste juste pour tout le monde (retirer INBOX d'un message qui ne l'a pas est sans
+ * effet) ; c'est l'AJOUT qui doit être dirigé.
+ *
+ * ⚠ On reste sur `messages.modify` plutôt que sur les endpoints dédiés `/trash` et
+ * `/untrash`. Le guide « Manage labels » donne TRASH « can be manually applied: yes »
+ * (seuls SENT et DRAFT sont à « no » — relu le 04.09.2026) : la voie actuelle est légale
+ * et ne rendra pas 502. `users.messages.untrash` serait plus élégant, puisqu'il rendrait
+ * au message son état d'avant — mais sa référence ne documente NULLE PART qu'il restaure
+ * les libellés, INBOX compris. Échanger un défaut mesuré contre un comportement non
+ * documenté n'est pas un progrès.
+ */
+export function gmailLabelPatch(action: MailThreadAction, direction: MailDirection): { add: string[]; remove: string[] } {
+  const inbox = direction === 'inbound' ? ['INBOX'] : []
+  const table: Record<MailThreadAction, [string[], string[]]> = {
+    mark_read: [[], ['UNREAD']], mark_unread: [['UNREAD'], []],
+    star: [['STARRED'], []], unstar: [[], ['STARRED']],
+    archive: [[], ['INBOX']], unarchive: [inbox, []],
+    trash: [['TRASH'], ['INBOX']], untrash: [inbox, ['TRASH']],
+  }
+  const [add, remove] = table[action]
+  return { add, remove }
 }
 
 export async function gmailSend(token: string, rawBase64Url: string, threadId: string | null, deps: GmailDeps = {}): Promise<{ id: string; threadId: string }> {

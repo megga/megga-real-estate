@@ -6,6 +6,13 @@
 // Un bail en base (mail_cron_locks) empêche deux balayages simultanés : le budget
 // (60 s) dépasse l'intervalle (120 s) rarement, mais un tick lent + un tick suivant
 // = double coût fournisseur et curseurs en course. Le TTL (180 s) est le filet.
+// ⚠ Le TTL ne tient que parce que le dépassement d'une passe est BORNÉ : depuis le
+// 04.09.2026, `syncAccount` vérifie son budget DANS la boucle des messages et non plus
+// seulement en tête de page (une page = jusqu'à 50 `messages.get` séquentiels, soit
+// plusieurs secondes de débordement). 60 s de budget + le temps d'un message restent très
+// en deçà des 180 s. Et chaque compte porte en plus son propre bail
+// (`mail-sync:<account_id>`, sync.ts), qui sérialise le balayage contre les trois chemins
+// déclenchés par un agent.
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -118,6 +125,8 @@ serve(async (req: Request) => {
   if (!lock.ok) return json({ ok: true, skipped: 'locked' })
   const started = Date.now()
   const results: Record<string, unknown>[] = []
+  let budgetExhausted = false
+  let dueCount = 0
   try {
     // ⛔ La file de travail est LUE, ou le balayage échoue. Sans le contrôle d'erreur,
     // une lecture ratée (cache de schéma périmé juste après le déploiement, timeout)
@@ -137,13 +146,18 @@ serve(async (req: Request) => {
     // `assertOwnerStillInAgency`, au premier geste de `syncAccount`, qui refuse la
     // passe et bascule la boîte en `disabled` — elle sort alors de cette file d'
     // elle-même, sans qu'un seul message ait été écrit dans l'ancienne agence.
+    dueCount = (due ?? []).length
     for (const account of (due ?? []) as MailAccountRow[]) {
-      if (Date.now() - started > SWEEP_BUDGET_MS) break
+      // ⚠ Sortir par ÉPUISEMENT DU BUDGET et sortir par « plus rien à faire » sont deux
+      // états opposés que la réponse confondait : `{ ok: true, synced: 3 }` dans les deux
+      // cas. Le premier veut dire qu'il reste des boîtes en file à chaque tick — le
+      // symptôme de l'affamement, qu'aucun `last_error` n'écrit puisque personne n'échoue.
+      if (Date.now() - started > SWEEP_BUDGET_MS) { budgetExhausted = true; break }
       const r = await syncAccount(admin, account, cfg, Math.min(PER_ACCOUNT_BUDGET_MS, SWEEP_BUDGET_MS - (Date.now() - started)))
       results.push({ account_id: account.id, provider: account.provider, ...r })
     }
   } finally {
     await releaseLock(admin, lock.until)
   }
-  return json({ ok: true, synced: results.length, elapsed_ms: Date.now() - started, results })
+  return json({ ok: true, synced: results.length, due: dueCount, budget_exhausted: budgetExhausted, elapsed_ms: Date.now() - started, results })
 })

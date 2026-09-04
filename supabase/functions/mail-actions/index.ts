@@ -11,11 +11,11 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
-import { gmailModify } from '../_shared/mail/gmail.ts'
+import { gmailLabelPatch, gmailModify } from '../_shared/mail/gmail.ts'
 import { graphMove, graphPatch } from '../_shared/mail/graph.ts'
 import { linkThreadToContact, recomputeThread } from '../_shared/mail/ingest.ts'
 import { syncAccount } from '../_shared/mail/sync.ts'
-import type { MailAccountRow } from '../_shared/mail/types.ts'
+import type { MailAccountRow, MailThreadAction } from '../_shared/mail/types.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -25,7 +25,9 @@ function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 }
 
-type ThreadAction = 'mark_read' | 'mark_unread' | 'star' | 'unstar' | 'archive' | 'unarchive' | 'trash' | 'untrash'
+// Le type vit dans `types.ts` : `gmailLabelPatch` (gmail.ts) en dépend, et deux unions
+// jumelles qui dérivent l'une de l'autre est exactement le défaut que ce module ne veut pas.
+type ThreadAction = MailThreadAction
 const THREAD_ACTIONS: ThreadAction[] = ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash']
 
 interface MsgRow { id: string; provider_message_id: string; direction: 'inbound' | 'outbound' }
@@ -36,12 +38,11 @@ async function pushToProvider(account: MailAccountRow, token: string, action: Th
   for (const m of msgs) {
     if (m.provider_message_id.startsWith('pending:')) continue
     if (account.provider === 'gmail') {
-      const [add, remove] = ({
-        mark_read: [[], ['UNREAD']], mark_unread: [['UNREAD'], []],
-        star: [['STARRED'], []], unstar: [[], ['STARRED']],
-        archive: [[], ['INBOX']], unarchive: [['INBOX'], []],
-        trash: [['TRASH'], ['INBOX']], untrash: [['INBOX'], ['TRASH']],
-      } as Record<ThreadAction, [string[], string[]]>)[action]
+      // La table des libellés vit dans `gmail.ts` — pure, donc éprouvée par un test
+      // unitaire. Elle dépend de la DIRECTION du message : voir son en-tête (INBOX ne se
+      // pose jamais sur une copie « Envoyés »).
+      const { add, remove } = gmailLabelPatch(action, m.direction)
+      if (add.length === 0 && remove.length === 0) continue
       await gmailModify(token, m.provider_message_id, add, remove)
     } else if (account.provider === 'outlook') {
       if (action === 'mark_read' || action === 'mark_unread') await graphPatch(token, m.provider_message_id, { isRead: action === 'mark_read' })

@@ -1,6 +1,6 @@
 // supabase/functions/_shared/mail/graph.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { normalizeGraphMessage, deltaToChanges, graphDelta, graphSend, resolveGraphRemoval, GRAPH_ATTACHMENT_MAX_BYTES, IMMUTABLE_ID_PREFER, type GraphMessage } from './graph.ts'
+import { normalizeGraphMessage, deltaToChanges, graphDelta, graphFolderIds, graphSend, resolveGraphRemoval, GRAPH_ATTACHMENT_MAX_BYTES, IMMUTABLE_ID_PREFER, type GraphMessage } from './graph.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
 const FOLDERS = { inbox: 'F-IN', sentitems: 'F-SENT', archive: 'F-ARC', deleteditems: 'F-DEL' }
@@ -238,5 +238,45 @@ describe('graphDelta', () => {
     const r = await graphDelta('tok', 'inbox', 'https://GRAPH.microsoft.com/v1.0/next', '2026-06-05T00:00:00.000Z', { fetch: F(fetch) })
     expect(fetch).toHaveBeenCalledOnce()
     expect(r.deltaLink).toBe('https://graph.microsoft.com/v1.0/d')
+  })
+})
+
+// ⛔ Une boîte sans dossier Archive faisait lever `graphFolderIds` AVANT le premier
+// message : `last_error` portait un 404 Graph, le compte restait « active », et comme
+// `folderIds` n'est persisté qu'en cas de succès, la passe suivante rejouait la même
+// recherche — pour toujours. Or `archive` et `deleteditems` ne servent qu'à CLASSER.
+describe('graphFolderIds — deux dossiers portent la synchro, deux la décorent', () => {
+  const rep = (f: string, status: number) =>
+    status === 200 ? new Response(JSON.stringify({ id: `F-${f}` }), { status }) : new Response('{"error":{"code":"ErrorItemNotFound"}}', { status })
+  const serveur = (codes: Record<string, number>) =>
+    vi.fn(async (u: string) => {
+      const f = String(u.split('/mailFolders/')[1]).split('?')[0]
+      return rep(f, codes[f] ?? 200)
+    })
+
+  it('un 404 sur Archive dégrade le classement, il n arrête pas la synchro', async () => {
+    const fetch = serveur({ archive: 404 })
+    const ids = await graphFolderIds('tok', { fetch: F(fetch) })
+    expect(ids).toEqual({ inbox: 'F-inbox', sentitems: 'F-sentitems', deleteditems: 'F-deleteditems' })
+    expect(fetch).toHaveBeenCalledTimes(4) // la boucle va au bout
+  })
+
+  it('la table incomplète ne fait pas d un dossier ABSENT la corbeille', async () => {
+    const ids = await graphFolderIds('tok', { fetch: F(serveur({ deleteditems: 404 })) })
+    // `undefined === undefined` aurait dit « oui » : un message à parentFolderId absent
+    // — la charge utile PARTIELLE est le cas normal du delta — serait passé pour effacé.
+    const n = normalizeGraphMessage({ ...M, parentFolderId: undefined }, BODY, [], ids, 'g@agence.ch')
+    expect(n.isTrashed).toBe(false)
+    expect(n.inInbox).toBe(false)
+  })
+
+  it('un 404 sur Réception ou Envoyés LÈVE : sans eux il n y a rien à synchroniser', async () => {
+    for (const f of ['inbox', 'sentitems']) {
+      await expect(graphFolderIds('tok', { fetch: F(serveur({ [f]: 404 })) }), f).rejects.toThrow(/http 404/)
+    }
+  })
+
+  it('une panne serveur LÈVE même sur un dossier de confort — 404 n est pas 500', async () => {
+    await expect(graphFolderIds('tok', { fetch: F(serveur({ archive: 500 })) })).rejects.toThrow(/http 500/)
   })
 })

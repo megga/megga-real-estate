@@ -113,16 +113,68 @@ async function gcall<T>(token: string, url: string, deps: GraphDeps, init: Reque
   return (await res.json()) as T
 }
 
+/**
+ * Ids des quatre dossiers connus, résolus une fois puis persistés dans le curseur.
+ *
+ * ⛔ DEUX SONT PORTEURS, DEUX SONT DE CONFORT — et confondre les deux BRIQUAIT le compte.
+ * `inbox` et `sentitems` sont les dossiers que le delta parcourt : sans eux il n'y a rien
+ * à synchroniser. `archive` et `deleteditems` ne servent qu'à CLASSER (`inInbox`,
+ * `isTrashed`). Or la boucle laissait `gcall` lever sur n'importe lequel des quatre : une
+ * boîte sans dossier Archive — ou un 404/403 passager sur une seule recherche — faisait
+ * échouer `syncGraph` AVANT le premier message. `syncAccount` écrivait `last_error` et un
+ * backoff de 10 minutes, et comme `folderIds` n'est persisté qu'en cas de SUCCÈS, la passe
+ * suivante rejouait la même recherche : le compte affichait `active`, portait un 404 Graph
+ * en `last_error`, et ne synchronisait plus jamais un seul message.
+ *
+ * Un id de classement absent vaut donc « ni archivé ni en corbeille » — ce que
+ * `sameFolder` traduit déjà d'une clé manquante, sans jamais faire d'`undefined ===
+ * undefined` une égalité de dossiers.
+ */
 export async function graphFolderIds(token: string, deps: GraphDeps = {}): Promise<Record<string, string>> {
   const out: Record<string, string> = {}
   for (const f of GRAPH_FOLDERS) {
-    const j = await gcall<{ id: string }>(token, `/me/mailFolders/${f}?$select=id`, deps)
-    out[f] = j.id
+    const porteur = f === 'inbox' || f === 'sentitems'
+    try {
+      const j = await gcall<{ id: string }>(token, `/me/mailFolders/${f}?$select=id`, deps)
+      out[f] = j.id
+    } catch (e) {
+      if (porteur || !(e instanceof GraphApiError && (e.status === 404 || e.status === 403))) throw e
+      console.error(`[mail graph] dossier ${f} indisponible (http ${e.status}) — classement dégradé, synchro poursuivie`)
+    }
   }
   return out
 }
 
-/** Une passe de delta : suit les nextLink jusqu'au deltaLink (ou jusqu'à `maxPages`). */
+/**
+ * Deux dossiers sont-ils le même ? ⚠ `a === b` ne suffit PAS : depuis que `graphFolderIds`
+ * peut rendre une table incomplète, `undefined === undefined` dirait « oui » — un message
+ * à `parentFolderId` absent (charge utile partielle, le cas NORMAL du delta) serait alors
+ * déclaré dans la corbeille d'une boîte sans dossier Éléments supprimés.
+ */
+const sameFolder = (a: string | undefined, b: string | undefined): boolean => !!a && !!b && a === b
+
+/**
+ * Une passe de delta : suit les nextLink jusqu'au deltaLink (ou jusqu'à `maxPages`).
+ *
+ * ⚠ LE `$filter` DE 90 JOURS PLAFONNE L'IMPORT INITIAL À 5 000 MESSAGES PAR DOSSIER, et
+ * c'est une limite du fournisseur, pas un défaut d'ici. La page « Get incremental changes
+ * to messages in a folder » l'écrit juste après avoir autorisé
+ * `$filter=receivedDateTime ge {value}` : « Applying `$filter` in a delta query returns
+ * only up to 5,000 messages » (relu le 04.09.2026). Une Réception d'agence chargée dépasse
+ * ce compte sur 90 jours ; la passe se termine alors sur un `deltaLink` normal,
+ * `initialDone` passe à true, `last_error` reste nul — l'historique est tronqué SANS que
+ * rien ne le dise, et Gmail, qui n'a pas d'équivalent, en importe davantage sur la même
+ * fenêtre.
+ *
+ * NON CORRIGÉ, ET C'EST UN CHOIX (04.09.2026) : la seule parade est de retirer le
+ * `$filter` et de borner la fenêtre en lisant la date de CHAQUE item — Graph ne garantit
+ * l'ordre qu'avec `$orderby=receivedDateTime desc`, donc on ne peut pas s'arrêter au
+ * premier message trop vieux. Cela remplace un plafond de 5 000 par le parcours de la
+ * boîte ENTIÈRE (dix ans de courrier pour en garder trois mois), au budget de 20 s par
+ * compte. Le plafond est le moindre mal tant que l'import initial n'a pas son propre
+ * mécanisme de reprise ; ce qu'il faut, c'est que le lot 2 le DISE (« les 5 000 messages
+ * les plus récents ») au lieu de laisser croire à un import complet.
+ */
 export async function graphDelta(
   token: string, folder: GraphFolder, deltaLink: string | null, sinceIso: string, deps: GraphDeps = {}, maxPages = 4,
 ): Promise<{ items: GraphMessage[]; deltaLink: string | null; nextLink: string | null }> {
@@ -261,7 +313,7 @@ export function normalizeGraphMessage(
   m: GraphMessage, body: GraphBody, atts: GraphAttachment[], folderIds: Record<string, string>, boxEmail: string,
 ): NormalizedMessage {
   const from = addr(m.from) ?? { name: null, email: '' }
-  const inSent = m.parentFolderId === folderIds.sentitems
+  const inSent = sameFolder(m.parentFolderId, folderIds.sentitems)
   const outbound = inSent || from.email === boxEmail.toLowerCase()
   const html = body.body?.contentType?.toLowerCase() === 'html' ? body.body.content : null
   const text = html ? htmlToText(html) : (body.body?.content ?? null)
@@ -289,8 +341,8 @@ export function normalizeGraphMessage(
     sentAt: new Date(m.receivedDateTime ?? m.sentDateTime ?? Date.now()).toISOString(),
     isRead: !!m.isRead,
     isStarred: m.flag?.flagStatus === 'flagged',
-    inInbox: m.parentFolderId === folderIds.inbox,
-    isTrashed: m.parentFolderId === folderIds.deleteditems,
+    inInbox: sameFolder(m.parentFolderId, folderIds.inbox),
+    isTrashed: sameFolder(m.parentFolderId, folderIds.deleteditems),
     isDraft: !!m.isDraft,
     providerLabels: m.parentFolderId ? [m.parentFolderId] : [],
     attachments,
@@ -337,8 +389,8 @@ export function deltaToChanges(items: GraphMessage[], known: Set<string>, folder
     if (it.flag) f.isStarred = it.flag.flagStatus === 'flagged'
     // Les deux se lisent sur le MÊME champ : ou il est là, ou aucun des deux n'est su.
     if (it.parentFolderId !== undefined) {
-      f.inInbox = it.parentFolderId === folderIds.inbox
-      f.isTrashed = it.parentFolderId === folderIds.deleteditems
+      f.inInbox = sameFolder(it.parentFolderId, folderIds.inbox)
+      f.isTrashed = sameFolder(it.parentFolderId, folderIds.deleteditems)
     }
     // `kind` + `providerMessageId` = un changement qui ne change RIEN : inutile de le
     // faire descendre jusqu'à une lecture en base (même seuil que historyToChanges).
@@ -377,7 +429,7 @@ export async function resolveGraphRemoval(
   if (!parentFolderId) return null
   return {
     kind: 'flags', providerMessageId: r.id,
-    inInbox: parentFolderId === folderIds.inbox,
-    isTrashed: parentFolderId === folderIds.deleteditems,
+    inInbox: sameFolder(parentFolderId, folderIds.inbox),
+    isTrashed: sameFolder(parentFolderId, folderIds.deleteditems),
   }
 }

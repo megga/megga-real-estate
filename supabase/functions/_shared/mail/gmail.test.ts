@@ -1,6 +1,6 @@
 // supabase/functions/_shared/mail/gmail.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { normalizeGmailMessage, historyToChanges, nextHistoryCursor, gmailListInitial, gmailHistory, type GmailMessage, type GmailHistoryPage } from './gmail.ts'
+import { normalizeGmailMessage, historyToChanges, nextHistoryCursor, gmailLabelPatch, gmailListInitial, gmailHistory, type GmailMessage, type GmailHistoryPage } from './gmail.ts'
 import { base64UrlEncodeString } from './mime.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
@@ -134,5 +134,38 @@ describe('appels HTTP', () => {
   it('gmailHistory : 404 = historique expiré (resynchro complète)', async () => {
     const fetch = vi.fn(async () => new Response('{}', { status: 404 }))
     expect(await gmailHistory('tok', '1', null, { fetch: F(fetch) })).toEqual({ expired: true, page: null })
+  })
+})
+
+// ⛔ Un geste de `mail-actions` s'applique à CHAQUE message du fil, copies « Envoyés »
+// comprises. `untrash: [['INBOX'], …]` posait donc INBOX sur des messages qui ne l'avaient
+// jamais eu : après avoir sorti une conversation de la corbeille, l'agent retrouvait ses
+// PROPRES réponses dans sa Réception Gmail.
+describe('gmailLabelPatch — INBOX ne se pose que sur un message entrant', () => {
+  it('untrash et unarchive n ajoutent INBOX qu au courrier reçu', () => {
+    expect(gmailLabelPatch('untrash', 'inbound')).toEqual({ add: ['INBOX'], remove: ['TRASH'] })
+    expect(gmailLabelPatch('untrash', 'outbound')).toEqual({ add: [], remove: ['TRASH'] })
+    expect(gmailLabelPatch('unarchive', 'inbound')).toEqual({ add: ['INBOX'], remove: [] })
+    // Rien à faire du tout sur une copie « Envoyés » : mail-actions saute l'appel.
+    expect(gmailLabelPatch('unarchive', 'outbound')).toEqual({ add: [], remove: [] })
+  })
+  it('RETIRER un libellé reste indifférencié — c est sans effet sur qui ne l a pas', () => {
+    for (const d of ['inbound', 'outbound'] as const) {
+      expect(gmailLabelPatch('archive', d), d).toEqual({ add: [], remove: ['INBOX'] })
+      expect(gmailLabelPatch('trash', d), d).toEqual({ add: ['TRASH'], remove: ['INBOX'] })
+      expect(gmailLabelPatch('mark_read', d), d).toEqual({ add: [], remove: ['UNREAD'] })
+      expect(gmailLabelPatch('mark_unread', d), d).toEqual({ add: ['UNREAD'], remove: [] })
+      expect(gmailLabelPatch('star', d), d).toEqual({ add: ['STARRED'], remove: [] })
+      expect(gmailLabelPatch('unstar', d), d).toEqual({ add: [], remove: ['STARRED'] })
+    }
+  })
+  it('aucun geste ne pose SENT ni DRAFT — Gmail les refuse (« can be manually applied: no »)', () => {
+    for (const a of ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash'] as const) {
+      for (const d of ['inbound', 'outbound'] as const) {
+        const p = gmailLabelPatch(a, d)
+        expect([...p.add, ...p.remove], `${a}/${d}`).not.toContain('SENT')
+        expect([...p.add, ...p.remove], `${a}/${d}`).not.toContain('DRAFT')
+      }
+    }
   })
 })

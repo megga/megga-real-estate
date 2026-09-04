@@ -47,10 +47,29 @@ export function capHtml(html: string | null): { html: string | null; truncated: 
   return html.length > HTML_CAP ? { html: html.slice(0, HTML_CAP), truncated: true } : { html, truncated: false }
 }
 
+/**
+ * ⛔ ON COMPARE DES INSTANTS, PAS DES CHAÎNES — les deux côtés ne parlent pas la même
+ * langue. `m.sentAt` sort d'un `new Date().toISOString()`
+ * (`2026-09-03T08:00:00.000Z`) ; `existing.last_message_at` sort de PostgREST, qui
+ * sérialise un `timestamptz` selon le fuseau de la SESSION
+ * (`2026-09-03T08:00:00+00:00`). Les deux chaînes divergent à l'index 19 (`.` contre
+ * `+`), si bien que `>=` n'était juste QUE par le préfixe date-heure : à la seconde
+ * près, `'.' > '+'` faisait toujours gagner le message entrant. Sous une session non
+ * UTC, PostgREST rendrait `+02:00` et l'ordre serait faux de deux heures — le fil
+ * cesserait de suivre son dernier message. Les tests unitaires ne le voient pas : leurs
+ * fixtures écrivent la forme `Z` des deux côtés ; seul un aller-retour réel l'expose.
+ *
+ * ⚠ `laterThan(iso, at)` répond « cet ISO est POSTÉRIEUR à cet instant ». Une date
+ * illisible (`NaN`) vaut « le message entrant est le plus récent », comme un `existing`
+ * absent : le défaut écrit une valeur fraîche au lieu d'en figer une vieille.
+ */
+const laterThan = (iso: string | null | undefined, at: number): boolean => !!iso && Date.parse(iso) > at
+
 /** Dérive l'état du fil après ce message. `isNew` = le message n'était pas connu. */
 export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessage, boxEmail: string, isNew: boolean): ThreadPatch {
   const parts = externalParticipants(m, boxEmail)
-  const newer = !existing || m.sentAt >= existing.last_message_at
+  const at = Date.parse(m.sentAt)
+  const newer = !existing || !laterThan(existing.last_message_at, at)
   const mergedParticipants = (() => {
     const acc: MailAddress[] = [...(existing?.participants ?? [])]
     for (const p of parts) if (!acc.some((x) => x.email === p.email)) acc.push(p)
@@ -72,7 +91,7 @@ export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessa
    * quasi vide. Invisible en incrémental — `applyRemoteChanges` traite bien un archivage
    * ultérieur — donc introuvable autrement qu'à l'accueil d'un nouvel agent.
    */
-  const newestInbound = m.direction === 'inbound' && (!existing?.last_inbound_at || m.sentAt >= existing.last_inbound_at)
+  const newestInbound = m.direction === 'inbound' && !laterThan(existing?.last_inbound_at, at)
   return {
     subject: existing?.subject ?? m.subject,
     snippet: newer ? m.snippet : (existing?.snippet ?? m.snippet),
@@ -81,10 +100,10 @@ export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessa
     from_email: from.email || null,
     last_message_at: newer ? m.sentAt : existing!.last_message_at,
     last_inbound_at: m.direction === 'inbound'
-      ? (existing?.last_inbound_at && existing.last_inbound_at > m.sentAt ? existing.last_inbound_at : m.sentAt)
+      ? (laterThan(existing?.last_inbound_at, at) ? existing!.last_inbound_at : m.sentAt)
       : (existing?.last_inbound_at ?? null),
     last_outbound_at: m.direction === 'outbound'
-      ? (existing?.last_outbound_at && existing.last_outbound_at > m.sentAt ? existing.last_outbound_at : m.sentAt)
+      ? (laterThan(existing?.last_outbound_at, at) ? existing!.last_outbound_at : m.sentAt)
       : (existing?.last_outbound_at ?? null),
     message_count: (existing?.message_count ?? 0) + (isNew ? 1 : 0),
     has_attachments: (existing?.has_attachments ?? false) || m.attachments.some((a) => !a.isInline),
@@ -135,7 +154,17 @@ async function matchContact(admin: SupabaseClient, agencyId: string, emails: str
   return pickContact((alias ?? []) as { contact_id: string }[])
 }
 
-async function audit(admin: SupabaseClient, account: MailAccountRow, action: 'email_received' | 'email_sent', threadId: string, messageId: string, contactId: string, m: NormalizedMessage): Promise<void> {
+/**
+ * Écrit l'entrée de timeline. Rend `false` si `activity_events` a refusé la ligne.
+ *
+ * ⚠ ON CONTINUE SUR ÉCHEC — perdre le courrier pour sauver la ligne d'audit serait pire —
+ * MAIS ON LE COMPTE. `console.error` seul rendait l'échec INDÉCOUVRABLE : il atterrit dans
+ * les journaux d'edge, que rien n'alerte, et le `SyncOutcome` du balayage ne portait aucun
+ * compteur. Dans un produit LAB/KYC où CLAUDE.md fait de `activity_events` la trace de
+ * CHAQUE action, un courrier reçu sans son entrée de timeline se découvre à l'audit, des
+ * mois plus tard. Le compte remonte désormais jusqu'au `results` de `mail-sync`.
+ */
+async function audit(admin: SupabaseClient, account: MailAccountRow, action: 'email_received' | 'email_sent', threadId: string, messageId: string, contactId: string, m: NormalizedMessage): Promise<boolean> {
   const { error } = await admin.from('activity_events').insert({
     agency_id: account.agency_id,
     actor_id: null,
@@ -148,7 +177,8 @@ async function audit(admin: SupabaseClient, account: MailAccountRow, action: 'em
     object_label: m.subject || '(sans objet)',
     metadata: { thread_id: threadId, message_id: messageId, account_id: account.id, from: m.from.email, to: m.to.map((a) => a.email) },
   })
-  if (error) console.error('[mail ingest] activity_events refused', error.message)
+  if (error) console.error(`[mail ingest] activity_events refuse ${action} (fil ${threadId}, message ${messageId}):`, error.message)
+  return !error
 }
 
 export interface IngestOptions {
@@ -188,9 +218,10 @@ async function findKnownMessage(admin: SupabaseClient, accountId: string, m: Nor
 }
 
 /** Ingère des messages normalisés (idempotent sur (account_id, provider_message_id)). */
-export async function ingestMessages(admin: SupabaseClient, account: MailAccountRow, msgs: NormalizedMessage[], opts: IngestOptions = {}): Promise<{ inserted: number; updated: number }> {
+export async function ingestMessages(admin: SupabaseClient, account: MailAccountRow, msgs: NormalizedMessage[], opts: IngestOptions = {}): Promise<{ inserted: number; updated: number; auditFailures: number }> {
   let inserted = 0
   let updated = 0
+  let auditFailures = 0
   for (const m of msgs) {
     if (m.isDraft) continue
 
@@ -266,10 +297,10 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
     }
 
     if (isNew && contactId && !opts.skipAudit) {
-      await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, messageId, contactId, m)
+      if (!await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, messageId, contactId, m)) auditFailures++
     }
   }
-  return { inserted, updated }
+  return { inserted, updated, auditFailures }
 }
 
 /**

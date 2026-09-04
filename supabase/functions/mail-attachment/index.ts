@@ -1,8 +1,15 @@
 // supabase/functions/mail-attachment/index.ts
-// GET  ?id=<mail_attachments.id>       → octets de la pièce, streamés depuis le fournisseur
-//                                        (jamais d'URL publique ; type SERVI décidé par la
-//                                        liste blanche `attachmentServing`, jamais celui
-//                                        que l'expéditeur a déclaré).
+// GET  ?id=<mail_attachments.id>       → octets de la pièce, TÉLÉCHARGÉS EN MÉMOIRE avec le
+//                                        jeton du compte puis rendus (jamais d'URL publique,
+//                                        jamais d'objet Storage signable ; type SERVI décidé
+//                                        par la liste blanche `attachmentServing`, jamais
+//                                        celui que l'expéditeur a déclaré).
+//   ⚠ CE N'EST PAS UN FLUX, et l'en-tête a dit le contraire jusqu'au 04.09.2026 — le plan
+//   maître, lui, avait déjà corrigé la phrase le 03.09. Les deux adaptateurs matérialisent
+//   l'objet ENTIER : `gmailAttachment` décode tout le base64 dans un `Uint8Array`,
+//   `graphAttachmentBytes` fait un `arrayBuffer()`, et le `Content-Length` ci-dessous se lit
+//   sur un tampon complet. Conséquence à connaître avant de toucher au plafond de 25 Mio :
+//   deux téléchargements simultanés font 50 Mio résidents dans l'isolat.
 // POST { action:'file', attachment_id, contact_id, document_type, name?, category? }
 //                                      → copie dans le bucket `documents` + ligne `documents`
 //                                        (contact_id, sha256), mail_attachments.document_id posé.
@@ -40,8 +47,18 @@ async function loadAttachment(admin: SupabaseClient, id: string, ctx: { userId: 
   if (!att) return null
   const { data: account } = await admin.from('mail_accounts').select('*').eq('id', att.account_id).maybeSingle()
   if (!account || !accountVisibleTo(account as MailAccountRow, ctx)) return null
-  const { data: msg } = await admin.from('mail_messages').select('provider_message_id').eq('id', att.message_id).single()
-  return { att: att as AttRow, account: account as MailAccountRow, providerMessageId: msg!.provider_message_id as string }
+  // ⛔ `msg!.provider_message_id` sur une lecture NON contrôLÉE, hors de tout `try` : les
+  // deux appelants de `loadAttachment` n'en ont aucun, donc un message disparu entre-temps
+  // (course avec la cascade de `recomputeThread`) ou une simple erreur de lecture levait un
+  // TypeError qui traversait `serve` — l'appelant recevait le 500 générique de la
+  // plateforme, sans corps, sans rien à diagnostiquer. Un `null` rend le 404 que les deux
+  // chemins savent déjà écrire, et la cause part dans les journaux.
+  const { data: msg, error: eMsg } = await admin.from('mail_messages').select('provider_message_id').eq('id', att.message_id).maybeSingle()
+  if (eMsg || !msg) {
+    console.error(`[mail-attachment] pièce ${id}: message ${att.message_id} illisible —`, eMsg?.message ?? 'aucune ligne')
+    return null
+  }
+  return { att: att as AttRow, account: account as MailAccountRow, providerMessageId: msg.provider_message_id as string }
 }
 
 async function fetchBytes(admin: SupabaseClient, a: NonNullable<Awaited<ReturnType<typeof loadAttachment>>>): Promise<Uint8Array> {
@@ -124,11 +141,27 @@ serve(async (req: Request) => {
     await admin.storage.from('documents').remove([storagePath])
     return json({ error: 'document_insert_failed', detail: insErr.message }, 500)
   }
-  await admin.from('mail_attachments').update({ document_id: documentId }).eq('id', a.att.id)
-  await admin.from('activity_events').insert({
+  // ⚠ CE MARQUAGE EST CE QUI EMPÊCHE DE CLASSER DEUX FOIS. Son résultat n'était pas lu :
+  // un échec ici laissait `document_id` nul alors que le fichier EST déposé et la ligne
+  // `documents` insérée — la même pièce se reclassait, produisant un doublon dans
+  // `documents` ET un second événement d'audit. On ne défait rien (le classement a bien eu
+  // lieu, le défaire serait pire), on le DIT, pour que le lot 2 n'affiche pas « à classer »
+  // sur une pièce déjà au dossier.
+  const { error: eMark } = await admin.from('mail_attachments').update({ document_id: documentId }).eq('id', a.att.id)
+  if (eMark) console.error(`[mail-attachment] pièce ${a.att.id} classée en ${documentId} mais NON marquée:`, eMark.message)
+  // ⛔ L'AUDIT EST OBLIGATOIRE ICI (CLAUDE.md §5 : `activity_events` pour toute action), et
+  // son résultat était jeté sans même un journal. Un document versé au dossier d'un contact
+  // sans sa ligne d'audit est un trou de conformité qui ne se découvre qu'à l'audit, des
+  // mois plus tard. On continue — le document est classé, le refuser après coup ne
+  // rendrait rien — mais l'échec existe désormais quelque part.
+  const { error: eAudit } = await admin.from('activity_events').insert({
     agency_id: profile.agency_id, actor_id: user.id, actor_kind: 'user', action: 'document_filed_from_email', category: 'doc', severity: 'info',
     entity_type: 'contact', entity_id: contactId, object_label: name,
     metadata: { document_id: documentId, attachment_id: a.att.id, message_id: a.att.message_id, document_type: docType },
   })
-  return json({ ok: true, document_id: documentId, storage_path: storagePath })
+  if (eAudit) console.error(`[mail-attachment] activity_events refuse document_filed_from_email (document ${documentId}, contact ${contactId}):`, eAudit.message)
+  const warning = eMark ? 'not_marked_filed' : eAudit ? 'not_audited' : null
+  return json(warning
+    ? { ok: true, document_id: documentId, storage_path: storagePath, warning }
+    : { ok: true, document_id: documentId, storage_path: storagePath })
 })

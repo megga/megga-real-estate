@@ -15,11 +15,41 @@ import { MailOwnerLeftError, assertOwnerStillInAgency } from './guard.ts'
 import type { ProviderConfig } from './guard.ts'
 
 export interface SyncDeps { fetch?: typeof fetch; now?: () => number }
-export interface SyncOutcome { inserted: number; updated: number; changes: number; done: boolean; error: string | null }
+export interface SyncOutcome {
+  inserted: number
+  updated: number
+  changes: number
+  /** Entrées de timeline refusées par `activity_events` — la passe a continué, mais ça se voit. */
+  auditFailures: number
+  done: boolean
+  error: string | null
+  /** Une autre passe tenait le bail de ce compte : rien n'a été fait, rien n'est perdu. */
+  skipped?: 'locked'
+}
 
 const INITIAL_WINDOW_DAYS = 90
 const NEXT_TICK_MS = 2 * 60_000
+/**
+ * Délai d'une passe initiale INACHEVÉE. ⚠ Ce n'était pas un délai mais `0` — un compte en
+ * cours d'import 90 jours était donc TOUJOURS dû, avec le `next_sync_at` le plus ancien de
+ * la file : il repassait en tête de `order('next_sync_at')` à chaque tick. Trois ou quatre
+ * agences accueillies le même jour monopolisaient tous les ticks, et TOUTES les autres
+ * boîtes du produit cessaient de se synchroniser — `status` restant 'active', `last_error`
+ * nul, un `last_sync_at` de plus en plus vieux que personne ne lit. Quinze secondes suffisent
+ * à les faire céder le pas aux comptes de la cadence normale sans ralentir l'import.
+ */
+const INITIAL_RESUME_MS = 15_000
 const BACKOFF_MS = 10 * 60_000
+/**
+ * Marge du bail par compte au-delà du budget de la passe. Le bail existe parce que les
+ * quatre chemins de synchro (balayage cron, `mail-sync` ciblé, `mail-actions sync_now`,
+ * première passe de `mail-oauth exchange`) n'en prenaient AUCUN : seul le balayage était
+ * sérialisé, contre lui-même. Un membre pouvait donc boucler `sync_now` sur une boîte
+ * partagée — chaque appel brûlant le quota fournisseur de tous ses collègues — et deux
+ * passes concurrentes écrivaient `sync_cursor` sans compare-and-set, chacune pouvant
+ * rembobiner l'autre (courrier réingéré, ou sauté).
+ */
+const LEASE_MARGIN_MS = 30_000
 
 /**
  * Échecs consécutifs après lesquels le compte quitte le balayage (`status = 'error'`).
@@ -37,11 +67,56 @@ function since(now: number): string {
   return new Date(now - INITIAL_WINDOW_DAYS * 86_400_000).toISOString()
 }
 
+/**
+ * Prend le bail d'UN compte, même mécanique que le bail de balayage (mail-sync/index.ts) et
+ * pour la même raison : `mail_cron_locks` est une table de baux, `job` en est la clé.
+ *
+ * ⚠ La ligne du compte n'existe pas à la première passe : on tente d'abord la prise (le cas
+ * courant, une seule instruction), et on ne sème que si elle n'a rien appariée. Semer
+ * d'abord coûterait un aller-retour à chaque synchro de chaque compte. `ignoreDuplicates`
+ * garantit qu'un semis n'écrase jamais un bail tenu.
+ */
+async function acquireAccountLease(admin: SupabaseClient, job: string, until: string, nowIso: string): Promise<boolean> {
+  const take = async (): Promise<boolean> => {
+    const { data, error } = await admin.from('mail_cron_locks').update({ locked_until: until })
+      .eq('job', job).lt('locked_until', nowIso).select('job')
+    if (error) throw new Error(`account lease: ${error.message}`)
+    return (data ?? []).length === 1
+  }
+  if (await take()) return true
+  const { error } = await admin.from('mail_cron_locks')
+    .upsert({ job, locked_until: new Date(0).toISOString() }, { onConflict: 'job', ignoreDuplicates: true })
+  if (error) throw new Error(`account lease seed: ${error.message}`)
+  return take()
+}
+
+/** Rend le bail — et SEULEMENT le sien (`locked_until` sert de jeton, cf. `releaseLock`). */
+async function releaseAccountLease(admin: SupabaseClient, job: string, until: string, nowIso: string): Promise<void> {
+  const { error } = await admin.from('mail_cron_locks').update({ locked_until: nowIso })
+    .eq('job', job).eq('locked_until', until)
+  if (error) console.error(`[mail-sync] bail ${job} non relâché:`, error.message)
+}
+
 export async function syncAccount(admin: SupabaseClient, account: MailAccountRow, cfg: ProviderConfig, budgetMs: number, deps: SyncDeps = {}): Promise<SyncOutcome> {
   const now = deps.now ?? Date.now
   const start = now()
-  const out: SyncOutcome = { inserted: 0, updated: 0, changes: 0, done: true, error: null }
+  const out: SyncOutcome = { inserted: 0, updated: 0, changes: 0, auditFailures: 0, done: true, error: null }
+  // ⛔ UNE SEULE PASSE À LA FOIS PAR COMPTE, quel que soit le chemin d'appel. Le bail est
+  // pris ici et non chez les appelants, parce qu'il y en a quatre et qu'un seul d'entre eux
+  // se souvenait de se protéger. TTL = budget + marge : au pire, un compte reste bloqué le
+  // temps d'une passe morte, jamais plus.
+  const job = `mail-sync:${account.id}`
+  const leaseUntil = new Date(now() + budgetMs + LEASE_MARGIN_MS).toISOString()
+  let held = false
   try {
+    held = await acquireAccountLease(admin, job, leaseUntil, new Date(now()).toISOString())
+    if (!held) {
+      // Ni erreur ni succès : une autre passe travaille sur ce compte. `next_sync_at` n'est
+      // pas touché, donc il reste dû et repassera au tick suivant.
+      out.done = false
+      out.skipped = 'locked'
+      return out
+    }
     // AVANT le moindre appel fournisseur : une boîte dont le propriétaire a quitté
     // l'agence ne s'ingère plus (guard.ts, miroir écriture de `mail_account_visible`).
     await assertOwnerStillInAgency(admin, account)
@@ -60,7 +135,7 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
       last_sync_at: new Date(now()).toISOString(),
       last_error: null,
       sync_failures: 0,
-      next_sync_at: new Date(now() + (out.done ? NEXT_TICK_MS : 0)).toISOString(),
+      next_sync_at: new Date(now() + (out.done ? NEXT_TICK_MS : INITIAL_RESUME_MS)).toISOString(),
     }).eq('id', account.id)
     if (error) throw new Error(`cursor write: ${error.message}`)
   } catch (e) {
@@ -89,8 +164,20 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
     // Dernier filet : si même cette écriture échoue, l'échec n'existe NULLE PART.
     if (eWrite) console.error(`[mail-sync] ${account.id}: last_error non écrit (${eWrite.message})`)
     console.error(`[mail-sync] ${account.provider} ${account.id} (échec ${failures}${terminal ? `, statut ${terminal}` : ''}): ${msg}`)
+  } finally {
+    // Rendu quoi qu'il arrive : un bail oublié bloquerait le compte jusqu'au TTL.
+    if (held) await releaseAccountLease(admin, job, leaseUntil, new Date(now()).toISOString())
   }
   return out
+}
+
+/** Ids fournisseur déjà en base parmi ceux-ci (une lecture en échec LÈVE, elle ne devine pas). */
+async function knownProviderIds(admin: SupabaseClient, accountId: string, ids: string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set()
+  const { data, error } = await admin.from('mail_messages').select('provider_message_id')
+    .eq('account_id', accountId).in('provider_message_id', ids)
+  if (error) throw new Error(`known ids lookup: ${error.message}`)
+  return new Set((data ?? []).map((r: { provider_message_id: string }) => r.provider_message_id))
 }
 
 // ── Gmail ─────────────────────────────────────────────────────────────────────
@@ -107,10 +194,29 @@ async function syncGmail(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
     if (!c.historyId) c.historyId = (await gmailIdentity(token, deps)).historyId
     while (now() - start < budgetMs) {
       const page = await gmailListInitial(token, c.initialPageToken, deps)
+      // Les ids DÉJÀ en base ne se retéléchargent pas — même pré-contrôle que le côté
+      // Graph. Sans lui, une page reprise après un dépassement de budget rejouait ses 50
+      // `messages.get` à chaque tick sans jamais progresser : le budget ne suffisant pas
+      // la première fois, il ne suffirait jamais.
+      const known = await knownProviderIds(admin, account.id, page.ids)
       const msgs: NormalizedMessage[] = []
-      for (const id of page.ids) msgs.push(normalizeGmailMessage(await gmailGetMessage(token, id, deps), account.email))
+      let exhausted = false
+      for (const id of page.ids) {
+        // ⛔ LE BUDGET SE VÉRIFIE DANS LA BOUCLE DES MESSAGES, pas seulement en tête de
+        // page. Une page = jusqu'à 50 `messages.get` SÉQUENTIELS : entamée à une
+        // milliseconde de la fin du budget, elle allait au bout — ~8 s de dépassement à
+        // 150 ms l'appel, bien plus sur un compte limité en débit. Le balayage tient un
+        // bail de 180 s pendant que pg_cron tire toutes les 120 s : c'est ce
+        // dépassement-là qui finit par faire tourner deux balayages côte à côte.
+        if (now() - start >= budgetMs) { exhausted = true; break }
+        if (known.has(id)) continue
+        msgs.push(normalizeGmailMessage(await gmailGetMessage(token, id, deps), account.email))
+      }
       const r = await ingestMessages(admin, account, msgs)
-      out.inserted += r.inserted; out.updated += r.updated
+      out.inserted += r.inserted; out.updated += r.updated; out.auditFailures += r.auditFailures
+      // ⚠ Le `pageToken` n'avance QUE si la page a été lue en entier. Sinon le tick suivant
+      // la reliste et saute ce qui est déjà écrit — au lieu de sauter ce qui ne l'est pas.
+      if (exhausted) break
       c.initialPageToken = page.nextPageToken
       if (!page.nextPageToken) { c.initialDone = true; break }
     }
@@ -123,6 +229,7 @@ async function syncGmail(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
   // comme le curseur était déjà avancé à la tête, les pages restantes n'étaient jamais
   // lues (cf. `nextHistoryCursor`). Il est désormais dans le curseur persisté.
   let pageToken: string | null = c.historyPageToken ?? null
+  let exhausted = false
   for (let i = 0; i < 5 && now() - start < budgetMs; i++) {
     const h = await gmailHistory(token, c.historyId!, pageToken, deps)
     if (h.expired) {
@@ -132,19 +239,30 @@ async function syncGmail(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
     const { added, changes } = historyToChanges(h.page!)
     const msgs: NormalizedMessage[] = []
     for (const id of added) {
+      // Même borne qu'à la passe initiale : une page d'historique peut porter jusqu'à
+      // 100 enregistrements, donc autant de `messages.get` séquentiels.
+      if (now() - start >= budgetMs) { exhausted = true; break }
       try { msgs.push(normalizeGmailMessage(await gmailGetMessage(token, id, deps), account.email)) }
       catch (e) { if (!(e instanceof Error && /http 404/.test(e.message))) throw e } // supprimé entre-temps
     }
     const r = await ingestMessages(admin, account, msgs)
-    out.inserted += r.inserted; out.updated += r.updated
+    out.inserted += r.inserted; out.updated += r.updated; out.auditFailures += r.auditFailures
     out.changes += await applyRemoteChanges(admin, account, changes)
+    // ⚠ Page abandonnée en cours : le curseur NE BOUGE PAS. `historyId` et `pageToken`
+    // restent ceux d'avant, donc la même page d'historique est rejouée au tick suivant —
+    // les messages déjà écrits y sont réingérés à l'identique (idempotent), ceux qui
+    // manquaient sont enfin chargés. Avancer ici les perdrait définitivement.
+    if (exhausted) break
     const nxt = nextHistoryCursor(c.historyId, h.page!)
     c.historyId = nxt.historyId
     pageToken = nxt.pageToken
     if (!pageToken) break
   }
   c.historyPageToken = pageToken
-  out.done = pageToken === null
+  // ⚠ `done` dit « il ne reste rien à faire ». Une page abandonnée en cours de budget en
+  // laisse, même quand la pagination était drainée : sans ce `!exhausted`, la passe se
+  // déclarait finie et `next_sync_at` repartait à deux minutes au lieu de quinze secondes.
+  out.done = !exhausted && pageToken === null
   return c
 }
 
@@ -163,13 +281,9 @@ async function syncGraph(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
     if (now() - start >= budgetMs) { allSettled = false; break }
     const d = await graphDelta(token, f.name, c[f.key], since(now()), deps)
     const ids = d.items.filter((i) => !i['@removed']).map((i) => i.id)
-    const { data: knownRows, error: eKnown } = ids.length
-      ? await admin.from('mail_messages').select('provider_message_id').eq('account_id', account.id).in('provider_message_id', ids)
-      : { data: [] as { provider_message_id: string }[], error: null }
     // Une lecture en échec ferait passer TOUS les messages connus pour neufs : autant
     // de GET de corps et de pièces inutiles, et un `update` complet de chaque ligne.
-    if (eKnown) throw new Error(`known ids lookup: ${eKnown.message}`)
-    const known = new Set((knownRows ?? []).map((r: { provider_message_id: string }) => r.provider_message_id))
+    const known = await knownProviderIds(admin, account.id, ids)
     const { added, changes, removed } = deltaToChanges(d.items, known, c.folderIds)
     // Un `@removed` n'est PAS une suppression tant qu'un GET ne l'a pas dit (le delta
     // est par dossier : archiver produit le même signal qu'effacer).
@@ -178,14 +292,24 @@ async function syncGraph(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
       if (resolved) changes.push(resolved)
     }
     const msgs: NormalizedMessage[] = []
+    let exhausted = false
     for (const m of added) {
+      // Chaque message ajouté coûte un `graphGetBody` PLUS un `graphListAttachments` :
+      // une page de 50 vaut donc jusqu'à 100 allers-retours séquentiels, contrôlés
+      // jusqu'ici par le seul test d'entrée de dossier.
+      if (now() - start >= budgetMs) { exhausted = true; break }
       const body = await graphGetBody(token, m.id, deps)
       const atts = m.hasAttachments ? await graphListAttachments(token, m.id, deps) : []
       msgs.push(normalizeGraphMessage(m, body, atts, c.folderIds, account.email))
     }
     const r = await ingestMessages(admin, account, msgs)
-    out.inserted += r.inserted; out.updated += r.updated
+    out.inserted += r.inserted; out.updated += r.updated; out.auditFailures += r.auditFailures
     out.changes += await applyRemoteChanges(admin, account, changes)
+    // ⛔ Dossier abandonné en cours : le curseur de CE dossier ne bouge pas. L'avancer
+    // consommerait le delta des messages jamais chargés — perdus sans une trace. Rejoué
+    // au tick suivant, le même delta les rend `added` (les autres sont désormais connus,
+    // donc de simples drapeaux) : la passe progresse au lieu de tourner en rond.
+    if (exhausted) { allSettled = false; break }
     // deltaLink = passe finie pour ce dossier ; nextLink = il reste des pages (curseur provisoire).
     c[f.key] = d.deltaLink ?? d.nextLink
     if (!d.deltaLink) allSettled = false
