@@ -160,6 +160,36 @@
       "hex": "Hexadezimalcode",
       "create": "Erstellen"
     },
+    "list": {
+      "search": "Suche",
+      "searchPlaceholder": "Absender oder Betreff suchen ...",
+      "unread": "Ungelesen",
+      "attachment": "Anhang"
+    },
+    "pager": {
+      "range": "{{from}} bis {{to}} von {{total}}",
+      "prev": "Vorherige Seite",
+      "next": "Nächste Seite"
+    },
+    "row": {
+      "star": "Markieren",
+      "unstar": "Markierung aufheben",
+      "noSubject": "(ohne Betreff)"
+    },
+    "ctx": {
+      "open": "Öffnen",
+      "markRead": "Als gelesen markieren",
+      "markUnread": "Als ungelesen markieren",
+      "star": "Markieren",
+      "unstar": "Markierung aufheben",
+      "archive": "Archivieren",
+      "unarchive": "Aus Archiv holen",
+      "delete": "Löschen"
+    },
+    "draft": {
+      "badge": "Entwurf",
+      "noRecipient": "(ohne Empfänger)"
+    },
     "actions": {
       "cancel": "Abbrechen",
       "save": "Speichern"

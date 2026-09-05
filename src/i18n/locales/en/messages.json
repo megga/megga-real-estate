@@ -160,6 +160,36 @@
       "hex": "Hex code",
       "create": "Create"
     },
+    "list": {
+      "search": "Search",
+      "searchPlaceholder": "Search a sender, a subject ...",
+      "unread": "Unread",
+      "attachment": "Attachment"
+    },
+    "pager": {
+      "range": "{{from}} to {{to}} of {{total}}",
+      "prev": "Previous page",
+      "next": "Next page"
+    },
+    "row": {
+      "star": "Star",
+      "unstar": "Remove star",
+      "noSubject": "(no subject)"
+    },
+    "ctx": {
+      "open": "Open",
+      "markRead": "Mark as read",
+      "markUnread": "Mark as unread",
+      "star": "Star",
+      "unstar": "Remove star",
+      "archive": "Archive",
+      "unarchive": "Move out of archive",
+      "delete": "Delete"
+    },
+    "draft": {
+      "badge": "Draft",
+      "noRecipient": "(no recipient)"
+    },
     "actions": {
       "cancel": "Cancel",
       "save": "Save"

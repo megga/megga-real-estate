@@ -160,6 +160,36 @@
       "hex": "Codice esadecimale",
       "create": "Crea"
     },
+    "list": {
+      "search": "Ricerca",
+      "searchPlaceholder": "Cerca un mittente, un oggetto ...",
+      "unread": "Non letti",
+      "attachment": "Allegato"
+    },
+    "pager": {
+      "range": "{{from}} a {{to}} di {{total}}",
+      "prev": "Pagina precedente",
+      "next": "Pagina successiva"
+    },
+    "row": {
+      "star": "Segui",
+      "unstar": "Non seguire più",
+      "noSubject": "(senza oggetto)"
+    },
+    "ctx": {
+      "open": "Apri",
+      "markRead": "Segna come letto",
+      "markUnread": "Segna come non letto",
+      "star": "Segui",
+      "unstar": "Non seguire più",
+      "archive": "Archivia",
+      "unarchive": "Togli dall archivio",
+      "delete": "Elimina"
+    },
+    "draft": {
+      "badge": "Bozza",
+      "noRecipient": "(senza destinatario)"
+    },
     "actions": {
       "cancel": "Annulla",
       "save": "Salva"

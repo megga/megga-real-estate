@@ -52,8 +52,11 @@ const ALLOW_SYMBOLS = new Set([
   // `sanitize` en T2.6 (le corps du message).
   // ⛔ À RETIRER quand ces tâches livrent : une exemption qui survit à son motif
   // couvre le fichier entier pour toujours.
-  'src/lib/mail/format.ts:mailDateLabel', 'src/lib/mail/format.ts:initialsOf',
-  'src/lib/mail/format.ts:displayAddress', 'src/lib/mail/format.ts:fileSizeLabel',
+  // ⚠ `mailDateLabel` et `displayAddress` sont SORTIS le 04.09.2026 : `MailListRow`
+  // (T2.5) les lit. Les deux autres de `format.ts` restent — `initialsOf` peint
+  // l'avatar du bandeau de lecture et `fileSizeLabel` la taille d'une pièce, tous
+  // deux en T2.6.
+  'src/lib/mail/format.ts:initialsOf', 'src/lib/mail/format.ts:fileSizeLabel',
   'src/lib/mail/sanitize.ts:sanitizeMailHtml', 'src/lib/mail/sanitize.ts:buildBodySrcdoc',
   // ⚠ `oauthPopup` est SORTI de cette liste le 04.09.2026, comme annoncé :
   // `useMailOAuthPopup` (T2.3) lit ses deux exports. Une exemption qui survit à
@@ -63,13 +66,13 @@ const ALLOW_SYMBOLS = new Set([
   // Le lot livre la couche de DONNÉES avant les trois zones du bento, exprès :
   // T2.4-T2.11 les consomment, tâche par tâche. Chaque entrée nomme la sienne, et
   // s'en va avec elle.
-  // ⚠ TROIS ENTRÉES SONT PARTIES AVEC T2.4, comme annoncé : `useMailLabels`,
-  // `useMailRealtime` et `useMailFolderCounts` sont lus par `MessagerieApp` (le rail).
-  // Une exemption qui survit à son motif couvre le fichier pour toujours.
-  'src/hooks/useMailThreads.ts:useMailThreads',               // T2.5 — la liste
-  'src/hooks/useMailActions.ts:useMailActions',               // T2.5 — gestes optimistes
+  // ⚠ SIX ENTRÉES SONT PARTIES AVEC T2.4 ET T2.5, comme annoncé. T2.4 :
+  // `useMailLabels`, `useMailRealtime`, `useMailFolderCounts` (le rail). T2.5 :
+  // `useMailThreads`, `useMailActions` (la liste et ses gestes) et `useMailDrafts` —
+  // annoncé pour T2.7, mais consommé dès ici : le dossier « Brouillons » est une
+  // colonne de la LISTE, pas un état du composeur. Une exemption qui survit à son
+  // motif couvre le fichier pour toujours.
   'src/hooks/useMailThread.ts:useMailThread',                 // T2.6 — le fil ouvert
-  'src/hooks/useMailDrafts.ts:useMailDrafts',                 // T2.7 — « Nouveau message »
   'src/hooks/useMailSend.ts:useMailSend',                     // T2.7 — l'envoi
   'src/hooks/useMailOAuthPopup.ts:useMailOAuthPopup',         // T2.9 — assistant « Ajouter une boîte »
   'src/hooks/useMailAttachmentBlob.ts:useMailAttachmentBlob', // T2.11 — aperçu de pièce

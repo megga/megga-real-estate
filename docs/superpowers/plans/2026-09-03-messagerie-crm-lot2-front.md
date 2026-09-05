@@ -1747,12 +1747,36 @@ désormais lus par `MessagerieApp`) et en AJOUTE deux, nommées, pour `MailModal
 
 Dimensions : README §2. Grille de ligne `26px 185px minmax(0,1fr) 16px 58px`, `gap:10px`, `padding:11px 12px`, `border-bottom:1px solid --bord2`, étoile 15 px (`ms.star` active, `ms.dim` inactive), expéditeur 700/500, pastille de libellé `3px 10px / 10px / 600`, extrait `— …` en `ms.mut`, trombone 13 px, date `ms.txt3` à droite.
 
+⛔ **CINQ ÉCARTS MESURÉS À LA LIVRAISON (04.09.2026), en plus des sept de la 2.4** — mêmes
+portes, mêmes raisons ; les blocs ci-dessous les portent déjà.
+
+1. **`fontWeight: 700` de l'expéditeur non lu → `600`**, et la pastille de libellé perd son
+   `padding: '3px 10px'` littéral au profit de `var(--crm-space-2xs) var(--crm-space-sm)`.
+   La GRILLE, elle, reste au pixel : `gridTemplateColumns` n'est pas une propriété
+   d'espacement — l'échelle règle rayons, marges et écarts, pas la mise en page d'un
+   tableau.
+2. **Le sur-titre « LIBELLÉS » du menu contextuel perd micro-capitale et interlettrage**
+   (clauses `megga-x-grammar`, cf. écart n° 1 de la 2.4).
+3. **`import { MEIcon }` → `import MEIcon`** : export par défaut.
+4. ✅ **Le tiret demi-cadratin de `pager.range` est bien refusé** — la réserve écrite au
+   step 6 était juste. `scripts/check-prose-typography.mjs:45-46` teste l'em PUIS l'en, et
+   `locales/` est son seul périmètre. Les quatre langues écrivent donc une préposition :
+   « à » · « to » · « bis » · « a ».
+5. ⛔ **LE DÉBOUNCE NE PEUT PAS VIVRE DANS `MailList`.** Le plan l'y plaçait ; mesuré,
+   c'est un défaut : `select-account` **reconstruit** l'état (`initialMailState`), donc
+   `state.q` retombe à vide en changeant de boîte — un état local dans la liste, lui,
+   garderait la saisie et la repousserait au parent 250 ms plus tard. La recherche de
+   l'ancienne boîte reviendrait toute seule, sans qu'on l'ait retapée. Le miroir débouncé
+   vit dans `MessagerieApp`, où il suit toujours la source ; le champ lit `state.q`
+   directement, donc la frappe reste instantanée.
+
+
 - [ ] **Step 1 : Pager (porté d'`AdminPager`, `sp` en prop)**
 
 ```tsx
 // src/components/crm/messagerie/MailPager.tsx — « 1–12 sur 48 » + chevrons (README §2).
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { MAIL_TRANSITION, type MailSurfaces } from './mailTokens'
 
 interface Props { ms: MailSurfaces; page: number; perPage: number; total: number; onPage: (p: number) => void }
@@ -1782,7 +1806,7 @@ export function MailPager({ ms, page, perPage, total, onPage }: Props) {
 ```tsx
 // src/components/crm/messagerie/MailListRow.tsx — README §2 « Lignes ».
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import { displayAddress, mailDateLabel } from '@/lib/mail/format'
@@ -1792,7 +1816,8 @@ interface Props { ms: MailSurfaces; row: MailThreadRow; label: MailLabel | null;
 
 export function MailListRow({ ms, row, label, lang, onOpen, onStar, onContext }: Props) {
   const { t } = useTranslation('messages')
-  const weight = row.is_read ? 500 : 700
+  // 600 et non 700 : la grammaire MEGGA X y plafonne, et 500/600 suffit à lire « non lu ».
+  const weight = row.is_read ? 500 : 600
   const sender = row.from_name || row.from_email || (row.participants[0] ? displayAddress(row.participants[0]) : '')
   return (
     <div role="row" tabIndex={0} onClick={onOpen} onContextMenu={(e) => { e.preventDefault(); onContext(e) }} onKeyDown={(e) => { if (e.key === 'Enter') onOpen() }}
@@ -1804,7 +1829,7 @@ export function MailListRow({ ms, row, label, lang, onOpen, onStar, onContext }:
       </button>
       <span style={{ fontWeight: weight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sender}</span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minWidth: 0 }}>
-        {label && <span style={{ borderRadius: PILL, padding: '3px 10px', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: label.color, color: ms.pillInk(label.color), flexShrink: 0 }}>{label.name}</span>}
+        {label && <span style={{ borderRadius: PILL, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: label.color, color: ms.pillInk(label.color), flexShrink: 0 }}>{label.name}</span>}
         <span style={{ fontWeight: weight, whiteSpace: 'nowrap', flexShrink: 0 }}>{row.subject || t('mail.row.noSubject')}</span>
         {row.snippet && <span style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>— {row.snippet}</span>}
       </span>
@@ -1858,7 +1883,7 @@ export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onActi
         {item(row.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), () => onAction(row.is_archived ? 'unarchive' : 'archive'))}
         {item(t('mail.ctx.delete'), onDelete, { danger: true })}
         <div style={{ height: 1, background: ms.bord2, margin: 'var(--crm-space-2xs) 0' }} />
-        <div style={{ padding: 'var(--crm-space-2xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut }}>{t('mail.labels.title')}</div>
+        <div style={{ padding: 'var(--crm-space-2xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{t('mail.labels.title')}</div>
         {labels.map((l) => item(l.name, () => onLabel(row.label_id === l.id ? null : l.id), { dot: l.color }))}
       </div>
     </>,
@@ -1872,7 +1897,7 @@ export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onActi
 ```tsx
 // src/components/crm/messagerie/MailList.tsx — README §2 (barre d'outils + lignes + vide).
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { MAIL_PER_PAGE, type MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import type { MailDraft } from '@/hooks/useMailDrafts'
@@ -1913,7 +1938,7 @@ export function MailList(p: Props) {
       </div>
       <div className="scrollbar-hide" style={{ padding: '0 var(--crm-space-2xl) var(--crm-space-3xl)', overflowY: 'auto', minHeight: 0, flex: 1 }}>
         {p.drafts ? (
-          p.drafts.length === 0 ? <Empty ms={ms} text={t('mail.empty.noMessage')} /> : p.drafts.map((d) => (
+          p.drafts.length === 0 ? <MailListEmpty ms={ms} text={t('mail.empty.noMessage')} /> : p.drafts.map((d) => (
             <div key={d.id} role="row" tabIndex={0} onClick={() => p.onOpenDraft(d.id)} onKeyDown={(e) => { if (e.key === 'Enter') p.onOpenDraft(d.id) }}
               style={{ display: 'grid', gridTemplateColumns: '26px 185px minmax(0,1fr) 16px 58px', gap: 'var(--crm-space-md)', alignItems: 'center', padding: 'var(--crm-space-md) var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)', borderBottom: `1px solid ${ms.bord2}`, cursor: 'pointer', color: ms.ink }}>
               <span />
@@ -1923,7 +1948,7 @@ export function MailList(p: Props) {
               <span style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3, textAlign: 'right' }}>{t('mail.draft.badge')}</span>
             </div>
           ))
-        ) : p.isLoading ? null : p.rows.length === 0 ? <Empty ms={ms} text={t('mail.empty.noMessage')} /> : (
+        ) : p.isLoading ? null : p.rows.length === 0 ? <MailListEmpty ms={ms} text={t('mail.empty.noMessage')} /> : (
           p.rows.map((r) => <MailListRow key={r.id} ms={ms} row={r} label={labelOf(r.label_id)} lang={p.lang} onOpen={() => p.onOpen(r.id)} onStar={() => p.onStar(r)} onContext={(e) => p.onContext(e, r)} />)
         )}
       </div>
@@ -1931,7 +1956,9 @@ export function MailList(p: Props) {
   )
 }
 
-function Empty({ ms, text }: { ms: MailSurfaces; text: string }) {
+// ⚠ `MailListEmpty` et non `Empty` : un nom aussi générique dans un dossier de
+// quinze composants se fait réimporter par erreur depuis le voisin.
+function MailListEmpty({ ms, text }: { ms: MailSurfaces; text: string }) {
   return <div style={{ padding: 'var(--crm-space-7xl) var(--crm-space-4xl)', textAlign: 'center', fontSize: 'var(--crm-text-sm)', color: ms.mut }}>{text}</div>
 }
 ```
@@ -1961,25 +1988,26 @@ const { i18n } = useTranslation()
     onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadId: r.id } })} onLabel={(id) => actions.setLabel.mutate({ threadId: r.id, labelId: id })} />
 ) : null })()}
 ```
-La recherche est débouncée à 250 ms dans `MailList` (un `useState` local + `useEffect` avec `setTimeout` avant d'appeler `onQ`) — sinon une RPC par frappe.
+La recherche est débouncée à 250 ms **dans `MessagerieApp`**, pas dans `MailList` (écart n° 5 ci-dessus) : un miroir `useState` + `setTimeout` sur `state.q`, dont `useMailThreads` lit la valeur retardée. Le champ, lui, lit `state.q` sans délai.
 
 - [ ] **Step 6 : Clés i18n FR**
 
 ```json
 "list": { "search": "Recherche", "searchPlaceholder": "Chercher un expéditeur, un objet ...", "unread": "Non lus", "attachment": "Pièce jointe" },
-"pager": { "range": "{{from}}–{{to}} sur {{total}}", "prev": "Page précédente", "next": "Page suivante" },
+"pager": { "range": "{{from}} à {{to}} sur {{total}}", "prev": "Page précédente", "next": "Page suivante" },
 "row": { "star": "Suivre", "unstar": "Ne plus suivre", "noSubject": "(sans objet)" },
 "ctx": { "open": "Ouvrir", "markRead": "Marquer comme lu", "markUnread": "Marquer comme non lu", "star": "Suivre", "unstar": "Ne plus suivre", "archive": "Archiver", "unarchive": "Désarchiver", "delete": "Supprimer" },
 "draft": { "badge": "Brouillon", "noRecipient": "(sans destinataire)" }
 ```
-⚠ `lint:prose` refuse le tiret cadratin dans `locales/` : le `–` de `pager.range` est un tiret **demi-cadratin** (U+2013) ; vérifier la règle exacte de `scripts/check-prose-typography.mjs` — si elle le refuse aussi, écrire `"{{from}} à {{to}} sur {{total}}"`.
+✅ Réserve VÉRIFIÉE (04.09.2026) : `scripts/check-prose-typography.mjs:45-46` refuse l'em **et** le demi-cadratin dans `locales/`. La clé écrit donc « à » (et « to » · « bis » · « a » dans les trois autres langues). ⚠ Les quatre langues sont livrées ICI et non repoussées en T2.12 : `i18n:parity:ci` exige chaque clé FR en DE/EN/IT, et `i18n:coverage:ci` refuse une valeur allemande identique à l'anglaise.
 
 - [ ] **Step 7 : Build, lint, commit**
 
 ```bash
-npm run build && npm run lint && npm run lint:i18n && npm run lint:prose
+npm run build && npm run lint && npm run lint:i18n && npm run lint:prose \\
+  && npm run lint:deadcode && npm run i18n:parity:ci && npm run i18n:coverage:ci
 git add -A
-git commit -m "feat(messagerie): liste (recherche, chips, pagination 12, lignes, menu contextuel, brouillons)"
+git commit -m "feat(messagerie): la liste — barre d'outils, lignes, pagination, menu contextuel"
 ```
 
 ---

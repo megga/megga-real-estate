@@ -3,11 +3,11 @@
  * copie du squelette de `CalendarApp`) puis le bento `296px | 1fr` de la maquette
  * (README §« Écrans »).
  *
- * Le rail (T2.4) est branché ; la liste, la lecture et les sept modales arrivent
- * aux tâches 2.5-2.11. L'état vide reste honnête — l'écran ne prétend pas
- * afficher des messages qu'il ne sait pas encore lire.
+ * Le rail (T2.4) et la liste (T2.5) sont branchés ; la lecture et les sept
+ * modales arrivent aux tâches 2.6-2.11. L'état vide reste honnête — l'écran ne
+ * prétend pas afficher des messages qu'il ne sait pas encore lire.
  */
-import { useCallback, useEffect, useMemo, useReducer } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
@@ -16,18 +16,25 @@ import { crmPalette } from '@/components/crm/tokens'
 import EtatVide from '@/components/crm/EtatVide'
 import { useAuth } from '@/hooks/useAuth'
 import { useMailAccounts } from '@/hooks/useMailAccounts'
+import { useMailActions } from '@/hooks/useMailActions'
+import { useMailDrafts } from '@/hooks/useMailDrafts'
 import { useMailLabels } from '@/hooks/useMailLabels'
-import { useMailFolderCounts } from '@/hooks/useMailThreads'
+import { useMailFolderCounts, useMailThreads } from '@/hooks/useMailThreads'
 import { useMailRealtime } from '@/hooks/useMailRealtime'
+import { MailList } from './MailList'
+import { MailContextMenu } from './MailContextMenu'
 import { MailRail } from './MailRail'
 import { MailLabelMenu } from './MailLabelMenu'
 import { mailReducer, initialMailState } from './mailState'
 import { mailSurfaces } from './mailTokens'
 
+/** Débounce de la recherche (README §2) : sans lui, une RPC part à chaque frappe. */
+const DEBOUNCE_RECHERCHE = 250
+
 interface Props { dark: boolean; setDark: (v: boolean) => void }
 
 export function MessagerieApp({ dark, setDark }: Props) {
-  const { t } = useTranslation('messages')
+  const { t, i18n } = useTranslation('messages')
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const { profile } = useAuth()
@@ -41,6 +48,26 @@ export function MessagerieApp({ dark, setDark }: Props) {
   // boîte partagée) doit remonter sans rechargement : c'est ce qui fait bouger la
   // pastille de non-lus du rail.
   useMailRealtime(profile?.agency_id ?? null)
+
+  /**
+   * ⚠ Le débounce vit ICI et non dans `MailList`, où le plan le plaçait. Changer
+   * de boîte REMET `state.q` à vide (le reducer reconstruit l'état) : un état
+   * local dans la liste, lui, garderait la saisie et la repousserait au parent
+   * 250 ms plus tard — la recherche de l'ancienne boîte reviendrait toute seule.
+   * Ici le miroir suit toujours la source.
+   */
+  const [qDebounce, setQDebounce] = useState('')
+  useEffect(() => {
+    const id = setTimeout(() => setQDebounce(state.q), DEBOUNCE_RECHERCHE)
+    return () => clearTimeout(id)
+  }, [state.q])
+
+  const threads = useMailThreads(state.accountId, {
+    folder: state.folder, labelId: state.labelId, q: qDebounce,
+    unreadOnly: state.unreadOnly, attOnly: state.attOnly, page: state.page,
+  })
+  const drafts = useMailDrafts(state.accountId)
+  const actions = useMailActions(state.accountId)
 
   // Première boîte visible = boîte courante ; `?account=` (retour de pop-up sans opener) prime.
   useEffect(() => {
@@ -72,6 +99,17 @@ export function MessagerieApp({ dark, setDark }: Props) {
       labels.create.mutate(v, { onSuccess: done })
     }
   }, [editLabel, labels])
+
+  /**
+   * Ouvrir un fil le marque lu — mais seulement s'il ne l'était pas : sinon
+   * chaque ouverture partirait chez Gmail ou Graph pour ne rien y changer, et le
+   * verrou de synchronisation du compte sérialiserait des appels vides.
+   */
+  const ouvrirFil = useCallback((id: string) => {
+    dispatch({ type: 'open', threadId: id })
+    const fil = threads.rows.find((r) => r.id === id)
+    if (fil && !fil.is_read) actions.act.mutate({ action: 'mark_read', threadId: id })
+  }, [threads.rows, actions.act])
 
   const onNavigate = useCallback((id: CrmScreenId | string) => {
     switch (id) {
@@ -130,16 +168,59 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 creatorBusy={labels.create.isPending || labels.rename.isPending || labels.recolor.isPending}
               />
             </aside>
-            {/* Liste / lecture (T2.5, T2.6) */}
+            {/* Liste (T2.5) ; la lecture d'un fil arrive en T2.6. */}
             <section style={{ minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
               {accounts.isLoading ? null : accounts.list.length === 0 ? (
                 <div style={{ margin: 'auto' }}>
                   <EtatVide dark={dark} registre="aFaire" titre={t('mail.empty.noAccount.title')} corps={t('mail.empty.noAccount.body')}
                     action={{ libelle: t('mail.add.cta'), onClick: () => dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } }) }} />
                 </div>
-              ) : null}
+              ) : (
+                <MailList
+                  ms={ms}
+                  lang={i18n.language.slice(0, 2)}
+                  q={state.q}
+                  onQ={(q) => dispatch({ type: 'q', q })}
+                  unreadOnly={state.unreadOnly}
+                  onUnreadOnly={(on) => dispatch({ type: 'unread-only', on })}
+                  attOnly={state.attOnly}
+                  onAttOnly={(on) => dispatch({ type: 'att-only', on })}
+                  page={state.page}
+                  total={threads.total}
+                  onPage={(page) => dispatch({ type: 'page', page })}
+                  rows={threads.rows}
+                  labels={labels.labels}
+                  isLoading={threads.isLoading}
+                  drafts={state.folder === 'draft' ? drafts.drafts : null}
+                  onOpen={ouvrirFil}
+                  onOpenDraft={(id) => dispatch({ type: 'modal', modal: { kind: 'compose', draftId: id } })}
+                  onStar={(r) => actions.act.mutate({ action: r.is_starred ? 'unstar' : 'star', threadId: r.id })}
+                  onContext={(e, r) => dispatch({ type: 'ctx', ctx: { x: e.clientX, y: e.clientY, threadId: r.id } })}
+                />
+              )}
             </section>
           </div>
+
+          {state.ctx && (() => {
+            // Le menu meurt avec sa ligne : si la page a changé sous lui
+            // (Realtime, pagination), il n'a plus de fil à commander.
+            const fil = threads.rows.find((r) => r.id === state.ctx?.threadId)
+            if (!fil) return null
+            return (
+              <MailContextMenu
+                ms={ms}
+                x={state.ctx.x}
+                y={state.ctx.y}
+                row={fil}
+                labels={labels.labels}
+                onClose={() => dispatch({ type: 'ctx', ctx: null })}
+                onOpen={() => ouvrirFil(fil.id)}
+                onAction={(a) => actions.act.mutate({ action: a, threadId: fil.id })}
+                onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadId: fil.id } })}
+                onLabel={(id) => actions.setLabel.mutate({ threadId: fil.id, labelId: id })}
+              />
+            )
+          })()}
 
           {state.labelCtx && (
             <MailLabelMenu
