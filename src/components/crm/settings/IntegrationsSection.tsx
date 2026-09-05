@@ -20,6 +20,7 @@
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { useMemo, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import { SectionHeader, SetGhostBtn, SetIcon, Toast } from './atoms'
@@ -32,6 +33,8 @@ import { WhatsAppPairingCard } from './WhatsAppPairingCard'
 import { useEsignSignature } from '@/hooks/useEsignSignature'
 import { EsignConnectModal } from './EsignConnectModal'
 import { openHelpFor } from '@/lib/help-articles'
+import MEIcon from '@/components/propertyx/MEIcon'
+import { useMailAccounts } from '@/hooks/useMailAccounts'
 
 const SET = SET_PALETTE
 
@@ -63,7 +66,7 @@ function SkribbleLogo({ size = 18 }: { size?: number }) {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────
-type ProviderId = 'google' | 'microsoft' | 'skribble' | 'whatsapp'
+type ProviderId = 'google' | 'microsoft' | 'skribble' | 'whatsapp' | 'messagerie'
 // Catégorie = clé canonique (sert de discriminant de filtre) ; le libellé visible
 // est résolu via i18n (catLabel).
 type Category = 'productivity' | 'signature' | 'messaging'
@@ -136,6 +139,27 @@ const CATALOGUE: Integration[] = [
     descKey: 'integrations.catalogue.whatsapp.desc',
     logoBg: '#25D366',
     logo: <WhatsAppLogo size={22} />,
+    connectable: true,
+    connected: false,
+  },
+  {
+    // ⚠ Une seule carte pour TROIS fournisseurs (Google, Microsoft, IMAP) : ce
+    // que l'agent connecte ici est SA BOÎTE, pas une marque. D'où un glyphe
+    // neutre et non un logo — les logos de marque, eux, sont rendus par
+    // l'assistant « Ajouter une boîte », qui demande justement lequel.
+    //
+    // ⚠ Et ce n'est PAS la carte Google/Microsoft ci-dessus : celles-là portent
+    // le calendrier (`google_calendar_tokens`, OAuth GoTrue). La messagerie a
+    // ses propres jetons, en Vault, derrière `mail-oauth`. Deux branchements,
+    // deux cartes — les fondre laisserait croire qu'un agenda connecté donne
+    // accès au courrier.
+    id: 'messagerie',
+    category: 'messaging',
+    provider: 'messagerie',
+    name: 'Messagerie',
+    descKey: 'integrations.catalogue.messagerie.desc',
+    logoBg: '#FFFFFF',
+    logo: <MEIcon name="mail" size={22} />,
     connectable: true,
     connected: false,
   },
@@ -850,6 +874,9 @@ export function IntegrationsSection() {
   const waLinked = !!waStatus.data?.verified
   // État réel Skribble (e-signature) via l'edge sign-document.
   const esign = useEsignSignature()
+  // État réel des boîtes de la Messagerie (RLS owner/agency).
+  const mail = useMailAccounts()
+  const navigate = useNavigate()
 
   const [filter, setFilter] = useState<string>('all')
   const [details, setDetails] = useState<Integration | null>(null)
@@ -868,6 +895,16 @@ export function IntegrationsSection() {
         }
         if (it.id === 'microsoft') {
           return { ...it, connected: outlook.isConnected, account: outlook.outlookEmail ?? undefined }
+        }
+        if (it.id === 'messagerie') {
+          // ⚠ On liste TOUTES les adresses, pas un compte : la boîte de l'agence
+          // et celle de l'agent coexistent (D14), et n'en montrer qu'une ferait
+          // croire que l'autre n'est pas connectée.
+          return {
+            ...it,
+            connected: mail.list.length > 0,
+            account: mail.list.length > 0 ? mail.list.map((a) => a.email).join(', ') : undefined,
+          }
         }
         if (it.id === 'whatsapp') {
           return {
@@ -900,6 +937,7 @@ export function IntegrationsSection() {
       waLinked,
       waStatus.data?.wa_number,
       esign.connections,
+      mail.list,
       t,
     ],
   )
@@ -925,6 +963,10 @@ export function IntegrationsSection() {
       }
       return
     }
+    // La Messagerie n'a pas de branchement DANS les Réglages : connecter une
+    // boîte veut dire choisir un fournisseur, autoriser en pop-up et nommer la
+    // boîte — c'est l'assistant de l'écran, et `?add=1` l'ouvre directement.
+    if (item.provider === 'messagerie') { navigate('/dashboard/messagerie?add=1'); return }
     if (item.provider === 'whatsapp') setWaPair(true)
     else if (item.provider === 'skribble') setEsignConnect(true)
   }
@@ -937,6 +979,10 @@ export function IntegrationsSection() {
       if (item.provider === 'google') await google.disconnectGoogleCalendar()
       else if (item.provider === 'microsoft') await outlook.disconnectOutlookCalendar()
       else if (item.provider === 'skribble') await esign.disconnect({ provider: 'skribble' })
+      // ⛔ La déconnexion se fait BOÎTE PAR BOÎTE, dans le sélecteur de l'écran :
+      // une agence peut en avoir trois, et un bouton unique ici devrait choisir
+      // laquelle — ou les couper toutes, ce que personne ne demande.
+      else if (item.provider === 'messagerie') { navigate('/dashboard/messagerie'); return }
       else return // pas de wire de déconnexion pour ce provider (WhatsApp unlink = chip future)
       setToast(t('integrations.toast.disconnected', { name: item.name }))
       setTimeout(() => setToast(null), 2400)

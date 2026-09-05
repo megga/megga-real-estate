@@ -3524,90 +3524,89 @@ git add -A && git commit -m "test(messagerie): banc, fixtures, gardes de contras
 ### Task 2.14 : Réglages › Intégrations, timeline contact, mobile minimal
 
 **Files:**
-- Modify: `src/components/crm/settings/IntegrationsSection.tsx`
-- Create: `src/components/crm-mobile/messagerie/MobileMessagerieScreen.tsx`
+- Modify: `src/components/crm/settings/IntegrationsSection.tsx`, `src/components/crm/messagerie/{MailBoxSelector,MailRail,MessagerieApp,MailBodyFrame}.tsx`, `src/components/crm/messagerie/mailState.ts`, `src/hooks/useContactTimeline.ts`, `src/pages/dev/MobileShowcasePage.tsx`
+- Create: `src/components/crm-mobile/messagerie/MobileMessagerieScreen.tsx` (le squelette de T2.1 rendait `null`), `tests/unit/messagerie-timeline.spec.ts`
 
-- [ ] **Step 1 : Carte « Messagerie » dans le catalogue des intégrations**
+- [x] **Step 1 : Carte « Messagerie » dans le catalogue des intégrations**
 
-`IntegrationsSection.tsx` : `type ProviderId = 'google' | 'microsoft' | 'skribble' | 'whatsapp' | 'messagerie'` ; dans `CATALOGUE`, après WhatsApp :
-```ts
-  { id: 'messagerie', category: 'messaging', provider: 'messagerie', name: 'Messagerie', descKey: 'integrations.catalogue.messagerie.desc', logoBg: '#FFFFFF', logo: <MEIcon name="mail" size={22} />, connectable: true, connected: false },
-```
-Au render (là où Google/Microsoft/WhatsApp surchargent `connected`/`account` depuis les hooks, `:905-950`) : `const mail = useMailAccounts()` puis pour `messagerie` : `connected: mail.list.length > 0`, `account: mail.list.map((a) => a.email).join(', ')`. Dans `handleConnect` (`:958-976`) : `case 'messagerie': navigate('/dashboard/messagerie?add=1'); break` ; `disconnect` pour `messagerie` : `navigate('/dashboard/messagerie')` (la déconnexion se fait boîte par boîte dans le sélecteur — à ajouter au menu du sélecteur : une entrée « Déconnecter » par boîte, protégée par `window.confirm(t('mail.box.disconnectConfirm'))`, qui appelle `accounts.disconnect.mutate(id)` ; libellé `t('mail.box.disconnect')` ; clés déjà posées en T2.12 (`mail.box.disconnect`, `mail.box.disconnectConfirm`) : « Déconnecter cette boîte ? Ses messages seront retirés du CRM ; les documents classés restent. » / "Disconnect this mailbox? Its messages are removed from the CRM; filed documents stay." / „Dieses Postfach trennen? Seine Nachrichten werden aus dem CRM entfernt; abgelegte Dokumente bleiben." / "Scollegare questa casella? I suoi messaggi saranno rimossi dal CRM; i documenti archiviati restano.").
+`ProviderId` gagne `'messagerie'`, la carte suit WhatsApp, `connected` et
+`account` sont surchargés au render depuis `useMailAccounts` — **toutes** les
+adresses, pas un compte : la boîte de l'agence et celle de l'agent coexistent
+(D14). `handleConnect` renvoie sur `/dashboard/messagerie?add=1` (l'assistant
+existe déjà et lit ce paramètre depuis T2.9) ; « déconnecter » renvoie sur
+l'écran, sans agir.
 
-- [ ] **Step 2 : Timeline contact**
+⚠ Glyphe neutre (`MEIcon name="mail"`), pas un logo de marque : une seule carte
+couvre TROIS fournisseurs, et ce que l'agent connecte ici est SA BOÎTE. Les
+logos de marque restent rendus par `MailProviderLogo`, qui réutilise déjà
+`GoogleG` et `MsLogo` de `settings/brandLogos` — aucun logo n'est redessiné.
 
-Rien à coder : `useContactTimeline` lit `activity_events` par `entity_id` ; `auditActionLabel` traduit par `common:audit.action.<action>` (clés posées en T2.12) ; `timelineCat` (mobile) classe déjà toute action contenant `email`. Vérifier à l'écran sur une fiche contact rattachée : les lignes « E-mail reçu / E-mail envoyé » apparaissent avec l'objet en libellé (`object_label`).
+⚠ Et ce n'est PAS la carte Google/Microsoft voisine : celle-là porte le
+CALENDRIER (jetons en clair, OAuth GoTrue). La messagerie a ses propres jetons,
+en Vault, derrière `mail-oauth`. Les fondre laisserait croire qu'un agenda
+connecté donne accès au courrier.
 
-- [ ] **Step 3 : Mobile minimal (D16)**
+**Déconnexion boîte par boîte**, dans le sélecteur du rail. ⚠ La ligne devient
+une RANGÉE de deux boutons et non un bouton dans un bouton : `<button>` imbriqué
+est du balisage invalide. La confirmation passe par `window.confirm` — exception
+assumée : le geste part d'un POPOVER qui se ferme au premier clic dehors, donc
+une modale portée aurait dû survivre à la fermeture de son déclencheur, pour
+trois lignes. Précédent : `ImportLeadPage:153`. ⚠ Déconnecter la boîte COURANTE
+remet la sélection à `null` (l'action du reducer accepte `null` depuis ici) :
+sans ça l'écran gardait un `accountId` disparu.
 
-```tsx
-// src/components/crm-mobile/messagerie/MobileMessagerieScreen.tsx
-// v1 mobile : lire seulement (liste de la première boîte + lecture). Composer, répondre,
-// classer et connecter restent sur ordinateur (maître D16) — et on le DIT.
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { crmPalette } from '@/components/crm/tokens'
-import { useCrmDark } from '@/lib/crmDark'
-import { useMailAccounts } from '@/hooks/useMailAccounts'
-import { useMailThreads } from '@/hooks/useMailThreads'
-import { useMailThread } from '@/hooks/useMailThread'
-import { mailDateLabel } from '@/lib/mail/format'
-import { MailBodyFrame } from '@/components/crm/messagerie/MailBodyFrame'
-import { mailSurfaces } from '@/components/crm/messagerie/mailTokens'
-import { MOBILE_FONT } from '@/components/crm-mobile/shell/tokens'
+- [x] **Step 2 : Timeline contact — « rien à coder » n'était pas « rien à garder »**
 
-export default function MobileMessagerieScreen() {
-  const { t, i18n } = useTranslation('messages')
-  const dark = useCrmDark()
-  const sp = crmPalette(dark)
-  const ms = mailSurfaces(sp, dark)
-  const accounts = useMailAccounts()
-  const accountId = accounts.list[0]?.id ?? null
-  const [page, setPage] = useState(0)
-  const [sel, setSel] = useState<string | null>(null)
-  const threads = useMailThreads(accountId, { folder: 'in', labelId: null, q: '', unreadOnly: false, attOnly: false, page })
-  const thread = useMailThread(sel)
-  const row = threads.rows.find((r) => r.id === sel)
-  return (
-    <div style={{ minHeight: '100vh', background: sp.pageBg, color: sp.ink, fontFamily: MOBILE_FONT, padding: 'var(--crm-space-2xl)' }}>
-      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600 }}>{t('folders.in')}</div>
-      <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut, marginTop: 4 }}>{accounts.list[0]?.email ?? t('mail.empty.noAccount.title')} · {t('mail.mobile.readOnly')}</div>
-      {!sel ? (
-        <div style={{ marginTop: 'var(--crm-space-2xl)' }}>
-          {threads.rows.map((r) => (
-            <button key={r.id} type="button" onClick={() => setSel(r.id)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: 'var(--crm-space-lg) 0', borderBottom: `1px solid ${ms.bord2}`, background: 'none', border: 'none', color: sp.ink, fontFamily: 'inherit' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--crm-text-md)', fontWeight: r.is_read ? 500 : 700 }}><span>{r.from_name || r.from_email}</span><span style={{ color: ms.txt3, fontSize: 'var(--crm-text-xs)' }}>{mailDateLabel(r.last_message_at, new Date(), i18n.language.slice(0, 2))}</span></div>
-              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: r.is_read ? 500 : 700 }}>{r.subject || t('mail.row.noSubject')}</div>
-              <div style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.snippet}</div>
-            </button>
-          ))}
-          {threads.rows.length === 0 && !threads.isLoading && <div style={{ padding: 'var(--crm-space-7xl) 0', textAlign: 'center', color: ms.mut, fontSize: 'var(--crm-text-sm)' }}>{t('mail.empty.noMessage')}</div>}
-          {threads.total > (page + 1) * 12 && <button type="button" onClick={() => setPage(page + 1)} style={{ marginTop: 'var(--crm-space-2xl)', background: 'none', border: `1px solid ${ms.bord3}`, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-md) var(--crm-space-3xl)', color: ms.txt3, fontFamily: 'inherit' }}>{t('mail.pager.next')}</button>}
-        </div>
-      ) : (
-        <div style={{ marginTop: 'var(--crm-space-2xl)' }}>
-          <button type="button" onClick={() => setSel(null)} style={{ background: 'none', border: 'none', color: ms.txt3, fontFamily: 'inherit', padding: 0, fontSize: 'var(--crm-text-md)' }}>‹ {t('mail.read.back')}</button>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, marginTop: 'var(--crm-space-lg)' }}>{row?.subject}</div>
-          {(thread.data ?? []).map((m) => (
-            <div key={m.id} style={{ marginTop: 'var(--crm-space-2xl)', paddingTop: 'var(--crm-space-lg)', borderTop: `1px solid ${ms.bord2}` }}>
-              <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>{m.direction === 'outbound' ? t('mail.read.me') : (m.from_name || m.from_email)} · {mailDateLabel(m.sent_at, new Date(), i18n.language.slice(0, 2))}</div>
-              <MailBodyFrame ms={ms} html={m.body_html} text={m.body_text} truncated={m.body_truncated} />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-```
-⚠ `MOBILE_FONT` : repérer son module (`grep -rn "export const MOBILE_FONT" src/components/crm-mobile`) et corriger l'import. `useCrmDark` : `src/lib/crmDark.ts:100`. Les ancres `‹` et `·` sont de la ponctuation, pas du texte en dur pour `lint:i18n` — vérifier que la porte ne les compte pas ; sinon passer par une clé.
+Le câblage est bien complet : le lot 1 écrit `entity_id = contact_id`, le hook
+filtre là-dessus, `auditActionLabel` traduit, `timelineCat` classe. Mais la
+chaîne tient sur TROIS pièces dans trois endroits, et **aucune ne rougissait**
+quand une autre bougeait : le repli `humanize()` affiche « Email received » au
+lieu de « E-mail reçu » sans rien signaler. Un repli qui « marche » est ce qui
+rend une régression invisible.
 
-- [ ] **Step 4 : Build, gardes, commit**
+`tests/unit/messagerie-timeline.spec.ts` relie les trois : les identifiants sont
+LUS dans `supabase/functions/**` et non recopiés, les quatre langues doivent les
+porter, et le repli est éprouvé pour que les clauses ne soient pas vraies par
+construction. ⚠ La clause « ne vaut pas son propre repli » est désactivée en
+ANGLAIS, et c'est structurel : les identifiants SONT de l'anglais en snake_case,
+donc « Email received » est à la fois le repli et la bonne traduction. En anglais
+il reste le contrôle de présence.
+
+⛔ Le commentaire de `useContactTimeline` annonçait « OR metadata contains
+contact_id » — jamais implémenté. Corrigé : un commentaire qui décrit une requête
+plus large que la vraie fait chercher la panne du côté de l'écriture. Le contrat
+(« si et seulement si `entity_id` ») est désormais gardé.
+
+- [x] **Step 3 : Mobile minimal (D16)**
+
+Trois écarts au bloc du plan :
+
+1. ⚠ `MOBILE_FONT` vit dans `src/components/crm-mobile/tokens.ts`, pas
+   `shell/tokens`.
+2. ⚠ **Aucun littéral** de rayon, d'espacement ni de taille — le bloc du plan en
+   portait (`marginTop: 4`). `crm-mobile` est sous le cliquet de grammaire, dont
+   les DEUX compteurs ne peuvent que descendre.
+3. ⚠ `MailBodyFrame` reçoit une police. Sans elle le corps du mail rendait en
+   **Inter Tight sur mobile** : `policeHote()` lit `--crm-font`, la police de
+   l'agent au bureau. Aucune garde ne l'aurait vu — `polices-domaines` balaye les
+   SOURCES, et cette police-là est résolue à l'exécution.
+
+⚠ Les COULEURS viennent de `mailSurfaces` et non de `MT_LIGHT`/`MT_DARK` : la
+messagerie rend le même corps assaini dans la même iframe des deux côtés, et
+`MailBodyFrame` est typé sur `MailSurfaces`. Deux palettes sur un écran auraient
+coûté plus que l'écart au reste du mobile.
+
+✅ **L'écran mobile est monté dans `/dev/mobile`**, sous le même fournisseur de
+fixtures que le banc de bureau — sinon il n'était visible nulle part sans base de
+données, exactement le trou que T2.13 vient de fermer côté bureau. ⚠ Son
+séparateur est TOKENISÉ : recopier le littéral des voisins aurait fait monter le
+`total` de `src/pages/dev` (34 → 35).
+
+- [x] **Step 4 : Build, gardes, commit**
 
 ```bash
 npm run build && npm run lint && npm run lint:i18n && npm run i18n:parity:ci && npm run test:unit
-git add -A && git commit -m "feat(messagerie): carte Intégrations, déconnexion par boîte, mobile en lecture"
+git add -A && git commit -m "feat(messagerie): réglages, timeline contact, écran mobile minimal"
 ```
 
 ---

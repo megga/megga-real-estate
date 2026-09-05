@@ -30,6 +30,7 @@ interface Props {
   onCloseBox: () => void
   onSelectAccount: (id: string) => void
   onAddAccount: () => void
+  onDisconnectAccount: (id: string) => void
   onCompose: () => void
   folder: MailFolder
   onFolder: (f: MailFolder) => void
@@ -85,6 +86,7 @@ export function MailRail(p: Props) {
         onToggle={p.onToggleBox}
         onClose={p.onCloseBox}
         onSelect={p.onSelectAccount}
+        onDisconnect={p.onDisconnectAccount}
         onAdd={p.onAddAccount}
       />
 

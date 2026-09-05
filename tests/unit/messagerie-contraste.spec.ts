@@ -33,6 +33,12 @@
  *    sans que personne pense à l'ajouter.
  * 4. Elle dit combien de fichiers elle a lus. Un balayage qui ne trouve rien est
  *    parfaitement vert.
+ * 5. ⛔ Elle lit le CODE, commentaires retirés. Sans ça la garde trébuche sur sa
+ *    propre documentation : la note de `MailBodyFrame` qui explique pourquoi la
+ *    police du bureau ne doit PAS traverser vers le mobile nomme « Inter Tight »,
+ *    et la clause des polices rougissait dessus. Même défaut que `megga-x-grammar`
+ *    documente pour `t.primary` — une garde qui interdit un mot interdit aussi
+ *    qu'on explique pourquoi.
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
@@ -75,10 +81,21 @@ function contraste(a: string, b: string): number {
 
 /* ───────────────────────────── sources de la zone ───────────────────────── */
 
+/**
+ * ⚠ Un bloc de commentaire de N lignes rend N sauts de ligne, pas une espace : sinon
+ * tout ce qui suit REMONTE et un `fichier:ligne` rapporté désigne la mauvaise
+ * ligne. Même précaution que `megga-x-grammar`.
+ */
+function sansCommentaires(code: string): string {
+  return code
+    .replace(/\/\*[\s\S]*?\*\//g, (bloc) => '\n'.repeat((bloc.match(/\n/g) ?? []).length))
+    .replace(/\/\/[^\n]*/g, ' ')
+}
+
 const FICHIERS = readdirSync(repoPath(ZONE))
   .filter((n) => /\.tsx?$/.test(n))
   .sort()
-  .map((n) => ({ nom: n, code: readFileSync(repoPath(ZONE, n), 'utf8') }))
+  .map((n) => ({ nom: n, code: sansCommentaires(readFileSync(repoPath(ZONE, n), 'utf8')) }))
 
 describe('Messagerie — couleur et contraste', () => {
   it('le balayage lit vraiment la zone', () => {

@@ -177,6 +177,27 @@ export function MessagerieApp({ dark, setDark }: Props) {
     if (fil && !fil.is_read) actions.act.mutate({ action: 'mark_read', threadId: id })
   }, [threads.rows, actions.act])
 
+  /**
+   * Déconnexion d'UNE boîte, depuis le sélecteur du rail.
+   *
+   * ⚠ `window.confirm` et non une modale du dépôt, à dessein et par exception :
+   * le geste part d'un POPOVER, qui se ferme au premier clic dehors — une modale
+   * portée aurait dû survivre à la fermeture de son propre déclencheur, donc
+   * remonter dans l'état de l'écran pour un cas à trois lignes. Le natif bloque,
+   * et il y a un précédent (`ImportLeadPage:153`). À revoir si un second geste
+   * destructeur naît dans ce menu.
+   *
+   * ⚠ Si la boîte déconnectée était la boîte COURANTE, l'écran doit repartir de
+   * zéro : sans ça il garderait un `accountId` qui n'existe plus et la liste
+   * resterait sur la dernière page servie.
+   */
+  const deconnecterBoite = useCallback((id: string) => {
+    if (!window.confirm(t('mail.box.disconnectConfirm'))) return
+    accounts.disconnect.mutate(id, {
+      onSuccess: () => { if (state.accountId === id) dispatch({ type: 'select-account', accountId: null }) },
+    })
+  }, [accounts.disconnect, state.accountId, t])
+
   const onNavigate = useCallback((id: CrmScreenId | string) => {
     switch (id) {
       case 'today': navigate('/dashboard'); break
@@ -218,6 +239,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 onCloseBox={() => dispatch({ type: 'close-box' })}
                 onSelectAccount={(id) => dispatch({ type: 'select-account', accountId: id })}
                 onAddAccount={() => dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } })}
+                onDisconnectAccount={deconnecterBoite}
                 onCompose={() => dispatch({ type: 'modal', modal: { kind: 'compose' } })}
                 folder={state.folder}
                 onFolder={(f) => dispatch({ type: 'folder', folder: f })}

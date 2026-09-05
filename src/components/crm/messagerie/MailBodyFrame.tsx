@@ -16,7 +16,20 @@ import { useTranslation } from 'react-i18next'
 import { buildBodySrcdoc, sanitizeMailHtml } from '@/lib/mail/sanitize'
 import { PILL, type MailSurfaces } from './mailTokens'
 
-interface Props { ms: MailSurfaces; html: string | null; text: string | null; truncated: boolean }
+interface Props {
+  ms: MailSurfaces; html: string | null; text: string | null; truncated: boolean
+  /**
+   * Police injectée dans la `srcdoc`, quand l'appelant n'est pas le bureau.
+   *
+   * ⚠ Sans elle l'écran MOBILE aurait rendu le corps du mail en Inter Tight :
+   * `policeHote()` lit `--crm-font`, qui est la police de l'agent au bureau. La
+   * frontière du 15 août est une règle dans les DEUX sens, et un corps de
+   * message est ce que l'agent lit le plus longtemps sur cet écran. Aucune
+   * garde ne l'aurait vu — `polices-domaines` balaye les SOURCES, et cette
+   * police-ci est résolue à l'exécution.
+   */
+  police?: string
+}
 
 /** Hauteur de départ, avant la première mesure ; bornes de sécurité du mesureur. */
 const HAUTEUR_INITIALE = 120
@@ -44,15 +57,15 @@ function policeHote(): string {
   return v || 'system-ui'
 }
 
-export function MailBodyFrame({ ms, html, text, truncated }: Props) {
+export function MailBodyFrame({ ms, html, text, truncated, police }: Props) {
   const { t } = useTranslation('messages')
   const [remote, setRemote] = useState(false)
   const [height, setHeight] = useState(HAUTEUR_INITIALE)
   const ref = useRef<HTMLIFrameElement>(null)
   const hasRemote = useMemo(() => !!html && /<img[^>]+src=["']?https?:/i.test(html), [html])
   const doc = useMemo(
-    () => (html ? buildBodySrcdoc(sanitizeMailHtml(html, { remoteImages: remote }), { ink: ms.txt2, font: policeHote(), remoteImages: remote }) : null),
-    [html, remote, ms.txt2],
+    () => (html ? buildBodySrcdoc(sanitizeMailHtml(html, { remoteImages: remote }), { ink: ms.txt2, font: police ?? policeHote(), remoteImages: remote }) : null),
+    [html, remote, ms.txt2, police],
   )
 
   useEffect(() => {

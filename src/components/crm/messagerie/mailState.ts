@@ -39,7 +39,11 @@ export const initialMailState = (accountId: string | null): MailState => ({
 })
 
 export type MailAction =
-  | { type: 'select-account'; accountId: string }
+  // ⚠ `null` est une valeur LÉGITIME depuis T2.14 : déconnecter la boîte
+  // courante laisse l'écran sans boîte, et l'effet de `MessagerieApp` en
+  // resélectionne une s'il en reste. Un `''` aurait fait le même effet par
+  // accident — il est falsy — sans le dire.
+  | { type: 'select-account'; accountId: string | null }
   | { type: 'toggle-box' } | { type: 'close-box' }
   | { type: 'folder'; folder: MailFolder }
   | { type: 'label'; labelId: string | null }

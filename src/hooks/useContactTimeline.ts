@@ -24,7 +24,17 @@ export function useContactTimeline(contactId: string | undefined) {
     queryFn: async (): Promise<TimelineEvent[]> => {
       if (!contactId) return []
 
-      // Query activity_events where entity_id matches, OR metadata contains contact_id
+      // ⛔ `entity_id`, ET RIEN D'AUTRE. Ce commentaire annonçait « OR metadata
+      // contains contact_id » — jamais implémenté, et corrigé le 05.09.2026 en
+      // branchant la Messagerie, dont c'est le contrat : un e-mail apparaît dans
+      // la fiche d'un contact SI ET SEULEMENT SI l'événement a été écrit avec
+      // `entity_id = contact_id` (`_shared/mail/ingest.ts`, `mail-attachment`).
+      //
+      // Un commentaire qui décrit une requête plus large que la vraie est pire
+      // qu'aucun : il fait chercher la panne du côté de l'écriture. Élargir le
+      // filtre est possible — mais c'est une décision qui change ce que TOUS les
+      // producteurs doivent garantir, pas un détail d'implémentation.
+      // Gardé par `tests/unit/messagerie-timeline.spec.ts`.
       const { data, error } = await supabase
         .from('activity_events')
         .select('id, action, entity_type, entity_id, metadata, created_at, actor:profiles!actor_id(full_name)')
