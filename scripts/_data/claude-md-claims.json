@@ -692,15 +692,15 @@
     {
       "id": "sm-cerveau-entrees",
       "section": "§ cerveau",
-      "phrase": "(264 entrées curées au 04.09.2026)",
+      "phrase": "(270 entrées curées au 05.09.2026)",
       "severite": "derive",
-      "mesureLe": "2026-09-04",
+      "mesureLe": "2026-09-05",
       "mesure": {
         "fichier": ".claude-flow/knowledge/megga-memory.seed.json",
         "motif": "\"key\":"
       },
       "attendu": {
-        "occurrences": 264
+        "occurrences": 270
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,
