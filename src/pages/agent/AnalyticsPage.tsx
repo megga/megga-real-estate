@@ -48,6 +48,9 @@ export default function AnalyticsPage() {
       case 'calendar':
         navigate('/dashboard/calendar')
         break
+      case 'messagerie':
+        navigate('/dashboard/messagerie')
+        break
       case 'matching':
         navigate('/dashboard/matching')
         break

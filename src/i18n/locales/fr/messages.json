@@ -7,7 +7,7 @@
     "buyers": "Acheteurs",
     "sellers": "Vendeurs"
   },
-  "search_placeholder": "Rechercher...",
+  "search_placeholder": "Rechercher…",
   "copilot": {
     "aiEstimate": "estimation IA",
     "negotiation": {
@@ -112,6 +112,247 @@
         "low": "Faible",
         "dormant": "Dormant"
       }
+    }
+  },
+  "mail": {
+    "empty": {
+      "noAccount": {
+        "title": "Aucune boîte connectée",
+        "body": "Connectez la boîte de l'agence ou la vôtre pour lire et répondre ici."
+      },
+      "noMessage": "Aucun message ne correspond."
+    },
+    "add": {
+      "cta": "Ajouter une boîte",
+      "title": "Ajouter une boîte",
+      "back": "Retour",
+      "share": "Partager cette boîte avec toute l'agence",
+      "waSub": "Coexistence · app + Cloud API sur le même numéro",
+      "imapSub": "Connexion IMAP / SMTP",
+      "other": "Autre boîte (IMAP / SMTP)",
+      "otherSub": "Configuration manuelle du serveur",
+      "oauth": {
+        "subtitle": "Autorisation du compte",
+        "addr": "Adresse e-mail",
+        "addrPlaceholder": "adresse@votre-agence.ch",
+        "access": "Accès demandé",
+        "scope": {
+          "read": "Lire et envoyer les messages de cette boîte",
+          "file": "Rattacher les échanges à la fiche contact",
+          "labels": "Classer avec les libellés de l'agence"
+        },
+        "note": "Validation sur la page de {{provider}} · aucun mot de passe ne transite par l'agence.",
+        "useImap": "Configurer en IMAP",
+        "authorize": "Autoriser",
+        "busy": "Connexion…",
+        "err": {
+          "popupBlocked": "La fenêtre a été bloquée par le navigateur. Nous ouvrons l'autorisation dans cet onglet.",
+          "cancelled": "Autorisation annulée.",
+          "timeout": "L'autorisation a expiré. Réessayez.",
+          "denied": "L'accès a été refusé sur la page du fournisseur.",
+          "notConfigured": "Ce fournisseur n'est pas encore configuré côté MEGGA.",
+          "exchange": "La connexion a échoué : {{detail}}",
+          "generic": "La connexion a échoué. Réessayez dans un instant."
+        }
+      },
+      "imap": {
+        "subtitle": "Connexion IMAP / SMTP",
+        "email": "Adresse e-mail",
+        "imapHost": "Serveur IMAP",
+        "smtpHost": "Serveur SMTP",
+        "port": "Port",
+        "imapPort": "Port IMAP",
+        "smtpPort": "Port SMTP",
+        "user": "Utilisateur",
+        "password": "Mot de passe",
+        "encryption": "Chiffrement",
+        "note": "Le test vérifie IMAP et SMTP avant l'ajout · les identifiants sont chiffrés au repos.",
+        "test": "Tester et connecter",
+        "unavailable": "La connexion IMAP arrive dans une prochaine version.",
+        "err": {
+          "invalid": "Adresse, serveurs et mot de passe sont requis.",
+          "starttls": "STARTTLS (port 587) n'est pas disponible depuis nos serveurs. Utilisez SSL/TLS sur le port 465.",
+          "connection": "Connexion refusée : vérifiez l'identifiant, le mot de passe (ou mot de passe d'application) et les serveurs.",
+          "generic": "La connexion a échoué. Réessayez dans un instant."
+        }
+      },
+      "done": {
+        "title": "Boîte connectée",
+        "sync": "Synchronisation",
+        "syncValue": "90 derniers jours",
+        "folders": "Dossiers importés",
+        "foldersValue": "Réception, Envoyés",
+        "linking": "Rattachement aux contacts",
+        "linkingValue": "Actif",
+        "another": "Ajouter une autre",
+        "open": "Ouvrir la boîte"
+      }
+    },
+    "box": {
+      "label": "Boîte",
+      "none": "Aucune boîte",
+      "synced": "synchronisée",
+      "disconnect": "Déconnecter",
+      "disconnectConfirm": "Déconnecter cette boîte ? Ses messages seront retirés du CRM ; les documents classés restent.",
+      "status": {
+        "reauth_required": "Autorisation à renouveler",
+        "error": "Erreur de synchronisation",
+        "disabled": "Désactivée"
+      }
+    },
+    "compose": {
+      "cta": "Nouveau message",
+      "to": "Destinataire",
+      "toPlaceholder": "À · destinataire",
+      "title": "Nouveau message",
+      "subject": "Objet",
+      "body": "Message",
+      "attach": "Joindre un document",
+      "fromComputer": "Depuis mon ordinateur",
+      "agencyDocs": "Documents de l'agence",
+      "noAgencyDocs": "Aucun document disponible.",
+      "removeAttachment": "Retirer la pièce"
+    },
+    "folders": {
+      "aria": "Dossiers",
+      "in": "Boîte de réception",
+      "arch": "Archivé",
+      "star": "Suivis",
+      "sent": "Envoyés",
+      "draft": "Brouillons"
+    },
+    "labels": {
+      "title": "Libellés",
+      "new": "Nouveau libellé",
+      "rename": "Renommer",
+      "recolor": "Changer la couleur",
+      "delete": "Supprimer",
+      "namePlaceholder": "Nom du libellé",
+      "custom": "Couleur personnalisée",
+      "hue": "Teinte",
+      "hex": "Code hexadécimal",
+      "create": "Créer"
+    },
+    "list": {
+      "search": "Recherche",
+      "searchPlaceholder": "Chercher un expéditeur, un objet …",
+      "unread": "Non lus",
+      "attachment": "Pièce jointe",
+      "err": {
+        "load": "Les messages n'ont pas pu être chargés.",
+        "retry": "Réessayer"
+      }
+    },
+    "pager": {
+      "range": "{{from}} à {{to}} sur {{total}}",
+      "prev": "Page précédente",
+      "next": "Page suivante"
+    },
+    "row": {
+      "star": "Suivre",
+      "unstar": "Ne plus suivre",
+      "noSubject": "(sans objet)"
+    },
+    "ctx": {
+      "open": "Ouvrir",
+      "markRead": "Marquer comme lu",
+      "markUnread": "Marquer comme non lu",
+      "star": "Suivre",
+      "unstar": "Ne plus suivre",
+      "archive": "Archiver",
+      "unarchive": "Désarchiver",
+      "delete": "Supprimer"
+    },
+    "delete": {
+      "title": "Supprimer ce message ?",
+      "legal": "Le message part à la corbeille et quitte la liste. La conservation légale de dix ans s'applique au dossier, pas à la boîte."
+    },
+    "read": {
+      "back": "Retour à la liste",
+      "to": "à {{box}}",
+      "me": "moi",
+      "reply": "Répondre",
+      "forward": "Transférer",
+      "replyTo": "Réponse à",
+      "replyBody": "Votre réponse",
+      "forwardNote": "Note facultative",
+      "forwardOriginal": "Message d'origine joint",
+      "showImages": "Afficher les images",
+      "bodyTitle": "Corps du message",
+      "truncated": "Message tronqué (trop volumineux) : ouvrez-le dans votre messagerie pour la version complète.",
+      "unlinked": "Adresse non rattachée : {{email}}"
+    },
+    "link": {
+      "cta": "Rapprocher",
+      "title": "Rapprocher l'adresse",
+      "search": "Recherche",
+      "searchPlaceholder": "Nom, adresse ou téléphone",
+      "empty": "Aucun contact trouvé.",
+      "note": "L'adresse sera mémorisée pour cette fiche.",
+      "create": "Créer la fiche"
+    },
+    "draft": {
+      "badge": "Brouillon",
+      "noRecipient": "(sans destinataire)"
+    },
+    "actions": {
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "send": "Envoyer",
+      "sending": "Envoi…",
+      "forward": "Transférer",
+      "close": "Fermer"
+    },
+    "callback": {
+      "working": "Connexion de la boîte…",
+      "closing": "Vous pouvez fermer cette fenêtre.",
+      "denied": "Autorisation refusée ou incomplète.",
+      "failed": "La connexion a échoué. {{detail}}"
+    },
+    "preview": {
+      "title": "Aperçu de la pièce",
+      "loading": "Chargement…",
+      "error": "La pièce n'a pas pu être chargée.",
+      "download": "Télécharger"
+    },
+    "file": {
+      "cta": "Classer dans le dossier",
+      "title": "Classer dans le dossier",
+      "subtitle": "La pièce est copiée dans les documents du contact.",
+      "filed": "Classé au dossier",
+      "zoom": "Voir en grand",
+      "contact": "Fiche contact",
+      "contactCurrent": "Contact de ce fil",
+      "contactPlaceholder": "Choisir un contact",
+      "type": "Type de document",
+      "name": "Nom dans le dossier",
+      "submit": "Classer le document",
+      "busy": "Classement…",
+      "types": {
+        "contrat": "Contrat",
+        "mandat": "Mandat",
+        "piece_identite": "Pièce d'identité",
+        "justificatif_domicile": "Justificatif de domicile",
+        "financement": "Financement",
+        "plan": "Plan",
+        "photo": "Photo",
+        "autre": "Autre"
+      },
+      "err": {
+        "unsupported": "Ce type de fichier n'est pas accepté dans les documents (PDF, JPEG, PNG, WebP, Word).",
+        "tooLarge": "La pièce dépasse 20 Mo : elle ne peut pas être classée au dossier.",
+        "contact": "Ce contact n'appartient pas à votre agence.",
+        "generic": "Le classement a échoué. Réessayez."
+      }
+    },
+    "mobile": {
+      "readOnly": "Composer et répondre se font sur ordinateur pour l'instant."
+    },
+    "notice": {
+      "sentNotRecorded": "Le message est bien parti. Sa copie n'a pas pu être enregistrée ici : ne le renvoyez pas.",
+      "filedNotLinked": "Le document est classé au dossier. Le lien avec la pièce jointe n'a pas pu être enregistré : ne le classez pas une seconde fois.",
+      "dismiss": "Fermer",
+      "degraded": "Une partie de la messagerie ne répond pas. Les compteurs, les étiquettes ou le dernier geste peuvent être en retard."
     }
   }
 }

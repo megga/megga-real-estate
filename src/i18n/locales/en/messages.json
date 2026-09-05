@@ -7,7 +7,7 @@
     "buyers": "Buyers",
     "sellers": "Sellers"
   },
-  "search_placeholder": "Search...",
+  "search_placeholder": "Search…",
   "copilot": {
     "aiEstimate": "AI estimate",
     "negotiation": {
@@ -112,6 +112,247 @@
         "low": "Low",
         "dormant": "Dormant"
       }
+    }
+  },
+  "mail": {
+    "empty": {
+      "noAccount": {
+        "title": "No mailbox connected",
+        "body": "Connect the agency mailbox or your own to read and reply here."
+      },
+      "noMessage": "No message matches."
+    },
+    "add": {
+      "cta": "Add a mailbox",
+      "title": "Add a mailbox",
+      "back": "Back",
+      "share": "Share this mailbox with the whole agency",
+      "waSub": "Coexistence · app and Cloud API on the same number",
+      "imapSub": "IMAP / SMTP connection",
+      "other": "Another mailbox (IMAP / SMTP)",
+      "otherSub": "Manual server setup",
+      "oauth": {
+        "subtitle": "Account authorisation",
+        "addr": "Email address",
+        "addrPlaceholder": "address@your-agency.ch",
+        "access": "Access requested",
+        "scope": {
+          "read": "Read and send this mailbox's messages",
+          "file": "Link exchanges to the contact record",
+          "labels": "File with the agency labels"
+        },
+        "note": "Confirmation happens on {{provider}}'s page · no password goes through the agency.",
+        "useImap": "Set up with IMAP",
+        "authorize": "Authorise",
+        "busy": "Connecting…",
+        "err": {
+          "popupBlocked": "The window was blocked by the browser. We are opening the authorisation in this tab.",
+          "cancelled": "Authorisation cancelled.",
+          "timeout": "The authorisation expired. Try again.",
+          "denied": "Access was refused on the provider's page.",
+          "notConfigured": "This provider is not configured on the MEGGA side yet.",
+          "exchange": "The connection failed: {{detail}}",
+          "generic": "The connection failed. Try again in a moment."
+        }
+      },
+      "imap": {
+        "subtitle": "IMAP / SMTP connection",
+        "email": "Email address",
+        "imapHost": "IMAP server",
+        "smtpHost": "SMTP server",
+        "port": "Port",
+        "imapPort": "IMAP port",
+        "smtpPort": "SMTP port",
+        "user": "User",
+        "password": "Password",
+        "encryption": "Encryption",
+        "note": "The test checks IMAP and SMTP before adding · credentials are encrypted at rest.",
+        "test": "Test and connect",
+        "unavailable": "The IMAP connection is coming in a future version.",
+        "err": {
+          "invalid": "Address, servers and password are required.",
+          "starttls": "STARTTLS (port 587) is not available from our servers. Use SSL/TLS on port 465.",
+          "connection": "Connection refused: check the user name, the password (or app password) and the servers.",
+          "generic": "The connection failed. Try again in a moment."
+        }
+      },
+      "done": {
+        "title": "Mailbox connected",
+        "sync": "Synchronisation",
+        "syncValue": "Last 90 days",
+        "folders": "Imported folders",
+        "foldersValue": "Inbox, Sent",
+        "linking": "Contact linking",
+        "linkingValue": "Active",
+        "another": "Add another",
+        "open": "Open the mailbox"
+      }
+    },
+    "box": {
+      "label": "Mailbox",
+      "none": "No mailbox",
+      "synced": "synced",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "Disconnect this mailbox? Its messages will be removed from the CRM; filed documents remain.",
+      "status": {
+        "reauth_required": "Authorisation to renew",
+        "error": "Sync error",
+        "disabled": "Disabled"
+      }
+    },
+    "compose": {
+      "cta": "New message",
+      "to": "Recipient",
+      "toPlaceholder": "To · recipient",
+      "title": "New message",
+      "subject": "Subject",
+      "body": "Message",
+      "attach": "Attach a document",
+      "fromComputer": "From my computer",
+      "agencyDocs": "Agency documents",
+      "noAgencyDocs": "No document available.",
+      "removeAttachment": "Remove attachment"
+    },
+    "folders": {
+      "aria": "Folders",
+      "in": "Inbox",
+      "arch": "Archived",
+      "star": "Starred",
+      "sent": "Sent",
+      "draft": "Drafts"
+    },
+    "labels": {
+      "title": "Labels",
+      "new": "New label",
+      "rename": "Rename",
+      "recolor": "Change colour",
+      "delete": "Delete",
+      "namePlaceholder": "Label name",
+      "custom": "Custom colour",
+      "hue": "Hue",
+      "hex": "Hex code",
+      "create": "Create"
+    },
+    "list": {
+      "search": "Search",
+      "searchPlaceholder": "Search a sender, a subject …",
+      "unread": "Unread",
+      "attachment": "Attachment",
+      "err": {
+        "load": "The messages could not be loaded.",
+        "retry": "Retry"
+      }
+    },
+    "pager": {
+      "range": "{{from}} to {{to}} of {{total}}",
+      "prev": "Previous page",
+      "next": "Next page"
+    },
+    "row": {
+      "star": "Star",
+      "unstar": "Remove star",
+      "noSubject": "(no subject)"
+    },
+    "ctx": {
+      "open": "Open",
+      "markRead": "Mark as read",
+      "markUnread": "Mark as unread",
+      "star": "Star",
+      "unstar": "Remove star",
+      "archive": "Archive",
+      "unarchive": "Move out of archive",
+      "delete": "Delete"
+    },
+    "delete": {
+      "title": "Delete this message?",
+      "legal": "The message goes to the bin and leaves the list. The ten-year legal retention applies to the case file, not to the mailbox."
+    },
+    "read": {
+      "back": "Back to list",
+      "to": "to {{box}}",
+      "me": "me",
+      "reply": "Reply",
+      "forward": "Forward",
+      "replyTo": "Reply to",
+      "replyBody": "Your reply",
+      "forwardNote": "Optional note",
+      "forwardOriginal": "Original message attached",
+      "showImages": "Show images",
+      "bodyTitle": "Message body",
+      "truncated": "Message truncated (too large): open it in your mail client for the full version.",
+      "unlinked": "Address not linked: {{email}}"
+    },
+    "link": {
+      "cta": "Link",
+      "title": "Link the address",
+      "search": "Search",
+      "searchPlaceholder": "Name, address or phone",
+      "empty": "No contact found.",
+      "note": "The address will be remembered for this record.",
+      "create": "Create the record"
+    },
+    "draft": {
+      "badge": "Draft",
+      "noRecipient": "(no recipient)"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "send": "Send",
+      "sending": "Sending…",
+      "forward": "Forward",
+      "close": "Close"
+    },
+    "callback": {
+      "working": "Connecting the mailbox…",
+      "closing": "You can close this window.",
+      "denied": "Authorisation refused or incomplete.",
+      "failed": "The connection failed. {{detail}}"
+    },
+    "preview": {
+      "title": "Attachment preview",
+      "loading": "Loading…",
+      "error": "The attachment could not be loaded.",
+      "download": "Download"
+    },
+    "file": {
+      "cta": "File in the case folder",
+      "title": "File in the case folder",
+      "subtitle": "The attachment is copied into the contact's documents.",
+      "filed": "Filed in the folder",
+      "zoom": "View larger",
+      "contact": "Contact record",
+      "contactCurrent": "Contact of this thread",
+      "contactPlaceholder": "Choose a contact",
+      "type": "Document type",
+      "name": "Name in the folder",
+      "submit": "File the document",
+      "busy": "Filing…",
+      "types": {
+        "contrat": "Contract",
+        "mandat": "Mandate",
+        "piece_identite": "Identity document",
+        "justificatif_domicile": "Proof of address",
+        "financement": "Financing",
+        "plan": "Floor plan",
+        "photo": "Photo",
+        "autre": "Other"
+      },
+      "err": {
+        "unsupported": "This file type is not accepted in the documents (PDF, JPEG, PNG, WebP, Word).",
+        "tooLarge": "The attachment is over 20 MB and cannot be filed in the folder.",
+        "contact": "This contact does not belong to your agency.",
+        "generic": "Filing failed. Try again."
+      }
+    },
+    "mobile": {
+      "readOnly": "Composing and replying are done on desktop for now."
+    },
+    "notice": {
+      "sentNotRecorded": "The message was sent. Its local copy could not be saved: do not send it again.",
+      "filedNotLinked": "The document is filed. The link to the attachment could not be saved: do not file it a second time.",
+      "dismiss": "Dismiss",
+      "degraded": "Part of the mailbox is not responding. Counters, labels or your last action may be out of date."
     }
   }
 }

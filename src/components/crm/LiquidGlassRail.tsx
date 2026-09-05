@@ -110,6 +110,12 @@ const RAIL_ICONS: Record<string, RailIconDef> = {
   // Tracés repris des glyphes MEIcon officiels. Tous en `line:true` : une seule
   // graisse dans la colonne. MEIcon en délègue plusieurs (dashboard, chart) à
   // une icon-font qui rend PLEIN — les mélanger se lirait comme deux jeux.
+  // Boîte de réception — même tracé que `MEIcon.inbox`, redessiné ici parce que
+  // le rail se dessine lui-même (il ne monte pas MEIcon).
+  inbox: { line: true, kids: [
+    { tag: 'path', d: 'M22 12h-6l-2 3h-4l-2-3H2' },
+    { tag: 'path', d: 'M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z' },
+  ] },
   home: { line: true, kids: [
     { tag: 'path', d: 'M3 11 12 4l9 7' },
     { tag: 'path', d: 'M5 10v10h14V10' },

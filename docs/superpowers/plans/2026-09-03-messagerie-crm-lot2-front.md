@@ -48,7 +48,7 @@
 | `src/components/crm/messagerie/MailAddAccountModal.tsx` · `MailProviderLogo.tsx` | « Ajouter une boîte » |
 | `src/components/crm/messagerie/MailLinkContactModal.tsx` | « Rapprocher l'adresse » |
 | `src/components/crm/messagerie/MailFileAttachmentModal.tsx` · `MailAttachmentPreviewModal.tsx` | « Classer dans le dossier » · « Aperçu de la pièce » |
-| `src/components/crm/messagerie/fixtures.ts` | données du banc |
+| `src/components/crm/messagerie/fixtures.tsx` | données du banc (⚠ `.tsx` : le fournisseur rend du JSX, corrigé le 04.09.2026) |
 | `src/components/crm-mobile/messagerie/MobileMessagerieScreen.tsx` | mobile minimal (D16) |
 | `src/hooks/useMailAccounts.ts` · `useMailLabels.ts` · `useMailThreads.ts` · `useMailThread.ts` · `useMailActions.ts` · `useMailSend.ts` · `useMailDrafts.ts` · `useMailRealtime.ts` · `useMailOAuthPopup.ts` · `useMailAttachmentBlob.ts` | données |
 | `src/lib/mail/format.ts` · `src/lib/mail/sanitize.ts` · `src/lib/mail/oauthPopup.ts` | pur, testé |
@@ -72,7 +72,22 @@
 - Create: `src/components/crm/messagerie/mailTokens.ts`
 - Create: `src/components/crm/messagerie/mailState.ts`
 - Create: `src/pages/dev/MessagerieShowcasePage.tsx`
-- Modify: `src/App.tsx`, `src/components/crm/CrmShell.tsx:66-68,142-150`, `src/pages/agent/*.tsx` (switch `onNavigate`), `src/i18n/locales/*/common.json`, `src/i18n/locales/*/messages.json`
+- Modify: `src/App.tsx`, `src/components/crm/CrmShell.tsx:66-68,142-150`, `src/pages/agent/*.tsx` (switch `onNavigate`), `src/i18n/locales/*/common.json`, `src/i18n/locales/*/messages.json`, `tests/unit/megga-x-grammar.spec.ts`
+
+⛔ **CETTE TÂCHE DÉPEND DE DEUX FICHIERS DE LA 2.3, et ce n'est pas négociable** (mesuré
+le 04.09.2026) : `MessagerieApp` importe `useMailAccounts` pour savoir s'il a une boîte à
+montrer, et ce hook importe `invokeMail`. Sans eux, `tsc -b` échoue et l'étape 8 ne peut
+pas être verte. `src/lib/mail/invoke.ts` (T2.3 step 1) et `src/hooks/useMailAccounts.ts`
+(T2.3 step 2) sont donc écrits ICI, à l'identique ; la 2.3 livre les neuf autres hooks.
+
+⛔ **ET TROIS CLAUSES DU CLIQUET DE GRAMMAIRE ROUGISSENT DÈS CETTE TÂCHE**, pas en T2.12 :
+la clause de fermeture (« tout porteur de `src/` est couvert ») voit `MessagerieApp.tsx`
+le jour où il est écrit, et la clause « aucune page n'échappe au cliquet » voit les deux
+pages neuves. Il faut donc, dans le MÊME commit : ajouter
+`{ root: 'src/components/crm/messagerie', keep: (n) => /\.tsx?$/.test(n) }` à `ZONES`, et
+`MessageriePage.tsx` + `MailOAuthCallbackPage.tsx` à `PAGES` **et** `PAGES_ACQUISES` (les
+deux listes, la seconde étant écrite à part exprès). La zone entre VIDE de dette — c'est la
+règle 1 du lot, elle ne coûte rien tant qu'on ne pose aucun littéral.
 
 - [ ] **Step 1 : Onglet + id d'écran**
 
@@ -164,6 +179,11 @@ export const MAIL_TRANSITION = 'background-color .18s ease, border-color .18s ea
 /** Pilule (`border-radius:999px`). */
 export const PILL = 'var(--crm-radius-pill)'
 ```
+
+⛔ **`MAIL_TRANSITION` et `PILL` N'ENTRENT PAS EN T2.1 mais en T2.4**, avec leur premier
+consommateur : `npm run lint:deadcode` refuse un export que rien ne lit, et il les a
+nommés tous les deux (mesuré le 04.09.2026). Les poser d'avance aurait coûté une exemption
+dans `scripts/check-dead-exports.mjs` pour deux constantes de trois lignes.
 
 - [ ] **Step 3 : État d'écran (les clés de la maquette)**
 
@@ -282,7 +302,7 @@ import { useTranslation } from 'react-i18next'
 import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
 import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
 import { crmPalette } from '@/components/crm/tokens'
-import { EtatVide } from '@/components/crm/EtatVide'
+import EtatVide from '@/components/crm/EtatVide' // ⚠ export DEFAULT (corrigé le 04.09.2026)
 import { useMailAccounts } from '@/hooks/useMailAccounts'
 import { mailReducer, initialMailState } from './mailState'
 import { mailSurfaces } from './mailTokens'
@@ -346,7 +366,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
             <section style={{ minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
               {accounts.isLoading ? null : accounts.list.length === 0 ? (
                 <div style={{ margin: 'auto' }}>
-                  <EtatVide dark={dark} registre="a-faire" titre={t('mail.empty.noAccount.title')} corps={t('mail.empty.noAccount.body')}
+                  <EtatVide dark={dark} registre="aFaire" titre={t('mail.empty.noAccount.title')} corps={t('mail.empty.noAccount.body')}
                     action={{ libelle: t('mail.add.cta'), onClick: () => dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } }) }} />
                 </div>
               ) : null}
@@ -382,6 +402,14 @@ et dans le bloc `/dev/*` :
 ```tsx
 <Route path="/dev/messagerie" element={<MessagerieShowcasePage />} />
 ```
+⛔ **La déclaration du banc passe par le TERNAIRE, jamais par un `lazy()` nu** :
+`dev-bancs-frontiere.spec.ts` énumère `src/pages/dev` depuis l'arbre et exige que tout banc
+routé soit gelé — un `lazy()` nu émet un chunk et sert le banc sur `app.megga.ch`.
+```ts
+const MessagerieShowcasePage = import.meta.env.DEV
+  ? lazy(() => import('@/pages/dev/MessagerieShowcasePage'))
+  : () => null
+```
 Tant que T2.9 n'a pas écrit `MailOAuthCallbackPage` et T2.14 le mobile, créer les deux fichiers comme composants vides `export default function X() { return null }` — ils sont remplacés dans leurs tâches.
 
 - [ ] **Step 6 : Clés i18n minimales (les autres arrivent avec chaque composant, T2.12 les consolide)**
@@ -413,7 +441,7 @@ export default function MessagerieShowcasePage() {
   const [state, setState] = useState<MailFixtureState>('full')
   return (
     <MailFixturesProvider state={state}>
-      <div style={{ position: 'fixed', top: 8, right: 8, zIndex: 400, display: 'flex', gap: 6 }}>
+      <div style={{ position: 'fixed', top: 8, right: 8, zIndex: 400, display: 'flex', gap: 'var(--crm-space-sm)' }}>
         {(['full', 'empty', 'none'] as MailFixtureState[]).map((s) => (
           <button key={s} onClick={() => setState(s)} style={{ fontWeight: s === state ? 700 : 400 }}>{s}</button>
         ))}
@@ -423,7 +451,15 @@ export default function MessagerieShowcasePage() {
   )
 }
 ```
-(`fixtures.ts` avec un `MailFixturesProvider` qui rend `state` par contexte est écrit en T2.13 ; d'ici là, créer le fichier avec le provider vide : `export type MailFixtureState = 'full'|'empty'|'none'; export const MailFixturesContext = createContext<MailFixtureState|null>(null); export function MailFixturesProvider({state, children}) { return <MailFixturesContext.Provider value={state}>{children}</MailFixturesContext.Provider> }`.)
+⚠ **CE QUE LE BANC REND À CE STADE, mesuré le 04.09.2026** : le chrome, le bento (grille
+`296px | 1fr`, rayon 24 px, 1 px de filet, `MXC_CARD_SHADOW` en clair, Inter Tight) et un
+panneau droit VIDE — pas même l'état vide. Raison : `/dev/messagerie` n'a pas de session,
+la requête des comptes est donc `enabled: false`, et une requête désactivée reste
+`pending` **pour toujours** en TanStack v5. Sur la vraie route (sous `ProtectedRoute`) la
+requête tourne et l'état vide s'affiche ; c'est bien le banc, et lui seul, que les fixtures
+de T2.13 réparent.
+
+(`fixtures.tsx` avec un `MailFixturesProvider` qui rend `state` par contexte est écrit en T2.13 ; d'ici là, créer le fichier avec le provider vide : `export type MailFixtureState = 'full'|'empty'|'none'; export const MailFixturesContext = createContext<MailFixtureState|null>(null); export function MailFixturesProvider({state, children}) { return <MailFixturesContext.Provider value={state}>{children}</MailFixturesContext.Provider> }`.)
 
 - [ ] **Step 8 : Build, lint, commit**
 
@@ -432,6 +468,13 @@ npm run build && npm run lint:i18n && npm run i18n:parity:ci
 git add -A
 git commit -m "feat(messagerie): onglet, route, page, bento 296px et état d'écran"
 ```
+
+⚠ **`tests/unit/visual-baseline-fraicheur.spec.ts` ROUGIT, et c'est attendu** : le
+`case 'messagerie'` ajouté à `PipelinePage.tsx` change l'empreinte de l'écran photographié,
+même sans déplacer un pixel (la garde est conservatrice par écrit). ⛔ Ne PAS éditer
+`empreintes.json` à la main : l'empreinte et l'image doivent voyager ensemble, et les
+séparer est exactement le faux-vert que cette garde existe pour empêcher. La reprise est
+`/regenerate-visual-baselines` en commentaire de PR.
 
 ---
 
@@ -445,8 +488,15 @@ git commit -m "feat(messagerie): onglet, route, page, bento 296px et état d'éc
 - [ ] **Step 1 : Dépendance**
 
 ```bash
-npm install dompurify@3 && npm install --save-dev @types/dompurify
+npm install dompurify@3
 ```
+
+⛔ **PAS de `@types/dompurify`** (corrigé le 04.09.2026) : depuis la 3.0.6, dompurify livre
+ses propres définitions (`dist/purify.es.d.mts`, `exports['.'].import.types`), et le paquet
+DefinitelyTyped n'est plus qu'un **stub déprécié** qui dit lui-même de ne pas l'installer.
+⚠ La dépendance était déjà là en TRANSITIF (par `posthog-js`, en 3.3.3) : la déclarer la
+fige à notre compte — sans quoi une montée de version d'un paquet tiers changerait le
+comportement du rendu des mails. `npm install` l'a portée à **3.4.14** pour tout le dépôt.
 
 - [ ] **Step 2 : Tests (rouges)**
 
@@ -493,7 +543,11 @@ describe('sanitizeMailHtml', () => {
     expect(out).not.toContain('<script')
     expect(out).not.toContain('onclick')
     expect(out).not.toContain('<iframe')
-    expect(out).not.toContain('https://t.example')
+    // ⛔ CES DEUX LIGNES SE CONTREDISAIENT (corrigé le 04.09.2026) : l'URL SURVIT dans
+    // `data-blocked-src` — c'est elle que « Afficher les images » restaure. Ce qui doit
+    // disparaître est l'attribut CHARGEABLE. ⚠ Et la borne ne peut pas être `src="` nu :
+    // `data-blocked-src="` le contient littéralement.
+    expect(out).not.toMatch(/\ssrc="https?:/)
     expect(out).toContain('data-blocked-src="https://t.example/p.gif"')
   })
   it('garde les images distantes quand on les a demandées', () => {
@@ -547,7 +601,10 @@ Attendu : FAIL (modules absents).
 ```ts
 // src/lib/mail/format.ts
 // Formats d'affichage de la Messagerie (README §2 « Date » : '08:29' | 'Hier' | '23.08').
-export interface MailAddress { name: string | null; email: string }
+// ⛔ ALIAS DE TYPE, PAS `interface` (corrigé le 04.09.2026, TS2345) : une `interface` ne
+// reçoit pas de signature d'index implicite, donc `MailAddress[]` n'est PAS assignable à
+// `Json` — écrire les destinataires d'un brouillon dans `mail_drafts.to` échouait.
+export type MailAddress = { name: string | null; email: string }
 
 const YESTERDAY: Record<string, string> = { fr: 'Hier', de: 'Gestern', en: 'Yesterday', it: 'Ieri' }
 const TZ = 'Europe/Zurich'
@@ -664,18 +721,34 @@ export function openOAuthPopup(url: string): Window | null {
 
 ```bash
 npx vitest run tests/unit/mail-format.spec.ts tests/unit/mail-sanitize.spec.ts tests/unit/mail-oauth-popup.spec.ts
-git add src/lib/mail tests/unit/mail-format.spec.ts tests/unit/mail-sanitize.spec.ts tests/unit/mail-oauth-popup.spec.ts package.json package-lock.json
+git add src/lib/mail tests/unit/mail-format.spec.ts tests/unit/mail-sanitize.spec.ts tests/unit/mail-oauth-popup.spec.ts package.json package-lock.json scripts/check-dead-exports.mjs
 git commit -m "feat(messagerie): format de liste, sanitisation HTML (DOMPurify + CSP), contrat de pop-up"
 ```
 Attendu : 10 tests PASS.
+
+⛔ **`lint:email-shell` ROUGIT SUR `sanitize.ts`, et le plan maître ne l'avait vu qu'à
+moitié** : sa D10 dit que la porte « n'est pas concernée », mais elle raisonnait sur les
+EDGES, alors que la porte scanne aussi `src/` depuis le 15.08.2026 (un `<!DOCTYPE>` y suffit)
+— et `buildBodySrcdoc` en écrit un. La reprise n'est PAS `A_MIGRER` (rien à migrer) mais
+`HORS_EMAIL`, la liste des documents de `src/` qui ne sont pas des e-mails : ce fichier
+enveloppe le HTML de QUELQU'UN D'AUTRE pour l'afficher sans le laisser s'exécuter. Lui
+appliquer la coquille MEGGA poserait notre en-tête et un lien de désinscription autour du
+message d'un client.
+
+⛔ **UNE BIBLIOTHÈQUE PURE LIVRÉE AVANT SES ÉCRANS NE PASSE PAS `lint:deadcode`** (mesuré le
+04.09.2026 : les huit exports signalés). `ts-prune` tourne sur `tsconfig.app.json`, dont
+l'`include` vaut `["src"]` : un module que seules les SPECS lisent lui paraît mort. C'est
+l'angle mort déjà exempté pour `formatSurface`, et la reprise est la même — huit entrées
+dans `ALLOW_SYMBOLS` avec leur motif et la tâche qui les consommera. ⛔ Les retirer au fur
+et à mesure : `oauthPopup` dès T2.3, `format` en T2.5, `sanitize` en T2.6.
 
 ---
 
 ### Task 2.3 : Hooks de données
 
 **Files:**
-- Create: `src/lib/mail/invoke.ts`
-- Create: `src/hooks/useMailAccounts.ts`, `src/hooks/useMailLabels.ts`, `src/hooks/useMailThreads.ts`, `src/hooks/useMailThread.ts`, `src/hooks/useMailActions.ts`, `src/hooks/useMailSend.ts`, `src/hooks/useMailDrafts.ts`, `src/hooks/useMailRealtime.ts`, `src/hooks/useMailOAuthPopup.ts`, `src/hooks/useMailAttachmentBlob.ts`
+- ⚠ **Déjà livrés en T2.1** : `src/lib/mail/invoke.ts` (step 1) et `src/hooks/useMailAccounts.ts` (step 2) — `MessagerieApp` les importe, donc ils ne pouvaient pas attendre. Les deux blocs de code restent écrits ci-dessous, tels qu'ils ont été posés.
+- Create: `src/hooks/useMailLabels.ts`, `src/hooks/useMailThreads.ts`, `src/hooks/useMailThread.ts`, `src/hooks/useMailActions.ts`, `src/hooks/useMailSend.ts`, `src/hooks/useMailDrafts.ts`, `src/hooks/useMailRealtime.ts`, `src/hooks/useMailOAuthPopup.ts`, `src/hooks/useMailAttachmentBlob.ts`
 
 - [ ] **Step 0 : Vérifier deux prérequis**
 
@@ -879,7 +952,9 @@ export function useMailThreads(accountId: string | null, f: MailThreadFilters) {
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<{ rows: MailThreadRow[]; total: number }> => {
       const { data, error } = await supabase.rpc('mail_list_threads', {
-        p_account_id: accountId, p_folder: f.folder, p_label_id: f.labelId, p_q: f.q || null,
+        // ⛔ `undefined`, JAMAIS `null` (corrigé le 04.09.2026, TS2322) : les paramètres
+        // à défaut de la RPC sont typés `p_label_id?: string`, pas `string | null`.
+        p_account_id: accountId, p_folder: f.folder, p_label_id: f.labelId ?? undefined, p_q: f.q || undefined,
         p_unread_only: f.unreadOnly, p_att_only: f.attOnly, p_page: f.page, p_per_page: MAIL_PER_PAGE,
       })
       if (error) throw error
@@ -1197,9 +1272,22 @@ export function useMailOAuthPopup() {
 
 ```bash
 npm run build && npm run lint
-git add src/lib/mail/invoke.ts src/hooks/useMail*.ts
+git add src/lib/mail/invoke.ts src/hooks/useMail*.ts scripts/check-dead-exports.mjs
 git commit -m "feat(messagerie): hooks comptes, libellés, fils, gestes optimistes, envoi, brouillons, Realtime, pop-up"
 ```
+
+⚠ **Trois corrections de typage, toutes mesurées le 04.09.2026** — le lot 1 a régénéré
+`database.ts` depuis la production, et c'est LUI qui décide, pas ce plan :
+1. `MailAddress` devient un ALIAS (voir T2.2) : sans quoi `mail_drafts.to` refuse le tableau.
+2. Les paramètres à défaut d'une RPC sont `?: string`, donc `?? undefined` et jamais `null`.
+3. `p_account_id` / `p_thread_id` sont `string`, pas `string | null` : chaque `queryFn`
+   gardée par `enabled` porte un `if (!id) throw` — le drapeau `enabled` n'est pas connu du
+   typage, et une assertion `!` mentirait là où une garde dit la même chose sans mentir.
+
+⛔ **Et `lint:deadcode` rougit sur les DIX hooks** : rien ne les monte avant T2.4. Même
+reprise qu'en T2.2 — une entrée par hook dans `ALLOW_SYMBOLS`, chacune nommant la tâche qui
+la consommera et donc la retirera. Les deux exemptions d'`oauthPopup` s'en vont ici, parce
+que `useMailOAuthPopup` les lit.
 
 ---
 
@@ -1212,13 +1300,54 @@ git commit -m "feat(messagerie): hooks comptes, libellés, fils, gestes optimist
 
 Dimensions : README §1 a-d. Rappel de transposition : `--elev`→`ms.elev`, `--hover`→`ms.hover`, `--hover2`→`ms.hover2`, `--bord`→`ms.bord`, `--mut`→`ms.mut`, `--txt3/4`→`ms.txt3`, accent→`ms.accent`/`ms.accentInk`, 10-11 px→`--crm-text-xs`, 12-12.5→`sm`, 13-13.5→`md`, rayons 13-16→`--crm-radius-xl`, 999→`PILL`.
 
+⛔ **SEPT ÉCARTS MESURÉS À LA LIVRAISON (04.09.2026) — les blocs ci-dessous les portent déjà.**
+Ils ne sont pas des préférences : chacun faisait rougir une porte que la règle 1 du lot
+annonce pourtant, ou une règle de CLAUDE.md §3.
+
+1. **`textTransform: 'uppercase'` + `letterSpacing: '0.08em'` sur les quatre sur-titres
+   (« BOÎTE », « LIBELLÉS »…) : RETIRÉS.** `megga-x-grammar.spec.ts` a deux clauses
+   dessus — « aucune micro-capitale » (`/textTransform:\s*'uppercase'/`) et « aucun
+   interlettrage de micro-capitale » (seuil `0.04em`, donc 0,08 le franchit) — et la zone
+   `crm/messagerie` y est inscrite depuis T2.1. C'est aussi la SEULE des sept règles
+   visuelles de CLAUDE.md §3 qui soit encore vraie ET gardée. Le sur-titre garde sa
+   graisse 600 et son encre `ms.mut` : c'est ce qui le distingue, pas la capitale.
+2. **`fontWeight: 700` → `600`** (pastilles de non-lus, expéditeur non lu). Clause
+   « aucune graisse au-dessus de 600 » ; la vitrine ne compte qu'un seul 700, sur
+   `strong`.
+3. **Tout littéral de rayon/espacement passe au jeton.** `gap: 2`, `padding: '2px 7px'`,
+   `padding: '2px 8px'`, `marginTop: 2`, `borderRadius: 6`, `top: 'calc(100% + 6px)'`
+   étaient des littéraux. La clause « aucune zone ne dépasse son inventaire de rayons et
+   d'espacements » n'a AUCUNE entrée pour `src/components/crm/messagerie` — la zone doit
+   donc rendre zéro, et une entrée neuve serait une dette inscrite au premier fichier.
+   Report par la table du maître §1 : 2→`2xs`, 6/7→`sm`, 6 px de rayon sur une barre de
+   12 px = `PILL` (visuellement identique).
+4. **`useFocusTrap(ref, open)` n'existe pas.** Signature réelle :
+   `useFocusTrap(active, onEscape?)`, et elle **REND** la ref. Le geste du plan aurait
+   compilé (une ref est truthy) en piégeant le mauvais nœud. Échap est déjà géré par le
+   hook : le second écouteur du plan est retiré.
+5. **`import { MEIcon }` → `import MEIcon`** : `MEIcon` est un export PAR DÉFAUT
+   (`MEIconName`, lui, est bien nommé).
+6. **La commande de vérification des icônes rend des faux « ok ».** Elle greppe
+   `MEIcon.tsx` ET `PxIconFont.tsx`, or un nom présent dans le seul `PxIconFontName` ne
+   se rend PAS : il faut l'union `MEIconName` **et** une entrée de table. Mesuré :
+   `inbox`, `archive`, `paperclip` n'existaient que côté police, `file-text` nulle part.
+   Les quatre sont **redessinés en trait** dans `PATHS`, pas délégués à `FONT_FALLBACK` :
+   la police d'icônes est PLEINE, et `inbox`/`archive` en aplat entre `star` et `send`
+   auraient fait deux blocs au milieu de traits.
+7. **`hslToHex` déménage dans `mailTokens.ts`**, et l'effet qui la rappelait disparaît.
+   Un fichier de composant qui exporte aussi une fonction déclenche
+   `react-refresh/only-export-components`, **erreur** ici (`npm run lint` doit rendre 0) ;
+   et `useEffect(() => { if (custom) setColor(hslToHex(…)) })` déclenche
+   `react-hooks/set-state-in-effect`. La teinte se POSE au geste (`poserTeinte`), ce qui
+   économise un rendu et dit mieux l'intention.
+
 - [ ] **Step 1 : La coquille de modale (réutilisée par les 7 modales)**
 
 ```tsx
 // src/components/crm/messagerie/MailModalShell.tsx
 // Une modale = portail sur document.body + voile assombrissant + carte + piège de focus +
 // Escape (modèle WhatsAppConnectModal.tsx:70-101). z-index 300 par défaut (règle 3 du lot).
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { crmVoileAssombrissant } from '@/components/crm/tokens'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -1240,14 +1369,14 @@ interface Props {
 }
 
 export function MailModalShell({ ms, open, onClose, width, ariaLabel, zIndex = 300, veil = 0.4, blur = 6, children, column }: Props) {
-  const ref = useRef<HTMLDivElement>(null)
-  useFocusTrap(ref, open)
+  // ⚠ `useFocusTrap(active, onEscape?)` REND la ref, et gère déjà Échap.
+  const ref = useFocusTrap(open, onClose)
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+    const precedent = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = precedent }
+  }, [open])
   if (!open) return null
   return createPortal(
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex, display: 'grid', placeItems: 'center', padding: 'var(--crm-space-7xl)', background: crmVoileAssombrissant(veil), backdropFilter: `blur(${blur}px)`, WebkitBackdropFilter: `blur(${blur}px)` }}>
@@ -1271,7 +1400,7 @@ export function MailCloseButton({ ms, onClick, label }: { ms: MailSurfaces; onCl
   )
 }
 ```
-(⚠ `useFocusTrap(ref, active)` : vérifier la signature dans `src/hooks/useFocusTrap.ts` et s'y conformer.)
+(⚠ signature RÉELLE : `useFocusTrap(active, onEscape?)`, qui **rend** la ref — écart n° 4 ci-dessus.)
 
 - [ ] **Step 2 : Sélecteur de boîte**
 
@@ -1279,7 +1408,7 @@ export function MailCloseButton({ ms, onClick, label }: { ms: MailSurfaces; onCl
 // src/components/crm/messagerie/MailBoxSelector.tsx — README §1a.
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import type { MailAccount } from '@/hooks/useMailAccounts'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
@@ -1307,13 +1436,13 @@ export function MailBoxSelector({ ms, accounts, unread, currentId, open, onToggl
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-md) var(--crm-space-lg)', background: ms.elev, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-xl)', cursor: 'pointer', color: ms.ink, textAlign: 'left', transition: MAIL_TRANSITION }}
         onMouseEnter={(e) => { e.currentTarget.style.borderColor = ms.dim }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = ms.bord }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut }}>{t('mail.box.label')}</div>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{t('mail.box.label')}</div>
           <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current?.email ?? t('mail.box.none')}</div>
         </div>
         <MEIcon name="chevron-down" size={12} color={ms.mut} />
       </button>
       {open && (
-        <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40, background: ms.card, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xs)', display: 'flex', flexDirection: 'column', gap: 2, boxShadow: ms.shadow }}>
+        <div role="menu" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 40, marginTop: 'var(--crm-space-2xs)', background: ms.card, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xs)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)', boxShadow: ms.shadow }}>
           {accounts.map((a) => (
             <button key={a.id} type="button" role="menuitem" onClick={() => { onSelect(a.id); onClose() }}
               style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', background: a.id === currentId ? ms.elev : 'transparent', border: 'none', cursor: 'pointer', color: ms.ink, textAlign: 'left', transition: MAIL_TRANSITION }}
@@ -1323,12 +1452,12 @@ export function MailBoxSelector({ ms, accounts, unread, currentId, open, onToggl
                 <div style={{ fontSize: 'var(--crm-text-xs)', color: a.status === 'active' ? ms.mut : ms.danger }}>{desc(a)}</div>
               </div>
               {(unread[a.id] ?? 0) > 0 && (
-                <span style={{ borderRadius: PILL, padding: '2px 7px', fontSize: 'var(--crm-text-xs)', fontWeight: 700, background: ms.accent, color: ms.accentInk }}>{unread[a.id]}</span>
+                <span style={{ borderRadius: PILL, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: ms.accent, color: ms.accentInk }}>{unread[a.id]}</span>
               )}
             </button>
           ))}
           <button type="button" role="menuitem" onClick={() => { onAdd(); onClose() }}
-            style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-md) var(--crm-space-lg)', marginTop: 2, borderTop: `1px solid ${ms.bord2}`, background: 'transparent', border: 'none', borderRadius: 0, cursor: 'pointer', color: ms.txt3, fontSize: 'var(--crm-text-xs)', fontWeight: 500, transition: MAIL_TRANSITION }}
+            style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderTop: `1px solid ${ms.bord2}`, background: 'transparent', border: 'none', borderRadius: 0, cursor: 'pointer', color: ms.txt3, fontSize: 'var(--crm-text-xs)', fontWeight: 500, transition: MAIL_TRANSITION }}
             onMouseEnter={(e) => { e.currentTarget.style.color = ms.ink }} onMouseLeave={(e) => { e.currentTarget.style.color = ms.txt3 }}>
             <MEIcon name="plus" size={12} /> {t('mail.add.cta')}
           </button>
@@ -1343,20 +1472,17 @@ export function MailBoxSelector({ ms, accounts, unread, currentId, open, onToggl
 
 ```tsx
 // src/components/crm/messagerie/MailLabelCreator.tsx — README §1d « Créateur de libellé ».
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
-import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
+import { hslToHex, MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 import type { MailLabel } from '@/hooks/useMailLabels'
 
 const PRESETS = [MXC_SYSTEM.red400, MXC_SYSTEM.blue300, MXC_SYSTEM.yellow400, MXC_SYSTEM.green300, MXC_COLOR.accent, MXC_COLOR.n500]
 const LIGHTNESS = [30, 40, 50, 60, 70, 80]
 
-export function hslToHex(h: number, s: number, l: number): string {
-  const a = (s / 100) * Math.min(l / 100, 1 - l / 100)
-  const f = (n: number) => { const k = (n + h / 30) % 12; const c = l / 100 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(255 * c).toString(16).padStart(2, '0') }
-  return `#${f(0)}${f(8)}${f(4)}`
-}
+// ⚠ `hslToHex` vit dans `mailTokens.ts` (écart n° 7) : un fichier de composant qui
+// exporte une fonction fait ÉCHOUER `npm run lint` (react-refresh/only-export-components).
 
 interface Props { ms: MailSurfaces; initial?: MailLabel | null; onCancel: () => void; onSave: (v: { name: string; color: string }) => void; busy?: boolean }
 
@@ -1367,13 +1493,14 @@ export function MailLabelCreator({ ms, initial, onCancel, onSave, busy }: Props)
   const [custom, setCustom] = useState(false)
   const [hue, setHue] = useState(220)
   const [light, setLight] = useState(50)
-  useEffect(() => { if (custom) setColor(hslToHex(hue, 85, light)) }, [custom, hue, light])
+  // La teinte se POSE au geste : `setState` dans un effet est refusé (écart n° 7).
+  const poserTeinte = (h: number, l: number) => { setHue(h); setLight(l); setColor(hslToHex(h, 85, l)) }
   const hexOk = useMemo(() => /^#[0-9a-fA-F]{6}$/.test(color), [color])
   const field = { background: ms.elev, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', outline: 'none' } as const
 
   return (
     <div style={{ background: ms.elev, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-md) var(--crm-space-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
-      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut }}>{initial ? t('mail.labels.rename') : t('mail.labels.new')}</div>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{initial ? t('mail.labels.rename') : t('mail.labels.new')}</div>
       <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder={t('mail.labels.namePlaceholder')} autoFocus
         style={{ ...field, borderRadius: PILL, padding: 'var(--crm-space-sm) var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)' }} />
       <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1381,22 +1508,22 @@ export function MailLabelCreator({ ms, initial, onCancel, onSave, busy }: Props)
           <button key={c} type="button" aria-label={c} onClick={() => { setCustom(false); setColor(c) }}
             style={{ width: 22, height: 22, borderRadius: '50%', background: c, border: `2px solid ${color === c && !custom ? ms.ink : 'transparent'}`, cursor: 'pointer', transition: MAIL_TRANSITION }} />
         ))}
-        <button type="button" onClick={() => setCustom((v) => !v)} aria-pressed={custom} title={t('mail.labels.custom')}
+        <button type="button" onClick={() => { const on = !custom; setCustom(on); if (on) poserTeinte(hue, light) }} aria-pressed={custom} title={t('mail.labels.custom')}
           style={{ width: 22, height: 22, borderRadius: '50%', background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)', border: `2px solid ${custom ? ms.ink : 'transparent'}`, cursor: 'pointer' }} />
       </div>
       {custom && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
-          <input type="range" min={0} max={360} value={hue} onChange={(e) => setHue(Number(e.target.value))} aria-label={t('mail.labels.hue')}
-            style={{ width: '100%', height: 12, borderRadius: 6, appearance: 'none', background: 'linear-gradient(90deg, hsl(0 85% 50%), hsl(60 85% 50%), hsl(120 85% 50%), hsl(180 85% 50%), hsl(240 85% 50%), hsl(300 85% 50%), hsl(360 85% 50%))' }} />
+          <input type="range" min={0} max={360} value={hue} onChange={(e) => poserTeinte(Number(e.target.value), light)} aria-label={t('mail.labels.hue')}
+            style={{ width: '100%', height: 12, borderRadius: PILL, appearance: 'none', background: 'linear-gradient(90deg, hsl(0 85% 50%), hsl(60 85% 50%), hsl(120 85% 50%), hsl(180 85% 50%), hsl(240 85% 50%), hsl(300 85% 50%), hsl(360 85% 50%))' }} />
           <div style={{ display: 'flex', gap: 'var(--crm-space-sm)' }}>
             {LIGHTNESS.map((l) => (
-              <button key={l} type="button" aria-label={`${l}%`} onClick={() => setLight(l)}
+              <button key={l} type="button" aria-label={`${l}%`} onClick={() => poserTeinte(hue, l)}
                 style={{ flex: 1, height: 18, borderRadius: 'var(--crm-radius-xs)', background: hslToHex(hue, 85, l), border: `2px solid ${light === l ? ms.ink : 'transparent'}`, cursor: 'pointer' }} />
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
             <span style={{ width: 22, height: 22, borderRadius: '50%', background: hexOk ? color : ms.bord }} />
-            <input value={color} onChange={(e) => setColor(e.target.value)} maxLength={7} aria-label="hex"
+            <input value={color} onChange={(e) => setColor(e.target.value)} maxLength={7} aria-label={t('mail.labels.hex')}
               style={{ ...field, borderRadius: PILL, padding: 'var(--crm-space-xs) var(--crm-space-md)', fontSize: 'var(--crm-text-xs)', letterSpacing: '0.04em', width: 96 }} />
           </div>
         </div>
@@ -1457,7 +1584,7 @@ export function MailLabelMenu({ ms, x, y, onClose, onRename, onRecolor, onDelete
 ```tsx
 // src/components/crm/messagerie/MailRail.tsx — README §1 (a, b, c, d).
 import { useTranslation } from 'react-i18next'
-import { MEIcon, type MEIconName } from '@/components/propertyx/MEIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { MailAccount } from '@/hooks/useMailAccounts'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import type { MailFolderCounts } from '@/hooks/useMailThreads'
@@ -1514,7 +1641,7 @@ export function MailRail(p: Props) {
               <MEIcon name={f.icon} size={16} />
               <span>{t(f.label)}</span>
               {f.key === 'in' && p.counts.inbox_unread > 0 && (
-                <span style={{ marginLeft: 'auto', borderRadius: PILL, padding: '2px 8px', fontSize: 'var(--crm-text-xs)', fontWeight: 700, background: ms.accent, color: ms.accentInk }}>{p.counts.inbox_unread}</span>
+                <span style={{ marginLeft: 'auto', borderRadius: PILL, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: ms.accent, color: ms.accentInk }}>{p.counts.inbox_unread}</span>
               )}
               {f.key === 'arch' && counter(p.counts.archived)}
               {f.key === 'draft' && counter(p.counts.drafts)}
@@ -1525,7 +1652,7 @@ export function MailRail(p: Props) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 var(--crm-space-sm) 0 var(--crm-space-lg)' }}>
-          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut }}>{t('mail.labels.title')}</span>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{t('mail.labels.title')}</span>
           <button type="button" title={t('mail.labels.new')} onClick={p.onOpenCreator}
             style={{ marginLeft: 'auto', width: 22, height: 22, borderRadius: '50%', background: 'transparent', border: 'none', color: ms.txt3, cursor: 'pointer', display: 'grid', placeItems: 'center', transition: MAIL_TRANSITION }}
             onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover2 }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
@@ -1587,17 +1714,28 @@ Appeler aussi `useMailRealtime(profile?.agency_id ?? null)` dans `MessagerieApp`
 "box": { "label": "Boîte", "none": "Aucune boîte", "synced": "synchronisée", "disconnect": "Déconnecter", "disconnectConfirm": "Déconnecter cette boîte ? Ses messages seront retirés du CRM ; les documents classés restent.", "status": { "reauth_required": "Autorisation à renouveler", "error": "Erreur de synchronisation", "disabled": "Désactivée" } },
 "compose": { "cta": "Nouveau message" },
 "folders": { "aria": "Dossiers", "in": "Boîte de réception", "arch": "Archivé", "star": "Suivis", "sent": "Envoyés", "draft": "Brouillons" },
-"labels": { "title": "Libellés", "new": "Nouveau libellé", "rename": "Renommer", "recolor": "Changer la couleur", "delete": "Supprimer", "namePlaceholder": "Nom du libellé", "custom": "Couleur personnalisée", "hue": "Teinte", "create": "Créer" },
+"labels": { "title": "Libellés", "new": "Nouveau libellé", "rename": "Renommer", "recolor": "Changer la couleur", "delete": "Supprimer", "namePlaceholder": "Nom du libellé", "custom": "Couleur personnalisée", "hue": "Teinte", "hex": "Code hexadécimal", "create": "Créer" },
 "actions": { "cancel": "Annuler", "save": "Enregistrer" }
 ```
+
+⚠ **Les quatre langues, pas seulement le FR.** `i18n:parity:ci` exige chaque clé FR en
+DE/EN/IT, et `i18n:coverage:ci` refuse une valeur allemande IDENTIQUE à l'anglaise : `"Labels"`
+recopié en DE l'a fait rougir (`de/messages : 0 → 1`). Le DE dit **« Kategorien »** — le terme
+d'Outlook allemand pour ce classement.
 
 - [ ] **Step 8 : Build, lint, commit**
 
 ```bash
-npm run build && npm run lint && npm run lint:i18n
+npm run build && npm run lint && npm run lint:i18n && npm run lint:deadcode \
+  && npm run i18n:parity:ci && npm run i18n:coverage:ci
 git add -A
-git commit -m "feat(messagerie): rail (sélecteur de boîte, dossiers, libellés, créateur, menu de libellé)"
+git commit -m "feat(messagerie): le rail — boîtes, dossiers, libellés"
 ```
+
+⚠ **`lint:deadcode` fait partie de cette étape** : la tâche RETIRE trois exemptions de
+`scripts/check-dead-exports.mjs` (`useMailLabels`, `useMailRealtime`, `useMailFolderCounts`,
+désormais lus par `MessagerieApp`) et en AJOUTE deux, nommées, pour `MailModalShell` et
+`MailCloseButton` — la coquille précède ses sept modales, sa première consommatrice est T2.7.
 
 ---
 
@@ -1609,12 +1747,36 @@ git commit -m "feat(messagerie): rail (sélecteur de boîte, dossiers, libellés
 
 Dimensions : README §2. Grille de ligne `26px 185px minmax(0,1fr) 16px 58px`, `gap:10px`, `padding:11px 12px`, `border-bottom:1px solid --bord2`, étoile 15 px (`ms.star` active, `ms.dim` inactive), expéditeur 700/500, pastille de libellé `3px 10px / 10px / 600`, extrait `— …` en `ms.mut`, trombone 13 px, date `ms.txt3` à droite.
 
+⛔ **CINQ ÉCARTS MESURÉS À LA LIVRAISON (04.09.2026), en plus des sept de la 2.4** — mêmes
+portes, mêmes raisons ; les blocs ci-dessous les portent déjà.
+
+1. **`fontWeight: 700` de l'expéditeur non lu → `600`**, et la pastille de libellé perd son
+   `padding: '3px 10px'` littéral au profit de `var(--crm-space-2xs) var(--crm-space-sm)`.
+   La GRILLE, elle, reste au pixel : `gridTemplateColumns` n'est pas une propriété
+   d'espacement — l'échelle règle rayons, marges et écarts, pas la mise en page d'un
+   tableau.
+2. **Le sur-titre « LIBELLÉS » du menu contextuel perd micro-capitale et interlettrage**
+   (clauses `megga-x-grammar`, cf. écart n° 1 de la 2.4).
+3. **`import { MEIcon }` → `import MEIcon`** : export par défaut.
+4. ✅ **Le tiret demi-cadratin de `pager.range` est bien refusé** — la réserve écrite au
+   step 6 était juste. `scripts/check-prose-typography.mjs:45-46` teste l'em PUIS l'en, et
+   `locales/` est son seul périmètre. Les quatre langues écrivent donc une préposition :
+   « à » · « to » · « bis » · « a ».
+5. ⛔ **LE DÉBOUNCE NE PEUT PAS VIVRE DANS `MailList`.** Le plan l'y plaçait ; mesuré,
+   c'est un défaut : `select-account` **reconstruit** l'état (`initialMailState`), donc
+   `state.q` retombe à vide en changeant de boîte — un état local dans la liste, lui,
+   garderait la saisie et la repousserait au parent 250 ms plus tard. La recherche de
+   l'ancienne boîte reviendrait toute seule, sans qu'on l'ait retapée. Le miroir débouncé
+   vit dans `MessagerieApp`, où il suit toujours la source ; le champ lit `state.q`
+   directement, donc la frappe reste instantanée.
+
+
 - [ ] **Step 1 : Pager (porté d'`AdminPager`, `sp` en prop)**
 
 ```tsx
 // src/components/crm/messagerie/MailPager.tsx — « 1–12 sur 48 » + chevrons (README §2).
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { MAIL_TRANSITION, type MailSurfaces } from './mailTokens'
 
 interface Props { ms: MailSurfaces; page: number; perPage: number; total: number; onPage: (p: number) => void }
@@ -1644,7 +1806,7 @@ export function MailPager({ ms, page, perPage, total, onPage }: Props) {
 ```tsx
 // src/components/crm/messagerie/MailListRow.tsx — README §2 « Lignes ».
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import { displayAddress, mailDateLabel } from '@/lib/mail/format'
@@ -1654,7 +1816,8 @@ interface Props { ms: MailSurfaces; row: MailThreadRow; label: MailLabel | null;
 
 export function MailListRow({ ms, row, label, lang, onOpen, onStar, onContext }: Props) {
   const { t } = useTranslation('messages')
-  const weight = row.is_read ? 500 : 700
+  // 600 et non 700 : la grammaire MEGGA X y plafonne, et 500/600 suffit à lire « non lu ».
+  const weight = row.is_read ? 500 : 600
   const sender = row.from_name || row.from_email || (row.participants[0] ? displayAddress(row.participants[0]) : '')
   return (
     <div role="row" tabIndex={0} onClick={onOpen} onContextMenu={(e) => { e.preventDefault(); onContext(e) }} onKeyDown={(e) => { if (e.key === 'Enter') onOpen() }}
@@ -1666,7 +1829,7 @@ export function MailListRow({ ms, row, label, lang, onOpen, onStar, onContext }:
       </button>
       <span style={{ fontWeight: weight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sender}</span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minWidth: 0 }}>
-        {label && <span style={{ borderRadius: PILL, padding: '3px 10px', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: label.color, color: ms.pillInk(label.color), flexShrink: 0 }}>{label.name}</span>}
+        {label && <span style={{ borderRadius: PILL, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: label.color, color: ms.pillInk(label.color), flexShrink: 0 }}>{label.name}</span>}
         <span style={{ fontWeight: weight, whiteSpace: 'nowrap', flexShrink: 0 }}>{row.subject || t('mail.row.noSubject')}</span>
         {row.snippet && <span style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>— {row.snippet}</span>}
       </span>
@@ -1720,7 +1883,7 @@ export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onActi
         {item(row.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), () => onAction(row.is_archived ? 'unarchive' : 'archive'))}
         {item(t('mail.ctx.delete'), onDelete, { danger: true })}
         <div style={{ height: 1, background: ms.bord2, margin: 'var(--crm-space-2xs) 0' }} />
-        <div style={{ padding: 'var(--crm-space-2xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut }}>{t('mail.labels.title')}</div>
+        <div style={{ padding: 'var(--crm-space-2xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{t('mail.labels.title')}</div>
         {labels.map((l) => item(l.name, () => onLabel(row.label_id === l.id ? null : l.id), { dot: l.color }))}
       </div>
     </>,
@@ -1734,7 +1897,7 @@ export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onActi
 ```tsx
 // src/components/crm/messagerie/MailList.tsx — README §2 (barre d'outils + lignes + vide).
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { MAIL_PER_PAGE, type MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import type { MailDraft } from '@/hooks/useMailDrafts'
@@ -1775,7 +1938,7 @@ export function MailList(p: Props) {
       </div>
       <div className="scrollbar-hide" style={{ padding: '0 var(--crm-space-2xl) var(--crm-space-3xl)', overflowY: 'auto', minHeight: 0, flex: 1 }}>
         {p.drafts ? (
-          p.drafts.length === 0 ? <Empty ms={ms} text={t('mail.empty.noMessage')} /> : p.drafts.map((d) => (
+          p.drafts.length === 0 ? <MailListEmpty ms={ms} text={t('mail.empty.noMessage')} /> : p.drafts.map((d) => (
             <div key={d.id} role="row" tabIndex={0} onClick={() => p.onOpenDraft(d.id)} onKeyDown={(e) => { if (e.key === 'Enter') p.onOpenDraft(d.id) }}
               style={{ display: 'grid', gridTemplateColumns: '26px 185px minmax(0,1fr) 16px 58px', gap: 'var(--crm-space-md)', alignItems: 'center', padding: 'var(--crm-space-md) var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)', borderBottom: `1px solid ${ms.bord2}`, cursor: 'pointer', color: ms.ink }}>
               <span />
@@ -1785,7 +1948,7 @@ export function MailList(p: Props) {
               <span style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3, textAlign: 'right' }}>{t('mail.draft.badge')}</span>
             </div>
           ))
-        ) : p.isLoading ? null : p.rows.length === 0 ? <Empty ms={ms} text={t('mail.empty.noMessage')} /> : (
+        ) : p.isLoading ? null : p.rows.length === 0 ? <MailListEmpty ms={ms} text={t('mail.empty.noMessage')} /> : (
           p.rows.map((r) => <MailListRow key={r.id} ms={ms} row={r} label={labelOf(r.label_id)} lang={p.lang} onOpen={() => p.onOpen(r.id)} onStar={() => p.onStar(r)} onContext={(e) => p.onContext(e, r)} />)
         )}
       </div>
@@ -1793,7 +1956,9 @@ export function MailList(p: Props) {
   )
 }
 
-function Empty({ ms, text }: { ms: MailSurfaces; text: string }) {
+// ⚠ `MailListEmpty` et non `Empty` : un nom aussi générique dans un dossier de
+// quinze composants se fait réimporter par erreur depuis le voisin.
+function MailListEmpty({ ms, text }: { ms: MailSurfaces; text: string }) {
   return <div style={{ padding: 'var(--crm-space-7xl) var(--crm-space-4xl)', textAlign: 'center', fontSize: 'var(--crm-text-sm)', color: ms.mut }}>{text}</div>
 }
 ```
@@ -1823,25 +1988,26 @@ const { i18n } = useTranslation()
     onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadId: r.id } })} onLabel={(id) => actions.setLabel.mutate({ threadId: r.id, labelId: id })} />
 ) : null })()}
 ```
-La recherche est débouncée à 250 ms dans `MailList` (un `useState` local + `useEffect` avec `setTimeout` avant d'appeler `onQ`) — sinon une RPC par frappe.
+La recherche est débouncée à 250 ms **dans `MessagerieApp`**, pas dans `MailList` (écart n° 5 ci-dessus) : un miroir `useState` + `setTimeout` sur `state.q`, dont `useMailThreads` lit la valeur retardée. Le champ, lui, lit `state.q` sans délai.
 
 - [ ] **Step 6 : Clés i18n FR**
 
 ```json
 "list": { "search": "Recherche", "searchPlaceholder": "Chercher un expéditeur, un objet ...", "unread": "Non lus", "attachment": "Pièce jointe" },
-"pager": { "range": "{{from}}–{{to}} sur {{total}}", "prev": "Page précédente", "next": "Page suivante" },
+"pager": { "range": "{{from}} à {{to}} sur {{total}}", "prev": "Page précédente", "next": "Page suivante" },
 "row": { "star": "Suivre", "unstar": "Ne plus suivre", "noSubject": "(sans objet)" },
 "ctx": { "open": "Ouvrir", "markRead": "Marquer comme lu", "markUnread": "Marquer comme non lu", "star": "Suivre", "unstar": "Ne plus suivre", "archive": "Archiver", "unarchive": "Désarchiver", "delete": "Supprimer" },
 "draft": { "badge": "Brouillon", "noRecipient": "(sans destinataire)" }
 ```
-⚠ `lint:prose` refuse le tiret cadratin dans `locales/` : le `–` de `pager.range` est un tiret **demi-cadratin** (U+2013) ; vérifier la règle exacte de `scripts/check-prose-typography.mjs` — si elle le refuse aussi, écrire `"{{from}} à {{to}} sur {{total}}"`.
+✅ Réserve VÉRIFIÉE (04.09.2026) : `scripts/check-prose-typography.mjs:45-46` refuse l'em **et** le demi-cadratin dans `locales/`. La clé écrit donc « à » (et « to » · « bis » · « a » dans les trois autres langues). ⚠ Les quatre langues sont livrées ICI et non repoussées en T2.12 : `i18n:parity:ci` exige chaque clé FR en DE/EN/IT, et `i18n:coverage:ci` refuse une valeur allemande identique à l'anglaise.
 
 - [ ] **Step 7 : Build, lint, commit**
 
 ```bash
-npm run build && npm run lint && npm run lint:i18n && npm run lint:prose
+npm run build && npm run lint && npm run lint:i18n && npm run lint:prose \\
+  && npm run lint:deadcode && npm run i18n:parity:ci && npm run i18n:coverage:ci
 git add -A
-git commit -m "feat(messagerie): liste (recherche, chips, pagination 12, lignes, menu contextuel, brouillons)"
+git commit -m "feat(messagerie): la liste — barre d'outils, lignes, pagination, menu contextuel"
 ```
 
 ---
@@ -1855,6 +2021,36 @@ git commit -m "feat(messagerie): liste (recherche, chips, pagination 12, lignes,
 
 Dimensions : README §3.
 
+⛔ **SEPT ÉCARTS MESURÉS À L'ÉCRITURE (05.09.2026)** — les blocs ci-dessous sont corrigés, la
+liste dit pourquoi. Trois d'entre eux auraient fait rougir une porte, deux ne se voient qu'à
+l'exécution.
+
+1. **`import { MEIcon }` → `import MEIcon`.** `src/components/propertyx/MEIcon.tsx` n'a qu'un
+   export DÉFAUT (`export default function MEIcon`) ; l'import nommé ne compile pas. T2.5 avait
+   déjà écrit la forme correcte.
+2. **`<MEIcon name="x" …>` (T2.7) → `name="close"`.** `'x'` n'est pas un membre de `MEIconName`.
+   ⚠ Un nom inconnu ne casse pas le rendu — `MEIcon` rend `null` — mais TS refuse le littéral.
+3. **`fontWeight: 700` (titre du fil, titre de la modale) → `600`.** `megga-x-grammar` a une
+   clause « aucune graisse au-dessus de 600 », et son motif lit l'EXPRESSION entière.
+4. **`<b style={{ color: ms.ink }}>` → `<span style={{ …, fontWeight: 600 }}>`.** Une clause
+   dédiée interdit `<strong>`/`<b>` dans les zones portées : le preflight Tailwind leur donne
+   `bolder`, qui vaut **700** sur un parent à 500 — une graisse que la source ne déclare pas.
+5. **`padding: '3px 10px'` (pastille de libellé) → `var(--crm-space-2xs) var(--crm-space-sm)`.**
+   La zone `crm/messagerie` n'a AUCUNE entrée dans `B4_ASSUME` : le cliquet refuse le premier
+   littéral de rayon ou d'espacement, pas le centième. Même valeur que `MailListRow`.
+6. **`buildBodySrcdoc(…, { font: 'var(--crm-font)' })` → la police RÉSOLUE côté hôte.** ⛔ Une
+   variable CSS ne franchit pas la frontière d'un document : dans la `srcdoc`, `--crm-font`
+   n'existe pas, la déclaration `font-family` entière est écartée, et le corps du mail sort en
+   **sérif du navigateur** au milieu d'un écran sans serif. Panne muette, invisible à la
+   relecture. `MailBodyFrame` lit donc
+   `getComputedStyle(document.documentElement).getPropertyValue('--crm-font')`. ⚠ La police
+   elle-même ne suit pas (chaque document a son jeu de polices, et la CSP y interdit
+   `font-src`) : le rendu tombe sur `system-ui`, le repli déclaré par `buildBodySrcdoc`.
+7. **Le repli du fil ouvert : `useRef` → un état ajusté PENDANT le rendu.** `react-hooks/refs`
+   est une ERREUR dans ce dépôt, et lire `.current` au rendu en lève quatre (mesuré). ⚠ Et pas
+   un effet non plus : `react-hooks/set-state-in-effect` le signale, et l'effet ferait un rendu
+   de plus, donc un clignotement. Le repli n'est servi que si son identifiant correspond encore.
+
 - [ ] **Step 1 : Corps HTML dans une iframe sandbox**
 
 ```tsx
@@ -1864,9 +2060,15 @@ Dimensions : README §3.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { buildBodySrcdoc, sanitizeMailHtml } from '@/lib/mail/sanitize'
-import type { MailSurfaces } from './mailTokens'
+import { PILL, type MailSurfaces } from './mailTokens'
 
 interface Props { ms: MailSurfaces; html: string | null; text: string | null; truncated: boolean }
+
+/** Écart n° 6 : une variable CSS ne franchit pas la frontière d'un document. */
+function policeHote(): string {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--crm-font').trim()
+  return v || 'system-ui'
+}
 
 export function MailBodyFrame({ ms, html, text, truncated }: Props) {
   const { t } = useTranslation('messages')
@@ -1874,7 +2076,7 @@ export function MailBodyFrame({ ms, html, text, truncated }: Props) {
   const [height, setHeight] = useState(120)
   const ref = useRef<HTMLIFrameElement>(null)
   const hasRemote = useMemo(() => !!html && /<img[^>]+src=["']?https?:/i.test(html), [html])
-  const doc = useMemo(() => (html ? buildBodySrcdoc(sanitizeMailHtml(html, { remoteImages: remote }), { ink: ms.txt2, font: 'var(--crm-font)', remoteImages: remote }) : null), [html, remote, ms.txt2])
+  const doc = useMemo(() => (html ? buildBodySrcdoc(sanitizeMailHtml(html, { remoteImages: remote }), { ink: ms.txt2, font: policeHote(), remoteImages: remote }  // écart n° 6) : null), [html, remote, ms.txt2])
   useEffect(() => {
     const el = ref.current
     if (!el || !doc) return
@@ -1894,7 +2096,7 @@ export function MailBodyFrame({ ms, html, text, truncated }: Props) {
   return (
     <div style={{ maxWidth: 760 }}>
       {hasRemote && !remote && (
-        <button type="button" onClick={() => setRemote(true)} style={{ marginTop: 'var(--crm-space-lg)', background: ms.elev, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button type="button" onClick={() => setRemote(true)} style={{ marginTop: 'var(--crm-space-lg)', background: ms.elev, border: `1px solid ${ms.bord}`, borderRadius: PILL, padding: 'var(--crm-space-xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3, cursor: 'pointer', fontFamily: 'inherit' }}>
           {t('mail.read.showImages')}
         </button>
       )}
@@ -1953,7 +2155,7 @@ export function MailReplyComposer({ ms, toName, busy, onCancel, onSend }: Props)
   const can = text.trim().length > 0 && !busy
   return (
     <div style={{ borderRadius: 'var(--crm-radius-xl)', background: ms.elev, padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', marginTop: 'var(--crm-space-4xl)' }}>
-      <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3, marginBottom: 'var(--crm-space-md)' }}>{t('mail.read.replyTo')} <b style={{ color: ms.ink }}>{toName}</b></div>
+      <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3, marginBottom: 'var(--crm-space-md)' }}>{t('mail.read.replyTo')} <span style={{ color: ms.ink, fontWeight: 600 }}>{toName}</span>  {/* écart n° 4 */}</div>
       <textarea value={text} onChange={(e) => setText(e.target.value)} autoFocus aria-label={t('mail.read.replyBody')}
         style={{ width: '100%', minHeight: 110, boxSizing: 'border-box', borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg) var(--crm-space-2xl)', fontSize: 'var(--crm-text-md)', lineHeight: 1.6, background: ms.card, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-md)' }}>
@@ -2006,7 +2208,7 @@ export function MailForwardComposer({ ms, originalFrom, originalSubject, busy, o
 ```tsx
 // src/components/crm/messagerie/MailReader.tsx — README §3.
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'  // écart n° 1 : export DÉFAUT
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailMessageRow, MailAttachmentRow } from '@/hooks/useMailThread'
 import type { MailLabel } from '@/hooks/useMailLabels'
@@ -2058,13 +2260,13 @@ export function MailReader(p: Props) {
         <MEIcon name="chevron-left" size={14} /> {t('mail.read.back')}
       </button>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-2xl)' }}>
-        <h1 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, margin: 0 }}>{p.thread.subject || t('mail.row.noSubject')}</h1>
-        {p.label && <span style={{ borderRadius: PILL, padding: '3px 10px', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: p.label.color, color: ms.pillInk(p.label.color) }}>{p.label.name}</span>}
+        <h1 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, margin: 0 }}>  {/* écart n° 3 */}{p.thread.subject || t('mail.row.noSubject')}</h1>
+        {p.label && <span style={{ borderRadius: PILL, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: p.label.color, color: ms.pillInk(p.label.color) }}>  {/* écart n° 5 */}{p.label.name}</span>}
       </div>
       {!p.thread.contact_id && inboundLast.from_email && (
         <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>
           {t('mail.read.unlinked', { email: inboundLast.from_email })}
-          <button type="button" onClick={() => p.onLinkContact(inboundLast.from_email!, inboundLast.from_name)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: ms.accent, fontWeight: 600, fontSize: 'var(--crm-text-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>{t('mail.link.cta')}</button>
+          <button type="button" onClick={() => p.onLinkContact(inboundLast.from_email ?? '', inboundLast.from_name)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: ms.accent, fontWeight: 600, fontSize: 'var(--crm-text-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>{t('mail.link.cta')}</button>
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', paddingBottom: 'var(--crm-space-2xl)', borderBottom: `1px solid ${ms.bord2}`, marginTop: 'var(--crm-space-2xl)' }}>
@@ -2123,7 +2325,13 @@ const currentAccount = accounts.list.find((a) => a.id === state.accountId) ?? nu
     onLinkContact={(email, name) => dispatch({ type: 'modal', modal: { kind: 'link-contact', threadId: selRow.id, email, name } })} />
 )}
 ```
-⚠ Si le fil ouvert sort de la page courante (filtre, page suivante), `selRow` devient null : garder la dernière ligne ouverte dans un `useRef` (`lastSel.current = selRow ?? lastSel.current`) et l'utiliser en repli — sinon la lecture disparaît sous l'utilisateur au premier `invalidate`.
+⚠ Si le fil ouvert sort de la page courante (filtre, page suivante), `selRow` devient null : garder la dernière ligne ouverte et l'utiliser en repli — sinon la lecture disparaît sous l'utilisateur au premier `invalidate`. ⛔ **Pas dans un `useRef`** (écart n° 7 ci-dessus) : `react-hooks/refs` est une ERREUR ici. Un `useState` ajusté PENDANT le rendu, et servi seulement si son identifiant correspond encore :
+```tsx
+const filTrouve = threads.rows.find((r) => r.id === state.sel) ?? null
+const [filMemo, setFilMemo] = useState<MailThreadRow | null>(null)
+if (filTrouve && filTrouve !== filMemo) setFilMemo(filTrouve)
+const filOuvert = filTrouve ?? (filMemo?.id === state.sel ? filMemo : null)
+```
 
 - [ ] **Step 6 : Clés i18n FR**
 
@@ -2151,6 +2359,29 @@ git commit -m "feat(messagerie): lecture (corps assaini en iframe, pièces, fil,
 - Modify: `src/components/crm/messagerie/MessagerieApp.tsx`
 
 Dimensions : README §4 (carte 600, calque `.12` + blur 6, titre 17/700, pilules `12px 18px`, textarea min 170, popover 340 ancré `bottom: calc(100% + 10px)`).
+
+⛔ **SIX ÉCARTS MESURÉS À L'ÉCRITURE (05.09.2026)**, en plus des écarts n° 1 à 3 de la T2.6
+(import par défaut de `MEIcon`, `name="close"` au lieu de `name="x"`, graisse plafonnée à 600) :
+
+1. **Le sur-titre « DOCUMENTS DE L'AGENCE » perd sa micro-capitale et son interlettrage.**
+   `textTransform: 'uppercase'` et `letterSpacing: '0.08em'` sont refusés par deux clauses de
+   `megga-x-grammar` — la micro-capitale était la marque de fabrique de Sugar, et un tracking
+   positif sur de la casse normale disloque le mot. La casse normale sépare aussi bien.
+2. **La modale est MONTÉE à l'ouverture, démontée à la fermeture** — plus de prop `open`, plus
+   d'effet d'amorçage. Un `setState` synchrone dans un effet est signalé par
+   `react-hooks/set-state-in-effect` et coûte un rendu ; surtout, l'état de saisie doit repartir
+   de zéro à chaque ouverture, et un `useState` d'initialisation le garantit sans dépendance à
+   oublier.
+3. **`(a.source as { doc: AgencyDocument }).doc.id` → un `flatMap` conditionnel.** `filter` ne
+   rétrécit pas l'union, et le cast qui compensait affirmait une forme que rien ne vérifie.
+4. **`key={label + sub}` dans le popover → la clé du document.** Deux documents de même nom et
+   de même taille se seraient partagé une clé.
+5. **La ligne « Depuis mon ordinateur » est écrite en JSX**, hors de l'aide commune :
+   `react-hooks/refs` est une ERREUR ici et refuse `fileRef.current` dans une flèche passée en
+   ARGUMENT (il ne peut pas prouver qu'elle ne sera pas appelée pendant le rendu). Un
+   `useCallback` ne suffit pas — mesuré ; dans un gestionnaire JSX, la règle le sait.
+6. **`state.modal.draftId` est SORTI de l'union avant le `find`** : le rétrécissement de
+   `state.modal` ne survit pas à l'entrée dans un callback (TS2339, mesuré).
 
 - [ ] **Step 1 : Documents de l'agence (pour « DOCUMENTS DE L'AGENCE »)**
 
@@ -2194,9 +2425,9 @@ export function blobToBase64(blob: Blob): Promise<string> {
 
 ```tsx
 // src/components/crm/messagerie/MailAttachPopover.tsx — README §4 « Joindre un document ».
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'  // écart n° 1 de T2.6 : export DÉFAUT
 import { useAgencyDocuments, type AgencyDocument } from '@/hooks/useAgencyDocuments'
 import { fileSizeLabel } from '@/lib/mail/format'
 import { MAIL_TRANSITION, type MailSurfaces } from './mailTokens'
@@ -2213,22 +2444,29 @@ export function MailAttachPopover({ ms, chosenDocIds, onFiles, onToggleDoc, onCl
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
   }, [onClose])
-  const row = (label: string, sub: string | null, onClick: () => void, chosen = false) => (
-    <button key={label + sub} type="button" onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', width: '100%', textAlign: 'left', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', background: 'transparent', border: 'none', color: ms.ink, fontSize: 'var(--crm-text-sm)', cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-      {sub && <span style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{sub}</span>}
-      {chosen && <MEIcon name="check" size={13} color={ms.accent} />}
+  // écart n° 4 : la clé est celle du DOCUMENT, pas « nom + taille ».
+  const styleLigne: CSSProperties = { display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', width: '100%', textAlign: 'left', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', background: 'transparent', border: 'none', color: ms.ink, fontSize: 'var(--crm-text-sm)', cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION }
+  const survol = {
+    onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = ms.hover },
+    onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'transparent' },
+  }
+  const ligneDoc = (d: AgencyDocument) => (
+    <button key={d.id} type="button" onClick={() => onToggleDoc(d)} style={styleLigne} {...survol}>
+      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+      <span style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{fileSizeLabel(d.size_bytes)}</span>
+      {chosenDocIds.has(d.id) && <MEIcon name="check" size={13} color={ms.accent} />}
     </button>
   )
   return (
     <div ref={ref} style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: 0, width: 340, background: ms.card, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-4xl)', padding: 'var(--crm-space-sm)', zIndex: 310, boxShadow: ms.solidShadow }}>
       <input ref={fileRef} type="file" multiple hidden onChange={(e) => { onFiles(Array.from(e.target.files ?? [])); onClose() }} />
-      {row(t('mail.compose.fromComputer'), null, () => fileRef.current?.click())}
-      <div style={{ padding: 'var(--crm-space-md) var(--crm-space-lg) var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut }}>{t('mail.compose.agencyDocs')}</div>
+      {/* écart n° 5 : en JSX, jamais en argument d'une aide */}
+      <button type="button" onClick={() => fileRef.current?.click()} style={styleLigne} {...survol}>
+        <span style={{ flex: 1, minWidth: 0 }}>{t('mail.compose.fromComputer')}</span>
+      </button>
+      <div style={{ padding: 'var(--crm-space-md) var(--crm-space-lg) var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{t('mail.compose.agencyDocs')}</div>  {/* écart n° 1 */}
       <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-        {(docs.data ?? []).map((d) => row(d.name, fileSizeLabel(d.size_bytes), () => onToggleDoc(d), chosenDocIds.has(d.id)))}
+        {(docs.data ?? []).map(ligneDoc)}
         {docs.data?.length === 0 && <div style={{ padding: 'var(--crm-space-md) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{t('mail.compose.noAgencyDocs')}</div>}
       </div>
     </div>
@@ -2240,9 +2478,9 @@ export function MailAttachPopover({ ms, chosenDocIds, onFiles, onToggleDoc, onCl
 
 ```tsx
 // src/components/crm/messagerie/MailComposeModal.tsx — README §4.
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'  // écart n° 1 de T2.6 : export DÉFAUT
 import { blobToBase64, documentToBase64, type AgencyDocument } from '@/hooks/useAgencyDocuments'
 import { parseRecipients, useMailContactSearch } from '@/hooks/useMailContactSearch'
 import type { MailDraft } from '@/hooks/useMailDrafts'
@@ -2253,24 +2491,20 @@ import { MailCloseButton, MailModalShell } from './MailModalShell'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
 interface Pending { key: string; name: string; size: number; mimeType: string; source: { kind: 'file'; file: File } | { kind: 'doc'; doc: AgencyDocument } }
-interface Props { ms: MailSurfaces; open: boolean; draft: MailDraft | null; sending: boolean; error: string | null
+// écart n° 2 : plus de prop `open` — le composant est monté à l'ouverture.
+interface Props { ms: MailSurfaces; draft: MailDraft | null; sending: boolean; error: string | null
   onClose: (draft: { to: string; subject: string; body: string } | null) => void; onSend: (input: MailSendInput) => void }
 
-export function MailComposeModal({ ms, open, draft, sending, error, onClose, onSend }: Props) {
+export function MailComposeModal({ ms, draft, sending, error, onClose, onSend }: Props) {
   const { t } = useTranslation('messages')
-  const [to, setTo] = useState('')
-  const [subject, setSubject] = useState('')
-  const [body, setBody] = useState('')
+  const [to, setTo] = useState(() => (draft?.to ?? []).map((a) => (a.name ? `${a.name} <${a.email}>` : a.email)).join(', '))
+  const [subject, setSubject] = useState(() => draft?.subject ?? '')
+  const [body, setBody] = useState(() => draft?.body_text ?? '')
   const [atts, setAtts] = useState<Pending[]>([])
   const [popover, setPopover] = useState(false)
   const [suggest, setSuggest] = useState(false)
   const lastTerm = to.split(/[,;]/).pop()?.trim() ?? ''
   const hits = useMailContactSearch(suggest ? lastTerm : '')
-  useEffect(() => {
-    if (!open) return
-    setTo(draft?.to.map((a) => (a.name ? `${a.name} <${a.email}>` : a.email)).join(', ') ?? '')
-    setSubject(draft?.subject ?? ''); setBody(draft?.body_text ?? ''); setAtts([]); setPopover(false)
-  }, [open, draft])
   const rcpts = useMemo(() => parseRecipients(to), [to])
   const can = rcpts.length > 0 && subject.trim().length > 0 && !sending
   const field = { background: ms.elev, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' as const }
@@ -2286,9 +2520,9 @@ export function MailComposeModal({ ms, open, draft, sending, error, onClose, onS
   const close = () => onClose(to.trim() || subject.trim() || body.trim() ? { to, subject, body } : null)
 
   return (
-    <MailModalShell ms={ms} open={open} onClose={close} width={600} ariaLabel={t('mail.compose.title')} veil={0.12}>
+    <MailModalShell ms={ms} open onClose={close} width={600} ariaLabel={t('mail.compose.title')} veil={0.12}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, margin: 0 }}>{t('mail.compose.title')}</h2>
+        <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, margin: 0 }}>{t('mail.compose.title')}</h2>  {/* écart n° 3 de T2.6 */}
         <MailCloseButton ms={ms} onClick={close} label={t('mail.actions.close')} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-4xl)' }}>
@@ -2317,7 +2551,7 @@ export function MailComposeModal({ ms, open, draft, sending, error, onClose, onS
               <span key={a.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-sm) var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)', background: ms.elev, border: `1px solid ${ms.bord}` }}>
                 <span style={{ maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
                 <span style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{fileSizeLabel(a.size)}</span>
-                <button type="button" aria-label={t('mail.compose.removeAttachment')} onClick={() => setAtts((l) => l.filter((x) => x.key !== a.key))} style={{ background: 'none', border: 'none', color: ms.txt3, cursor: 'pointer', display: 'grid', placeItems: 'center' }}><MEIcon name="x" size={12} /></button>
+                <button type="button" aria-label={t('mail.compose.removeAttachment')} onClick={() => setAtts((l) => l.filter((x) => x.key !== a.key))} style={{ background: 'none', border: 'none', color: ms.txt3, cursor: 'pointer', display: 'grid', placeItems: 'center' }}><MEIcon name="close" size={12} /></button>  {/* écart n° 2 de T2.6 */}
               </span>
             ))}
           </div>
@@ -2329,7 +2563,8 @@ export function MailComposeModal({ ms, open, draft, sending, error, onClose, onS
           <MEIcon name="paperclip" size={14} /> {t('mail.compose.attach')}
         </button>
         {popover && (
-          <MailAttachPopover ms={ms} chosenDocIds={new Set(atts.filter((a) => a.source.kind === 'doc').map((a) => (a.source as { doc: AgencyDocument }).doc.id))}
+          {/* écart n° 3 : `flatMap` conditionnel, qui se narrow tout seul */}
+          <MailAttachPopover ms={ms} chosenDocIds={new Set(atts.flatMap((a) => (a.source.kind === 'doc' ? [a.source.doc.id] : [])))}
             onFiles={(files) => setAtts((l) => [...l, ...files.map((f) => ({ key: `f-${f.name}-${f.size}-${Date.now()}`, name: f.name, size: f.size, mimeType: f.type || 'application/octet-stream', source: { kind: 'file' as const, file: f } }))])}
             onToggleDoc={(d) => setAtts((l) => l.some((a) => a.source.kind === 'doc' && a.source.doc.id === d.id) ? l.filter((a) => !(a.source.kind === 'doc' && a.source.doc.id === d.id)) : [...l, { key: `d-${d.id}`, name: d.name, size: d.size_bytes, mimeType: 'application/octet-stream', source: { kind: 'doc' as const, doc: d } }])}
             onClose={() => setPopover(false)} />
@@ -2348,13 +2583,15 @@ export function MailComposeModal({ ms, open, draft, sending, error, onClose, onS
 - [ ] **Step 4 : Brancher** (dans `MessagerieApp`)
 
 ```tsx
-const composeDraft = state.modal.kind === 'compose' && state.modal.draftId ? drafts.drafts.find((d) => d.id === state.modal.draftId) ?? null : null
-<MailComposeModal ms={ms} open={state.modal.kind === 'compose'} draft={composeDraft} sending={send.isPending} error={send.error?.message ?? null}
+// écart n° 6 : l'identifiant SORT de l'union avant le `find` (TS2339 sinon).
+const idBrouillon = state.modal.kind === 'compose' ? state.modal.draftId ?? null : null
+const composeDraft = idBrouillon ? drafts.drafts.find((d) => d.id === idBrouillon) ?? null : null
+{state.modal.kind === 'compose' && <MailComposeModal ms={ms} draft={composeDraft} sending={send.isPending} error={send.error?.message ?? null}
   onClose={(content) => {
     if (content) drafts.save.mutate({ id: composeDraft?.id, kind: 'new', to: parseRecipients(content.to), subject: content.subject, body_text: content.body })
     dispatch({ type: 'modal', modal: { kind: 'none' } })
   }}
-  onSend={(input) => send.mutate(input, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'folder', folder: 'sent' }) } })} />
+  onSend={(input) => send.mutate(input, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'folder', folder: 'sent' }) } })} />}
 ```
 (README : « à l'envoi, le message rejoint le dossier Envoyés de la boîte courante ».)
 
@@ -2403,7 +2640,20 @@ export function MailDeleteModal({ ms, row, busy, onCancel, onConfirm }: Props) {
   )
 }
 ```
-Branchement : `row = threads.rows.find(r => r.id === (state.modal.kind === 'delete' ? state.modal.threadId : ''))` ; `onConfirm` → `actions.act.mutate({ action: 'trash', threadId }, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'back' }) } })`.
+Branchement — ⛔ **avec le repli sur le fil ouvert, sans quoi la modale ne s'ouvre PAS depuis
+le lecteur** (mesuré le 05.09.2026) : `onDelete` du lecteur passe l'identifiant de `filOuvert`,
+qui peut déjà avoir quitté la page courante (c'est tout l'objet du repli de la T2.6). Un `find`
+seul rendrait `null`, donc `open={!!row}` faux — un bouton « Supprimer » sans effet et sans
+message. ⚠ Et l'identifiant SORT de l'union avant le `find`, même motif qu'en T2.7 (TS2339) :
+
+```tsx
+const idSuppression = state.modal.kind === 'delete' ? state.modal.threadId : null
+const filASupprimer = idSuppression
+  ? threads.rows.find((r) => r.id === idSuppression) ?? (filOuvert?.id === idSuppression ? filOuvert : null)
+  : null
+```
+
+`onConfirm` → `actions.act.mutate({ action: 'trash', threadId }, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'back' }) } })` ; `busy` = `actions.act.isPending`.
 
 i18n FR : `"delete": { "title": "Supprimer ce message ?", "legal": "Le message part à la corbeille et quitte la liste. La conservation légale de dix ans s'applique au dossier, pas à la boîte." }`
 
@@ -2422,6 +2672,40 @@ npm run build && git add -A && git commit -m "feat(messagerie): modale de suppre
 - Modify: `src/components/crm/settings/IntegrationsSection.tsx` (importe les logos), `MessagerieApp.tsx`
 
 Dimensions : README §6 (carte 520, lignes fournisseur `12px 14px` / rayon 18, WhatsApp plus grande `16px` / rayon 20 / logo 40, étape OAuth logo 40 + encart « ACCÈS DEMANDÉ » rayon 20, étape IMAP grille 2 colonnes, étape connectée cercle 40 vert).
+
+⛔ **SIX ÉCARTS MESURÉS À L'ÉCRITURE (05.09.2026)**, en plus de ceux déjà relevés aux T2.6 et
+T2.7 (import par défaut de `MEIcon`, graisse plafonnée à 600, montage/démontage plutôt que
+prop `open`) :
+
+1. **L'encart « ACCÈS DEMANDÉ » perd sa micro-capitale ET son interlettrage.**
+   `textTransform: 'uppercase'` et `letterSpacing: '0.1em'` sont refusés par deux clauses de
+   `megga-x-grammar` — même écart, même raison qu'au n° 1 de la T2.7. `letterSpacing: '0.04em'`
+   du monogramme tombe LUI AUSSI : le seuil de la clause est `>= 0.04em`, pas `> 0.04em`.
+2. **`fontWeight: 700` → `600` (monogramme, `@` de la ligne IMAP) et `500` (titre de la
+   modale).** La clause `fontWeight:[^,}\n]*\b[789]00\b` lit l'expression entière.
+3. **`marginTop: 2` → `var(--crm-space-2xs)` (4 px).** ⚠ Ce n'est pas un détail de goût :
+   `src/components/crm/messagerie` est une ZONE du cliquet B4 **sans entrée `B4_ASSUME`**, donc
+   son inventaire de rayons et d'espacements doit valoir ZÉRO — et le compte inclut les valeurs
+   qui sont SUR l'échelle mais non tokenisées, pas seulement celles qui en sortent. Le plus
+   petit barreau d'espacement est 4 px : 2 px n'est pas exprimable, et ne doit pas l'être.
+4. **`color: 'var(--color-text-primary)'` de la page de retour est INOPÉRANT.** Mesuré dans
+   `globals.css:152` : le jeton vaut `28 28 28` — un TRIPLET RVB destiné à `rgb(var(…))`, que
+   Tailwind enveloppe. Écrit tel quel, la déclaration est écartée sans erreur et le texte prend
+   la couleur héritée. La page prend les classes `bg-theme-page text-theme-primary`.
+   ⚠ `src/pages/agent` est une zone du cliquet B4 *et* du cliquet de couleur, tous deux SANS
+   CRÉDIT : la page ne peut ajouter ni un littéral d'espacement, ni un hexadécimal.
+5. **`MEIcon` ne connaît ni `maximize` ni `image`** (mesuré sur l'union `MEIconName`) : ce sont
+   `zoom-in` et `gallery`. La liste d'icônes à vérifier, plus haut dans ce lot, nommait déjà
+   `maximize` comme « à ajouter » ; l'ajouter à l'union coûterait un chemin SVG de plus pour
+   un glyphe que le dépôt a déjà.
+6. **PAS DE STEPPER, et c'est une décision.** Les quatre étapes ne forment pas une séquence
+   linéaire (liste → OAuth **ou** IMAP → connectée) et la maquette n'en montre aucun. En
+   inventer un contredirait « Fidélité : haute » du maître §1, et la règle des steppers de
+   CLAUDE.md §3 borne le CHOIX entre trois idiomes existants — elle n'en impose pas un.
+
+⚠ **`connect_imap` N'EXISTE PAS dans `mail-oauth` (lot 1)** : l'edge répond `unknown_action`.
+Ce n'est pas une panne à corriger ici — IMAP est le lot 3 — c'est l'état que
+`IMAP_ERRORS.unknown_action` rend en clair (« arrive dans une prochaine version »).
 
 - [ ] **Step 1 : Sortir les logos de marque dans un module partagé**
 
@@ -2448,10 +2732,10 @@ export function MailProviderLogo({ ms, provider, size = 36 }: { ms: MailSurfaces
   if (provider === 'wa') return <div style={{ ...circle, background: 'transparent' }}><WhatsAppLogo size={size} /></div>
   if (provider === 'gmail') return <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}` }}><GoogleG size={inner} /></div>
   if (provider === 'outlook') return <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}` }}><MsLogo size={inner} /></div>
-  if (provider === 'imap') return <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}`, fontSize: 'var(--crm-text-md)', fontWeight: 700 }}>@</div>
+  if (provider === 'imap') return <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}`, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{'@'}</div>
   const png = PNG[provider]!
   return (
-    <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}`, fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: '0.04em' }}>
+    <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}`, fontSize: 'var(--crm-text-xs)', fontWeight: 600 }}>
       {broken ? png.mono : <img src={png.src} alt="" width={inner} height={inner} style={{ objectFit: 'contain' }} onLoad={(e) => { if (e.currentTarget.naturalWidth === 0) setBroken(true) }} onError={() => setBroken(true)} />}
     </div>
   )
@@ -2540,7 +2824,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
       <MailProviderLogo ms={ms} provider={p} size={big ? 40 : 36} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: big ? 'var(--crm-text-lg)' : 'var(--crm-text-md)', fontWeight: 600 }}>{name}</span>
-        {sub && <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', color: ms.mut, marginTop: 2 }}>{sub}</span>}
+        {sub && <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', color: ms.mut, marginTop: 'var(--crm-space-2xs)' }}>{sub}</span>}
       </span>
       <MEIcon name="chevron-right" size={13} color={ms.mut} />
     </button>
@@ -2549,7 +2833,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
   return (
     <MailModalShell ms={ms} open={open} onClose={() => { cancel(); onClose() }} width={520} ariaLabel={t('mail.add.title')} veil={0.12}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, margin: 0 }}>{t('mail.add.title')}</h2>
+        <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, margin: 0 }}>{t('mail.add.title')}</h2>
         <MailCloseButton ms={ms} onClick={() => { cancel(); onClose() }} label={t('mail.actions.close')} />
       </div>
 
@@ -2572,7 +2856,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
           </div>
           <input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder={t('mail.add.oauth.addrPlaceholder')} aria-label={t('mail.add.oauth.addr')} style={{ ...field, marginTop: 'var(--crm-space-2xl)' }} />
           <div style={{ marginTop: 'var(--crm-space-lg)', border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-4xl)', padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
-            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: ms.mut }}>{t('mail.add.oauth.access')}</div>
+            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{t('mail.add.oauth.access')}</div>
             {(['read', 'file', 'labels'] as const).map((k) => (
               <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-sm)' }}><MEIcon name="check" size={13} color={ms.accent} /> {t(`mail.add.oauth.scope.${k}`)}</div>
             ))}
@@ -2680,11 +2964,11 @@ export default function MailOAuthCallbackPage() {
     })
   }, [exchange, navigate, t])
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', fontFamily: 'var(--crm-font)', fontSize: 'var(--crm-text-md)', color: 'var(--color-text-primary)' }}>{msg}</div>
+    <div className="min-h-screen grid place-items-center bg-theme-page text-theme-primary" style={{ fontFamily: 'var(--crm-font)', fontSize: 'var(--crm-text-md)' }}>{msg}</div>
   )
 }
 ```
-⚠ `useMailAccounts()` appelle `useQuery` : la page est sous `ProtectedRoute`, donc `QueryClientProvider` et la session existent. Le texte utilise un jeton de thème existant (`--color-text-primary`, cf. CLAUDE.md §3 « Tokens ») — vérifier son nom dans `globals.css` ; sinon `text-theme-primary` en classe.
+⚠ `useMailAccounts()` appelle `useQuery` : la page est sous `ProtectedRoute`, donc `QueryClientProvider` et la session existent. ⛔ Le jeton `--color-text-primary` a été vérifié dans `globals.css` (ligne 152) : il vaut `28 28 28`, un TRIPLET RVB — `color: var(--color-text-primary)` est donc écarté en silence. C'est `text-theme-primary` en classe, comme le disait le repli.
 
 - [ ] **Step 5 : Clés i18n FR**
 
@@ -2721,6 +3005,20 @@ git add -A && git commit -m "feat(messagerie): assistant Ajouter une boîte (fou
 
 README §7 transposé : `patient` → contact, `numéro` → adresse ; la recherche cherche nom / adresse / téléphone (RPC `mail_search_contacts`). « Créer la fiche » ouvre la liste des contacts ; la création pré-remplie depuis un mail n'est pas dans ce lot (à ajouter au maître §9 — fait).
 
+⛔ **QUATRE ÉCARTS MESURÉS À L'ÉCRITURE (05.09.2026)**, tous de la même famille que ceux des
+tâches précédentes :
+
+1. **`import { MEIcon }` → `import MEIcon`** : c'est un export PAR DÉFAUT.
+2. **`fontWeight: 700` de la pastille d'initiales → `600`** (clause de graisse de
+   `megga-x-grammar`).
+3. **`gap: 2` et `marginTop: 4` → `var(--crm-space-2xs)`.** La zone
+   `src/components/crm/messagerie` n'a AUCUNE entrée `B4_ASSUME` : son inventaire de rayons et
+   d'espacements doit valoir zéro, et le compte inclut les valeurs SUR l'échelle mais non
+   tokenisées. Le plus petit barreau vaut 4 px ; `gap: 2` n'est pas exprimable.
+4. **La modale est MONTÉE avec sa cible, démontée à la fermeture.** `state.modal` porte
+   `threadId`, `email` et `name` : les lire au montage évite d'avoir à remettre la recherche à
+   zéro par un effet, et la saisie repart du nom de l'expéditeur à chaque ouverture.
+
 - [ ] **Step 1 : Composant**
 
 ```tsx
@@ -2728,7 +3026,7 @@ README §7 transposé : `patient` → contact, `numéro` → adresse ; la recher
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { useMailContactSearch } from '@/hooks/useMailContactSearch'
 import { initialsOf } from '@/lib/mail/format'
 import { MailCloseButton, MailModalShell } from './MailModalShell'
@@ -2743,18 +3041,18 @@ export function MailLinkContactModal({ ms, open, email, name, busy, onClose, onL
   return (
     <MailModalShell ms={ms} open={open} onClose={onClose} width={520} ariaLabel={t('mail.link.title')} veil={0.12} column>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div><h2 style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, margin: 0, letterSpacing: '-0.01em' }}>{t('mail.link.title')}</h2><div style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut, marginTop: 4 }}>{name ? `${name} · ${email}` : email}</div></div>
+        <div><h2 style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, margin: 0, letterSpacing: '-0.01em' }}>{t('mail.link.title')}</h2><div style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut, marginTop: 'var(--crm-space-2xs)' }}>{name ? `${name} · ${email}` : email}</div></div>
         <MailCloseButton ms={ms} onClick={onClose} label={t('mail.actions.close')} />
       </div>
       <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', background: ms.elev, border: `1px solid ${ms.bord}`, borderRadius: PILL, padding: 'var(--crm-space-md) var(--crm-space-2xl)', marginTop: 'var(--crm-space-4xl)' }}>
         <MEIcon name="search" size={14} color={ms.mut} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('mail.link.searchPlaceholder')} aria-label={t('mail.link.search')} autoFocus style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: ms.ink, fontSize: 'var(--crm-text-sm)', fontFamily: 'inherit' }} />
       </label>
-      <div style={{ marginTop: 'var(--crm-space-md)', overflowY: 'auto', minHeight: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div style={{ marginTop: 'var(--crm-space-md)', overflowY: 'auto', minHeight: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
         {(hits.data ?? []).map((h) => (
           <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', transition: MAIL_TRANSITION }}
             onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-            <div aria-hidden style={{ width: 30, height: 30, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 700 }}>{initialsOf(`${h.first_name} ${h.last_name}`, h.email)}</div>
+            <div aria-hidden style={{ width: 30, height: 30, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600 }}>{initialsOf(`${h.first_name} ${h.last_name}`, h.email)}</div>
             <div style={{ minWidth: 0, flex: 1 }}><div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.first_name} {h.last_name}</div><div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{h.email}{h.phone ? ` · ${h.phone}` : ''}</div></div>
             <button type="button" disabled={busy} onClick={() => onLink(h.id)} style={{ background: 'none', border: 'none', color: ms.accent, fontSize: 'var(--crm-text-xs)', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('mail.link.cta')}</button>
           </div>
@@ -2787,12 +3085,47 @@ npm run build && git add -A && git commit -m "feat(messagerie): modale Rapproche
 
 README §8-9 transposés. ⚠ Le segment « Accès : Tout le cabinet / Soins uniquement » n'a **aucun** support dans `documents` (pas de colonne d'accès) : il n'est pas rendu — un réglage sans effet serait un mensonge d'interface. Écart consigné.
 
+⛔ **CINQ ÉCARTS MESURÉS À L'ÉCRITURE (05.09.2026)** :
+
+1. **⛔ L'APERÇU DÉCIDAIT « c'est une image » SUR LA DÉCLARATION DE L'EXPÉDITEUR.**
+   `att.mime_type` vient du courrier reçu ; `mail-attachment` (GET), lui, ne sert l'essence
+   d'origine que pour six types sûrs (`INLINE_SAFE_MIME` : PDF, PNG, JPEG, WebP, GIF, texte) et
+   rend `application/octet-stream` + `attachment` pour tout le reste — un SVG est un document
+   scriptable, pas une image. Un `image/svg+xml` ou un `image/heic` passait donc
+   `mime_type.startsWith('image/')` et posait un `<img>` sur des octets que le serveur refuse
+   d'afficher : une image cassée servie en **200**, exactement le mensonge que le repli du logo
+   évite en T2.9. `useMailAttachmentBlob` rend désormais aussi `type` — le `Content-Type` de la
+   RÉPONSE, donc la décision du serveur — et l'aperçu tranche là-dessus.
+2. **`textTransform: 'uppercase'` + `letterSpacing: '0.08em'` sur les trois sur-titres**
+   (« FICHE CONTACT », « TYPE DE DOCUMENT », « NOM DANS LE DOSSIER`) : refusés par deux clauses
+   de `megga-x-grammar`, comme au n° 1 de la T2.7. Casse normale.
+3. **`fontWeight: 700` → `600`** (pastille d'initiales du sélecteur de contact).
+4. **`gap: 4` et `marginTop: 4` → `var(--crm-space-2xs)`** : la zone n'a aucune entrée
+   `B4_ASSUME`, donc son inventaire d'espacements doit valoir zéro — même les valeurs SUR
+   l'échelle mais non tokenisées y comptent.
+5. **`MEIcon` ne connaît ni `image` ni `maximize`** : ce sont `gallery` et `zoom-in`.
+
+⚠ **DEUX MOTIFS D'ERREUR MANQUAIENT à la table du plan**, et ils sont tous deux atteignables :
+`too_large` (413, plafond de **20 Mio** pour le classement, distinct des 25 Mio de la lecture)
+et `contact_not_found` (404, contact hors de l'agence de l'appelant). Sans eux, deux refus
+parfaitement explicables tombaient sur « Le classement a échoué. Réessayez. »
+
+⚠ **L'ALLOWLIST DES SIX ESSENCES N'EST PAS RECOPIÉE côté client**, et c'est délibéré : elle vit
+dans la migration du bucket, l'edge la lit, l'écran rend son verdict. La dupliquer la ferait
+diverger en silence, et l'écran finirait par refuser ce que le serveur accepte.
+
+⚠ **La modale de classement est MONTÉE avec sa pièce** (`state.modal.kind === 'file' && piece`),
+ce qui retire l'`useEffect` d'amorçage du plan : `react-hooks/set-state-in-effect` le signale,
+et un `useState` d'initialisation donne le même résultat sans rendu supplémentaire. L'APERÇU,
+lui, reste monté avec `att` à `null` — `useMailAttachmentBlob` est un hook, il doit être appelé
+à chaque rendu.
+
 - [ ] **Step 1 : Aperçu**
 
 ```tsx
 // src/components/crm/messagerie/MailAttachmentPreviewModal.tsx — README §9 (calque .28, blur 8, carte 600).
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { useMailAttachmentBlob } from '@/hooks/useMailAttachmentBlob'
 import type { MailAttachmentRow } from '@/hooks/useMailThread'
 import { MailCloseButton, MailModalShell } from './MailModalShell'
@@ -2802,8 +3135,10 @@ interface Props { ms: MailSurfaces; att: MailAttachmentRow | null; onClose: () =
 export function MailAttachmentPreviewModal({ ms, att, onClose, onFile }: Props) {
   const { t } = useTranslation('messages')
   const blob = useMailAttachmentBlob(att?.id ?? null)
-  const isImage = !!att && att.mime_type.startsWith('image/')
-  const isPdf = att?.mime_type === 'application/pdf'
+  // ⛔ L'essence SERVIE, jamais celle que l'expéditeur déclarait — cf. écart n° 1.
+  const servi = blob.type ?? ''
+  const isImage = servi.startsWith('image/')
+  const isPdf = servi === 'application/pdf'
   return (
     <MailModalShell ms={ms} open={!!att} onClose={onClose} width={600} ariaLabel={t('mail.preview.title')} veil={0.28} blur={8} zIndex={305}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
@@ -2836,7 +3171,7 @@ export function MailAttachmentPreviewModal({ ms, att, onClose, onFile }: Props) 
 // src/components/crm/messagerie/MailFileAttachmentModal.tsx — README §8 (carte 560).
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { useMailContactSearch, type MailContactHit } from '@/hooks/useMailContactSearch'
 import type { MailAttachmentRow } from '@/hooks/useMailThread'
 import { invokeMail } from '@/lib/mail/invoke'
@@ -2845,6 +3180,8 @@ import { MailCloseButton, MailModalShell } from './MailModalShell'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
 const TYPES = ['contrat', 'mandat', 'piece_identite', 'justificatif_domicile', 'financement', 'plan', 'photo', 'autre'] as const
+/** Motif du serveur → clé i18n. `too_large` (20 Mio) et `contact_not_found` sont atteignables. */
+const ERREURS: Record<string, string> = { unsupported_type: 'mail.file.err.unsupported', too_large: 'mail.file.err.tooLarge', contact_not_found: 'mail.file.err.contact' }
 interface Props { ms: MailSurfaces; att: MailAttachmentRow | null; defaultContactId: string | null; onClose: () => void; onFiled: () => void; onPreview: () => void }
 
 export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, onFiled, onPreview }: Props) {
@@ -2865,7 +3202,7 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
     setBusy(true); setError(null)
     const r = await invokeMail('mail-attachment', { action: 'file', attachment_id: att.id, contact_id: contactId, document_type: type, name })
     setBusy(false)
-    if (r.error) { setError(t(r.error === 'unsupported_type' ? 'mail.file.err.unsupported' : 'mail.file.err.generic')); return }
+    if (r.error) { setError(t(ERREURS[r.error] ?? 'mail.file.err.generic')); return }
     onFiled()
   }
   const field = { background: ms.elev, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const, borderRadius: PILL, padding: 'var(--crm-space-md) var(--crm-space-2xl)', fontSize: 'var(--crm-text-md)', width: '100%' }
@@ -2877,15 +3214,15 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', marginTop: 'var(--crm-space-4xl)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: ms.elev, borderRadius: 'var(--crm-radius-4xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xl)' }}>
-          <button type="button" onClick={onPreview} aria-label={t('mail.file.zoom')} style={{ width: 76, height: 76, borderRadius: 'var(--crm-radius-lg)', background: ms.card, border: `1px solid ${ms.bord}`, cursor: 'zoom-in', display: 'grid', placeItems: 'center', color: ms.mut }}><MEIcon name={att?.mime_type.startsWith('image/') ? 'image' : 'file-text'} size={28} /></button>
+          <button type="button" onClick={onPreview} aria-label={t('mail.file.zoom')} style={{ width: 76, height: 76, borderRadius: 'var(--crm-radius-lg)', background: ms.card, border: `1px solid ${ms.bord}`, cursor: 'zoom-in', display: 'grid', placeItems: 'center', color: ms.mut }}><MEIcon name={att?.mime_type.startsWith('image/') ? 'gallery' : 'file-text'} size={28} /></button>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att?.filename}</div>
             <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{ext} · {fileSizeLabel(att?.size_bytes ?? 0)}</div>
-            <button type="button" onClick={onPreview} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, marginTop: 4, color: ms.accent, fontSize: 'var(--crm-text-xs)', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}><MEIcon name="maximize" size={12} color={ms.accent} /> {t('mail.file.zoom')}</button>
+            <button type="button" onClick={onPreview} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', background: 'none', border: 'none', padding: 0, marginTop: 'var(--crm-space-2xs)', color: ms.accent, fontSize: 'var(--crm-text-xs)', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}><MEIcon name="zoom-in" size={12} color={ms.accent} /> {t('mail.file.zoom')}</button>
           </div>
         </div>
         <div style={{ position: 'relative' }}>
-          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.contact')}</div>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.contact')}</div>
           <button type="button" onClick={() => setPickerOpen((v) => !v)} aria-expanded={pickerOpen} style={{ ...field, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', cursor: 'pointer', textAlign: 'left' }}>
             <span style={{ flex: 1 }}>{contact ? `${contact.first_name} ${contact.last_name}` : defaultContactId ? t('mail.file.contactCurrent') : t('mail.file.contactPlaceholder')}</span><MEIcon name="chevron-down" size={12} color={ms.mut} />
           </button>
@@ -2896,7 +3233,7 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
                 {(hits.data ?? []).map((h) => (
                   <button key={h.id} type="button" onClick={() => { setContact(h); setPickerOpen(false) }} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', width: '100%', textAlign: 'left', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', background: 'transparent', border: 'none', color: ms.ink, cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-                    <span aria-hidden style={{ width: 28, height: 28, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 700 }}>{initialsOf(`${h.first_name} ${h.last_name}`, h.email)}</span>
+                    <span aria-hidden style={{ width: 28, height: 28, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600 }}>{initialsOf(`${h.first_name} ${h.last_name}`, h.email)}</span>
                     <span style={{ minWidth: 0 }}><span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 500 }}>{h.first_name} {h.last_name}</span><span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{h.email}</span></span>
                   </button>
                 ))}
@@ -2906,7 +3243,7 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
           )}
         </div>
         <div>
-          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.type')}</div>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.type')}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)' }}>
             {TYPES.map((k) => (
               <button key={k} type="button" aria-pressed={type === k} onClick={() => setType(k)} style={{ borderRadius: PILL, padding: 'var(--crm-space-xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', fontWeight: 500, border: `1px solid ${type === k ? ms.accent : ms.bord3}`, background: type === k ? ms.accent : ms.elev, color: type === k ? ms.accentInk : ms.txt3, cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION }}>{t(`mail.file.types.${k}`)}</button>
@@ -2914,7 +3251,7 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.name')}</div>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.name')}</div>
           <input value={name} onChange={(e) => setName(e.target.value)} aria-label={t('mail.file.name')} style={field} />
         </div>
         {error && <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.danger }}>{error}</div>}
@@ -2941,7 +3278,7 @@ i18n FR :
 "preview": { "title": "Aperçu de la pièce", "loading": "Chargement…", "error": "La pièce n'a pas pu être chargée.", "download": "Télécharger" },
 "file": { "cta": "Classer dans le dossier", "title": "Classer dans le dossier", "subtitle": "La pièce est copiée dans les documents du contact.", "filed": "Classé au dossier", "zoom": "Voir en grand", "contact": "Fiche contact", "contactCurrent": "Contact de ce fil", "contactPlaceholder": "Choisir un contact", "type": "Type de document", "name": "Nom dans le dossier", "submit": "Classer le document", "busy": "Classement…",
   "types": { "contrat": "Contrat", "mandat": "Mandat", "piece_identite": "Pièce d'identité", "justificatif_domicile": "Justificatif de domicile", "financement": "Financement", "plan": "Plan", "photo": "Photo", "autre": "Autre" },
-  "err": { "unsupported": "Ce type de fichier n'est pas accepté dans les documents (PDF, JPEG, PNG, WebP, Word).", "generic": "Le classement a échoué. Réessayez." } }
+  "err": { "unsupported": "Ce type de fichier n'est pas accepté dans les documents (PDF, JPEG, PNG, WebP, Word).", "tooLarge": "La pièce dépasse 20 Mo : elle ne peut pas être classée au dossier.", "contact": "Ce contact n'appartient pas à votre agence.", "generic": "Le classement a échoué. Réessayez." } }
 ```
 
 ```bash
@@ -2954,296 +3291,232 @@ git add -A && git commit -m "feat(messagerie): aperçu de pièce et classement a
 ### Task 2.12 : i18n — consolidation FR et les trois autres langues
 
 **Files:**
-- Modify: `src/i18n/locales/{fr,de,en,it}/messages.json` (sous-arbre `mail`), `common.json` (`nav.messagerie`, `audit.action.*`), `settings.json` (`integrations.catalogue.messagerie.desc`)
+- Modify: `src/i18n/locales/{fr,de,en,it}/messages.json` (`mail.mobile`), `common.json` (`audit.action.*`), `settings.json` (`integrations.catalogue.messagerie.desc`)
 
-- [ ] **Step 1 : FR — l'arbre complet (remplace les fragments posés tâche par tâche ; aucun tiret cadratin)**
+> ⛔ **LES QUATRE ARBRES JSON QUI TENAIENT ICI ONT ÉTÉ RETIRÉS LE 05.09.2026 : ILS
+> ÉTAIENT PÉRIMÉS AVANT D'ÊTRE LUS.** Ils avaient été écrits le 03.09, quand cette
+> tâche devait POSER le sous-arbre `mail`. Les tâches 2.1 à 2.11 l'ont posé au fur
+> et à mesure, clé par clé, avec l'écran qui la consomme — et mieux : là où le plan
+> transposait le français mot à mot, l'implémentation a traduit.
+>
+> Mesuré le 05.09.2026 (`mail.*` : plan 168 clés, dépôt 170, dans les quatre
+> langues) :
+>
+> - **1 clé manquait au dépôt** — `mail.mobile.readOnly`, que seul l'écran mobile
+>   de T2.14 consomme. C'est la seule chose que cette tâche avait encore à poser.
+> - **3 clés manquaient au PLAN**, et elles ont un lecteur : `mail.labels.hex`
+>   (`MailLabelCreator.tsx:128`), `mail.file.err.tooLarge` et `mail.file.err.contact`
+>   (`MailFileAttachmentModal.tsx:33-34`). Appliquer le bloc « tel quel » les
+>   aurait SUPPRIMÉES — trois libellés d'erreur remplacés par leur clé brute à
+>   l'écran, sans qu'aucune porte ne rougisse (`lint:i18n` cherche du français en
+>   dur, pas une clé absente).
+> - **35 valeurs EN, 38 DE, 32 IT différaient**, et dans presque tous les cas
+>   c'est le DÉPÔT qui a raison. Le cas d'école est `mail.labels.title` en
+>   allemand : le plan écrit `"Labels"`, recopié de l'anglais — exactement ce que
+>   le cliquet `i18n:coverage:ci` compte comme « non traduit ». Le dépôt dit
+>   « Kategorien ». Revenir au plan aurait fait rougir la porte que cette tâche
+>   doit garder verte.
+> - L'anglais du dépôt est en orthographe britannique (`Authorisation`,
+>   `Synchronisation`), celui du plan en américaine. **Ni l'une ni l'autre n'est la
+>   convention de la maison** : mesuré sur `src/i18n/locales/en/`, 34 formes
+>   britanniques contre 34 américaines. Aucune porte ne tranche, donc on ne churne
+>   pas 20 valeurs pour un goût — `mail.*` reste cohérent avec lui-même.
+>
+> Ce qui reste de la tâche est donc ce qui suit, et deux corrections mesurées.
 
-```json
-"mail": {
-  "empty": { "noAccount": { "title": "Aucune boîte connectée", "body": "Connectez la boîte de l'agence ou la vôtre pour lire et répondre ici." }, "noMessage": "Aucun message ne correspond." },
-  "box": { "label": "Boîte", "none": "Aucune boîte", "synced": "synchronisée", "disconnect": "Déconnecter", "disconnectConfirm": "Déconnecter cette boîte ? Ses messages seront retirés du CRM ; les documents classés restent.", "status": { "reauth_required": "Autorisation à renouveler", "error": "Erreur de synchronisation", "disabled": "Désactivée" } },
-  "compose": { "cta": "Nouveau message", "title": "Nouveau message", "to": "Destinataire", "toPlaceholder": "À · destinataire", "subject": "Objet", "body": "Message", "attach": "Joindre un document", "fromComputer": "Depuis mon ordinateur", "agencyDocs": "Documents de l'agence", "noAgencyDocs": "Aucun document disponible.", "removeAttachment": "Retirer la pièce" },
-  "folders": { "aria": "Dossiers", "in": "Boîte de réception", "arch": "Archivé", "star": "Suivis", "sent": "Envoyés", "draft": "Brouillons" },
-  "labels": { "title": "Libellés", "new": "Nouveau libellé", "rename": "Renommer", "recolor": "Changer la couleur", "delete": "Supprimer", "namePlaceholder": "Nom du libellé", "custom": "Couleur personnalisée", "hue": "Teinte", "create": "Créer" },
-  "actions": { "cancel": "Annuler", "save": "Enregistrer", "send": "Envoyer", "sending": "Envoi…", "forward": "Transférer", "close": "Fermer" },
-  "list": { "search": "Recherche", "searchPlaceholder": "Chercher un expéditeur, un objet ...", "unread": "Non lus", "attachment": "Pièce jointe" },
-  "pager": { "range": "{{from}} à {{to}} sur {{total}}", "prev": "Page précédente", "next": "Page suivante" },
-  "row": { "star": "Suivre", "unstar": "Ne plus suivre", "noSubject": "(sans objet)" },
-  "ctx": { "open": "Ouvrir", "markRead": "Marquer comme lu", "markUnread": "Marquer comme non lu", "star": "Suivre", "unstar": "Ne plus suivre", "archive": "Archiver", "unarchive": "Désarchiver", "delete": "Supprimer" },
-  "draft": { "badge": "Brouillon", "noRecipient": "(sans destinataire)" },
-  "read": { "back": "Retour à la liste", "to": "à {{box}}", "me": "moi", "reply": "Répondre", "forward": "Transférer", "replyTo": "Réponse à", "replyBody": "Votre réponse", "forwardNote": "Note facultative", "forwardOriginal": "Message d'origine joint", "showImages": "Afficher les images", "bodyTitle": "Corps du message", "truncated": "Message tronqué (trop volumineux) : ouvrez-le dans votre messagerie pour la version complète.", "unlinked": "Adresse non rattachée : {{email}}" },
-  "link": { "cta": "Rapprocher", "title": "Rapprocher l'adresse", "search": "Recherche", "searchPlaceholder": "Nom, adresse ou téléphone", "empty": "Aucun contact trouvé.", "note": "L'adresse sera mémorisée pour cette fiche.", "create": "Créer la fiche" },
-  "delete": { "title": "Supprimer ce message ?", "legal": "Le message part à la corbeille et quitte la liste. La conservation légale de dix ans s'applique au dossier, pas à la boîte." },
-  "add": {
-    "cta": "Ajouter une boîte", "title": "Ajouter une boîte", "back": "Retour", "share": "Partager cette boîte avec toute l'agence",
-    "waSub": "Coexistence · app + Cloud API sur le même numéro", "imapSub": "Connexion IMAP / SMTP", "other": "Autre boîte (IMAP / SMTP)", "otherSub": "Configuration manuelle du serveur",
-    "oauth": { "subtitle": "Autorisation du compte", "addr": "Adresse e-mail", "addrPlaceholder": "adresse@votre-agence.ch", "access": "Accès demandé",
-      "scope": { "read": "Lire et envoyer les messages de cette boîte", "file": "Rattacher les échanges à la fiche contact", "labels": "Classer avec les libellés de l'agence" },
-      "note": "Validation sur la page de {{provider}} · aucun mot de passe ne transite par l'agence.", "useImap": "Configurer en IMAP", "authorize": "Autoriser", "busy": "Connexion…",
-      "err": { "popupBlocked": "La fenêtre a été bloquée par le navigateur. Nous ouvrons l'autorisation dans cet onglet.", "cancelled": "Autorisation annulée.", "timeout": "L'autorisation a expiré. Réessayez.", "denied": "L'accès a été refusé sur la page du fournisseur.", "notConfigured": "Ce fournisseur n'est pas encore configuré côté MEGGA.", "exchange": "La connexion a échoué : {{detail}}", "generic": "La connexion a échoué. Réessayez dans un instant." } },
-    "imap": { "subtitle": "Connexion IMAP / SMTP", "email": "Adresse e-mail", "imapHost": "Serveur IMAP", "smtpHost": "Serveur SMTP", "port": "Port", "imapPort": "Port IMAP", "smtpPort": "Port SMTP", "user": "Utilisateur", "password": "Mot de passe", "encryption": "Chiffrement",
-      "note": "Le test vérifie IMAP et SMTP avant l'ajout · les identifiants sont chiffrés au repos.", "test": "Tester et connecter", "unavailable": "La connexion IMAP arrive dans une prochaine version.",
-      "err": { "invalid": "Adresse, serveurs et mot de passe sont requis.", "starttls": "STARTTLS (port 587) n'est pas disponible depuis nos serveurs. Utilisez SSL/TLS sur le port 465.", "connection": "Connexion refusée : vérifiez l'identifiant, le mot de passe (ou mot de passe d'application) et les serveurs.", "generic": "La connexion a échoué. Réessayez dans un instant." } },
-    "done": { "title": "Boîte connectée", "sync": "Synchronisation", "syncValue": "90 derniers jours", "folders": "Dossiers importés", "foldersValue": "Réception, Envoyés", "linking": "Rattachement aux contacts", "linkingValue": "Actif", "another": "Ajouter une autre", "open": "Ouvrir la boîte" }
-  },
-  "callback": { "working": "Connexion de la boîte…", "closing": "Vous pouvez fermer cette fenêtre.", "denied": "Autorisation refusée ou incomplète.", "failed": "La connexion a échoué. {{detail}}" },
-  "preview": { "title": "Aperçu de la pièce", "loading": "Chargement…", "error": "La pièce n'a pas pu être chargée.", "download": "Télécharger" },
-  "file": { "cta": "Classer dans le dossier", "title": "Classer dans le dossier", "subtitle": "La pièce est copiée dans les documents du contact.", "filed": "Classé au dossier", "zoom": "Voir en grand", "contact": "Fiche contact", "contactCurrent": "Contact de ce fil", "contactPlaceholder": "Choisir un contact", "type": "Type de document", "name": "Nom dans le dossier", "submit": "Classer le document", "busy": "Classement…",
-    "types": { "contrat": "Contrat", "mandat": "Mandat", "piece_identite": "Pièce d'identité", "justificatif_domicile": "Justificatif de domicile", "financement": "Financement", "plan": "Plan", "photo": "Photo", "autre": "Autre" },
-    "err": { "unsupported": "Ce type de fichier n'est pas accepté dans les documents (PDF, JPEG, PNG, WebP, Word).", "generic": "Le classement a échoué. Réessayez." } },
-  "mobile": { "readOnly": "Composer et répondre se font sur ordinateur pour l'instant." }
-}
-```
-`common.json` (fr) : `nav.messagerie: "Messagerie"` ; `audit.action.email_received: "E-mail reçu"`, `audit.action.email_sent: "E-mail envoyé"`, `audit.action.document_filed_from_email: "Pièce classée depuis un e-mail"`.
-`settings.json` (fr) : `integrations.catalogue.messagerie.desc: "Lisez et répondez à vos e-mails depuis le CRM (Google, Microsoft, IMAP)."`
+- [x] **Step 1 : la clé que l'écran mobile de T2.14 attend**
 
-- [ ] **Step 2 : EN**
+`mail.mobile.readOnly`, dans les quatre langues :
 
-```json
-"mail": {
-  "empty": { "noAccount": { "title": "No mailbox connected", "body": "Connect the agency mailbox or your own to read and reply here." }, "noMessage": "No message matches." },
-  "box": { "label": "Mailbox", "none": "No mailbox", "synced": "synced", "disconnect": "Disconnect", "disconnectConfirm": "Disconnect this mailbox? Its messages are removed from the CRM; filed documents stay.", "status": { "reauth_required": "Authorization to renew", "error": "Sync error", "disabled": "Disabled" } },
-  "compose": { "cta": "New message", "title": "New message", "to": "Recipient", "toPlaceholder": "To · recipient", "subject": "Subject", "body": "Message", "attach": "Attach a document", "fromComputer": "From my computer", "agencyDocs": "Agency documents", "noAgencyDocs": "No document available.", "removeAttachment": "Remove attachment" },
-  "folders": { "aria": "Folders", "in": "Inbox", "arch": "Archived", "star": "Starred", "sent": "Sent", "draft": "Drafts" },
-  "labels": { "title": "Labels", "new": "New label", "rename": "Rename", "recolor": "Change colour", "delete": "Delete", "namePlaceholder": "Label name", "custom": "Custom colour", "hue": "Hue", "create": "Create" },
-  "actions": { "cancel": "Cancel", "save": "Save", "send": "Send", "sending": "Sending…", "forward": "Forward", "close": "Close" },
-  "list": { "search": "Search", "searchPlaceholder": "Search a sender, a subject ...", "unread": "Unread", "attachment": "Attachment" },
-  "pager": { "range": "{{from}} to {{to}} of {{total}}", "prev": "Previous page", "next": "Next page" },
-  "row": { "star": "Star", "unstar": "Unstar", "noSubject": "(no subject)" },
-  "ctx": { "open": "Open", "markRead": "Mark as read", "markUnread": "Mark as unread", "star": "Star", "unstar": "Unstar", "archive": "Archive", "unarchive": "Unarchive", "delete": "Delete" },
-  "draft": { "badge": "Draft", "noRecipient": "(no recipient)" },
-  "read": { "back": "Back to the list", "to": "to {{box}}", "me": "me", "reply": "Reply", "forward": "Forward", "replyTo": "Reply to", "replyBody": "Your reply", "forwardNote": "Optional note", "forwardOriginal": "Original message attached", "showImages": "Show images", "bodyTitle": "Message body", "truncated": "Message truncated (too large): open it in your mail client for the full version.", "unlinked": "Address not linked: {{email}}" },
-  "link": { "cta": "Link", "title": "Link the address", "search": "Search", "searchPlaceholder": "Name, address or phone", "empty": "No contact found.", "note": "The address will be remembered for this contact.", "create": "Create the contact" },
-  "delete": { "title": "Delete this message?", "legal": "The message goes to the trash and leaves the list. The ten-year legal retention applies to the file, not to the mailbox." },
-  "add": {
-    "cta": "Add a mailbox", "title": "Add a mailbox", "back": "Back", "share": "Share this mailbox with the whole agency",
-    "waSub": "Coexistence · app + Cloud API on the same number", "imapSub": "IMAP / SMTP connection", "other": "Other mailbox (IMAP / SMTP)", "otherSub": "Manual server configuration",
-    "oauth": { "subtitle": "Account authorization", "addr": "Email address", "addrPlaceholder": "address@your-agency.ch", "access": "Access requested",
-      "scope": { "read": "Read and send messages of this mailbox", "file": "Link conversations to the contact record", "labels": "Classify with the agency labels" },
-      "note": "Validation on the {{provider}} page · no password goes through the agency.", "useImap": "Set up with IMAP", "authorize": "Authorize", "busy": "Connecting…",
-      "err": { "popupBlocked": "The window was blocked by the browser. We are opening the authorization in this tab.", "cancelled": "Authorization cancelled.", "timeout": "The authorization expired. Try again.", "denied": "Access was refused on the provider page.", "notConfigured": "This provider is not configured on the MEGGA side yet.", "exchange": "The connection failed: {{detail}}", "generic": "The connection failed. Try again in a moment." } },
-    "imap": { "subtitle": "IMAP / SMTP connection", "email": "Email address", "imapHost": "IMAP server", "smtpHost": "SMTP server", "port": "Port", "imapPort": "IMAP port", "smtpPort": "SMTP port", "user": "Username", "password": "Password", "encryption": "Encryption",
-      "note": "The test checks IMAP and SMTP before adding · credentials are encrypted at rest.", "test": "Test and connect", "unavailable": "IMAP connection is coming in a next version.",
-      "err": { "invalid": "Address, servers and password are required.", "starttls": "STARTTLS (port 587) is not available from our servers. Use SSL/TLS on port 465.", "connection": "Connection refused: check the login, the password (or app password) and the servers.", "generic": "The connection failed. Try again in a moment." } },
-    "done": { "title": "Mailbox connected", "sync": "Synchronization", "syncValue": "Last 90 days", "folders": "Imported folders", "foldersValue": "Inbox, Sent", "linking": "Contact linking", "linkingValue": "Active", "another": "Add another", "open": "Open the mailbox" }
-  },
-  "callback": { "working": "Connecting the mailbox…", "closing": "You can close this window.", "denied": "Authorization refused or incomplete.", "failed": "The connection failed. {{detail}}" },
-  "preview": { "title": "Attachment preview", "loading": "Loading…", "error": "The attachment could not be loaded.", "download": "Download" },
-  "file": { "cta": "File in the record", "title": "File in the record", "subtitle": "The attachment is copied into the contact's documents.", "filed": "Filed in the record", "zoom": "View full size", "contact": "Contact record", "contactCurrent": "Contact of this thread", "contactPlaceholder": "Choose a contact", "type": "Document type", "name": "Name in the record", "submit": "File the document", "busy": "Filing…",
-    "types": { "contrat": "Contract", "mandat": "Mandate", "piece_identite": "Identity document", "justificatif_domicile": "Proof of address", "financement": "Financing", "plan": "Plan", "photo": "Photo", "autre": "Other" },
-    "err": { "unsupported": "This file type is not accepted in documents (PDF, JPEG, PNG, WebP, Word).", "generic": "Filing failed. Try again." } },
-  "mobile": { "readOnly": "Composing and replying are done on desktop for now." }
-}
-```
-`common.json` (en) : `nav.messagerie: "Mail"` ; `audit.action.email_received: "Email received"`, `email_sent: "Email sent"`, `document_filed_from_email: "Attachment filed from an email"`. `settings.json` (en) : `"Read and reply to your emails from the CRM (Google, Microsoft, IMAP)."`
+| | |
+|---|---|
+| fr | Composer et répondre se font sur ordinateur pour l'instant. |
+| en | Composing and replying are done on desktop for now. |
+| de | Verfassen und Antworten sind vorerst am Computer möglich. |
+| it | Scrivere e rispondere si fanno dal computer, per ora. |
 
-- [ ] **Step 3 : DE**
+- [x] **Step 2 : les trois actions d'audit (`common.json`), que la timeline contact affiche**
 
-```json
-"mail": {
-  "empty": { "noAccount": { "title": "Kein Postfach verbunden", "body": "Verbinden Sie das Postfach der Agentur oder Ihr eigenes, um hier zu lesen und zu antworten." }, "noMessage": "Keine Nachricht entspricht der Suche." },
-  "box": { "label": "Postfach", "none": "Kein Postfach", "synced": "synchronisiert", "disconnect": "Trennen", "disconnectConfirm": "Dieses Postfach trennen? Seine Nachrichten werden aus dem CRM entfernt; abgelegte Dokumente bleiben.", "status": { "reauth_required": "Berechtigung erneuern", "error": "Synchronisierungsfehler", "disabled": "Deaktiviert" } },
-  "compose": { "cta": "Neue Nachricht", "title": "Neue Nachricht", "to": "Empfänger", "toPlaceholder": "An · Empfänger", "subject": "Betreff", "body": "Nachricht", "attach": "Dokument anhängen", "fromComputer": "Von meinem Computer", "agencyDocs": "Dokumente der Agentur", "noAgencyDocs": "Kein Dokument verfügbar.", "removeAttachment": "Anhang entfernen" },
-  "folders": { "aria": "Ordner", "in": "Posteingang", "arch": "Archiviert", "star": "Markiert", "sent": "Gesendet", "draft": "Entwürfe" },
-  "labels": { "title": "Labels", "new": "Neues Label", "rename": "Umbenennen", "recolor": "Farbe ändern", "delete": "Löschen", "namePlaceholder": "Name des Labels", "custom": "Eigene Farbe", "hue": "Farbton", "create": "Erstellen" },
-  "actions": { "cancel": "Abbrechen", "save": "Speichern", "send": "Senden", "sending": "Wird gesendet…", "forward": "Weiterleiten", "close": "Schliessen" },
-  "list": { "search": "Suche", "searchPlaceholder": "Absender, Betreff suchen ...", "unread": "Ungelesen", "attachment": "Anhang" },
-  "pager": { "range": "{{from}} bis {{to}} von {{total}}", "prev": "Vorherige Seite", "next": "Nächste Seite" },
-  "row": { "star": "Markieren", "unstar": "Markierung entfernen", "noSubject": "(kein Betreff)" },
-  "ctx": { "open": "Öffnen", "markRead": "Als gelesen markieren", "markUnread": "Als ungelesen markieren", "star": "Markieren", "unstar": "Markierung entfernen", "archive": "Archivieren", "unarchive": "Aus Archiv holen", "delete": "Löschen" },
-  "draft": { "badge": "Entwurf", "noRecipient": "(kein Empfänger)" },
-  "read": { "back": "Zurück zur Liste", "to": "an {{box}}", "me": "ich", "reply": "Antworten", "forward": "Weiterleiten", "replyTo": "Antwort an", "replyBody": "Ihre Antwort", "forwardNote": "Optionale Notiz", "forwardOriginal": "Originalnachricht angehängt", "showImages": "Bilder anzeigen", "bodyTitle": "Nachrichtentext", "truncated": "Nachricht gekürzt (zu gross): öffnen Sie sie in Ihrem Mailprogramm für die vollständige Version.", "unlinked": "Adresse nicht zugeordnet: {{email}}" },
-  "link": { "cta": "Zuordnen", "title": "Adresse zuordnen", "search": "Suche", "searchPlaceholder": "Name, Adresse oder Telefon", "empty": "Kein Kontakt gefunden.", "note": "Die Adresse wird für diesen Kontakt gespeichert.", "create": "Kontakt anlegen" },
-  "delete": { "title": "Diese Nachricht löschen?", "legal": "Die Nachricht wandert in den Papierkorb und verlässt die Liste. Die gesetzliche Aufbewahrung von zehn Jahren gilt für das Dossier, nicht für das Postfach." },
-  "add": {
-    "cta": "Postfach hinzufügen", "title": "Postfach hinzufügen", "back": "Zurück", "share": "Dieses Postfach mit der ganzen Agentur teilen",
-    "waSub": "Koexistenz · App + Cloud API auf derselben Nummer", "imapSub": "IMAP-/SMTP-Verbindung", "other": "Anderes Postfach (IMAP / SMTP)", "otherSub": "Manuelle Serverkonfiguration",
-    "oauth": { "subtitle": "Kontoberechtigung", "addr": "E-Mail-Adresse", "addrPlaceholder": "adresse@ihre-agentur.ch", "access": "Angeforderter Zugriff",
-      "scope": { "read": "Nachrichten dieses Postfachs lesen und senden", "file": "Gespräche dem Kontakt zuordnen", "labels": "Mit den Labels der Agentur klassieren" },
-      "note": "Bestätigung auf der Seite von {{provider}} · kein Passwort läuft über die Agentur.", "useImap": "Mit IMAP einrichten", "authorize": "Autorisieren", "busy": "Verbinden…",
-      "err": { "popupBlocked": "Das Fenster wurde vom Browser blockiert. Wir öffnen die Autorisierung in diesem Tab.", "cancelled": "Autorisierung abgebrochen.", "timeout": "Die Autorisierung ist abgelaufen. Versuchen Sie es erneut.", "denied": "Der Zugriff wurde auf der Anbieterseite verweigert.", "notConfigured": "Dieser Anbieter ist bei MEGGA noch nicht konfiguriert.", "exchange": "Die Verbindung ist fehlgeschlagen: {{detail}}", "generic": "Die Verbindung ist fehlgeschlagen. Versuchen Sie es gleich noch einmal." } },
-    "imap": { "subtitle": "IMAP-/SMTP-Verbindung", "email": "E-Mail-Adresse", "imapHost": "IMAP-Server", "smtpHost": "SMTP-Server", "port": "Port", "imapPort": "IMAP-Port", "smtpPort": "SMTP-Port", "user": "Benutzername", "password": "Passwort", "encryption": "Verschlüsselung",
-      "note": "Der Test prüft IMAP und SMTP vor dem Hinzufügen · die Zugangsdaten werden verschlüsselt gespeichert.", "test": "Testen und verbinden", "unavailable": "Die IMAP-Verbindung kommt in einer nächsten Version.",
-      "err": { "invalid": "Adresse, Server und Passwort sind erforderlich.", "starttls": "STARTTLS (Port 587) ist von unseren Servern aus nicht verfügbar. Verwenden Sie SSL/TLS auf Port 465.", "connection": "Verbindung abgelehnt: Prüfen Sie Benutzername, Passwort (oder App-Passwort) und Server.", "generic": "Die Verbindung ist fehlgeschlagen. Versuchen Sie es gleich noch einmal." } },
-    "done": { "title": "Postfach verbunden", "sync": "Synchronisierung", "syncValue": "Letzte 90 Tage", "folders": "Importierte Ordner", "foldersValue": "Posteingang, Gesendet", "linking": "Kontaktzuordnung", "linkingValue": "Aktiv", "another": "Weiteres hinzufügen", "open": "Postfach öffnen" }
-  },
-  "callback": { "working": "Postfach wird verbunden…", "closing": "Sie können dieses Fenster schliessen.", "denied": "Autorisierung verweigert oder unvollständig.", "failed": "Die Verbindung ist fehlgeschlagen. {{detail}}" },
-  "preview": { "title": "Vorschau des Anhangs", "loading": "Wird geladen…", "error": "Der Anhang konnte nicht geladen werden.", "download": "Herunterladen" },
-  "file": { "cta": "Im Dossier ablegen", "title": "Im Dossier ablegen", "subtitle": "Der Anhang wird in die Dokumente des Kontakts kopiert.", "filed": "Im Dossier abgelegt", "zoom": "Gross anzeigen", "contact": "Kontakt", "contactCurrent": "Kontakt dieses Gesprächs", "contactPlaceholder": "Kontakt wählen", "type": "Dokumenttyp", "name": "Name im Dossier", "submit": "Dokument ablegen", "busy": "Wird abgelegt…",
-    "types": { "contrat": "Vertrag", "mandat": "Mandat", "piece_identite": "Ausweisdokument", "justificatif_domicile": "Wohnsitznachweis", "financement": "Finanzierung", "plan": "Plan", "photo": "Foto", "autre": "Anderes" },
-    "err": { "unsupported": "Dieser Dateityp wird in den Dokumenten nicht akzeptiert (PDF, JPEG, PNG, WebP, Word).", "generic": "Das Ablegen ist fehlgeschlagen. Versuchen Sie es erneut." } },
-  "mobile": { "readOnly": "Verfassen und Antworten sind vorerst am Computer möglich." }
-}
-```
-`common.json` (de) : `nav.messagerie: "Nachrichten"` ; `audit.action.email_received: "E-Mail erhalten"`, `email_sent: "E-Mail gesendet"`, `document_filed_from_email: "Anhang aus einer E-Mail abgelegt"`. `settings.json` (de) : `"Lesen und beantworten Sie Ihre E-Mails aus dem CRM (Google, Microsoft, IMAP)."`
+`auditActionLabel()` lit `common:audit.action.<action>` et retombe sur un
+`humanize()` de l'identifiant quand la clé manque : sans ces trois-là, la fiche
+contact affichait « Email received » au lieu de « E-mail reçu ». Les identifiants
+viennent du lot 1, pas d'une intention : `_shared/mail/ingest.ts:167` écrit
+`email_received` / `email_sent`, `mail-attachment/index.ts:158`
+`document_filed_from_email`.
 
-- [ ] **Step 4 : IT**
+| clé | fr | en | de | it |
+|---|---|---|---|---|
+| `email_received` | E-mail reçu | Email received | E-Mail erhalten | E-mail ricevuta |
+| `email_sent` | E-mail envoyé | Email sent | E-Mail gesendet | E-mail inviata |
+| `document_filed_from_email` | Pièce classée depuis un e-mail | Attachment filed from an email | Anhang aus einer E-Mail abgelegt | Allegato archiviato da un'e-mail |
 
-```json
-"mail": {
-  "empty": { "noAccount": { "title": "Nessuna casella collegata", "body": "Collega la casella dell'agenzia o la tua per leggere e rispondere qui." }, "noMessage": "Nessun messaggio corrisponde." },
-  "box": { "label": "Casella", "none": "Nessuna casella", "synced": "sincronizzata", "disconnect": "Scollega", "disconnectConfirm": "Scollegare questa casella? I suoi messaggi saranno rimossi dal CRM; i documenti archiviati restano.", "status": { "reauth_required": "Autorizzazione da rinnovare", "error": "Errore di sincronizzazione", "disabled": "Disattivata" } },
-  "compose": { "cta": "Nuovo messaggio", "title": "Nuovo messaggio", "to": "Destinatario", "toPlaceholder": "A · destinatario", "subject": "Oggetto", "body": "Messaggio", "attach": "Allega un documento", "fromComputer": "Dal mio computer", "agencyDocs": "Documenti dell'agenzia", "noAgencyDocs": "Nessun documento disponibile.", "removeAttachment": "Rimuovi allegato" },
-  "folders": { "aria": "Cartelle", "in": "Posta in arrivo", "arch": "Archiviati", "star": "Speciali", "sent": "Inviati", "draft": "Bozze" },
-  "labels": { "title": "Etichette", "new": "Nuova etichetta", "rename": "Rinomina", "recolor": "Cambia colore", "delete": "Elimina", "namePlaceholder": "Nome dell'etichetta", "custom": "Colore personalizzato", "hue": "Tonalità", "create": "Crea" },
-  "actions": { "cancel": "Annulla", "save": "Salva", "send": "Invia", "sending": "Invio…", "forward": "Inoltra", "close": "Chiudi" },
-  "list": { "search": "Ricerca", "searchPlaceholder": "Cerca un mittente, un oggetto ...", "unread": "Non letti", "attachment": "Allegato" },
-  "pager": { "range": "{{from}} a {{to}} di {{total}}", "prev": "Pagina precedente", "next": "Pagina successiva" },
-  "row": { "star": "Segna", "unstar": "Togli segno", "noSubject": "(senza oggetto)" },
-  "ctx": { "open": "Apri", "markRead": "Segna come letto", "markUnread": "Segna come non letto", "star": "Segna", "unstar": "Togli segno", "archive": "Archivia", "unarchive": "Ripristina", "delete": "Elimina" },
-  "draft": { "badge": "Bozza", "noRecipient": "(senza destinatario)" },
-  "read": { "back": "Torna all'elenco", "to": "a {{box}}", "me": "io", "reply": "Rispondi", "forward": "Inoltra", "replyTo": "Risposta a", "replyBody": "La tua risposta", "forwardNote": "Nota facoltativa", "forwardOriginal": "Messaggio originale allegato", "showImages": "Mostra immagini", "bodyTitle": "Corpo del messaggio", "truncated": "Messaggio troncato (troppo grande): aprilo nel tuo client di posta per la versione completa.", "unlinked": "Indirizzo non associato: {{email}}" },
-  "link": { "cta": "Associa", "title": "Associa l'indirizzo", "search": "Ricerca", "searchPlaceholder": "Nome, indirizzo o telefono", "empty": "Nessun contatto trovato.", "note": "L'indirizzo sarà memorizzato per questa scheda.", "create": "Crea la scheda" },
-  "delete": { "title": "Eliminare questo messaggio?", "legal": "Il messaggio va nel cestino e lascia l'elenco. La conservazione legale di dieci anni si applica al dossier, non alla casella." },
-  "add": {
-    "cta": "Aggiungi una casella", "title": "Aggiungi una casella", "back": "Indietro", "share": "Condividi questa casella con tutta l'agenzia",
-    "waSub": "Coesistenza · app + Cloud API sullo stesso numero", "imapSub": "Connessione IMAP / SMTP", "other": "Altra casella (IMAP / SMTP)", "otherSub": "Configurazione manuale del server",
-    "oauth": { "subtitle": "Autorizzazione dell'account", "addr": "Indirizzo e-mail", "addrPlaceholder": "indirizzo@tua-agenzia.ch", "access": "Accesso richiesto",
-      "scope": { "read": "Leggere e inviare i messaggi di questa casella", "file": "Associare le conversazioni alla scheda contatto", "labels": "Classificare con le etichette dell'agenzia" },
-      "note": "Conferma sulla pagina di {{provider}} · nessuna password passa dall'agenzia.", "useImap": "Configura con IMAP", "authorize": "Autorizza", "busy": "Connessione…",
-      "err": { "popupBlocked": "La finestra è stata bloccata dal browser. Apriamo l'autorizzazione in questa scheda.", "cancelled": "Autorizzazione annullata.", "timeout": "L'autorizzazione è scaduta. Riprova.", "denied": "L'accesso è stato rifiutato sulla pagina del fornitore.", "notConfigured": "Questo fornitore non è ancora configurato lato MEGGA.", "exchange": "La connessione non è riuscita: {{detail}}", "generic": "La connessione non è riuscita. Riprova tra un istante." } },
-    "imap": { "subtitle": "Connessione IMAP / SMTP", "email": "Indirizzo e-mail", "imapHost": "Server IMAP", "smtpHost": "Server SMTP", "port": "Porta", "imapPort": "Porta IMAP", "smtpPort": "Porta SMTP", "user": "Utente", "password": "Password", "encryption": "Cifratura",
-      "note": "Il test verifica IMAP e SMTP prima dell'aggiunta · le credenziali sono cifrate a riposo.", "test": "Testa e collega", "unavailable": "La connessione IMAP arriverà in una prossima versione.",
-      "err": { "invalid": "Indirizzo, server e password sono obbligatori.", "starttls": "STARTTLS (porta 587) non è disponibile dai nostri server. Usa SSL/TLS sulla porta 465.", "connection": "Connessione rifiutata: verifica utente, password (o password per app) e server.", "generic": "La connessione non è riuscita. Riprova tra un istante." } },
-    "done": { "title": "Casella collegata", "sync": "Sincronizzazione", "syncValue": "Ultimi 90 giorni", "folders": "Cartelle importate", "foldersValue": "Posta in arrivo, Inviati", "linking": "Associazione ai contatti", "linkingValue": "Attiva", "another": "Aggiungine un'altra", "open": "Apri la casella" }
-  },
-  "callback": { "working": "Collegamento della casella…", "closing": "Puoi chiudere questa finestra.", "denied": "Autorizzazione rifiutata o incompleta.", "failed": "La connessione non è riuscita. {{detail}}" },
-  "preview": { "title": "Anteprima dell'allegato", "loading": "Caricamento…", "error": "Impossibile caricare l'allegato.", "download": "Scarica" },
-  "file": { "cta": "Archivia nel dossier", "title": "Archivia nel dossier", "subtitle": "L'allegato viene copiato nei documenti del contatto.", "filed": "Archiviato nel dossier", "zoom": "Vedi a grandezza reale", "contact": "Scheda contatto", "contactCurrent": "Contatto di questa conversazione", "contactPlaceholder": "Scegli un contatto", "type": "Tipo di documento", "name": "Nome nel dossier", "submit": "Archivia il documento", "busy": "Archiviazione…",
-    "types": { "contrat": "Contratto", "mandat": "Mandato", "piece_identite": "Documento d'identità", "justificatif_domicile": "Prova di domicilio", "financement": "Finanziamento", "plan": "Planimetria", "photo": "Foto", "autre": "Altro" },
-    "err": { "unsupported": "Questo tipo di file non è accettato nei documenti (PDF, JPEG, PNG, WebP, Word).", "generic": "L'archiviazione non è riuscita. Riprova." } },
-  "mobile": { "readOnly": "Scrivere e rispondere si fanno da computer per ora." }
-}
-```
-`common.json` (it) : `nav.messagerie: "Messaggi"` ; `audit.action.email_received: "E-mail ricevuta"`, `email_sent: "E-mail inviata"`, `document_filed_from_email: "Allegato archiviato da un'e-mail"`. `settings.json` (it) : `"Leggi e rispondi alle tue e-mail dal CRM (Google, Microsoft, IMAP)."`
+⚠ L'objet `audit.action` est trié alphabétiquement : les trois clés s'insèrent à
+leur rang, pas à la fin.
 
-- [ ] **Step 5 : Portes et commit**
+- [x] **Step 3 : la description de la carte d'intégration (`settings.json`)**
+
+`integrations.catalogue.messagerie.desc`, consommée par la carte de T2.14 :
+fr « Lisez et répondez à vos e-mails depuis le CRM (Google, Microsoft, IMAP). » ·
+en "Read and reply to your emails from the CRM (Google, Microsoft, IMAP)." ·
+de „Lesen und beantworten Sie Ihre E-Mails aus dem CRM (Google, Microsoft, IMAP)." ·
+it "Leggi e rispondi alle tue e-mail dal CRM (Google, Microsoft, IMAP)."
+
+- [x] **Step 4 : deux corrections de valeur, mesurées**
+
+- `it` `mail.ctx.unarchive` : « Togli dall archivio » → « Togli dall'archivio ».
+  Apostrophe manquante, pas un choix de traduction.
+- `de` `mail.add.oauth.busy` : « Verbindung… » → « Wird verbunden… ». Les trois
+  autres libellés d'attente du même fichier suivent le patron `Wird …`
+  (`actions.sending`, `preview.loading`, `callback.working`) ; « Verbindung… » est
+  un nom, pas un état.
+
+`common:nav.messagerie` était déjà posée en T2.1 dans les quatre langues
+(fr « Messagerie », en "Mail", de „Nachrichten", it "Messaggi").
+
+- [x] **Step 5 : Portes et commit**
 
 ```bash
 npm run lint:i18n && npm run i18n:parity:ci && npm run lint:prose && npm run i18n:coverage:ci
-git add src/i18n && git commit -m "i18n(messagerie): sous-arbre mail en FR/EN/DE/IT, nav, actions d'audit"
+git add src/i18n docs/superpowers && git commit -m "feat(messagerie): i18n — le français consolidé et les trois autres langues"
 ```
-⚠ `i18n:coverage:ci` est un cliquet : si le compte de clés DE/IT non traduites monte, il rougit — ici tout est traduit, il doit rester vert.
+⚠ `i18n:coverage:ci` est un cliquet : si le compte de clés DE/IT non traduites
+monte, il rougit. Vérifié le 05.09.2026 — aucune des douze valeurs ajoutées n'y
+apparaît, et le total IT de `messages` reste à 1/252.
 
 ---
 
 ### Task 2.13 : Banc `/dev/messagerie`, fixtures, gardes de contraste et de grammaire, visuel
 
 **Files:**
-- Create: `src/components/crm/messagerie/fixtures.ts`
+- Modify: `src/components/crm/messagerie/fixtures.ts` (renommé depuis `.tsx`), `mailTokens.ts`, dix composants
+- Modify: `src/hooks/useMail{Accounts,Labels,Threads,Thread,Drafts,Realtime}.ts` (mode fixtures)
 - Create: `tests/unit/messagerie-contraste.spec.ts`
-- Modify: `src/hooks/useMailAccounts.ts`, `useMailLabels.ts`, `useMailThreads.ts`, `useMailThread.ts`, `useMailDrafts.ts` (mode fixtures), `tests/unit/megga-x-grammar.spec.ts` (`ZONES`), `tests/e2e/visual-regression.spec.ts`
+- Modify: `tests/e2e/visual-regression.spec.ts`, `scripts/_shared/visual-baseline-empreinte.mjs`, `tests/unit/visual-baseline-fraicheur.spec.ts`
 
-- [ ] **Step 1 : Fixtures (données visiblement fausses, README §« Données » : 8 rédigés + générés)**
+- [x] **Step 1 : Fixtures** — `src/components/crm/messagerie/fixtures.ts`
 
-```ts
-// src/components/crm/messagerie/fixtures.ts
-// Jeu de données du banc /dev/messagerie. TOUT est faux et se voit faux (@exemple.ch,
-// noms de scène) : un banc ne montre jamais une fiche qui pourrait exister.
-import { createContext, useContext } from 'react'
-import type { MailAccount } from '@/hooks/useMailAccounts'
-import type { MailLabel } from '@/hooks/useMailLabels'
-import type { MailThreadRow } from '@/hooks/useMailThreads'
-import type { MailMessageRow } from '@/hooks/useMailThread'
+Trois écarts au bloc du plan, chacun mesuré :
 
-export type MailFixtureState = 'full' | 'empty' | 'none'
-export const MailFixturesContext = createContext<MailFixtureState | null>(null)
-export const useMailFixtures = () => useContext(MailFixturesContext)
-export function MailFixturesProvider({ state, children }: { state: MailFixtureState; children: React.ReactNode }) {
-  return <MailFixturesContext.Provider value={state}>{children}</MailFixturesContext.Provider>
-}
+1. ⛔ **CHAQUE FIL A SES MESSAGES.** Le plan en rédigeait trois pour 48 fils.
+   Mesuré à l'écran : `MailReader` fait `if (!first) return null` — juste en
+   production, où le cache d'un fil peut arriver vide le temps d'une synchro —
+   donc **44 clics sur 48 ouvraient un panneau BLANC**. Un humain en aurait
+   conclu que la lecture est cassée. Les messages sont désormais DÉRIVÉS des
+   fils (`messagesDe`) : même correspondant, même objet, même date, exactement
+   `message_count` messages alternés entrant/sortant.
+2. ⚠ **LES DATES SONT RELATIVES**, pas les littéraux `2026-09-03T…` du plan.
+   `mailDateLabel` compare au jour civil suisse : une date fixe affiche
+   « 08:29 » le jour de son écriture, « Hier » le lendemain, puis « 03.09 »,
+   puis « 03.09.26 » — l'écran change tout seul, et la capture de régression
+   avec lui. C'est le motif exact pour lequel `/dashboard` a été retiré du jeu de
+   captures. La capture est rendue déterministe par une horloge figée côté
+   Playwright (Step 4), pas par des dates mortes.
+3. ⚠ **« Envoyés » se lit sur les MESSAGES**, pas sur `message_count > 1` comme
+   l'écrivait le plan : la RPC filtre sur `last_outbound_at is not null`, et un
+   fil de deux messages entrants n'a jamais rien envoyé. Le banc rejoue le vrai
+   prédicat. Six fils sont archivés pour la même raison — sinon le dossier
+   « Archivé » serait vide, et un dossier vide ne se distingue pas d'un dossier
+   cassé.
 
-const AG = 'fx-agency'
-export const FX_ACCOUNTS: MailAccount[] = [
-  { id: 'fx-a1', agency_id: AG, owner_id: 'fx-u1', provider: 'gmail', email: 'contact@agence-exemple.ch', display_name: 'Boîte générale', visibility: 'agency', status: 'active', last_sync_at: '2026-09-03T08:00:00Z', last_error: null, created_at: '2026-08-01T00:00:00Z' },
-  { id: 'fx-a2', agency_id: AG, owner_id: 'fx-u1', provider: 'outlook', email: 'facturation@agence-exemple.ch', display_name: 'Facturation', visibility: 'agency', status: 'active', last_sync_at: '2026-09-03T08:00:00Z', last_error: null, created_at: '2026-08-01T00:00:00Z' },
-  { id: 'fx-a3', agency_id: AG, owner_id: 'fx-u1', provider: 'imap', email: 'j.exemple@agence-exemple.ch', display_name: 'J. Exemple · personnelle', visibility: 'owner', status: 'reauth_required', last_sync_at: null, last_error: 'invalid_grant', created_at: '2026-08-01T00:00:00Z' },
-]
-export const FX_LABELS: MailLabel[] = [
-  { id: 'fx-l1', agency_id: AG, name: 'À traiter', color: '#fe566b', position: 0, is_default: true },
-  { id: 'fx-l2', agency_id: AG, name: 'Banques', color: '#8dc1ff', position: 1, is_default: true },
-  { id: 'fx-l3', agency_id: AG, name: 'Notaires', color: '#efc42c', position: 2, is_default: true },
-  { id: 'fx-l4', agency_id: AG, name: 'Clients', color: '#adecbb', position: 3, is_default: true },
-  { id: 'fx-l5', agency_id: AG, name: 'Visites', color: '#424bfb', position: 4, is_default: true },
-  { id: 'fx-l6', agency_id: AG, name: 'Fournisseurs', color: '#686868', position: 5, is_default: true },
-]
-const T = (i: number, over: Partial<MailThreadRow>): MailThreadRow => ({
-  id: `fx-t${i}`, account_id: 'fx-a1', subject: `Objet d'exemple ${i}`, snippet: 'Extrait d\'exemple, texte de remplissage sans contenu réel.', from_name: `Expéditeur ${i}`, from_email: `exp${i}@exemple.ch`,
-  participants: [{ name: `Expéditeur ${i}`, email: `exp${i}@exemple.ch` }], last_message_at: new Date(Date.UTC(2026, 7, 27 - (i % 60), 8, 29)).toISOString(), has_attachments: i % 4 === 0,
-  is_read: i % 3 !== 0, is_starred: i % 7 === 0, is_archived: false, is_trashed: false, label_id: FX_LABELS[i % 6].id, contact_id: i % 2 === 0 ? 'fx-c1' : null, message_count: 1 + (i % 3), total: 48, ...over,
-})
-export const FX_THREADS: MailThreadRow[] = [
-  T(1, { subject: 'Visite de samedi · confirmation', from_name: 'Zoé Exemple', from_email: 'zoe@exemple.ch', is_read: false, label_id: 'fx-l4', last_message_at: '2026-09-03T06:29:00Z' }),
-  T(2, { subject: 'Attestation de financement', from_name: 'Banque Exemple SA', from_email: 'credit@banque-exemple.ch', has_attachments: true, label_id: 'fx-l2', last_message_at: '2026-09-02T15:00:00Z' }),
-  T(3, { subject: 'Projet d\'acte · rue Fictive 12', from_name: 'Étude Exemple', from_email: 'etude@notaire-exemple.ch', has_attachments: true, label_id: 'fx-l3' }),
-  ...Array.from({ length: 45 }, (_, k) => T(k + 4, {})),
-]
-export const FX_MESSAGES: MailMessageRow[] = [
-  { id: 'fx-m1', thread_id: 'fx-t1', direction: 'inbound', from_name: 'Zoé Exemple', from_email: 'zoe@exemple.ch', to: [{ name: null, email: 'contact@agence-exemple.ch' }], cc: [], subject: 'Visite de samedi · confirmation', snippet: 'Bonjour, je confirme la visite de samedi à 10h.', body_text: 'Bonjour,\n\nJe confirme la visite de samedi à 10h. Est-il possible de voir aussi la cave ?\n\nMerci, Zoé', body_html: null, body_truncated: false, sent_at: '2026-09-03T06:29:00Z', is_read: false, has_attachments: false, contact_id: 'fx-c1', mail_attachments: [] },
-  { id: 'fx-m2', thread_id: 'fx-t2', direction: 'inbound', from_name: 'Banque Exemple SA', from_email: 'credit@banque-exemple.ch', to: [{ name: null, email: 'contact@agence-exemple.ch' }], cc: [], subject: 'Attestation de financement', snippet: 'Veuillez trouver ci-joint l\'attestation.', body_text: 'Bonjour,\n\nVeuillez trouver ci-joint l\'attestation de financement de votre client.\n\nCordialement', body_html: '<p>Bonjour,</p><p>Veuillez trouver ci-joint l\'attestation de financement de votre client.</p><p>Cordialement</p>', body_truncated: false, sent_at: '2026-09-02T15:00:00Z', is_read: true, has_attachments: true, contact_id: null, mail_attachments: [{ id: 'fx-att1', message_id: 'fx-m2', filename: 'attestation-exemple.pdf', mime_type: 'application/pdf', size_bytes: 184320, is_inline: false, content_id: null, document_id: null }] },
-  { id: 'fx-m3', thread_id: 'fx-t2', direction: 'outbound', from_name: 'Boîte générale', from_email: 'contact@agence-exemple.ch', to: [{ name: 'Banque Exemple SA', email: 'credit@banque-exemple.ch' }], cc: [], subject: 'Re: Attestation de financement', snippet: 'Bien reçu, merci.', body_text: 'Bien reçu, merci.', body_html: null, body_truncated: false, sent_at: '2026-09-02T16:10:00Z', is_read: true, has_attachments: false, contact_id: null, mail_attachments: [] },
-]
-export function fxThreads(state: MailFixtureState, accountId: string | null, folder: string, page: number, perPage: number): { rows: MailThreadRow[]; total: number } {
-  if (state !== 'full' || !accountId) return { rows: [], total: 0 }
-  const all = FX_THREADS.filter((t) => t.account_id === accountId && (folder === 'in' ? !t.is_archived : folder === 'star' ? t.is_starred : folder === 'arch' ? t.is_archived : folder === 'sent' ? t.message_count > 1 : false))
-  return { rows: all.slice(page * perPage, (page + 1) * perPage).map((r) => ({ ...r, total: all.length })), total: all.length }
-}
-```
-(Le fichier est un `.tsx` s'il porte du JSX : nommer `fixtures.tsx`.)
+Le fichier est un `.ts` (`git mv` depuis `.tsx`) : le fournisseur JSX a laissé la
+place au `Provider` du contexte, monté par la page de banc —
+`react-refresh/only-export-components` est une ERREUR ici et refuse un `.tsx` qui
+exporte à la fois un composant et huit constantes.
 
-- [ ] **Step 2 : Mode fixtures dans les hooks de lecture**
+- [x] **Step 2 : Mode fixtures dans les hooks de lecture**
 
-Dans `useMailAccounts` : `const fx = useMailFixtures()` ; `enabled: !!user && !fx` sur les deux `useQuery` ; retour `list: fx ? (fx === 'none' ? [] : FX_ACCOUNTS) : list.data ?? []`, `unread: fx ? { 'fx-a1': 3 } : …`, et **`isLoading: fx ? false : list.isPending`** — ⛔ une requête `enabled: false` reste `isPending` pour toujours (mémoire `project_react_query_isloading_vs_ispending`) : sans cette ligne le banc affiche un écran vide. Même `isLoading` explicite dans `useMailThreads` (`fx ? false : q.isPending`), `useMailThread`, `useMailLabels`, `useMailDrafts`. Même geste dans `useMailLabels` (`FX_LABELS`), `useMailThreads` (`fxThreads(fx, accountId, f.folder, f.page, MAIL_PER_PAGE)`), `useMailFolderCounts` (`{ inbox_unread: 3, archived: 2, drafts: 1, label_counts: { 'fx-l1': 8, 'fx-l2': 7, 'fx-l3': 6, 'fx-l4': 12, 'fx-l5': 9, 'fx-l6': 6 } }`), `useMailThread` (`FX_MESSAGES.filter(m => m.thread_id === threadId)`), `useMailDrafts` (`[]`). Les mutations restent réelles mais inertes sans compte réel (elles échouent en 404, ce qui est correct sur un banc). `useMailRealtime` : `if (!agencyId || fx) return`.
-
-- [ ] **Step 3 : Garde de contraste**
+⛔ **PAS par `isLoading: fx ? false : q.isPending` comme le plan le prescrivait.**
+Ce montage rend un couple (`isLoading: false`, `data: undefined`) qui n'existe
+dans aucun chemin réel : l'écran serait passé du blanc au vide sans qu'on sache
+lequel il montre. Les fixtures répondent **DANS la `queryFn`**, et l'état entre
+dans la clé de requête :
 
 ```ts
-// tests/unit/messagerie-contraste.spec.ts
-// L'encre posée sur un aplat de DONNÉE (couleur de libellé, accent) doit venir d'encreSur /
-// ms.pillInk, jamais d'un blanc en dur — modèle contacts-contraste.spec.ts.
-import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { encreSur } from '@/components/megga-x-crm/tokens'
-
-const FILES = ['MailListRow.tsx', 'MailReader.tsx', 'MailRail.tsx', 'MailContextMenu.tsx', 'MailBoxSelector.tsx', 'MailLabelCreator.tsx', 'MailAddAccountModal.tsx', 'MailAttachmentPreviewModal.tsx']
-  .map((f) => `src/components/crm/messagerie/${f}`)
-
-describe('Messagerie — encre sur aplat', () => {
-  it('aucun blanc ni noir en dur, aucune police en dur', () => {
-    for (const f of FILES) {
-      const src = readFileSync(f, 'utf8')
-      expect(src, f).not.toMatch(/#fff\b|#ffffff|#000\b|#000000|'white'|'black'/i)
-      expect(src, f).not.toMatch(/Poppins|Manrope|Inter Tight/)
-    }
-  })
-  it('la pastille de libellé calcule son encre', () => {
-    const row = readFileSync('src/components/crm/messagerie/MailListRow.tsx', 'utf8')
-    expect(row).toMatch(/ms\.pillInk\(label\.color\)/)
-    const reader = readFileSync('src/components/crm/messagerie/MailReader.tsx', 'utf8')
-    expect(reader).toMatch(/ms\.pillInk\(p\.label\.color\)/)
-  })
-  it('les six couleurs semées portent une encre AA', () => {
-    for (const bg of ['#fe566b', '#8dc1ff', '#efc42c', '#adecbb', '#424bfb', '#686868']) {
-      expect(typeof encreSur(bg)).toBe('string')
-    }
-  })
+const fx = useMailFixtures()
+useQuery({
+  queryKey: ['mail', 'accounts', fx],
+  enabled: !!user || !!fx,
+  queryFn: async () => { if (fx) return fx === 'none' ? [] : FX_ACCOUNTS; /* … */ },
 })
 ```
-Puis `tests/unit/megga-x-grammar.spec.ts` : ajouter dans `ZONES` une entrée `src/components/crm/messagerie` calquée sur celle de `crm/biens` (mêmes seuils), et lancer `npx vitest run tests/unit/megga-x-grammar.spec.ts` — si le cliquet rougit sur un poids ou une casse, corriger le composant, pas le seuil.
 
-- [ ] **Step 4 : Régression visuelle**
+La requête RÉSOUT, donc le banc emprunte le chemin de la production — cache,
+`staleTime`, `placeholderData` compris — et le piège `isPending`-pour-toujours ne
+se pose plus. Même geste dans `useMailLabels`, `useMailThreads`,
+`useMailFolderCounts`, `useMailThread`, `useMailDrafts` ; `useMailRealtime` sort
+tôt (`if (!agencyId || fx) return`) : avec `VITE_DEV_BYPASS_AUTH` il y a une
+session, donc un `agency_id`, et le canal se serait ouvert pour rien.
 
-Ajouter `/dev/messagerie` à la liste des pages de `tests/e2e/visual-regression.spec.ts` (repérer la liste : `grep -n "/dev/" tests/e2e/visual-regression.spec.ts`), générer la référence :
-```bash
-npm run test:e2e:visual -- --update-snapshots
-```
-et committer les captures. ⚠ Mémoire `project_visual_regression_gate_too_loose` : régénérer ne redéclenche pas la CI ; pousser un commit.
+- [x] **Step 3 : Garde de contraste — et les TROIS DÉFAUTS qu'elle a trouvés**
 
-- [ ] **Step 5 : Toutes les gardes, commit**
+⛔ La clause du plan `expect(typeof encreSur(bg)).toBe('string')` est VRAIE pour
+toute entrée : elle n'aurait jamais rougi. Et la liste de huit fichiers nommés
+laissait seize des vingt-quatre hors garde. La spec balaye donc le DOSSIER, et
+mesure vraiment. Ce qu'elle a trouvé en naissant :
+
+| jeton en ENCRE | thème | mesuré | sites |
+|---|---|---|---|
+| `accent` `#424bfb` | sombre | **3,44:1** | 9 (dont « Rapprocher ») |
+| `danger` `#fe566b` | clair | **3,11:1** | 7, tous `role="alert"` |
+| `success` `#adecbb` | clair | **1,35:1** | la coche « déjà classée » |
+
+Forme n° 37 de `megga/gardes-vacuites` : un jeton qui sert d'APLAT **et**
+d'ENCRE, mesuré d'un seul côté. Les couples aplat+`encreSur` passaient tous.
+Réparé par `accentText` / `dangerText` / `successText` dans `mailTokens.ts`.
+
+⛔ **Les deux encres du thème clair sont IMPORTÉES de `MLK_STATUT`, pas écrites.**
+Deux raisons, toutes deux mesurées : aucun des **96 barreaux** de MEGGA X ne
+porte du texte rouge ou vert sur blanc (meilleur rouge 4,09:1, meilleur vert
+1,89:1 — la vitrine est mono-thème sombre) ; et deux littéraux neufs font rougir
+`couleur-barreaux`, dont l'inventaire de `src/components/crm` « ne peut que
+RÉTRÉCIR » (540 > 538). `MLK_STATUT` est la famille que le dépôt s'est déjà
+donnée pour ce rôle, mesurée en août, et **déjà consommée hors de sa zone** par
+`crm-identity`.
+
+⚠ La zone de grammaire (`megga-x-grammar.spec.ts` `ZONES`) était déjà posée en
+T2.1, vide de dette. 33/33 vert, rien à faire ici.
+
+**Chaque clause a été éprouvée par mutation** (mutation appliquée → spec rouge →
+mutation annulée) : encre de pastille en blanc dur, chacun des trois `*Text`
+ramené à son aplat, réintroduction de `ms.accent` / `ms.danger` en encre,
+`aria-pressed` retiré de l'étoile, blanc en dur dans la zone, `encreSur` ne
+rendant plus un extrême, couleur de libellé en `rgb()`. Huit sur huit rougissent.
+
+- [ ] **Step 4 : Régression visuelle — CODE FAIT, RÉFÉRENCE À GÉNÉRER EN CI**
+
+`/dev/messagerie` entre dans `PAGES_TO_SNAPSHOT` sous le nom `dev-messagerie`,
+avec une **horloge figée** (`page.clock.setFixedTime('2026-09-03T08:29:00Z')`) —
+`setFixedTime` et non `install()`, qui prendrait aussi la main sur le débounce de
+recherche. Sans elle la colonne de dates dériverait toute seule.
+
+⛔ **ET LE TÉMOIN DE BALAYAGE ÉTAIT UN BOGUE LATENT.**
+`visual-baseline-fraicheur.spec.ts` exigeait `PipelinePage.tsx` et
+`crm/pipeline/StageColumn` de **chaque** entrée de `ECRANS`, dans la même boucle.
+Juste tant qu'il n'y avait qu'un écran ; le second l'a fait rougir sur-le-champ.
+Les témoins sont désormais PAR ÉCRAN (`TEMOINS`, à côté de l'inventaire), avec
+une clause de réciprocité — un écran sans témoin vide la garde du côté qu'on ne
+regarde pas.
+
+⛔ **CE QUI RESTE, ET QUI NE PEUT PAS SE FAIRE SUR CETTE MACHINE.** La référence
+et son empreinte s'écrivent ENSEMBLE, par
+`playwright test --config=playwright.visual.config.ts --update-snapshots=all`,
+sur `ubuntu-latest` — c'est ce que fait `visual-baselines.yml`. Générée en local
+sur macOS, la capture s'appellerait `dev-messagerie-chromium-darwin.png` et le
+rendu de police ne serait pas celui de la CI : une référence fausse, commitée
+comme vraie. Et l'empreinte ne se recopie pas à la main — la séparer de sa
+capture est exactement le faux-vert que cette garde existe pour empêcher.
+
+**Action requise, une seule :** commenter `/regenerate-visual-baselines` sur la
+PR. Jusque-là, DEUX clauses de `visual-baseline-fraicheur.spec.ts` sont ROUGES —
+« aucune capture n'est orpheline » et « la référence décrit encore l'écran » — et
+le job `test:e2e:visual` l'est aussi. C'est le signal prévu par la garde, pas une
+régression : son message d'échec nomme la commande.
+
+- [x] **Step 5 : Toutes les gardes, commit**
 
 ```bash
 npm run test:unit && npm run build && npm run lint && npm run lint:deadcode
-git add -A && git commit -m "test(messagerie): banc /dev/messagerie, fixtures, garde de contraste, zone de grammaire, visuel"
+git add -A && git commit -m "test(messagerie): banc, fixtures, gardes de contraste et de grammaire"
 ```
 
 ---
@@ -3251,101 +3524,217 @@ git add -A && git commit -m "test(messagerie): banc /dev/messagerie, fixtures, g
 ### Task 2.14 : Réglages › Intégrations, timeline contact, mobile minimal
 
 **Files:**
-- Modify: `src/components/crm/settings/IntegrationsSection.tsx`
-- Create: `src/components/crm-mobile/messagerie/MobileMessagerieScreen.tsx`
+- Modify: `src/components/crm/settings/IntegrationsSection.tsx`, `src/components/crm/messagerie/{MailBoxSelector,MailRail,MessagerieApp,MailBodyFrame}.tsx`, `src/components/crm/messagerie/mailState.ts`, `src/hooks/useContactTimeline.ts`, `src/pages/dev/MobileShowcasePage.tsx`
+- Create: `src/components/crm-mobile/messagerie/MobileMessagerieScreen.tsx` (le squelette de T2.1 rendait `null`), `tests/unit/messagerie-timeline.spec.ts`
 
-- [ ] **Step 1 : Carte « Messagerie » dans le catalogue des intégrations**
+- [x] **Step 1 : Carte « Messagerie » dans le catalogue des intégrations**
 
-`IntegrationsSection.tsx` : `type ProviderId = 'google' | 'microsoft' | 'skribble' | 'whatsapp' | 'messagerie'` ; dans `CATALOGUE`, après WhatsApp :
-```ts
-  { id: 'messagerie', category: 'messaging', provider: 'messagerie', name: 'Messagerie', descKey: 'integrations.catalogue.messagerie.desc', logoBg: '#FFFFFF', logo: <MEIcon name="mail" size={22} />, connectable: true, connected: false },
-```
-Au render (là où Google/Microsoft/WhatsApp surchargent `connected`/`account` depuis les hooks, `:905-950`) : `const mail = useMailAccounts()` puis pour `messagerie` : `connected: mail.list.length > 0`, `account: mail.list.map((a) => a.email).join(', ')`. Dans `handleConnect` (`:958-976`) : `case 'messagerie': navigate('/dashboard/messagerie?add=1'); break` ; `disconnect` pour `messagerie` : `navigate('/dashboard/messagerie')` (la déconnexion se fait boîte par boîte dans le sélecteur — à ajouter au menu du sélecteur : une entrée « Déconnecter » par boîte, protégée par `window.confirm(t('mail.box.disconnectConfirm'))`, qui appelle `accounts.disconnect.mutate(id)` ; libellé `t('mail.box.disconnect')` ; clés déjà posées en T2.12 (`mail.box.disconnect`, `mail.box.disconnectConfirm`) : « Déconnecter cette boîte ? Ses messages seront retirés du CRM ; les documents classés restent. » / "Disconnect this mailbox? Its messages are removed from the CRM; filed documents stay." / „Dieses Postfach trennen? Seine Nachrichten werden aus dem CRM entfernt; abgelegte Dokumente bleiben." / "Scollegare questa casella? I suoi messaggi saranno rimossi dal CRM; i documenti archiviati restano.").
+`ProviderId` gagne `'messagerie'`, la carte suit WhatsApp, `connected` et
+`account` sont surchargés au render depuis `useMailAccounts` — **toutes** les
+adresses, pas un compte : la boîte de l'agence et celle de l'agent coexistent
+(D14). `handleConnect` renvoie sur `/dashboard/messagerie?add=1` (l'assistant
+existe déjà et lit ce paramètre depuis T2.9) ; « déconnecter » renvoie sur
+l'écran, sans agir.
 
-- [ ] **Step 2 : Timeline contact**
+⚠ Glyphe neutre (`MEIcon name="mail"`), pas un logo de marque : une seule carte
+couvre TROIS fournisseurs, et ce que l'agent connecte ici est SA BOÎTE. Les
+logos de marque restent rendus par `MailProviderLogo`, qui réutilise déjà
+`GoogleG` et `MsLogo` de `settings/brandLogos` — aucun logo n'est redessiné.
 
-Rien à coder : `useContactTimeline` lit `activity_events` par `entity_id` ; `auditActionLabel` traduit par `common:audit.action.<action>` (clés posées en T2.12) ; `timelineCat` (mobile) classe déjà toute action contenant `email`. Vérifier à l'écran sur une fiche contact rattachée : les lignes « E-mail reçu / E-mail envoyé » apparaissent avec l'objet en libellé (`object_label`).
+⚠ Et ce n'est PAS la carte Google/Microsoft voisine : celle-là porte le
+CALENDRIER (jetons en clair, OAuth GoTrue). La messagerie a ses propres jetons,
+en Vault, derrière `mail-oauth`. Les fondre laisserait croire qu'un agenda
+connecté donne accès au courrier.
 
-- [ ] **Step 3 : Mobile minimal (D16)**
+**Déconnexion boîte par boîte**, dans le sélecteur du rail. ⚠ La ligne devient
+une RANGÉE de deux boutons et non un bouton dans un bouton : `<button>` imbriqué
+est du balisage invalide. La confirmation passe par `window.confirm` — exception
+assumée : le geste part d'un POPOVER qui se ferme au premier clic dehors, donc
+une modale portée aurait dû survivre à la fermeture de son déclencheur, pour
+trois lignes. Précédent : `ImportLeadPage:153`. ⚠ Déconnecter la boîte COURANTE
+remet la sélection à `null` (l'action du reducer accepte `null` depuis ici) :
+sans ça l'écran gardait un `accountId` disparu.
 
-```tsx
-// src/components/crm-mobile/messagerie/MobileMessagerieScreen.tsx
-// v1 mobile : lire seulement (liste de la première boîte + lecture). Composer, répondre,
-// classer et connecter restent sur ordinateur (maître D16) — et on le DIT.
-import { useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { crmPalette } from '@/components/crm/tokens'
-import { useCrmDark } from '@/lib/crmDark'
-import { useMailAccounts } from '@/hooks/useMailAccounts'
-import { useMailThreads } from '@/hooks/useMailThreads'
-import { useMailThread } from '@/hooks/useMailThread'
-import { mailDateLabel } from '@/lib/mail/format'
-import { MailBodyFrame } from '@/components/crm/messagerie/MailBodyFrame'
-import { mailSurfaces } from '@/components/crm/messagerie/mailTokens'
-import { MOBILE_FONT } from '@/components/crm-mobile/shell/tokens'
+- [x] **Step 2 : Timeline contact — « rien à coder » n'était pas « rien à garder »**
 
-export default function MobileMessagerieScreen() {
-  const { t, i18n } = useTranslation('messages')
-  const dark = useCrmDark()
-  const sp = crmPalette(dark)
-  const ms = mailSurfaces(sp, dark)
-  const accounts = useMailAccounts()
-  const accountId = accounts.list[0]?.id ?? null
-  const [page, setPage] = useState(0)
-  const [sel, setSel] = useState<string | null>(null)
-  const threads = useMailThreads(accountId, { folder: 'in', labelId: null, q: '', unreadOnly: false, attOnly: false, page })
-  const thread = useMailThread(sel)
-  const row = threads.rows.find((r) => r.id === sel)
-  return (
-    <div style={{ minHeight: '100vh', background: sp.pageBg, color: sp.ink, fontFamily: MOBILE_FONT, padding: 'var(--crm-space-2xl)' }}>
-      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600 }}>{t('folders.in')}</div>
-      <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut, marginTop: 4 }}>{accounts.list[0]?.email ?? t('mail.empty.noAccount.title')} · {t('mail.mobile.readOnly')}</div>
-      {!sel ? (
-        <div style={{ marginTop: 'var(--crm-space-2xl)' }}>
-          {threads.rows.map((r) => (
-            <button key={r.id} type="button" onClick={() => setSel(r.id)} style={{ display: 'block', width: '100%', textAlign: 'left', padding: 'var(--crm-space-lg) 0', borderBottom: `1px solid ${ms.bord2}`, background: 'none', border: 'none', color: sp.ink, fontFamily: 'inherit' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--crm-text-md)', fontWeight: r.is_read ? 500 : 700 }}><span>{r.from_name || r.from_email}</span><span style={{ color: ms.txt3, fontSize: 'var(--crm-text-xs)' }}>{mailDateLabel(r.last_message_at, new Date(), i18n.language.slice(0, 2))}</span></div>
-              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: r.is_read ? 500 : 700 }}>{r.subject || t('mail.row.noSubject')}</div>
-              <div style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.snippet}</div>
-            </button>
-          ))}
-          {threads.rows.length === 0 && !threads.isLoading && <div style={{ padding: 'var(--crm-space-7xl) 0', textAlign: 'center', color: ms.mut, fontSize: 'var(--crm-text-sm)' }}>{t('mail.empty.noMessage')}</div>}
-          {threads.total > (page + 1) * 12 && <button type="button" onClick={() => setPage(page + 1)} style={{ marginTop: 'var(--crm-space-2xl)', background: 'none', border: `1px solid ${ms.bord3}`, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-md) var(--crm-space-3xl)', color: ms.txt3, fontFamily: 'inherit' }}>{t('mail.pager.next')}</button>}
-        </div>
-      ) : (
-        <div style={{ marginTop: 'var(--crm-space-2xl)' }}>
-          <button type="button" onClick={() => setSel(null)} style={{ background: 'none', border: 'none', color: ms.txt3, fontFamily: 'inherit', padding: 0, fontSize: 'var(--crm-text-md)' }}>‹ {t('mail.read.back')}</button>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, marginTop: 'var(--crm-space-lg)' }}>{row?.subject}</div>
-          {(thread.data ?? []).map((m) => (
-            <div key={m.id} style={{ marginTop: 'var(--crm-space-2xl)', paddingTop: 'var(--crm-space-lg)', borderTop: `1px solid ${ms.bord2}` }}>
-              <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>{m.direction === 'outbound' ? t('mail.read.me') : (m.from_name || m.from_email)} · {mailDateLabel(m.sent_at, new Date(), i18n.language.slice(0, 2))}</div>
-              <MailBodyFrame ms={ms} html={m.body_html} text={m.body_text} truncated={m.body_truncated} />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-```
-⚠ `MOBILE_FONT` : repérer son module (`grep -rn "export const MOBILE_FONT" src/components/crm-mobile`) et corriger l'import. `useCrmDark` : `src/lib/crmDark.ts:100`. Les ancres `‹` et `·` sont de la ponctuation, pas du texte en dur pour `lint:i18n` — vérifier que la porte ne les compte pas ; sinon passer par une clé.
+Le câblage est bien complet : le lot 1 écrit `entity_id = contact_id`, le hook
+filtre là-dessus, `auditActionLabel` traduit, `timelineCat` classe. Mais la
+chaîne tient sur TROIS pièces dans trois endroits, et **aucune ne rougissait**
+quand une autre bougeait : le repli `humanize()` affiche « Email received » au
+lieu de « E-mail reçu » sans rien signaler. Un repli qui « marche » est ce qui
+rend une régression invisible.
 
-- [ ] **Step 4 : Build, gardes, commit**
+`tests/unit/messagerie-timeline.spec.ts` relie les trois : les identifiants sont
+LUS dans `supabase/functions/**` et non recopiés, les quatre langues doivent les
+porter, et le repli est éprouvé pour que les clauses ne soient pas vraies par
+construction. ⚠ La clause « ne vaut pas son propre repli » est désactivée en
+ANGLAIS, et c'est structurel : les identifiants SONT de l'anglais en snake_case,
+donc « Email received » est à la fois le repli et la bonne traduction. En anglais
+il reste le contrôle de présence.
+
+⛔ Le commentaire de `useContactTimeline` annonçait « OR metadata contains
+contact_id » — jamais implémenté. Corrigé : un commentaire qui décrit une requête
+plus large que la vraie fait chercher la panne du côté de l'écriture. Le contrat
+(« si et seulement si `entity_id` ») est désormais gardé.
+
+- [x] **Step 3 : Mobile minimal (D16)**
+
+Trois écarts au bloc du plan :
+
+1. ⚠ `MOBILE_FONT` vit dans `src/components/crm-mobile/tokens.ts`, pas
+   `shell/tokens`.
+2. ⚠ **Aucun littéral** de rayon, d'espacement ni de taille — le bloc du plan en
+   portait (`marginTop: 4`). `crm-mobile` est sous le cliquet de grammaire, dont
+   les DEUX compteurs ne peuvent que descendre.
+3. ⚠ `MailBodyFrame` reçoit une police. Sans elle le corps du mail rendait en
+   **Inter Tight sur mobile** : `policeHote()` lit `--crm-font`, la police de
+   l'agent au bureau. Aucune garde ne l'aurait vu — `polices-domaines` balaye les
+   SOURCES, et cette police-là est résolue à l'exécution.
+
+⚠ Les COULEURS viennent de `mailSurfaces` et non de `MT_LIGHT`/`MT_DARK` : la
+messagerie rend le même corps assaini dans la même iframe des deux côtés, et
+`MailBodyFrame` est typé sur `MailSurfaces`. Deux palettes sur un écran auraient
+coûté plus que l'écart au reste du mobile.
+
+✅ **L'écran mobile est monté dans `/dev/mobile`**, sous le même fournisseur de
+fixtures que le banc de bureau — sinon il n'était visible nulle part sans base de
+données, exactement le trou que T2.13 vient de fermer côté bureau. ⚠ Son
+séparateur est TOKENISÉ : recopier le littéral des voisins aurait fait monter le
+`total` de `src/pages/dev` (34 → 35).
+
+- [x] **Step 4 : Build, gardes, commit**
 
 ```bash
 npm run build && npm run lint && npm run lint:i18n && npm run i18n:parity:ci && npm run test:unit
-git add -A && git commit -m "feat(messagerie): carte Intégrations, déconnexion par boîte, mobile en lecture"
+git add -A && git commit -m "feat(messagerie): réglages, timeline contact, écran mobile minimal"
 ```
 
 ---
 
 ### Task 2.15 : Épreuve de bout en bout, PR, cerveau
 
-- [ ] **Step 1 : L'épreuve du maître §7.4, points 1 à 8, DANS L'UI** (une boîte Google de test, puis Outlook). Chaque point est coché avec la preuve (capture ou requête SQL) collée dans la PR. Points UI supplémentaires :
-  - la pop-up s'ouvre à 520×680, le consentement Google mentionne « MEGGA », l'écran « non validée » apparaît (scope restreint, attendu au pilote) ; après « Autoriser », la pop-up se ferme seule et l'assistant montre « Boîte connectée » sans que la fenêtre principale ait rechargé ;
-  - bloquer les pop-ups dans le navigateur, refaire : l'onglet part sur Google et revient sur `/dashboard/messagerie?account=…` avec la boîte ouverte ;
-  - clic droit sur une ligne : le menu s'ouvre au curseur, se ferme au clic hors zone et à Échap ;
-  - une image distante dans un mail HTML n'est pas chargée avant « Afficher les images » (onglet Réseau : aucune requête vers le domaine de l'image) ;
-  - `npm run test:e2e:visual` vert.
-- [ ] **Step 2 : PR** sur `main` depuis `claude/real-estate-crm-messaging-5ef3e3`, corps : les décisions D1-D16 en résumé, les écarts assumés vis-à-vis de la maquette (D6 Infomaniak/Bluewin en IMAP ; segment « Accès » non rendu ; pas de densités ; onglet au lieu d'entrée de sidebar), les chiffres de l'épreuve (délai de première synchro, latence de réception), et la liste des gestes hors dépôt encore ouverts (§6 du maître).
-- [ ] **Step 3 : Cerveau et docs** — maître §10 (clés `megga/messagerie-*`, `docs/system-map.md`, `docs/schema.md`, `docs/pages.md`, CLAUDE.md §8, CHANGELOG), puis `npm run ruflo:seed` et `npm run lint:claude-md`.
+- [ ] **Step 1 : L'épreuve du maître §7.4, points 1 à 8, DANS L'UI** (une boîte Google de test, puis Outlook).
+
+⛔ **NON FAITE AU 05.09.2026, ET ELLE NE POUVAIT PAS L'ÊTRE — la cause n'est pas dans
+le dépôt.** Trois prérequis manquent, tous chez Julien, tous hors de tout dépôt :
+
+1. `https://app.megga.ch/oauth/mail/callback` **n'est pas** dans les *Authorized redirect
+   URIs* du client OAuth Google `833483825712-vh715spjupqcl86qffv3hvffsaqk0g8e` : Google
+   rend **`Erreur 400 : redirect_uri_mismatch`** et l'écran de consentement ne s'affiche
+   jamais. Ajouter aussi `http://localhost:5173/oauth/mail/callback` pour l'épreuve locale.
+2. L'**API Gmail n'est pas activée** sur le projet `tribal-dispatch-504619-c1`, et
+   **`gmail.modify` n'est pas déclaré** en Data Access. C'est un scope **RESTRICTED** :
+   tant qu'il n'est pas vérifié, écran « application non validée » et plafond de
+   100 utilisateurs — acceptable au pilote, mais il faut l'avoir déclaré.
+3. `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` sont **absents** du projet Supabase,
+   donc `provider:'outlook'` répond **`503 provider_not_configured`**, par conception.
+
+⚠ **Ne pas cocher cette case sur la foi d'une CI verte ni du banc.** `/dev/messagerie`
+rend des **fixtures** ; `mail_accounts` compte **0 ligne** en production. Un banc vert
+n'est pas une fonctionnalité (`megga/gardes-vacuites`).
+
+**Mode d'emploi, une fois les trois prérequis posés** — à jouer dans l'ordre, en collant
+chaque relevé dans la PR :
+
+*Console, avant de commencer* — vérifier que le couple Google est bon sans rien déployer :
+```bash
+curl -s -X POST https://oauth2.googleapis.com/token \
+  -d grant_type=refresh_token -d refresh_token=faux \
+  -d client_id="$GOOGLE_CLIENT_ID" -d client_secret="$GOOGLE_CLIENT_SECRET"
+# invalid_grant ⇒ le couple est valide (seul le jeton est faux). invalid_client ⇒ secret faux.
+```
+
+*1. Connecter (§7.4 point 1)* — `/dashboard/messagerie` → « Ajouter une boîte » → Google.
+La pop-up doit s'ouvrir à **520×680**, le consentement mentionner « MEGGA », l'écran
+« non validée » apparaître (attendu : scope restreint). Après « Autoriser », la pop-up se
+ferme **seule** et l'assistant affiche « Boîte connectée » **sans que la fenêtre
+principale ait rechargé**. Puis :
+```sql
+select id, email, provider, status, visibility,
+       vault_secret_id is not null as jeton_en_vault,
+       last_sync_at, last_error, sync_failures
+from mail_accounts order by created_at desc limit 5;
+-- attendu : status='active', jeton_en_vault=true, last_error IS NULL
+select count(*) as jetons_calendrier from google_calendar_tokens;
+-- attendu : 0 — la messagerie ne touche PAS le calendrier
+```
+
+*2. Première synchro (point 2)* — attendre **≤ 2 min** (cron `mail-sync-2min`) :
+```sql
+select count(*) as fils, min(last_message_at) as plus_ancien, max(last_message_at) as plus_recent
+from mail_threads where account_id = '<id>';
+-- attendu : fils > 0, plus_ancien ≥ now() - interval '90 days'
+select last_sync_at, last_error, sync_failures from mail_accounts where id = '<id>';
+-- attendu : last_sync_at renseigné, last_error NULL, sync_failures = 0
+```
+⚠ Noter le **délai réel** entre la connexion et le premier fil : c'est le chiffre que la
+PR doit porter, et personne ne l'a jamais mesuré.
+
+*3. Réception (point 3)* — s'envoyer un mail depuis une autre adresse : il doit apparaître
+en **< 2 min**, non lu, la pastille du rail s'incrémentant **sans rechargement** (Realtime
+sur `mail_threads`). Noter la latence observée.
+
+*4. Aller-retour d'état (point 4)* — ouvrir ⇒ lu **dans le CRM ET dans Gmail** (`UNREAD`
+retiré côté Google) ; étoile ⇒ `STARRED` dans Gmail ; archiver ⇒ quitte la réception
+**des deux côtés**.
+
+*5. Répondre (point 5)* — la réponse doit être **dans le fil Gmail**, en-tête
+`In-Reply-To` = `Message-ID` d'origine (vérifier via « Afficher l'original » dans Gmail) :
+```sql
+select category, action, entity_id, created_at from activity_events
+where category='messaging' order by created_at desc limit 10;
+-- attendu : un email_sent sur le contact rattaché
+```
+
+*6. Pièce jointe (point 6)* — « Voir en grand » ⇒ le flux doit porter le **`content-type`
+de la pièce**, jamais `text/html` (onglet Réseau). Puis « Classer dans le dossier » :
+```sql
+select id, contact_id, sha256_hash, storage_path from documents
+order by created_at desc limit 3;   -- attendu : contact_id posé, sha256_hash non nul
+```
+et vérifier que l'objet existe réellement dans le bucket `documents`.
+
+*7. Rapprocher (point 7)* — sur un mail dont le bandeau dit « Adresse non rattachée »,
+« Rapprocher » ⇒ le bandeau disparaît, et :
+```sql
+select * from mail_contact_aliases order by created_at desc limit 5;  -- l'alias est appris
+```
+Le **mail suivant** de la même adresse doit se rattacher seul.
+
+*8. Déconnecter (point 8)* — « Déconnecter » dans le rail, puis :
+```sql
+select count(*) from mail_threads  where account_id = '<id>';  -- attendu : 0
+select count(*) from mail_messages where account_id = '<id>';  -- attendu : 0
+select count(*) from mail_accounts where id = '<id>';          -- attendu : 0
+select count(*) from vault.secrets where id = '<vault_secret_id>'; -- attendu : 0
+select count(*) from documents where id = '<doc classé au point 6>'; -- attendu : 1, TOUJOURS LÀ
+```
+⚠ Le document classé **survit** à la déconnexion : c'est une pièce du dossier client, pas
+une copie du courrier.
+
+*9. Outlook* — rejouer 1 à 5 avec une boîte Outlook.com ou M365, une fois l'inscription
+Entra ID faite et les deux secrets posés.
+
+*Points d'UI à vérifier au passage* (aucun n'est couvert par une porte) :
+- pop-ups **bloquées** dans le navigateur, refaire la connexion : l'onglet part sur Google
+  et revient sur `/dashboard/messagerie?account=…` avec la boîte ouverte ;
+- **clic droit** sur une ligne : le menu s'ouvre au curseur, se ferme au clic hors zone et
+  à Échap ;
+- une **image distante** dans un mail HTML n'est pas chargée avant « Afficher les images »
+  (onglet Réseau : **aucune** requête vers le domaine de l'image). ⚠ Aucune fixture du
+  banc ne porte d'`<img src=http…>` : ce point ne peut se vérifier que sur du vrai
+  courrier, ou en ajoutant une fixture faite pour.
+
+- [x] **Step 2 : PR** — [#1276](https://github.com/megga/megga-real-estate/pull/1276),
+  sortie de brouillon le 05.09.2026. ⚠ Le plan annonçait la branche
+  `claude/real-estate-crm-messaging-5ef3e3` ; la vraie est
+  `claude/crm-messagerie-lot2-front`. Le corps porte les décisions, les écarts assumés
+  (D6 Infomaniak/Bluewin renvoyés au lot 3 ; segment « Accès » non rendu ; pas de
+  densités ; onglet plutôt qu'entrée de rail), les portes mesurées, et **ce qui n'est pas
+  prouvé**. ⛔ Il ne porte **pas** les chiffres de l'épreuve (délai de première synchro,
+  latence de réception) : ils n'existent pas, faute d'épreuve.
+- [x] **Step 3 : Cerveau et docs** — `docs/pages.md` (les 3 routes ; et cinq chiffres
+  d'inventaire faux corrigés), `docs/system-map.md` §6ter + la puce Realtime + la ligne du
+  catalogue d'edges, `CLAUDE.md` §7 (51 → **52** jobs pg_cron) et §8 (Messagerie, « Chat »,
+  Intégrations), `docs/CHANGELOG.md`, quatre clés `megga/messagerie-*` dans le cerveau,
+  puis `npm run ruflo:seed` et `npm run lint:claude-md` (vert).

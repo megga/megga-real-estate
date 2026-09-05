@@ -15,7 +15,7 @@
  * viser un contact du matching), pas le chrome.
  *
  * ⛔ ET POURQUOI LES GROUPES. La référence de design prescrivait « aucune
- * séparation visuelle entre les groupes, seul l'ordre les signale ». Tenu à dix
+ * séparation visuelle entre les groupes, seul l'ordre les signale ». Tenu à onze
  * entrées, l'ordre seul ne signale plus rien — retour de Julien, 4 septembre
  * 2026 : « c'est un petit peu désordonné ». La liste est donc découpée en quatre
  * sections libellées, sur le MÊME idiome que la console super-admin
@@ -23,7 +23,8 @@
  * en 12 px / 600 / `sp.sub`, pas de filet, pas de capitale.
  *
  * Le découpage suit ce que les pages FONT, pas leur ordre d'arrivée :
- *   • Mon jour       — ce qu'on ouvre le matin : le cockpit et l'agenda.
+ *   • Mon jour       — ce qu'on ouvre le matin : le cockpit, l'agenda et la
+ *                      boîte mail.
  *   • Clients & biens — les deux entités du portefeuille, et le geste qui les
  *                      apparie (Matching lit les deux, il vit avec elles).
  *   • Transactions   — le cycle d'une affaire : le tableau, le parcours par
@@ -39,7 +40,7 @@
 /** Clé de section — ce que la barre compare à l'actif. */
 export type CrmSidebarSectionId =
   | 'today' | 'pipeline' | 'matching' | 'parcours' | 'contacts'
-  | 'biens' | 'calendar' | 'kyc' | 'dashboard' | 'settings'
+  | 'biens' | 'calendar' | 'kyc' | 'dashboard' | 'settings' | 'messagerie'
 
 /** Une entrée de navigation : clé, glyphe, clé de libellé, route. */
 export interface CrmSidebarSection {
@@ -64,6 +65,10 @@ export const CRM_SIDEBAR_GROUPS: CrmSidebarGroup[] = [
     items: [
       { id: 'today',    icon: 'home',     labelKey: 'nav.today',    route: '/dashboard' },
       { id: 'calendar', icon: 'calendar', labelKey: 'nav.calendar', route: '/dashboard/calendar' },
+      // ⚠ Ici et non dans un groupe à elle : la boîte fait partie de ce qu'on
+      // ouvre le matin, au même titre que le cockpit et l'agenda. Le découpage
+      // suit ce que les pages FONT, pas leur ordre d'arrivée.
+      { id: 'messagerie', icon: 'inbox', labelKey: 'nav.messagerie', route: '/dashboard/messagerie' },
     ],
   },
   {
@@ -91,7 +96,7 @@ export const CRM_SIDEBAR_GROUPS: CrmSidebarGroup[] = [
   },
 ]
 
-/** Les dix sections à plat — pour tout ce qui cherche par clé, pas par groupe. */
+/** Les onze sections à plat — pour tout ce qui cherche par clé, pas par groupe. */
 export const CRM_SIDEBAR_SECTIONS: CrmSidebarSection[] =
   CRM_SIDEBAR_GROUPS.flatMap(g => g.items)
 

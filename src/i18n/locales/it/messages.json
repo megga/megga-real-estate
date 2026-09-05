@@ -7,7 +7,7 @@
     "buyers": "Acquirenti",
     "sellers": "Venditori"
   },
-  "search_placeholder": "Ricerca...",
+  "search_placeholder": "Ricerca…",
   "copilot": {
     "aiEstimate": "stima IA",
     "negotiation": {
@@ -112,6 +112,247 @@
         "low": "Basso",
         "dormant": "Dormant"
       }
+    }
+  },
+  "mail": {
+    "empty": {
+      "noAccount": {
+        "title": "Nessuna casella collegata",
+        "body": "Collega la casella dell'agenzia o la tua per leggere e rispondere qui."
+      },
+      "noMessage": "Nessun messaggio corrisponde."
+    },
+    "add": {
+      "cta": "Aggiungi una casella",
+      "title": "Aggiungi una casella",
+      "back": "Indietro",
+      "share": "Condividi questa casella con tutta l'agenzia",
+      "waSub": "Coesistenza · app e Cloud API sullo stesso numero",
+      "imapSub": "Connessione IMAP / SMTP",
+      "other": "Altra casella (IMAP / SMTP)",
+      "otherSub": "Configurazione manuale del server",
+      "oauth": {
+        "subtitle": "Autorizzazione dell'account",
+        "addr": "Indirizzo e-mail",
+        "addrPlaceholder": "indirizzo@vostra-agenzia.ch",
+        "access": "Accesso richiesto",
+        "scope": {
+          "read": "Leggere e inviare i messaggi di questa casella",
+          "file": "Collegare gli scambi alla scheda contatto",
+          "labels": "Archiviare con le etichette dell'agenzia"
+        },
+        "note": "Conferma sulla pagina di {{provider}} · nessuna password passa dall'agenzia.",
+        "useImap": "Configura con IMAP",
+        "authorize": "Autorizza",
+        "busy": "Connessione…",
+        "err": {
+          "popupBlocked": "La finestra è stata bloccata dal browser. Apriamo l'autorizzazione in questa scheda.",
+          "cancelled": "Autorizzazione annullata.",
+          "timeout": "L'autorizzazione è scaduta. Riprovate.",
+          "denied": "L'accesso è stato rifiutato sulla pagina del fornitore.",
+          "notConfigured": "Questo fornitore non è ancora configurato lato MEGGA.",
+          "exchange": "La connessione non è riuscita: {{detail}}",
+          "generic": "La connessione non è riuscita. Riprovate tra un istante."
+        }
+      },
+      "imap": {
+        "subtitle": "Connessione IMAP / SMTP",
+        "email": "Indirizzo e-mail",
+        "imapHost": "Server IMAP",
+        "smtpHost": "Server SMTP",
+        "port": "Porta",
+        "imapPort": "Porta IMAP",
+        "smtpPort": "Porta SMTP",
+        "user": "Utente",
+        "password": "Password",
+        "encryption": "Cifratura",
+        "note": "Il test verifica IMAP e SMTP prima dell'aggiunta · le credenziali sono cifrate a riposo.",
+        "test": "Verifica e collega",
+        "unavailable": "La connessione IMAP arriverà in una prossima versione.",
+        "err": {
+          "invalid": "Indirizzo, server e password sono obbligatori.",
+          "starttls": "STARTTLS (porta 587) non è disponibile dai nostri server. Usate SSL/TLS sulla porta 465.",
+          "connection": "Connessione rifiutata: verificate nome utente, password (o password per app) e server.",
+          "generic": "La connessione non è riuscita. Riprovate tra un istante."
+        }
+      },
+      "done": {
+        "title": "Casella collegata",
+        "sync": "Sincronizzazione",
+        "syncValue": "Ultimi 90 giorni",
+        "folders": "Cartelle importate",
+        "foldersValue": "Posta in arrivo, Inviati",
+        "linking": "Collegamento ai contatti",
+        "linkingValue": "Attivo",
+        "another": "Aggiungine un'altra",
+        "open": "Apri la casella"
+      }
+    },
+    "box": {
+      "label": "Casella",
+      "none": "Nessuna casella",
+      "synced": "sincronizzata",
+      "disconnect": "Disconnetti",
+      "disconnectConfirm": "Disconnettere questa casella? I suoi messaggi verranno rimossi dal CRM; i documenti archiviati restano.",
+      "status": {
+        "reauth_required": "Autorizzazione da rinnovare",
+        "error": "Errore di sincronizzazione",
+        "disabled": "Disattivata"
+      }
+    },
+    "compose": {
+      "cta": "Nuovo messaggio",
+      "to": "Destinatario",
+      "toPlaceholder": "A · destinatario",
+      "title": "Nuovo messaggio",
+      "subject": "Oggetto",
+      "body": "Messaggio",
+      "attach": "Allega un documento",
+      "fromComputer": "Dal mio computer",
+      "agencyDocs": "Documenti dell'agenzia",
+      "noAgencyDocs": "Nessun documento disponibile.",
+      "removeAttachment": "Rimuovi l'allegato"
+    },
+    "folders": {
+      "aria": "Cartelle",
+      "in": "Posta in arrivo",
+      "arch": "Archiviati",
+      "star": "Preferiti",
+      "sent": "Inviati",
+      "draft": "Bozze"
+    },
+    "labels": {
+      "title": "Etichette",
+      "new": "Nuova etichetta",
+      "rename": "Rinomina",
+      "recolor": "Cambia colore",
+      "delete": "Elimina",
+      "namePlaceholder": "Nome dell'etichetta",
+      "custom": "Colore personalizzato",
+      "hue": "Tonalità",
+      "hex": "Codice esadecimale",
+      "create": "Crea"
+    },
+    "list": {
+      "search": "Ricerca",
+      "searchPlaceholder": "Cerca un mittente, un oggetto …",
+      "unread": "Non letti",
+      "attachment": "Allegato",
+      "err": {
+        "load": "Non è stato possibile caricare i messaggi.",
+        "retry": "Riprova"
+      }
+    },
+    "pager": {
+      "range": "{{from}} a {{to}} di {{total}}",
+      "prev": "Pagina precedente",
+      "next": "Pagina successiva"
+    },
+    "row": {
+      "star": "Segui",
+      "unstar": "Non seguire più",
+      "noSubject": "(senza oggetto)"
+    },
+    "ctx": {
+      "open": "Apri",
+      "markRead": "Segna come letto",
+      "markUnread": "Segna come non letto",
+      "star": "Segui",
+      "unstar": "Non seguire più",
+      "archive": "Archivia",
+      "unarchive": "Togli dall'archivio",
+      "delete": "Elimina"
+    },
+    "delete": {
+      "title": "Eliminare questo messaggio?",
+      "legal": "Il messaggio finisce nel cestino ed esce dall'elenco. La conservazione legale di dieci anni riguarda il dossier, non la casella."
+    },
+    "read": {
+      "back": "Torna all'elenco",
+      "to": "a {{box}}",
+      "me": "io",
+      "reply": "Rispondi",
+      "forward": "Inoltra",
+      "replyTo": "Risposta a",
+      "replyBody": "La tua risposta",
+      "forwardNote": "Nota facoltativa",
+      "forwardOriginal": "Messaggio originale allegato",
+      "showImages": "Mostra le immagini",
+      "bodyTitle": "Corpo del messaggio",
+      "truncated": "Messaggio troncato (troppo grande): aprilo nel tuo programma di posta per la versione completa.",
+      "unlinked": "Indirizzo non collegato: {{email}}"
+    },
+    "link": {
+      "cta": "Collega",
+      "title": "Collega l'indirizzo",
+      "search": "Ricerca",
+      "searchPlaceholder": "Nome, indirizzo o telefono",
+      "empty": "Nessun contatto trovato.",
+      "note": "L'indirizzo sarà memorizzato per questa scheda.",
+      "create": "Crea la scheda"
+    },
+    "draft": {
+      "badge": "Bozza",
+      "noRecipient": "(senza destinatario)"
+    },
+    "actions": {
+      "cancel": "Annulla",
+      "save": "Salva",
+      "send": "Invia",
+      "sending": "Invio…",
+      "forward": "Inoltra",
+      "close": "Chiudi"
+    },
+    "callback": {
+      "working": "Collegamento della casella…",
+      "closing": "Potete chiudere questa finestra.",
+      "denied": "Autorizzazione rifiutata o incompleta.",
+      "failed": "La connessione non è riuscita. {{detail}}"
+    },
+    "preview": {
+      "title": "Anteprima dell'allegato",
+      "loading": "Caricamento…",
+      "error": "Non è stato possibile caricare l'allegato.",
+      "download": "Scarica"
+    },
+    "file": {
+      "cta": "Archivia nel dossier",
+      "title": "Archivia nel dossier",
+      "subtitle": "L'allegato viene copiato nei documenti del contatto.",
+      "filed": "Archiviato nel dossier",
+      "zoom": "Vedi in grande",
+      "contact": "Scheda contatto",
+      "contactCurrent": "Contatto di questa conversazione",
+      "contactPlaceholder": "Scegli un contatto",
+      "type": "Tipo di documento",
+      "name": "Nome nel dossier",
+      "submit": "Archivia il documento",
+      "busy": "Archiviazione…",
+      "types": {
+        "contrat": "Contratto",
+        "mandat": "Mandato",
+        "piece_identite": "Documento d'identità",
+        "justificatif_domicile": "Prova di domicilio",
+        "financement": "Finanziamento",
+        "plan": "Planimetria",
+        "photo": "Foto",
+        "autre": "Altro"
+      },
+      "err": {
+        "unsupported": "Questo tipo di file non è accettato nei documenti (PDF, JPEG, PNG, WebP, Word).",
+        "tooLarge": "L'allegato supera i 20 MB e non può essere archiviato nel dossier.",
+        "contact": "Questo contatto non appartiene alla vostra agenzia.",
+        "generic": "L'archiviazione non è riuscita. Riprovate."
+      }
+    },
+    "mobile": {
+      "readOnly": "Scrivere e rispondere si fanno dal computer, per ora."
+    },
+    "notice": {
+      "sentNotRecorded": "Il messaggio è stato inviato. La copia locale non è stata salvata: non inviarlo di nuovo.",
+      "filedNotLinked": "Il documento è archiviato. Il collegamento con l'allegato non è stato salvato: non archiviarlo una seconda volta.",
+      "dismiss": "Chiudi",
+      "degraded": "Una parte della casella non risponde. Contatori, etichette o l'ultima azione possono essere non aggiornati."
     }
   }
 }

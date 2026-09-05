@@ -7,7 +7,7 @@
     "buyers": "Käufer",
     "sellers": "Verkäufer"
   },
-  "search_placeholder": "Suchen...",
+  "search_placeholder": "Suchen…",
   "copilot": {
     "aiEstimate": "KI-Schätzung",
     "negotiation": {
@@ -112,6 +112,247 @@
         "low": "Niedrig",
         "dormant": "Dormant"
       }
+    }
+  },
+  "mail": {
+    "empty": {
+      "noAccount": {
+        "title": "Kein Postfach verbunden",
+        "body": "Verbinden Sie das Postfach der Agentur oder Ihr eigenes, um hier zu lesen und zu antworten."
+      },
+      "noMessage": "Keine Nachricht entspricht der Suche."
+    },
+    "add": {
+      "cta": "Postfach hinzufügen",
+      "title": "Postfach hinzufügen",
+      "back": "Zurück",
+      "share": "Dieses Postfach mit der ganzen Agentur teilen",
+      "waSub": "Koexistenz · App und Cloud API auf derselben Nummer",
+      "imapSub": "IMAP-/SMTP-Verbindung",
+      "other": "Anderes Postfach (IMAP / SMTP)",
+      "otherSub": "Server manuell einrichten",
+      "oauth": {
+        "subtitle": "Kontofreigabe",
+        "addr": "E-Mail-Adresse",
+        "addrPlaceholder": "adresse@ihre-agentur.ch",
+        "access": "Angeforderter Zugriff",
+        "scope": {
+          "read": "Nachrichten dieses Postfachs lesen und senden",
+          "file": "Den Austausch dem Kontaktdossier zuordnen",
+          "labels": "Mit den Labels der Agentur ablegen"
+        },
+        "note": "Bestätigung auf der Seite von {{provider}} · kein Passwort läuft über die Agentur.",
+        "useImap": "Mit IMAP einrichten",
+        "authorize": "Freigeben",
+        "busy": "Wird verbunden…",
+        "err": {
+          "popupBlocked": "Das Fenster wurde vom Browser blockiert. Wir öffnen die Freigabe in diesem Tab.",
+          "cancelled": "Freigabe abgebrochen.",
+          "timeout": "Die Freigabe ist abgelaufen. Bitte erneut versuchen.",
+          "denied": "Der Zugriff wurde auf der Seite des Anbieters verweigert.",
+          "notConfigured": "Dieser Anbieter ist bei MEGGA noch nicht eingerichtet.",
+          "exchange": "Die Verbindung ist fehlgeschlagen: {{detail}}",
+          "generic": "Die Verbindung ist fehlgeschlagen. Bitte gleich nochmals versuchen."
+        }
+      },
+      "imap": {
+        "subtitle": "IMAP-/SMTP-Verbindung",
+        "email": "E-Mail-Adresse",
+        "imapHost": "IMAP-Server",
+        "smtpHost": "SMTP-Server",
+        "port": "Port",
+        "imapPort": "IMAP-Port",
+        "smtpPort": "SMTP-Port",
+        "user": "Benutzername",
+        "password": "Passwort",
+        "encryption": "Verschlüsselung",
+        "note": "Der Test prüft IMAP und SMTP vor dem Hinzufügen · die Zugangsdaten werden verschlüsselt gespeichert.",
+        "test": "Testen und verbinden",
+        "unavailable": "Die IMAP-Verbindung kommt in einer nächsten Version.",
+        "err": {
+          "invalid": "Adresse, Server und Passwort sind erforderlich.",
+          "starttls": "STARTTLS (Port 587) ist von unseren Servern aus nicht verfügbar. Verwenden Sie SSL/TLS auf Port 465.",
+          "connection": "Verbindung abgelehnt: Prüfen Sie Benutzername, Passwort (oder App-Passwort) und die Server.",
+          "generic": "Die Verbindung ist fehlgeschlagen. Bitte gleich nochmals versuchen."
+        }
+      },
+      "done": {
+        "title": "Postfach verbunden",
+        "sync": "Synchronisierung",
+        "syncValue": "Letzte 90 Tage",
+        "folders": "Importierte Ordner",
+        "foldersValue": "Posteingang, Gesendet",
+        "linking": "Zuordnung zu Kontakten",
+        "linkingValue": "Aktiv",
+        "another": "Weiteres hinzufügen",
+        "open": "Postfach öffnen"
+      }
+    },
+    "box": {
+      "label": "Postfach",
+      "none": "Kein Postfach",
+      "synced": "synchronisiert",
+      "disconnect": "Trennen",
+      "disconnectConfirm": "Dieses Postfach trennen? Seine Nachrichten werden aus dem CRM entfernt; abgelegte Dokumente bleiben erhalten.",
+      "status": {
+        "reauth_required": "Berechtigung erneuern",
+        "error": "Synchronisierungsfehler",
+        "disabled": "Deaktiviert"
+      }
+    },
+    "compose": {
+      "cta": "Neue Nachricht",
+      "to": "Empfänger",
+      "toPlaceholder": "An · Empfänger",
+      "title": "Neue Nachricht",
+      "subject": "Betreff",
+      "body": "Nachricht",
+      "attach": "Dokument anhängen",
+      "fromComputer": "Von meinem Computer",
+      "agencyDocs": "Dokumente der Agentur",
+      "noAgencyDocs": "Kein Dokument verfügbar.",
+      "removeAttachment": "Anhang entfernen"
+    },
+    "folders": {
+      "aria": "Ordner",
+      "in": "Posteingang",
+      "arch": "Archiviert",
+      "star": "Markiert",
+      "sent": "Gesendet",
+      "draft": "Entwürfe"
+    },
+    "labels": {
+      "title": "Kategorien",
+      "new": "Neue Kategorie",
+      "rename": "Umbenennen",
+      "recolor": "Farbe ändern",
+      "delete": "Löschen",
+      "namePlaceholder": "Name der Kategorie",
+      "custom": "Eigene Farbe",
+      "hue": "Farbton",
+      "hex": "Hexadezimalcode",
+      "create": "Erstellen"
+    },
+    "list": {
+      "search": "Suche",
+      "searchPlaceholder": "Absender oder Betreff suchen …",
+      "unread": "Ungelesen",
+      "attachment": "Anhang",
+      "err": {
+        "load": "Die Nachrichten konnten nicht geladen werden.",
+        "retry": "Erneut versuchen"
+      }
+    },
+    "pager": {
+      "range": "{{from}} bis {{to}} von {{total}}",
+      "prev": "Vorherige Seite",
+      "next": "Nächste Seite"
+    },
+    "row": {
+      "star": "Markieren",
+      "unstar": "Markierung aufheben",
+      "noSubject": "(ohne Betreff)"
+    },
+    "ctx": {
+      "open": "Öffnen",
+      "markRead": "Als gelesen markieren",
+      "markUnread": "Als ungelesen markieren",
+      "star": "Markieren",
+      "unstar": "Markierung aufheben",
+      "archive": "Archivieren",
+      "unarchive": "Aus Archiv holen",
+      "delete": "Löschen"
+    },
+    "delete": {
+      "title": "Diese Nachricht löschen?",
+      "legal": "Die Nachricht wandert in den Papierkorb und verlässt die Liste. Die gesetzliche Aufbewahrung von zehn Jahren gilt für das Dossier, nicht für das Postfach."
+    },
+    "read": {
+      "back": "Zurück zur Liste",
+      "to": "an {{box}}",
+      "me": "ich",
+      "reply": "Antworten",
+      "forward": "Weiterleiten",
+      "replyTo": "Antwort an",
+      "replyBody": "Ihre Antwort",
+      "forwardNote": "Optionale Notiz",
+      "forwardOriginal": "Ursprüngliche Nachricht angehängt",
+      "showImages": "Bilder anzeigen",
+      "bodyTitle": "Nachrichtentext",
+      "truncated": "Nachricht gekürzt (zu gross): Öffnen Sie sie in Ihrem Mailprogramm für die vollständige Fassung.",
+      "unlinked": "Adresse nicht zugeordnet: {{email}}"
+    },
+    "link": {
+      "cta": "Zuordnen",
+      "title": "Adresse zuordnen",
+      "search": "Suche",
+      "searchPlaceholder": "Name, Adresse oder Telefon",
+      "empty": "Kein Kontakt gefunden.",
+      "note": "Die Adresse wird für dieses Dossier gemerkt.",
+      "create": "Dossier anlegen"
+    },
+    "draft": {
+      "badge": "Entwurf",
+      "noRecipient": "(ohne Empfänger)"
+    },
+    "actions": {
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "send": "Senden",
+      "sending": "Wird gesendet…",
+      "forward": "Weiterleiten",
+      "close": "Schliessen"
+    },
+    "callback": {
+      "working": "Postfach wird verbunden…",
+      "closing": "Sie können dieses Fenster schliessen.",
+      "denied": "Freigabe verweigert oder unvollständig.",
+      "failed": "Die Verbindung ist fehlgeschlagen. {{detail}}"
+    },
+    "preview": {
+      "title": "Vorschau der Datei",
+      "loading": "Wird geladen…",
+      "error": "Die Datei konnte nicht geladen werden.",
+      "download": "Herunterladen"
+    },
+    "file": {
+      "cta": "Im Dossier ablegen",
+      "title": "Im Dossier ablegen",
+      "subtitle": "Die Datei wird in die Dokumente des Kontakts kopiert.",
+      "filed": "Im Dossier abgelegt",
+      "zoom": "Gross ansehen",
+      "contact": "Kontaktdossier",
+      "contactCurrent": "Kontakt dieses Verlaufs",
+      "contactPlaceholder": "Kontakt wählen",
+      "type": "Dokumentart",
+      "name": "Name im Dossier",
+      "submit": "Dokument ablegen",
+      "busy": "Wird abgelegt…",
+      "types": {
+        "contrat": "Vertrag",
+        "mandat": "Mandat",
+        "piece_identite": "Ausweisdokument",
+        "justificatif_domicile": "Wohnsitznachweis",
+        "financement": "Finanzierung",
+        "plan": "Plan",
+        "photo": "Foto",
+        "autre": "Anderes"
+      },
+      "err": {
+        "unsupported": "Dieser Dateityp wird in den Dokumenten nicht akzeptiert (PDF, JPEG, PNG, WebP, Word).",
+        "tooLarge": "Die Datei überschreitet 20 MB und kann nicht im Dossier abgelegt werden.",
+        "contact": "Dieser Kontakt gehört nicht zu Ihrer Agentur.",
+        "generic": "Die Ablage ist fehlgeschlagen. Bitte erneut versuchen."
+      }
+    },
+    "mobile": {
+      "readOnly": "Verfassen und Antworten sind vorerst am Computer möglich."
+    },
+    "notice": {
+      "sentNotRecorded": "Die Nachricht wurde gesendet. Ihre Kopie konnte hier nicht gespeichert werden: senden Sie sie nicht erneut.",
+      "filedNotLinked": "Das Dokument ist abgelegt. Die Verknüpfung mit dem Anhang konnte nicht gespeichert werden: legen Sie es kein zweites Mal ab.",
+      "dismiss": "Schliessen",
+      "degraded": "Ein Teil des Postfachs antwortet nicht. Zähler, Labels oder die letzte Aktion können veraltet sein."
     }
   }
 }

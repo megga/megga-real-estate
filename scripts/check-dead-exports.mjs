@@ -42,6 +42,49 @@ const ALLOW_SYMBOLS = new Set([
   'src/lib/constants.ts:Canton', 'src/lib/constants.ts:KycStatus', 'src/lib/constants.ts:KycType',
   'src/lib/constants.ts:FATF_HIGH_RISK_COUNTRIES', 'src/lib/constants.ts:FATF_INCREASED_MONITORING',
   'src/lib/utils.ts:formatSurface',          // formatteur m² testé (tests/unit/utils.spec.ts)
+  // ── Messagerie CRM, lot 2 T2.2 : la bibliothèque PURE précède ses écrans ────
+  // ⚠ Même angle mort que `formatSurface` : `ts-prune` tourne sur
+  // `tsconfig.app.json`, dont l'`include` est `["src"]` — un module que seules
+  // les specs lisent lui paraît mort. Ces six-là ONT un lecteur
+  // (`tests/unit/mail-format.spec.ts`, `mail-sanitize.spec.ts`), et ils en
+  // auront un second dans l'écran : `format` en T2.5 (la ligne de liste),
+  // `sanitize` en T2.6 (le corps du message).
+  // ⛔ À RETIRER quand ces tâches livrent : une exemption qui survit à son motif
+  // couvre le fichier entier pour toujours.
+  // ⚠ `mailDateLabel` et `displayAddress` sont SORTIS le 04.09.2026 : `MailListRow`
+  // (T2.5) les lit.
+  // ⚠ ET LES QUATRE DERNIÈRES DE CE BLOC SONT SORTIES AVEC T2.6, comme annoncé :
+  // `initialsOf` peint l'avatar du bandeau de lecture, `fileSizeLabel` la taille
+  // d'une pièce jointe, `sanitizeMailHtml` et `buildBodySrcdoc` le corps du
+  // message dans son iframe (`MailReader`, `MailBodyFrame`). Le bloc n'a plus
+  // d'entrée : la bibliothèque pure a rejoint ses écrans.
+  // ⚠ `oauthPopup` est SORTI de cette liste le 04.09.2026, comme annoncé :
+  // `useMailOAuthPopup` (T2.3) lit ses deux exports. Une exemption qui survit à
+  // son motif couvre le fichier pour toujours.
+  //
+  // ── Messagerie CRM, lot 2 T2.3 : les hooks précèdent l'écran qui les monte ──
+  // Le lot livre la couche de DONNÉES avant les trois zones du bento, exprès :
+  // T2.4-T2.11 les consomment, tâche par tâche. Chaque entrée nomme la sienne, et
+  // s'en va avec elle.
+  // ⚠ SIX ENTRÉES SONT PARTIES AVEC T2.4 ET T2.5, comme annoncé. T2.4 :
+  // `useMailLabels`, `useMailRealtime`, `useMailFolderCounts` (le rail). T2.5 :
+  // `useMailThreads`, `useMailActions` (la liste et ses gestes) et `useMailDrafts` —
+  // annoncé pour T2.7, mais consommé dès ici : le dossier « Brouillons » est une
+  // colonne de la LISTE, pas un état du composeur. Une exemption qui survit à son
+  // motif couvre le fichier pour toujours.
+  // ⚠ `useMailThread` et `useMailSend` sont SORTIS avec T2.6 : la lecture monte
+  // le fil et envoie réponses et transferts. `useMailSend` était annoncé pour
+  // T2.7, mais l'envoi commence au LECTEUR, pas au composeur.
+  // ⚠ `useMailOAuthPopup` est SORTI avec T2.9 et `useMailAttachmentBlob` avec T2.11,
+  // comme annoncé : `MailAddAccountModal` mène la pop-up de consentement,
+  // `MailAttachmentPreviewModal` lit les octets d'une pièce. Le bloc des hooks n'a
+  // plus d'entrée — la couche de données a rejoint ses écrans. Une exemption qui
+  // survit à son motif couvre le fichier pour toujours.
+  // ⚠ T2.4 avait posé ici la coquille des SEPT modales (`MailModalShell`,
+  // `MailCloseButton`) et T2.6 le hook de recherche de destinataires
+  // (`useMailContactSearch`) : les trois sont SORTIS avec T2.7, qui livre
+  // « Nouveau message » — la première modale, et le seul champ « À » qui
+  // suggère des contacts.
   // Sortie du générateur Supabase, pas du code écrit à la main : les versions
   // récentes émettent `Constants` (valeurs des enums Postgres) que rien
   // n'importe encore. Le retirer reviendrait à éditer un fichier auto-généré,

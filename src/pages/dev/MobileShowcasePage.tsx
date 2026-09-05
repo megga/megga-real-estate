@@ -29,6 +29,8 @@ import { MobileKycListScreen } from '@/components/crm-mobile/kyc/MobileKycListSc
 import { MobileKycDetailScreen } from '@/components/crm-mobile/kyc/MobileKycDetailScreen'
 import { MobileSettingsScreen } from '@/components/crm-mobile/settings/MobileSettingsScreen'
 import { MobileDealDetailScreen, type DealData } from '@/components/crm-mobile/deal/MobileDealDetailScreen'
+import MobileMessagerieScreen from '@/components/crm-mobile/messagerie/MobileMessagerieScreen'
+import { MailFixturesContext } from '@/components/crm/messagerie/fixtures'
 import { EMPTY_OFFER_CONDITIONS, type Offer } from '@/types/offer'
 import { DEMO_LISTING } from './demoFixtures'
 
@@ -120,6 +122,18 @@ function ShowcaseInner() {
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
       <MobileTodayScreen demo />
       <div style={{ height: 1, background: tk.hair, margin: '12px 16px' }} />
+      {/* ⚠ La Messagerie mobile n'a pas de mode `demo` comme ses voisines : ses
+          données viennent des MÊMES fixtures que le banc de bureau
+          (`/dev/messagerie`), donc d'un fournisseur de contexte. Deux jeux de
+          démonstration pour une seule fonctionnalité finiraient par diverger. */}
+      <MailFixturesContext.Provider value="full">
+        <MobileMessagerieScreen />
+      </MailFixturesContext.Provider>
+      {/* ⚠ Le filet de ce séparateur-ci est TOKENISÉ (`lg` = 12 px, `2xl` = 16 px,
+          les valeurs exactes de ses voisins) : le cliquet de grammaire plafonne
+          `src/pages/dev` sur DEUX compteurs, et le `total` compte les littéraux —
+          en recopier un de plus l'aurait fait monter. Rendu identique, dette nulle. */}
+      <div style={{ height: 1, background: tk.hair, margin: 'var(--crm-space-lg) var(--crm-space-2xl)' }} />
       <div style={{ padding: '24px 16px 8px' }}>
         <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.5, color: tk.ink }}>
           Mobile — Primitives (P1)

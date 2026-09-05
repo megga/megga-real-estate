@@ -272,6 +272,18 @@ Cf. `megga/gardes-vacuites` : un banc vert n'est pas une fonctionnalité. Le lot
 
 ### 7.4 Épreuve de bout en bout (à rejouer à chaque lot)
 
+> ⛔ **JAMAIS JOUÉE AU 05.09.2026, ni au lot 1 ni au lot 2 — et pas faute de code.**
+> Les deux lots sont écrits, le socle est en production (9 tables, 11 fonctions,
+> `mail-sync-2min` actif) et l'écran est sur la PR #1276 ; mais `mail_accounts` compte
+> **0 ligne**, parce que les trois prérequis du §6 manquent : l'URI de redirection absente
+> du client OAuth Google (⇒ `redirect_uri_mismatch`, le consentement ne s'affiche même
+> pas), l'API Gmail non activée avec `gmail.modify` non déclaré, et les deux secrets
+> Microsoft absents (⇒ `503 provider_not_configured`). Aucun agent ne peut les poser.
+>
+> ⚠ **Le mode d'emploi littéral** — commandes, requêtes SQL point par point, contrôles de
+> déconnexion — est écrit dans le plan du lot 2, sous la case décochée de la tâche 2.15.
+> C'est là qu'il faut aller le jour où les trois prérequis sont posés, pas ici.
+
 1. Ajouter une boîte Google via la pop-up ⇒ ligne `mail_accounts` `status='active'`, `vault_secret_id` non nul, `google_calendar_tokens` **inchangé** (0 ligne : on ne touche pas le calendrier).
 2. Attendre ≤ 2 min ⇒ fils des 90 derniers jours présents ; `last_sync_at` renseigné ; aucun `last_error`.
 3. S'envoyer un mail depuis une autre adresse ⇒ apparaît en < 2 min, non lu, pastille du rail incrémentée (Realtime).
@@ -315,6 +327,17 @@ Après **chaque** lot : `npm run build`, `npm run test:unit`, `npm run test:back
 ---
 
 ## §10 — Après livraison
+
+> ✅ **Fait le 05.09.2026** (clôture du lot 2, tâche 2.15). Deux écarts au plan, tous deux
+> assumés : le cerveau reçoit **quatre** clés et non trois — `megga/messagerie-ecran` a été
+> ouverte plutôt que d'étirer `-architecture`, l'écran ayant ses propres pièges (grammaire
+> tokenisée, frontière des polices, banc à fixtures) qui n'ont rien à voir avec le schéma ;
+> et le point 3 (`docs/schema.md`) était **déjà fait** au lot 1, ce que le §6ter de la carte
+> prétendait faussement rester dû. ⚠ Deux chiffres se sont périmés en silence pendant ce
+> chantier, sous la tolérance de `lint:claude-md` — **52** jobs pg_cron (et non 51) et
+> **131** hooks (et non 119) : corrigés à la main, registre compris. Une tolérance large
+> protège d'un faux rouge à chaque sonde ajoutée ; elle ne remplace pas la main de celui
+> qui merge.
 
 1. Cerveau : ajouter dans `.claude-flow/knowledge/megga-memory.seed.json` les clés `megga/messagerie-architecture` (D1-D16 condensées, tables, edges, curseurs), `megga/messagerie-oauth-popup` (le flux `postMessage`, l'URI de redirection, le repli sans opener), `megga/messagerie-portes` (les pièges rencontrés : port 587, vitest allowlist, scopes restreints) ; puis `npm run ruflo:seed`.
 2. `docs/system-map.md` : nouvelle section « Messagerie (e-mail) » ; corriger la ligne 359 (« aucune réception d'e-mail » devient faux) ; retirer la mention « Chat ».

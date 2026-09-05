@@ -921,7 +921,7 @@ function LigneDebordement({ libelle, fermable, badge, onClick, onFermer, sp, lab
 const SECTION_LABEL: Record<string, string> = {
   today: 'today', calendar: 'calendar', contacts: 'contacts', biens: 'listings',
   matching: 'matching', pipeline: 'pipeline', parcours: 'journey', kyc: 'kyc',
-  dashboard: 'dashboard', settings: 'settings',
+  dashboard: 'dashboard', settings: 'settings', messagerie: 'messagerie',
 }
 
 export default CrmTabsBar

@@ -28,6 +28,7 @@ import {
   ECRANS,
   empreinteEcran,
   empreintesCourantes,
+  TEMOINS,
 } from '../../scripts/_shared/visual-baseline-empreinte.mjs'
 
 const RACINE = repoPath('.')
@@ -47,12 +48,30 @@ describe('Fraîcheur des captures de référence', () => {
       expect(empreinte, `${nom} : empreinte vide`).toMatch(/^[0-9a-f]{16}$/)
       // Témoins NOMMÉS plutôt qu'un compte : un compte se périme au premier
       // fichier ajouté légitimement, un témoin décrit le BALAYAGE.
-      expect(fichiers, `${nom} : la page n'est plus lue`).toContain('src/pages/agent/PipelinePage.tsx')
-      expect(
-        fichiers.some((f: string) => f.includes('crm/pipeline/StageColumn')),
-        `${nom} : la colonne de kanban n'est plus lue`,
-      ).toBe(true)
+      //
+      // ⛔ ILS SONT PAR ÉCRAN DEPUIS LE 05.09.2026. Écrits en dur dans cette
+      // boucle, ils exigeaient `PipelinePage.tsx` de CHAQUE écran : la clause
+      // était juste tant qu'il n'y en avait qu'un, et le second l'a fait rougir
+      // sur-le-champ. Un témoin décrit un balayage, il ne se généralise pas —
+      // ils vivent donc à côté de l'inventaire qu'ils décrivent.
+      const temoins = (TEMOINS as Record<string, string[]>)[nom]
+      expect(temoins, `${nom} : aucun témoin de balayage déclaré`).toBeDefined()
+      for (const t of temoins) {
+        expect(
+          fichiers.some((f: string) => f.includes(t)),
+          `${nom} : « ${t} » n'est plus lu par le balayage`,
+        ).toBe(true)
+      }
     }
+  })
+
+  /**
+   * ⛔ UN ÉCRAN SANS TÉMOIN, ou un témoin sans écran, vide la clause précédente
+   * du côté qu'on ne regarde pas. C'est le même défaut que celui qu'elle vient
+   * de corriger, dans l'autre sens.
+   */
+  it('chaque écran inventorié a ses témoins, et réciproquement', () => {
+    expect(Object.keys(TEMOINS).sort()).toEqual(Object.keys(ECRANS).sort())
   })
 
   /**

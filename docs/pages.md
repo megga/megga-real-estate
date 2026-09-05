@@ -1,4 +1,4 @@
-## Pages et routes — état au 20 juillet 2026
+## Pages et routes — état au 5 septembre 2026
 
 > **Ce document décrit ce qui EXISTE, pas ce qui était prévu.** Il remplace l'ancienne
 > liste « 42 écrans MVP » (spec d'avant le pivot CRM-first), qui annonçait encore une
@@ -9,7 +9,7 @@
 > **Source** : `src/App.tsx`. En cas de doute, c'est le code qui tranche, pas ce fichier.
 > Le mettre à jour quand on ajoute ou retire une route.
 
-**71 fichiers `.tsx`** dans `src/pages/` : agent 27 · admin 19 · public 13 · dev 12 — mesuré le 05.09.2026
+**74 fichiers `.tsx`** dans `src/pages/` : agent 29 · admin 19 · public 13 · dev 13 — mesuré le 05.09.2026
 (`find src/pages -name '*.tsx' | wc -l`). S'y ajoutent 8 fixtures `.ts` dans `dev/`, qui ne sont pas des pages.
 ⚠ Il n'existe **aucun** dossier `particulier/` : il est parti avec le portail vendeur le 26.07.2026. La
 ventilation précédente ne sommait donc pas seulement faux, elle ne sommait pas à son propre total —
@@ -68,6 +68,7 @@ La console super-admin porte son propre chrome (`AdminShell`) : ni barre latéra
 | `/dashboard/transactions/:id/offre/:kind` | Modale d'offre |
 | `/dashboard/visits/new` · `/:id` | Visite : création, détail |
 | `/dashboard/calendar` | Agenda (Google / Outlook) |
+| `/dashboard/messagerie` | **Messagerie e-mail** (boîte Gmail / Outlook de l'agent) : rail comptes + dossiers + libellés, liste, lecture, composer, 7 modales. `ResponsiveRoute` → `MobileMessagerieScreen` sous 768 px, **lecture seule**. ⚠ Les 9 tables `mail_*` sont en production ; **aucune boîte n'est connectable** tant que trois gestes hors dépôt manquent (system-map §6ter) |
 | `/dashboard/journey` | Parcours client |
 | `/dashboard/kyc` · `/:dossierId` | Dossiers LAB/KYC |
 | `/dashboard/analytics` | Analytics et commissions |
@@ -87,7 +88,7 @@ PR #1277, par ⌘K, depuis le pipeline et depuis le matching. ⚠ Le commentaire
 suppression du **17** août : il a été écrit dans le commit de suppression lui-même, daté du **16** — c'est
 le commentaire qui avance d'un jour.
 
-### 2. Super-admin — `/dashboard/admin/*` (18 pages)
+### 2. Super-admin — `/dashboard/admin/*` (19 pages)
 
 Surface du CRM depuis le 28.07.2026 (l'application autonome `admin.megga.ch` a été
 retirée). Montée par `AdminConsoleRoute`, qui gate sur `useSuperAdminGate` et
@@ -126,6 +127,7 @@ subsiste la tuyauterie :
 | Route | Écran |
 |---|---|
 | `/auth/callback` | Retour OAuth / magic link ; route l'événement `PASSWORD_RECOVERY` |
+| `/oauth/mail/callback` | Retour de la pop-up OAuth de la **messagerie** — rend le `code` et le `state` à son ouvreur par `postMessage`, puis se ferme. ⚠ **Sous `ProtectedRoute`, et ce n'est pas un oubli** : quand les pop-ups sont bloquées, la navigation se fait dans l'onglet courant et la page échange le code elle-même, ce qui exige la session. ⛔ Ne dérive PAS de `MEGGA_APP_URL` : l'URI est bâtie sur l'origine de l'appelant, validée contre la liste blanche `MAIL_OAUTH_ORIGINS`, parce qu'elle doit correspondre caractère pour caractère à celle enregistrée chez Google et Microsoft |
 | `/auth/forgot-password/reset` | Définition d'un nouveau mot de passe |
 | `/reset-password` | Ancienne page de reset — aucun lien entrant dans le dépôt ⚠ |
 | `/privacy` | Confidentialité (doublon de `megga.ch/confidentialite.html`) |
@@ -157,8 +159,8 @@ atterrit. Vérifier là-bas avant de la retirer.
 (`App.tsx:145`), hors `ProtectedRoute`, sans authentification. Ce n'est pas un banc mais la dernière route de
 design system survivante (CLAUDE.md §3), servie délibérément.
 
-Les **onze bancs `/dev/*`** sont tous conditionnés à `import.meta.env.DEV`, remplacé par `false` au build :
-la branche d'import tombe en code mort et Vite n'émet aucun chunk. Relevé dans `App.tsx` : **11 ternaires,
+Les **douze bancs `/dev/*`** sont tous conditionnés à `import.meta.env.DEV`, remplacé par `false` au build :
+la branche d'import tombe en code mort et Vite n'émet aucun chunk. Relevé dans `App.tsx` : **12 ternaires,
 un seul `lazy()` nu**. Un banc livré n'est pas seulement du poids mort, c'est une surface que personne ne
 teste, ouverte à qui connaît l'URL — `/dev/sentry-test` **déclenche** des erreurs Sentry.
 
@@ -166,9 +168,17 @@ teste, ouverte à qui connaît l'URL — `/dev/sentry-test` **déclenche** des e
 
 | Bancs | Ce qu'il en reste dans le bundle déployé |
 |---|---|
-| `/dev/matching-atelier` · `sentry-test` · `mobile` · `biens` · `contacts` · `pipeline` · `modales` · `public/*` | la route matche encore, mais son élément vaut `() => null` ⇒ page blanche, **pas** un 404 |
+| `/dev/matching-atelier` · `sentry-test` · `mobile` · `biens` · `contacts` · `pipeline` · `modales` · `messagerie` · `public/*` | la route matche encore, mais son élément vaut `() => null` ⇒ page blanche, **pas** un 404 |
 | `/dev/onboarding` | la `<Route>` elle-même est dans le bloc `DEV` ⇒ catch-all `path="*"` → `NotFoundPage` |
 | `/dev/crm` · `/dev/admin` | branchés dans `App()` **avant** `<BrowserRouter>` (leur banc porte son propre routeur). ⚠ Invisibles à un `grep path=` : c'est ce qui les a fait manquer aux inventaires précédents |
+
+⚠ **`/dev/messagerie` est le banc de la messagerie**, et le seul écran de ce module
+photographié en régression visuelle. Il monte l'écran complet sur des **fixtures**
+(`src/components/crm/messagerie/fixtures.ts`), donc **sans base de données ni compte
+connecté**, avec un sélecteur à trois états — `full` (42 fils, 12 par page, libellés et
+compteurs), `empty` (boîte connectée, zéro message) et `none` (aucune boîte).
+⛔ Un banc vert ne prouve pas une boîte : ces trois états sont des fixtures, pas du
+courrier.
 
 La frontière est **syntaxique**, donc vérifiable sans construire, et
 [`dev-bancs-frontiere.spec.ts`](../tests/unit/dev-bancs-frontiere.spec.ts) la garde. Pourquoi ces bancs

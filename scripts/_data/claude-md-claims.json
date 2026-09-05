@@ -201,10 +201,10 @@
     {
       "id": "accent-aplat-domine-ghost",
       "section": "§3 — Boutons",
-      "phrase": "113 sites peignent une affordance en accent",
+      "phrase": "127 sites peignent une affordance en accent",
       "severite": "derive",
       "tolerance": 0.15,
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-05",
       "mesure": {
         "motifs": [
           "background: [A-Za-z_]+\\.accent",
@@ -220,16 +220,16 @@
         ]
       },
       "attendu": {
-        "occurrences": 113
+        "occurrences": 127
       }
     },
     {
       "id": "accent-background-en-ligne",
       "section": "§3 — Boutons",
-      "phrase": "106 `background: *.accent`",
+      "phrase": "120 `background: *.accent`",
       "severite": "derive",
       "tolerance": 0.15,
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-05",
       "mesure": {
         "motif": "background: [A-Za-z_]+\\.accent",
         "mot": true,
@@ -242,7 +242,7 @@
         ]
       },
       "attendu": {
-        "occurrences": 106
+        "occurrences": 120
       }
     },
     {
@@ -271,10 +271,10 @@
     {
       "id": "accent-detail-fichiers",
       "section": "§3 — Boutons",
-      "phrase": "dans 70 fichiers",
+      "phrase": "dans 82 fichiers",
       "severite": "derive",
       "tolerance": 0.15,
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-05",
       "mesure": {
         "motifs": [
           "background: [A-Za-z_]+\\.accent",
@@ -290,7 +290,7 @@
         ]
       },
       "attendu": {
-        "fichiers": 70
+        "fichiers": 82
       },
       "note": "⚠ RÈGLE D'ORIGINE INCONNUE — le seul écart de ce registre qu'on ne sache pas reproduire. La règle ci-dessus rend 70 fichiers contre 36 annoncés : un facteur deux ne s'explique pas par un jour de commits, et aucune variante essayée (`.tsx` seuls, avec ou sans commentaires, bornée ou non) ne retombe sur 36. Ne pas « corriger » le 36 en 70 sans dire lequel des deux on garde comme référence."
     },
@@ -300,7 +300,7 @@
       "phrase": "33 des 36 fichiers de modale/panneau/dialogue",
       "severite": "derive",
       "tolerance": 0.1,
-      "mesureLe": "2026-08-16",
+      "mesureLe": "2026-09-05",
       "mesure": {
         "motif": "createPortal",
         "mot": true,
@@ -312,7 +312,7 @@
         ]
       },
       "attendu": {
-        "fichiers": 33
+        "fichiers": 36
       }
     },
     {
@@ -670,9 +670,9 @@
     {
       "id": "sm-hooks",
       "section": "§2 — Hooks",
-      "phrase": "`src/hooks/`, 119, React Query",
+      "phrase": "`src/hooks/`, 131, React Query",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-05",
       "mesure": {
         "compterFichiers": true,
         "portee": [
@@ -684,7 +684,7 @@
         ]
       },
       "attendu": {
-        "fichiers": 119
+        "fichiers": 131
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15
@@ -692,7 +692,7 @@
     {
       "id": "sm-cerveau-entrees",
       "section": "§ cerveau",
-      "phrase": "(270 entrées curées au 05.09.2026)",
+      "phrase": "(271 entrées curées au 05.09.2026)",
       "severite": "derive",
       "mesureLe": "2026-09-05",
       "mesure": {
@@ -700,7 +700,7 @@
         "motif": "\"key\":"
       },
       "attendu": {
-        "occurrences": 270
+        "occurrences": 271
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,

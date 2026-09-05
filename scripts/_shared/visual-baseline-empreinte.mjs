@@ -59,6 +59,29 @@ export const ECRANS = {
     'src/components/crm/tokens.ts',
     'src/components/megga-x-crm/tokens.ts',
   ],
+  // La Messagerie photographiée est le BANC (`/dev/messagerie`), donc sa page de
+  // banc et les fixtures qui la peuplent en font partie autant que les
+  // composants : changer une ligne de `fixtures.ts` change l'image.
+  'dev-messagerie': [
+    'src/pages/dev/MessagerieShowcasePage.tsx',
+    'src/components/crm/messagerie',
+    'src/components/crm/tokens.ts',
+    'src/components/megga-x-crm/tokens.ts',
+  ],
+}
+
+/**
+ * Témoins de balayage, PAR ÉCRAN.
+ *
+ * ⛔ Ils vivaient dans `visual-baseline-fraicheur.spec.ts`, écrits en dur et
+ * appliqués à TOUS les écrans dans la même boucle : la clause exigeait
+ * `PipelinePage.tsx` de chaque entrée de `ECRANS`. Tant qu'il n'y en avait
+ * qu'une, personne ne pouvait le voir ; la seconde l'a fait rougir aussitôt.
+ * Un témoin décrit UN balayage, il ne se généralise pas.
+ */
+export const TEMOINS = {
+  'dashboard-pipeline': ['src/pages/agent/PipelinePage.tsx', 'crm/pipeline/StageColumn'],
+  'dev-messagerie': ['src/pages/dev/MessagerieShowcasePage.tsx', 'crm/messagerie/MailListRow'],
 }
 
 const sansCommentaires = (c) =>
