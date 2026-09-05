@@ -7,7 +7,7 @@
     "buyers": "Buyers",
     "sellers": "Sellers"
   },
-  "search_placeholder": "Search...",
+  "search_placeholder": "Search…",
   "copilot": {
     "aiEstimate": "AI estimate",
     "negotiation": {
@@ -123,7 +123,70 @@
       "noMessage": "No message matches."
     },
     "add": {
-      "cta": "Add a mailbox"
+      "cta": "Add a mailbox",
+      "title": "Add a mailbox",
+      "back": "Back",
+      "share": "Share this mailbox with the whole agency",
+      "waSub": "Coexistence · app and Cloud API on the same number",
+      "imapSub": "IMAP / SMTP connection",
+      "other": "Another mailbox (IMAP / SMTP)",
+      "otherSub": "Manual server setup",
+      "oauth": {
+        "subtitle": "Account authorisation",
+        "addr": "Email address",
+        "addrPlaceholder": "address@your-agency.ch",
+        "access": "Access requested",
+        "scope": {
+          "read": "Read and send this mailbox's messages",
+          "file": "Link exchanges to the contact record",
+          "labels": "File with the agency labels"
+        },
+        "note": "Confirmation happens on {{provider}}'s page · no password goes through the agency.",
+        "useImap": "Set up with IMAP",
+        "authorize": "Authorise",
+        "busy": "Connecting…",
+        "err": {
+          "popupBlocked": "The window was blocked by the browser. We are opening the authorisation in this tab.",
+          "cancelled": "Authorisation cancelled.",
+          "timeout": "The authorisation expired. Try again.",
+          "denied": "Access was refused on the provider's page.",
+          "notConfigured": "This provider is not configured on the MEGGA side yet.",
+          "exchange": "The connection failed: {{detail}}",
+          "generic": "The connection failed. Try again in a moment."
+        }
+      },
+      "imap": {
+        "subtitle": "IMAP / SMTP connection",
+        "email": "Email address",
+        "imapHost": "IMAP server",
+        "smtpHost": "SMTP server",
+        "port": "Port",
+        "imapPort": "IMAP port",
+        "smtpPort": "SMTP port",
+        "user": "User",
+        "password": "Password",
+        "encryption": "Encryption",
+        "note": "The test checks IMAP and SMTP before adding · credentials are encrypted at rest.",
+        "test": "Test and connect",
+        "unavailable": "The IMAP connection is coming in a future version.",
+        "err": {
+          "invalid": "Address, servers and password are required.",
+          "starttls": "STARTTLS (port 587) is not available from our servers. Use SSL/TLS on port 465.",
+          "connection": "Connection refused: check the user name, the password (or app password) and the servers.",
+          "generic": "The connection failed. Try again in a moment."
+        }
+      },
+      "done": {
+        "title": "Mailbox connected",
+        "sync": "Synchronisation",
+        "syncValue": "Last 90 days",
+        "folders": "Imported folders",
+        "foldersValue": "Inbox, Sent",
+        "linking": "Contact linking",
+        "linkingValue": "Active",
+        "another": "Add another",
+        "open": "Open the mailbox"
+      }
     },
     "box": {
       "label": "Mailbox",
@@ -172,7 +235,7 @@
     },
     "list": {
       "search": "Search",
-      "searchPlaceholder": "Search a sender, a subject ...",
+      "searchPlaceholder": "Search a sender, a subject …",
       "unread": "Unread",
       "attachment": "Attachment"
     },
@@ -229,6 +292,12 @@
       "sending": "Sending…",
       "forward": "Forward",
       "close": "Close"
+    },
+    "callback": {
+      "working": "Connecting the mailbox…",
+      "closing": "You can close this window.",
+      "denied": "Authorisation refused or incomplete.",
+      "failed": "The connection failed. {{detail}}"
     }
   }
 }

@@ -2673,6 +2673,40 @@ npm run build && git add -A && git commit -m "feat(messagerie): modale de suppre
 
 Dimensions : README §6 (carte 520, lignes fournisseur `12px 14px` / rayon 18, WhatsApp plus grande `16px` / rayon 20 / logo 40, étape OAuth logo 40 + encart « ACCÈS DEMANDÉ » rayon 20, étape IMAP grille 2 colonnes, étape connectée cercle 40 vert).
 
+⛔ **SIX ÉCARTS MESURÉS À L'ÉCRITURE (05.09.2026)**, en plus de ceux déjà relevés aux T2.6 et
+T2.7 (import par défaut de `MEIcon`, graisse plafonnée à 600, montage/démontage plutôt que
+prop `open`) :
+
+1. **L'encart « ACCÈS DEMANDÉ » perd sa micro-capitale ET son interlettrage.**
+   `textTransform: 'uppercase'` et `letterSpacing: '0.1em'` sont refusés par deux clauses de
+   `megga-x-grammar` — même écart, même raison qu'au n° 1 de la T2.7. `letterSpacing: '0.04em'`
+   du monogramme tombe LUI AUSSI : le seuil de la clause est `>= 0.04em`, pas `> 0.04em`.
+2. **`fontWeight: 700` → `600` (monogramme, `@` de la ligne IMAP) et `500` (titre de la
+   modale).** La clause `fontWeight:[^,}\n]*\b[789]00\b` lit l'expression entière.
+3. **`marginTop: 2` → `var(--crm-space-2xs)` (4 px).** ⚠ Ce n'est pas un détail de goût :
+   `src/components/crm/messagerie` est une ZONE du cliquet B4 **sans entrée `B4_ASSUME`**, donc
+   son inventaire de rayons et d'espacements doit valoir ZÉRO — et le compte inclut les valeurs
+   qui sont SUR l'échelle mais non tokenisées, pas seulement celles qui en sortent. Le plus
+   petit barreau d'espacement est 4 px : 2 px n'est pas exprimable, et ne doit pas l'être.
+4. **`color: 'var(--color-text-primary)'` de la page de retour est INOPÉRANT.** Mesuré dans
+   `globals.css:152` : le jeton vaut `28 28 28` — un TRIPLET RVB destiné à `rgb(var(…))`, que
+   Tailwind enveloppe. Écrit tel quel, la déclaration est écartée sans erreur et le texte prend
+   la couleur héritée. La page prend les classes `bg-theme-page text-theme-primary`.
+   ⚠ `src/pages/agent` est une zone du cliquet B4 *et* du cliquet de couleur, tous deux SANS
+   CRÉDIT : la page ne peut ajouter ni un littéral d'espacement, ni un hexadécimal.
+5. **`MEIcon` ne connaît ni `maximize` ni `image`** (mesuré sur l'union `MEIconName`) : ce sont
+   `zoom-in` et `gallery`. La liste d'icônes à vérifier, plus haut dans ce lot, nommait déjà
+   `maximize` comme « à ajouter » ; l'ajouter à l'union coûterait un chemin SVG de plus pour
+   un glyphe que le dépôt a déjà.
+6. **PAS DE STEPPER, et c'est une décision.** Les quatre étapes ne forment pas une séquence
+   linéaire (liste → OAuth **ou** IMAP → connectée) et la maquette n'en montre aucun. En
+   inventer un contredirait « Fidélité : haute » du maître §1, et la règle des steppers de
+   CLAUDE.md §3 borne le CHOIX entre trois idiomes existants — elle n'en impose pas un.
+
+⚠ **`connect_imap` N'EXISTE PAS dans `mail-oauth` (lot 1)** : l'edge répond `unknown_action`.
+Ce n'est pas une panne à corriger ici — IMAP est le lot 3 — c'est l'état que
+`IMAP_ERRORS.unknown_action` rend en clair (« arrive dans une prochaine version »).
+
 - [ ] **Step 1 : Sortir les logos de marque dans un module partagé**
 
 Couper `GoogleG`, `MsLogo`, `WhatsAppLogo` d'`IntegrationsSection.tsx` (leurs SVG, sans les modifier), les coller dans `src/components/crm/settings/brandLogos.tsx` avec `export function …`, et importer dans `IntegrationsSection.tsx` : `import { GoogleG, MsLogo, WhatsAppLogo } from './brandLogos'`. `npm run build` doit rester vert.
@@ -2698,10 +2732,10 @@ export function MailProviderLogo({ ms, provider, size = 36 }: { ms: MailSurfaces
   if (provider === 'wa') return <div style={{ ...circle, background: 'transparent' }}><WhatsAppLogo size={size} /></div>
   if (provider === 'gmail') return <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}` }}><GoogleG size={inner} /></div>
   if (provider === 'outlook') return <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}` }}><MsLogo size={inner} /></div>
-  if (provider === 'imap') return <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}`, fontSize: 'var(--crm-text-md)', fontWeight: 700 }}>@</div>
+  if (provider === 'imap') return <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}`, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{'@'}</div>
   const png = PNG[provider]!
   return (
-    <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}`, fontSize: 'var(--crm-text-xs)', fontWeight: 700, letterSpacing: '0.04em' }}>
+    <div style={{ ...circle, background: ms.elev, border: `1px solid ${ms.bord}`, fontSize: 'var(--crm-text-xs)', fontWeight: 600 }}>
       {broken ? png.mono : <img src={png.src} alt="" width={inner} height={inner} style={{ objectFit: 'contain' }} onLoad={(e) => { if (e.currentTarget.naturalWidth === 0) setBroken(true) }} onError={() => setBroken(true)} />}
     </div>
   )
@@ -2790,7 +2824,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
       <MailProviderLogo ms={ms} provider={p} size={big ? 40 : 36} />
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontSize: big ? 'var(--crm-text-lg)' : 'var(--crm-text-md)', fontWeight: 600 }}>{name}</span>
-        {sub && <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', color: ms.mut, marginTop: 2 }}>{sub}</span>}
+        {sub && <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', color: ms.mut, marginTop: 'var(--crm-space-2xs)' }}>{sub}</span>}
       </span>
       <MEIcon name="chevron-right" size={13} color={ms.mut} />
     </button>
@@ -2799,7 +2833,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
   return (
     <MailModalShell ms={ms} open={open} onClose={() => { cancel(); onClose() }} width={520} ariaLabel={t('mail.add.title')} veil={0.12}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, margin: 0 }}>{t('mail.add.title')}</h2>
+        <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 500, margin: 0 }}>{t('mail.add.title')}</h2>
         <MailCloseButton ms={ms} onClick={() => { cancel(); onClose() }} label={t('mail.actions.close')} />
       </div>
 
@@ -2822,7 +2856,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
           </div>
           <input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder={t('mail.add.oauth.addrPlaceholder')} aria-label={t('mail.add.oauth.addr')} style={{ ...field, marginTop: 'var(--crm-space-2xl)' }} />
           <div style={{ marginTop: 'var(--crm-space-lg)', border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-4xl)', padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
-            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: ms.mut }}>{t('mail.add.oauth.access')}</div>
+            <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{t('mail.add.oauth.access')}</div>
             {(['read', 'file', 'labels'] as const).map((k) => (
               <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-sm)' }}><MEIcon name="check" size={13} color={ms.accent} /> {t(`mail.add.oauth.scope.${k}`)}</div>
             ))}
@@ -2930,11 +2964,11 @@ export default function MailOAuthCallbackPage() {
     })
   }, [exchange, navigate, t])
   return (
-    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', fontFamily: 'var(--crm-font)', fontSize: 'var(--crm-text-md)', color: 'var(--color-text-primary)' }}>{msg}</div>
+    <div className="min-h-screen grid place-items-center bg-theme-page text-theme-primary" style={{ fontFamily: 'var(--crm-font)', fontSize: 'var(--crm-text-md)' }}>{msg}</div>
   )
 }
 ```
-⚠ `useMailAccounts()` appelle `useQuery` : la page est sous `ProtectedRoute`, donc `QueryClientProvider` et la session existent. Le texte utilise un jeton de thème existant (`--color-text-primary`, cf. CLAUDE.md §3 « Tokens ») — vérifier son nom dans `globals.css` ; sinon `text-theme-primary` en classe.
+⚠ `useMailAccounts()` appelle `useQuery` : la page est sous `ProtectedRoute`, donc `QueryClientProvider` et la session existent. ⛔ Le jeton `--color-text-primary` a été vérifié dans `globals.css` (ligne 152) : il vaut `28 28 28`, un TRIPLET RVB — `color: var(--color-text-primary)` est donc écarté en silence. C'est `text-theme-primary` en classe, comme le disait le repli.
 
 - [ ] **Step 5 : Clés i18n FR**
 

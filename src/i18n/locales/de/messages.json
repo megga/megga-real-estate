@@ -7,7 +7,7 @@
     "buyers": "Käufer",
     "sellers": "Verkäufer"
   },
-  "search_placeholder": "Suchen...",
+  "search_placeholder": "Suchen…",
   "copilot": {
     "aiEstimate": "KI-Schätzung",
     "negotiation": {
@@ -123,7 +123,70 @@
       "noMessage": "Keine Nachricht entspricht der Suche."
     },
     "add": {
-      "cta": "Postfach hinzufügen"
+      "cta": "Postfach hinzufügen",
+      "title": "Postfach hinzufügen",
+      "back": "Zurück",
+      "share": "Dieses Postfach mit der ganzen Agentur teilen",
+      "waSub": "Koexistenz · App und Cloud API auf derselben Nummer",
+      "imapSub": "IMAP-/SMTP-Verbindung",
+      "other": "Anderes Postfach (IMAP / SMTP)",
+      "otherSub": "Server manuell einrichten",
+      "oauth": {
+        "subtitle": "Kontofreigabe",
+        "addr": "E-Mail-Adresse",
+        "addrPlaceholder": "adresse@ihre-agentur.ch",
+        "access": "Angeforderter Zugriff",
+        "scope": {
+          "read": "Nachrichten dieses Postfachs lesen und senden",
+          "file": "Den Austausch dem Kontaktdossier zuordnen",
+          "labels": "Mit den Labels der Agentur ablegen"
+        },
+        "note": "Bestätigung auf der Seite von {{provider}} · kein Passwort läuft über die Agentur.",
+        "useImap": "Mit IMAP einrichten",
+        "authorize": "Freigeben",
+        "busy": "Verbindung…",
+        "err": {
+          "popupBlocked": "Das Fenster wurde vom Browser blockiert. Wir öffnen die Freigabe in diesem Tab.",
+          "cancelled": "Freigabe abgebrochen.",
+          "timeout": "Die Freigabe ist abgelaufen. Bitte erneut versuchen.",
+          "denied": "Der Zugriff wurde auf der Seite des Anbieters verweigert.",
+          "notConfigured": "Dieser Anbieter ist bei MEGGA noch nicht eingerichtet.",
+          "exchange": "Die Verbindung ist fehlgeschlagen: {{detail}}",
+          "generic": "Die Verbindung ist fehlgeschlagen. Bitte gleich nochmals versuchen."
+        }
+      },
+      "imap": {
+        "subtitle": "IMAP-/SMTP-Verbindung",
+        "email": "E-Mail-Adresse",
+        "imapHost": "IMAP-Server",
+        "smtpHost": "SMTP-Server",
+        "port": "Port",
+        "imapPort": "IMAP-Port",
+        "smtpPort": "SMTP-Port",
+        "user": "Benutzername",
+        "password": "Passwort",
+        "encryption": "Verschlüsselung",
+        "note": "Der Test prüft IMAP und SMTP vor dem Hinzufügen · die Zugangsdaten werden verschlüsselt gespeichert.",
+        "test": "Testen und verbinden",
+        "unavailable": "Die IMAP-Verbindung kommt in einer nächsten Version.",
+        "err": {
+          "invalid": "Adresse, Server und Passwort sind erforderlich.",
+          "starttls": "STARTTLS (Port 587) ist von unseren Servern aus nicht verfügbar. Verwenden Sie SSL/TLS auf Port 465.",
+          "connection": "Verbindung abgelehnt: Prüfen Sie Benutzername, Passwort (oder App-Passwort) und die Server.",
+          "generic": "Die Verbindung ist fehlgeschlagen. Bitte gleich nochmals versuchen."
+        }
+      },
+      "done": {
+        "title": "Postfach verbunden",
+        "sync": "Synchronisierung",
+        "syncValue": "Letzte 90 Tage",
+        "folders": "Importierte Ordner",
+        "foldersValue": "Posteingang, Gesendet",
+        "linking": "Zuordnung zu Kontakten",
+        "linkingValue": "Aktiv",
+        "another": "Weiteres hinzufügen",
+        "open": "Postfach öffnen"
+      }
     },
     "box": {
       "label": "Postfach",
@@ -172,7 +235,7 @@
     },
     "list": {
       "search": "Suche",
-      "searchPlaceholder": "Absender oder Betreff suchen ...",
+      "searchPlaceholder": "Absender oder Betreff suchen …",
       "unread": "Ungelesen",
       "attachment": "Anhang"
     },
@@ -229,6 +292,12 @@
       "sending": "Wird gesendet…",
       "forward": "Weiterleiten",
       "close": "Schliessen"
+    },
+    "callback": {
+      "working": "Postfach wird verbunden…",
+      "closing": "Sie können dieses Fenster schliessen.",
+      "denied": "Freigabe verweigert oder unvollständig.",
+      "failed": "Die Verbindung ist fehlgeschlagen. {{detail}}"
     }
   }
 }

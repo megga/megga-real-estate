@@ -76,7 +76,9 @@ const ALLOW_SYMBOLS = new Set([
   // ⚠ `useMailThread` et `useMailSend` sont SORTIS avec T2.6 : la lecture monte
   // le fil et envoie réponses et transferts. `useMailSend` était annoncé pour
   // T2.7, mais l'envoi commence au LECTEUR, pas au composeur.
-  'src/hooks/useMailOAuthPopup.ts:useMailOAuthPopup',         // T2.9 — assistant « Ajouter une boîte »
+  // ⚠ `useMailOAuthPopup` est SORTI avec T2.9, comme annoncé : `MailAddAccountModal`
+  // le lit pour mener la pop-up de consentement. Une exemption qui survit à son
+  // motif couvre le fichier pour toujours.
   'src/hooks/useMailAttachmentBlob.ts:useMailAttachmentBlob', // T2.11 — aperçu de pièce
   // ⚠ T2.4 avait posé ici la coquille des SEPT modales (`MailModalShell`,
   // `MailCloseButton`) et T2.6 le hook de recherche de destinataires

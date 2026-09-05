@@ -25,6 +25,7 @@ import { useMailSend } from '@/hooks/useMailSend'
 import { useMailRealtime } from '@/hooks/useMailRealtime'
 import { parseRecipients } from '@/hooks/useMailContactSearch'
 import { MailList } from './MailList'
+import { MailAddAccountModal } from './MailAddAccountModal'
 import { MailComposeModal } from './MailComposeModal'
 import { MailContextMenu } from './MailContextMenu'
 import { MailDeleteModal } from './MailDeleteModal'
@@ -324,6 +325,18 @@ export function MessagerieApp({ dark, setDark }: Props) {
               }}
               // README : à l'envoi, le message rejoint le dossier « Envoyés ».
               onSend={(input) => send.mutate(input, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'folder', folder: 'sent' }) } })}
+            />
+          )}
+
+          {/* L'assistant est monté / démonté comme le composeur : rouvrir « Ajouter
+              une boîte » repart du choix du fournisseur, jamais d'une étape à
+              moitié franchie. */}
+          {state.modal.kind === 'add-account' && (
+            <MailAddAccountModal
+              ms={ms}
+              open
+              onClose={() => dispatch({ type: 'modal', modal: { kind: 'none' } })}
+              onOpenAccount={(id) => dispatch({ type: 'select-account', accountId: id })}
             />
           )}
 

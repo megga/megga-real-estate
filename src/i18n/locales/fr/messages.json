@@ -7,7 +7,7 @@
     "buyers": "Acheteurs",
     "sellers": "Vendeurs"
   },
-  "search_placeholder": "Rechercher...",
+  "search_placeholder": "Rechercher…",
   "copilot": {
     "aiEstimate": "estimation IA",
     "negotiation": {
@@ -123,7 +123,70 @@
       "noMessage": "Aucun message ne correspond."
     },
     "add": {
-      "cta": "Ajouter une boîte"
+      "cta": "Ajouter une boîte",
+      "title": "Ajouter une boîte",
+      "back": "Retour",
+      "share": "Partager cette boîte avec toute l'agence",
+      "waSub": "Coexistence · app + Cloud API sur le même numéro",
+      "imapSub": "Connexion IMAP / SMTP",
+      "other": "Autre boîte (IMAP / SMTP)",
+      "otherSub": "Configuration manuelle du serveur",
+      "oauth": {
+        "subtitle": "Autorisation du compte",
+        "addr": "Adresse e-mail",
+        "addrPlaceholder": "adresse@votre-agence.ch",
+        "access": "Accès demandé",
+        "scope": {
+          "read": "Lire et envoyer les messages de cette boîte",
+          "file": "Rattacher les échanges à la fiche contact",
+          "labels": "Classer avec les libellés de l'agence"
+        },
+        "note": "Validation sur la page de {{provider}} · aucun mot de passe ne transite par l'agence.",
+        "useImap": "Configurer en IMAP",
+        "authorize": "Autoriser",
+        "busy": "Connexion…",
+        "err": {
+          "popupBlocked": "La fenêtre a été bloquée par le navigateur. Nous ouvrons l'autorisation dans cet onglet.",
+          "cancelled": "Autorisation annulée.",
+          "timeout": "L'autorisation a expiré. Réessayez.",
+          "denied": "L'accès a été refusé sur la page du fournisseur.",
+          "notConfigured": "Ce fournisseur n'est pas encore configuré côté MEGGA.",
+          "exchange": "La connexion a échoué : {{detail}}",
+          "generic": "La connexion a échoué. Réessayez dans un instant."
+        }
+      },
+      "imap": {
+        "subtitle": "Connexion IMAP / SMTP",
+        "email": "Adresse e-mail",
+        "imapHost": "Serveur IMAP",
+        "smtpHost": "Serveur SMTP",
+        "port": "Port",
+        "imapPort": "Port IMAP",
+        "smtpPort": "Port SMTP",
+        "user": "Utilisateur",
+        "password": "Mot de passe",
+        "encryption": "Chiffrement",
+        "note": "Le test vérifie IMAP et SMTP avant l'ajout · les identifiants sont chiffrés au repos.",
+        "test": "Tester et connecter",
+        "unavailable": "La connexion IMAP arrive dans une prochaine version.",
+        "err": {
+          "invalid": "Adresse, serveurs et mot de passe sont requis.",
+          "starttls": "STARTTLS (port 587) n'est pas disponible depuis nos serveurs. Utilisez SSL/TLS sur le port 465.",
+          "connection": "Connexion refusée : vérifiez l'identifiant, le mot de passe (ou mot de passe d'application) et les serveurs.",
+          "generic": "La connexion a échoué. Réessayez dans un instant."
+        }
+      },
+      "done": {
+        "title": "Boîte connectée",
+        "sync": "Synchronisation",
+        "syncValue": "90 derniers jours",
+        "folders": "Dossiers importés",
+        "foldersValue": "Réception, Envoyés",
+        "linking": "Rattachement aux contacts",
+        "linkingValue": "Actif",
+        "another": "Ajouter une autre",
+        "open": "Ouvrir la boîte"
+      }
     },
     "box": {
       "label": "Boîte",
@@ -172,7 +235,7 @@
     },
     "list": {
       "search": "Recherche",
-      "searchPlaceholder": "Chercher un expéditeur, un objet ...",
+      "searchPlaceholder": "Chercher un expéditeur, un objet …",
       "unread": "Non lus",
       "attachment": "Pièce jointe"
     },
@@ -229,6 +292,12 @@
       "sending": "Envoi…",
       "forward": "Transférer",
       "close": "Fermer"
+    },
+    "callback": {
+      "working": "Connexion de la boîte…",
+      "closing": "Vous pouvez fermer cette fenêtre.",
+      "denied": "Autorisation refusée ou incomplète.",
+      "failed": "La connexion a échoué. {{detail}}"
     }
   }
 }
