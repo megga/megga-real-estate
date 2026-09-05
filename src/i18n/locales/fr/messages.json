@@ -237,7 +237,11 @@
       "search": "Recherche",
       "searchPlaceholder": "Chercher un expéditeur, un objet …",
       "unread": "Non lus",
-      "attachment": "Pièce jointe"
+      "attachment": "Pièce jointe",
+      "err": {
+        "load": "Les messages n'ont pas pu être chargés.",
+        "retry": "Réessayer"
+      }
     },
     "pager": {
       "range": "{{from}} à {{to}} sur {{total}}",
@@ -343,6 +347,11 @@
     },
     "mobile": {
       "readOnly": "Composer et répondre se font sur ordinateur pour l'instant."
+    },
+    "notice": {
+      "sentNotRecorded": "Le message est bien parti. Sa copie n'a pas pu être enregistrée ici : ne le renvoyez pas.",
+      "filedNotLinked": "Le document est classé au dossier. Le lien avec la pièce jointe n'a pas pu être enregistré : ne le classez pas une seconde fois.",
+      "dismiss": "Fermer"
     }
   }
 }

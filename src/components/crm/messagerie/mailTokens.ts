@@ -100,6 +100,9 @@ export interface MailSurfaces {
   /** encre des libellés « À traiter » etc. sur leur aplat */ pillInk: (bg: string) => string
   danger: string
   dangerInk: string
+  /** Alerte : l'aplat du §1 du maître (`yellow400`) et son encre CALCULÉE. */
+  warn: string
+  warnInk: string
   success: string
   successInk: string
   /**
@@ -151,6 +154,8 @@ export function mailSurfaces(sp: CrmPalette, dark: boolean): MailSurfaces {
     pillInk: (bg) => encreSur(bg),
     danger: MXC_SYSTEM.red400,
     dangerInk: encreSur(MXC_SYSTEM.red400),
+    warn: MXC_SYSTEM.yellow400,
+    warnInk: encreSur(MXC_SYSTEM.yellow400),
     success: MXC_SYSTEM.green300,
     successInk: encreSur(MXC_SYSTEM.green300),
     accentText: dark ? MXC_SYSTEM.blue300 : sp.accent,

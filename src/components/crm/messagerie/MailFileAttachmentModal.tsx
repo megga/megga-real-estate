@@ -51,7 +51,8 @@ interface Props {
   /** Le contact déjà rattaché au fil, s'il y en a un : le classement le suit par défaut. */
   defaultContactId: string | null
   onClose: () => void
-  onFiled: () => void
+  /** `avis` non nul = classé, mais quelque chose reste à dire à l'agent. */
+  onFiled: (avis?: 'filedNotLinked') => void
   onPreview: () => void
 }
 
@@ -76,10 +77,18 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
   const submit = async () => {
     if (!contactId) return
     setBusy(true); setError(null)
-    const r = await invokeMail('mail-attachment', { action: 'file', attachment_id: att.id, contact_id: contactId, document_type: type, name })
+    const r = await invokeMail<{ ok: true; document_id: string; warning?: string }>(
+      'mail-attachment', { action: 'file', attachment_id: att.id, contact_id: contactId, document_type: type, name },
+    )
     setBusy(false)
     if (r.error) { setError(t(ERREURS[r.error] ?? 'mail.file.err.generic')); return }
-    onFiled()
+    // ⛔ `not_marked_filed` EST UN SUCCÈS, ET IL DOIT SE VOIR. L'edge répond 200
+    // avec cet avertissement quand le document a bien été créé mais que
+    // `mail_attachments.document_id` n'a pas pu être posé. Sans le remonter, la
+    // pastille « Classé au dossier » n'apparaissait jamais, le bouton restait
+    // offert, et l'agent classait une seconde fois : un doublon dans `documents`
+    // — précisément ce que l'aperçu dit devoir empêcher.
+    onFiled(r.data?.warning === 'not_marked_filed' ? 'filedNotLinked' : undefined)
   }
 
   const champ = {

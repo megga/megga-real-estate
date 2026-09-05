@@ -22,7 +22,7 @@ import { useMailDrafts } from '@/hooks/useMailDrafts'
 import { useMailLabels } from '@/hooks/useMailLabels'
 import { useMailFolderCounts, useMailThreads, type MailThreadRow } from '@/hooks/useMailThreads'
 import { useMailThread } from '@/hooks/useMailThread'
-import { useMailSend } from '@/hooks/useMailSend'
+import { useMailSend, type MailSendResult } from '@/hooks/useMailSend'
 import { useMailRealtime } from '@/hooks/useMailRealtime'
 import { parseRecipients } from '@/hooks/useMailContactSearch'
 import { MailList } from './MailList'
@@ -37,7 +37,7 @@ import { MailRail } from './MailRail'
 import { MailReader } from './MailReader'
 import { MailLabelMenu } from './MailLabelMenu'
 import { mailReducer, initialMailState } from './mailState'
-import { mailSurfaces } from './mailTokens'
+import { mailSurfaces, PILL } from './mailTokens'
 
 /** Débounce de la recherche (README §2) : sans lui, une RPC part à chaque frappe. */
 const DEBOUNCE_RECHERCHE = 250
@@ -68,6 +68,23 @@ export function MessagerieApp({ dark, setDark }: Props) {
    * 250 ms plus tard — la recherche de l'ancienne boîte reviendrait toute seule.
    * Ici le miroir suit toujours la source.
    */
+  /**
+   * ⛔ LE PORTEUR DES SUCCÈS PARTIELS. Deux edges du lot 1 répondent 200 avec un
+   * `warning` : `mail-send` (`sent_but_not_recorded` — le fournisseur a envoyé,
+   * la copie locale a échoué) et `mail-attachment` (`not_marked_filed` — le
+   * document est créé, le lien vers la pièce n'a pas pu être posé). Les deux
+   * étaient jetés, et le prix était le même à chaque fois : l'agent, ne voyant
+   * pas son geste, le refaisait — un mail reçu deux fois par le client, un
+   * document en double au dossier. Un succès partiel n'est ni une erreur ni un
+   * silence ; il lui faut un endroit où se dire.
+   */
+  const [avis, setAvis] = useState<string | null>(null)
+  /**
+   * Le seul lecteur de `MailSendResult.warning`. Les trois chemins d'envoi
+   * (réponse, transfert, nouveau message) passent par lui, sans quoi la
+   * correction ne tiendrait que sur celui qu'on aurait pensé à câbler.
+   */
+  const apresEnvoi = (d: MailSendResult) => { if (d.warning === 'sent_but_not_recorded') setAvis('sentNotRecorded') }
   const [qDebounce, setQDebounce] = useState('')
   useEffect(() => {
     const id = setTimeout(() => setQDebounce(state.q), DEBOUNCE_RECHERCHE)
@@ -258,6 +275,27 @@ export function MessagerieApp({ dark, setDark }: Props) {
             </aside>
             {/* Liste (T2.5) ou lecture du fil sélectionné (T2.6) — jamais les deux. */}
             <section style={{ minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+              {avis && (
+                <div
+                  role="status"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
+                    margin: 'var(--crm-space-2xl) var(--crm-space-7xl) 0',
+                    padding: 'var(--crm-space-md) var(--crm-space-3xl)', borderRadius: PILL,
+                    background: ms.warn, color: ms.warnInk, fontSize: 'var(--crm-text-sm)',
+                  }}
+                >
+                  <span style={{ flex: 1 }}>{t(`mail.notice.${avis}`)}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAvis(null)}
+                    aria-label={t('mail.notice.dismiss')}
+                    style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}
+                  >
+                    {t('mail.notice.dismiss')}
+                  </button>
+                </div>
+              )}
               {accounts.isLoading ? null : accounts.list.length === 0 ? (
                 <div style={{ margin: 'auto' }}>
                   <EtatVide dark={dark} registre="aFaire" titre={t('mail.empty.noAccount.title')} corps={t('mail.empty.noAccount.body')}
@@ -278,8 +316,8 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   onForward={() => dispatch({ type: 'composer', composer: 'forward' })}
                   onCancelComposer={() => dispatch({ type: 'composer', composer: 'none' })}
                   // `to` vide : `mail-send` déduit le destinataire du message d'origine.
-                  onSendReply={(text, m) => send.mutate({ kind: 'reply', to: [], body_text: text, in_reply_to_message_id: m.id }, { onSuccess: () => dispatch({ type: 'composer', composer: 'none' }) })}
-                  onSendForward={(to, note, m) => send.mutate({ kind: 'forward', to, body_text: note, in_reply_to_message_id: m.id }, { onSuccess: () => dispatch({ type: 'composer', composer: 'none' }) })}
+                  onSendReply={(text, m) => send.mutate({ kind: 'reply', to: [], body_text: text, in_reply_to_message_id: m.id }, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'composer', composer: 'none' }) } })}
+                  onSendForward={(to, note, m) => send.mutate({ kind: 'forward', to, body_text: note, in_reply_to_message_id: m.id }, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'composer', composer: 'none' }) } })}
                   onArchive={() => { actions.act.mutate({ action: filOuvert.is_archived ? 'unarchive' : 'archive', threadId: filOuvert.id }); dispatch({ type: 'back' }) }}
                   onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadId: filOuvert.id } })}
                   onOpenAttachment={(a) => dispatch({ type: 'modal', modal: { kind: 'preview', attachmentId: a.id } })}
@@ -301,6 +339,8 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   rows={threads.rows}
                   labels={labels.labels}
                   isLoading={threads.isLoading}
+                  error={threads.error}
+                  onRetry={threads.refetch}
                   drafts={state.folder === 'draft' ? drafts.drafts : null}
                   onOpen={ouvrirFil}
                   onOpenDraft={(id) => dispatch({ type: 'modal', modal: { kind: 'compose', draftId: id } })}
@@ -359,7 +399,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 dispatch({ type: 'modal', modal: { kind: 'none' } })
               }}
               // README : à l'envoi, le message rejoint le dossier « Envoyés ».
-              onSend={(input) => send.mutate(input, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'folder', folder: 'sent' }) } })}
+              onSend={(input) => send.mutate(input, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'folder', folder: 'sent' }) } })}
             />
           )}
 
@@ -414,9 +454,10 @@ export function MessagerieApp({ dark, setDark }: Props) {
               onPreview={() => dispatch({ type: 'modal', modal: { kind: 'preview', attachmentId: piece.id } })}
               // Le fil est rechargé : c'est lui qui porte `document_id`, donc la
               // pastille « Classé au dossier » de l'aperçu et du lecteur.
-              onFiled={() => {
+              onFiled={(a) => {
                 void queryClient.invalidateQueries({ queryKey: ['mail', 'thread', state.sel] })
                 dispatch({ type: 'modal', modal: { kind: 'none' } })
+                if (a) setAvis(a)
               }}
             />
           )}

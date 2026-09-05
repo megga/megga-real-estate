@@ -237,7 +237,11 @@
       "search": "Ricerca",
       "searchPlaceholder": "Cerca un mittente, un oggetto …",
       "unread": "Non letti",
-      "attachment": "Allegato"
+      "attachment": "Allegato",
+      "err": {
+        "load": "Non è stato possibile caricare i messaggi.",
+        "retry": "Riprova"
+      }
     },
     "pager": {
       "range": "{{from}} a {{to}} di {{total}}",
@@ -343,6 +347,11 @@
     },
     "mobile": {
       "readOnly": "Scrivere e rispondere si fanno dal computer, per ora."
+    },
+    "notice": {
+      "sentNotRecorded": "Il messaggio è stato inviato. La copia locale non è stata salvata: non inviarlo di nuovo.",
+      "filedNotLinked": "Il documento è archiviato. Il collegamento con l'allegato non è stato salvato: non archiviarlo una seconda volta.",
+      "dismiss": "Chiudi"
     }
   }
 }

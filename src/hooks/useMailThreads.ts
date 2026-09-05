@@ -47,7 +47,19 @@ export function useMailThreads(accountId: string | null, f: MailThreadFilters) {
     staleTime: 10_000,
   })
   // ⚠ `isPending` et non `isLoading` : ce dernier retombe à false ENTRE deux tentatives.
-  return { rows: q.data?.rows ?? [], total: q.data?.total ?? 0, isLoading: q.isPending, isFetching: q.isFetching }
+  //
+  // ⛔ `error` ET `refetch` SONT RENDUS, et ce n'est pas de la complétude d'API.
+  // Sans eux, `rows` retombait sur `[]` quand la requête avait ÉCHOUÉ, et la
+  // liste affichait « Aucun message » : une erreur RLS, un statement timeout sur
+  // une boîte pleine ou un 500 PostgREST devenaient indiscernables d'une boîte
+  // vide. L'agent voyait une réception propre là où son courrier existait, sans
+  // rien à cliquer pour s'en sortir. Un appelant qui ignore `error` reproduit le
+  // défaut : c'est la liste qui doit le rendre visible.
+  return {
+    rows: q.data?.rows ?? [], total: q.data?.total ?? 0,
+    isLoading: q.isPending, isFetching: q.isFetching,
+    error: q.error as Error | null, refetch: () => { void q.refetch() },
+  }
 }
 
 /** Les compteurs du rail : non lus en réception, archivés, brouillons, et par libellé. */

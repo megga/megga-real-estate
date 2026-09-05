@@ -38,6 +38,9 @@ interface Props {
   rows: MailThreadRow[]
   labels: MailLabel[]
   isLoading: boolean
+  /** non nul = la requête a ÉCHOUÉ ; sans lui, un échec se lit « Aucun message ». */
+  error: Error | null
+  onRetry: () => void
   /** non nul en dossier « Brouillons » seulement */
   drafts: MailDraft[] | null
   onOpen: (id: string) => void
@@ -123,6 +126,8 @@ export function MailList(p: Props) {
               </div>
             ))
           )
+        ) : p.error ? (
+          <MailListError ms={ms} onRetry={p.onRetry} />
         ) : p.isLoading ? null : p.rows.length === 0 ? (
           <MailListEmpty ms={ms} text={t('mail.empty.noMessage')} />
         ) : (
@@ -149,6 +154,33 @@ export function MailList(p: Props) {
  * un appel à l'action, ce qui est juste pour « aucune boîte » et faux ici — une
  * recherche sans résultat n'appelle aucun geste, elle attend qu'on retape.
  */
+/**
+ * L'échec de chargement, distinct de l'état vide — et la distinction est le
+ * défaut qu'on répare : `useMailThreads` rendait `[]` sur une requête en erreur,
+ * si bien qu'un timeout ou un refus RLS s'affichait « Aucun message ». L'agent
+ * voyait une boîte propre à la place de son courrier, sans rien à cliquer.
+ * D'où le bouton : une erreur transitoire se rejoue, elle ne se contemple pas.
+ */
+function MailListError({ ms, onRetry }: { ms: MailSurfaces; onRetry: () => void }) {
+  const { t } = useTranslation('messages')
+  return (
+    <div role="alert" style={{ padding: 'var(--crm-space-7xl) var(--crm-space-4xl)', textAlign: 'center', fontSize: 'var(--crm-text-sm)', color: ms.dangerText }}>
+      <div style={{ marginBottom: 'var(--crm-space-2xl)' }}>{t('mail.list.err.load')}</div>
+      <button
+        type="button"
+        onClick={onRetry}
+        style={{
+          background: ms.accent, color: ms.accentInk, border: 'none', borderRadius: PILL,
+          padding: 'var(--crm-space-md) var(--crm-space-4xl)', fontSize: 'var(--crm-text-sm)',
+          fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION,
+        }}
+      >
+        {t('mail.list.err.retry')}
+      </button>
+    </div>
+  )
+}
+
 function MailListEmpty({ ms, text }: { ms: MailSurfaces; text: string }) {
   return (
     <div style={{ padding: 'var(--crm-space-7xl) var(--crm-space-4xl)', textAlign: 'center', fontSize: 'var(--crm-text-sm)', color: ms.mut }}>

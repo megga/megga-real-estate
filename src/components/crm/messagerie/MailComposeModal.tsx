@@ -63,7 +63,14 @@ export function MailComposeModal({ ms, draft, sending, error, onClose, onSend }:
   const lastTerm = to.split(/[,;]/).pop()?.trim() ?? ''
   const hits = useMailContactSearch(suggest ? lastTerm : '')
   const rcpts = useMemo(() => parseRecipients(to), [to])
-  const can = rcpts.length > 0 && subject.trim().length > 0 && !sending
+  // ⛔ `encodage` EXISTE PARCE QUE `sending` ARRIVE TROP TARD. `sending` vaut
+  // `send.isPending`, qui ne passe à vrai qu'APRÈS `onSend` — or `submit` lit et
+  // encode d'abord les pièces en base64. Sur un PDF de 8 Mo, le bouton restait
+  // actif pendant tout l'encodage : deux clics, deux appels `mail-send`, et le
+  // client recevait le message en double. La fenêtre est proportionnelle au
+  // poids des pièces, donc s'ouvrait précisément sur les envois qui comptent.
+  const [encodage, setEncodage] = useState(false)
+  const can = rcpts.length > 0 && subject.trim().length > 0 && !sending && !encodage
   const field = { background: ms.elev, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' as const }
   // ⚠ Pas de `filter` + cast : `Array.prototype.filter` ne rétrécit pas le type
   // de l'union, et le cast qui compensait affirmait une forme que rien ne
@@ -71,12 +78,20 @@ export function MailComposeModal({ ms, draft, sending, error, onClose, onSend }:
   const docsChoisis = useMemo(() => new Set(atts.flatMap((a) => (a.source.kind === 'doc' ? [a.source.doc.id] : []))), [atts])
 
   const submit = async () => {
-    const attachments = await Promise.all(atts.map(async (a) => {
-      if (a.source.kind === 'file') return { filename: a.name, mime_type: a.mimeType, base64: await blobToBase64(a.source.file) }
-      const d = await documentToBase64(a.source.doc.storage_path)
-      return { filename: a.name, mime_type: d.mimeType, base64: d.base64 }
-    }))
-    onSend({ kind: 'new', to: rcpts, subject: subject.trim(), body_text: body, attachments, draft_id: draft?.id })
+    if (encodage || sending) return
+    setEncodage(true)
+    try {
+      const attachments = await Promise.all(atts.map(async (a) => {
+        if (a.source.kind === 'file') return { filename: a.name, mime_type: a.mimeType, base64: await blobToBase64(a.source.file) }
+        const d = await documentToBase64(a.source.doc.storage_path)
+        return { filename: a.name, mime_type: d.mimeType, base64: d.base64 }
+      }))
+      onSend({ kind: 'new', to: rcpts, subject: subject.trim(), body_text: body, attachments, draft_id: draft?.id })
+    } finally {
+      // Relâché dans tous les cas : un encodage qui échoue (fichier illisible,
+      // document retiré du bucket) laisserait sinon le bouton mort pour de bon.
+      setEncodage(false)
+    }
   }
   const close = () => onClose(to.trim() || subject.trim() || body.trim() ? { to, subject, body } : null)
 

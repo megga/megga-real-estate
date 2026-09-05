@@ -237,7 +237,11 @@
       "search": "Suche",
       "searchPlaceholder": "Absender oder Betreff suchen …",
       "unread": "Ungelesen",
-      "attachment": "Anhang"
+      "attachment": "Anhang",
+      "err": {
+        "load": "Die Nachrichten konnten nicht geladen werden.",
+        "retry": "Erneut versuchen"
+      }
     },
     "pager": {
       "range": "{{from}} bis {{to}} von {{total}}",
@@ -343,6 +347,11 @@
     },
     "mobile": {
       "readOnly": "Verfassen und Antworten sind vorerst am Computer möglich."
+    },
+    "notice": {
+      "sentNotRecorded": "Die Nachricht wurde gesendet. Ihre Kopie konnte hier nicht gespeichert werden: senden Sie sie nicht erneut.",
+      "filedNotLinked": "Das Dokument ist abgelegt. Die Verknüpfung mit dem Anhang konnte nicht gespeichert werden: legen Sie es kein zweites Mal ab.",
+      "dismiss": "Schliessen"
     }
   }
 }

@@ -237,7 +237,11 @@
       "search": "Search",
       "searchPlaceholder": "Search a sender, a subject …",
       "unread": "Unread",
-      "attachment": "Attachment"
+      "attachment": "Attachment",
+      "err": {
+        "load": "The messages could not be loaded.",
+        "retry": "Retry"
+      }
     },
     "pager": {
       "range": "{{from}} to {{to}} of {{total}}",
@@ -343,6 +347,11 @@
     },
     "mobile": {
       "readOnly": "Composing and replying are done on desktop for now."
+    },
+    "notice": {
+      "sentNotRecorded": "The message was sent. Its local copy could not be saved: do not send it again.",
+      "filedNotLinked": "The document is filed. The link to the attachment could not be saved: do not file it a second time.",
+      "dismiss": "Dismiss"
     }
   }
 }
