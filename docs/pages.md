@@ -1,4 +1,4 @@
-## Pages et routes — état au 20 juillet 2026
+## Pages et routes — état au 5 septembre 2026
 
 > **Ce document décrit ce qui EXISTE, pas ce qui était prévu.** Il remplace l'ancienne
 > liste « 42 écrans MVP » (spec d'avant le pivot CRM-first), qui annonçait encore une
@@ -9,7 +9,14 @@
 > **Source** : `src/App.tsx`. En cas de doute, c'est le code qui tranche, pas ce fichier.
 > Le mettre à jour quand on ajoute ou retire une route.
 
-**62 fichiers de pages** dans `src/pages/` : agent 26 · admin 17 · public 11 · dev 5 · particulier 4.
+**74 fichiers de pages** dans `src/pages/` : agent 29 · admin 19 · public 13 · dev 13.
+
+> ⚠ **Ces cinq chiffres étaient faux tous les cinq, remesurés le 05.09.2026.** Le
+> document annonçait « 62 · agent 26 · admin 17 · public 11 · dev 5 · particulier 4 » ;
+> le dossier `particulier/` **n'existe plus** (compte acheteur retiré) et `dev/` a plus
+> que doublé. Aucune porte ne mesure ce fichier — il n'est pas dans
+> `scripts/_data/claude-md-claims.json`, qui ne couvre que `CLAUDE.md` et
+> `docs/system-map.md`. C'est donc à la main, en le touchant, qu'on le remet d'aplomb.
 
 ---
 
@@ -45,6 +52,7 @@ console super-admin, elle, porte son propre chrome (`AdminShell`).
 | `/dashboard/transactions/:id/offre/:kind` | Modale d'offre |
 | `/dashboard/visits/new` · `/:id` | Visite : création, détail |
 | `/dashboard/calendar` | Agenda (Google / Outlook) |
+| `/dashboard/messagerie` | **Messagerie e-mail** (boîte Gmail / Outlook de l'agent) : rail comptes + dossiers + libellés, liste, lecture, composer, 7 modales. `ResponsiveRoute` → `MobileMessagerieScreen` sous 768 px, **lecture seule**. ⚠ Les 9 tables `mail_*` sont en production ; **aucune boîte n'est connectable** tant que trois gestes hors dépôt manquent (system-map §6ter) |
 | `/dashboard/journey` | Parcours client |
 | `/dashboard/kyc` · `/:dossierId` | Dossiers LAB/KYC |
 | `/dashboard/analytics` | Analytics et commissions |
@@ -58,7 +66,7 @@ console super-admin, elle, porte son propre chrome (`AdminShell`).
 → `/visits/*`, `/dashboard/marche/:id` → `/market/:id`. `/dashboard/network`,
 `/reseau`, `/onboarding`, `/premier-jour` → `/dashboard` (modules retirés).
 
-### 2. Super-admin — `/dashboard/admin/*` (18 pages)
+### 2. Super-admin — `/dashboard/admin/*` (19 pages)
 
 Surface du CRM depuis le 28.07.2026 (l'application autonome `admin.megga.ch` a été
 retirée). Montée par `AdminConsoleRoute`, qui gate sur `useSuperAdminGate` et
@@ -97,6 +105,7 @@ subsiste la tuyauterie :
 | Route | Écran |
 |---|---|
 | `/auth/callback` | Retour OAuth / magic link ; route l'événement `PASSWORD_RECOVERY` |
+| `/oauth/mail/callback` | Retour de la pop-up OAuth de la **messagerie** — rend le `code` et le `state` à son ouvreur par `postMessage`, puis se ferme. ⚠ **Sous `ProtectedRoute`, et ce n'est pas un oubli** : quand les pop-ups sont bloquées, la navigation se fait dans l'onglet courant et la page échange le code elle-même, ce qui exige la session. ⛔ Ne dérive PAS de `MEGGA_APP_URL` : l'URI est bâtie sur l'origine de l'appelant, validée contre la liste blanche `MAIL_OAUTH_ORIGINS`, parce qu'elle doit correspondre caractère pour caractère à celle enregistrée chez Google et Microsoft |
 | `/auth/forgot-password/reset` | Définition d'un nouveau mot de passe |
 | `/reset-password` | Ancienne page de reset — aucun lien entrant dans le dépôt ⚠ |
 | `/privacy` | Confidentialité (doublon de `megga.ch/confidentialite.html`) |
@@ -122,12 +131,28 @@ atterrit. Vérifier là-bas avant de la retirer.
 
 ### 6. Routes de développement — ⚠ publiques, sans authentification
 
-`/design-system/megga-x` (style guide MeggaX), `/dev/mandate-sign`,
-`/dev/matching-atelier`, `/dev/sentry-test`, `/dev/mobile`.
+Onze routes, remesurées le 05.09.2026 : `/design-system/megga-x` (style guide MeggaX),
+`/dev/matching-atelier`, `/dev/sentry-test`, `/dev/mobile`, `/dev/biens`,
+`/dev/contacts`, `/dev/pipeline`, `/dev/modales`, `/dev/messagerie`, `/dev/public/*`
+et `/dev/onboarding`.
 
-Elles ne sont derrière aucune garde. `src/components/megga-x/` (15 fichiers) et
-`MandateSignModal` ne sont atteignables que par elles — un second design system qui
-ne sert aucun écran de production et survit par sa propre vitrine.
+⛔ **`/dev/mandate-sign` était listé ici et n'existe plus** — ni la route, ni
+`MandateSignModal`, dont il ne reste aucun fichier dans `src/`. Une route morte dans un
+inventaire est pire qu'une absence : on la cherche avant de douter du document.
+`src/components/megga-x/` compte **23 fichiers** (et non 15) ; c'est bien toujours un
+second design system qui ne sert aucun écran de production et survit par sa propre
+vitrine.
+
+⚠ **`/dev/messagerie` est le banc de la messagerie**, et le seul écran de ce module
+photographié en régression visuelle. Il monte l'écran complet sur des **fixtures**
+(`src/components/crm/messagerie/fixtures.ts`), donc **sans base de données ni compte
+connecté**, avec un sélecteur à trois états — `full` (42 fils, 12 par page, libellés et
+compteurs), `empty` (boîte connectée, zéro message : « Aucun message ne correspond »),
+`none` (aucune boîte : « Aucune boîte connectée » + « Ajouter une boîte », et
+« Nouveau message » désactivé). ⛔ Un banc vert ne prouve pas une boîte : ces trois
+états sont des fixtures, pas du courrier.
+
+Elles ne sont derrière aucune garde.
 
 ---
 

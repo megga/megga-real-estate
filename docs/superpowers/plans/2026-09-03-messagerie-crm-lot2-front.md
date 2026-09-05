@@ -3613,11 +3613,128 @@ git add -A && git commit -m "feat(messagerie): réglages, timeline contact, écr
 
 ### Task 2.15 : Épreuve de bout en bout, PR, cerveau
 
-- [ ] **Step 1 : L'épreuve du maître §7.4, points 1 à 8, DANS L'UI** (une boîte Google de test, puis Outlook). Chaque point est coché avec la preuve (capture ou requête SQL) collée dans la PR. Points UI supplémentaires :
-  - la pop-up s'ouvre à 520×680, le consentement Google mentionne « MEGGA », l'écran « non validée » apparaît (scope restreint, attendu au pilote) ; après « Autoriser », la pop-up se ferme seule et l'assistant montre « Boîte connectée » sans que la fenêtre principale ait rechargé ;
-  - bloquer les pop-ups dans le navigateur, refaire : l'onglet part sur Google et revient sur `/dashboard/messagerie?account=…` avec la boîte ouverte ;
-  - clic droit sur une ligne : le menu s'ouvre au curseur, se ferme au clic hors zone et à Échap ;
-  - une image distante dans un mail HTML n'est pas chargée avant « Afficher les images » (onglet Réseau : aucune requête vers le domaine de l'image) ;
-  - `npm run test:e2e:visual` vert.
-- [ ] **Step 2 : PR** sur `main` depuis `claude/real-estate-crm-messaging-5ef3e3`, corps : les décisions D1-D16 en résumé, les écarts assumés vis-à-vis de la maquette (D6 Infomaniak/Bluewin en IMAP ; segment « Accès » non rendu ; pas de densités ; onglet au lieu d'entrée de sidebar), les chiffres de l'épreuve (délai de première synchro, latence de réception), et la liste des gestes hors dépôt encore ouverts (§6 du maître).
-- [ ] **Step 3 : Cerveau et docs** — maître §10 (clés `megga/messagerie-*`, `docs/system-map.md`, `docs/schema.md`, `docs/pages.md`, CLAUDE.md §8, CHANGELOG), puis `npm run ruflo:seed` et `npm run lint:claude-md`.
+- [ ] **Step 1 : L'épreuve du maître §7.4, points 1 à 8, DANS L'UI** (une boîte Google de test, puis Outlook).
+
+⛔ **NON FAITE AU 05.09.2026, ET ELLE NE POUVAIT PAS L'ÊTRE — la cause n'est pas dans
+le dépôt.** Trois prérequis manquent, tous chez Julien, tous hors de tout dépôt :
+
+1. `https://app.megga.ch/oauth/mail/callback` **n'est pas** dans les *Authorized redirect
+   URIs* du client OAuth Google `833483825712-vh715spjupqcl86qffv3hvffsaqk0g8e` : Google
+   rend **`Erreur 400 : redirect_uri_mismatch`** et l'écran de consentement ne s'affiche
+   jamais. Ajouter aussi `http://localhost:5173/oauth/mail/callback` pour l'épreuve locale.
+2. L'**API Gmail n'est pas activée** sur le projet `tribal-dispatch-504619-c1`, et
+   **`gmail.modify` n'est pas déclaré** en Data Access. C'est un scope **RESTRICTED** :
+   tant qu'il n'est pas vérifié, écran « application non validée » et plafond de
+   100 utilisateurs — acceptable au pilote, mais il faut l'avoir déclaré.
+3. `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` sont **absents** du projet Supabase,
+   donc `provider:'outlook'` répond **`503 provider_not_configured`**, par conception.
+
+⚠ **Ne pas cocher cette case sur la foi d'une CI verte ni du banc.** `/dev/messagerie`
+rend des **fixtures** ; `mail_accounts` compte **0 ligne** en production. Un banc vert
+n'est pas une fonctionnalité (`megga/gardes-vacuites`).
+
+**Mode d'emploi, une fois les trois prérequis posés** — à jouer dans l'ordre, en collant
+chaque relevé dans la PR :
+
+*Console, avant de commencer* — vérifier que le couple Google est bon sans rien déployer :
+```bash
+curl -s -X POST https://oauth2.googleapis.com/token \
+  -d grant_type=refresh_token -d refresh_token=faux \
+  -d client_id="$GOOGLE_CLIENT_ID" -d client_secret="$GOOGLE_CLIENT_SECRET"
+# invalid_grant ⇒ le couple est valide (seul le jeton est faux). invalid_client ⇒ secret faux.
+```
+
+*1. Connecter (§7.4 point 1)* — `/dashboard/messagerie` → « Ajouter une boîte » → Google.
+La pop-up doit s'ouvrir à **520×680**, le consentement mentionner « MEGGA », l'écran
+« non validée » apparaître (attendu : scope restreint). Après « Autoriser », la pop-up se
+ferme **seule** et l'assistant affiche « Boîte connectée » **sans que la fenêtre
+principale ait rechargé**. Puis :
+```sql
+select id, email, provider, status, visibility,
+       vault_secret_id is not null as jeton_en_vault,
+       last_sync_at, last_error, sync_failures
+from mail_accounts order by created_at desc limit 5;
+-- attendu : status='active', jeton_en_vault=true, last_error IS NULL
+select count(*) as jetons_calendrier from google_calendar_tokens;
+-- attendu : 0 — la messagerie ne touche PAS le calendrier
+```
+
+*2. Première synchro (point 2)* — attendre **≤ 2 min** (cron `mail-sync-2min`) :
+```sql
+select count(*) as fils, min(last_message_at) as plus_ancien, max(last_message_at) as plus_recent
+from mail_threads where account_id = '<id>';
+-- attendu : fils > 0, plus_ancien ≥ now() - interval '90 days'
+select last_sync_at, last_error, sync_failures from mail_accounts where id = '<id>';
+-- attendu : last_sync_at renseigné, last_error NULL, sync_failures = 0
+```
+⚠ Noter le **délai réel** entre la connexion et le premier fil : c'est le chiffre que la
+PR doit porter, et personne ne l'a jamais mesuré.
+
+*3. Réception (point 3)* — s'envoyer un mail depuis une autre adresse : il doit apparaître
+en **< 2 min**, non lu, la pastille du rail s'incrémentant **sans rechargement** (Realtime
+sur `mail_threads`). Noter la latence observée.
+
+*4. Aller-retour d'état (point 4)* — ouvrir ⇒ lu **dans le CRM ET dans Gmail** (`UNREAD`
+retiré côté Google) ; étoile ⇒ `STARRED` dans Gmail ; archiver ⇒ quitte la réception
+**des deux côtés**.
+
+*5. Répondre (point 5)* — la réponse doit être **dans le fil Gmail**, en-tête
+`In-Reply-To` = `Message-ID` d'origine (vérifier via « Afficher l'original » dans Gmail) :
+```sql
+select category, action, entity_id, created_at from activity_events
+where category='messaging' order by created_at desc limit 10;
+-- attendu : un email_sent sur le contact rattaché
+```
+
+*6. Pièce jointe (point 6)* — « Voir en grand » ⇒ le flux doit porter le **`content-type`
+de la pièce**, jamais `text/html` (onglet Réseau). Puis « Classer dans le dossier » :
+```sql
+select id, contact_id, sha256_hash, storage_path from documents
+order by created_at desc limit 3;   -- attendu : contact_id posé, sha256_hash non nul
+```
+et vérifier que l'objet existe réellement dans le bucket `documents`.
+
+*7. Rapprocher (point 7)* — sur un mail dont le bandeau dit « Adresse non rattachée »,
+« Rapprocher » ⇒ le bandeau disparaît, et :
+```sql
+select * from mail_contact_aliases order by created_at desc limit 5;  -- l'alias est appris
+```
+Le **mail suivant** de la même adresse doit se rattacher seul.
+
+*8. Déconnecter (point 8)* — « Déconnecter » dans le rail, puis :
+```sql
+select count(*) from mail_threads  where account_id = '<id>';  -- attendu : 0
+select count(*) from mail_messages where account_id = '<id>';  -- attendu : 0
+select count(*) from mail_accounts where id = '<id>';          -- attendu : 0
+select count(*) from vault.secrets where id = '<vault_secret_id>'; -- attendu : 0
+select count(*) from documents where id = '<doc classé au point 6>'; -- attendu : 1, TOUJOURS LÀ
+```
+⚠ Le document classé **survit** à la déconnexion : c'est une pièce du dossier client, pas
+une copie du courrier.
+
+*9. Outlook* — rejouer 1 à 5 avec une boîte Outlook.com ou M365, une fois l'inscription
+Entra ID faite et les deux secrets posés.
+
+*Points d'UI à vérifier au passage* (aucun n'est couvert par une porte) :
+- pop-ups **bloquées** dans le navigateur, refaire la connexion : l'onglet part sur Google
+  et revient sur `/dashboard/messagerie?account=…` avec la boîte ouverte ;
+- **clic droit** sur une ligne : le menu s'ouvre au curseur, se ferme au clic hors zone et
+  à Échap ;
+- une **image distante** dans un mail HTML n'est pas chargée avant « Afficher les images »
+  (onglet Réseau : **aucune** requête vers le domaine de l'image). ⚠ Aucune fixture du
+  banc ne porte d'`<img src=http…>` : ce point ne peut se vérifier que sur du vrai
+  courrier, ou en ajoutant une fixture faite pour.
+
+- [x] **Step 2 : PR** — [#1276](https://github.com/megga/megga-real-estate/pull/1276),
+  sortie de brouillon le 05.09.2026. ⚠ Le plan annonçait la branche
+  `claude/real-estate-crm-messaging-5ef3e3` ; la vraie est
+  `claude/crm-messagerie-lot2-front`. Le corps porte les décisions, les écarts assumés
+  (D6 Infomaniak/Bluewin renvoyés au lot 3 ; segment « Accès » non rendu ; pas de
+  densités ; onglet plutôt qu'entrée de rail), les portes mesurées, et **ce qui n'est pas
+  prouvé**. ⛔ Il ne porte **pas** les chiffres de l'épreuve (délai de première synchro,
+  latence de réception) : ils n'existent pas, faute d'épreuve.
+- [x] **Step 3 : Cerveau et docs** — `docs/pages.md` (les 3 routes ; et cinq chiffres
+  d'inventaire faux corrigés), `docs/system-map.md` §6ter + la puce Realtime + la ligne du
+  catalogue d'edges, `CLAUDE.md` §7 (51 → **52** jobs pg_cron) et §8 (Messagerie, « Chat »,
+  Intégrations), `docs/CHANGELOG.md`, quatre clés `megga/messagerie-*` dans le cerveau,
+  puis `npm run ruflo:seed` et `npm run lint:claude-md` (vert).

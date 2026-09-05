@@ -454,14 +454,14 @@
     {
       "id": "cron-jobs-actifs",
       "section": "§7 — pg_cron",
-      "phrase": "51 jobs actifs",
+      "phrase": "52 jobs actifs",
       "severite": "derive",
-      "mesureLe": "2026-09-04",
+      "mesureLe": "2026-09-05",
       "mesure": {
         "sql": "select count(*) from cron.job where active"
       },
       "attendu": {
-        "valeur": 51
+        "valeur": 52
       },
       "tolerance": 0.2,
       "note": "Tolérance large : un job naît à chaque source ou sonde ajoutée. Ce que la prétention soutient est l'ORDRE DE GRANDEUR — « cette section n'en listait que 2 » reste vrai de 41 comme de 50. Ce qui doit alerter, c'est le doc qui n'a pas bougé pendant que neuf jobs naissaient."
@@ -670,9 +670,9 @@
     {
       "id": "sm-hooks",
       "section": "§2 — Hooks",
-      "phrase": "`src/hooks/`, 119, React Query",
+      "phrase": "`src/hooks/`, 131, React Query",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-05",
       "mesure": {
         "compterFichiers": true,
         "portee": [
@@ -684,7 +684,7 @@
         ]
       },
       "attendu": {
-        "fichiers": 119
+        "fichiers": 131
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15
@@ -692,15 +692,15 @@
     {
       "id": "sm-cerveau-entrees",
       "section": "§ cerveau",
-      "phrase": "(264 entrées curées au 04.09.2026)",
+      "phrase": "(265 entrées curées au 05.09.2026)",
       "severite": "derive",
-      "mesureLe": "2026-09-04",
+      "mesureLe": "2026-09-05",
       "mesure": {
         "fichier": ".claude-flow/knowledge/megga-memory.seed.json",
         "motif": "\"key\":"
       },
       "attendu": {
-        "occurrences": 264
+        "occurrences": 265
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,
