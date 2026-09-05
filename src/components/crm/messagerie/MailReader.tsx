@@ -41,25 +41,43 @@ export function MailReader(p: Props) {
   // fil : sur un échange long, le premier est souvent le nôtre.
   const inboundLast = [...p.messages].reverse().find((m) => m.direction === 'inbound') ?? first
 
+  // ⛔ L'AFFORDANCE PRIMAIRE PORTE L'ACCENT AU REPOS (CLAUDE.md §3, décision du
+  // 10 août 2026). Elle ne le prenait qu'au SURVOL et affichait l'encre au
+  // repos : c'est la grammaire de Sugar, où « l'accent EST l'encre » — une
+  // direction supprimée. Le prix n'est pas cosmétique : un bouton qui ne se
+  // distingue qu'une fois la souris dessus ne se distingue ni au clavier, ni
+  // au doigt, ni pour qui parcourt l'écran des yeux.
+  //
+  // La forme est celle de « Envoyer » du composer, à l'identique — deux
+  // affordances primaires du même module ne peuvent pas avoir deux dessins.
+  // La bordure reste à 1 px, accent sur accent, pour que la géométrie s'aligne
+  // sur les boutons secondaires de la même barre ; `border: none` les
+  // décalerait de 2 px.
   const btn = (label: string, onClick: () => void, opts: { primary?: boolean; danger?: boolean; right?: boolean } = {}) => (
     <button
       type="button"
       onClick={onClick}
       style={{
-        border: `1px solid ${opts.primary ? ms.ink : ms.bord3}`, borderRadius: PILL,
-        padding: 'var(--crm-space-md) var(--crm-space-4xl)', fontSize: 'var(--crm-text-sm)', fontWeight: 500,
-        background: 'transparent', color: opts.primary ? ms.ink : ms.txt3, cursor: 'pointer', fontFamily: 'inherit',
+        border: `1px solid ${opts.primary ? ms.accent : ms.bord3}`, borderRadius: PILL,
+        padding: 'var(--crm-space-md) var(--crm-space-4xl)', fontSize: 'var(--crm-text-sm)',
+        fontWeight: opts.primary ? 600 : 500,
+        background: opts.primary ? ms.accent : 'transparent',
+        color: opts.primary ? ms.accentInk : ms.txt3, cursor: 'pointer', fontFamily: 'inherit',
         marginLeft: opts.right ? 'auto' : undefined, transition: MAIL_TRANSITION,
       }}
       onMouseEnter={(e) => {
         if (opts.danger) { e.currentTarget.style.borderColor = ms.dangerText; e.currentTarget.style.color = ms.dangerText }
-        else if (opts.primary) { e.currentTarget.style.background = ms.accent; e.currentTarget.style.borderColor = ms.accent; e.currentTarget.style.color = ms.accentInk }
+        // Le primaire porte déjà l'accent : le survol l'APPROFONDIT, il ne
+        // l'introduit pas. Même idiome que les boutons accent du CRM, qui
+        // modulent l'opacité plutôt que d'inventer une seconde teinte.
+        else if (opts.primary) { e.currentTarget.style.opacity = '0.88' }
         else { e.currentTarget.style.borderColor = ms.ink; e.currentTarget.style.color = ms.ink }
       }}
       onMouseLeave={(e) => {
+        if (opts.primary) { e.currentTarget.style.opacity = '1'; return }
         e.currentTarget.style.background = 'transparent'
-        e.currentTarget.style.borderColor = opts.primary ? ms.ink : ms.bord3
-        e.currentTarget.style.color = opts.primary ? ms.ink : ms.txt3
+        e.currentTarget.style.borderColor = ms.bord3
+        e.currentTarget.style.color = ms.txt3
       }}
     >
       {label}
