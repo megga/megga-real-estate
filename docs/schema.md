@@ -354,12 +354,52 @@ activity_events (id, agency_id, actor_id, action, entity_type, entity_id, metada
 ```
 CRITIQUE : Chaque table DOIT avoir des policies RLS activées.
 - Les agents ne voient que les données de leur agence (agency_id = auth.jwt() -> agency_id)
-- Les vendeurs (portail) ne voient que leurs propres transactions
-- Les acheteurs (public) ne voient que les listings publiés (status = 'active')
 - Les relances et matchs sont filtrés par agency_id
 
 Helpers canoniques (SECURITY DEFINER) : get_my_agency_id(), is_super_admin(),
 is_agency_admin() [admin|manager].
+
+⛔ **PLUS AUCUNE LECTURE ANONYME — et ce n'est pas le pivot qui l'a fermée.** Ce bloc a décrit pendant des
+mois deux audiences dont il ne reste pas une policy : « les vendeurs (portail) » et « les acheteurs (public)
+ne voient que les listings publiés ». Mesuré en production le 05.09.2026 : le schéma `public` porte **une
+seule policy `anon`** — `seller_leads_anon_insert`, en INSERT — et **zéro en SELECT**. Les trois gestes sont
+datés, et tous **postérieurs** au pivot CRM-first de juin 2026 :
+
+- `properties_select_public` (`status = 'active'`) — retirée le **28.06.2026** (`20260628140000`)
+- « Public can read active market_listings » — retirée le **19.07.2026**, avec `REVOKE ALL … FROM anon`
+  (`20260719110000`, PR #889). ⚠ Le `DROP POLICY` seul serait resté **invisible** : sans policy permissive,
+  PostgREST répond 200 avec un tableau vide, pas une erreur. C'est le `REVOKE` qui produit un vrai 42501 —
+  donc ce qu'un test peut assérer.
+- portail vendeur — `seller_portals` / `seller_preferences` supprimées le **26.07.2026** (`20260726180000`)
+
+⚠ Si une lecture publique était un jour rouverte : passer par une **vue en liste blanche de colonnes**,
+jamais par la table. `USING (status = 'active')` filtre les LIGNES et aucune COLONNE — `market_listings`
+expose aussi `quality_score`, `relevance_score`, `absent_probe_count` et `source_payload` (la réponse brute
+du portail).
+
+```sql
+-- Catalogue du marché suisse, INGÉRÉ depuis les portails. Ne pas confondre avec
+-- `properties` (les biens de l'agence, RLS par agency_id) : ici rien n'appartient à
+-- une agence. La table sert le MATCHING CRM et n'a plus aucun lecteur anonyme depuis
+-- le 19.07.2026. 257 943 lignes au 05.09.2026, dont 89 322 actives —
+-- flatfox 131 881 · realadvisor 126 035 · megga-demo 27.
+market_listings (
+  id,                       -- uuid PK. C'est CE segment que porte /dashboard/market/:externalId,
+                            --   jamais source_id.
+  source_portal, source_id, -- unique (source_portal, source_id) : source_id n'est unique
+                            --   QUE par portail, et les plages numériques se recouvrent
+  transaction_type,         -- 'buy' (défaut) | 'rent'
+  price, current_price,     -- prix effectif = current_price ?? price
+  rent,                     -- ⛔ VIDE : 0 ligne renseignée sur 257 943 (mesuré le 05.09.2026)
+  status, quality_score, relevance_score, absent_probe_count, source_payload,
+  photos, photos_cf, agency_profile_id, ...
+)
+-- ⛔ LE MONTANT D'UNE LOCATION N'EST PAS DANS `rent`. Sur les 36 770 locations actives :
+--    `rent` renseigné = 0, montant présent dans price/current_price = 36 770. La colonne
+--    existe et ne sert pas ; c'est `mapListingRow` (src/components/matching-recherche/types.ts)
+--    qui répartit `current_price ?? price` entre vente et location. Un mapper qui lit `rent`
+--    affiche un loyer nul, à l'écran, sans erreur.
+```
 
 EXCEPTION — tables KYB : le filtrage par agence NE SUFFIT PAS. Elles portent la PII
 des dirigeants et actionnaires (date de naissance, n° de pièce d'identité), donc
