@@ -64,7 +64,7 @@ export interface AtelierStageProps {
   /**
    * Monté DANS le pager Matching (page 0) plutôt qu'en plein écran : l'étage
    * devient `position:absolute` dans le bento (cf. .atl-embedded) et le bouton
-   * « Fermer l'atelier » disparaît — la navigation est portée par la CrmTopNav
+   * « Fermer l'atelier » disparaît — la navigation est portée par la barre latérale
    * du pager, pas par l'étage.
    */
   embedded?: boolean

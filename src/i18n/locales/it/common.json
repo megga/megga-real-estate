@@ -19,7 +19,7 @@
     "dark": "Scuro",
     "today": "Oggi",
     "more": "Altro",
-    "dashboard": "Dashboard",
+    "dashboard": "Analytics",
     "contacts": "Contatti",
     "pipeline": "Pipeline",
     "matching": "Matching",
@@ -62,6 +62,12 @@
     "aiAgent": "Megga, agente IA",
     "helpCenter": "Centro assistenza",
     "notifications": "Notifications",
+    "mainNav": "Navigazione principale",
+    "sectionDay": "La mia giornata",
+    "sectionPortfolio": "Clienti e immobili",
+    "sectionDeals": "Transazioni",
+    "sectionSteering": "Pilotaggio",
+    "sectionTools": "Strumenti",
     "callbacksToday": "Richiami di oggi",
     "importLeads": "Importa lead",
     "adminSectionPilotage": "Pilotaggio",
@@ -484,5 +490,20 @@
   },
   "announcements": {
     "dismiss": "Chiudi"
+  },
+  "tabs": {
+    "badgeCount": "Da gestire",
+    "badgeUrgent": "In ritardo",
+    "bar": "Schede aperte",
+    "close": "Chiudi scheda",
+    "closeOthers": "Chiudi le altre",
+    "closeThis": "Chiudi questa scheda",
+    "confirmClose": "Questa scheda contiene modifiche non salvate. Chiuderla comunque?",
+    "duplicate": "Duplica scheda",
+    "more": "Altre schede",
+    "new": "Nuova scheda",
+    "pin": "Fissa a sinistra",
+    "unpin": "Sblocca",
+    "untitled": "Scheda"
   }
 }

@@ -1,7 +1,13 @@
 /**
- * Orchestrateur de l'écran Messagerie : chrome CRM (`CrmTopNav` + `CrmIconRail`,
- * copie du squelette de `CalendarApp`) puis le bento `296px | 1fr` de la maquette
+ * Orchestrateur de l'écran Messagerie : le chrome CRM (`CrmWorkspace` — barre
+ * latérale + barre d'onglets) puis le bento `296px | 1fr` de la maquette
  * (README §« Écrans »).
+ *
+ * ⚠ L'écran montait `CrmTopNav` + `CrmIconRail`, les deux pièces de chrome que
+ * la refonte du 4 septembre 2026 a SUPPRIMÉES. Il portait avec elles un
+ * `onNavigate` de onze `switch` — exactement les vingt et un `switch` recopiés
+ * que `crmSidebarNav.ts` a été écrit pour supprimer. La navigation vit
+ * désormais dans la barre, et la messagerie y est une section.
  *
  * Le rail (T2.4), la liste (T2.5) et la lecture (T2.6) sont branchés ; les
  * modales restantes arrivent aux tâches 2.9-2.11. L'état vide reste honnête —
@@ -9,10 +15,9 @@
  */
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import EtatVide from '@/components/crm/EtatVide'
 import { useAuth } from '@/hooks/useAuth'
@@ -46,7 +51,6 @@ interface Props { dark: boolean; setDark: (v: boolean) => void }
 
 export function MessagerieApp({ dark, setDark }: Props) {
   const { t, i18n } = useTranslation('messages')
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [params, setParams] = useSearchParams()
   const { profile } = useAuth()
@@ -230,27 +234,10 @@ export function MessagerieApp({ dark, setDark }: Props) {
     })
   }, [accounts.disconnect, state.accountId, t])
 
-  const onNavigate = useCallback((id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'messagerie': break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings': navigate('/dashboard/settings'); break
-    }
-  }, [navigate])
-
   return (
     <div style={{ position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font)', color: sp.ink }}>
-      <CrmTopNav active="messagerie" sp={sp} dark={dark} onNavigate={onNavigate} helpKey="messagerie" />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="messagerie" sp={sp} dark={dark} setDark={setDark} onNavigate={onNavigate} />
+        <CrmWorkspace active="messagerie" helpKey="messagerie" sp={sp} dark={dark} setDark={setDark}>
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
           <div
             data-mail-bento
@@ -531,6 +518,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
             })}
           />
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

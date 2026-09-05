@@ -1,7 +1,7 @@
 // MEGGA CRM Sugar — Host de la recherche immersive.
 // Monté une seule fois dans AgentLayout. Gère l'ouverture via :
 //   - ⌘/Ctrl + K (toggle global)
-//   - l'événement 'megga:open-search' (émis par le bouton loupe de CrmTopNav)
+//   - l'événement 'megga:open-search' (émis par la ligne « Rechercher » de CrmSidebar)
 // Le composant lourd (et ses requêtes) n'est monté que lorsqu'il est ouvert.
 
 import { useEffect, useState } from 'react'

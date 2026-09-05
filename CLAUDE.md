@@ -220,10 +220,15 @@ d'écran n'est restée sur Graphite).
   (`shadow-card`, `shadow-sm`), qui ne suivent aucun thème.
 - Boutons : ⚠ **CETTE RÈGLE DÉCRIT SUGAR PURE, corrigée le 15 août 2026.** Elle
   disait « style ghost — JAMAIS `bg-accent text-white` », ce qui CONTREDIT la
-  décision du 10 août écrite quatre points plus haut. Remesuré le 17 août 2026 par
-  `npm run lint:claude-md` : **113 sites peignent une affordance en accent**
-  (106 `background: *.accent`, 7 `bg-accent`) dans 70 fichiers, contre **11** au
-  ghost canonique. ⚠ Deux des trois chiffres ont bougé pour des raisons opposées.
+  décision du 10 août écrite quatre points plus haut. Remesuré le 5 septembre 2026
+  par `npm run lint:claude-md` : **127 sites peignent une affordance en accent**
+  (120 `background: *.accent`, 7 `bg-accent`) dans 82 fichiers, contre **11** au
+  ghost canonique. ⚠ Le 17 août ce point disait 113 / 106 / 70 : la hausse n'est
+  pas une dérive de la règle mais deux chantiers de septembre — la refonte du
+  chrome du CRM (barre latérale + barre d'onglets, PR #1279) et la messagerie
+  (PR #1276), qui peignent l'un et l'autre leurs affordances primaires en accent,
+  comme la règle vive le prescrit. ⚠ Deux des trois chiffres du 17 août avaient
+  bougé pour des raisons opposées.
   `bg-accent` tombe de 18 à 7 **sans qu'une ligne ait été retirée** : la mesure
   borne désormais l'identifiant, et `bg-accent-solid` — l'autre jeton, créé le 15
   août trois lignes plus bas — cessait d'être compté comme un emploi du premier.
@@ -478,7 +483,7 @@ useEffect(() => {
 - Validation KYC auto sans action humaine
 - Envoi auto au client sans validation agent
 - Couleurs hardcodées (`bg-white`, `text-gray-*`) → tokens thème
-- ⚠ ~~`bg-accent` plein sur boutons → style ghost~~ — **périmé**, voir §3 : c'est l'inverse depuis le 10 août 2026 (120 sites contre 11)
+- ⚠ ~~`bg-accent` plein sur boutons → style ghost~~ — **périmé**, voir §3 : c'est l'inverse depuis le 10 août 2026 (127 sites contre 11, mesuré le 05.09.2026)
 - Ombres sur bentos
 - Modals inline → toujours `createPortal`
 - UPPERCASE dans les titres → capitalize — ✅ **la SEULE des sept règles visuelles
@@ -596,6 +601,29 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
 **CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · wizard « Créer un bien » Sugar v2 7 étapes · fiche V4), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existait pas.** Mesuré alors — aucune route, aucune page, aucun hook ; le namespace i18n `messages` était déclaré (`src/i18n/index.ts:29`) et consommé par **personne**. Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**. ✅ **La 9ᵉ surface est arrivée depuis, et ce n'est pas ce « Chat »** : c'est la **Messagerie**, un onglet sur `/dashboard/messagerie`, adossé aux 9 tables `mail_*` ; le namespace `messages` compte **22 lecteurs** dans `src/` au 05.09.2026 contre zéro la veille. Elle est sur la PR #1276, pas encore sur `main` — voir le point Messagerie ci-dessous, qui distingue le socle, l'écran et la preuve.
+
+**Chrome du CRM de bureau : DEUX pièces depuis le 4 septembre 2026.** Le §8 les ignorait entièrement —
+mesuré le 05.09.2026, `CLAUDE.md` ne contenait **0** occurrence de `CrmWorkspace`, `CrmTabsBar` ou
+`crm_open_tabs`, alors que les deux pièces sont en production. (1) La **barre latérale** `CrmSidebar`
+porte les *destinations* ; elle a remplacé le duo top-nav + rail d'icônes le 4 septembre au matin
+(commit `050357df`). (2) La **bande d'onglets** `CrmTabsBar` porte les *contextes ouverts* — deux fiches
+contact côte à côte — livrée le même jour (commit `00b3fbd3`). ⚠ Les deux pièces ont voyagé dans **une
+seule** PR, [#1277](https://github.com/megga/megga-real-estate/pull/1277) : il n'existe pas de PR séparée
+pour la barre latérale. Backend de la bande : table `crm_open_tabs` + RPC
+`crm_tabs_save` / `crm_tabs_resolve_labels` / `crm_tab_badges`, plafond client 24 (CHECK serveur à 32,
+volontairement plus haut pour qu'un dépassement transitoire n'annule pas l'écriture en silence).
+
+⛔ **Les 20 surfaces montent `<CrmWorkspace>`, JAMAIS `<CrmSidebar>`** — mesuré :
+`grep -rl '<CrmSidebar' src/` ne rend qu'**un** fichier, `CrmWorkspace.tsx` lui-même. Une surface qui
+court-circuite la coquille perd la bande d'onglets **et** la variable `--crm-tabs-h`, sans qu'aucune
+porte ne rougisse. ⚠ Cette variable n'est pas décorative : `ListingWizardPage.tsx:42` calcule
+`height: calc(100vh - 64px - var(--crm-tabs-h, 0px))`, et sans son troisième terme la page débordait de
+48 px, le pied du wizard passant sous le pli. Il en est aujourd'hui le **seul** lecteur.
+
+⚠ **L'état d'écran se range dans l'onglet, plus dans un `useState`** : `useTabScopedState` est un
+remplaçant direct de `useState` dont la clé est portée par l'onglet actif — c'est ce qui fait qu'une
+position de pager ou un filtre survit à un aller-retour entre deux onglets. La pile est miroitée en
+**`sessionStorage`** (`megga.crm.tabs`), jamais en `localStorage` : elle porte des **noms de clients**.
 
 **Réseau inter-agences : ❌ RETIRÉ (hors périmètre v1).** L'ancien prototype `NetworkSugarV2Page` (données d'exemple, aucun backend, jamais routé) a été supprimé lors du nettoyage code mort ; les routes `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`. Le module réel (partage de biens inter-agences + RLS cross-agence + modèles PDF) reste à construire plus tard.
 

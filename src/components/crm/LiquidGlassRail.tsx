@@ -1,4 +1,22 @@
-// MEGGA CRM — CrmIconRail « Liquid Glass »
+// MEGGA CRM — CrmIconRail « Liquid Glass » — DOCK DE LA CONSOLE SUPER-ADMIN
+//
+// ⚠ CE RAIL N'EST PLUS LE CHROME DU CRM. Depuis le 4 septembre 2026 les
+// surfaces agent montent `CrmSidebar.tsx` — une barre latérale repliable qui
+// porte les pages, les outils et le compte. Il ne reste ici QU'UN
+// consommateur : `AdminShell`, qui s'en sert comme dock de quatre boutons
+// (recherche, retour au CRM, réglages, thème).
+//
+// Deux conséquences écrites dans le code plus bas :
+//   • `items` est désormais REQUIS. La liste par défaut portait des gestes
+//     d'agence (relances, import, KYC, analytics) qu'aucun appelant ne demande
+//     plus ; la garder aurait laissé une porte ouverte sur des actions que
+//     seule la barre latérale doit offrir.
+//   • `RelanceSession` ne se monte plus ici : son état ET son montage sont
+//     passés à la barre, qui est maintenant l'unique porte de bureau.
+//
+// Ce fichier reste le jeu de glyphes tracés du CRM (`RAIL_ICONS`), et il en
+// expose DEUX rendus : `RailIcon`, statique, que monte la barre latérale ; et
+// `AnimatedRailIcon`, privé, que seul le dock de la console fait vibrer.
 // ----------------------------------------------------------------------------
 // Refonte du rail vertical gauche (outils transverses, jamais la navigation
 // pages — celle-ci reste à la TopNav). Recréation fidèle du handoff design
@@ -13,7 +31,6 @@
 //   • filet anti-throttle (état final garanti même rAF gelé)
 //
 // Câblage réel (le proto utilisait des globales window.* — remplacées ici) :
-//   search / add → onCmd (palette ⌘K)   ·   relances → overlay RelanceSession
 //   import → /dashboard/import-lead       ·   kyc/dashboard/settings → onNavigate
 //   __dark → setDark
 //
@@ -21,14 +38,11 @@
 
 import { useState, useEffect, useRef } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, type Transition } from 'motion/react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { crmVoileEncre, type CrmPalette } from './tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
-import { RelanceSession } from '@/components/crm/today/RelanceSession'
-import { openCrmSearch } from './search/openSearch'
 
 // ─── Tracés SVG des icônes du rail (glyphes officiels MEGGA, viewBox 24) ───
 // On embarque les tracés ici plutôt que via <MEIcon> : MEIcon délègue dashboard
@@ -92,6 +106,65 @@ const RAIL_ICONS: Record<string, RailIconDef> = {
   moon: { line: false, kids: [
     { tag: 'path', d: 'M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10Z' },
   ] },
+  // — Sections de la barre latérale (CrmSidebar) —
+  // Tracés repris des glyphes MEIcon officiels. Tous en `line:true` : une seule
+  // graisse dans la colonne. MEIcon en délègue plusieurs (dashboard, chart) à
+  // une icon-font qui rend PLEIN — les mélanger se lirait comme deux jeux.
+  // Boîte de réception — même tracé que `MEIcon.inbox`, redessiné ici parce que
+  // le rail se dessine lui-même (il ne monte pas MEIcon).
+  inbox: { line: true, kids: [
+    { tag: 'path', d: 'M22 12h-6l-2 3h-4l-2-3H2' },
+    { tag: 'path', d: 'M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z' },
+  ] },
+  home: { line: true, kids: [
+    { tag: 'path', d: 'M3 11 12 4l9 7' },
+    { tag: 'path', d: 'M5 10v10h14V10' },
+    { tag: 'path', d: 'M10 20v-6h4v6' },
+  ] },
+  pipeline: { line: true, kids: [
+    { tag: 'circle', cx: 5, cy: 6, r: 2.4 },
+    { tag: 'circle', cx: 5, cy: 18, r: 2.4 },
+    { tag: 'circle', cx: 19, cy: 12, r: 2.4 },
+    { tag: 'path', d: 'M7 6h6a2 2 0 0 1 2 2v2' },
+    { tag: 'path', d: 'M7 18h6a2 2 0 0 0 2-2v-2' },
+  ] },
+  compass: { line: true, kids: [
+    { tag: 'circle', cx: 12, cy: 12, r: 9 },
+    { tag: 'path', d: 'm15 9-2 6-6 2 2-6 6-2Z' },
+  ] },
+  // « Parcours » : trois jalons reliés — le graphe de `share` dit la trajectoire
+  // mieux qu'un fanion. MEIcon n'a ni `journey` ni `parcours`.
+  journey: { line: true, kids: [
+    { tag: 'circle', cx: 18, cy: 5, r: 3.2 },
+    { tag: 'circle', cx: 6, cy: 12, r: 3.2 },
+    { tag: 'circle', cx: 18, cy: 19, r: 3.2 },
+    { tag: 'path', d: 'm8.6 13.5 6.8 4' },
+    { tag: 'path', d: 'm15.4 6.5-6.8 4' },
+  ] },
+  users: { line: true, kids: [
+    { tag: 'circle', cx: 9, cy: 8, r: 3.7 },
+    { tag: 'path', d: 'M2.8 20c.7-3.5 3.1-5.2 6.2-5.2s5.5 1.7 6.2 5.2' },
+    { tag: 'circle', cx: 17.4, cy: 9.2, r: 2.9 },
+    { tag: 'path', d: 'M15.4 20.2c.5-2.2 1.6-3.4 3.3-3.4s2.7 1.1 3.3 3' },
+  ] },
+  // ⚠ Les six fenêtres sont des BARREAUX, pas les points de MEIcon : à 20 px,
+  // six `h.01` en bout rond dans un cadre se lisent comme un pavé numérique, pas
+  // comme un immeuble. La porte au pied lève l'ambiguïté qui restait.
+  building: { line: true, kids: [
+    { tag: 'rect', x: 4, y: 3, width: 16, height: 18, rx: 1.5 },
+    { tag: 'path', d: 'M8 7.5h2.2M13.8 7.5H16M8 11.5h2.2M13.8 11.5H16' },
+    { tag: 'path', d: 'M10 21v-3.5h4V21' },
+  ] },
+  // Analytics = l'objectif et le rythme, d'où la cible plutôt qu'une courbe :
+  // `trending-up` et `trending-down` rendent le MÊME glyphe dans MEIcon.
+  // ⚠ Le centre est un `h.01` en bout ROND, pas un cercle : un cercle de rayon
+  // 1,4 sous un trait de 1,6 n'a plus de trou — il sortait en pâté. Le segment
+  // nul rend un point net du diamètre du trait. Idiome de MEIcon (`info`, `help`).
+  target: { line: true, kids: [
+    { tag: 'circle', cx: 12, cy: 12, r: 9 },
+    { tag: 'circle', cx: 12, cy: 12, r: 4.6 },
+    { tag: 'path', d: 'M12 12h.01' },
+  ] },
   // — TopNav (cluster droit) —
   sparkle: { line: true, kids: [
     { tag: 'path', d: 'm12 3-1.91 5.81a2 2 0 0 1-1.28 1.28L3 12l5.81 1.91a2 2 0 0 1 1.28 1.28L12 21l1.91-5.81a2 2 0 0 1 1.28-1.28L21 12l-5.81-1.91a2 2 0 0 1-1.28-1.28L12 3Z' },
@@ -126,6 +199,49 @@ const SIGNATURES: Record<string, Signature> = {
 }
 
 const SUB_STYLE: CSSProperties = { transformBox: 'fill-box', transformOrigin: 'center' }
+
+// ─── Glyphe STATIQUE ───────────────────────────────────────────────────────
+// Mêmes tracés, même graisse, aucun mouvement : ni pop d'entrée, ni self-draw,
+// ni rejeu au survol. C'est ce que monte la barre latérale (décision Julien,
+// 4 septembre 2026) — seize lignes qui se redessinent au passage du curseur
+// font grouiller la colonne au lieu de la rendre lisible.
+//
+// ⚠ Ni filtre d'ombre ici : celui du rail appartient au VERRE de sa capsule.
+// Sur une ligne plate — a fortiori sur son aplat d'accent — il salit le tracé.
+/**
+ * Graisse du glyphe STATIQUE — 1,6, et non le 1,8 du rail.
+ *
+ * ⛔ Mesuré à l'écran, pas déduit : sur un viewBox de 24, un trait de 1,8 BOUCHE
+ * tout cercle de rayon ≤ 2 (il ne lui reste qu'un trou de 1,1). Les nœuds de
+ * « Pipeline », les têtes de « Contacts » et les jalons de « Parcours » sortaient
+ * en pâtés pleins. La capsule du rail, elle, garde 1,8 : son verre avale un
+ * trait plus fin.
+ */
+const STATIC_STROKE = 1.6
+
+export function RailIcon({ name, size = 23 }: { name: string; size?: number }) {
+  const def = RAIL_ICONS[name] ?? RAIL_ICONS.search
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill={def.line ? 'none' : 'currentColor'}
+      stroke={def.line ? 'currentColor' : 'none'}
+      strokeWidth={STATIC_STROKE}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      style={{ display: 'block', overflow: 'visible' }}
+    >
+      {def.kids.map((kid, i) => {
+        if (kid.tag === 'circle') return <circle key={i} cx={kid.cx} cy={kid.cy} r={kid.r} />
+        if (kid.tag === 'rect') return <rect key={i} x={kid.x} y={kid.y} width={kid.width} height={kid.height} rx={kid.rx} />
+        return <path key={i} d={kid.d} />
+      })}
+    </svg>
+  )
+}
 
 // ─── Icône animée : pop spring (toute l'icône) + self-draw par sous-tracé ──
 // `nonce` est piloté par l'appelant. 0 ⇒ état final figé. >0 ⇒ l'icône joue/rejoue
@@ -220,24 +336,6 @@ function AnimatedRailIcon({ name, nonce, tempo = 1, size = 23, signature }: Anim
   )
 }
 
-// ─── Icône animée TopNav (barre du haut) ───────────────────────────────────
-// Wrapper autonome (per-bouton) pour les icônes d'action de la TopNav : il gère
-// son propre hover/nonce et rejoue le self-draw à chaque survol. `active` ⇒
-// l'icône se dessine dès le montage (ex. ✦ Julien sur sa page). Couleur via `color`.
-export function AnimatedTopIcon({
-  name, color, size = 19, tempo = 1.7, active = false, signature,
-}: { name: string; color: string; size?: number; tempo?: number; active?: boolean; signature?: Signature }) {
-  const [animN, setAnimN] = useState(active ? 1 : 0)
-  return (
-    <span
-      onMouseEnter={() => setAnimN((n) => n + 1)}
-      style={{ display: 'grid', placeItems: 'center', color, lineHeight: 0 }}
-    >
-      <AnimatedRailIcon name={name} nonce={animN} size={size} tempo={tempo} signature={signature} />
-    </span>
-  )
-}
-
 // ─── Bouton d'outil (46×46, transparent, pop au survol) ────────────────────
 // Le nonce de rejeu est LOCAL au bouton (même patron qu'AnimatedTopIcon) : seule
 // l'icône réellement survolée rejoue son pop + self-draw. Il repart de 1 quand le
@@ -307,27 +405,20 @@ export interface CrmIconRailProps {
   dark: boolean
   setDark: (v: boolean) => void
   sp: CrmPalette
-  onCmd?: () => void
   extraBottomBtn?: ReactNode
   /**
-   * Remplace les outils transverses du rail. Omis (cas des 21 surfaces CRM), la
-   * liste par défaut ci-dessous s'applique — comportement inchangé.
-   *
-   * Existe pour la console super-admin : la liste par défaut y serait fausse
-   * (`import` et `relances` sont des gestes d'agence, et `search` ouvre un hôte
-   * que seul `AgentLayout` monte). Le rail reste UN composant, mais chaque
-   * surface fournit ses propres outils.
+   * Outils du dock. REQUIS depuis le retrait de la liste par défaut : celle-ci
+   * décrivait les gestes d'agence du CRM (relances, import, KYC, analytics),
+   * qui vivent maintenant dans `CrmSidebar`. Un rail sans liste rendrait des
+   * boutons que sa seule surface — la console — ne sait pas honorer.
    */
-  items?: RailItem[]
+  items: RailItem[]
 }
 
 export function CrmIconRail({
-  active = 'today', onNavigate, dark, setDark, sp, onCmd, extraBottomBtn,
-  items: itemsOverride,
+  active = 'today', onNavigate, dark, setDark, sp, extraBottomBtn, items,
 }: CrmIconRailProps) {
-  const navigate = useNavigate()
   const { t } = useTranslation('common')
-  const [relanceOpen, setRelanceOpen] = useState(false)
 
   // Pas de nonce de rejeu au niveau du rail : chaque DockBtn tient le sien. Un
   // survol ne re-rend donc que le bouton pointé — le rail lui-même ne re-rend pas.
@@ -358,16 +449,6 @@ export function CrmIconRail({
     boxShadow: `inset 0 1px 0.5px ${dark ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.35)'}, ${sp.shadow}`,
   }
 
-  // Outils transverses (la TopNav gère les PAGES — aucun doublon ici).
-  const defaultItems: RailItem[] = [
-    { id: 'search', icon: 'search', label: t('actions.search'), action: () => openCrmSearch() },
-    { id: 'add', icon: 'plus', label: t('actions.create'), action: () => onCmd?.() },
-    { id: 'relances', icon: 'phone', label: t('nav.callbacksToday'), action: () => setRelanceOpen(true) },
-    { id: 'import', icon: 'download', label: t('nav.importLeads'), action: () => navigate('/dashboard/import-lead') },
-    { id: 'kyc', icon: 'shield', label: t('nav.kyc'), action: () => onNavigate?.('kyc') },
-    { id: 'dashboard', icon: 'dashboard', label: t('nav.dashboard'), action: () => onNavigate?.('dashboard') },
-  ]
-  const items = itemsOverride ?? defaultItems
   const settingsItem: RailItem = { id: 'settings', icon: 'settings', label: t('nav.settings'), action: () => onNavigate?.('settings') }
   // Icône sun/moon selon la maquette (lune en clair, soleil en sombre). Le rejeu
   // du tracé après bascule est assuré par le `replay()` au clic dans DockBtn.
@@ -416,13 +497,6 @@ export function CrmIconRail({
           {renderBtn(darkItem)}
         </div>
       </aside>
-
-      {/* Session de relance — déclenchée par l'outil « Relances du jour ».
-          Recâblée (refonte « Aujourd'hui », juin 2026) vers la NOUVELLE
-          RelanceSession plein cadre. Montée à la demande seulement. */}
-      {relanceOpen && (
-        <RelanceSession onClose={() => setRelanceOpen(false)} />
-      )}
     </>
   )
 }

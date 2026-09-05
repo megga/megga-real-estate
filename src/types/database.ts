@@ -8239,6 +8239,7 @@ export type Database = {
           status: Database["public"]["Enums"]["crm_offer_status"]
         }[]
       }
+      crm_tab_badges: { Args: never; Returns: Json }
       crm_tabs_resolve_labels: { Args: { p_refs: Json }; Returns: Json }
       crm_tabs_save: {
         Args: { p_active: number; p_revision?: number; p_tabs: Json }

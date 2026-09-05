@@ -130,6 +130,18 @@ interface AgencyQueryResult {
 }
 
 export interface UseAgencySettingsReturn {
+  /**
+   * Ligne d'agence TELLE QU'ELLE EST EN BASE — `null` tant que la requête n'a
+   * pas répondu.
+   *
+   * ⚠ À lire à la place de `agency` partout où l'on AFFICHE l'agence sans
+   * l'éditer. `agency` est le tampon d'édition des Réglages : il part de
+   * `EMPTY_AGENCY` et n'est hydraté qu'après le rendu, si bien qu'un afficheur
+   * qui le lit annonce « Agence non définie » à chaque montage, le temps de
+   * l'aller-retour — et la barre latérale se remonte à CHAQUE navigation.
+   * Distinguer les deux, c'est distinguer « pas encore su » de « pas défini ».
+   */
+  agencySaved: AgencySettingsData | null
   agency: AgencySettingsData
   /** Plan d'abonnement de l'agence (lecture seule, non éditable via le form). */
   plan: AgencyPlan | null
@@ -240,6 +252,7 @@ export function useAgencySettings(options?: { enabled?: boolean }): UseAgencySet
 
   return {
     agency: local,
+    agencySaved: data?.settings ?? null,
     plan: data?.plan ?? null,
     isLoading,
     isSaving: mutation.isPending,

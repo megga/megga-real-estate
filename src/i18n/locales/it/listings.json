@@ -111,7 +111,9 @@
     "photoAlt": "Immobile",
     "aggregatorValue": "RealAdvisor ({{count}} portali)",
     "channelEmail": "Email",
-    "channelMessaging": "Messaggistica"
+    "channelMessaging": "Messaggistica",
+    "loading": "Caricamento dell'annuncio…",
+    "loadError": "Impossibile caricare l'annuncio."
   },
   "status": {
     "active": "Attivo",

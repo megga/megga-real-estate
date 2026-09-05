@@ -69,6 +69,7 @@ const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 const VisitNewPage = lazy(() => import('@/pages/agent/VisitNewPage'))
 const VisitDetailPage = lazy(() => import('@/pages/agent/VisitDetailPage'))
 const AnalyticsPage = lazy(() => import('@/pages/agent/AnalyticsPage'))
+const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListingDetailPage'))
 const ImportLeadPage = lazy(() => import('@/pages/agent/ImportLeadPage'))
 const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const JourneyPage = lazy(() => import('@/pages/agent/JourneyPage'))
@@ -98,6 +99,8 @@ const CopilotPanel = lazy(() => import('@/components/ai-copilot/panel/CopilotPan
  */
 const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' }[] = [
   { id: 'today', chemin: '/dashboard', label: 'Aujourd’hui', vague: 'A' },
+  // Fiche d'annonce marché — l'uuid est celui de `ANNONCE_MARCHE_BANC`.
+  { id: 'market', chemin: '/dashboard/market/00432e97-f3d2-4d11-9c1f-dd882343ee8e', label: 'Annonce marché', vague: 'A' },
   { id: 'kyc', chemin: '/dashboard/kyc', label: 'KYC', vague: 'A' },
   { id: 'kyc-bienvenue', chemin: '/dashboard/kyc/bienvenue', label: 'KYC · bienvenue', vague: 'A' },
   { id: 'kyc-rapport', chemin: '/dashboard/kyc/k1/export', label: 'KYC · rapport', vague: 'A' },
@@ -268,6 +271,7 @@ function RoutesBanc() {
       <Route path="/dashboard" element={<AgentLayout />}>
         <Route index element={<TodayPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="market/:externalId" element={<ExternalListingDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="journey" element={<JourneyPage />} />
         <Route path="settings" element={<SettingsPage />} />

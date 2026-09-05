@@ -224,7 +224,39 @@ const KYC_CASES = [
  * — un banc qui tronque en silence se lit « tout couvert », et c'est chaque
  * vague qui ajoute les siennes.
  */
+/**
+ * Une annonce de marché, pour la fiche autonome `/dashboard/market/:id`.
+ *
+ * ⚠ Forme de LIGNE (colonnes de `market_listings`), pas de modèle de vue : le banc
+ * intercepte `fetch`, donc `mapListingRow` tourne pour de vrai dessus. C'est ce qui
+ * rend le banc utile — il éprouve le mapper, pas seulement le rendu.
+ *
+ * ⚠ `transaction_type: 'rent'` avec `rent: null` et le montant dans `price` : c'est
+ * la forme RÉELLE mesurée en production le 05.09.2026 (0 `rent` renseigné sur 36 770
+ * locations actives). Une fixture qui remplirait `rent` cacherait le seul cas où la
+ * projection peut se tromper.
+ */
+export const ANNONCE_MARCHE_BANC = {
+  id: '00432e97-f3d2-4d11-9c1f-dd882343ee8e',
+  title: 'Appartement traversant de 3.5 pièces vue sur le Léman',
+  address: 'Chemin du Lac 4', city: 'Rolle', postal_code: '1180', canton: 'VD',
+  type: 'apartment', transaction_type: 'rent',
+  price: 2450, current_price: 2450, price_at_first_seen: 2600, price_per_m2: null,
+  rooms: 3.5, bedrooms: 2, bathrooms: 1, surface_m2: 78,
+  features: [], photos: [], photos_cf: null,
+  status: 'active', source_portal: 'flatfox',
+  source_url: 'https://flatfox.ch/fr/annonce/demo', source_id: '86339127',
+  agency_name: 'Régie du Léman', agency_phone: '021 000 00 00',
+  agency_logo_url: null, lat: 46.4583, lng: 6.3372,
+  year_built: 2019, days_on_market: 12, land_surface: null,
+  description: "Traversant, balcon plein sud, vue dégagée sur le lac et les Alpes.",
+  floor: 3, parking_count: 1, year_renovated: null, usable_surface: 74,
+  charges_monthly: 250, is_furnished: false, availability_date: '2026-10-01',
+  visit_contact_name: 'Mme Dupont', agency_reference: 'RL-1180-42',
+}
+
 export const CRM_TABLES: Record<string, unknown[]> = {
+  market_listings: [ANNONCE_MARCHE_BANC],
   profiles: [AGENT_BANC],
   agencies: [AGENCE_BANC],
   contacts: CONTACTS,

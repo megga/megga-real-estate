@@ -11,7 +11,8 @@
  */
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import { crmThemeVars } from '@/components/crm/crmThemeVars'
 import { useForm, type UseFormReturn } from 'react-hook-form'
@@ -57,6 +58,7 @@ import {
 import { usePlanLimits } from '@/hooks/usePlanLimits'
 import { FLOOR_PLAN_ROOMS } from '@/types/floorPlan'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
+import { useTabDirty } from '@/hooks/useCrmTabs'
 import { readCrmDark } from '@/lib/crmDark'
 
 // ─── Zod schemas per step ───
@@ -2212,25 +2214,9 @@ export default function ListingFormPage() {
   const [dark, setDark] = useState<boolean>(() =>
     typeof window !== 'undefined' && readCrmDark())
 
-  // Chrome Sugar porté ici : cette page vivait sous `AgentLayout` (sidebar
-  // legacy). Chaque surface Sugar porte son propre chrome.
+  // Chrome porté ici : cette page vivait sous `AgentLayout` (sidebar legacy).
+  // Chaque surface de bureau monte sa propre `CrmSidebar`.
   const sgSp = useMemo(() => crmPalette(dark), [dark])
-  const onCrmNav = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'messagerie': navigate('/dashboard/messagerie'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'settings': navigate('/dashboard/settings'); break
-      default:
-    }
-  }
-  const onCrmCmd = () => {}
 
   const { id } = useParams<{ id: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -2288,6 +2274,19 @@ export default function ListingFormPage() {
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const autoSavePropertyId = useRef<string | null>(id || null)
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /**
+   * Saisie faite mais pas encore écrite. Déclaré à la barre d'onglets, qui demandera
+   * confirmation avant de fermer l'onglet — et au navigateur, avant de fermer la fenêtre.
+   *
+   * ⛔ IL NE PEUT PAS DESCENDRE DU MINUTEUR D'AUTOSAVE, et c'est mesuré : cette page
+   * n'est routée QUE sur `listings/:id/edit` (App.tsx:577), donc `id` est toujours posé,
+   * donc `isEditMode` est toujours vrai, donc l'effet d'autosave sort à sa première ligne
+   * et n'arme jamais rien. Un drapeau branché là serait mort — il l'était.
+   *
+   * `formState.isDirty` de react-hook-form est le signal réel en mode édition : il monte
+   * à la première frappe et retombe au `reset()` qui suit un enregistrement.
+   */
+  const [saisieNonEcrite, setSaisieNonEcrite] = useState(false)
   // Synchronous mutex against the double-click race: `setIsSaving(true)` only
   // takes effect after the next React render, so a second click landing in
   // the same micro-task can call handlePublish twice and create duplicate
@@ -2412,6 +2411,11 @@ export default function ListingFormPage() {
     mode: 'onTouched',
   })
 
+  // ⚠ Le drapeau de saisie non enregistrée, posé APRÈS `useForm` (il en descend).
+  // En mode édition, `isDirty` monte à la première frappe et retombe au `reset()` qui
+  // suit un enregistrement ; en mode création, le tampon d'autosave prend le relais.
+  useTabDirty(form.formState.isDirty || saisieNonEcrite)
+
   // Reset form when existing data loads
   useEffect(() => {
     if (existingData) {
@@ -2505,7 +2509,12 @@ export default function ListingFormPage() {
 
     const subscription = form.watch(() => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
-      autoSaveTimer.current = setTimeout(doAutoSave, 30000)
+      // ⚠ La saisie est « non écrite » dès la frappe et jusqu'à la sauvegarde :
+      // c'est CE drapeau qui fait confirmer la fermeture d'un onglet ou de la
+      // fenêtre. Sans lui, la croix de la barre d'onglets emporterait jusqu'à
+      // 30 s de saisie sans rien demander.
+      setSaisieNonEcrite(true)
+      autoSaveTimer.current = setTimeout(() => { void doAutoSave().then(() => setSaisieNonEcrite(false)) }, 30000)
     })
 
     return () => {
@@ -2513,6 +2522,29 @@ export default function ListingFormPage() {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     }
   }, [form, isEditMode, doAutoSave])
+
+  // ⛔ VIDER LE TAMPON AU DÉMONTAGE, et pas seulement annuler son minuteur.
+  //
+  // Le nettoyage ci-dessus fait `clearTimeout` sans jamais appeler `doAutoSave` :
+  // quitter l'écran dans les 30 s qui suivent la dernière frappe DÉTRUISAIT la
+  // saisie, en silence, sans toast ni confirmation. Le défaut est ancien, mais il
+  // devient atteignable d'un clic le jour où une barre d'onglets pose une croix à
+  // côté du formulaire — c'est ce chantier qui le rend visible, donc c'est à lui
+  // de le fermer.
+  //
+  // ⚠ Effet SÉPARÉ et à dépendances vides : greffé sur l'effet précédent, il
+  // partirait à chaque changement de `doAutoSave` (donc à chaque frappe) et
+  // enverrait une écriture par caractère. Ici il ne part qu'au démontage réel.
+  const autoSaveRef = useRef(doAutoSave)
+  autoSaveRef.current = doAutoSave
+  useEffect(() => () => {
+    // Un minuteur encore armé = du travail saisi et pas encore écrit.
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current)
+      autoSaveTimer.current = null
+      void autoSaveRef.current()
+    }
+  }, [])
 
   async function validateCurrentStep(): Promise<boolean> {
     const schema = stepSchemas[currentStep - 1]
@@ -2827,10 +2859,9 @@ export default function ListingFormPage() {
   return (
     <div style={{ minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }}>
       <style>{CRM_KEYFRAMES}</style>
-      <CrmTopNav active={'biens' as CrmScreenId} sp={sgSp} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} />
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        <CrmIconRail active={'biens' as CrmScreenId} onNavigate={onCrmNav} onCmd={onCrmCmd} dark={dark} setDark={setDark} sp={sgSp} />
-        <main style={{ flex: 1, minWidth: 0, padding: '100px 40px 120px' }}>
+        <CrmWorkspace active="biens" sp={sgSp} dark={dark} setDark={setDark}>
+        <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 120px' }}>
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
@@ -3182,6 +3213,7 @@ export default function ListingFormPage() {
       </div>
     </div>
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

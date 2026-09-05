@@ -20,6 +20,7 @@ import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import BootSplash from '@/components/layout/BootSplash'
 import OnboardingCallBanner from '@/components/layout/OnboardingCallBanner'
 import CrmSearchHost from '@/components/crm/search/CrmSearchHost'
+import { CrmTabsProvider } from '@/components/crm/CrmTabsProvider'
 import { useIdentityGate, shouldRedirectToIdentityGate, shouldHoldForIdentityGate, IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
 import { readCrmDark } from '@/lib/crmDark'
 
@@ -33,7 +34,7 @@ import { readCrmDark } from '@/lib/crmDark'
  *
  * Unlike AgentLayout, it does NOT render a sidebar, breadcrumb, mobile header
  * or bottom tab bar. The Sugar pages provide their own chrome
- * (CrmTopNav + CrmIconRail) that is glassy and full-bleed.
+ * (CrmSidebar — one collapsible left column carrying pages, tools and account).
  *
  * Kept utilities:
  *  - ThemeProvider (so toggling clair/sombre stays in sync with the rest of
@@ -58,7 +59,7 @@ function AgentLayoutInner() {
     // Relecture IMMÉDIATE à chaque passage : ce layout ne se remonte plus à la
     // navigation (les routes ne sont plus keyées par pathname), donc la valeur
     // lue au montage peut dater de plusieurs écrans — une bascule clair/sombre
-    // faite depuis le rail d'une page n'est pas notifiée dans le même onglet
+    // faite depuis la barre latérale d'une page n'est pas notifiée dans le même onglet
     // (`storage` ne concerne que les autres). Sans ça, la gouttière du push
     // s'ouvrirait à l'ancienne teinte.
     sync()
@@ -115,7 +116,6 @@ function AgentLayoutInner() {
           en-tête — la garde d'identité ne le laissait de toute façon lire que sur
           l'entonnoir, et empilé au-dessus d'une coquille qui réclame `100dvh` il en
           faisait déborder le pied d'actions. */}
-      <OnboardingCallBanner />
       {/* Le panneau MEGGA AI « pousse » le contenu de travail vers la gauche
           quand il est ouvert (COPILOT_WIDTH = panneau + gouttières). */}
       <div
@@ -126,6 +126,17 @@ function AgentLayoutInner() {
           flex: '1 1 auto',
         }}
       >
+        {/* ⚠ Le bandeau d'accueil est DANS la zone poussée, pas au-dessus.
+            Il l'était jusqu'au 4 septembre 2026, ce qui ne coûtait rien tant que
+            le panneau démarrait 90 px plus bas (il dégageait la barre du haut).
+            La barre du haut partie, le panneau remonte à 16 px du bord et
+            recouvre la seule action du bandeau — « Rejoindre » / « Réserver »,
+            calée à droite. Le pousser avec le contenu la fait glisser à gauche
+            du dock. ⛔ Ne pas « corriger » en montant son z-index : un bandeau
+            pleine largeur qui peint PAR-DESSUS le dock est pire que le
+            chevauchement qu'il règle. Le bandeau d'usurpation, lui, reste au-
+            dessus : il est `sticky z-[90]` et le panneau le compense déjà. */}
+        <OnboardingCallBanner />
         {holdForIdentity
           ? <BootSplash />
           : mustRedirectToIdentity
@@ -144,7 +155,19 @@ export default function AgentLayout() {
   return (
     <ThemeProvider>
       <CopilotContextProvider>
-        <AgentLayoutInner />
+        {/* ⚠ Le FOURNISSEUR d'onglets est hissé ici, la BARRE ne l'est pas — et
+            l'asymétrie est délibérée. Ce layout ne se remonte plus à la
+            navigation (les routes ne sont plus keyées par `pathname`) : c'est le
+            seul endroit d'où une pile d'onglets peut survivre à un clic. La
+            barre, elle, reste montée par chaque surface, comme la barre
+            latérale — la hisser la poserait sur la console super-admin, sur
+            `IdentityShell` et sur quatre routes qui n'en veulent pas, et la
+            retirerait des bancs `/dev/*`. Un fournisseur ne peint rien : le
+            poser sur une route sans barre ne coûte rien, et `crmTabsEligible`
+            l'empêche d'ouvrir un onglet pour ces routes-là. */}
+        <CrmTabsProvider>
+          <AgentLayoutInner />
+        </CrmTabsProvider>
       </CopilotContextProvider>
     </ThemeProvider>
   )

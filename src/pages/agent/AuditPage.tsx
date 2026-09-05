@@ -7,15 +7,10 @@
 // Export : CSV (fonctionnel) + PDF horodaté hash-chain signé (Edge Function audit-pdf-export).
 
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useIsMobile } from '@/hooks/useMediaQuery'
-import {
-  CrmTopNav,
-  CrmIconRail,
-  CRM_KEYFRAMES,
-  type CrmScreenId,
-} from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
 import {
   dossierPalette,
@@ -49,11 +44,10 @@ export default function AuditPage() {
    * et pas l'autre.
    */
   const etroit = useIsMobile()
-  const navigate = useNavigate()
   const { t: tr } = useTranslation('common')
   /**
-   * ⚠ `readCrmDark()` et non `useCrmDark()` : le rail de cette page BASCULE
-   * le thème (`setDark` lui est passé), et le hook est en lecture seule. Deux
+   * ⚠ `readCrmDark()` et non `useCrmDark()` : la barre latérale de cette page
+   * BASCULE le thème (`setDark` lui est passé), et le hook est en lecture seule. Deux
    * sources — l'état local pour `sp`, le hook pour `S` — divergeraient au clic,
    * ce qui recréerait la demi-bascule qu'on corrige. C'est la MÊME lecture
    * partagée, avec le repli `prefers-color-scheme` que la forme `=== '1'`
@@ -114,22 +108,6 @@ export default function AuditPage() {
     [groups],
   )
 
-  const onNavigate = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'audit': break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'messagerie': navigate('/dashboard/messagerie'); break
-      case 'settings': navigate('/dashboard/settings'); break
-      default:
-    }
-  }
-  const onCmd = () => {}
-
   return (
     <div
       data-screen-label="CRM Audit nLPD"
@@ -144,25 +122,10 @@ export default function AuditPage() {
       <style>{CRM_KEYFRAMES}</style>
       <style>{DOSSIER_KEYFRAMES}</style>
 
-      <CrmTopNav
-        active={'audit' as CrmScreenId}
-       
-        sp={sp}
-        onNavigate={onNavigate}
-        onCmd={onCmd}
-      />
-
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-        <CrmIconRail
-          active={'audit' as CrmScreenId}
-          onNavigate={onNavigate}
-          onCmd={onCmd}
-          dark={dark}
-          setDark={setDark}
-          sp={sp}
-        />
+        <CrmWorkspace sp={sp} dark={dark} setDark={setDark}>
 
-        <main style={{ flex: 1, minWidth: 0, padding: etroit ? '100px 16px 120px 16px' : '100px 40px 120px 40px' }}>
+        <main style={{ flex: 1, minWidth: 0, padding: etroit ? '24px 16px 120px 16px' : '24px 40px 120px 40px' }}>
           <div style={{ maxWidth: 1280, margin: '0 auto' }}>
             {/* HEADER */}
             <div
@@ -548,6 +511,7 @@ export default function AuditPage() {
             </div>
           </div>
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

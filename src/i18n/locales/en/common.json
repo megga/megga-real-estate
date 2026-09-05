@@ -26,7 +26,7 @@
     "dark": "Dark",
     "today": "Today",
     "more": "More",
-    "dashboard": "Dashboard",
+    "dashboard": "Analytics",
     "contacts": "Contacts",
     "pipeline": "Pipeline",
     "matching": "Matching",
@@ -69,6 +69,12 @@
     "aiAgent": "Megga, AI agent",
     "helpCenter": "Help center",
     "notifications": "Notifications",
+    "mainNav": "Main navigation",
+    "sectionDay": "My day",
+    "sectionPortfolio": "Clients & properties",
+    "sectionDeals": "Transactions",
+    "sectionSteering": "Performance",
+    "sectionTools": "Tools",
     "callbacksToday": "Today's callbacks",
     "importLeads": "Import leads",
     "adminSectionPilotage": "Control",
@@ -484,5 +490,20 @@
   },
   "announcements": {
     "dismiss": "Dismiss"
+  },
+  "tabs": {
+    "badgeCount": "To handle",
+    "badgeUrgent": "Overdue",
+    "bar": "Open tabs",
+    "close": "Close tab",
+    "closeOthers": "Close others",
+    "closeThis": "Close this tab",
+    "confirmClose": "This tab has unsaved changes. Close it anyway?",
+    "duplicate": "Duplicate tab",
+    "more": "Other tabs",
+    "new": "New tab",
+    "pin": "Pin to the left",
+    "unpin": "Unpin",
+    "untitled": "Tab"
   }
 }

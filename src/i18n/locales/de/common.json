@@ -19,7 +19,7 @@
     "dark": "Dunkel",
     "today": "Heute",
     "more": "Mehr",
-    "dashboard": "Dashboard",
+    "dashboard": "Analytics",
     "contacts": "Kontakte",
     "pipeline": "Pipeline",
     "matching": "Matching",
@@ -62,6 +62,12 @@
     "aiAgent": "Megga, KI-Agent",
     "helpCenter": "Hilfe-Center",
     "notifications": "Notifications",
+    "mainNav": "Hauptnavigation",
+    "sectionDay": "Mein Tag",
+    "sectionPortfolio": "Kunden & Objekte",
+    "sectionDeals": "Transaktionen",
+    "sectionSteering": "Steuerung",
+    "sectionTools": "Werkzeuge",
     "callbacksToday": "Wiedervorlagen heute",
     "importLeads": "Leads importieren",
     "adminSectionPilotage": "Steuerung",
@@ -484,5 +490,20 @@
   },
   "announcements": {
     "dismiss": "Schliessen"
+  },
+  "tabs": {
+    "badgeCount": "Zu bearbeiten",
+    "badgeUrgent": "Überfällig",
+    "bar": "Geöffnete Registerkarten",
+    "close": "Registerkarte schliessen",
+    "closeOthers": "Andere schliessen",
+    "closeThis": "Diese Registerkarte schliessen",
+    "confirmClose": "Diese Registerkarte enthält nicht gespeicherte Änderungen. Trotzdem schliessen?",
+    "duplicate": "Registerkarte duplizieren",
+    "more": "Weitere Registerkarten",
+    "new": "Neue Registerkarte",
+    "pin": "Links anheften",
+    "unpin": "Lösen",
+    "untitled": "Registerkarte"
   }
 }

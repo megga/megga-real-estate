@@ -68,7 +68,13 @@ function getListingState(stateMap: StateMap, externalId: string): ExternalListin
 export function useExternalListingActions(listing: ExternalListing | undefined) {
   const [stateMap, setStateMap] = useState<StateMap>(loadState)
 
-  const externalId = listing?.external_id || ''
+  // ⚠ `listing.id` — l'uuid de `market_listings` — depuis le 05.09.2026. Le champ
+  // s'appelait `external_id` et portait l'identifiant d'un pipeline RealAdvisor
+  // supprimé le 18.05.2026. Aucune annotation vivante n'est orpheline : la page qui
+  // écrit ici rendait « introuvable » avant toute affordance, donc `saveState` était
+  // injoignable depuis cette date — ce qui reste sous les anciennes clés date de
+  // mars-avril 2026 et n'était de toute façon que par appareil.
+  const externalId = listing?.id || ''
   const listingState = getListingState(stateMap, externalId)
 
   const updateState = useCallback((newListingState: ExternalListingState) => {

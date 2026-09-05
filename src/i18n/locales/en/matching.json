@@ -148,7 +148,8 @@
       "dVisitContact": "Viewing contact",
       "expandMap": "Expand map",
       "portalFallback": "portal",
-      "detailError": "Details unavailable right now."
+      "detailError": "Details unavailable right now.",
+      "openFull": "Open full listing"
     },
     "view": {
       "group": "Results display",

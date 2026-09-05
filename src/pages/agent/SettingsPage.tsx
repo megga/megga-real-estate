@@ -1,5 +1,5 @@
 // MEGGA CRM — Écran « Paramètres » (refonte finale — shell « À suivre »).
-// Shell deux colonnes : rail de nav 300px à gauche + bento à droite qui rend la
+// Shell deux colonnes : colonne de nav 300px à gauche + bento à droite qui rend la
 // section active. 3 sections « Focus » (Profil, Agence, Préférences)
 // reçoivent {sp, surf, dark, setDark} ; 3 sections conservées (Intégrations,
 // Facturation, Sécurité) restent autonomes et lisent SET_PALETTE (mutée par
@@ -7,9 +7,10 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
-import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { mxSurfaces } from '@/components/crm/biens/gallery/galHelpers'
 import { IntegrationsSection } from '@/components/crm/settings/IntegrationsSection'
 import { BillingSection } from '@/components/crm/settings/BillingSection'
@@ -19,6 +20,7 @@ import { AgencyFocusSection } from '@/components/crm/settings/focus/AgencyFocusS
 import { PreferencesFocusSection } from '@/components/crm/settings/focus/PreferencesFocusSection'
 import { SETTINGS_SECTIONS, applySetTheme, type SectionId } from '@/components/crm/settings/data'
 import { SETTINGS_KEYFRAMES } from '@/components/crm/settings/atoms'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte']
@@ -27,9 +29,9 @@ const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations'
 /**
  * Section de réglages → clé du catalogue d'aide.
  *
- * Cet écran n'a qu'un onglet pour six sections : la TopNav ne recevait que
- * `'settings'`, donc l'aide y parlait toujours des intégrations, quelle que soit
- * la section ouverte — et les articles « Facturation » et « Agence » existaient
+ * Cet écran n'a qu'une ligne de barre latérale pour six sections : elle ne
+ * recevait que `'settings'`, donc l'aide y parlait toujours des intégrations,
+ * quelle que soit la section ouverte — et les articles « Facturation » et « Agence » existaient
  * sans que rien ne puisse les demander. Les sections absentes d'ici retombent
  * volontairement sur `settings` : mieux vaut l'article voisin que l'onglet racine.
  */
@@ -38,7 +40,7 @@ const SECTION_HELP: Partial<Record<SectionId, string>> = {
   billing: 'billing',
 }
 
-// Icônes du rail (mêmes tracés que le proto SpgIcon).
+// Icônes de la colonne de sections (mêmes tracés que le proto SpgIcon).
 const SPG_PATHS: Record<string, ReactNode> = {
   user: <><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
   building: <><path d="M3 21V7l9-4 9 4v14" /><path d="M9 21V12h6v9" /><path d="M9 8h.01M15 8h.01M9 11h.01M15 11h.01" /></>,
@@ -56,7 +58,6 @@ function SpgIcon({ name, size = 17, stroke = 'currentColor' }: { name: string; s
 }
 
 export default function SettingsPage() {
-  const navigate = useNavigate()
   const { t: tr } = useTranslation('settings')
 
   const [dark, setDark] = useState<boolean>(() => {
@@ -77,32 +78,18 @@ export default function SettingsPage() {
   applySetTheme(dark)
 
   const [searchParams] = useSearchParams()
-  const [active, setActive] = useState<SectionId>(() => {
-    const tab = (searchParams.get('tab') ?? '') as SectionId
-    return ALLOWED.includes(tab) ? tab : 'profile'
-  })
+  // La section active est une POSITION D'ÉCRAN : portée par l'onglet, elle revient
+  // quand on rouvre cet onglet au lieu de retomber sur « Profil ». Le `?tab=` reste
+  // la valeur de DÉPART (deep-link) et n'est toujours pas réécrit dans l'URL —
+  // défaut documenté dans `settings/focus/pfKitCore.tsx` (21-25).
+  const tabParam = (searchParams.get('tab') ?? '') as SectionId
+  const [active, setActive] = useTabScopedState<SectionId>(
+    'sousOnglet',
+    ALLOWED.includes(tabParam) ? tabParam : 'profile',
+  )
 
   const scrollRef = useRef<HTMLDivElement>(null)
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0 }, [active])
-
-  const onCmd = () => { /* placeholder */ }
-  const onNavigate = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'biens-new': navigate('/dashboard/listings/new'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'messagerie': navigate('/dashboard/messagerie'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings': break
-      default:
-    }
-  }
 
   const renderContent = () => {
     switch (active) {
@@ -120,9 +107,10 @@ export default function SettingsPage() {
     .map((g) => ({ g, items: SETTINGS_SECTIONS.filter((s) => s.group === g) }))
     .filter((x) => x.items.length > 0)
 
-  // Facturation = bento IMMERSIF : tout le cadre (rail inclus) passe en noir +
-  // dégradé vitrine, quel que soit le thème app. Le rail est re-thémé en palette
-  // sombre ; le contenu Facturation est transparent pour laisser passer le dégradé.
+  // Facturation = bento IMMERSIF : tout le cadre (colonne de sections incluse)
+  // passe en noir + dégradé vitrine, quel que soit le thème app. La colonne est
+  // re-thémée en palette sombre ; le contenu Facturation est transparent pour
+  // laisser passer le dégradé.
   const immersive = active === 'billing'
   const BILL_GRAD = '/billing/gradient.png'
   const spR = immersive ? crmPalette(true) : sp
@@ -146,7 +134,7 @@ export default function SettingsPage() {
       <style>{CRM_KEYFRAMES}</style>
       <style>{SETTINGS_KEYFRAMES}</style>
       <style>{`
-        /* Pas d'\`outline: none\` : les lignes du rail sont des <button>, et le
+        /* Pas d'\`outline: none\` : les lignes de la colonne sont des <button>, et le
            supprimer les privait de tout repère de focus clavier (WCAG 2.4.7).
            L'anneau vient de la règle \`button:focus-visible\` de globals.css ;
            \`:focus-visible\` fait qu'il n'apparaît pas au clic souris, ce qui était
@@ -161,12 +149,10 @@ export default function SettingsPage() {
         .spg-scroll::-webkit-scrollbar-thumb { background: ${darkR ? 'rgba(255,255,255,.12)' : crmVoileEncre(false, .14)}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
       `}</style>
 
-      <CrmTopNav active={'settings' as CrmScreenId} helpKey={SECTION_HELP[active] ?? 'settings'} sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
-
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="settings" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmWorkspace active="settings" helpKey={SECTION_HELP[active] ?? 'settings'} sp={sp} dark={dark} setDark={setDark}>
 
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
           <div style={{
             // ⚠ 26 reste un LITTÉRAL, et ce n'est pas un oubli : c'est le rayon
             // du cadre bento, écrit à l'identique sur 10 pages soeurs. Le passer
@@ -179,7 +165,7 @@ export default function SettingsPage() {
             background: immersive ? `${spR.pageBg} url("${BILL_GRAD}") no-repeat bottom center / 140% auto` : sp.pageBg,
             display: 'grid', gridTemplateColumns: '300px 1fr',
           }}>
-            {/* RAIL — titre + nav des sections (grammaire « À suivre ») */}
+            {/* COLONNE DE SECTIONS — titre + nav (grammaire « À suivre ») */}
             {/* 30 px reste un littéral : au-delà de 24 c'est un décalage de
                 composition, pas un barreau de rythme (même règle que la
                 migration de `crm/`). */}
@@ -231,6 +217,7 @@ export default function SettingsPage() {
             </div>
           </div>
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

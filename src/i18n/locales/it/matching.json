@@ -145,7 +145,8 @@
       "dVisitContact": "Contatto per visite",
       "expandMap": "Ingrandisci la mappa",
       "portalFallback": "portale",
-      "detailError": "Dettagli non disponibili al momento."
+      "detailError": "Dettagli non disponibili al momento.",
+      "openFull": "Apri la scheda completa"
     },
     "view": {
       "group": "Visualizzazione dei risultati",

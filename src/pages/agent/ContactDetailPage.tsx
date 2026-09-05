@@ -16,9 +16,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { crmPalette } from '@/components/crm/tokens'
-import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
-import { openCrmSearch } from '@/components/crm/search/openSearch'
+import { useTabLabel } from '@/hooks/useCrmTabs'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { useAuth } from '@/hooks/useAuth'
 import { useContact, useUpdateContact, useDeleteContact } from '@/hooks/useContacts'
 import { useContactSentMatches } from '@/hooks/useContactSentMatches'
@@ -57,6 +56,10 @@ export default function ContactDetailPage() {
   // « Contact supprimé » (le retour à la liste est piloté par onBack, ~1,1 s plus tard).
   const [ghost, setGhost] = useState<Contact | null>(null)
   const contact = fetched ?? ghost
+  // Le libellé de l'onglet, donné par l'écran qui a déjà la donnée en main.
+  // Le serveur sait aussi le résoudre (`crm_tabs_resolve_labels`, pour les onglets
+  // restaurés qu'on n'a pas encore ouverts) ; ici c'est immédiat et sans requête.
+  useTabLabel(contact ? [contact.first_name, contact.last_name].filter(Boolean).join(' ') : null)
   const loop = useContactSentMatches(id)
   const receptionLinks = useReceptionLinks(id)
   const revokeLink = useRevokeReceptionLink()
@@ -77,33 +80,15 @@ export default function ContactDetailPage() {
   // après chaque écriture (sinon suppression = ligne fantôme, édition non reflétée).
   const refreshList = () => { void qc.invalidateQueries({ queryKey: ['contacts-screen'] }) }
 
-  const onCmd = () => openCrmSearch()
-  const onNavigate = (screen: CrmScreenId | string) => {
-    switch (screen) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'messagerie': navigate('/dashboard/messagerie'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings': navigate('/dashboard/settings'); break
-      default:
-    }
-  }
-
   const shell = (inner: ReactNode) => (
     <div style={{
       position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden',
       display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: sp.ink,
     }}>
-      <CrmTopNav active="contacts" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="contacts" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmWorkspace active="contacts" sp={sp} dark={dark} setDark={setDark}>
         {inner}
+        </CrmWorkspace>
       </div>
     </div>
   )
