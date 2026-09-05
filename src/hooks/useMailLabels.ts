@@ -7,6 +7,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { FX_LABELS, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 
 export interface MailLabel { id: string; agency_id: string; name: string; color: string; position: number; is_default: boolean }
 
@@ -15,10 +16,14 @@ export function useMailLabels() {
   const { user, profile } = useAuth()
   const agencyId = profile?.agency_id ?? null
   const qc = useQueryClient()
+  // Banc `/dev/messagerie` : les libellés appartiennent à l'AGENCE, pas à la
+  // boîte — ils sont donc servis même dans l'état « boîte vide ».
+  const fx = useMailFixtures()
   const q = useQuery({
-    queryKey: ['mail', 'labels'],
-    enabled: !!user,
+    queryKey: ['mail', 'labels', fx],
+    enabled: !!user || !!fx,
     queryFn: async (): Promise<MailLabel[]> => {
+      if (fx) return fx === 'none' ? [] : FX_LABELS
       const { data, error } = await supabase.from('mail_labels').select('id, agency_id, name, color, position, is_default').order('position').order('created_at')
       if (error) throw error
       return (data ?? []) as MailLabel[]

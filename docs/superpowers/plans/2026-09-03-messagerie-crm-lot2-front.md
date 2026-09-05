@@ -3388,120 +3388,135 @@ apparaît, et le total IT de `messages` reste à 1/252.
 ### Task 2.13 : Banc `/dev/messagerie`, fixtures, gardes de contraste et de grammaire, visuel
 
 **Files:**
-- Create: `src/components/crm/messagerie/fixtures.ts`
+- Modify: `src/components/crm/messagerie/fixtures.ts` (renommé depuis `.tsx`), `mailTokens.ts`, dix composants
+- Modify: `src/hooks/useMail{Accounts,Labels,Threads,Thread,Drafts,Realtime}.ts` (mode fixtures)
 - Create: `tests/unit/messagerie-contraste.spec.ts`
-- Modify: `src/hooks/useMailAccounts.ts`, `useMailLabels.ts`, `useMailThreads.ts`, `useMailThread.ts`, `useMailDrafts.ts` (mode fixtures), `tests/unit/megga-x-grammar.spec.ts` (`ZONES`), `tests/e2e/visual-regression.spec.ts`
+- Modify: `tests/e2e/visual-regression.spec.ts`, `scripts/_shared/visual-baseline-empreinte.mjs`, `tests/unit/visual-baseline-fraicheur.spec.ts`
 
-- [ ] **Step 1 : Fixtures (données visiblement fausses, README §« Données » : 8 rédigés + générés)**
+- [x] **Step 1 : Fixtures** — `src/components/crm/messagerie/fixtures.ts`
 
-```ts
-// src/components/crm/messagerie/fixtures.ts
-// Jeu de données du banc /dev/messagerie. TOUT est faux et se voit faux (@exemple.ch,
-// noms de scène) : un banc ne montre jamais une fiche qui pourrait exister.
-import { createContext, useContext } from 'react'
-import type { MailAccount } from '@/hooks/useMailAccounts'
-import type { MailLabel } from '@/hooks/useMailLabels'
-import type { MailThreadRow } from '@/hooks/useMailThreads'
-import type { MailMessageRow } from '@/hooks/useMailThread'
+Trois écarts au bloc du plan, chacun mesuré :
 
-export type MailFixtureState = 'full' | 'empty' | 'none'
-export const MailFixturesContext = createContext<MailFixtureState | null>(null)
-export const useMailFixtures = () => useContext(MailFixturesContext)
-export function MailFixturesProvider({ state, children }: { state: MailFixtureState; children: React.ReactNode }) {
-  return <MailFixturesContext.Provider value={state}>{children}</MailFixturesContext.Provider>
-}
+1. ⛔ **CHAQUE FIL A SES MESSAGES.** Le plan en rédigeait trois pour 48 fils.
+   Mesuré à l'écran : `MailReader` fait `if (!first) return null` — juste en
+   production, où le cache d'un fil peut arriver vide le temps d'une synchro —
+   donc **44 clics sur 48 ouvraient un panneau BLANC**. Un humain en aurait
+   conclu que la lecture est cassée. Les messages sont désormais DÉRIVÉS des
+   fils (`messagesDe`) : même correspondant, même objet, même date, exactement
+   `message_count` messages alternés entrant/sortant.
+2. ⚠ **LES DATES SONT RELATIVES**, pas les littéraux `2026-09-03T…` du plan.
+   `mailDateLabel` compare au jour civil suisse : une date fixe affiche
+   « 08:29 » le jour de son écriture, « Hier » le lendemain, puis « 03.09 »,
+   puis « 03.09.26 » — l'écran change tout seul, et la capture de régression
+   avec lui. C'est le motif exact pour lequel `/dashboard` a été retiré du jeu de
+   captures. La capture est rendue déterministe par une horloge figée côté
+   Playwright (Step 4), pas par des dates mortes.
+3. ⚠ **« Envoyés » se lit sur les MESSAGES**, pas sur `message_count > 1` comme
+   l'écrivait le plan : la RPC filtre sur `last_outbound_at is not null`, et un
+   fil de deux messages entrants n'a jamais rien envoyé. Le banc rejoue le vrai
+   prédicat. Six fils sont archivés pour la même raison — sinon le dossier
+   « Archivé » serait vide, et un dossier vide ne se distingue pas d'un dossier
+   cassé.
 
-const AG = 'fx-agency'
-export const FX_ACCOUNTS: MailAccount[] = [
-  { id: 'fx-a1', agency_id: AG, owner_id: 'fx-u1', provider: 'gmail', email: 'contact@agence-exemple.ch', display_name: 'Boîte générale', visibility: 'agency', status: 'active', last_sync_at: '2026-09-03T08:00:00Z', last_error: null, created_at: '2026-08-01T00:00:00Z' },
-  { id: 'fx-a2', agency_id: AG, owner_id: 'fx-u1', provider: 'outlook', email: 'facturation@agence-exemple.ch', display_name: 'Facturation', visibility: 'agency', status: 'active', last_sync_at: '2026-09-03T08:00:00Z', last_error: null, created_at: '2026-08-01T00:00:00Z' },
-  { id: 'fx-a3', agency_id: AG, owner_id: 'fx-u1', provider: 'imap', email: 'j.exemple@agence-exemple.ch', display_name: 'J. Exemple · personnelle', visibility: 'owner', status: 'reauth_required', last_sync_at: null, last_error: 'invalid_grant', created_at: '2026-08-01T00:00:00Z' },
-]
-export const FX_LABELS: MailLabel[] = [
-  { id: 'fx-l1', agency_id: AG, name: 'À traiter', color: '#fe566b', position: 0, is_default: true },
-  { id: 'fx-l2', agency_id: AG, name: 'Banques', color: '#8dc1ff', position: 1, is_default: true },
-  { id: 'fx-l3', agency_id: AG, name: 'Notaires', color: '#efc42c', position: 2, is_default: true },
-  { id: 'fx-l4', agency_id: AG, name: 'Clients', color: '#adecbb', position: 3, is_default: true },
-  { id: 'fx-l5', agency_id: AG, name: 'Visites', color: '#424bfb', position: 4, is_default: true },
-  { id: 'fx-l6', agency_id: AG, name: 'Fournisseurs', color: '#686868', position: 5, is_default: true },
-]
-const T = (i: number, over: Partial<MailThreadRow>): MailThreadRow => ({
-  id: `fx-t${i}`, account_id: 'fx-a1', subject: `Objet d'exemple ${i}`, snippet: 'Extrait d\'exemple, texte de remplissage sans contenu réel.', from_name: `Expéditeur ${i}`, from_email: `exp${i}@exemple.ch`,
-  participants: [{ name: `Expéditeur ${i}`, email: `exp${i}@exemple.ch` }], last_message_at: new Date(Date.UTC(2026, 7, 27 - (i % 60), 8, 29)).toISOString(), has_attachments: i % 4 === 0,
-  is_read: i % 3 !== 0, is_starred: i % 7 === 0, is_archived: false, is_trashed: false, label_id: FX_LABELS[i % 6].id, contact_id: i % 2 === 0 ? 'fx-c1' : null, message_count: 1 + (i % 3), total: 48, ...over,
-})
-export const FX_THREADS: MailThreadRow[] = [
-  T(1, { subject: 'Visite de samedi · confirmation', from_name: 'Zoé Exemple', from_email: 'zoe@exemple.ch', is_read: false, label_id: 'fx-l4', last_message_at: '2026-09-03T06:29:00Z' }),
-  T(2, { subject: 'Attestation de financement', from_name: 'Banque Exemple SA', from_email: 'credit@banque-exemple.ch', has_attachments: true, label_id: 'fx-l2', last_message_at: '2026-09-02T15:00:00Z' }),
-  T(3, { subject: 'Projet d\'acte · rue Fictive 12', from_name: 'Étude Exemple', from_email: 'etude@notaire-exemple.ch', has_attachments: true, label_id: 'fx-l3' }),
-  ...Array.from({ length: 45 }, (_, k) => T(k + 4, {})),
-]
-export const FX_MESSAGES: MailMessageRow[] = [
-  { id: 'fx-m1', thread_id: 'fx-t1', direction: 'inbound', from_name: 'Zoé Exemple', from_email: 'zoe@exemple.ch', to: [{ name: null, email: 'contact@agence-exemple.ch' }], cc: [], subject: 'Visite de samedi · confirmation', snippet: 'Bonjour, je confirme la visite de samedi à 10h.', body_text: 'Bonjour,\n\nJe confirme la visite de samedi à 10h. Est-il possible de voir aussi la cave ?\n\nMerci, Zoé', body_html: null, body_truncated: false, sent_at: '2026-09-03T06:29:00Z', is_read: false, has_attachments: false, contact_id: 'fx-c1', mail_attachments: [] },
-  { id: 'fx-m2', thread_id: 'fx-t2', direction: 'inbound', from_name: 'Banque Exemple SA', from_email: 'credit@banque-exemple.ch', to: [{ name: null, email: 'contact@agence-exemple.ch' }], cc: [], subject: 'Attestation de financement', snippet: 'Veuillez trouver ci-joint l\'attestation.', body_text: 'Bonjour,\n\nVeuillez trouver ci-joint l\'attestation de financement de votre client.\n\nCordialement', body_html: '<p>Bonjour,</p><p>Veuillez trouver ci-joint l\'attestation de financement de votre client.</p><p>Cordialement</p>', body_truncated: false, sent_at: '2026-09-02T15:00:00Z', is_read: true, has_attachments: true, contact_id: null, mail_attachments: [{ id: 'fx-att1', message_id: 'fx-m2', filename: 'attestation-exemple.pdf', mime_type: 'application/pdf', size_bytes: 184320, is_inline: false, content_id: null, document_id: null }] },
-  { id: 'fx-m3', thread_id: 'fx-t2', direction: 'outbound', from_name: 'Boîte générale', from_email: 'contact@agence-exemple.ch', to: [{ name: 'Banque Exemple SA', email: 'credit@banque-exemple.ch' }], cc: [], subject: 'Re: Attestation de financement', snippet: 'Bien reçu, merci.', body_text: 'Bien reçu, merci.', body_html: null, body_truncated: false, sent_at: '2026-09-02T16:10:00Z', is_read: true, has_attachments: false, contact_id: null, mail_attachments: [] },
-]
-export function fxThreads(state: MailFixtureState, accountId: string | null, folder: string, page: number, perPage: number): { rows: MailThreadRow[]; total: number } {
-  if (state !== 'full' || !accountId) return { rows: [], total: 0 }
-  const all = FX_THREADS.filter((t) => t.account_id === accountId && (folder === 'in' ? !t.is_archived : folder === 'star' ? t.is_starred : folder === 'arch' ? t.is_archived : folder === 'sent' ? t.message_count > 1 : false))
-  return { rows: all.slice(page * perPage, (page + 1) * perPage).map((r) => ({ ...r, total: all.length })), total: all.length }
-}
-```
-(Le fichier est un `.tsx` s'il porte du JSX : nommer `fixtures.tsx`.)
+Le fichier est un `.ts` (`git mv` depuis `.tsx`) : le fournisseur JSX a laissé la
+place au `Provider` du contexte, monté par la page de banc —
+`react-refresh/only-export-components` est une ERREUR ici et refuse un `.tsx` qui
+exporte à la fois un composant et huit constantes.
 
-- [ ] **Step 2 : Mode fixtures dans les hooks de lecture**
+- [x] **Step 2 : Mode fixtures dans les hooks de lecture**
 
-Dans `useMailAccounts` : `const fx = useMailFixtures()` ; `enabled: !!user && !fx` sur les deux `useQuery` ; retour `list: fx ? (fx === 'none' ? [] : FX_ACCOUNTS) : list.data ?? []`, `unread: fx ? { 'fx-a1': 3 } : …`, et **`isLoading: fx ? false : list.isPending`** — ⛔ une requête `enabled: false` reste `isPending` pour toujours (mémoire `project_react_query_isloading_vs_ispending`) : sans cette ligne le banc affiche un écran vide. Même `isLoading` explicite dans `useMailThreads` (`fx ? false : q.isPending`), `useMailThread`, `useMailLabels`, `useMailDrafts`. Même geste dans `useMailLabels` (`FX_LABELS`), `useMailThreads` (`fxThreads(fx, accountId, f.folder, f.page, MAIL_PER_PAGE)`), `useMailFolderCounts` (`{ inbox_unread: 3, archived: 2, drafts: 1, label_counts: { 'fx-l1': 8, 'fx-l2': 7, 'fx-l3': 6, 'fx-l4': 12, 'fx-l5': 9, 'fx-l6': 6 } }`), `useMailThread` (`FX_MESSAGES.filter(m => m.thread_id === threadId)`), `useMailDrafts` (`[]`). Les mutations restent réelles mais inertes sans compte réel (elles échouent en 404, ce qui est correct sur un banc). `useMailRealtime` : `if (!agencyId || fx) return`.
-
-- [ ] **Step 3 : Garde de contraste**
+⛔ **PAS par `isLoading: fx ? false : q.isPending` comme le plan le prescrivait.**
+Ce montage rend un couple (`isLoading: false`, `data: undefined`) qui n'existe
+dans aucun chemin réel : l'écran serait passé du blanc au vide sans qu'on sache
+lequel il montre. Les fixtures répondent **DANS la `queryFn`**, et l'état entre
+dans la clé de requête :
 
 ```ts
-// tests/unit/messagerie-contraste.spec.ts
-// L'encre posée sur un aplat de DONNÉE (couleur de libellé, accent) doit venir d'encreSur /
-// ms.pillInk, jamais d'un blanc en dur — modèle contacts-contraste.spec.ts.
-import { describe, it, expect } from 'vitest'
-import { readFileSync } from 'node:fs'
-import { encreSur } from '@/components/megga-x-crm/tokens'
-
-const FILES = ['MailListRow.tsx', 'MailReader.tsx', 'MailRail.tsx', 'MailContextMenu.tsx', 'MailBoxSelector.tsx', 'MailLabelCreator.tsx', 'MailAddAccountModal.tsx', 'MailAttachmentPreviewModal.tsx']
-  .map((f) => `src/components/crm/messagerie/${f}`)
-
-describe('Messagerie — encre sur aplat', () => {
-  it('aucun blanc ni noir en dur, aucune police en dur', () => {
-    for (const f of FILES) {
-      const src = readFileSync(f, 'utf8')
-      expect(src, f).not.toMatch(/#fff\b|#ffffff|#000\b|#000000|'white'|'black'/i)
-      expect(src, f).not.toMatch(/Poppins|Manrope|Inter Tight/)
-    }
-  })
-  it('la pastille de libellé calcule son encre', () => {
-    const row = readFileSync('src/components/crm/messagerie/MailListRow.tsx', 'utf8')
-    expect(row).toMatch(/ms\.pillInk\(label\.color\)/)
-    const reader = readFileSync('src/components/crm/messagerie/MailReader.tsx', 'utf8')
-    expect(reader).toMatch(/ms\.pillInk\(p\.label\.color\)/)
-  })
-  it('les six couleurs semées portent une encre AA', () => {
-    for (const bg of ['#fe566b', '#8dc1ff', '#efc42c', '#adecbb', '#424bfb', '#686868']) {
-      expect(typeof encreSur(bg)).toBe('string')
-    }
-  })
+const fx = useMailFixtures()
+useQuery({
+  queryKey: ['mail', 'accounts', fx],
+  enabled: !!user || !!fx,
+  queryFn: async () => { if (fx) return fx === 'none' ? [] : FX_ACCOUNTS; /* … */ },
 })
 ```
-Puis `tests/unit/megga-x-grammar.spec.ts` : ajouter dans `ZONES` une entrée `src/components/crm/messagerie` calquée sur celle de `crm/biens` (mêmes seuils), et lancer `npx vitest run tests/unit/megga-x-grammar.spec.ts` — si le cliquet rougit sur un poids ou une casse, corriger le composant, pas le seuil.
 
-- [ ] **Step 4 : Régression visuelle**
+La requête RÉSOUT, donc le banc emprunte le chemin de la production — cache,
+`staleTime`, `placeholderData` compris — et le piège `isPending`-pour-toujours ne
+se pose plus. Même geste dans `useMailLabels`, `useMailThreads`,
+`useMailFolderCounts`, `useMailThread`, `useMailDrafts` ; `useMailRealtime` sort
+tôt (`if (!agencyId || fx) return`) : avec `VITE_DEV_BYPASS_AUTH` il y a une
+session, donc un `agency_id`, et le canal se serait ouvert pour rien.
 
-Ajouter `/dev/messagerie` à la liste des pages de `tests/e2e/visual-regression.spec.ts` (repérer la liste : `grep -n "/dev/" tests/e2e/visual-regression.spec.ts`), générer la référence :
-```bash
-npm run test:e2e:visual -- --update-snapshots
-```
-et committer les captures. ⚠ Mémoire `project_visual_regression_gate_too_loose` : régénérer ne redéclenche pas la CI ; pousser un commit.
+- [x] **Step 3 : Garde de contraste — et les TROIS DÉFAUTS qu'elle a trouvés**
 
-- [ ] **Step 5 : Toutes les gardes, commit**
+⛔ La clause du plan `expect(typeof encreSur(bg)).toBe('string')` est VRAIE pour
+toute entrée : elle n'aurait jamais rougi. Et la liste de huit fichiers nommés
+laissait seize des vingt-quatre hors garde. La spec balaye donc le DOSSIER, et
+mesure vraiment. Ce qu'elle a trouvé en naissant :
+
+| jeton en ENCRE | thème | mesuré | sites |
+|---|---|---|---|
+| `accent` `#424bfb` | sombre | **3,44:1** | 9 (dont « Rapprocher ») |
+| `danger` `#fe566b` | clair | **3,11:1** | 7, tous `role="alert"` |
+| `success` `#adecbb` | clair | **1,35:1** | la coche « déjà classée » |
+
+Forme n° 37 de `megga/gardes-vacuites` : un jeton qui sert d'APLAT **et**
+d'ENCRE, mesuré d'un seul côté. Les couples aplat+`encreSur` passaient tous.
+Réparé par `accentText` / `dangerText` / `successText` dans `mailTokens.ts`.
+
+⛔ **Les deux encres du thème clair sont IMPORTÉES de `MLK_STATUT`, pas écrites.**
+Deux raisons, toutes deux mesurées : aucun des **96 barreaux** de MEGGA X ne
+porte du texte rouge ou vert sur blanc (meilleur rouge 4,09:1, meilleur vert
+1,89:1 — la vitrine est mono-thème sombre) ; et deux littéraux neufs font rougir
+`couleur-barreaux`, dont l'inventaire de `src/components/crm` « ne peut que
+RÉTRÉCIR » (540 > 538). `MLK_STATUT` est la famille que le dépôt s'est déjà
+donnée pour ce rôle, mesurée en août, et **déjà consommée hors de sa zone** par
+`crm-identity`.
+
+⚠ La zone de grammaire (`megga-x-grammar.spec.ts` `ZONES`) était déjà posée en
+T2.1, vide de dette. 33/33 vert, rien à faire ici.
+
+**Chaque clause a été éprouvée par mutation** (mutation appliquée → spec rouge →
+mutation annulée) : encre de pastille en blanc dur, chacun des trois `*Text`
+ramené à son aplat, réintroduction de `ms.accent` / `ms.danger` en encre,
+`aria-pressed` retiré de l'étoile, blanc en dur dans la zone, `encreSur` ne
+rendant plus un extrême, couleur de libellé en `rgb()`. Huit sur huit rougissent.
+
+- [ ] **Step 4 : Régression visuelle — CODE FAIT, RÉFÉRENCE À GÉNÉRER EN CI**
+
+`/dev/messagerie` entre dans `PAGES_TO_SNAPSHOT` sous le nom `dev-messagerie`,
+avec une **horloge figée** (`page.clock.setFixedTime('2026-09-03T08:29:00Z')`) —
+`setFixedTime` et non `install()`, qui prendrait aussi la main sur le débounce de
+recherche. Sans elle la colonne de dates dériverait toute seule.
+
+⛔ **ET LE TÉMOIN DE BALAYAGE ÉTAIT UN BOGUE LATENT.**
+`visual-baseline-fraicheur.spec.ts` exigeait `PipelinePage.tsx` et
+`crm/pipeline/StageColumn` de **chaque** entrée de `ECRANS`, dans la même boucle.
+Juste tant qu'il n'y avait qu'un écran ; le second l'a fait rougir sur-le-champ.
+Les témoins sont désormais PAR ÉCRAN (`TEMOINS`, à côté de l'inventaire), avec
+une clause de réciprocité — un écran sans témoin vide la garde du côté qu'on ne
+regarde pas.
+
+⛔ **CE QUI RESTE, ET QUI NE PEUT PAS SE FAIRE SUR CETTE MACHINE.** La référence
+et son empreinte s'écrivent ENSEMBLE, par
+`playwright test --config=playwright.visual.config.ts --update-snapshots=all`,
+sur `ubuntu-latest` — c'est ce que fait `visual-baselines.yml`. Générée en local
+sur macOS, la capture s'appellerait `dev-messagerie-chromium-darwin.png` et le
+rendu de police ne serait pas celui de la CI : une référence fausse, commitée
+comme vraie. Et l'empreinte ne se recopie pas à la main — la séparer de sa
+capture est exactement le faux-vert que cette garde existe pour empêcher.
+
+**Action requise, une seule :** commenter `/regenerate-visual-baselines` sur la
+PR. Jusque-là, DEUX clauses de `visual-baseline-fraicheur.spec.ts` sont ROUGES —
+« aucune capture n'est orpheline » et « la référence décrit encore l'écran » — et
+le job `test:e2e:visual` l'est aussi. C'est le signal prévu par la garde, pas une
+régression : son message d'échec nomme la commande.
+
+- [x] **Step 5 : Toutes les gardes, commit**
 
 ```bash
 npm run test:unit && npm run build && npm run lint && npm run lint:deadcode
-git add -A && git commit -m "test(messagerie): banc /dev/messagerie, fixtures, garde de contraste, zone de grammaire, visuel"
+git add -A && git commit -m "test(messagerie): banc, fixtures, gardes de contraste et de grammaire"
 ```
 
 ---

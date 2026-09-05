@@ -52,7 +52,7 @@ export function MailReader(p: Props) {
         marginLeft: opts.right ? 'auto' : undefined, transition: MAIL_TRANSITION,
       }}
       onMouseEnter={(e) => {
-        if (opts.danger) { e.currentTarget.style.borderColor = ms.danger; e.currentTarget.style.color = ms.danger }
+        if (opts.danger) { e.currentTarget.style.borderColor = ms.dangerText; e.currentTarget.style.color = ms.dangerText }
         else if (opts.primary) { e.currentTarget.style.background = ms.accent; e.currentTarget.style.borderColor = ms.accent; e.currentTarget.style.color = ms.accentInk }
         else { e.currentTarget.style.borderColor = ms.ink; e.currentTarget.style.color = ms.ink }
       }}
@@ -82,10 +82,10 @@ export function MailReader(p: Props) {
             fontSize: 'var(--crm-text-sm)', fontWeight: 500, color: ms.ink, cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION,
           }}
         >
-          <MEIcon name="paperclip" size={13} color={ms.accent} /> {a.filename}{' '}
+          <MEIcon name="paperclip" size={13} color={ms.accentText} /> {a.filename}{' '}
           <span style={{ color: ms.mut, fontSize: 'var(--crm-text-xs)' }}>{fileSizeLabel(a.size_bytes)}</span>
           {/* Déjà classée au dossier : la coche évite de la classer deux fois. */}
-          {a.document_id && <MEIcon name="check" size={12} color={ms.success} />}
+          {a.document_id && <MEIcon name="check" size={12} color={ms.successText} />}
         </button>
       ))}
     </div>
@@ -126,7 +126,7 @@ export function MailReader(p: Props) {
           <button
             type="button"
             onClick={() => p.onLinkContact(inboundLast.from_email ?? '', inboundLast.from_name)}
-            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: ms.accent, fontWeight: 600, fontSize: 'var(--crm-text-xs)', cursor: 'pointer', fontFamily: 'inherit' }}
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: ms.accentText, fontWeight: 600, fontSize: 'var(--crm-text-xs)', cursor: 'pointer', fontFamily: 'inherit' }}
           >
             {t('mail.link.cta')}
           </button>

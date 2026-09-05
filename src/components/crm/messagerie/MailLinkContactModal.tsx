@@ -93,7 +93,7 @@ export function MailLinkContactModal({ ms, open, email, name, busy, onClose, onL
               type="button"
               disabled={busy}
               onClick={() => onLink(h.id)}
-              style={{ background: 'none', border: 'none', color: ms.accent, fontSize: 'var(--crm-text-xs)', fontWeight: 600, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, fontFamily: 'inherit', padding: 0, flexShrink: 0 }}
+              style={{ background: 'none', border: 'none', color: ms.accentText, fontSize: 'var(--crm-text-xs)', fontWeight: 600, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, fontFamily: 'inherit', padding: 0, flexShrink: 0 }}
             >
               {t('mail.link.cta')}
             </button>

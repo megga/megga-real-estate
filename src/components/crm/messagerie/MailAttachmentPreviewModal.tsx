@@ -53,7 +53,7 @@ export function MailAttachmentPreviewModal({ ms, att, onClose, onFile }: Props) 
 
       <div style={{ marginTop: 'var(--crm-space-2xl)', height: SCENE, borderRadius: 'var(--crm-radius-xl)', background: ms.elev, display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
         {blob.loading && <span style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut }}>{t('mail.preview.loading')}</span>}
-        {blob.error && <span style={{ fontSize: 'var(--crm-text-sm)', color: ms.danger }}>{t('mail.preview.error')}</span>}
+        {blob.error && <span style={{ fontSize: 'var(--crm-text-sm)', color: ms.dangerText }}>{t('mail.preview.error')}</span>}
         {blob.url && estImage && <img src={blob.url} alt={att?.filename ?? ''} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />}
         {blob.url && estPdf && <iframe src={blob.url} title={att?.filename ?? ''} style={{ width: '100%', height: '100%', border: 'none' }} />}
         {/* Ni image ni PDF : on ne fait pas semblant d'afficher, on propose le fichier. */}
@@ -61,9 +61,9 @@ export function MailAttachmentPreviewModal({ ms, att, onClose, onFile }: Props) 
           <a
             href={blob.url}
             download={att?.filename}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', color: ms.accent, fontSize: 'var(--crm-text-sm)', fontWeight: 500 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', color: ms.accentText, fontSize: 'var(--crm-text-sm)', fontWeight: 500 }}
           >
-            <MEIcon name="paperclip" size={14} color={ms.accent} /> {t('mail.preview.download')}
+            <MEIcon name="paperclip" size={14} color={ms.accentText} /> {t('mail.preview.download')}
           </a>
         )}
       </div>

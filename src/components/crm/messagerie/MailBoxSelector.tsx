@@ -104,7 +104,7 @@ export function MailBoxSelector({ ms, accounts, unread, currentId, open, onToggl
                 <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {a.email}
                 </div>
-                <div style={{ fontSize: 'var(--crm-text-xs)', color: a.status === 'active' ? ms.mut : ms.danger }}>{desc(a)}</div>
+                <div style={{ fontSize: 'var(--crm-text-xs)', color: a.status === 'active' ? ms.mut : ms.dangerText }}>{desc(a)}</div>
               </div>
               {(unread[a.id] ?? 0) > 0 && (
                 <span

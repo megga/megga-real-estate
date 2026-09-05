@@ -5,6 +5,7 @@
  */
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { fxCounts, fxThreads, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { MailFolder } from '@/components/crm/messagerie/mailState'
 
 export const MAIL_PER_PAGE = 12
@@ -23,11 +24,16 @@ export const threadsKey = (accountId: string | null, f: MailThreadFilters) => ['
 
 /** La page courante de la liste. `draft` ne passe pas par ici : les brouillons sont locaux (D7). */
 export function useMailThreads(accountId: string | null, f: MailThreadFilters) {
+  // Banc `/dev/messagerie` : `fxThreads` rejoue le prédicat de la RPC, filtres
+  // et pagination compris — une liste de banc qui ignore la barre d'outils
+  // laisserait croire que la barre marche.
+  const fx = useMailFixtures()
   const q = useQuery({
-    queryKey: threadsKey(accountId, f),
+    queryKey: [...threadsKey(accountId, f), fx],
     enabled: !!accountId && f.folder !== 'draft',
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<{ rows: MailThreadRow[]; total: number }> => {
+      if (fx) return fxThreads(fx, accountId, f, f.page, MAIL_PER_PAGE)
       // `enabled` garantit l'identifiant, le typage ne le sait pas.
       if (!accountId) throw new Error('no_account')
       const { data, error } = await supabase.rpc('mail_list_threads', {
@@ -46,10 +52,12 @@ export function useMailThreads(accountId: string | null, f: MailThreadFilters) {
 
 /** Les compteurs du rail : non lus en réception, archivés, brouillons, et par libellé. */
 export function useMailFolderCounts(accountId: string | null) {
+  const fx = useMailFixtures()
   const q = useQuery({
-    queryKey: ['mail', 'folder-counts', accountId],
+    queryKey: ['mail', 'folder-counts', accountId, fx],
     enabled: !!accountId,
     queryFn: async (): Promise<MailFolderCounts> => {
+      if (fx) return fxCounts(fx, accountId)
       if (!accountId) throw new Error('no_account')
       const { data, error } = await supabase.rpc('mail_folder_counts', { p_account_id: accountId })
       if (error) throw error

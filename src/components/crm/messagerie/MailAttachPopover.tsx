@@ -52,7 +52,7 @@ export function MailAttachPopover({ ms, chosenDocIds, onFiles, onToggleDoc, onCl
     <button key={d.id} type="button" onClick={() => onToggleDoc(d)} style={styleLigne} {...survol}>
       <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
       <span style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{fileSizeLabel(d.size_bytes)}</span>
-      {chosenDocIds.has(d.id) && <MEIcon name="check" size={13} color={ms.accent} />}
+      {chosenDocIds.has(d.id) && <MEIcon name="check" size={13} color={ms.accentText} />}
     </button>
   )
 

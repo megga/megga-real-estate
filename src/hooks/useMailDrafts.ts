@@ -6,6 +6,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { MailAddress } from '@/hooks/useMailThreads'
 
 export interface MailDraft {
@@ -17,10 +18,15 @@ export interface MailDraft {
 export function useMailDrafts(accountId: string | null) {
   const { user, profile } = useAuth()
   const qc = useQueryClient()
+  // Banc `/dev/messagerie` : aucun brouillon. Ils sont LOCAUX (D7), donc rien ne
+  // les fabrique sans écriture — en inventer donnerait au dossier « Brouillons »
+  // un contenu que la production n'aurait jamais au premier lancement.
+  const fx = useMailFixtures()
   const list = useQuery({
-    queryKey: ['mail', 'drafts', accountId],
-    enabled: !!user && !!accountId,
+    queryKey: ['mail', 'drafts', accountId, fx],
+    enabled: (!!user || !!fx) && !!accountId,
     queryFn: async (): Promise<MailDraft[]> => {
+      if (fx) return []
       // `enabled` garantit l'identifiant, le typage ne le sait pas.
       if (!accountId) throw new Error('no_account')
       const { data, error } = await supabase.from('mail_drafts').select('*').eq('account_id', accountId).order('updated_at', { ascending: false })

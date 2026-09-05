@@ -5,6 +5,7 @@
  */
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { FX_MESSAGES, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { MailAddress } from '@/hooks/useMailThreads'
 
 export interface MailAttachmentRow { id: string; message_id: string; filename: string; mime_type: string; size_bytes: number; is_inline: boolean; content_id: string | null; document_id: string | null }
@@ -17,10 +18,12 @@ export interface MailMessageRow {
 
 /** Les messages d'un fil, du plus ancien au plus récent. */
 export function useMailThread(threadId: string | null) {
+  const fx = useMailFixtures()
   return useQuery({
-    queryKey: ['mail', 'thread', threadId],
+    queryKey: ['mail', 'thread', threadId, fx],
     enabled: !!threadId,
     queryFn: async (): Promise<MailMessageRow[]> => {
+      if (fx) return FX_MESSAGES.filter((m) => m.thread_id === threadId)
       // `enabled` garantit l'identifiant, le typage ne le sait pas.
       if (!threadId) throw new Error('no_thread')
       const { data, error } = await supabase.from('mail_messages')

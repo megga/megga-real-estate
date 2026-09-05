@@ -37,14 +37,32 @@ import { CHEMIN_EMPREINTES, empreintesCourantes } from '../../scripts/_shared/vi
 // juin 2026) : page entièrement refondue, contenu dynamique (temps relatifs
 // « dans X min », file de priorités, données live) → impropre au diff pixel.
 // Couverture fonctionnelle assurée par agent-dashboard.spec.ts.
+//
+// `/dev/messagerie` (05.09.2026) : le banc de la Messagerie, servi par des
+// fixtures. C'est le seul écran de la Messagerie photographiable — la vraie
+// route est derrière `ProtectedRoute` et n'aurait rien à montrer sans boîte
+// connectée.
+//
+// ⚠ IL PORTE UNE HORLOGE FIGÉE, et ce n'est pas un confort. Les dates des
+// fixtures sont RELATIVES à `Date.now()` et `mailDateLabel` les rend contre le
+// jour civil suisse : sans horloge figée la colonne de droite afficherait
+// « 15:40 » le jour de la capture, « Hier » le lendemain, puis « 03.09 ». La
+// référence aurait dérivé toute seule, exactement comme `/dashboard` — retiré
+// de ce jeu pour cette raison.
 const PAGES_TO_SNAPSHOT = [
-  { path: '/dashboard/pipeline', name: 'dashboard-pipeline' },
+  { path: '/dashboard/pipeline', name: 'dashboard-pipeline', heureFigee: null },
+  { path: '/dev/messagerie', name: 'dev-messagerie', heureFigee: '2026-09-03T08:29:00Z' },
 ] as const
 
 test.describe('Visual regression — key pages', () => {
-  for (const { path, name } of PAGES_TO_SNAPSHOT) {
+  for (const { path, name, heureFigee } of PAGES_TO_SNAPSHOT) {
     test(`${name} (${path})`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width: 1280, height: 720 })
+      // ⚠ `setFixedTime` et non `install()` : le second prend aussi la main sur
+      // les minuteries, et l'écran en a une (le débounce de recherche à 250 ms).
+      // Ici on ne fige que `Date.now()` / `new Date()`, ce que lisent les
+      // fixtures à leur évaluation ET `mailDateLabel` au rendu.
+      if (heureFigee) await page.clock.setFixedTime(new Date(heureFigee))
       await page.goto(path)
       await page.waitForLoadState('networkidle')
       // Let any mount animations settle before capturing.

@@ -161,7 +161,7 @@ export function MailComposeModal({ ms, draft, sending, error, onClose, onSend }:
 
         {/* Le motif du serveur, tel quel : `attachment_too_large_outlook` dit plus
             qu'un « échec de l'envoi » qui laisserait chercher la cause. */}
-        {error && <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.danger }}>{error}</div>}
+        {error && <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.dangerText }}>{error}</div>}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-4xl)', position: 'relative' }}>

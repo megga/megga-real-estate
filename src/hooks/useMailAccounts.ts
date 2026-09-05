@@ -11,6 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { invokeMail } from '@/lib/mail/invoke'
+import { FX_ACCOUNTS, FX_UNREAD, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { Database } from '@/types/database'
 
 export type MailProviderId = Database['public']['Tables']['mail_accounts']['Row']['provider']
@@ -30,10 +31,15 @@ const COLS = 'id, agency_id, owner_id, provider, email, display_name, visibility
 export function useMailAccounts() {
   const { user } = useAuth()
   const qc = useQueryClient()
+  // Banc `/dev/messagerie` : les fixtures répondent DANS la `queryFn`, et l'état
+  // entre dans la clé. Voir la note « pourquoi pas `isLoading: fx ? false : …` »
+  // en bas de ce fichier.
+  const fx = useMailFixtures()
   const list = useQuery({
-    queryKey: ['mail', 'accounts'],
-    enabled: !!user,
+    queryKey: ['mail', 'accounts', fx],
+    enabled: !!user || !!fx,
     queryFn: async (): Promise<MailAccount[]> => {
+      if (fx) return fx === 'none' ? [] : FX_ACCOUNTS
       const { data, error } = await supabase.from('mail_accounts').select(COLS).order('created_at', { ascending: true })
       if (error) throw error
       return (data ?? []) as MailAccount[]
@@ -41,9 +47,10 @@ export function useMailAccounts() {
     staleTime: 30_000,
   })
   const unread = useQuery({
-    queryKey: ['mail', 'unread'],
-    enabled: !!user,
+    queryKey: ['mail', 'unread', fx],
+    enabled: !!user || !!fx,
     queryFn: async (): Promise<Record<string, number>> => {
+      if (fx) return fx === 'full' ? FX_UNREAD : {}
       const { data, error } = await supabase.rpc('mail_unread_counts')
       if (error) throw error
       return Object.fromEntries((data ?? []).map((r) => [r.account_id, Number(r.unread)]))
@@ -86,5 +93,14 @@ export function useMailAccounts() {
 
   // ⚠ `isPending` et non `isLoading` : `isLoading` retombe à false ENTRE deux
   // tentatives, et un écran qui attend `isLoading || !data` tourne sans fin.
+  //
+  // ⚠ ET C'EST POURQUOI LE BANC RÉPOND DANS LA `queryFn`, pas par un
+  // `isLoading: fx ? false : list.isPending` comme le plan l'écrivait. Une
+  // requête `enabled: false` reste `isPending` POUR TOUJOURS en TanStack v5 :
+  // forcer `isLoading` à `false` par-dessus aurait rendu un couple
+  // (`isLoading: false`, `data: undefined`) qui n'existe pas dans la vraie vie,
+  // et l'écran serait passé du blanc au vide sans qu'on sache lequel il montre.
+  // En répondant dans la `queryFn` la requête RÉSOUT : le banc emprunte le même
+  // chemin que la production, cache et `staleTime` compris.
   return { list: list.data ?? [], isLoading: list.isPending, unread: unread.data ?? {}, startOAuth, exchange, connectImap, disconnect, update, invalidate }
 }

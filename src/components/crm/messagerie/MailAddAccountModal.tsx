@@ -183,7 +183,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
     </div>
   )
   const erreur = error && (
-    <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.danger, marginTop: 'var(--crm-space-md)' }}>{error}</div>
+    <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.dangerText, marginTop: 'var(--crm-space-md)' }}>{error}</div>
   )
   const ligneFournisseur = (p: MailProviderKey, name: string, sub: string | null, big = false) => (
     <button
@@ -247,7 +247,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
             <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{t('mail.add.oauth.access')}</div>
             {(['read', 'file', 'labels'] as const).map((k) => (
               <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-sm)' }}>
-                <MEIcon name="check" size={13} color={ms.accent} />
+                <MEIcon name="check" size={13} color={ms.accentText} />
                 {t(`mail.add.oauth.scope.${k}`)}
               </div>
             ))}

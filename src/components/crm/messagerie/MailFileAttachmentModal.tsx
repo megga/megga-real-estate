@@ -117,9 +117,9 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
             <button
               type="button"
               onClick={onPreview}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', background: 'none', border: 'none', padding: 0, marginTop: 'var(--crm-space-2xs)', color: ms.accent, fontSize: 'var(--crm-text-xs)', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', background: 'none', border: 'none', padding: 0, marginTop: 'var(--crm-space-2xs)', color: ms.accentText, fontSize: 'var(--crm-text-xs)', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
             >
-              <MEIcon name="zoom-in" size={12} color={ms.accent} /> {t('mail.file.zoom')}
+              <MEIcon name="zoom-in" size={12} color={ms.accentText} /> {t('mail.file.zoom')}
             </button>
           </div>
         </div>
@@ -198,7 +198,7 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
           <input value={name} onChange={(e) => setName(e.target.value)} aria-label={t('mail.file.name')} style={champ} />
         </div>
 
-        {error && <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.danger }}>{error}</div>}
+        {error && <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.dangerText }}>{error}</div>}
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-4xl)' }}>

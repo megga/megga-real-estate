@@ -54,7 +54,7 @@ export function MailLabelMenu({ ms, x, y, onClose, onRename, onRecolor, onDelete
       style={{
         display: 'block', width: '100%', textAlign: 'left', padding: 'var(--crm-space-sm) var(--crm-space-lg)',
         borderRadius: 'var(--crm-radius-lg)', background: 'transparent', border: 'none',
-        color: danger ? ms.danger : ms.ink, fontSize: 'var(--crm-text-sm)', cursor: 'pointer',
+        color: danger ? ms.dangerText : ms.ink, fontSize: 'var(--crm-text-sm)', cursor: 'pointer',
         fontFamily: 'inherit', transition: MAIL_TRANSITION,
       }}
       onMouseEnter={(e) => {
@@ -63,7 +63,7 @@ export function MailLabelMenu({ ms, x, y, onClose, onRename, onRecolor, onDelete
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.background = 'transparent'
-        e.currentTarget.style.color = danger ? ms.danger : ms.ink
+        e.currentTarget.style.color = danger ? ms.dangerText : ms.ink
       }}
     >
       {label}

@@ -61,7 +61,7 @@ export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onActi
       style={{
         display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', width: '100%', textAlign: 'left',
         padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)',
-        background: 'transparent', border: 'none', color: opts.danger ? ms.danger : ms.ink,
+        background: 'transparent', border: 'none', color: opts.danger ? ms.dangerText : ms.ink,
         fontSize: 'var(--crm-text-sm)', cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION,
       }}
       onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover }}
