@@ -138,7 +138,9 @@
       }
     },
     "compose": {
-      "cta": "Nuovo messaggio"
+      "cta": "Nuovo messaggio",
+      "to": "Destinatario",
+      "toPlaceholder": "A · destinatario"
     },
     "folders": {
       "aria": "Cartelle",
@@ -186,13 +188,34 @@
       "unarchive": "Togli dall archivio",
       "delete": "Elimina"
     },
+    "read": {
+      "back": "Torna all'elenco",
+      "to": "a {{box}}",
+      "me": "io",
+      "reply": "Rispondi",
+      "forward": "Inoltra",
+      "replyTo": "Risposta a",
+      "replyBody": "La tua risposta",
+      "forwardNote": "Nota facoltativa",
+      "forwardOriginal": "Messaggio originale allegato",
+      "showImages": "Mostra le immagini",
+      "bodyTitle": "Corpo del messaggio",
+      "truncated": "Messaggio troncato (troppo grande): aprilo nel tuo programma di posta per la versione completa.",
+      "unlinked": "Indirizzo non collegato: {{email}}"
+    },
+    "link": {
+      "cta": "Collega"
+    },
     "draft": {
       "badge": "Bozza",
       "noRecipient": "(senza destinatario)"
     },
     "actions": {
       "cancel": "Annulla",
-      "save": "Salva"
+      "save": "Salva",
+      "send": "Invia",
+      "sending": "Invio…",
+      "forward": "Inoltra"
     }
   }
 }

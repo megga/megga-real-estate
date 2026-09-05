@@ -53,11 +53,12 @@ const ALLOW_SYMBOLS = new Set([
   // ⛔ À RETIRER quand ces tâches livrent : une exemption qui survit à son motif
   // couvre le fichier entier pour toujours.
   // ⚠ `mailDateLabel` et `displayAddress` sont SORTIS le 04.09.2026 : `MailListRow`
-  // (T2.5) les lit. Les deux autres de `format.ts` restent — `initialsOf` peint
-  // l'avatar du bandeau de lecture et `fileSizeLabel` la taille d'une pièce, tous
-  // deux en T2.6.
-  'src/lib/mail/format.ts:initialsOf', 'src/lib/mail/format.ts:fileSizeLabel',
-  'src/lib/mail/sanitize.ts:sanitizeMailHtml', 'src/lib/mail/sanitize.ts:buildBodySrcdoc',
+  // (T2.5) les lit.
+  // ⚠ ET LES QUATRE DERNIÈRES DE CE BLOC SONT SORTIES AVEC T2.6, comme annoncé :
+  // `initialsOf` peint l'avatar du bandeau de lecture, `fileSizeLabel` la taille
+  // d'une pièce jointe, `sanitizeMailHtml` et `buildBodySrcdoc` le corps du
+  // message dans son iframe (`MailReader`, `MailBodyFrame`). Le bloc n'a plus
+  // d'entrée : la bibliothèque pure a rejoint ses écrans.
   // ⚠ `oauthPopup` est SORTI de cette liste le 04.09.2026, comme annoncé :
   // `useMailOAuthPopup` (T2.3) lit ses deux exports. Une exemption qui survit à
   // son motif couvre le fichier pour toujours.
@@ -72,8 +73,9 @@ const ALLOW_SYMBOLS = new Set([
   // annoncé pour T2.7, mais consommé dès ici : le dossier « Brouillons » est une
   // colonne de la LISTE, pas un état du composeur. Une exemption qui survit à son
   // motif couvre le fichier pour toujours.
-  'src/hooks/useMailThread.ts:useMailThread',                 // T2.6 — le fil ouvert
-  'src/hooks/useMailSend.ts:useMailSend',                     // T2.7 — l'envoi
+  // ⚠ `useMailThread` et `useMailSend` sont SORTIS avec T2.6 : la lecture monte
+  // le fil et envoie réponses et transferts. `useMailSend` était annoncé pour
+  // T2.7, mais l'envoi commence au LECTEUR, pas au composeur.
   'src/hooks/useMailOAuthPopup.ts:useMailOAuthPopup',         // T2.9 — assistant « Ajouter une boîte »
   'src/hooks/useMailAttachmentBlob.ts:useMailAttachmentBlob', // T2.11 — aperçu de pièce
   // ── T2.4 : la coquille des SEPT modales précède la première d'entre elles ───
@@ -82,6 +84,11 @@ const ALLOW_SYMBOLS = new Set([
   // première consommatrice est « Nouveau message ».
   'src/components/crm/messagerie/MailModalShell.tsx:MailModalShell',  // T2.7
   'src/components/crm/messagerie/MailModalShell.tsx:MailCloseButton', // T2.7
+  // ── T2.6 : le module de recherche de destinataires précède son seul lecteur ─
+  // `parseRecipients` est consommé ICI (composeur de transfert) ; le HOOK ne
+  // l'est qu'au champ « À » de « Nouveau message ». Les deux vivent dans le même
+  // fichier parce qu'ils partagent le format d'adresse, pas le calendrier.
+  'src/hooks/useMailContactSearch.ts:useMailContactSearch',           // T2.7
   // Sortie du générateur Supabase, pas du code écrit à la main : les versions
   // récentes émettent `Constants` (valeurs des enums Postgres) que rien
   // n'importe encore. Le retirer reviendrait à éditer un fichier auto-généré,

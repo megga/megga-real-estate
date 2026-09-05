@@ -138,7 +138,9 @@
       }
     },
     "compose": {
-      "cta": "Neue Nachricht"
+      "cta": "Neue Nachricht",
+      "to": "Empfänger",
+      "toPlaceholder": "An · Empfänger"
     },
     "folders": {
       "aria": "Ordner",
@@ -186,13 +188,34 @@
       "unarchive": "Aus Archiv holen",
       "delete": "Löschen"
     },
+    "read": {
+      "back": "Zurück zur Liste",
+      "to": "an {{box}}",
+      "me": "ich",
+      "reply": "Antworten",
+      "forward": "Weiterleiten",
+      "replyTo": "Antwort an",
+      "replyBody": "Ihre Antwort",
+      "forwardNote": "Optionale Notiz",
+      "forwardOriginal": "Ursprüngliche Nachricht angehängt",
+      "showImages": "Bilder anzeigen",
+      "bodyTitle": "Nachrichtentext",
+      "truncated": "Nachricht gekürzt (zu gross): Öffnen Sie sie in Ihrem Mailprogramm für die vollständige Fassung.",
+      "unlinked": "Adresse nicht zugeordnet: {{email}}"
+    },
+    "link": {
+      "cta": "Zuordnen"
+    },
     "draft": {
       "badge": "Entwurf",
       "noRecipient": "(ohne Empfänger)"
     },
     "actions": {
       "cancel": "Abbrechen",
-      "save": "Speichern"
+      "save": "Speichern",
+      "send": "Senden",
+      "sending": "Wird gesendet…",
+      "forward": "Weiterleiten"
     }
   }
 }

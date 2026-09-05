@@ -3,9 +3,9 @@
  * copie du squelette de `CalendarApp`) puis le bento `296px | 1fr` de la maquette
  * (README §« Écrans »).
  *
- * Le rail (T2.4) et la liste (T2.5) sont branchés ; la lecture et les sept
- * modales arrivent aux tâches 2.6-2.11. L'état vide reste honnête — l'écran ne
- * prétend pas afficher des messages qu'il ne sait pas encore lire.
+ * Le rail (T2.4), la liste (T2.5) et la lecture (T2.6) sont branchés ; les
+ * modales restantes arrivent aux tâches 2.9-2.11. L'état vide reste honnête —
+ * l'écran ne prétend pas afficher des messages qu'il ne sait pas encore lire.
  */
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
@@ -19,11 +19,14 @@ import { useMailAccounts } from '@/hooks/useMailAccounts'
 import { useMailActions } from '@/hooks/useMailActions'
 import { useMailDrafts } from '@/hooks/useMailDrafts'
 import { useMailLabels } from '@/hooks/useMailLabels'
-import { useMailFolderCounts, useMailThreads } from '@/hooks/useMailThreads'
+import { useMailFolderCounts, useMailThreads, type MailThreadRow } from '@/hooks/useMailThreads'
+import { useMailThread } from '@/hooks/useMailThread'
+import { useMailSend } from '@/hooks/useMailSend'
 import { useMailRealtime } from '@/hooks/useMailRealtime'
 import { MailList } from './MailList'
 import { MailContextMenu } from './MailContextMenu'
 import { MailRail } from './MailRail'
+import { MailReader } from './MailReader'
 import { MailLabelMenu } from './MailLabelMenu'
 import { mailReducer, initialMailState } from './mailState'
 import { mailSurfaces } from './mailTokens'
@@ -68,6 +71,30 @@ export function MessagerieApp({ dark, setDark }: Props) {
   })
   const drafts = useMailDrafts(state.accountId)
   const actions = useMailActions(state.accountId)
+  const thread = useMailThread(state.sel)
+  const send = useMailSend(state.accountId)
+  const currentAccount = accounts.list.find((a) => a.id === state.accountId) ?? null
+
+  /**
+   * ⚠ Le fil ouvert doit SURVIVRE à sa page. Un changement de filtre, un passage
+   * à la page suivante ou un rafraîchissement Realtime peut le faire sortir de
+   * `threads.rows` : sans repli, la lecture disparaîtrait sous l'utilisateur au
+   * premier `invalidate`, sans qu'il ait rien fait.
+   *
+   * ⛔ ET CE N'EST PAS UNE `useRef`, que le plan prescrivait : `react-hooks/refs`
+   * est une ERREUR dans ce dépôt, et lire `.current` pendant le rendu en lève
+   * QUATRE (mesuré le 05.09.2026). Le souvenir passe par un état ajusté PENDANT
+   * le rendu — le patron que React documente pour « dériver d'une donnée qui
+   * change ». ⚠ Pas dans un effet non plus : `react-hooks/set-state-in-effect`
+   * le signale, et l'effet ferait un rendu de plus, donc un clignotement.
+   *
+   * ⚠ Le repli n'est servi que si son identifiant correspond ENCORE : sinon on
+   * montrerait le fil précédent sous le titre du suivant.
+   */
+  const filTrouve = threads.rows.find((r) => r.id === state.sel) ?? null
+  const [filMemo, setFilMemo] = useState<MailThreadRow | null>(null)
+  if (filTrouve && filTrouve !== filMemo) setFilMemo(filTrouve)
+  const filOuvert = filTrouve ?? (filMemo?.id === state.sel ? filMemo : null)
 
   // Première boîte visible = boîte courante ; `?account=` (retour de pop-up sans opener) prime.
   useEffect(() => {
@@ -168,13 +195,35 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 creatorBusy={labels.create.isPending || labels.rename.isPending || labels.recolor.isPending}
               />
             </aside>
-            {/* Liste (T2.5) ; la lecture d'un fil arrive en T2.6. */}
+            {/* Liste (T2.5) ou lecture du fil sélectionné (T2.6) — jamais les deux. */}
             <section style={{ minHeight: 0, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
               {accounts.isLoading ? null : accounts.list.length === 0 ? (
                 <div style={{ margin: 'auto' }}>
                   <EtatVide dark={dark} registre="aFaire" titre={t('mail.empty.noAccount.title')} corps={t('mail.empty.noAccount.body')}
                     action={{ libelle: t('mail.add.cta'), onClick: () => dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } }) }} />
                 </div>
+              ) : state.sel && filOuvert && thread.data ? (
+                <MailReader
+                  ms={ms}
+                  lang={i18n.language.slice(0, 2)}
+                  boxEmail={currentAccount?.email ?? ''}
+                  thread={filOuvert}
+                  messages={thread.data}
+                  label={labels.labels.find((l) => l.id === filOuvert.label_id) ?? null}
+                  composer={state.composer}
+                  sending={send.isPending}
+                  onBack={() => dispatch({ type: 'back' })}
+                  onReply={() => dispatch({ type: 'composer', composer: 'reply' })}
+                  onForward={() => dispatch({ type: 'composer', composer: 'forward' })}
+                  onCancelComposer={() => dispatch({ type: 'composer', composer: 'none' })}
+                  // `to` vide : `mail-send` déduit le destinataire du message d'origine.
+                  onSendReply={(text, m) => send.mutate({ kind: 'reply', to: [], body_text: text, in_reply_to_message_id: m.id }, { onSuccess: () => dispatch({ type: 'composer', composer: 'none' }) })}
+                  onSendForward={(to, note, m) => send.mutate({ kind: 'forward', to, body_text: note, in_reply_to_message_id: m.id }, { onSuccess: () => dispatch({ type: 'composer', composer: 'none' }) })}
+                  onArchive={() => { actions.act.mutate({ action: filOuvert.is_archived ? 'unarchive' : 'archive', threadId: filOuvert.id }); dispatch({ type: 'back' }) }}
+                  onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadId: filOuvert.id } })}
+                  onOpenAttachment={(a) => dispatch({ type: 'modal', modal: { kind: 'preview', attachmentId: a.id } })}
+                  onLinkContact={(email, name) => dispatch({ type: 'modal', modal: { kind: 'link-contact', threadId: filOuvert.id, email, name } })}
+                />
               ) : (
                 <MailList
                   ms={ms}

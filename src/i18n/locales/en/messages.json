@@ -138,7 +138,9 @@
       }
     },
     "compose": {
-      "cta": "New message"
+      "cta": "New message",
+      "to": "Recipient",
+      "toPlaceholder": "To · recipient"
     },
     "folders": {
       "aria": "Folders",
@@ -186,13 +188,34 @@
       "unarchive": "Move out of archive",
       "delete": "Delete"
     },
+    "read": {
+      "back": "Back to list",
+      "to": "to {{box}}",
+      "me": "me",
+      "reply": "Reply",
+      "forward": "Forward",
+      "replyTo": "Reply to",
+      "replyBody": "Your reply",
+      "forwardNote": "Optional note",
+      "forwardOriginal": "Original message attached",
+      "showImages": "Show images",
+      "bodyTitle": "Message body",
+      "truncated": "Message truncated (too large): open it in your mail client for the full version.",
+      "unlinked": "Address not linked: {{email}}"
+    },
+    "link": {
+      "cta": "Link"
+    },
     "draft": {
       "badge": "Draft",
       "noRecipient": "(no recipient)"
     },
     "actions": {
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "send": "Send",
+      "sending": "Sending…",
+      "forward": "Forward"
     }
   }
 }

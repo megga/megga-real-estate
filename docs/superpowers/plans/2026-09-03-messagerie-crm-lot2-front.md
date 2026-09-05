@@ -2021,6 +2021,36 @@ git commit -m "feat(messagerie): la liste — barre d'outils, lignes, pagination
 
 Dimensions : README §3.
 
+⛔ **SEPT ÉCARTS MESURÉS À L'ÉCRITURE (05.09.2026)** — les blocs ci-dessous sont corrigés, la
+liste dit pourquoi. Trois d'entre eux auraient fait rougir une porte, deux ne se voient qu'à
+l'exécution.
+
+1. **`import { MEIcon }` → `import MEIcon`.** `src/components/propertyx/MEIcon.tsx` n'a qu'un
+   export DÉFAUT (`export default function MEIcon`) ; l'import nommé ne compile pas. T2.5 avait
+   déjà écrit la forme correcte.
+2. **`<MEIcon name="x" …>` (T2.7) → `name="close"`.** `'x'` n'est pas un membre de `MEIconName`.
+   ⚠ Un nom inconnu ne casse pas le rendu — `MEIcon` rend `null` — mais TS refuse le littéral.
+3. **`fontWeight: 700` (titre du fil, titre de la modale) → `600`.** `megga-x-grammar` a une
+   clause « aucune graisse au-dessus de 600 », et son motif lit l'EXPRESSION entière.
+4. **`<b style={{ color: ms.ink }}>` → `<span style={{ …, fontWeight: 600 }}>`.** Une clause
+   dédiée interdit `<strong>`/`<b>` dans les zones portées : le preflight Tailwind leur donne
+   `bolder`, qui vaut **700** sur un parent à 500 — une graisse que la source ne déclare pas.
+5. **`padding: '3px 10px'` (pastille de libellé) → `var(--crm-space-2xs) var(--crm-space-sm)`.**
+   La zone `crm/messagerie` n'a AUCUNE entrée dans `B4_ASSUME` : le cliquet refuse le premier
+   littéral de rayon ou d'espacement, pas le centième. Même valeur que `MailListRow`.
+6. **`buildBodySrcdoc(…, { font: 'var(--crm-font)' })` → la police RÉSOLUE côté hôte.** ⛔ Une
+   variable CSS ne franchit pas la frontière d'un document : dans la `srcdoc`, `--crm-font`
+   n'existe pas, la déclaration `font-family` entière est écartée, et le corps du mail sort en
+   **sérif du navigateur** au milieu d'un écran sans serif. Panne muette, invisible à la
+   relecture. `MailBodyFrame` lit donc
+   `getComputedStyle(document.documentElement).getPropertyValue('--crm-font')`. ⚠ La police
+   elle-même ne suit pas (chaque document a son jeu de polices, et la CSP y interdit
+   `font-src`) : le rendu tombe sur `system-ui`, le repli déclaré par `buildBodySrcdoc`.
+7. **Le repli du fil ouvert : `useRef` → un état ajusté PENDANT le rendu.** `react-hooks/refs`
+   est une ERREUR dans ce dépôt, et lire `.current` au rendu en lève quatre (mesuré). ⚠ Et pas
+   un effet non plus : `react-hooks/set-state-in-effect` le signale, et l'effet ferait un rendu
+   de plus, donc un clignotement. Le repli n'est servi que si son identifiant correspond encore.
+
 - [ ] **Step 1 : Corps HTML dans une iframe sandbox**
 
 ```tsx
@@ -2030,9 +2060,15 @@ Dimensions : README §3.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { buildBodySrcdoc, sanitizeMailHtml } from '@/lib/mail/sanitize'
-import type { MailSurfaces } from './mailTokens'
+import { PILL, type MailSurfaces } from './mailTokens'
 
 interface Props { ms: MailSurfaces; html: string | null; text: string | null; truncated: boolean }
+
+/** Écart n° 6 : une variable CSS ne franchit pas la frontière d'un document. */
+function policeHote(): string {
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--crm-font').trim()
+  return v || 'system-ui'
+}
 
 export function MailBodyFrame({ ms, html, text, truncated }: Props) {
   const { t } = useTranslation('messages')
@@ -2040,7 +2076,7 @@ export function MailBodyFrame({ ms, html, text, truncated }: Props) {
   const [height, setHeight] = useState(120)
   const ref = useRef<HTMLIFrameElement>(null)
   const hasRemote = useMemo(() => !!html && /<img[^>]+src=["']?https?:/i.test(html), [html])
-  const doc = useMemo(() => (html ? buildBodySrcdoc(sanitizeMailHtml(html, { remoteImages: remote }), { ink: ms.txt2, font: 'var(--crm-font)', remoteImages: remote }) : null), [html, remote, ms.txt2])
+  const doc = useMemo(() => (html ? buildBodySrcdoc(sanitizeMailHtml(html, { remoteImages: remote }), { ink: ms.txt2, font: policeHote(), remoteImages: remote }  // écart n° 6) : null), [html, remote, ms.txt2])
   useEffect(() => {
     const el = ref.current
     if (!el || !doc) return
@@ -2060,7 +2096,7 @@ export function MailBodyFrame({ ms, html, text, truncated }: Props) {
   return (
     <div style={{ maxWidth: 760 }}>
       {hasRemote && !remote && (
-        <button type="button" onClick={() => setRemote(true)} style={{ marginTop: 'var(--crm-space-lg)', background: ms.elev, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-pill)', padding: 'var(--crm-space-xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button type="button" onClick={() => setRemote(true)} style={{ marginTop: 'var(--crm-space-lg)', background: ms.elev, border: `1px solid ${ms.bord}`, borderRadius: PILL, padding: 'var(--crm-space-xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3, cursor: 'pointer', fontFamily: 'inherit' }}>
           {t('mail.read.showImages')}
         </button>
       )}
@@ -2119,7 +2155,7 @@ export function MailReplyComposer({ ms, toName, busy, onCancel, onSend }: Props)
   const can = text.trim().length > 0 && !busy
   return (
     <div style={{ borderRadius: 'var(--crm-radius-xl)', background: ms.elev, padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', marginTop: 'var(--crm-space-4xl)' }}>
-      <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3, marginBottom: 'var(--crm-space-md)' }}>{t('mail.read.replyTo')} <b style={{ color: ms.ink }}>{toName}</b></div>
+      <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3, marginBottom: 'var(--crm-space-md)' }}>{t('mail.read.replyTo')} <span style={{ color: ms.ink, fontWeight: 600 }}>{toName}</span>  {/* écart n° 4 */}</div>
       <textarea value={text} onChange={(e) => setText(e.target.value)} autoFocus aria-label={t('mail.read.replyBody')}
         style={{ width: '100%', minHeight: 110, boxSizing: 'border-box', borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-lg) var(--crm-space-2xl)', fontSize: 'var(--crm-text-md)', lineHeight: 1.6, background: ms.card, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', resize: 'vertical', outline: 'none' }} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-md)' }}>
@@ -2172,7 +2208,7 @@ export function MailForwardComposer({ ms, originalFrom, originalSubject, busy, o
 ```tsx
 // src/components/crm/messagerie/MailReader.tsx — README §3.
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'  // écart n° 1 : export DÉFAUT
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailMessageRow, MailAttachmentRow } from '@/hooks/useMailThread'
 import type { MailLabel } from '@/hooks/useMailLabels'
@@ -2224,13 +2260,13 @@ export function MailReader(p: Props) {
         <MEIcon name="chevron-left" size={14} /> {t('mail.read.back')}
       </button>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-2xl)' }}>
-        <h1 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, margin: 0 }}>{p.thread.subject || t('mail.row.noSubject')}</h1>
-        {p.label && <span style={{ borderRadius: PILL, padding: '3px 10px', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: p.label.color, color: ms.pillInk(p.label.color) }}>{p.label.name}</span>}
+        <h1 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, margin: 0 }}>  {/* écart n° 3 */}{p.thread.subject || t('mail.row.noSubject')}</h1>
+        {p.label && <span style={{ borderRadius: PILL, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: p.label.color, color: ms.pillInk(p.label.color) }}>  {/* écart n° 5 */}{p.label.name}</span>}
       </div>
       {!p.thread.contact_id && inboundLast.from_email && (
         <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>
           {t('mail.read.unlinked', { email: inboundLast.from_email })}
-          <button type="button" onClick={() => p.onLinkContact(inboundLast.from_email!, inboundLast.from_name)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: ms.accent, fontWeight: 600, fontSize: 'var(--crm-text-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>{t('mail.link.cta')}</button>
+          <button type="button" onClick={() => p.onLinkContact(inboundLast.from_email ?? '', inboundLast.from_name)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: ms.accent, fontWeight: 600, fontSize: 'var(--crm-text-xs)', cursor: 'pointer', fontFamily: 'inherit' }}>{t('mail.link.cta')}</button>
         </div>
       )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', paddingBottom: 'var(--crm-space-2xl)', borderBottom: `1px solid ${ms.bord2}`, marginTop: 'var(--crm-space-2xl)' }}>
@@ -2289,7 +2325,13 @@ const currentAccount = accounts.list.find((a) => a.id === state.accountId) ?? nu
     onLinkContact={(email, name) => dispatch({ type: 'modal', modal: { kind: 'link-contact', threadId: selRow.id, email, name } })} />
 )}
 ```
-⚠ Si le fil ouvert sort de la page courante (filtre, page suivante), `selRow` devient null : garder la dernière ligne ouverte dans un `useRef` (`lastSel.current = selRow ?? lastSel.current`) et l'utiliser en repli — sinon la lecture disparaît sous l'utilisateur au premier `invalidate`.
+⚠ Si le fil ouvert sort de la page courante (filtre, page suivante), `selRow` devient null : garder la dernière ligne ouverte et l'utiliser en repli — sinon la lecture disparaît sous l'utilisateur au premier `invalidate`. ⛔ **Pas dans un `useRef`** (écart n° 7 ci-dessus) : `react-hooks/refs` est une ERREUR ici. Un `useState` ajusté PENDANT le rendu, et servi seulement si son identifiant correspond encore :
+```tsx
+const filTrouve = threads.rows.find((r) => r.id === state.sel) ?? null
+const [filMemo, setFilMemo] = useState<MailThreadRow | null>(null)
+if (filTrouve && filTrouve !== filMemo) setFilMemo(filTrouve)
+const filOuvert = filTrouve ?? (filMemo?.id === state.sel ? filMemo : null)
+```
 
 - [ ] **Step 6 : Clés i18n FR**
 

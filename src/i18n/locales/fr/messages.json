@@ -138,7 +138,9 @@
       }
     },
     "compose": {
-      "cta": "Nouveau message"
+      "cta": "Nouveau message",
+      "to": "Destinataire",
+      "toPlaceholder": "À · destinataire"
     },
     "folders": {
       "aria": "Dossiers",
@@ -186,13 +188,34 @@
       "unarchive": "Désarchiver",
       "delete": "Supprimer"
     },
+    "read": {
+      "back": "Retour à la liste",
+      "to": "à {{box}}",
+      "me": "moi",
+      "reply": "Répondre",
+      "forward": "Transférer",
+      "replyTo": "Réponse à",
+      "replyBody": "Votre réponse",
+      "forwardNote": "Note facultative",
+      "forwardOriginal": "Message d'origine joint",
+      "showImages": "Afficher les images",
+      "bodyTitle": "Corps du message",
+      "truncated": "Message tronqué (trop volumineux) : ouvrez-le dans votre messagerie pour la version complète.",
+      "unlinked": "Adresse non rattachée : {{email}}"
+    },
+    "link": {
+      "cta": "Rapprocher"
+    },
     "draft": {
       "badge": "Brouillon",
       "noRecipient": "(sans destinataire)"
     },
     "actions": {
       "cancel": "Annuler",
-      "save": "Enregistrer"
+      "save": "Enregistrer",
+      "send": "Envoyer",
+      "sending": "Envoi…",
+      "forward": "Transférer"
     }
   }
 }
