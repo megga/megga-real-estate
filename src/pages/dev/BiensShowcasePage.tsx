@@ -26,7 +26,7 @@
  *
  * ⚠ Le chemin ne contient PAS `/dashboard` : le script d'amorçage d'`index.html`
  * ne pose `data-theme="dark"` que si l'URL le contient. Le thème se pilote donc
- * ici, par le bouton du rail — la page ne dépend pas de l'amorçage.
+ * ici, par le bouton de la barre latérale — la page ne dépend pas de l'amorçage.
  *
  * ⛔ Données de DÉMONSTRATION (`CRM_BIENS`). Rien de ce qui s'affiche ici ne
  * vient de la base, et aucune action n'écrit : c'est un banc d'essai visuel,
@@ -36,7 +36,8 @@ import { useMemo, useState } from 'react'
 import { crmPalette } from '@/components/crm/tokens'
 import { CRM_BIENS } from '@/components/crm/mockData'
 import { mxSurfaces } from '@/components/crm/biens/gallery/galHelpers'
-import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { BiensPager } from '@/components/crm/biens/pager/BiensPager'
 import WizardShell from '@/components/crm-wizard/WizardShell'
 import ListingDetailPage from '@/pages/agent/ListingDetailPage'
@@ -62,13 +63,6 @@ export default function BiensShowcasePage() {
   const sp = crmPalette(dark)
   const surf = mxSurfaces(sp)
   const now = useMemo(() => new Date(), [])
-
-  // Le harnais ne navigue nulle part : chaque cible mènerait à une surface
-  // protégée, donc au rebond vers la production que cette page existe pour
-  // éviter. Seuls le thème et l'ouverture du wizard agissent.
-  const onNavigate = (id: CrmScreenId | string) => {
-    if (id === 'biens-new') setWizardOpen(true)
-  }
 
   return (
     <ThemeProvider>
@@ -107,17 +101,25 @@ export default function BiensShowcasePage() {
         ))}
       </div>
 
-      {/* ⚠ La FICHE apporte sa propre barre supérieure et son propre rail : c'est
-          une page complète, pas un panneau. La coiffer du chrome du harnais
-          affichait DEUX barres l'une sous l'autre. Elle remplace donc tout, et
-          le harnais ne garde que sa pastille et son sélecteur. */}
+      {/* ⚠ La FICHE monte sa propre barre latérale : c'est une page complète,
+          pas un panneau. La coiffer du chrome du harnais afficherait DEUX
+          barres côte à côte. Elle remplace donc tout, et le harnais ne garde
+          que sa pastille et son sélecteur. */}
       {surface === 'fiche' ? (
         <ListingDetailPage demoData={DEMO_LISTING} />
       ) : (
         <>
-          <CrmTopNav active="biens" sp={sp} onNavigate={onNavigate} dark={dark} />
           <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-            <CrmIconRail active="biens" onNavigate={onNavigate} onCmd={() => {}} dark={dark} setDark={setDark} sp={sp} />
+            {/* `active` est explicite : `/dev/biens` ne dit pas l'écran, la barre ne
+                peut donc pas le déduire de la route. Son geste « Créer » est ici le
+                wizard, comme sur l'écran réel. ⚠ Ses AUTRES lignes mènent aux
+                surfaces protégées : la barre se tait d'elle-même sous `/dev/*`
+                (cf. sa garde `enBanc`), sans quoi un clic ferait rebondir le banc
+                vers la production. */}
+            <CrmWorkspace
+              active="biens" sp={sp} dark={dark} setDark={setDark}
+              onCmd={() => setWizardOpen(true)}
+            >
             <BiensPager
               biens={CRM_BIENS}
               sp={sp}
@@ -135,6 +137,7 @@ export default function BiensShowcasePage() {
               wizardOpen={wizardOpen}
               wizardSlot={<WizardShell embedded dark={dark} onClose={() => setWizardOpen(false)} />}
             />
+            </CrmWorkspace>
           </div>
         </>
       )}

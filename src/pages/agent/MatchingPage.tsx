@@ -17,16 +17,15 @@
 
 import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import type { ReactNode } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmPalette } from '@/components/crm/tokens'
-import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
-import { openCrmSearch } from '@/components/crm/search/openSearch'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import MatchingAtelierPage from '@/pages/agent/MatchingAtelierPage'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 
 const MATCHING_PAGES = [
   { id: 'score', labelKey: 'pager.score' },
@@ -113,14 +112,15 @@ function MatchingScrollHint({ page, onGo, sub, ink }: { page: number; onGo: (i: 
  * Contenus de substitution du banc `/dev/matching-atelier`, et rien d'autre.
  *
  * ⚠ La MÉCANIQUE reste celle de la production — chrome, molette, clavier, points
- * de page, bascule de thème du rail. C'est elle qu'on vient éprouver : un banc
- * qui recopierait le pager mesurerait sa copie, et les deux divergeraient au
- * premier correctif. Seul le CONTENU est fourni de l'extérieur, pour que les
- * fixtures ne descendent pas dans le bundle de production.
+ * de page, bascule de thème de la barre latérale. C'est elle qu'on vient
+ * éprouver : un banc qui recopierait le pager mesurerait sa copie, et les deux
+ * divergeraient au premier correctif. Seul le CONTENU est fourni de l'extérieur,
+ * pour que les fixtures ne descendent pas dans le bundle de production.
  *
- * Sa présence rend aussi la navigation du chrome INERTE : chaque cible mène à
- * une surface protégée, donc au rebond vers la production que le banc existe
- * précisément pour éviter.
+ * ⚠ La barre latérale navigue ELLE-MÊME (elle porte la table des routes, pour
+ * qu'il n'y ait plus vingt-et-un aiguillages divergents), et se TAIT sous
+ * `/dev/*` : sans cette garde, chaque ligne mènerait à une surface protégée — et
+ * au rebond vers la production que le banc existe précisément pour éviter.
  *
  * ⚠ Des COMPOSANTS, pas des fonctions à appeler. Deux raisons, et la seconde a
  * mordu :
@@ -145,18 +145,17 @@ export interface MatchingPagerBanc {
    * les commandes glisseraient avec la page au lieu de rester à l'écran.
    *
    * ⚠ Et elles ne peuvent pas non plus vivre dans le banc au-dessus du pager :
-   * c'est le pager qui POSSÈDE le thème (bouton du rail + `megga.sugar.dark`).
-   * Un banc qui relirait la clé pour son compte peindrait ses commandes dans le
-   * thème d'avant la dernière bascule — un banc qui fabrique lui-même une
-   * incohérence de thème, défaut déjà vécu sur `/dev/biens`.
+   * c'est le pager qui POSSÈDE le thème (bouton de la barre latérale +
+   * `megga.sugar.dark`). Un banc qui relirait la clé pour son compte peindrait
+   * ses commandes dans le thème d'avant la dernière bascule — un banc qui
+   * fabrique lui-même une incohérence de thème, défaut déjà vécu sur
+   * `/dev/biens`.
    */
   Chrome?: (p: { dark: boolean }) => ReactNode
 }
 
 export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}) {
-  const navigate = useNavigate()
-
-  // ─── Thème: dark/light, calé sur le toggle du rail (comme Today) ────────
+  // ─── Thème: dark/light, calé sur la barre latérale (comme Today) ────────
   const [dark, setDark] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
     return readCrmDark()
@@ -170,26 +169,6 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
   const sp = crmPalette(dark)
   const lightMode = !dark
 
-  const onCmd = () => openCrmSearch()
-
-  const onNavigate = (id: CrmScreenId | string) => {
-    if (banc) return
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'biens-new': navigate('/dashboard/listings/new'); break
-      case 'calendar': navigate('/dashboard/calendar'); break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings': navigate('/dashboard/settings'); break
-      default:
-    }
-  }
-
   // ─── Pager molette ──────────────────────────────────────────────────
   // Arrivée pivotée (fiche deal V4 « Transmettre à … », fiche contact) : un
   // `?contact=` / `?annonce=` cible l'Atelier — on atterrit directement dessus
@@ -200,11 +179,39 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
       ? Math.max(0, MATCHING_PAGES.findIndex((pg) => pg.id === 'score'))
       : LANDING_PAGE,
   )
-  const [page, setPage] = useState(initialPage)
+  const [pageStockee, setPage] = useTabScopedState('pager', initialPage)
+  /**
+   * ⚠ LE PIVOT L'EMPORTE SUR LA TRANCHE MÉMORISÉE.
+   *
+   * `useTabScopedState` rend la valeur STOCKÉE dès qu'elle existe. Dans un onglet
+   * qui avait déjà servi à Matching et bougé son pager, une arrivée pivotée
+   * (« Transmettre à … » depuis une fiche deal) atterrirait sur la page mémorisée
+   * au lieu de l'Atelier : le geste qu'on vient de demander serait ignoré au
+   * profit d'un souvenir.
+   *
+   * Règle : une INTENTION EXPRIMÉE MAINTENANT (le paramètre d'URL) passe devant
+   * une position retenue.
+   *
+   * ⛔ La correction se lit au RENDU et s'écrit dans un EFFET — jamais l'inverse.
+   * Poser la valeur pendant le rendu écrirait dans le fournisseur d'onglets
+   * depuis le rendu d'un autre composant, ce que React refuse ; et la poser
+   * seulement dans l'effet ferait afficher une frame sur la mauvaise page avant
+   * de glisser vers l'Atelier.
+   */
+  const pivot = searchParams.has('contact') || searchParams.has('annonce')
+  const [pivotConsomme, setPivotConsomme] = useState(!pivot)
+  const page = pivotConsomme ? pageStockee : initialPage
+  useEffect(() => {
+    if (pivotConsomme) return
+    setPage(initialPage)
+    setPivotConsomme(true)
+  }, [pivotConsomme, initialPage, setPage])
   // `pageRef` sert au positionnement initial SANS animation (useLayoutEffect plus
   // bas) : il doit démarrer sur la page d'atterrissage, sinon on verrait l'Atelier
-  // une frame avant de glisser vers Recherche.
-  const pageRef = useRef(initialPage)
+  // une frame avant de glisser vers Recherche. ⚠ Il lit `page` et non
+  // `initialPage` : dans un onglet rouvert, la page RETROUVÉE est celle qu'il
+  // faut poser d'emblée.
+  const pageRef = useRef(page)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const posRef = useRef(0)
@@ -243,13 +250,13 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
 
   const go = useCallback((dir: number) => {
     setPage((p) => Math.min(MATCHING_PAGES.length - 1, Math.max(0, p + dir)))
-  }, [])
+  }, [setPage])
   const goTo = useCallback((i: number) => {
     if (lock.current) return
     lock.current = true
     setPage(i)
     setTimeout(() => { lock.current = false }, 820)
-  }, [])
+  }, [setPage])
   // Extrait de la vue : `goTo` lit `lock.current`, et le passer inline à un slot
   // APPELÉ pendant le rendu déclenche `react-hooks/refs`. Le stabiliser ici règle
   // le grief à sa source plutôt que de le taire — et évite au passage une
@@ -365,14 +372,9 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
         .matching-scroll-hint:hover .msh-label, .matching-scroll-hint:focus-visible .msh-label { max-width: 220px !important; opacity: 1 !important; transform: translateX(0) !important; }
       `}</style>
 
-      <CrmTopNav active="matching" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
-
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail
-          active="matching" onNavigate={onNavigate} onCmd={onCmd}
-          dark={dark} setDark={setDark} sp={sp}
-        />
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+        <CrmWorkspace active="matching" sp={sp} dark={dark} setDark={setDark}>
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
           {/* Viewport pager — clippe les deux pages, capte la molette */}
           <div ref={viewportRef} style={{
             position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',
@@ -392,6 +394,7 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
             <MatchingPageDots page={page} onGo={goTo} lightMode={lightMode} />
           </div>
         </main>
+        </CrmWorkspace>
       </div>
 
       <MatchingScrollHint page={page} onGo={goTo} sub={sp.sub} ink={sp.ink} />

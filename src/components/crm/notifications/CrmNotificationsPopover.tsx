@@ -1,12 +1,16 @@
-// MEGGA CRM Sugar v2 — Notifications popover anchored on the topbar bell.
-// 1:1 port from the Claude Design bundle (crm-notifications.jsx — CrmNotificationsPopover).
+// MEGGA CRM — popover des notifications, ancrée sur la ligne « Notifications »
+// de la barre latérale. Port 1:1 du bundle Claude Design (crm-notifications.jsx),
+// à un ajout près : la pose LATÉRALE et son helper `useSideAnchor`, nés du
+// passage de la barre du haut à la colonne de gauche (4 septembre 2026).
 
 import EtatVide from '@/components/crm/EtatVide'
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { crmVoileEncre, type CrmPalette } from '../tokens'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { KIND_META, type CrmNotif, type NotifKind } from './data'
+import { useSideAnchor, type CrmPopoverPlacement } from '@/hooks/useSideAnchor'
 
 // ─── Atom : ligne de notif compacte (popover) ──────────────────────────
 interface NotifRowProps {
@@ -26,13 +30,16 @@ function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRow
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuRect, setMenuRect] = useState<DOMRect | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
   const context = n.body ? n.body.split(/[.·]/)[0].trim() : ''
 
   // Fermeture du menu sur clic extérieur.
   useEffect(() => {
     if (!menuOpen) return
     const fn = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setMenuOpen(false)
+      const t = e.target as Node
+      if (menuRef.current?.contains(t)) return
+      if (wrapRef.current && !wrapRef.current.contains(t)) setMenuOpen(false)
     }
     document.addEventListener('mousedown', fn)
     return () => document.removeEventListener('mousedown', fn)
@@ -121,9 +128,21 @@ function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRow
           ) : null}
         </div>
       </button>
-      {/* Menu contextuel — position fixed (ancré au bouton) pour ne pas être coupé par l'overflow scrollable. */}
-      {menuOpen && menuRect && (
-        <div style={{
+      {/* Menu contextuel — `position: fixed` ancré au bouton, pour ne pas être
+          coupé par l'overflow de la liste.
+          ⛔ ET PORTÉ DANS `document.body`, ce qui n'était pas nécessaire tant que
+          la popover tombait sous la barre du haut. Depuis qu'elle s'ancre au
+          CÔTÉ de la barre latérale, sa racine porte un `backdrop-filter` : un
+          filtre fait de l'élément le BLOC CONTENEUR de tout descendant en
+          `position: fixed`, si bien que les coordonnées de fenêtre calculées ici
+          se lisaient depuis le coin de la popover — le menu partait hors écran.
+          Le portail le sort du filtre ; ses coordonnées redeviennent celles de
+          la fenêtre. Même piège que le calendrier MEGGA X.
+          ⚠ Porté, le menu n'est plus dans `wrapRef` : la fermeture au clic
+          extérieur doit l'excepter, sinon le `mousedown` la referme avant que le
+          `click` de l'option ne parte. D'où `menuRef` dans le test ci-dessus. */}
+      {menuOpen && menuRect && createPortal(
+        <div ref={menuRef} style={{
           position: 'fixed',
           top: menuRect.bottom + 6,
           right: Math.max(12, window.innerWidth - menuRect.right - 2),
@@ -139,7 +158,8 @@ function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRow
           {menuItem('eye', t('notifications.hideOne'), () => onHide())}
           <div style={{ height: 1, background: sp.frameBorder, margin: '5px 8px' }} />
           {menuItem('bell', t('notifications.muteKind', { kind: meta.label }), () => onMute())}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
@@ -150,6 +170,8 @@ interface CrmNotificationsPopoverProps {
   sp: CrmPalette
   dark: boolean
   items: CrmNotif[]
+  /** `'below-right'` par défaut — la pose historique de la barre du haut. */
+  placement?: CrmPopoverPlacement
   onItemClick?: (n: CrmNotif) => void
   onMarkAll?: () => void
   onSeeAll?: () => void
@@ -157,7 +179,7 @@ interface CrmNotificationsPopoverProps {
 }
 
 export default function CrmNotificationsPopover({
-  sp, dark, items, onItemClick, onMarkAll, onSeeAll, onMute,
+  sp, dark, items, placement = 'below-right', onItemClick, onMarkAll, onSeeAll, onMute,
 }: CrmNotificationsPopoverProps) {
   const { t } = useTranslation('common')
   // Copie locale : les actions du menu « ⋯ » (lu/non-lu, masquer, désactiver type)
@@ -187,6 +209,8 @@ export default function CrmNotificationsPopover({
     flashToast(t('notifications.toastMuted', { kind: KIND_META[kind]?.label || kind }))
   }
 
+  const { ref: sideRef, box: sideBox } = useSideAnchor(placement === 'side')
+
   const top = localItems.slice(0, 5)
   const unread = localItems.filter(n => !n.read).length
   // ⛔ La popover peignait SA propre surface flottante — `#16181F`, un palier
@@ -196,8 +220,13 @@ export default function CrmNotificationsPopover({
   const solidBg = sp.solidBg
 
   return (
-    <div style={{
-      position: 'absolute', top: 'calc(100% + 10px)', right: 0,
+    <div ref={sideRef} style={{
+      // Latérale : boîte `fixed` calculée et bornée (cf. `useSideAnchor`). Tant
+      // que la mesure n'a pas eu lieu, on la garde hors écran plutôt que de la
+      // peindre une frame au mauvais endroit.
+      ...(placement === 'side'
+        ? { position: 'fixed' as const, left: sideBox?.left ?? -9999, top: sideBox?.top ?? -9999 }
+        : { position: 'absolute' as const, top: 'calc(100% + 10px)', right: 0 }),
       width: 400, padding: 'var(--crm-space-xl)', zIndex: 9000,
       // ⚠ Portait `rgba(255,255,255,0.85)` en dur — un blanc qui aurait sauté
       // aux yeux en sombre si la doublure opaque ci-dessous ne le recouvrait pas

@@ -12,6 +12,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ReactNode } from 'react'
 import type { CrmPalette } from '../tokens'
+import { useSideAnchor, type CrmPopoverPlacement } from '@/hooks/useSideAnchor'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
@@ -108,11 +109,10 @@ interface ProfileHeaderProps {
   sp: CrmPalette
   name: string
   initials: string
-  subtitle: string
   planLabel: string | null
 }
 
-function ProfileHeader({ sp, name, initials, subtitle, planLabel }: ProfileHeaderProps) {
+function ProfileHeader({ sp, name, initials, planLabel }: ProfileHeaderProps) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
@@ -144,10 +144,6 @@ function ProfileHeader({ sp, name, initials, subtitle, planLabel }: ProfileHeade
             </span>
           )}
         </div>
-        <div style={{
-          fontSize: 'var(--crm-text-sm)', color: sp.sub, marginTop: 3,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>{subtitle}</div>
       </div>
     </div>
   )
@@ -157,6 +153,15 @@ function ProfileHeader({ sp, name, initials, subtitle, planLabel }: ProfileHeade
 interface CrmProfileDropdownProps {
   sp: CrmPalette
   dark: boolean
+  /**
+   * Bascule clair/sombre. Elle vivait dans le rail d'icônes ; le rail parti, ce
+   * menu est le seul endroit du chrome où le réglage a encore un voisinage
+   * sensé — celui des préférences du compte. Omise (console admin, bancs), la
+   * ligne « Apparence » n'est pas rendue.
+   */
+  setDark?: (v: boolean) => void
+  /** Pose de la popover — voir `CrmPopoverPlacement`. */
+  placement?: CrmPopoverPlacement
   onClose?: () => void
   onSettings?: () => void
   onHelp?: () => void
@@ -168,16 +173,16 @@ interface CrmProfileDropdownProps {
 }
 
 export default function CrmProfileDropdown({
-  sp, onClose, onSettings, onHelp, onLogout,
+  sp, dark, setDark, placement = 'below-right', onClose, onSettings, onHelp, onLogout,
 }: CrmProfileDropdownProps) {
   const { t } = useTranslation('common')
   const { profile, user } = useAuth()
   const navigate = useNavigate()
-  const { agency: agencyData, plan } = useAgencySettings()
-  // Seule porte d'entrée vers la console depuis le CRM refondu : le rail et la
-  // TopNav ne portent aucune trace de l'admin, et la sidebar legacy qui le
-  // proposait n'est plus montée sur les surfaces Sugar. Rendu uniquement pour
-  // un super-admin confirmé par la DB (useSuperAdminGate → RPC is_super_admin).
+  const { plan } = useAgencySettings()
+  // Seule porte d'entrée vers la console depuis le CRM : aucune ligne de la
+  // barre latérale ne porte de trace de l'admin. Rendu uniquement pour un
+  // super-admin confirmé par la DB (useSuperAdminGate → RPC is_super_admin).
+  // ⚠ La retirer d'ici laisserait ⌘K comme unique chemin vers la console.
   const { allowed: isSuperAdmin } = useSuperAdminGate()
 
   const fullName = profile?.full_name?.trim() || user?.email?.split('@')[0] || t('profile.defaultName')
@@ -188,12 +193,12 @@ export default function CrmProfileDropdown({
     .slice(0, 2)
     .join('')
     .toUpperCase() || '??'
-  const role = profile?.role
-    ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
-    : t('profile.defaultName')
-  const agencyName = agencyData?.name?.trim() || t('profile.noAgency')
-  const subtitle = user?.email?.trim() || `${role} · ${agencyName}`
   const planLabel = plan ? plan.toUpperCase() : null
+
+  // Même pose latérale bornée que la popover des notifications — le pied de la
+  // barre est bas dans la fenêtre, mais rien ne garantit qu'il le reste (bandeau
+  // d'usurpation, fenêtre courte) : on mesure plutôt que de supposer.
+  const { ref: sideRef, box: sideBox } = useSideAnchor(placement === 'side')
 
   const wrap = (fn?: () => void) => () => {
     if (fn) fn()
@@ -201,8 +206,10 @@ export default function CrmProfileDropdown({
   }
 
   return (
-    <div style={{
-      position: 'absolute', top: 'calc(100% + 10px)', right: 0,
+    <div ref={sideRef} style={{
+      ...(placement === 'side'
+        ? { position: 'fixed' as const, left: sideBox?.left ?? -9999, top: sideBox?.top ?? -9999 }
+        : { position: 'absolute' as const, top: 'calc(100% + 10px)', right: 0 }),
       width: 304, padding: 'var(--crm-space-xl)', zIndex: 9000,
       background: sp.solidBg,
       border: `1px solid ${sp.solidBorder}`,
@@ -214,7 +221,7 @@ export default function CrmProfileDropdown({
       boxShadow: sp.solidShadow,
       animation: 'crm-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>
-      <ProfileHeader sp={sp} name={fullName} initials={initials} subtitle={subtitle} planLabel={planLabel} />
+      <ProfileHeader sp={sp} name={fullName} initials={initials} planLabel={planLabel} />
 
       {/* Section « Plateforme » — libellée, pour que la console se distingue des
           réglages du compte : on ne quitte pas son agence, on change d'outil. */}
@@ -251,6 +258,47 @@ export default function CrmProfileDropdown({
           label={t('profile.help')}
           onClick={wrap(onHelp)} />
       </div>
+
+      {setDark && (
+        <>
+          <Sep sp={sp} />
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
+            padding: 'var(--crm-space-md) var(--crm-space-lg)',
+          }}>
+            <div style={{ width: 26, height: 26, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+              <MEIcon name={dark ? 'moon' : 'sun'} size={20} color={sp.ink} strokeWidth={1.6} />
+            </div>
+            <span style={{
+              flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, letterSpacing: -0.1,
+            }}>{t('nav.appearance')}</span>
+            {/* Segmenté à deux crans plutôt qu'un interrupteur : « clair » et
+                « sombre » sont deux choix nommés, pas l'activation d'un mode. */}
+            <div style={{
+              display: 'flex', gap: 'var(--crm-space-2xs)', flexShrink: 0,
+              padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)',
+              background: sp.solidBgSub,
+            }}>
+              {([false, true] as const).map(v => (
+                <button
+                  key={String(v)}
+                  type="button"
+                  onClick={() => setDark(v)}
+                  aria-pressed={dark === v}
+                  style={{
+                    border: 0, cursor: 'pointer', fontFamily: 'inherit',
+                    padding: 'var(--crm-space-2xs) var(--crm-space-sm)',
+                    borderRadius: 'var(--crm-radius-pill)',
+                    background: dark === v ? sp.accent : 'transparent',
+                    color: dark === v ? sp.accentInk : sp.sub,
+                    fontSize: 'var(--crm-text-xs)', fontWeight: 600,
+                  }}
+                >{v ? t('nav.dark') : t('nav.light')}</button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       <Sep sp={sp} />
 

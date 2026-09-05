@@ -5,9 +5,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { crmPalette } from '@/components/crm/tokens'
-import {
-  CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId,
-} from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { PCDossierFrame } from '@/components/crm/journey/PCDossierFrame'
 import { PCFilters } from '@/components/crm/journey/PCFilters'
 import {
@@ -15,6 +14,7 @@ import {
   type Urgency,
 } from '@/components/crm/journey/journeyData'
 import { useJourneyScreen } from '@/hooks/useJourneyScreen'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
 export default function JourneyPage() {
@@ -37,8 +37,9 @@ export default function JourneyPage() {
   // Filtre Agent retiré (pas de table profiles/teammates wire) — réintroduit avec RBAC.
   const { dossiers: liveDossiers } = useJourneyScreen()
 
-  const [stageFilter, setStageFilter] = useState<StageId | 'all'>('all')
-  const [urgencyFilter, setUrgencyFilter] = useState<Urgency | 'all'>('all')
+  // Les deux filtres de la liste : position d'écran, portée par l'onglet.
+  const [stageFilter, setStageFilter] = useTabScopedState<StageId | 'all'>('filtreEtape', 'all')
+  const [urgencyFilter, setUrgencyFilter] = useTabScopedState<Urgency | 'all'>('filtreUrgence', 'all')
 
   const dossiers = useMemo(() => {
     return liveDossiers.filter(d => {
@@ -47,38 +48,6 @@ export default function JourneyPage() {
       return true
     })
   }, [liveDossiers, stageFilter, urgencyFilter])
-
-  const onCmd = () => {
-    /* placeholder */
-  }
-
-  const onNavigate = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today':
-        navigate('/dashboard'); break
-      case 'pipeline':
-        navigate('/dashboard/pipeline'); break
-      case 'matching':
-        navigate('/dashboard/matching'); break
-      case 'contacts':
-        navigate('/dashboard/contacts'); break
-      case 'biens':
-        navigate('/dashboard/listings'); break
-      case 'biens-new':
-        navigate('/dashboard/listings/new'); break
-      case 'parcours':
-        break
-      case 'calendar':
-        navigate('/dashboard/calendar'); break
-      case 'kyc':
-        navigate('/dashboard/kyc'); break
-      case 'dashboard':
-        navigate('/dashboard/analytics'); break
-      case 'settings':
-        navigate('/dashboard/settings'); break
-      default:
-    }
-  }
 
   return (
     <div
@@ -90,27 +59,15 @@ export default function JourneyPage() {
       }}
     >
       <style>{CRM_KEYFRAMES}</style>
-      <CrmTopNav
-        active="parcours"
-       
-        sp={sp}
-        onNavigate={onNavigate}
-        onCmd={onCmd}
-      />
 
       <div style={{ display: 'flex' }}>
-        <CrmIconRail
-          active="parcours"
-          onNavigate={onNavigate}
-          onCmd={onCmd}
-          dark={dark}
-          setDark={setDark}
-          sp={sp}
-        />
+        <CrmWorkspace active="parcours" sp={sp} dark={dark} setDark={setDark}>
         <main
           style={{
             flex: 1,
-            padding: '32px 40px 80px 0',
+            // La gouttière de gauche venait du rail (capsule centrée dans ses
+            // 128 px) : la barre est désormais une carte pleine, il faut la poser ici.
+            padding: '32px 40px 80px var(--crm-space-lg)',
             minWidth: 0,
           }}
         >
@@ -197,6 +154,7 @@ export default function JourneyPage() {
             )}
           </div>
         </main>
+        </CrmWorkspace>
       </div>
     </div>
   )

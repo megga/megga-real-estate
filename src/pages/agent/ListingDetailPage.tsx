@@ -31,8 +31,9 @@ import {
   crmPalette, type CrmPalette,
 } from '@/components/crm/tokens'
 import {
-  CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId,
+  CRM_KEYFRAMES, type CrmScreenId,
 } from '@/components/crm/CrmShell'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import {
   VxIcon, VxGallery, VxLightbox, VxStatusPill, VxMetaPill, VxSectionHead,
   VxSpark, VxAvatar, type VxIconName,
@@ -53,6 +54,7 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Property } from '@/types/listing'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useTabLabel } from '@/hooks/useCrmTabs'
 
 const BF_MAXW = 1120 // largeur max de la colonne de contenu (bride le « trop large »)
 
@@ -462,6 +464,9 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   // ── Données réelles (identiques à la V3) ──
   const { data: bienLive, isLoading, isError, error } = useProperty(id)
   const bien = demoData ?? bienLive
+  // Libellé de l'onglet — le titre du bien, sinon son adresse (même ordre que
+  // `crm_tabs_resolve_labels` côté serveur, pour que les deux ne divergent pas).
+  useTabLabel(bien ? (bien.title || bien.address || null) : null)
   const { stats } = usePropertyStats(id)
   const { mutate: updateProperty } = useUpdateProperty()
   const { mutate: logAudit } = useLogAudit()
@@ -552,7 +557,6 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
     }
   }
 
-  const onCmd = () => {}
   const onNavigate = (screen: CrmScreenId | string) => {
     switch (screen) {
       case 'today': navigate('/dashboard'); break
@@ -770,10 +774,9 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
         @media (prefers-reduced-motion: reduce){ [style*="bfUp"]{ animation:none !important; opacity:1 !important; transform:none !important; } }
       `}</style>
 
-      <CrmTopNav active="biens" sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="biens" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+        <CrmWorkspace active="biens" sp={sp} dark={dark} setDark={setDark}>
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
           {/* BENTO central (look pager, sans slide) */}
           <div style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, display: 'flex', flexDirection: 'column' }}>
 
@@ -1029,6 +1032,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
             )}
           </div>
         </main>
+        </CrmWorkspace>
       </div>
 
       {/* Modales (contenues dans le root, position absolute · fond sombre opaque) */}

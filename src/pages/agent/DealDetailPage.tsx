@@ -24,9 +24,8 @@ import {
 } from '@/components/crm/tokens'
 import { mapTransactionStageToStepper } from '@/components/crm-dossiers/dealStepper'
 import OfferModal from '@/components/crm-dossiers/offer-modal/OfferModal'
-import {
-  CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId,
-} from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import {
   useTransaction, useUpdateTransactionStage, useUpdateTransactionStatus,
   type ContactTransaction,
@@ -348,23 +347,6 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
     )
   }
 
-  const onCmd = () => window.alert(t('board.commandPaletteComingSoon'))
-  const onNavigate = (navId: CrmScreenId | string) => {
-    switch (navId) {
-      case 'today':     go('/dashboard'); break
-      case 'pipeline':  go('/dashboard/pipeline'); break
-      case 'matching':  go('/dashboard/matching'); break
-      case 'contacts':  go('/dashboard/contacts'); break
-      case 'biens':     go('/dashboard/listings'); break
-      case 'calendar':  go('/dashboard/calendar'); break
-      case 'kyc':       go('/dashboard/kyc'); break
-      case 'parcours':  go('/dashboard/journey'); break
-      case 'dashboard': go('/dashboard/analytics'); break
-      case 'settings':  go('/dashboard/settings'); break
-      default: break
-    }
-  }
-
   const shell = (children: ReactNode) => (
     <div style={{
       position: 'relative', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
@@ -376,12 +358,12 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
         .ds-scroll::-webkit-scrollbar { width: 10px; }
         .ds-scroll::-webkit-scrollbar-thumb { background: ${p.ghost}; border-radius: 999px; border: 3px solid transparent; background-clip: padding-box; }
       `}</style>
-      <CrmTopNav active="pipeline" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <CrmIconRail active="pipeline" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+        <CrmWorkspace active="pipeline" sp={sp} dark={dark} setDark={setDark}>
         <main style={{
           flex: 1, minWidth: 0, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'column',
-          paddingRight: 24, paddingTop: 22, paddingBottom: 22,
+          paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)',
+          paddingRight: 24, paddingBottom: 22,
         }}>
           <div style={{
             position: 'relative', flex: 1, minHeight: 0, borderRadius: 26, overflow: 'hidden',
@@ -391,6 +373,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
             {children}
           </div>
         </main>
+        </CrmWorkspace>
       </div>
       {/* ⚠ À la RACINE : le cadre bento porte `overflow: hidden` et clipperait
           les commandes. Le thème est reçu, jamais relu — voir le banc Pipeline. */}

@@ -6,7 +6,7 @@
 // le câblage Supabase (useFocusQueue, agenda, pipeline, objectif) à reprendre
 // au « Lot 0 » d'hydratation du concept H.
 // Page 1 = catalogue de matchs. Pager molette vertical (1 cran = 1 page plein
-// écran), chrome CRM standard (CrmTopNav + CrmIconRail).
+// écran), chrome CRM standard (CrmSidebar).
 //
 // ⚠️ Port VISUEL sur DONNÉES DÉMO (cf. ./today/data.ts). Le handoff prescrit
 // « porter à l'identique d'abord, câbler ensuite » : le câblage live (Supabase)
@@ -21,11 +21,11 @@ import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
-import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
-import { CrmIconRail } from '@/components/crm/LiquidGlassRail'
-import { openCrmSearch } from '@/components/crm/search/openSearch'
+import type { CrmScreenId } from '@/components/crm/CrmShell'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { TK, applyTK } from '@/components/crm/today/tk'
 import { TodayNavProvider } from '@/components/crm/today/TodayNavContext'
+import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { PageAujourdhuiH } from '@/components/crm/today/PageAujourdhuiH'
 import { PageCatalogue } from '@/components/crm/today/PageCatalogue'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
@@ -122,7 +122,6 @@ export default function TodayPage() {
   applyTK(dark)
   const lightMode = TK.frameSolid === '#FFFFFF'
 
-  const onCmd = () => openCrmSearch()
 
   // `ref` = identifiant réel porté par le payload (uuid). Les cibles « détail »
   // n'existent qu'avec lui : sans référence, on ouvre la LISTE correspondante
@@ -152,8 +151,11 @@ export default function TodayPage() {
   }
 
   // ─── Pager molette ──────────────────────────────────────────────────
-  const [page, setPage] = useState(0)
-  const pageRef = useRef(0)
+  const [page, setPage] = useTabScopedState('pager', 0)
+  // ⚠ Initialisé sur `page`, pas sur 0 : quand l'onglet rend une page restaurée,
+  // c'est cette valeur que le `useLayoutEffect` de placement lit — la lire à 0
+  // ferait démarrer en haut puis défiler sur 720 ms vers la page retrouvée.
+  const pageRef = useRef(page)
   const viewportRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const posRef = useRef(0)
@@ -190,18 +192,14 @@ export default function TodayPage() {
   }, [])
 
   const go = useCallback((dir: number) => {
-    setPage((p) => {
-      const n = Math.min(TODAY_PAGES.length - 1, Math.max(0, p + dir))
-      if (n !== p) localStorage.setItem('megga_crm_today_page', String(n))
-      return n
-    })
-  }, [])
+    setPage((p) => Math.min(TODAY_PAGES.length - 1, Math.max(0, p + dir)))
+  }, [setPage])
   const goTo = useCallback((i: number) => {
     if (lock.current) return
     lock.current = true
-    setPage(() => { localStorage.setItem('megga_crm_today_page', String(i)); return i })
+    setPage(i)
     setTimeout(() => { lock.current = false }, 850)
-  }, [])
+  }, [setPage])
 
   // Position initiale (sans animation) + repositionnement au resize.
   useLayoutEffect(() => {
@@ -328,14 +326,9 @@ export default function TodayPage() {
           @keyframes m2pulse { 0% { transform: scale(1); opacity: .7; } 75%, 100% { transform: scale(2.2); opacity: 0; } }
         `}</style>
 
-        <CrmTopNav active="today" sp={sp} dark={dark} onNavigate={onNavigate} onCmd={onCmd} />
-
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-          <CrmIconRail
-            active="today" onNavigate={onNavigate} onCmd={onCmd}
-            dark={dark} setDark={setDark} sp={sp}
-          />
-          <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 24, paddingBottom: 22 }}>
+          <CrmWorkspace active="today" sp={sp} dark={dark} setDark={setDark}>
+          <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
             {/* Viewport pager — clippe les deux pages, capte la molette */}
             <div ref={viewportRef} style={{
               position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',
@@ -353,6 +346,7 @@ export default function TodayPage() {
               <TodayPageDots page={page} onGo={goTo} lightMode={lightMode} />
             </div>
           </main>
+          </CrmWorkspace>
         </div>
 
         {/* Indice molette — coin bas-gauche, discret */}

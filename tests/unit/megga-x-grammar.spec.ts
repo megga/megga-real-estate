@@ -218,7 +218,18 @@ const ZONES: RootSpec[] = [
   // contenu du dossier, et c'est ce qui la rend vérifiable.
   {
     root: 'src/components/crm',
-    keep: (n) => ['CrmShell.tsx', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts'].includes(n),
+    // ⚠ `CrmSidebar.tsx` et `crmSidebarNav.ts` entrent le 4 septembre 2026 avec
+    // le chrome qu'ils remplacent. Sans leur nom ici, la barre latérale — le
+    // fichier le plus peint du CRM — serait « déclarée non traitée » : la
+    // clause de fermeture la signale en orpheline, mais AUCUNE des douze
+    // clauses de grammaire ne la lirait.
+    // ⚠ `CrmTabsBar.tsx` et `CrmWorkspace.tsx` entrent le 4 septembre 2026 avec la
+    // barre d'onglets, et pour la même raison que les deux précédents : sans leur
+    // nom ici, la barre la plus peinte du chantier serait « déclarée non
+    // traitée ». Ils entrent en apportant ZÉRO littéral — chaque rayon et chaque
+    // espacement y est écrit en `var(--crm-*)`, y compris là où la maquette
+    // demandait 6, 11 et 14 px, arrondis aux barreaux.
+    keep: (n) => ['CrmShell.tsx', 'CrmSidebar.tsx', 'CrmTabsBar.tsx', 'CrmWorkspace.tsx', 'crmSidebarNav.ts', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts'].includes(n),
     keepPath: (p) => p.split('/').length === 4,
   },
   // Le chrome rendu par les 27 surfaces du CRM (lot 1 du chantier « CRM agent »,
@@ -913,7 +924,14 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/auth', { hors: 0, total: 13 }],
   ['src/components/auth-bento', { hors: 16, total: 28 }],
   ['src/components/crm-mobile', { hors: 228, total: 319 }],
-  ['src/components/crm', { hors: 3, total: 3 }],
+  // 3 -> 2 (04.09.2026). Le chrome du CRM est passé à UNE barre latérale : la
+  // barre du haut a emporté son `padding: '24px 24px 14px 33px'`, et le rail —
+  // qui survit pour la console admin — garde ses deux littéraux (`borderRadius:
+  // 34`, `padding: '96px 0 24px'`). `CrmSidebar.tsx` et `crmSidebarNav.ts`
+  // entrent dans la zone en apportant ZÉRO : la barre écrit chacun de ses rayons
+  // et espacements en `var(--crm-*)`, y compris là où la maquette demandait 28,
+  // 22, 26, 14 et 11 px — arrondis aux barreaux plutôt que d'amender l'échelle.
+  ['src/components/crm', { hors: 2, total: 2 }],
   // 69 -> 61 (18.08.2026) : le retrait de l'étape « Récapitulatif » a emporté ses
   // littéraux avec elle. Le cliquet redescend, il ne se justifie pas.
   ['src/components/crm-identity', { hors: 1, total: 61 }],
@@ -933,7 +951,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/journey', { hors: 3, total: 5 }],
   ['src/components/crm/notifications', { hors: 4, total: 4 }],
   ['src/components/crm/pipeline', { hors: 32, total: 38 }],
-  ['src/components/crm/profile', { hors: 2, total: 2 }],
+  // {2,2} -> {1,1} (05.09.2026). Le sous-titre du menu de compte — « rôle ·
+  // agence », puis l'e-mail quand il existait — a été retiré (décision Julien :
+  // l'en-tête ne porte plus que le NOM), et son `marginTop: 3` avec lui. Ne
+  // reste que le `margin: '7px 4px'` du séparateur de sections.
+  ['src/components/crm/profile', { hors: 1, total: 1 }],
   ['src/components/crm/search', { hors: 8, total: 8 }],
   // 74/95 → 73/93 (17.08.2026) : le retrait de l'écran d'appairage de la carte WhatsApp
   // a emporté ses littéraux avec lui. Le cliquet redescend, il ne se justifie pas.
@@ -955,10 +977,32 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/matching-recherche', { hors: 123, total: 185 }],
   ['src/components/onboarding-call', { hors: 0, total: 27 }],
   ['src/components/propertyx', { hors: 2, total: 3 }],
-  ['src/components/skeletons', { hors: 8, total: 12 }],
+  // {8,12} -> {1,2} (04.09.2026). `CrmPageSkeleton` décalquait un chrome qui
+  // n'existe plus (barre du haut + rail de verre) et recopiait ses littéraux :
+  // `padding: '24px 24px 14px 33px'`, `'96px 0 24px'`, `'14px 10px'`,
+  // `borderRadius: 34`, `margin: '24px 24px 32px 0'`… Redessiné en barre
+  // latérale, il décalque des valeurs déjà tokenisées. Ne restent que le rayon
+  // 26 du cadre de travail et sa marge, qui répondent aux `<main>` réels.
+  ['src/components/skeletons', { hors: 1, total: 2 }],
   ['src/components/ui', { hors: 0, total: 29 }],
   ['src/pages/admin', { hors: 225, total: 464 }],
-  ['src/pages/agent', { hors: 331, total: 936 }],
+  // 331 -> 328, 936 -> 933 (04.09.2026). ⚠ TROIS unités sortent du compte, et
+  // UNE SEULE est une tokenisation — le dire vaut mieux que laisser croire que
+  // trois littéraux ont été nettoyés :
+  //   • KycPage `padding: '22px 24px 22px 0'` -> `var(--crm-space-lg) 24px 22px
+  //     var(--crm-space-lg)` : tokenisée, elle quitte le compte pour de bon ;
+  //   • DealDetailPage `paddingTop: 22` et JourneyPage `padding: '32px 40px 80px 0'` :
+  //     ces deux-là portaient en dur la hauteur de la barre du HAUT pour la
+  //     dégager. Sans barre du haut il n'y a plus rien à dégager, et leur valeur
+  //     de tête est reprise — mais elles restent des littéraux ailleurs, elles
+  //     sortent du compte parce que leur forme a changé, pas parce qu'elles sont
+  //     devenues propres.
+  // ⛔ Ce que ce chiffre NE dit PAS : les `'100px 40px 120px'` / `'92px 40px 40px'`
+  // des quatre pages à défilement descendent bien à 24 px de tête, mais restent
+  // HORS échelle (leurs 40 et 120 le sont) — elles ne bougent donc aucun des deux
+  // compteurs. Le total ne mesure pas la qualité de ces valeurs, seulement leur
+  // nombre.
+  ['src/pages/agent', { hors: 328, total: 933 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 68, total: 259 }],
 ])

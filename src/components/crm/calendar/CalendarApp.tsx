@@ -6,11 +6,11 @@
 // agendas externes Google/Outlook (« Occupé », lecture seule).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
-import { CrmTopNav, CrmIconRail, CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
+import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { CalIcon } from './CalIcon'
 import { CalCircleBtn, CalViewToggle, type CalViewId } from './CalToolbar'
 import { CalWeekView } from './CalWeekView'
@@ -166,7 +166,6 @@ export interface CalendarAppProps {
 }
 
 export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
-  const navigate = useNavigate()
   const { t } = useTranslation('calendar')
   const queryClient = useQueryClient()
 
@@ -427,24 +426,6 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
 
   const selectedEvent = popover ? (filtered.find(e => e.id === popover.id) ?? eventsRef.current.find(e => e.id === calMasterId(popover.id)) ?? null) : null
 
-  const onCmd = () => { /* command palette — non câblé ici */ }
-  const onNavigate = (id: CrmScreenId | string) => {
-    switch (id) {
-      case 'today': navigate('/dashboard'); break
-      case 'pipeline': navigate('/dashboard/pipeline'); break
-      case 'matching': navigate('/dashboard/matching'); break
-      case 'contacts': navigate('/dashboard/contacts'); break
-      case 'biens': navigate('/dashboard/listings'); break
-      case 'biens-new': navigate('/dashboard/listings/new'); break
-      case 'parcours': navigate('/dashboard/journey'); break
-      case 'calendar': break
-      case 'kyc': navigate('/dashboard/kyc'); break
-      case 'dashboard': navigate('/dashboard/analytics'); break
-      case 'settings': navigate('/dashboard/settings?tab=integrations'); break
-      default:
-    }
-  }
-
   const commonView = {
     events: filtered, currentDate, now: liveNow, selectedId: popover?.id ?? null,
     onSelectEvent: selectEvent, onUpdateEvent: updateEventTime, onCommitEvent: commitEventTime,
@@ -461,12 +442,10 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
           @keyframes calSpin { to { transform: rotate(360deg); } }
         `}</style>
 
-        <CrmTopNav active="calendar" sp={sp} onNavigate={onNavigate} onCmd={onCmd} />
-
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-          <CrmIconRail active="calendar" onNavigate={onNavigate} onCmd={onCmd} dark={dark} setDark={setDark} sp={sp} />
+          <CrmWorkspace active="calendar" sp={sp} dark={dark} setDark={setDark}>
 
-          <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
+          <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
             <div style={{
               position: 'relative', height: '100%', borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden',
               border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, background: sp.pageBg,
@@ -502,6 +481,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
               </div>
             </div>
           </main>
+          </CrmWorkspace>
         </div>
 
         {popover && selectedEvent && (

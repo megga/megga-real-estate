@@ -19,7 +19,6 @@ const ALLOW_FILES = new Set([
 // Symboles précis exemptés : `chemin:symbole`.
 const ALLOW_SYMBOLS = new Set([
   'src/components/propertyx/PxWhatsAppButton.tsx:default', // composant du cœur Px (buildWaMeUrl, lui, est utilisé)
-  'src/components/crm/CrmShell.tsx:CrmIconRailProps', // re-export type (faux positif ts-prune)
   // Faux positif : le symbole EST importé (src/lib/geoLanguage.ts:29) et lu
   // (ligne 101), sur un chemin joignable depuis main.tsx. Preuve : retirer le
   // mot-clé `export` fait échouer tsc en TS2614. ts-prune ne compte pas l'usage
