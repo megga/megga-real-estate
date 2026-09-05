@@ -248,7 +248,7 @@ git commit -m "spike(messagerie): sonde TLS sortant IMAP 993 / SMTP 465 depuis l
 - Test: `supabase/functions/_shared/mail/imap-client.test.ts`
 - Modify: `vitest.config.ts`
 
-- [ ] **Step 1 : `duplex.ts`**
+- [x] **Step 1 : `duplex.ts`**
 
 ```ts
 // supabase/functions/_shared/mail/duplex.ts
@@ -326,7 +326,7 @@ function indexOfCrlf(b: Uint8Array): number {
 }
 ```
 
-- [ ] **Step 2 : Test du client (rouge) avec une connexion scriptée**
+- [x] **Step 2 : Test du client (rouge) avec une connexion scriptée**
 
 ```ts
 // supabase/functions/_shared/mail/imap-client.test.ts
@@ -410,7 +410,7 @@ describe('ImapClient', () => {
 
 Ajouter `'supabase/functions/_shared/mail/imap-client.test.ts',` à `vitest.config.ts` ; lancer → FAIL.
 
-- [ ] **Step 3 : `imap-client.ts`**
+- [x] **Step 3 : `imap-client.ts`**
 
 ```ts
 // supabase/functions/_shared/mail/imap-client.ts
@@ -546,7 +546,7 @@ export class ImapClient {
 }
 ```
 
-- [ ] **Step 4 : Vert, `deno check`, commit**
+- [x] **Step 4 : Vert, `deno check`, commit**
 
 ```bash
 npx vitest run supabase/functions/_shared/mail/imap-client.test.ts
@@ -554,7 +554,42 @@ deno check supabase/functions/_shared/mail/imap-client.ts supabase/functions/_sh
 git add supabase/functions/_shared/mail/duplex.ts supabase/functions/_shared/mail/imap-client.ts supabase/functions/_shared/mail/imap-client.test.ts vitest.config.ts
 git commit -m "feat(messagerie): client IMAP minimal (login, list, select, search, fetch, store, move, append)"
 ```
-Attendu : 4 tests PASS.
+Attendu : 4 tests PASS. **Obtenu : 15 tests PASS** (05.09.2026) — les 4 du plan,
+plus 11 qui gardent les six écarts ci-dessous.
+
+##### Six écarts au code de ce plan, nés de la mesure T3.1 ou d'une relecture
+
+| # | Ce que le plan écrivait | Ce qui a été écrit, et pourquoi |
+|---|---|---|
+| 1 | `connect()` vérifie la bannière et la jette | Elle porte souvent `[CAPABILITY …]` — MESURÉ : Bluewin ouvre par `* OK [CAPABILITY IMAP4rev1 SASL-IR … AUTH=PLAIN AUTH=OAUTHBEARER AUTH=XOAUTH2]`, Infomaniak par un simple `* OK IMAP4 ready`. La lire économise un aller-retour par passe. |
+| 2 | `capability()` appelée à la demande | Les capacités PRÉ-LOGIN ne sont pas celles d'APRÈS, et **Bluewin le dit lui-même** (« post-login capabilities have more »). `uidMove` et `append` décident sur `MOVE` et `UIDPLUS` : décider sur la liste pré-login, c'est prendre le repli dégradé alors que le serveur offrait mieux. `login()` relit la ligne taguée et redemande si besoin. |
+| 3 | ⛔ `UID COPY` + `\Deleted` + **`EXPUNGE`** | **`EXPUNGE` sans argument supprime définitivement TOUS les messages `\Deleted` du dossier**, pas seulement le nôtre. Thunderbird et Apple Mail marquent `\Deleted` sans expurger : archiver un fil depuis le CRM aurait détruit tout ce que l'agent avait supprimé sans confirmer, dans sa vraie boîte, sans un mot. Trois voies désormais — `MOVE`, sinon `UID EXPUNGE` (ciblé, UIDPLUS), sinon copie + `\Deleted` et **aucun expunge**. Un doublon visible vaut mieux qu'une destruction non demandée. |
+| 4 | `append()` rend `void` | Elle jetait l'`[APPENDUID <uidvalidity> <uid>]` de la ligne taguée, dont l'architecture a besoin pour rattacher la copie « Envoyés » au fil sans relire le dossier. Rend l'UID, ou **`null`** quand le serveur ne l'annonce pas : l'appelant doit savoir qu'il ne sait pas. |
+| 5 | `SEARCH` lu par `.find` (une ligne) | Un serveur répond couramment sur PLUSIEURS lignes `* SEARCH`. La moitié des UID était perdue **en silence**, et ces messages jamais ingérés. `flatMap` sur toutes les lignes. |
+| 6 | `LineReader.bytes(n)` : `break` sur EOF | Elle rendait un tampon COURT en silence quand le flux se coupait. Un message tronqué aurait été ingéré comme complet, marqué lu, puis jamais relu. Elle LÈVE. |
+
+##### Les tests ne sont pas creux, et c'est vérifié par mutation
+
+Chacun des six correctifs a été rétabli dans sa version « plan », un par un, et la
+suite a rougi les six fois :
+
+| Mutation | Tests en échec |
+|---|---|
+| `uidMove` → `EXPUNGE` nu | 2 |
+| `bytes()` → lecture courte silencieuse | 1 |
+| `SEARCH` → `.find` (première ligne) | 1 |
+| capacités de la bannière ignorées | 1 |
+| `APPENDUID` jeté | 1 |
+| pas de relecture des capacités après LOGIN | 1 |
+
+⚠ Une septième mutation a d'abord semblé non gardée — c'était la MUTATION qui ne
+s'appliquait pas (guillemets imbriqués), pas le test qui était creux. **Une
+mutation qui n'échoue pas ressemble exactement à une mutation qui ne s'est pas
+produite** : vérifier que le fichier a bien changé avant de conclure au test creux.
+
+⚠ Ce que ces 15 tests NE couvrent PAS : l'ouverture de la socket, mesurée
+séparément par la sonde T3.1, et le comportement des VRAIS serveurs — aucune
+boîte n'a encore été connectée.
 
 ---
 
