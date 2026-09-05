@@ -23,6 +23,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import RechIcon from './RechIcon'
 import MrhPhoto from './MrhPhoto'
@@ -251,6 +252,25 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
         </button>
         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.sub }}>{t('recherche.detail.back')}</div>
         <div style={{ flex: 1 }} />
+        {/* ⚠ LA SEULE ENTRÉE VERS LA FICHE AUTONOME, et c'est ce qui la rend
+            atteignable : réparée le 05.09.2026, elle n'avait plus aucun lien entrant
+            depuis le 18.05.2026. Cette surcouche montre l'annonce, mais elle ne sait
+            NI annoter, NI envoyer au client, NI importer au portefeuille — trois
+            capacités que seule la page porte. D'où « ouvrir en grand » plutôt qu'un
+            doublon d'affordances ici.
+            ⚠ Un vrai `<Link>` et non un `onClick` : ⌘-clic doit pouvoir l'ouvrir dans
+            un onglet du navigateur, et la barre d'onglets du CRM lui donne le sien. */}
+        <Link
+          to={`/dashboard/market/${bien.id}`}
+          title={t('recherche.detail.openFull')}
+          style={{
+            display: 'grid', placeItems: 'center', width: 40, height: 40,
+            borderRadius: 999, flexShrink: 0, background: surf.card,
+            boxShadow: surf.shadow, color: sp.ink, textDecoration: 'none',
+          }}
+        >
+          <RechIcon name="arrowR" size={17} stroke={sp.ink} />
+        </Link>
         {selectBtn(false)}
       </div>
 
