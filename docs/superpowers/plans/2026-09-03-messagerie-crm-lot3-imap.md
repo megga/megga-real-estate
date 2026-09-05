@@ -64,7 +64,7 @@ Présélections (README de la maquette, hôtes vérifiés sur les pages d'aide d
 - Create: `supabase/functions/mail-imap-probe/index.ts`
 - Modify: `supabase/config.toml`
 
-- [ ] **Step 1 : Écrire la sonde (service-secret, aucune donnée, aucun identifiant)**
+- [x] **Step 1 : Écrire la sonde (service-secret, aucune donnée, aucun identifiant)**
 
 ```ts
 // supabase/functions/mail-imap-probe/index.ts
@@ -116,7 +116,7 @@ serve(async (req: Request) => {
 verify_jwt = false
 ```
 
-- [ ] **Step 2 : Déployer et mesurer (⚠ EN PROD, c'est le but : le réseau local ne prouve rien)**
+- [x] **Step 2 : Déployer et mesurer (⚠ EN PROD, c'est le but : le réseau local ne prouve rien)**
 
 ```bash
 node scripts/check-edge-roster.mjs --write
@@ -129,19 +129,62 @@ curl -s -X POST https://eayczugyrvmtqnnmvjod.supabase.co/functions/v1/mail-imap-
   -H "Authorization: Bearer $SERVICE_ROLE_KEY" -H 'Content-Type: application/json' -d '{}' | python3 -m json.tool
 ```
 
-- [ ] **Step 3 : Consigner le résultat ICI, dans ce fichier, sous ce titre**
+- [x] **Step 3 : Consigner le résultat ICI, dans ce fichier, sous ce titre**
 
-#### Résultat du spike (à remplir)
+#### Résultat du spike — PASSE 1, mesurée en production le 05.09.2026 à 20:19 UTC
+
+Déclenchée par `net.http_post` depuis SQL (la clé service lue sur place dans
+`app_config`, jamais sortie de la base), réponse relue dans `net._http_response`.
 
 | Hôte:port | ok | bannière / erreur | ms |
 |---|---|---|---|
-| mail.infomaniak.com:993 | | | |
-| mail.infomaniak.com:465 | | | |
-| imap.bluewin.ch:993 | | | |
-| smtpauths.bluewin.ch:465 | | | |
-| mail.infomaniak.com:587 (témoin, doit ÉCHOUER) | | | |
+| mail.infomaniak.com:993 | ✅ | `* OK IMAP4 ready` → `* CAPABILITY IMAP4rev1 UIDPLUS IDLE LITERAL+ QUOTA AUTH=PLAIN AUTH=LOGIN` | 327 |
+| mail.infomaniak.com:465 | ✅ | `220 mail.infomaniak.com ESMTP ready` → `250-PIPELINING … 250 AUTH PLAIN LOGIN` | 227 |
+| imap.bluewin.ch:993 | ❌ | `failed to lookup address information: Name or service not known` | 28 |
+| smtpauths.bluewin.ch:465 | ✅ | `220 bluewin.ch mailout-002.p.bluenet.ch Swisscom AG ESMTP server ready` → `250-AUTH LOGIN PLAIN … 250 OK` | 227 |
+| mail.infomaniak.com:587 (témoin) | ❌ | `InvalidData: received corrupt message of type InvalidContentType` | 59 |
 
-**Verdict** : ☐ 993 et 465 passent → continuer en T3.2. ☐ un des deux échoue → aller directement en T3.9 (arrêt documenté), ne rien écrire d'autre.
+**Verdict : ☑ 993 et 465 passent → continuer en T3.2.** Le runtime edge ouvre bien
+un TLS sortant vers les deux ports, chez deux fournisseurs différents, en moins de
+350 ms. C'est la question que le spike posait, et elle a une réponse.
+
+⛔ **Mais deux faits de ce plan sont FAUX, et la sonde les a trouvés.**
+
+1. **`imap.bluewin.ch` N'EXISTE PAS.** L'échec est un `NXDOMAIN` en 28 ms — une
+   résolution DNS, pas un blocage réseau : le même runtime avait résolu et joint
+   `mail.infomaniak.com` la seconde d'avant, et il joint `smtpauths.bluewin.ch`
+   la seconde d'après. Le tableau des présélections donnait un hôte mort. L'hôte
+   réel est **`imaps.bluewin.ch`** (→ `imaps.p.bluenet.ch`), vérifié par
+   résolution directe. ⚠ Le plan AVERTISSAIT lui-même que ces hôtes « bougent, à
+   revérifier au moment de coder » : l'avertissement était juste, et il aurait
+   coûté une session de débogage sur un client IMAP tout neuf si la sonde ne
+   l'avait pas payé d'abord.
+2. **« Ports sortants 25 et 587 interdits » n'est PAS ce que la sonde mesure.**
+   L'erreur sur 587 est `InvalidContentType` en 59 ms — c'est-à-dire que des
+   octets sont REVENUS et qu'ils n'étaient pas du TLS. Une connexion TCP qui
+   aboutit et un serveur qui répond en clair, donc : ce témoin prouve seulement
+   que **le TLS implicite** échoue sur 587, ce qui est le comportement normal
+   d'un port STARTTLS. Il ne prouve rien sur l'ouverture du port. Un port
+   réellement filtré aurait rendu `timeout_connect` au bout de 8 s, pas une
+   erreur de handshake en 59 ms.
+
+#### Résultat du spike — PASSE 2 (à remplir)
+
+Corrige les deux points ci-dessus : `imaps.bluewin.ch` au lieu de l'hôte mort, et
+une sonde en CLAIR (`Deno.connect`, TCP nu) sur 587 et 25 pour trancher « fermé »
+contre « ouvert mais sans TLS implicite ».
+
+| Hôte:port | ok | bannière / erreur | ms |
+|---|---|---|---|
+| imaps.bluewin.ch:993 (TLS) | | | |
+| mail.infomaniak.com:587 (CLAIR) | | | |
+| mail.infomaniak.com:25 (CLAIR) | | | |
+
+**Ce que la passe 2 décide** : si 587 répond en clair, la contrainte « STARTTLS
+impossible depuis l'edge » du tableau en tête de ce plan est fausse, et la puce
+STARTTLS de la maquette peut devenir vivante au lieu d'échouer avec un message.
+Si les deux sondes en clair expirent, la contrainte est confirmée et le tableau
+reste tel quel — mais alors il sera MESURÉ, pas recopié d'une documentation.
 
 - [ ] **Step 4 : Commit**
 

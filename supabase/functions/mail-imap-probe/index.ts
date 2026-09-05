@@ -66,6 +66,39 @@ async function probe(hostname: string, port: number, command: string, expect: Re
   }
 }
 
+/**
+ * Sonde en CLAIR (TCP nu), pour une seule question que la sonde TLS ne peut pas
+ * trancher : quand `Deno.connectTls` échoue sur `InvalidContentType`, est-ce que
+ * le port est FERMÉ, ou est-ce qu'il est OUVERT et parle en clair ?
+ *
+ * ⚠ Les deux échecs se ressemblent dans un journal et ne veulent pas dire la même
+ * chose. `InvalidContentType` signifie que des octets sont revenus et qu'ils
+ * n'étaient PAS du TLS — donc que la connexion TCP a abouti. Cette sonde-ci le
+ * prouve en lisant la bannière telle quelle.
+ */
+async function probeClair(hostname: string, port: number): Promise<Record<string, unknown>> {
+  const t0 = Date.now()
+  const LIMITE_MS = 8000
+  let conn: Deno.TcpConn | null = null
+  try {
+    conn = await Promise.race([
+      Deno.connect({ hostname, port }),
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout_connect')), LIMITE_MS)),
+    ])
+    const buf = new Uint8Array(1024)
+    const n = await Promise.race([
+      conn.read(buf),
+      new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout_read')), LIMITE_MS)),
+    ])
+    const banner = new TextDecoder().decode(buf.subarray(0, n ?? 0)).trim()
+    return { hostname, port, tls: false, ok: /^220 /.test(banner), banner: banner.slice(0, 160), ms: Date.now() - t0 }
+  } catch (e) {
+    return { hostname, port, tls: false, ok: false, error: e instanceof Error ? `${e.name}: ${e.message}` : String(e), ms: Date.now() - t0 }
+  } finally {
+    try { conn?.close() } catch { /* déjà fermée */ }
+  }
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '')
@@ -77,13 +110,25 @@ serve(async (req: Request) => {
   for (const [host, port, cmd, attendu] of [
     ['mail.infomaniak.com', 993, 'a1 CAPABILITY', /^\* CAPABILITY/m],
     ['mail.infomaniak.com', 465, 'EHLO megga.ch', /^250/m],
-    ['imap.bluewin.ch', 993, 'a1 CAPABILITY', /^\* CAPABILITY/m],
+    // ⛔ `imap.bluewin.ch` N'EXISTE PAS — le plan le donnait, la sonde a rendu
+    // « failed to lookup address information » en 28 ms (échec DNS, pas blocage
+    // réseau : le même runtime avait résolu Infomaniak juste avant). L'hôte réel
+    // est `imaps.bluewin.ch`, qui pointe sur `imaps.p.bluenet.ch`.
+    ['imaps.bluewin.ch', 993, 'a1 CAPABILITY', /^\* CAPABILITY/m],
     ['smtpauths.bluewin.ch', 465, 'EHLO megga.ch', /^250/m],
-    // Témoin négatif ATTENDU : la plateforme bloque 25 et 587. S'il passait, ce
-    // serait la mesure qui serait fausse, pas la plateforme qui aurait changé.
+    // Témoin : TLS IMPLICITE sur 587. Il doit échouer — 587 parle en clair puis
+    // STARTTLS. ⚠ Ce que ce témoin NE dit PAS, et que le plan en concluait à tort :
+    // il ne prouve pas que le port est bloqué. Voir `probeClair` ci-dessous.
     ['mail.infomaniak.com', 587, 'EHLO megga.ch', /^250/m],
   ] as [string, number, string, RegExp][]) {
     results.push(await probe(host, port, cmd, attendu))
   }
-  return json({ mesure_le: new Date().toISOString(), results })
+  // ⚠ La question que le témoin TLS laisse ouverte : 587 est-il FERMÉ, ou juste
+  // sans TLS implicite ? Le plan affirme « ports sortants 25 et 587 interdits »
+  // d'après la documentation. Une doc n'est pas une mesure non plus.
+  const clair = [
+    await probeClair('mail.infomaniak.com', 587),
+    await probeClair('mail.infomaniak.com', 25),
+  ]
+  return json({ mesure_le: new Date().toISOString(), results, clair })
 })
