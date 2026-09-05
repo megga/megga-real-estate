@@ -18,10 +18,16 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-// ⚠ Le payload Flatfox ne porte AUCUN libellé de canton (que zipcode + city), on
-// appelle donc npaToCanton sans second argument : les 31 NPA à cheval sur deux
-// cantons restent tranchés à la majorité d'adresses, faute de mieux. Tout le
-// reste est exact depuis le passage au registre swisstopo — cf. _shared/npa.ts.
+// ⚠ CORRIGÉ LE 03.09.2026 : ce commentaire affirmait que « le payload Flatfox ne porte
+// AUCUN libellé de canton ». C'est FAUX — il porte `state` (code à 2 lettres, renseigné
+// sur ~74 % des annonces) et `country`. On continue pourtant d'appeler npaToCanton sans
+// second argument, et c'est désormais un choix mesuré, pas une ignorance :
+//   · `state` est NULL sur les 17 annonces que le NPA ne résout pas — il ne rattrape donc
+//     aucun des cas qui échouent ;
+//   · STATE_MAP indexe des libellés en toutes lettres (« Genève »), pas des codes à
+//     2 lettres : le passer tel quel ne trancherait aucun des 31 NPA ambigus, il tomberait
+//     dans le repli final de npaToCanton. L'y rendre utile demanderait d'étendre STATE_MAP,
+//     ce qui touche aussi realadvisor-sync — à faire séparément, pas en passant.
 import { npaToCanton } from '../_shared/npa.ts'
 import { reportEdgeError } from '../_shared/audit-edge-error.ts'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
@@ -75,6 +81,9 @@ interface SyncStats {
   fetched: number
   upserted: number
   skipped: number
+  /** Annonces écartées faute de canton déterminable — comptées à part de `skipped`
+   *  (types non retenus) pour qu'un changement de leur nombre soit visible. */
+  skippedNoCanton: number
   errors: number
   pages: number
   chunks: number
@@ -102,6 +111,12 @@ interface FlatfoxListing {
   street: string | null
   zipcode: number | null
   city: string | null
+  // ⚠ `state` et `country` EXISTENT dans le payload et n'étaient pas déclarés — c'est ce
+  // qui a laissé croire (cf. l'en-tête de ce fichier, corrigé) que Flatfox ne donnait
+  // aucune information de canton. `state` porte le code à 2 lettres et est renseigné sur
+  // ~74 % des annonces ; `country` vaut 'CH' sur la quasi-totalité. Mesuré le 03.09.2026.
+  state: string | null
+  country: string | null
   latitude: number | null
   longitude: number | null
   year_built: number | null
@@ -434,8 +449,25 @@ async function upsertRows(supabase: any, rows: Record<string, any>[]): Promise<{
       .from('market_listings')
       .upsert(batch, { onConflict: 'source_portal,source_id' })
     if (error) {
-      console.error(`upsert batch error (rows ${i}-${i + batch.length}):`, error.message)
-      errors += batch.length
+      // ⛔ ON NE PERD PLUS 25 LIGNES POUR UNE. Cette branche faisait `errors += batch.length`
+      // sans rien réessayer : mesuré le 03.09.2026, 14 lots tués par nuit, chacun par UNE
+      // seule ligne fautive — 350 lignes perdues pour 14 coupables, toutes les nuits depuis
+      // le 29.05.2026, sous un statut `completed`.
+      // Le rejeu ligne à ligne ne coûte que sur échec, et il est la DERNIÈRE ligne de
+      // défense : le filtre en amont écarte le cas connu (canton indéterminable), celui-ci
+      // borne le coût de tout cas encore inconnu à la ligne qui le provoque.
+      console.error(`upsert batch error (rows ${i}-${i + batch.length}) — rejeu ligne à ligne :`, error.message)
+      for (const row of batch) {
+        const { error: rowError } = await supabase
+          .from('market_listings')
+          .upsert([row], { onConflict: 'source_portal,source_id' })
+        if (rowError) {
+          console.error(`upsert row error (source_id=${row.source_id}):`, rowError.message)
+          errors++
+        } else {
+          upserted++
+        }
+      }
     } else {
       upserted += batch.length
     }
@@ -610,7 +642,14 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
   try {
     const syncStartAt = body.sync_start_at ?? new Date().toISOString()
     const mode = body.mode ?? 'chunk'
-    const stats: SyncStats = body.stats ?? { fetched: 0, upserted: 0, skipped: 0, errors: 0, pages: 0, chunks: 0 }
+    // ⚠ `body.stats` peut venir d'un relais self-invoke lancé AVANT ce déploiement et ne
+    // pas porter `skippedNoCanton` : on le rétablit à 0 plutôt que de propager un NaN
+    // dans le message de fin de run.
+    const stats: SyncStats = {
+      fetched: 0, upserted: 0, skipped: 0, errors: 0, pages: 0, chunks: 0,
+      ...(body.stats ?? {}),
+      skippedNoCanton: body.stats?.skippedNoCanton ?? 0,
+    }
     let totalExpected = body.total_expected ?? 0
 
     // ─── SWEEP MODE ───
@@ -632,10 +671,18 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
         console.error('[logo dedup] threw:', String(e))
       }
 
+      // ⛔ UN RUN QUI PERD DES LIGNES NE SE TAIT PLUS. Jusqu'au 03.09.2026 il finissait
+      // `completed` avec `error_message` NULL alors qu'il comptait 350 à 450 erreurs :
+      // la perte a duré du 29.05 au 03.09 sans que rien ne la signale, et c'est ce
+      // silence — pas la perte elle-même — qui l'a rendue durable.
+      const residu: string[] = []
+      if (stats.errors > 0) residu.push(`${stats.errors} ligne(s) en échec d'upsert`)
+      if (stats.skippedNoCanton > 0) residu.push(`${stats.skippedNoCanton} écartée(s) faute de canton (annonces hors Suisse ou NPA invalide)`)
       await finalizeRun(supabase, runId, {
         status: sweep.skipped_safety ? 'safety_skipped' : 'completed',
         totalSeen: stats.upserted,
         removed: sweep.removed,
+        errorMessage: residu.length > 0 ? residu.join(' · ') : undefined,
       })
       return
     }
@@ -689,6 +736,21 @@ async function runBackground(body: SyncRequest, supabase: any): Promise<void> {
         for (const r of results) {
           const row = mapListingToRow(r, nowIso, agencyProfileIdMap)
           if (row === null) { stats.skipped++; continue }
+          // ⛔ `market_listings.canton` est NOT NULL. Une ligne sans canton était envoyée
+          // quand même, la base rejetait le LOT ENTIER, et ses 24 voisines valides
+          // partaient avec elle. Mesuré le 03.09.2026 sur les 35 787 annonces servies :
+          // 17 sont inclassables — 14 étrangères (Alassio, Como, Varese, Playa Blanca,
+          // Saint-Julien-en-Genevois, Tamarindo…) et 3 étiquetées `country: 'CH'` dont
+          // deux portent un NPA aux chiffres transposés (18009 pour 1809 Fenil-sur-Corsier,
+          // 9745 pour 9475 Sevelen) et une est italienne malgré son étiquette (Luino).
+          // ⚠ Leur champ `state` est NULL sur les 17 : il n'y a rien à récupérer, et le
+          // remplir depuis `state` écrirait « SV » ou « CO » dans une colonne de cantons
+          // suisses. On écarte, et on le DIT.
+          if (row.canton == null || row.canton === '') {
+            stats.skippedNoCanton++
+            console.warn(`[skip] canton indéterminable — pk=${r.pk} country=${r.country ?? '?'} zip=${r.zipcode ?? '?'} city=${JSON.stringify(r.city)}`)
+            continue
+          }
           rows.push(row)
         }
         const { upserted, errors } = await upsertRows(supabase, rows)

@@ -42,6 +42,15 @@ const EXEMPTES: Record<string, string> = {
     "Seule fonction à garder sa propre lecture, et c'est écrit dans le CLAUDE.md : elle "
     + "accepte en plus un repli `APP_URL` et fige la valeur dans une const de module. La "
     + 'ramener ici changerait son comportement, pas seulement sa provenance.',
+  'supabase/functions/_shared/mail/guard.ts':
+    "`MAIL_OAUTH_ORIGINS` n'est pas une adresse CONSTRUITE, c'est une liste blanche "
+    + "d'origines ACCEPTÉES : `redirectUriFor` bâtit son URI sur l'origine de l'APPELANT, "
+    + "une fois celle-ci trouvée dans la liste. La faire dériver d'`appBaseUrl()` la rendrait "
+    + 'pilotable par `MEGGA_APP_URL` — or cette URI de redirection doit correspondre CARACTÈRE '
+    + "POUR CARACTÈRE à celle enregistrée chez Google et chez Microsoft : poser le réglage "
+    + "casserait la connexion des boîtes pour tout le monde (`redirect_uri_mismatch`). La "
+    + "panne que cette garde redoute n'existe pas ici — une origine absente de la liste refuse "
+    + "la pop-up sur-le-champ et à l'écran, au lieu d'envoyer un lien mort.",
   'supabase/functions/idx-feed/index.ts':
     "`IDX_LISTING_BASE_URL` est un AUTRE réglage — la base des annonces telle que le portail "
     + "doit la publier, pas l'adresse de l'app. L'occurrence est un exemple en commentaire de "

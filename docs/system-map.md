@@ -17,7 +17,7 @@
 ## 🧠 Le cerveau : comment ça marche & comment le maintenir
 
 Ce document **+** [`.claude-flow/knowledge/megga-memory.seed.json`](../.claude-flow/knowledge/megga-memory.seed.json)
-(258 entrées curées) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
+(264 entrées curées au 04.09.2026) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
 **local** (embeddings ONNX, recherche HNSW) et **gratuit** (0 appel API).
 
 **Ce qui est automatique :**
@@ -87,9 +87,9 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "comment fonctio
 
 SaaS immobilier suisse **AI-native, compliance-first**, recentré **CRM-first** (pivot juin 2026) :
 CRM transactionnel agent + pipeline LAB/KYC + copilote IA + console super-admin.
-Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~117k Flatfox sur ~208k
-`market_listings`, ~77k actives — remesuré le 17.08.2026 ; ce point annonçait « ~90k, ~50k active »)
-conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 81 edge functions,
+Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~130k Flatfox sur ~253k
+`market_listings`, ~91k actives — remesuré le 03.09.2026 ; ce point annonçait « ~90k, ~50k active »)
+conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 87 edge functions,
 RLS, pg_cron). L'IA est **compliance-enabling**, jamais compliance-replacing (validation
 humaine obligatoire).
 
@@ -104,8 +104,8 @@ fragmenté.
 ```
 Frontend   React 18 / TS / Vite / Tailwind · React Router v6 · React Query (+ supabase-cache-helpers)
            i18n react-i18next (FR/DE/EN/IT) · Mapbox GL (lazy) · Recharts · Sentry · PostHog
-Backend    Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1) — Postgres 15, Auth, Storage,
-           Realtime, pgvector, pg_cron, pg_net · 67 Edge Functions (Deno)
+Backend    Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1) — Postgres 17.6, Auth, Storage,
+           Realtime, pg_cron, pg_net, postgis · Edge Functions (Deno, décompte au §5)
 IA         Texte = DeepSeek (deepseek-chat) PARTOUT · Vision/OCR/PDF = Gemini
            (_shared/vision.ts, photo-vision.ts) · AUCUN Claude/Anthropic au runtime
            (retiré PR #829 ; 0 appel api.anthropic.com). Abstraction
@@ -115,8 +115,28 @@ Intégr.    Stripe · Resend · Dilisense (KYC) · Google/Microsoft Calendar · 
            Deepgram (STT) · Cloudflare R2 (photos) · Flatfox + RealAdvisor (sync marché entrant)
            immobilier.ch (syndication IDX 3.01 SORTANTE, juin 2026 — cf §5 + brain megga/syndication-idx)
            Intercom (support unique : Messenger + Fin IA LIVE + Inbox + Help Center public + aide « ? » par écran ; région US, flag nLPD)
+           Gmail API + Microsoft Graph (messagerie agent — état et date au §6ter)
 Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge auto-deploy
 ```
+
+> ⛔ **Trois chiffres de ce bloc étaient faux, remesurés le 04.09.2026** — et le troisième
+> est celui qui a coûté le plus longtemps, parce qu'il ne se contredisait pas tout seul.
+> **`67 Edge Functions` était le TROISIÈME chiffre du même objet dans ce document** : le
+> §1 disait 67, le titre du §5 disait 71, et la réalité valait 81 puis 87. Deux d'entre eux
+> ont été repris le 04.09 (avec le report de leur `phrase` au registre) ; celui-ci ne
+> l'était pas et contredisait alors les deux autres **à l'œil nu**. Il ne porte plus de
+> nombre du tout : un décompte se maintient à UN endroit, et c'est le §5, que
+> `sm-edge-functions-titre` garde. Un quatrième chiffre à périmer n'aurait rien réglé.
+> **`pgvector`** n'a jamais été installé — mesuré : `select extname from pg_extension`
+> rend douze extensions, aucune n'est `vector`, et aucune migration du dépôt ne crée de
+> colonne `vector(...)`. **`Postgres 15`** enfin : la production tourne en **17.6**
+> (`current_setting('server_version')`), et le local comme la CI en 17
+> (`supabase/config.toml`, `major_version = 17`).
+>
+> ⚠ Aucun de ces trois-là n'était cité par une entrée de
+> `scripts/_data/claude-md-claims.json` — vérifié champ par champ sur les 41 prétentions :
+> `npm run lint:claude-md` était donc **vert sur les trois**. Une porte ne garde que ce
+> qu'on lui a nommé.
 
 **Frontières & flux global :**
 ```
@@ -361,7 +381,12 @@ FR (défaut, eager) + DE/EN/IT (lazy). 12 namespaces : `common, dashboard, setti
 
 ## 3. Base de données (Supabase Postgres)
 
-> Détail complet : [schema.md](schema.md). Extensions actives : `pg_cron`, `pg_net`, `citext`, `pgvector`.
+> Détail complet : [schema.md](schema.md). Extensions actives — **les douze, relevées le
+> 04.09.2026** : `btree_gist`, `citext`, `pg_cron`, `pg_net`, `pg_stat_statements`,
+> `pg_trgm`, `pgcrypto`, `plpgsql`, `postgis`, `supabase_vault`, `unaccent`, `uuid-ossp`.
+> ⛔ **`pgvector` N'EST PAS installée** et ne l'a jamais été : elle figurait ici et au §1
+> comme une extension active, sans qu'aucune migration ne crée jamais de colonne
+> `vector(...)`. Deux documents l'annonçaient, zéro base la portait.
 
 ### Tables par domaine
 - **Tenant & équipes** : `agencies` (root, plan), `profiles` (rôles agent/manager/admin/assistant/seller/buyer), `agency_profiles` / `agent_profiles` (annuaires publics, tsvector), `team_invitations`. ⚠️ **`agency_profiles` n'est pas un annuaire propre : c'est un agrégat de LIBELLÉS de portails.** Flatfox tient *une* organisation et un libellé d'annonceur **libre par annonce**, si bien que notre sync fabriquait une ligne par libellé — 22 pour Wincasa, 13 pour ImmoSky, 6 pour de Rham (dont `de — SA`, un nom coupé au mauvais endroit). Grand nettoyage du 13 août 2026 : **6195 → 6152 lignes**, ~3200 annonces regroupées, 0 orpheline. Les quatre signaux de rapprochement, par force croissante — raison sociale nue, logo, **adresse (rue ET commune)**, puis **fiche d'organisation du portail** — et leurs pièges (`'' = ''` fabrique de faux doublons, `Postfach` est une adresse vide déguisée, un siège de groupe n'est pas un doublon) sont dans `scripts/realadvisor-agencies/reconcile-duplicates.sql` et les brains `megga/agences-deduplication`, `megga/agences-annuaire-realadvisor`, `megga/agences-uid-che-registre`. ⚠️ `market_listings.agency_profile_id` est **`ON DELETE SET NULL`** : supprimer un doublon détache ses annonces **en silence** — repointer avant. La réversibilité tient à `market_listings.agency_name`, qui conserve le libellé d'origine 1:1.
@@ -373,7 +398,7 @@ FR (défaut, eager) + DE/EN/IT (lazy). 12 namespaces : `common, dashboard, setti
 - **KYB / vérification des agences** (schéma 26 juil. 2026 ; moteur, connecteurs disponibles et file de revue 28 juil. ; **registre suisse par LINDAS + clé du n° de registre + concordance de pays FR** 29 juil.) : ne pas confondre avec le KYC ci-dessus, qui porte sur les *clients* de l'agence. Ici on vérifie l'agence elle-même à l'onboarding. `legal_forms` + `legal_form_aliases` (référentiel 21 formes CH/FR/LI ; `category` pilote le parcours — `sole_proprietorship` = pas d'UBO tiers, `foundation_or_trust` = diligence renforcée) · `agencies` enrichie (`legal_form_id` FK, `business_registration_number` ex-`ide` — le terme IDE est suisse et mentait dès qu'un SIREN arrive —, `trade_name` cible du rapprochement flou avec le domaine e-mail, `verification_status`/`verification_score`/`verified_at`) · `agency_related_persons` + `agency_person_roles` (`signatory`/`ubo`, historisés ; **distincts de `profiles`** : un ayant droit économique passif n'a pas de compte CRM). ⚠ Depuis le 4 août 2026, `agency_related_persons.agency_role` porte en plus le **rôle d'organisation déclaré** (`admin|manager|agent|assistant`), qui a remplacé la question du *pouvoir de signature* à l'étape 1 du wizard — à ne pas confondre avec `agency_person_roles.role`, qui reste la qualité de **conformité**. `signature_power` n'est pas supprimée (nullable, relue sur les dossiers antérieurs) ; le wizard écrit toujours le rôle `signatory`, que la RPC de soumission exige, simplement sans pouvoir. Le rôle déclaré n'atteint `profiles.role` qu'**à la soumission**, dans `submit_agency_identity` (migration `20260804170100`) — aucune RPC « je change mon propre rôle » n'est exposée au client, ce serait la porte que le verrou anti-escalade `20260627120000` a fermée — et **jamais s'il retirait à l'agence son dernier administrateur** (l'écran porte la réserve au moment du choix). Conséquence : dans une agence solo — le cas de tout onboarding — `profiles.role` ne bouge donc jamais · `verification_check_types` + `verification_check_config` (poids **versionné**, jamais figé sur la ligne de check) + `agency_verification_checks` / `agency_person_verification_checks` (`raw_response` jsonb = pièce d'audit LBA). Score normalisé sur les checks **disponibles** → un pays sans VIES n'est pas pénalisé, ce qui rend le modèle transposable ; les vétos (registre, PEP/sanctions, pièce d'identité) sont **hors score** et ne se compensent jamais. **Moteur écrit** : `recompute_agency_verification` (migration `20260729151200`, `service_role` seul) pose score et statut ; l'edge `agency-verification-run` fait tourner **10 connecteurs réels** (9 entrées statiques de `AGENCY_KYB_SOURCES` + le géocodage, seul à réclamer un secret) — RDAP (`domain_whois_age`), VIES (`vat_lookup`), `recherche-entreprises.api.gouv.fr` FR (`registry_lookup` + `registry_legal_name_match` + `registry_country_match`), géocodage Mapbox (`address_geocode`, réclame le secret `MAPBOX_TOKEN` qui n'est pas posé), **LINDAS** CH (les trois mêmes types de registre, endpoint SPARQL public de la Confédération, sans clé) et le contrôle **interne** de la clé du n° de registre (`registry_number_format`, CH+FR, aucun réseau, `source='internal'`, migration `20260729160000`). Une règle de **juridiction** (`appliesTo` + `selectApplicableSources`) garantit qu'un `check_type` partagé n'a jamais deux propriétaires sur le même dossier. **File de revue admin livrée** (`20260729151500` + `/dashboard/admin/kyb-review`) : valider, rejeter avec motif, relancer, résoudre la pièce d'identité. **Reste en squelette : le registre UID** (`vat_lookup` CH/LI, `createUidRegisterSources`) — jamais testé en API, sort `unavailable`. `oera.li` sans API et absent de LINDAS, carte pro CCI FR sans API. ⚠️ **L'auto-validation dépend désormais du pays, et c'est le fait à connaître** : la **France** a ses quatre vétos d'entité servis et s'auto-valide dès qu'un humain résout la pièce d'identité (mesuré en base) ; la **Suisse** ne le peut pas, LINDAS ne publiant aucun statut actif/radié, ce qui plafonne `registry_lookup` à `partial` et un véto ne passe que sur `match` ; le **Liechtenstein** n'est servi par rien, y compris pour le format de son numéro, alors qu'il est sélectionnable au wizard (dette explicite). Cf. [agency-kyb-verification.md](agency-kyb-verification.md) (conception), [agency-kyb-handoff.md](agency-kyb-handoff.md) §7bis (ce que chaque pays peut auto-valider) et §8 (ce qui reste suspendu) + brains `megga/agency-kyb-verification`, `megga/agency-verification-connectors` et `megga/agency-verification-pending-sources`.
 - **Portail vendeur** : ❌ retiré le 26 juillet 2026. Les tables `seller_portals` et `seller_preferences` ont été droppées (0 ligne depuis leur création) avec l'edge function `seller-portal-action`. ⚠️ `vendor_dossiers` n'existait déjà pas en base.
 - **Billing** : `subscriptions` (Stripe).
-- **Messaging** : le canal réel du CRM est **WhatsApp** — 16 tables `whatsapp_*` (dont `whatsapp_consents` registre append-only et `whatsapp_optin_invites`, PR #1206) + `contact_suppressions` (blocage par numéro OU par adresse, tous canaux) (`whatsapp_messages` journal, `whatsapp_agent_links` + `agency_wa_numbers` appairage numéro↔agent, `whatsapp_conversation_insights`, `whatsapp_pending_actions`, `whatsapp_confirmation_log`, `whatsapp_followup_suggestions`, `whatsapp_daily_briefs`, `whatsapp_notices`, `whatsapp_message_corrections`, `whatsapp_rejected_drafts`, `whatsapp_recent_auto_actions`, `whatsapp_tool_usage`, `whatsapp_async_jobs`, `whatsapp_cron_locks`) · `message_templates` · `contact_messages` (formulaire vitrine ; anon fermé juil. 2026). ⚠️ `message_threads`, `messages`, `email_messages_cache` (système Messages maison du CRM agent) et `marketplace_inquiries` **n'existent plus en base**.
+- **Messaging** : deux canaux, chacun décrit dans sa section — **WhatsApp** (§6bis) et **l'e-mail** (§6ter, module `mail_*`, qui porte son état de déploiement et sa date de mesure). Le canal WhatsApp — 16 tables `whatsapp_*` (dont `whatsapp_consents` registre append-only et `whatsapp_optin_invites`, PR #1206) + `contact_suppressions` (blocage par numéro OU par adresse, tous canaux) (`whatsapp_messages` journal, `whatsapp_agent_links` + `agency_wa_numbers` appairage numéro↔agent, `whatsapp_conversation_insights`, `whatsapp_pending_actions`, `whatsapp_confirmation_log`, `whatsapp_followup_suggestions`, `whatsapp_daily_briefs`, `whatsapp_notices`, `whatsapp_message_corrections`, `whatsapp_rejected_drafts`, `whatsapp_recent_auto_actions`, `whatsapp_tool_usage`, `whatsapp_async_jobs`, `whatsapp_cron_locks`) · `message_templates` · `contact_messages` (formulaire vitrine ; anon fermé juil. 2026). ⚠️ `message_threads`, `messages`, `email_messages_cache` (système Messages maison du CRM agent) et `marketplace_inquiries` **n'existent plus en base** (droppées le 18.07.2026). ⚠️ Elles ne sont **pas** l'ancêtre du module e-mail du §6ter : celui-ci repart d'un schéma neuf (9 tables `mail_*`, jetons en Vault), il ne les ressuscite pas. `docs/schema.md:226-229` documente encore `messages`/`message_threads` — périmé.
 - **Favoris/alertes acheteur** : ❌ **plus rien en base** — `market_favorites`, `market_alerts`, `saved_searches` et `newsletter_subscribers` sont partis avec la marketplace publique. Les recherches côté CRM vivent dans `client_searches` (cf. Pipeline).
 - **Audit & monitoring** : `activity_events` (immutable, `actor_kind` user/system/ai), `auth_events`, `platform_metrics`, `flatfox_sync_runs`, `realadvisor_sync_runs`. ⚠️ `ticket_events` **n'existe plus** (parti avec le support maison, cf. Support).
 - **Admin** : `admin_feature_flags`, `admin_nps_responses`, `admin_notes`, `admin_changelog` · `user_consents` (preuves nLPD immuables user×type×version, INSERT via RPC `record_consent` seule — écrites dès l'inscription par `handle_new_user`, versions dans `legal_document_versions` côté serveur ; `ConsentGate` ne sert plus qu'aux bumps de version et aux comptes OAuth) · `profiles.is_suspended` (miroir du ban GoTrue, écriture service/definer) · `ai_usage_logs.agency_id/module` (attribution coûts IA, historique NULL = « Plateforme »).
@@ -414,7 +439,7 @@ Plomberie qui capture les signaux temporels (fondation de la couche v2 ; cerveau
 - **Opérations** : UPSERT (source_id UNIQUE, last_seen_at), mark removed (safety ≥80% vus avant sweep), photos → Cloudflare R2 (`photos_cf` via `photo-processor`), `quality_score`, `relevance_score` (GENERATED).
 - **Observabilité** : `flatfox_sync_runs` (status, totaux, chunks) → dashboard admin.
 
-### 🔴 Règles de perf (statement timeout 3-8s sur 208k rows) — voir CLAUDE.md §7
+### 🔴 Règles de perf (statement timeout 3-8s sur 253k rows) — voir CLAUDE.md §7
 | Règle | Pourquoi |
 |---|---|
 | **JAMAIS `count: 'exact'`** > 5k rows | seq scan → timeout. Utiliser `estimated` ou pas de count |
@@ -434,7 +459,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > `sites/_marketplace-phase-ulterieure/` depuis le pivot, a été **SUPPRIMÉ du dépôt**
 > (juillet 2026, 373 fichiers / 22 Mo). Il reste récupérable dans l'historique git
 > (commit `0b321bc5` et antérieurs) si la marketplace est un jour relancée — mais il
-> n'encombre plus l'arbre de travail. La table `market_listings` (~208k biens) **reste
+> n'encombre plus l'arbre de travail. La table `market_listings` (~253k biens) **reste
 > active** : elle nourrit le CRM (matching, estimation, stats copilote).
 
 > **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
@@ -451,7 +476,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > (12 sections) + `confidentialite.html` · About refondu (rôle Reto Brunner). **Reste** : image hero encore CodeAI.
 
 ---
-## 5. Edge functions (81) — catalogue par domaine
+## 5. Edge functions (87) — catalogue par domaine
 
 > Deno, dans `supabase/functions/`. Déclencheurs : HTTP (défaut), `pg_cron`, webhook Stripe, hooks auth.
 
@@ -464,7 +489,8 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | **Admin (P1-P4 07/2026)** | `admin-dsar-export` (JSON nLPD art. 25, journalisé avant retour) · `admin-user-lifecycle` (suspend/reactivate/reset, ban GoTrue, anti-lockout allowlist) · `admin-agency-lifecycle` (suspension agence + ban membres) · `_shared/require-super-admin.ts` (rôle + allowlist + AAL2, adopté par toutes les edges admin) · `_shared/admin-alerts.ts` (alerting cron : seuils `app_config.admin_alert_thresholds`, dédup 24h, destinataires `super_admin_allowlist()`, Resend) |
 | **Magic link KYC** | `magic-link-create/get/confirm/send-email/upload` (`magic-link-regenerate` retirée, 0 appelant, undeployée le 18 juil.) |
 | **RDV de vérification** (août 2026) | `appointment-slots` (GET public : créneaux proposables ; accepte le jeton du **lien magique** OU un jeton de **rendez-vous** `k='appt'`, sans quoi « déplacer » serait inservable — le client n'a plus le lien magique en main) · `appointment-book` (POST public) · `appointment-manage` (GET/POST : état, report, annulation). Partagés : `booking-slots.ts` (calcul **pur**, testé sur les 2 bascules DST 2026), `booking-freebusy.ts`, `booking-oauth.ts`, `booking-calendar-write.ts`, `booking-email.ts` |
-| **Email (Resend)** | `send-email` · `send-property-email` · `send-relance-email` · `send-reminder-email` · `send-team-invite` · `send-visit-email` · `detect-new-device` |
+| **Email (Resend)** | **sortant transactionnel seul**, depuis `noreply@megga.ch`, sans `reply_to` : `send-email` · `send-property-email` · `send-relance-email` · `send-reminder-email` · `send-team-invite` · `send-visit-email` · `detect-new-device` |
+| **Messagerie e-mail (boîte de l'agent)** | `mail-oauth` · `mail-sync` (cron `mail-sync-2min`) · `mail-actions` · `mail-send` · `mail-attachment` — cœur `_shared/mail/` (9 modules purs). ⚠️ **Rien n'est en production** : livré sur la branche du lot 1, PR #1274 ouverte au 04.09.2026. État complet et pièges : **§6ter** |
 | **Paiements (Stripe)** | `stripe-checkout` · `stripe-portal` · `stripe-webhook` (signature) · `admin-stripe-metrics` (MRR/ARR/churn) |
 | **Monitoring** | `admin-monitoring` (cron) · `ai-billing-monitor` (cron, balance DeepSeek) · `weekly-report` (cron) |
 | **Calendrier** | `google-calendar-sync` · `outlook-calendar-sync` (OAuth) |
@@ -520,6 +546,24 @@ Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEG
 - **Créer & publier un bien depuis WhatsApp (29 juin 2026, LIVRÉ — cf. brain `megga/whatsapp-listing-tools`)** : 6 nouveaux outils copilote (catalogue total **36** dans `_shared/whatsapp-tools.ts`) ferment le parcours créer→compléter→photographier→publier sans ouvrir l'app : `create_property`/`update_property`/`attach_property_photos` (tier *auto*, brouillon `properties` + RPC atomique `append_property_photo` → R2) puis `publish_to_portals`/`withdraw_from_portals` (tier *confirm*, HITL) + `get_publication_status` (*read*). « Publier » active le brouillon (draft→active) et déclenche la **syndication IDX** (§5 + `megga/syndication-idx`) ; `maybeRepushOnChange` re-pousse le feed sur édition d'un bien déjà publié. DeepSeek-only.
 - **Morning brief proactif 07h30 (5 juillet 2026, LIVRÉ — gated OFF)** : inverse le pull (`get_daily_brief`) en push. `whatsapp-morning-brief` (cron) pousse à chaque agent APPAIRÉ sa journée : visites du jour + relances dues (`reminders`) + offres qui expirent (`crm_offers` pending ≤48 h) + nouveaux leads vendeurs (`seller_leads` new, pool inclus). **0 LLM** : lectures de table directes scoppées `agency_id` — dérivé de `profiles.agency_id`, jamais du snapshot du lien d'appairage (audit P2 : lien jamais resyncé après changement d'agence) — (les RPC Focus dérivent l'agence de `auth.uid()` → inutilisables en service role) + gabarit figé `_shared/morning-brief.ts` (pur, testé Vitest, FR/EN via `profiles.spoken_languages`, compteurs honnêtes « N+ » quand une limite SQL est atteinte), pipeline `toWhatsAppText(meggaProse())`. Visites filtrées PAR AGENT (`agent_id` = lui ou non attribuée) ; leads vendeurs bornés 72 h (« nouveaux » reste vrai). Agent-facing → pas de HITL. **Triple cron UTC anti-DST + filet** (05:30 + 06:30 + 07:30, migration `20260705180000`) + gate applicatif « 07h local Zurich » (08h = tick filet anti tick-manqué) + dédup `whatsapp_daily_briefs` (claim insert-first par profil et date locale, re-claim TTL 10 min des claims orphelins via `confirmed_at`, rétention 90 j). Journée vide = pas d'envoi. Hors fenêtre 24h Meta (131047) = échec silencieux journalisé + claim relâché (le teaser template arrivera avec #795). Sortant persisté `whatsapp_messages` (fil copilote, mémoire C1) + audit `whatsapp_morning_brief_sent` (`actor_kind='ai'`). **Opt-in fail-closed** : `app_config.whatsapp_morning_brief_enabled='true'` pour activer (seedé `false`) + opt-out PAR AGENT `whatsapp_agent_links.morning_brief_enabled` (défaut ON, RLS self = l'agent peut l'éteindre sans désappairer) ; kill-switch global `whatsapp_enabled` respecté ; `dryRun`/`force` derrière la garde service-role pour la vérif prod.
 - **Roadmap** : suite « outbound fiable » = template Meta de relance (écrire hors fenêtre 24h, approbation Meta Business) + teaser template du morning brief ; puis triage numéros inconnus → leads ; médias sortants (photos `send_listings`) ; DE/IT. Ph.3 sync temps réel ; purge `raw` (cron quotidien actif). Secrets : `WHATSAPP_WEBHOOK_SECRET`, `META_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_PROVIDER`.
+
+---
+
+## 6ter · Messagerie e-mail (boîte de l'agent) ✉️
+
+**État au 04.09.2026 : lot 1 (backend) livré sur la branche `claude/crm-messaging-lot1-backend-79297b`, [PR #1274](https://github.com/megga/megga-real-estate/pull/1274) OUVERTE — rien de tout ceci n'est en production.** Requête directe en prod le 04.09.2026 : **0 table `mail_%`, 0 fonction `mail_%`, 0 job cron `mail%`**. Il n'y a **aucune UI** — le seul fichier de `src/` que le lot touche est `edgeFunctionRoster.ts` ; l'écran est le lot 2. Et **aucun appel réel à Google ni à Microsoft n'a jamais eu lieu** : aucun test ne sort sur le réseau (les adaptateurs reçoivent un `fetch` injecté), `MICROSOFT_CLIENT_ID`/`_SECRET` sont absents du projet Supabase, et les prérequis Google (URI de redirection, API Gmail activée, scope déclaré) ne sont pas faits. Décisions D1-D16 : [`2026-09-03-messagerie-crm.md`](superpowers/plans/2026-09-03-messagerie-crm.md) (maître) + `-lot1-backend.md`.
+
+Ce que le module fait : l'agent connecte **sa propre** boîte Gmail ou Outlook, le CRM la synchronise, et le courrier se lit, s'envoie et se rattache à un contact sans quitter le CRM (objectifs #1 temps admin et #5 remplacer un outil fragmenté). ⚠️ Ce n'est **pas** Resend et ça ne le remplace pas : Resend reste le transactionnel `noreply@megga.ch` (§5), `mail-send` écrit depuis l'adresse de l'agent.
+
+- **Connexion (D1)** : OAuth **code + PKCE en pop-up, hors GoTrue** — le `state` et le `code_verifier` sont générés et gardés côté serveur dans `mail_oauth_states`, le navigateur ne voit que l'URL. Scopes : `gmail.modify openid email` (Google), `offline_access User.Read Mail.ReadWrite Mail.Send` (Microsoft). URI de redirection bornée par liste blanche — `app.megga.ch` + les deux ports de dev (`_shared/mail/guard.ts::redirectUriFor`). ⛔ `gmail.modify` est un scope **RESTREINT**, au-dessus de « sensible » : tant que l'app n'est pas vérifiée pour lui, écran « application non validée » et plafond 100 utilisateurs, et le lever exige une évaluation **CASA Tier 2** annuelle — dossier hors dépôt, distinct de la vérification data access de l'agenda (CLAUDE.md §8).
+- **Jetons — jamais en colonne** : quatre ponts `SECURITY DEFINER` réservés au `service_role` (`mail_secret_store` / `_read` / `_update` / `_delete`, patron `esign_secret_*` de `20260607183000`) écrivent dans **Supabase Vault** ; `mail_accounts.vault_secret_id` n'est qu'un pointeur, et un client ne peut exécuter aucun des quatre (garde-fou dans `mail-rls.spec.ts`). ⚠️ `mail_secret_update` a été **écrite**, pas recopiée : le patron esign n'a que trois fonctions.
+- **Base** — migration `20260904074500_mail_module.sql` : **9 tables** (`mail_accounts`, `mail_oauth_states`, `mail_labels`, `mail_threads`, `mail_messages`, `mail_attachments`, `mail_drafts`, `mail_contact_aliases`, `mail_cron_locks`) et **11 fonctions `mail_*`** (4 ponts Vault · trigger `updated_at` · helper de policy `mail_account_visible` · 5 RPC de lecture : `mail_list_threads`, `mail_unread_counts`, `mail_folder_counts`, `mail_search_contacts`, `mail_match_contact_by_emails`) ; elle recrée en plus `purge_activity_events_retention` pour y faire entrer la catégorie `messaging` (D15). **Les dossiers sont des requêtes**, pas des colonnes (`mail_list_threads`). Realtime sur **`mail_threads` seule** — le client invalide ses requêtes — avec `replica identity full`, sans quoi un DELETE ne porterait pas l'`account_id`. ⚠️ Le `SELECT` sur `mail_accounts` est accordé **colonne par colonne** : un `SELECT` de table exposerait `sync_cursor`, `imap_config` et `vault_secret_id`. Migration `20260904074600` : le compteur `sync_failures`.
+- **Visibilité** : `owner` (défaut) ou `agency`, toujours dans l'agence — `mail_account_visible()`, adopté par toutes les policies et par `loadVisibleAccount` dans les edges. ⚠️ Une boîte **ne suit pas son propriétaire qui change d'agence** : `assertOwnerStillInAgency` interrompt la passe (`MailOwnerLeftError`) plutôt que de laisser le courrier de l'ancienne agence continuer d'arriver dans la nouvelle.
+- **Synchronisation** : cron **`mail-sync-2min`** (`*/2 * * * *`) → edge `mail-sync`, jusqu'à **25 comptes dus** par tick, budget 60 s, bail `mail_cron_locks` (TTL 180 s) **plus** un bail par compte. Curseurs incrémentaux dans `mail_accounts.sync_cursor` : Gmail `historyId`, Graph `deltaLink` par dossier. Le même tick purge les `mail_oauth_states` périmés (ils portent un `code_verifier` et une adresse). **Échec** → `last_error` + backoff, et `sync_failures` bascule `status='error'` au **5ᵉ** échec d'affilée : sans ce compteur une boîte morte est rigoureusement indiscernable d'une boîte saine sans courrier neuf, tout en brûlant un des 25 créneaux. ⚠️ Pas de verdict sur le seul code HTTP — le 403 de Gmail couvre aussi `rateLimitExceeded`, transitoire.
+- **Edge functions (5)**, toutes derrière `requireAgentAuth`, le cron derrière `isServiceSecret` : `mail-oauth` (start / exchange / disconnect / update) · `mail-sync` (cron **ou** un agent, c'est le « rafraîchir » de l'écran) · `mail-actions` (lu, suivi, archive, corbeille, `link_contact`, `sync_now` — répercutés chez le fournisseur **puis** en base) · `mail-send` (MIME construit ici, signature `profiles.email_signature`, `In-Reply-To`/`References`) · `mail-attachment` (octets **matérialisés en mémoire** avec le jeton du compte, jamais d'URL publique ni d'objet Storage signable ; plafond 25 Mio ; le type SERVI vient d'une liste blanche, jamais de ce que l'expéditeur déclare ; `POST action:'file'` classe la pièce dans le bucket `documents`).
+- **Modules purs** (`supabase/functions/_shared/mail/`, 9 fichiers, **103 tests**) : `types` · `mime` (construction ET analyse) · `secrets` (Vault + rafraîchissement) · `oauth` · `gmail` · `graph` · `ingest` · `sync` · `guard`. `ingest` écrit fils, messages et métadonnées de pièces, rattache au contact (D11, `mail_match_contact_by_emails` + `mail_contact_aliases`) et pose l'`activity_events` `category='messaging'` — **c'est cet événement, et lui seul, qui fait apparaître le mail dans `useContactTimeline`**. Corps HTML plafonné à 512 Kio (`HTML_CAP`), assaini côté client au lot 2.
+- **Hors périmètre v1 — décidé, pas oublié** : pas de push fournisseur (polling 2 min), pas d'IA (classification, réponse suggérée), pas de brouillons fournisseur, pas de synchro des libellés Gmail, pas d'images `cid:` résolues. `provider='imap'` est accepté par la contrainte mais **non géré par ce build**. ⛔ SMTP direct est fermé de toute façon : le runtime edge bloque les ports **25 et 587** — seul 465 en TLS implicite reste possible, d'où le spike du lot 3.
+- **Suite** : lot 2 = l'écran (`/dashboard/messagerie`, `/oauth/mail/callback`, onglet `Messagerie`) · lot 3 = IMAP. **Au merge**, mettre à jour `docs/schema.md` (les tables `mail_*` ; et retirer `messages`/`message_threads`, périmés depuis le 18.07.2026), `docs/pages.md`, CLAUDE.md §8, puis vérifier que `mail-sync-2min` apparaît vraiment dans `cron.job` — un cron planifié par migration n'est pas un cron qui tourne.
 
 ---
 

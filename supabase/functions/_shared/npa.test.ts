@@ -129,4 +129,34 @@ describe('npaToCanton — hors registre suisse', () => {
     expect(npaToCanton(9485)).toBe('FL') // Nendeln
     expect(npaToCanton(9499)).toBe('SG') // juste après, on est bien en Suisse
   })
+
+  // ── Les annonces que Flatfox sert et qu'on ne peut pas situer ──────────────
+  // Relevé le 03.09.2026 en balayant les 35 787 annonces RENT de l'API Flatfox :
+  // 17 ne se résolvent pas. flatfox-sync appelle npaToCanton SANS second argument
+  // (le champ `state` de Flatfox est NULL sur ces 17), donc ce que ce bloc fige,
+  // c'est très exactement le prédicat d'écart de la fonction de synchro.
+  // ⛔ Si l'une de ces assertions se met à rendre un canton, ce n'est PAS une
+  // amélioration : cela voudrait dire qu'un code postal étranger est désormais
+  // rangé dans un canton suisse, et les annonces d'Alassio reviendraient polluer
+  // le marché tessinois.
+  it('rend null pour les codes postaux étrangers servis par Flatfox, sans libellé', () => {
+    expect(npaToCanton(17021)).toBeNull() // Alassio (IT) — 5 annonces
+    expect(npaToCanton(22100)).toBeNull() // Como (IT)
+    expect(npaToCanton(74160)).toBeNull() // Saint-Julien-en-Genevois (FR)
+    expect(npaToCanton(35580)).toBeNull() // Playa Blanca (ES)
+    expect(npaToCanton(99428)).toBeNull() // Nohra (DE)
+    expect(npaToCanton(50309)).toBeNull() // Tamarindo (CR)
+  })
+
+  it('rend null pour un NPA suisse aux chiffres transposés', () => {
+    // Deux annonces réelles, étiquetées `country: 'CH'`, dont le NPA saisi n'existe
+    // pas : 18009 pour 1809 Fenil-sur-Corsier (VD) et 9745 pour 9475 Sevelen (SG).
+    // On ne devine PAS l'intention — écrire VD ou SG ici demanderait d'inventer une
+    // correction de saisie, et une annonce mal située vaut moins qu'une annonce absente.
+    expect(npaToCanton(18009)).toBeNull()
+    expect(npaToCanton(9745)).toBeNull()
+    // La preuve que ce sont bien des transpositions : les NPA corrects, eux, résolvent.
+    expect(npaToCanton(1809)).toBe('VD')
+    expect(npaToCanton(9475)).toBe('SG')
+  })
 })
