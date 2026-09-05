@@ -316,7 +316,6 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
   const plusRef = useRef<HTMLButtonElement | null>(null)
   const [menuPlus, setMenuPlus] = useState(false)
   const [survolPlus, setSurvolPlus] = useState(false)
-  const [survolNeuf, setSurvolNeuf] = useState(false)
   const [ctx, setCtx] = useState<{ i: number; x: number; y: number } | null>(null)
 
   const { tabs, active } = api
@@ -622,26 +621,21 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
         </button>
       )}
 
-      <button
-        type="button"
+      {/* ⚠ ÉCART ASSUMÉ À LA MAQUETTE (décision Julien, 5 septembre 2026). Elle
+          demande un « rond de 30 px, SANS FOND au repos » — juste tant que « + » est
+          la dernière chose de la barre. Il est désormais coincé entre la pastille
+          « +N » et les deux commandes du quart droit, toutes cerclées : seul nu, il
+          se lisait comme un glyphe décoratif au milieu de boutons.
+          Il passe donc par `CommandeRonde`, le MÊME composant que ✦ et le thème —
+          recopier le style aurait laissé les quatre commandes diverger au premier
+          ajustement. */}
+      <CommandeRonde
+        sp={sp}
+        icone="plus"
+        actif={false}
+        libelle={t('tabs.new')}
         onClick={() => api.ouvrirNouvel()}
-        onMouseEnter={() => setSurvolNeuf(true)}
-        onMouseLeave={() => setSurvolNeuf(false)}
-        title={t('tabs.new')}
-        aria-label={t('tabs.new')}
-        style={{
-          width: H_PASTILLE, height: H_PASTILLE, flexShrink: 0,
-          borderRadius: 'var(--crm-radius-pill)', border: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', fontFamily: 'inherit',
-          // Sans fond au repos, comme la maquette ; le survol le révèle.
-          background: survolNeuf ? sp.focusSurface : 'transparent',
-          color: survolNeuf ? sp.ink : sp.sub,
-          transition: 'background-color .18s ease, color .18s ease',
-        }}
-      >
-        <MEIcon name="plus" size={14} strokeWidth={1.9} />
-      </button>
+      />
 
       {/* ── Le quart droit ────────────────────────────────────────────────────
           Mesuré le 4 septembre 2026 : la bande laissait 241 px vides à 1280 px
@@ -755,7 +749,7 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
  */
 function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded }: {
   sp: CrmPalette
-  icone: 'sparkle' | 'sun' | 'moon'
+  icone: 'sparkle' | 'sun' | 'moon' | 'plus'
   actif: boolean
   libelle: string
   onClick: () => void
