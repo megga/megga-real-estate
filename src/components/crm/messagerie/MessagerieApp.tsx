@@ -8,6 +8,7 @@
  * l'écran ne prétend pas afficher des messages qu'il ne sait pas encore lire.
  */
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { CrmTopNav, type CrmScreenId } from '@/components/crm/CrmShell'
@@ -26,7 +27,9 @@ import { useMailRealtime } from '@/hooks/useMailRealtime'
 import { parseRecipients } from '@/hooks/useMailContactSearch'
 import { MailList } from './MailList'
 import { MailAddAccountModal } from './MailAddAccountModal'
+import { MailAttachmentPreviewModal } from './MailAttachmentPreviewModal'
 import { MailComposeModal } from './MailComposeModal'
+import { MailFileAttachmentModal } from './MailFileAttachmentModal'
 import { MailContextMenu } from './MailContextMenu'
 import { MailDeleteModal } from './MailDeleteModal'
 import { MailLinkContactModal } from './MailLinkContactModal'
@@ -44,6 +47,7 @@ interface Props { dark: boolean; setDark: (v: boolean) => void }
 export function MessagerieApp({ dark, setDark }: Props) {
   const { t, i18n } = useTranslation('messages')
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [params, setParams] = useSearchParams()
   const { profile } = useAuth()
   const sp = useMemo(() => crmPalette(dark), [dark])
@@ -132,6 +136,14 @@ export function MessagerieApp({ dark, setDark }: Props) {
    * ci-dessus). Sans lui, la modale se serait ouverte sur `null`, donc pas du
    * tout — un bouton « Supprimer » sans effet et sans message.
    */
+  /**
+   * La pièce visée par l'aperçu ou le classement. Elle se cherche dans les
+   * MESSAGES du fil ouvert : les métadonnées de pièces n'existent que là, la
+   * ligne de liste ne porte qu'un booléen `has_attachments`.
+   */
+  const idPiece = state.modal.kind === 'preview' || state.modal.kind === 'file' ? state.modal.attachmentId : null
+  const piece = idPiece ? thread.data?.flatMap((m) => m.mail_attachments).find((a) => a.id === idPiece) ?? null : null
+
   const idSuppression = state.modal.kind === 'delete' ? state.modal.threadId : null
   const filASupprimer = idSuppression
     ? threads.rows.find((r) => r.id === idSuppression) ?? (filOuvert?.id === idSuppression ? filOuvert : null)
@@ -360,6 +372,32 @@ export function MessagerieApp({ dark, setDark }: Props) {
               />
             )
           })()}
+
+          {/* Les deux modales de pièce jointe s'appellent l'une l'autre : depuis
+              l'aperçu on classe, depuis le classement on agrandit. Elles gardent
+              le même `attachmentId`, seule la nature de la modale change. */}
+          <MailAttachmentPreviewModal
+            ms={ms}
+            att={state.modal.kind === 'preview' ? piece : null}
+            onClose={() => dispatch({ type: 'modal', modal: { kind: 'none' } })}
+            onFile={() => piece && dispatch({ type: 'modal', modal: { kind: 'file', attachmentId: piece.id } })}
+          />
+
+          {state.modal.kind === 'file' && piece && (
+            <MailFileAttachmentModal
+              ms={ms}
+              att={piece}
+              defaultContactId={filOuvert?.contact_id ?? null}
+              onClose={() => dispatch({ type: 'modal', modal: { kind: 'none' } })}
+              onPreview={() => dispatch({ type: 'modal', modal: { kind: 'preview', attachmentId: piece.id } })}
+              // Le fil est rechargé : c'est lui qui porte `document_id`, donc la
+              // pastille « Classé au dossier » de l'aperçu et du lecteur.
+              onFiled={() => {
+                void queryClient.invalidateQueries({ queryKey: ['mail', 'thread', state.sel] })
+                dispatch({ type: 'modal', modal: { kind: 'none' } })
+              }}
+            />
+          )}
 
           <MailDeleteModal
             ms={ms}

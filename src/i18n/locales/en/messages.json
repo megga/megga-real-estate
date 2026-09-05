@@ -304,6 +304,42 @@
       "closing": "You can close this window.",
       "denied": "Authorisation refused or incomplete.",
       "failed": "The connection failed. {{detail}}"
+    },
+    "preview": {
+      "title": "Attachment preview",
+      "loading": "Loading…",
+      "error": "The attachment could not be loaded.",
+      "download": "Download"
+    },
+    "file": {
+      "cta": "File in the case folder",
+      "title": "File in the case folder",
+      "subtitle": "The attachment is copied into the contact's documents.",
+      "filed": "Filed in the folder",
+      "zoom": "View larger",
+      "contact": "Contact record",
+      "contactCurrent": "Contact of this thread",
+      "contactPlaceholder": "Choose a contact",
+      "type": "Document type",
+      "name": "Name in the folder",
+      "submit": "File the document",
+      "busy": "Filing…",
+      "types": {
+        "contrat": "Contract",
+        "mandat": "Mandate",
+        "piece_identite": "Identity document",
+        "justificatif_domicile": "Proof of address",
+        "financement": "Financing",
+        "plan": "Floor plan",
+        "photo": "Photo",
+        "autre": "Other"
+      },
+      "err": {
+        "unsupported": "This file type is not accepted in the documents (PDF, JPEG, PNG, WebP, Word).",
+        "tooLarge": "The attachment is over 20 MB and cannot be filed in the folder.",
+        "contact": "This contact does not belong to your agency.",
+        "generic": "Filing failed. Try again."
+      }
     }
   }
 }

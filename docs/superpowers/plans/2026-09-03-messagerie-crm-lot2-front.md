@@ -3085,12 +3085,47 @@ npm run build && git add -A && git commit -m "feat(messagerie): modale Rapproche
 
 README §8-9 transposés. ⚠ Le segment « Accès : Tout le cabinet / Soins uniquement » n'a **aucun** support dans `documents` (pas de colonne d'accès) : il n'est pas rendu — un réglage sans effet serait un mensonge d'interface. Écart consigné.
 
+⛔ **CINQ ÉCARTS MESURÉS À L'ÉCRITURE (05.09.2026)** :
+
+1. **⛔ L'APERÇU DÉCIDAIT « c'est une image » SUR LA DÉCLARATION DE L'EXPÉDITEUR.**
+   `att.mime_type` vient du courrier reçu ; `mail-attachment` (GET), lui, ne sert l'essence
+   d'origine que pour six types sûrs (`INLINE_SAFE_MIME` : PDF, PNG, JPEG, WebP, GIF, texte) et
+   rend `application/octet-stream` + `attachment` pour tout le reste — un SVG est un document
+   scriptable, pas une image. Un `image/svg+xml` ou un `image/heic` passait donc
+   `mime_type.startsWith('image/')` et posait un `<img>` sur des octets que le serveur refuse
+   d'afficher : une image cassée servie en **200**, exactement le mensonge que le repli du logo
+   évite en T2.9. `useMailAttachmentBlob` rend désormais aussi `type` — le `Content-Type` de la
+   RÉPONSE, donc la décision du serveur — et l'aperçu tranche là-dessus.
+2. **`textTransform: 'uppercase'` + `letterSpacing: '0.08em'` sur les trois sur-titres**
+   (« FICHE CONTACT », « TYPE DE DOCUMENT », « NOM DANS LE DOSSIER`) : refusés par deux clauses
+   de `megga-x-grammar`, comme au n° 1 de la T2.7. Casse normale.
+3. **`fontWeight: 700` → `600`** (pastille d'initiales du sélecteur de contact).
+4. **`gap: 4` et `marginTop: 4` → `var(--crm-space-2xs)`** : la zone n'a aucune entrée
+   `B4_ASSUME`, donc son inventaire d'espacements doit valoir zéro — même les valeurs SUR
+   l'échelle mais non tokenisées y comptent.
+5. **`MEIcon` ne connaît ni `image` ni `maximize`** : ce sont `gallery` et `zoom-in`.
+
+⚠ **DEUX MOTIFS D'ERREUR MANQUAIENT à la table du plan**, et ils sont tous deux atteignables :
+`too_large` (413, plafond de **20 Mio** pour le classement, distinct des 25 Mio de la lecture)
+et `contact_not_found` (404, contact hors de l'agence de l'appelant). Sans eux, deux refus
+parfaitement explicables tombaient sur « Le classement a échoué. Réessayez. »
+
+⚠ **L'ALLOWLIST DES SIX ESSENCES N'EST PAS RECOPIÉE côté client**, et c'est délibéré : elle vit
+dans la migration du bucket, l'edge la lit, l'écran rend son verdict. La dupliquer la ferait
+diverger en silence, et l'écran finirait par refuser ce que le serveur accepte.
+
+⚠ **La modale de classement est MONTÉE avec sa pièce** (`state.modal.kind === 'file' && piece`),
+ce qui retire l'`useEffect` d'amorçage du plan : `react-hooks/set-state-in-effect` le signale,
+et un `useState` d'initialisation donne le même résultat sans rendu supplémentaire. L'APERÇU,
+lui, reste monté avec `att` à `null` — `useMailAttachmentBlob` est un hook, il doit être appelé
+à chaque rendu.
+
 - [ ] **Step 1 : Aperçu**
 
 ```tsx
 // src/components/crm/messagerie/MailAttachmentPreviewModal.tsx — README §9 (calque .28, blur 8, carte 600).
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { useMailAttachmentBlob } from '@/hooks/useMailAttachmentBlob'
 import type { MailAttachmentRow } from '@/hooks/useMailThread'
 import { MailCloseButton, MailModalShell } from './MailModalShell'
@@ -3100,8 +3135,10 @@ interface Props { ms: MailSurfaces; att: MailAttachmentRow | null; onClose: () =
 export function MailAttachmentPreviewModal({ ms, att, onClose, onFile }: Props) {
   const { t } = useTranslation('messages')
   const blob = useMailAttachmentBlob(att?.id ?? null)
-  const isImage = !!att && att.mime_type.startsWith('image/')
-  const isPdf = att?.mime_type === 'application/pdf'
+  // ⛔ L'essence SERVIE, jamais celle que l'expéditeur déclarait — cf. écart n° 1.
+  const servi = blob.type ?? ''
+  const isImage = servi.startsWith('image/')
+  const isPdf = servi === 'application/pdf'
   return (
     <MailModalShell ms={ms} open={!!att} onClose={onClose} width={600} ariaLabel={t('mail.preview.title')} veil={0.28} blur={8} zIndex={305}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)' }}>
@@ -3134,7 +3171,7 @@ export function MailAttachmentPreviewModal({ ms, att, onClose, onFile }: Props) 
 // src/components/crm/messagerie/MailFileAttachmentModal.tsx — README §8 (carte 560).
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { useMailContactSearch, type MailContactHit } from '@/hooks/useMailContactSearch'
 import type { MailAttachmentRow } from '@/hooks/useMailThread'
 import { invokeMail } from '@/lib/mail/invoke'
@@ -3143,6 +3180,8 @@ import { MailCloseButton, MailModalShell } from './MailModalShell'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
 const TYPES = ['contrat', 'mandat', 'piece_identite', 'justificatif_domicile', 'financement', 'plan', 'photo', 'autre'] as const
+/** Motif du serveur → clé i18n. `too_large` (20 Mio) et `contact_not_found` sont atteignables. */
+const ERREURS: Record<string, string> = { unsupported_type: 'mail.file.err.unsupported', too_large: 'mail.file.err.tooLarge', contact_not_found: 'mail.file.err.contact' }
 interface Props { ms: MailSurfaces; att: MailAttachmentRow | null; defaultContactId: string | null; onClose: () => void; onFiled: () => void; onPreview: () => void }
 
 export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, onFiled, onPreview }: Props) {
@@ -3163,7 +3202,7 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
     setBusy(true); setError(null)
     const r = await invokeMail('mail-attachment', { action: 'file', attachment_id: att.id, contact_id: contactId, document_type: type, name })
     setBusy(false)
-    if (r.error) { setError(t(r.error === 'unsupported_type' ? 'mail.file.err.unsupported' : 'mail.file.err.generic')); return }
+    if (r.error) { setError(t(ERREURS[r.error] ?? 'mail.file.err.generic')); return }
     onFiled()
   }
   const field = { background: ms.elev, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const, borderRadius: PILL, padding: 'var(--crm-space-md) var(--crm-space-2xl)', fontSize: 'var(--crm-text-md)', width: '100%' }
@@ -3175,15 +3214,15 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', marginTop: 'var(--crm-space-4xl)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', background: ms.elev, borderRadius: 'var(--crm-radius-4xl)', padding: 'var(--crm-space-lg) var(--crm-space-2xl)' }}>
-          <button type="button" onClick={onPreview} aria-label={t('mail.file.zoom')} style={{ width: 76, height: 76, borderRadius: 'var(--crm-radius-lg)', background: ms.card, border: `1px solid ${ms.bord}`, cursor: 'zoom-in', display: 'grid', placeItems: 'center', color: ms.mut }}><MEIcon name={att?.mime_type.startsWith('image/') ? 'image' : 'file-text'} size={28} /></button>
+          <button type="button" onClick={onPreview} aria-label={t('mail.file.zoom')} style={{ width: 76, height: 76, borderRadius: 'var(--crm-radius-lg)', background: ms.card, border: `1px solid ${ms.bord}`, cursor: 'zoom-in', display: 'grid', placeItems: 'center', color: ms.mut }}><MEIcon name={att?.mime_type.startsWith('image/') ? 'gallery' : 'file-text'} size={28} /></button>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att?.filename}</div>
             <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{ext} · {fileSizeLabel(att?.size_bytes ?? 0)}</div>
-            <button type="button" onClick={onPreview} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', padding: 0, marginTop: 4, color: ms.accent, fontSize: 'var(--crm-text-xs)', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}><MEIcon name="maximize" size={12} color={ms.accent} /> {t('mail.file.zoom')}</button>
+            <button type="button" onClick={onPreview} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', background: 'none', border: 'none', padding: 0, marginTop: 'var(--crm-space-2xs)', color: ms.accent, fontSize: 'var(--crm-text-xs)', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}><MEIcon name="zoom-in" size={12} color={ms.accent} /> {t('mail.file.zoom')}</button>
           </div>
         </div>
         <div style={{ position: 'relative' }}>
-          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.contact')}</div>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.contact')}</div>
           <button type="button" onClick={() => setPickerOpen((v) => !v)} aria-expanded={pickerOpen} style={{ ...field, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', cursor: 'pointer', textAlign: 'left' }}>
             <span style={{ flex: 1 }}>{contact ? `${contact.first_name} ${contact.last_name}` : defaultContactId ? t('mail.file.contactCurrent') : t('mail.file.contactPlaceholder')}</span><MEIcon name="chevron-down" size={12} color={ms.mut} />
           </button>
@@ -3194,7 +3233,7 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
                 {(hits.data ?? []).map((h) => (
                   <button key={h.id} type="button" onClick={() => { setContact(h); setPickerOpen(false) }} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', width: '100%', textAlign: 'left', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', background: 'transparent', border: 'none', color: ms.ink, cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION }}
                     onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-                    <span aria-hidden style={{ width: 28, height: 28, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 700 }}>{initialsOf(`${h.first_name} ${h.last_name}`, h.email)}</span>
+                    <span aria-hidden style={{ width: 28, height: 28, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600 }}>{initialsOf(`${h.first_name} ${h.last_name}`, h.email)}</span>
                     <span style={{ minWidth: 0 }}><span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', fontWeight: 500 }}>{h.first_name} {h.last_name}</span><span style={{ display: 'block', fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{h.email}</span></span>
                   </button>
                 ))}
@@ -3204,7 +3243,7 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
           )}
         </div>
         <div>
-          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.type')}</div>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.type')}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--crm-space-sm)' }}>
             {TYPES.map((k) => (
               <button key={k} type="button" aria-pressed={type === k} onClick={() => setType(k)} style={{ borderRadius: PILL, padding: 'var(--crm-space-xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', fontWeight: 500, border: `1px solid ${type === k ? ms.accent : ms.bord3}`, background: type === k ? ms.accent : ms.elev, color: type === k ? ms.accentInk : ms.txt3, cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION }}>{t(`mail.file.types.${k}`)}</button>
@@ -3212,7 +3251,7 @@ export function MailFileAttachmentModal({ ms, att, defaultContactId, onClose, on
           </div>
         </div>
         <div>
-          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.name')}</div>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut, marginBottom: 'var(--crm-space-sm)' }}>{t('mail.file.name')}</div>
           <input value={name} onChange={(e) => setName(e.target.value)} aria-label={t('mail.file.name')} style={field} />
         </div>
         {error && <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.danger }}>{error}</div>}
@@ -3239,7 +3278,7 @@ i18n FR :
 "preview": { "title": "Aperçu de la pièce", "loading": "Chargement…", "error": "La pièce n'a pas pu être chargée.", "download": "Télécharger" },
 "file": { "cta": "Classer dans le dossier", "title": "Classer dans le dossier", "subtitle": "La pièce est copiée dans les documents du contact.", "filed": "Classé au dossier", "zoom": "Voir en grand", "contact": "Fiche contact", "contactCurrent": "Contact de ce fil", "contactPlaceholder": "Choisir un contact", "type": "Type de document", "name": "Nom dans le dossier", "submit": "Classer le document", "busy": "Classement…",
   "types": { "contrat": "Contrat", "mandat": "Mandat", "piece_identite": "Pièce d'identité", "justificatif_domicile": "Justificatif de domicile", "financement": "Financement", "plan": "Plan", "photo": "Photo", "autre": "Autre" },
-  "err": { "unsupported": "Ce type de fichier n'est pas accepté dans les documents (PDF, JPEG, PNG, WebP, Word).", "generic": "Le classement a échoué. Réessayez." } }
+  "err": { "unsupported": "Ce type de fichier n'est pas accepté dans les documents (PDF, JPEG, PNG, WebP, Word).", "tooLarge": "La pièce dépasse 20 Mo : elle ne peut pas être classée au dossier.", "contact": "Ce contact n'appartient pas à votre agence.", "generic": "Le classement a échoué. Réessayez." } }
 ```
 
 ```bash

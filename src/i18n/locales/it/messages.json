@@ -304,6 +304,42 @@
       "closing": "Potete chiudere questa finestra.",
       "denied": "Autorizzazione rifiutata o incompleta.",
       "failed": "La connessione non è riuscita. {{detail}}"
+    },
+    "preview": {
+      "title": "Anteprima dell'allegato",
+      "loading": "Caricamento…",
+      "error": "Non è stato possibile caricare l'allegato.",
+      "download": "Scarica"
+    },
+    "file": {
+      "cta": "Archivia nel dossier",
+      "title": "Archivia nel dossier",
+      "subtitle": "L'allegato viene copiato nei documenti del contatto.",
+      "filed": "Archiviato nel dossier",
+      "zoom": "Vedi in grande",
+      "contact": "Scheda contatto",
+      "contactCurrent": "Contatto di questa conversazione",
+      "contactPlaceholder": "Scegli un contatto",
+      "type": "Tipo di documento",
+      "name": "Nome nel dossier",
+      "submit": "Archivia il documento",
+      "busy": "Archiviazione…",
+      "types": {
+        "contrat": "Contratto",
+        "mandat": "Mandato",
+        "piece_identite": "Documento d'identità",
+        "justificatif_domicile": "Prova di domicilio",
+        "financement": "Finanziamento",
+        "plan": "Planimetria",
+        "photo": "Foto",
+        "autre": "Altro"
+      },
+      "err": {
+        "unsupported": "Questo tipo di file non è accettato nei documenti (PDF, JPEG, PNG, WebP, Word).",
+        "tooLarge": "L'allegato supera i 20 MB e non può essere archiviato nel dossier.",
+        "contact": "Questo contatto non appartiene alla vostra agenzia.",
+        "generic": "L'archiviazione non è riuscita. Riprovate."
+      }
     }
   }
 }

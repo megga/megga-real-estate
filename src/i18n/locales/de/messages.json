@@ -304,6 +304,42 @@
       "closing": "Sie können dieses Fenster schliessen.",
       "denied": "Freigabe verweigert oder unvollständig.",
       "failed": "Die Verbindung ist fehlgeschlagen. {{detail}}"
+    },
+    "preview": {
+      "title": "Vorschau der Datei",
+      "loading": "Wird geladen…",
+      "error": "Die Datei konnte nicht geladen werden.",
+      "download": "Herunterladen"
+    },
+    "file": {
+      "cta": "Im Dossier ablegen",
+      "title": "Im Dossier ablegen",
+      "subtitle": "Die Datei wird in die Dokumente des Kontakts kopiert.",
+      "filed": "Im Dossier abgelegt",
+      "zoom": "Gross ansehen",
+      "contact": "Kontaktdossier",
+      "contactCurrent": "Kontakt dieses Verlaufs",
+      "contactPlaceholder": "Kontakt wählen",
+      "type": "Dokumentart",
+      "name": "Name im Dossier",
+      "submit": "Dokument ablegen",
+      "busy": "Wird abgelegt…",
+      "types": {
+        "contrat": "Vertrag",
+        "mandat": "Mandat",
+        "piece_identite": "Ausweisdokument",
+        "justificatif_domicile": "Wohnsitznachweis",
+        "financement": "Finanzierung",
+        "plan": "Plan",
+        "photo": "Foto",
+        "autre": "Anderes"
+      },
+      "err": {
+        "unsupported": "Dieser Dateityp wird in den Dokumenten nicht akzeptiert (PDF, JPEG, PNG, WebP, Word).",
+        "tooLarge": "Die Datei überschreitet 20 MB und kann nicht im Dossier abgelegt werden.",
+        "contact": "Dieser Kontakt gehört nicht zu Ihrer Agentur.",
+        "generic": "Die Ablage ist fehlgeschlagen. Bitte erneut versuchen."
+      }
     }
   }
 }

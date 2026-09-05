@@ -304,6 +304,42 @@
       "closing": "Vous pouvez fermer cette fenêtre.",
       "denied": "Autorisation refusée ou incomplète.",
       "failed": "La connexion a échoué. {{detail}}"
+    },
+    "preview": {
+      "title": "Aperçu de la pièce",
+      "loading": "Chargement…",
+      "error": "La pièce n'a pas pu être chargée.",
+      "download": "Télécharger"
+    },
+    "file": {
+      "cta": "Classer dans le dossier",
+      "title": "Classer dans le dossier",
+      "subtitle": "La pièce est copiée dans les documents du contact.",
+      "filed": "Classé au dossier",
+      "zoom": "Voir en grand",
+      "contact": "Fiche contact",
+      "contactCurrent": "Contact de ce fil",
+      "contactPlaceholder": "Choisir un contact",
+      "type": "Type de document",
+      "name": "Nom dans le dossier",
+      "submit": "Classer le document",
+      "busy": "Classement…",
+      "types": {
+        "contrat": "Contrat",
+        "mandat": "Mandat",
+        "piece_identite": "Pièce d'identité",
+        "justificatif_domicile": "Justificatif de domicile",
+        "financement": "Financement",
+        "plan": "Plan",
+        "photo": "Photo",
+        "autre": "Autre"
+      },
+      "err": {
+        "unsupported": "Ce type de fichier n'est pas accepté dans les documents (PDF, JPEG, PNG, WebP, Word).",
+        "tooLarge": "La pièce dépasse 20 Mo : elle ne peut pas être classée au dossier.",
+        "contact": "Ce contact n'appartient pas à votre agence.",
+        "generic": "Le classement a échoué. Réessayez."
+      }
     }
   }
 }
