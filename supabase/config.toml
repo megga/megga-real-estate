@@ -631,6 +631,9 @@ verify_jwt = false
 [functions.mail-attachment]
 verify_jwt = false
 
+[functions.mail-imap-probe]
+verify_jwt = false
+
 [functions.mail-oauth]
 verify_jwt = false
 
