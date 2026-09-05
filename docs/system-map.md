@@ -249,10 +249,22 @@ est monté dans `AgentLayout`, seul endroit qui ne se remonte pas à la navigati
 [`CrmWorkspace`](../src/components/crm/CrmWorkspace.tsx), pour les mêmes raisons qui ont interdit de hisser
 la barre latérale. ⛔ Elle ne peut pas vivre **dans** le `<main>` : sept surfaces y capturent la molette en
 `passive:false` avec un `preventDefault()` inconditionnel, et un coup de molette sur une puce ferait paginer
-le pager. Un onglet transporte son URL **et** une tranche d'écran opaque (`useTabScopedState`), parce que
-33 des 38 positions d'écran du CRM vivent en `useState` local : re-naviguer n'en restaurerait que ~8 %.
-Persistance par personne dans `crm_open_tabs` (RLS `user_id = auth.uid()`, aucune policy agence ni
-super-admin — la pile dit quels clients un agent a ouverts). Cerveau : `megga/onglets-crm`,
+le pager. Un onglet transporte son URL **et** une tranche d'écran opaque (`useTabScopedState`), parce qu'à la
+veille du câblage (mesure du 04.09.2026) **33 des 38** positions d'écran du CRM vivaient en `useState`
+local, **3 seulement dans l'URL** et **2 en `localStorage`** : re-naviguer n'aurait restauré que les 3 de
+l'URL, ~8 %. ⚠ Le membre du milieu manquait ici, et sans lui le chiffre ne se re-dérive pas — 38 − 33 = 5,
+soit 13 %, pas 8 %. Les 8 % sont 3/38. ⚠ Remesurer aujourd'hui ne rend plus 33 : **14 de ces positions sont
+passées en `useTabScopedState`** (`grep -rn "= useTabScopedState" src/`), donc dans la tranche d'onglet.
+
+**Persistance à deux étages.** Côté serveur, `crm_open_tabs` — une ligne par personne (clé primaire
+`user_id`), RLS `user_id = auth.uid()` en **quatre policies séparées**, jamais un `for all` (le défaut
+corrigé le 17.08.2026 sur `whatsapp_agent_links`), aucune policy agence ni super-admin : la pile dit quels
+clients un agent a ouverts. Côté navigateur, un miroir de démarrage en **`sessionStorage`** sous
+`megga.crm.tabs` ([`useCrmTabs.ts:65-99`](../src/hooks/useCrmTabs.ts)) — ⛔ **jamais `localStorage`**, au
+même motif exactement : le libellé d'un onglet de fiche EST le nom du contact. Il ne sert que la première
+frame, le serveur restant la source de vérité. ⚠ **Rien ne garde ce choix** : mesuré le 05.09.2026,
+`megga.crm.tabs` n'existe qu'à **deux** endroits du dépôt — le hook et `CLAUDE.md` — et aucune spec ne le
+lit ; un passage en `localStorage` partirait au vert. Cerveau : `megga/onglets-crm`,
 `megga/onglets-persistance`, `megga/onglets-pieges`.
 
 | Audience | Préfixe | Pages clés |
