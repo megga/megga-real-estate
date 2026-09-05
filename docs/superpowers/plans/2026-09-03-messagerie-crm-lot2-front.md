@@ -3291,176 +3291,97 @@ git add -A && git commit -m "feat(messagerie): aperçu de pièce et classement a
 ### Task 2.12 : i18n — consolidation FR et les trois autres langues
 
 **Files:**
-- Modify: `src/i18n/locales/{fr,de,en,it}/messages.json` (sous-arbre `mail`), `common.json` (`nav.messagerie`, `audit.action.*`), `settings.json` (`integrations.catalogue.messagerie.desc`)
+- Modify: `src/i18n/locales/{fr,de,en,it}/messages.json` (`mail.mobile`), `common.json` (`audit.action.*`), `settings.json` (`integrations.catalogue.messagerie.desc`)
 
-- [ ] **Step 1 : FR — l'arbre complet (remplace les fragments posés tâche par tâche ; aucun tiret cadratin)**
+> ⛔ **LES QUATRE ARBRES JSON QUI TENAIENT ICI ONT ÉTÉ RETIRÉS LE 05.09.2026 : ILS
+> ÉTAIENT PÉRIMÉS AVANT D'ÊTRE LUS.** Ils avaient été écrits le 03.09, quand cette
+> tâche devait POSER le sous-arbre `mail`. Les tâches 2.1 à 2.11 l'ont posé au fur
+> et à mesure, clé par clé, avec l'écran qui la consomme — et mieux : là où le plan
+> transposait le français mot à mot, l'implémentation a traduit.
+>
+> Mesuré le 05.09.2026 (`mail.*` : plan 168 clés, dépôt 170, dans les quatre
+> langues) :
+>
+> - **1 clé manquait au dépôt** — `mail.mobile.readOnly`, que seul l'écran mobile
+>   de T2.14 consomme. C'est la seule chose que cette tâche avait encore à poser.
+> - **3 clés manquaient au PLAN**, et elles ont un lecteur : `mail.labels.hex`
+>   (`MailLabelCreator.tsx:128`), `mail.file.err.tooLarge` et `mail.file.err.contact`
+>   (`MailFileAttachmentModal.tsx:33-34`). Appliquer le bloc « tel quel » les
+>   aurait SUPPRIMÉES — trois libellés d'erreur remplacés par leur clé brute à
+>   l'écran, sans qu'aucune porte ne rougisse (`lint:i18n` cherche du français en
+>   dur, pas une clé absente).
+> - **35 valeurs EN, 38 DE, 32 IT différaient**, et dans presque tous les cas
+>   c'est le DÉPÔT qui a raison. Le cas d'école est `mail.labels.title` en
+>   allemand : le plan écrit `"Labels"`, recopié de l'anglais — exactement ce que
+>   le cliquet `i18n:coverage:ci` compte comme « non traduit ». Le dépôt dit
+>   « Kategorien ». Revenir au plan aurait fait rougir la porte que cette tâche
+>   doit garder verte.
+> - L'anglais du dépôt est en orthographe britannique (`Authorisation`,
+>   `Synchronisation`), celui du plan en américaine. **Ni l'une ni l'autre n'est la
+>   convention de la maison** : mesuré sur `src/i18n/locales/en/`, 34 formes
+>   britanniques contre 34 américaines. Aucune porte ne tranche, donc on ne churne
+>   pas 20 valeurs pour un goût — `mail.*` reste cohérent avec lui-même.
+>
+> Ce qui reste de la tâche est donc ce qui suit, et deux corrections mesurées.
 
-```json
-"mail": {
-  "empty": { "noAccount": { "title": "Aucune boîte connectée", "body": "Connectez la boîte de l'agence ou la vôtre pour lire et répondre ici." }, "noMessage": "Aucun message ne correspond." },
-  "box": { "label": "Boîte", "none": "Aucune boîte", "synced": "synchronisée", "disconnect": "Déconnecter", "disconnectConfirm": "Déconnecter cette boîte ? Ses messages seront retirés du CRM ; les documents classés restent.", "status": { "reauth_required": "Autorisation à renouveler", "error": "Erreur de synchronisation", "disabled": "Désactivée" } },
-  "compose": { "cta": "Nouveau message", "title": "Nouveau message", "to": "Destinataire", "toPlaceholder": "À · destinataire", "subject": "Objet", "body": "Message", "attach": "Joindre un document", "fromComputer": "Depuis mon ordinateur", "agencyDocs": "Documents de l'agence", "noAgencyDocs": "Aucun document disponible.", "removeAttachment": "Retirer la pièce" },
-  "folders": { "aria": "Dossiers", "in": "Boîte de réception", "arch": "Archivé", "star": "Suivis", "sent": "Envoyés", "draft": "Brouillons" },
-  "labels": { "title": "Libellés", "new": "Nouveau libellé", "rename": "Renommer", "recolor": "Changer la couleur", "delete": "Supprimer", "namePlaceholder": "Nom du libellé", "custom": "Couleur personnalisée", "hue": "Teinte", "create": "Créer" },
-  "actions": { "cancel": "Annuler", "save": "Enregistrer", "send": "Envoyer", "sending": "Envoi…", "forward": "Transférer", "close": "Fermer" },
-  "list": { "search": "Recherche", "searchPlaceholder": "Chercher un expéditeur, un objet ...", "unread": "Non lus", "attachment": "Pièce jointe" },
-  "pager": { "range": "{{from}} à {{to}} sur {{total}}", "prev": "Page précédente", "next": "Page suivante" },
-  "row": { "star": "Suivre", "unstar": "Ne plus suivre", "noSubject": "(sans objet)" },
-  "ctx": { "open": "Ouvrir", "markRead": "Marquer comme lu", "markUnread": "Marquer comme non lu", "star": "Suivre", "unstar": "Ne plus suivre", "archive": "Archiver", "unarchive": "Désarchiver", "delete": "Supprimer" },
-  "draft": { "badge": "Brouillon", "noRecipient": "(sans destinataire)" },
-  "read": { "back": "Retour à la liste", "to": "à {{box}}", "me": "moi", "reply": "Répondre", "forward": "Transférer", "replyTo": "Réponse à", "replyBody": "Votre réponse", "forwardNote": "Note facultative", "forwardOriginal": "Message d'origine joint", "showImages": "Afficher les images", "bodyTitle": "Corps du message", "truncated": "Message tronqué (trop volumineux) : ouvrez-le dans votre messagerie pour la version complète.", "unlinked": "Adresse non rattachée : {{email}}" },
-  "link": { "cta": "Rapprocher", "title": "Rapprocher l'adresse", "search": "Recherche", "searchPlaceholder": "Nom, adresse ou téléphone", "empty": "Aucun contact trouvé.", "note": "L'adresse sera mémorisée pour cette fiche.", "create": "Créer la fiche" },
-  "delete": { "title": "Supprimer ce message ?", "legal": "Le message part à la corbeille et quitte la liste. La conservation légale de dix ans s'applique au dossier, pas à la boîte." },
-  "add": {
-    "cta": "Ajouter une boîte", "title": "Ajouter une boîte", "back": "Retour", "share": "Partager cette boîte avec toute l'agence",
-    "waSub": "Coexistence · app + Cloud API sur le même numéro", "imapSub": "Connexion IMAP / SMTP", "other": "Autre boîte (IMAP / SMTP)", "otherSub": "Configuration manuelle du serveur",
-    "oauth": { "subtitle": "Autorisation du compte", "addr": "Adresse e-mail", "addrPlaceholder": "adresse@votre-agence.ch", "access": "Accès demandé",
-      "scope": { "read": "Lire et envoyer les messages de cette boîte", "file": "Rattacher les échanges à la fiche contact", "labels": "Classer avec les libellés de l'agence" },
-      "note": "Validation sur la page de {{provider}} · aucun mot de passe ne transite par l'agence.", "useImap": "Configurer en IMAP", "authorize": "Autoriser", "busy": "Connexion…",
-      "err": { "popupBlocked": "La fenêtre a été bloquée par le navigateur. Nous ouvrons l'autorisation dans cet onglet.", "cancelled": "Autorisation annulée.", "timeout": "L'autorisation a expiré. Réessayez.", "denied": "L'accès a été refusé sur la page du fournisseur.", "notConfigured": "Ce fournisseur n'est pas encore configuré côté MEGGA.", "exchange": "La connexion a échoué : {{detail}}", "generic": "La connexion a échoué. Réessayez dans un instant." } },
-    "imap": { "subtitle": "Connexion IMAP / SMTP", "email": "Adresse e-mail", "imapHost": "Serveur IMAP", "smtpHost": "Serveur SMTP", "port": "Port", "imapPort": "Port IMAP", "smtpPort": "Port SMTP", "user": "Utilisateur", "password": "Mot de passe", "encryption": "Chiffrement",
-      "note": "Le test vérifie IMAP et SMTP avant l'ajout · les identifiants sont chiffrés au repos.", "test": "Tester et connecter", "unavailable": "La connexion IMAP arrive dans une prochaine version.",
-      "err": { "invalid": "Adresse, serveurs et mot de passe sont requis.", "starttls": "STARTTLS (port 587) n'est pas disponible depuis nos serveurs. Utilisez SSL/TLS sur le port 465.", "connection": "Connexion refusée : vérifiez l'identifiant, le mot de passe (ou mot de passe d'application) et les serveurs.", "generic": "La connexion a échoué. Réessayez dans un instant." } },
-    "done": { "title": "Boîte connectée", "sync": "Synchronisation", "syncValue": "90 derniers jours", "folders": "Dossiers importés", "foldersValue": "Réception, Envoyés", "linking": "Rattachement aux contacts", "linkingValue": "Actif", "another": "Ajouter une autre", "open": "Ouvrir la boîte" }
-  },
-  "callback": { "working": "Connexion de la boîte…", "closing": "Vous pouvez fermer cette fenêtre.", "denied": "Autorisation refusée ou incomplète.", "failed": "La connexion a échoué. {{detail}}" },
-  "preview": { "title": "Aperçu de la pièce", "loading": "Chargement…", "error": "La pièce n'a pas pu être chargée.", "download": "Télécharger" },
-  "file": { "cta": "Classer dans le dossier", "title": "Classer dans le dossier", "subtitle": "La pièce est copiée dans les documents du contact.", "filed": "Classé au dossier", "zoom": "Voir en grand", "contact": "Fiche contact", "contactCurrent": "Contact de ce fil", "contactPlaceholder": "Choisir un contact", "type": "Type de document", "name": "Nom dans le dossier", "submit": "Classer le document", "busy": "Classement…",
-    "types": { "contrat": "Contrat", "mandat": "Mandat", "piece_identite": "Pièce d'identité", "justificatif_domicile": "Justificatif de domicile", "financement": "Financement", "plan": "Plan", "photo": "Photo", "autre": "Autre" },
-    "err": { "unsupported": "Ce type de fichier n'est pas accepté dans les documents (PDF, JPEG, PNG, WebP, Word).", "generic": "Le classement a échoué. Réessayez." } },
-  "mobile": { "readOnly": "Composer et répondre se font sur ordinateur pour l'instant." }
-}
-```
-`common.json` (fr) : `nav.messagerie: "Messagerie"` ; `audit.action.email_received: "E-mail reçu"`, `audit.action.email_sent: "E-mail envoyé"`, `audit.action.document_filed_from_email: "Pièce classée depuis un e-mail"`.
-`settings.json` (fr) : `integrations.catalogue.messagerie.desc: "Lisez et répondez à vos e-mails depuis le CRM (Google, Microsoft, IMAP)."`
+- [x] **Step 1 : la clé que l'écran mobile de T2.14 attend**
 
-- [ ] **Step 2 : EN**
+`mail.mobile.readOnly`, dans les quatre langues :
 
-```json
-"mail": {
-  "empty": { "noAccount": { "title": "No mailbox connected", "body": "Connect the agency mailbox or your own to read and reply here." }, "noMessage": "No message matches." },
-  "box": { "label": "Mailbox", "none": "No mailbox", "synced": "synced", "disconnect": "Disconnect", "disconnectConfirm": "Disconnect this mailbox? Its messages are removed from the CRM; filed documents stay.", "status": { "reauth_required": "Authorization to renew", "error": "Sync error", "disabled": "Disabled" } },
-  "compose": { "cta": "New message", "title": "New message", "to": "Recipient", "toPlaceholder": "To · recipient", "subject": "Subject", "body": "Message", "attach": "Attach a document", "fromComputer": "From my computer", "agencyDocs": "Agency documents", "noAgencyDocs": "No document available.", "removeAttachment": "Remove attachment" },
-  "folders": { "aria": "Folders", "in": "Inbox", "arch": "Archived", "star": "Starred", "sent": "Sent", "draft": "Drafts" },
-  "labels": { "title": "Labels", "new": "New label", "rename": "Rename", "recolor": "Change colour", "delete": "Delete", "namePlaceholder": "Label name", "custom": "Custom colour", "hue": "Hue", "create": "Create" },
-  "actions": { "cancel": "Cancel", "save": "Save", "send": "Send", "sending": "Sending…", "forward": "Forward", "close": "Close" },
-  "list": { "search": "Search", "searchPlaceholder": "Search a sender, a subject ...", "unread": "Unread", "attachment": "Attachment" },
-  "pager": { "range": "{{from}} to {{to}} of {{total}}", "prev": "Previous page", "next": "Next page" },
-  "row": { "star": "Star", "unstar": "Unstar", "noSubject": "(no subject)" },
-  "ctx": { "open": "Open", "markRead": "Mark as read", "markUnread": "Mark as unread", "star": "Star", "unstar": "Unstar", "archive": "Archive", "unarchive": "Unarchive", "delete": "Delete" },
-  "draft": { "badge": "Draft", "noRecipient": "(no recipient)" },
-  "read": { "back": "Back to the list", "to": "to {{box}}", "me": "me", "reply": "Reply", "forward": "Forward", "replyTo": "Reply to", "replyBody": "Your reply", "forwardNote": "Optional note", "forwardOriginal": "Original message attached", "showImages": "Show images", "bodyTitle": "Message body", "truncated": "Message truncated (too large): open it in your mail client for the full version.", "unlinked": "Address not linked: {{email}}" },
-  "link": { "cta": "Link", "title": "Link the address", "search": "Search", "searchPlaceholder": "Name, address or phone", "empty": "No contact found.", "note": "The address will be remembered for this contact.", "create": "Create the contact" },
-  "delete": { "title": "Delete this message?", "legal": "The message goes to the trash and leaves the list. The ten-year legal retention applies to the file, not to the mailbox." },
-  "add": {
-    "cta": "Add a mailbox", "title": "Add a mailbox", "back": "Back", "share": "Share this mailbox with the whole agency",
-    "waSub": "Coexistence · app + Cloud API on the same number", "imapSub": "IMAP / SMTP connection", "other": "Other mailbox (IMAP / SMTP)", "otherSub": "Manual server configuration",
-    "oauth": { "subtitle": "Account authorization", "addr": "Email address", "addrPlaceholder": "address@your-agency.ch", "access": "Access requested",
-      "scope": { "read": "Read and send messages of this mailbox", "file": "Link conversations to the contact record", "labels": "Classify with the agency labels" },
-      "note": "Validation on the {{provider}} page · no password goes through the agency.", "useImap": "Set up with IMAP", "authorize": "Authorize", "busy": "Connecting…",
-      "err": { "popupBlocked": "The window was blocked by the browser. We are opening the authorization in this tab.", "cancelled": "Authorization cancelled.", "timeout": "The authorization expired. Try again.", "denied": "Access was refused on the provider page.", "notConfigured": "This provider is not configured on the MEGGA side yet.", "exchange": "The connection failed: {{detail}}", "generic": "The connection failed. Try again in a moment." } },
-    "imap": { "subtitle": "IMAP / SMTP connection", "email": "Email address", "imapHost": "IMAP server", "smtpHost": "SMTP server", "port": "Port", "imapPort": "IMAP port", "smtpPort": "SMTP port", "user": "Username", "password": "Password", "encryption": "Encryption",
-      "note": "The test checks IMAP and SMTP before adding · credentials are encrypted at rest.", "test": "Test and connect", "unavailable": "IMAP connection is coming in a next version.",
-      "err": { "invalid": "Address, servers and password are required.", "starttls": "STARTTLS (port 587) is not available from our servers. Use SSL/TLS on port 465.", "connection": "Connection refused: check the login, the password (or app password) and the servers.", "generic": "The connection failed. Try again in a moment." } },
-    "done": { "title": "Mailbox connected", "sync": "Synchronization", "syncValue": "Last 90 days", "folders": "Imported folders", "foldersValue": "Inbox, Sent", "linking": "Contact linking", "linkingValue": "Active", "another": "Add another", "open": "Open the mailbox" }
-  },
-  "callback": { "working": "Connecting the mailbox…", "closing": "You can close this window.", "denied": "Authorization refused or incomplete.", "failed": "The connection failed. {{detail}}" },
-  "preview": { "title": "Attachment preview", "loading": "Loading…", "error": "The attachment could not be loaded.", "download": "Download" },
-  "file": { "cta": "File in the record", "title": "File in the record", "subtitle": "The attachment is copied into the contact's documents.", "filed": "Filed in the record", "zoom": "View full size", "contact": "Contact record", "contactCurrent": "Contact of this thread", "contactPlaceholder": "Choose a contact", "type": "Document type", "name": "Name in the record", "submit": "File the document", "busy": "Filing…",
-    "types": { "contrat": "Contract", "mandat": "Mandate", "piece_identite": "Identity document", "justificatif_domicile": "Proof of address", "financement": "Financing", "plan": "Plan", "photo": "Photo", "autre": "Other" },
-    "err": { "unsupported": "This file type is not accepted in documents (PDF, JPEG, PNG, WebP, Word).", "generic": "Filing failed. Try again." } },
-  "mobile": { "readOnly": "Composing and replying are done on desktop for now." }
-}
-```
-`common.json` (en) : `nav.messagerie: "Mail"` ; `audit.action.email_received: "Email received"`, `email_sent: "Email sent"`, `document_filed_from_email: "Attachment filed from an email"`. `settings.json` (en) : `"Read and reply to your emails from the CRM (Google, Microsoft, IMAP)."`
+| | |
+|---|---|
+| fr | Composer et répondre se font sur ordinateur pour l'instant. |
+| en | Composing and replying are done on desktop for now. |
+| de | Verfassen und Antworten sind vorerst am Computer möglich. |
+| it | Scrivere e rispondere si fanno dal computer, per ora. |
 
-- [ ] **Step 3 : DE**
+- [x] **Step 2 : les trois actions d'audit (`common.json`), que la timeline contact affiche**
 
-```json
-"mail": {
-  "empty": { "noAccount": { "title": "Kein Postfach verbunden", "body": "Verbinden Sie das Postfach der Agentur oder Ihr eigenes, um hier zu lesen und zu antworten." }, "noMessage": "Keine Nachricht entspricht der Suche." },
-  "box": { "label": "Postfach", "none": "Kein Postfach", "synced": "synchronisiert", "disconnect": "Trennen", "disconnectConfirm": "Dieses Postfach trennen? Seine Nachrichten werden aus dem CRM entfernt; abgelegte Dokumente bleiben.", "status": { "reauth_required": "Berechtigung erneuern", "error": "Synchronisierungsfehler", "disabled": "Deaktiviert" } },
-  "compose": { "cta": "Neue Nachricht", "title": "Neue Nachricht", "to": "Empfänger", "toPlaceholder": "An · Empfänger", "subject": "Betreff", "body": "Nachricht", "attach": "Dokument anhängen", "fromComputer": "Von meinem Computer", "agencyDocs": "Dokumente der Agentur", "noAgencyDocs": "Kein Dokument verfügbar.", "removeAttachment": "Anhang entfernen" },
-  "folders": { "aria": "Ordner", "in": "Posteingang", "arch": "Archiviert", "star": "Markiert", "sent": "Gesendet", "draft": "Entwürfe" },
-  "labels": { "title": "Labels", "new": "Neues Label", "rename": "Umbenennen", "recolor": "Farbe ändern", "delete": "Löschen", "namePlaceholder": "Name des Labels", "custom": "Eigene Farbe", "hue": "Farbton", "create": "Erstellen" },
-  "actions": { "cancel": "Abbrechen", "save": "Speichern", "send": "Senden", "sending": "Wird gesendet…", "forward": "Weiterleiten", "close": "Schliessen" },
-  "list": { "search": "Suche", "searchPlaceholder": "Absender, Betreff suchen ...", "unread": "Ungelesen", "attachment": "Anhang" },
-  "pager": { "range": "{{from}} bis {{to}} von {{total}}", "prev": "Vorherige Seite", "next": "Nächste Seite" },
-  "row": { "star": "Markieren", "unstar": "Markierung entfernen", "noSubject": "(kein Betreff)" },
-  "ctx": { "open": "Öffnen", "markRead": "Als gelesen markieren", "markUnread": "Als ungelesen markieren", "star": "Markieren", "unstar": "Markierung entfernen", "archive": "Archivieren", "unarchive": "Aus Archiv holen", "delete": "Löschen" },
-  "draft": { "badge": "Entwurf", "noRecipient": "(kein Empfänger)" },
-  "read": { "back": "Zurück zur Liste", "to": "an {{box}}", "me": "ich", "reply": "Antworten", "forward": "Weiterleiten", "replyTo": "Antwort an", "replyBody": "Ihre Antwort", "forwardNote": "Optionale Notiz", "forwardOriginal": "Originalnachricht angehängt", "showImages": "Bilder anzeigen", "bodyTitle": "Nachrichtentext", "truncated": "Nachricht gekürzt (zu gross): öffnen Sie sie in Ihrem Mailprogramm für die vollständige Version.", "unlinked": "Adresse nicht zugeordnet: {{email}}" },
-  "link": { "cta": "Zuordnen", "title": "Adresse zuordnen", "search": "Suche", "searchPlaceholder": "Name, Adresse oder Telefon", "empty": "Kein Kontakt gefunden.", "note": "Die Adresse wird für diesen Kontakt gespeichert.", "create": "Kontakt anlegen" },
-  "delete": { "title": "Diese Nachricht löschen?", "legal": "Die Nachricht wandert in den Papierkorb und verlässt die Liste. Die gesetzliche Aufbewahrung von zehn Jahren gilt für das Dossier, nicht für das Postfach." },
-  "add": {
-    "cta": "Postfach hinzufügen", "title": "Postfach hinzufügen", "back": "Zurück", "share": "Dieses Postfach mit der ganzen Agentur teilen",
-    "waSub": "Koexistenz · App + Cloud API auf derselben Nummer", "imapSub": "IMAP-/SMTP-Verbindung", "other": "Anderes Postfach (IMAP / SMTP)", "otherSub": "Manuelle Serverkonfiguration",
-    "oauth": { "subtitle": "Kontoberechtigung", "addr": "E-Mail-Adresse", "addrPlaceholder": "adresse@ihre-agentur.ch", "access": "Angeforderter Zugriff",
-      "scope": { "read": "Nachrichten dieses Postfachs lesen und senden", "file": "Gespräche dem Kontakt zuordnen", "labels": "Mit den Labels der Agentur klassieren" },
-      "note": "Bestätigung auf der Seite von {{provider}} · kein Passwort läuft über die Agentur.", "useImap": "Mit IMAP einrichten", "authorize": "Autorisieren", "busy": "Verbinden…",
-      "err": { "popupBlocked": "Das Fenster wurde vom Browser blockiert. Wir öffnen die Autorisierung in diesem Tab.", "cancelled": "Autorisierung abgebrochen.", "timeout": "Die Autorisierung ist abgelaufen. Versuchen Sie es erneut.", "denied": "Der Zugriff wurde auf der Anbieterseite verweigert.", "notConfigured": "Dieser Anbieter ist bei MEGGA noch nicht konfiguriert.", "exchange": "Die Verbindung ist fehlgeschlagen: {{detail}}", "generic": "Die Verbindung ist fehlgeschlagen. Versuchen Sie es gleich noch einmal." } },
-    "imap": { "subtitle": "IMAP-/SMTP-Verbindung", "email": "E-Mail-Adresse", "imapHost": "IMAP-Server", "smtpHost": "SMTP-Server", "port": "Port", "imapPort": "IMAP-Port", "smtpPort": "SMTP-Port", "user": "Benutzername", "password": "Passwort", "encryption": "Verschlüsselung",
-      "note": "Der Test prüft IMAP und SMTP vor dem Hinzufügen · die Zugangsdaten werden verschlüsselt gespeichert.", "test": "Testen und verbinden", "unavailable": "Die IMAP-Verbindung kommt in einer nächsten Version.",
-      "err": { "invalid": "Adresse, Server und Passwort sind erforderlich.", "starttls": "STARTTLS (Port 587) ist von unseren Servern aus nicht verfügbar. Verwenden Sie SSL/TLS auf Port 465.", "connection": "Verbindung abgelehnt: Prüfen Sie Benutzername, Passwort (oder App-Passwort) und Server.", "generic": "Die Verbindung ist fehlgeschlagen. Versuchen Sie es gleich noch einmal." } },
-    "done": { "title": "Postfach verbunden", "sync": "Synchronisierung", "syncValue": "Letzte 90 Tage", "folders": "Importierte Ordner", "foldersValue": "Posteingang, Gesendet", "linking": "Kontaktzuordnung", "linkingValue": "Aktiv", "another": "Weiteres hinzufügen", "open": "Postfach öffnen" }
-  },
-  "callback": { "working": "Postfach wird verbunden…", "closing": "Sie können dieses Fenster schliessen.", "denied": "Autorisierung verweigert oder unvollständig.", "failed": "Die Verbindung ist fehlgeschlagen. {{detail}}" },
-  "preview": { "title": "Vorschau des Anhangs", "loading": "Wird geladen…", "error": "Der Anhang konnte nicht geladen werden.", "download": "Herunterladen" },
-  "file": { "cta": "Im Dossier ablegen", "title": "Im Dossier ablegen", "subtitle": "Der Anhang wird in die Dokumente des Kontakts kopiert.", "filed": "Im Dossier abgelegt", "zoom": "Gross anzeigen", "contact": "Kontakt", "contactCurrent": "Kontakt dieses Gesprächs", "contactPlaceholder": "Kontakt wählen", "type": "Dokumenttyp", "name": "Name im Dossier", "submit": "Dokument ablegen", "busy": "Wird abgelegt…",
-    "types": { "contrat": "Vertrag", "mandat": "Mandat", "piece_identite": "Ausweisdokument", "justificatif_domicile": "Wohnsitznachweis", "financement": "Finanzierung", "plan": "Plan", "photo": "Foto", "autre": "Anderes" },
-    "err": { "unsupported": "Dieser Dateityp wird in den Dokumenten nicht akzeptiert (PDF, JPEG, PNG, WebP, Word).", "generic": "Das Ablegen ist fehlgeschlagen. Versuchen Sie es erneut." } },
-  "mobile": { "readOnly": "Verfassen und Antworten sind vorerst am Computer möglich." }
-}
-```
-`common.json` (de) : `nav.messagerie: "Nachrichten"` ; `audit.action.email_received: "E-Mail erhalten"`, `email_sent: "E-Mail gesendet"`, `document_filed_from_email: "Anhang aus einer E-Mail abgelegt"`. `settings.json` (de) : `"Lesen und beantworten Sie Ihre E-Mails aus dem CRM (Google, Microsoft, IMAP)."`
+`auditActionLabel()` lit `common:audit.action.<action>` et retombe sur un
+`humanize()` de l'identifiant quand la clé manque : sans ces trois-là, la fiche
+contact affichait « Email received » au lieu de « E-mail reçu ». Les identifiants
+viennent du lot 1, pas d'une intention : `_shared/mail/ingest.ts:167` écrit
+`email_received` / `email_sent`, `mail-attachment/index.ts:158`
+`document_filed_from_email`.
 
-- [ ] **Step 4 : IT**
+| clé | fr | en | de | it |
+|---|---|---|---|---|
+| `email_received` | E-mail reçu | Email received | E-Mail erhalten | E-mail ricevuta |
+| `email_sent` | E-mail envoyé | Email sent | E-Mail gesendet | E-mail inviata |
+| `document_filed_from_email` | Pièce classée depuis un e-mail | Attachment filed from an email | Anhang aus einer E-Mail abgelegt | Allegato archiviato da un'e-mail |
 
-```json
-"mail": {
-  "empty": { "noAccount": { "title": "Nessuna casella collegata", "body": "Collega la casella dell'agenzia o la tua per leggere e rispondere qui." }, "noMessage": "Nessun messaggio corrisponde." },
-  "box": { "label": "Casella", "none": "Nessuna casella", "synced": "sincronizzata", "disconnect": "Scollega", "disconnectConfirm": "Scollegare questa casella? I suoi messaggi saranno rimossi dal CRM; i documenti archiviati restano.", "status": { "reauth_required": "Autorizzazione da rinnovare", "error": "Errore di sincronizzazione", "disabled": "Disattivata" } },
-  "compose": { "cta": "Nuovo messaggio", "title": "Nuovo messaggio", "to": "Destinatario", "toPlaceholder": "A · destinatario", "subject": "Oggetto", "body": "Messaggio", "attach": "Allega un documento", "fromComputer": "Dal mio computer", "agencyDocs": "Documenti dell'agenzia", "noAgencyDocs": "Nessun documento disponibile.", "removeAttachment": "Rimuovi allegato" },
-  "folders": { "aria": "Cartelle", "in": "Posta in arrivo", "arch": "Archiviati", "star": "Speciali", "sent": "Inviati", "draft": "Bozze" },
-  "labels": { "title": "Etichette", "new": "Nuova etichetta", "rename": "Rinomina", "recolor": "Cambia colore", "delete": "Elimina", "namePlaceholder": "Nome dell'etichetta", "custom": "Colore personalizzato", "hue": "Tonalità", "create": "Crea" },
-  "actions": { "cancel": "Annulla", "save": "Salva", "send": "Invia", "sending": "Invio…", "forward": "Inoltra", "close": "Chiudi" },
-  "list": { "search": "Ricerca", "searchPlaceholder": "Cerca un mittente, un oggetto ...", "unread": "Non letti", "attachment": "Allegato" },
-  "pager": { "range": "{{from}} a {{to}} di {{total}}", "prev": "Pagina precedente", "next": "Pagina successiva" },
-  "row": { "star": "Segna", "unstar": "Togli segno", "noSubject": "(senza oggetto)" },
-  "ctx": { "open": "Apri", "markRead": "Segna come letto", "markUnread": "Segna come non letto", "star": "Segna", "unstar": "Togli segno", "archive": "Archivia", "unarchive": "Ripristina", "delete": "Elimina" },
-  "draft": { "badge": "Bozza", "noRecipient": "(senza destinatario)" },
-  "read": { "back": "Torna all'elenco", "to": "a {{box}}", "me": "io", "reply": "Rispondi", "forward": "Inoltra", "replyTo": "Risposta a", "replyBody": "La tua risposta", "forwardNote": "Nota facoltativa", "forwardOriginal": "Messaggio originale allegato", "showImages": "Mostra immagini", "bodyTitle": "Corpo del messaggio", "truncated": "Messaggio troncato (troppo grande): aprilo nel tuo client di posta per la versione completa.", "unlinked": "Indirizzo non associato: {{email}}" },
-  "link": { "cta": "Associa", "title": "Associa l'indirizzo", "search": "Ricerca", "searchPlaceholder": "Nome, indirizzo o telefono", "empty": "Nessun contatto trovato.", "note": "L'indirizzo sarà memorizzato per questa scheda.", "create": "Crea la scheda" },
-  "delete": { "title": "Eliminare questo messaggio?", "legal": "Il messaggio va nel cestino e lascia l'elenco. La conservazione legale di dieci anni si applica al dossier, non alla casella." },
-  "add": {
-    "cta": "Aggiungi una casella", "title": "Aggiungi una casella", "back": "Indietro", "share": "Condividi questa casella con tutta l'agenzia",
-    "waSub": "Coesistenza · app + Cloud API sullo stesso numero", "imapSub": "Connessione IMAP / SMTP", "other": "Altra casella (IMAP / SMTP)", "otherSub": "Configurazione manuale del server",
-    "oauth": { "subtitle": "Autorizzazione dell'account", "addr": "Indirizzo e-mail", "addrPlaceholder": "indirizzo@tua-agenzia.ch", "access": "Accesso richiesto",
-      "scope": { "read": "Leggere e inviare i messaggi di questa casella", "file": "Associare le conversazioni alla scheda contatto", "labels": "Classificare con le etichette dell'agenzia" },
-      "note": "Conferma sulla pagina di {{provider}} · nessuna password passa dall'agenzia.", "useImap": "Configura con IMAP", "authorize": "Autorizza", "busy": "Connessione…",
-      "err": { "popupBlocked": "La finestra è stata bloccata dal browser. Apriamo l'autorizzazione in questa scheda.", "cancelled": "Autorizzazione annullata.", "timeout": "L'autorizzazione è scaduta. Riprova.", "denied": "L'accesso è stato rifiutato sulla pagina del fornitore.", "notConfigured": "Questo fornitore non è ancora configurato lato MEGGA.", "exchange": "La connessione non è riuscita: {{detail}}", "generic": "La connessione non è riuscita. Riprova tra un istante." } },
-    "imap": { "subtitle": "Connessione IMAP / SMTP", "email": "Indirizzo e-mail", "imapHost": "Server IMAP", "smtpHost": "Server SMTP", "port": "Porta", "imapPort": "Porta IMAP", "smtpPort": "Porta SMTP", "user": "Utente", "password": "Password", "encryption": "Cifratura",
-      "note": "Il test verifica IMAP e SMTP prima dell'aggiunta · le credenziali sono cifrate a riposo.", "test": "Testa e collega", "unavailable": "La connessione IMAP arriverà in una prossima versione.",
-      "err": { "invalid": "Indirizzo, server e password sono obbligatori.", "starttls": "STARTTLS (porta 587) non è disponibile dai nostri server. Usa SSL/TLS sulla porta 465.", "connection": "Connessione rifiutata: verifica utente, password (o password per app) e server.", "generic": "La connessione non è riuscita. Riprova tra un istante." } },
-    "done": { "title": "Casella collegata", "sync": "Sincronizzazione", "syncValue": "Ultimi 90 giorni", "folders": "Cartelle importate", "foldersValue": "Posta in arrivo, Inviati", "linking": "Associazione ai contatti", "linkingValue": "Attiva", "another": "Aggiungine un'altra", "open": "Apri la casella" }
-  },
-  "callback": { "working": "Collegamento della casella…", "closing": "Puoi chiudere questa finestra.", "denied": "Autorizzazione rifiutata o incompleta.", "failed": "La connessione non è riuscita. {{detail}}" },
-  "preview": { "title": "Anteprima dell'allegato", "loading": "Caricamento…", "error": "Impossibile caricare l'allegato.", "download": "Scarica" },
-  "file": { "cta": "Archivia nel dossier", "title": "Archivia nel dossier", "subtitle": "L'allegato viene copiato nei documenti del contatto.", "filed": "Archiviato nel dossier", "zoom": "Vedi a grandezza reale", "contact": "Scheda contatto", "contactCurrent": "Contatto di questa conversazione", "contactPlaceholder": "Scegli un contatto", "type": "Tipo di documento", "name": "Nome nel dossier", "submit": "Archivia il documento", "busy": "Archiviazione…",
-    "types": { "contrat": "Contratto", "mandat": "Mandato", "piece_identite": "Documento d'identità", "justificatif_domicile": "Prova di domicilio", "financement": "Finanziamento", "plan": "Planimetria", "photo": "Foto", "autre": "Altro" },
-    "err": { "unsupported": "Questo tipo di file non è accettato nei documenti (PDF, JPEG, PNG, WebP, Word).", "generic": "L'archiviazione non è riuscita. Riprova." } },
-  "mobile": { "readOnly": "Scrivere e rispondere si fanno da computer per ora." }
-}
-```
-`common.json` (it) : `nav.messagerie: "Messaggi"` ; `audit.action.email_received: "E-mail ricevuta"`, `email_sent: "E-mail inviata"`, `document_filed_from_email: "Allegato archiviato da un'e-mail"`. `settings.json` (it) : `"Leggi e rispondi alle tue e-mail dal CRM (Google, Microsoft, IMAP)."`
+⚠ L'objet `audit.action` est trié alphabétiquement : les trois clés s'insèrent à
+leur rang, pas à la fin.
 
-- [ ] **Step 5 : Portes et commit**
+- [x] **Step 3 : la description de la carte d'intégration (`settings.json`)**
+
+`integrations.catalogue.messagerie.desc`, consommée par la carte de T2.14 :
+fr « Lisez et répondez à vos e-mails depuis le CRM (Google, Microsoft, IMAP). » ·
+en "Read and reply to your emails from the CRM (Google, Microsoft, IMAP)." ·
+de „Lesen und beantworten Sie Ihre E-Mails aus dem CRM (Google, Microsoft, IMAP)." ·
+it "Leggi e rispondi alle tue e-mail dal CRM (Google, Microsoft, IMAP)."
+
+- [x] **Step 4 : deux corrections de valeur, mesurées**
+
+- `it` `mail.ctx.unarchive` : « Togli dall archivio » → « Togli dall'archivio ».
+  Apostrophe manquante, pas un choix de traduction.
+- `de` `mail.add.oauth.busy` : « Verbindung… » → « Wird verbunden… ». Les trois
+  autres libellés d'attente du même fichier suivent le patron `Wird …`
+  (`actions.sending`, `preview.loading`, `callback.working`) ; « Verbindung… » est
+  un nom, pas un état.
+
+`common:nav.messagerie` était déjà posée en T2.1 dans les quatre langues
+(fr « Messagerie », en "Mail", de „Nachrichten", it "Messaggi").
+
+- [x] **Step 5 : Portes et commit**
 
 ```bash
 npm run lint:i18n && npm run i18n:parity:ci && npm run lint:prose && npm run i18n:coverage:ci
-git add src/i18n && git commit -m "i18n(messagerie): sous-arbre mail en FR/EN/DE/IT, nav, actions d'audit"
+git add src/i18n docs/superpowers && git commit -m "feat(messagerie): i18n — le français consolidé et les trois autres langues"
 ```
-⚠ `i18n:coverage:ci` est un cliquet : si le compte de clés DE/IT non traduites monte, il rougit — ici tout est traduit, il doit rester vert.
+⚠ `i18n:coverage:ci` est un cliquet : si le compte de clés DE/IT non traduites
+monte, il rougit. Vérifié le 05.09.2026 — aucune des douze valeurs ajoutées n'y
+apparaît, et le total IT de `messages` reste à 1/252.
 
 ---
 

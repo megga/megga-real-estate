@@ -608,6 +608,9 @@
       },
       "whatsapp": {
         "desc": "Kundenkonversationen im CRM, zertifizierte Vorlagen."
+      },
+      "messagerie": {
+        "desc": "Lesen und beantworten Sie Ihre E-Mails aus dem CRM (Google, Microsoft, IMAP)."
       }
     },
     "actions": {

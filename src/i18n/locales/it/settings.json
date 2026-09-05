@@ -608,6 +608,9 @@
       },
       "whatsapp": {
         "desc": "Conversazioni con i clienti nel CRM, modelli certificati."
+      },
+      "messagerie": {
+        "desc": "Leggi e rispondi alle tue e-mail dal CRM (Google, Microsoft, IMAP)."
       }
     },
     "actions": {

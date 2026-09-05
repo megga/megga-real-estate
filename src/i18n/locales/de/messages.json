@@ -144,7 +144,7 @@
         "note": "Bestätigung auf der Seite von {{provider}} · kein Passwort läuft über die Agentur.",
         "useImap": "Mit IMAP einrichten",
         "authorize": "Freigeben",
-        "busy": "Verbindung…",
+        "busy": "Wird verbunden…",
         "err": {
           "popupBlocked": "Das Fenster wurde vom Browser blockiert. Wir öffnen die Freigabe in diesem Tab.",
           "cancelled": "Freigabe abgebrochen.",
@@ -340,6 +340,9 @@
         "contact": "Dieser Kontakt gehört nicht zu Ihrer Agentur.",
         "generic": "Die Ablage ist fehlgeschlagen. Bitte erneut versuchen."
       }
+    },
+    "mobile": {
+      "readOnly": "Verfassen und Antworten sind vorerst am Computer möglich."
     }
   }
 }

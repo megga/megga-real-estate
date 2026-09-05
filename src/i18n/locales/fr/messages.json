@@ -340,6 +340,9 @@
         "contact": "Ce contact n'appartient pas à votre agence.",
         "generic": "Le classement a échoué. Réessayez."
       }
+    },
+    "mobile": {
+      "readOnly": "Composer et répondre se font sur ordinateur pour l'instant."
     }
   }
 }

@@ -256,7 +256,7 @@
       "star": "Segui",
       "unstar": "Non seguire più",
       "archive": "Archivia",
-      "unarchive": "Togli dall archivio",
+      "unarchive": "Togli dall'archivio",
       "delete": "Elimina"
     },
     "delete": {
@@ -340,6 +340,9 @@
         "contact": "Questo contatto non appartiene alla vostra agenzia.",
         "generic": "L'archiviazione non è riuscita. Riprovate."
       }
+    },
+    "mobile": {
+      "readOnly": "Scrivere e rispondere si fanno dal computer, per ora."
     }
   }
 }

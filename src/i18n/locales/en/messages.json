@@ -340,6 +340,9 @@
         "contact": "This contact does not belong to your agency.",
         "generic": "Filing failed. Try again."
       }
+    },
+    "mobile": {
+      "readOnly": "Composing and replying are done on desktop for now."
     }
   }
 }
