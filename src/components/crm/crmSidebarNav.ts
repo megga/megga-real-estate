@@ -115,7 +115,15 @@ export function crmSidebarRouteOf(id: string): string | null {
 const DETAIL_PREFIXES: [string, CrmSidebarSectionId][] = [
   ['/dashboard/transactions', 'pipeline'],
   ['/dashboard/visits', 'calendar'],
-  ['/dashboard/market', 'biens'],
+  // ⚠ 'matching' et NON 'biens' (05.09.2026). Une annonce de marché n'appartient PAS
+  // au portefeuille — la fiche propose justement de l'y IMPORTER. Allumer « Mes biens »
+  // (`properties`, scopée agence) annoncerait qu'elle y est déjà. Et c'est de Matching
+  // qu'on y arrive : c'est le seul écran qui montre des lignes `market_listings`.
+  //
+  // ⚠ Cette ligne est désormais la SOURCE UNIQUE : la page passait `active="matching"`
+  // en dur pendant que la barre d'onglets déduisait « Biens » d'ici — les deux chromes
+  // annonçaient deux sections différentes pour le même écran. La prop a été retirée.
+  ['/dashboard/market', 'matching'],
   ['/dashboard/import-lead', 'contacts'],
   ['/dashboard/audit', 'dashboard'],
 ]

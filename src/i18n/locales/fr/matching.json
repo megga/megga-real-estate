@@ -148,7 +148,8 @@
       "dVisitContact": "Contact visite",
       "expandMap": "Agrandir la carte",
       "portalFallback": "portail",
-      "detailError": "Détail indisponible pour le moment."
+      "detailError": "Détail indisponible pour le moment.",
+      "openFull": "Ouvrir la fiche complète"
     },
     "view": {
       "group": "Affichage des résultats",

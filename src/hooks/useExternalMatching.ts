@@ -1,11 +1,24 @@
 
 /**
- * Type partagé `ExternalListing` : un bien issu du matching hors-catalogue
- * (portails externes). La logique de matching a été retirée ; seul le contrat de
- * données subsiste, consommé par `useExternalListingActions` et les vues liées.
+ * Type partagé `ExternalListing` : le modèle de vue de la fiche d'annonce marché
+ * autonome (`/dashboard/market/:id`).
+ *
+ * ⚠ CE N'EST PLUS UN CONTRAT DE DONNÉES, c'est une projection. La logique de
+ * matching qui le produisait a été retirée le 18.05.2026 avec l'edge function
+ * `external-matching` et la table de cache `external_listings` : plus rien ne
+ * construisait cette forme, et la fiche qui la consomme rendait « introuvable » à
+ * 100 % des visites. Elle est désormais projetée depuis `market_listings` par
+ * `projeterAnnonce` (voir `useMarketListing`).
+ *
+ * ⚠ Le champ d'identité s'appelle `id` et NON plus `external_id`. L'ancien nom
+ * portait l'identifiant d'un pipeline RealAdvisor mort ; il vaut aujourd'hui
+ * `market_listings.id` (uuid) — la seule clé que le schéma rende non ambiguë
+ * (`source_id` n'est unique que PAR PORTAIL, contrainte composite
+ * `market_listings_portal_source_unique`, et les plages numériques de Flatfox et
+ * de RealAdvisor se recouvrent).
  */
 export interface ExternalListing {
-  external_id: string
+  id: string
   title: string
   price: number
   address: string

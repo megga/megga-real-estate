@@ -1,18 +1,21 @@
 /**
  * Page agent — fiche détaillée d'une annonce externe (marché Flatfox/portails).
  *
- * Route : `/dashboard/market/:externalId`. Le bien arrive via `location.state`
- * (depuis le matching) ; sans état → message « introuvable ». Carrousel photos, analyse
+ * Route : `/dashboard/market/:externalId`, où le segment porte `market_listings.id`
+ * (uuid). Le bien est LU EN BASE depuis cet identifiant — il arrivait auparavant par
+ * `location.state`, que plus rien ne posait depuis le 18.05.2026, si bien que la page
+ * rendait « introuvable » à chaque visite. Carrousel photos, analyse
  * prix/m² honnête (sans comparables fabriqués), notes agent, envoi par email au client
  * (Resend) avec historique, et import au portefeuille. Actions déléguées à
  * `useExternalListingActions`.
  */
 import { useState, useMemo } from 'react'
-import { useLocation, useNavigate, Link } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import { useLocation, useNavigate, useParams, Link } from 'react-router-dom'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useTranslation } from 'react-i18next'
 import { cn, formatCHF, formatRelativeDate } from '@/lib/utils'
-import type { ExternalListing } from '@/hooks/useExternalMatching'
+import { useMarketListing, projeterAnnonce } from '@/hooks/useMarketListing'
 import { useExternalListingActions } from '@/hooks/useExternalListingActions'
 import { useSendPropertyEmail } from '@/hooks/useSendEmail'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
@@ -41,7 +44,29 @@ export default function ExternalListingDetailPage() {
   const { t } = useTranslation('listings')
   const location = useLocation()
   const navigate = useNavigate()
-  const listing = location.state?.listing as ExternalListing | undefined
+  /**
+   * ⛔ L'ANNONCE VIENT DE L'URL, PLUS D'UN `location.state` QUE RIEN NE POSAIT.
+   *
+   * Les deux navigations qui le posaient (`MatchingPage`, `ContactDetailPage`) ont
+   * été supprimées le 18.05.2026 avec l'ancien CRM : depuis, la page rendait
+   * « introuvable » à 100 % des visites — un écran mort pendant trois mois et demi.
+   *
+   * Le segment porte `market_listings.id` (uuid), et non `source_id` : ce dernier
+   * n'est unique que PAR PORTAIL (contrainte composite
+   * `market_listings_portal_source_unique`), et les plages numériques de Flatfox et
+   * de RealAdvisor se recouvrent — un `source_id` nu dans une URL est ambigu par
+   * conception. L'uuid est d'ailleurs déjà ce que manipule tout le reste du CRM :
+   * les RPC de recherche ne rendent que lui, et toutes les clés étrangères le visent.
+   */
+  const { externalId } = useParams()
+  const { data: annonce, isLoading, isError, error } = useMarketListing(externalId)
+  const listing = annonce ? projeterAnnonce(annonce) : undefined
+  /**
+   * ⚠ Enrichissement OPTIONNEL, jamais la source. Le nom du contact alimente le
+   * bento « Match pour » ET le prénom de l'e-mail réellement envoyé au client
+   * (`contactFirstName`). Quand on arrive par une URL nue il n'y en a pas : l'e-mail
+   * retombe alors sur « Client », ce qui est le repli déjà écrit ligne ~116.
+   */
   const contactName = (location.state?.contactName as string) || null
   const [photoIdx, setPhotoIdx] = useState(0)
   const [copied, setCopied] = useState(false)
@@ -65,30 +90,52 @@ export default function ExternalListingDetailPage() {
   const sgSp = useMemo(() => crmPalette(dark), [dark])
   // Animations partagées du CRM — les popovers de la barre latérale en dépendent.
   const crmKeyframes = <style>{CRM_KEYFRAMES}</style>
-  // Chrome monté DEUX fois (état « introuvable » et vue normale). `CrmWorkspace`
-  // portant des enfants, la balise s'ouvre sur place dans chaque rangée : une
-  // fonction-composant locale, elle, remonterait le sous-arbre à chaque rendu.
   const shellStyle = { minHeight: '100vh', width: '100%', background: sgSp.pageBg, ...crmThemeVars(sgSp, dark) }
 
-  if (!listing) {
-    return (
-      <div style={shellStyle}>
-        {crmKeyframes}
-        <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
-          <CrmWorkspace active="matching" sp={sgSp} dark={dark} setDark={setDark}>
-          <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 120px' }}>
-        <div className="max-w-4xl mx-auto py-20 text-center">
-          <p className="text-sm text-theme-tertiary">{t('external.notFound')}</p>
-          <Link to="/dashboard/matching" className="mt-3 inline-block text-xs text-accent hover:text-accent/80 transition-colors">
-            ← {t('external.backToMatching')}
-          </Link>
-        </div>
-          </main>
-          </CrmWorkspace>
-        </div>
+  /**
+   * Le chrome, monté UNE fois pour quatre branches.
+   *
+   * ⚠ Une FONCTION appelée, pas un composant local — c'est l'idiome du dépôt
+   * (`ContactDetailPage`, `DealDetailPage`). Une fonction rend ses éléments à la
+   * même position de l'arbre, donc rien ne se remonte d'une branche à l'autre ;
+   * un composant local, lui, changerait d'identité à chaque rendu.
+   *
+   * ⚠ `active` n'est PAS passé, et c'est le correctif d'une contradiction : la page
+   * forçait `active="matching"` tandis que la barre d'ONGLETS déduisait « Biens » du
+   * chemin — les deux chromes annonçaient deux sections différentes pour le même
+   * écran. La prop est faite pour les surfaces dont le chemin ne dit pas l'écran
+   * (les bancs `/dev/*`) ; ici on laisse la déduction faire, et on corrige la table
+   * `DETAIL_PREFIXES`, qui devient l'unique source de vérité.
+   */
+  const shell = (inner: ReactNode) => (
+    <div style={shellStyle}>
+      {crmKeyframes}
+      <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
+        <CrmWorkspace sp={sgSp} dark={dark} setDark={setDark}>
+          <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 120px' }}>{inner}</main>
+        </CrmWorkspace>
       </div>
-    )
-  }
+    </div>
+  )
+
+  /** Message centré — la grammaire d'attente des fiches du CRM (jamais un squelette). */
+  const message = (texte: string, retour = true) => (
+    <div className="max-w-4xl mx-auto py-20 text-center">
+      <p className="text-sm text-theme-tertiary">{texte}</p>
+      {retour && (
+        <Link to="/dashboard/matching" className="mt-3 inline-block text-xs text-accent hover:text-accent/80 transition-colors">
+          ← {t('external.backToMatching')}
+        </Link>
+      )}
+    </div>
+  )
+
+  // ⚠ QUATRE états, et l'ordre compte. « Chargement » passe AVANT « introuvable » :
+  // les brancher ensemble sur `!listing` ferait clignoter « introuvable » à chaque
+  // ouverture, le temps de l'aller-retour.
+  if (isLoading) return shell(message(t('external.loading'), false))
+  if (isError) return shell(message(error instanceof Error ? error.message : t('external.loadError')))
+  if (!listing) return shell(message(t('external.notFound')))
 
   const photos = listing.photos?.length > 0 ? listing.photos : listing.photo_url ? [listing.photo_url] : []
   const typeLabel = TYPE_KEYS[listing.type] ? t(TYPE_KEYS[listing.type]) : listing.type

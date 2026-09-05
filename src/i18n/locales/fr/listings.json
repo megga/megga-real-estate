@@ -111,7 +111,9 @@
     "photoAlt": "Bien immobilier",
     "aggregatorValue": "RealAdvisor ({{count}} portails)",
     "channelEmail": "Email",
-    "channelMessaging": "Messagerie"
+    "channelMessaging": "Messagerie",
+    "loading": "Chargement de l'annonce…",
+    "loadError": "L'annonce n'a pas pu être chargée."
   },
   "status": {
     "active": "Actif",

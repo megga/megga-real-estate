@@ -100,10 +100,17 @@ export interface CrmTabRecordRef {
  * sinon le second capture le premier et un onglet d'édition se relit comme une
  * fiche. Les motifs sont donc rangés du plus spécifique au plus général.
  *
- * ⛔ `/dashboard/market/:externalId` n'y est PAS, et c'est mesuré : la page lit son
- * bien dans `location.state`, que RIEN dans le dépôt ne pose (grep du 04.09.2026 :
- * 4 occurrences, aucune n'est une navigation avec state). Elle rend « introuvable »
- * à 100 % des visites. L'inscrire ici prétendrait qu'un onglet peut la restaurer.
+ * ⚠ `/dashboard/market/:id` N'Y EST TOUJOURS PAS, mais la raison a changé le
+ * 05.09.2026. Elle n'y était pas parce que la page était morte — elle lisait son bien
+ * dans un `location.state` que rien ne posait, et rendait « introuvable » à 100 % des
+ * visites. Elle est réparée et lit désormais son uuid dans l'URL : un onglet la
+ * restaure donc correctement par son seul chemin.
+ *
+ * Ce qui manque pour l'inscrire ICI est le LIBELLÉ : la table ne sert qu'à faire
+ * résoudre un nom par `crm_tabs_resolve_labels`, et cela demanderait un sixième
+ * `CrmTabRecordKind` côté client ET une branche `market_listings` côté SQL. Sans
+ * elle, l'onglet porte le nom de sa section (« Matching »), ce qui est exact — juste
+ * moins précis que le titre de l'annonce.
  */
 const DETAIL_ROUTES: { motif: RegExp; kind: CrmTabRecordKind; liste: string }[] = [
   { motif: /^\/dashboard\/listings\/([^/]+)\/edit$/, kind: 'property', liste: '/dashboard/listings' },

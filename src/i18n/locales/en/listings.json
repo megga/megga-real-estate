@@ -111,7 +111,9 @@
     "photoAlt": "Property",
     "aggregatorValue": "RealAdvisor ({{count}} portals)",
     "channelEmail": "Email",
-    "channelMessaging": "Messaging"
+    "channelMessaging": "Messaging",
+    "loading": "Loading listing…",
+    "loadError": "This listing could not be loaded."
   },
   "status": {
     "active": "Active",
