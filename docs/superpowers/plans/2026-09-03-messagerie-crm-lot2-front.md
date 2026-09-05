@@ -1300,13 +1300,54 @@ que `useMailOAuthPopup` les lit.
 
 Dimensions : README §1 a-d. Rappel de transposition : `--elev`→`ms.elev`, `--hover`→`ms.hover`, `--hover2`→`ms.hover2`, `--bord`→`ms.bord`, `--mut`→`ms.mut`, `--txt3/4`→`ms.txt3`, accent→`ms.accent`/`ms.accentInk`, 10-11 px→`--crm-text-xs`, 12-12.5→`sm`, 13-13.5→`md`, rayons 13-16→`--crm-radius-xl`, 999→`PILL`.
 
+⛔ **SEPT ÉCARTS MESURÉS À LA LIVRAISON (04.09.2026) — les blocs ci-dessous les portent déjà.**
+Ils ne sont pas des préférences : chacun faisait rougir une porte que la règle 1 du lot
+annonce pourtant, ou une règle de CLAUDE.md §3.
+
+1. **`textTransform: 'uppercase'` + `letterSpacing: '0.08em'` sur les quatre sur-titres
+   (« BOÎTE », « LIBELLÉS »…) : RETIRÉS.** `megga-x-grammar.spec.ts` a deux clauses
+   dessus — « aucune micro-capitale » (`/textTransform:\s*'uppercase'/`) et « aucun
+   interlettrage de micro-capitale » (seuil `0.04em`, donc 0,08 le franchit) — et la zone
+   `crm/messagerie` y est inscrite depuis T2.1. C'est aussi la SEULE des sept règles
+   visuelles de CLAUDE.md §3 qui soit encore vraie ET gardée. Le sur-titre garde sa
+   graisse 600 et son encre `ms.mut` : c'est ce qui le distingue, pas la capitale.
+2. **`fontWeight: 700` → `600`** (pastilles de non-lus, expéditeur non lu). Clause
+   « aucune graisse au-dessus de 600 » ; la vitrine ne compte qu'un seul 700, sur
+   `strong`.
+3. **Tout littéral de rayon/espacement passe au jeton.** `gap: 2`, `padding: '2px 7px'`,
+   `padding: '2px 8px'`, `marginTop: 2`, `borderRadius: 6`, `top: 'calc(100% + 6px)'`
+   étaient des littéraux. La clause « aucune zone ne dépasse son inventaire de rayons et
+   d'espacements » n'a AUCUNE entrée pour `src/components/crm/messagerie` — la zone doit
+   donc rendre zéro, et une entrée neuve serait une dette inscrite au premier fichier.
+   Report par la table du maître §1 : 2→`2xs`, 6/7→`sm`, 6 px de rayon sur une barre de
+   12 px = `PILL` (visuellement identique).
+4. **`useFocusTrap(ref, open)` n'existe pas.** Signature réelle :
+   `useFocusTrap(active, onEscape?)`, et elle **REND** la ref. Le geste du plan aurait
+   compilé (une ref est truthy) en piégeant le mauvais nœud. Échap est déjà géré par le
+   hook : le second écouteur du plan est retiré.
+5. **`import { MEIcon }` → `import MEIcon`** : `MEIcon` est un export PAR DÉFAUT
+   (`MEIconName`, lui, est bien nommé).
+6. **La commande de vérification des icônes rend des faux « ok ».** Elle greppe
+   `MEIcon.tsx` ET `PxIconFont.tsx`, or un nom présent dans le seul `PxIconFontName` ne
+   se rend PAS : il faut l'union `MEIconName` **et** une entrée de table. Mesuré :
+   `inbox`, `archive`, `paperclip` n'existaient que côté police, `file-text` nulle part.
+   Les quatre sont **redessinés en trait** dans `PATHS`, pas délégués à `FONT_FALLBACK` :
+   la police d'icônes est PLEINE, et `inbox`/`archive` en aplat entre `star` et `send`
+   auraient fait deux blocs au milieu de traits.
+7. **`hslToHex` déménage dans `mailTokens.ts`**, et l'effet qui la rappelait disparaît.
+   Un fichier de composant qui exporte aussi une fonction déclenche
+   `react-refresh/only-export-components`, **erreur** ici (`npm run lint` doit rendre 0) ;
+   et `useEffect(() => { if (custom) setColor(hslToHex(…)) })` déclenche
+   `react-hooks/set-state-in-effect`. La teinte se POSE au geste (`poserTeinte`), ce qui
+   économise un rendu et dit mieux l'intention.
+
 - [ ] **Step 1 : La coquille de modale (réutilisée par les 7 modales)**
 
 ```tsx
 // src/components/crm/messagerie/MailModalShell.tsx
 // Une modale = portail sur document.body + voile assombrissant + carte + piège de focus +
 // Escape (modèle WhatsAppConnectModal.tsx:70-101). z-index 300 par défaut (règle 3 du lot).
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { crmVoileAssombrissant } from '@/components/crm/tokens'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
@@ -1328,14 +1369,14 @@ interface Props {
 }
 
 export function MailModalShell({ ms, open, onClose, width, ariaLabel, zIndex = 300, veil = 0.4, blur = 6, children, column }: Props) {
-  const ref = useRef<HTMLDivElement>(null)
-  useFocusTrap(ref, open)
+  // ⚠ `useFocusTrap(active, onEscape?)` REND la ref, et gère déjà Échap.
+  const ref = useFocusTrap(open, onClose)
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+    const precedent = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = precedent }
+  }, [open])
   if (!open) return null
   return createPortal(
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex, display: 'grid', placeItems: 'center', padding: 'var(--crm-space-7xl)', background: crmVoileAssombrissant(veil), backdropFilter: `blur(${blur}px)`, WebkitBackdropFilter: `blur(${blur}px)` }}>
@@ -1359,7 +1400,7 @@ export function MailCloseButton({ ms, onClick, label }: { ms: MailSurfaces; onCl
   )
 }
 ```
-(⚠ `useFocusTrap(ref, active)` : vérifier la signature dans `src/hooks/useFocusTrap.ts` et s'y conformer.)
+(⚠ signature RÉELLE : `useFocusTrap(active, onEscape?)`, qui **rend** la ref — écart n° 4 ci-dessus.)
 
 - [ ] **Step 2 : Sélecteur de boîte**
 
@@ -1367,7 +1408,7 @@ export function MailCloseButton({ ms, onClick, label }: { ms: MailSurfaces; onCl
 // src/components/crm/messagerie/MailBoxSelector.tsx — README §1a.
 import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import type { MailAccount } from '@/hooks/useMailAccounts'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
@@ -1395,13 +1436,13 @@ export function MailBoxSelector({ ms, accounts, unread, currentId, open, onToggl
         style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-md) var(--crm-space-lg)', background: ms.elev, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-xl)', cursor: 'pointer', color: ms.ink, textAlign: 'left', transition: MAIL_TRANSITION }}
         onMouseEnter={(e) => { e.currentTarget.style.borderColor = ms.dim }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = ms.bord }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut }}>{t('mail.box.label')}</div>
+          <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{t('mail.box.label')}</div>
           <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current?.email ?? t('mail.box.none')}</div>
         </div>
         <MEIcon name="chevron-down" size={12} color={ms.mut} />
       </button>
       {open && (
-        <div role="menu" style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 40, background: ms.card, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xs)', display: 'flex', flexDirection: 'column', gap: 2, boxShadow: ms.shadow }}>
+        <div role="menu" style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 40, marginTop: 'var(--crm-space-2xs)', background: ms.card, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-2xs)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)', boxShadow: ms.shadow }}>
           {accounts.map((a) => (
             <button key={a.id} type="button" role="menuitem" onClick={() => { onSelect(a.id); onClose() }}
               style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', background: a.id === currentId ? ms.elev : 'transparent', border: 'none', cursor: 'pointer', color: ms.ink, textAlign: 'left', transition: MAIL_TRANSITION }}
@@ -1411,12 +1452,12 @@ export function MailBoxSelector({ ms, accounts, unread, currentId, open, onToggl
                 <div style={{ fontSize: 'var(--crm-text-xs)', color: a.status === 'active' ? ms.mut : ms.danger }}>{desc(a)}</div>
               </div>
               {(unread[a.id] ?? 0) > 0 && (
-                <span style={{ borderRadius: PILL, padding: '2px 7px', fontSize: 'var(--crm-text-xs)', fontWeight: 700, background: ms.accent, color: ms.accentInk }}>{unread[a.id]}</span>
+                <span style={{ borderRadius: PILL, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: ms.accent, color: ms.accentInk }}>{unread[a.id]}</span>
               )}
             </button>
           ))}
           <button type="button" role="menuitem" onClick={() => { onAdd(); onClose() }}
-            style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-md) var(--crm-space-lg)', marginTop: 2, borderTop: `1px solid ${ms.bord2}`, background: 'transparent', border: 'none', borderRadius: 0, cursor: 'pointer', color: ms.txt3, fontSize: 'var(--crm-text-xs)', fontWeight: 500, transition: MAIL_TRANSITION }}
+            style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-md) var(--crm-space-lg)', borderTop: `1px solid ${ms.bord2}`, background: 'transparent', border: 'none', borderRadius: 0, cursor: 'pointer', color: ms.txt3, fontSize: 'var(--crm-text-xs)', fontWeight: 500, transition: MAIL_TRANSITION }}
             onMouseEnter={(e) => { e.currentTarget.style.color = ms.ink }} onMouseLeave={(e) => { e.currentTarget.style.color = ms.txt3 }}>
             <MEIcon name="plus" size={12} /> {t('mail.add.cta')}
           </button>
@@ -1431,20 +1472,17 @@ export function MailBoxSelector({ ms, accounts, unread, currentId, open, onToggl
 
 ```tsx
 // src/components/crm/messagerie/MailLabelCreator.tsx — README §1d « Créateur de libellé ».
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
-import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
+import { hslToHex, MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 import type { MailLabel } from '@/hooks/useMailLabels'
 
 const PRESETS = [MXC_SYSTEM.red400, MXC_SYSTEM.blue300, MXC_SYSTEM.yellow400, MXC_SYSTEM.green300, MXC_COLOR.accent, MXC_COLOR.n500]
 const LIGHTNESS = [30, 40, 50, 60, 70, 80]
 
-export function hslToHex(h: number, s: number, l: number): string {
-  const a = (s / 100) * Math.min(l / 100, 1 - l / 100)
-  const f = (n: number) => { const k = (n + h / 30) % 12; const c = l / 100 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(255 * c).toString(16).padStart(2, '0') }
-  return `#${f(0)}${f(8)}${f(4)}`
-}
+// ⚠ `hslToHex` vit dans `mailTokens.ts` (écart n° 7) : un fichier de composant qui
+// exporte une fonction fait ÉCHOUER `npm run lint` (react-refresh/only-export-components).
 
 interface Props { ms: MailSurfaces; initial?: MailLabel | null; onCancel: () => void; onSave: (v: { name: string; color: string }) => void; busy?: boolean }
 
@@ -1455,13 +1493,14 @@ export function MailLabelCreator({ ms, initial, onCancel, onSave, busy }: Props)
   const [custom, setCustom] = useState(false)
   const [hue, setHue] = useState(220)
   const [light, setLight] = useState(50)
-  useEffect(() => { if (custom) setColor(hslToHex(hue, 85, light)) }, [custom, hue, light])
+  // La teinte se POSE au geste : `setState` dans un effet est refusé (écart n° 7).
+  const poserTeinte = (h: number, l: number) => { setHue(h); setLight(l); setColor(hslToHex(h, 85, l)) }
   const hexOk = useMemo(() => /^#[0-9a-fA-F]{6}$/.test(color), [color])
   const field = { background: ms.elev, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', outline: 'none' } as const
 
   return (
     <div style={{ background: ms.elev, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-md) var(--crm-space-lg)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
-      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut }}>{initial ? t('mail.labels.rename') : t('mail.labels.new')}</div>
+      <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{initial ? t('mail.labels.rename') : t('mail.labels.new')}</div>
       <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} placeholder={t('mail.labels.namePlaceholder')} autoFocus
         style={{ ...field, borderRadius: PILL, padding: 'var(--crm-space-sm) var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)' }} />
       <div style={{ display: 'flex', gap: 'var(--crm-space-sm)', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -1469,22 +1508,22 @@ export function MailLabelCreator({ ms, initial, onCancel, onSave, busy }: Props)
           <button key={c} type="button" aria-label={c} onClick={() => { setCustom(false); setColor(c) }}
             style={{ width: 22, height: 22, borderRadius: '50%', background: c, border: `2px solid ${color === c && !custom ? ms.ink : 'transparent'}`, cursor: 'pointer', transition: MAIL_TRANSITION }} />
         ))}
-        <button type="button" onClick={() => setCustom((v) => !v)} aria-pressed={custom} title={t('mail.labels.custom')}
+        <button type="button" onClick={() => { const on = !custom; setCustom(on); if (on) poserTeinte(hue, light) }} aria-pressed={custom} title={t('mail.labels.custom')}
           style={{ width: 22, height: 22, borderRadius: '50%', background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)', border: `2px solid ${custom ? ms.ink : 'transparent'}`, cursor: 'pointer' }} />
       </div>
       {custom && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
-          <input type="range" min={0} max={360} value={hue} onChange={(e) => setHue(Number(e.target.value))} aria-label={t('mail.labels.hue')}
-            style={{ width: '100%', height: 12, borderRadius: 6, appearance: 'none', background: 'linear-gradient(90deg, hsl(0 85% 50%), hsl(60 85% 50%), hsl(120 85% 50%), hsl(180 85% 50%), hsl(240 85% 50%), hsl(300 85% 50%), hsl(360 85% 50%))' }} />
+          <input type="range" min={0} max={360} value={hue} onChange={(e) => poserTeinte(Number(e.target.value), light)} aria-label={t('mail.labels.hue')}
+            style={{ width: '100%', height: 12, borderRadius: PILL, appearance: 'none', background: 'linear-gradient(90deg, hsl(0 85% 50%), hsl(60 85% 50%), hsl(120 85% 50%), hsl(180 85% 50%), hsl(240 85% 50%), hsl(300 85% 50%), hsl(360 85% 50%))' }} />
           <div style={{ display: 'flex', gap: 'var(--crm-space-sm)' }}>
             {LIGHTNESS.map((l) => (
-              <button key={l} type="button" aria-label={`${l}%`} onClick={() => setLight(l)}
+              <button key={l} type="button" aria-label={`${l}%`} onClick={() => poserTeinte(hue, l)}
                 style={{ flex: 1, height: 18, borderRadius: 'var(--crm-radius-xs)', background: hslToHex(hue, 85, l), border: `2px solid ${light === l ? ms.ink : 'transparent'}`, cursor: 'pointer' }} />
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
             <span style={{ width: 22, height: 22, borderRadius: '50%', background: hexOk ? color : ms.bord }} />
-            <input value={color} onChange={(e) => setColor(e.target.value)} maxLength={7} aria-label="hex"
+            <input value={color} onChange={(e) => setColor(e.target.value)} maxLength={7} aria-label={t('mail.labels.hex')}
               style={{ ...field, borderRadius: PILL, padding: 'var(--crm-space-xs) var(--crm-space-md)', fontSize: 'var(--crm-text-xs)', letterSpacing: '0.04em', width: 96 }} />
           </div>
         </div>
@@ -1545,7 +1584,7 @@ export function MailLabelMenu({ ms, x, y, onClose, onRename, onRecolor, onDelete
 ```tsx
 // src/components/crm/messagerie/MailRail.tsx — README §1 (a, b, c, d).
 import { useTranslation } from 'react-i18next'
-import { MEIcon, type MEIconName } from '@/components/propertyx/MEIcon'
+import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import type { MailAccount } from '@/hooks/useMailAccounts'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import type { MailFolderCounts } from '@/hooks/useMailThreads'
@@ -1602,7 +1641,7 @@ export function MailRail(p: Props) {
               <MEIcon name={f.icon} size={16} />
               <span>{t(f.label)}</span>
               {f.key === 'in' && p.counts.inbox_unread > 0 && (
-                <span style={{ marginLeft: 'auto', borderRadius: PILL, padding: '2px 8px', fontSize: 'var(--crm-text-xs)', fontWeight: 700, background: ms.accent, color: ms.accentInk }}>{p.counts.inbox_unread}</span>
+                <span style={{ marginLeft: 'auto', borderRadius: PILL, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, background: ms.accent, color: ms.accentInk }}>{p.counts.inbox_unread}</span>
               )}
               {f.key === 'arch' && counter(p.counts.archived)}
               {f.key === 'draft' && counter(p.counts.drafts)}
@@ -1613,7 +1652,7 @@ export function MailRail(p: Props) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
         <div style={{ display: 'flex', alignItems: 'center', padding: '0 var(--crm-space-sm) 0 var(--crm-space-lg)' }}>
-          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut }}>{t('mail.labels.title')}</span>
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{t('mail.labels.title')}</span>
           <button type="button" title={t('mail.labels.new')} onClick={p.onOpenCreator}
             style={{ marginLeft: 'auto', width: 22, height: 22, borderRadius: '50%', background: 'transparent', border: 'none', color: ms.txt3, cursor: 'pointer', display: 'grid', placeItems: 'center', transition: MAIL_TRANSITION }}
             onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover2 }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
@@ -1675,17 +1714,28 @@ Appeler aussi `useMailRealtime(profile?.agency_id ?? null)` dans `MessagerieApp`
 "box": { "label": "Boîte", "none": "Aucune boîte", "synced": "synchronisée", "disconnect": "Déconnecter", "disconnectConfirm": "Déconnecter cette boîte ? Ses messages seront retirés du CRM ; les documents classés restent.", "status": { "reauth_required": "Autorisation à renouveler", "error": "Erreur de synchronisation", "disabled": "Désactivée" } },
 "compose": { "cta": "Nouveau message" },
 "folders": { "aria": "Dossiers", "in": "Boîte de réception", "arch": "Archivé", "star": "Suivis", "sent": "Envoyés", "draft": "Brouillons" },
-"labels": { "title": "Libellés", "new": "Nouveau libellé", "rename": "Renommer", "recolor": "Changer la couleur", "delete": "Supprimer", "namePlaceholder": "Nom du libellé", "custom": "Couleur personnalisée", "hue": "Teinte", "create": "Créer" },
+"labels": { "title": "Libellés", "new": "Nouveau libellé", "rename": "Renommer", "recolor": "Changer la couleur", "delete": "Supprimer", "namePlaceholder": "Nom du libellé", "custom": "Couleur personnalisée", "hue": "Teinte", "hex": "Code hexadécimal", "create": "Créer" },
 "actions": { "cancel": "Annuler", "save": "Enregistrer" }
 ```
+
+⚠ **Les quatre langues, pas seulement le FR.** `i18n:parity:ci` exige chaque clé FR en
+DE/EN/IT, et `i18n:coverage:ci` refuse une valeur allemande IDENTIQUE à l'anglaise : `"Labels"`
+recopié en DE l'a fait rougir (`de/messages : 0 → 1`). Le DE dit **« Kategorien »** — le terme
+d'Outlook allemand pour ce classement.
 
 - [ ] **Step 8 : Build, lint, commit**
 
 ```bash
-npm run build && npm run lint && npm run lint:i18n
+npm run build && npm run lint && npm run lint:i18n && npm run lint:deadcode \
+  && npm run i18n:parity:ci && npm run i18n:coverage:ci
 git add -A
-git commit -m "feat(messagerie): rail (sélecteur de boîte, dossiers, libellés, créateur, menu de libellé)"
+git commit -m "feat(messagerie): le rail — boîtes, dossiers, libellés"
 ```
+
+⚠ **`lint:deadcode` fait partie de cette étape** : la tâche RETIRE trois exemptions de
+`scripts/check-dead-exports.mjs` (`useMailLabels`, `useMailRealtime`, `useMailFolderCounts`,
+désormais lus par `MessagerieApp`) et en AJOUTE deux, nommées, pour `MailModalShell` et
+`MailCloseButton` — la coquille précède ses sept modales, sa première consommatrice est T2.7.
 
 ---
 

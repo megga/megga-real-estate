@@ -4,14 +4,51 @@
  * aucun dans les composants — les gardes `couleur-barreaux` et
  * `megga-x-crm-tokens` balaient `src/**`.
  *
- * ⚠ `MAIL_TRANSITION` et `PILL`, que le plan posait ici dès la tâche 2.1,
- * arrivent avec leur PREMIER consommateur (T2.4) : `lint:deadcode` refuse un
- * export que rien ne lit, et il a raison — une constante sans lecteur ne se
- * périme pas, elle se contredit en silence.
+ * ⚠ `MAIL_TRANSITION` et `PILL` arrivent ICI, à la tâche 2.4, avec leur PREMIER
+ * consommateur — et non dès 2.1 comme le plan les posait : `lint:deadcode`
+ * refuse un export que rien ne lit, et il a raison. Une constante sans lecteur
+ * ne se périme pas, elle se contredit en silence.
  */
 import type { CrmPalette } from '@/components/crm/tokens'
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
+
+/**
+ * La transition unique de l'écran. Une seule durée pour tout ce qui réagit au
+ * survol — rail, lignes, pastilles : deux durées voisines sur une même surface
+ * se lisent comme un défaut de rendu, pas comme une intention.
+ */
+export const MAIL_TRANSITION = 'background .12s, color .12s, border-color .12s, opacity .12s'
+
+/**
+ * Le rayon des pilules (rayon 999 de la maquette).
+ *
+ * ⚠ C'est une CONSTANTE et non le littéral `'var(--crm-radius-pill)'` recopié :
+ * le jeton est cité dix-neuf fois sur cet écran, et une faute de frappe dans un
+ * `var()` ne casse rien de visible — la déclaration est simplement écartée et
+ * le coin redevient carré, sans qu'aucune garde ne le dise (clause « chaque
+ * barreau cité existe vraiment » de `megga-x-grammar` ne couvre que le texte).
+ */
+export const PILL = 'var(--crm-radius-pill)'
+
+/**
+ * `hsl` → `#rrggbb`, pour la teinte libre du créateur de libellé.
+ *
+ * ⚠ Elle vit ICI et non dans `MailLabelCreator.tsx`, où le plan l'écrivait :
+ * `react-refresh/only-export-components` est une ERREUR dans ce dépôt, et un
+ * fichier de composant qui exporte aussi une fonction la déclenche. La garder
+ * exportée compte : c'est la seule partie calculée de la couleur d'un libellé,
+ * donc la seule qui puisse mentir en silence.
+ */
+export function hslToHex(h: number, s: number, l: number): string {
+  const a = (s / 100) * Math.min(l / 100, 1 - l / 100)
+  const canal = (n: number) => {
+    const k = (n + h / 30) % 12
+    const c = l / 100 - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))
+    return Math.round(255 * c).toString(16).padStart(2, '0')
+  }
+  return `#${canal(0)}${canal(8)}${canal(4)}`
+}
 
 export interface MailSurfaces {
   /** fond du bento (`--side`) */ side: string

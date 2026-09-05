@@ -63,9 +63,9 @@ const ALLOW_SYMBOLS = new Set([
   // Le lot livre la couche de DONNÉES avant les trois zones du bento, exprès :
   // T2.4-T2.11 les consomment, tâche par tâche. Chaque entrée nomme la sienne, et
   // s'en va avec elle.
-  'src/hooks/useMailLabels.ts:useMailLabels',                 // T2.4 — libellés du rail
-  'src/hooks/useMailRealtime.ts:useMailRealtime',             // T2.4 — pastille de non-lus
-  'src/hooks/useMailThreads.ts:useMailFolderCounts',          // T2.4 — compteurs de dossiers
+  // ⚠ TROIS ENTRÉES SONT PARTIES AVEC T2.4, comme annoncé : `useMailLabels`,
+  // `useMailRealtime` et `useMailFolderCounts` sont lus par `MessagerieApp` (le rail).
+  // Une exemption qui survit à son motif couvre le fichier pour toujours.
   'src/hooks/useMailThreads.ts:useMailThreads',               // T2.5 — la liste
   'src/hooks/useMailActions.ts:useMailActions',               // T2.5 — gestes optimistes
   'src/hooks/useMailThread.ts:useMailThread',                 // T2.6 — le fil ouvert
@@ -73,6 +73,12 @@ const ALLOW_SYMBOLS = new Set([
   'src/hooks/useMailSend.ts:useMailSend',                     // T2.7 — l'envoi
   'src/hooks/useMailOAuthPopup.ts:useMailOAuthPopup',         // T2.9 — assistant « Ajouter une boîte »
   'src/hooks/useMailAttachmentBlob.ts:useMailAttachmentBlob', // T2.11 — aperçu de pièce
+  // ── T2.4 : la coquille des SEPT modales précède la première d'entre elles ───
+  // Le plan la place ici parce qu'elle fixe le contrat (portail, voile, piège de
+  // focus, z-index 300) avant qu'aucune modale ne l'ait choisi de son côté. Sa
+  // première consommatrice est « Nouveau message ».
+  'src/components/crm/messagerie/MailModalShell.tsx:MailModalShell',  // T2.7
+  'src/components/crm/messagerie/MailModalShell.tsx:MailCloseButton', // T2.7
   // Sortie du générateur Supabase, pas du code écrit à la main : les versions
   // récentes émettent `Constants` (valeurs des enums Postgres) que rien
   // n'importe encore. Le retirer reviendrait à éditer un fichier auto-généré,

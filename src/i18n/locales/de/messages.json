@@ -124,6 +124,45 @@
     },
     "add": {
       "cta": "Postfach hinzufügen"
+    },
+    "box": {
+      "label": "Postfach",
+      "none": "Kein Postfach",
+      "synced": "synchronisiert",
+      "disconnect": "Trennen",
+      "disconnectConfirm": "Dieses Postfach trennen? Seine Nachrichten werden aus dem CRM entfernt; abgelegte Dokumente bleiben erhalten.",
+      "status": {
+        "reauth_required": "Berechtigung erneuern",
+        "error": "Synchronisierungsfehler",
+        "disabled": "Deaktiviert"
+      }
+    },
+    "compose": {
+      "cta": "Neue Nachricht"
+    },
+    "folders": {
+      "aria": "Ordner",
+      "in": "Posteingang",
+      "arch": "Archiviert",
+      "star": "Markiert",
+      "sent": "Gesendet",
+      "draft": "Entwürfe"
+    },
+    "labels": {
+      "title": "Kategorien",
+      "new": "Neue Kategorie",
+      "rename": "Umbenennen",
+      "recolor": "Farbe ändern",
+      "delete": "Löschen",
+      "namePlaceholder": "Name der Kategorie",
+      "custom": "Eigene Farbe",
+      "hue": "Farbton",
+      "hex": "Hexadezimalcode",
+      "create": "Erstellen"
+    },
+    "actions": {
+      "cancel": "Abbrechen",
+      "save": "Speichern"
     }
   }
 }

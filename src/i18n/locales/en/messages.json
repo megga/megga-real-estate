@@ -124,6 +124,45 @@
     },
     "add": {
       "cta": "Add a mailbox"
+    },
+    "box": {
+      "label": "Mailbox",
+      "none": "No mailbox",
+      "synced": "synced",
+      "disconnect": "Disconnect",
+      "disconnectConfirm": "Disconnect this mailbox? Its messages will be removed from the CRM; filed documents remain.",
+      "status": {
+        "reauth_required": "Authorisation to renew",
+        "error": "Sync error",
+        "disabled": "Disabled"
+      }
+    },
+    "compose": {
+      "cta": "New message"
+    },
+    "folders": {
+      "aria": "Folders",
+      "in": "Inbox",
+      "arch": "Archived",
+      "star": "Starred",
+      "sent": "Sent",
+      "draft": "Drafts"
+    },
+    "labels": {
+      "title": "Labels",
+      "new": "New label",
+      "rename": "Rename",
+      "recolor": "Change colour",
+      "delete": "Delete",
+      "namePlaceholder": "Label name",
+      "custom": "Custom colour",
+      "hue": "Hue",
+      "hex": "Hex code",
+      "create": "Create"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "save": "Save"
     }
   }
 }

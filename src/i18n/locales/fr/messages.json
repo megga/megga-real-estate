@@ -124,6 +124,45 @@
     },
     "add": {
       "cta": "Ajouter une boîte"
+    },
+    "box": {
+      "label": "Boîte",
+      "none": "Aucune boîte",
+      "synced": "synchronisée",
+      "disconnect": "Déconnecter",
+      "disconnectConfirm": "Déconnecter cette boîte ? Ses messages seront retirés du CRM ; les documents classés restent.",
+      "status": {
+        "reauth_required": "Autorisation à renouveler",
+        "error": "Erreur de synchronisation",
+        "disabled": "Désactivée"
+      }
+    },
+    "compose": {
+      "cta": "Nouveau message"
+    },
+    "folders": {
+      "aria": "Dossiers",
+      "in": "Boîte de réception",
+      "arch": "Archivé",
+      "star": "Suivis",
+      "sent": "Envoyés",
+      "draft": "Brouillons"
+    },
+    "labels": {
+      "title": "Libellés",
+      "new": "Nouveau libellé",
+      "rename": "Renommer",
+      "recolor": "Changer la couleur",
+      "delete": "Supprimer",
+      "namePlaceholder": "Nom du libellé",
+      "custom": "Couleur personnalisée",
+      "hue": "Teinte",
+      "hex": "Code hexadécimal",
+      "create": "Créer"
+    },
+    "actions": {
+      "cancel": "Annuler",
+      "save": "Enregistrer"
     }
   }
 }

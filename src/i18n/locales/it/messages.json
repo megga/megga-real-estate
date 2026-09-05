@@ -124,6 +124,45 @@
     },
     "add": {
       "cta": "Aggiungi una casella"
+    },
+    "box": {
+      "label": "Casella",
+      "none": "Nessuna casella",
+      "synced": "sincronizzata",
+      "disconnect": "Disconnetti",
+      "disconnectConfirm": "Disconnettere questa casella? I suoi messaggi verranno rimossi dal CRM; i documenti archiviati restano.",
+      "status": {
+        "reauth_required": "Autorizzazione da rinnovare",
+        "error": "Errore di sincronizzazione",
+        "disabled": "Disattivata"
+      }
+    },
+    "compose": {
+      "cta": "Nuovo messaggio"
+    },
+    "folders": {
+      "aria": "Cartelle",
+      "in": "Posta in arrivo",
+      "arch": "Archiviati",
+      "star": "Preferiti",
+      "sent": "Inviati",
+      "draft": "Bozze"
+    },
+    "labels": {
+      "title": "Etichette",
+      "new": "Nuova etichetta",
+      "rename": "Rinomina",
+      "recolor": "Cambia colore",
+      "delete": "Elimina",
+      "namePlaceholder": "Nome dell'etichetta",
+      "custom": "Colore personalizzato",
+      "hue": "Tonalità",
+      "hex": "Codice esadecimale",
+      "create": "Crea"
+    },
+    "actions": {
+      "cancel": "Annulla",
+      "save": "Salva"
     }
   }
 }
