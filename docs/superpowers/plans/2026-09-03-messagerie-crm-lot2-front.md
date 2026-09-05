@@ -3005,6 +3005,20 @@ git add -A && git commit -m "feat(messagerie): assistant Ajouter une boîte (fou
 
 README §7 transposé : `patient` → contact, `numéro` → adresse ; la recherche cherche nom / adresse / téléphone (RPC `mail_search_contacts`). « Créer la fiche » ouvre la liste des contacts ; la création pré-remplie depuis un mail n'est pas dans ce lot (à ajouter au maître §9 — fait).
 
+⛔ **QUATRE ÉCARTS MESURÉS À L'ÉCRITURE (05.09.2026)**, tous de la même famille que ceux des
+tâches précédentes :
+
+1. **`import { MEIcon }` → `import MEIcon`** : c'est un export PAR DÉFAUT.
+2. **`fontWeight: 700` de la pastille d'initiales → `600`** (clause de graisse de
+   `megga-x-grammar`).
+3. **`gap: 2` et `marginTop: 4` → `var(--crm-space-2xs)`.** La zone
+   `src/components/crm/messagerie` n'a AUCUNE entrée `B4_ASSUME` : son inventaire de rayons et
+   d'espacements doit valoir zéro, et le compte inclut les valeurs SUR l'échelle mais non
+   tokenisées. Le plus petit barreau vaut 4 px ; `gap: 2` n'est pas exprimable.
+4. **La modale est MONTÉE avec sa cible, démontée à la fermeture.** `state.modal` porte
+   `threadId`, `email` et `name` : les lire au montage évite d'avoir à remettre la recherche à
+   zéro par un effet, et la saisie repart du nom de l'expéditeur à chaque ouverture.
+
 - [ ] **Step 1 : Composant**
 
 ```tsx
@@ -3012,7 +3026,7 @@ README §7 transposé : `patient` → contact, `numéro` → adresse ; la recher
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'
 import { useMailContactSearch } from '@/hooks/useMailContactSearch'
 import { initialsOf } from '@/lib/mail/format'
 import { MailCloseButton, MailModalShell } from './MailModalShell'
@@ -3027,18 +3041,18 @@ export function MailLinkContactModal({ ms, open, email, name, busy, onClose, onL
   return (
     <MailModalShell ms={ms} open={open} onClose={onClose} width={520} ariaLabel={t('mail.link.title')} veil={0.12} column>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div><h2 style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, margin: 0, letterSpacing: '-0.01em' }}>{t('mail.link.title')}</h2><div style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut, marginTop: 4 }}>{name ? `${name} · ${email}` : email}</div></div>
+        <div><h2 style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, margin: 0, letterSpacing: '-0.01em' }}>{t('mail.link.title')}</h2><div style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut, marginTop: 'var(--crm-space-2xs)' }}>{name ? `${name} · ${email}` : email}</div></div>
         <MailCloseButton ms={ms} onClick={onClose} label={t('mail.actions.close')} />
       </div>
       <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', background: ms.elev, border: `1px solid ${ms.bord}`, borderRadius: PILL, padding: 'var(--crm-space-md) var(--crm-space-2xl)', marginTop: 'var(--crm-space-4xl)' }}>
         <MEIcon name="search" size={14} color={ms.mut} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('mail.link.searchPlaceholder')} aria-label={t('mail.link.search')} autoFocus style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: ms.ink, fontSize: 'var(--crm-text-sm)', fontFamily: 'inherit' }} />
       </label>
-      <div style={{ marginTop: 'var(--crm-space-md)', overflowY: 'auto', minHeight: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div style={{ marginTop: 'var(--crm-space-md)', overflowY: 'auto', minHeight: 0, flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
         {(hits.data ?? []).map((h) => (
           <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', transition: MAIL_TRANSITION }}
             onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-            <div aria-hidden style={{ width: 30, height: 30, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 700 }}>{initialsOf(`${h.first_name} ${h.last_name}`, h.email)}</div>
+            <div aria-hidden style={{ width: 30, height: 30, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600 }}>{initialsOf(`${h.first_name} ${h.last_name}`, h.email)}</div>
             <div style={{ minWidth: 0, flex: 1 }}><div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.first_name} {h.last_name}</div><div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{h.email}{h.phone ? ` · ${h.phone}` : ''}</div></div>
             <button type="button" disabled={busy} onClick={() => onLink(h.id)} style={{ background: 'none', border: 'none', color: ms.accent, fontSize: 'var(--crm-text-xs)', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>{t('mail.link.cta')}</button>
           </div>

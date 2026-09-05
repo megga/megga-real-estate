@@ -29,6 +29,7 @@ import { MailAddAccountModal } from './MailAddAccountModal'
 import { MailComposeModal } from './MailComposeModal'
 import { MailContextMenu } from './MailContextMenu'
 import { MailDeleteModal } from './MailDeleteModal'
+import { MailLinkContactModal } from './MailLinkContactModal'
 import { MailRail } from './MailRail'
 import { MailReader } from './MailReader'
 import { MailLabelMenu } from './MailLabelMenu'
@@ -339,6 +340,26 @@ export function MessagerieApp({ dark, setDark }: Props) {
               onOpenAccount={(id) => dispatch({ type: 'select-account', accountId: id })}
             />
           )}
+
+          {/* « Rapprocher l'adresse » — montée avec sa cible, donc la recherche
+              repart du nom de l'expéditeur à chaque ouverture. */}
+          {state.modal.kind === 'link-contact' && (() => {
+            const cible = state.modal
+            return (
+              <MailLinkContactModal
+                ms={ms}
+                open
+                email={cible.email}
+                name={cible.name}
+                busy={actions.linkContact.isPending}
+                onClose={() => dispatch({ type: 'modal', modal: { kind: 'none' } })}
+                onLink={(contactId) => actions.linkContact.mutate(
+                  { threadId: cible.threadId, contactId, email: cible.email },
+                  { onSuccess: () => dispatch({ type: 'modal', modal: { kind: 'none' } }) },
+                )}
+              />
+            )
+          })()}
 
           <MailDeleteModal
             ms={ms}

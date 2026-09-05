@@ -279,7 +279,13 @@
       "unlinked": "Adresse non rattachée : {{email}}"
     },
     "link": {
-      "cta": "Rapprocher"
+      "cta": "Rapprocher",
+      "title": "Rapprocher l'adresse",
+      "search": "Recherche",
+      "searchPlaceholder": "Nom, adresse ou téléphone",
+      "empty": "Aucun contact trouvé.",
+      "note": "L'adresse sera mémorisée pour cette fiche.",
+      "create": "Créer la fiche"
     },
     "draft": {
       "badge": "Brouillon",

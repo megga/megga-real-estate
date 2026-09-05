@@ -279,7 +279,13 @@
       "unlinked": "Indirizzo non collegato: {{email}}"
     },
     "link": {
-      "cta": "Collega"
+      "cta": "Collega",
+      "title": "Collega l'indirizzo",
+      "search": "Ricerca",
+      "searchPlaceholder": "Nome, indirizzo o telefono",
+      "empty": "Nessun contatto trovato.",
+      "note": "L'indirizzo sarà memorizzato per questa scheda.",
+      "create": "Crea la scheda"
     },
     "draft": {
       "badge": "Bozza",

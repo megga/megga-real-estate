@@ -279,7 +279,13 @@
       "unlinked": "Address not linked: {{email}}"
     },
     "link": {
-      "cta": "Link"
+      "cta": "Link",
+      "title": "Link the address",
+      "search": "Search",
+      "searchPlaceholder": "Name, address or phone",
+      "empty": "No contact found.",
+      "note": "The address will be remembered for this record.",
+      "create": "Create the record"
     },
     "draft": {
       "badge": "Draft",

@@ -279,7 +279,13 @@
       "unlinked": "Adresse nicht zugeordnet: {{email}}"
     },
     "link": {
-      "cta": "Zuordnen"
+      "cta": "Zuordnen",
+      "title": "Adresse zuordnen",
+      "search": "Suche",
+      "searchPlaceholder": "Name, Adresse oder Telefon",
+      "empty": "Kein Kontakt gefunden.",
+      "note": "Die Adresse wird für dieses Dossier gemerkt.",
+      "create": "Dossier anlegen"
     },
     "draft": {
       "badge": "Entwurf",
