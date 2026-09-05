@@ -23,7 +23,9 @@ import { useMailFolderCounts, useMailThreads, type MailThreadRow } from '@/hooks
 import { useMailThread } from '@/hooks/useMailThread'
 import { useMailSend } from '@/hooks/useMailSend'
 import { useMailRealtime } from '@/hooks/useMailRealtime'
+import { parseRecipients } from '@/hooks/useMailContactSearch'
 import { MailList } from './MailList'
+import { MailComposeModal } from './MailComposeModal'
 import { MailContextMenu } from './MailContextMenu'
 import { MailRail } from './MailRail'
 import { MailReader } from './MailReader'
@@ -109,6 +111,15 @@ export function MessagerieApp({ dark, setDark }: Props) {
   }, [params, setParams])
 
   const editLabel = labels.labels.find((l) => l.id === state.editLabelId) ?? null
+  /**
+   * Le brouillon rouvert depuis le dossier « Brouillons » ; `null` = message neuf.
+   *
+   * ⚠ L'identifiant est SORTI de l'union avant le `find` : le rétrécissement de
+   * `state.modal` ne survit pas à l'entrée dans un callback, que TS suppose
+   * appelable plus tard.
+   */
+  const idBrouillon = state.modal.kind === 'compose' ? state.modal.draftId ?? null : null
+  const brouillonCompose = idBrouillon ? drafts.drafts.find((d) => d.id === idBrouillon) ?? null : null
 
   /**
    * Créer, renommer ou recolorer — un seul geste d'écran, trois mutations
@@ -280,6 +291,25 @@ export function MessagerieApp({ dark, setDark }: Props) {
               onRename={() => dispatch({ type: 'label-creator', open: true, editLabelId: state.labelCtx?.labelId })}
               onRecolor={() => dispatch({ type: 'label-creator', open: true, editLabelId: state.labelCtx?.labelId })}
               onDelete={() => labels.remove.mutate(state.labelCtx!.labelId)}
+            />
+          )}
+
+          {/* Monté à l'ouverture, démonté à la fermeture : la saisie repart de
+              zéro à chaque « Nouveau message », sans effet d'amorçage. */}
+          {state.modal.kind === 'compose' && (
+            <MailComposeModal
+              ms={ms}
+              draft={brouillonCompose}
+              sending={send.isPending}
+              error={send.error?.message ?? null}
+              onClose={(contenu) => {
+                // Fermer sans envoyer n'efface rien : la saisie devient un
+                // brouillon LOCAL (D7), jamais poussé chez le fournisseur.
+                if (contenu) drafts.save.mutate({ id: brouillonCompose?.id, kind: 'new', to: parseRecipients(contenu.to), subject: contenu.subject, body_text: contenu.body })
+                dispatch({ type: 'modal', modal: { kind: 'none' } })
+              }}
+              // README : à l'envoi, le message rejoint le dossier « Envoyés ».
+              onSend={(input) => send.mutate(input, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'folder', folder: 'sent' }) } })}
             />
           )}
         </main>

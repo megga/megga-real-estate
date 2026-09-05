@@ -140,7 +140,15 @@
     "compose": {
       "cta": "Nouveau message",
       "to": "Destinataire",
-      "toPlaceholder": "À · destinataire"
+      "toPlaceholder": "À · destinataire",
+      "title": "Nouveau message",
+      "subject": "Objet",
+      "body": "Message",
+      "attach": "Joindre un document",
+      "fromComputer": "Depuis mon ordinateur",
+      "agencyDocs": "Documents de l'agence",
+      "noAgencyDocs": "Aucun document disponible.",
+      "removeAttachment": "Retirer la pièce"
     },
     "folders": {
       "aria": "Dossiers",
@@ -215,7 +223,8 @@
       "save": "Enregistrer",
       "send": "Envoyer",
       "sending": "Envoi…",
-      "forward": "Transférer"
+      "forward": "Transférer",
+      "close": "Fermer"
     }
   }
 }

@@ -140,7 +140,15 @@
     "compose": {
       "cta": "Neue Nachricht",
       "to": "Empfänger",
-      "toPlaceholder": "An · Empfänger"
+      "toPlaceholder": "An · Empfänger",
+      "title": "Neue Nachricht",
+      "subject": "Betreff",
+      "body": "Nachricht",
+      "attach": "Dokument anhängen",
+      "fromComputer": "Von meinem Computer",
+      "agencyDocs": "Dokumente der Agentur",
+      "noAgencyDocs": "Kein Dokument verfügbar.",
+      "removeAttachment": "Anhang entfernen"
     },
     "folders": {
       "aria": "Ordner",
@@ -215,7 +223,8 @@
       "save": "Speichern",
       "send": "Senden",
       "sending": "Wird gesendet…",
-      "forward": "Weiterleiten"
+      "forward": "Weiterleiten",
+      "close": "Schliessen"
     }
   }
 }

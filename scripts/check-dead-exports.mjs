@@ -78,17 +78,11 @@ const ALLOW_SYMBOLS = new Set([
   // T2.7, mais l'envoi commence au LECTEUR, pas au composeur.
   'src/hooks/useMailOAuthPopup.ts:useMailOAuthPopup',         // T2.9 — assistant « Ajouter une boîte »
   'src/hooks/useMailAttachmentBlob.ts:useMailAttachmentBlob', // T2.11 — aperçu de pièce
-  // ── T2.4 : la coquille des SEPT modales précède la première d'entre elles ───
-  // Le plan la place ici parce qu'elle fixe le contrat (portail, voile, piège de
-  // focus, z-index 300) avant qu'aucune modale ne l'ait choisi de son côté. Sa
-  // première consommatrice est « Nouveau message ».
-  'src/components/crm/messagerie/MailModalShell.tsx:MailModalShell',  // T2.7
-  'src/components/crm/messagerie/MailModalShell.tsx:MailCloseButton', // T2.7
-  // ── T2.6 : le module de recherche de destinataires précède son seul lecteur ─
-  // `parseRecipients` est consommé ICI (composeur de transfert) ; le HOOK ne
-  // l'est qu'au champ « À » de « Nouveau message ». Les deux vivent dans le même
-  // fichier parce qu'ils partagent le format d'adresse, pas le calendrier.
-  'src/hooks/useMailContactSearch.ts:useMailContactSearch',           // T2.7
+  // ⚠ T2.4 avait posé ici la coquille des SEPT modales (`MailModalShell`,
+  // `MailCloseButton`) et T2.6 le hook de recherche de destinataires
+  // (`useMailContactSearch`) : les trois sont SORTIS avec T2.7, qui livre
+  // « Nouveau message » — la première modale, et le seul champ « À » qui
+  // suggère des contacts.
   // Sortie du générateur Supabase, pas du code écrit à la main : les versions
   // récentes émettent `Constants` (valeurs des enums Postgres) que rien
   // n'importe encore. Le retirer reviendrait à éditer un fichier auto-généré,

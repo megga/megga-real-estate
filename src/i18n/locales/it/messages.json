@@ -140,7 +140,15 @@
     "compose": {
       "cta": "Nuovo messaggio",
       "to": "Destinatario",
-      "toPlaceholder": "A · destinatario"
+      "toPlaceholder": "A · destinatario",
+      "title": "Nuovo messaggio",
+      "subject": "Oggetto",
+      "body": "Messaggio",
+      "attach": "Allega un documento",
+      "fromComputer": "Dal mio computer",
+      "agencyDocs": "Documenti dell'agenzia",
+      "noAgencyDocs": "Nessun documento disponibile.",
+      "removeAttachment": "Rimuovi l'allegato"
     },
     "folders": {
       "aria": "Cartelle",
@@ -215,7 +223,8 @@
       "save": "Salva",
       "send": "Invia",
       "sending": "Invio…",
-      "forward": "Inoltra"
+      "forward": "Inoltra",
+      "close": "Chiudi"
     }
   }
 }

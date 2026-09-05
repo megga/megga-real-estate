@@ -2360,6 +2360,29 @@ git commit -m "feat(messagerie): lecture (corps assaini en iframe, pièces, fil,
 
 Dimensions : README §4 (carte 600, calque `.12` + blur 6, titre 17/700, pilules `12px 18px`, textarea min 170, popover 340 ancré `bottom: calc(100% + 10px)`).
 
+⛔ **SIX ÉCARTS MESURÉS À L'ÉCRITURE (05.09.2026)**, en plus des écarts n° 1 à 3 de la T2.6
+(import par défaut de `MEIcon`, `name="close"` au lieu de `name="x"`, graisse plafonnée à 600) :
+
+1. **Le sur-titre « DOCUMENTS DE L'AGENCE » perd sa micro-capitale et son interlettrage.**
+   `textTransform: 'uppercase'` et `letterSpacing: '0.08em'` sont refusés par deux clauses de
+   `megga-x-grammar` — la micro-capitale était la marque de fabrique de Sugar, et un tracking
+   positif sur de la casse normale disloque le mot. La casse normale sépare aussi bien.
+2. **La modale est MONTÉE à l'ouverture, démontée à la fermeture** — plus de prop `open`, plus
+   d'effet d'amorçage. Un `setState` synchrone dans un effet est signalé par
+   `react-hooks/set-state-in-effect` et coûte un rendu ; surtout, l'état de saisie doit repartir
+   de zéro à chaque ouverture, et un `useState` d'initialisation le garantit sans dépendance à
+   oublier.
+3. **`(a.source as { doc: AgencyDocument }).doc.id` → un `flatMap` conditionnel.** `filter` ne
+   rétrécit pas l'union, et le cast qui compensait affirmait une forme que rien ne vérifie.
+4. **`key={label + sub}` dans le popover → la clé du document.** Deux documents de même nom et
+   de même taille se seraient partagé une clé.
+5. **La ligne « Depuis mon ordinateur » est écrite en JSX**, hors de l'aide commune :
+   `react-hooks/refs` est une ERREUR ici et refuse `fileRef.current` dans une flèche passée en
+   ARGUMENT (il ne peut pas prouver qu'elle ne sera pas appelée pendant le rendu). Un
+   `useCallback` ne suffit pas — mesuré ; dans un gestionnaire JSX, la règle le sait.
+6. **`state.modal.draftId` est SORTI de l'union avant le `find`** : le rétrécissement de
+   `state.modal` ne survit pas à l'entrée dans un callback (TS2339, mesuré).
+
 - [ ] **Step 1 : Documents de l'agence (pour « DOCUMENTS DE L'AGENCE »)**
 
 ```ts
@@ -2402,9 +2425,9 @@ export function blobToBase64(blob: Blob): Promise<string> {
 
 ```tsx
 // src/components/crm/messagerie/MailAttachPopover.tsx — README §4 « Joindre un document ».
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'  // écart n° 1 de T2.6 : export DÉFAUT
 import { useAgencyDocuments, type AgencyDocument } from '@/hooks/useAgencyDocuments'
 import { fileSizeLabel } from '@/lib/mail/format'
 import { MAIL_TRANSITION, type MailSurfaces } from './mailTokens'
@@ -2421,22 +2444,29 @@ export function MailAttachPopover({ ms, chosenDocIds, onFiles, onToggleDoc, onCl
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
   }, [onClose])
-  const row = (label: string, sub: string | null, onClick: () => void, chosen = false) => (
-    <button key={label + sub} type="button" onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', width: '100%', textAlign: 'left', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', background: 'transparent', border: 'none', color: ms.ink, fontSize: 'var(--crm-text-sm)', cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION }}
-      onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover }} onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}>
-      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
-      {sub && <span style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{sub}</span>}
-      {chosen && <MEIcon name="check" size={13} color={ms.accent} />}
+  // écart n° 4 : la clé est celle du DOCUMENT, pas « nom + taille ».
+  const styleLigne: CSSProperties = { display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', width: '100%', textAlign: 'left', padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-lg)', background: 'transparent', border: 'none', color: ms.ink, fontSize: 'var(--crm-text-sm)', cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION }
+  const survol = {
+    onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = ms.hover },
+    onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'transparent' },
+  }
+  const ligneDoc = (d: AgencyDocument) => (
+    <button key={d.id} type="button" onClick={() => onToggleDoc(d)} style={styleLigne} {...survol}>
+      <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
+      <span style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{fileSizeLabel(d.size_bytes)}</span>
+      {chosenDocIds.has(d.id) && <MEIcon name="check" size={13} color={ms.accent} />}
     </button>
   )
   return (
     <div ref={ref} style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: 0, width: 340, background: ms.card, border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-4xl)', padding: 'var(--crm-space-sm)', zIndex: 310, boxShadow: ms.solidShadow }}>
       <input ref={fileRef} type="file" multiple hidden onChange={(e) => { onFiles(Array.from(e.target.files ?? [])); onClose() }} />
-      {row(t('mail.compose.fromComputer'), null, () => fileRef.current?.click())}
-      <div style={{ padding: 'var(--crm-space-md) var(--crm-space-lg) var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: ms.mut }}>{t('mail.compose.agencyDocs')}</div>
+      {/* écart n° 5 : en JSX, jamais en argument d'une aide */}
+      <button type="button" onClick={() => fileRef.current?.click()} style={styleLigne} {...survol}>
+        <span style={{ flex: 1, minWidth: 0 }}>{t('mail.compose.fromComputer')}</span>
+      </button>
+      <div style={{ padding: 'var(--crm-space-md) var(--crm-space-lg) var(--crm-space-2xs)', fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: ms.mut }}>{t('mail.compose.agencyDocs')}</div>  {/* écart n° 1 */}
       <div style={{ maxHeight: 220, overflowY: 'auto' }}>
-        {(docs.data ?? []).map((d) => row(d.name, fileSizeLabel(d.size_bytes), () => onToggleDoc(d), chosenDocIds.has(d.id)))}
+        {(docs.data ?? []).map(ligneDoc)}
         {docs.data?.length === 0 && <div style={{ padding: 'var(--crm-space-md) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{t('mail.compose.noAgencyDocs')}</div>}
       </div>
     </div>
@@ -2448,9 +2478,9 @@ export function MailAttachPopover({ ms, chosenDocIds, onFiles, onToggleDoc, onCl
 
 ```tsx
 // src/components/crm/messagerie/MailComposeModal.tsx — README §4.
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MEIcon } from '@/components/propertyx/MEIcon'
+import MEIcon from '@/components/propertyx/MEIcon'  // écart n° 1 de T2.6 : export DÉFAUT
 import { blobToBase64, documentToBase64, type AgencyDocument } from '@/hooks/useAgencyDocuments'
 import { parseRecipients, useMailContactSearch } from '@/hooks/useMailContactSearch'
 import type { MailDraft } from '@/hooks/useMailDrafts'
@@ -2461,24 +2491,20 @@ import { MailCloseButton, MailModalShell } from './MailModalShell'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
 interface Pending { key: string; name: string; size: number; mimeType: string; source: { kind: 'file'; file: File } | { kind: 'doc'; doc: AgencyDocument } }
-interface Props { ms: MailSurfaces; open: boolean; draft: MailDraft | null; sending: boolean; error: string | null
+// écart n° 2 : plus de prop `open` — le composant est monté à l'ouverture.
+interface Props { ms: MailSurfaces; draft: MailDraft | null; sending: boolean; error: string | null
   onClose: (draft: { to: string; subject: string; body: string } | null) => void; onSend: (input: MailSendInput) => void }
 
-export function MailComposeModal({ ms, open, draft, sending, error, onClose, onSend }: Props) {
+export function MailComposeModal({ ms, draft, sending, error, onClose, onSend }: Props) {
   const { t } = useTranslation('messages')
-  const [to, setTo] = useState('')
-  const [subject, setSubject] = useState('')
-  const [body, setBody] = useState('')
+  const [to, setTo] = useState(() => (draft?.to ?? []).map((a) => (a.name ? `${a.name} <${a.email}>` : a.email)).join(', '))
+  const [subject, setSubject] = useState(() => draft?.subject ?? '')
+  const [body, setBody] = useState(() => draft?.body_text ?? '')
   const [atts, setAtts] = useState<Pending[]>([])
   const [popover, setPopover] = useState(false)
   const [suggest, setSuggest] = useState(false)
   const lastTerm = to.split(/[,;]/).pop()?.trim() ?? ''
   const hits = useMailContactSearch(suggest ? lastTerm : '')
-  useEffect(() => {
-    if (!open) return
-    setTo(draft?.to.map((a) => (a.name ? `${a.name} <${a.email}>` : a.email)).join(', ') ?? '')
-    setSubject(draft?.subject ?? ''); setBody(draft?.body_text ?? ''); setAtts([]); setPopover(false)
-  }, [open, draft])
   const rcpts = useMemo(() => parseRecipients(to), [to])
   const can = rcpts.length > 0 && subject.trim().length > 0 && !sending
   const field = { background: ms.elev, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' as const }
@@ -2494,9 +2520,9 @@ export function MailComposeModal({ ms, open, draft, sending, error, onClose, onS
   const close = () => onClose(to.trim() || subject.trim() || body.trim() ? { to, subject, body } : null)
 
   return (
-    <MailModalShell ms={ms} open={open} onClose={close} width={600} ariaLabel={t('mail.compose.title')} veil={0.12}>
+    <MailModalShell ms={ms} open onClose={close} width={600} ariaLabel={t('mail.compose.title')} veil={0.12}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 700, margin: 0 }}>{t('mail.compose.title')}</h2>
+        <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, margin: 0 }}>{t('mail.compose.title')}</h2>  {/* écart n° 3 de T2.6 */}
         <MailCloseButton ms={ms} onClick={close} label={t('mail.actions.close')} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-4xl)' }}>
@@ -2525,7 +2551,7 @@ export function MailComposeModal({ ms, open, draft, sending, error, onClose, onS
               <span key={a.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', borderRadius: 'var(--crm-radius-lg)', padding: 'var(--crm-space-sm) var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)', background: ms.elev, border: `1px solid ${ms.bord}` }}>
                 <span style={{ maxWidth: 190, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</span>
                 <span style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{fileSizeLabel(a.size)}</span>
-                <button type="button" aria-label={t('mail.compose.removeAttachment')} onClick={() => setAtts((l) => l.filter((x) => x.key !== a.key))} style={{ background: 'none', border: 'none', color: ms.txt3, cursor: 'pointer', display: 'grid', placeItems: 'center' }}><MEIcon name="x" size={12} /></button>
+                <button type="button" aria-label={t('mail.compose.removeAttachment')} onClick={() => setAtts((l) => l.filter((x) => x.key !== a.key))} style={{ background: 'none', border: 'none', color: ms.txt3, cursor: 'pointer', display: 'grid', placeItems: 'center' }}><MEIcon name="close" size={12} /></button>  {/* écart n° 2 de T2.6 */}
               </span>
             ))}
           </div>
@@ -2537,7 +2563,8 @@ export function MailComposeModal({ ms, open, draft, sending, error, onClose, onS
           <MEIcon name="paperclip" size={14} /> {t('mail.compose.attach')}
         </button>
         {popover && (
-          <MailAttachPopover ms={ms} chosenDocIds={new Set(atts.filter((a) => a.source.kind === 'doc').map((a) => (a.source as { doc: AgencyDocument }).doc.id))}
+          {/* écart n° 3 : `flatMap` conditionnel, qui se narrow tout seul */}
+          <MailAttachPopover ms={ms} chosenDocIds={new Set(atts.flatMap((a) => (a.source.kind === 'doc' ? [a.source.doc.id] : [])))}
             onFiles={(files) => setAtts((l) => [...l, ...files.map((f) => ({ key: `f-${f.name}-${f.size}-${Date.now()}`, name: f.name, size: f.size, mimeType: f.type || 'application/octet-stream', source: { kind: 'file' as const, file: f } }))])}
             onToggleDoc={(d) => setAtts((l) => l.some((a) => a.source.kind === 'doc' && a.source.doc.id === d.id) ? l.filter((a) => !(a.source.kind === 'doc' && a.source.doc.id === d.id)) : [...l, { key: `d-${d.id}`, name: d.name, size: d.size_bytes, mimeType: 'application/octet-stream', source: { kind: 'doc' as const, doc: d } }])}
             onClose={() => setPopover(false)} />
@@ -2556,13 +2583,15 @@ export function MailComposeModal({ ms, open, draft, sending, error, onClose, onS
 - [ ] **Step 4 : Brancher** (dans `MessagerieApp`)
 
 ```tsx
-const composeDraft = state.modal.kind === 'compose' && state.modal.draftId ? drafts.drafts.find((d) => d.id === state.modal.draftId) ?? null : null
-<MailComposeModal ms={ms} open={state.modal.kind === 'compose'} draft={composeDraft} sending={send.isPending} error={send.error?.message ?? null}
+// écart n° 6 : l'identifiant SORT de l'union avant le `find` (TS2339 sinon).
+const idBrouillon = state.modal.kind === 'compose' ? state.modal.draftId ?? null : null
+const composeDraft = idBrouillon ? drafts.drafts.find((d) => d.id === idBrouillon) ?? null : null
+{state.modal.kind === 'compose' && <MailComposeModal ms={ms} draft={composeDraft} sending={send.isPending} error={send.error?.message ?? null}
   onClose={(content) => {
     if (content) drafts.save.mutate({ id: composeDraft?.id, kind: 'new', to: parseRecipients(content.to), subject: content.subject, body_text: content.body })
     dispatch({ type: 'modal', modal: { kind: 'none' } })
   }}
-  onSend={(input) => send.mutate(input, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'folder', folder: 'sent' }) } })} />
+  onSend={(input) => send.mutate(input, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'folder', folder: 'sent' }) } })} />}
 ```
 (README : « à l'envoi, le message rejoint le dossier Envoyés de la boîte courante ».)
 

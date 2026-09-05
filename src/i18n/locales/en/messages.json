@@ -140,7 +140,15 @@
     "compose": {
       "cta": "New message",
       "to": "Recipient",
-      "toPlaceholder": "To · recipient"
+      "toPlaceholder": "To · recipient",
+      "title": "New message",
+      "subject": "Subject",
+      "body": "Message",
+      "attach": "Attach a document",
+      "fromComputer": "From my computer",
+      "agencyDocs": "Agency documents",
+      "noAgencyDocs": "No document available.",
+      "removeAttachment": "Remove attachment"
     },
     "folders": {
       "aria": "Folders",
@@ -215,7 +223,8 @@
       "save": "Save",
       "send": "Send",
       "sending": "Sending…",
-      "forward": "Forward"
+      "forward": "Forward",
+      "close": "Close"
     }
   }
 }
