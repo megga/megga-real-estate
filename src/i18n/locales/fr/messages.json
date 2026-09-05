@@ -196,6 +196,10 @@
       "unarchive": "Désarchiver",
       "delete": "Supprimer"
     },
+    "delete": {
+      "title": "Supprimer ce message ?",
+      "legal": "Le message part à la corbeille et quitte la liste. La conservation légale de dix ans s'applique au dossier, pas à la boîte."
+    },
     "read": {
       "back": "Retour à la liste",
       "to": "à {{box}}",

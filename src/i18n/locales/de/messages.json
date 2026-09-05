@@ -196,6 +196,10 @@
       "unarchive": "Aus Archiv holen",
       "delete": "Löschen"
     },
+    "delete": {
+      "title": "Diese Nachricht löschen?",
+      "legal": "Die Nachricht wandert in den Papierkorb und verlässt die Liste. Die gesetzliche Aufbewahrung von zehn Jahren gilt für das Dossier, nicht für das Postfach."
+    },
     "read": {
       "back": "Zurück zur Liste",
       "to": "an {{box}}",

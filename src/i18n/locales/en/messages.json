@@ -196,6 +196,10 @@
       "unarchive": "Move out of archive",
       "delete": "Delete"
     },
+    "delete": {
+      "title": "Delete this message?",
+      "legal": "The message goes to the bin and leaves the list. The ten-year legal retention applies to the case file, not to the mailbox."
+    },
     "read": {
       "back": "Back to list",
       "to": "to {{box}}",

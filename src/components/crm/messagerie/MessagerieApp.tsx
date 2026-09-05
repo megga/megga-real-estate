@@ -27,6 +27,7 @@ import { parseRecipients } from '@/hooks/useMailContactSearch'
 import { MailList } from './MailList'
 import { MailComposeModal } from './MailComposeModal'
 import { MailContextMenu } from './MailContextMenu'
+import { MailDeleteModal } from './MailDeleteModal'
 import { MailRail } from './MailRail'
 import { MailReader } from './MailReader'
 import { MailLabelMenu } from './MailLabelMenu'
@@ -120,6 +121,19 @@ export function MessagerieApp({ dark, setDark }: Props) {
    */
   const idBrouillon = state.modal.kind === 'compose' ? state.modal.draftId ?? null : null
   const brouillonCompose = idBrouillon ? drafts.drafts.find((d) => d.id === idBrouillon) ?? null : null
+
+  /**
+   * Le fil visé par « Supprimer ce message ? ».
+   *
+   * ⚠ Le repli sur `filOuvert` n'est pas décoratif : depuis le LECTEUR, le fil
+   * peut déjà avoir quitté la page courante (c'est tout l'objet du repli
+   * ci-dessus). Sans lui, la modale se serait ouverte sur `null`, donc pas du
+   * tout — un bouton « Supprimer » sans effet et sans message.
+   */
+  const idSuppression = state.modal.kind === 'delete' ? state.modal.threadId : null
+  const filASupprimer = idSuppression
+    ? threads.rows.find((r) => r.id === idSuppression) ?? (filOuvert?.id === idSuppression ? filOuvert : null)
+    : null
 
   /**
    * Créer, renommer ou recolorer — un seul geste d'écran, trois mutations
@@ -312,6 +326,18 @@ export function MessagerieApp({ dark, setDark }: Props) {
               onSend={(input) => send.mutate(input, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'folder', folder: 'sent' }) } })}
             />
           )}
+
+          <MailDeleteModal
+            ms={ms}
+            row={filASupprimer}
+            busy={actions.act.isPending}
+            onCancel={() => dispatch({ type: 'modal', modal: { kind: 'none' } })}
+            // On revient à la liste APRÈS la corbeille : fermer la modale sur la
+            // lecture d'un fil qui n'y est plus laisserait un écran sans objet.
+            onConfirm={() => filASupprimer && actions.act.mutate({ action: 'trash', threadId: filASupprimer.id }, {
+              onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'back' }) },
+            })}
+          />
         </main>
       </div>
     </div>

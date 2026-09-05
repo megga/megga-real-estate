@@ -2640,7 +2640,20 @@ export function MailDeleteModal({ ms, row, busy, onCancel, onConfirm }: Props) {
   )
 }
 ```
-Branchement : `row = threads.rows.find(r => r.id === (state.modal.kind === 'delete' ? state.modal.threadId : ''))` ; `onConfirm` → `actions.act.mutate({ action: 'trash', threadId }, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'back' }) } })`.
+Branchement — ⛔ **avec le repli sur le fil ouvert, sans quoi la modale ne s'ouvre PAS depuis
+le lecteur** (mesuré le 05.09.2026) : `onDelete` du lecteur passe l'identifiant de `filOuvert`,
+qui peut déjà avoir quitté la page courante (c'est tout l'objet du repli de la T2.6). Un `find`
+seul rendrait `null`, donc `open={!!row}` faux — un bouton « Supprimer » sans effet et sans
+message. ⚠ Et l'identifiant SORT de l'union avant le `find`, même motif qu'en T2.7 (TS2339) :
+
+```tsx
+const idSuppression = state.modal.kind === 'delete' ? state.modal.threadId : null
+const filASupprimer = idSuppression
+  ? threads.rows.find((r) => r.id === idSuppression) ?? (filOuvert?.id === idSuppression ? filOuvert : null)
+  : null
+```
+
+`onConfirm` → `actions.act.mutate({ action: 'trash', threadId }, { onSuccess: () => { dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'back' }) } })` ; `busy` = `actions.act.isPending`.
 
 i18n FR : `"delete": { "title": "Supprimer ce message ?", "legal": "Le message part à la corbeille et quitte la liste. La conservation légale de dix ans s'applique au dossier, pas à la boîte." }`
 
