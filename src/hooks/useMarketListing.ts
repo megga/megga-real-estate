@@ -15,8 +15,9 @@
  * portails (années à trois chiffres, étages à 99), et le logo d'agence pris sur la
  * fiche `agency_profiles` à défaut de la colonne. Les recopier serait les périmer.
  *
- * ⚠ Lecture par PK : le coût est constant et sans rapport avec les ~208 000 lignes
- * de `market_listings`. C'est ce qui autorise `description` ici alors que la grille
+ * ⚠ Lecture par PK : le coût est constant et sans rapport avec les 257 943 lignes
+ * de `market_listings` (mesuré en production le 05.09.2026 ; ce commentaire annonçait
+ * ~208 000, chiffre déjà dépassé le jour où il a été écrit). C'est ce qui autorise `description` ici alors que la grille
  * se l'interdit (CLAUDE.md §7).
  */
 

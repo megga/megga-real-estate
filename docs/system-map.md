@@ -17,7 +17,7 @@
 ## 🧠 Le cerveau : comment ça marche & comment le maintenir
 
 Ce document **+** [`.claude-flow/knowledge/megga-memory.seed.json`](../.claude-flow/knowledge/megga-memory.seed.json)
-(264 entrées curées au 04.09.2026) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
+(270 entrées curées au 05.09.2026) forment le « cerveau système » de MEGGA. Il est **durable** (committé dans git),
 **local** (embeddings ONNX, recherche HNSW) et **gratuit** (0 appel API).
 
 **Ce qui est automatique :**
@@ -226,14 +226,19 @@ sœur à l'autre, et React garde la page précédente à l'écran pendant le té
 écran de chargement entre deux pages CRM. Les feuilles dont l'identité vient de l'URL (`contacts/:id`,
 `listings/:id`, `transactions/:id`, `visits/:id`, `kyc/:dossierId`…) sont remontées explicitement par le
 wrapper `ByParam` d'`App.tsx`. Quand un fallback est malgré tout nécessaire,
-[`SmartPageLoader`](../src/components/skeletons/SmartPageLoader.tsx) aiguille sur **deux** squelettes, car
-`/dashboard` recouvre deux chromes : [`CrmPageSkeleton`](../src/components/skeletons/CrmPageSkeleton.tsx)
+[`SmartPageLoader`](../src/components/skeletons/SmartPageLoader.tsx) n'aiguille plus que sur **un**
+squelette de tableau de bord — `/dashboard` ne recouvre plus qu'un chrome :
+[`CrmPageSkeleton`](../src/components/skeletons/CrmPageSkeleton.tsx)
 (gabarit de la **barre latérale** `CrmSidebar` — 264/84 px selon `megga.crm.sidebar`, couleurs lues
 sur la même préférence sombre que les pages ; c'était top-nav + rail d'icônes avant le 04.09.2026 —
 **et depuis le 04.09.2026 il dessine aussi la bande d'onglets**, sans quoi le cadre bento sauterait de
-48 px à chaque bascule squelette → page) pour les surfaces CRM, et `DashboardSkeleton`
-(sidebar + header) pour les routes `AgentLayout` (`/dashboard/admin*`, `contacts/import`, `listings/new`,
-`listings/:id/edit`, `market/:externalId`). ⚠️ Le nettoyage de `data-theme` dans `useTheme` est **ref-compté** :
+48 px à chaque bascule squelette → page) pour TOUTE surface `/dashboard`, et `DefaultLoader` ailleurs.
+⛔ Cette phrase annonçait un second squelette `DashboardSkeleton` (sidebar + header) « pour les routes
+`AgentLayout` » : le fichier a été **supprimé le 28.07.2026** avec la coquille legacy, et
+`src/components/skeletons/` ne contient plus que ces deux fichiers. Les cinq routes qu'elle citait
+(`/dashboard/admin*`, `contacts/import`, `listings/new`, `listings/:id/edit`, `market/:externalId`)
+portent le même chrome que les autres — la dernière depuis le 05.09.2026, `ExternalListingDetailPage`
+montant désormais `<CrmWorkspace>`. ⚠️ Le nettoyage de `data-theme` dans `useTheme` est **ref-compté** :
 sans ça, le démontage de l'ancien `ThemeProvider` arrachait l'attribut que le nouveau venait de poser.
 
 **Barre d'onglets (04.09.2026).** Le chrome du CRM a désormais **deux** pièces : la barre latérale porte

@@ -591,6 +591,29 @@ MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages).
 
 **CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · wizard « Créer un bien » Sugar v2 7 étapes · fiche V4), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existe pas.** Mesuré — aucune route (`grep path=` sur `App.tsx` : 0), aucune page, aucun hook ; le namespace i18n `messages` est bien déclaré (`src/i18n/index.ts:29`) mais consommé par **personne** (`useTranslation('messages')` : 0 emploi dans tout `src/`). Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**, et un lecteur ne pouvait pas savoir laquelle croire. La messagerie qui arrive n'est pas ce « Chat » : voir le point Messagerie ci-dessus.
 
+**Chrome du CRM de bureau : DEUX pièces depuis le 4 septembre 2026.** Le §8 les ignorait entièrement —
+mesuré le 05.09.2026, `CLAUDE.md` ne contenait **0** occurrence de `CrmWorkspace`, `CrmTabsBar` ou
+`crm_open_tabs`, alors que les deux pièces sont en production. (1) La **barre latérale** `CrmSidebar`
+porte les *destinations* ; elle a remplacé le duo top-nav + rail d'icônes le 4 septembre au matin
+(commit `050357df`). (2) La **bande d'onglets** `CrmTabsBar` porte les *contextes ouverts* — deux fiches
+contact côte à côte — livrée le même jour (commit `00b3fbd3`). ⚠ Les deux pièces ont voyagé dans **une
+seule** PR, [#1277](https://github.com/megga/megga-real-estate/pull/1277) : il n'existe pas de PR séparée
+pour la barre latérale. Backend de la bande : table `crm_open_tabs` + RPC
+`crm_tabs_save` / `crm_tabs_resolve_labels` / `crm_tab_badges`, plafond client 24 (CHECK serveur à 32,
+volontairement plus haut pour qu'un dépassement transitoire n'annule pas l'écriture en silence).
+
+⛔ **Les 20 surfaces montent `<CrmWorkspace>`, JAMAIS `<CrmSidebar>`** — mesuré :
+`grep -rl '<CrmSidebar' src/` ne rend qu'**un** fichier, `CrmWorkspace.tsx` lui-même. Une surface qui
+court-circuite la coquille perd la bande d'onglets **et** la variable `--crm-tabs-h`, sans qu'aucune
+porte ne rougisse. ⚠ Cette variable n'est pas décorative : `ListingWizardPage.tsx:42` calcule
+`height: calc(100vh - 64px - var(--crm-tabs-h, 0px))`, et sans son troisième terme la page débordait de
+48 px, le pied du wizard passant sous le pli. Il en est aujourd'hui le **seul** lecteur.
+
+⚠ **L'état d'écran se range dans l'onglet, plus dans un `useState`** : `useTabScopedState` est un
+remplaçant direct de `useState` dont la clé est portée par l'onglet actif — c'est ce qui fait qu'une
+position de pager ou un filtre survit à un aller-retour entre deux onglets. La pile est miroitée en
+**`sessionStorage`** (`megga.crm.tabs`), jamais en `localStorage` : elle porte des **noms de clients**.
+
 **Réseau inter-agences : ❌ RETIRÉ (hors périmètre v1).** L'ancien prototype `NetworkSugarV2Page` (données d'exemple, aucun backend, jamais routé) a été supprimé lors du nettoyage code mort ; les routes `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`. Le module réel (partage de biens inter-agences + RLS cross-agence + modèles PDF) reste à construire plus tard.
 
 **MEGGA AI :** Edge Function ai-copilot (DeepSeek deepseek-chat — appel api.deepseek.com direct), streaming, score engine. **Inférence texte = DeepSeek partout** ; **vision/OCR/PDF = Gemini** (photo-vision, extract-property-pdf via `_shared/vision.ts`). **AUCUN Claude/Anthropic** (retiré ; kyc-screening = Dilisense déterministe seul).
