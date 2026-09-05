@@ -8,7 +8,9 @@
  * laisserait l'autre porte ouverte.
  */
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
 import { sanitizeMailHtml, buildBodySrcdoc } from '@/lib/mail/sanitize'
+import { repoPath } from './helpers/fs-scan'
 
 describe('sanitizeMailHtml', () => {
   it('retire scripts, handlers, iframes, et les images distantes par défaut', () => {
@@ -39,5 +41,45 @@ describe('buildBodySrcdoc', () => {
     expect(doc).toContain("default-src 'none'")
     expect(doc).toContain('img-src data: cid:')
     expect(doc).toContain('line-height:1.75')
+  })
+})
+
+/**
+ * ⛔ LA HAUTEUR DU CORPS SE MESURE SUR LE `body`, ET LA SRCDOC EST CE QUI REND
+ * CETTE MESURE JUSTE. Les deux pièces vivent dans deux fichiers et rien ne les
+ * reliait ; c'est ce qui a laissé passer le défaut du 05.09.2026.
+ *
+ * `documentElement.scrollHeight` ne descend JAMAIS sous la hauteur de l'iframe :
+ * le lire, c'est relire la hauteur qu'on vient d'écrire, et le `+ MESURE_MARGE`
+ * devient une boucle. Mesuré sur `/dev/messagerie` : 96 px de contenu réel
+ * rendus dans une trame qui montait 128 → 176 px par pas de 8 px toutes les
+ * 500 ms — 80 px de vide, et davantage à chaque re-rendu (224 px, 256 px après
+ * deux bascules de thème).
+ *
+ * ⚠ Ce test est une clause de SOURCE, faute de mieux : jsdom ne dispose rien,
+ * `scrollHeight` y vaut 0 partout, donc aucune assertion de comportement ne
+ * pourrait distinguer les deux nœuds. Elle aurait quand même rougi sur le
+ * défaut, ce qu'aucune garde du dépôt ne faisait.
+ */
+describe('Mesure de la hauteur du corps rendu', () => {
+  // ⚠ Commentaires retirés : le commentaire qui EXPLIQUE le défaut le nomme, et
+  // sans ce blanchiment la clause rougirait sur sa propre justification.
+  const frame = readFileSync(repoPath('src/components/crm/messagerie/MailBodyFrame.tsx'), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/\/\/[^\n]*/g, ' ')
+
+  it('lit le corps du document, jamais son élément racine', () => {
+    expect(frame).toMatch(/contentDocument\?\.body\?\.scrollHeight/)
+    expect(
+      frame,
+      'documentElement.scrollHeight se relit lui-même — la trame enfle de 8 px par mesure',
+    ).not.toMatch(/documentElement\??\.scrollHeight/)
+  })
+
+  it('la srcdoc annule les marges, ce qui rend la mesure du corps exacte', () => {
+    // Sans `margin:0`, la marge du body tomberait HORS de son scrollHeight et le
+    // corps serait tronqué — la clause précédente deviendrait un défaut.
+    expect(buildBodySrcdoc('<p>x</p>', { ink: '#111', font: 'Inter Tight', remoteImages: false }))
+      .toContain('html,body{margin:0;padding:0')
   })
 })

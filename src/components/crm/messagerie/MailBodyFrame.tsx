@@ -38,6 +38,8 @@ const HAUTEUR_MAX = 20_000
 /** Le document ne bouge plus après quelques centaines de ms : on cesse de le mesurer. */
 const MESURE_PERIODE = 500
 const MESURE_DUREE = 5000
+/** Marge sous le corps, pour qu'un arrondi sous-pixel ne fasse pas naître une barre. */
+const MESURE_MARGE = 8
 
 /**
  * La police du CRM, RÉSOLUE côté hôte.
@@ -71,9 +73,27 @@ export function MailBodyFrame({ ms, html, text, truncated, police }: Props) {
   useEffect(() => {
     const el = ref.current
     if (!el || !doc) return
+    /**
+     * ⛔ ON MESURE LE `body`, JAMAIS LE `documentElement` — et ce n'est pas un
+     * détail de style : `documentElement.scrollHeight` ne descend jamais sous la
+     * hauteur de l'iframe elle-même. Le lire, c'est relire la hauteur qu'on vient
+     * d'écrire, et `h + MESURE_MARGE` devient une boucle qui s'auto-alimente.
+     *
+     * Mesuré le 05.09.2026 sur `/dev/messagerie`, fil « Attestation de
+     * financement » (96 px de contenu réel) : la trame grimpait 128 → 136 → …
+     * → 176 px, +8 px toutes les 500 ms, et ne s'arrêtait qu'au bout des 5 s de
+     * `MESURE_DUREE` — 80 px de vide sous chaque message. Pire, l'effet repart à
+     * chaque changement de `doc` SANS remettre `height` à zéro : une bascule de
+     * thème rallongeait encore le vide (224 px, puis 256 px mesurés).
+     *
+     * ⚠ Le repli n'existe pas : `buildBodySrcdoc` épingle `html,body{margin:0;
+     * padding:0}`, donc le corps porte exactement le contenu, et rien au-dessus
+     * de lui n'a de hauteur propre. `body.scrollHeight` est stable dès la
+     * première mesure (96 px aux douze relevés).
+     */
     const measure = () => {
-      const h = el.contentDocument?.documentElement?.scrollHeight
-      if (h) setHeight(Math.min(Math.max(h + 8, HAUTEUR_MIN), HAUTEUR_MAX))
+      const h = el.contentDocument?.body?.scrollHeight
+      if (h) setHeight(Math.min(Math.max(h + MESURE_MARGE, HAUTEUR_MIN), HAUTEUR_MAX))
     }
     el.addEventListener('load', measure)
     const id = window.setInterval(measure, MESURE_PERIODE)
