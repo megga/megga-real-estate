@@ -103,5 +103,11 @@ export function useMailFolderCounts(accountId: string | null) {
     },
     staleTime: 15_000,
   })
-  return q.data ?? { inbox_unread: 0, archived: 0, drafts: 0, label_counts: {} }
+  // ⚠ L'erreur SORT du hook. Sans elle un échec de `mail_folder_counts` se lit
+  // comme « zéro non-lu » — un état parfaitement normal à l'écran, donc une
+  // panne invisible. C'est `MessagerieApp` qui la porte au bandeau.
+  return {
+    counts: q.data ?? { inbox_unread: 0, archived: 0, drafts: 0, label_counts: {} },
+    error: q.error as Error | null,
+  }
 }

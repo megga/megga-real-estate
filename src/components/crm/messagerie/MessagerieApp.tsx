@@ -55,7 +55,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
   const accounts = useMailAccounts()
   const labels = useMailLabels()
   const [state, dispatch] = useReducer(mailReducer, null, () => initialMailState(null))
-  const counts = useMailFolderCounts(state.accountId)
+  const compteurs = useMailFolderCounts(state.accountId)
   // Un fil qui change chez le fournisseur (ou sous la main d'un collègue, sur une
   // boîte partagée) doit remonter sans rechargement : c'est ce qui fait bouger la
   // pastille de non-lus du rail.
@@ -100,6 +100,21 @@ export function MessagerieApp({ dark, setDark }: Props) {
   const thread = useMailThread(state.sel)
   const send = useMailSend(state.accountId)
   const currentAccount = accounts.list.find((a) => a.id === state.accountId) ?? null
+
+  /**
+   * ⚠ Cinq sources d'échec n'ont AUCUN symptôme propre à l'écran : des compteurs
+   * en panne se lisent « zéro non-lu », une liste d'étiquettes en panne se lit
+   * « aucune étiquette », des brouillons en panne se lisent « aucun brouillon »,
+   * et un geste refusé (archiver, étoiler, étiqueter) laisse simplement la ligne
+   * revenir à son état d'avant — un rendu optimiste qui se défait ressemble à un
+   * clic mal visé. Le bandeau est le seul endroit qui les rende visibles.
+   *
+   * ⚠ Non refermable, à dessein : il disparaît quand la cause disparaît (une
+   * requête qui repasse, une mutation qui réussit). Un bouton « fermer »
+   * laisserait croire que la panne est réglée.
+   */
+  const panne =
+    compteurs.error ?? labels.error ?? drafts.error ?? actions.act.error ?? actions.setLabel.error ?? null
 
   /**
    * ⚠ Le fil ouvert doit SURVIVRE à sa page. Un changement de filtre, un passage
@@ -260,7 +275,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 onCompose={() => { send.reset(); dispatch({ type: 'modal', modal: { kind: 'compose' } }) }}
                 folder={state.folder}
                 onFolder={(f) => dispatch({ type: 'folder', folder: f })}
-                counts={counts}
+                counts={compteurs.counts}
                 labels={labels.labels}
                 activeLabelId={state.labelId}
                 onLabel={(id) => dispatch({ type: 'label', labelId: id })}
@@ -296,12 +311,25 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   </button>
                 </div>
               )}
+              {panne && (
+                <div
+                  role="alert"
+                  style={{
+                    margin: 'var(--crm-space-2xl) var(--crm-space-7xl) 0',
+                    padding: 'var(--crm-space-md) var(--crm-space-3xl)', borderRadius: PILL,
+                    background: ms.danger, color: ms.dangerInk, fontSize: 'var(--crm-text-sm)',
+                  }}
+                >
+                  {t('mail.notice.degraded')}
+                </div>
+              )}
               {accounts.isLoading ? null : accounts.list.length === 0 ? (
                 <div style={{ margin: 'auto' }}>
                   <EtatVide dark={dark} registre="aFaire" titre={t('mail.empty.noAccount.title')} corps={t('mail.empty.noAccount.body')}
                     action={{ libelle: t('mail.add.cta'), onClick: () => dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } }) }} />
                 </div>
-              ) : state.sel && filOuvert && thread.data ? (
+              ) : state.sel && filOuvert ? (
+                thread.data ? (
                 <MailReader
                   ms={ms}
                   lang={i18n.language.slice(0, 2)}
@@ -324,6 +352,34 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   onOpenAttachment={(a) => dispatch({ type: 'modal', modal: { kind: 'preview', attachmentId: a.id } })}
                   onLinkContact={(email, name) => dispatch({ type: 'modal', modal: { kind: 'link-contact', threadId: filOuvert.id, email, name } })}
                 />
+                ) : (
+                  /*
+                   * ⛔ CETTE BRANCHE ÉTAIT UN RETOUR SILENCIEUX À LA LISTE. Le gabarit
+                   * testait `thread.data` : ses messages absents renvoyaient l'écran
+                   * sur la liste, alors que `ouvrirFil` avait DÉJÀ marqué le fil comme
+                   * lu. Le non-lu disparaissait sans que rien n'ait été lu, et l'échec
+                   * ne laissait aucune trace. Le fil ouvert reste donc ouvert, et dit
+                   * ce qui se passe.
+                   */
+                  <div style={{ margin: 'auto', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-3xl)', alignItems: 'center' }}>
+                    {thread.error ? (
+                      <>
+                        <span style={{ color: ms.mut, fontSize: 'var(--crm-text-sm)' }}>{t('mail.list.err.load')}</span>
+                        <button
+                          type="button"
+                          onClick={() => { void thread.refetch() }}
+                          style={{
+                            padding: 'var(--crm-space-md) var(--crm-space-4xl)', borderRadius: PILL,
+                            background: ms.accent, color: ms.accentInk, border: 'none', cursor: 'pointer',
+                            fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600,
+                          }}
+                        >
+                          {t('mail.list.err.retry')}
+                        </button>
+                      </>
+                    ) : null}
+                  </div>
+                )
               ) : (
                 <MailList
                   ms={ms}

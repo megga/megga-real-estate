@@ -351,7 +351,8 @@
     "notice": {
       "sentNotRecorded": "Die Nachricht wurde gesendet. Ihre Kopie konnte hier nicht gespeichert werden: senden Sie sie nicht erneut.",
       "filedNotLinked": "Das Dokument ist abgelegt. Die Verknüpfung mit dem Anhang konnte nicht gespeichert werden: legen Sie es kein zweites Mal ab.",
-      "dismiss": "Schliessen"
+      "dismiss": "Schliessen",
+      "degraded": "Ein Teil des Postfachs antwortet nicht. Zähler, Labels oder die letzte Aktion können veraltet sein."
     }
   }
 }

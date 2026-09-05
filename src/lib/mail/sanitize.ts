@@ -29,6 +29,12 @@ export function sanitizeMailHtml(html: string, opts: SanitizeOptions): string {
     USE_PROFILES: { html: true },
     // `style` (balise et attribut) est GARDÉ : un mail sans ses styles est illisible, et la
     // CSP de l'iframe interdit déjà tout `url()` distant (img-src) et toute feuille externe.
+    // Le commentaire ci-dessus PROMET de garder `<style>` ; `USE_PROFILES.html`
+    // ne l'inclut pas, il faut donc le rajouter. C'est sûr ici et nulle part
+    // ailleurs : le srcdoc porte `default-src 'none'` avec `script-src 'none'`,
+    // `font-src 'none'` et `connect-src 'none'`, donc une feuille ne peut ni
+    // charger, ni exfiltrer, ni exécuter quoi que ce soit.
+    ADD_TAGS: ['style'],
     FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'meta', 'link', 'base'],
     FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
     ALLOW_DATA_ATTR: true,

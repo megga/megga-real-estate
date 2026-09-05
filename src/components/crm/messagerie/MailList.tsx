@@ -53,6 +53,14 @@ export function MailList(p: Props) {
   const { t } = useTranslation('messages')
   const { ms } = p
 
+  /**
+   * ⚠ Les brouillons sont servis EN ENTIER par leur hook (ils sont locaux, il
+   * n'y a pas de page à demander au serveur), alors que le pager, lui, compte
+   * en pages de `MAIL_PER_PAGE`. Sans cette découpe le pager annonçait « 1-12
+   * sur 30 » au-dessus des trente lignes, et changer de page ne bougeait rien.
+   */
+  const pageDrafts = p.drafts ? p.drafts.slice(p.page * MAIL_PER_PAGE, (p.page + 1) * MAIL_PER_PAGE) : null
+
   const chip = (active: boolean, label: string, onClick: () => void) => (
     <button
       type="button"
@@ -94,11 +102,11 @@ export function MailList(p: Props) {
       </div>
 
       <div className="scrollbar-hide" style={{ padding: '0 var(--crm-space-2xl) var(--crm-space-3xl)', overflowY: 'auto', minHeight: 0, flex: 1 }}>
-        {p.drafts ? (
-          p.drafts.length === 0 ? (
+        {pageDrafts ? (
+          pageDrafts.length === 0 ? (
             <MailListEmpty ms={ms} text={t('mail.empty.noMessage')} />
           ) : (
-            p.drafts.map((d) => (
+            pageDrafts.map((d) => (
               <div
                 key={d.id}
                 role="row"

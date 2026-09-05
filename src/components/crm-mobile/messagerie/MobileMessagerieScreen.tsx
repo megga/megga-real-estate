@@ -105,11 +105,19 @@ export default function MobileMessagerieScreen() {
             </button>
           ))}
 
-          {threads.rows.length === 0 && !threads.isLoading && (
+          {/* ⚠ Sans boîte la requête est DÉSACTIVÉE, donc elle reste `pending`
+              pour toujours : tester `isLoading` d'abord rendait le message
+              « aucune boîte » inatteignable, et l'écran restait vide et muet.
+              La boîte se teste donc AVANT le chargement. */}
+          {!boite ? (
             <div style={{ padding: 'var(--crm-space-7xl) 0', textAlign: 'center', color: ms.mut, fontSize: 'var(--crm-text-sm)' }}>
-              {boite ? t('mail.empty.noMessage') : t('mail.empty.noAccount.body')}
+              {t('mail.empty.noAccount.body')}
             </div>
-          )}
+          ) : threads.rows.length === 0 && !threads.isLoading ? (
+            <div style={{ padding: 'var(--crm-space-7xl) 0', textAlign: 'center', color: ms.mut, fontSize: 'var(--crm-text-sm)' }}>
+              {t('mail.empty.noMessage')}
+            </div>
+          ) : null}
 
           {/* ⚠ Une page SUIVANTE, pas un pager complet : sur un pouce, revenir en
               arrière se fait en remontant la liste, pas en visant une flèche. */}

@@ -351,7 +351,8 @@
     "notice": {
       "sentNotRecorded": "The message was sent. Its local copy could not be saved: do not send it again.",
       "filedNotLinked": "The document is filed. The link to the attachment could not be saved: do not file it a second time.",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "degraded": "Part of the mailbox is not responding. Counters, labels or your last action may be out of date."
     }
   }
 }

@@ -51,5 +51,5 @@ export function useMailDrafts(accountId: string | null) {
     mutationFn: async (id: string) => { const { error } = await supabase.from('mail_drafts').delete().eq('id', id); if (error) throw error },
     onSuccess: done,
   })
-  return { drafts: list.data ?? [], isLoading: list.isPending, save, remove }
+  return { drafts: list.data ?? [], isLoading: list.isPending, error: list.error as Error | null, save, remove }
 }

@@ -54,5 +54,7 @@ export function useMailLabels() {
     mutationFn: async (id: string) => { const { error } = await supabase.from('mail_labels').delete().eq('id', id); if (error) throw error },
     onSuccess: done,
   })
-  return { labels: q.data ?? [], isLoading: q.isPending, create, rename, recolor, remove }
+  // Même raison qu'aux compteurs : une liste vide et une liste en panne
+  // s'affichent à l'identique.
+  return { labels: q.data ?? [], isLoading: q.isPending, error: q.error as Error | null, create, rename, recolor, remove }
 }

@@ -43,6 +43,10 @@ export function useMailAttachmentBlob(attachmentId: string | null) {
       // que la ligne existe. Rien à distinguer ici, donc — « introuvable ».
       if (!res.ok) { setState({ url: null, type: null, error: `http_${res.status}`, loading: false }); return }
       const blob = await res.blob()
+      // ⚠ Second point d'attente, donc second contrôle : sans lui on crée une
+      // URL d'objet APRÈS le nettoyage, que plus personne ne révoque — la pièce
+      // jointe reste en mémoire jusqu'au rechargement de l'onglet.
+      if (cancelled) return
       url = URL.createObjectURL(blob)
       // `blob.type` EST l'en-tête `Content-Type` de la réponse : la décision du
       // serveur, pas la déclaration de l'expéditeur.

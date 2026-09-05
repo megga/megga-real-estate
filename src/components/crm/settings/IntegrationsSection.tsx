@@ -17,7 +17,7 @@
 // (IAZI, RealAdvisor, SIX, Onfido, Veriff, Zapier) et le bandeau de fausses stats
 // (« 12.3k synchronisations ») ont été retirés — aucune donnée mockée affichée comme réelle.
 
-import { crmVoileEncre } from '@/components/crm/tokens'
+import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
 import { useMemo, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
@@ -37,6 +37,13 @@ import MEIcon from '@/components/propertyx/MEIcon'
 import { useMailAccounts } from '@/hooks/useMailAccounts'
 
 const SET = SET_PALETTE
+
+/**
+ * Encre des glyphes posés sur une tuile de marque. La tuile est CLAIRE dans
+ * les deux thèmes, elle prend donc l'encre du thème clair, quel que soit le
+ * thème de la page qui la porte.
+ */
+const ENCRE_TUILE = crmPalette(false).ink
 
 // ─── Logo officiel local (Skribble) ─────────────────────────────────────────
 // ⚠ Les trois AUTRES (Google, Microsoft, WhatsApp) vivent dans `brandLogos.tsx` :
@@ -159,7 +166,11 @@ const CATALOGUE: Integration[] = [
     name: 'Messagerie',
     descKey: 'integrations.catalogue.messagerie.desc',
     logoBg: '#FFFFFF',
-    logo: <MEIcon name="mail" size={22} />,
+    // ⚠ Couleur EXPLICITE : la tuile de marque est blanche dans les deux
+    // thèmes (son ombre est bâtie sur `crmVoileEncre(false, …)`), alors qu'un
+    // glyphe `currentColor` hérite de l'encre de la carte — donc blanc sur
+    // blanc, invisible, en sombre.
+    logo: <MEIcon name="mail" size={22} color={ENCRE_TUILE} />,
     connectable: true,
     connected: false,
   },

@@ -351,7 +351,8 @@
     "notice": {
       "sentNotRecorded": "Il messaggio è stato inviato. La copia locale non è stata salvata: non inviarlo di nuovo.",
       "filedNotLinked": "Il documento è archiviato. Il collegamento con l'allegato non è stato salvato: non archiviarlo una seconda volta.",
-      "dismiss": "Chiudi"
+      "dismiss": "Chiudi",
+      "degraded": "Una parte della casella non risponde. Contatori, etichette o l'ultima azione possono essere non aggiornati."
     }
   }
 }
