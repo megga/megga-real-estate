@@ -21,7 +21,7 @@ import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 interface Props {
   ms: MailSurfaces; lang: string; boxEmail: string
   thread: MailThreadRow; messages: MailMessageRow[]; label: MailLabel | null
-  composer: 'none' | 'reply' | 'forward'; sending: boolean
+  composer: 'none' | 'reply' | 'forward'; sending: boolean; sendError: string | null
   onBack: () => void; onReply: () => void; onForward: () => void; onCancelComposer: () => void
   onSendReply: (text: string, inReplyTo: MailMessageRow) => void
   onSendForward: (to: { name: string | null; email: string }[], note: string, original: MailMessageRow) => void
@@ -178,10 +178,10 @@ export function MailReader(p: Props) {
       ))}
 
       {p.composer === 'reply' && (
-        <MailReplyComposer ms={ms} toName={inboundLast.from_name || inboundLast.from_email || ''} busy={p.sending} onCancel={p.onCancelComposer} onSend={(text) => p.onSendReply(text, inboundLast)} />
+        <MailReplyComposer ms={ms} toName={inboundLast.from_name || inboundLast.from_email || ''} busy={p.sending} error={p.sendError} onCancel={p.onCancelComposer} onSend={(text) => p.onSendReply(text, inboundLast)} />
       )}
       {p.composer === 'forward' && (
-        <MailForwardComposer ms={ms} originalFrom={inboundLast.from_name || inboundLast.from_email || ''} originalSubject={p.thread.subject ?? ''} busy={p.sending} onCancel={p.onCancelComposer} onSend={(to, note) => p.onSendForward(to, note, inboundLast)} />
+        <MailForwardComposer ms={ms} originalFrom={inboundLast.from_name || inboundLast.from_email || ''} originalSubject={p.thread.subject ?? ''} busy={p.sending} error={p.sendError} onCancel={p.onCancelComposer} onSend={(to, note) => p.onSendForward(to, note, inboundLast)} />
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-7xl)' }}>

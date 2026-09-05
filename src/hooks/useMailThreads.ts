@@ -3,7 +3,7 @@
  * REQUÊTES et non des colonnes (D8), et la RPC rend le total avec la page —
  * `count: 'exact'` sur une boîte pleine serait un scan complet.
  */
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { fxCounts, fxThreads, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { MailFolder } from '@/components/crm/messagerie/mailState'
@@ -20,7 +20,13 @@ export interface MailThreadRow {
 export interface MailThreadFilters { folder: MailFolder; labelId: string | null; q: string; unreadOnly: boolean; attOnly: boolean; page: number }
 export interface MailFolderCounts { inbox_unread: number; archived: number; drafts: number; label_counts: Record<string, number> }
 
-export const threadsKey = (accountId: string | null, f: MailThreadFilters) => ['mail', 'threads', accountId, f.folder, f.labelId, f.q, f.unreadOnly, f.attOnly, f.page] as const
+/**
+ * La VUE : tout ce qui définit un jeu de résultats, la page exceptée. Deux clés
+ * de la même vue ne diffèrent que par leur dernier élément.
+ */
+const vueKey = (accountId: string | null, f: MailThreadFilters) =>
+  ['mail', 'threads', accountId, f.folder, f.labelId, f.q, f.unreadOnly, f.attOnly] as const
+export const threadsKey = (accountId: string | null, f: MailThreadFilters) => [...vueKey(accountId, f), f.page] as const
 
 /** La page courante de la liste. `draft` ne passe pas par ici : les brouillons sont locaux (D7). */
 export function useMailThreads(accountId: string | null, f: MailThreadFilters) {
@@ -31,7 +37,26 @@ export function useMailThreads(accountId: string | null, f: MailThreadFilters) {
   const q = useQuery({
     queryKey: [...threadsKey(accountId, f), fx],
     enabled: !!accountId && f.folder !== 'draft',
-    placeholderData: keepPreviousData,
+    /**
+     * ⛔ `keepPreviousData` NU GARDAIT AUSSI LES RÉSULTATS D'UNE AUTRE VUE. Il
+     * s'applique à TOUT changement de clé, or la clé porte le dossier, le
+     * libellé, la recherche et les deux filtres — pas seulement la page. Et
+     * comme une donnée de remplacement met `status: 'success'`, `isPending`
+     * était faux : pendant tout l'aller-retour de la RPC, la liste montrait les
+     * douze lignes NON filtrées de la vue précédente, sans le moindre
+     * indicateur, avec l'ancien total au pager. Cliquer une ligne dans cette
+     * fenêtre ouvrait un fil absent du résultat — et `ouvrirFil` le marquait lu.
+     *
+     * On ne garde donc l'ancienne page que si SEULE la page a changé : la
+     * pagination reste sans clignotement, un changement de vue vide la liste et
+     * laisse `isPending` faire son travail.
+     */
+    placeholderData: (prev, prevQuery) => {
+      if (!prev || !prevQuery) return undefined
+      const vue = vueKey(accountId, f)
+      const ancienne = prevQuery.queryKey as readonly unknown[]
+      return vue.every((v, i) => ancienne[i] === v) ? prev : undefined
+    },
     queryFn: async (): Promise<{ rows: MailThreadRow[]; total: number }> => {
       if (fx) return fxThreads(fx, accountId, f, f.page, MAIL_PER_PAGE)
       // `enabled` garantit l'identifiant, le typage ne le sait pas.

@@ -14,11 +14,13 @@ import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
 interface Props {
   ms: MailSurfaces; originalFrom: string; originalSubject: string; busy: boolean
+  /** ⛔ L'échec d'un envoi doit se voir ICI : le composeur reste ouvert avec le texte. */
+  error: string | null
   onCancel: () => void; onSend: (to: { name: string | null; email: string }[], note: string) => void
 }
 
 /** Champ destinataires (adresses libres), note, et rappel de l'original. */
-export function MailForwardComposer({ ms, originalFrom, originalSubject, busy, onCancel, onSend }: Props) {
+export function MailForwardComposer({ ms, originalFrom, originalSubject, busy, error, onCancel, onSend }: Props) {
   const { t } = useTranslation('messages')
   const [to, setTo] = useState('')
   const [note, setNote] = useState('')
@@ -68,6 +70,11 @@ export function MailForwardComposer({ ms, originalFrom, originalSubject, busy, o
           {busy ? t('mail.actions.sending') : t('mail.actions.forward')}
         </button>
       </div>
+      {error && (
+        <div role="alert" style={{ marginTop: 'var(--crm-space-md)', fontSize: 'var(--crm-text-xs)', color: ms.dangerText }}>
+          {error}
+        </div>
+      )}
     </div>
   )
 }

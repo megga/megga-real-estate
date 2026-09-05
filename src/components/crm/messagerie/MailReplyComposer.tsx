@@ -13,10 +13,10 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
-interface Props { ms: MailSurfaces; toName: string; busy: boolean; onCancel: () => void; onSend: (text: string) => void }
+interface Props { ms: MailSurfaces; toName: string; busy: boolean; error: string | null; onCancel: () => void; onSend: (text: string) => void }
 
 /** Zone de saisie + « Annuler » / « Envoyer ». Le texte vit ici, pas dans l'état d'écran. */
-export function MailReplyComposer({ ms, toName, busy, onCancel, onSend }: Props) {
+export function MailReplyComposer({ ms, toName, busy, error, onCancel, onSend }: Props) {
   const { t } = useTranslation('messages')
   const [text, setText] = useState('')
   const can = text.trim().length > 0 && !busy
@@ -57,6 +57,11 @@ export function MailReplyComposer({ ms, toName, busy, onCancel, onSend }: Props)
           {busy ? t('mail.actions.sending') : t('mail.actions.send')}
         </button>
       </div>
+      {error && (
+        <div role="alert" style={{ marginTop: 'var(--crm-space-md)', fontSize: 'var(--crm-text-xs)', color: ms.dangerText }}>
+          {error}
+        </div>
+      )}
     </div>
   )
 }

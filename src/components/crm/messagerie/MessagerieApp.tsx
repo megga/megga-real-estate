@@ -257,7 +257,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 onSelectAccount={(id) => dispatch({ type: 'select-account', accountId: id })}
                 onAddAccount={() => dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } })}
                 onDisconnectAccount={deconnecterBoite}
-                onCompose={() => dispatch({ type: 'modal', modal: { kind: 'compose' } })}
+                onCompose={() => { send.reset(); dispatch({ type: 'modal', modal: { kind: 'compose' } }) }}
                 folder={state.folder}
                 onFolder={(f) => dispatch({ type: 'folder', folder: f })}
                 counts={counts}
@@ -311,10 +311,11 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   label={labels.labels.find((l) => l.id === filOuvert.label_id) ?? null}
                   composer={state.composer}
                   sending={send.isPending}
+                  sendError={send.error?.message ?? null}
                   onBack={() => dispatch({ type: 'back' })}
-                  onReply={() => dispatch({ type: 'composer', composer: 'reply' })}
-                  onForward={() => dispatch({ type: 'composer', composer: 'forward' })}
-                  onCancelComposer={() => dispatch({ type: 'composer', composer: 'none' })}
+                  onReply={() => { send.reset(); dispatch({ type: 'composer', composer: 'reply' }) }}
+                  onForward={() => { send.reset(); dispatch({ type: 'composer', composer: 'forward' }) }}
+                  onCancelComposer={() => { send.reset(); dispatch({ type: 'composer', composer: 'none' }) }}
                   // `to` vide : `mail-send` déduit le destinataire du message d'origine.
                   onSendReply={(text, m) => send.mutate({ kind: 'reply', to: [], body_text: text, in_reply_to_message_id: m.id }, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'composer', composer: 'none' }) } })}
                   onSendForward={(to, note, m) => send.mutate({ kind: 'forward', to, body_text: note, in_reply_to_message_id: m.id }, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'composer', composer: 'none' }) } })}
@@ -343,7 +344,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   onRetry={threads.refetch}
                   drafts={state.folder === 'draft' ? drafts.drafts : null}
                   onOpen={ouvrirFil}
-                  onOpenDraft={(id) => dispatch({ type: 'modal', modal: { kind: 'compose', draftId: id } })}
+                  onOpenDraft={(id) => { send.reset(); dispatch({ type: 'modal', modal: { kind: 'compose', draftId: id } }) }}
                   onStar={(r) => actions.act.mutate({ action: r.is_starred ? 'unstar' : 'star', threadId: r.id })}
                   onContext={(e, r) => dispatch({ type: 'ctx', ctx: { x: e.clientX, y: e.clientY, threadId: r.id } })}
                 />
