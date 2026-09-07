@@ -12,6 +12,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   CRM_TABS_CAP, crmApplyCap, crmApplyLabels, crmChipMaxWidth, crmChipMinWidth, crmCloseOthers,
+  crmEcransVivants,
   crmCloseTab, crmDragBounds, crmDuplicateTab, crmMakeTab, crmMoveTab, crmPinnedCount,
   crmResolveActive, crmTabFallbackPath, crmTabRecordRef, crmTabRefs,
   crmTogglePin, crmVisibleWindow, type CrmTab,
@@ -321,5 +322,44 @@ describe('crmTabs — le régime à GRAND NOMBRE', () => {
     const { visibles, caches } = crmVisibleWindow(15, 12, 6, 0, 8)
     expect(visibles).toEqual([0, 1, 2, 3, 4, 12])
     expect(caches.filter((i) => i < 8)).toEqual([5, 6, 7])
+  })
+})
+
+describe('crmTabs — les écrans qui restent VIVANTS', () => {
+  const pile = [tab('a'), tab('b'), tab('c'), tab('d'), tab('e')]
+
+  it("l'actif en est TOUJOURS, même absent de la récence", () => {
+    expect(crmEcransVivants(pile, 'd', [], 3).map((t) => t.id)).toEqual(['d'])
+  })
+
+  it('la récence décide de qui reste, dans la limite du plafond', () => {
+    const ids = crmEcransVivants(pile, 'a', ['c', 'e', 'b'], 3).map((t) => t.id)
+    // gardés : a (actif) + c + e — b tombe, il est le quatrième par récence.
+    expect(ids).toContain('a')
+    expect(ids).toContain('c')
+    expect(ids).toContain('e')
+    expect(ids).not.toContain('b')
+  })
+
+  it("⛔ mais l'ORDRE DE RENDU est celui de la PILE, jamais celui de la récence", () => {
+    // Le défaut mesuré le 7 septembre 2026 : trier par récence remettait l'actif
+    // en tête à chaque bascule, donc réordonnait les enfants — 560 éléments
+    // détachés puis réinsérés par clic, et les effets du sous-arbre rejoués.
+    const ids = crmEcransVivants(pile, 'e', ['c', 'a'], 3).map((t) => t.id)  // ORDRE
+    expect(ids).toEqual(['a', 'c', 'e'])
+  })
+
+  it("l'ordre ne bouge pas quand l'actif change au sein du même ensemble", () => {
+    const avant = crmEcransVivants(pile, 'a', ['b', 'c'], 3).map((t) => t.id)
+    const apres = crmEcransVivants(pile, 'c', ['a', 'b'], 3).map((t) => t.id)
+    expect(avant).toEqual(apres)
+  })
+
+  it('un plafond de 1 (mobile) ne garde que l’actif', () => {
+    expect(crmEcransVivants(pile, 'b', ['a', 'c'], 1).map((t) => t.id)).toEqual(['b'])
+  })
+
+  it('sans actif, aucun écran — il n’y a rien à garder vivant', () => {
+    expect(crmEcransVivants(pile, undefined, ['a', 'b'], 3)).toEqual([])
   })
 })

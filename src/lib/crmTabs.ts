@@ -293,6 +293,35 @@ export function crmCloseOthers(tabs: CrmTab[], i: number): CrmTab[] {
 }
 
 /**
+ * Les onglets dont l'écran reste VIVANT — monté, mais retiré de la vue.
+ *
+ * ⛔ DEUX RÈGLES QUI NE SE MÉLANGENT PAS, et les confondre coûte l'état qu'on
+ * cherche à garder :
+ *
+ *  · la RÉCENCE décide de l'APPARTENANCE — on garde l'actif et les derniers
+ *    quittés, parce que c'est entre ceux-là qu'on fait l'aller-retour ;
+ *  · l'ordre de la PILE décide du RENDU. Trier le rendu par récence remettrait
+ *    l'actif en tête à chaque bascule, donc réordonnerait les enfants. Mesuré le
+ *    7 septembre 2026 : React déplace bien le nœud clé au lieu de le recréer,
+ *    mais un déplacement s'exécute en DOM par un `removeChild` suivi d'un
+ *    `insertBefore` — 560 éléments détachés puis réinsérés à chaque clic. L'ordre
+ *    de la pile est stable, et c'est en plus celui qu'affiche la bande.
+ *
+ * @param recents ids par récence décroissante, actif compris ou non
+ * @param max     combien d'écrans restent vivants (1 sur mobile)
+ */
+export function crmEcransVivants(
+  tabs: CrmTab[],
+  actifId: string | undefined,
+  recents: string[],
+  max: number,
+): CrmTab[] {
+  if (!actifId || max < 1) return []
+  const gardes = new Set([actifId, ...recents.filter((x) => x !== actifId)].slice(0, max))
+  return tabs.filter((t) => gardes.has(t.id))
+}
+
+/**
  * Largeur PLANCHER d'une puce, selon le nombre d'onglets.
  *
  * ⛔ ELLE ÉTAIT UNE CONSTANTE — `CHIP_MIN = 100` dans la barre — et c'est ce qui

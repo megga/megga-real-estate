@@ -9,8 +9,9 @@
  * Ne porte PLUS le bandeau du garde LAB depuis le 04.08.2026 : il est monté dans
  * IdentityShell, dans la coquille MEGGA X (cf. son en-tête).
  */
-import { useState, useEffect } from 'react'
-import { Outlet, Navigate, useLocation } from 'react-router-dom'
+import { useState, useEffect, useMemo, Suspense } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
+import { Routes, Navigate, useLocation } from 'react-router-dom'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { CopilotContextProvider } from '@/hooks/useCopilotContext'
 import { useAiPanel } from '@/hooks/useAiPanel'
@@ -18,11 +19,15 @@ import { COPILOT_WIDTH } from '@/components/ai-copilot/panel/aiPanel'
 import { crmPalette } from '@/components/crm/tokens'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import BootSplash from '@/components/layout/BootSplash'
+import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 import OnboardingCallBanner from '@/components/layout/OnboardingCallBanner'
 import CrmSearchHost from '@/components/crm/search/CrmSearchHost'
 import { CrmTabsProvider } from '@/components/crm/CrmTabsProvider'
 import { useIdentityGate, shouldRedirectToIdentityGate, shouldHoldForIdentityGate, IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
 import { readCrmDark } from '@/lib/crmDark'
+import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
+import { useIsMobile } from '@/hooks/useMediaQuery'
+import { crmEcransVivants, crmTabHref, type CrmTab } from '@/lib/crmTabs'
 
 /** Lit la préférence de thème sombre Sugar (fallback : préférence système). */
 // Mode sombre Sugar (même clé localStorage que les pages). Réactif : `storage`
@@ -49,7 +54,178 @@ import { readCrmDark } from '@/lib/crmDark'
  *    to itself (shouldRedirectToIdentityGate) — see the P0 incident notes on
  *    the gate call below.
  */
-function AgentLayoutInner() {
+
+/**
+ * Combien d'écrans restent VIVANTS derrière l'onglet affiché.
+ *
+ * ⛔ POURQUOI PAS TOUS. Un écran vivant garde ses abonnements Realtime, ses
+ * requêtes et ses minuteries : vingt-quatre onglets vivants, c'est vingt-quatre
+ * fois ça, et le plafond de la pile est justement de 24. Trois couvre le geste
+ * dominant — l'aller-retour entre deux onglets, et le troisième pour le
+ * détour — sans ouvrir cette porte-là.
+ *
+ * ⚠ UN sur mobile. Le CRM mobile n'a pas de bande d'onglets (sa pilule à cinq
+ * destinations en tient lieu) : garder des écrans vivants n'y sert personne et
+ * coûte la mémoire d'un téléphone.
+ */
+const VIVANTS_MAX = 3
+
+/** L'emplacement d'un onglet, sous la forme qu'attend `<Routes location=…>`. */
+function localisationDe(tb: CrmTab) {
+  const [pathname, q] = crmTabHref(tb).split('?')
+  return { pathname, search: q ? `?${q}` : '', hash: '', state: null, key: tb.id }
+}
+
+/**
+ * Un écran d'onglet — visible, ou vivant mais retiré de la vue.
+ *
+ * ⚠ `visibility: hidden` et NON `display: none`, et c'est mesuré, pas
+ * stylistique : un écran en `display: none` n'a plus de boîte, donc toutes les
+ * mesures qu'il prend valent zéro. La bande d'onglets et les six pagers du CRM
+ * se dimensionnent au `ResizeObserver` — ils reviendraient à un créneau, puis se
+ * recorrigeraient une frame après l'affichage. C'est très exactement le
+ * clignotement qu'on cherche à retirer. En `visibility: hidden` la mise en page
+ * continue, les mesures restent justes, et rien n'est peint.
+ *
+ * ⚠ ET `visibility: hidden` SUFFIT à sortir l'écran du clavier et du curseur —
+ * vérifié plutôt que supposé : `focus()` sur un bouton d'un écran caché laisse
+ * `document.activeElement` sur `<body>`. `inert` avait été posé en ceinture ; il
+ * a été retiré parce que React 18 ne le rend pas (l'attribut n'apparaissait pas
+ * dans le DOM), et qu'un garde-fou qui ne s'applique pas est pire qu'aucun : il
+ * se lit comme une protection. `aria-hidden` couvre l'arbre d'accessibilité.
+ */
+function EcranVivant({ actif, tb, location, routes }: {
+  actif: boolean
+  tb: CrmTab
+  location: { pathname: string; search: string; hash: string; state: unknown; key: string }
+  routes: ReactNode
+}) {
+  /**
+   * ⛔ L'OBJET DE LOCALISATION DOIT GARDER SON IDENTITÉ D'UN RENDU À L'AUTRE.
+   *
+   * `localisationDe` fabrique un objet neuf à chaque rendu, et `<Routes location=…>`
+   * s'en sert pour re-matcher : sans mémoïsation, chaque rendu du parent relance
+   * le calcul de route de TROIS écrans. Ce n'est pas ce qui cassait l'état (voir
+   * l'ordre de rendu ci-dessous), mais c'est du travail rendu pour rien à chaque
+   * frappe au clavier de l'écran actif.
+   */
+  const { pathname, search, hash, key } = location
+  const loc = useMemo(
+    () => ({ pathname, search, hash, state: null, key }),
+    [pathname, search, hash, key],
+  )
+  const style: CSSProperties = actif
+    ? { position: 'relative' }
+    : { position: 'absolute', inset: 0, visibility: 'hidden', pointerEvents: 'none', overflow: 'hidden' }
+  return (
+    <div
+      data-onglet={tb.id}
+      aria-hidden={actif ? undefined : true}
+      style={style}
+    >
+      {/* ⛔ UNE FRONTIÈRE SUSPENSE PAR ÉCRAN, et c'est la pièce sans laquelle tout
+          le reste ne sert à rien. Mesuré le 7 septembre 2026 : les trois écrans
+          partageaient celle d'`App.tsx`. Ouvrir un onglet sur un écran dont le
+          chunk n'était pas encore chargé le faisait SUSPENDRE — et React masque
+          alors TOUS les enfants de la frontière, en DÉTRUISANT leurs effets, puis
+          les recrée à la levée. L'état survivait, mais les effets d'initialisation
+          repassaient : le mini-mois du calendrier, réglé sur Octobre, était
+          RÉÉCRIT à Septembre par son propre effet de resynchronisation. Un écran
+          vivant dont les effets se rejouent n'est pas vivant.
+
+          Chacun la sienne : un chunk qui arrive ne concerne que son écran.
+          ⚠ Fallback `null` quand l'écran est caché — y peindre un squelette
+          invisible n'apporte rien et ferait clignoter la mise en page au moment
+          où il redevient visible. */}
+      <Suspense fallback={actif ? <SmartPageLoader /> : null}>
+        {/* ⚠ `location` sur `<Routes>` ne fait pas que choisir la route : React
+            Router enveloppe le sous-arbre dans un contexte de localisation à cette
+            valeur (`useRoutes`, branche `locationArg`). Un écran caché lit donc SA
+            propre URL — ce dont dépend `useTabScopedState`, qui en tire sa portée.
+            Sans ça, les trois écrans vivants partageraient la tranche de l'actif. */}
+        <Routes location={loc}>{routes}</Routes>
+      </Suspense>
+    </div>
+  )
+}
+
+/**
+ * Les écrans des onglets — trois vivants au plus, un seul visible.
+ *
+ * ⛔ CE QU'IL Y AVAIT AVANT : `<Outlet />`. Un seul écran, celui de l'URL
+ * courante, DÉTRUIT à chaque bascule d'onglet. Mesuré le 7 septembre 2026 :
+ * Calendrier réglé sur Octobre, un autre onglet, retour — Septembre. Et ce n'est
+ * pas le calendrier : `useTabScopedState` ne porte que 14 des ~38 positions
+ * d'écran du CRM de bureau, les ~24 autres vivent en `useState` local et
+ * meurent avec le composant.
+ *
+ * ⚠ LA PILE NE CONTIENT QUE DES ONGLETS DÉJÀ ACTIVÉS, et cette propriété n'est
+ * pas décorative : elle sort du fait qu'on n'y entre que par un changement
+ * d'actif. Un chemin persisté d'une vieille session qui pointerait vers une
+ * route de REDIRECTION (`<Navigate>`) ne sera donc jamais monté en arrière-plan
+ * — où il ferait sauter toute l'application. Il ne se montera qu'au clic, en
+ * tant qu'écran actif, où rediriger est le comportement voulu.
+ *
+ * ⚠ L'écran ACTIF est rendu sur la localisation RÉELLE, pas sur celle stockée
+ * dans son onglet : la pile suit la navigation avec un rendu de retard
+ * (`appliquerNavigation`), et rendre l'ancien chemin pendant cette frame
+ * afficherait l'écran précédent.
+ */
+function EcransVivants({ routes }: { routes: ReactNode }) {
+  const api = useCrmTabsOptionnel()
+  const location = useLocation()
+  const isMobile = useIsMobile()
+  const max = isMobile ? 1 : VIVANTS_MAX
+
+  const tabs = api?.tabs
+  const actifId = tabs && api ? tabs[api.active]?.id : undefined
+
+  /**
+   * La pile de récence — l'actif en tête.
+   *
+   * ⚠ Ajustée PENDANT LE RENDU et non dans un effet, sur le motif documenté par
+   * React (« adjusting state when a prop changes ») : React relance le rendu
+   * sans commiter l'intermédiaire, donc l'ensemble vivant est juste dès la
+   * première frame de la bascule. Dans un effet, il aurait fallu une frame de
+   * plus — celle où l'écran neuf n'est pas encore dans l'ensemble.
+   */
+  const [recents, setRecents] = useState<string[]>([])
+  const [vuActif, setVuActif] = useState<string | undefined>(undefined)
+  if (actifId && actifId !== vuActif) {
+    setVuActif(actifId)
+    setRecents((p) => [actifId, ...p.filter((x) => x !== actifId)].slice(0, VIVANTS_MAX))
+  }
+
+  // ⚠ La règle vit dans `crmEcransVivants` (fonction pure, éprouvée) : la
+  // récence décide de l'appartenance, l'ordre de la PILE décide du rendu.
+  const vivants = useMemo(
+    () => crmEcransVivants(tabs ?? [], actifId, recents, max),
+    [tabs, actifId, recents, max],
+  )
+
+  // Hors fournisseur d'onglets (bancs `/dev/*` de premier niveau, console) : un
+  // seul écran, sur l'URL courante. Rien à garder vivant, rien à empiler.
+  if (!vivants.length) return <Routes location={location}>{routes}</Routes>
+
+  return (
+    <div style={{ position: 'relative', minHeight: '100%' }}>
+      {vivants.map((tb) => {
+        const actif = tb.id === actifId
+        return (
+          <EcranVivant
+            key={tb.id}
+            tb={tb}
+            actif={actif}
+            location={actif ? { ...location, key: tb.id } : localisationDe(tb)}
+            routes={routes}
+          />
+        )
+      })}
+    </div>
+  )
+}
+
+function AgentLayoutInner({ routes }: { routes: ReactNode }) {
   const { isOpen } = useAiPanel()
   const { status: identityGateStatus } = useIdentityGate()
   const location = useLocation()
@@ -141,7 +317,7 @@ function AgentLayoutInner() {
           ? <BootSplash />
           : mustRedirectToIdentity
             ? <Navigate to={IDENTITY_GATE_ROUTE} replace />
-            : <Outlet />}
+            : <EcransVivants routes={routes} />}
       </div>
       <CrmSearchHost />
       {/* Le panneau MEGGA AI est monté dans App.tsx (au-dessus de <Routes>)
@@ -151,7 +327,7 @@ function AgentLayoutInner() {
 }
 
 /** Enrobe le layout interne des providers thème + contexte copilote. */
-export default function AgentLayout() {
+export default function AgentLayout({ routes }: { routes: ReactNode }) {
   return (
     <ThemeProvider>
       <CopilotContextProvider>
@@ -166,7 +342,7 @@ export default function AgentLayout() {
             poser sur une route sans barre ne coûte rien, et `crmTabsEligible`
             l'empêche d'ouvrir un onglet pour ces routes-là. */}
         <CrmTabsProvider>
-          <AgentLayoutInner />
+          <AgentLayoutInner routes={routes} />
         </CrmTabsProvider>
       </CopilotContextProvider>
     </ThemeProvider>

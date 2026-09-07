@@ -267,10 +267,16 @@ function SortieNeutralisee() {
  * de la recherche et la gouttière du panneau MEGGA AI. Un banc qui monterait les
  * pages nues aurait laissé ces quatre surfaces hors de portée.
  */
-function RoutesBanc() {
-  return (
-    <Routes>
-      <Route path="/dashboard" element={<AgentLayout />}>
+/**
+ * La table du banc, hissée comme celle de l'app.
+ *
+ * ⚠ Même forme qu'`App.tsx` depuis le 7 septembre 2026 : `AgentLayout` rend
+ * lui-même les écrans (trois vivants au plus) et réclame donc sa table en prop,
+ * le parent passant en `/dashboard/*`. Le banc doit suivre, sinon il n'éprouve
+ * plus la coquille que l'app monte.
+ */
+const ROUTES_BANC = (
+  <>
         <Route index element={<TodayPage />} />
         <Route path="nouvel-onglet" element={<NewTabPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
@@ -293,7 +299,13 @@ function RoutesBanc() {
               vérifiaient que par lecture. */}
           <Route path="kyc/:dossierId/export" element={<KycExportPage />} />
         </Route>
-      </Route>
+  </>
+)
+
+function RoutesBanc() {
+  return (
+    <Routes>
+      <Route path="/dashboard/*" element={<AgentLayout routes={ROUTES_BANC} />} />
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
       <Route path="*" element={<SortieNeutralisee />} />
     </Routes>
