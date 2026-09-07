@@ -11,7 +11,7 @@
 
 import { describe, it, expect } from 'vitest'
 import {
-  CRM_TABS_CAP, crmApplyCap, crmApplyLabels, crmChipMaxWidth, crmCloseOthers,
+  CRM_TABS_CAP, crmApplyCap, crmApplyLabels, crmChipMaxWidth, crmChipMinWidth, crmCloseOthers,
   crmCloseTab, crmDragBounds, crmDuplicateTab, crmMakeTab, crmMoveTab, crmPinnedCount,
   crmResolveActive, crmTabFallbackPath, crmTabRecordRef, crmTabRefs,
   crmTogglePin, crmVisibleWindow, type CrmTab,
@@ -111,12 +111,46 @@ describe('crmTabs — fermeture', () => {
 
 describe('crmTabs — débordement', () => {
   it("l'onglet actif est TOUJOURS visible, même hors fenêtre", () => {
-    // 9 onglets, 6 visibles, l'actif est le 8e : il prend le dernier créneau.
+    // 9 onglets, 6 créneaux, l'actif est le 8e : la bande défile jusqu'à lui.
     const { visibles, caches } = crmVisibleWindow(9, 7, 6)
     expect(visibles).toHaveLength(6)
     expect(visibles).toContain(7)
     expect(caches).not.toContain(7)
     expect(visibles.length + caches.length).toBe(9)
+  })
+
+  it('⛔ la fenêtre est CONTIGUË — plus de rang téléporté dans le dernier créneau', () => {
+    // Le défaut mesuré à l'écran le 7 septembre 2026 : à 20 onglets et 9 créneaux,
+    // la bande affichait `0,1,2,3,4,5,6,7,19`. La puce 19 se donnait pour la
+    // voisine de la 7, et les rangs 8 à 18 n'étaient atteignables que par le menu.
+    const { visibles } = crmVisibleWindow(20, 19, 9)
+    expect(visibles).toEqual([11, 12, 13, 14, 15, 16, 17, 18, 19])
+    for (let k = 1; k < visibles.length; k += 1) {
+      expect(visibles[k]).toBe(visibles[k - 1] + 1)
+    }
+  })
+
+  it('la bande se déplace du MINIMUM — elle ne se recentre pas à chaque clic', () => {
+    // Cadrée sur [2,7], l'actif passe au rang 8 : un seul cran, pas un recentrage.
+    expect(crmVisibleWindow(20, 8, 6, 2).debut).toBe(3)
+    // Et vers la gauche, symétriquement : l'actif passe au rang 1.
+    expect(crmVisibleWindow(20, 1, 6, 2).debut).toBe(1)
+    // L'actif DANS la fenêtre ne la bouge pas d'un pixel.
+    expect(crmVisibleWindow(20, 4, 6, 2).debut).toBe(2)
+  })
+
+  it('les ÉPINGLÉES ne défilent pas — une épingle qu’un défilement emporte n’épingle rien', () => {
+    // 2 épinglées, 6 créneaux : elles gardent les deux premiers, les 4 autres défilent.
+    const { visibles } = crmVisibleWindow(20, 19, 6, 0, 2)
+    expect(visibles.slice(0, 2)).toEqual([0, 1])
+    expect(visibles.slice(2)).toEqual([16, 17, 18, 19])
+  })
+
+  it('⚠ le créneau EMPRUNTÉ subsiste pour le seul cas insoluble : plus d’épingles que de créneaux', () => {
+    // 8 épinglées, 6 créneaux, l'actif au rang 12. Le handoff exige que l'actif
+    // soit visible ; 8 épingles et 1 actif ne tiennent pas dans 6 créneaux.
+    const { visibles } = crmVisibleWindow(15, 12, 6, 0, 8)
+    expect(visibles).toEqual([0, 1, 2, 3, 4, 12])
   })
 
   it('sans débordement, tout est visible et rien n’est caché', () => {
@@ -130,6 +164,20 @@ describe('crmTabs — débordement', () => {
     expect(crmChipMaxWidth(5, false)).toBe(170)
     expect(crmChipMaxWidth(9, false)).toBe(128)
     expect(crmChipMaxWidth(3, true)).toBe(210)
+  })
+
+  it('⛔ le PLANCHER se resserre aussi — sinon la bande plafonne à huit puces', () => {
+    // C'est lui qui décidait du plafond : figé à 100, il ne laissait tenir que 8
+    // puces sur 1440, et le reste passait au menu alors que la place existait.
+    expect(crmChipMinWidth(3)).toBe(100)
+    expect(crmChipMinWidth(8)).toBe(100)
+    expect(crmChipMinWidth(9)).toBe(76)
+    expect(crmChipMinWidth(14)).toBe(76)
+    expect(crmChipMinWidth(15)).toBe(60)
+    expect(crmChipMinWidth(24)).toBe(60)
+    // Il ne descend jamais sous 60 : en dessous, deux fiches de contact
+    // deviennent indiscernables et la puce ne sert plus à rien.
+    expect(crmChipMinWidth(999)).toBeGreaterThanOrEqual(60)
   })
 })
 
@@ -270,7 +318,7 @@ describe('crmTabs — le régime à GRAND NOMBRE', () => {
     // pas un défaut réparable : le handoff impose que l'ACTIF soit toujours visible, et
     // 8 épingles + 1 actif ne tiennent pas dans 6 créneaux. Les épinglés gardent la
     // priorité (ils sont le préfixe) ; au-delà de la capacité, quelque chose doit céder.
-    const { visibles, caches } = crmVisibleWindow(15, 12, 6)
+    const { visibles, caches } = crmVisibleWindow(15, 12, 6, 0, 8)
     expect(visibles).toEqual([0, 1, 2, 3, 4, 12])
     expect(caches.filter((i) => i < 8)).toEqual([5, 6, 7])
   })

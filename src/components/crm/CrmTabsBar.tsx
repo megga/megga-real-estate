@@ -43,7 +43,7 @@ import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from './tokens'
 import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
 import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
-import { crmChipMaxWidth, crmDragBounds, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
+import { crmChipMaxWidth, crmChipMinWidth, crmDragBounds, crmPinnedCount, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
 import { CRM_NEW_TAB_PATH } from './crmSidebarNav'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useCrmSidebarCollapsed } from '@/lib/crmSidebar'
@@ -78,13 +78,34 @@ const D_CROIX = 20
  * derrière « +N » pendant que la place existait. Une barre d'onglets aveugle à sa
  * propre largeur.
  *
- * 100 px : de quoi porter un libellé ellipsé et sa croix (« Marie D… ✕ »). Les
- * puces s'ellipsent au-delà — elles ne débordent jamais, la règle de la maquette
- * est inchangée — mais on cesse de leur refuser la place qui existe.
+ * ⛔ 100 px ÉTAIT UNE CONSTANTE, et c'est ce qui plafonnait la bande à huit
+ * puces sur 1440 : au-delà, les onglets ne rétrécissaient pas, ils passaient au
+ * menu « +N ». Le plancher vit désormais dans `crmChipMinWidth(nTabs)` — trois
+ * paliers, 100 / 76 / 60 — parce qu'il DÉPEND du nombre d'onglets et qu'il
+ * s'éprouve comme une fonction pure. Voir sa JSDoc pour le calage des paliers.
  */
-const CHIP_MIN = 100
 /** Gouttière entre deux puces — `--crm-space-2xs`, lue ici pour le calcul. */
 const TAB_GAP = 4
+
+/**
+ * En dessous de cette largeur RENDUE, la croix ne s'affiche plus que sur la puce
+ * active et sous le curseur.
+ *
+ * ⛔ SANS CETTE RÈGLE, RESSERRER LES PUCES NE SERT À RIEN. Mesuré à l'écran le
+ * 7 septembre 2026, 20 onglets : les puces tombent à ~60 px, dont 12 de
+ * gouttière gauche, 4 de droite, 16 de croix et 8 d'écart — il reste **20 px de
+ * libellé**, soit une lettre et des points de suspension. « N… » pour vingt
+ * onglets : la bande est pleine et ne dit plus rien.
+ *
+ * Croix retirée, le même libellé dispose de 44 px : « Calen… » se distingue de
+ * « Contac… », ce qui est exactement le service qu'on attend d'une puce. C'est
+ * aussi ce que fait un navigateur, et pour la même raison.
+ *
+ * 96 et non 100 : le palier haut de `crmChipMinWidth` vaut 100, et un seuil
+ * posé À la valeur du palier basculerait sur une égalité — donc sur un arrondi
+ * de mesure.
+ */
+const SEUIL_CROIX = 96
 
 /** Strate d'empilement — lue sur les voisins, pas copiée d'une convention. */
 // La barre latérale est à 75, le dock MEGGA AI à 70, le bandeau d'usurpation à 90.
@@ -179,6 +200,8 @@ interface PuceProps {
   i: number
   actif: boolean
   fermable: boolean
+  /** La puce est-elle assez large pour porter sa croix en permanence ? */
+  croixPermanente: boolean
   maxW: number
   sp: CrmPalette
   badge?: { n: number; urgent?: boolean }
@@ -205,7 +228,7 @@ function styleDePuce(actif: boolean, maxW: number, sp: CrmPalette): CSSPropertie
   }
 }
 
-function Puce({ tb, i, actif, fermable, maxW, sp, badge, libelle }: PuceProps) {
+function Puce({ tb, i, actif, fermable, croixPermanente, maxW, sp, badge, libelle }: PuceProps) {
   const { t } = useTranslation('common')
   const [survol, setSurvol] = useState(false)
   const [survolCroix, setSurvolCroix] = useState(false)
@@ -233,7 +256,10 @@ function Puce({ tb, i, actif, fermable, maxW, sp, badge, libelle }: PuceProps) {
       {badge && badge.n > 0 && (
         <Badge n={badge.n} urgent={badge.urgent} actif={actif} sp={sp} />
       )}
-      {fermable && (
+      {/* ⚠ Sur une puce étroite, la croix ne se montre que si la puce est ACTIVE
+          ou sous le curseur — sans quoi elle mange le libellé (voir SEUIL_CROIX).
+          Le libellé se resserre au survol, comme dans un navigateur. */}
+      {fermable && (croixPermanente || actif || survol) && (
         <span
           data-tabc={i}
           role="button"
@@ -333,12 +359,50 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
    * ⚠ Plancher à 1 tant que la mesure n'est pas revenue (première frame) : rendre
    * zéro puce ferait clignoter la barre à chaque montage.
    */
-  const vis = Math.max(1, Math.floor((largeur + TAB_GAP) / (CHIP_MIN + TAB_GAP)) || 1)
-  const maxW = crmChipMaxWidth(nTabs, dockOuvert)
-  const { visibles, caches } = useMemo(
-    () => crmVisibleWindow(nTabs, active, vis),
-    [nTabs, active, vis],
+  // ⚠ Le plancher n'est PLUS une constante : il se resserre avec le nombre
+  // d'onglets (`crmChipMinWidth`). C'est ce qui fait tenir ~17 puces là où le
+  // `CHIP_MIN` figé à 100 en plafonnait 8 — au-delà, les onglets ne
+  // rétrécissaient pas, ils disparaissaient dans le menu.
+  const minW = crmChipMinWidth(nTabs)
+  const vis = Math.max(1, Math.floor((largeur + TAB_GAP) / (minW + TAB_GAP)) || 1)
+  // ⚠ Le maximum ne peut pas passer sous le minimum : à grand nombre, c'est le
+  // plancher qui commande, et une puce de 128 px large de 60 minimum n'aurait
+  // aucun sens.
+  const maxW = Math.max(minW, crmChipMaxWidth(nTabs, dockOuvert))
+  const nPin = crmPinnedCount(tabs)
+
+  /**
+   * Cadrage de la bande — le premier rang non épinglé affiché.
+   *
+   * ⛔ IL DOIT ÊTRE UN ÉTAT, et c'est tout l'intérêt du défilement minimal :
+   * sans mémoire du cadrage précédent, `crmVisibleWindow` se recentrerait à
+   * chaque bascule et les puces sauteraient sous le curseur. On le lit au rendu
+   * et on ne le RANGE qu'ensuite — la fenêtre rendue est déjà la corrigée, donc
+   * aucun clignotement.
+   */
+  const [debut, setDebut] = useState(0)
+  const { visibles, caches, debut: debutCorrige } = useMemo(
+    () => crmVisibleWindow(nTabs, active, vis, debut, nPin),
+    [nTabs, active, vis, debut, nPin],
   )
+  useEffect(() => {
+    if (debutCorrige !== debut) setDebut(debutCorrige)
+  }, [debutCorrige, debut])
+
+  /**
+   * Largeur RÉELLEMENT rendue d'une puce — celle qui décide du sort de la croix.
+   *
+   * ⚠ Ni `maxW` ni `minW` ne conviennent : `maxW` reste à 128 alors que les
+   * puces sont écrasées à 60 par le flex, et `minW` ne suit que le nombre
+   * d'onglets — sur un 1920 avec dix onglets les puces sont larges, et leur
+   * retirer la croix serait absurde. Ce qu'on veut est ce que l'agent voit :
+   * la piste divisée par le nombre de puces, plafonné par `maxW`.
+   */
+  const largeurPuce = Math.min(
+    maxW,
+    Math.floor((largeur + TAB_GAP) / Math.max(1, visibles.length)) - TAB_GAP,
+  )
+  const croixPermanente = largeurPuce >= SEUIL_CROIX
 
   /** Libellé d'affichage — le nom résolu, sinon le nom de la section, sinon un repli. */
   const libelleDe = useCallback((tb: CrmTab): string => {
@@ -593,6 +657,7 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
             // Une puce épinglée perd sa croix : elle ne se ferme qu'après
             // détachement, par le menu. C'est le sens de l'épingle.
             fermable={nTabs > 1 && !tabs[i].pinned}
+            croixPermanente={croixPermanente}
             maxW={maxW} sp={sp}
             badge={tabs[i].section ? badges?.[tabs[i].section] : undefined}
             libelle={libelleDe(tabs[i])}

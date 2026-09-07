@@ -293,22 +293,96 @@ export function crmCloseOthers(tabs: CrmTab[], i: number): CrmTab[] {
 }
 
 /**
- * Fenêtre visible et débordement.
+ * Largeur PLANCHER d'une puce, selon le nombre d'onglets.
  *
- * `vis` puces au maximum ; au-delà, la fenêtre est les `vis` premières — MAIS si
- * l'actif en est absent, il prend le dernier créneau. L'onglet actif est toujours
- * visible : une barre qui cache l'onglet qu'on regarde ne dit plus où on est.
+ * ⛔ ELLE ÉTAIT UNE CONSTANTE — `CHIP_MIN = 100` dans la barre — et c'est ce qui
+ * plafonnait la bande à huit puces sur 1440. Au-delà, les onglets ne
+ * rétrécissaient pas : ils DISPARAISSAIENT dans le menu « +N », d'où on ne les
+ * retrouve qu'en le dépliant. Un navigateur fait l'inverse, et c'est la demande
+ * de Julien (7 septembre 2026) : on resserre les puces tant qu'on peut lire, et
+ * on ne cache qu'ensuite.
+ *
+ * Les trois paliers sont accordés au CONTENU d'une puce, pas choisis ronds : la
+ * gouttière (12) + le libellé + la croix (16) + sa respiration. À 100 px on lit
+ * « Aujourd'hui » en entier ; à 76 on lit « Aujourd… » ; à 60 il reste ~5
+ * caractères, ce qui distingue encore « Calen… » de « Contac… » — en dessous,
+ * deux fiches de contact deviendraient indiscernables et la puce ne servirait
+ * plus à rien.
  */
-export function crmVisibleWindow(total: number, active: number, vis: number): {
-  visibles: number[]
-  caches: number[]
-} {
+export function crmChipMinWidth(nTabs: number): number {
+  if (nTabs <= 8) return 100
+  if (nTabs <= 14) return 76
+  return 60
+}
+
+/**
+ * Fenêtre visible et débordement — une BANDE QUI DÉFILE, pas un préfixe figé.
+ *
+ * ⛔ CE QU'ELLE FAISAIT, ET POURQUOI C'ÉTAIT FAUX. La fenêtre était « les `vis`
+ * premières, et si l'actif n'y est pas il prend le dernier créneau ». Mesuré à
+ * l'écran le 7 septembre 2026, 20 onglets, 9 créneaux : les puces affichées
+ * étaient `0,1,2,3,4,5,6,7,19`. Trois conséquences, toutes visibles :
+ *
+ *   1. l'ORDRE AFFICHÉ EST FAUX — la puce 19 se donne pour la voisine de la 7 ;
+ *   2. les onglets 8 à 18 ne sont atteignables QUE par le menu, quoi qu'on
+ *      fasse : aucun geste ne les ramène dans la bande ;
+ *   3. le créneau emprunté a déjà coûté un correctif ailleurs — `crmDragBounds`
+ *      existe presque entièrement pour empêcher qu'un glisser d'un cran ne
+ *      téléporte une puce de huit rangs.
+ *
+ * Ici la fenêtre est CONTIGUË et elle se déplace du MINIMUM nécessaire pour
+ * contenir l'actif — comme la bande d'onglets d'un navigateur. `debut` est donc
+ * un état porté par l'appelant : sans mémoire du cadrage précédent, la fenêtre
+ * se recentrerait à chaque bascule et les puces sauteraient sous le curseur.
+ *
+ * ⚠ LES ÉPINGLÉES NE DÉFILENT PAS. Elles sont le préfixe de la pile et restent
+ * à l'écran : une épingle qu'un défilement emporte n'épingle rien. Elles
+ * consomment donc des créneaux, et la fenêtre glissante se partage le reste.
+ *
+ * ⚠ LE CRÉNEAU EMPRUNTÉ SUBSISTE POUR UN SEUL CAS, et il est réellement
+ * insoluble : plus d'épinglées que de créneaux. Le handoff exige que l'actif
+ * soit visible, huit épingles et un actif ne tiennent pas dans six créneaux, et
+ * quelque chose doit céder. Partout ailleurs il a disparu.
+ *
+ * @param debut premier rang NON ÉPINGLÉ affiché, cadrage précédent
+ * @param nPin  nombre d'onglets épinglés (ils occupent le préfixe de la pile)
+ */
+export function crmVisibleWindow(
+  total: number,
+  active: number,
+  vis: number,
+  debut = 0,
+  nPin = 0,
+): { visibles: number[]; caches: number[]; debut: number } {
   const tous = Array.from({ length: total }, (_, i) => i)
-  if (total <= vis) return { visibles: tous, caches: [] }
-  const visibles = tous.slice(0, vis)
-  if (active >= vis) visibles[vis - 1] = active
-  const dansFenetre = new Set(visibles)
-  return { visibles, caches: tous.filter((i) => !dansFenetre.has(i)) }
+  if (total <= vis) return { visibles: tous, caches: [], debut: nPin }
+
+  // Les épinglées d'abord, autant qu'il y a de place.
+  const epingles = tous.slice(0, Math.min(nPin, vis))
+  const creneaux = vis - epingles.length
+
+  if (creneaux <= 0) {
+    // Plus d'épinglées que de créneaux : le seul cas où l'actif emprunte encore
+    // un siège, faute de mieux.
+    const visibles = epingles.slice()
+    if (!visibles.includes(active) && visibles.length) visibles[visibles.length - 1] = active
+    const dedans = new Set(visibles)
+    return { visibles, caches: tous.filter((i) => !dedans.has(i)), debut: nPin }
+  }
+
+  // La fenêtre glissante ne couvre que la partie NON épinglée.
+  const premier = nPin
+  const dernierDebut = Math.max(premier, total - creneaux)
+  let d = Math.min(Math.max(debut, premier), dernierDebut)
+  // Déplacement MINIMAL — c'est ce qui évite que la bande se recentre à chaque clic.
+  if (active >= premier) {
+    if (active < d) d = active
+    else if (active >= d + creneaux) d = active - creneaux + 1
+  }
+  const fenetre = tous.slice(d, d + creneaux)
+  const visibles = [...epingles, ...fenetre]
+  const dedans = new Set(visibles)
+  return { visibles, caches: tous.filter((i) => !dedans.has(i)), debut: d }
 }
 
 /**
