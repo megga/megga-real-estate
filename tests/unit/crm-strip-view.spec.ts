@@ -14,12 +14,16 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import {
-  crmStripView, resetCrmStripView, setCrmStripDebut, setCrmStripLargeur,
+  crmStripView, setCrmStripDebut, setCrmStripLargeur,
 } from '@/lib/crmStripView'
 import { crmVisibleWindow } from '@/lib/crmTabs'
 
 describe('crmStripView — une seule vue pour toutes les bandes montées', () => {
-  beforeEach(() => { resetCrmStripView() })
+  // ⚠ Le store est un module-scope : il survit d'un cas à l'autre, et sans cette
+  // remise à zéro un cas qui pose une largeur la lègue au suivant, qui passerait
+  // alors pour la mauvaise raison. Par les setters, et non par un `reset()`
+  // exporté : un export que seul un test consomme est mort pour `lint:deadcode`.
+  beforeEach(() => { setCrmStripLargeur(0); setCrmStripDebut(0) })
 
   it('démarre à zéro : rien n’a encore été mesuré', () => {
     expect(crmStripView()).toEqual({ largeur: 0, debut: 0 })

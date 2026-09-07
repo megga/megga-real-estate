@@ -86,21 +86,18 @@ export function setCrmStripLargeur(largeur: number): void {
   emettre()
 }
 
-/** Range le cadrage corrigé par `crmVisibleWindow`. */
+/**
+ * Range le cadrage corrigé par `crmVisibleWindow`.
+ *
+ * ⚠ Il n'y a PAS de `reset()` exporté, et c'est délibéré : il n'aurait eu qu'un
+ * appelant, la suite de tests, et un export que seul un test consomme est un
+ * export mort pour `lint:deadcode`. Un module-scope survit d'un cas à l'autre —
+ * la suite remet donc les deux valeurs à zéro par ces deux setters, qui sont
+ * l'API que le composant emploie de toute façon.
+ */
 export function setCrmStripDebut(debut: number): void {
   if (debut === vue.debut) return
   vue = { ...vue, debut }
-  emettre()
-}
-
-/**
- * Remet la vue à zéro — pour les tests, et pour eux seuls.
- *
- * Un module-scope survit d'un test à l'autre : sans ce geste, un cas qui pose
- * une largeur la lègue au suivant, qui passe alors pour la mauvaise raison.
- */
-export function resetCrmStripView(): void {
-  vue = { largeur: 0, debut: 0 }
   emettre()
 }
 
