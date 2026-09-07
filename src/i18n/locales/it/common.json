@@ -283,22 +283,15 @@
     "command": {
       "placeholder": "Cerca o chiedi a Megga…",
       "clear": "Cancella",
-      "scope": {
-        "all": "Tutto",
-        "contacts": "Contacts",
-        "biens": "Immobili",
-        "deals": "Deals",
-        "docs": "Documents"
-      },
       "section": {
         "resumeMegga": "Riprendi con Megga",
         "recents": "Recenti",
-        "askMegga": "Chiedi a Megga",
         "meggaConvos": "Conversazioni Megga",
         "biens": "Immobili",
         "deals": "Deals",
         "platform": "Piattaforma",
-        "openTabs": "Schede aperte"
+        "openTabs": "Schede aperte",
+        "closedTabs": "Chiuse di recente"
       },
       "badge": {
         "semantic": "semantica"
@@ -312,13 +305,12 @@
         "untitled": "Transazione"
       },
       "roomsShort": "{{count}} loc.",
-      "aiPrompts": {
-        "buyersReady": "Acquirenti pronti a firmare questa settimana",
-        "staleListings": "Immobili fermi da oltre 30 giorni",
-        "exclusiveMandate": "Redigi un mandato esclusivo"
-      },
       "switchToTab": "Vai alla scheda {{rang}}",
-      "newTabHint": "Apri in una nuova scheda"
+      "newTabHint": "Apri in una nuova scheda",
+      "reopenTab": "Riapri questa scheda",
+      "showAll_one": "Mostra 1 altro",
+      "showAll_other": "Mostra altri {{count}}",
+      "startTyping": "Digita per cercare un contatto, un immobile, un affare."
     }
   },
   "invite": {

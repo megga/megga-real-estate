@@ -290,22 +290,15 @@
     "command": {
       "placeholder": "Search or ask Megga…",
       "clear": "Clear",
-      "scope": {
-        "all": "All",
-        "contacts": "Contacts",
-        "biens": "Properties",
-        "deals": "Deals",
-        "docs": "Documents"
-      },
       "section": {
         "resumeMegga": "Resume with Megga",
         "recents": "Recent",
-        "askMegga": "Ask Megga",
         "meggaConvos": "Megga conversations",
         "biens": "Properties",
         "deals": "Deals",
         "platform": "Platform",
-        "openTabs": "Open tabs"
+        "openTabs": "Open tabs",
+        "closedTabs": "Recently closed"
       },
       "badge": {
         "semantic": "semantic"
@@ -319,13 +312,12 @@
         "untitled": "Deal"
       },
       "roomsShort": "{{count}} rm",
-      "aiPrompts": {
-        "buyersReady": "Buyers ready to sign this week",
-        "staleListings": "Listings stalled for 30+ days",
-        "exclusiveMandate": "Draft an exclusive mandate"
-      },
       "switchToTab": "Go to tab {{rang}}",
-      "newTabHint": "Open in a new tab"
+      "newTabHint": "Open in a new tab",
+      "reopenTab": "Reopen this tab",
+      "showAll_one": "Show 1 more",
+      "showAll_other": "Show {{count}} more",
+      "startTyping": "Type to search a contact, a property, a deal."
     }
   },
   "invite": {

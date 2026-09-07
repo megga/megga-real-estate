@@ -980,7 +980,7 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // et sa gouttière de portées y passe par l'échelle au lieu d'un littéral. Le
   // cliquet serre dans les DEUX sens — laisser 8 inscrits rendrait un littéral
   // réintroduit invisible.
-  ['src/components/crm/search', { hors: 7, total: 7 }],
+  ['src/components/crm/search', { hors: 5, total: 5 }],
   // 74/95 → 73/93 (17.08.2026) : le retrait de l'écran d'appairage de la carte WhatsApp
   // a emporté ses littéraux avec lui. Le cliquet redescend, il ne se justifie pas.
   ['src/components/crm/settings', { hors: 73, total: 93 }],

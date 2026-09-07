@@ -283,22 +283,15 @@
     "command": {
       "placeholder": "Suchen oder Megga fragen…",
       "clear": "Leeren",
-      "scope": {
-        "all": "Alle",
-        "contacts": "Contacts",
-        "biens": "Objekte",
-        "deals": "Deals",
-        "docs": "Documents"
-      },
       "section": {
         "resumeMegga": "Mit Megga fortfahren",
         "recents": "Zuletzt verwendet",
-        "askMegga": "Megga fragen",
         "meggaConvos": "Megga-Konversationen",
         "biens": "Objekte",
         "deals": "Deals",
         "platform": "Plattform",
-        "openTabs": "Offene Tabs"
+        "openTabs": "Offene Tabs",
+        "closedTabs": "Kürzlich geschlossen"
       },
       "badge": {
         "semantic": "semantisch"
@@ -312,13 +305,12 @@
         "untitled": "Transaktion"
       },
       "roomsShort": "{{count}} Zi.",
-      "aiPrompts": {
-        "buyersReady": "Käufer, die diese Woche unterschriftsbereit sind",
-        "staleListings": "Objekte, die seit über 30 Tagen stagnieren",
-        "exclusiveMandate": "Exklusivmandat verfassen"
-      },
       "switchToTab": "Zu Tab {{rang}}",
-      "newTabHint": "In neuem Tab öffnen"
+      "newTabHint": "In neuem Tab öffnen",
+      "reopenTab": "Diesen Tab erneut öffnen",
+      "showAll_one": "1 weiteres anzeigen",
+      "showAll_other": "{{count}} weitere anzeigen",
+      "startTyping": "Tippen Sie, um einen Kontakt, ein Objekt oder ein Geschäft zu suchen."
     }
   },
   "invite": {

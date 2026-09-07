@@ -27,18 +27,19 @@ import { useEcranActif } from '@/hooks/useEcranActif'
 import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
 import { crmTabLibelle } from '@/lib/crmTabs'
 
-// ─── Données utilitaires (proto) ─────────────────────────────────────────────
-const SCOPES = [
-  { id: 'all', labelKey: 'search.command.scope.all' },
-  { id: 'contacts', labelKey: 'search.command.scope.contacts' },
-  { id: 'biens', labelKey: 'search.command.scope.biens' },
-  { id: 'deals', labelKey: 'search.command.scope.deals' },
-  { id: 'docs', labelKey: 'search.command.scope.docs' },
-] as const
-type ScopeId = (typeof SCOPES)[number]['id']
+// ⛔ LES CINQ PASTILLES DE PORTÉE ONT ÉTÉ RETIRÉES (7 septembre 2026, décision
+// Julien). Deux raisons, la première mesurée :
+//
+//  1. « Documents » ne pouvait RIEN rendre — aucune source ne l'alimentait, la
+//     pastille ne produisait que « Aucun résultat », quelle que soit la requête.
+//     Vérifié à l'écran sur quatre requêtes avant de la retirer.
+//  2. Elles demandaient de CHOISIR AVANT DE SAVOIR. Dans un CRM on tape un nom
+//     et on veut qu'il soit trouvé ; pré-filtrer est un geste d'expert posé en
+//     tête du parcours de tout le monde.
+//
+// À la place : une seule liste, groupée par nature, quatre par groupe, et une
+// ligne « voir les N » qui déplie SUR PLACE. On filtre après avoir vu.
 
-// Clés i18n (common:search.command.aiPrompts.*) — résolues à l'affichage via tr().
-const AI_PROMPTS = ['buyersReady', 'staleListings', 'exclusiveMandate'] as const
 
 // ─── Icônes inline (stroke linéaire — remplacent window.CRMIcon) ─────────────
 function IconSpark({ size = 15, stroke = 'currentColor' }: { size?: number; stroke?: string }) {
@@ -59,6 +60,14 @@ function IconSearch({ size = 22, stroke = 'currentColor' }: { size?: number; str
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" />
+    </svg>
+  )
+}
+/** Deux rectangles décalés : la forme d'un onglet — le CONTENANT, pas l'entité. */
+function IconOnglet({ size = 16, stroke = 'currentColor' }: { size?: number; stroke?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="7" width="13" height="13" rx="2" /><path d="M8 4h11a2 2 0 0 1 2 2v11" />
     </svg>
   )
 }
@@ -209,11 +218,36 @@ type FlatItem =
   | { kind: 'admin' }
   /** Un onglet DÉJÀ ouvert : on y bascule au lieu d'en ouvrir une copie. */
   | { kind: 'onglet'; id: string }
+  /** Un onglet récemment FERMÉ : on le rouvre. */
+  | { kind: 'ferme'; id: string }
+  /** « voir les N » — déplie son groupe SUR PLACE, sans quitter la liste. */
+  | { kind: 'plus'; cle: string }
 
 // Raccourci super-admin : la console n'apparaît QUE sur une requête explicite
 // (et QUE pour un super-admin confirmé par la DB). Aucune trace le reste du
 // temps — la recherche reste le port 1:1 du handoff pour tout le monde.
+/** Un bloc de résultats : son titre, son compte réel, et ce qu'il montre. */
+interface Groupe {
+  cle: string
+  titre: string
+  /** Le compte RÉEL, avant plafond — c'est lui qu'affiche le titre. */
+  total: number
+  items: FlatItem[]
+}
+
 const ADMIN_KEYWORDS = ['admin', 'console', 'plateforme', 'platform']
+
+/**
+ * Combien d'entrées un groupe montre avant de proposer le reste.
+ *
+ * Quatre : c'est ce qui tient sous le pli avec trois groupes remplis, et c'est
+ * assez pour que la bonne réponse soit visible sans dérouler dans la grande
+ * majorité des cas. Au-delà, « voir les N » déplie le groupe sur place — le
+ * geste remplace les anciennes pastilles de portée, mais APRÈS avoir vu ce qu'il
+ * y a, pas avant.
+ */
+const PAR_GROUPE = 4
+const PAR_GROUPE_DEPLIE = 20
 
 /**
  * Le nom de la touche de commande, selon le clavier qu'on a sous les mains.
@@ -263,7 +297,8 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
   const accentBlue = dark ? '#A5C0FF' : '#0041D9'
 
   const [q, setQ] = useState(amorce ?? '')
-  const [scope, setScope] = useState<ScopeId>('all')
+  /** Les groupes dépliés — remis à zéro dès que la requête change. */
+  const [deplies, setDeplies] = useState<ReadonlySet<string>>(new Set())
   const [activeIdx, setActiveIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -284,6 +319,7 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
   const convList = useMemo(() => conversations ?? [], [conversations])
   const { allowed: isSuperAdmin } = useSuperAdminGate()
   const tabsApi = useCrmTabsOptionnel()
+  const fermes = useMemo(() => tabsApi?.fermes ?? [], [tabsApi])
 
 
   const ecranActif = useEcranActif()
@@ -309,30 +345,28 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
    * fonctionne comme avant.
    */
   const ongletResults = useMemo(() => {
-    if (!tabsApi || scope !== 'all' || ql.length < 2) return []
+    // ⚠ Sans requête, ils forment l'état VIDE : « ce qu'on vient de quitter ».
+    if (!tabsApi) return []
     return tabsApi.tabs
       .map((t, i) => ({ t, i }))
       // ⚠ Sur le libellé AFFICHÉ, pas sur `label` : un onglet de SECTION n'a pas
       // de `label` du tout — son nom vient d'une clé i18n. Filtrer sur le champ
       // brut ne trouvait donc jamais « Calendrier » ni « Pipeline ».
       .map((x) => ({ ...x, nom: crmTabLibelle(x.t, tr) }))
-      .filter(({ i, nom }) => i !== tabsApi.active && nom.toLowerCase().includes(ql))
-      .slice(0, 5)
-  }, [tabsApi, scope, ql, tr])
+      .filter(({ i, nom }) => i !== tabsApi.active && (!ql || nom.toLowerCase().includes(ql)))
+  }, [tabsApi, ql, tr])
 
-  const contactResults = useMemo(() => {
-    if (ql.length < 2 || (scope !== 'all' && scope !== 'contacts')) return []
-    return contacts.slice(0, scope === 'contacts' ? 20 : 4)
-  }, [contacts, ql, scope])
+  // ⚠ Deux caractères : la recherche de contacts part au SERVEUR, et une lettre
+  // ramènerait le carnet entier.
+  const contactResults = useMemo(() => (ql.length < 2 ? [] : contacts), [contacts, ql])
 
   const bienResults = useMemo(() => {
-    if (!ql || (scope !== 'all' && scope !== 'biens')) return []
-    const list = biens.filter(b => `${b.title} ${b.ref} ${b.addr} ${b.canton} ${b.type}`.toLowerCase().includes(ql))
-    return list.slice(0, scope === 'biens' ? 20 : 4)
-  }, [biens, ql, scope])
+    if (!ql) return []
+    return biens.filter(b => `${b.title} ${b.ref} ${b.addr} ${b.canton} ${b.type}`.toLowerCase().includes(ql))
+  }, [biens, ql])
 
   const dealResults = useMemo(() => {
-    if (!ql || (scope !== 'all' && scope !== 'deals')) return []
+    if (!ql) return []
     const withLabel = deals.map(d => {
       const bien = d.bienId ? crmBienById(d.bienId) : undefined
       const contact = crmContactById(d.contactId)
@@ -340,12 +374,12 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
       const stageLabel = CRM_STAGES[d.stage]?.label ?? d.stage
       return { id: d.id, title, stageLabel }
     })
-    const list = withLabel.filter(d => `${d.title} ${d.stageLabel}`.toLowerCase().includes(ql))
-    return list.slice(0, scope === 'deals' ? 20 : 3)
-  }, [deals, ql, scope, tr])
+    return withLabel.filter(d => `${d.title} ${d.stageLabel}`.toLowerCase().includes(ql))
+  }, [deals, ql, tr])
 
-  // État vide = conversations récentes (à reprendre) ; sur requête = filtre titre.
-  const meggaRecent = useMemo(() => convList.slice(0, 5), [convList])
+  // ⚠ L'état vide ne montre PLUS les conversations du copilote : il montre ce
+  // qu'on vient de quitter (onglets ouverts et récemment fermés). Sur requête,
+  // elles restent un groupe de résultats comme un autre.
   const meggaResults = useMemo(() => filterConversationsByTitle(convList, q, 5), [convList, q])
 
   const showEmpty = !q.trim()
@@ -353,24 +387,59 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
   const adminCount = showAdmin ? 1 : 0
   const totalResults = ongletResults.length + adminCount + meggaResults.length + contactResults.length + bienResults.length + dealResults.length
 
-  // ── Liste plate (ordre = sections affichées) ──
-  const flatItems = useMemo<FlatItem[]>(() => {
-    const out: FlatItem[] = []
-    if (showEmpty) {
-      meggaRecent.forEach(c => out.push({ kind: 'megga-convo', id: c.id }))
-      AI_PROMPTS.forEach(() => out.push({ kind: 'ai' }))
-    } else {
-      // ⚠ EN TÊTE : « aller là où c'est déjà ouvert » précède « en ouvrir une copie ».
-      ongletResults.forEach(({ t }) => out.push({ kind: 'onglet', id: t.id }))
-      if (showAdmin) out.push({ kind: 'admin' })
-      meggaResults.forEach(c => out.push({ kind: 'megga-convo', id: c.id }))
-      contactResults.forEach(c => out.push({ kind: 'contact', id: c.id }))
-      bienResults.forEach(b => out.push({ kind: 'bien', id: b.id }))
-      dealResults.forEach(d => out.push({ kind: 'deal', id: d.id }))
-      out.push({ kind: 'ai-query' })
+  /**
+   * LES GROUPES — le modèle unique dont découlent l'affichage ET le clavier.
+   *
+   * ⛔ IL REMPLACE UNE ARITHMÉTIQUE D'INDEX TENUE À LA MAIN. Chaque section
+   * calculait son décalage en additionnant les longueurs des précédentes
+   * (`offConvos = adminCount`, `offContacts = adminCount + meggaResults.length`,
+   * …). Six lignes à garder d'accord avec l'ordre du rendu, et un groupe inséré
+   * décalait tout ce qui suivait sans qu'aucune porte ne le voie : la flèche du
+   * bas visait alors une ligne, et Entrée en ouvrait une autre. Ici l'ordre du
+   * rendu EST l'ordre de la liste plate, parce que c'est la même donnée.
+   *
+   * ⚠ L'ORDRE DES GROUPES N'EST PAS ESTHÉTIQUE. Les onglets ouverts passent
+   * devant tout : aller là où c'est déjà ouvert précède en ouvrir une copie. La
+   * console admin suit, parce qu'elle ne paraît que sur un mot-clé explicite —
+   * c'est une correspondance exacte, pas une suggestion.
+   */
+  const groupes = useMemo<Groupe[]>(() => {
+    const out: Groupe[] = []
+    const pousser = (cle: string, titre: string, tous: FlatItem[]) => {
+      if (!tous.length) return
+      const plafond = deplies.has(cle) ? PAR_GROUPE_DEPLIE : PAR_GROUPE
+      const items = tous.slice(0, plafond)
+      const reste = tous.length - items.length
+      if (reste > 0) items.push({ kind: 'plus', cle })
+      out.push({ cle, titre, total: tous.length, items })
     }
+
+    if (showEmpty) {
+      // L'état vide, c'est CE QU'ON VIENT DE QUITTER — pas des suggestions.
+      pousser('onglets', tr('search.command.section.openTabs'),
+        ongletResults.map(({ t }) => ({ kind: 'onglet', id: t.id } as FlatItem)))
+      pousser('fermes', tr('search.command.section.closedTabs'),
+        fermes.map((t) => ({ kind: 'ferme', id: t.id } as FlatItem)))
+      return out
+    }
+
+    pousser('onglets', tr('search.command.section.openTabs'),
+      ongletResults.map(({ t }) => ({ kind: 'onglet', id: t.id } as FlatItem)))
+    if (showAdmin) pousser('admin', tr('search.command.section.platform'), [{ kind: 'admin' }])
+    pousser('contacts', tr('nav.contacts'),
+      contactResults.map((c) => ({ kind: 'contact', id: c.id } as FlatItem)))
+    pousser('biens', tr('search.command.section.biens'),
+      bienResults.map((b) => ({ kind: 'bien', id: b.id } as FlatItem)))
+    pousser('deals', tr('search.command.section.deals'),
+      dealResults.map((d) => ({ kind: 'deal', id: d.id } as FlatItem)))
+    pousser('convos', tr('search.command.section.resumeMegga'),
+      meggaResults.map((c) => ({ kind: 'megga-convo', id: c.id } as FlatItem)))
+    out.push({ cle: 'ai', titre: '', total: 1, items: [{ kind: 'ai-query' }] })
     return out
-  }, [showEmpty, showAdmin, ongletResults, meggaRecent, meggaResults, contactResults, bienResults, dealResults])
+  }, [showEmpty, showAdmin, deplies, tr, ongletResults, fermes, contactResults, bienResults, dealResults, meggaResults])
+
+  /** La liste plate — DÉRIVÉE des groupes, jamais tenue en parallèle. */
+  const flatItems = useMemo<FlatItem[]>(() => groupes.flatMap((g) => g.items), [groupes])
 
   /**
    * ⛔ LA PAGE « Julien » A ÉTÉ SUPPRIMÉE (17 août 2026) : ces deux gestes
@@ -414,6 +483,13 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
    */
   const activer = useCallback((item: FlatItem | undefined, nouvelOnglet = false) => {
     if (!item) return
+    if (item.kind === 'plus') {
+      // ⚠ Déplier ne QUITTE pas la liste : on reste au même endroit, avec plus à
+      // voir. C'est ce qui remplace le choix de portée d'avant.
+      setDeplies((p) => new Set(p).add(item.cle))
+      return
+    }
+    if (item.kind === 'ferme') { tabsApi?.rouvrirFerme(item.id); return }
     if (item.kind === 'onglet') {
       const i = tabsApi?.tabs.findIndex((t) => t.id === item.id) ?? -1
       if (i >= 0) { onClose(); tabsApi?.selectionner(i) }
@@ -426,7 +502,7 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
     onClose()
     if (nouvelOnglet && tabsApi) tabsApi.ouvrirDans(href)
     else navigate(href)
-  }, [goMegga, resumeConversation, navigate, onClose, hrefDe, tabsApi])
+  }, [goMegga, resumeConversation, navigate, onClose, hrefDe, tabsApi, setDeplies])
 
   /**
    * Déclare la palette en place, et reprend le focus sur `⌘K`.
@@ -472,18 +548,15 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
         if (variante === 'inline') { setQ(''); setActiveIdx(0); onQueryChange?.('') }
         else onClose()
       }
-      else if (e.key === 'Tab') {
-        e.preventDefault()
-        const i = SCOPES.findIndex(s => s.id === scope)
-        const len = SCOPES.length
-        setScope(SCOPES[(i + (e.shiftKey ? len - 1 : 1)) % len].id); setActiveIdx(0)
-      } else if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(flatItems.length - 1, i + 1)) }
+      // ⚠ `Tab` ne fait plus tourner les portées : il n'y en a plus. Il est rendu
+      // au navigateur, qui sait déjà quoi en faire.
+      else if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(flatItems.length - 1, i + 1)) }
       else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(0, i - 1)) }
       else if (e.key === 'Enter') { e.preventDefault(); activer(flatItems[activeIdx], e.metaKey || e.ctrlKey) }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, scope, flatItems, activeIdx, onClose, activer, variante, onQueryChange])
+  }, [open, flatItems, activeIdx, onClose, activer, variante, onQueryChange])
 
   useEffect(() => {
     if (activeIdx >= flatItems.length) setActiveIdx(Math.max(0, flatItems.length - 1))
@@ -502,15 +575,7 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
     : '0 30px 80px -20px rgba(30,32,38,0.30), 0 1px 0 rgba(255,255,255,0.6) inset'
 
   // Offsets de la liste plate (ordre des sections rendues).
-  const offEmptyConvos = 0
-  const offEmptyPrompts = meggaRecent.length
-  const offOnglets = 0
-  const nOnglets = ongletResults.length
-  const offAdmin = nOnglets
-  const offConvos = nOnglets + adminCount
-  const offContacts = nOnglets + adminCount + meggaResults.length
-  const offBiens = nOnglets + adminCount + meggaResults.length + contactResults.length
-  const offDeals = nOnglets + adminCount + meggaResults.length + contactResults.length + bienResults.length
+  // (Les décalages n'existent plus : l'index d'une ligne est son rang dans `flatItems`.)
 
   /**
    * Le CORPS de la palette — champ, portées, résultats, pied.
@@ -527,6 +592,186 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
    * d'accord — c'est précisément ce que le relais vers ⌘K évitait. Deux
    * enveloppes autour d'un corps unique le tient encore.
    */
+  /**
+   * UNE ligne, pour tous les types de résultat.
+   *
+   * ⛔ IL Y EN AVAIT SIX, chacune recopiant l'état actif, son décalage d'index et
+   * son `onMouseEnter`. C'est dans ces copies que les rangs divergeaient — et un
+   * rang faux ne se voit pas : la flèche du bas surligne une ligne, Entrée en
+   * ouvre une autre. Ici le rang vient du rendu lui-même, il ne peut plus mentir.
+   *
+   * ⚠ Chaque type garde son ALLURE (l'avatar d'un contact, la vignette d'un bien,
+   * le prix aligné à droite) : unifier la mécanique n'est pas uniformiser ce
+   * qu'on regarde. Un bien qui ressemblerait à un contact serait plus lisible à
+   * écrire et moins à lire.
+   */
+  const Ligne = ({ item, idx }: { item: FlatItem; idx: number }) => {
+    const actif = activeIdx === idx
+    const commun = {
+      onMouseEnter: () => setActiveIdx(idx),
+      style: { ...ROW_BASE, color: sp.ink, ...activeRowStyle(actif, dark) } as CSSProperties,
+    }
+    const fleche = <IconArrowR stroke={actif ? accentBlue : sp.sub} />
+    const vignette = (contenu: ReactNode, rond = false) => (
+      <div style={{
+        width: 38, height: 38, flexShrink: 0, display: 'grid', placeItems: 'center',
+        borderRadius: rond ? 'var(--crm-radius-pill)' : 'var(--crm-radius-lg)',
+        background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`,
+      }}>{contenu}</div>
+    )
+    const titre = (texte: string) => (
+      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <Hi text={texte} q={q} sp={sp} />
+      </div>
+    )
+    const sousTitre = (texte: ReactNode) => (
+      <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, marginTop: 'var(--crm-space-2xs)' }}>{texte}</div>
+    )
+
+    switch (item.kind) {
+      case 'plus': {
+        const groupe = groupes.find((g) => g.cle === item.cle)
+        const reste = (groupe?.total ?? 0) - PAR_GROUPE
+        return (
+          <button {...commun} onClick={() => activer(item)} style={{ ...commun.style, color: sp.sub }}>
+            <div style={{ width: 38, flexShrink: 0 }} />
+            <div style={{ flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: actif ? sp.ink : sp.sub }}>
+              {tr('search.command.showAll', { count: reste })}
+            </div>
+          </button>
+        )
+      }
+      case 'onglet': {
+        const trouve = ongletResults.find(({ t }) => t.id === item.id)
+        if (!trouve) return null
+        return (
+          <button {...commun} onClick={() => activer(item)}>
+            {vignette(<IconOnglet stroke={sp.ink} />)}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {titre(trouve.nom)}
+              {sousTitre(tr('search.command.switchToTab', { rang: trouve.i + 1 }))}
+            </div>
+            {fleche}
+          </button>
+        )
+      }
+      case 'ferme': {
+        const tb = fermes.find((t) => t.id === item.id)
+        if (!tb) return null
+        return (
+          <button {...commun} onClick={() => activer(item)}>
+            {vignette(<IconOnglet stroke={sp.sub} />)}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {titre(crmTabLibelle(tb, tr))}
+              {sousTitre(tr('search.command.reopenTab'))}
+            </div>
+            {fleche}
+          </button>
+        )
+      }
+      case 'contact': {
+        const c = contactResults.find((x) => x.id === item.id)
+        if (!c) return null
+        const score = c.ai_seriousness_score
+        const initiales = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase()
+        return (
+          <button {...commun} onClick={(e) => activer(item, e.metaKey || e.ctrlKey)}>
+            <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: '#0041D9', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>
+              {initiales}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>{titre(`${c.first_name} ${c.last_name}`)}</div>
+            {typeof score === 'number' && (
+              <div style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: score >= 80 ? '#0E9F6E' : score >= 60 ? '#0041D9' : sp.sub, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}` }}>
+                {score}
+              </div>
+            )}
+            {fleche}
+          </button>
+        )
+      }
+      case 'bien': {
+        const b = bienResults.find((x) => x.id === item.id)
+        if (!b) return null
+        const prix = b.transaction === 'location' ? b.rent ?? b.price : b.price
+        return (
+          <button {...commun} onClick={(e) => activer(item, e.metaKey || e.ctrlKey)}>
+            <BienThumb id={b.id} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {titre(b.title)}
+              {sousTitre(
+                <span style={{ display: 'flex', gap: 'var(--crm-space-md)', alignItems: 'center' }}>
+                  <span>{b.addr || b.canton || '—'}</span>
+                  {b.rooms ? <span>{tr('search.command.roomsShort', { count: b.rooms })}</span> : null}
+                  {b.area ? <span>· {b.area} m²</span> : null}
+                </span>,
+              )}
+            </div>
+            {prix ? (
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
+                  {formatCHF(prix)}{b.transaction === 'location' ? tr('search.perMonth') : ''}
+                </div>
+                <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 500 }}>{b.transaction}</div>
+              </div>
+            ) : null}
+          </button>
+        )
+      }
+      case 'deal': {
+        const d = dealResults.find((x) => x.id === item.id)
+        if (!d) return null
+        return (
+          <button {...commun} onClick={(e) => activer(item, e.metaKey || e.ctrlKey)}>
+            {vignette(<IconPipeline stroke={sp.ink} />)}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              {titre(d.title)}
+              {sousTitre(d.stageLabel)}
+            </div>
+            {fleche}
+          </button>
+        )
+      }
+      case 'megga-convo': {
+        const c = meggaResults.find((x) => x.id === item.id)
+        if (!c) return null
+        return (
+          <MeggaConvoRow
+            convo={c} q={q} sp={sp} dark={dark} lang={i18n.language}
+            active={actif}
+            onHover={() => setActiveIdx(idx)}
+            onSelect={() => activer(item)}
+          />
+        )
+      }
+      case 'admin':
+        return (
+          <button {...commun} onClick={(e) => activer(item, e.metaKey || e.ctrlKey)}>
+            {vignette(
+              <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={sp.ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" />
+                <path d="M7 7.5h.01M7 16.5h.01" />
+              </svg>,
+            )}
+            <div style={{ flex: 1, minWidth: 0 }}>{titre(tr('profile.adminConsole'))}</div>
+            {fleche}
+          </button>
+        )
+      default:
+        // `ai` et `ai-query` — la porte vers le copilote, toujours en dernier.
+        return (
+          <button {...commun} onClick={() => activer(item)}>
+            <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: 'linear-gradient(135deg, #0041D9 0%, #8B5CF6 100%)', display: 'grid', placeItems: 'center' }}>
+              <IconSpark size={14} stroke="#fff" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>
+              {tr('search.command.askMeggaQuery', { query: q })}
+            </div>
+            {fleche}
+          </button>
+        )
+    }
+  }
+
   const corps = (
     <>
         {/* Le champ.
@@ -551,7 +796,7 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
             ref={inputRef}
             className="crmSearchField"
             value={q}
-            onChange={e => { setQ(e.target.value); setActiveIdx(0); onQueryChange?.(e.target.value) }}
+            onChange={e => { setQ(e.target.value); setActiveIdx(0); setDeplies(new Set()); onQueryChange?.(e.target.value) }}
             placeholder={tr('search.command.placeholder')}
             autoFocus
             style={{
@@ -594,40 +839,7 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
           )}
         </div>
 
-        {/* Pills de portée — sans hint clavier.
-            ⚠ EN PLACE ET CHAMP VIDE, TOUT CE QUI SUIT S'EFFACE : la page qui
-            accueille la palette a son propre contenu de repos (les destinations
-            du nouvel onglet), et lui superposer les portées et les suggestions
-            de l'état vide ferait deux listes concurrentes dans le même champ de
-            vision. Vu à l'écran avant de le corriger. Le voile, lui, n'a rien
-            d'autre à montrer : il garde son état vide. */}
-        {(!enPlace || !showEmpty) && (
-        <div style={{ padding: enPlace ? 'var(--crm-space-2xl) 0 var(--crm-space-2xl)' : '0 28px 16px', display: 'flex', gap: 'var(--crm-space-sm)', alignItems: 'center', borderBottom: enPlace ? 'none' : `1px solid ${sp.cardBorder}` }}>
-          {SCOPES.map(s => {
-            const isActive = scope === s.id
-            return (
-              <button
-                key={s.id}
-                onClick={() => { setScope(s.id); setActiveIdx(0) }}
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = sp.cardSubBg }}
-                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
-                style={{
-                  padding: 'var(--crm-space-sm) var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, cursor: 'pointer',
-                  background: isActive ? sp.accent : 'transparent',
-                  color: isActive ? sp.accentInk : sp.sub,
-                  fontSize: 'var(--crm-text-lg)', fontWeight: isActive ? 600 : 500,
-                  fontFamily: 'inherit', letterSpacing: -0.1,
-                  transition: 'background .15s ease, color .15s ease',
-                }}
-              >
-                {tr(s.labelKey)}
-              </button>
-            )
-          })}
-        </div>
-        )}
-
-        {/* Corps scrollable.
+        {/* Corps.
             ⚠ En place, ni défilement propre ni gouttière horizontale : la page
             possède déjà sa colonne et son ascenseur. Lui en donner un second
             ferait défiler les résultats DANS un cadre au milieu d'une page qui
@@ -636,40 +848,8 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
         <div style={enPlace
           ? { padding: 'var(--crm-space-lg) 0 var(--crm-space-sm)' }
           : { flex: 1, overflowY: 'auto', padding: 'var(--crm-space-lg) var(--crm-space-xl) var(--crm-space-sm)', scrollbarWidth: 'thin' }}>
-          {/* ── État vide ── */}
-          {showEmpty && (
-            <>
-              {meggaRecent.length > 0 && (
-                <Section title={tr('search.command.section.resumeMegga')} count={meggaRecent.length} sp={sp}>
-                  {meggaRecent.map((c, i) => (
-                    <MeggaConvoRow
-                      key={c.id} convo={c} q="" sp={sp} dark={dark} lang={i18n.language}
-                      active={activeIdx === offEmptyConvos + i}
-                      onHover={() => setActiveIdx(offEmptyConvos + i)}
-                      onSelect={() => resumeConversation(c.id)}
-                    />
-                  ))}
-                </Section>
-              )}
 
-              <Section title={tr('search.command.section.askMegga')} sp={sp}>
-                {AI_PROMPTS.map((p, i) => {
-                  const idx = offEmptyPrompts + i
-                  const isActive = activeIdx === idx
-                  return (
-                    <button key={p} onClick={goMegga} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
-                      <div style={{ width: 16, flexShrink: 0, display: 'grid', placeItems: 'center' }}>
-                        <IconSpark stroke={isActive ? sp.ink : sp.sub} />
-                      </div>
-                      <div style={{ flex: 1, fontSize: 'var(--crm-text-lg)', color: sp.ink, fontWeight: 500 }}>{tr(`search.command.aiPrompts.${p}`)}</div>
-                    </button>
-                  )
-                })}
-              </Section>
-            </>
-          )}
-
-          {/* ── Aucun résultat ── */}
+          {/* ── Rien à montrer ── */}
           {!showEmpty && totalResults === 0 && (
             <div style={{ padding: '60px 20px', textAlign: 'center', color: sp.sub }}>
               <div style={{ width: 56, height: 56, borderRadius: 'var(--crm-radius-2xl)', margin: '0 auto 14px', background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
@@ -677,206 +857,38 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
               </div>
               <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>{tr('search.command.empty.title', { query: q })}</div>
               <div style={{ fontSize: 'var(--crm-text-lg)', marginTop: 6 }}>{tr('search.command.empty.body')}</div>
-              <button
-                onClick={goMegga}
-                style={{
-                  marginTop: 18, padding: 'var(--crm-space-md) var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
-                  background: 'linear-gradient(135deg, #0041D9 0%, #8B5CF6 100%)', color: '#fff',
-                  fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-                  display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-md)', boxShadow: '0 8px 20px -8px rgba(60,80,200,0.5)',
-                }}
-              >
-                <IconSpark size={14} stroke="#fff" />
-                {tr('search.command.askMeggaQuery', { query: q })}
-              </button>
             </div>
           )}
 
-          {/* ── Onglets déjà ouverts ── */}
-          {!showEmpty && ongletResults.length > 0 && (
-            <Section title={tr('search.command.section.openTabs')} count={ongletResults.length} sp={sp}>
-              {ongletResults.map(({ t: tb, i: rang, nom }, i) => {
-                const idx = offOnglets + i
-                const isActive = activeIdx === idx
-                return (
-                  <button
-                    key={tb.id}
-                    onClick={() => activer({ kind: 'onglet', id: tb.id })}
-                    onMouseEnter={() => setActiveIdx(idx)}
-                    style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}
-                  >
-                    <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-lg)', flexShrink: 0, background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
-                      {/* Deux rectangles décalés : la forme d'un onglet, et non
-                          l'icône de l'entité — c'est le CONTENANT qu'on propose. */}
-                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={sp.ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="7" width="13" height="13" rx="2" /><path d="M8 4h11a2 2 0 0 1 2 2v11" />
-                      </svg>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        <Hi text={nom} q={q} sp={sp} />
-                      </div>
-                      <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, marginTop: 'var(--crm-space-2xs)' }}>
-                        {tr('search.command.switchToTab', { rang: rang + 1 })}
-                      </div>
-                    </div>
-                    <IconArrowR stroke={isActive ? accentBlue : sp.sub} />
-                  </button>
-                )
-              })}
-            </Section>
-          )}
-
-          {/* ── Console admin (super-admin, sur requête explicite) ── */}
-          {!showEmpty && showAdmin && (
-            <Section title={tr('search.command.section.platform')} sp={sp}>
-              <button
-                onClick={(e) => activer({ kind: 'admin' }, e.metaKey || e.ctrlKey)}
-                onMouseEnter={() => setActiveIdx(offAdmin)}
-                style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(activeIdx === offAdmin, dark) }}
-              >
-                <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-lg)', flexShrink: 0, background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
-                  <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke={sp.ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" />
-                    <path d="M7 7.5h.01M7 16.5h.01" />
-                  </svg>
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, lineHeight: 1.2 }}>
-                    {tr('profile.adminConsole')}
-                  </div>
-                </div>
-                <IconArrowR stroke={activeIdx === offAdmin ? accentBlue : sp.sub} />
-              </button>
-            </Section>
-          )}
-
-          {/* ── Conversations Megga (sur requête) ── */}
-          {!showEmpty && meggaResults.length > 0 && (
-            <Section title={tr('search.command.section.meggaConvos')} count={meggaResults.length} sp={sp}>
-              {meggaResults.map((c, i) => (
-                <MeggaConvoRow
-                  key={c.id} convo={c} q={q} sp={sp} dark={dark} lang={i18n.language}
-                  active={activeIdx === offConvos + i}
-                  onHover={() => setActiveIdx(offConvos + i)}
-                  onSelect={() => resumeConversation(c.id)}
-                />
-              ))}
-            </Section>
-          )}
-
-          {/* ── Contacts ── */}
-          {!showEmpty && contactResults.length > 0 && (
-            <Section title={tr('nav.contacts')} count={contactResults.length} sp={sp}>
-              {contactResults.map((c, i) => {
-                const idx = offContacts + i
-                const isActive = activeIdx === idx
-                const score = c.ai_seriousness_score
-                const initials = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase()
-                return (
-                  <button key={c.id} onClick={(e) => activer({ kind: 'contact', id: c.id }, e.metaKey || e.ctrlKey)} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: '#0041D9', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>
-                      {initials}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, lineHeight: 1.2 }}>
-                        <Hi text={`${c.first_name} ${c.last_name}`} q={q} sp={sp} />
-                      </div>
-                    </div>
-                    {typeof score === 'number' && (
-                      <div style={{ fontVariantNumeric: 'tabular-nums', fontSize: 'var(--crm-text-md)', fontWeight: 600, color: score >= 80 ? '#0E9F6E' : score >= 60 ? '#0041D9' : sp.sub, padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}` }}>
-                        {score}
-                      </div>
-                    )}
-                    <IconArrowR stroke={isActive ? accentBlue : sp.sub} />
-                  </button>
-                )
-              })}
-            </Section>
-          )}
-
-          {/* ── Biens ── */}
-          {!showEmpty && bienResults.length > 0 && (
-            <Section title={tr('search.command.section.biens')} count={bienResults.length} sp={sp}>
-              {bienResults.map((b, i) => {
-                const idx = offBiens + i
-                const isActive = activeIdx === idx
-                const price = b.transaction === 'location' ? b.rent ?? b.price : b.price
-                return (
-                  <button key={b.id} onClick={(e) => activer({ kind: 'bien', id: b.id }, e.metaKey || e.ctrlKey)} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
-                    <BienThumb id={b.id} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        <Hi text={b.title} q={q} sp={sp} />
-                      </div>
-                      <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, marginTop: 3, display: 'flex', gap: 'var(--crm-space-md)', alignItems: 'center' }}>
-                        <span>{b.addr || b.canton || '—'}</span>
-                        {b.rooms ? <><span style={{ width: 3, height: 3, borderRadius: 'var(--crm-radius-pill)', background: sp.sub, opacity: 0.5 }} /><span>{tr('search.command.roomsShort', { count: b.rooms })}</span></> : null}
-                        {b.area ? <span>· {b.area} m²</span> : null}
-                      </div>
-                    </div>
-                    {price ? (
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, fontVariantNumeric: 'tabular-nums' }}>
-                          {formatCHF(price)}{b.transaction === 'location' ? tr('search.perMonth') : ''}
-                        </div>
-                        <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, fontWeight: 500 }}>{b.transaction}</div>
-                      </div>
-                    ) : null}
-                  </button>
-                )
-              })}
-            </Section>
-          )}
-
-          {/* ── Deals ── */}
-          {!showEmpty && dealResults.length > 0 && (
-            <Section title={tr('search.command.section.deals')} count={dealResults.length} sp={sp}>
-              {dealResults.map((d, i) => {
-                const idx = offDeals + i
-                const isActive = activeIdx === idx
-                return (
-                  <button key={d.id} onClick={(e) => activer({ kind: 'deal', id: d.id }, e.metaKey || e.ctrlKey)} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
-                      <IconPipeline stroke={sp.ink} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>
-                        <Hi text={d.title} q={q} sp={sp} />
-                      </div>
-                      <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, marginTop: 2 }}>{d.stageLabel}</div>
-                    </div>
-                    <IconArrowR stroke={isActive ? accentBlue : sp.sub} />
-                  </button>
-                )
-              })}
-            </Section>
-          )}
-
-          {/* ── CTA « Demander à Megga » (toujours présent dès qu'on tape) ── */}
-          {!showEmpty && (
-            <div style={{ padding: 'var(--crm-space-sm) var(--crm-space-2xl) var(--crm-space-xl)' }}>
-              <button
-                onClick={goMegga}
-                style={{
-                  width: '100%', padding: 'var(--crm-space-xl) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-xl)', cursor: 'pointer',
-                  background: dark
-                    ? 'linear-gradient(135deg, rgba(0,65,217,0.25) 0%, rgba(139,92,246,0.25) 100%)'
-                    : 'linear-gradient(135deg, rgba(0,65,217,0.08) 0%, rgba(139,92,246,0.08) 100%)',
-                  border: `1px solid ${dark ? 'rgba(139,92,246,0.3)' : 'rgba(139,92,246,0.18)'}`,
-                  display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', fontFamily: 'inherit', textAlign: 'left',
-                }}
-              >
-                <div style={{ width: 32, height: 32, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: 'linear-gradient(135deg, #0041D9 0%, #8B5CF6 100%)', display: 'grid', placeItems: 'center' }}>
-                  <IconSpark size={14} stroke="#fff" />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>{tr('search.command.askMeggaQuery', { query: q })}</div>
-                </div>
-                <IconArrowR stroke={sp.sub} />
-              </button>
+          {/* ── L'état vide sans rien à reprendre ── */}
+          {showEmpty && !flatItems.length && (
+            <div style={{ padding: '48px 20px', textAlign: 'center', color: sp.sub, fontSize: 'var(--crm-text-lg)' }}>
+              {tr('search.command.startTyping')}
             </div>
           )}
+
+          {/* ── Les groupes ──────────────────────────────────────────────────
+              ⚠ UN SEUL rendu pour tous. Il y en avait six, chacun avec sa copie
+              de la ligne active, de son décalage et de son `onMouseEnter` — et
+              c'est dans ces copies que les index divergeaient. Le rang d'une
+              ligne est ici son rang dans `flatItems`, compté au fil du rendu :
+              il ne PEUT plus être faux. */}
+          {(() => {
+            let rang = -1
+            return groupes.map((groupe) => (
+              <Section
+                key={groupe.cle}
+                title={groupe.titre}
+                count={groupe.cle === 'ai' ? undefined : groupe.total}
+                sp={sp}
+              >
+                {groupe.items.map((item) => {
+                  rang += 1
+                  return <Ligne key={`${groupe.cle}-${rang}`} item={item} idx={rang} />
+                })}
+              </Section>
+            ))
+          })()}
         </div>
         )}
 

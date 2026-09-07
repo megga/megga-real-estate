@@ -138,7 +138,7 @@ const SURFACES_EXEMPTEES: { fichier: string; motif: string }[] = [
  * clause « aucune entrée ne garde de crédit » à chaque exécution.
  */
 const HORS_ASSUMES = new Map<string, number>([
-  ['src/components/crm', 538],
+  ['src/components/crm', 536],
   ['src/components/crm-mobile', 141],
   ['src/components/crm-dossiers', 68],
   ['src/components/crm-wizard', 48],
