@@ -93,7 +93,15 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
   useEffect(() => {
     if (!ecranActif) return
     const racine = document.documentElement
-    racine.style.setProperty(VAR_CHROME_TOP, avecOnglets ? `${H_BANDE}px` : 'var(--crm-space-lg)')
+    // ⚠ LA BANDE **PLUS** LA GOUTTIÈRE. `H_BANDE` seul collait les cartes sous la
+    // dernière puce — mesuré : puce à 42, carte latérale à 42, zéro respiration.
+    // Et surtout, 42 ne correspondait à RIEN côté contenu : le `<main>` porte son
+    // propre `padding-top` de 12, donc son cadre bento commençait à 54. Les deux
+    // cartes se ratent de douze pixels tant qu'elles ne lisent pas le même
+    // nombre. Le cadre du contenu est la référence — c'est lui qu'on regarde.
+    racine.style.setProperty(VAR_CHROME_TOP, avecOnglets
+      ? `calc(${H_BANDE}px + var(--crm-space-lg))`
+      : 'var(--crm-space-lg)')
     return () => { racine.style.removeProperty(VAR_CHROME_TOP) }
   }, [ecranActif, avecOnglets])
 
@@ -129,13 +137,12 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
       <div style={{
         display: 'flex', flex: 1, minWidth: 0,
         paddingTop: avecOnglets ? 0 : undefined,
-        // ⛔ LA GOUTTIÈRE BASSE EST STRUCTURELLE, elle ne vient pas du `<main>`.
-        // Avant, c'était la carte latérale — la plus haute de la rangée — qui la
-        // fixait : elle fermait 24 px au-dessus du pli, et le contenu s'alignait
-        // sur elle. La carte étant maintenant DANS cette rangée, plus rien ne la
-        // portait : mesuré juste après la bascule, `main` filait jusqu'à 900 au
-        // lieu de 876. La rangée la porte donc explicitement, au même jeton.
-        paddingBottom: 'var(--crm-space-6xl)',
+        // ⛔ AUCUNE GOUTTIÈRE BASSE ICI, et c'est un gain de place assumé
+        // (Julien : « mords un peu plus sur le bas »). Elle en portait une de 24,
+        // qui s'AJOUTAIT au `padding-bottom` du `<main>` : le cadre bento fermait
+        // donc à 852 sur 900 — quarante-huit pixels perdus, comptés deux fois. La
+        // rangée descend maintenant jusqu'au pli, et c'est le `<main>` seul qui
+        // tient la gouttière. Le cadre gagne 24 px et ferme à 876.
       }}>
         <CrmSidebar {...sidebar} />
         <div style={{

@@ -487,9 +487,10 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
           // et la page s'est mise à défiler jusqu'à 1132. Une hauteur qui se
           // dérive demande une hauteur définie quelque part ; ici il n'y en a pas.
           height: 'calc(100vh - var(--crm-chrome-top, var(--crm-space-lg)) - var(--crm-space-6xl))',
-          // ⚠ Plus de marge HAUTE : la gouttière vient désormais de la bande (ou
-          // de la rangée quand il n'y en a pas). L'y laisser la compterait deux fois.
-          margin: '0 0 0 var(--crm-space-lg)',
+          // ⚠ La marge haute REVIENT, et elle vaut le `padding-top` du `<main>` :
+          // c'est ce qui met la carte latérale et le cadre bento sur la MÊME
+          // ligne. Sans elle, la carte commençait à 42 et le cadre à 54.
+          margin: 'var(--crm-space-lg) 0 0 var(--crm-space-lg)',
           background: sp.frameBg,
           border: `1px solid ${sp.frameBorder}`,
           borderRadius: 'var(--crm-radius-6xl)',
