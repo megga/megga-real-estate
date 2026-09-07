@@ -134,10 +134,25 @@ const SONDE_MS = 400
  * On remesure donc sur les SIGNAUX qui font vraiment bouger la largeur :
  *   • le montage ;
  *   • le redimensionnement de la fenêtre ;
+ *   • le RETOUR SUR LA PAGE, après qu'elle a été en arrière-plan ;
  *   • l'ouverture du dock MEGGA AI et le repli de la barre latérale, qui sont des
  *     ÉTATS que ce composant connaît déjà — on n'a pas besoin de les observer, il
  *     suffit d'en dépendre ;
  *   • le nombre d'onglets, qui refait couler les puces.
+ *
+ * ⛔ LE RETOUR EST UN SIGNAL DEPUIS QUE LA LARGEUR EST PARTAGÉE, et c'est une
+ * dette que ce chantier a lui-même créée. Tant que chaque barre gardait sa
+ * mesure en `useState`, une valeur périmée mourait avec son composant : la barre
+ * suivante repartait de zéro et remesurait. Elle vit maintenant dans
+ * `crmStripView`, au-dessus des instances — donc une mesure fausse SURVIT aux
+ * montages, et rien ne la révoque.
+ *
+ * Or une page en arrière-plan est précisément là où une mesure devient fausse
+ * sans que personne ne le voie : le navigateur y gèle le rendu, et un
+ * `resize` — fenêtre réarrangée, écran débranché, zoom changé — s'y traite sur
+ * une mise en page qui n'est plus rafraîchie. Au retour, aucun montage n'est
+ * garanti (basculer entre deux onglets DÉJÀ vivants n'en monte aucun) : sans ce
+ * signal, la bande resterait cadrée sur la largeur d'avant l'absence.
  *
  * ⛔ `useLayoutEffect`, ET LA MESURE EST SYNCHRONE — c'est ce point-là qui a changé
  * le 7 septembre 2026. Elle passait par `queueMicrotask`, choisi parce qu'il tire
@@ -186,7 +201,29 @@ function useLargeurPuces(
     brut = requestAnimationFrame(sonde)
 
     window.addEventListener('resize', mesurer)
-    return () => { cancelAnimationFrame(brut); window.removeEventListener('resize', mesurer) }
+
+    // ⚠ La sonde rAF est RELANCÉE au retour, pas seulement la mesure : le
+    // navigateur rend sa première frame après le retour, et une mise en page
+    // qu'il n'entretenait plus peut se stabiliser sur quelques frames. C'est le
+    // même motif que le pli de la barre latérale — d'où la même sonde bornée.
+    const auRetour = () => {
+      if (document.visibilityState !== 'visible') return
+      mesurer()
+      cancelAnimationFrame(brut)
+      const t0 = performance.now()
+      const encore = () => {
+        mesurer()
+        if (performance.now() - t0 < SONDE_MS) brut = requestAnimationFrame(encore)
+      }
+      brut = requestAnimationFrame(encore)
+    }
+    document.addEventListener('visibilitychange', auRetour)
+
+    return () => {
+      cancelAnimationFrame(brut)
+      window.removeEventListener('resize', mesurer)
+      document.removeEventListener('visibilitychange', auRetour)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [piste, vide, ...signaux])
   return largeur
