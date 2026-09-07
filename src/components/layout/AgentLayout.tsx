@@ -29,6 +29,8 @@ import { readCrmDark } from '@/lib/crmDark'
 import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { crmEcransVivants, crmTabHref, type CrmTab } from '@/lib/crmTabs'
+import { QueryClientProvider, useQueryClient } from '@tanstack/react-query'
+import { clientArrierePlan } from '@/lib/queryClients'
 
 /** Lit la préférence de thème sombre Sugar (fallback : préférence système). */
 // Mode sombre Sugar (même clé localStorage que les pages). Réactif : `storage`
@@ -157,6 +159,11 @@ const EcranVivant = memo(function EcranVivant({ actif, id, pathname, search, has
     () => ({ pathname, search, hash, state: null, key: id }),
     [pathname, search, hash, id],
   )
+  // ⚠ Le jumeau se DÉRIVE du client de l'hôte, il n'est pas importé en dur : le
+  // banc `/dev/crm` fournit le sien, et un composant n'a pas à décider quel
+  // magasin l'entoure. Voir `clientArrierePlan`.
+  const hote = useQueryClient()
+  const clientCache = useMemo(() => clientArrierePlan(hote), [hote])
   const style: CSSProperties = actif
     ? { position: 'relative' }
     : { position: 'absolute', inset: 0, visibility: 'hidden', pointerEvents: 'none', overflow: 'hidden' }
@@ -184,6 +191,22 @@ const EcranVivant = memo(function EcranVivant({ actif, id, pathname, search, has
           (bande d'onglets, barre latérale) cesse alors d'écouter le clavier.
           Sans ça, une frappe `Alt+1` partait trois fois — une par écran vivant —
           et poussait trois entrées d'historique pour un seul geste. */}
+      {/* ⛔ UN CLIENT REACT QUERY PAR ÉTAT DE VISIBILITÉ, et c'est la garde
+          demandée par Julien le 7 septembre 2026. `refetchOnWindowFocus` est un
+          défaut global : au retour sur la page, TOUTES les requêtes montées
+          repartent — soit, depuis ce chantier, celles de SIX écrans au lieu de
+          trois, dont cinq que personne ne regarde.
+
+          `query.onFocus()` décide PAR OBSERVATEUR (`observers.find(x =>
+          x.shouldFetchOnWindowFocus())`) : il suffit qu'un seul le demande. Une
+          donnée que regarde l'écran visible se rafraîchit donc normalement, même
+          si des écrans cachés l'observent aussi ; une donnée que SEULS des
+          écrans cachés observent attend d'être regardée.
+
+          ⚠ Les deux clients partagent le MÊME cache — deux jeux de réglages sur
+          un seul magasin, jamais deux magasins. Le pourquoi, le coût et le
+          risque résiduel sont écrits dans `src/lib/queryClients.ts`. */}
+      <QueryClientProvider client={actif ? hote : clientCache}>
       <EcranActifProvider value={actif}>
       <Suspense fallback={actif ? <SmartPageLoader /> : null}>
         {/* ⚠ `location` sur `<Routes>` ne fait pas que choisir la route : React
@@ -194,6 +217,7 @@ const EcranVivant = memo(function EcranVivant({ actif, id, pathname, search, has
         <Routes location={loc}>{routes}</Routes>
       </Suspense>
       </EcranActifProvider>
+      </QueryClientProvider>
     </div>
   )
 })
