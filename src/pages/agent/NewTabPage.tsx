@@ -98,20 +98,19 @@ export default function NewTabPage() {
           <main style={{
             flex: 1,
             minWidth: 0,
-            padding: 'var(--crm-space-7xl) var(--crm-space-7xl) var(--crm-space-7xl) var(--crm-space-lg)',
+            padding: 'var(--crm-space-lg) var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-lg)',
             display: 'flex',
             justifyContent: 'center',
           }}>
             <div style={{
               width: '100%', maxWidth: COLONNE,
-              // Respiration au-dessus du champ, comme la page d'accueil d'un
-              // navigateur — mais UN CRAN DE L'ÉCHELLE, pas une valeur choisie à
-              // l'œil. Un `clamp()` proportionnel a été essayé puis retiré : il
-              // n'est sur aucun barreau, et la marge de manœuvre verticale ne le
-              // justifie pas — sur un portable de 900 px la colonne mesure déjà
-              // 786 px de haut, un décalage plus large ferait passer le dernier
-              // groupe sous le pli.
-              marginTop: 'var(--crm-space-7xl)',
+              // ⚠ AUCUNE MARGE HAUTE, et c'est un choix REVENU. Elle valait un cran
+              // (24 px) pour donner de l'air au champ, à la manière de la page
+              // d'accueil d'un navigateur. Mais la normalisation des gouttières du
+              // 7 septembre 2026 aligne TOUTES les surfaces sur 54 px : cette page
+              // démarrait alors à 78, seule contre dix. Un écran qui commence plus
+              // bas que ses voisins se voit à chaque bascule d'onglet, et
+              // l'alignement vaut mieux que les 24 px d'air.
             }}>
 
               {/* ── La recherche, EN PLACE ─────────────────────────────── */}

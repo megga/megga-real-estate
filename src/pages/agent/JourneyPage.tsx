@@ -67,7 +67,7 @@ export default function JourneyPage() {
             flex: 1,
             // La gouttière de gauche venait du rail (capsule centrée dans ses
             // 128 px) : la barre est désormais une carte pleine, il faut la poser ici.
-            padding: '32px 40px 80px var(--crm-space-lg)',
+            padding: 'var(--crm-space-lg) var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-lg)',
             minWidth: 0,
           }}
         >

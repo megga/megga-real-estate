@@ -125,7 +125,7 @@ export default function AuditPage() {
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
         <CrmWorkspace sp={sp} dark={dark} setDark={setDark}>
 
-        <main style={{ flex: 1, minWidth: 0, padding: etroit ? '24px 16px 120px 16px' : '24px 40px 120px 40px' }}>
+        <main style={{ flex: 1, minWidth: 0, padding: etroit ? 'var(--crm-space-lg) var(--crm-space-2xl) var(--crm-space-6xl) var(--crm-space-2xl)' : 'var(--crm-space-lg) var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-lg)' }}>
           <div style={{ maxWidth: 1280, margin: '0 auto' }}>
             {/* HEADER */}
             <div

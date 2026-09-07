@@ -1036,7 +1036,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // ⚠ Les deux `padding` en RACCOURCI qui portaient 22 (KycPage, CrmPageSkeleton)
   // ne bougent aucun compteur : `b4EstLitteral` écarte toute déclaration
   // contenant déjà un `var(--crm-*)`, et les deux en avaient un.
-  ['src/pages/agent', { hors: 321, total: 926 }],
+  // ⚠ 317 / 922 depuis le 7 septembre 2026 : la normalisation des gouttières de
+  // `<main>` a remplacé sept littéraux (`24px 40px 120px`, `32px 40px 80px`…) par
+  // les jetons de l'échelle. Le cliquet serre dans les deux sens — laisser le
+  // crédit rendrait quatre littéraux réintroduits invisibles.
+  ['src/pages/agent', { hors: 317, total: 922 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 68, total: 259 }],
 ])

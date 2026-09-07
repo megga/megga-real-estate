@@ -72,7 +72,7 @@ export default function DashboardNotFoundPage() {
         <CrmWorkspace active="" sp={sp} dark={dark} setDark={setDark}>
           <main style={{
             flex: 1, minWidth: 0, display: 'flex',
-            padding: 'var(--crm-space-7xl) var(--crm-space-7xl) var(--crm-space-7xl) var(--crm-space-lg)',
+            padding: 'var(--crm-space-lg) var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-lg)',
           }}>
             <EtatVide
               dark={dark}
