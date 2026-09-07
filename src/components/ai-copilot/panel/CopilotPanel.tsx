@@ -853,7 +853,13 @@ export default function CopilotPanel() {
    * ⚠ Le décalage d'usurpation reste : ce bandeau-là est empilé au-dessus du
    * contenu, donc il repousse le cadre autant que le panneau.
    */
-  const topInset = 'var(--crm-space-lg)'
+  // ⚠ LE MÊME JETON QUE LA CARTE LATÉRALE. La bande d'onglets est passée pleine
+  // largeur au-dessus du chrome le 7 septembre 2026 : le dock démarrait sinon 30
+  // px plus haut que le contenu qu'il borde, comme la carte latérale avant lui.
+  // `--crm-chrome-top` est publié sur la RACINE par `CrmWorkspace`, parce que ce
+  // panneau est monté hors de la coquille et en `position: fixed` — il n'hérite
+  // de rien. Repli sur la gouttière simple là où aucune coquille ne l'écrit.
+  const topInset = 'var(--crm-chrome-top, var(--crm-space-lg))'
   const bottomInset = 'var(--crm-space-6xl)'
   // `sp.panelShadow` porte DÉJÀ le filet du dock, et de la bonne couleur. La
   // surcharge sombre qui vivait ici posait un `rgba(255,255,255,0.06)` — un

@@ -46,6 +46,8 @@ import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
 import { crmChipMaxWidth, crmChipMinWidth, crmDragBounds, crmPinnedCount, crmTabLibelle, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useEcranActif } from '@/hooks/useEcranActif'
+import { useAgentNotifications } from '@/hooks/useAgentNotifications'
+import CrmNotificationsPopover from './notifications/CrmNotificationsPopover'
 import { useCrmSidebarCollapsed } from '@/lib/crmSidebar'
 
 /**
@@ -333,6 +335,29 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
   // remesure, pas une information d'affichage — la barre d'onglets n'en fait rien d'autre.
   const [barreRepliee] = useCrmSidebarCollapsed()
   const ecranActif = useEcranActif()
+  // ⚠ Les notifications montent ICI depuis le 7 septembre 2026 (Julien) : elles
+  // occupaient une ligne pleine du pied de la barre latérale, pour un indicateur
+  // qui n'a besoin que d'un glyphe. Le quart droit de la bande est déjà la grappe
+  // des commandes d'état (✦ et le thème) — la cloche y est chez elle, et la
+  // latérale récupère une ligne.
+  const { items: notifs, unreadCount, markRead, markAllRead } = useAgentNotifications()
+  const [notifOuvert, setNotifOuvert] = useState(false)
+  const notifAncre = useRef<HTMLDivElement | null>(null)
+  // Clic dehors et Échap ferment la popover — elle vivait dans la barre latérale,
+  // son couple d'écouteurs la suit ici.
+  useEffect(() => {
+    if (!notifOuvert) return
+    const onDown = (e: MouseEvent) => {
+      if (notifAncre.current && !notifAncre.current.contains(e.target as Node)) setNotifOuvert(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNotifOuvert(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [notifOuvert])
 
   const barreRef = useRef<HTMLDivElement | null>(null)
   /** La piste des puces, et l'espace encore libre à sa droite. */
@@ -729,6 +754,34 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
           navigateur, c'est là que la main le cherche. */}
       <div ref={videRef} style={{ flex: 1, minWidth: 'var(--crm-space-lg)' }} aria-hidden />
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flexShrink: 0 }}>
+        {/* ⚠ `position: relative` sur l'ancre, et pas sur la grappe : la popover
+            s'ouvre en `below-right`, elle se cale donc sur le bord droit de SA
+            commande — pas sur celui du groupe, qui la décalerait du thème. */}
+        <div ref={notifAncre} style={{ position: 'relative' }}>
+          <CommandeRonde
+            sp={sp}
+            icone="bell"
+            actif={notifOuvert}
+            libelle={unreadCount > 0
+              ? `${t('nav.notifications')} · ${t('notifications.unreadCount', { count: unreadCount })}`
+              : t('nav.notifications')}
+            haspopup="dialog"
+            expanded={notifOuvert}
+            badge={unreadCount}
+            onClick={() => setNotifOuvert((o) => !o)}
+          />
+          {notifOuvert && (
+            <CrmNotificationsPopover
+              sp={sp}
+              dark={dark}
+              items={notifs}
+              onItemClick={(n) => { markRead(n.id); setNotifOuvert(false) }}
+              onMarkAll={() => markAllRead()}
+              onSeeAll={() => setNotifOuvert(false)}
+              onMute={() => setNotifOuvert(false)}
+            />
+          )}
+        </div>
         {ai.enabled && (
           <CommandeRonde
             sp={sp}
@@ -836,14 +889,16 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
  * Commande ronde du quart droit — même diamètre que la pastille « +N », pour que
  * les trois se lisent comme une seule famille.
  */
-function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded }: {
+function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded, badge = 0 }: {
   sp: CrmPalette
-  icone: 'sparkle' | 'sun' | 'moon' | 'plus'
+  icone: 'sparkle' | 'sun' | 'moon' | 'plus' | 'bell'
   actif: boolean
   libelle: string
   onClick: () => void
   haspopup?: 'dialog'
   expanded?: boolean
+  /** Compteur non lu, posé en pastille sur le coin. `0` n'en rend aucune. */
+  badge?: number
 }) {
   const [survol, setSurvol] = useState(false)
   return (
@@ -879,9 +934,34 @@ function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded 
         border: `1px solid ${actif ? sp.accent : survol ? sp.soft : sp.cardBorder}`,
         color: actif ? sp.accentInk : survol ? sp.ink : sp.sub,
         transition: 'background-color .18s ease, border-color .18s ease, color .18s ease',
+        // ⚠ Ancre de la pastille de compteur. Sans elle, le compteur se calerait
+        // sur la grappe entière et flotterait entre deux commandes.
+        position: 'relative',
       }}
     >
       <MEIcon name={icone} size={15} strokeWidth={1.7} />
+      {/* ⚠ LE COMPTEUR, PAS UN POINT. La barre latérale montrait le NOMBRE de non
+          lus ; le réduire à un point en déménageant aurait retiré une information
+          au passage. Au-delà de neuf, « 9+ » — deux chiffres ne tiennent pas sur
+          une commande de 26 px sans déborder du cercle.
+          ⚠ Rouge sémantique et non l'accent : c'est un état à traiter, pas
+          l'élément actif. Même encre que la pastille qu'il remplace. */}
+      {badge > 0 && (
+        <span
+          aria-hidden
+          style={{
+            position: 'absolute', top: -3, right: -3,
+            minWidth: 15, height: 15, padding: '0 var(--crm-space-2xs)',
+            boxSizing: 'border-box',
+            borderRadius: 'var(--crm-radius-pill)',
+            background: '#E53935', color: '#ffffff',
+            border: `1.5px solid ${sp.frameBg}`,
+            fontSize: 'var(--crm-text-xs)', fontWeight: 600, lineHeight: 1,
+            display: 'grid', placeItems: 'center',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >{badge > 9 ? '9+' : badge}</span>
+      )}
     </button>
   )
 }

@@ -47,13 +47,11 @@ import { useCrmSidebarCollapsed } from '@/lib/crmSidebar'
 import { useIsMobile, useMediaQuery } from '@/hooks/useMediaQuery'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
-import { useAgentNotifications } from '@/hooks/useAgentNotifications'
 import { useAgencyObjective } from '@/hooks/useAgencyObjective'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { openCrmSearch } from './search/openSearch'
 import { openHelpFor } from '@/lib/help-articles'
 import { RelanceSession } from './today/RelanceSession'
-import CrmNotificationsPopover from './notifications/CrmNotificationsPopover'
 import CrmProfileDropdown from './profile/CrmProfileDropdown'
 import { formatCHF } from '@/lib/utils'
 
@@ -367,7 +365,6 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
   const collapsed = isMobile || (ai.enabled && ai.isOpen && serre) || stored
 
   const [relanceOpen, setRelanceOpen] = useState(false)
-  const [notifOpen, setNotifOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   // ⚠ On mémorise l'URL QUI A ÉCHOUÉ, pas un booléen « cassée ». Un booléen
   // demanderait un effet pour le réarmer quand l'agence remplace son logo — et
@@ -376,30 +373,28 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
   // rendu, sans effet ni re-rendu en cascade.
   const [brokenLogo, setBrokenLogo] = useState<string | null>(null)
   const [brokenAvatar, setBrokenAvatar] = useState<string | null>(null)
-  const notifAnchorRef = useRef<HTMLDivElement>(null)
   const profileAnchorRef = useRef<HTMLDivElement>(null)
 
-  const { items: notifs, unreadCount, markRead, markAllRead } = useAgentNotifications()
 
-  // Fermeture des deux popovers : clic dehors et Échap. Un seul couple
-  // d'écouteurs pour les deux, posé seulement quand l'un est ouvert.
+  // Fermeture de la popover du compte : clic dehors et Échap.
+  // ⚠ Elle en gardait DEUX, celle des notifications comprise. Cette dernière est
+  // partie dans la bande d'onglets le 7 septembre 2026, et son couple d'écouteurs
+  // avec elle : laisser ici un `notifOpen` qui ne s'ouvre plus aurait fait un
+  // état mort que rien ne signale.
   useEffect(() => {
-    if (!notifOpen && !profileOpen) return
+    if (!profileOpen) return
     const onDown = (e: MouseEvent) => {
       const target = e.target as Node
-      if (notifOpen && notifAnchorRef.current && !notifAnchorRef.current.contains(target)) setNotifOpen(false)
-      if (profileOpen && profileAnchorRef.current && !profileAnchorRef.current.contains(target)) setProfileOpen(false)
+      if (profileAnchorRef.current && !profileAnchorRef.current.contains(target)) setProfileOpen(false)
     }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { setNotifOpen(false); setProfileOpen(false) }
-    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setProfileOpen(false) }
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
     return () => {
       document.removeEventListener('mousedown', onDown)
       document.removeEventListener('keydown', onKey)
     }
-  }, [notifOpen, profileOpen])
+  }, [profileOpen])
 
   const activeId = active ?? crmSidebarActiveFor(location.pathname) ?? undefined
 
@@ -479,8 +474,22 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
           // déjà à `--crm-space-6xl` : sur celles-là, la carte dépassait le cadre
           // de 2 px. Une gouttière écrite à trois endroits finit toujours par
           // diverger ; écrite en `calc` sur les jetons, elle suit.
-          height: 'calc(100vh - var(--crm-space-lg) - var(--crm-space-6xl))',
-          margin: 'var(--crm-space-lg) 0 0 var(--crm-space-lg)',
+          // ⚠ ET DEPUIS LE 7 SEPTEMBRE 2026, ELLE DÉFALQUE AUSSI LA BANDE. Celle-ci
+          // est passée pleine largeur AU-DESSUS de la carte : sans ce terme, la
+          // carte faisait 864 px là où le contenu en faisait 834 — trente pixels
+          // d'écart entre deux cartes censées border le même cadre (mesuré).
+          // `--crm-chrome-top` vaut 42 avec la bande, 12 sans (mobile, bancs), et
+          // c'est le MÊME jeton que lit le dock MEGGA AI.
+          // ⛔ UN `calc` CONTRE `100vh`, ET PAS UN `alignSelf: stretch`. Essayé,
+          // mesuré, retiré : la rangée qui l'accueille n'a pas de hauteur DÉFINIE
+          // (elle est `flex: 1` dans une colonne qui n'en a pas non plus), donc
+          // `stretch` lui donnait celle du CONTENU — la carte est passée à 114 px
+          // et la page s'est mise à défiler jusqu'à 1132. Une hauteur qui se
+          // dérive demande une hauteur définie quelque part ; ici il n'y en a pas.
+          height: 'calc(100vh - var(--crm-chrome-top, var(--crm-space-lg)) - var(--crm-space-6xl))',
+          // ⚠ Plus de marge HAUTE : la gouttière vient désormais de la bande (ou
+          // de la rangée quand il n'y en a pas). L'y laisser la compterait deux fois.
+          margin: '0 0 0 var(--crm-space-lg)',
           background: sp.frameBg,
           border: `1px solid ${sp.frameBorder}`,
           borderRadius: 'var(--crm-radius-6xl)',
@@ -650,53 +659,18 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
 
         {/* ── 4. Pied : encart de synthèse + compte ────────────────────────── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
-          {/* ⛔ LES NOTIFICATIONS SONT DANS LE PIED, PAS DANS LA LISTE. Elles y
-              étaient, et deux raisons les en ont sorties : (1) la liste défile
-              sous ~900 px de hauteur utile — mesuré, la cloche passait sous un
-              pli, et un indicateur d'état qu'il faut faire défiler pour trouver
-              n'indique plus rien ; (2) sa popover s'ancre à sa ligne, donc une
-              ligne qui défile emporte la popover avec elle. Le pied ne défile
-              jamais. Elle rejoint ainsi le compte, l'autre ligne qui ouvre un
-              panneau au lieu de router. */}
-          <div ref={notifAnchorRef} style={{ position: 'relative' }}>
-            <SidebarRow
-              icon="bell"
-              label={t('nav.notifications')}
-              active={notifOpen}
-              collapsed={collapsed}
-              onClick={() => { setNotifOpen(o => !o); setProfileOpen(false) }}
-              sp={sp}
-              haspopup="dialog"
-              expanded={notifOpen}
-              ariaLabel={unreadCount > 0
-                ? `${t('nav.notifications')} · ${t('notifications.unreadCount', { count: unreadCount })}`
-                : t('nav.notifications')}
-              dot={unreadCount > 0}
-              trail={unreadCount > 0 ? (
-                <span style={{
-                  minWidth: 18, height: 18, padding: '0 var(--crm-space-2xs)',
-                  borderRadius: 'var(--crm-radius-pill)',
-                  background: notifOpen ? sp.accentInk : '#E53935',
-                  color: notifOpen ? sp.accent : '#ffffff',
-                  fontSize: 'var(--crm-text-xs)', fontWeight: 600,
-                  display: 'grid', placeItems: 'center', flexShrink: 0,
-                  fontVariantNumeric: 'tabular-nums', lineHeight: 1,
-                }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
-              ) : undefined}
-            />
-            {notifOpen && (
-              <CrmNotificationsPopover
-                sp={sp}
-                dark={dark}
-                placement="side"
-                items={notifs}
-                onItemClick={n => { markRead(n.id); setNotifOpen(false) }}
-                onMarkAll={() => markAllRead()}
-                onSeeAll={() => setNotifOpen(false)}
-                onMute={() => setNotifOpen(false)}
-              />
-            )}
-          </div>
+          {/* ⛔ LES NOTIFICATIONS NE SONT PLUS ICI (7 septembre 2026, Julien :
+              « qu'elles soient en haut à droite, pour gagner un peu de place dans
+              la sidebar »). Elles occupaient une LIGNE PLEINE du pied — glyphe,
+              libellé, compteur — pour un indicateur qui n'a besoin que d'un
+              glyphe et d'un chiffre. Elles rejoignent le quart droit de la bande
+              d'onglets, avec ✦ et le thème : la grappe des commandes d'ÉTAT, par
+              opposition aux DESTINATIONS que porte cette carte.
+
+              ⚠ La popover suit, et elle y gagne : elle s'ancrait à une ligne qui
+              pouvait défiler sous ~900 px de haut, elle s'ancre désormais à une
+              commande qui ne défile jamais. C'était d'ailleurs le motif qui
+              l'avait fait descendre dans le pied ; la bande le sert mieux. */}
 
           {/* ⚠ Vers ANALYTICS, pas les Réglages : l'objectif se saisit dans
               l'AxGate du cockpit, il n'existe aucun champ « objectif » dans les
@@ -706,7 +680,7 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
           <div ref={profileAnchorRef} style={{ position: 'relative' }}>
             <button
               type="button"
-              onClick={() => { setProfileOpen(o => !o); setNotifOpen(false) }}
+              onClick={() => setProfileOpen(o => !o)}
               aria-haspopup="menu"
               aria-expanded={profileOpen}
               title={displayName}
