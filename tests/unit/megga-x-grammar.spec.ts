@@ -95,6 +95,14 @@ const PAGES = new Set([
   // la préférence sombre ; `MailOAuthCallbackPage` ne peint rien du tout — elles
   // entrent quand même, parce qu'un cliquet ne sert pas qu'à constater.
   'MessageriePage.tsx', 'MailOAuthCallbackPage.tsx',
+  // Nouvel onglet (7 septembre 2026) — la page d'accueil d'un onglet neuf.
+  // Styles en ligne, donc PLEINEMENT vue par les douze clauses. Mesurée avant
+  // d'entrer : 0 marqueur. Elle entre le jour de sa naissance plutôt qu'un lot
+  // plus tard, ce qui est le seul moment où le coût d'entrée est nul.
+  'NewTabPage.tsx',
+  // Le 404 DU CRM (7 septembre 2026), qui garde la coquille au lieu de peindre
+  // plein cadre. Même régime : styles en ligne, entrée le jour de sa naissance.
+  'DashboardNotFoundPage.tsx',
 ])
 
 /**
@@ -130,6 +138,7 @@ const PAGES_ACQUISES = [
   'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentityPage.tsx',
   'OnboardingCallPage.tsx', 'ListingWizardPage.tsx',
   'MessageriePage.tsx', 'MailOAuthCallbackPage.tsx',
+  'NewTabPage.tsx', 'DashboardNotFoundPage.tsx',
 ]
 
 /**
@@ -967,7 +976,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // l'en-tête ne porte plus que le NOM), et son `marginTop: 3` avec lui. Ne
   // reste que le `margin: '7px 4px'` du séparateur de sections.
   ['src/components/crm/profile', { hors: 1, total: 1 }],
-  ['src/components/crm/search', { hors: 8, total: 8 }],
+  // ⚠ 7 depuis le 7 septembre 2026 : la palette a gagné une variante \`inline\`,
+  // et sa gouttière de portées y passe par l'échelle au lieu d'un littéral. Le
+  // cliquet serre dans les DEUX sens — laisser 8 inscrits rendrait un littéral
+  // réintroduit invisible.
+  ['src/components/crm/search', { hors: 4, total: 4 }],
   // 74/95 → 73/93 (17.08.2026) : le retrait de l'écran d'appairage de la carte WhatsApp
   // a emporté ses littéraux avec lui. Le cliquet redescend, il ne se justifie pas.
   ['src/components/crm/settings', { hors: 73, total: 93 }],
@@ -1023,7 +1036,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // ⚠ Les deux `padding` en RACCOURCI qui portaient 22 (KycPage, CrmPageSkeleton)
   // ne bougent aucun compteur : `b4EstLitteral` écarte toute déclaration
   // contenant déjà un `var(--crm-*)`, et les deux en avaient un.
-  ['src/pages/agent', { hors: 321, total: 926 }],
+  // ⚠ 317 / 922 depuis le 7 septembre 2026 : la normalisation des gouttières de
+  // `<main>` a remplacé sept littéraux (`24px 40px 120px`, `32px 40px 80px`…) par
+  // les jetons de l'échelle. Le cliquet serre dans les deux sens — laisser le
+  // crédit rendrait quatre littéraux réintroduits invisibles.
+  ['src/pages/agent', { hors: 317, total: 922 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 68, total: 259 }],
 ])

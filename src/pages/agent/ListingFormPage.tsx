@@ -2861,7 +2861,7 @@ export default function ListingFormPage() {
       <style>{CRM_KEYFRAMES}</style>
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
         <CrmWorkspace active="biens" sp={sgSp} dark={dark} setDark={setDark}>
-        <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 120px' }}>
+        <main style={{ flex: 1, minWidth: 0, padding: 'var(--crm-space-lg) var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-lg)' }}>
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">

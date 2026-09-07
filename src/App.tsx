@@ -123,6 +123,8 @@ const VisitDetailPage = lazy(() => import('@/pages/agent/VisitDetailPage'))
 const ImportLeadPage = lazy(() => import('@/pages/agent/ImportLeadPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const JourneyPage = lazy(() => import('@/pages/agent/JourneyPage'))
+const NewTabPage = lazy(() => import('@/pages/agent/NewTabPage'))
+const DashboardNotFoundPage = lazy(() => import('@/pages/agent/DashboardNotFoundPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 // Messagerie (boîte mail intégrée) — l'écran, son mobile minimal (D16) et le
 // retour d'autorisation de la pop-up OAuth.
@@ -375,6 +377,172 @@ function VitrineLoginRedirect() {
   return null
 }
 
+/**
+ * La table de routes du CRM de bureau — HISSÉE hors du `<Routes>` global.
+ *
+ * ⛔ POURQUOI ELLE N'EST PLUS ENFANT DE `/dashboard`. Un onglet du CRM ne doit
+ * plus DÉTRUIRE son écran quand on en change : mesuré le 7 septembre 2026,
+ * partir du Calendrier réglé sur Octobre et y revenir rendait Septembre — le
+ * composant avait été démonté et reconstruit, et avec lui les ~24 positions
+ * d'écran que `useTabScopedState` ne porte pas.
+ *
+ * Garder trois écrans vivants demande de rendre PLUSIEURS emplacements en même
+ * temps, chacun sur SA localisation. C'est ce que fait `<Routes location=…>`, et
+ * il lui faut une table réutilisable — d'où cette constante, passée à
+ * `AgentLayout` et rendue une fois par onglet vivant (voir `EcransVivants`).
+ *
+ * ⚠ Le parent est donc passé en `/dashboard/*` : sans le splat, une table de
+ * routes DESCENDANTE ne peut rien matcher sous lui. Même mécanique que la
+ * console super-admin (`admin/*`), qui monte déjà son propre `<Routes>`.
+ *
+ * ⚠ C'est un FRAGMENT, pas un tableau : `createRoutesFromChildren` traverse les
+ * fragments, et le garder en JSX évite de réécrire quarante routes en objets —
+ * donc d'en perdre une au passage.
+ */
+const ROUTES_TABLEAU_DE_BORD = (
+  <>
+  <Route index element={<ResponsiveRoute desktop={<TodayPage />} mobile={<MobileTodayPage />} />} />
+  {/* La console vit DANS le CRM depuis juillet 2026 : plus d'onglet,
+      plus de passage de session par fragment, et l'URL redevient
+      rechargeable et partageable. Le splat `*` est requis — la
+      console monte son propre <Routes> relatif dessous.
+
+      Sous la coquille Sugar, qui ne rend aucun chrome : la
+      console porte le sien. */}
+  <Route path="admin/*" element={<AdminConsoleRoute />} />
+  <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelinePage />} mobile={<MobilePipelinePage />} />} />
+  {/* Contacts — mobile (< 768px) : liste (P8). */}
+  <Route path="contacts" element={<ResponsiveRoute desktop={<ContactsPage />} mobile={<MobileContactsListPage />} />} />
+  {/* Création contact — mobile only (desktop : modale dans le pager). */}
+  <Route path="contacts/new" element={<ResponsiveRoute desktop={<Navigate to="/dashboard/contacts" replace />} mobile={<MobileNewContactPage />} />} />
+  {/* Import de contacts — porté sous Sugar (chrome auto-porté). */}
+  {/* Portées depuis AgentLayout : elles épousent le pager Sugar. */}
+  <Route path="market/:externalId" element={<ByParam><ExternalListingDetailPage /></ByParam>} />
+  <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
+  <Route path="listings/new" element={<ResponsiveRoute desktop={<ListingWizardPage />} mobile={<MobileWizardPage />} />} />
+  <Route path="listings/:id/edit" element={<ByParam><ListingFormPage /></ByParam>} />
+  {/* Fiche contact — pager 2 pages (refonte Claude Design juil. 2026).
+      Sous AgentLayout (chrome Sugar auto-porté) pour cohérence
+      liste↔fiche. Mobile (< 768px) : fiche détail P8/2. */}
+  <Route path="contacts/:id" element={<ByParam><ResponsiveRoute desktop={<ContactDetailPage />} mobile={<MobileContactDetailPage />} /></ByParam>} />
+  {/* Mes biens — mobile (< 768px) : galerie portefeuille (P7). */}
+  <Route path="listings" element={<ResponsiveRoute desktop={<ListingsPage />} mobile={<MobileBiensPage />} />} />
+  {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent).
+      Mobile (< 768px) : fiche lecture seule (P7). */}
+  <Route path="listings/:id" element={<ByParam><ResponsiveRoute desktop={<ListingDetailPage />} mobile={<MobileBienVitrinePage />} /></ByParam>} />
+  {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
+  <Route path="transactions/:id" element={<ByParam><ResponsiveRoute desktop={<DealDetailPage />} mobile={<MobileDealDetailPage />} /></ByParam>} />
+  {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
+  <Route path="transactions/:id/offre/:kind" element={<ByParam><OfferPage /></ByParam>} />
+  {/* Sprint 2 — Modal Planifier Visite (Sugar plein écran 3 étapes) */}
+  <Route path="visits/new" element={<VisitNewPage />} />
+  {/* Sprint 2 — Fiche Visite (bon + rapport) */}
+  <Route path="visits/:id" element={<ByParam><VisitDetailPage /></ByParam>} />
+  {/* Legacy FR */}
+  <Route path="visites/nouveau" element={<Navigate to="/dashboard/visits/new" replace />} />
+  <Route path="visites/:id" element={<DashboardVisitRedirect />} />
+  {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
+  <Route path="import-lead" element={<ImportLeadPage />} />
+  {/* Matching — pager vertical (refonte Claude Design juil. 2026) :
+      page 0 = atelier triptyque « par score » · page 1 = recherche
+      hybride du marché (vente + location). Deep-links portés par
+      l'atelier : ?annonce=p:<id>|m:<id> · ?contact=<id>.
+      Mobile (< 768px) : inbox acheteurs + focus. */}
+  <Route path="matching" element={<ResponsiveRoute desktop={<MatchingPage />} mobile={<MobileMatchingPage />} />} />
+  {/* Parcours — mobile (< 768px) : dossiers en vue panoramique (P9). */}
+  <Route path="journey" element={<ResponsiveRoute desktop={<JourneyPage />} mobile={<MobileJourneyPage />} />} />
+  <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
+  {/* Agenda — mobile (< 768px) : jour liste + time-block (P6). */}
+  <Route path="calendar" element={<ResponsiveRoute desktop={<CalendarPage />} mobile={<MobileAgendaPage />} />} />
+  {/* Nouvel onglet — la page d'accueil d'un onglet neuf : un champ qui
+      relaie vers ⌘K, et les destinations. Aucune donnée, aucune requête.
+      ⚠ Bureau SEULEMENT, et volontairement : le CRM mobile n'a pas
+      d'onglets (sa pilule à cinq destinations en tient lieu), donc la
+      page n'y a pas d'appelant. Un mobile qui reçoit ce lien — pile
+      restaurée d'une session de bureau — repart sur le cockpit. */}
+  <Route path="nouvel-onglet" element={<ResponsiveRoute desktop={<NewTabPage />} mobile={<Navigate to="/dashboard" replace />} />} />
+  {/* Messagerie — bento 296px | 1fr. Mobile (< 768px) : lecture seule (D16). */}
+  <Route path="messagerie" element={<ResponsiveRoute desktop={<MessageriePage />} mobile={<MobileMessagerieScreen />} />} />
+  {/* Réglages — mobile (< 768px) : hub de réglages (P9). */}
+  <Route path="settings" element={<ResponsiveRoute desktop={<SettingsPage />} mobile={<MobileSettingsPage />} />} />
+  {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
+  {/* Étape 5 KYB, tâche 4 — garde LAB plein : KycLabGuard (layout-route, aucun
+      path propre) remplace ces trois routes par un écran de blocage tant que
+      agencies.verification_status n'est ni auto_validated ni validated.
+      Regroupées sous un seul <Route> parent pour ne monter le garde qu'une fois. */}
+  <Route element={<KycLabGuard />}>
+    {/* KYC — pager 2 pages (Dossiers · Vigie). Mobile (< 768px) : liste (P9). */}
+    <Route path="kyc" element={<ResponsiveRoute desktop={<KycPage />} mobile={<MobileKycListPage />} />} />
+    {/* Onboarding « Première ouverture » (desktop) — refonte KYC. */}
+    <Route
+      path="kyc/bienvenue"
+      element={<ResponsiveRoute desktop={<KycOnboardingPage />} mobile={<Navigate to="/dashboard/kyc" replace />} />}
+    />
+    {/* Détail dossier KYC — fiche en overlay (desktop) ; mobile : 4 onglets (P9). */}
+    <Route path="kyc/:dossierId" element={<ByParam><ResponsiveRoute desktop={<KycPage />} mobile={<MobileKycDetailPage />} /></ByParam>} />
+  </Route>
+  {/* Étape 2 KYB — gate identité légale (useIdentityGate redirige ici depuis
+      AgentLayout tant que agencies.identity_submitted_at est nul).
+      Mobile (< 768px) : la saisie se termine sur ordinateur uniquement. */}
+  <Route path="identite" element={<ResponsiveRoute desktop={<IdentityPage />} mobile={<IdentityMobileNotice />} />} />
+  {/* Étape 3 KYB — réservation de l'appel d'accueil, à la sortie du wizard. */}
+  <Route path="rendez-vous-accueil" element={<OnboardingCallPage />} />
+  {/* Réseau inter-agences — hors périmètre v1 (route neutralisée ; NetworkSugarV2Page retirée) */}
+  <Route path="network" element={<Navigate to="/dashboard" replace />} />
+  <Route path="reseau" element={<Navigate to="/dashboard" replace />} />
+  {/* Onboarding post-login supprimé (juil. 2026) — anciens liens/onglets ouverts → dashboard */}
+  <Route path="onboarding" element={<Navigate to="/dashboard" replace />} />
+  <Route path="premier-jour" element={<Navigate to="/dashboard" replace />} />
+  {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}
+  <Route path="audit" element={<AuditPage />} />
+  {/* ⛔ La page « Julien » a été supprimée le 17 août 2026 : le copilote
+      n'a plus qu'une surface, le dock MEGGA AI. La route REDIRIGE au lieu
+      de disparaître — elle a été partagée en signet et le ⌘K y pointait
+      encore hier. Même geste que /dashboard/network et le portail vendeur.
+      Sa capacité propre (reprise d'une conversation persistée) est portée
+      dans le dock, pas perdue : `useAiPanel.openConversation`. */}
+  <Route path="julien" element={<Navigate to="/dashboard" replace />} />
+  {/* Sprint 4 — Dashboard Analytics Sugar v4 (Cockpit / Entonnoir / Objectif) */}
+  {/* Analytics — mobile (< 768px) : cockpit commission (P9). */}
+  <Route path="analytics" element={<ResponsiveRoute desktop={<AnalyticsPage />} mobile={<MobileAnalyticsPage />} />} />
+  {/* Hub « Plus » mobile-only — desktop redirige vers Réglages */}
+  <Route
+    path="more"
+    element={
+      <ResponsiveRoute
+        desktop={<Navigate to="/dashboard/settings" replace />}
+        mobile={<MobileMorePage />}
+      />
+    }
+  />
+    {/* ⛔ LE FILET, ET IL N'EST PAS FACULTATIF. Tant que `/dashboard` portait ses
+        enfants, un chemin inconnu sous lui ne matchait AUCUNE route et retombait
+        sur le `*` de premier niveau, donc sur `NotFoundPage`. Le splat
+        `/dashboard/*` capture désormais tout : sans ce filet, cette table ne
+        matche rien et rend `null` — un corps VIDE, pas une erreur.
+
+        Mesuré par la suite Playwright sur `/dashboard/visits/:id/companion`
+        (route retirée en juillet 2026, encore couverte par
+        `crm-agent-params-coverage.spec.ts`) : « body too small (0 chars) ». Un
+        écran blanc ne rougit nulle part ailleurs — c'est ce test-là qui l'a vu.
+
+        ⛔ ET IL REND LE 404 *DU CRM*, PAS CELUI DE L'APPLICATION. Premier jet :
+        `NotFoundPage`, qui se peint plein cadre — sans barre latérale, sans bande
+        d'onglets. Retour de Julien : « ça me sort de la zone de contexte ». Il a
+        raison, et ça coûte plus qu'un cadre : la pile d'onglets est toujours
+        ouverte derrière, mais invisible, donc injoignable autrement que par le
+        bouton « précédent ». Une adresse fausse ne doit pas coûter le plan de
+        travail.
+
+        ⚠ Conséquence assumée : une URL inconnue sous `/dashboard` prend
+        maintenant un onglet (elle est `crmTabsEligible`), là où elle n'en prenait
+        aucun — le fournisseur n'était pas monté. L'onglet porte le libellé de
+        repli et se ferme comme un autre ; l'alternative, rediriger en silence
+        vers le cockpit, effacerait la faute de frappe au lieu de la montrer. */}
+    <Route path="*" element={<DashboardNotFoundPage />} />
+  </>
+)
+
 function AppRoutes() {
   return (
     <Routes>
@@ -575,122 +743,18 @@ function AppRoutes() {
               />
 
               {/* Tier 3 — Sugar v2 Today screen (no traditional sidebar chrome) */}
+              {/* ⚠ SPLAT, et la table est passée en prop : les écrans sont rendus
+                  par `AgentLayout`, qui en garde trois vivants au lieu d'en
+                  détruire un à chaque bascule d'onglet. Voir
+                  `ROUTES_TABLEAU_DE_BORD` plus haut. */}
               <Route
-                path="/dashboard"
+                path="/dashboard/*"
                 element={
                   <ProtectedRoute>
-                    <AgentLayout />
+                    <AgentLayout routes={ROUTES_TABLEAU_DE_BORD} />
                   </ProtectedRoute>
                 }
-              >
-                <Route index element={<ResponsiveRoute desktop={<TodayPage />} mobile={<MobileTodayPage />} />} />
-                {/* La console vit DANS le CRM depuis juillet 2026 : plus d'onglet,
-                    plus de passage de session par fragment, et l'URL redevient
-                    rechargeable et partageable. Le splat `*` est requis — la
-                    console monte son propre <Routes> relatif dessous.
-
-                    Sous la coquille Sugar, qui ne rend aucun chrome : la
-                    console porte le sien. */}
-                <Route path="admin/*" element={<AdminConsoleRoute />} />
-                <Route path="pipeline" element={<ResponsiveRoute desktop={<PipelinePage />} mobile={<MobilePipelinePage />} />} />
-                {/* Contacts — mobile (< 768px) : liste (P8). */}
-                <Route path="contacts" element={<ResponsiveRoute desktop={<ContactsPage />} mobile={<MobileContactsListPage />} />} />
-                {/* Création contact — mobile only (desktop : modale dans le pager). */}
-                <Route path="contacts/new" element={<ResponsiveRoute desktop={<Navigate to="/dashboard/contacts" replace />} mobile={<MobileNewContactPage />} />} />
-                {/* Import de contacts — porté sous Sugar (chrome auto-porté). */}
-                {/* Portées depuis AgentLayout : elles épousent le pager Sugar. */}
-                <Route path="market/:externalId" element={<ByParam><ExternalListingDetailPage /></ByParam>} />
-                <Route path="marche/:externalId" element={<DashboardMarketRedirect />} />
-                <Route path="listings/new" element={<ResponsiveRoute desktop={<ListingWizardPage />} mobile={<MobileWizardPage />} />} />
-                <Route path="listings/:id/edit" element={<ByParam><ListingFormPage /></ByParam>} />
-                {/* Fiche contact — pager 2 pages (refonte Claude Design juil. 2026).
-                    Sous AgentLayout (chrome Sugar auto-porté) pour cohérence
-                    liste↔fiche. Mobile (< 768px) : fiche détail P8/2. */}
-                <Route path="contacts/:id" element={<ByParam><ResponsiveRoute desktop={<ContactDetailPage />} mobile={<MobileContactDetailPage />} /></ByParam>} />
-                {/* Mes biens — mobile (< 768px) : galerie portefeuille (P7). */}
-                <Route path="listings" element={<ResponsiveRoute desktop={<ListingsPage />} mobile={<MobileBiensPage />} />} />
-                {/* Sprint 2 — Fiche Bien Sugar Pure (édition inline + AuditEvent).
-                    Mobile (< 768px) : fiche lecture seule (P7). */}
-                <Route path="listings/:id" element={<ByParam><ResponsiveRoute desktop={<ListingDetailPage />} mobile={<MobileBienVitrinePage />} /></ByParam>} />
-                {/* Sprint 2 — Fiche Deal Sugar Pure (stepper 8 + bannière KYC + offres) */}
-                <Route path="transactions/:id" element={<ByParam><ResponsiveRoute desktop={<DealDetailPage />} mobile={<MobileDealDetailPage />} /></ByParam>} />
-                {/* Sprint 2 — Modal Offre / Contre-offre (Sugar plein écran 3 étapes) */}
-                <Route path="transactions/:id/offre/:kind" element={<ByParam><OfferPage /></ByParam>} />
-                {/* Sprint 2 — Modal Planifier Visite (Sugar plein écran 3 étapes) */}
-                <Route path="visits/new" element={<VisitNewPage />} />
-                {/* Sprint 2 — Fiche Visite (bon + rapport) */}
-                <Route path="visits/:id" element={<ByParam><VisitDetailPage /></ByParam>} />
-                {/* Legacy FR */}
-                <Route path="visites/nouveau" element={<Navigate to="/dashboard/visits/new" replace />} />
-                <Route path="visites/:id" element={<DashboardVisitRedirect />} />
-                {/* Sprint 3 — Import Lead IA (?text=...&returnTo=...) */}
-                <Route path="import-lead" element={<ImportLeadPage />} />
-                {/* Matching — pager vertical (refonte Claude Design juil. 2026) :
-                    page 0 = atelier triptyque « par score » · page 1 = recherche
-                    hybride du marché (vente + location). Deep-links portés par
-                    l'atelier : ?annonce=p:<id>|m:<id> · ?contact=<id>.
-                    Mobile (< 768px) : inbox acheteurs + focus. */}
-                <Route path="matching" element={<ResponsiveRoute desktop={<MatchingPage />} mobile={<MobileMatchingPage />} />} />
-                {/* Parcours — mobile (< 768px) : dossiers en vue panoramique (P9). */}
-                <Route path="journey" element={<ResponsiveRoute desktop={<JourneyPage />} mobile={<MobileJourneyPage />} />} />
-                <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
-                {/* Agenda — mobile (< 768px) : jour liste + time-block (P6). */}
-                <Route path="calendar" element={<ResponsiveRoute desktop={<CalendarPage />} mobile={<MobileAgendaPage />} />} />
-                {/* Messagerie — bento 296px | 1fr. Mobile (< 768px) : lecture seule (D16). */}
-                <Route path="messagerie" element={<ResponsiveRoute desktop={<MessageriePage />} mobile={<MobileMessagerieScreen />} />} />
-                {/* Réglages — mobile (< 768px) : hub de réglages (P9). */}
-                <Route path="settings" element={<ResponsiveRoute desktop={<SettingsPage />} mobile={<MobileSettingsPage />} />} />
-                {/* Sprint 1 — Sugar v3 (port pixel-près handoff KYC + LBA) */}
-                {/* Étape 5 KYB, tâche 4 — garde LAB plein : KycLabGuard (layout-route, aucun
-                    path propre) remplace ces trois routes par un écran de blocage tant que
-                    agencies.verification_status n'est ni auto_validated ni validated.
-                    Regroupées sous un seul <Route> parent pour ne monter le garde qu'une fois. */}
-                <Route element={<KycLabGuard />}>
-                  {/* KYC — pager 2 pages (Dossiers · Vigie). Mobile (< 768px) : liste (P9). */}
-                  <Route path="kyc" element={<ResponsiveRoute desktop={<KycPage />} mobile={<MobileKycListPage />} />} />
-                  {/* Onboarding « Première ouverture » (desktop) — refonte KYC. */}
-                  <Route
-                    path="kyc/bienvenue"
-                    element={<ResponsiveRoute desktop={<KycOnboardingPage />} mobile={<Navigate to="/dashboard/kyc" replace />} />}
-                  />
-                  {/* Détail dossier KYC — fiche en overlay (desktop) ; mobile : 4 onglets (P9). */}
-                  <Route path="kyc/:dossierId" element={<ByParam><ResponsiveRoute desktop={<KycPage />} mobile={<MobileKycDetailPage />} /></ByParam>} />
-                </Route>
-                {/* Étape 2 KYB — gate identité légale (useIdentityGate redirige ici depuis
-                    AgentLayout tant que agencies.identity_submitted_at est nul).
-                    Mobile (< 768px) : la saisie se termine sur ordinateur uniquement. */}
-                <Route path="identite" element={<ResponsiveRoute desktop={<IdentityPage />} mobile={<IdentityMobileNotice />} />} />
-                {/* Étape 3 KYB — réservation de l'appel d'accueil, à la sortie du wizard. */}
-                <Route path="rendez-vous-accueil" element={<OnboardingCallPage />} />
-                {/* Réseau inter-agences — hors périmètre v1 (route neutralisée ; NetworkSugarV2Page retirée) */}
-                <Route path="network" element={<Navigate to="/dashboard" replace />} />
-                <Route path="reseau" element={<Navigate to="/dashboard" replace />} />
-                {/* Onboarding post-login supprimé (juil. 2026) — anciens liens/onglets ouverts → dashboard */}
-                <Route path="onboarding" element={<Navigate to="/dashboard" replace />} />
-                <Route path="premier-jour" element={<Navigate to="/dashboard" replace />} />
-                {/* Sprint 1 — Journal d'audit nLPD (livrable #4) */}
-                <Route path="audit" element={<AuditPage />} />
-                {/* ⛔ La page « Julien » a été supprimée le 17 août 2026 : le copilote
-                    n'a plus qu'une surface, le dock MEGGA AI. La route REDIRIGE au lieu
-                    de disparaître — elle a été partagée en signet et le ⌘K y pointait
-                    encore hier. Même geste que /dashboard/network et le portail vendeur.
-                    Sa capacité propre (reprise d'une conversation persistée) est portée
-                    dans le dock, pas perdue : `useAiPanel.openConversation`. */}
-                <Route path="julien" element={<Navigate to="/dashboard" replace />} />
-                {/* Sprint 4 — Dashboard Analytics Sugar v4 (Cockpit / Entonnoir / Objectif) */}
-                {/* Analytics — mobile (< 768px) : cockpit commission (P9). */}
-                <Route path="analytics" element={<ResponsiveRoute desktop={<AnalyticsPage />} mobile={<MobileAnalyticsPage />} />} />
-                {/* Hub « Plus » mobile-only — desktop redirige vers Réglages */}
-                <Route
-                  path="more"
-                  element={
-                    <ResponsiveRoute
-                      desktop={<Navigate to="/dashboard/settings" replace />}
-                      mobile={<MobileMorePage />}
-                    />
-                  }
-                />
-              </Route>
+              />
 
               {/* 404 */}
               <Route path="*" element={<NotFoundPage />} />

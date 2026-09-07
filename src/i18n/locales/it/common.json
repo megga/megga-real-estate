@@ -283,39 +283,32 @@
     "command": {
       "placeholder": "Cerca o chiedi a Megga…",
       "clear": "Cancella",
-      "scope": {
-        "all": "Tutto",
-        "contacts": "Contacts",
-        "biens": "Immobili",
-        "deals": "Deals",
-        "docs": "Documents"
-      },
       "section": {
         "resumeMegga": "Riprendi con Megga",
         "recents": "Recenti",
-        "askMegga": "Chiedi a Megga",
         "meggaConvos": "Conversazioni Megga",
         "biens": "Immobili",
         "deals": "Deals",
-        "platform": "Piattaforma"
+        "platform": "Piattaforma",
+        "openTabs": "Schede aperte",
+        "closedTabs": "Chiuse di recente"
       },
       "badge": {
         "semantic": "semantica"
       },
       "empty": {
-        "title": "Nessun risultato per «{{query}}»",
-        "body": "Chiedi piuttosto a Megga, conosce tutto il tuo CRM."
+        "title": "Nessun risultato per «{{query}}»"
       },
       "askMeggaQuery": "Chiedi a Megga: «{{query}}»",
       "deal": {
         "untitled": "Transazione"
       },
       "roomsShort": "{{count}} loc.",
-      "aiPrompts": {
-        "buyersReady": "Acquirenti pronti a firmare questa settimana",
-        "staleListings": "Immobili fermi da oltre 30 giorni",
-        "exclusiveMandate": "Redigi un mandato esclusivo"
-      }
+      "switchToTab": "Vai alla scheda {{rang}}",
+      "reopenTab": "Riapri questa scheda",
+      "showAll_one": "Mostra 1 altro",
+      "showAll_other": "Mostra altri {{count}}",
+      "startTyping": "Digita per cercare un contatto, un immobile, un affare."
     }
   },
   "invite": {
@@ -503,7 +496,30 @@
     "more": "Altre schede",
     "new": "Nuova scheda",
     "pin": "Fissa a sinistra",
+    "reopen": "Riapri {{nom}}",
     "unpin": "Sblocca",
     "untitled": "Scheda"
+  },
+  "newTab": {
+    "searchPlaceholder": "Un contatto, un immobile, un affare",
+    "hints": {
+      "today": "La giornata in corso",
+      "calendar": "Visite e appuntamenti",
+      "messagerie": "Caselle collegate",
+      "contacts": "Acquirenti, venditori, proprietari",
+      "biens": "Il portafoglio dell'agenzia",
+      "matching": "Acquirenti e immobili del mercato",
+      "pipeline": "Gli affari in corso",
+      "parcours": "A che punto è ogni pratica",
+      "kyc": "Conformità LRD e verifiche",
+      "dashboard": "Commissioni e performance",
+      "settings": "Account, agenzia, integrazioni"
+    }
+  },
+  "notFound": {
+    "title": "Questa pagina non esiste",
+    "body": "Nessuna schermata risponde a {{chemin}}. Le tue schede sono rimaste aperte.",
+    "action": "Torna alla dashboard",
+    "tab": "Non trovata"
   }
 }

@@ -97,6 +97,20 @@ export const CRM_SIDEBAR_GROUPS: CrmSidebarGroup[] = [
 ]
 
 /** Les onze sections à plat — pour tout ce qui cherche par clé, pas par groupe. */
+/**
+ * Le NOUVEL ONGLET — une route, et volontairement pas une section.
+ *
+ * ⛔ Elle vit ici, dans la table de navigation, parce que `crmSidebarActiveFor`
+ * doit la connaître pour l'écarter (voir plus bas) et que la placer dans
+ * `src/lib/crmTabs.ts` ferait un cycle : c'est ce module-là qui importe
+ * celui-ci, jamais l'inverse.
+ *
+ * Chemin français, sur le précédent de `messagerie` — la route la plus récente
+ * du CRM, et la seule des onze à ne pas être en anglais. Un produit dont l'UI
+ * est en français d'abord n'a pas de raison de traduire ses chemins.
+ */
+export const CRM_NEW_TAB_PATH = '/dashboard/nouvel-onglet'
+
 export const CRM_SIDEBAR_SECTIONS: CrmSidebarSection[] =
   CRM_SIDEBAR_GROUPS.flatMap(g => g.items)
 
@@ -134,6 +148,13 @@ const DETAIL_PREFIXES: [string, CrmSidebarSectionId][] = [
 ]
 
 export function crmSidebarActiveFor(pathname: string): CrmSidebarSectionId | null {
+  // ⛔ AVANT TOUT LE RESTE, et ce n'est pas un détail de style. Le classement
+  // par spécificité qui suit teste `/dashboard` (la route de « Aujourd'hui ») en
+  // dernier, mais il le teste : `/dashboard/nouvel-onglet` commence par
+  // `/dashboard/`, donc sans cette ligne un onglet neuf ALLUMERAIT le cockpit
+  // dans la barre latérale. Or un onglet neuf est précisément un onglet qui ne
+  // vise encore aucune destination — c'est tout son sens.
+  if (pathname === CRM_NEW_TAB_PATH) return null
   for (const [prefix, id] of DETAIL_PREFIXES) {
     if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return id
   }

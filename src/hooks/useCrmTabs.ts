@@ -40,10 +40,10 @@ import { useAuth } from '@/hooks/useAuth'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import {
   CRM_TABS_CAP, crmApplyCap, crmApplyLabels, crmCloseOthers, crmCloseTab,
-  crmDuplicateTab, crmMakeTab, crmMoveTab, crmResolveActive, crmSameLocation,
+  crmDuplicateTab, crmMakeTab, crmMoveTab, crmPushFerme, crmResolveActive, crmSameLocation,
   crmTabHref, crmTabRefs, crmTogglePin, type CrmTab, type CrmTabsState,
 } from '@/lib/crmTabs'
-import { crmSidebarActiveFor } from '@/components/crm/crmSidebarNav'
+import { crmSidebarActiveFor, CRM_NEW_TAB_PATH } from '@/components/crm/crmSidebarNav'
 
 /**
  * Surfaces qui n'ouvrent PAS d'onglet.
@@ -107,6 +107,10 @@ export interface CrmTabsApi extends CrmTabsState {
   ouvrirDans: (href: string, label?: string) => void
   fermer: (i: number) => void
   fermerAutres: (i: number) => void
+  /** Les onglets fermés, le plus récent en tête. Mémoire vive seulement (PII). */
+  fermes: CrmTab[]
+  /** Rouvre le dernier fermé, ou celui qu'on désigne. No-op si la pile est vide. */
+  rouvrirFerme: (id?: string) => void
   basculerEpingle: (i: number) => void
   dupliquer: (i: number) => void
   deplacer: (from: number, to: number) => void
@@ -458,7 +462,49 @@ export function useCrmTabsMachine(): CrmTabsApi {
     if (viser(href)) navigate(href)
   }, [navigate, viser])
 
-  const ouvrirNouvel = useCallback(() => { ouvrirDans('/dashboard') }, [ouvrirDans])
+  /**
+   * Le « + » de la barre.
+   *
+   * ⚠ Il visait `/dashboard`, donc le cockpit : un onglet neuf naissait sur une
+   * DESTINATION, allumait « Aujourd'hui » dans la barre latérale et déclenchait
+   * les requêtes de l'écran. Il vise désormais la page d'accueil d'onglet, qui
+   * ne charge rien et n'allume rien — voir `NewTabPage`.
+   */
+  /**
+   * Les onglets fermés — le filet de la croix cliquée par erreur.
+   *
+   * ⛔ EN MÉMOIRE VIVE, ET NULLE PART AILLEURS. Le libellé d'un onglet de fiche
+   * est le NOM d'un client : c'est la PII qui interdit déjà le miroir
+   * `localStorage` de la pile ouverte. Un rechargement perd la liste, et c'est le
+   * prix assumé — la persister rouvrirait la question du stockage des noms pour
+   * un filet qui sert dans la minute.
+   */
+  const [fermes, setFermes] = useState<CrmTab[]>([])
+
+  const ouvrirNouvel = useCallback(() => { ouvrirDans(CRM_NEW_TAB_PATH) }, [ouvrirDans])
+
+  /**
+   * Rouvre un onglet fermé — le dernier par défaut, comme ⇧⌘T d'un navigateur.
+   *
+   * ⚠ Il RETIRE l'entrée de la pile en la rouvrant : sans ça, presser deux fois
+   * rouvrirait deux fois le même endroit au lieu de remonter d'un cran, et le
+   * geste cesserait d'être un « annuler ».
+   *
+   * ⚠ Il DÉPEND de `fermes`, donc son identité change à chaque fermeture. C'est
+   * volontaire : lire la pile dans une ref demanderait de l'écrire au rendu, ce
+   * que la règle `react-hooks` du dépôt refuse. Le seul coût est un
+   * ré-abonnement du raccourci clavier, qui ne coûte rien.
+   *
+   * ⚠ Le libellé voyage avec, sinon la puce rouverte s'appellerait « Onglet » le
+   * temps que le serveur re-résolve le nom — un clignotement pour rien, alors
+   * qu'on l'avait sous la main il y a trois secondes.
+   */
+  const rouvrirFerme = useCallback((id?: string) => {
+    const cible = id ? fermes.find((t) => t.id === id) : fermes[0]
+    if (!cible) return
+    setFermes((p) => p.filter((t) => t.id !== cible.id))
+    ouvrirDans(crmTabHref(cible), cible.label)
+  }, [fermes, ouvrirDans])
 
   /**
    * Fermeture — le SEUL endroit qui sait fermer un onglet.
@@ -467,6 +513,15 @@ export function useCrmTabsMachine(): CrmTabsApi {
    * passent toutes par ici. La maquette insiste, et pour une raison qui se voit à
    * l'usage : trois chemins de fermeture, ce sont trois recalages d'index à tenir
    * d'accord.
+   */
+  /**
+   * Les onglets fermés — le filet de la croix cliquée par erreur.
+   *
+   * ⛔ EN MÉMOIRE VIVE, ET NULLE PART AILLEURS. Le libellé d'un onglet de fiche
+   * est le NOM d'un client : c'est la PII qui interdit déjà le miroir
+   * `localStorage` de la pile ouverte. Un rechargement perd la liste, et c'est
+   * le prix assumé — la persister rouvrirait la question du stockage des noms
+   * pour un filet qui sert dans la minute.
    */
   const fermer = useCallback((i: number) => {
     const prev = etatRef.current
@@ -478,10 +533,14 @@ export function useCrmTabsMachine(): CrmTabsApi {
     // création écrit avec 30 s de retard. Poser une croix à côté de tout ça sans
     // rien demander serait la régression la plus visible de ce chantier.
     //
-    // ⚠ Il ne vaut QUE pour l'onglet actif, et c'est une limite honnête : les
-    // écrans des autres onglets sont démontés, leur saisie est déjà perdue par
-    // construction (elle l'était avant les onglets aussi). Prétendre les protéger
-    // demanderait de les garder montés — un autre chantier.
+    // ⚠ Il ne vaut QUE pour l'onglet actif, et cette limite a CHANGÉ DE NATURE le
+    // 7 septembre 2026. Elle disait « les écrans des autres onglets sont démontés,
+    // leur saisie est déjà perdue par construction » : ce n'est plus vrai, deux
+    // écrans de plus restent vivants (`EcransVivants`). Leur saisie SURVIT donc,
+    // et fermer leur onglet la perd sans rien demander. Le filet ne les couvre pas
+    // parce que `marquerSale` n'écrit qu'un drapeau GLOBAL, sans dire de quel écran
+    // il parle — le distinguer est un autre chantier, et le taire en serait un
+    // troisième.
     if (i === prev.active && saleRef.current) {
       if (!window.confirm(messageSale)) return
       saleRef.current = false
@@ -489,6 +548,7 @@ export function useCrmTabsMachine(): CrmTabsApi {
     const actifId = prev.tabs[prev.active]?.id ?? null
     const voisinId = restants[Math.min(i, restants.length - 1)]?.id ?? null
     const active = crmResolveActive(restants, i === prev.active ? null : actifId, voisinId)
+    if (prev.tabs[i]) setFermes((p) => crmPushFerme(p, prev.tabs[i]))
     setEtat({ ...prev, tabs: restants, active })
     const cible = crmTabHref(restants[active])
     if (viser(cible)) navigate(cible)
@@ -529,6 +589,12 @@ export function useCrmTabsMachine(): CrmTabsApi {
       if (!window.confirm(messageSale)) return
       saleRef.current = false
     }
+    // ⚠ Dans l'ordre INVERSE de la pile : `crmPushFerme` met en tête, donc empiler
+    // de gauche à droite laisserait le plus À GAUCHE en premier. On veut retrouver
+    // les onglets dans l'ordre où ils étaient, pas à l'envers.
+    const gardes = new Set(restants.map((t) => t.id))
+    const partis = prev.tabs.filter((t) => !gardes.has(t.id))
+    if (partis.length) setFermes((p) => partis.reduceRight((acc, t) => crmPushFerme(acc, t), p))
     const active = crmResolveActive(restants, actifId, viseId)
     setEtat({ ...prev, tabs: restants, active })
     const cible = crmTabHref(restants[active])
@@ -606,9 +672,10 @@ export function useCrmTabsMachine(): CrmTabsApi {
 
   const api = useMemo<CrmTabsApi>(() => ({
     ...etat, chargement,
-    selectionner, ouvrirNouvel, ouvrirDans, fermer, fermerAutres,
+    selectionner, ouvrirNouvel, ouvrirDans, fermer, fermerAutres, fermes, rouvrirFerme,
     basculerEpingle, dupliquer, deplacer, poserLibelle, lireUi, ecrireUi, marquerSale,
   }), [etat, chargement, selectionner, ouvrirNouvel, ouvrirDans, fermer, fermerAutres,
+    fermes, rouvrirFerme,
     basculerEpingle, dupliquer, deplacer, poserLibelle, lireUi, ecrireUi, marquerSale])
 
   return api

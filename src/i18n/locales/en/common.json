@@ -290,39 +290,32 @@
     "command": {
       "placeholder": "Search or ask Megga…",
       "clear": "Clear",
-      "scope": {
-        "all": "All",
-        "contacts": "Contacts",
-        "biens": "Properties",
-        "deals": "Deals",
-        "docs": "Documents"
-      },
       "section": {
         "resumeMegga": "Resume with Megga",
         "recents": "Recent",
-        "askMegga": "Ask Megga",
         "meggaConvos": "Megga conversations",
         "biens": "Properties",
         "deals": "Deals",
-        "platform": "Platform"
+        "platform": "Platform",
+        "openTabs": "Open tabs",
+        "closedTabs": "Recently closed"
       },
       "badge": {
         "semantic": "semantic"
       },
       "empty": {
-        "title": "No results for “{{query}}”",
-        "body": "Ask Megga instead, it knows your entire CRM."
+        "title": "No results for “{{query}}”"
       },
       "askMeggaQuery": "Ask Megga: “{{query}}”",
       "deal": {
         "untitled": "Deal"
       },
       "roomsShort": "{{count}} rm",
-      "aiPrompts": {
-        "buyersReady": "Buyers ready to sign this week",
-        "staleListings": "Listings stalled for 30+ days",
-        "exclusiveMandate": "Draft an exclusive mandate"
-      }
+      "switchToTab": "Go to tab {{rang}}",
+      "reopenTab": "Reopen this tab",
+      "showAll_one": "Show 1 more",
+      "showAll_other": "Show {{count}} more",
+      "startTyping": "Type to search a contact, a property, a deal."
     }
   },
   "invite": {
@@ -503,7 +496,30 @@
     "more": "Other tabs",
     "new": "New tab",
     "pin": "Pin to the left",
+    "reopen": "Reopen {{nom}}",
     "unpin": "Unpin",
     "untitled": "Tab"
+  },
+  "newTab": {
+    "searchPlaceholder": "A contact, a property, a deal",
+    "hints": {
+      "today": "The day in progress",
+      "calendar": "Viewings and appointments",
+      "messagerie": "Connected mailboxes",
+      "contacts": "Buyers, sellers, owners",
+      "biens": "The agency portfolio",
+      "matching": "Buyers and market listings",
+      "pipeline": "Deals in progress",
+      "parcours": "Where each file stands",
+      "kyc": "AML compliance and checks",
+      "dashboard": "Commissions and performance",
+      "settings": "Account, agency, integrations"
+    }
+  },
+  "notFound": {
+    "title": "This page does not exist",
+    "body": "No screen answers to {{chemin}}. Your tabs are still open.",
+    "action": "Back to the dashboard",
+    "tab": "Not found"
   }
 }

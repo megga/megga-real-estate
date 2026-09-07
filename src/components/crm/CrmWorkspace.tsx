@@ -16,14 +16,24 @@
  * changer la page du pager au premier coup de molette sur une puce. Elle vit
  * donc dans une colonne insérée entre la rangée et le `<main>`.
  *
- * ── ET POURQUOI LA BARRE LATÉRALE NE BOUGE PAS ───────────────────────────────
- * `CrmSidebar` est en `calc(100vh - 34px)`, valeur accordée au pixel près sur les
- * gouttières du `<main>` (12 en haut, 22 en bas). La bande d'onglets prend sa
- * hauteur à la COLONNE DE CONTENU, pas à la rangée : la carte latérale garde donc
- * exactement son cadre, et les deux restent alignées en haut. C'est ce qui a
- * décidé la forme — une bande pleine largeur au-dessus des deux aurait fallu
- * rouvrir ce `calc`, et avec lui l'alignement que la barre latérale venait de
- * gagner.
+ * ── LA BANDE EST PLEINE LARGEUR, AU-DESSUS DE TOUT (7 septembre 2026) ────────
+ * ⛔ ELLE NE L'ÉTAIT PAS, ET CET EN-TÊTE EXPLIQUAIT POURQUOI : la bande prenait sa
+ * hauteur à la COLONNE DE CONTENU, pour ne pas rouvrir le `calc` de la barre
+ * latérale. Le prix de ce choix se voyait — retour de Julien, mesuré : la carte
+ * latérale faisait **864 px** et le contenu **834**, parce qu'elle démarrait
+ * au-dessus de la bande. Trente pixels d'écart entre deux cartes censées border
+ * le même cadre, et le dock MEGGA AI (864 lui aussi) s'alignait sur la mauvaise.
+ *
+ * La bande passe donc au-dessus des deux, et démarre au bord GAUCHE. Les trois
+ * pièces — carte latérale, contenu, dock — commencent alors sous elle et ferment
+ * ensemble.
+ *
+ * ⚠ CE QUI REND LA CHOSE TENABLE : l'offset est publié en `--crm-chrome-top`, sur
+ * la RACINE. Le dock est monté dans `App.tsx`, hors de cette coquille, et il est
+ * en `position: fixed` — il n'hérite de rien. Une variable de racine est le seul
+ * canal qu'ils partagent. Écrite par le SEUL écran visible (`useEcranActif`) :
+ * trois écrans vivants écriraient sinon la même valeur trois fois, et le
+ * nettoyage de l'un effacerait celle dont l'autre a besoin.
  *
  * ── UNE SEULE FORME POUR DEUX RÉGIMES DE HAUTEUR ─────────────────────────────
  * Quinze surfaces sont en `height: 100vh` + `overflow: hidden` (écran figé),
@@ -32,8 +42,10 @@
  * ferait s'effondrer le contenu des cinq surfaces défilantes.
  */
 
+import { useEffect } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { CrmSidebar, type CrmSidebarProps } from './CrmSidebar'
+import { useEcranActif } from '@/hooks/useEcranActif'
 import CrmTabsBar from './CrmTabsBar'
 import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
 import { useIsMobile } from '@/hooks/useMediaQuery'
@@ -44,6 +56,14 @@ import { useIsMobile } from '@/hooks/useMediaQuery'
  * contre `100vh` puissent la défalquer sans la recopier.
  */
 const H_BANDE = 42
+
+/**
+ * L'offset du chrome — ce que la bande prend en haut, gouttière comprise.
+ *
+ * Publié sur la racine parce que le dock MEGGA AI, monté hors de cette coquille
+ * et en `position: fixed`, n'hérite d'aucune variable d'ici.
+ */
+const VAR_CHROME_TOP = '--crm-chrome-top'
 
 interface Props extends CrmSidebarProps {
   children: ReactNode
@@ -65,38 +85,73 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
   // destinations, et deux barres par écran ne se discutent pas.
   const avecOnglets = !!tabs && !isMobile
 
+  // ⚠ L'offset du chrome, publié sur la RACINE pour le dock (voir l'en-tête).
+  // Écrit par le seul écran VISIBLE : trois écrans vivants écriraient sinon la
+  // même valeur trois fois, et le nettoyage de l'un effacerait celle dont
+  // l'autre a besoin.
+  const ecranActif = useEcranActif()
+  useEffect(() => {
+    if (!ecranActif) return
+    const racine = document.documentElement
+    // ⚠ LA BANDE **PLUS** LA GOUTTIÈRE. `H_BANDE` seul collait les cartes sous la
+    // dernière puce — mesuré : puce à 42, carte latérale à 42, zéro respiration.
+    // Et surtout, 42 ne correspondait à RIEN côté contenu : le `<main>` porte son
+    // propre `padding-top` de 12, donc son cadre bento commençait à 54. Les deux
+    // cartes se ratent de douze pixels tant qu'elles ne lisent pas le même
+    // nombre. Le cadre du contenu est la référence — c'est lui qu'on regarde.
+    racine.style.setProperty(VAR_CHROME_TOP, avecOnglets
+      ? `calc(${H_BANDE}px + var(--crm-space-lg))`
+      : 'var(--crm-space-lg)')
+    return () => { racine.style.removeProperty(VAR_CHROME_TOP) }
+  }, [ecranActif, avecOnglets])
+
   return (
-    <>
-      <CrmSidebar {...sidebar} />
+    <div style={{
+      display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0,
+      // ⚠ Ce que la bande prend au contenu, publié en variable.
+      //
+      // Les surfaces à hauteur FIGÉE n'en ont pas besoin (leur `<main>` est un
+      // `flex: 1` qui se répartit tout seul). Mais celles qui calculent une hauteur
+      // contre `100vh` — `ListingWizardPage` posait `height: calc(100vh - 64px)` en
+      // supposant que son `<main>` commençait en haut de la fenêtre — débordaient
+      // d'exactement cette valeur : la page se mettait à défiler et le pied du wizard
+      // passait sous le pli. Elles lisent donc `var(--crm-tabs-h, 0px)`, qui vaut zéro
+      // partout où la bande n'est pas rendue (mobile, bancs sans fournisseur).
+      ['--crm-tabs-h' as string]: avecOnglets ? `${H_BANDE}px` : '0px',
+    } as CSSProperties}>
+      {avecOnglets && (
+        <div style={{
+          flexShrink: 0,
+          // ⚠ Gouttières ASYMÉTRIQUES, et c'est ce que fait le `<main>` : 12 px à
+          // gauche, 24 à droite. La bande démarre donc au bord GAUCHE du cadre —
+          // à l'aplomb de la carte latérale, qui commence désormais SOUS elle — et
+          // la dernière commande de droite tombe à l'aplomb du bord droit.
+          padding: 'var(--crm-space-lg) var(--crm-space-7xl) 0 var(--crm-space-lg)',
+        }}>
+          <CrmTabsBar sp={sidebar.sp} dark={sidebar.dark} setDark={sidebar.setDark} badges={badges} />
+        </div>
+      )}
+      {/* ⚠ La RANGÉE, sous la bande : c'est elle qui porte désormais le duo
+          carte latérale / contenu. Sans bande (mobile, bancs), elle reprend à son
+          compte la gouttière haute que la bande fournissait. */}
       <div style={{
-        display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0,
-        // ⚠ La hauteur que la bande PREND, publiée en variable CSS.
-        //
-        // Les surfaces à hauteur FIGÉE n'en ont pas besoin (leur `<main>` est un
-        // `flex: 1` qui se répartit tout seul). Mais celles qui calculent une hauteur
-        // contre `100vh` — `ListingWizardPage` posait `height: calc(100vh - 64px)` en
-        // supposant que son `<main>` commençait en haut de la fenêtre — débordaient
-        // d'exactement cette valeur : la page se mettait à défiler et le pied du wizard
-        // passait sous le pli. Elles lisent donc `var(--crm-tabs-h, 0px)`, qui vaut zéro
-        // partout où la bande n'est pas rendue (mobile, bancs sans fournisseur).
-        ['--crm-tabs-h' as string]: avecOnglets ? `${H_BANDE}px` : '0px',
-      } as CSSProperties}>
-        {avecOnglets && (
-          <div style={{
-            flexShrink: 0,
-            // ⚠ Gouttières ASYMÉTRIQUES, et c'est ce que fait le `<main>` : 12 px à
-            // gauche, 24 à droite. La première puce tombe donc à l'aplomb du bord
-            // GAUCHE du cadre bento, et la dernière commande de droite à l'aplomb de
-            // son bord DROIT. Avec 12 px des deux côtés — le premier jet — la grappe
-            // ✦ / thème dépassait le cadre de 12 px, mesuré.
-            padding: 'var(--crm-space-lg) var(--crm-space-7xl) 0 var(--crm-space-lg)',
-          }}>
-            <CrmTabsBar sp={sidebar.sp} dark={sidebar.dark} setDark={sidebar.setDark} badges={badges} />
-          </div>
-        )}
-        {children}
+        display: 'flex', flex: 1, minWidth: 0,
+        paddingTop: avecOnglets ? 0 : undefined,
+        // ⛔ AUCUNE GOUTTIÈRE BASSE ICI, et c'est un gain de place assumé
+        // (Julien : « mords un peu plus sur le bas »). Elle en portait une de 24,
+        // qui s'AJOUTAIT au `padding-bottom` du `<main>` : le cadre bento fermait
+        // donc à 852 sur 900 — quarante-huit pixels perdus, comptés deux fois. La
+        // rangée descend maintenant jusqu'au pli, et c'est le `<main>` seul qui
+        // tient la gouttière. Le cadre gagne 24 px et ferme à 876.
+      }}>
+        <CrmSidebar {...sidebar} />
+        <div style={{
+          display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, minHeight: 0,
+        }}>
+          {children}
+        </div>
       </div>
-    </>
+    </div>
   )
 }
 

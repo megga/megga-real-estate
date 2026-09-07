@@ -283,39 +283,32 @@
     "command": {
       "placeholder": "Suchen oder Megga fragen…",
       "clear": "Leeren",
-      "scope": {
-        "all": "Alle",
-        "contacts": "Contacts",
-        "biens": "Objekte",
-        "deals": "Deals",
-        "docs": "Documents"
-      },
       "section": {
         "resumeMegga": "Mit Megga fortfahren",
         "recents": "Zuletzt verwendet",
-        "askMegga": "Megga fragen",
         "meggaConvos": "Megga-Konversationen",
         "biens": "Objekte",
         "deals": "Deals",
-        "platform": "Plattform"
+        "platform": "Plattform",
+        "openTabs": "Offene Tabs",
+        "closedTabs": "Kürzlich geschlossen"
       },
       "badge": {
         "semantic": "semantisch"
       },
       "empty": {
-        "title": "Keine Ergebnisse für «{{query}}»",
-        "body": "Fragen Sie stattdessen Megga, er kennt Ihr gesamtes CRM."
+        "title": "Keine Ergebnisse für «{{query}}»"
       },
       "askMeggaQuery": "Megga fragen: «{{query}}»",
       "deal": {
         "untitled": "Transaktion"
       },
       "roomsShort": "{{count}} Zi.",
-      "aiPrompts": {
-        "buyersReady": "Käufer, die diese Woche unterschriftsbereit sind",
-        "staleListings": "Objekte, die seit über 30 Tagen stagnieren",
-        "exclusiveMandate": "Exklusivmandat verfassen"
-      }
+      "switchToTab": "Zu Tab {{rang}}",
+      "reopenTab": "Diesen Tab erneut öffnen",
+      "showAll_one": "1 weiteres anzeigen",
+      "showAll_other": "{{count}} weitere anzeigen",
+      "startTyping": "Tippen Sie, um einen Kontakt, ein Objekt oder ein Geschäft zu suchen."
     }
   },
   "invite": {
@@ -503,7 +496,30 @@
     "more": "Weitere Registerkarten",
     "new": "Neue Registerkarte",
     "pin": "Links anheften",
+    "reopen": "{{nom}} erneut öffnen",
     "unpin": "Lösen",
     "untitled": "Registerkarte"
+  },
+  "newTab": {
+    "searchPlaceholder": "Ein Kontakt, ein Objekt, ein Geschäft",
+    "hints": {
+      "today": "Der laufende Tag",
+      "calendar": "Besichtigungen und Termine",
+      "messagerie": "Verbundene Postfächer",
+      "contacts": "Käufer, Verkäufer, Eigentümer",
+      "biens": "Das Portfolio der Agentur",
+      "matching": "Käufer und Marktangebote",
+      "pipeline": "Laufende Geschäfte",
+      "parcours": "Stand jedes Dossiers",
+      "kyc": "GwG-Konformität und Prüfungen",
+      "dashboard": "Provisionen und Leistung",
+      "settings": "Konto, Agentur, Integrationen"
+    }
+  },
+  "notFound": {
+    "title": "Diese Seite gibt es nicht",
+    "body": "Kein Bildschirm antwortet auf {{chemin}}. Ihre Tabs sind weiterhin offen.",
+    "action": "Zurück zum Dashboard",
+    "tab": "Nicht gefunden"
   }
 }

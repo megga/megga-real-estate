@@ -6,19 +6,37 @@
 
 import { useEffect, useState } from 'react'
 import CrmSearch from './CrmSearch'
-import { OPEN_SEARCH_EVENT } from './openSearch'
+import { OPEN_SEARCH_EVENT, paletteEnPlaceMontee } from './openSearch'
 
 export default function CrmSearchHost() {
   const [open, setOpen] = useState(false)
+  // Amorce venue de l'émetteur (aujourd'hui : le champ du nouvel onglet).
+  // ⚠ Elle n'a de sens qu'à l'OUVERTURE : `CrmSearch` est démonté quand la
+  // palette est fermée, donc il relit cette valeur à chaque montage — c'est
+  // exactement ce qu'on veut, et c'est ce qui évite de la remettre à zéro à la
+  // fermeture (personne ne la lit plus).
+  const [amorce, setAmorce] = useState('')
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault()
+        // ⚠ Une palette est déjà rendue DANS la page (page d'accueil d'onglet) :
+        // le voile ferait paraître un second champ par-dessus celui qui est déjà
+        // là et déjà focalisé. Elle se charge de reprendre le focus.
+        if (paletteEnPlaceMontee()) return
+        // ⚠ L'amorce est REMISE À ZÉRO ici, sans quoi un ⌘K rouvrirait la
+        // palette pré-remplie avec ce que l'agent avait tapé dans un nouvel
+        // onglet une heure plus tôt. Le raccourci global n'amorce rien.
+        setAmorce('')
         setOpen(prev => !prev)
       }
     }
-    const onOpen = () => setOpen(true)
+    const onOpen = (e: Event) => {
+      const q = (e as CustomEvent<{ query?: string }>).detail?.query
+      setAmorce(typeof q === 'string' ? q : '')
+      setOpen(true)
+    }
     window.addEventListener('keydown', onKey)
     window.addEventListener(OPEN_SEARCH_EVENT, onOpen)
     return () => {
@@ -28,5 +46,5 @@ export default function CrmSearchHost() {
   }, [])
 
   if (!open) return null
-  return <CrmSearch open={open} onClose={() => setOpen(false)} />
+  return <CrmSearch open={open} amorce={amorce} onClose={() => setOpen(false)} />
 }

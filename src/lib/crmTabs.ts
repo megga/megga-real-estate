@@ -39,7 +39,7 @@
  */
 
 import type { CrmSidebarSectionId } from '@/components/crm/crmSidebarNav'
-import { crmSidebarActiveFor } from '@/components/crm/crmSidebarNav'
+import { CRM_NEW_TAB_PATH, CRM_SIDEBAR_SECTIONS, crmSidebarActiveFor } from '@/components/crm/crmSidebarNav'
 
 /** Une entrée de la pile. Sérialisée telle quelle dans `crm_open_tabs.tabs`. */
 export interface CrmTab {
@@ -186,6 +186,33 @@ export function crmMakeTab(
   }
 }
 
+/**
+ * Le libellé AFFICHÉ d'un onglet — le nom résolu, sinon celui de sa section,
+ * sinon un repli.
+ *
+ * ⛔ IL VIT ICI PARCE QU'IL A DEUX LECTEURS. La bande d'onglets le calculait
+ * chez elle, avec sa propre table `SECTION_LABEL` qui redisait ce que
+ * `CRM_SIDEBAR_SECTIONS.labelKey` disait déjà. La palette de recherche en a
+ * besoin à son tour pour proposer « aller à l'onglet qui montre déjà ce
+ * client » — et un onglet de SECTION n'a pas de `label` du tout : le recopier
+ * une troisième fois aurait fait diverger trois tables au premier renommage.
+ *
+ * @param t le traducteur du namespace `common` — la fonction reste pure, elle
+ *          ne va pas chercher i18next elle-même.
+ */
+export function crmTabLibelle(tb: CrmTab, t: (cle: string) => string): string {
+  if (tb.label) return tb.label
+  const section = tb.section
+    ? CRM_SIDEBAR_SECTIONS.find((s) => s.id === tb.section)
+    : undefined
+  if (section) return t(section.labelKey)
+  // ⚠ Avant le repli : la page d'accueil d'onglet n'a PAS de section (c'est tout
+  // son sens), elle tomberait donc sur « Onglet » — un repli fait pour un chemin
+  // qu'on ne sait pas nommer, alors qu'on sait nommer celui-ci.
+  if (tb.path === CRM_NEW_TAB_PATH) return t('tabs.new')
+  return t('tabs.untitled')
+}
+
 /** Deux onglets visent le même emplacement ? (chemin ET query — `?tab=` distingue) */
 export function crmSameLocation(t: CrmTab, path: string, search: string): boolean {
   return t.path === path && (t.search || '') === (search || '')
@@ -293,22 +320,152 @@ export function crmCloseOthers(tabs: CrmTab[], i: number): CrmTab[] {
 }
 
 /**
- * Fenêtre visible et débordement.
+ * Combien d'onglets fermés on garde sous la main.
  *
- * `vis` puces au maximum ; au-delà, la fenêtre est les `vis` premières — MAIS si
- * l'actif en est absent, il prend le dernier créneau. L'onglet actif est toujours
- * visible : une barre qui cache l'onglet qu'on regarde ne dit plus où on est.
+ * Dix : de quoi couvrir une fermeture en rafale (« fermer les autres » sur une
+ * pile de huit) sans faire de cette liste un historique. Ce n'est pas un
+ * journal — c'est un filet pour la croix cliquée par erreur.
  */
-export function crmVisibleWindow(total: number, active: number, vis: number): {
-  visibles: number[]
-  caches: number[]
-} {
+export const CRM_FERMES_CAP = 10
+
+/**
+ * Empile un onglet fermé, le plus récent en tête.
+ *
+ * ⚠ DÉDOUBLONNÉ PAR EMPLACEMENT, et pas par id : l'id est neuf à chaque
+ * ouverture, donc fermer trois fois la même fiche remplirait trois des dix
+ * places avec la même chose. Ce qu'on veut rouvrir, c'est un ENDROIT.
+ *
+ * ⛔ CETTE PILE NE SORT PAS DE LA MÉMOIRE. Le libellé d'un onglet de fiche est
+ * le NOM d'un client — la même PII qui interdit déjà le miroir `localStorage` de
+ * la pile ouverte (cf. `CLE_MIROIR`). Un rechargement la perd, et c'est le prix
+ * assumé : la persister demanderait de rouvrir la question du stockage des noms,
+ * pour un filet qui sert dans la minute qui suit la fermeture.
+ */
+export function crmPushFerme(pile: CrmTab[], tb: CrmTab, cap = CRM_FERMES_CAP): CrmTab[] {
+  const ici = (t: CrmTab) => `${t.path}${t.search || ''}`
+  return [tb, ...pile.filter((t) => ici(t) !== ici(tb))].slice(0, cap)
+}
+
+/**
+ * Les onglets dont l'écran reste VIVANT — monté, mais retiré de la vue.
+ *
+ * ⛔ DEUX RÈGLES QUI NE SE MÉLANGENT PAS, et les confondre coûte l'état qu'on
+ * cherche à garder :
+ *
+ *  · la RÉCENCE décide de l'APPARTENANCE — on garde l'actif et les derniers
+ *    quittés, parce que c'est entre ceux-là qu'on fait l'aller-retour ;
+ *  · l'ordre de la PILE décide du RENDU. Trier le rendu par récence remettrait
+ *    l'actif en tête à chaque bascule, donc réordonnerait les enfants. Mesuré le
+ *    7 septembre 2026 : React déplace bien le nœud clé au lieu de le recréer,
+ *    mais un déplacement s'exécute en DOM par un `removeChild` suivi d'un
+ *    `insertBefore` — 560 éléments détachés puis réinsérés à chaque clic. L'ordre
+ *    de la pile est stable, et c'est en plus celui qu'affiche la bande.
+ *
+ * @param recents ids par récence décroissante, actif compris ou non
+ * @param max     combien d'écrans restent vivants (1 sur mobile)
+ */
+export function crmEcransVivants(
+  tabs: CrmTab[],
+  actifId: string | undefined,
+  recents: string[],
+  max: number,
+): CrmTab[] {
+  if (!actifId || max < 1) return []
+  const gardes = new Set([actifId, ...recents.filter((x) => x !== actifId)].slice(0, max))
+  return tabs.filter((t) => gardes.has(t.id))
+}
+
+/**
+ * Largeur PLANCHER d'une puce, selon le nombre d'onglets.
+ *
+ * ⛔ ELLE ÉTAIT UNE CONSTANTE — `CHIP_MIN = 100` dans la barre — et c'est ce qui
+ * plafonnait la bande à huit puces sur 1440. Au-delà, les onglets ne
+ * rétrécissaient pas : ils DISPARAISSAIENT dans le menu « +N », d'où on ne les
+ * retrouve qu'en le dépliant. Un navigateur fait l'inverse, et c'est la demande
+ * de Julien (7 septembre 2026) : on resserre les puces tant qu'on peut lire, et
+ * on ne cache qu'ensuite.
+ *
+ * Les trois paliers sont accordés au CONTENU d'une puce, pas choisis ronds : la
+ * gouttière (12) + le libellé + la croix (16) + sa respiration. À 100 px on lit
+ * « Aujourd'hui » en entier ; à 76 on lit « Aujourd… » ; à 60 il reste ~5
+ * caractères, ce qui distingue encore « Calen… » de « Contac… » — en dessous,
+ * deux fiches de contact deviendraient indiscernables et la puce ne servirait
+ * plus à rien.
+ */
+export function crmChipMinWidth(nTabs: number): number {
+  if (nTabs <= 8) return 100
+  if (nTabs <= 14) return 76
+  return 60
+}
+
+/**
+ * Fenêtre visible et débordement — une BANDE QUI DÉFILE, pas un préfixe figé.
+ *
+ * ⛔ CE QU'ELLE FAISAIT, ET POURQUOI C'ÉTAIT FAUX. La fenêtre était « les `vis`
+ * premières, et si l'actif n'y est pas il prend le dernier créneau ». Mesuré à
+ * l'écran le 7 septembre 2026, 20 onglets, 9 créneaux : les puces affichées
+ * étaient `0,1,2,3,4,5,6,7,19`. Trois conséquences, toutes visibles :
+ *
+ *   1. l'ORDRE AFFICHÉ EST FAUX — la puce 19 se donne pour la voisine de la 7 ;
+ *   2. les onglets 8 à 18 ne sont atteignables QUE par le menu, quoi qu'on
+ *      fasse : aucun geste ne les ramène dans la bande ;
+ *   3. le créneau emprunté a déjà coûté un correctif ailleurs — `crmDragBounds`
+ *      existe presque entièrement pour empêcher qu'un glisser d'un cran ne
+ *      téléporte une puce de huit rangs.
+ *
+ * Ici la fenêtre est CONTIGUË et elle se déplace du MINIMUM nécessaire pour
+ * contenir l'actif — comme la bande d'onglets d'un navigateur. `debut` est donc
+ * un état porté par l'appelant : sans mémoire du cadrage précédent, la fenêtre
+ * se recentrerait à chaque bascule et les puces sauteraient sous le curseur.
+ *
+ * ⚠ LES ÉPINGLÉES NE DÉFILENT PAS. Elles sont le préfixe de la pile et restent
+ * à l'écran : une épingle qu'un défilement emporte n'épingle rien. Elles
+ * consomment donc des créneaux, et la fenêtre glissante se partage le reste.
+ *
+ * ⚠ LE CRÉNEAU EMPRUNTÉ SUBSISTE POUR UN SEUL CAS, et il est réellement
+ * insoluble : plus d'épinglées que de créneaux. Le handoff exige que l'actif
+ * soit visible, huit épingles et un actif ne tiennent pas dans six créneaux, et
+ * quelque chose doit céder. Partout ailleurs il a disparu.
+ *
+ * @param debut premier rang NON ÉPINGLÉ affiché, cadrage précédent
+ * @param nPin  nombre d'onglets épinglés (ils occupent le préfixe de la pile)
+ */
+export function crmVisibleWindow(
+  total: number,
+  active: number,
+  vis: number,
+  debut = 0,
+  nPin = 0,
+): { visibles: number[]; caches: number[]; debut: number } {
   const tous = Array.from({ length: total }, (_, i) => i)
-  if (total <= vis) return { visibles: tous, caches: [] }
-  const visibles = tous.slice(0, vis)
-  if (active >= vis) visibles[vis - 1] = active
-  const dansFenetre = new Set(visibles)
-  return { visibles, caches: tous.filter((i) => !dansFenetre.has(i)) }
+  if (total <= vis) return { visibles: tous, caches: [], debut: nPin }
+
+  // Les épinglées d'abord, autant qu'il y a de place.
+  const epingles = tous.slice(0, Math.min(nPin, vis))
+  const creneaux = vis - epingles.length
+
+  if (creneaux <= 0) {
+    // Plus d'épinglées que de créneaux : le seul cas où l'actif emprunte encore
+    // un siège, faute de mieux.
+    const visibles = epingles.slice()
+    if (!visibles.includes(active) && visibles.length) visibles[visibles.length - 1] = active
+    const dedans = new Set(visibles)
+    return { visibles, caches: tous.filter((i) => !dedans.has(i)), debut: nPin }
+  }
+
+  // La fenêtre glissante ne couvre que la partie NON épinglée.
+  const premier = nPin
+  const dernierDebut = Math.max(premier, total - creneaux)
+  let d = Math.min(Math.max(debut, premier), dernierDebut)
+  // Déplacement MINIMAL — c'est ce qui évite que la bande se recentre à chaque clic.
+  if (active >= premier) {
+    if (active < d) d = active
+    else if (active >= d + creneaux) d = active - creneaux + 1
+  }
+  const fenetre = tous.slice(d, d + creneaux)
+  const visibles = [...epingles, ...fenetre]
+  const dedans = new Set(visibles)
+  return { visibles, caches: tous.filter((i) => !dedans.has(i)), debut: d }
 }
 
 /**

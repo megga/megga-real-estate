@@ -11,11 +11,13 @@
 
 import { describe, it, expect } from 'vitest'
 import {
-  CRM_TABS_CAP, crmApplyCap, crmApplyLabels, crmChipMaxWidth, crmCloseOthers,
+  CRM_TABS_CAP, crmApplyCap, crmApplyLabels, crmChipMaxWidth, crmChipMinWidth, crmCloseOthers,
+  crmEcransVivants, CRM_FERMES_CAP, crmPushFerme, crmTabLibelle,
   crmCloseTab, crmDragBounds, crmDuplicateTab, crmMakeTab, crmMoveTab, crmPinnedCount,
   crmResolveActive, crmTabFallbackPath, crmTabRecordRef, crmTabRefs,
   crmTogglePin, crmVisibleWindow, type CrmTab,
 } from '@/lib/crmTabs'
+import { CRM_NEW_TAB_PATH } from '@/components/crm/crmSidebarNav'
 
 /** Fabrique lisible — l'id est explicite, c'est lui qu'on suit dans les tests. */
 function tab(id: string, path = '/dashboard', extra: Partial<CrmTab> = {}): CrmTab {
@@ -111,12 +113,46 @@ describe('crmTabs — fermeture', () => {
 
 describe('crmTabs — débordement', () => {
   it("l'onglet actif est TOUJOURS visible, même hors fenêtre", () => {
-    // 9 onglets, 6 visibles, l'actif est le 8e : il prend le dernier créneau.
+    // 9 onglets, 6 créneaux, l'actif est le 8e : la bande défile jusqu'à lui.
     const { visibles, caches } = crmVisibleWindow(9, 7, 6)
     expect(visibles).toHaveLength(6)
     expect(visibles).toContain(7)
     expect(caches).not.toContain(7)
     expect(visibles.length + caches.length).toBe(9)
+  })
+
+  it('⛔ la fenêtre est CONTIGUË — plus de rang téléporté dans le dernier créneau', () => {
+    // Le défaut mesuré à l'écran le 7 septembre 2026 : à 20 onglets et 9 créneaux,
+    // la bande affichait `0,1,2,3,4,5,6,7,19`. La puce 19 se donnait pour la
+    // voisine de la 7, et les rangs 8 à 18 n'étaient atteignables que par le menu.
+    const { visibles } = crmVisibleWindow(20, 19, 9)
+    expect(visibles).toEqual([11, 12, 13, 14, 15, 16, 17, 18, 19])
+    for (let k = 1; k < visibles.length; k += 1) {
+      expect(visibles[k]).toBe(visibles[k - 1] + 1)
+    }
+  })
+
+  it('la bande se déplace du MINIMUM — elle ne se recentre pas à chaque clic', () => {
+    // Cadrée sur [2,7], l'actif passe au rang 8 : un seul cran, pas un recentrage.
+    expect(crmVisibleWindow(20, 8, 6, 2).debut).toBe(3)
+    // Et vers la gauche, symétriquement : l'actif passe au rang 1.
+    expect(crmVisibleWindow(20, 1, 6, 2).debut).toBe(1)
+    // L'actif DANS la fenêtre ne la bouge pas d'un pixel.
+    expect(crmVisibleWindow(20, 4, 6, 2).debut).toBe(2)
+  })
+
+  it('les ÉPINGLÉES ne défilent pas — une épingle qu’un défilement emporte n’épingle rien', () => {
+    // 2 épinglées, 6 créneaux : elles gardent les deux premiers, les 4 autres défilent.
+    const { visibles } = crmVisibleWindow(20, 19, 6, 0, 2)
+    expect(visibles.slice(0, 2)).toEqual([0, 1])
+    expect(visibles.slice(2)).toEqual([16, 17, 18, 19])
+  })
+
+  it('⚠ le créneau EMPRUNTÉ subsiste pour le seul cas insoluble : plus d’épingles que de créneaux', () => {
+    // 8 épinglées, 6 créneaux, l'actif au rang 12. Le handoff exige que l'actif
+    // soit visible ; 8 épingles et 1 actif ne tiennent pas dans 6 créneaux.
+    const { visibles } = crmVisibleWindow(15, 12, 6, 0, 8)
+    expect(visibles).toEqual([0, 1, 2, 3, 4, 12])
   })
 
   it('sans débordement, tout est visible et rien n’est caché', () => {
@@ -130,6 +166,20 @@ describe('crmTabs — débordement', () => {
     expect(crmChipMaxWidth(5, false)).toBe(170)
     expect(crmChipMaxWidth(9, false)).toBe(128)
     expect(crmChipMaxWidth(3, true)).toBe(210)
+  })
+
+  it('⛔ le PLANCHER se resserre aussi — sinon la bande plafonne à huit puces', () => {
+    // C'est lui qui décidait du plafond : figé à 100, il ne laissait tenir que 8
+    // puces sur 1440, et le reste passait au menu alors que la place existait.
+    expect(crmChipMinWidth(3)).toBe(100)
+    expect(crmChipMinWidth(8)).toBe(100)
+    expect(crmChipMinWidth(9)).toBe(76)
+    expect(crmChipMinWidth(14)).toBe(76)
+    expect(crmChipMinWidth(15)).toBe(60)
+    expect(crmChipMinWidth(24)).toBe(60)
+    // Il ne descend jamais sous 60 : en dessous, deux fiches de contact
+    // deviennent indiscernables et la puce ne sert plus à rien.
+    expect(crmChipMinWidth(999)).toBeGreaterThanOrEqual(60)
   })
 })
 
@@ -270,8 +320,102 @@ describe('crmTabs — le régime à GRAND NOMBRE', () => {
     // pas un défaut réparable : le handoff impose que l'ACTIF soit toujours visible, et
     // 8 épingles + 1 actif ne tiennent pas dans 6 créneaux. Les épinglés gardent la
     // priorité (ils sont le préfixe) ; au-delà de la capacité, quelque chose doit céder.
-    const { visibles, caches } = crmVisibleWindow(15, 12, 6)
+    const { visibles, caches } = crmVisibleWindow(15, 12, 6, 0, 8)
     expect(visibles).toEqual([0, 1, 2, 3, 4, 12])
     expect(caches.filter((i) => i < 8)).toEqual([5, 6, 7])
+  })
+})
+
+describe('crmTabs — les écrans qui restent VIVANTS', () => {
+  const pile = [tab('a'), tab('b'), tab('c'), tab('d'), tab('e')]
+
+  it("l'actif en est TOUJOURS, même absent de la récence", () => {
+    expect(crmEcransVivants(pile, 'd', [], 3).map((t) => t.id)).toEqual(['d'])
+  })
+
+  it('la récence décide de qui reste, dans la limite du plafond', () => {
+    const ids = crmEcransVivants(pile, 'a', ['c', 'e', 'b'], 3).map((t) => t.id)
+    // gardés : a (actif) + c + e — b tombe, il est le quatrième par récence.
+    expect(ids).toContain('a')
+    expect(ids).toContain('c')
+    expect(ids).toContain('e')
+    expect(ids).not.toContain('b')
+  })
+
+  it("⛔ mais l'ORDRE DE RENDU est celui de la PILE, jamais celui de la récence", () => {
+    // Le défaut mesuré le 7 septembre 2026 : trier par récence remettait l'actif
+    // en tête à chaque bascule, donc réordonnait les enfants — 560 éléments
+    // détachés puis réinsérés par clic, et les effets du sous-arbre rejoués.
+    const ids = crmEcransVivants(pile, 'e', ['c', 'a'], 3).map((t) => t.id)  // ORDRE
+    expect(ids).toEqual(['a', 'c', 'e'])
+  })
+
+  it("l'ordre ne bouge pas quand l'actif change au sein du même ensemble", () => {
+    const avant = crmEcransVivants(pile, 'a', ['b', 'c'], 3).map((t) => t.id)
+    const apres = crmEcransVivants(pile, 'c', ['a', 'b'], 3).map((t) => t.id)
+    expect(avant).toEqual(apres)
+  })
+
+  it('un plafond de 1 (mobile) ne garde que l’actif', () => {
+    expect(crmEcransVivants(pile, 'b', ['a', 'c'], 1).map((t) => t.id)).toEqual(['b'])
+  })
+
+  it('sans actif, aucun écran — il n’y a rien à garder vivant', () => {
+    expect(crmEcransVivants(pile, undefined, ['a', 'b'], 3)).toEqual([])
+  })
+})
+
+describe('crmTabs — la pile des onglets FERMÉS', () => {
+  it('empile le plus récent en TÊTE — c’est lui que ⇧-Alt-T rouvre', () => {
+    const p1 = crmPushFerme([], tab('a', '/dashboard/contacts/1'))
+    const p2 = crmPushFerme(p1, tab('b', '/dashboard/listings/2'))
+    expect(p2.map((t) => t.id)).toEqual(['b', 'a'])
+  })
+
+  it('⚠ dédoublonne par EMPLACEMENT, pas par id', () => {
+    // L'id est neuf à chaque ouverture : fermer trois fois la même fiche
+    // remplirait sinon trois des dix places avec le même endroit.
+    const p = ['x', 'y', 'z'].reduce(
+      (acc, id) => crmPushFerme(acc, tab(id, '/dashboard/contacts/1')),
+      [] as CrmTab[],
+    )
+    expect(p).toHaveLength(1)
+    expect(p[0].id).toBe('z')
+  })
+
+  it('le `search` fait partie de l’emplacement — deux vues d’un même écran cohabitent', () => {
+    const a = crmPushFerme([], tab('a', '/dashboard/settings', { search: '?tab=profil' }))
+    const b = crmPushFerme(a, tab('b', '/dashboard/settings', { search: '?tab=securite' }))
+    expect(b).toHaveLength(2)
+  })
+
+  it('ne dépasse jamais son plafond', () => {
+    let p: CrmTab[] = []
+    for (let i = 0; i < CRM_FERMES_CAP + 5; i += 1) p = crmPushFerme(p, tab(`t${i}`, `/dashboard/contacts/${i}`))
+    expect(p).toHaveLength(CRM_FERMES_CAP)
+    // Et ce sont les plus RÉCENTS qui restent.
+    expect(p[0].id).toBe(`t${CRM_FERMES_CAP + 4}`)
+  })
+})
+
+describe('crmTabs — le libellé affiché', () => {
+  const tr = (cle: string) => cle
+
+  it('le nom résolu par le serveur gagne sur tout le reste', () => {
+    expect(crmTabLibelle(tab('a', '/dashboard/contacts/1', { label: 'Marie Dupont', section: 'contacts' }), tr))
+      .toBe('Marie Dupont')
+  })
+
+  it('sinon la clé i18n de la SECTION — celle de la barre latérale, pas une copie', () => {
+    expect(crmTabLibelle(tab('a', '/dashboard/listings', { section: 'biens' }), tr)).toBe('nav.listings')
+    expect(crmTabLibelle(tab('b', '/dashboard/journey', { section: 'parcours' }), tr)).toBe('nav.journey')
+  })
+
+  it('la page d’accueil d’onglet a son nom à elle, jamais le repli', () => {
+    expect(crmTabLibelle(tab('a', CRM_NEW_TAB_PATH), tr)).toBe('tabs.new')
+  })
+
+  it('et un chemin qu’on ne sait pas nommer retombe sur le repli', () => {
+    expect(crmTabLibelle(tab('a', '/dashboard/inconnu'), tr)).toBe('tabs.untitled')
   })
 })

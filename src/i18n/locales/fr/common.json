@@ -290,39 +290,32 @@
     "command": {
       "placeholder": "Rechercher ou demander à Megga…",
       "clear": "Effacer",
-      "scope": {
-        "all": "Tout",
-        "contacts": "Contacts",
-        "biens": "Biens",
-        "deals": "Deals",
-        "docs": "Documents"
-      },
       "section": {
         "resumeMegga": "Reprendre avec Megga",
         "recents": "Récents",
-        "askMegga": "Demander à Megga",
         "meggaConvos": "Conversations Megga",
         "biens": "Biens",
         "deals": "Deals",
-        "platform": "Plateforme"
+        "platform": "Plateforme",
+        "openTabs": "Onglets ouverts",
+        "closedTabs": "Récemment fermés"
       },
       "badge": {
         "semantic": "sémantique"
       },
       "empty": {
-        "title": "Aucun résultat pour « {{query}} »",
-        "body": "Demandez plutôt à Megga, il connaît tout votre CRM."
+        "title": "Aucun résultat pour « {{query}} »"
       },
       "askMeggaQuery": "Demander à Megga : « {{query}} »",
       "deal": {
         "untitled": "Transaction"
       },
       "roomsShort": "{{count}} p.",
-      "aiPrompts": {
-        "buyersReady": "Acheteurs prêts à signer cette semaine",
-        "staleListings": "Biens stagnants depuis +30 jours",
-        "exclusiveMandate": "Rédiger un mandat exclusif"
-      }
+      "switchToTab": "Aller à l'onglet {{rang}}",
+      "reopenTab": "Rouvrir cet onglet",
+      "showAll_one": "Voir 1 de plus",
+      "showAll_other": "Voir les {{count}} autres",
+      "startTyping": "Tapez pour chercher un contact, un bien, une affaire."
     }
   },
   "invite": {
@@ -503,7 +496,30 @@
     "more": "Autres onglets",
     "new": "Nouvel onglet",
     "pin": "Épingler à gauche",
+    "reopen": "Rouvrir {{nom}}",
     "unpin": "Détacher",
     "untitled": "Onglet"
+  },
+  "newTab": {
+    "searchPlaceholder": "Un contact, un bien, une affaire",
+    "hints": {
+      "today": "La journée en cours",
+      "calendar": "Visites et rendez-vous",
+      "messagerie": "Boîtes connectées",
+      "contacts": "Acheteurs, vendeurs, propriétaires",
+      "biens": "Le portefeuille de l'agence",
+      "matching": "Acheteurs et biens du marché",
+      "pipeline": "Les affaires en cours",
+      "parcours": "Où en est chaque dossier",
+      "kyc": "Conformité LAB et vérifications",
+      "dashboard": "Commissions et performance",
+      "settings": "Compte, agence, intégrations"
+    }
+  },
+  "notFound": {
+    "title": "Cette page n'existe pas",
+    "body": "Aucun écran ne répond à {{chemin}}. Vos onglets sont restés ouverts.",
+    "action": "Revenir au tableau de bord",
+    "tab": "Introuvable"
   }
 }

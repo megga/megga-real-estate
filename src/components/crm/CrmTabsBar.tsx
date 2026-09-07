@@ -43,8 +43,11 @@ import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from './tokens'
 import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
 import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
-import { crmChipMaxWidth, crmDragBounds, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
+import { crmChipMaxWidth, crmChipMinWidth, crmDragBounds, crmPinnedCount, crmTabLibelle, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
 import { useAiPanel } from '@/hooks/useAiPanel'
+import { useEcranActif } from '@/hooks/useEcranActif'
+import { useAgentNotifications } from '@/hooks/useAgentNotifications'
+import CrmNotificationsPopover from './notifications/CrmNotificationsPopover'
 import { useCrmSidebarCollapsed } from '@/lib/crmSidebar'
 
 /**
@@ -77,13 +80,34 @@ const D_CROIX = 20
  * derrière « +N » pendant que la place existait. Une barre d'onglets aveugle à sa
  * propre largeur.
  *
- * 100 px : de quoi porter un libellé ellipsé et sa croix (« Marie D… ✕ »). Les
- * puces s'ellipsent au-delà — elles ne débordent jamais, la règle de la maquette
- * est inchangée — mais on cesse de leur refuser la place qui existe.
+ * ⛔ 100 px ÉTAIT UNE CONSTANTE, et c'est ce qui plafonnait la bande à huit
+ * puces sur 1440 : au-delà, les onglets ne rétrécissaient pas, ils passaient au
+ * menu « +N ». Le plancher vit désormais dans `crmChipMinWidth(nTabs)` — trois
+ * paliers, 100 / 76 / 60 — parce qu'il DÉPEND du nombre d'onglets et qu'il
+ * s'éprouve comme une fonction pure. Voir sa JSDoc pour le calage des paliers.
  */
-const CHIP_MIN = 100
 /** Gouttière entre deux puces — `--crm-space-2xs`, lue ici pour le calcul. */
 const TAB_GAP = 4
+
+/**
+ * En dessous de cette largeur RENDUE, la croix ne s'affiche plus que sur la puce
+ * active et sous le curseur.
+ *
+ * ⛔ SANS CETTE RÈGLE, RESSERRER LES PUCES NE SERT À RIEN. Mesuré à l'écran le
+ * 7 septembre 2026, 20 onglets : les puces tombent à ~60 px, dont 12 de
+ * gouttière gauche, 4 de droite, 16 de croix et 8 d'écart — il reste **20 px de
+ * libellé**, soit une lettre et des points de suspension. « N… » pour vingt
+ * onglets : la bande est pleine et ne dit plus rien.
+ *
+ * Croix retirée, le même libellé dispose de 44 px : « Calen… » se distingue de
+ * « Contac… », ce qui est exactement le service qu'on attend d'une puce. C'est
+ * aussi ce que fait un navigateur, et pour la même raison.
+ *
+ * 96 et non 100 : le palier haut de `crmChipMinWidth` vaut 100, et un seuil
+ * posé À la valeur du palier basculerait sur une égalité — donc sur un arrondi
+ * de mesure.
+ */
+const SEUIL_CROIX = 96
 
 /** Strate d'empilement — lue sur les voisins, pas copiée d'une convention. */
 // La barre latérale est à 75, le dock MEGGA AI à 70, le bandeau d'usurpation à 90.
@@ -178,6 +202,8 @@ interface PuceProps {
   i: number
   actif: boolean
   fermable: boolean
+  /** La puce est-elle assez large pour porter sa croix en permanence ? */
+  croixPermanente: boolean
   maxW: number
   sp: CrmPalette
   badge?: { n: number; urgent?: boolean }
@@ -204,7 +230,7 @@ function styleDePuce(actif: boolean, maxW: number, sp: CrmPalette): CSSPropertie
   }
 }
 
-function Puce({ tb, i, actif, fermable, maxW, sp, badge, libelle }: PuceProps) {
+function Puce({ tb, i, actif, fermable, croixPermanente, maxW, sp, badge, libelle }: PuceProps) {
   const { t } = useTranslation('common')
   const [survol, setSurvol] = useState(false)
   const [survolCroix, setSurvolCroix] = useState(false)
@@ -232,7 +258,10 @@ function Puce({ tb, i, actif, fermable, maxW, sp, badge, libelle }: PuceProps) {
       {badge && badge.n > 0 && (
         <Badge n={badge.n} urgent={badge.urgent} actif={actif} sp={sp} />
       )}
-      {fermable && (
+      {/* ⚠ Sur une puce étroite, la croix ne se montre que si la puce est ACTIVE
+          ou sous le curseur — sans quoi elle mange le libellé (voir SEUIL_CROIX).
+          Le libellé se resserre au survol, comme dans un navigateur. */}
+      {fermable && (croixPermanente || actif || survol) && (
         <span
           data-tabc={i}
           role="button"
@@ -305,6 +334,30 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
   // ⚠ Le repli de la barre latérale rend 180 px à la colonne : c'est un SIGNAL de
   // remesure, pas une information d'affichage — la barre d'onglets n'en fait rien d'autre.
   const [barreRepliee] = useCrmSidebarCollapsed()
+  const ecranActif = useEcranActif()
+  // ⚠ Les notifications montent ICI depuis le 7 septembre 2026 (Julien) : elles
+  // occupaient une ligne pleine du pied de la barre latérale, pour un indicateur
+  // qui n'a besoin que d'un glyphe. Le quart droit de la bande est déjà la grappe
+  // des commandes d'état (✦ et le thème) — la cloche y est chez elle, et la
+  // latérale récupère une ligne.
+  const { items: notifs, unreadCount, markRead, markAllRead } = useAgentNotifications()
+  const [notifOuvert, setNotifOuvert] = useState(false)
+  const notifAncre = useRef<HTMLDivElement | null>(null)
+  // Clic dehors et Échap ferment la popover — elle vivait dans la barre latérale,
+  // son couple d'écouteurs la suit ici.
+  useEffect(() => {
+    if (!notifOuvert) return
+    const onDown = (e: MouseEvent) => {
+      if (notifAncre.current && !notifAncre.current.contains(e.target as Node)) setNotifOuvert(false)
+    }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNotifOuvert(false) }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [notifOuvert])
 
   const barreRef = useRef<HTMLDivElement | null>(null)
   /** La piste des puces, et l'espace encore libre à sa droite. */
@@ -332,19 +385,55 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
    * ⚠ Plancher à 1 tant que la mesure n'est pas revenue (première frame) : rendre
    * zéro puce ferait clignoter la barre à chaque montage.
    */
-  const vis = Math.max(1, Math.floor((largeur + TAB_GAP) / (CHIP_MIN + TAB_GAP)) || 1)
-  const maxW = crmChipMaxWidth(nTabs, dockOuvert)
-  const { visibles, caches } = useMemo(
-    () => crmVisibleWindow(nTabs, active, vis),
-    [nTabs, active, vis],
-  )
+  // ⚠ Le plancher n'est PLUS une constante : il se resserre avec le nombre
+  // d'onglets (`crmChipMinWidth`). C'est ce qui fait tenir ~17 puces là où le
+  // `CHIP_MIN` figé à 100 en plafonnait 8 — au-delà, les onglets ne
+  // rétrécissaient pas, ils disparaissaient dans le menu.
+  const minW = crmChipMinWidth(nTabs)
+  const vis = Math.max(1, Math.floor((largeur + TAB_GAP) / (minW + TAB_GAP)) || 1)
+  // ⚠ Le maximum ne peut pas passer sous le minimum : à grand nombre, c'est le
+  // plancher qui commande, et une puce de 128 px large de 60 minimum n'aurait
+  // aucun sens.
+  const maxW = Math.max(minW, crmChipMaxWidth(nTabs, dockOuvert))
+  const nPin = crmPinnedCount(tabs)
 
-  /** Libellé d'affichage — le nom résolu, sinon le nom de la section, sinon un repli. */
-  const libelleDe = useCallback((tb: CrmTab): string => {
-    if (tb.label) return tb.label
-    if (tb.section) return t(`nav.${SECTION_LABEL[tb.section] ?? tb.section}`)
-    return t('tabs.untitled')
-  }, [t])
+  /**
+   * Cadrage de la bande — le premier rang non épinglé affiché.
+   *
+   * ⛔ IL DOIT ÊTRE UN ÉTAT, et c'est tout l'intérêt du défilement minimal :
+   * sans mémoire du cadrage précédent, `crmVisibleWindow` se recentrerait à
+   * chaque bascule et les puces sauteraient sous le curseur. On le lit au rendu
+   * et on ne le RANGE qu'ensuite — la fenêtre rendue est déjà la corrigée, donc
+   * aucun clignotement.
+   */
+  const [debut, setDebut] = useState(0)
+  const { visibles, caches, debut: debutCorrige } = useMemo(
+    () => crmVisibleWindow(nTabs, active, vis, debut, nPin),
+    [nTabs, active, vis, debut, nPin],
+  )
+  useEffect(() => {
+    if (debutCorrige !== debut) setDebut(debutCorrige)
+  }, [debutCorrige, debut])
+
+  /**
+   * Largeur RÉELLEMENT rendue d'une puce — celle qui décide du sort de la croix.
+   *
+   * ⚠ Ni `maxW` ni `minW` ne conviennent : `maxW` reste à 128 alors que les
+   * puces sont écrasées à 60 par le flex, et `minW` ne suit que le nombre
+   * d'onglets — sur un 1920 avec dix onglets les puces sont larges, et leur
+   * retirer la croix serait absurde. Ce qu'on veut est ce que l'agent voit :
+   * la piste divisée par le nombre de puces, plafonné par `maxW`.
+   */
+  const largeurPuce = Math.min(
+    maxW,
+    Math.floor((largeur + TAB_GAP) / Math.max(1, visibles.length)) - TAB_GAP,
+  )
+  const croixPermanente = largeurPuce >= SEUIL_CROIX
+
+  // ⚠ La règle vit dans `crmTabLibelle` (src/lib/crmTabs.ts) : la palette de
+  // recherche en a besoin à son tour, et la table `SECTION_LABEL` qui vivait ici
+  // redisait déjà ce que porte `CRM_SIDEBAR_SECTIONS.labelKey`.
+  const libelleDe = useCallback((tb: CrmTab): string => crmTabLibelle(tb, t), [t])
 
   // ── Délégation : UN onClick et UN onPointerDown pour toute la barre ────────
   const onClic = useCallback((e: React.MouseEvent) => {
@@ -528,8 +617,18 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
   // annulables. Les lier ici fermerait l'onglet du NAVIGATEUR en croyant fermer
   // celui du CRM. Alt est libre, dans les deux systèmes.
   useEffect(() => {
+    // ⛔ Un écran vivant mais CACHÉ n'écoute pas le clavier. Trois écrans vivants,
+    // c'est trois bandes montées : sans cette sortie, une frappe déclenchait trois
+    // fois le raccourci et poussait trois entrées d'historique (mesuré).
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (!e.altKey || e.ctrlKey || e.metaKey) return
+      // ⚠ `Alt+Maj+T` et non `⇧⌘T` : le raccourci du NAVIGATEUR, qui rouvre son
+      // propre onglet, n'est pas annulable — le lier ici ferait les deux à la
+      // fois. Alt reste le modificateur libre, comme pour les chiffres.
+      if ((e.key === 'T' || e.key === 't') && e.shiftKey) {
+        e.preventDefault(); api.rouvrirFerme(); return
+      }
       if (e.key >= '1' && e.key <= '9') {
         const i = Number(e.key) - 1
         if (i < tabs.length) { e.preventDefault(); api.selectionner(i) }
@@ -541,17 +640,18 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [api, active, tabs.length])
+  }, [api, active, tabs.length, ecranActif])
 
   // Fermer les menus à l'Échap.
   useEffect(() => {
+    if (!ecranActif) return
     if (!ctx && !menuPlus) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { setCtx(null); setMenuPlus(false) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [ctx, menuPlus])
+  }, [ctx, menuPlus, ecranActif])
 
   if (!nTabs) return <div style={{ height: H_PUCE }} aria-hidden />
 
@@ -587,6 +687,7 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
             // Une puce épinglée perd sa croix : elle ne se ferme qu'après
             // détachement, par le menu. C'est le sens de l'épingle.
             fermable={nTabs > 1 && !tabs[i].pinned}
+            croixPermanente={croixPermanente}
             maxW={maxW} sp={sp}
             badge={tabs[i].section ? badges?.[tabs[i].section] : undefined}
             libelle={libelleDe(tabs[i])}
@@ -653,6 +754,34 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
           navigateur, c'est là que la main le cherche. */}
       <div ref={videRef} style={{ flex: 1, minWidth: 'var(--crm-space-lg)' }} aria-hidden />
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xs)', flexShrink: 0 }}>
+        {/* ⚠ `position: relative` sur l'ancre, et pas sur la grappe : la popover
+            s'ouvre en `below-right`, elle se cale donc sur le bord droit de SA
+            commande — pas sur celui du groupe, qui la décalerait du thème. */}
+        <div ref={notifAncre} style={{ position: 'relative' }}>
+          <CommandeRonde
+            sp={sp}
+            icone="bell"
+            actif={notifOuvert}
+            libelle={unreadCount > 0
+              ? `${t('nav.notifications')} · ${t('notifications.unreadCount', { count: unreadCount })}`
+              : t('nav.notifications')}
+            haspopup="dialog"
+            expanded={notifOuvert}
+            badge={unreadCount}
+            onClick={() => setNotifOuvert((o) => !o)}
+          />
+          {notifOuvert && (
+            <CrmNotificationsPopover
+              sp={sp}
+              dark={dark}
+              items={notifs}
+              onItemClick={(n) => { markRead(n.id); setNotifOuvert(false) }}
+              onMarkAll={() => markAllRead()}
+              onSeeAll={() => setNotifOuvert(false)}
+              onMute={() => setNotifOuvert(false)}
+            />
+          )}
+        </div>
         {ai.enabled && (
           <CommandeRonde
             sp={sp}
@@ -735,6 +864,19 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
                 onClick={() => { const i = ctx!.i; setCtx(null); api.fermer(i) }}
               />
             )}
+            {/* ⚠ Rendue seulement quand il y a quelque chose à rouvrir : une
+                ligne grisée en permanence apprend le geste sans jamais le rendre,
+                et occupe une place dans un menu de quatre. */}
+            {api.fermes.length > 0 && (
+              <LigneMenu
+                // ⚠ `refresh` faute d'`undo` dans `MEIcon` : la flèche circulaire est
+                // le glyphe le plus proche du geste, et en inventer un ici ferait
+                // diverger le jeu d'icônes du CRM pour une seule ligne de menu.
+                icone="refresh" sp={sp}
+                libelle={t('tabs.reopen', { nom: libelleDe(api.fermes[0]) })}
+                onClick={() => { setCtx(null); api.rouvrirFerme() }}
+              />
+            )}
           </div>
         </>,
         document.body,
@@ -747,14 +889,16 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
  * Commande ronde du quart droit — même diamètre que la pastille « +N », pour que
  * les trois se lisent comme une seule famille.
  */
-function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded }: {
+function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded, badge = 0 }: {
   sp: CrmPalette
-  icone: 'sparkle' | 'sun' | 'moon' | 'plus'
+  icone: 'sparkle' | 'sun' | 'moon' | 'plus' | 'bell'
   actif: boolean
   libelle: string
   onClick: () => void
   haspopup?: 'dialog'
   expanded?: boolean
+  /** Compteur non lu, posé en pastille sur le coin. `0` n'en rend aucune. */
+  badge?: number
 }) {
   const [survol, setSurvol] = useState(false)
   return (
@@ -790,16 +934,41 @@ function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded 
         border: `1px solid ${actif ? sp.accent : survol ? sp.soft : sp.cardBorder}`,
         color: actif ? sp.accentInk : survol ? sp.ink : sp.sub,
         transition: 'background-color .18s ease, border-color .18s ease, color .18s ease',
+        // ⚠ Ancre de la pastille de compteur. Sans elle, le compteur se calerait
+        // sur la grappe entière et flotterait entre deux commandes.
+        position: 'relative',
       }}
     >
       <MEIcon name={icone} size={15} strokeWidth={1.7} />
+      {/* ⚠ LE COMPTEUR, PAS UN POINT. La barre latérale montrait le NOMBRE de non
+          lus ; le réduire à un point en déménageant aurait retiré une information
+          au passage. Au-delà de neuf, « 9+ » — deux chiffres ne tiennent pas sur
+          une commande de 26 px sans déborder du cercle.
+          ⚠ Rouge sémantique et non l'accent : c'est un état à traiter, pas
+          l'élément actif. Même encre que la pastille qu'il remplace. */}
+      {badge > 0 && (
+        <span
+          aria-hidden
+          style={{
+            position: 'absolute', top: -3, right: -3,
+            minWidth: 15, height: 15, padding: '0 var(--crm-space-2xs)',
+            boxSizing: 'border-box',
+            borderRadius: 'var(--crm-radius-pill)',
+            background: '#E53935', color: '#ffffff',
+            border: `1.5px solid ${sp.frameBg}`,
+            fontSize: 'var(--crm-text-xs)', fontWeight: 600, lineHeight: 1,
+            display: 'grid', placeItems: 'center',
+            fontVariantNumeric: 'tabular-nums',
+          }}
+        >{badge > 9 ? '9+' : badge}</span>
+      )}
     </button>
   )
 }
 
 /** Une ligne de menu — même géométrie pour le clic droit et le débordement. */
 function LigneMenu({ icone, libelle, onClick, sp }: {
-  icone: 'pin' | 'copy' | 'close'; libelle: string; onClick: () => void; sp: CrmPalette
+  icone: 'pin' | 'copy' | 'close' | 'refresh'; libelle: string; onClick: () => void; sp: CrmPalette
 }) {
   const [survol, setSurvol] = useState(false)
   return (
@@ -918,10 +1087,4 @@ function LigneDebordement({ libelle, fermable, badge, onClick, onFermer, sp, lab
  * dans la colonne et « Annonces » sur la puce ferait douter que ce soit le même
  * écran.
  */
-const SECTION_LABEL: Record<string, string> = {
-  today: 'today', calendar: 'calendar', contacts: 'contacts', biens: 'listings',
-  matching: 'matching', pipeline: 'pipeline', parcours: 'journey', kyc: 'kyc',
-  dashboard: 'dashboard', settings: 'settings', messagerie: 'messagerie',
-}
-
 export default CrmTabsBar

@@ -34,12 +34,17 @@ export default function ListingWizardPage() {
       <style>{CRM_KEYFRAMES}</style>
       <div style={{ display: 'flex', minHeight: 'calc(100vh - 0px)' }}>
         <CrmWorkspace active="biens" sp={sgSp} dark={dark} setDark={setDark}>
-        <main style={{ flex: 1, minWidth: 0, padding: '24px 40px 40px' }}>
-          {/* Hauteur = 100vh moins les marges verticales de `main` (24 + 40) ET la bande
+        <main style={{ flex: 1, minWidth: 0, padding: 'var(--crm-space-lg) var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-lg)' }}>
+          {/* Hauteur = 100vh moins les marges verticales de `main` ET la bande
               d'onglets, qui pousse ce `<main>` vers le bas. ⚠ `var(--crm-tabs-h)` vaut 0
               là où la bande n'est pas rendue (mobile, bancs) : sans elle, la page
-              débordait de 48 px et le pied du wizard passait sous le pli. */}
-          <div style={{ position: 'relative', height: 'calc(100vh - 64px - var(--crm-tabs-h, 0px))', borderRadius: 26, overflow: 'hidden' }}>
+              débordait de 48 px et le pied du wizard passait sous le pli.
+              ⛔ LES DEUX VONT ENSEMBLE. La gouttière valait `24px 40px 40px`, et ce
+              `calc` en défalquait la somme verticale, écrite en dur : `64px`. La
+              normalisation des gouttières du 7 septembre 2026 la ramène à 12 + 24 =
+              36 — changer l'une sans l'autre aurait fait déborder la page de 28 px,
+              en silence. Le calc lit donc les MÊMES jetons que la gouttière. */}
+          <div style={{ position: 'relative', height: 'calc(100vh - var(--crm-space-lg) - var(--crm-space-6xl) - var(--crm-tabs-h, 0px))', borderRadius: 26, overflow: 'hidden' }}>
             <WizardShell embedded dark={dark} onClose={onClose} />
           </div>
         </main>
