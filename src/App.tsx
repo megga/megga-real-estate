@@ -514,6 +514,23 @@ const ROUTES_TABLEAU_DE_BORD = (
       />
     }
   />
+    {/* ⛔ LE FILET, ET IL N'EST PAS FACULTATIF. Tant que `/dashboard` portait ses
+        enfants, un chemin inconnu sous lui ne matchait AUCUNE route et retombait
+        sur le `*` de premier niveau, donc sur `NotFoundPage`. Le splat
+        `/dashboard/*` capture désormais tout : sans ce filet, cette table ne
+        matche rien et rend `null` — un corps VIDE, pas une erreur.
+
+        Mesuré par la suite Playwright sur `/dashboard/visits/:id/companion`
+        (route retirée en juillet 2026, encore couverte par
+        `crm-agent-params-coverage.spec.ts`) : « body too small (0 chars) ». Un
+        écran blanc ne rougit nulle part ailleurs — c'est ce test-là qui l'a vu.
+
+        ⚠ Conséquence assumée : une URL inconnue sous `/dashboard` prend
+        maintenant un onglet (elle est `crmTabsEligible`), là où elle n'en prenait
+        aucun — le fournisseur n'était pas monté. L'onglet porte le libellé de
+        repli et se ferme comme un autre ; l'alternative, rediriger en silence
+        vers le cockpit, effacerait la faute de frappe au lieu de la montrer. */}
+    <Route path="*" element={<NotFoundPage />} />
   </>
 )
 

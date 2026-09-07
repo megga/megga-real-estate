@@ -299,6 +299,10 @@ const ROUTES_BANC = (
               vérifiaient que par lecture. */}
           <Route path="kyc/:dossierId/export" element={<KycExportPage />} />
         </Route>
+        {/* ⚠ Le même filet que l'app : sous un parent en `/dashboard/*`, une
+            cible non montée ne matche plus rien et rendrait un écran BLANC —
+            alors que le banc doit dire « Sortie neutralisée ». */}
+        <Route path="*" element={<SortieNeutralisee />} />
   </>
 )
 
