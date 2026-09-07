@@ -505,5 +505,21 @@
     "pin": "Pin to the left",
     "unpin": "Unpin",
     "untitled": "Tab"
+  },
+  "newTab": {
+    "searchPlaceholder": "A contact, a property, a deal",
+    "hints": {
+      "today": "The day in progress",
+      "calendar": "Viewings and appointments",
+      "messagerie": "Connected mailboxes",
+      "contacts": "Buyers, sellers, owners",
+      "biens": "The agency portfolio",
+      "matching": "Buyers and market listings",
+      "pipeline": "Deals in progress",
+      "parcours": "Where each file stands",
+      "kyc": "AML compliance and checks",
+      "dashboard": "Commissions and performance",
+      "settings": "Account, agency, integrations"
+    }
   }
 }

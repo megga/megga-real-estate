@@ -44,6 +44,7 @@ import type { CrmPalette } from './tokens'
 import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
 import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
 import { crmChipMaxWidth, crmDragBounds, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
+import { CRM_NEW_TAB_PATH } from './crmSidebarNav'
 import { useAiPanel } from '@/hooks/useAiPanel'
 import { useCrmSidebarCollapsed } from '@/lib/crmSidebar'
 
@@ -343,6 +344,11 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
   const libelleDe = useCallback((tb: CrmTab): string => {
     if (tb.label) return tb.label
     if (tb.section) return t(`nav.${SECTION_LABEL[tb.section] ?? tb.section}`)
+    // ⚠ Avant la section-repli : la page d'accueil d'onglet n'a PAS de section
+    // (c'est tout son sens), elle serait donc tombée sur « Onglet » — un repli
+    // fait pour un chemin qu'on ne sait pas nommer, alors qu'on sait nommer
+    // celui-ci.
+    if (tb.path === CRM_NEW_TAB_PATH) return t('tabs.new')
     return t('tabs.untitled')
   }, [t])
 

@@ -505,5 +505,21 @@
     "pin": "Épingler à gauche",
     "unpin": "Détacher",
     "untitled": "Onglet"
+  },
+  "newTab": {
+    "searchPlaceholder": "Un contact, un bien, une affaire",
+    "hints": {
+      "today": "La journée en cours",
+      "calendar": "Visites et rendez-vous",
+      "messagerie": "Boîtes connectées",
+      "contacts": "Acheteurs, vendeurs, propriétaires",
+      "biens": "Le portefeuille de l'agence",
+      "matching": "Acheteurs et biens du marché",
+      "pipeline": "Les affaires en cours",
+      "parcours": "Où en est chaque dossier",
+      "kyc": "Conformité LAB et vérifications",
+      "dashboard": "Commissions et performance",
+      "settings": "Compte, agence, intégrations"
+    }
   }
 }

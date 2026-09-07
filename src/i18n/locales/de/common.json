@@ -505,5 +505,21 @@
     "pin": "Links anheften",
     "unpin": "Lösen",
     "untitled": "Registerkarte"
+  },
+  "newTab": {
+    "searchPlaceholder": "Ein Kontakt, ein Objekt, ein Geschäft",
+    "hints": {
+      "today": "Der laufende Tag",
+      "calendar": "Besichtigungen und Termine",
+      "messagerie": "Verbundene Postfächer",
+      "contacts": "Käufer, Verkäufer, Eigentümer",
+      "biens": "Das Portfolio der Agentur",
+      "matching": "Käufer und Marktangebote",
+      "pipeline": "Laufende Geschäfte",
+      "parcours": "Stand jedes Dossiers",
+      "kyc": "GwG-Konformität und Prüfungen",
+      "dashboard": "Provisionen und Leistung",
+      "settings": "Konto, Agentur, Integrationen"
+    }
   }
 }

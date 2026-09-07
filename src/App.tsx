@@ -123,6 +123,7 @@ const VisitDetailPage = lazy(() => import('@/pages/agent/VisitDetailPage'))
 const ImportLeadPage = lazy(() => import('@/pages/agent/ImportLeadPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const JourneyPage = lazy(() => import('@/pages/agent/JourneyPage'))
+const NewTabPage = lazy(() => import('@/pages/agent/NewTabPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 // Messagerie (boîte mail intégrée) — l'écran, son mobile minimal (D16) et le
 // retour d'autorisation de la pop-up OAuth.
@@ -636,6 +637,13 @@ function AppRoutes() {
                 <Route path="parcours" element={<Navigate to="/dashboard/journey" replace />} />
                 {/* Agenda — mobile (< 768px) : jour liste + time-block (P6). */}
                 <Route path="calendar" element={<ResponsiveRoute desktop={<CalendarPage />} mobile={<MobileAgendaPage />} />} />
+                {/* Nouvel onglet — la page d'accueil d'un onglet neuf : un champ qui
+                    relaie vers ⌘K, et les destinations. Aucune donnée, aucune requête.
+                    ⚠ Bureau SEULEMENT, et volontairement : le CRM mobile n'a pas
+                    d'onglets (sa pilule à cinq destinations en tient lieu), donc la
+                    page n'y a pas d'appelant. Un mobile qui reçoit ce lien — pile
+                    restaurée d'une session de bureau — repart sur le cockpit. */}
+                <Route path="nouvel-onglet" element={<ResponsiveRoute desktop={<NewTabPage />} mobile={<Navigate to="/dashboard" replace />} />} />
                 {/* Messagerie — bento 296px | 1fr. Mobile (< 768px) : lecture seule (D16). */}
                 <Route path="messagerie" element={<ResponsiveRoute desktop={<MessageriePage />} mobile={<MobileMessagerieScreen />} />} />
                 {/* Réglages — mobile (< 768px) : hub de réglages (P9). */}

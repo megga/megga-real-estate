@@ -63,6 +63,7 @@ import { readCrmDark } from '@/lib/crmDark'
 /* ─── Les surfaces montées, dérivées du ROUTAGE de `App.tsx` ───────────────── */
 
 const TodayPage = lazy(() => import('@/pages/agent/TodayPage'))
+const NewTabPage = lazy(() => import('@/pages/agent/NewTabPage'))
 const KycPage = lazy(() => import('@/pages/agent/KycPage'))
 const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))
 const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
@@ -99,6 +100,7 @@ const CopilotPanel = lazy(() => import('@/components/ai-copilot/panel/CopilotPan
  */
 const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' }[] = [
   { id: 'today', chemin: '/dashboard', label: 'Aujourd’hui', vague: 'A' },
+  { id: 'nouvel-onglet', chemin: '/dashboard/nouvel-onglet', label: 'Nouvel onglet', vague: 'A' },
   // Fiche d'annonce marché — l'uuid est celui de `ANNONCE_MARCHE_BANC`.
   { id: 'market', chemin: '/dashboard/market/00432e97-f3d2-4d11-9c1f-dd882343ee8e', label: 'Annonce marché', vague: 'A' },
   { id: 'kyc', chemin: '/dashboard/kyc', label: 'KYC', vague: 'A' },
@@ -270,6 +272,7 @@ function RoutesBanc() {
     <Routes>
       <Route path="/dashboard" element={<AgentLayout />}>
         <Route index element={<TodayPage />} />
+        <Route path="nouvel-onglet" element={<NewTabPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="market/:externalId" element={<ExternalListingDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />

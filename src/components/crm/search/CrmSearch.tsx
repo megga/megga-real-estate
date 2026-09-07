@@ -212,9 +212,18 @@ const ADMIN_KEYWORDS = ['admin', 'console', 'plateforme', 'platform']
 interface Props {
   open: boolean
   onClose: () => void
+  /**
+   * Texte déjà tapé par l'appelant, repris dans le champ à l'ouverture.
+   *
+   * Sert le relais du nouvel onglet (`openCrmSearch(q)`) : la frappe qui a
+   * DÉCLENCHÉ l'ouverture doit s'y retrouver, sinon l'agent la retape. Lu une
+   * seule fois, à l'initialisation de l'état — c'est suffisant parce que
+   * `CrmSearchHost` démonte ce composant à chaque fermeture.
+   */
+  amorce?: string
 }
 
-export default function CrmSearch({ open, onClose }: Props) {
+export default function CrmSearch({ open, onClose, amorce }: Props) {
   const navigate = useNavigate()
   const ai = useAiPanel()
   // Collision : la variable `t` ci-dessous = tokens de thème. Le traducteur = `tr`.
@@ -228,13 +237,13 @@ export default function CrmSearch({ open, onClose }: Props) {
   const sp = crmPalette(dark)
   const accentBlue = dark ? '#A5C0FF' : '#0041D9'
 
-  const [q, setQ] = useState('')
+  const [q, setQ] = useState(amorce ?? '')
   const [scope, setScope] = useState<ScopeId>('all')
   const [activeIdx, setActiveIdx] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Debounce de la requête pour la recherche contacts (server-side).
-  const [debouncedQ, setDebouncedQ] = useState('')
+  const [debouncedQ, setDebouncedQ] = useState(amorce ?? '')
   useEffect(() => {
     const id = window.setTimeout(() => setDebouncedQ(q), 200)
     return () => window.clearTimeout(id)

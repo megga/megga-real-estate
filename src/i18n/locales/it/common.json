@@ -505,5 +505,21 @@
     "pin": "Fissa a sinistra",
     "unpin": "Sblocca",
     "untitled": "Scheda"
+  },
+  "newTab": {
+    "searchPlaceholder": "Un contatto, un immobile, un affare",
+    "hints": {
+      "today": "La giornata in corso",
+      "calendar": "Visite e appuntamenti",
+      "messagerie": "Caselle collegate",
+      "contacts": "Acquirenti, venditori, proprietari",
+      "biens": "Il portafoglio dell'agenzia",
+      "matching": "Acquirenti e immobili del mercato",
+      "pipeline": "Gli affari in corso",
+      "parcours": "A che punto è ogni pratica",
+      "kyc": "Conformità LRD e verifiche",
+      "dashboard": "Commissioni e performance",
+      "settings": "Account, agenzia, integrazioni"
+    }
   }
 }

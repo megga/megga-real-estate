@@ -43,7 +43,7 @@ import {
   crmDuplicateTab, crmMakeTab, crmMoveTab, crmResolveActive, crmSameLocation,
   crmTabHref, crmTabRefs, crmTogglePin, type CrmTab, type CrmTabsState,
 } from '@/lib/crmTabs'
-import { crmSidebarActiveFor } from '@/components/crm/crmSidebarNav'
+import { crmSidebarActiveFor, CRM_NEW_TAB_PATH } from '@/components/crm/crmSidebarNav'
 
 /**
  * Surfaces qui n'ouvrent PAS d'onglet.
@@ -458,7 +458,15 @@ export function useCrmTabsMachine(): CrmTabsApi {
     if (viser(href)) navigate(href)
   }, [navigate, viser])
 
-  const ouvrirNouvel = useCallback(() => { ouvrirDans('/dashboard') }, [ouvrirDans])
+  /**
+   * Le « + » de la barre.
+   *
+   * ⚠ Il visait `/dashboard`, donc le cockpit : un onglet neuf naissait sur une
+   * DESTINATION, allumait « Aujourd'hui » dans la barre latérale et déclenchait
+   * les requêtes de l'écran. Il vise désormais la page d'accueil d'onglet, qui
+   * ne charge rien et n'allume rien — voir `NewTabPage`.
+   */
+  const ouvrirNouvel = useCallback(() => { ouvrirDans(CRM_NEW_TAB_PATH) }, [ouvrirDans])
 
   /**
    * Fermeture — le SEUL endroit qui sait fermer un onglet.
