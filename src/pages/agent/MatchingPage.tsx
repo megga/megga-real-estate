@@ -374,7 +374,7 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <CrmWorkspace active="matching" sp={sp} dark={dark} setDark={setDark}>
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 'var(--crm-space-6xl)' }}>
           {/* Viewport pager — clippe les deux pages, capte la molette */}
           <div ref={viewportRef} style={{
             position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden',

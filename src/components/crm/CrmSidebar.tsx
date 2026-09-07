@@ -471,11 +471,15 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
           // des deux plein-écran qui doivent, eux, couvrir la barre.
           zIndex: 75,
           width: collapsed ? W_COLLAPSED : W_OPEN, flexShrink: 0,
-          // La carte s'aligne EXACTEMENT sur le cadre bento des écrans : 12 px
-          // en haut (le `paddingTop` que prend leur `<main>`), 22 px en bas (le
-          // `paddingBottom` qu'il portait déjà). D'où la hauteur en `calc` —
-          // deux gouttières différentes, une seule boîte.
-          height: 'calc(100vh - 34px)',
+          // ⛔ LA HAUTEUR SE DÉRIVE DES MÊMES BARREAUX QUE LES GOUTTIÈRES DU
+          // `<main>`, elle ne se recalcule pas à la main. Elle valait
+          // `calc(100vh - 34px)` — 12 en haut + 22 en bas, accordés au doigt sur
+          // le `paddingBottom` de l'époque. Sept surfaces fermaient bien à 22,
+          // mais cinq autres (les pagers, les Réglages, le Calendrier) fermaient
+          // déjà à `--crm-space-6xl` : sur celles-là, la carte dépassait le cadre
+          // de 2 px. Une gouttière écrite à trois endroits finit toujours par
+          // diverger ; écrite en `calc` sur les jetons, elle suit.
+          height: 'calc(100vh - var(--crm-space-lg) - var(--crm-space-6xl))',
           margin: 'var(--crm-space-lg) 0 0 var(--crm-space-lg)',
           background: sp.frameBg,
           border: `1px solid ${sp.frameBorder}`,

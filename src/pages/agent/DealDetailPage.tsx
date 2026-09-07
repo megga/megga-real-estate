@@ -363,7 +363,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
         <main style={{
           flex: 1, minWidth: 0, minHeight: 0, height: '100%', display: 'flex', flexDirection: 'column',
           paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)',
-          paddingRight: 24, paddingBottom: 22,
+          paddingRight: 24, paddingBottom: 'var(--crm-space-6xl)',
         }}>
           <div style={{
             position: 'relative', flex: 1, minHeight: 0, borderRadius: 26, overflow: 'hidden',

@@ -168,7 +168,7 @@ export default function KycPage() {
               minWidth: 0,
               minHeight: 0,
               height: '100%',
-              padding: 'var(--crm-space-lg) 24px 22px var(--crm-space-lg)',
+              padding: 'var(--crm-space-lg) var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-lg)',
             }}
           >
             {gatePending ? (

@@ -91,7 +91,7 @@ export default function CrmPageSkeleton() {
       <aside
         style={{
           width: collapsed ? 84 : 264, flexShrink: 0,
-          height: 'calc(100vh - 34px)',
+          height: 'calc(100vh - var(--crm-space-lg) - var(--crm-space-6xl))',
           margin: 'var(--crm-space-lg) 0 0 var(--crm-space-lg)',
           background: sp.frameBg,
           border: `1px solid ${sp.frameBorder}`,
@@ -169,7 +169,7 @@ export default function CrmPageSkeleton() {
         <div
           style={{
             flex: 1, minHeight: 0,
-            margin: 'var(--crm-space-lg) 24px 22px var(--crm-space-lg)',
+            margin: 'var(--crm-space-lg) var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-lg)',
             borderRadius: 26,
             border: `1px solid ${sp.frameBorder}`,
             background: sp.cardBg,
