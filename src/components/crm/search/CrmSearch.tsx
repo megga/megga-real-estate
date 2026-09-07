@@ -22,6 +22,8 @@ import { filterConversationsByTitle, type ConversationSummary } from '@/lib/conv
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import { readCrmDark } from '@/lib/crmDark'
+import { declarerPaletteEnPlace } from './openSearch'
+import { useEcranActif } from '@/hooks/useEcranActif'
 import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
 import { crmTabLibelle } from '@/lib/crmTabs'
 
@@ -237,9 +239,16 @@ interface Props {
    * `CrmSearchHost` démonte ce composant à chaque fermeture.
    */
   amorce?: string
+  /**
+   * `overlay` (défaut) : le ⌘K historique, panneau flottant sur un voile.
+   * `inline` : rendu DANS la page, sans voile ni panneau — voir `corps`.
+   */
+  variante?: 'overlay' | 'inline'
+  /** Prévient la page de ce qui est tapé, pour qu'elle sache quoi montrer autour. */
+  onQueryChange?: (q: string) => void
 }
 
-export default function CrmSearch({ open, onClose, amorce }: Props) {
+export default function CrmSearch({ open, onClose, amorce, variante = 'overlay', onQueryChange }: Props) {
   const navigate = useNavigate()
   const ai = useAiPanel()
   // Collision : la variable `t` ci-dessous = tokens de thème. Le traducteur = `tr`.
@@ -277,6 +286,8 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
   const tabsApi = useCrmTabsOptionnel()
 
 
+  const ecranActif = useEcranActif()
+  const enPlace = variante === 'inline'
   const ql = q.trim().toLowerCase()
 
   /**
@@ -417,6 +428,33 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
     else navigate(href)
   }, [goMegga, resumeConversation, navigate, onClose, hrefDe, tabsApi])
 
+  /**
+   * Déclare la palette en place, et reprend le focus sur `⌘K`.
+   *
+   * ⚠ Le raccourci reste GLOBAL : le host ne l'ouvre simplement pas quand une
+   * palette est déjà dans la page (`paletteEnPlaceMontee`). Ici on lui donne sa
+   * destination — le champ, sélectionné, prêt à être remplacé.
+   */
+  useEffect(() => {
+    // ⛔ ET SEULEMENT SI SON ÉCRAN EST CELUI QU'ON REGARDE. Mesuré le 7 septembre
+    // 2026 : l'écran « nouvel onglet » reste VIVANT en arrière-plan (trois écrans
+    // le sont), donc sa palette restait déclarée — et `⌘K` ne faisait plus rien
+    // nulle part, puisque le host croyait qu'un champ était déjà à l'écran. Un
+    // raccourci confisqué par un écran qu'on ne voit pas est pire qu'absent : il
+    // n'a aucun symptôme lisible.
+    if (variante !== 'inline' || !ecranActif) return
+    const retirer = declarerPaletteEnPlace()
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault()
+        inputRef.current?.focus()
+        inputRef.current?.select()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('keydown', onKey); retirer() }
+  }, [variante, ecranActif])
+
   // Focus auto à l'ouverture.
   useEffect(() => {
     const id = window.setTimeout(() => inputRef.current?.focus(), 50)
@@ -427,7 +465,13 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); onClose() }
+      // ⚠ En place, Échap EFFACE : il n'y a pas de voile à fermer, et fermer la
+      // page d'accueil d'un onglet neuf n'aurait aucun sens.
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        if (variante === 'inline') { setQ(''); setActiveIdx(0); onQueryChange?.('') }
+        else onClose()
+      }
       else if (e.key === 'Tab') {
         e.preventDefault()
         const i = SCOPES.findIndex(s => s.id === scope)
@@ -439,7 +483,7 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, scope, flatItems, activeIdx, onClose, activer])
+  }, [open, scope, flatItems, activeIdx, onClose, activer, variante, onQueryChange])
 
   useEffect(() => {
     if (activeIdx >= flatItems.length) setActiveIdx(Math.max(0, flatItems.length - 1))
@@ -468,76 +512,74 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
   const offBiens = nOnglets + adminCount + meggaResults.length + contactResults.length
   const offDeals = nOnglets + adminCount + meggaResults.length + contactResults.length + bienResults.length
 
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 200,
-        background: overlayColor,
-        backdropFilter: 'blur(18px) saturate(140%)',
-        WebkitBackdropFilter: 'blur(18px) saturate(140%)',
-        display: 'grid', placeItems: 'start center', paddingTop: '11vh',
-        fontFamily: 'var(--crm-font)',
-      }}
-    >
-      <style>{`
-        @keyframes crmSearchIn {
-          from { transform: translateY(-12px) scale(.97); opacity: 0; }
-          to   { transform: translateY(0)     scale(1);   opacity: 1; }
-        }
-        @keyframes crmSearchHaloPulse {
-          0%, 100% { opacity: .35; transform: scale(1); }
-          50%      { opacity: .55; transform: scale(1.03); }
-        }
-        .crmSearchField::placeholder { color: var(--ph-color); opacity: 1; }
-      `}</style>
-
-      {/* Halo neutre (zéro bleu) */}
-      <div
-        style={{
-          position: 'absolute', top: '8vh', width: 720, height: 360,
-          background: dark
-            ? 'radial-gradient(closest-side, rgba(255,255,255,0.05), transparent 70%)'
-            : 'radial-gradient(closest-side, rgba(255,255,255,0.55), transparent 70%)',
-          filter: 'blur(40px)', pointerEvents: 'none',
-          animation: 'crmSearchHaloPulse 4s ease-in-out infinite',
-        }}
-      />
-
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: 720, maxWidth: '92vw', maxHeight: '78vh',
-          background: panelBg,
-          backdropFilter: 'blur(28px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(28px) saturate(160%)',
-          border: `1px solid ${panelBorder}`,
-          borderRadius: 'var(--crm-radius-5xl)',
-          boxShadow: panelShadow,
-          overflow: 'hidden',
-          display: 'flex', flexDirection: 'column',
-          animation: 'crmSearchIn 280ms cubic-bezier(.2,.9,.25,1.1)',
-        }}
-      >
-        {/* Champ épuré — aucune icône */}
-        <div style={{ padding: '26px 28px 18px', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
+  /**
+   * Le CORPS de la palette — champ, portées, résultats, pied.
+   *
+   * ⛔ IL EST EXTRAIT PARCE QU'IL A DEUX ENVELOPPES, et une seule
+   * implémentation. En `overlay` il vit dans un panneau flottant au-dessus d'un
+   * voile ; en `inline` il se rend DANS la page, sans voile, sans panneau, sans
+   * animation d'entrée. Retour de Julien, 7 septembre 2026 : « quand je tape,
+   * j'ai un pop-up — il faudrait construire complètement dedans ». Il a raison,
+   * et c'est la même objection que pour le 404 : ce qui sort du cadre fait
+   * perdre le contexte.
+   *
+   * ⚠ Écrire un second moteur pour la page aurait donné DEUX recherches à tenir
+   * d'accord — c'est précisément ce que le relais vers ⌘K évitait. Deux
+   * enveloppes autour d'un corps unique le tient encore.
+   */
+  const corps = (
+    <>
+        {/* Le champ.
+            ⚠ DEUX HABILLAGES, un seul `<input>`. Flottant, il est nu et énorme
+            (24 px) : le panneau lui sert de cadre. En place, il porte le cadre
+            lui-même — pilule, filet, ombre, glyphe de loupe — parce qu'il n'a
+            plus de panneau autour et qu'un champ sans limite visible ne se
+            distingue pas du texte de la page. Sa taille redescend à 15 px, celle
+            du CRM ; 24 px au milieu d'une page en ferait une bannière. */}
+        <div style={enPlace ? {
+          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
+          background: sp.cardBg, border: `1px solid ${sp.cardBorder}`,
+          borderRadius: 'var(--crm-radius-pill)', boxShadow: sp.shadow,
+          padding: '0 var(--crm-space-6xl)', height: 52,
+        } : { padding: '26px 28px 18px', display: 'flex', alignItems: 'center', gap: 'var(--crm-space-3xl)' }}>
+          {enPlace && (
+            <span style={{ display: 'flex', color: sp.sub, flexShrink: 0 }}>
+              <IconSearch size={18} stroke={sp.sub} />
+            </span>
+          )}
           <input
             ref={inputRef}
             className="crmSearchField"
             value={q}
-            onChange={e => { setQ(e.target.value); setActiveIdx(0) }}
+            onChange={e => { setQ(e.target.value); setActiveIdx(0); onQueryChange?.(e.target.value) }}
             placeholder={tr('search.command.placeholder')}
             autoFocus
             style={{
               flex: 1, minWidth: 0, background: 'transparent', border: 0, outline: 'none',
-              color: sp.ink, fontSize: 'var(--crm-text-5xl)', fontWeight: 500,
-              fontFamily: 'inherit', letterSpacing: -0.5, caretColor: sp.ink,
+              color: sp.ink,
+              fontSize: enPlace ? 'var(--crm-text-xl)' : 'var(--crm-text-5xl)',
+              fontWeight: enPlace ? 400 : 500,
+              fontFamily: 'inherit',
+              letterSpacing: enPlace ? undefined : -0.5,
+              caretColor: sp.ink,
               ['--ph-color' as string]: sp.sub,
             }}
           />
+          {enPlace && !q && (
+            /* ⚠ L'indice du raccourci, là où le geste se pose. Il s'efface dès
+               qu'on tape : à ce moment-là il ne dit plus rien d'utile et vole la
+               place du bouton « effacer ». */
+            <kbd aria-hidden style={{
+              flexShrink: 0, fontFamily: 'inherit',
+              fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft,
+              background: sp.kbdBg, border: `1px solid ${sp.cardBorder}`,
+              borderRadius: 'var(--crm-radius-xs)',
+              padding: '0 var(--crm-space-sm)', lineHeight: '18px',
+            }}>{`${TOUCHE_COMMANDE}K`}</kbd>
+          )}
           {q && (
             <button
-              onClick={() => { setQ(''); setActiveIdx(0); inputRef.current?.focus() }}
+              onClick={() => { setQ(''); setActiveIdx(0); onQueryChange?.(''); inputRef.current?.focus() }}
               onMouseEnter={e => (e.currentTarget.style.color = sp.ink)}
               onMouseLeave={e => (e.currentTarget.style.color = sp.sub)}
               title={tr('search.clearSearch')}
@@ -552,8 +594,15 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
           )}
         </div>
 
-        {/* Pills de portée — sans hint clavier */}
-        <div style={{ padding: '0 28px 16px', display: 'flex', gap: 'var(--crm-space-sm)', alignItems: 'center', borderBottom: `1px solid ${sp.cardBorder}` }}>
+        {/* Pills de portée — sans hint clavier.
+            ⚠ EN PLACE ET CHAMP VIDE, TOUT CE QUI SUIT S'EFFACE : la page qui
+            accueille la palette a son propre contenu de repos (les destinations
+            du nouvel onglet), et lui superposer les portées et les suggestions
+            de l'état vide ferait deux listes concurrentes dans le même champ de
+            vision. Vu à l'écran avant de le corriger. Le voile, lui, n'a rien
+            d'autre à montrer : il garde son état vide. */}
+        {(!enPlace || !showEmpty) && (
+        <div style={{ padding: enPlace ? 'var(--crm-space-2xl) 0 var(--crm-space-2xl)' : '0 28px 16px', display: 'flex', gap: 'var(--crm-space-sm)', alignItems: 'center', borderBottom: enPlace ? 'none' : `1px solid ${sp.cardBorder}` }}>
           {SCOPES.map(s => {
             const isActive = scope === s.id
             return (
@@ -576,9 +625,17 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
             )
           })}
         </div>
+        )}
 
-        {/* Corps scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--crm-space-lg) var(--crm-space-xl) var(--crm-space-sm)', scrollbarWidth: 'thin' }}>
+        {/* Corps scrollable.
+            ⚠ En place, ni défilement propre ni gouttière horizontale : la page
+            possède déjà sa colonne et son ascenseur. Lui en donner un second
+            ferait défiler les résultats DANS un cadre au milieu d'une page qui
+            défile elle-même. */}
+        {(!enPlace || !showEmpty) && (
+        <div style={enPlace
+          ? { padding: 'var(--crm-space-lg) 0 var(--crm-space-sm)' }
+          : { flex: 1, overflowY: 'auto', padding: 'var(--crm-space-lg) var(--crm-space-xl) var(--crm-space-sm)', scrollbarWidth: 'thin' }}>
           {/* ── État vide ── */}
           {showEmpty && (
             <>
@@ -821,6 +878,7 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
             </div>
           )}
         </div>
+        )}
 
         {/* ── Le pied : ce que le clavier sait faire ────────────────────────────
             ⚠ SANS LUI, ⌘/Ctrl + Entrée EST INVISIBLE. Un geste que rien
@@ -845,6 +903,75 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
             {tr('search.command.newTabHint')}
           </div>
         )}
+    </>
+  )
+
+  // ── Variante EN PLACE : dans la page, sans rien qui flotte ──────────────────
+  if (variante === 'inline') {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', minHeight: 0,
+        fontFamily: 'var(--crm-font)',
+      }}>
+        <style>{`.crmSearchField::placeholder { color: var(--ph-color); opacity: 1; }`}</style>
+        {corps}
+      </div>
+    )
+  }
+
+  // ── Variante FLOTTANTE : le ⌘K historique ──────────────────────────────────
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 200,
+        background: overlayColor,
+        backdropFilter: 'blur(18px) saturate(140%)',
+        WebkitBackdropFilter: 'blur(18px) saturate(140%)',
+        display: 'grid', placeItems: 'start center', paddingTop: '11vh',
+        fontFamily: 'var(--crm-font)',
+      }}
+    >
+      <style>{`
+        @keyframes crmSearchIn {
+          from { transform: translateY(-12px) scale(.97); opacity: 0; }
+          to   { transform: translateY(0)     scale(1);   opacity: 1; }
+        }
+        @keyframes crmSearchHaloPulse {
+          0%, 100% { opacity: .35; transform: scale(1); }
+          50%      { opacity: .55; transform: scale(1.03); }
+        }
+        .crmSearchField::placeholder { color: var(--ph-color); opacity: 1; }
+      `}</style>
+
+      {/* Halo neutre (zéro bleu) */}
+      <div
+        style={{
+          position: 'absolute', top: '8vh', width: 720, height: 360,
+          background: dark
+            ? 'radial-gradient(closest-side, rgba(255,255,255,0.05), transparent 70%)'
+            : 'radial-gradient(closest-side, rgba(255,255,255,0.55), transparent 70%)',
+          filter: 'blur(40px)', pointerEvents: 'none',
+          animation: 'crmSearchHaloPulse 4s ease-in-out infinite',
+        }}
+      />
+
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: 720, maxWidth: '92vw', maxHeight: '78vh',
+          background: panelBg,
+          backdropFilter: 'blur(28px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(28px) saturate(160%)',
+          border: `1px solid ${panelBorder}`,
+          borderRadius: 'var(--crm-radius-5xl)',
+          boxShadow: panelShadow,
+          overflow: 'hidden',
+          display: 'flex', flexDirection: 'column',
+          animation: 'crmSearchIn 280ms cubic-bezier(.2,.9,.25,1.1)',
+        }}
+      >
+        {corps}
       </div>
     </div>
   )

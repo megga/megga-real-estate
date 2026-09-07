@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import CrmSearch from './CrmSearch'
-import { OPEN_SEARCH_EVENT } from './openSearch'
+import { OPEN_SEARCH_EVENT, paletteEnPlaceMontee } from './openSearch'
 
 export default function CrmSearchHost() {
   const [open, setOpen] = useState(false)
@@ -21,6 +21,10 @@ export default function CrmSearchHost() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
         e.preventDefault()
+        // ⚠ Une palette est déjà rendue DANS la page (page d'accueil d'onglet) :
+        // le voile ferait paraître un second champ par-dessus celui qui est déjà
+        // là et déjà focalisé. Elle se charge de reprendre le focus.
+        if (paletteEnPlaceMontee()) return
         // ⚠ L'amorce est REMISE À ZÉRO ici, sans quoi un ⌘K rouvrirait la
         // palette pré-remplie avec ce que l'agent avait tapé dans un nouvel
         // onglet une heure plus tôt. Le raccourci global n'amorce rien.

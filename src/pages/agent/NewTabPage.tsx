@@ -19,12 +19,17 @@
  * Celui de la page d'accueil d'un navigateur : un champ qui prend le focus, et
  * les destinations sous la main. Rien d'autre — pas de donnée, pas de requête.
  *
- * ⛔ **ELLE NE REFAIT PAS LA RECHERCHE.** Le CRM en a déjà une, immersive et
- * branchée sur les contacts, les biens, les affaires et le copilote
- * (`CrmSearch`, ⌘K). Le champ d'ici n'est qu'une PORTE : la première frappe
- * ouvre la palette en lui passant la lettre tapée (`openCrmSearch(q)`), très
- * exactement ce que fait le champ de la page d'accueil de Chrome avec l'omnibox.
- * Écrire un second moteur ici aurait donné deux recherches à tenir d'accord.
+ * ⛔ **ELLE NE REFAIT PAS LA RECHERCHE — ELLE L'ACCUEILLE.** Le CRM en a déjà
+ * une, branchée sur les contacts, les biens, les affaires et le copilote
+ * (`CrmSearch`). Elle est montée ici en variante `inline` : même composant, même
+ * moteur, mais rendu DANS la page au lieu d'un panneau flottant.
+ *
+ * ⚠ Premier jet : le champ n'était qu'une PORTE, et la frappe ouvrait le voile
+ * plein écran. Retour de Julien, 7 septembre 2026 — « quand je tape, j'ai un
+ * pop-up ; il faudrait construire complètement dedans ». C'est la même objection
+ * que pour le 404 : ce qui sort du cadre fait perdre le contexte. Écrire un
+ * second moteur ici aurait en revanche donné deux recherches à tenir d'accord —
+ * d'où deux ENVELOPPES autour d'un corps unique, et non deux composants.
  *
  * ⛔ **ET ELLE NE RECOPIE PAS LA LISTE DES SECTIONS.** La grille est rendue
  * depuis `CRM_SIDEBAR_GROUPS`, la table unique de navigation. C'est le motif
@@ -40,15 +45,14 @@
  * second.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
-import { RailIcon } from '@/components/crm/LiquidGlassRail'
 import { CRM_SIDEBAR_GROUPS } from '@/components/crm/crmSidebarNav'
-import { openCrmSearch } from '@/components/crm/search/openSearch'
+import CrmSearch from '@/components/crm/search/CrmSearch'
 import { crmPalette, type CrmPalette } from '@/components/crm/tokens'
 import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
 
@@ -61,18 +65,6 @@ import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
  * cesse de se lire d'un coup d'œil — c'est ce que la référence évite aussi.
  */
 const COLONNE = 760
-
-/**
- * Le libellé du raccourci de la palette, selon le clavier qu'on a sous les mains.
- *
- * ⚠ Lu UNE FOIS au chargement du module : la plateforme ne change pas en cours
- * de session, et le recalculer à chaque rendu ferait dépendre un affichage d'un
- * `navigator` qui n'existe pas au rendu serveur.
- */
-const RACCOURCI_PALETTE = typeof navigator !== 'undefined'
-  && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
-  ? '⌘K'
-  : 'Ctrl K'
 
 export default function NewTabPage() {
   const { t } = useTranslation('common')
@@ -90,16 +82,8 @@ export default function NewTabPage() {
 
   const sp = crmPalette(dark)
 
-  // ── Le relais vers la palette ──────────────────────────────────────────────
-  // Le champ est un vrai `<input>` et non un bouton déguisé : on veut pouvoir
-  // TAPER, pas cliquer d'abord. Mais il ne garde jamais sa valeur — dès la
-  // première frappe la palette prend le relais avec ce qui vient d'être tapé,
-  // et le champ se vide pour être prêt au retour.
-  const champRef = useRef<HTMLInputElement>(null)
-  const relayer = useCallback((q: string) => {
-    openCrmSearch(q)
-    if (champRef.current) champRef.current.value = ''
-  }, [])
+  /** Ce qui est tapé — la page s'en sert pour savoir quoi montrer AUTOUR. */
+  const [quete, setQuete] = useState('')
 
   return (
     <div style={{
@@ -130,53 +114,24 @@ export default function NewTabPage() {
               marginTop: 'var(--crm-space-7xl)',
             }}>
 
-              {/* ── Le champ ──────────────────────────────────────────────── */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
-                background: sp.cardBg,
-                border: `1px solid ${sp.cardBorder}`,
-                borderRadius: 'var(--crm-radius-pill)',
-                boxShadow: sp.shadow,
-                padding: '0 var(--crm-space-6xl)',
-                height: 52,
-                marginBottom: 'var(--crm-space-7xl)',
-              }}>
-                <span style={{ display: 'flex', color: sp.sub, flexShrink: 0 }}>
-                  <RailIcon name="search" size={18} />
-                </span>
-                <input
-                  ref={champRef}
-                  // Chrome place le curseur dans le champ d'un onglet neuf ; c'est
-                  // ce qui permet d'ouvrir un onglet et de taper sans viser.
-                  autoFocus
-                  type="text"
-                  placeholder={t('newTab.searchPlaceholder')}
-                  aria-label={t('newTab.searchPlaceholder')}
-                  onChange={(e) => { const v = e.target.value; if (v) relayer(v) }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') relayer(e.currentTarget.value) }}
-                  style={{
-                    flex: 1, minWidth: 0, border: 'none', outline: 'none',
-                    background: 'transparent', color: sp.ink,
-                    fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)',
-                  }}
-                />
-                {/* ⚠ RIEN N'ENSEIGNAIT LE RACCOURCI — mesuré le 7 septembre 2026 :
-                    aucune surface du CRM n'affiche « ⌘K », alors que la palette est
-                    la première chose que fait un agent pressé. La pastille le dit là
-                    où le geste se pose, et elle ne coûte pas un clic.
-                    ⚠ `aria-hidden` : c'est un rappel visuel, pas une commande — le
-                    champ porte déjà son propre libellé. */}
-                <kbd aria-hidden style={{
-                  flexShrink: 0, fontFamily: 'inherit',
-                  fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft,
-                  background: sp.kbdBg, border: `1px solid ${sp.cardBorder}`,
-                  borderRadius: 'var(--crm-radius-xs)',
-                  padding: '0 var(--crm-space-sm)', lineHeight: '18px',
-                }}>{RACCOURCI_PALETTE}</kbd>
-              </div>
+              {/* ── La recherche, EN PLACE ─────────────────────────────── */}
+              <CrmSearch
+                open
+                variante="inline"
+                // ⚠ `onClose` sert encore : `activer` l'appelle après avoir choisi
+                // un résultat. En place, il n'y a rien à fermer — on remet la page
+                // dans son état de départ, sinon on reviendrait sur une liste de
+                // résultats périmée.
+                onClose={() => setQuete('')}
+                onQueryChange={setQuete}
+              />
 
-              {/* ── Les destinations ──────────────────────────────────────── */}
-              {CRM_SIDEBAR_GROUPS.map((groupe, i) => (
+              {/* ── Les destinations ────────────────────────────────────────
+                  ⚠ Elles s'effacent dès qu'on tape : la colonne est la même, et
+                  laisser onze noms sous une liste de résultats ferait deux listes
+                  concurrentes dans le même champ de vision. Le champ vidé les
+                  ramène. */}
+              {!quete && CRM_SIDEBAR_GROUPS.map((groupe, i) => (
                 <section key={groupe.labelKey} style={{
                   // Le dernier groupe ne traîne pas sa gouttière : elle coûtait
                   // 24 px au bas de page, et c'est exactement ce qui manquait

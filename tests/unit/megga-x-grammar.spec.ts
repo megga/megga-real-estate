@@ -976,7 +976,11 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // l'en-tête ne porte plus que le NOM), et son `marginTop: 3` avec lui. Ne
   // reste que le `margin: '7px 4px'` du séparateur de sections.
   ['src/components/crm/profile', { hors: 1, total: 1 }],
-  ['src/components/crm/search', { hors: 8, total: 8 }],
+  // ⚠ 7 depuis le 7 septembre 2026 : la palette a gagné une variante \`inline\`,
+  // et sa gouttière de portées y passe par l'échelle au lieu d'un littéral. Le
+  // cliquet serre dans les DEUX sens — laisser 8 inscrits rendrait un littéral
+  // réintroduit invisible.
+  ['src/components/crm/search', { hors: 7, total: 7 }],
   // 74/95 → 73/93 (17.08.2026) : le retrait de l'écran d'appairage de la carte WhatsApp
   // a emporté ses littéraux avec lui. Le cliquet redescend, il ne se justifie pas.
   ['src/components/crm/settings', { hors: 73, total: 93 }],
