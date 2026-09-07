@@ -304,7 +304,8 @@
         "meggaConvos": "Megga conversations",
         "biens": "Properties",
         "deals": "Deals",
-        "platform": "Platform"
+        "platform": "Platform",
+        "openTabs": "Open tabs"
       },
       "badge": {
         "semantic": "semantic"
@@ -322,7 +323,9 @@
         "buyersReady": "Buyers ready to sign this week",
         "staleListings": "Listings stalled for 30+ days",
         "exclusiveMandate": "Draft an exclusive mandate"
-      }
+      },
+      "switchToTab": "Go to tab {{rang}}",
+      "newTabHint": "Open in a new tab"
     }
   },
   "invite": {
@@ -503,6 +506,7 @@
     "more": "Other tabs",
     "new": "New tab",
     "pin": "Pin to the left",
+    "reopen": "Reopen {{nom}}",
     "unpin": "Unpin",
     "untitled": "Tab"
   },

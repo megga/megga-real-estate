@@ -20,6 +20,7 @@ import { crmPalette } from '@/components/crm/tokens'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import BootSplash from '@/components/layout/BootSplash'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
+import { EcranActifProvider } from '@/hooks/useEcranActif'
 import OnboardingCallBanner from '@/components/layout/OnboardingCallBanner'
 import CrmSearchHost from '@/components/crm/search/CrmSearchHost'
 import { CrmTabsProvider } from '@/components/crm/CrmTabsProvider'
@@ -137,6 +138,11 @@ function EcranVivant({ actif, tb, location, routes }: {
           ⚠ Fallback `null` quand l'écran est caché — y peindre un squelette
           invisible n'apporte rien et ferait clignoter la mise en page au moment
           où il redevient visible. */}
+      {/* ⚠ Les écrans cachés déclarent qu'ils ne sont PAS regardés : leur chrome
+          (bande d'onglets, barre latérale) cesse alors d'écouter le clavier.
+          Sans ça, une frappe `Alt+1` partait trois fois — une par écran vivant —
+          et poussait trois entrées d'historique pour un seul geste. */}
+      <EcranActifProvider value={actif}>
       <Suspense fallback={actif ? <SmartPageLoader /> : null}>
         {/* ⚠ `location` sur `<Routes>` ne fait pas que choisir la route : React
             Router enveloppe le sous-arbre dans un contexte de localisation à cette
@@ -145,6 +151,7 @@ function EcranVivant({ actif, tb, location, routes }: {
             Sans ça, les trois écrans vivants partageraient la tranche de l'actif. */}
         <Routes location={loc}>{routes}</Routes>
       </Suspense>
+      </EcranActifProvider>
     </div>
   )
 }

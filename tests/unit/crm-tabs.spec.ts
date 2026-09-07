@@ -12,11 +12,12 @@
 import { describe, it, expect } from 'vitest'
 import {
   CRM_TABS_CAP, crmApplyCap, crmApplyLabels, crmChipMaxWidth, crmChipMinWidth, crmCloseOthers,
-  crmEcransVivants,
+  crmEcransVivants, CRM_FERMES_CAP, crmPushFerme, crmTabLibelle,
   crmCloseTab, crmDragBounds, crmDuplicateTab, crmMakeTab, crmMoveTab, crmPinnedCount,
   crmResolveActive, crmTabFallbackPath, crmTabRecordRef, crmTabRefs,
   crmTogglePin, crmVisibleWindow, type CrmTab,
 } from '@/lib/crmTabs'
+import { CRM_NEW_TAB_PATH } from '@/components/crm/crmSidebarNav'
 
 /** Fabrique lisible — l'id est explicite, c'est lui qu'on suit dans les tests. */
 function tab(id: string, path = '/dashboard', extra: Partial<CrmTab> = {}): CrmTab {
@@ -361,5 +362,60 @@ describe('crmTabs — les écrans qui restent VIVANTS', () => {
 
   it('sans actif, aucun écran — il n’y a rien à garder vivant', () => {
     expect(crmEcransVivants(pile, undefined, ['a', 'b'], 3)).toEqual([])
+  })
+})
+
+describe('crmTabs — la pile des onglets FERMÉS', () => {
+  it('empile le plus récent en TÊTE — c’est lui que ⇧-Alt-T rouvre', () => {
+    const p1 = crmPushFerme([], tab('a', '/dashboard/contacts/1'))
+    const p2 = crmPushFerme(p1, tab('b', '/dashboard/listings/2'))
+    expect(p2.map((t) => t.id)).toEqual(['b', 'a'])
+  })
+
+  it('⚠ dédoublonne par EMPLACEMENT, pas par id', () => {
+    // L'id est neuf à chaque ouverture : fermer trois fois la même fiche
+    // remplirait sinon trois des dix places avec le même endroit.
+    const p = ['x', 'y', 'z'].reduce(
+      (acc, id) => crmPushFerme(acc, tab(id, '/dashboard/contacts/1')),
+      [] as CrmTab[],
+    )
+    expect(p).toHaveLength(1)
+    expect(p[0].id).toBe('z')
+  })
+
+  it('le `search` fait partie de l’emplacement — deux vues d’un même écran cohabitent', () => {
+    const a = crmPushFerme([], tab('a', '/dashboard/settings', { search: '?tab=profil' }))
+    const b = crmPushFerme(a, tab('b', '/dashboard/settings', { search: '?tab=securite' }))
+    expect(b).toHaveLength(2)
+  })
+
+  it('ne dépasse jamais son plafond', () => {
+    let p: CrmTab[] = []
+    for (let i = 0; i < CRM_FERMES_CAP + 5; i += 1) p = crmPushFerme(p, tab(`t${i}`, `/dashboard/contacts/${i}`))
+    expect(p).toHaveLength(CRM_FERMES_CAP)
+    // Et ce sont les plus RÉCENTS qui restent.
+    expect(p[0].id).toBe(`t${CRM_FERMES_CAP + 4}`)
+  })
+})
+
+describe('crmTabs — le libellé affiché', () => {
+  const tr = (cle: string) => cle
+
+  it('le nom résolu par le serveur gagne sur tout le reste', () => {
+    expect(crmTabLibelle(tab('a', '/dashboard/contacts/1', { label: 'Marie Dupont', section: 'contacts' }), tr))
+      .toBe('Marie Dupont')
+  })
+
+  it('sinon la clé i18n de la SECTION — celle de la barre latérale, pas une copie', () => {
+    expect(crmTabLibelle(tab('a', '/dashboard/listings', { section: 'biens' }), tr)).toBe('nav.listings')
+    expect(crmTabLibelle(tab('b', '/dashboard/journey', { section: 'parcours' }), tr)).toBe('nav.journey')
+  })
+
+  it('la page d’accueil d’onglet a son nom à elle, jamais le repli', () => {
+    expect(crmTabLibelle(tab('a', CRM_NEW_TAB_PATH), tr)).toBe('tabs.new')
+  })
+
+  it('et un chemin qu’on ne sait pas nommer retombe sur le repli', () => {
+    expect(crmTabLibelle(tab('a', '/dashboard/inconnu'), tr)).toBe('tabs.untitled')
   })
 })

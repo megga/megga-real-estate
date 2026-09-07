@@ -297,7 +297,8 @@
         "meggaConvos": "Megga-Konversationen",
         "biens": "Objekte",
         "deals": "Deals",
-        "platform": "Plattform"
+        "platform": "Plattform",
+        "openTabs": "Offene Tabs"
       },
       "badge": {
         "semantic": "semantisch"
@@ -315,7 +316,9 @@
         "buyersReady": "Käufer, die diese Woche unterschriftsbereit sind",
         "staleListings": "Objekte, die seit über 30 Tagen stagnieren",
         "exclusiveMandate": "Exklusivmandat verfassen"
-      }
+      },
+      "switchToTab": "Zu Tab {{rang}}",
+      "newTabHint": "In neuem Tab öffnen"
     }
   },
   "invite": {
@@ -503,6 +506,7 @@
     "more": "Weitere Registerkarten",
     "new": "Neue Registerkarte",
     "pin": "Links anheften",
+    "reopen": "{{nom}} erneut öffnen",
     "unpin": "Lösen",
     "untitled": "Registerkarte"
   },

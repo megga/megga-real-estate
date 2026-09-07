@@ -22,6 +22,8 @@ import { filterConversationsByTitle, type ConversationSummary } from '@/lib/conv
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
 import { readCrmDark } from '@/lib/crmDark'
+import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
+import { crmTabLibelle } from '@/lib/crmTabs'
 
 // ─── Données utilitaires (proto) ─────────────────────────────────────────────
 const SCOPES = [
@@ -203,11 +205,25 @@ type FlatItem =
   | { kind: 'bien'; id: string }
   | { kind: 'deal'; id: string }
   | { kind: 'admin' }
+  /** Un onglet DÉJÀ ouvert : on y bascule au lieu d'en ouvrir une copie. */
+  | { kind: 'onglet'; id: string }
 
 // Raccourci super-admin : la console n'apparaît QUE sur une requête explicite
 // (et QUE pour un super-admin confirmé par la DB). Aucune trace le reste du
 // temps — la recherche reste le port 1:1 du handoff pour tout le monde.
 const ADMIN_KEYWORDS = ['admin', 'console', 'plateforme', 'platform']
+
+/**
+ * Le nom de la touche de commande, selon le clavier qu'on a sous les mains.
+ *
+ * ⚠ Lu UNE FOIS au chargement du module : la plateforme ne change pas en cours
+ * de session, et le recalculer à chaque rendu ferait dépendre un affichage d'un
+ * `navigator` qui n'existe pas partout.
+ */
+const TOUCHE_COMMANDE = typeof navigator !== 'undefined'
+  && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+  ? '⌘'
+  : 'Ctrl'
 
 interface Props {
   open: boolean
@@ -258,8 +274,40 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
   const { data: conversations } = useConversationHistory(30)
   const convList = useMemo(() => conversations ?? [], [conversations])
   const { allowed: isSuperAdmin } = useSuperAdminGate()
+  const tabsApi = useCrmTabsOptionnel()
+
 
   const ql = q.trim().toLowerCase()
+
+  /**
+   * Les onglets DÉJÀ ouverts qui répondent à la requête.
+   *
+   * ⛔ POURQUOI ILS PASSENT DEVANT TOUT LE RESTE. Sans eux, taper le nom d'un
+   * client sur une pile de vingt onglets propose « ouvrir sa fiche » — et en
+   * ouvre une SECONDE, à côté de celle qu'on avait déjà. C'est ce que l'omnibox
+   * d'un navigateur évite depuis toujours avec son « passer à cet onglet ».
+   *
+   * ⚠ L'ACTIF est exclu : y « basculer » ne fait rien, et proposer un geste sans
+   * effet en tête de liste est pire que ne rien proposer.
+   *
+   * ⚠ Seulement en portée « Tout ». Les autres portées nomment des ENTITÉS
+   * (contacts, biens, affaires) ; un onglet n'en est pas une, et le glisser dans
+   * « Contacts » ferait mentir le filtre.
+   *
+   * ⚠ `null` hors fournisseur d'onglets — mobile, console, bancs. La palette y
+   * fonctionne comme avant.
+   */
+  const ongletResults = useMemo(() => {
+    if (!tabsApi || scope !== 'all' || ql.length < 2) return []
+    return tabsApi.tabs
+      .map((t, i) => ({ t, i }))
+      // ⚠ Sur le libellé AFFICHÉ, pas sur `label` : un onglet de SECTION n'a pas
+      // de `label` du tout — son nom vient d'une clé i18n. Filtrer sur le champ
+      // brut ne trouvait donc jamais « Calendrier » ni « Pipeline ».
+      .map((x) => ({ ...x, nom: crmTabLibelle(x.t, tr) }))
+      .filter(({ i, nom }) => i !== tabsApi.active && nom.toLowerCase().includes(ql))
+      .slice(0, 5)
+  }, [tabsApi, scope, ql, tr])
 
   const contactResults = useMemo(() => {
     if (ql.length < 2 || (scope !== 'all' && scope !== 'contacts')) return []
@@ -292,7 +340,7 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
   const showEmpty = !q.trim()
   const showAdmin = isSuperAdmin && ql.length >= 2 && ADMIN_KEYWORDS.some(k => k.startsWith(ql))
   const adminCount = showAdmin ? 1 : 0
-  const totalResults = adminCount + meggaResults.length + contactResults.length + bienResults.length + dealResults.length
+  const totalResults = ongletResults.length + adminCount + meggaResults.length + contactResults.length + bienResults.length + dealResults.length
 
   // ── Liste plate (ordre = sections affichées) ──
   const flatItems = useMemo<FlatItem[]>(() => {
@@ -301,6 +349,8 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
       meggaRecent.forEach(c => out.push({ kind: 'megga-convo', id: c.id }))
       AI_PROMPTS.forEach(() => out.push({ kind: 'ai' }))
     } else {
+      // ⚠ EN TÊTE : « aller là où c'est déjà ouvert » précède « en ouvrir une copie ».
+      ongletResults.forEach(({ t }) => out.push({ kind: 'onglet', id: t.id }))
       if (showAdmin) out.push({ kind: 'admin' })
       meggaResults.forEach(c => out.push({ kind: 'megga-convo', id: c.id }))
       contactResults.forEach(c => out.push({ kind: 'contact', id: c.id }))
@@ -309,7 +359,7 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
       out.push({ kind: 'ai-query' })
     }
     return out
-  }, [showEmpty, showAdmin, meggaRecent, meggaResults, contactResults, bienResults, dealResults])
+  }, [showEmpty, showAdmin, ongletResults, meggaRecent, meggaResults, contactResults, bienResults, dealResults])
 
   /**
    * ⛔ LA PAGE « Julien » A ÉTÉ SUPPRIMÉE (17 août 2026) : ces deux gestes
@@ -330,18 +380,42 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
     ai.openConversation(id)
   }, [ai, onClose])
 
-  const runItem = useCallback((item: FlatItem | undefined) => {
-    if (!item) return
+  /** L'emplacement visé par un résultat, quand il en a un. */
+  const hrefDe = useCallback((item: FlatItem): string | null => {
     switch (item.kind) {
-      case 'megga-convo': resumeConversation(item.id); break
-      case 'ai':
-      case 'ai-query': goMegga(); break
-      case 'contact': onClose(); navigate(`/dashboard/contacts/${item.id}`); break
-      case 'bien': onClose(); navigate(`/dashboard/listings/${item.id}`); break
-      case 'deal': onClose(); navigate(`/dashboard/transactions/${item.id}`); break
-      case 'admin': onClose(); navigate(ADMIN_CONSOLE_PATH); break
+      case 'contact': return `/dashboard/contacts/${item.id}`
+      case 'bien': return `/dashboard/listings/${item.id}`
+      case 'deal': return `/dashboard/transactions/${item.id}`
+      case 'admin': return ADMIN_CONSOLE_PATH
+      default: return null
     }
-  }, [goMegga, resumeConversation, navigate, onClose])
+  }, [])
+
+  /**
+   * LA porte d'activation — clavier et souris passent par elle.
+   *
+   * `nouvelOnglet` (⌘/Ctrl + Entrée, ⌘/Ctrl + clic) ouvre le résultat À CÔTÉ au
+   * lieu de remplacer l'écran courant. C'est le geste du navigateur, et il ne
+   * demandait rien de neuf : `ouvrirDans` existe depuis la barre d'onglets.
+   *
+   * ⚠ Sans fournisseur d'onglets (mobile, console, bancs), il retombe sur la
+   * navigation ordinaire — mieux vaut ouvrir au même endroit que ne rien faire.
+   */
+  const activer = useCallback((item: FlatItem | undefined, nouvelOnglet = false) => {
+    if (!item) return
+    if (item.kind === 'onglet') {
+      const i = tabsApi?.tabs.findIndex((t) => t.id === item.id) ?? -1
+      if (i >= 0) { onClose(); tabsApi?.selectionner(i) }
+      return
+    }
+    if (item.kind === 'megga-convo') { resumeConversation(item.id); return }
+    if (item.kind === 'ai' || item.kind === 'ai-query') { goMegga(); return }
+    const href = hrefDe(item)
+    if (!href) return
+    onClose()
+    if (nouvelOnglet && tabsApi) tabsApi.ouvrirDans(href)
+    else navigate(href)
+  }, [goMegga, resumeConversation, navigate, onClose, hrefDe, tabsApi])
 
   // Focus auto à l'ouverture.
   useEffect(() => {
@@ -361,11 +435,11 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
         setScope(SCOPES[(i + (e.shiftKey ? len - 1 : 1)) % len].id); setActiveIdx(0)
       } else if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(flatItems.length - 1, i + 1)) }
       else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(0, i - 1)) }
-      else if (e.key === 'Enter') { e.preventDefault(); runItem(flatItems[activeIdx]) }
+      else if (e.key === 'Enter') { e.preventDefault(); activer(flatItems[activeIdx], e.metaKey || e.ctrlKey) }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, scope, flatItems, activeIdx, onClose, runItem])
+  }, [open, scope, flatItems, activeIdx, onClose, activer])
 
   useEffect(() => {
     if (activeIdx >= flatItems.length) setActiveIdx(Math.max(0, flatItems.length - 1))
@@ -386,11 +460,13 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
   // Offsets de la liste plate (ordre des sections rendues).
   const offEmptyConvos = 0
   const offEmptyPrompts = meggaRecent.length
-  const offAdmin = 0
-  const offConvos = adminCount
-  const offContacts = adminCount + meggaResults.length
-  const offBiens = adminCount + meggaResults.length + contactResults.length
-  const offDeals = adminCount + meggaResults.length + contactResults.length + bienResults.length
+  const offOnglets = 0
+  const nOnglets = ongletResults.length
+  const offAdmin = nOnglets
+  const offConvos = nOnglets + adminCount
+  const offContacts = nOnglets + adminCount + meggaResults.length
+  const offBiens = nOnglets + adminCount + meggaResults.length + contactResults.length
+  const offDeals = nOnglets + adminCount + meggaResults.length + contactResults.length + bienResults.length
 
   return (
     <div
@@ -559,11 +635,46 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
             </div>
           )}
 
+          {/* ── Onglets déjà ouverts ── */}
+          {!showEmpty && ongletResults.length > 0 && (
+            <Section title={tr('search.command.section.openTabs')} count={ongletResults.length} sp={sp}>
+              {ongletResults.map(({ t: tb, i: rang, nom }, i) => {
+                const idx = offOnglets + i
+                const isActive = activeIdx === idx
+                return (
+                  <button
+                    key={tb.id}
+                    onClick={() => activer({ kind: 'onglet', id: tb.id })}
+                    onMouseEnter={() => setActiveIdx(idx)}
+                    style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}
+                  >
+                    <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-lg)', flexShrink: 0, background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
+                      {/* Deux rectangles décalés : la forme d'un onglet, et non
+                          l'icône de l'entité — c'est le CONTENANT qu'on propose. */}
+                      <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={sp.ink} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="7" width="13" height="13" rx="2" /><path d="M8 4h11a2 2 0 0 1 2 2v11" />
+                      </svg>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <Hi text={nom} q={q} sp={sp} />
+                      </div>
+                      <div style={{ fontSize: 'var(--crm-text-md)', color: sp.sub, marginTop: 'var(--crm-space-2xs)' }}>
+                        {tr('search.command.switchToTab', { rang: rang + 1 })}
+                      </div>
+                    </div>
+                    <IconArrowR stroke={isActive ? accentBlue : sp.sub} />
+                  </button>
+                )
+              })}
+            </Section>
+          )}
+
           {/* ── Console admin (super-admin, sur requête explicite) ── */}
           {!showEmpty && showAdmin && (
             <Section title={tr('search.command.section.platform')} sp={sp}>
               <button
-                onClick={() => { onClose(); navigate(ADMIN_CONSOLE_PATH) }}
+                onClick={(e) => activer({ kind: 'admin' }, e.metaKey || e.ctrlKey)}
                 onMouseEnter={() => setActiveIdx(offAdmin)}
                 style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(activeIdx === offAdmin, dark) }}
               >
@@ -606,7 +717,7 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
                 const score = c.ai_seriousness_score
                 const initials = `${c.first_name?.[0] ?? ''}${c.last_name?.[0] ?? ''}`.toUpperCase()
                 return (
-                  <button key={c.id} onClick={() => { onClose(); navigate(`/dashboard/contacts/${c.id}`) }} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
+                  <button key={c.id} onClick={(e) => activer({ kind: 'contact', id: c.id }, e.metaKey || e.ctrlKey)} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
                     <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, background: '#0041D9', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-lg)', fontWeight: 600 }}>
                       {initials}
                     </div>
@@ -635,7 +746,7 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
                 const isActive = activeIdx === idx
                 const price = b.transaction === 'location' ? b.rent ?? b.price : b.price
                 return (
-                  <button key={b.id} onClick={() => { onClose(); navigate(`/dashboard/listings/${b.id}`) }} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
+                  <button key={b.id} onClick={(e) => activer({ kind: 'bien', id: b.id }, e.metaKey || e.ctrlKey)} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
                     <BienThumb id={b.id} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -668,7 +779,7 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
                 const idx = offDeals + i
                 const isActive = activeIdx === idx
                 return (
-                  <button key={d.id} onClick={() => { onClose(); navigate(`/dashboard/transactions/${d.id}`) }} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
+                  <button key={d.id} onClick={(e) => activer({ kind: 'deal', id: d.id }, e.metaKey || e.ctrlKey)} onMouseEnter={() => setActiveIdx(idx)} style={{ ...ROW_BASE, color: sp.ink, ...activeRowStyle(isActive, dark) }}>
                     <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
                       <IconPipeline stroke={sp.ink} />
                     </div>
@@ -710,6 +821,30 @@ export default function CrmSearch({ open, onClose, amorce }: Props) {
             </div>
           )}
         </div>
+
+        {/* ── Le pied : ce que le clavier sait faire ────────────────────────────
+            ⚠ SANS LUI, ⌘/Ctrl + Entrée EST INVISIBLE. Un geste que rien
+            n'annonce n'existe pour personne — et celui-ci est le seul moyen
+            d'ouvrir un résultat À CÔTÉ au lieu de remplacer l'écran courant.
+            Rendu seulement quand il y a quelque chose à ouvrir : sur une palette
+            vide, il annoncerait une action sans objet.
+            ⚠ Le libellé de la touche suit le clavier (⌘ ou Ctrl) — voir
+            `TOUCHE_COMMANDE`. */}
+        {tabsApi && !showEmpty && totalResults > 0 && (
+          <div style={{
+            flexShrink: 0, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
+            padding: 'var(--crm-space-md) var(--crm-space-xl)',
+            borderTop: `1px solid ${sp.cardBorder}`,
+            fontSize: 'var(--crm-text-xs)', color: sp.soft,
+          }}>
+            <kbd style={{
+              fontFamily: 'inherit', fontWeight: 600, color: sp.sub,
+              background: sp.kbdBg, border: `1px solid ${sp.cardBorder}`,
+              borderRadius: 'var(--crm-radius-xs)', padding: '0 var(--crm-space-sm)', lineHeight: '18px',
+            }}>{`${TOUCHE_COMMANDE} ↵`}</kbd>
+            {tr('search.command.newTabHint')}
+          </div>
+        )}
       </div>
     </div>
   )

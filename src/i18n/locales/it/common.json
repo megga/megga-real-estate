@@ -297,7 +297,8 @@
         "meggaConvos": "Conversazioni Megga",
         "biens": "Immobili",
         "deals": "Deals",
-        "platform": "Piattaforma"
+        "platform": "Piattaforma",
+        "openTabs": "Schede aperte"
       },
       "badge": {
         "semantic": "semantica"
@@ -315,7 +316,9 @@
         "buyersReady": "Acquirenti pronti a firmare questa settimana",
         "staleListings": "Immobili fermi da oltre 30 giorni",
         "exclusiveMandate": "Redigi un mandato esclusivo"
-      }
+      },
+      "switchToTab": "Vai alla scheda {{rang}}",
+      "newTabHint": "Apri in una nuova scheda"
     }
   },
   "invite": {
@@ -503,6 +506,7 @@
     "more": "Altre schede",
     "new": "Nuova scheda",
     "pin": "Fissa a sinistra",
+    "reopen": "Riapri {{nom}}",
     "unpin": "Sblocca",
     "untitled": "Scheda"
   },

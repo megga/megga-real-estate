@@ -62,6 +62,18 @@ import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
  */
 const COLONNE = 760
 
+/**
+ * Le libellé du raccourci de la palette, selon le clavier qu'on a sous les mains.
+ *
+ * ⚠ Lu UNE FOIS au chargement du module : la plateforme ne change pas en cours
+ * de session, et le recalculer à chaque rendu ferait dépendre un affichage d'un
+ * `navigator` qui n'existe pas au rendu serveur.
+ */
+const RACCOURCI_PALETTE = typeof navigator !== 'undefined'
+  && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+  ? '⌘K'
+  : 'Ctrl K'
+
 export default function NewTabPage() {
   const { t } = useTranslation('common')
   const navigate = useNavigate()
@@ -148,6 +160,19 @@ export default function NewTabPage() {
                     fontFamily: 'inherit', fontSize: 'var(--crm-text-xl)',
                   }}
                 />
+                {/* ⚠ RIEN N'ENSEIGNAIT LE RACCOURCI — mesuré le 7 septembre 2026 :
+                    aucune surface du CRM n'affiche « ⌘K », alors que la palette est
+                    la première chose que fait un agent pressé. La pastille le dit là
+                    où le geste se pose, et elle ne coûte pas un clic.
+                    ⚠ `aria-hidden` : c'est un rappel visuel, pas une commande — le
+                    champ porte déjà son propre libellé. */}
+                <kbd aria-hidden style={{
+                  flexShrink: 0, fontFamily: 'inherit',
+                  fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.soft,
+                  background: sp.kbdBg, border: `1px solid ${sp.cardBorder}`,
+                  borderRadius: 'var(--crm-radius-xs)',
+                  padding: '0 var(--crm-space-sm)', lineHeight: '18px',
+                }}>{RACCOURCI_PALETTE}</kbd>
               </div>
 
               {/* ── Les destinations ──────────────────────────────────────── */}

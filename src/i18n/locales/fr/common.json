@@ -304,7 +304,8 @@
         "meggaConvos": "Conversations Megga",
         "biens": "Biens",
         "deals": "Deals",
-        "platform": "Plateforme"
+        "platform": "Plateforme",
+        "openTabs": "Onglets ouverts"
       },
       "badge": {
         "semantic": "sémantique"
@@ -322,7 +323,9 @@
         "buyersReady": "Acheteurs prêts à signer cette semaine",
         "staleListings": "Biens stagnants depuis +30 jours",
         "exclusiveMandate": "Rédiger un mandat exclusif"
-      }
+      },
+      "switchToTab": "Aller à l'onglet {{rang}}",
+      "newTabHint": "Ouvrir dans un nouvel onglet"
     }
   },
   "invite": {
@@ -503,6 +506,7 @@
     "more": "Autres onglets",
     "new": "Nouvel onglet",
     "pin": "Épingler à gauche",
+    "reopen": "Rouvrir {{nom}}",
     "unpin": "Détacher",
     "untitled": "Onglet"
   },

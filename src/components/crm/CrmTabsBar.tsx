@@ -43,9 +43,9 @@ import MEIcon from '@/components/propertyx/MEIcon'
 import type { CrmPalette } from './tokens'
 import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
 import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
-import { crmChipMaxWidth, crmChipMinWidth, crmDragBounds, crmPinnedCount, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
-import { CRM_NEW_TAB_PATH } from './crmSidebarNav'
+import { crmChipMaxWidth, crmChipMinWidth, crmDragBounds, crmPinnedCount, crmTabLibelle, crmVisibleWindow, type CrmTab } from '@/lib/crmTabs'
 import { useAiPanel } from '@/hooks/useAiPanel'
+import { useEcranActif } from '@/hooks/useEcranActif'
 import { useCrmSidebarCollapsed } from '@/lib/crmSidebar'
 
 /**
@@ -332,6 +332,7 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
   // ⚠ Le repli de la barre latérale rend 180 px à la colonne : c'est un SIGNAL de
   // remesure, pas une information d'affichage — la barre d'onglets n'en fait rien d'autre.
   const [barreRepliee] = useCrmSidebarCollapsed()
+  const ecranActif = useEcranActif()
 
   const barreRef = useRef<HTMLDivElement | null>(null)
   /** La piste des puces, et l'espace encore libre à sa droite. */
@@ -404,17 +405,10 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
   )
   const croixPermanente = largeurPuce >= SEUIL_CROIX
 
-  /** Libellé d'affichage — le nom résolu, sinon le nom de la section, sinon un repli. */
-  const libelleDe = useCallback((tb: CrmTab): string => {
-    if (tb.label) return tb.label
-    if (tb.section) return t(`nav.${SECTION_LABEL[tb.section] ?? tb.section}`)
-    // ⚠ Avant la section-repli : la page d'accueil d'onglet n'a PAS de section
-    // (c'est tout son sens), elle serait donc tombée sur « Onglet » — un repli
-    // fait pour un chemin qu'on ne sait pas nommer, alors qu'on sait nommer
-    // celui-ci.
-    if (tb.path === CRM_NEW_TAB_PATH) return t('tabs.new')
-    return t('tabs.untitled')
-  }, [t])
+  // ⚠ La règle vit dans `crmTabLibelle` (src/lib/crmTabs.ts) : la palette de
+  // recherche en a besoin à son tour, et la table `SECTION_LABEL` qui vivait ici
+  // redisait déjà ce que porte `CRM_SIDEBAR_SECTIONS.labelKey`.
+  const libelleDe = useCallback((tb: CrmTab): string => crmTabLibelle(tb, t), [t])
 
   // ── Délégation : UN onClick et UN onPointerDown pour toute la barre ────────
   const onClic = useCallback((e: React.MouseEvent) => {
@@ -598,8 +592,18 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
   // annulables. Les lier ici fermerait l'onglet du NAVIGATEUR en croyant fermer
   // celui du CRM. Alt est libre, dans les deux systèmes.
   useEffect(() => {
+    // ⛔ Un écran vivant mais CACHÉ n'écoute pas le clavier. Trois écrans vivants,
+    // c'est trois bandes montées : sans cette sortie, une frappe déclenchait trois
+    // fois le raccourci et poussait trois entrées d'historique (mesuré).
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (!e.altKey || e.ctrlKey || e.metaKey) return
+      // ⚠ `Alt+Maj+T` et non `⇧⌘T` : le raccourci du NAVIGATEUR, qui rouvre son
+      // propre onglet, n'est pas annulable — le lier ici ferait les deux à la
+      // fois. Alt reste le modificateur libre, comme pour les chiffres.
+      if ((e.key === 'T' || e.key === 't') && e.shiftKey) {
+        e.preventDefault(); api.rouvrirFerme(); return
+      }
       if (e.key >= '1' && e.key <= '9') {
         const i = Number(e.key) - 1
         if (i < tabs.length) { e.preventDefault(); api.selectionner(i) }
@@ -611,17 +615,18 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [api, active, tabs.length])
+  }, [api, active, tabs.length, ecranActif])
 
   // Fermer les menus à l'Échap.
   useEffect(() => {
+    if (!ecranActif) return
     if (!ctx && !menuPlus) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { setCtx(null); setMenuPlus(false) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [ctx, menuPlus])
+  }, [ctx, menuPlus, ecranActif])
 
   if (!nTabs) return <div style={{ height: H_PUCE }} aria-hidden />
 
@@ -806,6 +811,19 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
                 onClick={() => { const i = ctx!.i; setCtx(null); api.fermer(i) }}
               />
             )}
+            {/* ⚠ Rendue seulement quand il y a quelque chose à rouvrir : une
+                ligne grisée en permanence apprend le geste sans jamais le rendre,
+                et occupe une place dans un menu de quatre. */}
+            {api.fermes.length > 0 && (
+              <LigneMenu
+                // ⚠ `refresh` faute d'`undo` dans `MEIcon` : la flèche circulaire est
+                // le glyphe le plus proche du geste, et en inventer un ici ferait
+                // diverger le jeu d'icônes du CRM pour une seule ligne de menu.
+                icone="refresh" sp={sp}
+                libelle={t('tabs.reopen', { nom: libelleDe(api.fermes[0]) })}
+                onClick={() => { setCtx(null); api.rouvrirFerme() }}
+              />
+            )}
           </div>
         </>,
         document.body,
@@ -870,7 +888,7 @@ function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded 
 
 /** Une ligne de menu — même géométrie pour le clic droit et le débordement. */
 function LigneMenu({ icone, libelle, onClick, sp }: {
-  icone: 'pin' | 'copy' | 'close'; libelle: string; onClick: () => void; sp: CrmPalette
+  icone: 'pin' | 'copy' | 'close' | 'refresh'; libelle: string; onClick: () => void; sp: CrmPalette
 }) {
   const [survol, setSurvol] = useState(false)
   return (
@@ -989,10 +1007,4 @@ function LigneDebordement({ libelle, fermable, badge, onClick, onFermer, sp, lab
  * dans la colonne et « Annonces » sur la puce ferait douter que ce soit le même
  * écran.
  */
-const SECTION_LABEL: Record<string, string> = {
-  today: 'today', calendar: 'calendar', contacts: 'contacts', biens: 'listings',
-  matching: 'matching', pipeline: 'pipeline', parcours: 'journey', kyc: 'kyc',
-  dashboard: 'dashboard', settings: 'settings', messagerie: 'messagerie',
-}
-
 export default CrmTabsBar

@@ -39,7 +39,7 @@
  */
 
 import type { CrmSidebarSectionId } from '@/components/crm/crmSidebarNav'
-import { crmSidebarActiveFor } from '@/components/crm/crmSidebarNav'
+import { CRM_NEW_TAB_PATH, CRM_SIDEBAR_SECTIONS, crmSidebarActiveFor } from '@/components/crm/crmSidebarNav'
 
 /** Une entrée de la pile. Sérialisée telle quelle dans `crm_open_tabs.tabs`. */
 export interface CrmTab {
@@ -186,6 +186,33 @@ export function crmMakeTab(
   }
 }
 
+/**
+ * Le libellé AFFICHÉ d'un onglet — le nom résolu, sinon celui de sa section,
+ * sinon un repli.
+ *
+ * ⛔ IL VIT ICI PARCE QU'IL A DEUX LECTEURS. La bande d'onglets le calculait
+ * chez elle, avec sa propre table `SECTION_LABEL` qui redisait ce que
+ * `CRM_SIDEBAR_SECTIONS.labelKey` disait déjà. La palette de recherche en a
+ * besoin à son tour pour proposer « aller à l'onglet qui montre déjà ce
+ * client » — et un onglet de SECTION n'a pas de `label` du tout : le recopier
+ * une troisième fois aurait fait diverger trois tables au premier renommage.
+ *
+ * @param t le traducteur du namespace `common` — la fonction reste pure, elle
+ *          ne va pas chercher i18next elle-même.
+ */
+export function crmTabLibelle(tb: CrmTab, t: (cle: string) => string): string {
+  if (tb.label) return tb.label
+  const section = tb.section
+    ? CRM_SIDEBAR_SECTIONS.find((s) => s.id === tb.section)
+    : undefined
+  if (section) return t(section.labelKey)
+  // ⚠ Avant le repli : la page d'accueil d'onglet n'a PAS de section (c'est tout
+  // son sens), elle tomberait donc sur « Onglet » — un repli fait pour un chemin
+  // qu'on ne sait pas nommer, alors qu'on sait nommer celui-ci.
+  if (tb.path === CRM_NEW_TAB_PATH) return t('tabs.new')
+  return t('tabs.untitled')
+}
+
 /** Deux onglets visent le même emplacement ? (chemin ET query — `?tab=` distingue) */
 export function crmSameLocation(t: CrmTab, path: string, search: string): boolean {
   return t.path === path && (t.search || '') === (search || '')
@@ -290,6 +317,33 @@ export function crmCloseTab(tabs: CrmTab[], i: number): CrmTab[] | null {
 export function crmCloseOthers(tabs: CrmTab[], i: number): CrmTab[] {
   if (i < 0 || i >= tabs.length) return tabs
   return tabs.filter((t, k) => k === i || t.pinned)
+}
+
+/**
+ * Combien d'onglets fermés on garde sous la main.
+ *
+ * Dix : de quoi couvrir une fermeture en rafale (« fermer les autres » sur une
+ * pile de huit) sans faire de cette liste un historique. Ce n'est pas un
+ * journal — c'est un filet pour la croix cliquée par erreur.
+ */
+export const CRM_FERMES_CAP = 10
+
+/**
+ * Empile un onglet fermé, le plus récent en tête.
+ *
+ * ⚠ DÉDOUBLONNÉ PAR EMPLACEMENT, et pas par id : l'id est neuf à chaque
+ * ouverture, donc fermer trois fois la même fiche remplirait trois des dix
+ * places avec la même chose. Ce qu'on veut rouvrir, c'est un ENDROIT.
+ *
+ * ⛔ CETTE PILE NE SORT PAS DE LA MÉMOIRE. Le libellé d'un onglet de fiche est
+ * le NOM d'un client — la même PII qui interdit déjà le miroir `localStorage` de
+ * la pile ouverte (cf. `CLE_MIROIR`). Un rechargement la perd, et c'est le prix
+ * assumé : la persister demanderait de rouvrir la question du stockage des noms,
+ * pour un filet qui sert dans la minute qui suit la fermeture.
+ */
+export function crmPushFerme(pile: CrmTab[], tb: CrmTab, cap = CRM_FERMES_CAP): CrmTab[] {
+  const ici = (t: CrmTab) => `${t.path}${t.search || ''}`
+  return [tb, ...pile.filter((t) => ici(t) !== ici(tb))].slice(0, cap)
 }
 
 /**
