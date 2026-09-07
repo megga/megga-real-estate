@@ -9,7 +9,7 @@
  * Ne porte PLUS le bandeau du garde LAB depuis le 04.08.2026 : il est monté dans
  * IdentityShell, dans la coquille MEGGA X (cf. son en-tête).
  */
-import { useState, useEffect, useMemo, Suspense } from 'react'
+import { useState, useEffect, useMemo, memo, Suspense } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { Routes, Navigate, useLocation } from 'react-router-dom'
 import { ThemeProvider } from '@/hooks/useTheme'
@@ -71,10 +71,18 @@ import { crmEcransVivants, crmTabHref, type CrmTab } from '@/lib/crmTabs'
  */
 const VIVANTS_MAX = 3
 
-/** L'emplacement d'un onglet, sous la forme qu'attend `<Routes location=…>`. */
-function localisationDe(tb: CrmTab) {
+/**
+ * L'emplacement d'un onglet, en PRIMITIVES.
+ *
+ * ⚠ Ni `state` ni `key` ici, contrairement à la version qui fabriquait l'objet
+ * de localisation complet : ce sont des props d'`EcranVivant`, qui les compare
+ * une à une (`memo`), et `key` est de surcroît réservé par React — l'étaler
+ * dans du JSX écrase la clé de liste au lieu d'être passé. L'écran recompose
+ * l'objet lui-même, avec `state: null` et sa propre identité d'onglet.
+ */
+function localisationDe(tb: CrmTab): { pathname: string; search: string; hash: string } {
   const [pathname, q] = crmTabHref(tb).split('?')
-  return { pathname, search: q ? `?${q}` : '', hash: '', state: null, key: tb.id }
+  return { pathname, search: q ? `?${q}` : '', hash: '' }
 }
 
 /**
@@ -95,10 +103,12 @@ function localisationDe(tb: CrmTab) {
  * dans le DOM), et qu'un garde-fou qui ne s'applique pas est pire qu'aucun : il
  * se lit comme une protection. `aria-hidden` couvre l'arbre d'accessibilité.
  */
-function EcranVivant({ actif, tb, location, routes }: {
+const EcranVivant = memo(function EcranVivant({ actif, id, pathname, search, hash, routes }: {
   actif: boolean
-  tb: CrmTab
-  location: { pathname: string; search: string; hash: string; state: unknown; key: string }
+  id: string
+  pathname: string
+  search: string
+  hash: string
   routes: ReactNode
 }) {
   /**
@@ -109,18 +119,26 @@ function EcranVivant({ actif, tb, location, routes }: {
    * le calcul de route de TROIS écrans. Ce n'est pas ce qui cassait l'état (voir
    * l'ordre de rendu ci-dessous), mais c'est du travail rendu pour rien à chaque
    * frappe au clavier de l'écran actif.
+   *
+   * ⛔ ET C'EST POURQUOI LES PROPS SONT DES PRIMITIVES, pas l'objet lui-même —
+   * corrigé le 7 septembre 2026. `memo` compare les props une à une : un objet
+   * de localisation refabriqué à chaque rendu du parent échoue la comparaison,
+   * donc la mémoïsation ne mordait sur RIEN. Or une bascule d'onglet rend le
+   * parent, donc rendait les TROIS arbres d'écran en entier — deux d'entre eux
+   * pour arriver au même DOM, derrière un `visibility: hidden` que personne ne
+   * regarde. Avec des primitives, un écran caché dont rien n'a bougé n'est plus
+   * rendu du tout : la bascule ne rend que l'écran qui part et celui qui arrive.
    */
-  const { pathname, search, hash, key } = location
   const loc = useMemo(
-    () => ({ pathname, search, hash, state: null, key }),
-    [pathname, search, hash, key],
+    () => ({ pathname, search, hash, state: null, key: id }),
+    [pathname, search, hash, id],
   )
   const style: CSSProperties = actif
     ? { position: 'relative' }
     : { position: 'absolute', inset: 0, visibility: 'hidden', pointerEvents: 'none', overflow: 'hidden' }
   return (
     <div
-      data-onglet={tb.id}
+      data-onglet={id}
       aria-hidden={actif ? undefined : true}
       style={style}
     >
@@ -154,7 +172,7 @@ function EcranVivant({ actif, tb, location, routes }: {
       </EcranActifProvider>
     </div>
   )
-}
+})
 
 /**
  * Les écrans des onglets — trois vivants au plus, un seul visible.
@@ -221,9 +239,11 @@ function EcransVivants({ routes }: { routes: ReactNode }) {
         return (
           <EcranVivant
             key={tb.id}
-            tb={tb}
+            id={tb.id}
             actif={actif}
-            location={actif ? { ...location, key: tb.id } : localisationDe(tb)}
+            {...(actif
+              ? { pathname: location.pathname, search: location.search, hash: location.hash }
+              : localisationDe(tb))}
             routes={routes}
           />
         )
