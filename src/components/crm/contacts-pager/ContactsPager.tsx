@@ -2,9 +2,10 @@
 // Un grand bento arrondi (viewport) qui glisse verticalement entre deux pages :
 //   Page 0 → La liste (sous-nav audience, lignes)                      [en haut]
 //   Page 1 → Santé du portefeuille (agrégats + segments cliquables)   [en bas]
-// Pas de champ de recherche local : la recherche globale est assurée par
-// `openCrmSearch()` (câblé sur `onCmd` dans ContactsPage). Ne pas en
-// réintroduire un ici — ni le handoff Beta v1 ni le port n'en prévoient.
+// Pas de champ de recherche local : la recherche globale est ailleurs — ⌘K, ou
+// le « + » de la bande d'onglets, qui mènent tous deux à la page d'onglet neuf
+// où elle est rendue en place (7 septembre 2026). Ne pas en réintroduire un ici
+// — ni le handoff Beta v1 ni le port n'en prévoient.
 // Cliquer un segment de la Santé filtre la liste et remonte en page 0.
 // Molette (accumulateur) / flèches + PageUp-Down / swipe / points latéraux.
 // Réf. handoff : `crm-screen-contacts-proto.jsx` (CRMScreenContactsProto).

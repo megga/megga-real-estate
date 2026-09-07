@@ -65,7 +65,7 @@ export default function ListingsPage() {
       <style>{CRM_KEYFRAMES}</style>
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         {/* Le geste « Créer » de la barre est, sur cet écran, le wizard « Créer un bien ». */}
-        <CrmWorkspace active="biens" sp={sp} dark={dark} setDark={setDark} onCmd={() => setWizardOpen(true)}>
+        <CrmWorkspace active="biens" sp={sp} dark={dark} setDark={setDark}>
         <BiensPager
           biens={biens}
           sp={sp}
