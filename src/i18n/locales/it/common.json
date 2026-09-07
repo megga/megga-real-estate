@@ -297,8 +297,7 @@
         "semantic": "semantica"
       },
       "empty": {
-        "title": "Nessun risultato per «{{query}}»",
-        "body": "Chiedi piuttosto a Megga, conosce tutto il tuo CRM."
+        "title": "Nessun risultato per «{{query}}»"
       },
       "askMeggaQuery": "Chiedi a Megga: «{{query}}»",
       "deal": {

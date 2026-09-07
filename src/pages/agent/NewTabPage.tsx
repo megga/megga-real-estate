@@ -130,13 +130,31 @@ export default function NewTabPage() {
                   ⚠ Elles s'effacent dès qu'on tape : la colonne est la même, et
                   laisser onze noms sous une liste de résultats ferait deux listes
                   concurrentes dans le même champ de vision. Le champ vidé les
-                  ramène. */}
+                  ramène.
+
+                  ⛔ ET IL LEUR FAUT DE L'AIR. Mesuré le 7 septembre 2026 : **0 px**
+                  entre le bas du champ et le haut de « Mon jour » — la liste
+                  démarrait exactement au bord du champ, et les deux se lisaient
+                  comme un seul bloc. La gouttière était portée par l'ancien champ
+                  maison ; elle a disparu avec lui quand la palette a pris sa place.
+
+                  ⚠ `calc(… * 2)` et non une valeur inventée : l'échelle plafonne à
+                  24 px, et ce qu'il faut ici est le DOUBLE d'un cran, pas un
+                  vingt-neuvième barreau. Le composer se relit ; l'inventer se
+                  perd. */}
+              <div style={{ paddingTop: 'calc(var(--crm-space-7xl) * 2)' }}>
               {!quete && CRM_SIDEBAR_GROUPS.map((groupe, i) => (
                 <section key={groupe.labelKey} style={{
                   // Le dernier groupe ne traîne pas sa gouttière : elle coûtait
                   // 24 px au bas de page, et c'est exactement ce qui manquait
                   // pour tenir en entier sur un portable de 900 px.
-                  marginBottom: i === CRM_SIDEBAR_GROUPS.length - 1 ? 0 : 'var(--crm-space-7xl)',
+                  //
+                  // ⚠ 32 px entre groupes, contre 48 sous le champ : la hiérarchie
+                  // se lit dans l'ÉCART. Les mettre à égalité mettrait le champ au
+                  // même rang qu'un sur-titre. Mesuré avant de desserrer : le
+                  // contenu s'arrêtait à 616 px sur 900, il restait 284 px libres —
+                  // ce n'est pas la place qui manquait, c'est la respiration.
+                  marginBottom: i === CRM_SIDEBAR_GROUPS.length - 1 ? 0 : 'calc(var(--crm-space-2xl) * 2)',
                 }}>
                   {/* Sur-titre : la MÊME grammaire que les groupes de la barre
                       latérale (12 px / 600 / sourdine, pas de filet, pas de
@@ -164,6 +182,7 @@ export default function NewTabPage() {
                   </div>
                 </section>
               ))}
+              </div>
             </div>
           </main>
         </CrmWorkspace>

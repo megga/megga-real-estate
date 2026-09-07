@@ -846,7 +846,9 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
             défile elle-même. */}
         {(!enPlace || !showEmpty) && (
         <div style={enPlace
-          ? { padding: 'var(--crm-space-lg) 0 var(--crm-space-sm)' }
+          // ⚠ La même respiration qu'entre le champ et les destinations : sur une
+          // page, les résultats ne doivent pas non plus toucher le champ.
+          ? { padding: 'calc(var(--crm-space-7xl) * 2) 0 var(--crm-space-sm)' }
           : { flex: 1, overflowY: 'auto', padding: 'var(--crm-space-lg) var(--crm-space-xl) var(--crm-space-sm)', scrollbarWidth: 'thin' }}>
 
           {/* ── Rien à montrer ── */}
@@ -855,8 +857,13 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
               <div style={{ width: 56, height: 56, borderRadius: 'var(--crm-radius-2xl)', margin: '0 auto 14px', background: sp.cardSubBg, border: `1px solid ${sp.cardBorder}`, display: 'grid', placeItems: 'center' }}>
                 <IconSearch stroke={sp.sub} />
               </div>
+              {/* ⚠ Le titre SEUL. La seconde ligne — « Demandez plutôt à Megga, il
+                  connaît tout votre CRM » — a été retirée le 7 septembre 2026
+                  (Julien). Elle poussait vers le copilote au moment précis où
+                  l'agent constate un échec, et la porte vers Megga est déjà là,
+                  juste en dessous, comme dernière ligne de la liste. Le dire deux
+                  fois n'aide pas : ça remplit un vide par de l'insistance. */}
               <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink }}>{tr('search.command.empty.title', { query: q })}</div>
-              <div style={{ fontSize: 'var(--crm-text-lg)', marginTop: 6 }}>{tr('search.command.empty.body')}</div>
             </div>
           )}
 

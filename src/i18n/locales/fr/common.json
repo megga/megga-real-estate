@@ -304,8 +304,7 @@
         "semantic": "sémantique"
       },
       "empty": {
-        "title": "Aucun résultat pour « {{query}} »",
-        "body": "Demandez plutôt à Megga, il connaît tout votre CRM."
+        "title": "Aucun résultat pour « {{query}} »"
       },
       "askMeggaQuery": "Demander à Megga : « {{query}} »",
       "deal": {
