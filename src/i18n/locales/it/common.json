@@ -305,7 +305,6 @@
       },
       "roomsShort": "{{count}} loc.",
       "switchToTab": "Vai alla scheda {{rang}}",
-      "newTabHint": "Apri in una nuova scheda",
       "reopenTab": "Riapri questa scheda",
       "showAll_one": "Mostra 1 altro",
       "showAll_other": "Mostra altri {{count}}",

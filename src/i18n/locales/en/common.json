@@ -312,7 +312,6 @@
       },
       "roomsShort": "{{count}} rm",
       "switchToTab": "Go to tab {{rang}}",
-      "newTabHint": "Open in a new tab",
       "reopenTab": "Reopen this tab",
       "showAll_one": "Show 1 more",
       "showAll_other": "Show {{count}} more",

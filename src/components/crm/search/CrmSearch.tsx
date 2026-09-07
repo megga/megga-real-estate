@@ -6,7 +6,7 @@
 // Câblage prod : window.CRM_CONTACTS/BIENS/DEALS → hooks Supabase réels ;
 // window.CRMIcon → SVG inline ; police Manrope (CRM) au lieu d'Inter Tight.
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
+import { Fragment, useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAiPanel } from '@/hooks/useAiPanel'
@@ -604,8 +604,15 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
    * le prix aligné à droite) : unifier la mécanique n'est pas uniformiser ce
    * qu'on regarde. Un bien qui ressemblerait à un contact serait plus lisible à
    * écrire et moins à lire.
+   *
+   * ⛔ ELLE REND DU JSX, ELLE N'EST PAS UN COMPOSANT — et la nuance n'est pas
+   * théorique. Écrite `<Ligne …/>`, elle était un TYPE créé à chaque rendu :
+   * React voyait un type neuf à chaque frappe et REMONTAIT toutes les lignes,
+   * une par caractère tapé. `react-hooks/static-components` l'a signalé en
+   * ERREUR, et il avait raison. Appelée `ligne(item, rang)`, elle s'inline dans
+   * le rendu du parent et rien ne se remonte.
    */
-  const Ligne = ({ item, idx }: { item: FlatItem; idx: number }) => {
+  const ligne = (item: FlatItem, idx: number) => {
     const actif = activeIdx === idx
     const commun = {
       onMouseEnter: () => setActiveIdx(idx),
@@ -757,13 +764,26 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
           </button>
         )
       default:
-        // `ai` et `ai-query` — la porte vers le copilote, toujours en dernier.
+        // `ai` / `ai-query` — la porte vers le copilote. Une ACTION, pas un
+        // résultat : glyphe à l'accent sans tuile, graisse 500, ligne basse.
         return (
-          <button {...commun} onClick={() => activer(item)}>
-            <div style={{ width: 38, height: 38, borderRadius: 'var(--crm-radius-md)', flexShrink: 0, background: 'linear-gradient(135deg, #0041D9 0%, #8B5CF6 100%)', display: 'grid', placeItems: 'center' }}>
-              <IconSpark size={14} stroke="#fff" />
-            </div>
-            <div style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink }}>
+          <button {...commun} onClick={() => activer(item)} style={{ ...commun.style, padding: 'var(--crm-space-md) var(--crm-space-2xl)' }}>
+            {/* ⚠ UNE TUILE, ET PAS UN GLYPHE NU. Premier jet : une étoile de 16 px
+                sans fond — retour de Julien, « l'étoile est toute petite, c'est
+                vraiment un tout petit truc ». En retirant le dégradé j'avais
+                retiré la présence avec lui : la ligne n'avait plus d'ancre à
+                gauche et se lisait comme une note de bas de page.
+                32 px et non 38 : elle garde de l'aplomb sans se ranger au même
+                rang que les avatars des résultats — c'est une action, pas une
+                entité. Aplat d'accent + encre d'accent : l'idiome MEGGA X, et la
+                couleur que porte le dock MEGGA AI (`sp.accent`, onze fois). */}
+            <span style={{
+              width: 32, height: 32, flexShrink: 0, display: 'grid', placeItems: 'center',
+              borderRadius: 'var(--crm-radius-md)', background: sp.accent,
+            }}>
+              <IconSpark size={17} stroke={sp.accentInk} />
+            </span>
+            <div style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: sp.ink, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {tr('search.command.askMeggaQuery', { query: q })}
             </div>
             {fleche}
@@ -880,18 +900,22 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
               c'est dans ces copies que les index divergeaient. Le rang d'une
               ligne est ici son rang dans `flatItems`, compté au fil du rendu :
               il ne PEUT plus être faux. */}
+          {/* ⚠ Le groupe `ai` est RETIRÉ d'ici : il n'est pas un résultat, c'est
+              une action de repli, et il se rend dans le pied (voir plus bas). Il
+              reste dernier dans `flatItems`, donc son rang est connu sans compter. */}
           {(() => {
             let rang = -1
-            return groupes.map((groupe) => (
+            return groupes.filter((g) => g.cle !== 'ai').map((groupe) => (
               <Section
                 key={groupe.cle}
                 title={groupe.titre}
-                count={groupe.cle === 'ai' ? undefined : groupe.total}
+                count={groupe.total}
                 sp={sp}
               >
                 {groupe.items.map((item) => {
                   rang += 1
-                  return <Ligne key={`${groupe.cle}-${rang}`} item={item} idx={rang} />
+                  const r = rang
+                  return <Fragment key={`${groupe.cle}-${r}`}>{ligne(item, r)}</Fragment>
                 })}
               </Section>
             ))
@@ -899,27 +923,31 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
         </div>
         )}
 
-        {/* ── Le pied : ce que le clavier sait faire ────────────────────────────
-            ⚠ SANS LUI, ⌘/Ctrl + Entrée EST INVISIBLE. Un geste que rien
-            n'annonce n'existe pour personne — et celui-ci est le seul moyen
-            d'ouvrir un résultat À CÔTÉ au lieu de remplacer l'écran courant.
-            Rendu seulement quand il y a quelque chose à ouvrir : sur une palette
-            vide, il annoncerait une action sans objet.
-            ⚠ Le libellé de la touche suit le clavier (⌘ ou Ctrl) — voir
-            `TOUCHE_COMMANDE`. */}
-        {tabsApi && !showEmpty && totalResults > 0 && (
-          <div style={{
-            flexShrink: 0, display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
-            padding: 'var(--crm-space-md) var(--crm-space-xl)',
-            borderTop: `1px solid ${sp.cardBorder}`,
-            fontSize: 'var(--crm-text-xs)', color: sp.soft,
-          }}>
-            <kbd style={{
-              fontFamily: 'inherit', fontWeight: 600, color: sp.sub,
-              background: sp.kbdBg, border: `1px solid ${sp.cardBorder}`,
-              borderRadius: 'var(--crm-radius-xs)', padding: '0 var(--crm-space-sm)', lineHeight: '18px',
-            }}>{`${TOUCHE_COMMANDE} ↵`}</kbd>
-            {tr('search.command.newTabHint')}
+        {/* ── LE PIED — ce qu'on peut faire d'AUTRE ─────────────────────────
+            ⛔ LA LIGNE « DEMANDER À MEGGA » ÉTAIT RENDUE COMME UN RÉSULTAT, et
+            elle n'en est pas un : c'est une ACTION de repli, celle qui reste
+            quand la liste ne suffit pas. Rendue au milieu des contacts, elle se
+            lisait comme un contact de plus — même hauteur, même tuile de 38 px,
+            même graisse de titre.
+
+            ⛔ ET SA TUILE PORTAIT UN DÉGRADÉ BLEU→VIOLET qui n'existe NULLE PART
+            ailleurs dans `src/` — mesuré : une seule occurrence, celle-ci. Ce
+            n'est pas l'identité de MEGGA AI : le dock, lui, porte `sp.accent`
+            onze fois et aucun dégradé. C'était un reliquat du proto, et il
+            faisait de la ligne la chose la plus colorée de la palette — donc la
+            plus importante, ce qu'elle n'est pas.
+
+            Elle descend dans le pied, sous UN filet : le filet dit « autre
+            registre », là où un écart de 34 px ne disait que « loin ».
+
+            ⚠ L'INDICE CLAVIER « ⌘↵ Ouvrir dans un nouvel onglet » A ÉTÉ RETIRÉ
+            (Julien, 7 septembre 2026 : « c'est inutile »). Je l'avais posé pour
+            rendre le geste découvrable, et c'est le coût assumé de son retrait :
+            ⌘/Ctrl + Entrée et ⌘/Ctrl + clic FONCTIONNENT toujours, mais plus rien
+            ne les annonce. Ne pas les croire disparus en relisant l'écran. */}
+        {!showEmpty && (
+          <div style={{ flexShrink: 0, borderTop: `1px solid ${sp.cardBorder}`, padding: 'var(--crm-space-sm) var(--crm-space-lg)' }}>
+            {ligne({ kind: 'ai-query' }, flatItems.length - 1)}
           </div>
         )}
     </>
