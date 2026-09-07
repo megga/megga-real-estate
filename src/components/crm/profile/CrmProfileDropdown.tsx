@@ -170,29 +170,10 @@ interface CrmProfileDropdownProps {
   // « badge minimal » — KYC reste accessible via le rail/TopNav).
   onKyc?: () => void
   onAgencyPublic?: () => void
-  /**
-   * Les trois gestes recueillis du groupe « Outils » de la barre latérale,
-   * retiré le 7 septembre 2026.
-   *
-   * ⛔ ILS SONT ICI PARCE QU'ILS N'ONT NULLE PART AILLEURS OÙ ÊTRE. Les onze
-   * destinations du CRM se rejoignent en ouvrant un onglet — la page d'onglet
-   * neuf les porte toutes. Ces trois-là ne sont pas des destinations : deux
-   * ouvrent une surface par-dessus l'écran (la session de relance, le tiroir
-   * d'aide) et la troisième est une route absente de cette grille. Les laisser
-   * partir avec le groupe les aurait rendues injoignables — mesuré avant de
-   * couper, pas supposé.
-   *
-   * ⚠ Optionnelles : la console admin et les bancs montent ce menu sans elles,
-   * et une ligne sans geste ne doit pas être rendue.
-   */
-  onRelances?: () => void
-  onImportLeads?: () => void
-  onHelpCenter?: () => void
 }
 
 export default function CrmProfileDropdown({
   sp, dark, setDark, placement = 'below-right', onClose, onSettings, onHelp, onLogout,
-  onRelances, onImportLeads, onHelpCenter,
 }: CrmProfileDropdownProps) {
   const { t } = useTranslation('common')
   const { profile, user } = useAuth()
@@ -277,36 +258,6 @@ export default function CrmProfileDropdown({
           label={t('profile.help')}
           onClick={wrap(onHelp)} />
       </div>
-
-      {/* ── Les outils, descendus de la barre latérale ────────────────────── */}
-      {/* ⚠ Un bloc SÉPARÉ, sous son propre filet, et non trois lignes ajoutées
-          au-dessus : ce qui précède décrit le COMPTE (préférences, sécurité,
-          facturation, aide de l'écran), ce qui suit sont des gestes de travail.
-          Les mêler ferait une liste de sept lignes sans ordre lisible. */}
-      {(onRelances || onImportLeads || onHelpCenter) && (
-        <>
-          <Sep sp={sp} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
-            {onRelances && (
-              <Row sp={sp} icon="phone" label={t('nav.callbacksToday')}
-                onClick={wrap(onRelances)} />
-            )}
-            {onImportLeads && (
-              <Row sp={sp} icon="download" label={t('nav.importLeads')}
-                onClick={wrap(onImportLeads)} />
-            )}
-            {/* ⚠ Distincte d'« Aide sur cet écran » juste au-dessus, et ce n'est
-                pas un doublon : celle-ci ouvre l'onglet Aide ENTIER — les 18
-                articles et leur recherche — quand l'autre saute à un article.
-                Six articles publiés n'ont aucun écran et ne s'atteignent que
-                par cette recherche-là. */}
-            {onHelpCenter && (
-              <Row sp={sp} icon="help" label={t('nav.helpCenter')}
-                onClick={wrap(onHelpCenter)} />
-            )}
-          </div>
-        </>
-      )}
 
       {setDark && (
         <>

@@ -22,9 +22,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import {
-  CRM_BARRE_GROUPES, CRM_NEW_TAB_PATH, CRM_SIDEBAR_GROUPS, CRM_SIDEBAR_SECTIONS, crmSidebarActiveFor,
-} from '@/components/crm/crmSidebarNav'
+import { CRM_NEW_TAB_PATH, CRM_SIDEBAR_SECTIONS, crmSidebarActiveFor } from '@/components/crm/crmSidebarNav'
 import { crmTabsEligible } from '@/hooks/useCrmTabs'
 
 const LANGUES = ['fr', 'en', 'de', 'it'] as const
@@ -47,38 +45,6 @@ describe('nouvel onglet — le chemin', () => {
 
   it('est éligible aux onglets — sans quoi le « + » ne créerait aucune puce', () => {
     expect(crmTabsEligible(CRM_NEW_TAB_PATH)).toBe(true)
-  })
-})
-
-describe('nouvel onglet — la SEULE voie vers huit destinations', () => {
-  /**
-   * ⛔ CE QUE CETTE SUITE GARDE, DEPUIS LE 7 SEPTEMBRE 2026. La barre latérale ne
-   * rend plus qu'un groupe, « Mon jour » (décision Julien) : on n'atteint plus
-   * une destination en la cliquant dans la barre, mais en ouvrant un onglet.
-   * Cette page est donc devenue le seul chemin vers les huit autres.
-   *
-   * Le geste qui casserait ça n'est pas ici : c'est un « nettoyage » de
-   * `crmSidebarNav.ts` par quelqu'un qui lit « la barre ne les affiche plus » et
-   * en conclut que la table peut maigrir. La barre les filtre sur `barre: true` ;
-   * la table, elle, doit rester ENTIÈRE.
-   */
-  it('la barre rend un sous-ensemble STRICT — la table garde tout', () => {
-    expect(CRM_BARRE_GROUPES.length).toBeLessThan(CRM_SIDEBAR_GROUPS.length)
-    for (const g of CRM_BARRE_GROUPES) expect(CRM_SIDEBAR_GROUPS).toContain(g)
-    // Et le filtre est bien le drapeau, pas un rang ou un libellé.
-    for (const g of CRM_SIDEBAR_GROUPS) {
-      expect(CRM_BARRE_GROUPES.includes(g)).toBe(g.barre === true)
-    }
-  })
-
-  it('⛔ toute destination ABSENTE de la barre reste dans la grille', () => {
-    const dansLaBarre = new Set(CRM_BARRE_GROUPES.flatMap((g) => g.items).map((s) => s.id))
-    const horsBarre = CRM_SIDEBAR_SECTIONS.filter((s) => !dansLaBarre.has(s.id))
-    // Huit au 7 septembre 2026 — ce n'est pas le nombre qu'on fige, c'est le
-    // fait qu'il y en ait, et qu'aucune ne soit tombée du modèle.
-    expect(horsBarre.length).toBeGreaterThan(0)
-    const rendues = new Set(CRM_SIDEBAR_GROUPS.flatMap((g) => g.items).map((s) => s.id))
-    for (const s of horsBarre) expect(rendues.has(s.id)).toBe(true)
   })
 })
 

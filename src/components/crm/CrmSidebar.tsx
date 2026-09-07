@@ -42,7 +42,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import type { CrmPalette } from './tokens'
 import { RailIcon } from './LiquidGlassRail'
-import { CRM_BARRE_GROUPES, crmSidebarActiveFor, crmSidebarRouteOf, type CrmSidebarSectionId } from './crmSidebarNav'
+import { CRM_SIDEBAR_GROUPS, crmSidebarActiveFor, crmSidebarRouteOf, type CrmSidebarSectionId } from './crmSidebarNav'
 import { useCrmSidebarCollapsed } from '@/lib/crmSidebar'
 import { useIsMobile, useMediaQuery } from '@/hooks/useMediaQuery'
 import { useAuth } from '@/hooks/useAuth'
@@ -173,9 +173,22 @@ function SidebarRow({
 // ⚠ Repliée, la barre n'a pas 84 px pour un mot : le sur-titre cède la place à
 // un FILET. Sans lui, dix-sept glyphes s'alignent sans respiration et la colonne
 // redevient la liste indifférenciée qu'on vient de découper.
+//
+// ⛔ LES SUR-TITRES SONT RETIRÉS DEPUIS LE 7 SEPTEMBRE 2026 (Julien : « enlève
+// les catégories »). Le découpage en groupes SURVIT — il ordonne la liste, il
+// nomme les groupes pour un lecteur d'écran (`role="group"` + `aria-label`), et
+// c'est lui que rend la grille de la page d'onglet neuf. Ce qui part est le mot
+// affiché, rien d'autre : on revient à ce que la référence de design prescrivait
+// avant le 4 septembre — « aucune séparation visuelle entre les groupes, seul
+// l'ordre les signale ».
+//
+// ⚠ ET LE FILET DU MODE REPLIÉ RESTE. Ce n'est pas une catégorie — c'est un
+// trait, dans une colonne où aucun mot n'est affiché de toute façon. Le retirer
+// coûterait la seule respiration de dix-sept glyphes empilés, sans rien rendre
+// à personne.
 
-function GroupLabel({ label, collapsed, first = false, sp }: {
-  label: string; collapsed: boolean; first?: boolean; sp: CrmPalette
+function GroupLabel({ collapsed, first = false, sp }: {
+  collapsed: boolean; first?: boolean; sp: CrmPalette
 }) {
   if (collapsed) {
     // ⚠ Rien au-dessus du PREMIER groupe : un filet juste sous le bloc d'agence
@@ -189,17 +202,9 @@ function GroupLabel({ label, collapsed, first = false, sp }: {
       }} />
     )
   }
-  return (
-    <div style={{
-      // ⚠ Serré volontairement : cinq sur-titres coûtent de la hauteur, et la
-      // liste défile déjà. 4 px au-dessus suffisent à détacher le titre de la
-      // ligne précédente — c'est le blanc du groupe qui sépare, pas le padding.
-      padding: 'var(--crm-space-xs) var(--crm-space-2xl) var(--crm-space-2xs)',
-      fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.2,
-      color: sp.sub, userSelect: 'none',
-      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-    }}>{label}</div>
-  )
+  // Dépliée : plus rien. Le groupe reste un groupe pour l'ordre et pour
+  // l'accessibilité, il n'a simplement plus de titre visible.
+  return null
 }
 
 // ─── Encart de synthèse — l'objectif de la période ─────────────────────────
@@ -328,9 +333,14 @@ export interface CrmSidebarProps {
   sp: CrmPalette
   dark: boolean
   setDark: (v: boolean) => void
+  /**
+   * Geste « créer » propre à l'écran. Absent, la ligne n'est pas rendue — un
+   * bouton qui ne fait rien doit disparaître, pas rester gris.
+   */
+  onCmd?: () => void
 }
 
-export function CrmSidebar({ active, helpKey, sp, dark, setDark }: CrmSidebarProps) {
+export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSidebarProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation('common')
@@ -425,27 +435,29 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark }: CrmSidebarPro
     if (route) navigate(route)
   }
 
-  /**
-   * ⛔ LE GROUPE « OUTILS » A ÉTÉ RETIRÉ DE LA BARRE (7 septembre 2026, Julien),
-   * et ses gestes ne sont PAS morts avec lui — ils sont descendus dans le menu
-   * de compte, qui portait déjà Paramètres, KYC et l'aide.
-   *
-   * Ligne par ligne, parce que chacune a une raison différente :
-   *   • « Rechercher » disparaît sans remplacement : ⌘K et le « + » de la bande
-   *     mènent à la page d'onglet neuf, où la recherche est déjà rendue en place.
-   *   • « Créer » (`onCmd`) disparaît aussi. Elle n'avait qu'UN appelant réel,
-   *     `ListingsPage`, qui pose de toute façon le même geste dans sa page
-   *     (`onCreate`, ligne 84) — c'était un doublon de chrome.
-   *   • « Relances du jour », « Importer des leads » et « Centre d'aide »
-   *     descendent : ce sont les trois seules à n'avoir AUCUNE autre entrée, ni
-   *     route dans la grille du nouvel onglet, ni ligne ailleurs.
-   *
-   * ⚠ Le centre d'aide et « Aide sur cet écran » cohabitent dans ce menu, et ce
-   * n'est pas un doublon : `openHelpFor()` SANS clé ouvre l'onglet Aide entier —
-   * les 18 articles et leur recherche — quand `openHelpFor(cle)` saute à UN
-   * article. Six articles publiés n'ont aucun écran et ne s'atteignent que par
-   * cette recherche-là.
-   */
+  // Outils transverses. Les PAGES sont au-dessus ; aucune ligne n'est reprise
+  // dans les deux groupes.
+  //
+  // ⛔ « RECHERCHER » N'EST PLUS ICI (7 septembre 2026, Julien : « on n'a plus
+  // vraiment besoin, comme on ouvre un onglet on a déjà la recherche »). La page
+  // d'onglet neuf rend `CrmSearch` dans son corps, champ focalisé ; ⌘K y mène,
+  // et le « + » de la bande aussi. Une loupe qui ouvre un voile par-dessus
+  // l'écran faisait un second chemin vers la même chose — celui-là même dont la
+  // refonte du champ devait sortir.
+  //
+  // ⚠ La ligne « Créer » (`onCmd`), elle, reste : elle n'est rendue que lorsque
+  // l'écran fournit réellement un geste de création.
+  const tools: { id: string; icon: string; label: string; action: () => void }[] = [
+    ...(onCmd ? [{ id: 'add', icon: 'plus', label: t('actions.create'), action: onCmd }] : []),
+    { id: 'relances', icon: 'phone', label: t('nav.callbacksToday'), action: () => setRelanceOpen(true) },
+    { id: 'import', icon: 'download', label: t('nav.importLeads'), action: () => { if (!enBanc) navigate('/dashboard/import-lead') } },
+    // ⚠ `openHelpFor()` SANS ARGUMENT, et c'est tout le sujet : sans clé, il
+    // ouvre l'onglet Aide — les 18 articles, la recherche, Fin. La ligne « Aide
+    // sur cet écran » du menu de compte, elle, passe une clé et saute à UN
+    // article. Six articles publiés n'ont aucun écran et ne sont atteignables
+    // que par cette recherche : garder les deux entrées n'est pas un doublon.
+    { id: 'help', icon: 'help', label: t('nav.helpCenter'), action: () => openHelpFor() },
+  ]
 
   const listStyle: CSSProperties = {
     display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)',
@@ -595,13 +607,13 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark }: CrmSidebarPro
           </button>
         </div>
 
-        {/* ── 3. Nav : le seul groupe que la barre rend ────────────────────── */}
-        {/* ⚠ Le défilement et son dégradé RESTENT, alors que trois lignes ne
-            déborderont jamais. Ils ne coûtent rien quand rien ne déborde, et ce
-            conteneur est ce qui rattrapera le jour où un groupe repasse dans la
-            barre (`barre: true`) — la mesure qui les avait imposés tenait à
-            seize lignes sous 800 px de hauteur utile. Les retirer serait un pari
-            sur le fait que la barre ne regrandira pas. */}
+        {/* ── 3. Nav : quatre groupes de pages, puis les outils ───────────── */}
+        {/* ⛔ PAS de `scrollbar-hide` ici. Seize lignes ne tiennent pas sous
+            ~900 px de hauteur utile : mesuré, à 800 px « Importer des leads »,
+            « Megga, Agent IA » et « Notifications » passent sous un pli — et
+            masquer la barre de défilement retirait le SEUL indice qu'il y a
+            quelque chose en dessous. Le dégradé de bas double l'indice là où le
+            système peint des barres en survol (macOS). */}
         <div
           style={{
             flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
@@ -611,9 +623,9 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark }: CrmSidebarPro
           }}
         >
           <nav aria-label={t('nav.mainNav')} style={{ display: 'flex', flexDirection: 'column' }}>
-            {CRM_BARRE_GROUPES.map((g, i) => (
+            {CRM_SIDEBAR_GROUPS.map((g, i) => (
               <div key={g.labelKey} role="group" aria-label={t(g.labelKey)}>
-                <GroupLabel label={t(g.labelKey)} collapsed={collapsed} first={i === 0} sp={sp} />
+                <GroupLabel collapsed={collapsed} first={i === 0} sp={sp} />
                 <div style={listStyle}>
                   {g.items.map(s => (
                     <SidebarRow
@@ -631,6 +643,29 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark }: CrmSidebarPro
             ))}
           </nav>
 
+          <div role="group" aria-label={t('nav.sectionTools')}>
+            <GroupLabel collapsed={collapsed} sp={sp} />
+            <div style={listStyle}>
+            {tools.map(it => (
+              <SidebarRow
+                key={it.id}
+                icon={it.icon}
+                label={it.label}
+                collapsed={collapsed}
+                onClick={it.action}
+                sp={sp}
+              />
+            ))}
+
+            {/* ⚠ MEGGA AI N'EST PLUS ICI (4 septembre 2026) : ✦ a migré dans le
+                quart droit de la barre d'onglets. Le panneau s'ouvre PAR LA DROITE,
+                donc un déclencheur ancré à droite dit d'où vient la chose — et la
+                bande d'onglets laissait 241 px vides à 1280 px, ~880 à 1920.
+                Déplacé, jamais dupliqué : deux boutons pour un même panneau, chacun
+                portant l'état « ouvert », se contredisent dès qu'on en regarde un
+                seul. */}
+            </div>
+          </div>
         </div>
 
         {/* ── 4. Pied : encart de synthèse + compte ────────────────────────── */}
@@ -710,14 +745,6 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark }: CrmSidebarPro
                 onKyc={() => goto('kyc')}
                 onAgencyPublic={() => window.open('/agencies', '_blank', 'noopener,noreferrer')}
                 onHelp={() => openHelpFor(helpKey ?? activeId)}
-                // ⚠ Les trois recueillies du groupe « Outils » retiré. L'état de
-                // la session de relance reste ICI : c'est la barre qui monte la
-                // modale (elle en avait hérité du rail), le menu ne fait que la
-                // déclencher — et il se ferme au clic, donc il ne peut pas la
-                // porter lui-même.
-                onRelances={() => setRelanceOpen(true)}
-                onImportLeads={() => { if (!enBanc) navigate('/dashboard/import-lead') }}
-                onHelpCenter={() => openHelpFor()}
                 onLogout={async () => { await signOut(); navigate('/login') }}
               />
             )}

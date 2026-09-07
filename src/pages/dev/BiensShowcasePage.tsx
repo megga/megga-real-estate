@@ -118,6 +118,7 @@ export default function BiensShowcasePage() {
                 vers la production. */}
             <CrmWorkspace
               active="biens" sp={sp} dark={dark} setDark={setDark}
+              onCmd={() => setWizardOpen(true)}
             >
             <BiensPager
               biens={CRM_BIENS}

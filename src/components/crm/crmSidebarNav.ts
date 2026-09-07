@@ -22,21 +22,6 @@
  * (`AdminShell.NAV_SECTIONS`, cinq sections depuis juillet 2026) : un sur-titre
  * en 12 px / 600 / `sp.sub`, pas de filet, pas de capitale.
  *
- * ⛔ LA BARRE N'EN REND PLUS QU'UN — LA TABLE, ELLE, RESTE ENTIÈRE (7 septembre
- * 2026, décision Julien). Depuis que la bande d'onglets existe, on n'atteint plus
- * une destination en cliquant la barre mais en ouvrant un onglet : la page
- * « Nouvel onglet » porte les onze destinations ET la recherche. La barre garde
- * donc « Mon jour » — ce qu'on ouvre le matin et qu'on ne cherche pas — et rend
- * les trois autres groupes à la page d'onglet neuf. Voir {@link CRM_BARRE_GROUPES}.
- *
- * ⚠ ET C'EST BIEN UN CHOIX DE RENDU, PAS UNE AMPUTATION DU MODÈLE. Cette table a
- * QUATRE lecteurs : la barre, la grille du nouvel onglet, `crmSidebarActiveFor`
- * (quelle section s'allume pour un chemin) et `crmTabLibelle` (le nom d'un onglet
- * de section). Retirer un groupe d'ICI ne l'aurait pas retiré de la barre : il
- * aurait disparu de la page d'onglet neuf — c'est-à-dire du seul endroit qui
- * reste pour y aller — et les onglets visant ces routes auraient perdu leur
- * libellé.
- *
  * Le découpage suit ce que les pages FONT, pas leur ordre d'arrivée :
  *   • Mon jour       — ce qu'on ouvre le matin : le cockpit, l'agenda et la
  *                      boîte mail.
@@ -71,20 +56,12 @@ export interface CrmSidebarSection {
 export interface CrmSidebarGroup {
   /** Clé i18n du sur-titre, namespace `common`. */
   labelKey: string
-  /**
-   * Ce groupe est-il rendu dans la BARRE, ou seulement dans la page d'onglet
-   * neuf ? Depuis le 7 septembre 2026, un seul l'est — voir l'en-tête.
-   */
-  barre?: true
   items: CrmSidebarSection[]
 }
 
 export const CRM_SIDEBAR_GROUPS: CrmSidebarGroup[] = [
   {
     labelKey: 'nav.sectionDay',
-    // ⚠ LE SEUL GROUPE DE LA BARRE. Ce qu'on ouvre le matin ne se cherche pas :
-    // le cockpit, l'agenda et la boîte. Le reste s'atteint en ouvrant un onglet.
-    barre: true,
     items: [
       { id: 'today',    icon: 'home',     labelKey: 'nav.today',    route: '/dashboard' },
       { id: 'calendar', icon: 'calendar', labelKey: 'nav.calendar', route: '/dashboard/calendar' },
@@ -136,17 +113,6 @@ export const CRM_NEW_TAB_PATH = '/dashboard/nouvel-onglet'
 
 export const CRM_SIDEBAR_SECTIONS: CrmSidebarSection[] =
   CRM_SIDEBAR_GROUPS.flatMap(g => g.items)
-
-/**
- * Les groupes que la BARRE rend — un sous-ensemble, dérivé et non recopié.
- *
- * ⛔ Dérivé, parce qu'une seconde liste écrite à la main serait exactement le
- * défaut que ce module a été écrit pour supprimer : deux tables qui divergent
- * au premier ajout. Ici, promouvoir un groupe dans la barre est un drapeau à
- * poser, pas une entrée à recopier.
- */
-export const CRM_BARRE_GROUPES: CrmSidebarGroup[] =
-  CRM_SIDEBAR_GROUPS.filter(g => g.barre)
 
 /** Route d'une section — `null` si la clé n'est pas une section de la barre. */
 export function crmSidebarRouteOf(id: string): string | null {
