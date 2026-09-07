@@ -173,10 +173,9 @@ export default function NewTabPage() {
                     gap: 'var(--crm-space-2xl)',
                   }}>
                     {groupe.items.map((s) => (
-                      <CarteDestination
+                      <Destination
                         key={s.id}
                         sp={sp}
-                        icone={s.icon}
                         titre={t(s.labelKey)}
                         sousTitre={t(`newTab.hints.${s.id}`)}
                         onClick={() => navigate(s.route)}
@@ -194,28 +193,40 @@ export default function NewTabPage() {
 }
 
 /**
- * Une destination.
+ * Une destination — du TEXTE, et rien d'autre.
  *
- * ⚠ Le survol se pose sur `focusSurface` et non sur un aplat d'accent : c'est
- * une LISTE de onze entrées équivalentes, aucune n'est l'affordance primaire de
- * l'écran. L'accent reste ce qu'il désigne partout ailleurs dans MEGGA X —
- * l'élément actif —, et rien n'est actif ici tant qu'on n'a pas choisi.
+ * ⛔ ELLE ÉTAIT UNE CARTE : fond, bordure, rayon, ombre, glyphe. Retour de Julien
+ * du 7 septembre 2026 — « retire les petits blocs, le plus épuré possible ». Sur
+ * onze entrées, onze cadres font onze fois le même bruit : ils ne distinguent
+ * rien, puisqu'aucune n'est plus importante qu'une autre, et ils occupent la
+ * place que le libellé aurait mieux employée. Une page d'accueil d'onglet n'a
+ * qu'un travail — laisser lire onze noms d'un coup d'œil.
+ *
+ * Le glyphe part avec le cadre, et pour le même motif : la barre latérale porte
+ * déjà l'iconographie des sections, à trois cents pixels à gauche. La répéter
+ * ici n'ajoute pas un repère, elle ajoute une colonne.
+ *
+ * ⚠ CE QUI REMPLACE LE CADRE COMME AFFORDANCE : le titre passe à l'accent au
+ * survol. C'est l'idiome du lien, il ne coûte pas un pixel de chrome, et il ne
+ * contredit pas la règle du 10 août (« l'élément ACTIF porte l'accent ») — rien
+ * n'est actif ici, et le survol n'est pas un état, c'est un pointeur.
+ *
+ * ⚠ La zone CLIQUABLE, elle, reste pleine largeur et garde sa gouttière : sans
+ * elle, on viserait deux lignes de texte hautes de 34 px.
  */
-function CarteDestination({ sp, icone, titre, sousTitre, onClick }: {
-  sp: CrmPalette; icone: string; titre: string; sousTitre: string; onClick: () => void
+function Destination({ sp, titre, sousTitre, onClick }: {
+  sp: CrmPalette; titre: string; sousTitre: string; onClick: () => void
 }) {
   const [survol, setSurvol] = useState(false)
   const style: CSSProperties = {
-    display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)',
-    width: '100%', textAlign: 'left',
-    background: survol ? sp.focusSurface : sp.cardBg,
-    border: `1px solid ${sp.cardBorder}`,
-    borderRadius: 'var(--crm-radius-lg)',
-    boxShadow: sp.shadow,
-    padding: 'var(--crm-space-2xl)',
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    transition: 'background 120ms ease',
+    display: 'block', width: '100%', textAlign: 'left',
+    background: 'transparent', border: 0, borderRadius: 'var(--crm-radius-sm)',
+    padding: 'var(--crm-space-sm)',
+    // ⚠ Ramène le bloc à l'aplomb du sur-titre de son groupe : la gouttière de
+    // confort ci-dessus le décalerait sinon vers la droite, et la colonne de
+    // gauche cesserait d'être une colonne.
+    marginLeft: 'calc(-1 * var(--crm-space-sm))',
+    cursor: 'pointer', fontFamily: 'inherit',
   }
   return (
     <button
@@ -225,22 +236,16 @@ function CarteDestination({ sp, icone, titre, sousTitre, onClick }: {
       onMouseEnter={() => setSurvol(true)}
       onMouseLeave={() => setSurvol(false)}
     >
-      {/* ⚠ `translateY` et non une marge d'un pixel : c'est un calage OPTIQUE du
-          glyphe sur la hauteur d'œil du titre, pas un espacement — et l'échelle
-          des espacements n'a pas de barreau à 1, à juste titre. */}
-      <span style={{ display: 'flex', color: sp.sub, flexShrink: 0, transform: 'translateY(1px)' }}>
-        <RailIcon name={icone} size={18} />
-      </span>
-      <span style={{ minWidth: 0 }}>
-        <span style={{
-          display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
-          color: sp.ink, marginBottom: 'var(--crm-space-2xs)',
-        }}>{titre}</span>
-        <span style={{
-          display: 'block', fontSize: 'var(--crm-text-md)', color: sp.sub,
-          lineHeight: 1.35,
-        }}>{sousTitre}</span>
-      </span>
+      <span style={{
+        display: 'block', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
+        color: survol ? sp.accent : sp.ink,
+        marginBottom: 'var(--crm-space-2xs)',
+        transition: 'color 120ms ease',
+      }}>{titre}</span>
+      <span style={{
+        display: 'block', fontSize: 'var(--crm-text-md)', color: sp.sub,
+        lineHeight: 1.35,
+      }}>{sousTitre}</span>
     </button>
   )
 }
