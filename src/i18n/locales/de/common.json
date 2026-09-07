@@ -525,5 +525,11 @@
       "dashboard": "Provisionen und Leistung",
       "settings": "Konto, Agentur, Integrationen"
     }
+  },
+  "notFound": {
+    "title": "Diese Seite gibt es nicht",
+    "body": "Kein Bildschirm antwortet auf {{chemin}}. Ihre Tabs sind weiterhin offen.",
+    "action": "Zurück zum Dashboard",
+    "tab": "Nicht gefunden"
   }
 }

@@ -525,5 +525,11 @@
       "dashboard": "Commissions et performance",
       "settings": "Compte, agence, intégrations"
     }
+  },
+  "notFound": {
+    "title": "Cette page n'existe pas",
+    "body": "Aucun écran ne répond à {{chemin}}. Vos onglets sont restés ouverts.",
+    "action": "Revenir au tableau de bord",
+    "tab": "Introuvable"
   }
 }

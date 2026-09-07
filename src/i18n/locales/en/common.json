@@ -525,5 +525,11 @@
       "dashboard": "Commissions and performance",
       "settings": "Account, agency, integrations"
     }
+  },
+  "notFound": {
+    "title": "This page does not exist",
+    "body": "No screen answers to {{chemin}}. Your tabs are still open.",
+    "action": "Back to the dashboard",
+    "tab": "Not found"
   }
 }

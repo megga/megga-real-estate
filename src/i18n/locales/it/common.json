@@ -525,5 +525,11 @@
       "dashboard": "Commissioni e performance",
       "settings": "Account, agenzia, integrazioni"
     }
+  },
+  "notFound": {
+    "title": "Questa pagina non esiste",
+    "body": "Nessuna schermata risponde a {{chemin}}. Le tue schede sono rimaste aperte.",
+    "action": "Torna alla dashboard",
+    "tab": "Non trovata"
   }
 }

@@ -124,6 +124,7 @@ const ImportLeadPage = lazy(() => import('@/pages/agent/ImportLeadPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const JourneyPage = lazy(() => import('@/pages/agent/JourneyPage'))
 const NewTabPage = lazy(() => import('@/pages/agent/NewTabPage'))
+const DashboardNotFoundPage = lazy(() => import('@/pages/agent/DashboardNotFoundPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 // Messagerie (boîte mail intégrée) — l'écran, son mobile minimal (D16) et le
 // retour d'autorisation de la pop-up OAuth.
@@ -525,12 +526,20 @@ const ROUTES_TABLEAU_DE_BORD = (
         `crm-agent-params-coverage.spec.ts`) : « body too small (0 chars) ». Un
         écran blanc ne rougit nulle part ailleurs — c'est ce test-là qui l'a vu.
 
+        ⛔ ET IL REND LE 404 *DU CRM*, PAS CELUI DE L'APPLICATION. Premier jet :
+        `NotFoundPage`, qui se peint plein cadre — sans barre latérale, sans bande
+        d'onglets. Retour de Julien : « ça me sort de la zone de contexte ». Il a
+        raison, et ça coûte plus qu'un cadre : la pile d'onglets est toujours
+        ouverte derrière, mais invisible, donc injoignable autrement que par le
+        bouton « précédent ». Une adresse fausse ne doit pas coûter le plan de
+        travail.
+
         ⚠ Conséquence assumée : une URL inconnue sous `/dashboard` prend
         maintenant un onglet (elle est `crmTabsEligible`), là où elle n'en prenait
         aucun — le fournisseur n'était pas monté. L'onglet porte le libellé de
         repli et se ferme comme un autre ; l'alternative, rediriger en silence
         vers le cockpit, effacerait la faute de frappe au lieu de la montrer. */}
-    <Route path="*" element={<NotFoundPage />} />
+    <Route path="*" element={<DashboardNotFoundPage />} />
   </>
 )
 

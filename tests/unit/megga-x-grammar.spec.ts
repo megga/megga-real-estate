@@ -100,6 +100,9 @@ const PAGES = new Set([
   // d'entrer : 0 marqueur. Elle entre le jour de sa naissance plutôt qu'un lot
   // plus tard, ce qui est le seul moment où le coût d'entrée est nul.
   'NewTabPage.tsx',
+  // Le 404 DU CRM (7 septembre 2026), qui garde la coquille au lieu de peindre
+  // plein cadre. Même régime : styles en ligne, entrée le jour de sa naissance.
+  'DashboardNotFoundPage.tsx',
 ])
 
 /**
@@ -135,7 +138,7 @@ const PAGES_ACQUISES = [
   'ExternalListingDetailPage.tsx', 'IdentityMobileNotice.tsx', 'IdentityPage.tsx',
   'OnboardingCallPage.tsx', 'ListingWizardPage.tsx',
   'MessageriePage.tsx', 'MailOAuthCallbackPage.tsx',
-  'NewTabPage.tsx',
+  'NewTabPage.tsx', 'DashboardNotFoundPage.tsx',
 ]
 
 /**

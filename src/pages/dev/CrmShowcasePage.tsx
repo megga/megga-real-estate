@@ -46,6 +46,7 @@
  * ⛔ Données de DÉMONSTRATION. Rien ne vient de la base, aucun geste n'écrit.
  */
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { MemoryRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AiPanelProvider } from '@/hooks/useAiPanel'
@@ -64,6 +65,7 @@ import { readCrmDark } from '@/lib/crmDark'
 
 const TodayPage = lazy(() => import('@/pages/agent/TodayPage'))
 const NewTabPage = lazy(() => import('@/pages/agent/NewTabPage'))
+const DashboardNotFoundPage = lazy(() => import('@/pages/agent/DashboardNotFoundPage'))
 const KycPage = lazy(() => import('@/pages/agent/KycPage'))
 const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))
 const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
@@ -101,6 +103,7 @@ const CopilotPanel = lazy(() => import('@/components/ai-copilot/panel/CopilotPan
 const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' }[] = [
   { id: 'today', chemin: '/dashboard', label: 'Aujourd’hui', vague: 'A' },
   { id: 'nouvel-onglet', chemin: '/dashboard/nouvel-onglet', label: 'Nouvel onglet', vague: 'A' },
+  { id: 'introuvable', chemin: '/dashboard/introuvable', label: 'Page introuvable', vague: 'A' },
   // Fiche d'annonce marché — l'uuid est celui de `ANNONCE_MARCHE_BANC`.
   { id: 'market', chemin: '/dashboard/market/00432e97-f3d2-4d11-9c1f-dd882343ee8e', label: 'Annonce marché', vague: 'A' },
   { id: 'kyc', chemin: '/dashboard/kyc', label: 'KYC', vague: 'A' },
@@ -230,10 +233,14 @@ function Commandes({ etat, setEtat, sansFixture }: {
  */
 function SortieNeutralisee() {
   const navigate = useNavigate()
-  const sp = crmPalette(lireSombre())
+  const [dark, setDark] = useState(lireSombre)
+  const sp = crmPalette(dark)
   return (
-    <div style={{
-      minHeight: '100vh', display: 'grid', placeItems: 'center',
+    <div style={{ background: sp.pageBg, minHeight: '100vh', color: sp.ink, fontFamily: 'var(--crm-font), system-ui, sans-serif' }}>
+      <div style={{ display: 'flex' }}>
+        <CrmWorkspace sp={sp} dark={dark} setDark={setDark}>
+    <main style={{
+      flex: 1, minHeight: '100vh', display: 'grid', placeItems: 'center',
       background: sp.pageBg, color: sp.ink, textAlign: 'center', padding: 24,
     }}>
       <div style={{ maxWidth: 460, display: 'grid', gap: 'var(--crm-space-lg)' }}>
@@ -253,6 +260,9 @@ function SortieNeutralisee() {
             fontSize: 'var(--crm-text-lg)', fontWeight: 600,
           }}>Revenir à « Aujourd’hui »</button>
         </div>
+      </div>
+    </main>
+        </CrmWorkspace>
       </div>
     </div>
   )
@@ -279,6 +289,11 @@ const ROUTES_BANC = (
   <>
         <Route index element={<TodayPage />} />
         <Route path="nouvel-onglet" element={<NewTabPage />} />
+        {/* ⚠ Monté sur un chemin NOMMÉ, alors qu'en production il est le filet
+            `*`. Le banc a déjà son propre filet (« Sortie neutralisée »), qui dit
+            autre chose : sans cette route, le 404 réel du CRM n'aurait aucun
+            endroit où se regarder. */}
+        <Route path="introuvable" element={<DashboardNotFoundPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="market/:externalId" element={<ExternalListingDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />
@@ -301,7 +316,10 @@ const ROUTES_BANC = (
         </Route>
         {/* ⚠ Le même filet que l'app : sous un parent en `/dashboard/*`, une
             cible non montée ne matche plus rien et rendrait un écran BLANC —
-            alors que le banc doit dire « Sortie neutralisée ». */}
+            alors que le banc doit dire « Sortie neutralisée ».
+            ⚠ Et il le dit DANS la coquille, comme le 404 de l'app : sortir du
+            cadre pour annoncer qu'on n'a pas trouvé fait croire à un plantage,
+            et masque la pile d'onglets restée ouverte. */}
         <Route path="*" element={<SortieNeutralisee />} />
   </>
 )
