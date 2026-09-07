@@ -352,7 +352,10 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
   // qui n'a besoin que d'un glyphe. Le quart droit de la bande est déjà la grappe
   // des commandes d'état (✦ et le thème) — la cloche y est chez elle, et la
   // latérale récupère une ligne.
-  const { items: notifs, unreadCount, markRead, markAllRead } = useAgentNotifications()
+  // ⚠ Le second argument est la contrepartie des écrans vivants : six bandes sont
+  // montées, une seule est regardée, et seule celle-là ouvre le canal Realtime.
+  // La lecture, elle, est partagée par React Query — voir le hook.
+  const { items: notifs, unreadCount, markRead, markAllRead } = useAgentNotifications(30, ecranActif)
   const [notifOuvert, setNotifOuvert] = useState(false)
   const notifAncre = useRef<HTMLDivElement | null>(null)
   // Clic dehors et Échap ferment la popover — elle vivait dans la barre latérale,

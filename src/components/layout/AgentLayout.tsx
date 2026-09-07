@@ -61,15 +61,39 @@ import { crmEcransVivants, crmTabHref, type CrmTab } from '@/lib/crmTabs'
  *
  * ⛔ POURQUOI PAS TOUS. Un écran vivant garde ses abonnements Realtime, ses
  * requêtes et ses minuteries : vingt-quatre onglets vivants, c'est vingt-quatre
- * fois ça, et le plafond de la pile est justement de 24. Trois couvre le geste
- * dominant — l'aller-retour entre deux onglets, et le troisième pour le
- * détour — sans ouvrir cette porte-là.
+ * fois ça, et le plafond de la pile est justement de 24.
+ *
+ * ── DE TROIS À SIX (7 septembre 2026, décision Julien) ───────────────────────
+ * Trois couvrait le geste dominant — l'aller-retour entre deux onglets, plus un
+ * pour le détour. Ça ne couvre PAS le régime réel : Julien travaille à dix ou
+ * quinze onglets ouverts, et à quatorze onglets **seuls 2 des 13 autres sont
+ * vivants**. ~85 % des bascules RECONSTRUISAIENT donc l'écran — état local perdu
+ * (`useTabScopedState` ne porte que 14 des ~38 positions d'écran), requêtes
+ * rejouées, chrome remonté. Le mécanisme d'écrans vivants ne servait qu'une
+ * bascule sur sept. À six, cinq des treize sont vivants : la part des bascules
+ * qui reconstruisent tombe de ~85 % à ~62 %, et l'aller-retour dans un groupe de
+ * travail de cinq ou six onglets — le geste réel — cesse d'en payer une seule.
+ *
+ * ⚠ ET LA HAUSSE A ÉTÉ PAYÉE, PAS SEULEMENT DÉCIDÉE. Doubler le nombre d'écrans
+ * vivants doublait mécaniquement ce que cette JSDoc donne comme motif de ne pas
+ * les garder tous. Deux choses l'en empêchent, et sans elles six serait un mauvais
+ * réglage :
+ *   • le chrome est per-page, donc six écrans = six bandes d'onglets, et la
+ *     cloche de chacune ouvrait son propre canal Realtime sur `activity_events`.
+ *     Seule la bande de l'écran VISIBLE s'abonne désormais
+ *     (`useAgentNotifications(30, ecranActif)`) : un canal, quel que soit ce
+ *     nombre. La lecture, elle, était déjà partagée par React Query.
+ *   • `EcranVivant` est sous `memo` avec des props primitives : une bascule rend
+ *     deux arbres d'écran — celui qui part, celui qui arrive — et non plus tous
+ *     les vivants. Le coût d'une bascule ne suit donc plus ce nombre.
+ * Ce qui reste linéaire est la MÉMOIRE (le DOM des écrans gardés) et les requêtes
+ * propres à chaque écran, qui auraient de toute façon été jouées à sa visite.
  *
  * ⚠ UN sur mobile. Le CRM mobile n'a pas de bande d'onglets (sa pilule à cinq
  * destinations en tient lieu) : garder des écrans vivants n'y sert personne et
  * coûte la mémoire d'un téléphone.
  */
-const VIVANTS_MAX = 3
+const VIVANTS_MAX = 6
 
 /**
  * L'emplacement d'un onglet, en PRIMITIVES.
