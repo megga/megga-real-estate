@@ -1013,7 +1013,17 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // HORS échelle (leurs 40 et 120 le sont) — elles ne bougent donc aucun des deux
   // compteurs. Le total ne mesure pas la qualité de ces valeurs, seulement leur
   // nombre.
-  ['src/pages/agent', { hors: 328, total: 933 }],
+  // 328 -> 321, 933 -> 926 (07.09.2026). Les SEPT `paddingBottom: 22` restants
+  // passent à `var(--crm-space-6xl)`. Ce n'est pas de l'hygiène : la gouttière
+  // basse du cadre de travail s'écrivait à DEUX valeurs — 22 sur sept surfaces,
+  // 24 (tokenisée) sur les cinq pagers — et la hauteur de la barre latérale était
+  // un `calc(100vh - 34px)` accordé au 22. Sur les cinq autres, la carte dépassait
+  // le cadre de 2 px. Les trois gouttières (barre, `<main>`, panneau MEGGA AI) se
+  // dérivent désormais des mêmes barreaux.
+  // ⚠ Les deux `padding` en RACCOURCI qui portaient 22 (KycPage, CrmPageSkeleton)
+  // ne bougent aucun compteur : `b4EstLitteral` écarte toute déclaration
+  // contenant déjà un `var(--crm-*)`, et les deux en avaient un.
+  ['src/pages/agent', { hors: 321, total: 926 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 68, total: 259 }],
 ])

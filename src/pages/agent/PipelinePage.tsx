@@ -624,7 +624,7 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
         <main style={{
           flex: 1, minWidth: 0, minHeight: 0, height: '100%',
           paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)',
-          paddingRight: 24, paddingBottom: 22,
+          paddingRight: 24, paddingBottom: 'var(--crm-space-6xl)',
         }}>
           {/* Grand cadre bento mono-page — clippe le corps du pipeline */}
           <div style={{

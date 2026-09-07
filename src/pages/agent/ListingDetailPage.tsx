@@ -777,7 +777,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <CrmWorkspace active="biens" sp={sp} dark={dark} setDark={setDark}>
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 22 }}>
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 24, paddingBottom: 'var(--crm-space-6xl)' }}>
           {/* BENTO central (look pager, sans slide) */}
           <div style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, display: 'flex', flexDirection: 'column' }}>
 

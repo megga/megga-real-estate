@@ -833,14 +833,28 @@ export default function CopilotPanel() {
     return () => { cancelAnimationFrame(r1); if (r2) cancelAnimationFrame(r2) }
   }, [isOpen])
 
+  /** Gouttière DROITE. Elle entre dans l'arithmétique du push
+   *  (`COPILOT_WIDTH = PANEL_W + 32` = panneau + 16 de chaque côté) : la bouger
+   *  sans bouger `COPILOT_WIDTH` décalerait le contenu comprimé. */
   const margin = 16
-  // ⛔ VALAIT 82 — la hauteur de la barre du HAUT, qui n'existe plus. Le chrome
-  // du CRM est passé à une barre LATÉRALE le 4 septembre 2026 : il n'y a plus
-  // rien à dégager en haut de l'écran, et le panneau restait suspendu 90 px sous
-  // un bord vide. Il flotte désormais symétriquement — même gouttière en haut,
-  // en bas et à droite. Le décalage d'usurpation, lui, reste : ce bandeau-là est
-  // toujours empilé au-dessus du contenu.
-  const topInset = margin
+
+  /**
+   * Gouttières VERTICALES — celles du cadre bento, pas celles du panneau.
+   *
+   * ⛔ VALAIENT 82 puis 16, et les deux étaient fausses pour la même raison :
+   * elles décrivaient le panneau au lieu de décrire ce à quoi il doit s'aligner.
+   * 82 dégageait la barre du HAUT, disparue le 4 septembre 2026 ; 16 le faisait
+   * flotter symétriquement, joli en soi mais désaccordé du cadre de travail — il
+   * commençait 4 px plus bas que le pager et finissait 8 px plus bas que lui.
+   * Le panneau borde le contenu : c'est le contenu qui donne la mesure. Mêmes
+   * barreaux que le `paddingTop` / `paddingBottom` des `<main>` et que la hauteur
+   * de la barre latérale — les trois cartes s'ouvrent et se ferment ensemble.
+   *
+   * ⚠ Le décalage d'usurpation reste : ce bandeau-là est empilé au-dessus du
+   * contenu, donc il repousse le cadre autant que le panneau.
+   */
+  const topInset = 'var(--crm-space-lg)'
+  const bottomInset = 'var(--crm-space-6xl)'
   // `sp.panelShadow` porte DÉJÀ le filet du dock, et de la bonne couleur. La
   // surcharge sombre qui vivait ici posait un `rgba(255,255,255,0.06)` — un
   // blanc translucide, que la direction n'admet plus comme séparateur.
@@ -854,7 +868,9 @@ export default function CopilotPanel() {
         aria-label="MEGGA AI"
         inert={!isOpen}
         style={{
-          position: 'fixed', zIndex: 70, top: topInset + (impersonating ? 40 : 0), bottom: margin, right: margin,
+          position: 'fixed', zIndex: 70,
+          top: impersonating ? `calc(${topInset} + 40px)` : topInset,
+          bottom: bottomInset, right: margin,
           width: PANEL_W, maxWidth: 'calc(100vw - 24px)',
           background: sp.panelBg, borderRadius: 22, border: 'none', boxShadow: cardShadow,
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
