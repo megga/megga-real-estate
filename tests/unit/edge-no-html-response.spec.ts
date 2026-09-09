@@ -55,6 +55,11 @@ describe('edge functions — aucune ne prétend servir du HTML', () => {
     expect(src).toContain("'Content-Type': 'text/plain; charset=utf-8'")
     // La page reste CLOSE : celui qui vient de dire « ne m'écrivez plus » n'est pas
     // réengagé. Aucun lien de retour vers l'app dans le corps rendu.
+    // ⚠ LES DEUX DOMAINES, et ce n'est pas de la prudence. Cette assertion ne cherchait
+    // que `megga.ch` : à la migration du 09.09.2026 elle serait passée au VERT en ne
+    // cherchant plus rien, puisque le corps rendu ne porte plus cet hôte. Un test qui
+    // survit à ce qu'il gardait ne garde plus rien — il rassure.
+    expect(sansCommentaires(src)).not.toMatch(/https?:\/\/(app\.)?getmegga\.com/)
     expect(sansCommentaires(src)).not.toMatch(/https?:\/\/(app\.)?megga\.ch/)
   })
 })

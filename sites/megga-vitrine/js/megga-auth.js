@@ -2,21 +2,21 @@
 //
 // La vitrine est statique (pas de build) → on charge le SDK Supabase depuis le
 // CDN, puis on intercepte les formulaires Sign-In / Sign-Up + les boutons OAuth
-// Google / Microsoft. Succès → redirection vers le CRM (app.megga.ch/dashboard).
+// Google / Microsoft. Succès → redirection vers le CRM (app.getmegga.com/dashboard).
 //
 // IMPORTANT : on réutilise l'URL + la clé ANON publique du projet (sécurité par
 // RLS, pas par obscurité — c'est la même clé que l'app expose déjà côté client).
 (function () {
   var SUPABASE_URL = 'https://eayczugyrvmtqnnmvjod.supabase.co';
   var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVheWN6dWd5cnZtdHFubm12am9kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2MTM4ODgsImV4cCI6MjA4OTE4OTg4OH0.T257g0ws-PmTTBSDBcUQF6WFvVRLmTFHUwIYMgmCrMw';
-  var CRM_URL = 'https://app.megga.ch/dashboard';
-  var AUTH_REDIRECT = 'https://app.megga.ch/auth/callback'; // l'app gère le retour OAuth/email
+  var CRM_URL = 'https://app.getmegga.com/dashboard';
+  var AUTH_REDIRECT = 'https://app.getmegga.com/auth/callback'; // l'app gère le retour OAuth/email
   /**
    * Cible du lien de réinitialisation, dans la langue de la demande.
    *
-   * Elle vivait sur app.megga.ch (ancienne coquille auth du CRM). Rapatriée ici :
+   * Elle vivait sur app.getmegga.com (ancienne coquille auth du CRM). Rapatriée ici :
    * cet écran ne renvoyait de toute façon PAS vers le dashboard mais vers
-   * megga.ch/login une fois le mot de passe changé — le détour par l'app ne
+   * getmegga.com/login une fois le mot de passe changé — le détour par l'app ne
    * servait donc qu'à traverser un second domaine dans une autre peau.
    *
    * Les slugs sont ceux du générateur (scripts/_shared/vitrine-i18n.mjs, PAGES)
@@ -30,10 +30,10 @@
    * e-mail n'atterrit nulle part d'utile.
    */
   var RESET_REDIRECT_PAR_LANGUE = {
-    fr: 'https://megga.ch/reset-password',
-    de: 'https://megga.ch/de/neues-passwort',
-    en: 'https://megga.ch/en/reset-password',
-    it: 'https://megga.ch/it/nuova-password',
+    fr: 'https://getmegga.com/reset-password',
+    de: 'https://getmegga.com/de/neues-passwort',
+    en: 'https://getmegga.com/en/reset-password',
+    it: 'https://getmegga.com/it/nuova-password',
   };
 
   // Cloudflare Turnstile — Supabase exige un token captcha sur chaque appel auth
@@ -148,14 +148,14 @@
   /**
    * `?lang=` à accrocher aux URLs du CRM.
    *
-   * megga.ch et app.megga.ch ont des stockages cloisonnés : sans ce paramètre,
+   * getmegga.com et app.getmegga.com ont des stockages cloisonnés : sans ce paramètre,
    * un agent qui lisait la vitrine en allemand atterrissait dans un CRM en
    * français — ou en anglais si un vieux réglage traînait. Le CRM le grave chez
    * lui (src/i18n/index.ts, seedLanguageFromUrl).
    *
    * ⚠ Sert aussi aux redirections que Supabase valide (`redirectTo` d'un
    * signInWithOAuth, `emailRedirectTo` d'un signUp) : l'allowlist porte depuis
-   * le 31 juil. 2026 l'entrée `https://app.megga.ch/auth/callback*`.
+   * le 31 juil. 2026 l'entrée `https://app.getmegga.com/auth/callback*`.
    */
   function langueQuery() { return '?lang=' + langue(); }
 
@@ -444,18 +444,18 @@
     btn.disabled = false;
   }
 
-  // ── Handoff de session vers le CRM (app.megga.ch) ──────────────────
+  // ── Handoff de session vers le CRM (app.getmegga.com) ──────────────────
   //
-  // La connexion vit sur megga.ch, le CRM sur app.megga.ch : DEUX ORIGINES,
+  // La connexion vit sur getmegga.com, le CRM sur app.getmegga.com : DEUX ORIGINES,
   // donc deux localStorage cloisonnés. Une redirection nue vers le CRM y arrive
-  // SANS session (elle est restée sur megga.ch) → le CRM ne voit personne et
+  // SANS session (elle est restée sur getmegga.com) → le CRM ne voit personne et
   // renvoie au login → boucle infinie (bug confirmé le 19.07.2026 : login OK,
   // 3× /token 200, mais l'agent tourne en rond).
   //
   // On transmet donc les jetons dans le FRAGMENT d'URL vers /auth/callback :
   // le fragment n'est jamais envoyé au serveur (aucune fuite en logs), et le
   // client Supabase du CRM le consomme à son initialisation (detectSessionInUrl),
-  // posant la session dans le storage de app.megga.ch AVANT de router vers le
+  // posant la session dans le storage de app.getmegga.com AVANT de router vers le
   // dashboard. C'est exactement le mécanisme du retour OAuth, qui fonctionne.
   function goToCrm(session) {
     if (!session || !session.access_token || !session.refresh_token) {

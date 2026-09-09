@@ -2,8 +2,8 @@
  * Page 404 de l'app — route `*`, publique (hors ProtectedRoute).
  *
  * Portée sur le gabarit Code AI X, celui de `sites/megga-vitrine/404.html` :
- * l'agent qui tombe sur une URL morte de app.megga.ch voit la même page que s'il
- * s'était trompé sur megga.ch. L'ancienne version était une composition maison
+ * l'agent qui tombe sur une URL morte de app.getmegga.com voit la même page que s'il
+ * s'était trompé sur getmegga.com. L'ancienne version était une composition maison
  * aux tokens du thème CRM, sans parenté avec le reste de la marque.
  *
  * Rien n'est réinventé — markup et classes recopiés de la vitrine, servis par la
@@ -14,7 +14,7 @@
  * responsives.
  *
  * Une seule adaptation, assumée : le bouton ramène au tableau de bord et non à
- * l'accueil de la vitrine. Quelqu'un qui se perd sur app.megga.ch veut rentrer
+ * l'accueil de la vitrine. Quelqu'un qui se perd sur app.getmegga.com veut rentrer
  * dans l'app, pas en sortir. Le lien vers le centre d'aide est conservé de la
  * version précédente — c'est le second recours quand la page cherchée existait.
  *

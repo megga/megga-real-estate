@@ -527,7 +527,7 @@ export function buildIcs(input: IcsInput): string {
     'BEGIN:VEVENT',
     // L'UID doit rester le même pour qu'une replanification remplace l'entrée au
     // lieu d'en créer une seconde dans l'agenda du client.
-    icsLine('UID', `onboarding-call-${input.callId}@megga.ch`),
+    icsLine('UID', `onboarding-call-${input.callId}@getmegga.com`),
     `SEQUENCE:${Math.max(0, input.sequence)}`,
     `DTSTAMP:${icsStamp(Date.now())}`,
     `DTSTART:${icsStamp(input.startMs)}`,

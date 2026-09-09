@@ -136,7 +136,7 @@ export async function sendOptinInvite(
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
     body: JSON.stringify({
-      from: 'MEGGA Immobilier <noreply@megga.ch>',
+      from: 'MEGGA Immobilier <noreply@getmegga.com>',
       to: [c.email],
       subject: copy.subject,
       html,

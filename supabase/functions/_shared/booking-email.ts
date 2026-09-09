@@ -18,7 +18,7 @@ import {
 import type { AppLocale } from './recipient-language.ts'
 
 const RESEND_URL = 'https://api.resend.com/emails'
-const FROM = 'MEGGA <noreply@megga.ch>'
+const FROM = 'MEGGA <noreply@getmegga.com>'
 
 export type BookingEmailKind = 'confirmed' | 'rescheduled' | 'cancelled'
 

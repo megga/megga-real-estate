@@ -51,7 +51,7 @@ describe.skipIf(!HAS_KEYS)('Edge Functions contract — integrations', () => {
         const res = await fetch(endpoint, {
           method: 'OPTIONS',
           headers: {
-            'Origin': 'https://megga.ch',
+            'Origin': 'https://getmegga.com',
             'Access-Control-Request-Method': 'POST',
             'Access-Control-Request-Headers': 'authorization, content-type',
           },
@@ -130,7 +130,7 @@ describe.skipIf(!HAS_KEYS)('Edge Functions contract — integrations', () => {
 
 // Régression du trou « auth = préfixe Bearer seulement » sur les fonctions Resend
 // AGENT-ONLY : elles ne vérifiaient que la présence de « Bearer » → un faux jeton
-// déclenchait un envoi Resend réel (usurpation d'expéditeur megga.ch).
+// déclenchait un envoi Resend réel (usurpation d'expéditeur getmegga.com).
 // requireAgentAuth valide désormais le JWT (auth.getUser) ET exige un profil agency_id.
 // NB volontairement absentes : send-email (appelant anon légitime = form de contact
 // public) et send-visit-email (appelant cron service_role) → durcissement différent.

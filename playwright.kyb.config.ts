@@ -21,7 +21,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // par playwright.config.ts (testIgnore y exclut explicitement ce spec).
 //
 // Second motif, propre à ce parcours : le formulaire de connexion interne a été
-// retiré de cette app (le login vit sur la vitrine externe megga.ch/login, cf.
+// retiré de cette app (le login vit sur la vitrine externe getmegga.com/login, cf.
 // VitrineLoginRedirect dans App.tsx) — il n'y a donc plus de champ à remplir dans
 // le navigateur pour se connecter. Le test authentifie la session via le client
 // Supabase RÉEL déjà bundlé par l'app (import dynamique du module Vite en dev,

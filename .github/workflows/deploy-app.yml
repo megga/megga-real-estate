@@ -1,8 +1,8 @@
-name: Deploy React app to app.megga.ch
+name: Deploy React app to app.getmegga.com
 
-# megga.ch serves the static V3 storefront (see deploy.yml). This workflow
+# getmegga.com serves the static V3 storefront (see deploy.yml). This workflow
 # deploys the React app (CRM /dashboard, auth, portail, …) to its OWN
-# Cloudflare Pages project on app.megga.ch, so the two never collide.
+# Cloudflare Pages project on app.getmegga.com, so the two never collide.
 
 on:
   push:
@@ -11,8 +11,8 @@ on:
 
 env:
   PROJECT_NAME: megga-app
-  CUSTOM_DOMAIN: app.megga.ch
-  ZONE_NAME: megga.ch
+  CUSTOM_DOMAIN: app.getmegga.com
+  ZONE_NAME: getmegga.com
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:

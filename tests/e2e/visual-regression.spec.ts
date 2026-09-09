@@ -27,7 +27,7 @@ import { CHEMIN_EMPREINTES, empreintesCourantes } from '../../scripts/_shared/vi
 
 // `/` and `/rent` were dropped after the deploy split (#490): `/` now just
 // redirects to `/dashboard`, and `/rent` lives on the V3 static storefront
-// (megga.ch), not in this React app. Their old baselines no longer matched
+// (getmegga.com), not in this React app. Their old baselines no longer matched
 // reality, so they're removed from the snapshot set.
 //
 // `/portal` (espace vendeur) : la route et la fonctionnalité ont été retirées

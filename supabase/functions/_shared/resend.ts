@@ -34,7 +34,7 @@ export interface ResendResult {
   error?: string
 }
 
-const DEFAULT_FROM = 'MEGGA <noreply@megga.ch>'
+const DEFAULT_FROM = 'MEGGA <noreply@getmegga.com>'
 
 /** Encode une chaîne UTF-8 en base64, sans dépendre de `Buffer` (absent en Deno). */
 export function toBase64(input: string): string {

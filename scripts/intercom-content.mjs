@@ -16,7 +16,7 @@
 
 import { readFileSync } from 'node:fs'
 // Client partagé depuis le 17 août 2026 : `scripts/vitrine-aide.mjs` lit le même
-// corpus pour générer megga.ch/aide. Auth, version d'API et pagination y vivent
+// corpus pour générer getmegga.com/aide. Auth, version d'API et pagination y vivent
 // une seule fois.
 import { creerClientIntercom, BASE_PAR_DEFAUT, VERSION_PAR_DEFAUT } from './_shared/intercom-api.mjs'
 

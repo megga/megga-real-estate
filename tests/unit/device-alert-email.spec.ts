@@ -17,13 +17,13 @@ const base = {
 }
 
 describe('buildDeviceAlertEmail', () => {
-  it('⛔ le bouton mène à app.megga.ch, JAMAIS à megga.ch', () => {
-    // megga.ch est la vitrine, protégée par mot de passe : mesuré le 15.08.2026, elle
+  it('⛔ le bouton mène à app.getmegga.com, JAMAIS à getmegga.com', () => {
+    // getmegga.com est la vitrine, protégée par mot de passe : mesuré le 15.08.2026, elle
     // rend 401. Un e-mail de sécurité dont le bouton « Sécuriser mon compte » ouvre une
     // page verrouillée est pire qu'inutile — c'était pourtant l'adresse d'origine.
     const html = buildDeviceAlertEmail(base).html
-    expect(html).toContain('https://app.megga.ch/security/sessions')
-    expect(html).not.toContain('https://megga.ch/security')
+    expect(html).toContain('https://app.getmegga.com/security/sessions')
+    expect(html).not.toContain('https://getmegga.com/security')
   })
 
   it('⛔ garde la mention de SÉCURITÉ, jamais la mention transactionnelle', () => {

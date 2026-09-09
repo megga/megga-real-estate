@@ -11,7 +11,7 @@
 //   - plan courant dérivé de currentPlan/isActive (starter→free, pro→pro, entreprise→custom) ;
 //   - CTA plan courant / Gratuit → openPortal() (Stripe Customer Portal) ;
 //   - CTA « Passer à Pro » → createCheckout(STRIPE_PRICES.pro.*) ;
-//   - Custom → mailto:sales@megga.ch.
+//   - Custom → mailto:sales@getmegga.com.
 // Prix affichés = catalogue maquette (Gratuit 0 · Pro 49, annuel 41 « deux mois offerts »
 //   · Custom sur devis) ; le portail Stripe reste la source de vérité du montant facturé.
 
@@ -213,7 +213,7 @@ function PlanCard({ plan, period, isCurrent, onPortal, onUpgrade, busy }: PlanCa
           {busy ? t('billing.opening') : t('billing.switchTo', { plan: t(plan.nameKey) })}
         </button>
       ) : plan.id === 'custom' ? (
-        <button onClick={() => { window.location.href = 'mailto:sales@megga.ch' }} style={ctaStyle('light', false)}>
+        <button onClick={() => { window.location.href = 'mailto:sales@getmegga.com' }} style={ctaStyle('light', false)}>
           {t('billing.contactUs')}
         </button>
       ) : (

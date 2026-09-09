@@ -1109,7 +1109,7 @@ les cinq pannes déjà vues et leur geste, la vérification de chaîne, l'export
    l'exception connue à l'enveloppe §10.1, et elle mord : `->> 'ok'` rend `null`, ce qui se
    lit comme un échec sur une chaîne parfaitement intacte. Mesuré en écrivant le runbook,
    après avoir failli le consigner à l'envers.
-2. **Le seul canal qui survit à une panne Supabase écrit à `noreply@megga.ch`** — en dur, et
+2. **Le seul canal qui survit à une panne Supabase écrit à `noreply@getmegga.com`** — en dur, et
    pour une bonne raison (lire l'allowlist exigerait la base, c'est-à-dire le patient). Reste
    que si personne n'ouvre cette boîte, ce canal se réduit à son second support : le workflow
    rouge dans l'onglet Actions. À trancher (§6 du runbook).

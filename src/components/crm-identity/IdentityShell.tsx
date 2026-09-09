@@ -3,7 +3,7 @@
  * Rendu par la route /dashboard/identite (src/pages/agent/IdentityPage.tsx),
  * tant que useIdentityGate() renvoie 'required'.
  *
- * HABILLAGE : MEGGA X, la transcription verbatim de la vitrine megga.ch, et non
+ * HABILLAGE : MEGGA X, la transcription verbatim de la vitrine getmegga.com, et non
  * Sugar (bascule du 2 août 2026). Tout le parcours vit sous <MeggaX> et n'emploie
  * que des classes de `src/styles/megga-x.generated.css` ; les quatre ajouts que la
  * vitrine ne couvre pas (aide de champ, focus des choix, rail d'étapes, pied
@@ -11,7 +11,7 @@
  *
  * Conséquence assumée : ce parcours ne suit PAS la préférence clair/sombre de
  * l'agent, la peau vitrine n'existant qu'en une polarité. C'est un couloir
- * d'entrée — l'agent vient de megga.ch — pas une surface du CRM ; le thème reprend
+ * d'entrée — l'agent vient de getmegga.com — pas une surface du CRM ; le thème reprend
  * ses droits au retour sur /dashboard. Même raisonnement que l'écran d'arrivée
  * (IdentityWelcomeScreen) et que BootSplash.
  *
@@ -575,7 +575,7 @@ export function shouldShowIdentityWelcome(
  * mais pas la même peau.
  *
  * Habillé en MEGGA X, pas en Sugar, et c'est délibéré : l'agent vient de
- * megga.ch, il a lu « Compte créé » sur la vitrine, il a cliqué un lien reçu par
+ * getmegga.com, il a lu « Compte créé » sur la vitrine, il a cliqué un lien reçu par
  * e-mail. Cet écran est le dernier de ce parcours-là, pas le premier du CRM —
  * il en garde donc la peau, et la bascule vers Sugar se fait au clic sur
  * Commencer, quand le wizard commence vraiment. Même raisonnement que BootSplash,

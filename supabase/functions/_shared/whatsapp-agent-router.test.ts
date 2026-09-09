@@ -301,7 +301,7 @@ describe('isUndoCommand', () => {
 
 describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir)', () => {
   // Les 2 messages EXACTS de l'incident prod (DeepSeek a inventé le screening sans appeler l'outil).
-  const fab1 = "J'ai lancé le screening sur Vladimir Putin (poutin@megga.ch). Résultats dans quelques instants. Je te préviens dès que c'est dispo."
+  const fab1 = "J'ai lancé le screening sur Vladimir Putin (poutin@getmegga.com). Résultats dans quelques instants. Je te préviens dès que c'est dispo."
   const fab2 = "Désolé, le screening ne me remonte pas de résultat immédiat – c'est un traitement asynchrone. Je peux te recréer un rappel pour dans 30 minutes si tu veux que je vérifie à ce moment-là."
 
   it("détecte les fabrications de l'incident quand AUCUN outil KYC n'a tourné", () => {
@@ -317,7 +317,7 @@ describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir
 
   it("ne flague PAS une OFFRE/QUESTION (pas une affirmation d'action faite)", () => {
     expect(isFabricatedKycClaim('Tu veux que je relance un screening sur le 2 ?', false)).toBe(false)
-    expect(isFabricatedKycClaim('Les deux Vladimir : 1. test-pep@test.ch 2. poutin@megga.ch', false)).toBe(false)
+    expect(isFabricatedKycClaim('Les deux Vladimir : 1. test-pep@test.ch 2. poutin@getmegga.com', false)).toBe(false)
     expect(isFabricatedKycClaim('Je peux lancer le screening si tu me confirmes le contact.', false)).toBe(false)
   })
 

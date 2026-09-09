@@ -74,7 +74,7 @@ serve(async (req) => {
         // Une phrase par ligne : en texte brut, c'est la mise en forme dont on dispose.
         : page('Lien invalide',
                "Ce lien de désinscription n'est pas valide.\n"
-             + 'Écrivez-nous à privacy@megga.ch et nous le ferons à la main.', 400)
+             + 'Écrivez-nous à privacy@getmegga.com et nous le ferons à la main.', 400)
     }
   }
   const email = String(v.payload?.e ?? '').trim().toLowerCase()
@@ -96,7 +96,7 @@ serve(async (req) => {
       ? new Response('error', { status: 500, headers: CORS })
       : page('Une erreur est survenue',
              "Nous n'avons pas pu enregistrer votre demande.\n"
-           + 'Écrivez-nous à privacy@megga.ch, nous la traiterons à la main.', 500)
+           + 'Écrivez-nous à privacy@getmegga.com, nous la traiterons à la main.', 500)
   }
 
   // ⚠ Le même message que l'adresse ait été bloquée à l'instant ou qu'elle l'était déjà :
@@ -106,7 +106,7 @@ serve(async (req) => {
     : page(
         'C’est fait',
         'Vous ne recevrez plus d’e-mails de notre part.\n'
-      + 'Pour accéder à vos données, les corriger ou les supprimer : privacy@megga.ch',
+      + 'Pour accéder à vos données, les corriger ou les supprimer : privacy@getmegga.com',
         200,
       )
 })

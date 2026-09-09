@@ -514,7 +514,7 @@ const ZONES: RootSpec[] = [
   // questionne, un motif écrit se croit.
   //
   // Sept de ces huit entrent donc ici comme n'importe quelle surface livrée :
-  // ils étaient routés sur `app.megga.ch`. Ils ne coûtaient que CINQ marqueurs.
+  // ils étaient routés sur `app.getmegga.com`. Ils ne coûtaient que CINQ marqueurs.
   //
   // ⚠ ILS Y RESTENT BIEN QU'ILS SOIENT DÉSORMAIS GELÉS. La question de produit
   // que ce commentaire posait — « /dev/sentry-test, qui DÉCLENCHE des erreurs
@@ -651,7 +651,7 @@ const EXEMPTIONS_ECRITES: { zone: string; motif: string; garde: string }[] = [
     motif:
       `banc de développement ABSENT du bundle : sa déclaration passe par le ternaire ` +
       `\`import.meta.env.DEV\`, remplacé par \`false\` au build, donc Vite n'émet aucun chunk ` +
-      `pour lui — mesuré dans dist/assets/. Il n'est jamais servi sur app.megga.ch, et ` +
+      `pour lui — mesuré dans dist/assets/. Il n'est jamais servi sur app.getmegga.com, et ` +
       `\`${n}\` sème en plus un état (session, intercepteur de fetch) qui n'a aucune excuse ` +
       `dans un bundle déployé.`,
     garde: 'tests/unit/dev-bancs-frontiere.spec.ts',

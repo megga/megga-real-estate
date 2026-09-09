@@ -52,7 +52,7 @@ describe('buildAdminAlertEmail', () => {
 
   it('passe par la coquille MEGGA X : logo, fond sombre, pilule vers la console', () => {
     const { html } = buildAdminAlertEmail([cron], MAINTENANT)
-    expect(html).toContain('https://app.megga.ch/email/megga-logo-white.png')
+    expect(html).toContain('https://app.getmegga.com/email/megga-logo-white.png')
     expect(html).toContain('#090909')
     expect(html).toContain('Ouvrir le monitoring')
   })
@@ -65,13 +65,13 @@ describe('buildAdminAlertEmail', () => {
     expect(html).not.toContain('désinscription')
   })
 
-  it('⛔ le lien mène à app.megga.ch, JAMAIS à megga.ch', () => {
+  it('⛔ le lien mène à app.getmegga.com, JAMAIS à getmegga.com', () => {
     // Quatrième occurrence de cette confusion d'hôte dans le dépôt : la vitrine est
     // derrière un mot de passe et rend 401.
     const { html, text } = buildAdminAlertEmail([cron], MAINTENANT)
-    expect(html).toContain('https://app.megga.ch/dashboard/admin/monitoring')
-    expect(text).toContain('https://app.megga.ch/dashboard/admin/monitoring')
-    expect(html).not.toContain('https://megga.ch/dashboard')
+    expect(html).toContain('https://app.getmegga.com/dashboard/admin/monitoring')
+    expect(text).toContain('https://app.getmegga.com/dashboard/admin/monitoring')
+    expect(html).not.toContain('https://getmegga.com/dashboard')
   })
 
   it('une seule alerte : l’objet la NOMME, il ne la compte pas', () => {

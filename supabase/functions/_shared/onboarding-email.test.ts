@@ -24,7 +24,7 @@ const base: OnboardingCallEmailData = {
   durationMinutes: 30,
   timezone: 'Europe/Zurich',
   meetingUrl: 'https://meet.google.com/abc-defg-hij',
-  manageUrl: 'https://app.megga.ch/rendez-vous/jeton',
+  manageUrl: 'https://app.getmegga.com/rendez-vous/jeton',
   locale: 'fr',
 }
 
@@ -41,13 +41,13 @@ const tous = () => [
 ]
 
 describe('gabarits d\'e-mail — invariants de la coquille', () => {
-  it('le logo est servi par app.megga.ch, JAMAIS par megga.ch', () => {
-    // megga.ch est derrière un mot de passe : mesuré le 15.08.2026, l'image y rend
+  it('le logo est servi par app.getmegga.com, JAMAIS par getmegga.com', () => {
+    // getmegga.com est derrière un mot de passe : mesuré le 15.08.2026, l'image y rend
     // 401 en text/plain, donc cassée chez le destinataire. C'était l'adresse posée
     // depuis l'origine — cette assertion est ce qui empêche d'y revenir.
     for (const { html } of tous()) {
-      expect(html).toContain('https://app.megga.ch/email/megga-logo-white.png')
-      expect(html).not.toContain('https://megga.ch/email')
+      expect(html).toContain('https://app.getmegga.com/email/megga-logo-white.png')
+      expect(html).not.toContain('https://getmegga.com/email')
     }
   })
 

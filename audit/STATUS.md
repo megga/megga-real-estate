@@ -30,7 +30,7 @@
 
 ## ⚠️ Caveat sur #784 (à trancher avant merge)
 `translate-on-demand` a un en-tête « appelée par la page détail marketplace » (visiteurs **anonymes**). La marketplace
-SPA est désactivée dans cette app, mais **si la vitrine `megga.ch` appelle encore cette fonction publiquement**,
+SPA est désactivée dans cette app, mais **si la vitrine `getmegga.com` appelle encore cette fonction publiquement**,
 `requireAgentAuth` la casserait. → confirmer qu'aucun appelant public ne subsiste ; sinon protéger par
 **rate-limit + captcha** plutôt que par auth agent. `speech-to-text` (dictée CRM) n'a pas ce doute.
 

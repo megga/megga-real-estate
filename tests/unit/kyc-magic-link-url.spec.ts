@@ -1,14 +1,14 @@
 /**
  * Garde-fou : le lien KYC envoyé au client mène à une route qui EXISTE.
  *
- * Ce qu'il gardait. Les deux fonctions d'envoi bâtissaient `https://kyc.megga.ch/
+ * Ce qu'il gardait. Les deux fonctions d'envoi bâtissaient `https://kyc.getmegga.com/
  * <jeton>` — un hôte sans aucun enregistrement DNS, donc une erreur de résolution
  * avant même un 404. Rien ne rougissait : aucune suite n'observe cette URL (les
  * tests backend ne postent pas d'e-mail réel, les e2e non plus), et le réglage
  * censé la corriger, `MEGGA_KYC_PUBLIC_DOMAIN`, n'était déclaré nulle part.
  *
  * Ce que ce fichier vérifie, et POURQUOI il ne se contente pas de chercher
- * « app.megga.ch » dans la chaîne : l'hôte n'a jamais été le problème. Le piège
+ * « app.getmegga.com » dans la chaîne : l'hôte n'a jamais été le problème. Le piège
  * était le CHEMIN — le parcours client est `/kyc/:token`, une route du routeur,
  * pas la racine d'un domaine. On extrait donc le chemin de l'URL construite et on
  * le confronte aux routes réellement déclarées dans `src/App.tsx`.
@@ -85,16 +85,16 @@ describe('URL du lien magique KYC', () => {
   })
 
   it('retombe sur le domaine de l\'app quand rien n\'est configuré', () => {
-    expect(kycMagicLinkUrl(JETON)).toBe(`https://app.megga.ch/kyc/${JETON}`)
+    expect(kycMagicLinkUrl(JETON)).toBe(`https://app.getmegga.com/kyc/${JETON}`)
   })
 
   it('le réglage porte une base, pas un domaine qui remplacerait le chemin', () => {
     // Un futur domaine dédié change l'hôte ; le segment `/kyc` reste, parce qu'il
     // appartient à la route et non au réglage. Slash final toléré : une valeur
     // recopiée depuis un navigateur en porte un, et `//kyc/` ne serait pas servi.
-    poserEnv({ MEGGA_APP_URL: 'https://kyc.megga.ch/' })
+    poserEnv({ MEGGA_APP_URL: 'https://kyc.getmegga.com/' })
     const url = kycMagicLinkUrl(JETON)
-    expect(url).toBe(`https://kyc.megga.ch/kyc/${JETON}`)
+    expect(url).toBe(`https://kyc.getmegga.com/kyc/${JETON}`)
     expect(routesServant(new URL(url).pathname)).toEqual(['/kyc/:token'])
   })
 })

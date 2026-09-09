@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url'
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 // Source figée du style guide Webflow d'origine. Elle vivait dans
 // sites/megga-vitrine/_off/, donc copiée dans dist/ à chaque build de la vitrine
-// et exposée sur megga.ch/_off/ — masquée aujourd'hui par le Basic Auth de
+// et exposée sur getmegga.com/_off/ — masquée aujourd'hui par le Basic Auth de
 // pré-lancement (_worker.js), donc publique le jour de la levée. Déplacée ici le
 // 2026-07-20 : c'est une donnée de script, pas une page à publier.
 const SG = resolve(root, 'scripts/_data/megga-x-style-guide.html')

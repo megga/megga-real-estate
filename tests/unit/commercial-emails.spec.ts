@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest'
 import { buildPropertyEmail, formatCHF } from '../../supabase/functions/_shared/property-email'
 import { buildRelanceEmail } from '../../supabase/functions/_shared/relance-email'
 
-const DESINSCRIPTION = '<a href="https://app.megga.ch/desinscription/jeton">Se désinscrire</a>'
+const DESINSCRIPTION = '<a href="https://app.getmegga.com/desinscription/jeton">Se désinscrire</a>'
 
 const bien = {
   contactFirstName: 'Marie',

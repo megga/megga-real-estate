@@ -35,11 +35,11 @@ describe('surfaceFromPath', () => {
 
 describe('pathnameOfEventUrl', () => {
   it('extrait le chemin d\'une URL absolue', () => {
-    expect(pathnameOfEventUrl('https://app.megga.ch/dashboard/admin/monitoring')).toBe('/dashboard/admin/monitoring')
+    expect(pathnameOfEventUrl('https://app.getmegga.com/dashboard/admin/monitoring')).toBe('/dashboard/admin/monitoring')
   })
 
   it('ignore la query et le fragment', () => {
-    expect(pathnameOfEventUrl('https://app.megga.ch/dashboard/admin?tab=crons#x')).toBe('/dashboard/admin')
+    expect(pathnameOfEventUrl('https://app.getmegga.com/dashboard/admin?tab=crons#x')).toBe('/dashboard/admin')
   })
 
   it('accepte un chemin déjà relatif', () => {
@@ -55,14 +55,14 @@ describe('pathnameOfEventUrl', () => {
   it('survit à une URL déjà expurgée par le scrub S27', () => {
     // `beforeSend` expurge les jetons ; la dérivation doit tenir sur les deux formes,
     // sinon le tag dépendrait de l'ORDRE des traitements.
-    expect(pathnameOfEventUrl('https://app.megga.ch/kyc/[redacted]')).toBe('/kyc/[redacted]')
+    expect(pathnameOfEventUrl('https://app.getmegga.com/kyc/[redacted]')).toBe('/kyc/[redacted]')
     expect(surfaceFromPath('/kyc/[redacted]')).toBe('crm')
   })
 })
 
 describe('tagEventSurface', () => {
   it("tague depuis l'URL de l'événement", () => {
-    const e = tagEventSurface({ request: { url: 'https://app.megga.ch/dashboard/admin/security' } })
+    const e = tagEventSurface({ request: { url: 'https://app.getmegga.com/dashboard/admin/security' } })
     expect(e.tags?.surface).toBe('console')
   })
 

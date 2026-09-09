@@ -105,13 +105,13 @@ describe('valeurDe — la valeur d’une propriété, jusqu’à la virgule de p
 
 describe('sansCommentaires — blanchir les notes sans casser les chaînes', () => {
   it('⛔ RÉGRESSION — un `//` DANS une chaîne n’est pas un commentaire', () => {
-    // Le blanchiment naïf coupait `'https://cdn.megga.ch/a.jpg'` après `https:` et laissait
+    // Le blanchiment naïf coupait `'https://cdn.getmegga.com/a.jpg'` après `https:` et laissait
     // un guillemet orphelin. Le lecteur, lui, SAIT lire les chaînes : il butait alors sur une
     // chaîne non close et refusait un appel parfaitement correct — le blocage de code juste
     // que la réécriture devait précisément fermer, réintroduit par une autre porte.
-    const src = "const u = 'https://cdn.megga.ch/a.jpg'  // une vraie note\nconst v = 1"
+    const src = "const u = 'https://cdn.getmegga.com/a.jpg'  // une vraie note\nconst v = 1"
     const out = sansCommentaires(src)
-    expect(out).toContain("'https://cdn.megga.ch/a.jpg'")
+    expect(out).toContain("'https://cdn.getmegga.com/a.jpg'")
     expect(out).not.toContain('une vraie note')
     expect(out.split('\n')).toHaveLength(2)          // les lignes sont préservées
     expect(out.split('\n')[0]).toHaveLength(src.split('\n')[0].length)  // …et leur longueur
@@ -123,7 +123,7 @@ describe('sansCommentaires — blanchir les notes sans casser les chaînes', () 
   })
 
   it('un appel dont un argument porte une URL reste LISIBLE de bout en bout', () => {
-    const src = "await sendOutboundGuarded({ to, purpose: 'utility', payload: { type: 'image', url: 'https://cdn.megga.ch/a.jpg' } }) // envoi\n"
+    const src = "await sendOutboundGuarded({ to, purpose: 'utility', payload: { type: 'image', url: 'https://cdn.getmegga.com/a.jpg' } }) // envoi\n"
     const txt = sansCommentaires(src)
     const corps = corpsArguments(txt, txt.indexOf('(') + 1)
     expect(corps).not.toBeNull()

@@ -21,12 +21,12 @@ export function toWhatsAppText(body: string | null | undefined): string {
 // le reste, et on ne veut jamais glisser une valeur inattendue dans un send.
 //
 // SÉCURITÉ (opts.requireHost) : quand des hôtes sont imposés (= nos domaines : R2
-// img.megga.ch + Storage Supabase), on ne relaie QUE des URLs que nous hébergeons.
+// img.getmegga.com + Storage Supabase), on ne relaie QUE des URLs que nous hébergeons.
 // Sinon un lien source tiers non vérifié (une annonce Flatfox dont l'image pointe
 // ailleurs) partirait au client sous l'identité WhatsApp de l'agence sans que l'agent
 // ait vu le contenu. Le repli tiers est alors écarté (le bien part en texte seul) ; nos
 // photos R2 ET les uploads agents (staging Storage, même si le miroir R2 a échoué)
-// passent. Comparaison d'hôte STRICTE (===) : un sosie (img.megga.ch.attacker.example)
+// passent. Comparaison d'hôte STRICTE (===) : un sosie (img.getmegga.com.attacker.example)
 // est rejeté. Sans requireHost : comportement historique (https seul), pour les tests.
 export interface ListingPhotoRow {
   photos_cf?: Array<{ detail?: string; hero?: string; thumb?: string }> | null

@@ -10,7 +10,7 @@
 //   2. vérifie que le bien appartient à l'agence de l'agent (anti cross-tenant) ;
 //   3. ré-invoque photo-processor (function-to-function, service role) avec un
 //      `keyPrefix` DÉRIVÉ SERVER-SIDE — jamais fourni par le client ;
-//   4. renvoie les URLs R2 `detail` (servies depuis img.megga.ch, egress gratuit).
+//   4. renvoie les URLs R2 `detail` (servies depuis img.getmegga.com, egress gratuit).
 //
 // Le bucket R2 est public/unsigned → les URLs renvoyées sont finales et entrent
 // telles quelles dans `properties.photos[]` (toutes les surfaces de rendu sont

@@ -18,7 +18,7 @@
   best-effort et la cadence observée est de **~2 h 45**. La détection d'une panne Supabase se
   compte donc en **heures**, pas en minutes. L'améliorer demande un ordonnanceur externe,
   c'est une décision (§6).
-- Le veilleur écrit à **`noreply@megga.ch`**, en dur et **à dessein** : lire
+- Le veilleur écrit à **`noreply@getmegga.com`**, en dur et **à dessein** : lire
   `super_admin_allowlist()` exigerait la base, c'est-à-dire exactement ce qui peut être
   tombé. Son **second canal est le workflow rouge**, visible sans e-mail — et il reste
   visible si Resend est lui aussi en panne. C'est ce canal-là qu'il faut regarder.
@@ -121,7 +121,7 @@ Ces points sont ouverts et relèvent du PO ; ils sont listés ici pour qu'aucune
 croie les trouver plus bas.
 
 - **Qui est d'astreinte, et sous quel délai.** Aucun tour d'astreinte n'existe.
-- **`noreply@megga.ch` est-il relevé par quelqu'un ?** C'est l'adresse du veilleur. Si
+- **`noreply@getmegga.com` est-il relevé par quelqu'un ?** C'est l'adresse du veilleur. Si
   personne ne l'ouvre, le canal qui survit à une panne Supabase se réduit au workflow rouge.
 - **L'allowlist nominale de production.** `super_admin_allowlist()` porte **2 comptes**
   aujourd'hui ; la liste visée est une décision, l'appliquer ensuite est une ligne.

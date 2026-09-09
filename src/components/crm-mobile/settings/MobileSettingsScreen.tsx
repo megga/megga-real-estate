@@ -30,7 +30,7 @@ type View = 'hub' | 'profile' | 'agency' | 'billing' | 'preferences'
 // ─── Démo (harnais /dev/mobile) — gated, aucun fetch ni write Supabase ────────
 const DEMO_PROFILE: ProfileData = {
   firstName: 'Gregory', lastName: 'Lyonnet', title: 'Agent principal',
-  agency: 'MEGGA Genève', email: 'gregory@megga.ch',
+  agency: 'MEGGA Genève', email: 'gregory@getmegga.com',
   phone: '+41 22 555 01 02', mobile: '+41 79 412 88 21', rcc: 'RCC-2018-GE-4421',
   languages: [], specialties: [],
   bio: 'Spécialiste du marché genevois depuis 12 ans. Mandats exclusifs.',
@@ -44,7 +44,7 @@ const DEMO_WA_NUMBER = '41794128821'
 
 const DEMO_AGENCY: AgencySettingsData = {
   name: 'MEGGA Genève', address: 'Rue du Rhône 100', city: 'Genève', canton: 'GE',
-  phone: '+41 22 555 01 00', email: 'contact@megga.ch', website: 'megga.ch', logoUrl: '',
+  phone: '+41 22 555 01 00', email: 'contact@getmegga.com', website: 'getmegga.com', logoUrl: '',
   // legalFormId vide en démo : c'est une FK vers legal_forms, aucun uuid stable à coder ici.
   legal: 'MEGGA Genève SA', legalFormId: '', tradeName: 'MEGGA Genève',
   businessRegistrationNumber: 'CHE-409.118.221', tva: 'CHE-409.118.221 TVA',

@@ -48,7 +48,7 @@ describe.skipIf(!HAS_KEYS)('Edge Functions contract', () => {
         const res = await fetch(endpoint, {
           method: 'OPTIONS',
           headers: {
-            'Origin': 'https://megga.ch',
+            'Origin': 'https://getmegga.com',
             'Access-Control-Request-Method': 'POST',
             'Access-Control-Request-Headers': 'authorization, content-type',
           },

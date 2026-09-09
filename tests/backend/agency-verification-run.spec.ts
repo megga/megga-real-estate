@@ -957,7 +957,7 @@ describe.skipIf(!HAS_KEYS)('agency-verification-run -- socle (etape 4, tache 1)'
       const res = await fetch(ENDPOINT, {
         method: 'OPTIONS',
         headers: {
-          Origin: 'https://megga.ch',
+          Origin: 'https://getmegga.com',
           'Access-Control-Request-Method': 'POST',
           'Access-Control-Request-Headers': 'authorization, content-type',
         },

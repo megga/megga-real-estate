@@ -20,8 +20,8 @@ ou retrait de route, sinon il se périme en silence.
 
 ### Périmètre
 
-`app.megga.ch` sert **le CRM agent seul**. La vitrine marketing et la marketplace
-publique vivent hors de cette application (`megga.ch`, voir `sites/megga-vitrine/`).
+`app.getmegga.com` sert **le CRM agent seul**. La vitrine marketing et la marketplace
+publique vivent hors de cette application (`getmegga.com`, voir `sites/megga-vitrine/`).
 Les anciennes URL publiques survivent uniquement comme **redirections** — elles ne
 rendent plus aucune page.
 
@@ -108,7 +108,7 @@ du module marketplace jusqu'à son renommage, des liens le visent peut-être enc
 
 Ouvertes par un client depuis un lien e-mail, sans compte. Elles portent
 `PublicPageHeader` (marque seule, sans navigation — l'ancien `HomeStickyHeader`
-éjectait le client vers megga.ch à chaque lien).
+éjectait le client vers getmegga.com à chaque lien).
 
 | Route | Écran |
 |---|---|
@@ -121,7 +121,7 @@ Ouvertes par un client depuis un lien e-mail, sans compte. Elles portent
 
 ### 4. Authentification
 
-Le tunnel de connexion vit **sur la vitrine** (`megga.ch/login`). Dans l'app, seule
+Le tunnel de connexion vit **sur la vitrine** (`getmegga.com/login`). Dans l'app, seule
 subsiste la tuyauterie :
 
 | Route | Écran |
@@ -130,20 +130,20 @@ subsiste la tuyauterie :
 | `/oauth/mail/callback` | Retour de la pop-up OAuth de la **messagerie** — rend le `code` et le `state` à son ouvreur par `postMessage`, puis se ferme. ⚠ **Sous `ProtectedRoute`, et ce n'est pas un oubli** : quand les pop-ups sont bloquées, la navigation se fait dans l'onglet courant et la page échange le code elle-même, ce qui exige la session. ⛔ Ne dérive PAS de `MEGGA_APP_URL` : l'URI est bâtie sur l'origine de l'appelant, validée contre la liste blanche `MAIL_OAUTH_ORIGINS`, parce qu'elle doit correspondre caractère pour caractère à celle enregistrée chez Google et Microsoft |
 | `/auth/forgot-password/reset` | Définition d'un nouveau mot de passe |
 | `/reset-password` | Ancienne page de reset — aucun lien entrant dans le dépôt ⚠ |
-| `/privacy` | Confidentialité (doublon de `megga.ch/confidentialite.html`) |
+| `/privacy` | Confidentialité (doublon de `getmegga.com/confidentialite.html`) |
 
 Toutes les autres routes `/auth/*`, `/login`, `/register` et leurs alias FR partent
 vers la vitrine (`VitrineLoginRedirect`).
 
 ⚠ `/reset-password` : les deux flux vivants pointent ailleurs (l'app envoie sur
-`/auth/callback?type=recovery`, la vitrine sur `megga.ch/reset-password.html`). La page
+`/auth/callback?type=recovery`, la vitrine sur `getmegga.com/reset-password.html`). La page
 paraît morte, mais la liste des URL de redirection autorisées vit dans le **dashboard
 Supabase**, hors du dépôt : aucun grep ne peut prouver qu'aucun e-mail déjà envoyé n'y
 atterrit. Vérifier là-bas avant de la retirer.
 
 ### 5. Redirections hors application
 
-- **Marketplace** → `megga.ch` : `/search`, `/buy`, `/rent`, `/acheter`, `/louer`,
+- **Marketplace** → `getmegga.com` : `/search`, `/buy`, `/rent`, `/acheter`, `/louer`,
   `/propriete*`, `/listing/:id`, `/about`, `/contact`, `/sell`, `/estimates`,
   `/estimate`, `/services`, `/publish`, `/agents*`, `/agencies` + alias FR.
 - **Centre d'aide** → `intercom.help/megga/fr` : `/help/*` et `/aide/*`. Le corpus
@@ -155,7 +155,7 @@ atterrit. Vérifier là-bas avant de la retirer.
 
 ⛔ **Ce paragraphe portait cinq affirmations, dont quatre fausses** (remesuré le 05.09.2026).
 
-`/design-system/megga-x` est la **seule** de ces routes servie sur `app.megga.ch` : déclarée en `lazy()` nu
+`/design-system/megga-x` est la **seule** de ces routes servie sur `app.getmegga.com` : déclarée en `lazy()` nu
 (`App.tsx:145`), hors `ProtectedRoute`, sans authentification. Ce n'est pas un banc mais la dernière route de
 design system survivante (CLAUDE.md §3), servie délibérément.
 
