@@ -13,10 +13,21 @@
 > fausses ont été rectifiées à la main (Spacemail vs privateemail, le 401 qui bloquait la
 > vérification Google, l'URI de redirection OAuth).
 >
-> **⛔ CE QUI N'EST PAS ENCORE VRAI.** Seule la **phase C** (le code) est faite. Tant que
-> les phases A, B, D et E ne sont pas jouées, la production tourne encore sur `megga.ch` :
-> le domaine custom Supabase vaut `api.megga.ch`, et `getmegga.com` ne sert rien. Une porte
-> mesure les nombres de ce document, **aucune ne mesure les noms d'hôte** — c'est
+> **✅ OÙ ON EN EST (mesuré le 09.09.2026, après le merge `4a93bfa8`).** Ce bandeau a
+> annoncé pendant quelques heures que « seule la phase C est faite » et que « `getmegga.com`
+> ne sert rien » : **les deux clauses sont mortes le jour même**, et les laisser aurait été
+> exactement la péremption que ce document passe son temps à dénoncer.
+>
+> - **Phases A, B et C : FAITES et vérifiées.** `getmegga.com` sert la vitrine,
+>   `app.getmegga.com` sert le CRM (bundle mesuré : 6 × `getmegga.com`, **0 × `megga.ch`**),
+>   `api.getmegga.com` est le domaine custom Supabase **actif** — GoTrue émet
+>   `redirect_uri=https://api.getmegga.com/auth/v1/callback` — `img.getmegga.com` sert le
+>   bucket R2, et le domaine Resend `getmegga.com` est **Verified**.
+> - **Restent D et E.** Les anciens hôtes **répondent encore** (`megga.ch` et `app.megga.ch`
+>   en 200) : la phase D les remplacera par des 301, et c'est elle qui porte aussi le
+>   `Site URL` de Supabase, resté sur `https://megga.ch`.
+>
+> Une porte mesure les nombres de ce document, **aucune ne mesure les noms d'hôte** — c'est
 > `tests/unit/domaine-getmegga.spec.ts` qui garde le CODE, pas cette prose.
 
 > Source de vérité pour Claude Code. Lis-le avant de coder.
@@ -838,11 +849,21 @@ Scopes déclarés  userinfo.email, userinfo.profile, openid  (tous NON sensibles
 ```
 
 ⚠ **L'URI de redirection est celle du DOMAINE CUSTOM Supabase, PAS l'URL `.supabase.co`.**
-🔁 Cible : `https://api.getmegga.com/auth/v1/callback`. ⛔ **Tant que la phase B de
-[docs/migration-getmegga.md](docs/migration-getmegga.md) n'est pas jouée, la valeur VIVE reste
-`https://api.megga.ch/auth/v1/callback`** — et la nouvelle doit être enregistrée chez Google
-AVANT la bascule : mesuré le 09.09.2026, GoTrue émet le domaine custom même appelé sur l'URL
-`.supabase.co`, donc `.supabase.co` n'est PAS un filet pour l'OAuth.
+✅ **Valeur VIVE depuis le 09.09.2026 : `https://api.getmegga.com/auth/v1/callback`** —
+phase B jouée, mesuré à l'oracle `authorize`. L'ancienne (`api.megga.ch/...`) reste enregistrée
+chez Google jusqu'à E4, sans être émise.
+
+⛔ **CE QUI A RENDU LA BASCULE SÛRE, et qui se rejouera à l'identique le jour d'un autre
+changement de domaine.** Mesuré le 09.09.2026 : GoTrue émet le domaine custom **même appelé sur
+l'URL `.supabase.co`** — donc `.supabase.co` n'est PAS un filet pour l'OAuth, seulement pour
+l'API. Et Supabase **n'offre aucune bascule** : sa section *Custom domains* ne propose que
+*Delete*, si bien qu'une fenêtre SANS domaine custom est inévitable, pendant laquelle GoTrue
+émet `…supabase.co/auth/v1/callback` — précisément l'URI que ce paragraphe explique avoir
+délibérément écartée. Sans filet, toute connexion Google tombe pendant cette fenêtre. La parade
+tenue : enregistrer cette URI chez Google AVANT de supprimer, puis la RETIRER après.
+⚠ Il existe en outre une étape **Activate** distincte de la vérification, que Supabase assortit
+d'une recommandation de 20-30 min d'indisponibilité — qui ne s'est pas matérialisée ici, le
+dialogue précisant lui-même « The Supabase domain will continue to work too ».
 Le projet a un domaine personnalisé, et c'est cette URL-là que le panneau du fournisseur donne
 à enregistrer. `supabase.co` a été **délibérément écarté** des URI du client : Google inscrit
 d'office le domaine de chaque URI comme domaine autorisé du consentement, et `supabase.co`

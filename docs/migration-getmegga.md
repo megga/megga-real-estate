@@ -73,10 +73,16 @@ aucune erreur nulle part.
 
 ### 3.3 Les données en base basculent en DERNIER
 
-Mesuré : **9 434 lignes** de `market_listings.photos_cf` portent des URLs
-`img.megga.ch`, et elles alimentent le matching CRM. Réécrites avant que
-`img.getmegga.com` ne serve le bucket R2, ce sont 9 434 annonces sans photos — une
-balise `<img>` cassée ne lève rien.
+⛔ **CE CHIFFRE ÉTAIT FAUX, corrigé le 09.09.2026 : 814, pas 9 434.** Il conflatait deux
+mesures distinctes — « lignes AYANT un `photos_cf` » (9 434) et « lignes POINTANT vers
+`img.megga.ch` » (814). Remesuré par hôte : **814** sur l'ancien hôte, et **8 620 avec un
+`photos_cf` VIDE (`[]`)**. 🟠 Ces 8 620 sont une anomalie PRÉEXISTANTE, sans rapport avec la
+migration : le traitement photo a tourné et n'a rien produit pour 91 % des lignes qu'il a
+touchées. À regarder séparément.
+
+Les **814** lignes concernées alimentent le matching CRM. Réécrites avant que
+`img.getmegga.com` ne serve le bucket R2, ce sont 814 annonces sans photos — une balise
+`<img>` cassée ne lève rien.
 
 C'est pourquoi la bascule des données est un **exécutable** (`scripts/migrate-domaine-getmegga.mjs`)
 et non une migration : une migration de `supabase/migrations/` s'applique au prochain
@@ -365,31 +371,93 @@ vers le nouveau domaine alors que le reste pointe encore vers l'ancien. C'est un
 
 ---
 
-## 7. Phase D — renvois 301 depuis les anciens hôtes
+## 7. Phase D — renvois 301 ✅ FAITE le 09.09.2026
 
-À faire **après** que la phase C est en production et vérifiée.
+⛔ **L'ORDRE ÉCRIT ICI ÉTAIT LE MAUVAIS, et le corriger a évité une coupure.** Ce plan
+disait : retirer d'abord les domaines des projets Pages (D1/D2), *puis* créer les renvois
+(D3). Une *Redirect Rule* a besoin d'un enregistrement DNS **proxifié** pour se déclencher —
+or détacher un domaine custom Pages emporte le CNAME qui le porte. Dans cet ordre,
+`megga.ch` aurait cessé de résoudre **avant** que la règle puisse tirer. Règle d'abord, donc.
+
+✅ **D1/D2 NE SONT PAS FAITS, ET NE DOIVENT PAS L'ÊTRE ICI.** Les domaines restent attachés
+aux projets Pages : la règle de redirection tire au bord, **avant** Pages, qui n'est donc
+jamais atteint. Les détacher n'apporterait rien aujourd'hui et casserait le renvoi. Ce geste
+appartient à la phase E, le jour où la zone est réellement libérée — et il faudra alors
+recréer un enregistrement proxifié si l'on veut garder des renvois après coup.
+
+| Règle | Correspondance | Action |
+|---|---|---|
+| `megga.ch` | `http.host eq "megga.ch"` | 301 → `concat("https://getmegga.com", http.request.uri.path)` |
+| `www.megga.ch` | `http.host eq "www.megga.ch"` | 301 → `concat("https://getmegga.com", …)` |
+| `app.megga.ch` | `http.host eq "app.megga.ch"` | 301 → `concat("https://app.getmegga.com", …)` |
+| `help.megga.ch` | *(règle PRÉEXISTANTE, recâblée)* | 301 → `https://getmegga.com/aide` |
+
+⚠ **UNE RÈGLE EXISTAIT DÉJÀ SUR CETTE ZONE, et ce plan l'ignorait** : `help.megga.ch` →
+`https://megga.ch/aide`. Laissée telle quelle, elle produisait un **double saut** dès la
+première règle posée. Recâblée vers `getmegga.com/aide` (vérifié 200 avant de rebrancher).
+🟠 Elle mourra quand même à la libération de la zone : **décider si `help.` doit renaître sur
+`getmegga.com`** ou disparaître.
+
+**Trois conditions tenues, chacune mesurée :**
+- **301**, jamais 302 — un 302 ne transmet pas le signal de permanence aux moteurs.
+- **Chemin ET query préservés** (case « Preserve query string » cochée sur les trois règles
+  neuves). Éprouvé sur les trois formes de liens tokenisés réellement en circulation :
+  `…/kyc/<jeton>`, `…/visite/:id/modifier?token=…`, `…/accept-invite/<jeton>` — tous
+  arrivent avec leur jeton intact.
+- **Un seul saut** partout, destination en 200 : mesuré à `curl -L` sur les quatre hôtes.
 
 | # | Geste | Où |
 |---|---|---|
-| D1 | Retirer `megga.ch` / `www.megga.ch` des domaines du projet Pages `megga-real-estate` | Cloudflare Pages |
-| D2 | Retirer `app.megga.ch` du projet Pages `megga-app` | Cloudflare Pages |
-| D3 | Créer deux *Redirect Rules* sur la zone `megga.ch` : `megga.ch/*` → `https://getmegga.com/$1` et `app.megga.ch/*` → `https://app.getmegga.com/$1`, en **301**, en préservant chemin ET query | Cloudflare Rules |
+| D3 | ✅ Trois règles de redirection créées, la quatrième recâblée | Cloudflare Rules |
+| D4 | ✅ **`Site URL` Supabase** : `https://megga.ch` → `https://getmegga.com`. C'est le repli quand aucune redirection ne correspond, ET `{{ .SiteURL }}` des gabarits d'e-mail | Supabase → Auth → URL Configuration |
 
-⛔ **Le chemin et la query doivent survivre au renvoi.** Les liens déjà en
-circulation portent leur capacité *dans l'URL* : `/visite/:id/modifier?token=…`,
-`/kyc/:token`, `/accept-invite/:token`. Un 301 vers la racine les tue tous.
-
-**Oracle** — un lien tokenisé réel survit au renvoi :
-
-```bash
-curl -s -o /dev/null -w '%{http_code} → %{redirect_url}\n' 'https://app.megga.ch/visite/abc/modifier?token=zzz'
-```
-
-Attendu : `301 → https://app.getmegga.com/visite/abc/modifier?token=zzz` — jeton compris.
+🖱 **Deux pièges d'interface, mesurés** :
+1. ⛔ **Le bouton *Deploy* des Redirect Rules ne réagit PAS à un clic par référence
+   d'élément** — aucune erreur, aucune validation rouge, le bouton reste actif et il ne se
+   passe rien. Il faut un clic **aux coordonnées**. La première règle a été perdue ainsi, et
+   j'ai failli attribuer l'échec à l'ordre des couches Cloudflare : c'était juste le clic.
+2. ⚠ **Le gabarit « Redirect to a different domain » se rend sous DEUX formes** selon les
+   chargements : *motif joker* (`URI Full wildcard`, cible **Static** avec `${1}`) ou
+   *expression* (`http.host eq …`, cible **Dynamic** avec `concat(...)`). La combinaison
+   joker + Static + `${1}` **échoue en silence**. La forme expression est celle qui marche.
 
 ---
 
 ## 8. Phase E — nettoyage, puis libération
+
+> **État au 09.09.2026 : E1, E2 et E3 sont FAITS. Tout le reste attend la fin de la
+> transition, et ce n'est pas de la prudence — c'est la définition de la phase.**
+> E10 (libérer la zone) détruirait les 301 posés en phase D quelques heures plus tôt :
+> chaque lien tokenisé encore en circulation mourrait, et le signal SEO serait annulé
+> avant qu'un moteur l'ait repris.
+>
+> | | | |
+> |---|---|---|
+> | **E1** | ✅ `R2_PUBLIC_BASE` → `https://img.getmegga.com` | prouvé par le digest `001be14e…`, sans lire le secret |
+> | **E2** | ✅ audit des secrets porteurs de domaine | voir les trois corrections ci-dessous |
+> | **E3** | ✅ 814 lignes `photos_cf` réécrites | 0 restant sur l'ancien hôte ; une URL réécrite sert la même image, octet pour octet |
+> | **E4** | ⏸ retiré du jour | voir « pourquoi E4 attend » |
+> | **E5 · E6 · E9 · E10** | ⏸ fin de transition | ce sont eux qui coupent les anciens hôtes |
+> | **E7** (Mapbox) | ⏸ | exige d'abord **deux jetons distincts** — tâche déjà inscrite aux priorités de CLAUDE.md |
+> | **E8** (exemptions du code) | ⏸ | elles sont *transition-scoped par conception* : une session CRM ouverte AVANT la bascule appelle encore `/api/geo` avec `Origin: app.megga.ch`. Les retirer la ferait échouer **fermé** (repli français, muet) jusqu'au rechargement |
+> | `app_config` (3 clés) | ⏸ | gelé sur **A7**, pas sur la transition : les clés portent `tech@megga.ch`, et la basculer avant que la boîte `tech@getmegga.com` n'existe ferait rebondir l'alerting RealAdvisor |
+>
+> ⚠ **POURQUOI E4 ATTEND, alors qu'il semblait sûr.** Retirer l'URI `api.megga.ch` retire
+> aussi **`megga.ch` des *Authorized domains*** du consentement — Google les dérive du domaine
+> de chaque URI. Or l'écran de consentement déclare encore des URLs `megga.ch` pour une
+> **vérification data access déjà soumise**. Les changer en cours de revue est un arbitrage,
+> pas un nettoyage. L'URI est de toute façon inerte : GoTrue n'émet plus qu'`api.getmegga.com`.
+>
+> ✅ **CE QUE E2 A CORRIGÉ DANS CE PLAN :**
+> - `IDX_LISTING_BASE_URL` et `APP_URL` **n'existent pas** — ce document demandait de les
+>   vérifier ; il n'y avait rien à vérifier.
+> - **`R2_PUBLIC_URL` existe et n'était documenté NULLE PART.** Digest confronté : il vaut
+>   `https://pub-7720073375be…r2.dev`, l'URL de dev du bucket — **pas** un hôte `megga.ch`,
+>   donc rien à migrer. Un secret voisin de `R2_PUBLIC_BASE` qu'un balayage par nom aurait
+>   confondu.
+> - 🟠 **`MEGGA_KYC_PUBLIC_DOMAIN` est toujours posé** alors que `CLAUDE.md` écrit que son
+>   lecteur a été retiré du code. Secret mort — à supprimer, hors migration.
+
 
 Quand la période de transition est écoulée (les liens tokenisés en circulation ont
 expiré, le SEO a suivi).
@@ -416,7 +484,7 @@ prévoir dans le créneau où quelqu'un est au clavier.
 réécrit les **passées**. Inversés, les photos traitées entre les deux repartent sur
 l'ancien hôte, et personne ne le voit.
 
-⚠ **E3 avant E6.** Débrancher `img.megga.ch` avant d'avoir réécrit les 9 434 lignes,
+⚠ **E3 avant E6.** Débrancher `img.megga.ch` avant d'avoir réécrit les 814 lignes,
 c'est perdre les photos de ces annonces sans le moindre message d'erreur.
 
 ⚠ **E8 est le vrai marqueur de fin.** `tests/unit/domaine-getmegga.spec.ts` porte un
