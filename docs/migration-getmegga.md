@@ -120,8 +120,9 @@ Tout ici s'ajoute à côté de l'existant. `megga.ch` continue de servir normale
 | A3 | ✅ **FAIT le 09.09.2026.** `img.getmegga.com` ajouté au bucket **`megga-market`** — ⚠ c'est CE bucket qui porte `img.megga.ch`, pas `megga-images` (qui n'a aucun domaine custom). Les deux domaines y sont *Enabled* | Cloudflare R2 |
 | A4 | ✅ **FAIT le 09.09.2026** (après déverrouillage 2FA par Julien). **7 → 12 URLs**, en MIROIR EXACT des entrées existantes plutôt qu'en joker `/**` — un joker large aurait élargi la surface au passage. Ajoutées : `getmegga.com/auth/callback`, `www.getmegga.com/auth/callback`, `getmegga.com/reset-password.html`, `app.getmegga.com/auth/callback`, `app.getmegga.com/auth/callback*`. **Rien retiré.** | Supabase → Auth → URL Configuration |
 | A5 | ✅ **FAIT le 09.09.2026** (après activation de la 2SV par Julien — Google Cloud l'impose depuis le 04.09.2026). Client **« MEGGA — Supabase Auth (app.megga.ch) »**, `833483825712-vh71…`. Ajoutés SANS RIEN RETIRER : origines JS `https://app.getmegga.com` et `https://getmegga.com` (à côté de `app.megga.ch`, `megga.ch`, `localhost:5173`) ; URI de redirection `https://api.getmegga.com/auth/v1/callback` (à côté de `api.megga.ch/...`) | Google Cloud Console → Credentials |
-| A6 | Créer le domaine `getmegga.com` dans Resend et poser DKIM + `send.getmegga.com` | Resend + DNS Cloudflare |
-| A7 | Créer les boîtes `noreply@`, `hello@`, `legal@`, `privacy@`, `tech@`, `sales@`, `support@`, `security@` sur `getmegga.com` | Spacemail |
+| A6 | Créer le domaine `getmegga.com` dans Resend, puis poser les **TROIS** enregistrements qu'il rend — `resend._domainkey` TXT (DKIM), `send` TXT (SPF `include:amazonses.com`), `send` MX (`feedback-smtp.<région>.amazonses.com`). ⚠ **Ne PAS toucher au SPF de la racine** : Resend n'y touche pas. ⚠ La région du MX se lit dans Resend, elle ne se devine pas (`megga.ch` est en `eu-west-1`, mais c'est une mesure, pas une règle) | Resend + DNS Cloudflare |
+| A6 bis | 🟠 **DMARC MANQUANT sur `getmegga.com`** — relevé le 09.09.2026 en mesurant A6, et Cloudflare le signale de lui-même (« Block fake emails sent from @getmegga.com addresses »). `megga.ch` porte `v=DMARC1; p=none; rua=mailto:dmarc_agg@vali.email` ; la nouvelle zone n'a **rien**. `p=none` n'applique aucune politique — il observe seulement — donc le poser ne peut pas casser une délivrance | DNS Cloudflare |
+| A7 | Créer les boîtes `noreply@`, `hello@`, `legal@`, `privacy@`, `tech@`, `sales@`, `support@`, `security@` | Spacemail — **geste humain** : créer des boîtes, c'est créer des comptes et leur poser des mots de passe |
 
 **Oracle A0** — la propriété est prouvée par le DNS, pas par l'écran de Search Console :
 
@@ -428,9 +429,22 @@ sur `hello@megga.ai` que **A0 doit être fait depuis CE compte**, et pas un autr
    relecteur. Si `getmegga.com` sort sans portail, ce blocage tombe de lui-même — mais
    il faut alors **redéclarer la page d'accueil** dans l'écran de consentement.
 
-4. **`getmegga.com` porte déjà un SPF Spacemail.** Y ajouter Resend demande de
-   **fusionner** les deux `include:` dans un enregistrement TXT unique : deux
-   enregistrements SPF sur un même nom invalident la politique entière.
+4. ⛔ **CE POINT ÉTAIT FAUX, corrigé le 09.09.2026.** Il annonçait qu'ajouter Resend
+   exigerait de **fusionner** son `include:` avec celui de Spacemail dans un TXT unique,
+   « deux enregistrements SPF sur un même nom invalidant la politique entière ». La règle
+   sur les doubles SPF est vraie ; son application ici ne l'est pas. Mesuré sur `megga.ch`,
+   qui porte le même montage :
+
+   ```
+   send.megga.ch  TXT  "v=spf1 include:amazonses.com ~all"
+   send.megga.ch  MX   10 feedback-smtp.eu-west-1.amazonses.com
+   megga.ch       TXT  "v=spf1 include:spf.privateemail.com … ~all"   ← intact
+   ```
+
+   **Resend pose son SPF sur le sous-domaine `send.`, jamais sur la racine.** Il n'y a donc
+   aucun conflit avec le SPF Spacemail de `getmegga.com`, et rien à fusionner. La prétention
+   venait d'un raisonnement, pas d'une mesure — et le montage réel était sous les yeux depuis
+   le premier inventaire.
 
 5. 🟠 **DÉFAUT PRÉEXISTANT, mis au jour par A4 — la réinitialisation de mot de passe.**
    `megga-auth.js` construit **quatre** adresses de retour, une par langue :
