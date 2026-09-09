@@ -68,38 +68,52 @@ const RACINES = [
 ] as const
 
 /**
- * Exemptions de TRANSITION — chacune avec sa raison et sa date de retrait.
+ * Exemptions — DEUX familles, et la distinction n'est pas cosmétique.
  *
- * Même discipline que `EXEMPTES` dans `app-url-unique.spec.ts` : une liste sans
- * motif écrit devient le tapis sous lequel on glisse les oublis.
+ * `TRANSITOIRES` porte ce qui DOIT disparaître : chaque entrée nomme la condition
+ * de son retrait. `HISTORIQUES` porte ce qui doit RESTER : un hôte cité dans une
+ * mesure datée n'est pas une dette, c'est la mesure elle-même. Les fondre ferait
+ * porter à la seconde famille une date de péremption qu'elle n'a pas, et le
+ * prochain lecteur retirerait un chiffre daté en croyant solder une transition.
+ *
+ * ⚠ Le cliquet du bas s'applique aux DEUX : une exemption dont le fichier ne cite
+ * plus l'ancien domaine n'exempte plus rien et masquerait une réintroduction.
+ *
+ * ── Retirées le 09.09.2026, phase E, chacune sur sa condition écrite ────────────
+ * Les quatre entrées ci-dessous ont été supprimées le jour où les domaines custom
+ * ont été détachés des projets Pages `megga-app` et `megga-real-estate` — soit
+ * exactement la condition que chacune s'était donnée :
+ *   · `sites/megga-vitrine/_worker.js`            ORIGINES_CRM
+ *   · `src/lib/sentry.ts`                          tracePropagationTargets
+ *   · `supabase/functions/extract-lead/index.ts`  ALLOWED_ORIGINS
+ *   · `tests/unit/edge-no-html-response.spec.ts`  assertion à deux domaines
+ * Les deux premières échouaient FERMÉ ET EN SILENCE : c'est pourquoi leur retrait
+ * attendait une condition mesurable, et pas une impression que « ça devrait aller ».
  */
 const TRANSITOIRES: Record<string, string> = {
-  'sites/megga-vitrine/_worker.js':
-    "`ORIGINES_CRM` admet les DEUX hôtes du CRM le temps de la transition : `app.megga.ch` "
-    + "sert encore le CRM tant que son domaine custom Pages n'est pas retiré, et il appelle "
-    + "déjà `getmegga.com/api/geo`. Retirer `app\\.megga\\.ch` à la phase E de "
-    + 'docs/migration-getmegga.md — pas avant.',
-  'src/lib/sentry.ts':
-    '`tracePropagationTargets` couvre les deux zones le temps que les anciens hôtes '
-    + 'répondent encore. Retirer `megga\\.ch` à la phase E de docs/migration-getmegga.md. '
-    + "⚠ Ne JAMAIS élargir à `supabase.co` : c'est l'incident CORS du 04.08.2026.",
   'scripts/migrate-domaine-getmegga.mjs':
     "L'outil de bascule lui-même : il DOIT nommer les deux domaines, puisque son travail "
-    + "est de remplacer l'un par l'autre en base. Il se supprime une fois joué (phase E) — "
-    + "c'est ce retrait, pas cette exemption, qui clôt la migration.",
-  'supabase/functions/extract-lead/index.ts':
-    "`ALLOWED_ORIGINS` admet les deux zones le temps de la transition — c'est un contrôle "
-    + 'CORS vivant, pas de la prose. ⛔ Cette liste a été MANQUÉE par la réécriture de masse '
-    + "(points échappés). Retirer les deux lignes `megga\\.ch` à la phase E.",
-  'tests/unit/edge-no-html-response.spec.ts':
-    "L'assertion « aucun lien de retour vers l'app » interroge les DEUX domaines : ne "
-    + 'garder que le nouveau la rendrait creuse sur les gabarits non encore migrés, ne garder '
-    + "que l'ancien la rendait creuse dès la bascule. Retirer la ligne `megga\\.ch` à la phase E.",
+    + 'est de remplacer l\'un par l\'autre en base. ⚠ Sa moitié `photos_cf` est JOUÉE '
+    + '(0 ligne restante, mesuré le 09.09.2026) ; sa moitié `app_config` ne peut pas '
+    + "l'être : les trois clés RealAdvisor portent `tech@megga.ch`, et basculer vers "
+    + '`tech@getmegga.com` avant que la boîte existe enverrait les alertes vers une '
+    + 'adresse qui rebondit dans le vide. Il se supprime le jour où cette boîte est '
+    + 'créée (A7 de docs/migration-getmegga.md) et où le script est rejoué.',
+}
+
+/**
+ * Exemptions PERMANENTES — un hôte qui date une mesure reste l'hôte de son jour.
+ */
+const HISTORIQUES: Record<string, string> = {
   'supabase/functions/_shared/app-url.ts':
     "L'en-tête cite les anciens hôtes pour RAPPORTER une mesure datée du 03.08.2026 — "
-    + 'la réécrire sur `getmegga.com` daterait la mesure d\'un jour où ce domaine ne servait '
-    + "rien. Un chiffre daté garde l'hôte de son jour.",
+    + 'la réécrire sur `getmegga.com` daterait la mesure d\'un jour où ce domaine ne '
+    + "servait rien. ⛔ Ne PAS retirer cette entrée « pour solder la phase E » : elle "
+    + "n'a pas de date de retrait, c'est le sens même de la famille HISTORIQUES.",
 }
+
+/** Tous les fichiers exemptés, quelle que soit la raison. */
+const EXEMPTES: Record<string, string> = { ...TRANSITOIRES, ...HISTORIQUES }
 
 /**
  * Toute mention du domaine sortant, dans ses DEUX écritures.
@@ -147,7 +161,7 @@ describe('domaine de production — getmegga.com', () => {
 
     for (const abs of scan.files) {
       const chemin = rel(abs)
-      if (chemin in TRANSITOIRES) continue
+      if (chemin in EXEMPTES) continue
       // La garde ne peut pas s'auto-incriminer : ce fichier CITE le domaine
       // sortant pour expliquer ce qu'il interdit.
       if (chemin === 'tests/unit/domaine-getmegga.spec.ts') continue
@@ -169,18 +183,19 @@ l'ancien domaine — remplacer par l'hôte getmegga.com correspondant :
 invisible à un grep littéral, et c'est elle qui a été manquée deux fois.
 
 Si la mention est HISTORIQUE (une mesure datée, un incident raconté), garder
-l'ancien hôte et inscrire le fichier dans TRANSITOIRES avec sa raison.`).toEqual([])
+l'ancien hôte et inscrire le fichier dans HISTORIQUES avec sa raison.`).toEqual([])
   })
 
   // ── Le cliquet : les exemptions ne doivent pas survivre à leur motif ──────
   it("chaque exemption de transition mentionne encore l'ancien domaine", () => {
     // Une exemption dont le fichier ne cite plus `megga.ch` est une exemption
     // périmée : elle n'exempte plus rien et masquerait une future réintroduction.
-    const mortes = Object.keys(TRANSITOIRES).filter((chemin) => {
+    const mortes = Object.keys(EXEMPTES).filter((chemin) => {
       const lu = readFileSafely(repoPath(chemin))
       return lu.status === 'ok' && !MENTION.test(lu.value)
     })
     expect(mortes, `Ces exemptions ne servent plus (le fichier ne cite plus megga.ch).
-Les retirer de TRANSITOIRES — c'est la phase E de docs/migration-getmegga.md.`).toEqual([])
+Les retirer de TRANSITOIRES (ou de HISTORIQUES) — c'est la phase E de
+docs/migration-getmegga.md.`).toEqual([])
   })
 })

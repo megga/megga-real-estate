@@ -501,14 +501,15 @@ function resoudreLangue(pays, subdivision, acceptLanguage) {
  *
  * ⚠ Écrit ICI et pas dans `_headers` : getmegga.com tourne en mode Advanced, où
  * Cloudflare n'évalue ni `_headers` ni `_redirects` (cf. public/_headers).
- * 🔁 MIGRATION getmegga.com (09.09.2026). Les DEUX hôtes du CRM sont admis le temps de
- * la transition : `app.megga.ch` sert encore le CRM tant que son domaine custom Pages
- * n'est pas retiré, et il appelle désormais `getmegga.com/api/geo`. Retirer
- * `app\.megga\.ch` de cette regex à la phase E de docs/migration-getmegga.md — pas
- * avant, sinon la détection de langue tombe en silence sur l'ancien hôte (elle échoue
- * fermée : repli français, aucune erreur visible).
+ * 🔁 MIGRATION getmegga.com — l'origine de l'ANCIENNE zone a été RETIRÉE de cette regex
+ * le 09.09.2026 (phase E), le jour où son domaine custom a été détaché du projet Pages
+ * `megga-app` : cet hôte ne sert plus le CRM, il ne fait plus qu'une 301 vers
+ * `app.getmegga.com`. Aucune page ne peut donc PLUS s'y charger. ⚠ Un onglet CRM ouvert AVANT la bascule garde l'ancienne
+ * origine et verra sa détection de langue échouer — fermée, en silence, repli français.
+ * Ça se répare tout seul au rechargement (qui part en 301). C'est le seul coût du
+ * retrait, et il est borné à la durée de vie de ces onglets.
  */
-const ORIGINES_CRM = /^https:\/\/(app\.getmegga\.com|app\.megga\.ch|[a-z0-9-]+\.megga-app\.pages\.dev)$/;
+const ORIGINES_CRM = /^https:\/\/(app\.getmegga\.com|[a-z0-9-]+\.megga-app\.pages\.dev)$/;
 
 function origineAutorisee(origine) {
   if (!origine) return false;

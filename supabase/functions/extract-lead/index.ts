@@ -26,18 +26,17 @@ import { redactPII, formatRedactionSummary } from '../_shared/pii-redaction.ts'
 // La logique : on inspecte l'Origin du request et on autorise uniquement
 // les domaines MEGGA + previews Cloudflare Pages + dev local. Pour les
 // autres, on retombe sur la valeur par défaut "null" qui bloque le browser.
-// 🔁 MIGRATION getmegga.com (09.09.2026). Les DEUX zones sont admises le temps de la
-// transition : `app.megga.ch` sert encore le CRM tant que son domaine custom Pages n'est
-// pas retiré. Retirer les deux lignes `megga\.ch` à la phase E de
-// docs/migration-getmegga.md. ⚠ Cette liste avait été MANQUÉE par la réécriture de
-// masse — ses points sont échappés, donc invisibles à un grep littéral. Sans elle, le
-// CRM sur `app.getmegga.com` recevait `Access-Control-Allow-Origin: null` et l'extraction
-// de lead échouait au préflight, sans rien dire d'autre qu'un « Failed to fetch ».
+// 🔁 MIGRATION getmegga.com — les deux lignes de l'ANCIENNE zone ont été retirées le
+// 09.09.2026 (phase E), le jour où les domaines custom ont été détachés des projets
+// Pages : plus aucune page ne s'y charge, donc plus aucune origine ne peut en venir.
+// ⚠ Cette liste avait été MANQUÉE par la réécriture de masse — ses points sont échappés,
+// donc invisibles à un grep littéral. Sans elle, le CRM sur `app.getmegga.com` recevait
+// `Access-Control-Allow-Origin: null` et l'extraction de lead échouait au préflight,
+// sans rien dire d'autre qu'un « Failed to fetch ». Le mode d'échec est FERMÉ ET MUET :
+// c'est pourquoi cette liste se relit avant chaque ajout d'hôte.
 const ALLOWED_ORIGINS = [
   /^https:\/\/getmegga\.com$/,
   /^https:\/\/[a-z0-9-]+\.getmegga\.com$/,
-  /^https:\/\/megga\.ch$/,                 // transition — phase E
-  /^https:\/\/[a-z0-9-]+\.megga\.ch$/,    // transition — phase E
   /^https:\/\/[a-z0-9-]+\.pages\.dev$/,  // Cloudflare Pages previews
   /^http:\/\/localhost:\d+$/,             // dev local
 ]

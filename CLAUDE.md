@@ -13,19 +13,26 @@
 > fausses ont été rectifiées à la main (Spacemail vs privateemail, le 401 qui bloquait la
 > vérification Google, l'URI de redirection OAuth).
 >
-> **✅ OÙ ON EN EST (mesuré le 09.09.2026, après le merge `4a93bfa8`).** Ce bandeau a
-> annoncé pendant quelques heures que « seule la phase C est faite » et que « `getmegga.com`
-> ne sert rien » : **les deux clauses sont mortes le jour même**, et les laisser aurait été
-> exactement la péremption que ce document passe son temps à dénoncer.
+> **✅ OÙ ON EN EST (mesuré le 09.09.2026 au soir).** Ce bandeau a déjà été faux DEUX fois
+> en une journée — il a annoncé « seule la phase C est faite », puis « les anciens hôtes
+> répondent encore en 200 ». Les deux clauses sont mortes dans les heures qui ont suivi. Un
+> bandeau d'état se relit à chaque passage, ou il ment.
 >
-> - **Phases A, B et C : FAITES et vérifiées.** `getmegga.com` sert la vitrine,
->   `app.getmegga.com` sert le CRM (bundle mesuré : 6 × `getmegga.com`, **0 × `megga.ch`**),
->   `api.getmegga.com` est le domaine custom Supabase **actif** — GoTrue émet
->   `redirect_uri=https://api.getmegga.com/auth/v1/callback` — `img.getmegga.com` sert le
->   bucket R2, et le domaine Resend `getmegga.com` est **Verified**.
-> - **Restent D et E.** Les anciens hôtes **répondent encore** (`megga.ch` et `app.megga.ch`
->   en 200) : la phase D les remplacera par des 301, et c'est elle qui porte aussi le
->   `Site URL` de Supabase, resté sur `https://megga.ch`.
+> - **Phases A, B, C, D faites. Phase E : E1–E6 et E8 faits.** `getmegga.com` sert la
+>   vitrine, `app.getmegga.com` sert le CRM, `api.getmegga.com` est le domaine custom
+>   Supabase actif (GoTrue émet `redirect_uri=https://api.getmegga.com/auth/v1/callback`),
+>   `img.getmegga.com` sert le bucket R2.
+> - **L'ancienne zone ne SERT plus rien.** Les domaines custom ont été détachés des deux
+>   projets Pages et du bucket R2 ; `megga.ch`, `www.`, `app.`, `img.` et `help.` ne font
+>   plus que des **301**, portées par un enregistrement `A 192.0.2.1` proxifié (TEST-NET-1,
+>   non routable — une Redirect Rule matche l'hôte, pas l'origine). Côté Google, le
+>   consentement ne déclare plus que `getmegga.com`, et son branding a été re-vérifié
+>   **puis publié**.
+> - **Restent E7 (deux jetons Mapbox), E9 (Resend), E10 (libérer la zone) et les 3 clés
+>   `app_config`** — chacun sur une condition nommée dans
+>   [docs/migration-getmegga.md](docs/migration-getmegga.md), §8. ⚠ `app_config` porte
+>   encore `tech@megga.ch` en **destinataire** d'alerte : il est gelé sur la création de la
+>   boîte `tech@getmegga.com`, pas sur la migration.
 >
 > Une porte mesure les nombres de ce document, **aucune ne mesure les noms d'hôte** — c'est
 > `tests/unit/domaine-getmegga.spec.ts` qui garde le CODE, pas cette prose.
