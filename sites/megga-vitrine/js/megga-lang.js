@@ -30,7 +30,7 @@
   ];
 
   // Même clé que le CRM (`src/i18n/index.ts`). ⚠ localStorage est cloisonné par
-  // origine : megga.ch ne peut PAS écrire celui de app.megga.ch. La préférence
+  // origine : getmegga.com ne peut PAS écrire celui de app.getmegga.com. La préférence
   // posée ici ne vaut donc que pour la vitrine ; la porter jusqu'au CRM
   // demanderait de la passer dans l'URL, comme la session.
   var CLE = 'megga-language';
@@ -362,7 +362,7 @@
         var cible = el.getAttribute('data-cible');
         try { localStorage.setItem(CLE, choix); } catch (err) { /* navigation privée */ }
         if (choix === code || !cible) return fermer();
-        // Les alternates sont absolus (https://megga.ch/…) parce que Google les
+        // Les alternates sont absolus (https://getmegga.com/…) parce que Google les
         // veut ainsi. On ne garde que le chemin : sinon, depuis une préversion ou
         // un domaine de test, changer de langue sauterait vers la production.
         // L'ancre suit — changer de langue au milieu d'une page doit ramener au

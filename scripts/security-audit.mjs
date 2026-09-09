@@ -288,8 +288,8 @@ async function sendEmail(anomalies) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'noreply@megga.ch',
-        to: ['noreply@megga.ch'],
+        from: 'noreply@getmegga.com',
+        to: ['noreply@getmegga.com'],
         subject: `[MEGGA Security] ${anomalies.length} anomalies detected`,
         html,
       }),
@@ -297,7 +297,7 @@ async function sendEmail(anomalies) {
     if (!res.ok) {
       console.error('Resend error:', res.status, await res.text())
     } else {
-      console.log('✉  Email sent to noreply@megga.ch')
+      console.log('✉  Email sent to noreply@getmegga.com')
     }
   } catch (err) {
     console.error('Failed to send email:', err.message)

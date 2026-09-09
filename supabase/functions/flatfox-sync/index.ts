@@ -38,7 +38,7 @@ const FLATFOX_BASE = 'https://flatfox.ch'
 const PAGE_SIZE = 100
 const CHUNK_PAGES = 5  // pages traitées par "bloc" entre deux updates de tracking
 const DELAY_MS = 300   // 300ms entre pages (Flatfox ne rate-limite pas, on reste poli)
-const USER_AGENT = 'MEGGA Real Estate Sync (contact: tech@megga.ch)'
+const USER_AGENT = 'MEGGA Real Estate Sync (contact: tech@getmegga.com)'
 
 // Safety : ne JAMAIS sweeper si on a upserté moins de N% du total attendu
 // (protège contre un incident Flatfox qui retourne 0 listings → on supprimerait tout sinon)

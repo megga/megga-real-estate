@@ -79,7 +79,7 @@ bout. Le vérifier **avant** le passage de test, pas après.
 (`verification_flow`) **annule `return_url` en silence** : Stripe accepte le paramètre,
 répond 200, et la session créée n'en porte aucune trace. Mesuré le 17.08.2026 sur
 `vs_1U5Y6HRNzm4ajaDaoMv1BMNI` (journal d'API `req_WZUCE21ewpBdBS`) — corps POST avec
-`return_url=https://app.megga.ch/dashboard/identite?verification=done`, réponse sans le
+`return_url=https://app.getmegga.com/dashboard/identite?verification=done`, réponse sans le
 champ. Rien dans la documentation Stripe ne l'annonce.
 
 Coût vécu : le dirigeant finit sa capture, lit « Vous pouvez à présent fermer cet onglet »
@@ -379,7 +379,7 @@ connecteurs externes, journalisation, file de revue.
 
 Elle ne valide pas le **parcours client réel** : inscription par l'Auth, gate d'identité,
 wizard, upload de la pièce d'identité, réception de la notification par e-mail. Pour
-ceux-là, il faut dérouler l'interface sur `app.megga.ch` avec une adresse relevable — ou
+ceux-là, il faut dérouler l'interface sur `app.getmegga.com` avec une adresse relevable — ou
 pointer le harnais `npm run test:e2e:kyb` (`playwright.kyb.config.ts`) sur la prod, ce qui
 suppose la clé `service_role`.
 

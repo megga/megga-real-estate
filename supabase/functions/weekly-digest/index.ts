@@ -126,7 +126,7 @@ serve(async (req) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
           body: JSON.stringify({
-            from: 'MEGGA AI <noreply@megga.ch>',
+            from: 'MEGGA AI <noreply@getmegga.com>',
             to: [a.email],
             subject: 'Ton bilan de la semaine',
             html,

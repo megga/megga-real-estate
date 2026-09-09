@@ -69,7 +69,7 @@
 
 **Action immédiate :** quiconque détecte ou suspecte une violation doit **immédiatement** en informer le Coordinateur incident par email ET téléphone. **Ne pas attendre d'avoir des certitudes.**
 
-**Canal d'alerte :** `{{EMAIL_INCIDENT}}` (ex. `incident@megga.ch`) + téléphone du DPO.
+**Canal d'alerte :** `{{EMAIL_INCIDENT}}` (ex. `incident@getmegga.com`) + téléphone du DPO.
 
 ### Phase 1 — Containment (T0 + 0h à T0 + 1h)
 
@@ -229,7 +229,7 @@ données. Pour toute question ou pour exercer vos droits, vous pouvez contacter
 notre conseiller à la protection des données :
 
 [NOM DPO]
-Email : privacy@megga.ch
+Email : privacy@getmegga.com
 Téléphone : [NUMÉRO]
 
 Vous avez également la possibilité de déposer une plainte auprès du Préposé

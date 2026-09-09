@@ -626,7 +626,7 @@ export async function evaluateAndSendAlerts(admin: SupabaseClient, signals: Aler
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
     body: JSON.stringify({
-      from: 'MEGGA <noreply@megga.ch>',
+      from: 'MEGGA <noreply@getmegga.com>',
       to: recipients,
       subject: mail.subject,
       html: mail.html,

@@ -20,12 +20,12 @@ const rendus = (locale: AppLocale) => [
   }),
   buildTeamInviteEmail({
     inviterName: 'Gregory Lyonnet', agencyName: 'Régie du Rhône', role: 'agent',
-    acceptUrl: 'https://app.megga.ch/accept-invite/jeton', locale,
+    acceptUrl: 'https://app.getmegga.com/accept-invite/jeton', locale,
   }),
   buildVerificationNotice({
     status: 'correction_requested', agencyName: 'Régie du Rhône',
     reason: 'Le numéro IDE ne correspond pas au registre.',
-    appUrl: 'https://app.megga.ch', locale,
+    appUrl: 'https://app.getmegga.com', locale,
   }),
   buildBookingEmail({
     kind: 'confirmed', contactName: 'Marie Dupont', agentName: 'Gregory Lyonnet',
@@ -72,8 +72,8 @@ describe('quatre gabarits, quatre langues', () => {
   it('la coquille MEGGA X, dans les quatre langues', () => {
     for (const l of LANGUES) {
       for (const { html } of rendus(l)) {
-        expect(html).toContain('https://app.megga.ch/email/megga-logo-white.png')
-        expect(html).not.toContain('https://megga.ch/email')
+        expect(html).toContain('https://app.getmegga.com/email/megga-logo-white.png')
+        expect(html).not.toContain('https://getmegga.com/email')
       }
     }
   })

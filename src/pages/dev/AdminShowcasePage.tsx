@@ -4,8 +4,8 @@
  * ── POURQUOI CETTE ROUTE EXISTE ──────────────────────────────────────────────
  * La console vit sous `/dashboard/admin/*`, donc DERRIÈRE DEUX MURS, pas un :
  *   1. `ProtectedRoute` — sans session il fait
- *      `window.location.replace('https://megga.ch/login')`, une redirection
- *      **absolue** vers la production. On est alors déposé sur `app.megga.ch`,
+ *      `window.location.replace('https://getmegga.com/login')`, une redirection
+ *      **absolue** vers la production. On est alors déposé sur `app.getmegga.com`,
  *      qui sert `main`, en croyant regarder localhost : on relit l'ancienne
  *      version de son propre travail, et ça ne ressemble pas à une erreur.
  *   2. `useSuperAdminGate` — rend `<Navigate to="/dashboard" replace />`.
@@ -13,7 +13,7 @@
  *
  * ── LE POINT D'INTERCEPTION DE LA NAVIGATION EST LE ROUTEUR ──────────────────
  * ⛔ Le banc du Pipeline a livré ce défaut : un clic sur une carte appelait
- * `navigate('/dashboard/transactions/…')` et déposait sur `megga.ch`. Il l'a
+ * `navigate('/dashboard/transactions/…')` et déposait sur `getmegga.com`. Il l'a
  * corrigé par un `onNavigate` passé à la page — un point de sortie qu'il faut
  * penser à câbler, surface par surface.
  *

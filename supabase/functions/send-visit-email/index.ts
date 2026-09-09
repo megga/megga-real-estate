@@ -170,7 +170,7 @@ serve(async (req) => {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'MEGGA <noreply@megga.ch>',
+        from: 'MEGGA <noreply@getmegga.com>',
         to: [to],
         subject,
         html,

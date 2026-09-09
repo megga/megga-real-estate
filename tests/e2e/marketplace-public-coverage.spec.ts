@@ -20,7 +20,7 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   // ── Marketplace + ancien site marketing Property X ─────────────────────
   // Pivot CRM-first (juin 2026) puis extraction du marketing Property X
   // (2026-06-08) : /buy /rent /sell /services /estimates /contact /agents
-  // /agencies… redirigent vers la vitrine megga.ch (hors domaine de test).
+  // /agencies… redirigent vers la vitrine getmegga.com (hors domaine de test).
   // Redirections couvertes par marketplace-disabled.spec.ts. Les routes non
   // routées (/a-propos /blog /properties…) retombent sur la 404 in-app.
 
@@ -33,7 +33,7 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   // Intercom depuis le 2026-07-20 ; les 12 pages SPA ont été retirées.
 
   // ── Auth ───────────────────────────────────────────────────────────────
-  // Le modal de connexion vit sur la vitrine (megga.ch/login) : /login,
+  // Le modal de connexion vit sur la vitrine (getmegga.com/login) : /login,
   // /register, /auth/login… redirigent hors app → voir marketplace-disabled.
   // /reset-password reste in-app (cible des e-mails de réinitialisation).
   { path: '/reset-password', label: 'Reset password' },

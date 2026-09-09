@@ -5,7 +5,7 @@
  *
  * `send-email` accepte encore, quand `data.body` est absent, un document HTML
  * COMPLET fourni par l'appelant : il part tel quel chez Resend, sans passer par la
- * coquille ni par l'échappement, signé DKIM par megga.ch. Le verrou est mince —
+ * coquille ni par l'échappement, signé DKIM par getmegga.com. Le verrou est mince —
  * `verify_jwt = false` sur cette fonction, et `requireAgentAuth` admet tout jeton
  * utilisateur dont le profil porte un `agency_id`, sans contrôle de rôle.
  *
@@ -58,7 +58,7 @@ describe('repli `data.html` de send-email', () => {
       'ÉCHÉANCE DÉPASSÉE — le repli `data.html` de `supabase/functions/send-email/index.ts` '
         + 'devait être retiré le 15.09.2026. Tant qu\'il vit, tout appelant muni d\'un jeton '
         + 'd\'agent peut faire partir du HTML complet non échappé, hors coquille, signé DKIM '
-        + 'par megga.ch — et `lint:email-shell` ne peut pas le voir.\n'
+        + 'par getmegga.com — et `lint:email-shell` ne peut pas le voir.\n'
         + '   Geste attendu : supprimer la branche de repli (le front envoie `data.body` '
         + 'depuis le 16.08.2026), puis supprimer ce fichier de test.\n'
         + '   Repousser la date est un choix légitime, mais il doit s\'ÉCRIRE ici.',

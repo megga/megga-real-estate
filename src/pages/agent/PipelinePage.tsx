@@ -93,7 +93,7 @@ export interface PipelineBanc {
    * ⛔ INTERCEPTE TOUTE NAVIGATION, et ce n'est pas un confort.
    *
    * Sans elle, un clic sur une carte fait `navigate('/dashboard/transactions/…')`
-   * → `ProtectedRoute` → `window.location.replace('https://megga.ch/login')`. Le
+   * → `ProtectedRoute` → `window.location.replace('https://getmegga.com/login')`. Le
    * banc éjecte alors vers la PRODUCTION — mesuré à l'écran, pas déduit : c'est
    * exactement le piège pour lequel ce banc existe, et la première version l'a
    * livré avec.

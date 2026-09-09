@@ -7,7 +7,7 @@ import {
 } from './esign-gateway.ts'
 
 const SKRIBBLE_CREDS: ProviderCredentials = {
-  skribbleUsername: 'agent@megga.ch',
+  skribbleUsername: 'agent@getmegga.com',
   skribbleApiKey: 'sk_test_key',
   skribbleBaseUrl: 'https://api.skribble.com',
 }
@@ -55,7 +55,7 @@ describe('Skribble provider', () => {
     expect(req.method).toBe('POST')
     expect(req.responseType).toBe('text')
     const body = JSON.parse(req.body!)
-    expect(body.username).toBe('agent@megga.ch')
+    expect(body.username).toBe('agent@getmegga.com')
     expect(body['api-key']).toBe('sk_test_key')
   })
 

@@ -3,8 +3,8 @@
  *
  * POURQUOI CETTE ROUTE EXISTE. Toute surface `/dashboard/*` passe par
  * `ProtectedRoute`, qui sans session fait
- * `window.location.replace('https://megga.ch/login')` — une redirection ABSOLUE
- * vers la production. On est alors déposé sur `app.megga.ch`, qui sert `main`,
+ * `window.location.replace('https://getmegga.com/login')` — une redirection ABSOLUE
+ * vers la production. On est alors déposé sur `app.getmegga.com`, qui sert `main`,
  * en croyant regarder localhost : on relit l'ancienne version de son propre
  * travail. Le piège ne ressemble pas à une erreur. Même idiome, mêmes raisons
  * que `/dev/matching-atelier`, `/dev/biens`, `/dev/contacts` et `/dev/mobile` —
@@ -12,7 +12,7 @@
  *
  * ⛔ ET LE BANC LUI-MÊME L'A REPRODUIT. Sa première version laissait
  * `onOpenDeal` appeler `navigate('/dashboard/transactions/…')` : un clic sur
- * n'importe quelle carte éjectait vers `megga.ch`. Mesuré à l'écran, pas déduit.
+ * n'importe quelle carte éjectait vers `getmegga.com`. Mesuré à l'écran, pas déduit.
  * D'où `onNavigate` — les deux pages ne sortent plus que par ce point, et le
  * banc y répond en changeant d'écran au lieu de quitter le domaine.
  *

@@ -11,12 +11,12 @@ const rows: ReportRow[] = [
 const base = { periode: '08.08.2026 au 15.08.2026', rows }
 
 describe('buildWeeklyReportEmail', () => {
-  it('⛔ le bouton mène à app.megga.ch, JAMAIS à megga.ch', () => {
+  it('⛔ le bouton mène à app.getmegga.com, JAMAIS à getmegga.com', () => {
     // Troisième occurrence de cette confusion d'hôte dans le dépôt, après le logo de la
-    // coquille et le bouton de l'alerte de sécurité : megga.ch rend 401 (vitrine protégée).
+    // coquille et le bouton de l'alerte de sécurité : getmegga.com rend 401 (vitrine protégée).
     const html = buildWeeklyReportEmail(base).html
-    expect(html).toContain('https://app.megga.ch/dashboard/admin')
-    expect(html).not.toContain('https://megga.ch/dashboard')
+    expect(html).toContain('https://app.getmegga.com/dashboard/admin')
+    expect(html).not.toContain('https://getmegga.com/dashboard')
   })
 
   it('interne à l’équipe : pilule vers la console, AUCUNE mention légale', () => {

@@ -165,10 +165,10 @@ serve(async (req) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
       body: JSON.stringify({
-        from: 'MEGGA <noreply@megga.ch>',
+        from: 'MEGGA <noreply@getmegga.com>',
         to: [targetEmail],
         subject: 'Réinitialisation de votre mot de passe MEGGA',
-        text: `Bonjour,\n\nUn administrateur MEGGA a déclenché la réinitialisation de votre mot de passe.\n\nRéinitialiser : ${actionLink}\n\nSi vous n'êtes pas à l'origine de cette demande, contactez support@megga.ch.`,
+        text: `Bonjour,\n\nUn administrateur MEGGA a déclenché la réinitialisation de votre mot de passe.\n\nRéinitialiser : ${actionLink}\n\nSi vous n'êtes pas à l'origine de cette demande, contactez support@getmegga.com.`,
       }),
     })
     if (!res.ok) throw new Error(`resend failed: ${res.status}`)

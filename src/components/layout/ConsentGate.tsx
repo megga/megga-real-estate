@@ -6,10 +6,10 @@
  * que comme une étape.
  *
  * Il ne se déclenche plus au premier passage du cas courant : la case cochée
- * sur megga.ch/signup est désormais enregistrée à la création du compte
+ * sur getmegga.com/signup est désormais enregistrée à la création du compte
  * (trigger `handle_new_user`, migration 20260731210000). Restent deux cas, tous
  * deux légitimes :
- *   * inscription par Google/Microsoft — le parcours quitte megga.ch avant que
+ *   * inscription par Google/Microsoft — le parcours quitte getmegga.com avant que
  *     le compte existe et `signInWithOAuth` ne transporte pas de métadonnées,
  *     la preuve ne peut donc pas être écrite à la création ;
  *   * bump de version d'un document sur un compte existant.

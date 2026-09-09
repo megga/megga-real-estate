@@ -103,7 +103,7 @@ export const DEFAULT_PROFILE: ProfileData = {
   lastName: 'Lyonnet',
   title: 'Agent principal',
   agency: 'MEGGA Genève',
-  email: 'gregory@megga.ch',
+  email: 'gregory@getmegga.com',
   phone: '+41 22 555 01 02',
   mobile: '+41 79 412 88 21',
   rcc: 'RCC-2018-GE-4421',

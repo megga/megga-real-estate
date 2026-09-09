@@ -7,7 +7,7 @@
 // pdfOptions A4/printBackground/preferCSSPageSize (le template a déjà @page A4).
 // authenticate = HTTP Basic, passé par l'appelant depuis MEGGA_PREVIEW_BASIC_AUTH
 // et omis si le secret est absent. Le gate Basic Auth vit sur la VITRINE
-// (megga.ch, sites/megga-vitrine/_worker.js), pas sur le CRM app.megga.ch que
+// (getmegga.com, sites/megga-vitrine/_worker.js), pas sur le CRM app.getmegga.com que
 // cette fonction rend : les pages visées ne sont plus gatées.
 
 import { redactPII } from './pii-redaction.ts'
@@ -45,7 +45,7 @@ export function buildCfPdfRequestBody(input: CfPdfRequestInput): Record<string, 
  * ENTIÈRE — et avec elle l'hôte et le chemin, c'est-à-dire exactement ce qui désigne le
  * coupable quand le rendu est mal configuré. Le dépôt a vécu cette panne : un lien pointant
  * un hôte sans DNS, invisible longtemps. `at <render-url>` ne dit rien ;
- * `at https://kyc.megga.ch/kyc-report/[REDACTED:TOKEN]` nomme le fautif.
+ * `at https://kyc.getmegga.com/kyc-report/[REDACTED:TOKEN]` nomme le fautif.
  *
  * POURQUOI UNE SUBSTITUTION LITTÉRALE, et pas un motif qui rattraperait le jeton tronqué ou
  * percent-encodé. Un FRAGMENT de jeton n'est pas une capacité : `verifyMagicLinkToken` exige

@@ -31,7 +31,7 @@ export function Step8Success({ data, onClose, onBackToCRM }: SuccessProps) {
   const slug = (data.addr || 'nouveau-bien').toLowerCase()
     .normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40)
-  const publicUrl = `megga.ch/annonce/${slug}`
+  const publicUrl = `getmegga.com/annonce/${slug}`
 
   // Une seule issue depuis le retrait du mode de publication : le bien est
   // actif. Les variantes « programmée » et « brouillon » sont parties avec lui.

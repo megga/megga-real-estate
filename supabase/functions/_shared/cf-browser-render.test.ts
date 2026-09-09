@@ -4,11 +4,11 @@ import { buildCfPdfRequestBody, parseBasicAuthPair, redactCfRenderError } from '
 describe('buildCfPdfRequestBody', () => {
   it('construit un corps A4 avec auth Basic + attente SPA', () => {
     const body = buildCfPdfRequestBody({
-      url: 'https://megga.ch/kyc-report/TOKEN',
+      url: 'https://getmegga.com/kyc-report/TOKEN',
       basicUser: 'ai',
       basicPass: 'ai',
     })
-    expect(body.url).toBe('https://megga.ch/kyc-report/TOKEN')
+    expect(body.url).toBe('https://getmegga.com/kyc-report/TOKEN')
     expect(body.authenticate).toEqual({ username: 'ai', password: 'ai' })
     expect(body.gotoOptions).toMatchObject({ waitUntil: 'networkidle0' })
     expect(body.waitForSelector).toMatchObject({ selector: '#pdf-ready' })
@@ -26,14 +26,14 @@ describe('redactCfRenderError', () => {
   const PAYLOAD = 'eyJpZCI6IjNmMmE5YzFlLTc3YjQtNGQyMS05YTU1LTBlMWIyYzNkNGU1ZiIsImV4cCI6MTg5MzQ1NjAwMH0'
   const SIG = 'CzBVep_E6Q4zWH2ix-wRNluApcrvFDleg6jN8hc8YYY'
   const TOKEN = `${PAYLOAD}.${SIG}`
-  // Hôte volontairement FAUX (le CRM est sur app.megga.ch) : c'est la panne de configuration
+  // Hôte volontairement FAUX (le CRM est sur app.getmegga.com) : c'est la panne de configuration
   // qu'on veut voir survivre au caviardage, puisque c'est elle qui a déjà coûté du temps.
-  const RENDER_URL = `https://kyc.megga.ch/kyc-report/${TOKEN}`
+  const RENDER_URL = `https://kyc.getmegga.com/kyc-report/${TOKEN}`
 
   it('garde l’hôte et le chemin, ne retire que le jeton', () => {
     const out = redactCfRenderError(`page.goto: net::ERR_NAME_NOT_RESOLVED at ${RENDER_URL}`, RENDER_URL)
     // L'assertion qui compte : le journal désigne encore l'hôte à corriger.
-    expect(out).toBe('page.goto: net::ERR_NAME_NOT_RESOLVED at https://kyc.megga.ch/kyc-report/[REDACTED:TOKEN]')
+    expect(out).toBe('page.goto: net::ERR_NAME_NOT_RESOLVED at https://kyc.getmegga.com/kyc-report/[REDACTED:TOKEN]')
     expect(out).not.toContain(PAYLOAD)
     expect(out).not.toContain(SIG)
   })
@@ -44,12 +44,12 @@ describe('redactCfRenderError', () => {
     // prend le relais. Lui emporte « /kyc-report/ » avec la valeur — on perd la route, on garde
     // l'hôte, et le jeton tombe. C'est le contrat réel : on l'assère plutôt que de le souhaiter.
     const out = redactCfRenderError(
-      `net::ERR_ABORTED at https://kyc.megga.ch/kyc-report/${PAYLOAD}%2E${SIG}`,
+      `net::ERR_ABORTED at https://kyc.getmegga.com/kyc-report/${PAYLOAD}%2E${SIG}`,
       RENDER_URL,
     )
     expect(out).not.toContain(SIG)
     expect(out).not.toContain(PAYLOAD)
-    expect(out, "l'hôte fautif doit rester nommé").toContain('kyc.megga.ch')
+    expect(out, "l'hôte fautif doit rester nommé").toContain('kyc.getmegga.com')
   })
 
   it("LIMITE ASSUMÉE : un fragment tronqué dans du JSON échappé survit", () => {
@@ -62,7 +62,7 @@ describe('redactCfRenderError', () => {
     // ce qui n'ouvre rien ; elle a été retirée. Ce test EXISTE pour que le jour où quelqu'un
     // croira le contraire, il trouve la mesure plutôt que l'illusion.
     const tronque = PAYLOAD.slice(0, 60)
-    const body = `{"success":false,"errors":[{"code":10000,"message":"Navigation timeout at https:\\/\\/kyc.megga.ch\\/kyc-report\\/${tronque}…"}]}`
+    const body = `{"success":false,"errors":[{"code":10000,"message":"Navigation timeout at https:\\/\\/kyc.getmegga.com\\/kyc-report\\/${tronque}…"}]}`
     const out = redactCfRenderError(body, RENDER_URL)
     expect(out).toContain(tronque)
     expect(out, 'le jeton COMPLET, lui, ne doit jamais survivre').not.toContain(`${PAYLOAD}.${SIG}`)
@@ -73,8 +73,8 @@ describe('redactCfRenderError', () => {
     // branché derrière pour ce qui arrive d'ailleurs — redirection vers une autre route, JWT
     // d'un intermédiaire. Lui non plus n'a pas à emporter l'hôte.
     const jwt = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'
-    const out = redactCfRenderError(`net::ERR_ABORTED at https://kyc.megga.ch/r/${jwt}`, RENDER_URL)
-    expect(out).toBe('net::ERR_ABORTED at https://kyc.megga.ch/r/[REDACTED:TOKEN]')
+    const out = redactCfRenderError(`net::ERR_ABORTED at https://kyc.getmegga.com/r/${jwt}`, RENDER_URL)
+    expect(out).toBe('net::ERR_ABORTED at https://kyc.getmegga.com/r/[REDACTED:TOKEN]')
   })
 
   it('laisse intact un corps d’erreur sans jeton', () => {
@@ -85,8 +85,8 @@ describe('redactCfRenderError', () => {
   it('ne caviarde rien quand l’URL rendue ne porte pas de jeton', () => {
     // Garde-fou du plancher de longueur : une amorce vide vaudrait motif vide, donc effacerait
     // le corps entier — un caviardage qui détruit tout est le défaut qu'on corrige, pas un repli.
-    const body = 'net::ERR_CONNECTION_REFUSED at https://kyc.megga.ch/'
-    expect(redactCfRenderError(body, 'https://kyc.megga.ch/')).toBe(body)
+    const body = 'net::ERR_CONNECTION_REFUSED at https://kyc.getmegga.com/'
+    expect(redactCfRenderError(body, 'https://kyc.getmegga.com/')).toBe(body)
   })
 
   it('tolère un corps vide (cfRes.text() peut échouer)', () => {

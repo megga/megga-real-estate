@@ -17,7 +17,7 @@ const base: BookingEmailParams = {
   videoLink: 'https://meet.google.com/abc-defg-hij',
   agencyName: 'Régie du Rhône',
   agentName: 'Gregory Lyonnet',
-  manageUrl: 'https://app.megga.ch/visite/jeton/modifier',
+  manageUrl: 'https://app.getmegga.com/visite/jeton/modifier',
 }
 
 describe('buildBookingEmail — ce que le client doit pouvoir faire', () => {
@@ -97,7 +97,7 @@ describe('buildBookingEmail — ce que le client doit pouvoir faire', () => {
 
   it('porte l’habillage commun et jamais l’ancien wordmark', () => {
     const html = buildBookingEmail(base).html
-    expect(html).toContain('app.megga.ch/email/megga-logo-white.png')
+    expect(html).toContain('app.getmegga.com/email/megga-logo-white.png')
     expect(html).not.toContain('Immobilier Suisse')
   })
 })

@@ -1,9 +1,9 @@
-# Vitrine MEGGA (megga.ch)
+# Vitrine MEGGA (getmegga.com)
 
 Site **vitrine SaaS B2B** de MEGGA CRM — landing marketing publique qui présente le
-**Transaction OS immobilier compliance-first** et pousse vers le CRM (`app.megga.ch`).
+**Transaction OS immobilier compliance-first** et pousse vers le CRM (`app.getmegga.com`).
 
-> **Pivot juin 2026 — CRM-first.** megga.ch sert cette vitrine (et non plus la
+> **Pivot juin 2026 — CRM-first.** getmegga.com sert cette vitrine (et non plus la
 > marketplace, supprimee du depot en juillet 2026 — recuperable via git).
 > Déployé via `scripts/overlay-storefront.mjs` (`storefront = sites/megga-vitrine`).
 
@@ -26,13 +26,13 @@ de connexion et redirige ici (`VITRINE_LOGIN_URL` dans `src/App.tsx`), donc gate
 ses liens arrivent par e-mail, chez des gens qui n'ont pas le mot de passe du gate.
 
 ## CTA → inscription et connexion
-Les deux vivent **sur la vitrine** (inversion post-pivot), pas sur `app.megga.ch/auth`
+Les deux vivent **sur la vitrine** (inversion post-pivot), pas sur `app.getmegga.com/auth`
 dont toutes les routes redirigent ici :
 - « Se connecter » → `login.html`
 - « Créer un compte » → `signup.html`
 
 Après authentification, `js/megga-auth.js` passe la session au CRM en fragment
-(`app.megga.ch/auth/callback#access_token=…`) : les deux origines ne partagent pas de
+(`app.getmegga.com/auth/callback#access_token=…`) : les deux origines ne partagent pas de
 `localStorage`, une redirection nue y arriverait déconnectée.
 
 ## Rebrand

@@ -125,7 +125,7 @@ export function languageFromUrl(search?: string): string | null {
 /**
  * Reprise de la langue de la vitrine — AVANT `init()`, à dessein.
  *
- * megga.ch et app.megga.ch sont deux origines : leurs stockages locaux sont
+ * getmegga.com et app.getmegga.com sont deux origines : leurs stockages locaux sont
  * cloisonnés, un agent qui lisait la vitrine en allemand atterrissait donc dans
  * un CRM en français — ou en anglais si un vieux réglage traînait. La langue
  * voyage par l'URL de reprise, comme la session (`goToCrm`,

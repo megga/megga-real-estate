@@ -64,7 +64,7 @@ describe.skipIf(!HAS_KEYS)('kyc-report-data — baseline contract', () => {
     const res = await fetch(ENDPOINT, {
       method: 'OPTIONS',
       headers: {
-        Origin: 'https://megga.ch',
+        Origin: 'https://getmegga.com',
         'Access-Control-Request-Method': 'POST',
         'Access-Control-Request-Headers': 'content-type',
         ...authHeaders,

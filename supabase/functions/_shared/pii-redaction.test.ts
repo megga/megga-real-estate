@@ -278,9 +278,9 @@ describe('redactPII — TOKEN (jeton de lien magique / réception)', () => {
 
   it.each([
     // Le cas d'origine : Cloudflare Browser Rendering recopie l'URL qu'il n'a pas pu charger.
-    `net::ERR_ABORTED at https://app.megga.ch/kyc-report/${TOKEN}`,
+    `net::ERR_ABORTED at https://app.getmegga.com/kyc-report/${TOKEN}`,
     // Même chose en fin de phrase — le point de ponctuation ne doit pas masquer le jeton.
-    `page.goto a échoué sur https://app.megga.ch/kyc-report/${TOKEN}.`,
+    `page.goto a échoué sur https://app.getmegga.com/kyc-report/${TOKEN}.`,
     // Porteurs réels du jeton côté API.
     `GET /functions/v1/buyer-reception-get?token=${TOKEN} 401`,
     `x-magic-link-token: ${TOKEN}`,
@@ -299,8 +299,8 @@ describe('redactPII — TOKEN (jeton de lien magique / réception)', () => {
 
   it('garde le motif de l’échec : seule la valeur du jeton disparaît', () => {
     // Un opérateur doit continuer à savoir POURQUOI le rendu a échoué et sur quelle route.
-    const r = redactPII(`net::ERR_CONNECTION_REFUSED at https://app.megga.ch/kyc-report/${TOKEN}`)
-    expect(r.redactedText).toBe('net::ERR_CONNECTION_REFUSED at https://app.megga.ch/kyc-report/[REDACTED:TOKEN]')
+    const r = redactPII(`net::ERR_CONNECTION_REFUSED at https://app.getmegga.com/kyc-report/${TOKEN}`)
+    expect(r.redactedText).toBe('net::ERR_CONNECTION_REFUSED at https://app.getmegga.com/kyc-report/[REDACTED:TOKEN]')
   })
 
   it('attrape un jeton TRONQUÉ derrière son marqueur — ce que la forme seule ne peut pas voir', () => {
@@ -317,7 +317,7 @@ describe('redactPII — TOKEN (jeton de lien magique / réception)', () => {
   // journal d'exploitation est fait de noms d'hôtes, de fichiers d'assets et de versions, tous
   // de forme « quelque chose point quelque chose ». Aucun ne doit être caviardé.
   it.each([
-    'https://app.megga.ch/kyc-report/ — page introuvable',
+    'https://app.getmegga.com/kyc-report/ — page introuvable',
     'net::ERR_NAME_NOT_RESOLVED at https://eayczugyrvmtqnnmvjod.supabase.co/rest/v1/kyc_cases',
     'Rapport-KYC-KYC-2026-AB3F.pdf introuvable',
     'assets/index-DZ3kf9aQ2xPq1mnbVcXs.js 404',
@@ -359,7 +359,7 @@ describe('ordre du catalogue — TOKEN passe en TÊTE', () => {
     // l'URL, il satisfait alors le motif IBAN de bout en bout.
     // Si TOKEN repasse APRÈS IBAN, IBAN avale le payload, le fragment « [REDACTED:IBAN].<sig> »
     // n'a plus la forme d'un jeton, et la SIGNATURE ressort en clair : ce test tombe.
-    const trap = `net::ERR_ABORTED at https://app.megga.ch/kyc-report/CH93QRSTUVWXYZ0123456789ABCDEF.${SIG}`
+    const trap = `net::ERR_ABORTED at https://app.getmegga.com/kyc-report/CH93QRSTUVWXYZ0123456789ABCDEF.${SIG}`
     const r = redactPII(trap)
     expect(r.counts.TOKEN).toBe(1)
     expect(r.counts.IBAN).toBe(0)

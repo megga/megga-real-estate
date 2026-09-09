@@ -101,7 +101,7 @@ export function providerConfigFromEnv(get: (k: string) => string | undefined): P
 }
 
 /** Origines autorisées pour l'URI de redirection de la pop-up (D1). */
-export const MAIL_OAUTH_ORIGINS = ['https://app.megga.ch', 'http://localhost:5173', 'http://localhost:5174'] as const
+export const MAIL_OAUTH_ORIGINS = ['https://app.getmegga.com', 'http://localhost:5173', 'http://localhost:5174'] as const
 export function redirectUriFor(origin: string): string | null {
   return (MAIL_OAUTH_ORIGINS as readonly string[]).includes(origin) ? `${origin}/oauth/mail/callback` : null
 }

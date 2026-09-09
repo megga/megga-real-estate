@@ -931,7 +931,7 @@ export async function prepareSendListings(ctx: ActionCtx, a: Args): Promise<Prep
   // n'empêche rien : il reste dans le texte, simplement sans image.
   // On n'envoie QUE des photos que NOUS hébergeons : le repli source tiers (URL d'annonce
   // Flatfox non vérifiée) est écarté, jamais relayé au client sous l'identité WhatsApp de
-  // l'agence. Hôtes autorisés : R2 (img.megga.ch) + Storage Supabase (staging des uploads
+  // l'agence. Hôtes autorisés : R2 (img.getmegga.com) + Storage Supabase (staging des uploads
   // agents, utilisé tel quel quand le miroir R2 a échoué). Sans env → https seul (repli).
   const allowedHosts: string[] = []
   for (const base of [Deno.env.get('R2_PUBLIC_BASE'), Deno.env.get('SUPABASE_URL')]) {

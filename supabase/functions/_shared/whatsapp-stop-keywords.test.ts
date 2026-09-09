@@ -93,8 +93,8 @@ describe('buildStopAck — il porte l’avis LPD, pas un simple « c’est noté
     for (const lang of LANGS) {
       const t = buildStopAck({ lang, agencyName: 'Régie du Lac SA' })
       expect(t, lang).toContain('Régie du Lac SA')
-      expect(t, lang).toContain('privacy@megga.ch')
-      expect(t, lang).toContain('https://megga.ch/privacy')
+      expect(t, lang).toContain('privacy@getmegga.com')
+      expect(t, lang).toContain('https://getmegga.com/privacy')
       // Le retrait doit être confirmé : c'est la seule chose que la personne a demandée.
       expect(t.length, lang).toBeGreaterThan(200)
     }

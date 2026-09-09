@@ -112,7 +112,7 @@ async function sendDeviceAlert(to: string, subject: string, html: string) {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: 'MEGGA Security <security@megga.ch>',
+      from: 'MEGGA Security <security@getmegga.com>',
       to: [to],
       subject,
       html,

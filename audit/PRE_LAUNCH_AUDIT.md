@@ -24,7 +24,7 @@ Gravité : **P0** (bloquant lancement) · **ÉLEVÉ** · **MOYEN** · **FAIBLE**
 Priorité de traitement (sécurité). Correctifs = ressort de Julien, au cas par cas.
 
 1. **🔴 P0 — `send-email` = relais email ouvert** (`S1a`). Envoi non authentifié, destinataire + HTML arbitraires
-   depuis `noreply@megga.ch`. **Le plus urgent** : risque phishing/spam + destruction de la réputation DKIM/SPF
+   depuis `noreply@getmegga.com`. **Le plus urgent** : risque phishing/spam + destruction de la réputation DKIM/SPF
    du domaine dès l'ouverture publique.
 2. **🔴 P0 — JWT `service_role` forgeable** (`photo-processor` + `backfill-cf-images`, `S1b`/`S22`) :
    `decodeJwtRole()` décode le rôle **sans vérifier la signature** ; sous `--no-verify-jwt`, un anonyme forge un
@@ -84,7 +84,7 @@ valide pas cryptographiquement le token (via `auth.getUser` ou `safeEqual` contr
 
 | ID | Gravité | Fonction | Exploit | Emplacement |
 |----|---------|----------|---------|-------------|
-| **S1a** | **P0** | `send-email` | **Relais email ouvert non authentifié** : `to` arbitraire + corps **HTML arbitraire** (template `default` avec faux `Bearer`, ou templates publics `contact_*`). Le « contrôle » `startsWith('Bearer ')` **ne valide pas le token**. Spam/phishing depuis `noreply@megga.ch` → réputation DKIM/SPF. | `send-email/index.ts:336-340,414-439` |
+| **S1a** | **P0** | `send-email` | **Relais email ouvert non authentifié** : `to` arbitraire + corps **HTML arbitraire** (template `default` avec faux `Bearer`, ou templates publics `contact_*`). Le « contrôle » `startsWith('Bearer ')` **ne valide pas le token**. Spam/phishing depuis `noreply@getmegga.com` → réputation DKIM/SPF. | `send-email/index.ts:336-340,414-439` |
 | **S1b** | **ÉLEVÉ** | `photo-processor` | Garde service-role **contournable** : `decodeJwtRole()` décode le JWT **sans vérifier la signature** et accepte `role==='service_role'`. JWT forgé `{"role":"service_role"}` passe → **SSRF** (`photoUrls[]` fetchées sans allowlist) + **écrasement R2 arbitraire** (path-traversal sur `listingId` non validé, clé `listings/${listingId}/...`). | `photo-processor/index.ts:61-70,167,210` |
 | **S1c** | **ÉLEVÉ** | `dashboard-ai-hint` | Aucune auth → abus de coût **Claude Sonnet** (LLM le plus cher) + **injection cross-tenant** dans `activity_events` (journal de conformité) avec `agency_id` contrôlé par l'attaquant. | `dashboard-ai-hint/index.ts:166-197` |
 | **S1d** | **ÉLEVÉ** | `market-scraper-batch` | **Amplificateur DoS** : un appel anonyme déclenche 42 scrapes en cascade (service key propagée). Contient aussi un `count:'exact'` sur `market_listings`. | `market-scraper-batch/index.ts:35-102` |
@@ -153,7 +153,7 @@ Advisor sécurité Supabase : **170 lints** (1 ERROR = `spatial_ref_sys`/PostGIS
 | **S22** | **P0** | 📄 | `backfill-cf-images` : **même** garde JWT forgeable que `photo-processor` (`decodeJwtRole` sans vérif de signature, accepte `role==='service_role'`). Anon → déclenche le batch (coût CF Images/CDN Flatfox) + **corruption `market_listings`** (stamp `photos_cf:[]`, `photos_cf_processed_at=now`) + **pivot vers `photo-processor`** (forward du token forgé). | `backfill-cf-images/index.ts:34-43,70-71,154-187` |
 | **S23** | ÉLEVÉ | 📄 | `c2pa-sign` : **SSRF authentifié**. `photoUrls[]` arbitraires **jamais rapprochés** de `property.photos` ; `fetch()` sans allowlist/timeout/blocage IP privée (169.254.169.254, localhost, 10.x). SSRF aveugle (port-scan interne). | `c2pa-sign/index.ts:28,83,132,160` |
 | **S24** | ÉLEVÉ | 📄 | `virtual-staging` : **SSRF authentifié** + **injection de chemin Storage** : `style` (typé mais non validé au runtime) interpolé dans `${propertyId}/staged_..._${style}.jpg` avec `upsert:true` → `..`/`/` permet d'**écraser des objets arbitraires** du bucket `property-photos`. | `virtual-staging/index.ts:355,414,501-509` |
-| **S25** | MOYEN | 📄 | `send-property-email` : injection HTML e-mail (`photo_url`/`source_url`/`message`/`title` non échappés) vers `to` arbitraire depuis `noreply@megga.ch` (gated agent). | `send-property-email/index.ts:34,45,90,104,151` |
+| **S25** | MOYEN | 📄 | `send-property-email` : injection HTML e-mail (`photo_url`/`source_url`/`message`/`title` non échappés) vers `to` arbitraire depuis `noreply@getmegga.com` (gated agent). | `send-property-email/index.ts:34,45,90,104,151` |
 | **S26** | MOYEN | 📄 | `audit-pdf-export` : **injection de filtre PostgREST** — `filters.search` interpolé sans échappement dans `.or('action.ilike...')` (fuite bornée par `.eq('agency_id')` ANDé). | `audit-pdf-export/index.ts:283-287` |
 
 **Requalif** : `translate-on-demand` (`S1i`) → **ÉLEVÉ** (aucune auth + abus DeepSeek + empoisonnement `translation_cache`).

@@ -26,7 +26,7 @@ const racine = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const source = resolve(racine, 'sites/megga-vitrine');
 const dossierI18n = resolve(source, 'i18n');
 const dist = resolve(racine, 'dist');
-const SITE = 'https://megga.ch';
+const SITE = 'https://getmegga.com';
 
 function lireDictionnaire(langue) {
   const f = join(dossierI18n, `${langue}.json`);

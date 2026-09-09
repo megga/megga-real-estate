@@ -12,7 +12,7 @@
  * ⛔ ET UNE EXEMPTION AU MOTIF FAUX EST PIRE QU'UNE ABSENCE. Une absence se voit
  * et se questionne ; un motif écrit se lit, se croit, et fait passer douze
  * fichiers pour examinés alors que huit d'entre eux sont servis sur
- * `app.megga.ch`. C'est la vacuité n°6 retournée : là une garde muette prise
+ * `app.getmegga.com`. C'est la vacuité n°6 retournée : là une garde muette prise
  * pour un verdict, ici un verdict écrit qui ne repose sur rien.
  *
  * ── OÙ PASSE LA FRONTIÈRE ────────────────────────────────────────────────────
@@ -29,7 +29,7 @@
  *
  * ── LA QUESTION DE PRODUIT A ÉTÉ TRANCHÉE (15 août 2026) ────────────────────
  * Ce fichier a d'abord CONSTATÉ que sept bancs étaient joignables sur
- * `app.megga.ch` — dont `/dev/sentry-test`, qui DÉCLENCHE des erreurs Sentry —
+ * `app.getmegga.com` — dont `/dev/sentry-test`, qui DÉCLENCHE des erreurs Sentry —
  * en disant que la décision ne lui appartenait pas. Julien a tranché : les sept
  * passent au ternaire. Un banc de développement livré n'est pas seulement du
  * poids mort, c'est une surface que personne ne teste, ouverte à qui connaît

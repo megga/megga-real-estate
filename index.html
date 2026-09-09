@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <!-- app.megga.ch = CRM agent privé : rien à indexer. Tout est derrière
+    <!-- app.getmegga.com = CRM agent privé : rien à indexer. Tout est derrière
          authentification, et les rares pages publiques sont des liens tokenisés
          (portail vendeur, visites, KYC) qui ne doivent pas être crawlés.
-         La vitrine indexable vit sur megga.ch (sites/megga-vitrine). -->
+         La vitrine indexable vit sur getmegga.com (sites/megga-vitrine). -->
     <meta name="robots" content="noindex, nofollow" />
     <meta name="description" content="MEGGA — CRM immobilier suisse. Espace de travail des agents." />
     <meta name="theme-color" content="#14161C" />
@@ -36,7 +36,7 @@
       //
       // ⚠ Cette garde n'a plus AUCUN lecteur dans ce fichier depuis le 16.08.2026 :
       // GA4 (G-W8QK7C0NB1) et le conteneur GTM ont été retirés, la mesure d'audience
-      // vivant désormais sur la vitrine (megga.ch), qui porte l'entonnoir. Elle reste
+      // vivant désormais sur la vitrine (getmegga.com), qui porte l'entonnoir. Elle reste
       // armée parce que le <head> est l'endroit que les mouchards regagnent : le
       // prochain snippet collé ici doit passer par elle, pas réinventer sa liste.
       //
@@ -63,9 +63,9 @@
         /^\/(kyc-report|kyc|reception|rendez-vous-accueil|rendez-vous|visit|visite|accept-invite|auth)(\/|$)/i.test(location.pathname);
     </script>
     <!-- Aucune balise d'audience ici — ni GA4, ni conteneur GTM (retirés le
-         16.08.2026 : G-W8QK7C0NB1 et GTM-TFVCHXFJ). app.megga.ch est un espace de
+         16.08.2026 : G-W8QK7C0NB1 et GTM-TFVCHXFJ). app.getmegga.com est un espace de
          travail privé, entièrement derrière authentification : il n'y a pas
-         d'acquisition à y lire, et l'entonnoir se mesure sur la vitrine (megga.ch,
+         d'acquisition à y lire, et l'entonnoir se mesure sur la vitrine (getmegga.com,
          G-FG6Y13MXPJ). Les mouchards qui restent — Sentry, PostHog, Intercom —
          sont chargés par React et gardés par `isTokenBearingPath`. -->
     <script>
@@ -145,9 +145,9 @@
         }
       })();
     </script>
-    <!-- Écran d'arrivée post-connexion — habillage de la vitrine (megga.ch).
+    <!-- Écran d'arrivée post-connexion — habillage de la vitrine (getmegga.com).
          Inline (styles + logo) à dessein : il doit peindre dès la PREMIÈRE frame,
-         avant le bundle React, sinon l'agent qui revient de megga.ch/login voit
+         avant le bundle React, sinon l'agent qui revient de getmegga.com/login voit
          une page blanche pendant que le JS se télécharge.
          ⚠ Le jumeau React (src/components/layout/BootSplash.tsx) RÉUTILISE ces
          classes et rejoue ce balisage : les deux doivent rester identiques au

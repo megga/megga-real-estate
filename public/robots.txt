@@ -1,10 +1,10 @@
-# MEGGA Real Estate — robots.txt de app.megga.ch (CRM agent, privé).
+# MEGGA Real Estate — robots.txt de app.getmegga.com (CRM agent, privé).
 #
 # Rien à indexer ici : tout est derrière authentification, et les seules pages
 # publiques sont des liens tokenisés (portail vendeur, visites, KYC) qui ne
 # doivent surtout pas être crawlés.
 #
-# La vitrine publique vit sur megga.ch et porte ses propres robots.txt +
+# La vitrine publique vit sur getmegga.com et porte ses propres robots.txt +
 # sitemap.xml (sites/megga-vitrine/). L'ancien sitemap de ce dépôt annonçait
 # /acheter /louer /vendre /aide… — pages retirées au pivot CRM-first.
 

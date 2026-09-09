@@ -93,7 +93,7 @@ serve(async (req: Request) => {
               formData.append('meta', JSON.stringify({
                 proof: { hash: '', mimeType: photoBlob.type, timestamp: new Date().toISOString() },
                 information: [
-                  { provider: 'MEGGA Real Estate', name: 'platform', value: 'megga.ch' },
+                  { provider: 'MEGGA Real Estate', name: 'platform', value: 'getmegga.com' },
                   { provider: 'MEGGA Real Estate', name: 'property_id', value: propertyId },
                 ],
               }))

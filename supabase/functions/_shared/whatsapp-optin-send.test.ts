@@ -203,7 +203,7 @@ describe('sendOptinInvite — l’invitation qui part', () => {
     await sendOptinInvite(h.admin, ARGS)
     const p = JSON.parse(resend.mock.calls[0][1].body as string)
     expect(p.to).toEqual(['client@exemple.ch'])
-    expect(p.from).toContain('noreply@megga.ch')
+    expect(p.from).toContain('noreply@getmegga.com')
     expect(p.tags).toContainEqual({ name: 'kind', value: 'wa_optin_invite' })
   })
 

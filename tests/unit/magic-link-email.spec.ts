@@ -17,7 +17,7 @@ const base = {
   firstName: 'Marie',
   agentFullName: 'Gregory Lyonnet',
   agencyName: 'Régie du Rhône',
-  url: 'https://app.megga.ch/kyc/jeton-abc',
+  url: 'https://app.getmegga.com/kyc/jeton-abc',
   customMessage: null,
 }
 
@@ -60,7 +60,7 @@ describe('buildMagicLinkEmail — les quatre langues', () => {
 
   it('porte le lien dans le bouton, dans les quatre langues', () => {
     for (const locale of LANGUES) {
-      expect(buildMagicLinkEmail({ ...base, locale }).html).toContain('https://app.megga.ch/kyc/jeton-abc')
+      expect(buildMagicLinkEmail({ ...base, locale }).html).toContain('https://app.getmegga.com/kyc/jeton-abc')
     }
   })
 
@@ -115,7 +115,7 @@ describe('buildMagicLinkEmail — ce qu’il ne doit jamais faire', () => {
 
   it('porte l’habillage commun, jamais l’ancien fond clair', () => {
     const html = buildMagicLinkEmail(base).html
-    expect(html).toContain('app.megga.ch/email/megga-logo-white.png')
+    expect(html).toContain('app.getmegga.com/email/megga-logo-white.png')
     expect(html).not.toContain('#EDEFF3')
     expect(html).not.toContain('Manrope')
   })

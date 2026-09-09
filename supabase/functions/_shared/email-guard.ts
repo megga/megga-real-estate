@@ -5,7 +5,7 @@
 // par e-mail. Le refus était enregistré, opposable — et ignoré par la moitié des canaux.
 //
 // ⛔ ET LA PROMESSE ÉTAIT FAUSSE. `send-relance-email` écrivait « Si vous ne souhaitez plus
-// recevoir de messages, répondez avec STOP » depuis `noreply@megga.ch`, SANS `reply_to`, et
+// recevoir de messages, répondez avec STOP » depuis `noreply@getmegga.com`, SANS `reply_to`, et
 // aucune réception d'e-mail n'existe dans le dépôt. Cette phrase ne pouvait
 // structurellement pas être tenue — c'est pire que l'absence de mécanisme, parce qu'elle
 // fait croire que le refus a été pris en compte. Elle est remplacée par un lien réel et par
@@ -75,7 +75,7 @@ export async function unsubscribeHeaders(
     const token = await signMagicLinkToken({
       id: contactId ?? '-', exp: unix, k: 'unsub', e: to.trim().toLowerCase(),
     })
-    // ⛔ LE HÔTE DES EDGE FUNCTIONS, jamais `app.megga.ch`. Cloudflare Pages y sert un
+    // ⛔ LE HÔTE DES EDGE FUNCTIONS, jamais `app.getmegga.com`. Cloudflare Pages y sert un
     // fallback SPA : mesuré le 15.08.2026, le GET du pied de page rend la coquille de l'app
     // en `200 text/html` et le POST one-click de Gmail rend `405`. Le lien affichait donc
     // « c'est fait » sans écrire une seule ligne dans `contact_suppressions` — un mécanisme

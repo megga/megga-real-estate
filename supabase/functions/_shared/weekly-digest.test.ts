@@ -61,7 +61,7 @@ describe('fallback déterministe', () => {
 })
 
 describe('digestHtml', () => {
-  const TABLEAU_DE_BORD = 'https://app.megga.ch/dashboard'
+  const TABLEAU_DE_BORD = 'https://app.getmegga.com/dashboard'
 
   it('échappe le HTML et met les retours à la ligne', () => {
     const h = digestHtml('Ligne 1\nLigne <2> & fin', 'Semaine test', TABLEAU_DE_BORD)
@@ -93,6 +93,6 @@ describe('digestHtml', () => {
   it('le lien du tableau de bord vient de l’appelant, jamais d’une adresse en dur', () => {
     const h = digestHtml('Bilan', 'Semaine test', 'https://exemple.test/dashboard')
     expect(h).toContain('https://exemple.test/dashboard')
-    expect(h).not.toContain('https://app.megga.ch/dashboard')
+    expect(h).not.toContain('https://app.getmegga.com/dashboard')
   })
 })

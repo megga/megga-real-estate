@@ -85,7 +85,7 @@ describe('noticeRecipients — les dirigeants, jamais toute l\'équipe', () => {
 })
 
 describe('buildVerificationNotice', () => {
-  const base = { agencyName: 'Regie Test SA', appUrl: 'https://app.megga.ch' }
+  const base = { agencyName: 'Regie Test SA', appUrl: 'https://app.getmegga.com' }
 
   it('une validation annonce ce que l\'agence peut désormais faire', () => {
     const n = buildVerificationNotice({ ...base, status: 'validated', reason: null })
@@ -106,7 +106,7 @@ describe('buildVerificationNotice', () => {
     })
     expect(n.html, 'sans le motif, le dirigeant resoumettrait a l\'identique')
       .toContain('Le numero de registre a un chiffre de trop')
-    expect(n.html).toContain('https://app.megga.ch/dashboard/identite')
+    expect(n.html).toContain('https://app.getmegga.com/dashboard/identite')
   })
 
   it('un rejet porte son motif mais AUCUN lien vers le formulaire', () => {

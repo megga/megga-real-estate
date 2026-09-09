@@ -1,8 +1,8 @@
-// MEGGA vitrine (megga.ch) — HTTP Basic Auth gate (pré-lancement).
+// MEGGA vitrine (getmegga.com) — HTTP Basic Auth gate (pré-lancement).
 //
 // Single-file Pages Worker (Advanced mode): gates the marketing pages with Basic
 // Auth, then serves the static vitrine assets. No Supabase proxy here — the
-// vitrine is a marketing landing that points to the CRM (app.megga.ch); it does
+// vitrine is a marketing landing that points to the CRM (app.getmegga.com); it does
 // not query listings. (The marketplace storefront that did proxy Supabase was
 // deleted from the repo in July 2026; recoverable via git if it ever returns.)
 //
@@ -39,7 +39,7 @@ const CLE_GATE = 'gate';
  * Ce que vaut le gate quand aucun réglage ne répond — `off`, donc OUVERT.
  *
  * Ni le KV ni la variable n'existent en production : c'est donc cette constante
- * qui gouverne `megga.ch`, et le site est en accès libre.
+ * qui gouverne `getmegga.com`, et le site est en accès libre.
  *
  * Refermer, au choix, du plus vif au plus définitif :
  *   1. clé `gate` du KV `VITRINE_CONFIG` → `on` (~60 s, sans déploiement) ;
@@ -494,15 +494,21 @@ function resoudreLangue(pays, subdivision, acceptLanguage) {
 /**
  * Origines admises à interroger l'endpoint depuis un autre hôte.
  *
- * Le CRM vit sur `app.megga.ch`, donc sur une AUTRE origine que la vitrine :
+ * Le CRM vit sur `app.getmegga.com`, donc sur une AUTRE origine que la vitrine :
  * sans cet en-tête, le navigateur lui refuse la lecture de la réponse. Les
  * préversions Cloudflare du projet `megga-app` sont admises pour qu'une branche
  * se teste comme la production ; `localhost` pour `npm run dev`.
  *
- * ⚠ Écrit ICI et pas dans `_headers` : megga.ch tourne en mode Advanced, où
+ * ⚠ Écrit ICI et pas dans `_headers` : getmegga.com tourne en mode Advanced, où
  * Cloudflare n'évalue ni `_headers` ni `_redirects` (cf. public/_headers).
+ * 🔁 MIGRATION getmegga.com (09.09.2026). Les DEUX hôtes du CRM sont admis le temps de
+ * la transition : `app.megga.ch` sert encore le CRM tant que son domaine custom Pages
+ * n'est pas retiré, et il appelle désormais `getmegga.com/api/geo`. Retirer
+ * `app\.megga\.ch` de cette regex à la phase E de docs/migration-getmegga.md — pas
+ * avant, sinon la détection de langue tombe en silence sur l'ancien hôte (elle échoue
+ * fermée : repli français, aucune erreur visible).
  */
-const ORIGINES_CRM = /^https:\/\/(app\.megga\.ch|[a-z0-9-]+\.megga-app\.pages\.dev)$/;
+const ORIGINES_CRM = /^https:\/\/(app\.getmegga\.com|app\.megga\.ch|[a-z0-9-]+\.megga-app\.pages\.dev)$/;
 
 function origineAutorisee(origine) {
   if (!origine) return false;

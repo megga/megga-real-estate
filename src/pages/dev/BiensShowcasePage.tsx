@@ -3,9 +3,9 @@
  *
  * POURQUOI CETTE ROUTE EXISTE. Toute surface `/dashboard/*` passe par
  * `ProtectedRoute`, qui sans session fait
- * `window.location.replace('https://megga.ch/login')` — une redirection ABSOLUE
+ * `window.location.replace('https://getmegga.com/login')` — une redirection ABSOLUE
  * vers la production. Un développeur dont la session locale a expiré est donc
- * expulsé de son propre localhost vers `app.megga.ch`, qui sert `main` : il
+ * expulsé de son propre localhost vers `app.getmegga.com`, qui sert `main` : il
  * relit l'ancienne version en croyant regarder son travail. Le piège coûte
  * cher parce qu'il ne ressemble pas à une erreur.
  *

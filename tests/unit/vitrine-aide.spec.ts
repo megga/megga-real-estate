@@ -1,5 +1,5 @@
 /**
- * Garde-fou : le centre d'aide généré depuis Intercom (`megga.ch/aide`).
+ * Garde-fou : le centre d'aide généré depuis Intercom (`getmegga.com/aide`).
  *
  * Trois défauts SILENCIEUX sont possibles ici, et aucun ne se voit sur une page
  * qui s'affiche :
@@ -87,7 +87,7 @@ describe("centre d'aide généré — plomberie", () => {
     // ⚠ ET LE GATE EST FORCÉ FERMÉ (`VITRINE_GATE: 'on'`), pas laissé à son
     // défaut. Ce test a été écrit le 17.08.2026, quand le défaut était FERMÉ ;
     // il a rougi le lendemain — non pas parce que l'exemption avait cassé, mais
-    // parce que megga.ch était repassée en accès libre (#1259) et que le témoin
+    // parce que getmegga.com était repassée en accès libre (#1259) et que le témoin
     // `/pricing` répondait 200. Un test qui suit l'humeur de la production ne
     // mesure pas ce qu'il prétend : l'exemption doit tenir CHAQUE FOIS que le
     // gate est fermé, quel que soit son réglage du jour.
@@ -99,7 +99,7 @@ describe("centre d'aide généré — plomberie", () => {
     const { default: worker } = await import('../../sites/megga-vitrine/_worker.js')
     const env = { VITRINE_GATE: 'on', ASSETS: { fetch: async () => new Response('ok', { status: 200 }) } }
     const statut = async (chemin: string) =>
-      (await worker.fetch(new Request('https://megga.ch' + chemin), env)).status
+      (await worker.fetch(new Request('https://getmegga.com' + chemin), env)).status
 
     for (const chemin of ['/aide', '/aide/15424977-un-article', '/en/help', '/en/help/15424977-an-article']) {
       expect(await statut(chemin), `${chemin} doit passer le gate`).toBe(200)

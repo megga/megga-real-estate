@@ -279,7 +279,7 @@ describe('Meta buildSendImageRequest', () => {
     const meta = getProvider('meta')
     expect(meta.buildSendImageRequest).toBeDefined()
     const req = meta.buildSendImageRequest!(
-      { toPhone: '41791112233', link: 'https://img.megga.ch/l/abc/0-detail.jpg', caption: 'Appartement 3,5 p. — CHF 2\'450/mois' },
+      { toPhone: '41791112233', link: 'https://img.getmegga.com/l/abc/0-detail.jpg', caption: 'Appartement 3,5 p. — CHF 2\'450/mois' },
       { metaToken: 'TOK', metaPhoneNumberId: 'PNID', metaApiVersion: 'v22.0' },
     )
     expect(req.url).toBe('https://graph.facebook.com/v22.0/PNID/messages')
@@ -289,19 +289,19 @@ describe('Meta buildSendImageRequest', () => {
       messaging_product: 'whatsapp',
       to: '41791112233',
       type: 'image',
-      image: { link: 'https://img.megga.ch/l/abc/0-detail.jpg', caption: 'Appartement 3,5 p. — CHF 2\'450/mois' },
+      image: { link: 'https://img.getmegga.com/l/abc/0-detail.jpg', caption: 'Appartement 3,5 p. — CHF 2\'450/mois' },
     })
   })
 
   it('omet caption du body quand non fournie', () => {
     const meta = getProvider('meta')
     const req = meta.buildSendImageRequest!(
-      { toPhone: '41791112233', link: 'https://img.megga.ch/x.jpg' },
+      { toPhone: '41791112233', link: 'https://img.getmegga.com/x.jpg' },
       { metaToken: 'TOK', metaPhoneNumberId: 'PNID', metaApiVersion: 'v22.0' },
     )
     const body = JSON.parse(req.body)
     expect('caption' in body.image).toBe(false)
-    expect(body.image).toEqual({ link: 'https://img.megga.ch/x.jpg' })
+    expect(body.image).toEqual({ link: 'https://img.getmegga.com/x.jpg' })
   })
 
 })

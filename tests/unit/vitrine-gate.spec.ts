@@ -1,7 +1,7 @@
 /**
  * Garde-fou : la cascade de réglages du gate de la vitrine, et son DÉFAUT.
  *
- * Pourquoi un test. Le mot de passe de megga.ch ne se règle plus dans le code :
+ * Pourquoi un test. Le mot de passe de getmegga.com ne se règle plus dans le code :
  * il vient d'un KV (`VITRINE_CONFIG`, clé `gate`) ou, à défaut, d'une variable
  * d'environnement — deux plans de contrôle vivant dans un tableau de bord que
  * rien ici ne peut relire. Le seul endroit où la règle reste vérifiable est ce
@@ -56,7 +56,7 @@ const FERMÉ = { VITRINE_GATE: 'on' }
 const OUVERT = { VITRINE_GATE: 'off' }
 
 const appeler = (path: string, env: Partial<Env> = {}) =>
-  handler.fetch(new Request('https://megga.ch' + path), { ...env, ASSETS } as Env)
+  handler.fetch(new Request('https://getmegga.com' + path), { ...env, ASSETS } as Env)
 
 /** Une page de contenu, donc gatée : ni page d'auth, ni page légale, ni ressource. */
 const PAGE_GATEE = '/pricing'

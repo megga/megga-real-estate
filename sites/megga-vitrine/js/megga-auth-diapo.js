@@ -78,7 +78,7 @@
 
   function Crm(onglet, vue, bas) {
     return h('div', { class: 'dp-crm' }, [
-      h('div', { class: 'dp-chrome' }, [h('div', { class: 'dp-urlbar', text: 'crm.megga.ch' })]),
+      h('div', { class: 'dp-chrome' }, [h('div', { class: 'dp-urlbar', text: 'app.getmegga.com' })]),
       h('div', { class: 'dp-tabs' }, ['Dashboard', 'Pipeline', 'Matching'].map(function (t) {
         return h('div', { class: 'dp-tab' + (t === onglet ? ' is-on' : ''), text: t });
       })),

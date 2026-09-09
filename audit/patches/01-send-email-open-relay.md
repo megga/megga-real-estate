@@ -5,7 +5,7 @@
 ## Problème
 Le contrôle d'auth `if (!authHeader?.startsWith('Bearer '))` (l.340) **ne valide jamais le token** : n'importe
 quel `Bearer x` passe. De plus le case `default` (l.411-417) envoie `data.html` **arbitraire** vers un `to`
-**arbitraire** depuis `noreply@megga.ch`. → relais ouvert / phishing sous domaine de confiance.
+**arbitraire** depuis `noreply@getmegga.com`. → relais ouvert / phishing sous domaine de confiance.
 
 ## Correctif
 1. Auth **réelle** (`requireAgentAuth`) sur tout template non explicitement public.
@@ -70,7 +70,7 @@ import { requireAgentAuth } from '../_shared/require-agent-auth.ts'   // ⬅️ 
     const resendKey = Deno.env.get('RESEND_API_KEY')
     ...
       body: JSON.stringify({
-        from: 'MEGGA <noreply@megga.ch>',
+        from: 'MEGGA <noreply@getmegga.com>',
         to: [to],
 ```
 
@@ -81,11 +81,11 @@ import { requireAgentAuth } from '../_shared/require-agent-auth.ts'   // ⬅️ 
     ...
     // La notification admin ne doit JAMAIS partir vers un `to` fourni par l'appelant.
     const recipient = template === 'contact_notification_admin'
-      ? (Deno.env.get('CONTACT_NOTIFICATION_TO') ?? 'contact@megga.ch')
+      ? (Deno.env.get('CONTACT_NOTIFICATION_TO') ?? 'contact@getmegga.com')
       : to
     ...
       body: JSON.stringify({
-        from: 'MEGGA <noreply@megga.ch>',
+        from: 'MEGGA <noreply@getmegga.com>',
         to: [recipient],
 ```
 

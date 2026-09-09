@@ -1,10 +1,10 @@
 /**
- * Racine de l'app CRM (app.megga.ch) : providers globaux (React Query, Auth,
+ * Racine de l'app CRM (app.getmegga.com) : providers globaux (React Query, Auth,
  * Toast, panneau IA) + table de routage complète.
  *
  * Presque toutes les pages sont en lazy() — seuls les shells/guards restent
  * statiques — pour garder le main bundle minimal. La marketplace publique est
- * désactivée (pivot CRM-first) : ses routes redirigent vers la vitrine megga.ch.
+ * désactivée (pivot CRM-first) : ses routes redirigent vers la vitrine getmegga.com.
  * Route racine « / » → /dashboard.
  */
 import { lazy, Suspense } from 'react'
@@ -37,7 +37,7 @@ import ImpersonationHandoff from '@/components/admin/ImpersonationHandoff'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 
 // Lazy-loaded public pages
-// Property X storefront pages were removed — megga.ch now serves the static
+// Property X storefront pages were removed — getmegga.com now serves the static
 // MEGGA vitrine (sites/megga-vitrine), overlaid at the deploy root by the npm
 // postbuild hook. Only the Property X icon
 // system remains under src/components/propertyx/ (MEIcon/PxIconFont/
@@ -52,7 +52,7 @@ const BuyerReceptionPage = lazy(() => import('@/pages/public/BuyerReceptionPage'
 const KycReportRenderPage = lazy(() => import('@/pages/public/KycReportRenderPage'))
 
 // Auth — lazy car secondary path.
-// Le MODAL DE CONNEXION est désormais servi par la vitrine (megga.ch/login,
+// Le MODAL DE CONNEXION est désormais servi par la vitrine (getmegga.com/login,
 // câblé Supabase). L'app ne garde que la TUYAUTERIE du flux : /auth/callback
 // (retour OAuth/e-mail) et /auth/forgot-password/reset (cible des e-mails de
 // réinitialisation envoyés par la vitrine). Les écrans de login/signup internes
@@ -95,7 +95,7 @@ const IntercomMessenger = lazy(() => import('@/components/IntercomMessenger'))
 // Marketplace publique + ancien site marketing (About, Contact, Sell, Estimates,
 // Services, Publish, Privacy, Agents, Agencies, Blog) + direction Property X :
 // EXTRAITS du repo (2026-06-08) et archivés hors GitHub. Ces URLs redirigent
-// désormais vers la nouvelle vitrine (MarketplaceDisabledRedirect → megga.ch).
+// désormais vers la nouvelle vitrine (MarketplaceDisabledRedirect → getmegga.com).
 const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
 const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
@@ -152,7 +152,7 @@ const AuditPage = lazy(() => import('@/pages/agent/AuditPage'))
 const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
 // ⛔ LES SEPT BANCS RESTANTS PASSENT AU TERNAIRE (15 août 2026). Mesuré au lot 3a :
 // ils avaient un chunk dans `dist/assets/` et une route déclarée — donc joignables
-// sur app.megga.ch, dont `/dev/sentry-test`, qui DÉCLENCHE des erreurs Sentry. Un
+// sur app.getmegga.com, dont `/dev/sentry-test`, qui DÉCLENCHE des erreurs Sentry. Un
 // banc de développement livré n'est pas seulement du poids mort : c'est une surface
 // que personne ne teste, ouverte à qui connaît l'URL.
 //
@@ -187,7 +187,7 @@ const ModalesShowcasePage = import.meta.env.DEV
   : () => null
 // Banc de la Messagerie — même ternaire, même raison que les sept gelés le
 // 15 août 2026 : un `lazy()` nu émettrait un chunk et servirait le banc sur
-// app.megga.ch (`dev-bancs-frontiere.spec.ts` le mesure).
+// app.getmegga.com (`dev-bancs-frontiere.spec.ts` le mesure).
 const MessagerieShowcasePage = import.meta.env.DEV
   ? lazy(() => import('@/pages/dev/MessagerieShowcasePage'))
   : () => null
@@ -359,19 +359,19 @@ function DashboardMarketRedirect() {
 }
 // Pivot CRM-first (juin 2026): la marketplace PUBLIQUE est désactivée. Les routes
 // d'affichage des annonces (/buy /rent /propriete/:id /search /listing/:id…)
-// redirigent vers la vitrine megga.ch. market_listings + le cron Flatfox + le
+// redirigent vers la vitrine getmegga.com. market_listings + le cron Flatfox + le
 // matching (edge matching-engine, include_market) restent INTACTS — seul
 // l'affichage public est coupé. Réversible : restaurer les <Route> d'origine.
 // Redirection externe (autre domaine) → window.location, pas <Navigate>.
-const VITRINE_URL = 'https://megga.ch'
+const VITRINE_URL = 'https://getmegga.com'
 function MarketplaceDisabledRedirect() {
   if (typeof window !== 'undefined') window.location.replace(VITRINE_URL)
   return null
 }
-// Le modèle de connexion vit sur la vitrine (megga.ch/login, câblé Supabase).
+// Le modèle de connexion vit sur la vitrine (getmegga.com/login, câblé Supabase).
 // Les écrans de login/signup internes (ancienne direction) y redirigent. La
 // tuyauterie (/auth/callback, /auth/forgot-password/reset) reste dans l'app.
-const VITRINE_LOGIN_URL = 'https://megga.ch/login'
+const VITRINE_LOGIN_URL = 'https://getmegga.com/login'
 function VitrineLoginRedirect() {
   if (typeof window !== 'undefined') window.location.replace(VITRINE_LOGIN_URL)
   return null
@@ -548,12 +548,12 @@ function AppRoutes() {
     <Routes>
               {/* Public storefront (home, about, properties, contact, FAQ,
                   blog, agents, property single, design-system…) is served by
-                  the static MEGGA vitrine (sites/megga-vitrine) on megga.ch.
-                  This React app is deployed separately on app.megga.ch, where
+                  the static MEGGA vitrine (sites/megga-vitrine) on getmegga.com.
+                  This React app is deployed separately on app.getmegga.com, where
                   "/" lands on the dashboard (which bounces to login if needed). */}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               {/* Marketplace publique DÉSACTIVÉE (pivot CRM-first juin 2026) →
-                  vitrine megga.ch. market_listings + cron Flatfox + matching
+                  vitrine getmegga.com. market_listings + cron Flatfox + matching
                   (edge matching-engine) intacts ; l'écran marché INTERNE du CRM
                   (/dashboard/market/:externalId) reste actif. */}
               <Route path="/search" element={<MarketplaceDisabledRedirect />} />
@@ -569,7 +569,7 @@ function AppRoutes() {
               <Route path="/listing/:id" element={<MarketplaceDisabledRedirect />} />
               {/* Legacy /login + /register → redirect to the new bento auth.
                   Old code/CTA still works; the new modal owns the experience. */}
-              {/* Connexion = vitrine (megga.ch/login). Tous les écrans de login /
+              {/* Connexion = vitrine (getmegga.com/login). Tous les écrans de login /
                   inscription internes (ancienne direction) y redirigent. */}
               <Route path="/login" element={<VitrineLoginRedirect />} />
               <Route path="/register" element={<VitrineLoginRedirect />} />
