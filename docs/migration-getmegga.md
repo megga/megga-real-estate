@@ -115,11 +115,11 @@ Tout ici s'ajoute à côté de l'existant. `megga.ch` continue de servir normale
 | # | Geste | Où |
 |---|---|---|
 | A0 | ✅ **FAIT le 09.09.2026.** Propriété **Domain** `getmegga.com` créée sous `hello@megga.ai`, TXT `google-site-verification=STPKaWUfCIkmKww1NyiaeMrOxUHU8xyRdnSoWRb39Is` posé à la racine, « Ownership verified » (méthode *Domain name provider*) | Search Console + DNS Cloudflare |
-| A1 | Ajouter `getmegga.com` **et** `www.getmegga.com` comme domaines personnalisés du projet Pages `megga-real-estate` | Cloudflare Pages |
-| A2 | Ajouter `app.getmegga.com` comme domaine personnalisé du projet Pages `megga-app` | Cloudflare Pages |
-| A3 | Ajouter `img.getmegga.com` comme domaine personnalisé du bucket R2 (R2 en accepte plusieurs — **garder `img.megga.ch` branché**) | Cloudflare R2 |
-| A4 | Ajouter à l'allowlist Supabase Auth : `https://app.getmegga.com/**` et `https://getmegga.com/**`. **Ne rien retirer.** | Supabase → Auth → URL Configuration |
-| A5 | Ajouter chez Google l'URI `https://api.getmegga.com/auth/v1/callback` **à côté** de l'ancienne, et `getmegga.com` aux *Authorized domains* | Google Cloud Console → Credentials |
+| A1 | ✅ **FAIT le 09.09.2026.** `getmegga.com` + `www.getmegga.com` ajoutés au projet Pages `megga-real-estate` (CNAME `@` et `www` → `megga-real-estate.pages.dev`). `megga.ch` / `www.megga.ch` inchangés, toujours *Active* | Cloudflare Pages |
+| A2 | ✅ **FAIT le 09.09.2026.** `app.getmegga.com` ajouté au projet Pages `megga-app` (CNAME `app` → `megga-app.pages.dev`). `app.megga.ch` inchangé | Cloudflare Pages |
+| A3 | ✅ **FAIT le 09.09.2026.** `img.getmegga.com` ajouté au bucket **`megga-market`** — ⚠ c'est CE bucket qui porte `img.megga.ch`, pas `megga-images` (qui n'a aucun domaine custom). Les deux domaines y sont *Enabled* | Cloudflare R2 |
+| A4 | ⛔ **BLOQUÉ le 09.09.2026 — 2FA.** Le tableau de bord Supabase exige un code TOTP (Dashlane). Geste à faire à la main : ajouter `https://app.getmegga.com/**` et `https://getmegga.com/**`. **Ne rien retirer.** | Supabase → Auth → URL Configuration |
+| A5 | ⛔ **BLOQUÉ le 09.09.2026 — passkey.** La Cloud Console exige une ré-authentification biométrique de `hello@megga.ai`. Geste à faire à la main : ajouter l'URI `https://api.getmegga.com/auth/v1/callback` **à côté** de l'ancienne, et `getmegga.com` aux *Authorized domains* | Google Cloud Console → Credentials |
 | A6 | Créer le domaine `getmegga.com` dans Resend et poser DKIM + `send.getmegga.com` | Resend + DNS Cloudflare |
 | A7 | Créer les boîtes `noreply@`, `hello@`, `legal@`, `privacy@`, `tech@`, `sales@`, `support@`, `security@` sur `getmegga.com` | Spacemail |
 
@@ -145,7 +145,20 @@ for h in getmegga.com app.getmegga.com img.getmegga.com; do printf "%-22s " "$h"
 
 ⚠ `img.getmegga.com` répondra **404** à la racine : c'est normal, il n'y a pas
 d'objet à la racine du bucket. L'oracle utile est une vraie photo — prendre une URL
-dans `photos_cf` et remplacer l'hôte.
+dans `photos_cf` et remplacer l'hôte. Mesuré le 09.09.2026 sur
+`listings/567cbbc2-…/0-detail.jpg` : **200 · image/jpeg · 170 412 o** sur les DEUX
+hôtes, empreintes SHA-256 **identiques**.
+
+⚠ **Un 403 juste après l'ajout est TRANSITOIRE** — le certificat du domaine custom se
+provisionne. Mesuré : 403 puis 200 quelques secondes plus tard, sur la même URL. Ne pas
+en conclure à une restriction d'accès.
+
+⚠ **Le contenu servi par les anciens et les nouveaux hôtes n'est PAS identique à
+l'octet, et c'est normal** : le seul écart mesuré est le script de détection de bots que
+**Cloudflare injecte lui-même** (`__CF$cv$params`, `/cdn-cgi/challenge-platform/`),
+présent sur la zone `megga.ch` et pas encore sur `getmegga.com`. Notre HTML, lui, est
+identique. 🟠 **À aligner avant la phase D** : la nouvelle zone n'a pas la même posture
+bot-management que l'ancienne, et personne ne s'en apercevra en regardant les pages.
 
 **Oracle A6** — le DKIM et le MAIL FROM sont visibles avant même que Resend ne les valide :
 
@@ -256,6 +269,11 @@ expiré, le SEO a suivi).
 | E8 | Retirer les **quatre** exemptions transitoires du code, et supprimer `scripts/migrate-domaine-getmegga.mjs` | dépôt |
 | E9 | Retirer le domaine Resend `megga.ch` | Resend |
 | E10 | Libérer la zone `megga.ch` pour la holding | Cloudflare |
+
+⚠ **Deux gestes exigent une authentification que seul un humain peut fournir** — constaté
+le 09.09.2026 : la Cloud Console demande une **passkey** (biométrie) pour `hello@megga.ai`,
+et le tableau de bord Supabase un **code TOTP**. Aucun agent ne peut les franchir. Les
+prévoir dans le créneau où quelqu'un est au clavier.
 
 ⚠ **E1 avant E3.** `R2_PUBLIC_BASE` gouverne les photos **futures** ; le script
 réécrit les **passées**. Inversés, les photos traitées entre les deux repartent sur
