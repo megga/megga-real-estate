@@ -88,8 +88,19 @@ merge, sans qu'on choisisse le moment.
 
 Tout ici s'ajoute à côté de l'existant. `megga.ch` continue de servir normalement.
 
+> ⛔ **A0 EST LE PREMIER DOMINO, ET IL PREND DU TEMPS.** Le client OAuth appartient au
+> compte **`hello@megga.ai`** (projet Google « My First Project », `tribal-dispatch-504619-c1`).
+> Google inscrit d'office le domaine de chaque URI de redirection comme *Authorized domain*
+> du consentement — et **refuse un domaine non vérifié comme possédé**. Mesuré le
+> 09.09.2026 : `dig TXT getmegga.com` ne rend **aucun** `google-site-verification`, là où
+> `megga.ch` en porte deux (émis par l'**ancien** compte, auquel `hello@megga.ai` n'a aucun
+> accès — ils ne servent donc à rien ici).
+>
+> **Sans A0, A5 est impossible ; sans A5, B casse la connexion Google pour tout le monde.**
+
 | # | Geste | Où |
 |---|---|---|
+| A0 | **Vérifier la propriété de `getmegga.com` dans Google Search Console, connecté en `hello@megga.ai`** (et non un autre compte), puis poser l'enregistrement TXT `google-site-verification` rendu | Search Console + DNS Cloudflare |
 | A1 | Ajouter `getmegga.com` **et** `www.getmegga.com` comme domaines personnalisés du projet Pages `megga-real-estate` | Cloudflare Pages |
 | A2 | Ajouter `app.getmegga.com` comme domaine personnalisé du projet Pages `megga-app` | Cloudflare Pages |
 | A3 | Ajouter `img.getmegga.com` comme domaine personnalisé du bucket R2 (R2 en accepte plusieurs — **garder `img.megga.ch` branché**) | Cloudflare R2 |
@@ -97,6 +108,16 @@ Tout ici s'ajoute à côté de l'existant. `megga.ch` continue de servir normale
 | A5 | Ajouter chez Google l'URI `https://api.getmegga.com/auth/v1/callback` **à côté** de l'ancienne, et `getmegga.com` aux *Authorized domains* | Google Cloud Console → Credentials |
 | A6 | Créer le domaine `getmegga.com` dans Resend et poser DKIM + `send.getmegga.com` | Resend + DNS Cloudflare |
 | A7 | Créer les boîtes `noreply@`, `hello@`, `legal@`, `privacy@`, `tech@`, `sales@`, `support@`, `security@` sur `getmegga.com` | Spacemail |
+
+**Oracle A0** — la propriété est prouvée par le DNS, pas par l'écran de Search Console :
+
+```bash
+dig +short TXT getmegga.com | grep google-site-verification
+```
+
+⚠ Vérifier **dans la console** que la propriété apparaît bien sous `hello@megga.ai`. Un
+enregistrement posé pour un autre compte ne débloque pas ce client OAuth — c'est
+exactement le cas de `megga.ch`, vérifié par l'ancien compte et inutile ici.
 
 **Oracle A1–A3** — les trois hôtes répondent, et servent bien le même contenu que leurs aînés :
 
@@ -244,7 +265,24 @@ une panne qui ressemble à un site vivant.
 
 ---
 
-## 10. Points restés OUVERTS
+## 10. `megga.ai` n'est PAS migré, et c'est volontaire
+
+`megga.ai` apparaît **20 fois** dans le dépôt et n'a pas été touché : ce n'est pas un
+domaine de produit, c'est le **compte qui possède** le projet Google Cloud — le client
+OAuth « Se connecter avec Google » **et** le compte de service de l'agenda d'accueil
+(`GOOGLE_WORKSPACE_SA_KEY`). Aucun utilisateur ne l'atteint : il ne sert ni page, ni lien,
+ni expéditeur.
+
+⚠ **Une seule surface le rend visible** : l'écran de consentement Google affiche le nom de
+l'app et son adresse de support. Puisqu'on touche déjà cet écran en A5 et E4, autant y
+jeter un œil au passage.
+
+⚠ Et le fait qu'il ne se voie pas ne le rend pas sans effet : c'est parce que le client vit
+sur `hello@megga.ai` que **A0 doit être fait depuis CE compte**, et pas un autre.
+
+---
+
+## 11. Points restés OUVERTS
 
 1. **Qui est le responsable de traitement après la scission ?** `docs/compliance/`
    (registre des traitements, DPIA, désignation DPO) porte désormais
