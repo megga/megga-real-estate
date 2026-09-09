@@ -97,10 +97,24 @@ Tout ici s'ajoute à côté de l'existant. `megga.ch` continue de servir normale
 > accès — ils ne servent donc à rien ici).
 >
 > **Sans A0, A5 est impossible ; sans A5, B casse la connexion Google pour tout le monde.**
+>
+> ⛔ **LE PIÈGE S'EST PRODUIT POUR DE VRAI, dès la première tentative.** Le navigateur était
+> ouvert sur `julien.modelpro@gmail.com`, pas sur `hello@megga.ai` — et **rien à l'écran ne le
+> signale** : Search Console affiche la même page d'accueil pour n'importe quel compte. Une
+> propriété créée là aurait été « vérifiée » sans rien débloquer, et l'erreur ne se serait vue
+> qu'à A5, en constatant que Google refuse toujours le domaine. **Vérifier le compte AVANT
+> chaque geste Google** — l'avatar en haut à droite porte l'adresse dans son libellé
+> accessible. Le même piège attend à A5 et à E4, qui se font dans la même console.
+>
+> ⚠ **La voie « automatique » de Google a été écartée volontairement.** Search Console détecte
+> Cloudflare et propose de vérifier « en autorisant Google à accéder à votre compte DNS » :
+> c'est un octroi OAuth **durable sur toute la zone**, pas sur un enregistrement. La voie
+> manuelle (« Any DNS provider » dans le menu déroulant) donne le même résultat sans rien
+> accorder. Préférer celle-là.
 
 | # | Geste | Où |
 |---|---|---|
-| A0 | **Vérifier la propriété de `getmegga.com` dans Google Search Console, connecté en `hello@megga.ai`** (et non un autre compte), puis poser l'enregistrement TXT `google-site-verification` rendu | Search Console + DNS Cloudflare |
+| A0 | ✅ **FAIT le 09.09.2026.** Propriété **Domain** `getmegga.com` créée sous `hello@megga.ai`, TXT `google-site-verification=STPKaWUfCIkmKww1NyiaeMrOxUHU8xyRdnSoWRb39Is` posé à la racine, « Ownership verified » (méthode *Domain name provider*) | Search Console + DNS Cloudflare |
 | A1 | Ajouter `getmegga.com` **et** `www.getmegga.com` comme domaines personnalisés du projet Pages `megga-real-estate` | Cloudflare Pages |
 | A2 | Ajouter `app.getmegga.com` comme domaine personnalisé du projet Pages `megga-app` | Cloudflare Pages |
 | A3 | Ajouter `img.getmegga.com` comme domaine personnalisé du bucket R2 (R2 en accepte plusieurs — **garder `img.megga.ch` branché**) | Cloudflare R2 |
@@ -112,8 +126,12 @@ Tout ici s'ajoute à côté de l'existant. `megga.ch` continue de servir normale
 **Oracle A0** — la propriété est prouvée par le DNS, pas par l'écran de Search Console :
 
 ```bash
-dig +short TXT getmegga.com | grep google-site-verification
+dig +short TXT getmegga.com @8.8.8.8 | grep google-site-verification
 ```
+
+⚠ Interroger **`@8.8.8.8`**, le résolveur de Google : c'est celui que Search Console consulte.
+Mesuré le 09.09.2026, il rend bien la ligne — et le TXT SPF Spacemail reste intact à côté
+(deux TXT coexistent sans conflit ; seuls deux enregistrements **SPF** s'annuleraient).
 
 ⚠ Vérifier **dans la console** que la propriété apparaît bien sous `hello@megga.ai`. Un
 enregistrement posé pour un autre compte ne débloque pas ce client OAuth — c'est
