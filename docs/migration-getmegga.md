@@ -119,7 +119,7 @@ Tout ici s'ajoute à côté de l'existant. `megga.ch` continue de servir normale
 | A2 | ✅ **FAIT le 09.09.2026.** `app.getmegga.com` ajouté au projet Pages `megga-app` (CNAME `app` → `megga-app.pages.dev`). `app.megga.ch` inchangé | Cloudflare Pages |
 | A3 | ✅ **FAIT le 09.09.2026.** `img.getmegga.com` ajouté au bucket **`megga-market`** — ⚠ c'est CE bucket qui porte `img.megga.ch`, pas `megga-images` (qui n'a aucun domaine custom). Les deux domaines y sont *Enabled* | Cloudflare R2 |
 | A4 | ✅ **FAIT le 09.09.2026** (après déverrouillage 2FA par Julien). **7 → 12 URLs**, en MIROIR EXACT des entrées existantes plutôt qu'en joker `/**` — un joker large aurait élargi la surface au passage. Ajoutées : `getmegga.com/auth/callback`, `www.getmegga.com/auth/callback`, `getmegga.com/reset-password.html`, `app.getmegga.com/auth/callback`, `app.getmegga.com/auth/callback*`. **Rien retiré.** | Supabase → Auth → URL Configuration |
-| A5 | ⛔ **BLOQUÉ le 09.09.2026 — et la cause a CHANGÉ.** La passkey a été validée ; l'écran suivant dit *« Google Cloud access blocked — Effective September 4, 2026, Google Cloud has begun to enforce 2-step verification (2SV) »*, avec un bouton **Enable MFA**. ⛔ Activer la 2FA est un réglage de SÉCURITÉ du compte : aucun agent ne doit le faire. Julien doit l'activer sur `hello@megga.ai`, puis ajouter l'URI `https://api.getmegga.com/auth/v1/callback` **à côté** de l'ancienne, et `getmegga.com` aux *Authorized domains* | Google Cloud Console → Credentials |
+| A5 | ✅ **FAIT le 09.09.2026** (après activation de la 2SV par Julien — Google Cloud l'impose depuis le 04.09.2026). Client **« MEGGA — Supabase Auth (app.megga.ch) »**, `833483825712-vh71…`. Ajoutés SANS RIEN RETIRER : origines JS `https://app.getmegga.com` et `https://getmegga.com` (à côté de `app.megga.ch`, `megga.ch`, `localhost:5173`) ; URI de redirection `https://api.getmegga.com/auth/v1/callback` (à côté de `api.megga.ch/...`) | Google Cloud Console → Credentials |
 | A6 | Créer le domaine `getmegga.com` dans Resend et poser DKIM + `send.getmegga.com` | Resend + DNS Cloudflare |
 | A7 | Créer les boîtes `noreply@`, `hello@`, `legal@`, `privacy@`, `tech@`, `sales@`, `support@`, `security@` sur `getmegga.com` | Spacemail |
 
@@ -160,6 +160,28 @@ présent sur la zone `megga.ch` et pas encore sur `getmegga.com`. Notre HTML, lu
 identique. 🟠 **À aligner avant la phase D** : la nouvelle zone n'a pas la même posture
 bot-management que l'ancienne, et personne ne s'en apercevra en regardant les pages.
 
+**Oracle A5** — interroger Google DIRECTEMENT, avec un témoin négatif :
+
+```bash
+CID="833483825712-vh715spjupqcl86qffv3hvffsaqk0g8e.apps.googleusercontent.com"
+curl -s -L -A 'Mozilla/5.0' \
+  "https://accounts.google.com/o/oauth2/v2/auth?client_id=$CID&response_type=code&scope=email%20profile&redirect_uri=<URI encodée>" \
+  | grep -qi redirect_uri_mismatch && echo "NON enregistrée" || echo "acceptée"
+```
+
+⚠ **Toujours joindre un TÉMOIN NÉGATIF** — une URI qui n'a jamais été enregistrée. Sans
+lui, « acceptée » peut simplement vouloir dire que le motif recherché ne correspond à
+rien. Mesuré le 09.09.2026 : les deux URIs `api.megga.ch` et `api.getmegga.com` sont
+acceptées, et `api.exemple-jamais-enregistre.com` rend bien `redirect_uri_mismatch`.
+
+⚠ La console prévient que « it may take 5 minutes to a few hours for settings to take
+effect » — ici l'effet a été immédiat, mais ne pas conclure à un échec avant d'avoir
+réessayé.
+
+⚠ Le client s'appelle encore **« MEGGA — Supabase Auth (app.megga.ch) »**. Purement
+cosmétique (« This name is only used to identify the client in the console and will not
+be shown to end users »), mais à renommer en phase E pour ne pas laisser un repère faux.
+
 **Oracle A6** — le DKIM et le MAIL FROM sont visibles avant même que Resend ne les valide :
 
 ```bash
@@ -173,7 +195,13 @@ sur `megga.ch`). Le `dig` fait foi, pas l'écran.
 
 ## 5. Phase B — bascule du domaine custom Supabase
 
-**Prérequis dur : A5 est fait.** Voir §3.1.
+✅ **Prérequis dur levé : A5 est fait le 09.09.2026**, les deux URIs sont acceptées par Google. Voir §3.1.
+
+⚠ **B est un BASCULEMENT, le seul de la phase A→B.** Il reste néanmoins peu risqué ici : ni la
+vitrine (`megga-auth.js`) ni le CRM (`VITE_SUPABASE_URL`) n'appellent `api.megga.ch` — tous deux
+passent par l'URL `.supabase.co`. Le domaine custom ne gouverne, en pratique, que le
+`redirect_uri` de l'OAuth — et les DEUX valeurs sont désormais enregistrées chez Google, donc la
+connexion fonctionne avant comme après la bascule.
 
 | # | Geste | Où |
 |---|---|---|
