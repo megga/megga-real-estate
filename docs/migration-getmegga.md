@@ -197,7 +197,28 @@ sur `megga.ch`). Le `dig` fait foi, pas l'écran.
 
 ✅ **Prérequis dur levé : A5 est fait le 09.09.2026**, les deux URIs sont acceptées par Google. Voir §3.1.
 
-⚠ **B est un BASCULEMENT, le seul de la phase A→B.** Il reste néanmoins peu risqué ici : ni la
+⛔ **SUPABASE N'OFFRE AUCUNE BASCULE — et c'est LE fait qui gouverne cette phase.** La
+section *Custom domains* ne propose que **Docs** et **Delete custom domain** : il n'existe
+pas de « changer » ni d'« ajouter à côté ». Le seul chemin est SUPPRIMER puis
+RECONFIGURER, donc il y a forcément une fenêtre **sans domaine custom**.
+
+⛔ **Pendant cette fenêtre, GoTrue émet `…supabase.co/auth/v1/callback`** — une URI que
+CLAUDE.md a délibérément exclue du client Google. Mesuré le 09.09.2026, juste après la
+suppression :
+
+```
+redirect_uri=https%3A%2F%2Feayczugyrvmtqnnmvjod.supabase.co%2Fauth%2Fv1%2Fcallback
+```
+
+Sans filet, **toute connexion Google échoue** le temps de la fenêtre. D'où B0 : enregistrer
+cette URI chez Google AVANT de supprimer, et la retirer après (B5). Vérifié pendant la
+fenêtre : Google l'accepte, la connexion tient.
+
+⚠ **Rayon d'impact, mesuré et non supposé** : seule « Se connecter avec Google » dépend du
+`redirect_uri`. Le mot de passe et les liens magiques passent par l'API, qui reste joignable
+en `.supabase.co` — ni la vitrine ni le CRM n'appellent `api.megga.ch`.
+
+⚠ **B reste un BASCULEMENT.** Il reste néanmoins peu risqué ici : ni la
 vitrine (`megga-auth.js`) ni le CRM (`VITE_SUPABASE_URL`) n'appellent `api.megga.ch` — tous deux
 passent par l'URL `.supabase.co`. Le domaine custom ne gouverne, en pratique, que le
 `redirect_uri` de l'OAuth — et les DEUX valeurs sont désormais enregistrées chez Google, donc la
@@ -205,8 +226,12 @@ connexion fonctionne avant comme après la bascule.
 
 | # | Geste | Où |
 |---|---|---|
-| B1 | Changer le domaine custom du projet : `api.megga.ch` → `api.getmegga.com` | Supabase → Settings → Custom Domains |
-| B2 | Laisser le CNAME `api.megga.ch` en place pour l'instant | DNS Cloudflare |
+| B0 | ✅ **FAIT** — **FILET** : URI `https://eayczugyrvmtqnnmvjod.supabase.co/auth/v1/callback` enregistrée chez Google **avant** toute suppression | Google Cloud Console |
+| B1 | ✅ **FAIT** — `api.megga.ch` supprimé (case « Also remove custom domain add-on » **NON cochée**, sinon impossible d'en configurer un nouveau) | Supabase |
+| B2 | ✅ **FAIT** — CNAME `api` → `eayczugyrvmtqnnmvjod.supabase.co`, **DNS only** (proxy DÉSACTIVÉ, Supabase l'exige) | DNS Cloudflare |
+| B3 | ✅ **FAIT** — TXT `_acme-challenge.api` → le jeton rendu par Supabase, propagé et vérifié au `dig` | DNS Cloudflare |
+| B4 | 🟠 **EN ATTENTE** — `api.getmegga.com` déclaré, vérification lancée. Supabase est passé de « Unable to verify records » à « **it may take up to 24 hours for the DNS records to propagate** » : la demande est prise, la validation court | Supabase |
+| B5 | ⏳ À FAIRE une fois B4 vert — **retirer l'URI `.supabase.co`** chez Google (le filet ne doit pas survivre à la fenêtre) | Google Cloud Console |
 
 **Oracle** — la nouvelle URI sort, et Google l'accepte :
 
@@ -253,6 +278,23 @@ curl -s -o /dev/null -w '%{http_code}\n' https://app.getmegga.com/dashboard
 et, dans le navigateur, une connexion complète depuis `getmegga.com/login` jusqu'au
 `/dashboard`, en Google **et** en mot de passe. C'est le seul oracle du handoff de
 session entre les deux origines.
+
+---
+
+## 5 bis. 🖱 Deux pièges d'INTERFACE qui coûtent du temps
+
+Rien à voir avec la migration, tout à voir avec le fait de la conduire dans un navigateur.
+
+1. ⛔ **Le dialogue « Add record » de Cloudflare est INVISIBLE aux captures d'écran.** Il
+   vit dans une couche que la capture ne composite pas : l'écran montre la liste des
+   enregistrements pendant que le dialogue est bel et bien ouvert. Conséquence — un clic
+   « aux coordonnées lues sur la capture » tape **dans la page du dessous** et referme le
+   dialogue. `find` le voit, lui. **Piloter ce dialogue uniquement par références
+   d'éléments.**
+2. ⚠ **Changer le Type d'un enregistrement VIDE les champs déjà saisis** (et le sélecteur
+   retombe parfois sur `A`, d'où un « Enter a valid IPv4 address » sur une valeur de CNAME
+   parfaitement correcte). Ordre qui marche : Type d'abord, tout le reste ensuite.
+   L'oracle fiable de l'état du formulaire est `get_page_text`, pas la capture.
 
 ---
 
