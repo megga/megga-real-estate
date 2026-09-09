@@ -250,8 +250,29 @@ connexion fonctionne avant comme après la bascule.
 | B1 | ✅ **FAIT** — `api.megga.ch` supprimé (case « Also remove custom domain add-on » **NON cochée**, sinon impossible d'en configurer un nouveau) | Supabase |
 | B2 | ✅ **FAIT** — CNAME `api` → `eayczugyrvmtqnnmvjod.supabase.co`, **DNS only** (proxy DÉSACTIVÉ, Supabase l'exige) | DNS Cloudflare |
 | B3 | ✅ **FAIT** — TXT `_acme-challenge.api` → le jeton rendu par Supabase, propagé et vérifié au `dig` | DNS Cloudflare |
-| B4 | 🟠 **EN ATTENTE** — `api.getmegga.com` déclaré, vérification lancée. Supabase est passé de « Unable to verify records » à « **it may take up to 24 hours for the DNS records to propagate** » : la demande est prise, la validation court | Supabase |
-| B5 | ⏳ À FAIRE une fois B4 vert — **retirer l'URI `.supabase.co`** chez Google (le filet ne doit pas survivre à la fenêtre) | Google Cloud Console |
+| B4 | ✅ **FAIT le 09.09.2026.** ⚠ **Il y a une étape ACTIVATE que ce plan avait manquée** : une fois les enregistrements vérifiés, Supabase n'active PAS tout seul — il affiche « Set up is almost complete. Press *Activate* » et **recommande une fenêtre d'indisponibilité de 20-30 minutes**. Signe avant-coureur utile : `api.getmegga.com` portait déjà un certificat TLS valide (`CN=api.getmegga.com`) alors que GoTrue émettait encore `.supabase.co` — l'ACME était passé, il ne manquait que le clic | Supabase |
+| B5 | ✅ **FAIT le 09.09.2026** — URI `.supabase.co` retirée du client Google. Vérifié : elle rend désormais `redirect_uri_mismatch`, et `api.getmegga.com` reste acceptée | Google Cloud Console |
+
+⚠ **L'indisponibilité de 20-30 minutes annoncée par Supabase NE S'EST PAS PRODUITE.** Le
+dialogue de confirmation le dit d'ailleurs lui-même : « The Supabase domain will continue
+to work too ». Mesuré pendant et après : `.supabase.co` a répondu son 401 habituel sans
+interruption. Le chiffre de Supabase couvre le cas général — une app qui coderait
+`api.<domaine>` en dur ; ici ni la vitrine ni le CRM ne le font. ⚠ Ne pas en conclure que
+l'avertissement est faux : il est faux POUR CETTE ARCHITECTURE, et c'est la phase A qui a
+rendu ça vrai.
+
+✅ **Phase B close, vérifiée de bout en bout le 09.09.2026 :**
+
+```
+GoTrue émet        redirect_uri=https://api.getmegga.com/auth/v1/callback
+Google             api.getmegga.com  → acceptée
+                   …supabase.co      → refusée   (filet retiré)
+                   témoin négatif    → refusée   (le test n'est pas creux)
+API                api.getmegga.com  401 · …supabase.co  401
+```
+
+⚠ `api.megga.ch` rend désormais **403** : Supabase ne le reconnaît plus. Attendu, et rien
+ne l'appelle — mais son URI reste chez Google jusqu'à E4.
 
 **Oracle** — la nouvelle URI sort, et Google l'accepte :
 
