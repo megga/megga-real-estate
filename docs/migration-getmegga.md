@@ -379,11 +379,36 @@ disait : retirer d'abord les domaines des projets Pages (D1/D2), *puis* créer l
 or détacher un domaine custom Pages emporte le CNAME qui le porte. Dans cet ordre,
 `megga.ch` aurait cessé de résoudre **avant** que la règle puisse tirer. Règle d'abord, donc.
 
-✅ **D1/D2 NE SONT PAS FAITS, ET NE DOIVENT PAS L'ÊTRE ICI.** Les domaines restent attachés
-aux projets Pages : la règle de redirection tire au bord, **avant** Pages, qui n'est donc
-jamais atteint. Les détacher n'apporterait rien aujourd'hui et casserait le renvoi. Ce geste
-appartient à la phase E, le jour où la zone est réellement libérée — et il faudra alors
-recréer un enregistrement proxifié si l'on veut garder des renvois après coup.
+✅ **D1/D2 SONT FAITS depuis le 09.09.2026, et la parade tient en une ligne : un
+enregistrement porteur.** Ils avaient d'abord été *refusés ici*, à raison — dans l'ordre
+D1→D3 la zone serait tombée. Une fois les 301 posées, les détacher devient possible à une
+condition : **reposer immédiatement un enregistrement proxifié**, puisque Cloudflare
+supprime le CNAME avec le domaine custom.
+
+⛔ **Cloudflare le DIT, et il faut le lire avant de cliquer.** Le dialogue *Remove domain?*
+porte la phrase « The CNAME record pointing to your project **will be removed** to make this
+change ». Ce n'était donc pas une inférence : c'est écrit, et c'est vrai — mesuré, la zone
+est passée de 23 à 22 enregistrements et l'hôte a cessé de résoudre (A et AAAA vides au
+serveur autoritatif) **alors que `curl` répondait encore 301**, sur son cache résolveur. ⚠ Un
+`curl` qui marche juste après un détachement ne prouve RIEN : il lit un cache dont le TTL
+n'a pas expiré. L'oracle est `dig @<ns autoritatif>`, jamais le résolveur du poste.
+
+**Ce qui a été reposé** — un enregistrement dont la seule fonction est de *porter* la règle :
+
+| Nom | Type | Contenu | Proxy |
+|---|---|---|---|
+| `megga.ch` · `www` · `app` · `img` | `A` | `192.0.2.1` | **Proxied** |
+
+`192.0.2.1` est TEST-NET-1 (RFC 5737), non routable : rien ne peut y aboutir, et c'est le
+but. Les règles matchent `http.host eq …`, elles tirent **au bord, avant l'origine** — la
+cible de l'enregistrement ne les regarde donc pas, seule sa présence et son proxy comptent.
+Mesuré après coup : les quatre hôtes rendent 301 depuis l'IP autoritative fraîche, chemin
+**et** query préservés, et l'image servie au bout de la chaîne est identique **octet pour
+octet** (même sha256) à celle de l'ancien hôte.
+
+⚠ **`help.megga.ch` est un CNAME vers l'apex** : détacher l'apex l'emportait avec lui. C'est
+pourquoi l'apex a été reposé en premier. Et `rockwell.megga.ch` pointe vers un **autre**
+projet Pages, étranger à cette migration — ne pas y toucher.
 
 | Règle | Correspondance | Action |
 |---|---|---|
@@ -425,28 +450,53 @@ première règle posée. Recâblée vers `getmegga.com/aide` (vérifié 200 avan
 
 ## 8. Phase E — nettoyage, puis libération
 
-> **État au 09.09.2026 : E1, E2 et E3 sont FAITS. Tout le reste attend la fin de la
-> transition, et ce n'est pas de la prudence — c'est la définition de la phase.**
-> E10 (libérer la zone) détruirait les 301 posés en phase D quelques heures plus tôt :
-> chaque lien tokenisé encore en circulation mourrait, et le signal SEO serait annulé
-> avant qu'un moteur l'ait repris.
+> **État au 09.09.2026, après le second passage : E1 à E6 et E8 sont FAITS.
+> Restent E7, E9, E10 et les 3 clés `app_config` — chacun sur une condition NOMMÉE,
+> aucun sur une impression.**
 >
 > | | | |
 > |---|---|---|
 > | **E1** | ✅ `R2_PUBLIC_BASE` → `https://img.getmegga.com` | prouvé par le digest `001be14e…`, sans lire le secret |
 > | **E2** | ✅ audit des secrets porteurs de domaine | voir les trois corrections ci-dessous |
-> | **E3** | ✅ 814 lignes `photos_cf` réécrites | 0 restant sur l'ancien hôte ; une URL réécrite sert la même image, octet pour octet |
-> | **E4** | ⏸ retiré du jour | voir « pourquoi E4 attend » |
-> | **E5 · E6 · E9 · E10** | ⏸ fin de transition | ce sont eux qui coupent les anciens hôtes |
-> | **E7** (Mapbox) | ⏸ | exige d'abord **deux jetons distincts** — tâche déjà inscrite aux priorités de CLAUDE.md |
-> | **E8** (exemptions du code) | ⏸ | elles sont *transition-scoped par conception* : une session CRM ouverte AVANT la bascule appelle encore `/api/geo` avec `Origin: app.megga.ch`. Les retirer la ferait échouer **fermé** (repli français, muet) jusqu'au rechargement |
-> | `app_config` (3 clés) | ⏸ | gelé sur **A7**, pas sur la transition : les clés portent `tech@megga.ch`, et la basculer avant que la boîte `tech@getmegga.com` n'existe ferait rebondir l'alerting RealAdvisor |
+> | **E3** | ✅ 814 lignes `photos_cf` réécrites | 0 restant, re-mesuré ce jour |
+> | **E4** | ✅ URI `api.megga.ch/auth/v1/callback` retirée, plus les **2 origines JavaScript** de l'ancienne zone que ce plan ne comptait pas ; *Authorized domains* réduits à `getmegga.com` seul | débloqué par la redéclaration du consentement, ci-dessous |
+> | **E5** | ✅ allowlist Supabase Auth : **12 → 7 URLs**, plus aucune sur l'ancienne zone | OAuth re-mesuré après coup : « Sign in - Google Accounts », 0 erreur |
+> | **E6** | ✅ `img.megga.ch` débranché du bucket R2 | mais **précédé d'une 301**, voir ci-dessous |
+> | **E8** | ✅ les 4 exemptions transitoires retirées du code | leur condition écrite était « quand le domaine custom Pages sera détaché » — elle est remplie |
+> | **E7** (Mapbox) | ⏸ | **ce n'est pas une étape de migration** : les deux jetons sont aujourd'hui le MÊME, sans restriction. Rien n'y nomme l'ancienne zone, donc rien n'y bloque la libération. Créer un jeton = manipuler une clé d'API : geste de Julien |
+> | **E9** (Resend) | ⏸ | ⛔ **le chemin d'envoi `getmegga.com` n'a JAMAIS livré un e-mail** : le dernier envoi date de 17 h, donc d'avant la bascule, et il est parti par l'ancienne zone. Supprimer celle-ci maintenant, c'est retirer le seul chemin PROUVÉ. L'alerte quotidienne le prouvera sous 24 h |
+> | **E10** | ⏸ | détruirait les 301 posées quelques heures plus tôt. Décision de semaines, pas d'heures |
+> | `app_config` (3 clés) | ⏸ | gelé sur **A7** : elles portent `tech@megga.ch` en **destinataire**. Basculer avant que `tech@getmegga.com` existe ferait rebondir l'alerting RealAdvisor dans le vide |
 >
-> ⚠ **POURQUOI E4 ATTEND, alors qu'il semblait sûr.** Retirer l'URI `api.megga.ch` retire
-> aussi **`megga.ch` des *Authorized domains*** du consentement — Google les dérive du domaine
-> de chaque URI. Or l'écran de consentement déclare encore des URLs `megga.ch` pour une
-> **vérification data access déjà soumise**. Les changer en cours de revue est un arbitrage,
-> pas un nettoyage. L'URI est de toute façon inerte : GoTrue n'émet plus qu'`api.getmegga.com`.
+> ✅ **CE QUI A DÉBLOQUÉ E4, et que ce plan croyait bloquant pour des semaines.** Il disait
+> qu'E4 devait attendre parce que le consentement Google déclarait encore des URLs
+> `megga.ch` « pour une vérification data access déjà soumise ». Le blocage réel était
+> l'inverse — Google l'écrit lui-même dans *Branding verification issues* :
+> « **Your home page is behind a login page** » et « the app name … does not match the app
+> name on your home page ». C'était le **portail de la vitrine** sur l'ancienne zone, qui
+> répondait 401 au relecteur ; le second point n'en était que la conséquence (sans page
+> lisible, aucun nom à comparer). `getmegga.com` sortant **sans portail**, les trois URLs
+> ont été redéclarées (`/`, `/privacy`, `/terms` — mesurées à 200), et Google a **vérifié
+> puis publié le branding dans la minute**. ⚠ Le résultat vérifié **expire en 7 jours s'il
+> n'est pas publié** : ne pas quitter l'écran sans cliquer *Publish branding*.
+>
+> ⚠ **B5 était à moitié fait, et personne ne l'aurait vu.** L'URI `…supabase.co/auth/v1/callback`
+> — le filet posé en B0 pour la fenêtre sans domaine custom — avait bien été retirée. Mais
+> Google **dérive** les *Authorized domains* des URI et **ne les retire pas** avec elles :
+> `eayczugyrvmtqnnmvjod.supabase.co` était resté déclaré comme domaine de MEGGA, alors qu'il
+> ne nous appartient pas — exactement ce que B0 s'était juré d'éviter. Retiré.
+>
+> ⚠ **E6 a été précédé d'une 301, et ce n'était pas prévu ici.** Débrancher `img.` « à froid »
+> aurait cassé les images des **e-mails déjà envoyés** — un `<img>` mort ne lève rien. Une
+> cinquième Redirect Rule (`img.megga.ch` → `img.getmegga.com`) a donc été posée AVANT.
+> Découverte au passage, utile : **une Redirect Rule prend le pas sur un domaine custom R2**
+> — mesuré, l'hôte rendait déjà 301 alors qu'il était encore attaché au bucket.
+>
+> ⛔ **La case « Preserve query string » ne prend pas quand on la coche par référence
+> d'élément** — elle s'affiche bleue, elle se déploie, et la règle part **sans** l'option. Le
+> même piège que le bouton *Deploy* en phase D, dans l'autre sens : là, l'action ne partait
+> pas ; ici elle part *incomplète*, donc en silence. L'oracle est un `curl` avec `?a=1`, pas
+> la capture d'écran du formulaire. Cliquer le **libellé**, aux coordonnées.
 >
 > ✅ **CE QUE E2 A CORRIGÉ DANS CE PLAN :**
 > - `IDX_LISTING_BASE_URL` et `APP_URL` **n'existent pas** — ce document demandait de les
@@ -467,13 +517,14 @@ expiré, le SEO a suivi).
 | E1 | `R2_PUBLIC_BASE` → `https://img.getmegga.com` | Secrets Supabase |
 | E2 | Vérifier `IDX_LISTING_BASE_URL` et `APP_URL` (s'ils sont posés) | Secrets Supabase |
 | E3 | Jouer `node scripts/migrate-domaine-getmegga.mjs` (constat), puis `--apply` | base de production |
-| E4 | Retirer l'ancienne URI `api.megga.ch/auth/v1/callback` chez Google, et `megga.ch` des *Authorized domains* | Google Console |
-| E5 | Retirer `https://app.megga.ch/**` et `https://megga.ch/**` de l'allowlist Supabase Auth | Supabase |
-| E6 | Débrancher `img.megga.ch` du bucket R2 | Cloudflare R2 |
-| E7 | Restreindre `VITE_MAPBOX_TOKEN` à `app.getmegga.com` | Mapbox |
-| E8 | Retirer les **quatre** exemptions transitoires du code, et supprimer `scripts/migrate-domaine-getmegga.mjs` | dépôt |
-| E9 | Retirer le domaine Resend `megga.ch` | Resend |
-| E10 | Libérer la zone `megga.ch` pour la holding | Cloudflare |
+| E4 | ✅ URI `api.megga.ch/auth/v1/callback` + 2 origines JS + *Authorized domains* | Google Console |
+| E5 | ✅ allowlist Supabase Auth ramenée à 7 URLs | Supabase |
+| E6 | ✅ `img.megga.ch` débranché du bucket R2, **après** pose de la 301 | Cloudflare R2 |
+| E7 | ⏸ Deux jetons Mapbox DISTINCTS, la copie navigateur restreinte à `app.getmegga.com` | Mapbox |
+| E8 | ✅ les **quatre** exemptions transitoires retirées | dépôt |
+| E8 bis | ⏸ supprimer `scripts/migrate-domaine-getmegga.mjs` — **après** A7 et son rejeu | dépôt |
+| E9 | ⏸ Retirer le domaine Resend `megga.ch` — **après** un envoi réellement livré depuis `getmegga.com` | Resend |
+| E10 | ⏸ Libérer la zone `megga.ch` pour la holding | Cloudflare |
 
 ⚠ **Deux gestes exigent une authentification que seul un humain peut fournir** — constaté
 le 09.09.2026 : la Cloud Console demande une **passkey** (biométrie) pour `hello@megga.ai`,
@@ -487,9 +538,23 @@ l'ancien hôte, et personne ne le voit.
 ⚠ **E3 avant E6.** Débrancher `img.megga.ch` avant d'avoir réécrit les 814 lignes,
 c'est perdre les photos de ces annonces sans le moindre message d'erreur.
 
-⚠ **E8 est le vrai marqueur de fin.** `tests/unit/domaine-getmegga.spec.ts` porte un
-cliquet : il fait **rougir** une exemption dont le fichier ne cite plus l'ancien
-domaine. Tant que les quatre exemptions sont là, la migration n'est pas close.
+⚠ **E8 est joué, et son cliquet a servi le jour même.** `tests/unit/domaine-getmegga.spec.ts`
+fait rougir une exemption dont le fichier ne cite plus l'ancien domaine — c'est ce qui a
+imposé de les retirer de la liste en même temps que du code.
+
+⛔ **ET IL A ATTRAPÉ MIEUX QUE ÇA.** Les commentaires écrits pour *expliquer le retrait*
+nommaient l'ancien hôte — donc les quatre fichiers le mentionnaient encore, et la garde les
+a refusés. La tentation était de les réinscrire en exemption « puisque ce n'est que de la
+prose » : c'eût été rendre **définitivement aveugles** les quatre fichiers les plus
+dangereux du lot, ceux dont l'échec est **fermé et muet**. C'est la prose qui a cédé — elle
+dit « l'ANCIENNE zone » et ne l'épelle plus.
+
+✅ **Les exemptions sont désormais DEUX familles**, parce que les fondre était un piège :
+`TRANSITOIRES` (ce qui doit disparaître, chaque entrée nommant sa condition de retrait) et
+`HISTORIQUES` (ce qui doit rester — `_shared/app-url.ts` cite les anciens hôtes pour
+**rapporter une mesure datée du 03.08.2026**). Laisser la seconde dans une liste nommée
+« transitoires », avec une date de retrait, invitait le prochain lecteur à effacer un
+chiffre daté en croyant solder une migration.
 
 ---
 

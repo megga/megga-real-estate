@@ -156,13 +156,13 @@ export function initSentry() {
     // inaccessible — pendant que curl (sans Sentry) passait, ce qui a orienté le
     // diagnostic vers tout sauf notre propre bundle. Preuve : netlog Chrome,
     // CORS_PREFLIGHT_ERROR {"cors-error": 20, "failed-parameter": "baggage"}.
-    // 🔁 MIGRATION getmegga.com (09.09.2026) : les deux zones le temps de la
-    // transition. `megga.ch` part à la phase E de docs/migration-getmegga.md.
+    // 🔁 MIGRATION getmegga.com — la cible de l'ANCIENNE zone a été retirée le
+    // 09.09.2026 (phase E) : cette zone ne sert plus rien, elle ne fait que des 301. Retirer une cible ne casse
+    // rien (on cesse d'y propager la trace) ; c'est l'ÉLARGIR qui casse.
     // ⚠ Ne JAMAIS élargir à `supabase.co` — c'est exactement l'incident ci-dessus.
     tracePropagationTargets: [
       'localhost',
       /^https:\/\/(.*\.)?getmegga\.com\//,
-      /^https:\/\/(.*\.)?megga\.ch\//,
     ],
     // Session Replay — 10% of all sessions, 100% of sessions that hit an error.
     // Ramenés à 0 sur route tokenisée : redondant avec l'intégration non embarquée,
