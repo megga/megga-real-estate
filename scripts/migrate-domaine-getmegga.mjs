@@ -10,9 +10,12 @@
  * s'applique AU PROCHAIN MERGE sur `main`, sans qu'on choisisse le moment. Or les deux
  * réécritures ci-dessous dépendent chacune d'un prérequis qui vit HORS du dépôt :
  *
- *   · les 9 434 `photos_cf` ne doivent basculer qu'une fois `img.getmegga.com` branché
- *     sur le bucket R2 — sinon 9 434 annonces du matching perdent leurs images, et la
- *     panne est MUETTE (une balise `<img>` cassée ne lève rien) ;
+ *   · les `photos_cf` ne doivent basculer qu'une fois `img.getmegga.com` branché sur le
+ *     bucket R2 — sinon les annonces du matching perdent leurs images, et la panne est
+ *     MUETTE (une balise `<img>` cassée ne lève rien). ⚠ Le volume réel est **814** lignes,
+ *     pas 9 434 : ce dernier chiffre comptait les lignes AYANT un `photos_cf`, pas celles
+ *     pointant vers l'ancien hôte. ✅ Fait le 09.09.2026 — cette moitié du script ne
+ *     trouvera plus rien ;
  *   · `app_config` porte `tech@…`, qui ne doit basculer qu'une fois la boîte créée —
  *     sinon les alertes RealAdvisor partent vers une adresse qui rebondit, et le
  *     rebond n'arrive nulle part.

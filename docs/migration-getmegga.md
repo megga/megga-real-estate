@@ -73,10 +73,16 @@ aucune erreur nulle part.
 
 ### 3.3 Les données en base basculent en DERNIER
 
-Mesuré : **9 434 lignes** de `market_listings.photos_cf` portent des URLs
-`img.megga.ch`, et elles alimentent le matching CRM. Réécrites avant que
-`img.getmegga.com` ne serve le bucket R2, ce sont 9 434 annonces sans photos — une
-balise `<img>` cassée ne lève rien.
+⛔ **CE CHIFFRE ÉTAIT FAUX, corrigé le 09.09.2026 : 814, pas 9 434.** Il conflatait deux
+mesures distinctes — « lignes AYANT un `photos_cf` » (9 434) et « lignes POINTANT vers
+`img.megga.ch` » (814). Remesuré par hôte : **814** sur l'ancien hôte, et **8 620 avec un
+`photos_cf` VIDE (`[]`)**. 🟠 Ces 8 620 sont une anomalie PRÉEXISTANTE, sans rapport avec la
+migration : le traitement photo a tourné et n'a rien produit pour 91 % des lignes qu'il a
+touchées. À regarder séparément.
+
+Les **814** lignes concernées alimentent le matching CRM. Réécrites avant que
+`img.getmegga.com` ne serve le bucket R2, ce sont 814 annonces sans photos — une balise
+`<img>` cassée ne lève rien.
 
 C'est pourquoi la bascule des données est un **exécutable** (`scripts/migrate-domaine-getmegga.mjs`)
 et non une migration : une migration de `supabase/migrations/` s'applique au prochain
@@ -419,6 +425,40 @@ première règle posée. Recâblée vers `getmegga.com/aide` (vérifié 200 avan
 
 ## 8. Phase E — nettoyage, puis libération
 
+> **État au 09.09.2026 : E1, E2 et E3 sont FAITS. Tout le reste attend la fin de la
+> transition, et ce n'est pas de la prudence — c'est la définition de la phase.**
+> E10 (libérer la zone) détruirait les 301 posés en phase D quelques heures plus tôt :
+> chaque lien tokenisé encore en circulation mourrait, et le signal SEO serait annulé
+> avant qu'un moteur l'ait repris.
+>
+> | | | |
+> |---|---|---|
+> | **E1** | ✅ `R2_PUBLIC_BASE` → `https://img.getmegga.com` | prouvé par le digest `001be14e…`, sans lire le secret |
+> | **E2** | ✅ audit des secrets porteurs de domaine | voir les trois corrections ci-dessous |
+> | **E3** | ✅ 814 lignes `photos_cf` réécrites | 0 restant sur l'ancien hôte ; une URL réécrite sert la même image, octet pour octet |
+> | **E4** | ⏸ retiré du jour | voir « pourquoi E4 attend » |
+> | **E5 · E6 · E9 · E10** | ⏸ fin de transition | ce sont eux qui coupent les anciens hôtes |
+> | **E7** (Mapbox) | ⏸ | exige d'abord **deux jetons distincts** — tâche déjà inscrite aux priorités de CLAUDE.md |
+> | **E8** (exemptions du code) | ⏸ | elles sont *transition-scoped par conception* : une session CRM ouverte AVANT la bascule appelle encore `/api/geo` avec `Origin: app.megga.ch`. Les retirer la ferait échouer **fermé** (repli français, muet) jusqu'au rechargement |
+> | `app_config` (3 clés) | ⏸ | gelé sur **A7**, pas sur la transition : les clés portent `tech@megga.ch`, et la basculer avant que la boîte `tech@getmegga.com` n'existe ferait rebondir l'alerting RealAdvisor |
+>
+> ⚠ **POURQUOI E4 ATTEND, alors qu'il semblait sûr.** Retirer l'URI `api.megga.ch` retire
+> aussi **`megga.ch` des *Authorized domains*** du consentement — Google les dérive du domaine
+> de chaque URI. Or l'écran de consentement déclare encore des URLs `megga.ch` pour une
+> **vérification data access déjà soumise**. Les changer en cours de revue est un arbitrage,
+> pas un nettoyage. L'URI est de toute façon inerte : GoTrue n'émet plus qu'`api.getmegga.com`.
+>
+> ✅ **CE QUE E2 A CORRIGÉ DANS CE PLAN :**
+> - `IDX_LISTING_BASE_URL` et `APP_URL` **n'existent pas** — ce document demandait de les
+>   vérifier ; il n'y avait rien à vérifier.
+> - **`R2_PUBLIC_URL` existe et n'était documenté NULLE PART.** Digest confronté : il vaut
+>   `https://pub-7720073375be…r2.dev`, l'URL de dev du bucket — **pas** un hôte `megga.ch`,
+>   donc rien à migrer. Un secret voisin de `R2_PUBLIC_BASE` qu'un balayage par nom aurait
+>   confondu.
+> - 🟠 **`MEGGA_KYC_PUBLIC_DOMAIN` est toujours posé** alors que `CLAUDE.md` écrit que son
+>   lecteur a été retiré du code. Secret mort — à supprimer, hors migration.
+
+
 Quand la période de transition est écoulée (les liens tokenisés en circulation ont
 expiré, le SEO a suivi).
 
@@ -444,7 +484,7 @@ prévoir dans le créneau où quelqu'un est au clavier.
 réécrit les **passées**. Inversés, les photos traitées entre les deux repartent sur
 l'ancien hôte, et personne ne le voit.
 
-⚠ **E3 avant E6.** Débrancher `img.megga.ch` avant d'avoir réécrit les 9 434 lignes,
+⚠ **E3 avant E6.** Débrancher `img.megga.ch` avant d'avoir réécrit les 814 lignes,
 c'est perdre les photos de ces annonces sans le moindre message d'erreur.
 
 ⚠ **E8 est le vrai marqueur de fin.** `tests/unit/domaine-getmegga.spec.ts` porte un
