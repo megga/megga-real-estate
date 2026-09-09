@@ -365,27 +365,55 @@ vers le nouveau domaine alors que le reste pointe encore vers l'ancien. C'est un
 
 ---
 
-## 7. Phase D — renvois 301 depuis les anciens hôtes
+## 7. Phase D — renvois 301 ✅ FAITE le 09.09.2026
 
-À faire **après** que la phase C est en production et vérifiée.
+⛔ **L'ORDRE ÉCRIT ICI ÉTAIT LE MAUVAIS, et le corriger a évité une coupure.** Ce plan
+disait : retirer d'abord les domaines des projets Pages (D1/D2), *puis* créer les renvois
+(D3). Une *Redirect Rule* a besoin d'un enregistrement DNS **proxifié** pour se déclencher —
+or détacher un domaine custom Pages emporte le CNAME qui le porte. Dans cet ordre,
+`megga.ch` aurait cessé de résoudre **avant** que la règle puisse tirer. Règle d'abord, donc.
+
+✅ **D1/D2 NE SONT PAS FAITS, ET NE DOIVENT PAS L'ÊTRE ICI.** Les domaines restent attachés
+aux projets Pages : la règle de redirection tire au bord, **avant** Pages, qui n'est donc
+jamais atteint. Les détacher n'apporterait rien aujourd'hui et casserait le renvoi. Ce geste
+appartient à la phase E, le jour où la zone est réellement libérée — et il faudra alors
+recréer un enregistrement proxifié si l'on veut garder des renvois après coup.
+
+| Règle | Correspondance | Action |
+|---|---|---|
+| `megga.ch` | `http.host eq "megga.ch"` | 301 → `concat("https://getmegga.com", http.request.uri.path)` |
+| `www.megga.ch` | `http.host eq "www.megga.ch"` | 301 → `concat("https://getmegga.com", …)` |
+| `app.megga.ch` | `http.host eq "app.megga.ch"` | 301 → `concat("https://app.getmegga.com", …)` |
+| `help.megga.ch` | *(règle PRÉEXISTANTE, recâblée)* | 301 → `https://getmegga.com/aide` |
+
+⚠ **UNE RÈGLE EXISTAIT DÉJÀ SUR CETTE ZONE, et ce plan l'ignorait** : `help.megga.ch` →
+`https://megga.ch/aide`. Laissée telle quelle, elle produisait un **double saut** dès la
+première règle posée. Recâblée vers `getmegga.com/aide` (vérifié 200 avant de rebrancher).
+🟠 Elle mourra quand même à la libération de la zone : **décider si `help.` doit renaître sur
+`getmegga.com`** ou disparaître.
+
+**Trois conditions tenues, chacune mesurée :**
+- **301**, jamais 302 — un 302 ne transmet pas le signal de permanence aux moteurs.
+- **Chemin ET query préservés** (case « Preserve query string » cochée sur les trois règles
+  neuves). Éprouvé sur les trois formes de liens tokenisés réellement en circulation :
+  `…/kyc/<jeton>`, `…/visite/:id/modifier?token=…`, `…/accept-invite/<jeton>` — tous
+  arrivent avec leur jeton intact.
+- **Un seul saut** partout, destination en 200 : mesuré à `curl -L` sur les quatre hôtes.
 
 | # | Geste | Où |
 |---|---|---|
-| D1 | Retirer `megga.ch` / `www.megga.ch` des domaines du projet Pages `megga-real-estate` | Cloudflare Pages |
-| D2 | Retirer `app.megga.ch` du projet Pages `megga-app` | Cloudflare Pages |
-| D3 | Créer deux *Redirect Rules* sur la zone `megga.ch` : `megga.ch/*` → `https://getmegga.com/$1` et `app.megga.ch/*` → `https://app.getmegga.com/$1`, en **301**, en préservant chemin ET query | Cloudflare Rules |
+| D3 | ✅ Trois règles de redirection créées, la quatrième recâblée | Cloudflare Rules |
+| D4 | ✅ **`Site URL` Supabase** : `https://megga.ch` → `https://getmegga.com`. C'est le repli quand aucune redirection ne correspond, ET `{{ .SiteURL }}` des gabarits d'e-mail | Supabase → Auth → URL Configuration |
 
-⛔ **Le chemin et la query doivent survivre au renvoi.** Les liens déjà en
-circulation portent leur capacité *dans l'URL* : `/visite/:id/modifier?token=…`,
-`/kyc/:token`, `/accept-invite/:token`. Un 301 vers la racine les tue tous.
-
-**Oracle** — un lien tokenisé réel survit au renvoi :
-
-```bash
-curl -s -o /dev/null -w '%{http_code} → %{redirect_url}\n' 'https://app.megga.ch/visite/abc/modifier?token=zzz'
-```
-
-Attendu : `301 → https://app.getmegga.com/visite/abc/modifier?token=zzz` — jeton compris.
+🖱 **Deux pièges d'interface, mesurés** :
+1. ⛔ **Le bouton *Deploy* des Redirect Rules ne réagit PAS à un clic par référence
+   d'élément** — aucune erreur, aucune validation rouge, le bouton reste actif et il ne se
+   passe rien. Il faut un clic **aux coordonnées**. La première règle a été perdue ainsi, et
+   j'ai failli attribuer l'échec à l'ordre des couches Cloudflare : c'était juste le clic.
+2. ⚠ **Le gabarit « Redirect to a different domain » se rend sous DEUX formes** selon les
+   chargements : *motif joker* (`URI Full wildcard`, cible **Static** avec `${1}`) ou
+   *expression* (`http.host eq …`, cible **Dynamic** avec `concat(...)`). La combinaison
+   joker + Static + `${1}` **échoue en silence**. La forme expression est celle qui marche.
 
 ---
 
