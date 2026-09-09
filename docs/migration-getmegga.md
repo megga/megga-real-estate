@@ -118,8 +118,8 @@ Tout ici s'ajoute à côté de l'existant. `megga.ch` continue de servir normale
 | A1 | ✅ **FAIT le 09.09.2026.** `getmegga.com` + `www.getmegga.com` ajoutés au projet Pages `megga-real-estate` (CNAME `@` et `www` → `megga-real-estate.pages.dev`). `megga.ch` / `www.megga.ch` inchangés, toujours *Active* | Cloudflare Pages |
 | A2 | ✅ **FAIT le 09.09.2026.** `app.getmegga.com` ajouté au projet Pages `megga-app` (CNAME `app` → `megga-app.pages.dev`). `app.megga.ch` inchangé | Cloudflare Pages |
 | A3 | ✅ **FAIT le 09.09.2026.** `img.getmegga.com` ajouté au bucket **`megga-market`** — ⚠ c'est CE bucket qui porte `img.megga.ch`, pas `megga-images` (qui n'a aucun domaine custom). Les deux domaines y sont *Enabled* | Cloudflare R2 |
-| A4 | ⛔ **BLOQUÉ le 09.09.2026 — 2FA.** Le tableau de bord Supabase exige un code TOTP (Dashlane). Geste à faire à la main : ajouter `https://app.getmegga.com/**` et `https://getmegga.com/**`. **Ne rien retirer.** | Supabase → Auth → URL Configuration |
-| A5 | ⛔ **BLOQUÉ le 09.09.2026 — passkey.** La Cloud Console exige une ré-authentification biométrique de `hello@megga.ai`. Geste à faire à la main : ajouter l'URI `https://api.getmegga.com/auth/v1/callback` **à côté** de l'ancienne, et `getmegga.com` aux *Authorized domains* | Google Cloud Console → Credentials |
+| A4 | ✅ **FAIT le 09.09.2026** (après déverrouillage 2FA par Julien). **7 → 12 URLs**, en MIROIR EXACT des entrées existantes plutôt qu'en joker `/**` — un joker large aurait élargi la surface au passage. Ajoutées : `getmegga.com/auth/callback`, `www.getmegga.com/auth/callback`, `getmegga.com/reset-password.html`, `app.getmegga.com/auth/callback`, `app.getmegga.com/auth/callback*`. **Rien retiré.** | Supabase → Auth → URL Configuration |
+| A5 | ⛔ **BLOQUÉ le 09.09.2026 — et la cause a CHANGÉ.** La passkey a été validée ; l'écran suivant dit *« Google Cloud access blocked — Effective September 4, 2026, Google Cloud has begun to enforce 2-step verification (2SV) »*, avec un bouton **Enable MFA**. ⛔ Activer la 2FA est un réglage de SÉCURITÉ du compte : aucun agent ne doit le faire. Julien doit l'activer sur `hello@megga.ai`, puis ajouter l'URI `https://api.getmegga.com/auth/v1/callback` **à côté** de l'ancienne, et `getmegga.com` aux *Authorized domains* | Google Cloud Console → Credentials |
 | A6 | Créer le domaine `getmegga.com` dans Resend et poser DKIM + `send.getmegga.com` | Resend + DNS Cloudflare |
 | A7 | Créer les boîtes `noreply@`, `hello@`, `legal@`, `privacy@`, `tech@`, `sales@`, `support@`, `security@` sur `getmegga.com` | Spacemail |
 
@@ -225,6 +225,27 @@ curl -s -o /dev/null -w '%{http_code}\n' https://app.getmegga.com/dashboard
 et, dans le navigateur, une connexion complète depuis `getmegga.com/login` jusqu'au
 `/dashboard`, en Google **et** en mot de passe. C'est le seul oracle du handoff de
 session entre les deux origines.
+
+---
+
+## 6 bis. ⛔ Le `Site URL` de Supabase — que ce document avait MANQUÉ
+
+Découvert en faisant A4 le 09.09.2026 : la page *URL Configuration* ne porte pas qu'une
+liste d'autorisations, elle porte aussi un **`Site URL`**, aujourd'hui `https://megga.ch`.
+
+Il fait deux choses, et les deux comptent :
+
+1. C'est le **repli** quand aucune URL de redirection ne correspond ;
+2. c'est la variable **`{{ .SiteURL }}` des gabarits d'e-mail** Supabase Auth — donc
+   l'adresse que portent les liens de confirmation et de réinitialisation réellement
+   envoyés aux agents.
+
+⚠ **Il n'a PAS été changé, volontairement.** Le basculer relève de la phase C/D, pas de la
+phase A : le faire avant que le code ne soit déployé enverrait les liens d'authentification
+vers le nouveau domaine alors que le reste pointe encore vers l'ancien. C'est un
+**basculement**, pas un ajout — la phase A n'en contient aucun.
+
+**À faire au moment de la phase D** : `https://megga.ch` → `https://getmegga.com`.
 
 ---
 
@@ -340,3 +361,15 @@ sur `hello@megga.ai` que **A0 doit être fait depuis CE compte**, et pas un autr
 4. **`getmegga.com` porte déjà un SPF Spacemail.** Y ajouter Resend demande de
    **fusionner** les deux `include:` dans un enregistrement TXT unique : deux
    enregistrements SPF sur un même nom invalident la politique entière.
+
+5. 🟠 **DÉFAUT PRÉEXISTANT, mis au jour par A4 — la réinitialisation de mot de passe.**
+   `megga-auth.js` construit **quatre** adresses de retour, une par langue :
+   `/reset-password`, `/de/neues-passwort`, `/en/reset-password`, `/it/nuova-password`.
+   **Aucune des quatre n'est dans l'allowlist** ; la seule entrée voisine est
+   `…/reset-password.html`, avec l'extension. Les quatre fichiers existent bien dans la
+   vitrine buildée — c'est donc l'autorisation qui manque, pas la page. Si Supabase exige
+   une correspondance exacte, la réinitialisation retombe sur le `Site URL`, c'est-à-dire
+   la racine du site, **dans les quatre langues**.
+   ⚠ L'entrée existante a été **mirée à l'identique** (`getmegga.com/reset-password.html`)
+   plutôt que « corrigée » en passant : réparer ça change le comportement de
+   l'authentification en production, et c'est un arbitrage, pas un geste de migration.
