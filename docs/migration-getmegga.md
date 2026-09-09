@@ -121,7 +121,7 @@ Tout ici s'ajoute à côté de l'existant. `megga.ch` continue de servir normale
 | A4 | ✅ **FAIT le 09.09.2026** (après déverrouillage 2FA par Julien). **7 → 12 URLs**, en MIROIR EXACT des entrées existantes plutôt qu'en joker `/**` — un joker large aurait élargi la surface au passage. Ajoutées : `getmegga.com/auth/callback`, `www.getmegga.com/auth/callback`, `getmegga.com/reset-password.html`, `app.getmegga.com/auth/callback`, `app.getmegga.com/auth/callback*`. **Rien retiré.** | Supabase → Auth → URL Configuration |
 | A5 | ✅ **FAIT le 09.09.2026** (après activation de la 2SV par Julien — Google Cloud l'impose depuis le 04.09.2026). Client **« MEGGA — Supabase Auth (app.megga.ch) »**, `833483825712-vh71…`. Ajoutés SANS RIEN RETIRER : origines JS `https://app.getmegga.com` et `https://getmegga.com` (à côté de `app.megga.ch`, `megga.ch`, `localhost:5173`) ; URI de redirection `https://api.getmegga.com/auth/v1/callback` (à côté de `api.megga.ch/...`) | Google Cloud Console → Credentials |
 | A6 | Créer le domaine `getmegga.com` dans Resend, puis poser les **TROIS** enregistrements qu'il rend — `resend._domainkey` TXT (DKIM), `send` TXT (SPF `include:amazonses.com`), `send` MX (`feedback-smtp.<région>.amazonses.com`). ⚠ **Ne PAS toucher au SPF de la racine** : Resend n'y touche pas. ⚠ La région du MX se lit dans Resend, elle ne se devine pas (`megga.ch` est en `eu-west-1`, mais c'est une mesure, pas une règle) | Resend + DNS Cloudflare |
-| A6 bis | 🟠 **DMARC MANQUANT sur `getmegga.com`** — relevé le 09.09.2026 en mesurant A6, et Cloudflare le signale de lui-même (« Block fake emails sent from @getmegga.com addresses »). `megga.ch` porte `v=DMARC1; p=none; rua=mailto:dmarc_agg@vali.email` ; la nouvelle zone n'a **rien**. `p=none` n'applique aucune politique — il observe seulement — donc le poser ne peut pas casser une délivrance | DNS Cloudflare |
+| A6 bis | ✅ **FAIT le 09.09.2026.** `_dmarc` TXT = `v=DMARC1; p=none; rua=mailto:dmarc_agg@vali.email`, miroir exact de `megga.ch`. Confirmé sur **trois** résolveurs publics. ⚠ Vérifié AVANT de poser : `vali.email` publie une autorisation de rapport externe en **wildcard** (`*._report._dmarc.vali.email`), donc les rapports pour un domaine NEUF sont acceptés sans démarche — sans elle, ils auraient été refusés en silence | DNS Cloudflare |
 | A7 | Créer les boîtes `noreply@`, `hello@`, `legal@`, `privacy@`, `tech@`, `sales@`, `support@`, `security@` | Spacemail — **geste humain** : créer des boîtes, c'est créer des comptes et leur poser des mots de passe |
 
 **Oracle A0** — la propriété est prouvée par le DNS, pas par l'écran de Search Console :
@@ -286,6 +286,11 @@ session entre les deux origines.
 
 Rien à voir avec la migration, tout à voir avec le fait de la conduire dans un navigateur.
 
+0. ⚠ **Le dialogue « Add record » s'ouvre par INTERMITTENCE.** Un clic sur le bouton ne
+   l'ouvre pas toujours, et rien ne distingue l'échec du succès à l'écran (cf. point 1).
+   Ce qui a fini par marcher de façon fiable : **cliquer d'abord une zone neutre de la page**
+   (le titre), *puis* le bouton, puis `find` — jamais deux clics de suite sur le bouton, qui
+   l'ouvrent et le referment. Et un `ref` survit mal à un rechargement : en reprendre un frais.
 1. ⛔ **Le dialogue « Add record » de Cloudflare est INVISIBLE aux captures d'écran.** Il
    vit dans une couche que la capture ne composite pas : l'écran montre la liste des
    enregistrements pendant que le dialogue est bel et bien ouvert. Conséquence — un clic
