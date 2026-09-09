@@ -120,7 +120,7 @@ Tout ici s'ajoute à côté de l'existant. `megga.ch` continue de servir normale
 | A3 | ✅ **FAIT le 09.09.2026.** `img.getmegga.com` ajouté au bucket **`megga-market`** — ⚠ c'est CE bucket qui porte `img.megga.ch`, pas `megga-images` (qui n'a aucun domaine custom). Les deux domaines y sont *Enabled* | Cloudflare R2 |
 | A4 | ✅ **FAIT le 09.09.2026** (après déverrouillage 2FA par Julien). **7 → 12 URLs**, en MIROIR EXACT des entrées existantes plutôt qu'en joker `/**` — un joker large aurait élargi la surface au passage. Ajoutées : `getmegga.com/auth/callback`, `www.getmegga.com/auth/callback`, `getmegga.com/reset-password.html`, `app.getmegga.com/auth/callback`, `app.getmegga.com/auth/callback*`. **Rien retiré.** | Supabase → Auth → URL Configuration |
 | A5 | ✅ **FAIT le 09.09.2026** (après activation de la 2SV par Julien — Google Cloud l'impose depuis le 04.09.2026). Client **« MEGGA — Supabase Auth (app.megga.ch) »**, `833483825712-vh71…`. Ajoutés SANS RIEN RETIRER : origines JS `https://app.getmegga.com` et `https://getmegga.com` (à côté de `app.megga.ch`, `megga.ch`, `localhost:5173`) ; URI de redirection `https://api.getmegga.com/auth/v1/callback` (à côté de `api.megga.ch/...`) | Google Cloud Console → Credentials |
-| A6 | 🟠 **RECORDS POSÉS le 09.09.2026, vérification Resend EN COURS.** Domaine créé (région **Ireland `eu-west-1`**, la même que `megga.ch` — lue, pas devinée ; Return-Path par défaut ; suivi de clics et d'ouverture **non activés**). Trois enregistrements posés et propagés : `resend._domainkey` TXT (**218 car., exactement la longueur de celui de `megga.ch`** — la clé est complète), `send` TXT (SPF), `send` MX (10). Resend affiche *Pending* : « This may take a few hours depending on Cloudflare's propagation time » | Resend + DNS Cloudflare |
+| A6 | 🟠 **RECORDS POSÉS le 09.09.2026, vérification Resend EN COURS.** Domaine créé (région **Ireland `eu-west-1`**, la même que `megga.ch` — lue, pas devinée ; Return-Path par défaut ; suivi de clics et d'ouverture **non activés — décision Julien, 09.09.2026**). Trois enregistrements posés et propagés : `resend._domainkey` TXT (**218 car., exactement la longueur de celui de `megga.ch`** — la clé est complète), `send` TXT (SPF), `send` MX (10). Resend affiche *Pending* : « This may take a few hours depending on Cloudflare's propagation time » | Resend + DNS Cloudflare |
 | A6 bis | ✅ **FAIT le 09.09.2026.** `_dmarc` TXT = `v=DMARC1; p=none; rua=mailto:dmarc_agg@vali.email`, miroir exact de `megga.ch`. Confirmé sur **trois** résolveurs publics. ⚠ Vérifié AVANT de poser : `vali.email` publie une autorisation de rapport externe en **wildcard** (`*._report._dmarc.vali.email`), donc les rapports pour un domaine NEUF sont acceptés sans démarche — sans elle, ils auraient été refusés en silence | DNS Cloudflare |
 | A7 | Créer les boîtes `noreply@`, `hello@`, `legal@`, `privacy@`, `tech@`, `sales@`, `support@`, `security@` | Spacemail — **geste humain** : créer des boîtes, c'est créer des comptes et leur poser des mots de passe |
 
@@ -182,6 +182,12 @@ réessayé.
 ⚠ Le client s'appelle encore **« MEGGA — Supabase Auth (app.megga.ch) »**. Purement
 cosmétique (« This name is only used to identify the client in the console and will not
 be shown to end users »), mais à renommer en phase E pour ne pas laisser un repère faux.
+
+✅ **SUIVI DE CLICS ET D'OUVERTURE : DÉSACTIVÉ, ET C'EST UNE DÉCISION** (Julien,
+09.09.2026), pas un défaut hérité. Mesuré le même jour : `megga.ch` n'a lui non plus
+**aucun sous-domaine de suivi** configuré — sa page invite encore à « Enable tracking
+metrics ». Les deux domaines sont donc cohérents. Un pixel d'ouverture sur un produit
+compliance-first se décide ; ne pas le réactiver au détour d'un réglage.
 
 ⛔ **NE PAS AJOUTER LE QUATRIÈME ENREGISTREMENT QUE RESEND PROPOSE.** Sa page liste une
 section **« Enable Receiving »** avec un `MX @ inbound-smtp.<région>.amazonaws.com`,
