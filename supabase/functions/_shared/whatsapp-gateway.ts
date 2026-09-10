@@ -72,6 +72,26 @@ export interface OutboundTemplateMessage {
   otpButtonCode?: string
 }
 
+/**
+ * Message à BOUTONS DE RÉPONSE (Meta `interactive` / `button`) : jusqu'à trois boutons sous
+ * un texte. Message libre, donc réservé à la fenêtre de service 24 h — comme un texte.
+ *
+ * `id` revient tel quel dans la réponse (`button_reply.id`) quand la personne appuie : c'est
+ * lui, et non le libellé, qui dit à quoi le bouton se rapporte. Un bouton reste dans la
+ * conversation ; son libellé seul ne dit pas sous quelle question il a été touché.
+ */
+export interface OutboundButtonsMessage {
+  toPhone: string                                  // digits only, international sans +
+  body: string                                     // texte affiché au-dessus des boutons
+  buttons: Array<{ id: string; title: string }>
+}
+
+/** Limites Meta d'un message à boutons. Au-delà, l'API refuse l'envoi. */
+export const BUTTONS_MAX = 3
+export const BUTTON_TITLE_MAX = 20
+export const BUTTON_ID_MAX = 256
+export const INTERACTIVE_BODY_MAX = 1024
+
 export interface SendConfig {
   // Meta Cloud API
   metaToken?: string
@@ -126,6 +146,8 @@ export interface WhatsAppProvider {
   buildSendImageRequest?(msg: OutboundImageMessage, config: SendConfig): SendHttpRequest
   /** Envoi d'un TEMPLATE approuvé (seul type autorisé hors fenêtre 24 h). */
   buildSendTemplateRequest?(msg: OutboundTemplateMessage, config: SendConfig): SendHttpRequest
+  /** Envoi d'un message à boutons de réponse (fenêtre 24 h obligatoire, comme un texte). */
+  buildSendButtonsRequest?(msg: OutboundButtonsMessage, config: SendConfig): SendHttpRequest
   /** Events `statuses` d'un webhook (sent/delivered/read/failed). `[]` si aucun. */
   parseStatusUpdates?(payload: unknown): StatusUpdate[]
 }
@@ -203,6 +225,34 @@ export async function verifyHmac(rawBody: string, signatureHeader: string, secre
 /** Première valeur réellement porteuse de texte. Une chaîne vide n'en est pas une. */
 function firstNonEmpty(...vals: Array<string | undefined>): string | undefined {
   return vals.find((v) => typeof v === 'string' && v !== '')
+}
+
+/**
+ * Refuse un message à boutons que Meta refuserait. Lever ICI plutôt que laisser l'API
+ * répondre 400 : la garde rend alors un échec de construction, et l'appelant retombe sur le
+ * texte au lieu d'attendre un aller-retour réseau pour apprendre la même chose.
+ */
+function assertButtonsMessage(msg: OutboundButtonsMessage): void {
+  if (!msg.body || msg.body.length > INTERACTIVE_BODY_MAX) {
+    throw new RangeError(`buttons: corps de 1 à ${INTERACTIVE_BODY_MAX} caractères (${msg.body?.length ?? 0})`)
+  }
+  if (msg.buttons.length < 1 || msg.buttons.length > BUTTONS_MAX) {
+    throw new RangeError(`buttons: 1 à ${BUTTONS_MAX} boutons (${msg.buttons.length})`)
+  }
+  for (const b of msg.buttons) {
+    if (!b.title || b.title.length > BUTTON_TITLE_MAX) {
+      throw new RangeError(`buttons: libellé de 1 à ${BUTTON_TITLE_MAX} caractères (« ${b.title} »)`)
+    }
+    if (!b.id || b.id.length > BUTTON_ID_MAX) {
+      throw new RangeError(`buttons: identifiant de 1 à ${BUTTON_ID_MAX} caractères`)
+    }
+  }
+  if (new Set(msg.buttons.map((b) => b.id)).size !== msg.buttons.length) {
+    throw new RangeError('buttons: identifiants en double')
+  }
+  if (new Set(msg.buttons.map((b) => b.title)).size !== msg.buttons.length) {
+    throw new RangeError('buttons: libellés en double')
+  }
 }
 
 const META_TYPE_TO_MEDIA: Record<string, NormalizedMediaType> = {
@@ -430,6 +480,33 @@ class MetaProvider implements WhatsAppProvider {
         to: msg.toPhone,
         type: 'template',
         template,
+      }),
+    }
+  }
+
+  // Boutons de réponse (message INTERACTIF). Libre, donc réservé à la fenêtre 24 h — c'est la
+  // garde qui l'impose, pas ce constructeur. Les limites de Meta, elles, sont vérifiées ici.
+  buildSendButtonsRequest(msg: OutboundButtonsMessage, config: SendConfig): SendHttpRequest {
+    assertButtonsMessage(msg)
+    const apiVersion = config.metaApiVersion ?? 'v22.0'
+    return {
+      url: `https://graph.facebook.com/${apiVersion}/${config.metaPhoneNumberId}/messages`,
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + config.metaToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: msg.toPhone,
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: msg.body },
+          action: {
+            buttons: msg.buttons.map((b) => ({ type: 'reply', reply: { id: b.id, title: b.title } })),
+          },
+        },
       }),
     }
   }

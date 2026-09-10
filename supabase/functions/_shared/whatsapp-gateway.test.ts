@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, isDialablePhone, PHONE_MIN_DIGITS, PHONE_MAX_DIGITS, type NormalizedInboundMessage } from './whatsapp-gateway'
+import {
+  getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, isDialablePhone, PHONE_MIN_DIGITS, PHONE_MAX_DIGITS,
+  BUTTONS_MAX, BUTTON_TITLE_MAX, BUTTON_ID_MAX, INTERACTIVE_BODY_MAX,
+  type NormalizedInboundMessage, type OutboundButtonsMessage,
+} from './whatsapp-gateway'
 
 // Régression de l'audit du 03.08.2026 §4.2. Le webhook choisissait sa branche de
 // vérification d'après l'en-tête envoyé par l'APPELANT : sans
@@ -389,5 +393,56 @@ describe('buildMarkReadRequest (Meta)', () => {
   it('ajoute l’indicateur typing si demandé', () => {
     const body = JSON.parse(meta.buildMarkReadRequest!('wamid.XYZ', config, { typing: true }).body)
     expect(body.typing_indicator).toEqual({ type: 'text' })
+  })
+})
+
+describe('Meta buildSendButtonsRequest — boutons de réponse', () => {
+  const meta = getProvider('meta')
+  const config = { metaToken: 'TOK', metaPhoneNumberId: 'PNID', metaApiVersion: 'v22.0' }
+  const OUI_NON = [{ id: 'pa:x:yes', title: 'Oui' }, { id: 'pa:x:no', title: 'Non' }]
+  const build = (over: Partial<OutboundButtonsMessage> = {}) =>
+    meta.buildSendButtonsRequest!({ toPhone: '41791112233', body: 'Tu confirmes ?', buttons: OUI_NON, ...over }, config)
+
+  it('construit un message interactif de type button, boutons dans l’ordre', () => {
+    expect(meta.buildSendButtonsRequest).toBeDefined()
+    const req = build()
+    expect(req.url).toBe('https://graph.facebook.com/v22.0/PNID/messages')
+    expect(req.headers.Authorization).toBe('Bearer TOK')
+    expect(JSON.parse(req.body)).toEqual({
+      messaging_product: 'whatsapp',
+      to: '41791112233',
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: { text: 'Tu confirmes ?' },
+        action: { buttons: [
+          { type: 'reply', reply: { id: 'pa:x:yes', title: 'Oui' } },
+          { type: 'reply', reply: { id: 'pa:x:no', title: 'Non' } },
+        ] },
+      },
+    })
+  })
+
+  it('accepte exactement les bornes de Meta', () => {
+    const buttons = Array.from({ length: BUTTONS_MAX }, (_, i) => ({
+      id: `${i}`.padEnd(BUTTON_ID_MAX, 'x'), title: `${i}`.padEnd(BUTTON_TITLE_MAX, 'y'),
+    }))
+    expect(() => build({ body: 'z'.repeat(INTERACTIVE_BODY_MAX), buttons })).not.toThrow()
+  })
+
+  // Lever ICI plutôt que laisser Meta répondre 400 : la garde rend un échec de construction,
+  // et l'appelant retombe sur le texte sans aller-retour réseau.
+  it('refuse ce que Meta refuserait', () => {
+    const trop = Array.from({ length: BUTTONS_MAX + 1 }, (_, i) => ({ id: `b${i}`, title: `B${i}` }))
+    expect(() => build({ buttons: [] })).toThrow(RangeError)
+    expect(() => build({ buttons: trop })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'a', title: 'y'.repeat(BUTTON_TITLE_MAX + 1) }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'a', title: '' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'x'.repeat(BUTTON_ID_MAX + 1), title: 'A' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: '', title: 'A' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'a', title: 'A' }, { id: 'a', title: 'B' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'a', title: 'A' }, { id: 'b', title: 'A' }] })).toThrow(RangeError)
+    expect(() => build({ body: '' })).toThrow(RangeError)
+    expect(() => build({ body: 'z'.repeat(INTERACTIVE_BODY_MAX + 1) })).toThrow(RangeError)
   })
 })
