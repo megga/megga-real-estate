@@ -82,7 +82,10 @@ for (const f of fichiers) {
 
   // ── Propriété 1 ───────────────────────────────────────────────────────────
   if (!CONSTRUCTEURS.includes(f)) {
-    for (const m of txt.matchAll(/\.buildSend(Text|Image|Document|Template)Request\b/g)) {
+    // ⚠ `\w+` et non l'alternative fermée d'origine (Text|Image|Document|Template) : une porte
+    // qui ÉNUMÈRE les constructeurs devient aveugle au premier qu'on ajoute — et
+    // `buildSendButtonsRequest` aurait pu s'appeler n'importe où sans passer par la garde.
+    for (const m of txt.matchAll(/\.buildSend(\w+)Request\b/g)) {
       fautes.push({
         f, ligne: ligneDe(txt, m.index),
         quoi: `\`buildSend${m[1]}Request\` hors de la gateway et de la garde — le sortant doit passer par \`sendOutboundGuarded\``,
