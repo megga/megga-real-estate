@@ -1,5 +1,6 @@
 // Banc de whatsapp_pending_notices : l'avis LPD (art. 19 nLPD) ne vise que les PROSPECTS
-// (migrations 20260910192017 puis 20260910200728).
+// (migrations 20260910192017 puis 20260910200728) — et la garde whatsapp_send_allowed, seconde
+// ligne, le refuse à un numéro d'agent vérifié (20260910204544).
 //
 // Le 10.09.2026, le numéro d'un agent fraîchement apparié a reçu l'avis écrit pour les
 // prospects : la branche agent du webhook insère ses entrants avec l'agence du lien, et la
@@ -94,8 +95,9 @@ describe.skipIf(!HAS_KEYS)('whatsapp_pending_notices : l’avis LPD ne vise que 
   })
 
   // Entrants NON marqués : lignes antérieures à la colonne, ou numéro d'agent entré par un
-  // autre chemin que la branche agent. C'est la clause du lien qui doit les écarter.
-  describe('la clause du lien vérifié', () => {
+  // autre chemin que la branche agent. C'est la clause du lien qui doit les écarter — et la
+  // garde d'envoi, seconde ligne, tient la même frontière (20260910204544).
+  describe('un numéro d’agent vérifié : clause du lien et garde d’envoi', () => {
     let linkId = ''
     const agent = freshPhone()
     /** Le numéro de l'agent au format national : même personne pour normalize_phone. */
@@ -109,6 +111,17 @@ describe.skipIf(!HAS_KEYS)('whatsapp_pending_notices : l’avis LPD ne vise que 
       await seedInbound(agentNational, setup.agencyAId)  // même numéro, autre format
       await seedInbound(prospect, setup.agencyAId)       // le témoin : même forme, sans lien
     })
+
+    /** Verdict de la garde pour un avis LPD, comme whatsapp-process le demande (ni fiche ni profil). */
+    const garde = async (phone: string) => {
+      const { data, error } = await svc.rpc('whatsapp_send_allowed', {
+        p_wa_phone: phone, p_purpose: 'lpd_notice', p_agency_id: setup.agencyAId,
+      })
+      if (error) throw new Error(`whatsapp_send_allowed: ${error.code} ${error.message}`)
+      const rows = (data ?? []) as Array<{ allowed: boolean; reason: string; legal_basis: string | null; subject_kind: string | null }>
+      expect(rows, 'la garde rend exactement une ligne').toHaveLength(1)
+      return rows[0]
+    }
 
     it('l’entrant d’un agent vérifié ne réclame aucun avis ; celui d’un prospect, si', async () => {
       const aviser = await dus(setup.agencyAId)
@@ -138,8 +151,37 @@ describe.skipIf(!HAS_KEYS)('whatsapp_pending_notices : l’avis LPD ne vise que 
         expect(aviserA).toContain(agent)
         expect(aviserA).toContain(agentNational)
         expect(await dus(setup.agencyBId)).toContain(agent)
+        // La garde suit la même frontière : sans lien vérifié, le numéro en est un comme un autre.
+        expect((await garde(agent)).allowed, 'la garde, sans lien vérifié').toBe(true)
       } finally {
         await svc.from('whatsapp_agent_links').update({ verified: true }).eq('id', linkId)
+      }
+    })
+
+    it('la garde refuse lpd_notice au numéro d’un agent vérifié ; le prospect le reçoit', async () => {
+      // Témoin d'abord : une garde qui refuserait tout passerait l'assertion suivante.
+      expect(await garde(prospect), 'un prospect reçoit l’avis').toMatchObject({
+        allowed: true, reason: 'ok', legal_basis: 'legal_obligation',
+      })
+      expect(await garde(agent)).toMatchObject({
+        allowed: false, reason: 'notice_not_for_agent', subject_kind: 'profile',
+      })
+    })
+
+    it('la garde refuse aussi quand l’agent a une FICHE : le sujet dérivé est alors « contact »', async () => {
+      // Le cas réel du 10.09 : le seul agent vérifié avait aussi une fiche, et la garde le
+      // dérivait 'contact' à son étape 2. Un refus limité aux profils l'aurait laissé passer.
+      const { data: fiche, error } = await svc.from('contacts').insert({
+        agency_id: setup.agencyAId, first_name: 'Agent', last_name: 'AussiFiche',
+        email: `agent-fiche-${agent}@megga-test.local`, phone: agent, source: 'manual', type: 'lead',
+      }).select('id').single()
+      if (error) throw new Error(`fiche de l’agent: ${error.message}`)
+      try {
+        expect(await garde(agent)).toMatchObject({
+          allowed: false, reason: 'notice_not_for_agent', subject_kind: 'contact',
+        })
+      } finally {
+        await svc.from('contacts').delete().eq('id', (fiche as { id: string }).id)
       }
     })
   })
