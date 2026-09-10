@@ -21,7 +21,7 @@ import { asWaLang, detectLang, refusalText, t, type WaLang, undoneStage, undoSta
 import { detectStopRequest } from '../_shared/whatsapp-stop-keywords.ts'
 import { recordStopRequest, recordAgentBriefOptOut, sendStopAck } from '../_shared/whatsapp-stop.ts'
 import { sendOutboundGuarded, type PublicReason, type OutboundPayload } from '../_shared/whatsapp-outbound-guard.ts'
-import { planConfirmation } from '../_shared/whatsapp-confirm-buttons.ts'
+import { planConfirmation, resolveButtonDecision, parseConfirmReplyId } from '../_shared/whatsapp-confirm-buttons.ts'
 import { extractOptinToken, consumeOptinToken, OPTIN_BODY_PLACEHOLDER } from '../_shared/whatsapp-optin.ts'
 
 const corsHeaders = {
@@ -128,7 +128,12 @@ serve(async (req) => {
   // ne demande pas à se désinscrire. Le discriminant est `bodySource`, pas le texte.
   //
   // Un numéro NON apparié retombe sur le chemin client (point B) : rien n'est fait ici.
-  if ((msg.bodySource === 'button' || msg.bodySource === 'interactive') && detectStopRequest(msg.body)) {
+  // ⛔ Un bouton de confirmation émis par MEGGA n'est JAMAIS un opt-out, quel que soit son
+  // libellé. Les libellés sont déjà tenus hors des mots-clés STOP (whatsapp-i18n.test.ts) ;
+  // ce test-ci est la défense en profondeur, pour le jour où quelqu'un en ajoute un.
+  if ((msg.bodySource === 'button' || msg.bodySource === 'interactive')
+    && !parseConfirmReplyId(msg.replyId)
+    && detectStopRequest(msg.body)) {
     const { data: optOutLink } = await admin
       .from('whatsapp_agent_links')
       .select('profile_id, agency_id')
@@ -563,7 +568,7 @@ async function processAgentMessage(
   admin: SupabaseClient,
   provider: ReturnType<typeof getProvider>,
   agentLink: { profile_id: string; agency_id: string | null },
-  msg: { fromPhone: string; body: string | null; providerMessageId: string; mediaId: string | null; mediaType: string | null },
+  msg: { fromPhone: string; body: string | null; providerMessageId: string; mediaId: string | null; mediaType: string | null; replyId: string | null },
 ): Promise<void> {
   // Coches bleues + « typing… » dès réception : l'agent voit que MEGGA a lu et prépare.
   await markRead(provider, msg.providerMessageId, true)
@@ -655,11 +660,29 @@ async function processAgentMessage(
     .eq('profile_id', agentLink.profile_id)
     .maybeSingle()
 
+  // Bouton de confirmation MEGGA ? Décodé AVANT l'undo et le pending, parce qu'un bouton porte
+  // l'identifiant de SON action : un bouton périmé (action expirée, traitée ou remplacée) ne
+  // doit ni consommer l'action qui attend, ni partir au cerveau sous la forme d'un « Oui ».
+  // Spec : docs/superpowers/specs/2026-09-10-whatsapp-boutons-confirmations-design.md
+  const button = resolveButtonDecision(msg.replyId, (pendingAction?.id as string | undefined) ?? null)
+  if (button === 'stale') {
+    // Destinataire = l'AGENT, fenêtre ouverte par l'appui qu'il vient de faire.
+    await sendOutboundGuarded({
+      admin, provider, to: msg.fromPhone,
+      purpose: 'service',
+      payload: { type: 'text', body: t(detectLang(userText), 'staleButton') },
+      profileId: agentLink.profile_id, agencyId: agentLink.agency_id,
+      isAutomated: true,
+      retry: true,
+    })
+    return
+  }
+
   // L3 — undo différé : « /annuler » dans la fenêtre rejoue le dernier payload_undo.
   // Prioritaire SAUF quand un pending attend ET que ce message le refuse (parseConfirmation
   // === 'no', ex. « annule », « non ») : dans ce cas le « non » vise le pending, pas l'undo.
   // Le « /annuler » explicite (parseConfirmation === 'none') reste un undo même avec pending.
-  if (isUndoCommand(userText) && !(pendingAction && parseConfirmation(userText) === 'no')) {
+  if (!button && isUndoCommand(userText) && !(pendingAction && parseConfirmation(userText) === 'no')) {
     const { data: last } = await admin
       .from('whatsapp_recent_auto_actions')
       .select('id, tool, payload_undo, undo_until')
@@ -695,7 +718,8 @@ async function processAgentMessage(
   }
 
   if (pendingAction) {
-    const decision = parseConfirmation(userText)
+    // Un appui sur le bon bouton décide ; sinon, le texte tapé, comme avant.
+    const decision = button ?? parseConfirmation(userText)
     const valid = isPendingActionValid(pendingAction.expires_at)
     const lang = asWaLang((pendingAction.args as Record<string, unknown>)?.__lang)
     // F3 : consommation gagnant-unique. Deux « oui » concurrents lisent la même ligne ;
@@ -704,12 +728,18 @@ async function processAgentMessage(
       .from('whatsapp_pending_actions').delete().eq('id', pendingAction.id).select('id')
     if (!claimed || claimed.length === 0) {
       // Course perdue : une autre invocation a déjà consommé cette attente (gagnant-unique).
-      // On n'AVALE PAS notre message — le pending n'existe plus, on le traite comme un message
-      // normal (le cerveau répond ; s'il re-stashe, stashPending est atomique → pas de corruption).
-      const brain = await callAgentBrain(agentLink, msg, userText, lang, inboundDocText)
-      reply = brain.reply
-      replyIsError = brain.isError
-      confirmPendingId = brain.confirmPendingId
+      if (button) {
+        // Un appui concurrent (double appui) a pris le verrou : CE bouton est périmé. Surtout
+        // pas le cerveau — il recevrait « Oui » sans aucune question derrière.
+        reply = t(lang, 'staleButton')
+      } else {
+        // On n'AVALE PAS notre message — le pending n'existe plus, on le traite comme un message
+        // normal (le cerveau répond ; s'il re-stashe, stashPending est atomique → pas de corruption).
+        const brain = await callAgentBrain(agentLink, msg, userText, lang, inboundDocText)
+        reply = brain.reply
+        replyIsError = brain.isError
+        confirmPendingId = brain.confirmPendingId
+      }
     } else if (decision === 'yes' && valid) {
       try {
         await admin.from('whatsapp_confirmation_log').insert({
