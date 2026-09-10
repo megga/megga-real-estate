@@ -134,7 +134,7 @@ Hosting :      Cloudflare Pages — 2 projets : megga-real-estate (getmegga.com 
 CI/CD :        GitHub Actions → Cloudflare Pages + Supabase Edge Functions auto-deploy
 
 Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine getmegga.com
-               Backend conservé : market_listings ~253k (dont ~35k flatfox actives) + flatfox-sync
+               Backend conservé : market_listings ~253k (dont ~41k flatfox actives au 10.09.2026) + flatfox-sync
                (pg_cron 04:00 UTC)
                sert uniquement le matching CRM, aucun affichage public dans cette app
 ```
