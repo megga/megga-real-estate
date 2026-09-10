@@ -143,6 +143,29 @@ const STR = {
     fr: "Type d'action inconnu, rien fait.",
     en: 'Unknown action type — nothing done.',
   },
+  // ── Boutons de confirmation (spec 2026-09-10) ──────────────────────────────
+  // ⛔ Un libellé de bouton ne doit JAMAIS être un mot-clé STOP : le webhook traite un appui
+  // dont le libellé en est un comme un opt-out par BOUTON, avant même de savoir que
+  // l'expéditeur est un agent. « Cancel » est dans la liste internationale — un bouton
+  // [Cancel] désinscrirait l'agent de son brief. Verrouillé par whatsapp-i18n.test.ts.
+  // ⚠ 20 caractères au plus (limite Meta d'un libellé).
+  btnYes: {
+    fr: 'Oui',
+    en: 'Yes',
+  },
+  btnNo: {
+    fr: 'Non',
+    en: 'No',
+  },
+  // Corps du message à boutons quand la question complète est partie à part (> 1024 car.).
+  confirmShort: {
+    fr: 'Tu confirmes ?',
+    en: 'Confirm?',
+  },
+  staleButton: {
+    fr: "Ce bouton concerne une action qui n'est plus en attente : rien n'a été fait.",
+    en: 'This button is for an action that is no longer pending: nothing was done.',
+  },
 } as const
 
 export type WaStringKey = keyof typeof STR
