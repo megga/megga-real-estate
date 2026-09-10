@@ -1,0 +1,98 @@
+import { describe, it, expect } from 'vitest'
+import {
+  confirmReplyId, parseConfirmReplyId, resolveButtonDecision, planConfirmation,
+} from './whatsapp-confirm-buttons'
+import { BUTTONS_BODY_MAX } from './whatsapp-gateway'
+import { t } from './whatsapp-i18n'
+
+const PA = '0f8e7d6c-5b4a-4938-8271-605f4e3d2c1b'
+const AUTRE = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d'
+
+describe('identifiant de bouton de confirmation', () => {
+  it('fait l’aller-retour pour oui comme pour non', () => {
+    expect(confirmReplyId(PA, 'yes')).toBe(`pa:${PA}:yes`)
+    expect(parseConfirmReplyId(confirmReplyId(PA, 'yes'))).toEqual({ pendingId: PA, choice: 'yes' })
+    expect(parseConfirmReplyId(confirmReplyId(PA, 'no'))).toEqual({ pendingId: PA, choice: 'no' })
+  })
+
+  it('normalise la casse de l’uuid — Postgres le rend en minuscules', () => {
+    expect(parseConfirmReplyId(`pa:${PA.toUpperCase()}:yes`)).toEqual({ pendingId: PA, choice: 'yes' })
+  })
+
+  it('refuse de fabriquer un identifiant qu’il ne saurait pas relire', () => {
+    expect(() => confirmReplyId('pas-un-uuid', 'yes')).toThrow(RangeError)
+  })
+
+  it('rend null pour tout ce qui n’est pas exactement un bouton de confirmation', () => {
+    for (const v of [null, undefined, '', 'STOP_PROMO', 'row_3', `pa:${PA}`, `pa:${PA}:maybe`,
+      'pa:pas-un-uuid:yes', `xx:${PA}:yes`, ` pa:${PA}:yes`, `pa:${PA}:yes `]) {
+      expect(parseConfirmReplyId(v), String(v)).toBeNull()
+    }
+  })
+})
+
+describe('resolveButtonDecision — un bouton ne vaut que pour SON action', () => {
+  it('le bon bouton décide oui ou non', () => {
+    expect(resolveButtonDecision(`pa:${PA}:yes`, PA)).toBe('yes')
+    expect(resolveButtonDecision(`pa:${PA}:no`, PA)).toBe('no')
+  })
+
+  it('un bouton d’une autre action est périmé : l’action qui attend n’est pas la sienne', () => {
+    expect(resolveButtonDecision(`pa:${AUTRE}:yes`, PA)).toBe('stale')
+  })
+
+  it('un bouton sans action en attente est périmé (double appui, action expirée puis purgée)', () => {
+    expect(resolveButtonDecision(`pa:${PA}:yes`, null)).toBe('stale')
+    expect(resolveButtonDecision(`pa:${PA}:no`, undefined)).toBe('stale')
+  })
+
+  it('une réponse qui n’est pas un bouton de confirmation laisse le chemin tapé décider', () => {
+    expect(resolveButtonDecision(null, PA)).toBeNull()
+    expect(resolveButtonDecision('STOP_PROMO', PA)).toBeNull()
+  })
+
+  it('compare les uuid sans tenir compte de la casse', () => {
+    expect(resolveButtonDecision(`pa:${PA}:yes`, PA.toUpperCase())).toBe('yes')
+  })
+})
+
+describe('planConfirmation — un brouillon n’est jamais tronqué', () => {
+  it('une question courte part en UN message, avec [Oui] [Non] liés à l’action', () => {
+    const q = 'Je déplace Dubois en Négociation. Tu confirmes ? (« oui » / « non »)'
+    expect(planConfirmation(q, PA, 'fr')).toEqual([{
+      type: 'buttons',
+      body: q,
+      buttons: [{ id: `pa:${PA}:yes`, title: 'Oui' }, { id: `pa:${PA}:no`, title: 'Non' }],
+    }])
+  })
+
+  it('les libellés suivent la langue', () => {
+    const [m] = planConfirmation('Confirm?', PA, 'en')
+    expect(m.type === 'buttons' ? m.buttons.map((b) => b.title) : null).toEqual(['Yes', 'No'])
+  })
+
+  it('à la limite exacte, un seul message', () => {
+    expect(planConfirmation('a'.repeat(BUTTONS_BODY_MAX), PA, 'fr')).toHaveLength(1)
+  })
+
+  it('un caractère de trop : le texte complet d’abord, puis les boutons sous une question courte', () => {
+    const long = 'a'.repeat(BUTTONS_BODY_MAX + 1)
+    const plan = planConfirmation(long, PA, 'fr')
+    expect(plan).toHaveLength(2)
+    expect(plan[0]).toEqual({ type: 'text', body: long })   // intégral, jamais coupé
+    expect(plan[1]).toMatchObject({ type: 'buttons', body: t('fr', 'confirmShort') })
+  })
+
+  it('mesure le texte tel qu’il PART, après la mise en forme de la garde', () => {
+    // 1026 caractères bruts, 1024 une fois le gras Markdown converti en gras WhatsApp.
+    const brut = `**${'a'.repeat(BUTTONS_BODY_MAX - 2)}**`
+    expect(brut.length).toBe(BUTTONS_BODY_MAX + 2)
+    expect(planConfirmation(brut, PA, 'fr')).toHaveLength(1)
+  })
+
+  it('une question vide ne produit jamais un message à boutons sans corps', () => {
+    expect(planConfirmation('', PA, 'fr')).toEqual([expect.objectContaining({
+      type: 'buttons', body: t('fr', 'confirmShort'),
+    })])
+  })
+})
