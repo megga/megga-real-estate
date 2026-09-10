@@ -19,6 +19,16 @@ export interface NormalizedInboundMessage {
    * confirmation désinscrirait l'agent de son propre copilote.
    */
   bodySource: InboundBodySource | null
+  /**
+   * Identifiant technique du bouton ou de l'entrée de liste touché : `button_reply.id`,
+   * `list_reply.id`, ou `payload` d'un bouton de template. `null` pour tout le reste.
+   *
+   * ⚠ SÉPARÉ de `body`, qui garde le LIBELLÉ : `body` alimente le corpus de voix et la
+   * compréhension, un identifiant technique les polluerait. Mais c'est l'identifiant, pas le
+   * libellé, qui dit à quoi la réponse se rapporte — un bouton reste dans la conversation, et
+   * un vieux [Oui] ressemble trait pour trait à un neuf.
+   */
+  replyId: string | null
   mediaType: NormalizedMediaType | null
   mediaUrl: string | null
   mediaId: string | null
@@ -71,6 +81,35 @@ export interface OutboundTemplateMessage {
    */
   otpButtonCode?: string
 }
+
+/**
+ * Message à BOUTONS DE RÉPONSE (Meta `interactive` / `button`) : jusqu'à trois boutons sous
+ * un texte. Message libre, donc réservé à la fenêtre de service 24 h — comme un texte.
+ *
+ * `id` revient tel quel dans la réponse (`button_reply.id`) quand la personne appuie : c'est
+ * lui, et non le libellé, qui dit à quoi le bouton se rapporte. Un bouton reste dans la
+ * conversation ; son libellé seul ne dit pas sous quelle question il a été touché.
+ */
+export interface OutboundButtonsMessage {
+  toPhone: string                                  // digits only, international sans +
+  body: string                                     // texte affiché au-dessus des boutons
+  buttons: Array<{ id: string; title: string }>
+}
+
+/**
+ * Limites Meta d'un message à BOUTONS DE RÉPONSE uniquement — une liste (interactive/list)
+ * admet un corps de 4096 caractères, d'où le nom spécifique : un nom générique inviterait à
+ * plafonner un futur corps de liste à 1024, ou à le « corriger » à 4096 et casser les
+ * boutons en silence.
+ *
+ * Les longueurs sont comptées en unités de code UTF-16 (`.length`), plus strict que la
+ * notion de « caractère » de Meta pour un emoji — volontairement conservateur. Tout code qui
+ * découpe un texte contre `BUTTONS_BODY_MAX` doit mesurer de la même façon.
+ */
+export const BUTTONS_MAX = 3
+export const BUTTON_TITLE_MAX = 20
+export const BUTTON_ID_MAX = 256
+export const BUTTONS_BODY_MAX = 1024
 
 export interface SendConfig {
   // Meta Cloud API
@@ -126,6 +165,8 @@ export interface WhatsAppProvider {
   buildSendImageRequest?(msg: OutboundImageMessage, config: SendConfig): SendHttpRequest
   /** Envoi d'un TEMPLATE approuvé (seul type autorisé hors fenêtre 24 h). */
   buildSendTemplateRequest?(msg: OutboundTemplateMessage, config: SendConfig): SendHttpRequest
+  /** Envoi d'un message à boutons de réponse (fenêtre 24 h obligatoire, comme un texte). */
+  buildSendButtonsRequest?(msg: OutboundButtonsMessage, config: SendConfig): SendHttpRequest
   /** Events `statuses` d'un webhook (sent/delivered/read/failed). `[]` si aucun. */
   parseStatusUpdates?(payload: unknown): StatusUpdate[]
 }
@@ -205,6 +246,40 @@ function firstNonEmpty(...vals: Array<string | undefined>): string | undefined {
   return vals.find((v) => typeof v === 'string' && v !== '')
 }
 
+/**
+ * Refuse un message à boutons que Meta refuserait. Lever ICI plutôt que laisser l'API
+ * répondre 400 : la garde rend alors un échec de construction, et l'appelant retombe sur le
+ * texte au lieu d'attendre un aller-retour réseau pour apprendre la même chose.
+ */
+function assertButtonsMessage(msg: OutboundButtonsMessage): void {
+  if (!msg.body?.trim() || msg.body.length > BUTTONS_BODY_MAX) {
+    throw new RangeError(`buttons: corps de 1 à ${BUTTONS_BODY_MAX} caractères (${msg.body?.length ?? 0})`)
+  }
+  if (msg.buttons.length < 1 || msg.buttons.length > BUTTONS_MAX) {
+    throw new RangeError(`buttons: 1 à ${BUTTONS_MAX} boutons (${msg.buttons.length})`)
+  }
+  // Position plutôt que contenu dans le message d'erreur : `e.message` peut finir en log (la
+  // garde d'envoi le passe tel quel comme `error`), et un libellé de bouton porte souvent un
+  // nom de client (« Visite chez M. Dupont »). La position suffit à localiser le bouton
+  // fautif sans y recopier une donnée personnelle.
+  for (const [i, b] of msg.buttons.entries()) {
+    if (!b.title?.trim() || b.title.length > BUTTON_TITLE_MAX) {
+      throw new RangeError(`buttons: libellé de 1 à ${BUTTON_TITLE_MAX} caractères (bouton ${i + 1}, ${b.title?.length ?? 0} car.)`)
+    }
+    // Meta refuse un id vide comme un id entouré d'espaces — les deux sont vérifiés ici pour
+    // épargner l'aller-retour réseau que cette garde existe justement pour éviter.
+    if (!b.id?.trim() || b.id !== b.id.trim() || b.id.length > BUTTON_ID_MAX) {
+      throw new RangeError(`buttons: identifiant de 1 à ${BUTTON_ID_MAX} caractères, sans espace en bordure (bouton ${i + 1})`)
+    }
+  }
+  if (new Set(msg.buttons.map((b) => b.id)).size !== msg.buttons.length) {
+    throw new RangeError('buttons: identifiants en double')
+  }
+  if (new Set(msg.buttons.map((b) => b.title)).size !== msg.buttons.length) {
+    throw new RangeError('buttons: libellés en double')
+  }
+}
+
 const META_TYPE_TO_MEDIA: Record<string, NormalizedMediaType> = {
   image: 'image', audio: 'audio', voice: 'audio', video: 'video',
   document: 'document', location: 'location', contacts: 'contact', sticker: 'sticker',
@@ -273,6 +348,10 @@ class MetaProvider implements WhatsAppProvider {
         : null,
       body: hit?.[1] ?? null,
       bodySource: hit?.[0] ?? null,
+      // Meta ne porte jamais plus d'un de ces trois champs par message : l'ORDRE ici ne
+      // départage rien (à la différence de la cascade `body` ci-dessus, où plusieurs sources
+      // pourraient coexister).
+      replyId: firstNonEmpty(interactive?.button_reply?.id, interactive?.list_reply?.id, button?.payload) ?? null,
       mediaType: META_TYPE_TO_MEDIA[type] ?? null,
       mediaUrl: null, // bytes récupérés en différé via Graph API (whatsapp-media)
       mediaId: mediaObj?.id ?? null,
@@ -430,6 +509,33 @@ class MetaProvider implements WhatsAppProvider {
         to: msg.toPhone,
         type: 'template',
         template,
+      }),
+    }
+  }
+
+  // Boutons de réponse (message INTERACTIF). Libre, donc réservé à la fenêtre 24 h — c'est la
+  // garde qui l'impose, pas ce constructeur. Les limites de Meta, elles, sont vérifiées ici.
+  buildSendButtonsRequest(msg: OutboundButtonsMessage, config: SendConfig): SendHttpRequest {
+    assertButtonsMessage(msg)
+    const apiVersion = config.metaApiVersion ?? 'v22.0'
+    return {
+      url: `https://graph.facebook.com/${apiVersion}/${config.metaPhoneNumberId}/messages`,
+      method: 'POST',
+      headers: {
+        Authorization: 'Bearer ' + config.metaToken,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: msg.toPhone,
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: msg.body },
+          action: {
+            buttons: msg.buttons.map((b) => ({ type: 'reply', reply: { id: b.id, title: b.title } })),
+          },
+        },
       }),
     }
   }
