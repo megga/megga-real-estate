@@ -75,7 +75,7 @@ par :
 ```ts
 import {
   getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, isDialablePhone, PHONE_MIN_DIGITS, PHONE_MAX_DIGITS,
-  BUTTONS_MAX, BUTTON_TITLE_MAX, BUTTON_ID_MAX, INTERACTIVE_BODY_MAX,
+  BUTTONS_MAX, BUTTON_TITLE_MAX, BUTTON_ID_MAX, BUTTONS_BODY_MAX,
   type NormalizedInboundMessage, type OutboundButtonsMessage,
 } from './whatsapp-gateway'
 ```
@@ -114,7 +114,7 @@ describe('Meta buildSendButtonsRequest — boutons de réponse', () => {
     const buttons = Array.from({ length: BUTTONS_MAX }, (_, i) => ({
       id: `${i}`.padEnd(BUTTON_ID_MAX, 'x'), title: `${i}`.padEnd(BUTTON_TITLE_MAX, 'y'),
     }))
-    expect(() => build({ body: 'z'.repeat(INTERACTIVE_BODY_MAX), buttons })).not.toThrow()
+    expect(() => build({ body: 'z'.repeat(BUTTONS_BODY_MAX), buttons })).not.toThrow()
   })
 
   // Lever ICI plutôt que laisser Meta répondre 400 : la garde rend un échec de construction,
@@ -130,7 +130,7 @@ describe('Meta buildSendButtonsRequest — boutons de réponse', () => {
     expect(() => build({ buttons: [{ id: 'a', title: 'A' }, { id: 'a', title: 'B' }] })).toThrow(RangeError)
     expect(() => build({ buttons: [{ id: 'a', title: 'A' }, { id: 'b', title: 'A' }] })).toThrow(RangeError)
     expect(() => build({ body: '' })).toThrow(RangeError)
-    expect(() => build({ body: 'z'.repeat(INTERACTIVE_BODY_MAX + 1) })).toThrow(RangeError)
+    expect(() => build({ body: 'z'.repeat(BUTTONS_BODY_MAX + 1) })).toThrow(RangeError)
   })
 })
 ```
@@ -175,7 +175,7 @@ export interface OutboundButtonsMessage {
 export const BUTTONS_MAX = 3
 export const BUTTON_TITLE_MAX = 20
 export const BUTTON_ID_MAX = 256
-export const INTERACTIVE_BODY_MAX = 1024
+export const BUTTONS_BODY_MAX = 1024
 
 export interface SendConfig {
 ```
@@ -203,8 +203,8 @@ Juste avant `const META_TYPE_TO_MEDIA: Record<string, NormalizedMediaType> = {`,
  * texte au lieu d'attendre un aller-retour réseau pour apprendre la même chose.
  */
 function assertButtonsMessage(msg: OutboundButtonsMessage): void {
-  if (!msg.body || msg.body.length > INTERACTIVE_BODY_MAX) {
-    throw new RangeError(`buttons: corps de 1 à ${INTERACTIVE_BODY_MAX} caractères (${msg.body?.length ?? 0})`)
+  if (!msg.body || msg.body.length > BUTTONS_BODY_MAX) {
+    throw new RangeError(`buttons: corps de 1 à ${BUTTONS_BODY_MAX} caractères (${msg.body?.length ?? 0})`)
   }
   if (msg.buttons.length < 1 || msg.buttons.length > BUTTONS_MAX) {
     throw new RangeError(`buttons: 1 à ${BUTTONS_MAX} boutons (${msg.buttons.length})`)
@@ -276,6 +276,13 @@ avant l'envoi : 1 à 3 boutons, libellé de 20 caractères, identifiant de 256, 
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
+
+> ✅ **Fait (`c942111a`), puis corrigé en revue (`4bb1625f`)** : la constante s'appelle
+> `BUTTONS_BODY_MAX` (1024 ne vaut que pour les boutons, une liste en admet 4096) ; l'unité
+> est écrite (unités UTF-16, `.length`) ; body, libellé et id blancs sont refusés, un id
+> entouré d'espaces aussi ; le message d'erreur donne la POSITION du bouton, jamais son
+> libellé (il finit en log et porte souvent un nom de client) ; bornes basses éprouvées.
+> Le code ci-dessus est l'état d'origine ; celui du dépôt fait foi.
 
 ---
 
@@ -394,6 +401,7 @@ Dans `whatsapp-i18n.test.ts`, juste après la ligne 2 (`import { refusalText } f
 ```ts
 import { detectStopRequest } from './whatsapp-stop-keywords'
 import { parseConfirmation } from './whatsapp-agent-router'
+import { BUTTON_TITLE_MAX } from './whatsapp-gateway'
 ```
 
 Puis ajouter à la FIN du fichier (`t` est déjà importé plus haut dans le fichier) :
@@ -403,11 +411,12 @@ describe('boutons de confirmation — libellés et textes', () => {
   const LANGS = ['fr', 'en'] as const
   const BUTTON_KEYS = ['btnYes', 'btnNo'] as const
 
-  it('tiennent dans la limite Meta de 20 caractères, et diffèrent l’un de l’autre', () => {
+  // La borne vient de la gateway, pas d'un 20 recopié : si Meta la change, un seul endroit.
+  it('tiennent dans la limite Meta d’un libellé, et diffèrent l’un de l’autre', () => {
     for (const lang of LANGS) {
       for (const k of BUTTON_KEYS) {
         expect(t(lang, k).length, `${lang}/${k}`).toBeGreaterThan(0)
-        expect(t(lang, k).length, `${lang}/${k}`).toBeLessThanOrEqual(20)
+        expect(t(lang, k).length, `${lang}/${k}`).toBeLessThanOrEqual(BUTTON_TITLE_MAX)
       }
       expect(t(lang, 'btnYes')).not.toBe(t(lang, 'btnNo'))
     }
@@ -541,7 +550,7 @@ import { describe, it, expect } from 'vitest'
 import {
   confirmReplyId, parseConfirmReplyId, resolveButtonDecision, planConfirmation,
 } from './whatsapp-confirm-buttons'
-import { INTERACTIVE_BODY_MAX } from './whatsapp-gateway'
+import { BUTTONS_BODY_MAX } from './whatsapp-gateway'
 import { t } from './whatsapp-i18n'
 
 const PA = '0f8e7d6c-5b4a-4938-8271-605f4e3d2c1b'
@@ -611,11 +620,11 @@ describe('planConfirmation — un brouillon n’est jamais tronqué', () => {
   })
 
   it('à la limite exacte, un seul message', () => {
-    expect(planConfirmation('a'.repeat(INTERACTIVE_BODY_MAX), PA, 'fr')).toHaveLength(1)
+    expect(planConfirmation('a'.repeat(BUTTONS_BODY_MAX), PA, 'fr')).toHaveLength(1)
   })
 
   it('un caractère de trop : le texte complet d’abord, puis les boutons sous une question courte', () => {
-    const long = 'a'.repeat(INTERACTIVE_BODY_MAX + 1)
+    const long = 'a'.repeat(BUTTONS_BODY_MAX + 1)
     const plan = planConfirmation(long, PA, 'fr')
     expect(plan).toHaveLength(2)
     expect(plan[0]).toEqual({ type: 'text', body: long })   // intégral, jamais coupé
@@ -624,8 +633,8 @@ describe('planConfirmation — un brouillon n’est jamais tronqué', () => {
 
   it('mesure le texte tel qu’il PART, après la mise en forme de la garde', () => {
     // 1026 caractères bruts, 1024 une fois le gras Markdown converti en gras WhatsApp.
-    const brut = `**${'a'.repeat(INTERACTIVE_BODY_MAX - 2)}**`
-    expect(brut.length).toBe(INTERACTIVE_BODY_MAX + 2)
+    const brut = `**${'a'.repeat(BUTTONS_BODY_MAX - 2)}**`
+    expect(brut.length).toBe(BUTTONS_BODY_MAX + 2)
     expect(planConfirmation(brut, PA, 'fr')).toHaveLength(1)
   })
 
@@ -657,7 +666,7 @@ Créer `supabase/functions/_shared/whatsapp-confirm-buttons.ts` :
 // déplacement de deal. L'identifiant `pa:<uuid>:yes|no` lie chaque bouton à UNE action.
 // Spec : docs/superpowers/specs/2026-09-10-whatsapp-boutons-confirmations-design.md
 
-import { INTERACTIVE_BODY_MAX } from './whatsapp-gateway.ts'
+import { BUTTONS_BODY_MAX } from './whatsapp-gateway.ts'
 import { toWhatsAppText } from './whatsapp-format.ts'
 import { meggaProse } from './megga-prose.ts'
 import { t, type WaLang } from './whatsapp-i18n.ts'
@@ -719,7 +728,7 @@ export function planConfirmation(prompt: string, pendingId: string, lang: WaLang
   const formatted = toWhatsAppText(meggaProse(prompt))
   // Meta refuse un message à boutons sans corps : une question vide garde la formule courte.
   if (!formatted.trim()) return [{ type: 'buttons', body: t(lang, 'confirmShort'), buttons }]
-  if (formatted.length <= INTERACTIVE_BODY_MAX) return [{ type: 'buttons', body: prompt, buttons }]
+  if (formatted.length <= BUTTONS_BODY_MAX) return [{ type: 'buttons', body: prompt, buttons }]
   return [{ type: 'text', body: prompt }, { type: 'buttons', body: t(lang, 'confirmShort'), buttons }]
 }
 ```
@@ -1202,6 +1211,7 @@ async function sendConfirmation(a: {
     plan = planConfirmation(a.prompt, a.pendingId, a.lang)
   } catch {
     // Identifiant d'action illisible : pas de boutons devinés, la question part en texte.
+    console.error('whatsapp confirmation: identifiant d’action illisible, question en texte')
     plan = [{ type: 'text', body: a.prompt }]
   }
   for (const payload of plan) {
@@ -1217,6 +1227,13 @@ async function sendConfirmation(a: {
       retry: true,
     })
     if (sent.ok) continue
+    if (!sent.blocked) {
+      // Tracé, parce que le repli est MUET pour l'agent : il reçoit sa question en texte et ne
+      // voit rien. Sans cette ligne, un constructeur qui refuserait tout ferait passer chaque
+      // confirmation en texte sans qu'aucun journal ne le dise (la garde n'audite que les
+      // envois échoués chez Meta, pas un échec de construction).
+      console.error('whatsapp confirmation: envoi en échec:', payload.type, String(sent.error ?? '').slice(0, 120))
+    }
     if (!sent.blocked && payload.type === 'buttons' && plan.length === 1) {
       await sendOutboundGuarded({
         admin: a.admin, provider: a.provider, to: a.to,
