@@ -1,0 +1,196 @@
+# WhatsApp — Boutons de réponse et confirmations du copilote — Design
+
+> Date : 2026-09-10 · Statut : validé (discussion) — en attente de plan
+> Chantier 1 sur 2. Le chantier 2 (questionnaires client : qualification, avis après visite)
+> aura sa propre spec et réutilisera le socle posé ici.
+> Aucune migration. IA inchangée (DeepSeek).
+
+## 1. Objectif
+
+Quand le copilote WhatsApp demande à l'agent de confirmer une action, l'agent reçoit deux
+boutons — **[Oui] [Non]** — au lieu de devoir taper sa réponse. C'est le premier usage d'un
+socle générique : envoyer un message à boutons et savoir, à la réception, lequel a été touché.
+
+Ce chantier sert l'objectif n°1 du Document Maître (réduire le temps administratif) et pose
+la mécanique dont les questionnaires client auront besoin.
+
+## 2. Pourquoi un bouton n'est pas un « oui » tapé
+
+**Un bouton reste dans la conversation.** Un « oui » tapé répond toujours à la question du
+moment ; un bouton [Oui] peut être touché une semaine plus tard, sous une question ancienne.
+Lire son seul libellé reviendrait à confirmer l'action en attente *au moment de l'appui* — par
+exemple une publication sur les portails — alors que l'agent avait sous les yeux un
+déplacement de deal.
+
+**Décision : le bouton porte l'identifiant de l'action qu'il confirme** (approche A). Les
+approches écartées :
+
+- **B — relier la réponse au message d'origine** (`context.id` de Meta, stocké sur l'action) :
+  même garantie, mais une colonne de plus et une dépendance à un champ que Meta renvoie sans
+  l'engager contractuellement.
+- **C — libellé seul** : rien à construire à la réception, et le défaut ci-dessus.
+
+## 3. Comportement côté agent
+
+1. **Chaque demande de confirmation arrive avec [Oui] [Non]** ([Yes] [No] en anglais) : les
+   outils de tier `confirm` du copilote (`update_pipeline` hors autonomie, `record_offer`,
+   `open_kyc_case`, `send_kyc_link`, `send_listings`, `publish_to_portals`,
+   `withdraw_from_portals`, `delete_contact`, `invite_optin`, `send_client_message`,
+   `send_client_email`) et la proposition de template quand la fenêtre 24 h d'un client est
+   fermée (`send_template`).
+2. **Le texte de la question ne change pas.** Il garde « (« oui » / « non ») », qui reste
+   vrai puisque taper continue de marcher, et c'est ce même texte qui part si les boutons
+   échouent. Une seule rédaction pour les deux rendus.
+3. **Question trop longue.** Meta borne le corps d'un message à boutons à 1024 caractères —
+   un brouillon client peut dépasser. Au-delà, MEGGA envoie le texte complet, puis un court
+   « Tu confirmes ? » portant les boutons. **Un brouillon n'est jamais tronqué** : l'agent
+   valide exactement ce qui partira.
+4. **Bouton périmé** (action expirée, déjà traitée, ou remplacée par une autre) : MEGGA
+   répond « Ce bouton concerne une action qui n'est plus en attente. » L'action en attente,
+   s'il y en a une, **n'est pas consommée**, et le copilote n'est pas appelé. Un double appui
+   tombe dans ce cas.
+5. **Action déjà en attente** (`busy`) : le rappel porte les boutons de l'action qui attend.
+6. **Taper reste possible** : « oui », « non », ou une correction de brouillon, exactement
+   comme aujourd'hui.
+7. **Repli** : si Meta refuse le message à boutons, MEGGA envoie la version texte. L'agent
+   n'est jamais privé de la question.
+
+## 4. Pièges identifiés pendant la conception
+
+- ⛔ **Un libellé de bouton ne doit JAMAIS être un mot-clé STOP.** Le webhook traite un
+  appui sur un bouton dont le libellé est un mot de désinscription comme un **opt-out par
+  bouton**, AVANT la bifurcation agent/client (`whatsapp-webhook/index.ts`, bloc « 2ter »).
+  « Cancel » figure dans la liste internationale de `whatsapp-stop-keywords.ts` : un bouton
+  [Cancel] désinscrirait l'agent de son brief du matin. Les libellés sont donc Oui/Non et
+  Yes/No, un test le verrouille, et — par défense en profondeur — une réponse dont
+  l'identifiant est un identifiant de confirmation MEGGA n'entre jamais dans ce bloc.
+- ⛔ **La porte CI énumère les constructeurs.** `scripts/check-whatsapp-outbound.mjs`
+  (propriété 1) n'autorise `buildSend*Request` que dans la gateway et la garde, mais
+  reconnaît ces constructeurs par une alternative fermée
+  `buildSend(Text|Image|Document|Template)Request`. Un constructeur ajouté lui échappe : il
+  pourrait être appelé n'importe où sans passer par la garde de consentement. La règle
+  devient `buildSend\w+Request`.
+- ⚠ **La limite de 1024 caractères se mesure sur le texte qui PART**, c'est-à-dire après
+  `meggaProse` puis `toWhatsAppText` (appliqués par la garde). Le découpage mesure la même
+  chaîne ; le constructeur refuse au-delà en seconde ligne.
+- ⚠ **Le corps d'un entrant reste le LIBELLÉ**, jamais l'identifiant : il alimente le corpus
+  de voix et la compréhension (commentaire existant de `parseInbound`). L'identifiant vit
+  dans un champ séparé.
+
+## 5. Architecture
+
+Aucune migration : `whatsapp_pending_actions.id` (uuid) existe, l'entrant garde son payload
+Meta complet dans `raw`.
+
+### 5.1 `_shared/whatsapp-gateway.ts`
+
+- **Sortant.** `OutboundButtonsMessage { toPhone; body; buttons: { id; title }[] }` et
+  `MetaProvider.buildSendButtonsRequest`, qui produit :
+  `{ messaging_product: 'whatsapp', to, type: 'interactive', interactive: { type: 'button',
+  body: { text }, action: { buttons: [{ type: 'reply', reply: { id, title } }] } } }`.
+  Il **lève** hors des limites Meta : 1 à 3 boutons, `title` de 1 à 20 caractères, `id` de 1
+  à 256 caractères et unique dans le message, `body` de 1 à 1024 caractères.
+- **Entrant.** `NormalizedInboundMessage.replyId: string | null`, lu dans cet ordre :
+  `interactive.button_reply.id`, `interactive.list_reply.id`, `button.payload`. `body` et
+  `bodySource` sont inchangés.
+
+### 5.2 `_shared/whatsapp-confirm-buttons.ts` (nouveau, pur)
+
+- `confirmReplyId(pendingId, choice)` → `pa:<uuid>:yes` | `pa:<uuid>:no` ;
+  `parseConfirmReplyId(replyId)` → `{ pendingId, choice } | null` (null pour tout ce qui
+  n'est pas exactement cette forme, uuid compris).
+- `planConfirmation(prompt, pendingId, lang)` → la suite ORDONNÉE des payloads à envoyer :
+  `[buttons(prompt)]` si le texte formaté tient en 1024 caractères, sinon
+  `[text(prompt), buttons(confirmShort)]`.
+- `resolveButtonDecision(replyId, currentPendingId)` → `'yes' | 'no' | 'stale' | null` —
+  `null` quand la réponse n'est pas un bouton de confirmation (le chemin tapé actuel
+  s'applique), `stale` quand l'identifiant ne désigne pas l'action en attente.
+
+### 5.3 `_shared/whatsapp-outbound-guard.ts`
+
+- `OutboundPayload` gagne `{ type: 'buttons'; body: string; buttons: { id; title }[] }`.
+- `needsOpenWindow` inchangé : tout ce qui n'est pas un template exige la fenêtre — un
+  message à boutons en est un comme un autre.
+- `buildRequest` : même mise en forme que le texte (`toWhatsAppText(meggaProse(body))`).
+  Une levée du constructeur remonte par le chemin existant `{ ok: false, blocked: false }`.
+- `outboundBody` : le corps journalisé est le texte de la question.
+
+### 5.4 `whatsapp-agent/index.ts`
+
+- `stashPending` récupère l'identifiant inséré (`insert(...).select('id').single()`) et le
+  rend ; en `busy`, il rend celui de l'action qui attend.
+- La réponse HTTP devient `{ reply, confirmPendingId? }` sur ces deux chemins ; tous les
+  autres chemins restent `{ reply, isError? }`.
+
+### 5.5 `whatsapp-webhook/index.ts`
+
+- `callAgentBrain` propage `confirmPendingId`.
+- **`sendConfirmation`** (nouvelle) : envoie les payloads de `planConfirmation` par
+  `sendOutboundGuarded` (`purpose: 'service'`, `retry: true`, `isAutomated: true`) ; si le
+  message à boutons échoue sans refus de garde, renvoie la question en texte. ⛔ Dans le cas
+  découpé, les boutons ne partent **que si le texte complet est parti** : on ne fait jamais
+  confirmer un brouillon que l'agent n'a pas reçu. Un refus de garde n'appelle aucun repli
+  (le texte serait refusé pour la même raison).
+- `offerTemplateFallback` rend aussi l'identifiant de l'action créée, et `executePending`
+  le propage jusqu'à `sendConfirmation`.
+- **Réception, avant la branche undo et la branche pending** : `resolveButtonDecision`.
+  `stale` → réponse `staleButton`, arrêt (ni cerveau, ni verrou). `yes`/`no` → la décision
+  vient du bouton, puis le chemin existant s'applique tel quel (verrou gagnant-unique,
+  échéance, exécution, journal de confirmation). Si le verrou échoue parce qu'un appui
+  concurrent l'a pris, la réponse est `staleButton` — jamais un appel au cerveau avec
+  « Oui ».
+- Bloc opt-out par bouton (2ter) : ignoré quand `parseConfirmReplyId(msg.replyId)` n'est pas
+  `null`.
+
+### 5.6 `_shared/whatsapp-i18n.ts`
+
+`btnYes` (Oui / Yes), `btnNo` (Non / No), `confirmShort` (Tu confirmes ? / Confirm?),
+`staleButton` — en `fr` et `en`, parité vérifiée par `whatsapp-i18n.test.ts`.
+
+### 5.7 `scripts/check-whatsapp-outbound.mjs`
+
+Propriété 1 : `buildSend\w+Request` au lieu de l'alternative fermée.
+
+## 6. Tests
+
+Vitest. ⚠ Tout nouveau fichier de test sous `supabase/functions/_shared/` doit être ajouté à
+la liste d'inclusion écrite en dur de `vitest.config.ts`, sinon il ne tourne jamais.
+
+- **Gateway** : forme exacte du payload interactif ; levée à 0 et 4 boutons, libellé de 21
+  caractères, identifiant de 257, identifiants dupliqués, corps de 1025 ; `replyId` lu pour
+  `button_reply`, `list_reply` et le `payload` d'un bouton de template ; `body` reste le
+  libellé.
+- **Confirm-buttons** : aller-retour de l'identifiant ; rejets (préfixe étranger, uuid
+  invalide, choix inconnu, `null`) ; découpage à 1024 et 1025 caractères formatés ;
+  matrice de décision (bon identifiant oui/non, autre action en attente, aucune action,
+  réponse non-confirmation).
+- **i18n** : les quatre clés dans les deux langues ; **aucun libellé de bouton n'est détecté
+  par `detectStopRequest`**.
+- **Garde** : un payload `buttons` est refusé `window_closed` hors fenêtre ; le corps
+  persisté est le texte de la question.
+- **Porte CI** : `node scripts/check-whatsapp-outbound.mjs` vert, et rouge sur un appel de
+  `buildSendButtonsRequest` placé hors de la gateway et de la garde (vérifié à la main).
+- Les suites WhatsApp existantes (`whatsapp-agent-router`, `whatsapp-gateway`,
+  `whatsapp-outbound-guard`, specs backend `tests/backend/whatsapp-*`) restent vertes ;
+  `npm run build`.
+
+## 7. Preuve en production
+
+Merger `main` déploie les fonctions edge. Prérequis : un contact de test dans
+« MEGGA Agence », qui n'en compte aucun au 10.09.2026.
+
+1. Julien demande au copilote une action de tier `confirm` → la question arrive avec
+   [Oui] [Non] ; [Oui] exécute l'action.
+2. Il touche de nouveau ce [Oui] → « Ce bouton concerne une action qui n'est plus en
+   attente », et rien ne s'exécute.
+3. Un brouillon client de plus de 1024 caractères → deux messages, le second portant les
+   boutons.
+
+Vérifié dans `whatsapp_messages` (sortant à boutons persisté, entrant « Oui » avec l'id dans
+`raw`) et dans les journaux de `whatsapp-webhook` / `whatsapp-agent`.
+
+## 8. Hors périmètre
+
+- Bouton [Modifier] sur les brouillons (taper une correction marche déjà).
+- Bouton [Annuler] après une action automatique (aujourd'hui `/annuler`).
+- Messages liste, WhatsApp Flows, questionnaires client — chantier 2.
