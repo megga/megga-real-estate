@@ -55,6 +55,11 @@ export type PublicReason = GuardReason | 'not_contactable'
 
 export type OutboundPayload =
   | { type: 'text'; body: string }
+  /**
+   * Message à BOUTONS DE RÉPONSE. Un message libre comme un autre : il exige la fenêtre 24 h
+   * (`needsOpenWindow`) et son corps reçoit la même mise en forme que le texte.
+   */
+  | { type: 'buttons'; body: string; buttons: Array<{ id: string; title: string }> }
   | { type: 'image'; url: string; caption?: string }
   | { type: 'document'; mediaId: string; filename: string; caption?: string }
   /**
@@ -346,6 +351,7 @@ export async function sendOutboundGuarded(a: SendOutboundArgs): Promise<SendOutb
 function outboundBody(p: OutboundPayload): string | null {
   switch (p.type) {
     case 'text': return p.body
+    case 'buttons': return p.body
     case 'image': return p.caption ?? null
     case 'document': return p.caption ?? p.filename
     // ⚠ L'espace et la CLÉ, tous deux repris de l'existant : le CRM affiche `[template: <clé>]`
@@ -367,6 +373,12 @@ function buildRequest(
   switch (p.type) {
     case 'text':
       return provider.buildSendTextRequest({ toPhone: to, body: toWhatsAppText(meggaProse(p.body)) }, config)
+    case 'buttons':
+      // Les limites Meta sont vérifiées par le constructeur : s'il lève, `sendOutboundGuarded`
+      // rend un échec de construction et l'appelant retombe sur le texte.
+      return provider.buildSendButtonsRequest?.({
+        toPhone: to, body: toWhatsAppText(meggaProse(p.body)), buttons: p.buttons,
+      }, config) ?? null
     case 'image':
       return provider.buildSendImageRequest?.({
         toPhone: to, link: p.url,

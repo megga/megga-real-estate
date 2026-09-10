@@ -84,6 +84,7 @@ function fakeProvider(sendOk = true): WhatsAppProvider & { built: string[] } {
     buildSendImageRequest: () => { built.push('image'); return REQ },
     buildSendDocumentRequest: () => { built.push('document'); return REQ },
     buildSendTemplateRequest: () => { built.push('template'); return REQ },
+    buildSendButtonsRequest: () => { built.push('buttons'); return REQ },
     parseSendResult: () => sendOk
       ? { ok: true, providerMessageId: 'wamid.OUT1' }
       : { ok: false, providerMessageId: null, error: 'Meta 131047' },
@@ -446,6 +447,49 @@ describe('sendOutboundGuarded — elle échoue FERMÉ', () => {
     h.rpc.mockImplementation(async () => ({ data: [], error: null }))
     const r = await sendOutboundGuarded(baseArgs(h))
     expect(r.ok).toBe(false)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+})
+
+describe('sendOutboundGuarded — message à boutons', () => {
+  const buttons = {
+    type: 'buttons' as const,
+    body: 'Tu confirmes ?',
+    buttons: [{ id: 'pa:x:yes', title: 'Oui' }, { id: 'pa:x:no', title: 'Non' }],
+  }
+
+  it('exige la fenêtre par défaut : ce n’est pas un template', () => {
+    expect(needsOpenWindow('buttons', undefined)).toBe(true)
+  })
+
+  it('hors fenêtre, il est refusé comme un texte', async () => {
+    const h = harness({ verdict: { ...OK_VERDICT, in_24h_window: false } })
+    const provider = fakeProvider()
+    const r = await sendOutboundGuarded(baseArgs(h, { provider, payload: buttons }))
+    expect(blockedResult(r).reason).toBe('window_closed')
+    expect(provider.built).toEqual([])
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('dans la fenêtre, il est construit par buildSendButtonsRequest et journalise la question', async () => {
+    const h = harness()
+    const provider = fakeProvider()
+    const r = await sendOutboundGuarded(baseArgs(h, { provider, payload: buttons }))
+    expect(r.ok).toBe(true)
+    expect(provider.built).toEqual(['buttons'])
+    expect(h.upserted[0].row.body).toBe('Tu confirmes ?')
+    expect(h.upserted[0].row.media_type).toBeNull()
+  })
+
+  it('un constructeur qui lève rend un échec, pas une exception : l’appelant retombe sur le texte', async () => {
+    const h = harness()
+    const provider = {
+      ...fakeProvider(),
+      buildSendButtonsRequest: () => { throw new RangeError('buttons: 1 à 3 boutons (4)') },
+    } as unknown as WhatsAppProvider
+    const r = await sendOutboundGuarded(baseArgs(h, { provider, payload: buttons }))
+    expect(r.ok).toBe(false)
+    expect((r as Extract<SendOutboundResult, { blocked: false }>).blocked).toBe(false)
     expect(fetch).not.toHaveBeenCalled()
   })
 })
