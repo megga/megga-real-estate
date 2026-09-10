@@ -49,7 +49,7 @@
 | `vitest.config.ts` | Modifié — inclusion du nouveau test |
 | `supabase/functions/_shared/whatsapp-outbound-guard.ts` | Modifié — type d'envoi `buttons` |
 | `supabase/functions/_shared/whatsapp-outbound-guard.test.ts` | Modifié — fenêtre, construction, corps journalisé |
-| `scripts/check-whatsapp-outbound.mjs` | Modifié — `buildSend\w+Request` |
+| `scripts/check-whatsapp-outbound.mjs` | Modifié — `buildSend\w*Request`, sans point (revue 6 à 9) |
 | `supabase/functions/whatsapp-agent/index.ts` | Modifié — `confirmPendingId` dans la réponse |
 | `supabase/functions/whatsapp-webhook/index.ts` | Modifié — `sendConfirmation`, décision sur l'appui |
 | `.claude-flow/knowledge/megga-memory.seed.json` | Modifié — entrée cerveau `megga/whatsapp-confirm-buttons` |
@@ -1784,6 +1784,16 @@ git commit -m "docs(cerveau): les boutons de confirmation WhatsApp et leurs deux
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 
+> ✅ **Tâches 10 et 11 faites.** Vérification : 2959 tests verts, `deno check` sur les 200 fichiers
+> des fonctions (sortie 0), porte du sortant verte, build OK. Cerveau : l'entrée committée
+> (`12f7f1ec`) fait foi — elle intègre la revue 6 à 9 (bouton périmé qui remet l'action en
+> attente sous les yeux, panne jamais prise pour « périmé », `deliverConfirmation`,
+> `buildSend\w*Request` sans point) ; le bloc JSON ci-dessus est l'état d'origine. Relecture
+> finale de l'ensemble : aucun défaut Critical ni Important dans le code ; deux corrections de
+> la procédure de preuve (vérifier le déploiement des DEUX fonctions, cas « bouton périmé
+> pendant qu'une autre action attend »), reportées dans la Task 12 ; `ConfirmSendOutcome` et
+> un commentaire de porte corrigés (`91e3eeaa`).
+
 ---
 
 ### Task 12 : PR, puis preuve en production après merge
@@ -1801,17 +1811,30 @@ Quand le copilote WhatsApp demande une confirmation, l'agent reçoit **[Oui] [No
 Spec : `docs/superpowers/specs/2026-09-10-whatsapp-boutons-confirmations-design.md` · Plan : `docs/superpowers/plans/2026-09-10-whatsapp-boutons-confirmations.md`
 
 ## Pourquoi le bouton porte l'identifiant de son action
-Un bouton reste dans la conversation. Lire son libellé seul confirmerait l'action en attente *au moment de l'appui*, pas celle que l'agent avait sous les yeux. Chaque bouton porte donc `pa:<uuid>:yes|no` ; un bouton périmé reçoit « plus en attente », sans rien consommer ni appeler le copilote.
+Un bouton reste dans la conversation. Lire son libellé seul confirmerait l'action en attente *au moment de l'appui*, pas celle que l'agent avait sous les yeux. Chaque bouton porte donc `pa:<uuid>:yes|no`, comparé à l'action qui attend VRAIMENT :
+- bouton périmé → « Ce bouton ne correspond plus à une action en attente (déjà traitée, annulée ou expirée) : cet appui n'a rien déclenché. » Rien n'est consommé, le copilote n'est pas appelé. Le texte parle de l'appui, jamais de l'action : sur un double appui, le premier l'a peut-être exécutée ;
+- si une autre action attend encore, elle est remise sous les yeux avec SES boutons ;
+- une panne (lecture ou verrou en échec) n'est jamais prise pour « périmé ».
+
+Question de plus de 1024 caractères : le texte complet d'abord, puis « Tu confirmes ? » avec les boutons — et les boutons seulement si le texte est parti. Taper « oui » / « non » marche toujours.
 
 ## Deux pièges fermés
-- **« Cancel » est un mot-clé STOP** : un bouton qui le porterait vaudrait désinscription par bouton. Libellés Oui/Non · Yes/No, verrouillés par test ; un bouton MEGGA n'entre jamais dans la branche opt-out.
-- **La porte `check-whatsapp-outbound` énumérait ses constructeurs** : un nouveau lui échappait. Elle reconnaît désormais `buildSend\w+Request` (sonde verte avant, rouge après).
+- **« Cancel » est un mot-clé STOP** : un bouton qui le porterait vaudrait désinscription par bouton. Libellés Oui/Non · Yes/No, verrouillés par test (y compris ceux réellement émis) ; un bouton MEGGA n'entre jamais dans la branche opt-out.
+- **La porte `check-whatsapp-outbound` énumérait ses constructeurs** : un nouveau lui échappait. Elle reconnaît désormais `buildSend\w*Request`, sans point — déstructuration, accès par crochets et `buildSendRequest` nu compris (sondes vertes avant, rouges après).
+
+## Ce qui ne change pas
+Messages clients, appairage, STOP, vocaux, documents, templates, brief du matin, `whatsapp-agent-async`. Aucune migration. Déploiement sûr dans n'importe quel ordre (ancien agent → questions en texte comme aujourd'hui ; ancien webhook → champ ignoré).
 
 ## Tests
-Vitest : gateway (constructeur, limites Meta, `replyId`), module pur (identifiant, découpage à 1024/1025, décision), i18n (aucun libellé STOP), garde (fenêtre, construction, corps journalisé). `deno check` sur toutes les fonctions, porte du sortant, build.
+Vitest : gateway (constructeur, limites Meta, `replyId`), module pur (identifiant exact, découpage à 1024/1025 dans les deux sens de la mise en forme, décision, `deliverConfirmation` en 7 cas), i18n, garde (fenêtre, vrai provider Meta, corps journalisé, `raw.interactive_buttons`). Suite complète verte (2959), `deno check` sur les 200 fichiers des fonctions, porte du sortant (17 appels), build.
+
+## À savoir avant de merger
+- **Fusion écrasée conseillée** : le commit `1be838d6` seul ne passe pas `deno check` (le membre `buttons` arrive au suivant) — sans effet en squash, gênant pour un `git bisect`.
+- **Revenir en arrière** : les boutons déjà présents dans les conversations retrouveraient le sens de leur seul libellé (un vieux [Oui] vaudrait un « oui » tapé), borné par l'échéance de 15 minutes des actions en attente.
+- **Suites possibles, non faites** : relancer la question en texte si Meta signale plus tard le message à boutons `failed` ; sortir le matcher de la porte dans un module testé ; `learn-agent-style` lit désormais les libellés « Oui » / « Non » des appuis comme du texte de l'agent.
 
 ## Preuve en production — à faire APRÈS le merge
-Aucune migration. Le merge déploie `whatsapp-webhook` et `whatsapp-agent`. Mode d'emploi : Task 12 du plan.
+Mode d'emploi : Task 12 du plan (vérifier d'abord que les DEUX fonctions ont été déployées).
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 EOF
@@ -1824,18 +1847,30 @@ Run: `gh pr view --json mergeable,statusCheckRollup --jq '{mergeable, checks: [.
 Expected: `"mergeable": "MERGEABLE"` et des checks présents. ⚠ Une PR en conflit n'a AUCUN run
 `pull_request` : elle ne rougit pas, elle disparaît de la CI (CLAUDE.md §8). L'oracle est `mergeable`.
 
-- [ ] **Step 3 : (après merge par Julien, déploiement vert) — la preuve**
+- [ ] **Step 3 : (après merge par Julien) — la preuve**
 
-Depuis le WhatsApp relié, dans cet ordre :
+⛔ **D'abord, les DEUX fonctions sont-elles déployées ?** Un déploiement vert ne le prouve pas :
+`deploy.yml` ne rougit que si TOUTES les fonctions échouent, et un 522 esm.sh sur une seule s'est
+déjà produit deux fois. Lire le résumé du job (aucune ligne `Failed functions:` nommant
+`whatsapp-webhook` ou `whatsapp-agent`), ou vérifier que leur `updated_at` (MCP
+`list_edge_functions`) est postérieur au merge. Un ancien `whatsapp-agent` resté en place fait
+partir TOUTES les questions en texte, sans la moindre ligne d'échec dans les journaux.
+
+Puis, depuis le WhatsApp relié, dans cet ordre :
 
 1. « Crée le contact Test Boutons » → créé (outil `create_contact`, tier auto).
-2. « Rédige pour Test Boutons un message de relance très détaillé, au moins 1200 caractères » →
-   **deux messages** : le brouillon complet, puis « Tu confirmes ? » avec [Oui] [Non]. Appuyer sur **[Non]** → « C'est annulé ».
-3. « Supprime la fiche de Test Boutons » → la question arrive avec [Oui] [Non]. Appuyer sur **[Non]**
-   → « C'est annulé ». Appuyer ensuite sur le **[Oui] de ce même message** → « Ce bouton ne
+2. « **Envoie** à Test Boutons un message de relance très détaillé, d'au moins 1200 caractères »
+   → **deux messages** : le brouillon complet, puis « Tu confirmes ? » avec [Oui] [Non]. Appuyer
+   sur **[Non]** → « C'est annulé ». (« Rédige » laisserait DeepSeek répondre un brouillon sans
+   appeler `send_client_message` : pas d'action, donc pas de boutons, et un faux diagnostic.)
+3. « Supprime la fiche de Test Boutons » → la question arrive avec [Oui] [Non] (message **A**).
+   Appuyer sur **[Non]** → « C'est annulé ». Appuyer ensuite sur le **[Oui] de A** → « Ce bouton ne
    correspond plus à une action en attente (déjà traitée, annulée ou expirée) : cet appui n'a rien
-   déclenché. » Le contact existe toujours.
-4. Redemander « Supprime la fiche de Test Boutons » → **[Oui]** → le contact est supprimé.
+   déclenché. », SEUL (rien n'attend). Le contact existe toujours.
+4. Redemander « Supprime la fiche de Test Boutons » → nouvelle question avec ses boutons
+   (message **B**). Appuyer d'abord sur le **vieux [Oui] de A** → le texte périmé SUIVI de la
+   question de B, avec ses PROPRES boutons (message **C**) ; rien n'est supprimé. Appuyer enfin
+   sur **[Oui] de C** → le contact est supprimé.
 
 Vérifier en base (remplacer `<4 derniers chiffres>` par ceux du numéro de l'agent) :
 
@@ -1847,17 +1882,25 @@ from whatsapp_messages
 where created_at > now() - interval '30 minutes'
   and (wa_from like '%<4 derniers chiffres>' or wa_to like '%<4 derniers chiffres>')
 order by created_at;
+
+select created_at, tool, tier, outcome
+from whatsapp_tool_usage
+where created_at > now() - interval '30 minutes'
+order by created_at;
 ```
 
-Expected : chaque message à boutons SORTANT porte `nb_boutons_envoyes = 2` — dans le cas découpé
-(étape 2), la première ligne, le brouillon long, est un texte et porte légitimement NULL ; c'est la
-seconde (« Tu confirmes ? ») qui doit porter 2. Une question courte à NULL est partie en repli texte :
-lire les journaux `whatsapp confirmation: envoi en échec`. Les entrants
-« Oui » / « Non » portent un `reply_id` de la forme `pa:<uuid>:yes|no` ; le sortant « ne correspond
-plus » suit l'appui périmé ; aucun appel `/functions/v1/whatsapp-agent` dans les journaux pour cet
-appui-là.
+Expected :
+- chaque message à boutons SORTANT porte `nb_boutons_envoyes = 2`. Dans le cas découpé (étape 2),
+  la première ligne, le brouillon long, est un texte et porte légitimement NULL ; c'est la seconde
+  (« Tu confirmes ? ») qui doit porter 2 ;
+- une question COURTE à NULL a trois causes possibles, dans cet ordre : fonction non déployée (voir
+  le ⛔ ci-dessus), outil jamais appelé (aucune ligne `outcome = 'confirm_pending'` dans
+  `whatsapp_tool_usage`), ou vrai repli texte (journaux `whatsapp confirmation: envoi en échec`) ;
+- les entrants « Oui » / « Non » portent un `reply_id` de la forme `pa:<uuid>:yes|no` ;
+- à l'étape 4, le message C porte `nb_boutons_envoyes = 2` et des identifiants égaux à ceux de B ;
+- aucun appel `/functions/v1/whatsapp-agent` dans les journaux pour les appuis périmés.
 
 - [ ] **Step 4 : consigner le résultat**
 
-Cocher les trois preuves ci-dessus dans ce plan (ou noter l'écart et sa cause), puis commit
+Cocher les preuves ci-dessus dans ce plan (ou noter l'écart et sa cause), puis commit
 `docs(whatsapp): preuve en production des boutons de confirmation`.

@@ -1,6 +1,8 @@
 # WhatsApp — Boutons de réponse et confirmations du copilote — Design
 
-> Date : 2026-09-10 · Statut : validé (discussion) — en attente de plan
+> Date : 2026-09-10 · Statut : implémenté et relu (branche `claude/whatsapp-no-response-diagnostic-fd6bd7`,
+> plan `docs/superpowers/plans/2026-09-10-whatsapp-boutons-confirmations.md`) — preuve en
+> production à faire après le merge (§7)
 > Chantier 1 sur 2. Le chantier 2 (questionnaires client : qualification, avis après visite)
 > aura sa propre spec et réutilisera le socle posé ici.
 > Aucune migration. IA inchangée (DeepSeek).
@@ -55,13 +57,23 @@ approches écartées :
    l'envoi n'a pas eu lieu — il le relancerait, doublon vers le client.
    Une action expirée mais pas encore purgée n'est pas « périmée » : l'identifiant correspond,
    et le chemin existant répond « La demande en attente a expiré ».
+   **Si une AUTRE action attend encore** (valide) au moment de l'appui périmé, elle est remise
+   sous les yeux de l'agent avec SES boutons (ajout de la revue 6 à 9) : sinon l'agent qui
+   retape « oui » après le refus confirmerait une action qu'il n'a plus en vue.
+   **Une panne n'est jamais prise pour « périmé »** : si la lecture de l'action en attente ou
+   son verrou (DELETE) échoue, l'appui reçoit « Désolé, je n'ai pas pu traiter ta demande pour
+   le moment » (`cantProcessNow`), jamais « déjà traitée ».
 5. **Action déjà en attente** (`busy`) : le rappel reprend la question de l'action qui
    attend (son `summary`), avec ses boutons. Sans elle, [Oui] confirmerait une action que
    l'agent n'a plus sous les yeux — précisément ce que l'identifiant dans le bouton évite.
 6. **Taper reste possible** : « oui », « non », ou une correction de brouillon, exactement
    comme aujourd'hui.
-7. **Repli** : si Meta refuse le message à boutons, MEGGA envoie la version texte. L'agent
-   n'est jamais privé de la question.
+7. **Repli** : si Meta refuse le message à boutons **à l'envoi** (réponse d'erreur
+   synchrone), MEGGA envoie la version texte. ⚠ Ce repli ne couvre PAS un échec signalé plus
+   tard par un statut `failed` (ex. 131026, client WhatsApp trop ancien) : rien ne renvoie
+   alors la question en texte, et l'alerte d'échec de livraison ne vise que les messages à
+   un client. Improbable pour un agent ; piste notée en suite possible (relancer le texte
+   depuis `applyStatusUpdates` pour une ligne portant `raw.interactive_buttons`).
 
 ## 4. Pièges identifiés pendant la conception
 
@@ -77,7 +89,9 @@ approches écartées :
   reconnaît ces constructeurs par une alternative fermée
   `buildSend(Text|Image|Document|Template)Request`. Un constructeur ajouté lui échappe : il
   pourrait être appelé n'importe où sans passer par la garde de consentement. La règle
-  devient `buildSend\w+Request`.
+  devient `buildSend\w*Request`, **sans point devant** (revue 6 à 9) : la forme pointée
+  laissait passer une déstructuration (`const { buildSendTextRequest } = provider`), un accès
+  par crochets et un `buildSendRequest` nu.
 - ⚠ **La limite de 1024 caractères se mesure sur le texte qui PART**, c'est-à-dire après
   `formatOutboundText` (`_shared/whatsapp-format.ts` : `meggaProse` puis `toWhatsAppText`).
   La garde et le découpage appellent la MÊME fonction — l'invariant est structurel depuis la
@@ -114,6 +128,10 @@ Meta complet dans `raw`.
 - `resolveButtonDecision(replyId, currentPendingId)` → `'yes' | 'no' | 'stale' | null` —
   `null` quand la réponse n'est pas un bouton de confirmation (le chemin tapé actuel
   s'applique), `stale` quand l'identifiant ne désigne pas l'action en attente.
+- `deliverConfirmation(plan, prompt, send)` (revue 6 à 9) : déroule le plan avec un
+  expéditeur INJECTÉ et porte les trois règles d'envoi — boutons seulement si le texte complet
+  est parti ; un message à boutons SEUL refusé hors garde retombe sur le texte ; un refus de
+  garde arrête tout. Rend les échecs hors garde, que l'appelant journalise. Sept cas testés.
 
 ### 5.3 `_shared/whatsapp-outbound-guard.ts`
 
@@ -139,20 +157,23 @@ Meta complet dans `raw`.
 ### 5.5 `whatsapp-webhook/index.ts`
 
 - `callAgentBrain` propage `confirmPendingId`.
-- **`sendConfirmation`** (nouvelle) : envoie les payloads de `planConfirmation` par
-  `sendOutboundGuarded` (`purpose: 'service'`, `retry: true`, `isAutomated: true`) ; si le
-  message à boutons échoue sans refus de garde, renvoie la question en texte. ⛔ Dans le cas
+- **`sendConfirmation`** (nouvelle) : construit le plan (`planConfirmation`) et le confie à
+  `deliverConfirmation` avec `sendOutboundGuarded` comme expéditeur (`purpose: 'service'`,
+  `retry: true`, `isAutomated: true`) ; journalise les échecs hors garde. ⛔ Dans le cas
   découpé, les boutons ne partent **que si le texte complet est parti** : on ne fait jamais
   confirmer un brouillon que l'agent n'a pas reçu. Un refus de garde n'appelle aucun repli
   (le texte serait refusé pour la même raison).
 - `offerTemplateFallback` rend aussi l'identifiant de l'action créée, et `executePending`
   le propage jusqu'à `sendConfirmation`.
-- **Réception, avant la branche undo et la branche pending** : `resolveButtonDecision`.
-  `stale` → réponse `staleButton`, arrêt (ni cerveau, ni verrou). `yes`/`no` → la décision
-  vient du bouton, puis le chemin existant s'applique tel quel (verrou gagnant-unique,
-  échéance, exécution, journal de confirmation). Si le verrou échoue parce qu'un appui
-  concurrent l'a pris, la réponse est `staleButton` — jamais un appel au cerveau avec
-  « Oui ».
+- **Réception, avant la branche undo et la branche pending** : si la LECTURE de l'action en
+  attente a échoué et que la réponse est un bouton MEGGA → `cantProcessNow`, arrêt. Sinon
+  `resolveButtonDecision`. `stale` → si une autre action valide attend, `staleButton` suivi
+  de sa question avec SES boutons (`sendConfirmation`) ; sinon `staleButton` seul ; arrêt
+  (ni cerveau, ni verrou). `yes`/`no` → la décision vient du bouton, puis le chemin existant
+  s'applique tel quel (verrou gagnant-unique, échéance, exécution, journal de confirmation).
+  Si le verrou échoue parce qu'un appui concurrent l'a pris, la réponse est `staleButton` —
+  jamais un appel au cerveau avec « Oui » ; si c'est le DELETE lui-même qui a échoué,
+  `cantProcessNow`.
 - Bloc opt-out par bouton (2ter) : ignoré quand `parseConfirmReplyId(msg.replyId)` n'est pas
   `null`.
 
@@ -163,7 +184,7 @@ Meta complet dans `raw`.
 
 ### 5.7 `scripts/check-whatsapp-outbound.mjs`
 
-Propriété 1 : `buildSend\w+Request` au lieu de l'alternative fermée.
+Propriété 1 : `buildSend\w*Request`, sans point devant, au lieu de l'alternative fermée.
 
 ## 6. Tests
 
