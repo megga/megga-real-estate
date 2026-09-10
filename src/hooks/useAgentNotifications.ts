@@ -75,10 +75,14 @@ function relTime(iso: string): string {
 const ACTION_TITLES: Record<string, string> = {
   seller_offer_decision: 'Décision du vendeur sur une offre',
   whatsapp_inbound_lead_created: 'Nouveau prospect WhatsApp',
+  // Seul l'appairage par code arrive ici (acteur 'system', webhook) : la confirmation OTP est
+  // un geste de l'agent, que le filtre `actor_kind <> 'user'` écarte. Titre neutre, parce que
+  // toute l'agence le voit ; « lié » est le mot de la carte des réglages (« Numéro lié »).
+  whatsapp_number_verified: 'Numéro WhatsApp lié',
 }
 
 /** Titre lisible d'un événement : label serveur, sinon mapping connu, sinon action humanisée. */
-function titleFor(ev: RawEvent): string {
+export function titleFor(ev: Pick<RawEvent, 'action' | 'object_label'>): string {
   if (ev.object_label) return ev.object_label
   if (ACTION_TITLES[ev.action]) return ACTION_TITLES[ev.action]
   return ev.action.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())

@@ -1,6 +1,7 @@
 // Banc de bout en bout de whatsapp-webhook : les trois entrées côté AGENT posent
 // `is_from_agent` à la réception (migration 20260910200728), et une déliaison ne rouvre pas
-// l'avis LPD écrit pour les prospects.
+// l'avis LPD écrit pour les prospects. L'appairage y laisse aussi sa trace d'audit
+// (20260911000100) — les deux autres gestes, par RPC, sont dans whatsapp-agent-link-audit.spec.ts.
 //
 // ⛔ POURQUOI CE BANC APPELLE LE WEBHOOK AU LIEU DE RECOPIER SES ÉCRITURES. Les autres specs
 // WhatsApp reproduisent l'upsert du webhook à la main : elles éprouvent la base, pas le code
@@ -127,9 +128,25 @@ describe.skipIf(!HAS_KEYS)('whatsapp-webhook : les entrées côté agent sont ma
       direction: 'inbound', agency_id: setup.agencyAId, contact_id: null, is_from_agent: true,
     })
     const { data: link } = await svc.from('whatsapp_agent_links')
-      .select('verified, wa_number').eq('profile_id', setup.agentAId).single()
+      .select('id, verified, wa_number').eq('profile_id', setup.agentAId).single()
     expect(link, 'sans lien vérifié, les deux tests suivants ne passeraient pas par la branche agent')
       .toMatchObject({ verified: true, wa_number: agent })
+
+    // La trace du changement de preuve (même forme que les RPC de 20260911000100). Acteur
+    // 'system' : le webhook constate qu'un numéro a présenté un code, il n'authentifie
+    // personne — l'agent se lit dans `metadata.profile_id`.
+    const { data: traces, error: trErr } = await svc.from('activity_events')
+      .select('actor_id, actor_kind, agency_id, category, severity, entity_type, entity_id, object_label, metadata')
+      .eq('action', 'whatsapp_number_verified').eq('entity_id', (link as { id: string }).id)
+    if (trErr) throw new Error(`lecture de la trace: ${trErr.message}`)
+    expect(traces, 'une trace, et une seule : seul le gagnant du compare-and-swap journalise').toHaveLength(1)
+    expect(traces![0]).toMatchObject({
+      actor_id: null, actor_kind: 'system', agency_id: setup.agencyAId,
+      category: 'settings', severity: 'info', entity_type: 'whatsapp_agent_link',
+    })
+    expect(traces![0].metadata).toEqual({ via: 'pairing', profile_id: setup.agentAId, phone_tail: agent.slice(-4) })
+    expect(JSON.stringify(traces![0]), 'jamais le numéro complet : la table est append-only')
+      .not.toContain(agent.slice(-9))
   }, 60_000)
 
   it('branche agent : un bouton de confirmation périmé est marqué', async () => {

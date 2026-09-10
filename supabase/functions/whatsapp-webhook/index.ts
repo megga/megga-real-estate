@@ -277,6 +277,33 @@ serve(async (req) => {
             })
           }
 
+          // Trace du changement de preuve, même forme que les deux RPC de 20260911000100.
+          // Seul le gagnant du compare-and-swap arrive ici : une ligne, même sous livraisons
+          // concurrentes. Acteur 'system' : le webhook constate qu'un numéro a présenté un code
+          // en attente, il n'authentifie personne — l'agent se lit dans `metadata.profile_id`.
+          // Best-effort (ni 500, donc rejeu Meta, ni « ✅ lié » perdu), mais `{ error }` est lu :
+          // supabase-js ne jette pas, un `catch` seul rendrait une violation de contrainte muette.
+          try {
+            const { error: auditErr } = await admin.from('activity_events').insert({
+              agency_id: pending.agency_id,
+              actor_id: null,
+              actor_kind: 'system',
+              action: 'whatsapp_number_verified',
+              entity_type: 'whatsapp_agent_link',
+              entity_id: pending.id,
+              category: 'settings',
+              severity: 'info',
+              metadata: {
+                via: 'pairing',
+                profile_id: pending.profile_id,
+                phone_tail: msg.fromPhone.replace(/\D/g, '').slice(-4),
+              },
+            })
+            if (auditErr) console.error('whatsapp pairing: audit non écrit:', auditErr.message.slice(0, 120))
+          } catch (e) {
+            console.error('whatsapp pairing: audit non écrit (exception):', String((e as Error)?.message ?? 'error').slice(0, 120))
+          }
+
           // SITE 6 — le lien vient de passer `verified=true` : la garde le voit, et son
           // sujet dérivé sera bien 'profile'. La fenêtre est ouverte par construction (le
           // code d'appairage vient d'arriver de ce numéro).
