@@ -189,6 +189,13 @@ const STR = {
     fr: "Ce bouton ne correspond plus à une action en attente (déjà traitée, annulée ou expirée) : cet appui n'a rien déclenché.",
     en: 'This button no longer matches a pending action (already handled, cancelled or expired): this tap did nothing.',
   },
+  // Réponse honnête quand DeepSeek a simulé une confirmation deux fois d'affilée (garde
+  // `whatsapp-phantom-action.ts`). Elle dit qu'AUCUNE action n'attend, pour que l'agent ne
+  // réponde pas « oui » à une question qui n'a jamais rien préparé.
+  phantomAction: {
+    fr: "Je n'ai pas réussi à préparer cette action : elle n'est ni faite, ni en attente de ta confirmation. Redis-la-moi (par exemple « supprime la fiche de Dubois ») et je te la soumets avec les boutons Oui et Non.",
+    en: "I couldn't prepare that action: it is neither done nor waiting for your confirmation. Ask me again (e.g. “delete Dubois's record”) and you'll get Yes and No buttons to confirm it.",
+  },
 } as const
 
 export type WaStringKey = keyof typeof STR

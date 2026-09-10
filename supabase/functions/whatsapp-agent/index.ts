@@ -39,6 +39,7 @@ import { redactPII } from '../_shared/pii-redaction.ts'
 import { redactLlmMessages } from '../_shared/wa-agent-redaction.ts'
 import { fetchHotContactBlock } from '../_shared/contact-memory.ts'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
+import { detectPhantomAction, phantomNextStep, PHANTOM_RETRY_NUDGE } from '../_shared/whatsapp-phantom-action.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -229,6 +230,7 @@ serve(async (req) => {
   let toolCallsUsed = 0
   let kycToolCalled = false // anti-fabrication : une ACTION KYC (screening/rapport/attache) a-t-elle RÉELLEMENT tourné ?
   let kycStatusRead = false // get_kyc_status (LECTURE) a tourné → légitime la narration d'ÉTAT, jamais une revendication d'ACTION
+  let phantomRetried = false // garde anti-confirmation simulée : UNE relance au plus par requête
   const resultCache = new Map<string, string>() // F4 : dédup outils identiques d'un tour
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -243,6 +245,23 @@ serve(async (req) => {
       // GARDE ANTI-FABRICATION KYC : DeepSeek prétend un screening/rapport lancé/fait sans avoir
       // appelé l'outil → on NE relaie JAMAIS la fausse action, on renvoie une correction honnête.
       if (isFabricatedKycClaim(content, kycToolCalled, kycStatusRead)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
+      // GARDE ANTI-CONFIRMATION SIMULÉE (incident du 10.09.2026) : DeepSeek demande de confirmer,
+      // ou annonce une action, sans avoir appelé l'outil — rien n'est préparé, aucun bouton ne suit,
+      // et un « oui » repartirait au cerveau comme un message neuf. UNE relance, consigne
+      // corrective en fin de system ; à la seconde simulation, la vérité. Pas de relance au dernier
+      // tour : la passe suivante serait F9, sans outils, où « appelle l'outil » ne peut pas être
+      // suivi. La fausse revendication n'est jamais relayée, donc jamais stockée dans la mémoire.
+      const phantomStep = phantomNextStep(content, !phantomRetried && turn < MAX_TURNS - 1)
+      if (phantomStep !== 'pass') {
+        // PII-safe : le type de simulation seul, jamais le contenu.
+        console.warn(`wa-agent phantom ${detectPhantomAction(content)} -> ${phantomStep}`)
+        if (phantomStep === 'retry') {
+          phantomRetried = true
+          messages[0] = { ...messages[0], content: `${messages[0].content as string}\n\n${PHANTOM_RETRY_NUDGE}` }
+          continue
+        }
+        return json({ reply: t(lang, 'phantomAction'), isError: true }, 200)
+      }
       return json({ reply: content }, 200)
     }
 
@@ -334,6 +353,11 @@ serve(async (req) => {
   const forcedContent = forced?.choices?.[0]?.message?.content as string | undefined
   if (forcedContent) {
     if (isFabricatedKycClaim(forcedContent, kycToolCalled, kycStatusRead)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
+    // Même garde, sans relance : cette passe est déjà la dernière, et sans outils (`'none'`).
+    if (detectPhantomAction(forcedContent)) {
+      console.warn(`wa-agent phantom ${detectPhantomAction(forcedContent)} -> fallback (passe forcée)`)
+      return json({ reply: t(lang, 'phantomAction'), isError: true }, 200)
+    }
     return json({ reply: forcedContent }, 200)
   }
   return json({ reply: t(lang, 'reformulate'), isError: true }, 200)
