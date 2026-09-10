@@ -199,6 +199,26 @@ describe('whatsapp-gateway — réponses à un bouton (opt-out Meta)', () => {
     expect(inbound({ type: 'button', button: {} })?.body).toBeNull()
     expect(inbound({ type: 'interactive', interactive: {} })?.body).toBeNull()
   })
+
+  // L'identifiant vit À CÔTÉ du corps, jamais dedans : `body` alimente le corpus de voix et
+  // la compréhension. Mais c'est l'identifiant qui dit à quoi la réponse se rapporte.
+  it('replyId porte l’identifiant technique, body garde le libellé', () => {
+    const m = inbound({ type: 'interactive', interactive: {
+      type: 'button_reply', button_reply: { id: 'pa:0f8e7d6c-5b4a-4938-8271-605f4e3d2c1b:yes', title: 'Oui' },
+    } })
+    expect(m?.replyId).toBe('pa:0f8e7d6c-5b4a-4938-8271-605f4e3d2c1b:yes')
+    expect(m?.body).toBe('Oui')
+  })
+
+  it('replyId lit aussi une entrée de liste et le payload d’un bouton de template', () => {
+    expect(inbound({ type: 'interactive', interactive: { list_reply: { id: 'row_3', title: 'Me désinscrire' } } })?.replyId).toBe('row_3')
+    expect(inbound({ type: 'button', button: { text: 'Stop promotions', payload: 'STOP_PROMO' } })?.replyId).toBe('STOP_PROMO')
+  })
+
+  it('replyId est null quand personne n’a appuyé sur rien', () => {
+    expect(inbound({ type: 'text', text: { body: 'oui' } })?.replyId).toBeNull()
+    expect(inbound({ type: 'interactive', interactive: { button_reply: { id: '', title: 'Oui' } } })?.replyId).toBeNull()
+  })
 })
 
 describe('isDialablePhone — bornage 6–15 chiffres', () => {

@@ -19,6 +19,16 @@ export interface NormalizedInboundMessage {
    * confirmation désinscrirait l'agent de son propre copilote.
    */
   bodySource: InboundBodySource | null
+  /**
+   * Identifiant technique du bouton ou de l'entrée de liste touché : `button_reply.id`,
+   * `list_reply.id`, ou `payload` d'un bouton de template. `null` pour tout le reste.
+   *
+   * ⚠ SÉPARÉ de `body`, qui garde le LIBELLÉ : `body` alimente le corpus de voix et la
+   * compréhension, un identifiant technique les polluerait. Mais c'est l'identifiant, pas le
+   * libellé, qui dit à quoi la réponse se rapporte — un bouton reste dans la conversation, et
+   * un vieux [Oui] ressemble trait pour trait à un neuf.
+   */
+  replyId: string | null
   mediaType: NormalizedMediaType | null
   mediaUrl: string | null
   mediaId: string | null
@@ -338,6 +348,7 @@ class MetaProvider implements WhatsAppProvider {
         : null,
       body: hit?.[1] ?? null,
       bodySource: hit?.[0] ?? null,
+      replyId: firstNonEmpty(interactive?.button_reply?.id, interactive?.list_reply?.id, button?.payload) ?? null,
       mediaType: META_TYPE_TO_MEDIA[type] ?? null,
       mediaUrl: null, // bytes récupérés en différé via Graph API (whatsapp-media)
       mediaId: mediaObj?.id ?? null,
