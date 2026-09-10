@@ -143,7 +143,7 @@ serve(async (req) => {
     if (optOutLink) {
       const link = optOutLink as { profile_id: string; agency_id: string | null }
       const ins = await insertInboundOnce(admin, provider, msg, {
-        agency_id: link.agency_id, stop_handled_at: new Date().toISOString(),
+        agency_id: link.agency_id, stop_handled_at: new Date().toISOString(), is_from_agent: true,
       })
       if (ins.error) {
         console.error('whatsapp_messages insert error:', ins.error)
@@ -183,8 +183,12 @@ serve(async (req) => {
 
     if (agentLink) {
       // Dédup : insert inbound idempotent ; si rejeu Meta, on s'arrête (pas de double action).
+      // `is_from_agent` est posé ici, à la réception, sur les TROIS entrées côté agent (cette
+      // branche, l'opt-out bouton plus haut, le message d'appairage plus bas) : c'est ce qui
+      // tient l'avis LPD des prospects loin d'un agent même après une déliaison, le lien délié
+      // ne portant plus ni numéro ni vérification (whatsapp_pending_notices, 20260910200728).
       const agentIns = await insertInboundOnce(admin, provider, msg, {
-        agency_id: agentLink.agency_id,
+        agency_id: agentLink.agency_id, is_from_agent: true,
       })
       if (agentIns.duplicate) {
         return new Response(JSON.stringify({ ok: true, routed: 'agent_duplicate' }), {
@@ -253,6 +257,9 @@ serve(async (req) => {
             status: 'received',
             wa_timestamp: msg.timestamp,
             raw: msg.raw,
+            // Marqué AVANT que le lien passe `verified` : sans lui, un tick de whatsapp-process
+            // tombant entre cette ligne et la bascule ci-dessous adressait l'avis LPD à l'agent.
+            is_from_agent: true,
           }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true }).then(() => {}, () => {})
 
           // Bascule du lien en compare-and-swap : `.eq('verified', false)` ferme la course

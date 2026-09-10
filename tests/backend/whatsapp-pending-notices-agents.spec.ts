@@ -1,15 +1,17 @@
 // Banc de whatsapp_pending_notices : l'avis LPD (art. 19 nLPD) ne vise que les PROSPECTS
-// (migration 20260910192017).
+// (migrations 20260910192017 puis 20260910200728).
 //
 // Le 10.09.2026, le numéro d'un agent fraîchement apparié a reçu l'avis écrit pour les
 // prospects : la branche agent du webhook insère ses entrants avec l'agence du lien, et la
-// fonction ne distinguait rien. Les entrants semés ici ont la forme exacte de ceux du webhook
-// (agence posée, contact NULL, même âge), et la seule différence entre les numéros est le lien
-// vérifié. C'est ce qui rend le témoin positif probant : si le prospect disparaissait lui
-// aussi, l'absence de l'agent ne prouverait rien.
+// fonction ne distinguait rien. Deux clauses l'en écartent désormais, et chacune a son volet :
+//   · le LIEN vérifié (20260910192017), pour ce que le webhook n'a pas marqué ;
+//   · le marqueur `is_from_agent` posé à la réception (20260910200728), qui survit à une
+//     déliaison — le lien délié (`verified = false`, `wa_number = NULL`) ne témoigne plus.
 //
-// Client service_role, comme l'unique appelant réel (whatsapp-process) : l'appel éprouve au
-// passage le GRANT EXECUTE que la migration repose.
+// Les entrants semés ont la forme des lignes du webhook (agence posée, contact NULL, même
+// âge), et un témoin de MÊME forme doit, lui, rester dû : sans lui, l'absence d'un numéro ne
+// prouverait rien. Client service_role, comme l'unique appelant réel (whatsapp-process) :
+// l'appel éprouve au passage le GRANT EXECUTE que les migrations reposent.
 //
 // skipIf(!HAS_KEYS) ne SKIP PAS en CI (backend.yml exporte SUPABASE_TEST_*) : lire le nombre
 // de tests exécutés, jamais le code de sortie.
@@ -34,22 +36,34 @@ interface AvisDu { agency_id: string; wa_phone: string }
 describe.skipIf(!HAS_KEYS)('whatsapp_pending_notices : l’avis LPD ne vise que les prospects', () => {
   let setup: TwoAgenciesSetup
   let svc: ReturnType<typeof serviceRoleClient>
-  let linkId = ''
+  const seededPhones: string[] = []
+  const linkIds: string[] = []
 
-  const agent = freshPhone()
-  /** Le numéro de l'agent au format national : même personne pour normalize_phone. */
-  const agentNational = '0' + agent.slice(-9)
-  const prospect = freshPhone()
-
-  /** Entrant de la forme exacte de la branche agent du webhook : agence posée, contact NULL. */
-  const seedInbound = async (phone: string, agencyId: string): Promise<void> => {
+  /**
+   * Entrant de la forme des lignes du webhook : agence posée, contact NULL, il y a 10 min.
+   * Non marqué, la clé est OMISE : la ligne prend le défaut de la colonne, comme toute
+   * insertion qui l'ignore — un défaut à true ferait disparaître le témoin prospect.
+   */
+  const seedInbound = async (phone: string, agencyId: string, isFromAgent = false): Promise<void> => {
     const at = new Date(Date.now() - 10 * 60_000).toISOString()
     const { error } = await svc.from('whatsapp_messages').insert({
       provider: 'meta', provider_message_id: `wamid.TEST.avis-lpd.${phone}.${seq++}`,
       direction: 'inbound', wa_from: phone, agency_id: agencyId, contact_id: null,
       body: 'bonjour', created_at: at, wa_timestamp: at,
+      ...(isFromAgent ? { is_from_agent: true } : {}),
     })
     if (error) throw new Error(`seedInbound: ${error.message}`)
+    seededPhones.push(phone)
+  }
+
+  const linkAgent = async (profileId: string, agencyId: string, phone: string): Promise<string> => {
+    const { data, error } = await svc.from('whatsapp_agent_links')
+      .insert({ profile_id: profileId, agency_id: agencyId, wa_number: phone, verified: true })
+      .select('id').single()
+    if (error) throw new Error(`lien agent: ${error.message}`)
+    const id = (data as { id: string }).id
+    linkIds.push(id)
+    return id
   }
 
   /**
@@ -70,56 +84,100 @@ describe.skipIf(!HAS_KEYS)('whatsapp_pending_notices : l’avis LPD ne vise que 
   beforeAll(async () => {
     setup = await setupTwoAgencies()
     svc = serviceRoleClient()
-
-    const { data, error } = await svc.from('whatsapp_agent_links')
-      .insert({ profile_id: setup.agentAId, agency_id: setup.agencyAId, wa_number: agent, verified: true })
-      .select('id').single()
-    if (error) throw new Error(`lien agent: ${error.message}`)
-    linkId = (data as { id: string }).id
-
-    await seedInbound(agent, setup.agencyAId)          // la branche agent, agence courante du lien
-    await seedInbound(agent, setup.agencyBId)          // resté sur l'agence d'avant le changement de lien
-    await seedInbound(agentNational, setup.agencyAId)  // même numéro, autre format
-    await seedInbound(prospect, setup.agencyAId)       // le témoin : même forme, sans lien
   })
 
   afterAll(async () => {
     if (!setup) return
-    await svc.from('whatsapp_messages').delete().in('wa_from', [agent, agentNational, prospect])
-    if (linkId) await svc.from('whatsapp_agent_links').delete().eq('id', linkId)
+    if (seededPhones.length) await svc.from('whatsapp_messages').delete().in('wa_from', seededPhones)
+    if (linkIds.length) await svc.from('whatsapp_agent_links').delete().in('id', linkIds)
     await setup.cleanup()
   })
 
-  it('l’entrant d’un agent vérifié ne réclame aucun avis ; celui d’un prospect, si', async () => {
-    const aviser = await dus(setup.agencyAId)
-    // Témoin d'abord : une fonction qui ne rendrait plus rien passerait l'assertion suivante.
-    expect(aviser, 'le prospect doit recevoir l’avis').toContain(prospect)
-    expect(aviser, 'un agent est un utilisateur du service, pas un prospect').not.toContain(agent)
+  // Entrants NON marqués : lignes antérieures à la colonne, ou numéro d'agent entré par un
+  // autre chemin que la branche agent. C'est la clause du lien qui doit les écarter.
+  describe('la clause du lien vérifié', () => {
+    let linkId = ''
+    const agent = freshPhone()
+    /** Le numéro de l'agent au format national : même personne pour normalize_phone. */
+    const agentNational = '0' + agent.slice(-9)
+    const prospect = freshPhone()
+
+    beforeAll(async () => {
+      linkId = await linkAgent(setup.agentAId, setup.agencyAId, agent)
+      await seedInbound(agent, setup.agencyAId)          // agence courante du lien
+      await seedInbound(agent, setup.agencyBId)          // resté sur l'agence d'avant le changement de lien
+      await seedInbound(agentNational, setup.agencyAId)  // même numéro, autre format
+      await seedInbound(prospect, setup.agencyAId)       // le témoin : même forme, sans lien
+    })
+
+    it('l’entrant d’un agent vérifié ne réclame aucun avis ; celui d’un prospect, si', async () => {
+      const aviser = await dus(setup.agencyAId)
+      // Témoin d'abord : une fonction qui ne rendrait plus rien passerait l'assertion suivante.
+      expect(aviser, 'le prospect doit recevoir l’avis').toContain(prospect)
+      expect(aviser, 'un agent est un utilisateur du service, pas un prospect').not.toContain(agent)
+    })
+
+    it('le lien a changé d’agence : l’entrant resté sur l’ancienne ne réclame pas d’avis non plus', async () => {
+      // Le cas du 10.09 : le lien était passé de megga-ge-3 à megga-agence. L'exclusion porte
+      // sur le NUMÉRO, pas sur le couple (agence, numéro) qui est la clé de whatsapp_notices.
+      expect(await dus(setup.agencyBId)).not.toContain(agent)
+    })
+
+    it('le numéro est reconnu sous un autre format : normalize_phone, pas l’égalité brute', async () => {
+      expect(await dus(setup.agencyAId)).not.toContain(agentNational)
+    })
+
+    it('seul un lien VÉRIFIÉ exclut : pendant un appairage, le numéro écrit comme n’importe qui', async () => {
+      // Retirer la vérification remet les trois entrants non marqués dans le cas général. C'est
+      // aussi ce qui prouve qu'ils étaient éligibles, et que seule la clause du lien les écartait
+      // plus haut — pas un avis déjà enregistré ni une suppression.
+      const { error } = await svc.from('whatsapp_agent_links').update({ verified: false }).eq('id', linkId)
+      if (error) throw new Error(`lien non vérifié: ${error.message}`)
+      try {
+        const aviserA = await dus(setup.agencyAId)
+        expect(aviserA).toContain(agent)
+        expect(aviserA).toContain(agentNational)
+        expect(await dus(setup.agencyBId)).toContain(agent)
+      } finally {
+        await svc.from('whatsapp_agent_links').update({ verified: true }).eq('id', linkId)
+      }
+    })
   })
 
-  it('le lien a changé d’agence : l’entrant resté sur l’ancienne ne réclame pas d’avis non plus', async () => {
-    // Le cas du 10.09 : le lien était passé de megga-ge-3 à megga-agence. L'exclusion porte
-    // sur le NUMÉRO, pas sur le couple (agence, numéro) qui est la clé de whatsapp_notices.
-    expect(await dus(setup.agencyBId)).not.toContain(agent)
-  })
+  // Entrants MARQUÉS, comme le webhook les écrit depuis 20260910200728.
+  describe('le marqueur is_from_agent : une déliaison ne rouvre pas l’avis', () => {
+    const agent = freshPhone()
 
-  it('le numéro est reconnu sous un autre format : normalize_phone, pas l’égalité brute', async () => {
-    expect(await dus(setup.agencyAId)).not.toContain(agentNational)
-  })
+    beforeAll(async () => {
+      await linkAgent(setup.agentBId, setup.agencyBId, agent)
+      await seedInbound(agent, setup.agencyBId, true)
+    })
 
-  it('seul un lien VÉRIFIÉ exclut : pendant un appairage, le numéro écrit comme n’importe qui', async () => {
-    // Retirer la vérification remet les trois entrants de l'agent dans le cas général. C'est
-    // aussi ce qui prouve qu'ils étaient éligibles, et que seule la clause du lien les écartait
-    // plus haut — pas un avis déjà enregistré ni une suppression.
-    const { error } = await svc.from('whatsapp_agent_links').update({ verified: false }).eq('id', linkId)
-    if (error) throw new Error(`lien non vérifié: ${error.message}`)
-    try {
-      const aviserA = await dus(setup.agencyAId)
-      expect(aviserA).toContain(agent)
-      expect(aviserA).toContain(agentNational)
+    it('après unlink_whatsapp_number, l’entrant reçu côté agent reste sans avis', async () => {
+      expect(await dus(setup.agencyBId), 'avant la déliaison').not.toContain(agent)
+
+      // La vraie RPC, appelée par l'agent lui-même : c'est elle qui ouvrait le trou. Depuis
+      // 20260817143430 elle ne SUPPRIME pas la ligne, elle en efface le numéro et la
+      // vérification — la clause du lien ne peut donc plus rien reconnaître.
+      const { error } = await setup.clientB.rpc('unlink_whatsapp_number')
+      if (error) throw new Error(`unlink_whatsapp_number: ${error.message}`)
+      const { data: lien } = await svc.from('whatsapp_agent_links')
+        .select('verified, wa_number').eq('profile_id', setup.agentBId).single()
+      expect(lien, 'la déliaison doit avoir effacé numéro et vérification, sinon le test ne prouve rien')
+        .toMatchObject({ verified: false, wa_number: null })
+
+      expect(await dus(setup.agencyBId), 'le lien délié ne témoigne plus : seul le marqueur tient')
+        .not.toContain(agent)
+    })
+
+    it('un message NON marqué du même numéro, après la déliaison, est dû : ce n’est plus un agent', async () => {
+      // Ce que la branche client écrit une fois le lien supprimé. Il prouve aussi que le numéro
+      // n'était écarté ni par un avis déjà enregistré, ni par une suppression. Le lien est
+      // délié ici aussi, comme le fait la RPC, pour que ce test ne dépende pas du précédent.
+      await svc.from('whatsapp_agent_links')
+        .update({ verified: false, wa_number: null }).eq('profile_id', setup.agentBId)
+      await seedInbound(agent, setup.agencyBId)
       expect(await dus(setup.agencyBId)).toContain(agent)
-    } finally {
-      await svc.from('whatsapp_agent_links').update({ verified: true }).eq('id', linkId)
-    }
+    })
   })
 })
