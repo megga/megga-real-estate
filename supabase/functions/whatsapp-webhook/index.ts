@@ -185,8 +185,8 @@ serve(async (req) => {
       // Dédup : insert inbound idempotent ; si rejeu Meta, on s'arrête (pas de double action).
       // `is_from_agent` est posé ici, à la réception, sur les TROIS entrées côté agent (cette
       // branche, l'opt-out bouton plus haut, le message d'appairage plus bas) : c'est ce qui
-      // tient l'avis LPD des prospects loin d'un agent même après une déliaison, le lien
-      // supprimé ne pouvant plus en témoigner (whatsapp_pending_notices, 20260910200728).
+      // tient l'avis LPD des prospects loin d'un agent même après une déliaison, le lien délié
+      // ne portant plus ni numéro ni vérification (whatsapp_pending_notices, 20260910200728).
       const agentIns = await insertInboundOnce(admin, provider, msg, {
         agency_id: agentLink.agency_id, is_from_agent: true,
       })

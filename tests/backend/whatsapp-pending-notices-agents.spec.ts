@@ -6,7 +6,7 @@
 // fonction ne distinguait rien. Deux clauses l'en écartent désormais, et chacune a son volet :
 //   · le LIEN vérifié (20260910192017), pour ce que le webhook n'a pas marqué ;
 //   · le marqueur `is_from_agent` posé à la réception (20260910200728), qui survit à une
-//     déliaison — le lien supprimé ne peut plus témoigner de rien.
+//     déliaison — le lien délié (`verified = false`, `wa_number = NULL`) ne témoigne plus.
 //
 // Les entrants semés ont la forme des lignes du webhook (agence posée, contact NULL, même
 // âge), et un témoin de MÊME forme doit, lui, rester dû : sans lui, l'absence d'un numéro ne
@@ -156,21 +156,26 @@ describe.skipIf(!HAS_KEYS)('whatsapp_pending_notices : l’avis LPD ne vise que 
     it('après unlink_whatsapp_number, l’entrant reçu côté agent reste sans avis', async () => {
       expect(await dus(setup.agencyBId), 'avant la déliaison').not.toContain(agent)
 
-      // La vraie RPC, appelée par l'agent lui-même : c'est son DELETE qui ouvrait le trou.
+      // La vraie RPC, appelée par l'agent lui-même : c'est elle qui ouvrait le trou. Depuis
+      // 20260817143430 elle ne SUPPRIME pas la ligne, elle en efface le numéro et la
+      // vérification — la clause du lien ne peut donc plus rien reconnaître.
       const { error } = await setup.clientB.rpc('unlink_whatsapp_number')
       if (error) throw new Error(`unlink_whatsapp_number: ${error.message}`)
-      const { data: restant } = await svc.from('whatsapp_agent_links').select('id').eq('profile_id', setup.agentBId)
-      expect(restant, 'la déliaison doit avoir supprimé le lien, sinon le test ne prouve rien').toHaveLength(0)
+      const { data: lien } = await svc.from('whatsapp_agent_links')
+        .select('verified, wa_number').eq('profile_id', setup.agentBId).single()
+      expect(lien, 'la déliaison doit avoir effacé numéro et vérification, sinon le test ne prouve rien')
+        .toMatchObject({ verified: false, wa_number: null })
 
-      expect(await dus(setup.agencyBId), 'le lien supprimé ne peut plus témoigner : seul le marqueur tient')
+      expect(await dus(setup.agencyBId), 'le lien délié ne témoigne plus : seul le marqueur tient')
         .not.toContain(agent)
     })
 
     it('un message NON marqué du même numéro, après la déliaison, est dû : ce n’est plus un agent', async () => {
       // Ce que la branche client écrit une fois le lien supprimé. Il prouve aussi que le numéro
       // n'était écarté ni par un avis déjà enregistré, ni par une suppression. Le lien est
-      // retiré ici aussi, pour que ce test ne dépende pas de l'issue du précédent.
-      await svc.from('whatsapp_agent_links').delete().eq('profile_id', setup.agentBId)
+      // délié ici aussi, comme le fait la RPC, pour que ce test ne dépende pas du précédent.
+      await svc.from('whatsapp_agent_links')
+        .update({ verified: false, wa_number: null }).eq('profile_id', setup.agentBId)
       await seedInbound(agent, setup.agencyBId)
       expect(await dus(setup.agencyBId)).toContain(agent)
     })

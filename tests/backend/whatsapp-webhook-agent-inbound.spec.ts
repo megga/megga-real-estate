@@ -159,10 +159,14 @@ describe.skipIf(!HAS_KEYS)('whatsapp-webhook : les entrées côté agent sont ma
     expect(recus, 'les trois entrées marquées doivent exister, sinon l’absence d’avis ne prouve rien')
       .toHaveLength(3)
 
+    // La RPC ne supprime pas la ligne (UPDATE depuis 20260817143430) : elle en efface le
+    // numéro et la vérification, et c'est ce qui rendait la clause du lien aveugle.
     const { error } = await setup.clientA.rpc('unlink_whatsapp_number')
     if (error) throw new Error(`unlink_whatsapp_number: ${error.message}`)
-    const { data: restant } = await svc.from('whatsapp_agent_links').select('id').eq('profile_id', setup.agentAId)
-    expect(restant, 'la déliaison doit avoir supprimé le lien').toHaveLength(0)
+    const { data: lien } = await svc.from('whatsapp_agent_links')
+      .select('verified, wa_number').eq('profile_id', setup.agentAId).single()
+    expect(lien, 'la déliaison doit avoir effacé numéro et vérification')
+      .toMatchObject({ verified: false, wa_number: null })
 
     const PLAFOND = 1000
     const dus = async (): Promise<string[]> => {
@@ -172,7 +176,7 @@ describe.skipIf(!HAS_KEYS)('whatsapp-webhook : les entrées côté agent sont ma
       expect(rows.length, 'réponse pleine : l’absence d’un numéro ne prouverait rien').toBeLessThan(PLAFOND)
       return rows.filter((d) => d.agency_id === setup.agencyAId).map((d) => d.wa_phone)
     }
-    expect(await dus(), 'le lien supprimé ne témoigne plus : seul le marqueur tient').not.toContain(agent)
+    expect(await dus(), 'le lien délié ne témoigne plus : seul le marqueur tient').not.toContain(agent)
 
     // Témoin : un entrant NON marqué du même numéro, comme la branche client l'écrit après la
     // déliaison, est dû. Le numéro n'était donc écarté ni par une suppression (l'opt-out d'un

@@ -1,9 +1,14 @@
 -- Ferme le cas de la DÉLIAISON que 20260910192017 laissait ouvert.
 --
 -- 20260910192017 écarte de l'avis LPD tout numéro qui porte un lien d'agent VÉRIFIÉ, mais elle
--- lit l'état COURANT du lien. Or `unlink_whatsapp_number` fait un DELETE : un agent qui délie
--- son numéro redevenait éligible sur ses entrants des 24 dernières heures, et recevait dans la
--- minute l'avis écrit pour les prospects. Même trou par l'autre bout : un tick de
+-- lit l'état COURANT du lien. Or `unlink_whatsapp_number` efface la vérification ET le numéro
+-- du lien (`verified = false`, `wa_number = NULL`) : un agent qui délie son numéro redevenait
+-- éligible sur ses entrants des 24 dernières heures, et recevait dans la minute l'avis écrit
+-- pour les prospects.
+-- ⚠ 20260910192017 écrivait « unlink = DELETE » : FAUX, relevé en prod le 10.09.2026 par
+-- pg_get_functiondef. C'était vrai en 20260817133200 ; 20260817143430 en a fait un UPDATE, pour
+-- que les compteurs d'OTP survivent. La ligne reste, et le trou est le même.
+-- Même trou par l'autre bout : un tick de
 -- whatsapp-process tombant entre l'insertion du message d'appairage et la vérification du lien
 -- (82 ms le 10.09.2026) envoyait encore l'avis.
 --
