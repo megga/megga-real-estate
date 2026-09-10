@@ -82,7 +82,7 @@ for (const f of fichiers) {
 
   // ── Propriété 1 ───────────────────────────────────────────────────────────
   if (!CONSTRUCTEURS.includes(f)) {
-    // ⚠ `\w+` et non l'alternative fermée d'origine (Text|Image|Document|Template) : une porte
+    // ⚠ `\w*` et non l'alternative fermée d'origine (Text|Image|Document|Template) : une porte
     // qui ÉNUMÈRE les constructeurs devient aveugle au premier qu'on ajoute — et
     // `buildSendButtonsRequest` aurait pu s'appeler n'importe où sans passer par la garde.
     // ⚠ NI le `.` en tête NI `\w+` : la déstructuration (`const { buildSendTextRequest } =

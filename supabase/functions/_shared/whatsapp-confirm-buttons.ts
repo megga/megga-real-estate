@@ -82,7 +82,7 @@ export function planConfirmation(prompt: string, pendingId: string, lang: WaLang
 }
 
 /** Ce que l'expéditeur injecté rend — le sous-ensemble du résultat de la garde utile ici. */
-export type SendOutcome = { ok: true } | { ok: false; blocked: boolean; error?: string }
+export type ConfirmSendOutcome = { ok: true } | { ok: false; blocked: boolean; error?: string }
 
 /**
  * Livre le PLAN d'une confirmation (`planConfirmation`), `send` étant INJECTÉ — c'est ce qui
@@ -102,7 +102,7 @@ export type SendOutcome = { ok: true } | { ok: false; blocked: boolean; error?: 
 export async function deliverConfirmation(
   plan: OutboundPayload[],
   prompt: string,
-  send: (payload: OutboundPayload) => Promise<SendOutcome>,
+  send: (payload: OutboundPayload) => Promise<ConfirmSendOutcome>,
 ): Promise<Array<{ type: OutboundPayload['type']; error: string }>> {
   const failures: Array<{ type: OutboundPayload['type']; error: string }> = []
   for (const payload of plan) {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   confirmReplyId, parseConfirmReplyId, resolveButtonDecision, planConfirmation,
-  deliverConfirmation, type SendOutcome,
+  deliverConfirmation, type ConfirmSendOutcome,
 } from './whatsapp-confirm-buttons'
 import { BUTTONS_BODY_MAX } from './whatsapp-gateway'
 import { t } from './whatsapp-i18n'
@@ -157,10 +157,10 @@ describe('deliverConfirmation — jamais de boutons sans la question', () => {
   const DECOUPE = planConfirmation(LONG, PA, 'fr')
 
   /** Expéditeur factice : rend les issues SCRIPTÉES dans l’ordre des appels, et les enregistre. */
-  function fakeSend(outcomes: SendOutcome[]) {
+  function fakeSend(outcomes: ConfirmSendOutcome[]) {
     const calls: OutboundPayload[] = []
     let i = 0
-    const send = async (payload: OutboundPayload): Promise<SendOutcome> => {
+    const send = async (payload: OutboundPayload): Promise<ConfirmSendOutcome> => {
       calls.push(payload)
       return outcomes[Math.min(i++, outcomes.length - 1)]
     }
