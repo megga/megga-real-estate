@@ -457,7 +457,7 @@ Plomberie qui capture les signaux temporels (fondation de la couche v2 ; cerveau
 
 ## 4. Pipeline marketplace (Flatfox / market_listings) ⚙️
 
-- **Source** : API Flatfox (location, ~35k actifs, 26 cantons, 8 types). Aussi RealAdvisor via `market-scraper(-batch)`.
+- **Source** : API Flatfox (location, ~41k actifs, 26 cantons au 10.09.2026, 8 types). Aussi RealAdvisor via `market-scraper(-batch)`.
 - **Cron** : `flatfox-sync-daily` `0 4 * * *` (04:00 UTC) → edge `flatfox-sync` (chunked self-invoke, 5 pages/chunk, rate-limit 1 req/s, lock singleton).
 - **Opérations** : UPSERT (source_id UNIQUE, last_seen_at), mark removed (safety ≥80% vus avant sweep), photos → Cloudflare R2 (`photos_cf` via `photo-processor`), `quality_score`, `relevance_score` (GENERATED).
 - **Observabilité** : `flatfox_sync_runs` (status, totaux, chunks) → dashboard admin.
