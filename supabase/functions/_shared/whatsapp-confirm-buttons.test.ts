@@ -4,6 +4,7 @@ import {
 } from './whatsapp-confirm-buttons'
 import { BUTTONS_BODY_MAX } from './whatsapp-gateway'
 import { t } from './whatsapp-i18n'
+import { detectStopRequest } from './whatsapp-stop-keywords'
 
 const PA = '0f8e7d6c-5b4a-4938-8271-605f4e3d2c1b'
 const AUTRE = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d'
@@ -25,7 +26,11 @@ describe('identifiant de bouton de confirmation', () => {
 
   it('rend null pour tout ce qui n’est pas exactement un bouton de confirmation', () => {
     for (const v of [null, undefined, '', 'STOP_PROMO', 'row_3', `pa:${PA}`, `pa:${PA}:maybe`,
-      'pa:pas-un-uuid:yes', `xx:${PA}:yes`, ` pa:${PA}:yes`, `pa:${PA}:yes `]) {
+      'pa:pas-un-uuid:yes', `xx:${PA}:yes`, ` pa:${PA}:yes`, `pa:${PA}:yes `,
+      // Forme exacte seulement : le préfixe `pa:` et le choix `yes|no` sont en minuscules
+      // strictes (plus de flag `i`) — un bouton qu'on émet nous-mêmes ne s'écrit jamais
+      // autrement, et Meta renvoie l'id VERBATIM.
+      `PA:${PA}:yes`, `pa:${PA}:YES`]) {
       expect(parseConfirmReplyId(v), String(v)).toBeNull()
     }
   })
@@ -80,7 +85,11 @@ describe('planConfirmation — un brouillon n’est jamais tronqué', () => {
     const plan = planConfirmation(long, PA, 'fr')
     expect(plan).toHaveLength(2)
     expect(plan[0]).toEqual({ type: 'text', body: long })   // intégral, jamais coupé
-    expect(plan[1]).toMatchObject({ type: 'buttons', body: t('fr', 'confirmShort') })
+    expect(plan[1]).toEqual({
+      type: 'buttons',
+      body: t('fr', 'confirmShort'),
+      buttons: [{ id: `pa:${PA}:yes`, title: 'Oui' }, { id: `pa:${PA}:no`, title: 'Non' }],
+    })
   })
 
   it('mesure le texte tel qu’il PART, après la mise en forme de la garde', () => {
@@ -90,9 +99,46 @@ describe('planConfirmation — un brouillon n’est jamais tronqué', () => {
     expect(planConfirmation(brut, PA, 'fr')).toHaveLength(1)
   })
 
+  it('mesure le texte FORMATÉ, pas le texte BRUT : un brut à la limite peut grandir en partant', () => {
+    // `meggaProse` développe chaque tiret cadratin collé en ", " (2 caractères au lieu d'un) :
+    // 512 tirets → +512 caractères. Brut = exactement 1024 (à la limite) ; formaté ≈ 1535
+    // (1536 avant le nettoyage de l'espace de fin de chaîne). Une mesure sur le texte BRUT
+    // dirait « ça tient » à tort — c'est tout l'objet de la note ⚠ au-dessus de la fonction.
+    const brut = 'a—'.repeat(512)
+    expect(brut.length).toBe(BUTTONS_BODY_MAX)
+    const plan = planConfirmation(brut, PA, 'fr')
+    expect(plan).toHaveLength(2)
+    expect(plan[0]).toEqual({ type: 'text', body: brut })   // intégral, jamais reformaté ici
+  })
+
   it('une question vide ne produit jamais un message à boutons sans corps', () => {
-    expect(planConfirmation('', PA, 'fr')).toEqual([expect.objectContaining({
-      type: 'buttons', body: t('fr', 'confirmShort'),
-    })])
+    expect(planConfirmation('', PA, 'fr')).toEqual([{
+      type: 'buttons',
+      body: t('fr', 'confirmShort'),
+      buttons: [{ id: `pa:${PA}:yes`, title: 'Oui' }, { id: `pa:${PA}:no`, title: 'Non' }],
+    }])
+  })
+
+  it('une question faite uniquement d’espaces se comporte comme une question vide', () => {
+    // `meggaProse`/`toWhatsAppText` ne touchent pas les espaces internes purs : le texte
+    // formaté reste non-vide en apparence ('\n\n') mais `.trim()` le révèle vide — même
+    // chemin que la question vide, et le même résultat.
+    expect(planConfirmation('\n\n', PA, 'fr')).toEqual(planConfirmation('', PA, 'fr'))
+  })
+
+  it('ce qui est RÉELLEMENT émis ne porte jamais un mot-clé STOP, dans aucune langue', () => {
+    // ⛔ Le garde-fou de whatsapp-i18n.test.ts éprouve les CHAÎNES BRUTES (t(lang, 'btnYes'));
+    // celui-ci éprouve la SORTIE de planConfirmation — ce que le webhook reçoit réellement au
+    // clic — pour la même raison que §E préfère le vrai provider Meta à un faux qui ignore ses
+    // arguments : la production ne roule jamais sur une string isolée.
+    for (const lang of ['fr', 'en'] as const) {
+      const plan = planConfirmation('Une question quelconque ?', PA, lang)
+      for (const m of plan) {
+        if (m.type !== 'buttons') continue
+        for (const b of m.buttons) {
+          expect(detectStopRequest(b.title), `${lang}/${b.title}`).toBeNull()
+        }
+      }
+    }
   })
 })

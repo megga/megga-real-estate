@@ -348,6 +348,9 @@ class MetaProvider implements WhatsAppProvider {
         : null,
       body: hit?.[1] ?? null,
       bodySource: hit?.[0] ?? null,
+      // Meta ne porte jamais plus d'un de ces trois champs par message : l'ORDRE ici ne
+      // départage rien (à la différence de la cascade `body` ci-dessus, où plusieurs sources
+      // pourraient coexister).
       replyId: firstNonEmpty(interactive?.button_reply?.id, interactive?.list_reply?.id, button?.payload) ?? null,
       mediaType: META_TYPE_TO_MEDIA[type] ?? null,
       mediaUrl: null, // bytes récupérés en différé via Graph API (whatsapp-media)

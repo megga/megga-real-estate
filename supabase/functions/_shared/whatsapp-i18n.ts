@@ -162,9 +162,14 @@ const STR = {
     fr: 'Tu confirmes ?',
     en: 'Confirm?',
   },
+  // Parle de l'APPUI, jamais de l'action. Sur un double appui, le PREMIER a déjà exécuté
+  // l'action (ex. message envoyé au client) — seul le SECOND devient « périmé ». Dire
+  // « rien n'a été fait » à ce second appui ferait croire à l'agent que l'envoi n'a jamais eu
+  // lieu, et il le relancerait : un doublon vers le client. Le texte dit donc que CET APPUI
+  // n'a rien déclenché, sans jamais se prononcer sur l'action elle-même — qui a pu aboutir.
   staleButton: {
-    fr: "Ce bouton concerne une action qui n'est plus en attente : rien n'a été fait.",
-    en: 'This button is for an action that is no longer pending: nothing was done.',
+    fr: "Ce bouton ne correspond plus à une action en attente (déjà traitée, annulée ou expirée) : cet appui n'a rien déclenché.",
+    en: 'This button no longer matches a pending action (already handled, cancelled or expired): this tap did nothing.',
   },
 } as const
 

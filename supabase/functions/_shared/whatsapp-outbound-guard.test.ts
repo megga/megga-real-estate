@@ -11,6 +11,7 @@ import {
   sendOutboundGuarded, needsOpenWindow, normalizeOutboundPhone, WINDOW_MARGIN_MINUTES,
   type SendOutboundArgs, type SendOutboundResult,
 } from './whatsapp-outbound-guard'
+import { getProvider, BUTTONS_BODY_MAX } from './whatsapp-gateway'
 import type { SendHttpRequest, WhatsAppProvider } from './whatsapp-gateway'
 
 type Verdict = {
@@ -491,5 +492,56 @@ describe('sendOutboundGuarded — message à boutons', () => {
     expect(r.ok).toBe(false)
     expect((r as Extract<SendOutboundResult, { blocked: false }>).blocked).toBe(false)
     expect(fetch).not.toHaveBeenCalled()
+  })
+
+  // ⚠ `fakeProvider` ignore les arguments de ses builders (`built.push('buttons'); return REQ`,
+  // un `REQ` figé) — rien ne prouvait donc que la garde formate bien le corps AVANT de le
+  // donner au constructeur, alors que c'est très exactement ce que mesure le découpage de
+  // `planConfirmation` (whatsapp-confirm-buttons.ts) contre la même limite. Avec le VRAI
+  // provider Meta, le JSON réellement posté à `fetch` en fait foi.
+  it('avec le VRAI provider Meta : le corps posté est formaté AVANT construction (1026 bruts → 1024)', async () => {
+    const h = harness()
+    // Gras Markdown de 1026 caractères bruts ; une fois `**…**` converti en `*…*` par
+    // `formatOutboundText`, il tombe exactement à la limite Meta (1024).
+    const raw = `**${'a'.repeat(BUTTONS_BODY_MAX - 2)}**`
+    expect(raw.length).toBe(BUTTONS_BODY_MAX + 2)
+    const r = await sendOutboundGuarded(baseArgs(h, {
+      provider: getProvider('meta'),
+      payload: {
+        type: 'buttons', body: raw,
+        buttons: [{ id: 'pa:x:yes', title: 'Oui' }, { id: 'pa:x:no', title: 'Non' }],
+      },
+    }))
+    expect(r.ok).toBe(true)
+    const [, init] = vi.mocked(fetch).mock.calls[0]
+    const posted = JSON.parse(String(init?.body)) as { interactive: { body: { text: string } } }
+    expect(posted.interactive.body.text.startsWith('*a')).toBe(true)
+    expect(posted.interactive.body.text.length).toBe(BUTTONS_BODY_MAX)
+  })
+
+  it('au-delà de la limite FORMATÉE, la construction échoue et Meta n’est jamais appelé', async () => {
+    const h = harness()
+    const r = await sendOutboundGuarded(baseArgs(h, {
+      provider: getProvider('meta'),
+      payload: {
+        type: 'buttons', body: 'a'.repeat(BUTTONS_BODY_MAX + 1),
+        buttons: [{ id: 'pa:x:yes', title: 'Oui' }, { id: 'pa:x:no', title: 'Non' }],
+      },
+    }))
+    expect(r).toMatchObject({ ok: false, blocked: false })
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('laisse une trace des boutons dans `raw` — son repli texte, lui, n’en porte pas', async () => {
+    // Sans ceci, un message à boutons et son repli texte laissent des lignes
+    // `whatsapp_messages` identiques : la preuve de prod ne peut plus distinguer l'un de
+    // l'autre après coup.
+    const h = harness()
+    await sendOutboundGuarded(baseArgs(h, { provider: fakeProvider(), payload: buttons }))
+    expect(h.upserted[0].row.raw).toEqual({ interactive_buttons: buttons.buttons })
+
+    const hText = harness()
+    await sendOutboundGuarded(baseArgs(hText)) // payload par défaut : { type: 'text', body: 'bonjour' }
+    expect(hText.upserted[0].row.raw).toBeUndefined()
   })
 })
