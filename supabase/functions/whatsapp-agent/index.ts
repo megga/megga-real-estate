@@ -14,7 +14,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
-import { toolTier, isFabricatedKycClaim, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
+import { toolTier, CONFIRM_TOOLS, isFabricatedKycClaim, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
 import { detectLang, t, asyncAck } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
@@ -481,6 +481,11 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
 async function stashPending(
   ctx: ActionCtx, waNumber: string, tool: string, args: Record<string, unknown>,
 ): Promise<{ status: 'created' | 'busy' | 'error'; prompt?: string; error?: string; pendingId?: string }> {
+  // Un nom que le registre ne déclare pas (inventé par le modèle) n'a ni préparation ni exécuteur :
+  // toolTier le range en 'confirm' pour ne jamais l'exécuter, mais le stocker proposerait « Je vais
+  // effectuer cette action » avec des boutons, puis unknownAction au [Oui]. Refusé avant toute
+  // lecture : ce refus ne dépend d'aucun état, et le rappel `busy` laisserait croire l'action lançable.
+  if (!CONFIRM_TOOLS.has(tool)) return { status: 'error', error: t(ctx.lang ?? 'fr', 'unknownAction') }
   const { data: existing } = await ctx.supabase
     .from('whatsapp_pending_actions')
     .select('id, expires_at, summary')
