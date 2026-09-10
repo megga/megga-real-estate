@@ -49,7 +49,9 @@ approches écartées :
    répond « Ce bouton concerne une action qui n'est plus en attente. » L'action en attente,
    s'il y en a une, **n'est pas consommée**, et le copilote n'est pas appelé. Un double appui
    tombe dans ce cas.
-5. **Action déjà en attente** (`busy`) : le rappel porte les boutons de l'action qui attend.
+5. **Action déjà en attente** (`busy`) : le rappel reprend la question de l'action qui
+   attend (son `summary`), avec ses boutons. Sans elle, [Oui] confirmerait une action que
+   l'agent n'a plus sous les yeux — précisément ce que l'identifiant dans le bouton évite.
 6. **Taper reste possible** : « oui », « non », ou une correction de brouillon, exactement
    comme aujourd'hui.
 7. **Repli** : si Meta refuse le message à boutons, MEGGA envoie la version texte. L'agent
@@ -118,7 +120,8 @@ Meta complet dans `raw`.
 ### 5.4 `whatsapp-agent/index.ts`
 
 - `stashPending` récupère l'identifiant inséré (`insert(...).select('id').single()`) et le
-  rend ; en `busy`, il rend celui de l'action qui attend.
+  rend ; en `busy`, il rend l'identifiant ET le `summary` de l'action qui attend, que le
+  rappel reprend sous le texte `busy`.
 - La réponse HTTP devient `{ reply, confirmPendingId? }` sur ces deux chemins ; tous les
   autres chemins restent `{ reply, isError? }`.
 
