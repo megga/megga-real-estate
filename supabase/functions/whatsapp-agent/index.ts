@@ -292,14 +292,18 @@ serve(async (req) => {
         const stash = await stashPending(ctx, waNumber, name, args)
         if (stash.status === 'busy') {
           logTool('busy')
-          return json({ reply: t(lang, 'busy'), isError: true }, 200)
+          // Le rappel reprend la question de l'action QUI ATTEND, avec SES boutons : sans elle,
+          // [Oui] confirmerait une action que l'agent n'a plus sous les yeux.
+          const busyReply = stash.prompt ? `${t(lang, 'busy')}\n\n${stash.prompt}` : t(lang, 'busy')
+          return json({ reply: busyReply, isError: true, confirmPendingId: stash.pendingId ?? null }, 200)
         }
         if (stash.status === 'error') {
           logTool('error')
           return json({ reply: stash.error ?? t(lang, 'prepFail'), isError: true }, 200)
         }
         logTool('confirm_pending')
-        return json({ reply: stash.prompt ?? t(lang, 'fallbackConfirm') }, 200)
+        // `confirmPendingId` : le webhook rend la question avec [Oui] [Non] liés à CETTE action.
+        return json({ reply: stash.prompt ?? t(lang, 'fallbackConfirm'), confirmPendingId: stash.pendingId ?? null }, 200)
       }
 
       // attach_kyc_document = ACTION KYC synchrone (attache une pièce) → arme kycToolCalled (toute
@@ -473,14 +477,15 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
 // confirmerait sans le savoir une autre action que celle annoncée).
 async function stashPending(
   ctx: ActionCtx, waNumber: string, tool: string, args: Record<string, unknown>,
-): Promise<{ status: 'created' | 'busy' | 'error'; prompt?: string; error?: string }> {
+): Promise<{ status: 'created' | 'busy' | 'error'; prompt?: string; error?: string; pendingId?: string }> {
   const { data: existing } = await ctx.supabase
     .from('whatsapp_pending_actions')
-    .select('expires_at')
+    .select('id, expires_at, summary')
     .eq('profile_id', ctx.profileId)
     .maybeSingle()
   if (existing && Date.parse(existing.expires_at) > Date.now()) {
-    return { status: 'busy' }
+    // L'identifiant ET la question de l'action qui attend : le rappel `busy` les reprend.
+    return { status: 'busy', pendingId: existing.id as string, prompt: existing.summary as string }
   }
 
   // Préparation par outil : prompt humain affiché à l'agent + payload figé stocké.
@@ -562,7 +567,7 @@ async function stashPending(
   // deux cerveaux concurrents (EdgeRuntime.waitUntil) — la contrainte UNIQUE(profile_id)
   // rejette (23505) et on renvoie 'busy', au lieu d'ÉCRASER silencieusement l'action déjà
   // annoncée à l'agent (F2 : sinon un « oui » validerait une autre action que celle affichée).
-  const { error: insErr } = await ctx.supabase.from('whatsapp_pending_actions').insert({
+  const { data: inserted, error: insErr } = await ctx.supabase.from('whatsapp_pending_actions').insert({
     profile_id: ctx.profileId,
     agency_id: ctx.agencyId,
     wa_number: waNumber,
@@ -570,11 +575,13 @@ async function stashPending(
     args: { ...storeArgs, __lang: ctx.lang ?? 'fr' },
     summary: prompt,
     expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-  })
+  }).select('id').single()
   if (insErr) {
-    // 23505 = unique_violation → un pending valide a gagné la course concurrente.
+    // 23505 = unique_violation → un pending valide a gagné la course concurrente. Sans son
+    // identifiant sous la main, le rappel part en texte seul, jamais avec des boutons devinés.
     if ((insErr as { code?: string }).code === '23505') return { status: 'busy' }
     return { status: 'error', error: insErr.message }
   }
-  return { status: 'created', prompt }
+  // L'identifiant de la ligne : les boutons [Oui] [Non] le porteront (spec 2026-09-10).
+  return { status: 'created', prompt, pendingId: (inserted as { id: string } | null)?.id }
 }
