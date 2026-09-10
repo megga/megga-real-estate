@@ -143,6 +143,34 @@ const STR = {
     fr: "Type d'action inconnu, rien fait.",
     en: 'Unknown action type — nothing done.',
   },
+  // ── Boutons de confirmation (spec 2026-09-10) ──────────────────────────────
+  // ⛔ Un libellé de bouton ne doit JAMAIS être un mot-clé STOP : le webhook traite un appui
+  // dont le libellé en est un comme un opt-out par BOUTON, avant même de savoir que
+  // l'expéditeur est un agent. « Cancel » est dans la liste internationale — un bouton
+  // [Cancel] désinscrirait l'agent de son brief. Verrouillé par whatsapp-i18n.test.ts.
+  // ⚠ 20 caractères au plus (limite Meta d'un libellé).
+  btnYes: {
+    fr: 'Oui',
+    en: 'Yes',
+  },
+  btnNo: {
+    fr: 'Non',
+    en: 'No',
+  },
+  // Corps du message à boutons quand la question complète est partie à part (> 1024 car.).
+  confirmShort: {
+    fr: 'Tu confirmes ?',
+    en: 'Confirm?',
+  },
+  // Parle de l'APPUI, jamais de l'action. Sur un double appui, le PREMIER a déjà exécuté
+  // l'action (ex. message envoyé au client) — seul le SECOND devient « périmé ». Dire
+  // « rien n'a été fait » à ce second appui ferait croire à l'agent que l'envoi n'a jamais eu
+  // lieu, et il le relancerait : un doublon vers le client. Le texte dit donc que CET APPUI
+  // n'a rien déclenché, sans jamais se prononcer sur l'action elle-même — qui a pu aboutir.
+  staleButton: {
+    fr: "Ce bouton ne correspond plus à une action en attente (déjà traitée, annulée ou expirée) : cet appui n'a rien déclenché.",
+    en: 'This button no longer matches a pending action (already handled, cancelled or expired): this tap did nothing.',
+  },
 } as const
 
 export type WaStringKey = keyof typeof STR
