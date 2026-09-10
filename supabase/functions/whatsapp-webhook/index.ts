@@ -21,7 +21,7 @@ import { asWaLang, detectLang, refusalText, t, type WaLang, undoneStage, undoSta
 import { detectStopRequest } from '../_shared/whatsapp-stop-keywords.ts'
 import { recordStopRequest, recordAgentBriefOptOut, sendStopAck } from '../_shared/whatsapp-stop.ts'
 import { sendOutboundGuarded, type PublicReason, type OutboundPayload } from '../_shared/whatsapp-outbound-guard.ts'
-import { planConfirmation, resolveButtonDecision, parseConfirmReplyId } from '../_shared/whatsapp-confirm-buttons.ts'
+import { planConfirmation, resolveButtonDecision, parseConfirmReplyId, deliverConfirmation } from '../_shared/whatsapp-confirm-buttons.ts'
 import { extractOptinToken, consumeOptinToken, OPTIN_BODY_PLACEHOLDER } from '../_shared/whatsapp-optin.ts'
 
 const corsHeaders = {
@@ -654,11 +654,30 @@ async function processAgentMessage(
   // Action en attente de confirmation ? Chargée AVANT l'undo différé pour lever l'ambiguïté
   // de « annule » : si un pending attend, « annule/non » doit le REFUSER (géré plus bas) et
   // NON déclencher l'undo d'une action auto antérieure.
-  const { data: pendingAction } = await admin
+  const { data: pendingAction, error: pendingErr } = await admin
     .from('whatsapp_pending_actions')
     .select('id, tool, args, summary, expires_at')
     .eq('profile_id', agentLink.profile_id)
     .maybeSingle()
+
+  // Une lecture en ÉCHEC n'est pas une ABSENCE. Pour un appui sur bouton, conclure « périmé »
+  // sur une panne ferait lire à l'agent « déjà traitée, annulée ou expirée » alors que l'action
+  // peut très bien attendre encore — le projet a déjà payé ce motif (`data` sans son `error`)
+  // ailleurs. Seul le chemin BOUTON est concerné : un message tapé continue sur pendingAction
+  // vide, comportement déjà toléré plus bas (`else` de la course perdue, `F18`…).
+  if (pendingErr && parseConfirmReplyId(msg.replyId)) {
+    console.error('whatsapp confirmation: lecture de l’action en attente en échec:', pendingErr.message.slice(0, 120))
+    await sendOutboundGuarded({
+      admin, provider, to: msg.fromPhone,
+      purpose: 'service',
+      payload: { type: 'text', body: t(detectLang(userText), 'cantProcessNow') },
+      profileId: agentLink.profile_id, agencyId: agentLink.agency_id,
+      isAutomated: true,
+      isAgentError: true,
+      retry: true,
+    })
+    return
+  }
 
   // Bouton de confirmation MEGGA ? Décodé AVANT l'undo et le pending, parce qu'un bouton porte
   // l'identifiant de SON action : un bouton périmé (action expirée, traitée ou remplacée) ne
@@ -666,6 +685,19 @@ async function processAgentMessage(
   // Spec : docs/superpowers/specs/2026-09-10-whatsapp-boutons-confirmations-design.md
   const button = resolveButtonDecision(msg.replyId, (pendingAction?.id as string | undefined) ?? null)
   if (button === 'stale') {
+    // Une AUTRE action attend encore, valide : on la remet sous les yeux de l'agent, avec SES
+    // boutons. Sans elle, l'agent qui retape « oui » après ce refus confirmerait une action
+    // qu'il n'a plus en vue — précisément ce que l'identifiant dans le bouton évite.
+    if (pendingAction && isPendingActionValid(pendingAction.expires_at)) {
+      const pendingLang = asWaLang((pendingAction.args as Record<string, unknown>)?.__lang)
+      await sendConfirmation({
+        admin, provider, to: msg.fromPhone,
+        prompt: `${t(pendingLang, 'staleButton')}\n\n${pendingAction.summary as string}`,
+        pendingId: pendingAction.id as string, lang: pendingLang,
+        agentLink, isAgentError: false,
+      })
+      return
+    }
     // Destinataire = l'AGENT, fenêtre ouverte par l'appui qu'il vient de faire.
     await sendOutboundGuarded({
       admin, provider, to: msg.fromPhone,
@@ -724,14 +756,20 @@ async function processAgentMessage(
     const lang = asWaLang((pendingAction.args as Record<string, unknown>)?.__lang)
     // F3 : consommation gagnant-unique. Deux « oui » concurrents lisent la même ligne ;
     // un seul DELETE renvoie une ligne → seul lui exécute/répond, l'autre s'arrête.
-    const { data: claimed } = await admin
+    const { data: claimed, error: claimErr } = await admin
       .from('whatsapp_pending_actions').delete().eq('id', pendingAction.id).select('id')
     if (!claimed || claimed.length === 0) {
-      // Course perdue : une autre invocation a déjà consommé cette attente (gagnant-unique).
+      // Course perdue : une autre invocation a déjà consommé cette attente (gagnant-unique) —
+      // sauf quand c'est le DELETE lui-même qui a échoué : ce n'est alors pas un autre appui qui
+      // a gagné la course, mais une panne, et on le dit au lieu de conclure « périmé » à tort.
       if (button) {
         // Un appui concurrent (double appui) a pris le verrou : CE bouton est périmé. Surtout
         // pas le cerveau — il recevrait « Oui » sans aucune question derrière.
-        reply = t(lang, 'staleButton')
+        reply = claimErr ? t(lang, 'cantProcessNow') : t(lang, 'staleButton')
+        if (claimErr) {
+          replyIsError = true
+          console.error('whatsapp confirmation: verrou de l’action en échec:', claimErr.message.slice(0, 120))
+        }
       } else {
         // On n'AVALE PAS notre message — le pending n'existe plus, on le traite comme un message
         // normal (le cerveau répond ; s'il re-stashe, stashPending est atomique → pas de corruption).
@@ -833,7 +871,9 @@ async function processAgentMessage(
   } catch { /* non bloquant */ }
 }
 
-// Appelle le cerveau agentique (whatsapp-agent) en service-role et renvoie son texte.
+// Appelle le cerveau agentique (whatsapp-agent) en service-role et renvoie son texte — et,
+// quand le cerveau a stocké une action, l'id à confirmer (confirmPendingId), pour que
+// l'appelant y lie les boutons [Oui] [Non].
 // agencyId N'EST PAS transmis : l'agent le re-dérive depuis le lien vérifié (anti-forge).
 async function callAgentBrain(
   agentLink: { profile_id: string; agency_id: string | null },
@@ -886,6 +926,8 @@ async function callAgentBrain(
  * partent QUE si le texte complet est parti : on ne fait jamais confirmer un brouillon que
  * l'agent n'a pas reçu. Un message à boutons refusé par Meta retombe sur la question en
  * texte ; un refus de GARDE n'a pas de repli, le texte serait refusé pour la même raison.
+ * Les trois règles vivent désormais dans `deliverConfirmation` (module PUR, testé) : cette
+ * fonction ne fait plus que construire le plan et lui brancher la garde dessus.
  */
 async function sendConfirmation(a: {
   admin: SupabaseClient
@@ -905,39 +947,22 @@ async function sendConfirmation(a: {
     console.error('whatsapp confirmation: identifiant d’action illisible, question en texte')
     plan = [{ type: 'text', body: a.prompt }]
   }
-  for (const payload of plan) {
-    // Destinataire = l'AGENT, fenêtre ouverte par son propre message : un doublon y est
-    // inoffensif, d'où `retry`.
-    const sent = await sendOutboundGuarded({
-      admin: a.admin, provider: a.provider, to: a.to,
-      purpose: 'service',
-      payload,
-      profileId: a.agentLink.profile_id, agencyId: a.agentLink.agency_id,
-      isAutomated: true,
-      isAgentError: a.isAgentError,
-      retry: true,
-    })
-    if (sent.ok) continue
-    if (!sent.blocked) {
-      // Tracé, parce que le repli est MUET pour l'agent : il reçoit sa question en texte et ne
-      // voit rien. Sans cette ligne, un constructeur qui refuserait tout ferait passer chaque
-      // confirmation en texte sans qu'aucun journal ne le dise (la garde n'audite que les
-      // envois échoués chez Meta, pas un échec de construction).
-      console.error('whatsapp confirmation: envoi en échec:', payload.type, String(sent.error ?? '').slice(0, 120))
-    }
-    if (!sent.blocked && payload.type === 'buttons' && plan.length === 1) {
-      await sendOutboundGuarded({
-        admin: a.admin, provider: a.provider, to: a.to,
-        purpose: 'service',
-        payload: { type: 'text', body: a.prompt },
-        profileId: a.agentLink.profile_id, agencyId: a.agentLink.agency_id,
-        isAutomated: true,
-        isAgentError: a.isAgentError,
-        retry: true,
-      })
-    }
-    return
-  }
+  // Destinataire = l'AGENT, fenêtre ouverte par son propre message : un doublon y est
+  // inoffensif, d'où `retry`.
+  const failures = await deliverConfirmation(plan, a.prompt, (payload) => sendOutboundGuarded({
+    admin: a.admin, provider: a.provider, to: a.to,
+    purpose: 'service',
+    payload,
+    profileId: a.agentLink.profile_id, agencyId: a.agentLink.agency_id,
+    isAutomated: true,
+    isAgentError: a.isAgentError,
+    retry: true,
+  }))
+  // Tracé, parce que le repli est MUET pour l'agent : il reçoit sa question en texte et ne voit
+  // rien. Sans cette ligne, un constructeur qui refuserait tout ferait passer chaque
+  // confirmation en texte sans qu'aucun journal ne le dise (la garde n'audite que les envois
+  // échoués chez Meta, pas un échec de construction).
+  for (const f of failures) console.error('whatsapp confirmation: envoi en échec:', f.type, f.error)
 }
 
 // Envoi d'un texte WhatsApp à un numéro (fenêtre 24h requise, sinon template Meta).

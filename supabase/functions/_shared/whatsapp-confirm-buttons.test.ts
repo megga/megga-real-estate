@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import {
   confirmReplyId, parseConfirmReplyId, resolveButtonDecision, planConfirmation,
+  deliverConfirmation, type SendOutcome,
 } from './whatsapp-confirm-buttons'
 import { BUTTONS_BODY_MAX } from './whatsapp-gateway'
 import { t } from './whatsapp-i18n'
 import { detectStopRequest } from './whatsapp-stop-keywords'
+import type { OutboundPayload } from './whatsapp-outbound-guard'
 
 const PA = '0f8e7d6c-5b4a-4938-8271-605f4e3d2c1b'
 const AUTRE = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d'
@@ -140,5 +142,78 @@ describe('planConfirmation — un brouillon n’est jamais tronqué', () => {
         }
       }
     }
+  })
+})
+
+describe('deliverConfirmation — jamais de boutons sans la question', () => {
+  const PROMPT = 'Tu confirmes ?'
+  const BOUTONS_SEULS: OutboundPayload[] = [{
+    type: 'buttons', body: PROMPT,
+    buttons: [{ id: `pa:${PA}:yes`, title: 'Oui' }, { id: `pa:${PA}:no`, title: 'Non' }],
+  }]
+  // Plan DÉCOUPÉ (> BUTTONS_BODY_MAX) : [texte intégral, boutons sous une question courte] —
+  // le même plan que produirait sendConfirmation en production pour un brouillon trop long.
+  const LONG = 'a'.repeat(BUTTONS_BODY_MAX + 1)
+  const DECOUPE = planConfirmation(LONG, PA, 'fr')
+
+  /** Expéditeur factice : rend les issues SCRIPTÉES dans l’ordre des appels, et les enregistre. */
+  function fakeSend(outcomes: SendOutcome[]) {
+    const calls: OutboundPayload[] = []
+    let i = 0
+    const send = async (payload: OutboundPayload): Promise<SendOutcome> => {
+      calls.push(payload)
+      return outcomes[Math.min(i++, outcomes.length - 1)]
+    }
+    return { send, calls }
+  }
+
+  it('(a) boutons seuls, envoi ok : un seul envoi, aucun échec', async () => {
+    const { send, calls } = fakeSend([{ ok: true }])
+    const failures = await deliverConfirmation(BOUTONS_SEULS, PROMPT, send)
+    expect(calls.map((c) => c.type)).toEqual(['buttons'])
+    expect(failures).toEqual([])
+  })
+
+  it('(b) boutons seuls, échec HORS garde : repli en texte, l’échec des boutons est rendu', async () => {
+    const { send, calls } = fakeSend([{ ok: false, blocked: false, error: 'panne meta' }, { ok: true }])
+    const failures = await deliverConfirmation(BOUTONS_SEULS, PROMPT, send)
+    expect(calls.map((c) => c.type)).toEqual(['buttons', 'text'])
+    expect(calls[1]).toEqual({ type: 'text', body: PROMPT })
+    expect(failures).toEqual([{ type: 'buttons', error: 'panne meta' }])
+  })
+
+  it('(c) boutons seuls, refusés par la GARDE : aucun repli, aucun échec rendu', async () => {
+    const { send, calls } = fakeSend([{ ok: false, blocked: true }])
+    const failures = await deliverConfirmation(BOUTONS_SEULS, PROMPT, send)
+    expect(calls.map((c) => c.type)).toEqual(['buttons'])
+    expect(failures).toEqual([])
+  })
+
+  it('(d) question découpée, les deux ok : texte puis boutons, dans l’ordre', async () => {
+    const { send, calls } = fakeSend([{ ok: true }, { ok: true }])
+    const failures = await deliverConfirmation(DECOUPE, LONG, send)
+    expect(calls.map((c) => c.type)).toEqual(['text', 'buttons'])
+    expect(failures).toEqual([])
+  })
+
+  it('(e) découpée, le texte échoue HORS garde : les boutons ne partent JAMAIS', async () => {
+    const { send, calls } = fakeSend([{ ok: false, blocked: false, error: 'panne réseau' }])
+    const failures = await deliverConfirmation(DECOUPE, LONG, send)
+    expect(calls.map((c) => c.type)).toEqual(['text'])
+    expect(failures).toEqual([{ type: 'text', error: 'panne réseau' }])
+  })
+
+  it('(f) découpée, texte parti, boutons en échec HORS garde : pas de 3e envoi (question déjà reçue)', async () => {
+    const { send, calls } = fakeSend([{ ok: true }, { ok: false, blocked: false, error: 'panne boutons' }])
+    const failures = await deliverConfirmation(DECOUPE, LONG, send)
+    expect(calls.map((c) => c.type)).toEqual(['text', 'buttons'])
+    expect(failures).toEqual([{ type: 'buttons', error: 'panne boutons' }])
+  })
+
+  it('(g) découpée, le texte est refusé par la GARDE : rien d’autre ne part', async () => {
+    const { send, calls } = fakeSend([{ ok: false, blocked: true }])
+    const failures = await deliverConfirmation(DECOUPE, LONG, send)
+    expect(calls.map((c) => c.type)).toEqual(['text'])
+    expect(failures).toEqual([])
   })
 })

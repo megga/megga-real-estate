@@ -2,9 +2,12 @@
 // Cerveau + mains de MEGGA sur WhatsApp (Phase 4A). Boucle function-calling DeepSeek.
 // Appelé UNIQUEMENT par whatsapp-webhook en service-role. Jamais exposé au public.
 //
-// Contrat : POST { profileId, waNumber, message } -> { reply }
+// Contrat : POST { profileId, waNumber, message } -> { reply, isError?, confirmPendingId? }
 //   (agencyId du body est IGNORÉ : on re-dérive l'agence depuis whatsapp_agent_links
 //    vérifié — défense en profondeur contre un appel direct avec un body forgé.)
+//   `confirmPendingId` : id de l'action stockée dans whatsapp_pending_actions — celle qu'on
+//   vient de créer, ou celle déjà en attente quand le cerveau était occupé (« busy ») — à
+//   laquelle le webhook lie les boutons [Oui] [Non].
 // - outils read/auto : exécutés directement (scopés agence + agent)
 // - outil confirm : NON exécuté ; stocké dans whatsapp_pending_actions + demande « oui »
 

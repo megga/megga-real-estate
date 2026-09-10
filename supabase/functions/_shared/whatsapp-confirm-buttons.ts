@@ -80,3 +80,42 @@ export function planConfirmation(prompt: string, pendingId: string, lang: WaLang
   if (formatted.length <= BUTTONS_BODY_MAX) return [{ type: 'buttons', body: prompt, buttons }]
   return [{ type: 'text', body: prompt }, { type: 'buttons', body: t(lang, 'confirmShort'), buttons }]
 }
+
+/** Ce que l'expéditeur injecté rend — le sous-ensemble du résultat de la garde utile ici. */
+export type SendOutcome = { ok: true } | { ok: false; blocked: boolean; error?: string }
+
+/**
+ * Livre le PLAN d'une confirmation (`planConfirmation`), `send` étant INJECTÉ — c'est ce qui
+ * rend les trois règles ci-dessous testables sans réseau ni Supabase, au lieu de ne vivre que
+ * dans la lecture du code :
+ *
+ *   1. des boutons ne partent QUE si le texte complet est parti (cas découpé — le texte est
+ *      TOUJOURS le premier élément du plan, donc son échec arrête la boucle avant les boutons) ;
+ *   2. un message à boutons SEUL, refusé HORS garde (Meta, réseau…), retombe sur la question en
+ *      texte — jamais quand c'est la GARDE qui a refusé : le texte serait rejeté pour la même
+ *      raison, un repli y serait une tentative perdue d'avance ;
+ *   3. un refus de GARDE arrête tout, sans journal ni repli — ce n'est pas une panne à tracer.
+ *
+ * Les échecs sont RENDUS, pas journalisés ici : l'appelant sait sous quel nom écrire (« whatsapp
+ * confirmation: … »), ce module PUR ne le sait pas.
+ */
+export async function deliverConfirmation(
+  plan: OutboundPayload[],
+  prompt: string,
+  send: (payload: OutboundPayload) => Promise<SendOutcome>,
+): Promise<Array<{ type: OutboundPayload['type']; error: string }>> {
+  const failures: Array<{ type: OutboundPayload['type']; error: string }> = []
+  for (const payload of plan) {
+    const r = await send(payload)
+    if (r.ok) continue
+    if (!r.blocked) failures.push({ type: payload.type, error: String(r.error ?? '').slice(0, 120) })
+    if (!r.blocked && payload.type === 'buttons' && plan.length === 1) {
+      const fallback = await send({ type: 'text', body: prompt })
+      if (!fallback.ok && !fallback.blocked) {
+        failures.push({ type: 'text', error: String(fallback.error ?? '').slice(0, 120) })
+      }
+    }
+    return failures
+  }
+  return failures
+}
