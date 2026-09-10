@@ -14,15 +14,15 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
-import { toolTier, isFabricatedKycClaim, canLeaveConfirm, buildHistoryMessages, stageLabel, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
-import { detectLang, t, asyncAck, confirmSendClient, confirmUpdatePipeline, pipelineWhoDefault, pipelineWhoNamed } from '../_shared/whatsapp-i18n.ts'
+import { toolTier, isFabricatedKycClaim, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
+import { detectLang, t, asyncAck } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
   execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
   execScheduleVisit, execCreateReminder, execUpdatePipeline, execUpdatePipelineWithUndo, execQualifyLead,
   execCreateDeal, execSearchListings, execGetKycStatus,
   prepareSendListings, prepareRecordOffer, prepareOpenKycCase, prepareSendKycLink, prepareInviteOptin,
-  prepareSendClientEmail, prepareDeleteContact,
+  prepareSendClientEmail, prepareDeleteContact, prepareSendClientMessage, prepareUpdatePipeline,
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
   execSummarizeGroupThread, execCheckGroupLeak,
   execDraftListingCopy, execPrepareMeeting,
@@ -492,8 +492,8 @@ async function stashPending(
   }
 
   // Préparation par outil : prompt humain affiché à l'agent + payload figé stocké.
-  // send_listings / record_offer valident et formatent ici → si échec, on le DIT
-  // (et on ne stocke rien), au lieu de promettre une action qui planterait au « oui ».
+  // Chaque prepare* valide et formate → si échec, on le DIT (et on ne stocke rien, donc
+  // aucun identifiant ni bouton), au lieu de promettre une action qui planterait au « oui ».
   let prompt = t(ctx.lang ?? 'fr', 'confirmGeneric')
   let storeArgs: Record<string, unknown> = args
   if (tool === 'delete_contact') {
@@ -533,32 +533,13 @@ async function stashPending(
     if (!p.ok) return { status: 'error', error: p.error }
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'send_client_message') {
-    const body = String(args.body ?? '')
-    const lang = ctx.lang ?? 'fr'
-    let who = lang === 'en' ? 'this client' : 'ce client'
-    const cid = String(args.contact_id ?? '')
-    if (cid) {
-      const { data: c } = await ctx.supabase.from('contacts')
-        .select('first_name, last_name').eq('id', cid).eq('agency_id', ctx.agencyId).maybeSingle()
-      if (c) {
-        const fullName = `${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim()
-        // prénom seul si dispo — plus naturel dans un aperçu de message ; nom complet en repli
-        if (fullName) who = (c.first_name ?? '').trim() || fullName
-      }
-    }
-    prompt = confirmSendClient(lang, who, body)
+    const p = await prepareSendClientMessage(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'update_pipeline') {
-    const stage = String(args.stage ?? '')
-    const label = stageLabel(stage, ctx.lang ?? 'fr')
-    let who = pipelineWhoDefault(ctx.lang ?? 'fr')
-    const cid = String(args.contact_id ?? '')
-    if (cid) {
-      const { data: c } = await ctx.supabase.from('contacts')
-        .select('first_name, last_name').eq('id', cid).eq('agency_id', ctx.agencyId).maybeSingle()
-      const name = c ? `${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim() : ''
-      if (name) who = pipelineWhoNamed(ctx.lang ?? 'fr', name)
-    }
-    prompt = confirmUpdatePipeline(ctx.lang ?? 'fr', who, label)
+    const p = await prepareUpdatePipeline(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
   }
 
   // Purge d'un éventuel pending EXPIRÉ pour ce profil (sinon l'INSERT atomique ci-dessous

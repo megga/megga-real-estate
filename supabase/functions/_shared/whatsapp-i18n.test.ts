@@ -176,6 +176,36 @@ describe('prompts/résultats paramétrés', () => {
   })
 })
 
+// Ce que l'agent lit À LA PLACE d'une question quand la préparation refuse (stashPending) :
+// la réponse part sans boutons, elle ne doit donc ni inviter un « oui », ni laisser croire
+// qu'un geste a eu lieu. Banc des refus eux-mêmes : whatsapp-actions.test.ts.
+describe('refus de préparation — contact visé par une action confirm', () => {
+  const REFUS = ['contactNotFoundSend', 'contactNotFoundPipeline', 'contactNoPhoneSend'] as const
+
+  it('existent dans les deux langues, et diffèrent', () => {
+    for (const k of REFUS) {
+      expect(t('fr', k)).not.toBe(t('en', k))
+      for (const lang of ['fr', 'en'] as const) expect(t(lang, k).length, `${lang}/${k}`).toBeGreaterThan(20)
+    }
+  })
+
+  it('disent que rien n’a été fait — et le pipeline ne parle jamais d’envoi', () => {
+    for (const k of REFUS) {
+      expect(t('fr', k), k).toMatch(/rien (envoyé|déplacé)/)
+      expect(t('en', k), k).toMatch(/nothing (sent|moved)/)
+    }
+    expect(t('fr', 'contactNotFoundPipeline')).not.toMatch(/envoy/)
+    expect(t('en', 'contactNotFoundPipeline')).not.toMatch(/sent/)
+  })
+
+  it('ne se lisent jamais comme une question à confirmer', () => {
+    for (const k of REFUS) {
+      expect(t('fr', k), k).not.toMatch(/confirm|« oui »/i)
+      expect(t('en', k), k).not.toMatch(/confirm|« yes »/i)
+    }
+  })
+})
+
 describe('boutons de confirmation — libellés et textes', () => {
   const LANGS = ['fr', 'en'] as const
   const BUTTON_KEYS = ['btnYes', 'btnNo'] as const
