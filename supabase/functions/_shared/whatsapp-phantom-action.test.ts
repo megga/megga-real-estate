@@ -27,6 +27,11 @@ describe('detectPhantomAction — confirmation simulée ou action annoncée sans
       'Je supprime Dubois ? Oui / non',
       // Le gras WhatsApp entoure le verbe.
       'Je prépare la suppression de Dubois.\n*Confirme* quand tu veux.',
+      'Est-ce que tu confirmes la suppression de la fiche de Dubois ?',
+      'Confirmes-tu la suppression de la fiche de Dubois ?',
+      'Je supprime la fiche de Dubois, tu confirmes bien ?',
+      'La suppression de la fiche de Dubois est prête, il ne te reste qu’à confirmer.',
+      'J’attends ta confirmation pour supprimer la fiche de Dubois.',
     ]) expect(detectPhantomAction(s), s).toBe('confirm_request')
   })
 
@@ -56,6 +61,7 @@ describe('detectPhantomAction — confirmation simulée ou action annoncée sans
     expect(detectPhantomAction('Should I go ahead and publish it? Confirm?')).toBe('confirm_request')
     expect(detectPhantomAction('Please confirm the deletion of Dubois’s record.')).toBe('confirm_request')
     expect(detectPhantomAction('Can you confirm you want me to delete Dubois?')).toBe('confirm_request')
+    expect(detectPhantomAction('Waiting for your confirmation to delete Dubois’s record.')).toBe('confirm_request')
     expect(detectPhantomAction('I’ll delete the contact now.')).toBe('action_claim')
     expect(detectPhantomAction('I have deleted the record.')).toBe('action_claim')
     expect(detectPhantomAction('I’ve sent the message to Dubois.')).toBe('action_claim')
@@ -113,6 +119,8 @@ describe('detectPhantomAction — confirmation simulée ou action annoncée sans
       'C’est bien la fiche de Jean Dubois que tu veux supprimer ? Confirme-moi le prénom.',
       'Pour l’offre, confirme-moi le montant : 850’000 ou 870’000 ?',
       'Tu veux la version confidentielle ou publique ? Confirme.',
+      'Est-ce que tu confirmes que c’est bien la fiche de Dubois qu’il faut supprimer ?',
+      'Il ne te reste qu’à confirmer la visite avec Dubois.',
       'Could you confirm the visit date?',
       // Relevé le 10.09.2026 à 19:47:43 UTC : question de clarification, pas une action simulée.
       'Il n’y a qu’une seule fiche « Test Boutons » à présent, c’est celle que je viens de recréer. '

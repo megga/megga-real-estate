@@ -65,19 +65,23 @@ const ACTION_WORD = /(suppr|effac|envo[iy]|publi(?!que|cs?\b)|retir|retrait|offr
 
 /**
  * Ce qui précède une demande ADRESSÉE à l'agent : un début de phrase ou de proposition (impératif),
- * ou le tutoiement. Jamais « je (te) confirme », « c'est confirmé », « Dubois confirme », ni « veut
- * que tu confirmes » (un tiers qui attend quelque chose de l'agent).
+ * ou le tutoiement — « est-ce que tu » compris. Jamais « je (te) confirme », « c'est confirmé »,
+ * « Dubois confirme », ni « veut que tu confirmes » (un tiers qui attend quelque chose de l'agent).
  */
-const ASK = String.raw`(?:^|\n|[.!?;:,*_(—–-]\s*|(?<!\bque )\btu (?:me |nous )?(?:le |la |les |l')?)`
+const ASK = String.raw`(?:^|\n|[.!?;:,*_(—–-]\s*|\best-ce que tu (?:me |nous )?(?:le |la |les |l')?|(?<!\bque )\btu (?:me |nous )?(?:le |la |les |l')?)`
 
 /** Demandes de confirmation. Chacune n'est retenue qu'avec un ACTION_WORD dans la réponse. */
 const CONFIRM_MARKERS: RegExp[] = [
   // « confirme quand tu veux », « valide et je… », « tu confirmes ? », « confirme-moi et je lance »
   // — mais PAS « confirme-moi l'adresse » ni « tu confirmes que c'est bien Dubois » (clarifications).
   // `[*_]?` : le gras ou l'italique WhatsApp (« *Confirme* quand tu veux »).
-  new RegExp(ASK + String.raw`(?:confirme|valide)[sz]?(?:-(?:le|la|les|moi))?[*_]?\s*(?:quand\b|des que\b|et\b|pour\b|si\b|d'abord\b|[,.!?:;\n]|$)`),
-  // « tu confirmes la suppression ? », « valide l'envoi »
-  new RegExp(ASK + String.raw`(?:confirme|valide)[sz]? (?:la |l'|cette |ce |cet )(?:suppression|envoi|publication|retrait|action|offre|invitation)`),
+  new RegExp(ASK + String.raw`(?:confirme|valide)[sz]?(?:-(?:le|la|les|moi|tu))?[*_]?(?: bien)?\s*(?:quand\b|des que\b|et\b|pour\b|si\b|d'abord\b|[,.!?:;\n]|$)`),
+  // « tu confirmes la suppression ? », « confirmes-tu bien l'envoi ? », « valide l'envoi »
+  new RegExp(ASK + String.raw`(?:confirme|valide)[sz]?(?:-tu)? (?:bien )?(?:la |l'|cette |ce |cet )(?:suppression|envoi|publication|retrait|action|offre|invitation)`),
+  // « il ne te reste qu'à confirmer », « je te laisse valider »
+  /\b(?:je te laisse|a toi de|(?:il )?(?:ne )?(?:te )?reste (?:plus )?qu'a|tu (?:n'as|as) (?:plus )?qu'a) (?:le |la |les |l')?(?:confirmer|valider)\b/,
+  // « j'attends ta confirmation », « je n'attends que ton feu vert »
+  /\bj'attends (?:juste |seulement )?(?:ta confirmation|ta validation|ton (?:ok|feu vert|accord|go))\b|\bje n'attends (?:plus )?que (?:ta confirmation|ta validation|ton (?:ok|feu vert|accord|go))\b/,
   // « merci de confirmer la suppression » — sans « l'offre » : confirmer une offre regarde les parties.
   /\b(?:confirmer|valider) (?:la |l'|cette |ce |cet )(?:suppression|envoi|publication|retrait|action|invitation)/,
   // « tu confirmes que tu veux supprimer… » (≠ « tu confirmes que c'est bien Dubois ? »)
@@ -93,6 +97,8 @@ const CONFIRM_MARKERS: RegExp[] = [
   /(?<!\bi (?:can |could |will )?)(?<!\bi'll )\bconfirm[*_]?\s*(?:[?!.:;,\n]|$|when\b|and i\b|and i'll\b|to (?:proceed|go ahead)\b|if you\b|before i\b)/,
   /(?<!\bi (?:can |could |will )?)(?<!\bi'll )\bconfirm (?:the |this )(?:deletion|removal|sending|withdrawal|publication|action|invitation)\b/,
   /\bconfirm (?:that )?you (?:want|wish|'d like|would like)\b/,
+  // « waiting for your confirmation » — pas « neither done nor waiting for your confirmation ».
+  /(?<!\b(?:nor|not|no longer) )\b(?:waiting for|awaiting) your (?:confirmation|go-ahead|approval)\b|\bi need your (?:confirmation|go-ahead|approval|ok)\b/,
   /\b(?:reply|answer|say|type) (?:with )?["“]?yes\b/,
 ]
 
