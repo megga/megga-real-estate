@@ -152,9 +152,14 @@ const STR = {
     fr: '✅ Sélection envoyée au client.',
     en: '✅ Selection sent to the client.',
   },
+  // Deux lecteurs : stashPending, qui refuse AVANT toute question un outil que le registre ne
+  // déclare pas (un nom inventé par le modèle) ; executePending, filet pour une action en attente
+  // dont le webhook ne connaît pas l'outil. Rien n'est fait dans les deux cas — le dire, et dire
+  // quoi faire : « Type d'action inconnu » ne parlait qu'au code. « Pas trouvé comment » et non
+  // « je ne sais pas » : le modèle a pu se tromper de nom pour une action qui existe.
   unknownAction: {
-    fr: "Type d'action inconnu, rien fait.",
-    en: 'Unknown action type — nothing done.',
+    fr: "Je n'ai pas trouvé comment faire ça depuis WhatsApp, je n'ai rien fait. Reformule ta demande, ou passe par le CRM.",
+    en: "I couldn't find a way to do that from WhatsApp — nothing done. Rephrase your request, or use the CRM.",
   },
   // ── Boutons de confirmation (spec 2026-09-10) ──────────────────────────────
   // ⛔ Un libellé de bouton ne doit JAMAIS être un mot-clé STOP : le webhook traite un appui

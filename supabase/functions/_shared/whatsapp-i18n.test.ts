@@ -206,6 +206,26 @@ describe('refus de préparation — contact visé par une action confirm', () =>
   })
 })
 
+// unknownAction : le refus d'un outil que le registre ne déclare pas (nom inventé par le modèle),
+// dit AVANT toute question par stashPending. Il remplaçait « Type d'action inconnu, rien fait. » —
+// juste, mais qui ne disait pas quoi faire, et un refus muet se solde par la même demande répétée.
+describe('refus de préparation — outil que le registre ne déclare pas', () => {
+  it('dit que rien n’a été fait, et quoi faire à la place', () => {
+    expect(t('fr', 'unknownAction')).toMatch(/rien fait/)
+    expect(t('fr', 'unknownAction')).toMatch(/reformule/i)
+    expect(t('en', 'unknownAction')).toMatch(/nothing done/)
+    expect(t('en', 'unknownAction')).toMatch(/rephrase/i)
+    expect(t('fr', 'unknownAction')).not.toBe(t('en', 'unknownAction'))
+  })
+
+  it('ne parle ni du code ni d’une question à confirmer', () => {
+    for (const lang of ['fr', 'en'] as const) {
+      expect(t(lang, 'unknownAction'), lang).not.toMatch(/type d'action|action type|outil|tool/i)
+      expect(t(lang, 'unknownAction'), lang).not.toMatch(/confirm|« oui »|« yes »/i)
+    }
+  })
+})
+
 describe('boutons de confirmation — libellés et textes', () => {
   const LANGS = ['fr', 'en'] as const
   const BUTTON_KEYS = ['btnYes', 'btnNo'] as const
