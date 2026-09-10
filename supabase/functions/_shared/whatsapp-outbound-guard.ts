@@ -48,6 +48,8 @@ export type GuardReason =
   | 'marketing_requires_consent' | 'window_closed' | 'kill_switch'
   /** `number_verification` demandée sans vérification en cours pour ce numéro. */
   | 'no_pending_verification'
+  /** `lpd_notice` vers un numéro d'agent vérifié : l'avis est écrit pour un prospect. */
+  | 'notice_not_for_agent'
 
 /** Motif EXPOSABLE — ce que le site d'appel a le droit de montrer. */
 export type PublicReason = GuardReason | 'not_contactable'
