@@ -86,11 +86,20 @@ export interface OutboundButtonsMessage {
   buttons: Array<{ id: string; title: string }>
 }
 
-/** Limites Meta d'un message à boutons. Au-delà, l'API refuse l'envoi. */
+/**
+ * Limites Meta d'un message à BOUTONS DE RÉPONSE uniquement — une liste (interactive/list)
+ * admet un corps de 4096 caractères, d'où le nom spécifique : un nom générique inviterait à
+ * plafonner un futur corps de liste à 1024, ou à le « corriger » à 4096 et casser les
+ * boutons en silence.
+ *
+ * Les longueurs sont comptées en unités de code UTF-16 (`.length`), plus strict que la
+ * notion de « caractère » de Meta pour un emoji — volontairement conservateur. Tout code qui
+ * découpe un texte contre `BUTTONS_BODY_MAX` doit mesurer de la même façon.
+ */
 export const BUTTONS_MAX = 3
 export const BUTTON_TITLE_MAX = 20
 export const BUTTON_ID_MAX = 256
-export const INTERACTIVE_BODY_MAX = 1024
+export const BUTTONS_BODY_MAX = 1024
 
 export interface SendConfig {
   // Meta Cloud API
@@ -233,18 +242,24 @@ function firstNonEmpty(...vals: Array<string | undefined>): string | undefined {
  * texte au lieu d'attendre un aller-retour réseau pour apprendre la même chose.
  */
 function assertButtonsMessage(msg: OutboundButtonsMessage): void {
-  if (!msg.body || msg.body.length > INTERACTIVE_BODY_MAX) {
-    throw new RangeError(`buttons: corps de 1 à ${INTERACTIVE_BODY_MAX} caractères (${msg.body?.length ?? 0})`)
+  if (!msg.body?.trim() || msg.body.length > BUTTONS_BODY_MAX) {
+    throw new RangeError(`buttons: corps de 1 à ${BUTTONS_BODY_MAX} caractères (${msg.body?.length ?? 0})`)
   }
   if (msg.buttons.length < 1 || msg.buttons.length > BUTTONS_MAX) {
     throw new RangeError(`buttons: 1 à ${BUTTONS_MAX} boutons (${msg.buttons.length})`)
   }
-  for (const b of msg.buttons) {
-    if (!b.title || b.title.length > BUTTON_TITLE_MAX) {
-      throw new RangeError(`buttons: libellé de 1 à ${BUTTON_TITLE_MAX} caractères (« ${b.title} »)`)
+  // Position plutôt que contenu dans le message d'erreur : `e.message` peut finir en log (la
+  // garde d'envoi le passe tel quel comme `error`), et un libellé de bouton porte souvent un
+  // nom de client (« Visite chez M. Dupont »). La position suffit à localiser le bouton
+  // fautif sans y recopier une donnée personnelle.
+  for (const [i, b] of msg.buttons.entries()) {
+    if (!b.title?.trim() || b.title.length > BUTTON_TITLE_MAX) {
+      throw new RangeError(`buttons: libellé de 1 à ${BUTTON_TITLE_MAX} caractères (bouton ${i + 1}, ${b.title?.length ?? 0} car.)`)
     }
-    if (!b.id || b.id.length > BUTTON_ID_MAX) {
-      throw new RangeError(`buttons: identifiant de 1 à ${BUTTON_ID_MAX} caractères`)
+    // Meta refuse un id vide comme un id entouré d'espaces — les deux sont vérifiés ici pour
+    // épargner l'aller-retour réseau que cette garde existe justement pour éviter.
+    if (!b.id?.trim() || b.id !== b.id.trim() || b.id.length > BUTTON_ID_MAX) {
+      throw new RangeError(`buttons: identifiant de 1 à ${BUTTON_ID_MAX} caractères, sans espace en bordure (bouton ${i + 1})`)
     }
   }
   if (new Set(msg.buttons.map((b) => b.id)).size !== msg.buttons.length) {

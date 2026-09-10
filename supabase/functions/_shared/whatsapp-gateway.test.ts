@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, isDialablePhone, PHONE_MIN_DIGITS, PHONE_MAX_DIGITS,
-  BUTTONS_MAX, BUTTON_TITLE_MAX, BUTTON_ID_MAX, INTERACTIVE_BODY_MAX,
+  BUTTONS_MAX, BUTTON_TITLE_MAX, BUTTON_ID_MAX, BUTTONS_BODY_MAX,
   type NormalizedInboundMessage, type OutboundButtonsMessage,
 } from './whatsapp-gateway'
 
@@ -427,7 +427,11 @@ describe('Meta buildSendButtonsRequest — boutons de réponse', () => {
     const buttons = Array.from({ length: BUTTONS_MAX }, (_, i) => ({
       id: `${i}`.padEnd(BUTTON_ID_MAX, 'x'), title: `${i}`.padEnd(BUTTON_TITLE_MAX, 'y'),
     }))
-    expect(() => build({ body: 'z'.repeat(INTERACTIVE_BODY_MAX), buttons })).not.toThrow()
+    expect(() => build({ body: 'z'.repeat(BUTTONS_BODY_MAX), buttons })).not.toThrow()
+  })
+
+  it('accepte les bornes basses : un seul bouton, un caractère partout', () => {
+    expect(() => build({ body: 'Q', buttons: [{ id: 'a', title: 'A' }] })).not.toThrow()
   })
 
   // Lever ICI plutôt que laisser Meta répondre 400 : la garde rend un échec de construction,
@@ -443,6 +447,19 @@ describe('Meta buildSendButtonsRequest — boutons de réponse', () => {
     expect(() => build({ buttons: [{ id: 'a', title: 'A' }, { id: 'a', title: 'B' }] })).toThrow(RangeError)
     expect(() => build({ buttons: [{ id: 'a', title: 'A' }, { id: 'b', title: 'A' }] })).toThrow(RangeError)
     expect(() => build({ body: '' })).toThrow(RangeError)
-    expect(() => build({ body: 'z'.repeat(INTERACTIVE_BODY_MAX + 1) })).toThrow(RangeError)
+    expect(() => build({ body: 'z'.repeat(BUTTONS_BODY_MAX + 1) })).toThrow(RangeError)
+    // Valeurs blanches — Meta les refuse comme des valeurs absentes.
+    expect(() => build({ body: '   ' })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'a', title: ' ' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: ' a ', title: 'A' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: '   ', title: 'A' }] })).toThrow(RangeError)
+  })
+
+  it('ne recopie jamais le libellé refusé dans le message d’erreur', () => {
+    const titre = 'Visite chez M. Dupont, 12 rue X'
+    let message = ''
+    try { build({ buttons: [{ id: 'a', title: titre }] }) } catch (e) { message = (e as Error).message }
+    expect(message).toMatch(/bouton 1/)
+    expect(message).not.toContain('Dupont')
   })
 })
