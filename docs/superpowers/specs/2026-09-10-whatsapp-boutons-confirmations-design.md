@@ -195,8 +195,10 @@ Merger `main` déploie les fonctions edge. Prérequis : un contact de test dans
 
 1. Julien demande au copilote une action de tier `confirm` → la question arrive avec
    [Oui] [Non] ; [Oui] exécute l'action.
-2. Il touche de nouveau ce [Oui] → « Ce bouton concerne une action qui n'est plus en
-   attente », et rien ne s'exécute.
+2. Il touche de nouveau ce [Oui] → « Ce bouton ne correspond plus à une action en attente
+   (déjà traitée, annulée ou expirée) : cet appui n'a rien déclenché. », et rien ne
+   s'exécute. Si une AUTRE action attend à ce moment, elle est remise sous ses yeux avec ses
+   propres boutons (ajout de la revue des tâches 6 à 9).
 3. Un brouillon client de plus de 1024 caractères → deux messages, le second portant les
    boutons.
 

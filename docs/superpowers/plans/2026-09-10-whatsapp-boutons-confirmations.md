@@ -1699,6 +1699,17 @@ course aussi. Un bouton MEGGA n'entre jamais dans la branche opt-out par bouton.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 
+> ✅ **Tâches 6 à 9 faites** (`6a39219b`, `f0cbf369`, `055900f5`, `5af8985b`), **puis corrigées en
+> revue (`4b90006b`)** — aucun défaut de justesse ni de sécurité trouvé ; cinq améliorations :
+> - une LECTURE ou un VERROU en échec n'est plus pris pour un bouton périmé : `cantProcessNow`
+>   (le motif « `data` sans son `error` » déjà payé ailleurs) ;
+> - un appui périmé remet sous les yeux l'action qui attend ENCORE, avec ses boutons ;
+> - les règles d'envoi vivent dans `deliverConfirmation` (module pur, expéditeur injecté,
+>   7 cas testés), `sendConfirmation` n'y branche que la garde — d'où 17 appels à la garde ;
+> - la porte du sortant reconnaît `buildSend\w*Request` SANS point : déstructuration, accès
+>   par crochets et `buildSendRequest` nu lui échappaient (sonde verte avant, rouge après) ;
+> - contrats de `whatsapp-agent` et `callAgentBrain` remis à jour.
+
 ---
 
 ### Task 10 : Vérification complète
@@ -1838,8 +1849,10 @@ where created_at > now() - interval '30 minutes'
 order by created_at;
 ```
 
-Expected : chaque question de confirmation SORTANTE porte `nb_boutons_envoyes = 2` (sinon elle est
-partie en repli texte : lire les journaux `whatsapp confirmation: envoi en échec`) ; les entrants
+Expected : chaque message à boutons SORTANT porte `nb_boutons_envoyes = 2` — dans le cas découpé
+(étape 2), la première ligne, le brouillon long, est un texte et porte légitimement NULL ; c'est la
+seconde (« Tu confirmes ? ») qui doit porter 2. Une question courte à NULL est partie en repli texte :
+lire les journaux `whatsapp confirmation: envoi en échec`. Les entrants
 « Oui » / « Non » portent un `reply_id` de la forme `pa:<uuid>:yes|no` ; le sortant « ne correspond
 plus » suit l'appui périmé ; aucun appel `/functions/v1/whatsapp-agent` dans les journaux pour cet
 appui-là.
