@@ -111,6 +111,19 @@ const STR = {
     fr: 'Contact introuvable dans ton agence, rien envoyé.',
     en: 'Contact not found in your agency — nothing sent.',
   },
+  // Refus À LA PRÉPARATION d'update_pipeline, avant toute question : le geste n'envoie rien,
+  // « rien envoyé » y serait faux.
+  contactNotFoundPipeline: {
+    fr: 'Contact introuvable dans ton agence, rien déplacé.',
+    en: 'Contact not found in your agency — nothing moved.',
+  },
+  // La fiche existe mais ne porte aucun numéro. L'exécuteur range encore ce cas sous
+  // contactNotFoundSend, qui dit « introuvable » d'un contact bien présent : la préparation,
+  // qui le refuse désormais avant le « oui », dit la vraie raison et quoi faire.
+  contactNoPhoneSend: {
+    fr: "Ce contact n'a pas de numéro, rien envoyé. Ajoute-le sur sa fiche.",
+    en: 'This contact has no phone number — nothing sent. Add it to their record.',
+  },
   sendFail24h: {
     fr: "L'envoi au client a échoué (fenêtre 24h ou numéro non autorisé ?).",
     en: 'Sending to the client failed (24h window or number not allowed?).',
