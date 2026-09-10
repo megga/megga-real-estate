@@ -45,10 +45,16 @@ approches écartées :
    un brouillon client peut dépasser. Au-delà, MEGGA envoie le texte complet, puis un court
    « Tu confirmes ? » portant les boutons. **Un brouillon n'est jamais tronqué** : l'agent
    valide exactement ce qui partira.
-4. **Bouton périmé** (action expirée, déjà traitée, ou remplacée par une autre) : MEGGA
-   répond « Ce bouton concerne une action qui n'est plus en attente. » L'action en attente,
-   s'il y en a une, **n'est pas consommée**, et le copilote n'est pas appelé. Un double appui
-   tombe dans ce cas.
+4. **Bouton périmé** (action déjà traitée, annulée, remplacée par une autre, ou expirée
+   PUIS purgée) : MEGGA répond « Ce bouton ne correspond plus à une action en attente (déjà
+   traitée, annulée ou expirée) : cet appui n'a rien déclenché. » L'action en attente, s'il y
+   en a une, **n'est pas consommée**, et le copilote n'est pas appelé. Un double appui tombe
+   dans ce cas.
+   ⚠ **Le texte parle de l'APPUI, jamais de l'action** (corrigé en revue) : sur un double
+   appui, le premier a exécuté l'action, et « rien n'a été fait » ferait croire à l'agent que
+   l'envoi n'a pas eu lieu — il le relancerait, doublon vers le client.
+   Une action expirée mais pas encore purgée n'est pas « périmée » : l'identifiant correspond,
+   et le chemin existant répond « La demande en attente a expiré ».
 5. **Action déjà en attente** (`busy`) : le rappel reprend la question de l'action qui
    attend (son `summary`), avec ses boutons. Sans elle, [Oui] confirmerait une action que
    l'agent n'a plus sous les yeux — précisément ce que l'identifiant dans le bouton évite.
@@ -73,8 +79,9 @@ approches écartées :
   pourrait être appelé n'importe où sans passer par la garde de consentement. La règle
   devient `buildSend\w+Request`.
 - ⚠ **La limite de 1024 caractères se mesure sur le texte qui PART**, c'est-à-dire après
-  `meggaProse` puis `toWhatsAppText` (appliqués par la garde). Le découpage mesure la même
-  chaîne ; le constructeur refuse au-delà en seconde ligne.
+  `formatOutboundText` (`_shared/whatsapp-format.ts` : `meggaProse` puis `toWhatsAppText`).
+  La garde et le découpage appellent la MÊME fonction — l'invariant est structurel depuis la
+  revue, plus une convention ; le constructeur refuse au-delà en seconde ligne.
 - ⚠ **Le corps d'un entrant reste le LIBELLÉ**, jamais l'identifiant : il alimente le corpus
   de voix et la compréhension (commentaire existant de `parseInbound`). L'identifiant vit
   dans un champ séparé.
@@ -113,7 +120,11 @@ Meta complet dans `raw`.
 - `OutboundPayload` gagne `{ type: 'buttons'; body: string; buttons: { id; title }[] }`.
 - `needsOpenWindow` inchangé : tout ce qui n'est pas un template exige la fenêtre — un
   message à boutons en est un comme un autre.
-- `buildRequest` : même mise en forme que le texte (`toWhatsAppText(meggaProse(body))`).
+- `buildRequest` : même mise en forme que le texte (`formatOutboundText(body)`).
+- Persistance : un sortant à boutons garde `raw = { interactive_buttons }` — sans cette trace,
+  un message à boutons et son repli texte laissaient des lignes identiques, et la preuve de
+  production (§7) ne pouvait pas les distinguer. Les identifiants ne sont pas une donnée
+  personnelle ; `raw` est déjà purgé à 30 jours.
   Une levée du constructeur remonte par le chemin existant `{ ok: false, blocked: false }`.
 - `outboundBody` : le corps journalisé est le texte de la question.
 
@@ -189,7 +200,7 @@ Merger `main` déploie les fonctions edge. Prérequis : un contact de test dans
 3. Un brouillon client de plus de 1024 caractères → deux messages, le second portant les
    boutons.
 
-Vérifié dans `whatsapp_messages` (sortant à boutons persisté, entrant « Oui » avec l'id dans
+Vérifié dans `whatsapp_messages` (sortant à boutons persisté avec `raw.interactive_buttons`, entrant « Oui » avec l'id dans
 `raw`) et dans les journaux de `whatsapp-webhook` / `whatsapp-agent`.
 
 ## 8. Hors périmètre

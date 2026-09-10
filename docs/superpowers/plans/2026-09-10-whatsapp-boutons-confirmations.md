@@ -905,6 +905,23 @@ question journalisée. Un constructeur qui lève rend un échec de construction.
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
 
+> ✅ **Tâches 2 à 5 faites** (`08dc6aec`, `1bf86b4d`, `1be838d6`, `88f4501f`), **puis corrigées
+> en revue (`0b689e2e`)** :
+> - `staleButton` parle de l'APPUI, jamais de l'action : « Ce bouton ne correspond plus à une
+>   action en attente (déjà traitée, annulée ou expirée) : cet appui n'a rien déclenché. » (un
+>   double appui pouvait faire croire qu'un envoi n'avait pas eu lieu → doublon au client) ;
+> - une seule mise en forme sortante, `formatOutboundText` (`_shared/whatsapp-format.ts`),
+>   appelée par la garde ET par `planConfirmation` : l'invariant de mesure devient structurel ;
+> - la garde est éprouvée avec le VRAI provider Meta (le faux ignorait les arguments) ;
+> - l'identifiant de bouton n'accepte que sa forme exacte (`pa:` et `yes|no` en minuscules) ;
+> - un sortant à boutons garde `raw = { interactive_buttons }`, pour que la preuve de prod
+>   distingue un message à boutons de son repli texte ;
+> - tests resserrés (découpage complet, question blanche, texte qui GRANDIT à la mise en
+>   forme, libellés réellement émis vs mots-clés STOP).
+> Les blocs de code ci-dessus sont l'état d'origine ; le dépôt fait foi.
+> ⚠ `1be838d6` seul ne passe pas `deno check` (le membre `buttons` arrive au commit suivant) :
+> sans conséquence en fusion écrasée, à savoir pour un `git bisect`.
+
 ---
 
 ### Task 6 : Porte CI — reconnaître tout constructeur `buildSend*Request`
@@ -1804,24 +1821,28 @@ Depuis le WhatsApp relié, dans cet ordre :
 2. « Rédige pour Test Boutons un message de relance très détaillé, au moins 1200 caractères » →
    **deux messages** : le brouillon complet, puis « Tu confirmes ? » avec [Oui] [Non]. Appuyer sur **[Non]** → « C'est annulé ».
 3. « Supprime la fiche de Test Boutons » → la question arrive avec [Oui] [Non]. Appuyer sur **[Non]**
-   → « C'est annulé ». Appuyer ensuite sur le **[Oui] de ce même message** → « Ce bouton concerne une
-   action qui n'est plus en attente : rien n'a été fait. » Le contact existe toujours.
+   → « C'est annulé ». Appuyer ensuite sur le **[Oui] de ce même message** → « Ce bouton ne
+   correspond plus à une action en attente (déjà traitée, annulée ou expirée) : cet appui n'a rien
+   déclenché. » Le contact existe toujours.
 4. Redemander « Supprime la fiche de Test Boutons » → **[Oui]** → le contact est supprimé.
 
 Vérifier en base (remplacer `<4 derniers chiffres>` par ceux du numéro de l'agent) :
 
 ```sql
 select created_at, direction, left(body, 50) as body,
-       raw #>> '{entry,0,changes,0,value,messages,0,interactive,button_reply,id}' as reply_id
+       raw #>> '{entry,0,changes,0,value,messages,0,interactive,button_reply,id}' as reply_id,
+       jsonb_array_length(raw -> 'interactive_buttons') as nb_boutons_envoyes
 from whatsapp_messages
 where created_at > now() - interval '30 minutes'
   and (wa_from like '%<4 derniers chiffres>' or wa_to like '%<4 derniers chiffres>')
 order by created_at;
 ```
 
-Expected : les entrants « Oui » / « Non » portent un `reply_id` de la forme `pa:<uuid>:yes|no` ; le
-sortant « plus en attente » suit l'appui périmé ; aucun appel `/functions/v1/whatsapp-agent` dans les
-journaux pour cet appui-là.
+Expected : chaque question de confirmation SORTANTE porte `nb_boutons_envoyes = 2` (sinon elle est
+partie en repli texte : lire les journaux `whatsapp confirmation: envoi en échec`) ; les entrants
+« Oui » / « Non » portent un `reply_id` de la forme `pa:<uuid>:yes|no` ; le sortant « ne correspond
+plus » suit l'appui périmé ; aucun appel `/functions/v1/whatsapp-agent` dans les journaux pour cet
+appui-là.
 
 - [ ] **Step 4 : consigner le résultat**
 
