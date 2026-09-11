@@ -23,12 +23,20 @@
 >   Supabase actif (GoTrue émet `redirect_uri=https://api.getmegga.com/auth/v1/callback`),
 >   `img.getmegga.com` sert le bucket R2.
 > - **L'ancienne zone ne SERT plus rien.** Les domaines custom ont été détachés des deux
->   projets Pages et du bucket R2 ; `megga.ch`, `www.`, `app.`, `img.` et `help.` ne font
->   plus que des **301**, portées par un enregistrement `A 192.0.2.1` proxifié (TEST-NET-1,
->   non routable — une Redirect Rule matche l'hôte, pas l'origine). Côté Google, le
+>   projets Pages et du bucket R2 ; `megga.ch`, `www.`, `img.` et `help.` ne font plus que
+>   des **301**, portées par un enregistrement `A 192.0.2.1` proxifié (TEST-NET-1, non
+>   routable — une Redirect Rule matche l'hôte, pas l'origine). Côté Google, le
 >   consentement ne déclare plus que `getmegga.com`, et son branding a été re-vérifié
 >   **puis publié**.
-> - **Restent E7 (deux jetons Mapbox), E9 (Resend), E10 (libérer la zone) et les 3 clés
+> - **Le CRM n'a plus AUCUN DNS sur `megga.ch` depuis le 11.09.2026.** `app.megga.ch`
+>   (enregistrement + règle 301), `api.megga.ch` et son `_acme-challenge` sont supprimés —
+>   et l'envoi transactionnel aussi : le domaine Resend `megga.ch` retiré (E9), puis ses trois
+>   enregistrements (`send.megga.ch` MX + SPF, clé DKIM `resend._domainkey`).
+>   ⛔ **La seule sonde de disponibilité du CRM visait `app.megga.ch`** — une sonde Sentry
+>   que Sentry avait CRÉÉE SEUL à partir des hôtes vus en erreur, déclarée nulle part dans ce
+>   dépôt. Elle a été déplacée sur `app.getmegga.com` AVANT la coupure ; sans ça, le CRM
+>   perdait sa surveillance en silence. Même geste à refaire avant E10 : voir le §8 du plan.
+> - **Restent E7 (deux jetons Mapbox), E10 (libérer la zone) et les 3 clés
 >   `app_config`** — chacun sur une condition nommée dans
 >   [docs/migration-getmegga.md](docs/migration-getmegga.md), §8. ⚠ `app_config` porte
 >   encore `tech@megga.ch` en **destinataire** d'alerte : il est gelé sur la création de la
@@ -857,8 +865,9 @@ Scopes déclarés  userinfo.email, userinfo.profile, openid  (tous NON sensibles
 
 ⚠ **L'URI de redirection est celle du DOMAINE CUSTOM Supabase, PAS l'URL `.supabase.co`.**
 ✅ **Valeur VIVE depuis le 09.09.2026 : `https://api.getmegga.com/auth/v1/callback`** —
-phase B jouée, mesuré à l'oracle `authorize`. L'ancienne (`api.megga.ch/...`) reste enregistrée
-chez Google jusqu'à E4, sans être émise.
+phase B jouée, mesuré à l'oracle `authorize`. L'ancienne (`api.megga.ch/...`) a été **retirée de
+Google à E4** (09.09.2026), avec les deux origines JavaScript de l'ancienne zone ; son
+enregistrement DNS a suivi le 11.09.2026 — il ne répondait déjà plus que `403 error code: 1014`.
 
 ⛔ **CE QUI A RENDU LA BASCULE SÛRE, et qui se rejouera à l'identique le jour d'un autre
 changement de domaine.** Mesuré le 09.09.2026 : GoTrue émet le domaine custom **même appelé sur
@@ -991,14 +1000,16 @@ Ce qui reste de cet épisode est écrit plus haut, dans les deux encadrés des s
 1. **Soumettre la vérification data access** (jusqu'à 10 jours). ✅ Fait le 17.08.2026 : les
    deux scopes sont déclarés dans Data Access et la justification écrite est enregistrée ; le
    Verification Center dit désormais « Your app's data access is not verified. Verification is
-   required because your app requests sensitive or restricted scopes. » ⛔ Deux choses bloquent
-   encore, aucune dans le dépôt : (a) **la vidéo de démonstration**, seul champ que le
-   formulaire de Google déclare manquant — elle désactive le bouton Confirm ; (b)
-   **la page d'accueil déclarée répondait 401** (portail de la vitrine sur `megga.ch`), donc
-   elle était inaccessible au relecteur. `/privacy` et `/terms` étaient bien à 200 — mesuré.
-   Le formulaire ne détecte pas le 401 ; la revue humaine, si. 🔁 Si `getmegga.com` sort SANS
-   portail, ce blocage tombe de lui-même — mais il faut alors **redéclarer la page d'accueil**
-   dans l'écran de consentement.
+   required because your app requests sensitive or restricted scopes. » ✅ **Le blocage (b) est
+   levé depuis le 09.09.2026** : la page d'accueil déclarée répondait 401 (portail de la vitrine
+   sur l'ancienne zone), Google l'écrivait lui-même — « Your home page is behind a login page ».
+   Les trois URLs ont été redéclarées sur `getmegga.com` (mesurées à 200), et le branding
+   vérifié **puis publié** dans la minute. ⛔ **Reste (a), la vidéo de démonstration** — seul
+   champ manquant, il grise le bouton Confirm. Et elle n'est **pas encore filmable** :
+   `google_calendar_tokens` compte toujours **0 ligne** (remesuré le 11.09.2026), la liaison
+   Calendar n'a jamais tourné une fois. Ordre réel : connecter un vrai agenda, le revoir une
+   heure après (l'échec de rafraîchissement est muet), PUIS filmer — Google exige que l'écran
+   « application non validée » apparaisse dans la vidéo.
 2. **Deux jetons Mapbox distincts.** Le même est aujourd'hui posé aux deux endroits, donc le
    jeton du navigateur est **sans restriction et lisible par tous** dans le bundle public.
    Dupliquer, et restreindre la copie navigateur à `app.getmegga.com`.

@@ -406,6 +406,9 @@ Mesuré après coup : les quatre hôtes rendent 301 depuis l'IP autoritative fra
 **et** query préservés, et l'image servie au bout de la chaîne est identique **octet pour
 octet** (même sha256) à celle de l'ancien hôte.
 
+⚠ **Depuis le 11.09.2026, `app` ne fait plus partie de ce tableau** : l'enregistrement et sa
+règle 301 ont été supprimés — le CRM n'a plus aucun DNS sur l'ancienne zone. Voir le §8 bis.
+
 ⚠ **`help.megga.ch` est un CNAME vers l'apex** : détacher l'apex l'emportait avec lui. C'est
 pourquoi l'apex a été reposé en premier. Et `rockwell.megga.ch` pointe vers un **autre**
 projet Pages, étranger à cette migration — ne pas y toucher.
@@ -452,7 +455,8 @@ première règle posée. Recâblée vers `getmegga.com/aide` (vérifié 200 avan
 
 > **État au 09.09.2026, après le second passage : E1 à E6 et E8 sont FAITS.
 > Restent E7, E9, E10 et les 3 clés `app_config` — chacun sur une condition NOMMÉE,
-> aucun sur une impression.**
+> aucun sur une impression.** Le 11.09.2026, le DNS du CRM a en outre été retiré de
+> l'ancienne zone (§8 bis) : c'est une première tranche d'E10, jouée hôte par hôte.
 >
 > | | | |
 > |---|---|---|
@@ -464,8 +468,8 @@ première règle posée. Recâblée vers `getmegga.com/aide` (vérifié 200 avan
 > | **E6** | ✅ `img.megga.ch` débranché du bucket R2 | mais **précédé d'une 301**, voir ci-dessous |
 > | **E8** | ✅ les 4 exemptions transitoires retirées du code | leur condition écrite était « quand le domaine custom Pages sera détaché » — elle est remplie |
 > | **E7** (Mapbox) | ⏸ | **ce n'est pas une étape de migration** : les deux jetons sont aujourd'hui le MÊME, sans restriction. Rien n'y nomme l'ancienne zone, donc rien n'y bloque la libération. Créer un jeton = manipuler une clé d'API : geste de Julien |
-> | **E9** (Resend) | ⏸ | ⛔ **le chemin d'envoi `getmegga.com` n'a JAMAIS livré un e-mail** : le dernier envoi date de 17 h, donc d'avant la bascule, et il est parti par l'ancienne zone. Supprimer celle-ci maintenant, c'est retirer le seul chemin PROUVÉ. L'alerte quotidienne le prouvera sous 24 h |
-> | **E10** | ⏸ | détruirait les 301 posées quelques heures plus tôt. Décision de semaines, pas d'heures |
+> | **E9** (Resend) | ✅ 11.09 | domaine Resend `megga.ch` **supprimé par Julien**, puis ses trois enregistrements DNS (§8 bis). ⚠ **Joué sans la preuve que ce plan exigeait** — un envoi vu livré depuis `getmegga.com` — et c'est une décision, pas un oubli : aucun expéditeur du code ne porte plus l'ancienne zone depuis la phase C, donc garder le domaine ne préservait qu'un retour arrière qui aurait de toute façon exigé un changement de code. ⚠ **Et la base ne peut toujours pas trancher** : `email_delivery_events` compte **0 ligne depuis toujours** (son webhook ne reçoit que les rebonds) et `activity_events` ne trace aucun envoi. L'oracle qui reste est humain : la prochaine alerte « [MEGGA Admin] » reçue par Julien doit venir de `@getmegga.com` |
+> | **E10** | ⏸ *partiel* | le DNS du CRM est parti le 11.09 (§8 bis). Le reste (`megga.ch`, `www`, `help`, `img`, l'e-mail) attend la même liste de contrôle, hôte par hôte |
 > | `app_config` (3 clés) | ⏸ | gelé sur **A7** : elles portent `tech@megga.ch` en **destinataire**. Basculer avant que `tech@getmegga.com` existe ferait rebondir l'alerting RealAdvisor dans le vide |
 >
 > ✅ **CE QUI A DÉBLOQUÉ E4, et que ce plan croyait bloquant pour des semaines.** Il disait
@@ -523,7 +527,8 @@ expiré, le SEO a suivi).
 | E7 | ⏸ Deux jetons Mapbox DISTINCTS, la copie navigateur restreinte à `app.getmegga.com` | Mapbox |
 | E8 | ✅ les **quatre** exemptions transitoires retirées | dépôt |
 | E8 bis | ⏸ supprimer `scripts/migrate-domaine-getmegga.mjs` — **après** A7 et son rejeu | dépôt |
-| E9 | ⏸ Retirer le domaine Resend `megga.ch` — **après** un envoi réellement livré depuis `getmegga.com` | Resend |
+| E9 | ✅ Domaine Resend `megga.ch` retiré (Julien), puis `send.megga.ch` MX + SPF et `resend._domainkey` supprimés du DNS | Resend + Cloudflare |
+| E10 *(tranche CRM)* | ✅ DNS du CRM supprimés : `app.megga.ch` + sa règle, `api.megga.ch`, `_acme-challenge.api` — **après** déplacement de la sonde Sentry (§8 bis) | Cloudflare + Sentry |
 | E10 | ⏸ Libérer la zone `megga.ch` pour la holding | Cloudflare |
 
 ⚠ **Deux gestes exigent une authentification que seul un humain peut fournir** — constaté
@@ -555,6 +560,80 @@ dit « l'ANCIENNE zone » et ne l'épelle plus.
 **rapporter une mesure datée du 03.08.2026**). Laisser la seconde dans une liste nommée
 « transitoires », avec une date de retrait, invitait le prochain lecteur à effacer un
 chiffre daté en croyant solder une migration.
+
+---
+
+## 8 bis. Le DNS du CRM retiré de l'ancienne zone (11.09.2026)
+
+**Supprimés** — la zone passe de 23 à **17** enregistrements, vérifié `dig @<ns autoritatif>` :
+
+| Enregistrement | État avant suppression |
+|---|---|
+| `api.megga.ch` · CNAME → `eayczugyrvmtqnnmvjod.supabase.co` | **mort depuis la phase B** : `403 error code: 1014` sur tous les chemins — *CNAME Cross-User Banned*, la zone Cloudflare de Supabase ne connaît plus cet hôte |
+| `_acme-challenge.api.megga.ch` · TXT | preuve de propriété Supabase de l'ancien domaine custom, sans objet |
+| `app.megga.ch` · A `192.0.2.1` + sa règle 301 | porteur de la redirection vers `app.getmegga.com` |
+| `send.megga.ch` · MX 10 `feedback-smtp.eu-west-1.amazonses.com` | retour des rebonds de l'envoi Resend — sans objet une fois le domaine Resend supprimé (E9) |
+| `send.megga.ch` · TXT `v=spf1 include:amazonses.com ~all` | autorisait tout Amazon SES à envoyer au nom de `send.megga.ch` : le laisser, c'était une surface d'usurpation sans usage |
+| `resend._domainkey.megga.ch` · TXT | clé DKIM publique d'un domaine que Resend ne connaît plus |
+
+⚠ **Les trois derniers ont suivi la suppression du domaine dans Resend, jamais l'inverse** —
+retirer le DNS d'un domaine encore vérifié l'aurait fait basculer en échec chez Resend. Et ce
+qui ne devait PAS bouger n'a pas bougé, vérifié au même serveur : les MX de l'apex
+(`mx1`/`mx2.privateemail.com` — la boîte `@megga.ch`, où `tech@megga.ch` reçoit encore les
+alertes RealAdvisor), le DMARC, et le SPF de l'apex.
+
+`api.megga.ch` et son `_acme-challenge` n'avaient plus aucune fonction. `app.megga.ch` en avait une, et il n'a été
+coupé qu'après **trois oracles** — la liste de contrôle à rejouer pour chaque hôte d'E10 :
+
+**1. Aucun lien client encore valide émis sur l'ancien hôte.** Les liens publics sont bâtis
+par `_shared/app-url.ts` sur `MEGGA_APP_URL` (absente), donc sur son repli, passé à
+`app.getmegga.com` avec la phase C (merge `4a93bfa8`, **09.09.2026 15:29:27 UTC**). Compté
+en production, pour chaque table porteuse de jeton, les lignes créées avant cette heure et
+encore actionnables : `kyc_magic_links` (`expires_at > now()`, `expired_at` nul),
+`team_invitations` (non réclamées), `buyer_reception_links` (non révoquées), `visits` et
+`onboarding_calls` (à venir), `whatsapp_optin_invites` (non consommées) — **0 partout**, et
+la plupart de ces tables sont d'ailleurs vides.
+
+**2. Qui frappe encore l'hôte.** Cloudflare → Security → Analytics → *Sampled logs*,
+« Items per page » à **100**, puis déplier une ligne pour lire le *User agent*. ⚠ Le plan
+gratuit **ne permet pas de filtrer par hôte** (le champ n'existe pas dans le filtre) — il faut
+lire l'échantillon. Sur `app.megga.ch` : aucun humain, seulement des robots d'indexation, nos
+propres sondes… et une requête **toutes les minutes pile**.
+
+**3. ⛔ Cette requête-là était la seule surveillance du CRM.** User agent
+`SentryUptimeBot/1.0` : une sonde d'uptime Sentry (organisation `juarts`, projet `megga`,
+moniteur `1596381`), **créée seule par Sentry** le 07.08.2026 (« Created by: Sentry » ; journal
+d'audit `uptime_monitor.add`) à partir des hôtes vus dans les événements d'erreur. Rien dans ce
+dépôt ne la déclare, et personne ne l'avait déplacée à la migration.
+- Sentry **suit les redirections** et juge le code d'ARRIVÉE (assertions `> 199` et `< 300`) :
+  une vérification affichée « HTTP 301 » était verte parce que le 200 final passait. Elle
+  surveillait donc bien le CRM — par ricochet. Côté Cloudflare, ça se lit : **la même IP frappe
+  `app.megga.ch` et `app.getmegga.com` à la même seconde**, une seule série par minute.
+- Supprimer l'hôte l'aurait fait tomber en échec DNS : fausse alerte « down », et plus aucune
+  surveillance du CRM — sans un rouge nulle part tant que la 301 tenait.
+- **Déplacée AVANT la coupure** (URL `https://app.getmegga.com`, environnement `production`,
+  alerte e-mail conservée). Bascule prouvée dans *Recent Check-Ins* : **18:41 → 301** sur
+  l'ancien hôte, **18:42 → 200** sur le nouveau, puis dix vérifications à 200 d'affilée,
+  suppression du DNS comprise. Latence ~200 ms → ~115 ms, sans le détour par la redirection.
+- ⚠ L'organisation est au **plan Developer depuis le 31.05.2026 : 1 seule sonde d'uptime**. Il
+  fallait donc MODIFIER celle-ci — en créer une seconde aurait été refusé. Et le formulaire
+  exige un « Environnement » que la sonde auto-créée n'avait pas.
+
+🖱 **Trois pièges d'interface, mesurés :**
+1. ⛔ **Dans la liste des Redirect Rules, le menu d'une ligne se déplace quand la page finit de
+   charger** : un clic aux coordonnées a atterri sur *Move down* au lieu de *Delete*. Sans
+   effet ici — les règles portent chacune sur un hôte distinct (`http.host eq …`), leur ordre
+   est indifférent — mais ce n'est pas une garantie générale. L'oracle est la **boîte de
+   confirmation, qui NOMME la règle** : la lire avant de valider.
+2. Un clic *par référence d'élément* sur l'entrée *Delete* de ce menu **ne fait rien** — le même
+   piège que le bouton *Deploy* de la phase D. Et la page d'édition d'une règle n'a **pas** de
+   bouton de suppression : c'est le menu de la liste, aux coordonnées, ou rien.
+3. Le compteur « You have used N of 200 » du tableau DNS **retarde** sur la suppression. Il a
+   affiché 21 alors que l'hôte ne résolvait déjà plus : l'oracle reste `dig @<ns autoritatif>`.
+
+⚠ **Avant E10, rejouer les trois oracles sur `megga.ch`, `www`, `help` et `img`** — et
+regarder aussi l'e-mail : l'apex porte les MX de la boîte `@megga.ch`, et **`tech@megga.ch`
+est encore le destinataire des alertes RealAdvisor** (`app_config`, gelé sur A7).
 
 ---
 
