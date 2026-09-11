@@ -29,12 +29,14 @@
 >   consentement ne déclare plus que `getmegga.com`, et son branding a été re-vérifié
 >   **puis publié**.
 > - **Le CRM n'a plus AUCUN DNS sur `megga.ch` depuis le 11.09.2026.** `app.megga.ch`
->   (enregistrement + règle 301), `api.megga.ch` et son `_acme-challenge` sont supprimés.
+>   (enregistrement + règle 301), `api.megga.ch` et son `_acme-challenge` sont supprimés —
+>   et l'envoi transactionnel aussi : le domaine Resend `megga.ch` retiré (E9), puis ses trois
+>   enregistrements (`send.megga.ch` MX + SPF, clé DKIM `resend._domainkey`).
 >   ⛔ **La seule sonde de disponibilité du CRM visait `app.megga.ch`** — une sonde Sentry
 >   que Sentry avait CRÉÉE SEUL à partir des hôtes vus en erreur, déclarée nulle part dans ce
 >   dépôt. Elle a été déplacée sur `app.getmegga.com` AVANT la coupure ; sans ça, le CRM
 >   perdait sa surveillance en silence. Même geste à refaire avant E10 : voir le §8 du plan.
-> - **Restent E7 (deux jetons Mapbox), E9 (Resend), E10 (libérer la zone) et les 3 clés
+> - **Restent E7 (deux jetons Mapbox), E10 (libérer la zone) et les 3 clés
 >   `app_config`** — chacun sur une condition nommée dans
 >   [docs/migration-getmegga.md](docs/migration-getmegga.md), §8. ⚠ `app_config` porte
 >   encore `tech@megga.ch` en **destinataire** d'alerte : il est gelé sur la création de la

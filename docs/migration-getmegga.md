@@ -468,7 +468,7 @@ première règle posée. Recâblée vers `getmegga.com/aide` (vérifié 200 avan
 > | **E6** | ✅ `img.megga.ch` débranché du bucket R2 | mais **précédé d'une 301**, voir ci-dessous |
 > | **E8** | ✅ les 4 exemptions transitoires retirées du code | leur condition écrite était « quand le domaine custom Pages sera détaché » — elle est remplie |
 > | **E7** (Mapbox) | ⏸ | **ce n'est pas une étape de migration** : les deux jetons sont aujourd'hui le MÊME, sans restriction. Rien n'y nomme l'ancienne zone, donc rien n'y bloque la libération. Créer un jeton = manipuler une clé d'API : geste de Julien |
-> | **E9** (Resend) | ⏸ | ⛔ **le chemin d'envoi `getmegga.com` n'a JAMAIS été vu livrer un e-mail** : le 09.09, le dernier envoi datait d'avant la bascule. ⚠ **Et la base ne peut pas trancher** (mesuré le 11.09) : `email_delivery_events` compte **0 ligne depuis toujours** — son webhook ne reçoit que les rebonds — et `activity_events` ne trace aucun envoi. Le seul oracle est le tableau de bord Resend, qui exige une session de Julien |
+> | **E9** (Resend) | ✅ 11.09 | domaine Resend `megga.ch` **supprimé par Julien**, puis ses trois enregistrements DNS (§8 bis). ⚠ **Joué sans la preuve que ce plan exigeait** — un envoi vu livré depuis `getmegga.com` — et c'est une décision, pas un oubli : aucun expéditeur du code ne porte plus l'ancienne zone depuis la phase C, donc garder le domaine ne préservait qu'un retour arrière qui aurait de toute façon exigé un changement de code. ⚠ **Et la base ne peut toujours pas trancher** : `email_delivery_events` compte **0 ligne depuis toujours** (son webhook ne reçoit que les rebonds) et `activity_events` ne trace aucun envoi. L'oracle qui reste est humain : la prochaine alerte « [MEGGA Admin] » reçue par Julien doit venir de `@getmegga.com` |
 > | **E10** | ⏸ *partiel* | le DNS du CRM est parti le 11.09 (§8 bis). Le reste (`megga.ch`, `www`, `help`, `img`, l'e-mail) attend la même liste de contrôle, hôte par hôte |
 > | `app_config` (3 clés) | ⏸ | gelé sur **A7** : elles portent `tech@megga.ch` en **destinataire**. Basculer avant que `tech@getmegga.com` existe ferait rebondir l'alerting RealAdvisor dans le vide |
 >
@@ -527,7 +527,7 @@ expiré, le SEO a suivi).
 | E7 | ⏸ Deux jetons Mapbox DISTINCTS, la copie navigateur restreinte à `app.getmegga.com` | Mapbox |
 | E8 | ✅ les **quatre** exemptions transitoires retirées | dépôt |
 | E8 bis | ⏸ supprimer `scripts/migrate-domaine-getmegga.mjs` — **après** A7 et son rejeu | dépôt |
-| E9 | ⏸ Retirer le domaine Resend `megga.ch` — **après** un envoi réellement livré depuis `getmegga.com` | Resend |
+| E9 | ✅ Domaine Resend `megga.ch` retiré (Julien), puis `send.megga.ch` MX + SPF et `resend._domainkey` supprimés du DNS | Resend + Cloudflare |
 | E10 *(tranche CRM)* | ✅ DNS du CRM supprimés : `app.megga.ch` + sa règle, `api.megga.ch`, `_acme-challenge.api` — **après** déplacement de la sonde Sentry (§8 bis) | Cloudflare + Sentry |
 | E10 | ⏸ Libérer la zone `megga.ch` pour la holding | Cloudflare |
 
@@ -565,15 +565,24 @@ chiffre daté en croyant solder une migration.
 
 ## 8 bis. Le DNS du CRM retiré de l'ancienne zone (11.09.2026)
 
-**Supprimés** — la zone passe de 23 à 20 enregistrements, vérifié `dig @<ns autoritatif>` :
+**Supprimés** — la zone passe de 23 à **17** enregistrements, vérifié `dig @<ns autoritatif>` :
 
 | Enregistrement | État avant suppression |
 |---|---|
 | `api.megga.ch` · CNAME → `eayczugyrvmtqnnmvjod.supabase.co` | **mort depuis la phase B** : `403 error code: 1014` sur tous les chemins — *CNAME Cross-User Banned*, la zone Cloudflare de Supabase ne connaît plus cet hôte |
 | `_acme-challenge.api.megga.ch` · TXT | preuve de propriété Supabase de l'ancien domaine custom, sans objet |
 | `app.megga.ch` · A `192.0.2.1` + sa règle 301 | porteur de la redirection vers `app.getmegga.com` |
+| `send.megga.ch` · MX 10 `feedback-smtp.eu-west-1.amazonses.com` | retour des rebonds de l'envoi Resend — sans objet une fois le domaine Resend supprimé (E9) |
+| `send.megga.ch` · TXT `v=spf1 include:amazonses.com ~all` | autorisait tout Amazon SES à envoyer au nom de `send.megga.ch` : le laisser, c'était une surface d'usurpation sans usage |
+| `resend._domainkey.megga.ch` · TXT | clé DKIM publique d'un domaine que Resend ne connaît plus |
 
-Les deux premiers n'avaient plus aucune fonction. Le troisième en avait une, et il n'a été
+⚠ **Les trois derniers ont suivi la suppression du domaine dans Resend, jamais l'inverse** —
+retirer le DNS d'un domaine encore vérifié l'aurait fait basculer en échec chez Resend. Et ce
+qui ne devait PAS bouger n'a pas bougé, vérifié au même serveur : les MX de l'apex
+(`mx1`/`mx2.privateemail.com` — la boîte `@megga.ch`, où `tech@megga.ch` reçoit encore les
+alertes RealAdvisor), le DMARC, et le SPF de l'apex.
+
+`api.megga.ch` et son `_acme-challenge` n'avaient plus aucune fonction. `app.megga.ch` en avait une, et il n'a été
 coupé qu'après **trois oracles** — la liste de contrôle à rejouer pour chaque hôte d'E10 :
 
 **1. Aucun lien client encore valide émis sur l'ancien hôte.** Les liens publics sont bâtis
