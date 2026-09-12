@@ -363,10 +363,10 @@
     {
       "id": "uppercase-confine",
       "section": "§5 — DON'T",
-      "phrase": "20 `textTransform: 'uppercase'` vivants",
+      "phrase": "7 `textTransform: 'uppercase'` vivants",
       "severite": "derive",
       "tolerance": 0.15,
-      "mesureLe": "2026-08-16",
+      "mesureLe": "2026-09-13",
       "mesure": {
         "motif": "textTransform: *'uppercase'",
         "portee": [
@@ -378,7 +378,7 @@
         ]
       },
       "attendu": {
-        "occurrences": 20
+        "occurrences": 7
       }
     },
     {
