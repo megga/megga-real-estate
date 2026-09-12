@@ -320,7 +320,7 @@ const CAS: Cas[] = [
         isVideo: false,
         videoLabel: 'Google Meet',
         videoLink: null,
-        manageUrl: 'https://app.megga.ch/visite/jeton/modifier',
+        manageUrl: 'https://app.getmegga.com/visite/jeton/modifier',
         buyerName: 'Marie Favre',
         agentName: 'Gregory Lyonnet',
         buyerEmail: 'marie@example.ch',

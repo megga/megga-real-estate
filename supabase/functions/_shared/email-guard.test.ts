@@ -77,7 +77,7 @@ describe('emailSendAllowed — le verdict', () => {
 describe('unsubscribeHeaders — le lien qui doit ÉCRIRE', () => {
   it('⛔ DEUX URL, ET CHACUNE SUR SON HÔTE — la machine sur l’edge, l’humain sur l’app', async () => {
     // Ce test disait l'inverse jusqu'au 16.08.2026, et il avait raison À L'ÉPOQUE : les deux
-    // URL n'en faisaient qu'une, donc la faire pointer sur `app.megga.ch` cassait le POST
+    // URL n'en faisaient qu'une, donc la faire pointer sur l'hôte de l'app cassait le POST
     // one-click (Cloudflare Pages y rend 405) et n'écrivait aucune ligne.
     //
     // Elles sont maintenant SÉPARÉES, parce qu'elles n'ont pas le même appelant :
@@ -91,7 +91,7 @@ describe('unsubscribeHeaders — le lien qui doit ÉCRIRE', () => {
 
     const machine = u!.headers['List-Unsubscribe'].replace(/^<|>$/g, '')
     expect(machine.startsWith(`${SUPABASE_URL}/functions/v1/email-unsubscribe?t=`)).toBe(true)
-    // ⚠ L'hôte de l'APP, et le bon : cette ligne testait `app.megga.ch` — un domaine retiré
+    // ⚠ L'hôte de l'APP, et le bon : cette ligne testait l'ANCIEN domaine de l'app — retiré
     // par la migration getmegga (#1287). Contre un domaine mort, `not.toContain` passe
     // TOUJOURS : l'assertion ne gardait plus rien.
     expect(machine).not.toContain('app.getmegga.com')

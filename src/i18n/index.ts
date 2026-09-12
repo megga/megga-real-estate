@@ -330,12 +330,12 @@ export async function switchLanguage(lng: string): Promise<void> {
  * La langue ARRIVÉE DE LA VITRINE (`?lang=`) rejoint elle aussi `profiles.language`.
  *
  * ⛔ LE TROU QUE CECI FERME, ET POURQUOI CE N'EST PAS CELUI QU'ON CROYAIT. Le point de
- * reprise décrivait le trou côté VITRINE : un agent qui bascule la langue sur megga.ch ne
+ * reprise décrivait le trou côté VITRINE : un agent qui bascule la langue sur getmegga.com ne
  * l'enregistre pas, faute de session sur cette origine. La correction annoncée était d'y
  * brancher un client Supabase. Mesuré le 16.08.2026, elle n'aurait presque jamais écrit :
- * seul quelqu'un connecté PAR MOT DE PASSE sur megga.ch même y a un jeton — ni les arrivées
+ * seul quelqu'un connecté PAR MOT DE PASSE sur getmegga.com même y a un jeton — ni les arrivées
  * de Google, ni les inscriptions (la confirmation par e-mail ne rend aucune session), ni
- * OAuth (les jetons naissent sur app.megga.ch), ni surtout l'agent connecté sur l'app qui
+ * OAuth (les jetons naissent sur app.getmegga.com), ni surtout l'agent connecté sur l'app qui
  * revient sur la vitrine, qui EST le cas décrit. Et l'échec aurait été SILENCIEUX : sans
  * session l'appel part en `anon`, dont l'UPDATE ne matche aucune ligne et rend `200 []`.
  *

@@ -20,7 +20,7 @@ import { encreSur } from '@/components/megga-x-crm/tokens'
  *
  * Jusqu'au 17 août 2026, `MlkFooter` écrivait `/mentions-legales` et
  * `/confidentialite` en chemins RELATIFS. Aucune des deux n'est déclarée dans
- * `src/App.tsx` ni dans `public/_redirects` : sur `app.megga.ch`, le repli SPA
+ * `src/App.tsx` ni dans `public/_redirects` : sur `app.getmegga.com`, le repli SPA
  * rendait 200 puis `NotFoundPage`. Un client à qui on demande son passeport
  * cliquait « Confidentialité » et tombait sur une page introuvable — sur les
  * SEIZE sites où ce pied est rendu.
@@ -39,8 +39,8 @@ import { encreSur } from '@/components/megga-x-crm/tokens'
  * configuration. Une `VITE_*` absente du build rendrait ici une URL vide et le
  * lien échouerait en silence au lieu d'échouer à la construction.
  */
-const VITRINE_MENTIONS_LEGALES = 'https://megga.ch/mentions-legales'
-const VITRINE_CONFIDENTIALITE = 'https://megga.ch/confidentialite'
+const VITRINE_MENTIONS_LEGALES = 'https://getmegga.com/legal'
+const VITRINE_CONFIDENTIALITE = 'https://getmegga.com/privacy'
 
 // ─── Icônes line-stroke (subset utilisé par les écrans clients) ───────────
 
@@ -443,7 +443,7 @@ export function MlkFooter() {
   // ⛔ `rel="noreferrer"` empêche le token magic-link de fuiter dans le header
   // Referer envoyé aux pages externes. La précaution était déjà juste ; elle
   // devient INDISPENSABLE depuis que les liens sont absolus, donc CROSS-ORIGINE :
-  // sans elle, `app.megga.ch/kyc/<token>` partirait en clair vers megga.ch.
+  // sans elle, `app.getmegga.com/kyc/<token>` partirait en clair vers getmegga.com.
   // `target="_blank"` ouvre dans un nouvel onglet pour préserver le parcours.
   //
   // ⚠ LES LIBELLÉS ÉTAIENT EN DUR EN FRANÇAIS sur une face servie en quatre

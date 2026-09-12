@@ -37,7 +37,7 @@ describe('languageFromUrl', () => {
  *
  * La langue traversait déjà de la vitrine au CRM par `?lang=` — mais elle s'arrêtait à la
  * clé du détecteur : `persisterLangueDeCorrespondance` n'était appelée que par
- * `switchLanguage`. Une langue venue de megga.ch n'atteignait donc jamais
+ * `switchLanguage`. Une langue venue de la vitrine n'atteignait donc jamais
  * `profiles.language`, et rien ne le signalait. Un test qui vérifierait seulement que la
  * fonction existe ne verrait pas ce trou : c'est l'APPEL en base qu'il faut constater.
  *

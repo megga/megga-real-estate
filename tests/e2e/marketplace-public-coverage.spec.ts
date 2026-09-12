@@ -25,7 +25,7 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   // routées (/a-propos /blog /properties…) retombent sur la 404 in-app.
 
   // ── Légal ──────────────────────────────────────────────────────────────
-  // Plus de page in-app : `/privacy` sort au bord vers megga.ch (301), comme
+  // Plus de page in-app : `/privacy` sort au bord vers getmegga.com (301), comme
   // `/aide`. La vitrine sert la page canonique, et `src/lib/consents.ts` y
   // pointait DÉJÀ le consentement nLPD — celle de l'app en était un doublon
   // court que plus rien ne liait. Retirée le 17 août 2026.
@@ -43,7 +43,7 @@ const PUBLIC_ROUTES: RouteSpec[] = [
   // La récupération de l'app pose `redirectTo: /auth/callback?type=recovery`
   // (`useAuth.tsx`), et `AuthCallbackPage` route ce cas sur
   // `/auth/forgot-password/reset` ; celle de la vitrine part sur
-  // `megga.ch/reset-password` (`megga-auth.js`, quatre langues). AUCUN e-mail ne
+  // `getmegga.com/reset-password` (`megga-auth.js`, quatre langues). AUCUN e-mail ne
   // visait cette route. La page est retirée et l'URL redirigée au bord vers
   // l'écran vivant de même fonction — un fragment de session survit au 301.
 ]

@@ -35,7 +35,7 @@ describe('copie de la page de désinscription', () => {
     // pourquoi le motif de cette clause tient toujours avec deux clés au lieu de trois.
     for (const l of LANGUES) {
       for (const k of ['T16', 'T18'] as const) {
-        expect(DESINSCRIPTION_COPIE[l][k], `${l}/${k}`).toContain('privacy@megga.ch')
+        expect(DESINSCRIPTION_COPIE[l][k], `${l}/${k}`).toContain('privacy@getmegga.com')
       }
     }
   })

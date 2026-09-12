@@ -63,7 +63,7 @@
 #
 # `/reset-password` : cible d'AUCUN e-mail. La récupération de l'app passe par
 # `/auth/callback?type=recovery` (useAuth.tsx) puis `/auth/forgot-password/reset` ;
-# celle de la vitrine part sur `megga.ch/reset-password` (megga-auth.js). On
+# celle de la vitrine part sur `getmegga.com/reset-password` (megga-auth.js). On
 # renvoie donc vers l'écran VIVANT de même fonction, et non vers la vitrine :
 # ⚠ un fragment d'URL (`#access_token=…`) n'est jamais envoyé au serveur, donc le
 # navigateur le REPOSE sur la cible — une session de récupération survit au 301,
