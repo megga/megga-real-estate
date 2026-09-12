@@ -42,7 +42,7 @@ import {
   DEMO_AI_PENDING_PUBLISH, DEMO_AI_PENDING_DELETE,
   DEMO_SEND_RESULT, DEMO_KYC_CASE, DEMO_KYC_DOCS,
 } from './demoFixtures'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { readCrmDark, writeCrmDark } from '@/lib/crmDark'
 
 /** Identifiants des neuf modales du banc — l'état ouvert en porte au plus une. */
 type Id =
@@ -152,7 +152,7 @@ export default function ModalesShowcasePage() {
         <button type="button" onClick={() => {
           const v = !dark
           setDark(v)
-          window.localStorage.setItem(CRM_DARK_KEY, v ? '1' : '0')
+          writeCrmDark(v)
         }} style={pilule(dark)}>{dark ? 'Sombre' : 'Clair'}</button>
         <button type="button" onClick={() => setEchec((v) => !v)} aria-pressed={echec}
           title="Fait échouer l’exécution des actions en attente"

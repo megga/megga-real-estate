@@ -5,7 +5,7 @@
 // Facturation, Sécurité) restent autonomes et lisent SET_PALETTE (mutée par
 // applySetTheme avant render). Deep-link ?tab=.
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSearchParams } from 'react-router-dom'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
@@ -21,7 +21,7 @@ import { PreferencesFocusSection } from '@/components/crm/settings/focus/Prefere
 import { SETTINGS_SECTIONS, applySetTheme, type SectionId } from '@/components/crm/settings/data'
 import { SETTINGS_KEYFRAMES } from '@/components/crm/settings/atoms'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte']
 const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations', 'security', 'billing']
@@ -60,15 +60,7 @@ function SpgIcon({ name, size = 17, stroke = 'currentColor' }: { name: string; s
 export default function SettingsPage() {
   const { t: tr } = useTranslation('settings')
 
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-    }
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
 
   const sp = crmPalette(dark)
   const surf = mxSurfaces(sp)

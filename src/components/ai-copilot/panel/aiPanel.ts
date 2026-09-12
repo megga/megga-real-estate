@@ -14,6 +14,35 @@ export const PANEL_W = 372
 // carte n'est jamais recouverte ni collée au contenu (comportement « pousse »).
 export const COPILOT_WIDTH = PANEL_W + 32
 
+/**
+ * La poussée, publiée en variable CSS : `0px` dock fermé, `COPILOT_WIDTH` ouvert.
+ *
+ * Écrite par `AgentLayout`, lue par ce qui se comprime — le plan de travail
+ * (`CrmWorkspace`), le repli des écrans qui n'en ont pas, le bandeau d'accueil.
+ * Pourquoi ce n'est plus la coquille qui se comprime : voir `usePousseeDock`.
+ */
+export const DOCK_PUSH_VAR = '--crm-dock-push'
+
+/**
+ * L'horloge UNIQUE du mouvement — la poussée et la glissade du dock.
+ * ⚠ Une seule valeur pour les deux : un fondu qui finit avant la glissade, ou une
+ * poussée plus lente qu'elle, laisse le panneau passer par-dessus le contenu.
+ */
+export const DOCK_MOTION = '.42s cubic-bezier(.2,.8,.2,1)'
+
+/**
+ * Prendre la poussée : se comprimer de la largeur du dock, à son horloge.
+ *
+ * ⚠ À poser EN LIGNE, avec `usePorteSaPoussee()` dans le même composant. En
+ * ligne parce qu'une feuille perdrait contre « Aujourd'hui », qui pose une
+ * `transition` sur tous ses descendants ; avec l'inscription parce que sans elle
+ * l'écran se comprimerait AUSSI, et la page deux fois.
+ */
+export const DOCK_PUSH_STYLE = {
+  paddingRight: `var(${DOCK_PUSH_VAR})`,
+  transition: `padding-right ${DOCK_MOTION}`,
+} as const
+
 // ── Bleu identité MEGGA AI (chantier 1) ─────────────────────────────────────
 // ── Palette dérivée du panneau ──────────────────────────────────────────────
 // Étend le CrmPalette de base avec les surfaces propres au panneau (canvas,

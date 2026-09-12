@@ -7,7 +7,7 @@
 // Données réelles via useListingsScreen (RLS agency-scopée). Wizard « Créer un bien »
 // embarqué dans le bento ; « Finir/Compléter » ouvre l'édition en place.
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { crmPalette } from '@/components/crm/tokens'
 import type { CrmBien } from '@/components/crm/mockData'
@@ -17,20 +17,12 @@ import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { BiensPager } from '@/components/crm/biens/pager/BiensPager'
 import WizardShell from '@/components/crm-wizard/WizardShell'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function ListingsPage() {
   const navigate = useNavigate()
 
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-    }
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
 
   const sp = crmPalette(dark)
   const surf = mxSurfaces(sp)

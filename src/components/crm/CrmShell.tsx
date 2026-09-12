@@ -15,9 +15,10 @@
 //                                        barre en monte le rendu STATIQUE,
 //                                        `RailIcon`)
 //   • ~85 lignes de détachement de la  → SANS OBJET. Elles existaient parce que
-//     barre pendant le dock MEGGA AI     `paddingRight: COPILOT_WIDTH` rétrécit
-//     (`barLifted`, `clipAncestor`,       la racine d'écran PAR LA DROITE et
-//     sonde rAF, ResizeObserver)          rognait une barre pleine largeur. Une
+//     barre pendant le dock MEGGA AI     `paddingRight: COPILOT_WIDTH` rétrécissait
+//     (`barLifted`, `clipAncestor`,       l'écran PAR LA DROITE (c'est désormais
+//     sonde rAF, ResizeObserver)          `CrmWorkspace` qui se comprime) et
+//                                         rognait une barre pleine largeur. Une
 //                                         colonne de GAUCHE n'est jamais rognée
 //                                         par une compression de droite.
 //

@@ -31,6 +31,8 @@ import {
   useSignVisitBon,
 } from '@/hooks/useVisitDetail'
 import { supabase } from '@/lib/supabase'
+import { DOCK_PUSH_STYLE, DOCK_PUSH_VAR } from '@/components/ai-copilot/panel/aiPanel'
+import { usePorteSaPoussee } from '@/hooks/usePousseeDock'
 
 function vdDateLong(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-CH', {
@@ -50,6 +52,11 @@ export default function VisitDetailPage() {
   useVisitRealtime(id)
   const dark = useCrmDark()
   const S = useMemo(() => dossierPalette(dark), [dark])
+  // ⚠ Cette fiche n'a pas de plan de travail : c'est sa racine qui prend la
+  // poussée du dock MEGGA AI. Laissée à l'écran, la coquille peindrait sa gouttière
+  // en `#F9F9F9` à côté du dégradé — la plaque retirée le 12 septembre 2026
+  // (`usePousseeDock`). Ici le dégradé s'étend sous le dock.
+  usePorteSaPoussee()
 
   if (isLoading) {
     return (
@@ -61,6 +68,7 @@ export default function VisitDetailPage() {
           placeItems: 'center',
           color: S.muted,
           fontFamily: S.font,
+          ...DOCK_PUSH_STYLE,
         }}
       >
         {t('visitDetail.loading')}
@@ -79,6 +87,9 @@ export default function VisitDetailPage() {
           fontFamily: S.font,
           padding: 40,
           textAlign: 'center',
+          ...DOCK_PUSH_STYLE,
+          // La poussée S'AJOUTE à la marge droite de 40, elle ne la remplace pas.
+          paddingRight: `calc(40px + var(${DOCK_PUSH_VAR}))`,
         }}
       >
         {t('visitDetail.loadError', {
@@ -97,6 +108,7 @@ export default function VisitDetailPage() {
           placeItems: 'center',
           color: S.muted,
           fontFamily: S.font,
+          ...DOCK_PUSH_STYLE,
         }}
       >
         {t('visitDetail.notFound')}
@@ -115,6 +127,7 @@ export default function VisitDetailPage() {
         background: S.bgGradient,
         color: S.ink,
         fontFamily: S.font,
+        ...DOCK_PUSH_STYLE,
       }}
     >
       <style>{DOSSIER_KEYFRAMES}</style>

@@ -2,7 +2,8 @@
  * Layout des pages CRM Sugar v2 (route parente des surfaces agent). Volontairement
  * dépouillé : ni sidebar, ni breadcrumb, ni bottom bar — les pages Sugar portent
  * leur propre chrome. Fournit thème + contexte copilote, la bannière
- * d'impersonation, le « push » du contenu quand le panneau MEGGA AI est ouvert,
+ * d'impersonation, la poussée publiée quand le panneau MEGGA AI est ouvert (ce
+ * sont les écrans qui la prennent — `usePousseeDock`),
  * et le gate identité légale (étape 2 KYB) qui redirige vers /dashboard/identite
  * tant que le dirigeant n'a pas soumis l'identité de son agence.
  *
@@ -15,7 +16,8 @@ import { Routes, Navigate, useLocation } from 'react-router-dom'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { CopilotContextProvider } from '@/hooks/useCopilotContext'
 import { useAiPanel } from '@/hooks/useAiPanel'
-import { COPILOT_WIDTH } from '@/components/ai-copilot/panel/aiPanel'
+import { COPILOT_WIDTH, DOCK_PUSH_VAR } from '@/components/ai-copilot/panel/aiPanel'
+import { EcranPousse } from '@/components/layout/EcranPousse'
 import { crmPalette } from '@/components/crm/tokens'
 import ImpersonateBanner from '@/components/admin/ImpersonateBanner'
 import BootSplash from '@/components/layout/BootSplash'
@@ -25,15 +27,10 @@ import OnboardingCallBanner from '@/components/layout/OnboardingCallBanner'
 import CrmSearchHost from '@/components/crm/search/CrmSearchHost'
 import { CrmTabsProvider } from '@/components/crm/CrmTabsProvider'
 import { useIdentityGate, shouldRedirectToIdentityGate, shouldHoldForIdentityGate, IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDark } from '@/lib/crmDark'
 import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import { crmEcransVivants, crmTabHref, type CrmTab } from '@/lib/crmTabs'
-
-/** Lit la préférence de thème sombre Sugar (fallback : préférence système). */
-// Mode sombre Sugar (même clé localStorage que les pages). Réactif : `storage`
-// (cross-onglet) + relecture courte tant que le panneau est ouvert (le fond de
-// la gouttière du push doit suivre le thème Sugar, pas le thème app `data-theme`).
 
 /**
  * AgentLayout — barebones wrapper for Sugar v2 CRM pages.
@@ -46,8 +43,9 @@ import { crmEcransVivants, crmTabHref, type CrmTab } from '@/lib/crmTabs'
  *  - ThemeProvider (so toggling clair/sombre stays in sync with the rest of
  *    the app's CSS variables, even though Sugar uses its own tokens)
  *  - CopilotContextProvider (kept for cross-page MEGGA AI context)
- *  - Push du contenu quand le panneau MEGGA AI est ouvert (le panneau lui-même
- *    est monté dans App.tsx, au-dessus de <Routes>, pour persister à la nav)
+ *  - La poussée du panneau MEGGA AI, publiée en `--crm-dock-push` (le panneau
+ *    lui-même est monté dans App.tsx, au-dessus de <Routes>, pour persister à la
+ *    nav) ; chaque écran la prend lui-même ou la laisse à son plan de travail
  *  - ImpersonateBanner (super-admin must always see they are impersonating)
  *  - Identity gate (useIdentityGate) — swaps <Outlet/> for a <Navigate> to
  *    /dashboard/identite while status === 'required'. Never redirects on an
@@ -118,8 +116,10 @@ function EcranVivant({ actif, tb, location, routes }: {
   const style: CSSProperties = actif
     ? { position: 'relative' }
     : { position: 'absolute', inset: 0, visibility: 'hidden', pointerEvents: 'none', overflow: 'hidden' }
+  // ⚠ Chaque écran vivant est un `EcranPousse` : c'est LUI qui se comprime quand
+  // la page n'a pas de plan de travail pour le faire (voir `usePousseeDock`).
   return (
-    <div
+    <EcranPousse
       data-onglet={tb.id}
       aria-hidden={actif ? undefined : true}
       style={style}
@@ -152,7 +152,7 @@ function EcranVivant({ actif, tb, location, routes }: {
         <Routes location={loc}>{routes}</Routes>
       </Suspense>
       </EcranActifProvider>
-    </div>
+    </EcranPousse>
   )
 }
 
@@ -210,9 +210,12 @@ function EcransVivants({ routes }: { routes: ReactNode }) {
     [tabs, actifId, recents, max],
   )
 
-  // Hors fournisseur d'onglets (bancs `/dev/*` de premier niveau, console) : un
-  // seul écran, sur l'URL courante. Rien à garder vivant, rien à empiler.
-  if (!vivants.length) return <Routes location={location}>{routes}</Routes>
+  // Hors fournisseur d'onglets, ou pile d'onglets vide (aucun onglet actif) : un
+  // seul écran, sur l'URL courante. Rien à garder vivant, rien à empiler — mais
+  // un écran quand même, qui porte le repli de la poussée.
+  if (!vivants.length) {
+    return <EcranPousse><Routes location={location}>{routes}</Routes></EcranPousse>
+  }
 
   return (
     <div style={{ position: 'relative', minHeight: '100%' }}>
@@ -236,23 +239,14 @@ function AgentLayoutInner({ routes }: { routes: ReactNode }) {
   const { isOpen } = useAiPanel()
   const { status: identityGateStatus } = useIdentityGate()
   const location = useLocation()
-  const [dark, setDark] = useState(readCrmDark)
-  useEffect(() => {
-    const sync = () => setDark(readCrmDark())
-    // Relecture IMMÉDIATE à chaque passage : ce layout ne se remonte plus à la
-    // navigation (les routes ne sont plus keyées par pathname), donc la valeur
-    // lue au montage peut dater de plusieurs écrans — une bascule clair/sombre
-    // faite depuis la barre latérale d'une page n'est pas notifiée dans le même onglet
-    // (`storage` ne concerne que les autres). Sans ça, la gouttière du push
-    // s'ouvrirait à l'ancienne teinte.
-    sync()
-    window.addEventListener('storage', sync)
-    let id: number | undefined
-    if (isOpen) id = window.setInterval(sync, 400)
-    return () => { window.removeEventListener('storage', sync); if (id) window.clearInterval(id) }
-  }, [isOpen])
-  // Fond Sugar de la page courante → peint la gouttière réservée par le push
-  // (sinon elle laisserait voir le fond `body` blanc, dépareillé en mode sombre).
+  // ⚠ Abonné à la bascule (`CRM_DARK_EVENT`), plus relu toutes les 400 ms : ce
+  // layout ne se remonte pas à la navigation, et la relecture périodique laissait
+  // ce fond dans l'ancien thème jusqu'au tick suivant — pour toujours sur les écrans
+  // qui n'écrivaient pas la clé.
+  const dark = useCrmDark()
+  // Fond de ce conteneur. Il ne se voit plus derrière le dock des écrans à plan de
+  // travail (ils y peignent leur propre fond) ; il reste celui du bandeau d'accueil
+  // et du repli, sans lequel on verrait le `body` blanc en mode sombre.
   const pageBg = crmPalette(dark).pageBg
 
   // Gate identité légale (étape 2 KYB) : tant que useIdentityGate() n'a pas
@@ -300,14 +294,25 @@ function AgentLayoutInner({ routes }: { routes: ReactNode }) {
           l'entonnoir, et empilé au-dessus d'une coquille qui réclame `100dvh` il en
           faisait déborder le pied d'actions. */}
       {/* Le panneau MEGGA AI « pousse » le contenu de travail vers la gauche
-          quand il est ouvert (COPILOT_WIDTH = panneau + gouttières). */}
+          quand il est ouvert (COPILOT_WIDTH = panneau + gouttières).
+
+          ⛔ CE CONTENEUR NE SE COMPRIME PLUS : il PUBLIE la poussée, et ce sont
+          les écrans qui la prennent (voir `usePousseeDock`). Il se comprimait
+          jusqu'au 12 septembre 2026, et sa gouttière — peinte ici à `pageBg` —
+          était la plaque que Julien voyait derrière le dock : « Aujourd'hui »
+          peint `#EBEDF1` en clair, cette gouttière `#F9F9F9`. Désormais la page
+          s'étend sous le dock et y peint son propre fond.
+
+          ⚠ `pageBg` reste le fond de CE conteneur, et il ne se voit plus que
+          derrière le dock des écrans qui ne portent pas leur poussée — console,
+          squelette et états de chargement, garde LAB, écrans mobiles : leur
+          fond y est justement `pageBg`. */}
       <div
         style={{
-          transition: 'padding-right .42s cubic-bezier(.2,.8,.2,1)',
-          paddingRight: isOpen ? COPILOT_WIDTH : 0,
+          [DOCK_PUSH_VAR as string]: isOpen ? `${COPILOT_WIDTH}px` : '0px',
           background: pageBg,
           flex: '1 1 auto',
-        }}
+        } as CSSProperties}
       >
         {/* ⚠ Le bandeau d'accueil est DANS la zone poussée, pas au-dessus.
             Il l'était jusqu'au 4 septembre 2026, ce qui ne coûtait rien tant que
@@ -318,7 +323,10 @@ function AgentLayoutInner({ routes }: { routes: ReactNode }) {
             du dock. ⛔ Ne pas « corriger » en montant son z-index : un bandeau
             pleine largeur qui peint PAR-DESSUS le dock est pire que le
             chevauchement qu'il règle. Le bandeau d'usurpation, lui, reste au-
-            dessus : il est `sticky z-[90]` et le panneau le compense déjà. */}
+            dessus : il est `sticky z-[90]` et le panneau le compense déjà.
+
+            ⚠ Il est hors de tout écran, donc il prend la poussée LUI-MÊME, sur sa
+            racine — voir son en-tête. */}
         <OnboardingCallBanner />
         {holdForIdentity
           ? <BootSplash />

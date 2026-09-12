@@ -12,21 +12,20 @@
 // quand la barre latérale bascule le réglage sombre. Sans ce passage, il
 // restait clair dans un chrome sombre.
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import WizardShell from '@/components/crm-wizard/WizardShell'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import { crmThemeVars } from '@/components/crm/crmThemeVars'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function ListingWizardPage() {
   const navigate = useNavigate()
   const onClose = () => navigate('/dashboard/listings')
 
-  const [dark, setDark] = useState<boolean>(() =>
-    typeof window !== 'undefined' && readCrmDark())
+  const [dark, setDark] = useCrmDarkPref()
   const sgSp = useMemo(() => crmPalette(dark), [dark])
 
   return (

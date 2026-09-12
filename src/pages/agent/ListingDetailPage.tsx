@@ -53,8 +53,9 @@ import { useMatching } from '@/hooks/useMatching'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Property } from '@/types/listing'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 import { useTabLabel } from '@/hooks/useCrmTabs'
+import { DOCK_PUSH_VAR } from '@/components/ai-copilot/panel/aiPanel'
 
 const BF_MAXW = 1120 // largeur max de la colonne de contenu (bride le « trop large »)
 
@@ -261,11 +262,22 @@ function BfPortal({
   )
 }
 
+/**
+ * Où s'arrêtent les calques de la fiche — au bord du CONTENU, pas de la fenêtre.
+ *
+ * ⚠ Le toast et les deux modales sont des enfants du root de la page, HORS du plan
+ * de travail. Depuis que la page s'étend sous le dock MEGGA AI (`usePousseeDock`),
+ * ils s'y étendraient avec elle : le voile passerait par-dessus le dock (z 130
+ * contre 70) et la carte comme le toast se centreraient 202 px trop à droite. Ils
+ * retranchent donc la poussée, comme le faisait la coquille avant eux.
+ */
+const HORS_DOCK = `var(${DOCK_PUSH_VAR}, 0px)`
+
 // ─── Toast (contenu dans le root, position absolute) ───────────────────────
 function BfToast({ toast, sp, dark }: { toast: Toast | null; sp: CrmPalette; dark: boolean }) {
   if (!toast) return null
   return (
-    <div style={{ position: 'absolute', bottom: 22, left: '50%', transform: 'translateX(-50%)', zIndex: 120, background: dark ? sp.solidBg : sp.ink, color: '#fff', borderRadius: 18, padding: '15px 19px', boxShadow: '0 24px 60px rgba(15,23,42,.4)', maxWidth: 440, animation: 'bfUp .3s cubic-bezier(.2,.8,.2,1)' }}>
+    <div style={{ position: 'absolute', bottom: 22, left: `calc((100% - ${HORS_DOCK}) / 2)`, transform: 'translateX(-50%)', zIndex: 120, background: dark ? sp.solidBg : sp.ink, color: '#fff', borderRadius: 18, padding: '15px 19px', boxShadow: '0 24px 60px rgba(15,23,42,.4)', maxWidth: 440, animation: 'bfUp .3s cubic-bezier(.2,.8,.2,1)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: toast.lines.length ? 8 : 0 }}>
         <span style={{ width: 24, height: 24, borderRadius: 999, background: 'rgba(255,255,255,.14)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>
           <VxIcon name="check" size={14} stroke="#fff" sw={2.4} />
@@ -310,7 +322,7 @@ function BfEditModal({
   const inp: CSSProperties = { width: '100%', boxSizing: 'border-box', border: 0, outline: 'none', background: sub, color: vx.ink, borderRadius: 12, padding: '12px 14px', fontSize: 'var(--crm-text-lg)', fontWeight: 600, fontFamily: 'inherit' }
   const ov = dark ? 'rgba(4,6,10,.62)' : 'rgba(24,32,48,.34)'
   return (
-    <div onMouseDown={onClose} style={{ position: 'absolute', inset: 0, zIndex: 130, background: ov, backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 24, animation: 'bfFade .18s ease-out' }}>
+    <div onMouseDown={onClose} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: HORS_DOCK, zIndex: 130, background: ov, backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 24, animation: 'bfFade .18s ease-out' }}>
       <style>{`.bf-edit-inp:focus{box-shadow:0 0 0 2px ${vx.ink} inset}`}</style>
       <div onMouseDown={e => e.stopPropagation()} style={{ width: 520, maxWidth: '100%', maxHeight: '92%', overflowY: 'auto', background: sp.solidBg, borderRadius: 28, boxShadow: '0 40px 100px rgba(15,23,42,.34), 0 8px 24px rgba(15,23,42,.14)', padding: 28, animation: 'bfRise .24s cubic-bezier(.2,.8,.2,1)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 22 }}>
@@ -375,7 +387,7 @@ function BfVisitModal({
   const times = ['10:00', '11:30', '14:00', '15:30', '17:00']
   const ov = dark ? 'rgba(4,6,10,.62)' : 'rgba(24,32,48,.34)'
   return (
-    <div onMouseDown={onClose} style={{ position: 'absolute', inset: 0, zIndex: 130, background: ov, backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 24, animation: 'bfFade .18s ease-out' }}>
+    <div onMouseDown={onClose} style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: HORS_DOCK, zIndex: 130, background: ov, backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', display: 'grid', placeItems: 'center', padding: 24, animation: 'bfFade .18s ease-out' }}>
       <div onMouseDown={e => e.stopPropagation()} style={{ width: 462, maxWidth: '100%', maxHeight: '92%', overflowY: 'auto', background: sp.solidBg, borderRadius: 28, boxShadow: '0 40px 100px rgba(15,23,42,.34), 0 8px 24px rgba(15,23,42,.14)', padding: 28, animation: 'bfRise .24s cubic-bezier(.2,.8,.2,1)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
           <h3 style={{ margin: 0, fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: vx.ink, letterSpacing: -0.5 }}>{title}</h3>
@@ -451,13 +463,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   const { t: tr } = useTranslation('listings')
 
   // Dark mode (clé localStorage partagée avec la galerie / la V3)
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
   const sp = crmPalette(dark) // cadre/shell (pageBg = Today/Pipeline)
   const vx = vxPalette(dark) // intérieur des cartes (palette vitrine)
 
