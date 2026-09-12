@@ -1,6 +1,11 @@
 /**
  * Garde-fou : le rapport KYC est du PAPIER, et la frontière est écrite.
  *
+ * ⚠ Le 13.09.2026 le rapport a été réécrit en « concept épuré » (une encre, quatre
+ * gris, filigrane) : le COMPTE de marqueurs ci-dessous (104) est celui de la
+ * première version et n'est plus vrai — mais aucune clause ne le mesure, et
+ * l'argument ne tient pas au compte : il tient à A4 à 96 DPI, qui n'a pas bougé.
+ *
  * ── LA QUESTION, ET CE QUE LA MESURE Y RÉPOND ────────────────────────────────
  * `src/components/kyc-report/` porte 104 marqueurs du cliquet de grammaire — 16
  * micro-capitales, 22 graisses ≥ 700, 18 interlettrages positifs, 48 tailles

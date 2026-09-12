@@ -633,8 +633,8 @@
     "checkJustif": {
       "id": "Amtlicher Ausweis",
       "address": "Wohnsitznachweis < 3 Monate",
-      "pep": "Dilisense, clear",
-      "sanctions": "Dilisense, clear",
+      "pep": "Dilisense-Screening",
+      "sanctions": "Dilisense-Screening",
       "funds": "Bankbestätigung + Lohnabrechnung"
     },
     "contactType": {
@@ -665,6 +665,12 @@
       "renforced": "Erhöhte Sorgfaltspflichten",
       "escalation_mlro": "Eskalation an MLRO empfohlen"
     },
+    "decision": {
+      "false_positive": "Fehltreffer ausgeschlossen",
+      "true_match": "Treffer bestätigt",
+      "escalated": "an die Geschäftsleitung eskaliert",
+      "awaiting_evidence": "Belege ausstehend"
+    },
     "docCategory": {
       "identity": "Identität",
       "domicile": "Wohnsitz",
@@ -677,7 +683,7 @@
       "vigilanceRenforced": "Erhöht",
       "vigilanceSubStandard": "GwG Art. 3",
       "vigilanceSubRenforced": "GwG Art. 6",
-      "riskSub": "Interner Score {{score}}/100",
+      "riskSub": "interner Score {{score}}/100",
       "statusInProgress": "In Bearbeitung",
       "statusVerified": "Verifiziert",
       "statusFailed": "Fehlgeschlagen",
@@ -697,23 +703,25 @@
       "sourceNotDocumented": "Nicht dokumentiert"
     },
     "pdf": {
-      "headerTag": "KYC-Bericht · GwG",
-      "footerLegal": "MEGGA · legal@getmegga.com · GwG Art. 7 · Dokument 10 Jahre aufzubewahren",
-      "pageAbbrev": "S.",
+      "headerTag": "KYC-Bericht",
+      "confidential": "Vertraulich",
       "page1": {
-        "eyebrow": "Management-Summary · GwG Art. 3-7",
-        "title": "KYC-Bericht"
+        "title": "KYC-Bericht",
+        "kicker": "Management-Summary · {{name}} · {{property}}",
+        "kickerNoProperty": "Management-Summary · {{name}}"
       },
       "section": {
         "client": "Kunde",
         "transaction": "Transaktion",
-        "verdict": "Gesamtbeurteilung",
+        "verdict": "Beurteilung",
+        "aiAnalysis": "Kontextanalyse MEGGA AI",
         "screening": "Screening amtlicher Listen · {{provider}}",
+        "screeningDated": "Screening amtlicher Listen · {{provider}} · {{date}}",
         "lbaChecks": "Validierte GwG-Kontrollen · Art. 3 bis 7",
-        "sourceOfFunds": "Dokumentierte Herkunft der Mittel",
-        "riskAnalysis": "Risikoanalyse",
-        "documents": "Dem Dossier beigelegte Dokumente · {{count}}",
-        "auditTrail": "Audit-Trail & Aufbewahrung"
+        "sourceOfFunds": "Herkunft der Mittel",
+        "complementaryReview": "Ergänzende Prüfung",
+        "annexes": "Anhänge",
+        "retention": "Aufbewahrung & Rechtsgrundlage"
       },
       "label": {
         "reference": "Referenz",
@@ -728,8 +736,8 @@
         "amount": "Betrag",
         "pipelineStage": "Pipeline-Phase",
         "validation": "Validierung",
-        "integrityHash": "Integritäts-Hash:",
-        "establishment": "Institut",
+        "integrityHash": "Integritäts-Hash",
+        "supportingDoc": "Beleg",
         "attestedAmount": "Bestätigter Betrag",
         "retentionPeriod": "Aufbewahrungsdauer",
         "legalBasis": "Rechtsgrundlage"
@@ -745,14 +753,24 @@
       },
       "validatedBy": "Validiert am {{date}} durch {{name}}",
       "validationPending": "Dossier in Validierung",
-      "signatureCaption": "Digitale Signatur · qualifiziert",
-      "confidentialNotice": "«Internes Dokument {{agency}} · Streng vertraulich · Eingeschränkte Verbreitung»",
+      "signatureCaption": "Qualifizierte Signatur",
+      "ai": {
+        "patterns_one": "Konfidenz · {{count}} erkanntes Muster",
+        "patterns_other": "Konfidenz · {{count}} erkannte Muster",
+        "recommendation": "Empfehlung: {{label}}."
+      },
+      "assistedEstimateNotice": "Assistierte Einschätzung als Entscheidungshilfe; sie ersetzt nicht die Beurteilung des Compliance-Verantwortlichen (MLRO). Zu validieren.",
       "page2": {
-        "eyebrow": "Durchgeführte Sorgfaltsprüfung",
-        "title": "Kontrollen & Belege.",
-        "noMatch": "0 Treffer",
+        "title": "Kontrollen & Belege",
+        "kicker": "Durchgeführte Sorgfaltsprüfung",
         "clear": "Clear",
         "toReview": "Zu prüfen",
+        "result": {
+          "clear": "0 Treffer",
+          "match": "Treffer",
+          "pending": "Ausstehend",
+          "not_checked": "Nicht durchgeführt"
+        },
         "list": {
           "pep": "PEP (Politisch exponierte Personen)",
           "ofac": "OFAC-Sanktionen (USA)",
@@ -764,30 +782,25 @@
       },
       "col": {
         "list": "Liste",
-        "provider": "Anbieter",
         "result": "Ergebnis",
-        "timestamp": "Zeitstempel",
-        "num": "#",
         "control": "Kontrolle",
         "supportingDoc": "Beleg",
         "date": "Datum",
         "agent": "Makler",
-        "fileName": "Dateiname",
+        "fileName": "Datei",
         "category": "Kategorie",
         "size": "Grösse",
         "hash": "Hash"
       },
-      "riskLevelLabel": "Qualitatives Risikoniveau",
-      "recommendationLabel": "Empfehlung",
-      "confidence": "Konfidenz: {{pct}} %",
-      "patternsDetected": "Erkannte Muster",
-      "assistedEstimateNotice": "Assistierte Einschätzung als Entscheidungshilfe; sie ersetzt nicht die Beurteilung des Compliance-Verantwortlichen (MLRO). Zu validieren.",
+      "examinedBy": "geprüft am {{date}} durch {{name}}",
       "page3": {
-        "eyebrow": "Anhänge",
-        "title": "Belege.",
-        "noDocuments": "Dem Dossier ist bis heute kein Dokument beigelegt."
+        "title": "Belege",
+        "kicker_one": "{{count}} dem Dossier beigelegtes Dokument",
+        "kicker_other": "{{count}} dem Dossier beigelegte Dokumente",
+        "noDocuments": "Dem Dossier ist bis heute kein Dokument beigelegt.",
+        "moreDocuments": "… und {{count}} weitere Belege im Dossier"
       },
-      "retentionValue": "10 Jahre ab {{date}}",
+      "retentionValue": "10 Jahre · bis {{date}}",
       "retentionBody": "Gemäss Art. 7 Abs. 3 GwG wird das gesamte Dossier (Belege, Screening, Audit-Trail) während zehn Jahren unverändert und zugänglich aufbewahrt, auch nach Beendigung der Geschäftsbeziehung.",
       "legalBasisValue": "GwG · GwV-FINMA · nDSG",
       "legalBasisBody": "Der vorliegende Bericht gilt als Dokumentation im Sinne von Art. 7 GwG und Art. 22 GwV-FINMA. Die Bearbeitung der Personendaten entspricht den Grundsätzen des nDSG (Verhältnismässigkeit, Zweckbindung, Sicherheit). Das Auskunftsrecht der Kundschaft nach Art. 25 nDSG ist gewährleistet.",

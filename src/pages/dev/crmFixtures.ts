@@ -172,7 +172,15 @@ const KYC_CASES = [
     completion_pct: 100, contact_nationality: 'CH',
     source_of_funds_type: 'salary', source_of_funds_description: 'Revenus salariés, employeur genevois depuis 2019.', source_of_funds_doc_id: null,
     transaction_id: null, transaction_amount: 1_450_000,
-    ai_analysis: null, notes: null,
+    // Une analyse contextuelle, pour que la section « MEGGA AI » du rapport ait un
+    // état à regarder. ⚠ La production n'en produit PLUS depuis #829 (kyc-screening
+    // est déterministe) : seuls des dossiers antérieurs en portent une.
+    ai_analysis: {
+      provider: 'banc', analyzed_at: ilYA(302), qualitative_risk: 'low', vigilance_recommendation: 'standard',
+      patterns_detected: [], additional_checks_suggested: [], confidence: 0.91,
+      justification: 'Acheteuse suisse résidant à Genève, profession stable, transaction conforme aux pratiques du segment. La source des fonds est documentée et la cohérence documentaire est intégralement vérifiée.',
+    },
+    notes: null,
     validated_by: AGENT_BANC.id, validated_at: ilYA(295),
     // 11 mois devant : hors de la fenêtre d'échéance, contrairement à k2.
     expires_at: ilYA(-8_030), created_at: ilYA(310),

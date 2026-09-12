@@ -407,7 +407,14 @@ export default function CrmShowcasePage() {
     void clientBanc.resetQueries()
   }, [])
 
-  const entrees = useMemo(() => ['/dashboard'], [])
+  // `?entree=/dashboard/…` ouvre le banc directement sur une route — la seule façon
+  // d'atteindre celles qu'aucun lien interne ne dessert (le rapport KYC s'ouvre par
+  // `window.open`, donc HORS du banc). Lue une fois, au montage : le banc est un
+  // `MemoryRouter`, l'URL du navigateur ne bouge plus ensuite.
+  const entrees = useMemo(() => {
+    const entree = new URLSearchParams(window.location.search).get('entree')
+    return [entree && entree.startsWith('/dashboard') ? entree : '/dashboard']
+  }, [])
 
   return (
     // ⛔ LES PROVIDERS SONT ICI, PAS DANS `App.tsx`, et l'ordre est tout : le

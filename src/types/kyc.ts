@@ -85,6 +85,8 @@ export interface KycCase {
   contact?: {
     first_name: string
     last_name: string
+    /** Repli du rapport quand `contact_nationality` n'a pas été dérivé au screening. */
+    nationality?: string | null
   }
   transaction?: {
     id: string

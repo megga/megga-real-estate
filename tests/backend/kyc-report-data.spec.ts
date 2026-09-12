@@ -187,6 +187,14 @@ describe.skipIf(!HAS_KEYS || !HAS_HMAC)('kyc-report-data — token validation + 
     // agencyName is a non-empty string
     expect(typeof json.report.agencyName).toBe('string')
     expect(json.report.agencyName.length).toBeGreaterThan(0)
+
+    // Concept épuré (13.09.2026) : the report names people and human decisions —
+    // both keys must exist even when empty, the builder reads them unconditionally.
+    expect(Array.isArray(json.report.screeningDecisions)).toBe(true)
+    expect(json.report).toHaveProperty('validatedByName')
+    expect(json.report.validatedByName).toBeNull() // dossier never validated
+    // The integrity hash is computed by the rendering browser, never served.
+    expect(json.report).not.toHaveProperty('integrityHash')
   })
 
   it('expired token → 401', async () => {

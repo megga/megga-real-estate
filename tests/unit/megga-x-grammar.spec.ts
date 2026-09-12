@@ -1045,9 +1045,14 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // n'avait pas de chrome) et le `padding: 40` de sa branche d'erreur passent aux
   // jetons. Son contenu démarrait 16 px plus bas et 28 px plus à droite que celui
   // des autres surfaces : il sautait à chaque bascule vers elle.
-  ['src/pages/agent', { hors: 315, total: 920 }],
+  // 315 -> 312, 920 -> 917 · 68 -> 66, 259 -> 257 (13.09.2026) : le rapport KYC
+  // passe au concept épuré, et ses deux pages hôtes (`KycExportPage`,
+  // `KycReportRenderPage`) ne portent plus les règles `@page`/`@media print` ni
+  // la police des feuilles — tout cela vit dans `KycReportDocument`, hors cliquet
+  // (papier). Ce qui reste ici est l'écran : le bureau, la barre d'outils.
+  ['src/pages/agent', { hors: 312, total: 917 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
-  ['src/pages/public', { hors: 68, total: 259 }],
+  ['src/pages/public', { hors: 66, total: 257 }],
 ])
 
 /** Les propriétés qui portent un rayon ou un espacement. */

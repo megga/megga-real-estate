@@ -633,8 +633,8 @@
     "checkJustif": {
       "id": "Documento d'identità ufficiale",
       "address": "Attestazione di domicilio < 3 mesi",
-      "pep": "Dilisense, clear",
-      "sanctions": "Dilisense, clear",
+      "pep": "Screening Dilisense",
+      "sanctions": "Screening Dilisense",
       "funds": "Attestazione bancaria + busta paga"
     },
     "contactType": {
@@ -665,6 +665,12 @@
       "renforced": "Diligenza rafforzata",
       "escalation_mlro": "Escalation al MLRO raccomandata"
     },
+    "decision": {
+      "false_positive": "falso positivo escluso",
+      "true_match": "corrispondenza confermata",
+      "escalated": "inoltrato alla direzione",
+      "awaiting_evidence": "in attesa di elementi"
+    },
     "docCategory": {
       "identity": "Identità",
       "domicile": "Domicilio",
@@ -677,7 +683,7 @@
       "vigilanceRenforced": "Rafforzata",
       "vigilanceSubStandard": "LRD art. 3",
       "vigilanceSubRenforced": "LRD art. 6",
-      "riskSub": "Punteggio interno {{score}}/100",
+      "riskSub": "punteggio interno {{score}}/100",
       "statusInProgress": "In corso",
       "statusVerified": "Verificato",
       "statusFailed": "Fallito",
@@ -697,23 +703,25 @@
       "sourceNotDocumented": "Non documentato"
     },
     "pdf": {
-      "headerTag": "Rapporto KYC · LRD",
-      "footerLegal": "MEGGA · legal@getmegga.com · LRD art. 7 · Documento da conservare 10 anni",
-      "pageAbbrev": "p.",
+      "headerTag": "Rapporto KYC",
+      "confidential": "Confidenziale",
       "page1": {
-        "eyebrow": "Sintesi esecutiva · LRD art. 3-7",
-        "title": "Rapporto KYC"
+        "title": "Rapporto KYC",
+        "kicker": "Sintesi esecutiva · {{name}} · {{property}}",
+        "kickerNoProperty": "Sintesi esecutiva · {{name}}"
       },
       "section": {
         "client": "Cliente",
         "transaction": "Transazione",
-        "verdict": "Verdetto complessivo",
+        "verdict": "Verdetto",
+        "aiAnalysis": "Analisi contestuale MEGGA AI",
         "screening": "Screening liste ufficiali · {{provider}}",
+        "screeningDated": "Screening liste ufficiali · {{provider}} · {{date}}",
         "lbaChecks": "Controlli LRD validati · art. da 3 a 7",
-        "sourceOfFunds": "Origine dei fondi documentata",
-        "riskAnalysis": "Analisi del rischio",
-        "documents": "Documenti allegati al fascicolo · {{count}}",
-        "auditTrail": "Pista di controllo e conservazione"
+        "sourceOfFunds": "Origine dei fondi",
+        "complementaryReview": "Esame complementare",
+        "annexes": "Allegati",
+        "retention": "Conservazione e base legale"
       },
       "label": {
         "reference": "Riferimento",
@@ -728,8 +736,8 @@
         "amount": "Importo",
         "pipelineStage": "Fase pipeline",
         "validation": "Validazione",
-        "integrityHash": "Hash di integrità:",
-        "establishment": "Istituto",
+        "integrityHash": "Hash di integrità",
+        "supportingDoc": "Documento giustificativo",
         "attestedAmount": "Importo attestato",
         "retentionPeriod": "Durata di conservazione",
         "legalBasis": "Base legale"
@@ -745,14 +753,24 @@
       },
       "validatedBy": "Validato il {{date}} da {{name}}",
       "validationPending": "Fascicolo in corso di validazione",
-      "signatureCaption": "Firma digitale · qualificata",
-      "confidentialNotice": "«Documento interno {{agency}} · Strettamente confidenziale · Diffusione limitata»",
+      "signatureCaption": "Firma qualificata",
+      "ai": {
+        "patterns_one": "Confidenza · {{count}} pattern rilevato",
+        "patterns_other": "Confidenza · {{count}} pattern rilevati",
+        "recommendation": "Raccomandazione: {{label}}."
+      },
+      "assistedEstimateNotice": "Stima assistita, ausilio alla decisione, non sostituisce la valutazione del responsabile della conformità (MLRO). Da validare.",
       "page2": {
-        "eyebrow": "Dovuta diligenza effettuata",
-        "title": "Controlli e documenti.",
-        "noMatch": "0 corrispondenze",
+        "title": "Controlli e documenti",
+        "kicker": "Dovuta diligenza effettuata",
         "clear": "Clear",
         "toReview": "Da esaminare",
+        "result": {
+          "clear": "0 corrispondenze",
+          "match": "Corrispondenza",
+          "pending": "In attesa",
+          "not_checked": "Non effettuato"
+        },
         "list": {
           "pep": "PEP (Persone politicamente esposte)",
           "ofac": "Sanzioni OFAC (Stati Uniti)",
@@ -764,10 +782,7 @@
       },
       "col": {
         "list": "Lista",
-        "provider": "Fornitore",
         "result": "Risultato",
-        "timestamp": "Marca temporale",
-        "num": "#",
         "control": "Controllo",
         "supportingDoc": "Documento giustificativo",
         "date": "Data",
@@ -777,17 +792,15 @@
         "size": "Dimensione",
         "hash": "Hash"
       },
-      "riskLevelLabel": "Livello di rischio qualitativo",
-      "recommendationLabel": "Raccomandazione",
-      "confidence": "Confidenza: {{pct}} %",
-      "patternsDetected": "Pattern rilevati",
-      "assistedEstimateNotice": "Stima assistita, ausilio alla decisione, non sostituisce la valutazione del responsabile della conformità (MLRO). Da validare.",
+      "examinedBy": "esaminato il {{date}} da {{name}}",
       "page3": {
-        "eyebrow": "Allegati",
-        "title": "Documenti giustificativi.",
-        "noDocuments": "Ad oggi nessun documento è allegato al fascicolo."
+        "title": "Documenti giustificativi",
+        "kicker_one": "{{count}} documento allegato al fascicolo",
+        "kicker_other": "{{count}} documenti allegati al fascicolo",
+        "noDocuments": "Ad oggi nessun documento è allegato al fascicolo.",
+        "moreDocuments": "… e altri {{count}} documenti nel fascicolo"
       },
-      "retentionValue": "10 anni a partire dal {{date}}",
+      "retentionValue": "10 anni · fino al {{date}}",
       "retentionBody": "Conformemente all'art. 7 cpv. 3 LRD, l'intero fascicolo (documenti, screening, pista di controllo) è conservato in forma integra e accessibile per dieci anni, anche dopo la fine della relazione d'affari.",
       "legalBasisValue": "LRD · ORD-FINMA · nLPD",
       "legalBasisBody": "Il presente rapporto vale come documentazione ai sensi dell'art. 7 LRD e dell'art. 22 ORD-FINMA. Il trattamento dei dati personali rispetta i principi della nLPD (proporzionalità, finalità, sicurezza). Il diritto d'accesso del cliente è garantito conformemente all'art. 25 nLPD.",

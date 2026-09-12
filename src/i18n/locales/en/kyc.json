@@ -633,8 +633,8 @@
     "checkJustif": {
       "id": "Official ID document",
       "address": "Proof of address < 3 months",
-      "pep": "Dilisense, clear",
-      "sanctions": "Dilisense, clear",
+      "pep": "Dilisense screening",
+      "sanctions": "Dilisense screening",
       "funds": "Bank statement + payslip"
     },
     "contactType": {
@@ -665,6 +665,12 @@
       "renforced": "Enhanced due diligence",
       "escalation_mlro": "MLRO escalation recommended"
     },
+    "decision": {
+      "false_positive": "false positive dismissed",
+      "true_match": "match confirmed",
+      "escalated": "escalated to management",
+      "awaiting_evidence": "awaiting evidence"
+    },
     "docCategory": {
       "identity": "Identity",
       "domicile": "Residence",
@@ -677,7 +683,7 @@
       "vigilanceRenforced": "Enhanced",
       "vigilanceSubStandard": "AMLA art. 3",
       "vigilanceSubRenforced": "AMLA art. 6",
-      "riskSub": "Internal score {{score}}/100",
+      "riskSub": "internal score {{score}}/100",
       "statusInProgress": "In progress",
       "statusVerified": "Verified",
       "statusFailed": "Failed",
@@ -697,23 +703,25 @@
       "sourceNotDocumented": "Not documented"
     },
     "pdf": {
-      "headerTag": "KYC report · AMLA",
-      "footerLegal": "MEGGA · legal@getmegga.com · AMLA art. 7 · Retain for 10 years",
-      "pageAbbrev": "p.",
+      "headerTag": "KYC report",
+      "confidential": "Confidential",
       "page1": {
-        "eyebrow": "Executive summary · AMLA art. 3-7",
-        "title": "KYC report"
+        "title": "KYC report",
+        "kicker": "Executive summary · {{name}} · {{property}}",
+        "kickerNoProperty": "Executive summary · {{name}}"
       },
       "section": {
         "client": "Client",
         "transaction": "Transaction",
-        "verdict": "Overall verdict",
+        "verdict": "Verdict",
+        "aiAnalysis": "MEGGA AI contextual analysis",
         "screening": "Official watchlist screening · {{provider}}",
+        "screeningDated": "Official watchlist screening · {{provider}} · {{date}}",
         "lbaChecks": "Validated AMLA checks · art. 3 to 7",
-        "sourceOfFunds": "Documented source of funds",
-        "riskAnalysis": "Risk analysis",
-        "documents": "Documents attached to the file · {{count}}",
-        "auditTrail": "Audit trail & retention"
+        "sourceOfFunds": "Source of funds",
+        "complementaryReview": "Complementary review",
+        "annexes": "Appendices",
+        "retention": "Retention & legal basis"
       },
       "label": {
         "reference": "Reference",
@@ -728,8 +736,8 @@
         "amount": "Amount",
         "pipelineStage": "Pipeline stage",
         "validation": "Validation",
-        "integrityHash": "Integrity hash:",
-        "establishment": "Institution",
+        "integrityHash": "Integrity hash",
+        "supportingDoc": "Supporting document",
         "attestedAmount": "Attested amount",
         "retentionPeriod": "Retention period",
         "legalBasis": "Legal basis"
@@ -745,14 +753,24 @@
       },
       "validatedBy": "Validated on {{date}} by {{name}}",
       "validationPending": "File pending validation",
-      "signatureCaption": "Digital signature · qualified",
-      "confidentialNotice": "“Internal document {{agency}} · Strictly confidential · Restricted circulation”",
+      "signatureCaption": "Qualified signature",
+      "ai": {
+        "patterns_one": "Confidence · {{count}} pattern detected",
+        "patterns_other": "Confidence · {{count}} patterns detected",
+        "recommendation": "Recommendation: {{label}}."
+      },
+      "assistedEstimateNotice": "Assisted estimate, a decision aid; it does not replace the compliance officer's (MLRO) assessment. To be validated.",
       "page2": {
-        "eyebrow": "Customer due diligence performed",
-        "title": "Checks & documents.",
-        "noMatch": "0 match",
+        "title": "Checks & documents",
+        "kicker": "Customer due diligence performed",
         "clear": "Clear",
         "toReview": "To review",
+        "result": {
+          "clear": "0 match",
+          "match": "Match",
+          "pending": "Pending",
+          "not_checked": "Not performed"
+        },
         "list": {
           "pep": "PEP (Politically Exposed Persons)",
           "ofac": "OFAC sanctions (United States)",
@@ -764,30 +782,25 @@
       },
       "col": {
         "list": "List",
-        "provider": "Provider",
         "result": "Result",
-        "timestamp": "Timestamp",
-        "num": "#",
         "control": "Check",
         "supportingDoc": "Supporting document",
         "date": "Date",
         "agent": "Agent",
-        "fileName": "File name",
+        "fileName": "File",
         "category": "Category",
         "size": "Size",
         "hash": "Hash"
       },
-      "riskLevelLabel": "Qualitative risk level",
-      "recommendationLabel": "Recommendation",
-      "confidence": "Confidence: {{pct}}%",
-      "patternsDetected": "Patterns detected",
-      "assistedEstimateNotice": "Assisted estimate, a decision aid; it does not replace the compliance officer's (MLRO) assessment. To be validated.",
+      "examinedBy": "reviewed on {{date}} by {{name}}",
       "page3": {
-        "eyebrow": "Appendices",
-        "title": "Supporting documents.",
-        "noDocuments": "No document is attached to the file to date."
+        "title": "Supporting documents",
+        "kicker_one": "{{count}} document attached to the file",
+        "kicker_other": "{{count}} documents attached to the file",
+        "noDocuments": "No document is attached to the file to date.",
+        "moreDocuments": "… and {{count}} more documents in the file"
       },
-      "retentionValue": "10 years from {{date}}",
+      "retentionValue": "10 years · until {{date}}",
       "retentionBody": "In accordance with art. 7 para. 3 AMLA, the entire file (documents, screening, audit trail) is retained in an intact and accessible form for ten years, including after the end of the business relationship.",
       "legalBasisValue": "AMLA · AMLO-FINMA · nFADP",
       "legalBasisBody": "This report constitutes documentation within the meaning of art. 7 AMLA and art. 22 AMLO-FINMA. The processing of personal data complies with the principles of the nFADP (proportionality, purpose limitation, security). Right of access guaranteed to the client in accordance with art. 25 nFADP.",
