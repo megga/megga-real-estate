@@ -61,6 +61,7 @@ import { desinstallerBanc, installerBanc, reglerBanc, type BancEtat } from './ba
 import { CRM_RPC, CRM_RPC_VIDE, CRM_TABLES } from './crmFixtures'
 import { semerSessionBanc } from './bancSession'
 import { useCrmDark, useCrmDarkPref } from '@/lib/crmDark'
+import { MailFixturesContext, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 
 /* ─── Les surfaces montées, dérivées du ROUTAGE de `App.tsx` ───────────────── */
 
@@ -79,6 +80,18 @@ const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
 const JourneyPage = lazy(() => import('@/pages/agent/JourneyPage'))
 const AuditPage = lazy(() => import('@/pages/agent/AuditPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
+const MessageriePage = lazy(() => import('@/pages/agent/MessageriePage'))
+
+/**
+ * La Messagerie du banc, REMONTÉE quand la source de ses courriels change — même
+ * geste que `/dev/messagerie`. ⛔ Sans la clé, repasser de « Vide » (aucune
+ * boîte) à « Nominal » laissait l'écran sur « Aucune boîte » : il garde la boîte
+ * courante dans son reducer, et celle-ci pointait sur rien.
+ */
+function MessagerieBanc() {
+  const fx = useMailFixtures()
+  return <MessageriePage key={fx ?? 'reseau'} />
+}
 
 /**
  * Le panneau MEGGA AI — CHROME, pas une surface.
@@ -101,7 +114,7 @@ const CopilotPanel = lazy(() => import('@/components/ai-copilot/panel/CopilotPan
  * qu'une description affirme — c'est la distinction qui avait fait rater un
  * tiers du périmètre de la console.
  */
-const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' }[] = [
+const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' | null }[] = [
   { id: 'today', chemin: '/dashboard', label: 'Aujourd’hui', vague: 'A' },
   { id: 'nouvel-onglet', chemin: '/dashboard/nouvel-onglet', label: 'Nouvel onglet', vague: 'A' },
   { id: 'introuvable', chemin: '/dashboard/introuvable', label: 'Page introuvable', vague: 'A' },
@@ -118,6 +131,11 @@ const SURFACES: { id: string; chemin: string; label: string; vague: 'A' | 'B' }[
   { id: 'calendar', chemin: '/dashboard/calendar', label: 'Calendrier', vague: 'B' },
   { id: 'journey', chemin: '/dashboard/journey', label: 'Parcours', vague: 'B' },
   { id: 'audit', chemin: '/dashboard/audit', label: 'Audit', vague: 'B' },
+  // ⚠ HORS CHANTIER, donc sans vague : la Messagerie est née en MEGGA X (PR #1276).
+  // Elle est ici parce que c'est le seul endroit où la voir DANS la coquille —
+  // `/dev/messagerie` la monte sans fournisseur d'onglets, donc sans bande. Ses
+  // courriels sont les fixtures de ce banc-là (`MailFixturesContext`, plus bas).
+  { id: 'messagerie', chemin: '/dashboard/messagerie', label: 'Messagerie', vague: null },
 ]
 
 const ETATS: { id: BancEtat; label: string; titre: string }[] = [
@@ -167,7 +185,7 @@ function Commandes({ etat, setEtat, sansFixture }: {
         <>
           <div style={groupe}>
             {SURFACES.map((s) => (
-              <button key={s.id} type="button" title={`vague ${s.vague} · ${s.chemin}`}
+              <button key={s.id} type="button" title={s.vague ? `vague ${s.vague} · ${s.chemin}` : s.chemin}
                 onClick={() => navigate(s.chemin)} style={pilule(false)}>{s.label}</button>
             ))}
           </div>
@@ -288,6 +306,7 @@ const ROUTES_BANC = (
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="journey" element={<JourneyPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="messagerie" element={<MessagerieBanc />} />
         <Route path="audit" element={<AuditPage />} />
         <Route path="import-lead" element={<ImportLeadPage />} />
         <Route path="visits/new" element={<VisitNewPage />} />
@@ -428,12 +447,19 @@ export default function CrmShowcasePage() {
           levait « useLocation() may be used only in the context of a <Router> »
           et rendait un écran BLANC — que `tsc` et `eslint` voyaient verts. */}
       <AiPanelProvider>
+        {/* ⚠ La MESSAGERIE ne lit pas `window.fetch` en « Nominal » : ses hooks
+            répondent depuis les fixtures de `/dev/messagerie` (une boîte pleine),
+            un seul jeu de démonstration pour tous les bancs. En « Vide » et
+            « Échec », `null` les rend au réseau — donc à l'interception, qui
+            sert zéro ligne ou un 500 : les deux branches réelles de l'écran. */}
+        <MailFixturesContext.Provider value={etat === 'nominal' ? 'full' : null}>
         <Suspense fallback={null}>
           <RoutesBanc />
           {/* Au-dessus des routes, comme en production : le panneau persiste
               quand on passe d'une surface à l'autre depuis les commandes. */}
           <CopilotPanel />
         </Suspense>
+        </MailFixturesContext.Provider>
         <Commandes etat={etat} setEtat={setEtat} sansFixture={sansFixture} />
       </AiPanelProvider>
     </MemoryRouter>

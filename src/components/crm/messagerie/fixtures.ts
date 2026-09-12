@@ -48,8 +48,9 @@ export type MailFixtureState = 'full' | 'empty' | 'none'
  * L'état du banc, lu par les cinq hooks de lecture.
  *
  * `null` = pas de banc, donc les hooks parlent au réseau. C'est la valeur en
- * production : seule la page `/dev/messagerie`, absente du bundle hors DEV,
- * monte un `Provider`.
+ * production : seuls des bancs de développement montent un `Provider` —
+ * `/dev/messagerie`, la vue mobile de `/dev/mobile`, et `/dev/crm` en « Nominal »
+ * (la Messagerie DANS la coquille, avec sa bande d'onglets).
  */
 export const MailFixturesContext = createContext<MailFixtureState | null>(null)
 
