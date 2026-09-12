@@ -238,7 +238,13 @@ export function MessagerieApp({ dark, setDark }: Props) {
     <div style={{ position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font)', color: sp.ink }}>
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <CrmWorkspace active="messagerie" helpKey="messagerie" sp={sp} dark={dark} setDark={setDark}>
-        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
+        {/* ⚠ LES QUATRE GOUTTIÈRES DES AUTRES ÉCRANS — `lg` en haut et à gauche,
+            `7xl` à droite, `6xl` en bas (Aujourd'hui, Réglages, Calendrier,
+            Analytics). ⛔ Il manquait les deux premières : mesuré le 12.09.2026,
+            le cadre collait à la carte latérale (0 px au lieu de 12) et montait
+            sous la bande d'onglets (0 px au lieu de 12), 12 px plus haut que la
+            carte latérale qu'il est censé border. */}
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
           <div
             data-mail-bento
             style={{
