@@ -409,10 +409,10 @@
     {
       "id": "bg-white-classes",
       "section": "§3 — thème",
-      "phrase": "**6** occurrences de `bg-white` en `className`",
+      "phrase": "**2** occurrences de `bg-white` en `className`",
       "severite": "derive",
       "tolerance": 0.2,
-      "mesureLe": "2026-08-16",
+      "mesureLe": "2026-09-12",
       "mesure": {
         "motif": "bg-white",
         "mot": true,
@@ -424,7 +424,7 @@
         ]
       },
       "attendu": {
-        "occurrences": 6
+        "occurrences": 2
       },
       "note": "Cette prétention EST le cliquet : le §3 dit que la garde plafonne ce compte. Le voir monter est le seul signal qu'on repeint en dur."
     },
