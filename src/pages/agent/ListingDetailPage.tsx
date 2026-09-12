@@ -53,8 +53,9 @@ import { useMatching } from '@/hooks/useMatching'
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Property } from '@/types/listing'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 import { useTabLabel } from '@/hooks/useCrmTabs'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 const BF_MAXW = 1120 // largeur max de la colonne de contenu (bride le « trop large »)
 
@@ -297,12 +298,14 @@ function BfEditModal({
   useEffect(() => {
     if (open) setD({ title: bien.title, address: bien.address, price: bien.price ?? 0, description: bien.description ?? '' })
   }, [open, bien])
+  // ⛔ Écran caché muet : la modale reste montée derrière l'onglet regardé.
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (!open) return
+    if (!open || !ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open, onClose, ecranActif])
   if (!open) return null
   const set = <K extends keyof EditDraft>(k: K, v: EditDraft[K]) => setD(p => ({ ...p, [k]: v }))
   const sub = vx.cardSub
@@ -359,12 +362,13 @@ function BfVisitModal({
   const [day, setDay] = useState(0)
   const [time, setTime] = useState('14:00')
   const [who, setWho] = useState<string | null>(contacts[0]?.id ?? null)
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (!open) return
+    if (!open || !ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open, onClose, ecranActif])
   if (!open) return null
   const days: Date[] = []
   for (let i = 1; i <= 5; i++) {
@@ -451,13 +455,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
   const { t: tr } = useTranslation('listings')
 
   // Dark mode (clé localStorage partagée avec la galerie / la V3)
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
   const sp = crmPalette(dark) // cadre/shell (pageBg = Today/Pipeline)
   const vx = vxPalette(dark) // intérieur des cartes (palette vitrine)
 

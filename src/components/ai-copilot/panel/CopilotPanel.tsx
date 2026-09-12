@@ -28,22 +28,8 @@ import {
   PANEL_W, deriveAiPalette, packFor, screenLabel, parseSegments, detectEmailDraft, isAnnonceRequest, isLettreRequest, thinkingPhases,
   type AiPalette,
 } from './aiPanel'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDark } from '@/lib/crmDark'
 
-// ── Mode sombre Sugar (même clé localStorage que les pages) ─────────────────
-// Réactif : `storage` (cross-onglet) + relecture courte tant que le panneau est
-// ouvert (capte un toggle same-tab sans toucher au code partagé du rail).
-function usePanelDark(active: boolean): boolean {
-  const [dark, setDark] = useState(readCrmDark)
-  useEffect(() => {
-    const sync = () => setDark(readCrmDark())
-    window.addEventListener('storage', sync)
-    let id: number | undefined
-    if (active) id = window.setInterval(sync, 400)
-    return () => { window.removeEventListener('storage', sync); if (id) window.clearInterval(id) }
-  }, [active])
-  return dark
-}
 
 // ── Message ─────────────────────────────────────────────────────────────────
 interface PanelMsg {
@@ -807,7 +793,7 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, conversationId, c
 export default function CopilotPanel() {
   const { isOpen, screen, seed, close, consumeSeed, conversationId, consumeConversation } = useAiPanel()
   const { impersonating } = useImpersonate()
-  const dark = usePanelDark(isOpen)
+  const dark = useCrmDark()
   const sp = useMemo<AiPalette>(() => {
     const base = crmPalette(dark)
     return deriveAiPalette(base, dark)

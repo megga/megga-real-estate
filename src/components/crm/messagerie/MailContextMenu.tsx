@@ -18,6 +18,7 @@ import type { MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import type { MailThreadAction } from '@/hooks/useMailActions'
 import { MAIL_TRANSITION, type MailSurfaces } from './mailTokens'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 interface Props {
   ms: MailSurfaces
@@ -39,7 +40,10 @@ const MARGE_BAS = 320
 export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onAction, onDelete, onLabel }: Props) {
   const { t } = useTranslation('messages')
   const ref = useRef<HTMLDivElement>(null)
+  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose() }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('mousedown', onDoc)
@@ -50,7 +54,7 @@ export function MailContextMenu({ ms, x, y, row, labels, onClose, onOpen, onActi
       document.removeEventListener('contextmenu', onDoc)
       window.removeEventListener('keydown', onKey)
     }
-  }, [onClose])
+  }, [onClose, ecranActif])
 
   const item = (label: string, fn: () => void, opts: { danger?: boolean; dot?: string } = {}) => (
     <button

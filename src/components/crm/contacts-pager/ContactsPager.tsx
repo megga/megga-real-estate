@@ -24,6 +24,7 @@ import { crmInitials } from '@/components/crm/tokens'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 import { CTP_FN, FN_BUYER_INK } from '@/components/crm/contacts-pager/ctpTokens'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
+import { useEcranActifRef } from '@/hooks/useEcranActif'
 
 type Audience = 'buyer' | 'seller' | 'tenant'
 
@@ -680,6 +681,7 @@ export default function ContactsPager({
 
   useEffect(() => { pageRef.current = page; animateTo(page) }, [page, animateTo])
 
+  const ecranActifRef = useEcranActifRef()
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
@@ -716,6 +718,8 @@ export default function ContactsPager({
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     const onKey = (e: KeyboardEvent) => {
+      // ⛔ Écran vivant mais caché : il ne vole pas les flèches à l'écran montré.
+      if (!ecranActifRef.current) return
       if (modalOpenRef.current || monoRef.current) return
       const tag = (e.target && (e.target as HTMLElement).tagName) || ''
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && (e.target as HTMLElement).isContentEditable)) return
@@ -738,7 +742,7 @@ export default function ContactsPager({
       el.removeEventListener('touchstart', onTS)
       el.removeEventListener('touchmove', onTM)
     }
-  }, [go])
+  }, [go, ecranActifRef])
 
   return (
     <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>

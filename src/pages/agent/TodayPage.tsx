@@ -17,7 +17,7 @@
 //   - molette / flèches clavier / swipe tactile / points latéraux / indice molette
 //   - applyTK(dark) « allume » l'ambiance du cockpit (et la modale Détail du match)
 
-import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
+import { useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
@@ -28,7 +28,8 @@ import { TodayNavProvider } from '@/components/crm/today/TodayNavContext'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { PageAujourdhuiH } from '@/components/crm/today/PageAujourdhuiH'
 import { PageCatalogue } from '@/components/crm/today/PageCatalogue'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
+import { useEcranActifRef } from '@/hooks/useEcranActif'
 
 // `labelKey` = clé i18n stable (namespace dashboard) ; le libellé est traduit
 // chez le consommateur (cf. § conventions i18n — module statique, pas de hook).
@@ -107,15 +108,7 @@ export default function TodayPage() {
   const navigate = useNavigate()
 
   // ─── Theme: dark/light, tied to the icon-rail toggle ─────────────────
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-    }
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
 
   const sp = crmPalette(dark)
   // « allume » / éteint tout le cockpit selon l'ambiance (singleton muté en place).
@@ -213,6 +206,7 @@ export default function TodayPage() {
   // Anime vers la page courante à chaque changement + tient pageRef à jour.
   useEffect(() => { pageRef.current = page; animateTo(page) }, [page, animateTo])
 
+  const ecranActifRef = useEcranActifRef()
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
@@ -273,6 +267,8 @@ export default function TodayPage() {
     el.addEventListener('wheel', onWheel, { passive: false })
 
     const onKey = (e: KeyboardEvent) => {
+      // ⛔ Écran vivant mais caché : il ne vole pas les flèches à l'écran montré.
+      if (!ecranActifRef.current) return
       const tag = (e.target && (e.target as HTMLElement).tagName) || ''
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && (e.target as HTMLElement).isContentEditable)) return
       if (['ArrowDown', 'PageDown'].includes(e.key)) { e.preventDefault(); if (!lock.current) { lock.current = true; go(1); setTimeout(() => { lock.current = false }, 850) } }
@@ -296,7 +292,7 @@ export default function TodayPage() {
       el.removeEventListener('touchstart', onTS)
       el.removeEventListener('touchmove', onTM)
     }
-  }, [go])
+  }, [go, ecranActifRef])
 
   return (
     <TodayNavProvider value={{ navigate: onNavigate, goToPage: goTo }}>

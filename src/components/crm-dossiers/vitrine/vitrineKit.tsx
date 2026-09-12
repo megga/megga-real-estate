@@ -10,6 +10,7 @@ import { galStatus } from '@/components/crm/biens/gallery/galHelpers'
 // Palette + formatters déplacés dans vitrineTokens.ts (contrainte Fast
 // Refresh : ce fichier n'exporte que des composants). Voir son en-tête.
 import { vxPalette } from './vitrineTokens'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 // ─── Icônes ──────────────────────────────────────────────────────────────
 export type VxIconName =
@@ -382,8 +383,10 @@ export function VxLightbox({
   /** Clippé à son parent positionné (le bento fiche) au lieu du plein écran. */
   contained?: boolean
 }) {
+  // ⛔ Écran caché muet : ←/→ changeaient la photo d'une galerie invisible.
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (!open) return
+    if (!open || !ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
       else if (e.key === 'ArrowRight') onIndex((index + 1) % count)
@@ -391,7 +394,7 @@ export function VxLightbox({
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, index, count, onClose, onIndex])
+  }, [open, index, count, onClose, onIndex, ecranActif])
   if (!open) return null
   const navBtn = (dir: 'prev' | 'next', name: VxIconName) => (
     <button

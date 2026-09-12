@@ -1,7 +1,7 @@
 /**
  * La vue PARTAGÉE de la bande d'onglets, et le défaut qu'elle retire.
  *
- * Trois barres sont montées en même temps (un `CrmWorkspace` par écran vivant),
+ * Plusieurs barres sont montées en même temps (un `CrmWorkspace` par écran vivant),
  * une seule visible. Ce fichier éprouve les deux valeurs qui ne sont pas des
  * états d'écran mais des états de la bande — la largeur mesurée et le cadrage —
  * et la SÉQUENCE qui les faisait diverger d'une barre à l'autre.
@@ -42,7 +42,7 @@ describe('crmStripView — une seule vue pour toutes les bandes montées', () =>
     const avant = crmStripView()
     setCrmStripLargeur(1280)
     // Même RÉFÉRENCE : `useSyncExternalStore` compare par identité, un objet
-    // neuf à valeur égale rendrait les trois barres à chaque mesure stable.
+    // neuf à valeur égale rendrait toutes les barres à chaque mesure stable.
     expect(crmStripView()).toBe(avant)
   })
 

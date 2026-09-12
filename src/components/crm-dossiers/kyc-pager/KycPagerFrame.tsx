@@ -16,6 +16,7 @@ import { type KypSurf } from './kypTokens'
 import { KycListPage } from './KycListPage'
 import { KycVigiePage } from './KycVigiePage'
 import { KycFicheStrict } from './KycFicheStrict'
+import { useEcranActifRef } from '@/hooks/useEcranActif'
 
 const KYP_PAGES = [
   { id: 'liste', label: 'Dossiers KYC' },
@@ -217,6 +218,7 @@ export function KycPagerFrame({
     animateTo(page)
   }, [page, animateTo])
 
+  const ecranActifRef = useEcranActifRef()
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
@@ -260,6 +262,8 @@ export function KycPagerFrame({
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     const onKey = (e: KeyboardEvent) => {
+      // ⛔ Écran vivant mais caché : il ne vole pas les flèches à l'écran montré.
+      if (!ecranActifRef.current) return
       if (wizRef.current) return
       const tag = (e.target as HTMLElement)?.tagName || ''
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target as HTMLElement)?.isContentEditable) return
@@ -304,7 +308,7 @@ export function KycPagerFrame({
       el.removeEventListener('touchstart', onTS)
       el.removeEventListener('touchmove', onTM)
     }
-  }, [go])
+  }, [go, ecranActifRef])
 
   return (
     <>

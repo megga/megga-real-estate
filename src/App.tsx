@@ -8,11 +8,11 @@
  * Route racine « / » → /dashboard.
  */
 import { lazy, Suspense } from 'react'
-import { importAvecReprise } from '@/lib/staleChunkRecovery'
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import ResponsiveRoute from '@/components/crm-mobile/shell/ResponsiveRoute'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/queryClients'
+import { ROUTER_FUTURE } from '@/lib/routerFuture'
 import { AuthProvider } from '@/hooks/useAuth'
 import { AiPanelProvider } from '@/hooks/useAiPanel'
 
@@ -46,12 +46,12 @@ import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 // PxSocialIcon/PxWhatsAppButton + PX.* tokens), used across the CRM.
 
 // Sprint 4.7.C — Parcours client KYC Magic Link (public, sans compte MEGGA)
-const KycPublicPage = lazy(() => importAvecReprise(() => import('@/pages/public/KycPublicPage')))
-const AppointmentManagePage = lazy(() => importAvecReprise(() => import('@/pages/public/AppointmentManagePage')))
+const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
+const AppointmentManagePage = lazy(() => import('@/pages/public/AppointmentManagePage'))
 // Réception acheteur — page publique par token (boucle de match, refonte juil. 2026)
-const BuyerReceptionPage = lazy(() => importAvecReprise(() => import('@/pages/public/BuyerReceptionPage')))
+const BuyerReceptionPage = lazy(() => import('@/pages/public/BuyerReceptionPage'))
 // Sprint 4.7.D — Rendu PDF tokenisé pour Cloudflare Browser Rendering (rapport KYC WhatsApp)
-const KycReportRenderPage = lazy(() => importAvecReprise(() => import('@/pages/public/KycReportRenderPage')))
+const KycReportRenderPage = lazy(() => import('@/pages/public/KycReportRenderPage'))
 
 // Auth — lazy car secondary path.
 // Le MODAL DE CONNEXION est désormais servi par la vitrine (getmegga.com/login,
@@ -59,99 +59,99 @@ const KycReportRenderPage = lazy(() => importAvecReprise(() => import('@/pages/p
 // (retour OAuth/e-mail) et /auth/forgot-password/reset (cible des e-mails de
 // réinitialisation envoyés par la vitrine). Les écrans de login/signup internes
 // (ancienne direction) redirigent vers la vitrine — voir VitrineLoginRedirect.
-const AuthCallbackPage = lazy(() => importAvecReprise(() => import('@/pages/public/AuthCallbackPage')))
+const AuthCallbackPage = lazy(() => import('@/pages/public/AuthCallbackPage'))
 const AuthSetNewPasswordPage = lazy(() =>
   import('@/pages/public/AuthBentoPage').then((m) => ({ default: m.AuthSetNewPasswordPage })),
 )
 
 // Layout shells agent — lazy car ils ne wrappent que les routes dashboard
-const AgentLayout = lazy(() => importAvecReprise(() => import('@/components/layout/AgentLayout')))
+const AgentLayout = lazy(() => import('@/components/layout/AgentLayout'))
 // Étape 5 KYB, tâche 4 — garde LAB plein sur les routes kyc/* (layout-route, aucun path propre).
-const KycLabGuard = lazy(() => importAvecReprise(() => import('@/components/layout/KycLabGuard')))
+const KycLabGuard = lazy(() => import('@/components/layout/KycLabGuard'))
 
 // CRM mobile (responsive < 768px) — branché par écran via ResponsiveRoute
-const MobileMorePage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/more/MobileMorePage')))
-const MobileTodayPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/today/MobileTodayPage')))
-const MobilePipelinePage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/pipeline/MobilePipelinePage')))
-const MobileDealDetailPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/deal/MobileDealDetailPage')))
-const MobileMatchingPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/matching/MobileMatchingPage')))
-const MobileAgendaPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/agenda/MobileAgendaPage')))
-const MobileBiensPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/biens/MobileBiensPage')))
-const MobileBienVitrinePage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/bien/MobileBienVitrinePage')))
-const MobileWizardPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/wizard/MobileWizardPage')))
-const MobileContactsListPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/contacts/MobileContactsListPage')))
-const MobileNewContactPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/contacts/MobileNewContactPage')))
-const MobileContactDetailPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/contacts/MobileContactDetailPage')))
-const MobileAnalyticsPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/analytics/MobileAnalyticsPage')))
-const MobileJourneyPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/journey/MobileJourneyPage')))
-const MobileKycListPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/kyc/MobileKycListPage')))
-const MobileKycDetailPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/kyc/MobileKycDetailPage')))
-const MobileSettingsPage = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/settings/MobileSettingsPage')))
+const MobileMorePage = lazy(() => import('@/components/crm-mobile/more/MobileMorePage'))
+const MobileTodayPage = lazy(() => import('@/components/crm-mobile/today/MobileTodayPage'))
+const MobilePipelinePage = lazy(() => import('@/components/crm-mobile/pipeline/MobilePipelinePage'))
+const MobileDealDetailPage = lazy(() => import('@/components/crm-mobile/deal/MobileDealDetailPage'))
+const MobileMatchingPage = lazy(() => import('@/components/crm-mobile/matching/MobileMatchingPage'))
+const MobileAgendaPage = lazy(() => import('@/components/crm-mobile/agenda/MobileAgendaPage'))
+const MobileBiensPage = lazy(() => import('@/components/crm-mobile/biens/MobileBiensPage'))
+const MobileBienVitrinePage = lazy(() => import('@/components/crm-mobile/bien/MobileBienVitrinePage'))
+const MobileWizardPage = lazy(() => import('@/components/crm-mobile/wizard/MobileWizardPage'))
+const MobileContactsListPage = lazy(() => import('@/components/crm-mobile/contacts/MobileContactsListPage'))
+const MobileNewContactPage = lazy(() => import('@/components/crm-mobile/contacts/MobileNewContactPage'))
+const MobileContactDetailPage = lazy(() => import('@/components/crm-mobile/contacts/MobileContactDetailPage'))
+const MobileAnalyticsPage = lazy(() => import('@/components/crm-mobile/analytics/MobileAnalyticsPage'))
+const MobileJourneyPage = lazy(() => import('@/components/crm-mobile/journey/MobileJourneyPage'))
+const MobileKycListPage = lazy(() => import('@/components/crm-mobile/kyc/MobileKycListPage'))
+const MobileKycDetailPage = lazy(() => import('@/components/crm-mobile/kyc/MobileKycDetailPage'))
+const MobileSettingsPage = lazy(() => import('@/components/crm-mobile/settings/MobileSettingsPage'))
 
 // Auth widgets — montés tardivement, peuvent être lazy
-const FavoritesLoginPrompt = lazy(() => importAvecReprise(() => import('@/components/auth/FavoritesLoginPrompt')))
+const FavoritesLoginPrompt = lazy(() => import('@/components/auth/FavoritesLoginPrompt'))
 // Intercom Messenger — support unique (boote globalement, anonyme puis identifié)
-const IntercomMessenger = lazy(() => importAvecReprise(() => import('@/components/IntercomMessenger')))
+const IntercomMessenger = lazy(() => import('@/components/IntercomMessenger'))
 
 // Secondary public pages conservées dans l'app CRM.
 // Marketplace publique + ancien site marketing (About, Contact, Sell, Estimates,
 // Services, Publish, Privacy, Agents, Agencies, Blog) + direction Property X :
 // EXTRAITS du repo (2026-06-08) et archivés hors GitHub. Ces URLs redirigent
 // désormais vers la nouvelle vitrine (MarketplaceDisabledRedirect → getmegga.com).
-const ResetPasswordPage = lazy(() => importAvecReprise(() => import('@/pages/public/ResetPasswordPage')))
-const NotFoundPage = lazy(() => importAvecReprise(() => import('@/pages/public/NotFoundPage')))
-const PrivacyPage = lazy(() => importAvecReprise(() => import('@/pages/public/PrivacyPage')))
-const VisitManagePage = lazy(() => importAvecReprise(() => import('@/pages/public/VisitManagePage')))
-const VisitFeedbackPage = lazy(() => importAvecReprise(() => import('@/pages/public/VisitFeedbackPage')))
-const TodayPage = lazy(() => importAvecReprise(() => import('@/pages/agent/TodayPage')))
+const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
+const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
+const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
+const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
+const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
+const TodayPage = lazy(() => import('@/pages/agent/TodayPage'))
 
 // Lazy-loaded agent pages
-const AnalyticsPage = lazy(() => importAvecReprise(() => import('@/pages/agent/AnalyticsPage')))
-const ContactDetailPage = lazy(() => importAvecReprise(() => import('@/pages/agent/ContactDetailPage')))
-const PipelinePage = lazy(() => importAvecReprise(() => import('@/pages/agent/PipelinePage')))
-const ContactsPage = lazy(() => importAvecReprise(() => import('@/pages/agent/ContactsPage')))
-const ListingsPage = lazy(() => importAvecReprise(() => import('@/pages/agent/ListingsPage')))
+const AnalyticsPage = lazy(() => import('@/pages/agent/AnalyticsPage'))
+const ContactDetailPage = lazy(() => import('@/pages/agent/ContactDetailPage'))
+const PipelinePage = lazy(() => import('@/pages/agent/PipelinePage'))
+const ContactsPage = lazy(() => import('@/pages/agent/ContactsPage'))
+const ListingsPage = lazy(() => import('@/pages/agent/ListingsPage'))
 // Sprint 2 — Sugar v3 (port pixel-près handoff Bien + Deal + Visite)
-const ListingDetailPage = lazy(() => importAvecReprise(() => import('@/pages/agent/ListingDetailPage')))
-const DealDetailPage = lazy(() => importAvecReprise(() => import('@/pages/agent/DealDetailPage')))
-const OfferPage = lazy(() => importAvecReprise(() => import('@/pages/agent/OfferPage')))
-const VisitNewPage = lazy(() => importAvecReprise(() => import('@/pages/agent/VisitNewPage')))
-const VisitDetailPage = lazy(() => importAvecReprise(() => import('@/pages/agent/VisitDetailPage')))
+const ListingDetailPage = lazy(() => import('@/pages/agent/ListingDetailPage'))
+const DealDetailPage = lazy(() => import('@/pages/agent/DealDetailPage'))
+const OfferPage = lazy(() => import('@/pages/agent/OfferPage'))
+const VisitNewPage = lazy(() => import('@/pages/agent/VisitNewPage'))
+const VisitDetailPage = lazy(() => import('@/pages/agent/VisitDetailPage'))
 // VisitCompanionPage removed — the mobile companion view contained only
 // non-functional UI (mic recording / photo capture / signature / sentiment
 // cards with no persistence). The route + page were removed; real on-site
 // visit capture is a separate sprint.
 // Sprint 3 — Import Lead IA (Sugar plein écran 2 étapes, extraction Claude)
-const ImportLeadPage = lazy(() => importAvecReprise(() => import('@/pages/agent/ImportLeadPage')))
-const MatchingPage = lazy(() => importAvecReprise(() => import('@/pages/agent/MatchingPage')))
-const JourneyPage = lazy(() => importAvecReprise(() => import('@/pages/agent/JourneyPage')))
-const NewTabPage = lazy(() => importAvecReprise(() => import('@/pages/agent/NewTabPage')))
-const DashboardNotFoundPage = lazy(() => importAvecReprise(() => import('@/pages/agent/DashboardNotFoundPage')))
-const CalendarPage = lazy(() => importAvecReprise(() => import('@/pages/agent/CalendarPage')))
+const ImportLeadPage = lazy(() => import('@/pages/agent/ImportLeadPage'))
+const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
+const JourneyPage = lazy(() => import('@/pages/agent/JourneyPage'))
+const NewTabPage = lazy(() => import('@/pages/agent/NewTabPage'))
+const DashboardNotFoundPage = lazy(() => import('@/pages/agent/DashboardNotFoundPage'))
+const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 // Messagerie (boîte mail intégrée) — l'écran, son mobile minimal (D16) et le
 // retour d'autorisation de la pop-up OAuth.
-const MessageriePage = lazy(() => importAvecReprise(() => import('@/pages/agent/MessageriePage')))
-const MobileMessagerieScreen = lazy(() => importAvecReprise(() => import('@/components/crm-mobile/messagerie/MobileMessagerieScreen')))
-const MailOAuthCallbackPage = lazy(() => importAvecReprise(() => import('@/pages/agent/MailOAuthCallbackPage')))
-const SettingsPage = lazy(() => importAvecReprise(() => import('@/pages/agent/SettingsPage')))
-const ListingFormPage = lazy(() => importAvecReprise(() => import('@/pages/agent/ListingFormPage')))
-const ListingWizardPage = lazy(() => importAvecReprise(() => import('@/pages/agent/ListingWizardPage')))
-const KycPage = lazy(() => importAvecReprise(() => import('@/pages/agent/KycPage')))
+const MessageriePage = lazy(() => import('@/pages/agent/MessageriePage'))
+const MobileMessagerieScreen = lazy(() => import('@/components/crm-mobile/messagerie/MobileMessagerieScreen'))
+const MailOAuthCallbackPage = lazy(() => import('@/pages/agent/MailOAuthCallbackPage'))
+const SettingsPage = lazy(() => import('@/pages/agent/SettingsPage'))
+const ListingFormPage = lazy(() => import('@/pages/agent/ListingFormPage'))
+const ListingWizardPage = lazy(() => import('@/pages/agent/ListingWizardPage'))
+const KycPage = lazy(() => import('@/pages/agent/KycPage'))
 // Refonte KYC (handoff) — onboarding « Première ouverture » (empty-state).
-const KycOnboardingPage = lazy(() => importAvecReprise(() => import('@/pages/agent/KycOnboardingPage')))
+const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))
 // Sprint 4.4 — Export PDF dossier KYC (route print-friendly, hors layout agent)
-const KycExportPage = lazy(() => importAvecReprise(() => import('@/pages/agent/KycExportPage')))
+const KycExportPage = lazy(() => import('@/pages/agent/KycExportPage'))
 // Étape 2 KYB — gate identité légale (/dashboard/identite). Desktop : coquille
 // du wizard (IdentityPage, tâche 3 le remplit). Mobile : invitation à
 // terminer sur ordinateur (IdentityMobileNotice), hors périmètre v1.
-const IdentityPage = lazy(() => importAvecReprise(() => import('@/pages/agent/IdentityPage')))
-const IdentityMobileNotice = lazy(() => importAvecReprise(() => import('@/pages/agent/IdentityMobileNotice')))
+const IdentityPage = lazy(() => import('@/pages/agent/IdentityPage'))
+const IdentityMobileNotice = lazy(() => import('@/pages/agent/IdentityMobileNotice'))
 // Étape 3 KYB — suite immédiate du wizard d'identité : réserver l'appel d'accueil
 // avec l'équipe MEGGA. Écran passable, jamais bloquant.
-const OnboardingCallPage = lazy(() => importAvecReprise(() => import('@/pages/agent/OnboardingCallPage')))
-const OnboardingCallManagePage = lazy(() => importAvecReprise(() => import('@/pages/public/OnboardingCallManagePage')))
-const AuditPage = lazy(() => importAvecReprise(() => import('@/pages/agent/AuditPage')))
-const MeggaXStyleGuidePage = lazy(() => importAvecReprise(() => import('@/pages/dev/MeggaXStyleGuidePage')))
+const OnboardingCallPage = lazy(() => import('@/pages/agent/OnboardingCallPage'))
+const OnboardingCallManagePage = lazy(() => import('@/pages/public/OnboardingCallManagePage'))
+const AuditPage = lazy(() => import('@/pages/agent/AuditPage'))
+const MeggaXStyleGuidePage = lazy(() => import('@/pages/dev/MeggaXStyleGuidePage'))
 // ⛔ LES SEPT BANCS RESTANTS PASSENT AU TERNAIRE (15 août 2026). Mesuré au lot 3a :
 // ils avaient un chunk dans `dist/assets/` et une route déclarée — donc joignables
 // sur app.getmegga.com, dont `/dev/sentry-test`, qui DÉCLENCHE des erreurs Sentry. Un
@@ -167,31 +167,31 @@ const MeggaXStyleGuidePage = lazy(() => importAvecReprise(() => import('@/pages/
 // seule route de design system survivante (CLAUDE.md §3), et elle est servie
 // délibérément.
 const SentryTestPage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/SentryTestPage')))
+  ? lazy(() => import('@/pages/dev/SentryTestPage'))
   : () => null
 const MatchingShowcasePage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/MatchingShowcasePage')))
+  ? lazy(() => import('@/pages/dev/MatchingShowcasePage'))
   : () => null
 const MobileShowcasePage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/MobileShowcasePage')))
+  ? lazy(() => import('@/pages/dev/MobileShowcasePage'))
   : () => null
 const BiensShowcasePage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/BiensShowcasePage')))
+  ? lazy(() => import('@/pages/dev/BiensShowcasePage'))
   : () => null
 const ContactsShowcasePage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/ContactsShowcasePage')))
+  ? lazy(() => import('@/pages/dev/ContactsShowcasePage'))
   : () => null
 const PipelineShowcasePage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/PipelineShowcasePage')))
+  ? lazy(() => import('@/pages/dev/PipelineShowcasePage'))
   : () => null
 const ModalesShowcasePage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/ModalesShowcasePage')))
+  ? lazy(() => import('@/pages/dev/ModalesShowcasePage'))
   : () => null
 // Banc de la Messagerie — même ternaire, même raison que les sept gelés le
 // 15 août 2026 : un `lazy()` nu émettrait un chunk et servirait le banc sur
 // app.getmegga.com (`dev-bancs-frontiere.spec.ts` le mesure).
 const MessagerieShowcasePage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/MessagerieShowcasePage')))
+  ? lazy(() => import('@/pages/dev/MessagerieShowcasePage'))
   : () => null
 // ⛔ CONDITIONNÉ AU MODE DEV, comme `/dev/crm`, et pour la MÊME raison : ce banc
 // appelle `installerBanc()`, qui remplace `window.fetch` pour TOUTE la session.
@@ -199,7 +199,7 @@ const MessagerieShowcasePage = import.meta.env.DEV
 // la couche de données de l'application entière. Les autres bancs ne montrent que
 // des maquettes ; celui-ci monte les écrans RÉELS avec un intercepteur.
 const PublicShowcasePage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/PublicShowcasePage')))
+  ? lazy(() => import('@/pages/dev/PublicShowcasePage'))
   : () => null
 // Aperçu du parcours d'onboarding — DEV seulement (cf. sa route plus bas, et son
 // en-tête pour les trois murs qui rendent ce parcours autrement inatteignable).
@@ -208,7 +208,7 @@ const PublicShowcasePage = import.meta.env.DEV
 // d'être émis. Un `lazy()` inconditionnel, lui, produisait bien un
 // `OnboardingPreviewPage-*.js` dans dist/ — jamais chargé, mais livré.
 const OnboardingPreviewPage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/OnboardingPreviewPage')))
+  ? lazy(() => import('@/pages/dev/OnboardingPreviewPage'))
   : () => null
 // Banc de la console super-admin — DEV seulement, même ternaire et même raison.
 // ⚠ Il s'écarte des autres bancs (`/dev/pipeline`, `/dev/biens`), qui sont
@@ -217,7 +217,7 @@ const OnboardingPreviewPage = import.meta.env.DEV
 // sécurité. Le servir publiquement inviterait la question « est-ce réel ? » et
 // donnerait la carte de la surface super-admin à un visiteur.
 const AdminShowcasePage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/AdminShowcasePage')))
+  ? lazy(() => import('@/pages/dev/AdminShowcasePage'))
   : () => null
 // Banc du CRM agent — DEV seulement, même ternaire. Il monte les dix surfaces
 // `/dashboard` qu'il reste à porter en MEGGA X, et il SÈME une session dans le
@@ -225,15 +225,15 @@ const AdminShowcasePage = import.meta.env.DEV
 // coquille, KycLabGuard). Semer une session n'a aucune excuse dans un bundle
 // déployé — c'est ce qui décide le gel, avant même les écrans de conformité.
 const CrmShowcasePage = import.meta.env.DEV
-  ? lazy(() => importAvecReprise(() => import('@/pages/dev/CrmShowcasePage')))
+  ? lazy(() => import('@/pages/dev/CrmShowcasePage'))
   : () => null
 // MEGGA AI — panneau docké monté AU-DESSUS de <Routes>, hors de l'arbre de routage
 // pour survivre au remount de navigation : le panneau + la conversation
 // persistent d'une page à l'autre (suivi de contexte, chantier 5).
-const CopilotPanel = lazy(() => importAvecReprise(() => import('@/components/ai-copilot/panel/CopilotPanel')))
-const ExternalListingDetailPage = lazy(() => importAvecReprise(() => import('@/pages/agent/ExternalListingDetailPage')))
+const CopilotPanel = lazy(() => import('@/components/ai-copilot/panel/CopilotPanel'))
+const ExternalListingDetailPage = lazy(() => import('@/pages/agent/ExternalListingDetailPage'))
 
-const AcceptInvitePage = lazy(() => importAvecReprise(() => import('@/pages/public/AcceptInvitePage')))
+const AcceptInvitePage = lazy(() => import('@/pages/public/AcceptInvitePage'))
 // Compte ACHETEUR retiré (pivot CRM-first) — page + composants archivés hors
 // repo le 2026-06-08. /account → /dashboard. market_listings ne sert plus que
 // le Matching agent.
@@ -250,11 +250,9 @@ const AcceptInvitePage = lazy(() => importAvecReprise(() => import('@/pages/publ
 
 // Defensive defaults for a reliable UX after long idles / sleep / wake:
 //
-// ⛔ LES DEUX CLIENTS VIVENT DANS `src/lib/queryClients.ts` DEPUIS LE 07.09.2026,
-// et le déménagement n'est pas cosmétique : il en fallait un SECOND, partageant
-// le même cache, pour que les écrans vivants mais CACHÉS ne relancent pas toutes
-// leurs requêtes au retour sur la page. Les défauts, leur justification et le
-// risque résiduel de la bascule sont écrits là-bas.
+// Le client React Query et ses défauts vivent dans `src/lib/queryClients.ts` :
+// leur justification — et la garde des écrans vivants mais cachés, qui en dépend
+// (`gcTime`) — y est écrite une seule fois.
 
 /**
  * `<AppRoutes>` rend la table de routage TELLE QUELLE : aucune clé sur
@@ -350,7 +348,7 @@ function VitrineLoginRedirect() {
  * composant avait été démonté et reconstruit, et avec lui les ~24 positions
  * d'écran que `useTabScopedState` ne porte pas.
  *
- * Garder trois écrans vivants demande de rendre PLUSIEURS emplacements en même
+ * Garder des écrans vivants demande de rendre PLUSIEURS emplacements en même
  * temps, chacun sur SA localisation. C'est ce que fait `<Routes location=…>`, et
  * il lui faut une table réutilisable — d'où cette constante, passée à
  * `AgentLayout` et rendue une fois par onglet vivant (voir `EcransVivants`).
@@ -814,7 +812,7 @@ export default function App() {
     return <BancCrmAgent />
   }
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <BrowserRouter future={ROUTER_FUTURE}>
       <StaleBundleDetector />
       <QueryClientProvider client={queryClient}>
         <AuthProvider>

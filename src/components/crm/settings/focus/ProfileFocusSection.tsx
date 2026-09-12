@@ -17,6 +17,7 @@ import { pfColors, PF_KEYFRAMES } from './pfKitCore'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
 import { formatInternationalPhone } from '@/lib/countries'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 // Clés éditables = clés string de ProfileData rendues par la section.
 type ProfileRowKey =
@@ -92,14 +93,16 @@ export function ProfileFocusSection({ sp, surf, dark, onGoToSection }: FocusSect
   const [info, setInfo] = useState(false)
   const infoRef = useRef<HTMLDivElement>(null)
 
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (!info) return
+    // ⛔ Écran caché muet (keepalive des onglets).
+    if (!info || !ecranActif) return
     const onDoc = (e: MouseEvent) => { if (infoRef.current && !infoRef.current.contains(e.target as Node)) setInfo(false) }
     const onEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') setInfo(false) }
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('keydown', onEsc)
     return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onEsc) }
-  }, [info])
+  }, [info, ecranActif])
 
   const editLabels: PfEditLabels = useMemo(() => ({
     saved: t('focus.common.saved'), add: t('focus.common.add'), edit: t('focus.common.edit'),

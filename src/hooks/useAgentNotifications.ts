@@ -6,11 +6,13 @@
 // - RLS : `events_select` scope déjà à l'agence (agency_id = get_my_agency_id()).
 // - Filtre `actor_kind <> 'user'` → couvert par l'index partiel
 //   idx_activity_events_actor_kind (agency_id, actor_kind, created_at DESC).
-// - Realtime : pattern useId() obligatoire (cf. useAdminLiveFeed) — sinon crash au re-mount.
+// - Realtime : UN abonnement pour toute la coquille (`useAgentNotificationsRealtime`,
+//   monté une fois dans AgentLayout), pattern useId() obligatoire — sinon crash au re-mount.
 // - État « non lu » : activity_events est immuable (audit nLPD) → on suit un
-//   last-seen + un set d'ids lus en localStorage (le point rouge, pas l'audit).
+//   last-seen + un set d'ids lus en localStorage (le point rouge, pas l'audit),
+//   PARTAGÉS par toutes les cloches montées (voir `etatLu`).
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useSyncExternalStore } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { CrmNotif, NotifKind, NotifPriority, NotifGroup } from '@/components/crm/notifications/data'
 
@@ -113,6 +115,44 @@ function loadLastSeen(): number {
   }
 }
 
+/**
+ * L'état « lu » — UN pour toutes les cloches montées.
+ *
+ * ⛔ IL VIVAIT EN `useState` DANS CHAQUE INSTANCE, lu une fois au montage, et la
+ * cloche est rendue par chaque bande d'onglets — donc par chaque écran vivant.
+ * Mesuré le 12 septembre 2026 (rejeu jsdom) : « tout marquer lu » dans une bande
+ * laissait le badge des autres intact, et un `markRead` fait dans une bande restée
+ * montée réécrivait la clé depuis SON ensemble périmé — effaçant les lectures
+ * faites ailleurs entre-temps. Un magasin de module lu par `useSyncExternalStore`
+ * n'a pas de copie à laisser périmer ; l'événement `storage` y fait entrer les
+ * lectures faites dans un autre onglet du navigateur.
+ */
+let etatLu: { readIds: Set<string>; lastSeen: number } | null = null
+const abonnesLu = new Set<() => void>()
+
+function lireEtatLu(): { readIds: Set<string>; lastSeen: number } {
+  if (!etatLu) etatLu = { readIds: loadReadIds(), lastSeen: loadLastSeen() }
+  return etatLu
+}
+
+function poserEtatLu(suivant: { readIds: Set<string>; lastSeen: number }): void {
+  etatLu = suivant
+  for (const notifier of abonnesLu) notifier()
+}
+
+function abonnerEtatLu(notifier: () => void): () => void {
+  abonnesLu.add(notifier)
+  const onStorage = (e: StorageEvent) => {
+    if (e.key !== READ_IDS_KEY && e.key !== LAST_SEEN_KEY) return
+    poserEtatLu({ readIds: loadReadIds(), lastSeen: loadLastSeen() })
+  }
+  window.addEventListener('storage', onStorage)
+  return () => {
+    abonnesLu.delete(notifier)
+    window.removeEventListener('storage', onStorage)
+  }
+}
+
 export interface AgentNotifications {
   items: CrmNotif[]
   unreadCount: number
@@ -124,26 +164,11 @@ export interface AgentNotifications {
 /**
  * Centre de notifications agent : dérive des `CrmNotif` depuis les
  * `activity_events` non-utilisateur, avec compteur non-lu (last-seen + set
- * localStorage) et rafraîchissement Realtime. `limit` borne la lecture.
- *
- * ⛔ `abonne` N'EST PAS UN CONFORT — il est la contrepartie des écrans vivants.
- * La cloche vit dans la bande d'onglets, et la bande est rendue par CHAQUE écran
- * (le chrome est per-page par conception). Six écrans vivants, c'est donc six
- * instances de ce hook. La REQUÊTE, elle, ne coûte qu'une fois : React Query la
- * déduplique sur `['agent-notifications', limit]`. Le CANAL Realtime, non — il
- * porte un `useId()`, donc six abonnements distincts sur le même INSERT, et six
- * invalidations identiques à chaque écriture d'`activity_events`.
- *
- * Un seul écran est visible à la fois : seule sa bande s'abonne. Les cinq autres
- * lisent le cache partagé, qu'elles verront rafraîchi comme les autres — et
- * quand l'une d'elles devient visible, elle s'abonne à son tour et sa première
- * lecture vient du même cache, sans requête.
+ * localStorage). `limit` borne la lecture. Le rafraîchissement temps réel est
+ * porté UNE fois par la coquille — voir `useAgentNotificationsRealtime`.
  */
-export function useAgentNotifications(limit = 30, abonne = true): AgentNotifications {
-  const queryClient = useQueryClient()
-  const channelId = useId()
-  const [readIds, setReadIds] = useState<Set<string>>(() => loadReadIds())
-  const [lastSeen, setLastSeen] = useState<number>(() => loadLastSeen())
+export function useAgentNotifications(limit = 30): AgentNotifications {
+  const { readIds, lastSeen } = useSyncExternalStore(abonnerEtatLu, lireEtatLu, lireEtatLu)
 
   const query = useQuery({
     queryKey: ['agent-notifications', limit],
@@ -159,20 +184,6 @@ export function useAgentNotifications(limit = 30, abonne = true): AgentNotificat
     },
     staleTime: 30_000,
   })
-
-  // Realtime — nouvelle notif instantanée (RLS scope déjà à l'agence).
-  useEffect(() => {
-    if (!abonne) return
-    const channel = supabase
-      .channel(`agent-notifs-${channelId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_events' }, () => {
-        queryClient.invalidateQueries({ queryKey: ['agent-notifications'] })
-      })
-      .subscribe()
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [queryClient, channelId, abonne])
 
   const items = useMemo<CrmNotif[]>(() => {
     return (query.data ?? []).map((ev) => {
@@ -196,30 +207,59 @@ export function useAgentNotifications(limit = 30, abonne = true): AgentNotificat
   const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items])
 
   const markRead = useCallback((id: string) => {
-    setReadIds((prev) => {
-      const next = new Set(prev)
-      next.add(id)
-      try {
-        localStorage.setItem(READ_IDS_KEY, JSON.stringify([...next]))
-      } catch {
-        /* no-op */
-      }
-      return next
-    })
+    // ⚠ Depuis le magasin COURANT, jamais depuis une copie : c'est ce qui empêche
+    // une cloche d'effacer une lecture faite par une autre.
+    const courant = lireEtatLu()
+    if (courant.readIds.has(id)) return
+    const next = new Set(courant.readIds)
+    next.add(id)
+    try {
+      localStorage.setItem(READ_IDS_KEY, JSON.stringify([...next]))
+    } catch {
+      /* no-op */
+    }
+    poserEtatLu({ ...courant, readIds: next })
   }, [])
 
   // Tout marquer lu = avancer le last-seen à maintenant + purger le set (audit immuable).
   const markAllRead = useCallback(() => {
     const now = Date.now()
-    setLastSeen(now)
-    setReadIds(new Set<string>())
     try {
       localStorage.setItem(LAST_SEEN_KEY, String(now))
       localStorage.removeItem(READ_IDS_KEY)
     } catch {
       /* no-op */
     }
+    poserEtatLu({ readIds: new Set<string>(), lastSeen: now })
   }, [])
 
   return { items, unreadCount, isLoading: query.isLoading, markRead, markAllRead }
+}
+
+/**
+ * Le canal Realtime des notifications — UN pour toute la coquille.
+ *
+ * ⛔ IL VIVAIT DANS `useAgentNotifications`, donc dans chaque cloche, donc dans
+ * chaque bande d'onglets de chaque écran vivant. Le premier correctif (un
+ * paramètre `abonne` réservé à la bande visible) laissait trois trous : aucun
+ * canal quand l'écran montré n'a pas de bande (import de leads, planification de
+ * visite, offre) ; un canal qui changeait de main à chaque bascule, dont les
+ * INSERT tombés pendant la poignée de main étaient perdus ; et un aller-retour
+ * plus rapide que l'accusé de fermeture. Monté une fois dans `AgentLayout`, il ne
+ * change jamais de main.
+ */
+export function useAgentNotificationsRealtime(): void {
+  const queryClient = useQueryClient()
+  const channelId = useId()
+  useEffect(() => {
+    const channel = supabase
+      .channel(`agent-notifs-${channelId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_events' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['agent-notifications'] })
+      })
+      .subscribe()
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [queryClient, channelId])
 }

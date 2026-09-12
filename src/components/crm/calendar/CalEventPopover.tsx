@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { CalIcon, type CalIconName } from './CalIcon'
 import { CAL_RECUR_LABEL, calConflicts, calTypeStyle, useCalPalette, type CalEvent } from './data'
 import { fmtDate, fmtTime, sameDay, shadeMix } from './helpers'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 function CalPopIconBtn({ name, title, onClick, danger }: { name: CalIconName; title: string; onClick: () => void; danger?: boolean }) {
   const SP = useCalPalette()
@@ -95,11 +96,14 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
     setPos({ left, top })
   }, [anchorRect, event])
 
+  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, ecranActif])
 
   // Déplaçable : glisser la barre de titre repositionne la bulle.
   const startDrag = (e: React.MouseEvent) => {

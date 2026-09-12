@@ -14,6 +14,7 @@ import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { MAIL_TRANSITION, type MailSurfaces } from './mailTokens'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 interface Props {
   ms: MailSurfaces
@@ -33,7 +34,10 @@ const MARGE_BAS = 140
 export function MailLabelMenu({ ms, x, y, onClose, onRename, onRecolor, onDelete }: Props) {
   const { t } = useTranslation('messages')
   const ref = useRef<HTMLDivElement>(null)
+  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose() }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('mousedown', onDoc)
@@ -44,7 +48,7 @@ export function MailLabelMenu({ ms, x, y, onClose, onRename, onRecolor, onDelete
       document.removeEventListener('contextmenu', onDoc)
       window.removeEventListener('keydown', onKey)
     }
-  }, [onClose])
+  }, [onClose, ecranActif])
 
   const item = (label: string, fn: () => void, danger = false) => (
     <button

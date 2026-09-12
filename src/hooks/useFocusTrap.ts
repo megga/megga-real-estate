@@ -3,6 +3,7 @@
  * `active` est vrai (modales, panneaux), puis restaure le focus au démontage.
  */
 import { useEffect, useRef } from 'react'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -30,15 +31,23 @@ const FOCUSABLE_SELECTOR =
  * ⚠ Un conteneur SANS descendant focalisable est piégé quand même : il reçoit
  * `tabindex="-1"` et le focus. C'est le cas qui rendait ce hook silencieusement
  * inopérant — voir le commentaire du repli, et `focus-trap.spec.ts`.
+ *
+ * ⛔ Et le piège se LÈVE dans un écran d'onglet caché (`useEcranActif`). Sa garde
+ * rattrape toute tabulation dont le focus est hors du conteneur : restée active
+ * derrière l'onglet regardé, elle ramenait chaque Tab vers une modale invisible —
+ * où `focus()` échoue — et la tabulation ne marchait plus nulle part. Il se
+ * réarme au retour sur l'écran, focus dans la modale.
  */
 export function useFocusTrap(active: boolean, onEscape?: () => void) {
   const containerRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
   const onEscapeRef = useRef(onEscape)
   useEffect(() => { onEscapeRef.current = onEscape })
+  const ecranActif = useEcranActif()
+  const arme = active && ecranActif
 
   useEffect(() => {
-    if (!active) return
+    if (!arme) return
 
     // Save current focus to restore later
     previousFocusRef.current = document.activeElement as HTMLElement
@@ -117,7 +126,7 @@ export function useFocusTrap(active: boolean, onEscape?: () => void) {
       const precedent = previousFocusRef.current
       if (precedent?.isConnected) precedent.focus()
     }
-  }, [active])
+  }, [arme])
 
   return containerRef
 }

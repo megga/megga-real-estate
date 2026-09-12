@@ -10,6 +10,7 @@ import { atlFmtCHF, atlInitials } from './format'
 import type { AtelierBuyer, AtelierListing } from './types'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { encreSur } from '@/components/megga-x-crm/tokens'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 interface AtlConfirmProps {
   b: AtelierBuyer
@@ -33,7 +34,11 @@ export default function AtlConfirm({ b, L, relance, onClose, onConfirm }: AtlCon
     setTimeout(() => onConfirm(), 1250)
   }
 
+  // ⛔ Écran caché muet : non portée dans le mode acheteur, cette confirmation
+  // restait montée derrière l'onglet regardé — et son Entrée ENVOYAIT le bien.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (doneRef.current) { e.preventDefault(); e.stopPropagation(); return }
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose() }
@@ -41,7 +46,7 @@ export default function AtlConfirm({ b, L, relance, onClose, onConfirm }: AtlCon
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [onClose]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [onClose, ecranActif]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="atl-overlay" onClick={e => { if (!doneRef.current && e.target === e.currentTarget) onClose() }}>

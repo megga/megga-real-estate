@@ -21,7 +21,7 @@ import { useConversationHistory } from '@/hooks/useConversationHistory'
 import { filterConversationsByTitle, type ConversationSummary } from '@/lib/conversation-history'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDark } from '@/lib/crmDark'
 import { declarerPaletteEnPlace } from './openSearch'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
@@ -288,11 +288,9 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
   // Collision : la variable `t` ci-dessous = tokens de thème. Le traducteur = `tr`.
   const { t: tr, i18n } = useTranslation('common')
 
-  // Thème : même source que les pages Sugar (localStorage), lu à l'ouverture.
-  const dark = useMemo<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  }, [])
+  // Thème : le magasin partagé — il suit une bascule faite pendant que la palette
+  // est ouverte (en place, dans la page d'onglet neuf, elle reste montée longtemps).
+  const dark = useCrmDark()
   const sp = crmPalette(dark)
   const accentBlue = dark ? '#A5C0FF' : '#0041D9'
 
@@ -513,8 +511,8 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
    */
   useEffect(() => {
     // ⛔ ET SEULEMENT SI SON ÉCRAN EST CELUI QU'ON REGARDE. Mesuré le 7 septembre
-    // 2026 : l'écran « nouvel onglet » reste VIVANT en arrière-plan (trois écrans
-    // le sont), donc sa palette restait déclarée — et `⌘K` ne faisait plus rien
+    // 2026 : l'écran « nouvel onglet » reste VIVANT en arrière-plan (jusqu'à six
+    // écrans le sont), donc sa palette restait déclarée — et `⌘K` ne faisait plus rien
     // nulle part, puisque le host croyait qu'un champ était déjà à l'écran. Un
     // raccourci confisqué par un écran qu'on ne voit pas est pire qu'absent : il
     // n'a aucun symptôme lisible.
@@ -539,7 +537,14 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
 
   // Raccourcis clavier (⌘K géré par le host).
   useEffect(() => {
-    if (!open) return
+    // ⛔ UNE PALETTE DANS UN ÉCRAN CACHÉ N'ÉCOUTE PAS LE CLAVIER — et son voisin ⌘K
+    // le faisait déjà, pas celui-ci. Une page « Nouvel onglet » restée vivante
+    // derrière l'écran montré avalait Entrée, ↑, ↓ et Échap dans TOUTE l'app :
+    // reproduit le 12 septembre 2026, Entrée dans un champ de texte n'insérait plus
+    // de retour à la ligne et faisait basculer l'onglet visible. Le parcours normal
+    // de ⌘K (onglet neuf, recherche, Entrée sur un onglet ouvert) laissait
+    // précisément une telle page derrière lui.
+    if (!open || !ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       // ⚠ En place, Échap EFFACE : il n'y a pas de voile à fermer, et fermer la
       // page d'accueil d'un onglet neuf n'aurait aucun sens.
@@ -556,7 +561,7 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, flatItems, activeIdx, onClose, activer, variante, onQueryChange])
+  }, [open, ecranActif, flatItems, activeIdx, onClose, activer, variante, onQueryChange])
 
   useEffect(() => {
     if (activeIdx >= flatItems.length) setActiveIdx(Math.max(0, flatItems.length - 1))

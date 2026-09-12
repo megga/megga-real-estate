@@ -23,6 +23,7 @@ import { GalPhoto } from '@/components/crm/biens/gallery/GalleryAtoms'
 import { useUpdateProperty, useDeleteProperty } from '@/hooks/useProperties'
 import { useLogAudit } from '@/hooks/useAuditLog'
 import { bpAddMonths, bpFmtDate, expiryLabelKey } from './followupData'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 interface BpRenewModalProps {
   b: CrmBien
@@ -72,13 +73,16 @@ export function BpRenewModal({ b, days, sp, surf, dark, onClose, onDone }: BpRen
   // Badge d'échéance (gère à venir / aujourd'hui / dépassé).
   const expiry = expiryLabelKey(days)
 
+  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !busy) onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, busy])
+  }, [onClose, busy, ecranActif])
 
   const submitRenew = async () => {
     if (busy) return

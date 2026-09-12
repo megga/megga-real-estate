@@ -23,14 +23,15 @@
 // modales de plein écran (`position: fixed`, une croix pour sortir), pas des
 // fiches.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { dossierPalette, DOSSIER_KEYFRAMES } from '@/components/crm-dossiers/tokens'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 import { crmPalette } from '@/components/crm/tokens'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import { CrmIcon } from '@/components/crm-dossiers/icons'
 import {
   CrmBlackPill,
@@ -66,17 +67,17 @@ export default function VisitDetailPage() {
   const { mutate: signBon } = useSignVisitBon()
   useVisitRealtime(id)
   /**
-   * ⚠ `readCrmDark()` + état local, et non `useCrmDark()` : la barre latérale de
-   * cette page BASCULE désormais le thème (`setDark` lui est passé), et le hook
-   * est en lecture seule. Deux sources — l'état local pour `sp`, le hook pour
-   * `S` — divergeraient au clic. Même idiome qu'`AuditPage` et `CalendarPage`.
+   * ⛔ LE MAGASIN DE THÈME PARTAGÉ, et c'est ce qui manquait (12 septembre 2026). La
+   * page tenait un `useState` local qu'elle passait à sa barre, pendant que ses
+   * CARTES (`VdCard`, les panneaux, les pilules) lisaient `useCrmDark()` : basculer
+   * depuis la barre passait la page en sombre et laissait les cartes claires — le
+   * titre du héros, blanc, sur une carte blanche. Page, cartes et chrome lisent
+   * maintenant la même source.
    */
-  const [dark, setDark] = useState<boolean>(readCrmDark)
-  useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
   const S = useMemo(() => dossierPalette(dark), [dark])
   const sp = useMemo(() => crmPalette(dark), [dark])
+  const isMobile = useIsMobile()
 
   /**
    * La coquille — barre latérale, bande d'onglets, puis le contenu.
@@ -96,11 +97,17 @@ export default function VisitDetailPage() {
         fontFamily: S.font,
       }}
     >
-      <div style={{ display: 'flex', minHeight: '100vh' }}>
-        <CrmWorkspace active="calendar" sp={sp} dark={dark} setDark={setDark}>
-          {contenu}
-        </CrmWorkspace>
-      </div>
+      {/* ⛔ Pas de coquille de BUREAU sur téléphone. La route n'a pas de variante
+          mobile (`ResponsiveRoute`), et l'agenda mobile y mène : la barre
+          latérale, repliée d'office, y prenait 96 px sur 375. La page reste ce
+          qu'elle était avant la coquille. */}
+      {isMobile ? contenu : (
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
+          <CrmWorkspace active="calendar" sp={sp} dark={dark} setDark={setDark}>
+            {contenu}
+          </CrmWorkspace>
+        </div>
+      )}
     </div>
   )
 
@@ -115,7 +122,7 @@ export default function VisitDetailPage() {
     return coquille(
       <main style={{
         flex: 1, minWidth: 0, display: 'grid', placeItems: 'center',
-        color: S.errDarker, padding: 40, textAlign: 'center',
+        color: S.errDarker, padding: 'var(--crm-space-6xl)', textAlign: 'center',
       }}>
         {t('visitDetail.loadError', {
           message: error?.message ?? t('visitDetail.unknownError'),
@@ -140,7 +147,16 @@ export default function VisitDetailPage() {
         @keyframes vdPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
       `}</style>
 
-      <main style={{ flex: 1, minWidth: 0, padding: '28px 40px 80px' }}>
+      {/* ⛔ LA GOUTTIÈRE DE LA COQUILLE, pas celle d'origine (12 septembre 2026). La
+          page portait `28px 40px 80px`, écrite quand elle n'avait pas de chrome ;
+          entrée dans la coquille, son contenu démarrait 16 px plus bas et 28 px
+          plus à droite que celui des autres surfaces — il SAUTAIT à chaque bascule
+          vers une fiche Visite, et se désaccordait du dock calé sur
+          `--crm-chrome-top`. C'est la gouttière que c0231dd7 a posée partout. */}
+      <main style={{
+        flex: 1, minWidth: 0,
+        padding: 'var(--crm-space-lg) var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-lg)',
+      }}>
         {/* Header */}
         <header
           style={{

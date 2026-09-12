@@ -45,7 +45,7 @@
  * second.
  */
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -54,7 +54,7 @@ import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import { CRM_SIDEBAR_GROUPS } from '@/components/crm/crmSidebarNav'
 import CrmSearch from '@/components/crm/search/CrmSearch'
 import { crmPalette, type CrmPalette } from '@/components/crm/tokens'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 /**
  * Largeur de la colonne de travail.
@@ -70,15 +70,7 @@ export default function NewTabPage() {
   const { t } = useTranslation('common')
   const navigate = useNavigate()
 
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-    }
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
 
   const sp = crmPalette(dark)
 

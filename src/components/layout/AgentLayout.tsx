@@ -23,14 +23,15 @@ import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
 import { EcranActifProvider } from '@/hooks/useEcranActif'
 import OnboardingCallBanner from '@/components/layout/OnboardingCallBanner'
 import CrmSearchHost from '@/components/crm/search/CrmSearchHost'
+import { useAgentNotificationsRealtime } from '@/hooks/useAgentNotifications'
 import { CrmTabsProvider } from '@/components/crm/CrmTabsProvider'
 import { useIdentityGate, shouldRedirectToIdentityGate, shouldHoldForIdentityGate, IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDark } from '@/lib/crmDark'
 import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
 import { useIsMobile } from '@/hooks/useMediaQuery'
-import { crmEcransVivants, crmTabHref, type CrmTab } from '@/lib/crmTabs'
-import { QueryClientProvider, useQueryClient } from '@tanstack/react-query'
-import { clientArrierePlan } from '@/lib/queryClients'
+import { crmEcransVivants, crmEcranVisible, crmPousserRecent, type CrmTab } from '@/lib/crmTabs'
+import { IsRestoringProvider } from '@tanstack/react-query'
+import { OngletEcranCtx } from '@/hooks/useCrmTabs'
 
 /** Lit la préférence de thème sombre Sugar (fallback : préférence système). */
 // Mode sombre Sugar (même clé localStorage que les pages). Réactif : `storage`
@@ -76,20 +77,24 @@ import { clientArrierePlan } from '@/lib/queryClients'
  * qui reconstruisent tombe de ~85 % à ~62 %, et l'aller-retour dans un groupe de
  * travail de cinq ou six onglets — le geste réel — cesse d'en payer une seule.
  *
- * ⚠ ET LA HAUSSE A ÉTÉ PAYÉE, PAS SEULEMENT DÉCIDÉE. Doubler le nombre d'écrans
- * vivants doublait mécaniquement ce que cette JSDoc donne comme motif de ne pas
- * les garder tous. Deux choses l'en empêchent, et sans elles six serait un mauvais
- * réglage :
- *   • le chrome est per-page, donc six écrans = six bandes d'onglets, et la
- *     cloche de chacune ouvrait son propre canal Realtime sur `activity_events`.
- *     Seule la bande de l'écran VISIBLE s'abonne désormais
- *     (`useAgentNotifications(30, ecranActif)`) : un canal, quel que soit ce
- *     nombre. La lecture, elle, était déjà partagée par React Query.
- *   • `EcranVivant` est sous `memo` avec des props primitives : une bascule rend
- *     deux arbres d'écran — celui qui part, celui qui arrive — et non plus tous
- *     les vivants. Le coût d'une bascule ne suit donc plus ce nombre.
- * Ce qui reste linéaire est la MÉMOIRE (le DOM des écrans gardés) et les requêtes
- * propres à chaque écran, qui auraient de toute façon été jouées à sa visite.
+ * ⛔ CE CALCUL NE VALAIT RIEN EN PRODUCTION JUSQU'AU 12 SEPTEMBRE 2026 : la page
+ * d'ARRIVÉE de chaque bascule y était détruite puis reconstruite, quel que soit ce
+ * nombre (voir `crmEcranVisible`). Les « 1 reconstruction sur 24 » mesurées le 7
+ * l'avaient été sur le banc, dont le routeur ne portait pas le drapeau de l'app.
+ *
+ * ⚠ CE QUE COÛTENT SIX ÉCRANS, ET CE QUI LE BORNE :
+ *   • les écrans cachés sont retirés de React Query (`IsRestoringProvider`,
+ *     ci-dessous) : ni rafraîchissement au retour sur la page, ni à la reconnexion,
+ *     ni rendu sur une donnée qui change — et un rafraîchissement dès qu'ils sont
+ *     montrés, si leur donnée est périmée ;
+ *   • la cloche n'ouvre qu'UN canal Realtime pour toute la coquille
+ *     (`AgentNotificationsRealtime`), pas un par bande ;
+ *   • ⚠ `memo` n'épargne PAS le sous-arbre d'un écran caché : ses consommateurs du
+ *     routeur et du contexte d'onglets se re-rendent quand ces contextes changent.
+ *     Ce qu'il épargne, c'est le corps d'`EcranVivant` lui-même ;
+ *   • la mise en page des écrans cachés reste calculée (`visibility: hidden`, voir
+ *     `EcranVivant`) — c'est le prix de mesures justes au moment où ils
+ *     réapparaissent.
  *
  * ⚠ UN sur mobile. Le CRM mobile n'a pas de bande d'onglets (sa pilule à cinq
  * destinations en tient lieu) : garder des écrans vivants n'y sert personne et
@@ -98,17 +103,13 @@ import { clientArrierePlan } from '@/lib/queryClients'
 const VIVANTS_MAX = 6
 
 /**
- * L'emplacement d'un onglet, en PRIMITIVES.
+ * L'emplacement STOCKÉ d'un onglet, tel que le rend un écran qui n'est pas montré.
  *
- * ⚠ Ni `state` ni `key` ici, contrairement à la version qui fabriquait l'objet
- * de localisation complet : ce sont des props d'`EcranVivant`, qui les compare
- * une à une (`memo`), et `key` est de surcroît réservé par React — l'étaler
- * dans du JSX écrase la clé de liste au lieu d'être passé. L'écran recompose
- * l'objet lui-même, avec `state: null` et sa propre identité d'onglet.
+ * ⚠ Lu champ par champ, et non en recoupant `crmTabHref(tb)` sur « ? » comme au
+ * premier jet : un second « ? » dans la query y aurait été tronqué.
  */
-function localisationDe(tb: CrmTab): { pathname: string; search: string; hash: string } {
-  const [pathname, q] = crmTabHref(tb).split('?')
-  return { pathname, search: q ? `?${q}` : '', hash: '' }
+function localisationDe(tb: CrmTab): { pathname: string; search: string; hash: string; state: unknown } {
+  return { pathname: tb.path, search: tb.search || '', hash: '', state: null }
 }
 
 /**
@@ -129,12 +130,23 @@ function localisationDe(tb: CrmTab): { pathname: string; search: string; hash: s
  * dans le DOM), et qu'un garde-fou qui ne s'applique pas est pire qu'aucun : il
  * se lit comme une protection. `aria-hidden` couvre l'arbre d'accessibilité.
  */
-const EcranVivant = memo(function EcranVivant({ actif, id, pathname, search, hash, routes }: {
+const EcranVivant = memo(function EcranVivant({ actif, id, pathname, search, hash, state, routes }: {
+  /** L'écran est-il MONTRÉ (et non : son onglet est-il l'actif) — voir `crmEcranVisible`. */
   actif: boolean
   id: string
   pathname: string
   search: string
   hash: string
+  /**
+   * Le `state` de la navigation — transmis à l'écran montré, `null` aux autres.
+   *
+   * ⛔ IL ÉTAIT FORCÉ À `null` POUR TOUS, et un parcours en dépendait : l'accueil
+   * KYC fait `navigate('/dashboard/kyc', { state: { openWizard } })`, et `KycPage`
+   * n'ouvrait jamais le wizard « Créer / Importer » — le drapeau d'accueil posé,
+   * l'agent ne revoyait plus l'accueil non plus. Sa référence est stable pour une
+   * même entrée d'historique : `memo` la compare sans surcoût.
+   */
+  state: unknown
   routes: ReactNode
 }) {
   /**
@@ -146,24 +158,16 @@ const EcranVivant = memo(function EcranVivant({ actif, id, pathname, search, has
    * l'ordre de rendu ci-dessous), mais c'est du travail rendu pour rien à chaque
    * frappe au clavier de l'écran actif.
    *
-   * ⛔ ET C'EST POURQUOI LES PROPS SONT DES PRIMITIVES, pas l'objet lui-même —
-   * corrigé le 7 septembre 2026. `memo` compare les props une à une : un objet
-   * de localisation refabriqué à chaque rendu du parent échoue la comparaison,
-   * donc la mémoïsation ne mordait sur RIEN. Or une bascule d'onglet rend le
-   * parent, donc rendait les TROIS arbres d'écran en entier — deux d'entre eux
-   * pour arriver au même DOM, derrière un `visibility: hidden` que personne ne
-   * regarde. Avec des primitives, un écran caché dont rien n'a bougé n'est plus
-   * rendu du tout : la bascule ne rend que l'écran qui part et celui qui arrive.
+   * ⚠ Les props sont des primitives pour que `memo` compare quelque chose : un
+   * objet refabriqué à chaque rendu du parent échouerait toujours la comparaison.
+   * ⚠ Ce que `memo` épargne n'est que le corps de ce composant : `<Routes>` lit le
+   * contexte du routeur, et les pages le contexte d'onglets — leurs consommateurs
+   * se re-rendent quand ces contextes changent, `memo` ou pas.
    */
   const loc = useMemo(
-    () => ({ pathname, search, hash, state: null, key: id }),
-    [pathname, search, hash, id],
+    () => ({ pathname, search, hash, state, key: id }),
+    [pathname, search, hash, state, id],
   )
-  // ⚠ Le jumeau se DÉRIVE du client de l'hôte, il n'est pas importé en dur : le
-  // banc `/dev/crm` fournit le sien, et un composant n'a pas à décider quel
-  // magasin l'entoure. Voir `clientArrierePlan`.
-  const hote = useQueryClient()
-  const clientCache = useMemo(() => clientArrierePlan(hote), [hote])
   const style: CSSProperties = actif
     ? { position: 'relative' }
     : { position: 'absolute', inset: 0, visibility: 'hidden', pointerEvents: 'none', overflow: 'hidden' }
@@ -191,39 +195,52 @@ const EcranVivant = memo(function EcranVivant({ actif, id, pathname, search, has
           (bande d'onglets, barre latérale) cesse alors d'écouter le clavier.
           Sans ça, une frappe `Alt+1` partait trois fois — une par écran vivant —
           et poussait trois entrées d'historique pour un seul geste. */}
-      {/* ⛔ UN CLIENT REACT QUERY PAR ÉTAT DE VISIBILITÉ, et c'est la garde
-          demandée par Julien le 7 septembre 2026. `refetchOnWindowFocus` est un
-          défaut global : au retour sur la page, TOUTES les requêtes montées
-          repartent — soit, depuis ce chantier, celles de SIX écrans au lieu de
-          trois, dont cinq que personne ne regarde.
+      {/* ⛔ UN ÉCRAN CACHÉ EST RETIRÉ DE REACT QUERY — c'est la garde de
+          `refetchOnWindowFocus` demandée par Julien le 7 septembre 2026, refaite
+          le 12. Au retour sur la page, TOUTES les requêtes montées repartaient,
+          celles des écrans que personne ne regarde comprises.
 
-          `query.onFocus()` décide PAR OBSERVATEUR (`observers.find(x =>
-          x.shouldFetchOnWindowFocus())`) : il suffit qu'un seul le demande. Une
-          donnée que regarde l'écran visible se rafraîchit donc normalement, même
-          si des écrans cachés l'observent aussi ; une donnée que SEULS des
-          écrans cachés observent attend d'être regardée.
+          `useBaseQuery` n'abonne son observateur que si `!isRestoring` : sous
+          `IsRestoringProvider value`, les requêtes d'un écran caché cessent
+          d'observer la donnée — ni rafraîchissement au focus ni à la reconnexion,
+          ni rendu quand elle change. Montré, l'écran se réabonne, et `onSubscribe`
+          relance ce qui est périmé : il rattrape en arrivant, pas avant.
 
-          ⚠ Les deux clients partagent le MÊME cache — deux jeux de réglages sur
-          un seul magasin, jamais deux magasins. Le pourquoi, le coût et le
-          risque résiduel sont écrits dans `src/lib/queryClients.ts`. */}
-      <QueryClientProvider client={actif ? hote : clientCache}>
+          ⛔ Premier jet : un SECOND QueryClient sur le même cache pour les écrans
+          cachés. Trois défauts, tous mesurés : il ne rafraîchissait rien au
+          dévoilement (`setOptions` ne relance que sur un changement de requête),
+          il laissait passer la reconnexion (`refetchOnReconnect` copié), et
+          changer de client à chaque bascule rejouait les effets Realtime qui le
+          portent en dépendance — un `phx_leave` + `phx_join` par bascule, et
+          l'invalidation regroupée de la messagerie jetée au passage. Un seul
+          client, donc, dont l'identité ne bouge jamais.
+
+          ⚠ `IsRestoringProvider` est l'API du persisteur de cache, employée ici
+          hors de son usage d'origine ; le dépôt n'a pas de persisteur, et aucune
+          requête suspense (vérifié). Le `gcTime` des défauts couvre le temps
+          qu'un écran peut passer caché — voir `src/lib/queryClients.ts`. */}
+      <IsRestoringProvider value={!actif}>
+      <OngletEcranCtx.Provider value={id}>
       <EcranActifProvider value={actif}>
       <Suspense fallback={actif ? <SmartPageLoader /> : null}>
         {/* ⚠ `location` sur `<Routes>` ne fait pas que choisir la route : React
             Router enveloppe le sous-arbre dans un contexte de localisation à cette
             valeur (`useRoutes`, branche `locationArg`). Un écran caché lit donc SA
-            propre URL — ce dont dépend `useTabScopedState`, qui en tire sa portée.
-            Sans ça, les trois écrans vivants partageraient la tranche de l'actif. */}
+            propre URL — c'est d'elle que `useTabScopedState` tire le préfixe de
+            section. La TRANCHE, elle, se lit par l'identité d'onglet
+            (`OngletEcranCtx`) : sans elle, les écrans vivants lisaient et
+            écrivaient tous celle de l'onglet actif. */}
         <Routes location={loc}>{routes}</Routes>
       </Suspense>
       </EcranActifProvider>
-      </QueryClientProvider>
+      </OngletEcranCtx.Provider>
+      </IsRestoringProvider>
     </div>
   )
 })
 
 /**
- * Les écrans des onglets — trois vivants au plus, un seul visible.
+ * Les écrans des onglets — `VIVANTS_MAX` vivants au plus, un seul visible.
  *
  * ⛔ CE QU'IL Y AVAIT AVANT : `<Outlet />`. Un seul écran, celui de l'URL
  * courante, DÉTRUIT à chaque bascule d'onglet. Mesuré le 7 septembre 2026 :
@@ -239,10 +256,11 @@ const EcranVivant = memo(function EcranVivant({ actif, id, pathname, search, has
  * — où il ferait sauter toute l'application. Il ne se montera qu'au clic, en
  * tant qu'écran actif, où rediriger est le comportement voulu.
  *
- * ⚠ L'écran ACTIF est rendu sur la localisation RÉELLE, pas sur celle stockée
- * dans son onglet : la pile suit la navigation avec un rendu de retard
- * (`appliquerNavigation`), et rendre l'ancien chemin pendant cette frame
- * afficherait l'écran précédent.
+ * ⛔ L'ÉCRAN MONTRÉ EST CELUI QUE DÉSIGNE L'URL DU ROUTEUR, et c'est lui seul qui
+ * se rend sur la localisation réelle ; tous les autres se rendent sur celle de
+ * leur onglet. Rendre l'onglet ACTIF sur l'URL du routeur, comme au premier jet,
+ * détruisait la page d'arrivée à chaque bascule en production — voir
+ * `crmEcranVisible`, qui porte la règle et la mesure.
  */
 function EcransVivants({ routes }: { routes: ReactNode }) {
   const api = useCrmTabsOptionnel()
@@ -266,15 +284,24 @@ function EcransVivants({ routes }: { routes: ReactNode }) {
   const [vuActif, setVuActif] = useState<string | undefined>(undefined)
   if (actifId && actifId !== vuActif) {
     setVuActif(actifId)
-    setRecents((p) => [actifId, ...p.filter((x) => x !== actifId)].slice(0, VIVANTS_MAX))
+    setRecents((p) => crmPousserRecent(p, actifId, max))
   }
 
-  // ⚠ La règle vit dans `crmEcransVivants` (fonction pure, éprouvée) : la
-  // récence décide de l'appartenance, l'ordre de la PILE décide du rendu.
-  const vivants = useMemo(
-    () => crmEcransVivants(tabs ?? [], actifId, recents, max),
-    [tabs, actifId, recents, max],
+  const visibleId = useMemo(
+    () => crmEcranVisible(tabs ?? [], actifId, location.pathname, location.search),
+    [tabs, actifId, location.pathname, location.search],
   )
+
+  // ⚠ La règle vit dans `crmEcransVivants` (fonction pure, éprouvée) : la
+  // récence décide de l'appartenance, l'ordre de la PILE décide du rendu. L'écran
+  // MONTRÉ s'y ajoute s'il n'y est pas — le temps d'une réconciliation, l'URL peut
+  // désigner un onglet que la récence n'a pas encore vu passer.
+  const vivants = useMemo(() => {
+    const garde = crmEcransVivants(tabs ?? [], actifId, recents, max)
+    if (!visibleId || garde.some((t) => t.id === visibleId)) return garde
+    const ids = new Set([...garde.map((t) => t.id), visibleId])
+    return (tabs ?? []).filter((t) => ids.has(t.id))
+  }, [tabs, actifId, recents, max, visibleId])
 
   // Hors fournisseur d'onglets (bancs `/dev/*` de premier niveau, console) : un
   // seul écran, sur l'URL courante. Rien à garder vivant, rien à empiler.
@@ -283,14 +310,14 @@ function EcransVivants({ routes }: { routes: ReactNode }) {
   return (
     <div style={{ position: 'relative', minHeight: '100%' }}>
       {vivants.map((tb) => {
-        const actif = tb.id === actifId
+        const montre = tb.id === visibleId
         return (
           <EcranVivant
             key={tb.id}
             id={tb.id}
-            actif={actif}
-            {...(actif
-              ? { pathname: location.pathname, search: location.search, hash: location.hash }
+            actif={montre}
+            {...(montre
+              ? { pathname: location.pathname, search: location.search, hash: location.hash, state: location.state }
               : localisationDe(tb))}
             routes={routes}
           />
@@ -301,24 +328,17 @@ function EcransVivants({ routes }: { routes: ReactNode }) {
 }
 
 function AgentLayoutInner({ routes }: { routes: ReactNode }) {
+  // ⚠ UN canal de notifications pour toute la coquille, et qui ne change jamais de
+  // main — voir le hook. Les cloches des bandes d'onglets n'en ouvrent plus.
+  useAgentNotificationsRealtime()
   const { isOpen } = useAiPanel()
   const { status: identityGateStatus } = useIdentityGate()
   const location = useLocation()
-  const [dark, setDark] = useState(readCrmDark)
-  useEffect(() => {
-    const sync = () => setDark(readCrmDark())
-    // Relecture IMMÉDIATE à chaque passage : ce layout ne se remonte plus à la
-    // navigation (les routes ne sont plus keyées par pathname), donc la valeur
-    // lue au montage peut dater de plusieurs écrans — une bascule clair/sombre
-    // faite depuis la barre latérale d'une page n'est pas notifiée dans le même onglet
-    // (`storage` ne concerne que les autres). Sans ça, la gouttière du push
-    // s'ouvrirait à l'ancienne teinte.
-    sync()
-    window.addEventListener('storage', sync)
-    let id: number | undefined
-    if (isOpen) id = window.setInterval(sync, 400)
-    return () => { window.removeEventListener('storage', sync); if (id) window.clearInterval(id) }
-  }, [isOpen])
+  // ⚠ Le magasin de thème NOTIFIE : la bascule faite depuis la barre d'une page
+  // atteint la gouttière du push dans la même frame. Il y avait ici une relecture
+  // toutes les 400 ms tant que le dock était ouvert — `storage` ne se déclenchant
+  // que dans les autres onglets, c'était le seul moyen de la voir.
+  const dark = useCrmDark()
   // Fond Sugar de la page courante → peint la gouttière réservée par le push
   // (sinon elle laisserait voir le fond `body` blanc, dépareillé en mode sombre).
   const pageBg = crmPalette(dark).pageBg

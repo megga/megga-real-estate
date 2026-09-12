@@ -48,6 +48,7 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { MemoryRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { ROUTER_FUTURE } from '@/lib/routerFuture'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AiPanelProvider } from '@/hooks/useAiPanel'
 import { AuthProvider } from '@/hooks/useAuth'
@@ -430,7 +431,10 @@ export default function CrmShowcasePage() {
     <QueryClientProvider client={clientBanc}>
       <AuthProvider>
         <ToastProvider>
-    <MemoryRouter initialEntries={entrees}>
+    {/* ⚠ Les MÊMES drapeaux que le routeur de l'app (`ROUTER_FUTURE`) : sans
+        `v7_startTransition`, le banc naviguait de façon synchrone et ne voyait pas
+        le remontage des écrans d'onglet que la production subissait. */}
+    <MemoryRouter initialEntries={entrees} future={ROUTER_FUTURE}>
       {/* ⛔ `AiPanelProvider` est DANS le routeur, pas au-dessus : il appelle
           `useLocation()`. Posé dans la coquille du banc (`BancCrmAgent`), il
           levait « useLocation() may be used only in the context of a <Router> »

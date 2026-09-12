@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { AnimatePresence, motion, type PanInfo } from 'motion/react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 /**
  * `<Sheet>` — iOS-style sheet primitive that supports three orientations:
@@ -71,8 +72,11 @@ export default function Sheet({
   const refPiegeFocus = useFocusTrap(open, onClose)
 
   // Escape key + body scroll lock while open
+  // ⛔ Pas depuis un écran d'onglet CACHÉ (`useEcranActif`, vrai partout ailleurs) :
+  // le verrou de défilement figerait l'onglet regardé.
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (!open) return
+    if (!open || !ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
@@ -83,7 +87,7 @@ export default function Sheet({
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prevOverflow
     }
-  }, [open, onClose])
+  }, [open, onClose, ecranActif])
 
   function handleDragEnd(_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) {
     const { offset, velocity } = info

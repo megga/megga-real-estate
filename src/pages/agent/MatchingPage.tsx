@@ -24,8 +24,9 @@ import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import MatchingAtelierPage from '@/pages/agent/MatchingAtelierPage'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
+import { useEcranActifRef } from '@/hooks/useEcranActif'
 
 const MATCHING_PAGES = [
   { id: 'score', labelKey: 'pager.score' },
@@ -156,15 +157,7 @@ export interface MatchingPagerBanc {
 
 export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}) {
   // ─── Thème: dark/light, calé sur la barre latérale (comme Today) ────────
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-    }
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
 
   const sp = crmPalette(dark)
   const lightMode = !dark
@@ -274,6 +267,7 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
   // Anime vers la page courante à chaque changement + tient pageRef à jour.
   useEffect(() => { pageRef.current = page; animateTo(page) }, [page, animateTo])
 
+  const ecranActifRef = useEcranActifRef()
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
@@ -325,6 +319,8 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
 
     // Clavier : PageUp/PageDown UNIQUEMENT — les flèches restent à l'atelier.
     const onKey = (e: KeyboardEvent) => {
+      // ⛔ Écran vivant mais caché : il ne vole pas les flèches à l'écran montré.
+      if (!ecranActifRef.current) return
       const tag = (e.target && (e.target as HTMLElement).tagName) || ''
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && (e.target as HTMLElement).isContentEditable)) return
       if (e.key === 'PageDown') { e.preventDefault(); if (!lock.current) { lock.current = true; go(1); setTimeout(() => { lock.current = false }, 820) } }
@@ -349,7 +345,7 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
       el.removeEventListener('touchstart', onTS)
       el.removeEventListener('touchmove', onTM)
     }
-  }, [go])
+  }, [go, ecranActifRef])
 
   return (
     <div style={{

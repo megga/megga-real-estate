@@ -23,7 +23,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { CRM_NEW_TAB_PATH, CRM_SIDEBAR_SECTIONS, crmSidebarActiveFor } from '@/components/crm/crmSidebarNav'
-import { crmTabsEligible } from '@/hooks/useCrmTabs'
+import { crmTabsEligible } from '@/lib/crmTabs'
 
 const LANGUES = ['fr', 'en', 'de', 'it'] as const
 

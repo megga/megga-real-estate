@@ -85,6 +85,28 @@ export interface CrmTabsState {
  */
 export const CRM_TABS_CAP = 24
 
+/**
+ * Surfaces qui n'ouvrent PAS d'onglet.
+ *
+ * La console super-admin porte son propre chrome ; `identite` et
+ * `rendez-vous-accueil` sont des entonnoirs plein écran (`IdentityShell` réclame
+ * `100dvh` et tout ce qui s'empile au-dessus pousse son pied d'actions hors de la
+ * fenêtre — défaut du 04.08.2026). Une de leurs visites ne doit pas déplacer
+ * l'onglet actif : l'agent qui revient au CRM doit retrouver la pile qu'il avait.
+ */
+const HORS_ONGLETS = ['/dashboard/admin', '/dashboard/identite', '/dashboard/rendez-vous-accueil']
+
+/**
+ * Un emplacement mérite-t-il un onglet ?
+ *
+ * ⚠ Ici et non dans `useCrmTabs` : le squelette de chargement le lit aussi, et
+ * il doit rester léger — il s'affiche AVANT le chunk du layout.
+ */
+export function crmTabsEligible(pathname: string): boolean {
+  if (!pathname.startsWith('/dashboard')) return false
+  return !HORS_ONGLETS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
+
 /** Genre d'enregistrement qu'un onglet peut viser — miroir de `crm_tabs_resolve_labels`. */
 export type CrmTabRecordKind = 'contact' | 'property' | 'deal' | 'kyc' | 'visit'
 
@@ -376,6 +398,56 @@ export function crmEcransVivants(
 }
 
 /**
+ * Pousse un onglet en tête de la pile de récence, sans doublon, bornée à `cap`.
+ *
+ * ⚠ Extraite pour que le composant et ses tests appliquent LA MÊME règle : la
+ * suite recopiait l'expression, et la copie avait déjà divergé (le composant
+ * tronquait au plafond global quand la copie tronquait au plafond du test).
+ */
+export function crmPousserRecent(recents: string[], id: string, cap: number): string[] {
+  return [id, ...recents.filter((x) => x !== id)].slice(0, cap)
+}
+
+/**
+ * L'onglet que l'écran doit MONTRER, compte tenu de l'URL réelle du routeur.
+ *
+ * ⛔ C'EST LA PIÈCE QUI MANQUAIT AUX ÉCRANS VIVANTS, ET SANS ELLE ILS NE
+ * FONCTIONNAIENT PAS EN PRODUCTION. Mesuré le 12 septembre 2026 : sur six
+ * bascules entre quatre écrans vivants, **six** pages d'arrivée étaient
+ * détruites puis reconstruites avec le routeur de l'app, **zéro** avec celui du
+ * banc. La cause tient en deux lignes de `selectionner` : l'onglet actif change
+ * dans une mise à jour SYNCHRONE, puis `navigate` part dans une TRANSITION
+ * (`v7_startTransition`). React valide donc d'abord un état où l'onglet
+ * d'arrivée est actif mais où le routeur montre encore l'URL de départ ; l'écran
+ * d'arrivée, rendu sur cette URL, démontait sa page — et la remontait à neuf au
+ * commit suivant. Le banc (`MemoryRouter` sans ce drapeau) validait les deux
+ * mises à jour ensemble et ne pouvait pas le voir.
+ *
+ * La règle qui en sort : **un écran ne se rend JAMAIS sur une URL qui appartient
+ * à un autre onglet.** L'écran montré est celui dont l'emplacement est l'URL du
+ * routeur (l'actif d'abord) ; à défaut — navigation dans l'onglet vers un
+ * endroit neuf — c'est l'actif, qui suit alors le routeur. Les trois chemins
+ * s'en trouvent justes sans cas particulier :
+ *   • bascule par la bande (actif d'abord, URL ensuite) : l'écran de départ
+ *     reste montré le temps de la transition, puis celui d'arrivée — aucun des
+ *     deux n'est démonté ;
+ *   • barre latérale, lien, Précédent (URL d'abord, actif ensuite) : l'onglet
+ *     qui porte déjà cette URL est montré tout de suite ;
+ *   • chargement : l'onglet qui porte l'URL d'arrivée est montré dès la
+ *     première frame, sans attendre la réconciliation.
+ */
+export function crmEcranVisible(
+  tabs: CrmTab[],
+  actifId: string | undefined,
+  pathname: string,
+  search: string,
+): string | undefined {
+  const actif = actifId ? tabs.find((t) => t.id === actifId) : undefined
+  if (actif && crmSameLocation(actif, pathname, search)) return actif.id
+  return tabs.find((t) => crmSameLocation(t, pathname, search))?.id ?? actifId
+}
+
+/**
  * Largeur PLANCHER d'une puce, selon le nombre d'onglets.
  *
  * ⛔ ELLE ÉTAIT UNE CONSTANTE — `CHIP_MIN = 100` dans la barre — et c'est ce qui
@@ -573,13 +645,19 @@ export function crmTabRefs(tabs: CrmTab[]): CrmTabRecordRef[] {
  * strictement au-dessus du plafond client (24), donc ce dépassement transitoire
  * ne peut pas faire échouer l'écriture.
  */
-export function crmApplyCap(tabs: CrmTab[], activeId: string | null): CrmTab[] {
+export function crmApplyCap(
+  tabs: CrmTab[],
+  activeId: string | null,
+  proteges?: ReadonlySet<string>,
+): CrmTab[] {
   if (tabs.length <= CRM_TABS_CAP) return tabs
   const surplus = tabs.length - CRM_TABS_CAP
   const aFermer = new Set<string>()
   for (const t of tabs) {
     if (aFermer.size >= surplus) break
-    if (!t.pinned && t.id !== activeId) aFermer.add(t.id)
+    // ⚠ `proteges` : les onglets dont l'écran porte une saisie non enregistrée. Les
+    // évincer en silence la perdait — ils passent désormais leur tour, comme l'actif.
+    if (!t.pinned && t.id !== activeId && !proteges?.has(t.id)) aFermer.add(t.id)
   }
   return tabs.filter((t) => !aFermer.has(t.id))
 }

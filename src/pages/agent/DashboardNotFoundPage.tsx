@@ -17,7 +17,6 @@
  * reconnaît pas ce chemin, et c'est le comportement voulu — on n'est nulle part.
  */
 
-import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
@@ -25,7 +24,7 @@ import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import EtatVide from '@/components/crm/EtatVide'
 import { RailIcon } from '@/components/crm/LiquidGlassRail'
 import { crmPalette } from '@/components/crm/tokens'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 import { useTabLabel } from '@/hooks/useCrmTabs'
 
 export default function DashboardNotFoundPage() {
@@ -33,15 +32,7 @@ export default function DashboardNotFoundPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-    }
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
 
   const sp = crmPalette(dark)
 

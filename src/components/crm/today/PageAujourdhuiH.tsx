@@ -38,6 +38,7 @@ import { useTodayH, type TodayHBlock, type TodayHDay } from './useTodayH'
 import { useAbsenceSignals, type AbsenceGroup, type AbsenceSignal } from './useAbsenceSignals'
 import { useTodayNav } from './TodayNavContext'
 import { useAuth } from '@/hooks/useAuth'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 const prefersReducedMotion = () =>
   typeof window !== 'undefined' && typeof window.matchMedia === 'function' &&
@@ -134,11 +135,14 @@ function HlAbsenceOverlay({ groups, total, sinceLabel, onSignal, onClose, onClea
   const { t } = useTranslation('dashboard')
   const reduce = prefersReducedMotion()
 
+  // ⛔ Écran caché muet (keepalive des onglets).
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, ecranActif])
 
   let ri = 0
   const row = (child: ReactNode, key: string) => (
@@ -462,11 +466,14 @@ function HlBlockPopover({ b, anchor, cw, ch, done, onClose, onCal, onCta }: {
   const panelRef = useRef<HTMLDivElement>(null)
   const [pos, setPos] = useState<{ left: number; top: number; side: string } | null>(null)
 
+  // ⛔ Écran caché muet (keepalive des onglets).
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, ecranActif])
 
   useLayoutEffect(() => {
     const el = panelRef.current

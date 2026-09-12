@@ -24,6 +24,7 @@ import { atlFmtCHF } from './format'
 import type { AtelierBuyer, AtelierListing } from './types'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
 import { encreSur } from '@/components/megga-x-crm/tokens'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 /** Cellules « L'essentiel » — les champs nuls sont filtrés, jamais rendus « null ». */
 function atlimmSpecCells(L: AtelierListing, t: (k: string, o?: Record<string, unknown>) => string) {
@@ -128,16 +129,21 @@ export default function AtlAnnonceVue({ L, buyer, onClose, onPropose }: AtlAnnon
   }, [])
 
   // Échap ferme. Plus de galerie au-dessus : cette vue est le dernier overlay.
+  // ⛔ Écran caché muet : en CAPTURE avec `preventDefault`, elle volait Échap et
+  // ←/→ à l'onglet regardé.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close() }
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [close])
+  }, [close, ecranActif])
 
   // ← / → : photo précédente / suivante
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (!hasImg || G.length < 2) return
       if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); setIdx(i => (i + 1) % G.length) }
@@ -145,7 +151,7 @@ export default function AtlAnnonceVue({ L, buyer, onClose, onPropose }: AtlAnnon
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [hasImg, G.length])
+  }, [hasImg, G.length, ecranActif])
 
   const fold = () => { setSheet('folding'); foldTimer.current = setTimeout(() => setSheet('mini'), 260) }
   const unfold = () => { setSheet('unfolding'); foldTimer.current = setTimeout(() => setSheet('open'), 190) }

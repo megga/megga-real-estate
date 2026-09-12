@@ -2,8 +2,9 @@
  * Ce que TOUTES les bandes d'onglets doivent voir PAREIL.
  *
  * ⛔ IL Y A PLUSIEURS BANDES MONTÉES À LA FOIS, et c'est par conception :
- * `EcransVivants` garde trois écrans vivants, chaque écran porte son propre
- * chrome (`CrmWorkspace`), donc trois `CrmTabsBar` — une seule visible. Deux
+ * `EcransVivants` garde jusqu'à `VIVANTS_MAX` écrans vivants, chaque écran porte
+ * son propre chrome (`CrmWorkspace`), donc autant de `CrmTabsBar` — une seule
+ * visible. Deux
  * valeurs de cette barre ne sont pourtant pas des états d'ÉCRAN mais des états
  * de la BANDE : la largeur mesurée de la piste, et le cadrage de la fenêtre
  * glissante. Les laisser en `useState` dans le composant les rend
@@ -15,9 +16,8 @@
  *  1. **La bande tombait à UNE puce le temps d'un commit.** Une barre qui vient
  *     de se monter démarre à `largeur = 0`, donc `vis = 1` : elle rend
  *     « Aujourd'hui  +14 », puis la mesure arrive et elle repasse à neuf puces.
- *     Piste relevée à 1440 px : **1166 → 94 → 1166**. Ce n'est pas un cas de
- *     bord : avec dix à quinze onglets et trois écrans vivants, ONZE bascules
- *     sur quatorze montent un écran neuf, donc une barre neuve.
+ *     Piste relevée à 1440 px : **1166 → 94 → 1166**. Ce n'était pas un cas de
+ *     bord : chaque bascule montait une barre neuve (voir `crmEcranVisible`).
  *  2. **Le cadrage sautait de six rangs.** Ce `vis = 1` ne fait pas que
  *     clignoter, il POISONNE le cadrage : `crmVisibleWindow(15, 8, 1, 0)` rend
  *     `debut = 8`, que la barre range dans son état ; la vraie largeur arrive
@@ -33,8 +33,8 @@
  * ⚠ PARTAGER EST LÉGITIME PARCE QUE LA GÉOMÉTRIE EST LA MÊME. Les écrans cachés
  * sont en `visibility: hidden`, jamais `display: none` (cf. `EcranVivant`) :
  * ils gardent leur boîte, leurs bandes occupent la même piste et mesureraient
- * de toute façon la même chose. Ce module ne fait pas coïncider trois valeurs
- * qui pourraient légitimement différer, il cesse d'en fabriquer trois.
+ * de toute façon la même chose. Ce module ne fait pas coïncider des valeurs
+ * qui pourraient légitimement différer, il cesse d'en fabriquer une par barre.
  *
  * ⚠ CE N'EST PAS DE L'ÉTAT D'ONGLET. Rien d'ici n'entre dans la tranche `ui`
  * d'un onglet ni ne part au serveur : c'est de la géométrie d'écran, elle se
@@ -106,7 +106,16 @@ function abonner(notifier: () => void): () => void {
   return () => { abonnes.delete(notifier) }
 }
 
-/** La vue partagée, abonnée. Toutes les barres montées lisent la même. */
-export function useCrmStripView(): CrmStripView {
-  return useSyncExternalStore(abonner, crmStripView, crmStripView)
+const sansAbonnement = () => () => {}
+
+/**
+ * La vue partagée. Toutes les barres montées lisent la même.
+ *
+ * ⚠ `abonne = false` pour une bande CACHÉE : elle lit la valeur à son rendu sans se
+ * re-rendre à chaque écriture — `useSyncExternalStore` rend en voie synchrone, et
+ * la sonde de la bande montrée écrit à chaque frame. Redevenue montrée, elle se
+ * réabonne et relit la valeur courante.
+ */
+export function useCrmStripView(abonne = true): CrmStripView {
+  return useSyncExternalStore(abonne ? abonner : sansAbonnement, crmStripView, crmStripView)
 }

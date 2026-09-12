@@ -28,6 +28,7 @@ import {
   useAX, useAxDark, axCHF, axShort, axPace, type AxPeriodId, type AxPeriodData,
   type AxBucketId, type AxBucket,
 } from './tokens'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 // ── Accent dataviz périwinkle (déclinaisons) — jamais en accent UI ────────────
 export interface AxfAccent { accent: string; soft: string; ghost: string; area: string }
@@ -451,11 +452,14 @@ function AxfDrillPopover({ drill, bucket, compValue, onClose, onNavigate }: {
 }) {
   const A = useAX()
   const { t: tr } = useTranslation('dashboard')
+  // ⛔ Écran caché muet (keepalive des onglets).
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, ecranActif])
   const items = bucket.items
   const tone = AXF_BUCKET_TONE[drill.bucket]
   const W = 390
