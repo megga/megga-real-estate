@@ -11,6 +11,7 @@ import AtlConfirm from './AtlConfirm'
 import { ATL_KYC } from './constants'
 import { fmtM, atlFmtCHF, atlInitials, atlReturnDate, atlScoreColor } from './format'
 import { isSnoozed } from '@/hooks/useAtelierMatching'
+import { useEcranActif } from '@/hooks/useEcranActif'
 import type { AtelierBuyer, AtelierPoolMatch, TriageKind } from './types'
 import type { AtelierGestes, PendingHandle } from './pendingTriage'
 import { encreSur } from '@/components/megga-x-crm/tokens'
@@ -281,9 +282,14 @@ export default function AtlAcheteurMode({ b, pool, gestes, onOpenDeal }: AtlAche
     setSelLid(open[ni].lid)
   }
 
+  // ⛔ Même garde que le mode annonce (`AtelierStage`) : écran caché muet, et
+  // aucun modificateur — ces touches écrivent un triage en base.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (confirmLid) return
+      if (e.metaKey || e.ctrlKey || e.altKey) return
       const tag = ((e.target as HTMLElement)?.tagName ?? '').toLowerCase()
       if (tag === 'input' || tag === 'textarea') return
       const k = e.key.toLowerCase()
@@ -298,7 +304,7 @@ export default function AtlAcheteurMode({ b, pool, gestes, onOpenDeal }: AtlAche
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selected, open, confirmLid, requestSend, triage, undo]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ecranActif, selected, open, confirmLid, requestSend, triage, undo]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Parking : reportés de la session + reportés en base (snoozed_until futur)
   const snoozed: Array<{ m: AtelierPoolMatch; until: string }> = [

@@ -43,17 +43,15 @@ import { useTranslation } from 'react-i18next'
 import type { CrmPalette } from './tokens'
 import { RailIcon } from './LiquidGlassRail'
 import { CRM_SIDEBAR_GROUPS, crmSidebarActiveFor, crmSidebarRouteOf, type CrmSidebarSectionId } from './crmSidebarNav'
-import { useCrmSidebarCollapsed } from '@/lib/crmSidebar'
-import { useIsMobile, useMediaQuery } from '@/hooks/useMediaQuery'
+import { useCrmSidebarRepli } from '@/hooks/useCrmSidebarRepli'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
 import { useAgencyObjective } from '@/hooks/useAgencyObjective'
-import { useAiPanel } from '@/hooks/useAiPanel'
-import { openCrmSearch } from './search/openSearch'
 import { openHelpFor } from '@/lib/help-articles'
 import { RelanceSession } from './today/RelanceSession'
 import CrmProfileDropdown from './profile/CrmProfileDropdown'
 import { formatCHF } from '@/lib/utils'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 /** Largeurs de la carte. Ni l'une ni l'autre n'est une valeur d'échelle : la
  *  grammaire tokenise les rayons, espacements et tailles de texte — pas les
@@ -67,8 +65,8 @@ const W_COLLAPSED = 84
  * ⚠ 20, PAS PLUS, et la borne est mesurée : la hauteur d'une ligne dépliée est
  * portée par la boîte de ligne du libellé — 14 px × 1,5 de la préflight
  * Tailwind = 21 px. Un glyphe de 20 se loge dessous sans rien pousser ; à 22 il
- * prend la main et la ligne grandit de 2 px, seize fois, ce qui repousse la
- * liste sous le pli. Le repli, lui, a toute la place (84 px).
+ * prend la main et chaque ligne grandit de 2 px, ce qui repousse la liste sous
+ * le pli. Le repli, lui, a toute la place (84 px).
  */
 const ICON = 20
 
@@ -164,42 +162,29 @@ function SidebarRow({
   )
 }
 
-// ─── Sur-titre de groupe ───────────────────────────────────────────────────
-// ⛔ La référence de design disait « aucune séparation visuelle entre les
-// groupes, seul l'ordre les signale ». À dix entrées, l'ordre seul ne signale
-// plus rien (retour de Julien, 4 septembre 2026). Même idiome que la console
-// super-admin, qui groupe déjà sa nav en cinq sections libellées : 12 px / 600 /
-// `sp.sub`, sans capitale ni filet.
+// ─── Filet entre deux groupes (barre repliée seulement) ────────────────────
+// ⛔ LES SUR-TITRES DE GROUPE SONT RETIRÉS DEPUIS LE 7 SEPTEMBRE 2026 (Julien :
+// « enlève les catégories »). Ils étaient nés le 4 septembre, quand l'ordre seul
+// ne signalait plus rien à dix entrées. Le découpage en groupes SURVIT — il
+// ordonne la liste, il nomme les groupes pour un lecteur d'écran
+// (`role="group"` + `aria-label`), et c'est lui que rend la grille de la page
+// d'onglet neuf. Dépliée, la barre ne sépare donc plus rien : on revient à ce
+// que la référence de design prescrivait — « seul l'ordre les signale ».
 //
-// ⚠ Repliée, la barre n'a pas 84 px pour un mot : le sur-titre cède la place à
-// un FILET. Sans lui, dix-sept glyphes s'alignent sans respiration et la colonne
-// redevient la liste indifférenciée qu'on vient de découper.
+// ⚠ REPLIÉE, LE FILET RESTE. Ce n'est pas une catégorie mais un trait, dans une
+// colonne où aucun mot n'est affiché de toute façon : sans lui, quatorze glyphes
+// s'empilent sans respiration. Rien au-dessus du PREMIER groupe — un filet juste
+// sous le bloc d'agence redoublerait la bordure de la carte.
 
-function GroupLabel({ label, collapsed, first = false, sp }: {
-  label: string; collapsed: boolean; first?: boolean; sp: CrmPalette
+function FiletDeGroupe({ collapsed, first = false, sp }: {
+  collapsed: boolean; first?: boolean; sp: CrmPalette
 }) {
-  if (collapsed) {
-    // ⚠ Rien au-dessus du PREMIER groupe : un filet juste sous le bloc d'agence
-    // ne sépare rien — il redouble la bordure de la carte et se lit comme une
-    // erreur. Les filets ne servent qu'entre deux groupes.
-    if (first) return null
-    return (
-      <div aria-hidden style={{
-        height: 1, background: sp.frameBorder,
-        margin: 'var(--crm-space-sm) var(--crm-space-lg) var(--crm-space-xs)',
-      }} />
-    )
-  }
+  if (!collapsed || first) return null
   return (
-    <div style={{
-      // ⚠ Serré volontairement : cinq sur-titres coûtent de la hauteur, et la
-      // liste défile déjà. 4 px au-dessus suffisent à détacher le titre de la
-      // ligne précédente — c'est le blanc du groupe qui sépare, pas le padding.
-      padding: 'var(--crm-space-xs) var(--crm-space-2xl) var(--crm-space-2xs)',
-      fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.2,
-      color: sp.sub, userSelect: 'none',
-      whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-    }}>{label}</div>
+    <div aria-hidden style={{
+      height: 1, background: sp.frameBorder,
+      margin: 'var(--crm-space-sm) var(--crm-space-lg) var(--crm-space-xs)',
+    }} />
   )
 }
 
@@ -346,23 +331,10 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
   // le lire ferait clignoter « Agence non définie » sur une agence parfaitement
   // définie, et déjà en cache.
   const { agencySaved: agency, isLoading: agencyLoading } = useAgencySettings()
-  const ai = useAiPanel()
-  const isMobile = useIsMobile()
-
-  const [stored, setStored] = useCrmSidebarCollapsed()
-  // ⚠ Le dock MEGGA AI comprime le contenu de 404 px (`COPILOT_WIDTH`), et cette
-  // compression S'AJOUTE aux 276 px de la barre. Mesuré à 1280 px, dock ouvert,
-  // barre ouverte : il reste 600 px de travail — moins que les 300 px d'aside
-  // des Réglages plus leur colonne, et moins que les 296 px du calendrier plus
-  // sa grille. La barre se replie donc d'elle-même tant que le dock est ouvert
-  // sur un écran étroit ; le RÉGLAGE de l'agent n'est pas touché (`stored` reste
-  // ce qu'il était), la barre le retrouve en fermant le dock.
-  const serre = useMediaQuery('(max-width: 1439px)')
-  // Sous 768 px la barre est TOUJOURS repliée : trois routes du CRM
-  // (`/dashboard/audit`, `market/:externalId`, `listings/:id/edit`) n'ont pas de
-  // variante mobile et rendent cette coquille telle quelle sur un téléphone —
-  // 264 px y prendraient 70 % de la largeur.
-  const collapsed = isMobile || (ai.enabled && ai.isOpen && serre) || stored
+  // ⚠ Le repli EFFECTIF — réglage de l'agent, forcé par le téléphone et par le
+  // dock MEGGA AI sur écran étroit. La règle vit dans `useCrmSidebarRepli`, que
+  // le squelette de chargement lit aussi : recopiée, elle avait divergé.
+  const { replie: collapsed, force: repliForce, regle: stored, setRegle: setStored } = useCrmSidebarRepli()
 
   const [relanceOpen, setRelanceOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -381,8 +353,9 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
   // partie dans la bande d'onglets le 7 septembre 2026, et son couple d'écouteurs
   // avec elle : laisser ici un `notifOpen` qui ne s'ouvre plus aurait fait un
   // état mort que rien ne signale.
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (!profileOpen) return
+    if (!profileOpen || !ecranActif) return
     const onDown = (e: MouseEvent) => {
       const target = e.target as Node
       if (profileAnchorRef.current && !profileAnchorRef.current.contains(target)) setProfileOpen(false)
@@ -394,7 +367,7 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
       document.removeEventListener('mousedown', onDown)
       document.removeEventListener('keydown', onKey)
     }
-  }, [profileOpen])
+  }, [profileOpen, ecranActif])
 
   const activeId = active ?? crmSidebarActiveFor(location.pathname) ?? undefined
 
@@ -421,7 +394,7 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
    * en UN endroit qui couvre aussi les bancs à venir. `/dev/*` est bien la
    * frontière des bancs — `dev-bancs-frontiere.spec.ts` la garde.
    *
-   * ⚠ Ne concerne QUE les cibles de la barre. Les outils (recherche, relances)
+   * ⚠ Ne concerne QUE les cibles de la barre. Les outils (relances, aide)
    * agissent sur place et marchent sur un banc, comme avec le rail.
    */
   const enBanc = location.pathname.startsWith('/dev/')
@@ -432,12 +405,18 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
   }
 
   // Outils transverses. Les PAGES sont au-dessus ; aucune ligne n'est reprise
-  // dans les deux groupes. ⚠ La ligne « Créer » du rail appelait `onCmd`, que
-  // presque chaque page câblait sur `openCrmSearch` — le même geste que la
-  // loupe, deux lignes plus haut. Elle n'est donc rendue que lorsque l'écran
-  // fournit réellement un geste de création.
+  // dans les deux groupes.
+  //
+  // ⛔ « RECHERCHER » N'EST PLUS ICI (7 septembre 2026, Julien : « on n'a plus
+  // vraiment besoin, comme on ouvre un onglet on a déjà la recherche »). La page
+  // d'onglet neuf rend `CrmSearch` dans son corps, champ focalisé ; ⌘K y mène,
+  // et le « + » de la bande aussi. Une loupe qui ouvre un voile par-dessus
+  // l'écran faisait un second chemin vers la même chose — celui-là même dont la
+  // refonte du champ devait sortir.
+  //
+  // ⚠ La ligne « Créer » (`onCmd`), elle, reste : elle n'est rendue que lorsque
+  // l'écran fournit réellement un geste de création.
   const tools: { id: string; icon: string; label: string; action: () => void }[] = [
-    { id: 'search', icon: 'search', label: t('actions.search'), action: () => openCrmSearch() },
     ...(onCmd ? [{ id: 'add', icon: 'plus', label: t('actions.create'), action: onCmd }] : []),
     { id: 'relances', icon: 'phone', label: t('nav.callbacksToday'), action: () => setRelanceOpen(true) },
     { id: 'import', icon: 'download', label: t('nav.importLeads'), action: () => { if (!enBanc) navigate('/dashboard/import-lead') } },
@@ -505,7 +484,7 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
         }}
       >
         {/* ── 1. Pastille de repli — à cheval sur la bordure droite ────────── */}
-        {!isMobile && !(ai.enabled && ai.isOpen && serre) && (
+        {!repliForce && (
           <button
             type="button"
             onClick={() => setStored(!stored)}
@@ -598,12 +577,11 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
         </div>
 
         {/* ── 3. Nav : quatre groupes de pages, puis les outils ───────────── */}
-        {/* ⛔ PAS de `scrollbar-hide` ici. Seize lignes ne tiennent pas sous
-            ~900 px de hauteur utile : mesuré, à 800 px « Importer des leads »,
-            « Megga, Agent IA » et « Notifications » passent sous un pli — et
-            masquer la barre de défilement retirait le SEUL indice qu'il y a
-            quelque chose en dessous. Le dégradé de bas double l'indice là où le
-            système peint des barres en survol (macOS). */}
+        {/* ⛔ PAS de `scrollbar-hide` ici. La liste ne tient pas sous ~900 px de
+            fenêtre : mesuré le 4 septembre à 800 px, ses dernières lignes
+            passaient sous un pli — et masquer la barre de défilement retirait le
+            SEUL indice qu'il y a quelque chose en dessous. Le dégradé de bas
+            double l'indice là où le système peint des barres en survol (macOS). */}
         <div
           style={{
             flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
@@ -615,7 +593,7 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
           <nav aria-label={t('nav.mainNav')} style={{ display: 'flex', flexDirection: 'column' }}>
             {CRM_SIDEBAR_GROUPS.map((g, i) => (
               <div key={g.labelKey} role="group" aria-label={t(g.labelKey)}>
-                <GroupLabel label={t(g.labelKey)} collapsed={collapsed} first={i === 0} sp={sp} />
+                <FiletDeGroupe collapsed={collapsed} first={i === 0} sp={sp} />
                 <div style={listStyle}>
                   {g.items.map(s => (
                     <SidebarRow
@@ -634,7 +612,7 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
           </nav>
 
           <div role="group" aria-label={t('nav.sectionTools')}>
-            <GroupLabel label={t('nav.sectionTools')} collapsed={collapsed} sp={sp} />
+            <FiletDeGroupe collapsed={collapsed} sp={sp} />
             <div style={listStyle}>
             {tools.map(it => (
               <SidebarRow

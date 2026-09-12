@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import RechIcon from './RechIcon'
 import MrhPhoto from './MrhPhoto'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 const NAV: CSSProperties = { width: 48, height: 48, borderRadius: 999, border: 0, cursor: 'pointer', flexShrink: 0, display: 'grid', placeItems: 'center', padding: 0, background: 'rgba(255,255,255,.12)' }
 
@@ -19,7 +20,10 @@ interface Props {
 
 export default function MrhLightbox({ photos, index, onIndex, onClose }: Props) {
   const { t } = useTranslation('matching')
+  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.stopPropagation(); onClose() }
       else if (e.key === 'ArrowRight') { e.preventDefault(); onIndex((index + 1) % photos.length) }
@@ -27,7 +31,7 @@ export default function MrhLightbox({ photos, index, onIndex, onClose }: Props) 
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [index, photos.length, onIndex, onClose])
+  }, [index, photos.length, onIndex, onClose, ecranActif])
   const go = (d: number) => onIndex((index + d + photos.length) % photos.length)
 
   const overlay = (

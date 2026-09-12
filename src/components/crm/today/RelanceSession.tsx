@@ -22,6 +22,7 @@ import type { Json } from '@/types/database'
 import { uuidOrNull } from './focusAudit'
 import { useRelanceLeads } from '@/hooks/useRelanceLeads'
 import { useRelanceSession } from './useRelanceSession'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 // La couleur reste un token de présentation ; le libellé de température est une
 // clé i18n stable (code → clé), traduite au point d'usage.
@@ -360,7 +361,11 @@ export function RelanceSession({ onClose }: { onClose: () => void }) {
   }
   const mailto = lead ? `mailto:${lead.email || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(draft)}` : ''
 
+  // ⛔ Écran caché muet : Entrée passait au lead suivant, « a » lançait une
+  // génération — depuis un onglet qu'on ne regarde plus.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { onClose(); return }
       // ne pas capter les raccourcis pendant l'édition d'un champ texte

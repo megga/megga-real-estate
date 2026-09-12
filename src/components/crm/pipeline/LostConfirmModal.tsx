@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 import { type CrmPalette } from '../tokens'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 interface Props {
   sp: CrmPalette
@@ -24,11 +25,14 @@ interface Props {
 export function LostConfirmModal({ sp, dark, contactName, onCancel, onConfirm }: Props) {
   const { t } = useTranslation('pipeline')
 
+  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const key = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
     document.addEventListener('keydown', key)
     return () => document.removeEventListener('keydown', key)
-  }, [onCancel])
+  }, [onCancel, ecranActif])
 
   return createPortal(
     <div onClick={onCancel} style={{

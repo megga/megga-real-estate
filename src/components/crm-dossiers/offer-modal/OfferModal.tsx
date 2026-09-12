@@ -29,6 +29,7 @@ import type { Property } from '@/types/listing'
 import { encreSur } from '@/components/megga-x-crm/tokens'
 import { crmPalette } from '@/components/crm/tokens'
 import { omPalette, type OmPalette } from './omTokens'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 function omFmt(n: number | string | null | undefined): string {
   if (n == null || n === '') return '—'
@@ -372,14 +373,17 @@ export default function OfferModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultAmount])
 
-  // ESC ferme
+  // ESC ferme — pas depuis un écran caché : la route d'offre reste vivante
+  // derrière l'onglet ouvert par ⌘K, et fermer y renvoie à la fiche deal.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, ecranActif])
 
   const toggleCond = (key: keyof OfferConditions) => {
     if (key === 'other') return

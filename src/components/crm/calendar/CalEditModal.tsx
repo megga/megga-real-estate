@@ -17,6 +17,7 @@ import { useContacts } from '@/hooks/useContacts'
 import { useAgencyProperties } from '@/hooks/useProperties'
 import { formatCHF } from '@/lib/utils'
 import type { ContactType } from '@/types/contact'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 export interface CalEditing {
   mode: 'create' | 'edit',
@@ -154,8 +155,10 @@ function CalDatePicker({ value, onChange }: { value: Date; onChange: (ymd: strin
     setPos({ left, top })
   }, [open])
 
+  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (!open) return
+    if (!open || !ecranActif) return
     const onDoc = (e: MouseEvent) => {
       if (popRef.current?.contains(e.target as Node)) return
       if (btnRef.current?.contains(e.target as Node)) return
@@ -165,7 +168,7 @@ function CalDatePicker({ value, onChange }: { value: Date; onChange: (ymd: strin
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('keydown', onKey, true)
     return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey, true) }
-  }, [open])
+  }, [open, ecranActif])
 
   const first = new Date(viewM.getFullYear(), viewM.getMonth(), 1)
   const last = new Date(viewM.getFullYear(), viewM.getMonth() + 1, 0)
@@ -290,8 +293,10 @@ function CalLinkPicker({
     setPos({ left, top, width: W })
   }, [open])
 
+  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (!open) return
+    if (!open || !ecranActif) return
     setQ('')
     const tm = setTimeout(() => inputRef.current?.focus(), 30)
     const onDoc = (e: MouseEvent) => {
@@ -303,7 +308,7 @@ function CalLinkPicker({
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('keydown', onKey, true)
     return () => { clearTimeout(tm); document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey, true) }
-  }, [open])
+  }, [open, ecranActif])
 
   const filtered = q.trim() ? items.filter(it => it.search.includes(q.trim().toLowerCase())) : items
 
@@ -486,11 +491,14 @@ export function CalEditModal({ editing, onSave, onCancel, onDelete }: CalEditMod
     set({ end: ne })
   }
 
+  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCancel() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onCancel])
+  }, [onCancel, ecranActif])
 
   const modalShadow = SP.isDark
     ? '0 30px 80px rgba(0,0,0,0.72), inset 0 1px 0 rgba(255,255,255,0.06)'

@@ -15,6 +15,7 @@ import { BpTopGallery } from './BpTopGallery'
 import { BpFollowupPage } from './BpFollowupPage'
 import { BiensFirstRun, BiensFollowEmpty } from './BiensFirstRun'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
+import { useEcranActifRef } from '@/hooks/useEcranActif'
 
 const PAGE_COUNT = 2
 
@@ -136,6 +137,7 @@ export function BiensPager({
 
   useEffect(() => { pageRef.current = page; animateTo(page) }, [page, animateTo])
 
+  const ecranActifRef = useEcranActifRef()
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
@@ -169,6 +171,8 @@ export function BiensPager({
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     const onKey = (e: KeyboardEvent) => {
+      // ⛔ Écran vivant mais caché : il ne vole pas les flèches à l'écran montré.
+      if (!ecranActifRef.current) return
       if (frozenRef.current) return
       const tag = (e.target && (e.target as HTMLElement).tagName) || ''
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && (e.target as HTMLElement).isContentEditable)) return
@@ -191,7 +195,7 @@ export function BiensPager({
       el.removeEventListener('touchstart', onTS)
       el.removeEventListener('touchmove', onTM)
     }
-  }, [go])
+  }, [go, ecranActifRef])
 
   return (
     <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>

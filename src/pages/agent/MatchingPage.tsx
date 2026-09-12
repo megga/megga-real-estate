@@ -26,6 +26,7 @@ import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRe
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useCrmDarkPref } from '@/lib/crmDark'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
+import { useEcranActifRef } from '@/hooks/useEcranActif'
 
 const MATCHING_PAGES = [
   { id: 'score', labelKey: 'pager.score' },
@@ -266,6 +267,7 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
   // Anime vers la page courante à chaque changement + tient pageRef à jour.
   useEffect(() => { pageRef.current = page; animateTo(page) }, [page, animateTo])
 
+  const ecranActifRef = useEcranActifRef()
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
@@ -317,6 +319,8 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
 
     // Clavier : PageUp/PageDown UNIQUEMENT — les flèches restent à l'atelier.
     const onKey = (e: KeyboardEvent) => {
+      // ⛔ Écran vivant mais caché : il ne vole pas les flèches à l'écran montré.
+      if (!ecranActifRef.current) return
       const tag = (e.target && (e.target as HTMLElement).tagName) || ''
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && (e.target as HTMLElement).isContentEditable)) return
       if (e.key === 'PageDown') { e.preventDefault(); if (!lock.current) { lock.current = true; go(1); setTimeout(() => { lock.current = false }, 820) } }
@@ -341,7 +345,7 @@ export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}
       el.removeEventListener('touchstart', onTS)
       el.removeEventListener('touchmove', onTM)
     }
-  }, [go])
+  }, [go, ecranActifRef])
 
   return (
     <div style={{

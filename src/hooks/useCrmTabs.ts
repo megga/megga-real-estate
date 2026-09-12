@@ -39,28 +39,11 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useIsMobile } from '@/hooks/useMediaQuery'
 import {
-  CRM_TABS_CAP, crmApplyCap, crmApplyLabels, crmCloseOthers, crmCloseTab,
+  CRM_TABS_CAP, crmApplyCap, crmApplyLabels, crmCloseOthers, crmCloseTab, crmTabsEligible,
   crmDuplicateTab, crmMakeTab, crmMoveTab, crmPushFerme, crmResolveActive, crmSameLocation,
   crmTabHref, crmTabRefs, crmTogglePin, type CrmTab, type CrmTabsState,
 } from '@/lib/crmTabs'
 import { crmSidebarActiveFor, CRM_NEW_TAB_PATH } from '@/components/crm/crmSidebarNav'
-
-/**
- * Surfaces qui n'ouvrent PAS d'onglet.
- *
- * La console super-admin porte son propre chrome ; `identite` et
- * `rendez-vous-accueil` sont des entonnoirs plein écran (`IdentityShell` réclame
- * `100dvh` et tout ce qui s'empile au-dessus pousse son pied d'actions hors de la
- * fenêtre — défaut du 04.08.2026). Une de leurs visites ne doit pas déplacer
- * l'onglet actif : l'agent qui revient au CRM doit retrouver la pile qu'il avait.
- */
-const HORS_ONGLETS = ['/dashboard/admin', '/dashboard/identite', '/dashboard/rendez-vous-accueil']
-
-/** Un emplacement mérite-t-il un onglet ? */
-export function crmTabsEligible(pathname: string): boolean {
-  if (!pathname.startsWith('/dashboard')) return false
-  return !HORS_ONGLETS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
-}
 
 /**
  * Miroir de démarrage — `sessionStorage`, JAMAIS `localStorage`.
@@ -114,13 +97,25 @@ export interface CrmTabsApi extends CrmTabsState {
   basculerEpingle: (i: number) => void
   dupliquer: (i: number) => void
   deplacer: (from: number, to: number) => void
-  /** Pose le libellé de l'onglet actif — appelé par l'écran qui connaît son titre. */
-  poserLibelle: (label: string) => void
-  /** Lecture/écriture de la tranche d'écran de l'onglet actif. */
-  lireUi: (cle: string) => unknown
-  ecrireUi: (cle: string, valeur: unknown) => void
-  /** Déclare que l'écran actif porte du travail non enregistré. */
-  marquerSale: (sale: boolean) => void
+  /**
+   * Les quatre gestes d'ÉCRAN — ils visent l'onglet de l'écran qui les appelle.
+   *
+   * ⛔ ILS VISAIENT L'ONGLET ACTIF, et c'était faux dès que des écrans restent
+   * vivants derrière l'actif. Un écran caché qui lisait sa position de pager lisait
+   * celle de l'onglet REGARDÉ ; un effet de bornage qui s'y déclenchait l'ÉCRIVAIT
+   * dans l'onglet regardé — reproduit le 12 septembre 2026 : un pager caché a posé
+   * `today:pager` dans la tranche de l'onglet Paramètres. Un libellé posé par une
+   * fiche cachée renommait l'onglet visible ; un formulaire caché qui se déclarait
+   * propre effaçait le drapeau de l'écran visible.
+   *
+   * `ongletId` vient d'`OngletEcranCtx`, que chaque écran d'onglet fournit. Absent
+   * (mobile, console, bancs sans écrans d'onglet), le geste vise l'actif — le seul
+   * écran qui existe alors.
+   */
+  poserLibelle: (label: string, ongletId?: string | null) => void
+  lireUi: (cle: string, ongletId?: string | null) => unknown
+  ecrireUi: (cle: string, valeur: unknown, ongletId?: string | null) => void
+  marquerSale: (sale: boolean, ongletId?: string | null) => void
 }
 
 /**
@@ -129,6 +124,16 @@ export interface CrmTabsApi extends CrmTabsState {
  */
 export const CrmTabsCtx = createContext<CrmTabsApi | null>(null)
 const Ctx = CrmTabsCtx
+
+/**
+ * L'identité de l'onglet que PORTE l'écran courant — fournie par chaque écran
+ * d'onglet (`EcranVivant`), `null` partout ailleurs.
+ *
+ * ⚠ Ce n'est pas l'onglet ACTIF : plusieurs écrans d'onglet sont montés en même
+ * temps, un seul regardé. C'est ce qui permet aux gestes d'écran de viser le bon
+ * onglet — voir `CrmTabsApi.lireUi`.
+ */
+export const OngletEcranCtx = createContext<string | null>(null)
 
 /** L'API des onglets, ou `null` hors fournisseur (mobile, console admin, bancs). */
 export function useCrmTabsOptionnel(): CrmTabsApi | null {
@@ -143,6 +148,12 @@ export function useCrmTabs(): CrmTabsApi {
   const api = useContext(Ctx)
   if (!api) throw new Error('useCrmTabs() hors <CrmTabsProvider>')
   return api
+}
+
+/** Rang de l'onglet visé par un geste d'écran — l'actif quand l'écran n'en porte pas. */
+function rangVise(e: CrmTabsState, ongletId?: string | null): number {
+  if (!ongletId) return e.active
+  return e.tabs.findIndex((t) => t.id === ongletId)
 }
 
 /**
@@ -230,13 +241,18 @@ export function useCrmTabsMachine(): CrmTabsApi {
   const messageSale = t('tabs.confirmClose')
 
   /**
-   * L'écran actif porte-t-il du travail non enregistré ?
+   * Les onglets dont l'écran porte du travail non enregistré.
    *
    * ⚠ Une REF, pas un état : ce drapeau change à chaque frappe dans un
    * formulaire, et le passer par `useState` re-rendrait la barre d'onglets
    * entière à chaque caractère saisi.
+   *
+   * ⛔ UN ENSEMBLE PAR IDENTITÉ D'ONGLET, et plus un booléen global (12 septembre
+   * 2026). Le booléen ne disait pas DE QUEL écran il parlait : un formulaire
+   * caché qui se déclarait propre effaçait le drapeau de l'écran visible, et
+   * fermer l'onglet d'un écran caché emportait sa saisie sans rien demander.
    */
-  const saleRef = useRef(false)
+  const saleRef = useRef<Set<string>>(new Set())
 
   const [etat, setEtat] = useState<CrmTabsState>(() => lireMiroir() ?? { tabs: [], active: 0, revision: null })
   const [chargement, setChargement] = useState(true)
@@ -452,13 +468,20 @@ export function useCrmTabsMachine(): CrmTabsApi {
   const ouvrirDans = useCallback((href: string, label?: string) => {
     const [path, q] = href.split('?')
     const search = q ? `?${q}` : ''
-    setEtat((prev) => {
-      // ⚠ Le plafond garde l'onglet NEUF : il vient d'être demandé, le fermer aussitôt
-      // serait absurde. `crmApplyCap` ferme les plus anciens non épinglés à la place.
-      const avec = [...prev.tabs, crmMakeTab(path, search, Date.now(), { label })]
-      const tabs = crmApplyCap(avec, avec[avec.length - 1].id)
-      return { ...prev, tabs, active: tabs.length - 1 }
-    })
+    const prev = etatRef.current
+    const neuf = crmMakeTab(path, search, Date.now(), { label })
+    // ⚠ Le plafond garde l'onglet NEUF : il vient d'être demandé, le fermer aussitôt
+    // serait absurde. `crmApplyCap` ferme les plus anciens non épinglés à la place.
+    //
+    // ⛔ ET JAMAIS UN ONGLET QUI PORTE UNE SAISIE, NI SANS LE DIRE (12 septembre
+    // 2026). L'éviction fermait l'onglet le plus à gauche sans confirmation et hors
+    // de la pile des fermés : ⇧Alt+T ne le rendait pas, et une saisie en cours y
+    // disparaissait. Les onglets sales sont désormais protégés comme l'actif et les
+    // épinglés, et les évincés passent par « fermés récemment ».
+    const tabs = crmApplyCap([...prev.tabs, neuf], neuf.id, saleRef.current)
+    const partis = prev.tabs.filter((t) => !tabs.some((x) => x.id === t.id))
+    if (partis.length) setFermes((p) => partis.reduceRight((acc, t) => crmPushFerme(acc, t), p))
+    setEtat({ ...prev, tabs, active: Math.max(0, tabs.findIndex((t) => t.id === neuf.id)) })
     if (viser(href)) navigate(href)
   }, [navigate, viser])
 
@@ -541,9 +564,13 @@ export function useCrmTabsMachine(): CrmTabsApi {
     // parce que `marquerSale` n'écrit qu'un drapeau GLOBAL, sans dire de quel écran
     // il parle — le distinguer est un autre chantier, et le taire en serait un
     // troisième.
-    if (i === prev.active && saleRef.current) {
+    // ⛔ ET IL COUVRE L'ONGLET FERMÉ, QUEL QU'IL SOIT (12 septembre 2026) : l'ensemble
+    // `saleRef` sait désormais de quel écran il parle — un écran caché qui porte une
+    // saisie est protégé comme l'écran visible.
+    const fermeId = prev.tabs[i]?.id
+    if (fermeId && saleRef.current.has(fermeId)) {
       if (!window.confirm(messageSale)) return
-      saleRef.current = false
+      saleRef.current.delete(fermeId)
     }
     const actifId = prev.tabs[prev.active]?.id ?? null
     const voisinId = restants[Math.min(i, restants.length - 1)]?.id ?? null
@@ -585,9 +612,10 @@ export function useCrmTabsMachine(): CrmTabsApi {
     // dès qu'il n'est ni la puce visée ni épinglé — c'est-à-dire le cas courant. Sans
     // ce garde, le geste emportait la saisie en cours sans rien demander, alors que la
     // croix, elle, demandait.
-    if (actifId && !restants.some((t) => t.id === actifId) && saleRef.current) {
+    const salesPartis = prev.tabs.filter((t) => saleRef.current.has(t.id) && !restants.some((r) => r.id === t.id))
+    if (salesPartis.length) {
       if (!window.confirm(messageSale)) return
-      saleRef.current = false
+      for (const t of salesPartis) saleRef.current.delete(t.id)
     }
     // ⚠ Dans l'ordre INVERSE de la pile : `crmPushFerme` met en tête, donc empiler
     // de gauche à droite laisserait le plus À GAUCHE en premier. On veut retrouver
@@ -623,30 +651,41 @@ export function useCrmTabsMachine(): CrmTabsApi {
   }, [parId])
   const deplacer = useCallback((from: number, to: number) => { parId((tabs) => crmMoveTab(tabs, from, to)) }, [parId])
 
-  const poserLibelle = useCallback((label: string) => {
+  const poserLibelle = useCallback((label: string, ongletId?: string | null) => {
     setEtat((prev) => {
-      const t = prev.tabs[prev.active]
+      const i = rangVise(prev, ongletId)
+      const t = prev.tabs[i]
       if (!t || t.label === label || !label) return prev
       const tabs = prev.tabs.slice()
-      tabs[prev.active] = { ...t, label }
+      tabs[i] = { ...t, label }
       return { ...prev, tabs }
     })
   }, [])
 
-  const lireUi = useCallback((cle: string) => etatRef.current.tabs[etatRef.current.active]?.ui?.[cle], [])
+  const lireUi = useCallback((cle: string, ongletId?: string | null) => {
+    const e = etatRef.current
+    return e.tabs[rangVise(e, ongletId)]?.ui?.[cle]
+  }, [])
 
-  const ecrireUi = useCallback((cle: string, valeur: unknown) => {
+  const ecrireUi = useCallback((cle: string, valeur: unknown, ongletId?: string | null) => {
     setEtat((prev) => {
-      const t = prev.tabs[prev.active]
+      const i = rangVise(prev, ongletId)
+      const t = prev.tabs[i]
       if (!t) return prev
       if (t.ui?.[cle] === valeur) return prev
       const tabs = prev.tabs.slice()
-      tabs[prev.active] = { ...t, ui: { ...(t.ui ?? {}), [cle]: valeur } }
+      tabs[i] = { ...t, ui: { ...(t.ui ?? {}), [cle]: valeur } }
       return { ...prev, tabs }
     })
   }, [])
 
-  const marquerSale = useCallback((sale: boolean) => { saleRef.current = sale }, [])
+  const marquerSale = useCallback((sale: boolean, ongletId?: string | null) => {
+    const e = etatRef.current
+    const id = ongletId ?? e.tabs[e.active]?.id
+    if (!id) return
+    if (sale) saleRef.current.add(id)
+    else saleRef.current.delete(id)
+  }, [])
 
   /**
    * Le filet du NAVIGATEUR — fermer la fenêtre, pas l'onglet du CRM.
@@ -660,7 +699,7 @@ export function useCrmTabsMachine(): CrmTabsApi {
    */
   useEffect(() => {
     const onQuitter = (e: BeforeUnloadEvent) => {
-      if (!saleRef.current) return
+      if (!saleRef.current.size) return
       e.preventDefault()
       // Les navigateurs modernes ignorent le texte et affichent le leur ; poser
       // `returnValue` reste ce qui DÉCLENCHE la boîte.
@@ -702,6 +741,7 @@ export function useTabScopedState<T>(
   initial: T,
 ): [T, (v: T | ((prev: T) => T)) => void] {
   const api = useContext(Ctx)
+  const ongletId = useContext(OngletEcranCtx)
   const location = useLocation()
   const scope = crmSidebarActiveFor(location.pathname) ?? 'x'
   const cleComplete = `${scope}:${cle}`
@@ -716,7 +756,7 @@ export function useTabScopedState<T>(
   // remonté quand on bascule de A vers B (même route), donc `local` porte encore ce que
   // A y avait mis, et B — qui n'a rien dans sa tranche — l'affichait comme s'il était le
   // sien. `local` ne sert qu'au repli HORS fournisseur (mobile, console, bancs).
-  const stocke = api ? api.lireUi(cleComplete) : undefined
+  const stocke = api ? api.lireUi(cleComplete, ongletId) : undefined
   const valeur = (api
     ? (stocke === undefined ? initial : stocke)
     : local) as T
@@ -739,8 +779,8 @@ export function useTabScopedState<T>(
       ? (v as (prev: T) => T)(valeur)
       : v
     setLocal(suivant)
-    api?.ecrireUi(cleComplete, suivant)
-  }, [api, cleComplete, valeur])
+    api?.ecrireUi(cleComplete, suivant, ongletId)
+  }, [api, cleComplete, valeur, ongletId])
 
   return [valeur, poser]
 }
@@ -756,7 +796,7 @@ export type CrmTabBadges = Record<string, { n: number; urgent?: boolean }>
  * C'est pour ça qu'ils vivent ici et non dans la pile.
  *
  * ⚠ `staleTime` long et `refetchOnMount: false` : la barre se remonte à CHAQUE
- * navigation (elle est rendue par chacune des vingt surfaces). Sans ces deux
+ * navigation (elle est rendue par chaque surface). Sans ces deux
  * réglages, visiter cinq écrans coûterait cinq appels pour un chiffre qui bouge
  * à l'heure. Le précédent est écrit dans `useRelanceLeads` — une clé de requête
  * instable y avait produit une boucle de refetch.
@@ -792,13 +832,14 @@ export function useCrmTabBadges(): CrmTabBadges {
  */
 export function useTabDirty(sale: boolean): void {
   const api = useContext(Ctx)
+  const ongletId = useContext(OngletEcranCtx)
   const marquer = api?.marquerSale
   useEffect(() => {
-    marquer?.(sale)
+    marquer?.(sale, ongletId)
     // Au démontage, l'écran ne porte plus rien : laisser le drapeau levé
     // ferait confirmer la fermeture d'un onglet propre.
-    return () => marquer?.(false)
-  }, [sale, marquer])
+    return () => marquer?.(false, ongletId)
+  }, [sale, marquer, ongletId])
 }
 
 /**
@@ -810,10 +851,11 @@ export function useTabDirty(sale: boolean): void {
  */
 export function useTabLabel(label: string | null | undefined): void {
   const api = useContext(Ctx)
+  const ongletId = useContext(OngletEcranCtx)
   const poser = api?.poserLibelle
   useEffect(() => {
-    if (label && poser) poser(label)
-  }, [label, poser])
+    if (label && poser) poser(label, ongletId)
+  }, [label, poser, ongletId])
 }
 
 export { CRM_TABS_CAP }

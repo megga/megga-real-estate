@@ -29,6 +29,7 @@ import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { PageAujourdhuiH } from '@/components/crm/today/PageAujourdhuiH'
 import { PageCatalogue } from '@/components/crm/today/PageCatalogue'
 import { useCrmDarkPref } from '@/lib/crmDark'
+import { useEcranActifRef } from '@/hooks/useEcranActif'
 
 // `labelKey` = clé i18n stable (namespace dashboard) ; le libellé est traduit
 // chez le consommateur (cf. § conventions i18n — module statique, pas de hook).
@@ -205,6 +206,7 @@ export default function TodayPage() {
   // Anime vers la page courante à chaque changement + tient pageRef à jour.
   useEffect(() => { pageRef.current = page; animateTo(page) }, [page, animateTo])
 
+  const ecranActifRef = useEcranActifRef()
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
@@ -265,6 +267,8 @@ export default function TodayPage() {
     el.addEventListener('wheel', onWheel, { passive: false })
 
     const onKey = (e: KeyboardEvent) => {
+      // ⛔ Écran vivant mais caché : il ne vole pas les flèches à l'écran montré.
+      if (!ecranActifRef.current) return
       const tag = (e.target && (e.target as HTMLElement).tagName) || ''
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && (e.target as HTMLElement).isContentEditable)) return
       if (['ArrowDown', 'PageDown'].includes(e.key)) { e.preventDefault(); if (!lock.current) { lock.current = true; go(1); setTimeout(() => { lock.current = false }, 850) } }
@@ -288,7 +292,7 @@ export default function TodayPage() {
       el.removeEventListener('touchstart', onTS)
       el.removeEventListener('touchmove', onTM)
     }
-  }, [go])
+  }, [go, ecranActifRef])
 
   return (
     <TodayNavProvider value={{ navigate: onNavigate, goToPage: goTo }}>

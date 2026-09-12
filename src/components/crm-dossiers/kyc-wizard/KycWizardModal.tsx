@@ -27,6 +27,7 @@ import { KwStepSuccess } from './KwStepSuccess'
 import { MlkAgentModal } from './MlkAgentModal'
 import { WIZARD_STEPS, type WizardData, type WizardSource } from './types'
 import type { KycType } from '@/types/kyc'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 interface Props {
   onClose: () => void
@@ -72,14 +73,16 @@ export function KycWizardModal({ onClose, initialContactId, embedded = false, in
   const set = (patch: Partial<WizardData>) =>
     setData((p) => ({ ...p, ...patch }))
 
-  // ESC ferme la modal
+  // ESC ferme la modal — pas depuis un écran caché, où elle reste montée.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, ecranActif])
 
   // §1.9 — verrou de scroll du fond : le wizard est plein écran ; on fige la
   // page CRM derrière tant qu'il est monté (pas de double-scroll), puis on

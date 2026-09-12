@@ -12,7 +12,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   CRM_TABS_CAP, crmApplyCap, crmApplyLabels, crmChipMaxWidth, crmChipMinWidth, crmCloseOthers,
-  crmEcransVivants, CRM_FERMES_CAP, crmPushFerme, crmTabLibelle,
+  crmEcransVivants, crmEcranVisible, CRM_FERMES_CAP, crmPousserRecent, crmPushFerme, crmTabLibelle,
   crmCloseTab, crmDragBounds, crmDuplicateTab, crmMakeTab, crmMoveTab, crmPinnedCount,
   crmResolveActive, crmTabFallbackPath, crmTabRecordRef, crmTabRefs,
   crmTogglePin, crmVisibleWindow, type CrmTab,
@@ -273,6 +273,17 @@ describe('crmTabs — plafond', () => {
     const tabs = [tab('a'), tab('b')]
     expect(crmApplyCap(tabs, 'a')).toBe(tabs)
   })
+
+  it('⛔ n’évince JAMAIS un onglet dont l’écran porte une saisie non enregistrée', () => {
+    // Le plafond fermait les plus à gauche en silence : un formulaire de bien modifié
+    // dans le premier onglet partait avec sa saisie au 25ᵉ onglet ouvert. Il passe
+    // désormais son tour, comme l'actif ; c'est le voisin qui cède.
+    const tabs = Array.from({ length: CRM_TABS_CAP + 1 }, (_, i) => tab(`t${i}`))
+    const apres = crmApplyCap(tabs, `t${CRM_TABS_CAP}`, new Set(['t0']))
+    expect(apres).toHaveLength(CRM_TABS_CAP)
+    expect(apres.find((t) => t.id === 't0')).toBeDefined()
+    expect(apres.find((t) => t.id === 't1')).toBeUndefined()
+  })
 })
 
 describe('crmTabs — bornes du glisser à grand nombre', () => {
@@ -362,6 +373,121 @@ describe('crmTabs — les écrans qui restent VIVANTS', () => {
 
   it('sans actif, aucun écran — il n’y a rien à garder vivant', () => {
     expect(crmEcransVivants(pile, undefined, ['a', 'b'], 3)).toEqual([])
+  })
+
+  /**
+   * ⛔ CE QUE COÛTE UN PLAFOND TROP BAS, compté au lieu d'être supposé.
+   *
+   * Le plafond est passé de 3 à 6 le 7 septembre 2026 (décision Julien), sur ce
+   * calcul-ci : Julien travaille à dix ou quinze onglets ouverts, et fait des
+   * allers-retours dans un GROUPE DE TRAVAIL — cinq ou six onglets, pas deux.
+   * Un plafond de 3 ne peut pas garder un groupe de 6 : chaque onglet qu'on
+   * rouvre a déjà été évincé, et l'écran est reconstruit (état local perdu,
+   * requêtes rejouées). La simulation ci-dessous rejoue le geste et compte les
+   * reconstructions — c'est un oracle reproductible, là où la mesure à l'écran
+   * dépend d'un volet d'aperçu et d'un ordonnanceur.
+   */
+  function reconstructions(idsGroupe: string[], tours: number, max: number): number {
+    const tabsGroupe = idsGroupe.map((id) => tab(id))
+    let recents: string[] = []
+    let vivants = new Set<string>()
+    let n = 0
+    for (let k = 0; k < idsGroupe.length * tours; k++) {
+      const actif = idsGroupe[k % idsGroupe.length]
+      if (!vivants.has(actif)) n += 1
+      // LA règle de `EcransVivants`, pas une copie : la récence décide de l'appartenance.
+      recents = crmPousserRecent(recents, actif, max)
+      vivants = new Set(crmEcransVivants(tabsGroupe, actif, recents, max).map((t) => t.id))
+    }
+    return n
+  }
+
+  it('⛔ un plafond de 3 ne garde AUCUN groupe de travail de six', () => {
+    const groupe = ['a', 'b', 'c', 'd', 'e', 'f']
+    // 24 bascules : l'onglet visé a toujours été évincé entre-temps.
+    expect(reconstructions(groupe, 4, 3)).toBe(24)
+  })
+
+  it('✅ un plafond de 6 ne paie que le PREMIER passage', () => {
+    const groupe = ['a', 'b', 'c', 'd', 'e', 'f']
+    // 6 sur 24 : le tour de chauffe, puis plus rien — 100 % → 25 %.
+    expect(reconstructions(groupe, 4, 6)).toBe(6)
+  })
+
+  it('⚠ et il ne promet rien au-delà de son propre nombre', () => {
+    // Sept onglets en rotation dans six créneaux : on revient toujours sur le
+    // seul qui vient d'être évincé. Le plafond déplace la limite, il ne
+    // l'efface pas — c'est pourquoi 24 onglets vivants restent exclus.
+    const sept = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+    expect(reconstructions(sept, 4, 6)).toBe(28)
+  })
+})
+
+describe('crmTabs — la récence des écrans', () => {
+  it('pousse en tête, sans doublon, bornée au plafond', () => {
+    expect(crmPousserRecent(['b', 'a', 'c'], 'a', 3)).toEqual(['a', 'b', 'c'])
+    expect(crmPousserRecent(['b', 'c', 'd'], 'a', 3)).toEqual(['a', 'b', 'c'])
+    expect(crmPousserRecent([], 'a', 6)).toEqual(['a'])
+  })
+
+  it('rend une pile NEUVE — l’état React ne se mute pas', () => {
+    const avant = ['a', 'b']
+    const apres = crmPousserRecent(avant, 'b', 3)
+    expect(apres).not.toBe(avant)
+    expect(avant).toEqual(['a', 'b'])
+  })
+})
+
+/**
+ * ⛔ LA RÈGLE QUI FAIT MARCHER LES ÉCRANS VIVANTS EN PRODUCTION : un écran ne se
+ * rend jamais sur une URL qui appartient à un autre onglet. Sans elle, la bascule
+ * par la bande (actif posé tout de suite, `navigate` dans une transition) rendait
+ * un instant l'onglet d'arrivée sur l'URL de départ — sa page était détruite puis
+ * reconstruite à chaque bascule (6 sur 6, mesuré le 12 septembre 2026).
+ */
+describe('crmTabs — l’écran MONTRÉ suit l’URL du routeur', () => {
+  const pile = [
+    tab('a', '/dashboard/contacts/1'),
+    tab('b', '/dashboard/pipeline'),
+    tab('c', '/dashboard/listings', { search: '?tab=vente' }),
+  ]
+
+  it('régime établi : l’actif, quand il porte l’URL', () => {
+    expect(crmEcranVisible(pile, 'b', '/dashboard/pipeline', '')).toBe('b')
+  })
+
+  it('⛔ bascule par la bande : l’actif change AVANT l’URL — l’écran de départ reste montré', () => {
+    // `selectionner` a posé « b » actif, le routeur montre encore l'URL de « a ».
+    // Rendre « b » sur cette URL démontait sa page : c'est « a » qui reste visible
+    // jusqu'à ce que la navigation arrive.
+    expect(crmEcranVisible(pile, 'b', '/dashboard/contacts/1', '')).toBe('a')
+  })
+
+  it('barre latérale ou Précédent : l’URL change AVANT l’actif — l’onglet qui la porte est montré', () => {
+    expect(crmEcranVisible(pile, 'a', '/dashboard/pipeline', '')).toBe('b')
+  })
+
+  it('la query distingue deux emplacements du même chemin', () => {
+    expect(crmEcranVisible(pile, 'a', '/dashboard/listings', '?tab=vente')).toBe('c')
+    // Même chemin, autre query : aucun onglet ne la porte → l'actif, qui suivra.
+    expect(crmEcranVisible(pile, 'a', '/dashboard/listings', '?tab=location')).toBe('a')
+  })
+
+  it('navigation vers un endroit NEUF dans l’onglet : l’actif, qui suit le routeur', () => {
+    expect(crmEcranVisible(pile, 'b', '/dashboard/contacts/99', '')).toBe('b')
+  })
+
+  it('⚠ l’actif gagne quand deux onglets portent la même URL', () => {
+    // Un doublon (« dupliquer ») : les deux sont justes, et changer d'écran sous
+    // l'agent parce qu'un voisin porte la même URL serait une bascule fantôme.
+    const doublon = [...pile, tab('d', '/dashboard/pipeline')]
+    expect(crmEcranVisible(doublon, 'd', '/dashboard/pipeline', '')).toBe('d')
+    expect(crmEcranVisible(doublon, 'b', '/dashboard/pipeline', '')).toBe('b')
+  })
+
+  it('chargement, pile pas encore réconciliée : l’onglet de l’URL dès la première frame', () => {
+    expect(crmEcranVisible(pile, undefined, '/dashboard/pipeline', '')).toBe('b')
+    expect(crmEcranVisible(pile, undefined, '/dashboard/inconnu', '')).toBeUndefined()
   })
 })
 

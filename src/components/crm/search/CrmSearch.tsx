@@ -513,8 +513,8 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
    */
   useEffect(() => {
     // ⛔ ET SEULEMENT SI SON ÉCRAN EST CELUI QU'ON REGARDE. Mesuré le 7 septembre
-    // 2026 : l'écran « nouvel onglet » reste VIVANT en arrière-plan (trois écrans
-    // le sont), donc sa palette restait déclarée — et `⌘K` ne faisait plus rien
+    // 2026 : l'écran « nouvel onglet » reste VIVANT en arrière-plan (jusqu'à six
+    // écrans le sont), donc sa palette restait déclarée — et `⌘K` ne faisait plus rien
     // nulle part, puisque le host croyait qu'un champ était déjà à l'écran. Un
     // raccourci confisqué par un écran qu'on ne voit pas est pire qu'absent : il
     // n'a aucun symptôme lisible.
@@ -539,7 +539,14 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
 
   // Raccourcis clavier (⌘K géré par le host).
   useEffect(() => {
-    if (!open) return
+    // ⛔ UNE PALETTE DANS UN ÉCRAN CACHÉ N'ÉCOUTE PAS LE CLAVIER — et son voisin ⌘K
+    // le faisait déjà, pas celui-ci. Une page « Nouvel onglet » restée vivante
+    // derrière l'écran montré avalait Entrée, ↑, ↓ et Échap dans TOUTE l'app :
+    // reproduit le 12 septembre 2026, Entrée dans un champ de texte n'insérait plus
+    // de retour à la ligne et faisait basculer l'onglet visible. Le parcours normal
+    // de ⌘K (onglet neuf, recherche, Entrée sur un onglet ouvert) laissait
+    // précisément une telle page derrière lui.
+    if (!open || !ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       // ⚠ En place, Échap EFFACE : il n'y a pas de voile à fermer, et fermer la
       // page d'accueil d'un onglet neuf n'aurait aucun sens.
@@ -556,7 +563,7 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, flatItems, activeIdx, onClose, activer, variante, onQueryChange])
+  }, [open, ecranActif, flatItems, activeIdx, onClose, activer, variante, onQueryChange])
 
   useEffect(() => {
     if (activeIdx >= flatItems.length) setActiveIdx(Math.max(0, flatItems.length - 1))

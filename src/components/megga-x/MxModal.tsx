@@ -22,6 +22,7 @@
 
 import { useEffect, useId, type ReactNode } from 'react'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 interface Props {
   /** Titre du dialogue. Nomme la modale pour les lecteurs d'écran (aria-labelledby). */
@@ -42,7 +43,12 @@ export default function MxModal({ title, onClose, children, closeLabel, wide }: 
 
   // Échap ferme, et le fond ne défile pas pendant ce temps — les deux gestes de
   // la modale vitrine (js/megga-auth.js), portés ici sur le cycle de vie React.
+  // ⛔ Rien de tout ça depuis un écran d'onglet CACHÉ (`useEcranActif`, vrai partout
+  // ailleurs) : son Échap fermerait une modale invisible, et son verrou de défilement
+  // figerait l'onglet regardé.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
@@ -51,7 +57,7 @@ export default function MxModal({ title, onClose, children, closeLabel, wide }: 
       document.removeEventListener('keydown', onKey)
       document.body.style.overflow = prev
     }
-  }, [onClose])
+  }, [onClose, ecranActif])
 
   // Le focus entre dans le dialogue à l'ouverture : sans ça, Tab continuerait
   // dans la page derrière le voile, que l'utilisateur ne voit plus.

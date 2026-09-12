@@ -17,6 +17,7 @@ import { RXIcon, Av, Orbs } from './kit'
 import { PHOTO } from './data'
 import { useMatching, type MatchResult } from '@/hooks/useMatching'
 import { useTodayNav } from './TodayNavContext'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 // Type du traducteur i18next injecté dans les helpers de module (non-composants).
 type TFunc = (key: string, params?: Record<string, unknown>) => string
@@ -381,13 +382,17 @@ function CatGallery({ photos, start = 0, title, onClose }: { photos: string[]; s
   const stripRef = useRef<HTMLDivElement>(null)
   const prev = useCallback(() => setI((x) => (x - 1 + n) % n), [n])
   const next = useCallback(() => setI((x) => (x + 1) % n), [n])
+  // ⛔ Écran caché muet : en CAPTURE avec `stopPropagation`, la galerie restée
+  // ouverte dans un onglet caché volait Échap et ←/→ à l'onglet regardé.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.stopPropagation(); onClose() } else if (e.key === 'ArrowLeft') { e.stopPropagation(); prev() } else if (e.key === 'ArrowRight') { e.stopPropagation(); next() }
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [prev, next, onClose])
+  }, [prev, next, onClose, ecranActif])
   useEffect(() => {
     const s = stripRef.current; if (!s) return
     const el = s.querySelector<HTMLElement>('[data-sel="true"]')
@@ -464,11 +469,13 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
         : t('today.catalogue.compat.manyGaps')
   const lightMode = TK.frameSolid === '#FFFFFF'
 
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [onClose])
+  }, [onClose, ecranActif])
 
   return (
     <div onClick={onClose} style={{ position: 'absolute', inset: 0, zIndex: 20, display: 'grid', placeItems: 'center',
@@ -775,11 +782,13 @@ function CatalogGalleryCard({ m, proposed, onOpen }: { m: CatItem; proposed: boo
 
 function CatalogGalleryOverlay({ list, proposedSet, sortLabel, onCycleSort, onOpen, onClose }: { list: CatItem[]; proposedSet: Set<number>; sortLabel: string; onCycleSort: () => void; onOpen: (m: CatItem) => void; onClose: () => void }) {
   const { t } = useTranslation('dashboard')
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); onClose() } }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [onClose])
+  }, [onClose, ecranActif])
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 30, background: TK.bg, display: 'flex', flexDirection: 'column' }}>
       <Orbs />

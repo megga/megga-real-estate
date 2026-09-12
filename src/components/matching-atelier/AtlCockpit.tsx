@@ -16,6 +16,7 @@ import AtlIcon from './AtlIcon'
 import { ATL_TABS } from './constants'
 import { atlFmtCHF } from './format'
 import type { AtelierListing, AtelierPivot, AtelierTab } from './types'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 /** Vignette carrée de l'annonce — repli sur une icône appareil photo si sans visuel. */
 function AtlThumb({ url, size = 44, radius = 12 }: { url?: string | null; size?: number; radius?: number }) {
@@ -111,14 +112,17 @@ export default function AtlCockpit({
   const pct = total ? Math.round((done / total) * 100) : 0
 
   // Échap ferme le menu — en capture, avant les raccourcis de triage de l'étage.
+  // ⛔ Pas depuis un écran caché : en capture avec `stopPropagation`, il volait
+  // l'Échap de l'onglet regardé.
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (!menuOpen) return
+    if (!menuOpen || !ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setMenuOpen(false) }
     }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [menuOpen, setMenuOpen])
+  }, [menuOpen, setMenuOpen, ecranActif])
 
   return (
     <div className="sgk sgk-pupitre">

@@ -23,6 +23,7 @@ import { useCrmDark } from '@/lib/crmDark'
 import { useAgencyProperties } from '@/hooks/useProperties'
 import { useContacts } from '@/hooks/useContacts'
 import { useCreateAgentVisit } from '@/hooks/useVisitDetail'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 const STEP_KEYS = [
   'visitModal.stepper.propertyVisitor',
@@ -165,14 +166,18 @@ export default function VisitNewPage() {
 
   const canContinue = step === 0 ? !!(bienId && contactId) : true
 
+  // ⛔ Écran caché muet : la route reste vivante derrière l'onglet ouvert par
+  // ⌘K, et son Échap renvoyait l'onglet VISIBLE vers le calendrier.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') close()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [ecranActif])
 
   const close = () => {
     if (bienId) navigate(`/dashboard/listings/${bienId}`)

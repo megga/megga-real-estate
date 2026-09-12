@@ -1,7 +1,7 @@
 /**
  * CrmWorkspace — la coquille de travail : barre latérale, barre d'onglets, contenu.
  *
- * Elle remplace, dans les vingt surfaces, le duo `<CrmSidebar/>` + contenu par un
+ * Elle remplace, dans chaque surface, le duo `<CrmSidebar/>` + contenu par un
  * seul point de montage. Ce n'est pas du sucre : la barre d'onglets doit se poser
  * AU-DESSUS du contenu et à DROITE de la barre latérale, et cette forme-là ne
  * s'obtient pas en ajoutant un frère à la barre latérale (ils sont dans une
@@ -32,8 +32,8 @@
  * la RACINE. Le dock est monté dans `App.tsx`, hors de cette coquille, et il est
  * en `position: fixed` — il n'hérite de rien. Une variable de racine est le seul
  * canal qu'ils partagent. Écrite par le SEUL écran visible (`useEcranActif`) :
- * trois écrans vivants écriraient sinon la même valeur trois fois, et le
- * nettoyage de l'un effacerait celle dont l'autre a besoin.
+ * chaque écran vivant l'écrirait sinon à son tour, et le nettoyage de l'un
+ * effacerait celle dont l'autre a besoin.
  *
  * ── LE PLAN DE TRAVAIL PORTE LA POUSSÉE (12 septembre 2026) ─────────────────
  * Quand le dock s'ouvre, c'est cette colonne qui se comprime de 404 px, plus la
@@ -96,9 +96,8 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
   const avecOnglets = !!tabs && !isMobile
 
   // ⚠ L'offset du chrome, publié sur la RACINE pour le dock (voir l'en-tête).
-  // Écrit par le seul écran VISIBLE : trois écrans vivants écriraient sinon la
-  // même valeur trois fois, et le nettoyage de l'un effacerait celle dont
-  // l'autre a besoin.
+  // Écrit par le seul écran VISIBLE : chaque écran vivant l'écrirait sinon à son
+  // tour, et le nettoyage de l'un effacerait celle dont l'autre a besoin.
   const ecranActif = useEcranActif()
   useEffect(() => {
     if (!ecranActif) return

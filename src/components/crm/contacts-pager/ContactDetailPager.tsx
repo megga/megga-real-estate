@@ -39,6 +39,7 @@ import { useTabScopedState } from '@/hooks/useCrmTabs'
 // rendant insensible à toute évolution du helper — et en laissant croire, dans une carte
 // traduite, que la carte formate en français.
 import { formatDate } from '@/lib/utils'
+import { useEcranActifRef } from '@/hooks/useEcranActif'
 
 // ═══════════════════════════════════════════════════════════════════════
 //   API PUBLIQUE
@@ -1703,6 +1704,7 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
 
   useEffect(() => { pageRef.current = page; animateTo(page) }, [page, animateTo])
 
+  const ecranActifRef = useEcranActifRef()
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
@@ -1730,6 +1732,8 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     const onKey = (e: KeyboardEvent) => {
+      // ⛔ Écran vivant mais caché : il ne vole pas les flèches à l'écran montré.
+      if (!ecranActifRef.current) return
       const tag = (e.target && (e.target as HTMLElement).tagName) || ''
       if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag) || (e.target && (e.target as HTMLElement).isContentEditable)) return
       if (freezeRef.current > 0) return
@@ -1752,7 +1756,7 @@ export default function ContactDetailPager(props: ContactDetailPagerProps): Reac
       el.removeEventListener('touchstart', onTS)
       el.removeEventListener('touchmove', onTM)
     }
-  }, [go])
+  }, [go, ecranActifRef])
 
   return (
     <main style={{ position: 'relative', flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)', background: P.pageBg, fontFamily: 'var(--crm-font, "Inter Tight"), system-ui, sans-serif', color: P.ink }}>

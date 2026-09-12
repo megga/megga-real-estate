@@ -41,6 +41,7 @@ import {
 import { useExtractLead, type ExtractedLead, type LeadIntent } from '@/hooks/useExtractLead'
 import { useFindContactDuplicates } from '@/hooks/useContactDuplicates'
 import { useImportLead } from '@/hooks/useImportLead'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 // Ids stables des étapes (labels résolus via i18n dans le composant).
 const STEP_IDS = ['message', 'review'] as const
@@ -158,7 +159,11 @@ export default function ImportLeadPage() {
   }
 
   // Escape ferme et retourne à l'écran d'appel (avec confirm §B.4)
+  // ⛔ Écran caché muet : la route reste vivante derrière l'onglet ouvert par
+  // ⌘K, et son Échap confirmait puis NAVIGUAIT l'onglet visible.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !importMutation.isPending) {
         if (confirmNavigation()) navigate(returnTo)
@@ -167,7 +172,7 @@ export default function ImportLeadPage() {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, returnTo, importMutation.isPending, text, step, created])
+  }, [ecranActif, navigate, returnTo, importMutation.isPending, text, step, created])
 
   const close = () => {
     if (confirmNavigation()) {

@@ -35,6 +35,7 @@ import type { CrmPalette } from '@/components/crm/tokens'
 import { floorLabelKey, type MrhBien, type MrhBienDetail, type MrhContact } from './types'
 import { MRH_PRICE_DROP } from './mrhCtx'
 import type { MrhSurf } from './mrhCtx'
+import { useEcranActif } from '@/hooks/useEcranActif'
 
 // Carte réelle isolée + lazy → mapbox-gl ne charge qu'à l'ouverture d'une fiche avec token.
 const MrhMapbox = lazy(() => import('./MrhMapbox'))
@@ -105,18 +106,21 @@ export default function MrhExtDetail({ bien, sp, surf, dark, line, chipBg, ACC, 
 
   // Échap ferme la fiche — sauf si la carte plein écran est au-dessus (elle a
   // sa propre écoute et se ferme d'abord).
+  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !mapOpen) onClose() }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, mapOpen])
+  }, [onClose, mapOpen, ecranActif])
 
   useEffect(() => {
-    if (!mapOpen) return
+    if (!mapOpen || !ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagation(); setMapOpen(false) } }
     window.addEventListener('keydown', onKey, true)
     return () => window.removeEventListener('keydown', onKey, true)
-  }, [mapOpen])
+  }, [mapOpen, ecranActif])
 
   const isRent = bien.transaction === 'location'
   const price = isRent ? bien.rent : bien.price

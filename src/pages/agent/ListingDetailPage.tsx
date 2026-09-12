@@ -55,6 +55,7 @@ import { supabase } from '@/lib/supabase'
 import type { Property } from '@/types/listing'
 import { useCrmDarkPref } from '@/lib/crmDark'
 import { useTabLabel } from '@/hooks/useCrmTabs'
+import { useEcranActif } from '@/hooks/useEcranActif'
 import { DOCK_PUSH_VAR } from '@/components/ai-copilot/panel/aiPanel'
 
 const BF_MAXW = 1120 // largeur max de la colonne de contenu (bride le « trop large »)
@@ -309,12 +310,14 @@ function BfEditModal({
   useEffect(() => {
     if (open) setD({ title: bien.title, address: bien.address, price: bien.price ?? 0, description: bien.description ?? '' })
   }, [open, bien])
+  // ⛔ Écran caché muet : la modale reste montée derrière l'onglet regardé.
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (!open) return
+    if (!open || !ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open, onClose, ecranActif])
   if (!open) return null
   const set = <K extends keyof EditDraft>(k: K, v: EditDraft[K]) => setD(p => ({ ...p, [k]: v }))
   const sub = vx.cardSub
@@ -371,12 +374,13 @@ function BfVisitModal({
   const [day, setDay] = useState(0)
   const [time, setTime] = useState('14:00')
   const [who, setWho] = useState<string | null>(contacts[0]?.id ?? null)
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (!open) return
+    if (!open || !ecranActif) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open, onClose])
+  }, [open, onClose, ecranActif])
   if (!open) return null
   const days: Date[] = []
   for (let i = 1; i <= 5; i++) {

@@ -34,6 +34,7 @@ import {
   MRH_DEMO_TOTAL, type MrhDemoEtat,
 } from './mrhDemo'
 import { parseQuery, norm } from './omniParse'
+import { useEcranActif } from '@/hooks/useEcranActif'
 import './mrh.css'
 
 // millions / milliers (jetons budget) : 1'100'000 → « 1,1M » ; 3'000 → « 3k »
@@ -362,7 +363,10 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
   }
 
   // Raccourci « / » — focus omnibox depuis n'importe où (sauf en pleine saisie).
+  // ⛔ Pas depuis un écran caché : il avalait la touche des autres onglets.
+  const ecranActif = useEcranActif()
   useEffect(() => {
+    if (!ecranActif) return
     const isTyping = (el: EventTarget | null) => {
       const n = el as HTMLElement | null
       return !!n && (n.tagName === 'INPUT' || n.tagName === 'TEXTAREA' || n.isContentEditable)
@@ -374,7 +378,7 @@ export default function MatchingRechercheHybride({ dark, demo }: Props) {
     }
     window.addEventListener('keydown', onSlash)
     return () => window.removeEventListener('keydown', onSlash)
-  }, [])
+  }, [ecranActif])
 
   // ── rescue (état vide) : quel jeton CLIENT retirer débloque des résultats ──
   const rescue = useMemo(() => {

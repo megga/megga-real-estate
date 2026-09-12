@@ -8,12 +8,30 @@
 //
 // Sync Realtime : tout update push du mobile arrive ici via useVisitRealtime.
 // Route : /dashboard/visits/:id
+//
+// ⛔ ELLE NE PORTAIT AUCUN CHROME jusqu'au 7 septembre 2026, et c'était visible :
+// `/dashboard/visits/:id` ouvre un onglet comme toute autre fiche (`visit` est
+// l'un des cinq genres de `crmTabRecordRef`, et `crm_tabs_resolve_labels` sait
+// en résoudre le libellé), mais l'écran rendait sa propre page pleine largeur.
+// Basculer sur cet onglet faisait donc DISPARAÎTRE la bande d'onglets ET la
+// barre latérale — plus aucun moyen d'en ressortir autrement que par le lien
+// « retour au calendrier ». Les trois autres fiches (contact, bien, deal)
+// montaient déjà `CrmWorkspace` ; celle-ci avait été oubliée.
+//
+// ⚠ Les trois routes qui restent SANS chrome le sont par choix et gardent ce
+// choix : `visits/new`, `transactions/:id/offre/:kind` et `import-lead` sont des
+// modales de plein écran (`position: fixed`, une croix pour sortir), pas des
+// fiches.
 
 import { useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { dossierPalette, DOSSIER_KEYFRAMES } from '@/components/crm-dossiers/tokens'
-import { useCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
+import { crmPalette } from '@/components/crm/tokens'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import { CrmIcon } from '@/components/crm-dossiers/icons'
 import {
   CrmBlackPill,
@@ -31,7 +49,7 @@ import {
   useSignVisitBon,
 } from '@/hooks/useVisitDetail'
 import { supabase } from '@/lib/supabase'
-import { DOCK_PUSH_STYLE, DOCK_PUSH_VAR } from '@/components/ai-copilot/panel/aiPanel'
+import { DOCK_PUSH_STYLE } from '@/components/ai-copilot/panel/aiPanel'
 import { usePorteSaPoussee } from '@/hooks/usePousseeDock'
 
 function vdDateLong(iso: string): string {
@@ -50,75 +68,36 @@ export default function VisitDetailPage() {
   const { data: visit, isLoading, isError, error } = useVisitDetail(id)
   const { mutate: signBon } = useSignVisitBon()
   useVisitRealtime(id)
-  const dark = useCrmDark()
+  /**
+   * ⛔ LE MAGASIN DE THÈME PARTAGÉ, et c'est ce qui manquait (12 septembre 2026). La
+   * page tenait un `useState` local qu'elle passait à sa barre, pendant que ses
+   * CARTES (`VdCard`, les panneaux, les pilules) lisaient `useCrmDark()` : basculer
+   * depuis la barre passait la page en sombre et laissait les cartes claires — le
+   * titre du héros, blanc, sur une carte blanche. Page, cartes et chrome lisent
+   * maintenant la même source.
+   */
+  const [dark, setDark] = useCrmDarkPref()
   const S = useMemo(() => dossierPalette(dark), [dark])
-  // ⚠ Cette fiche n'a pas de plan de travail : c'est sa racine qui prend la
-  // poussée du dock MEGGA AI. Laissée à l'écran, la coquille peindrait sa gouttière
-  // en `#F9F9F9` à côté du dégradé — la plaque retirée le 12 septembre 2026
-  // (`usePousseeDock`). Ici le dégradé s'étend sous le dock.
+  const sp = useMemo(() => crmPalette(dark), [dark])
+  const isMobile = useIsMobile()
+
+  /**
+   * La coquille — barre latérale, bande d'onglets, puis le contenu.
+   *
+   * ⚠ Régime de hauteur `minHeight`, pas `height: 100vh` : cette fiche défile
+   * (le bon et le rapport s'empilent). C'est celui d'`AuditPage`, l'autre des
+   * deux régimes que `CrmWorkspace` accepte — voir son en-tête.
+   */
+  /**
+   * ⚠ La poussée du dock MEGGA AI (`usePousseeDock`). Sur bureau, c'est la coquille
+   * (`CrmWorkspace`) qui la porte, et la page s'étend sous le dock avec son dégradé.
+   * Sur téléphone il n'y a pas de coquille : c'est la RACINE qui la prend — sans
+   * quoi l'écran se comprimerait et laisserait voir la gouttière `#F9F9F9` à côté du
+   * dégradé, la plaque retirée le 12 septembre 2026. L'inscription vaut pour les
+   * deux cas ; le style, lui, n'est posé qu'une fois (sinon 808 px de poussée).
+   */
   usePorteSaPoussee()
-
-  if (isLoading) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: S.bgGradient,
-          display: 'grid',
-          placeItems: 'center',
-          color: S.muted,
-          fontFamily: S.font,
-          ...DOCK_PUSH_STYLE,
-        }}
-      >
-        {t('visitDetail.loading')}
-      </div>
-    )
-  }
-  if (isError) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: S.bgGradient,
-          display: 'grid',
-          placeItems: 'center',
-          color: S.errDarker,
-          fontFamily: S.font,
-          padding: 40,
-          textAlign: 'center',
-          ...DOCK_PUSH_STYLE,
-          // La poussée S'AJOUTE à la marge droite de 40, elle ne la remplace pas.
-          paddingRight: `calc(40px + var(${DOCK_PUSH_VAR}))`,
-        }}
-      >
-        {t('visitDetail.loadError', {
-          message: error?.message ?? t('visitDetail.unknownError'),
-        })}
-      </div>
-    )
-  }
-  if (!visit) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          background: S.bgGradient,
-          display: 'grid',
-          placeItems: 'center',
-          color: S.muted,
-          fontFamily: S.font,
-          ...DOCK_PUSH_STYLE,
-        }}
-      >
-        {t('visitDetail.notFound')}
-      </div>
-    )
-  }
-
-  const isDone = visit.kind === 'done'
-
-  return (
+  const coquille = (contenu: ReactNode) => (
     <div
       data-screen-label="Fiche Visite"
       style={{
@@ -127,15 +106,69 @@ export default function VisitDetailPage() {
         background: S.bgGradient,
         color: S.ink,
         fontFamily: S.font,
-        ...DOCK_PUSH_STYLE,
+        ...(isMobile ? DOCK_PUSH_STYLE : {}),
       }}
     >
+      {/* ⛔ Pas de coquille de BUREAU sur téléphone. La route n'a pas de variante
+          mobile (`ResponsiveRoute`), et l'agenda mobile y mène : la barre
+          latérale, repliée d'office, y prenait 96 px sur 375. La page reste ce
+          qu'elle était avant la coquille. */}
+      {isMobile ? contenu : (
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
+          <CrmWorkspace active="calendar" sp={sp} dark={dark} setDark={setDark}>
+            {contenu}
+          </CrmWorkspace>
+        </div>
+      )}
+    </div>
+  )
+
+  if (isLoading) {
+    return coquille(
+      <main style={{ flex: 1, minWidth: 0, display: 'grid', placeItems: 'center', color: S.muted }}>
+        {t('visitDetail.loading')}
+      </main>,
+    )
+  }
+  if (isError) {
+    return coquille(
+      <main style={{
+        flex: 1, minWidth: 0, display: 'grid', placeItems: 'center',
+        color: S.errDarker, padding: 'var(--crm-space-6xl)', textAlign: 'center',
+      }}>
+        {t('visitDetail.loadError', {
+          message: error?.message ?? t('visitDetail.unknownError'),
+        })}
+      </main>,
+    )
+  }
+  if (!visit) {
+    return coquille(
+      <main style={{ flex: 1, minWidth: 0, display: 'grid', placeItems: 'center', color: S.muted }}>
+        {t('visitDetail.notFound')}
+      </main>,
+    )
+  }
+
+  const isDone = visit.kind === 'done'
+
+  return coquille(
+    <>
       <style>{DOSSIER_KEYFRAMES}</style>
       <style>{`
         @keyframes vdPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
       `}</style>
 
-      <main style={{ padding: '28px 40px 80px', minWidth: 0 }}>
+      {/* ⛔ LA GOUTTIÈRE DE LA COQUILLE, pas celle d'origine (12 septembre 2026). La
+          page portait `28px 40px 80px`, écrite quand elle n'avait pas de chrome ;
+          entrée dans la coquille, son contenu démarrait 16 px plus bas et 28 px
+          plus à droite que celui des autres surfaces — il SAUTAIT à chaque bascule
+          vers une fiche Visite, et se désaccordait du dock calé sur
+          `--crm-chrome-top`. C'est la gouttière que c0231dd7 a posée partout. */}
+      <main style={{
+        flex: 1, minWidth: 0,
+        padding: 'var(--crm-space-lg) var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-lg)',
+      }}>
         {/* Header */}
         <header
           style={{
@@ -330,6 +363,6 @@ export default function VisitDetailPage() {
               separate sprint. */}
         </div>
       </main>
-    </div>
+    </>,
   )
 }

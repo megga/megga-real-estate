@@ -1040,7 +1040,12 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // `<main>` a remplacé sept littéraux (`24px 40px 120px`, `32px 40px 80px`…) par
   // les jetons de l'échelle. Le cliquet serre dans les deux sens — laisser le
   // crédit rendrait quatre littéraux réintroduits invisibles.
-  ['src/pages/agent', { hors: 317, total: 922 }],
+  // 317 -> 315, 922 -> 920 (12.09.2026) : la fiche Visite entre dans la coquille
+  // et prend sa gouttière — `padding: '28px 40px 80px'` (écrite quand la page
+  // n'avait pas de chrome) et le `padding: 40` de sa branche d'erreur passent aux
+  // jetons. Son contenu démarrait 16 px plus bas et 28 px plus à droite que celui
+  // des autres surfaces : il sautait à chaque bascule vers elle.
+  ['src/pages/agent', { hors: 315, total: 920 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 68, total: 259 }],
 ])

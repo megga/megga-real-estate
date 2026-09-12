@@ -31,6 +31,7 @@
  * directement. Ce composant évite seulement de proposer une action vouée à
  * l'échec.
  */
+import { useMemo, type ReactNode } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQueryClient } from '@tanstack/react-query'
@@ -40,6 +41,10 @@ import { useAuth } from '@/hooks/useAuth'
 import { useLabGuard, canActOnLabGuard, LAB_GUARD_STATUS_QUERY_KEY, LAB_GUARD_LABEL_KEY, type LabGuardStatus } from '@/hooks/useLabGuard'
 import { IDENTITY_GATE_ROUTE } from '@/hooks/useIdentityGate'
 import { showIntercomSpace } from '@/lib/intercom'
+import { useCrmDarkPref } from '@/lib/crmDark'
+import { useIsMobile } from '@/hooks/useMediaQuery'
+import { crmPalette } from '@/components/crm/tokens'
+import CrmWorkspace from '@/components/crm/CrmWorkspace'
 
 /** Les MOTIFS de blocage. 'unavailable' en est exclu à dessein : ce n'est pas un verdict
  *  sur le dossier mais un échec de lecture, et il a son propre écran. Dérivé par Exclude
@@ -191,14 +196,47 @@ function KycBlockedScreen({ status }: { status: BlockedStatus }) {
   )
 }
 
+/**
+ * La coquille du CRM autour des trois écrans d'état — celle de `KycPage`.
+ *
+ * ⛔ ILS S'EN PASSAIENT, et les onglets l'ont rendu visible (12 septembre 2026) :
+ * `/dashboard/kyc` ouvre un onglet, et basculer sur lui pendant l'attente — ou, pour
+ * une agence bloquée, à CHAQUE bascule — faisait disparaître la bande d'onglets ET la
+ * barre latérale. Il ne restait que « retour » pour en sortir. Le contenu réel
+ * (`<Outlet/>`) porte déjà la sienne, il n'est pas enveloppé.
+ *
+ * ⚠ Pas sur téléphone : la coquille de bureau y poserait sa barre repliée à côté d'un
+ * écran de 375 px, là où ces écrans vivaient sans chrome.
+ */
+function Coquille({ children }: { children: ReactNode }) {
+  const [dark, setDark] = useCrmDarkPref()
+  const sp = useMemo(() => crmPalette(dark), [dark])
+  const isMobile = useIsMobile()
+  if (isMobile) return <>{children}</>
+  return (
+    <div style={{ height: '100vh', width: '100%', background: sp.pageBg, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+        <CrmWorkspace active="kyc" sp={sp} dark={dark} setDark={setDark}>
+          <main style={{
+            flex: 1, minWidth: 0, minHeight: 0, height: '100%', overflowY: 'auto',
+            padding: 'var(--crm-space-lg) var(--crm-space-6xl) var(--crm-space-6xl) var(--crm-space-lg)',
+          }}>
+            {children}
+          </main>
+        </CrmWorkspace>
+      </div>
+    </div>
+  )
+}
+
 /** Layout-route sans path (App.tsx) : Outlet si l'agence est cleared, écran de blocage
  *  sinon — et écran « statut indisponible » si la lecture a échoué. Le spinner ne reste
  *  donc affiché que pour une attente réelle, jamais pour un échec. */
 export default function KycLabGuard() {
   const status = useLabGuard()
 
-  if (status === 'loading') return <LoadingScreen />
-  if (status === 'unavailable') return <KycStatusUnavailableScreen />
   if (status === 'clear') return <Outlet />
-  return <KycBlockedScreen status={status} />
+  if (status === 'loading') return <Coquille><LoadingScreen /></Coquille>
+  if (status === 'unavailable') return <Coquille><KycStatusUnavailableScreen /></Coquille>
+  return <Coquille><KycBlockedScreen status={status} /></Coquille>
 }

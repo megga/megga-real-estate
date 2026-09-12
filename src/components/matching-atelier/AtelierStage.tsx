@@ -21,6 +21,7 @@ import AtlCockpit from './AtlCockpit'
 import { AtlEmptyBody, AtlEmptyCockpit } from './AtlEmptyState'
 import { atlReturnDate } from './format'
 import { isSnoozed } from '@/hooks/useAtelierMatching'
+import { useEcranActif } from '@/hooks/useEcranActif'
 import type { AtelierGestes, PendingHandle } from './pendingTriage'
 import type { AtelierBuyer, AtelierPivot, AtelierPoolMatch, AtelierTab, TriageKind } from './types'
 
@@ -252,9 +253,16 @@ export default function AtelierStage({
   }, [filtered, selId])
 
   // ── raccourcis clavier (mode annonce — le mode acheteur a les siens) ────
+  // ⛔ Un écran vivant mais CACHÉ n'écoute pas : ces touches ÉCRIVENT en base
+  // (triage, relance), et l'onglet Matching reste monté derrière les autres.
+  const ecranActif = useEcranActif()
   useEffect(() => {
-    if (pivotBuyer) return
+    if (pivotBuyer || !ecranActif) return
     const onKey = (e: KeyboardEvent) => {
+      // ⚠ Aucun modificateur : ⌘P, ⌘R… appartiennent au navigateur (imprimer,
+      // recharger). Sans cette sortie, ⌘R reportait l'acheteur ET avalait le
+      // rechargement.
+      if (e.metaKey || e.ctrlKey || e.altKey) return
       // `menuOpen` compte comme un overlay : son voile est plein écran mais laisse la
       // file montée derrière. Sans cette garde, une frappe destinée au menu (`x`, `p`,
       // une flèche) partait trier l'acheteur caché dessous, écriture Supabase comprise.
@@ -277,7 +285,7 @@ export default function AtelierStage({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [pivotBuyer, selected, menuOpen, confirmSend, annonce, sendSheet, canVisit, requestSend, requestRelance, triage, gestes, move, undo])
+  }, [pivotBuyer, ecranActif, selected, menuOpen, confirmSend, annonce, sendSheet, canVisit, requestSend, requestRelance, triage, gestes, move, undo])
 
   // ── parking « Reportés » : session + base ───────────────────────────────
   const snoozedList: SnoozedEntry[] = useMemo(() => [
