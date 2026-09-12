@@ -47,21 +47,13 @@
   },
   "client": {
     "landing": {
-      "lock_label": "Lien chiffré · expire le {{date}}",
       "title_part1": "Bonjour {{firstName}},",
       "title_part2": "finalisons votre dossier.",
-      "subtitle_prefix": "La loi suisse (LBA) nous oblige à vérifier votre identité. Comptez ",
-      "subtitle_duration": "5 à 8 minutes",
-      "subtitle_suffix": ".",
+      "subtitle": "La loi suisse (LBA) nous oblige à vérifier votre identité.",
       "cta_start": "Commencer",
       "prepare_title": "À préparer avant de commencer",
       "prepare_optional": "si demandé",
-      "agent_role": "votre conseiller",
-      "consent": "En continuant, vous acceptez le traitement de vos données conformément à la nLPD.",
-      "reassure_swiss_title": "Données en Suisse",
-      "reassure_lock_title": "Chiffré bout-en-bout",
-      "reassure_shield_title": "Vu par 2 personnes",
-      "reassure_clock_title": "Conservé 10 ans"
+      "agent_role": "votre conseiller"
     },
     "upload": {
       "title": "Bonjour {{firstName}}, déposez vos documents",

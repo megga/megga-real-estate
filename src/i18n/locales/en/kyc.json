@@ -47,21 +47,13 @@
   },
   "client": {
     "landing": {
-      "lock_label": "Encrypted link · expires on {{date}}",
       "title_part1": "Hello {{firstName}},",
       "title_part2": "let's complete your file.",
-      "subtitle_prefix": "Swiss anti-money-laundering law requires us to verify your identity. Allow ",
-      "subtitle_duration": "5 to 8 minutes",
-      "subtitle_suffix": ".",
+      "subtitle": "Swiss law (AMLA) requires us to verify your identity.",
       "cta_start": "Get started",
       "prepare_title": "Have these ready before you start",
       "prepare_optional": "if requested",
-      "agent_role": "your adviser",
-      "consent": "By continuing, you accept the processing of your data in accordance with the Swiss FADP.",
-      "reassure_swiss_title": "Data stored in Switzerland",
-      "reassure_lock_title": "End-to-end encrypted",
-      "reassure_shield_title": "Seen by 2 people",
-      "reassure_clock_title": "Kept for 10 years"
+      "agent_role": "your adviser"
     },
     "upload": {
       "title": "Hello {{firstName}}, upload your documents",

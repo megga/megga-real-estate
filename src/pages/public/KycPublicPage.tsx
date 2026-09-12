@@ -256,7 +256,6 @@ export default function KycPublicPage() {
           firstName={firstName}
           agentFullName={agentFullName}
           agencyName={agencyName}
-          expiresAt={data.expires_at}
           onStart={() => setLocalScreen('upload')}
         />
       ) : (

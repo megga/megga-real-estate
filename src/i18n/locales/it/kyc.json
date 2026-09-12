@@ -47,21 +47,13 @@
   },
   "client": {
     "landing": {
-      "lock_label": "Link crittografato · scade il {{date}}",
       "title_part1": "Buongiorno {{firstName}},",
       "title_part2": "completiamo il Suo fascicolo.",
-      "subtitle_prefix": "La legge svizzera antiriciclaggio ci obbliga a verificare la Sua identità. Preveda ",
-      "subtitle_duration": "5-8 minuti",
-      "subtitle_suffix": ".",
+      "subtitle": "La legge svizzera (LRD) ci obbliga a verificare la sua identità.",
       "cta_start": "Iniziare",
       "prepare_title": "Da preparare prima di iniziare",
       "prepare_optional": "se richiesto",
-      "agent_role": "il suo consulente",
-      "consent": "Continuando, accetta il trattamento dei Suoi dati secondo la nLPD.",
-      "reassure_swiss_title": "Dati in Svizzera",
-      "reassure_lock_title": "Crittografato end-to-end",
-      "reassure_shield_title": "Visto da 2 persone",
-      "reassure_clock_title": "Conservato 10 anni"
+      "agent_role": "il suo consulente"
     },
     "upload": {
       "title": "Buongiorno {{firstName}}, carichi i Suoi documenti",

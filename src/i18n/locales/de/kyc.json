@@ -47,21 +47,13 @@
   },
   "client": {
     "landing": {
-      "lock_label": "Verschlüsselter Link · läuft ab am {{date}}",
       "title_part1": "Hallo {{firstName}},",
       "title_part2": "vervollständigen wir Ihr Dossier.",
-      "subtitle_prefix": "Das schweizerische Geldwäschereigesetz verpflichtet uns, Ihre Identität zu prüfen. Rechnen Sie mit ",
-      "subtitle_duration": "5 bis 8 Minuten",
-      "subtitle_suffix": ".",
+      "subtitle": "Das Schweizer Gesetz (GwG) verpflichtet uns, Ihre Identität zu prüfen.",
       "cta_start": "Beginnen",
       "prepare_title": "Vor dem Start bereitlegen",
       "prepare_optional": "falls angefragt",
-      "agent_role": "Ihr Berater",
-      "consent": "Mit dem Fortfahren stimmen Sie der Verarbeitung Ihrer Daten gemäss nDSG zu.",
-      "reassure_swiss_title": "Daten in der Schweiz",
-      "reassure_lock_title": "Ende-zu-Ende verschlüsselt",
-      "reassure_shield_title": "Von 2 Personen geprüft",
-      "reassure_clock_title": "10 Jahre aufbewahrt"
+      "agent_role": "Ihr Berater"
     },
     "upload": {
       "title": "Hallo {{firstName}}, laden Sie Ihre Dokumente hoch",

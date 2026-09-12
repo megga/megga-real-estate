@@ -35,19 +35,9 @@ import { MLK, MLK_STATUT } from './mlkTokens'
 import { crmVoileEncre } from '@/components/crm/tokens'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
+// ⚠ `formatDateShort` est partie avec la pastille « Lien chiffré · expire le … »
+// le 18 août 2026 : elle n'avait que ce lecteur.
 
-function formatDateShort(iso: string, locale: string): string {
-  const localeTag =
-    locale === 'de' ? 'de-CH' :
-    locale === 'it' ? 'it-CH' :
-    locale === 'en' ? 'en-GB' :
-    'fr-CH'
-  return new Date(iso).toLocaleDateString(localeTag, {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  })
-}
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`
@@ -61,7 +51,6 @@ interface LandingProps {
   firstName: string
   agentFullName: string
   agencyName: string
-  expiresAt: string
   onStart: () => void
 }
 
@@ -69,10 +58,9 @@ export function MlkLanding({
   firstName,
   agentFullName,
   agencyName,
-  expiresAt,
   onStart,
 }: LandingProps) {
-  const { t, i18n } = useTranslation('kyc')
+  const { t } = useTranslation('kyc')
 
   /**
    * ⛔ LES QUATRE TYPES SONT UNE LISTE FIXE, ET C'EST VÉRIFIÉ, PAS SUPPOSÉ.
@@ -103,42 +91,14 @@ export function MlkLanding({
     { key: 'other' as const, optional: true },
   ]
 
-  const assuranceItems = [
-    t('client.landing.reassure_swiss_title'),
-    t('client.landing.reassure_lock_title'),
-    t('client.landing.reassure_shield_title'),
-    t('client.landing.reassure_clock_title'),
-  ]
-
   return (
     <MlkShell>
-      {/* Top bar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 44,
-        }}
-      >
+      {/* ⛔ LA PASTILLE « Lien chiffré · expire le … » A ÉTÉ RETIRÉE (18 août 2026,
+          décision Julien), avec la ligne de réassurance et la mention nLPD. Elle
+          rassurait sur le CANAL ; l'écran doit dire ce qu'il faut FAIRE. Le
+          logotype reste seul, donc plus de `space-between` à tenir. */}
+      <div style={{ marginBottom: 44 }}>
         <MlkWordmark size={18} />
-        <div
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 'var(--crm-space-sm)',
-            padding: 'var(--crm-space-sm) var(--crm-space-xl) var(--crm-space-sm) var(--crm-space-lg)',
-            borderRadius: 999,
-            background: MLK.cardSubtle,
-            fontSize: 'var(--crm-text-xs)',
-            fontWeight: 600,
-            color: MLK.inkSoft,
-            letterSpacing: 0.1,
-          }}
-        >
-          <MlkIcon name="lock" size={12} stroke={MLK.ink} sw={2} />
-          {t('client.landing.lock_label', { date: formatDateShort(expiresAt, i18n.language) })}
-        </div>
       </div>
 
       {/*
@@ -213,11 +173,7 @@ export function MlkLanding({
           maxWidth: 580,
         }}
       >
-        {t('client.landing.subtitle_prefix')}
-        <span style={{ color: MLK.ink, fontWeight: 600 }}>
-          {t('client.landing.subtitle_duration')}
-        </span>
-        {t('client.landing.subtitle_suffix')}
+        {t('client.landing.subtitle')}
       </p>
 
       {/*
@@ -337,43 +293,6 @@ export function MlkLanding({
         >
           {t('client.landing.cta_start')}
         </MlkBlackPill>
-      </div>
-
-      {/*
-        La réassurance, repliée en UNE ligne et déplacée SOUS le bouton. Elle ne
-        disparaît pas : elle cesse de retarder l'action et se place là où le
-        doute survient vraiment, au moment de cliquer.
-      */}
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          gap: 'var(--crm-space-sm) var(--crm-space-2xl)',
-          marginTop: 'var(--crm-space-5xl)',
-          fontSize: 'var(--crm-text-md)',
-          color: MLK.muted,
-          fontWeight: 500,
-        }}
-      >
-        {assuranceItems.map((label, i) => (
-          <span key={label} style={{ display: 'inline-flex', gap: 'var(--crm-space-2xl)' }}>
-            {i > 0 && <span aria-hidden="true">·</span>}
-            {label}
-          </span>
-        ))}
-      </div>
-
-      <div
-        style={{
-          marginTop: 'var(--crm-space-2xl)',
-          textAlign: 'center',
-          fontSize: 'var(--crm-text-sm)',
-          color: MLK.muted,
-          fontWeight: 500,
-        }}
-      >
-        {t('client.landing.consent')}
       </div>
 
       <MlkFooter />
