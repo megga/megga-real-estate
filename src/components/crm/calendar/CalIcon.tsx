@@ -7,7 +7,7 @@ export type CalIconName =
   | 'home' | 'signature' | 'stamp' | 'check' | 'upload' | 'chevL' | 'chevR'
   | 'plus' | 'close' | 'sparkle' | 'pin' | 'clock' | 'phone' | 'flame'
   | 'warn' | 'list' | 'grid' | 'map' | 'mic' | 'arrowR' | 'eye' | 'car'
-  | 'user' | 'users' | 'edit' | 'trash' | 'route' | 'grip' | 'calendar' | 'repeat'
+  | 'user' | 'users' | 'edit' | 'trash' | 'route' | 'grip' | 'calendar' | 'repeat' | 'tag'
 
 const PATHS: Record<CalIconName, ReactNode> = {
   home: (
@@ -163,6 +163,13 @@ const PATHS: Record<CalIconName, ReactNode> = {
       <path d="M3 11V9a4 4 0 0 1 4-4h14" />
       <path d="m7 22-4-4 4-4" />
       <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </>
+  ),
+  // Étiquette — la ligne « Libellé » de la bulle d'un événement.
+  tag: (
+    <>
+      <path d="M12.6 2.6A2 2 0 0 0 11.2 2H4a2 2 0 0 0-2 2v7.2a2 2 0 0 0 .6 1.4l8.7 8.7a2.4 2.4 0 0 0 3.4 0l6.6-6.6a2.4 2.4 0 0 0 0-3.4Z" />
+      <circle cx="7.5" cy="7.5" r="1.3" />
     </>
   ),
 }

@@ -10,7 +10,7 @@ import { createContext, useContext } from 'react'
 // singleton à l'accès → traduit + réactif au changement de langue, sans changer
 // les sites d'appel `CAL_EVENT_TYPES[x].label`). Cf docs/i18n-conventions §6.
 import i18n from '@/i18n'
-import { MXC_COLOR, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { MXC_COLOR, encreSur, mxCrmPalette } from '@/components/megga-x-crm/tokens'
 
 export interface CalEventTypeColors {
   bg: string
@@ -121,6 +121,9 @@ export interface CalEventRecurrence {
   until?: string | null
 }
 
+/** Le libellé d'un événement, tel que les vues le peignent. */
+export interface CalEventLabel { id: string; name: string; color: string }
+
 export interface CalEvent {
   id: string
   type: CalEventTypeId
@@ -152,6 +155,12 @@ export interface CalEvent {
    * les RPC, qui envoient un courriel.
    */
   origin?: 'visit' | 'reminder' | 'appointment'
+  /**
+   * Libellé de l'agence posé sur l'événement (UN au plus, comme un fil de la
+   * Messagerie). Résolu par `CalendarApp` depuis `useCalendarLabels` : il n'est
+   * jamais lu par la requête des événements.
+   */
+  label?: CalEventLabel | null
   /** Événement synchronisé d'un agenda externe (Google/Outlook) → « Occupé », lecture seule. */
   external?: boolean
   source?: 'google' | 'microsoft'
@@ -190,6 +199,14 @@ export function calTypeStyle(e: CalEvent, palette: CalPalette): CalResolvedStyle
     }
   }
   const base = CAL_EVENT_TYPES[e.type] ?? CAL_EVENT_TYPES.task
+  // ⚠ LE LIBELLÉ PREND LA COULEUR DU BLOC (choix de Julien : « l'événement prend la
+  // couleur de son libellé »). Le TYPE reste lisible ailleurs — l'en-tête de la
+  // bulle, le filtre du rail. La couleur d'un libellé est une donnée SAISIE, donc
+  // hors échelle : l'encre se calcule (`encreSur`), jamais un blanc en dur — un
+  // jaune pâle sous du blanc tomberait sous 2:1.
+  if (e.label) {
+    return { bg: e.label.color, ink: encreSur(e.label.color), accent: e.label.color, icon: base.icon, label: base.label }
+  }
   if (e.type === 'autre' && e.color) {
     return { bg: e.color, ink: '#FFFFFF', accent: e.color, icon: base.icon, label: base.label }
   }
@@ -375,6 +392,71 @@ export function calNowColor(dark: boolean): string {
 /** Context palette — les composants lisent `useCalPalette()` (plus d'import statique). */
 export const CalPaletteContext = createContext<CalPalette>(CAL_LIGHT)
 export const useCalPalette = (): CalPalette => useContext(CalPaletteContext)
+
+/**
+ * Pose sur chaque événement son libellé résolu, ou `null`.
+ *
+ * ⚠ Par l'identifiant MAÎTRE (`calMasterId`) : une occurrence d'une série porte
+ * le libellé de sa série. Un créneau externe « Occupé » n'en porte jamais — il
+ * n'appartient pas à l'agence.
+ */
+export function calAppliquerLibelles(
+  events: CalEvent[],
+  affectations: Map<string, string>,
+  libelles: Map<string, CalEventLabel>,
+): CalEvent[] {
+  return events.map(e => {
+    if (e.external) return e
+    const id = affectations.get(calMasterId(e.id))
+    // L'objet du libellé est CELUI de la table (stable tant qu'elle l'est) : une
+    // copie par passage donnait un événement neuf à chaque rendu.
+    const label = (id ? libelles.get(id) : undefined) ?? null
+    if (!label && !e.label) return e
+    const connu = LIBELLES_POSES.get(e)
+    if (connu && connu.label === label) return connu.out
+    const out = { ...e, label }
+    LIBELLES_POSES.set(e, { label, out })
+    return out
+  })
+}
+
+/**
+ * Événement source → événement libellé, pour rendre le MÊME objet tant que ni
+ * l'un ni le libellé n'ont changé. ⛔ Sans lui, chaque rendu du Calendrier (un pas
+ * de glissé en fait un) fabriquait un objet neuf par événement libellé, et le
+ * `memo` de `CalEventBlock` ne servait plus à rien pour eux. Faible : un
+ * événement disparu libère son entrée.
+ */
+const LIBELLES_POSES = new WeakMap<CalEvent, { label: CalEventLabel | null; out: CalEvent }>()
+
+/** Nombre d'événements par libellé — le compteur de chaque ligne du rail. */
+export function calCompteParLibelle(events: CalEvent[]): Map<string, number> {
+  const n = new Map<string, number>()
+  for (const e of events) if (!e.external && e.label) n.set(e.label.id, (n.get(e.label.id) ?? 0) + 1)
+  return n
+}
+
+/**
+ * Où ouvrir le menu d'un clic droit. Au CLAVIER (Maj+F10, touche Menu), le
+ * navigateur n'a pas de pointeur à donner : l'événement porte (0, 0), et le menu
+ * s'ouvrait dans le coin de l'écran. On prend alors le bas du bloc lui-même.
+ */
+export function calPositionMenu(ev: { clientX: number; clientY: number; currentTarget: Element }): [number, number] {
+  if (ev.clientX || ev.clientY) return [ev.clientX, ev.clientY]
+  const r = ev.currentTarget.getBoundingClientRect()
+  return [r.left, r.bottom + 4]
+}
+
+/**
+ * Clic droit sur un événement → le menu de ses libellés, ouvert par `CalendarApp`.
+ *
+ * Un CONTEXTE plutôt qu'une prop : les blocs vivent trois étages plus bas (vue →
+ * colonne → bloc, plus la bande « journée entière » et les puces du mois), et une
+ * prop de plus à chaque étage aurait fait cinq signatures pour un seul geste.
+ * `null` hors du Calendrier (tuile Agenda, bancs) : le clic droit reste celui du
+ * navigateur.
+ */
+export const CalEventMenuContext = createContext<((id: string, x: number, y: number) => void) | null>(null)
 // ── Chevauchement : packing en colonnes (type Google Agenda) ────────────────
 // Pour un ensemble d'events, renvoie pour chacun { col, cols } : sa colonne et
 // le nombre total de colonnes de son cluster de chevauchement. Les vues

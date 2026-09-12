@@ -437,5 +437,20 @@
     "connectOutlook": "Outlook verbinden",
     "privacy": "Ihre persönlichen Termine bleiben privat.",
     "connectFailed": "Verbindung fehlgeschlagen: {{error}}"
+  },
+  "labels": {
+    "title": "Kategorien",
+    "new": "Neue Kategorie",
+    "empty": "Noch keine Kategorien. Erstellen Sie eine mit +.",
+    "menuTitle": "Kategorie",
+    "none": "Keine Kategorie",
+    "add": "Kategorie hinzufügen",
+    "create": "Kategorie erstellen",
+    "set": "Kategorie «{{name}}»",
+    "removed": "Kategorie entfernt",
+    "failed": "Kategorie nicht gespeichert",
+    "deleted": "Kategorie «{{name}}» gelöscht",
+    "unavailable": "Kategorien sind derzeit nicht verfügbar.",
+    "duplicate": "Eine Kategorie mit diesem Namen existiert bereits"
   }
 }

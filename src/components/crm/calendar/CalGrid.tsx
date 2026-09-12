@@ -6,8 +6,8 @@
 //   · CalAllDayBand  — bande « journée entière » / multi-jours (hors grille horaire)
 // Aucune animation de survol (préférence MEGGA).
 
-import { memo, useMemo, useRef, useState } from 'react'
-import { calLayout, calTypeStyle, useCalPalette, type CalEvent } from './data'
+import { memo, useContext, useMemo, useRef, useState } from 'react'
+import { CalEventMenuContext, calLayout, calPositionMenu, calTypeStyle, useCalPalette, type CalEvent } from './data'
 import { CAL_HOUR_END, CAL_HOUR_START, calSetBodyDrag, fmtTime, sameDay } from './helpers'
 
 // Heure (snap 30 min) à partir d'un clic dans une colonne de jour.
@@ -67,6 +67,8 @@ export const CalEventBlock = memo(function CalEventBlock({
 
   const btnRef = useRef<HTMLButtonElement>(null)
   const dragRef = useRef<DragState | null>(null)
+  // Clic droit → libellés (`CalendarApp`). Jamais sur un créneau externe « Occupé ».
+  const ouvrirMenu = useContext(CalEventMenuContext)
   const [dragging, setDragging] = useState(false)
 
   const DAY_MIN = CAL_HOUR_START * 60
@@ -142,13 +144,18 @@ export const CalEventBlock = memo(function CalEventBlock({
     : selected
       ? `0 0 0 2px ${SP.ring}, ${SP.shadow}`
       : SP.shadowSm
-  const gripCol = dk ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.72)'
+  // Sur un libellé, la poignée suit l'ENCRE calculée : blanche en dur, elle
+  // disparaissait sur les couleurs pâles (jaune, vert d'eau, bleu ciel).
+  const gripCol = e.label
+    ? `color-mix(in srgb, ${t.ink} 55%, transparent)`
+    : dk ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.72)'
 
   return (
     <button
       ref={btnRef}
       onPointerDown={onUpdate ? beginDrag('move') : undefined}
       onClick={ev => { ev.stopPropagation(); onSelect(e.id, ev.currentTarget.getBoundingClientRect()) }}
+      onContextMenu={ouvrirMenu && !ext ? ev => { ev.preventDefault(); ev.stopPropagation(); const [x, y] = calPositionMenu(ev); ouvrirMenu(e.id, x, y) } : undefined}
       style={{
         position: 'absolute', left, width, top: topCss, height: heightCss, minHeight: 20,
         borderRadius: 'var(--crm-radius-sm)',
@@ -302,6 +309,7 @@ interface BandSeg { e: CalEvent; sC: number; eC: number; lane: number }
 
 export function CalAllDayBand({ days, events, selectedId, onSelect }: CalAllDayBandProps) {
   const SP = useCalPalette()
+  const ouvrirMenu = useContext(CalEventMenuContext)
   const n = days.length
   const rangeStart = new Date(days[0]); rangeStart.setHours(0, 0, 0, 0)
   const rangeEnd = new Date(days[n - 1]); rangeEnd.setHours(23, 59, 59, 999)
@@ -348,6 +356,7 @@ export function CalAllDayBand({ days, events, selectedId, onSelect }: CalAllDayB
           <button
             key={seg.e.id} title={seg.e.title}
             onClick={ev => { ev.stopPropagation(); onSelect(seg.e.id, ev.currentTarget.getBoundingClientRect()) }}
+            onContextMenu={ouvrirMenu && !seg.e.external ? ev => { ev.preventDefault(); ev.stopPropagation(); const [x, y] = calPositionMenu(ev); ouvrirMenu(seg.e.id, x, y) } : undefined}
             style={{
               gridColumn: `${seg.sC + 2} / span ${seg.eC - seg.sC + 1}`, gridRow: seg.lane + 1,
               margin: '0 3px', height: 22, border: 0, cursor: 'pointer', background: t.bg, color: t.ink,

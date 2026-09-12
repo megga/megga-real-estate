@@ -33,6 +33,7 @@
 // fichier-ci arrive derrière un import lazy. Voir l'en-tête de `bancSession`.
 export { AGENCE_BANC, AGENT_BANC } from './bancSession'
 import { AGENCE_BANC, AGENT_BANC } from './bancSession'
+import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import type { KycDossierStatus } from '@/types/kyc'
 
 /* ─── Le socle : ce que le CHROME tire sur CHAQUE écran ────────────────────── */
@@ -263,12 +264,25 @@ export const CRM_TABLES: Record<string, unknown[]> = {
   activity_events: EVENEMENTS,
   relance_sessions: [],
   relance_items: [],
+  // ⚠ `trigger_at`, la SEULE date d'un rappel : le Calendrier, l'agenda d'« Aujourd'hui »
+  // et l'agenda mobile la lisent tous (`useCalendarScreen`). Ces fixtures portaient un
+  // `due_at` — colonne qui n'existe pas dans `reminders` —, si bien que les trois
+  // écrans du banc ne voyaient AUCUN rappel. Depuis le 13.09.2026, « Aujourd'hui »
+  // montre donc r1 (+3 h) dans sa journée, et le Calendrier les deux.
   reminders: [
-    { id: 'r1', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c1', title: 'Rappeler pour le dossier Champel', due_at: ilYA(-3), status: 'pending', kind: 'call', created_at: ilYA(48) },
-    { id: 'r2', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c3', title: 'Envoyer le comparatif de quartier', due_at: ilYA(-27), status: 'pending', kind: 'email', created_at: ilYA(52) },
+    { id: 'r1', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c1', title: 'Rappeler pour le dossier Champel', trigger_at: ilYA(-3), status: 'pending', kind: 'call', type: 'custom', message_template: null, calendar_label_id: 'cl2', created_at: ilYA(48) },
+    { id: 'r2', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c3', title: 'Envoyer le comparatif de quartier', trigger_at: ilYA(-27), status: 'pending', kind: 'email', type: 'custom', message_template: null, calendar_label_id: null, created_at: ilYA(52) },
   ],
   visits: [
-    { id: 'v1', agency_id: AGENCE_BANC.id, contact_id: 'c1', property_id: 'p1', scheduled_at: ilYA(-5), status: 'confirmed', created_at: ilYA(40) },
+    { id: 'v1', agency_id: AGENCE_BANC.id, contact_id: 'c1', property_id: 'p1', scheduled_at: ilYA(-5), status: 'confirmed', calendar_label_id: 'cl1', created_at: ilYA(40) },
+  ],
+  // Libellés du Calendrier — des barreaux de la direction, pas des littéraux : la
+  // couleur d'un libellé est une donnée saisie, et une fixture qui écrirait des
+  // hexadécimaux ferait monter l'inventaire de couleurs du dossier `pages/dev`.
+  calendar_labels: [
+    { id: 'cl1', agency_id: AGENCE_BANC.id, name: 'Urgent', color: MXC_SYSTEM.red400, position: 0, created_at: ilYA(300), updated_at: ilYA(300) },
+    { id: 'cl2', agency_id: AGENCE_BANC.id, name: 'Client VIP', color: MXC_SYSTEM.yellow400, position: 1, created_at: ilYA(290), updated_at: ilYA(290) },
+    { id: 'cl3', agency_id: AGENCE_BANC.id, name: 'Personnel', color: MXC_COLOR.accent, position: 2, created_at: ilYA(280), updated_at: ilYA(280) },
   ],
   properties: [
     { id: 'p1', agency_id: AGENCE_BANC.id, title: 'Appartement 4,5 pièces · Champel', city: 'Genève', canton: 'GE', price: 1_450_000, rooms: 4.5, surface: 118, status: 'active', transaction_type: 'sale', published_at: ilYA(120), created_at: ilYA(400) },
@@ -383,8 +397,29 @@ export const CRM_RPC_VIDE: Record<string, unknown> = {
   get_agent_changelog: [],
 }
 
+/** Les trois tables d'événements du Calendrier, par `source` de libellé. */
+const TABLE_DE_SOURCE: Record<string, string> = { visit: 'visits', reminder: 'reminders', appointment: 'appointments' }
+type LigneLibellee = { id: string; calendar_label_id?: string | null }
+
 export const CRM_RPC: Record<string, unknown> = {
   claim_pending_role: null,
+  // ⚠ LUES À CHAQUE APPEL, sur les fixtures VIVANTES : un libellé créé ou supprimé
+  // dans le rail (`calendar_labels` est écrivable), ou posé par un clic droit,
+  // doit se voir au rafraîchissement suivant. Une affectation vers un libellé
+  // supprimé disparaît ici, comme le `ON DELETE SET NULL` de la base.
+  calendar_label_assignments: () => {
+    const vivants = new Set((CRM_TABLES.calendar_labels as { id: string }[]).map((l) => l.id))
+    return Object.entries(TABLE_DE_SOURCE).flatMap(([source, table]) =>
+      (CRM_TABLES[table] as LigneLibellee[])
+        .filter((r) => r.calendar_label_id && vivants.has(r.calendar_label_id))
+        .map((r) => ({ source, event_id: r.id, label_id: r.calendar_label_id })))
+  },
+  calendar_set_event_label: (a: Record<string, unknown>) => {
+    const table = TABLE_DE_SOURCE[String(a.p_source)]
+    const ligne = table ? (CRM_TABLES[table] as LigneLibellee[]).find((r) => r.id === a.p_event_id) : undefined
+    if (ligne) ligne.calendar_label_id = typeof a.p_label_id === 'string' ? a.p_label_id : null
+    return null
+  },
   is_super_admin: false,
   // ⚠ `analytics_*` rendent un OBJET, pas un tableau : le hook les lit
   // directement comme `CockpitJson` / `ObjectifJson` / `FunnelJson`.

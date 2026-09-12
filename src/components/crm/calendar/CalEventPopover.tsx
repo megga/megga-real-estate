@@ -64,9 +64,14 @@ interface CalEventPopoverProps {
   onEdit: (id: string) => void
   onDelete: (id: string) => void
   onStatus: (id: string, status: 'done') => void
+  /**
+   * Ouvre le menu des libellés à la position donnée. Absent pour un événement qui
+   * n'en porte pas — créneau externe, brouillon jamais enregistré.
+   */
+  onLabelMenu?: (x: number, y: number) => void
 }
 
-export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit, onDelete, onStatus }: CalEventPopoverProps) {
+export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit, onDelete, onStatus, onLabelMenu }: CalEventPopoverProps) {
   const SP = useCalPalette()
   const { t } = useTranslation('calendar')
   const navigate = useNavigate()
@@ -135,6 +140,9 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
   }
 
   const ts = calTypeStyle(event, SP)
+  // L'en-tête dit le TYPE : sa pastille garde la couleur du type, même quand le
+  // libellé a pris celle du bloc — sinon « Visite » s'afficherait en rose « Urgent ».
+  const tsType = event.label ? calTypeStyle({ ...event, label: null }, SP) : ts
   const done = event.status === 'done'
   const cancelled = event.status === 'cancelled'
   const initials = event.contact ? event.contact.name.split(' ').map(s => s[0]).slice(0, 2).join('') : ''
@@ -174,8 +182,8 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
         {/* Barre de titre — poignée de déplacement */}
         <div onMouseDown={startDrag} style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginBottom: 12, cursor: 'grab', userSelect: 'none' }}>
           <CalIcon name="grip" size={16} stroke={SP.ghost} sw={2} />
-          <span style={{ width: 11, height: 11, borderRadius: 'var(--crm-radius-xs)', background: ts.accent, flexShrink: 0 }} />
-          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: SP.muted }}>{ts.label}</span>
+          <span style={{ width: 11, height: 11, borderRadius: 'var(--crm-radius-xs)', background: tsType.accent, flexShrink: 0 }} />
+          <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, color: SP.muted }}>{tsType.label}</span>
           {(done || cancelled) && (
             <span style={{
               fontSize: 'var(--crm-text-xs)', fontWeight: 500, padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)',
@@ -225,6 +233,27 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
             <CalMiniRow icon="repeat">
               {CAL_RECUR_LABEL[event.recurrence.freq] || t('popover.recurrent')}
               {event.recurrence.until && <span style={{ color: SP.muted }}> · {t('popover.until')} {fmtDate(new Date(event.recurrence.until))}</span>}
+            </CalMiniRow>
+          )}
+
+          {/* Libellé : sa pastille, ou l'invitation à en poser un. Le clic ouvre le
+              même menu que le clic droit sur le bloc. */}
+          {onLabelMenu && (
+            <CalMiniRow icon="tag">
+              <button
+                type="button"
+                onClick={e => { const r = e.currentTarget.getBoundingClientRect(); onLabelMenu(r.left, r.bottom + 4) }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', border: 0, cursor: 'pointer', fontFamily: 'inherit',
+                  padding: 'var(--crm-space-2xs) var(--crm-space-md)', borderRadius: 'var(--crm-radius-pill)', background: SP.cardSubtle,
+                  color: event.label ? SP.ink : SP.muted, fontSize: 'var(--crm-text-md)', fontWeight: 500,
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = SP.cardHover }}
+                onMouseLeave={e => { e.currentTarget.style.background = SP.cardSubtle }}
+              >
+                {event.label && <span style={{ width: 9, height: 9, borderRadius: 'var(--crm-radius-pill)', background: event.label.color, flexShrink: 0 }} />}
+                {event.label ? event.label.name : t('labels.add')}
+              </button>
             </CalMiniRow>
           )}
 

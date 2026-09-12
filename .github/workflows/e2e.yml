@@ -57,6 +57,11 @@ jobs:
       - name: Run E2E suite (super-admin role)
         run: npm run test:e2e:admin
 
+      - name: Run bench suite (gestes des bancs /dev/*, sans contournement d'auth)
+        # playwright.bancs.config.ts : le contournement d'auth rend une agence fictive
+        # sous laquelle le Calendrier du banc sort vide (cf. l'en-tête du fichier).
+        run: npm run test:e2e:bancs
+
       - name: Run visual regression suite
         # Uses playwright.visual.config.ts (dedicated, narrow testMatch).
         # Baselines live under tests/e2e/visual-regression.spec.ts-snapshots/
