@@ -533,9 +533,12 @@ useEffect(() => {
 - Ombres sur bentos
 - Modals inline → toujours `createPortal`
 - UPPERCASE dans les titres → capitalize — ✅ **la SEULE des sept règles visuelles
-  qui soit encore vraie ET gardée** (16 août 2026). Mesuré : 20 `textTransform:
-  'uppercase'` vivants, tous dans `kyc-report` (papier A4, exempté par écrit) et
-  `pages/dev` (bancs absents du bundle). Zéro sur une surface agent.
+  qui soit encore vraie ET gardée** (16 août 2026). Mesuré le 13.09.2026 : **7**
+  `textTransform: 'uppercase'` vivants — 3 dans `kyc-report` (papier A4, exempté
+  par écrit) et 4 dans `pages/dev` (bancs absents du bundle). Zéro sur une surface
+  agent. ⚠ Le point disait 20 (16 août) : le concept épuré du rapport KYC a
+  ramené ses 16 sur-titres à une seule constante (`PDF_LABEL`) plus le bandeau et
+  la pagination de la feuille — le compte a baissé, la règle n'a pas bougé.
 - Dots rouges sidebar
 - Next.js / Vercel → React+Vite / Cloudflare Pages
 - `console.log` en production
