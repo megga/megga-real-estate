@@ -653,24 +653,45 @@ pour la barre latérale. Backend de la bande : table `crm_open_tabs` + RPC
 `crm_tabs_save` / `crm_tabs_resolve_labels` / `crm_tab_badges`, plafond client 24 (CHECK serveur à 32,
 volontairement plus haut pour qu'un dépassement transitoire n'annule pas l'écriture en silence).
 
-⛔ **Les 22 surfaces montent `<CrmWorkspace>`, JAMAIS `<CrmSidebar>`** — mesuré le 07.09.2026
-(`grep -rl '<CrmWorkspace' src/`, hors le composant lui-même et hors les trois bancs `/dev`) ;
-le point annonçait 20, il en comptait déjà 21. `grep -rl '<CrmSidebar' src/` ne rend, lui, qu'**un**
+⛔ **Les 23 surfaces montent `<CrmWorkspace>`, JAMAIS `<CrmSidebar>`** — mesuré le 12.09.2026
+(`grep -rl '<CrmWorkspace' src/`, hors le composant lui-même et hors les bancs `/dev`) ; le point
+annonçait 22, puis 20 avant lui. `grep -rl '<CrmSidebar' src/` ne rend, lui, qu'**un**
 fichier — `CrmWorkspace.tsx` lui-même. Une surface qui
 court-circuite la coquille perd la bande d'onglets **et** la variable `--crm-tabs-h`, sans qu'aucune
-porte ne rougisse. ⛔ **QUATRE ROUTES D'ONGLET LE FAISAIENT**, mesuré le 07.09.2026 : basculer sur
-l'une d'elles faisait disparaître la bande ET la barre latérale, sans autre sortie que son propre lien
-de retour. `VisitDetailPage` (`/dashboard/visits/:id`) est corrigée — c'est une FICHE, `visit` est l'un
-des cinq genres de `crmTabRecordRef`, et les trois autres fiches portaient déjà la coquille. Les trois
+porte ne rougisse. ⛔ **CINQ ROUTES D'ONGLET LE FAISAIENT** : basculer sur l'une d'elles faisait
+disparaître la bande ET la barre latérale, sans autre sortie que son propre lien de retour. Deux sont
+corrigées. `VisitDetailPage` (`/dashboard/visits/:id`, 07.09.2026) — c'est une FICHE, `visit` est l'un
+des cinq genres de `crmTabRecordRef`, et les quatre autres (contact, bien, deal, dossier KYC)
+portaient déjà la coquille ; ⚠ sur téléphone elle s'en passe, la route n'ayant pas de variante
+mobile. Et les trois écrans d'état de `KycLabGuard` (attente, lecture impossible, blocage LAB —
+12.09.2026) : pour une agence bloquée, l'onglet KYC perdait le chrome à CHAQUE bascule. Les trois
 restantes gardent leur choix : `visits/new`, `transactions/:id/offre/:kind` et `import-lead` sont des
-modales de plein écran (`position: fixed`, une croix pour sortir), pas des fiches. ⚠ Cette variable n'est pas décorative : `ListingWizardPage.tsx:42` calcule
-`height: calc(100vh - 64px - var(--crm-tabs-h, 0px))`, et sans son troisième terme la page débordait de
-48 px, le pied du wizard passant sous le pli. Il en est aujourd'hui le **seul** lecteur.
+modales de plein écran (`position: fixed`, une croix pour sortir), pas des fiches. ⚠ Cette variable n'est pas décorative : `ListingWizardPage.tsx:46` calcule
+`height: calc(100vh - var(--crm-space-lg) - var(--crm-space-6xl) - var(--crm-tabs-h, 0px))`, et sans
+son dernier terme la page débordait de la hauteur de la bande, le pied du wizard passant sous le pli.
+Il en est aujourd'hui le **seul** lecteur.
+
+⛔ **LES ÉCRANS D'ONGLET RESTENT VIVANTS** (`EcransVivants`, `AgentLayout`) : jusqu'à **six**
+(`VIVANTS_MAX`, un seul sur téléphone) restent montés, les autres en `visibility: hidden`. ⚠ **Ce
+mécanisme ne marchait PAS en production jusqu'au 12.09.2026** : `selectionner` pose l'actif en
+synchrone puis navigue dans une transition (`v7_startTransition`), et le rendu intermédiaire montrait
+l'onglet d'arrivée sur l'URL de départ — sa page était détruite et reconstruite à chaque bascule (6 sur
+6, mesuré). Le banc ne le voyait pas : son `MemoryRouter` n'avait pas le drapeau. D'où trois règles :
+(1) **un écran ne se rend jamais sur une URL qui appartient à un autre onglet** (`crmEcranVisible`) ;
+(2) le banc et l'app partagent `ROUTER_FUTURE` ; (3) un écran caché est **muet** — tout écouteur
+clavier global posé depuis un écran lit `useEcranActif` (garde :
+[clavier-ecran-cache.spec.ts](tests/unit/clavier-ecran-cache.spec.ts)), ses requêtes sont désabonnées
+(`IsRestoringProvider`, rafraîchies au retour si périmées), et aucune bascule par raccourci ne part
+sous une modale ouverte (`modaleOuverte`) — portée dans `<body>`, elle échappe au masquage de son écran.
 
 ⚠ **L'état d'écran se range dans l'onglet, plus dans un `useState`** : `useTabScopedState` est un
-remplaçant direct de `useState` dont la clé est portée par l'onglet actif — c'est ce qui fait qu'une
-position de pager ou un filtre survit à un aller-retour entre deux onglets. La pile est miroitée en
-**`sessionStorage`** (`megga.crm.tabs`), jamais en `localStorage` : elle porte des **noms de clients**.
+remplaçant direct de `useState` dont la clé est portée par l'onglet **de l'écran qui l'appelle**
+(`OngletEcranCtx`) — pas par l'onglet actif, puisque six écrans sont montés : un pager caché qui lisait
+l'actif écrivait sa position dans l'onglet regardé. C'est ce qui fait qu'une position de pager ou un
+filtre survit à un aller-retour entre deux onglets. Même règle pour le libellé (`useTabLabel`) et la
+saisie non enregistrée (`useTabDirty`, qui protège aussi l'onglet de l'éviction au plafond). La pile
+est miroitée en **`sessionStorage`** (`megga.crm.tabs`), jamais en `localStorage` : elle porte des
+**noms de clients**.
 
 **Réseau inter-agences : ❌ RETIRÉ (hors périmètre v1).** L'ancien prototype `NetworkSugarV2Page` (données d'exemple, aucun backend, jamais routé) a été supprimé lors du nettoyage code mort ; les routes `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`. Le module réel (partage de biens inter-agences + RLS cross-agence + modèles PDF) reste à construire plus tard.
 

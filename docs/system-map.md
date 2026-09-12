@@ -251,7 +251,7 @@ sans ça, le démontage de l'ancien `ThemeProvider` arrachait l'attribut que le 
 les dix *destinations*, la barre d'onglets porte les *contextes ouverts* — deux fiches contact côte à côte,
 chacune avec sa position d'écran. Le **fournisseur** ([`CrmTabsProvider`](../src/components/crm/CrmTabsProvider.tsx))
 est monté dans `AgentLayout`, seul endroit qui ne se remonte pas à la navigation ; la **barre**
-([`CrmTabsBar`](../src/components/crm/CrmTabsBar.tsx)) est rendue par les 20 surfaces via
+([`CrmTabsBar`](../src/components/crm/CrmTabsBar.tsx)) est rendue par chaque surface (23 au 12.09.2026) via
 [`CrmWorkspace`](../src/components/crm/CrmWorkspace.tsx), pour les mêmes raisons qui ont interdit de hisser
 la barre latérale. ⛔ Elle ne peut pas vivre **dans** le `<main>` : sept surfaces y capturent la molette en
 `passive:false` avec un `preventDefault()` inconditionnel, et un coup de molette sur une puce ferait paginer
@@ -262,11 +262,25 @@ l'URL, ~8 %. ⚠ Le membre du milieu manquait ici, et sans lui le chiffre ne se 
 soit 13 %, pas 8 %. Les 8 % sont 3/38. ⚠ Remesurer aujourd'hui ne rend plus 33 : **14 de ces positions sont
 passées en `useTabScopedState`** (`grep -rn "= useTabScopedState" src/`), donc dans la tranche d'onglet.
 
+**Écrans vivants (07.09.2026, réparés le 12.09.2026).** `EcransVivants` ([`AgentLayout`](../src/components/layout/AgentLayout.tsx))
+garde jusqu'à **six** écrans d'onglet montés (`VIVANTS_MAX`, un seul sur téléphone), les cachés en
+`visibility: hidden`. ⛔ **Il ne marchait pas en production jusqu'au 12.09** : la bascule pose l'actif en
+synchrone et navigue en transition (`v7_startTransition`) ; le rendu intermédiaire montrait l'onglet
+d'arrivée sur l'URL de départ, et sa page était reconstruite à chaque bascule (6 sur 6, mesuré). Le banc
+`/dev/crm` ne le voyait pas, son `MemoryRouter` n'ayant pas le drapeau — ils partagent désormais
+[`ROUTER_FUTURE`](../src/lib/routerFuture.ts). Règles : un écran ne se rend jamais sur l'URL d'un autre
+onglet ([`crmEcranVisible`](../src/lib/crmTabs.ts)) ; les gestes d'écran (`useTabScopedState`,
+`useTabLabel`, `useTabDirty`) visent l'onglet de l'ÉCRAN (`OngletEcranCtx`), pas l'actif ; un écran caché
+est muet — clavier gardé par `useEcranActif` ([`clavier-ecran-cache.spec.ts`](../tests/unit/clavier-ecran-cache.spec.ts)),
+requêtes désabonnées (`IsRestoringProvider`, rafraîchies au retour), thème et notifications lus dans des
+magasins partagés (`useCrmDark`, `useSyncExternalStore`) ; aucune bascule par raccourci sous une modale
+ouverte ([`modaleOuverte`](../src/lib/modaleOuverte.ts)).
+
 **Persistance à deux étages.** Côté serveur, `crm_open_tabs` — une ligne par personne (clé primaire
 `user_id`), RLS `user_id = auth.uid()` en **quatre policies séparées**, jamais un `for all` (le défaut
 corrigé le 17.08.2026 sur `whatsapp_agent_links`), aucune policy agence ni super-admin : la pile dit quels
 clients un agent a ouverts. Côté navigateur, un miroir de démarrage en **`sessionStorage`** sous
-`megga.crm.tabs` ([`useCrmTabs.ts:65-99`](../src/hooks/useCrmTabs.ts)) — ⛔ **jamais `localStorage`**, au
+`megga.crm.tabs` ([`useCrmTabs.ts:49-82`](../src/hooks/useCrmTabs.ts)) — ⛔ **jamais `localStorage`**, au
 même motif exactement : le libellé d'un onglet de fiche EST le nom du contact. Il ne sert que la première
 frame, le serveur restant la source de vérité. ⚠ **Rien ne garde ce choix** : mesuré le 05.09.2026,
 `megga.crm.tabs` n'existe qu'à **deux** endroits du dépôt — le hook et `CLAUDE.md` — et aucune spec ne le
