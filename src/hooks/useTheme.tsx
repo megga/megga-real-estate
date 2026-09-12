@@ -8,7 +8,7 @@
  * ref-compté, sinon un simple changement de page suffisait à repasser le CRM
  * en clair.
  */
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useLayoutEffect, useCallback, useRef, type ReactNode } from 'react'
 import { applyPreferences } from '@/hooks/usePreferences'
 import { DEFAULT_PREFERENCES, type DashboardPreferences } from '@/lib/accentPresets'
 
@@ -71,12 +71,28 @@ if (typeof window !== 'undefined') {
   })
 }
 
-/** Fournit le contexte thème et applique/retire `data-theme` sur le document. */
-export function ThemeProvider({ children }: { children: ReactNode }) {
+/**
+ * Fournit le contexte thème et applique/retire `data-theme` sur le document.
+ *
+ * `pilote` — fourni par le CRM de BUREAU (`AgentLayout`), qui a son propre
+ * réglage (`megga.crm.dark`) : `data-theme`, `color-scheme` et le thème du
+ * contexte le suivent, et `megga-theme` n'est plus écrit. ⛔ Sans lui, les deux
+ * réglages divergeaient : le bouton ☀/☾ du CRM ne touchait pas `data-theme`, donc
+ * les toasts, le bandeau d'accueil, l'anneau de focus, les barres de défilement
+ * et le wizard « Créer un bien » restaient dans l'AUTRE thème (mesuré le
+ * 12.09.2026 : CRM sombre, toast blanc). Le mobile, lui, n'est pas piloté et
+ * garde `megga-theme`.
+ */
+export function ThemeProvider({ children, pilote }: { children: ReactNode; pilote?: Theme }) {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme)
+  const effectif = pilote ?? theme
+  const piloteRef = useRef(pilote)
+  useLayoutEffect(() => { piloteRef.current = pilote })
 
-  const applyTheme = useCallback((t: Theme, animate = false) => {
+  const applyTheme = useCallback((t: Theme, animate = false, persister = true) => {
     const root = document.documentElement
+    // Les contrôles natifs — barres de défilement, champs — suivent le thème.
+    root.style.colorScheme = t
     if (animate) {
       // Enable smooth transition on all elements
       root.setAttribute('data-theme-transitioning', '')
@@ -94,11 +110,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.setAttribute('data-theme', t)
       applyPreferences(getStoredPreferences())
     }
-    localStorage.setItem(STORAGE_KEY, t)
+    if (persister) localStorage.setItem(STORAGE_KEY, t)
   }, [])
 
   const setTheme = useCallback((t: Theme) => {
     setThemeState(t)
+    // Piloté : le document suit le pilote, pas ce réglage-ci.
+    if (piloteRef.current) return
     applyTheme(t, true) // animate the transition
   }, [applyTheme])
 
@@ -110,16 +128,44 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // Ref-compté : seul le dernier provider démonté nettoie (cf. mountedProviders).
   useEffect(() => {
     mountedProviders += 1
-    applyTheme(theme)
+    applyTheme(effectif, false, !pilote)
     return () => {
       mountedProviders -= 1
       if (mountedProviders > 0) return
+      document.documentElement.style.removeProperty('color-scheme')
       document.documentElement.removeAttribute('data-theme')
       document.documentElement.removeAttribute('data-density')
       document.documentElement.removeAttribute('data-sidebar-style')
       document.documentElement.removeAttribute('data-font-size')
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ⚠ Le pilote s'applique en effet de MISE EN PAGE, dans le même rendu que la
+  // bascule du CRM : celle-ci photographie l'écran à la sortie de ce rendu
+  // (`crmDarkBascule`), et un effet passif arriverait après la photo. Quand le
+  // pilote se retire (passage au mobile), le réglage propre reprend la main.
+  const piloteVu = useRef<Theme | undefined>(pilote)
+  useLayoutEffect(() => {
+    if (pilote) applyTheme(pilote, false, false)
+    else if (piloteVu.current) applyTheme(theme, false, false)
+    piloteVu.current = pilote
+  }, [pilote, theme, applyTheme])
+
+  // ⛔ PILOTÉ, LE DOCUMENT N'A QU'UN MAÎTRE. La console admin capture `data-theme`
+  // à son montage et le RESTAURE en sortant : si l'agent y a basculé le thème, la
+  // valeur restaurée est l'ancienne, et le pilote — dont la valeur n'a pas changé —
+  // ne se réappliquait pas. Le CRM restait sombre sous un `data-theme` clair : la
+  // division même que ce pilote supprime. Toute réécriture étrangère est donc
+  // corrigée aussitôt ; la sienne propre ne change rien et ne boucle pas.
+  useLayoutEffect(() => {
+    if (!pilote) return
+    const racine = document.documentElement
+    const garde = new MutationObserver(() => {
+      if (racine.getAttribute('data-theme') !== pilote) applyTheme(pilote, false, false)
+    })
+    garde.observe(racine, { attributes: true, attributeFilter: ['data-theme'] })
+    return () => garde.disconnect()
+  }, [pilote, applyTheme])
 
   // Listen for system preference changes
   useEffect(() => {
@@ -135,7 +181,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, [setTheme])
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme: effectif, setTheme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   )

@@ -243,7 +243,10 @@ const ZONES: RootSpec[] = [
     // traitée ». Ils entrent en apportant ZÉRO littéral — chaque rayon et chaque
     // espacement y est écrit en `var(--crm-*)`, y compris là où la maquette
     // demandait 6, 11 et 14 px, arrondis aux barreaux.
-    keep: (n) => ['CrmShell.tsx', 'CrmSidebar.tsx', 'CrmTabsBar.tsx', 'CrmWorkspace.tsx', 'crmSidebarNav.ts', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts'].includes(n),
+    // ⚠ `IconeTheme.tsx` entre le 12 septembre 2026 avec la bascule de thème animée :
+    // le glyphe soleil/lune de la bande d'onglets et du menu du profil. Il n'écrit
+    // qu'une boîte (largeur, hauteur, `inset`), aucun barreau de grammaire.
+    keep: (n) => ['CrmShell.tsx', 'CrmSidebar.tsx', 'CrmTabsBar.tsx', 'CrmWorkspace.tsx', 'crmSidebarNav.ts', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts', 'IconeTheme.tsx'].includes(n),
     keepPath: (p) => p.split('/').length === 4,
   },
   // Le chrome rendu par les 27 surfaces du CRM (lot 1 du chantier « CRM agent »,

@@ -65,7 +65,8 @@ export function EcranPousse({ children, ...attrs }: HTMLAttributes<HTMLDivElemen
   return (
     <PousseeDockContext.Provider value={inscrire}>
       <style>{REGLE}</style>
-      <div ref={ref} data-ecran-pousse="" {...attrs}>{children}</div>
+      {/* `data-garde-transition` : sa poussée n'est pas coupée par une bascule de thème. */}
+      <div ref={ref} data-ecran-pousse="" data-garde-transition="" {...attrs}>{children}</div>
     </PousseeDockContext.Provider>
   )
 }

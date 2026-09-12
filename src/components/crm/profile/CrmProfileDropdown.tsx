@@ -8,12 +8,15 @@
 // une transition de background-color reste bloquée à mi-course et peint la couleur
 // sombre périmée. Le fond doit s'appliquer immédiatement.
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ReactNode } from 'react'
 import type { CrmPalette } from '../tokens'
 import { useSideAnchor, type CrmPopoverPlacement } from '@/hooks/useSideAnchor'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
+import { motion } from 'motion/react'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { IconeTheme } from '../IconeTheme'
 import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
@@ -179,6 +182,8 @@ export default function CrmProfileDropdown({
   const { profile, user } = useAuth()
   const navigate = useNavigate()
   const { plan } = useAgencySettings()
+  const idSegment = useId()
+  const reduit = useReducedMotion()
   // Seule porte d'entrée vers la console depuis le CRM : aucune ligne de la
   // barre latérale ne porte de trace de l'admin. Rendu uniquement pour un
   // super-admin confirmé par la DB (useSuperAdminGate → RPC is_super_admin).
@@ -267,7 +272,7 @@ export default function CrmProfileDropdown({
             padding: 'var(--crm-space-md) var(--crm-space-lg)',
           }}>
             <div style={{ width: 26, height: 26, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
-              <MEIcon name={dark ? 'moon' : 'sun'} size={20} color={sp.ink} strokeWidth={1.6} />
+              <IconeTheme dark={!!dark} size={20} color={sp.ink} strokeWidth={1.6} />
             </div>
             <span style={{
               flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, letterSpacing: -0.1,
@@ -286,14 +291,28 @@ export default function CrmProfileDropdown({
                   onClick={() => setDark(v)}
                   aria-pressed={dark === v}
                   style={{
+                    position: 'relative',
                     border: 0, cursor: 'pointer', fontFamily: 'inherit',
                     padding: 'var(--crm-space-2xs) var(--crm-space-sm)',
                     borderRadius: 'var(--crm-radius-pill)',
-                    background: dark === v ? sp.accent : 'transparent',
+                    background: 'transparent',
                     color: dark === v ? sp.accentInk : sp.sub,
                     fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                   }}
-                >{v ? t('nav.dark') : t('nav.light')}</button>
+                >
+                  {/* La pastille GLISSE d'un cran à l'autre au lieu de sauter.
+                      ⚠ `layoutId` propre à CE menu : un identifiant global ferait
+                      voyager la pastille entre les menus des trois écrans vivants. */}
+                  {dark === v && (
+                    <motion.span
+                      aria-hidden
+                      layoutId={`crm-apparence-${idSegment}`}
+                      transition={reduit ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 38 }}
+                      style={{ position: 'absolute', inset: 0, borderRadius: 'var(--crm-radius-pill)', background: sp.accent }}
+                    />
+                  )}
+                  <span style={{ position: 'relative' }}>{v ? t('nav.dark') : t('nav.light')}</span>
+                </button>
               ))}
             </div>
           </div>

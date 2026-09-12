@@ -119,7 +119,8 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
   usePorteSaPoussee()
 
   return (
-    <div style={{
+    // `data-garde-transition` : sa poussée n'est pas coupée par une bascule de thème.
+    <div data-garde-transition="" style={{
       display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0,
       // ⚠ La poussée ENGLOBE la bande : ✦, la cloche et la bascule de thème vivent
       // dans son quart droit, et ne pousser que la rangée les laisserait sous le dock.

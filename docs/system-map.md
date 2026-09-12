@@ -304,6 +304,29 @@ l'écrivaient pas), plus de relecture à 400 ms dans le dock et la coquille. Gar
 [`poussee-dock.spec.ts`](../tests/unit/poussee-dock.spec.ts), [`crm-dark-bascule.spec.ts`](../tests/unit/crm-dark-bascule.spec.ts).
 Cerveau : `megga/dock-poussee`.
 
+**Bascule clair ↔ sombre, d'un seul geste (12.09.2026).** Un geste de l'agent (bouton ☀/☾ de la bande,
+menu du profil, Réglages, tableau de bord d'Analytics) passe par
+[`animerBascule`](../src/lib/crmDarkBascule.ts) : `<html data-crm-bascule>` coupe **toute** transition
+(`globals.css`, `!important` pour battre les styles en ligne), la palette est rendue en `flushSync` dans
+`document.startViewTransition`, puis le nouvel écran se **révèle en cercle** depuis le point cliqué (ou le
+contrôle activé au clavier), en 520 ms **rythmées sur la SURFACE découverte** et non sur le rayon : 12 % de
+l'écran à 10 % du temps, 67 % à mi-course, et la fin découvre encore 7 % — le premier jet (rayon en courbe du
+dock) révélait 96 % en 30 % du temps puis traînait. ⛔ Pas de fondu enchaîné : la mise en page ne bouge pas,
+chaque pixel passerait par un gris moyen (contraste 1,01:1 à mi-course). Sans l'API, en mouvement réduit ou
+onglet caché : même bascule, sans animation. Une seconde bascule attend la fin de la première ; le dock et la
+poussée (`data-garde-transition`) continuent de glisser ; un changement venu du système ou d'un autre onglet
+passe par la même révélation, annoncée une seule fois. ⛔ Avant, elle courait sur trois horloges — carte de la barre latérale instantanée, lignes à
+180 ms, « Aujourd'hui » à 550 ms : le nom de l'agence restait illisible ~150 ms. Au bureau, le thème de l'app
+(`data-theme`, `color-scheme`) est **piloté** par celui du CRM (`ThemeProvider pilote`, posé par
+`AgentLayout`) — toasts, bandeau d'accueil, anneau de focus, barres de défilement et wizard suivent enfin ;
+le mobile garde `megga-theme`. Les écrans vivants cachés suivent en `startTransition`, hors de la photo et
+après la révélation — sans transition : la feuille les coupe sous tout écran caché, sinon leurs fondus se
+voyaient en rebasculant sur leur onglet.
+« Système » (Réglages) efface le choix au lieu de figer la valeur du moment. Le glyphe ☀/☾
+([`IconeTheme`](../src/components/crm/IconeTheme.tsx)) tourne avec motion/react. Le courriel ouvert dans la
+Messagerie ne recharge plus son iframe : l'encre est repeinte dans le document vivant. ⚠ Reste connu : la carte
+Mapbox du Matching recharge son style après la révélation. Cerveau : `megga/bascule-theme`.
+
 | Audience | Préfixe | Pages clés |
 |---|---|---|
 | **Marketplace SPA** (app.getmegga.com) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine getmegga.com) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers getmegga.com. `SearchPage`/`PropertyXSinglePropertyPage` **retirés** (pages storefront supprimées au pivot CRM-first). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |

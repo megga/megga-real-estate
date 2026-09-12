@@ -860,6 +860,8 @@ export default function CopilotPanel() {
       <aside
         role="complementary"
         aria-label="MEGGA AI"
+        // Il GLISSE : la bascule de thème ne coupe pas sa transition (`globals.css`).
+        data-garde-transition=""
         inert={!isOpen}
         style={{
           position: 'fixed', zIndex: 70,

@@ -40,6 +40,7 @@ import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
+import { IconeTheme } from './IconeTheme'
 import type { CrmPalette } from './tokens'
 import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
 import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
@@ -1037,7 +1038,11 @@ function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded,
         position: 'relative',
       }}
     >
-      <MEIcon name={icone} size={15} strokeWidth={1.7} />
+      {/* Le soleil et la lune TOURNENT l'un vers l'autre (`IconeTheme`) : c'est le
+          seul glyphe de la bande qui change de forme sous le doigt. */}
+      {icone === 'sun' || icone === 'moon'
+        ? <IconeTheme dark={icone === 'moon'} size={15} strokeWidth={1.7} />
+        : <MEIcon name={icone} size={15} strokeWidth={1.7} />}
       {/* ⚠ LE COMPTEUR, PAS UN POINT. La barre latérale montrait le NOMBRE de non
           lus ; le réduire à un point en déménageant aurait retiré une information
           au passage. Au-delà de neuf, « 9+ » — deux chiffres ne tiennent pas sur

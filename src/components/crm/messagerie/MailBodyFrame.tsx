@@ -65,10 +65,24 @@ export function MailBodyFrame({ ms, html, text, truncated, police }: Props) {
   const [height, setHeight] = useState(HAUTEUR_INITIALE)
   const ref = useRef<HTMLIFrameElement>(null)
   const hasRemote = useMemo(() => !!html && /<img[^>]+src=["']?https?:/i.test(html), [html])
+  /**
+   * ⛔ L'ENCRE NE RECONSTRUIT PAS LE DOCUMENT. Elle en faisait partie : chaque
+   * bascule de thème produisait une `srcdoc` neuve, donc un RECHARGEMENT de
+   * l'iframe — corps blanc, hauteur remesurée, images redemandées — APRÈS la
+   * révélation de l'écran, qui paraissait alors finir sur un accroc. L'encre du
+   * moment est lue à la construction (un document neuf naît dans le bon thème),
+   * puis repeinte dans le document VIVANT par l'effet ci-dessous.
+   */
   const doc = useMemo(
     () => (html ? buildBodySrcdoc(sanitizeMailHtml(html, { remoteImages: remote }), { ink: ms.txt2, font: police ?? policeHote(), remoteImages: remote }) : null),
-    [html, remote, ms.txt2, police],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `ms.txt2` exclu à dessein, voir ci-dessus
+    [html, remote, police],
   )
+  useEffect(() => {
+    const corps = ref.current?.contentDocument?.body
+    // En ligne : bat la feuille de la `srcdoc`, sans toucher au reste du document.
+    if (corps) corps.style.color = ms.txt2
+  }, [ms.txt2])
 
   useEffect(() => {
     const el = ref.current
