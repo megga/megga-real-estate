@@ -136,14 +136,17 @@ jobs:
         # (« Failed to resolve latest Supabase CLI release: rate limit exceeded », suivi de
         # « No such container: supabase_db_… »). Mesuré le 02.08.2026 : TROIS occurrences dans
         # la journée, dont un déploiement de production qu'il a fallu relancer à la main.
-        # 2.111.0 EST ce que `latest` résolvait ce jour-là — l'épinglage ne change donc aucun
-        # comportement, il supprime seulement l'appel réseau.
+        # L'épinglage ne dit donc PAS « cette version-là et pas une autre » : c'est un
+        # instantané de `latest`, posé le 02.08.2026 à 2.111.0, et relevé à 2.112.0 le
+        # 07.08.2026 pour rejoindre ce que Homebrew sert aux postes de développement — un
+        # CLI local plus ancien que celui de la CI monte des images Docker différentes sous
+        # `supabase start`, et un test peut alors passer d'un côté et pas de l'autre.
         # ⚠ À faire évoluer À LA MAIN quand `supabase/config.toml` ou `supabase start` l'exigent
         # (l'action n'accepte pas de `token` pour authentifier l'appel, et `supabase` n'est pas
         # une dépendance du dépôt : omettre `version` retomberait sur `latest`).
         uses: supabase/setup-cli@v1
         with:
-          version: 2.111.0
+          version: 2.112.0
 
       - name: Start Supabase local
         # Exclusions identiques à backend.yml : Studio (UI admin), Inbucket
