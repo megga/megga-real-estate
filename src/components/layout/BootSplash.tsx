@@ -34,6 +34,7 @@
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import { cn } from '@/lib/utils'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   /** `megga-boot is-done` pour lancer le fondu de sortie (cf. index.html). */
@@ -57,6 +58,7 @@ function ecouleDepuisLaPremiereFrame(): number {
 
 /** Écran plein cadre : logo MEGGA, barre de progression, mention. */
 export default function BootSplash({ className }: Props) {
+  const { t } = useTranslation('common')
   // Gelé au montage, et surtout PAS recalculé à chaque rendu : `BootCurtain`
   // re-rend cet écran pour lui passer `is-done`, et une horloge qui bougerait à
   // ce moment-là ferait repartir les animations pendant le fondu de sortie —
@@ -88,7 +90,7 @@ export default function BootSplash({ className }: Props) {
         <polygon points="475.11 419 370.91 419 370.69 251.26 475.21 95.29 475.11 419" />
       </svg>
       <div className="megga-boot__bar" />
-      <p className="megga-boot__hint">Ouverture de votre espace</p>
+      <p className="megga-boot__hint">{t('boot.opening')}</p>
     </div>
   )
 }

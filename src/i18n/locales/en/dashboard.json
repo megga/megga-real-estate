@@ -403,6 +403,18 @@
         "postponed_other": "postponed",
         "explainer": "Postponed leads will come back tomorrow; discarded ones are out of the loop.",
         "backToDashboard": "Back to dashboard"
+      },
+      "review": {
+        "title": "Proofread · the message goes out in {{langue}}",
+        "notSent": "This version is not sent. It lets you proofread before sending.",
+        "loading": "Translating…",
+        "unavailable": "The proofreading version could not be produced. The draft can still be sent as is.",
+        "lang": {
+          "fr": "French",
+          "de": "German",
+          "en": "English",
+          "it": "Italian"
+        }
       }
     },
     "h": {

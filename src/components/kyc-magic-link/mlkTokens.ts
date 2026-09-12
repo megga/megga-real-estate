@@ -1,9 +1,36 @@
-// MEGGA — Jetons de la face PUBLIQUE : parcours client KYC Magic Link
-// (`/kyc/<token>`) et gestion de rendez-vous (`/rendez-vous/<token>`).
+// MEGGA — Jetons de la face PUBLIQUE : TOUTES les surfaces sans compte.
 //
 // Séparés de MlkPrimitives.tsx : un fichier qui exporte des composants ET des
 // constantes casse le Fast Refresh de Vite (toute édition recharge la page au
 // lieu de préserver l'état). Les jetons vivent donc à part.
+//
+// ── UNE SEULE FAMILLE PUBLIQUE (décision Julien, 16 août 2026) ───────────────
+// `RC` (`buyer-reception/receptionTokens.ts`) a été FONDUE ici, et son fichier
+// retiré. Ce n'est pas un rangement : les deux familles décrivaient la même
+// direction dans deux vocabulaires, et c'est le pire des cas — assez proche
+// pour qu'on les croie interchangeables, pas assez pour qu'elles le soient
+// (`bg` contre `bgGradient`, `sub` contre `cardSubtle`, `soft` contre
+// `inkSoft`).
+//
+// ⚠ CE QUI A DÉCIDÉ, C'EST LA MESURE DU 16 AOÛT, et elle contredit ce que le
+// plan du chantier annonçait. Il comptait « six clés sur onze » communes — un
+// compte de NOMS. Par VALEUR, huit des neuf rôles partagés étaient DÉJÀ
+// identiques : seul le dégradé divergeait, et d'un seul cran (`#E2E5EB` à 48 %
+// contre 50 %). La divergence que `receptionTokens.ts` invoquait pour rester à
+// part — « la sous-surface, `#F4F6F9` contre `#F7F8FA` » — avait disparu à la
+// descente du 15 août : les deux valaient `n900`. Son en-tête décrivait un état
+// périmé.
+//
+// Le dégradé est aligné sur **50 %**, la valeur qui sert le plus de surfaces.
+//
+// ⚠ AUCUNE DES 34 CLÉS N'ÉTAIT MORTE — contrairement au KYC (10 sur 35) et à
+// Analytics (13 sur 30). La fusion ne supprime donc rien « gratuitement » :
+// elle échange du renommage contre un vocabulaire unique.
+//
+// ⚠ LE NOM `MLK` ET CE CHEMIN SURVIVENT À LEUR MOTIF. Ces jetons servent sept
+// surfaces, pas un parcours KYC ; `kyc-magic-link` est un accident d'histoire.
+// Renommer reste un geste lexical À PART, non tranché — mais il est bon marché,
+// trois fichiers seulement important ce module.
 //
 // ── LA PALETTE DESCEND DE MEGGA X (15 août 2026) ─────────────────────────────
 // Elle ne descendait de RIEN : quinze clés, douze littéraux hexadécimaux, aucune
@@ -37,8 +64,9 @@
 // rougira le jour où cette face gagne une branche sombre.
 //
 // ⚠ CE QUI RESTE À FAIRE : les composants écrivent encore le noir de Sugar en
-// décimal (`rgba(11,12,14,…)`) dans leurs ombres locales, et `kyc-magic-link/`
-// n'est sous aucune racine du cliquet de grammaire. C'est le lot 1.
+// décimal (`rgba(11,12,14,…)`) dans leurs ombres locales. En revanche
+// `kyc-magic-link/` EST désormais une racine du cliquet de grammaire — la note
+// qui l'annonçait comme « le lot 1 » s'est périmée le 15 août.
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
@@ -142,14 +170,27 @@ export const MLK = {
   muted: MXC_COLOR.n500,
   ghost: MXC_COLOR.n500,
   /**
-   * ⚠ LA GÉOMÉTRIE NE BOUGE PAS, seule la TEINTE descend. Ces trois ombres
-   * portaient le gris-bleu slate-900, qui entre toujours par la même porte —
-   * une fraction d'opacité, que personne ne relit en cherchant une couleur.
-   * `crmVoileEncre` est le rôle que le Pipeline a nommé pour ça.
+   * ⛔ LE FILET, VENU DE `RC` — et il MANQUAIT ici, ce qui coûtait déjà.
+   *
+   * `MLK` n'avait aucun jeton de trait. En portant `DesinscriptionPage` le
+   * 16 août, un séparateur a donc été tracé avec `MLK_STATUT.starOff` : un jeton
+   * d'ÉTAT (l'étoile éteinte d'une notation) employé comme trait de structure.
+   * Il marchait par coïncidence de valeur, pas par intention — exactement le
+   * genre d'emprunt qui survit à la valeur qu'il empruntait. Le nommer ferme la
+   * porte.
+   */
+  line: crmVoileEncre(false, 0.06),
+  /**
+   * ⚠ LA GÉOMÉTRIE NE BOUGE PAS, seule la TEINTE descend. Ces ombres portaient
+   * le gris-bleu slate-900, qui entre toujours par la même porte — une fraction
+   * d'opacité, que personne ne relit en cherchant une couleur. `crmVoileEncre`
+   * est le rôle que le Pipeline a nommé pour ça.
    */
   shadowSm: `0 4px 16px ${crmVoileEncre(false, 0.04)}`,
   shadow: `0 12px 40px ${crmVoileEncre(false, 0.06)}, 0 2px 8px ${crmVoileEncre(false, 0.03)}`,
   shadowLg: `0 24px 60px ${crmVoileEncre(false, 0.08)}, 0 4px 16px ${crmVoileEncre(false, 0.04)}`,
+  /** ⚠ Venue de `RC` : l'ombre MONTANTE d'une feuille qui remonte du bas. Seule ombre de la famille dont le décalage vertical est négatif. */
+  sheetShadow: `0 -18px 60px ${crmVoileEncre(false, 0.18)}, 0 -4px 16px ${crmVoileEncre(false, 0.08)}`,
   /** ⚠ GARDÉE HORS ÉCHELLE par décision — voir l'en-tête. */
   font: 'Manrope, system-ui, sans-serif',
 } as const

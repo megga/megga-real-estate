@@ -101,3 +101,24 @@ describe('buildBookingEmail — ce que le client doit pouvoir faire', () => {
     expect(html).not.toContain('Immobilier Suisse')
   })
 })
+
+describe('⛔ la préposition entre la date et l’heure', () => {
+  it('suit la langue, et ne reste pas française', () => {
+    // Défaut trouvé le 16.08.2026 en portant `visit-email` : `INTL_TAG` traduisait bien
+    // les deux moitiés de la date, mais le littéral ` à ` qui les recolle était figé —
+    // l'allemand rendait « Montag, 1. September 2026 à 10:00 ». Le renommage
+    // `formatFr` → `formatWhen` avait pourtant acté « elle ne rend plus du français seul ».
+    // Aucun test ne pouvait le voir : le banc quatre langues vérifie le témoin de langue,
+    // `lang="xx"` et l'absence de cadratin, jamais une préposition.
+    const sansBalises = (locale: 'fr' | 'de' | 'en' | 'it') =>
+      buildBookingEmail({ ...base, locale }).html.replace(/<[^>]+>/g, ' ')
+    expect(sansBalises('fr')).toMatch(/2026\s+à\s+10:00/)
+    expect(sansBalises('de')).toMatch(/2026\s+um\s+10:00/)
+    expect(sansBalises('en')).toMatch(/2026\s+at\s+10:00/)
+    expect(sansBalises('it')).toMatch(/2026\s+alle\s+10:00/)
+    // Et surtout : plus aucune trace du « à » français dans les trois autres.
+    for (const l of ['de', 'en', 'it'] as const) {
+      expect(sansBalises(l), l).not.toMatch(/2026\s+à\s/)
+    }
+  })
+})

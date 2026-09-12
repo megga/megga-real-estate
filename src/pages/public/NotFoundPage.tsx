@@ -23,6 +23,7 @@
  * surfaces agent).
  */
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { MeggaX, MxLink } from '@/components/megga-x'
 import { HELP_CENTER_URL } from '@/lib/help-articles'
@@ -32,6 +33,7 @@ import { HELP_CENTER_URL } from '@/lib/help-articles'
 const IMG = '/megga-x/images/404-illustration'
 
 export default function NotFoundPage() {
+  const { t } = useTranslation('common')
   return (
     <MeggaX className="min-h-screen">
       <div className="page-wrapper">
@@ -51,7 +53,7 @@ export default function NotFoundPage() {
           <div className="container-default w-container">
             <div className="_404-top-image-wrapper">
               <img
-                alt="Page introuvable — MEGGA"
+                alt={t('not_found.image_alt')}
                 loading="lazy"
                 sizes="(max-width: 1439px) 74vw, (max-width: 1919px) 59vw, 100vw"
                 src={`${IMG}.png`}
@@ -64,23 +66,22 @@ export default function NotFoundPage() {
             <div className="inner-container _506px center">
               <div className="position-relative---z-index-1">
                 <div className="text-center">
-                  <h1 className="mg-bottom-2x-extra-small">Page introuvable</h1>
+                  <h1 className="mg-bottom-2x-extra-small">{t('not_found.title')}</h1>
                   <div className="mg-bottom-small">
                     <p className="paragraph-large">
-                      Cette page n&apos;existe pas, ou elle a changé d&apos;adresse. Rien de cassé
-                      chez vous : reprenons depuis votre tableau de bord.
+                      {t('not_found.body')}
                     </p>
                   </div>
                   <div className="buttons-row">
                     <Link className="primary-button w-inline-block" to="/dashboard">
                       <div className="link-content-flex">
-                        <div>Retour au tableau de bord</div>
+                        <div>{t('not_found.back')}</div>
                       </div>
                     </Link>
                   </div>
                   <div className="mg-top-small">
                     <MxLink href={HELP_CENTER_URL} target="_blank" rel="noopener noreferrer">
-                      Centre d&apos;aide
+                      {t('not_found.help')}
                     </MxLink>
                   </div>
                 </div>

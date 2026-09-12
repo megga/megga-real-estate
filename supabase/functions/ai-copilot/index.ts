@@ -213,6 +213,33 @@ interface CopilotRequest {
   pending_id?: string | null
   /** true = réponse SSE (tokens + phases d'outils). Absent = JSON (compat). */
   stream?: boolean
+  /**
+   * Langue du DESTINATAIRE du texte produit, distincte de `language`.
+   *
+   * ⛔ NE PAS CONFONDRE AVEC `language`, qui est la langue de l'AGENT (celle de son
+   * interface, donc celle du chat du copilote). Un texte destiné au CLIENT suit
+   * `contacts.language` : les confondre écrirait au client dans la langue de son courtier,
+   * ce que `docs/email-i18n-handoff.md` nomme explicitement comme le défaut à éviter.
+   *
+   * Absente : le texte produit suit `language`, comportement historique.
+   */
+  recipient_locale?: 'fr' | 'de' | 'en' | 'it'
+}
+
+/**
+ * La consigne de langue du texte PRODUIT, par langue de destinataire.
+ *
+ * ⚠ UNE TABLE, JAMAIS UN TERNAIRE. Le reste du fichier ramène la langue de l'agent à
+ * `language === 'en' ? 'en' : 'fr'` (neuf sites) : c'est correct là-bas, le chat du copilote
+ * étant binaire. Le reprendre ici avalerait `de` et `it` en silence pour un texte qui part
+ * chez un client germanophone ou italophone.
+ */
+const CONSIGNE_DESTINATAIRE: Record<'fr' | 'de' | 'en' | 'it', string> = {
+  fr: 'Rédige ce texte EN FRANÇAIS. Vouvoiement, formules suisses.',
+  de: 'Rédige ce texte EN ALLEMAND DE SUISSE (forme Sie). Emploie « ss » et JAMAIS l’eszett. '
+    + 'Aucun accord de genre sur le destinataire.',
+  en: 'Write this text IN ENGLISH. Professional, neutral register.',
+  it: 'Rédige ce texte EN ITALIEN (forme de courtoisie « Lei »). Aucun accord de genre sur le destinataire.',
 }
 
 const MEGGA_SYSTEM = `Tu es MEGGA AI, le copilote intelligent de la plateforme MEGGA Real Estate — un CRM immobilier suisse.
@@ -863,6 +890,10 @@ serve(async (req: Request) => {
   try {
     const body: CopilotRequest = await req.json()
     const { action = 'chat', message, context, history = [], language = 'fr', conversation_id = null, persist = false, stream = false } = body
+    // Validée contre les quatre langues : une valeur bruitée ne doit pas produire une
+    // consigne vide qui laisserait le modèle choisir seul.
+    const recipientLocale = (['fr', 'de', 'en', 'it'] as const)
+      .find((l) => l === body.recipient_locale)
 
     if (!message && action === 'chat') {
       return new Response(
@@ -966,6 +997,16 @@ serve(async (req: Request) => {
     }
 
     let userContent = buildUserContent({ action, message: red.message, context: red.context, actionPrompts: ACTION_PROMPTS })
+    // La langue du DESTINATAIRE, quand elle diffère de celle de l'agent. Posée dans le
+    // message et non dans le prompt système : elle varie à chaque requête, et le préfixe
+    // système est ce que le cache DeepSeek couvre.
+    //
+    // ⚠ Elle prime sur « Toujours en français » du prompt système, qui parle du chat avec
+    // l'AGENT — ici on rédige POUR SON CLIENT.
+    if (recipientLocale) {
+      userContent += `\n\n[LANGUE DU DESTINATAIRE — ce texte part à un CLIENT, pas à l'agent. `
+        + `${CONSIGNE_DESTINATAIRE[recipientLocale]} Cette consigne prime sur toute autre indication de langue.]`
+    }
     if (knowledgeBlock) userContent += knowledgeBlock
     if (attachedPhotos.length && writesOn) {
       userContent += `\n\n[${attachedPhotos.length} photo(s) jointe(s) à ce message — pour les attacher à un bien, appelle attach_property_photos en précisant le bien (query).]`

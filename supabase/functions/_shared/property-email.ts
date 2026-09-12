@@ -12,19 +12,15 @@
 // affirme l'absence de lien de désinscription. Les deux se choisissent ensemble.
 
 import { INK, MUTED, BODY_INK, CARD_BORDER, FONT, escapeHtml, shell, p, button } from './email-shell.ts'
+import type { AppLocale } from './recipient-language.ts'
 
 export interface PropertyEmailPayload {
   title?: string | null
   address?: string | null
   city?: string | null
   price: number
-  rooms?: number | null
-  surface_m2?: number | null
-  type?: string | null
   photo_url?: string | null
   source_url: string
-  source_agency?: string | null
-  source_portal?: string | null
 }
 
 export interface PropertyEmailInput {
@@ -36,6 +32,73 @@ export interface PropertyEmailInput {
   message?: string | null
   /** Bloc de désinscription, porteur d'un jeton par destinataire. */
   unsubscribeHtml?: string
+  /**
+   * Langue du CONTACT (`contacts.language`), jamais celle de l'agent. Défaut : français.
+   *
+   * ⚠ Elle vient de la REQUÊTE et non de la base : `send-property-email` ne reçoit qu'une
+   * adresse, sans `contact_id` — l'envoi peut viser quelqu'un qui n'a pas de fiche. C'est
+   * l'appelant, qui a le contact sous la main, qui la joint.
+   */
+  locale?: AppLocale
+}
+
+/**
+ * Toute la copie, par langue. `Record<AppLocale, …>` : une langue manquante ne compile pas.
+ */
+const T: Record<AppLocale, {
+  prixSurDemande: string
+  paysDefaut: string
+  altPhoto: string
+  voirAnnonce: string
+  titre: string
+  legal: string
+  salutation: (prenom: string) => string
+  phraseDefaut: string
+}> = {
+  fr: {
+    prixSurDemande: 'Prix sur demande',
+    paysDefaut: 'Suisse',
+    altPhoto: 'Bien immobilier',
+    voirAnnonce: 'Voir l’annonce',
+    titre: 'Un bien qui pourrait vous intéresser',
+    legal: 'Vous recevez cet e-mail parce que vous êtes en relation avec cette agence via MEGGA. '
+      + 'Les informations sont fournies à titre indicatif et peuvent évoluer sans préavis.',
+    salutation: (p_) => `Bonjour ${p_},`,
+    phraseDefaut: 'Voici un bien qui pourrait vous intéresser.',
+  },
+  de: {
+    prixSurDemande: 'Preis auf Anfrage',
+    paysDefaut: 'Schweiz',
+    altPhoto: 'Immobilie',
+    voirAnnonce: 'Inserat ansehen',
+    titre: 'Eine Immobilie, die Sie interessieren könnte',
+    legal: 'Sie erhalten diese E-Mail, weil Sie über MEGGA mit dieser Agentur in Kontakt stehen. '
+      + 'Die Angaben sind unverbindlich und können sich ohne Vorankündigung ändern.',
+    salutation: (p_) => `Guten Tag ${p_},`,
+    phraseDefaut: 'Hier ist eine Immobilie, die Sie interessieren könnte.',
+  },
+  en: {
+    prixSurDemande: 'Price on request',
+    paysDefaut: 'Switzerland',
+    altPhoto: 'Property',
+    voirAnnonce: 'View the listing',
+    titre: 'A property that might interest you',
+    legal: 'You are receiving this email because you are in contact with this agency via MEGGA. '
+      + 'The information is provided for guidance only and may change without notice.',
+    salutation: (p_) => `Hello ${p_},`,
+    phraseDefaut: 'Here is a property that might interest you.',
+  },
+  it: {
+    prixSurDemande: 'Prezzo su richiesta',
+    paysDefaut: 'Svizzera',
+    altPhoto: 'Immobile',
+    voirAnnonce: 'Veda l’annuncio',
+    titre: 'Un immobile che potrebbe interessarLe',
+    legal: 'Riceve questa e-mail perché è in contatto con questa agenzia tramite MEGGA. '
+      + 'Le informazioni sono fornite a titolo indicativo e possono cambiare senza preavviso.',
+    salutation: (p_) => `Buongiorno ${p_},`,
+    phraseDefaut: 'Ecco un immobile che potrebbe interessarLe.',
+  },
 }
 
 /**
@@ -54,29 +117,25 @@ export function formatCHF(amount: number): string {
 }
 
 export function buildPropertyEmail(i: PropertyEmailInput): { subject: string; html: string } {
+  const l = i.locale ?? 'fr'
+  const t = T[l]
   const b = i.property
-  const prix = b.price > 0 ? formatCHF(b.price) : 'Prix sur demande'
-  const lieu = b.address || b.city || 'Suisse'
-  const faits = [
-    b.rooms ? `${b.rooms} pièces` : null,
-    b.surface_m2 ? `${b.surface_m2} m²` : null,
-    b.type || null,
-  ].filter(Boolean).join(' · ')
+  // ⚠ Le PRIX ne suit PAS la langue : `CHF 720'000` est la règle suisse (§6 du CLAUDE.md),
+  // pas une préférence régionale de rendu. `Intl.NumberFormat(style:'currency')` déplacerait
+  // le symbole selon la locale et casserait l'objet, qui commence par le prix.
+  const prix = b.price > 0 ? formatCHF(b.price) : t.prixSurDemande
+  const lieu = b.address || b.city || t.paysDefaut
 
   // La carte du bien : sous-surface CREUSÉE, comme tous les encarts de la coquille.
   const carte = `<div style="margin:0 0 28px;background:#050505;border:1px solid ${CARD_BORDER};border-radius:16px;overflow:hidden;">
       ${b.photo_url
-        ? `<img src="${escapeHtml(b.photo_url)}" alt="${escapeHtml(b.title || 'Bien immobilier')}" width="536" style="width:100%;height:auto;display:block;border:0;" />`
+        ? `<img src="${escapeHtml(b.photo_url)}" alt="${escapeHtml(b.title || t.altPhoto)}" width="536" style="width:100%;height:auto;display:block;border:0;" />`
         : ''}
       <div style="padding:20px 22px;">
         <p style="margin:0 0 4px;font-family:${FONT};font-size:24px;font-weight:700;color:${INK};letter-spacing:-0.4px;">${escapeHtml(prix)}</p>
         ${b.title ? `<p style="margin:0 0 6px;font-family:${FONT};font-size:14px;color:${BODY_INK};">${escapeHtml(b.title)}</p>` : ''}
-        <p style="margin:0 0 14px;font-family:${FONT};font-size:13px;color:${MUTED};">${escapeHtml(lieu)}</p>
-        ${faits ? `<p style="margin:0 0 16px;padding:12px 0;border-top:1px solid ${CARD_BORDER};border-bottom:1px solid ${CARD_BORDER};font-family:${FONT};font-size:13px;color:${BODY_INK};">${escapeHtml(faits)}</p>` : ''}
-        ${b.source_agency
-          ? `<p style="margin:0 0 16px;font-family:${FONT};font-size:11px;color:${MUTED};">via ${escapeHtml(b.source_agency)}${b.source_portal ? ` · ${escapeHtml(b.source_portal)}` : ''}</p>`
-          : ''}
-        ${button(b.source_url, 'Voir l’annonce')}
+        <p style="margin:0 0 16px;font-family:${FONT};font-size:13px;color:${MUTED};">${escapeHtml(lieu)}</p>
+        ${button(b.source_url, t.voirAnnonce)}
       </div>
     </div>`
 
@@ -85,19 +144,19 @@ export function buildPropertyEmail(i: PropertyEmailInput): { subject: string; ht
     // d'oeil dans sa boîte, et il décide s'il ouvre. Sans tiret cadratin (règle maison).
     subject: `${prix} · ${b.title || lieu}`,
     html: shell({
-      title: 'Un bien qui pourrait vous intéresser',
-      preheader: `${prix}${faits ? ` · ${faits}` : ''} · ${lieu}`,
+      lang: l,
+      title: t.titre,
+      preheader: `${prix} · ${lieu}`,
       // ⚠ Ni « transactionnel », ni « pas de désinscription » : c'est un envoi
       // commercial, et le bloc de désinscription est juste en dessous.
-      legalNote: 'Vous recevez cet e-mail parce que vous êtes en relation avec cette agence via MEGGA. '
-        + 'Les informations sont fournies à titre indicatif et peuvent évoluer sans préavis.',
+      legalNote: t.legal,
       unsubscribeHtml: i.unsubscribeHtml,
       headerCta: null,
       bodyHtml: `
-     ${p(`Bonjour ${escapeHtml(i.contactFirstName)},`)}
+     ${p(t.salutation(escapeHtml(i.contactFirstName)))}
      ${i.message
         ? `<p style="margin:0 0 28px;font-family:${FONT};font-size:15px;line-height:1.6;color:${BODY_INK};white-space:pre-line;">${escapeHtml(i.message)}</p>`
-        : p('Voici un bien qui pourrait vous intéresser.', 28)}
+        : p(t.phraseDefaut, 28)}
      ${carte}
      <div style="padding:20px 0 0;border-top:1px solid ${CARD_BORDER};">
        <p style="margin:0;font-family:${FONT};font-size:13px;font-weight:600;color:${INK};">${escapeHtml(i.agentName)}</p>

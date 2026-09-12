@@ -291,18 +291,38 @@
     --crm-radius-6xl: 24px;
     --crm-radius-pill: 999px;
 
-    /* Espacements — pas régulier de 2 px, jusqu'à 24.
+    /* Espacements — pas de 4 jusqu'à 24, PLUS deux demi-pas à 10 et 18.
        Au-delà (56, 64…) ce sont des décalages de mise en page propres à une
-       composition, pas du rythme réutilisable : ils restent en littéral. */
+       composition, pas du rythme réutilisable : ils restent en littéral.
+
+       ⛔ 10 ET 18 SONT DES ÉCARTS ASSUMÉS, PAS UN OUBLI — décision Julien du
+       17 août 2026, et c'est le MÊME mécanisme que les 11 et 13 px du TEXTE :
+       la vitrine ne les a pas, le CRM en a besoin, donc l'écart est ÉCRIT et
+       gardé (megga-x-crm-tokens.spec.ts) au lieu d'être subi.
+
+       ⚠ CE N'EST PAS UNE CORRECTION DE BOGUE, C'EST UN RENVERSEMENT. L'échelle
+       naissait à un pas de 2 (`3167d8e8`) ; `f427e894` l'a arrondie au pas de 4
+       pour l'aligner sur `--main-spacers--*` de la vitrine, qui va 4·8·12·16·
+       20·24·32·40… Ce bloc reprend DEUX crans de cette bascule, et deux
+       seulement, sur mesure : sur les huit surfaces clientes, 10 px était
+       demandé 18 fois et 18 px 17 fois — plus que 20 et 24 réunis (15), alors
+       qu'aucun barreau ne savait les dire.
+
+       ⚠ `lg` et `4xl` RETROUVENT leur valeur d'origine, ils n'en reçoivent pas
+       une neuve : c'est ce qui rend l'opération juste sur les 92 % de sites
+       antérieurs à la bascule, où le nom est le seul enregistrement survivant
+       de l'intention de l'auteur. Les ~100 sites écrits DEPUIS glissent de 2 px
+       — leur auteur visait 12 et 20 ; c'est le prix, il est petit et il est
+       dans le sens de l'échelle. */
     --crm-space-2xs: 4px;
     --crm-space-xs: 4px;
     --crm-space-sm: 8px;
     --crm-space-md: 8px;
-    --crm-space-lg: 12px;
+    --crm-space-lg: 10px;
     --crm-space-xl: 12px;
     --crm-space-2xl: 16px;
     --crm-space-3xl: 16px;
-    --crm-space-4xl: 20px;
+    --crm-space-4xl: 18px;
     --crm-space-5xl: 20px;
     --crm-space-6xl: 24px;
     --crm-space-7xl: 24px;

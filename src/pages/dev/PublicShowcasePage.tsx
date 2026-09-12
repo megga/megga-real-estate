@@ -32,7 +32,8 @@
  * ⛔ Données de DÉMONSTRATION, et rien n'écrit : l'intercepteur répond aussi aux
  * POST (dépôt de pièce, réservation, réaction acheteur).
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link, Route, Routes, useLocation } from 'react-router-dom'
 import KycPublicPage from '@/pages/public/KycPublicPage'
 import AppointmentManagePage from '@/pages/public/AppointmentManagePage'
@@ -40,13 +41,18 @@ import BuyerReceptionPage from '@/pages/public/BuyerReceptionPage'
 import VisitManagePage from '@/pages/public/VisitManagePage'
 import VisitFeedbackPage from '@/pages/public/VisitFeedbackPage'
 import AcceptInvitePage from '@/pages/public/AcceptInvitePage'
-import { installerBanc, reglerBanc } from './bancSupabase'
-import { apptCreneaux, apptVue, invitationVue, mlkVue, receptionVue, visiteVue, type PublicEtat } from './publicFixtures'
+import DesinscriptionPage from '@/pages/public/DesinscriptionPage'
+import { echecEdge, installerBanc, reglerBanc } from './bancSupabase'
+import { apptCreneaux, apptVue, desinscriptionVue, invitationVue, mlkVue, receptionVue, visiteVue, type PublicEtat } from './publicFixtures'
 
 const ETATS: { id: PublicEtat; label: string; titre: string }[] = [
   { id: 'nominal', label: 'Nominal', titre: 'Le parcours tel que le client l’ouvre' },
   { id: 'termine', label: 'Terminé', titre: 'Pièces déposées · rendez-vous pris · sélection traitée' },
   { id: 'expire', label: 'Expiré', titre: 'Lien périmé, rendez-vous annulé, sélection close' },
+  // ⛔ Le quatrième état, ajouté le 17 août 2026 : les trois précédents couvraient
+  // les chemins heureux et les états TERMINAUX, jamais un geste REFUSÉ. Trois
+  // correctifs de bannière d'échec ont dû être prouvés par sonde faute de lui.
+  { id: 'erreur', label: 'Geste refusé', titre: 'La lecture passe, l’écriture est refusée : les bannières d’échec' },
 ]
 
 /**
@@ -65,6 +71,11 @@ const SURFACES = [
   { chemin: 'visite?token=banc', label: 'Visite · modifier', route: '/visit/:id/edit' },
   { chemin: 'avis?token=banc', label: 'Visite · avis', route: '/visit/:id/feedback' },
   { chemin: 'invitation/banc', label: 'Invitation équipe', route: '/accept-invite/:token' },
+  // 16 août 2026 — la page atteinte depuis « Se désinscrire ». ⚠ Son jeton est en
+  // QUERY et non dans le chemin : une route en `desinscription/:token` la monterait
+  // sans jeton, elle rendrait « lien invalide », et on corrigerait la fixture au lieu
+  // de la route (le piège déjà payé sur les deux visites).
+  { chemin: 'desinscription?t=banc', label: 'Préférences d’e-mail', route: '/desinscription' },
 ]
 
 export default function PublicShowcasePage() {
@@ -86,14 +97,89 @@ export default function PublicShowcasePage() {
    */
   useState(() => { installerBanc(); poserContrat('nominal'); return null })
 
+  /**
+   * ⛔ LE CACHE DE REACT QUERY SURVIT AU REMONTAGE, ET LE BANC MONTRAIT DONC LA
+   * DONNÉE DE L'ÉTAT PRÉCÉDENT.
+   *
+   * La `key={etat}` plus bas remonte bien l'arbre — mais le `QueryClient` vit
+   * AU-DESSUS, dans `App`, et la clé de requête (`['magic-link', token]`) ne
+   * dépend que du jeton, identique d'un état à l'autre. Changer d'état reposait
+   * donc le contrat sans que rien ne le relise : la page réaffichait sa réponse
+   * en cache.
+   *
+   * ⚠ CE DÉFAUT EST ANTÉRIEUR À L'ÉTAT « GESTE REFUSÉ », et il explique un
+   * constat que j'avais mis sur le compte des fixtures : « Terminé » semblait
+   * ne rien faire sur le parcours KYC. Il faisait quelque chose — la page ne le
+   * relisait pas. Un banc qui sert la donnée d'un autre état est pire qu'un banc
+   * incomplet : il répond, et on le croit.
+   *
+   * ⚠ APRÈS `poserContrat`, jamais avant : les requêtes relancées par la purge
+   * doivent tomber sur le NOUVEAU contrat.
+   *
+   * ⛔ ET ELLE NE PURGE PAS AU MONTAGE, CE QUI M'A COÛTÉ DEUX ALLERS-RETOURS. Sans
+   * garde-fou, l'effet tourne aussi au premier rendu — donc APRÈS que les enfants
+   * aient lancé leur requête, et `clear()` la jette EN VOL : la page reste
+   * indéfiniment sur « Chargement… », l'edge ayant pourtant répondu 200. Le contrat
+   * initial est déjà posé par l'initialiseur de `useState` plus haut ; il n'y a rien
+   * à purger au montage, seulement aux BASCULES.
+   *
+   * ⛔ ET LE GARDE-FOU « PREMIER RENDU » NE MARCHE PAS, C'EST LE PIÈGE : sous
+   * StrictMode l'effet est invoqué DEUX FOIS au montage. Le premier passage consomme
+   * le drapeau, le second purge quand même — la panne était identique, et le drapeau
+   * donnait l'illusion de l'avoir traitée. On compare donc l'état PRÉCÉDENT, pas un
+   * rang de rendu : deux invocations du même montage portent le même `etat`, une
+   * bascule seule les distingue.
+   */
+  const qc = useQueryClient()
+  const etatPrecedent = useRef(etat)
   useEffect(() => {
     poserContrat(etat)
-  }, [etat])
+    if (etatPrecedent.current === etat) return
+    etatPrecedent.current = etat
+    qc.clear()
+  }, [etat, qc])
 
   return rendu(etat, setEtat, pathname)
 }
 
+/**
+ * ⛔ « GESTE REFUSÉ » NE FAIT ÉCHOUER QUE LES ÉCRITURES, et c'est tout l'intérêt.
+ *
+ * `bancSupabase` porte déjà un état `erreur` global — il fait tomber edges ET
+ * PostgREST. Sur cette face, qui LIT son écran par une edge, il ne montre pas une
+ * page en erreur : il montre « lien invalide », donc l'absence de page. Les
+ * bannières d'échec restaient inatteignables.
+ *
+ * ⚠ ET UN CORPS D'ERREUR EN 200 NE SUFFISAIT PAS : les hooks décident sur
+ * `!res.ok`. D'où `echecEdge`, qui rend un vrai STATUT.
+ *
+ * ⚠ `appointment-manage` SERT LES DEUX SENS sous le même nom — GET pour lire le
+ * rendez-vous, POST pour le déplacer ou l'annuler. La fixture est donc une
+ * FONCTION de ses arguments : `action` n'est présent qu'à l'écriture. La faire
+ * échouer sans distinguer aurait rendu la page inatteignable au lieu de refusée.
+ */
+const REFUS: Record<string, unknown> = {
+  // Dépôt de pièce rejeté → la bannière d'erreur d'upload de `MlkScreens`.
+  // ⚠ 400 ET CE CORPS EXACT, parce que c'est ce que l'edge rend VRAIMENT pour une
+  // pièce trop lourde (`magic-link-upload/index.ts:169`) — un 413 inventé aurait
+  // exercé un chemin qui n'existe pas, et la bannière serait tombée sur le repli
+  // générique en donnant l'illusion d'avoir testé le cas.
+  'magic-link-upload': echecEdge(400, { error: 'file size invalid (max 10 MB)' }),
+  // Réservation refusée → `MlkFailureNotice` dans `MlkBooking`.
+  'appointment-book': echecEdge(409, { reason: 'slot_taken' }),
+  // Report / annulation refusés → `MlkFailureNotice` sur les DEUX sites
+  // d'`AppointmentManagePage`. La lecture, elle, passe.
+  'appointment-manage': (args: Record<string, unknown>) =>
+    args.action
+      ? echecEdge(409, { reason: args.action === 'cancel' ? 'not_cancellable' : 'reschedule_limit_reached' })
+      : apptVue('nominal'),
+  // Les deux visites : leur bannière de refus lit `estRefus(error)`.
+  'visit-reschedule': echecEdge(409, { reason: 'not_reschedulable' }),
+  'visit-cancel': echecEdge(409, { reason: 'not_cancellable' }),
+}
+
 function poserContrat(etat: PublicEtat) {
+  const refus = etat === 'erreur' ? REFUS : {}
   reglerBanc({
       etat: 'nominal',
       tables: {},
@@ -114,6 +200,14 @@ function poserContrat(etat: PublicEtat) {
         // SIGNALE la fonction et l'écran montre une erreur au lieu d'un succès.
         'visit-reschedule': { ok: true },
         'visit-cancel': { ok: true },
+        // GET (lecture) et POST (écriture) partagent le nom : l'écriture n'a besoin
+        // que d'un 200 pour montrer l'écran de succès.
+        'email-preferences': desinscriptionVue(etat),
+        // ⚠ EN DERNIER : l'étalement écrase les entrées ci-dessus pour les seules
+        // fonctions que « Geste refusé » fait échouer. L'ordre EST la règle — mis
+        // avant, il serait recouvert par les fixtures nominales et l'état ne
+        // ferait rien, silencieusement.
+        ...refus,
       },
   })
 }
@@ -137,7 +231,13 @@ function rendu(etat: PublicEtat, setEtat: (e: PublicEtat) => void, pathname: str
           return (
             <Link
               key={s.chemin}
-              to={s.chemin}
+              // ⛔ ABSOLU, ET NON RELATIF. Un `to={s.chemin}` se résout contre l'URL COURANTE :
+              // depuis `/dev/public/kyc/banc`, il rendait `/dev/public/kyc/banc/kyc/banc`, et
+              // ainsi de suite à chaque clic. Seul le PREMIER clic, depuis `/dev/public` nu,
+              // atterrissait juste — ce qui explique que le défaut ait survécu : on ne le voit
+              // qu'en passant d'une surface à une autre, et le banc sert surtout à en ouvrir
+              // une. Constaté le 16.08.2026 en montant la page de désinscription.
+              to={`/dev/public/${s.chemin}`}
               style={{
                 padding: '6px 12px', borderRadius: 999, textDecoration: 'none',
                 background: actif ? '#424bfb' : '#1c1c1e', color: '#ffffff',
@@ -177,6 +277,7 @@ function rendu(etat: PublicEtat, setEtat: (e: PublicEtat) => void, pathname: str
           <Route path="visite" element={<VisitManagePage />} />
           <Route path="avis" element={<VisitFeedbackPage />} />
           <Route path="invitation/:token" element={<AcceptInvitePage />} />
+          <Route path="desinscription" element={<DesinscriptionPage />} />
           <Route
             path="*"
             element={

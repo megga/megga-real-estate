@@ -6,12 +6,13 @@
  * objections + intérêt d'offre ; le retour est anonymisé côté vendeur.
  */
 import { useState } from 'react'
-import type { CSSProperties } from 'react'
+import { useTranslation } from 'react-i18next'
+import type { CSSProperties, ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Star, Check, Loader2, MapPin } from 'lucide-react'
 import { usePublicVisit, useSubmitFeedback, estRefus } from '@/hooks/useVisits'
-import PublicPageHeader from '@/components/layout/PublicPageHeader'
 import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+import { MlkBackground, MlkShell, MlkWordmark, MlkFooter } from '@/components/kyc-magic-link/MlkPrimitives'
 
 /**
  * Les quatre formes que cette page répète — écrites une fois pour qu'elles ne
@@ -21,11 +22,35 @@ import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
  * place et décale la mise en page dès qu'elle change d'épaisseur au survol ou à
  * la sélection ; `inset 0 0 0 1px` se pose PAR-DESSUS. C'est ce que la face
  * publique déjà portée emploie.
+ *
+ * ⚠ SA TEINTE VIENT DE `MLK.line` DEPUIS LE 16 AOÛT — voir la page jumelle
+ * (`VisitManagePage`) : `${MLK.ghost}33` posait un suffixe d'opacité à la main.
  */
-const PAGE = { background: MLK.card, fontFamily: MLK.font, color: MLK.ink }
-const FILET = `inset 0 0 0 1px ${MLK.ghost}33`
+const FILET = `inset 0 0 0 1px ${MLK.line}`
 const CARTE = { boxShadow: FILET }
 const LABEL = { fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK.inkSoft }
+
+/**
+ * La coquille commune aux quatre vues — identique à celle de la page jumelle.
+ *
+ * ⛔ ELLE REMPLACE `PublicPageHeader`, qui était peint en jetons du CRM
+ * (`bg-theme-page`, `border-theme-border`) et portait un `dark:invert` : une
+ * branche de thème SOMBRE sur une face que deux gardes déclarent mono-thème.
+ * Elles balaient les pages et `kyc-magic-link/`, pas `components/layout/`.
+ */
+function Coquille({ children }: { children: ReactNode }) {
+  return (
+    <MlkBackground>
+      <MlkShell width={448} pad={32}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--crm-space-6xl)' }}>
+          <MlkWordmark size={18} />
+        </div>
+        {children}
+        <MlkFooter />
+      </MlkShell>
+    </MlkBackground>
+  )
+}
 
 /**
  * La pastille sélectionnable, en trois tons.
@@ -51,13 +76,22 @@ function pastille(actif: boolean, ton: 'ok' | 'err' | 'accent'): CSSProperties {
   return { ...base, fontWeight: 500, color: encre, background: aplat, boxShadow: `inset 0 0 0 1px ${filet}` }
 }
 
-const STRENGTHS = [
-  'Luminosité', 'Agencement', 'Quartier', 'État général', 'Vue', 'Calme', 'Surface', 'Rangements',
-]
+/**
+ * ⛔ LA CLÉ EST STOCKÉE, LE LIBELLÉ EST TRADUIT — et l'ordre des deux compte.
+ *
+ * Ces tableaux portaient des chaînes FRANÇAISES, et ce ne sont pas des libellés :
+ * ils partent tels quels dans `submit_visit_feedback_by_token`, qui les range
+ * dans `visits.ai_objections`. Les traduire aurait fait stocker « Helligkeit »
+ * pour un client alémanique et « Luminosité » pour un romand — la même donnée
+ * sous deux formes, illisible pour l'agent comme pour toute agrégation.
+ *
+ * ⚠ Le changement de format est SANS MIGRATION parce que la table est vide :
+ * `select count(*) from visits` rendait 0 le 17 août 2026. C'était donc le
+ * dernier moment où ce défaut se corrigeait gratuitement.
+ */
+const STRENGTHS = ['light', 'layout', 'neighbourhood', 'condition', 'view', 'quiet', 'size', 'storage'] as const
 
-const OBJECTIONS = [
-  'Prix trop élevé', 'Trop petit', 'Bruit', 'Travaux nécessaires', 'Étage', 'Pas de parking', 'Manque de lumière', 'Autre',
-]
+const OBJECTIONS = ['price', 'too_small', 'noise', 'works', 'floor', 'no_parking', 'low_light', 'other'] as const
 
 export default function VisitFeedbackPage() {
   // Visit ID from URL (used for display, token used for auth)
@@ -67,6 +101,7 @@ export default function VisitFeedbackPage() {
   const { data: visit, isLoading } = usePublicVisit(token)
   const submitFeedback = useSubmitFeedback()
 
+  const { t } = useTranslation('kyc')
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [strengths, setStrengths] = useState<string[]>([])
@@ -81,38 +116,35 @@ export default function VisitFeedbackPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
+      <Coquille>
         <div className="flex flex-col items-center justify-center h-[60vh]">
           {/* ⚠ LE ROULEAU GARDE UNE VRAIE BORDURE, contrairement au reste : c'est
               elle QUI EST le dessin — un anneau dont un quart porte l'accent.
               Une ombre interne ne peut pas rendre ça. */}
           <div
             className="h-8 w-8 rounded-full animate-spin mb-4"
-            style={{ border: `2px solid ${MLK.ghost}33`, borderTopColor: MLK.accent }}
+            style={{ border: `2px solid ${MLK.line}`, borderTopColor: MLK.accent }}
           />
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   if (!visit || !token) {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
+      <Coquille>
         <div className="flex flex-col items-center justify-center h-[60vh]">
-          <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 8 }}>Lien invalide</p>
-          <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted }}>Ce lien de feedback est expiré ou invalide.</p>
+          <p style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 'var(--crm-space-sm)' }}>{t('client.visit_feedback.invalid_title')}</p>
+          <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted }}>{t('client.visit_feedback.invalid_body')}</p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
   if (submitted) {
     return (
-      <div className="min-h-screen" style={PAGE}>
-        <PublicPageHeader />
-        <div className="max-w-md mx-auto px-4 py-16 text-center">
+      <Coquille>
+        <div className="text-center">
           {/* ⚠ DISQUE DE CONFIRMATION — une DONNÉE, pas une affordance : rien ne
               s'y actionne. Il garde donc son ton de succès au lieu de l'accent,
               même arbitrage qu'au parcours KYC. */}
@@ -123,13 +155,13 @@ export default function VisitFeedbackPage() {
             <Check className="h-6 w-6" style={{ color: MLK_STATUT.okInk }} />
           </div>
           <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, margin: 0 }}>
-            Merci pour votre retour
+            {t('client.visit_feedback.thanks_title')}
           </h2>
-          <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 8 }}>
-            Votre avis aide l'agent à mieux comprendre vos attentes.
+          <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 'var(--crm-space-sm)' }}>
+            {t('client.visit_feedback.thanks_body')}
           </p>
         </div>
-      </div>
+      </Coquille>
     )
   }
 
@@ -155,9 +187,8 @@ export default function VisitFeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen" style={PAGE}>
-      <PublicPageHeader />
-      <div className="max-w-md mx-auto px-4 py-12">
+    <Coquille>
+      <div>
         {/* Property card */}
         <div className="rounded-xl overflow-hidden mb-8" style={CARTE}>
           {property?.photos?.[0] && (
@@ -169,7 +200,7 @@ export default function VisitFeedbackPage() {
           )}
           <div className="p-4">
             <h2 style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: MLK.ink, margin: 0 }}>
-              {property?.title || 'Bien visité'}
+              {property?.title || t('client.visit_feedback.property_fallback')}
             </h2>
             {property?.address && (
               <div
@@ -183,14 +214,14 @@ export default function VisitFeedbackPage() {
           </div>
         </div>
 
-        <h1 style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 24 }}>
-          Comment s'est passée la visite ?
+        <h1 style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: MLK.ink, marginBottom: 'var(--crm-space-6xl)' }}>
+          {t('client.visit_feedback.title')}
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Star rating */}
           <div>
-            <label className="mb-3 block" style={LABEL}>Note globale</label>
+            <label className="mb-3 block" style={LABEL}>{t('client.visit_feedback.rating_label')}</label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map(n => (
                 <button
@@ -200,7 +231,7 @@ export default function VisitFeedbackPage() {
                   onMouseEnter={() => setHoverRating(n)}
                   onMouseLeave={() => setHoverRating(0)}
                   className="p-0.5 transition-transform hover:scale-110"
-                  aria-label={`${n} étoile${n > 1 ? 's' : ''}`}
+                  aria-label={t('client.visit_feedback.star_aria', { count: n })}
                 >
                   <Star
                     className="h-8 w-8 transition-colors"
@@ -215,7 +246,7 @@ export default function VisitFeedbackPage() {
 
           {/* Strengths */}
           <div>
-            <label className="mb-2 block" style={LABEL}>Points forts</label>
+            <label className="mb-2 block" style={LABEL}>{t('client.visit_feedback.strengths_label')}</label>
             <div className="flex flex-wrap gap-1.5">
               {STRENGTHS.map(s => (
                 <button
@@ -225,7 +256,7 @@ export default function VisitFeedbackPage() {
                   className="px-3 py-1.5 rounded-lg transition-colors"
                   style={pastille(strengths.includes(s), 'ok')}
                 >
-                  {s}
+                  {t(`client.visit_feedback.strengths.${s}`)}
                 </button>
               ))}
             </div>
@@ -233,7 +264,7 @@ export default function VisitFeedbackPage() {
 
           {/* Objections */}
           <div>
-            <label className="mb-2 block" style={LABEL}>Points à améliorer</label>
+            <label className="mb-2 block" style={LABEL}>{t('client.visit_feedback.objections_label')}</label>
             <div className="flex flex-wrap gap-1.5">
               {OBJECTIONS.map(o => (
                 <button
@@ -243,7 +274,7 @@ export default function VisitFeedbackPage() {
                   className="px-3 py-1.5 rounded-lg transition-colors"
                   style={pastille(objections.includes(o), 'err')}
                 >
-                  {o}
+                  {t(`client.visit_feedback.objections.${o}`)}
                 </button>
               ))}
             </div>
@@ -251,11 +282,11 @@ export default function VisitFeedbackPage() {
 
           {/* Comment */}
           <div>
-            <label className="mb-2 block" style={LABEL}>Commentaire libre</label>
+            <label className="mb-2 block" style={LABEL}>{t('client.visit_feedback.comment_label')}</label>
             <textarea
               value={comment}
               onChange={e => setComment(e.target.value)}
-              placeholder="Partagez vos impressions..."
+              placeholder={t('client.visit_feedback.comment_placeholder')}
               rows={3}
               className="w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent/20 resize-none"
               style={{
@@ -267,12 +298,12 @@ export default function VisitFeedbackPage() {
 
           {/* Offer interest */}
           <div>
-            <label className="mb-2 block" style={LABEL}>Seriez-vous intéressé par une offre ?</label>
+            <label className="mb-2 block" style={LABEL}>{t('client.visit_feedback.offer_label')}</label>
             <div className="flex gap-2">
               {[
-                { key: 'yes', label: 'Oui' },
-                { key: 'maybe', label: 'Peut-être' },
-                { key: 'no', label: 'Non' },
+                { key: 'yes', label: t('client.visit_feedback.offer_yes') },
+                { key: 'maybe', label: t('client.visit_feedback.offer_maybe') },
+                { key: 'no', label: t('client.visit_feedback.offer_no') },
               ].map(({ key, label }) => (
                 <button
                   key={key}
@@ -300,12 +331,12 @@ export default function VisitFeedbackPage() {
               style={{ background: MLK_STATUT.warnFill, boxShadow: `inset 0 0 0 1px ${MLK_STATUT.warnLine}` }}
             >
               <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>
-                Votre avis n'a pas pu être enregistré
+                {t('client.visit_feedback.error_title')}
               </p>
-              <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
+              <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 'var(--crm-space-xs)' }}>
                 {estRefus(submitFeedback.error)
-                  ? 'Un avis a peut-être déjà été déposé pour cette visite, ou celle-ci a été annulée.'
-                  : 'Vérifiez votre connexion et réessayez.'}
+                  ? t('client.visit_feedback.error_refused')
+                  : t('client.visit_feedback.error_network')}
               </p>
             </div>
           )}
@@ -323,14 +354,14 @@ export default function VisitFeedbackPage() {
             }}
           >
             {submitFeedback.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {submitFeedback.isPending ? 'Envoi...' : 'Envoyer mon avis'}
+            {submitFeedback.isPending ? t('client.visit_feedback.submitting') : t('client.visit_feedback.submit')}
           </button>
 
           <p className="text-center" style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted }}>
-            Votre retour est anonymisé et partagé avec le vendeur pour améliorer la présentation du bien.
+            {t('client.visit_feedback.anonymised')}
           </p>
         </form>
       </div>
-    </div>
+    </Coquille>
   )
 }

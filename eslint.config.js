@@ -136,6 +136,18 @@ export default defineConfig([
       'src/components/ai-copilot/**/*.{ts,tsx}',
       'src/components/kyc-report/**/*.{ts,tsx}',
       'src/pages/agent/**/*.{ts,tsx}',
+        // ⛔ AJOUTÉES LE 18 AOÛT 2026 — cette liste était BLANCHE, donc trois
+        // surfaces CLIENTES en étaient absentes sans que rien ne le dise : la
+        // réception acheteur et les deux pages de visite portaient ~66 chaînes
+        // françaises en dur, servies telles quelles à un acheteur alémanique.
+        // S'y ajoutent le 404, l'écran d'ouverture et le bandeau de bundle
+        // périmé, découverts par le même balayage.
+        // ⚠ La console admin reste DEHORS par DÉCISION (audience d'une personne,
+        // francophone) ; le motif est écrit dans scripts/lint-i18n-hardcoded.mjs.
+        'src/pages/public/**/*.{ts,tsx}',
+        'src/components/kyc-magic-link/**/*.{ts,tsx}',
+        'src/components/layout/**/*.{ts,tsx}',
+        'src/components/auth/**/*.{ts,tsx}',
     ]
     // Surfaces différées (non encore bilingues). On les laisse en WARN — flaggées
     // mais non bloquantes — jusqu'à leur migration.

@@ -19,6 +19,7 @@
 // parle. Sa mention de pied ne peut donc pas affirmer l'absence d'un tel lien.
 
 import { INK, MUTED, BODY_INK, CARD_BORDER, FONT, escapeHtml, shell } from './email-shell.ts'
+import type { AppLocale } from './recipient-language.ts'
 
 export interface ContactReminderInput {
   /** Objet résolu depuis le gabarit de rappel. Sert aussi de titre : même propos. */
@@ -27,9 +28,31 @@ export interface ContactReminderInput {
   body: string
   agentName: string
   unsubscribeHtml?: string
+  /** Langue du CONTACT (`contacts.language`), jamais celle de l'agent. Défaut : français. */
+  locale?: AppLocale
+}
+
+/**
+ * Mention de pied, par langue.
+ *
+ * ⛔ ELLE NE PEUT PAS ÊTRE UNE CONSTANTE. Elle l'était, en français, et le corps du message
+ * pouvait déjà partir en allemand : le pied restait français dans le même document. C'est le
+ * défaut déjà fermé sur `buildOptinInviteEmail`, que le test d'alors n'avait pas vu parce
+ * qu'il ne regardait que l'attribut `lang`, lequel était juste.
+ *
+ * ⚠ Elle n'affirme PAS « ceci n'est pas une communication marketing », contrairement aux
+ * gabarits transactionnels : ce rappel porte un lien de désinscription, et les deux
+ * énoncés se contrediraient.
+ */
+const LEGAL: Record<AppLocale, string> = {
+  fr: 'Cet e-mail vous a été envoyé automatiquement par votre agence via MEGGA.',
+  de: 'Diese E-Mail wurde Ihnen automatisch von Ihrer Agentur über MEGGA gesendet.',
+  en: 'This email was sent to you automatically by your agency via MEGGA.',
+  it: 'Questa e-mail Le è stata inviata automaticamente dalla Sua agenzia tramite MEGGA.',
 }
 
 export function buildContactReminderEmail(i: ContactReminderInput): { subject: string; html: string } {
+  const l = i.locale ?? 'fr'
   // Paragraphes conservés, mais ÉCHAPPÉS d'abord : on ne rend structurants que les sauts
   // de ligne, jamais le balisage que le texte pourrait contenir.
   const corps = i.body
@@ -40,9 +63,12 @@ export function buildContactReminderEmail(i: ContactReminderInput): { subject: s
   return {
     subject: i.subject,
     html: shell({
+      // Le document se DÉCLARE dans sa langue : un e-mail allemand annoncé `lang="fr"`
+      // casse la césure, la synthèse vocale et WCAG 3.1.1.
+      lang: l,
       title: i.subject,
       preheader: i.body.replace(/\s+/g, ' ').trim().slice(0, 120),
-      legalNote: 'Cet e-mail vous a été envoyé automatiquement par votre agence via MEGGA.',
+      legalNote: LEGAL[l],
       unsubscribeHtml: i.unsubscribeHtml,
       headerCta: null,
       bodyHtml: `

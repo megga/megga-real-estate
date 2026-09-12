@@ -79,6 +79,8 @@ export interface AtelierBuyer {
   reasons: AtelierReason[]
   email: string | null
   phone: string | null
+  /** `contacts.language` — langue de correspondance, jointe aux envois. NULL = jamais choisie. */
+  language: string | null
   snoozedUntil: string | null
   criteria: SearchCriteria | null
   /** source du match — visite proposable uniquement sur bien interne */

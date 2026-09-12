@@ -358,11 +358,15 @@ Tokens :      bg-theme-page, bg-theme-card, bg-theme-section, bg-theme-sidebar, 
 
 **JAMAIS utiliser** : `bg-white`, `text-gray-900`, `border-gray-200` (cassent le dark mode), `shadow-card`, `shadow-sm`
 
-> ⚠ **ET LA CLAUSE QUI GARDE `bg-white` NE LIT QUE LES CLASSES.** Mesuré le 16 août
-> 2026 : **6** occurrences de `bg-white` en `className` — que le cliquet compte et
+> ⚠ **ET LA CLAUSE QUI GARDE `bg-white` NE LIT QUE LES CLASSES.** Mesuré le 12 septembre
+> 2026 : **2** occurrences de `bg-white` en `className` — que le cliquet compte et
 > plafonne — contre **17 fonds blancs écrits en STYLE EN LIGNE**
 > (`background: '#fff'`), qui lui sont invisibles. Le même défaut, dans l'autre
-> langage. Une partie est légitime (encre blanche sur aplat, papier A4 du rapport
+> langage. ⚠ Le compte était de 6 au 16 août ; le retrait de `ResetPasswordPage`
+> (doublon de la vitrine, redirigé au bord) en a emporté trois. Et des deux restants,
+> **l'un est un commentaire** qui cite justement la règle — la garde compte le MOT, pas
+> l'emploi : il ne reste qu'**une** classe `bg-white` vivante. La conclusion s'en trouve
+> renforcée, pas renversée : les vrais fonds blancs sont en style en ligne. Une partie est légitime (encre blanche sur aplat, papier A4 du rapport
 > KYC) ; la garde de valeur est [couleur-barreaux.spec.ts](tests/unit/couleur-barreaux.spec.ts).
 
 **Typo :** ⚠ **`--crm-font` vaut `"Inter Tight"`** (globals.css `:root`), pas DM Sans —

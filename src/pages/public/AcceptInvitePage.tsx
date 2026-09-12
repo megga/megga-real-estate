@@ -10,21 +10,17 @@ import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { MLK } from '@/components/kyc-magic-link/mlkTokens'
-
-/**
- * ⛔ LES DEUX ENCRES SÉMANTIQUES, ET POURQUOI ELLES NE SONT PAS DANS `MLK`.
- *
- * `MLK` descend de l'échelle et ne porte que des NEUTRES : une famille qui
- * ENCODE (erreur, avertissement) reste hors direction — mais hors direction ne
- * veut pas dire hors lisibilité. Sur une carte blanche, `#EF4444` rend 3,76:1
- * en encre et `#F59E0B` 2,15 : sous l'AA tous les deux. La règle du dépôt est
- * « la teinte VIVE sur l'aplat, la FONCÉE sur le texte », et ces deux valeurs
- * sont celles que trois surfaces portent déjà au même rôle
- * (`DossierTokens.errDarker`, `EtatVide`, `PDF.errFg` / `warnFg`).
- */
-const ERR_INK = '#B91C1C'
-const WARN_INK = '#B45309'
+// ⛔ LES DEUX ENCRES SÉMANTIQUES VIENNENT DE `MLK_STATUT`, ELLES NE SE RÉÉCRIVENT PAS ICI.
+// Cette page portait `ERR_INK`/`WARN_INK` en constantes locales, avec un commentaire dont
+// le RAISONNEMENT était juste — une famille qui ENCODE reste hors direction, et hors
+// direction ne veut pas dire hors lisibilité — mais dont la CONCLUSION dupliquait une
+// famille qui existe déjà. Mesuré le 16 août 2026 : les deux valeurs étaient au caractère
+// près celles de `MLK_STATUT.errInk` et `.warnInk`. Une encre d'alerte qui diffère d'un
+// écran à l'autre est exactement l'incohérence que ce chantier retire.
+import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+// ⛔ LES PRIMITIVES, PAS SEULEMENT LES JETONS. Cette page reprenait la marque à la main —
+// le mot « MEGGA » en texte — et n'avait ni coquille ni pied.
+import { MlkBackground, MlkShell, MlkWordmark, MlkFooter } from '@/components/kyc-magic-link/MlkPrimitives'
 
 interface InvitationDetails {
   email: string
@@ -93,29 +89,24 @@ export default function AcceptInvitePage() {
   const redirectUrl = `/accept-invite/${token}`
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{ background: MLK.bgGradient, fontFamily: MLK.font, color: MLK.ink }}
-    >
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <span style={{ fontSize: 'var(--crm-text-5xl)', fontWeight: 600, color: MLK.ink, letterSpacing: -0.6 }}>
-            MEGGA
-          </span>
-          <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted, marginTop: 4 }}>Immobilier Suisse</p>
+    // ⚠ `MlkShell` REMPLACE LA CARTE FAITE MAIN, et le commentaire qu'elle portait n'est
+    // pas perdu : « la carte sépare par l'OMBRE, pas par une bordure » est désormais une
+    // propriété de la coquille elle-même (`MLK.card` + `shadowLg`, aucune bordure).
+    // 448 px = l'ancien `max-w-md`, 32 px = l'ancien `p-8` : la géométrie ne bouge pas.
+    <MlkBackground>
+      <MlkShell width={448} pad={32}>
+        {/* En-tête : la VRAIE marque, pas le mot « MEGGA » composé à la main. */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 'var(--crm-space-6xl)' }}>
+          <MlkWordmark size={18} />
+          <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted, marginTop: 'var(--crm-space-2xs)' }}>{t('client.invite.tagline')}</p>
         </div>
 
-        {/* ⚠ LA CARTE SÉPARE PAR L'OMBRE, PAS PAR UNE BORDURE — c'est ce que les
-            deux pages publiques déjà portées font (`MLK.card` + `boxShadow`,
-            `border: 0`). En clair, l'ombre est ce qui détache ; la bordure était
-            l'idiome d'avant. */}
-        <div className="rounded-xl p-8" style={{ background: MLK.card, boxShadow: MLK.shadow }}>
+        <div>
           {/* Loading */}
           {loading && (
             <div className="flex flex-col items-center py-8">
               <Loader2 className="w-6 h-6 animate-spin" style={{ color: MLK.muted }} />
-              <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 12 }}>
+              <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 'var(--crm-space-xl)' }}>
                 {t('team.acceptInvite.loading')}
               </p>
             </div>
@@ -124,11 +115,10 @@ export default function AcceptInvitePage() {
           {/* Error */}
           {!loading && error && (
             <div className="text-center py-4">
-              {/* ⛔ L'ENCRE D'ERREUR PREND LA VARIANTE FONCÉE. `#EF4444` rend 3,76:1
-                  sur une carte blanche — sous l'AA. La règle du dépôt est « la
-                  teinte vive sur l'aplat, la foncée sur le texte », et `#B91C1C`
-                  est la valeur que trois surfaces portent déjà à ce rôle. */}
-              <p style={{ fontSize: 'var(--crm-text-lg)', color: ERR_INK, marginBottom: 16 }}>{error}</p>
+              {/* ⛔ L'ENCRE D'ERREUR PREND LA VARIANTE FONCÉE : la vive rend 3,76:1 sur une
+                  carte blanche, sous l'AA. « La teinte vive sur l'aplat, la foncée sur le
+                  texte » — la valeur vit dans `MLK_STATUT`, pas ici. */}
+              <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK_STATUT.errInk, marginBottom: 'var(--crm-space-2xl)' }}>{error}</p>
               <Link to="/" style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted }}>
                 {t('team.acceptInvite.backHome')}
               </Link>
@@ -142,7 +132,7 @@ export default function AcceptInvitePage() {
                 <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, margin: 0 }}>
                   {t('team.acceptInvite.title')}
                 </h2>
-                <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 8 }}>
+                <p style={{ fontSize: 'var(--crm-text-lg)', color: MLK.muted, marginTop: 'var(--crm-space-sm)' }}>
                   <span style={{ fontWeight: 600, color: MLK.inkSoft }}>{invitation.inviterName}</span>
                   {' '}{t('team.acceptInvite.invitesYou')}{' '}
                   <span style={{ fontWeight: 600, color: MLK.inkSoft }}>{invitation.agencyName}</span>
@@ -150,7 +140,7 @@ export default function AcceptInvitePage() {
               </div>
 
               <div className="rounded-lg p-4 text-center" style={{ background: MLK.cardSubtle }}>
-                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted, marginBottom: 4 }}>
+                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK.muted, marginBottom: 'var(--crm-space-xs)' }}>
                   {t('team.acceptInvite.yourRole')}
                 </p>
                 <p style={{ fontSize: 'var(--crm-text-2xl)', fontWeight: 600, color: MLK.ink, margin: 0 }}>
@@ -178,8 +168,8 @@ export default function AcceptInvitePage() {
               {/* Authenticated but wrong email */}
               {user && !emailMatch && (
                 <div className="text-center space-y-3">
-                  {/* Même règle que l'erreur : `#F59E0B` rend 2,15:1 en encre. */}
-                  <p style={{ fontSize: 'var(--crm-text-sm)', color: WARN_INK }}>
+                  {/* Même règle que l'erreur : l'ambre vif rend 2,15:1 en encre. */}
+                  <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk }}>
                     {t('team.acceptInvite.wrongAccount', { email: invitation.email })}
                   </p>
                 </div>
@@ -192,8 +182,12 @@ export default function AcceptInvitePage() {
                     to={`/login?redirect=${encodeURIComponent(redirectUrl)}&email=${encodeURIComponent(invitation.email)}`}
                     className="block w-full h-11 rounded-lg transition-colors text-center leading-[44px]"
                     style={{
+                      // ⚠ `MLK.line` REMPLACE `${MLK.ghost}33` : un jeton neutre suivi
+                      // d'un suffixe d'opacité écrit à la main est la porte par laquelle
+                      // une teinte entre sans qu'on la relise. Le filet est un RÔLE, et il
+                      // a un nom depuis la fusion du 16 août.
                       fontSize: 'var(--crm-text-lg)', fontWeight: 500,
-                      color: MLK.inkSoft, boxShadow: `inset 0 0 0 1px ${MLK.ghost}33`,
+                      color: MLK.inkSoft, boxShadow: `inset 0 0 0 1px ${MLK.line}`,
                     }}
                   >
                     {t('team.acceptInvite.login')}
@@ -210,7 +204,8 @@ export default function AcceptInvitePage() {
             </div>
           )}
         </div>
-      </div>
-    </div>
+        <MlkFooter />
+      </MlkShell>
+    </MlkBackground>
   )
 }

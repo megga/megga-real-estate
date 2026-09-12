@@ -4,6 +4,7 @@
  * redeploy. Mécanisme et modes d'échec détaillés dans le bloc ci-dessous.
  */
 import { useEffect, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { createPortal } from 'react-dom'
 import { RefreshCw, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -36,6 +37,7 @@ import { isStaleChunkError } from '@/lib/staleChunkRecovery'
 const SESSION_FLAG = 'megga-stale-bundle-shown'
 
 export default function StaleBundleDetector() {
+  const { t } = useTranslation('common')
   const [visible, setVisible] = useState(false)
   const [countdown, setCountdown] = useState(8)
 
@@ -102,12 +104,13 @@ export default function StaleBundleDetector() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-theme-primary">
-            Une nouvelle version est disponible
+            {t('app.stale_title')}
           </p>
           <p className="text-xs text-theme-tertiary mt-0.5">
-            Rechargement automatique dans{' '}
+            {t('app.stale_body_prefix')}
             <span className="tabular-nums font-medium text-theme-secondary">
-              {countdown}s
+              {/* `s` = secondes, même symbole dans les quatre langues. */}
+              {countdown}{'s'}
             </span>
             .
           </p>
@@ -121,7 +124,7 @@ export default function StaleBundleDetector() {
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20 dark:focus-visible:ring-white/30',
               )}
             >
-              Recharger maintenant
+              {t('app.stale_reload')}
             </button>
             <button
               onClick={() => setVisible(false)}
@@ -131,13 +134,13 @@ export default function StaleBundleDetector() {
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/10',
               )}
             >
-              Plus tard
+              {t('app.stale_later')}
             </button>
           </div>
         </div>
         <button
           onClick={() => setVisible(false)}
-          aria-label="Fermer"
+          aria-label={t('app.close')}
           className={cn(
             'shrink-0 h-7 w-7 flex items-center justify-center rounded-full text-theme-muted',
             'hover:text-theme-primary hover:bg-theme-hover transition-colors',

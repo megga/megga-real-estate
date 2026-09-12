@@ -48,6 +48,7 @@ const KycPublicPage = lazy(() => import('@/pages/public/KycPublicPage'))
 const AppointmentManagePage = lazy(() => import('@/pages/public/AppointmentManagePage'))
 // Réception acheteur — page publique par token (boucle de match, refonte juil. 2026)
 const BuyerReceptionPage = lazy(() => import('@/pages/public/BuyerReceptionPage'))
+const DesinscriptionPage = lazy(() => import('@/pages/public/DesinscriptionPage'))
 // Sprint 4.7.D — Rendu PDF tokenisé pour Cloudflare Browser Rendering (rapport KYC WhatsApp)
 const KycReportRenderPage = lazy(() => import('@/pages/public/KycReportRenderPage'))
 
@@ -96,9 +97,10 @@ const IntercomMessenger = lazy(() => import('@/components/IntercomMessenger'))
 // Services, Publish, Privacy, Agents, Agencies, Blog) + direction Property X :
 // EXTRAITS du repo (2026-06-08) et archivés hors GitHub. Ces URLs redirigent
 // désormais vers la nouvelle vitrine (MarketplaceDisabledRedirect → getmegga.com).
-const ResetPasswordPage = lazy(() => import('@/pages/public/ResetPasswordPage'))
+// ⚠ `ResetPasswordPage` et `PrivacyPage` ont été RETIRÉES le 17 août 2026 : deux
+// doublons sans lien entrant, dont la vitrine sert les versions canoniques. Leurs
+// URLs sont redirigées AU BORD (`public/_redirects`), qui porte le raisonnement.
 const NotFoundPage = lazy(() => import('@/pages/public/NotFoundPage'))
-const PrivacyPage = lazy(() => import('@/pages/public/PrivacyPage'))
 const VisitManagePage = lazy(() => import('@/pages/public/VisitManagePage'))
 const VisitFeedbackPage = lazy(() => import('@/pages/public/VisitFeedbackPage'))
 const TodayPage = lazy(() => import('@/pages/agent/TodayPage'))
@@ -597,6 +599,10 @@ function AppRoutes() {
               <Route path="/kyc/:token" element={<KycPublicPage />} />
               {/* Réception acheteur — sélection de biens transmise par lien privé (boucle de match) */}
               <Route path="/reception/:token" element={<BuyerReceptionPage />} />
+              {/* Préférences d'e-mail — le lien « Se désinscrire » du pied de nos e-mails.
+                  ⚠ Le jeton est en QUERY (?t=), pas dans le chemin : il est signé et long,
+                  et certains clients de messagerie tronquent les chemins profonds. */}
+              <Route path="/desinscription" element={<DesinscriptionPage />} />
               {/* Gestion par le client de son RDV de vérification KYC (jeton k='appt').
                   Le jeton porte déjà l'id du rendez-vous : pas d'id dans l'URL. */}
               <Route path="/rendez-vous/:token" element={<AppointmentManagePage />} />
@@ -619,8 +625,8 @@ function AppRoutes() {
               <Route path="/estimate" element={<MarketplaceDisabledRedirect />} />
               <Route path="/services" element={<MarketplaceDisabledRedirect />} />
               <Route path="/publish" element={<MarketplaceDisabledRedirect />} />
-              <Route path="/reset-password" element={<ResetPasswordPage />} />
-              <Route path="/privacy" element={<PrivacyPage />} />
+              {/* /reset-password et /privacy : plus de <Route>. Redirigées au bord,
+                  avant le repli SPA — cf. `public/_redirects`. */}
               <Route path="/visit/:id/edit" element={<VisitManagePage />} />
               <Route path="/visit/:id/feedback" element={<VisitFeedbackPage />} />
               {/* Lien personnel de l'appel d'accueil : le jeton est la capability,

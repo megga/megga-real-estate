@@ -14,6 +14,7 @@
 // mention de pied ne peut donc pas être celle des transactionnels.
 
 import { MUTED, BODY_INK, CARD_BORDER, FONT, escapeHtml, shell } from './email-shell.ts'
+import type { AppLocale } from './recipient-language.ts'
 
 export interface RelanceEmailInput {
   /** Objet composé par l'agent. Sert aussi de titre : c'est le même propos. */
@@ -24,6 +25,31 @@ export interface RelanceEmailInput {
   /** Signature multiligne de l'agent, si elle est configurée. */
   agentSignature?: string | null
   unsubscribeHtml?: string
+  /**
+   * Langue du CONTACT (`contacts.language`), jamais celle de l'agent.
+   *
+   * ⚠ ELLE NE GOUVERNE QUE CE QUE MEGGA ÉCRIT — la mention de pied, le pied de
+   * désinscription et l'attribut `lang` du document. Le CORPS reste dans la langue où
+   * l'agent (ou le copilote) l'a rédigé : le traduire serait réécrire ses mots.
+   *
+   * ⛔ Un corps français sous un `lang="de"` reste donc possible, et c'est assumé : mieux
+   * vaut une mention légale comprise qu'un document qui ment sur les deux.
+   */
+  locale?: AppLocale
+}
+
+/**
+ * Mention de pied, par langue. Elle n'affirme PAS l'absence de désinscription : cet envoi
+ * est commercial et porte le lien, contrairement aux transactionnels.
+ *
+ * Première phrase identique à celle de `property-email`, l'autre envoi commercial — les
+ * deux disent la même chose au même destinataire, les désaccorder n'aurait aucun sens.
+ */
+const LEGAL: Record<AppLocale, string> = {
+  fr: 'Vous recevez cet e-mail parce que vous êtes en relation avec cette agence via MEGGA.',
+  de: 'Sie erhalten diese E-Mail, weil Sie über MEGGA mit dieser Agentur in Kontakt stehen.',
+  en: 'You are receiving this email because you are in contact with this agency via MEGGA.',
+  it: 'Riceve questa e-mail perché è in contatto con questa agenzia tramite MEGGA.',
 }
 
 export function buildRelanceEmail(i: RelanceEmailInput): { subject: string; html: string } {
@@ -43,7 +69,8 @@ export function buildRelanceEmail(i: RelanceEmailInput): { subject: string; html
       // donc le début du corps, ce que le client de messagerie ferait de toute façon,
       // mais nettoyé de ses sauts de ligne.
       preheader: i.body.replace(/\s+/g, ' ').trim().slice(0, 120),
-      legalNote: 'Vous recevez cet e-mail parce que vous êtes en relation avec cette agence via MEGGA.',
+      lang: i.locale ?? 'fr',
+      legalNote: LEGAL[i.locale ?? 'fr'],
       unsubscribeHtml: i.unsubscribeHtml,
       headerCta: null,
       bodyHtml: `

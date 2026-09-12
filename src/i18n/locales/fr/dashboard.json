@@ -403,6 +403,18 @@
         "postponed_other": "reportés",
         "explainer": "Les leads reportés reviendront demain ; les écartés sont sortis de la boucle.",
         "backToDashboard": "Retour au dashboard"
+      },
+      "review": {
+        "title": "Relecture · le message part en {{langue}}",
+        "notSent": "Cette version ne part pas. Elle vous permet de relire avant d’envoyer.",
+        "loading": "Traduction en cours…",
+        "unavailable": "La relecture n’a pas pu être produite. Le brouillon reste envoyable tel quel.",
+        "lang": {
+          "fr": "français",
+          "de": "allemand",
+          "en": "anglais",
+          "it": "italien"
+        }
       }
     },
     "h": {

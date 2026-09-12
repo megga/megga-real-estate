@@ -45,6 +45,7 @@ interface RawContact {
   phone: string | null
   type: string
   search_criteria: SearchCriteria | null
+  language: string | null
 }
 
 interface RawPropertyRow {
@@ -277,8 +278,10 @@ function avatarColor(id: string): string {
 }
 
 // ─── Hook données ────────────────────────────────────────────────────────
+// `language` : l'envoi de bien part dans la langue du CONTACT, et l'edge function ne reçoit
+// qu'une adresse (sans `contact_id`) — c'est donc à l'appelant, qui a la fiche, de la joindre.
 const MATCH_SELECT =
-  '*, contact:contacts(id, first_name, last_name, email, phone, type, search_criteria), property:properties(*), market_listing:market_listings(*)'
+  '*, contact:contacts(id, first_name, last_name, email, phone, type, search_criteria, language), property:properties(*), market_listing:market_listings(*)'
 
 export interface UseAtelierMatchingReturn {
   isLoading: boolean
@@ -370,6 +373,7 @@ export function useAtelierMatching(): UseAtelierMatchingReturn {
       reasons,
       email: c.email,
       phone: c.phone,
+      language: c.language ?? null,
       snoozedUntil: m.snoozed_until ?? null,
       criteria: crit,
       source: m.source,
@@ -564,6 +568,9 @@ export async function execSendDossier(
       body: {
         to: buyer.email,
         contactFirstName: buyer.first,
+        // La langue voyage dans la REQUÊTE : l'edge function ne reçoit qu'une adresse et ne
+        // peut pas remonter à la fiche. NULL = jamais choisie, elle retombera sur le français.
+        locale: buyer.language ?? undefined,
         agentName: ctx.agentName,
         agentPhone: ctx.agentPhone ?? '',
         property: {
@@ -571,13 +578,8 @@ export async function execSendDossier(
           price: listing.price,
           address: listing.addr,
           city: '',
-          rooms: listing.rooms ?? 0,
-          surface_m2: listing.area ?? 0,
-          type: listing.type,
           photo_url: listing.gallery[0]?.url ?? null,
           source_url: listing.sourceUrl,
-          source_agency: listing.agency.name,
-          source_portal: null,
         },
       },
     })
@@ -585,6 +587,56 @@ export async function execSendDossier(
   }
 
   return { dealId, emailSent }
+}
+
+/**
+ * La relance de l'Atelier, dans les quatre langues.
+ *
+ * ⚠ C'EST LE SEUL POINT DE CE CHEMIN OÙ MEGGA ÉCRIT LE CORPS. Ailleurs, la relance porte
+ * les mots de l'agent (saisis) ou du copilote ; ici le texte est un littéral du code, jamais
+ * vu ni édité par l'agent — donc c'est notre copie, et elle se traduit comme le reste.
+ *
+ * ⛔ NE PAS PASSER PAR `t()` / react-i18next : celui-ci rend la langue de l'INTERFACE, donc
+ * celle de l'agent. Ce texte part au CLIENT et suit `contacts.language`. Les confondre
+ * écrirait au client dans la langue de son courtier.
+ *
+ * ⚠ Table locale et non partagée avec `supabase/functions/_shared` : deux runtimes, et
+ * `src/` n'importe rien du dossier Deno (les seules mentions y sont des commentaires).
+ *
+ * ⛔ L'objet portait un TIRET CADRATIN (« Toujours disponible — … »), interdit dans du texte
+ * envoyé. Rien ne l'attrapait : `lint:prose` ne lit que `src/i18n/locales/`. Remplacé par le
+ * point médian, le séparateur de la maison.
+ */
+/**
+ * Ramène `contacts.language` aux quatre langues du produit.
+ *
+ * ⚠ Une TABLE, jamais un ternaire : `lang === 'en' ? 'en' : 'fr'` avalerait `de` et `it` en
+ * silence, ce qui est exactement le défaut que ce chantier ferme ailleurs.
+ */
+function langueClient(lang: string | null | undefined): 'fr' | 'de' | 'en' | 'it' {
+  return lang === 'de' || lang === 'en' || lang === 'it' ? lang : 'fr'
+}
+
+const RELANCE_ATELIER: Record<'fr' | 'de' | 'en' | 'it', {
+  objet: (bien: string) => string
+  corps: (prenom: string, bien: string, adresse: string) => string
+}> = {
+  fr: {
+    objet: (b) => `Toujours disponible · ${b}`,
+    corps: (p, b, a) => `Bonjour ${p},\n\nJe me permets de revenir vers vous au sujet du bien « ${b} » (${a}) que je vous ai transmis récemment.\n\nIl est toujours disponible et correspond bien à votre recherche. Souhaitez-vous le visiter ou en discuter ?\n\nBien à vous,`,
+  },
+  de: {
+    objet: (b) => `Weiterhin verfügbar · ${b}`,
+    corps: (p, b, a) => `Guten Tag ${p},\n\nIch komme noch einmal auf die Immobilie «${b}» (${a}) zurück, die ich Ihnen kürzlich übermittelt habe.\n\nSie ist weiterhin verfügbar und passt gut zu Ihrer Suche. Möchten Sie sie besichtigen oder darüber sprechen?\n\nFreundliche Grüsse,`,
+  },
+  en: {
+    objet: (b) => `Still available · ${b}`,
+    corps: (p, b, a) => `Hello ${p},\n\nI am following up about the property "${b}" (${a}) that I sent you recently.\n\nIt is still available and matches your search well. Would you like to view it or discuss it?\n\nKind regards,`,
+  },
+  it: {
+    objet: (b) => `Sempre disponibile · ${b}`,
+    corps: (p, b, a) => `Buongiorno ${p},\n\nMi permetto di ricontattarLa in merito all'immobile «${b}» (${a}) che Le ho trasmesso di recente.\n\nÈ tuttora disponibile e corrisponde bene alla Sua ricerca. Desidera visitarlo o parlarne?\n\nCordiali saluti,`,
+  },
 }
 
 /** « Relancer · autre canal » (R) — pas de nouveau deal, nextAction repoussée */
@@ -640,9 +692,12 @@ export async function execRelance(
   if (buyer.email) {
     const { error: eErr } = await supabase.functions.invoke('send-relance-email', {
       body: {
+        // La langue du CLIENT, déjà en main (`buyer.language`) et déjà utilisée par le geste
+        // voisin `execSend`. Elle gouverne ici le corps ET le chrome, parce que ce corps est
+        // écrit par MEGGA — c'est le seul cas du chemin où les deux coïncident.
+        subject: RELANCE_ATELIER[langueClient(buyer.language)].objet(listing.title),
+        body: RELANCE_ATELIER[langueClient(buyer.language)].corps(buyer.first, listing.title, listing.addr),
         to: buyer.email,
-        subject: `Toujours disponible — ${listing.title}`,
-        body: `Bonjour ${buyer.first},\n\nJe me permets de revenir vers vous au sujet du bien « ${listing.title} » (${listing.addr}) que je vous ai transmis récemment.\n\nIl est toujours disponible et correspond bien à votre recherche. Souhaitez-vous le visiter ou en discuter ?\n\nBien à vous,`,
         agentName: ctx.agentName,
         leadId: buyer.id,
         agencyId: ctx.agencyId,
