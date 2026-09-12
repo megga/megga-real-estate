@@ -3,30 +3,19 @@
 // s'il faut y afficher l'invitation à connecter un agenda externe. Porte l'état
 // de thème partagé.
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { CalendarApp } from '@/components/crm/calendar/CalendarApp'
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar'
 import { useOutlookCalendar } from '@/hooks/useOutlookCalendar'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 // Clé de l'ancien onboarding plein écran (retiré : il bloquait l'accès au
 // calendrier tant qu'aucun agenda n'était connecté). Conservée telle quelle
 // pour que les agents qui l'avaient déjà passé ne revoient pas l'invitation.
 const INVITE_DISMISSED_KEY = 'megga.calendar.onboarded'
 
-function useDarkPref(): [boolean, (v: boolean) => void] {
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-  }, [dark])
-  return [dark, setDark]
-}
-
 export default function CalendarPage() {
-  const [dark, setDark] = useDarkPref()
+  const [dark, setDark] = useCrmDarkPref()
   const google = useGoogleCalendar()
   const outlook = useOutlookCalendar()
 

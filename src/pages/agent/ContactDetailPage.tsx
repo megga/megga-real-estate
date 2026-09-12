@@ -36,7 +36,7 @@ import ContactDetailPager, {
 import { useContactNextAction } from '@/hooks/useContactNextAction'
 import { useContactConsent, useSetDoNotContact, useSendOptinInvite } from '@/hooks/useContactConsent'
 import { nbaToI18n } from '@/lib/contactNba'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function ContactDetailPage() {
   const { id = '' } = useParams()
@@ -44,10 +44,7 @@ export default function ContactDetailPage() {
   const { user } = useAuth()
   const { t: tr } = useTranslation('contacts')
 
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
+  const [dark, setDark] = useCrmDarkPref()
   const sp = crmPalette(dark)
 
   const { data: fetched, isLoading } = useContact(id)

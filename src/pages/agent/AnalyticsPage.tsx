@@ -7,21 +7,18 @@
 // chrome Sugar (CrmSidebar) comme les autres pages V3/V4 et embarque
 // AxDashboardBody via le provider de thème analytics (AXCtx).
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CRM_KEYFRAMES, type CrmScreenId } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import AxDashboardBody from '@/components/crm/analytics/AxDashboard'
 import { AXCtx, AX, AX_DARK } from '@/components/crm/analytics/tokens'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function AnalyticsPage() {
   const navigate = useNavigate()
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
+  const [dark, setDark] = useCrmDarkPref()
   const sp = useMemo(() => crmPalette(dark), [dark])
   const axTheme = dark ? AX_DARK : AX
 

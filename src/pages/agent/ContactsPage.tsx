@@ -22,7 +22,7 @@ import ContactsFirstRun from '@/components/crm/contacts-pager/ContactsFirstRun'
 import NewContactModal, {
   type NewContactData,
 } from '@/components/crm/contacts-pager/NewContactModal'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function ContactsPage() {
   const navigate = useNavigate()
@@ -42,13 +42,7 @@ export default function ContactsPage() {
   }, [])
 
   // ── Thème dark/light, calé sur le toggle de la barre latérale (partagé Today/Pipeline) ──
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
 
   const sp = crmPalette(dark)
 

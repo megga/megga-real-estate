@@ -24,7 +24,7 @@ import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import MatchingAtelierPage from '@/pages/agent/MatchingAtelierPage'
 import MatchingRechercheHybride from '@/components/matching-recherche/MatchingRechercheHybride'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
 
 const MATCHING_PAGES = [
@@ -156,15 +156,7 @@ export interface MatchingPagerBanc {
 
 export default function MatchingPage({ banc }: { banc?: MatchingPagerBanc } = {}) {
   // ─── Thème: dark/light, calé sur la barre latérale (comme Today) ────────
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-    }
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
 
   const sp = crmPalette(dark)
   const lightMode = !dark

@@ -66,7 +66,7 @@ import {
 import { NewDealModal, type NewDealBanc, type NewDealPrefill } from '@/components/crm/pipeline/NewDealModal'
 import { CrmInlineNewDeal } from '@/components/crm/pipeline/CrmInlineNewDeal'
 import type { CrmContact, CrmBien } from '@/components/crm/mockData'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 /**
  * Poignées du board, telles que l'agent les actionne. Le banc les reçoit pour
@@ -158,15 +158,7 @@ export default function PipelinePage({ banc }: { banc?: PipelineBanc } = {}) {
   }, [])
 
   // ── Thème dark/light, persisté (partagé entre pages Sugar) ───────────
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-    }
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
 
   const sp = crmPalette(dark)
 

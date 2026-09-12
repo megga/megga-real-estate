@@ -8,13 +8,13 @@
 // naviguent vers le pager (avec un state `openWizard` pour ouvrir le wizard).
 
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import { markKycOnboarded } from '@/lib/kycOnboarding'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 
 function ArrowGlyph({ color = '#FFFFFF' }: { color?: string }) {
@@ -28,10 +28,7 @@ function ArrowGlyph({ color = '#FFFFFF' }: { color?: string }) {
 
 export default function KycOnboardingPage() {
   const navigate = useNavigate()
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
+  const [dark, setDark] = useCrmDarkPref()
   const sp = useMemo(() => crmPalette(dark), [dark])
 
   const dismiss = () => markKycOnboarded()

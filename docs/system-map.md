@@ -273,6 +273,23 @@ frame, le serveur restant la source de vérité. ⚠ **Rien ne garde ce choix** 
 lit ; un passage en `localStorage` partirait au vert. Cerveau : `megga/onglets-crm`,
 `megga/onglets-persistance`, `megga/onglets-pieges`.
 
+**Poussée du dock MEGGA AI (12.09.2026).** Quand le dock s'ouvre, c'est le **plan de travail**
+(`CrmWorkspace` : bande d'onglets, barre latérale, contenu) qui se comprime de `COPILOT_WIDTH`, plus la
+coquille : `AgentLayout` ne fait que **publier** `--crm-dock-push`. La page garde toute la largeur et peint
+donc elle-même ce qu'on voit derrière le dock. ⛔ Avant, la coquille se comprimait et peignait sa gouttière
+au `pageBg` de la palette : « Aujourd'hui » en clair (`#EBEDF1` contre `#F9F9F9`), l'Audit (un dégradé) et
+toute page basculée de thème sans l'écrire montraient une **plaque** du haut en bas derrière le dock. Les
+écrans **sans** plan de travail (console, squelette de chargement, états « chargement » de la fiche bien,
+garde LAB) gardent un repli **par écran** ([`EcranPousse`](../src/components/layout/EcranPousse.tsx)),
+qu'un plan de travail lève en s'inscrivant (`usePorteSaPoussee()`) — par un **effet de mise en page**, pas
+un `:has()`, pour qu'une page cachée par Suspense rende la poussée à son squelette ; la fiche visite,
+l'identité et l'appel d'accueil la prennent à leur racine. ⚠ Qui prend la poussée (`DOCK_PUSH_STYLE`) doit
+s'inscrire, sinon 808 px. Le **thème** a désormais une seule source : `useCrmDarkPref` / `writeCrmDark`,
+qui écrit la clé ET annonce `megga:crm-dark` dans l'onglet — plus de `useState` local (huit écrans ne
+l'écrivaient pas), plus de relecture à 400 ms dans le dock et la coquille. Gardes :
+[`poussee-dock.spec.ts`](../tests/unit/poussee-dock.spec.ts), [`crm-dark-bascule.spec.ts`](../tests/unit/crm-dark-bascule.spec.ts).
+Cerveau : `megga/dock-poussee`.
+
 | Audience | Préfixe | Pages clés |
 |---|---|---|
 | **Marketplace SPA** (app.getmegga.com) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine getmegga.com) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers getmegga.com. `SearchPage`/`PropertyXSinglePropertyPage` **retirés** (pages storefront supprimées au pivot CRM-first). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |

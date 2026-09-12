@@ -22,7 +22,7 @@ import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import { crmPalette } from '@/components/crm/tokens'
 import { crmThemeVars } from '@/components/crm/crmThemeVars'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 const TYPE_KEYS: Record<string, string> = {
   APARTMENT: 'external.types.apartment', APPT: 'external.types.apartment', HOUSE: 'external.types.house', VILLA: 'external.types.villa',
@@ -83,8 +83,7 @@ export default function ExternalListingDetailPage() {
 
   const sendPropertyEmail = useSendPropertyEmail()
 
-  const [dark, setDark] = useState<boolean>(() =>
-    typeof window !== 'undefined' && readCrmDark())
+  const [dark, setDark] = useCrmDarkPref()
 
   // Chrome CRM porté ici : cette page vivait sous `AgentLayout`.
   const sgSp = useMemo(() => crmPalette(dark), [dark])

@@ -17,7 +17,7 @@
 //   - molette / flèches clavier / swipe tactile / points latéraux / indice molette
 //   - applyTK(dark) « allume » l'ambiance du cockpit (et la modale Détail du match)
 
-import { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react'
+import { useEffect, useRef, useLayoutEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
@@ -28,7 +28,7 @@ import { TodayNavProvider } from '@/components/crm/today/TodayNavContext'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { PageAujourdhuiH } from '@/components/crm/today/PageAujourdhuiH'
 import { PageCatalogue } from '@/components/crm/today/PageCatalogue'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 // `labelKey` = clé i18n stable (namespace dashboard) ; le libellé est traduit
 // chez le consommateur (cf. § conventions i18n — module statique, pas de hook).
@@ -107,15 +107,7 @@ export default function TodayPage() {
   const navigate = useNavigate()
 
   // ─── Theme: dark/light, tied to the icon-rail toggle ─────────────────
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-    }
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
 
   const sp = crmPalette(dark)
   // « allume » / éteint tout le cockpit selon l'ambiance (singleton muté en place).

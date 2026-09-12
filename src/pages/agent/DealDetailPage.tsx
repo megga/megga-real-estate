@@ -43,7 +43,7 @@ import type { CrmBien, CrmContact } from '@/components/crm/mockData'
 import type { Offer, OfferKind } from '@/types/offer'
 import type { Contact } from '@/types/contact'
 import type { Property } from '@/types/listing'
-import { CRM_DARK_KEY, readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 const dsFmt = (n: number | null | undefined) =>
   n == null ? '' : 'CHF ' + n.toLocaleString('fr-CH').replace(/\u202f|,/g, "'")
@@ -267,15 +267,7 @@ export default function DealDetailPage({ banc }: { banc?: DealDetailBanc } = {})
   const go = (vers: string) => { if (banc?.onNavigate) banc.onNavigate(vers); else navigate(vers) }
 
   // Thème dark/light, persisté (même clé que les autres pages Sugar).
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(CRM_DARK_KEY, dark ? '1' : '0')
-    }
-  }, [dark])
+  const [dark, setDark] = useCrmDarkPref()
 
   const sp = crmPalette(dark)
   const p = dsPalette(dark, sp)

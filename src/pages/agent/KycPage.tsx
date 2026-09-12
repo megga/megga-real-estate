@@ -27,7 +27,7 @@ import { KycPagerFrame, type KycWizardControl } from '@/components/crm-dossiers/
 import { kypSurf, KYP_KEYFRAMES } from '@/components/crm-dossiers/kyc-pager/kypTokens'
 import { isKycOnboarded, markKycOnboarded } from '@/lib/kycOnboarding'
 import { useKycDossiers, useKycDossierByContact } from '@/hooks/useKycDossier'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 export default function KycPage() {
   const navigate = useNavigate()
@@ -36,10 +36,7 @@ export default function KycPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { profile } = useAuth()
 
-  const [dark, setDark] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  })
+  const [dark, setDark] = useCrmDarkPref()
   const sp = useMemo(() => crmPalette(dark), [dark])
   const kycSp = useMemo(() => buildKycPalette(dark, sp), [dark, sp])
   const surf = useMemo(() => kypSurf(dark), [dark])

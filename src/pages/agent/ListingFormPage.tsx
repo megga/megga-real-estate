@@ -59,7 +59,7 @@ import { usePlanLimits } from '@/hooks/usePlanLimits'
 import { FLOOR_PLAN_ROOMS } from '@/types/floorPlan'
 import type { FloorPlanHotspot, PhotoTag } from '@/types/floorPlan'
 import { useTabDirty } from '@/hooks/useCrmTabs'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 
 // ─── Zod schemas per step ───
 
@@ -2211,8 +2211,7 @@ export default function ListingFormPage() {
   const { t } = useTranslation('listings')
   const navigate = useNavigate()
 
-  const [dark, setDark] = useState<boolean>(() =>
-    typeof window !== 'undefined' && readCrmDark())
+  const [dark, setDark] = useCrmDarkPref()
 
   // Chrome porté ici : cette page vivait sous `AgentLayout` (sidebar legacy).
   // Chaque surface de bureau monte sa propre `CrmSidebar`.

@@ -18,7 +18,7 @@ import {
   AUDIT_CATEGORIES,
   AUDIT_CAT_ICONS,
 } from '@/components/crm-dossiers/tokens'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDarkPref } from '@/lib/crmDark'
 import {
   KycBlackPill,
   KycGhostPill,
@@ -46,15 +46,15 @@ export default function AuditPage() {
   const etroit = useIsMobile()
   const { t: tr } = useTranslation('common')
   /**
-   * ⚠ `readCrmDark()` et non `useCrmDark()` : la barre latérale de cette page
-   * BASCULE le thème (`setDark` lui est passé), et le hook est en lecture seule. Deux
-   * sources — l'état local pour `sp`, le hook pour `S` — divergeraient au clic,
-   * ce qui recréerait la demi-bascule qu'on corrige. C'est la MÊME lecture
-   * partagée, avec le repli `prefers-color-scheme` que la forme `=== '1'`
-   * recopiée ici n'avait pas : une clé absente y rendait FAUX, donc un profil
-   * neuf sous macOS sombre recevait une page claire.
+   * ⚠ `useCrmDarkPref()` : la barre latérale de cette page BASCULE le thème
+   * (`setDark` lui est passé). Ce fut un `useState(readCrmDark)` local, pour ne pas
+   * faire diverger `sp` et `S` — mais la bascule restait alors privée : les
+   * primitives de dossier (`useCrmDark()`), le dock MEGGA AI et la gouttière
+   * gardaient l'ancien thème. Le hook partagé tient les deux exigences : une seule
+   * valeur ici, annoncée à tous. Même repli `prefers-color-scheme` (`readCrmDark`)
+   * qu'avant, pour un profil neuf sous macOS sombre.
    */
-  const [dark, setDark] = useState<boolean>(readCrmDark)
+  const [dark, setDark] = useCrmDarkPref()
   const sp = useMemo(() => crmPalette(dark), [dark])
   const S = useMemo(() => dossierPalette(dark), [dark])
 

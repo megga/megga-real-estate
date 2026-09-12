@@ -21,7 +21,7 @@ import { useConversationHistory } from '@/hooks/useConversationHistory'
 import { filterConversationsByTitle, type ConversationSummary } from '@/lib/conversation-history'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
 import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDark } from '@/lib/crmDark'
 import { declarerPaletteEnPlace } from './openSearch'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
@@ -288,11 +288,11 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
   // Collision : la variable `t` ci-dessous = tokens de thème. Le traducteur = `tr`.
   const { t: tr, i18n } = useTranslation('common')
 
-  // Thème : même source que les pages Sugar (localStorage), lu à l'ouverture.
-  const dark = useMemo<boolean>(() => {
-    if (typeof window === 'undefined') return false
-    return readCrmDark()
-  }, [])
+  // Thème : la source unique du CRM, SUIVIE et non lue une fois. Lue à
+  // l'ouverture, elle suffisait à la variante flottante (remontée à chaque
+  // ouverture) — pas à la variante `inline` de « Nouvel onglet », gardée vivante
+  // derrière les onglets : après une bascule, le champ restait noir sur page blanche.
+  const dark = useCrmDark()
   const sp = crmPalette(dark)
   const accentBlue = dark ? '#A5C0FF' : '#0041D9'
 

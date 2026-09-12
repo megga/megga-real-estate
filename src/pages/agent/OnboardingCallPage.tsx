@@ -29,6 +29,9 @@ import { MeggaX, MxButton, MxLink } from '@/components/megga-x'
 import { useAuth } from '@/hooks/useAuth'
 import OcBooking, { type OcBookingState } from '@/components/onboarding-call/OcBooking'
 import { snoozeOnboardingCall } from '@/hooks/useOnboardingCall'
+import { DOCK_PUSH_STYLE } from '@/components/ai-copilot/panel/aiPanel'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { usePorteSaPoussee } from '@/hooks/usePousseeDock'
 
 export default function OnboardingCallPage() {
   const { t } = useTranslation('onboarding')
@@ -36,6 +39,7 @@ export default function OnboardingCallPage() {
   const { profile } = useAuth()
 
   const [state, setState] = useState<OcBookingState | null>(null)
+  usePorteSaPoussee()
 
   /** Passer n'est pas refuser : le rappel se rendort, il ne disparaît pas. */
   const skip = () => {
@@ -44,6 +48,11 @@ export default function OnboardingCallPage() {
   }
 
   return (
+    // ⚠ Cette enveloppe prend la poussée du dock MEGGA AI, que l'écran n'a pas de plan
+    // de travail pour porter (`usePousseeDock`), et la peint au canvas de la vitrine.
+    // `minHeight` : sans lui la gouttière et le bas de page restaient au `pageBg` du
+    // CRM — une plaque claire sous un bloc noir, en mode clair.
+    <div style={{ background: MXC_COLOR.n100, minHeight: '100vh', ...DOCK_PUSH_STYLE }}>
     <MeggaX>
       {/* Pas de `full-height-page mx-appshell` ici, contrairement au wizard : cet écran
           est rendu DANS la coquille du CRM (rail, en-tête), qui gère déjà la hauteur.
@@ -86,5 +95,6 @@ export default function OnboardingCallPage() {
         </section>
       </div>
     </MeggaX>
+    </div>
   )
 }

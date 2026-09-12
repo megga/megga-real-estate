@@ -43,7 +43,9 @@ et le détail marché comme le formulaire de bien sont des enfants de la même r
 Le chrome est porté par les **pages**, via [`CrmWorkspace`](../src/components/crm/CrmWorkspace.tsx)
 (PR #1277, 04.09.2026) : barre latérale repliable `CrmSidebar` (264 px ouverte, 84 repliée) et `CrmTabsBar`
 au-dessus du contenu. Mesuré le 05.09.2026 : **20 fichiers** la montent, et `CrmSidebar` n'a plus qu'un seul
-importeur direct — `CrmWorkspace`. ⛔ Monter `<CrmSidebar>` en direct livre un écran sans onglets.
+importeur direct — `CrmWorkspace`. ⛔ Monter `<CrmSidebar>` en direct livre un écran sans onglets. ⚠ Et sans
+poussée : depuis le 12.09.2026 c'est `CrmWorkspace` qui se comprime quand le dock MEGGA AI s'ouvre, la page
+peignant elle-même le fond derrière lui (`usePousseeDock`).
 
 ⚠ Le **fournisseur** d'onglets est hissé dans `AgentLayout`, la **barre** ne l'est pas, et l'asymétrie est
 délibérée : le layout est le seul endroit qui ne se remonte pas à la navigation, donc le seul d'où une pile
