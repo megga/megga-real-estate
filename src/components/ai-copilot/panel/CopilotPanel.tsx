@@ -25,11 +25,10 @@ import PublishReviewModal from './PublishReviewModal'
 import DeleteContactReviewModal from './DeleteContactReviewModal'
 import { useConversationMessages } from '@/hooks/useConversationHistory'
 import {
-  PANEL_W, deriveAiPalette, packFor, screenLabel, parseSegments, detectEmailDraft, isAnnonceRequest, isLettreRequest, thinkingPhases,
+  PANEL_W, DOCK_MOTION, deriveAiPalette, packFor, screenLabel, parseSegments, detectEmailDraft, isAnnonceRequest, isLettreRequest, thinkingPhases,
   type AiPalette,
 } from './aiPanel'
 import { useCrmDark } from '@/lib/crmDark'
-
 
 // ── Message ─────────────────────────────────────────────────────────────────
 interface PanelMsg {
@@ -793,6 +792,9 @@ function PanelContent({ sp, isOpen, screen, seed, consumeSeed, conversationId, c
 export default function CopilotPanel() {
   const { isOpen, screen, seed, close, consumeSeed, conversationId, consumeConversation } = useAiPanel()
   const { impersonating } = useImpersonate()
+  // ⚠ Abonné à la bascule, plus relu toutes les 400 ms : le dock changeait de thème
+  // jusqu'à 400 ms après la page — et jamais sur les huit écrans qui ne l'écrivaient
+  // pas, où il restait blanc à côté d'une page noire (`CRM_DARK_EVENT`).
   const dark = useCrmDark()
   const sp = useMemo<AiPalette>(() => {
     const base = crmPalette(dark)
@@ -872,7 +874,7 @@ export default function CopilotPanel() {
           opacity: shown ? 1 : 0,
           // Fondu aligné sur l'horloge unique du mouvement (le `.3s ease` d'avant
           // finissait avant la glissade et le push).
-          transition: 'transform .42s cubic-bezier(.2,.8,.2,1), opacity .42s cubic-bezier(.2,.8,.2,1)',
+          transition: `transform ${DOCK_MOTION}, opacity ${DOCK_MOTION}`,
           pointerEvents: shown ? 'auto' : 'none',
           fontFamily: 'var(--crm-font)',
         }}

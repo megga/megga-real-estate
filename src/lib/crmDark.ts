@@ -1,8 +1,10 @@
 // Thème sombre partagé des écrans du CRM (Pipeline, Today, fiche Deal, modale offre).
-// Source unique de vérité : une clé localStorage, et un magasin réactif qui la sert
-// à TOUS les écrans montés à la fois — voir `useCrmDarkPref`.
+// Source unique de vérité : une clé localStorage, écrite par `writeCrmDark` qui
+// annonce aussi la bascule dans l'onglet ; les écrans la suivent par `useCrmDark`
+// (lecture) ou `useCrmDarkPref` (lecture + bascule).
 
-import { useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 
 /**
  * Clé unique du réglage clair/sombre. Exportée : la console admin écrit dessus
@@ -96,63 +98,89 @@ export function captureThemeAttribute(root: Element): () => void {
   }
 }
 
-/** Événement même-document : `storage` ne se déclenche que dans les AUTRES onglets. */
-const EVT_DARK = 'megga:crm-dark'
+/**
+ * La bascule, annoncée DANS l'onglet.
+ *
+ * ⛔ `storage` NE PART QUE VERS LES AUTRES ONGLETS. Dans celui où l'on clique, rien
+ * ne prévenait les autres lecteurs : le dock MEGGA AI et la coquille relisaient
+ * la clé toutes les 400 ms, et huit écrans ne l'écrivaient même pas — ils
+ * gardaient le thème dans un `useState` local. Mesuré le 12 septembre 2026 sur
+ * Analytics : bascule en sombre, page noire, gouttière `#F9F9F9` et dock BLANC —
+ * une plaque claire de 404 px, du haut en bas, à côté d'une page noire. Et les
+ * écrans gardés vivants derrière l'onglet affiché restaient dans l'ancien thème.
+ */
+export const CRM_DARK_EVENT = 'megga:crm-dark'
 
 /**
- * Écrit la préférence ET prévient tous les écrans du document.
+ * Écrit la préférence ET l'annonce à tous les lecteurs de l'onglet.
  *
- * ⛔ C'EST CE QUI MANQUAIT QUAND LES ÉCRANS SONT RESTÉS VIVANTS. Chaque page tenait
- * sa copie du réglage (`useState(readCrmDark)`), lue une fois au montage — la
- * prémisse était que « les routes remontent à la navigation ». Avec les écrans
- * vivants elles ne remontent plus : basculer le thème sur un écran laissait les
- * cinq autres dans l'ancien, et une page dont les CARTES lisaient `useCrmDark()`
- * (qui n'écoutait que `storage`, jamais émis dans le même document) passait en
- * sombre avec ses cartes restées claires — un titre blanc sur carte blanche,
- * mesuré sur la fiche Visite le 12 septembre 2026.
+ * ⚠ L'annonce porte la VALEUR : si le stockage refuse l'écriture (cookies
+ * bloqués), la bascule vaut quand même pour tout ce qui est à l'écran.
  */
 export function writeCrmDark(dark: boolean): void {
   if (typeof window === 'undefined') return
   try {
     window.localStorage?.setItem(STORAGE_KEY, dark ? '1' : '0')
   } catch {
-    // Stockage refusé : la bascule vaut pour la session, sans persister.
+    // Stockage refusé : la bascule ne survivra pas au rechargement, rien de plus.
   }
-  window.dispatchEvent(new Event(EVT_DARK))
-}
-
-function abonnerDark(notifier: () => void): () => void {
-  const onStorage = (e: StorageEvent) => { if (e.key === STORAGE_KEY) notifier() }
-  window.addEventListener(EVT_DARK, notifier)
-  window.addEventListener('storage', onStorage)
-  // Sans préférence enregistrée, le thème suit le SYSTÈME : sa bascule doit
-  // atteindre les écrans comme celle de la barre.
-  const mq = window.matchMedia?.('(prefers-color-scheme: dark)')
-  mq?.addEventListener?.('change', notifier)
-  return () => {
-    window.removeEventListener(EVT_DARK, notifier)
-    window.removeEventListener('storage', onStorage)
-    mq?.removeEventListener?.('change', notifier)
-  }
-}
-
-/** Le thème sombre du CRM, en lecture — suit toute bascule, dans ce document ou ailleurs. */
-export function useCrmDark(): boolean {
-  return useSyncExternalStore(abonnerDark, readCrmDark, () => false)
+  window.dispatchEvent(new CustomEvent<boolean>(CRM_DARK_EVENT, { detail: dark }))
 }
 
 /**
- * Le thème sombre du CRM, en lecture ET en écriture — le couple que les pages
- * passent à leur chrome (`sp`, `dark`, `setDark`).
+ * Le thème sombre du CRM, en lecture. Suit les bascules faites dans l'onglet
+ * (`CRM_DARK_EVENT`), dans les autres (`storage`), et — tant que l'agent n'a
+ * rien choisi — l'apparence du système.
  *
- * ⚠ Toutes les pages lisent le MÊME magasin : il n'y a plus de copie à laisser
- * périmer, et plus d'effet à écrire pour persister — `writeCrmDark` le fait.
+ * ⛔ LE SYSTÈME FAIT PARTIE DE LA SOURCE UNIQUE. Sans choix enregistré,
+ * `readCrmDark()` retombe sur `prefers-color-scheme`, et le relit à chaque appel.
+ * Tant que les écrans ÉCRIVAIENT la clé à leur montage, la première lecture
+ * figeait la valeur pour toute la session ; ils ne l'écrivent plus (seul un geste
+ * de l'agent l'écrit). Un Mac en apparence « Auto » qui passe au sombre au
+ * coucher du soleil aurait alors ouvert les écrans suivants en sombre à côté d'un
+ * dock resté clair — la plaque, par un autre chemin. Tous les lecteurs suivent
+ * donc le changement ensemble.
  */
-export function useCrmDarkPref(): [boolean, (dark: boolean | ((prev: boolean) => boolean)) => void] {
-  return [useCrmDark(), poserCrmDark]
+export function useCrmDark(): boolean {
+  const [dark, setDark] = useState<boolean>(readCrmDark)
+  useEffect(() => {
+    const relire = () => setDark(readCrmDark())
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEY) relire()
+    }
+    const onBascule = (e: Event) => setDark((e as CustomEvent<boolean>).detail)
+    window.addEventListener('storage', onStorage)
+    window.addEventListener(CRM_DARK_EVENT, onBascule)
+    // `readCrmDark` ignore le système dès qu'un choix est enregistré : écouter
+    // l'apparence en permanence est donc sans effet pour qui a choisi.
+    const systeme = window.matchMedia?.('(prefers-color-scheme: dark)')
+    systeme?.addEventListener?.('change', relire)
+    // Pas de relecture à l'abonnement : `writeCrmDark` écrit la clé AVANT
+    // d'annoncer, donc un écran monté entre-temps l'a déjà lue à son rendu.
+    return () => {
+      window.removeEventListener('storage', onStorage)
+      window.removeEventListener(CRM_DARK_EVENT, onBascule)
+      systeme?.removeEventListener?.('change', relire)
+    }
+  }, [])
+  return dark
 }
 
-/** Accepte la forme FONCTION (`setDark(d => !d)`) comme un `setState` — des pages l'emploient. */
-function poserCrmDark(v: boolean | ((prev: boolean) => boolean)): void {
-  writeCrmDark(typeof v === 'function' ? v(readCrmDark()) : v)
+/**
+ * Le thème sombre du CRM, en lecture ET en écriture — pour l'écran qui porte la
+ * bascule (sa barre latérale ou sa bande d'onglets reçoivent `setDark`).
+ *
+ * ⛔ C'EST CE HOOK, ET NON UN `useState` LOCAL. Avec un état local, la bascule
+ * restait une affaire privée de l'écran : le dock, la coquille, les primitives
+ * qui lisent `useCrmDark()` et les autres écrans vivants ne la voyaient pas.
+ */
+export function useCrmDarkPref(): [boolean, Dispatch<SetStateAction<boolean>>] {
+  const dark = useCrmDark()
+  // ⚠ La forme fonctionnelle aussi, comme le setter de `useState` qu'il remplace :
+  // le tableau de bord d'Analytics bascule par `setDark((v) => !v)`.
+  const setDark = useCallback(
+    (v: SetStateAction<boolean>) => writeCrmDark(typeof v === 'function' ? v(dark) : v),
+    [dark],
+  )
+  return [dark, setDark]
 }

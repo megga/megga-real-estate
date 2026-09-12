@@ -46,10 +46,13 @@ export default function AuditPage() {
   const etroit = useIsMobile()
   const { t: tr } = useTranslation('common')
   /**
-   * ⚠ Le magasin de thème partagé (`useCrmDarkPref`) : la barre latérale de cette
-   * page BASCULE le thème, et `sp` comme `S` doivent lire la MÊME source, sinon ils
-   * divergent au clic. Elle porte le repli `prefers-color-scheme` : une clé absente
-   * ne rend pas FAUX, donc un profil neuf sous macOS sombre reçoit une page sombre.
+   * ⚠ `useCrmDarkPref()` : la barre latérale de cette page BASCULE le thème
+   * (`setDark` lui est passé). Ce fut un `useState(readCrmDark)` local, pour ne pas
+   * faire diverger `sp` et `S` — mais la bascule restait alors privée : les
+   * primitives de dossier (`useCrmDark()`), le dock MEGGA AI et la gouttière
+   * gardaient l'ancien thème. Le hook partagé tient les deux exigences : une seule
+   * valeur ici, annoncée à tous. Même repli `prefers-color-scheme` (`readCrmDark`)
+   * qu'avant, pour un profil neuf sous macOS sombre.
    */
   const [dark, setDark] = useCrmDarkPref()
   const sp = useMemo(() => crmPalette(dark), [dark])

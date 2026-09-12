@@ -288,8 +288,10 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
   // Collision : la variable `t` ci-dessous = tokens de thème. Le traducteur = `tr`.
   const { t: tr, i18n } = useTranslation('common')
 
-  // Thème : le magasin partagé — il suit une bascule faite pendant que la palette
-  // est ouverte (en place, dans la page d'onglet neuf, elle reste montée longtemps).
+  // Thème : la source unique du CRM, SUIVIE et non lue une fois. Lue à
+  // l'ouverture, elle suffisait à la variante flottante (remontée à chaque
+  // ouverture) — pas à la variante `inline` de « Nouvel onglet », gardée vivante
+  // derrière les onglets : après une bascule, le champ restait noir sur page blanche.
   const dark = useCrmDark()
   const sp = crmPalette(dark)
   const accentBlue = dark ? '#A5C0FF' : '#0041D9'

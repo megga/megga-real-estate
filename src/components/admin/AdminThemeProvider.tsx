@@ -26,6 +26,7 @@ import {
   applyCrmThemeAttribute,
   captureThemeAttribute,
   readCrmDark,
+  writeCrmDark,
   CRM_DARK_KEY as STORAGE_KEY,
 } from '@/lib/crmDark'
 
@@ -47,7 +48,9 @@ export function AdminThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     applyCrmThemeAttribute(document.documentElement, dark)
-    window.localStorage.setItem(STORAGE_KEY, dark ? '1' : '0')
+    // ⚠ `writeCrmDark` et non un `setItem` nu : il ANNONCE la bascule dans l'onglet,
+    // sans quoi le dock MEGGA AI, ouvrable sur la console, garderait l'ancien thème.
+    writeCrmDark(dark)
   }, [dark])
 
   // Cross-onglet : deux consoles ouvertes suivent le même réglage.

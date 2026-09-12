@@ -35,6 +35,14 @@
  * chaque écran vivant l'écrirait sinon à son tour, et le nettoyage de l'un
  * effacerait celle dont l'autre a besoin.
  *
+ * ── LE PLAN DE TRAVAIL PORTE LA POUSSÉE (12 septembre 2026) ─────────────────
+ * Quand le dock s'ouvre, c'est cette colonne qui se comprime de 404 px, plus la
+ * coquille d'`AgentLayout`. La page qui la contient garde toute la largeur et
+ * peint donc elle-même le fond qu'on voit derrière le dock. ⛔ Avant, la coquille
+ * se comprimait et peignait sa gouttière au `pageBg` de la palette : sur un écran
+ * au fond différent (« Aujourd'hui » en clair, l'Audit), une plaque de 404 px
+ * restait visible du haut en bas. Mécanique et repli : `usePousseeDock`.
+ *
  * ── UNE SEULE FORME POUR DEUX RÉGIMES DE HAUTEUR ─────────────────────────────
  * Quinze surfaces sont en `height: 100vh` + `overflow: hidden` (écran figé),
  * cinq en `minHeight` (page qui défile). La colonne n'impose NI l'un NI l'autre :
@@ -49,6 +57,8 @@ import { useEcranActif } from '@/hooks/useEcranActif'
 import CrmTabsBar from './CrmTabsBar'
 import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
 import { useIsMobile } from '@/hooks/useMediaQuery'
+import { usePorteSaPoussee } from '@/hooks/usePousseeDock'
+import { DOCK_PUSH_STYLE } from '@/components/ai-copilot/panel/aiPanel'
 
 /**
  * Hauteur totale prise par la bande : la puce (30) plus sa gouttière haute (12).
@@ -104,9 +114,19 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
     return () => { racine.style.removeProperty(VAR_CHROME_TOP) }
   }, [ecranActif, avecOnglets])
 
+  // ⚠ C'est ICI que le dock MEGGA AI comprime l'écran, plus sur la coquille
+  // (voir l'en-tête, « LE PLAN DE TRAVAIL PORTE LA POUSSÉE »).
+  usePorteSaPoussee()
+
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0,
+      // ⚠ La poussée ENGLOBE la bande : ✦, la cloche et la bascule de thème vivent
+      // dans son quart droit, et ne pousser que la rangée les laisserait sous le dock.
+      // ⛔ La transition est EN LIGNE, et doit le rester : « Aujourd'hui » pose une
+      // `transition` sur tous ses descendants (`.today-proto-amb *`), qui battrait
+      // une règle de feuille — la poussée y sauterait pendant que le dock glisse.
+      ...DOCK_PUSH_STYLE,
       // ⚠ Ce que la bande prend au contenu, publié en variable.
       //
       // Les surfaces à hauteur FIGÉE n'en ont pas besoin (leur `<main>` est un

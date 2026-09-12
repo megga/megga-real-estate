@@ -49,6 +49,8 @@ import {
   useSignVisitBon,
 } from '@/hooks/useVisitDetail'
 import { supabase } from '@/lib/supabase'
+import { DOCK_PUSH_STYLE } from '@/components/ai-copilot/panel/aiPanel'
+import { usePorteSaPoussee } from '@/hooks/usePousseeDock'
 
 function vdDateLong(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-CH', {
@@ -86,6 +88,15 @@ export default function VisitDetailPage() {
    * (le bon et le rapport s'empilent). C'est celui d'`AuditPage`, l'autre des
    * deux régimes que `CrmWorkspace` accepte — voir son en-tête.
    */
+  /**
+   * ⚠ La poussée du dock MEGGA AI (`usePousseeDock`). Sur bureau, c'est la coquille
+   * (`CrmWorkspace`) qui la porte, et la page s'étend sous le dock avec son dégradé.
+   * Sur téléphone il n'y a pas de coquille : c'est la RACINE qui la prend — sans
+   * quoi l'écran se comprimerait et laisserait voir la gouttière `#F9F9F9` à côté du
+   * dégradé, la plaque retirée le 12 septembre 2026. L'inscription vaut pour les
+   * deux cas ; le style, lui, n'est posé qu'une fois (sinon 808 px de poussée).
+   */
+  usePorteSaPoussee()
   const coquille = (contenu: ReactNode) => (
     <div
       data-screen-label="Fiche Visite"
@@ -95,6 +106,7 @@ export default function VisitDetailPage() {
         background: S.bgGradient,
         color: S.ink,
         fontFamily: S.font,
+        ...(isMobile ? DOCK_PUSH_STYLE : {}),
       }}
     >
       {/* ⛔ Pas de coquille de BUREAU sur téléphone. La route n'a pas de variante

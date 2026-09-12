@@ -135,10 +135,9 @@ function Commandes({ etat, setEtat, sansFixture }: {
 }) {
   const navigate = useNavigate()
   const [replie, setReplie] = useState(false)
-  // ⚠ Le banc SUIT le thème et ne le décide jamais : ses propres commandes
-  // seraient sinon peintes dans le thème d'avant la dernière bascule — un banc
-  // qui fabrique lui-même l'incohérence qu'il sert à débusquer. Le magasin
-  // partagé (`useCrmDark`) le notifie à la bascule : plus de sondage à 400 ms.
+  // ⚠ Le banc SUIT le thème et ne le décide jamais : ses propres commandes seraient
+  // sinon peintes dans le thème d'avant la dernière bascule — un banc qui fabrique
+  // lui-même l'incohérence qu'il sert à débusquer. Abonné à la bascule, comme le dock.
   const dark = useCrmDark()
   const sp = crmPalette(dark)
 

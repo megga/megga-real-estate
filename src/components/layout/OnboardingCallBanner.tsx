@@ -11,6 +11,12 @@
  * Ne rend RIEN tant que la lecture n'a pas abouti. Un bandeau « réservez votre appel »
  * qui clignote pendant le chargement chez une agence qui a déjà réservé se lit comme
  * un bug, et le hook peut répondre en plusieurs centaines de millisecondes.
+ *
+ * ⚠ IL PREND LA POUSSÉE DU DOCK MEGGA AI SUR SA PROPRE RACINE (`DOCK_PUSH_STYLE`), hors
+ * de tout écran : son fond et son filet vont jusqu'au bord de la fenêtre, sous le dock,
+ * pendant que son action — « Rejoindre » / « Réserver », calée à droite — reste à gauche
+ * du dock. Une enveloppe poussée qui ne peignait rien laissait voir, à sa droite, le
+ * `pageBg` de la coquille : un reste de la plaque retirée le 12.09.2026.
  */
 import { useTranslation } from 'react-i18next'
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -23,6 +29,7 @@ import {
   isOnboardingCallSnoozed,
   ONBOARDING_CALL_ROUTE,
 } from '@/hooks/useOnboardingCall'
+import { DOCK_PUSH_STYLE } from '@/components/ai-copilot/panel/aiPanel'
 
 export default function OnboardingCallBanner() {
   const { t } = useTranslation('onboarding')
@@ -53,7 +60,7 @@ export default function OnboardingCallBanner() {
     }).format(new Date(startMs))
 
     return (
-      <div className="border-b border-theme-border bg-theme-card">
+      <div className="border-b border-theme-border bg-theme-card" style={DOCK_PUSH_STYLE}>
         <div className="flex items-start gap-3 px-4 md:px-6 py-2.5">
           <CalendarCheck className="h-4 w-4 flex-shrink-0 mt-0.5 text-blue-500" />
           <div className="flex-1 min-w-0">
@@ -81,7 +88,7 @@ export default function OnboardingCallBanner() {
   if (isOnboardingCallSnoozed(profile.agency_id)) return null
 
   return (
-    <div className="border-b border-theme-border bg-theme-card">
+    <div className="border-b border-theme-border bg-theme-card" style={DOCK_PUSH_STYLE}>
       <div className="flex items-start gap-3 px-4 md:px-6 py-2.5">
         <CalendarCheck className="h-4 w-4 flex-shrink-0 mt-0.5 text-amber-500" />
         <div className="flex-1 min-w-0">

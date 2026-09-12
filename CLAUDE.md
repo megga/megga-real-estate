@@ -658,7 +658,12 @@ volontairement plus haut pour qu'un dépassement transitoire n'annule pas l'écr
 annonçait 22, puis 20 avant lui. `grep -rl '<CrmSidebar' src/` ne rend, lui, qu'**un**
 fichier — `CrmWorkspace.tsx` lui-même. Une surface qui
 court-circuite la coquille perd la bande d'onglets **et** la variable `--crm-tabs-h`, sans qu'aucune
-porte ne rougisse. ⛔ **CINQ ROUTES D'ONGLET LE FAISAIENT** : basculer sur l'une d'elles faisait
+porte ne rougisse. ⚠ Et depuis le 12.09.2026 elle perd aussi la **poussée du dock MEGGA AI** : c'est
+`CrmWorkspace` qui se comprime quand le dock s'ouvre — la page, elle, garde toute la largeur et peint le fond
+derrière le dock. `AgentLayout` ne fait plus que publier `--crm-dock-push`. ⛔ Sa gouttière peinte au `pageBg`
+était la « plaque » vue derrière le dock en clair (« Aujourd'hui » peint `#EBEDF1`, la gouttière `#F9F9F9`).
+Mécanique, repli par écran et thème à source unique (`useCrmDarkPref`) : `usePousseeDock`, cerveau
+`megga/dock-poussee`. ⛔ **CINQ ROUTES D'ONGLET LE FAISAIENT** : basculer sur l'une d'elles faisait
 disparaître la bande ET la barre latérale, sans autre sortie que son propre lien de retour. Deux sont
 corrigées. `VisitDetailPage` (`/dashboard/visits/:id`, 07.09.2026) — c'est une FICHE, `visit` est l'un
 des cinq genres de `crmTabRecordRef`, et les quatre autres (contact, bien, deal, dossier KYC)
