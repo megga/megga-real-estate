@@ -5,7 +5,7 @@
  * qui a dit non » et « chaque envoi porte un moyen de sortir » — et aucun banc. Seule la RPC
  * SQL était couverte, c'est-à-dire la moitié qui décide, jamais celle qui CÂBLE. Or le défaut
  * réel était dans le câblage : le lien de désinscription pointait sur le fallback SPA de
- * `app.megga.ch`, qui rend `200 text/html` sans rien écrire.
+ * `app.getmegga.com`, qui rend `200 text/html` sans rien écrire.
  *
  * La décision de conformité elle-même vit en SQL et a son propre banc
  * (tests/backend/whatsapp-consent-registry.spec.ts) ; la dupliquer ici ne prouverait que la
@@ -75,8 +75,8 @@ describe('emailSendAllowed — le verdict', () => {
 })
 
 describe('unsubscribeHeaders — le lien qui doit ÉCRIRE', () => {
-  it('⛔ RÉGRESSION — pointe sur le hôte des EDGE FUNCTIONS, jamais sur app.megga.ch', async () => {
-    // `app.megga.ch` est du Cloudflare Pages avec fallback SPA : mesuré le 15.08.2026, le GET
+  it('⛔ RÉGRESSION — pointe sur le hôte des EDGE FUNCTIONS, jamais sur app.getmegga.com', async () => {
+    // `app.getmegga.com` est du Cloudflare Pages avec fallback SPA : mesuré le 15.08.2026, le GET
     // du pied de page y rend la coquille de l'app en `200 text/html` et le POST one-click de
     // Gmail rend `405`. La personne voyait « c'est fait » et AUCUNE ligne
     // `contact_suppressions` n'était écrite — un mécanisme légalement exigé qui échoue en
@@ -84,7 +84,7 @@ describe('unsubscribeHeaders — le lien qui doit ÉCRIRE', () => {
     const u = await unsubscribeHeaders('a@b.ch')
     expect(u).not.toBeNull()
     expect(u!.url.startsWith(`${SUPABASE_URL}/functions/v1/email-unsubscribe?t=`)).toBe(true)
-    expect(u!.url).not.toContain('app.megga.ch')
+    expect(u!.url).not.toContain('app.getmegga.com')
   })
 
   it('porte le couple RFC 8058 que Gmail et Outlook attendent', async () => {

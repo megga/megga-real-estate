@@ -37,7 +37,7 @@ chemin, ou appliquer chaque migration manuellement après revue. Réconcilier le
 
 | Secret | Usage | Action |
 |---|---|---|
-| `CONTACT_NOTIFICATION_TO` | Destinataire forcé de `contact_notification_admin` (patch `send-email`) | Créer (sinon fallback `contact@megga.ch` dans le code). |
+| `CONTACT_NOTIFICATION_TO` | Destinataire forcé de `contact_notification_admin` (patch `send-email`) | Créer (sinon fallback `contact@getmegga.com` dans le code). |
 | `app_config.service_role_key` | Comparaison constant-time des fonctions cron (patch 02/09) | **Vérifier qu'il est présent** et égal au token forwardé par pg_cron (déjà utilisé par les fonctions whatsapp). |
 
 ## D. Cloudflare / R2

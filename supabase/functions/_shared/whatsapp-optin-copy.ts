@@ -43,8 +43,8 @@ export interface OptinCopy {
   legalNote: string
 }
 
-const PRIVACY_EMAIL = 'privacy@megga.ch'
-const PRIVACY_URL = 'https://megga.ch/privacy'
+const PRIVACY_EMAIL = 'privacy@getmegga.com'
+const PRIVACY_URL = 'https://getmegga.com/privacy'
 
 /**
  * @param agencyName raison sociale de l'agence qui écrira. JAMAIS « MEGGA » ici : c'est

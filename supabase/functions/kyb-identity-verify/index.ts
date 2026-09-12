@@ -29,7 +29,7 @@
 // paramètre ordinaire, ni dans le guide des flux, qui ne le mentionne pas du tout.
 // Mesuré le 17 août 2026 sur la session `vs_1U5Y6HRNzm4ajaDaoMv1BMNI` (journal d'API
 // Stripe, `req_WZUCE21ewpBdBS`) : le corps POST portait bien
-// `return_url=https://app.megga.ch/dashboard/identite?verification=done`, la réponse
+// `return_url=https://app.getmegga.com/dashboard/identite?verification=done`, la réponse
 // **200 OK ne portait AUCUN champ `return_url`**. Stripe accepte le paramètre et le
 // JETTE EN SILENCE dès qu'un flux est passé. Aucune erreur, aucun avertissement.
 //

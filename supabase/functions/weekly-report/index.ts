@@ -112,7 +112,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: 'MEGGA Admin <noreply@megga.ch>',
+          from: 'MEGGA Admin <noreply@getmegga.com>',
           to: email,
           subject,
           html,

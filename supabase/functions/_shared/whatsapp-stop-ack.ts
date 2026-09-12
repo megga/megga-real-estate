@@ -16,8 +16,8 @@
 import type { AckLang } from './whatsapp-stop-keywords.ts'
 
 /** Contact du responsable de traitement. Canon du dépôt (PrivacyPage, consents.ts). */
-const PRIVACY_EMAIL = 'privacy@megga.ch'
-const PRIVACY_URL = 'https://megga.ch/privacy'
+const PRIVACY_EMAIL = 'privacy@getmegga.com'
+const PRIVACY_URL = 'https://getmegga.com/privacy'
 
 export interface StopAckContext {
   lang: AckLang

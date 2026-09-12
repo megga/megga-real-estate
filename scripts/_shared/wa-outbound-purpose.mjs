@@ -144,7 +144,7 @@ export function valeurDe(corps, cle) {
  * Commentaires blanchis — un `buildSendTextRequest` CITÉ dans une note n'est pas un appel.
  *
  * ⛔ SAUTE LES CHAÎNES, et ce n'est pas un raffinement. Un blanchiment naïf de `//` jusqu'en
- * fin de ligne détruit le guillemet fermant de `'https://cdn.megga.ch/a.jpg'` ; l'ancien
+ * fin de ligne détruit le guillemet fermant de `'https://cdn.getmegga.com/a.jpg'` ; l'ancien
  * compteur d'accolades, aveugle aux chaînes, l'enjambait sans dommage, mais un lecteur qui
  * SAIT lire les chaînes tombe alors sur une chaîne non close et refuse un appel correct.
  * Mesuré : le premier envoi d'image avec une URL aurait fait rougir la porte.

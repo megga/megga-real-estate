@@ -43,7 +43,7 @@ serve(async (req) => {
   try {
     // Auth réelle : valide le JWT (auth.getUser) ET exige un profil avec agency_id.
     // Avant, on ne vérifiait que le préfixe « Bearer » → un faux jeton déclenchait
-    // un envoi Resend réel depuis noreply@megga.ch (usurpation d'expéditeur).
+    // un envoi Resend réel depuis noreply@getmegga.com (usurpation d'expéditeur).
     const auth = await requireAgentAuth(req, CORS_HEADERS)
     if (auth instanceof Response) return auth
     const { profile } = auth
@@ -108,7 +108,7 @@ serve(async (req) => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: 'MEGGA Immobilier <noreply@megga.ch>',
+        from: 'MEGGA Immobilier <noreply@getmegga.com>',
         to: [body.to],
         subject: body.subject,
         html,

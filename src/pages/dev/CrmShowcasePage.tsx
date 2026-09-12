@@ -5,8 +5,8 @@
  * Les dix surfaces `/dashboard/*` qu'il reste à porter en MEGGA X n'avaient
  * AUCUN banc : `Aujourd'hui`, KYC, Visites, Analytics, Import lead, Réglages,
  * Parcours, Audit, Calendrier. Sans session, `ProtectedRoute` fait
- * `window.location.replace('https://megga.ch/login')` — une redirection
- * **absolue** vers la production : on est déposé sur `app.megga.ch`, qui sert
+ * `window.location.replace('https://getmegga.com/login')` — une redirection
+ * **absolue** vers la production : on est déposé sur `app.getmegga.com`, qui sert
  * `main`, en croyant regarder localhost. On relit alors l'ancienne version de
  * son propre travail, et ça ne ressemble pas à une erreur.
  *

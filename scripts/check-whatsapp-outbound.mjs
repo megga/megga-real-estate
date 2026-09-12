@@ -82,7 +82,16 @@ for (const f of fichiers) {
 
   // ── Propriété 1 ───────────────────────────────────────────────────────────
   if (!CONSTRUCTEURS.includes(f)) {
-    for (const m of txt.matchAll(/\.buildSend(Text|Image|Document|Template)Request\b/g)) {
+    // ⚠ `\w*` et non l'alternative fermée d'origine (Text|Image|Document|Template) : une porte
+    // qui ÉNUMÈRE les constructeurs devient aveugle au premier qu'on ajoute — et
+    // `buildSendButtonsRequest` aurait pu s'appeler n'importe où sans passer par la garde.
+    // ⚠ NI le `.` en tête NI `\w+` : la déstructuration (`const { buildSendTextRequest } =
+    // provider`), l'accès par crochets (`provider['buildSendImageRequest']`) et un
+    // `buildSendRequest` NU (sans suffixe) échappaient tous les trois à la forme pointée — le
+    // symbole apparaît alors sans `.` devant lui (`\w*`, pas `\w+`, pour que le nu matche aussi).
+    // Retirer le point ne coûte aucun faux positif : les commentaires sont blanchis en amont
+    // (`sansCommentaires`) et les deux fichiers constructeurs restent exemptés juste au-dessus.
+    for (const m of txt.matchAll(/buildSend(\w*)Request\b/g)) {
       fautes.push({
         f, ligne: ligneDe(txt, m.index),
         quoi: `\`buildSend${m[1]}Request\` hors de la gateway et de la garde — le sortant doit passer par \`sendOutboundGuarded\``,

@@ -2,7 +2,7 @@
  * Langue devinée d'après le pays du visiteur, au tout premier contact avec le CRM.
  *
  * POURQUOI CE FICHIER. Un agent zurichois qui atterrit directement sur
- * app.megga.ch reçoit un CRM en français, et l'écran qui l'accueille — le
+ * app.getmegga.com reçoit un CRM en français, et l'écran qui l'accueille — le
  * wizard « Identité légale » — n'a pas de langue à lui. La détection comble ce
  * seul trou : celui de l'agent qui n'est passé ni par la vitrine (qui joint
  * toujours `?lang=`) ni par les Réglages.
@@ -16,14 +16,14 @@
  *    est inconnu (mobile derrière un CGNAT, relais privé iCloud, VPN). On reste
  *    alors sur le français par défaut, sans rien prétendre.
  * 3. Elle ne bloque pas le rendu. Appelée depuis `main.tsx` en tâche de fond,
- *    elle échoue en silence : réseau coupé, megga.ch indisponible, CORS refusé,
+ *    elle échoue en silence : réseau coupé, getmegga.com indisponible, CORS refusé,
  *    délai dépassé — dans tous les cas le CRM démarre normalement, en français.
  *
  * POURQUOI L'ENDPOINT VIT SUR LA VITRINE. `request.cf` n'existe que dans un
- * worker Cloudflare, et app.megga.ch est un projet Pages sans worker : lui en
+ * worker Cloudflare, et app.getmegga.com est un projet Pages sans worker : lui en
  * poser un ferait passer le projet en mode Advanced, où `_redirects` — donc le
  * repli SPA de toutes les routes du CRM — cesse d'être évalué. La requête part
- * donc vers megga.ch, dont le worker traite `/api/geo` avant son gate
+ * donc vers getmegga.com, dont le worker traite `/api/geo` avant son gate
  * Basic Auth. Voir `sites/megga-vitrine/_worker.js`.
  */
 import i18n, { ensureLanguageLoaded, hasExplicitLanguage } from '@/i18n'
@@ -45,7 +45,7 @@ export interface GeoLanguage {
  * absente du build produirait ici une URL vide, et la détection échouerait
  * silencieusement au lieu d'échouer à la construction.
  */
-const ENDPOINT = 'https://megga.ch/api/geo'
+const ENDPOINT = 'https://getmegga.com/api/geo'
 
 /**
  * Au-delà, on renonce. Le budget est celui d'un confort, pas d'une dépendance :

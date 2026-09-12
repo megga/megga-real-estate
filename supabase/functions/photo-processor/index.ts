@@ -42,9 +42,9 @@ import { isServiceSecret } from '../_shared/require-service-secret.ts'
 const CF_ACCOUNT_ID = (Deno.env.get('CF_ACCOUNT_ID') ?? '').trim()
 const R2_ACCESS_KEY_ID = (Deno.env.get('R2_ACCESS_KEY_ID') ?? '').trim()
 const R2_SECRET_ACCESS_KEY = (Deno.env.get('R2_SECRET_ACCESS_KEY') ?? '').trim()
-// Public delivery base — either a custom domain (img.megga.ch) or the
+// Public delivery base — either a custom domain (img.getmegga.com) or the
 // Cloudflare r2.dev subdomain. Must NOT include a trailing slash.
-// e.g. R2_PUBLIC_BASE=https://img.megga.ch
+// e.g. R2_PUBLIC_BASE=https://img.getmegga.com
 //      R2_PUBLIC_BASE=https://pub-xxxxxx.r2.dev
 const R2_PUBLIC_BASE = (Deno.env.get('R2_PUBLIC_BASE') ?? '').replace(/\/$/, '')
 const R2_BUCKET = Deno.env.get('R2_BUCKET') ?? 'megga-market'

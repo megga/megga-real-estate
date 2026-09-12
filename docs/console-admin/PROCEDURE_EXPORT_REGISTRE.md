@@ -32,7 +32,7 @@ La voie B convient ensuite pour un export récurrent (§9).
 
 ## 3. Voie A — pas à pas
 
-1. Se connecter à `app.megga.ch` avec un compte de `super_admin_allowlist()` (**2 comptes**
+1. Se connecter à `app.getmegga.com` avec un compte de `super_admin_allowlist()` (**2 comptes**
    aujourd'hui).
 2. Ouvrir la console : `/dashboard/admin`. L'entrée est elle-même journalisée
    (`admin_console_entered`) — c'est normal, et ce sera visible dans l'extrait.

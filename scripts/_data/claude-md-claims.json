@@ -513,17 +513,17 @@
     {
       "id": "ml-flatfox-actives",
       "section": "§2 — Marketplace",
-      "phrase": "~35k flatfox actives",
+      "phrase": "~41k flatfox actives",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-10",
       "mesure": {
         "sql": "select round(count(*) filter (where source_portal='flatfox' and status='active')/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 35
+        "valeur": 41
       },
       "tolerance": 0.15,
-      "note": "Le seul chiffre de volume que le doc avait JUSTE (35 145 le 17.08.2026). Inscrit pour qu'il le reste.",
+      "note": "Le seul chiffre de volume que le doc avait JUSTE (35 145 le 17.08.2026). Inscrit pour qu'il le reste. Dérivé le 10.09.2026 : 40 747 (+16 % en 24 jours, au-delà des 15 % de tolérance). C'est le flux Flatfox qui a crû, pas la prose d'alors qui s'était trompée.",
       "grandeur": "ml-flatfox-actives"
     },
     {
@@ -774,14 +774,14 @@
     {
       "id": "sm-flatfox-actifs",
       "section": "§4 — Pipeline",
-      "phrase": "~35k actifs, 26 cantons",
+      "phrase": "~41k actifs, 26 cantons",
       "severite": "derive",
-      "mesureLe": "2026-08-17",
+      "mesureLe": "2026-09-10",
       "mesure": {
         "sql": "select round(count(*) filter (where source_portal='flatfox' and status='active')/1000.0)::int from market_listings"
       },
       "attendu": {
-        "valeur": 35
+        "valeur": 41
       },
       "doc": "docs/system-map.md",
       "tolerance": 0.15,

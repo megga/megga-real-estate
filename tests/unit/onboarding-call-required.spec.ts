@@ -18,7 +18,7 @@
 import { describe, it, expect } from 'vitest'
 import { champsRequisManquants, CHAMPS_REQUIS } from '@/components/onboarding-call/OcBooking'
 
-const COMPLET = { firstName: 'Gregory', lastName: 'Lyonnet', email: 'g@megga.ch', phone: '791234567' }
+const COMPLET = { firstName: 'Gregory', lastName: 'Lyonnet', email: 'g@getmegga.com', phone: '791234567' }
 
 describe('champsRequisManquants', () => {
   it('ne signale rien quand tout est rempli', () => {

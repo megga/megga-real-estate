@@ -7,7 +7,7 @@ describe('Intercom LPD allowlist — sanitizeIntercomArgs', () => {
   it('laisse passer les attributs SaaS agent autorisés', () => {
     const { sanitized, dropped } = sanitizeIntercomArgs({
       user_id: 'u1',
-      email: 'agent@megga.ch',
+      email: 'agent@getmegga.com',
       name: 'Agent Test',
       role: 'agent',
       canton: 'GE',

@@ -17,7 +17,7 @@
 //   {
 //     magic_link_id: string,
 //     token: string,
-//     url: string,                 // https://app.megga.ch/kyc/<token>
+//     url: string,                 // https://app.getmegga.com/kyc/<token>
 //     expires_at: string (ISO),
 //     status: 'pending'
 //   }

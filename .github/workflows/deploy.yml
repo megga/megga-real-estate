@@ -459,7 +459,7 @@ jobs:
           # Pin wrangler v4 (matches the Rockwell deploy). The V3 Basic Auth
           # gate is sites/megga-vitrine/_worker.js (Advanced mode), copied
           # into dist/ by the postbuild hook — _worker.js is detected natively
-          # on every deploy, so megga.ch stays behind Basic Auth. Credentials
+          # on every deploy, so getmegga.com stays behind Basic Auth. Credentials
           # live in that worker (single source of truth); the auth pages
           # (/login, /signup, /reset-password) are exempt from the gate, since
           # the CRM has no login page of its own and redirects there.
@@ -475,7 +475,7 @@ jobs:
           # backslashes de continuation bash ne sont pas interprétés dans un
           # YAML block scalar et wrangler les recevrait comme args littéraux.
           # `--branch=main` forces the production environment so the custom
-          # domain (megga.ch) is updated — without it wrangler can infer a
+          # domain (getmegga.com) is updated — without it wrangler can infer a
           # detached-HEAD branch in CI and publish a preview-only deployment.
           command: pages deploy dist --project-name=megga-real-estate --branch=main --commit-message="deploy ${{ github.sha }}" --commit-dirty=true
 

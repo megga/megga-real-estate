@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom'
 const SECTIONS: Array<{ title: string; body: string }> = [
   {
     title: '1. Responsable du traitement',
-    body: "MEGGA est responsable du traitement des données personnelles collectées via l'application. Pour toute question relative à vos données, contactez-nous à privacy@megga.ch.",
+    body: "MEGGA est responsable du traitement des données personnelles collectées via l'application. Pour toute question relative à vos données, contactez-nous à privacy@getmegga.com.",
   },
   {
     title: '2. Données collectées',
@@ -31,7 +31,7 @@ const SECTIONS: Array<{ title: string; body: string }> = [
   },
   {
     title: '7. Vos droits',
-    body: "Conformément à la loi fédérale sur la protection des données (LPD), vous disposez d'un droit d'accès, de rectification, d'effacement et d'opposition. Pour les exercer, écrivez à privacy@megga.ch.",
+    body: "Conformément à la loi fédérale sur la protection des données (LPD), vous disposez d'un droit d'accès, de rectification, d'effacement et d'opposition. Pour les exercer, écrivez à privacy@getmegga.com.",
   },
 ]
 

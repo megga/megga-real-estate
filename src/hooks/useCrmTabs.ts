@@ -181,7 +181,7 @@ function reconcilier(
    *
    * La branche « navigation ordinaire » plus bas RÉÉCRIT l'onglet actif. C'est juste
    * quand l'agent vient de cliquer : son onglet suit son geste. Mais au DÉMARRAGE il
-   * n'y a aucun geste — l'agent rouvre `app.megga.ch`, atterrit sur `/dashboard`, et
+   * n'y a aucun geste — l'agent rouvre `app.getmegga.com`, atterrit sur `/dashboard`, et
    * l'onglet actif de sa pile de quinze (mettons un dossier KYC ouvert la veille) était
    * ÉCRASÉ : `path`, `search` et `label` remplacés. Le compte restait à quinze, donc
    * rien ne se voyait — et 800 ms plus tard la perte était gravée côté serveur.

@@ -52,8 +52,8 @@ describe('optinCopy — l’information préalable (art. 6 al. 6 nLPD)', () => {
     for (const lang of LANGS) {
       const b = optinCopy(lang, 'Régie du Lac SA').body
       expect(b, `${lang}/retrait`).toMatch(/STOP/)
-      expect(b, `${lang}/droits`).toContain('privacy@megga.ch')
-      expect(b, `${lang}/politique`).toContain('https://megga.ch/privacy')
+      expect(b, `${lang}/droits`).toContain('privacy@getmegga.com')
+      expect(b, `${lang}/politique`).toContain('https://getmegga.com/privacy')
       // ⛔ Un consentement n'est LIBRE que si le refuser ne coûte rien. Sans cette phrase,
       // l'invitation laisse croire qu'ignorer pénalise — et n'obtient plus un consentement.
       expect(b.length, `${lang}/longueur`).toBeGreaterThan(400)

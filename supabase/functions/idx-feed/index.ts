@@ -15,7 +15,7 @@ import { buildAgencyIdxFeed } from '../_shared/idx-feed-core.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-const LISTING_BASE_URL = Deno.env.get('IDX_LISTING_BASE_URL') ?? '' // ex. https://app.megga.ch/listing
+const LISTING_BASE_URL = Deno.env.get('IDX_LISTING_BASE_URL') ?? '' // ex. https://app.getmegga.com/listing
 const DEFAULT_PORTAL = 'immobilier_ch'
 
 function txt(body: string, status = 200, contentType = 'text/plain; charset=utf-8') {

@@ -7,7 +7,7 @@ import { buildContactReminderEmail } from '../../supabase/functions/_shared/remi
 import { buildOptinInviteEmail } from '../../supabase/functions/_shared/whatsapp-optin-send'
 import { optinCopy } from '../../supabase/functions/_shared/whatsapp-optin-copy'
 
-const DESINSCRIPTION = '<a href="https://app.megga.ch/desinscription/jeton">Se désinscrire</a>'
+const DESINSCRIPTION = '<a href="https://app.getmegga.com/desinscription/jeton">Se désinscrire</a>'
 
 describe('buildContactReminderEmail', () => {
   const base = {

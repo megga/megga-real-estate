@@ -39,7 +39,7 @@ en qualité de **Conseiller à la protection des données** au sens de l'art. 10
 |---|---|
 | Nom et prénom | `{{NOM_PRENOM}}` |
 | Fonction dans l'organisation | `{{FONCTION}}` (ex. "Responsable compliance et protection des données") |
-| Email dédié | `privacy@megga.ch` |
+| Email dédié | `privacy@getmegga.com` |
 | Téléphone | `{{TEL}}` |
 | Adresse postale | `{{RAISON_SOCIALE}}, à l'attention du DPO, {{ADRESSE}}` |
 | Langue de contact | Français, Allemand, Anglais, Italien |
@@ -206,7 +206,7 @@ En cas de cessation, les coordonnées publiées sur `/privacy` doivent être mis
 
 Conformément à l'art. 10 al. 4 nLPD, les coordonnées du conseiller à la protection des données sont :
 
-- Publiées sur le site web public à l'adresse : https://megga.ch/privacy
+- Publiées sur le site web public à l'adresse : https://getmegga.com/privacy
 - Communiquées au Préposé fédéral à la protection des données et à la transparence (PFPDT) via `{{EMAIL_PFPDT}}`
 
 ---
@@ -242,11 +242,11 @@ Conformément à l'art. 10 al. 4 nLPD, nous avons l'honneur de vous communiquer 
 - **Numéro IDE :** `{{IDE}}`
 - **Conseiller à la protection des données :** `{{NOM_PRENOM}}`
 - **Fonction :** `{{FONCTION}}`
-- **Email de contact :** privacy@megga.ch
+- **Email de contact :** privacy@getmegga.com
 - **Téléphone :** `{{TEL}}`
 - **Date d'entrée en fonction :** `{{DATE}}`
 
-Ces coordonnées sont également publiées sur notre site web à l'adresse https://megga.ch/privacy.
+Ces coordonnées sont également publiées sur notre site web à l'adresse https://getmegga.com/privacy.
 
 Nous restons à votre disposition pour toute information complémentaire.
 

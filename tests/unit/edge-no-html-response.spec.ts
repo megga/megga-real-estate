@@ -55,6 +55,12 @@ describe('edge functions — aucune ne prétend servir du HTML', () => {
     expect(src).toContain("'Content-Type': 'text/plain; charset=utf-8'")
     // La page reste CLOSE : celui qui vient de dire « ne m'écrivez plus » n'est pas
     // réengagé. Aucun lien de retour vers l'app dans le corps rendu.
-    expect(sansCommentaires(src)).not.toMatch(/https?:\/\/(app\.)?megga\.ch/)
+    // ⚠ LA LEÇON, à garder même si sa deuxième ligne est partie. Cette assertion ne
+    // cherchait que l'ANCIEN hôte : à la migration du 09.09.2026 elle serait passée au
+    // VERT en ne cherchant plus rien, puisque le corps rendu ne le portait plus. Un test
+    // qui survit à ce qu'il gardait ne garde plus rien — il rassure. Sa seconde ligne a
+    // été retirée à la phase E, l'ancienne zone ne servant plus que des 301 ; ce qui
+    // reste cherche l'hôte VIVANT, donc celui qu'une édition distraite réintroduirait.
+    expect(sansCommentaires(src)).not.toMatch(/https?:\/\/(app\.)?getmegga\.com/)
   })
 })

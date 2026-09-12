@@ -418,7 +418,7 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
   /**
    * ⛔ LA BARRE NE NAVIGUE PAS DEPUIS UN BANC `/dev/*`, et ce n'est pas un
    * confort. Un banc se visite SANS session ; une cible `/dashboard/*` y fait
-   * faire à `ProtectedRoute` un `window.location.replace('https://megga.ch/login')`
+   * faire à `ProtectedRoute` un `window.location.replace('https://getmegga.com/login')`
    * — on croit cliquer dans localhost, on atterrit en production, et le banc
    * existe précisément pour éviter ça. Le rail d'avant recevait un `onNavigate`
    * neutralisé de chaque banc ; la barre routant elle-même, la règle vit ici,

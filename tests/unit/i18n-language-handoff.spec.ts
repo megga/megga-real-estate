@@ -1,7 +1,7 @@
 /**
  * Reprise de la langue transmise par la vitrine (`?lang=`).
  *
- * megga.ch et app.megga.ch ne partagent pas leur stockage local : la langue
+ * getmegga.com et app.getmegga.com ne partagent pas leur stockage local : la langue
  * voyage par l'URL de reprise. Ce qui se teste ici, c'est le tri à l'entrée —
  * une valeur venue de l'URL n'est jamais appliquée telle quelle.
  *

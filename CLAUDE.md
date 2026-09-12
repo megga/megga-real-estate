@@ -1,5 +1,50 @@
 # CLAUDE.md — MEGGA Real Estate
 
+> **🔁 MIGRATION DE DOMAINE EN COURS — `megga.ch` → `getmegga.com` (décidée le 09.09.2026).**
+> Le produit passe sur `getmegga.com` ; `megga.ch` sera libérée pour la **holding**.
+> Plan d'exécution, oracles et ordre des phases : [docs/migration-getmegga.md](docs/migration-getmegga.md).
+>
+> **⚠ COMMENT LIRE LES NOMS D'HÔTE DE CE DOCUMENT.** 809 occurrences ont été réécrites
+> mécaniquement le 09.09.2026, **y compris à l'intérieur de mesures datées d'AVANT**. Une
+> phrase comme « mesuré le 16.08.2026 : les 263 chunks servis par `app.getmegga.com` »
+> décrit une mesure réellement faite — mais sur `app.megga.ch`, le seul hôte qui existait
+> ce jour-là. Lire ces hôtes comme des RÔLES (« l'app », « la vitrine »), pas comme une
+> affirmation sur ce nom précis à cette date. Trois affirmations devenues actionnellement
+> fausses ont été rectifiées à la main (Spacemail vs privateemail, le 401 qui bloquait la
+> vérification Google, l'URI de redirection OAuth).
+>
+> **✅ OÙ ON EN EST (mesuré le 09.09.2026 au soir).** Ce bandeau a déjà été faux DEUX fois
+> en une journée — il a annoncé « seule la phase C est faite », puis « les anciens hôtes
+> répondent encore en 200 ». Les deux clauses sont mortes dans les heures qui ont suivi. Un
+> bandeau d'état se relit à chaque passage, ou il ment.
+>
+> - **Phases A, B, C, D faites. Phase E : E1–E6 et E8 faits.** `getmegga.com` sert la
+>   vitrine, `app.getmegga.com` sert le CRM, `api.getmegga.com` est le domaine custom
+>   Supabase actif (GoTrue émet `redirect_uri=https://api.getmegga.com/auth/v1/callback`),
+>   `img.getmegga.com` sert le bucket R2.
+> - **L'ancienne zone ne SERT plus rien.** Les domaines custom ont été détachés des deux
+>   projets Pages et du bucket R2 ; `megga.ch`, `www.`, `img.` et `help.` ne font plus que
+>   des **301**, portées par un enregistrement `A 192.0.2.1` proxifié (TEST-NET-1, non
+>   routable — une Redirect Rule matche l'hôte, pas l'origine). Côté Google, le
+>   consentement ne déclare plus que `getmegga.com`, et son branding a été re-vérifié
+>   **puis publié**.
+> - **Le CRM n'a plus AUCUN DNS sur `megga.ch` depuis le 11.09.2026.** `app.megga.ch`
+>   (enregistrement + règle 301), `api.megga.ch` et son `_acme-challenge` sont supprimés —
+>   et l'envoi transactionnel aussi : le domaine Resend `megga.ch` retiré (E9), puis ses trois
+>   enregistrements (`send.megga.ch` MX + SPF, clé DKIM `resend._domainkey`).
+>   ⛔ **La seule sonde de disponibilité du CRM visait `app.megga.ch`** — une sonde Sentry
+>   que Sentry avait CRÉÉE SEUL à partir des hôtes vus en erreur, déclarée nulle part dans ce
+>   dépôt. Elle a été déplacée sur `app.getmegga.com` AVANT la coupure ; sans ça, le CRM
+>   perdait sa surveillance en silence. Même geste à refaire avant E10 : voir le §8 du plan.
+> - **Restent E7 (deux jetons Mapbox), E10 (libérer la zone) et les 3 clés
+>   `app_config`** — chacun sur une condition nommée dans
+>   [docs/migration-getmegga.md](docs/migration-getmegga.md), §8. ⚠ `app_config` porte
+>   encore `tech@megga.ch` en **destinataire** d'alerte : il est gelé sur la création de la
+>   boîte `tech@getmegga.com`, pas sur la migration.
+>
+> Une porte mesure les nombres de ce document, **aucune ne mesure les noms d'hôte** — c'est
+> `tests/unit/domaine-getmegga.spec.ts` qui garde le CODE, pas cette prose.
+
 > Source de vérité pour Claude Code. Lis-le avant de coder.
 >
 > **🧠 CERVEAU SYSTÈME — à consulter AVANT toute tâche non triviale :**
@@ -35,6 +80,7 @@
 > - Design system Property X (Marketplace — ⚠ ARCHIVÉ, marketplace désactivée) : [docs/design-system-propertyx.md](docs/design-system-propertyx.md)
 > - Roadmap sprints : [docs/roadmap.md](docs/roadmap.md)
 > - Changelog : [docs/CHANGELOG.md](docs/CHANGELOG.md)
+> - 🔁 Migration de domaine (plan + oracles) : [docs/migration-getmegga.md](docs/migration-getmegga.md)
 > - Langue des e-mails, ce qui reste : [docs/email-i18n-handoff.md](docs/email-i18n-handoff.md)
 >
 > **🎨 Vestiges Property X (marketplace désactivée — pivot CRM-first) :**
@@ -89,14 +135,14 @@ Backend :      Supabase Pro (eayczugyrvmtqnnmvjod, eu-west-1)
                local et CI 17.)
 IA :           DeepSeek (deepseek-chat) pour TOUT le texte via Edge Functions — décision coût
                Vision/OCR/PDF : Gemini (Google) — DeepSeek n'a pas de vision. AUCUN Claude/Anthropic.
-Email :        Resend (megga.ch DKIM/SPF)
+Email :        Resend (getmegga.com DKIM/SPF)
 Payments :     Stripe
-Hosting :      Cloudflare Pages — 2 projets : megga-real-estate (megga.ch vitrine),
-               megga-app (app.megga.ch CRM, console super-admin comprise)
+Hosting :      Cloudflare Pages — 2 projets : megga-real-estate (getmegga.com vitrine),
+               megga-app (app.getmegga.com CRM, console super-admin comprise)
 CI/CD :        GitHub Actions → Cloudflare Pages + Supabase Edge Functions auto-deploy
 
-Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine megga.ch
-               Backend conservé : market_listings ~253k (dont ~35k flatfox actives) + flatfox-sync
+Marketplace :  DÉSACTIVÉE (pivot CRM-first juin 2026) — /acheter /louer → vitrine getmegga.com
+               Backend conservé : market_listings ~253k (dont ~41k flatfox actives au 10.09.2026) + flatfox-sync
                (pg_cron 04:00 UTC)
                sert uniquement le matching CRM, aucun affichage public dans cette app
 ```
@@ -585,16 +631,16 @@ tableau suive fait rougir la porte. Les deux index ci-dessus le sont aussi, par 
 
 ### Vue d'ensemble
 
-MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages). **Pivot CRM-first (juin 2026)** : `app.megga.ch` = CRM agent seul ; la vitrine et la marketplace publique vivent hors de cette app.
+MVP Compliance-First Transaction OS en production sur `main` (Cloudflare Pages). **Pivot CRM-first (juin 2026)** : `app.getmegga.com` = CRM agent seul ; la vitrine et la marketplace publique vivent hors de cette app.
 
 **Marketplace publique : DÉSACTIVÉE (pivot CRM-first) :**
-- `/acheter` + `/louer` (+ `/buy` `/rent` `/propriete`) → `MarketplaceDisabledRedirect` vers la vitrine `megga.ch`
+- `/acheter` + `/louer` (+ `/buy` `/rent` `/propriete`) → `MarketplaceDisabledRedirect` vers la vitrine `getmegga.com`
 - Backend conservé intact : `market_listings` (~130k Flatfox, ~123k RealAdvisor, ~91k actives — **remesuré le 03.09.2026**), `flatfox-sync` (pg_cron), `matching-engine` — au service du matching CRM, pas d'un affichage public
   ⚠ **Le +32k de RealAdvisor en 17 jours n'est PAS de la collecte, c'est de la rétention subie** — ne pas le lire comme une croissance du catalogue. Le sweep de retrait est plafonné à un POURCENTAGE du vivier qu'il régule (3 % du live), donc plus on sur-détient, plus on a le droit de retirer, mais moins vite que l'arriéré ne grossit : 16 nuits `capped` d'affilée du 19.08 au 03.09. Mesuré le 03.09 : notre live valait 53 047 contre **41 369 annonces que RealAdvisor déclare** (somme des 26 cantons = total_count national, à l'unité près) — ~11 700 biens de trop, soit **un bien sur quatre servi au matching qui n'est plus en vente**. Plafond porté à 6 % le 03.09 (`app_config.realadvisor_sweep_cap_pct`), à remettre à 3 % une fois le live redescendu. Un gate empirique `id_in` sur 360 candidats donne 1,1 % de faux absents : la détection est saine, c'est le drainage qui était trop lent.
   ⚠ Le point annonçait « ~117k Flatfox, ~91k RealAdvisor » (17.08), et avant cela « ~90k Flatfox, ~50k active », faux DEUX fois — le 90k désignait en réalité RealAdvisor. La prétention nomme désormais la source dans sa requête.
 - Atomes Px + onboarding gardés ; pages SPA marketplace + Property X retirées (PR #601/#602)
 
-**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · wizard « Créer un bien » Sugar v2 7 étapes · fiche V4), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existait pas.** Mesuré alors — aucune route, aucune page, aucun hook ; le namespace i18n `messages` était déclaré (`src/i18n/index.ts:29`) et consommé par **personne**. Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**. ✅ **La 9ᵉ surface est arrivée depuis, et ce n'est pas ce « Chat »** : c'est la **Messagerie**, une SECTION de la barre latérale (groupe « Mon jour », aux côtés du cockpit et de l'agenda) sur `/dashboard/messagerie`, adossée aux 9 tables `mail_*` ; le namespace `messages` compte **22 lecteurs** dans `src/` au 05.09.2026 contre zéro la veille. Elle est **sur `main` depuis le 05.09.2026** ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) et **servie** — vérifié en balayant les **247 chunks** d'`app.megga.ch` : `MessageriePage-*.js`, `MobileMessagerieScreen-*.js`, `useMailAccounts-*.js` et `oauthPopup-*.js` y sont, et `/dashboard/messagerie` apparaît dans 7 chunks (la table de navigation est inlinée par page). ⛔ **Ne pas balayer avec un motif qui s'arrête à la barre oblique** : les imports paresseux s'écrivent `"assets/Foo-hash.js"`, et un motif `[A-Za-z0-9._-]+\.js` n'en rend que **37** sur 247 — assez pour conclure à tort que le déploiement a échoué. Voir le point Messagerie ci-dessous, qui distingue le socle, l'écran et la preuve.
+**CRM agent :** la plupart des ~18 surfaces agent connectées Supabase (le « 11/14 » était périmé) — Contacts, Pipeline v2 Sugar Pure (14 stades DB → 8 colonnes UI ; kanban teinté/liste/timeline, bento de signature, nextAction = reminders), Matching, Mes biens (pager galerie + à-suivre · wizard « Créer un bien » Sugar v2 7 étapes · fiche V4), KYC (dilisense), ContactDetail, ListingForm, ActionBoard, Dashboard, cockpit Aujourd'hui, Analytics. ⛔ **« Chat » a été retiré de cette liste le 04.09.2026 : la surface n'existait pas.** Mesuré alors — aucune route, aucune page, aucun hook ; le namespace i18n `messages` était déclaré (`src/i18n/index.ts:29`) et consommé par **personne**. Le §3 disait déjà l'inverse de cette liste — « système Messages retiré du CRM agent » — donc **deux affirmations se contredisaient dans le même document**. ✅ **La 9ᵉ surface est arrivée depuis, et ce n'est pas ce « Chat »** : c'est la **Messagerie**, une SECTION de la barre latérale (groupe « Mon jour », aux côtés du cockpit et de l'agenda) sur `/dashboard/messagerie`, adossée aux 9 tables `mail_*` ; le namespace `messages` compte **22 lecteurs** dans `src/` au 05.09.2026 contre zéro la veille. Elle est **sur `main` depuis le 05.09.2026** ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) et **servie** — vérifié en balayant les **247 chunks** d'`app.getmegga.com` : `MessageriePage-*.js`, `MobileMessagerieScreen-*.js`, `useMailAccounts-*.js` et `oauthPopup-*.js` y sont, et `/dashboard/messagerie` apparaît dans 7 chunks (la table de navigation est inlinée par page). ⛔ **Ne pas balayer avec un motif qui s'arrête à la barre oblique** : les imports paresseux s'écrivent `"assets/Foo-hash.js"`, et un motif `[A-Za-z0-9._-]+\.js` n'en rend que **37** sur 247 — assez pour conclure à tort que le déploiement a échoué. Voir le point Messagerie ci-dessous, qui distingue le socle, l'écran et la preuve.
 
 **Chrome du CRM de bureau : DEUX pièces depuis le 4 septembre 2026.** Le §8 les ignorait entièrement —
 mesuré le 05.09.2026, `CLAUDE.md` ne contenait **0** occurrence de `CrmWorkspace`, `CrmTabsBar` ou
@@ -636,7 +682,7 @@ position de pager ou un filtre survit à un aller-retour entre deux onglets. La 
 
 **Lot 1 (backend) — MERGÉ ET EN PRODUCTION** ([PR #1274](https://github.com/megga/megga-real-estate/pull/1274), types régénérés par [#1275](https://github.com/megga/megga-real-estate/pull/1275)). Mesuré en prod le 05.09.2026 : **9 tables `mail_%`, 11 fonctions `mail_%`, le cron `mail-sync-2min` (`*/2 * * * *`) actif**, `mail_threads` publiée en Realtime avec `replica identity full`. Deux migrations : `20260904074500_mail_module.sql` (les 9 tables et 11 fonctions, RLS sur les 9, `purge_activity_events_retention` étendue à la catégorie `messaging`, 25 comptes par tick) et `20260904074600_mail_sync_failures.sql` (échecs consécutifs, `status='error'` au 5ᵉ). Côté code : **9 modules purs** dans `supabase/functions/_shared/mail/` — dont **6 seulement portent des specs**, soit **103 tests** ; `sync.ts`, `guard.ts` et `types.ts` ne sont exercés que par les specs backend — et **5 edge functions** (`mail-oauth`, `mail-sync`, `mail-actions`, `mail-send`, `mail-attachment`).
 
-**Lot 2 (l'écran) — MERGÉ ET EN PRODUCTION** le 05.09.2026 ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`, les cinq workflows de `main` verts dont « Deploy React app to app.megga.ch »), 15 tâches sur 15 plus les **15 correctifs de revue**.
+**Lot 2 (l'écran) — MERGÉ ET EN PRODUCTION** le 05.09.2026 ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`, les cinq workflows de `main` verts dont « Deploy React app to app.getmegga.com »), 15 tâches sur 15 plus les **15 correctifs de revue**.
 
 ⚠ **La PR a passé deux heures SANS AUCUNE CI, et ça ne se voyait pas.** `main` avait bougé sous elle (refonte du chrome, [#1279](https://github.com/megga/megga-real-estate/pull/1279)) : `mergeable=CONFLICTING` ⇒ GitHub ne calcule plus la réf de fusion ⇒ **il ne crée AUCUN run `pull_request`** — et comme les quatre workflows ne se déclenchent que sur `push: [main]` et `pull_request: [main]`, la PR n'avait plus de checks du tout. Mesuré : `actions/runs?head_sha=…` rendait **0** pour trois commits d'affilée, dont un commit VIDE poussé exprès. ⛔ **Une PR en conflit ne rougit pas : elle DISPARAÎT de la CI**, ce qui se lit comme « en attente ». L'oracle est `gh pr view --json mergeable`, jamais la liste des checks.
 
@@ -650,7 +696,7 @@ Chiffres du lot : Contre `main` au 05.09.2026, APRÈS la fusion du chrome de sep
 
 ⛔ **CE QUI N'EST PAS ÉPROUVÉ, et qu'aucune CI verte ne dira jamais.** **Aucun appel réel à Google ni à Microsoft n'a jamais eu lieu, dans aucun des deux lots** : tous les tests d'adaptateur injectent un faux `fetch` — ils éprouvent la construction des requêtes et le décodage des réponses, pas le fournisseur. Le code de bout en bout existe désormais des deux côtés ; ce qui manque est **entièrement hors du dépôt**, et Julien seul peut le poser :
 
-1. **Google** — l'URI `https://app.megga.ch/oauth/mail/callback` n'est PAS dans les *Authorized redirect URIs* du client OAuth : le consentement ne s'affiche pas, Google rend `Erreur 400 : redirect_uri_mismatch`. L'**API Gmail n'est pas activée**. Le scope **`gmail.modify` n'est pas déclaré** en Data Access — il est **RESTRICTED**, donc plus strict que les deux scopes Calendar déjà en attente (voir « Se connecter avec Google » plus bas) : écran « application non validée » et plafond de 100 utilisateurs tant qu'il ne l'est pas.
+1. **Google** — l'URI `https://app.getmegga.com/oauth/mail/callback` n'est PAS dans les *Authorized redirect URIs* du client OAuth : le consentement ne s'affiche pas, Google rend `Erreur 400 : redirect_uri_mismatch`. L'**API Gmail n'est pas activée**. Le scope **`gmail.modify` n'est pas déclaré** en Data Access — il est **RESTRICTED**, donc plus strict que les deux scopes Calendar déjà en attente (voir « Se connecter avec Google » plus bas) : écran « application non validée » et plafond de 100 utilisateurs tant qu'il ne l'est pas.
 2. **Microsoft** — `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` restent absents du projet Supabase, donc `provider:'outlook'` répond **`503 provider_not_configured` par conception**, ce qui est le bon échec : bruyant et lisible à l'écran.
 3. L'inscription **Entra ID** elle-même (§6 du plan maître).
 
@@ -687,7 +733,7 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 > part** : ni la référence de l'API (qui donne `return_url` comme un paramètre ordinaire),
 > ni le guide des flux (qui ne le mentionne pas). Mesuré sur la session
 > `vs_1U5Y6HRNzm4ajaDaoMv1BMNI` (journal d'API Stripe, `req_WZUCE21ewpBdBS`) : le corps
-> POST portait `return_url=https://app.megga.ch/dashboard/identite?verification=done`, la
+> POST portait `return_url=https://app.getmegga.com/dashboard/identite?verification=done`, la
 > réponse **200 OK ne portait aucun champ `return_url`**. Paramètre accepté, jeté en
 > silence.
 >
@@ -705,15 +751,15 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 >
 > ⛔ **`MEGGA_APP_URL` doit rester ABSENTE — ne pas « réparer » son absence.** Constaté le
 > 03.08.2026 : elle n'est posée nulle part, et c'est la bonne configuration. Son repli en
-> dur, `https://app.megga.ch`, est la valeur qui sert réellement les quatre parcours
+> dur, `https://app.getmegga.com`, est la valeur qui sert réellement les quatre parcours
 > publics — mesuré, `/kyc/…`, `/kyc-report/…`, `/accept-invite/…` et
-> `/visite/…/modifier` rendent **200 sur `app.megga.ch` et 401 sur `megga.ch`** (la
+> `/visite/…/modifier` rendent **200 sur `app.getmegga.com` et 401 sur `getmegga.com`** (la
 > vitrine est protégée par mot de passe et ne connaît aucune de ces routes).
 >
 > La poser n'ajoute donc aucune capacité, seulement deux façons de casser les liens : une
 > faute de frappe, ou le plan archivé
 > `docs/superpowers/plans/2026-06-02-whatsapp-kyc-report-pdf.md` qui donne
-> `MEGGA_APP_URL=https://megga.ch` en exemple. La suivre remplacerait une panne visible par
+> `MEGGA_APP_URL=https://getmegga.com` en exemple. La suivre remplacerait une panne visible par
 > une panne qui ressemble à un site vivant.
 >
 > À poser UNIQUEMENT le jour où l'app changerait de domaine — et alors sur le domaine de
@@ -750,7 +796,8 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 > simplement PARTAGÉ avec lui **ne peut pas créer de lien Google Meet** (Google exige un
 > utilisateur organisateur). C'est possible ici parce que **`megga.ai` EST un Workspace**
 > — mesuré le 15.08 : MX `smtp.google.com`, SPF `_spf.google.com` (par contraste
-> `megga.ch` est chez privateemail). `calendars/primary` désigne alors l'agenda de la
+> `megga.ch` était chez privateemail, et `getmegga.com` est chez Spacemail — dans les
+> deux cas, PAS un Workspace). `calendars/primary` désigne alors l'agenda de la
 > boîte usurpée.
 >
 > ⛔ **Sans la délégation à l'échelle du domaine, le secret ne sert à rien** : le jeton
@@ -774,7 +821,7 @@ UID_REGISTER_API_URL, UID_REGISTER_API_CREDENTIAL
 > ⛔ **LES DEUX JETONS NE PEUVENT PAS PORTER LA MÊME VALEUR.** L'Edge Function appelle Mapbox
 > **sans referrer** : un jeton restreint par URL y échoue en 403, alors qu'il marche dans le
 > navigateur. `MAPBOX_TOKEN` doit donc être SANS restriction, et `VITE_MAPBOX_TOKEN` — lisible par
-> quiconque dans le bundle public — doit être restreint à `app.megga.ch`.
+> quiconque dans le bundle public — doit être restreint à `app.getmegga.com`.
 >
 > ⚠ **Le code appelle Geocoding v6, jamais v5.** Mapbox a classé `geocoding/v5/mapbox.places`
 > *legacy* : un compte créé aujourd'hui reçoit `403 {"message":"Forbidden"}`. Trois appels sont
@@ -793,7 +840,7 @@ CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, SUPABASE_ACCESS_TOKEN
 ```
 
 > ✅ **`VITE_MAPBOX_TOKEN` est posé et présent dans le bundle** (16.08.2026). Vérifié en balayant
-> les **263 chunks** réellement servis par `app.megga.ch` : le jeton (`pk.eyJ…`) est dans
+> les **263 chunks** réellement servis par `app.getmegga.com` : le jeton (`pk.eyJ…`) est dans
 > `ListingFormPage-*.js` et `WizardShell-*.js`, aux côtés de `search/geocode/v6/forward`.
 >
 > ⛔ **NE PAS CHERCHER LE JETON DANS `index-*.js`** : ce fichier ne contient pas une ligne de
@@ -823,7 +870,23 @@ Consentement  External · In production (publié le 16.08) · app « MEGGA » (r
 Scopes déclarés  userinfo.email, userinfo.profile, openid  (tous NON sensibles)
 ```
 
-⚠ **L'URI de redirection est `https://api.megga.ch/auth/v1/callback`, PAS l'URL `.supabase.co`.**
+⚠ **L'URI de redirection est celle du DOMAINE CUSTOM Supabase, PAS l'URL `.supabase.co`.**
+✅ **Valeur VIVE depuis le 09.09.2026 : `https://api.getmegga.com/auth/v1/callback`** —
+phase B jouée, mesuré à l'oracle `authorize`. L'ancienne (`api.megga.ch/...`) a été **retirée de
+Google à E4** (09.09.2026), avec les deux origines JavaScript de l'ancienne zone ; son
+enregistrement DNS a suivi le 11.09.2026 — il ne répondait déjà plus que `403 error code: 1014`.
+
+⛔ **CE QUI A RENDU LA BASCULE SÛRE, et qui se rejouera à l'identique le jour d'un autre
+changement de domaine.** Mesuré le 09.09.2026 : GoTrue émet le domaine custom **même appelé sur
+l'URL `.supabase.co`** — donc `.supabase.co` n'est PAS un filet pour l'OAuth, seulement pour
+l'API. Et Supabase **n'offre aucune bascule** : sa section *Custom domains* ne propose que
+*Delete*, si bien qu'une fenêtre SANS domaine custom est inévitable, pendant laquelle GoTrue
+émet `…supabase.co/auth/v1/callback` — précisément l'URI que ce paragraphe explique avoir
+délibérément écartée. Sans filet, toute connexion Google tombe pendant cette fenêtre. La parade
+tenue : enregistrer cette URI chez Google AVANT de supprimer, puis la RETIRER après.
+⚠ Il existe en outre une étape **Activate** distincte de la vérification, que Supabase assortit
+d'une recommandation de 20-30 min d'indisponibilité — qui ne s'est pas matérialisée ici, le
+dialogue précisant lui-même « The Supabase domain will continue to work too ».
 Le projet a un domaine personnalisé, et c'est cette URL-là que le panneau du fournisseur donne
 à enregistrer. `supabase.co` a été **délibérément écarté** des URI du client : Google inscrit
 d'office le domaine de chaque URI comme domaine autorisé du consentement, et `supabase.co`
@@ -917,7 +980,7 @@ serait parti au vert. Aucun appel n'est fait vers Google ou Microsoft avec.
 ⛔ **Poser les deux secrets ne suffira PAS à connecter une boîte Outlook.** Il faut d'abord
 l'inscription **Entra ID** (App registrations → « MEGGA », comptes organisationnels ET personnels ;
 permissions **déléguées** Microsoft Graph `Mail.ReadWrite`, `Mail.Send`, `User.Read`,
-`offline_access` ; URI de redirection `https://app.megga.ch/oauth/mail/callback`). Et cette inscription
+`offline_access` ; URI de redirection `https://app.getmegga.com/oauth/mail/callback`). Et cette inscription
 sert DEUX mécaniques qui se configurent à DEUX endroits : le fournisseur **Azure de Supabase
 Auth** pour le `linkIdentity` du calendrier Outlook (`useOutlookCalendar.ts:121`), et les deux
 secrets Supabase pour le rafraîchissement côté edge (`booking-oauth.ts`) comme pour la
@@ -927,7 +990,7 @@ explique le `client_id: ''` du paragraphe ci-dessus.
 **Vérifier la bascule sans se connecter** — l'oracle est côté serveur, pas dans l'UI du dashboard :
 ```bash
 curl -s -o /dev/null -w '%{redirect_url}' \
-  'https://api.megga.ch/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fapp.megga.ch%2Fauth%2Fcallback'
+  'https://api.getmegga.com/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fapp.getmegga.com%2Fauth%2Fcallback'
 ```
 Lire le `client_id` de la redirection, puis suivre cette URL : une page « Sign in - Google Accounts »
 **sans** `redirect_uri_mismatch` / `invalid_client` / `unauthorized_client` prouve que le client et
@@ -944,15 +1007,19 @@ Ce qui reste de cet épisode est écrit plus haut, dans les deux encadrés des s
 1. **Soumettre la vérification data access** (jusqu'à 10 jours). ✅ Fait le 17.08.2026 : les
    deux scopes sont déclarés dans Data Access et la justification écrite est enregistrée ; le
    Verification Center dit désormais « Your app's data access is not verified. Verification is
-   required because your app requests sensitive or restricted scopes. » ⛔ Deux choses bloquent
-   encore, aucune dans le dépôt : (a) **la vidéo de démonstration**, seul champ que le
-   formulaire de Google déclare manquant — elle désactive le bouton Confirm ; (b)
-   **`https://megga.ch/` répond 401** (portail de la vitrine), donc la page d'accueil déclarée
-   est inaccessible au relecteur. `/privacy` et `/terms` sont bien à 200 — mesuré. Le
-   formulaire ne détecte pas le 401 ; la revue humaine, si.
+   required because your app requests sensitive or restricted scopes. » ✅ **Le blocage (b) est
+   levé depuis le 09.09.2026** : la page d'accueil déclarée répondait 401 (portail de la vitrine
+   sur l'ancienne zone), Google l'écrivait lui-même — « Your home page is behind a login page ».
+   Les trois URLs ont été redéclarées sur `getmegga.com` (mesurées à 200), et le branding
+   vérifié **puis publié** dans la minute. ⛔ **Reste (a), la vidéo de démonstration** — seul
+   champ manquant, il grise le bouton Confirm. Et elle n'est **pas encore filmable** :
+   `google_calendar_tokens` compte toujours **0 ligne** (remesuré le 11.09.2026), la liaison
+   Calendar n'a jamais tourné une fois. Ordre réel : connecter un vrai agenda, le revoir une
+   heure après (l'échec de rafraîchissement est muet), PUIS filmer — Google exige que l'écran
+   « application non validée » apparaisse dans la vidéo.
 2. **Deux jetons Mapbox distincts.** Le même est aujourd'hui posé aux deux endroits, donc le
    jeton du navigateur est **sans restriction et lisible par tous** dans le bundle public.
-   Dupliquer, et restreindre la copie navigateur à `app.megga.ch`.
+   Dupliquer, et restreindre la copie navigateur à `app.getmegga.com`.
 3. **Registre UID** (`UID_REGISTER_API_URL` / `_CREDENTIAL`) : sans lui `vat_lookup` reste
    `unavailable` et le score suisse ne repose que sur UN check.
 4. **`Step2Address.tsx` invente des adresses** quand le géocodage échoue : son `catch` retombe

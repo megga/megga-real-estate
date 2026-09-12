@@ -44,7 +44,7 @@ describe.skipIf(!HAS_KEYS)('whatsapp delivery status — progression monotone', 
       { provider: 'meta', provider_message_id: PMID_HAPPY, direction: 'outbound', wa_from: 'megga-test', wa_to: '41790000001', body: 'test delivery happy', status: 'received' },
       { provider: 'meta', provider_message_id: PMID_FAIL, direction: 'outbound', wa_from: 'megga-test', wa_to: '41790000002', body: 'test delivery fail', status: 'received' },
       // Sortant IMAGE (photo send_listings, juil 2026) : mêmes règles de progression.
-      { provider: 'meta', provider_message_id: PMID_IMG, direction: 'outbound', wa_from: 'megga-test', wa_to: '41790000003', body: 'Bien test — CHF 1000', media_type: 'image', media_url: 'https://img.megga.ch/test/0-detail.jpg', status: 'received' },
+      { provider: 'meta', provider_message_id: PMID_IMG, direction: 'outbound', wa_from: 'megga-test', wa_to: '41790000003', body: 'Bien test — CHF 1000', media_type: 'image', media_url: 'https://img.getmegga.com/test/0-detail.jpg', status: 'received' },
     ])
     if (error) throw new Error(`seed: ${error.message}`)
   })

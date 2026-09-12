@@ -272,7 +272,7 @@ export const MRH_DEMO_DETAIL: MrhBienDetail = {
  * signature. C'est voulu — la feuille se regarde, elle ne se suit pas.
  */
 export const MRH_DEMO_SEND: SendSelectionResult = {
-  url: 'https://app.megga.ch/reception/demo-banc-essai',
+  url: 'https://app.getmegga.com/reception/demo-banc-essai',
   token: 'demo-banc-essai',
   phone: '+41 79 000 00 00',
   firstName: 'Marie',

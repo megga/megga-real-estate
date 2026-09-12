@@ -7115,6 +7115,7 @@ export type Database = {
           id: string
           is_agent_error: boolean
           is_automated: boolean
+          is_from_agent: boolean
           last_error: string | null
           media_id: string | null
           media_kind: string | null
@@ -7150,6 +7151,7 @@ export type Database = {
           id?: string
           is_agent_error?: boolean
           is_automated?: boolean
+          is_from_agent?: boolean
           last_error?: string | null
           media_id?: string | null
           media_kind?: string | null
@@ -7185,6 +7187,7 @@ export type Database = {
           id?: string
           is_agent_error?: boolean
           is_automated?: boolean
+          is_from_agent?: boolean
           last_error?: string | null
           media_id?: string | null
           media_kind?: string | null

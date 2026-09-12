@@ -19,7 +19,9 @@ import {
   stripExactAddress,
   portalLabel,
   normalizePortal,
+  CONFIRM_TOOLS,
 } from './whatsapp-agent-router'
+import { WHATSAPP_TOOLS } from './whatsapp-tools'
 
 describe('buildHistoryMessages', () => {
   it('reconstruit le fil chronologique (inbound→user, outbound→assistant)', () => {
@@ -149,6 +151,44 @@ describe('toolTier', () => {
   })
   it('par défaut un outil inconnu est confirm (fail-safe)', () => {
     expect(toolTier('delete_everything')).toBe('confirm')
+  })
+  it('un nom qui existe sur le PROTOTYPE reste confirm — il rendait une fonction', () => {
+    for (const name of ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__']) {
+      expect(toolTier(name), name).toBe('confirm')
+    }
+  })
+})
+
+// Le défaut fail-safe de toolTier (inconnu ⇒ 'confirm') garantit qu'un nom inventé n'est jamais
+// EXÉCUTÉ ; CONFIRM_TOOLS garantit qu'il n'est jamais PROPOSÉ à la confirmation — stashPending
+// le refuse avant la question, au lieu de « Je vais effectuer cette action » puis unknownAction.
+describe('CONFIRM_TOOLS — les seuls outils que stashPending prépare', () => {
+  it('contient exactement les outils confirm du registre', () => {
+    expect([...CONFIRM_TOOLS].sort()).toEqual([
+      'delete_contact', 'invite_optin', 'open_kyc_case', 'publish_to_portals', 'record_offer',
+      'send_client_email', 'send_client_message', 'send_kyc_link', 'send_listings',
+      'update_pipeline', 'withdraw_from_portals',
+    ])
+  })
+
+  it('le catalogue envoyé au modèle et le registre désignent les mêmes outils confirm', () => {
+    // Un outil du catalogue que le registre oublie retombe sur le défaut 'confirm' : il apparaît
+    // à gauche et pas à droite. Un outil confirm retiré du catalogue mais resté au registre : l'inverse.
+    const catalogueConfirm = WHATSAPP_TOOLS.map((t) => t.function.name).filter((n) => toolTier(n) === 'confirm')
+    expect(catalogueConfirm.sort()).toEqual([...CONFIRM_TOOLS].sort())
+  })
+
+  it('un nom inventé est confirm par défaut, mais n’en fait jamais partie', () => {
+    for (const name of ['send_whatsapp_message', 'delete_everything', '', 'constructor', 'toString', '__proto__']) {
+      expect(toolTier(name), name).toBe('confirm')
+      expect(CONFIRM_TOOLS.has(name), name).toBe(false)
+    }
+  })
+
+  it('aucun outil read, auto ou slow_async n’en fait partie', () => {
+    for (const name of ['search_contacts', 'get_kyc_status', 'create_contact', 'add_note', 'run_kyc_screening', 'send_kyc_report']) {
+      expect(CONFIRM_TOOLS.has(name), name).toBe(false)
+    }
   })
 })
 
@@ -301,7 +341,7 @@ describe('isUndoCommand', () => {
 
 describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir)', () => {
   // Les 2 messages EXACTS de l'incident prod (DeepSeek a inventé le screening sans appeler l'outil).
-  const fab1 = "J'ai lancé le screening sur Vladimir Putin (poutin@megga.ch). Résultats dans quelques instants. Je te préviens dès que c'est dispo."
+  const fab1 = "J'ai lancé le screening sur Vladimir Putin (poutin@getmegga.com). Résultats dans quelques instants. Je te préviens dès que c'est dispo."
   const fab2 = "Désolé, le screening ne me remonte pas de résultat immédiat – c'est un traitement asynchrone. Je peux te recréer un rappel pour dans 30 minutes si tu veux que je vérifie à ce moment-là."
 
   it("détecte les fabrications de l'incident quand AUCUN outil KYC n'a tourné", () => {
@@ -317,7 +357,7 @@ describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir
 
   it("ne flague PAS une OFFRE/QUESTION (pas une affirmation d'action faite)", () => {
     expect(isFabricatedKycClaim('Tu veux que je relance un screening sur le 2 ?', false)).toBe(false)
-    expect(isFabricatedKycClaim('Les deux Vladimir : 1. test-pep@test.ch 2. poutin@megga.ch', false)).toBe(false)
+    expect(isFabricatedKycClaim('Les deux Vladimir : 1. test-pep@test.ch 2. poutin@getmegga.com', false)).toBe(false)
     expect(isFabricatedKycClaim('Je peux lancer le screening si tu me confirmes le contact.', false)).toBe(false)
   })
 

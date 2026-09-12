@@ -16,7 +16,7 @@ describe('PKCE', () => {
 })
 
 describe('buildAuthorizeUrl', () => {
-  const common = { clientId: 'cid', redirectUri: 'https://app.megga.ch/oauth/mail/callback', state: 'st', codeChallenge: 'ch', loginHint: 'g@ex.ch' }
+  const common = { clientId: 'cid', redirectUri: 'https://app.getmegga.com/oauth/mail/callback', state: 'st', codeChallenge: 'ch', loginHint: 'g@ex.ch' }
   it('Google : offline + consent + gmail.modify', () => {
     const u = new URL(buildAuthorizeUrl('gmail', common))
     expect(u.origin + u.pathname).toBe('https://accounts.google.com/o/oauth2/v2/auth')
@@ -42,10 +42,10 @@ describe('exchangeCode', () => {
       expect(b).toContain('grant_type=authorization_code')
       expect(b).toContain('code=abc')
       expect(b).toContain('code_verifier=ver')
-      expect(b).toContain('redirect_uri=https%3A%2F%2Fapp.megga.ch%2Foauth%2Fmail%2Fcallback')
+      expect(b).toContain('redirect_uri=https%3A%2F%2Fapp.getmegga.com%2Foauth%2Fmail%2Fcallback')
       return new Response(JSON.stringify({ access_token: 'at', refresh_token: 'rt', expires_in: 3599 }), { status: 200 })
     })
-    const r = await exchangeCode('gmail', { code: 'abc', codeVerifier: 'ver', clientId: 'cid', clientSecret: 's', redirectUri: 'https://app.megga.ch/oauth/mail/callback' }, { fetch: F(fetch) })
+    const r = await exchangeCode('gmail', { code: 'abc', codeVerifier: 'ver', clientId: 'cid', clientSecret: 's', redirectUri: 'https://app.getmegga.com/oauth/mail/callback' }, { fetch: F(fetch) })
     expect(r).toEqual({ access_token: 'at', refresh_token: 'rt', expires_in: 3599 })
   })
   it('sans refresh_token (consentement réutilisé) : erreur explicite', async () => {

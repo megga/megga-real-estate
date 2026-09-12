@@ -7,7 +7,7 @@
  * Remplace `HomeStickyHeader` (retiré le 2026-07-20), hérité du site public :
  * sa nav pointait vers /buy /rent /estimates /services /agencies, toutes
  * redirigées hors app depuis le pivot CRM-first — chaque lien éjectait le
- * client vers megga.ch au milieu de sa confirmation de visite.
+ * client vers getmegga.com au milieu de sa confirmation de visite.
  */
 export default function PublicPageHeader() {
   return (

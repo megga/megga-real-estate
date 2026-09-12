@@ -26,11 +26,11 @@ côté Supabase** avec un Client ID + Secret obtenus chez Google / Microsoft.
 2. **User Type** : **External** (pour accepter les emails Gmail + Workspace tiers)
 3. Remplis :
    - App name : `MEGGA`
-   - User support email : `support@megga.ch` (ou ton email)
-   - Authorized domains : `megga.ch`, `eayczugyrvmtqnnmvjod.supabase.co`
+   - User support email : `support@getmegga.com` (ou ton email)
+   - Authorized domains : `getmegga.com`, `eayczugyrvmtqnnmvjod.supabase.co`
    - Logo : 120×120 (logo MEGGA)
-   - Privacy policy URL : `https://megga.ch/privacy`
-   - Terms of service URL : `https://megga.ch/cgu`
+   - Privacy policy URL : `https://getmegga.com/privacy`
+   - Terms of service URL : `https://getmegga.com/cgu`
    - Developer contact : ton email
 4. Scopes : laisser les 3 par défaut (`openid`, `email`, `profile`)
 5. Save and continue → **Publish App** (sinon tu es limité à 100 testeurs)
@@ -40,7 +40,7 @@ côté Supabase** avec un Client ID + Secret obtenus chez Google / Microsoft.
 1. **APIs & Services** → **Credentials** → **+ CREATE CREDENTIALS** → **OAuth client ID**
 2. Application type : **Web application**
 3. Name : `MEGGA Supabase`
-4. **Authorized JavaScript origins** : `https://megga.ch`, `https://eayczugyrvmtqnnmvjod.supabase.co`
+4. **Authorized JavaScript origins** : `https://getmegga.com`, `https://eayczugyrvmtqnnmvjod.supabase.co`
 5. **Authorized redirect URIs** : **`https://eayczugyrvmtqnnmvjod.supabase.co/auth/v1/callback`**
    ⚠️ Cette URL doit être **exactement celle-ci**, sans trailing slash, sans variation.
 6. **Create**
@@ -60,7 +60,7 @@ côté Supabase** avec un Client ID + Secret obtenus chez Google / Microsoft.
 
 ### 5. Test
 
-1. Va sur `https://megga.ch/auth/connexion?pro`
+1. Va sur `https://getmegga.com/auth/connexion?pro`
 2. Clique **« Continuer avec Google »**
 3. Tu dois être redirigé vers `accounts.google.com/o/oauth2/...` (écran de choix de compte)
 4. Choisis un compte → autorise → tu reviens sur `/auth/callback` → onboarding ou dashboard
@@ -122,7 +122,7 @@ côté Supabase** avec un Client ID + Secret obtenus chez Google / Microsoft.
 
 ### 5. Test
 
-1. Va sur `https://megga.ch/auth/connexion?pro`
+1. Va sur `https://getmegga.com/auth/connexion?pro`
 2. Clique **« Continuer avec Microsoft »**
 3. Tu dois être redirigé vers `login.microsoftonline.com/common/oauth2/v2.0/authorize?...`
 4. Choisis un compte → autorise → retour sur `/auth/callback`

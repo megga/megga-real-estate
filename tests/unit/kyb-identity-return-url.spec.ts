@@ -6,7 +6,7 @@
  * du tableau de bord Stripe) EN MÊME TEMPS que `return_url`. Stripe accepte les deux,
  * répond 200 — et **jette `return_url` en silence**. Mesuré sur la session
  * `vs_1U5Y6HRNzm4ajaDaoMv1BMNI` (journal d'API `req_WZUCE21ewpBdBS`) : le corps POST
- * portait `return_url=https://app.megga.ch/dashboard/identite?verification=done`, la
+ * portait `return_url=https://app.getmegga.com/dashboard/identite?verification=done`, la
  * réponse ne portait AUCUN champ `return_url`.
  *
  * Conséquence vécue : le dirigeant photographie sa pièce, Stripe lui dit « vous pouvez

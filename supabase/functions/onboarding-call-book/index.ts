@@ -221,7 +221,7 @@ serve(async (req: Request) => {
       description,
       startMs: slotMs,
       durationMinutes: host.duration_minutes,
-      organizerEmail: hostProfile?.email ?? 'noreply@megga.ch',
+      organizerEmail: hostProfile?.email ?? 'noreply@getmegga.com',
       attendeeEmail,
       meetingUrl,
       method: 'REQUEST',

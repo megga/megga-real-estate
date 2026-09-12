@@ -2,7 +2,7 @@
  * Client HTTP Intercom — partagé par les scripts qui lisent ou écrivent le corpus.
  *
  * Extrait de `scripts/intercom-content.mjs` le 17 août 2026, quand la génération
- * de `megga.ch/aide` en est devenue un second lecteur. Le duplicat aurait porté
+ * de `getmegga.com/aide` en est devenue un second lecteur. Le duplicat aurait porté
  * l'authentification, la version d'API et surtout la PAGINATION — le curseur
  * Intercom (`pages.next.starting_after`) est exactement le genre de détail qu'une
  * copie oublie, et l'oubli ne se voit qu'au-delà de 150 articles.

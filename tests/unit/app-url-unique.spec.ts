@@ -10,7 +10,7 @@
  * avait SEPT de plus, dont trois dans des fichiers créés le jour même.
  *
  * Une règle que seule la prose défend se réécrit à chaque fichier neuf. Celle-ci
- * est particulièrement facile à enfreindre sans le voir : `https://app.megga.ch`
+ * est particulièrement facile à enfreindre sans le voir : `https://app.getmegga.com`
  * est la valeur JUSTE aujourd'hui, donc rien ne casse en la figeant — le prix ne
  * se paie qu'au changement de domaine, en une panne muette et dispersée.
  *
@@ -27,7 +27,7 @@ import { describe, expect, it } from 'vitest'
 import { readFileSafely, rel, repoPath, scanRoots } from './helpers/fs-scan'
 import { sansCommentaires } from '../../scripts/_shared/wa-outbound-purpose.mjs'
 
-const LITTERAL = 'https://app.megga.ch'
+const LITTERAL = 'https://app.getmegga.com'
 
 /** La source unique : elle porte le repli, tout le reste passe par ses constructeurs. */
 const SOURCE = 'supabase/functions/_shared/app-url.ts'

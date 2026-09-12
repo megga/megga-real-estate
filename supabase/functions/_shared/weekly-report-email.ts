@@ -6,17 +6,17 @@
 // décrivait comme « rapport à l'agent » — c'était faux, il est lu par `profiles` de rôle
 // `super_admin`. Un e-mail interne, donc : pilule utile, aucune mention légale.
 //
-// ⛔ SON BOUTON ÉTAIT MORT. Il pointait sur `megga.ch/dashboard/admin` : la vitrine est
+// ⛔ SON BOUTON ÉTAIT MORT. Il pointait sur `getmegga.com/dashboard/admin` : la vitrine est
 // derrière un mot de passe et rend 401 (mesuré le 15.08.2026). La console vit sur
-// `app.megga.ch/dashboard/admin`, qui rend 200. TROISIÈME occurrence de cette confusion
+// `app.getmegga.com/dashboard/admin`, qui rend 200. TROISIÈME occurrence de cette confusion
 // d'hôte après le logo de la coquille et le bouton de l'alerte de sécurité — d'où la
-// constante `ASSETS` et cette note : dans un e-mail, `megga.ch` n'est JAMAIS la bonne
+// constante `ASSETS` et cette note : dans un e-mail, `getmegga.com` n'est JAMAIS la bonne
 // adresse pour un lien applicatif.
 
 import { INK, MUTED, FONT, escapeHtml, shell, p, row, button } from './email-shell.ts'
 import { appDashboardUrl } from './app-url.ts'
 
-/** ⚠ app.megga.ch, jamais megga.ch : cf. l'en-tête. */
+/** ⚠ app.getmegga.com, jamais getmegga.com : cf. l'en-tête. */
 const URL_CONSOLE = appDashboardUrl('/dashboard/admin')
 
 /**

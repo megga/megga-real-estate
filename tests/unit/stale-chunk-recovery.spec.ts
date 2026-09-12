@@ -25,7 +25,7 @@ import {
 
 /** Message réel observé dans le Chrome de l'incident (Sentry + console). */
 const CHROME_MESSAGE =
-  'Failed to fetch dynamically imported module: https://app.megga.ch/assets/IdentityPage-UNAb1wxY.js'
+  'Failed to fetch dynamically imported module: https://app.getmegga.com/assets/IdentityPage-UNAb1wxY.js'
 
 describe('isStaleChunkError', () => {
   it('reconnaît chacun des motifs du catalogue, en Error comme en chaîne', () => {
@@ -51,7 +51,7 @@ describe('isStaleChunkError', () => {
 describe('extractChunkUrl', () => {
   it('extrait l\'URL absolue du message Chrome/Firefox', () => {
     expect(extractChunkUrl(new Error(CHROME_MESSAGE)))
-      .toBe('https://app.megga.ch/assets/IdentityPage-UNAb1wxY.js')
+      .toBe('https://app.getmegga.com/assets/IdentityPage-UNAb1wxY.js')
   })
 
   it('extrait une URL relative /assets/…', () => {
@@ -167,10 +167,10 @@ describe('drapeau de session (une seule tentative automatique)', () => {
 
 describe('cacheBustedReloadUrl', () => {
   it('ajoute _v en préservant chemin et query, et écrase un _v précédent', () => {
-    const once = cacheBustedReloadUrl('https://app.megga.ch/dashboard/identite?tab=2', 1700000000000)
-    expect(once).toBe('https://app.megga.ch/dashboard/identite?tab=2&_v=1700000000000')
+    const once = cacheBustedReloadUrl('https://app.getmegga.com/dashboard/identite?tab=2', 1700000000000)
+    expect(once).toBe('https://app.getmegga.com/dashboard/identite?tab=2&_v=1700000000000')
     const twice = cacheBustedReloadUrl(once, 1700000000001)
-    expect(twice).toBe('https://app.megga.ch/dashboard/identite?tab=2&_v=1700000000001')
+    expect(twice).toBe('https://app.getmegga.com/dashboard/identite?tab=2&_v=1700000000001')
   })
 })
 

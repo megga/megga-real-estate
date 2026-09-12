@@ -103,7 +103,7 @@ describe('seed staging de la console (étape 15)', () => {
       expect(c.email, `${c.email} doit être non routable`).toMatch(/@megga-staging\.invalid$/)
       // Et surtout pas le domaine allowlisté super-admin, qui promouvrait ces comptes.
       expect(c.email).not.toContain('megga-test.local')
-      expect(c.email).not.toContain('@megga.ch')
+      expect(c.email).not.toContain('@getmegga.com')
     }
     // Les adresses sont uniques : deux comptes homonymes restent deux comptes.
     expect(new Set(s.comptes.map((c) => c.email)).size).toBe(s.comptes.length)

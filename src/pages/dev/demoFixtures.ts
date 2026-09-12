@@ -185,7 +185,7 @@ export const DEMO_AI_PENDING_DELETE = {
 
 /** Lien de réception minté, tel que `MrhSendSheet` le reçoit après l'envoi. */
 export const DEMO_SEND_RESULT = {
-  url: 'https://app.megga.ch/r/demo-token-de-banc',
+  url: 'https://app.getmegga.com/r/demo-token-de-banc',
   token: 'demo-token-de-banc',
   phone: '+41798749484',
   firstName: 'Marie',

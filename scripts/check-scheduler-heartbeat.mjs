@@ -31,7 +31,7 @@
  */
 const PROJECT_REF = 'eayczugyrvmtqnnmvjod';
 const SILENCE_MAX_MIN = 10;      // 10 battements manqués (cadence mesurée : 60 s)
-const DESTINATAIRE = 'noreply@megga.ch';
+const DESTINATAIRE = 'noreply@getmegga.com';
 
 const DRY = process.argv.includes('--dry-run');
 

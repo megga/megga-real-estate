@@ -73,17 +73,17 @@ describe('routes tokenisées — les deux gardes disent la même chose', () => {
 
 describe('scrubSecretUrl', () => {
   it('caviarde le token quand il est dans le CHEMIN', () => {
-    expect(scrubSecretUrl('https://app.megga.ch/kyc/eyJpZCI6.c2ln')).toBe('https://app.megga.ch/kyc/[redacted]')
-    expect(scrubSecretUrl('https://app.megga.ch/reception/eyJpZCI6.c2ln')).toBe('https://app.megga.ch/reception/[redacted]')
-    expect(scrubSecretUrl('https://app.megga.ch/accept-invite/9c2f')).toBe('https://app.megga.ch/accept-invite/[redacted]')
+    expect(scrubSecretUrl('https://app.getmegga.com/kyc/eyJpZCI6.c2ln')).toBe('https://app.getmegga.com/kyc/[redacted]')
+    expect(scrubSecretUrl('https://app.getmegga.com/reception/eyJpZCI6.c2ln')).toBe('https://app.getmegga.com/reception/[redacted]')
+    expect(scrubSecretUrl('https://app.getmegga.com/accept-invite/9c2f')).toBe('https://app.getmegga.com/accept-invite/[redacted]')
   })
 
   it("ne se laisse pas avoir par `kyc-report`, que la branche `kyc` seule ne couvre pas", () => {
-    expect(scrubSecretUrl('https://app.megga.ch/kyc-report/9c2f')).toBe('https://app.megga.ch/kyc-report/[redacted]')
+    expect(scrubSecretUrl('https://app.getmegga.com/kyc-report/9c2f')).toBe('https://app.getmegga.com/kyc-report/[redacted]')
   })
 
   it('coupe la query ET le fragment — c\'est ce qui couvre les pages de visite et /auth/callback', () => {
-    expect(scrubSecretUrl('https://app.megga.ch/visit/9c2/edit?token=9c2f')).toBe('https://app.megga.ch/visit/9c2/edit')
-    expect(scrubSecretUrl('https://app.megga.ch/auth/callback#access_token=eyJ&refresh_token=v1')).toBe('https://app.megga.ch/auth/callback')
+    expect(scrubSecretUrl('https://app.getmegga.com/visit/9c2/edit?token=9c2f')).toBe('https://app.getmegga.com/visit/9c2/edit')
+    expect(scrubSecretUrl('https://app.getmegga.com/auth/callback#access_token=eyJ&refresh_token=v1')).toBe('https://app.getmegga.com/auth/callback')
   })
 })

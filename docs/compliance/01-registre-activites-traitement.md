@@ -98,7 +98,7 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 | **Transferts hors Suisse/UE** | Mapbox (US) — base : SCCs. Cloudflare peut router via des datacenters hors UE. |
 | **Durée de conservation** | Favoris : localStorage tant que l'utilisateur ne les supprime pas. Logs serveur : 90 jours. Annonces : jusqu'à retrait par l'agent. |
 | **Mesures de sécurité** | TLS, pas de collecte d'identité sans consentement, cookie banner conforme LPD avec opt-in analytics |
-| **Droits des personnes concernées** | Pas de compte donc droit d'accès/effacement limité aux données côté serveur (logs IP) sur demande à `privacy@megga.ch` |
+| **Droits des personnes concernées** | Pas de compte donc droit d'accès/effacement limité aux données côté serveur (logs IP) sur demande à `privacy@getmegga.com` |
 
 ---
 
@@ -114,7 +114,7 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 | **Transferts hors Suisse/UE** | Resend (US) — base : SCCs |
 | **Durée de conservation** | 24 mois à compter de la soumission si aucun contrat de mandat n'est signé. Si un mandat est signé, la conservation suit la durée du mandat + 5 ans. |
 | **Mesures de sécurité** | Checkbox de consentement obligatoire, lien vers politique de confidentialité, transmission chiffrée, accès restreint aux agents autorisés |
-| **Droits des personnes concernées** | Accès, rectification, effacement via `privacy@megga.ch` ou depuis le portail vendeur (`/portail`) |
+| **Droits des personnes concernées** | Accès, rectification, effacement via `privacy@getmegga.com` ou depuis le portail vendeur (`/portail`) |
 
 ---
 
@@ -147,7 +147,7 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 | **Catégories de données d'entrée** | Fréquence des interactions, temps de réponse, historique de visites, budget déclaré vs budget réel estimé, feedbacks post-visite, changements d'étape pipeline, nombre de biens consultés |
 | **Données produites** | Scores 0-100 (sérieux, probabilité d'achat, engagement) ; catégories (`immediate`, `1-3_months`, `hot`, `warm`, `cold`, `dormant`, `calm`, `moderate`, `tense`, `critical`) |
 | **Profilage ou décision automatisée (art. 21 nLPD)** | **Oui — profilage à risque élevé** au sens de l'art. 5 let. g nLPD. Cependant, le score n'entraîne **aucune décision automatisée produisant un effet juridique** : l'agent reste seul maître de ses actions commerciales. Le score est affiché avec le label explicite "estimation IA". |
-| **Droit d'opposition** | La personne concernée peut demander le retrait du scoring IA sur son profil en écrivant à `privacy@megga.ch`. Le champ `ai_*` est alors remis à NULL dans la base. |
+| **Droit d'opposition** | La personne concernée peut demander le retrait du scoring IA sur son profil en écrivant à `privacy@getmegga.com`. Le champ `ai_*` est alors remis à NULL dans la base. |
 | **Sous-traitants** | Supabase (calcul via Edge Function `score-engine`) — eu-west-1 |
 | **Transferts hors Suisse/UE** | Aucun (le scoring est calculé côté Supabase, pas envoyé à une API externe) |
 | **Durée de conservation** | Liée à celle du contact parent (cf. activité #2) |
@@ -211,7 +211,7 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 | **Transferts hors Suisse/UE** | Aucun (instance EU uniquement) |
 | **Durée de conservation** | 12 mois glissants |
 | **Mesures de sécurité** | Session recording désactivé, IP tronquée, cookie banner bloque l'initialisation tant que le consentement n'est pas donné |
-| **Droit de retrait du consentement** | Via le gestionnaire de cookies (lien dans le footer) ou en écrivant à `privacy@megga.ch` |
+| **Droit de retrait du consentement** | Via le gestionnaire de cookies (lien dans le footer) ou en écrivant à `privacy@getmegga.com` |
 
 ---
 

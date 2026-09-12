@@ -203,7 +203,7 @@ serve(async (req) => {
             'Authorization': `Bearer ${RESEND_API_KEY}`,
           },
           body: JSON.stringify({
-            from: 'MEGGA Immobilier <noreply@megga.ch>',
+            from: 'MEGGA Immobilier <noreply@getmegga.com>',
             to: [invitation.email],
             subject,
             html,
@@ -352,7 +352,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${RESEND_API_KEY}`,
         },
         body: JSON.stringify({
-          from: 'MEGGA Immobilier <noreply@megga.ch>',
+          from: 'MEGGA Immobilier <noreply@getmegga.com>',
           to: [body.email],
           subject,
           html,

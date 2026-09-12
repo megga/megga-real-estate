@@ -132,7 +132,7 @@ serve(async (req) => {
       // Il n'existe que pour un onglet ouvert AVANT ce déploiement, qui enverrait
       // encore `data.html`. Tant qu'il vit, n'importe quel appelant muni d'un jeton
       // d'agent peut faire partir un document HTML complet, non échappé et hors
-      // coquille, signé DKIM par megga.ch — et le chemin étant une donnée
+      // coquille, signé DKIM par getmegga.com — et le chemin étant une donnée
       // d'exécution, `lint:email-shell` ne le verra jamais.
       //
       // ⚠ « À retirer une fois le front à jour » était une INTENTION, que rien ne
@@ -152,7 +152,7 @@ serve(async (req) => {
     // La notification admin ne part JAMAIS vers un `to` fourni par l'appelant :
     // destinataire dérivé serveur (anti-relais via le template public admin).
     const recipient = template === 'contact_notification_admin'
-      ? (Deno.env.get('CONTACT_NOTIFICATION_TO') ?? 'contact@megga.ch')
+      ? (Deno.env.get('CONTACT_NOTIFICATION_TO') ?? 'contact@getmegga.com')
       : to
 
     const res = await fetch('https://api.resend.com/emails', {
@@ -162,7 +162,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'MEGGA <noreply@megga.ch>',
+        from: 'MEGGA <noreply@getmegga.com>',
         to: [recipient],
         subject: emailSubject,
         html: emailHtml,

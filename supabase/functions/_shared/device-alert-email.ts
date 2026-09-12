@@ -7,10 +7,10 @@
 // visible au banc de rendu. Trois défauts corrigés au passage, tous constatés dans le
 // gabarit d'origine :
 //
-//   1. ⛔ LE BOUTON ÉTAIT MORT. Il pointait sur `megga.ch/security/sessions`, or la
+//   1. ⛔ LE BOUTON ÉTAIT MORT. Il pointait sur `getmegga.com/security/sessions`, or la
 //      vitrine est derrière un mot de passe : mesuré le 15.08, cette adresse rend 401 en
 //      text/plain. Un e-mail de sécurité dont le bouton « Sécuriser mon compte » mène à
-//      une page verrouillée est pire qu'inutile. `app.megga.ch/security/sessions` rend
+//      une page verrouillée est pire qu'inutile. `app.getmegga.com/security/sessions` rend
 //      200 — même confusion d'hôte que le logo cassé de l'ancienne coquille.
 //   2. Les champs venant de l'extérieur n'étaient PAS échappés (`name` du profil, ville,
 //      pays, IP d'en-tête). Le navigateur et le système, eux, sont sûrs par construction :

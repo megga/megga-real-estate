@@ -28,7 +28,7 @@ Le setup compliance complet coûte ~25k CHF/an. **Ce n'est pas rationnel en phas
 3. **Consultation one-shot d'un avocat** pour validation (500-1 000 CHF)
 4. **Souscrire une RC Pro cyber** — **seul investissement non négociable** (~1 200 CHF/an)
 
-Tu es le "point de contact protection des données", pas officiellement "DPO" (pour ne pas t'engager à tenir des obligations DPO formelles). L'email `privacy@megga.ch` pointe vers toi.
+Tu es le "point de contact protection des données", pas officiellement "DPO" (pour ne pas t'engager à tenir des obligations DPO formelles). L'email `privacy@getmegga.com` pointe vers toi.
 
 **Ce que tu NE fais PAS en phase 0 :**
 - ❌ DPO externe à 8-20k CHF/an
@@ -73,7 +73,7 @@ Ouvre les 4 fichiers, remplace les `{{placeholders}}` par les vraies valeurs :
 - Adresse complète du siège
 - Numéro IDE (format CHE-XXX.XXX.XXX)
 - Nom du représentant légal
-- Email DPO : `privacy@megga.ch`
+- Email DPO : `privacy@getmegga.com`
 - Coordonnées téléphoniques
 
 **Pour le document 04 (DPO)** : tu te désignes toi-même comme "point de contact protection des données" (pas "DPO" officiel). Utilise l'option "DPO interne à double casquette" dans le template et note que c'est une désignation pro tempore jusqu'à la Phase 2.
@@ -158,7 +158,7 @@ C'est le seul investissement que tu ne dois **vraiment pas** zapper. Raison : un
 - [ ] DPA signés avec les 10 sous-traitants (PDF archivés dans `docs/compliance/dpa/`)
 - [ ] Consultation juridique one-shot effectuée + email de validation écrite conservé
 - [ ] RC Pro cyber souscrite et première prime payée
-- [ ] Email `privacy@megga.ch` opérationnel et monitoré quotidiennement
+- [ ] Email `privacy@getmegga.com` opérationnel et monitoré quotidiennement
 - [ ] Checklist 72h (Annexe B du runbook) imprimée et accessible
 
 ---
@@ -202,7 +202,7 @@ Tu es techniquement à jour. La phase 0 consiste à **documenter ce qui existe d
 | Risque | Probabilité | Gravité | Couverture Phase 0 |
 |---|---|---|---|
 | **Incident de sécurité (breach)** | Faible | Élevée | RC Pro cyber + runbook imprimé + audit trail technique |
-| **Demande d'accès/rectification d'un client** | Moyenne | Faible | Email `privacy@megga.ch` monitoré + delete-account fonctionnel |
+| **Demande d'accès/rectification d'un client** | Moyenne | Faible | Email `privacy@getmegga.com` monitoré + delete-account fonctionnel |
 | **Audit FINMA chez une agence cliente** | Faible | Moyenne | Registre rempli + DPA signés + export KYC possible |
 | **Contrôle spontané du PFPDT** | Très faible (rare pour petites boîtes) | Moyenne | Registre + DPIA préremplis = preuve de bonne foi |
 | **Plainte d'un particulier au PFPDT** | Faible | Faible (avertissement avant sanction) | Politique de confidentialité conforme + DPO de contact |

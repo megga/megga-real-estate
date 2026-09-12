@@ -260,7 +260,7 @@ sectionPadding.default: 48    sectionPadding.medium: 64
 <PxLink to="/acheter" variant="dark" weight="medium" arrow>
   Parcourir la marketplace
 </PxLink>
-<PxLink href="mailto:..." variant="light">support@megga.ch</PxLink>
+<PxLink href="mailto:..." variant="light">support@getmegga.com</PxLink>
 ```
 
 | Prop | Valeurs |

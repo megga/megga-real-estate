@@ -58,7 +58,7 @@ describe.skipIf(!HAS_KEYS)('entrée console : double journal et verdict d\'accè
     expect(before.error).toBeNull()
 
     const { error } = await superClient.rpc('admin_log_console_entry', {
-      p_metadata: { origin: 'https://app.megga.ch' },
+      p_metadata: { origin: 'https://app.getmegga.com' },
     })
     expect(error, 'un super-admin doit pouvoir journaliser son entrée').toBeNull()
 
@@ -95,7 +95,7 @@ describe.skipIf(!HAS_KEYS)('entrée console : double journal et verdict d\'accè
       .eq('actor_id', superId)
 
     const { error } = await superClient.rpc('admin_log_console_entry', {
-      p_metadata: { origin: 'https://app.megga.ch' },
+      p_metadata: { origin: 'https://app.getmegga.com' },
     })
     expect(error).toBeNull()
 
@@ -108,7 +108,7 @@ describe.skipIf(!HAS_KEYS)('entrée console : double journal et verdict d\'accè
   })
 
   it('l\'IP et le user-agent viennent de auth.sessions, pas d\'un en-tête déclaratif', async () => {
-    await superClient.rpc('admin_log_console_entry', { p_metadata: { origin: 'https://app.megga.ch' } })
+    await superClient.rpc('admin_log_console_entry', { p_metadata: { origin: 'https://app.getmegga.com' } })
 
     const { data: row } = await superClient
       .from('admin_log')

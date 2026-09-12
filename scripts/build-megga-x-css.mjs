@@ -36,7 +36,7 @@ const DROP = new Set(['html', 'body', 'html body'])
 
 // Le badge « Made in Webflow » : ses règles voyagent avec la feuille alors que le
 // badge lui-même n'est dans AUCUNE page du dépôt. Elles ne servent donc rien et
-// nomment l'outil dans le CSS livré de app.megga.ch. Retirées par MOTIF (et non
+// nomment l'outil dans le CSS livré de app.getmegga.com. Retirées par MOTIF (et non
 // par sélecteur exact) parce que Webflow les écrit en plusieurs variantes
 // (`.w-webflow-badge`, `.w-webflow-badge > img`, …).
 const DROP_PATTERN = /w-webflow-badge/

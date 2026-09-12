@@ -31,8 +31,8 @@ export const BODY_INK = '#cccccc'
 export const MUTED = '#8a8a8f'
 
 /**
- * ⚠ `app.megga.ch`, JAMAIS `megga.ch`. La vitrine est derrière un mot de passe :
- * mesuré le 15.08.2026, `megga.ch/email/megga-logo-white.png` rend **401** en
+ * ⚠ `app.getmegga.com`, JAMAIS `getmegga.com`. La vitrine est derrière un mot de passe :
+ * mesuré le 15.08.2026, `getmegga.com/email/megga-logo-white.png` rend **401** en
  * `text/plain` (23 octets), ce que tout client de messagerie affiche en image cassée.
  * C'était l'adresse de l'ancienne coquille, donc le logo était mort dans chaque e-mail
  * déjà parti. Les fichiers sont versionnés dans `public/email/` et servis en `image/png`

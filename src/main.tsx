@@ -24,9 +24,9 @@ initPostHogIfConsented()
 // démarre en français, comme avant. Au niveau module, donc une seule fois :
 // StrictMode ferait partir deux requêtes depuis un effet.
 //
-// Production seulement. L'endpoint `/api/geo` vit dans le worker de megga.ch,
+// Production seulement. L'endpoint `/api/geo` vit dans le worker de getmegga.com,
 // une AUTRE origine que celle du CRM : hors production on interroge donc le
-// megga.ch en ligne, dont le worker déployé peut ne pas encore porter la route.
+// getmegga.com en ligne, dont le worker déployé peut ne pas encore porter la route.
 // Le navigateur journalise alors lui-même un refus CORS — impossible à étouffer
 // depuis le `catch` de fetchGeoLanguage — et 35 tests E2E qui exigent une console
 // vierge tombent. Détecter la langue n'a de toute façon aucun sens face à une IP

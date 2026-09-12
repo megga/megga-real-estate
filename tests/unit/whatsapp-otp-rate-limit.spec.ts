@@ -17,6 +17,11 @@
 // `postgres`, pour qui `auth.uid()` est NULL : le test lèverait `not_authenticated` sans
 // rien éprouver du plafond. Une garde qui dit ce qu'elle vérifie vaut mieux qu'un test
 // vert qui n'assure rien.
+//
+// ⚠ Rectifié le 11.09.2026 : seul `execSql` tourne en `postgres`. `setupTwoAgencies()` rend
+// des clients AUTHENTIFIÉS, et tests/backend/whatsapp-agent-link-audit.spec.ts appelle déjà
+// ces RPC en tant qu'agent. Éprouver le plafond en exécution est donc possible ; ce fichier
+// reste statique pour les deux formes exactes qu'il interdit, pas faute de moyen.
 
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'

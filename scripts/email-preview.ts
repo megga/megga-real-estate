@@ -56,7 +56,7 @@ import { unsubscribeFooterHtml } from '../supabase/functions/_shared/email-guard
  * appellent tous `unsubscribeFooterHtml`) : quelqu'un aurait pu le casser sans que
  * le banc le montre.
  *
- * ⚠ L'hôte de démonstration est celui des EDGE FUNCTIONS, jamais `app.megga.ch` —
+ * ⚠ L'hôte de démonstration est celui des EDGE FUNCTIONS, jamais `app.getmegga.com` —
  * l'en-tête d'`email-guard.ts` explique pourquoi : le repli SPA de l'app rend 200
  * sur n'importe quel chemin et simulerait une désinscription réussie.
  */
@@ -79,7 +79,7 @@ const appel: OnboardingCallEmailData = {
   durationMinutes: 30,
   timezone: 'Europe/Zurich',
   meetingUrl: 'https://meet.google.com/abc-defg-hij',
-  manageUrl: 'https://app.megga.ch/rendez-vous/jeton-de-demonstration',
+  manageUrl: 'https://app.getmegga.com/rendez-vous/jeton-de-demonstration',
   locale: 'fr',
 }
 
@@ -149,7 +149,7 @@ const CAS: Cas[] = [
           + 'Deux correspondances attendent encore d\'être envoyées : c\'est le geste qui rapporte le plus la semaine prochaine.\n\n'
           + 'Bon week-end.',
         'Semaine au 15 août 2026',
-        'https://app.megga.ch/dashboard',
+        'https://app.getmegga.com/dashboard',
       ),
     },
   },
@@ -266,7 +266,7 @@ const CAS: Cas[] = [
       isVideo: false,
       videoLabel: 'Google Meet',
       videoLink: null,
-      manageUrl: 'https://app.megga.ch/visite/jeton/modifier',
+      manageUrl: 'https://app.getmegga.com/visite/jeton/modifier',
       buyerName: 'Marie Favre',
       agentName: 'Gregory Lyonnet',
       buyerEmail: 'marie@example.ch',
@@ -304,7 +304,7 @@ const CAS: Cas[] = [
       inviterName: 'Gregory Lyonnet',
       agencyName: 'Régie du Rhône',
       role: 'manager',
-      acceptUrl: 'https://app.megga.ch/accept-invite/jeton-de-demonstration',
+      acceptUrl: 'https://app.getmegga.com/accept-invite/jeton-de-demonstration',
     }),
   },
 
@@ -321,7 +321,7 @@ const CAS: Cas[] = [
       firstName: 'Marie',
       agentFullName: 'Gregory Lyonnet',
       agencyName: 'Régie du Rhône',
-      url: 'https://app.megga.ch/kyc/jeton-de-demonstration',
+      url: 'https://app.getmegga.com/kyc/jeton-de-demonstration',
       customMessage: null,
     }),
   })),
@@ -335,7 +335,7 @@ const CAS: Cas[] = [
       firstName: 'Marie',
       agentFullName: 'Gregory Lyonnet',
       agencyName: 'Régie du Rhône',
-      url: 'https://app.megga.ch/kyc/jeton-de-demonstration',
+      url: 'https://app.getmegga.com/kyc/jeton-de-demonstration',
       customMessage: 'Comme convenu au téléphone, voici le lien. N’hésitez pas si une question se pose.',
     }),
   },
@@ -361,7 +361,7 @@ const CAS: Cas[] = [
       timeZone: 'Europe/Zurich',
       agencyName: 'Régie du Rhône',
       agentName: 'Gregory Lyonnet',
-      manageUrl: 'https://app.megga.ch/visite/jeton/modifier',
+      manageUrl: 'https://app.getmegga.com/visite/jeton/modifier',
       location: null,
       videoLink: null,
       ...patch,
@@ -376,7 +376,7 @@ const CAS: Cas[] = [
       status,
       agencyName: 'Régie du Rhône',
       reason: status === 'validated' ? null : 'Le numéro de registre ne correspond pas à la raison sociale déclarée.',
-      appUrl: 'https://app.megga.ch',
+      appUrl: 'https://app.getmegga.com',
     })
     return {
       id: `kyb-${status}`,

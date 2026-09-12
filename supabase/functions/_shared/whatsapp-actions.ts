@@ -20,7 +20,7 @@ import { PIPELINE_STAGES, isValidStage, stageLabel, deriveDealParty, dealStageDe
 import { validateIdxProperty, toNum, type IdxProperty } from './idx-mapper.ts'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
 import { deriveKycType, kycTypeToEntityType, KYC_DOC_PROMPT, parseKycOcr, kycCategoryMaps, type KycPersonType } from './kyc-extract.ts'
-import { type WaLang, t, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint, confirmDeleteContact, deleteContactPreview } from './whatsapp-i18n.ts'
+import { type WaLang, t, confirmOpenKyc, openKycResult, pipelineMoved, pipelineAlreadyAt, pipelineNoDeal, pipelineAutoMoved, undoHint, confirmDeleteContact, deleteContactPreview, confirmSendClient, confirmUpdatePipeline, pipelineWhoDefault, pipelineWhoNamed } from './whatsapp-i18n.ts'
 import { isAgencyLabClearedInDb } from './agency-lab-guard.ts'
 import { fetchMetaMedia, extFromMime } from './whatsapp-media.ts'
 import { meggaProse } from './megga-prose.ts'
@@ -876,6 +876,62 @@ export type Prepared =
   | { ok: true; prompt: string; payload: Record<string, unknown>; preview?: string; kind?: string }
   | { ok: false; error: string }
 
+type AgencyContact = { id: string; first_name: string | null; last_name: string | null; phone: string | null }
+
+/** Fiche visée par une action confirm, lue AVANT de poser la question. L'absence (id vide,
+ *  pas un uuid, aucune fiche dans l'agence) est distinguée de la panne : conclure
+ *  « introuvable » sur une lecture en échec ferait redemander un contact qui existe. */
+async function readAgencyContact(
+  ctx: ActionCtx, rawId: unknown,
+): Promise<{ kind: 'found'; contact: AgencyContact } | { kind: 'none' } | { kind: 'error' }> {
+  const id = s(rawId)
+  // Un nom passé en guise d'id (« Test Boutous ») ne désigne aucune fiche ; interrogé, Postgres
+  // le rejetterait en erreur de syntaxe (22P02), qu'on lirait à tort comme une panne.
+  if (!id || !UUID_RE.test(id)) return { kind: 'none' }
+  const { data, error } = await ctx.supabase.from('contacts')
+    .select('id, first_name, last_name, phone').eq('id', id).eq('agency_id', ctx.agencyId).maybeSingle()
+  if (error) {
+    console.error('confirm prepare: contact read failed:', (error.message ?? 'error').slice(0, 120))
+    return { kind: 'error' }
+  }
+  return data ? { kind: 'found', contact: data as AgencyContact } : { kind: 'none' }
+}
+
+/** Confirm-tier : le message ne se propose que vers une fiche de l'agence qui porte un numéro
+ *  — les refus de l'exécuteur (whatsapp-webhook, executePending), dits AVANT le « oui ».
+ *  Sans eux, un contact_id inventé par le modèle (search_contacts sauté) donnait « … à ce
+ *  client », puis [Oui] → « Contact introuvable » : incident du 10.09.2026. */
+export async function prepareSendClientMessage(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const found = await readAgencyContact(ctx, a.contact_id)
+  if (found.kind === 'error') return { ok: false, error: t(lang, 'prepFail') }
+  if (found.kind === 'none') return { ok: false, error: t(lang, 'contactNotFoundSend') }
+  const contact = found.contact
+  if (!s(contact.phone)) return { ok: false, error: t(lang, 'contactNoPhoneSend') }
+  const body = String(a.body ?? '')
+  const fullName = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim()
+  // Prénom seul si dispo — plus naturel dans un aperçu de message ; nom complet en repli.
+  const who = (contact.first_name ?? '').trim() || fullName || (lang === 'en' ? 'this client' : 'ce client')
+  return { ok: true, prompt: confirmSendClient(lang, who, body), payload: { contact_id: contact.id, body } }
+}
+
+/** Confirm-tier : le déplacement ne se propose que pour une fiche de l'agence — le refus
+ *  « contact introuvable » d'execUpdatePipeline, dit AVANT le « oui ». L'étape et le dossier
+ *  restent vérifiés par l'exécuteur. */
+export async function prepareUpdatePipeline(ctx: ActionCtx, a: Args): Promise<Prepared> {
+  if (!hasAgency(ctx)) return { ok: false, error: NO_AGENCY }
+  const lang = ctx.lang ?? 'fr'
+  const found = await readAgencyContact(ctx, a.contact_id)
+  if (found.kind === 'error') return { ok: false, error: t(lang, 'prepFail') }
+  if (found.kind === 'none') return { ok: false, error: t(lang, 'contactNotFoundPipeline') }
+  const contact = found.contact
+  const stage = String(a.stage ?? '')
+  const name = `${(contact.first_name ?? '').trim()} ${(contact.last_name ?? '').trim()}`.trim()
+  const who = name ? pipelineWhoNamed(lang, name) : pipelineWhoDefault(lang)
+  return { ok: true, prompt: confirmUpdatePipeline(lang, who, stageLabel(stage, lang)), payload: { contact_id: contact.id, stage } }
+}
+
 type ListingRow = {
   title: string | null; transaction_type: string | null; price: number | null
   rent?: number | null; rent_chf?: number | null; rooms: number | null
@@ -931,7 +987,7 @@ export async function prepareSendListings(ctx: ActionCtx, a: Args): Promise<Prep
   // n'empêche rien : il reste dans le texte, simplement sans image.
   // On n'envoie QUE des photos que NOUS hébergeons : le repli source tiers (URL d'annonce
   // Flatfox non vérifiée) est écarté, jamais relayé au client sous l'identité WhatsApp de
-  // l'agence. Hôtes autorisés : R2 (img.megga.ch) + Storage Supabase (staging des uploads
+  // l'agence. Hôtes autorisés : R2 (img.getmegga.com) + Storage Supabase (staging des uploads
   // agents, utilisé tel quel quand le miroir R2 a échoué). Sans env → https seul (repli).
   const allowedHosts: string[] = []
   for (const base of [Deno.env.get('R2_PUBLIC_BASE'), Deno.env.get('SUPABASE_URL')]) {

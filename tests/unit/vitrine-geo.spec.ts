@@ -198,7 +198,7 @@ describe('géo — hors de Suisse', () => {
 
 describe('géo — origines admises en cross-origin', () => {
   it('admet le CRM et ses préversions', () => {
-    expect(origineAutorisee('https://app.megga.ch')).toBe(true)
+    expect(origineAutorisee('https://app.getmegga.com')).toBe(true)
     expect(origineAutorisee('https://feat-geo.megga-app.pages.dev')).toBe(true)
     expect(origineAutorisee('http://localhost:5173')).toBe(true)
   })
@@ -207,9 +207,9 @@ describe('géo — origines admises en cross-origin', () => {
     for (const origine of [
       null,
       '',
-      'https://app.megga.ch.evil.com',
+      'https://app.getmegga.com.evil.com',
       'https://evil.com',
-      'http://app.megga.ch',
+      'http://app.getmegga.com',
       'https://megga-app.pages.dev.evil.com',
     ]) {
       expect(origineAutorisee(origine), `${origine} ne doit pas être admis`).toBe(false)

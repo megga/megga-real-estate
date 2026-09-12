@@ -1,6 +1,6 @@
 # Design System — Vitrine MEGGA (`megga-vitrine-ds`)
 
-Bundle **design-system** de la vitrine megga.ch, prêt pour **`/design-sync`** (Claude Design).
+Bundle **design-system** de la vitrine getmegga.com, prêt pour **`/design-sync`** (Claude Design).
 
 ## Pourquoi ce dossier existe
 

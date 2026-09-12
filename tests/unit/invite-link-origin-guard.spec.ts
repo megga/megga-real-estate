@@ -12,14 +12,14 @@
  * donc à `PARCOURS` ci-dessous.
  *
  * Ce qu'il gardait à l'origine. `send-team-invite` faisait
- * `req.headers.get('origin') || 'https://megga.ch'`, et cette valeur devenait le
+ * `req.headers.get('origin') || 'https://getmegga.com'`, et cette valeur devenait le
  * href du bouton « Accepter l'invitation ». Un dirigeant postant avec
  * `Origin: https://evil.tld` faisait donc partir un e-mail MEGGA authentique,
  * signé DKIM, dont le bouton pointait chez lui — avec le TOKEN d'invitation dans
  * l'URL. Or ce token vaut attribution de rôle au moment du claim : c'est de
  * l'hameçonnage sur notre propre domaine doublé d'une exfiltration de capacité.
  * Le repli était faux par-dessus le marché : `/accept-invite/:token` est une
- * route de l'app CRM, que la vitrine `megga.ch` ne connaît pas — tout envoi sans
+ * route de l'app CRM, que la vitrine `getmegga.com` ne connaît pas — tout envoi sans
  * en-tête `Origin` produisait un lien mort.
  *
  * Pourquoi le fichier mêle deux natures de vérification. L'URL n'existe que dans
@@ -47,7 +47,7 @@ const ROUTE = '/accept-invite/:token'
  * son constructeur. Une entrée de plus ici couvre un parcours de plus.
  *
  * `onboarding-call-reminder` y figure bien qu'il n'ait jamais lu d'en-tête : il
- * figeait `https://app.megga.ch` en dur, ce qui est juste aujourd'hui et faux le
+ * figeait `https://app.getmegga.com` en dur, ce qui est juste aujourd'hui et faux le
  * jour d'un changement de domaine — une quatrième copie de la même adresse, dans
  * un cron que personne ne relit.
  */
@@ -106,8 +106,8 @@ describe("Constructeur de l'URL d'acceptation", () => {
 
   it("retombe sur le domaine de l'APP, jamais sur la vitrine", () => {
     // Contrôle en dur plutôt que dérivé : c'est exactement la valeur de repli que
-    // le défaut d'origine avait fausse, et `megga.ch` ne sert pas cette route.
-    expect(teamInviteAcceptUrl(JETON)).toBe(`https://app.megga.ch/accept-invite/${JETON}`)
+    // le défaut d'origine avait fausse, et `getmegga.com` ne sert pas cette route.
+    expect(teamInviteAcceptUrl(JETON)).toBe(`https://app.getmegga.com/accept-invite/${JETON}`)
   })
 
   it('produit le chemin de la route déclarée dans src/App.tsx', () => {
@@ -121,8 +121,8 @@ describe("Constructeur de l'URL d'acceptation", () => {
     // Un futur domaine de l'app change l'hôte ; le segment `/accept-invite` reste.
     // Slash final toléré : une valeur recopiée depuis un navigateur en porte un,
     // et `//accept-invite/` ne serait pas servi.
-    poserEnv({ MEGGA_APP_URL: 'https://crm.megga.ch/' })
-    expect(teamInviteAcceptUrl(JETON)).toBe(`https://crm.megga.ch/accept-invite/${JETON}`)
+    poserEnv({ MEGGA_APP_URL: 'https://crm.getmegga.com/' })
+    expect(teamInviteAcceptUrl(JETON)).toBe(`https://crm.getmegga.com/accept-invite/${JETON}`)
   })
 })
 
@@ -130,7 +130,7 @@ describe("Constructeur de l'URL de gestion d'un appel d'accueil", () => {
   beforeEach(() => poserEnv())
 
   it("retombe sur le domaine de l'APP, jamais sur la vitrine", () => {
-    expect(onboardingCallManageUrl(JETON)).toBe(`https://app.megga.ch/rendez-vous-accueil/${JETON}`)
+    expect(onboardingCallManageUrl(JETON)).toBe(`https://app.getmegga.com/rendez-vous-accueil/${JETON}`)
   })
 
   it('produit le chemin de la route déclarée dans src/App.tsx', () => {
@@ -143,8 +143,8 @@ describe("Constructeur de l'URL de gestion d'un appel d'accueil", () => {
   })
 
   it('le réglage porte une base, pas un domaine qui remplacerait le chemin', () => {
-    poserEnv({ MEGGA_APP_URL: 'https://crm.megga.ch/' })
-    expect(onboardingCallManageUrl(JETON)).toBe(`https://crm.megga.ch/rendez-vous-accueil/${JETON}`)
+    poserEnv({ MEGGA_APP_URL: 'https://crm.getmegga.com/' })
+    expect(onboardingCallManageUrl(JETON)).toBe(`https://crm.getmegga.com/rendez-vous-accueil/${JETON}`)
   })
 })
 
@@ -168,7 +168,7 @@ describe.each(PARCOURS)('$fichier', ({ fichier, segment }) => {
     const code = sansCommentaires(source)
     expect(code).not.toContain(segment)
     expect(code).not.toContain('MEGGA_APP_URL')
-    expect(code).not.toContain('https://app.megga.ch')
+    expect(code).not.toContain('https://app.getmegga.com')
     expect(source).toContain("from '../_shared/app-url.ts'")
   })
 })

@@ -1,16 +1,16 @@
 // Decide what the Vite build output (dist/) becomes, depending on the deploy
 // target. One repo, two Cloudflare Pages projects:
 //
-//   • megga.ch        → the static MEGGA vitrine (SaaS landing → CRM, no React).
-//   • app.megga.ch    → the React app (CRM /dashboard, auth, portail, …).
+//   • getmegga.com        → the static MEGGA vitrine (SaaS landing → CRM, no React).
+//   • app.getmegga.com    → the React app (CRM /dashboard, auth, portail, …).
 //
 // This runs as the npm `postbuild` hook, so it applies to every build —
 // including the git-connected Cloudflare build that publishes `dist`.
 //
-//   MEGGA_BUILD_TARGET=app   → leave the React build untouched (app.megga.ch).
-//   (default / "storefront") → replace dist/ with the static vitrine (megga.ch).
+//   MEGGA_BUILD_TARGET=app   → leave the React build untouched (app.getmegga.com).
+//   (default / "storefront") → replace dist/ with the static vitrine (getmegga.com).
 //
-// NB (juin 2026): recentrage CRM-first. megga.ch sert désormais la VITRINE
+// NB (juin 2026): recentrage CRM-first. getmegga.com sert désormais la VITRINE
 // (sites/megga-vitrine). L'ancien storefront marketplace Property X a été SUPPRIMÉ
 // du dépôt en juillet 2026 (il y dormait depuis le pivot) ; il reste récupérable
 // via git (commit 0b321bc5 et antérieurs) si la marketplace revient un jour.
@@ -32,13 +32,13 @@ if (!existsSync(dist)) {
 }
 
 if (target === 'app') {
-  // app.megga.ch: keep the pure React SPA. public/_redirects already provides
+  // app.getmegga.com: keep the pure React SPA. public/_redirects already provides
   // the `/* /index.html 200` fallback so client-side routes resolve.
-  console.log('[postbuild] MEGGA_BUILD_TARGET=app — keeping the React build for app.megga.ch');
+  console.log('[postbuild] MEGGA_BUILD_TARGET=app — keeping the React build for app.getmegga.com');
   process.exit(0);
 }
 
-// megga.ch: publish ONLY the static vitrine. Overlay it on top of the (now
+// getmegga.com: publish ONLY the static vitrine. Overlay it on top of the (now
 // discarded) React output; the vitrine index.html owns "/", its own _redirects
 // and _worker.js (Basic Auth gate — credentials and the auth-page exemptions
 // live in that file) ship with it.

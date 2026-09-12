@@ -111,6 +111,19 @@ const STR = {
     fr: 'Contact introuvable dans ton agence, rien envoyé.',
     en: 'Contact not found in your agency — nothing sent.',
   },
+  // Refus À LA PRÉPARATION d'update_pipeline, avant toute question : le geste n'envoie rien,
+  // « rien envoyé » y serait faux.
+  contactNotFoundPipeline: {
+    fr: 'Contact introuvable dans ton agence, rien déplacé.',
+    en: 'Contact not found in your agency — nothing moved.',
+  },
+  // La fiche existe mais ne porte aucun numéro. L'exécuteur range encore ce cas sous
+  // contactNotFoundSend, qui dit « introuvable » d'un contact bien présent : la préparation,
+  // qui le refuse désormais avant le « oui », dit la vraie raison et quoi faire.
+  contactNoPhoneSend: {
+    fr: "Ce contact n'a pas de numéro, rien envoyé. Ajoute-le sur sa fiche.",
+    en: 'This contact has no phone number — nothing sent. Add it to their record.',
+  },
   sendFail24h: {
     fr: "L'envoi au client a échoué (fenêtre 24h ou numéro non autorisé ?).",
     en: 'Sending to the client failed (24h window or number not allowed?).',
@@ -139,9 +152,49 @@ const STR = {
     fr: '✅ Sélection envoyée au client.',
     en: '✅ Selection sent to the client.',
   },
+  // Deux lecteurs : stashPending, qui refuse AVANT toute question un outil que le registre ne
+  // déclare pas (un nom inventé par le modèle) ; executePending, filet pour une action en attente
+  // dont le webhook ne connaît pas l'outil. Rien n'est fait dans les deux cas — le dire, et dire
+  // quoi faire : « Type d'action inconnu » ne parlait qu'au code. « Pas trouvé comment » et non
+  // « je ne sais pas » : le modèle a pu se tromper de nom pour une action qui existe.
   unknownAction: {
-    fr: "Type d'action inconnu, rien fait.",
-    en: 'Unknown action type — nothing done.',
+    fr: "Je n'ai pas trouvé comment faire ça depuis WhatsApp, je n'ai rien fait. Reformule ta demande, ou passe par le CRM.",
+    en: "I couldn't find a way to do that from WhatsApp — nothing done. Rephrase your request, or use the CRM.",
+  },
+  // ── Boutons de confirmation (spec 2026-09-10) ──────────────────────────────
+  // ⛔ Un libellé de bouton ne doit JAMAIS être un mot-clé STOP : le webhook traite un appui
+  // dont le libellé en est un comme un opt-out par BOUTON, avant même de savoir que
+  // l'expéditeur est un agent. « Cancel » est dans la liste internationale — un bouton
+  // [Cancel] désinscrirait l'agent de son brief. Verrouillé par whatsapp-i18n.test.ts.
+  // ⚠ 20 caractères au plus (limite Meta d'un libellé).
+  btnYes: {
+    fr: 'Oui',
+    en: 'Yes',
+  },
+  btnNo: {
+    fr: 'Non',
+    en: 'No',
+  },
+  // Corps du message à boutons quand la question complète est partie à part (> 1024 car.).
+  confirmShort: {
+    fr: 'Tu confirmes ?',
+    en: 'Confirm?',
+  },
+  // Parle de l'APPUI, jamais de l'action. Sur un double appui, le PREMIER a déjà exécuté
+  // l'action (ex. message envoyé au client) — seul le SECOND devient « périmé ». Dire
+  // « rien n'a été fait » à ce second appui ferait croire à l'agent que l'envoi n'a jamais eu
+  // lieu, et il le relancerait : un doublon vers le client. Le texte dit donc que CET APPUI
+  // n'a rien déclenché, sans jamais se prononcer sur l'action elle-même — qui a pu aboutir.
+  staleButton: {
+    fr: "Ce bouton ne correspond plus à une action en attente (déjà traitée, annulée ou expirée) : cet appui n'a rien déclenché.",
+    en: 'This button no longer matches a pending action (already handled, cancelled or expired): this tap did nothing.',
+  },
+  // Réponse honnête quand DeepSeek a simulé une confirmation deux fois d'affilée (garde
+  // `whatsapp-phantom-action.ts`). Elle dit qu'AUCUNE action n'attend, pour que l'agent ne
+  // réponde pas « oui » à une question qui n'a jamais rien préparé.
+  phantomAction: {
+    fr: "Je n'ai pas réussi à préparer cette action : elle n'est ni faite, ni en attente de ta confirmation. Redis-la-moi (par exemple « supprime la fiche de Dubois ») et je te la soumets avec les boutons Oui et Non.",
+    en: "I couldn't prepare that action: it is neither done nor waiting for your confirmation. Ask me again (e.g. “delete Dubois's record”) and you'll get Yes and No buttons to confirm it.",
   },
 } as const
 

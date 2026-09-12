@@ -11,9 +11,9 @@
 // l'URL affichée à l'agent avec celle du bouton reçu par le client).
 //
 // POURQUOI `MEGGA_KYC_PUBLIC_DOMAIN` A DISPARU. Ce réglage promettait un DOMAINE
-// (`kyc.megga.ch`) alors que le parcours client est une route de l'app CRM,
+// (`kyc.getmegga.com`) alors que le parcours client est une route de l'app CRM,
 // `/kyc/:token` (src/App.tsx) : le segment de chemin `/kyc` fait partie de
-// l'adresse. Le poser à `app.megga.ch` aurait donc produit un lien tout aussi mort
+// l'adresse. Le poser à `app.getmegga.com` aurait donc produit un lien tout aussi mort
 // que son repli — lequel désignait un hôte sans aucun enregistrement DNS. Il
 // n'était par ailleurs déclaré nulle part (ni config.toml, ni workflow, ni
 // inventaire des secrets) : un réglage jamais posé dont le défaut ne résout même
@@ -24,14 +24,21 @@
 // même SPA, poser `MEGGA_APP_URL` sur CE domaine suffit : le segment `/kyc` reste
 // attaché à la route, pas au réglage.
 //
-// ⚠ CE RÉGLAGE DOIT DÉSIGNER L'APP, PAS LA VITRINE. Mesuré le 03.08.2026 :
-// `app.megga.ch/kyc/<jeton>` rend 200, `megga.ch/kyc/<jeton>` rend 401 — la vitrine
-// est protégée par mot de passe et ne connaît aucune de ces routes. Un plan archivé
-// du dépôt (`docs/superpowers/plans/2026-06-02-whatsapp-kyc-report-pdf.md`) donne
-// pourtant `MEGGA_APP_URL=https://megga.ch` en exemple : le suivre remplacerait une
-// panne visible (hôte sans DNS) par une panne qui ressemble à un site vivant.
-// Aucune porte ne peut lire la valeur réelle d'un secret — c'est la seule chose ici
-// qu'un test ne couvre pas, et elle se vérifie à la main au déploiement.
+// ⚠ CE RÉGLAGE DOIT DÉSIGNER L'APP, PAS LA VITRINE. Mesuré le 03.08.2026, sur les
+// domaines de l'époque : `app.megga.ch/kyc/<jeton>` rendait 200, `megga.ch/kyc/<jeton>`
+// rendait 401 — la vitrine est protégée par mot de passe et ne connaît aucune de ces
+// routes. Un plan archivé du dépôt
+// (`docs/superpowers/plans/2026-06-02-whatsapp-kyc-report-pdf.md`) donne pourtant la
+// VITRINE en exemple : le suivre remplacerait une panne visible (hôte sans DNS) par une
+// panne qui ressemble à un site vivant. Aucune porte ne peut lire la valeur réelle d'un
+// secret — c'est la seule chose ici qu'un test ne couvre pas, et elle se vérifie à la
+// main au déploiement.
+//
+// 🔁 MIGRATION getmegga.com (09.09.2026). Le repli est passé de `https://app.megga.ch` à
+// `https://app.getmegga.com`. ⚠ CE FICHIER EST LE POINT DE BASCULE DE TOUS LES LIENS
+// SORTANTS : un déploiement de ce repli AVANT que `app.getmegga.com` ne serve le CRM
+// enverrait des liens KYC, des invitations et des rapports PDF vers un hôte sans DNS.
+// L'ordre est écrit dans docs/migration-getmegga.md, phase B.
 
 /**
  * Base de l'app CRM, sans slash final.
@@ -61,7 +68,7 @@ function appBaseUrl(): string {
   // posée-mais-vide donnait une base `''`, donc des URL RELATIVES dans un e-mail : le lien
   // ne mène nulle part, et la panne a exactement la signature de celle qu'on vient de fermer.
   const brut = (env ?? '').trim()
-  return (brut || 'https://app.megga.ch').replace(/\/+$/, '')
+  return (brut || 'https://app.getmegga.com').replace(/\/+$/, '')
 }
 
 /**
@@ -78,8 +85,8 @@ export function kycMagicLinkUrl(token: string): string {
  * URL de gestion publique d'une visite (report / annulation) pour un capability token.
  *
  * Même panne que le lien KYC, et elle vivait dans `send-visit-email` : l'adresse était
- * bâtie sur `megga.ch`, la VITRINE, alors que `/visite/:id/modifier` est une route de
- * l'app. Mesuré — `megga.ch` rend 401 sur ce chemin, `app.megga.ch` rend 200. Tous les
+ * bâtie sur la VITRINE, alors que `/visite/:id/modifier` est une route de l'app.
+ * Mesuré à l'époque — la vitrine rendait 401 sur ce chemin, l'app 200. Tous les
  * liens de gestion déjà envoyés menaient donc à une page d'authentification : l'acheteur
  * ne pouvait ni reporter ni annuler, et le durcissement du jeton de visite (#1114)
  * protégeait un parcours que personne ne pouvait atteindre.
@@ -96,7 +103,7 @@ export function visitManageUrl(visitId: string, manageToken: string): string {
  * URL d'acceptation d'une invitation d'équipe (route `/accept-invite/:token`).
  *
  * `send-team-invite` la bâtissait depuis l'en-tête `Origin` de la requête, avec
- * `https://megga.ch` en repli — deux défauts d'un coup.
+ * `https://getmegga.com` en repli — deux défauts d'un coup.
  *
  * 1. SÉCURITÉ. `Origin` est choisi par l'appelant. Un dirigeant postant avec
  *    `Origin: https://evil.tld` faisait partir un e-mail MEGGA authentique, signé
@@ -125,7 +132,7 @@ export function teamInviteAcceptUrl(token: string): string {
  * annulation et replanification du rendez-vous sans aucune autre preuve : hameçonnage
  * sur notre propre domaine, doublé d'une exfiltration de capacité.
  *
- * `onboarding-call-reminder`, lui, figeait `https://app.megga.ch` en dur — juste
+ * `onboarding-call-reminder`, lui, figeait `https://app.getmegga.com` en dur — juste
  * aujourd'hui, mais c'était une QUATRIÈME copie de la même adresse, qui aurait survécu
  * en silence à un changement de domaine. Les trois passent maintenant par ici.
  *
@@ -155,7 +162,7 @@ export function kycReportRenderUrl(token: string): string {
  *
  * ⛔ POURQUOI ELLE EXISTE, ALORS QUE LES AUTRES CONSTRUCTEURS SERVENT DES PARCOURS
  * PUBLICS. Mesuré le 16 août 2026 : trois fichiers neufs figeaient
- * `https://app.megga.ch/…` en dur — `admin-alert-email.ts` (monitoring),
+ * `https://app.getmegga.com/…` en dur — `admin-alert-email.ts` (monitoring),
  * `weekly-report-email.ts` (console, dont l'en-tête se compte lui-même comme
  * « TROISIÈME occurrence de cette confusion ») et `visit-email.ts` (tableau de
  * bord). C'est exactement la répétition que l'incident d'`onboarding-call-reminder`

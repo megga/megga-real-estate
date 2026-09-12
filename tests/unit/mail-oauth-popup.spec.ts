@@ -21,7 +21,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { isOAuthReply, POPUP_FEATURES, OAUTH_REPLY_TYPE } from '@/lib/mail/oauthPopup'
 
-const ORIGINE = 'https://app.megga.ch'
+const ORIGINE = 'https://app.getmegga.com'
 const STATE = 'a1b2c3'
 const VALIDE = { origin: ORIGINE, data: { type: OAUTH_REPLY_TYPE, code: 'code-du-fournisseur', state: STATE } }
 
@@ -37,8 +37,8 @@ describe('isOAuthReply — les trois verrous de la réponse de pop-up', () => {
   it('REFUSE une autre origine', () => {
     expect(isOAuthReply({ ...VALIDE, origin: 'https://evil.example' }, ORIGINE, STATE)).toBe(false)
     // Un sous-domaine n'est pas la même origine, et un préfixe non plus.
-    expect(isOAuthReply({ ...VALIDE, origin: 'https://app.megga.ch.evil.example' }, ORIGINE, STATE)).toBe(false)
-    expect(isOAuthReply({ ...VALIDE, origin: 'http://app.megga.ch' }, ORIGINE, STATE)).toBe(false)
+    expect(isOAuthReply({ ...VALIDE, origin: 'https://app.getmegga.com.evil.example' }, ORIGINE, STATE)).toBe(false)
+    expect(isOAuthReply({ ...VALIDE, origin: 'http://app.getmegga.com' }, ORIGINE, STATE)).toBe(false)
   })
 
   it('REFUSE un autre type de message', () => {

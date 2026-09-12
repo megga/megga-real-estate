@@ -35,7 +35,7 @@ const corsHeaders = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
-const APP_URL = (Deno.env.get('MEGGA_APP_URL') ?? Deno.env.get('APP_URL') ?? 'https://app.megga.ch').replace(/\/$/, '')
+const APP_URL = (Deno.env.get('MEGGA_APP_URL') ?? Deno.env.get('APP_URL') ?? 'https://app.getmegga.com').replace(/\/$/, '')
 
 /** Code d'erreur de la RPC → statut HTTP. Tout le reste est un 500 légitime. */
 const STATUS_BY_CODE: Record<string, number> = {

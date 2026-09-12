@@ -73,7 +73,7 @@ Trois sorties, à trancher avant d'écrire une ligne :
 
 ### Lot D — la vitrine · le trou connu
 
-Un utilisateur **déjà inscrit** qui bascule la langue sur `megga.ch` ne l'enregistre pas :
+Un utilisateur **déjà inscrit** qui bascule la langue sur `getmegga.com` ne l'enregistre pas :
 `localStorage` est cloisonné par origine et la vitrine n'a pas la session du CRM. En
 pratique il rebasculera dans le CRM, où c'est capté. Fermer le trou demande de brancher
 `sites/megga-vitrine/js/megga-lang.js` sur son propre client Supabase.

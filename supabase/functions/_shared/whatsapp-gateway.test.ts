@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, isDialablePhone, PHONE_MIN_DIGITS, PHONE_MAX_DIGITS, type NormalizedInboundMessage } from './whatsapp-gateway'
+import {
+  getProvider, verifyHmac, constantTimeEqual, allowedPriorStatuses, isDialablePhone, PHONE_MIN_DIGITS, PHONE_MAX_DIGITS,
+  BUTTONS_MAX, BUTTON_TITLE_MAX, BUTTON_ID_MAX, BUTTONS_BODY_MAX,
+  type NormalizedInboundMessage, type OutboundButtonsMessage,
+} from './whatsapp-gateway'
 
 // Régression de l'audit du 03.08.2026 §4.2. Le webhook choisissait sa branche de
 // vérification d'après l'en-tête envoyé par l'APPELANT : sans
@@ -195,6 +199,26 @@ describe('whatsapp-gateway — réponses à un bouton (opt-out Meta)', () => {
     expect(inbound({ type: 'button', button: {} })?.body).toBeNull()
     expect(inbound({ type: 'interactive', interactive: {} })?.body).toBeNull()
   })
+
+  // L'identifiant vit À CÔTÉ du corps, jamais dedans : `body` alimente le corpus de voix et
+  // la compréhension. Mais c'est l'identifiant qui dit à quoi la réponse se rapporte.
+  it('replyId porte l’identifiant technique, body garde le libellé', () => {
+    const m = inbound({ type: 'interactive', interactive: {
+      type: 'button_reply', button_reply: { id: 'pa:0f8e7d6c-5b4a-4938-8271-605f4e3d2c1b:yes', title: 'Oui' },
+    } })
+    expect(m?.replyId).toBe('pa:0f8e7d6c-5b4a-4938-8271-605f4e3d2c1b:yes')
+    expect(m?.body).toBe('Oui')
+  })
+
+  it('replyId lit aussi une entrée de liste et le payload d’un bouton de template', () => {
+    expect(inbound({ type: 'interactive', interactive: { list_reply: { id: 'row_3', title: 'Me désinscrire' } } })?.replyId).toBe('row_3')
+    expect(inbound({ type: 'button', button: { text: 'Stop promotions', payload: 'STOP_PROMO' } })?.replyId).toBe('STOP_PROMO')
+  })
+
+  it('replyId est null quand personne n’a appuyé sur rien', () => {
+    expect(inbound({ type: 'text', text: { body: 'oui' } })?.replyId).toBeNull()
+    expect(inbound({ type: 'interactive', interactive: { button_reply: { id: '', title: 'Oui' } } })?.replyId).toBeNull()
+  })
 })
 
 describe('isDialablePhone — bornage 6–15 chiffres', () => {
@@ -279,7 +303,7 @@ describe('Meta buildSendImageRequest', () => {
     const meta = getProvider('meta')
     expect(meta.buildSendImageRequest).toBeDefined()
     const req = meta.buildSendImageRequest!(
-      { toPhone: '41791112233', link: 'https://img.megga.ch/l/abc/0-detail.jpg', caption: 'Appartement 3,5 p. — CHF 2\'450/mois' },
+      { toPhone: '41791112233', link: 'https://img.getmegga.com/l/abc/0-detail.jpg', caption: 'Appartement 3,5 p. — CHF 2\'450/mois' },
       { metaToken: 'TOK', metaPhoneNumberId: 'PNID', metaApiVersion: 'v22.0' },
     )
     expect(req.url).toBe('https://graph.facebook.com/v22.0/PNID/messages')
@@ -289,19 +313,19 @@ describe('Meta buildSendImageRequest', () => {
       messaging_product: 'whatsapp',
       to: '41791112233',
       type: 'image',
-      image: { link: 'https://img.megga.ch/l/abc/0-detail.jpg', caption: 'Appartement 3,5 p. — CHF 2\'450/mois' },
+      image: { link: 'https://img.getmegga.com/l/abc/0-detail.jpg', caption: 'Appartement 3,5 p. — CHF 2\'450/mois' },
     })
   })
 
   it('omet caption du body quand non fournie', () => {
     const meta = getProvider('meta')
     const req = meta.buildSendImageRequest!(
-      { toPhone: '41791112233', link: 'https://img.megga.ch/x.jpg' },
+      { toPhone: '41791112233', link: 'https://img.getmegga.com/x.jpg' },
       { metaToken: 'TOK', metaPhoneNumberId: 'PNID', metaApiVersion: 'v22.0' },
     )
     const body = JSON.parse(req.body)
     expect('caption' in body.image).toBe(false)
-    expect(body.image).toEqual({ link: 'https://img.megga.ch/x.jpg' })
+    expect(body.image).toEqual({ link: 'https://img.getmegga.com/x.jpg' })
   })
 
 })
@@ -389,5 +413,73 @@ describe('buildMarkReadRequest (Meta)', () => {
   it('ajoute l’indicateur typing si demandé', () => {
     const body = JSON.parse(meta.buildMarkReadRequest!('wamid.XYZ', config, { typing: true }).body)
     expect(body.typing_indicator).toEqual({ type: 'text' })
+  })
+})
+
+describe('Meta buildSendButtonsRequest — boutons de réponse', () => {
+  const meta = getProvider('meta')
+  const config = { metaToken: 'TOK', metaPhoneNumberId: 'PNID', metaApiVersion: 'v22.0' }
+  const OUI_NON = [{ id: 'pa:x:yes', title: 'Oui' }, { id: 'pa:x:no', title: 'Non' }]
+  const build = (over: Partial<OutboundButtonsMessage> = {}) =>
+    meta.buildSendButtonsRequest!({ toPhone: '41791112233', body: 'Tu confirmes ?', buttons: OUI_NON, ...over }, config)
+
+  it('construit un message interactif de type button, boutons dans l’ordre', () => {
+    expect(meta.buildSendButtonsRequest).toBeDefined()
+    const req = build()
+    expect(req.url).toBe('https://graph.facebook.com/v22.0/PNID/messages')
+    expect(req.headers.Authorization).toBe('Bearer TOK')
+    expect(JSON.parse(req.body)).toEqual({
+      messaging_product: 'whatsapp',
+      to: '41791112233',
+      type: 'interactive',
+      interactive: {
+        type: 'button',
+        body: { text: 'Tu confirmes ?' },
+        action: { buttons: [
+          { type: 'reply', reply: { id: 'pa:x:yes', title: 'Oui' } },
+          { type: 'reply', reply: { id: 'pa:x:no', title: 'Non' } },
+        ] },
+      },
+    })
+  })
+
+  it('accepte exactement les bornes de Meta', () => {
+    const buttons = Array.from({ length: BUTTONS_MAX }, (_, i) => ({
+      id: `${i}`.padEnd(BUTTON_ID_MAX, 'x'), title: `${i}`.padEnd(BUTTON_TITLE_MAX, 'y'),
+    }))
+    expect(() => build({ body: 'z'.repeat(BUTTONS_BODY_MAX), buttons })).not.toThrow()
+  })
+
+  it('accepte les bornes basses : un seul bouton, un caractère partout', () => {
+    expect(() => build({ body: 'Q', buttons: [{ id: 'a', title: 'A' }] })).not.toThrow()
+  })
+
+  // Lever ICI plutôt que laisser Meta répondre 400 : la garde rend un échec de construction,
+  // et l'appelant retombe sur le texte sans aller-retour réseau.
+  it('refuse ce que Meta refuserait', () => {
+    const trop = Array.from({ length: BUTTONS_MAX + 1 }, (_, i) => ({ id: `b${i}`, title: `B${i}` }))
+    expect(() => build({ buttons: [] })).toThrow(RangeError)
+    expect(() => build({ buttons: trop })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'a', title: 'y'.repeat(BUTTON_TITLE_MAX + 1) }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'a', title: '' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'x'.repeat(BUTTON_ID_MAX + 1), title: 'A' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: '', title: 'A' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'a', title: 'A' }, { id: 'a', title: 'B' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'a', title: 'A' }, { id: 'b', title: 'A' }] })).toThrow(RangeError)
+    expect(() => build({ body: '' })).toThrow(RangeError)
+    expect(() => build({ body: 'z'.repeat(BUTTONS_BODY_MAX + 1) })).toThrow(RangeError)
+    // Valeurs blanches — Meta les refuse comme des valeurs absentes.
+    expect(() => build({ body: '   ' })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: 'a', title: ' ' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: ' a ', title: 'A' }] })).toThrow(RangeError)
+    expect(() => build({ buttons: [{ id: '   ', title: 'A' }] })).toThrow(RangeError)
+  })
+
+  it('ne recopie jamais le libellé refusé dans le message d’erreur', () => {
+    const titre = 'Visite chez M. Dupont, 12 rue X'
+    let message = ''
+    try { build({ buttons: [{ id: 'a', title: titre }] }) } catch (e) { message = (e as Error).message }
+    expect(message).toMatch(/bouton 1/)
+    expect(message).not.toContain('Dupont')
   })
 })

@@ -19,7 +19,8 @@ export function isPairingCodeValid(expiresAt: string | null | undefined): boolea
 export type ToolTier = 'read' | 'auto' | 'confirm' | 'slow_async'
 
 // Source de vérité du tier par outil. Inconnu => 'confirm' (fail-safe : jamais
-// d'exécution d'un outil non classé sans confirmation humaine).
+// d'exécution d'un outil non classé sans confirmation humaine) — mais jamais proposé à la
+// confirmation non plus : stashPending ne prépare que CONFIRM_TOOLS, dérivé d'ici.
 const TOOL_TIERS: Record<string, ToolTier> = {
   get_my_agenda: 'read',
   search_contacts: 'read',
@@ -100,8 +101,17 @@ const TOOL_TIERS: Record<string, ToolTier> = {
 }
 
 export function toolTier(name: string): ToolTier {
-  return TOOL_TIERS[name] ?? 'confirm'
+  // Object.hasOwn, pas TOOL_TIERS[name] : un nom inventé comme « constructor » ou « toString »
+  // lisait le PROTOTYPE et rendait une fonction, qui échappait au défaut 'confirm'.
+  return Object.hasOwn(TOOL_TIERS, name) ? TOOL_TIERS[name] : 'confirm'
 }
+
+/** Outils confirm DÉCLARÉS au registre — seuls à avoir une préparation (stashPending) et un
+ *  exécuteur (executePending). ≠ `toolTier(name) === 'confirm'`, qui vaut aussi pour un nom que
+ *  le modèle invente : celui-là ne doit jamais être proposé à la confirmation, rien ne l'exécuterait. */
+export const CONFIRM_TOOLS: ReadonlySet<string> = new Set(
+  Object.entries(TOOL_TIERS).filter(([, tier]) => tier === 'confirm').map(([name]) => name),
+)
 
 // Portails de syndication supportés + libellé humain (jamais l'enum brut à l'agent).
 export const PORTAL_LABELS: Record<string, string> = { immobilier_ch: 'immobilier.ch' }

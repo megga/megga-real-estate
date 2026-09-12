@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { refusalText } from './whatsapp-i18n'
+import { detectStopRequest } from './whatsapp-stop-keywords'
+import { parseConfirmation } from './whatsapp-agent-router'
+import { BUTTON_TITLE_MAX } from './whatsapp-gateway'
 
 describe('refusalText — ce que la garde dit à l’agent', () => {
   const EXPOSABLES = [
@@ -170,5 +173,97 @@ describe('prompts/résultats paramétrés', () => {
     expect(confirmUpdatePipeline('en', pipelineWhoNamed('en', 'Marie'), 'Negotiation'))
       .toBe("I'll move Marie's file to « Negotiation ». Confirm? (reply « yes » / « no »)")
     expect(pipelineWhoNamed('fr', 'Marie')).toBe('le dossier de Marie')
+  })
+})
+
+// Ce que l'agent lit À LA PLACE d'une question quand la préparation refuse (stashPending) :
+// la réponse part sans boutons, elle ne doit donc ni inviter un « oui », ni laisser croire
+// qu'un geste a eu lieu. Banc des refus eux-mêmes : whatsapp-actions.test.ts.
+describe('refus de préparation — contact visé par une action confirm', () => {
+  const REFUS = ['contactNotFoundSend', 'contactNotFoundPipeline', 'contactNoPhoneSend'] as const
+
+  it('existent dans les deux langues, et diffèrent', () => {
+    for (const k of REFUS) {
+      expect(t('fr', k)).not.toBe(t('en', k))
+      for (const lang of ['fr', 'en'] as const) expect(t(lang, k).length, `${lang}/${k}`).toBeGreaterThan(20)
+    }
+  })
+
+  it('disent que rien n’a été fait — et le pipeline ne parle jamais d’envoi', () => {
+    for (const k of REFUS) {
+      expect(t('fr', k), k).toMatch(/rien (envoyé|déplacé)/)
+      expect(t('en', k), k).toMatch(/nothing (sent|moved)/)
+    }
+    expect(t('fr', 'contactNotFoundPipeline')).not.toMatch(/envoy/)
+    expect(t('en', 'contactNotFoundPipeline')).not.toMatch(/sent/)
+  })
+
+  it('ne se lisent jamais comme une question à confirmer', () => {
+    for (const k of REFUS) {
+      expect(t('fr', k), k).not.toMatch(/confirm|« oui »/i)
+      expect(t('en', k), k).not.toMatch(/confirm|« yes »/i)
+    }
+  })
+})
+
+// unknownAction : le refus d'un outil que le registre ne déclare pas (nom inventé par le modèle),
+// dit AVANT toute question par stashPending. Il remplaçait « Type d'action inconnu, rien fait. » —
+// juste, mais qui ne disait pas quoi faire, et un refus muet se solde par la même demande répétée.
+describe('refus de préparation — outil que le registre ne déclare pas', () => {
+  it('dit que rien n’a été fait, et quoi faire à la place', () => {
+    expect(t('fr', 'unknownAction')).toMatch(/rien fait/)
+    expect(t('fr', 'unknownAction')).toMatch(/reformule/i)
+    expect(t('en', 'unknownAction')).toMatch(/nothing done/)
+    expect(t('en', 'unknownAction')).toMatch(/rephrase/i)
+    expect(t('fr', 'unknownAction')).not.toBe(t('en', 'unknownAction'))
+  })
+
+  it('ne parle ni du code ni d’une question à confirmer', () => {
+    for (const lang of ['fr', 'en'] as const) {
+      expect(t(lang, 'unknownAction'), lang).not.toMatch(/type d'action|action type|outil|tool/i)
+      expect(t(lang, 'unknownAction'), lang).not.toMatch(/confirm|« oui »|« yes »/i)
+    }
+  })
+})
+
+describe('boutons de confirmation — libellés et textes', () => {
+  const LANGS = ['fr', 'en'] as const
+  const BUTTON_KEYS = ['btnYes', 'btnNo'] as const
+
+  // La borne vient de la gateway, pas d'un 20 recopié : si Meta la change, un seul endroit.
+  it('tiennent dans la limite Meta d’un libellé, et diffèrent l’un de l’autre', () => {
+    for (const lang of LANGS) {
+      for (const k of BUTTON_KEYS) {
+        expect(t(lang, k).length, `${lang}/${k}`).toBeGreaterThan(0)
+        expect(t(lang, k).length, `${lang}/${k}`).toBeLessThanOrEqual(BUTTON_TITLE_MAX)
+      }
+      expect(t(lang, 'btnYes')).not.toBe(t(lang, 'btnNo'))
+    }
+  })
+
+  // ⛔ LE PIÈGE. Un appui sur un bouton dont le libellé est un mot-clé STOP est traité comme
+  // un opt-out par bouton, AVANT la bifurcation agent/client du webhook. « Cancel » est dans
+  // la liste internationale : un bouton [Cancel] désinscrirait l'agent de son brief du matin.
+  it('aucun libellé de bouton n’est un mot-clé de désinscription', () => {
+    for (const lang of LANGS) {
+      for (const k of BUTTON_KEYS) {
+        expect(detectStopRequest(t(lang, k)), `${lang}/${k} = « ${t(lang, k)} »`).toBeNull()
+      }
+    }
+  })
+
+  // Repli : si Meta ne renvoyait pas l'identifiant, le libellé passerait par le chemin tapé.
+  it('les libellés sont compris par parseConfirmation', () => {
+    for (const lang of LANGS) {
+      expect(parseConfirmation(t(lang, 'btnYes'))).toBe('yes')
+      expect(parseConfirmation(t(lang, 'btnNo'))).toBe('no')
+    }
+  })
+
+  it('les textes de contrôle existent dans les deux langues, et diffèrent', () => {
+    for (const k of ['confirmShort', 'staleButton'] as const) {
+      expect(t('fr', k)).not.toBe(t('en', k))
+      for (const lang of LANGS) expect(t(lang, k).length, `${lang}/${k}`).toBeGreaterThan(5)
+    }
   })
 })

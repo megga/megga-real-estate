@@ -2,7 +2,7 @@
 // POST /functions/v1/magic-link-send-email
 //
 // Sprint 4.7.E — Envoi de l'email du lien magique KYC au client via Resend.
-// DKIM/SPF megga.ch déjà configuré (cf. CLAUDE.md).
+// DKIM/SPF getmegga.com déjà configuré (cf. CLAUDE.md).
 //
 // Cette fonction est appelée :
 //   1. Automatiquement par `magic-link-create` après création (si email
@@ -65,7 +65,7 @@ async function authorizeSendEmailCall(
   return { mode: 'agent', agencyId: auth.profile.agency_id }
 }
 
-const FROM_EMAIL = Deno.env.get('MEGGA_KYC_FROM_EMAIL') ?? 'kyc@megga.ch'
+const FROM_EMAIL = Deno.env.get('MEGGA_KYC_FROM_EMAIL') ?? 'kyc@getmegga.com'
 const FROM_NAME = Deno.env.get('MEGGA_KYC_FROM_NAME') ?? 'MEGGA'
 
 // Le gabarit vit dans `_shared/magic-link-email.ts` depuis le 15.08.2026 : il y est PUR,

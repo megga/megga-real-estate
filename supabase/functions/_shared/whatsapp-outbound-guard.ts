@@ -25,8 +25,7 @@ import {
   getProvider, type SendConfig, type WhatsAppProvider, type OutboundTemplateMessage,
 } from './whatsapp-gateway.ts'
 import { sendWithRetry, type SendWithRetryOpts } from './whatsapp-retry.ts'
-import { toWhatsAppText } from './whatsapp-format.ts'
-import { meggaProse } from './megga-prose.ts'
+import { formatOutboundText } from './whatsapp-format.ts'
 import { isWhatsAppEnabled } from './whatsapp-config.ts'
 
 export type OutboundPurpose =
@@ -49,12 +48,19 @@ export type GuardReason =
   | 'marketing_requires_consent' | 'window_closed' | 'kill_switch'
   /** `number_verification` demandée sans vérification en cours pour ce numéro. */
   | 'no_pending_verification'
+  /** `lpd_notice` vers un numéro d'agent vérifié : l'avis est écrit pour un prospect. */
+  | 'notice_not_for_agent'
 
 /** Motif EXPOSABLE — ce que le site d'appel a le droit de montrer. */
 export type PublicReason = GuardReason | 'not_contactable'
 
 export type OutboundPayload =
   | { type: 'text'; body: string }
+  /**
+   * Message à BOUTONS DE RÉPONSE. Un message libre comme un autre : il exige la fenêtre 24 h
+   * (`needsOpenWindow`) et son corps reçoit la même mise en forme que le texte.
+   */
+  | { type: 'buttons'; body: string; buttons: Array<{ id: string; title: string }> }
   | { type: 'image'; url: string; caption?: string }
   | { type: 'document'; mediaId: string; filename: string; caption?: string }
   /**
@@ -319,6 +325,14 @@ export async function sendOutboundGuarded(a: SendOutboundArgs): Promise<SendOutb
       sent_by_profile_id: a.sentByProfileId ?? null,
       is_automated: a.isAutomated ?? false,
       is_agent_error: a.isAgentError ?? false,
+      // Trace des boutons proposés : sans elle, un message à boutons et son repli texte
+      // laissent des lignes `whatsapp_messages` identiques, et la preuve de prod ne peut plus
+      // distinguer l'un de l'autre. Les identifiants `pa:<uuid>:yes|no` ne sont pas une
+      // donnée personnelle. La colonne existe déjà (elle porte le payload Meta ENTRANT) et
+      // est purgée par le même cron quotidien (`whatsapp-purge-raw-daily`, 30 j) — pas un
+      // second registre à gérer. Rien ne LIT `raw` d'un sortant aujourd'hui ; seul `raw` d'un
+      // entrant l'est (jeton signé, etc.), donc cet ajout n'a rien à respecter en aval.
+      raw: a.payload.type === 'buttons' ? { interactive_buttons: a.payload.buttons } : undefined,
     }, { onConflict: 'provider,provider_message_id', ignoreDuplicates: true })
     // Le message EST parti : ne pas le trahir en rendant un échec. On journalise et on rend ok.
     if (error) console.error('whatsapp guard: sortant non persisté:', error.message.slice(0, 120))
@@ -346,6 +360,7 @@ export async function sendOutboundGuarded(a: SendOutboundArgs): Promise<SendOutb
 function outboundBody(p: OutboundPayload): string | null {
   switch (p.type) {
     case 'text': return p.body
+    case 'buttons': return p.body
     case 'image': return p.caption ?? null
     case 'document': return p.caption ?? p.filename
     // ⚠ L'espace et la CLÉ, tous deux repris de l'existant : le CRM affiche `[template: <clé>]`
@@ -357,25 +372,31 @@ function outboundBody(p: OutboundPayload): string | null {
 }
 
 /**
- * Construit la requête HTTP. `meggaProse` + `toWhatsAppText` s'appliquent aux textes ET aux
- * légendes — un message client est un message client, quel que soit son support. JAMAIS au
- * template : ses variables sont validées telles quelles par Meta.
+ * Construit la requête HTTP. `formatOutboundText` s'applique aux textes ET aux légendes — un
+ * message client est un message client, quel que soit son support. JAMAIS au template : ses
+ * variables sont validées telles quelles par Meta.
  */
 function buildRequest(
   provider: WhatsAppProvider, to: string, p: OutboundPayload, config: SendConfig,
 ) {
   switch (p.type) {
     case 'text':
-      return provider.buildSendTextRequest({ toPhone: to, body: toWhatsAppText(meggaProse(p.body)) }, config)
+      return provider.buildSendTextRequest({ toPhone: to, body: formatOutboundText(p.body) }, config)
+    case 'buttons':
+      // Les limites Meta sont vérifiées par le constructeur : s'il lève, `sendOutboundGuarded`
+      // rend un échec de construction et l'appelant retombe sur le texte.
+      return provider.buildSendButtonsRequest?.({
+        toPhone: to, body: formatOutboundText(p.body), buttons: p.buttons,
+      }, config) ?? null
     case 'image':
       return provider.buildSendImageRequest?.({
         toPhone: to, link: p.url,
-        caption: p.caption ? toWhatsAppText(meggaProse(p.caption)) : undefined,
+        caption: p.caption ? formatOutboundText(p.caption) : undefined,
       }, config) ?? null
     case 'document':
       return provider.buildSendDocumentRequest?.({
         toPhone: to, mediaId: p.mediaId, filename: p.filename,
-        caption: p.caption ? toWhatsAppText(meggaProse(p.caption)) : undefined,
+        caption: p.caption ? formatOutboundText(p.caption) : undefined,
       }, config) ?? null
     case 'template':
       return provider.buildSendTemplateRequest?.({ ...p.message, toPhone: to }, config) ?? null

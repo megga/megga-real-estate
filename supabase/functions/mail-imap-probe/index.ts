@@ -109,17 +109,17 @@ serve(async (req: Request) => {
   const results = []
   for (const [host, port, cmd, attendu] of [
     ['mail.infomaniak.com', 993, 'a1 CAPABILITY', /^\* CAPABILITY/m],
-    ['mail.infomaniak.com', 465, 'EHLO megga.ch', /^250/m],
+    ['mail.infomaniak.com', 465, 'EHLO getmegga.com', /^250/m],
     // ⛔ `imap.bluewin.ch` N'EXISTE PAS — le plan le donnait, la sonde a rendu
     // « failed to lookup address information » en 28 ms (échec DNS, pas blocage
     // réseau : le même runtime avait résolu Infomaniak juste avant). L'hôte réel
     // est `imaps.bluewin.ch`, qui pointe sur `imaps.p.bluenet.ch`.
     ['imaps.bluewin.ch', 993, 'a1 CAPABILITY', /^\* CAPABILITY/m],
-    ['smtpauths.bluewin.ch', 465, 'EHLO megga.ch', /^250/m],
+    ['smtpauths.bluewin.ch', 465, 'EHLO getmegga.com', /^250/m],
     // Témoin : TLS IMPLICITE sur 587. Il doit échouer — 587 parle en clair puis
     // STARTTLS. ⚠ Ce que ce témoin NE dit PAS, et que le plan en concluait à tort :
     // il ne prouve pas que le port est bloqué. Voir `probeClair` ci-dessous.
-    ['mail.infomaniak.com', 587, 'EHLO megga.ch', /^250/m],
+    ['mail.infomaniak.com', 587, 'EHLO getmegga.com', /^250/m],
   ] as [string, number, string, RegExp][]) {
     results.push(await probe(host, port, cmd, attendu))
   }

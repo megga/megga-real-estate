@@ -74,7 +74,7 @@ Cette analyse d'impact porte sur deux traitements à risque élevé effectués p
 
 **Proportionnalité.** Le score est utilisé comme aide à la décision, pas comme décision. Un contact scoré "froid" n'est pas exclu du service, simplement déprioritisé dans les actions proactives de l'agent. La personne concernée continue de recevoir le même niveau de service si elle contacte l'agent.
 
-**Transparence.** Mention "estimation IA" systématique. Politique de confidentialité mentionnant explicitement le scoring. Droit d'opposition via `privacy@megga.ch` (remise à NULL des champs `ai_*` du profil contact).
+**Transparence.** Mention "estimation IA" systématique. Politique de confidentialité mentionnant explicitement le scoring. Droit d'opposition via `privacy@getmegga.com` (remise à NULL des champs `ai_*` du profil contact).
 
 ### 2.2 Screening PEP/Sanctions
 
@@ -120,7 +120,7 @@ Cette analyse d'impact porte sur deux traitements à risque élevé effectués p
 
 1. **Label "estimation IA"** affiché systématiquement à côté de tout score (R4)
 2. **Pas de décision automatisée** produisant un effet juridique (art. 21 nLPD)
-3. **Droit d'opposition** documenté dans la politique de confidentialité, exécutable via `privacy@megga.ch` (R4, R6)
+3. **Droit d'opposition** documenté dans la politique de confidentialité, exécutable via `privacy@getmegga.com` (R4, R6)
 4. **Audit trail** de tous les calculs de score via `activity_events` avec `actor_id = 'ai'` (R4, R6)
 5. **Algorithme déterministe** (pas de ML black-box) — les facteurs et leurs pondérations sont documentés et auditable (R2)
 6. **Accès restreint** aux scores via RLS PostgreSQL — seul l'agent propriétaire et son agence voient les scores de ses contacts (R5, R6)

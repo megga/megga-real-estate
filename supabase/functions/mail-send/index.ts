@@ -113,7 +113,7 @@ serve(async (req: Request) => {
     if (tooBig) return json({ error: 'attachment_too_large_outlook', filename: tooBig.filename, limit_bytes: GRAPH_ATTACHMENT_MAX_BYTES }, 413)
   }
 
-  const messageId = makeMessageId(account.email.split('@')[1] ?? 'megga.ch')
+  const messageId = makeMessageId(account.email.split('@')[1] ?? 'getmegga.com')
   // ⛔ UN TRANSFERT N'EST PAS UNE RÉPONSE. Coller `In-Reply-To`/`References` de
   // l'original sur un transfert le range, chez le DESTINATAIRE, dans une conversation
   // à laquelle il n'a jamais participé (RFC 5322 : ces en-têtes désignent le message

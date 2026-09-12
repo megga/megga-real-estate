@@ -9,7 +9,7 @@ const base = {
   inviterName: 'Gregory Lyonnet',
   agencyName: 'Régie du Rhône',
   role: 'manager',
-  acceptUrl: 'https://app.megga.ch/accept-invite/jeton-abc',
+  acceptUrl: 'https://app.getmegga.com/accept-invite/jeton-abc',
 }
 
 describe('buildTeamInviteEmail', () => {
@@ -44,7 +44,7 @@ describe('buildTeamInviteEmail', () => {
 
   it('porte le lien d’acceptation et l’expiration', () => {
     const html = buildTeamInviteEmail(base).html
-    expect(html).toContain('https://app.megga.ch/accept-invite/jeton-abc')
+    expect(html).toContain('https://app.getmegga.com/accept-invite/jeton-abc')
     expect(html).toContain('expire dans 7 jours')
   })
 
@@ -54,7 +54,7 @@ describe('buildTeamInviteEmail', () => {
 
   it('porte l’habillage commun, jamais l’ancien wordmark', () => {
     const html = buildTeamInviteEmail(base).html
-    expect(html).toContain('app.megga.ch/email/megga-logo-white.png')
+    expect(html).toContain('app.getmegga.com/email/megga-logo-white.png')
     expect(html).not.toContain('Immobilier Suisse')
   })
 })

@@ -389,6 +389,13 @@ MEGGA_MAGIC_LINK_HMAC_SECRET = "env(MEGGA_MAGIC_LINK_HMAC_SECRET)"
 GOOGLE_CLIENT_ID = "test-only-local.apps.googleusercontent.com"
 MICROSOFT_CLIENT_ID = "test-only-local-microsoft-client"
 
+# ⛔ VALEUR DE TEST, POUR LE RUNTIME LOCAL SEUL — même raison. Sans elle, whatsapp-webhook
+# rend 500 (`META_APP_SECRET not configured`) avant de lire le moindre message : aucun de ses
+# chemins d'écriture n'était exercé par un appel réel, seulement recopié dans les specs.
+# tests/backend/whatsapp-webhook-agent-inbound.spec.ts signe ses payloads avec cette valeur,
+# qu'elle relit ICI. En production, le secret vient des secrets du projet Supabase.
+META_APP_SECRET = "test-only-local-meta-app-secret"
+
 [analytics]
 # Disabled: supabase_vector container fails on Colima
 # (docker.sock mount not supported). Not needed for backend tests.

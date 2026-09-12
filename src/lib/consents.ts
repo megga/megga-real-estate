@@ -17,6 +17,6 @@ export type RequiredConsentType = 'terms' | 'privacy'
  * promettait donc un document et le lien en ouvrait un autre.
  */
 export const LEGAL_URLS: Record<RequiredConsentType, string> = {
-  terms: 'https://megga.ch/terms',
-  privacy: 'https://megga.ch/privacy',
+  terms: 'https://getmegga.com/terms',
+  privacy: 'https://getmegga.com/privacy',
 }

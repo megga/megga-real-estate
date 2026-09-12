@@ -15,7 +15,7 @@ import {
   calendarReturnPath,
 } from '@/lib/calendarOauth'
 
-const ORIGIN = 'https://app.megga.ch'
+const ORIGIN = 'https://app.getmegga.com'
 
 describe('calendarRedirectTo', () => {
   it('marque le flux selon le provider', () => {

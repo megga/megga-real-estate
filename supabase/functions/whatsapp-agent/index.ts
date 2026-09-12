@@ -2,24 +2,27 @@
 // Cerveau + mains de MEGGA sur WhatsApp (Phase 4A). Boucle function-calling DeepSeek.
 // Appelé UNIQUEMENT par whatsapp-webhook en service-role. Jamais exposé au public.
 //
-// Contrat : POST { profileId, waNumber, message } -> { reply }
+// Contrat : POST { profileId, waNumber, message } -> { reply, isError?, confirmPendingId? }
 //   (agencyId du body est IGNORÉ : on re-dérive l'agence depuis whatsapp_agent_links
 //    vérifié — défense en profondeur contre un appel direct avec un body forgé.)
+//   `confirmPendingId` : id de l'action stockée dans whatsapp_pending_actions — celle qu'on
+//   vient de créer, ou celle déjà en attente quand le cerveau était occupé (« busy ») — à
+//   laquelle le webhook lie les boutons [Oui] [Non].
 // - outils read/auto : exécutés directement (scopés agence + agent)
 // - outil confirm : NON exécuté ; stocké dans whatsapp_pending_actions + demande « oui »
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
-import { toolTier, isFabricatedKycClaim, canLeaveConfirm, buildHistoryMessages, stageLabel, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
-import { detectLang, t, asyncAck, confirmSendClient, confirmUpdatePipeline, pipelineWhoDefault, pipelineWhoNamed } from '../_shared/whatsapp-i18n.ts'
+import { toolTier, CONFIRM_TOOLS, isFabricatedKycClaim, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
+import { detectLang, t, asyncAck } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
   execGetContactBrief, execListFollowups, execGetMatches, execGetDailyBrief,
   execScheduleVisit, execCreateReminder, execUpdatePipeline, execUpdatePipelineWithUndo, execQualifyLead,
   execCreateDeal, execSearchListings, execGetKycStatus,
   prepareSendListings, prepareRecordOffer, prepareOpenKycCase, prepareSendKycLink, prepareInviteOptin,
-  prepareSendClientEmail, prepareDeleteContact,
+  prepareSendClientEmail, prepareDeleteContact, prepareSendClientMessage, prepareUpdatePipeline,
   execRunKycScreening, execAttachKycDocument, execSendKycReport,
   execSummarizeGroupThread, execCheckGroupLeak,
   execDraftListingCopy, execPrepareMeeting,
@@ -36,6 +39,7 @@ import { redactPII } from '../_shared/pii-redaction.ts'
 import { redactLlmMessages } from '../_shared/wa-agent-redaction.ts'
 import { fetchHotContactBlock } from '../_shared/contact-memory.ts'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
+import { detectPhantomAction, phantomNextStep, PHANTOM_RETRY_NUDGE } from '../_shared/whatsapp-phantom-action.ts'
 
 const DEEPSEEK_TIMEOUT_MS = 12_000
 const MAX_TURNS = 5          // tours d'échange avec DeepSeek
@@ -226,6 +230,7 @@ serve(async (req) => {
   let toolCallsUsed = 0
   let kycToolCalled = false // anti-fabrication : une ACTION KYC (screening/rapport/attache) a-t-elle RÉELLEMENT tourné ?
   let kycStatusRead = false // get_kyc_status (LECTURE) a tourné → légitime la narration d'ÉTAT, jamais une revendication d'ACTION
+  let phantomRetried = false // garde anti-confirmation simulée : UNE relance au plus par requête
   const resultCache = new Map<string, string>() // F4 : dédup outils identiques d'un tour
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -240,6 +245,23 @@ serve(async (req) => {
       // GARDE ANTI-FABRICATION KYC : DeepSeek prétend un screening/rapport lancé/fait sans avoir
       // appelé l'outil → on NE relaie JAMAIS la fausse action, on renvoie une correction honnête.
       if (isFabricatedKycClaim(content, kycToolCalled, kycStatusRead)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
+      // GARDE ANTI-CONFIRMATION SIMULÉE (incident du 10.09.2026) : DeepSeek demande de confirmer,
+      // ou annonce une action, sans avoir appelé l'outil — rien n'est préparé, aucun bouton ne suit,
+      // et un « oui » repartirait au cerveau comme un message neuf. UNE relance, consigne
+      // corrective en fin de system ; à la seconde simulation, la vérité. Pas de relance au dernier
+      // tour : la passe suivante serait F9, sans outils, où « appelle l'outil » ne peut pas être
+      // suivi. La fausse revendication n'est jamais relayée, donc jamais stockée dans la mémoire.
+      const phantomStep = phantomNextStep(content, !phantomRetried && turn < MAX_TURNS - 1)
+      if (phantomStep !== 'pass') {
+        // PII-safe : le type de simulation seul, jamais le contenu.
+        console.warn(`wa-agent phantom ${detectPhantomAction(content)} -> ${phantomStep}`)
+        if (phantomStep === 'retry') {
+          phantomRetried = true
+          messages[0] = { ...messages[0], content: `${messages[0].content as string}\n\n${PHANTOM_RETRY_NUDGE}` }
+          continue
+        }
+        return json({ reply: t(lang, 'phantomAction'), isError: true }, 200)
+      }
       return json({ reply: content }, 200)
     }
 
@@ -292,14 +314,18 @@ serve(async (req) => {
         const stash = await stashPending(ctx, waNumber, name, args)
         if (stash.status === 'busy') {
           logTool('busy')
-          return json({ reply: t(lang, 'busy'), isError: true }, 200)
+          // Le rappel reprend la question de l'action QUI ATTEND, avec SES boutons : sans elle,
+          // [Oui] confirmerait une action que l'agent n'a plus sous les yeux.
+          const busyReply = stash.prompt ? `${t(lang, 'busy')}\n\n${stash.prompt}` : t(lang, 'busy')
+          return json({ reply: busyReply, isError: true, confirmPendingId: stash.pendingId ?? null }, 200)
         }
         if (stash.status === 'error') {
           logTool('error')
           return json({ reply: stash.error ?? t(lang, 'prepFail'), isError: true }, 200)
         }
         logTool('confirm_pending')
-        return json({ reply: stash.prompt ?? t(lang, 'fallbackConfirm') }, 200)
+        // `confirmPendingId` : le webhook rend la question avec [Oui] [Non] liés à CETTE action.
+        return json({ reply: stash.prompt ?? t(lang, 'fallbackConfirm'), confirmPendingId: stash.pendingId ?? null }, 200)
       }
 
       // attach_kyc_document = ACTION KYC synchrone (attache une pièce) → arme kycToolCalled (toute
@@ -327,6 +353,11 @@ serve(async (req) => {
   const forcedContent = forced?.choices?.[0]?.message?.content as string | undefined
   if (forcedContent) {
     if (isFabricatedKycClaim(forcedContent, kycToolCalled, kycStatusRead)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
+    // Même garde, sans relance : cette passe est déjà la dernière, et sans outils (`'none'`).
+    if (detectPhantomAction(forcedContent)) {
+      console.warn(`wa-agent phantom ${detectPhantomAction(forcedContent)} -> fallback (passe forcée)`)
+      return json({ reply: t(lang, 'phantomAction'), isError: true }, 200)
+    }
     return json({ reply: forcedContent }, 200)
   }
   return json({ reply: t(lang, 'reformulate'), isError: true }, 200)
@@ -473,19 +504,25 @@ async function runTool(ctx: ActionCtx, name: string, args: Record<string, unknow
 // confirmerait sans le savoir une autre action que celle annoncée).
 async function stashPending(
   ctx: ActionCtx, waNumber: string, tool: string, args: Record<string, unknown>,
-): Promise<{ status: 'created' | 'busy' | 'error'; prompt?: string; error?: string }> {
+): Promise<{ status: 'created' | 'busy' | 'error'; prompt?: string; error?: string; pendingId?: string }> {
+  // Un nom que le registre ne déclare pas (inventé par le modèle) n'a ni préparation ni exécuteur :
+  // toolTier le range en 'confirm' pour ne jamais l'exécuter, mais le stocker proposerait « Je vais
+  // effectuer cette action » avec des boutons, puis unknownAction au [Oui]. Refusé avant toute
+  // lecture : ce refus ne dépend d'aucun état, et le rappel `busy` laisserait croire l'action lançable.
+  if (!CONFIRM_TOOLS.has(tool)) return { status: 'error', error: t(ctx.lang ?? 'fr', 'unknownAction') }
   const { data: existing } = await ctx.supabase
     .from('whatsapp_pending_actions')
-    .select('expires_at')
+    .select('id, expires_at, summary')
     .eq('profile_id', ctx.profileId)
     .maybeSingle()
   if (existing && Date.parse(existing.expires_at) > Date.now()) {
-    return { status: 'busy' }
+    // L'identifiant ET la question de l'action qui attend : le rappel `busy` les reprend.
+    return { status: 'busy', pendingId: existing.id as string, prompt: existing.summary as string }
   }
 
   // Préparation par outil : prompt humain affiché à l'agent + payload figé stocké.
-  // send_listings / record_offer valident et formatent ici → si échec, on le DIT
-  // (et on ne stocke rien), au lieu de promettre une action qui planterait au « oui ».
+  // Chaque prepare* valide et formate → si échec, on le DIT (et on ne stocke rien, donc
+  // aucun identifiant ni bouton), au lieu de promettre une action qui planterait au « oui ».
   let prompt = t(ctx.lang ?? 'fr', 'confirmGeneric')
   let storeArgs: Record<string, unknown> = args
   if (tool === 'delete_contact') {
@@ -525,32 +562,13 @@ async function stashPending(
     if (!p.ok) return { status: 'error', error: p.error }
     prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'send_client_message') {
-    const body = String(args.body ?? '')
-    const lang = ctx.lang ?? 'fr'
-    let who = lang === 'en' ? 'this client' : 'ce client'
-    const cid = String(args.contact_id ?? '')
-    if (cid) {
-      const { data: c } = await ctx.supabase.from('contacts')
-        .select('first_name, last_name').eq('id', cid).eq('agency_id', ctx.agencyId).maybeSingle()
-      if (c) {
-        const fullName = `${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim()
-        // prénom seul si dispo — plus naturel dans un aperçu de message ; nom complet en repli
-        if (fullName) who = (c.first_name ?? '').trim() || fullName
-      }
-    }
-    prompt = confirmSendClient(lang, who, body)
+    const p = await prepareSendClientMessage(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
   } else if (tool === 'update_pipeline') {
-    const stage = String(args.stage ?? '')
-    const label = stageLabel(stage, ctx.lang ?? 'fr')
-    let who = pipelineWhoDefault(ctx.lang ?? 'fr')
-    const cid = String(args.contact_id ?? '')
-    if (cid) {
-      const { data: c } = await ctx.supabase.from('contacts')
-        .select('first_name, last_name').eq('id', cid).eq('agency_id', ctx.agencyId).maybeSingle()
-      const name = c ? `${(c.first_name ?? '').trim()} ${(c.last_name ?? '').trim()}`.trim() : ''
-      if (name) who = pipelineWhoNamed(ctx.lang ?? 'fr', name)
-    }
-    prompt = confirmUpdatePipeline(ctx.lang ?? 'fr', who, label)
+    const p = await prepareUpdatePipeline(ctx, args)
+    if (!p.ok) return { status: 'error', error: p.error }
+    prompt = p.prompt; storeArgs = p.payload
   }
 
   // Purge d'un éventuel pending EXPIRÉ pour ce profil (sinon l'INSERT atomique ci-dessous
@@ -562,7 +580,7 @@ async function stashPending(
   // deux cerveaux concurrents (EdgeRuntime.waitUntil) — la contrainte UNIQUE(profile_id)
   // rejette (23505) et on renvoie 'busy', au lieu d'ÉCRASER silencieusement l'action déjà
   // annoncée à l'agent (F2 : sinon un « oui » validerait une autre action que celle affichée).
-  const { error: insErr } = await ctx.supabase.from('whatsapp_pending_actions').insert({
+  const { data: inserted, error: insErr } = await ctx.supabase.from('whatsapp_pending_actions').insert({
     profile_id: ctx.profileId,
     agency_id: ctx.agencyId,
     wa_number: waNumber,
@@ -570,11 +588,13 @@ async function stashPending(
     args: { ...storeArgs, __lang: ctx.lang ?? 'fr' },
     summary: prompt,
     expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
-  })
+  }).select('id').single()
   if (insErr) {
-    // 23505 = unique_violation → un pending valide a gagné la course concurrente.
+    // 23505 = unique_violation → un pending valide a gagné la course concurrente. Sans son
+    // identifiant sous la main, le rappel part en texte seul, jamais avec des boutons devinés.
     if ((insErr as { code?: string }).code === '23505') return { status: 'busy' }
     return { status: 'error', error: insErr.message }
   }
-  return { status: 'created', prompt }
+  // L'identifiant de la ligne : les boutons [Oui] [Non] le porteront (spec 2026-09-10).
+  return { status: 'created', prompt, pendingId: (inserted as { id: string } | null)?.id }
 }

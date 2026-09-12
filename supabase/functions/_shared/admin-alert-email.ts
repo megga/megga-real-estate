@@ -21,7 +21,7 @@ import {
 import { appDashboardUrl } from './app-url.ts'
 import type { Alert } from './admin-alerts.ts'
 
-/** ⚠ app.megga.ch, jamais megga.ch : la vitrine est derrière un mot de passe (401). */
+/** ⚠ app.getmegga.com, jamais getmegga.com : la vitrine est derrière un mot de passe (401). */
 const URL_MONITORING = appDashboardUrl('/dashboard/admin/monitoring')
 
 /**

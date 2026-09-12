@@ -8,14 +8,14 @@
  * 20 juillet 2026 parce qu'il racontait l'ancienne version de ce qu'Intercom
  * corrigeait. Ici rien n'est versionné — seul ce générateur entre dans le dépôt.
  *
- * POURQUOI PAS SIMPLEMENT LIER `help.megga.ch`. Le centre d'aide Intercom
+ * POURQUOI PAS SIMPLEMENT LIER `help.getmegga.com`. Le centre d'aide Intercom
  * n'accepte ni HTML ni CSS personnalisés (dit par Intercom, sans échéance) : il
  * ne peut porter que nos couleurs, jamais MEGGA X. Cette page-ci est la vitrine,
  * avec ses classes et son chrome.
  *
  * CE QU'ELLE NE REMPLACE PAS : Fin et la recherche d'Intercom vivent dans le
  * Messenger et ne s'exportent pas. Le bouton « ? » du CRM garde donc le panneau ;
- * cette page remplace `help.megga.ch`, pas le panneau.
+ * cette page remplace `help.getmegga.com`, pas le panneau.
  *
  * PLACE DANS LA CHAÎNE — ce script tourne EN DERNIER :
  *   overlay-storefront.mjs  (dist/ = la vitrine statique)
@@ -51,7 +51,7 @@ import { creerClientIntercom, AIDE_JETON_MANQUANT } from './_shared/intercom-api
 
 const racine = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = resolve(racine, 'dist');
-const SITE = 'https://megga.ch';
+const SITE = 'https://getmegga.com';
 
 /** Les deux langues servies, et où elles atterrissent. */
 const SORTIES = {

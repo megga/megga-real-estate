@@ -3,8 +3,8 @@
  *
  * POURQUOI CETTE ROUTE EXISTE. Toute surface `/dashboard/*` passe par
  * `ProtectedRoute`, qui sans session fait
- * `window.location.replace('https://megga.ch/login')` — une redirection ABSOLUE
- * vers la production. On est alors déposé sur `app.megga.ch`, qui sert `main`,
+ * `window.location.replace('https://getmegga.com/login')` — une redirection ABSOLUE
+ * vers la production. On est alors déposé sur `app.getmegga.com`, qui sert `main`,
  * en croyant regarder localhost : on relit l'ancienne version de son propre
  * travail. Le piège ne ressemble pas à une erreur. Même idiome, mêmes raisons
  * que `/dev/biens`, `/dev/contacts` et `/dev/mobile` — permanent.

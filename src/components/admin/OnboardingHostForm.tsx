@@ -135,7 +135,7 @@ export default function OnboardingHostForm({ host, onClose }: OnboardingHostForm
             value={email}
             disabled={!!host}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="prenom@megga.ch"
+            placeholder="prenom@getmegga.com"
             style={{ ...inputStyle, opacity: host ? 0.6 : 1 }}
           />
         ))}

@@ -11,6 +11,12 @@
 > [roadmap.md](roadmap.md)
 >
 > **Source de vérité produit / règles** : [../CLAUDE.md](../CLAUDE.md)
+>
+> **🔁 MIGRATION DE DOMAINE EN COURS** — `megga.ch` → `getmegga.com` (09.09.2026).
+> Les hôtes nommés dans ce document sont la CIBLE ; seule la phase C (le code) est faite.
+> Plan, ordre des phases et oracles : [migration-getmegga.md](migration-getmegga.md).
+> ⚠ Les mesures datées d'avant le 09.09.2026 ont vu leur nom d'hôte réécrit
+> mécaniquement : les lire comme des RÔLES (« l'app », « la vitrine »).
 
 ---
 
@@ -87,7 +93,7 @@ CLAUDE_FLOW_DISABLE_BRIDGE=1 npx ruflo@3.10.46 memory search -q "comment fonctio
 
 SaaS immobilier suisse **AI-native, compliance-first**, recentré **CRM-first** (pivot juin 2026) :
 CRM transactionnel agent + pipeline LAB/KYC + copilote IA + console super-admin.
-Marketplace publique **désactivée** (routes → vitrine megga.ch) ; backend Flatfox (~130k Flatfox sur ~253k
+Marketplace publique **désactivée** (routes → vitrine getmegga.com) ; backend Flatfox (~130k Flatfox sur ~253k
 `market_listings`, ~91k actives — remesuré le 03.09.2026 ; ce point annonçait « ~90k, ~50k active »)
 conservé pour le matching. Stack React/Vite (Cloudflare Pages) + Supabase (Postgres, 87 edge functions,
 RLS, pg_cron). L'IA est **compliance-enabling**, jamais compliance-replacing (validation
@@ -140,17 +146,17 @@ Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge au
 
 **Frontières & flux global :**
 ```
-megga.ch (site statique V3, password-gated)          ─┐
+getmegga.com (site statique V3, password-gated)          ─┐
                                                       ├─► Supabase (RLS) ◄─► Edge Functions ◄─► services externes
-app.megga.ch (SPA React CRM, /dashboard/* — console  ─┘         ▲
+app.getmegga.com (SPA React CRM, /dashboard/* — console  ─┘         ▲
               super-admin comprise — et les parcours            └── pg_cron (flatfox-sync, monitoring…) via pg_net
               publics tokenisés /kyc/:token,
               /reception/:token, /accept-invite/:token)
 ```
 
-> `kyc.megga.ch` figurait ici comme hôte des liens magiques : ce domaine n'a **jamais eu de
+> `kyc.getmegga.com` figurait ici comme hôte des liens magiques : ce domaine n'a **jamais eu de
 > DNS**. Le parcours client est une route de l'app (`/kyc/:token`) ; les liens sont bâtis
-> depuis `MEGGA_APP_URL` (repli `https://app.megga.ch`) par
+> depuis `MEGGA_APP_URL` (repli `https://app.getmegga.com`) par
 > [`_shared/app-url.ts`](../supabase/functions/_shared/app-url.ts).
 
 **🟪 Console super-admin : une SURFACE DU CRM** (28 juil. 2026). Les 17 pages d'administration vivent sous
@@ -185,7 +191,7 @@ la primaire vitrine, 136 × 82) — référencées en **URL absolue** par les ga
 dans le dashboard (Authentication → Email Templates) et **pas dans le dépôt**. Un client mail n'accepte ni
 chemin relatif ni base64 (Outlook Windows ne rend pas le base64), d'où l'hébergement.
 [`public/_headers`](../public/_headers) (30 juil. 2026, PR #1035) fige `/email/*` à un an immuable, au lieu
-du défaut Pages `max-age=14400, must-revalidate` ; la vitrine megga.ch le recopie mais l'**ignore**, ce
+du défaut Pages `max-age=14400, must-revalidate` ; la vitrine getmegga.com le recopie mais l'**ignore**, ce
 projet tournant en mode avancé (`_worker.js`), où Cloudflare n'évalue ni `_headers` ni `_redirects`.
 
 ⚠️ **Un asset ABSENT répond quand même `200`.** Le fallback SPA (`/*  /index.html  200`, dernière ligne de
@@ -206,7 +212,7 @@ garde, `AdminConsoleRoute` y ajoutant `useSuperAdminGate` (→ RPC `is_super_adm
 QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `networkMode: always`.
 
 **🟪 Arrivée post-connexion** (juil. 2026). La connexion vit sur la vitrine (cf. §4bis) : `megga-auth.js`
-passe les jetons dans le **fragment** d'URL vers `app.megga.ch/auth/callback` (deux origines ⇒ deux
+passe les jetons dans le **fragment** d'URL vers `app.getmegga.com/auth/callback` (deux origines ⇒ deux
 `localStorage` ; une redirection nue vers `/dashboard` arrive sans session et reboucle — bug du 19.07.2026).
 L'agent traversait ensuite 4 écrans blancs successifs avant le CRM ; ils sont remplacés par **un seul écran**
 aux tokens de la vitrine (fond `#030303`, Inter Tight, barre `#424bfb`, halo bas = le dégradé du pied de page
@@ -269,13 +275,13 @@ lit ; un passage en `localStorage` partirait au vert. Cerveau : `megga/onglets-c
 
 | Audience | Préfixe | Pages clés |
 |---|---|---|
-| **Marketplace SPA** (app.megga.ch) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine megga.ch) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers megga.ch. `SearchPage`/`PropertyXSinglePropertyPage` **retirés** (pages storefront supprimées au pivot CRM-first). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
-| **Redirections hors app** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` | → vitrine megga.ch (aucune page rendue) |
+| **Marketplace SPA** (app.getmegga.com) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine getmegga.com) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers getmegga.com. `SearchPage`/`PropertyXSinglePropertyPage` **retirés** (pages storefront supprimées au pivot CRM-first). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
+| **Redirections hors app** | `/about` `/sell` `/estimates` `/services` `/agencies` `/agents` | → vitrine getmegga.com (aucune page rendue) |
 | **Centre d'aide** | `/help*` `/aide*` | → `intercom.help/megga/fr` (SPA retirée le 20.07.2026) |
 | ~~Compte visiteur~~ | ~~`/account`~~ | **retiré au pivot CRM-first** — la route redirige vers `/dashboard` |
 | **KYC self-service** | `/kyc/:token` | `KycPublicPage` (parcours sans compte, magic link). ⚠ Elle rend **0 marqueur** — ni `style={{` ni `className` — et monte `kyc-magic-link/` (1 993 l.), **partagé avec `/rendez-vous/:token`**. Grouper par dossier fait rater le périmètre. |
 | **CRM agent** | `/dashboard/*` | voir ci-dessous |
-| **Super-admin** | `app.megga.ch/dashboard/admin/*` (surface du CRM) | **17 pages**, accent violet réduit au repère de contexte du rail, **nav groupée en 5 sections** (Pilotage/Clients/Revenus/Opérations/Produit & IA). Gate : `AdminConsoleRoute` → `useSuperAdminGate` (UX) ; le mur réel est en base — `is_super_admin()` exige le rôle **ET** un e-mail allowlisté en dur, lu dans `auth.users` (jamais `profiles.email`, auto-modifiable) — et sur les edges via `_shared/require-super-admin.ts`. ⚠️ **Aucun contrôle AAL2** : le 2FA a été retiré (#873) ; des commentaires d'edge functions l'ont prétendu jusqu'au 28.07, ils ont été corrigés. Chaque **entrée** est auditée (`admin_console_entered` — granularité entrée, pas chargement de page) et l'impersonation reste **audit-first** (RPC `admin_log_impersonation` bloquante), via `?impersonate=<id>` en URL relative. Échappatoire CI : `app_config.super_admin_test_domain` (`.local` only). Chrome Sugar : `AdminShell` + kit `src/components/admin/kit/` (`AdminPager`, `AdminSearchInput`, `AdminSegmentBtn`, `AdminConfirm`, `AdminStat`…), palette re-teintée par `src/styles/admin-console.css` — ⛔ ne JAMAIS y remettre `outline: none`, c'est ce qui avait supprimé tout repère de focus clavier. **[02.08.2026]** Premier geste réellement branché : « Relancer » sur la table Santé des crons du Monitoring (`admin_cron_run_now`) — la confirmation est demandée par le SERVEUR (`details.needs_confirm`), jamais rejouée côté écran. Les événements Sentry portent un tag **`surface` = `console` \| `crm`** (dérivé de l'URL dans `beforeSend`) : c'est lui qui rend mesurable le critère G4 « 48 h sans erreur console ». Runbook d'astreinte + marche à suivre du premier export du registre : `docs/console-admin/`. |
+| **Super-admin** | `app.getmegga.com/dashboard/admin/*` (surface du CRM) | **17 pages**, accent violet réduit au repère de contexte du rail, **nav groupée en 5 sections** (Pilotage/Clients/Revenus/Opérations/Produit & IA). Gate : `AdminConsoleRoute` → `useSuperAdminGate` (UX) ; le mur réel est en base — `is_super_admin()` exige le rôle **ET** un e-mail allowlisté en dur, lu dans `auth.users` (jamais `profiles.email`, auto-modifiable) — et sur les edges via `_shared/require-super-admin.ts`. ⚠️ **Aucun contrôle AAL2** : le 2FA a été retiré (#873) ; des commentaires d'edge functions l'ont prétendu jusqu'au 28.07, ils ont été corrigés. Chaque **entrée** est auditée (`admin_console_entered` — granularité entrée, pas chargement de page) et l'impersonation reste **audit-first** (RPC `admin_log_impersonation` bloquante), via `?impersonate=<id>` en URL relative. Échappatoire CI : `app_config.super_admin_test_domain` (`.local` only). Chrome Sugar : `AdminShell` + kit `src/components/admin/kit/` (`AdminPager`, `AdminSearchInput`, `AdminSegmentBtn`, `AdminConfirm`, `AdminStat`…), palette re-teintée par `src/styles/admin-console.css` — ⛔ ne JAMAIS y remettre `outline: none`, c'est ce qui avait supprimé tout repère de focus clavier. **[02.08.2026]** Premier geste réellement branché : « Relancer » sur la table Santé des crons du Monitoring (`admin_cron_run_now`) — la confirmation est demandée par le SERVEUR (`details.needs_confirm`), jamais rejouée côté écran. Les événements Sentry portent un tag **`surface` = `console` \| `crm`** (dérivé de l'URL dans `beforeSend`) : c'est lui qui rend mesurable le critère G4 « 48 h sans erreur console ». Runbook d'astreinte + marche à suivre du premier export du registre : `docs/console-admin/`. |
 
 **CRM agent** (layout `AgentLayout`, dark CRM) — pages principales :
 `dashboard` (**cockpit « Aujourd'hui »** refonte juin 2026 — voir l'encadré ci-dessous) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
@@ -367,8 +373,8 @@ le stockage — ce qui n'a aucune excuse dans un bundle déployé. Les autres ne
 montrent que l'écran d'un agent sur données de démonstration.
 
 ⛔ POURQUOI CES BANCS EXISTENT, et c'est la même raison à chaque fois : sans
-session, `ProtectedRoute` fait `window.location.replace('https://megga.ch/login')`
-— une redirection **absolue**. On est déposé sur `app.megga.ch`, qui sert `main`,
+session, `ProtectedRoute` fait `window.location.replace('https://getmegga.com/login')`
+— une redirection **absolue**. On est déposé sur `app.getmegga.com`, qui sert `main`,
 en croyant regarder localhost : on relit l'ancienne version de son propre travail,
 et ça ne ressemble pas à une erreur. Cf. `megga/crm-agent-meggax-banc`.
 
@@ -451,7 +457,7 @@ Plomberie qui capture les signaux temporels (fondation de la couche v2 ; cerveau
 
 ## 4. Pipeline marketplace (Flatfox / market_listings) ⚙️
 
-- **Source** : API Flatfox (location, ~35k actifs, 26 cantons, 8 types). Aussi RealAdvisor via `market-scraper(-batch)`.
+- **Source** : API Flatfox (location, ~41k actifs, 26 cantons au 10.09.2026, 8 types). Aussi RealAdvisor via `market-scraper(-batch)`.
 - **Cron** : `flatfox-sync-daily` `0 4 * * *` (04:00 UTC) → edge `flatfox-sync` (chunked self-invoke, 5 pages/chunk, rate-limit 1 req/s, lock singleton).
 - **Opérations** : UPSERT (source_id UNIQUE, last_seen_at), mark removed (safety ≥80% vus avant sweep), photos → Cloudflare R2 (`photos_cf` via `photo-processor`), `quality_score`, `relevance_score` (GENERATED).
 - **Observabilité** : `flatfox_sync_runs` (status, totaux, chunks) → dashboard admin.
@@ -468,10 +474,10 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 ---
 
-## 4bis · Vitrine publique statique (megga.ch) 🌐
+## 4bis · Vitrine publique statique (getmegga.com) 🌐
 
-> **PIVOT juin 2026 — recentrage CRM-first.** megga.ch sert la **vitrine SaaS**
-> [`sites/megga-vitrine/`](../sites/megga-vitrine/) (landing → CRM `app.megga.ch`).
+> **PIVOT juin 2026 — recentrage CRM-first.** getmegga.com sert la **vitrine SaaS**
+> [`sites/megga-vitrine/`](../sites/megga-vitrine/) (landing → CRM `app.getmegga.com`).
 > L'ancien storefront marketplace Property X, resté en sommeil dans
 > `sites/_marketplace-phase-ulterieure/` depuis le pivot, a été **SUPPRIMÉ du dépôt**
 > (juillet 2026, 373 fichiers / 22 Mo). Il reste récupérable dans l'historique git
@@ -479,13 +485,13 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 > n'encombre plus l'arbre de travail. La table `market_listings` (~253k biens) **reste
 > active** : elle nourrit le CRM (matching, estimation, stats copilote).
 
-> **Vitrine (actuelle, megga.ch)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
+> **Vitrine (actuelle, getmegga.com)** : `sites/megga-vitrine/` — thème Webflow CodeAI X **rebrandé MEGGA**
 > (~40 pages FR, home « Votre CRM se pilote depuis WhatsApp », logo MEGGA header+footer, assets 100%
-> auto-hébergés — 0 CDN sauf Finsweet filter.js). CTA → `signup.html` / `login.html` : **l'inscription et la connexion vivent sur la vitrine** (inversion post-pivot), pas sur `app.megga.ch/auth`. Worker minimal (`_worker.js` = Basic Auth
+> auto-hébergés — 0 CDN sauf Finsweet filter.js). CTA → `signup.html` / `login.html` : **l'inscription et la connexion vivent sur la vitrine** (inversion post-pivot), pas sur `app.getmegga.com/auth`. Worker minimal (`_worker.js` = Basic Auth
 > `megga`/`preview` seul, pas de proxy Supabase). ⚠ Les pages d'auth (`login`, `signup`,
 > `reset-password`) et `css/ js/ images/ fonts/` sont **hors du gate** depuis le 26 juillet
 > 2026 : le CRM n'ayant plus de page de connexion, gater `/login` fermait l'accès au CRM
-> lui-même (un non-connecté de `app.megga.ch` tombait sur un 401 en texte nu), et gater
+> lui-même (un non-connecté de `app.getmegga.com` tombait sur un 401 en texte nu), et gater
 > `/reset-password` cassait les liens envoyés par e-mail.
 > **Blog + SEO + légal (28-29 juin 2026, cf. brain `megga/vitrine-content-seo`)** : `blog.html` + 13 articles
 > dans `blog-posts/` (filtrable + recherche câblée + FAQ accordéon, angle **demand-led** avec byline experts MEGGA) ·
@@ -506,7 +512,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | **Admin (P1-P4 07/2026)** | `admin-dsar-export` (JSON nLPD art. 25, journalisé avant retour) · `admin-user-lifecycle` (suspend/reactivate/reset, ban GoTrue, anti-lockout allowlist) · `admin-agency-lifecycle` (suspension agence + ban membres) · `_shared/require-super-admin.ts` (rôle + allowlist + AAL2, adopté par toutes les edges admin) · `_shared/admin-alerts.ts` (alerting cron : seuils `app_config.admin_alert_thresholds`, dédup 24h, destinataires `super_admin_allowlist()`, Resend) |
 | **Magic link KYC** | `magic-link-create/get/confirm/send-email/upload` (`magic-link-regenerate` retirée, 0 appelant, undeployée le 18 juil.) |
 | **RDV de vérification** (août 2026) | `appointment-slots` (GET public : créneaux proposables ; accepte le jeton du **lien magique** OU un jeton de **rendez-vous** `k='appt'`, sans quoi « déplacer » serait inservable — le client n'a plus le lien magique en main) · `appointment-book` (POST public) · `appointment-manage` (GET/POST : état, report, annulation). Partagés : `booking-slots.ts` (calcul **pur**, testé sur les 2 bascules DST 2026), `booking-freebusy.ts`, `booking-oauth.ts`, `booking-calendar-write.ts`, `booking-email.ts` |
-| **Email (Resend)** | **sortant transactionnel seul**, depuis `noreply@megga.ch`, sans `reply_to` : `send-email` · `send-property-email` · `send-relance-email` · `send-reminder-email` · `send-team-invite` · `send-visit-email` · `detect-new-device` |
+| **Email (Resend)** | **sortant transactionnel seul**, depuis `noreply@getmegga.com`, sans `reply_to` : `send-email` · `send-property-email` · `send-relance-email` · `send-reminder-email` · `send-team-invite` · `send-visit-email` · `detect-new-device` |
 | **Messagerie e-mail (boîte de l'agent)** | `mail-oauth` · `mail-sync` (cron `mail-sync-2min`, **actif en prod**) · `mail-actions` · `mail-send` · `mail-attachment` — cœur `_shared/mail/` (9 modules purs). ⚠️ **Déployées mais jamais appelées pour de vrai** : 0 compte connecté au 05.09.2026, et trois gestes hors dépôt manquent. État complet et pièges : **§6ter** |
 | **Paiements (Stripe)** | `stripe-checkout` · `stripe-portal` · `stripe-webhook` (signature) · `admin-stripe-metrics` (MRR/ARR/churn) |
 | **Monitoring** | `admin-monitoring` (cron) · `ai-billing-monitor` (cron, balance DeepSeek) · `weekly-report` (cron) |
@@ -562,6 +568,7 @@ Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEG
 - **Statuts de livraison (10 juin 2026, sprint « outbound fiable »)** : le webhook ingère les events `statuses` Meta (`parseStatusUpdates` gateway) → progression **monotone** de `whatsapp_messages.status` (`received < sent < delivered < read` ; `failed` terminal, n'écrase jamais `read` ; rejeu/hors-ordre = no-op via `allowedPriorStatuses`). `failed` → `delivery_error` (ex. 131047 = fenêtre 24h), audit `whatsapp_delivery_failed` + alerte WhatsApp à l'agent lié si le message visait un client. CRM : coches ✓/✓✓/lu dans `CdWhatsAppCard`. Migration `20260628150000`.
 - **Créer & publier un bien depuis WhatsApp (29 juin 2026, LIVRÉ — cf. brain `megga/whatsapp-listing-tools`)** : 6 nouveaux outils copilote (catalogue total **36** dans `_shared/whatsapp-tools.ts`) ferment le parcours créer→compléter→photographier→publier sans ouvrir l'app : `create_property`/`update_property`/`attach_property_photos` (tier *auto*, brouillon `properties` + RPC atomique `append_property_photo` → R2) puis `publish_to_portals`/`withdraw_from_portals` (tier *confirm*, HITL) + `get_publication_status` (*read*). « Publier » active le brouillon (draft→active) et déclenche la **syndication IDX** (§5 + `megga/syndication-idx`) ; `maybeRepushOnChange` re-pousse le feed sur édition d'un bien déjà publié. DeepSeek-only.
 - **Morning brief proactif 07h30 (5 juillet 2026, LIVRÉ — gated OFF)** : inverse le pull (`get_daily_brief`) en push. `whatsapp-morning-brief` (cron) pousse à chaque agent APPAIRÉ sa journée : visites du jour + relances dues (`reminders`) + offres qui expirent (`crm_offers` pending ≤48 h) + nouveaux leads vendeurs (`seller_leads` new, pool inclus). **0 LLM** : lectures de table directes scoppées `agency_id` — dérivé de `profiles.agency_id`, jamais du snapshot du lien d'appairage (audit P2 : lien jamais resyncé après changement d'agence) — (les RPC Focus dérivent l'agence de `auth.uid()` → inutilisables en service role) + gabarit figé `_shared/morning-brief.ts` (pur, testé Vitest, FR/EN via `profiles.spoken_languages`, compteurs honnêtes « N+ » quand une limite SQL est atteinte), pipeline `toWhatsAppText(meggaProse())`. Visites filtrées PAR AGENT (`agent_id` = lui ou non attribuée) ; leads vendeurs bornés 72 h (« nouveaux » reste vrai). Agent-facing → pas de HITL. **Triple cron UTC anti-DST + filet** (05:30 + 06:30 + 07:30, migration `20260705180000`) + gate applicatif « 07h local Zurich » (08h = tick filet anti tick-manqué) + dédup `whatsapp_daily_briefs` (claim insert-first par profil et date locale, re-claim TTL 10 min des claims orphelins via `confirmed_at`, rétention 90 j). Journée vide = pas d'envoi. Hors fenêtre 24h Meta (131047) = échec silencieux journalisé + claim relâché (le teaser template arrivera avec #795). Sortant persisté `whatsapp_messages` (fil copilote, mémoire C1) + audit `whatsapp_morning_brief_sent` (`actor_kind='ai'`). **Opt-in fail-closed** : `app_config.whatsapp_morning_brief_enabled='true'` pour activer (seedé `false`) + opt-out PAR AGENT `whatsapp_agent_links.morning_brief_enabled` (défaut ON, RLS self = l'agent peut l'éteindre sans désappairer) ; kill-switch global `whatsapp_enabled` respecté ; `dryRun`/`force` derrière la garde service-role pour la vérif prod.
+- **Piste d'audit des liens d'agent (11.09.2026, migration `20260911000100`)** : chaque changement d'état de PREUVE d'un lien `whatsapp_agent_links` écrit dans `activity_events` — `whatsapp_number_unlinked` (RPC `unlink_whatsapp_number`, seulement si un lien VÉRIFIÉ existait), `whatsapp_number_verified` `via:'otp'` (RPC `confirm_whatsapp_number_verification`, succès seul ; `replaced_phone_tail` si le lien vérifié portait un autre numéro) et `via:'pairing'` (webhook, acteur `system`, best-effort après le compare-and-swap). Forme commune : `category='settings'`, `severity='info'`, entité `whatsapp_agent_link` (id du lien), `agency_id` du LIEN, `metadata.profile_id` + `phone_tail` — jamais le numéro. Née de l'incident du 10.09.2026 : la déliaison du 17.08 était inattribuable. ⚠ La cloche agent filtre `actor_kind <> 'user'` (seul l'appairage y paraît), `get_admin_user_activity` filtre `actor_id` (seul l'appairage n'y paraît pas), et `info` + `settings` est purgé à 3 ans. Brain `megga/whatsapp-agent-link-audit`.
 - **Roadmap** : suite « outbound fiable » = template Meta de relance (écrire hors fenêtre 24h, approbation Meta Business) + teaser template du morning brief ; puis triage numéros inconnus → leads ; médias sortants (photos `send_listings`) ; DE/IT. Ph.3 sync temps réel ; purge `raw` (cron quotidien actif). Secrets : `WHATSAPP_WEBHOOK_SECRET`, `META_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_PROVIDER`.
 
 ---
@@ -571,14 +578,14 @@ Vision : l'agent est toujours sur WhatsApp → il y pilote son CRM et laisse MEG
 **État au 05.09.2026 — trois phrases vraies ensemble, et les confondre est le seul vrai piège de ce module :**
 
 1. **Le socle EST en production.** Lot 1 mergé ([PR #1274](https://github.com/megga/megga-real-estate/pull/1274), types par [#1275](https://github.com/megga/megga-real-estate/pull/1275)). Requête directe en prod le 05.09.2026 : **9 tables `mail_%`, 11 fonctions `mail_%`, le cron `mail-sync-2min` (`*/2 * * * *`) ACTIF** (52ᵉ job de `cron.job`), `mail_threads` publiée en Realtime avec `replica identity full`. C'est l'exact inverse du relevé de la veille (0 / 0 / 0), qui figurait ici.
-2. **L'écran EST sur `main`, et il est servi.** Lot 2 mergé le 05.09.2026 ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) : 95 fichiers, 52 créations, +8085 / −602 lignes contre `main` ; 22 composants, 11 hooks `useMail*`, 4 modules purs `src/lib/mail/`, 258 clés i18n, 3 routes. Vérifié en balayant les **247 chunks** servis par `app.megga.ch` — ⛔ un motif de balayage qui s'arrête à la barre oblique n'en rend que **37** et fait conclure à tort que rien n'est déployé (les imports paresseux s'écrivent `"assets/Foo-hash.js"`).
+2. **L'écran EST sur `main`, et il est servi.** Lot 2 mergé le 05.09.2026 ([PR #1276](https://github.com/megga/megga-real-estate/pull/1276), fusion `6277baad`) : 95 fichiers, 52 créations, +8085 / −602 lignes contre `main` ; 22 composants, 11 hooks `useMail*`, 4 modules purs `src/lib/mail/`, 258 clés i18n, 3 routes. Vérifié en balayant les **247 chunks** servis par `app.getmegga.com` — ⛔ un motif de balayage qui s'arrête à la barre oblique n'en rend que **37** et fait conclure à tort que rien n'est déployé (les imports paresseux s'écrivent `"assets/Foo-hash.js"`).
 3. ⛔ **AUCUNE BOÎTE N'A JAMAIS ÉTÉ CONNECTÉE, et c'est mesuré** : `mail_accounts` **0 ligne**, `mail_threads` **0**, `mail_messages` **0** (prod, 05.09.2026). Aucun appel réel à Google ni à Microsoft n'a eu lieu dans aucun des deux lots — les adaptateurs reçoivent un `fetch` injecté, donc les tests éprouvent nos requêtes, jamais le fournisseur. Trois gestes hors dépôt bloquent encore : l'URI `…/oauth/mail/callback` absente du client OAuth Google (⇒ `redirect_uri_mismatch`), l'API Gmail non activée et `gmail.modify` non déclaré, `MICROSOFT_CLIENT_ID`/`_SECRET` absents (⇒ `503 provider_not_configured`).
 
 ⚠️ **Un cron qui tourne toutes les deux minutes sur zéro compte ne prouve que sa propre planification**, et un banc vert (`/dev/messagerie`, fixtures) ne prouve pas une boîte. L'épreuve de bout en bout (maître §7.4) reste **décochée** ; son mode d'emploi littéral est écrit sous la case, dans le plan du lot 2. Décisions D1-D16 : [`2026-09-03-messagerie-crm.md`](superpowers/plans/2026-09-03-messagerie-crm.md) (maître) + `-lot1-backend.md` + `-lot2-front.md`.
 
-Ce que le module fait : l'agent connecte **sa propre** boîte Gmail ou Outlook, le CRM la synchronise, et le courrier se lit, s'envoie et se rattache à un contact sans quitter le CRM (objectifs #1 temps admin et #5 remplacer un outil fragmenté). ⚠️ Ce n'est **pas** Resend et ça ne le remplace pas : Resend reste le transactionnel `noreply@megga.ch` (§5), `mail-send` écrit depuis l'adresse de l'agent.
+Ce que le module fait : l'agent connecte **sa propre** boîte Gmail ou Outlook, le CRM la synchronise, et le courrier se lit, s'envoie et se rattache à un contact sans quitter le CRM (objectifs #1 temps admin et #5 remplacer un outil fragmenté). ⚠️ Ce n'est **pas** Resend et ça ne le remplace pas : Resend reste le transactionnel `noreply@getmegga.com` (§5), `mail-send` écrit depuis l'adresse de l'agent.
 
-- **Connexion (D1)** : OAuth **code + PKCE en pop-up, hors GoTrue** — le `state` et le `code_verifier` sont générés et gardés côté serveur dans `mail_oauth_states`, le navigateur ne voit que l'URL. Scopes : `gmail.modify openid email` (Google), `offline_access User.Read Mail.ReadWrite Mail.Send` (Microsoft). URI de redirection bornée par liste blanche — `app.megga.ch` + les deux ports de dev (`_shared/mail/guard.ts::redirectUriFor`). ⛔ `gmail.modify` est un scope **RESTREINT**, au-dessus de « sensible » : tant que l'app n'est pas vérifiée pour lui, écran « application non validée » et plafond 100 utilisateurs, et le lever exige une évaluation **CASA Tier 2** annuelle — dossier hors dépôt, distinct de la vérification data access de l'agenda (CLAUDE.md §8).
+- **Connexion (D1)** : OAuth **code + PKCE en pop-up, hors GoTrue** — le `state` et le `code_verifier` sont générés et gardés côté serveur dans `mail_oauth_states`, le navigateur ne voit que l'URL. Scopes : `gmail.modify openid email` (Google), `offline_access User.Read Mail.ReadWrite Mail.Send` (Microsoft). URI de redirection bornée par liste blanche — `app.getmegga.com` + les deux ports de dev (`_shared/mail/guard.ts::redirectUriFor`). ⛔ `gmail.modify` est un scope **RESTREINT**, au-dessus de « sensible » : tant que l'app n'est pas vérifiée pour lui, écran « application non validée » et plafond 100 utilisateurs, et le lever exige une évaluation **CASA Tier 2** annuelle — dossier hors dépôt, distinct de la vérification data access de l'agenda (CLAUDE.md §8).
 - **Jetons — jamais en colonne** : quatre ponts `SECURITY DEFINER` réservés au `service_role` (`mail_secret_store` / `_read` / `_update` / `_delete`, patron `esign_secret_*` de `20260607183000`) écrivent dans **Supabase Vault** ; `mail_accounts.vault_secret_id` n'est qu'un pointeur, et un client ne peut exécuter aucun des quatre (garde-fou dans `mail-rls.spec.ts`). ⚠️ `mail_secret_update` a été **écrite**, pas recopiée : le patron esign n'a que trois fonctions.
 - **Base** — migration `20260904074500_mail_module.sql` : **9 tables** (`mail_accounts`, `mail_oauth_states`, `mail_labels`, `mail_threads`, `mail_messages`, `mail_attachments`, `mail_drafts`, `mail_contact_aliases`, `mail_cron_locks`) et **11 fonctions `mail_*`** (4 ponts Vault · trigger `updated_at` · helper de policy `mail_account_visible` · 5 RPC de lecture : `mail_list_threads`, `mail_unread_counts`, `mail_folder_counts`, `mail_search_contacts`, `mail_match_contact_by_emails`) ; elle recrée en plus `purge_activity_events_retention` pour y faire entrer la catégorie `messaging` (D15). **Les dossiers sont des requêtes**, pas des colonnes (`mail_list_threads`). Realtime sur **`mail_threads` seule** — le client invalide ses requêtes — avec `replica identity full`, sans quoi un DELETE ne porterait pas l'`account_id`. ⚠️ Le `SELECT` sur `mail_accounts` est accordé **colonne par colonne** : un `SELECT` de table exposerait `sync_cursor`, `imap_config` et `vault_secret_id`. Migration `20260904074600` : le compteur `sync_failures`.
 - **Visibilité** : `owner` (défaut) ou `agency`, toujours dans l'agence — `mail_account_visible()`, adopté par toutes les policies et par `loadVisibleAccount` dans les edges. ⚠️ Une boîte **ne suit pas son propriétaire qui change d'agence** : `assertOwnerStillInAgency` interrompt la passe (`MailOwnerLeftError`) plutôt que de laisser le courrier de l'ancienne agence continuer d'arriver dans la nouvelle.
@@ -611,8 +618,8 @@ npm run test:unit    # vitest   ·  test:backend  ·  test:e2e (playwright: ai/a
 npm run i18n:parity:ci  # parité FR/DE/EN/IT — à lancer dès qu'on touche aux locales
 ```
 CI/CD : push `main` → GitHub Actions → Cloudflare Pages + Supabase edge auto-deploy. **Deux cibles Pages**,
-un workflow chacune : `deploy.yml` → megga.ch (vitrine, projet `megga-real-estate`) et `deploy-app.yml` →
-app.megga.ch (CRM et console, projet `megga-app`). Les deux créent le projet, attachent le domaine et posent
+un workflow chacune : `deploy.yml` → getmegga.com (vitrine, projet `megga-real-estate`) et `deploy-app.yml` →
+app.getmegga.com (CRM et console, projet `megga-app`). Les deux créent le projet, attachent le domaine et posent
 le CNAME s'ils manquent — rien à préparer à la main. `deploy-admin.yml` a été retiré avec l'app autonome.
 
 **⚠ Asymétrie déploiement edge (source de dette)** : `deploy.yml` ne fait que **déployer** ce qu'il
@@ -628,7 +635,7 @@ redéployé au merge suivant — la suppression doit partir du dépôt). Inventa
 2026 : **68 déployées ↔ 67 au dépôt**, seul écart volontaire = `sync-service-key` (déployée hors dépôt,
 self-heal de la clé service-role, PROTÉGÉE). Contrôle : diff `supabase functions list` ↔
 `git ls-tree -d --name-only origin/main:supabase/functions`.
-Prod `megga.ch` actuellement **password-gated** (Basic Auth `realm="MEGGA - acces restreint"`,
+Prod `getmegga.com` actuellement **password-gated** (Basic Auth `realm="MEGGA - acces restreint"`,
 pré-lancement) — realm en ASCII pur : un tiret cadratin sort de la plage d'un octet des valeurs
 d'en-tête HTTP, Cloudflare le tolérait mais un client strict refuse la réponse entière.
 Les pages d'auth échappent au gate (cf. §vitrine).
