@@ -60,7 +60,7 @@ import { SUPABASE_FUNCTIONS_URL } from '@/lib/supabase'
 import { desinstallerBanc, installerBanc, reglerBanc, type BancEtat } from './bancSupabase'
 import { CRM_RPC, CRM_RPC_VIDE, CRM_TABLES } from './crmFixtures'
 import { semerSessionBanc } from './bancSession'
-import { readCrmDark } from '@/lib/crmDark'
+import { useCrmDark, useCrmDarkPref } from '@/lib/crmDark'
 
 /* ─── Les surfaces montées, dérivées du ROUTAGE de `App.tsx` ───────────────── */
 
@@ -128,17 +128,6 @@ const ETATS: { id: BancEtat; label: string; titre: string }[] = [
 
 /* ─── Chrome du banc ──────────────────────────────────────────────────────── */
 
-/**
- * Lit le thème que le rail POSSÈDE (clé `megga.sugar.dark`, '1'/'0').
- *
- * ⚠ Le banc le SUIT et ne le décide jamais : ses propres commandes seraient
- * sinon peintes dans le thème d'avant la dernière bascule — un banc qui fabrique
- * lui-même l'incohérence qu'il sert à débusquer. Même règle que `/dev/pipeline`.
- */
-function lireSombre(): boolean {
-  return readCrmDark()
-}
-
 function Commandes({ etat, setEtat, sansFixture }: {
   etat: BancEtat
   setEtat: (e: BancEtat) => void
@@ -146,13 +135,11 @@ function Commandes({ etat, setEtat, sansFixture }: {
 }) {
   const navigate = useNavigate()
   const [replie, setReplie] = useState(false)
-  const [dark, setDark] = useState(lireSombre)
-  // Le rail bascule le thème sans notifier l'onglet courant (`storage` ne
-  // concerne que les autres) : on relit, comme le fait `AgentLayout`.
-  useEffect(() => {
-    const id = window.setInterval(() => setDark(lireSombre()), 400)
-    return () => window.clearInterval(id)
-  }, [])
+  // ⚠ Le banc SUIT le thème et ne le décide jamais : ses propres commandes
+  // seraient sinon peintes dans le thème d'avant la dernière bascule — un banc
+  // qui fabrique lui-même l'incohérence qu'il sert à débusquer. Le magasin
+  // partagé (`useCrmDark`) le notifie à la bascule : plus de sondage à 400 ms.
+  const dark = useCrmDark()
   const sp = crmPalette(dark)
 
   const pilule = (actif: boolean) => ({
@@ -234,7 +221,9 @@ function Commandes({ etat, setEtat, sansFixture }: {
  */
 function SortieNeutralisee() {
   const navigate = useNavigate()
-  const [dark, setDark] = useState(lireSombre)
+  // Le MÊME magasin que les pages : un `useState` ici laissait cette surface
+  // claire quand la bande basculait les autres en sombre.
+  const [dark, setDark] = useCrmDarkPref()
   const sp = crmPalette(dark)
   return (
     <div style={{ background: sp.pageBg, minHeight: '100vh', color: sp.ink, fontFamily: 'var(--crm-font), system-ui, sans-serif' }}>
