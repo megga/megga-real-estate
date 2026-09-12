@@ -1,36 +1,41 @@
-// MEGGA — Page d'export PDF dossier KYC (Sprint 4.4)
+// MEGGA — Page d'export PDF dossier KYC
 // Route : /dashboard/kyc/:dossierId/export
 // Print-friendly, déclenche window.print() automatiquement.
 //
-// Stratégie : on rend les 3 pages PDF côté React (composants PdfPage1/2/3),
-// puis l'agent fait Cmd+P (ou auto-trigger). Le navigateur génère un PDF natif
-// — pas de dépendance Puppeteer / jsPDF. Plus simple, plus léger.
+// Stratégie : on rend les 3 feuilles A4 côté React (`KycReportDocument`), puis
+// l'agent fait Cmd+P (ou auto-trigger). Le navigateur génère un PDF natif — pas
+// de dépendance Puppeteer / jsPDF. Le MÊME composant sert le rendu headless de
+// `/kyc-report/:token` (envoi WhatsApp) : ce que l'agent voit ici est ce qui part.
 
-import { crmVoileEncre } from '@/components/crm/tokens'
+import { crmPalette, crmVoileEncre } from '@/components/crm/tokens'
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useKycCase, useKycDocuments, useKycAuditEvents } from '@/hooks/useKyc'
+import { useKycCase, useKycDocuments, useKycAuditEvents, useLatestKycScreeningDecision } from '@/hooks/useKyc'
 import { useTransaction } from '@/hooks/useTransactions'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase } from '@/lib/supabase'
 import { useQuery } from '@tanstack/react-query'
-import { buildPdfReportData } from '@/components/kyc-report/buildReportData'
-import { PdfPage1 } from '@/components/kyc-report/PdfPage1'
-import { PdfPage2 } from '@/components/kyc-report/PdfPage2'
-import { PdfPage3 } from '@/components/kyc-report/PdfPage3'
+import { buildPdfReportData, type ReportScreeningDecision } from '@/components/kyc-report/buildReportData'
+import { computeKycIntegrityHash, kycIntegrityCanonical } from '@/components/kyc-report/integrity'
+import { KycReportDocument } from '@/components/kyc-report/KycReportDocument'
 import { PDF } from '@/components/kyc-report/tokens'
+
+const EMPTY: never[] = []
 
 export default function KycExportPage() {
   const { t } = useTranslation('kyc')
   const { dossierId } = useParams<{ dossierId: string }>()
   const { profile } = useAuth()
 
-  const { data: dossier, isLoading: dossierLoading, error: dossierError } =
-    useKycCase(dossierId)
-  const { data: documents = [] } = useKycDocuments(dossierId)
-  const { data: auditEvents = [] } = useKycAuditEvents(dossierId)
+  const { data: dossier, isLoading: dossierLoading, error: dossierError } = useKycCase(dossierId)
+  // ⚠ Pas de `= []` en défaut : un tableau neuf à chaque rendu relancerait l'effet
+  // de hachage sans fin. Une constante stable, ou la donnée.
+  const { data: documents = EMPTY } = useKycDocuments(dossierId)
+  const { data: auditEvents = EMPTY } = useKycAuditEvents(dossierId)
   const { data: transaction } = useTransaction(dossier?.transaction_id)
+  const { data: pepDecision } = useLatestKycScreeningDecision(dossierId, 'pep')
+  const { data: sanctionsDecision } = useLatestKycScreeningDecision(dossierId, 'sanctions')
 
   // Nom de l'agence depuis profile.agency_id
   const { data: agency } = useQuery({
@@ -48,19 +53,57 @@ export default function KycExportPage() {
     enabled: !!profile?.agency_id,
   })
 
-  // Auto-trigger Cmd+P après render — donne 800ms pour le 1er paint des fontes
-  const [printed, setPrinted] = useState(false)
-  useEffect(() => {
-    if (!dossier || printed) return
-    const timer = window.setTimeout(() => {
-      window.print()
-      setPrinted(true)
-    }, 800)
-    return () => window.clearTimeout(timer)
-  }, [dossier, printed])
+  // Les personnes que le rapport NOMME : qui a validé, qui a tranché un match. Le
+  // rapport ne montre jamais un UUID — un nom absent tombe sur le nom de l'agent.
+  const nameIds = useMemo(() => {
+    const ids = [dossier?.validated_by, pepDecision?.decided_by, sanctionsDecision?.decided_by]
+    return [...new Set(ids.filter((id): id is string => Boolean(id)))].sort()
+  }, [dossier?.validated_by, pepDecision?.decided_by, sanctionsDecision?.decided_by])
+  const { data: names } = useQuery({
+    queryKey: ['kyc-report-names', nameIds],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('id, full_name').in('id', nameIds)
+      if (error) throw error
+      const out: Record<string, string> = {}
+      for (const p of (data ?? []) as { id: string; full_name: string | null }[]) {
+        if (p.full_name) out[p.id] = p.full_name
+      }
+      return out
+    },
+    enabled: nameIds.length > 0,
+  })
+
+  // Empreinte SHA-256 du dossier (asynchrone : crypto.subtle) — le rapport attend
+  // de l'avoir avant de se rendre, un PDF ne s'imprime pas avec une empreinte « … ».
+  // La clé porte la forme canonique elle-même : toute pièce ou contrôle qui bouge
+  // rend une empreinte neuve, sans effet ni état à resynchroniser.
+  const canonical = dossier ? kycIntegrityCanonical(dossier, documents) : null
+  const { data: integrityHash } = useQuery({
+    queryKey: ['kyc-integrity', canonical],
+    queryFn: () => computeKycIntegrityHash(dossier!, documents),
+    enabled: !!dossier,
+    staleTime: Infinity,
+  })
+
+  const screeningDecisions = useMemo<ReportScreeningDecision[]>(() => {
+    const out: ReportScreeningDecision[] = []
+    if (pepDecision) {
+      out.push({
+        target: 'pep', decision: pepDecision.decision, justification: pepDecision.justification,
+        decided_at: pepDecision.decided_at, decided_by_name: names?.[pepDecision.decided_by] ?? null,
+      })
+    }
+    if (sanctionsDecision) {
+      out.push({
+        target: 'sanctions', decision: sanctionsDecision.decision, justification: sanctionsDecision.justification,
+        decided_at: sanctionsDecision.decided_at, decided_by_name: names?.[sanctionsDecision.decided_by] ?? null,
+      })
+    }
+    return out
+  }, [pepDecision, sanctionsDecision, names])
 
   const reportData = useMemo(() => {
-    if (!dossier) return null
+    if (!dossier || !integrityHash) return null
     // `property` est joint par la query (cf. useTransaction) mais absent
     // du type TS — on accède via cast pour récupérer titre + ville si dispo.
     const property = (
@@ -80,12 +123,36 @@ export default function KycExportPage() {
       auditEvents,
       agentName: profile?.full_name ?? t('report.export.agentFallback'),
       agencyName: agency?.name ?? 'MEGGA',
-      transactionAmount:
-        transaction?.price_final ?? transaction?.price_offered ?? null,
+      transactionAmount: transaction?.price_final ?? transaction?.price_offered ?? null,
       transactionRef: null,
       propertyLabel,
+      validatedByName: dossier.validated_by ? (names?.[dossier.validated_by] ?? null) : null,
+      screeningDecisions,
+      integrityHash,
     })
-  }, [dossier, documents, auditEvents, profile, agency, transaction])
+  }, [dossier, documents, auditEvents, profile, agency, transaction, names, screeningDecisions, integrityHash, t])
+
+  // Auto-trigger Cmd+P une fois le rapport rendu ET les polices chargées (Manrope,
+  // Caveat) — imprimer avant, c'est imprimer la police de repli.
+  const [printed, setPrinted] = useState(false)
+  useEffect(() => {
+    if (!reportData || printed) return
+    let cancelled = false
+    let timer: number | undefined
+    const fontsReady = (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts?.ready
+      ?? Promise.resolve()
+    Promise.resolve(fontsReady).then(() => {
+      if (cancelled) return
+      timer = window.setTimeout(() => {
+        window.print()
+        setPrinted(true)
+      }, 300)
+    })
+    return () => {
+      cancelled = true
+      if (timer !== undefined) window.clearTimeout(timer)
+    }
+  }, [reportData, printed])
 
   if (dossierLoading) {
     return <ExportPlaceholder>{t('report.export.loading')}</ExportPlaceholder>
@@ -99,45 +166,15 @@ export default function KycExportPage() {
 
   return (
     <>
-      {/* Print styles globales pour l'export PDF */}
+      {/* Le bureau n'existe qu'à l'écran ; la barre d'outils disparaît à l'impression */}
       <style>{`
-        @page {
-          size: A4;
-          margin: 0;
-        }
-        @media print {
-          html, body {
-            margin: 0 !important;
-            padding: 0 !important;
-            background: #FFFFFF !important;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          .pdf-page {
-            box-shadow: none !important;
-            break-after: page;
-            page-break-after: always;
-          }
-          .pdf-page:last-child {
-            break-after: auto;
-            page-break-after: auto;
-          }
-          .pdf-export-toolbar {
-            display: none !important;
-          }
-        }
-        body {
-          background: ${PDF.bg};
-        }
+        @media print { .pdf-export-toolbar { display: none !important; } }
+        body { background: ${PDF.desk}; }
       `}</style>
 
-      {/* Toolbar (masquée à l'impression) */}
-      <ExportToolbar
-        onPrint={() => window.print()}
-        reference={reportData.reference}
-      />
+      <ExportToolbar onPrint={() => window.print()} reference={reportData.reference} />
 
-      {/* Stack vertical des 3 pages */}
+      {/* Stack vertical des 3 feuilles */}
       <div
         style={{
           display: 'flex',
@@ -145,14 +182,11 @@ export default function KycExportPage() {
           alignItems: 'center',
           gap: 32,
           padding: '48px 24px',
-          background: PDF.bg,
+          background: PDF.desk,
           minHeight: '100vh',
-          fontFamily: '"Inter Tight", system-ui, sans-serif',
         }}
       >
-        <PdfPage1 data={reportData} />
-        <PdfPage2 data={reportData} />
-        <PdfPage3 data={reportData} />
+        <KycReportDocument data={reportData} />
       </div>
     </>
   )
@@ -167,6 +201,10 @@ interface ExportToolbarProps {
 
 function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
   const { t } = useTranslation('kyc')
+  // La barre est un ÉCRAN du CRM (pas du papier) : son affordance primaire porte
+  // l'accent, comme partout au bureau — le thème clair, puisque le bureau derrière
+  // les feuilles l'est toujours.
+  const sp = crmPalette(false)
   return (
     <div
       className="pdf-export-toolbar"
@@ -174,8 +212,8 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
         position: 'sticky',
         top: 0,
         zIndex: 50,
-        background: '#FFFFFF',
-        borderBottom: `1px solid ${PDF.hairStrong}`,
+        background: PDF.paper,
+        borderBottom: `1px solid ${PDF.hair}`,
         padding: '14px 24px',
         display: 'flex',
         alignItems: 'center',
@@ -191,8 +229,8 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
             height: 36,
             padding: '0 14px',
             borderRadius: 999,
-            border: `1px solid ${PDF.hairStrong}`,
-            background: '#FFFFFF',
+            border: `1px solid ${PDF.hair}`,
+            background: PDF.paper,
             color: PDF.inkSoft,
             fontFamily: 'inherit',
             fontSize: 'var(--crm-text-sm)',
@@ -202,13 +240,7 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
         >
           {`← ${t('report.export.close')}`}
         </button>
-        <div
-          style={{
-            fontSize: 'var(--crm-text-xs)',
-            fontWeight: 600,
-            color: PDF.muted,
-                                  }}
-        >
+        <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: PDF.muted }}>
           {t('report.export.reportRef', { reference })}
         </div>
       </div>
@@ -219,8 +251,8 @@ function ExportToolbar({ onPrint, reference }: ExportToolbarProps) {
           padding: '0 20px',
           borderRadius: 999,
           border: 0,
-          background: PDF.black,
-          color: '#FFFFFF',
+          background: sp.accent,
+          color: sp.accentInk,
           fontFamily: 'inherit',
           fontSize: 'var(--crm-text-md)',
           fontWeight: 600,
@@ -242,7 +274,7 @@ function ExportPlaceholder({ children }: { children: React.ReactNode }) {
     <div
       style={{
         minHeight: '100vh',
-        background: PDF.bg,
+        background: PDF.desk,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',

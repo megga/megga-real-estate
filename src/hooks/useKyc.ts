@@ -26,7 +26,7 @@ export function useKycCase(id: string | undefined) {
       if (!id) throw new Error('No KYC case ID')
       const { data, error } = await supabase
         .from('kyc_cases')
-        .select('*, contact:contacts(first_name, last_name), checklist:kyc_checklist_items(*)')
+        .select('*, contact:contacts(first_name, last_name, nationality), checklist:kyc_checklist_items(*)')
         .eq('id', id)
         .single()
       if (error) throw error

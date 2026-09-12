@@ -148,7 +148,9 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/pages/agent', 4],
   ['src/components/kyc-magic-link', 24],
   ['src/components/auth-bento', 22],
-  ['src/components/kyc-report', 22],
+  // 22 → 4 le 13.09.2026 : le concept épuré du rapport n'a plus que quatre gris
+  // d'imprimé (encre douce, sourdine, deux filets), tous dans tokens.ts.
+  ['src/components/kyc-report', 4],
   ['src/components/matching-recherche', 23],
   ['src/components/ai-copilot', 14],
   ['src/hooks/useAdminSurfaces.ts', 10],

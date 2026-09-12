@@ -633,8 +633,8 @@
     "checkJustif": {
       "id": "Pièce d'identité officielle",
       "address": "Justificatif de domicile < 3 mois",
-      "pep": "Dilisense, clear",
-      "sanctions": "Dilisense, clear",
+      "pep": "Screening Dilisense",
+      "sanctions": "Screening Dilisense",
       "funds": "Attestation bancaire + fiche salaire"
     },
     "contactType": {
@@ -665,6 +665,12 @@
       "renforced": "Vigilance renforcée",
       "escalation_mlro": "Escalade MLRO recommandée"
     },
+    "decision": {
+      "false_positive": "faux positif écarté",
+      "true_match": "correspondance confirmée",
+      "escalated": "escaladé à la direction",
+      "awaiting_evidence": "en attente d'éléments"
+    },
     "docCategory": {
       "identity": "Identité",
       "domicile": "Domicile",
@@ -677,7 +683,7 @@
       "vigilanceRenforced": "Renforcée",
       "vigilanceSubStandard": "LBA art. 3",
       "vigilanceSubRenforced": "LBA art. 6",
-      "riskSub": "Score interne {{score}}/100",
+      "riskSub": "score interne {{score}}/100",
       "statusInProgress": "En cours",
       "statusVerified": "Vérifié",
       "statusFailed": "Échec",
@@ -697,23 +703,25 @@
       "sourceNotDocumented": "Non documenté"
     },
     "pdf": {
-      "headerTag": "Rapport KYC · LBA",
-      "footerLegal": "MEGGA · legal@getmegga.com · LBA art. 7 · Document à conserver 10 ans",
-      "pageAbbrev": "p.",
+      "headerTag": "Rapport KYC",
+      "confidential": "Confidentiel",
       "page1": {
-        "eyebrow": "Synthèse exécutive · LBA art. 3-7",
-        "title": "Rapport KYC"
+        "title": "Rapport KYC",
+        "kicker": "Synthèse exécutive · {{name}} · {{property}}",
+        "kickerNoProperty": "Synthèse exécutive · {{name}}"
       },
       "section": {
         "client": "Client",
         "transaction": "Transaction",
-        "verdict": "Verdict global",
+        "verdict": "Verdict",
+        "aiAnalysis": "Analyse contextuelle MEGGA AI",
         "screening": "Screening listes officielles · {{provider}}",
+        "screeningDated": "Screening listes officielles · {{provider}} · {{date}}",
         "lbaChecks": "Contrôles LBA validés · art. 3 à 7",
-        "sourceOfFunds": "Source des fonds documentée",
-        "riskAnalysis": "Analyse de risque",
-        "documents": "Documents joints au dossier · {{count}}",
-        "auditTrail": "Piste d'audit & conservation"
+        "sourceOfFunds": "Source des fonds",
+        "complementaryReview": "Examen complémentaire",
+        "annexes": "Annexes",
+        "retention": "Conservation & base légale"
       },
       "label": {
         "reference": "Référence",
@@ -728,8 +736,8 @@
         "amount": "Montant",
         "pipelineStage": "Étape pipeline",
         "validation": "Validation",
-        "integrityHash": "Hash d'intégrité :",
-        "establishment": "Établissement",
+        "integrityHash": "Hash d'intégrité",
+        "supportingDoc": "Pièce justificative",
         "attestedAmount": "Montant attesté",
         "retentionPeriod": "Durée de conservation",
         "legalBasis": "Base légale"
@@ -745,14 +753,24 @@
       },
       "validatedBy": "Validé le {{date}} par {{name}}",
       "validationPending": "Dossier en cours de validation",
-      "signatureCaption": "Signature numérique · qualifiée",
-      "confidentialNotice": "« Document interne {{agency}} · Strictement confidentiel · Diffusion restreinte »",
+      "signatureCaption": "Signature qualifiée",
+      "ai": {
+        "patterns_one": "Confiance · {{count}} pattern détecté",
+        "patterns_other": "Confiance · {{count}} patterns détectés",
+        "recommendation": "Recommandation : {{label}}."
+      },
+      "assistedEstimateNotice": "Estimation assistée, aide à la décision, ne remplace pas l'appréciation du chargé de conformité (MLRO). À valider.",
       "page2": {
-        "eyebrow": "Diligence raisonnable effectuée",
-        "title": "Contrôles & pièces.",
-        "noMatch": "0 correspondance",
+        "title": "Contrôles & pièces",
+        "kicker": "Diligence raisonnable effectuée",
         "clear": "Clear",
         "toReview": "À examiner",
+        "result": {
+          "clear": "0 correspondance",
+          "match": "Correspondance",
+          "pending": "En attente",
+          "not_checked": "Non effectué"
+        },
         "list": {
           "pep": "PEP (Personnes Exposées Politiquement)",
           "ofac": "Sanctions OFAC (États-Unis)",
@@ -764,30 +782,25 @@
       },
       "col": {
         "list": "Liste",
-        "provider": "Provider",
         "result": "Résultat",
-        "timestamp": "Horodatage",
-        "num": "#",
         "control": "Contrôle",
         "supportingDoc": "Pièce justificative",
         "date": "Date",
         "agent": "Agent",
-        "fileName": "Nom du fichier",
+        "fileName": "Fichier",
         "category": "Catégorie",
         "size": "Taille",
         "hash": "Hash"
       },
-      "riskLevelLabel": "Niveau de risque qualitatif",
-      "recommendationLabel": "Recommandation",
-      "confidence": "Confiance : {{pct}} %",
-      "patternsDetected": "Patterns détectés",
-      "assistedEstimateNotice": "Estimation assistée, aide à la décision, ne remplace pas l'appréciation du chargé de conformité (MLRO). À valider.",
+      "examinedBy": "examiné le {{date}} par {{name}}",
       "page3": {
-        "eyebrow": "Annexes",
-        "title": "Pièces justificatives.",
-        "noDocuments": "Aucun document n'est joint au dossier à ce jour."
+        "title": "Pièces justificatives",
+        "kicker_one": "{{count}} document joint au dossier",
+        "kicker_other": "{{count}} documents joints au dossier",
+        "noDocuments": "Aucun document n'est joint au dossier à ce jour.",
+        "moreDocuments": "… et {{count}} autres pièces au dossier"
       },
-      "retentionValue": "10 ans à compter du {{date}}",
+      "retentionValue": "10 ans · jusqu'au {{date}}",
       "retentionBody": "Conformément à l'art. 7 al. 3 LBA, l'intégralité du dossier (pièces, screening, piste d'audit) est conservée sous forme intègre et accessible pendant dix ans, y compris après la fin de la relation d'affaires.",
       "legalBasisValue": "LBA · OBA-FINMA · nLPD",
       "legalBasisBody": "Le présent rapport vaut documentation au sens de l'art. 7 LBA et de l'art. 22 OBA-FINMA. Le traitement des données personnelles respecte les principes de la nLPD (proportionnalité, finalité, sécurité). Droit d'accès garanti au client conformément à l'art. 25 nLPD.",
