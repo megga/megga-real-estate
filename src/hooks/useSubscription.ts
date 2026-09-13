@@ -6,7 +6,7 @@
  * de la requête, on retombe sur « aucun abonnement » plutôt que de bloquer l'UI.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase, SUPABASE_FUNCTIONS_URL } from '@/lib/supabase'
+import { supabase, urlFonction } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { PlanType } from '@/lib/plans'
 
@@ -57,7 +57,7 @@ export function useSubscription() {
       if (!session) throw new Error('Non connecté')
 
       const response = await fetch(
-        `${SUPABASE_FUNCTIONS_URL}/stripe-checkout`,
+        urlFonction('stripe-checkout'),
         {
           method: 'POST',
           headers: {
@@ -84,7 +84,7 @@ export function useSubscription() {
       if (!session) throw new Error('Non connecté')
 
       const response = await fetch(
-        `${SUPABASE_FUNCTIONS_URL}/stripe-portal`,
+        urlFonction('stripe-portal'),
         {
           method: 'POST',
           headers: {

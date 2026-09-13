@@ -31,6 +31,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { npaToCanton } from '../_shared/npa.ts'
 import { reportEdgeError } from '../_shared/audit-edge-error.ts'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
+import { urlFonction } from '../_shared/function-url.ts'
 
 // ─── Config ──────────────────────────────────────────────────────
 
@@ -575,7 +576,7 @@ async function finalizeRun(supabase: any, runId: string | undefined, final: {
 async function selfInvoke(body: SyncRequest): Promise<void> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const url = `${supabaseUrl}/functions/v1/flatfox-sync`
+  const url = urlFonction(supabaseUrl, 'flatfox-sync')
   try {
     const resp = await fetch(url, {
       method: 'POST',
