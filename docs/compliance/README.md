@@ -181,7 +181,7 @@ Toute la **partie technique** est déjà implémentée. Tu n'as besoin que de la
 - ✅ Rétention 10 ans LBA via trigger SQL `trg_enforce_kyc_retention`
 - ✅ Edge Function `delete-account` (droit à l'effacement)
 - ✅ Audit trail KYC exhaustif dans `useKyc.ts` + `activity_events`
-- ✅ Audit trail IA dans Edge Function `ai-copilot` avec `actor_id='ai'`
+- ✅ Audit trail IA dans Edge Function `ai-copilot` avec `actor_kind='ai'` (`actor_id` NULL)
 - ✅ Cookie banner LPD avec opt-in PostHog
 - ✅ Page `/privacy` avec transferts US documentés (SCCs/DPF)
 - ✅ Checkbox consentement sur formulaires publics (`VendrePage`, `HelpContactPage`)

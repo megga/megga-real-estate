@@ -1,8 +1,14 @@
 // MEGGA CRM Sugar v3 — Ligne d'évènement journal d'audit
 // Port 1:1 de crm-screen-audit-sugar.jsx lignes 136-241 (AudEventRow).
+//
+// ⛔ L'ACTEUR SE LIT DANS `actor_kind` (src/lib/auditActor.ts), jamais dans la seule
+// absence d'`actor_id` : elle recouvre l'IA, le système ET l'agent dont le compte a été
+// supprimé. Cette ligne créditait au « Système », étincelle comprise, le geste humain d'un
+// agent détaché, et nommait « Système » les vraies lignes de l'IA.
 
 import { useMemo, useState } from 'react'
 import i18n from '@/i18n' // libellés acteur/sévérité/détails traduits au render (common:audit.*)
+import { acteurDetacheProuve, auditActeur } from '@/lib/auditActor'
 import { auditActionLabel } from '@/lib/auditActionLabel'
 import { useCrmDark } from '@/lib/crmDark'
 import { dossierPalette, AUDIT_CATEGORIES, AUDIT_CAT_ICONS } from '../tokens'
@@ -27,20 +33,30 @@ export function AudEventRow({ event, last }: Props) {
       }
     : { label: '—', tone: S.muted }
 
-  const actor = event.actor_id
-    ? {
-        name: i18n.t('common:audit.actor.agent'),
-        initials: 'AG',
-        // Avatar > 7x7 px → reste neutre Sugar Pure (zero bleu marketplace #0041D9)
-        avatarBg: S.invBgSoft,
-        isSystem: false,
-      }
-    : {
-        name: i18n.t('common:audit.actor.system'),
-        initials: 'AI',
-        avatarBg: S.invBg,
-        isSystem: true,
-      }
+  // ⛔ La TEINTE encode humain / non-humain (invBgSoft / invBg — paire mesurée par
+  // dossiers-contraste.spec.ts) ; le GLYPHE sépare l'IA du système. L'étincelle est la
+  // marque IA (CLAUDE.md §5) : elle ne se pose sur rien d'autre.
+  const acteur = auditActeur(event)
+  const actor =
+    acteur === 'ai'
+      ? { name: i18n.t('common:audit.actor.ai'), glyph: 'sparkle' as const, initials: null, avatarBg: S.invBg }
+      : acteur === 'system'
+        ? { name: i18n.t('common:audit.actor.system'), glyph: 'server' as const, initials: null, avatarBg: S.invBg }
+        : {
+            // « Compte supprimé » sur PREUVE seulement (`actor_detached_from`, déposé par la
+            // branche FK du trigger) ; sans elle, l'émetteur a juste omis `actor_kind`.
+            name: i18n.t(
+              acteur === 'agent'
+                ? 'common:audit.actor.agent'
+                : acteurDetacheProuve(event)
+                  ? 'common:audit.actor.agentDetached'
+                  : 'common:audit.actor.agentUnknown',
+            ),
+            glyph: null,
+            initials: 'AG',
+            // Avatar > 7x7 px → reste neutre Sugar Pure (zero bleu marketplace #0041D9)
+            avatarBg: S.invBgSoft,
+          }
 
   const sev = event.severity ?? 'info'
   const fmt = (iso: string) => {
@@ -99,8 +115,8 @@ export function AudEventRow({ event, last }: Props) {
           letterSpacing: 0.2,
         }}
       >
-        {actor.isSystem ? (
-          <CrmIcon name="sparkle" size={15} stroke={S.invInk} />
+        {actor.glyph ? (
+          <CrmIcon name={actor.glyph} size={15} stroke={S.invInk} />
         ) : (
           actor.initials
         )}

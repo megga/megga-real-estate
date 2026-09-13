@@ -7,7 +7,8 @@
 // — Typo Inter Tight avec tabular-nums sur tous les nombres
 // — CHF avec apostrophes : CHF 1'250'000
 
-import type { KycCheckCategory, KycDossierStatus } from '@/types/kyc'
+import type { AuditCategory, KycCheckCategory, KycDossierStatus } from '@/types/kyc'
+import type { CrmIconName } from './icons'
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_COLOR, MXC_SYSTEM, mxCrmPalette } from '@/components/megga-x-crm/tokens'
 import { readCrmDark } from '@/lib/crmDark'
@@ -93,11 +94,12 @@ export function dossierPalette(dark: boolean) {
    *     `VisitNewPage`, l'accent d'`AuditPage`, le mode édition et
    *     le CTA de fermeture d'`ImportLeadPage`.
    *   · DEUX qui ENCODENT → `ink`, et c'est le seul geste qui préserve leur
-   *     sens : la teinte de la catégorie d'audit `auth` (huit catégories, huit
-   *     teintes — la peindre en accent l'aurait rendue indiscernable du bleu
-   *     `#1E5BC6` de `kyc`), et l'aplat d'avatar de l'acteur SYSTÈME, qui se
-   *     distingue de l'acteur humain (`inkSoft`) précisément par sa teinte. Les
-   *     repeindre en accent aurait fait MENTIR une marque de donnée.
+   *     sens : la teinte de la catégorie d'audit `auth` (dix catégories depuis
+   *     `onboarding` et `messaging` — la peindre en accent l'aurait rendue
+   *     indiscernable du bleu `#1E5BC6` de `kyc`), et l'aplat d'avatar des acteurs
+   *     NON HUMAINS (IA, système), qui se distinguent de l'acteur humain
+   *     (`inkSoft`) précisément par leur teinte. Les repeindre en accent aurait
+   *     fait MENTIR une marque de donnée.
    *
    * Changement d'ALPHABET, pas de sens : `#0B0C0E` → `MXC_COLOR.n100`. Même
    * geste que le pôle d'encre du Pipeline — ce n'est pas la teinte qui portait
@@ -276,7 +278,10 @@ const DOSSIER_CLAIR = dossierPalette(false)
  * étant une mise à jour EN PLACE (`setDark` depuis le rail, aucun rechargement),
  * la portée de module n'est jamais réévaluée : après un passage sombre → clair,
  * la catégorie « auth » de /dashboard/audit rendait son libellé et son icône en
- * `#ffffff` sur fond clair — invisibles. Garde : `dossiers-contraste.spec.ts`.
+ * `#ffffff` sur fond clair — invisibles. Garde : `audit-journal-categories.spec.ts`
+ * (d), qui relit chaque teinte sous les DEUX thèmes. ⚠ Ce commentaire désignait
+ * `dossiers-contraste.spec.ts`, qui n'importe que `dossierPalette` et ne lit aucune
+ * de ces cartes : une garde nommée qui ne gardait rien.
  */
 const DOSSIER_TON = {
   get muted() { return dossierPalette(readCrmDark()).muted },
@@ -367,9 +372,19 @@ export const KYC_RISK_LABELS: Record<
   unassessed: { get label() { return i18n.t('kyc:riskBadge.unassessed') }, get tone() { return DOSSIER_TON.muted } },
 }
 
-/** Catégories audit nLPD — 8 valeurs (KYC_ENRICHISSEMENTS §7). */
+/**
+ * Catégories audit nLPD — le domaine EXACT de `activity_events_category_check`
+ * (10 valeurs, dernière définition 20260815214000). Typée par l'union : tsc exige les dix,
+ * et audit-journal-categories.spec.ts confronte les clés à la contrainte relue dans les
+ * migrations. ⚠ Elle en comptait HUIT : `onboarding` et `messaging` s'affichaient en
+ * valeur brute, sans pastille de filtre.
+ *
+ * Les deux dernières prennent `DOSSIER_TON.muted` (getter) : un barreau MEGGA X qui passe
+ * l'AA dans les deux thèmes, sans littéral neuf. L'accent est réservé à l'élément ACTIF,
+ * les couleurs système disent un ÉTAT — l'identité passe par le libellé et l'icône.
+ */
 export const AUDIT_CATEGORIES: Record<
-  string,
+  AuditCategory,
   { label: string; tone: string }
 > = {
   kyc: { get label() { return i18n.t('common:audit.category.kyc') }, tone: '#1E5BC6' },
@@ -380,10 +395,12 @@ export const AUDIT_CATEGORIES: Record<
   auth: { get label() { return i18n.t('common:audit.category.auth') }, get tone() { return DOSSIER_TON.ink } },
   settings: { get label() { return i18n.t('common:audit.category.settings') }, get tone() { return DOSSIER_TON.muted } },
   ai: { get label() { return i18n.t('common:audit.category.ai') }, tone: '#7A4FD8' },
+  onboarding: { get label() { return i18n.t('common:audit.category.onboarding') }, get tone() { return DOSSIER_TON.muted } },
+  messaging: { get label() { return i18n.t('common:audit.category.messaging') }, get tone() { return DOSSIER_TON.muted } },
 }
 
-/** Icônes audit par catégorie. */
-export const AUDIT_CAT_ICONS: Record<string, string> = {
+/** Icônes audit par catégorie — exhaustives par construction (même union). */
+export const AUDIT_CAT_ICONS: Record<AuditCategory, CrmIconName> = {
   kyc: 'shield',
   deal: 'pipeline',
   contact: 'contact',
@@ -392,4 +409,6 @@ export const AUDIT_CAT_ICONS: Record<string, string> = {
   auth: 'lock',
   settings: 'cog',
   ai: 'sparkle',
+  onboarding: 'cal',
+  messaging: 'msg',
 }

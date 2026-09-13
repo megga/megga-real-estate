@@ -62,9 +62,9 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 | **Destinataires internes** | Équipe technique MEGGA (accès restreint via RLS Supabase) |
 | **Sous-traitants** | Supabase (hébergement auth + DB) — eu-west-1 Ireland |
 | **Transferts hors Suisse/UE** | Aucun |
-| **Durée de conservation** | Tant que le compte est actif. À la suppression du compte via `delete-account`, anonymisation immédiate (colonne `deleted_at`). Les logs d'audit liés au compte sont anonymisés (`actor_id = 'deleted_user'`). |
+| **Durée de conservation** | Tant que le compte est actif. À la suppression du compte via `delete-account`, le profil est anonymisé puis supprimé avec le compte d'authentification (cascade). Les lignes du journal d'audit sont conservées et détachées de leur auteur par la base à la suppression du compte (`actor_id` → NULL, nature de l'acteur conservée, preuve du détachement en métadonnées : `actor_detached_at` / `_from` / `_reason`). La suppression elle-même laisse une trace `account_deleted`, écrite avant toute destruction ; quand un super-admin supprime le compte, elle nomme l'opérateur et figure aussi au registre de la console. |
 | **Mesures de sécurité** | TLS 1.3, RLS PostgreSQL agency-scoped, authentification Supabase (JWT), 2FA (à activer), audit trail via `activity_events` |
-| **Droits des personnes concernées** | Accès, rectification, effacement via page Paramètres > Sécurité > Zone dangereuse |
+| **Droits des personnes concernées** | Rectification en libre-service (Paramètres > Profil). Accès et effacement sur demande à `privacy@getmegga.com`, exécutés depuis la console super-admin (export DSAR `admin-dsar-export`, suppression `delete-account`). La zone d'effacement en libre-service (Paramètres > Sécurité > Zone dangereuse) n'existe plus depuis le 11.07.2026. |
 
 ---
 
@@ -151,7 +151,7 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 | **Sous-traitants** | Supabase (calcul via Edge Function `score-engine`) — eu-west-1 |
 | **Transferts hors Suisse/UE** | Aucun (le scoring est calculé côté Supabase, pas envoyé à une API externe) |
 | **Durée de conservation** | Liée à celle du contact parent (cf. activité #2) |
-| **Mesures de sécurité** | Audit trail sur chaque calcul (`actor_id = 'ai'`), scores affichés en lecture seule, réversibilité (l'agent peut ignorer la suggestion) |
+| **Mesures de sécurité** | Audit trail des recalculs (`activity_events` `contact_scores.recompute` / `property_scores.recompute` : un événement par agence et par passe, `actor_kind = 'system'`, `actor_id` NULL, sans PII), scores affichés en lecture seule, réversibilité (l'agent peut ignorer la suggestion) |
 | **DPIA** | **Obligatoire** — voir `02-dpia-scoring-ia-kyc.md` |
 | **Information transparente** | Mention "estimation IA" visible sur chaque score affiché dans l'interface agent |
 
@@ -240,7 +240,7 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 | **Sous-traitants** | Supabase (Edge Function `ai-copilot`) — eu-west-1 | **DeepSeek** (`deepseek-chat`, appel direct `api.deepseek.com`) — **Chine** |
 | **Transferts hors Suisse/UE** | ⚠ **DeepSeek (Chine) — base de transfert NON ÉTABLIE.** La Chine ne figure pas à l'annexe 1 OPDo (États à protection adéquate) et ne bénéficie d'aucune décision d'adéquation européenne. Un transfert vers un État sans adéquation exige l'une des garanties de l'art. 16 al. 2 nLPD (clauses types, règles d'entreprise contraignantes) ou une dérogation de l'art. 17. **Aucune n'est documentée à ce jour, et aucun DPA n'est signé avec ce fournisseur.** À arbitrer — voir « Points ouverts ». |
 | **Durée de conservation** | Prompts et réponses : 30 jours côté Supabase (logs). **Côté DeepSeek : inconnue** — la politique de rétention du fournisseur n'a pas été établie contractuellement. |
-| **Mesures de sécurité** | Audit trail complet (`actor_id = 'ai'`), system prompt verrouillé (interdit à l'IA de valider un KYC ou de contacter un client), mention "estimation IA" sur toute sortie |
+| **Mesures de sécurité** | Audit trail complet (`actor_kind = 'ai'`, `actor_id` NULL), system prompt verrouillé (interdit à l'IA de valider un KYC ou de contacter un client), mention "estimation IA" sur toute sortie |
 
 ---
 

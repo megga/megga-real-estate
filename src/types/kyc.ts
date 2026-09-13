@@ -157,13 +157,20 @@ export interface KycDocument {
   sha256_hash: string | null
 }
 
+/**
+ * Nature de l'acteur d'une ligne de `activity_events` (colonne NOT NULL, défaut 'user').
+ * ⚠ 'user' avec `actor_id` NULL existe : l'agent dont le compte a été supprimé (la FK
+ * détache l'acteur, jamais sa nature). Voir `src/lib/auditActor.ts`.
+ */
+export type AuditActorKind = 'user' | 'ai' | 'system'
+
 /** Évènement d'audit propre au module KYC (append-only, distingue acteur humain/IA/système). */
 export interface KycAuditEvent {
   id: string
   agency_id: string
   actor_id: string | null
-  /** Sprint 3 : 'user' = humain (actor_id → profiles), 'ai' / 'system' = actor_id NULL. */
-  actor_kind?: 'user' | 'ai' | 'system'
+  /** Sprint 3 : 'user' = humain (actor_id → profiles, NULL si son compte a été supprimé), 'ai' / 'system' = actor_id NULL. */
+  actor_kind?: AuditActorKind
   action: string
   entity_type: string
   entity_id: string
@@ -176,21 +183,30 @@ export interface KycAuditEvent {
 // ─── Sprint 1 — AuditEvent nLPD (handoff §Modèle de données) ───────────
 export type AuditSeverity = 'info' | 'warn' | 'critical'
 
+/**
+ * Le domaine EXACT de `activity_events_category_check` (10 valeurs, dernière définition
+ * 20260815214000) — gardé par tests/unit/audit-journal-categories.spec.ts, qui le relit
+ * dans les migrations.
+ */
 export type AuditCategory =
-  | 'kyc'       // Dossiers KYC, screenings, validations
-  | 'deal'      // Pipeline : étapes, passage outre verrou
-  | 'contact'   // Création / export / modification contact
-  | 'bien'      // Propriétés : création, photos, publication
-  | 'doc'       // Documents signés, mandats
-  | 'auth'      // Connexions, MFA, échecs
-  | 'settings'  // Préférences agent, agence
-  | 'ai'        // Suggestions MEGGA AI, matching auto
+  | 'kyc'        // Dossiers KYC, screenings, validations
+  | 'deal'       // Pipeline : étapes, passage outre verrou
+  | 'contact'    // Création / export / modification contact
+  | 'bien'       // Propriétés : création, photos, publication
+  | 'doc'        // Documents signés, mandats
+  | 'auth'       // Connexions, MFA, échecs
+  | 'settings'   // Préférences agent, agence
+  | 'ai'         // Suggestions et assistance MEGGA AI
+  | 'onboarding' // Appels d'accueil (onboarding-call-book / -manage)
+  | 'messaging'  // Courrier (synchro, envoi) et WhatsApp (garde d'envoi, opt-in) — le FAIT, jamais le contenu
 
 /** Évènement d'audit nLPD complet — appended-only, conservation 10 ans. */
 export interface AuditEvent {
   id: string
   agency_id: string | null
   actor_id: string | null
+  /** Qui a agi — la seule colonne qui distingue l'IA, le système et l'agent détaché. */
+  actor_kind: AuditActorKind
   action: string
   entity_type: string
   entity_id: string | null

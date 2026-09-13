@@ -3,7 +3,8 @@
 // useFocusQueue.logFocusGesture pour consigner chaque geste de l'agent (règle
 // CLAUDE.md §5 « audit pour toute action »).
 //
-// `category` est contraint en base (kyc|deal|contact|bien|doc|auth|settings|ai) ;
+// `category` est contrainte en base — `activity_events_category_check`, dix familles depuis
+// `onboarding` et `messaging` (le domaine fait foi : audit-journal-categories.spec.ts) ;
 // on la type comme l'union utile (assignable que la colonne soit enum ou text+CHECK).
 // `entity_id` est une colonne uuid → null si le rawId n'est pas un uuid nu (jamais
 // d'erreur 22P02). La référence brute reste dans metadata.raw_id.
