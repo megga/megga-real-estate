@@ -128,13 +128,26 @@ export async function execGetMyAgenda(ctx: ActionCtx, a: Args): Promise<string> 
   return JSON.stringify((data as unknown as VisitEmbedRow[]).map(formatAgendaVisit))
 }
 
-export async function execSearchContacts(ctx: ActionCtx, a: Args): Promise<string> {
-  if (!hasAgency(ctx)) return NO_AGENCY
-  const q = s(a.query)
-  if (!q) return 'Erreur: query requise.'
+export interface ContactSearchRow {
+  id: string
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+  email: string | null
+}
+
+/**
+ * Contacts de l'agence dont CHAQUE mot de `q` apparaît dans au moins une colonne (prénom, nom,
+ * e-mail, téléphone). Partagé par `search_contacts` et par la résolution d'un NOM que le modèle
+ * passe à la place d'un `contact_id` (outils lents, whatsapp-agent). `error` porte un message
+ * d'erreur lisible, `rows` est vide dans ce cas.
+ */
+export async function findContactRows(
+  ctx: ActionCtx, q: string, limit = 10,
+): Promise<{ rows: ContactSearchRow[]; error: string | null }> {
   // Neutralise les caractères qui casseraient le filtre PostgREST .or()
   const safe = q.replace(/[,()%*]/g, ' ').trim()
-  if (safe.length < 2) return 'Erreur: recherche trop courte (2 caractères min).'
+  if (safe.length < 2) return { rows: [], error: 'Erreur: recherche trop courte (2 caractères min).' }
   // Tokenise : « Vladimir Poutine » doit matcher first_name=Vladimir ET last_name=Poutine.
   // Chaque token doit apparaître dans AU MOINS une colonne (AND de tokens, OR de colonnes).
   // Les .or() chaînés sont combinés en AND par PostgREST. Max 5 tokens (anti-abus).
@@ -146,10 +159,19 @@ export async function execSearchContacts(ctx: ActionCtx, a: Args): Promise<strin
   for (const tok of tokens) {
     query = query.or(`first_name.ilike.%${tok}%,last_name.ilike.%${tok}%,email.ilike.%${tok}%,phone.ilike.%${tok}%`)
   }
-  const { data, error } = await query.limit(10)
-  if (error) return `Erreur recherche: ${error.message}`
-  if (!data?.length) return 'Aucun contact trouvé.'
-  return JSON.stringify(data)
+  const { data, error } = await query.limit(limit)
+  if (error) return { rows: [], error: `Erreur recherche: ${error.message}` }
+  return { rows: (data ?? []) as ContactSearchRow[], error: null }
+}
+
+export async function execSearchContacts(ctx: ActionCtx, a: Args): Promise<string> {
+  if (!hasAgency(ctx)) return NO_AGENCY
+  const q = s(a.query)
+  if (!q) return 'Erreur: query requise.'
+  const { rows, error } = await findContactRows(ctx, q)
+  if (error) return error
+  if (!rows.length) return 'Aucun contact trouvé.'
+  return JSON.stringify(rows)
 }
 
 export async function execCreateContact(ctx: ActionCtx, a: Args): Promise<string> {
