@@ -76,6 +76,8 @@ describe('JETONS D’AGENDA — comportement', () => {
       user_id: setup.agentAId,
       access_token: 'AT_SECRET',
       refresh_token: 'RT_SECRET',
+      // NOT NULL sans défaut, comme les trois colonnes ci-dessus.
+      token_expires_at: new Date(Date.now() + 3600_000).toISOString(),
       google_email: 'agent-a@example.org',
       sync_enabled: true,
     })
@@ -105,8 +107,10 @@ describe('JETONS D’AGENDA — comportement', () => {
   })
 
   it('l’agent ne peut ni insérer ni réécrire un jeton, même sur sa propre ligne', async () => {
+    // Toutes les colonnes obligatoires fournies : seul le DROIT peut refuser cet INSERT.
     const ins = await setup.clientA.from('outlook_calendar_tokens').insert({
       user_id: setup.agentAId, access_token: 'X', refresh_token: 'Y',
+      token_expires_at: new Date(Date.now() + 3600_000).toISOString(),
     })
     expect(ins.error?.code).toBe('42501')
     const upd = await setup.clientA.from('google_calendar_tokens')
