@@ -535,6 +535,7 @@ useEffect(() => {
 - `any` en TypeScript
 - Données hardcodées (tout vient de Supabase)
 - localStorage pour données sensibles
+- Une clé de stockage navigateur qui appartient à un utilisateur hors du registre `STOCKAGE_PAR_COMPTE` (`src/lib/stockageParCompte.ts`) — elle survivrait à la déconnexion et s'afficherait au compte suivant
 - Validation KYC auto sans action humaine
 - Envoi auto au client sans validation agent
 - Couleurs hardcodées (`bg-white`, `text-gray-*`) → tokens thème
@@ -715,8 +716,14 @@ remplaçant direct de `useState` dont la clé est portée par l'onglet **de l'é
 l'actif écrivait sa position dans l'onglet regardé. C'est ce qui fait qu'une position de pager ou un
 filtre survit à un aller-retour entre deux onglets. Même règle pour le libellé (`useTabLabel`) et la
 saisie non enregistrée (`useTabDirty`, qui protège aussi l'onglet de l'éviction au plafond). La pile
-est miroitée en **`sessionStorage`** (`megga.crm.tabs`), jamais en `localStorage` : elle porte des
-**noms de clients**.
+est miroitée en **`sessionStorage`**, jamais en `localStorage` : elle porte des **noms de clients**.
+⛔ **Depuis le 13.09.2026 (audit S11), le miroir est RANGÉ PAR COMPTE ET PAR AGENCE** —
+`megga.crm.tabs:<uid>:<agence>` — et purgé à la déconnexion : sous une clé fixe, le même onglet du
+navigateur rendait la pile de A au compte B, puis la réécrivait dans la ligne serveur de B. Toute clé
+de stockage qui appartient à un utilisateur vit au registre `src/lib/stockageParCompte.ts` (gardé par
+`stockage-inventaire.spec.ts`) ; un seul compte par vie de page (`useAuth`, invariant 3 : un autre
+compte recharge la page) ; `crm_tabs_save` refuse une pile d'un autre compte ou d'une autre agence
+(`p_owner` / `p_agency`).
 
 **Réseau inter-agences : ❌ RETIRÉ (hors périmètre v1).** L'ancien prototype `NetworkSugarV2Page` (données d'exemple, aucun backend, jamais routé) a été supprimé lors du nettoyage code mort ; les routes `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`. Le module réel (partage de biens inter-agences + RLS cross-agence + modèles PDF) reste à construire plus tard.
 

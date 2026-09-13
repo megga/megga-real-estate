@@ -214,6 +214,16 @@ QueryClient global : `staleTime 2min`, `retry 1`, `refetchOnWindowFocus`, `netwo
 **🟪 Arrivée post-connexion** (juil. 2026). La connexion vit sur la vitrine (cf. §4bis) : `megga-auth.js`
 passe les jetons dans le **fragment** d'URL vers `app.getmegga.com/auth/callback` (deux origines ⇒ deux
 `localStorage` ; une redirection nue vers `/dashboard` arrive sans session et reboucle — bug du 19.07.2026).
+⛔ **Les jetons de FOURNISSEUR ne sont jamais rangés** (audit S12, 13.09.2026) : auth-js écrivait
+`provider_token` / `provider_refresh_token` avec la session ; l'adaptateur
+[`authStorage.ts`](../src/lib/authStorage.ts) les retire de toute écriture et, au retour d'une liaison
+d'agenda (`/auth/callback?gcal=1|outlook=1`), les confie à un dépôt en mémoire lu UNE fois par
+`AuthCallbackPage` ; `useAuth` ne les garde pas dans son état. `save_tokens` (google/outlook-calendar-sync)
+échange le jeton de rafraîchissement avec les identifiants de MEGGA et exige le compte LIÉ à l'utilisateur
+([`calendar-token-provenance.ts`](../supabase/functions/_shared/calendar-token-provenance.ts)) ; les colonnes
+de jetons ne sont plus lisibles ni inscriptibles par un rôle client (`20260913160600`). Le contrat du
+fragment (clés et ordre de `goToCrm`) est éprouvé contre un GoTrue réel par `tests/e2e/auth-handoff.spec.ts`
+(job e2e-kyb).
 L'agent traversait ensuite 4 écrans blancs successifs avant le CRM ; ils sont remplacés par **un seul écran**
 aux tokens de la vitrine (fond `#030303`, Inter Tight, barre `#424bfb`, halo bas = le dégradé du pied de page
 vitrine réduit à 22 Ko). Il existe en **deux jumeaux** : `#megga-boot` inline dans `index.html` (peint dès la
@@ -279,13 +289,20 @@ ouverte ([`modaleOuverte`](../src/lib/modaleOuverte.ts)).
 **Persistance à deux étages.** Côté serveur, `crm_open_tabs` — une ligne par personne (clé primaire
 `user_id`), RLS `user_id = auth.uid()` en **quatre policies séparées**, jamais un `for all` (le défaut
 corrigé le 17.08.2026 sur `whatsapp_agent_links`), aucune policy agence ni super-admin : la pile dit quels
-clients un agent a ouverts. Côté navigateur, un miroir de démarrage en **`sessionStorage`** sous
-`megga.crm.tabs` ([`useCrmTabs.ts:49-82`](../src/hooks/useCrmTabs.ts)) — ⛔ **jamais `localStorage`**, au
-même motif exactement : le libellé d'un onglet de fiche EST le nom du contact. Il ne sert que la première
-frame, le serveur restant la source de vérité. ⚠ **Rien ne garde ce choix** : mesuré le 05.09.2026,
-`megga.crm.tabs` n'existe qu'à **deux** endroits du dépôt — le hook et `CLAUDE.md` — et aucune spec ne le
-lit ; un passage en `localStorage` partirait au vert. Cerveau : `megga/onglets-crm`,
-`megga/onglets-persistance`, `megga/onglets-pieges`.
+clients un agent a ouverts. Côté navigateur, un miroir de démarrage en **`sessionStorage`** —
+⛔ **jamais `localStorage`**, au même motif exactement : le libellé d'un onglet de fiche EST le nom du
+contact. Il ne sert que la première frame, le serveur restant la source de vérité.
+⛔ **Depuis le 13.09.2026 (audit S11), le miroir est RANGÉ PAR COMPTE ET PAR AGENCE** :
+`megga.crm.tabs:<uid>:<agence>` ([`useCrmTabs.ts`](../src/hooks/useCrmTabs.ts), `CLE_MIROIR`). Sous la clé
+fixe d'avant, le même onglet du navigateur rendait la pile de A au compte B à la première frame, puis la
+réécrivait dans la ligne serveur de B. La machine est remontée par couple compte/agence
+(`CrmTabsProvider`), ses écrivains se taisent en fin de session (`sessionEnFin`), et `crm_tabs_save`
+refuse une pile d'un autre compte ou d'une autre agence (`p_owner` / `p_agency`, migration
+`20260913160500` ; le client retombe sur l'appel historique tant que PostgREST répond PGRST202). Le
+registre de toutes les clés par compte est [`stockageParCompte.ts`](../src/lib/stockageParCompte.ts),
+purgé à la déconnexion et au changement de compte ; `stockage-inventaire.spec.ts` classe toute écriture de
+stockage de `src/`, et `crm-tabs-compte.spec.tsx` monte la machine pour de vrai. Cerveau :
+`megga/onglets-crm`, `megga/onglets-persistance`, `megga/onglets-pieges`, `megga/stockage-par-compte`.
 
 **Poussée du dock MEGGA AI (12.09.2026).** Quand le dock s'ouvre, c'est le **plan de travail**
 (`CrmWorkspace` : bande d'onglets, barre latérale, contenu) qui se comprime de `COPILOT_WIDTH`, plus la
@@ -343,6 +360,14 @@ signup), renommable dans Réglages › Agence. Migration `20260718130000`. Conse
 n'est **pas couverte par la CI** (`onboarding-agency-rpc.spec` pose le profil à la main et
 court-circuite le trigger) : toute modif de `handle_new_user` se vérifie à la main (insert
 `auth.users` jetable → contrôle `agency_id` → suppression).
+⛔ **Quitter son agence solo en acceptant une invitation ne la détruit plus** (audit S9, 13.09.2026) :
+`accept-team-invite` la supprimait sans regarder ce qu'elle contenait (49 FK en CASCADE). Seule
+`release_empty_solo_agency` (`20260913160200`, service_role seul) la libère, et seulement VIERGE — ligne
+telle que provisionnée, zéro ligne dans toute table qui la référence (liste lue dans `pg_constraint` à
+l'appel) ; sinon elle est gardée (`solo_agency_retained`). Une agence qui porte des données ne se quitte
+que sur confirmation (409 `prior_agency_holds_data`, case à cocher sur `/accept-invite/:token`). Le lien
+WhatsApp et le profil IA suivent la personne ; `team_remove_member` vide le lien du membre retiré
+(`20260913160300`). `DELETE` sur `agencies` est retiré aux rôles clients.
 **🟨 Appel d'accueil (août 2026)** — une **étape du wizard** d'identité KYB depuis le 4 août.
 L'agence y réserve son appel de prise en main avec l'équipe MEGGA, sur des créneaux réellement
 libres.
@@ -546,7 +571,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | **Email (Resend)** | **sortant transactionnel seul**, depuis `noreply@getmegga.com`, sans `reply_to` : `send-email` · `send-property-email` · `send-relance-email` · `send-reminder-email` · `send-team-invite` · `send-visit-email` · `detect-new-device` |
 | **Messagerie e-mail (boîte de l'agent)** | `mail-oauth` · `mail-sync` (cron `mail-sync-2min`, **actif en prod**) · `mail-actions` · `mail-send` · `mail-attachment` — cœur `_shared/mail/` (9 modules purs). ⚠️ **Déployées mais jamais appelées pour de vrai** : 0 compte connecté au 05.09.2026, et trois gestes hors dépôt manquent. État complet et pièges : **§6ter** |
 | **Paiements (Stripe)** | `stripe-checkout` · `stripe-portal` · `stripe-webhook` (signature) · `admin-stripe-metrics` (MRR/ARR/churn) |
-| **Monitoring** | `admin-monitoring` (cron) · `ai-billing-monitor` (cron, balance DeepSeek) · `weekly-report` (cron) |
+| **Monitoring** | `admin-monitoring` (cron) · `ai-billing-monitor` (cron, balance DeepSeek) · `weekly-report` (déclenché depuis la console : `requireSuperAdmin` seul, aucun cron ne l'appelle — le chemin `x-cron-secret` a été retiré le 13.09.2026, audit S8 ; destinataires = super-admins ALLOWLISTÉS, lus par leur e-mail d'authentification) |
 | **Calendrier** | `google-calendar-sync` · `outlook-calendar-sync` (OAuth) |
 | **Marketplace / scraping** | `flatfox-sync` (cron) · `realadvisor-sync` (cron) · `market-scraper` (worker dormant) — `external-matching` retirée du dépôt (élagage juil. 2026, l'UI lit `external_listings` en direct) **et undeployée le 18 juil. 2026** (elle était restée en ligne 15 jours ; `useExternalMatching.ts` ne garde plus que le type `ExternalListing`) |
 | **Syndication IDX (sortant)** | `idx-feed` (GET, pull token, CSV IDX 3.01) · `idx-syndicate` (POST push FTP, cron `idx-syndicate-daily` 05:30 + on-demand WhatsApp) — cœur `_shared/idx-feed-core.ts` / `idx-mapper.ts` / `idx-ftp.ts` ; cf. brain `megga/syndication-idx`. **⛔ Go-live BLOQUÉ** sur l'obtention des accès FTP d'immobilier.ch (host/user/password) — blocant **externe** de même nature que la **vérification entreprise Meta** pour le WhatsApp public : tout est construit/déployé/testé, on attend un tiers. |
@@ -555,7 +580,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | **Media IA** | `virtual-staging` (garde-fous LPD : gate **Gemini** Vision + quota plan) — `public-staging` retirée (#671) |
 | **Divers** | `translate-on-demand` (DeepSeek + cache ; conservée pour réemploi CRM multilingue — ⚠ à durcir #784 avant usage) · `speech-to-text` · `intercom-identity` (JWT Messenger Security Intercom) · `accept-team-invite` · `automation-engine` (cron) |
 
-**Crons pg_cron** : `flatfox-sync-daily` (04:00 UTC), `platform-metrics-hourly` (`15 * * * *`), `contact-score-nightly` (03:00 UTC, `calculate_contact_scores`), `property-score-nightly` (03:50 UTC, `calculate_property_scores`), `market-rent-stats-refresh` (04:45 UTC, `REFRESH MATERIALIZED VIEW CONCURRENTLY market_rent_stats` — après le sync Flatfox), `idx-syndicate-daily` (`30 5 * * *`, 05:30 UTC, push FTP des feeds IDX agence), + automation-engine / ai-billing-monitor / weekly-report / search-alert.
+**Crons pg_cron** : `flatfox-sync-daily` (04:00 UTC), `platform-metrics-hourly` (`15 * * * *`), `contact-score-nightly` (03:00 UTC, `calculate_contact_scores`), `property-score-nightly` (03:50 UTC, `calculate_property_scores`), `market-rent-stats-refresh` (04:45 UTC, `REFRESH MATERIALIZED VIEW CONCURRENTLY market_rent_stats` — après le sync Flatfox), `idx-syndicate-daily` (`30 5 * * *`, 05:30 UTC, push FTP des feeds IDX agence), + automation-engine / ai-billing-monitor / search-alert. (`weekly-report` n'est PAS un cron : aucune tâche `cron.job` ne l'appelle, mesuré le 13.09.2026.)
 
 **Auth cron→edge (service-key)** : les crons s'authentifient via `Bearer app_config.service_role_key`, qui DOIT égaler l'env edge `SUPABASE_SERVICE_ROLE_KEY` (format `sb_secret_…`, **jamais** le JWT legacy du dashboard). Edge `sync-service-key` (`--no-verify-jwt`, garde `x-sync-token`) recopie env→table ; resync **manuel** (cron horaire + wrapper SQL pas encore en prod). Symptôme d'une clé périmée : crons en 401, 0 match. `get_app_config` non exposée à anon. Cf. `megga/service-key-self-heal`.
 
@@ -573,7 +598,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 **C · Portail vendeur (token)** : ❌ **flux supprimé le 26 juillet 2026.** Il n'a jamais tourné une seule fois — aucun portail n'a jamais été créé, donc aucun lien personnel envoyé. Les URLs `/portal*` et `/portail*` redirigent désormais vers la vitrine ; page, composants, hooks, edge function et tables sont partis (migration `20260726180000`).
 
-**D · KYC (Dilisense)** : transaction reserved/negotiation → `kyc_cases` (vigilance standard/renforcée selon montant + source des fonds) → magic link upload (`kyc_magic_link_uploads`, OCR, sha256) → screening async Dilisense → `kyc_screening_decisions` (PEP/sanctions) → **revue humaine MLRO** (fin de flux). L'ancienne **analyse qualitative Claude** a été **retirée du code**, pas seulement désactivée par flag : `ai_analysis` est forcé à `null` en dur (`kyc-screening/index.ts:251`, retrait #794/#829 — Claude banni au runtime). Le rapport masque la section « Analyse de risque » quand `ai_analysis` est null. Socle = screening factuel Dilisense + revue MLRO. **Canal WhatsApp (livré, cf. brain `kyc-whatsapp-spec`)** : l'agent ouvre/joint/screene depuis sa conversation via **6 outils copilote KYC** (`get_kyc_status` *read* ; `attach_kyc_document` *auto* ; `open_kyc_case`/`send_kyc_link` *confirm* ; `run_kyc_screening`/`send_kyc_report` *slow_async*) ; même moteur, le MLRO valide toujours (jamais `is_completed`/`verified` côté IA). **Rapport KYC en PDF par WhatsApp (livré, cf. brain `kyc-report-pdf-whatsapp`)** : `send_kyc_report` (tier *slow_async*, ~60 s → hors boucle) → edge `kyc-report-pdf` mint un token HMAC court → Cloudflare Browser Rendering (REST API, pas de Worker) rend la route publique `/kyc-report/:token` (même template `PdfPage1/2/3` que le CRM) → PDF officiel uploadé en média Meta éphémère et envoyé en document **qu'à l'agent** ; lecture seule (seul write = audit `kyc_report_sent`), aucune migration. **Import d'un rapport externe (PR #853)** : wizard voie import (dépôt PDF ≤7 Mo) → edge `kyc-report-import` (Gemini, `_shared/kyc-extract.ts`) → contrôles identité/PEP/sanctions **proposés, jamais auto-validés** (garde-fou MLRO) + PDF attaché au dossier en catégorie compliance.
+**D · KYC (Dilisense)** : transaction reserved/negotiation → `kyc_cases` (vigilance standard/renforcée selon montant + source des fonds) → magic link upload (`kyc_magic_link_uploads`, OCR, sha256 ; depuis le 13.09.2026 — audit S10 — borné par lien à 20 pièces / 100 Mo en edge ET par trigger en base (`20260913160400`), écriture réservée au service, vue publique en liste blanche de champs) → screening async Dilisense → `kyc_screening_decisions` (PEP/sanctions) → **revue humaine MLRO** (fin de flux). L'ancienne **analyse qualitative Claude** a été **retirée du code**, pas seulement désactivée par flag : `ai_analysis` est forcé à `null` en dur (`kyc-screening/index.ts:251`, retrait #794/#829 — Claude banni au runtime). Le rapport masque la section « Analyse de risque » quand `ai_analysis` est null. Socle = screening factuel Dilisense + revue MLRO. **Canal WhatsApp (livré, cf. brain `kyc-whatsapp-spec`)** : l'agent ouvre/joint/screene depuis sa conversation via **6 outils copilote KYC** (`get_kyc_status` *read* ; `attach_kyc_document` *auto* ; `open_kyc_case`/`send_kyc_link` *confirm* ; `run_kyc_screening`/`send_kyc_report` *slow_async*) ; même moteur, le MLRO valide toujours (jamais `is_completed`/`verified` côté IA). **Rapport KYC en PDF par WhatsApp (livré, cf. brain `kyc-report-pdf-whatsapp`)** : `send_kyc_report` (tier *slow_async*, ~60 s → hors boucle) → edge `kyc-report-pdf` mint un token HMAC court → Cloudflare Browser Rendering (REST API, pas de Worker) rend la route publique `/kyc-report/:token` (même template `PdfPage1/2/3` que le CRM) → PDF officiel uploadé en média Meta éphémère et envoyé en document **qu'à l'agent** ; lecture seule (seul write = audit `kyc_report_sent`), aucune migration. **Import d'un rapport externe (PR #853)** : wizard voie import (dépôt PDF ≤7 Mo) → edge `kyc-report-import` (Gemini, `_shared/kyc-extract.ts`) → contrôles identité/PEP/sanctions **proposés, jamais auto-validés** (garde-fou MLRO) + PDF attaché au dossier en catégorie compliance.
 
 **E · Matching & alertes** : `client_searches` (criteria JSONB) → `matching-engine` **v2** (durci PR #634 : pré-filtre **DUR** `transaction_type`+budget±15%+canton via RPC `match_candidate_listings`, puis scoring **soft** 0-100 — barème dans `app_config.matching_scoring_v2`, déterministe ; + axe **bonus** `pricePosition` en location = position du loyer vs marché du secteur via la MV `market_rent_stats`, PR #674, raison dans `budget.detail`, activation = redéploiement edge) sur `market_listings`+`properties` → `matches` (score+raisons, `score_version`, dédup dure par couple contact×bien, insert via RPC `ON CONFLICT`) → **Atelier Matching** (triptyque plein écran, gestes `E/X/P/R/V`) : Envoyer = deal `new_lead` (créé/rattaché, `transactions.market_listing_id` si bien de veille) + timeline contact (`dossier_envoye`) + reminder +5 j (→ Aujourd'hui, dédup avec `automation-engine`) + `send-property-email` ; Relancer = `sent_at` reset + reminder repoussé + `send-relance-email` ; Plus tard = `snoozed_until`+7 j + reminder custom à échéance ; Écarter = `ignored` (jamais re-proposé) ; Visite = bascule `/dashboard/visits/new` (bien interne). Écritures différées 4,5 s (undo toast avant toute écriture). Alertes email publiques (`market_alerts`/`search-alert` cron via Resend) inchangées.
 
