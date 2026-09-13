@@ -465,6 +465,8 @@
       "rls_hardening_applied": "RLS-Härtung angewendet",
       "role_changed": "Rolle geändert",
       "seller_lead_received": "Verkäuferanfrage erhalten",
+      "solo_agency_released": "Leere Solo-Agentur aufgelöst",
+      "solo_agency_retained": "Solo-Agentur behalten (Daten vorhanden)",
       "stage_change": "Phase geändert",
       "status_change": "Status geändert",
       "subscription_activated": "Abonnement aktiviert",

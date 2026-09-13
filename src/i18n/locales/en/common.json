@@ -472,6 +472,8 @@
       "rls_hardening_applied": "RLS hardening applied",
       "role_changed": "Role changed",
       "seller_lead_received": "Seller lead received",
+      "solo_agency_released": "Empty solo agency released",
+      "solo_agency_retained": "Solo agency kept (holds data)",
       "stage_change": "Stage changed",
       "status_change": "Status changed",
       "subscription_activated": "Subscription activated",

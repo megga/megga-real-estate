@@ -174,9 +174,14 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
   // son invitation (elle expire à 7 jours, le trigger ne repasse pas) restait sinon à
   // agency_id NULL pour toujours — CRM muet, sans issue, wizard de rattrapage supprimé
   // et join_agency fermée. handle_new_user() ne consulte donc plus team_invitations et
-  // provisionne systématiquement ; c'est accept-team-invite qui nettoie l'agence solo
-  // au moment de la réclamation réelle. Preuve de bout en bout : l'agence solo existe
-  // après le signup, puis a disparu après la réclamation, remplacée par la vraie.
+  // provisionne systématiquement ; l'agence solo est libérée au moment de la réclamation
+  // réelle — par `release_empty_solo_agency` (20260913160200, audit S9), et SEULEMENT si
+  // elle est vierge. Preuve de bout en bout : l'agence solo existe après le signup, puis a
+  // disparu après la réclamation, remplacée par la vraie.
+  //
+  // ⚠ C'EST AUSSI LE CONTRÔLE POSITIF de tests/backend/solo-agency-release.spec.ts : là-bas,
+  // une agence qui porte des données est GARDÉE. Sans ce test-ci, une fonction qui ne
+  // libérerait jamais rien y passerait au vert — et des agences mortes s'accumuleraient.
   it('invité : agence solo à l’inscription, puis vraie agence et agence solo disparue après réclamation', async () => {
     const svc = serviceRoleClient()
     const stamp = `${Date.now()}-${Math.floor(Math.random() * 1e6)}`
@@ -231,5 +236,17 @@ describe.skipIf(!HAS_KEYS)('inscription — provisioning automatique', () => {
     const { data: soloAgencyAfter } = await svc
       .from('agencies').select('id').eq('id', soloAgencyId).maybeSingle()
     expect(soloAgencyAfter, 'l’agence solo devenue inutile doit avoir été supprimée par accept-team-invite').toBeNull()
+
+    // La libération passe par la fonction, et se journalise : agency_id NULL (l'agence
+    // n'existe plus), son id dans entity_id, l'invité pour acteur.
+    const { data: released, error: releasedErr } = await svc
+      .from('activity_events')
+      .select('agency_id, actor_id')
+      .eq('action', 'solo_agency_released')
+      .eq('entity_id', soloAgencyId)
+    expect(releasedErr, `activity_events: ${releasedErr?.message}`).toBeNull()
+    expect(released, 'la libération doit laisser un événement solo_agency_released').toEqual([
+      { agency_id: null, actor_id: created.user!.id },
+    ])
   })
 })

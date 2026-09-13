@@ -472,6 +472,8 @@
       "rls_hardening_applied": "Durcissement RLS appliqué",
       "role_changed": "Rôle modifié",
       "seller_lead_received": "Demande vendeur reçue",
+      "solo_agency_released": "Agence solo vide libérée",
+      "solo_agency_retained": "Agence solo conservée (données présentes)",
       "stage_change": "Étape modifiée",
       "status_change": "Statut modifié",
       "subscription_activated": "Abonnement activé",

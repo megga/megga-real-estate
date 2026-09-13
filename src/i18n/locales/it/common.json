@@ -465,6 +465,8 @@
       "rls_hardening_applied": "Rafforzamento RLS applicato",
       "role_changed": "Ruolo modificato",
       "seller_lead_received": "Richiesta venditore ricevuta",
+      "solo_agency_released": "Agenzia individuale vuota chiusa",
+      "solo_agency_retained": "Agenzia individuale conservata (dati presenti)",
       "stage_change": "Fase modificata",
       "status_change": "Stato modificato",
       "subscription_activated": "Abbonamento attivato",

@@ -47,6 +47,10 @@ const ACTION_KEYS: Record<string, string> = {
   document_uploaded: 'liveFeed.action.documentUploaded',
   login: 'liveFeed.action.login',
   logout: 'liveFeed.action.logout',
+  // Écrits par release_empty_solo_agency (S9, 20260913160200). La console est le SEUL
+  // endroit où la libération se lit : l'agence n'existe plus, ou n'a plus de membre.
+  solo_agency_released: 'liveFeed.action.soloAgencyReleased',
+  solo_agency_retained: 'liveFeed.action.soloAgencyRetained',
 }
 
 // ─── ALL ENTITY TYPES FOR FILTER ───────────────────────────────────────────

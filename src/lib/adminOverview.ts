@@ -245,6 +245,10 @@ export const JOURNAL_ACTION_KEY: Record<string, string> = {
   role_changed: 'dashboard.journal.action.roleChanged',
   payment_failed: 'dashboard.journal.action.paymentFailed',
   edge_function_error: 'dashboard.journal.action.edgeFunctionError',
+  // L'agence quittée à la réclamation d'une invitation (S9, 20260913160200) : libérée si
+  // vide, gardée sinon — `warn`, pour que le support retrouve les agences sans membre.
+  solo_agency_released: 'dashboard.journal.action.soloAgencyReleased',
+  solo_agency_retained: 'dashboard.journal.action.soloAgencyRetained',
 }
 
 /**

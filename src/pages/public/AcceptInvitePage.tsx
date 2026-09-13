@@ -3,6 +3,14 @@
  * Aperçu puis réclamation via l'edge function `accept-team-invite` (actions preview / claim).
  * L'UI s'adapte à l'état de session : connecté + email concordant → bouton accepter,
  * mauvais compte → avertissement, non connecté → login/register avec redirect vers cette page.
+ *
+ * ⛔ QUITTER UNE AGENCE QUI PORTE DES DONNÉES SE CONFIRME (audit du 13.09.2026, point S9).
+ * Accepter rattache le compte à l'agence qui invite et le fait sortir de la sienne. Si
+ * celle-ci porte des données, elles restent en place mais la personne n'y a plus accès : la
+ * page le dit et exige une case cochée avant d'envoyer `confirmLeave: true`. Deux sources,
+ * parce que l'aperçu ne peut pas toujours savoir : `leavesAgencyWithData` de l'aperçu
+ * (calculé pour l'invité connecté seulement), et le 409 `prior_agency_holds_data` de la
+ * réclamation — auquel cas rien n'a bougé côté serveur, et l'avertissement remplace l'erreur.
  */
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
@@ -34,6 +42,35 @@ interface InvitationDetails {
   agencyName: string
   inviterName: string
   expiresAt: string
+  /**
+   * L'agence actuelle de l'invité porte des données qu'accepter lui ferait quitter. Rendu
+   * SEULEMENT à l'invité connecté dont l'e-mail concorde ; absent = inconnu ou sans objet.
+   */
+  leavesAgencyWithData?: boolean
+}
+
+/**
+ * Code métier d'une réponse de `functions.invoke`, ou `null` si elle a réussi.
+ *
+ * ⛔ `functions.invoke` range toute réponse non-2xx dans `error` — une `FunctionsHttpError`
+ * au message générique — et laisse `data` à `null` : le code (`prior_agency_holds_data`,
+ * `email_mismatch`) ne vit que dans le CORPS, exposé sur `error.context`, la `Response`
+ * brute. Sans cette lecture, le 409 se confondrait avec une panne.
+ */
+async function codeErreur(data: unknown, error: unknown): Promise<string | null> {
+  const direct = (data as { error?: unknown } | null)?.error
+  if (typeof direct === 'string' && direct) return direct
+  if (!error) return null
+  const ctx = (error as { context?: Response }).context
+  if (ctx && typeof ctx.json === 'function') {
+    try {
+      const code = ((await ctx.json()) as { error?: unknown } | null)?.error
+      if (typeof code === 'string' && code) return code
+    } catch {
+      // Corps non-JSON (passerelle, page d'erreur) : le code générique ci-dessous suffit.
+    }
+  }
+  return 'unknown'
 }
 
 /** Charge l'aperçu de l'invitation puis gère sa réclamation (claim) après contrôle d'email. */
@@ -47,6 +84,9 @@ export default function AcceptInvitePage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [claiming, setClaiming] = useState(false)
+  // L'agence quittée porte des données : la réclamation attend une confirmation explicite.
+  const [mustConfirmLeave, setMustConfirmLeave] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
 
   useEffect(() => {
     if (!token) return
@@ -65,6 +105,7 @@ export default function AcceptInvitePage() {
         else setError(t('team.acceptInvite.error'))
       } else {
         setInvitation(data)
+        setMustConfirmLeave(data?.leavesAgencyWithData === true)
       }
       setLoading(false)
     }
@@ -76,11 +117,18 @@ export default function AcceptInvitePage() {
     setClaiming(true)
 
     const { data, error: err } = await supabase.functions.invoke('accept-team-invite', {
-      body: { token, action: 'claim' },
+      // `confirmLeave` ne part que coché : c'est le consentement, pas un réglage par défaut.
+      body: { token, action: 'claim', ...(confirmLeave ? { confirmLeave: true } : {}) },
     })
 
-    if (err || data?.error) {
-      if (data?.error === 'email_mismatch') {
+    const code = await codeErreur(data, err)
+    if (code === 'prior_agency_holds_data') {
+      // L'aperçu n'avait pas pu le dire (données créées depuis, vérification indisponible).
+      // Le serveur n'a rien déplacé : on demande la confirmation au lieu d'afficher une erreur.
+      setMustConfirmLeave(true)
+      setClaiming(false)
+    } else if (code) {
+      if (code === 'email_mismatch') {
         setError(t('team.acceptInvite.emailMismatch', { email: invitation?.email }))
       } else {
         setError(t('team.acceptInvite.error'))
@@ -160,11 +208,48 @@ export default function AcceptInvitePage() {
                 </p>
               </div>
 
+              {/* Authenticated + email match, mais l'agence quittée porte des données :
+                  même bloc d'alerte que les deux pages de visite (aplat ambre, filet en
+                  ombre intérieure), et la case conditionne le bouton ci-dessous. */}
+              {user && emailMatch && mustConfirmLeave && (
+                <div
+                  role="alert"
+                  style={{
+                    background: STATUT_CLAIR.warnFill,
+                    boxShadow: `inset 0 0 0 1px ${STATUT_CLAIR.warnLine}`,
+                    borderRadius: 'var(--crm-radius-lg)',
+                    padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
+                  }}
+                >
+                  <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: WARN_INK, margin: 0 }}>
+                    {t('team.acceptInvite.leaveWarningTitle')}
+                  </p>
+                  <p style={{ fontSize: 'var(--crm-text-sm)', color: WARN_INK, margin: 'var(--crm-space-xs) 0 0' }}>
+                    {t('team.acceptInvite.leaveWarningBody', { agency: invitation.agencyName })}
+                  </p>
+                  <label
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-sm)',
+                      marginTop: 'var(--crm-space-lg)', cursor: 'pointer',
+                      fontSize: 'var(--crm-text-sm)', color: MLK.inkSoft,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={confirmLeave}
+                      onChange={(e) => setConfirmLeave(e.target.checked)}
+                      style={{ accentColor: MLK.accent, flexShrink: 0, margin: 'var(--crm-space-2xs) 0 0' }}
+                    />
+                    <span>{t('team.acceptInvite.leaveConfirm')}</span>
+                  </label>
+                </div>
+              )}
+
               {/* Authenticated + email match */}
               {user && emailMatch && (
                 <button
                   onClick={handleClaim}
-                  disabled={claiming}
+                  disabled={claiming || (mustConfirmLeave && !confirmLeave)}
                   className="w-full h-11 rounded-lg transition-colors disabled:opacity-50"
                   style={{
                     fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500,
