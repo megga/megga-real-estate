@@ -1371,6 +1371,7 @@
       "publishing": "Publishing…",
       "publish": "Publish on MEGGA",
       "publishError": "Publication failed: {{message}}",
+      "planLimit": "Your plan has reached its limit of active properties: archive a property or change plan.",
       "unknownError": "Unknown error",
       "recommended": "Recommended",
       "choose": "Choose",

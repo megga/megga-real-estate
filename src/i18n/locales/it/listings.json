@@ -1371,6 +1371,7 @@
       "publishing": "Pubblicazione…",
       "publish": "Pubblica su MEGGA",
       "publishError": "Pubblicazione non riuscita: {{message}}",
+      "planLimit": "Il tuo piano ha raggiunto il limite di immobili attivi: archivia un immobile o cambia piano.",
       "unknownError": "Errore sconosciuto",
       "recommended": "Consigliato",
       "choose": "Scegli",

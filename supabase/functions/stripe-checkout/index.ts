@@ -5,6 +5,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
+import { tablePrixStripe, verifierPrix } from '../_shared/stripe-prices.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY')!, {
   apiVersion: '2023-10-16',
@@ -69,6 +70,17 @@ serve(async (req) => {
     if (!priceId) {
       return new Response(JSON.stringify({ error: 'priceId requis' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Audit S15 (13.09.2026) : le prix vient du navigateur, il n'ouvre un abonnement que s'il
+    // figure dans la table des secrets — celle-là même qui traduit un prix en plan dans le
+    // webhook. Vérifié AVANT de créer un client Stripe : un refus ne laisse aucune trace chez Stripe.
+    const verdict = verifierPrix(priceId, tablePrixStripe((nom) => Deno.env.get(nom)))
+    if (!verdict.ok) {
+      return new Response(JSON.stringify({ error: verdict.error }), {
+        status: verdict.status,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
