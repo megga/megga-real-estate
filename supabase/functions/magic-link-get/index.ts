@@ -2,21 +2,34 @@
 // GET /functions/v1/magic-link-get   (jeton dans l'en-tête `x-magic-link-token`)
 //
 // Sprint 4.7.A — Endpoint PUBLIC (sans auth) qui résout un token magique
-// et retourne l'état du lien + le contexte minimal pour l'écran client
-// (nom de l'agence, nom de l'agent qui a envoyé, mode, custom_message,
-// pièces déjà uploadées, expiration).
+// et retourne l'état du lien + le contexte minimal pour l'écran client.
+//
+// CE QUE LE PORTEUR LIT — une LISTE BLANCHE, pas une liste de colonnes (audit du
+// 13.09.2026, point S10). Lien ouvert : `buildMagicLinkPublicView`
+// (_shared/magic-link-public-view.ts) recopie champ par champ le prénom, le nom de
+// l'agent et de l'agence, le mode, l'échéance, le statut, et pour chaque pièce son id,
+// son type, son nom de fichier, sa taille et sa date. Lien soumis : seulement
+// {status, confirmed_at, message}. Lien expiré : 410 {status, expires_at, message}.
+//
+// Ce qui ne sort PLUS, et pourquoi : `ocr_fields` (nom, numéro de pièce, date de
+// naissance), le nom de famille, `custom_message` (déjà dans le courriel qui porte le
+// lien), le `slug` de l'agence et `confirmed_by_client`. La page ne lisait aucun d'eux ;
+// les servir ne profitait qu'à qui tient un lien transféré, pendant toute sa vie.
 //
 // Sécurité :
 //   - Vérification HMAC stricte
 //   - Jeton hors URL (en-tête) : les journaux d'accès de la plateforme
 //     enregistrent l'URL complète des requêtes
-//   - Aucun PII serveur exposé hors du strict nécessaire pour l'UX client
 //   - Au 1er hit, on incrémente `opened_at` et passe status à 'opened'
 //   - Si expiré → status='expired' + AuditEvent + 410 Gone
+//   - Aucune écriture de statut ne franchit un statut terminal (filtre
+//     MAGIC_LINK_OPEN_STATUSES) : un dossier soumis n'est jamais réécrit
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { verifyMagicLinkToken } from '../_shared/magic-link-token.ts'
+import { buildMagicLinkPublicView } from '../_shared/magic-link-public-view.ts'
+import { MAGIC_LINK_OPEN_STATUSES } from '../_shared/magic-link-limits.ts'
 
 // `x-magic-link-token` DOIT figurer ici : l'appel vient d'un navigateur en
 // cross-origin, et un en-tête absent de cette liste fait échouer le preflight —
@@ -73,9 +86,9 @@ serve(async (req) => {
 
   const { data: link, error: linkErr } = await supabase
     .from('kyc_magic_links')
-    .select(
-      'id, token, agency_id, kyc_case_id, contact_id, mode, channels, custom_message, status, expires_at, sent_at, opened_at, uploaded_at, confirmed_at, created_by',
-    )
+    // Rien de plus que ce que les contrôles et la vue publique lisent : `custom_message`
+    // et consorts n'ont plus rien à faire dans la mémoire d'un endpoint public.
+    .select('id, token, agency_id, contact_id, mode, status, expires_at, confirmed_at, created_by')
     .eq('id', magicLinkId)
     .single()
 
@@ -111,11 +124,14 @@ serve(async (req) => {
   // 4. Si expiré (côté DB) → 410
   if (link.status === 'expired' || new Date(link.expires_at) <= new Date()) {
     if (link.status !== 'expired') {
-      // On marque expiré côté DB pour idempotence
+      // On marque expiré côté DB pour idempotence. Filtré sur les statuts OUVERTS : une
+      // soumission concurrente, arrivée entre la lecture et cette écriture, ne doit pas
+      // être réécrite en « expiré ».
       await supabase
         .from('kyc_magic_links')
         .update({ status: 'expired', expired_at: new Date().toISOString() })
         .eq('id', magicLinkId)
+        .in('status', [...MAGIC_LINK_OPEN_STATUSES])
     }
     return new Response(
       JSON.stringify({
@@ -152,45 +168,34 @@ serve(async (req) => {
   }
 
   // 6. Charge contexte UX pour l'écran client
-  // (nom agent + nom agence + uploads déjà reçus)
+  // (nom agent + nom agence + uploads déjà reçus). Les `select` sont réduits à la liste
+  // blanche, MAIS ce n'est pas eux qui la tiennent : c'est `buildMagicLinkPublicView`, qui
+  // recopie champ par champ. Un `select` élargi demain n'atteindra pas le porteur.
   const [contactRes, agencyRes, agentRes, uploadsRes] = await Promise.all([
     supabase
       .from('contacts')
-      .select('first_name, last_name')
+      .select('first_name')
       .eq('id', link.contact_id)
       .single(),
-    supabase.from('agencies').select('name, slug').eq('id', link.agency_id).single(),
+    supabase.from('agencies').select('name').eq('id', link.agency_id).single(),
     link.created_by
       ? supabase.from('profiles').select('full_name').eq('id', link.created_by).single()
       : Promise.resolve({ data: null }),
     supabase
       .from('kyc_magic_link_uploads')
-      .select(
-        'id, type, filename, size_bytes, uploaded_at, confirmed_by_client, ocr_fields',
-      )
+      .select('id, type, filename, size_bytes, uploaded_at')
       .eq('magic_link_id', magicLinkId)
       .order('uploaded_at', { ascending: true }),
   ])
 
   return new Response(
-    JSON.stringify({
-      magic_link_id: link.id,
-      status: link.status === 'pending' ? 'opened' : link.status,
-      mode: link.mode,
-      custom_message: link.custom_message,
-      expires_at: link.expires_at,
-      contact: contactRes.data
-        ? {
-            first_name: contactRes.data.first_name,
-            last_name: contactRes.data.last_name,
-          }
-        : null,
-      agency: agencyRes.data
-        ? { name: agencyRes.data.name, slug: agencyRes.data.slug }
-        : null,
-      agent: agentRes.data ? { full_name: agentRes.data.full_name } : null,
-      uploads: uploadsRes.data ?? [],
-    }),
+    JSON.stringify(buildMagicLinkPublicView({
+      link,
+      contact: contactRes.data,
+      agency: agencyRes.data,
+      agent: agentRes.data,
+      uploads: uploadsRes.data,
+    })),
     { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   )
 })

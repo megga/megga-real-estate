@@ -41,6 +41,9 @@ export const SENSITIVE_ACTIONS = [
   'subscription_changed',
   'document_accessed',
   'weekly_report_sent',
+  // Brancher un agenda externe expose les coordonnées des acheteurs à ce compte
+  // (audit S12) : la liaison est un geste de sécurité, pas un réglage.
+  'calendar_connected',
 ] as const
 
 /** Libellés FR affichés pour chaque action auditée. */
@@ -64,6 +67,7 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   subscription_changed: 'Abonnement modifie',
   document_accessed: 'Document consulte',
   weekly_report_sent: 'Rapport hebdo envoye',
+  calendar_connected: 'Agenda externe connecte',
 }
 
 /** Gravité par action (pilote la couleur du badge et le tri de la vue). */
@@ -87,6 +91,7 @@ export const AUDIT_SEVERITY: Record<string, 'critical' | 'warning' | 'info'> = {
   subscription_changed: 'info',
   document_accessed: 'info',
   weekly_report_sent: 'info',
+  calendar_connected: 'warning',
 }
 
 interface AuditFilters {

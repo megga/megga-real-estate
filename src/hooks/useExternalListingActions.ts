@@ -3,9 +3,18 @@
  * hors-catalogue) : notes, envois et flag « importé ». Purement client
  * (localStorage) — ces annotations survivent au refresh mais pas au changement
  * d'appareil, aucune persistance Supabase.
+ *
+ * ⚠ Rangé PAR COMPTE (`megga_external_listing_actions:<uid>`, audit S11) et PURGÉ
+ * à la déconnexion : ces notes portent le nom du contact destinataire, et une clé
+ * fixe les montrait au compte suivant du même navigateur. L'ancienne clé non
+ * indexée est retirée au premier démarrage — son propriétaire est inconnu.
+ * Des notes qui survivraient à la déconnexion demanderaient une table sous RLS
+ * d'agence, pas le stockage du navigateur.
  */
 import { useState, useCallback } from 'react'
 import type { ExternalListing } from './useExternalMatching'
+import { useAuth } from '@/hooks/useAuth'
+import { cleDuCompte } from '@/lib/stockageParCompte'
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -35,20 +44,22 @@ type StateMap = Record<string, ExternalListingState>
 
 const STORAGE_KEY = 'megga_external_listing_actions'
 
-/** Lit la map d'états depuis localStorage ; `{}` si absente ou corrompue. */
-function loadState(): StateMap {
+/** Lit la map d'états du compte ; `{}` sans compte, absente ou corrompue. */
+function loadState(uid: string | null): StateMap {
+  if (!uid) return {}
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : {}
+    const raw = localStorage.getItem(cleDuCompte(STORAGE_KEY, uid))
+    return raw ? (JSON.parse(raw) as StateMap) : {}
   } catch {
     return {}
   }
 }
 
-/** Persiste la map d'états (échec silencieux si le quota localStorage est plein). */
-function saveState(state: StateMap) {
+/** Persiste la map d'états du compte ; rien sans compte (échec silencieux si le quota est plein). */
+function saveState(uid: string | null, state: StateMap) {
+  if (!uid) return
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    localStorage.setItem(cleDuCompte(STORAGE_KEY, uid), JSON.stringify(state))
   } catch {
     // localStorage full or unavailable — silently ignore
   }
@@ -66,7 +77,9 @@ function getListingState(stateMap: StateMap, externalId: string): ExternalListin
  * transparente. Retourne l'état courant du bien + les actions de mutation.
  */
 export function useExternalListingActions(listing: ExternalListing | undefined) {
-  const [stateMap, setStateMap] = useState<StateMap>(loadState)
+  const { user } = useAuth()
+  const uid = user?.id ?? null
+  const [stateMap, setStateMap] = useState<StateMap>(() => loadState(uid))
 
   // ⚠ `listing.id` — l'uuid de `market_listings` — depuis le 05.09.2026. Le champ
   // s'appelait `external_id` et portait l'identifiant d'un pipeline RealAdvisor
@@ -80,10 +93,10 @@ export function useExternalListingActions(listing: ExternalListing | undefined) 
   const updateState = useCallback((newListingState: ExternalListingState) => {
     setStateMap(prev => {
       const next = { ...prev, [externalId]: newListingState }
-      saveState(next)
+      saveState(uid, next)
       return next
     })
-  }, [externalId])
+  }, [externalId, uid])
 
   // Add note
   const addNote = useCallback((text: string) => {

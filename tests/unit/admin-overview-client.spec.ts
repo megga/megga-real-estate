@@ -56,6 +56,13 @@ describe('sectionPath — chaque cible est assertée nommément', () => {
     // La garde qui compte : le repli ne doit pas être la concaténation naïve.
     expect(sectionPath('kyb')).not.toBe('/dashboard/admin/kyb')
   })
+
+  it('ne lit jamais une clé héritée du prototype (le jeton vient du serveur)', () => {
+    for (const cle of ['constructor', '__proto__', 'toString', 'hasOwnProperty']) {
+      expect(typeof sectionPath(cle)).toBe('string')
+      expect(sectionPath(cle)).toBe('/dashboard/admin')
+    }
+  })
 })
 
 describe('readAdminOverview — défensif sur une réponse partielle', () => {

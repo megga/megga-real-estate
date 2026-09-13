@@ -85,13 +85,16 @@ serve(async (req) => {
 
   const verified = await verifyMagicLinkToken(token)
   if (!verified.valid || !verified.payload) {
+    // Motif réduit à expired/invalid (audit S10, 13.09.2026), même règle que magic-link-get :
+    // le motif interne de la vérification ne renseigne un appelant anonyme que sur nous.
+    const expire = verified.reason === 'expired'
     return json(
-      { error: verified.reason === 'expired' ? 'Link expired' : 'Invalid link', reason: verified.reason },
-      verified.reason === 'expired' ? 410 : 401,
+      { error: expire ? 'Link expired' : 'Invalid link', reason: expire ? 'expired' : 'invalid' },
+      expire ? 410 : 401,
     )
   }
   if (verified.payload.k !== 'appt') {
-    return json({ error: 'Invalid link', reason: 'wrong_token_kind' }, 401)
+    return json({ error: 'Invalid link', reason: 'invalid' }, 401)
   }
 
   const db = createClient(

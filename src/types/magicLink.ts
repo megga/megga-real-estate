@@ -1,5 +1,12 @@
-// MEGGA — Types KYC Magic Link (Sprint 4.7)
-// Source de vérité : supabase/migrations/20260520_003_kyc_magic_links.sql
+/**
+ * MEGGA — Types KYC Magic Link (Sprint 4.7).
+ *
+ * Sources de vérité : les tables `kyc_magic_links` / `kyc_magic_link_uploads` vivent dans
+ * `supabase/migrations/00000000000000_baseline_remote_schema.sql` (la migration d'origine,
+ * 20260520_003, est archivée) ; la vue PUBLIQUE est construite par
+ * `supabase/functions/_shared/magic-link-public-view.ts`, et ses types ici la suivent champ
+ * pour champ — jamais une ligne de base (audit S10, 13.09.2026).
+ */
 
 export type MagicLinkMode = 'libre' | 'verifiee'
 
@@ -57,26 +64,32 @@ export interface CreateMagicLinkResponse {
   status: MagicLinkStatus
 }
 
-/** Vue publique servie par GET /magic-link-get?token=... (côté client). */
+/**
+ * Vue publique d'un lien OUVERT servie par `magic-link-get` (côté client) — la liste
+ * blanche de `buildMagicLinkPublicView`, et elle seule. Ni nom de famille, ni message
+ * personnalisé, ni slug d'agence, ni champ OCR : la page ne les lit pas, le serveur ne les
+ * sert plus. `pending` n'arrive jamais (le premier appel ouvre le lien) et `submitted` a sa
+ * propre forme ; `expired` n'est gardé que pour la branche défensive de la page (le serveur
+ * répond 410).
+ */
 export interface MagicLinkPublicView {
   magic_link_id: string
-  status: MagicLinkStatus
+  status: Exclude<MagicLinkStatus, 'pending' | 'submitted'>
   mode: MagicLinkMode
-  custom_message: string | null
   expires_at: string
-  contact: {
-    first_name: string
-    last_name: string
-  } | null
-  agency: {
-    name: string
-    slug: string
-  } | null
-  agent: {
-    full_name: string
-  } | null
-  uploads: Pick<
-    KycMagicLinkUpload,
-    'id' | 'type' | 'filename' | 'size_bytes' | 'uploaded_at' | 'confirmed_by_client' | 'ocr_fields'
-  >[]
+  contact: { first_name: string } | null
+  agency: { name: string } | null
+  agent: { full_name: string } | null
+  uploads: Pick<KycMagicLinkUpload, 'id' | 'type' | 'filename' | 'size_bytes' | 'uploaded_at'>[]
+}
+
+/**
+ * Réponse de `magic-link-get` pour un lien DÉJÀ SOUMIS : aucune donnée de personne, ni
+ * prénom, ni agent, ni agence, ni pièce. Les écrans de succès et de rendez-vous qui suivent
+ * affichent donc leurs replis (« votre agent », « votre agence »).
+ */
+export interface MagicLinkSubmittedView {
+  status: 'submitted'
+  confirmed_at: string | null
+  message: string
 }

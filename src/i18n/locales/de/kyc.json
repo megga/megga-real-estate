@@ -83,7 +83,10 @@
       "error_min_one": "Laden Sie mindestens ein Dokument hoch, bevor Sie bestätigen.",
       "error_size": "Datei zu gross (max. 10 MB, Ihre hat {{mb}} MB).",
       "error_format": "Format nicht akzeptiert ({{type}}). Verwenden Sie PDF, JPG, PNG, WEBP oder HEIC.",
-      "error_default": "Hochladen fehlgeschlagen. Bitte erneut versuchen."
+      "error_default": "Hochladen fehlgeschlagen. Bitte erneut versuchen.",
+      "error_limit": "Obergrenze für diesen Link erreicht: {{max}} Dokumente oder insgesamt {{mb}} MB. Bestätigen Sie den Versand oder kontaktieren Sie Ihren Makler.",
+      "error_not_uploadable": "Dieses Dossier nimmt keine Dokumente mehr an: Es wurde bereits gesendet oder der Link ist abgelaufen.",
+      "error_length_required": "Ihr Browser hat die Dateigrösse nicht übermittelt. Versuchen Sie es mit einem aktuellen Browser erneut."
     },
     "upload_types": {
       "identity_title": "Ausweisdokument",

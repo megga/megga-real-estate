@@ -3,13 +3,27 @@
 //
 // Refuse : schéma non-https, hôtes résolvant vers une IP privée/loopback/
 // link-local (169.254.x, 127.x, 10.x, 172.16-31.x, 192.168.x, ::1, fc00::/7,
-// fe80::/10), redirections (manual), réponses trop volumineuses, timeouts.
+// fe80::/10), réponses trop volumineuses, timeouts. Les redirections sont
+// refusées par défaut, ou suivies SAUT PAR SAUT quand l'appelant l'autorise —
+// chaque `Location` repasse alors par la même validation que l'URL de départ.
 //
-// Renvoie les octets du corps (Uint8Array). Lève une `Error` préfixée `ssrf:`
-// ou `fetch:` que l'appelant doit traduire en 400.
+// Lève une `Error` préfixée `ssrf:` ou `fetch:` que l'appelant doit traduire en 400.
 //
-// Le repo utilise déjà ce patron (allowlist + timeout) dans extract-property-url ;
-// on le généralise ici avec le blocage explicite des IP internes.
+// ⛔ POURQUOI LE SUIVI DES REDIRECTIONS VIT ICI (audit du 13.09.2026, point S6).
+// `c2pa-sign`, `virtual-staging` et `photo-vision` validaient l'URL par
+// `assertPublicUrl`, puis appelaient `fetch(url)` — dont le défaut est
+// `redirect: 'follow'`. Une URL publique qui répond `302 Location: http://169.254.169.254/…`
+// passait le contrôle, et le fetch suivait vers l'adresse interne ; dans le staging
+// virtuel, les octets récupérés étaient ensuite publiés dans le bucket PUBLIC
+// `property-photos` — la réponse d'une cible interne devenait lisible par l'appelant.
+// Refuser toute redirection aurait cassé les photos encore enregistrées sous l'ANCIEN hôte
+// d'images, qui répond 301 vers `img.getmegga.com` depuis la migration de domaine.
+// D'où un suivi manuel, borné, re-validé à chaque saut.
+//
+// ⚠ RISQUE RÉSIDUEL, ASSUMÉ : entre la résolution DNS de `assertPublicUrl` et celle du
+// `fetch`, un DNS hostile peut changer de réponse (rebinding). Deno n'offre pas d'épingler
+// l'IP résolue sans casser le SNI TLS ; l'exigence https et le TTL court du rebinding
+// rendent l'exploitation étroite, pas nulle.
 
 const BLOCKED_IP: RegExp[] = [
   /^127\./,                       // loopback
@@ -18,10 +32,33 @@ const BLOCKED_IP: RegExp[] = [
   /^169\.254\./,                  // link-local (métadonnées cloud !)
   /^172\.(1[6-9]|2\d|3[01])\./,   // private B
   /^192\.168\./,                  // private C
+  /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./, // CGNAT 100.64/10 (métadonnées de certains clouds)
   /^::1$/,                        // IPv6 loopback
+  /^::$/,                         // IPv6 non spécifiée
   /^fe80:/i,                      // IPv6 link-local
   /^f[cd][0-9a-f][0-9a-f]:/i,     // IPv6 unique-local (fc00::/7)
 ]
+
+/**
+ * Une IPv6 qui ENCAPSULE une IPv4 (`::ffff:169.254.169.254`, `::ffff:a9fe:a9fe`) se juge
+ * sur son IPv4 : sans ce dépliage, un AAAA hostile contournait toute la liste ci-dessus.
+ */
+function unwrapMappedV4(ip: string): string {
+  const m = /^::ffff:(.+)$/i.exec(ip)
+  if (!m) return ip
+  const tail = m[1]
+  if (tail.includes('.')) return tail
+  const hex = /^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i.exec(tail)
+  if (!hex) return ip
+  const hi = parseInt(hex[1], 16), lo = parseInt(hex[2], 16)
+  return `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`
+}
+
+/** Vrai si l'adresse est interne (privée, loopback, link-local, CGNAT, ou IPv4 interne encapsulée). */
+export function isBlockedIp(ip: string): boolean {
+  const v = unwrapMappedV4(ip.trim())
+  return BLOCKED_IP.some((r) => r.test(v))
+}
 
 async function resolveAll(hostname: string): Promise<string[]> {
   const [a, aaaa] = await Promise.all([
@@ -44,30 +81,107 @@ export async function assertPublicUrl(rawUrl: string): Promise<URL> {
   if (u.protocol !== 'https:') throw new Error('ssrf: https_only')
   const ips = await resolveAll(u.hostname)
   if (ips.length === 0) throw new Error('ssrf: dns_unresolved')
-  if (ips.some((ip) => BLOCKED_IP.some((r) => r.test(ip)))) throw new Error('ssrf: blocked_ip')
+  if (ips.some(isBlockedIp)) throw new Error('ssrf: blocked_ip')
   return u
 }
 
+export interface SafeFetchOptions {
+  /** Taille maximale du corps, vérifiée PENDANT la lecture (défaut 8 Mo). */
+  maxBytes?: number
+  /** Délai total, redirections comprises (défaut 8 s). */
+  timeoutMs?: number
+  /** Redirections suivies, chacune re-validée (défaut 0 : toute redirection est refusée). */
+  maxRedirects?: number
+}
+
+export interface SafeFetchResult {
+  /** Adossé à un ArrayBuffer ordinaire : utilisable tel quel par `Blob` et `crypto.subtle`. */
+  bytes: Uint8Array<ArrayBuffer>
+  /** `content-type` de la réponse finale, ou null s'il est absent. */
+  contentType: string | null
+  /** L'URL qui a réellement servi les octets (après redirections). */
+  finalUrl: string
+}
+
+/** Lit le corps en s'arrêtant dès que `maxBytes` est dépassé — un corps sans longueur annoncée ne peut pas remplir la mémoire. */
+async function readCapped(res: Response, maxBytes: number): Promise<Uint8Array<ArrayBuffer>> {
+  if (!res.body) return new Uint8Array(0)
+  const reader = res.body.getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {})
+      throw new Error('ssrf: too_large')
+    }
+    chunks.push(value)
+  }
+  const out = new Uint8Array(total)
+  let offset = 0
+  for (const c of chunks) { out.set(c, offset); offset += c.byteLength }
+  return out
+}
+
+/**
+ * Le cœur : valide l'URL, fetch sans suivre, re-valide chaque `Location` jusqu'à
+ * `maxRedirects` sauts, puis lit le corps sous plafond.
+ */
+export async function safeFetchResponse(
+  rawUrl: string,
+  { maxBytes = 8_000_000, timeoutMs = 8_000, maxRedirects = 0 }: SafeFetchOptions = {},
+): Promise<SafeFetchResult> {
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
+  try {
+    let current = await assertPublicUrl(rawUrl)
+    for (let hop = 0; ; hop++) {
+      const res = await fetch(current, { redirect: 'manual', signal: ctrl.signal })
+
+      if (res.status >= 300 && res.status < 400) {
+        await res.body?.cancel().catch(() => {})
+        if (maxRedirects === 0) throw new Error('ssrf: redirect_blocked')
+        if (hop >= maxRedirects) throw new Error('ssrf: too_many_redirects')
+        const location = res.headers.get('location')
+        if (!location) throw new Error('ssrf: redirect_without_location')
+        // Relative ou absolue : résolue contre l'URL courante, puis RE-VALIDÉE comme
+        // l'URL de départ — schéma https et IP publique, à chaque saut.
+        let next: string
+        try {
+          next = new URL(location, current).toString()
+        } catch {
+          throw new Error('ssrf: invalid_url')
+        }
+        current = await assertPublicUrl(next)
+        continue
+      }
+
+      if (!res.ok) {
+        await res.body?.cancel().catch(() => {})
+        throw new Error(`fetch: ${res.status}`)
+      }
+
+      const declared = Number(res.headers.get('content-length') ?? '0')
+      if (declared > maxBytes) {
+        await res.body?.cancel().catch(() => {})
+        throw new Error('ssrf: too_large')
+      }
+
+      const bytes = await readCapped(res, maxBytes)
+      return { bytes, contentType: res.headers.get('content-type'), finalUrl: current.toString() }
+    }
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+/** Les octets seuls, redirections refusées — le contrat historique (c2pa-verify). */
 export async function safeFetch(
   rawUrl: string,
   { maxBytes = 8_000_000, timeoutMs = 8_000 }: { maxBytes?: number; timeoutMs?: number } = {},
 ): Promise<Uint8Array> {
-  const u = await assertPublicUrl(rawUrl)
-
-  const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
-  try {
-    const res = await fetch(u, { redirect: 'manual', signal: ctrl.signal })
-    if (res.status >= 300 && res.status < 400) throw new Error('ssrf: redirect_blocked')
-    if (!res.ok) throw new Error(`fetch: ${res.status}`)
-
-    const declared = Number(res.headers.get('content-length') ?? '0')
-    if (declared > maxBytes) throw new Error('ssrf: too_large')
-
-    const buf = new Uint8Array(await res.arrayBuffer())
-    if (buf.byteLength > maxBytes) throw new Error('ssrf: too_large')
-    return buf
-  } finally {
-    clearTimeout(timer)
-  }
+  const { bytes } = await safeFetchResponse(rawUrl, { maxBytes, timeoutMs, maxRedirects: 0 })
+  return bytes
 }

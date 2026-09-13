@@ -308,7 +308,10 @@
       "emailMismatch": "Connectez-vous avec le compte {{email}} pour accepter.",
       "wrongAccount": "Connectez-vous avec le compte {{email}} pour accepter cette invitation.",
       "error": "Une erreur est survenue.",
-      "backHome": "Retour à l'accueil"
+      "backHome": "Retour à l'accueil",
+      "leaveWarningTitle": "Votre agence actuelle contient déjà des données",
+      "leaveWarningBody": "En acceptant, vous rejoignez {{agency}}. Les données de votre agence actuelle restent conservées, mais vous n'y aurez plus accès depuis votre compte.",
+      "leaveConfirm": "Je comprends que je n'aurai plus accès aux données de mon agence actuelle."
     }
   },
   "security": {

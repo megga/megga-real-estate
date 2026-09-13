@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 import {
   calculateScoreV2,
   inferTransactionType,
@@ -54,13 +55,17 @@ serve(async (req) => {
   }
 
   try {
-    // ── Auth — service_role bypass pour pg_cron, sinon JWT agent ──
-    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
-    const token = authHeader.toLowerCase().startsWith('bearer ')
-      ? authHeader.slice('bearer '.length).trim()
-      : ''
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
-    const isServiceRole = token !== '' && token === serviceRoleKey
+    // ── Auth — secret de service pour les appels internes, sinon JWT agent ──
+    // Appelants internes : `daily_matching_scan()` (tâche `daily-matching-scan`) et les
+    // quatre triggers de client_searches (nouvelle recherche, critères modifiés) et de
+    // properties (bien activé, prix modifié) — tous rejouent `app_config.service_role_key`
+    // en Bearer. Le front (useMatching, atelier, écran mobile) envoie le JWT de l'agent, qui
+    // n'est pas le secret et retombe sur requireAgentAuth.
+    // S8 (audit du 13.09.2026) : un `===` contre la seule clé de l'env ne tenait que par la
+    // coïncidence des deux clés ; `isServiceSecret` accepte app_config OU l'env, à temps
+    // constant.
+    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+    const isServiceRole = await isServiceSecret(admin, req)
 
     const body = (await req.json()) as RequestBody & { agency_id?: string }
     const { mode, property_id, contact_id, include_market = true } = body
@@ -69,7 +74,7 @@ serve(async (req) => {
     let agency_id: string
 
     if (isServiceRole) {
-      supabase = createClient(Deno.env.get('SUPABASE_URL')!, serviceRoleKey)
+      supabase = admin
       if (!body.agency_id) {
         return new Response(
           JSON.stringify({ error: 'agency_id required for service-role calls' }),

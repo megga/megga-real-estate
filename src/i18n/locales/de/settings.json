@@ -308,7 +308,10 @@
       "emailMismatch": "Melden Sie sich mit {{email}} an.",
       "wrongAccount": "Melden Sie sich mit {{email}} an, um diese Einladung anzunehmen.",
       "error": "Ein Fehler ist aufgetreten.",
-      "backHome": "Zurück zur Startseite"
+      "backHome": "Zurück zur Startseite",
+      "leaveWarningTitle": "Ihre aktuelle Agentur enthält bereits Daten",
+      "leaveWarningBody": "Wenn Sie annehmen, treten Sie {{agency}} bei. Die Daten Ihrer aktuellen Agentur bleiben erhalten, aber Sie können über Ihr Konto nicht mehr darauf zugreifen.",
+      "leaveConfirm": "Ich verstehe, dass ich keinen Zugriff mehr auf die Daten meiner aktuellen Agentur habe."
     }
   },
   "security": {

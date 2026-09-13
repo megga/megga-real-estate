@@ -83,7 +83,10 @@
       "error_min_one": "Please upload at least one document before submitting.",
       "error_size": "File too large (max 10 MB, yours is {{mb}} MB).",
       "error_format": "Format not accepted ({{type}}). Use PDF, JPG, PNG, WEBP or HEIC.",
-      "error_default": "Upload failed. Please try again."
+      "error_default": "Upload failed. Please try again.",
+      "error_limit": "Limit reached for this link: {{max}} documents or {{mb}} MB in total. Submit your documents or contact your agent.",
+      "error_not_uploadable": "This file no longer accepts documents: it has already been submitted or the link has expired.",
+      "error_length_required": "Your browser did not send the file size. Please try again with an up-to-date browser."
     },
     "upload_types": {
       "identity_title": "ID document",

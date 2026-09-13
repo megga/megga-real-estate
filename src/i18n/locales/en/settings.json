@@ -308,7 +308,10 @@
       "emailMismatch": "Sign in with {{email}} to accept.",
       "wrongAccount": "Sign in with {{email}} to accept this invitation.",
       "error": "An error occurred.",
-      "backHome": "Back to home"
+      "backHome": "Back to home",
+      "leaveWarningTitle": "Your current agency already holds data",
+      "leaveWarningBody": "By accepting, you join {{agency}}. Your current agency's data is kept, but you will no longer be able to access it from your account.",
+      "leaveConfirm": "I understand that I will no longer have access to my current agency's data."
     }
   },
   "security": {

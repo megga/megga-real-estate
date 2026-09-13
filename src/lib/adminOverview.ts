@@ -196,7 +196,9 @@ const SECTION_PATH: Record<string, string> = {
 }
 
 export function sectionPath(go: string): string {
-  return SECTION_PATH[go] ?? ADMIN_CONSOLE_PATH
+  // Clé PROPRE seulement : `SECTION_PATH['constructor']` rendrait la fonction
+  // Object, héritée du prototype, et navigate() la recevrait (cf. calendarOauth).
+  return Object.hasOwn(SECTION_PATH, go) ? SECTION_PATH[go] : ADMIN_CONSOLE_PATH
 }
 
 /** Clé i18n du libellé d'un signal, par `kind` serveur. */
@@ -243,6 +245,10 @@ export const JOURNAL_ACTION_KEY: Record<string, string> = {
   role_changed: 'dashboard.journal.action.roleChanged',
   payment_failed: 'dashboard.journal.action.paymentFailed',
   edge_function_error: 'dashboard.journal.action.edgeFunctionError',
+  // L'agence quittée à la réclamation d'une invitation (S9, 20260913160200) : libérée si
+  // vide, gardée sinon — `warn`, pour que le support retrouve les agences sans membre.
+  solo_agency_released: 'dashboard.journal.action.soloAgencyReleased',
+  solo_agency_retained: 'dashboard.journal.action.soloAgencyRetained',
 }
 
 /**

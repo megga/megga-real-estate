@@ -3,6 +3,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { compteLie, statutDuRefus, verifierLiaisonMicrosoft } from '../_shared/calendar-token-provenance.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,11 +29,12 @@ type Action = 'save_tokens' | 'list_events' | 'create_event' | 'update_event' | 
 
 interface SyncRequest {
   action: Action
-  // save_tokens
+  // save_tokens — seul le jeton de rafraîchissement compte : il est échangé et
+  // vérifié côté serveur. Jeton d'accès, durée et adresse envoyés par le
+  // navigateur sont ignorés (cf. _shared/calendar-token-provenance.ts).
   access_token?: string
   refresh_token?: string
   expires_in?: number
-  outlook_email?: string
   // list_events
   time_min?: string
   time_max?: string
@@ -220,18 +222,66 @@ serve(async (req: Request) => {
     switch (body.action) {
       // ── Save tokens after OAuth callback ──
       case 'save_tokens': {
-        if (!body.access_token || !body.refresh_token) throw new Error('Missing tokens')
-        const expiresAt = new Date(Date.now() + (body.expires_in ?? 3600) * 1000).toISOString()
+        if (!body.refresh_token) throw new Error('Missing tokens')
+        // PROVENANCE (cf. _shared/calendar-token-provenance.ts) : le jeton de
+        // rafraîchissement est échangé avec les identifiants de MEGGA, et le jeton
+        // neuf doit appartenir au compte Microsoft LIÉ à cet utilisateur. Sans ce
+        // contrôle, une session volée suffisait à brancher l'agenda de l'agent sur
+        // le compte d'un tiers. Le jeton d'accès envoyé par le navigateur n'est
+        // plus cru : on range celui que l'échange vient d'émettre.
+        const { data: lu, error: luError } = await db.auth.admin.getUserById(userId)
+        if (luError) {
+          return new Response(JSON.stringify({ error: 'calendar_link_refused', reason: 'fournisseur_injoignable' }), {
+            status: 503,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        const verdict = await verifierLiaisonMicrosoft(body.refresh_token, {
+          clientId: MICROSOFT_CLIENT_ID,
+          clientSecret: MICROSOFT_CLIENT_SECRET,
+          compte: compteLie(lu?.user?.identities ?? null, 'azure'),
+        })
+        if (!verdict.ok) {
+          return new Response(JSON.stringify({ error: 'calendar_link_refused', reason: verdict.refus }), {
+            status: statutDuRefus(verdict.refus),
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+        const { jetons } = verdict
 
-        await db.from('outlook_calendar_tokens').upsert({
+        const { error: upsertError } = await db.from('outlook_calendar_tokens').upsert({
           user_id: userId,
-          access_token: body.access_token,
-          refresh_token: body.refresh_token,
-          token_expires_at: expiresAt,
-          outlook_email: body.outlook_email ?? null,
+          access_token: jetons.accessToken,
+          refresh_token: jetons.refreshToken,
+          token_expires_at: new Date(Date.now() + jetons.expiresIn * 1000).toISOString(),
+          outlook_email: jetons.email,
           sync_enabled: true,
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' })
+        // Un échec d'écriture répondait `success: true` : l'agent croyait son
+        // agenda connecté, et rien ne se synchronisait jamais.
+        if (upsertError) {
+          return new Response(JSON.stringify({ error: 'save_failed' }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          })
+        }
+
+        // Journal de sécurité : brancher un agenda externe expose les coordonnées
+        // des acheteurs à ce compte. `auth` et non `settings` : conservé dix ans.
+        // L'audit ne défait pas une liaison réussie — il est signalé, pas bloquant.
+        const { data: prof } = await db.from('profiles').select('agency_id').eq('id', userId).maybeSingle()
+        const { error: auditError } = await db.from('activity_events').insert({
+          agency_id: (prof?.agency_id as string | null | undefined) ?? null,
+          actor_id: userId,
+          actor_kind: 'user',
+          action: 'calendar_connected',
+          category: 'auth',
+          entity_type: 'user',
+          entity_id: userId,
+          metadata: { provider: 'azure' },
+        })
+        if (auditError) console.error('[outlook-calendar-sync] calendar_connected non journalisé :', auditError.message)
 
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

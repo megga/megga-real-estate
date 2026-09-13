@@ -535,6 +535,7 @@ useEffect(() => {
 - `any` en TypeScript
 - Données hardcodées (tout vient de Supabase)
 - localStorage pour données sensibles
+- Une clé de stockage navigateur qui appartient à un utilisateur hors du registre `STOCKAGE_PAR_COMPTE` (`src/lib/stockageParCompte.ts`) — elle survivrait à la déconnexion et s'afficherait au compte suivant
 - Validation KYC auto sans action humaine
 - Envoi auto au client sans validation agent
 - Couleurs hardcodées (`bg-white`, `text-gray-*`) → tokens thème
@@ -607,15 +608,23 @@ Fichiers concernés — ⛔ **remesuré le 04.09.2026, la liste précédente ét
 
 ### pg_cron actifs
 
-**52 jobs actifs** au 5 septembre 2026 (relevés dans `cron.job`) — cette section n'en listait que 2,
+**54 jobs actifs** depuis le 13 septembre 2026 (52 relevés dans `cron.job` le 5 septembre, plus les deux instantanés de supervision ci-dessous) — cette section n'en listait que 2,
 et a annoncé successivement 41 jobs (chiffre du 29 juillet, alors que neuf étaient nés sans que le
 compte bouge) puis 50 (17 août). ⚠ **Le 52ᵉ est `mail-sync-2min`, arrivé avec le merge de la messagerie le 04.09.2026** — et son arrivée était ANNONCÉE : le corps de la PR #1274 prévenait que « le jour du merge, le §7 passera de 51 à 52 jobs pg_cron » et que l'écart, 2 % pour une tolérance de 20 %, laisserait `lint:claude-md` **vert sur une prose périmée**. C'est exactement ce qui s'est produit pendant vingt-quatre heures : une prédiction écrite ne remplace pas une porte. Le passage de 50 à 51 était, lui, net de trois gestes du 3 septembre :
 `visit-reminder-hourly` RETIRÉ (il lisait deux GUC inexistants et n'a jamais envoyé un rappel ;
 son doublon `visit-reminders-j1` couvrait déjà une fenêtre plus large), et deux jobs d'hygiène
 ajoutés — `pg-net-response-vacuum-hourly` (`50 * * * *`, empêche `net._http_response` de reprendre
 le gigaoctet par mois qu'un VACUUM FULL vient de rendre) et `cron-job-run-details-retention`
-(`55 3 * * *`, 30 jours ; sans elle `get_cron_health` expirait 22 fois sur 24 et l'alerting des
-crons était aveugle).
+(`55 3 * * *`, 30 jours). ⛔ **Cette rétention n'a PAS suffi, et ce paragraphe a affirmé le
+contraire pendant dix jours** : mesuré le 13.09.2026, `get_cron_health` expirait ENCORE 22 fois
+par 24 h (régime de croisière ~111 000 lignes, 52 parcours par appel sous le statement_timeout de
+8 s), et l'alerting horaire rendait « santé des crons illisible » à chaque tour. Deux jobs
+d'instantané ont donc rejoint la liste le 13.09.2026 : **`cron-health-snapshot-5min`**
+(`*/5 * * * *`, écrit `cron_health_snapshot` sous le rôle postgres, sans timeout ; `get_cron_health`
+ne fait plus qu'une jointure de 52 lignes) et **`flatfox-active-count-hourly`** (`5 * * * *`,
+compte exact des annonces Flatfox actives dans `app_config.flatfox_active_count` — le
+`count: 'exact'` d'admin-monitoring et de la page de monitoring expirait 23 fois par jour, en
+violation écrite de la règle de ce §7). Migrations `20260913120100` et `20260913120200`.
 C'est le régime de péremption propre aux prétentions de base de données — elles ne se lisent dans
 aucun fichier, donc aucun diff ne les dément, et même une relecture attentive du dépôt les laisse
 passer. Inventaire complet dans le cerveau : `megga/pg-cron`. Les plus structurants :
@@ -707,8 +716,14 @@ remplaçant direct de `useState` dont la clé est portée par l'onglet **de l'é
 l'actif écrivait sa position dans l'onglet regardé. C'est ce qui fait qu'une position de pager ou un
 filtre survit à un aller-retour entre deux onglets. Même règle pour le libellé (`useTabLabel`) et la
 saisie non enregistrée (`useTabDirty`, qui protège aussi l'onglet de l'éviction au plafond). La pile
-est miroitée en **`sessionStorage`** (`megga.crm.tabs`), jamais en `localStorage` : elle porte des
-**noms de clients**.
+est miroitée en **`sessionStorage`**, jamais en `localStorage` : elle porte des **noms de clients**.
+⛔ **Depuis le 13.09.2026 (audit S11), le miroir est RANGÉ PAR COMPTE ET PAR AGENCE** —
+`megga.crm.tabs:<uid>:<agence>` — et purgé à la déconnexion : sous une clé fixe, le même onglet du
+navigateur rendait la pile de A au compte B, puis la réécrivait dans la ligne serveur de B. Toute clé
+de stockage qui appartient à un utilisateur vit au registre `src/lib/stockageParCompte.ts` (gardé par
+`stockage-inventaire.spec.ts`) ; un seul compte par vie de page (`useAuth`, invariant 3 : un autre
+compte recharge la page) ; `crm_tabs_save` refuse une pile d'un autre compte ou d'une autre agence
+(`p_owner` / `p_agency`).
 
 **Réseau inter-agences : ❌ RETIRÉ (hors périmètre v1).** L'ancien prototype `NetworkSugarV2Page` (données d'exemple, aucun backend, jamais routé) a été supprimé lors du nettoyage code mort ; les routes `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`. Le module réel (partage de biens inter-agences + RLS cross-agence + modèles PDF) reste à construire plus tard.
 

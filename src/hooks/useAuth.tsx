@@ -26,10 +26,26 @@
  * 2. Un profil SYNTHÉTISÉ n'écrase jamais un profil LU en base (voir
  *    `reconcileProfile`). Le repli existe pour amorcer le routage au tout premier
  *    login, pas pour remplacer une vérité déjà connue par un `agency_id: null`.
+ *
+ * 3. UN SEUL COMPTE PAR VIE DE PAGE (audit S11, 13.09.2026). auth-js diffuse la
+ *    session d'un onglet aux autres (BroadcastChannel) et range la sienne dans le
+ *    stockage PARTAGÉ : que B se connecte dans un autre onglet, et la page de A
+ *    recevait SIGNED_IN(B) — elle adoptait B sans rien purger, avec le cache, la
+ *    pile d'onglets et les formulaires de A. Désormais le premier compte d'une
+ *    page la lie (garde de `fetch` comprise, cf. @/lib/supabase) ; un AUTRE
+ *    compte purge le stockage du sortant et RECHARGE la page, sans jamais passer
+ *    par `setSession`. `constaterCompte` est synchrone : l'invariant 1 tient.
  */
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
-import type { Session, User } from '@supabase/supabase-js'
-import { supabase } from '@/lib/supabase'
+import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
+import { supabase, CLE_SESSION_AUTH, lireUidSessionStockee, purgeAuthTokens, sujetDuJeton } from '@/lib/supabase'
+import { sessionSansJetonsFournisseur } from '@/lib/authStorage'
+import {
+  ecrireCompteOnglet, lierComptePage, lireCompteOnglet, lireJsonDuCompte, marquerFinDeSession,
+  purgerStockageDesComptes, quitterPourNouveauCompte, stockagesNavigateur,
+} from '@/lib/stockageParCompte'
+import { shutdownIntercom } from '@/lib/intercom'
+import { resetPostHog } from '@/lib/posthog'
 import type { UserProfile, UserRole } from '@/types/auth'
 import { isAgentRole, isParticulierRole } from '@/types/auth'
 
@@ -239,6 +255,33 @@ async function fetchProfile(userId: string, user?: User | null, retry = true): P
   }
 }
 
+/**
+ * Ce qui, hors stockage, survit au compte : la conversation Intercom (son
+ * cookie de session) et l'identité PostHog. Coupés à chaque fin de session —
+ * l'effet passif d'IntercomMessenger part trop tard, APRÈS la navigation dure
+ * de ProtectedRoute.
+ */
+function couperLesTiers(): void {
+  try { shutdownIntercom() } catch { /* SDK absent ou déjà coupé */ }
+  try { resetPostHog() } catch { /* idem */ }
+}
+
+/** Uid porté par une valeur de session sérialisée (clé de stockage d'auth-js). */
+function uidDeSessionSerialisee(brut: string | null): string | null {
+  if (!brut) return null
+  try {
+    const s = JSON.parse(brut) as { user?: { id?: unknown }; access_token?: string } | null
+    return typeof s?.user?.id === 'string' ? s.user.id : sujetDuJeton(s?.access_token)
+  } catch {
+    return null
+  }
+}
+
+/** Attente bornée d'une promesse : `'delai'` si elle n'a pas répondu à temps. */
+function auPlus<T>(p: Promise<T>, ms: number): Promise<T | 'delai'> {
+  return Promise.race([p, new Promise<'delai'>((r) => setTimeout(() => r('delai'), ms))])
+}
+
 /** Provider racine : hydrate session + profil au montage, suit onAuthStateChange, expose les gestes d'auth. */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -246,6 +289,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(DEV_BYPASS_AUTH ? false : true)
   /** Dernier utilisateur pour lequel une lecture de profil a été lancée (cf. effet 2). */
   const loadedForUserId = useRef<string | null>(null)
+  /** Le compte auquel la page est liée — invariant 3 : il ne change qu'en rechargeant. */
+  const uidPageRef = useRef<string | null>(null)
 
   const loadProfile = useCallback(async (user: User | null) => {
     if (!user) {
@@ -275,8 +320,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // pour toujours — écran « Ouverture de votre espace » figé sur /dashboard.
     const safetyTimeout = setTimeout(() => setLoading(false), 3000)
 
+    /** Vers un autre compte : purge du sortant, puis rechargement dur (invariant 3). */
+    const basculerVers = (uid: string) => {
+      marquerFinDeSession()
+      purgerStockageDesComptes(stockagesNavigateur(), { mode: 'changement', garder: uid })
+      couperLesTiers()
+      quitterPourNouveauCompte()
+    }
+
+    /**
+     * Premier geste de TOUT événement de session — synchrone, sans appel Supabase
+     * (invariant 1). Rend faux quand l'événement doit être ignoré.
+     */
+    const constaterCompte = (event: AuthChangeEvent, s: Session | null): boolean => {
+      const uid = s?.user?.id ?? null
+      const stocke = lireUidSessionStockee()
+      if (!uid) {
+        if (event === 'SIGNED_OUT') {
+          // Une session encore rangée dans CET onglet : la déconnexion vient d'un
+          // autre onglet dont la session vit à part — la nôtre reste.
+          if (stocke !== null) return false
+          purgerStockageDesComptes(stockagesNavigateur(), { mode: 'deconnexion' })
+          couperLesTiers()
+        }
+        return true
+      }
+      // Le stockage de l'onglet dit qui IL est : un événement qui le contredit vient
+      // d'un autre onglet (« Se souvenir de moi » décoché). Le suivre ferait
+      // recharger les deux onglets l'un après l'autre, sans fin.
+      if (stocke !== null && stocke !== uid) return false
+      const lie = uidPageRef.current
+      if (lie === null) {
+        purgerStockageDesComptes(stockagesNavigateur(), { mode: 'demarrage', garder: uid, compteOnglet: lireCompteOnglet() })
+        ecrireCompteOnglet(uid)
+        lierComptePage(uid)
+        uidPageRef.current = uid
+        return true
+      }
+      if (lie === uid) return true
+      basculerVers(uid)
+      return false
+    }
+
+    // L'écriture de la session de B par un autre onglet se voit ICI, au moment même
+    // où elle a lieu — sans attendre BroadcastChannel, qu'un onglet en arrière-plan
+    // peut recevoir tard. La garde de `fetch` couvre l'intervalle restant.
+    const surStockage = (e: StorageEvent) => {
+      if (e.key !== CLE_SESSION_AUTH) return
+      const uid = uidDeSessionSerialisee(e.newValue)
+      const lie = uidPageRef.current
+      // Valeur vide = déconnexion : SIGNED_OUT s'en charge.
+      if (uid && lie && uid !== lie) basculerVers(uid)
+    }
+    window.addEventListener('storage', surStockage)
+
     supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s)
+      if (!constaterCompte('INITIAL_SESSION', s)) return
+      // Jamais les jetons Google/Microsoft dans l'état React : ils y vivraient
+      // une heure, dans cet onglet et dans tout autre qui reçoit l'événement
+      // (cf. @/lib/authStorage).
+      setSession(sessionSansJetonsFournisseur(s))
       // Pas de session : rien à charger, l'effet 2 n'aura donc rien à conclure.
       if (!s?.user) {
         loadedForUserId.current = null
@@ -292,11 +395,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, s) => {
+      if (!constaterCompte(event, s)) return
       // ⚠ SYNCHRONE UNIQUEMENT — invariant 1 en tête de fichier. auth-js awaite
       // ce callback depuis l'INTÉRIEUR de son verrou ; y attendre une lecture
       // PostgREST (qui redemande ce même verrou) est une attente circulaire.
       // Le chargement du profil est délégué à l'effet 2 via ce setSession.
-      setSession(s)
+      // Jetons de fournisseur retirés : SIGNED_IN les porte encore en mémoire.
+      setSession(sessionSansJetonsFournisseur(s))
       // Déconnexion : le profil tombe ICI et non dans l'effet 2 — un setState
       // synchrone dans un effet déclencherait un rendu en cascade (react-hooks).
       if (!s?.user) {
@@ -315,6 +420,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       clearTimeout(safetyTimeout)
       subscription.unsubscribe()
+      window.removeEventListener('storage', surStockage)
     }
   }, [])
 
@@ -467,18 +573,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: null }
   }, [])
 
+  /**
+   * Déconnexion — dans CET ordre, et chaque étape a sa raison :
+   *   1. les écrivains tardifs se taisent (pile d'onglets, invite « quitter ? ») ;
+   *   2. la fin d'une impersonation est journalisée (≤ 1,5 s) AVANT signOut : la
+   *      RPC a besoin de la session ;
+   *   3. le stockage du compte est purgé AVANT le réseau — la purge des données
+   *      personnelles ne dépend jamais de lui ;
+   *   4. signOut est ATTENDU (5 s au plus) AVANT de lâcher la session. ⛔ L'ordre
+   *      inverse laissait le jeton en place : `setSession(null)` fait rendre
+   *      ProtectedRoute, qui navigue vers la vitrine PENDANT le rendu, et une
+   *      navigation qui part avant la réponse de /logout interrompt auth-js avant
+   *      qu'il n'efface la session. De plus signOut RENVOIE `{ error }` (sans
+   *      jeter) sur une erreur réseau ou 5xx, et n'efface alors rien : le jeton est
+   *      purgé à la main sur erreur comme sur délai ;
+   *   5. seulement alors l'état tombe.
+   */
   const handleSignOut = useCallback(async () => {
-    // Clear local state immediately so UI updates even if Supabase hangs
+    marquerFinDeSession()
+    const uid = session?.user?.id ?? null
+    const cible = lireJsonDuCompte<{ id?: string; full_name?: string }>('local', 'megga-impersonate', uid)
+    if (cible?.id) {
+      await auPlus(
+        Promise.resolve(supabase.rpc('admin_log_impersonation', {
+          p_action: 'impersonate_stop',
+          p_target_id: cible.id,
+          p_metadata: { target_name: cible.full_name ?? null, raison: 'deconnexion' },
+        })).then(() => undefined, () => undefined),
+        1500,
+      )
+    }
+    purgerStockageDesComptes(stockagesNavigateur(), { mode: 'deconnexion' })
+    couperLesTiers()
+    let aPurger = false
+    try {
+      const r = await auPlus(supabase.auth.signOut(), 5000)
+      aPurger = r === 'delai' || Boolean(r.error)
+    } catch {
+      aPurger = true
+    }
+    if (aPurger) purgeAuthTokens('signOut failed')
     setSession(null)
     setProfile(null)
-    try {
-      await supabase.auth.signOut()
-    } catch {
-      // Force clear Supabase auth storage if signOut fails (lock conflict)
-      const keys = Object.keys(localStorage).filter((k) => k.startsWith('sb-') && k.endsWith('-auth-token'))
-      keys.forEach((k) => localStorage.removeItem(k))
-    }
-  }, [])
+  }, [session])
 
   const refreshProfile = useCallback(async () => {
     await loadProfile(session?.user ?? null)

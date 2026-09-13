@@ -9,6 +9,13 @@ const IGNORED_PATTERNS: Array<RegExp | string> = [
   'chrome-extension',
   // Tracked: Mapbox token missing in test env (VITE_MAPBOX_TOKEN unset)
   /mapbox/i,
+  // Realtime sans backend — PAR CONCEPTION depuis le 13.09.2026. Les suites sous
+  // VITE_DEV_BYPASS_AUTH visent le Supabase LOCAL (playwright.local-supabase.ts), qui ne
+  // tourne pas dans le job `e2e` de la CI : le socket Realtime est refusé (ERR_CONNECTION_REFUSED)
+  // et supabase-js le journalise en erreur. C'est le pendant du « Failed to load resource »
+  // ci-dessus pour REST : du bruit d'environnement, pas un plantage de l'app. Jusqu'à ce
+  // jour ce socket s'ouvrait… sur la production.
+  /WebSocket connection to '.*\/realtime\/v1\/websocket.*' failed/,
 ]
 
 function isIgnored(msg: string): boolean {

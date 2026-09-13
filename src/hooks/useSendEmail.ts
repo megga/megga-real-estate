@@ -2,8 +2,15 @@
  * Hook d'envoi d'un email « fiche bien » à un contact via l'edge function
  * `send-property-email`. Sert à transmettre une annonce marché (photo, prix,
  * lien source) avec un message optionnel de l'agent.
+ *
+ * ⚠ Passe par `supabase.functions.invoke`, qui attache le JWT de SESSION. Ce hook
+ * envoyait la clé anon en `Authorization: Bearer` — que `requireAgentAuth` refuse
+ * par construction (une clé d'API n'est pas un utilisateur) : l'envoi depuis la
+ * fiche d'annonce externe répondait 401 à tous les coups (audit du 13.09.2026).
  */
 import { useMutation } from '@tanstack/react-query'
+import { FunctionsHttpError } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 
 interface PropertyEmailPayload {
   title: string
@@ -37,29 +44,28 @@ interface SendEmailResult {
 
 /** POST vers `send-property-email` ; applique le repli agent par défaut (nom/téléphone). */
 async function sendPropertyEmail(params: SendPropertyEmailParams): Promise<SendEmailResult> {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
-
-  const response = await fetch(`${supabaseUrl}/functions/v1/send-property-email`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${supabaseKey}`,
-    },
-    body: JSON.stringify({
+  const { data, error } = await supabase.functions.invoke<SendEmailResult>('send-property-email', {
+    body: {
       ...params,
       agentName: params.agentName || 'Gregory Lyonnet',
       agentPhone: params.agentPhone || '+41 22 000 00 00',
-    }),
+    },
   })
-
-  const data = await response.json()
-
-  if (!response.ok) {
-    throw new Error(data.error || `Email sending failed (${response.status})`)
+  if (error) {
+    // Le corps de refus porte un `message` lisible (destinataire hors périmètre, quota) ;
+    // à défaut, le code d'erreur.
+    let detail = error.message
+    if (error instanceof FunctionsHttpError) {
+      try {
+        const b = await error.context.json()
+        detail = (b?.message as string | undefined) ?? (b?.error as string | undefined) ?? detail
+      } catch {
+        /* garde le message générique */
+      }
+    }
+    throw new Error(detail)
   }
-
-  return data
+  return data ?? { success: true, to: params.to }
 }
 
 /** Mutation React Query enveloppant {@link sendPropertyEmail}. */

@@ -8,7 +8,8 @@ import { buildRelanceEmail } from '../_shared/relance-email.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
-import { emailSendAllowed, unsubscribeHeaders, unsubscribeFooterHtml } from '../_shared/email-guard.ts'
+import { unsubscribeHeaders, unsubscribeFooterHtml } from '../_shared/email-guard.ts'
+import { guardOutboundEmail } from '../_shared/email-recipient.ts'
 
 interface SendRequest {
   /** Pied de page de désinscription, injecté par la garde. Vide = pas de lien signé. */
@@ -83,17 +84,21 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
-    // ⛔ GARDE. Une relance est un envoi que NOUS initions : un STOP reçu sur WhatsApp
-    // (channel='all') la bloque, tout comme un clic « se désinscrire » sur un e-mail
-    // précédent. C'est le trou que ce chantier ferme — le refus était enregistré et
-    // opposable, et ce canal-ci l'ignorait.
-    const verdict = await emailSendAllowed(admin, { to: body.to, purpose: 'relance' })
-    if (!verdict.allowed) {
-      return new Response(
-        JSON.stringify({ error: verdict.reason, blocked: true }),
-        { status: 409, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } },
-      )
-    }
+
+    // ⛔ GARDE DE SORTIE (13.09.2026) : périmètre → suppression → quota.
+    //   · PÉRIMÈTRE — le destinataire doit être connu de l'agence de l'appelant. Avant, `to`
+    //     était libre derrière un jeton d'agent gratuit : un relais ouvert signé DKIM.
+    //   · SUPPRESSION — une relance est un envoi que NOUS initions : un STOP reçu sur
+    //     WhatsApp (channel='all') la bloque, tout comme un clic « se désinscrire » sur un
+    //     e-mail précédent. Le refus était enregistré et opposable, et ce canal l'ignorait.
+    //   · QUOTA — 60/h, 300/j par agence, réglable dans app_config.email_send_caps.
+    const refus = await guardOutboundEmail(
+      admin,
+      { agencyId: profile.agency_id, actorId: auth.user.id },
+      { to: body.to, purpose: 'relance', sender: 'send-relance-email' },
+      CORS_HEADERS,
+    )
+    if (refus) return refus
 
     const unsub = await unsubscribeHeaders(body.to)
     const { html } = buildRelanceEmail({

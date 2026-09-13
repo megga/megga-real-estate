@@ -40,9 +40,14 @@ serve(async (req) => {
   // 1) Crypto d'abord : inutile de toucher la base pour un token qui ne tient pas.
   const verified = await verifyMagicLinkToken(token)
   if (!verified.valid || !verified.payload) {
+    // Motif réduit à expired/invalid (audit S10, 13.09.2026) : `no_secret` dirait à un
+    // appelant anonyme que le secret manque sur ce déploiement, `malformed` vs
+    // `invalid_signature` quand il a touché la grammaire du jeton. Même règle que
+    // magic-link-get ; l'UI ne lit que le statut HTTP (useAppointmentSlots).
+    const expire = verified.reason === 'expired'
     return json(
-      { error: verified.reason === 'expired' ? 'Link expired' : 'Invalid link', reason: verified.reason },
-      verified.reason === 'expired' ? 410 : 401,
+      { error: expire ? 'Link expired' : 'Invalid link', reason: expire ? 'expired' : 'invalid' },
+      expire ? 410 : 401,
     )
   }
 

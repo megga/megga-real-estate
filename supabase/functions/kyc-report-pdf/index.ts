@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { signMagicLinkToken } from '../_shared/magic-link-token.ts'
+import { REPORT_TOKEN_TTL_S } from '../_shared/kyc-report-token.ts'
 import { buildCfPdfRequestBody, cfPdfEndpoint, parseBasicAuthPair, redactCfRenderError } from '../_shared/cf-browser-render.ts'
 import { kycReportRenderUrl } from '../_shared/app-url.ts'
 import { uploadMetaMediaDocument } from '../_shared/whatsapp-media.ts'
@@ -56,8 +57,10 @@ serve(async (req) => {
 
     const reference = buildReference(kc.id, kc.created_at)
 
-    // 1. Mint token court (5 min), avec p = profile demandeur.
-    const exp = Math.floor(Date.now() / 1000) + 300
+    // 1. Mint token court (5 min), avec p = profile demandeur. La durée vient du module que
+    //    `kyc-report-data` lit pour son plafond : les deux ne peuvent pas diverger en silence
+    //    (un rendu signé pour 15 min serait refusé, et le PDF WhatsApp ne partirait plus).
+    const exp = Math.floor(Date.now() / 1000) + REPORT_TOKEN_TTL_S
     const token = await signMagicLinkToken({ id: kyc_case_id, exp, p: profile_id })
 
     // 2. Cloudflare Browser Rendering /pdf (REST API, pas de Worker).

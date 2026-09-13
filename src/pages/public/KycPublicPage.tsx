@@ -9,6 +9,9 @@
 //
 // La cliente n'a JAMAIS conscience qu'elle est sur l'app MEGGA — c'est juste
 // un "lien sécurisé envoyé par son agent". Tone : rassurant, professionnel.
+//
+// Un refus de dépôt s'affiche par sa CATÉGORIE (MagicLinkUploadError), traduite ici :
+// jamais le corps de la réponse, qui arrivait brut à l'écran, JSON compris (audit S10).
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
@@ -19,6 +22,7 @@ import {
   useMagicLinkUploadClient,
   type UploadResponse,
 } from '@/hooks/useMagicLinkClient'
+import { MagicLinkUploadError, type MagicLinkUploadFailure } from '@/lib/magicLinkUploadErrors'
 import { MlkBackground } from '@/components/kyc-magic-link/MlkPrimitives'
 import {
   MlkExpired,
@@ -30,6 +34,17 @@ import {
 import { MlkBooking } from '@/components/kyc-magic-link/MlkBooking'
 
 type LocalScreen = 'landing' | 'upload' | 'booking'
+
+// ─── Plafonds du lien — MIROIR du serveur ─────────────────────────────────
+// Ils recopient `supabase/functions/_shared/magic-link-limits.ts` et le trigger
+// `enforce_kyc_magic_link_upload_caps` (migration 20260913160400), qui font foi : la page
+// ne fait que prévenir AVANT l'envoi, au lieu de faire téléverser 10 Mo pour rien. Le
+// front ne peut pas importer un module edge (autre runtime) : c'est
+// `tests/unit/magic-link-upload-caps.spec.ts` qui confronte les deux copies.
+const MAX_FILE_BYTES = 10 * 1024 * 1024
+const MAX_FILES = 20
+const MAX_TOTAL_BYTES = 100 * 1024 * 1024
+const ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic']
 
 export default function KycPublicPage() {
   const { token } = useParams<{ token: string }>()
@@ -94,8 +109,8 @@ export default function KycPublicPage() {
   }
 
   // ─── Réponse "lien expiré" du serveur (status 410) ────────────────────
-  // Type guard : MagicLinkLoadError a `status: number` (HTTP code),
-  // MagicLinkPublicView a `status: MagicLinkStatus` (string).
+  // Type guard : MagicLinkLoadError a `status: number` (HTTP code), les deux
+  // formes servies (MagicLinkPublicView, MagicLinkSubmittedView) un statut texte.
   if (typeof data.status === 'number') {
     // Erreur structurée du backend : token invalide / expiré / superseded
     const isExpired = data.status === 410 || data.reason === 'expired'
@@ -114,13 +129,16 @@ export default function KycPublicPage() {
     )
   }
 
-  // ─── À partir d'ici, data est un MagicLinkPublicView valide ───────────
+  // ─── À partir d'ici : lien ouvert (vue complète) ou lien soumis ───────
+  // Un lien soumis ne porte AUCUN nom (magic-link-get) : les écrans qui suivent la
+  // soumission affichent donc leurs replis. Le type le dit au lieu de le laisser croire.
+  const vue = data.status === 'submitted' ? null : data
   const firstName =
-    data.contact?.first_name?.trim() || t('client.placeholder.fallback_first_name')
+    vue?.contact?.first_name?.trim() || t('client.placeholder.fallback_first_name')
   const agentFullName =
-    data.agent?.full_name?.trim() || t('client.placeholder.fallback_agent')
+    vue?.agent?.full_name?.trim() || t('client.placeholder.fallback_agent')
   const agencyName =
-    data.agency?.name?.trim() || t('client.placeholder.fallback_agency')
+    vue?.agency?.name?.trim() || t('client.placeholder.fallback_agency')
 
   // Status submitted → Success, puis prise de rendez-vous de vérification.
   // Deux écrans plutôt qu'un : la cliente vient de déposer ses pièces et doit
@@ -186,18 +204,36 @@ export default function KycPublicPage() {
     )
   })()
 
+  /** La phrase de chaque catégorie de refus — un `Record` pour qu'aucune ne soit oubliée. */
+  const messageDeRefus = (failure: MagicLinkUploadFailure, file: File): string => {
+    const phrases: Record<MagicLinkUploadFailure, string> = {
+      length_required: t('client.upload.error_length_required'),
+      too_large: t('client.upload.error_size', { mb: (file.size / 1024 / 1024).toFixed(1) }),
+      upload_limit: t('client.upload.error_limit', { max: MAX_FILES, mb: MAX_TOTAL_BYTES / 1024 / 1024 }),
+      not_uploadable: t('client.upload.error_not_uploadable'),
+      format: t('client.upload.error_format', { type: file.type }),
+      expired: t('client.placeholder.expired_link_body'),
+      invalid: t('client.placeholder.invalid_body'),
+      other: t('client.upload.error_default'),
+    }
+    return phrases[failure]
+  }
+
   const handleFilePick = (file: File, type: 'identity' | 'address' | 'funds' | 'other') => {
     setUploadError(null)
 
-    // Validation client-side
-    const MAX_BYTES = 10 * 1024 * 1024
-    if (file.size <= 0 || file.size > MAX_BYTES) {
-      setUploadError(t('client.upload.error_size', { mb: (file.size / 1024 / 1024).toFixed(1) }))
+    // Validation client-side — les plafonds du serveur, recopiés en tête de fichier.
+    if (file.size <= 0 || file.size > MAX_FILE_BYTES) {
+      setUploadError(messageDeRefus('too_large', file))
       return
     }
-    const ALLOWED = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic']
-    if (!ALLOWED.includes(file.type)) {
-      setUploadError(t('client.upload.error_format', { type: file.type }))
+    if (!ALLOWED_MIME.includes(file.type)) {
+      setUploadError(messageDeRefus('format', file))
+      return
+    }
+    const cumul = allUploads.reduce((total, u) => total + u.size_bytes, 0)
+    if (allUploads.length >= MAX_FILES || cumul + file.size > MAX_TOTAL_BYTES) {
+      setUploadError(messageDeRefus('upload_limit', file))
       return
     }
 
@@ -208,11 +244,7 @@ export default function KycPublicPage() {
           setLocalUploads((prev) => [...prev, resp])
         },
         onError: (err) => {
-          setUploadError(
-            err instanceof Error
-              ? err.message.replace(/^Upload failed: HTTP \d+ /, '')
-              : t('client.upload.error_default'),
-          )
+          setUploadError(messageDeRefus(err instanceof MagicLinkUploadError ? err.failure : 'other', file))
         },
       },
     )

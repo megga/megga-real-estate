@@ -75,22 +75,22 @@ const FAILED_ANALYSIS: PhotoAnalysis = {
 }
 
 /**
- * Analyse une photo via Gemini Vision.
+ * Analyse une photo via Gemini Vision, à partir de ses OCTETS.
  * Ne throw jamais — toute erreur est encodée dans le retour (room=autre + flag).
+ *
+ * ⚠ Elle recevait une URL et la fetchait elle-même, avec `fetch(url)` — qui suit les
+ * redirections : la validation SSRF de l'appelant ne la protégeait pas (audit du
+ * 13.09.2026, point S6). L'appelant récupère désormais la photo UNE fois, par
+ * `safeFetchResponse`, et passe les octets.
  */
-export async function analyzePhoto(photoUrl: string): Promise<PhotoAnalysis> {
+export async function analyzePhoto(photo: { bytes: Uint8Array; contentType: string | null }): Promise<PhotoAnalysis> {
   if (!GEMINI_API_KEY) {
     return { ...FAILED_ANALYSIS, flags: ['api_key_missing'], error: 'GEMINI_API_KEY missing' }
   }
 
   try {
-    const imgResp = await fetch(photoUrl)
-    if (!imgResp.ok) {
-      return { ...FAILED_ANALYSIS, error: `fetch failed: HTTP ${imgResp.status}` }
-    }
-
-    const imgBytes = new Uint8Array(await imgResp.arrayBuffer())
-    const contentType = imgResp.headers.get('content-type') || 'image/jpeg'
+    const imgBytes = photo.bytes
+    const contentType = photo.contentType || 'image/jpeg'
 
     // Gemini Vision en JSON strict — même prompt et même contrat de sortie que l'ancien Claude.
     const res = await readDocument(imgBytes, contentType, GEMINI_API_KEY, { prompt: SYSTEM_PROMPT, json: true })

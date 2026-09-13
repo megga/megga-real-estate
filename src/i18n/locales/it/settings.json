@@ -308,7 +308,10 @@
       "emailMismatch": "Acceda con {{email}} per accettare.",
       "wrongAccount": "Acceda con {{email}} per accettare questo invito.",
       "error": "Si è verificato un errore.",
-      "backHome": "Torna alla home"
+      "backHome": "Torna alla home",
+      "leaveWarningTitle": "La Sua agenzia attuale contiene già dei dati",
+      "leaveWarningBody": "Accettando, entrerà a far parte di {{agency}}. I dati della Sua agenzia attuale restano conservati, ma non potrà più accedervi dal Suo account.",
+      "leaveConfirm": "Capisco che non avrò più accesso ai dati della mia agenzia attuale."
     }
   },
   "security": {

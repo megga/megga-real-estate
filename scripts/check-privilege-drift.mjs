@@ -116,6 +116,67 @@ const SQL_PERIMETRE = `
      and (c.relname like 'admin\\_%' escape '\\'
           or c.relname in (${SURVEILLEES.map(t => `'${t}'`).join(', ')}))`;
 
+/**
+ * SECONDE PROPRIÉTÉ (20260913140000, audit du 13.09.2026, point S5) : `anon` n'a AUCUN
+ * droit d'écriture sur une table de `public`, sauf l'INSERT de `seller_leads` (l'entonnoir
+ * public, dont la policy force l'agence à NULL). Elle est exacte depuis cette migration :
+ * aucun faux positif, donc aucune raison de la restreindre à une liste.
+ *
+ * ⚠ Les tables de PostGIS appartiennent à `supabase_admin` : `postgres` ne peut ni révoquer
+ * leurs droits ni changer les droits par défaut de ce rôle. Elles sont exclues PAR
+ * PROPRIÉTAIRE — `spatial_ref_sys` (référentiel de projections, aucune donnée client) garde
+ * donc des droits qu'on ne peut pas retirer d'ici.
+ */
+const ECRITURE_ANON_PERMISE = [['seller_leads', 'INSERT']];
+
+const SQL_ECRITURES = `
+  select c.relname as tbl,
+         string_agg(p.priv, ',' order by p.priv) as droits
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    cross join (values ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE')) as p(priv)
+   where n.nspname = 'public'
+     and c.relkind in ('r', 'p')
+     and pg_get_userbyid(c.relowner) <> 'supabase_admin'
+     and has_table_privilege('anon', c.oid, p.priv)
+     and not ((c.relname, p.priv) in (${ECRITURE_ANON_PERMISE.map(([t, d]) => `('${t}', '${d}')`).join(', ')}))
+   group by c.relname
+   order by c.relname`;
+
+/** Contrôle positif : l'entonnoir public doit rester ouvert, sinon on a fermé trop. */
+const SQL_ENTONNOIR = `select has_table_privilege('anon', 'public.seller_leads', 'INSERT') as ouvert`;
+
+/**
+ * S12 — les colonnes SECRÈTES des jetons d'agenda (20260913160600).
+ *
+ * Aucun rôle client ne doit lire ni écrire `access_token` / `refresh_token` des
+ * deux tables de jetons, ni écrire dans ces tables : le jeton de rafraîchissement
+ * Google/Microsoft y vit des mois, et une écriture suffisait à brancher l'agenda
+ * d'un agent sur le compte d'un tiers. ⚠ Mesuré PAR COLONNE : un grant de table
+ * couvre toutes les colonnes, donc c'est `has_column_privilege` qui fait foi.
+ */
+const TABLES_JETONS = ['google_calendar_tokens', 'outlook_calendar_tokens'];
+const SQL_JETONS = `
+  select r.rl || ' ' || t.tb || '.' || c.col || ' ' || p.pv as fuite
+    from (values ${TABLES_JETONS.map((t) => `('${t}')`).join(', ')}) as t(tb)
+    cross join (values ('refresh_token'), ('access_token')) as c(col)
+    cross join (values ('anon'), ('authenticated')) as r(rl)
+    cross join (values ('SELECT'), ('INSERT'), ('UPDATE')) as p(pv)
+   where has_column_privilege(r.rl, 'public.' || t.tb, c.col, p.pv)
+  union all
+  select r.rl || ' ' || t.tb || ' ' || p.pv
+    from (values ${TABLES_JETONS.map((t) => `('${t}')`).join(', ')}) as t(tb)
+    cross join (values ('anon'), ('authenticated')) as r(rl)
+    cross join (values ('INSERT'), ('UPDATE'), ('DELETE')) as p(pv)
+   where has_table_privilege(r.rl, 'public.' || t.tb, p.pv)
+   order by 1`;
+
+/** Contrôle positif : l'agent lit toujours l'ÉTAT de sa connexion — sinon on a fermé trop. */
+const SQL_JETONS_ETAT = `
+  select bool_and(has_column_privilege('authenticated', 'public.' || v.tb, v.col, 'SELECT')) as lisible
+    from (values ('google_calendar_tokens', 'user_id'), ('google_calendar_tokens', 'google_email'),
+                 ('outlook_calendar_tokens', 'user_id'), ('outlook_calendar_tokens', 'outlook_email')) as v(tb, col)`;
+
 async function query(token, sql) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
     method: 'POST',
@@ -186,18 +247,70 @@ if (disparues.length > 0) {
 console.log(`${perimetre} tables surveillées inspectées en production.`);
 
 let fuites = await query(token, SQL);
-for (let essai = 1; fuites.length > 0 && essai < TENTATIVES; essai++) {
+let ecritures = await query(token, SQL_ECRITURES);
+// Dans la boucle d'attente, comme les deux autres : mesurée sur le commit de merge
+// AVANT que deploy.yml n'applique la migration, elle rougirait à chaque livraison.
+let jetons = await query(token, SQL_JETONS);
+for (let essai = 1; (fuites.length > 0 || ecritures.length > 0 || jetons.length > 0) && essai < TENTATIVES; essai++) {
   console.log(
-    `  ${fuites.length} table(s) encore ouverte(s) à anon — ` +
+    `  ${fuites.length} table(s) interne(s), ${ecritures.length} table(s) en écriture et ${jetons.length} droit(s) sur les jetons d'agenda encore ouverts — ` +
     `un déploiement est peut-être en cours (essai ${essai}/${TENTATIVES - 1}, ` +
     `nouvelle mesure dans ${Math.round(ATTENTE_MS / 1000)} s).`,
   );
   await new Promise((r) => setTimeout(r, ATTENTE_MS));
   fuites = await query(token, SQL);
+  ecritures = await query(token, SQL_ECRITURES);
+  jetons = await query(token, SQL_JETONS);
+}
+
+const [{ ouvert: entonnoirOuvert }] = await query(token, SQL_ENTONNOIR);
+if (!entonnoirOuvert) {
+  console.error('✗ `anon` a perdu l\'INSERT de `seller_leads` : l\'entonnoir public est fermé.');
+  console.error('  La révocation de 20260913140000 a été rejouée sans son re-GRANT, ou une migration l\'a retiré.');
+  process.exit(1);
+}
+
+const [{ lisible: etatLisible }] = await query(token, SQL_JETONS_ETAT);
+if (!etatLisible) {
+  console.error('✗ `authenticated` ne lit plus l\'état de sa connexion d\'agenda (user_id, *_email).');
+  console.error('  Le grant de colonnes de 20260913160600 a disparu : l\'écran Intégrations croit l\'agenda déconnecté.');
+  process.exit(1);
+}
+
+if (jetons.length > 0) {
+  console.error(`\n✗ ${jetons.length} droit(s) de rôle client sur les jetons d'agenda en production :\n`);
+  for (const { fuite } of jetons) console.error(`  ${fuite}`);
+  console.error(`
+Depuis 20260913160600, ni anon ni authenticated ne lisent ou n'écrivent
+access_token / refresh_token, ni n'écrivent dans ces tables : seul le service_role
+(les edges d'agenda) y touche. Un grant de TABLE réaccorde toutes les colonnes —
+c'est le suspect habituel. Correctif :
+
+    revoke all on table public.<table> from anon, authenticated;
+    grant select (id, user_id, <provider>_email, sync_enabled, last_sync_at)
+      on public.<table> to authenticated;`);
+  process.exit(1);
+}
+
+if (ecritures.length > 0) {
+  console.error(`\n✗ ${ecritures.length} table(s) de public accordent un droit d'ÉCRITURE à \`anon\` en production :\n`);
+  for (const { tbl, droits } of ecritures) {
+    console.error(`  ${tbl.padEnd(28)} ${droits}`);
+  }
+  console.error(`
+Depuis 20260913140000, \`anon\` n'écrit nulle part dans public, sauf l'INSERT de
+seller_leads, et les droits par défaut du rôle postgres naissent fermés. Une ligne
+ci-dessus veut dire qu'une table a été créée par un AUTRE rôle (droits par défaut non
+resserrés), ou qu'une migration a ré-accordé l'écriture. Si c'est voulu, l'ajouter à
+ECRITURE_ANON_PERMISE avec sa raison ; sinon :
+
+    revoke insert, update, delete, truncate on table public.<table> from anon;`);
+  if (fuites.length === 0) process.exit(1);
 }
 
 if (fuites.length === 0) {
-  console.log('✓ Aucune dérive de privilèges : `anon` n\'a aucun droit sur les tables internes.');
+  console.log('✓ Aucune dérive de privilèges : `anon` n\'a aucun droit sur les tables internes,');
+  console.log('  et aucun droit d\'écriture sur public hors l\'INSERT de seller_leads.');
   process.exit(0);
 }
 
