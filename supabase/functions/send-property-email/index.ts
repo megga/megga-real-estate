@@ -19,11 +19,11 @@ interface PropertyPayload {
   source_portal: string
 }
 
+// ⚠ Ni nom ni téléphone d'agent dans le corps : la signature se lit dans le profil
+// de l'appelant (voir plus bas), un champ envoyé ici serait ignoré.
 interface SendRequest {
   to: string
   contactFirstName: string
-  agentName: string
-  agentPhone: string
   property: PropertyPayload
   message?: string
 }
@@ -97,12 +97,30 @@ serve(async (req) => {
     )
     if (refus) return refus
 
+    // ⛔ LA SIGNATURE VIENT DU PROFIL DE L'APPELANT, jamais du corps de la requête.
+    // Le seul appelant (fiche d'annonce marché) n'envoyait ni nom ni téléphone, et le
+    // hook comblait avec « Gregory Lyonnet · +41 22 000 00 00 » : chaque fiche envoyée
+    // par N'IMPORTE QUELLE agence partait signée de ce nom, avec un numéro inventé.
+    // Lire le profil ferme au passage l'usurpation — l'e-mail part du domaine MEGGA,
+    // le nom qu'il porte ne peut pas être une saisie libre.
+    const { data: signataire } = await admin
+      .from('profiles')
+      .select('full_name, phone')
+      .eq('id', auth.user.id)
+      .maybeSingle()
+    const agentName = (signataire?.full_name as string | null)?.trim() || 'MEGGA'
+    const agentPhone = (signataire?.phone as string | null)?.trim() || null
+
     // Une garde sans porte de sortie n'est qu'une moitié de mécanisme : la personne peut
     // être bloquée, mais pas se bloquer elle-même. Le jeton porte l'ADRESSE — cet envoi
     // part vers un destinataire qui n'a pas forcément de fiche chez nous.
     const unsub = await unsubscribeHeaders(body.to)
     const { subject, html } = buildPropertyEmail({
-      ...body,
+      contactFirstName: body.contactFirstName,
+      property: body.property,
+      message: body.message,
+      agentName,
+      agentPhone,
       unsubscribeHtml: unsub ? unsubscribeFooterHtml(unsub.url) : undefined,
     })
 
