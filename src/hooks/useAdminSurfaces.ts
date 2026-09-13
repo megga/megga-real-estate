@@ -15,6 +15,7 @@ import { useMemo } from 'react'
 import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
 import { crmPalette, type CrmPalette } from '@/components/crm/tokens'
 import { encreSur, MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /**
  * Surfaces de la console — DÉRIVÉES de la palette, plus recopiées.
@@ -140,9 +141,9 @@ export function adminTones(dark: boolean): AdminTones {
     // la console, les quatre sous l'AA. Les trois premières valeurs existaient
     // DÉJÀ au dépôt (`--color-success-dark`, `--color-warning-dark`,
     // `--color-danger-dark` de `globals.css`) : rien n'est inventé.
-    ok: dark ? '#12A574' : '#047857',
-    warn: dark ? '#E08A2E' : '#B45309',
-    err: dark ? '#F26B65' : '#B91C1C',
+    ok: dark ? '#12A574' : STATUT_CLAIR.okInk,
+    warn: dark ? '#E08A2E' : STATUT_CLAIR.warnInk,
+    err: dark ? '#F26B65' : STATUT_CLAIR.errInk,
     // `info` tenait déjà — 5,76:1 au pire. On ne recible pas ce qui passe.
     info: dark ? '#4C86E8' : '#1E5BC6',
     // ⚠ SEULE des quatre à n'avoir aucun équivalent au dépôt : il n'existe pas

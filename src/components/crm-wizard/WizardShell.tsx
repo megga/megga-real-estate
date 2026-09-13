@@ -24,6 +24,7 @@ import { useCreateProperty, useUpdateProperty, useUploadPropertyPhotos } from '@
 import { useCreateContact } from '@/hooks/useContacts'
 import { useCreateTransaction } from '@/hooks/useTransactions'
 import { useAuth } from '@/hooks/useAuth'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 // Vendeur brouillon vs existant : un brouillon (créé inline dans Step1Vendor,
 // id `c-new-…`, ou dérivé d'un seller_lead sans contact_id dans « Démarrer » (étape retirée), id
@@ -463,7 +464,7 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
               `inactif` (avant la première adresse) n'affiche rien : il n'y a
               rien à enregistrer, donc rien à promettre. */}
           {etatBrouillon !== 'inactif' && (() => {
-            const vert = WizardTokens.isDark ? '#34C796' : '#047857'
+            const vert = WizardTokens.isDark ? '#34C796' : STATUT_CLAIR.okInk
             const teinte = etatBrouillon === 'echec' ? WizardTokens.err
               : etatBrouillon === 'enregistrement' ? WizardTokens.muted : vert
             const libelle = etatBrouillon === 'echec' ? t('wizard.shell.saveFailed')

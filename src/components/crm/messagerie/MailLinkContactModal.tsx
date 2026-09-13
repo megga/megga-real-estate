@@ -29,18 +29,27 @@ const AVATAR = 30
 /** La RPC est muette sous deux caractères : inutile de la solliciter avant. */
 const MIN_RECHERCHE = 2
 
+/** Les refus que `mail-actions link_contact` rend et que l'agent peut comprendre. */
+const REFUS_CONNUS = new Set(['email_not_in_thread', 'email_is_internal', 'contact_not_in_agency'])
+
 interface Props {
   ms: MailSurfaces
   open: boolean
   email: string
   name: string | null
   busy: boolean
+  /**
+   * Le code d'erreur du dernier essai (`mail-actions` le rend en 400). ⛔ Il n'était lu par
+   * aucun écran : un refus laissait la modale ouverte sans un mot — et depuis le 13.09.2026
+   * l'edge refuse une adresse absente du fil ou interne à l'agence.
+   */
+  error: string | null
   onClose: () => void
   onLink: (contactId: string) => void
 }
 
 /** La modale de rapprochement : recherche, résultats, et la sortie « Créer la fiche ». */
-export function MailLinkContactModal({ ms, open, email, name, busy, onClose, onLink }: Props) {
+export function MailLinkContactModal({ ms, open, email, name, busy, error, onClose, onLink }: Props) {
   const { t } = useTranslation('messages')
   const navigate = useNavigate()
   const [q, setQ] = useState('')
@@ -103,6 +112,12 @@ export function MailLinkContactModal({ ms, open, email, name, busy, onClose, onL
           <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-lg)', fontSize: 'var(--crm-text-sm)', color: ms.mut }}>{t('mail.link.empty')}</div>
         )}
       </div>
+
+      {error && (
+        <div role="alert" style={{ marginTop: 'var(--crm-space-md)', fontSize: 'var(--crm-text-xs)', color: ms.dangerText }}>
+          {t(`mail.link.error.${REFUS_CONNUS.has(error) ? error : 'generic'}`)}
+        </div>
+      )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', borderTop: `1px solid ${ms.bord2}`, paddingTop: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-lg)' }}>
         <span style={{ flex: 1, fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{t('mail.link.note')}</span>

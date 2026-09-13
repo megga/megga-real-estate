@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { signMagicLinkToken } from '../_shared/magic-link-token.ts'
-import { buildCfPdfRequestBody, parseBasicAuthPair, redactCfRenderError } from '../_shared/cf-browser-render.ts'
+import { buildCfPdfRequestBody, cfPdfEndpoint, parseBasicAuthPair, redactCfRenderError } from '../_shared/cf-browser-render.ts'
 import { kycReportRenderUrl } from '../_shared/app-url.ts'
 import { uploadMetaMediaDocument } from '../_shared/whatsapp-media.ts'
 import { getProvider } from '../_shared/whatsapp-gateway.ts'
@@ -61,16 +61,22 @@ serve(async (req) => {
     const token = await signMagicLinkToken({ id: kyc_case_id, exp, p: profile_id })
 
     // 2. Cloudflare Browser Rendering /pdf (REST API, pas de Worker).
-    const cfAccount = Deno.env.get('CLOUDFLARE_ACCOUNT_ID') ?? ''
-    const cfToken = Deno.env.get('CLOUDFLARE_BROWSER_RENDER_TOKEN') ?? ''
+    // Les deux secrets sont NETTOYÉS (espace, saut de ligne) : le 13.09.2026 l'identifiant de
+    // compte portait un espace final, et l'URL ne routait plus (cf. cfPdfEndpoint).
+    const cfEndpoint = cfPdfEndpoint(Deno.env.get('CLOUDFLARE_ACCOUNT_ID'))
+    const cfToken = (Deno.env.get('CLOUDFLARE_BROWSER_RENDER_TOKEN') ?? '').trim()
     // L'app est OUVERTE (pas de Basic Auth) → `authenticate` omis quand
     // MEGGA_PREVIEW_BASIC_AUTH est absent ; le paramètre reste au cas où elle serait gatée.
     const { user, pass } = parseBasicAuthPair(Deno.env.get('MEGGA_PREVIEW_BASIC_AUTH'))
-    if (!cfAccount || !cfToken) return json({ error: 'CLOUDFLARE_* secrets missing' }, 500)
+    if (!cfEndpoint) {
+      console.error('kyc-report-pdf config', { reason: 'CLOUDFLARE_ACCOUNT_ID absent ou invalide (32 hex attendus)' })
+      return json({ error: 'CLOUDFLARE_ACCOUNT_ID missing or invalid' }, 500)
+    }
+    if (!cfToken) return json({ error: 'CLOUDFLARE_BROWSER_RENDER_TOKEN missing' }, 500)
 
     const renderUrl = kycReportRenderUrl(token)
     const cfRes = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${cfAccount}/browser-rendering/pdf`,
+      cfEndpoint,
       {
         method: 'POST',
         headers: { Authorization: `Bearer ${cfToken}`, 'Content-Type': 'application/json' },

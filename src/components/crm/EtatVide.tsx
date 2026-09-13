@@ -61,6 +61,7 @@
  */
 import type { ReactNode } from 'react'
 import { crmPalette } from './tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /**
  * Ce que l'écran DIT, pas ce à quoi il ressemble.
@@ -83,16 +84,19 @@ export type RegistreVide = 'neutre' | 'aFaire' | 'aJour' | 'erreur'
  *
  * ⚠ Les barreaux clairs viennent de `globals.css` (`--color-warning-dark`,
  * `--color-success-dark`), les sombres de la même feuille. Ils ne sont pas lus
- * en CSS ici parce qu'un `var()` ne se mesure pas depuis un test de source : les
- * figer permet à `etat-vide.spec.ts` de vérifier leur contraste, ce qu'une
- * indirection aurait rendu impossible — c'est la leçon de `tones.accent` sur la
- * console, une couleur qui n'existait qu'au rendu.
+ * en CSS ici parce qu'un `var()` ne se mesure pas depuis un test de source —
+ * c'est la leçon de `tones.accent` sur la console, une couleur qui n'existait
+ * qu'au rendu. Les CLAIRS passent depuis le 13.09.2026 par `STATUT_CLAIR`, la
+ * source unique des encres d'état sur blanc : une constante JS, elle, se
+ * résout — `etat-vide.spec.ts` la lit par la valeur importée et continue de
+ * la confronter à `globals.css`. Les sombres restent écrits : aucune source
+ * partagée ne les porte encore.
  */
 const ENCRE: Record<RegistreVide, { clair: string; sombre: string }> = {
   neutre: { clair: '#686868', sombre: '#a3a3a3' },
-  aFaire: { clair: '#B45309', sombre: '#FBBF24' },
-  aJour: { clair: '#047857', sombre: '#34D399' },
-  erreur: { clair: '#B91C1C', sombre: '#F87171' },
+  aFaire: { clair: STATUT_CLAIR.warnInk, sombre: '#FBBF24' },
+  aJour: { clair: STATUT_CLAIR.okInk, sombre: '#34D399' },
+  erreur: { clair: STATUT_CLAIR.errInk, sombre: '#F87171' },
 }
 
 export interface EtatVideProps {

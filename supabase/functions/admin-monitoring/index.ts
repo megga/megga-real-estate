@@ -60,18 +60,19 @@ serve(async (req) => {
     // ── Collect metrics ──
     const now = new Date()
     const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString()
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
 
     // Basic counts from Supabase tables
-    const [agencyCount, userCount, propertyCount, transactionCount, errorCount, emailCount] = await Promise.all([
+    // ⛔ Plus de compte d'e-mails (13.09.2026) : il lisait l'action `email_sent`, que seule la
+    // Messagerie écrit (courrier d'agent, D14) et qu'aucun envoi Resend n'a jamais écrite —
+    // `email_count_today` a publié 0 chaque heure depuis avril, et aurait compté 90 jours
+    // d'Envoyés à la connexion d'une boîte. Les échecs Resend : get_admin_integrations_health.
+    const [agencyCount, userCount, propertyCount, transactionCount, errorCount] = await Promise.all([
       supabaseAdmin.from('agencies').select('id', { count: 'exact', head: true }),
       supabaseAdmin.from('profiles').select('id', { count: 'exact', head: true }),
       supabaseAdmin.from('properties').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       supabaseAdmin.from('transactions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       supabaseAdmin.from('activity_events').select('id', { count: 'exact', head: true })
         .eq('action', 'edge_function_error').gte('created_at', dayAgo),
-      supabaseAdmin.from('activity_events').select('id', { count: 'exact', head: true })
-        .eq('action', 'email_sent').gte('created_at', todayStart),
     ])
 
     // ── Pro plan: Real DB size via SQL ──
@@ -168,7 +169,6 @@ serve(async (req) => {
       { metric_type: 'property_count', metric_value: propertyCount.count ?? 0 },
       { metric_type: 'transaction_count', metric_value: transactionCount.count ?? 0 },
       { metric_type: 'error_count_24h', metric_value: errorCount.count ?? 0 },
-      { metric_type: 'email_count_today', metric_value: emailCount.count ?? 0 },
       { metric_type: 'db_size_mb', metric_value: dbSizeMb },
       { metric_type: 'storage_used_mb', metric_value: storageUsedMb },
       { metric_type: 'flatfox_active_count', metric_value: flatfoxActiveCount },

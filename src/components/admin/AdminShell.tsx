@@ -20,14 +20,16 @@
  * Mise en page : le rail est dans le cadre au-delà de `lg`, en tiroir en
  * dessous (le cadre passe alors pleine largeur, sans rayon).
  */
-import { useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { useAdminSurfaces } from '@/hooks/useAdminSurfaces'
 import { useAdminTheme } from '@/components/admin/AdminThemeProvider'
-import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
+import { ADMIN_CONSOLE_PATH, memoriserPageConsole, retourAuCrm } from '@/lib/adminEntry'
+import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
+import { useIsMobile } from '@/hooks/useMediaQuery'
 import AdminSearchDialog from '@/components/admin/AdminSearchDialog'
 import { ADMIN_KEYFRAMES, ADMIN_RADII, ADMIN_RAIL_WIDTH } from '@/components/admin/kit/adminKitCore'
 // Le dock d'icônes du CRM, réutilisé tel quel (cf. `items` dans AdminShell).
@@ -108,6 +110,18 @@ const NAV_SECTIONS: NavSection[] = [
 ]
 
 /**
+ * Adresse de « Retour au CRM » : l'onglet qu'on a quitté, pas « Aujourd'hui »
+ * (règle et replis : `retourAuCrm`). Lue par les DEUX sorties de la coquille —
+ * le pied du rail et le dock : deux boutons « Retour au CRM » qui mèneraient à
+ * deux endroits se contrediraient.
+ */
+function useRetourCrm(): string {
+  const onglets = useCrmTabsOptionnel()
+  const mobile = useIsMobile()
+  return retourAuCrm(onglets?.tabs[onglets.active], mobile)
+}
+
+/**
  * Contenu du rail — partagé entre le rail dans le cadre et le tiroir mobile.
  *
  * Grammaire de nav reprise ligne pour ligne des Réglages : rayon 14, gap 12,
@@ -121,6 +135,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
   const { dark } = useAdminTheme()
   const { sp, surf } = useAdminSurfaces()
   const navigate = useNavigate()
+  const retourCrm = useRetourCrm()
 
   const rowBase = {
     display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
@@ -192,7 +207,7 @@ function ShellNav({ onNavigate }: { onNavigate?: () => void }) {
 
         {/* Une ancre, mais une navigation par le routeur : l'ancre préserve le
             clic-milieu et le survol d'URL, le routeur évite le rechargement. */}
-        <a className="adm-nav" href="/dashboard" onClick={(e) => { e.preventDefault(); navigate('/dashboard') }} style={{ ...rowBase, textDecoration: 'none' }}>
+        <a className="adm-nav" href={retourCrm} onClick={(e) => { e.preventDefault(); navigate(retourCrm) }} style={{ ...rowBase, textDecoration: 'none' }}>
           <span style={{ width: 22, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
             <MEIcon name="external" size={17} color={sp.sub} />
           </span>
@@ -237,7 +252,17 @@ export default function AdminShell() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const colonne = useRef<HTMLDivElement>(null)
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  const retourCrm = useRetourCrm()
+
+  /**
+   * Retient la page courante, pour que les portes du CRM (barre latérale, menu
+   * de compte, ⌘K) rouvrent la console ICI plutôt que sur « Vue d'ensemble ».
+   * La query comprise : un filtre ou une recherche fait partie de l'endroit.
+   */
+  useEffect(() => {
+    memoriserPageConsole(`${pathname}${search}`)
+  }, [pathname, search])
 
   /**
    * Remet la colonne de contenu en haut à chaque changement de page.
@@ -288,7 +313,7 @@ export default function AdminShell() {
     // donnant deux loupes côte à côte). `dashboard` est en outre le bon signe —
     // dans le CRM ce bouton mène au tableau de bord, ici il y ramène. Même
     // bouton, même place, geste analogue.
-    { id: 'crm', icon: 'dashboard', label: t('common:nav.backToCrm'), action: () => navigate('/dashboard') },
+    { id: 'crm', icon: 'dashboard', label: t('common:nav.backToCrm'), action: () => navigate(retourCrm) },
   ]
 
   /** Le rail rend toujours « Réglages » : ils vivent dans le CRM, pas ici. */

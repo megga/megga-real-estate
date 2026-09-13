@@ -20,7 +20,7 @@ import { formatCHF } from '@/lib/utils'
 import { useConversationHistory } from '@/hooks/useConversationHistory'
 import { filterConversationsByTitle, type ConversationSummary } from '@/lib/conversation-history'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
-import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
+import { consoleAReprendre } from '@/lib/adminEntry'
 import { useCrmDark } from '@/lib/crmDark'
 import { declarerPaletteEnPlace } from './openSearch'
 import { useEcranActif } from '@/hooks/useEcranActif'
@@ -466,7 +466,8 @@ export default function CrmSearch({ open, onClose, amorce, variante = 'overlay',
       case 'contact': return `/dashboard/contacts/${item.id}`
       case 'bien': return `/dashboard/listings/${item.id}`
       case 'deal': return `/dashboard/transactions/${item.id}`
-      case 'admin': return ADMIN_CONSOLE_PATH
+      // La console rouvre sur sa dernière page, comme depuis la barre latérale.
+      case 'admin': return consoleAReprendre()
       default: return null
     }
   }, [])

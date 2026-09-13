@@ -437,12 +437,17 @@ de récursion) :
   revalide que le libellé est de l'agence, la clé étrangère vers mail_labels étant
   aveugle à l'agence (sinon un PATCH sur son propre fil y collerait le libellé d'une
   autre agence, qui gouvernerait dès lors le champ).
-- mail_labels / mail_drafts / mail_contact_aliases : CRUD client. mail_drafts est
-  restreinte à son auteur (author_id = auth.uid()) ; mail_contact_aliases vérifie EN PLUS
-  que le contact visé est de l'agence — sans quoi l'ingestion (service-role, donc hors
-  RLS) recopierait un contact étranger sur mail_threads.contact_id, et le fil se lirait
-  « rattaché » tout en restant vide.
-- mail_oauth_states / mail_cron_locks : RLS activée, AUCUNE policy → service_role seul.
+- mail_labels / mail_drafts : CRUD client. mail_drafts est restreinte à son auteur
+  (author_id = auth.uid()).
+- mail_oauth_states / mail_cron_locks / mail_contact_aliases : RLS activée, AUCUNE policy
+  → service_role seul. ⛔ mail_contact_aliases était CRUD client jusqu'au 13.09.2026
+  (migration 20260913150000) : toute l'agence lisait l'adresse d'un correspondant apprise
+  dans une boîte PERSONNELLE, et un collègue réaffectait un alias anonymement
+  (`learned_by` NULL passait le WITH CHECK). Aucun client ne s'en servait : l'unique
+  écrivain est `linkThreadToContact` (edge mail-actions `link_contact`), qui vérifie que le
+  contact est de l'agence ET que l'adresse est celle d'un correspondant externe du fil (ni
+  la boîte, ni un alias d'envoi — l'expéditeur d'un sortant —, ni une adresse interne) ;
+  l'unique lecteur est l'ingestion.
 - Les privilèges par défaut du projet accordent trop à anon : le socle fait un
   REVOKE ALL … FROM anon, authenticated sur les neuf tables AVANT d'accorder le strict.
 ```

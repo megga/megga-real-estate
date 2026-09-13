@@ -278,7 +278,8 @@ export const RPC: Record<string, unknown | ((args: Record<string, unknown>) => u
   },
 
   get_admin_monitoring_health: [{
-    errors_last_24h: 3, emails_sent_today: 48, api_requests_today: 12_940,
+    // emails_sent_today : NULL = non mesuré (20260913) — le banc montre ce que la prod rend.
+    errors_last_24h: 3, emails_sent_today: null, api_requests_today: 12_940,
     last_scraping_at: ilYA(60 * 9), db_size_mb: 2140, storage_used_mb: 8_420,
     db_limit_mb: 8000, storage_limit_mb: 100_000,
   }],
@@ -382,7 +383,7 @@ export const RPC: Record<string, unknown | ((args: Record<string, unknown>) => u
   }],
 
   get_admin_integrations_health: {
-    emails: { sent_24h: 48, sent_7d: 291, errors_7d: 2 },
+    emails: { delivery_incidents_7d: 3, errors_7d: 2 },
     stripe_webhook: { last_event_at: ilYA(180), age_hours: 3, events_7d: 41, payment_failed_7d: 1, active_subscriptions: 4 },
     calendar: {
       google: { connected: 6, stale: 1, expired: 0 },

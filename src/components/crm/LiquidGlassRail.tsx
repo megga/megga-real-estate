@@ -165,6 +165,14 @@ const RAIL_ICONS: Record<string, RailIconDef> = {
     { tag: 'circle', cx: 12, cy: 12, r: 4.6 },
     { tag: 'path', d: 'M12 12h.01' },
   ] },
+  // Console plateforme (ligne super-admin) : deux baies empilées, le glyphe que
+  // porte déjà la ligne « Console admin » du menu de compte — la même porte
+  // garde le même signe aux deux endroits. Pas le bouclier : c'est celui de KYC.
+  console: { line: true, kids: [
+    { tag: 'rect', x: 3, y: 4, width: 18, height: 7, rx: 2 },
+    { tag: 'rect', x: 3, y: 13, width: 18, height: 7, rx: 2 },
+    { tag: 'path', d: 'M7 7.5h.01M7 16.5h.01' },
+  ] },
   // — TopNav (cluster droit) —
   sparkle: { line: true, kids: [
     { tag: 'path', d: 'm12 3-1.91 5.81a2 2 0 0 1-1.28 1.28L3 12l5.81 1.91a2 2 0 0 1 1.28 1.28L12 21l1.91-5.81a2 2 0 0 1 1.28-1.28L21 12l-5.81-1.91a2 2 0 0 1-1.28-1.28L12 3Z' },

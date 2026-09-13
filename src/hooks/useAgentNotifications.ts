@@ -3,9 +3,18 @@
 // non-utilisateur (système/IA) de l'agence — « ce que le système a fait que vous
 // devez savoir » : décisions vendeur, screening KYC, relances IA, etc.
 //
-// - RLS : `events_select` scope déjà à l'agence (agency_id = get_my_agency_id()).
-// - Filtre `actor_kind <> 'user'` → couvert par l'index partiel
-//   idx_activity_events_actor_kind (agency_id, actor_kind, created_at DESC).
+// - PÉRIMÈTRE : l'agence du profil, posée EN CLAIR (`.eq('agency_id', …)`), et AUCUNE
+//   requête ni aucun canal sans agence (13.09.2026). La RLS ne le garantit pas seule :
+//   deux policies SELECT permissives s'additionnent — `events_select` (agency_id =
+//   get_my_agency_id()) ET `super_admin_read_all_events` (toutes agences). Le super-admin
+//   de prod n'a pas d'agence : sa cloche rendait les 30 derniers événements système de la
+//   PLATEFORME, titrés par des libellés d'agences qui ne sont pas les siennes, et le canal
+//   poussait chaque insertion de la plateforme dans son navigateur. Sa vue plateforme vit
+//   dans la console (flux d'activité, file de modération).
+// - Index : c'est ce filtre explicite qui en rend un utilisable. Sans lui, la RLS arrivait
+//   en OR (`is_super_admin() OR agency_id = …`) — un simple Filter sur l'index de
+//   `created_at` (prod : 6 514 lignes parcourues, 255 ms). L'ancien commentaire promettait
+//   idx_activity_events_actor_kind : aucun des deux plans ne le choisissait.
 // - Realtime : UN abonnement pour toute la coquille (`useAgentNotificationsRealtime`,
 //   monté une fois dans AgentLayout), pattern useId() obligatoire — sinon crash au re-mount.
 // - État « non lu » : activity_events est immuable (audit nLPD) → on suit un
@@ -14,10 +23,22 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useId, useMemo, useSyncExternalStore } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import type { CrmNotif, NotifKind, NotifPriority, NotifGroup } from '@/components/crm/notifications/data'
 
 const LAST_SEEN_KEY = 'megga-agent-notif-lastseen'
 const READ_IDS_KEY = 'megga-agent-notif-read'
+
+/**
+ * Le courrier des boîtes n'entre pas dans la cloche (13.09.2026). La synchronisation
+ * écrit un `email_received` / `email_sent` (acteur 'system') pour CHAQUE message rattaché
+ * à un contact — 90 jours d'un coup à la connexion d'une boîte — et cette cloche est celle
+ * de TOUTE l'agence : chaque collègue voyait défiler le courrier d'une boîte qui n'est pas
+ * la sienne, titré par son objet. L'objet n'est plus écrit (`mailAuditEvent`), mais la
+ * ligne resterait là, sous un titre humanisé en anglais (« Email received »). Le
+ * propriétaire de la boîte a les compteurs de la Messagerie.
+ */
+const HORS_CLOCHE = '(email_received,email_sent)'
 
 interface RawEvent {
   id: string
@@ -169,19 +190,25 @@ export interface AgentNotifications {
  */
 export function useAgentNotifications(limit = 30): AgentNotifications {
   const { readIds, lastSeen } = useSyncExternalStore(abonnerEtatLu, lireEtatLu, lireEtatLu)
+  const { profile } = useAuth()
+  const agencyId = profile?.agency_id ?? null
 
   const query = useQuery({
-    queryKey: ['agent-notifications', limit],
+    // L'agence dans la clé : le cache ne se partage jamais entre deux comptes.
+    queryKey: ['agent-notifications', agencyId, limit],
     queryFn: async (): Promise<RawEvent[]> => {
       const { data, error } = await supabase
         .from('activity_events')
         .select('id, action, entity_type, entity_id, metadata, created_at, category, severity, object_label')
+        .eq('agency_id', agencyId as string)
         .neq('actor_kind', 'user')
+        .not('action', 'in', HORS_CLOCHE)
         .order('created_at', { ascending: false })
         .limit(limit)
       if (error) throw error
       return (data ?? []) as RawEvent[]
     },
+    enabled: !!agencyId,
     staleTime: 30_000,
   })
 
@@ -251,15 +278,21 @@ export function useAgentNotifications(limit = 30): AgentNotifications {
 export function useAgentNotificationsRealtime(): void {
   const queryClient = useQueryClient()
   const channelId = useId()
+  const { profile } = useAuth()
+  const agencyId = profile?.agency_id ?? null
   useEffect(() => {
+    // Aucun canal sans agence, et un canal filtré sur l'agence : sans ce filtre, le serveur
+    // poussait le contenu de CHAQUE insertion que la RLS laisse lire — pour un super-admin,
+    // toute la plateforme — à une cloche qui ne l'affiche pas.
+    if (!agencyId) return
     const channel = supabase
       .channel(`agent-notifs-${channelId}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_events' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_events', filter: `agency_id=eq.${agencyId}` }, () => {
         queryClient.invalidateQueries({ queryKey: ['agent-notifications'] })
       })
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [queryClient, channelId])
+  }, [queryClient, channelId, agencyId])
 }

@@ -289,7 +289,13 @@
       "searchPlaceholder": "Name, Adresse oder Telefon",
       "empty": "Kein Kontakt gefunden.",
       "note": "Die Adresse wird für dieses Dossier gemerkt.",
-      "create": "Dossier anlegen"
+      "create": "Dossier anlegen",
+      "error": {
+        "email_not_in_thread": "Diese Adresse kommt in diesem Verlauf nicht vor.",
+        "email_is_internal": "Das ist eine Adresse der Agentur: Sie wird keinem Kunden zugeordnet.",
+        "contact_not_in_agency": "Dieser Kontakt gehört nicht zu Ihrer Agentur.",
+        "generic": "Die Zuordnung ist fehlgeschlagen. Bitte erneut versuchen."
+      }
     },
     "draft": {
       "badge": "Entwurf",

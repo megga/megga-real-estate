@@ -11,6 +11,7 @@ import type { AuditCategory, KycCheckCategory, KycDossierStatus } from '@/types/
 import type { CrmIconName } from './icons'
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_COLOR, MXC_SYSTEM, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import { readCrmDark } from '@/lib/crmDark'
 // i18n : les libellés des maps (contrôles/statuts/risque KYC + catégories audit)
 // sont traduits au render via getter singleton (clés kyc:* / common:audit.category.*).
@@ -207,8 +208,8 @@ export function dossierPalette(dark: boolean) {
    * que `EtatVide` et le rapport PDF, qui les avaient déjà mesurées pour le clair
    * — `#B91C1C` rend 6,47:1, `#B45309` rend 5,02:1.
    */
-  errDarker: dark ? MXC_SYSTEM.red400 : '#B91C1C',
-  warnDarker: dark ? MXC_SYSTEM.yellow400 : '#B45309',
+  errDarker: dark ? MXC_SYSTEM.red400 : STATUT_CLAIR.errInk,
+  warnDarker: dark ? MXC_SYSTEM.yellow400 : STATUT_CLAIR.warnInk,
 
   // Backgrounds soft pour pastilles statut (jamais pour cards)
   // ⛔ Les deux premiers sont des remplissages PÂLES, réglés pour un canvas clair :

@@ -5,6 +5,7 @@
 // toute édition recharge la page au lieu de préserver l'état (galerie ouverte,
 // lightbox, scroll de la fiche).
 import { MXC_COLOR, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import { crmMix } from '@/components/crm/tokens'
 
 // ─── Palettes (light/dark) ───────────────────────────────────────────────
@@ -75,7 +76,7 @@ export const VxSP_LIGHT: VxPalette = {
   shadowHov: '0 2px 6px rgba(15,23,42,.06), 0 28px 56px -20px rgba(40,55,90,.34)',
   ok: '#0B7A53',
   okBg: 'rgba(5,150,105,.12)',
-  warn: '#B45309',
+  warn: STATUT_CLAIR.warnInk,
   warnBg: 'rgba(196,90,0,.12)',
   info: '#1E5BC6',
   infoBg: 'rgba(30,91,198,.12)',

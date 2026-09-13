@@ -52,6 +52,10 @@ import { RelanceSession } from './today/RelanceSession'
 import CrmProfileDropdown from './profile/CrmProfileDropdown'
 import { formatCHF } from '@/lib/utils'
 import { useEcranActif } from '@/hooks/useEcranActif'
+import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
+import { consoleAReprendre } from '@/lib/adminEntry'
+import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /** Largeurs de la carte. Ni l'une ni l'autre n'est une valeur d'échelle : la
  *  grammaire tokenise les rayons, espacements et tailles de texte — pas les
@@ -103,16 +107,21 @@ interface RowProps {
   /** Ces deux-là pour les lignes qui OUVRENT quelque chose au lieu de router. */
   expanded?: boolean
   haspopup?: 'dialog' | 'menu'
+  /**
+   * Encre imposée, au repos comme au survol — seul le fond réagit alors. Sert la
+   * ligne de la console, la seule qui fasse sortir de l'agence.
+   */
+  teinte?: string
 }
 
 function SidebarRow({
   icon, label, active = false, collapsed, onClick, sp, trail, dot,
-  ariaLabel, expanded, haspopup,
+  ariaLabel, expanded, haspopup, teinte,
 }: RowProps) {
   const [hover, setHover] = useState(false)
 
   const bg = active ? sp.accent : hover ? sp.focusSurface : 'transparent'
-  const ink = active ? sp.accentInk : hover ? sp.ink : sp.sub
+  const ink = active ? sp.accentInk : teinte ?? (hover ? sp.ink : sp.sub)
 
   return (
     <button
@@ -335,6 +344,9 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
   // dock MEGGA AI sur écran étroit. La règle vit dans `useCrmSidebarRepli`, que
   // le squelette de chargement lit aussi : recopiée, elle avait divergé.
   const { replie: collapsed, force: repliForce, regle: stored, setRegle: setStored } = useCrmSidebarRepli()
+  // Gate d'AFFICHAGE seulement : le mur est en base (`is_super_admin()`), et
+  // `AdminConsoleRoute` renvoie quiconque d'autre au tableau de bord.
+  const { allowed: isSuperAdmin } = useSuperAdminGate()
 
   const [relanceOpen, setRelanceOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
@@ -431,6 +443,17 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
   const listStyle: CSSProperties = {
     display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)',
   }
+
+  /**
+   * Le rouge de la ligne console — une ENCRE, et qui change de valeur avec le
+   * fond : aucun rouge ne tient l'AA sur les deux thèmes à la fois.
+   *   • clair : `STATUT_CLAIR.errInk`, l'encre d'alerte déjà partagée par la face
+   *     publique et la messagerie — 6,47:1 sur la carte, 5,53:1 au survol ;
+   *   • sombre : `MXC_SYSTEM.red400` — 6,56:1 sur la carte, 5,71:1 au survol.
+   *     Il tomberait à 3,1:1 sur le blanc, d'où la bascule.
+   * Deux jetons importés, aucun littéral : le cliquet des couleurs ne bouge pas.
+   */
+  const encreConsole = sp.isDark ? MXC_SYSTEM.red400 : STATUT_CLAIR.errInk
 
   return (
     <>
@@ -636,8 +659,30 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
           </div>
         </div>
 
-        {/* ── 4. Pied : encart de synthèse + compte ────────────────────────── */}
+        {/* ── 4. Pied : console (super-admin) + encart de synthèse + compte ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-lg)' }}>
+          {/* ── La porte de la console, pour un super-admin seulement ─────────
+              ⚠ Dans le PIED, pas au bout de la liste : la liste défile sous
+              ~900 px de fenêtre, le pied jamais. Une porte qu'on prend pour
+              faire des allers-retours ne doit pas pouvoir passer sous le pli.
+              ⚠ EN ROUGE (décision Julien, 13 septembre 2026) : c'est la seule
+              ligne qui fait sortir de l'agence pour entrer dans la plateforme.
+              Rouge en ENCRE, jamais en aplat — un aplat se lirait comme l'état
+              actif, que l'accent porte déjà.
+              ⚠ `consoleAReprendre()` et non la racine de la console : on revient
+              sur la page qu'on y avait laissée, sinon chaque aller-retour
+              repartirait de « Vue d'ensemble ». */}
+          {isSuperAdmin && (
+            <SidebarRow
+              icon="console"
+              label={t('profile.adminConsole')}
+              collapsed={collapsed}
+              onClick={() => { if (!enBanc) navigate(consoleAReprendre()) }}
+              sp={sp}
+              teinte={encreConsole}
+            />
+          )}
+
           {/* ⛔ LES NOTIFICATIONS NE SONT PLUS ICI (7 septembre 2026, Julien :
               « qu'elles soient en haut à droite, pour gagner un peu de place dans
               la sidebar »). Elles occupaient une LIGNE PLEINE du pied — glyphe,
