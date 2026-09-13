@@ -275,6 +275,7 @@
         "description": "Description",
         "location": "Lage",
         "salePrice": "Verkaufspreis",
+        "rent": "Monatsmiete",
         "buyer": "Käufer",
         "compatibility": "Übereinstimmung",
         "advertiser": "Inserent"
@@ -290,8 +291,9 @@
         "villa": "Villa"
       },
       "price": {
-        "charges": "Charges",
+        "charges": "Nebenkosten",
         "perMonth": "CHF {{amount}} / Monat",
+        "perMonthShort": "/Monat",
         "onMarket": "Am Markt",
         "today": "Heute",
         "days_one": "{{count}} Tag",

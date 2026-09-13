@@ -34,6 +34,7 @@
 export { AGENCE_BANC, AGENT_BANC } from './bancSession'
 import { AGENCE_BANC, AGENT_BANC } from './bancSession'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
+import { PHOTO } from '@/components/crm/today/data'
 import type { KycDossierStatus } from '@/types/kyc'
 
 /* ─── Le socle : ce que le CHROME tire sur CHAQUE écran ────────────────────── */
@@ -314,7 +315,48 @@ export const CRM_TABLES: Record<string, unknown[]> = {
     { id: 'p2', agency_id: AGENCE_BANC.id, title: 'Villa individuelle · Cologny', city: 'Cologny', canton: 'GE', price: 3_200_000, rooms: 7, surface: 260, status: 'active', transaction_type: 'sale', published_at: ilYA(300), created_at: ilYA(700) },
   ],
   transactions: [],
-  matches: [],
+  // Deux matchs pour la page « Catalogue » d'Aujourd'hui, et chacun éprouve un défaut
+  // corrigé le 13.09.2026 : l'annonce de marché n'a AUCUNE photo (elle recevait celle
+  // de Champel, et cinq intérieurs de stock dans sa galerie), le bien de l'agence n'en
+  // a qu'UNE (le collage de la fiche la répétait trois fois).
+  // ⚠ Les jointures (`contact`, `market_listing`, `property`) sont portées par la
+  // ligne : le banc n'applique pas `select`.
+  matches: [
+    {
+      id: 'm1', agency_id: AGENCE_BANC.id, contact_id: 'c1', source: 'market',
+      property_id: null, market_listing_id: ANNONCE_MARCHE_BANC.id,
+      score: 88, status: 'suggested', sent_via: null, sent_at: null, created_at: ilYA(20),
+      reasons: {
+        budget: { match: true, score: 30, detail: 'Loyer dans le budget' },
+        zone: { match: true, score: 25, detail: 'Secteur recherché' },
+        type: { match: true, score: 15, detail: '' },
+        rooms: { match: false, score: 0, detail: '' },
+        features: { match: false, score: 0, detail: '' },
+      },
+      contact: { first_name: 'Camille', last_name: 'Rochat', email: 'camille.rochat@example.ch', phone: '+41 79 412 88 03' },
+      market_listing: ANNONCE_MARCHE_BANC, property: null,
+    },
+    {
+      id: 'm2', agency_id: AGENCE_BANC.id, contact_id: 'c3', source: 'internal',
+      property_id: 'p1', market_listing_id: null,
+      score: 81, status: 'suggested', sent_via: null, sent_at: null, created_at: ilYA(30),
+      reasons: {
+        budget: { match: true, score: 30, detail: 'Prix aligné sur le budget' },
+        zone: { match: true, score: 25, detail: '' },
+        type: { match: true, score: 15, detail: '' },
+        rooms: { match: true, score: 10, detail: '' },
+        features: { match: false, score: 0, detail: '' },
+      },
+      contact: { first_name: 'Salomé', last_name: 'Perret', email: 's.perret@example.ch', phone: '+41 76 903 55 12' },
+      property: {
+        title: 'Appartement 4,5 pièces · Champel', price: 1_450_000, address: 'Avenue de Champel 12',
+        city: 'Genève', canton: 'GE', postal_code: '1206', rooms: 4.5, bedrooms: 3, surface_m2: 118,
+        photos: [PHOTO.champel], type: 'apartment', description: 'Lumineux, traversant, deux balcons.',
+        features: ['Balcon', 'Ascenseur'], floor: 4, year_built: 1968, charges_monthly: 420,
+      },
+      market_listing: null,
+    },
+  ],
   crm_offers: [],
   seller_leads: [],
   kyc_cases: KYC_CASES,

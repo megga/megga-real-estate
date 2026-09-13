@@ -275,6 +275,7 @@
         "description": "Description",
         "location": "Location",
         "salePrice": "Sale price",
+        "rent": "Monthly rent",
         "buyer": "Buyer",
         "compatibility": "Compatibility",
         "advertiser": "Advertiser"
@@ -290,8 +291,9 @@
         "villa": "Villa"
       },
       "price": {
-        "charges": "Charges",
+        "charges": "Service charges",
         "perMonth": "CHF {{amount}} / month",
+        "perMonthShort": "/month",
         "onMarket": "On the market",
         "today": "Today",
         "days_one": "{{count}} day",

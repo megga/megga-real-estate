@@ -8,6 +8,7 @@
 
 import EtatVide from '@/components/crm/EtatVide'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import { useState, useEffect, useCallback, useRef, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
@@ -21,6 +22,24 @@ import { useEcranActif } from '@/hooks/useEcranActif'
 
 // Type du traducteur i18next injecté dans les helpers de module (non-composants).
 type TFunc = (key: string, params?: Record<string, unknown>) => string
+
+/**
+ * La photo d'un bien, ou — s'il n'en a pas — un fond neutre marqué d'une maison.
+ *
+ * ⛔ JAMAIS UNE PHOTO DE STOCK À LA PLACE DE LA SIENNE. Un bien réel sans photo
+ * recevait celle de Champel (Unsplash), et sa galerie était complétée de cinq
+ * intérieurs d'illustration : l'agent voyait des pièces qui n'existent pas, sous
+ * le titre et l'adresse du vrai bien. Seule la démo garde ses photos d'exemple.
+ */
+function CatImg({ src, style }: { src: string | undefined; style: React.CSSProperties }) {
+  if (src) return <img src={src} alt="" style={style} />
+  return (
+    <div aria-hidden style={{ ...style, display: 'grid', placeItems: 'center',
+      background: `linear-gradient(160deg, ${MXC_COLOR.n500} 0%, ${MXC_COLOR.n400} 100%)` }}>
+      <MEIcon name="home" size={32} color={MXC_COLOR.n700} />
+    </div>
+  )
+}
 
 // Critères = les 5 VRAIES raisons du moteur de matching (pas de KYC fabriqué).
 // Clés i18n stables (résolues à l'affichage) — l'ordre reste budget/zone/type/rooms/features.
@@ -44,6 +63,8 @@ interface CatDetailData {
 
 interface CatItem {
   id: number
+  /** Location : `price`/`pn` sont un LOYER MENSUEL, pas un prix de vente. */
+  rent?: boolean
   photo: string
   place: string
   price: string
@@ -113,7 +134,8 @@ function matchToCatItem(m: MatchResult, idx: number, t: TFunction): CatItem {
     id: hashInt(m.id) || idx + 1,
     matchId: m.id,
     contactId: m.contactId,
-    photo: L.photos?.[0] || PHOTO.champel,
+    rent: L.transaction_type === 'rent',
+    photo: L.photos?.[0] || '',
     place,
     price: fmtApos(L.price),
     pn: L.price,
@@ -192,7 +214,7 @@ function CatalogTile({ m, big = false, onOpen, delay = 0, shown, proposed }: { m
         border: `1px solid ${proposed ? 'rgba(52,199,150,.5)' : h ? TK.borderHi : TK.border}`, boxShadow: h ? TK.shadowLg : TK.shadow,
         opacity: shown ? 1 : 0, transform: shown ? (h ? 'translateY(-3px)' : 'none') : 'translateY(18px)',
         transition: `opacity .55s ease ${delay}ms, transform .55s cubic-bezier(.22,1,.36,1) ${shown && h ? 0 : delay}ms, box-shadow .25s, border-color .25s` }}>
-      <img src={m.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+      <CatImg src={m.photo} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
         transform: h ? 'scale(1.06)' : 'scale(1)', transition: 'transform 1.2s cubic-bezier(.22,1,.36,1)',
         filter: proposed ? 'saturate(.65) brightness(.82)' : 'none' }} />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,12,.16) 0%, rgba(8,8,12,.04) 38%, rgba(8,8,12,.93) 100%)' }} />
@@ -209,7 +231,7 @@ function CatalogTile({ m, big = false, onOpen, delay = 0, shown, proposed }: { m
           background: 'rgba(8,8,12,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
           padding: big ? '9px 15px' : '7px 13px', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${TK.borderHi}` }}>
           <span style={{ fontSize: big ? 'var(--crm-text-xs)' : 'var(--crm-text-xs)', fontWeight: 600, color: 'rgba(255,255,255,.7)' }}>{m.place}</span>
-          <span style={{ fontSize: big ? 'var(--crm-text-xl)' : 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.2, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>CHF {m.price}</span>
+          <span style={{ fontSize: big ? 'var(--crm-text-xl)' : 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: -0.2, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>CHF {m.price}{m.rent && t('today.catalogue.price.perMonthShort')}</span>
         </span>
       </div>
 
@@ -274,13 +296,16 @@ function catDetail(m: CatItem, t: TFunc) {
   const surface = surfaceM ? parseInt(surfaceM, 10) : null
   const title = roomsLabel(roomsRaw, t) + ' — ' + m.place
   const ppm2 = surface ? Math.round(m.pn / surface) : null
-  // Détail réel (match live) si attaché, sinon CAT_META (démo). Les images
-  // intérieures décoratives ne complètent que si l'annonce a < 2 photos réelles.
+  // Détail réel (match live) si attaché, sinon CAT_META (démo). Les intérieurs
+  // d'illustration (CAT_INTERIORS) ne complètent QUE la démo : un match réel ne
+  // montre que ses propres photos — voir `CatImg`.
   const base: CatMeta = m.detail
     ? { addr: m.detail.addr, beds: m.detail.beds, baths: m.detail.baths ?? 0, year: m.detail.year, floor: m.detail.floor as string, charges: m.detail.charges, drop: m.detail.drop, annonceur: m.detail.annonceur, features: m.detail.features, desc: m.detail.desc }
     : (CAT_META[m.place] || CAT_META.Carouge)
   const realGallery = m.detail?.gallery
-  const gallery = realGallery && realGallery.length >= 2 ? realGallery : [m.photo, ...CAT_INTERIORS]
+  const gallery = m.detail
+    ? (realGallery && realGallery.length > 0 ? realGallery : m.photo ? [m.photo] : [])
+    : [m.photo, ...CAT_INTERIORS]
   const priceWas = base.drop ? m.pn + base.drop : null
   return { ...base, baths: m.detail ? m.detail.baths : base.baths, title, roomsRaw, surface, ppm2, priceWas, gallery }
 }
@@ -461,13 +486,20 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
   const okN = critCount(m)
   const first = m.buyer.split(' ')[0]
   const reasons = critArr(m).slice().sort((a, b) => Number(b.ok) - Number(a.ok))
-  const tileA = g[(active + 1) % n], tileB = g[(active + 2) % n]
-  const compatTone = okN >= 4 ? '#34C796' : '#F2B855'
+  // ⚠ Les tuiles latérales n'existent que s'il y a d'AUTRES photos : avec une seule,
+  // le collage la répétait trois fois ; sans aucune, l'index valait NaN.
+  const tileA = n >= 2 ? g[(active + 1) % n] : undefined
+  const tileB = n >= 3 ? g[(active + 2) % n] : undefined
+  const lightMode = TK.frameSolid === '#FFFFFF'
+  // ⚠ Le verdict est du TEXTE : en clair, le vert et l'ambre vifs du mur rendaient
+  // ~2:1 sur la carte blanche. Les encres d'état sur blanc ont une source unique.
+  const compatTone = okN >= 4
+    ? (lightMode ? STATUT_CLAIR.okInk : '#34C796')
+    : (lightMode ? STATUT_CLAIR.warnInk : '#F2B855')
   const compatLabel = okN >= 5 ? t('today.catalogue.compat.perfect')
     : okN >= 4 ? t('today.catalogue.compat.aligned')
       : okN >= 3 ? t('today.catalogue.compat.someGaps')
         : t('today.catalogue.compat.manyGaps')
-  const lightMode = TK.frameSolid === '#FFFFFF'
 
   const ecranActif = useEcranActif()
   useEffect(() => {
@@ -499,14 +531,17 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
             {/* ── colonne principale ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-5xl)', minWidth: 0 }}>
               {/* collage photo éditorial */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1.62fr 1fr', gridTemplateRows: '1fr 1fr', gap: 'var(--crm-space-md)', height: 312 }}>
-                <button onClick={() => setGalOpen(true)} style={{ gridRow: '1 / span 2', position: 'relative', borderRadius: 'var(--crm-radius-3xl)', overflow: 'hidden', padding: 0, border: 0, cursor: 'pointer' }}>
-                  <img src={g[active]} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,12,.28) 0%, transparent 30%, transparent 64%, rgba(8,8,12,.5) 100%)' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: tileA ? '1.62fr 1fr' : '1fr', gridTemplateRows: '1fr 1fr', gap: 'var(--crm-space-md)', height: 312 }}>
+                <button onClick={() => { if (n > 0) setGalOpen(true) }} disabled={n === 0} style={{ gridRow: '1 / span 2', position: 'relative', borderRadius: 'var(--crm-radius-3xl)', overflow: 'hidden', padding: 0, border: 0, cursor: n > 0 ? 'pointer' : 'default' }}>
+                  <CatImg src={g[active]} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {n > 0 && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,12,.28) 0%, transparent 30%, transparent 64%, rgba(8,8,12,.5) 100%)' }} />}
                 </button>
-                <button onClick={() => { setActive((active + 1) % n); setGalOpen(true) }} style={{ position: 'relative', borderRadius: 'var(--crm-radius-3xl)', overflow: 'hidden', padding: 0, border: 0, cursor: 'pointer' }}>
+                {tileA && (
+                <button onClick={() => { setActive((active + 1) % n); setGalOpen(true) }} style={{ gridRow: tileB ? undefined : '1 / span 2', position: 'relative', borderRadius: 'var(--crm-radius-3xl)', overflow: 'hidden', padding: 0, border: 0, cursor: 'pointer' }}>
                   <img src={tileA} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                 </button>
+                )}
+                {tileB && (
                 <button onClick={() => { setActive((active + 2) % n); setGalOpen(true) }} style={{ position: 'relative', borderRadius: 'var(--crm-radius-3xl)', overflow: 'hidden', padding: 0, border: 0, cursor: 'pointer' }}>
                   <img src={tileB} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                   {n > 3 && (
@@ -521,6 +556,7 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
                     </>
                   )}
                 </button>
+                )}
               </div>
 
               {/* titre + adresse */}
@@ -597,9 +633,9 @@ function CatalogDetail({ m, proposed, onPropose, onOpenMatching, onClose }: { m:
 
               {/* prix */}
               <CatRailCard pad={18}>
-                <CatEyebrow>{t('today.catalogue.section.salePrice')}</CatEyebrow>
+                <CatEyebrow>{t(m.rent ? 'today.catalogue.section.rent' : 'today.catalogue.section.salePrice')}</CatEyebrow>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 'var(--crm-space-lg)', flexWrap: 'wrap' }}>
-                  <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: TK.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums', lineHeight: 1, whiteSpace: 'nowrap' }}>CHF {m.price}</div>
+                  <div style={{ fontSize: 'var(--crm-text-6xl)', fontWeight: 600, color: TK.ink, letterSpacing: -1, fontVariantNumeric: 'tabular-nums', lineHeight: 1, whiteSpace: 'nowrap' }}>CHF {m.price}{m.rent && <span style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: TK.sub, letterSpacing: 0 }}>{t('today.catalogue.price.perMonthShort')}</span>}</div>
                   {D.priceWas && <span style={{ fontSize: 'var(--crm-text-lg)', color: TK.faint, textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>CHF {fmtCHFk(D.priceWas).replace('CHF ', '')}</span>}
                 </div>
                 <div style={{ marginTop: 13 }}>
@@ -718,7 +754,7 @@ function CatalogMoreTile({ items, onOpen, delay = 0, shown }: { items: (CatItem 
       {/* aperçu photos en mosaïque douce derrière */}
       <div style={{ position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: '1fr 1fr', opacity: lightMode ? 0.22 : 0.16 }}>
         {items.slice(0, 4).map((m, i) => (
-          <img key={i} src={m.photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <CatImg key={i} src={m.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ))}
       </div>
       <div style={{ position: 'absolute', inset: 0, background: overlay }} />
@@ -753,7 +789,7 @@ function CatalogGalleryCard({ m, proposed, onOpen }: { m: CatItem; proposed: boo
       style={{ position: 'relative', borderRadius: 'var(--crm-radius-3xl)', overflow: 'hidden', height: 236, cursor: 'pointer',
         border: `1px solid ${proposed ? 'rgba(52,199,150,.5)' : h ? TK.borderHi : TK.border}`, boxShadow: h ? TK.shadowLg : TK.shadow,
         transform: h ? 'translateY(-3px)' : 'none', transition: 'transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s, border-color .25s' }}>
-      <img src={m.photo} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
+      <CatImg src={m.photo} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
         transform: h ? 'scale(1.06)' : 'scale(1)', transition: 'transform 1.1s cubic-bezier(.22,1,.36,1)', filter: proposed ? 'saturate(.65) brightness(.82)' : 'none' }} />
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,12,.12) 0%, rgba(8,8,12,.04) 40%, rgba(8,8,12,.93) 100%)' }} />
       <div style={{ position: 'absolute', top: 11, left: 11 }}>
@@ -761,7 +797,7 @@ function CatalogGalleryCard({ m, proposed, onOpen }: { m: CatItem; proposed: boo
           background: 'rgba(8,8,12,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
           padding: 'var(--crm-space-sm) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${TK.borderHi}` }}>
           <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: 'rgba(255,255,255,.7)' }}>{m.place}</span>
-          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>CHF {m.price}</span>
+          <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, letterSpacing: -0.2, color: '#fff', fontVariantNumeric: 'tabular-nums' }}>CHF {m.price}{m.rent && t('today.catalogue.price.perMonthShort')}</span>
         </span>
       </div>
       {proposed && (

@@ -275,6 +275,7 @@
         "description": "Description",
         "location": "Localisation",
         "salePrice": "Prix de vente",
+        "rent": "Loyer mensuel",
         "buyer": "Acheteur",
         "compatibility": "Compatibilité",
         "advertiser": "Annonceur"
@@ -292,6 +293,7 @@
       "price": {
         "charges": "Charges",
         "perMonth": "CHF {{amount}} / mois",
+        "perMonthShort": "/mois",
         "onMarket": "Sur le marché",
         "today": "Aujourd'hui",
         "days_one": "{{count}} jour",

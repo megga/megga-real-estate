@@ -142,7 +142,9 @@ const HORS_ASSUMES = new Map<string, number>([
   // Sept zones descendent le 13.09.2026, vingt-trois littéraux en tout : les
   // encres d'état sur blanc (#B91C1C, #B45309, #047857) importent désormais
   // `STATUT_CLAIR` au lieu d'être recopiées — garde : `statut-clair.spec.ts`.
-  ['src/components/crm', 527],
+  // Puis −14 le même jour : le jeu de démonstration `DATA` d'« Aujourd'hui »
+  // (today/data.ts), sans plus aucun lecteur, est retiré avec ses avatars teintés.
+  ['src/components/crm', 513],
   ['src/components/crm-mobile', 140],
   ['src/components/crm-dossiers', 60],
   ['src/components/crm-wizard', 47],

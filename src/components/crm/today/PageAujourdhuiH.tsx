@@ -27,7 +27,6 @@ import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
 import { TK } from './tk'
 import { RXIcon, Av, Eyebrow } from './kit'
-import { DATA } from './data'
 import {
   HL_TYPES, HL_KIND_TYPE,
   type HlSignalData, type HlHotData, type HlAnnData, type HlNewsData,
@@ -591,9 +590,10 @@ export function PageAujourdhuiH() {
   const { t } = useTranslation('dashboard')
   const { navigate: nav } = useTodayNav()
   const { profile } = useAuth()
-  // Le prénom vient du profil réel : la donnée existe côté app, aucune raison
-  // de la simuler. Le reste de l'écran reste en démo jusqu'au Lot 0.
-  const firstName = profile?.full_name?.trim().split(/\s+/)[0] || DATA.agent.name
+  // Le prénom vient du profil réel. ⛔ Sans nom, la salutation reste nue — le repli
+  // `DATA.agent.name` faisait dire « Bonjour Gregory » à tout profil sans nom.
+  // Même règle que l'écran mobile (`today.cockpit.greetingNoName`).
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0] || ''
 
   const [whatsNew, setWhatsNew] = useState(false)
   const [absOpen, setAbsOpen] = useState(false)
@@ -683,7 +683,7 @@ export function PageAujourdhuiH() {
 
       {/* EN-TÊTE — intégré dans le bento */}
       <div style={{ flexShrink: 0, padding: '18px 26px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-3xl)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: TK.ink }}>{t('today.h.greeting', { name: firstName })}</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: TK.ink }}>{firstName ? t('today.h.greeting', { name: firstName }) : t('today.cockpit.greetingNoName')}</h1>
         {/* Pas de nouveauté publiée ⇒ pas de bouton : il ouvrirait un panneau vide. */}
         {news.length > 0 && (
         <button
