@@ -243,7 +243,10 @@ export function VdBonPanel({
                   fontSize: 'var(--crm-text-lg)',
                 }}
               >
-                {visit.agent?.full_name ?? 'Grégory L.'}
+                {/* ⛔ Jamais un nom de repli : c'est un document que le visiteur signe.
+                    « Grégory L. » s'affichait ici — et dans la signature manuscrite
+                    ci-dessous — pour TOUTE agence dont la jointure agent était vide. */}
+                {visit.agent?.full_name ?? '—'}
               </div>
             </div>
           </div>
@@ -327,7 +330,7 @@ export function VdBonPanel({
             {
               l: t('visitDetail.bon.signatureAgent'),
               signed,
-              name: visit.agent?.full_name ?? 'Grégory L.',
+              name: visit.agent?.full_name ?? '—',
             },
           ].map((s) => (
             <div
