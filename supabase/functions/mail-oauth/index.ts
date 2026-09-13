@@ -8,8 +8,9 @@
 // Garde : requireAgentAuth AVANT toute lecture de configuration (règle 4 du lot).
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
-import { buildAuthorizeUrl, exchangeCode, fetchIdentity, pkceChallenge, randomToken, revokeToken, type OAuthProvider } from '../_shared/mail/oauth.ts'
-import { deleteAccountSecret, readAccountSecret, storeAccountSecret } from '../_shared/mail/secrets.ts'
+import { buildAuthorizeUrl, exchangeCode, fetchIdentity, pkceChallenge, randomToken, type OAuthProvider } from '../_shared/mail/oauth.ts'
+import { deleteAccountSecret, storeAccountSecret } from '../_shared/mail/secrets.ts'
+import { disconnectMailAccount } from '../_shared/mail/disconnect.ts'
 import { loadAgencyAccount, loadVisibleAccount, providerConfigFromEnv, redirectUriFor } from '../_shared/mail/guard.ts'
 import { syncAccount } from '../_shared/mail/sync.ts'
 import type { MailAccountRow, OAuthSecret } from '../_shared/mail/types.ts'
@@ -211,43 +212,17 @@ serve(async (req: Request) => {
      * rien, pour une boîte que l'utilisateur croyait déconnectée ; au cas courant,
      * l'autorisation restait simplement active chez Google.
      *
-     * En cas d'échec, la LIGNE RESTE (en `disabled`) : le pointeur survit, la
-     * déconnexion est réessayable, et la réponse le dit au lieu de mentir.
+     * Le chemin vit dans `_shared/mail/disconnect.ts` depuis le 13.09.2026, partagé avec
+     * `delete-account`. En cas d'échec, la LIGNE RESTE (en `disabled`) : le pointeur
+     * survit, la déconnexion est réessayable, et la réponse le dit au lieu de mentir.
      */
-    if (account.vault_secret_id) {
-      // ⚠ Deux issues à ne PAS confondre. Une LEVÉE = Vault n'a pas répondu, on ne sait
-      // pas si le jeton existe : refuser, garder la ligne, réessayable. Un `null` = la
-      // ligne de secret n'est plus là (déconnexion déjà à demi faite, purge) : il n'y a
-      // rien à révoquer ni à effacer, et bloquer là condamnerait le compte à ne jamais
-      // pouvoir être supprimé.
-      let secret: OAuthSecret | null = null
-      try { secret = await readAccountSecret<OAuthSecret>(admin, account.vault_secret_id) }
-      catch (e) {
-        const detail = e instanceof Error ? e.message : String(e)
-        console.error(`[mail-oauth] secret ${account.vault_secret_id} illisible (compte ${account.id}):`, detail)
-        await admin.from('mail_accounts').update({ status: 'disabled', last_error: 'disconnect: secret illisible, révocation impossible' }).eq('id', account.id)
-        return json({ error: 'revocation_failed', detail: 'secret_unreadable', account_id: account.id }, 502)
-      }
-      if (!secret) console.error(`[mail-oauth] compte ${account.id} : aucun secret sous ${account.vault_secret_id} — rien à révoquer`)
-      if (secret && 'refresh_token' in secret && (account.provider === 'gmail' || account.provider === 'outlook')) {
-        if (!await revokeToken(account.provider, secret.refresh_token)) {
-          await admin.from('mail_accounts').update({ status: 'disabled', last_error: 'disconnect: révocation refusée par le fournisseur' }).eq('id', account.id)
-          return json({ error: 'revocation_failed', detail: 'provider_refused', account_id: account.id }, 502)
-        }
-      }
-      try { if (secret) await deleteAccountSecret(admin, account.vault_secret_id) }
-      catch (e) {
-        const detail = e instanceof Error ? e.message : String(e)
-        console.error(`[mail-oauth] secret ${account.vault_secret_id} non effacé (compte ${account.id}):`, detail)
-        // Le jeton est révoqué, donc inoffensif — mais il reste dans Vault : garder la
-        // ligne est ce qui laisse une chance de le retrouver et de réessayer.
-        await admin.from('mail_accounts').update({ status: 'disabled', last_error: `disconnect: secret non effacé (${detail.slice(0, 200)})` }).eq('id', account.id)
-        return json({ ok: false, error: 'vault_delete_failed', detail, account_id: account.id }, 500)
-      }
+    const r = await disconnectMailAccount(admin, account)
+    if (r.ok) return json({ ok: true })
+    if (r.reason === 'secret_unreadable' || r.reason === 'provider_refused') {
+      return json({ error: 'revocation_failed', detail: r.reason, account_id: account.id }, 502)
     }
-    const { error } = await admin.from('mail_accounts').delete().eq('id', account.id)
-    if (error) return json({ error: 'delete_failed', detail: error.message }, 500)
-    return json({ ok: true })
+    if (r.reason === 'vault_delete_failed') return json({ ok: false, error: 'vault_delete_failed', detail: r.detail, account_id: account.id }, 500)
+    return json({ error: 'delete_failed', detail: r.detail }, 500)
   }
 
   if (action === 'update') {
