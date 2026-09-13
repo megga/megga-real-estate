@@ -177,6 +177,23 @@ export async function safeFetchResponse(
   }
 }
 
+/** Les deux familles de motifs que CE module lève, et que l'appelant peut rendre telles quelles. */
+const MOTIF_PUBLIC = /^(?:ssrf: [a-z_]+|fetch: \d{3})$/
+
+/**
+ * Le motif d'un échec, tel qu'on peut le rendre à l'appelant : `ssrf: <motif>` ou
+ * `fetch: <statut>`, sinon `fetch_failed`.
+ *
+ * ⛔ Jamais le message brut d'une autre erreur (audit du 13.09.2026, S14). C'est celui du
+ * runtime — « error sending request for url (…): tcp connect error: Connection refused » —
+ * qui distingue un port fermé d'un hôte muet ou d'un certificat refusé : recopié par un
+ * endpoint public comme `c2pa-verify`, il en ferait un scanner de ports à la demande.
+ */
+export function safeFetchErrorCode(e: unknown): string {
+  const message = e instanceof Error ? e.message : ''
+  return MOTIF_PUBLIC.test(message) ? message : 'fetch_failed'
+}
+
 /** Les octets seuls, redirections refusées — le contrat historique (c2pa-verify). */
 export async function safeFetch(
   rawUrl: string,

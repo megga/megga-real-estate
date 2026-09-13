@@ -295,7 +295,9 @@ export default function WizardShell({ onClose, embedded = false, dark: darkOverr
       setPublished(true)
     } catch (e) {
       const message = e instanceof Error ? e.message : t('wizard.shell.unknownError')
-      setPublishError(message)
+      // Quota de plan tenu en base (audit S15, 20260913170100) : le trigger lève un code,
+      // pas une phrase — on le traduit plutôt que d'afficher « plan_property_limit ».
+      setPublishError(message.includes('plan_property_limit') ? t('wizard.shell.planLimit') : message)
     } finally {
       setPublishing(false)
     }

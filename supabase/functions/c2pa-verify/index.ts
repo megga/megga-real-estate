@@ -3,7 +3,8 @@
 // Pas d'auth requise — vérification publique
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { safeFetch } from '../_shared/safe-fetch.ts'
+import { safeFetch, safeFetchErrorCode } from '../_shared/safe-fetch.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -43,8 +44,13 @@ serve(async (req: Request) => {
     try {
       photoBytes = await safeFetch(photoUrl)
     } catch (e) {
+      // Seuls les motifs de safe-fetch sortent (`ssrf: …`, `fetch: <statut>`) — audit S14.
+      // Le message brut d'une erreur réseau distinguait « port fermé » de « hôte muet » :
+      // sur un endpoint sans authentification, c'était un scanner offert.
+      const detail = safeFetchErrorCode(e)
+      if (detail === 'fetch_failed') console.warn('[c2pa-verify] photo non récupérée :', redactedErrorMessage(e))
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch photo', detail: String((e as Error).message) }),
+        JSON.stringify({ error: 'Failed to fetch photo', detail }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -106,9 +112,9 @@ serve(async (req: Request) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Internal error'
+    console.error('[c2pa-verify] échec inattendu :', redactedErrorMessage(error))
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: 'internal_error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

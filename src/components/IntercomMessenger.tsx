@@ -61,19 +61,10 @@ export default function IntercomMessenger() {
       if (identified && user && profile) {
         const jwt = await fetchUserJwt()
         if (cancelled) return
-        // stripe_customer_id de l'agence (best-effort, null-safe) → permettra à une
-        // future action Fin « facturation » de scoper sur le bon client Stripe.
-        // RLS: un membre lit la ligne de SON agence (agencies_members_select).
-        let stripeCustomerId: string | null = null
-        if (profile.agency_id) {
-          const { data: agencyRow } = await supabase
-            .from('agencies')
-            .select('stripe_customer_id')
-            .eq('id', profile.agency_id)
-            .maybeSingle()
-          if (cancelled) return
-          stripeCustomerId = agencyRow?.stripe_customer_id ?? null
-        }
+        // Plus de `stripe_customer_id` ici (audit S13, 13.09.2026) : la colonne n'est plus
+        // lisible par un membre, et un attribut posé par le navigateur est falsifiable — une
+        // action Fin « facturation » qui s'y fierait viserait le client Stripe qu'on lui
+        // souffle. Elle devra le résoudre côté serveur depuis `company_id`.
         shutdownIntercom() // referme une éventuelle session anonyme avant d'identifier
         bootIntercom({
           user_id: user.id,
@@ -83,12 +74,7 @@ export default function IntercomMessenger() {
             ? Math.floor(new Date(profile.created_at).getTime() / 1000)
             : undefined,
           intercom_user_jwt: jwt ?? undefined,
-          company: profile.agency_id
-            ? {
-                company_id: profile.agency_id,
-                ...(stripeCustomerId ? { stripe_customer_id: stripeCustomerId } : {}),
-              }
-            : undefined,
+          company: profile.agency_id ? { company_id: profile.agency_id } : undefined,
           role: profile.role ?? undefined,
           canton: profile.canton ?? undefined,
         })

@@ -11,6 +11,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { readDocument } from '../_shared/vision.ts'
 import { KYC_REPORT_PROMPT, normalizeKycReport, parseKycOcr } from '../_shared/kyc-extract.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -142,8 +143,11 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    console.error('kyc-report-import error:', err)
-    return new Response(JSON.stringify({ error: 'Internal error', message: String(err) }), {
+    // Même forme `{ error, message }` qu'avant, mais `message` n'est plus `String(err)` —
+    // le texte d'une erreur Postgres ou de lecture PDF, renvoyé au navigateur (audit S14).
+    // Le wizard affiche `error` ; le détail est au journal.
+    console.error('kyc-report-import error:', redactedErrorMessage(err))
+    return new Response(JSON.stringify({ error: 'Internal error', message: 'Lecture du rapport impossible. Réessayez dans un instant.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

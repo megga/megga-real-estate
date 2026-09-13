@@ -21,6 +21,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { verifyMagicLinkToken } from '../_shared/magic-link-token.ts'
 import { isReportTokenPayload } from '../_shared/kyc-report-token.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -171,6 +172,10 @@ serve(async (req) => {
     }
     return json({ ok: true, report })
   } catch (err) {
-    return json({ error: err instanceof Error ? err.message : 'Unknown error' }, 500)
+    // Le texte reste dans nos journaux (audit S14) : cet endpoint est public par jeton, et
+    // le message d'une erreur Postgres nomme les colonnes et les contraintes du dossier KYC.
+    // La page de rendu ne lit pas ce corps — elle pose #pdf-error sur tout échec.
+    console.error('[kyc-report-data] échec inattendu :', redactedErrorMessage(err))
+    return json({ error: 'internal_error' }, 500)
   }
 })

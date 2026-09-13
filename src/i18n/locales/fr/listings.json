@@ -1371,6 +1371,7 @@
       "publishing": "Publication…",
       "publish": "Publier sur MEGGA",
       "publishError": "Échec de la publication : {{message}}",
+      "planLimit": "Votre plan atteint sa limite de biens actifs : archivez un bien ou changez de plan.",
       "unknownError": "Erreur inconnue",
       "recommended": "Recommandé",
       "choose": "Choisir",

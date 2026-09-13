@@ -52,7 +52,7 @@ afterEach(() => {
   globalThis.fetch = originalFetch
 })
 
-const { safeFetchResponse, safeFetch, isBlockedIp } = await import('./safe-fetch.ts')
+const { safeFetchResponse, safeFetch, isBlockedIp, safeFetchErrorCode } = await import('./safe-fetch.ts')
 
 const jpeg = (n = 16) => new Response(new Uint8Array(n).fill(0xff), { status: 200, headers: { 'content-type': 'image/jpeg' } })
 const redirect = (location: string, status = 302) => new Response(null, { status, headers: { location } })
@@ -170,5 +170,33 @@ describe('isBlockedIp — les plages internes, y compris déguisées', () => {
 
   it('refuse un hôte dont le AAAA encapsule l’adresse de métadonnées', async () => {
     await expect(safeFetchResponse('https://mapped.evil.ch/x')).rejects.toThrow('ssrf: blocked_ip')
+  })
+})
+
+// S14 (13.09.2026) : ce que `c2pa-verify`, endpoint PUBLIC, peut rendre d'un échec.
+describe('safeFetchErrorCode — les motifs du module passent, le texte du runtime non', () => {
+  const echec = (url: string) => safeFetchResponse(url).then(() => null, (e: unknown) => e)
+
+  it('rend tel quel un refus `ssrf:` et un statut `fetch:`', async () => {
+    expect(safeFetchErrorCode(await echec('https://metadata.evil.ch/x'))).toBe('ssrf: blocked_ip')
+    expect(safeFetchErrorCode(await echec('http://photos.example.ch/a.jpg'))).toBe('ssrf: https_only')
+    expect(safeFetchErrorCode(await echec('https://photos.example.ch/absente.jpg'))).toBe('fetch: 404')
+  })
+
+  it('⛔ remplace le message d’une erreur réseau par un motif fixe', async () => {
+    // Le texte que Deno lève sur un port fermé : il distingue « refusé » de « muet » et
+    // nomme l'hôte — un oracle de balayage si l'endpoint public le recopiait.
+    routes['https://photos.example.ch/port-ferme.jpg'] = () => {
+      throw new TypeError('error sending request for url (https://photos.example.ch/port-ferme.jpg): tcp connect error: Connection refused (os error 111)')
+    }
+    const e = await echec('https://photos.example.ch/port-ferme.jpg')
+    expect(e).toBeInstanceOf(TypeError)
+    expect(safeFetchErrorCode(e)).toBe('fetch_failed')
+  })
+
+  it('ne se laisse pas prendre par un message qui ne fait que COMMENCER comme un motif', () => {
+    expect(safeFetchErrorCode(new Error('ssrf: blocked_ip (169.254.169.254)'))).toBe('fetch_failed')
+    expect(safeFetchErrorCode(new Error('fetch: 404 {"detail":"…"}'))).toBe('fetch_failed')
+    expect(safeFetchErrorCode('ssrf: blocked_ip')).toBe('fetch_failed')
   })
 })

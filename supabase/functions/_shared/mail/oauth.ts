@@ -85,6 +85,38 @@ export async function exchangeCode(
   return { access_token: json.access_token, refresh_token: json.refresh_token, expires_in: json.expires_in ?? 3600 }
 }
 
+/**
+ * Codes d'un refus au point de jeton : RFC 6749 §5.2, plus les deux que Google et
+ * Microsoft ajoutent. Une liste FERMÉE, parce que `json.error` est écrit par le
+ * fournisseur et que seul ce qui figure ici peut atteindre le navigateur.
+ */
+const CODES_OAUTH = new Set([
+  'invalid_request', 'invalid_client', 'invalid_grant', 'unauthorized_client',
+  'unsupported_grant_type', 'invalid_scope', 'redirect_uri_mismatch', 'access_denied',
+])
+
+/**
+ * Ce qu'on peut dire au navigateur d'un échec d'`exchangeCode` ou de `fetchIdentity` :
+ * un code de `CODES_OAUTH`, `no_refresh_token`, `identity_failed`, sinon `provider_error`.
+ *
+ * ⛔ Jamais `error_description` (audit du 13.09.2026, S14) : texte libre du fournisseur,
+ * où Microsoft glisse identifiant de trace, de corrélation et horodatage. `mail-oauth` le
+ * rendait tel quel à l'écran ; il part désormais dans les journaux. Le code, lui, reste
+ * utile : `invalid_client` dit « le secret ne correspond pas au client » sans rien
+ * apprendre à personne.
+ *
+ * Lit les messages que CE module compose juste au-dessus — les tests passent par
+ * `exchangeCode` lui-même, pour qu'un changement de libellé casse ici et pas en silence.
+ */
+export function oauthFailureCode(e: unknown): string {
+  const message = e instanceof Error ? e.message : ''
+  const code = /token exchange: ([a-z_]+)(?:\s|$)/.exec(message)?.[1]
+  if (code && CODES_OAUTH.has(code)) return code
+  if (message.includes('no refresh_token')) return 'no_refresh_token'
+  if (/ identity: /.test(message)) return 'identity_failed'
+  return 'provider_error'
+}
+
 export async function fetchIdentity(provider: OAuthProvider, accessToken: string, deps: OAuthDeps = {}): Promise<{ email: string; name: string | null }> {
   const f = deps.fetch ?? globalThis.fetch
   const url = provider === 'gmail' ? 'https://www.googleapis.com/oauth2/v3/userinfo' : 'https://graph.microsoft.com/v1.0/me'

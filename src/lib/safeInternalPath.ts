@@ -5,12 +5,16 @@
  * POURQUOI UN FILTRE, alors que `navigate()` « reste dans l'app » :
  *
  * (a) `navigate()` n'est PAS confiné à l'origine. `@remix-run/router` (1.23.2)
- *     laisse passer telle quelle toute valeur absolue (`isAbsoluteUrl`), puis
+ *     laissait passer telle quelle toute valeur absolue (`isAbsoluteUrl`), puis
  *     `push()` appelle `history.pushState` ; quand celui-ci jette (valeur
  *     d'une autre origine, `javascript:`…), le routeur RETOMBE sur
  *     `window.location.assign(url)`. Une valeur `//hote`, `/\hote` ou
- *     `javascript:…` passée brute devient donc une redirection hors du CRM, voire
- *     une exécution de script (mesuré dans Chromium le 13.09.2026).
+ *     `javascript:…` passée brute devenait donc une redirection hors du CRM, voire
+ *     une exécution de script (mesuré dans Chromium le 13.09.2026). Depuis 1.23.4
+ *     (montée S16, même jour) le routeur résout lui-même `//hote` et `javascript:`
+ *     en chemins internes, mais `/\hote` et les caractères de contrôle quittent
+ *     ENCORE l'origine (GHSA-wrjc-x8rr-h8h6, corrigé en v7 seulement) : le filtre
+ *     reste la barrière, le routeur n'en est pas une.
  *
  * (b) `startsWith('/') && !startsWith('//')` ne suffit pas : l'analyseur d'URL
  *     du navigateur lit `\` comme `/` et SUPPRIME tabulation, saut de ligne et

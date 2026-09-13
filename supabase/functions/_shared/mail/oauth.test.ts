@@ -1,6 +1,6 @@
 // supabase/functions/_shared/mail/oauth.test.ts
 import { describe, it, expect, vi } from 'vitest'
-import { randomToken, pkceChallenge, buildAuthorizeUrl, exchangeCode, fetchIdentity, revokeToken } from './oauth.ts'
+import { randomToken, pkceChallenge, buildAuthorizeUrl, exchangeCode, fetchIdentity, revokeToken, oauthFailureCode } from './oauth.ts'
 
 const F = (fn: (url: string, init?: RequestInit) => Promise<Response>) => fn as unknown as typeof globalThis.fetch
 
@@ -52,6 +52,44 @@ describe('exchangeCode', () => {
     const fetch = vi.fn(async () => new Response(JSON.stringify({ access_token: 'at', expires_in: 3599 }), { status: 200 }))
     await expect(exchangeCode('gmail', { code: 'abc', codeVerifier: 'v', clientId: 'c', clientSecret: 's', redirectUri: 'r' }, { fetch: F(fetch) }))
       .rejects.toThrow(/refresh_token/)
+  })
+})
+
+// ⛔ S14 (13.09.2026) : `mail-oauth` rendait le message entier à l'écran, `error_description`
+// compris. Les échecs passent ici par les VRAIES fonctions, pour qu'un libellé modifié dans
+// `exchangeCode` casse ce test au lieu de rendre `provider_error` en silence.
+describe('oauthFailureCode', () => {
+  const echange = (reponse: () => Promise<Response>) =>
+    exchangeCode('outlook', { code: 'c', codeVerifier: 'v', clientId: 'id', clientSecret: 's', redirectUri: 'r' }, { fetch: F(reponse) })
+      .then(() => null, (e: unknown) => e)
+
+  it('garde le code normalisé, jamais la description libre du fournisseur', async () => {
+    const description = 'AADSTS54005: OAuth2 Authorization code was already redeemed. Trace ID: 4f1c Correlation ID: 9a2b Timestamp: 2026-09-13 10:00:00Z'
+    const e = await echange(async () => new Response(JSON.stringify({ error: 'invalid_grant', error_description: description }), { status: 400 }))
+    // Le journal garde tout — c'est lui qu'on lit pour diagnostiquer…
+    expect((e as Error).message).toContain('AADSTS54005')
+    // … le navigateur ne reçoit que le code.
+    expect(oauthFailureCode(e)).toBe('invalid_grant')
+  })
+
+  it('un code hors de la liste fermée devient `provider_error`', async () => {
+    const e = await echange(async () => new Response(JSON.stringify({ error: 'x<script>', error_description: 'y' }), { status: 400 }))
+    expect(oauthFailureCode(e)).toBe('provider_error')
+    const sansCode = await echange(async () => new Response('Bad Gateway', { status: 502 }))
+    expect(oauthFailureCode(sansCode)).toBe('provider_error')
+  })
+
+  it('nomme le consentement réutilisé et l’identité illisible', async () => {
+    const e = await echange(async () => new Response(JSON.stringify({ access_token: 'at', expires_in: 3599 }), { status: 200 }))
+    expect(oauthFailureCode(e)).toBe('no_refresh_token')
+    const identite = await fetchIdentity('gmail', 'at', { fetch: F(async () => new Response('{}', { status: 403 })) })
+      .then(() => null, (err: unknown) => err)
+    expect(oauthFailureCode(identite)).toBe('identity_failed')
+  })
+
+  it('une panne réseau ne sort que sous `provider_error`', async () => {
+    const e = await echange(async () => { throw new TypeError('error sending request for url (https://login.microsoftonline.com/…): connection reset') })
+    expect(oauthFailureCode(e)).toBe('provider_error')
   })
 })
 

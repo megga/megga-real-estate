@@ -13,6 +13,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { callDeepSeek } from '../_shared/ai-provider.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -120,9 +121,11 @@ serve(async (req: Request) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   } catch (err) {
-    console.error('[translate-on-demand]', err)
+    // `callDeepSeek` lève « DeepSeek API <statut>: <corps> » : le diagnostic du fournisseur
+    // reste au journal, l'appelant reçoit un code (audit S14).
+    console.error('[translate-on-demand]', redactedErrorMessage(err))
     return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : 'Unknown error' }),
+      JSON.stringify({ error: 'translation_failed' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }

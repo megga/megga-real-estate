@@ -93,7 +93,14 @@ export function BillingSection() {
     const priceId = period === 'yearly' ? STRIPE_PRICES.pro.yearly : STRIPE_PRICES.pro.monthly
     if (!priceId) { toast.error(t('billing.stripeMissing')); return }
     try { await createCheckout(priceId) } catch (err) {
-      toast.error(t('billing.failureWith', { message: err instanceof Error ? err.message : t('billing.unknownError') }))
+      const code = err instanceof Error ? err.message : ''
+      // Le checkout refuse un prix absent de sa table (audit S15) : c'est une configuration
+      // Stripe incomplète, pas une panne à décrire avec le code brut.
+      if (code === 'stripe_prices_not_configured' || code === 'price_not_allowed') {
+        toast.error(t('billing.stripeMissing'))
+        return
+      }
+      toast.error(t('billing.failureWith', { message: code || t('billing.unknownError') }))
     }
   }
 

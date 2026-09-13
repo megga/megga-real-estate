@@ -31,6 +31,7 @@ import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { signMagicLinkToken, expiryFromDays } from '../_shared/magic-link-token.ts'
 import { kycMagicLinkUrl } from '../_shared/app-url.ts'
 import { urlFonction } from '../_shared/function-url.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -153,9 +154,13 @@ serve(async (req) => {
     .select('id, agency_id, mode, status, expires_at, sent_at')
     .single()
 
+  // ⛔ Les trois échecs ci-dessous gardent leur code et perdent leur `details` (audit S14) :
+  // c'étaient le message Postgres (colonnes et contraintes de kyc_magic_links) et celui de
+  // la signature, qui dit ce que le secret HMAC a de travers. Ils vont au journal.
   if (insertErr || !inserted) {
+    console.error('[magic-link-create] insertion du lien échouée :', redactedErrorMessage(insertErr))
     return new Response(
-      JSON.stringify({ error: 'insert failed', details: insertErr?.message }),
+      JSON.stringify({ error: 'insert failed' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
@@ -164,13 +169,11 @@ serve(async (req) => {
   try {
     token = await signMagicLinkToken({ id: inserted.id, exp: exp.unix })
   } catch (err) {
+    console.error('[magic-link-create] signature du jeton impossible :', redactedErrorMessage(err))
     // Rollback : on supprime la row temporaire si la signature plante
     await supabase.from('kyc_magic_links').delete().eq('id', inserted.id)
     return new Response(
-      JSON.stringify({
-        error: 'HMAC secret misconfigured',
-        details: err instanceof Error ? err.message : 'unknown',
-      }),
+      JSON.stringify({ error: 'HMAC secret misconfigured' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
@@ -181,9 +184,10 @@ serve(async (req) => {
     .eq('id', inserted.id)
 
   if (updateErr) {
+    console.error('[magic-link-create] pose du jeton échouée :', redactedErrorMessage(updateErr))
     await supabase.from('kyc_magic_links').delete().eq('id', inserted.id)
     return new Response(
-      JSON.stringify({ error: 'token update failed', details: updateErr.message }),
+      JSON.stringify({ error: 'token update failed' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
@@ -210,11 +214,10 @@ serve(async (req) => {
         emailSent = { sent: false, reason: `send-email returned ${sendRes.status}` }
       }
     } catch (sendErr) {
-      // Network / timeout — silencieux, on continue
-      emailSent = {
-        sent: false,
-        reason: sendErr instanceof Error ? sendErr.message : 'unknown send error',
-      }
+      // Network / timeout — on continue, l'agent copie l'URL. Le message du runtime (URL
+      // interne comprise) reste au journal : `email_reason` ne porte qu'un code.
+      console.error('[magic-link-create] envoi de l’e-mail injoignable :', redactedErrorMessage(sendErr))
+      emailSent = { sent: false, reason: 'send_unreachable' }
     }
   }
 
