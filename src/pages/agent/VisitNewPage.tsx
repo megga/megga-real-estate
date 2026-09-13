@@ -277,9 +277,11 @@ export default function VisitNewPage() {
                       width: 28,
                       height: 28,
                       borderRadius: 999,
+                      // L'étape COURANTE porte l'accent (règle du 10.08.2026, comme l'import
+                      // de lead) ; les étapes faites gardent l'encre et leur coche.
                       background:
-                        active || done ? S.invBg : S.cardSubtle,
-                      color: active || done ? S.invInk : S.muted,
+                        active ? S.accent : done ? S.invBg : S.cardSubtle,
+                      color: active ? S.accentInk : done ? S.invInk : S.muted,
                       fontSize: 'var(--crm-text-xs)',
                       fontWeight: 600,
                       display: 'grid',
@@ -480,7 +482,8 @@ export default function VisitNewPage() {
                                 textOverflow: 'ellipsis',
                               }}
                             >
-                              {b.address} · {b.city}
+                              {/* Sans adresse, « · Genève » : le séparateur n'a lieu qu'entre deux termes. */}
+                              {[b.address, b.city].filter(Boolean).join(' · ')}
                             </div>
                           </div>
                         </button>

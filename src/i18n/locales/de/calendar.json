@@ -199,7 +199,7 @@
     "step1": {
       "eyebrow": "Schritt 1 von 3 · Was & wer",
       "title": "Welches Objekt zeigen wir, und wem?",
-      "subtitle": "Gehen Sie die Liste durch, Sie können auch nach Namen, Adresse oder Ort suchen."
+      "subtitle": "Wählen Sie aus der Liste oder suchen Sie nach Name, Adresse oder Ort."
     },
     "field": {
       "property": "Zu besichtigendes Objekt",
@@ -291,7 +291,8 @@
       "fieldDateTime": "Datum & Uhrzeit",
       "plannedDuration": "Geplante Dauer: {{minutes}} Min.",
       "commitmentLabel": "Verpflichtung des Besuchers",
-      "commitmentText": "Der Besucher bestätigt, über das Bestehen des Mandats zwischen dem Verkäufer und MEGGA informiert worden zu sein, und verpflichtet sich, den Verkäufer nicht direkt zu kontaktieren. Jede innerhalb von 24 Monaten nach dieser Besichtigung getätigte Transaktion ist der Agentur gemäss den Bestimmungen des Mandats geschuldet.",
+      "commitmentText": "Der Besucher bestätigt, über das Bestehen des Mandats zwischen dem Verkäufer und {{agency}} informiert worden zu sein, und verpflichtet sich, den Verkäufer nicht direkt zu kontaktieren. Jede innerhalb von 24 Monaten nach dieser Besichtigung getätigte Transaktion ist der Agentur gemäss den Bestimmungen des Mandats geschuldet.",
+      "commitmentTextNoAgency": "Der Besucher bestätigt, über das Bestehen des Mandats zwischen dem Verkäufer und der Agentur informiert worden zu sein, und verpflichtet sich, den Verkäufer nicht direkt zu kontaktieren. Jede innerhalb von 24 Monaten nach dieser Besichtigung getätigte Transaktion ist der Agentur gemäss den Bestimmungen des Mandats geschuldet.",
       "signatureVisitor": "Unterschrift Besucher",
       "signatureAgent": "Unterschrift Makler",
       "signedElectronically": "Elektronisch unterzeichnet",

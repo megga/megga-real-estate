@@ -299,8 +299,17 @@ export const CRM_TABLES: Record<string, unknown[]> = {
     { id: 'r1', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c1', title: 'Rappeler pour le dossier Champel', trigger_at: ilYA(-3), status: 'pending', kind: 'call', type: 'custom', message_template: null, calendar_label_id: 'cl2', created_at: ilYA(48) },
     { id: 'r2', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c3', title: 'Envoyer le comparatif de quartier', trigger_at: ilYA(-27), status: 'pending', kind: 'email', type: 'custom', message_template: null, calendar_label_id: null, created_at: ilYA(52) },
   ],
+  // ⚠ Les jointures sont portées par la ligne (le banc n'applique pas `select`) : sans
+  // elles, la fiche visite du banc titrait « Bien » sans visiteur et un bon de visite
+  // vide — un écran que la production ne rend jamais.
   visits: [
-    { id: 'v1', agency_id: AGENCE_BANC.id, contact_id: 'c1', property_id: 'p1', scheduled_at: ilYA(-5), status: 'confirmed', calendar_label_id: 'cl1', created_at: ilYA(40) },
+    {
+      id: 'v1', agency_id: AGENCE_BANC.id, contact_id: 'c1', property_id: 'p1', agent_id: AGENT_BANC.id,
+      scheduled_at: ilYA(-5), duration_minutes: 45, status: 'confirmed', calendar_label_id: 'cl1', created_at: ilYA(40),
+      property: { id: 'p1', title: 'Appartement 4,5 pièces · Champel', address: 'Avenue de Champel 12', city: 'Genève', canton: 'GE', photos: [], type: 'apartment', surface_m2: 118, rooms: 4.5, price: 1_450_000 },
+      contact: { id: 'c1', first_name: 'Camille', last_name: 'Rochat', email: 'camille.rochat@example.ch', phone: '+41 79 412 88 03' },
+      agent: { id: AGENT_BANC.id, full_name: AGENT_BANC.full_name, avatar_url: null },
+    },
   ],
   // Libellés du Calendrier — des barreaux de la direction, pas des littéraux : la
   // couleur d'un libellé est une donnée saisie, et une fixture qui écrirait des

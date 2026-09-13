@@ -15,6 +15,7 @@ import { dossierPalette } from '../tokens'
 import { CrmIcon } from '../icons'
 import { VISIT_SENTIMENT_LABELS, type VisitSentiment } from '@/types/visit'
 import type { VisitDetail } from '@/hooks/useVisitDetail'
+import { useAgencySettings } from '@/hooks/useAgencySettings'
 
 // ─── Eyebrow + Card ─────────────────────────────────────────────────────
 export function VdEyebrow({ children }: { children: ReactNode }) {
@@ -84,6 +85,13 @@ export function VdBonPanel({
   const dark = useCrmDark()
   const S = useMemo(() => dossierPalette(dark), [dark])
   const signed = !!visit.bon?.signedAt
+  // ⛔ LE MANDAT LIE LE VENDEUR À L'AGENCE, PAS À MEGGA. Le bon portait « MEGGA REAL
+  // ESTATE » en tête et une clause « du mandat liant le vendeur à MEGGA » — MEGGA est
+  // le logiciel. Le visiteur de n'importe quelle agence signait donc un engagement
+  // envers le mauvais bénéficiaire. Le nom vient de la fiche agence ; à défaut, la
+  // clause dit « l'agence ».
+  const { agencySaved } = useAgencySettings()
+  const agence = (agencySaved?.tradeName || agencySaved?.name || agencySaved?.legal || '').trim()
   return (
     <VdCard>
       <div
@@ -131,6 +139,7 @@ export function VdBonPanel({
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
+          {agence && (
           <div
             style={{
               fontSize: 'var(--crm-text-sm)',
@@ -139,8 +148,9 @@ export function VdBonPanel({
               marginBottom: 6,
             }}
           >
-            MEGGA REAL ESTATE
+            {agence}
           </div>
+          )}
           <div
             style={{
               fontSize: 'var(--crm-text-3xl)',
@@ -307,7 +317,9 @@ export function VdBonPanel({
                 fontWeight: 500,
               }}
             >
-              {t('visitDetail.bon.commitmentText')}
+              {agence
+                ? t('visitDetail.bon.commitmentText', { agency: agence })
+                : t('visitDetail.bon.commitmentTextNoAgency')}
             </p>
           </div>
         </div>

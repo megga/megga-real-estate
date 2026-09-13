@@ -199,7 +199,7 @@
     "step1": {
       "eyebrow": "Étape 1 sur 3 · Quoi & qui",
       "title": "Quel bien fait-on visiter, et à qui ?",
-      "subtitle": "Lisez la liste, vous pouvez aussi rechercher par nom, adresse ou ville."
+      "subtitle": "Choisissez dans la liste, ou recherchez par nom, adresse ou ville."
     },
     "field": {
       "property": "Bien à visiter",
@@ -291,7 +291,8 @@
       "fieldDateTime": "Date & heure",
       "plannedDuration": "Durée prévue : {{minutes}} min",
       "commitmentLabel": "Engagement du visiteur",
-      "commitmentText": "Le visiteur reconnaît avoir été informé de l'existence du mandat liant le vendeur à MEGGA et s'engage à ne pas contacter directement le vendeur. Toute transaction réalisée dans les 24 mois suivant cette visite sera due à l'agence selon les termes du mandat.",
+      "commitmentText": "Le visiteur reconnaît avoir été informé de l'existence du mandat liant le vendeur à {{agency}} et s'engage à ne pas contacter directement le vendeur. Toute transaction réalisée dans les 24 mois suivant cette visite sera due à l'agence selon les termes du mandat.",
+      "commitmentTextNoAgency": "Le visiteur reconnaît avoir été informé de l'existence du mandat liant le vendeur à l'agence et s'engage à ne pas contacter directement le vendeur. Toute transaction réalisée dans les 24 mois suivant cette visite sera due à l'agence selon les termes du mandat.",
       "signatureVisitor": "Signature visiteur",
       "signatureAgent": "Signature agent",
       "signedElectronically": "Signé électroniquement",
