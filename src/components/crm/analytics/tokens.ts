@@ -25,6 +25,7 @@
 
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import { createContext, useContext } from 'react'
 
 export interface AxPill { bg: string; fg: string; sh: string }
@@ -147,7 +148,7 @@ export const AX: AxTheme = {
    */
   pillAhead: { bg: '#15643F', fg: '#FFFFFF', sh: '0 1px 2px rgba(21,100,63,0.32), inset 0 -1px 0 rgba(0,0,0,0.10)' },
   pillBehind: { bg: '#A0521E', fg: '#FFFFFF', sh: '0 1px 2px rgba(160,82,30,0.32), inset 0 -1px 0 rgba(0,0,0,0.10)' },
-  errInk: '#B45309',
+  errInk: STATUT_CLAIR.warnInk,
   accent: MXC_COLOR.accent,
   accentInk: MXC_COLOR.n1000,
   skBase: MXC_COLOR.n800,
