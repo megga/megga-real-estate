@@ -11,6 +11,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import { hslToHex, MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
@@ -18,6 +19,27 @@ const PRESETS = [MXC_SYSTEM.red400, MXC_SYSTEM.blue300, MXC_SYSTEM.yellow400, MX
 const LIGHTNESS = [30, 40, 50, 60, 70, 80]
 /** Saturation de la teinte libre : au-dessous, les six luminosités se confondent. */
 const SAT = 85
+
+/** Une pastille de couleur : 22 px, sans bordure — l'anneau est une ombre (voir `bague`). */
+const PASTILLE = {
+  width: 22, height: 22, borderRadius: '50%', border: 'none', padding: 0, flexShrink: 0,
+  cursor: 'pointer', transition: MAIL_TRANSITION,
+} as const
+
+/**
+ * La roue de la teinte libre : les teintes de la réglette, un centre qui blanchit.
+ * ⚠ BLANC = `n1000` : l'échelle de MEGGA X est sombre d'abord, `n100` y est le
+ * quasi-noir — le premier jet avait peint un trou noir au cœur de la roue.
+ */
+const ROUE = [
+  `radial-gradient(circle, ${MXC_COLOR.n1000} 0 16%, transparent 62%)`,
+  `conic-gradient(from 90deg, ${[0, 60, 120, 180, 240, 300, 360].map((h) => hslToHex(h, SAT, 55)).join(', ')})`,
+].join(', ')
+
+/** L'anneau blanc de la couleur retenue, au cœur de la bille — sur une roue, jamais sur le panneau. */
+const BLANC = MXC_COLOR.n1000
+/** Le contour d'une pastille au repos : un voile d'encre, qui assombrit le bord sans le cerner de gris. */
+const CONTOUR = `inset 0 0 0 1px ${crmVoileEncre(false, 0.1)}`
 
 interface Props {
   ms: MailSurfaces
@@ -43,6 +65,10 @@ export function MailLabelCreator({ ms, initial, onCancel, onSave, busy }: Props)
   const poserTeinte = (h: number, l: number) => { setHue(h); setLight(l); setColor(hslToHex(h, SAT, l)) }
   const hexOk = useMemo(() => /^#[0-9a-fA-F]{6}$/.test(color), [color])
   const field = { background: ms.elev, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', outline: 'none' } as const
+  // Sélection = un HALO (jour de la couleur du panneau, puis anneau d'encre) qui
+  // entoure la pastille sans en manger le bord. Au repos, un voile d'encre à peine
+  // visible dessine le contour des couleurs pâles sur le panneau clair.
+  const bague = (actif: boolean) => (actif ? `0 0 0 2px ${ms.elev}, 0 0 0 4px ${ms.ink}` : CONTOUR)
   const bloque = !name.trim() || !hexOk || busy
 
   return (
@@ -71,24 +97,31 @@ export function MailLabelCreator({ ms, initial, onCancel, onSave, busy }: Props)
             key={c}
             type="button"
             aria-label={c}
+            aria-pressed={color === c && !custom}
             onClick={() => { setCustom(false); setColor(c) }}
-            style={{
-              width: 22, height: 22, borderRadius: '50%', background: c,
-              border: `2px solid ${color === c && !custom ? ms.ink : 'transparent'}`, cursor: 'pointer', transition: MAIL_TRANSITION,
-            }}
+            style={{ ...PASTILLE, background: c, boxShadow: bague(color === c && !custom) }}
           />
         ))}
+        {/* ⛔ LA BILLE ÉTAIT UN CARRÉ. Un `conic-gradient` sous une bordure
+            TRANSPARENTE de 2 px se peignait en carré aux coins à peine rognés, qui
+            débordait le rond — elle ne redevenait ronde qu'une fois sélectionnée,
+            quand la bordure prenait une couleur. Plus de bordure du tout : l'anneau
+            de sélection est une ombre, comme sur les six pastilles.
+            Et une vraie roue : teintes adoucies, centre qui blanchit (la pointe
+            vive du dégradé conique ne se voit plus) ; une fois la teinte libre
+            choisie, la bille porte la couleur retenue en son cœur. */}
         <button
           type="button"
           onClick={() => { const on = !custom; setCustom(on); if (on) poserTeinte(hue, light) }}
           aria-pressed={custom}
+          aria-label={t('mail.labels.custom')}
           title={t('mail.labels.custom')}
-          style={{
-            width: 22, height: 22, borderRadius: '50%',
-            background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
-            border: `2px solid ${custom ? ms.ink : 'transparent'}`, cursor: 'pointer',
-          }}
-        />
+          style={{ ...PASTILLE, background: ROUE, boxShadow: bague(custom), display: 'grid', placeItems: 'center' }}
+        >
+          {custom && hexOk && (
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, boxShadow: `0 0 0 2px ${BLANC}` }} />
+          )}
+        </button>
       </div>
 
       {custom && (
