@@ -14,6 +14,7 @@ import {
   isUndoCommand,
   isFabricatedKycClaim,
   KYC_CLAIM_RETRY_NUDGE,
+  PREP_REFUSAL_NOTE,
   classifyContactArg,
   contactResolutionNote,
   kycScreenLabel,
@@ -495,13 +496,56 @@ describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir
     for (const l of legit) expect(isFabricatedKycClaim(l, false), l).toBe(false)
   })
 
-  it('la consigne de relance nomme les deux outils et interdit de narrer l’envoi', () => {
+  it('la consigne de relance nomme les trois outils et interdit de narrer l’envoi', () => {
     expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/send_kyc_report/)
     expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/run_kyc_screening/)
+    expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/get_kyc_status/)
     expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/search_contacts/)
     expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/Ne rappelle pas un outil qui a déjà abouti/)
     // L'identifiant, jamais le nom : c'est le nom qui a fait échouer la file le même soir.
     expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/IDENTIFIANT.*jamais son nom/)
+  })
+
+  // ── Troisième essai (13.09.2026, 10:48) : un ÉTAT inventé, sans aucune lecture. « Le dossier
+  // KYC n'existe pas » — il existait depuis 03:50 — puis, l'agent ayant dit « ouvre-le », trois
+  // appels d'open_kyc_case refusés (« a déjà un dossier ouvert »), refus exclus de la mémoire
+  // pendant que la phrase fausse y restait. ────────────────────────────────────────────────────
+  const incident3 = "Je ne peux pas te sortir le PDF tant que le dossier KYC n'existe pas. Il faut d'abord l'ouvrir. Tu veux que je l'ouvre maintenant pour Julien Ahmedi ? Ensuite je te génère le rapport."
+
+  it('un dossier déclaré inexistant sans lecture est une fabrication d’état — et l’offre qui suit n’excuse rien', () => {
+    expect(isFabricatedKycClaim(incident3, false, false)).toBe(true)
+    // La même phrase après une VRAIE lecture (get_kyc_status → « Pas de dossier KYC pour … ») est légitime,
+    // et « ensuite je te génère » y est une étape annoncée sous condition, pas une action faite.
+    expect(isFabricatedKycClaim(incident3, false, true)).toBe(false)
+  })
+
+  it('les formes d’absence de dossier, ancrées sur « dossier »', () => {
+    const fabs = [
+      'Pas de dossier KYC pour Dubois. Le KYC est facultatif — dis-moi si tu veux en ouvrir un.', // = la réponse de get_kyc_status, recopiée sans l'appeler
+      "Dubois n'a pas encore de dossier KYC.",
+      "Le dossier KYC de Dubois n'a pas encore été ouvert.",
+      'Aucun dossier KYC pour Dubois.',
+      "Dubois doesn't have an open KYC file.",
+    ]
+    for (const f of fabs) expect(isFabricatedKycClaim(f, false, false), f).toBe(true)
+    for (const f of fabs) expect(isFabricatedKycClaim(f, false, true), f).toBe(false)
+    // Un CONTACT absent n'est pas un dossier absent : c'est search_contacts qui parle.
+    expect(isFabricatedKycClaim("Le contact Dubois n'existe pas dans le CRM pour le screening KYC.", false, false)).toBe(false)
+    expect(isFabricatedKycClaim("Aucun contact Dubois pour le KYC, tu veux que je le crée ?", false, false)).toBe(false)
+  })
+
+  it('« je te prépare / je te génère » sans outil est une fabrication', () => {
+    expect(isFabricatedKycClaim('Je te prépare le rapport KYC de Dubois.', false)).toBe(true)
+    expect(isFabricatedKycClaim('Je te génère le rapport KYC de Dubois.', false)).toBe(true)
+  })
+
+  it('le refus de préparation rendu au modèle nomme les trois outils du dossier déjà ouvert', () => {
+    for (const tool of ['send_kyc_report', 'run_kyc_screening', 'get_kyc_status']) {
+      expect(PREP_REFUSAL_NOTE).toContain(tool)
+    }
+    expect(PREP_REFUSAL_NOTE).toMatch(/ne rappelle pas cet outil/)
+    // Recopié tel quel par le modèle, il ne doit pas passer pour une fabrication.
+    expect(isFabricatedKycClaim(`Julien Ahmedi a déjà un dossier KYC ouvert — inutile d'en ouvrir un second. ${PREP_REFUSAL_NOTE}`, false)).toBe(false)
   })
 
   // ── Même soirée, APRÈS le premier correctif : deux nouvelles tournures sont passées. ────────
