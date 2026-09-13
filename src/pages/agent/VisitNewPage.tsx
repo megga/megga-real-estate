@@ -792,7 +792,7 @@ export default function VisitNewPage() {
                         icon: 'cal',
                         v: new Date(date).toLocaleDateString('fr-CH', {
                           weekday: 'long',
-                          day: '2-digit',
+                          day: 'numeric',
                           month: 'long',
                         }),
                         sub: t('visitModal.recap.timeDuration', { time, duration }),

@@ -34,9 +34,9 @@ export default function OcBookedCard({
     <div className="card">
       <div className="pd---content-inside-card">
         <h2 className="display-3 semi-bold">{t('call.confirmed.title')}</h2>
-        {/* `capitalize` : `Intl` rend « lundi 11 août » en minuscule. Jamais d'UPPERCASE
-            (règle §3 du CLAUDE.md) — la capitale initiale suffit. */}
-        <p className="paragraph-large text-paragraph capitalize mg-top-4x-extra-small">
+        {/* La majuscule initiale vient de `bookedWhenLabel` : la classe `capitalize`
+            majusculait chaque mot (« Lundi 11 Août »). */}
+        <p className="paragraph-large text-paragraph mg-top-4x-extra-small">
           {bookedWhenLabel(scheduledAt, timezone)}
         </p>
         <p className="paragraph-small text-color-neutral-600">

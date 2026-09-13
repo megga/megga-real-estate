@@ -820,14 +820,14 @@ export default function OfferModal({
                   {
                     id: 'closing',
                     l: t('offerModal.summary.closing'),
-                    v: new Date(closingDate).toLocaleDateString('fr-CH', { day: '2-digit', month: 'long', year: 'numeric' }),
+                    v: new Date(closingDate).toLocaleDateString('fr-CH', { day: 'numeric', month: 'long', year: 'numeric' }),
                   },
                   { id: 'conds', l: t('offerModal.summary.activeConditions'), v: String(activeConds) },
                   {
                     id: 'expires',
                     l: t('offerModal.summary.expires'),
                     v: t('offerModal.summary.expiresValue', {
-                      date: new Date(expDate).toLocaleDateString('fr-CH', { day: '2-digit', month: 'long' }),
+                      date: new Date(expDate).toLocaleDateString('fr-CH', { day: 'numeric', month: 'long' }),
                       time: expTime,
                     }),
                   },

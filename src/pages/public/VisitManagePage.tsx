@@ -14,6 +14,7 @@ import { usePublicVisit, useRescheduleVisit, useCancelVisit, estRefus } from '@/
 import PublicPageHeader from '@/components/layout/PublicPageHeader'
 import { MLK } from '@/components/kyc-magic-link/mlkTokens'
 import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
+import { majusculeInitiale } from '@/lib/utils'
 
 const TIME_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
 
@@ -188,7 +189,7 @@ export default function VisitManagePage() {
             )}
             <div className="flex items-center gap-2" style={{ fontSize: 'var(--crm-text-lg)', color: MLK.inkSoft }}>
               <CalendarDays className="h-4 w-4 flex-shrink-0" style={{ color: MLK.accent }} />
-              <span className="font-medium capitalize">{dateFR}</span> à <span className="font-medium">{timeFR}</span>
+              <span className="font-medium">{majusculeInitiale(dateFR)}</span> à <span className="font-medium">{timeFR}</span>
             </div>
           </div>
         </div>

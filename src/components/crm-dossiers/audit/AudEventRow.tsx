@@ -62,7 +62,7 @@ export function AudEventRow({ event, last }: Props) {
   const fmt = (iso: string) => {
     const d = new Date(iso)
     return {
-      date: d.toLocaleDateString('fr-CH', { day: '2-digit', month: 'short' }),
+      date: d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'short' }),
       time: d.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' }),
     }
   }

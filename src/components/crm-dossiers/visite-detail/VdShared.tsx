@@ -64,7 +64,7 @@ export function VdCard({
 function vdDateTime(iso: string): string {
   return new Date(iso).toLocaleString('fr-CH', {
     weekday: 'short',
-    day: '2-digit',
+    day: 'numeric',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
@@ -388,7 +388,7 @@ export function VdBonPanel({
                     {t('visitDetail.bon.signedElectronically')}
                     {visit.bon?.signedAt
                       ? ` ${new Date(visit.bon.signedAt).toLocaleString('fr-CH', {
-                          day: '2-digit',
+                          day: 'numeric',
                           month: 'short',
                           hour: '2-digit',
                           minute: '2-digit',
@@ -549,7 +549,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
           <VdEyebrow>
             {t('visitDetail.report.eyebrowPrefix')} ·{' '}
             {new Date(r.savedAt).toLocaleDateString('fr-CH', {
-              day: '2-digit',
+              day: 'numeric',
               month: 'short',
             })}
           </VdEyebrow>

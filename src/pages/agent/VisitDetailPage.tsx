@@ -55,7 +55,7 @@ import { usePorteSaPoussee } from '@/hooks/usePousseeDock'
 function vdDateLong(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-CH', {
     weekday: 'long',
-    day: '2-digit',
+    day: 'numeric',
     month: 'long',
     year: 'numeric',
   })

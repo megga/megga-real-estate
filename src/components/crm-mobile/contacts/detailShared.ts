@@ -182,7 +182,7 @@ function localeOf(lang: string): string {
 
 export function fmtDay(iso: string, lang: string): string {
   try {
-    return new Date(iso).toLocaleDateString(localeOf(lang), { day: '2-digit', month: 'short' })
+    return new Date(iso).toLocaleDateString(localeOf(lang), { day: 'numeric', month: 'short' })
   } catch {
     return ''
   }

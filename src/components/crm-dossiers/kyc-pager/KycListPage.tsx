@@ -16,7 +16,7 @@ type FilterKey = 'all' | 'none' | 'pending' | 'verified'
 /** Libellé « Dernier événement » dérivé honnêtement des champs dossier. */
 function lastEventLabel(d: KycDossierRow): string {
   const fmt = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleDateString('fr-CH', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+    iso ? new Date(iso).toLocaleDateString('fr-CH', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
   switch (d.dossier_status) {
     case 'verified':
       return `Vérifié le ${fmt(d.validated_at)}`

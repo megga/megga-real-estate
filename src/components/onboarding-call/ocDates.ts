@@ -11,6 +11,7 @@
  * ici : elle était née dans OcBookedCard.tsx, à côté du composant, et la règle ne
  * pardonne pas — c'est ELLE qui doit déménager, pas la règle qu'on désactive.
  */
+import { majusculeInitiale } from '@/lib/utils'
 
 /**
  * Clé de journée civile (`YYYY-MM-DD`) d'un instant, dans le fuseau donné.
@@ -71,14 +72,14 @@ export function monthKey(month: Date): string {
  * qui n'ont pas d'instant et que le fuseau décale d'un jour. Le `timeZone` explicite est
  * ce qui garantit qu'un agent en déplacement lit l'heure à laquelle il doit être là.
  *
- * Rendue en minuscule par `Intl` : c'est à l'appelant de capitaliser (classe
- * `capitalize`), la vitrine capitalisant ses intitulés sans jamais les mettre en
- * majuscules (règle §3 du CLAUDE.md).
+ * `Intl` la rend en minuscule ; elle sort avec sa MAJUSCULE INITIALE (`majusculeInitiale`).
+ * ⛔ Pas la classe `capitalize` chez l'appelant : elle capitalise CHAQUE mot, et le
+ * rendez-vous se lisait « Lundi 11 Août À 10:00 ». Jamais d'UPPERCASE (règle §3).
  */
 export function bookedWhenLabel(iso: string, timezone: string): string {
-  return new Intl.DateTimeFormat('fr-CH', {
+  return majusculeInitiale(new Intl.DateTimeFormat('fr-CH', {
     timeZone: timezone,
     weekday: 'long', day: 'numeric', month: 'long',
     hour: '2-digit', minute: '2-digit', hour12: false,
-  }).format(new Date(iso))
+  }).format(new Date(iso)))
 }

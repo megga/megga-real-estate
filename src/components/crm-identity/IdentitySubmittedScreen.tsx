@@ -158,7 +158,7 @@ export default function IdentitySubmittedScreen({ rendezVous, bookingFailed = fa
                       <div className="mg-top-medium">
                         <div className="card">
                           <div className="pd---content-inside-card text-center">
-                            <p className="display-2 semi-bold capitalize">
+                            <p className="display-2 semi-bold">
                               {bookedWhenLabel(rendezVous.scheduled_at, timezone)}
                             </p>
 

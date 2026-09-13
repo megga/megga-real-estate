@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import { CalIcon, type CalIconName } from './CalIcon'
 import { CAL_RECUR_LABEL, calConflicts, calTypeStyle, useCalPalette, type CalEvent } from './data'
 import { fmtDate, fmtTime, sameDay, shadeMix } from './helpers'
+import { majusculeInitiale } from '@/lib/utils'
 import { useEcranActif } from '@/hooks/useEcranActif'
 
 function CalPopIconBtn({ name, title, onClick, danger }: { name: CalIconName; title: string; onClick: () => void; danger?: boolean }) {
@@ -212,18 +213,18 @@ export function CalEventPopover({ event, anchorRect, allEvents, onClose, onEdit,
           <CalMiniRow icon="clock">
             {event.allDay ? (
               multiDay ? (
-                <span style={{ textTransform: 'capitalize' }}>{t('popover.from')} {fmtDate(event.start)} {t('popover.to')} {fmtDate(event.end)}</span>
+                <span>{majusculeInitiale(`${t('popover.from')} ${fmtDate(event.start)} ${t('popover.to')} ${fmtDate(event.end)}`)}</span>
               ) : (
                 <Fragment>
-                  <span style={{ textTransform: 'capitalize' }}>{fmtDate(event.start)}</span>
+                  <span>{majusculeInitiale(fmtDate(event.start))}</span>
                   <span style={{ color: SP.muted }}> · {t('popover.fullDay')}</span>
                 </Fragment>
               )
             ) : multiDay ? (
-              <span style={{ textTransform: 'capitalize' }}>{fmtDate(event.start)}, {fmtTime(event.start)} → {fmtDate(event.end)}, {fmtTime(event.end)}</span>
+              <span>{majusculeInitiale(`${fmtDate(event.start)}, ${fmtTime(event.start)} → ${fmtDate(event.end)}, ${fmtTime(event.end)}`)}</span>
             ) : (
               <Fragment>
-                <span style={{ textTransform: 'capitalize' }}>{fmtDate(event.start)}</span>
+                <span>{majusculeInitiale(fmtDate(event.start))}</span>
                 <span style={{ color: SP.muted }}> · {fmtTime(event.start)} – {fmtTime(event.end)}</span>
               </Fragment>
             )}

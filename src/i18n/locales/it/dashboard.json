@@ -409,7 +409,7 @@
     },
     "h": {
       "greeting": "Buongiorno {{name}}",
-      "whatsNew": "What's new",
+      "whatsNew": "Novità",
       "close": "Chiudi",
       "retry": "Riprova",
       "yourDay": "La tua giornata",

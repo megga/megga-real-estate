@@ -101,7 +101,7 @@ export default function AuditPage() {
       const d = new Date(ev.created_at)
       const key = d.toLocaleDateString('fr-CH', {
         weekday: 'long',
-        day: '2-digit',
+        day: 'numeric',
         month: 'long',
         year: 'numeric',
       })

@@ -304,7 +304,7 @@ export const DOSSIER_KEYFRAMES = `
 export function fmtDateShort(iso: string | null | undefined): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('fr-CH', {
-    day: '2-digit',
+    day: 'numeric',
     month: 'short',
     year: 'numeric',
   })
@@ -314,7 +314,7 @@ export function fmtDateShort(iso: string | null | undefined): string {
 export function fmtDateTime(iso: string | null | undefined): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleString('fr-CH', {
-    day: '2-digit',
+    day: 'numeric',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
