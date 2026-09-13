@@ -45,9 +45,11 @@ describe.skipIf(!HAS_KEYS)('Messagerie — le journal ne reçoit pas le contenu 
     providerLabels: ['INBOX'], attachments: [],
   })
 
-  /** Une boîte relue en `select('*')` : c'est la forme que la synchro passe à `ingestMessages`. */
+  /** Une boîte relue en `select('*')` : c'est la forme que la synchro passe à `ingestMessages`.
+   *  ⚠ Adresse unique PAR APPEL : trois tests créent une boîte `agency`, et
+   *  `mail_accounts_agency_provider_email_uniq` refuserait la deuxième. */
   const mkBoite = async (visibility: 'owner' | 'agency'): Promise<MailAccountRow> => {
-    const email = `${visibility}-${stamp}@a.test`
+    const email = `${visibility}-${comptes.length}-${stamp}@a.test`
     const { data: ins, error } = await service.from('mail_accounts').insert({
       agency_id: s.agencyAId, owner_id: s.agentAId, provider: 'gmail', email, visibility,
     }).select('id').single()
@@ -135,10 +137,46 @@ describe.skipIf(!HAS_KEYS)('Messagerie — le journal ne reçoit pas le contenu 
         action: 'email_received', actor_id: null, actor_kind: 'system', category: 'messaging',
         entity_type: 'contact', entity_id: contactId, object_label: null,
       })
-      expect(Object.keys(ligne.metadata as Record<string, unknown>).sort()).toEqual(['account_id', 'message_id', 'thread_id'])
+      // Trois identifiants et la DATE du courrier (un horodatage, pas un contenu).
+      expect(Object.keys(ligne.metadata as Record<string, unknown>).sort()).toEqual(['account_id', 'message_id', 'sent_at', 'thread_id'])
       sansContenu(lignes!)
     })
   }
+
+  // ⛔ La passe initiale journalise 90 jours en quelques heures : la ligne doit porter la
+  // date du COURRIER en metadata.sent_at, et NE PAS antidater created_at (l'horloge de
+  // l'audit : garde des 10 ans, purge, fenêtres d'enregistrement).
+  it('un courrier vieux de 80 jours garde sa date, sans antidater l’enregistrement', async () => {
+    const boite = await mkBoite('agency')
+    const avant = Date.now()
+    const vieux = new Date(Date.now() - 80 * 86_400_000).toISOString()
+    await ingestMessages(service, boite, [{ ...courrier(boite.email, `vieux-${stamp}`), sentAt: vieux }])
+    const { data } = await service.from('activity_events').select('created_at, metadata').eq('entity_id', contactId).eq('metadata->>account_id', boite.id)
+    expect(data, 'l’audit n’a pas été atteint').toHaveLength(1)
+    const [ligne] = data!
+    expect((ligne.metadata as Record<string, unknown>).sent_at).toBe(vieux)
+    expect(Date.parse(ligne.created_at as string), 'created_at n’est jamais antidaté').toBeGreaterThanOrEqual(avant - 5_000)
+  })
+
+  // La seule preuve du tri PostgREST sur un chemin JSON (`order=metadata->>sent_at.desc`) :
+  // aucun test unitaire ne parle à un vrai PostgREST.
+  it('le tri par la date du courrier marche en vrai, pour un collègue', async () => {
+    const boite = await mkBoite('agency')
+    const recent = new Date(Date.now() - 2 * 86_400_000).toISOString()
+    const milieu = new Date(Date.now() - 30 * 86_400_000).toISOString()
+    const ancien = new Date(Date.now() - 60 * 86_400_000).toISOString()
+    // TROIS courriers ingérés dans un ordre qui n'est ni celui de leur date ni son inverse :
+    // avec deux, un tri ignoré (ordre d'insertion) rendrait déjà la bonne réponse.
+    await ingestMessages(service, boite, [{ ...courrier(boite.email, `milieu-${stamp}`), sentAt: milieu }])
+    await ingestMessages(service, boite, [{ ...courrier(boite.email, `recent-${stamp}`), sentAt: recent }])
+    await ingestMessages(service, boite, [{ ...courrier(boite.email, `ancien-${stamp}`), sentAt: ancien }])
+    const { data, error } = await clientA2.from('activity_events').select('metadata')
+      .eq('entity_id', contactId).eq('metadata->>account_id', boite.id)
+      .in('action', ['email_received', 'email_sent'])
+      .order('metadata->>sent_at', { ascending: false, nullsFirst: false })
+    expect(error).toBeNull()
+    expect((data ?? []).map((l) => (l.metadata as Record<string, unknown>).sent_at)).toEqual([recent, milieu, ancien])
+  })
 
   it('un collègue de l’agence et le super-admin lisent le FAIT, jamais le contenu', async () => {
     for (const [qui, client] of [['collègue', clientA2], ['super-admin', superClient]] as const) {

@@ -289,7 +289,13 @@
       "searchPlaceholder": "Nome, indirizzo o telefono",
       "empty": "Nessun contatto trovato.",
       "note": "L'indirizzo sarà memorizzato per questa scheda.",
-      "create": "Crea la scheda"
+      "create": "Crea la scheda",
+      "error": {
+        "email_not_in_thread": "Questo indirizzo non compare in questa conversazione.",
+        "email_is_internal": "È un indirizzo dell'agenzia: non viene collegato a un cliente.",
+        "contact_not_in_agency": "Questo contatto non appartiene alla sua agenzia.",
+        "generic": "Il collegamento non è riuscito. Riprovi."
+      }
     },
     "draft": {
       "badge": "Bozza",

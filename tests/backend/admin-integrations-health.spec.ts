@@ -60,7 +60,12 @@ describe.skipIf(!HAS_KEYS)('get_admin_integrations_health + compute_platform_mrr
     if (error) throw new Error(error.message)
     const h = data as Record<string, Record<string, unknown>>
     expect(h.emails).toBeTruthy()
-    expect(typeof h.emails.sent_7d).toBe('number')
+    // Resend : échecs de remise + erreurs send-% ; plus de « envoyés », que seule la
+    // Messagerie alimentait (20260913150100).
+    expect(typeof h.emails.delivery_incidents_7d).toBe('number')
+    expect(typeof h.emails.errors_7d).toBe('number')
+    expect(h.emails).not.toHaveProperty('sent_7d')
+    expect(h.emails).not.toHaveProperty('sent_24h')
     expect(h.stripe_webhook).toBeTruthy()
     expect('age_hours' in h.stripe_webhook).toBe(true)
     expect(typeof h.stripe_webhook.active_subscriptions).toBe('number')

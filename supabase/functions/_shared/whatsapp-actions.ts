@@ -32,6 +32,7 @@ import { stagedPhotoUrlsForAgency } from './photo-staging.ts'
 import { logDeepSeekUsageWith } from './ai-usage.ts'
 import { parseNextAction, formatNextAction, formatKycNote } from './contact-nba.ts'
 import { touchHotContact } from './contact-memory.ts'
+import { lireFaitsContact } from './contact-timeline.ts'
 import { redactPII } from './pii-redaction.ts'
 import { buildDocReadPrompt } from './whatsapp-doc-prompt.ts'
 
@@ -283,10 +284,8 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
   // Sous-requêtes bornées à l'agence (défense en profondeur) : le contact est déjà validé
   // in-agency ci-dessus, on double la garde sur ses events/recherches (activity_events et
   // client_searches portent agency_id) — jamais de contenu d'une autre agence dans le brief.
-  const { data: timeline } = await ctx.supabase
-    .from('activity_events').select('action, object_label, created_at')
-    .eq('entity_type', 'contact').eq('entity_id', contactId).eq('agency_id', ctx.agencyId)
-    .order('created_at', { ascending: false }).limit(5)
+  // Datée par le FAIT (un courrier par sa date, pas par le jour où la boîte a été connectée).
+  const timeline = await lireFaitsContact(ctx.supabase, ctx.agencyId, contactId, 5)
   const { data: searches } = await ctx.supabase
     .from('client_searches').select('label, criteria')
     .eq('contact_id', contactId).eq('agency_id', ctx.agencyId).eq('is_active', true).limit(3)
@@ -321,7 +320,7 @@ export async function execGetContactBrief(ctx: ActionCtx, a: Args): Promise<stri
   return JSON.stringify({
     contact: c,
     recherches_actives: searches ?? [],
-    timeline: timeline ?? [],
+    timeline,
     comprehension: insight ?? null,
     next_action_estimee: nextActionEstimee,
   })
@@ -2551,11 +2550,9 @@ export async function execPrepareMeeting(ctx: ActionCtx, a: Args): Promise<strin
 
   // Sous-requêtes bornées à l'agence (défense en profondeur, comme execGetContactBrief) :
   // contact déjà validé in-agency, on double la garde sur ses events/recherches.
-  const { data: timelineRows } = await ctx.supabase
-    .from('activity_events').select('action, object_label, created_at')
-    .eq('entity_type', 'contact').eq('entity_id', contactId).eq('agency_id', ctx.agencyId)
-    .order('created_at', { ascending: false }).limit(5)
-  const timeline = (timelineRows ?? []) as Array<{ action: string | null; object_label: string | null; created_at: string | null }>
+  // Datée par le FAIT : `timeline[0]` est la « Dernière action au dossier » citée à DeepSeek et
+  // à l'agent — la plus récente, pas le courrier le plus vieux d'une passe initiale.
+  const timeline = await lireFaitsContact(ctx.supabase, ctx.agencyId, contactId, 5)
 
   const { data: searchRows } = await ctx.supabase
     .from('client_searches').select('label, criteria')

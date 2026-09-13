@@ -4,7 +4,12 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 
 export interface IntegrationsHealth {
-  emails: { sent_24h: number; sent_7d: number; errors_7d: number }
+  /**
+   * Resend : les échecs de remise (email_delivery_events, resend-webhook, 7 j) et les erreurs
+   * des fonctions send-%. Plus de « envoyés » (13.09.2026) : ils comptaient l'action
+   * `email_sent`, que seule la Messagerie écrit — jamais Resend.
+   */
+  emails: { delivery_incidents_7d: number; errors_7d: number }
   stripe_webhook: {
     last_event_at: string | null
     age_hours: number | null

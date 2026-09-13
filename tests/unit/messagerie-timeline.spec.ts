@@ -26,6 +26,8 @@ import { readFileSync } from 'node:fs'
 import i18n from '@/i18n'
 import { auditActionLabel } from '@/lib/auditActionLabel'
 import { timelineCat } from '@/components/crm-mobile/contacts/detailShared'
+import { ACTIONS_DATEES_PAR_LE_COURRIER, LISTE_COURRIER, fusionnerTimeline, occurredAt } from '@/lib/contactTimeline'
+import type { TimelineEvent } from '@/hooks/useContactTimeline'
 import { repoPath } from './helpers/fs-scan'
 
 /** Les fichiers du lot 1 qui écrivent dans `activity_events` pour la messagerie. */
@@ -118,5 +120,82 @@ describe('Messagerie — la timeline du contact', () => {
     const hook = readFileSync(repoPath('src/hooks/useContactTimeline.ts'), 'utf8')
     expect(hook).toContain(".eq('entity_id', contactId)")
     expect(hook, 'le hook a été élargi — le contrat du lot 1 doit être revu avec').not.toMatch(/\.or\(/)
+  })
+})
+
+/**
+ * ⛔ LA DATE D'UN COURRIER EST CELLE DU COURRIER (13.09.2026). La passe initiale d'une
+ * boîte journalise 90 jours en quelques heures : trié par `created_at`, le bloc sortait
+ * daté du jour de la connexion, dans l'ordre INVERSE, et `limit(50)` gardait les 50 plus
+ * VIEUX. La date du fait vit en `metadata.sent_at` (`mailAuditEvent`).
+ */
+describe('Messagerie — la timeline datée par le fait', () => {
+  const JOUR = 86_400_000
+  const courrier = (i: number, sent: string, created: string): TimelineEvent => ({
+    id: `m${i}`, action: 'email_received', entity_type: 'contact', entity_id: 'c1',
+    metadata: { sent_at: sent }, created_at: created, occurred_at: '', actor_name: null,
+  })
+
+  it('occurredAt : un courrier prend sa date, borné par l’enregistrement ; le reste garde created_at', () => {
+    const enr = '2026-09-13T10:00:00+00:00'
+    expect(occurredAt({ action: 'email_received', metadata: { sent_at: '2026-06-15T08:00:00.000Z' }, created_at: enr })).toBe('2026-06-15T08:00:00.000Z')
+    expect(occurredAt({ action: 'note_added', metadata: { sent_at: '2026-06-15T08:00:00.000Z' }, created_at: enr }), 'seul le courrier se date par sent_at').toBe(enr)
+    expect(occurredAt({ action: 'email_sent', metadata: { sent_at: '2100-01-01T00:00:00.000Z' }, created_at: enr }), 'borné par l’enregistrement').toBe('2026-09-13T10:00:00.000Z')
+    expect(occurredAt({ action: 'email_sent', metadata: null, created_at: enr })).toBe(enr)
+    expect(occurredAt({ action: 'email_sent', metadata: { sent_at: 'illisible' }, created_at: enr })).toBe(enr)
+  })
+
+  it('passe Gmail : 60 courriers ingérés du plus récent au plus ancien, 3 notes des semaines passées', () => {
+    const connexion = Date.parse('2026-09-13T08:00:00.000Z')
+    // i = 0 est le plus RÉCENT courrier, ingéré en PREMIER (created_at le plus ancien).
+    const courriers = Array.from({ length: 60 }, (_, i) => {
+      const e = courrier(i, new Date(connexion - (i + 1) * 1.4 * JOUR).toISOString(), new Date(connexion + i * 60_000).toISOString())
+      return { ...e, occurred_at: occurredAt(e) }
+    })
+    const notes = [3, 20, 45].map((j) => ({
+      id: `n${j}`, action: 'note_added', entity_type: 'contact', entity_id: 'c1', metadata: null,
+      created_at: new Date(connexion - j * JOUR).toISOString(), occurred_at: new Date(connexion - j * JOUR).toISOString(), actor_name: 'G',
+    } satisfies TimelineEvent))
+
+    // TÉMOIN de l'ancien comportement : un seul tri par created_at, puis 50.
+    const ancien = [...courriers, ...notes].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)).slice(0, 50)
+    expect(ancien[0].id, 'l’ancien tri ouvrait sur le courrier le plus VIEUX').toBe('m59')
+
+    // Les deux lectures : top 50 des courriers par sent_at, notes par created_at.
+    const top50Courriers = [...courriers].sort((a, b) => Date.parse(String(b.metadata!.sent_at)) - Date.parse(String(a.metadata!.sent_at))).slice(0, 50)
+    const fusion = fusionnerTimeline(notes, top50Courriers, 50)
+    expect(fusion).toHaveLength(50)
+    expect(fusion[0].id, 'la fiche ouvre sur le courrier le plus récent').toBe('m0')
+    for (let i = 1; i < fusion.length; i++) expect(Date.parse(fusion[i - 1].occurred_at)).toBeGreaterThanOrEqual(Date.parse(fusion[i].occurred_at))
+    expect(fusion.map((e) => e.id), 'les notes s’intercalent à leur date').toEqual(expect.arrayContaining(['n3', 'n20', 'n45']))
+  })
+
+  it('la liste des actions datées par le courrier est celle que le backend écrit', () => {
+    const ingest = readFileSync(repoPath('supabase/functions/_shared/mail/ingest.ts'), 'utf8')
+    const decl = ingest.match(/export type MailAuditAction = ([^\n]+)/)?.[1] ?? ''
+    const backend = [...decl.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort()
+    expect(backend, 'MailAuditAction introuvable').toEqual(['email_received', 'email_sent'])
+    expect([...ACTIONS_DATEES_PAR_LE_COURRIER].sort()).toEqual(backend)
+    expect(LISTE_COURRIER).toBe('(email_received,email_sent)')
+    // Le miroir côté Deno (outils IA) : même liste.
+    const deno = readFileSync(repoPath('supabase/functions/_shared/contact-timeline.ts'), 'utf8')
+    const miroir = deno.match(/export const ACTIONS_COURRIER = \[([^\]]*)\]/)?.[1] ?? ''
+    expect([...miroir.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort()).toEqual(backend)
+  })
+
+  it('le hook lit les deux tops, et l’écran affiche la date du fait', () => {
+    const hook = readFileSync(repoPath('src/hooks/useContactTimeline.ts'), 'utf8')
+    expect(hook).toContain(".order('metadata->>sent_at', { ascending: false, nullsFirst: false })")
+    expect(hook).toContain(".not('action', 'in', LISTE_COURRIER)")
+    expect(hook).toContain('fusionnerTimeline(')
+    const ecran = readFileSync(repoPath('src/components/crm-mobile/contacts/MobileContactDetailScreen.tsx'), 'utf8')
+    expect(ecran).toContain('fmtDay(ev.occurred_at')
+    expect(ecran).not.toContain('fmtDay(ev.created_at')
+  })
+
+  it('les outils IA (brief, préparation de RDV) lisent les faits datés, plus la timeline par created_at', () => {
+    const outils = readFileSync(repoPath('supabase/functions/_shared/whatsapp-actions.ts'), 'utf8')
+    expect(outils.match(/lireFaitsContact\(/g) ?? [], 'get_contact_brief ET prepare_meeting').toHaveLength(2)
+    expect(outils, 'une lecture de timeline par created_at est revenue').not.toMatch(/from\('activity_events'\)\s*\.select\('action, object_label, created_at'\)/)
   })
 })

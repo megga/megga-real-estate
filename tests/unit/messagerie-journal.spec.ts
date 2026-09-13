@@ -99,6 +99,38 @@ describe('Messagerie — le journal d’un courrier', () => {
     }
   })
 
+  it('un envoi Outlook ne construit plus son fil provisoire à la main : il passe par recordPendingSend', () => {
+    // Sinon le fil naît sans contact, mail-send ne journalise pas, et la synchro non plus.
+    const code = sansCommentaires(lire('supabase/functions/mail-send/index.ts'))
+    expect(code, 'la branche Graph a disparu — la garde ne mesure rien').toContain('graphSend(')
+    expect(code).toMatch(/recordPendingSend\(\s*admin\s*,\s*account\s*,/)
+    expect(code).not.toContain('pending-thread:')
+    expect(code).not.toMatch(/from\(\s*['"]mail_threads['"]\s*\)\s*\.insert\s*\(/)
+    expect(code).not.toMatch(/from\(\s*['"]mail_messages['"]\s*\)\s*\.insert\s*\(/)
+  })
+
+  it('un envoi, une ligne : mail-send ne journalise que si la copie locale existe', () => {
+    // Sans copie locale, la synchro ingère la copie du fournisseur comme NEUVE et la journalise :
+    // un audit gardé par le seul contact du fil écrivait alors les deux lignes.
+    const code = sansCommentaires(lire('supabase/functions/mail-send/index.ts'))
+    const audit = code.indexOf('mailAuditEvent({')
+    expect(audit, 'l’audit de mail-send a disparu — la garde ne mesure rien').toBeGreaterThan(-1)
+    expect(code.slice(code.lastIndexOf('if (', audit), audit)).toMatch(/\blocalMessageId\b/)
+    // Gmail : la copie se relit même quand l'ingestion lève après avoir inséré le message.
+    expect(code).toMatch(/try\s*\{\s*await ingestMessages\(/)
+  })
+
+  it('la date du fait : mail-send la fournit, le contrat ne pose jamais created_at', () => {
+    expect(sansCommentaires(lire('supabase/functions/mail-send/index.ts'))).toMatch(/mailAuditEvent\(\{[\s\S]*?\bsentAt\s*:/)
+    const ingest = sansCommentaires(lire('supabase/functions/_shared/mail/ingest.ts'))
+    const debut = ingest.indexOf('export function mailAuditEvent(')
+    expect(debut, 'mailAuditEvent introuvable').toBeGreaterThan(-1)
+    const corps = ingest.slice(debut, ingest.indexOf('\n}\n', debut))
+    expect(corps, 'la date du fait est sent_at').toMatch(/\bsent_at\s*:/)
+    // `created_at` est l'horloge de l'audit (garde des 10 ans, purge) : l'antidater est interdit.
+    expect(corps).not.toMatch(/\bcreated_at\b/)
+  })
+
   it('aucun object_label du courrier ne porte autre chose que NULL', () => {
     // `mail-send` n'en écrit plus du tout ; `ingest.ts` n'en a qu'un, celui du contrat.
     expect(sansCommentaires(lire('supabase/functions/mail-send/index.ts'))).not.toMatch(/object_label\s*:/)

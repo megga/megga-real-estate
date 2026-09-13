@@ -350,4 +350,90 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
     expect(new Date(String(bail!.locked_until)).getTime(), 'le bail est encore tenu après le balayage')
       .toBeLessThanOrEqual(Date.now())
   })
+
+  // ⛔ « Rapprocher l'adresse » (mail-actions link_contact) est l'UNIQUE écrivain de
+  // mail_contact_aliases depuis que la table est service-role seul (20260913150000). Il
+  // n'exigeait qu'un « @ » : sur n'importe quel fil visible, un agent réaffectait l'alias
+  // d'une adresse qu'il n'avait jamais lue. L'adresse doit désormais être celle d'un
+  // correspondant EXTERNE de ce fil — ni la boîte, ni une adresse interne à l'agence.
+  describe('link_contact : l’adresse apprise est celle d’un correspondant externe du fil', () => {
+    const service = () => serviceRoleClient()
+    let threadId: string
+    let cA1: string
+    let cA2: string
+    let cB: string
+    let boxInterneId: string
+    const zoe = () => `zoe-${s.stamp}@ex.ch`
+    const notaire = () => `notaire-${s.stamp}@etude.ch`
+    const victime = () => `victime-${s.stamp}@ex.ch`
+    const interne = () => `interne-${s.stamp}@a.test`
+
+    const mkContact = async (agencyId: string, email: string) => {
+      const { data, error } = await service().from('contacts').insert({ agency_id: agencyId, first_name: 'T', last_name: email, email, type: 'buyer' }).select('id').single()
+      if (error) throw new Error(`contacts ${email}: ${error.message}`)
+      return data.id as string
+    }
+    const alias = async (email: string) => (await service().from('mail_contact_aliases').select('contact_id, learned_by').eq('agency_id', s.agencyAId).eq('email', email).maybeSingle()).data
+    const link = (contactId: string, email: string) => call('mail-actions', { action: 'link_contact', account_id: boxAId, thread_id: threadId, contact_id: contactId, email }, jwtA)
+
+    beforeAll(async () => {
+      const svc = service()
+      cA1 = await mkContact(s.agencyAId, `ca1-${s.stamp}@ex.ch`)
+      cA2 = await mkContact(s.agencyAId, `ca2-${s.stamp}@ex.ch`)
+      cB = await mkContact(s.agencyBId, `cb-${s.stamp}@ex.ch`)
+      // Une AUTRE boîte de l'agence A : son adresse est « interne ».
+      const { data: bx, error: eBx } = await svc.from('mail_accounts').insert({ agency_id: s.agencyAId, owner_id: s.agentAId, provider: 'gmail', email: interne(), visibility: 'owner' }).select('id').single()
+      if (eBx) throw new Error(`mail_accounts interne: ${eBx.message}`)
+      boxInterneId = bx.id as string
+      const { data: th, error: eTh } = await svc.from('mail_threads').insert({ account_id: boxAId, agency_id: s.agencyAId, provider_thread_id: `t-link-${s.stamp}`, subject: 'Visite' }).select('id').single()
+      if (eTh) throw new Error(`mail_threads: ${eTh.message}`)
+      threadId = th.id as string
+      const { error: eM } = await svc.from('mail_messages').insert({
+        thread_id: threadId, account_id: boxAId, agency_id: s.agencyAId, provider_message_id: `m-link-${s.stamp}`, direction: 'inbound',
+        from_email: zoe(), to: [{ name: null, email: `a-${s.stamp}@a.test` }], cc: [{ name: 'Me', email: notaire() }, { name: 'Collègue', email: interne() }],
+        sent_at: new Date().toISOString(),
+      })
+      if (eM) throw new Error(`mail_messages: ${eM.message}`)
+      // L'alias d'un collègue sur une adresse ABSENTE de ce fil : la cible du détournement.
+      const { error: eAl } = await svc.from('mail_contact_aliases').insert({ agency_id: s.agencyAId, email: victime(), contact_id: cA1, learned_by: null })
+      if (eAl) throw new Error(`alias victime: ${eAl.message}`)
+    })
+
+    afterAll(async () => {
+      const svc = service()
+      await svc.from('mail_accounts').delete().eq('id', boxInterneId)
+      // Les alias partent en cascade avec leurs contacts ; les contacts AVANT les agences.
+      await svc.from('contacts').delete().in('id', [cA1, cA2, cB])
+    })
+
+    it('témoin : l’expéditeur du fil est appris, attribué à l’agent, et le fil rattaché', async () => {
+      const r = await link(cA1, zoe())
+      expect(r.status, r.text.slice(0, 200)).toBe(200)
+      expect(r.json.ok).toBe(true)
+      expect(await alias(zoe())).toEqual({ contact_id: cA1, learned_by: s.agentAId })
+      const { data: t } = await service().from('mail_threads').select('contact_id').eq('id', threadId).single()
+      expect(t?.contact_id).toBe(cA1)
+    })
+
+    it('une adresse ABSENTE du fil est refusée, et l’alias du collègue reste intact', async () => {
+      const r = await link(cA2, victime())
+      expect(r.status).toBe(400)
+      expect(r.json.error).toBe('email_not_in_thread')
+      expect(await alias(victime())).toEqual({ contact_id: cA1, learned_by: null })
+    })
+
+    it('une adresse INTERNE à l’agence (une autre boîte) est refusée', async () => {
+      const r = await link(cA2, interne())
+      expect(r.status).toBe(400)
+      expect(r.json.error).toBe('email_is_internal')
+      expect(await alias(interne())).toBeNull()
+    })
+
+    it('le contact d’une autre agence est refusé (l’invariant du WITH CHECK retiré)', async () => {
+      const r = await link(cB, notaire())
+      expect(r.status).toBe(400)
+      expect(r.json.error).toBe('contact_not_in_agency')
+      expect(await alias(notaire())).toBeNull()
+    })
+  })
 })

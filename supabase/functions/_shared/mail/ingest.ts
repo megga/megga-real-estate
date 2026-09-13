@@ -3,7 +3,7 @@
 // rattachement au contact (D11), événement d'audit (timeline). Service-role :
 // TOUT est filtré par account.agency_id, jamais par une valeur venue du réseau.
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import type { MailAccountRow, MailAddress, NormalizedMessage, RemoteChange } from './types.ts'
+import type { MailAccountRow, MailAddress, NormalizedMessage, OutgoingMessage, RemoteChange } from './types.ts'
 
 export const HTML_CAP = 512 * 1024
 
@@ -29,7 +29,7 @@ export interface ThreadRow {
 }
 export type ThreadPatch = Omit<ThreadRow, 'id' | 'account_id' | 'label_id' | 'contact_id'>
 
-export function externalParticipants(m: NormalizedMessage, boxEmail: string): MailAddress[] {
+export function externalParticipants(m: Pick<NormalizedMessage, 'from' | 'to' | 'cc'>, boxEmail: string): MailAddress[] {
   const box = boxEmail.toLowerCase()
   const seen = new Set<string>()
   const out: MailAddress[] = []
@@ -177,6 +177,16 @@ export type MailAuditAction = 'email_received' | 'email_sent'
  * se reprend plus ; le super-admin, lui, ne doit lire le courrier d'AUCUNE boîte. Le
  * contenu vit dans `mail_threads` / `mail_messages`, sous la RLS de la boîte ; le journal
  * n'en garde que des identifiants, que seul un lecteur qui voit la boîte sait résoudre.
+ *
+ * ⚠ LA DATE DU FAIT VA EN `metadata.sent_at`, JAMAIS EN `created_at` (13.09.2026). La passe
+ * initiale journalise 90 jours de courrier en quelques heures : sans elle, chaque ligne
+ * portait le jour de la connexion, dans l'ordre INVERSE (Gmail liste du plus récent au plus
+ * ancien), et la timeline du contact gardait les 50 courriers les plus VIEUX. `created_at`,
+ * lui, reste l'horloge de l'audit — « quand le journal a su » : la garde des 10 ans, la purge
+ * et les fenêtres d'enregistrement se calculent dessus, et l'antidater les livrerait à une
+ * date externe (un courrier importé en 2020 ferait échouer la purge mensuelle). Un horodatage
+ * n'est pas un contenu ; que la date d'un échange d'une boîte personnelle soit lisible de
+ * l'agence est une décision écrite (D11 amendé), comme le fait lui-même.
  */
 export function mailAuditEvent(p: {
   agencyId: string
@@ -187,6 +197,8 @@ export function mailAuditEvent(p: {
   messageId: string | null
   /** L'agent qui a envoyé depuis le CRM ; `null` = la synchronisation. */
   actorId: string | null
+  /** L'instant du COURRIER (`mail_messages.sent_at`, ou l'acceptation par le fournisseur à l'envoi). */
+  sentAt: string
   /** `mail-send` seulement : le geste (nouveau, réponse, transfert), pas un contenu. */
   kind?: 'new' | 'reply' | 'forward'
 }) {
@@ -200,8 +212,26 @@ export function mailAuditEvent(p: {
     entity_type: 'contact',
     entity_id: p.contactId,
     object_label: null,
-    metadata: { thread_id: p.threadId, message_id: p.messageId, account_id: p.accountId, ...(p.kind ? { kind: p.kind } : {}) },
+    metadata: {
+      thread_id: p.threadId, message_id: p.messageId, account_id: p.accountId,
+      sent_at: instantDuFait(p.sentAt), ...(p.kind ? { kind: p.kind } : {}),
+    },
   }
+}
+
+/**
+ * L'instant d'un fait, prêt pour `metadata.sent_at` : forme canonique `Z`, borné à maintenant.
+ *
+ * ⚠ Canonique parce que le tri serveur porte sur le TEXTE de `metadata->>sent_at` — le même
+ * piège que `laterThan` : seule la forme `Z` à largeur fixe se trie comme le temps. Borné
+ * parce qu'un fait ne peut pas avoir eu lieu après son enregistrement : une date future
+ * (courrier importé, horloge décalée) épinglerait la ligne en tête de la timeline. Et JAMAIS
+ * de levée : l'audit s'écrit APRÈS le message, et un message écrit sans sa ligne de journal
+ * devient « connu » — la passe suivante ne la réécrira pas.
+ */
+function instantDuFait(iso: string, maintenant = Date.now()): string {
+  const t = Date.parse(iso)
+  return new Date(Number.isFinite(t) ? Math.min(t, maintenant) : maintenant).toISOString()
 }
 
 /**
@@ -215,9 +245,9 @@ export function mailAuditEvent(p: {
  * CHAQUE action, un courrier reçu sans son entrée de timeline se découvre à l'audit, des
  * mois plus tard. Le compte remonte désormais jusqu'au `results` de `mail-sync`.
  */
-async function audit(admin: SupabaseClient, account: MailAccountRow, action: MailAuditAction, threadId: string, messageId: string, contactId: string): Promise<boolean> {
+async function audit(admin: SupabaseClient, account: MailAccountRow, action: MailAuditAction, threadId: string, messageId: string, contactId: string, sentAt: string): Promise<boolean> {
   const { error } = await admin.from('activity_events').insert(mailAuditEvent({
-    agencyId: account.agency_id, contactId, action, accountId: account.id, threadId, messageId, actorId: null,
+    agencyId: account.agency_id, contactId, action, accountId: account.id, threadId, messageId, actorId: null, sentAt,
   }))
   if (error) console.error(`[mail ingest] activity_events refuse ${action} (fil ${threadId}, message ${messageId}):`, error.message)
   return !error
@@ -270,6 +300,9 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
     // Message déjà connu ? (ou copie « Envoyés » d'un envoi CRM en attente : pending:<Message-ID>)
     const known = await findKnownMessage(admin, account.id, m)
     const isNew = !known
+    // Évalué AVANT toute écriture : s'il lève, rien n'est écrit et la passe suivante rejoue le
+    // message. Après l'insertion, une levée laissait un message CONNU sans sa ligne de journal.
+    const dejaJournalise = isNew && !opts.skipAudit && await autreCopieSortante(admin, account.id, m)
 
     if (known && known.provider_message_id.startsWith('pending:')) {
       // Copie « Envoyés » d'un envoi CRM (Graph) : le fil provisoire prend l'id de
@@ -277,7 +310,11 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
       const { data: real, error: eReal } = await admin.from('mail_threads').select('id').eq('account_id', account.id).eq('provider_thread_id', m.providerThreadId).maybeSingle()
       if (eReal) throw new Error(`thread lookup (pending): ${eReal.message}`)
       if (!real) {
-        const { error } = await admin.from('mail_threads').update({ provider_thread_id: m.providerThreadId }).eq('id', known.thread_id)
+        // ⚠ Le fil PROVISOIRE seulement : la ligne pending: d'une réponse vit dans le fil
+        // d'ORIGINE, et si sa copie porte un autre conversationId, le renommer rebaptisait
+        // la conversation du client (13.09.2026). Le message rejoint alors le fil du fournisseur.
+        const { error } = await admin.from('mail_threads').update({ provider_thread_id: m.providerThreadId })
+          .eq('id', known.thread_id).like('provider_thread_id', 'pending-thread:%')
         if (error) throw new Error(`thread rename: ${error.message}`)
       }
     }
@@ -338,11 +375,121 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
       if (error) throw new Error(`attachments insert: ${error.message}`)
     }
 
-    if (isNew && contactId && !opts.skipAudit) {
-      if (!await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, messageId, contactId)) auditFailures++
+    // ⛔ FIL FANTÔME. Quand la copie rapprochée rejoint un fil qui existait déjà (une réponse
+    // ou un message d'absence ingéré avant elle, la Réception passant avant « Envoyés »), le
+    // message quittait le fil provisoire sans que rien ne le recalcule : il restait dans
+    // « Envoyés », sans un message, et le fil d'arrivée restait sous-compté d'un
+    // (`deriveThreadPatch` n'incrémente qu'un message NEUF). Les deux se recalculent, APRÈS
+    // les pièces — les agrégats se lisent sur un message complet ; le fil vide est supprimé
+    // par `recomputeThread`.
+    if (known && known.thread_id !== threadId) {
+      await recomputeThread(admin, known.thread_id)
+      await recomputeThread(admin, threadId)
+    }
+
+    if (isNew && contactId && !opts.skipAudit && !dejaJournalise) {
+      if (!await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, messageId, contactId, m.sentAt)) auditFailures++
     }
   }
   return { inserted, updated, auditFailures }
+}
+
+/**
+ * Ce courrier SORTANT a-t-il déjà une autre copie dans la boîte — donc déjà sa ligne de journal ?
+ *
+ * ⛔ UN ENVOI, UNE LIGNE. L'agent qui se met lui-même en Cc (ou en Cci) reçoit chez Exchange
+ * une copie en Réception au MÊME Message-ID, lue AVANT « Envoyés » : pour un envoi du CRM,
+ * elle prend la ligne `pending:` ; la copie « Envoyés » arrive ensuite comme un message NEUF
+ * et se journalisait — une seconde ligne, append-only, pour un seul envoi. Même doublon pour
+ * un envoi fait depuis Outlook. Appelé AVANT l'insertion du message : toute copie trouvée est
+ * donc une AUTRE. Les valeurs passent par `.eq()`, jamais par `.or()` (le Message-ID est du
+ * texte d'expéditeur, cf. `findKnownMessage`), et l'erreur est LEVÉE : « je n'ai pas pu
+ * vérifier » n'est pas « première copie ».
+ */
+async function autreCopieSortante(admin: SupabaseClient, accountId: string, m: NormalizedMessage): Promise<boolean> {
+  if (m.direction !== 'outbound' || !m.rfc822MessageId) return false
+  const { data, error } = await admin.from('mail_messages').select('id').eq('account_id', accountId)
+    .eq('rfc822_message_id', m.rfc822MessageId).eq('direction', 'outbound').limit(1)
+  if (error) throw new Error(`copie sortante: ${error.message}`)
+  return ((data ?? []) as unknown[]).length > 0
+}
+
+/** Ce que `mail-send` reçoit de la copie provisoire d'un envoi Outlook. */
+export interface PendingSend { threadId: string; messageId: string; contactId: string | null }
+
+/**
+ * La copie locale d'un envoi Outlook, en attendant que la synchro « Envoyés » la rapproche
+ * par Message-ID (`pending:<Message-ID>`, cf. `findKnownMessage`).
+ *
+ * ⛔ ELLE NAÎT RATTACHÉE AU CONTACT (13.09.2026). `mail-send` insérait le fil provisoire sans
+ * `contact_id`, puis ne journalisait que si le fil en portait un : un NOUVEAU courrier Outlook
+ * n'écrivait aucun `email_sent`. La synchro rattachait bien le fil ensuite (D11), mais elle
+ * retrouvait la ligne `pending:` — un message CONNU — et n'écrivait rien non plus. Un courrier
+ * envoyé à un client depuis le CRM n'entrait JAMAIS dans sa timeline, alors que le même envoyé
+ * depuis Outlook y entrait. Gmail n'avait pas le défaut : `mail-send` y passe par
+ * `ingestMessages`, qui rattache avant l'audit.
+ *
+ * La règle est celle de l'ingestion, pas une seconde : un fil sans contact se rattache sur les
+ * participants externes de CE message (`externalParticipants` — À et Cc, la boîte exclue,
+ * jamais la Cci). On avance ce que la synchro ferait au tick suivant ; c'est ce qui laisse
+ * `mail-send` écrire la ligne avec l'AGENT pour acteur. Le journal n'est PAS écrit ici.
+ *
+ * ⚠ La recherche précède toute écriture : si elle lève, rien n'est écrit, la copie
+ * « Envoyés » arrivera comme un message NEUF et la synchro la journalisera elle-même.
+ */
+export async function recordPendingSend(
+  admin: SupabaseClient,
+  account: MailAccountRow,
+  p: { threadId: string | null; outgoing: OutgoingMessage; snippet: string; hasAttachments: boolean },
+): Promise<PendingSend> {
+  const o = p.outgoing
+  const maintenant = new Date().toISOString()
+
+  let contactId: string | null = null
+  if (p.threadId) {
+    const { data: th, error } = await admin.from('mail_threads').select('contact_id')
+      .eq('id', p.threadId).eq('account_id', account.id).maybeSingle()
+    if (error) throw new Error(`fil, lecture du contact: ${error.message}`)
+    if (!th) throw new Error('thread_not_in_account')
+    contactId = (th.contact_id as string | null) ?? null
+  }
+  const aRattacher = contactId === null
+  if (aRattacher) contactId = await matchContact(admin, account.agency_id, externalParticipants(o, account.email).map((a) => a.email))
+
+  let threadId = p.threadId
+  let neIci = false
+  if (!threadId) {
+    const { data: t, error } = await admin.from('mail_threads').insert({
+      account_id: account.id, agency_id: account.agency_id, provider_thread_id: `pending-thread:${o.messageId}`,
+      subject: o.subject, snippet: p.snippet, participants: o.to, from_name: o.from.name, from_email: account.email,
+      last_message_at: maintenant, last_outbound_at: maintenant, message_count: 0, is_read: true, contact_id: contactId,
+    }).select('id').single()
+    // ⚠ `t!.id` sur un résultat non vérifié levait un TypeError (ancien mail-send).
+    if (error || !t) throw new Error(`fil provisoire: ${error?.message ?? 'aucune ligne rendue'}`)
+    threadId = t.id as string
+    neIci = true
+  } else if (aRattacher && contactId) {
+    const { error } = await admin.from('mail_threads').update({ contact_id: contactId }).eq('id', threadId).eq('account_id', account.id)
+    if (error) throw new Error(`fil, rattachement: ${error.message}`)
+  }
+
+  const { data: m, error: eMsg } = await admin.from('mail_messages').insert({
+    thread_id: threadId, account_id: account.id, agency_id: account.agency_id,
+    provider_message_id: `pending:${o.messageId}`, rfc822_message_id: o.messageId, in_reply_to: o.inReplyTo,
+    direction: 'outbound', from_name: o.from.name, from_email: account.email, to: o.to, cc: o.cc, bcc: o.bcc,
+    subject: o.subject, snippet: p.snippet, body_text: o.text, body_html: o.html, sent_at: maintenant,
+    is_read: true, has_attachments: p.hasAttachments, contact_id: contactId,
+  }).select('id').single()
+  if (eMsg || !m) {
+    // Un fil né de CET envoi et resté vide traînerait dans « Envoyés » (`last_outbound_at`
+    // posé) sans un message : on le retire, la synchro recréera le vrai depuis la copie.
+    if (neIci) {
+      const { error: eDel } = await admin.from('mail_threads').delete().eq('id', threadId)
+      if (eDel) console.error(`[mail ingest] fil provisoire ${threadId} resté vide:`, eDel.message)
+    }
+    throw new Error(`message provisoire: ${eMsg?.message ?? 'aucune ligne rendue'}`)
+  }
+  return { threadId, messageId: m.id as string, contactId }
 }
 
 /**
@@ -428,15 +575,55 @@ export async function applyRemoteChanges(admin: SupabaseClient, account: MailAcc
  * PROCHAIN courrier de la même adresse repart non apparié — c'est-à-dire exactement le
  * service que tout le mécanisme d'alias existe pour rendre. Levée : mail-actions la
  * convertit déjà en 400 portant le message.
+ *
+ * ⛔ ET L'ADRESSE EST CELLE D'UN CORRESPONDANT EXTERNE DE CE FIL (13.09.2026). mail-actions
+ * ne vérifiait qu'un « @ » : sur n'importe quel fil visible, un agent réaffectait l'alias
+ * d'une adresse qu'il n'a jamais lue — l'upsert réécrit `contact_id` et `learned_by` sur
+ * conflit — et détournait le rattachement du courrier d'un collègue, jusque dans sa boîte
+ * personnelle. Lue dans les messages de CE fil de CE compte (pas dans `participants`,
+ * plafonné à 8) : l'alias n'est donc plus écrit AVANT de savoir que le fil est au compte.
+ * La boîte est exclue comme dans `externalParticipants`, et une adresse INTERNE aussi — une
+ * autre boîte de l'agence, un collègue : rapprochée d'un client, elle rattachait à ce client
+ * tout le courrier interne venant d'elle, dans chaque boîte, en append-only. La table
+ * n'est plus lisible ni modifiable côté client (migration 20260913150000) : cette fonction
+ * en est l'unique écrivain.
  */
 export async function linkThreadToContact(admin: SupabaseClient, account: MailAccountRow, threadId: string, contactId: string, email: string, learnedBy: string): Promise<void> {
+  const address = email.trim().toLowerCase()
   const { data: contact, error: eContact } = await admin.from('contacts').select('id').eq('id', contactId).eq('agency_id', account.agency_id).maybeSingle()
   // Une lecture en échec ne prouve PAS que le contact est hors agence : le dire
   // fermerait la porte sur une panne passagère avec un message de sécurité trompeur.
   if (eContact) throw new Error(`contact lookup: ${eContact.message}`)
   if (!contact) throw new Error('contact_not_in_agency')
+
+  const { data: msgs, error: eAddr } = await admin.from('mail_messages').select('direction, from_email, to, cc').eq('thread_id', threadId).eq('account_id', account.id)
+  if (eAddr) throw new Error(`thread addresses: ${eAddr.message}`)
+  const rows = (msgs ?? []) as { direction: string; from_email: string | null; to: MailAddress[] | null; cc: MailAddress[] | null }[]
+  const box = account.email.toLowerCase()
+  const inThread = new Set<string>()
+  for (const m of rows) {
+    for (const e of [m.from_email, ...(m.to ?? []).map((a) => a.email), ...(m.cc ?? []).map((a) => a.email)]) {
+      const l = (e ?? '').toLowerCase()
+      if (l && l !== box) inThread.add(l)
+    }
+  }
+  if (!inThread.has(address)) throw new Error('email_not_in_thread')
+
+  // ⛔ L'EXPÉDITEUR D'UN SORTANT EST LA BOÎTE, même sous un autre nom. Un alias d'envoi
+  // (« envoyer en tant que » Gmail, adresse secondaire Exchange) n'est ni une `mail_accounts`
+  // ni un `profiles` : sans cette ligne il passait pour un correspondant externe, et rapproché
+  // d'un client il lui rattachait tout le courrier que l'agence écrit sous cet alias.
+  if (rows.some((m) => m.direction === 'outbound' && (m.from_email ?? '').toLowerCase() === address)) throw new Error('email_is_internal')
+
+  const [boites, membres] = await Promise.all([
+    admin.from('mail_accounts').select('id').eq('agency_id', account.agency_id).eq('email', address).limit(1),
+    admin.from('profiles').select('id').eq('agency_id', account.agency_id).eq('email', address).limit(1),
+  ])
+  if (boites.error || membres.error) throw new Error(`internal addresses: ${(boites.error ?? membres.error)!.message}`)
+  if (((boites.data ?? []) as unknown[]).length || ((membres.data ?? []) as unknown[]).length) throw new Error('email_is_internal')
+
   const { error: eAlias } = await admin.from('mail_contact_aliases').upsert(
-    { agency_id: account.agency_id, email: email.toLowerCase(), contact_id: contactId, learned_by: learnedBy },
+    { agency_id: account.agency_id, email: address, contact_id: contactId, learned_by: learnedBy },
     { onConflict: 'agency_id,email', ignoreDuplicates: false },
   )
   if (eAlias) throw new Error(`alias upsert: ${eAlias.message}`)

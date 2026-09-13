@@ -53,6 +53,9 @@ describe.skipIf(!HAS_KEYS)('get_admin_monitoring_health — gardée super_admin/
     ]) {
       expect(row!, `colonne ${key} présente`).toHaveProperty(key)
     }
+    // Non mesuré depuis 20260913150100 : NULL, jamais 0 (l'action lue n'était écrite que
+    // par la Messagerie, jamais par Resend).
+    expect(row!.emails_sent_today, 'non mesuré : NULL, jamais 0').toBeNull()
     // Les limites viennent d'app_config.admin_platform_limits (défauts 8000/100000).
     expect(Number(row!.db_limit_mb), 'db_limit_mb > 0').toBeGreaterThan(0)
     expect(Number(row!.storage_limit_mb), 'storage_limit_mb > 0').toBeGreaterThan(0)
