@@ -8,7 +8,10 @@
 //
 // État géré via URL :
 //   ?text=<initial>  → pré-remplit le textarea (depuis Today popover)
-//   ?returnTo=<url>  → navigation au close + après création
+//   ?returnTo=<chemin /dashboard…>  → retour à la fermeture (croix, Échap),
+//                    filtré par safeInternalPath ; tout le reste retombe
+//                    sur /dashboard/pipeline. La création, elle, navigue
+//                    vers le contact ou le deal créé.
 //
 // Garde-fou : aucun window.__* global (red-team D2 invalidé — pattern non
 // utilisé en prod). Tout passe par useNavigate + searchParams.
@@ -25,6 +28,7 @@ import {
   type DossierPalette,
 } from '@/components/crm-dossiers/tokens'
 import { useCrmDark } from '@/lib/crmDark'
+import { safeInternalPath } from '@/lib/safeInternalPath'
 import { CrmIcon } from '@/components/crm-dossiers/icons'
 import {
   CrmBlackPill,
@@ -109,7 +113,11 @@ export default function ImportLeadPage() {
   )
 
   const initialText = searchParams.get('text') ?? ''
-  const returnTo    = searchParams.get('returnTo') ?? '/dashboard/pipeline'
+  // `returnTo` vient d'un lien FORGEABLE. Passé brut à navigate(), `//hote`,
+  // `/\hote` ou `javascript:…` font jeter pushState, et le routeur retombe sur
+  // window.location.assign : redirection hors du CRM, voire exécution de
+  // script. Seul un chemin du CRM est accepté ; sinon, le défaut historique.
+  const returnTo    = safeInternalPath(searchParams.get('returnTo'), '/dashboard/pipeline', { prefix: '/dashboard' })
 
   // §B.5 — hydrate depuis sessionStorage (TTL 1h). URL param `text` reste
   // prioritaire (link from Today popover, deep-link).

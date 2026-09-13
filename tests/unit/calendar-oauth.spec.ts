@@ -83,4 +83,22 @@ describe('calendarReturnPath', () => {
       expect(calendarReturnPath(new URLSearchParams(hostile), FALLBACK)).toBe(FALLBACK)
     }
   })
+
+  it('ne lit jamais une clé héritée du prototype (table réellement fermée)', () => {
+    // Contrôle positif : la même lecture rend bien la table pour une clé propre —
+    // sinon le refus ci-dessous passerait pour une fonction qui refuse tout.
+    expect(calendarReturnPath(new URLSearchParams('from=calendar'), FALLBACK)).toBe('/dashboard/calendar')
+    for (const cle of ['constructor', '__proto__', 'toString', 'hasOwnProperty', 'valueOf']) {
+      const rendu = calendarReturnPath(new URLSearchParams(`gcal=1&from=${cle}`), FALLBACK)
+      // `typeof` d'abord : l'ancien code rendait une fonction, que le type
+      // déclaré `string` masquait à la compilation.
+      expect(typeof rendu).toBe('string')
+      expect(rendu).toBe(FALLBACK)
+    }
+  })
+
+  it('ne propage pas une clé héritée dans l’URL de retour du provider', () => {
+    const cle = 'constructor' as unknown as 'calendar'
+    expect(calendarRedirectTo(ORIGIN, 'google', cle)).toBe(`${ORIGIN}/auth/callback?gcal=1`)
+  })
 })

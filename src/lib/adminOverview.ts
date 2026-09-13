@@ -196,7 +196,9 @@ const SECTION_PATH: Record<string, string> = {
 }
 
 export function sectionPath(go: string): string {
-  return SECTION_PATH[go] ?? ADMIN_CONSOLE_PATH
+  // Clé PROPRE seulement : `SECTION_PATH['constructor']` rendrait la fonction
+  // Object, héritée du prototype, et navigate() la recevrait (cf. calendarOauth).
+  return Object.hasOwn(SECTION_PATH, go) ? SECTION_PATH[go] : ADMIN_CONSOLE_PATH
 }
 
 /** Clé i18n du libellé d'un signal, par `kind` serveur. */

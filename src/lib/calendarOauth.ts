@@ -20,8 +20,16 @@ const FLOW_FLAG: Record<CalendarAuthProvider, string> = {
 // Écrans autorisés comme retour d'une connexion d'agenda. Table FERMÉE : le
 // paramètre est lu dans l'URL de callback, donc une destination libre en ferait
 // une redirection ouverte.
+// ⛔ Un littéral d'objet n'est PAS fermé à lui seul : `RETURN_PATHS['constructor']`
+// rend la fonction Object, héritée du prototype. Toute lecture passe donc par
+// `retourConnu`, qui ne regarde que les clés PROPRES de la table.
 const RETURN_PATHS: Record<string, string> = {
   calendar: '/dashboard/calendar',
+}
+
+/** Le chemin de retour d'une origine de la table, ou null — jamais un héritage du prototype. */
+function retourConnu(from: string | null | undefined): string | null {
+  return typeof from === 'string' && Object.hasOwn(RETURN_PATHS, from) ? RETURN_PATHS[from] : null
 }
 
 /**
@@ -34,7 +42,7 @@ export function calendarRedirectTo(
   provider: CalendarAuthProvider,
   from?: CalendarConnectOrigin,
 ): string {
-  const suffix = from && RETURN_PATHS[from] ? `&from=${from}` : ''
+  const suffix = retourConnu(from) ? `&from=${from}` : ''
   return `${origin}/auth/callback?${FLOW_FLAG[provider]}=1${suffix}`
 }
 
@@ -55,8 +63,13 @@ export function calendarAuthMethod(
   return identities?.some(i => i.provider === provider) ? 'reauth' : 'link'
 }
 
-/** Retour post-OAuth : l'écran d'origine s'il est connu, sinon `fallback`. */
+/**
+ * Retour post-OAuth : l'écran d'origine s'il est connu, sinon `fallback`.
+ *
+ * ⛔ `?from=constructor` rendait une FONCTION (héritée du prototype), que
+ * `AuthCallbackPage` passait à navigate() : l'agent restait figé sur l'écran
+ * d'arrivée. D'où la lecture par clé propre.
+ */
 export function calendarReturnPath(params: URLSearchParams, fallback: string): string {
-  const from = params.get('from')
-  return (from && RETURN_PATHS[from]) || fallback
+  return retourConnu(params.get('from')) ?? fallback
 }
