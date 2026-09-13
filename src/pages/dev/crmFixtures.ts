@@ -45,18 +45,35 @@ const CONTACTS = [
   { id: 'c3', agency_id: AGENCE_BANC.id, full_name: 'Salomé Perret', first_name: 'Salomé', last_name: 'Perret', email: 's.perret@example.ch', phone: '+41 76 903 55 12', role: 'buyer', status: 'active', canton: 'GE', last_interaction_at: ilYA(191), created_at: ilYA(2100) },
 ]
 
+/**
+ * ⛔ LES CATÉGORIES SONT CELLES DU CHECK, et seulement elles. Trois lignes portaient
+ * `visit`, `relance` et `listing`, que `activity_events_category_check` refuse : le banc
+ * montrait des valeurs qu'aucune base ne peut contenir, affichées en brut par le repli
+ * `?? { label: event.category }` d'`AudEventRow` — donc impossibles à distinguer du
+ * défaut que ce repli existe pour absorber. Valeurs reprises des émetteurs réels
+ * (`visit_scheduled` → `contact`, whatsapp-actions ; `bien_published` → `bien`, trigger
+ * des biens).
+ */
 const EVENEMENTS = [
   { id: 'e1', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'contact_created', category: 'contact', severity: 'info', entity_type: 'contact', entity_id: 'c1', created_at: ilYA(1) },
-  { id: 'e2', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'visit_scheduled', category: 'visit', severity: 'info', entity_type: 'visit', entity_id: 'v1', created_at: ilYA(4) },
-  // ⛔ `actor_id` NULL, pas la chaîne `'ai'`. `AudEventRow` bascule sur la
+  { id: 'e2', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'visit_scheduled', category: 'contact', severity: 'info', entity_type: 'visit', entity_id: 'v1', created_at: ilYA(4) },
+  // ⛔ `actor_id` NULL, pas la chaîne `'ai'`. `AudEventRow` basculait alors sur la
   // TRUTHINESS d'`actor_id` : avec `'ai'` l'événement s'affichait en agent
   // HUMAIN (pastille « AG », encre douce) alors qu'il est écrit par l'IA — et la
   // branche système, celle qui porte la pastille d'encre pleine, n'était rendue
   // NULLE PART. Une fixture syntaxiquement valide et sémantiquement fausse, dans
   // le lot même qui existait pour les éviter. Le contrat réel est celui des
-  // edges (`actor_kind='ai'`, `actor_id` NULL).
-  { id: 'e3', agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: 'ai', action: 'relance_drafted', category: 'relance', severity: 'info', entity_type: 'contact', entity_id: 'c3', created_at: ilYA(9) },
-  { id: 'e4', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'listing_published', category: 'listing', severity: 'info', entity_type: 'property', entity_id: 'p1', created_at: ilYA(30) },
+  // edges (`actor_kind='ai'`, `actor_id` NULL) — et la ligne le lit désormais dans
+  // `actor_kind` (src/lib/auditActor.ts), pas dans l'absence d'`actor_id`.
+  { id: 'e3', agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: 'ai', action: 'relance_drafted', category: 'ai', severity: 'info', entity_type: 'contact', entity_id: 'c3', created_at: ilYA(9) },
+  { id: 'e4', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'bien_published', category: 'bien', severity: 'info', entity_type: 'property', entity_id: 'p1', created_at: ilYA(30) },
+  // Les deux autres acteurs SANS `actor_id`, que la page d'audit doit distinguer de l'IA
+  // (src/lib/auditActor.ts) : le SYSTÈME (recalcul nocturne des scores, une ligne par
+  // agence et par passe) et l'agent au compte SUPPRIMÉ — `actor_kind` resté 'user', et la
+  // preuve déposée par la branche FK du trigger. ⚠ Pas de `email_received` ici :
+  // `bancSupabase` laisse passer `not.in`, et la cloche du banc l'afficherait.
+  { id: 'e7', agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: 'system', action: 'contact_scores.recompute', category: 'contact', severity: 'info', entity_type: 'contact_scores', entity_id: null, metadata: { count: 3, version: 1 }, created_at: ilYA(20) },
+  { id: 'e8', agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: 'user', action: 'contact_created', category: 'contact', severity: 'info', entity_type: 'contact', entity_id: 'c2', metadata: { actor_detached_at: ilYA(200), actor_detached_from: '00000000-0000-4000-8000-00000000dead', actor_detached_reason: 'profile deleted (FK on delete set null)' }, created_at: ilYA(700) },
   // ⚠ `entity_type: 'kyc_case'` — c'est le seul motif que `useKycAuditEvents`
   // retient (avec `kyc` et `kyc_check`). Sans ces deux lignes, la piste d'audit
   // du RAPPORT sort vide, et sa page 3 se relit comme une page réussie.

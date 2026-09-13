@@ -53,8 +53,8 @@ describe.skipIf(!HAS_KEYS)('suppression de compte — le journal survit à son a
         actor_kind: 'user',
         action: 'contact_created',
         entity_type: 'contact',
-        // Les huit familles admises par activity_events_category_check :
-        // kyc, deal, contact, bien, doc, auth, settings, ai. Pas de 'crm'.
+        // Les dix familles admises par activity_events_category_check :
+        // kyc, deal, contact, bien, doc, auth, settings, ai, onboarding, messaging. Pas de 'crm'.
         category: 'contact',
         severity: 'info',
         object_label: `ZZ Detach ${setup.stamp}`,

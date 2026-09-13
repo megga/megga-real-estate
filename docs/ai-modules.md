@@ -127,7 +127,7 @@ Stocké dans `visits.ai_objections` et affiché dans le portail vendeur (anonymi
 - Colonne PEP/S toujours visible dans KycListPage avec icônes : AlertTriangle (match), ShieldCheck (clear), Loader2 (pending), tiret (non vérifié)
 - Bouton "Relancer la vérification" → appelle Edge Function → résultats temps réel (human-in-the-loop)
 - Testé avec succès : Vladimir Putin → 3 hits PEP + 14 hits Sanctions, score 85/100
-- Chaque screening loggé dans `activity_events` avec `actor_id = 'ai'`
+- Chaque screening loggé dans `activity_events` avec `actor_kind = 'ai'` (`actor_id` NULL)
 - Secret requis : `DILISENSE_API_KEY` dans Supabase Edge Functions Secrets
 
 **Score de risque automatique :**
@@ -209,5 +209,5 @@ Stocké dans `visits.ai_objections` et affiché dans le portail vendeur (anonymi
 - L'IA n'envoie JAMAIS de document juridique sans validation agent
 - Les scores IA (buyer/seller intelligence) sont indicatifs — affichés comme "estimation IA", pas comme vérité
 - Le copilote de négociation donne des SUGGESTIONS, pas des décisions
-- Toute action IA est loggée dans `activity_events` avec `actor_id = 'ai'`
+- Toute action IA est loggée dans `activity_events` avec `actor_kind = 'ai'` (`actor_id` NULL — c'est une FK uuid vers `profiles`, et le CHECK `activity_events_actor_kind_coherence` réserve un `actor_id` posé aux humains)
 

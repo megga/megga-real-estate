@@ -372,7 +372,9 @@
       "doc": "Document",
       "auth": "Connexion",
       "settings": "Réglages",
-      "ai": "MEGGA AI"
+      "ai": "MEGGA AI",
+      "onboarding": "Accueil",
+      "messaging": "Messagerie"
     },
     "csv": {
       "createdAt": "Date/heure",
@@ -392,6 +394,9 @@
     },
     "actor": {
       "agent": "Agent",
+      "agentDetached": "Agent (compte supprimé)",
+      "agentUnknown": "Agent (non identifié)",
+      "ai": "MEGGA AI",
       "system": "Système"
     },
     "details": "Détails",
@@ -416,7 +421,7 @@
       "warning": "Attention",
       "warningSub": "Re-screening, export données",
       "aiActions": "Actions MEGGA AI",
-      "aiActionsSub": "Suggestions et matching automatique"
+      "aiActionsSub": "Suggestions et assistance MEGGA AI"
     },
     "searchPlaceholder": "Rechercher une action, un objet…",
     "period": {
