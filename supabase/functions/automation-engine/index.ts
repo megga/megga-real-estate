@@ -11,6 +11,7 @@ import { isServiceSecret } from '../_shared/require-service-secret.ts'
 import {
   RADAR_DEFAULTS, isDealStagnant, isMatchIgnored, stagnantDealReason, ignoredMatchReason,
 } from '../_shared/radar-detectors.ts'
+import { urlFonction } from '../_shared/function-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -135,7 +136,7 @@ serve(async (req) => {
         const baseUrl = Deno.env.get('SUPABASE_URL')!
         const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-        const response = await fetch(`${baseUrl}/functions/v1/send-reminder-email`, {
+        const response = await fetch(urlFonction(baseUrl, 'send-reminder-email'), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

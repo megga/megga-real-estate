@@ -30,6 +30,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { signMagicLinkToken, expiryFromDays } from '../_shared/magic-link-token.ts'
 import { kycMagicLinkUrl } from '../_shared/app-url.ts'
+import { urlFonction } from '../_shared/function-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -194,7 +195,7 @@ serve(async (req) => {
   if (channels.includes('email')) {
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-      const sendUrl = `${supabaseUrl}/functions/v1/magic-link-send-email`
+      const sendUrl = urlFonction(supabaseUrl, 'magic-link-send-email')
       const sendRes = await fetch(sendUrl, {
         method: 'POST',
         headers: {

@@ -28,6 +28,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { npaToCanton } from '../_shared/npa.ts'
 import { SLUG_TO_CODE, assertSliceResolved } from '../_shared/ra-slice-resolution.ts'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
+import { urlFonction } from '../_shared/function-url.ts'
 
 // ─── Config ──────────────────────────────────────────────────────
 
@@ -839,7 +840,7 @@ async function selfInvoke(body: SyncRequest): Promise<void> {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   try {
-    const resp = await fetch(`${supabaseUrl}/functions/v1/realadvisor-sync`, {
+    const resp = await fetch(urlFonction(supabaseUrl, 'realadvisor-sync'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
       body: JSON.stringify(body),

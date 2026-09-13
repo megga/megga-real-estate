@@ -23,6 +23,7 @@ import { recordStopRequest, recordAgentBriefOptOut, sendStopAck } from '../_shar
 import { sendOutboundGuarded, type PublicReason, type OutboundPayload } from '../_shared/whatsapp-outbound-guard.ts'
 import { planConfirmation, resolveButtonDecision, parseConfirmReplyId, deliverConfirmation } from '../_shared/whatsapp-confirm-buttons.ts'
 import { extractOptinToken, consumeOptinToken, OPTIN_BODY_PLACEHOLDER } from '../_shared/whatsapp-optin.ts'
+import { urlFonction } from '../_shared/function-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -917,7 +918,7 @@ async function callAgentBrain(
   inboundDocText: string | null = null,
 ): Promise<{ reply: string; isError: boolean; confirmPendingId: string | null }> {
   try {
-    const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-agent`, {
+    const r = await fetch(urlFonction(Deno.env.get('SUPABASE_URL') ?? '', 'whatsapp-agent'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

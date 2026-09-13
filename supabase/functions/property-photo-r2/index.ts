@@ -19,6 +19,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { urlFonction } from '../_shared/function-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -108,7 +109,7 @@ serve(async (req: Request) => {
 
   let procJson: { success?: boolean; photos_cf?: Variant[] }
   try {
-    const procRes = await fetch(`${supabaseUrl}/functions/v1/photo-processor`, {
+    const procRes = await fetch(urlFonction(supabaseUrl, 'photo-processor'), {
       method: 'POST',
       headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ listingId: propertyId, photoUrls, keyPrefix }),

@@ -525,6 +525,7 @@ useEffect(() => {
 - Responsive mobile-first (md: lg:)
 - Human-in-the-loop : validation KYC, envoi message/document
 - Audit trail : `activity_events` pour toute action (y compris IA avec `actor_kind = 'ai'`, `actor_id` NULL — une FK uuid ne porte pas `'ai'`, et le CHECK de cohérence réserve `actor_id` aux humains ; l'acteur se LIT dans `actor_kind`, cf. `src/lib/auditActor.ts`)
+- Appeler une Edge Function par `supabase.functions.invoke` ou `urlFonction` (`src/lib/supabase.ts` ; côté edge `_shared/function-url.ts`), jamais par une URL écrite à la main : c'est ce qui l'épingle dans la région de la base — sans quoi elle s'exécute près de l'appelant, aux États-Unis pour Meta (13.09.2026, system-map §5)
 - Scores IA affichés comme "estimation" (icône sparkle/ai)
 - Timeline unifiée par contact
 - `scripts/` = exécutables seuls (helpers → `scripts/_shared/`, données → `scripts/_data/`)

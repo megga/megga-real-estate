@@ -13,6 +13,7 @@
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { signMagicLinkToken, expiryFromDays } from './magic-link-token.ts'
+import { urlFonction } from './function-url.ts'
 
 /**
  * `transactional` = réponse à un geste de la personne (confirmation de visite, lien qu'elle
@@ -83,7 +84,7 @@ export async function unsubscribeHeaders(
     // `application/json` : c'est le `content-type` qui distingue, jamais le code HTTP.
     const base = (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/+$/, '')
     if (!base) throw new Error('SUPABASE_URL absent')
-    const url = `${base}/functions/v1/email-unsubscribe?t=${encodeURIComponent(token)}`
+    const url = urlFonction(base, 'email-unsubscribe', { t: token })
     return {
       url,
       headers: {

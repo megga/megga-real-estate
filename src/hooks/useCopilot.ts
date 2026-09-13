@@ -7,7 +7,7 @@
  * (HITL, cf. `executePending`).
  */
 import { useState, useCallback, useRef } from 'react'
-import { supabase, SUPABASE_FUNCTIONS_URL, SUPABASE_PUBLIC_ANON_KEY } from '@/lib/supabase'
+import { supabase, SUPABASE_PUBLIC_ANON_KEY, urlFonction } from '@/lib/supabase'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { toolPhaseLabel } from '@/components/ai-copilot/panel/aiPanel'
 
@@ -142,7 +142,7 @@ async function streamCopilotApi(
     idleTimer = setTimeout(() => ac.abort(), INACTIVITY_MS)
   }
 
-  const resp = await fetch(`${SUPABASE_FUNCTIONS_URL}/ai-copilot`, {
+  const resp = await fetch(urlFonction('ai-copilot'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -94,7 +94,9 @@ test.describe('Passage vitrine → app (fragment d’auth)', () => {
   test('retour de liaison Google : les jetons du fournisseur partent UNE fois à l’edge, jamais dans le stockage', async ({ page }) => {
     const agent = await creerAgent()
     const envois: Array<Record<string, unknown>> = []
-    await page.route('**/functions/v1/google-calendar-sync', async (route) => {
+    // Une expression, pas une glob : l'appel porte `?forceFunctionRegion=…` (région épinglée,
+    // src/lib/supabase.ts), et une glob Playwright est ancrée sur l'URL ENTIÈRE, query comprise.
+    await page.route(/\/functions\/v1\/google-calendar-sync(?:\?|$)/, async (route) => {
       const req = route.request()
       const cors = {
         'Access-Control-Allow-Origin': '*',
