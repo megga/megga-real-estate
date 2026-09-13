@@ -18,6 +18,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import i18n from '@/i18n'
 import { ErreurEdge, type RefusEdge } from '@/lib/refusEdge'
+import { ROUTER_FUTURE } from '@/lib/routerFuture'
 
 const h = vi.hoisted(() => ({
   toastErreur: vi.fn(),
@@ -79,11 +80,19 @@ async function supprimer(refusServeur: { status: number; corps: unknown }) {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
   await act(async () => {
     racine.render(createElement(QueryClientProvider, { client },
-      createElement(MemoryRouter, null, createElement(UserDrawer, { userId: 'u-cible', onClose: () => {} }))))
+      createElement(MemoryRouter, { future: ROUTER_FUTURE }, createElement(UserDrawer, { userId: 'u-cible', onClose: () => {} }))))
   })
   const [ouvrir] = boutons('Supprimer le compte')
   expect(ouvrir, 'bouton « Supprimer le compte » introuvable').toBeTruthy()
   await act(async () => { ouvrir!.click() })
+  // Le dialogue se DÉCRIT : un lecteur d'écran doit entendre ce qui sera détruit et la
+  // consigne, pas le titre seul (Radix l'exigeait par un avertissement à chaque ouverture).
+  // ⚠ Le tiroir lui-même porte role="dialog" : viser la CONFIRMATION, pas le premier venu.
+  const dialogue = [...document.querySelectorAll('[role="dialog"]')].find((d) => d.textContent?.includes('Suppression DÉFINITIVE'))
+  expect(dialogue, 'le dialogue de confirmation n’est pas monté').toBeTruthy()
+  const decrit = dialogue!.getAttribute('aria-describedby')
+  expect(decrit, 'le dialogue de confirmation n’a pas de description accessible').toBeTruthy()
+  expect(document.getElementById(decrit!)?.textContent).toContain('Suppression DÉFINITIVE')
   const saisie = document.querySelector('input') as HTMLInputElement
   expect(saisie, 'le champ de confirmation n’est pas monté').toBeTruthy()
   await act(async () => {
