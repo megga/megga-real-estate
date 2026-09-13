@@ -3,8 +3,8 @@
 //
 // POST { user_id } → JSON agrégé des traitements dont MEGGA est RESPONSABLE :
 // profil, consentements, appareils, événements d'authentification, activité (en
-// tant qu'acteur), identité KYB du dirigeant, appel d'accueil, et preuve de
-// destruction des pièces d'identité.
+// tant qu'acteur), identité KYB du dirigeant, appel d'accueil, preuve de
+// destruction des pièces d'identité, et boîtes mail connectées (13.09.2026).
 //
 // LA LIGNE DE PARTAGE A ÉTÉ REFORMULÉE le 07.08.2026. Elle disait « les données
 // MÉTIER d'agence ne sont pas des données personnelles du compte ». L'intention
@@ -35,6 +35,15 @@ const corsHeaders = {
 }
 
 const ACTIVITY_LIMIT = 5000
+
+/**
+ * Ce qu'on exporte d'une boîte connectée : la CONNEXION, telle que la personne la
+ * reconnaîtrait. ⛔ Liste FERMÉE, jamais `select('*')` : la table porte aussi le
+ * pointeur vers le secret Vault, les curseurs de synchronisation, la configuration IMAP
+ * et le texte des erreurs — des clés et des états techniques, pas des informations sur
+ * la personne. Garde : tests/unit/dsar-boites.spec.ts.
+ */
+const COLONNES_BOITE = 'provider, email, display_name, visibility, status, agency_id, created_at, last_sync_at'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -67,7 +76,7 @@ serve(async (req) => {
       })
     }
 
-    const [consents, devices, authEvents, activityEvents, relatedPersons, onboardingCalls] =
+    const [consents, devices, authEvents, activityEvents, relatedPersons, onboardingCalls, mailAccounts] =
       await Promise.all([
         supabase.from('user_consents')
           .select('consent_type, version, accepted_at, ip_hash')
@@ -99,8 +108,16 @@ serve(async (req) => {
           .select('id, agency_id, host_display_name, scheduled_at, duration_minutes, status, attendee_phone, attendee_note, cancel_reason, created_at')
           .eq('booked_by', targetId)
           .order('scheduled_at', { ascending: false }),
+        // Boîtes connectées (Messagerie, registre activité n°7) : la connexion est un
+        // réglage du compte de l'agent chez MEGGA, comme son profil. Elle manquait à
+        // l'export alors que `delete-account` l'efface (étape 5c) — l'écart était déclaré
+        // dans personal-data-estate.ts, et le voici tranché.
+        supabase.from('mail_accounts')
+          .select(COLONNES_BOITE)
+          .eq('owner_id', targetId)
+          .order('created_at', { ascending: true }),
       ])
-    for (const res of [consents, devices, authEvents, activityEvents, relatedPersons, onboardingCalls]) {
+    for (const res of [consents, devices, authEvents, activityEvents, relatedPersons, onboardingCalls, mailAccounts]) {
       if (res.error) throw res.error
     }
 
@@ -139,6 +156,7 @@ serve(async (req) => {
           kyb_related_persons: relatedPersons.data?.length ?? 0,
           onboarding_calls: onboardingCalls.data?.length ?? 0,
           id_document_purges: purges.data?.length ?? 0,
+          mail_accounts: mailAccounts.data?.length ?? 0,
         },
       },
     })
@@ -157,12 +175,20 @@ serve(async (req) => {
         kyb_related_persons: relatedPersons.data ?? [],
         onboarding_calls: onboardingCalls.data ?? [],
         id_document_purges: purges.data ?? [],
+        mail_accounts: mailAccounts.data ?? [],
       },
       notes: {
         scope:
           'Traitements dont MEGGA est RESPONSABLE (nLPD art. 25) : compte, consentements, ' +
-          'appareils, sécurité, activité, identité KYB du dirigeant, appel d\'accueil, et preuve ' +
-          'de destruction des pièces d\'identité.',
+          'appareils, sécurité, activité, identité KYB du dirigeant, appel d\'accueil, preuve ' +
+          'de destruction des pièces d\'identité, et boîtes mail connectées.',
+        mail_accounts:
+          'Pour chaque boîte connectée à la Messagerie : l\'adresse, le fournisseur, la visibilité ' +
+          '(personnelle ou partagée avec l\'agence), le statut et les dates de connexion et de ' +
+          'dernière synchronisation. Jamais les jetons d\'accès : ce sont des clés, pas une ' +
+          'information sur la personne. Le courrier synchronisé n\'est pas exporté : c\'est la ' +
+          'correspondance de l\'agence, dont MEGGA est sous-traitant (registre, activité n°7), et ' +
+          'la personne le consulte dans sa boîte, chez son fournisseur.',
         out_of_scope:
           'Les données pour lesquelles MEGGA est SOUS-TRAITANT (contacts CRM, transactions, ' +
           'dossiers KYC des parties) restent hors périmètre : le responsable du traitement est ' +
