@@ -411,6 +411,7 @@
       "greeting": "Bonjour {{name}}",
       "whatsNew": "What's new",
       "close": "Fermer",
+      "retry": "Réessayer",
       "yourDay": "Ta journée",
       "appointments_one": "{{count}} rendez-vous",
       "appointments_other": "{{count}} rendez-vous",
@@ -447,6 +448,7 @@
         "upToDateInline": "Tu es à jour, rien de neuf depuis {{since}}",
         "emptyTitle": "Tu es à jour",
         "emptyDesc": "Aucun retour acheteur ni rappel en attente. Tout a été traité.",
+        "error": "Signaux indisponibles : le chargement a échoué.",
         "markAll": "Tout marquer comme vu",
         "count_one": "{{count}} signal",
         "count_other": "{{count}} signaux",
@@ -480,7 +482,9 @@
       },
       "day": {
         "emptyTitle": "Journée dégagée",
-        "emptyDesc": "Aucun rendez-vous, aucune visite ni rappel prévu aujourd’hui."
+        "emptyDesc": "Aucun rendez-vous, aucune visite ni rappel prévu aujourd’hui.",
+        "errorTitle": "Journée indisponible",
+        "errorDesc": "Ton agenda n’a pas pu être chargé, il n’est pas vide pour autant."
       },
       "mobileTitle": "Aujourd'hui",
       "mobileDay": "Journée",
@@ -507,11 +511,13 @@
           "notPushed": "Diffuser",
           "published": "Ouvrir"
         },
-        "empty": "Toutes tes annonces sont complètes et diffusées."
+        "empty": "Toutes tes annonces sont complètes et diffusées.",
+        "error": "Annonces indisponibles : le chargement a échoué."
       },
       "deals": {
         "open": "Ouvrir",
         "empty": "Aucun dossier à traiter en priorité.",
+        "error": "Dossiers indisponibles : le chargement a échoué.",
         "ctaCall": "Rappeler",
         "ctaKyc": "Ouvrir le KYC",
         "ctaSign": "Préparer",

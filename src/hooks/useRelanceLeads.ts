@@ -95,6 +95,8 @@ export interface UseRelanceLeadsResult {
   isLoading: boolean
   /** True when the agency has 0 dormant contacts — caller should fall back to seed. */
   isEmpty: boolean
+  /** La lecture a échoué : « aucun lead dormant » n'est alors PAS une information. */
+  isError: boolean
 }
 
 /** Requête les contacts dormants (buyer/seller/tenant/landlord), les adapte en `RelanceLead`, triés du plus froid au plus récent. */
@@ -138,7 +140,7 @@ export function useRelanceLeads(): UseRelanceLeadsResult {
     .order('last_interaction_at', { ascending: true, nullsFirst: true })
     .limit(MAX_LEADS)
 
-  const { data, isLoading } = useQuery(query, { enabled: !!agencyId })
+  const { data, isLoading, isError } = useQuery(query, { enabled: !!agencyId })
 
   const leads = ((data ?? []) as Array<{
     id: string
@@ -153,5 +155,6 @@ export function useRelanceLeads(): UseRelanceLeadsResult {
     leads,
     isLoading,
     isEmpty: !isLoading && leads.length === 0,
+    isError,
   }
 }

@@ -52,6 +52,8 @@ export interface UseListingActionsReturn {
   /** Nombre de biens de l'agence, tous motifs confondus. */
   total: number
   isLoading: boolean
+  /** La lecture a échoué : « toutes tes annonces sont complètes » serait faux. */
+  isError: boolean
 }
 
 /** Gravité décroissante : ce qui empêche de vendre passe avant ce qui l'améliore. */
@@ -70,7 +72,7 @@ export function useListingActions(): UseListingActionsReturn {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
 
-  const { data: rows = [], isLoading } = useQuery({
+  const { data: rows = [], isLoading, isError } = useQuery({
     queryKey: ['today-listing-actions', agencyId],
     queryFn: async (): Promise<PropertyRow[]> => {
       if (!agencyId) return []
@@ -128,5 +130,5 @@ export function useListingActions(): UseListingActionsReturn {
       }))
   }, [rows, t])
 
-  return { actions, total: rows.length, isLoading }
+  return { actions, total: rows.length, isLoading, isError }
 }

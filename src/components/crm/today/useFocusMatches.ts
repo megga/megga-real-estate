@@ -47,7 +47,7 @@ export interface FocusMatch {
   kyc: FocusKyc
 }
 
-export function useFocusMatches(limit = 30): { matches: FocusMatch[]; isLoading: boolean } {
+export function useFocusMatches(limit = 30): { matches: FocusMatch[]; isLoading: boolean; isError: boolean } {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
 
@@ -78,7 +78,7 @@ export function useFocusMatches(limit = 30): { matches: FocusMatch[]; isLoading:
   })
 
   const matches = useMemo(() => query.data ?? [], [query.data])
-  return { matches, isLoading: query.isLoading }
+  return { matches, isLoading: query.isLoading, isError: query.isError }
 }
 
 /** Snooze réel d'un match (Replanifier) : +3 j sur snoozed_until. RLS agence. */

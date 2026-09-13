@@ -411,6 +411,7 @@
       "greeting": "Buongiorno {{name}}",
       "whatsNew": "What's new",
       "close": "Chiudi",
+      "retry": "Riprova",
       "yourDay": "La tua giornata",
       "appointments_one": "{{count}} appuntamento",
       "appointments_other": "{{count}} appuntamenti",
@@ -447,6 +448,7 @@
         "upToDateInline": "Sei aggiornato, nulla di nuovo da {{since}}",
         "emptyTitle": "Sei aggiornato",
         "emptyDesc": "Nessun riscontro degli acquirenti e nessun promemoria in sospeso. Tutto è stato gestito.",
+        "error": "Segnali non disponibili: caricamento non riuscito.",
         "markAll": "Segna tutto come visto",
         "count_one": "{{count}} segnale",
         "count_other": "{{count}} segnali",
@@ -480,7 +482,9 @@
       },
       "day": {
         "emptyTitle": "Giornata libera",
-        "emptyDesc": "Nessun appuntamento, visita o promemoria previsto oggi."
+        "emptyDesc": "Nessun appuntamento, visita o promemoria previsto oggi.",
+        "errorTitle": "Giornata non disponibile",
+        "errorDesc": "Non è stato possibile caricare la tua agenda, ma non per questo è vuota."
       },
       "mobileTitle": "Oggi",
       "mobileDay": "Giornata",
@@ -507,11 +511,13 @@
           "notPushed": "Pubblica",
           "published": "Apri"
         },
-        "empty": "Tutti i tuoi annunci sono completi e pubblicati."
+        "empty": "Tutti i tuoi annunci sono completi e pubblicati.",
+        "error": "Annunci non disponibili: caricamento non riuscito."
       },
       "deals": {
         "open": "Apri",
         "empty": "Nessun dossier richiede attenzione ora.",
+        "error": "Pratiche non disponibili: caricamento non riuscito.",
         "ctaCall": "Richiamare",
         "ctaKyc": "Apri KYC",
         "ctaSign": "Preparare",

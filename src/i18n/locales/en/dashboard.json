@@ -411,6 +411,7 @@
       "greeting": "Hello {{name}}",
       "whatsNew": "What's new",
       "close": "Close",
+      "retry": "Try again",
       "yourDay": "Your day",
       "appointments_one": "{{count}} appointment",
       "appointments_other": "{{count}} appointments",
@@ -447,6 +448,7 @@
         "upToDateInline": "You're up to date, nothing new since {{since}}",
         "emptyTitle": "You're up to date",
         "emptyDesc": "No buyer feedback or reminders pending. Everything has been handled.",
+        "error": "Signals unavailable: loading failed.",
         "markAll": "Mark all as seen",
         "count_one": "{{count}} signal",
         "count_other": "{{count}} signals",
@@ -480,7 +482,9 @@
       },
       "day": {
         "emptyTitle": "Clear day",
-        "emptyDesc": "No appointment, viewing or reminder scheduled today."
+        "emptyDesc": "No appointment, viewing or reminder scheduled today.",
+        "errorTitle": "Your day is unavailable",
+        "errorDesc": "Your agenda couldn’t be loaded, which doesn’t mean it’s empty."
       },
       "mobileTitle": "Today",
       "mobileDay": "Day",
@@ -507,11 +511,13 @@
           "notPushed": "Publish",
           "published": "Open"
         },
-        "empty": "All your listings are complete and published."
+        "empty": "All your listings are complete and published.",
+        "error": "Listings unavailable: loading failed."
       },
       "deals": {
         "open": "Open",
         "empty": "No deal needs attention right now.",
+        "error": "Deals unavailable: loading failed.",
         "ctaCall": "Call back",
         "ctaKyc": "Open KYC",
         "ctaSign": "Prepare",

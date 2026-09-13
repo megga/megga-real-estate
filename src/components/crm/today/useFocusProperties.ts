@@ -49,7 +49,7 @@ export interface FocusProperty {
 // plus mais sa dernière ligne survit dans property_scores → on l'écarte côté lecture.
 const TERMINAL_STATUS = new Set(['sold', 'archived'])
 
-export function useFocusProperties(limit = 12): { properties: FocusProperty[]; isLoading: boolean } {
+export function useFocusProperties(limit = 12): { properties: FocusProperty[]; isLoading: boolean; isError: boolean } {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
 
@@ -98,5 +98,5 @@ export function useFocusProperties(limit = 12): { properties: FocusProperty[]; i
   })
 
   const properties = useMemo(() => query.data ?? [], [query.data])
-  return { properties, isLoading: query.isLoading }
+  return { properties, isLoading: query.isLoading, isError: query.isError }
 }
