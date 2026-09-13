@@ -69,7 +69,7 @@ describe('Calendrier — un libellé sur un événement', () => {
 })
 
 describe('Calendrier — le contrat de la migration', () => {
-  const sql = readFileSync('supabase/migrations/20260913213550_calendar_labels.sql', 'utf-8')
+  const sql = readFileSync('supabase/migrations/20260914213550_calendar_labels.sql', 'utf-8')
 
   it('RLS posée, anonyme révoqué, policy bornée à l’agence', () => {
     expect(sql).toMatch(/alter table public\.calendar_labels enable row level security/)
