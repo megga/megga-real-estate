@@ -104,6 +104,12 @@ export async function fetchIdentity(provider: OAuthProvider, accessToken: string
  * l'autorisation restait vivante chez Google — MEGGA gardant le droit de lire sa boîte.
  * `false` ⇒ l'appelant décide (garder la ligne pour pouvoir réessayer, prévenir), et
  * la raison est journalisée avec le compte.
+ *
+ * ⚠ SAUF `400 invalid_token` : Google rend cette réponse pour un jeton déjà révoqué ou
+ * expiré (relevé le 13.09.2026 contre oauth2.googleapis.com : `{"error": "invalid_token"}`).
+ * Il n'y a plus rien à révoquer, et le traiter en échec rendait la boîte INDÉCONNECTABLE —
+ * précisément celles dont l'agent a déjà retiré l'accès chez Google, ou passées en
+ * `reauth_required` —, et le compte qui la porte INSUPPRIMABLE (delete-account).
  */
 export async function revokeToken(provider: OAuthProvider, token: string, deps: OAuthDeps = {}): Promise<boolean> {
   // Microsoft n'expose rien à révoquer : ce n'est pas un échec, il n'y a rien à faire.
@@ -112,7 +118,11 @@ export async function revokeToken(provider: OAuthProvider, token: string, deps: 
   try {
     const res = await f(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, { method: 'POST' })
     if (res.ok) return true
-    console.error(`[mail oauth] révocation Google refusée: http ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`)
+    const texte = await res.text().catch(() => '')
+    let code = ''
+    try { code = String((JSON.parse(texte) as { error?: unknown }).error ?? '') } catch { /* corps non JSON : un vrai refus */ }
+    if (res.status === 400 && code === 'invalid_token') return true
+    console.error(`[mail oauth] révocation Google refusée: http ${res.status} ${texte.slice(0, 200)}`)
     return false
   } catch (e) {
     console.error('[mail oauth] révocation Google injoignable:', e instanceof Error ? e.message : String(e))

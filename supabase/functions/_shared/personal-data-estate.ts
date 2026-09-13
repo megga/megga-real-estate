@@ -124,6 +124,18 @@ export const PERSONAL_DATA_ESTATE: readonly EstateEntry[] = [
     divergence:
       'Objet de PLATEFORME (MEGGA ↔ agence), explicitement hors tenant — donc MEGGA est responsable, pas sous-traitant. ⚠ `booked_by` est `on delete cascade` : la ligne est SUPPRIMÉE à l\'étape 11 de delete-account. Le retrait à la main de `attendee_phone` et `attendee_note` ne sert que si l\'étape 11 échoue ; que le rendez-vous doive survivre au compte est une décision à part, qui passerait par la FK.',
   },
+  // La CONNEXION d'une boîte (adresse, fournisseur, jetons en Vault) est un réglage du compte
+  // de l'agent chez MEGGA, comme son profil. Le COURRIER qu'elle porte (fils, messages) est
+  // la correspondance de l'agence : il n'est pas déclaré ici, il part avec la boîte (D15).
+  {
+    table: 'mail_accounts',
+    subjectColumn: 'owner_id',
+    role: 'controller',
+    access: false,
+    erasure: 'delete',
+    divergence:
+      'Supprimée et non exportée. L\'effacement passe par disconnectMailAccount (étape 5c de delete-account), AVANT la cascade de l\'étape 11 : le jeton est révoqué chez Google et le secret effacé de Vault, que la cascade n\'atteignait pas — le jeton survivait au compte. Les jetons ne s\'exportent jamais : ce sont des clés d\'accès, pas une information sur la personne. ⛔ ÉCART DÉCLARÉ, NON TRANCHÉ : admin-dsar-export ne rend pas les boîtes connectées (adresse, fournisseur, date de connexion) — à décider avec le rôle de MEGGA sur la connexion elle-même.',
+  },
   {
     table: 'agency_id_document_purges',
     subjectColumn: 'related_person_id',

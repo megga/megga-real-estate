@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
+import { disconnectMailAccount } from '../_shared/mail/disconnect.ts'
 
 // delete-account — nLPD art. 32 (right to erasure) compliant account deletion.
 //
@@ -11,6 +12,8 @@ import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 // - Anonymises profiles and contacts. activity_events: ONLY the account_deleted
 //   trace is written (step 5); the FK detaches the user's lines when step 11
 //   deletes the auth user — no applicative UPDATE, the journal is append-only.
+// - Disconnects every mailbox the user owns (step 5c, 13.09.2026): Google grant
+//   revoked, Vault secret erased, box deleted — the cascade never reached Vault.
 // - Anonymises the director's KYB identity (agency_related_persons) and the
 //   onboarding call (onboarding_calls) — added 07.08.2026, see below.
 // - Keeps kyc_cases + KYC-linked documents untouched (LBA art. 7 al. 3 — 10y).
@@ -212,6 +215,43 @@ serve(async (req) => {
       })
       if (registryErr) {
         return json({ error: `Registry log failed: ${registryErr.message}` }, 500)
+      }
+    }
+
+    // 5c. Boîtes connectées : révoquer le jeton, effacer le secret, supprimer la boîte —
+    //     par le MÊME chemin que « Déconnecter » (disconnectMailAccount), et AVANT toute
+    //     autre destruction.
+    //
+    //     La cascade de l'étape 11 (mail_accounts.owner_id → profiles ON DELETE CASCADE)
+    //     emportait bien les boîtes, leurs fils et leurs messages — mais PAS le secret :
+    //     Vault n'est la cible d'aucune clé étrangère. Le jeton de rafraîchissement
+    //     survivait au compte, NON révoqué chez Google, et la seule ligne qui le désignait
+    //     disparaissait avec le compte : MEGGA gardait de quoi lire la boîte d'une personne
+    //     qui venait d'exercer son droit à l'effacement, sans plus rien pour le retrouver.
+    //
+    //     Un échec ARRÊTE la suppression, avant l'étape 6 : la boîte reste, en `disabled`,
+    //     avec son pointeur, et la suppression se rejoue. Ne compte pas comme échec un
+    //     jeton que Google tient déjà pour révoqué (`invalid_token`), ni un secret déjà
+    //     absent — sans quoi le compte deviendrait insupprimable.
+    const { data: boites, error: boitesErr } = await admin
+      .from('mail_accounts')
+      .select('id, provider, vault_secret_id')
+      .eq('owner_id', userId)
+    if (boitesErr) {
+      return json({ error: `Mailbox lookup failed: ${boitesErr.message}` }, 500)
+    }
+    for (const boite of boites ?? []) {
+      const r = await disconnectMailAccount(admin, boite)
+      if (!r.ok) {
+        return json(
+          {
+            error: 'MAILBOX_DISCONNECT_FAILED',
+            message:
+              "Une boîte mail connectée n'a pas pu être déconnectée. Le compte n'a pas été supprimé : réessayez dans quelques minutes.",
+            reason: r.reason,
+          },
+          r.reason === 'secret_unreadable' || r.reason === 'provider_refused' ? 502 : 500
+        )
       }
     }
 
