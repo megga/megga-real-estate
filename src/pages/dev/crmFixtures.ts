@@ -67,7 +67,7 @@ const EVENEMENTS = [
   // le lot même qui existait pour les éviter. Le contrat réel est celui des
   // edges (`actor_kind='ai'`, `actor_id` NULL) — et la ligne le lit désormais dans
   // `actor_kind` (src/lib/auditActor.ts), pas dans l'absence d'`actor_id`.
-  { id: 'e3', agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: 'ai', action: 'relance_drafted', category: 'ai', severity: 'info', entity_type: 'contact', entity_id: 'c3', created_at: ilYA(9) },
+  { id: 'e3', agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: 'ai', action: 'whatsapp_agent_copilot_reply', category: 'ai', severity: 'info', entity_type: 'whatsapp_message', entity_id: null, created_at: ilYA(9) },
   { id: 'e4', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'bien_published', category: 'bien', severity: 'info', entity_type: 'property', entity_id: 'p1', created_at: ilYA(30) },
   // Les deux autres acteurs SANS `actor_id`, que la page d'audit doit distinguer de l'IA
   // (src/lib/auditActor.ts) : le SYSTÈME (recalcul nocturne des scores, une ligne par

@@ -9,7 +9,7 @@
 import { useMemo, useState } from 'react'
 import i18n from '@/i18n' // libellés acteur/sévérité/détails traduits au render (common:audit.*)
 import { acteurDetacheProuve, auditActeur } from '@/lib/auditActor'
-import { auditActionLabel } from '@/lib/auditActionLabel'
+import { auditActionLabel, auditEntityLabel } from '@/lib/auditActionLabel'
 import { useCrmDark } from '@/lib/crmDark'
 import { dossierPalette, AUDIT_CATEGORIES, AUDIT_CAT_ICONS } from '../tokens'
 import { CrmIcon } from '../icons'
@@ -224,7 +224,7 @@ export function AudEventRow({ event, last }: Props) {
               maxWidth: 240,
             }}
           >
-            {event.entity_type}
+            {auditEntityLabel(event.entity_type)}
           </div>
         </div>
       </div>

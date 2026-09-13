@@ -25,6 +25,8 @@ import { useCallback, useEffect, useId, useMemo, useSyncExternalStore } from 're
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cleDuCompte } from '@/lib/stockageParCompte'
+import { auditActionLabel } from '@/lib/auditActionLabel'
+import i18n from '@/i18n'
 import type { CrmNotif, NotifKind, NotifPriority, NotifGroup } from '@/components/crm/notifications/data'
 
 const LAST_SEEN_KEY = 'megga-agent-notif-lastseen'
@@ -85,31 +87,36 @@ function toGroup(iso: string): NotifGroup {
   return 'older'
 }
 
-/** Libellé relatif français (« Il y a 3 min ») depuis un ISO. */
+/**
+ * Âge d'un événement (« il y a 3 min ») dans la langue de l'interface.
+ *
+ * ⚠ Était écrit en français en dur : un agent en allemand lisait « Il y a 9 h ».
+ * `Intl.RelativeTimeFormat` porte les quatre langues ; la majuscule initiale reste
+ * celle de la cloche.
+ */
 function relTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
   const m = Math.floor(diff / 60_000)
-  if (m < 1) return "À l'instant"
-  if (m < 60) return `Il y a ${m} min`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `Il y a ${h} h`
-  return `Il y a ${Math.floor(h / 24)} j`
+  const rtf = new Intl.RelativeTimeFormat(i18n.language, { numeric: 'auto', style: 'short' })
+  const s = m < 1 ? rtf.format(0, 'second')
+    : m < 60 ? rtf.format(-m, 'minute')
+      : m < 24 * 60 ? rtf.format(-Math.floor(m / 60), 'hour')
+        : rtf.format(-Math.floor(m / (24 * 60)), 'day')
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
-const ACTION_TITLES: Record<string, string> = {
-  seller_offer_decision: 'Décision du vendeur sur une offre',
-  whatsapp_inbound_lead_created: 'Nouveau prospect WhatsApp',
-  // Seul l'appairage par code arrive ici (acteur 'system', webhook) : la confirmation OTP est
-  // un geste de l'agent, que le filtre `actor_kind <> 'user'` écarte. Titre neutre, parce que
-  // toute l'agence le voit ; « lié » est le mot de la carte des réglages (« Numéro lié »).
-  whatsapp_number_verified: 'Numéro WhatsApp lié',
-}
-
-/** Titre lisible d'un événement : label serveur, sinon mapping connu, sinon action humanisée. */
+/**
+ * Titre lisible d'un événement : label serveur, sinon le libellé traduit de l'action
+ * (`common:audit.action.*`, la table du journal d'audit), sinon l'action humanisée.
+ *
+ * ⚠ La cloche avait sa propre table, en français, et humanisait le reste en ne
+ * remplaçant que `_` : « Contact scores.recompute », « Relance drafted ». Elle lit
+ * désormais la même table que le journal — l'appairage WhatsApp (acteur 'system',
+ * webhook) y porte le mot de la carte des réglages, « Numéro WhatsApp lié ».
+ */
 export function titleFor(ev: Pick<RawEvent, 'action' | 'object_label'>): string {
   if (ev.object_label) return ev.object_label
-  if (ACTION_TITLES[ev.action]) return ACTION_TITLES[ev.action]
-  return ev.action.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase())
+  return auditActionLabel(ev.action)
 }
 
 // Navigation deep-link non câblée (onNavigate = écran top-level) → clic = marquer lu.
