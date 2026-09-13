@@ -37,6 +37,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { trustedClientIp } from '../_shared/client-ip.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -179,8 +180,11 @@ serve(async (req) => {
   })
 
   if (error) {
+    // Appelable SANS session : le message Postgres (colonnes, contraintes, signature de
+    // la RPC) resterait lisible par n'importe qui. Il part au journal — audit S14.
+    console.error('[log-auth-event] log_auth_event_limited en échec :', redactedErrorMessage(error))
     return new Response(
-      JSON.stringify({ ok: false, error: error.message }),
+      JSON.stringify({ ok: false, error: 'internal_error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }

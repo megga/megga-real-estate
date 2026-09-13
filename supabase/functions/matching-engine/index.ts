@@ -2,6 +2,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import {
   calculateScoreV2,
   inferTransactionType,
@@ -257,7 +258,11 @@ serve(async (req) => {
         .eq('id', property_id)
         .eq('agency_id', agency_id) // défense en profondeur : ne score que le bien de l'agence
         .single()
-      if (propError || !property) throw new Error(`Property not found: ${property_id}`)
+      if (propError || !property) {
+        return new Response(JSON.stringify({ error: 'property_not_found' }), {
+          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
 
       const { data: searches, error: searchError } = await supabase
         .from('client_searches')
@@ -321,15 +326,21 @@ serve(async (req) => {
 
       await matchSearchesAgainstMarket(searches || [], (s) => s.contact_id as string)
     } else {
-      throw new Error(`Invalid mode: ${mode}. Expected 'match-property', 'match-contact', or 'scan-all'`)
+      return new Response(JSON.stringify({ error: 'invalid_mode' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     return new Response(JSON.stringify({ newMatches, newMarketMatches, mode, scoreVersion: cfg.version }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
+    // Ce catch reçoit les erreurs Postgres des RPC d'insertion et des lectures (`throw error`
+    // plus haut) : leur message nomme tables et contraintes. Journal, pas réponse — audit
+    // S14. Les deux refus dus à l'APPELANT (mode inconnu, bien absent) sortent avant, avec
+    // leur code : ils passaient par ici en 500, texte compris.
+    console.error('[matching-engine] échec :', redactedErrorMessage(error))
+    return new Response(JSON.stringify({ error: 'internal_error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

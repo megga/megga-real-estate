@@ -328,8 +328,13 @@ serve(async (req) => {
         body, signature, webhookSecret
       )
     } catch (err) {
+      // N'importe qui peut atteindre cette branche : c'est AVANT la signature. Le message du
+      // SDK y décrivait ce qui avait échoué — en-tête absent, horodatage hors tolérance,
+      // aucune signature concordante —, un diagnostic de notre configuration rendu à un
+      // inconnu, comme le motif du lien magique avant S10. Stripe n'a besoin que du 400
+      // pour rejouer ; le détail reste dans le journal (audit S14).
       console.error('Webhook signature verification failed:', (err as Error).message)
-      return new Response(`Webhook Error: ${(err as Error).message}`, { status: 400 })
+      return new Response('Webhook Error: signature verification failed', { status: 400 })
     }
 
     const supabaseAdmin = createClient(

@@ -104,6 +104,12 @@ function wrapHTML(subject: string, bodyHTML: string): string {
 const isEmail = (s: unknown): s is string =>
   typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
 
+/**
+ * La phrase que la modale de revue affiche sur un échec d'envoi (`useSendAgentEmail` lit
+ * `message`, puis `error`). Générique par construction : la cause réelle est au journal.
+ */
+const ECHEC_ENVOI = 'L’envoi a échoué. Réessayez dans un instant.'
+
 function jsonResponse(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -229,14 +235,17 @@ serve(async (req) => {
 
     if (!res.ok) {
       // Le corps Resend porte le destinataire : on journalise le statut, pas le corps.
+      // ⛔ Et on ne le RENVOIE pas davantage (audit S14) : `details: resData` recopiait au
+      // navigateur le diagnostic du fournisseur, que le commentaire ci-dessus refusait déjà
+      // au journal. Le statut passe, le texte non ; la modale lit `message`.
       console.error('Resend error:', res.status, String(resData?.name ?? resData?.message ?? '').slice(0, 120))
-      return jsonResponse(res.status, { error: 'Failed to send email', details: resData })
+      return jsonResponse(res.status, { error: 'send_failed', message: ECHEC_ENVOI })
     }
 
     return jsonResponse(200, { success: true, id: resData.id })
 
   } catch (err) {
     console.error('send-email error:', String((err as Error)?.message ?? err).slice(0, 200))
-    return jsonResponse(500, { error: 'send_failed' })
+    return jsonResponse(500, { error: 'send_failed', message: ECHEC_ENVOI })
   }
 })

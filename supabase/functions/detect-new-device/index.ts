@@ -20,6 +20,8 @@
 
 import { buildDeviceAlertEmail } from '../_shared/device-alert-email.ts'
 import { profileLocale } from '../_shared/recipient-language.ts'
+import { isIpAddress, trustedClientIp } from '../_shared/client-ip.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -82,13 +84,14 @@ function parseUA(ua: string): { browser: string; os: string } {
 
 // ─── Geo (best-effort, silent on failure) ────────────────────────────────
 
-async function geolocate(ip: string): Promise<{ country: string | null; city: string | null }> {
-  if (!ip || ip === '127.0.0.1' || ip.startsWith('10.') || ip.startsWith('192.168.')) {
-    return { country: null, city: null }
-  }
+async function geolocate(ip: string | null): Promise<{ country: string | null; city: string | null }> {
+  // Contrôlé ICI, à l'interpolation, et pas seulement chez l'appelant : tout ce qui n'est
+  // pas une adresse littérale (`../`, `?`, `#`…) réécrirait le chemin demandé à ipapi.co.
+  // Les plages privées n'y arrivent plus : `trustedClientIp` ne rend qu'une IP publique.
+  if (!ip || !isIpAddress(ip)) return { country: null, city: null }
   try {
     // ipapi.co — free tier 1k req/day, no key, CORS-enabled
-    const resp = await fetch(`https://ipapi.co/${ip}/json/`, {
+    const resp = await fetch(`https://ipapi.co/${encodeURIComponent(ip)}/json/`, {
       headers: { 'User-Agent': 'MEGGA Security' },
       signal: AbortSignal.timeout(3000),
     })
@@ -142,8 +145,13 @@ serve(async (req) => {
 
     const ua = req.headers.get('User-Agent') ?? ''
     const acceptLang = req.headers.get('Accept-Language') ?? ''
-    const ipFwd = req.headers.get('x-forwarded-for') ?? ''
-    const ip = ipFwd.split(',')[0].trim() || req.headers.get('x-real-ip') || ''
+    // ⛔ PAS la tête de x-forwarded-for, ni x-real-ip (audit du 13.09.2026, S14) : l'appelant
+    // les écrit lui-même, et cette IP part chez ipapi.co puis dans l'alerte envoyée à la
+    // victime. Qui volait un mot de passe y posait l'IP habituelle de sa cible, et l'alerte
+    // lui montrait sa propre ville. `null` quand rien n'est attribuable : l'e-mail dit
+    // alors « Inconnue », ce qui est vrai.
+    const candidate = trustedClientIp(req)
+    const ip = candidate !== null && isIpAddress(candidate) ? candidate : null
 
     const body = await req.json().catch(() => ({})) as { screen?: string; tz?: string }
     const screen = body.screen ?? ''
@@ -165,9 +173,10 @@ serve(async (req) => {
       .maybeSingle()
 
     if (existing) {
+      // Une IP inattribuable n'efface pas la dernière connue : l'écran « Appareils » la montre.
       await admin
         .from('user_devices')
-        .update({ last_seen_at: new Date().toISOString(), ip, session_id: sessionId })
+        .update({ last_seen_at: new Date().toISOString(), ...(ip ? { ip } : {}), session_id: sessionId })
         .eq('id', existing.id)
       return json({ ok: true, isNew: false })
     }
@@ -209,7 +218,7 @@ serve(async (req) => {
 
     return json({ ok: true, isNew: true, emailSent: !isFirstDevice })
   } catch (e) {
-    console.error('detect-new-device error:', (e as Error).message)
+    console.error('detect-new-device error:', redactedErrorMessage(e))
     return json({ error: 'internal' }, 500)
   }
 })

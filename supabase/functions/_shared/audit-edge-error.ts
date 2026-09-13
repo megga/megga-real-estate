@@ -19,6 +19,11 @@
 //
 // Best-effort de bout en bout : journaliser un incident ne doit jamais en
 // créer un second. Toute erreur d'écriture est avalée et tracée en console.
+//
+// Le nettoyage du message (caviardage + troncature) est exporté à part,
+// `redactedErrorMessage` : c'est aussi ce que les fonctions écrivent dans
+// `console.error` depuis qu'elles ne renvoient plus ce texte à leur appelant
+// (audit du 13.09.2026, S14).
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { redactPII } from './pii-redaction.ts'
@@ -45,6 +50,45 @@ export interface EdgeErrorEvent {
 }
 
 /**
+ * Le texte d'une erreur, prêt à quitter la fonction : caviardé, puis tronqué.
+ *
+ * Un message d'erreur n'est pas du texte de confiance : il recopie souvent la
+ * charge utile qui l'a provoqué (clé d'API d'un fournisseur, IBAN d'un
+ * formulaire, jeton de lien magique dans une URL recopiée). Il finit lisible
+ * par les super-admins — dans `activity_events` ou dans les journaux des
+ * fonctions — on le nettoie avant.
+ *
+ * ⛔ C'EST UN TEXTE DE JOURNAL, JAMAIS UN CORPS DE RÉPONSE (audit du 13.09.2026,
+ * S14). Caviardé ou non, le message d'une erreur Postgres nomme des colonnes et
+ * des contraintes, celui d'un fournisseur recopie son diagnostic : l'appelant
+ * reçoit un code stable, et le détail part ici, dans `console.error`.
+ *
+ * Une erreur Postgres qui n'est PAS une `Error` (objet `{ message, code,
+ * details }` de PostgREST) est lue par son `message` et son `code`, jamais
+ * sérialisée entière : `details` porte la valeur fautive de la ligne
+ * (« Key (email)=(…) already exists »), une adresse que `redactPII` ne
+ * caviarde pas.
+ */
+export function redactedErrorMessage(err: unknown, max = MAX_ERROR_CHARS): string {
+  const raw = err instanceof Error
+    ? (err.message || err.name)
+    : typeof err === 'string' ? err : postgrestLike(err) ?? JSON.stringify(err ?? null)
+
+  const { redactedText } = redactPII(raw ?? '')
+  return redactedText.length > max
+    ? `${redactedText.slice(0, max)}…`
+    : redactedText
+}
+
+/** `[code] message` d'un objet d'erreur non-`Error` qui porte un `message` texte ; sinon null. */
+function postgrestLike(err: unknown): string | null {
+  if (typeof err !== 'object' || err === null) return null
+  const { message, code } = err as { message?: unknown; code?: unknown }
+  if (typeof message !== 'string') return null
+  return typeof code === 'string' && code ? `[${code}] ${message}` : message
+}
+
+/**
  * Met en forme l'événement, sans rien écrire.
  *
  * Séparé de l'écriture pour être testable, et parce que la FORME est un
@@ -57,21 +101,9 @@ export function buildEdgeErrorEvent(
   err: unknown,
   ctx: EdgeErrorContext = {},
 ): EdgeErrorEvent {
-  const raw = err instanceof Error
-    ? (err.message || err.name)
-    : typeof err === 'string' ? err : JSON.stringify(err ?? null)
-
-  // Un message d'erreur n'est pas du texte de confiance : il recopie souvent la
-  // charge utile qui l'a provoqué (clé d'API d'un fournisseur, IBAN d'un
-  // formulaire). Il finit lisible par les super-admins — on le nettoie avant.
-  const { redactedText } = redactPII(raw ?? '')
-  const message = redactedText.length > MAX_ERROR_CHARS
-    ? `${redactedText.slice(0, MAX_ERROR_CHARS)}…`
-    : redactedText
-
   const metadata: Record<string, unknown> = {
     function_name: functionName,
-    error: message,
+    error: redactedErrorMessage(err),
   }
   if (typeof ctx.startedAt === 'number') {
     metadata.duration_ms = Math.max(0, Date.now() - ctx.startedAt)
