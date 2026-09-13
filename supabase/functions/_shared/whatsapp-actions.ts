@@ -35,6 +35,7 @@ import { touchHotContact } from './contact-memory.ts'
 import { lireFaitsContact } from './contact-timeline.ts'
 import { redactPII } from './pii-redaction.ts'
 import { buildDocReadPrompt } from './whatsapp-doc-prompt.ts'
+import { urlFonction } from './function-url.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -1437,7 +1438,7 @@ export async function execRunKycScreening(ctx: ActionCtx, a: Args): Promise<stri
     return `Le screening de ${name} tourne déjà, je te donne le résultat dès qu'il est prêt.`
   }
 
-  const url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/kyc-screening`
+  const url = urlFonction(Deno.env.get('SUPABASE_URL') ?? '', 'kyc-screening')
   let res: Response
   try {
     res = await fetch(url, {
@@ -1500,7 +1501,7 @@ export async function execSendKycReport(ctx: ActionCtx, a: Args): Promise<string
   const kc = await findOpenKycCase(ctx, contactId)
   if (!kc) return `Aucun dossier KYC ouvert pour ${name}. Tu veux que j'en ouvre un ?`
 
-  const url = `${Deno.env.get('SUPABASE_URL')}/functions/v1/kyc-report-pdf`
+  const url = urlFonction(Deno.env.get('SUPABASE_URL') ?? '', 'kyc-report-pdf')
   let res: Response
   try {
     res = await fetch(url, {
@@ -1743,7 +1744,7 @@ export async function executeSendKycLink(ctx: ActionCtx, payload: Args): Promise
   let sent = false
   let reason: string | null = null
   try {
-    const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/magic-link-send-email`, {
+    const res = await fetch(urlFonction(Deno.env.get('SUPABASE_URL') ?? '', 'magic-link-send-email'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
       body: JSON.stringify({ magic_link_id: inserted.id }),
@@ -1935,7 +1936,7 @@ export async function executeSendClientEmail(ctx: ActionCtx, payload: Args): Pro
   let emailSent = false
   let failReason: string | null = null
   try {
-    const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-relance-email`, {
+    const res = await fetch(urlFonction(Deno.env.get('SUPABASE_URL') ?? '', 'send-relance-email'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -3129,7 +3130,7 @@ async function triggerImmediateSyndication(agencyId: string): Promise<void> {
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
   if (!url || !key) return
   try {
-    await fetch(`${url}/functions/v1/idx-syndicate`, {
+    await fetch(urlFonction(url, 'idx-syndicate'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({ agency_id: agencyId }),
@@ -3376,7 +3377,7 @@ export async function execAttachPropertyPhotos(ctx: ActionCtx, a: Args): Promise
   const keyPrefix = `properties/${p.id.toLowerCase()}/photos/${hash36(stageUrl)}`
   let r2Url: string | null = null
   try {
-    const res = await fetch(`${baseUrl}/functions/v1/photo-processor`, {
+    const res = await fetch(urlFonction(baseUrl, 'photo-processor'), {
       method: 'POST',
       headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ listingId: p.id, photoUrls: [stageUrl], keyPrefix }),
@@ -3472,7 +3473,7 @@ export async function execWebAttachPropertyPhotos(ctx: ActionCtx, a: Args): Prom
     const keyPrefix = `properties/${p.id.toLowerCase()}/photos/${hash36(url)}`
     let r2Url: string | null = null
     try {
-      const res = await fetch(`${baseUrl}/functions/v1/photo-processor`, {
+      const res = await fetch(urlFonction(baseUrl, 'photo-processor'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ listingId: p.id, photoUrls: [url], keyPrefix }),

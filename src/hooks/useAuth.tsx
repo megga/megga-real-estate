@@ -38,7 +38,7 @@
  */
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
 import type { AuthChangeEvent, Session, User } from '@supabase/supabase-js'
-import { supabase, CLE_SESSION_AUTH, lireUidSessionStockee, purgeAuthTokens, sujetDuJeton } from '@/lib/supabase'
+import { supabase, CLE_SESSION_AUTH, lireUidSessionStockee, purgeAuthTokens, sujetDuJeton, urlFonction } from '@/lib/supabase'
 import { sessionSansJetonsFournisseur } from '@/lib/authStorage'
 import {
   ecrireCompteOnglet, lierComptePage, lireCompteOnglet, lireJsonDuCompte, marquerFinDeSession,
@@ -88,7 +88,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // Edge Function can decide whether to alert the user by email.
 async function reportDevice(accessToken: string) {
   try {
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/detect-new-device`
+    const url = urlFonction('detect-new-device')
     await fetch(url, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },

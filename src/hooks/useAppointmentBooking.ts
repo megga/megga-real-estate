@@ -10,7 +10,7 @@
 // « une erreur est survenue ».
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { SUPABASE_FUNCTIONS_URL, SUPABASE_PUBLIC_ANON_KEY } from '@/lib/supabase'
+import { SUPABASE_PUBLIC_ANON_KEY, urlFonction } from '@/lib/supabase'
 
 /**
  * ⛔ L'URL DES FONCTIONS ET LA CLÉ PUBLIQUE VIENNENT DE `lib/supabase`, JAMAIS
@@ -28,8 +28,9 @@ import { SUPABASE_FUNCTIONS_URL, SUPABASE_PUBLIC_ANON_KEY } from '@/lib/supabase
  *
  * ⚠ C'est AUSSI ce qui rendait cette face impossible à monter sur un banc :
  * l'intercepteur de `bancSupabase` reconnaît les appels à leur URL ABSOLUE.
+ *
+ * Les URL passent par `urlFonction`, qui épingle aussi la RÉGION d'exécution (13.09.2026).
  */
-const SUPABASE_URL = SUPABASE_FUNCTIONS_URL.replace(/\/functions\/v1$/, '')
 const SUPABASE_ANON_KEY = SUPABASE_PUBLIC_ANON_KEY
 
 const FN_HEADERS = {
@@ -124,7 +125,7 @@ export function useAppointmentSlots(token: string | undefined, days?: number) {
       const params = new URLSearchParams({ token })
       if (days) params.set('days', String(days))
 
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/appointment-slots?${params}`, {
+      const res = await fetch(urlFonction('appointment-slots', params), {
         headers: FN_HEADERS,
       })
       const body = await parseJson(res)
@@ -183,7 +184,7 @@ export function useBookAppointment() {
   const queryClient = useQueryClient()
   return useMutation<PublicAppointment, BookingFailure, BookInput>({
     mutationFn: async (input): Promise<PublicAppointment> => {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/appointment-book`, {
+      const res = await fetch(urlFonction('appointment-book'), {
         method: 'POST',
         headers: { ...FN_HEADERS, 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: input.token, starts_at: input.startsAt, note: input.note ?? null }),
@@ -212,7 +213,7 @@ export function useAppointmentByToken(token: string | undefined) {
     queryFn: async (): Promise<PublicAppointment | AppointmentLoadError> => {
       if (!token) throw new Error('No token')
       const res = await fetch(
-        `${SUPABASE_URL}/functions/v1/appointment-manage?token=${encodeURIComponent(token)}`,
+        urlFonction('appointment-manage', { token }),
         { headers: FN_HEADERS },
       )
       if (!res.ok) {
@@ -244,7 +245,7 @@ export function useManageAppointment() {
   const queryClient = useQueryClient()
   return useMutation<PublicAppointment, BookingFailure, ManageInput>({
     mutationFn: async (input): Promise<PublicAppointment> => {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/appointment-manage`, {
+      const res = await fetch(urlFonction('appointment-manage'), {
         method: 'POST',
         headers: { ...FN_HEADERS, 'Content-Type': 'application/json' },
         body: JSON.stringify({
