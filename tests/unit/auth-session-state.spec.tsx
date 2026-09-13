@@ -26,6 +26,12 @@ vi.mock('@/lib/supabase', () => {
     single: async () => ({ data: null, error: { message: 'absent' } }),
   }
   return {
+    // Garde « un compte par page » (useAuth, S11) : ce test n'en parle pas —
+    // stockage vide, aucune purge de jetons.
+    CLE_SESSION_AUTH: 'sb-test-auth-token',
+    lireUidSessionStockee: () => null,
+    purgeAuthTokens: () => {},
+    sujetDuJeton: () => null,
     supabase: {
       auth: {
         getSession: vi.fn(async () => ({ data: { session: h.sessionInitiale } })),

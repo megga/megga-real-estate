@@ -16,8 +16,23 @@
 
 import type { ReactNode } from 'react'
 import { CrmTabsCtx, useCrmTabsMachine } from '@/hooks/useCrmTabs'
+import { useAuth } from '@/hooks/useAuth'
 
+/**
+ * La machine remonte à chaque couple compte/agence (`key`, audit S11) : aucune
+ * pile en mémoire, aucun onglet fermé, aucun drapeau « non enregistré » ne
+ * survit à son compte ni à son agence. C'est une CEINTURE : un changement de
+ * compte recharge déjà la page (useAuth) — elle sert surtout au même compte qui
+ * change d'agence, dont la pile nomme les clients de l'ancienne.
+ */
 export function CrmTabsProvider({ children }: { children: ReactNode }) {
+  const { user, profile } = useAuth()
+  return (
+    <MachineOnglets key={`${user?.id ?? 'anon'}:${profile?.agency_id ?? 'aucune'}`}>{children}</MachineOnglets>
+  )
+}
+
+function MachineOnglets({ children }: { children: ReactNode }) {
   const api = useCrmTabsMachine()
   return <CrmTabsCtx.Provider value={api}>{children}</CrmTabsCtx.Provider>
 }

@@ -44,6 +44,7 @@ import {
   crmTabHref, crmTabRefs, crmTogglePin, type CrmTab, type CrmTabsState,
 } from '@/lib/crmTabs'
 import { crmSidebarActiveFor, CRM_NEW_TAB_PATH } from '@/components/crm/crmSidebarNav'
+import { cleDuCompte, sessionEnFin } from '@/lib/stockageParCompte'
 
 /**
  * Miroir de démarrage — `sessionStorage`, JAMAIS `localStorage`.
@@ -56,13 +57,22 @@ import { crmSidebarActiveFor, CRM_NEW_TAB_PATH } from '@/components/crm/crmSideb
  *
  * Le miroir n'existe que pour la première frame : sans lui la barre affiche un
  * seul onglet puis se repeuple ~200 ms plus tard, et le contenu saute.
+ *
+ * ⛔ RANGÉ PAR COMPTE ET PAR AGENCE : `megga.crm.tabs:<uid>:<agence>` (audit S11).
+ * Sous une clé fixe, le même onglet du navigateur rendait, après une déconnexion,
+ * la pile de A — noms de ses clients compris — à la première frame du compte B, et
+ * la sauvegarde la RÉÉCRIVAIT dans la ligne serveur de B. L'agence est dans la clé
+ * pour le même compte qui change d'agence : sa pile nomme les clients de l'ancienne,
+ * que team_remove_member et accept-team-invite viennent de purger côté serveur.
+ * Sans compte ou sans agence : pas de miroir du tout. Purgé à la déconnexion
+ * (@/lib/stockageParCompte).
  */
 const CLE_MIROIR = 'megga.crm.tabs'
 
-function lireMiroir(): CrmTabsState | null {
-  if (typeof window === 'undefined') return null
+function lireMiroir(cle: string | null): CrmTabsState | null {
+  if (typeof window === 'undefined' || !cle) return null
   try {
-    const brut = window.sessionStorage?.getItem(CLE_MIROIR)
+    const brut = window.sessionStorage?.getItem(cle)
     if (!brut) return null
     const v = JSON.parse(brut) as CrmTabsState
     return Array.isArray(v?.tabs) && v.tabs.length ? v : null
@@ -72,14 +82,25 @@ function lireMiroir(): CrmTabsState | null {
   }
 }
 
-function ecrireMiroir(etat: CrmTabsState): void {
-  if (typeof window === 'undefined') return
+function ecrireMiroir(cle: string | null, etat: CrmTabsState): void {
+  // Session finissante : la purge vient de retirer ce miroir, il ne doit pas renaître.
+  if (typeof window === 'undefined' || !cle || sessionEnFin()) return
   try {
-    window.sessionStorage?.setItem(CLE_MIROIR, JSON.stringify(etat))
+    window.sessionStorage?.setItem(cle, JSON.stringify(etat))
   } catch {
     // Le miroir est un confort de démarrage : son échec ne doit rien casser.
   }
 }
+
+/**
+ * `p_owner` / `p_agency` n'existent côté SQL qu'une fois 20260913160500 appliquée.
+ * Avant, PostgREST répond PGRST202 (aucune fonction à ces arguments) : on retombe
+ * alors, pour la vie de la page, sur l'appel historique à trois arguments. Sans ce
+ * repli, la persistance des onglets s'arrêterait EN SILENCE entre le déploiement de
+ * l'app et celui de la migration — deux workflows indépendants, et le date-guard de
+ * deploy.yml peut ne jamais appliquer une migration mergée après sa date.
+ */
+let sauvegardeHeritee = false
 
 export interface CrmTabsApi extends CrmTabsState {
   /** `true` tant que la pile serveur n'a pas répondu — la barre rend un état d'attente. */
@@ -235,10 +256,14 @@ function reconcilier(
 export function useCrmTabsMachine(): CrmTabsApi {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const isMobile = useIsMobile()
   const { t } = useTranslation('common')
   const messageSale = t('tabs.confirmClose')
+  // L'agence SOUS laquelle cette pile a été chargée : la machine est remontée à
+  // chaque couple compte/agence (CrmTabsProvider), donc elle ne bouge pas ici.
+  const agenceDeLaPile = useRef(profile?.agency_id ?? null).current
+  const cleMiroir = user?.id && agenceDeLaPile ? cleDuCompte(CLE_MIROIR, user.id, agenceDeLaPile) : null
 
   /**
    * Les onglets dont l'écran porte du travail non enregistré.
@@ -254,7 +279,7 @@ export function useCrmTabsMachine(): CrmTabsApi {
    */
   const saleRef = useRef<Set<string>>(new Set())
 
-  const [etat, setEtat] = useState<CrmTabsState>(() => lireMiroir() ?? { tabs: [], active: 0, revision: null })
+  const [etat, setEtat] = useState<CrmTabsState>(() => lireMiroir(cleMiroir) ?? { tabs: [], active: 0, revision: null })
   const [chargement, setChargement] = useState(true)
 
   /**
@@ -345,7 +370,9 @@ export function useCrmTabsMachine(): CrmTabsApi {
 
   const sauver = useCallback(async (immediat = false) => {
     const { tabs, active, revision } = etatRef.current
-    if (!user?.id || !tabs.length) return
+    // Session finissante (déconnexion, changement de compte) : plus aucune écriture —
+    // le jeton du stockage peut déjà être celui du compte suivant.
+    if (!user?.id || !tabs.length || sessionEnFin()) return
     if (enVolRef.current && !immediat) {
       // ⛔ NE PAS ABANDONNER : sans ce drapeau, la modification faite pendant qu'une
       // écriture était en vol n'était JAMAIS persistée — l'effet ne se relance qu'au
@@ -356,7 +383,7 @@ export function useCrmTabsMachine(): CrmTabsApi {
     }
     enVolRef.current = true
     try {
-      const { data, error } = await supabase.rpc('crm_tabs_save', {
+      const base = {
         p_tabs: tabs as unknown as never,
         p_active: active,
         // ⚠ `?? undefined` et non `?? null` : le paramètre est OPTIONNEL côté SQL
@@ -364,7 +391,18 @@ export function useCrmTabsMachine(): CrmTabsApi {
         // passer la première écriture. Un `null` explicite dirait la même chose,
         // mais le type généré ne l'accepte pas.
         p_revision: revision ?? undefined,
-      })
+      }
+      // Le serveur refuse une pile adressée à un AUTRE compte ou chargée sous une
+      // AUTRE agence que la sienne (42501) : ni une page restée sur A quand le
+      // stockage porte déjà B, ni un agent qui vient de changer d'agence ne
+      // réécrivent leur ancienne pile.
+      const garde = sauvegardeHeritee ? {} : { p_owner: user.id, p_agency: agenceDeLaPile ?? undefined }
+      let reponse = await supabase.rpc('crm_tabs_save', { ...base, ...garde })
+      if (reponse.error?.code === 'PGRST202' && !sauvegardeHeritee) {
+        sauvegardeHeritee = true
+        reponse = await supabase.rpc('crm_tabs_save', base)
+      }
+      const { data, error } = reponse
       if (error || !data) return
       const paquet = data as unknown as {
         tabs?: CrmTab[]; active_index?: number; revision?: number; stale?: boolean
@@ -397,7 +435,7 @@ export function useCrmTabsMachine(): CrmTabsApi {
         void sauverRef2.current?.()
       }
     }
-  }, [user?.id])
+  }, [user?.id, agenceDeLaPile])
   // ⚠ Ref d'auto-référence : `sauver` ne peut pas se citer dans son propre corps
   // (elle n'existe pas encore au moment où le `useCallback` la construit).
   const sauverRef2 = useRef<((immediat?: boolean) => Promise<void>) | null>(null)
@@ -420,7 +458,7 @@ export function useCrmTabsMachine(): CrmTabsApi {
   )
 
   useEffect(() => {
-    ecrireMiroir(etatRef.current)
+    ecrireMiroir(cleMiroir, etatRef.current)
     if (chargement || !user?.id) return
     if (sauverRef.current) window.clearTimeout(sauverRef.current)
     sauverRef.current = window.setTimeout(() => { void sauver() }, 800)
@@ -428,7 +466,7 @@ export function useCrmTabsMachine(): CrmTabsApi {
     // ⚠ `sauver` est volontairement HORS des dépendances : son identité change avec
     // `user?.id`, déjà présent, et l'y mettre rouvrirait la boucle par un autre chemin.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [empreinte, chargement, user?.id])
+  }, [empreinte, chargement, user?.id, cleMiroir])
 
   useEffect(() => {
     // ⚠ `pagehide`, pas `beforeunload` : le second ne part pas sur iOS et sur les
@@ -699,7 +737,10 @@ export function useCrmTabsMachine(): CrmTabsApi {
    */
   useEffect(() => {
     const onQuitter = (e: BeforeUnloadEvent) => {
-      if (!saleRef.current.size) return
+      // Déconnexion ou changement de compte : pas d'invite « quitter la page ? ».
+      // Le travail non enregistré du compte sortant est abandonné À DESSEIN — le
+      // garder, c'était risquer qu'il parte sous l'identité du compte suivant.
+      if (!saleRef.current.size || sessionEnFin()) return
       e.preventDefault()
       // Les navigateurs modernes ignorent le texte et affichent le leur ; poser
       // `returnValue` reste ce qui DÉCLENCHE la boîte.

@@ -1,12 +1,22 @@
-import { useCallback, useEffect, useState } from 'react'
+/**
+ * Avatar de l'agent — cache local + synchronisation Supabase Storage.
+ *
+ * Upload vers le bucket `avatars` (chemin {userId}/avatar.jpg) ; l'URL publique
+ * est mise en cache en localStorage pour un rendu instantané, et
+ * `profiles.avatar_url` fait foi à chaque connexion.
+ *
+ * ⚠ Le cache est rangé PAR COMPTE (`megga-avatar-url:<uid>`, audit S11). Il
+ * vivait sous une clé fixe, lue au CHARGEMENT DU MODULE — avant toute purge, avant
+ * même de savoir qui est connecté : la photo de A (parfois une data URL de son
+ * visage) s'affichait au compte suivant, et y restait tant que la relecture du
+ * profil ne rendait pas une AUTRE photo — un compte sans photo gardait celle de A.
+ * D'où : aucune lecture sans compte, et une relecture qui fait foi, absence
+ * comprise, dès qu'elle a abouti.
+ */
+import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import { supabase } from '@/lib/supabase'
-
-// Avatar — local-first with Supabase Storage sync when authenticated.
-//
-// Anonymous : data URL en localStorage (pas d'upload network).
-// Connecté : upload vers le bucket `avatars` (path {userId}/avatar.jpg),
-// publicUrl mémoïsé en localStorage pour rendu instantané.
-// Au login, on lit `profiles.avatar_url` ; au logout, on garde le cache.
+import { useAuth } from '@/hooks/useAuth'
+import { cleDuCompte } from '@/lib/stockageParCompte'
 
 const STORAGE_KEY = 'megga-avatar-url'
 const MAX_SIZE_BYTES = 2 * 1024 * 1024 // 2 Mo
@@ -58,21 +68,38 @@ export interface AvatarValidationError {
   message: string
 }
 
-// Singleton state
-let globalUrl: string | null = typeof window === 'undefined' ? null : localStorage.getItem(STORAGE_KEY)
-const listeners = new Set<() => void>()
+// État partagé : la chaîne rangée sous la clé DU COMPTE est la seule source —
+// le cliché est une chaîne, donc stable d'un rendu à l'autre.
+const abonnes = new Set<() => void>()
+const notifier = () => { for (const f of abonnes) f() }
 
-function notify() {
-  listeners.forEach((fn) => fn())
+function abonner(f: () => void): () => void {
+  abonnes.add(f)
+  // Synchronisation entre onglets : une photo changée ailleurs se voit ici.
+  const surStockage = (e: StorageEvent) => {
+    if (e.key === null || e.key.startsWith(`${STORAGE_KEY}:`)) f()
+  }
+  window.addEventListener('storage', surStockage)
+  return () => {
+    abonnes.delete(f)
+    window.removeEventListener('storage', surStockage)
+  }
 }
 
-function setGlobal(url: string | null) {
-  globalUrl = url
-  if (typeof window !== 'undefined') {
-    if (url) localStorage.setItem(STORAGE_KEY, url)
-    else localStorage.removeItem(STORAGE_KEY)
+function lireStockee(uid: string): string | null {
+  try {
+    return localStorage.getItem(cleDuCompte(STORAGE_KEY, uid))
+  } catch {
+    return null
   }
-  notify()
+}
+
+function ecrireStockee(uid: string, url: string | null) {
+  try {
+    if (url) localStorage.setItem(cleDuCompte(STORAGE_KEY, uid), url)
+    else localStorage.removeItem(cleDuCompte(STORAGE_KEY, uid))
+  } catch { /* quota ou stockage refusé : la photo reviendra à la prochaine relecture */ }
+  notifier()
 }
 
 async function uploadToStorage(dataUrl: string, userId: string): Promise<string | null> {
@@ -109,61 +136,43 @@ async function syncAvatarUrlToProfile(userId: string, url: string | null) {
   }
 }
 
-async function fetchProfileAvatar(userId: string): Promise<string | null> {
+/**
+ * `profiles.avatar_url` du compte. `ok: false` distingue une lecture ÉCHOUÉE de
+ * « pas de photo » : la première ne doit rien effacer, la seconde doit effacer.
+ */
+async function fetchProfileAvatar(userId: string): Promise<{ ok: boolean; url: string | null }> {
   try {
     const { data, error } = await supabase
       .from('profiles')
       .select('avatar_url')
       .eq('id', userId)
       .single()
-    if (error || !data) return null
-    return (data.avatar_url as string | null) ?? null
+    if (error || !data) return { ok: false, url: null }
+    return { ok: true, url: (data.avatar_url as string | null) ?? null }
   } catch {
-    return null
+    return { ok: false, url: null }
   }
 }
 
-/** Avatar utilisateur : état global partagé (localStorage + sync Storage/profil), upload avec redimensionnement 256px, suppression et validation de fichier. */
+/** Avatar utilisateur : état partagé par compte (localStorage + sync Storage/profil), upload avec redimensionnement 256px, suppression et validation de fichier. */
 export function useAvatar() {
-  const [, setTick] = useState(0)
+  const { user } = useAuth()
+  const uid = user?.id ?? null
+  const avatarUrl = useSyncExternalStore(abonner, () => (uid ? lireStockee(uid) : null), () => null)
 
+  // Relecture de profiles.avatar_url à chaque compte : elle FAIT FOI dès qu'elle
+  // aboutit, y compris pour dire « pas de photo ».
   useEffect(() => {
-    const fn = () => setTick((t) => t + 1)
-    listeners.add(fn)
-    return () => {
-      listeners.delete(fn)
-    }
-  }, [])
-
-  // Cross-tab sync via storage event
-  useEffect(() => {
-    function handleStorage(e: StorageEvent) {
-      if (e.key === STORAGE_KEY) {
-        globalUrl = e.newValue
-        notify()
-      }
-    }
-    window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
-  }, [])
-
-  // Hydrate from profile.avatar_url on first auth
-  useEffect(() => {
+    if (!uid) return
     let cancelled = false
-    async function run() {
-      const { data } = await supabase.auth.getUser()
-      if (cancelled || !data.user) return
-      const remote = await fetchProfileAvatar(data.user.id)
-      if (cancelled) return
-      if (remote && remote !== globalUrl) {
-        setGlobal(remote)
-      }
-    }
-    run()
+    void fetchProfileAvatar(uid).then((res) => {
+      if (cancelled || !res.ok) return
+      if (res.url !== lireStockee(uid)) ecrireStockee(uid, res.url)
+    })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [uid])
 
   const validateFile = useCallback((file: File): AvatarValidationError | null => {
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -179,34 +188,33 @@ export function useAvatar() {
     async (file: File): Promise<AvatarValidationError | null> => {
       const error = validateFile(file)
       if (error) return error
+      if (!uid) return { type: 'format', message: 'Connectez-vous pour changer de photo' }
       try {
         const dataUrl = await resizeImage(file, 256)
-        await persistDataUrl(dataUrl)
+        await persistDataUrl(uid, dataUrl)
         return null
       } catch {
         return { type: 'format', message: 'Impossible de traiter cette image' }
       }
     },
-    [validateFile]
+    [validateFile, uid]
   )
 
   const saveDataUrl = useCallback(async (dataUrl: string) => {
-    await persistDataUrl(dataUrl)
-  }, [])
+    if (uid) await persistDataUrl(uid, dataUrl)
+  }, [uid])
 
   const removeAvatar = useCallback(async () => {
-    setGlobal(null)
-    const { data } = await supabase.auth.getUser()
-    if (data.user) {
-      await Promise.all([
-        deleteFromStorage(data.user.id),
-        syncAvatarUrlToProfile(data.user.id, null),
-      ])
-    }
-  }, [])
+    if (!uid) return
+    ecrireStockee(uid, null)
+    await Promise.all([
+      deleteFromStorage(uid),
+      syncAvatarUrlToProfile(uid, null),
+    ])
+  }, [uid])
 
   return {
-    avatarUrl: globalUrl,
+    avatarUrl,
     uploadAvatar,
     saveDataUrl,
     removeAvatar,
@@ -214,17 +222,13 @@ export function useAvatar() {
   }
 }
 
-// Persist a data URL — local for anonymous, Storage + profile for authed.
-async function persistDataUrl(dataUrl: string) {
-  // Optimistic local update for instant UI
-  setGlobal(dataUrl)
-  const { data } = await supabase.auth.getUser()
-  if (data.user) {
-    const publicUrl = await uploadToStorage(dataUrl, data.user.id)
-    if (publicUrl) {
-      setGlobal(publicUrl)
-      void syncAvatarUrlToProfile(data.user.id, publicUrl)
-    }
-    // If upload fails, keep the local data URL — the user still sees their photo
+// Persiste une data URL : affichage immédiat, puis Storage + profil.
+async function persistDataUrl(uid: string, dataUrl: string) {
+  ecrireStockee(uid, dataUrl)
+  const publicUrl = await uploadToStorage(dataUrl, uid)
+  if (publicUrl) {
+    ecrireStockee(uid, publicUrl)
+    void syncAvatarUrlToProfile(uid, publicUrl)
   }
+  // Si l'upload échoue, la data URL reste affichée — l'agent voit sa photo.
 }

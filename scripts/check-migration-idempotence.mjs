@@ -14,7 +14,10 @@
 // Règle : un CREATE est accepté s'il est gardé par AU MOINS UN de ces moyens —
 //   1. CREATE … IF NOT EXISTS
 //   2. CREATE OR REPLACE (FUNCTION, VIEW, TRIGGER…)
-//   3. un DROP <même objet> IF EXISTS quelque part avant dans le fichier
+//   3. un DROP <même objet> IF EXISTS quelque part avant dans le fichier — pour une
+//      FUNCTION, de la MÊME SIGNATURE (types d'arguments), ou sans liste d'arguments
+//   (cf. `signature` plus bas : `drop function if exists f(a,b,c)` ne garde PAS un
+//   `create function f(a,b,c,d)`, qui lève 42723 au second rejeu du jour)
 //   4. être à l'intérieur d'un bloc dollar-quoté ($$ … $$ / DO $$ … $$),
 //      où l'idempotence se gère en PL/pgSQL (EXCEPTION WHEN duplicate_object…)
 //
@@ -57,9 +60,65 @@ const CREATE_RE = new RegExp(
 const ADD_COLUMN_RE = /\bADD\s+COLUMN\b(?!\s+IF\s+NOT\s+EXISTS)\s+("?[A-Za-z0-9_]+"?)/gi;
 
 const DROP_RE = new RegExp(
-  String.raw`\bDROP\s+(?:${KINDS})\s+IF\s+EXISTS\s+([A-Za-z0-9_."]+)`,
+  String.raw`\bDROP\s+(${KINDS})\s+IF\s+EXISTS\s+([A-Za-z0-9_."]+)`,
   'gi',
 );
+
+/**
+ * La liste d'arguments qui suit un nom de fonction (texte entre les parenthèses),
+ * ou null s'il n'y en a pas. `index` pointe juste après le nom capturé.
+ */
+function argumentsApres(sql, index) {
+  let i = index;
+  while (i < sql.length && /\s/.test(sql[i])) i++;
+  if (sql[i] !== '(') return null;
+  let profondeur = 0;
+  for (let j = i; j < sql.length; j++) {
+    if (sql[j] === '(') profondeur++;
+    else if (sql[j] === ')' && --profondeur === 0) return sql.slice(i + 1, j);
+  }
+  return null;
+}
+
+const ALIAS_TYPES = new Map([
+  ['int', 'integer'], ['int4', 'integer'], ['int8', 'bigint'], ['int2', 'smallint'],
+  ['bool', 'boolean'], ['float8', 'double precision'], ['float4', 'real'],
+  ['varchar', 'character varying'], ['timestamptz', 'timestamp with time zone'],
+  ['timestamp', 'timestamp without time zone'], ['timetz', 'time with time zone'],
+]);
+const TYPES_A_PLUSIEURS_MOTS = /^(double precision|character varying|timestamp (with|without) time zone|time (with|without) time zone)\b/;
+const MODES = new Set(['in', 'out', 'inout', 'variadic']);
+
+/**
+ * Signature d'identité d'une liste d'arguments : les TYPES, sans noms, sans
+ * valeurs par défaut, sans les paramètres OUT — ce que DROP FUNCTION compare.
+ */
+function signature(liste) {
+  const params = [];
+  let profondeur = 0;
+  let courant = '';
+  for (const c of liste) {
+    if (c === '(') profondeur++;
+    if (c === ')') profondeur--;
+    if (c === ',' && profondeur === 0) { params.push(courant); courant = ''; } else courant += c;
+  }
+  if (courant.trim()) params.push(courant);
+  const types = [];
+  for (const brut of params) {
+    let p = brut.replace(/\s+(default\b|=).*$/is, '').trim().toLowerCase().replace(/\s+/g, ' ');
+    let mots = p.split(' ');
+    if (MODES.has(mots[0])) {
+      if (mots[0] === 'out') continue;
+      mots = mots.slice(1);
+      p = mots.join(' ');
+    }
+    // Un nom précède le type, sauf si le paramètre EST un type de plusieurs mots.
+    if (mots.length > 1 && !TYPES_A_PLUSIEURS_MOTS.test(p)) p = mots.slice(1).join(' ');
+    p = p.replace(/^public\./, '').replace(/\(.*\)$/, '');
+    types.push(ALIAS_TYPES.get(p) ?? p);
+  }
+  return types.join(',');
+}
 
 /** Remplace par des espaces (pour préserver les offsets) les commentaires et les
  *  corps dollar-quotés — un CREATE dans un corps de fonction n'est pas exécuté au
@@ -95,12 +154,28 @@ function checkFile(path) {
   const sql = blankNonExecutable(raw);
 
   const dropped = new Set();
-  for (const d of sql.matchAll(DROP_RE)) dropped.add(normalize(d[1]));
+  // Fonctions : `nom(types)` par signature, ou `nom` seul pour un DROP sans liste
+  // (Postgres supprime alors l'unique fonction de ce nom, quelle qu'elle soit).
+  const droppedFns = new Set();
+  for (const d of sql.matchAll(DROP_RE)) {
+    const nom = normalize(d[2]);
+    if (d[1].toUpperCase() !== 'FUNCTION') { dropped.add(nom); continue; }
+    const liste = argumentsApres(sql, d.index + d[0].length);
+    droppedFns.add(liste === null ? nom : `${nom}(${signature(liste)})`);
+  }
 
   const faults = [];
   for (const c of sql.matchAll(CREATE_RE)) {
     const [, orReplace, kind, ifNotExists, name] = c;
     if (orReplace || ifNotExists) continue;
+    if (kind.toUpperCase() === 'FUNCTION') {
+      const nom = normalize(name);
+      const liste = argumentsApres(sql, c.index + c[0].length);
+      const sig = liste === null ? nom : `${nom}(${signature(liste)})`;
+      if (droppedFns.has(nom) || droppedFns.has(sig)) continue;
+      faults.push({ line: lineOf(sql, c.index), kind: 'FUNCTION', name: sig });
+      continue;
+    }
     if (dropped.has(normalize(name))) continue;
     faults.push({ line: lineOf(sql, c.index), kind: kind.toUpperCase(), name });
   }

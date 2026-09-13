@@ -10,6 +10,7 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { classifyPublicKey, publicKeyRefusalMessage } from '@/lib/publicKeyGuard'
 import { createAuthStorage, scrubStoredProviderTokens } from '@/lib/authStorage'
+import { comptePage } from '@/lib/stockageParCompte'
 
 // Typed client — schema in src/types/database.ts is regenerated via:
 //   npx supabase gen types typescript --project-id eayczugyrvmtqnnmvjod > src/types/database.ts
@@ -64,13 +65,58 @@ const authStorage = createAuthStorage({
   location: () => (typeof window === 'undefined' ? null : window.location),
 })
 
-/** Supprime toutes les clés `sb-*-auth-token` (local + session). `reason` sert au log. */
-function purgeAuthTokens(reason: string) {
+/**
+ * Clé de la session d'auth-js dans le stockage — même dérivation que supabase-js
+ * (`sb-<premier label de l'hôte>-auth-token`), épinglée par supabase-cle-session.spec.ts.
+ */
+export const CLE_SESSION_AUTH = `sb-${new URL(supabaseUrl).hostname.split('.')[0]}-auth-token`
+
+/** `sub` d'un JWT, sans vérifier sa signature ; null si illisible. */
+export function sujetDuJeton(jwt: string | null | undefined): string | null {
+  const charge = jwt?.split('.')[1]
+  if (!charge) return null
+  try {
+    const json = atob(charge.replace(/-/g, '+').replace(/_/g, '/'))
+    const sub = (JSON.parse(json) as { sub?: unknown }).sub
+    return typeof sub === 'string' && sub !== '' ? sub : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Le compte dont CET onglet porte la session, lu dans son propre stockage, de
+ * façon synchrone (aucun verrou d'auth) ; null sans session lisible.
+ *
+ * POURQUOI : le stockage de l'onglet dit la vérité sur son compte. Un événement
+ * SIGNED_IN relayé par BroadcastChannel peut venir d'un autre onglet dont la
+ * session vit à part (« Se souvenir de moi » décoché) — le suivre ferait
+ * recharger les deux onglets l'un après l'autre, sans fin.
+ */
+export function lireUidSessionStockee(): string | null {
+  try {
+    const brut = authStorage.getItem(CLE_SESSION_AUTH)
+    if (!brut) return null
+    const s = JSON.parse(brut) as { user?: { id?: unknown }; access_token?: string } | null
+    const id = s?.user?.id
+    if (typeof id === 'string' && id !== '') return id
+    return sujetDuJeton(s?.access_token)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Supprime les clés de session d'auth-js (local + session) : `sb-*-auth-token`,
+ * et le vérificateur PKCE `sb-*-auth-token-code-verifier` qu'une connexion
+ * abandonnée laisse derrière elle. `reason` sert au log.
+ */
+export function purgeAuthTokens(reason: string) {
   if (typeof window === 'undefined') return
   for (const store of [window.localStorage, window.sessionStorage]) {
     for (let i = store.length - 1; i >= 0; i--) {
       const key = store.key(i)
-      if (!key || !key.startsWith('sb-') || !key.endsWith('-auth-token')) continue
+      if (!key || !key.startsWith('sb-') || !/-auth-token(-code-verifier)?$/.test(key)) continue
       try { store.removeItem(key) } catch { /* ignore */ }
     }
   }
@@ -91,7 +137,39 @@ function purgeAuthTokens(reason: string) {
 // when a request genuinely fails 401 for unrelated reasons.
 let jwtRecoveryAttempted = false
 
+/**
+ * Garde d'IDENTITÉ : aucune requête de données ne part avec le jeton d'un autre
+ * compte que celui auquel la page est liée (audit S11).
+ *
+ * POURQUOI : supabase-js relit le jeton dans le stockage PARTAGÉ à chaque appel.
+ * Entre l'instant où un autre onglet range la session de B et celui où cet onglet
+ * l'apprend (événement `storage`, BroadcastChannel), toute requête de la page de A
+ * — sauvegarde différée, mutation en vol, rafraîchissement au focus — partirait
+ * sous l'identité de B, avec les données de A. On la refuse ici (401 synthétique
+ * `compte_change`) ; le rechargement suit.
+ *
+ * `/auth/v1/` est exempté : c'est par là que la session change, et une
+ * déconnexion doit pouvoir partir. Hors périmètre : les `fetch` DIRECTS (flux du
+ * copilote, détection d'appareil), qui ne passent pas par ce client.
+ */
+function refuseCompteEtranger(input: RequestInfo | URL, init?: RequestInit): Response | null {
+  const lie = comptePage()
+  if (!lie) return null
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+  if (url.includes('/auth/v1/')) return null
+  const entetes = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined))
+  const jeton = entetes.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? null
+  const sub = sujetDuJeton(jeton)
+  if (!sub || sub === lie) return null
+  return new Response(JSON.stringify({ code: 'compte_change', message: 'La session a changé de compte : la page va se recharger.' }), {
+    status: 401,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
 async function authAwareFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const refus = refuseCompteEtranger(input, init)
+  if (refus) return refus
   const response = await fetch(input, init)
   if (response.status === 401 && !jwtRecoveryAttempted) {
     try {

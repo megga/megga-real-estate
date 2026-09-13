@@ -24,6 +24,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useId, useMemo, useSyncExternalStore } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { cleDuCompte } from '@/lib/stockageParCompte'
 import type { CrmNotif, NotifKind, NotifPriority, NotifGroup } from '@/components/crm/notifications/data'
 
 const LAST_SEEN_KEY = 'megga-agent-notif-lastseen'
@@ -117,27 +118,32 @@ function ctaFor(): { cta: string; ctaTo: string } {
   return { cta: '', ctaTo: '' }
 }
 
-/** Set des ids marqués lus, restauré depuis localStorage (le point rouge, pas l'audit). */
-function loadReadIds(): Set<string> {
+/** Set des ids marqués lus du compte, restauré depuis localStorage (le point rouge, pas l'audit). */
+function loadReadIds(uid: string): Set<string> {
   try {
-    const raw = localStorage.getItem(READ_IDS_KEY)
+    const raw = localStorage.getItem(cleDuCompte(READ_IDS_KEY, uid))
     return new Set<string>(raw ? (JSON.parse(raw) as string[]) : [])
   } catch {
     return new Set<string>()
   }
 }
 
-/** Timestamp last-seen restauré depuis localStorage (0 si absent). */
-function loadLastSeen(): number {
+/** Timestamp last-seen du compte restauré depuis localStorage (0 si absent). */
+function loadLastSeen(uid: string): number {
   try {
-    return Number(localStorage.getItem(LAST_SEEN_KEY)) || 0
+    return Number(localStorage.getItem(cleDuCompte(LAST_SEEN_KEY, uid))) || 0
   } catch {
     return 0
   }
 }
 
+type EtatLu = { readIds: Set<string>; lastSeen: number }
+
+/** Cliché stable quand aucun compte n'est connecté — un objet neuf à chaque lecture bouclerait. */
+const ETAT_VIDE: EtatLu = { readIds: new Set<string>(), lastSeen: 0 }
+
 /**
- * L'état « lu » — UN pour toutes les cloches montées.
+ * L'état « lu » — UN par compte, pour toutes les cloches montées.
  *
  * ⛔ IL VIVAIT EN `useState` DANS CHAQUE INSTANCE, lu une fois au montage, et la
  * cloche est rendue par chaque bande d'onglets — donc par chaque écran vivant.
@@ -147,25 +153,39 @@ function loadLastSeen(): number {
  * faites ailleurs entre-temps. Un magasin de module lu par `useSyncExternalStore`
  * n'a pas de copie à laisser périmer ; l'événement `storage` y fait entrer les
  * lectures faites dans un autre onglet du navigateur.
+ *
+ * ⚠ Rangé PAR COMPTE (`…:<uid>`, audit S11) : sous une clé fixe, le compte suivant
+ * du navigateur héritait des lectures du précédent. Pas de nom dedans, donc gardé à
+ * la déconnexion ; l'ancienne clé non indexée est MIGRÉE vers le premier compte qui
+ * démarre (@/lib/stockageParCompte), pas effacée — sinon chaque agent retrouverait
+ * ses trente notifications en non lu au lendemain du déploiement.
  */
-let etatLu: { readIds: Set<string>; lastSeen: number } | null = null
+const etatsLus = new Map<string, EtatLu>()
 const abonnesLu = new Set<() => void>()
 
-function lireEtatLu(): { readIds: Set<string>; lastSeen: number } {
-  if (!etatLu) etatLu = { readIds: loadReadIds(), lastSeen: loadLastSeen() }
-  return etatLu
+function lireEtatLu(uid: string | null): EtatLu {
+  if (!uid) return ETAT_VIDE
+  let etat = etatsLus.get(uid)
+  if (!etat) {
+    etat = { readIds: loadReadIds(uid), lastSeen: loadLastSeen(uid) }
+    etatsLus.set(uid, etat)
+  }
+  return etat
 }
 
-function poserEtatLu(suivant: { readIds: Set<string>; lastSeen: number }): void {
-  etatLu = suivant
+function poserEtatLu(uid: string, suivant: EtatLu): void {
+  etatsLus.set(uid, suivant)
   for (const notifier of abonnesLu) notifier()
 }
 
 function abonnerEtatLu(notifier: () => void): () => void {
   abonnesLu.add(notifier)
   const onStorage = (e: StorageEvent) => {
-    if (e.key !== READ_IDS_KEY && e.key !== LAST_SEEN_KEY) return
-    poserEtatLu({ readIds: loadReadIds(), lastSeen: loadLastSeen() })
+    const k = e.key
+    if (k === null) etatsLus.clear()
+    else if (k.startsWith(`${READ_IDS_KEY}:`) || k.startsWith(`${LAST_SEEN_KEY}:`)) etatsLus.delete(k.slice(k.indexOf(':') + 1))
+    else return
+    for (const n of abonnesLu) n()
   }
   window.addEventListener('storage', onStorage)
   return () => {
@@ -189,8 +209,10 @@ export interface AgentNotifications {
  * porté UNE fois par la coquille — voir `useAgentNotificationsRealtime`.
  */
 export function useAgentNotifications(limit = 30): AgentNotifications {
-  const { readIds, lastSeen } = useSyncExternalStore(abonnerEtatLu, lireEtatLu, lireEtatLu)
-  const { profile } = useAuth()
+  const { profile, user } = useAuth()
+  const uid = user?.id ?? null
+  const cliche = useCallback(() => lireEtatLu(uid), [uid])
+  const { readIds, lastSeen } = useSyncExternalStore(abonnerEtatLu, cliche, cliche)
   const agencyId = profile?.agency_id ?? null
 
   const query = useQuery({
@@ -234,31 +256,33 @@ export function useAgentNotifications(limit = 30): AgentNotifications {
   const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items])
 
   const markRead = useCallback((id: string) => {
+    if (!uid) return
     // ⚠ Depuis le magasin COURANT, jamais depuis une copie : c'est ce qui empêche
     // une cloche d'effacer une lecture faite par une autre.
-    const courant = lireEtatLu()
+    const courant = lireEtatLu(uid)
     if (courant.readIds.has(id)) return
     const next = new Set(courant.readIds)
     next.add(id)
     try {
-      localStorage.setItem(READ_IDS_KEY, JSON.stringify([...next]))
+      localStorage.setItem(cleDuCompte(READ_IDS_KEY, uid), JSON.stringify([...next]))
     } catch {
       /* no-op */
     }
-    poserEtatLu({ ...courant, readIds: next })
-  }, [])
+    poserEtatLu(uid, { ...courant, readIds: next })
+  }, [uid])
 
   // Tout marquer lu = avancer le last-seen à maintenant + purger le set (audit immuable).
   const markAllRead = useCallback(() => {
+    if (!uid) return
     const now = Date.now()
     try {
-      localStorage.setItem(LAST_SEEN_KEY, String(now))
-      localStorage.removeItem(READ_IDS_KEY)
+      localStorage.setItem(cleDuCompte(LAST_SEEN_KEY, uid), String(now))
+      localStorage.removeItem(cleDuCompte(READ_IDS_KEY, uid))
     } catch {
       /* no-op */
     }
-    poserEtatLu({ readIds: new Set<string>(), lastSeen: now })
-  }, [])
+    poserEtatLu(uid, { readIds: new Set<string>(), lastSeen: now })
+  }, [uid])
 
   return { items, unreadCount, isLoading: query.isLoading, markRead, markAllRead }
 }

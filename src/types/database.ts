@@ -8318,7 +8318,13 @@ export type Database = {
       crm_tab_badges: { Args: never; Returns: Json }
       crm_tabs_resolve_labels: { Args: { p_refs: Json }; Returns: Json }
       crm_tabs_save: {
-        Args: { p_active: number; p_revision?: number; p_tabs: Json }
+        Args: {
+          p_active: number
+          p_agency?: string
+          p_owner?: string
+          p_revision?: number
+          p_tabs: Json
+        }
         Returns: Json
       }
       crm_visits_by_property: {
