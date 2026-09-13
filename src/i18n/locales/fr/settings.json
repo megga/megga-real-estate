@@ -591,17 +591,18 @@
     "header": {
       "kicker": "Intégrations",
       "title": "Connectez votre stack métier",
-      "sub": "{{active}} service(s) actif(s) sur {{total}} · agenda, email, signature, messagerie."
+      "sub_one": "{{count}} service actif sur {{total}} · agenda, email, signature, messagerie.",
+      "sub_other": "{{count}} services actifs sur {{total}} · agenda, email, signature, messagerie."
     },
     "filters": {
       "all": "Tous"
     },
     "catalogue": {
       "google": {
-        "desc": "Synchronisez Google Calendar, Gmail et Contacts en un seul branchement OAuth."
+        "desc": "Synchronisez vos visites et rendez-vous avec Google Agenda."
       },
       "microsoft": {
-        "desc": "Outlook Calendar, Outlook Mail et carnet d'adresses Exchange."
+        "desc": "Synchronisez vos visites et rendez-vous avec le calendrier Outlook."
       },
       "docusign": {
         "desc": "Signature électronique conforme eIDAS pour mandats et offres."
@@ -613,7 +614,7 @@
         "desc": "Conversations clients dans le CRM, modèles certifiés."
       },
       "messagerie": {
-        "desc": "Lisez et répondez à vos e-mails depuis le CRM (Google, Microsoft, IMAP)."
+        "desc": "Lisez et répondez à vos e-mails depuis le CRM (Gmail, Outlook)."
       }
     },
     "actions": {
@@ -632,12 +633,26 @@
       "onRequestHint": "Cette intégration est activée par l'équipe MEGGA sur demande. Contactez-nous pour brancher votre compte.",
       "whatYouCanDo": "Ce que vous pouvez faire",
       "permissionsGranted": "Permissions accordées",
+      "permissionsRequested": "Permissions demandées",
       "documentation": "Documentation",
       "permissions": {
-        "google": "[\"Calendar : visites, rendez-vous\",\"Gmail : emails clients dans le CRM\",\"Contacts : synchronisation\"]",
-        "microsoft": "[\"Outlook Calendar : agenda\",\"Outlook Mail : conversations\",\"Carnet d'adresses Exchange\"]",
-        "whatsapp": "[\"Recevoir vos messages clients dans le CRM\",\"Interroger MEGGA AI depuis votre téléphone\"]",
-        "signature": "[\"Préparer des dossiers de signature\",\"Suivre les statuts de signature\"]"
+        "google": [
+          "Agenda : créer et mettre à jour vos visites et rendez-vous",
+          "Disponibilités : lire vos créneaux occupés, sans le détail des événements",
+          "Profil : votre nom et votre adresse e-mail"
+        ],
+        "microsoft": [
+          "Calendrier Outlook : créer et mettre à jour vos visites et rendez-vous",
+          "Profil : votre nom et votre adresse e-mail"
+        ],
+        "whatsapp": [
+          "Recevoir vos messages clients dans le CRM",
+          "Interroger MEGGA AI depuis votre téléphone"
+        ],
+        "signature": [
+          "Préparer des dossiers de signature",
+          "Suivre les statuts de signature"
+        ]
       }
     },
     "disconnectConfirm": {
@@ -658,7 +673,10 @@
       "linked": "Lié",
       "linkedNumber": "Numéro lié",
       "writeLikeColleague": "Écrivez à MEGGA AI comme à un collègue",
-      "examples": "[\"Mes RDV demain ?\",\"Mes relances en retard ?\"]",
+      "examples": [
+        "Mes RDV demain ?",
+        "Mes relances en retard ?"
+      ],
       "error": {
         "title": "Statut indisponible",
         "desc": "Impossible de vérifier la connexion WhatsApp pour le moment.",
