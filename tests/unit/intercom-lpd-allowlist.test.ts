@@ -31,8 +31,11 @@ describe('Intercom LPD allowlist — sanitizeIntercomArgs', () => {
     const { sanitized, dropped } = sanitizeIntercomArgs({
       company: { company_id: 'a1', name: 'Agence X', stripe_customer_id: 'cus_1', client_name: 'M. Acheteur' },
     })
-    expect(sanitized.company).toEqual({ company_id: 'a1', name: 'Agence X', stripe_customer_id: 'cus_1' })
+    expect(sanitized.company).toEqual({ company_id: 'a1', name: 'Agence X' })
     expect(dropped).toContain('company.client_name')
+    // Audit S13 : un identifiant Stripe posé par le navigateur est falsifiable — il ne part
+    // plus vers Intercom, le client Stripe se résout côté serveur depuis company_id.
+    expect(dropped).toContain('company.stripe_customer_id')
   })
 
   it('gère un payload vide sans rien casser', () => {
