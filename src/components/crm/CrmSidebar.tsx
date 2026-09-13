@@ -609,11 +609,18 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
           style={{
             flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
             display: 'flex', flexDirection: 'column',
+            // ⚠ DÉPLIÉE, LE MÊME PAS ENTRE DEUX GROUPES QU'À L'INTÉRIEUR D'UN GROUPE. Le
+            // `gap` ne vivait que dans chaque groupe : mesuré, 41 px d'une ligne à la
+            // suivante, mais 37 px d'un groupe au suivant — la liste se resserrait
+            // précisément là où elle change de sujet, un regroupement lu à l'envers.
+            // « Seul l'ordre les signale » (décision du 7.09) veut un pas UNIFORME.
+            // Repliée, le filet porte ses propres marges : pas de pas en plus.
+            gap: collapsed ? 0 : 'var(--crm-space-2xs)',
             maskImage: 'linear-gradient(to bottom, #000 calc(100% - 18px), transparent)',
             WebkitMaskImage: 'linear-gradient(to bottom, #000 calc(100% - 18px), transparent)',
           }}
         >
-          <nav aria-label={t('nav.mainNav')} style={{ display: 'flex', flexDirection: 'column' }}>
+          <nav aria-label={t('nav.mainNav')} style={{ display: 'flex', flexDirection: 'column', gap: collapsed ? 0 : 'var(--crm-space-2xs)' }}>
             {CRM_SIDEBAR_GROUPS.map((g, i) => (
               <div key={g.labelKey} role="group" aria-label={t(g.labelKey)}>
                 <FiletDeGroupe collapsed={collapsed} first={i === 0} sp={sp} />

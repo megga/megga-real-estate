@@ -14,6 +14,7 @@ import { formatCHF } from '@/lib/utils'
 import type {
   AxPeriodId, AxPeriodData, AxSeries, AxKpi, AxCompositionItem, AxSource, AxDeal, AxBucketId, AxBucket, AxRecord,
 } from './tokens'
+import { axShort } from './tokens'
 
 // i18n : adaptateur PUR mais à libellés traduits → un traducteur `t` (lié au
 // namespace 'dashboard', clés dashboard:analytics.*) est injecté par le hook
@@ -263,6 +264,7 @@ export function buildAxData(
     {
       label: t('analytics.kpi.volume'),
       value: (cockpit.volume_signed && cockpit.volume_signed > 0) ? formatCHF(cockpit.volume_signed) : 'CHF —',
+      valueShort: (cockpit.volume_signed && cockpit.volume_signed > 0) ? `CHF ${axShort(cockpit.volume_signed)}` : undefined,
       // pas de N-1 de volume calculé : on n'affiche PAS delta_deals (variation du NOMBRE
       // de deals) à côté d'un montant CHF — ce serait un delta trompeur.
       delta: 0,
@@ -280,6 +282,9 @@ export function buildAxData(
       value: (cockpit.n_signed && cockpit.n_signed > 0)
         ? formatCHF(Math.round((decomp.signed ?? 0) / cockpit.n_signed))
         : 'CHF —',
+      valueShort: (cockpit.n_signed && cockpit.n_signed > 0)
+        ? `CHF ${axShort(Math.round((decomp.signed ?? 0) / cockpit.n_signed))}`
+        : undefined,
       delta: 0,
       spark: [],
     },

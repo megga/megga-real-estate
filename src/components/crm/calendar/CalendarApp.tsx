@@ -25,7 +25,8 @@ import {
   buildCalPalette, calAppliquerLibelles, calBlankEvent, calCompteParLibelle, CalEventMenuContext, calExpandEvents,
   calMasterId, CalPaletteContext, calTypeStyle, useCalPalette, type CalEvent, type CalEventLabel, type CalPalette,
 } from './data'
-import { calMonths, calShortTitle, fmtDate, fmtTime } from './helpers'
+import { calDays, calMonths, calMonthsShort, calShortTitle, fmtDate, fmtTime } from './helpers'
+import { majusculeInitiale } from '@/lib/utils'
 import { useCalendarScreen } from '@/hooks/useCalendarScreen'
 import { useCalendarExternal } from '@/hooks/useCalendarExternal'
 import { useVisits } from '@/hooks/useVisits'
@@ -97,25 +98,44 @@ interface ToolbarProps {
   view: CalViewId
   onView: (v: CalViewId) => void
   headerLabel: string
+  /** La même période en mois abrégés — pris quand la barre manque de place. */
+  headerLabelShort: string
   onToday: () => void
   onPrev: () => void
   onNext: () => void
   onCreate: () => void
 }
-function CalToolbar({ view, onView, headerLabel, onToday, onPrev, onNext, onCreate }: ToolbarProps) {
+function CalToolbar({ view, onView, headerLabel, headerLabelShort, onToday, onPrev, onNext, onCreate }: ToolbarProps) {
   const SP = useCalPalette()
   const { t } = useTranslation('calendar')
   return (
-    <div className="cal-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
+    <div className="cal-toolbar" style={{ padding: 'var(--crm-space-xl) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
+    <div className="cal-toolbar-row" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
       {/* ⚠ Le titre de la période est ce qui cède quand la barre manque de place — il
           se lisait « Septembre 2… » à 1440 px, barre latérale dépliée (~770 px utiles
           pour ~835 demandés). Sous le seuil, c'est le bouton de création qui se
           replie en « + » rond : son libellé reste dans `aria-label` et `title`. */}
       <style>{`
         .cal-toolbar { container-type: inline-size; }
+        .cal-toolbar .cal-title-short { display: none; }
         @container (max-width: 880px) {
           .cal-toolbar .cal-new-label { display: none; }
           .cal-toolbar .cal-new-btn { aspect-ratio: 1; padding-inline: 0 !important; justify-content: center; }
+        }
+        /* Second cran (1280 px, barre latérale dépliée) : le « + » ne suffit plus, le
+           mois passe en abrégé — « Sept. 2026 » plutôt que « Septembre… ». */
+        @container (max-width: 760px) {
+          .cal-toolbar .cal-title-long { display: none; }
+          .cal-toolbar .cal-title-short { display: inline; }
+        }
+        /* Troisième cran (1024 px, barre repliée) : même abrégé, le titre tombait à
+           « S… ». Il passe sur sa propre ligne, au-dessus des commandes. */
+        @container (max-width: 590px) {
+          .cal-toolbar .cal-toolbar-row { flex-wrap: wrap; row-gap: var(--crm-space-sm); }
+          .cal-toolbar .cal-title { order: -1; flex-basis: 100%; margin-left: 0 !important; }
+          /* Seul sur sa ligne, le titre a de nouveau la place de s'écrire en entier. */
+          .cal-toolbar .cal-title-long { display: inline; }
+          .cal-toolbar .cal-title-short { display: none; }
         }
       `}</style>
       <button onClick={onToday} style={{ height: 38, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.cardSubtle, color: SP.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
@@ -125,12 +145,16 @@ function CalToolbar({ view, onView, headerLabel, onToday, onPrev, onNext, onCrea
         <CalCircleBtn icon={<CalIcon name="chevL" size={17} stroke={SP.inkSoft} />} onClick={onPrev} title={t('common:actions.previous', { defaultValue: 'Précédent' })} size={38} />
         <CalCircleBtn icon={<CalIcon name="chevR" size={17} stroke={SP.inkSoft} />} onClick={onNext} title={t('common:actions.next', { defaultValue: 'Suivant' })} size={38} />
       </div>
-      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: SP.ink, letterSpacing: -0.5, marginLeft: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{headerLabel}</div>
+      <div className="cal-title" style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: SP.ink, letterSpacing: -0.5, marginLeft: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <span className="cal-title-long">{headerLabel}</span>
+        <span className="cal-title-short">{headerLabelShort}</span>
+      </div>
       <div style={{ flex: 1 }} />
       <CalViewToggle value={view} onChange={onView} />
       <button className="cal-new-btn" onClick={onCreate} aria-label={t('page.newEvent')} title={t('page.newEvent')} style={{ height: 40, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.accent, color: SP.onAccent, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', boxShadow: SP.shadowSm, flexShrink: 0 }}>
         <CalIcon name="plus" size={15} stroke={SP.onAccent} sw={2.6} /><span className="cal-new-label">{t('page.newEvent')}</span>
       </button>
+    </div>
     </div>
   )
 }
@@ -527,6 +551,15 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     if (monday.getFullYear() === sunday.getFullYear()) return `${m1} – ${m2} ${sunday.getFullYear()}`
     return `${m1} ${monday.getFullYear()} – ${m2} ${sunday.getFullYear()}`
   })()
+  const headerLabelShort = (() => {
+    const ms = calMonthsShort()
+    if (view === 'day') return majusculeInitiale(`${calDays()[currentDate.getDay()] ?? ''} ${currentDate.getDate()} ${ms[currentDate.getMonth()] ?? ''}`.trim())
+    if (view === 'month') return majusculeInitiale(`${ms[currentDate.getMonth()]} ${currentDate.getFullYear()}`)
+    const monday = new Date(currentDate); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
+    const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6)
+    if (monday.getMonth() === sunday.getMonth()) return majusculeInitiale(`${ms[monday.getMonth()]} ${monday.getFullYear()}`)
+    return majusculeInitiale(`${ms[monday.getMonth()]} – ${ms[sunday.getMonth()]} ${sunday.getFullYear()}`)
+  })()
 
   const navDate = (delta: number) => {
     const d = new Date(currentDate)
@@ -594,7 +627,7 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
               {/* Carte principale */}
               <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-2xl) var(--crm-space-2xl) 0', minHeight: 0, display: 'flex' }}>
                 <div style={{ flex: 1, minWidth: 0, background: SP.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: sp.shadow, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                  <CalToolbar view={view} onView={setView} headerLabel={headerLabel} onToday={() => setCurrentDate(new Date())} onPrev={() => navDate(-1)} onNext={() => navDate(1)} onCreate={startCreate} />
+                  <CalToolbar view={view} onView={setView} headerLabel={headerLabel} headerLabelShort={headerLabelShort} onToday={() => setCurrentDate(new Date())} onPrev={() => navDate(-1)} onNext={() => navDate(1)} onCreate={startCreate} />
                   {calendarError && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, color: SP.ink }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
