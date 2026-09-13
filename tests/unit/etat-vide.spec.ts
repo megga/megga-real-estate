@@ -23,23 +23,38 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import { repoPath } from './helpers/fs-scan'
 
 const COMPOSANT = 'src/components/crm/EtatVide.tsx'
 const source = readFileSync(repoPath(COMPOSANT), 'utf-8')
 
+/**
+ * Une valeur du bloc `ENCRE` : un littéral, ou une clé de `STATUT_CLAIR`.
+ *
+ * ⚠ Les encres CLAIRES passent par `STATUT_CLAIR` depuis le 13.09.2026 — une
+ * seule source pour l'erreur, l'alerte et le succès sur blanc. La liaison est
+ * RÉSOLUE par la valeur importée, jamais sautée : une couleur qu'on ne sait pas
+ * lire est REFUSÉE, sinon la clause passe au vert sur ce qu'elle ignore.
+ */
+function valeur(brut: string): string | null {
+  const b = brut.trim().replace(/,$/, '')
+  const litteral = /^'(#[0-9a-fA-F]{6})'$/.exec(b)?.[1]
+  if (litteral) return litteral
+  const cle = /^STATUT_CLAIR\.(\w+)$/.exec(b)?.[1]
+  return cle && cle in STATUT_CLAIR ? STATUT_CLAIR[cle as keyof typeof STATUT_CLAIR] : null
+}
+
 /** Les encres, relues DANS le composant — jamais recopiées ici. */
 function encres(): Record<string, { clair: string; sombre: string }> {
   const bloc = source.slice(source.indexOf('const ENCRE'), source.indexOf('export interface EtatVideProps'))
   const out: Record<string, { clair: string; sombre: string }> = {}
-  for (const m of bloc.matchAll(/(\w+):\s*\{\s*clair:\s*'(#[0-9a-fA-F]{6})',\s*sombre:\s*([^}]+)\}/g)) {
-    const brut = m[3]!.trim().replace(/,$/, '')
-    const hex = /^'(#[0-9a-fA-F]{6})'$/.exec(brut)?.[1]
-      // `MXC_SYSTEM.green400` — résolu, jamais sauté : une couleur qu'on ne sait
-      // pas lire est REFUSÉE, sinon la clause passe au vert sur ce qu'elle ignore.
-      ?? null
-    expect(hex, `encre illisible pour « ${m[1]} » : ${brut}`).not.toBeNull()
-    out[m[1]!] = { clair: m[2]!, sombre: hex! }
+  for (const m of bloc.matchAll(/(\w+):\s*\{\s*clair:\s*([^,]+),\s*sombre:\s*([^}]+)\}/g)) {
+    const clair = valeur(m[2]!)
+    const sombre = valeur(m[3]!)
+    expect(clair, `encre claire illisible pour « ${m[1]} » : ${m[2]}`).not.toBeNull()
+    expect(sombre, `encre sombre illisible pour « ${m[1]} » : ${m[3]}`).not.toBeNull()
+    out[m[1]!] = { clair: clair!, sombre: sombre! }
   }
   return out
 }

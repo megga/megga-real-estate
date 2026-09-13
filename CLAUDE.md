@@ -425,7 +425,13 @@ pas préféré : `text-red-500` rendait **3,76:1** sur carte blanche et
 ENCODE, tenue SÉPARÉE de `MLK` parce que la direction ne la gouverne pas (née
 `MLK_STATUT` dans les jetons de cette face, elle vit depuis le 13.09.2026 dans
 `megga-x-crm/statut.ts` — à côté de `tokens.ts`, jamais dedans, sans quoi ses
-teintes Tailwind deviendraient des barreaux ; trois écrans du CRM la lisent) :
+teintes Tailwind deviendraient des barreaux). ✅ **C'est la source UNIQUE des
+encres d'état sur blanc de tout le dépôt** : vingt-trois copies en dur, dans
+quatorze fichiers du CRM, de la console et de la face publique, l'importent
+depuis le 13.09.2026, et [statut-clair.spec.ts](tests/unit/statut-clair.spec.ts)
+refuse la suivante — deux exceptions nommées par RÔLE (un fond de survol, la
+baisse de prix du Matching) ; valeurs confrontées à `--color-*-dark` de
+`globals.css` :
 `#B91C1C` (6,47:1) et `#047857` (5,48:1). ⚠ L'ambre, lui, a été *baissé* de 7,09
 à 5,02:1 pour prendre la valeur que trois autres surfaces portent déjà — une
 encre d'alerte qui diffère d'un écran à l'autre coûte plus que deux points de

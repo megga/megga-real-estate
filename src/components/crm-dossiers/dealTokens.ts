@@ -19,6 +19,7 @@
  * palette qu'on ne peut pas importer ne peut pas être gardée.
  */
 import { encreSur } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import type { CrmPalette } from '@/components/crm/tokens'
 
 export interface DsPal {
@@ -74,8 +75,8 @@ export interface DsPal {
  *
  * Mesuré ici : 6,47 et 5,48 en clair, 7,46 et 10,73 en sombre.
  */
-const ERR = { clair: '#B91C1C', sombre: '#F87171' } // --color-danger-dark
-const OK = { clair: '#047857', sombre: '#34D399' } // --color-success-dark
+const ERR = { clair: STATUT_CLAIR.errInk, sombre: '#F87171' } // --color-danger-dark
+const OK = { clair: STATUT_CLAIR.okInk, sombre: '#34D399' } // --color-success-dark
 
 export function dsPalette(dark: boolean, sp: CrmPalette): DsPal {
   return {
