@@ -14,7 +14,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
-import { toolTier, CONFIRM_TOOLS, isFabricatedKycClaim, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
+import { toolTier, CONFIRM_TOOLS, isFabricatedKycClaim, KYC_CLAIM_RETRY_NUDGE, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
 import { detectLang, t, asyncAck } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
@@ -243,8 +243,20 @@ serve(async (req) => {
     if (!toolCalls?.length) {
       const content = (msg?.content as string) || 'OK.'
       // GARDE ANTI-FABRICATION KYC : DeepSeek prétend un screening/rapport lancé/fait sans avoir
-      // appelé l'outil → on NE relaie JAMAIS la fausse action, on renvoie une correction honnête.
-      if (isFabricatedKycClaim(content, kycToolCalled, kycStatusRead)) return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
+      // appelé l'outil → on NE relaie JAMAIS la fausse action. UNE relance d'abord, consigne « appelle
+      // send_kyc_report / run_kyc_screening » en fin de system (incident du 13.09.2026 : « Donne-moi
+      // le PDF » → « le rapport part sur ton WhatsApp », deux fois, et aucun PDF) ; à la seconde
+      // fabrication, la correction honnête. Même budget que la garde anti-confirmation simulée.
+      if (isFabricatedKycClaim(content, kycToolCalled, kycStatusRead)) {
+        const canRetry = !phantomRetried && turn < MAX_TURNS - 1
+        console.warn(`wa-agent kyc-claim -> ${canRetry ? 'retry' : 'fallback'}`)
+        if (canRetry) {
+          phantomRetried = true
+          messages[0] = { ...messages[0], content: `${messages[0].content as string}\n\n${KYC_CLAIM_RETRY_NUDGE}` }
+          continue
+        }
+        return json({ reply: t(lang, 'kycNotRun'), isError: true }, 200)
+      }
       // GARDE ANTI-CONFIRMATION SIMULÉE (incident du 10.09.2026) : DeepSeek demande de confirmer,
       // ou annonce une action, sans avoir appelé l'outil — rien n'est préparé, aucun bouton ne suit,
       // et un « oui » repartirait au cerveau comme un message neuf. UNE relance, consigne
