@@ -63,7 +63,7 @@ export function useProperty(id: string | undefined) {
 
 // ── Query all agency properties (including drafts without listings) ──
 
-/** Liste des biens de l'agence (portée par RLS), brouillons inclus, enrichie des stats du listing joint. */
+/** Liste des biens de l'agence (portée par RLS), brouillons inclus, avec les compteurs vues/favoris du bien. */
 export function useAgencyProperties() {
   const result = useQuery(
     supabase
@@ -72,14 +72,19 @@ export function useAgencyProperties() {
       // ajoutées pour la page « Mes biens » (galerie honnête + bucket « À suivre »
       // Mandats à renouveler). Toutes scalaires légères → pas de coût liste (cf.
       // CLAUDE.md §7 : jamais de colonne lourde type description en liste).
-      .select('id, title, type, status, price, transaction_type, rooms, bedrooms, bathrooms, surface_m2, year_built, charges_monthly, energy_class, address, city, canton, postal_code, photos, mandate_type, mandate_commission_pct, mandate_signed_at, mandate_expires_at, published_at, created_at, updated_at, listing:listings(id, views_count, favorites_count, published_at)')
+      // ⛔ Plus de jointure `listing:listings(...)` : la table `listings` a été
+      // supprimée le 18.07.2026 (20260718152000_audit_p2_drop_dead_tables), et
+      // PostgREST rendait 400 PGRST200 à CHAQUE chargement — « Mes biens », le
+      // Matching et le sélecteur de bien du Calendrier restaient en erreur. Les
+      // compteurs vivent sur le bien lui-même, comme les lit `usePropertyStats`.
+      .select('id, title, type, status, price, transaction_type, rooms, bedrooms, bathrooms, surface_m2, year_built, charges_monthly, energy_class, address, city, canton, postal_code, photos, mandate_type, mandate_commission_pct, mandate_signed_at, mandate_expires_at, published_at, created_at, updated_at, views_count, favorites_count')
       .is('deleted_at', null)
       .order('created_at', { ascending: false })
   )
   return {
     ...result,
     data: result.data as unknown as
-      | (Property & { listing: Array<{ id: string; views_count: number; favorites_count: number; published_at: string }> })[]
+      | (Property & { views_count: number; favorites_count: number })[]
       | undefined,
   }
 }
