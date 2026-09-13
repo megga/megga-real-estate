@@ -13,6 +13,7 @@ import {
   canLeaveConfirm,
   isUndoCommand,
   isFabricatedKycClaim,
+  KYC_CLAIM_RETRY_NUDGE,
   kycScreenLabel,
   kycDateShort,
   projectMatchListing,
@@ -439,6 +440,64 @@ describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir
   it('kycToolCalled=true (action KYC réellement exécutée) court-circuite tout', () => {
     expect(isFabricatedKycClaim("J'ai lancé le screening de Dupont.", true)).toBe(false)
     expect(isFabricatedKycClaim('Le screening est en cours.', true)).toBe(false)
+  })
+
+  // ── Incident du 13.09.2026 : « Donne-moi le PDF » → DeepSeek répond deux fois que le rapport est
+  // parti, sans avoir appelé send_kyc_report (aucune tâche en file, aucun appel à kyc-report-pdf).
+  // Les motifs ne connaissaient que « est parti » et la 1re personne. ─────────────────────────────
+  const incident = [
+    'Le rapport KYC part sur ton WhatsApp.',
+    'Le rapport KYC (PDF) de Julien Ahmedi vient de partir sur ton WhatsApp, comme demandé.',
+  ]
+
+  it('détecte les deux réponses EXACTES de l’incident du 13.09.2026 quand aucun outil n’a tourné', () => {
+    for (const f of incident) expect(isFabricatedKycClaim(f, false), f).toBe(true)
+    // Et une lecture de statut ne les légitime pas : narrer un envoi n'est pas narrer un état.
+    for (const f of incident) expect(isFabricatedKycClaim(f, false, true), f).toBe(true)
+  })
+
+  it('les mêmes phrases passent quand send_kyc_report a réellement tourné', () => {
+    for (const f of incident) expect(isFabricatedKycClaim(f, true), f).toBe(false)
+  })
+
+  it('couvre les autres formes de délivrance narrée (présent, 3e personne, apostrophe typographique)', () => {
+    const fabs = [
+      'Je te l’envoie, le rapport KYC de Dubois.',
+      "Je te l'ai envoyé : rapport KYC de Dubois.",
+      'Voici le rapport KYC de Dubois 📎',
+      'Rapport KYC ci-joint.',
+      'Le rapport KYC vient d’être envoyé.',
+      'Tu le reçois dans la conversation : rapport KYC de Dubois.',
+      'Tu vas le recevoir dans un instant, le rapport KYC.',
+      'The KYC report is on its way.',
+      "Here's the KYC report for Dubois.",
+      "C’est parti pour le screening de Dubois.",
+    ]
+    for (const f of fabs) expect(isFabricatedKycClaim(f, false), f).toBe(true)
+  })
+
+  it('ne flague PAS les voisins légitimes de ces formes', () => {
+    const legit = [
+      // Offre / question
+      'Tu veux que je t’envoie le rapport KYC de Julien Ahmedi ?',
+      // « de ma part » n'est pas un envoi
+      'Désolé, erreur de ma part sur le screening de Dubois : quel contact veux-tu ?',
+      // Demander à l'agent de transférer une pièce qu'il RECEVRA du client
+      'Dès que tu la reçois, transfère-moi la pièce d’identité pour le dossier KYC.',
+      // Historique nommé (même marqueurs que la garde anti-confirmation simulée)
+      'Oui, le rapport KYC t’a été envoyé tout à l’heure.',
+      'Le screening de Dubois a été fait ce matin : RAS.',
+      // Le relais du CRM après ouverture (aucune délivrance)
+      'Dossier KYC ouvert. Tu peux me transférer les pièces que tu as quand tu veux.',
+    ]
+    for (const l of legit) expect(isFabricatedKycClaim(l, false), l).toBe(false)
+  })
+
+  it('la consigne de relance nomme les deux outils et interdit de narrer l’envoi', () => {
+    expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/send_kyc_report/)
+    expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/run_kyc_screening/)
+    expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/search_contacts/)
+    expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/Ne rappelle pas un outil qui a déjà abouti/)
   })
 })
 

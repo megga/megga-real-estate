@@ -160,7 +160,9 @@ export function isFabricatedKycClaim(
   kycStatusRead = false,
 ): boolean {
   if (kycToolCalled || !reply) return false
-  const r = reply.toLowerCase()
+  // L'apostrophe typographique (’) est celle d'un clavier de téléphone : sans la ramener à ', aucun
+  // motif « j'ai… », « c'est… », « je te l'… » ne la voyait.
+  const r = reply.toLowerCase().replace(/[’‘ʼ]/g, "'")
 
   // (1) EXPOSER LE MÉCANISME ASYNC = fabrication, SANS gate KYC : les seuls outils async de l'agent
   // sont les outils KYC, donc « traitement asynchrone » / « asynchronous » ne peut venir que de là.
@@ -169,7 +171,10 @@ export function isFabricatedKycClaim(
   // (2) Hors de ce tell : exiger une mention KYC (scope) + écarter l'historique légitime
   // (« on a déjà généré le rapport », « le screening d'hier… » = l'agent rappelle un fait passé).
   if (!/(screening|\bscreen\b|kyc|sanctions?|\bpep\b|vérif|verif|\blba\b|contrôl|controle)/.test(r)) return false
-  if (/\b(déjà|deja|hier|avant-hier|la\s+semaine\s+(dernière|derniere|passée|passee)|le\s+mois\s+dernier|auparavant|already|yesterday|last\s+(week|month))\b/.test(r)) return false
+  // « tout à l'heure », « plus tôt », « ce matin » : les mêmes marqueurs que HISTORY_MARKER de
+  // whatsapp-phantom-action.ts. Sans eux, « oui, il t'a été envoyé tout à l'heure » passait pour une
+  // fabrication — et depuis que la garde RELANCE le modèle, la relance pouvait renvoyer le rapport.
+  if (/\b(déjà|deja|hier|avant-hier|la\s+semaine\s+(dernière|derniere|passée|passee)|le\s+mois\s+dernier|auparavant|tout\s+[àa]\s+l'heure|plus\s+t[ôo]t|ce\s+matin|already|yesterday|earlier|this\s+morning|last\s+(week|month))\b/.test(r)) return false
 
   // (3) PROMESSE de résultat À VENIR / délivrance future = revendication d'une action async lancée.
   // Une lecture de statut donne le résultat MAINTENANT, elle ne promet rien pour plus tard → JAMAIS
@@ -177,7 +182,8 @@ export function isFabricatedKycClaim(
   if (
     /(résultats?\s+(dans|d['e ]?ici|sous|à\s+venir|bient[ôo]t|arrive)|results?\b[^.]{0,20}(shortly|soon|coming|in\s+a\s+(few|moment)))/.test(r) ||
     /((je\s+te\s+(préviens|previens|reviens|tiens|donne|recontacte))|(je\s+reviens\s+vers)|(d[èe]s\s+que\s+c['e ]?est\s+(dispo|pr[êe]t|fait))|(i['\s]?(ll|will)\s+(let\s+you\s+know|get\s+back|keep\s+you)))/.test(r) ||
-    /(ne\s+(me\s+)?remonte\s+pas\b[^.]*résultat)|((ça|ca)\s+arrive)/.test(r)
+    /(ne\s+(me\s+)?remonte\s+pas\b[^.]*résultat)|((ça|ca)\s+arrive)/.test(r) ||
+    /\btu\s+vas\s+(le|la|les)\s+recevoir\b/.test(r)
   ) return true
 
   // (4) Offre / futur (« tu veux que je lance », « je vais », « je peux ») = légitime, pas une action FAITE.
@@ -191,7 +197,18 @@ export function isFabricatedKycClaim(
     /\bfaite?\b/.test(r) ||
     /c['e ]?est\s+parti/.test(r) ||
     /\bi['\s]?(ve|m| have| am)?\s*(just\s+)?(launch|ran\b|run\b|start|sent|trigger|initiat|complet)/.test(r) ||
-    /(screening|kyc|sanctions?|pep|report|check)\s+(is\s+|has\s+been\s+|was\s+)?(started|launched|done|complete|completed|sent|triggered)/.test(r)
+    /(screening|kyc|sanctions?|pep|report|check)\s+(is\s+|has\s+been\s+|was\s+)?(started|launched|done|complete|completed|sent|triggered)/.test(r) ||
+    // DÉLIVRANCE au présent ou à la 3e personne — incident du 13.09.2026 : « Le rapport KYC part sur
+    // ton WhatsApp », puis « … vient de partir sur ton WhatsApp », et aucun outil n'avait tourné. Les
+    // motifs ci-dessus ne connaissaient que « est parti » et la 1re personne. Seul l'exécuteur envoie
+    // un document : le modèle ne peut rien joindre, donc toute délivrance qu'il narre est inventée.
+    /(rapport|pdf|document)[^.?!]{0,40}\bpart(ent)?\s+(sur|vers|dans|chez)\b/.test(r) ||
+    /\bvien(t|nent)\s+d['e ]?\s*(partir|arriver|[êe]tre\s+(envoy|transmis|g[ée]n[ée]r|lanc))/.test(r) ||
+    /\bje\s+te\s+l['e ]?\s*(envoie|transmets|ai\s+(envoy|transmis))/.test(r) ||
+    /(?<!\b(dès\s+que|des\s+que|quand|lorsque|si)\s)\btu\s+(le|la|les)\s+re[çc]ois\b/.test(r) ||
+    /\bvoici\s+(le|la|ton|ta|ce|cette)\b[^.?!]{0,40}(rapport|pdf)/.test(r) ||
+    /\bci-jointe?s?\b/.test(r) ||
+    /\b(is|are)\s+on\s+(its|their)\s+way\b|\bjust\s+went\s+out\b|\bhere('s|\s+is)\s+(the|your)\b[^.?!]{0,30}(report|pdf)/.test(r)
   ) return true
 
   // (6) ÉTAT / RÉSULTAT de statut (en cours, pas de PEP, correspondance, risque…). C'est EXACTEMENT ce
@@ -204,6 +221,15 @@ export function isFabricatedKycClaim(
   if (stateOrResult) return !kycStatusRead
   return false
 }
+
+/**
+ * Consigne de relance quand `isFabricatedKycClaim` rejette une réponse. Jusqu'au 13.09.2026 la garde
+ * répondait seulement `kycNotRun` (« je n'ai pas réellement lancé cette action ») : honnête, mais
+ * l'agent qui demandait son PDF ne l'avait toujours pas. Une relance, ajoutée en FIN du message
+ * système comme PHANTOM_RETRY_NUDGE (la réponse rejetée n'est pas réinjectée : elle ancrerait le
+ * modèle sur ce qu'il vient d'inventer). À la seconde fabrication, `kycNotRun`.
+ */
+export const KYC_CLAIM_RETRY_NUDGE = "CONSIGNE STRICTE POUR CETTE RÉPONSE : une première réponse vient d'être rejetée, parce qu'elle affirmait qu'une action KYC (screening, rapport PDF, pièce) était lancée, faite ou partie SANS qu'aucun outil n'ait tourné. Rien n'a été lancé et rien n'est parti. Si l'agent demande le rapport KYC d'un contact (« le PDF », « le document », « le rapport »), appelle send_kyc_report avec son contact_id — retrouve-le via search_contacts s'il n'est pas dans l'échange. Pour un screening, appelle run_kyc_screening. N'écris jamais toi-même que c'est fait ou envoyé : le système le confirmera. Ne rappelle pas un outil qui a déjà abouti dans cet échange ; si l'agent demande seulement où en est une action, réponds d'après l'historique."
 
 // ── Anti-fabrication : helpers PURS (testables hors Deno/Supabase) ──────────
 // Vivent ici (module pur déjà allowlisté en unit) et NON dans whatsapp-actions.ts
