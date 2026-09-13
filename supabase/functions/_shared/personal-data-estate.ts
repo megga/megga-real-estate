@@ -131,10 +131,10 @@ export const PERSONAL_DATA_ESTATE: readonly EstateEntry[] = [
     table: 'mail_accounts',
     subjectColumn: 'owner_id',
     role: 'controller',
-    access: false,
+    access: true,
     erasure: 'delete',
     divergence:
-      'Supprimée et non exportée. L\'effacement passe par disconnectMailAccount (étape 5c de delete-account), AVANT la cascade de l\'étape 11 : le jeton est révoqué chez Google et le secret effacé de Vault, que la cascade n\'atteignait pas — le jeton survivait au compte. Les jetons ne s\'exportent jamais : ce sont des clés d\'accès, pas une information sur la personne. ⛔ ÉCART DÉCLARÉ, NON TRANCHÉ : admin-dsar-export ne rend pas les boîtes connectées (adresse, fournisseur, date de connexion) — à décider avec le rôle de MEGGA sur la connexion elle-même.',
+      'Exportée ET supprimée, mais pas en entier dans les deux sens. L\'export (admin-dsar-export, 13.09.2026) rend la CONNEXION — adresse, fournisseur, visibilité, statut, dates — par une liste de colonnes fermée : jamais le pointeur Vault, les curseurs, la configuration IMAP ni le texte des erreurs, et jamais les jetons, qui sont des clés d\'accès et non une information sur la personne. Le courrier n\'est pas exporté : c\'est la correspondance de l\'agence (sous-traitance, registre activité n°7), consultable par la personne chez son fournisseur. L\'effacement, lui, emporte tout : disconnectMailAccount (étape 5c de delete-account) révoque le jeton chez Google et efface le secret de Vault — que la cascade de l\'étape 11 n\'atteignait pas —, puis fils et messages partent en cascade.',
   },
   {
     table: 'agency_id_document_purges',
