@@ -19,22 +19,49 @@
 // synchronisations de calendrier) avaient une garde et fuyaient quand même.
 // Cette porte attrape l'oubli total, pas l'IDOR.
 //
+// ET LES CONTREFAÇONS DE GARDE (audit du 13.09.2026, point S8). Quatre fonctions
+// s'authentifiaient par un `===` nu contre la clé de service, et `weekly-report`
+// acceptait le rôle super_admin sans l'allowlist d'e-mail — avec la bénédiction de
+// cette porte, qui les couvrait par des entrées BESPOKE et reconnaissait une garde
+// partagée à la seule présence de son NOM (import ou commentaire compris). Deux passes
+// lisent désormais toutes les sources edge avec `scripts/_shared/edge-secret-compare.mjs` :
+// égalité brute ou par sous-chaîne sur un secret, helper local à temps constant, rôle
+// sans allowlist. Leurs limites sont écrites dans ce module.
+//
 // Usage :
-//   node scripts/check-edge-auth.mjs     → exit 1 si une fonction n'a pas de garde
+//   node scripts/check-edge-auth.mjs     → exit 1 si une fonction n'a pas de garde,
+//                                          ou si une source compare un secret à la main
 
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { sansCommentaires } from './_shared/wa-outbound-purpose.mjs';
+import {
+  appelle,
+  helpersLocauxDefinis,
+  HELPERS_LOCAUX_TOLERES,
+  trouverComparaisonsSecretes,
+} from './_shared/edge-secret-compare.mjs';
 
 const FUNCTIONS_DIR = 'supabase/functions';
+const SHARED_DIR = join(FUNCTIONS_DIR, '_shared');
 
 /**
- * Gardes partagées. La présence d'un de ces symboles suffit : leur contenu est
- * éprouvé ailleurs (tests/backend/edge-service-secret-guard.spec.ts et voisins).
+ * En dessous, les passes « secret » n'ont rien lu d'utile : un arbre déplacé ou un
+ * répertoire vide leur ferait imprimer ✓ sur zéro fichier. Mesuré le 13.09.2026 :
+ * 88 index.ts + 116 modules _shared.
+ */
+const FICHIERS_LUS_MIN = 60;
+
+/**
+ * Gardes partagées. Leur contenu est éprouvé ailleurs
+ * (tests/backend/edge-service-secret-guard.spec.ts et voisins) ; ici on exige
+ * qu'elles soient APPELÉES, dans le code commentaires blanchis. Un import seul, ou
+ * un nom cité dans une note, ne garde rien.
  */
 const SHARED_GUARDS = [
   'requireAgentAuth',      // JWT vérifié + profil + agency_id
-  'requireSuperAdmin',     // + rôle super_admin + allowlist e-mail
-  'isServiceSecret',       // secret partagé, comparaison à temps constant
+  'requireSuperAdmin',     // JWT vérifié + rôle super_admin + e-mail d'auth allowlisté
+  'isServiceSecret',       // app_config.service_role_key OU clé de l'env, à temps constant
   'verifyMagicLinkToken',  // HMAC d'un lien public (échoue fermé si le secret manque)
 ];
 
@@ -77,8 +104,13 @@ const BESPOKE_GUARDS = {
   'outlook-calendar-sync': ['auth.getUser'],
   'virtual-staging': ['auth.getUser'],
   'audit-pdf-export': ['auth.getUser'],
-  'weekly-report': ['auth.getUser'],
-  'automation-engine': ['requireAgentAuth'],
+  // `weekly-report` et `automation-engine` ONT QUITTÉ cette liste le 13.09.2026
+  // (audit S8) : leurs entrées couvraient un `===` nu contre la clé de service, et
+  // pour la première un rôle super_admin accepté sans allowlist. Elles passent par
+  // les gardes partagées (`requireSuperAdmin`, `isServiceSecret`).
+  // Les sept `['safeEqual']` ci-dessus restent tant que leurs copies locales vivent ;
+  // la passe « secret » les tolère NOMMÉMENT (HELPERS_LOCAUX_TOLERES) et rougit le
+  // jour où l'une disparaît sans que son exemption suive.
 };
 
 /**
@@ -120,9 +152,12 @@ for (const dir of dirs) {
     continue; // pas d'index.ts : ce n'est pas une fonction déployable
   }
 
-  const hasShared = SHARED_GUARDS.some((g) => source.includes(g));
+  // Par APPEL, pas par présence du nom : `source.includes(g)` comptait un import
+  // jamais appelé et une garde citée en commentaire (S8, 13.09.2026).
+  const hasShared = SHARED_GUARDS.some((g) => appelle(source, g));
   const bespoke = BESPOKE_GUARDS[dir];
-  const hasBespoke = bespoke ? bespoke.every((marker) => source.includes(marker)) : false;
+  const code = sansCommentaires(source);
+  const hasBespoke = bespoke ? bespoke.every((marker) => code.includes(marker)) : false;
   const guarded = hasShared || hasBespoke;
 
   if (dir in OPEN_BY_DESIGN) {
@@ -141,7 +176,84 @@ for (const dir of dirs) {
   if (!guarded) missing.push(dir);
 }
 
+// ── Passes « secret » ─────────────────────────────────────────────────────
+// A : chaque supabase/functions/<fn>/index.ts. B : tout supabase/functions/_shared/**,
+// tests exclus — une contrefaçon de garde écrite dans un module partagé contamine
+// toutes les fonctions qui l'importent.
+function* modulesPartages(dir) {
+  for (const e of readdirSync(dir).sort()) {
+    const p = join(dir, e);
+    if (statSync(p).isDirectory()) yield* modulesPartages(p);
+    else if (p.endsWith('.ts') && !p.endsWith('.test.ts')) yield p;
+  }
+}
+
+const lus = { A: 0, B: 0 };
+const comparaisons = [];
+const lirePasse = (passe, file) => {
+  let source;
+  try {
+    source = readFileSync(file, 'utf8');
+  } catch {
+    return;
+  }
+  lus[passe]++;
+  for (const hit of trouverComparaisonsSecretes(source, { chemin: file })) {
+    comparaisons.push({ file, ...hit });
+  }
+};
+for (const dir of dirs) lirePasse('A', join(FUNCTIONS_DIR, dir, 'index.ts'));
+for (const file of modulesPartages(SHARED_DIR)) lirePasse('B', file);
+
+// Cliquet : une exemption dont le fichier ne définit plus le helper ne protège plus
+// rien — elle couvrirait la prochaine réintroduction au même endroit.
+const exemptionsPerimees = HELPERS_LOCAUX_TOLERES.filter(([file, nom]) => {
+  try {
+    return !helpersLocauxDefinis(readFileSync(file, 'utf8')).includes(nom);
+  } catch {
+    return true;
+  }
+});
+
+// Témoin : le lecteur doit VOIR la faute d'origine (magic-link-send-email, avant S8). Un
+// lecteur devenu muet rendrait ✓ sur tout l'arbre — le vert pour la mauvaise raison.
+const TEMOIN = 'if (serviceRoleKey.length > 0 && authHeader === `Bearer ${serviceRoleKey}`) ok()';
+const lecteurVoit = trouverComparaisonsSecretes(TEMOIN).some((h) => h.regle === 'egalite-brute');
+
 let failed = false;
+
+if (lus.A + lus.B < FICHIERS_LUS_MIN || lus.A === 0 || lus.B === 0 || !lecteurVoit) {
+  failed = true;
+  console.error(
+    `\n✖ Passes « secret » : ${lus.A} index.ts + ${lus.B} module(s) _shared lus — ` +
+    `${FICHIERS_LUS_MIN} fichiers au moins, et les deux passes non vides, sont attendus` +
+    `${lecteurVoit ? '' : ' ; et le lecteur ne voit plus la faute témoin'}.\n` +
+    '  Un balayage qui ne lit rien ne prouve rien : vérifier le chemin, le répertoire courant\n' +
+    '  et scripts/_shared/edge-secret-compare.mjs.\n',
+  );
+}
+
+if (comparaisons.length) {
+  failed = true;
+  console.error(`\n✖ ${comparaisons.length} comparaison(s) de secret ou de rôle écrite(s) à la main :\n`);
+  for (const c of comparaisons) console.error(`    ${c.file}:${c.ligne} [${c.regle}] ${c.texte}`);
+  console.error(
+    '\n  Ni `===`, ni sous-chaîne, ni helper local à temps constant, ni rôle seul :\n' +
+    '    · appel interne / pg_cron → isServiceSecret(admin, req)  (app_config OU env, temps constant)\n' +
+    '    · console super-admin     → requireSuperAdmin(req, cors) (rôle ET e-mail allowlisté)\n' +
+    '  Règles et limites : scripts/_shared/edge-secret-compare.mjs.\n',
+  );
+}
+
+if (exemptionsPerimees.length) {
+  failed = true;
+  console.error(`\n✖ ${exemptionsPerimees.length} exemption(s) de helper local sont PÉRIMÉES :\n`);
+  for (const [file, nom] of exemptionsPerimees) console.error(`    ${file} — ne définit plus ${nom}`);
+  console.error(
+    '\n  Retirer l\'entrée de HELPERS_LOCAUX_TOLERES (scripts/_shared/edge-secret-compare.mjs)\n' +
+    '  et, si la fonction est passée par isServiceSecret, son entrée [\'safeEqual\'] de BESPOKE_GUARDS.\n',
+  );
+}
 
 if (missing.length) {
   failed = true;
@@ -190,4 +302,8 @@ const open = Object.keys(OPEN_BY_DESIGN).length;
 console.log(
   `✓ Gardes edge : ${dirs.length - open} fonction(s) authentifient leur appelant, ` +
   `${open} ouverte(s) par conception et justifiée(s).`,
+);
+console.log(
+  `✓ Comparaisons de secret : ${lus.A} index.ts + ${lus.B} module(s) _shared lus, aucune écrite ` +
+  `à la main (${HELPERS_LOCAUX_TOLERES.length} helper(s) local(aux) toléré(s) nommément).`,
 );

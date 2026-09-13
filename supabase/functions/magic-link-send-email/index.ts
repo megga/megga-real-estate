@@ -22,8 +22,9 @@
 // Fallback FR si null ou langue non supportée.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 import { kycMagicLinkUrl } from '../_shared/app-url.ts'
 import { redactPII } from '../_shared/pii-redaction.ts'
 import { buildMagicLinkEmail, normalizeLocale } from '../_shared/magic-link-email.ts'
@@ -36,8 +37,11 @@ const corsHeaders = {
 
 /**
  * Vérifie l'auth du caller. Accepte :
- *   - Appel interne magic-link-create (service_role exact)
- *   - Agent humain (JWT vérifié)
+ *   - Appel interne (`magic-link-create`, action WhatsApp `_shared/whatsapp-actions.ts`) :
+ *     le secret de service partagé, reconnu par `isServiceSecret` — `app_config.service_role_key`
+ *     OU la clé de l'env, comparé à temps constant. Les deux appelants actuels envoient la
+ *     clé de l'env, que la garde partagée accepte toujours.
+ *   - Agent humain (JWT vérifié) — le bouton « Renvoyer l'e-mail ».
  *
  * Retourne le mode pour permettre au caller de scope les checks
  * d'ownership ensuite (le mode "agent" doit vérifier agency_id).
@@ -45,20 +49,21 @@ const corsHeaders = {
  * Red-team finding F4 (audit 2026-05-19) : avant ce check, n'importe qui
  * connaissant un magic_link_id pouvait spammer le client cible (abus
  * Resend) + exfiltrer son email via la réponse.
+ *
+ * S8 (audit du 13.09.2026) : l'appel interne était reconnu par un `===` nu contre la
+ * seule clé de l'env — ni à temps constant, ni tolérant à la clé d'`app_config` que
+ * rejoue pg_cron. `admin` doit être un client service-role : `isServiceSecret` lit
+ * `app_config`, protégée par une RLS sans policy.
  */
 async function authorizeSendEmailCall(
   req: Request,
+  admin: SupabaseClient,
 ): Promise<
   | { mode: 'service_role' }
   | { mode: 'agent'; agencyId: string }
   | { mode: 'denied'; response: Response }
 > {
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
-
-  if (serviceRoleKey.length > 0 && authHeader === `Bearer ${serviceRoleKey}`) {
-    return { mode: 'service_role' }
-  }
+  if (await isServiceSecret(admin, req)) return { mode: 'service_role' }
 
   const auth = await requireAgentAuth(req, corsHeaders)
   if (auth instanceof Response) return { mode: 'denied', response: auth }
@@ -87,8 +92,16 @@ serve(async (req) => {
     })
   }
 
+  // Client service-role construit AVANT l'authentification : la garde de service lit
+  // `app_config`, ce qu'un client anonyme ne peut pas. Il sert ensuite aux lectures, une
+  // fois l'appel autorisé.
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+  )
+
   // Auth obligatoire AVANT tout (red-team P0).
-  const authz = await authorizeSendEmailCall(req)
+  const authz = await authorizeSendEmailCall(req, supabase)
   if (authz.mode === 'denied') return authz.response
 
   let body: SendEmailRequest
@@ -114,11 +127,6 @@ serve(async (req) => {
       { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
-
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-  )
 
   // Charge le lien + contact + agence + agent
   const { data: link, error: linkErr } = await supabase

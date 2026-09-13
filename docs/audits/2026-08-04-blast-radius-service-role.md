@@ -250,6 +250,49 @@ Le risque est donc entièrement prospectif : le jour où l'une des deux valeurs 
 l'autre, **la moitié des gardes cesse d'authentifier et l'autre continue**, sans que rien
 ne le signale — le symptôme serait des tâches muettes, pas une alerte.
 
+#### ⚠ Rotation de la clé de service — la règle depuis l'audit S8 (13.09.2026)
+
+L'audit S8 a fait passer `magic-link-send-email`, `automation-engine` et `matching-engine`
+d'un `===` contre la seule clé de l'env à `isServiceSecret`, qui accepte `app_config`
+**OU** l'env. Vingt et une fonctions l'appellent désormais (dix-huit avant). C'est ce qui
+supprime la dépendance à la coïncidence des deux clés — et c'est aussi ce qui change le coût
+d'une **révocation**, qu'il faut écrire ici pour qu'on ne le découvre pas le jour d'une fuite.
+
+**Ce que la garde ne vérifie pas.** `isServiceSecret` compare deux chaînes ; elle ne demande
+jamais à la plateforme si la clé est encore valide. Une valeur laissée dans
+`app_config.service_role_key` après une rotation reste donc un **identifiant accepté** par
+les vingt et une fonctions — et par les cinq copies locales qui lisent `app_config` : les
+quatre qui ne lisent qu'elle (`whatsapp-process`, `whatsapp-agent-async`,
+`whatsapp-morning-brief`, `learn-agent-style`) et `agency-verification-run`, qui lit les deux.
+Rien ne rougit : pg_cron rejoue cette même valeur, les tâches restent vertes, et quiconque
+détient l'ancienne clé garde la main sur ces fonctions.
+
+**À tourner, dans le MÊME geste :**
+
+1. la clé de la plateforme (tableau de bord Supabase, clés d'API), qui alimente
+   `SUPABASE_SERVICE_ROLE_KEY` dans le runtime des edge functions ;
+2. `app_config.service_role_key`, que rejouent les tâches pg_cron et les triggers
+   (`hourly_automation_scan`, `daily_matching_scan`, les quatre triggers du matching,
+   `weekly_digest_scan`, les crons WhatsApp…), et que des fonctions SQL présentent aussi à
+   l'API Storage (purge du staging, `20260714170000`). L'outil prévu est `sync-service-key`
+   — déployée hors dépôt, garde `x-sync-token` —, qui recopie l'env dans la table ; à
+   défaut, une écriture SQL sous `postgres`, la table n'ayant aucune policy.
+
+Tourner l'une sans l'autre casse une moitié des gardes et laisse l'autre ouverte à l'ancienne
+valeur : l'env seul fait tomber les copies qui ne lisent que l'env (`weekly-digest`,
+`agency-verification-notify`) pendant que tout le reste accepte encore la clé révoquée.
+
+**Puis prouver, sans relire aucune valeur :**
+
+- que l'ANCIENNE valeur est refusée par une fonction gardée par `isServiceSecret` et sans
+  effet de bord — `market-scraper` rend **401** à un secret refusé et **400** (corps
+  invalide) à un secret accepté (même oracle que
+  `tests/backend/edge-service-secret-guard.spec.ts`) ;
+- que la NOUVELLE passe au même endroit (400) ;
+- que `net._http_response` ne montre aucun 401/403 après le passage suivant des tâches
+  (`hourly-automation-scan` à :00, les crons WhatsApp chaque minute) — et non
+  `cron.job_run_details`, qui ne dit rien du HTTP (voir §10).
+
 ### 4.4 — `.gitignore` n'ignore pas `.env` · **FAIBLE**
 
 Testé avec `git check-ignore` :

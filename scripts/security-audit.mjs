@@ -318,11 +318,16 @@ function checkEdgeFunctionGuards() {
     // la prose au lieu du code.
     const code = stripJsComments(fs.readFileSync(indexPath, 'utf8'))
 
-    // Look for typical super_admin guard:
-    //   profile?.role !== 'super_admin' → throw
-    //   or role === 'super_admin' with return/throw on false
-    //   or calls to is_super_admin() RPC
-    //   or the shared guard requireSuperAdmin() from _shared/require-super-admin.ts
+    // Seule garde acceptee : l'APPEL de requireSuperAdmin() (_shared/require-super-admin.ts),
+    // qui verifie le JWT, le role super_admin ET l'e-mail d'authentification allowliste.
+    //
+    // Retires le 13.09.2026 (audit S8) :
+    //   - `role !== 'super_admin'` / `'super_admin' === role` : un controle de ROLE SEUL est
+    //     exactement le defaut S8, ecrit en condition de succes. C'est lui qui a laisse
+    //     passer weekly-report, dont le role n'etait jamais confronte a l'allowlist.
+    //   - `rpc('is_super_admin')` / `is_super_admin(` : depuis une edge function, le client
+    //     est presque toujours service-role ; auth.uid() y vaut NULL et la RPC ne dit rien
+    //     de l'appelant. Les trois fonctions critiques appellent requireSuperAdmin(.
     //
     // requireSuperAdmin MANQUAIT, et c'est ce qui a rendu cette porte rouge huit
     // semaines d'affilee (13.07 -> 31.08.2026) sur deux faux positifs :
@@ -336,12 +341,7 @@ function checkEdgeFunctionGuards() {
     // Ne PAS elargir aux autres gardes de _shared (requireAgentAuth, isServiceSecret...) :
     // ces trois fonctions sont des endpoints d'administration, un agent authentifie
     // n'est pas un super-admin.
-    const hasGuard =
-      /\brequireSuperAdmin\s*\(/.test(code) ||
-      /role\s*[!=]==?\s*['"`]super_admin['"`]/.test(code) ||
-      /['"`]super_admin['"`]\s*[!=]==?\s*.*role/.test(code) ||
-      /rpc\(\s*['"`]is_super_admin['"`]/.test(code) ||
-      /is_super_admin\s*\(/.test(code)
+    const hasGuard = /\brequireSuperAdmin\s*\(/.test(code)
 
     if (!hasGuard) {
       anomalies.push(`Edge Function "${fnName}" has no super_admin guard detected in index.ts`)

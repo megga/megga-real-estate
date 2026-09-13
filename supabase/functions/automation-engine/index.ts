@@ -1,10 +1,13 @@
 // supabase/functions/automation-engine/index.ts
 // Moteur de relances automatiques — scanne les événements et crée des reminders
-// Appelé par pg_cron toutes les heures
+// Appelé chaque heure par pg_cron (tâche `hourly-automation-scan` → fonction SQL
+// `hourly_automation_scan()`), qui rejoue `app_config.service_role_key` en Bearer ; ou par
+// un agent authentifié, sur sa seule agence.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
 import {
   RADAR_DEFAULTS, isDealStagnant, isMatchIgnored, stagnantDealReason, ignoredMatchReason,
 } from '../_shared/radar-detectors.ts'
@@ -21,24 +24,27 @@ interface RequestBody {
 /**
  * Vérifie l'auth du caller avant tout accès service_role.
  * Accepte 2 modes :
- *   - pg_cron interne : header `Authorization: Bearer <SERVICE_ROLE_KEY>` exact
- *   - Agent humain   : JWT valide + profile.agency_id == agency_id ciblé
+ *   - Appel interne : le secret de service partagé. pg_cron (`hourly_automation_scan`)
+ *     rejoue `app_config.service_role_key` ; `isServiceSecret` accepte aussi la clé de
+ *     l'env, et compare à temps constant.
+ *   - Agent humain  : JWT valide + profile.agency_id == agency_id ciblé
  *
  * Red-team finding F3 (audit 2026-05-19) : avant ce check, n'importe qui
  * pouvait POST agency_id arbitraire → création de reminders dans des
  * agences tierces (cross-tenant DoS + pollution timeline).
+ *
+ * S8 (audit du 13.09.2026) : le mode 1 comparait l'en-tête par un `===` nu à la seule
+ * clé de l'env. Il ne tenait que parce que la valeur rejouée par pg_cron coïncide
+ * aujourd'hui avec elle (docs/audits/2026-08-04-blast-radius-service-role.md §4.3).
+ * `admin` doit être un client service-role : la garde lit `app_config`.
  */
 async function authorizeAutomationCall(
   req: Request,
   targetAgencyId: string,
+  admin: SupabaseClient,
 ): Promise<{ ok: true } | { ok: false; response: Response }> {
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
-
-  // Mode 1 : appel pg_cron interne (service_role exact)
-  if (serviceRoleKey.length > 0 && authHeader === `Bearer ${serviceRoleKey}`) {
-    return { ok: true }
-  }
+  // Mode 1 : appel interne (secret de service partagé)
+  if (await isServiceSecret(admin, req)) return { ok: true }
 
   // Mode 2 : appel agent humain (JWT vérifié + agency match)
   const auth = await requireAgentAuth(req, corsHeaders)
@@ -82,14 +88,16 @@ serve(async (req) => {
       throw new Error('agency_id is required')
     }
 
-    // Auth + agency check obligatoire AVANT toute opération service_role.
-    const authz = await authorizeAutomationCall(req, agency_id)
-    if (!authz.ok) return authz.response
-
+    // Client service-role construit AVANT la garde, qui en a besoin pour lire `app_config`.
+    // Aucune donnée métier n'est lue tant que l'appel n'est pas autorisé.
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
+
+    // Auth + agency check obligatoire AVANT toute opération service_role.
+    const authz = await authorizeAutomationCall(req, agency_id, supabase)
+    if (!authz.ok) return authz.response
 
     let remindersCreated = 0
     let emailsSent = 0
