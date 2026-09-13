@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildCfPdfRequestBody, parseBasicAuthPair, redactCfRenderError } from './cf-browser-render.ts'
+import { buildCfPdfRequestBody, cfPdfEndpoint, parseBasicAuthPair, redactCfRenderError } from './cf-browser-render.ts'
 
 describe('buildCfPdfRequestBody', () => {
   it('construit un corps A4 avec auth Basic + attente SPA', () => {
@@ -105,5 +105,31 @@ describe('parseBasicAuthPair', () => {
 
   it('tolère un pass contenant des ":"', () => {
     expect(parseBasicAuthPair('a:b:c')).toEqual({ user: 'a', pass: 'b:c' })
+  })
+})
+
+describe('cfPdfEndpoint', () => {
+  const ID = '963d01cbbcb5bac48588397a9f2ce72f'
+  const CLEAN = `https://api.cloudflare.com/client/v4/accounts/${ID}/browser-rendering/pdf`
+
+  it('un identifiant propre donne l’endpoint /pdf du compte', () => {
+    expect(cfPdfEndpoint(ID)).toBe(CLEAN)
+  })
+
+  // L'incident du 13.09.2026 : un espace final dans le secret, un `%20` dans l'URL, un 404
+  // code 7003 chez Cloudflare — et l'agent qui reçoit « je n'ai pas pu générer le rapport ».
+  it('absorbe l’espace ou le saut de ligne collé au secret, et n’émet jamais %20', () => {
+    for (const sale of [`${ID} `, ` ${ID}`, `${ID}\n`, `\t${ID}\r\n`, ID.toUpperCase()]) {
+      const url = cfPdfEndpoint(sale)
+      expect(url, JSON.stringify(sale)).toBe(CLEAN)
+      expect(url).not.toContain('%20')
+      expect(url).not.toMatch(/\s/)
+    }
+  })
+
+  it('refuse ce qui n’est pas un identifiant de compte plutôt que d’envoyer une URL qui ne route pas', () => {
+    for (const faux of [undefined, '', '   ', 'abc', `${ID}x`, ID.slice(0, 31), 'zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz']) {
+      expect(cfPdfEndpoint(faux), JSON.stringify(faux)).toBeNull()
+    }
   })
 })

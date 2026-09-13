@@ -73,6 +73,23 @@ export function redactCfRenderError(errTxt: string, renderUrl: string): string {
   ).redactedText
 }
 
+/**
+ * URL de l'endpoint /pdf de Browser Rendering pour un identifiant de compte, ou null si
+ * l'identifiant n'en est pas un.
+ *
+ * ⛔ MESURÉ LE 13.09.2026, au PREMIER rendu réel de production : `CLOUDFLARE_ACCOUNT_ID` portait
+ * un espace final, recopié tel quel dans l'URL — Cloudflare répondait
+ * `404 code 7003 « Could not route to /accounts/963d…f%20/browser-rendering/pdf »`, et l'agent
+ * recevait « je n'ai pas pu générer le rapport (code 502) ». Aucune UI ne montre cet espace
+ * (CLAUDE.md, « Éprouver une valeur de secret sans la lire ») ; le code l'absorbe donc, et refuse
+ * ce qui n'est pas 32 hexadécimaux plutôt que d'envoyer une URL qui ne peut pas router.
+ */
+export function cfPdfEndpoint(accountId: string | undefined): string | null {
+  const id = (accountId ?? '').trim().toLowerCase()
+  if (!/^[0-9a-f]{32}$/.test(id)) return null
+  return `https://api.cloudflare.com/client/v4/accounts/${id}/browser-rendering/pdf`
+}
+
 /** Découpe "user:pass" en { user, pass } ; tolère un pass contenant des ':'. */
 export function parseBasicAuthPair(raw: string | undefined): { user?: string; pass?: string } {
   if (!raw) return {}
