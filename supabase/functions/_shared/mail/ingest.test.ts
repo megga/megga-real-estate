@@ -1,6 +1,6 @@
 // supabase/functions/_shared/mail/ingest.test.ts
 import { describe, it, expect } from 'vitest'
-import { deriveThreadPatch, externalParticipants, ingestMessages, linkThreadToContact, pickContact, capHtml, recomputeThread, type ThreadRow } from './ingest.ts'
+import { deriveThreadPatch, externalParticipants, ingestMessages, linkThreadToContact, mailAuditEvent, pickContact, capHtml, recomputeThread, type ThreadRow } from './ingest.ts'
 import type { MailAccountRow, NormalizedMessage } from './types.ts'
 
 const BOX = 'g@agence.ch'
@@ -170,8 +170,9 @@ describe('capHtml', () => {
 // ── Faux client PostgREST : on veut voir les REQUÊTES, pas simuler une base ────
 // Chaque appel est enregistré sous la forme (table, opération, filtres) ; un
 // « or » y apparaîtrait sous ce nom, ce qui rend le défaut d'injection visible
-// depuis un test au lieu d'être une lecture de code.
-interface FakeCall { table: string; op: string; filters: [string, unknown][] }
+// depuis un test au lieu d'être une lecture de code. Le CORPS d'une insertion est
+// gardé aussi (`payload`) : sans lui, ce qu'on écrit au journal restait invisible.
+interface FakeCall { table: string; op: string; filters: [string, unknown][]; payload?: unknown }
 type Reply = { data: unknown; error: { message: string } | null }
 
 function fakeAdmin(reply: (c: FakeCall) => Reply, rpcReply: () => Reply = () => ({ data: [], error: null })) {
@@ -181,7 +182,7 @@ function fakeAdmin(reply: (c: FakeCall) => Reply, rpcReply: () => Reply = () => 
     const settle = () => { calls.push(rec); return reply(rec) }
     const b = {
       select: () => { if (!rec.op) rec.op = 'select'; return b },
-      insert: () => { rec.op = 'insert'; return b },
+      insert: (row: unknown) => { rec.op = 'insert'; rec.payload = row; return b },
       update: () => { rec.op = 'update'; return b },
       upsert: () => { rec.op = 'upsert'; return b },
       delete: () => { rec.op = 'delete'; return b },
@@ -313,6 +314,82 @@ describe('matchContact : une recherche en échec est LEVÉE', () => {
     const { admin } = fakeAdmin((c) =>
       c.table === 'mail_contact_aliases' ? { data: null, error: { message: 'alias down' } } : vide(c))
     await expect(ingestMessages(admin, account, [msg()])).rejects.toThrow(/contact alias match: alias down/)
+  })
+})
+
+// ⛔ Le journal reçoit le FAIT d'un courrier, jamais son CONTENU (`mailAuditEvent`). Aucun
+// test n'atteignait l'écriture : la RPC du faux rendait `[]`, donc aucun contact, donc
+// aucune ligne — le site qui recopiait objet et adresses dans `activity_events`, lisible
+// de toute l'agence et du super-admin, n'avait aucune couverture.
+describe('journal : le fait d un courrier, jamais son contenu', () => {
+  const rattache = (): Reply => ({ data: ['c1'], error: null })
+  const OBJET = 'Offre confidentielle — Villa Cologny'
+  const TIERS = 'notaire@etude.ch'
+  const auJournal = (calls: FakeCall[]) => calls.filter((c) => c.table === 'activity_events' && c.op === 'insert')
+  const ligneAttendue = (action: 'email_received' | 'email_sent') => ({
+    agency_id: 'ag-1', actor_id: null, actor_kind: 'system', action,
+    category: 'messaging', severity: 'info', entity_type: 'contact', entity_id: 'c1',
+    object_label: null,
+    metadata: { thread_id: 'mail_threads-1', message_id: 'mail_messages-1', account_id: 'acc-1' },
+  })
+  const sansContenu = (payload: unknown, fuites: string[]) => {
+    const brut = JSON.stringify(payload)
+    for (const f of fuites) expect(brut, `« ${f} » a atteint le journal`).not.toContain(f)
+  }
+
+  // Les DEUX visibilités : le super-admin ne doit lire le courrier d'aucune boîte (D14),
+  // et une boîte partagée aujourd'hui peut devenir personnelle demain (`mail-oauth` update).
+  for (const visibility of ['owner', 'agency'] as const) {
+    it(`boîte ${visibility} : un courrier reçu écrit une ligne sans objet ni adresse`, async () => {
+      const { admin, calls } = fakeAdmin(vide, rattache)
+      await ingestMessages(admin, { ...account, visibility }, [msg({ subject: OBJET, to: [{ name: null, email: BOX }, { name: 'Me Tiers', email: TIERS }] })])
+      const lignes = auJournal(calls)
+      expect(lignes, 'l écriture au journal doit être ATTEINTE — sinon ce test ne prouve rien').toHaveLength(1)
+      expect(lignes[0].payload).toEqual(ligneAttendue('email_received'))
+      sansContenu(lignes[0].payload, [OBJET, 'zoe@ex.ch', 'Zoé', TIERS, 'Me Tiers', BOX])
+    })
+  }
+
+  it('un courrier envoyé hors du CRM (synchro des Envoyés) : email_sent, même neutralité', async () => {
+    const { admin, calls } = fakeAdmin(vide, rattache)
+    await ingestMessages(admin, account, [msg({
+      direction: 'outbound', subject: `Re: ${OBJET}`, from: { name: 'G', email: BOX }, to: [{ name: 'Zoé', email: 'zoe@ex.ch' }], cc: [{ name: null, email: TIERS }],
+    })])
+    const lignes = auJournal(calls)
+    expect(lignes).toHaveLength(1)
+    expect(lignes[0].payload).toEqual(ligneAttendue('email_sent'))
+    sansContenu(lignes[0].payload, [OBJET, 'zoe@ex.ch', TIERS, BOX])
+  })
+
+  it('contrôle positif : le contenu reste là où la RLS de la boîte le garde', async () => {
+    // Le faux voit bien les corps d'insertion : le message, lui, porte son objet et ses
+    // adresses. Sans ce témoin, « aucune fuite » pourrait venir d'un faux aveugle.
+    const { admin, calls } = fakeAdmin(vide, rattache)
+    await ingestMessages(admin, account, [msg({ subject: OBJET })])
+    const message = calls.find((c) => c.table === 'mail_messages' && c.op === 'insert')
+    expect(message?.payload).toMatchObject({ subject: OBJET, from_email: 'zoe@ex.ch' })
+  })
+
+  it('un message déjà connu n écrit rien au journal', async () => {
+    const { admin, calls } = fakeAdmin((c) =>
+      c.table === 'mail_messages' && c.op === 'select'
+        ? { data: { id: 'M1', thread_id: 'T1', provider_message_id: 'm1' }, error: null }
+        : vide(c), rattache)
+    await ingestMessages(admin, account, [msg({ subject: OBJET })])
+    expect(auJournal(calls)).toHaveLength(0)
+  })
+
+  it('mailAuditEvent — l envoi depuis le CRM porte l agent et le geste, rien d autre', () => {
+    // La forme de `mail-send` : acteur humain, `kind`, et un message local qui peut
+    // manquer (envoi parti, comptabilité locale en échec).
+    expect(mailAuditEvent({
+      agencyId: 'ag-1', contactId: 'c1', action: 'email_sent', accountId: 'acc-1', threadId: 'T1', messageId: null, actorId: 'u-1', kind: 'reply',
+    })).toEqual({
+      agency_id: 'ag-1', actor_id: 'u-1', actor_kind: 'user', action: 'email_sent',
+      category: 'messaging', severity: 'info', entity_type: 'contact', entity_id: 'c1',
+      object_label: null,
+      metadata: { thread_id: 'T1', message_id: null, account_id: 'acc-1', kind: 'reply' },
+    })
   })
 })
 

@@ -154,8 +154,59 @@ async function matchContact(admin: SupabaseClient, agencyId: string, emails: str
   return pickContact((alias ?? []) as { contact_id: string }[])
 }
 
+/** Les deux actions d'un courrier au journal. La troisième, `document_filed_from_email`, est un geste de classement (mail-attachment). */
+export type MailAuditAction = 'email_received' | 'email_sent'
+
 /**
- * Écrit l'entrée de timeline. Rend `false` si `activity_events` a refusé la ligne.
+ * La ligne `activity_events` d'un courrier : le FAIT, jamais le CONTENU.
+ *
+ * ⛔ NI L'OBJET NI UNE ADRESSE, QUELLE QUE SOIT LA VISIBILITÉ DE LA BOÎTE. Mesuré le
+ * 13.09.2026 : `audit()` recopiait `m.subject` en `object_label` et `from`/`to` en
+ * métadonnées, sans lire `account.visibility`. Or `activity_events` n'est pas gardée par
+ * `mail_account_visible` : `events_select` l'ouvre à TOUTE l'agence,
+ * `super_admin_read_all_events` à la plateforme (contre D14), et d'autres lecteurs passent
+ * sans RLS du tout — les outils `get_contact_brief` / `prepare_meeting` (service-role :
+ * l'objet partait à DeepSeek), l'export PDF du journal et l'export DSAR (service-role),
+ * `get_admin_live_feed` / `get_admin_user_activity` de la console (SECURITY DEFINER).
+ * L'objet d'un courrier PERSONNEL devenait le titre d'une notification chez chaque
+ * collègue et, la table étant append-only, survivait à la suppression du mail comme à la
+ * déconnexion de la boîte (D15).
+ *
+ * Pourquoi pas « seulement pour les boîtes personnelles » : la visibilité se change après
+ * coup (`mail-oauth` `update`), et une ligne écrite du temps où la boîte était partagée ne
+ * se reprend plus ; le super-admin, lui, ne doit lire le courrier d'AUCUNE boîte. Le
+ * contenu vit dans `mail_threads` / `mail_messages`, sous la RLS de la boîte ; le journal
+ * n'en garde que des identifiants, que seul un lecteur qui voit la boîte sait résoudre.
+ */
+export function mailAuditEvent(p: {
+  agencyId: string
+  contactId: string
+  action: MailAuditAction
+  accountId: string
+  threadId: string | null
+  messageId: string | null
+  /** L'agent qui a envoyé depuis le CRM ; `null` = la synchronisation. */
+  actorId: string | null
+  /** `mail-send` seulement : le geste (nouveau, réponse, transfert), pas un contenu. */
+  kind?: 'new' | 'reply' | 'forward'
+}) {
+  return {
+    agency_id: p.agencyId,
+    actor_id: p.actorId,
+    actor_kind: p.actorId ? 'user' : 'system',
+    action: p.action,
+    category: 'messaging',
+    severity: 'info',
+    entity_type: 'contact',
+    entity_id: p.contactId,
+    object_label: null,
+    metadata: { thread_id: p.threadId, message_id: p.messageId, account_id: p.accountId, ...(p.kind ? { kind: p.kind } : {}) },
+  }
+}
+
+/**
+ * Écrit l'entrée de timeline (`mailAuditEvent`). Rend `false` si `activity_events` a
+ * refusé la ligne.
  *
  * ⚠ ON CONTINUE SUR ÉCHEC — perdre le courrier pour sauver la ligne d'audit serait pire —
  * MAIS ON LE COMPTE. `console.error` seul rendait l'échec INDÉCOUVRABLE : il atterrit dans
@@ -164,19 +215,10 @@ async function matchContact(admin: SupabaseClient, agencyId: string, emails: str
  * CHAQUE action, un courrier reçu sans son entrée de timeline se découvre à l'audit, des
  * mois plus tard. Le compte remonte désormais jusqu'au `results` de `mail-sync`.
  */
-async function audit(admin: SupabaseClient, account: MailAccountRow, action: 'email_received' | 'email_sent', threadId: string, messageId: string, contactId: string, m: NormalizedMessage): Promise<boolean> {
-  const { error } = await admin.from('activity_events').insert({
-    agency_id: account.agency_id,
-    actor_id: null,
-    actor_kind: 'system',
-    action,
-    category: 'messaging',
-    severity: 'info',
-    entity_type: 'contact',
-    entity_id: contactId,
-    object_label: m.subject || '(sans objet)',
-    metadata: { thread_id: threadId, message_id: messageId, account_id: account.id, from: m.from.email, to: m.to.map((a) => a.email) },
-  })
+async function audit(admin: SupabaseClient, account: MailAccountRow, action: MailAuditAction, threadId: string, messageId: string, contactId: string): Promise<boolean> {
+  const { error } = await admin.from('activity_events').insert(mailAuditEvent({
+    agencyId: account.agency_id, contactId, action, accountId: account.id, threadId, messageId, actorId: null,
+  }))
   if (error) console.error(`[mail ingest] activity_events refuse ${action} (fil ${threadId}, message ${messageId}):`, error.message)
   return !error
 }
@@ -297,7 +339,7 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
     }
 
     if (isNew && contactId && !opts.skipAudit) {
-      if (!await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, messageId, contactId, m)) auditFailures++
+      if (!await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, messageId, contactId)) auditFailures++
     }
   }
   return { inserted, updated, auditFailures }

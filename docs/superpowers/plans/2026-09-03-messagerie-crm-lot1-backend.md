@@ -4368,6 +4368,9 @@ async function matchContact(admin: SupabaseClient, agencyId: string, emails: str
  * CHAQUE action, un courrier reçu sans son entrée de timeline se découvre à l'audit, des
  * mois plus tard. Le compte remonte désormais jusqu'au `results` de `mail-sync`.
  */
+// ⛔ REMPLACÉ LE 13.09.2026 — NE PAS RECOPIER. Cette ligne écrit l'objet et les adresses
+// dans `activity_events`, lisible de toute l'agence et du super-admin : c'était la fuite.
+// Le code vivant passe par `mailAuditEvent` (D11 amendé du plan maître).
 async function audit(admin: SupabaseClient, account: MailAccountRow, action: 'email_received' | 'email_sent', threadId: string, messageId: string, contactId: string, m: NormalizedMessage): Promise<boolean> {
   const { error } = await admin.from('activity_events').insert({
     agency_id: account.agency_id,
@@ -6209,6 +6212,8 @@ serve(async (req: Request) => {
     // `email_sent` manquant dans la timeline d'un contact ne laissait alors AUCUNE trace,
     // nulle part, alors que CLAUDE.md §5 fait d'`activity_events` la trace de chaque
     // action. On ne refuse pas l'envoi pour autant : le courrier est parti.
+    // ⛔ REMPLACÉ LE 13.09.2026 — NE PAS RECOPIER : objet et destinataires au journal. Le
+    // code vivant passe par `mailAuditEvent` (D11 amendé du plan maître).
     const { error: eAudit } = await admin.from('activity_events').insert({
       agency_id: account.agency_id, actor_id: user.id, actor_kind: 'user', action: 'email_sent', category: 'messaging', severity: 'info',
       entity_type: 'contact', entity_id: th.contact_id, object_label: subject,
@@ -7001,7 +7006,9 @@ qu'elles manquent, `mail-oauth start` répond `503 provider_not_configured` ou G
 redirection — aucun des deux ne dit quoi que ce soit du code.
 
 **Procédure, à dérouler par un humain APRÈS le merge.** Console du navigateur sur
-`app.megga.ch`, session d'agent ouverte :
+`app.getmegga.com`, session d'agent ouverte (⚠ corrigé le 13.09.2026 : sur l'ancien hôte
+`app.megga.ch`, `location.origin` est hors de `MAIL_OAUTH_ORIGINS` depuis le 09.09.2026 et
+`start` rend `400 invalid_origin`) :
 
 ```js
 // 1. Démarrer
@@ -7115,9 +7122,11 @@ la PR pour une preuve de fraîcheur des types.
 **Google — console Cloud, compte `hello@megga.ai`, projet `tribal-dispatch-504619-c1`, client
 OAuth `833483825712-vh715spjupqcl86qffv3hvffsaqk0g8e`** (le même que « Se connecter avec
 Google » : c'est bien ce client-là qu'il faut étendre, pas un nouveau) :
-1. Ajouter deux URI de redirection autorisées : `https://app.megga.ch/oauth/mail/callback` et
-   `http://localhost:5173/oauth/mail/callback`. Elles doivent correspondre **au caractère
-   près** à `redirectUriFor()` (`_shared/mail/guard.ts:47`).
+1. Ajouter deux URI de redirection autorisées : `https://app.getmegga.com/oauth/mail/callback`
+   et `http://localhost:5173/oauth/mail/callback`. Elles doivent correspondre **au caractère
+   près** à `redirectUriFor()` (`_shared/mail/guard.ts`). ⚠ Corrigé le 13.09.2026 : ce point
+   donnait `app.megga.ch`, que `redirectUriFor()` ne produit plus depuis le 09.09.2026
+   (#1287) — l'enregistrer tel quel menait à `redirect_uri_mismatch`.
 2. **Activer l'API Gmail** sur le projet. Elle ne l'est pas : seule l'API Calendar l'a été.
 3. Déclarer le scope `https://www.googleapis.com/auth/gmail.modify` dans *Data Access*.
    ⚠ Il est **RESTRICTED**, un cran au-dessus des scopes *sensibles* de Calendar : tant que la
@@ -7126,7 +7135,8 @@ Google » : c'est bien ce client-là qu'il faut étendre, pas un nouveau) :
    mais à savoir avant de le montrer à un client.
 
 **Microsoft — Azure / Entra** :
-1. Enregistrer l'application, y ajouter les deux mêmes URI de redirection.
+1. Enregistrer l'application, y ajouter les deux mêmes URI de redirection :
+   `https://app.getmegga.com/oauth/mail/callback` et `http://localhost:5173/oauth/mail/callback`.
 2. Accorder les permissions **déléguées** `Mail.ReadWrite`, `Mail.Send`, `User.Read`,
    `offline_access` — exactement `MS_MAIL_SCOPE` (`_shared/mail/secrets.ts:32`).
 3. Poser `MICROSOFT_CLIENT_ID` et `MICROSOFT_CLIENT_SECRET` dans les secrets Edge Function de

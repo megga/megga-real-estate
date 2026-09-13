@@ -30,7 +30,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { basename } from 'node:path'
-import { emptyRoots, readFileSafely, rel, scanRoots, type Scan } from './helpers/fs-scan'
+import { emptyRoots, readFileSafely, rel, repoPath, scanRoots, type Scan } from './helpers/fs-scan'
 
 const RACINE = 'supabase/functions'
 
@@ -47,6 +47,18 @@ const SANS_CATEGORIE_ASSUME: Record<string, string> = {
   // Une panne de fonction n'en est pas une : lui en coller une la ferait apparaître dans
   // une puce à laquelle elle n'appartient pas. Précédent assumé : rls_hardening_applied.
   'audit-edge-error.ts': 'événement d\'infrastructure, sans famille métier',
+}
+
+/**
+ * Constructeurs de ligne qui posent EUX-MÊMES la `category` : l'écriture qui les appelle
+ * n'en porte donc pas dans sa fenêtre. Ce n'est PAS une exemption — le test relit le corps
+ * de chacun et exige qu'il pose une catégorie ; une entrée dont le constructeur la
+ * perdrait rougit comme un émetteur fautif.
+ */
+const CONSTRUCTEURS: Record<string, string> = {
+  // Le journal d'un courrier (13.09.2026) : un seul contrat pour `ingest` et `mail-send`,
+  // qui garantit qu'aucun objet ni adresse n'entre dans `activity_events`.
+  mailAuditEvent: 'supabase/functions/_shared/mail/ingest.ts',
 }
 
 /** Retire commentaires de ligne et de bloc — sinon un `// pas de category:` suffirait à
@@ -71,6 +83,9 @@ function ecrituresSansCategorie(source: string): number[] {
   const motif = /activity_events['"]\s*\)\s*\.insert\s*\(/g
   let m: RegExpExecArray | null
   while ((m = motif.exec(propre)) !== null) {
+    // Un constructeur nommé (et vérifié plus bas) porte la catégorie à la place de l'appel.
+    const argument = propre.slice(m.index + m[0].length).trimStart()
+    if (Object.keys(CONSTRUCTEURS).some((c) => argument.startsWith(`${c}(`))) continue
     // La fenêtre couvre un objet d'événement complet (agency_id, actor_*, action,
     // entity_*, metadata…) mais s'arrête AU PROCHAIN ÉMETTEUR.
     //
@@ -178,6 +193,21 @@ describe('instrumentation activity_events (étape 6)', () => {
       'Si l\'événement n\'a vraiment pas de famille métier, l\'inscrire dans',
       'SANS_CATEGORIE_ASSUME avec sa raison.',
     ].join('\n')).toEqual([])
+  })
+
+  it('chaque constructeur nommé pose lui-même une `category`', () => {
+    for (const [nom, fichier] of Object.entries(CONSTRUCTEURS)) {
+      const brut = readFileSafely(repoPath(fichier))
+      expect(brut.status, `${fichier} illisible`).toBe('ok')
+      const source = brut.status === 'ok' ? sansCommentaires(brut.value) : ''
+      const debut = source.indexOf(`export function ${nom}(`)
+      expect(debut, `${nom} introuvable dans ${fichier} — l'entrée est périmée`).toBeGreaterThan(-1)
+      // Le corps s'arrête à la déclaration de premier niveau suivante.
+      const suite = source.slice(debut + 1).search(/\n(?:export |async function |function |const |interface |type )/)
+      const corps = source.slice(debut, suite === -1 ? undefined : debut + 1 + suite)
+      expect(corps, `${nom} ne pose plus de catégorie : ses appelants écrivent des lignes muettes`)
+        .toMatch(/\bcategory\s*:\s*'[a-z]+'/)
+    }
   })
 
   it('les exceptions restent nommées, et rares', () => {

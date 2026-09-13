@@ -14,7 +14,7 @@ import { getValidAccessToken } from '../_shared/mail/secrets.ts'
 import { base64ByteLength, base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, textToHtml } from '../_shared/mail/mime.ts'
 import { gmailAttachment, gmailGetMessage, gmailSend, normalizeGmailMessage } from '../_shared/mail/gmail.ts'
 import { GRAPH_ATTACHMENT_MAX_BYTES, graphSend } from '../_shared/mail/graph.ts'
-import { ingestMessages, recomputeThread } from '../_shared/mail/ingest.ts'
+import { ingestMessages, mailAuditEvent, recomputeThread } from '../_shared/mail/ingest.ts'
 import type { MailAddress, OutgoingMessage } from '../_shared/mail/types.ts'
 
 const corsHeaders = {
@@ -243,11 +243,12 @@ serve(async (req: Request) => {
     // `email_sent` manquant dans la timeline d'un contact ne laissait alors AUCUNE trace,
     // nulle part, alors que CLAUDE.md §5 fait d'`activity_events` la trace de chaque
     // action. On ne refuse pas l'envoi pour autant : le courrier est parti.
-    const { error: eAudit } = await admin.from('activity_events').insert({
-      agency_id: account.agency_id, actor_id: user.id, actor_kind: 'user', action: 'email_sent', category: 'messaging', severity: 'info',
-      entity_type: 'contact', entity_id: th.contact_id, object_label: subject,
-      metadata: { thread_id: threadId, message_id: localMessageId, account_id: account.id, to: to.map((a) => a.email), kind },
-    })
+    // ⛔ Le FAIT, jamais le contenu : ni l'objet (qui recopie en « Re: » celui d'un
+    // courrier REÇU), ni les destinataires — voir `mailAuditEvent`.
+    const { error: eAudit } = await admin.from('activity_events').insert(mailAuditEvent({
+      agencyId: account.agency_id, contactId: th.contact_id, action: 'email_sent',
+      accountId: account.id, threadId, messageId: localMessageId, actorId: user.id, kind,
+    }))
     if (eAudit) console.error(`[mail-send] activity_events refuse email_sent (fil ${threadId}, contact ${th.contact_id}):`, eAudit.message)
   }
   if (typeof body.draft_id === 'string') await admin.from('mail_drafts').delete().eq('id', body.draft_id).eq('author_id', user.id)
