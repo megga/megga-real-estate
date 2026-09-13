@@ -55,7 +55,7 @@ import { useEcranActif } from '@/hooks/useEcranActif'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
 import { consoleAReprendre } from '@/lib/adminEntry'
 import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
-import { MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /** Largeurs de la carte. Ni l'une ni l'autre n'est une valeur d'échelle : la
  *  grammaire tokenise les rayons, espacements et tailles de texte — pas les
@@ -447,13 +447,13 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
   /**
    * Le rouge de la ligne console — une ENCRE, et qui change de valeur avec le
    * fond : aucun rouge ne tient l'AA sur les deux thèmes à la fois.
-   *   • clair : `MLK_STATUT.errInk`, l'encre d'alerte déjà partagée par la face
+   *   • clair : `STATUT_CLAIR.errInk`, l'encre d'alerte déjà partagée par la face
    *     publique et la messagerie — 6,47:1 sur la carte, 5,53:1 au survol ;
    *   • sombre : `MXC_SYSTEM.red400` — 6,56:1 sur la carte, 5,71:1 au survol.
    *     Il tomberait à 3,1:1 sur le blanc, d'où la bascule.
-   * Deux barreaux dérivés, aucun littéral : le cliquet des couleurs ne bouge pas.
+   * Deux jetons importés, aucun littéral : le cliquet des couleurs ne bouge pas.
    */
-  const encreConsole = sp.isDark ? MXC_SYSTEM.red400 : MLK_STATUT.errInk
+  const encreConsole = sp.isDark ? MXC_SYSTEM.red400 : STATUT_CLAIR.errInk
 
   return (
     <>

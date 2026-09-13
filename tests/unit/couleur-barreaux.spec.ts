@@ -132,10 +132,11 @@ const SURFACES_EXEMPTEES: { fichier: string; motif: string }[] = [
  * vieillit, et le lot suivant y réintroduirait ce que le précédent a retiré.
  */
 /*
- * ⚠ `src/components/megga-x-crm` N'Y FIGURE PAS, et ce n'est pas un oubli : les
- * barreaux sont DÉRIVÉS de ce dossier, donc chacun de ses littéraux en est un par
- * construction. Sa ligne vaudrait toujours zéro. L'inscrire ferait rougir la
- * clause « aucune entrée ne garde de crédit » à chaque exécution.
+ * ⚠ `src/components/megga-x-crm` Y FIGURE DEPUIS LE 13.09.2026, et pour ses seuls
+ * onze littéraux de `statut.ts`. Les barreaux sont dérivés de `tokens.ts` et de
+ * lui SEUL : chacun de ses littéraux en est un par construction, et il compte
+ * zéro. `statut.ts` est posé À CÔTÉ exprès — y écrire ses teintes Tailwind les
+ * ferait passer pour des barreaux dans tout le dépôt.
  */
 const HORS_ASSUMES = new Map<string, number>([
   ['src/components/crm', 534],
@@ -146,7 +147,12 @@ const HORS_ASSUMES = new Map<string, number>([
   ['src/components/listings', 37],
   ['src/pages/dev', 26],
   ['src/pages/agent', 4],
-  ['src/components/kyc-magic-link', 24],
+  // 24 → 13 et +11 sous `megga-x-crm` le 13.09.2026 : un TRANSFERT, pas une
+  // croissance. La famille qui encode (ex-`MLK_STATUT`) a quitté les jetons de
+  // la face publique pour `megga-x-crm/statut.ts` — mêmes onze valeurs, total
+  // du dépôt inchangé.
+  ['src/components/kyc-magic-link', 13],
+  ['src/components/megga-x-crm', 11],
   ['src/components/auth-bento', 22],
   // 22 → 4 le 13.09.2026 : le concept épuré du rapport n'a plus que quatre gris
   // d'imprimé (encre douce, sourdine, deux filets), tous dans tokens.ts.
