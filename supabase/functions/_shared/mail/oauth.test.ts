@@ -81,8 +81,17 @@ describe('revokeToken', () => {
     expect(await revokeToken('gmail', 'rt-1', { fetch: F(fetch) })).toBe(true)
   })
   it('refus du fournisseur ⇒ false, pas un succès silencieux', async () => {
-    const fetch = vi.fn(async () => new Response('{"error":"invalid_token"}', { status: 400 }))
-    expect(await revokeToken('gmail', 'rt-1', { fetch: F(fetch) })).toBe(false)
+    for (const [statut, corps] of [[400, '{"error":"invalid_request"}'], [400, 'Bad Request'], [503, '{"error":"invalid_token"}'], [500, '']] as const) {
+      const fetch = vi.fn(async () => new Response(corps, { status: statut }))
+      expect(await revokeToken('gmail', 'rt-1', { fetch: F(fetch) }), `${statut} ${corps}`).toBe(false)
+    }
+  })
+  // ⛔ Jeton déjà révoqué (l'agent a retiré l'accès depuis son compte Google) ou expiré :
+  // Google répond `400 {"error": "invalid_token"}` — relevé contre le vrai endpoint le
+  // 13.09.2026. En échec, la boîte ne se déconnectait plus, et son compte ne se supprimait plus.
+  it('400 invalid_token ⇒ true : il n y a plus rien à révoquer', async () => {
+    const fetch = vi.fn(async () => new Response('{\n  "error": "invalid_token"\n}', { status: 400 }))
+    expect(await revokeToken('gmail', 'rt-1', { fetch: F(fetch) })).toBe(true)
   })
   it('réseau injoignable ⇒ false, jamais une exception qui remonte au milieu d une déconnexion', async () => {
     const fetch = vi.fn(async () => { throw new Error('ECONNRESET') })

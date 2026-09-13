@@ -40,7 +40,6 @@ export type SettingsIconName =
 //   - Agency        → useAgencySettings (agencies table)
 //   - Preferences   → useUiPreferences (profiles.preferences.ui)
 //   - Integrations  → useGoogleCalendar + useOutlookCalendar (real OAuth)
-//   - Privacy       → delete-account Edge Function + mailto DSAR (PR #453)
 //   - Security      → password change/reset via supabase.auth.updateUser
 //                     / resetPasswordForEmail + SSO
 //   - Billing       → reads still partial; chip pour Stripe Checkout
@@ -58,8 +57,10 @@ export type SettingsIconName =
 // jamais arrêté un seul message : l'écran promettait un réglage que le produit
 // n'honorait pas. Le jour où l'envoi lira une préférence, la section se
 // réintroduit AVEC son lecteur, pas avant.
-// (Confidentialité retirée — absente de la maquette Claude Design. Le câblage
-//  delete-account + export DSAR/nLPD reste dans PrivacySection.tsx, non monté.)
+// (Confidentialité retirée — absente de la maquette Claude Design. ⚠ Ce commentaire
+//  disait son câblage « dans PrivacySection.tsx, non monté » : le fichier a été SUPPRIMÉ
+//  le 11.07.2026 (cd159c20). delete-account n'a plus qu'une entrée, la console
+//  super-admin — UserDrawer → useAdminUserLifecycle.)
 // i18n : label/short en getters (lus via l'instance i18n singleton à l'accès →
 // traduits + réactifs, sans changer les sites d'appel `.label`/`.short`).
 // Cf docs/i18n-conventions §6.

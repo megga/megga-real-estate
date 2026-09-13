@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
+import { disconnectMailAccount } from '../_shared/mail/disconnect.ts'
 
 // delete-account — nLPD art. 32 (right to erasure) compliant account deletion.
 //
@@ -8,7 +9,11 @@ import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 // - Authenticates the caller via Bearer JWT.
 // - Refuses deletion if: KYC cases still in_progress/review, or user is the
 //   sole admin of an agency.
-// - Anonymises profiles, contacts and activity_events (audit trail preserved).
+// - Anonymises profiles and contacts. activity_events: ONLY the account_deleted
+//   trace is written (step 5); the FK detaches the user's lines when step 11
+//   deletes the auth user — no applicative UPDATE, the journal is append-only.
+// - Disconnects every mailbox the user owns (step 5c, 13.09.2026): Google grant
+//   revoked, Vault secret erased, box deleted — the cascade never reached Vault.
 // - Anonymises the director's KYB identity (agency_related_persons) and the
 //   onboarding call (onboarding_calls) — added 07.08.2026, see below.
 // - Keeps kyc_cases + KYC-linked documents untouched (LBA art. 7 al. 3 — 10y).
@@ -22,12 +27,15 @@ import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
 // `activity_events`, si bien qu'on pouvait exporter ce qui n'était jamais
 // effacé, et inversement.
 //
-// ⚠ LES CASCADES NE SAUVENT RIEN ICI. Cette fonction ANONYMISE le profil
-// (étape 6), elle ne supprime jamais sa ligne. Tout `on delete cascade` ou
-// `on delete set null` pointant vers `profiles` reste donc DORMANT : les tables
-// filles doivent être traitées à la main, sans quoi leur PII survit au compte.
-// C'est ce qui laissait la date de naissance et le numéro de pièce du dirigeant
-// intacts après une suppression.
+// ⚠ LES CASCADES JOUENT, MAIS À LA FIN. L'étape 6 anonymise le profil ; l'étape
+// 11 (deleteUser, suppression DURE) supprime sa ligne par `profiles_id_fkey` ON
+// DELETE CASCADE, et déclenche alors chaque FK vers `profiles`. Une FK `on delete
+// set null` coupe le lien SANS retirer la PII de la ligne fille : elle doit être
+// traitée AVANT (8b), sinon elle survit, orpheline. C'est ce qui aurait laissé la
+// date de naissance et le numéro de pièce du dirigeant intacts après une
+// suppression. ⛔ Ce paragraphe affirmait l'inverse (« elle ne supprime jamais sa
+// ligne … reste DORMANT ») : tests/backend/activity-events-actor-detach.spec.ts
+// prouve la cascade.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -70,7 +78,8 @@ serve(async (req) => {
       return json({ error: 'Invalid or expired session' }, 401)
     }
     let userId = userData.user.id
-    let initiatedByAdmin = false
+    /** Le super-admin qui supprime un compte TIERS (branche admin) ; `null` pour une auto-suppression. */
+    let operator: { id: string; email: string } | null = null
 
     // Service role client — bypasses RLS
     const admin = createClient(supabaseUrl, supabaseServiceKey)
@@ -89,7 +98,7 @@ serve(async (req) => {
         return json({ error: 'refused: cannot delete an allowlisted admin account' }, 403)
       }
       userId = body.target_user_id
-      initiatedByAdmin = true
+      operator = adminAuth.user
     }
 
     // 2. Load profile
@@ -157,21 +166,94 @@ serve(async (req) => {
 
     const now = new Date().toISOString()
 
-    // 5. Log deletion event (BEFORE anonymising — keep actor_id = real userId)
-    await admin.from('activity_events').insert({
+    // 5. Trace de la suppression, AVANT toute destruction. C'est la seule preuve que lit la
+    //    console (useAccountDeletions) : si elle ne s'écrit pas, on s'arrête — rien n'est
+    //    encore détruit. ⚠ Son résultat était JETÉ : supabase-js résout une erreur
+    //    PostgREST, il ne la lève pas, et la suppression continuait sans trace.
+    //
+    //    L'ACTEUR est celui qui agit : le compte lui-même (branche self — la FK le
+    //    détachera à l'étape 11), ou le super-admin opérateur (branche admin — la cible
+    //    reste l'entité). La trace nommait la CIBLE dans les deux cas : un compte supprimé
+    //    depuis la console n'avait d'auteur nulle part.
+    const { error: traceErr } = await admin.from('activity_events').insert({
       agency_id: profile.agency_id,
-      actor_id: userId,
+      actor_id: operator?.id ?? userId,
       action: 'account_deleted',
       category: 'auth',
       entity_type: 'profile',
       entity_id: userId,
       metadata: {
-        reason: initiatedByAdmin ? 'admin_request' : 'user_request',
-        initiated_by: initiatedByAdmin ? 'admin' : 'user',
+        reason: operator ? 'admin_request' : 'user_request',
+        initiated_by: operator ? 'admin' : 'user',
         timestamp: now,
         email_hash: profile.email ? `sha256:${profile.email.length}` : null,
       },
     })
+    if (traceErr) {
+      return json({ error: `Audit log failed: ${traceErr.message}` }, 500)
+    }
+
+    // 5b. Branche ADMIN : le registre MEGGA aussi (famille `lifecycle`), comme
+    //     admin-user-lifecycle — et son échec se lit AVANT toute destruction.
+    //     Clé de service ⇒ `auth.uid()` NULL ⇒ admin_log_write force « Système » ;
+    //     l'opérateur est donc dans la première paire. ⛔ Ni l'e-mail ni le nom de la
+    //     cible : le registre est append-only et gardé dix ans, il ne réintroduit pas
+    //     la donnée dont il consigne l'effacement — `entity_id` suffit à la retrouver.
+    if (operator) {
+      const { error: registryErr } = await admin.rpc('admin_log_write', {
+        p_family: 'lifecycle',
+        p_action: 'account_deleted',
+        p_severity: 'warn',
+        p_entity_type: 'profile',
+        p_entity_id: userId,
+        p_agency_id: profile.agency_id ?? null,
+        p_metadata: [
+          { l: 'Opérateur', v: operator.email || operator.id },
+          { l: 'Compte cible', v: userId },
+          { l: 'Action', v: 'Suppression de compte (nLPD art. 32)' },
+        ],
+      })
+      if (registryErr) {
+        return json({ error: `Registry log failed: ${registryErr.message}` }, 500)
+      }
+    }
+
+    // 5c. Boîtes connectées : révoquer le jeton, effacer le secret, supprimer la boîte —
+    //     par le MÊME chemin que « Déconnecter » (disconnectMailAccount), et AVANT toute
+    //     autre destruction.
+    //
+    //     La cascade de l'étape 11 (mail_accounts.owner_id → profiles ON DELETE CASCADE)
+    //     emportait bien les boîtes, leurs fils et leurs messages — mais PAS le secret :
+    //     Vault n'est la cible d'aucune clé étrangère. Le jeton de rafraîchissement
+    //     survivait au compte, NON révoqué chez Google, et la seule ligne qui le désignait
+    //     disparaissait avec le compte : MEGGA gardait de quoi lire la boîte d'une personne
+    //     qui venait d'exercer son droit à l'effacement, sans plus rien pour le retrouver.
+    //
+    //     Un échec ARRÊTE la suppression, avant l'étape 6 : la boîte reste, en `disabled`,
+    //     avec son pointeur, et la suppression se rejoue. Ne compte pas comme échec un
+    //     jeton que Google tient déjà pour révoqué (`invalid_token`), ni un secret déjà
+    //     absent — sans quoi le compte deviendrait insupprimable.
+    const { data: boites, error: boitesErr } = await admin
+      .from('mail_accounts')
+      .select('id, provider, vault_secret_id')
+      .eq('owner_id', userId)
+    if (boitesErr) {
+      return json({ error: `Mailbox lookup failed: ${boitesErr.message}` }, 500)
+    }
+    for (const boite of boites ?? []) {
+      const r = await disconnectMailAccount(admin, boite)
+      if (!r.ok) {
+        return json(
+          {
+            error: 'MAILBOX_DISCONNECT_FAILED',
+            message:
+              "Une boîte mail connectée n'a pas pu être déconnectée. Le compte n'a pas été supprimé : réessayez dans quelques minutes.",
+            reason: r.reason,
+          },
+          r.reason === 'secret_unreadable' || r.reason === 'provider_refused' ? 502 : 500
+        )
+      }
+    }
 
     // 6. Anonymise profile
     const anonEmail = `deleted+${userId}@megga.deleted`
@@ -211,38 +293,32 @@ serve(async (req) => {
       }
     }
 
-    // 8. Anonymise activity_events actor_id — preserve audit trail, strip PII
-    // We rewrite actor_id to the sentinel 'deleted_user' and store the old id
-    // in metadata for forensic reference (LBA compliant).
-    const { data: ownedEvents, error: eventsFetchErr } = await admin
-      .from('activity_events')
-      .select('id, metadata')
-      .eq('actor_id', userId)
-    if (eventsFetchErr) {
-      console.warn('activity_events fetch warning:', eventsFetchErr.message)
-    }
-    if (ownedEvents && ownedEvents.length > 0) {
-      // Bulk update per event to preserve existing metadata
-      for (const ev of ownedEvents) {
-        const mergedMeta = {
-          ...(ev.metadata as Record<string, unknown> | null),
-          deleted_user_id: userId,
-        }
-        await admin
-          .from('activity_events')
-          .update({ actor_id: 'deleted_user', metadata: mergedMeta })
-          .eq('id', ev.id)
-      }
-    }
+    // 8. activity_events : AUCUNE écriture ici, et c'est voulu.
+    //
+    // Le journal est append-only (enforce_activity_events_immutability, dernière
+    // définition 20260801420000). La dissociation est faite par la BASE à l'étape 11 :
+    // deleteUser supprime auth.users → profiles_id_fkey (ON DELETE CASCADE) emporte le
+    // profil → activity_events_actor_id_fkey (ON DELETE SET NULL) passe actor_id à NULL
+    // sur TOUTES les lignes de l'agent, dans la transaction de la suppression, sans
+    // plafond max_rows. La branche « détachement d'acteur » du trigger garde
+    // actor_kind = 'user' (une personne a agi, on a perdu son nom) et dépose
+    // actor_detached_at / _from / _reason. Et cette trace n'existe que si le profil a
+    // réellement disparu : une estampille applicative posée ici affirmerait un
+    // effacement que l'échec de l'étape 11 démentirait.
+    //
+    // ⛔ Ne pas réintroduire d'UPDATE. L'ancienne étape écrivait actor_id = 'deleted_user' :
+    // refusé par le type uuid (22P02) avant même le trigger, erreur jamais lue — zéro ligne
+    // modifiée en production. Les deux UPDATE que le trigger admettrait mentiraient :
+    // actor_id = NULL seul ferait écrire « profile deleted (FK on delete set null) » avant
+    // que le profil soit supprimé ; actor_kind = 'system' attribuerait à la machine le
+    // geste d'un agent. Garde : tests/unit/activity-events-append-only.spec.ts.
 
     // 8b. Identité KYB du dirigeant (agency_related_persons).
     //
     // POURQUOI EXPLICITEMENT, alors qu'une FK existe. `profile_id` est
-    // `on delete set null`, mais le compte est ANONYMISÉ et jamais supprimé
-    // (étape 6) : la cascade ne se déclenche donc JAMAIS. Sans ce traitement, la
-    // date de naissance, la nationalité et le NUMÉRO DE PIÈCE survivraient au
-    // compte — et si la cascade se déclenchait un jour, elle les laisserait
-    // intacts en coupant seulement le lien : orphelins, donc pires.
+    // `on delete set null` : la cascade ne joue qu'à l'étape 11, et ne fait que
+    // couper le lien. Sans ce traitement, la date de naissance, la nationalité et
+    // le NUMÉRO DE PIÈCE survivraient au compte — intacts, orphelins, donc pires.
     //
     // CE QU'ON RETIRE ET CE QU'ON GARDE. Partent les données de la PIÈCE
     // (naissance, nationalité, type et numéro) : leur finalité s'éteint quand la
@@ -268,12 +344,13 @@ serve(async (req) => {
     // 8c. Appel d'accueil (onboarding_calls).
     //
     // Objet de PLATEFORME (MEGGA ↔ agence), hors tenant : MEGGA en est
-    // responsable, pas sous-traitante. `booked_by` est `on delete cascade` et,
-    // pour la même raison qu'en 8b, la cascade ne joue pas. La migration
-    // d'origine avait déjà minimisé la table — « seuls un téléphone facultatif
-    // et une note libre sont propres au rendez-vous » : ce sont exactement les
-    // deux colonnes à retirer. Le rendez-vous lui-même reste, il appartient à
-    // l'historique de l'agence autant qu'à la personne.
+    // responsable, pas sous-traitante. ⚠ `booked_by` est `on delete cascade`
+    // (20260803214105) : la ligne est SUPPRIMÉE à l'étape 11, avec le compte. Ce
+    // retrait n'a donc d'effet que si l'étape 11 échoue — auquel cas les deux seules
+    // colonnes propres au rendez-vous (« seuls un téléphone facultatif et une note
+    // libre », migration d'origine) ne survivent pas au compte. Que le rendez-vous
+    // doive, lui, survivre comme historique de l'agence est une décision à part :
+    // elle passerait par la FK, pas par cette étape.
     const { error: callErr } = await admin
       .from('onboarding_calls')
       .update({ attendee_phone: null, attendee_note: null })

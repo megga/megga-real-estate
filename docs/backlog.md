@@ -47,7 +47,7 @@ Extension nécessaire pour passer de *« assistant ponctuel »* à *« assistant
 | 5-6 | UI Chat widget (Radix Dialog flottant + markdown + cards d'action) |
 | 7 | Hook `useAgentCopilot` (React Query streaming) |
 | 8 | Cards d'action : contact/listing/kyc/transaction preview + deep-link |
-| 9 | Audit trail `activity_events` (tool calls + réponses, `actor_id='ai'`) |
+| 9 | Audit trail `activity_events` (tool calls + réponses, `actor_kind='ai'`, `actor_id` NULL) |
 | 10 | i18n FR/DE/EN/IT (system prompt + UI strings) |
 | 11 | Feature flag `ai_copilot_agent_beta` + access admin-only pilote |
 | 12 | Tests E2E + polish + doc interne agents |

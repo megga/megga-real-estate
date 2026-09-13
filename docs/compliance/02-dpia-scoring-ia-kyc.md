@@ -121,7 +121,7 @@ Cette analyse d'impact porte sur deux traitements à risque élevé effectués p
 1. **Label "estimation IA"** affiché systématiquement à côté de tout score (R4)
 2. **Pas de décision automatisée** produisant un effet juridique (art. 21 nLPD)
 3. **Droit d'opposition** documenté dans la politique de confidentialité, exécutable via `privacy@getmegga.com` (R4, R6)
-4. **Audit trail** de tous les calculs de score via `activity_events` avec `actor_id = 'ai'` (R4, R6)
+4. **Audit trail** des recalculs de score via `activity_events` : un événement par agence et par passe (`contact_scores.recompute`, `property_scores.recompute`), `actor_kind = 'system'`, `actor_id` NULL, métadonnées limitées au compte et à la version (R4, R6)
 5. **Algorithme déterministe** (pas de ML black-box) — les facteurs et leurs pondérations sont documentés et auditable (R2)
 6. **Accès restreint** aux scores via RLS PostgreSQL — seul l'agent propriétaire et son agence voient les scores de ses contacts (R5, R6)
 7. **Réversibilité** — l'agent peut ignorer ou contredire une suggestion IA sans friction (R3)

@@ -2,9 +2,15 @@
 // Port 1:1 de crm-screen-audit-sugar.jsx (CRMScreenAuditSugar lignes 271-483).
 //
 // Conformité : nLPD art. 12 + LBA art. 7 — append-only, conservation 10 ans.
-// Filtres : date (7j/30j/90j/tout), catégorie (8), sévérité (info/warn/critical),
-// search plein texte.
+// Filtres : date (7j/30j/90j/tout), catégorie (10 — le domaine de
+// activity_events_category_check), sévérité (info/warn/critical), search plein texte.
 // Export : CSV (fonctionnel) + PDF horodaté hash-chain signé (Edge Function audit-pdf-export).
+//
+// ⛔ PÉRIMÈTRE : l'agence du profil (voir useAuditLog.ts). Sans agence — le super-admin de
+// production n'en a pas —, la liste est vide et le PDF désactivé : appelé sans `agency_id`,
+// `audit-pdf-export` prend sa branche « Plateforme MEGGA », que la décision du 14.08.2026
+// réserve à la console (AdminSecurityAuditPage). Ce n'est que l'UX : le mur serveur de
+// l'edge reste à poser.
 
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -27,6 +33,8 @@ import {
 import { CrmIcon } from '@/components/crm-dossiers/icons'
 import { AudDayGroup } from '@/components/crm-dossiers/audit/AudDayGroup'
 import { useAuditEvents } from '@/hooks/useAuditLog'
+import { useAuth } from '@/hooks/useAuth'
+import { compterActionsIa } from '@/lib/auditActor'
 import { downloadAuditCsv } from '@/lib/auditCsvExport'
 import { downloadAuditPdf } from '@/lib/auditPdfExport'
 import type { AuditCategory, AuditSeverity, AuditEvent } from '@/types/kyc'
@@ -64,6 +72,8 @@ export default function AuditPage() {
   const [query, setQuery] = useState('')
   const [pdfBusy, setPdfBusy] = useState(false)
   const [pdfError, setPdfError] = useState<string | null>(null)
+  const { profile } = useAuth()
+  const agencyId = profile?.agency_id ?? null
 
   const { data: events = [], isLoading } = useAuditEvents({
     category: filterCat,
@@ -78,7 +88,9 @@ export default function AuditPage() {
       total: events.length,
       critical: events.filter((e) => e.severity === 'critical').length,
       warn: events.filter((e) => e.severity === 'warn').length,
-      ai: events.filter((e) => !e.actor_id).length,
+      // `actor_kind`, pas l'absence d'`actor_id` : celle-ci compte aussi le système et les
+      // agents dont le compte a été supprimé (src/lib/auditActor.ts).
+      ai: compterActionsIa(events),
     }
   }, [events])
 
@@ -183,7 +195,7 @@ export default function AuditPage() {
                 </KycGhostPill>
                 <KycBlackPill
                   size="lg"
-                  disabled={pdfBusy}
+                  disabled={pdfBusy || !agencyId}
                   // PDF horodaté hash-chain — Edge Function audit-pdf-export
                   onClick={async () => {
                     setPdfError(null)
@@ -363,23 +375,26 @@ export default function AuditPage() {
               >
                 {tr('audit.filter.allCategories')}
               </KycGhostPill>
-              {Object.entries(AUDIT_CATEGORIES).map(([key, c]) => (
-                <KycGhostPill
-                  key={key}
-                  active={filterCat === key}
-                  onClick={() => setFilterCat(key as AuditCategory)}
-                  size="sm"
-                  icon={
-                    <CrmIcon
-                      name={AUDIT_CAT_ICONS[key] || 'file'}
-                      size={13}
-                      stroke={filterCat === key ? '#fff' : c.tone}
-                    />
-                  }
-                >
-                  {c.label}
-                </KycGhostPill>
-              ))}
+              {(Object.keys(AUDIT_CATEGORIES) as AuditCategory[]).map((key) => {
+                const c = AUDIT_CATEGORIES[key]
+                return (
+                  <KycGhostPill
+                    key={key}
+                    active={filterCat === key}
+                    onClick={() => setFilterCat(key)}
+                    size="sm"
+                    icon={
+                      <CrmIcon
+                        name={AUDIT_CAT_ICONS[key]}
+                        size={13}
+                        stroke={filterCat === key ? '#fff' : c.tone}
+                      />
+                    }
+                  >
+                    {c.label}
+                  </KycGhostPill>
+                )
+              })}
               <div
                 style={{
                   width: 1,

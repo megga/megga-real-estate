@@ -74,7 +74,7 @@ export const PERSONAL_DATA_ESTATE: readonly EstateEntry[] = [
     access: true,
     erasure: 'retain',
     divergence:
-      'Preuve que le consentement a été donné, et sous quelle version. L\'effacer supprimerait la trace de la LICÉITÉ du traitement passé, pas seulement la donnée.',
+      'Preuve que le consentement a été donné, et sous quelle version. L\'effacer supprimerait la trace de la LICÉITÉ du traitement passé, pas seulement la donnée. ⛔ ÉCART MESURÉ, NON TRANCHÉ : `user_id` → auth.users est `on delete cascade` (20260705170000) — l\'étape 11 de delete-account DÉTRUIT ces lignes. La conservation déclarée ici n\'a donc pas lieu ; trancher entre une FK `set null` et une déclaration \'delete\'.',
   },
   {
     table: 'user_devices',
@@ -83,7 +83,7 @@ export const PERSONAL_DATA_ESTATE: readonly EstateEntry[] = [
     access: true,
     erasure: 'retain',
     divergence:
-      'ÉCART NON RÉSOLU, déclaré ici pour cesser d\'être invisible : empreinte, navigateur, ville et pays survivent à la suppression du compte sans motif de conservation écrit. À trancher — ni élargir ni corriger dans le lot accès/effacement du 07.08.2026.',
+      'ÉCART NON RÉSOLU, déclaré ici pour cesser d\'être invisible. ⚠ Ce texte disait qu\'empreinte, navigateur, ville et pays « survivent à la suppression du compte » : FAUX — `user_id` → auth.users est `on delete cascade` (baseline), l\'étape 11 de delete-account supprime ces lignes. La déclaration \'retain\' ne décrit donc pas ce qui se passe. À trancher — ni élargir ni corriger dans le lot accès/effacement du 07.08.2026.',
   },
   {
     table: 'auth_events',
@@ -92,8 +92,13 @@ export const PERSONAL_DATA_ESTATE: readonly EstateEntry[] = [
     access: true,
     erasure: 'retain',
     divergence:
-      'Journal de sécurité (connexions, échecs). Conservé au titre de la traçabilité des accès ; l\'identifiant reste, la charge utile est déjà hachée (`ip_hash`).',
+      'Journal de sécurité (connexions, échecs). Conservé au titre de la traçabilité des accès ; la charge utile est déjà hachée (`ip_hash`). ⚠ L\'identifiant, lui, ne reste PAS : `user_id` → auth.users est `on delete set null` (baseline) — la ligne survit à l\'étape 11 de delete-account, détachée de la personne.',
   },
+  // Anonymisée par la FK activity_events_actor_id_fkey (ON DELETE SET NULL) quand
+  // delete-account supprime auth.users (étape 11) — aucune requête applicative : le
+  // journal est append-only. Le `.from('activity_events')` que lit
+  // personal-data-estate.spec.ts est l'INSERT de la trace `account_deleted`, pas un
+  // effacement : sur cette table, ce test-là est satisfait par la trace, pas par l'effet.
   {
     table: 'activity_events',
     subjectColumn: 'actor_id',
@@ -108,7 +113,7 @@ export const PERSONAL_DATA_ESTATE: readonly EstateEntry[] = [
     access: true,
     erasure: 'anonymise',
     divergence:
-      'Anonymisée et non supprimée : le verdict de vérification est append-only et doit rester interprétable. On retire l\'identité (naissance, nationalité, type et NUMÉRO de pièce), on garde le fait qu\'une vérification a eu lieu. ⚠ `profile_id` est `on delete set null` et le compte est ANONYMISÉ (jamais supprimé) : la cascade ne se déclenche donc jamais, et sans ce traitement explicite la PII survivrait — désormais orpheline, donc pire.',
+      'Anonymisée et non supprimée : le verdict de vérification est append-only et doit rester interprétable. On retire l\'identité (naissance, nationalité, type et NUMÉRO de pièce), on garde le fait qu\'une vérification a eu lieu. ⚠ `profile_id` est `on delete set null` : la cascade ne joue qu\'à l\'étape 11 de delete-account, et ne fait que couper le lien — sans ce traitement explicite, la PII survivrait, orpheline, donc pire.',
   },
   {
     table: 'onboarding_calls',
@@ -117,7 +122,19 @@ export const PERSONAL_DATA_ESTATE: readonly EstateEntry[] = [
     access: true,
     erasure: 'anonymise',
     divergence:
-      'Objet de PLATEFORME (MEGGA ↔ agence), explicitement hors tenant — donc MEGGA est responsable, pas sous-traitant. `booked_by` est `on delete cascade`, mais le compte étant anonymisé et non supprimé la cascade ne joue pas : `attendee_phone` et `attendee_note` doivent être retirés à la main.',
+      'Objet de PLATEFORME (MEGGA ↔ agence), explicitement hors tenant — donc MEGGA est responsable, pas sous-traitant. ⚠ `booked_by` est `on delete cascade` : la ligne est SUPPRIMÉE à l\'étape 11 de delete-account. Le retrait à la main de `attendee_phone` et `attendee_note` ne sert que si l\'étape 11 échoue ; que le rendez-vous doive survivre au compte est une décision à part, qui passerait par la FK.',
+  },
+  // La CONNEXION d'une boîte (adresse, fournisseur, jetons en Vault) est un réglage du compte
+  // de l'agent chez MEGGA, comme son profil. Le COURRIER qu'elle porte (fils, messages) est
+  // la correspondance de l'agence : il n'est pas déclaré ici, il part avec la boîte (D15).
+  {
+    table: 'mail_accounts',
+    subjectColumn: 'owner_id',
+    role: 'controller',
+    access: false,
+    erasure: 'delete',
+    divergence:
+      'Supprimée et non exportée. L\'effacement passe par disconnectMailAccount (étape 5c de delete-account), AVANT la cascade de l\'étape 11 : le jeton est révoqué chez Google et le secret effacé de Vault, que la cascade n\'atteignait pas — le jeton survivait au compte. Les jetons ne s\'exportent jamais : ce sont des clés d\'accès, pas une information sur la personne. ⛔ ÉCART DÉCLARÉ, NON TRANCHÉ : admin-dsar-export ne rend pas les boîtes connectées (adresse, fournisseur, date de connexion) — à décider avec le rôle de MEGGA sur la connexion elle-même.',
   },
   {
     table: 'agency_id_document_purges',
