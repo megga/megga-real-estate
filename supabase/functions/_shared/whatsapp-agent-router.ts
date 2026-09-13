@@ -139,6 +139,38 @@ export function isUndoCommand(body: string | null | undefined): boolean {
   return UNDO_WORDS.has(norm)
 }
 
+// (5) Prétend avoir LANCÉ / FAIT / ENVOYÉ l'action (lire ≠ lancer) → fabrication même après une
+// simple lecture. Évalué PHRASE PAR PHRASE par isFabricatedKycClaim : une offre n'excuse que la sienne.
+const CLAIMS: RegExp[] = [
+  /\bj['e ]?ai\s+(re)?(lanc|déclench|declench|démarr|demarr|initi|envoy|génér|gener|effectu|réalis|realis|vérifi|verifi|fait)/,
+  /\bje\s+(viens\s+de|m['e ]?occupe)\b/,
+  /\b(est|a\s+ét[ée]|sont|ont\s+ét[ée])\s+(lanc[ée]|déclench[ée]|declench[ée]|démarr[ée]|demarr[ée]|initi[ée]|envoy[ée]|génér[ée]|gener[ée]|effectu[ée]|réalis[ée]|realis[ée]|vérifi[ée]|verifi[ée]|parti[es]?)/,
+  /\bfaite?\b/,
+  /c['e ]?est\s+parti/,
+  /\bi['\s]?(ve|m| have| am)?\s*(just\s+)?(launch|ran\b|run\b|start|sent|trigger|initiat|complet)/,
+  /(screening|kyc|sanctions?|pep|report|check)\s+(is\s+|has\s+been\s+|was\s+)?(started|launched|done|complete|completed|sent|triggered)/,
+  // DÉLIVRANCE au présent ou à la 3e personne — incident du 13.09.2026 : « Le rapport KYC part sur
+  // ton WhatsApp », puis « … vient de partir sur ton WhatsApp », et aucun outil n'avait tourné. Seul
+  // l'exécuteur envoie un document : le modèle ne peut rien joindre, toute délivrance narrée est inventée.
+  /(rapport|pdf|document)[^.?!]{0,40}\bpart(ent)?\s+(sur|vers|dans|chez)\b/,
+  /\bvien(t|nent)\s+d['e ]?\s*(partir|arriver|[êe]tre\s+(envoy|transmis|g[ée]n[ée]r|lanc))/,
+  /\bje\s+te\s+l['e ]?\s*(envoie|transmets|ai\s+(envoy|transmis))/,
+  // « je te renvoie le PDF », « je t'envoie le rapport » : l'OBJET est exigé — « je t'envoie le
+  // statut : 3/5 contrôles » est une narration du message lui-même, pas une pièce jointe.
+  /\bje\s+t(e\s+|')(envoie|renvoie|transmets|retransmets)\s+(le|la|ton|ta|ce|cette)?\s*(rapport|pdf|document)/,
+  /(?<!\b(dès\s+que|des\s+que|quand|lorsque|si)\s)\btu\s+(le|la|les)\s+re[çc]ois\b/,
+  // L'objet DIRECT : « voici le résumé du PDF » est une lecture de document entrant, pas un envoi.
+  /\bvoici\s+(le|la|ton|ta|ce|cette)\s+(rapport|pdf)\b/,
+  /\bci-jointe?s?\b/,
+  /\b(is|are)\s+on\s+(its|their)\s+way\b|\bjust\s+went\s+out\b|\bhere('s|\s+is)\s+(the|your)\b[^.?!]{0,30}(report|pdf)/,
+  // Même soirée, après déploiement : « Je relance l'envoi du rapport KYC », puis « Le système a bien
+  // repris l'envoi du rapport sur ton WhatsApp à l'instant ». La 1re personne au PRÉSENT et le
+  // passé composé d'une REPRISE n'étaient couverts par aucun motif.
+  /\bje\s+(re)?(lance|d[ée]clenche|g[ée]n[èe]re|pr[ée]pare|envoie|renvoie|transmets|exp[ée]die|r[ée]exp[ée]die|retente|r[ée]essaie)\b/,
+  /\b(a|ont|est|sont)\s+(bien\s+)?(ét[ée]\s+)?(repris|relanc|renvoy|r[ée]exp[ée]di|r[ée]essay)/,
+  /\bi(?:'m| am| will|'ll)\s+(now\s+)?(re)?(send|sending|generat|prepar)/,
+]
+
 // ── Garde anti-hallucination KYC (hotfix 3 juin 2026) ────────────────────────
 // Depuis le passage des outils KYC en async (Palier 2), la réponse immédiate à un screening
 // est une PROMESSE (« je lance, résultat plus tard ») que DeepSeek peut FABRIQUER en texte
@@ -170,7 +202,15 @@ export function isFabricatedKycClaim(
 
   // (2) Hors de ce tell : exiger une mention KYC (scope) + écarter l'historique légitime
   // (« on a déjà généré le rapport », « le screening d'hier… » = l'agent rappelle un fait passé).
-  if (!/(screening|\bscreen\b|kyc|sanctions?|\bpep\b|vérif|verif|\blba\b|contrôl|controle)/.test(r)) return false
+  // Le PDF qui PART est du même périmètre même sans le mot « KYC » : c'est le seul document que
+  // l'agent WhatsApp envoie (« le système a bien repris l'envoi du rapport sur ton WhatsApp »,
+  // 13.09.2026). « rapport »/« pdf » seuls ne suffisent pas, et un simple « envoyé » non plus : « le
+  // PDF que tu m'as envoyé » est un document ENTRANT, et « c'est fait, j'ai classé le PDF que tu
+  // m'as envoyé » un vrai file_document. Il faut un marqueur de livraison VERS l'agent.
+  const kycScope = /(screening|\bscreen\b|kyc|sanctions?|\bpep\b|vérif|verif|\blba\b|contrôl|controle)/.test(r)
+  const reportDelivery = /(rapport|\bpdf\b)/.test(r) &&
+    /(sur\s+ton\s+whatsapp|pi[èe]ce\s+jointe|ci-joint|l'envoi\s+d|\brenvoi|\brenvoy|\bparti|t'arrive|tu\s+(le|la|les)\s+re[çc]ois|tu\s+vas\s+(le|la|les)\s+recevoir|je\s+t(e\s+|')(envoie|renvoie|transmets)|voici\s+(le|ton|ta)\s+pdf\b)/.test(r)
+  if (!kycScope && !reportDelivery) return false
   // « tout à l'heure », « plus tôt », « ce matin » : les mêmes marqueurs que HISTORY_MARKER de
   // whatsapp-phantom-action.ts. Sans eux, « oui, il t'a été envoyé tout à l'heure » passait pour une
   // fabrication — et depuis que la garde RELANCE le modèle, la relance pouvait renvoyer le rapport.
@@ -186,30 +226,16 @@ export function isFabricatedKycClaim(
     /\btu\s+vas\s+(le|la|les)\s+recevoir\b/.test(r)
   ) return true
 
-  // (4) Offre / futur (« tu veux que je lance », « je vais », « je peux ») = légitime, pas une action FAITE.
-  if (/\b(je\s+vais|tu\s+veux|veux-tu|souhaites?-tu|si\s+tu|je\s+peux|dois-je|will\s+you|do\s+you\s+want|i\s+can|shall\s+i)\b/.test(r)) return false
-
-  // (5) Prétend avoir LANCÉ / FAIT l'action (lire ≠ lancer) → fabrication même après une simple lecture.
-  if (
-    /\bj['e ]?ai\s+(re)?(lanc|déclench|declench|démarr|demarr|initi|envoy|génér|gener|effectu|réalis|realis|vérifi|verifi|fait)/.test(r) ||
-    /\bje\s+(viens\s+de|m['e ]?occupe)\b/.test(r) ||
-    /\b(est|a\s+ét[ée]|sont|ont\s+ét[ée])\s+(lanc[ée]|déclench[ée]|declench[ée]|démarr[ée]|demarr[ée]|initi[ée]|envoy[ée]|génér[ée]|gener[ée]|effectu[ée]|réalis[ée]|realis[ée]|vérifi[ée]|verifi[ée]|parti[es]?)/.test(r) ||
-    /\bfaite?\b/.test(r) ||
-    /c['e ]?est\s+parti/.test(r) ||
-    /\bi['\s]?(ve|m| have| am)?\s*(just\s+)?(launch|ran\b|run\b|start|sent|trigger|initiat|complet)/.test(r) ||
-    /(screening|kyc|sanctions?|pep|report|check)\s+(is\s+|has\s+been\s+|was\s+)?(started|launched|done|complete|completed|sent|triggered)/.test(r) ||
-    // DÉLIVRANCE au présent ou à la 3e personne — incident du 13.09.2026 : « Le rapport KYC part sur
-    // ton WhatsApp », puis « … vient de partir sur ton WhatsApp », et aucun outil n'avait tourné. Les
-    // motifs ci-dessus ne connaissaient que « est parti » et la 1re personne. Seul l'exécuteur envoie
-    // un document : le modèle ne peut rien joindre, donc toute délivrance qu'il narre est inventée.
-    /(rapport|pdf|document)[^.?!]{0,40}\bpart(ent)?\s+(sur|vers|dans|chez)\b/.test(r) ||
-    /\bvien(t|nent)\s+d['e ]?\s*(partir|arriver|[êe]tre\s+(envoy|transmis|g[ée]n[ée]r|lanc))/.test(r) ||
-    /\bje\s+te\s+l['e ]?\s*(envoie|transmets|ai\s+(envoy|transmis))/.test(r) ||
-    /(?<!\b(dès\s+que|des\s+que|quand|lorsque|si)\s)\btu\s+(le|la|les)\s+re[çc]ois\b/.test(r) ||
-    /\bvoici\s+(le|la|ton|ta|ce|cette)\b[^.?!]{0,40}(rapport|pdf)/.test(r) ||
-    /\bci-jointe?s?\b/.test(r) ||
-    /\b(is|are)\s+on\s+(its|their)\s+way\b|\bjust\s+went\s+out\b|\bhere('s|\s+is)\s+(the|your)\b[^.?!]{0,30}(report|pdf)/.test(r)
-  ) return true
+  // (4) Offre / futur (« tu veux que je lance », « je vais », « je peux ») = légitime, pas une action
+  // FAITE — mais pour SA phrase seulement. Jusqu'au 13.09.2026 une offre n'importe où excusait toute
+  // la réponse : « Le système a bien repris l'envoi du rapport… Si tu ne le vois pas, je peux
+  // réessayer » passait grâce à sa SECONDE phrase. Découpage aux fins de phrase et aux deux-points.
+  const OFFER = /\b(je\s+vais|tu\s+veux|veux-tu|souhaites?-tu|si\s+tu|je\s+peux|dois-je|d[èe]s\s+que\s+tu|quand\s+tu|will\s+you|do\s+you\s+want|i\s+can|shall\s+i|let\s+me\s+know)\b/
+  const phrases = r.split(/(?<=[.!?…:;])\s+|\n+/).filter((p) => p.trim())
+  if (phrases.some((p) => !OFFER.test(p) && CLAIMS.some((re) => re.test(p)))) return true
+  // Une offre dans la réponse garde son ancien effet sur la narration d'ÉTAT (6) : « le dossier est
+  // ouvert, tu veux le screener ? » n'est pas une fabrication de statut.
+  if (OFFER.test(r)) return false
 
   // (6) ÉTAT / RÉSULTAT de statut (en cours, pas de PEP, correspondance, risque…). C'est EXACTEMENT ce
   // qu'une lecture réelle de get_kyc_status produit → légitime SI un statut a été lu ce tour
@@ -229,7 +255,50 @@ export function isFabricatedKycClaim(
  * système comme PHANTOM_RETRY_NUDGE (la réponse rejetée n'est pas réinjectée : elle ancrerait le
  * modèle sur ce qu'il vient d'inventer). À la seconde fabrication, `kycNotRun`.
  */
-export const KYC_CLAIM_RETRY_NUDGE = "CONSIGNE STRICTE POUR CETTE RÉPONSE : une première réponse vient d'être rejetée, parce qu'elle affirmait qu'une action KYC (screening, rapport PDF, pièce) était lancée, faite ou partie SANS qu'aucun outil n'ait tourné. Rien n'a été lancé et rien n'est parti. Si l'agent demande le rapport KYC d'un contact (« le PDF », « le document », « le rapport »), appelle send_kyc_report avec son contact_id — retrouve-le via search_contacts s'il n'est pas dans l'échange. Pour un screening, appelle run_kyc_screening. N'écris jamais toi-même que c'est fait ou envoyé : le système le confirmera. Ne rappelle pas un outil qui a déjà abouti dans cet échange ; si l'agent demande seulement où en est une action, réponds d'après l'historique."
+export const KYC_CLAIM_RETRY_NUDGE = "CONSIGNE STRICTE POUR CETTE RÉPONSE : une première réponse vient d'être rejetée, parce qu'elle affirmait qu'une action KYC (screening, rapport PDF, pièce) était lancée, faite ou partie SANS qu'aucun outil n'ait tourné. Rien n'a été lancé et rien n'est parti. Si l'agent demande le rapport KYC d'un contact (« le PDF », « le document », « le rapport »), appelle send_kyc_report avec son contact_id — l'IDENTIFIANT renvoyé par search_contacts, jamais son nom ; appelle search_contacts d'abord s'il n'est pas dans l'échange. Pour un screening, appelle run_kyc_screening. N'écris jamais toi-même que c'est fait ou envoyé : le système le confirmera. Ne rappelle pas un outil qui a déjà abouti dans cet échange ; si l'agent demande seulement où en est une action, réponds d'après l'historique."
+
+// ── contact_id des outils LENTS (send_kyc_report, run_kyc_screening) ─────────────────────────
+// Mesuré le 13.09.2026 : DeepSeek appelle send_kyc_report avec contact_id = « Julien Ahmedi ».
+// L'insertion dans whatsapp_async_jobs (colonne uuid) échoue en 22P02, l'agent reçoit « je n'ai
+// pas pu traiter ta demande », et aucun PDF ne part. Ces deux helpers PURS classent l'argument et
+// rédigent ce que le modèle reçoit quand le nom ne désigne pas UN seul contact.
+
+const CONTACT_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+export type ContactArg =
+  | { kind: 'uuid'; id: string }
+  | { kind: 'name'; name: string }
+  | { kind: 'missing' }
+
+/** Un UUID reste un identifiant ; tout autre texte d'au moins 2 caractères est traité comme un NOM. */
+export function classifyContactArg(raw: unknown): ContactArg {
+  const v = typeof raw === 'string' ? raw.trim() : ''
+  if (CONTACT_UUID_RE.test(v)) return { kind: 'uuid', id: v.toLowerCase() }
+  if (v.replace(/[,()%*]/g, '').trim().length >= 2) return { kind: 'name', name: v }
+  return { kind: 'missing' }
+}
+
+/**
+ * Réponse d'outil rendue au MODÈLE (jamais à l'agent) quand le contact n'est pas résolu : il doit
+ * demander à l'agent lequel, puis rappeler l'outil avec l'identifiant. La liste porte les mêmes
+ * champs que ce que `search_contacts` rend déjà au modèle (id, prénom, nom).
+ */
+export function contactResolutionNote(
+  outcome: 'none' | 'many' | 'missing',
+  name = '',
+  rows: Array<{ id: string; first_name: string | null; last_name: string | null }> = [],
+): string {
+  if (outcome === 'missing') {
+    return "Erreur: contact_id requis — l'identifiant renvoyé par search_contacts. Appelle search_contacts avec le nom du contact, puis rappelle l'outil."
+  }
+  if (outcome === 'none') {
+    return `Aucun contact « ${name} » dans l'agence. Demande à l'agent de préciser le nom — n'annonce aucun envoi.`
+  }
+  const list = rows
+    .map((r) => `${`${r.first_name ?? ''} ${r.last_name ?? ''}`.trim() || 'sans nom'} (${r.id})`)
+    .join(' ; ')
+  return `Plusieurs contacts correspondent à « ${name} » : ${list}. Demande à l'agent lequel, puis rappelle l'outil avec son identifiant — n'annonce aucun envoi.`
+}
 
 // ── Anti-fabrication : helpers PURS (testables hors Deno/Supabase) ──────────
 // Vivent ici (module pur déjà allowlisté en unit) et NON dans whatsapp-actions.ts

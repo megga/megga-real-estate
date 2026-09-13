@@ -14,7 +14,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
-import { toolTier, CONFIRM_TOOLS, isFabricatedKycClaim, KYC_CLAIM_RETRY_NUDGE, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
+import { toolTier, CONFIRM_TOOLS, isFabricatedKycClaim, KYC_CLAIM_RETRY_NUDGE, classifyContactArg, contactResolutionNote, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
 import { detectLang, t, asyncAck } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
@@ -29,6 +29,7 @@ import {
   execReadDocument, execFileDocument,
   execGetPublicationStatus, preparePublishToPortals, prepareWithdrawFromPortals,
   execAttachPropertyPhotos, execUpdateProperty, execCreateProperty,
+  findContactRows,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
@@ -300,11 +301,22 @@ serve(async (req) => {
         logToolUsage(supabase, { agency_id: ctx.agencyId, profile_id: profileId, tool: name, tier, outcome })
 
       if (tier === 'slow_async') {
+        // contact_id RÉSOLU EN CODE avant la file (13.09.2026) : DeepSeek passait le NOM
+        // (« Julien Ahmedi ») ; l'insertion échouait en 22P02 et l'agent recevait « je n'ai pas pu
+        // traiter ta demande ». Un nom qui désigne UN contact de l'agence vaut son identifiant ;
+        // sinon le modèle reçoit la liste et doit demander à l'agent — la boucle continue, rien
+        // n'est enfilé, et kycToolCalled reste faux (aucune action n'a tourné).
+        const resolved = await resolveAsyncContact(ctx, args)
+        if (!resolved.ok) {
+          logTool('error')
+          messages.push({ role: 'tool', tool_call_id: call.id, content: resolved.note })
+          continue
+        }
         kycToolCalled = true
         // ACK DÉTERMINISTE : on enfile le job et on renvoie le message système TEL QUEL, sans
         // laisser DeepSeek le reformuler (il exposait l'async / inventait — incident Vladimir).
         // Le job est RÉELLEMENT en file → « je lance le screening » est honnête. La boucle conclut ici.
-        const ack = await enqueueAsyncJob(ctx, waNumber, name, args)
+        const ack = await enqueueAsyncJob(ctx, waNumber, name, { ...args, contact_id: resolved.id })
         logTool('async_queued')
         return json({ reply: ack }, 200)
       }
@@ -403,6 +415,25 @@ function logToolUsage(
 // résultat d'outil. Dédup via l'index UNIQUE partiel (Task 1) : un INSERT en doublon
 // lève 23505, qu'on traite comme « déjà en file » (succès). On NE peut PAS utiliser
 // upsert/onConflict ici (ON CONFLICT n'infère pas un index partiel sur expression COALESCE).
+/**
+ * `contact_id` d'un outil lent → identifiant. Un UUID passe tel quel (l'exécuteur du worker revérifie
+ * l'agence via contactInAgency) ; un NOM est cherché dans l'agence, et n'est retenu que s'il désigne
+ * un seul contact. Journal PII-safe : l'issue seule, jamais le nom.
+ */
+async function resolveAsyncContact(
+  ctx: ActionCtx, args: Record<string, unknown>,
+): Promise<{ ok: true; id: string } | { ok: false; note: string }> {
+  const arg = classifyContactArg(args.contact_id)
+  if (arg.kind === 'uuid') return { ok: true, id: arg.id }
+  if (arg.kind === 'missing' || !ctx.agencyId) return { ok: false, note: contactResolutionNote('missing') }
+  const { rows, error } = await findContactRows(ctx, arg.name, 5)
+  if (error) return { ok: false, note: error }
+  const outcome = rows.length === 1 ? 'unique' : rows.length === 0 ? 'none' : 'many'
+  console.warn(`wa-agent async contact_id: name -> ${outcome}`)
+  if (rows.length === 1) return { ok: true, id: rows[0].id }
+  return { ok: false, note: contactResolutionNote(rows.length === 0 ? 'none' : 'many', arg.name, rows) }
+}
+
 async function enqueueAsyncJob(
   ctx: ActionCtx, waNumber: string, tool: string, args: Record<string, unknown>,
 ): Promise<string> {
