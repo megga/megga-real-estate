@@ -22,8 +22,9 @@ import type { LucideIcon } from 'lucide-react'
 import { X, Mail, Phone, Building2, Clock, Eye, FileDown, Ban, KeyRound, Trash2 } from 'lucide-react'
 import { formatDate, formatRelativeDate } from '@/lib/utils'
 import { useAdminUsers, useUserActivity, useDsarExport } from '@/hooks/useAdminUsers'
-import { consentView, ORG_ROLES, ROLE_LABEL_KEY, displayName } from '@/lib/adminUserRegistry'
+import { consentView, ORG_ROLES, ROLE_LABEL_KEY, displayName, motifRefus, MOTIF_REFUS_KEY } from '@/lib/adminUserRegistry'
 import { useAdminUserLifecycle } from '@/hooks/useAdminUserLifecycle'
+import { ErreurEdge } from '@/lib/refusEdge'
 import { ADMIN_CONSOLE_PATH, openImpersonation } from '@/lib/adminEntry'
 import AdminConfirm from '@/components/admin/AdminConfirm'
 import { useToast } from '@/components/ui/Toast'
@@ -103,6 +104,28 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
 
   function handleRoleChange(newRole: string) {
     updateRole.mutate({ id: userId, role: newRole })
+  }
+
+  /**
+   * Le refus du serveur, dit à l'opérateur : ce qui a échoué en titre, la cause RÉELLE en
+   * description (motif lu dans le corps par `ErreurEdge`). ⛔ Le toast unique disait
+   * « refusé sur un compte super-admin allowlisté » pour tout refus — un dossier KYC en
+   * cours ou un dernier administrateur se lisaient comme un blocage de sécurité.
+   */
+  function signalerRefus(titre: string, e: unknown) {
+    const refus = e instanceof ErreurEdge
+      ? e.refus
+      : { status: 0, code: null, texte: e instanceof Error ? e.message : null, count: null }
+    toast.error(titre, {
+      description: t(MOTIF_REFUS_KEY[motifRefus(refus)], {
+        count: refus.count ?? 0,
+        status: refus.status,
+        detail: (refus.texte ?? refus.code ?? '').slice(0, 200),
+      }),
+      // Une cause à lire, parfois une consigne (transférer des droits, réessayer) : le
+      // toast ne doit pas partir avant qu'on ait fini la phrase.
+      duration: 10_000,
+    })
   }
 
   const fullWidthBtn = { width: '100%', justifyContent: 'center' } as const
@@ -288,7 +311,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                       { action: 'reactivate', userId: user.id },
                       {
                         onSuccess: () => toast.success(t('userDrawer.lifecycle.done')),
-                        onError: () => toast.error(t('userDrawer.lifecycle.error')),
+                        onError: (e) => signalerRefus(t('userDrawer.lifecycle.actionRefused'), e),
                       },
                     )
                     return
@@ -308,7 +331,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                     { action: 'force_password_reset', userId: user.id },
                     {
                       onSuccess: () => toast.success(t('userDrawer.lifecycle.resetSent')),
-                      onError: () => toast.error(t('userDrawer.lifecycle.error')),
+                      onError: (e) => signalerRefus(t('userDrawer.lifecycle.actionRefused'), e),
                     },
                   )
                 }
@@ -422,7 +445,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                 { action: 'suspend', userId: user.id },
                 {
                   onSuccess: () => { toast.success(t('userDrawer.lifecycle.done')); setConfirming(null) },
-                  onError: () => { toast.error(t('userDrawer.lifecycle.error')); setConfirming(null) },
+                  onError: (e) => { signalerRefus(t('userDrawer.lifecycle.actionRefused'), e); setConfirming(null) },
                 },
               )
             }}
@@ -448,7 +471,7 @@ export default function UserDrawer({ userId, onClose }: UserDrawerProps) {
                     setConfirming(null)
                     onClose()
                   },
-                  onError: () => { toast.error(t('userDrawer.lifecycle.error')); setConfirming(null) },
+                  onError: (e) => { signalerRefus(t('userDrawer.lifecycle.deleteRefused'), e); setConfirming(null) },
                 },
               )
             }}

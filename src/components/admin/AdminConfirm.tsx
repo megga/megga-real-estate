@@ -76,9 +76,14 @@ export default function AdminConfirm({
       <div style={{ padding: 'var(--crm-space-6xl)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)' }}>
           <AdminIc icon={AlertTriangle} size={17} color={signal} style={{ marginTop: 1, flexShrink: 0 }} />
-          <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.55, color: sp.ink }}>
-            {message}
-          </p>
+          {/* La description ACCESSIBLE du dialogue (aria-describedby) : sans elle, un
+              lecteur d'écran annonçait le titre seul — ni ce qui sera détruit, ni la
+              consigne « tapez l'e-mail ». `asChild` garde ce <p> et son style. */}
+          <Modal.Description asChild>
+            <p style={{ margin: 0, fontSize: 'var(--crm-text-lg)', fontWeight: 500, lineHeight: 1.55, color: sp.ink }}>
+              {message}
+            </p>
+          </Modal.Description>
         </div>
 
         {requireText && (
