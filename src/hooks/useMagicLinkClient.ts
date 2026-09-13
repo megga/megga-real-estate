@@ -4,7 +4,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { MagicLinkPublicView, MagicLinkSubmittedView } from '@/types/magicLink'
-import { SUPABASE_FUNCTIONS_URL, SUPABASE_PUBLIC_ANON_KEY } from '@/lib/supabase'
+import { SUPABASE_PUBLIC_ANON_KEY, urlFonction } from '@/lib/supabase'
 import { MagicLinkUploadError } from '@/lib/magicLinkUploadErrors'
 
 /**
@@ -20,8 +20,10 @@ import { MagicLinkUploadError } from '@/lib/magicLinkUploadErrors'
  *
  * Mesuré le 15 août 2026 : `/kyc/<jeton>` rendait une page BLANCHE en dev, et la
  * requête partait sur `/kyc/undefined/functions/v1/magic-link-get`.
+ *
+ * Les URL passent par `urlFonction`, qui épingle aussi la RÉGION d'exécution (13.09.2026) :
+ * les pièces d'identité et de revenus d'un client transitent par ces fonctions.
  */
-const SUPABASE_URL = SUPABASE_FUNCTIONS_URL.replace(/\/functions\/v1$/, '')
 const SUPABASE_ANON_KEY = SUPABASE_PUBLIC_ANON_KEY
 
 // Toutes les requêtes ont besoin de la clé anon Supabase pour passer
@@ -59,7 +61,7 @@ export function useMagicLinkClient(token: string | undefined) {
     queryKey: ['magic-link-client', token],
     queryFn: async (): Promise<MagicLinkPublicView | MagicLinkSubmittedView | MagicLinkLoadError> => {
       if (!token) throw new Error('No token')
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-get`, {
+      const res = await fetch(urlFonction('magic-link-get'), {
         headers: tokenHeaders(token),
       })
       if (!res.ok) {
@@ -111,7 +113,7 @@ export function useMagicLinkUploadClient() {
       const form = new FormData()
       form.append('file', input.file)
       form.append('type', input.type)
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-upload`, {
+      const res = await fetch(urlFonction('magic-link-upload'), {
         method: 'POST',
         headers: tokenHeaders(input.token),
         body: form,
@@ -147,7 +149,7 @@ export function useMagicLinkConfirmClient() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (input: ConfirmInput): Promise<ConfirmResponse> => {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-confirm`, {
+      const res = await fetch(urlFonction('magic-link-confirm'), {
         method: 'POST',
         headers: {
           ...tokenHeaders(input.token),

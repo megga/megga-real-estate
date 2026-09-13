@@ -55,6 +55,38 @@ if (!verdict.safe) {
 export const SUPABASE_FUNCTIONS_URL = `${supabaseUrl}/functions/v1`
 export const SUPABASE_PUBLIC_ANON_KEY = supabaseAnonKey
 
+/**
+ * La région où s'EXÉCUTENT les Edge Functions : celle de la base (Irlande).
+ *
+ * ⛔ SANS ÉPINGLE, UNE FONCTION S'EXÉCUTE PRÈS DE L'APPELANT. Mesuré le 13.09.2026 dans les
+ * journaux (`x_sb_edge_region`) : un navigateur suisse tombe à Zurich, un agent en voyage
+ * tomberait à New York, et les 142 appels du webhook de Meta en 24 h — messages et accusés
+ * WhatsApp, chacun porteur d'un numéro de téléphone — se sont tous exécutés aux États-Unis.
+ * L'Irlande est déjà l'hôte de la base : y épingler ne crée aucun transfert, et raccourcit
+ * chaque aller-retour fonction ↔ base.
+ *
+ * ⚠ PAR LE PARAMÈTRE D'URL SEUL, jamais par l'option `region` de supabase-js : elle pose
+ * AUSSI l'en-tête `x-region`, que le préflight CORS de nos fonctions ne déclare pas — tout
+ * appel du navigateur tomberait. Garde : tests/unit/region-fonctions.spec.ts.
+ */
+export const REGION_FONCTIONS = 'eu-west-1'
+
+/** Ajoute l'épingle de région à une URL de fonction (idempotent) ; les autres URL passent telles quelles. */
+export function epinglerRegion(url: string): string {
+  if (!url.startsWith(`${SUPABASE_FUNCTIONS_URL}/`) || /[?&]forceFunctionRegion=/.test(url)) return url
+  return `${url}${url.includes('?') ? '&' : '?'}forceFunctionRegion=${REGION_FONCTIONS}`
+}
+
+/**
+ * L'URL d'une fonction pour un `fetch` DIRECT (flux du copilote, pages publiques, pièces
+ * jointes) — ceux qui ne passent pas par le client, donc pas par `authAwareFetch`.
+ */
+export function urlFonction(nom: string, query?: Record<string, string> | URLSearchParams): string {
+  const params = new URLSearchParams(query)
+  params.set('forceFunctionRegion', REGION_FONCTIONS)
+  return `${SUPABASE_FUNCTIONS_URL}/${nom}?${params}`
+}
+
 // ─── Stockage de session ────────────────────────────────────────────────
 // « Se souvenir de moi » (localStorage.megga_remember === 'false' ⇒ la session
 // meurt avec l'onglet) ET retrait des jetons de fournisseur Google/Microsoft
@@ -170,7 +202,11 @@ function refuseCompteEtranger(input: RequestInfo | URL, init?: RequestInit): Res
 async function authAwareFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const refus = refuseCompteEtranger(input, init)
   if (refus) return refus
-  const response = await fetch(input, init)
+  // Toute URL de fonction (dont `functions.invoke`) s'exécute dans la région de la base.
+  const cible = typeof input === 'string' ? epinglerRegion(input)
+    : input instanceof URL ? new URL(epinglerRegion(input.href))
+      : input.url.startsWith(`${SUPABASE_FUNCTIONS_URL}/`) ? new Request(epinglerRegion(input.url), input) : input
+  const response = await fetch(cible, init)
   if (response.status === 401 && !jwtRecoveryAttempted) {
     try {
       // Clone before reading body — the original is consumed by supabase-js.

@@ -4,7 +4,7 @@
  * de l'agence.
  */
 import { useEffect, useState } from 'react'
-import { supabase, SUPABASE_FUNCTIONS_URL, SUPABASE_PUBLIC_ANON_KEY } from '@/lib/supabase'
+import { supabase, SUPABASE_PUBLIC_ANON_KEY, urlFonction } from '@/lib/supabase'
 
 /** L'état d'une pièce en cours de lecture. */
 interface EtatPiece {
@@ -35,7 +35,7 @@ export function useMailAttachmentBlob(attachmentId: string | null) {
       setState({ url: null, type: null, error: null, loading: true })
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) { setState({ url: null, type: null, error: 'no_session', loading: false }); return }
-      const res = await fetch(`${SUPABASE_FUNCTIONS_URL}/mail-attachment?id=${encodeURIComponent(attachmentId)}`, {
+      const res = await fetch(urlFonction('mail-attachment', { id: attachmentId }), {
         headers: { Authorization: `Bearer ${session.access_token}`, apikey: SUPABASE_PUBLIC_ANON_KEY },
       })
       if (cancelled) return

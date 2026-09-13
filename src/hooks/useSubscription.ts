@@ -6,7 +6,7 @@
  * de la requête, on retombe sur « aucun abonnement » plutôt que de bloquer l'UI.
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/lib/supabase'
+import { supabase, urlFonction } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { PlanType } from '@/lib/plans'
 
@@ -25,8 +25,6 @@ interface Subscription {
   created_at: string
   updated_at: string
 }
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 
 /** Abonnement courant + plan/statut dérivés et actions Stripe (checkout, portail). */
 export function useSubscription() {
@@ -59,7 +57,7 @@ export function useSubscription() {
       if (!session) throw new Error('Non connecté')
 
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/stripe-checkout`,
+        urlFonction('stripe-checkout'),
         {
           method: 'POST',
           headers: {
@@ -86,7 +84,7 @@ export function useSubscription() {
       if (!session) throw new Error('Non connecté')
 
       const response = await fetch(
-        `${supabaseUrl}/functions/v1/stripe-portal`,
+        urlFonction('stripe-portal'),
         {
           method: 'POST',
           headers: {

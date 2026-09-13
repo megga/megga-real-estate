@@ -26,6 +26,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { isServiceSecret } from '../_shared/require-service-secret.ts'
 import { requireSuperAdmin } from '../_shared/require-super-admin.ts'
+import { urlFonction } from '../_shared/function-url.ts'
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -137,7 +138,7 @@ serve(async (req: Request) => {
     }
 
     try {
-      const procRes = await fetch(`${SUPABASE_URL}/functions/v1/photo-processor`, {
+      const procRes = await fetch(urlFonction(SUPABASE_URL, 'photo-processor'), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${serviceCredential}`,

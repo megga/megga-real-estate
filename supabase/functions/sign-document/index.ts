@@ -22,6 +22,7 @@ import {
   type SignatureQuality,
 } from '../_shared/esign-gateway.ts'
 import { reconcileSignatureRequest, type SigRequestRow } from '../_shared/esign-finalize.ts'
+import { urlFonction } from '../_shared/function-url.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -341,7 +342,7 @@ async function handleCreate(ctx: AuthCtx, body: Record<string, unknown>) {
     .single()
   if (insErr || !sr) return json({ error: insErr?.message ?? 'insert demande échoué' }, 500)
 
-  const callbackUrl = `${SUPABASE_URL}/functions/v1/esign-webhook?sr=${sr.id}&token=${webhookToken}&provider=${conn.provider}`
+  const callbackUrl = urlFonction(SUPABASE_URL, 'esign-webhook', { sr: sr.id, token: webhookToken, provider: conn.provider })
   const input: CreateRequestInput = {
     title,
     message: body.message as string | undefined,
