@@ -26,6 +26,9 @@ const PASTILLE = {
   cursor: 'pointer', transition: MAIL_TRANSITION,
 } as const
 
+/** Les teintes de la roue ET de la réglette (L 55) — une seule liste, pour qu'elles ne divergent pas. */
+const TEINTES = [0, 60, 120, 180, 240, 300, 360].map((h) => hslToHex(h, SAT, 55))
+
 /**
  * La roue de la teinte libre : les teintes de la réglette, un centre qui blanchit.
  * ⚠ BLANC = `n1000` : l'échelle de MEGGA X est sombre d'abord, `n100` y est le
@@ -33,13 +36,46 @@ const PASTILLE = {
  */
 const ROUE = [
   `radial-gradient(circle, ${MXC_COLOR.n1000} 0 16%, transparent 62%)`,
-  `conic-gradient(from 90deg, ${[0, 60, 120, 180, 240, 300, 360].map((h) => hslToHex(h, SAT, 55)).join(', ')})`,
+  `conic-gradient(from 90deg, ${TEINTES.join(', ')})`,
 ].join(', ')
 
 /** L'anneau blanc de la couleur retenue, au cœur de la bille — sur une roue, jamais sur le panneau. */
 const BLANC = MXC_COLOR.n1000
 /** Le contour d'une pastille au repos : un voile d'encre, qui assombrit le bord sans le cerner de gris. */
 const CONTOUR = `inset 0 0 0 1px ${crmVoileEncre(false, 0.1)}`
+
+/**
+ * La poignée de la réglette de teinte.
+ *
+ * ⛔ C'ÉTAIT LE ROND BLEU DU NAVIGATEUR. `appearance: none` sur le champ ne
+ * restyle que la piste ; la poignée, elle, ne se peint que par un pseudo-élément
+ * (`::-webkit-slider-thumb`, `::-moz-range-thumb`), qu'un style en ligne ne peut
+ * pas atteindre — d'où cette feuille, bornée à la classe du champ.
+ * Elle porte la teinte qu'elle désigne (`--mlc-teinte`), cerclée de blanc comme la
+ * couleur retenue au cœur de la bille ; au clavier, le halo des pastilles
+ * (`--mlc-jour`, `--mlc-anneau`).
+ */
+const POIGNEE = `
+.mlc-teinte { -webkit-appearance: none; appearance: none; cursor: pointer; outline: none; }
+.mlc-teinte::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--mlc-teinte); border: 3px solid ${MXC_COLOR.n1000};
+  box-shadow: 0 1px 4px ${crmVoileEncre(false, 0.35)}; cursor: grab; transition: box-shadow .12s, transform .12s;
+}
+.mlc-teinte:active::-webkit-slider-thumb { cursor: grabbing; transform: scale(1.08); }
+/* Le repère de focus est le halo de la POIGNÉE : le cadre global des champs
+   (\`input:focus-visible\`, globals.css) en ajoutait un second autour de toute la
+   piste. Deux classes battent \`input:focus-visible\` sans \`!important\`. */
+.mlc-teinte.mlc-teinte:focus-visible { outline: none; }
+.mlc-teinte:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px var(--mlc-jour), 0 0 0 4px var(--mlc-anneau); }
+.mlc-teinte::-moz-range-track { background: transparent; }
+.mlc-teinte::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--mlc-teinte); border: 3px solid ${MXC_COLOR.n1000};
+  box-shadow: 0 1px 4px ${crmVoileEncre(false, 0.35)}; cursor: grab;
+}
+.mlc-teinte:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(--mlc-jour), 0 0 0 4px var(--mlc-anneau); }
+`
 
 interface Props {
   ms: MailSurfaces
@@ -126,16 +162,22 @@ export function MailLabelCreator({ ms, initial, onCancel, onSave, busy }: Props)
 
       {custom && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
+          <style>{POIGNEE}</style>
           <input
             type="range"
+            className="mlc-teinte"
             min={0}
             max={360}
             value={hue}
             onChange={(e) => poserTeinte(Number(e.target.value), light)}
             aria-label={t('mail.labels.hue')}
             style={{
-              width: '100%', height: 12, borderRadius: PILL, appearance: 'none',
-              background: 'linear-gradient(90deg, hsl(0 85% 50%), hsl(60 85% 50%), hsl(120 85% 50%), hsl(180 85% 50%), hsl(240 85% 50%), hsl(300 85% 50%), hsl(360 85% 50%))',
+              ['--mlc-teinte' as string]: hslToHex(hue, SAT, 55),
+              ['--mlc-jour' as string]: ms.elev,
+              ['--mlc-anneau' as string]: ms.ink,
+              width: '100%', height: 12, margin: 0, borderRadius: PILL,
+              background: `linear-gradient(90deg, ${TEINTES.join(', ')})`,
+              boxShadow: CONTOUR,
             }}
           />
           <div style={{ display: 'flex', gap: 'var(--crm-space-sm)' }}>
@@ -145,9 +187,11 @@ export function MailLabelCreator({ ms, initial, onCancel, onSave, busy }: Props)
                 type="button"
                 aria-label={`${l}%`}
                 onClick={() => poserTeinte(hue, l)}
+                aria-pressed={light === l}
+                // Le halo des pastilles, pas une bordure qui mange la couleur.
                 style={{
                   flex: 1, height: 18, borderRadius: 'var(--crm-radius-xs)', background: hslToHex(hue, SAT, l),
-                  border: `2px solid ${light === l ? ms.ink : 'transparent'}`, cursor: 'pointer',
+                  border: 'none', padding: 0, cursor: 'pointer', transition: MAIL_TRANSITION, boxShadow: bague(light === l),
                 }}
               />
             ))}
