@@ -466,6 +466,50 @@
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease !important;
   }
 
+  /* ─── La bascule clair ↔ sombre du CRM (`lib/crmDarkBascule.ts`) ──────────
+     Pendant la bascule, AUCUNE transition : la nouvelle palette s'applique d'un
+     coup, et c'est l'écran entier qui se révèle en cercle. ⛔ Sans cette coupure,
+     la couche nouvelle — vivante — montrerait encore les 97 transitions en ligne
+     du CRM finir leur course à l'intérieur du cercle (18 durées différentes).
+     `!important` bat les styles EN LIGNE, que la moindre spécificité ne bat pas.
+     ⚠ SAUF ce qui BOUGE sans changer de couleur, marqué `data-garde-transition` :
+     le dock MEGGA AI (il glisse) et la poussée qu'il impose (plan de travail,
+     écrans). Coupées, une bascule faite pendant l'ouverture du dock le faisait
+     SAUTER à sa position finale. Leurs transitions ne portent que sur le
+     mouvement, jamais sur une couleur : les laisser courir ne rouvre aucun fondu. */
+  html[data-crm-bascule] *:not([data-garde-transition]),
+  html[data-crm-bascule] *::before,
+  html[data-crm-bascule] *::after {
+    transition: none !important;
+  }
+
+  /* Un écran d'onglet vivant mais CACHÉ (`EcranVivant`) ne transitionne jamais.
+     ⛔ Il prend la nouvelle palette APRÈS la révélation (`apresBascule`), donc une
+     fois la coupure ci-dessus levée : ses transitions en ligne couraient alors
+     dans le noir, et basculer sur son onglet dans la demi-seconde montrait la fin
+     d'un fondu sur plusieurs horloges — le défaut même que la révélation retire.
+     Sans l'API, idem. Invisible, il n'a rien à animer ; montré, il arrive fini. */
+  [data-ecran-pousse][aria-hidden="true"] *,
+  [data-ecran-pousse][aria-hidden="true"] *::before,
+  [data-ecran-pousse][aria-hidden="true"] *::after {
+    transition: none !important;
+  }
+
+  /* La révélation est animée depuis JS (un cercle, `clip-path`) : on retire le
+     fondu enchaîné par défaut, qui mélangerait chaque pixel avec son opposé.
+     ⚠ Bornée à LA BASCULE (l'attribut est posé avant l'appel) : une autre View
+     Transition de l'app garderait le comportement par défaut. */
+  html[data-crm-bascule]::view-transition-old(root),
+  html[data-crm-bascule]::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+  }
+
+  /* ~520 ms de révélation : les clics la traversent au lieu d'être avalés. */
+  html[data-crm-bascule]::view-transition {
+    pointer-events: none;
+  }
+
   /* Accent color smooth transitions (always active, not just during theme toggle) */
   .text-accent,
   .bg-accent,

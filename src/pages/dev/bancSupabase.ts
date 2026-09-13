@@ -100,6 +100,22 @@ const contrat = {
    * table inconnue — sinon un banc muet ressemble à un banc complet.
    */
   edges: {} as Record<string, FixtureRpc>,
+  /**
+   * Tables dont les ÉCRITURES (POST, PATCH, DELETE) s'appliquent à la fixture, en
+   * mémoire, le temps de la page.
+   *
+   * ⛔ PAR DÉFAUT, UN BANC NE RETIENT RIEN : il rend les lignes filtrées quelle que
+   * soit la méthode, et une écriture « réussit » sans rien changer. C'est juste
+   * pour les dix-sept surfaces portées — on y regarde un écran, pas un geste. Ça
+   * ne l'est plus pour un geste dont l'effet EST l'écran : un libellé créé dans le
+   * rail du Calendrier (13.09.2026) doit y apparaître, un libellé supprimé doit en
+   * partir. D'où une liste nominative, et non un interrupteur global — une table
+   * absente d'ici garde exactement le comportement d'avant.
+   *
+   * ⚠ Rien ne sort du navigateur : la fixture est un tableau de module, qu'un
+   * rechargement remet à neuf.
+   */
+  ecrivables: [] as string[],
   /** Noms d'appels qu'aucune fixture ne couvre — remontés aux commandes du banc. */
   signaler: (_appel: string) => {},
 }
@@ -296,9 +312,48 @@ function repondre(url: string, init?: RequestInit): Response | null {
 
   const lignes = Object.prototype.hasOwnProperty.call(contrat.tables, chemin) ? contrat.tables[chemin]! : undefined
   if (lignes === undefined) contrat.signaler(chemin)
+  const methode = (init?.method ?? 'GET').toUpperCase()
+  if (lignes && methode !== 'GET' && methode !== 'HEAD' && contrat.ecrivables.includes(chemin)) {
+    return ecrire(methode, lignes as Record<string, unknown>[], requete, init)
+  }
   const vide = contrat.etat === 'vide' && !contrat.socle.includes(chemin)
   const sortie = vide ? [] : filtrer(lignes ?? [], requete)
   return json(objetSeul ? (sortie[0] ?? null) : sortie, sortie.length)
+}
+
+/**
+ * Applique une écriture PostgREST à une fixture déclarée écrivable.
+ *
+ * `POST` insère (identifiant et horodatages posés s'ils manquent) ; `PATCH` et
+ * `DELETE` visent les lignes que le PRÉDICAT de la requête désigne — le même
+ * filtre que la lecture, pour qu'une écriture ne touche jamais plus de lignes que
+ * PostgREST n'en toucherait. Hors « Nominal », rien ne s'écrit.
+ */
+function ecrire(methode: string, lignes: Record<string, unknown>[], requete: string, init?: RequestInit): Response {
+  if (contrat.etat !== 'nominal') return json([], 0)
+  const corps: unknown = lireCorps(init)
+  const maintenant = new Date().toISOString()
+  if (methode === 'POST') {
+    const nouvelles = (Array.isArray(corps) ? corps : [corps])
+      .filter((l): l is Record<string, unknown> => !!l && typeof l === 'object')
+      .map((l) => ({ id: crypto.randomUUID(), created_at: maintenant, updated_at: maintenant, ...l }))
+    lignes.push(...nouvelles)
+    return json(nouvelles, nouvelles.length)
+  }
+  const cibles = filtrer(lignes, requete) as Record<string, unknown>[]
+  if (methode === 'PATCH') {
+    const patch = corps && typeof corps === 'object' ? (corps as Record<string, unknown>) : {}
+    for (const l of cibles) Object.assign(l, patch, { updated_at: maintenant })
+  } else if (methode === 'DELETE') {
+    for (const l of cibles) lignes.splice(lignes.indexOf(l), 1)
+  }
+  return json(cibles, cibles.length)
+}
+
+/** Corps JSON d'une écriture, ou `null`. */
+function lireCorps(init?: RequestInit): unknown {
+  if (typeof init?.body !== 'string') return null
+  try { return JSON.parse(init.body) } catch { return null }
 }
 
 let fetchOrigine: typeof window.fetch | null = null

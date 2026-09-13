@@ -1537,6 +1537,7 @@ export type Database = {
           agency_id: string
           agent_id: string
           booked_by: string
+          calendar_label_id: string | null
           cancelled_at: string | null
           cancelled_by: string | null
           client_ip: string | null
@@ -1566,6 +1567,7 @@ export type Database = {
           agency_id: string
           agent_id: string
           booked_by?: string
+          calendar_label_id?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           client_ip?: string | null
@@ -1595,6 +1597,7 @@ export type Database = {
           agency_id?: string
           agent_id?: string
           booked_by?: string
+          calendar_label_id?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
           client_ip?: string | null
@@ -1634,6 +1637,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_calendar_label_id_agency_id_fkey"
+            columns: ["calendar_label_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_labels"
+            referencedColumns: ["id", "agency_id"]
           },
           {
             foreignKeyName: "appointments_contact_id_fkey"
@@ -1833,6 +1843,44 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_labels: {
+        Row: {
+          agency_id: string
+          color: string
+          created_at: string
+          id: string
+          name: string
+          position: number
+          updated_at: string
+        }
+        Insert: {
+          agency_id: string
+          color: string
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+          updated_at?: string
+        }
+        Update: {
+          agency_id?: string
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_labels_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
             referencedColumns: ["id"]
           },
         ]
@@ -5718,6 +5766,7 @@ export type Database = {
       reminders: {
         Row: {
           agency_id: string
+          calendar_label_id: string | null
           channel: string | null
           completed_at: string | null
           contact_id: string | null
@@ -5737,6 +5786,7 @@ export type Database = {
         }
         Insert: {
           agency_id: string
+          calendar_label_id?: string | null
           channel?: string | null
           completed_at?: string | null
           contact_id?: string | null
@@ -5756,6 +5806,7 @@ export type Database = {
         }
         Update: {
           agency_id?: string
+          calendar_label_id?: string | null
           channel?: string | null
           completed_at?: string | null
           contact_id?: string | null
@@ -5780,6 +5831,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "agencies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reminders_calendar_label_id_agency_id_fkey"
+            columns: ["calendar_label_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_labels"
+            referencedColumns: ["id", "agency_id"]
           },
           {
             foreignKeyName: "reminders_contact_id_fkey"
@@ -6580,6 +6638,7 @@ export type Database = {
           buyer_message: string | null
           buyer_name: string | null
           buyer_phone: string | null
+          calendar_label_id: string | null
           completed_at: string | null
           contact_id: string
           created_at: string | null
@@ -6611,6 +6670,7 @@ export type Database = {
           buyer_message?: string | null
           buyer_name?: string | null
           buyer_phone?: string | null
+          calendar_label_id?: string | null
           completed_at?: string | null
           contact_id: string
           created_at?: string | null
@@ -6642,6 +6702,7 @@ export type Database = {
           buyer_message?: string | null
           buyer_name?: string | null
           buyer_phone?: string | null
+          calendar_label_id?: string | null
           completed_at?: string | null
           contact_id?: string
           created_at?: string | null
@@ -6678,6 +6739,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visits_calendar_label_id_agency_id_fkey"
+            columns: ["calendar_label_id", "agency_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_labels"
+            referencedColumns: ["id", "agency_id"]
           },
           {
             foreignKeyName: "visits_contact_id_fkey"
@@ -8117,6 +8185,18 @@ export type Database = {
           resolution_due: string
         }[]
       }
+      calendar_label_assignments: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          event_id: string
+          label_id: string
+          source: string
+        }[]
+      }
+      calendar_set_event_label: {
+        Args: { p_event_id: string; p_label_id?: string; p_source: string }
+        Returns: undefined
+      }
       can_auto_send: {
         Args: { p_action_type: string; p_agent_id: string }
         Returns: boolean
@@ -8338,6 +8418,7 @@ export type Database = {
           buyer_message: string | null
           buyer_name: string | null
           buyer_phone: string | null
+          calendar_label_id: string | null
           completed_at: string | null
           contact_id: string
           created_at: string | null

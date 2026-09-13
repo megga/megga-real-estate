@@ -32,7 +32,7 @@ export type MEIconName =
   | 'more-horizontal' | 'grip' | 'spinner'
   | 'dashboard' | 'chevron-up-down'
   | 'villa' | 'land' | 'warehouse'
-  | 'moon' | 'sun' | 'layers' | 'bolt'
+  | 'layers' | 'bolt'
   | 'broadcast' | 'flowchart' | 'megaphone' | 'magic-wand' | 'close-circle'
   | 'flame' | 'banknote'
   // ⚠ `pin` est DESSINÉ ici et non délégué à PxIconFont : le glyphe de la fonte
@@ -40,6 +40,12 @@ export type MEIconName =
   // d'onglets il se lit comme une tache. C'est le seul glyphe que la barre
   // d'onglets demandait et que ce fichier n'avait pas.
   | 'pin'
+  // ⚠ `sun` et `moon` DESSINÉS depuis le 12.09.2026, pour la même raison : la
+  // bascule de thème de la barre d'onglets les pose entre la cloche et ✦, tracées
+  // à 1,7. Délégués à la fonte, le soleil rendait un disque plein aux rayons
+  // inégaux (« des petits bugs sur les icônes, surtout celle du mode clair ») et
+  // la lune un croissant plein. Leurs autres lecteurs passent au trait avec eux.
+  | 'sun' | 'moon'
   // — Messagerie (lot 2) — ⚠ les quatre existent DÉJÀ dans `PxIconFontName`, et
   // les y déléguer aurait été le geste court. On les redessine en trait parce
   // que la police d'icônes est PLEINE : dans le rail, `inbox` et `archive`
@@ -131,6 +137,9 @@ const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   // de la maquette d'onglets, qui la dessine à 11 px — la pointe descend donc
   // jusqu'à 20 pour rester lisible une fois réduite.
   pin: <><path d="M9 4h6l-1 6 3.5 3.5H6.5L10 10z" /><path d="M12 13.5V20" /></>,
+  // Soleil : un disque et huit rayons de même longueur ; lune : un seul croissant.
+  sun: <><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" /></>,
+  moon: <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />,
   // Messagerie — les quatre dossiers et le trombone de la liste.
   inbox: <><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z" /></>,
   archive: <><rect x="2" y="3" width="20" height="5" rx="1" /><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" /></>,
@@ -146,7 +155,7 @@ const FONT_FALLBACK: Partial<Record<MEIconName, PxIconFontName>> = {
   'more-horizontal': 'options', grip: 'drag', spinner: 'spinner',
   dashboard: 'dashboard', 'chevron-up-down': 'sort-asc',
   villa: 'buildings', land: 'mountain', warehouse: 'archive',
-  moon: 'moon', sun: 'sun', layers: 'layers', bolt: 'lightning',
+  layers: 'layers', bolt: 'lightning',
   broadcast: 'broadcast', flowchart: 'flowchart', megaphone: 'megaphone',
   'magic-wand': 'magic-wand', 'close-circle': 'close-circle',
 }

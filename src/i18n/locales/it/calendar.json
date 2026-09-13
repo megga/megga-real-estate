@@ -437,5 +437,20 @@
     "connectOutlook": "Collega Outlook",
     "privacy": "I tuoi eventi personali restano privati.",
     "connectFailed": "Connessione non riuscita: {{error}}"
+  },
+  "labels": {
+    "title": "Etichette",
+    "new": "Nuova etichetta",
+    "empty": "Nessuna etichetta. Creane una con +.",
+    "menuTitle": "Etichetta",
+    "none": "Nessuna etichetta",
+    "add": "Aggiungi un'etichetta",
+    "create": "Crea un'etichetta",
+    "set": "Etichetta «{{name}}»",
+    "removed": "Etichetta rimossa",
+    "failed": "Etichetta non salvata",
+    "deleted": "Etichetta «{{name}}» eliminata",
+    "unavailable": "Etichette non disponibili al momento.",
+    "duplicate": "Esiste già un'etichetta con questo nome"
   }
 }

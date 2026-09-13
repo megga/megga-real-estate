@@ -437,5 +437,20 @@
     "connectOutlook": "Connecter Outlook",
     "privacy": "Vos événements perso restent privés.",
     "connectFailed": "Échec de la connexion : {{error}}"
+  },
+  "labels": {
+    "title": "Libellés",
+    "new": "Nouveau libellé",
+    "empty": "Aucun libellé. Créez-en un avec +.",
+    "menuTitle": "Libellé",
+    "none": "Aucun libellé",
+    "add": "Ajouter un libellé",
+    "create": "Créer un libellé",
+    "set": "Libellé « {{name}} »",
+    "removed": "Libellé retiré",
+    "failed": "Libellé non enregistré",
+    "deleted": "Libellé « {{name}} » supprimé",
+    "unavailable": "Libellés indisponibles pour le moment.",
+    "duplicate": "Un libellé porte déjà ce nom"
   }
 }

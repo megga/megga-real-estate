@@ -3,9 +3,9 @@
 // → création à 09:00 ; clic pastille → bulle ; clic n° de jour → vue Jour.
 // Externe « Occupé » = pastille creuse (jamais un aplat plein).
 
-import { useMemo } from 'react'
+import { useContext, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { calTypeStyle, useCalPalette, type CalEvent } from './data'
+import { CalEventMenuContext, calPositionMenu, calTypeStyle, useCalPalette, type CalEvent } from './data'
 import { calDays, fmtTime, sameDay } from './helpers'
 
 interface CalMonthViewProps {
@@ -26,6 +26,7 @@ export function CalMonthView({
 }: CalMonthViewProps) {
   const { t } = useTranslation('calendar')
   const SP = useCalPalette()
+  const ouvrirMenu = useContext(CalEventMenuContext)
   // En-tête lundi→dimanche : réordonne calDays() (dimanche→samedi).
   const weekdayHeaders = [1, 2, 3, 4, 5, 6, 0].map(i => calDays()[i])
 
@@ -122,6 +123,7 @@ export function CalMonthView({
                     <button
                       key={e.id}
                       onClick={ev => { ev.stopPropagation(); onSelectEvent(e.id, ev.currentTarget.getBoundingClientRect()) }}
+                      onContextMenu={ouvrirMenu && !ext ? ev => { ev.preventDefault(); ev.stopPropagation(); const [x, y] = calPositionMenu(ev); ouvrirMenu(e.id, x, y) } : undefined}
                       style={{
                         border: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit',
                         display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', padding: 'var(--crm-space-2xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-xs)',

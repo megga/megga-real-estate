@@ -1,8 +1,8 @@
 // MEGGA CRM Sugar — Calendar — Rail gauche (transparent sur le fond du bento)
-// Mini-mois navigable + filtres par type. La config des agendas externes ne vit
+// Mini-mois navigable + filtres par type + libellés de l'agence. La config des agendas externes ne vit
 // PAS ici (choix produit) — uniquement dans Réglages › Intégrations.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { CalIcon } from './CalIcon'
 import { CAL_EVENT_TYPES, eventTypeColors, useCalPalette, type CalEvent } from './data'
@@ -160,15 +160,19 @@ interface CalRailProps {
   events: CalEvent[]
   filters: Record<string, boolean>
   onFilters: (f: Record<string, boolean>) => void
+  /** La section « Libellés » (`CalLabelSection`), sous les types. */
+  labels?: ReactNode
 }
 
-export function CalRail({ currentDate, now, onDateChange, events, filters, onFilters }: CalRailProps) {
+export function CalRail({ currentDate, now, onDateChange, events, filters, onFilters, labels }: CalRailProps) {
   const SP = useCalPalette()
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-5xl)' }}>
       <CalMiniMonth currentDate={currentDate} now={now} onDateChange={onDateChange} events={events} />
       <div style={{ height: 1, background: SP.line }} />
       <CalTypeFilters filters={filters} onFilters={onFilters} events={events} />
+      {labels && <div style={{ height: 1, background: SP.line }} />}
+      {labels}
     </div>
   )
 }

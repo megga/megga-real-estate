@@ -767,7 +767,7 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
 
       {/* Session de relance — la barre en hérite du rail : elle en portait
           l'état ET le montage, et c'était l'UNIQUE porte d'entrée de bureau. */}
-      {relanceOpen && <RelanceSession onClose={() => setRelanceOpen(false)} />}
+      {relanceOpen && <RelanceSession dark={dark} onClose={() => setRelanceOpen(false)} />}
     </>
   )
 }

@@ -684,7 +684,9 @@ porte ne rougisse. ⚠ Et depuis le 12.09.2026 elle perd aussi la **poussée du 
 derrière le dock. `AgentLayout` ne fait plus que publier `--crm-dock-push`. ⛔ Sa gouttière peinte au `pageBg`
 était la « plaque » vue derrière le dock en clair (« Aujourd'hui » peint `#EBEDF1`, la gouttière `#F9F9F9`).
 Mécanique, repli par écran et thème à source unique (`useCrmDarkPref`) : `usePousseeDock`, cerveau
-`megga/dock-poussee`. ⛔ **CINQ ROUTES D'ONGLET LE FAISAIENT** : basculer sur l'une d'elles faisait
+`megga/dock-poussee`. ⚠ La bascule clair ↔ sombre est une révélation de l'écran ENTIER (`crmDarkBascule`,
+transitions coupées le temps du geste) : ne pas « l'adoucir » en posant des transitions de couleur sur un
+composant — elles sont neutralisées pendant la bascule, et c'est voulu. Cerveau `megga/bascule-theme`. ⛔ **CINQ ROUTES D'ONGLET LE FAISAIENT** : basculer sur l'une d'elles faisait
 disparaître la bande ET la barre latérale, sans autre sortie que son propre lien de retour. Deux sont
 corrigées. `VisitDetailPage` (`/dashboard/visits/:id`, 07.09.2026) — c'est une FICHE, `visit` est l'un
 des cinq genres de `crmTabRecordRef`, et les quatre autres (contact, bien, deal, dossier KYC)

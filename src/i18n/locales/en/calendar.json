@@ -437,5 +437,20 @@
     "connectOutlook": "Connect Outlook",
     "privacy": "Your personal events stay private.",
     "connectFailed": "Connection failed: {{error}}"
+  },
+  "labels": {
+    "title": "Labels",
+    "new": "New label",
+    "empty": "No labels yet. Create one with +.",
+    "menuTitle": "Label",
+    "none": "No label",
+    "add": "Add a label",
+    "create": "Create a label",
+    "set": "Label “{{name}}”",
+    "removed": "Label removed",
+    "failed": "Label not saved",
+    "deleted": "Label “{{name}}” deleted",
+    "unavailable": "Labels are unavailable right now.",
+    "duplicate": "A label with this name already exists"
   }
 }

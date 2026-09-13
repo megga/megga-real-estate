@@ -39,7 +39,10 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
+import { AnimatePresence, animate, motion, useAnimate, useMotionValue } from 'motion/react'
 import MEIcon from '@/components/propertyx/MEIcon'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { IconeTheme } from './IconeTheme'
 import type { CrmPalette } from './tokens'
 import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
 import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
@@ -999,8 +1002,49 @@ function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded,
   badge?: number
 }) {
   const [survol, setSurvol] = useState(false)
+  const reduit = useReducedMotion()
+  // Le dernier compte non nul : la pastille reste peinte le temps de sa sortie.
+  // Ajusté pendant le rendu (motif « adjusting state when a prop changes »).
+  const [compte, setCompte] = useState(badge)
+  // Le sens du dernier changement : le chiffre défile vers le haut s'il monte.
+  const [sens, setSens] = useState(1)
+  if (badge > 0 && badge !== compte) {
+    setSens(badge > compte ? 1 : -1)
+    setCompte(badge)
+  }
+  const largeur = compte > 9 ? W_COMPTEUR_LARGE : D_COMPTEUR
+
+  // ⚠ UNE SEULE VALEUR pilote la pastille ET l'encoche qu'elle creuse dans le
+  // cercle (`--compteur`, de 0 à 1) : elles naissent et meurent ensemble. Une
+  // encoche à pleine taille autour d'une pastille qui grandit se lirait comme un
+  // trou dans le bouton le temps du ressort.
+  const echelle = useMotionValue(badge > 0 ? 1 : 0)
+  const present = badge > 0
+  useEffect(() => {
+    if (reduit) { echelle.set(present ? 1 : 0); return }
+    let annule = false
+    const a = animate(echelle, present ? 1 : 0, RESSORT_COMPTEUR)
+    // Sortie finie : la pastille cesse d'être peinte. ⚠ Le drapeau, parce qu'une
+    // notification qui arrive PENDANT la sortie arrête cette animation-ci.
+    if (!present) void a.then(() => { if (!annule) setCompte(0) })
+    return () => { annule = true; a.stop() }
+  }, [present, reduit, echelle])
+  // En mouvement réduit, pas de sortie à attendre.
+  const affiche = compte > 0 && (present || !reduit)
+
+  // La cloche OSCILLE quand le compte MONTE — une notification arrive, pas une
+  // lecture. Jamais au montage, jamais en mouvement réduit.
+  const [glyphe, animerGlyphe] = useAnimate()
+  const precedent = useRef(badge)
+  useEffect(() => {
+    if (badge > precedent.current && !reduit && glyphe.current) {
+      void animerGlyphe(glyphe.current, { rotate: [0, 14, -10, 6, -3, 0] }, { duration: 0.6, ease: 'easeInOut' })
+    }
+    precedent.current = badge
+  }, [badge, reduit, glyphe, animerGlyphe])
+
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
       onMouseEnter={() => setSurvol(true)}
@@ -1010,58 +1054,151 @@ function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded,
       aria-pressed={haspopup ? undefined : actif}
       aria-haspopup={haspopup}
       aria-expanded={haspopup ? expanded : undefined}
+      // Un enfoncement, pas un changement de taille : la commande garde ses 26 px
+      // au repos, elle cède sous le doigt et revient.
+      whileTap={reduit ? undefined : { scale: 0.92 }}
+      transition={{ type: 'spring', stiffness: 520, damping: 30 }}
       style={{
+        ['--compteur' as string]: echelle,
+        // ⚠ `block` : un bouton reste en ligne par défaut, et la cloche, posée
+        // dans un `div` d'ancrage, héritait alors de la hauteur de ligne de son
+        // parent — la grappe passait de 26 à 32 px.
+        display: 'block',
         width: H_PASTILLE, height: H_PASTILLE, flexShrink: 0,
-        // ⚠ `border-box` : la bordure d'un pixel doit se prendre SUR les 26, sinon
-        // les deux commandes grandissent de 2 px et se désalignent de la pastille
-        // « +N », qui est leur voisine immédiate.
-        boxSizing: 'border-box',
+        padding: 0, border: 'none', background: 'transparent',
         borderRadius: 'var(--crm-radius-pill)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', fontFamily: 'inherit',
-        // ⚠ CERCLE VISIBLE AU REPOS (demande de Julien, 4 septembre 2026) : au
-        // premier jet ces deux-là étaient des glyphes nus, et rien ne disait qu'on
-        // pouvait cliquer. Elles prennent l'habillage de la pastille « +N » — fond
-        // de carte, filet d'un pixel — pour que les trois commandes de droite se
-        // lisent comme une seule famille.
-        //
-        // Actif = aplat d'accent, comme la puce active : c'est la règle du 10 août
-        // 2026, l'élément ACTIF porte l'accent. Le filet disparaît alors dans
-        // l'aplat plutôt que de le cerner d'un liseré plus clair.
-        background: actif ? sp.accent : survol ? sp.focusSurface : sp.cardBg,
-        border: `1px solid ${actif ? sp.accent : survol ? sp.soft : sp.cardBorder}`,
-        color: actif ? sp.accentInk : survol ? sp.ink : sp.sub,
-        transition: 'background-color .18s ease, border-color .18s ease, color .18s ease',
         // ⚠ Ancre de la pastille de compteur. Sans elle, le compteur se calerait
         // sur la grappe entière et flotterait entre deux commandes.
         position: 'relative',
       }}
     >
-      <MEIcon name={icone} size={15} strokeWidth={1.7} />
+      {/* ⚠ LE CERCLE EST UNE COUCHE À PART, et c'est ce qui permet l'encoche :
+          le masque découpe le fond, le filet ET le glyphe autour de la pastille,
+          sans toucher à la pastille elle-même. Le bouton reste la cible entière —
+          la pastille, qui déborde, en est un descendant et reçoit le clic. */}
+      <span
+        aria-hidden
+        style={{
+          position: 'absolute', inset: 0,
+          // ⚠ `border-box` : la bordure d'un pixel doit se prendre SUR les 26, sinon
+          // les commandes grandissent de 2 px et se désalignent de la pastille
+          // « +N », qui est leur voisine immédiate.
+          boxSizing: 'border-box',
+          borderRadius: 'var(--crm-radius-pill)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          // ⚠ CERCLE VISIBLE AU REPOS (demande de Julien, 4 septembre 2026) : au
+          // premier jet ces commandes étaient des glyphes nus, et rien ne disait
+          // qu'on pouvait cliquer. Elles prennent l'habillage de la pastille « +N »
+          // — fond de carte, filet d'un pixel — pour se lire comme une famille.
+          //
+          // Actif = aplat d'accent, comme la puce active : c'est la règle du 10 août
+          // 2026, l'élément ACTIF porte l'accent. Le filet disparaît alors dans
+          // l'aplat plutôt que de le cerner d'un liseré plus clair.
+          background: actif ? sp.accent : survol ? sp.focusSurface : sp.cardBg,
+          border: `1px solid ${actif ? sp.accent : survol ? sp.soft : sp.cardBorder}`,
+          color: actif ? sp.accentInk : survol ? sp.ink : sp.sub,
+          transition: 'background-color .18s ease, border-color .18s ease, color .18s ease',
+          ...(affiche ? encoche(largeur) : null),
+        }}
+      >
+        {/* Le soleil et la lune TOURNENT l'un vers l'autre (`IconeTheme`) : c'est le
+            seul glyphe de la bande qui change de forme sous le doigt. */}
+        <span ref={glyphe} style={{ display: 'flex', transformOrigin: '50% 15%' }}>
+          {icone === 'sun' || icone === 'moon'
+            ? <IconeTheme dark={icone === 'moon'} size={15} strokeWidth={1.7} />
+            : <MEIcon name={icone} size={15} strokeWidth={1.7} />}
+        </span>
+      </span>
       {/* ⚠ LE COMPTEUR, PAS UN POINT. La barre latérale montrait le NOMBRE de non
           lus ; le réduire à un point en déménageant aurait retiré une information
           au passage. Au-delà de neuf, « 9+ » — deux chiffres ne tiennent pas sur
           une commande de 26 px sans déborder du cercle.
           ⚠ Rouge sémantique et non l'accent : c'est un état à traiter, pas
-          l'élément actif. Même encre que la pastille qu'il remplace. */}
-      {badge > 0 && (
+          l'élément actif. ⛔ C'était `#E53935` sous encre BLANCHE — 4,23:1, sous
+          l'AA à 11 px — cerné d'un filet `frameBg` qui faisait un HALO blanc sur le
+          fond gris de la page (`#EBEDF1` sur « Aujourd'hui »). Il prend désormais le
+          rouge de la direction sous encre sombre, comme le badge urgent des puces,
+          et c'est l'ENCOCHE qui le détache : elle laisse voir le vrai fond, quel
+          qu'il soit. */}
+      {affiche && (
         <span
           aria-hidden
           style={{
-            position: 'absolute', top: -3, right: -3,
-            minWidth: 15, height: 15, padding: '0 var(--crm-space-2xs)',
-            boxSizing: 'border-box',
+            position: 'absolute', top: -DEBORD_COMPTEUR, right: -DEBORD_COMPTEUR,
+            width: largeur, height: D_COMPTEUR,
             borderRadius: 'var(--crm-radius-pill)',
-            background: '#E53935', color: '#ffffff',
-            border: `1.5px solid ${sp.frameBg}`,
+            background: MXC_SYSTEM.red400, color: encreSur(MXC_SYSTEM.red400),
             fontSize: 'var(--crm-text-xs)', fontWeight: 600, lineHeight: 1,
-            display: 'grid', placeItems: 'center',
+            display: 'grid', placeItems: 'center', overflow: 'hidden',
             fontVariantNumeric: 'tabular-nums',
+            transform: 'scale(var(--compteur))', opacity: 'var(--compteur)',
           }}
-        >{badge > 9 ? '9+' : badge}</span>
+        >
+          {/* Le chiffre DÉFILE quand le compte change : vers le haut s'il monte,
+              vers le bas s'il descend. */}
+          {/* Les deux chiffres partagent la même case (`gridArea`) : l'un sort
+              pendant que l'autre entre, sans se pousser. */}
+          <AnimatePresence initial={false} custom={sens}>
+            <motion.span
+              key={compte > 9 ? '9+' : compte}
+              custom={sens}
+              variants={DEFILEMENT}
+              initial={reduit ? false : 'entre'}
+              animate="pose"
+              exit={reduit ? undefined : 'sort'}
+              transition={{ type: 'spring', stiffness: 520, damping: 34 }}
+              style={{ gridArea: '1 / 1' }}
+            >{compte > 9 ? '9+' : compte}</motion.span>
+          </AnimatePresence>
+        </span>
       )}
-    </button>
+    </motion.button>
   )
+}
+
+/** Diamètre de la pastille de compteur — un chiffre. */
+const D_COMPTEUR = 15
+/** Sa largeur pour « 9+ » — au plus juste : la pilule mord déjà sur la cloche. */
+const W_COMPTEUR_LARGE = 20
+/** Ce qu'elle déborde du cercle, en haut et à droite. */
+const DEBORD_COMPTEUR = 3
+/** Le jour laissé entre la pastille et le cercle — l'ancien filet, en creux. */
+const JOUR_COMPTEUR = 1.5
+
+const RESSORT_COMPTEUR = { type: 'spring', stiffness: 460, damping: 26, mass: 0.7 } as const
+
+const DEFILEMENT = {
+  entre: (sens: number) => ({ y: `${70 * sens}%`, opacity: 0 }),
+  pose: { y: '0%', opacity: 1 },
+  sort: (sens: number) => ({ y: `${-70 * sens}%`, opacity: 0 }),
+}
+
+/**
+ * L'encoche que la pastille creuse dans le cercle, en masque : le fond RÉEL se
+ * voit à travers — gris de la page, noir du sombre, fond d'un autre écran — là où
+ * un filet coloré devait deviner lequel.
+ *
+ * Une pastille d'un chiffre est un disque ; « 9+ » est une pilule, dont
+ * l'encoche est l'union de deux disques (leurs masques s'INTERSECTENT). Les
+ * rayons et les centres suivent `--compteur`, l'échelle de la pastille.
+ */
+function encoche(largeur: number): CSSProperties {
+  const r = D_COMPTEUR / 2
+  const cy = -DEBORD_COMPTEUR + r
+  const droite = H_PASTILLE + DEBORD_COMPTEUR - r
+  const gauche = H_PASTILLE + DEBORD_COMPTEUR - largeur + r
+  const milieu = (gauche + droite) / 2
+  const demi = (droite - gauche) / 2
+  const rayon = r + JOUR_COMPTEUR
+  const disque = (signe: number) =>
+    `radial-gradient(circle at calc(${milieu}px + ${signe * demi}px * var(--compteur, 1)) ${cy}px, ` +
+    `transparent calc(${rayon}px * var(--compteur, 1) - .3px), #000 calc(${rayon}px * var(--compteur, 1) + .3px))`
+  const masque = demi > 0 ? `${disque(-1)}, ${disque(1)}` : disque(1)
+  return {
+    maskImage: masque, WebkitMaskImage: masque,
+    maskComposite: 'intersect', WebkitMaskComposite: 'source-in',
+  }
 }
 
 /** Une ligne de menu — même géométrie pour le clic droit et le débordement. */

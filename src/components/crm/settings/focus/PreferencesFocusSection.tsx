@@ -9,6 +9,7 @@
 // i18n : réutilise preferences.* existant, microcopie neuve = focus.preferences.*.
 
 import { crmVoileEncre } from '@/components/crm/tokens'
+import { suivreSystemeCrmDark } from '@/lib/crmDark'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { switchLanguage } from '@/i18n'
@@ -193,7 +194,9 @@ export function PreferencesFocusSection({ sp, surf, dark, setDark }: FocusSectio
     if (!setDark) return
     if (v === 'light') setDark(false)
     else if (v === 'dark') setDark(true)
-    else setDark(!!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches))
+    // ⚠ « Système » EFFACE le choix au lieu de figer la valeur du moment : sinon un
+    // Mac en apparence « Auto » ne faisait plus rien au coucher du soleil.
+    else suivreSystemeCrmDark()
   }
 
   const commit = async (key: PrefKey, value: string | boolean) => {

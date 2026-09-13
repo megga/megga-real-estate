@@ -321,6 +321,29 @@ l'écrivaient pas), plus de relecture à 400 ms dans le dock et la coquille. Gar
 [`poussee-dock.spec.ts`](../tests/unit/poussee-dock.spec.ts), [`crm-dark-bascule.spec.ts`](../tests/unit/crm-dark-bascule.spec.ts).
 Cerveau : `megga/dock-poussee`.
 
+**Bascule clair ↔ sombre, d'un seul geste (12.09.2026).** Un geste de l'agent (bouton ☀/☾ de la bande,
+menu du profil, Réglages, tableau de bord d'Analytics) passe par
+[`animerBascule`](../src/lib/crmDarkBascule.ts) : `<html data-crm-bascule>` coupe **toute** transition
+(`globals.css`, `!important` pour battre les styles en ligne), la palette est rendue en `flushSync` dans
+`document.startViewTransition`, puis le nouvel écran se **révèle en cercle** depuis le point cliqué (ou le
+contrôle activé au clavier), en 520 ms **rythmées sur la SURFACE découverte** et non sur le rayon : 12 % de
+l'écran à 10 % du temps, 67 % à mi-course, et la fin découvre encore 7 % — le premier jet (rayon en courbe du
+dock) révélait 96 % en 30 % du temps puis traînait. ⛔ Pas de fondu enchaîné : la mise en page ne bouge pas,
+chaque pixel passerait par un gris moyen (contraste 1,01:1 à mi-course). Sans l'API, en mouvement réduit ou
+onglet caché : même bascule, sans animation. Une seconde bascule attend la fin de la première ; le dock et la
+poussée (`data-garde-transition`) continuent de glisser ; un changement venu du système ou d'un autre onglet
+passe par la même révélation, annoncée une seule fois. ⛔ Avant, elle courait sur trois horloges — carte de la barre latérale instantanée, lignes à
+180 ms, « Aujourd'hui » à 550 ms : le nom de l'agence restait illisible ~150 ms. Au bureau, le thème de l'app
+(`data-theme`, `color-scheme`) est **piloté** par celui du CRM (`ThemeProvider pilote`, posé par
+`AgentLayout`) — toasts, bandeau d'accueil, anneau de focus, barres de défilement et wizard suivent enfin ;
+le mobile garde `megga-theme`. Les écrans vivants cachés suivent en `startTransition`, hors de la photo et
+après la révélation — sans transition : la feuille les coupe sous tout écran caché, sinon leurs fondus se
+voyaient en rebasculant sur leur onglet.
+« Système » (Réglages) efface le choix au lieu de figer la valeur du moment. Le glyphe ☀/☾
+([`IconeTheme`](../src/components/crm/IconeTheme.tsx)) tourne avec motion/react. Le courriel ouvert dans la
+Messagerie ne recharge plus son iframe : l'encre est repeinte dans le document vivant. ⚠ Reste connu : la carte
+Mapbox du Matching recharge son style après la révélation. Cerveau : `megga/bascule-theme`.
+
 | Audience | Préfixe | Pages clés |
 |---|---|---|
 | **Marketplace SPA** (app.getmegga.com) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine getmegga.com) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers getmegga.com. `SearchPage`/`PropertyXSinglePropertyPage` **retirés** (pages storefront supprimées au pivot CRM-first). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
@@ -334,7 +357,7 @@ Cerveau : `megga/dock-poussee`.
 **CRM agent** (layout `AgentLayout`, dark CRM) — pages principales :
 `dashboard` (**cockpit « Aujourd'hui »** refonte juin 2026 — voir l'encadré ci-dessous) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
 `listings` (**design final juil. 2026, PR #871 : pager vertical Galerie · « À suivre »** — voir l'encadré ci-dessous ; + `/:id`, `/new` wizard, `/:id/edit`) · `transactions/:id` (stepper 8 étapes + bannière KYC + offres) ·
-`matching` (**refonte pager juil. 2026, PR #813** : conteneur `MatchingPage` — page 0 = atelier triptyque embarqué, page 1 = recherche hybride marché ; banc `/dev/matching-atelier` = **le pager ENTIER**, chrome + 2 pages + bascule de thème + 8 états, `MatchingRechercheHybride demo`. **Porté en MEGGA X le 13 août 2026** — `atelier.css` était un second système de jetons resté sur Sugar Pure, qu'aucune garde n'ouvrait ; carte `MrhMapView` **gelée** par décision, exemption écrite dans le cliquet. Cf. `megga/matching-meggax`) · `journey` · `calendar` (Google/Outlook) ·
+`matching` (**refonte pager juil. 2026, PR #813** : conteneur `MatchingPage` — page 0 = atelier triptyque embarqué, page 1 = recherche hybride marché ; banc `/dev/matching-atelier` = **le pager ENTIER**, chrome + 2 pages + bascule de thème + 8 états, `MatchingRechercheHybride demo`. **Porté en MEGGA X le 13 août 2026** — `atelier.css` était un second système de jetons resté sur Sugar Pure, qu'aucune garde n'ouvrait ; carte `MrhMapView` **gelée** par décision, exemption écrite dans le cliquet. Cf. `megga/matching-meggax`) · `journey` · `calendar` (Google/Outlook ; **libellés de l'agence** depuis le 13.09.2026 — même modèle que la Messagerie, un par événement, la couleur du libellé prend le bloc, clic droit sur un bloc pour poser, clic droit dans le rail pour renommer/recolorer/supprimer ; lecture et écriture par deux RPC hors de la requête des événements. Cf. `megga/calendrier-libelles`) ·
 `kyc` (**refonte pager juil. 2026, PR #853** : 2 pages verticales Dossiers · Vigie dans un bento ; `/:dossierId` = fiche stricte en overlay ; `/bienvenue` = onboarding première ouverture ; `/export` PDF ; wizard embedded + voie import PDF réelle — cf `megga/kyc-ui-hooks`) · `audit` (journal nLPD) · `analytics` (**Cockpit Commission** live — 3 RPC agrégées `SECURITY DEFINER`, objectif persisté dans Réglages › Agence ; **refonte FUSION mono-écran juil. 2026** : cockpit zéro-scroll + parcours compte-neuf porte→fantôme→réel + popover ancré ; cf `megga/analytics-cockpit-commission`) · `settings`. ⚠️ L'écran **Réseau inter-agences** a été retiré (hors périmètre v1) : `NetworkSugarV2Page` supprimée, `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`.
 > ⚠️ L'écran **Documents** autonome (`/dashboard/documents` + générateur/viewer/templates) a été **retiré** (juin 2026, décision produit). Le KYC garde son onglet « Documents » + le flux d'upload/magic-link + la table/bucket `documents`. La génération de contenu d'annonce IA (`megga/doc-generation`) est indépendante et conservée.
 
@@ -446,7 +469,7 @@ et ça ne ressemble pas à une erreur. Cf. `megga/crm-agent-meggax-banc`.
 - Domaines : `search/` `listings/` `matching/` `transactions/` `kyc*/` `documents/` `calendar/` `messaging/` `admin/` `directory/` `map/` `ai-copilot/` `skeletons/` `auth-bento/`.
 
 ### Hooks (`src/hooks/`, 131, React Query)
-Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`useContacts`, `useContactsScreen`, `useContactTimeline`…) · **biens** (`useListings`, `useListingsScreen`, `useProperties`, `usePropertyScores`, `usePropertyStats`) · **transactions** (`useTransactions`, `useUpdateTransactionStage`, `usePipelineScreen`) · **KYC** (`useKycDossiers`, `useKycVigie` [dérivation Vigie + décisions], `useMarkKycCheck`, `useCreateKycDossier`) · **matching** (`useMatching`, `useExternalMatching`) · **dashboard** (`useAxDashboardData` [analytics live, 3 RPC], `useAgencyTargets`, `useDailyBrief`, `useContactNextAction`) · **calendrier** (`useCalendarScreen`, `useGoogleCalendar`, `useOutlookCalendar`) · **IA** (`useCopilot`, `useExtractLead`, `useTranslatedDescription`) · **admin** (`useAdminUsers/Agencies/Monitoring/Compliance`, `useAuditLog`, `useAdminLiveFeed`).
+Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`useContacts`, `useContactsScreen`, `useContactTimeline`…) · **biens** (`useListings`, `useListingsScreen`, `useProperties`, `usePropertyScores`, `usePropertyStats`) · **transactions** (`useTransactions`, `useUpdateTransactionStage`, `usePipelineScreen`) · **KYC** (`useKycDossiers`, `useKycVigie` [dérivation Vigie + décisions], `useMarkKycCheck`, `useCreateKycDossier`) · **matching** (`useMatching`, `useExternalMatching`) · **dashboard** (`useAxDashboardData` [analytics live, 3 RPC], `useAgencyTargets`, `useDailyBrief`, `useContactNextAction`) · **calendrier** (`useCalendarScreen`, `useCalendarLabels` [libellés de l'agence + affectations, 13.09.2026], `useGoogleCalendar`, `useOutlookCalendar`) · **IA** (`useCopilot`, `useExtractLead`, `useTranslatedDescription`) · **admin** (`useAdminUsers/Agencies/Monitoring/Compliance`, `useAuditLog`, `useAdminLiveFeed`).
 
 > ⚠️ Realtime : **toujours** `useId()` pour le nom de channel (sinon crash au re-mount). ⛔ **Les trois exemples cités ici étaient faux d'un tiers** — `useAdminNotifications` n'existe pas dans `src/`, remesuré le 05.09.2026. Les **six** abonnements vivants sont `useAdminLiveFeed`, `useAgentNotifications` (centre de notif agent, dérivé d'`activity_events` non-user), `useVisitDetail`, `useContactSentMatches`, `useRealtimeHealth` et `useMailRealtime` (§6ter) — **tous en `useId()`**. Un nom de fichier inventé dans une liste d'exemples coûte plus qu'une absence d'exemples : on le cherche avant de douter d'elle.
 

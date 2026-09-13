@@ -3,8 +3,10 @@
 // annonce aussi la bascule dans l'onglet ; les écrans la suivent par `useCrmDark`
 // (lecture) ou `useCrmDarkPref` (lecture + bascule).
 
-import { useCallback, useEffect, useState } from 'react'
+import { startTransition, useCallback, useEffect, useState } from 'react'
 import type { Dispatch, SetStateAction } from 'react'
+import { useEcranActif } from '@/hooks/useEcranActif'
+import { animerBascule, apresBascule } from './crmDarkBascule'
 
 /**
  * Clé unique du réglage clair/sombre. Exportée : la console admin écrit dessus
@@ -124,7 +126,63 @@ export function writeCrmDark(dark: boolean): void {
   } catch {
     // Stockage refusé : la bascule ne survivra pas au rechargement, rien de plus.
   }
+  annoncer(dark)
+}
+
+function annoncer(dark: boolean): void {
   window.dispatchEvent(new CustomEvent<boolean>(CRM_DARK_EVENT, { detail: dark }))
+}
+
+/**
+ * Le changement extérieur EN ROUTE, s'il y en a un — de quoi ne l'annoncer qu'une
+ * fois quand plusieurs lecteurs le voient ensemble. ⚠ Oublié dès qu'il est annoncé :
+ * une « dernière valeur annoncée » gardée au module aurait survécu à tout, et une
+ * valeur périmée y aurait fait taire un vrai changement.
+ */
+let enRoute: boolean | null = null
+
+/**
+ * Un changement venu d'AILLEURS — l'apparence du système, un autre onglet —,
+ * annoncé comme une bascule : animé, d'un seul tenant.
+ *
+ * ⛔ Chaque lecteur appliquait ces changements pour lui-même, sans bascule : le
+ * fondu à trois horloges revenait par cette porte-là (Mac en « Auto » au coucher du
+ * soleil, ou thème changé dans une autre fenêtre). Désormais le premier lecteur qui
+ * voit le changement l'annonce, et les suivants le trouvent déjà annoncé.
+ * ⚠ Onglet caché (bascule faite dans une autre fenêtre) : `animerBascule` tombe
+ * sur la bascule instantanée, uniforme — rien à révéler à qui ne regarde pas.
+ */
+function annoncerChangementExterieur(dark: boolean): void {
+  if (dark === enRoute) return
+  enRoute = dark
+  animerBascule(() => {
+    enRoute = null
+    annoncer(dark)
+  })
+}
+
+/**
+ * Rend le thème au SYSTÈME : efface le choix de l'agent, et annonce la valeur
+ * qui en résulte — animée si elle change, comme toute bascule.
+ *
+ * ⛔ « Système » ENREGISTRAIT la valeur du moment (Réglages › Apparence) : un Mac
+ * en apparence « Auto » ne changeait plus rien ensuite. Sans choix enregistré,
+ * `readCrmDark` suit l'apparence et `useCrmDark` l'écoute : effacer suffit.
+ * ⚠ Les DEUX clés : laissée seule, l'ancienne serait migrée à la lecture suivante
+ * et redeviendrait un choix explicite.
+ */
+export function suivreSystemeCrmDark(): void {
+  if (typeof window === 'undefined') return
+  const avant = readCrmDark()
+  try {
+    window.localStorage?.removeItem(STORAGE_KEY)
+    window.localStorage?.removeItem(LEGACY_DARK_KEY)
+  } catch {
+    // Stockage refusé : il n'y avait rien d'enregistré à effacer.
+  }
+  const apres = readCrmDark()
+  if (apres === avant) annoncer(apres)
+  else animerBascule(() => annoncer(apres))
 }
 
 /**
@@ -142,13 +200,28 @@ export function writeCrmDark(dark: boolean): void {
  * donc le changement ensemble.
  */
 export function useCrmDark(): boolean {
+  const actif = useEcranActif()
   const [dark, setDark] = useState<boolean>(readCrmDark)
   useEffect(() => {
-    const relire = () => setDark(readCrmDark())
+    // ⚠ Un écran vivant mais CACHÉ suit la bascule en transition React, et APRÈS
+    // la révélation. La bascule animée rend tout ce qui l'écoute en `flushSync` —
+    // trois écrans vivants, chacun avec sa barre latérale et sa bande, plus le
+    // dock : c'est ce rendu synchrone qui retarde le départ du cercle. Seul ce
+    // qu'on VOIT doit y être ; le reste n'est pas photographié.
+    const poser = (v: boolean) => {
+      if (actif) setDark(v)
+      // Hors de la photo, et APRÈS la révélation : le fil principal reste à l'animation.
+      else apresBascule(() => startTransition(() => setDark(v)))
+    }
+    // Ce qui vient d'ailleurs passe par l'annonce animée, pas par ce seul lecteur.
+    const relire = () => {
+      const v = readCrmDark()
+      if (v !== dark) annoncerChangementExterieur(v)
+    }
     const onStorage = (e: StorageEvent) => {
       if (e.key === STORAGE_KEY) relire()
     }
-    const onBascule = (e: Event) => setDark((e as CustomEvent<boolean>).detail)
+    const onBascule = (e: Event) => poser((e as CustomEvent<boolean>).detail)
     window.addEventListener('storage', onStorage)
     window.addEventListener(CRM_DARK_EVENT, onBascule)
     // `readCrmDark` ignore le système dès qu'un choix est enregistré : écouter
@@ -162,7 +235,7 @@ export function useCrmDark(): boolean {
       window.removeEventListener(CRM_DARK_EVENT, onBascule)
       systeme?.removeEventListener?.('change', relire)
     }
-  }, [])
+  }, [actif, dark])
   return dark
 }
 
@@ -178,8 +251,19 @@ export function useCrmDarkPref(): [boolean, Dispatch<SetStateAction<boolean>>] {
   const dark = useCrmDark()
   // ⚠ La forme fonctionnelle aussi, comme le setter de `useState` qu'il remplace :
   // le tableau de bord d'Analytics bascule par `setDark((v) => !v)`.
+  // ⚠ Et ANIMÉE : c'est un geste de l'agent, donc la bascule d'un seul tenant
+  // (`animerBascule`). `writeCrmDark` seul reste le chemin des écritures sans
+  // geste — console au montage, autre onglet.
   const setDark = useCallback(
-    (v: SetStateAction<boolean>) => writeCrmDark(typeof v === 'function' ? v(dark) : v),
+    (v: SetStateAction<boolean>) => {
+      const suivant = typeof v === 'function' ? v(dark) : v
+      // ⛔ Même valeur : on saute l'ANIMATION, jamais l'ENREGISTREMENT. Sans choix
+      // enregistré le thème suit le système ; choisir « Clair » alors qu'il est
+      // déjà clair doit l'épingler, sinon le Mac en « Auto » le passerait au
+      // sombre au coucher du soleil malgré le choix de l'agent.
+      if (suivant === dark) writeCrmDark(suivant)
+      else animerBascule(() => writeCrmDark(suivant))
+    },
     [dark],
   )
   return [dark, setDark]

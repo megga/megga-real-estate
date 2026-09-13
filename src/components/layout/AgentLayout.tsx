@@ -262,7 +262,10 @@ const EcranVivant = memo(function EcranVivant({ actif, id, pathname, search, has
  * détruisait la page d'arrivée à chaque bascule en production — voir
  * `crmEcranVisible`, qui porte la règle et la mesure.
  */
-function EcransVivants({ routes }: { routes: ReactNode }) {
+// ⚠ Mémoïsé : sa seule prop est la table de routes, constante. Sans ça, le moindre
+// rendu du layout — la bascule de thème, qui repeint son fond — rejouait `<Routes>`
+// dans chaque écran vivant, et avec lui tout ce qui lit le routeur.
+const EcransVivants = memo(function EcransVivants({ routes }: { routes: ReactNode }) {
   const api = useCrmTabsOptionnel()
   const location = useLocation()
   const isMobile = useIsMobile()
@@ -328,7 +331,7 @@ function EcransVivants({ routes }: { routes: ReactNode }) {
       })}
     </div>
   )
-}
+})
 
 function AgentLayoutInner({ routes }: { routes: ReactNode }) {
   // ⚠ UN canal de notifications pour toute la coquille, et qui ne change jamais de
@@ -439,10 +442,28 @@ function AgentLayoutInner({ routes }: { routes: ReactNode }) {
   )
 }
 
+/**
+ * Le thème de l'app, PILOTÉ au bureau par celui du CRM : un seul réglage, celui du
+ * bouton ☀/☾. Sur mobile, les écrans suivent encore `megga-theme` (leurs jetons
+ * passent par `useTheme`) — les unifier est une décision à part, pas un effet de
+ * bord de ce pilote.
+ *
+ * ⚠ UN COMPOSANT À PART, qui reçoit l'arbre en `children` : quand le thème change,
+ * lui seul se rend, et React garde l'arbre tel quel — même élément, même rendu.
+ * Posé dans `AgentLayout` même, il rendait tout le layout dans le `flushSync` de
+ * la bascule, et, par la cascade du routeur, tous les écrans vivants avec lui :
+ * autant de travail synchrone avant que le cercle parte.
+ */
+function ThemePilote({ children }: { children: ReactNode }) {
+  const dark = useCrmDark()
+  const isMobile = useIsMobile()
+  return <ThemeProvider pilote={isMobile ? undefined : dark ? 'dark' : 'light'}>{children}</ThemeProvider>
+}
+
 /** Enrobe le layout interne des providers thème + contexte copilote. */
 export default function AgentLayout({ routes }: { routes: ReactNode }) {
   return (
-    <ThemeProvider>
+    <ThemePilote>
       <CopilotContextProvider>
         {/* ⚠ Le FOURNISSEUR d'onglets est hissé ici, la BARRE ne l'est pas — et
             l'asymétrie est délibérée. Ce layout ne se remonte plus à la
@@ -458,6 +479,6 @@ export default function AgentLayout({ routes }: { routes: ReactNode }) {
           <AgentLayoutInner routes={routes} />
         </CrmTabsProvider>
       </CopilotContextProvider>
-    </ThemeProvider>
+    </ThemePilote>
   )
 }

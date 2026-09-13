@@ -24,6 +24,9 @@ import { useTabScopedState } from '@/hooks/useCrmTabs'
 import { useCrmDarkPref } from '@/lib/crmDark'
 
 const GROUP_ORDER: ('moi' | 'produit' | 'compte')[] = ['moi', 'produit', 'compte']
+
+/** Largeur de la barre de défilement des deux colonnes — retranchée du padding droit du contenu. */
+const BARRE = 9
 const ALLOWED: SectionId[] = ['profile', 'agency', 'preferences', 'integrations', 'security', 'billing']
 
 /**
@@ -137,7 +140,7 @@ export default function SettingsPage() {
            sauter d'un pixel au changement de section. */
         .spg-nav { -webkit-tap-highlight-color: transparent; }
         .spg-nav:hover { background: ${darkR ? 'rgba(255,255,255,0.05)' : crmVoileEncre(false, 0.035)}; }
-        .spg-scroll::-webkit-scrollbar { width: 9px; }
+        .spg-scroll::-webkit-scrollbar { width: ${BARRE}px; }
         .spg-scroll::-webkit-scrollbar-thumb { background: ${darkR ? 'rgba(255,255,255,.12)' : crmVoileEncre(false, .14)}; border-radius: 99px; border: 3px solid transparent; background-clip: content-box; }
       `}</style>
 
@@ -202,8 +205,23 @@ export default function SettingsPage() {
             </aside>
 
             {/* BENTO À DROITE — la section active (Facturation = plein cadre immersif) */}
-            <div ref={scrollRef} className="spg-scroll" style={{ minHeight: 0, overflowY: 'auto', padding: immersive ? 0 : '28px 34px 40px var(--crm-space-xl)' }}>
-              <div key={active} style={{ maxWidth: immersive ? 'none' : 1180, height: immersive ? '100%' : undefined, margin: immersive ? 0 : '0 auto', animation: 'setFadeUp .32s cubic-bezier(.2,.8,.2,1) both' }}>
+            {/* ⚠ LA CARTE EST LOGÉE DANS LE COIN du cadre, à la même gouttière sur
+                ses quatre côtés (retour de Julien, 12 septembre 2026 : « recolle-le au
+                bento central, il y a du vide entre le haut, le coin et la droite »).
+                Elle en était à 29 px du haut et 35 de la droite — le `28 34 40` du
+                prototype — contre 12 à gauche.
+                ⚠ Deux pièges tiennent cette égalité : (1) la barre de défilement
+                prend `BARRE` px à droite dès que la section déborde — sa place est
+                donc RÉSERVÉE (`scrollbar-gutter`) et retranchée du padding, sans quoi
+                l'écart droit changerait d'une section à l'autre ; (2) plus de largeur
+                plafonnée (1180) centrée : sur un grand écran elle recréait le vide à
+                droite, des deux côtés même. */}
+            <div ref={scrollRef} className="spg-scroll" style={{
+              minHeight: 0, overflowY: 'auto',
+              padding: immersive ? 0 : `var(--crm-space-lg) calc(var(--crm-space-lg) - ${BARRE}px) var(--crm-space-lg) var(--crm-space-lg)`,
+              scrollbarGutter: immersive ? undefined : 'stable',
+            }}>
+              <div key={active} style={{ height: immersive ? '100%' : undefined, animation: 'setFadeUp .32s cubic-bezier(.2,.8,.2,1) both' }}>
                 {renderContent()}
               </div>
             </div>
