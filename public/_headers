@@ -4,20 +4,57 @@
 # racine du déploiement et lu par le bord. Le build vitrine (getmegga.com) le
 # recopie aussi, mais l'ignore : ce projet tourne en mode avancé (`_worker.js`),
 # où Cloudflare n'évalue ni `_headers` ni `_redirects`.
-
-# Politique de référent, pour toute l'application.
 #
-# Les navigateurs actuels appliquent déjà `strict-origin-when-cross-origin` par
-# défaut, donc une sous-ressource tierce (les 4 feuilles fonts.googleapis.com
-# d'index.html, les photos servies depuis le Storage) ne reçoit que l'origine.
-# Mais c'est un DÉFAUT, pas une garantie : un navigateur plus ancien, ou configuré
-# autrement, enverrait `Referer: …/visit/9c2/edit?token=<jeton>`. Les pages de
-# visite portent leur capability token dans la query — donc précisément dans la
-# partie qu'un référent laxiste emporterait. On l'écrit plutôt que d'en hériter.
+# Gardé par tests/unit/http-headers.spec.ts : ce qui est ENFORCÉ ici est court et
+# stable ; tout élargissement de la CSP passe d'abord par le mode report-only.
+
+# ── Pour toute l'application ──────────────────────────────────────────────────
+#
+# Referrer-Policy — les navigateurs actuels appliquent déjà
+# `strict-origin-when-cross-origin` par défaut, donc une sous-ressource tierce (les
+# 4 feuilles fonts.googleapis.com d'index.html, les photos servies depuis le
+# Storage) ne reçoit que l'origine. Mais c'est un DÉFAUT, pas une garantie : un
+# navigateur plus ancien, ou configuré autrement, enverrait
+# `Referer: …/visit/9c2/edit?token=<jeton>`. Les pages de visite portent leur
+# capability token dans la query — donc précisément dans la partie qu'un référent
+# laxiste emporterait. On l'écrit plutôt que d'en hériter.
+#
+# frame-ancestors / X-Frame-Options — mesuré le 13.09.2026 : app.getmegga.com ne
+# servait ni CSP ni X-Frame-Options ; le CRM, console super-admin et validation KYC
+# comprises, pouvait être encadré dans une page tierce (clickjacking). Rien dans le
+# produit n'a besoin d'être embarqué : la vitrine renvoie par lien, le rendu headless
+# du rapport KYC ouvre une page, Intercom est un enfant (frame-src), pas un parent.
+# `'none'` partout, y compris sur les six surfaces client sans compte.
+#
+# HSTS — un an, sous-domaines compris (app.getmegga.com n'en a aucun). Sans lui, une
+# première visite en http:// pouvait être interceptée avant la redirection.
+#
+# Content-Security-Policy (ENFORCÉE) — volontairement réduite à `frame-ancestors` :
+# c'est la seule directive dont l'effet est connu sans mesure. La politique complète
+# vit ci-dessous en REPORT-ONLY, avec ses rapports envoyés à Sentry : elle se lit,
+# se corrige, puis se promeut — jamais l'inverse. La bascule est une décision, pas un
+# geste de ce fichier.
+#
+# Content-Security-Policy-Report-Only — inventaire des origines réellement appelées
+# par le bundle (13.09.2026) : Supabase (domaine custom + projet, REST/Storage/
+# Realtime), Mapbox (géocodage v6, tuiles, télémétrie, workers blob:), Google Fonts,
+# Intercom (widget, API, websocket, médias), PostHog EU, Sentry (ingest DE), et les
+# blobs locaux (aperçu PDF KYC, pièces jointes, photos du wizard, notes vocales).
+# `img-src https:` reste large : les annonces externes (Flatfox, RealAdvisor, portails)
+# servent leurs photos depuis des hôtes qu'on ne choisit pas. `script-src` porte
+# `'unsafe-inline'` parce qu'index.html contient quatre scripts inline (thème, garde
+# de bundle…) : les hacher est le premier chantier que les rapports permettront de
+# décider. Le `report-uri` est l'endpoint « security » du projet Sentry de l'app
+# (clé publique, même DSN que src/lib/sentry.ts).
 /*
   Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self' 'unsafe-inline' https://widget.intercom.io https://js.intercomcdn.com https://eu.posthog.com https://eu-assets.i.posthog.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://js.intercomcdn.com https://fonts.intercomcdn.com; img-src 'self' data: blob: https:; media-src 'self' blob: data: https://js.intercomcdn.com https://downloads.intercomcdn.com; connect-src 'self' https://api.getmegga.com wss://api.getmegga.com https://eayczugyrvmtqnnmvjod.supabase.co wss://eayczugyrvmtqnnmvjod.supabase.co https://api.mapbox.com https://events.mapbox.com https://*.tiles.mapbox.com https://eu.posthog.com https://*.ingest.de.sentry.io https://api-iam.intercom.io https://api-iam.eu.intercom.io https://api.intercom.io https://uploads.intercomcdn.com wss://nexus-websocket-a.intercom.io wss://nexus-websocket-b.intercom.io; worker-src 'self' blob:; child-src 'self' blob:; frame-src 'self' blob: https://intercom-sheets.com https://www.intercom-reporting.com; object-src 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'; report-uri https://o4511407781707776.ingest.de.sentry.io/api/4511407787933776/security/?sentry_key=d2ecb5623db9c5e3368ac048ef345fcd
 
-# Images des e-mails transactionnels (gabarits Supabase Auth).
+# ── Images des e-mails transactionnels (gabarits Supabase Auth) ──────────────
 #
 # Les clients mail exigent des URL absolues — ni chemin relatif, ni base64
 # (Outlook Windows ne rend pas le base64). Ces fichiers sont donc servis ici et

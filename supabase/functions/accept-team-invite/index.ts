@@ -152,6 +152,14 @@ serve(async (req) => {
 
       if (profileError) throw profileError
 
+      // La pile d'onglets (crm_open_tabs) porte des NOMS de clients de l'agence quittée :
+      // elle ne suit pas la personne. Même geste que team_remove_member (20260913130000).
+      // Jamais bloquant : une pile qui survit est un défaut, pas une réclamation ratée.
+      if (priorAgencyId && priorAgencyId !== agency?.id) {
+        const { error: tabsError } = await supabaseAdmin.from('crm_open_tabs').delete().eq('user_id', user.id)
+        if (tabsError) console.error('[accept-team-invite] crm_open_tabs purge failed:', tabsError.message)
+      }
+
       // ─── Nettoyage de l'agence solo devenue inutile ───
       // Une fois la réclamation faite, l'agence solo auto-provisionnée à l'inscription
       // est une ligne morte. Suppression strictement conditionnelle : solo=true, créée

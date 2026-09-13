@@ -14,7 +14,11 @@
  * Ce serveur rend aux écrans EXACTEMENT ce que la production rendait à un appelant anonyme,
  * sans base, sans Docker, en quelques millisecondes :
  *   · GET/HEAD /rest/v1/<table>  → 200 `[]`, ou 406 PGRST116 si `Accept` demande un objet
- *     (`.single()` / `.maybeSingle()` sur zéro ligne, comme PostgREST) ;
+ *     (`.single()` / `.maybeSingle()` sur zéro ligne, comme PostgREST) — SAUF si un filtre
+ *     porte un identifiant du profil MOCK (`dev-mock-agency`, `dev-mock-user`, cf.
+ *     src/hooks/useAuth.tsx) : ce n'est pas un uuid, PostgREST répond 400 `22P02`, et les
+ *     écrans rendent leur état d'ERREUR, pas leur état vide. Les références visuelles
+ *     (visual-regression.spec.ts) ont été capturées sur ces 400-là : la paille les rejoue ;
  *   · POST /rest/v1/rpc/*, écritures sur les tables, /auth/v1/* → 401 « permission denied » ;
  *   · tout le reste (/storage, /functions, /realtime en HTTP) → 404.
  * Le socket Realtime n'est pas servi : le navigateur le voit refusé, et
@@ -43,18 +47,36 @@ const NO_ROW = {
   message: 'JSON object requested, multiple (or no) rows returned',
 }
 
+/** Un identifiant du profil mock (`dev-mock-…`) dans un filtre — non-uuid, donc 22P02 chez PostgREST. */
+export function mockIdInFilters(search) {
+  const params = new URLSearchParams(search ?? '')
+  for (const [, value] of params) {
+    const m = /(?:^|[.(,])(dev-mock-[a-z0-9-]+)/.exec(value)
+    if (m) return m[1]
+  }
+  return null
+}
+
 /**
  * La décision, pure, pour qu'elle se teste à l'unité (tests/unit/e2e-local-supabase.spec.ts).
  * @param {string} method
  * @param {string} pathname
  * @param {string} accept  en-tête Accept de la requête ('' si absent)
+ * @param {string} search  query string de la requête ('' si absente)
  * @returns {{ status: number, body: unknown, headers?: Record<string, string> }}
  */
-export function decide(method, pathname, accept = '') {
+export function decide(method, pathname, accept = '', search = '') {
   if (method === 'OPTIONS') return { status: 204, body: null }
   if (pathname === '/rest/v1/' || pathname === '/rest/v1') return { status: 200, body: {} }
   if (pathname.startsWith('/rest/v1/rpc/')) return { status: 401, body: PERMISSION_DENIED }
   if (pathname.startsWith('/rest/v1/')) {
+    const mockId = mockIdInFilters(search)
+    if (mockId) {
+      return {
+        status: 400,
+        body: { code: '22P02', details: null, hint: null, message: `invalid input syntax for type uuid: "${mockId}"` },
+      }
+    }
     if (method === 'GET' || method === 'HEAD') {
       if (accept.includes('vnd.pgrst.object')) return { status: 406, body: NO_ROW }
       return { status: 200, body: [], headers: { 'content-range': '*/0' } }
@@ -70,7 +92,7 @@ export function decide(method, pathname, accept = '') {
 export function createStubServer() {
   return http.createServer((req, res) => {
     const url = new URL(req.url ?? '/', 'http://127.0.0.1')
-    const d = decide(req.method ?? 'GET', url.pathname, req.headers.accept ?? '')
+    const d = decide(req.method ?? 'GET', url.pathname, req.headers.accept ?? '', url.search)
     const headers = { ...CORS, ...(d.headers ?? {}) }
     if (d.body === null) { res.writeHead(d.status, headers); res.end(); return }
     res.writeHead(d.status, { ...headers, 'content-type': 'application/json; charset=utf-8' })

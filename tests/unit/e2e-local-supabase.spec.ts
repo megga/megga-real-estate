@@ -18,7 +18,7 @@ import {
   LOCAL_SUPABASE_URL_DEFAULT,
 } from '../../playwright.local-supabase'
 // @ts-expect-error — module Node sans déclaration de types, volontairement (tests/e2e/helpers)
-import { decide } from '../e2e/helpers/supabase-stub.mjs'
+import { decide, mockIdInFilters } from '../e2e/helpers/supabase-stub.mjs'
 
 const CONFIGS_BYPASS = ['playwright.config.ts', 'playwright.admin.config.ts', 'playwright.visual.config.ts']
 
@@ -102,6 +102,17 @@ describe('supabase-stub : la décision est celle de PostgREST devant un appelant
     expect(decide('PATCH', '/rest/v1/contacts', '').status).toBe(401)
     expect(decide('POST', '/auth/v1/token', '').status).toBe(401)
   })
+  it('rend 400 22P02 à un filtre portant un identifiant du profil mock — comme PostgREST, et comme les références visuelles', () => {
+    expect(mockIdInFilters('?select=id&agency_id=eq.dev-mock-agency')).toBe('dev-mock-agency')
+    expect(mockIdInFilters('?select=tabs&user_id=eq.dev-mock-user')).toBe('dev-mock-user')
+    expect(mockIdInFilters('?select=id&agency_id=in.(dev-mock-agency,abc)')).toBe('dev-mock-agency')
+    expect(mockIdInFilters('?select=id&status=eq.active')).toBeNull()
+    const r = decide('GET', '/rest/v1/transactions', 'application/json', '?select=*&agency_id=eq.dev-mock-agency')
+    expect(r).toMatchObject({ status: 400, body: { code: '22P02' } })
+    // Sans identifiant mock, la table répond vide comme avant.
+    expect(decide('GET', '/rest/v1/transactions', 'application/json', '?select=*&status=eq.active').status).toBe(200)
+  })
+
   it('répond au preflight et ignore le reste', () => {
     expect(decide('OPTIONS', '/rest/v1/contacts', '').status).toBe(204)
     expect(decide('GET', '/storage/v1/object/x', '').status).toBe(404)
