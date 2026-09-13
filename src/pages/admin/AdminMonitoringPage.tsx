@@ -252,8 +252,8 @@ export default function AdminMonitoringPage() {
           <HealthTile
             icon={Mail}
             label={t('admin:monitoring.health.emails')}
-            value={health.emailsSentToday}
-            hint={t('admin:monitoring.health.todayLabel')}
+            value={health.emailsSentToday ?? '—'}
+            hint={health.emailsSentToday == null ? t('admin:monitoring.health.notMeasured') : t('admin:monitoring.health.todayLabel')}
           />
 
           {/* Storage */}

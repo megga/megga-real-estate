@@ -3618,10 +3618,12 @@ git add -A && git commit -m "feat(messagerie): réglages, timeline contact, écr
 ⛔ **NON FAITE AU 05.09.2026, ET ELLE NE POUVAIT PAS L'ÊTRE — la cause n'est pas dans
 le dépôt.** Trois prérequis manquent, tous chez Julien, tous hors de tout dépôt :
 
-1. `https://app.megga.ch/oauth/mail/callback` **n'est pas** dans les *Authorized redirect
+1. `https://app.getmegga.com/oauth/mail/callback` **n'est pas** dans les *Authorized redirect
    URIs* du client OAuth Google `833483825712-vh715spjupqcl86qffv3hvffsaqk0g8e` : Google
    rend **`Erreur 400 : redirect_uri_mismatch`** et l'écran de consentement ne s'affiche
    jamais. Ajouter aussi `http://localhost:5173/oauth/mail/callback` pour l'épreuve locale.
+   (⚠ Corrigé le 13.09.2026 : ce point nommait `app.megga.ch`, que `redirectUriFor()` ne
+   produit plus depuis le 09.09.2026.)
 2. L'**API Gmail n'est pas activée** sur le projet `tribal-dispatch-504619-c1`, et
    **`gmail.modify` n'est pas déclaré** en Data Access. C'est un scope **RESTRICTED** :
    tant qu'il n'est pas vérifié, écran « application non validée » et plafond de
@@ -3681,9 +3683,10 @@ retiré côté Google) ; étoile ⇒ `STARRED` dans Gmail ; archiver ⇒ quitte 
 *5. Répondre (point 5)* — la réponse doit être **dans le fil Gmail**, en-tête
 `In-Reply-To` = `Message-ID` d'origine (vérifier via « Afficher l'original » dans Gmail) :
 ```sql
-select category, action, entity_id, created_at from activity_events
-where category='messaging' order by created_at desc limit 10;
--- attendu : un email_sent sur le contact rattaché
+select category, action, entity_id, object_label, metadata, created_at from activity_events
+where action in ('email_received', 'email_sent') order by created_at desc limit 10;
+-- attendu : un email_sent sur le contact rattaché, object_label NULL, metadata = thread_id,
+-- message_id, account_id, kind — AUCUN objet ni adresse (D11 amendé le 13.09.2026)
 ```
 
 *6. Pièce jointe (point 6)* — « Voir en grand » ⇒ le flux doit porter le **`content-type`

@@ -12,7 +12,7 @@
 import type { CrmPalette } from '@/components/crm/tokens'
 import { crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
-import { MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /**
  * La transition unique de l'écran. Une seule durée pour tout ce qui réagit au
@@ -46,20 +46,22 @@ export const PILL = 'var(--crm-radius-pill)'
  * `couleur-barreaux` plafonne `src/components/crm` à un inventaire qui « ne peut
  * que RÉTRÉCIR ». Deux valeurs neuves l'ont fait rougir (540 > 538).
  *
- * `MLK_STATUT` est la sortie de ce faux dilemme, et ce n'est pas un détour :
+ * `STATUT_CLAIR` est la sortie de ce faux dilemme, et ce n'est pas un détour :
  * c'est la famille que le dépôt s'est déjà donnée pour ce rôle exact — « la
  * famille qui ENCODE, tenue SÉPARÉE parce que la direction ne la gouverne pas »
- * —, mesurée en août (6,47:1 et 5,48:1 sur carte blanche) et **déjà consommée
- * hors de sa zone** par `crm-identity/IdentityVerificationReturnScreen`. Une
- * encre d'alerte qui diffère d'un écran à l'autre coûte plus que deux points de
+ * —, mesurée en août (6,47:1 et 5,48:1 sur carte blanche) et partagée avec la
+ * face publique et `crm-identity/IdentityVerificationReturnScreen`. Une encre
+ * d'alerte qui diffère d'un écran à l'autre coûte plus que deux points de
  * contraste (CLAUDE.md §3) : elle doit être la MÊME, donc importée.
  *
- * ⚠ Son module porte encore le nom de sa première zone (`kyc-magic-link`). Au
- * troisième consommateur hors zone, elle mérite un domicile neutre — le
- * déplacer maintenant toucherait la face publique pour un gain de lecture.
+ * ⚠ Elle vivait dans les jetons de la face publique (`kyc-magic-link`, sous le
+ * nom `MLK_STATUT`), et ce commentaire prévoyait de lui donner un domicile
+ * neutre au troisième consommateur hors de sa face. Il est arrivé avec la ligne
+ * console de la barre latérale : elle vit depuis le 13.09.2026 dans
+ * `megga-x-crm/statut.ts` — à côté des barreaux, jamais parmi eux.
  */
-const ALERTE_CLAIR = MLK_STATUT.errInk
-const SUCCES_CLAIR = MLK_STATUT.okInk
+const ALERTE_CLAIR = STATUT_CLAIR.errInk
+const SUCCES_CLAIR = STATUT_CLAIR.okInk
 
 /**
  * `hsl` → `#rrggbb`, pour la teinte libre du créateur de libellé.
@@ -120,7 +122,7 @@ export interface MailSurfaces {
    * Les remplaçantes ne sont pas choisies, elles sont REPRISES : `blue300` est le
    * barreau que CLAUDE.md §3 nomme déjà pour l'encre teintée sur sombre, et
    * `#B91C1C` / `#047857` sont les deux valeurs que la face publique a mesurées
-   * en août (`MLK_STATUT`). Une encre d'alerte qui diffère d'un écran à l'autre
+   * en août (`STATUT_CLAIR`, ex-`MLK_STATUT`). Une encre d'alerte qui diffère d'un écran à l'autre
    * coûte plus que deux points de contraste.
    */
   accentText: string

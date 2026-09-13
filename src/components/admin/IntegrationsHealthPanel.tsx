@@ -64,7 +64,7 @@ export default function IntegrationsHealthPanel() {
   const wh = data?.stripe_webhook
   const cal = data?.calendar
 
-  const emailLevel: Level = !emails ? 'idle' : emails.errors_7d > 0 ? 'warn' : 'ok'
+  const emailLevel: Level = !emails ? 'idle' : (emails.delivery_incidents_7d > 0 || emails.errors_7d > 0) ? 'warn' : 'ok'
   const whLevel: Level = !wh ? 'idle'
     : (wh.active_subscriptions >= 1 && wh.age_hours != null && wh.age_hours > 72) ? 'down'
     : wh.payment_failed_7d > 0 ? 'warn' : 'ok'
@@ -80,7 +80,7 @@ export default function IntegrationsHealthPanel() {
           title={t('integrations.emails.title')}
           level={emailLevel}
           lines={[
-            t('integrations.emails.sent', { count24: emails?.sent_24h ?? 0, count7: emails?.sent_7d ?? 0 }),
+            t('integrations.emails.incidents', { count: emails?.delivery_incidents_7d ?? 0 }),
             t('integrations.emails.errors', { count: emails?.errors_7d ?? 0 }),
           ]}
         />

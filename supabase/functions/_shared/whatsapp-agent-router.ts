@@ -166,7 +166,9 @@ const CLAIMS: RegExp[] = [
   // Même soirée, après déploiement : « Je relance l'envoi du rapport KYC », puis « Le système a bien
   // repris l'envoi du rapport sur ton WhatsApp à l'instant ». La 1re personne au PRÉSENT et le
   // passé composé d'une REPRISE n'étaient couverts par aucun motif.
-  /\bje\s+(re)?(lance|d[ée]clenche|g[ée]n[èe]re|pr[ée]pare|envoie|renvoie|transmets|exp[ée]die|r[ée]exp[ée]die|retente|r[ée]essaie)\b/,
+  /\bje\s+(te\s+|t')?(re)?(lance|d[ée]clenche|g[ée]n[èe]re|pr[ée]pare|retente|r[ée]essaie)\b/,
+  // « je renvoie / j'expédie le PDF » (1re personne nue) ; « je t'envoie … » exige un objet, plus haut.
+  /\bje\s+(re)?(envoie|renvoie|transmets|exp[ée]die|r[ée]exp[ée]die)\b/,
   /\b(a|ont|est|sont)\s+(bien\s+)?(ét[ée]\s+)?(repris|relanc|renvoy|r[ée]exp[ée]di|r[ée]essay)/,
   /\bi(?:'m| am| will|'ll)\s+(now\s+)?(re)?(send|sending|generat|prepar)/,
 ]
@@ -230,23 +232,36 @@ export function isFabricatedKycClaim(
   // FAITE — mais pour SA phrase seulement. Jusqu'au 13.09.2026 une offre n'importe où excusait toute
   // la réponse : « Le système a bien repris l'envoi du rapport… Si tu ne le vois pas, je peux
   // réessayer » passait grâce à sa SECONDE phrase. Découpage aux fins de phrase et aux deux-points.
-  const OFFER = /\b(je\s+vais|tu\s+veux|veux-tu|souhaites?-tu|si\s+tu|je\s+peux|dois-je|d[èe]s\s+que\s+tu|quand\s+tu|will\s+you|do\s+you\s+want|i\s+can|shall\s+i|let\s+me\s+know)\b/
-  const phrases = r.split(/(?<=[.!?…:;])\s+|\n+/).filter((p) => p.trim())
-  if (phrases.some((p) => !OFFER.test(p) && CLAIMS.some((re) => re.test(p)))) return true
-  // Une offre dans la réponse garde son ancien effet sur la narration d'ÉTAT (6) : « le dossier est
-  // ouvert, tu veux le screener ? » n'est pas une fabrication de statut.
-  if (OFFER.test(r)) return false
+  const OFFER = /\b(je\s+vais|tu\s+veux|veux-tu|souhaites?-tu|si\s+tu|je\s+peux|dois-je|d[èe]s\s+que\s+tu|quand\s+tu|(ensuite|puis|apr[èe]s)\s+je|will\s+you|do\s+you\s+want|i\s+can|shall\s+i|let\s+me\s+know)\b/
+  const affirmed = r.split(/(?<=[.!?…:;])\s+|\n+/).filter((p) => p.trim() && !OFFER.test(p))
+  if (affirmed.some((p) => CLAIMS.some((re) => re.test(p)))) return true
 
-  // (6) ÉTAT / RÉSULTAT de statut (en cours, pas de PEP, correspondance, risque…). C'est EXACTEMENT ce
-  // qu'une lecture réelle de get_kyc_status produit → légitime SI un statut a été lu ce tour
-  // (kycStatusRead) ; sinon (aucune lecture), c'est une fabrication de résultat.
-  const stateOrResult =
-    /(en\s+cours|en\s+route|en\s+train\s+de|\btourne\b|\bin\s+progress\b|\bprocessing\b|\brunning\b|\bunderway\b)/.test(r) ||
-    /(pas\s+de\s+pep|aucun\s+pep|pep\s+(détecté|detecte|trouvé|trouve|match)|correspondance\s+sanction|risque\s+(faible|moyen|élev[ée])|\bras\b)/.test(r) ||
-    /(no\s+pep\s+match|sanctions?\s+(clear|match)|(low|medium|high)\s+risk)/.test(r)
-  if (stateOrResult) return !kycStatusRead
+  // (6) ÉTAT / RÉSULTAT de statut (en cours, pas de PEP, correspondance, risque… — et, depuis le
+  // 13.09.2026, l'ABSENCE de dossier : « le dossier KYC n'existe pas », dite sans avoir rien lu,
+  // a envoyé le cerveau rouvrir un dossier qui existait). C'est EXACTEMENT ce qu'une lecture
+  // réelle de get_kyc_status produit → légitime SI un statut a été lu ce tour (kycStatusRead) ;
+  // sinon (aucune lecture), c'est une fabrication de résultat. Phrase par phrase, comme (5) :
+  // l'offre « tu veux que je l'ouvre ? » n'excuse pas le constat inventé qui la précède.
+  if (affirmed.some((p) => STATES.some((re) => re.test(p)))) return !kycStatusRead
   return false
 }
+
+// (6) Narration d'ÉTAT — légitime après une lecture réelle, fabriquée sinon.
+const STATES: RegExp[] = [
+  /(en\s+cours|en\s+route|en\s+train\s+de|\btourne\b|\bin\s+progress\b|\bprocessing\b|\brunning\b|\bunderway\b)/,
+  /(pas\s+de\s+pep|aucun\s+pep|pep\s+(détecté|detecte|trouvé|trouve|match)|correspondance\s+sanction|risque\s+(faible|moyen|élev[ée])|\bras\b)/,
+  /(no\s+pep\s+match|sanctions?\s+(clear|match)|(low|medium|high)\s+risk)/,
+  // Absence de dossier — ancrée sur « dossier » : « le contact n'existe pas » est un autre outil.
+  /dossier[^.?!]{0,30}\bn'existe\s+pas\b|\bn'existe\s+pas[^.?!]{0,20}\bdossier|\b(pas|aucun|sans)\s+(encore\s+)?(de\s+|d')?dossier|\bn'as?\s+pas\s+(encore\s+)?(de\s+|d')?dossier|dossier[^.?!]{0,30}\b(inexistant|absent|pas\s+(encore\s+)?ouvert|jamais\s+(été\s+)?ouvert|n'a\s+pas\s+(encore\s+)?été\s+ouvert)/,
+  /\b(no|without|isn't\s+an?|doesn't\s+have\s+an?|hasn't\s+got\s+an?)\s+(open\s+)?kyc\s+(file|case)\b|\bkyc\s+(file|case)\b[^.?!]{0,30}\b(doesn't\s+exist|hasn't\s+been\s+opened|not\s+(yet\s+)?open(ed)?)/,
+]
+
+/**
+ * Suffixe du refus de préparation d'un outil `confirm`, rendu au MODÈLE comme résultat d'outil
+ * (whatsapp-agent) — jamais à l'agent. Sans lui, le modèle rappelait le même outil au message
+ * suivant, le refus étant exclu de la mémoire de conversation (`is_agent_error`).
+ */
+export const PREP_REFUSAL_NOTE = "(Constat du système — ne rappelle pas cet outil dans cet échange. Réponds à l'agent d'après ce constat, ou appelle l'outil qui convient : pour un dossier KYC déjà ouvert, send_kyc_report envoie le rapport, run_kyc_screening lance le screening, get_kyc_status donne l'état.)"
 
 /**
  * Consigne de relance quand `isFabricatedKycClaim` rejette une réponse. Jusqu'au 13.09.2026 la garde
@@ -255,7 +270,7 @@ export function isFabricatedKycClaim(
  * système comme PHANTOM_RETRY_NUDGE (la réponse rejetée n'est pas réinjectée : elle ancrerait le
  * modèle sur ce qu'il vient d'inventer). À la seconde fabrication, `kycNotRun`.
  */
-export const KYC_CLAIM_RETRY_NUDGE = "CONSIGNE STRICTE POUR CETTE RÉPONSE : une première réponse vient d'être rejetée, parce qu'elle affirmait qu'une action KYC (screening, rapport PDF, pièce) était lancée, faite ou partie SANS qu'aucun outil n'ait tourné. Rien n'a été lancé et rien n'est parti. Si l'agent demande le rapport KYC d'un contact (« le PDF », « le document », « le rapport »), appelle send_kyc_report avec son contact_id — l'IDENTIFIANT renvoyé par search_contacts, jamais son nom ; appelle search_contacts d'abord s'il n'est pas dans l'échange. Pour un screening, appelle run_kyc_screening. N'écris jamais toi-même que c'est fait ou envoyé : le système le confirmera. Ne rappelle pas un outil qui a déjà abouti dans cet échange ; si l'agent demande seulement où en est une action, réponds d'après l'historique."
+export const KYC_CLAIM_RETRY_NUDGE = "CONSIGNE STRICTE POUR CETTE RÉPONSE : une première réponse vient d'être rejetée, parce qu'elle affirmait qu'une action KYC (screening, rapport PDF, pièce) était lancée, faite ou partie, ou qu'un dossier existait ou n'existait pas, SANS qu'aucun outil n'ait tourné. Rien n'a été lancé, rien n'est parti, rien n'a été lu. Si l'agent demande le rapport KYC d'un contact (« le PDF », « le document », « le rapport »), appelle send_kyc_report avec son contact_id — l'IDENTIFIANT renvoyé par search_contacts, jamais son nom ; appelle search_contacts d'abord s'il n'est pas dans l'échange. Pour un screening, appelle run_kyc_screening. Pour dire si un dossier existe ou où il en est, appelle get_kyc_status — n'affirme jamais qu'un dossier n'existe pas sans l'avoir lu. N'écris jamais toi-même que c'est fait ou envoyé : le système le confirmera. Ne rappelle pas un outil qui a déjà abouti dans cet échange ; si l'agent demande seulement où en est une action, réponds d'après l'historique."
 
 // ── contact_id des outils LENTS (send_kyc_report, run_kyc_screening) ─────────────────────────
 // Mesuré le 13.09.2026 : DeepSeek appelle send_kyc_report avec contact_id = « Julien Ahmedi ».

@@ -14,7 +14,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
-import { toolTier, CONFIRM_TOOLS, isFabricatedKycClaim, KYC_CLAIM_RETRY_NUDGE, classifyContactArg, contactResolutionNote, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
+import { toolTier, CONFIRM_TOOLS, isFabricatedKycClaim, KYC_CLAIM_RETRY_NUDGE, PREP_REFUSAL_NOTE, classifyContactArg, contactResolutionNote, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
 import { detectLang, t, asyncAck } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
@@ -232,6 +232,7 @@ serve(async (req) => {
   let kycToolCalled = false // anti-fabrication : une ACTION KYC (screening/rapport/attache) a-t-elle RÉELLEMENT tourné ?
   let kycStatusRead = false // get_kyc_status (LECTURE) a tourné → légitime la narration d'ÉTAT, jamais une revendication d'ACTION
   let phantomRetried = false // garde anti-confirmation simulée : UNE relance au plus par requête
+  const prepRefused = new Set<string>() // outils confirm dont la préparation a déjà été refusée (rendu au modèle une fois)
   const resultCache = new Map<string, string>() // F4 : dédup outils identiques d'un tour
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -345,7 +346,20 @@ serve(async (req) => {
         }
         if (stash.status === 'error') {
           logTool('error')
-          return json({ reply: stash.error ?? t(lang, 'prepFail'), isError: true }, 200)
+          // Le refus de préparation est un CONSTAT (« a déjà un dossier KYC ouvert », « contact
+          // introuvable »), pas une panne : il est rendu au MODÈLE comme résultat d'outil, une
+          // fois, pour qu'il réponde ou appelle l'outil qui convient. Mesuré le 13.09.2026 :
+          // renvoyé directement à l'agent, il partait en `is_agent_error` — donc EXCLU de la
+          // mémoire C1 — pendant que la phrase fausse du modèle (« le dossier n'existe pas »)
+          // y restait ; à chaque message le cerveau rouvrait le dossier, trois fois de suite.
+          // Au second refus du même outil dans la requête, la vérité part à l'agent.
+          const refusal = stash.error ?? t(lang, 'prepFail')
+          if (!prepRefused.has(name)) {
+            prepRefused.add(name)
+            messages.push({ role: 'tool', tool_call_id: call.id, content: `${refusal} ${PREP_REFUSAL_NOTE}` })
+            continue
+          }
+          return json({ reply: refusal, isError: true }, 200)
         }
         logTool('confirm_pending')
         // `confirmPendingId` : le webhook rend la question avec [Oui] [Non] liés à CETTE action.
@@ -358,7 +372,8 @@ serve(async (req) => {
       // la garde contre une fausse revendication d'ACTION (« j'ai lancé le screening ») au même tour ou
       // au suivant. On est APRÈS le return slow_async (l.201) → run_kyc_screening n'arme rien ici.
       if (name === 'attach_kyc_document') kycToolCalled = true
-      if (name === 'get_kyc_status') kycStatusRead = true
+      // get_contact_brief porte aussi l'état KYC du contact (kyc_note) : une lecture, au même titre.
+      if (name === 'get_kyc_status' || name === 'get_contact_brief') kycStatusRead = true
       // F4 : si un outil identique a déjà tourné ce tour, réutilise le résultat.
       const key = `${name}:${JSON.stringify(args)}`
       let result = resultCache.get(key)

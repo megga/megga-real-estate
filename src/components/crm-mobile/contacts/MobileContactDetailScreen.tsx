@@ -63,10 +63,10 @@ const DEMO_DOSSIER: KycDossierSummary = {
   last_screening_at: null, checks_total: 5, checks_completed: 2,
 }
 const DEMO_TIMELINE: TimelineEvent[] = [
-  { id: 't1', action: 'match_sent', entity_type: 'contact', entity_id: 'demo-c1', metadata: null, created_at: '2026-06-20T15:32:00.000Z', actor_name: null },
-  { id: 't2', action: 'call_logged', entity_type: 'contact', entity_id: 'demo-c1', metadata: null, created_at: '2026-06-12T10:15:00.000Z', actor_name: 'Gregory Lyonnet' },
-  { id: 't3', action: 'visit_planned', entity_type: 'contact', entity_id: 'demo-c1', metadata: null, created_at: '2026-06-05T14:30:00.000Z', actor_name: 'Gregory Lyonnet' },
-  { id: 't4', action: 'contact_created', entity_type: 'contact', entity_id: 'demo-c1', metadata: null, created_at: '2026-04-02T09:00:00.000Z', actor_name: 'Gregory Lyonnet' },
+  { id: 't1', action: 'match_sent', entity_type: 'contact', entity_id: 'demo-c1', metadata: null, created_at: '2026-06-20T15:32:00.000Z', occurred_at: '2026-06-20T15:32:00.000Z', actor_name: null },
+  { id: 't2', action: 'call_logged', entity_type: 'contact', entity_id: 'demo-c1', metadata: null, created_at: '2026-06-12T10:15:00.000Z', occurred_at: '2026-06-12T10:15:00.000Z', actor_name: 'Gregory Lyonnet' },
+  { id: 't3', action: 'visit_planned', entity_type: 'contact', entity_id: 'demo-c1', metadata: null, created_at: '2026-06-05T14:30:00.000Z', occurred_at: '2026-06-05T14:30:00.000Z', actor_name: 'Gregory Lyonnet' },
+  { id: 't4', action: 'contact_created', entity_type: 'contact', entity_id: 'demo-c1', metadata: null, created_at: '2026-04-02T09:00:00.000Z', occurred_at: '2026-04-02T09:00:00.000Z', actor_name: 'Gregory Lyonnet' },
 ]
 const DEMO_MATCHES: MatchResult[] = [
   {
@@ -341,7 +341,7 @@ function OverviewTab({ contact, t, tk, i18nLang, onRefine }: { contact: Contact;
   )
 }
 
-/** Onglet Activité : timeline réelle du contact (catégorie, date, auteur si connu). */
+/** Onglet Activité : timeline réelle du contact (catégorie, date du fait, auteur si connu). */
 function ActivityTab({ events, loading, t, tk, i18nLang }: { events: TimelineEvent[]; loading: boolean; t: TFunction; tk: MobileTokens; i18nLang: string }) {
   if (loading) return <SkeletonList tk={tk} />
   if (!events.length) return <EmptyState icon="calendar" title={t('mobile.detail.timeline.empty')} tk={tk} />
@@ -358,7 +358,7 @@ function ActivityTab({ events, loading, t, tk, i18nLang }: { events: TimelineEve
           <div key={ev.id} style={{ background: tk.cardSubtle, borderRadius: 'var(--crm-radius-2xl)', padding: 'var(--crm-space-xl) var(--crm-space-2xl)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-lg)', marginBottom: 9 }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', padding: 'var(--crm-space-xs) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', background: tone, color: '#fff', fontSize: 'var(--crm-text-sm)', fontWeight: 600, letterSpacing: 0.1, whiteSpace: 'nowrap' }}>{t(cat.labelKey)}</span>
-              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtDay(ev.created_at, i18nLang)}</span>
+              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: tk.muted, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{fmtDay(ev.occurred_at, i18nLang)}</span>
             </div>
             <div style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: tk.ink, letterSpacing: -0.2 }}>{prettifyAction(ev.action)}</div>
             {who ? <div style={{ fontSize: 'var(--crm-text-md)', color: tk.inkSoft, fontWeight: 500, lineHeight: 1.5, marginTop: 3 }}>{who}</div> : null}

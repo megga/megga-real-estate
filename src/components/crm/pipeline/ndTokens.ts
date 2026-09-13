@@ -11,6 +11,7 @@
  * et une palette qu'on ne peut pas importer ne peut pas être gardée.
  */
 import { encreSur } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import type { CrmPalette } from '../tokens'
 
 export interface NdPalette {
@@ -36,7 +37,7 @@ export interface NdPalette {
 }
 
 /** `--color-success-dark` de `globals.css` — la valeur que le dépôt possède. */
-const OK = { clair: '#047857', sombre: '#34D399' }
+const OK = { clair: STATUT_CLAIR.okInk, sombre: '#34D399' }
 
 export function ndPalette(dark: boolean, sp: CrmPalette): NdPalette {
   const vert = dark ? OK.sombre : OK.clair

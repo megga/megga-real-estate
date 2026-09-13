@@ -299,8 +299,10 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
     expect(rien ?? []).toEqual([])
   })
 
-  // AJOUT — les trois WITH CHECK resserrés à la revue de la task 1.1. Chacun refuse une
-  // écriture INTER-AGENCES que la seule clé étrangère laisserait passer.
+  // AJOUT — les WITH CHECK resserrés à la revue de la task 1.1. Chacun refuse une écriture
+  // INTER-AGENCES que la seule clé étrangère laisserait passer. (Il y en avait trois ; celui
+  // de mail_contact_aliases est parti avec la policy le 13.09.2026 — la table est service-role
+  // seul, et son unique écrivain vérifie l'agence du contact, cf. mail-edges.spec.ts.)
   it('un brouillon estampillé d une autre agence est refusé', async () => {
     const sujetOk = `brouillon-ok-${s.stamp}`
     const sujetKo = `brouillon-refus-${s.stamp}`
@@ -336,25 +338,53 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
     expect(apres?.label_id).toBe(labelAId)
   })
 
-  it('un alias vers le contact d une autre agence est refusé', async () => {
-    const emailOk = `alias-ok-${s.stamp}@ex.ch`
-    const emailKo = `alias-refus-${s.stamp}@ex.ch`
-
-    const ok = await s.clientA.from('mail_contact_aliases').insert({
-      agency_id: s.agencyAId, email: emailOk, contact_id: contactAId, learned_by: s.agentAId,
+  // ⛔ mail_contact_aliases : SERVICE-ROLE SEUL depuis le 13.09.2026 (migration
+  // 20260913150000). Le socle l'ouvrait à toute l'agence, en lecture ET en écriture : un
+  // collègue lisait l'adresse d'un correspondant apprise dans une boîte PERSONNELLE, ou
+  // réaffectait l'alias — ANONYMEMENT, `learned_by: null` passait le WITH CHECK — et le
+  // courrier suivant de cette adresse se rattachait au mauvais contact, en append-only.
+  // L'unique écrivain est désormais `linkThreadToContact` (contact de l'agence ET adresse du
+  // fil, cf. ingest.test.ts) ; le « contact d'une autre agence » que le WITH CHECK refusait
+  // y est refusé (`contact_not_in_agency`). Ce test REMPLACE « un alias vers le contact d une
+  // autre agence est refusé », dont le cas passant était un INSERT client.
+  it('mail_contact_aliases : service-role seul — ni lecture, ni ajout, ni réaffectation, ni suppression côté client', async () => {
+    const emailAppris = `alias-perso-${s.stamp}@ex.ch`
+    const emailNeuf = `alias-neuf-${s.stamp}@ex.ch`
+    const contactA2Id = await mkContact(s.agencyAId, 'Léa', 'Favre', `lea-${s.stamp}@ex.ch`)
+    const { data: seme, error: sErr } = await service.from('mail_contact_aliases').insert({
+      agency_id: s.agencyAId, email: emailAppris, contact_id: contactAId, learned_by: s.agentAId,
     }).select('id').single()
-    expect(ok.error).toBeNull()
-    await s.clientA.from('mail_contact_aliases').delete().eq('id', ok.data!.id)
+    if (sErr) throw new Error(sErr.message)
+    try {
+      // Témoin : la session du collègue vit et lit l'agence A — les refus qui suivent ne
+      // viennent pas d'une session morte.
+      const { data: vivant, error: vErr } = await clientA2.from('contacts').select('id').eq('id', contactAId)
+      expect(vErr).toBeNull()
+      expect((vivant ?? []).map((r) => r.id)).toEqual([contactAId])
 
-    // agency_id reste celui de l'appelant : c'est le contact qui appartient à l'agence B.
-    // Sans le `exists` du WITH CHECK, l'ingestion (service-role, hors RLS) recopierait ce
-    // contact étranger sur mail_threads.contact_id — un fil « rattaché » et vide.
-    const { error } = await s.clientA.from('mail_contact_aliases').insert({
-      agency_id: s.agencyAId, email: emailKo, contact_id: contactBId, learned_by: s.agentAId,
-    })
-    expect(error).not.toBeNull()
-    const { data: reste } = await service.from('mail_contact_aliases').select('id').eq('email', emailKo)
-    expect(reste ?? []).toEqual([])
+      // La LECTURE est refusée — pour l'apprenant comme pour le collègue — et non rendue vide.
+      for (const [qui, client] of [['apprenant', s.clientA], ['collègue', clientA2]] as const) {
+        const { data, error } = await client.from('mail_contact_aliases').select('email, contact_id, learned_by, created_at').eq('id', seme.id)
+        expect(error?.message ?? '', `${qui} : lecture refusée`).toMatch(/permission denied/i)
+        expect(data ?? []).toEqual([])
+      }
+      // La réaffectation ANONYME que l'ancien WITH CHECK laissait passer.
+      const maj = await clientA2.from('mail_contact_aliases').update({ contact_id: contactA2Id, learned_by: null }).eq('id', seme.id)
+      expect(maj.error, 'réaffectation refusée').not.toBeNull()
+      const del = await clientA2.from('mail_contact_aliases').delete().eq('id', seme.id)
+      expect(del.error, 'suppression refusée').not.toBeNull()
+      const ins = await clientA2.from('mail_contact_aliases').insert({ agency_id: s.agencyAId, email: emailNeuf, contact_id: contactA2Id, learned_by: null })
+      expect(ins.error, 'ajout refusé').not.toBeNull()
+
+      // ⚠ Une erreur ne prouve pas l'absence d'écriture : on relit en service-role.
+      const { data: apres } = await service.from('mail_contact_aliases').select('contact_id, learned_by').eq('id', seme.id).single()
+      expect(apres).toEqual({ contact_id: contactAId, learned_by: s.agentAId })
+      const { data: neuf } = await service.from('mail_contact_aliases').select('id').eq('email', emailNeuf)
+      expect(neuf ?? []).toEqual([])
+    } finally {
+      await service.from('mail_contact_aliases').delete().in('email', [emailAppris, emailNeuf])
+      await service.from('contacts').delete().eq('id', contactA2Id)
+    }
   })
 
   // AJOUT, ET LE DERNIER DE LA LISTE (la suite est sérielle : ce test déplace un profil

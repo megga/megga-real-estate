@@ -21,6 +21,7 @@
 // Garde-fou : `tests/unit/mobile-palette.spec.ts`.
 
 import { MXC_COLOR, mxCrmPalette } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 const MX_LIGHT = mxCrmPalette(false)
 const MX_DARK = mxCrmPalette(true)
@@ -118,8 +119,9 @@ export const MT_LIGHT: MobileTokens = {
   // claire — sous les 4,5:1 exigés d'un texte. `#047857` monte à 5,21:1 (5,48
   // sur une carte blanche) et c'est le vert que le témoin du wizard BUREAU
   // emploie déjà : un seul vert pour les deux appareils, pas une seconde
-  // valeur à faire vivre. En sombre `#34C796` tenait déjà (9,58:1), inchangé.
-  goal: '#047857',
+  // valeur à faire vivre — les deux l'importent de `STATUT_CLAIR` depuis le
+  // 13.09.2026. En sombre `#34C796` tenait déjà (9,58:1), inchangé.
+  goal: STATUT_CLAIR.okInk,
   cardBorder: 'transparent',
   danger: '#8E1F3D',
   dangerInk: '#FFFFFF',

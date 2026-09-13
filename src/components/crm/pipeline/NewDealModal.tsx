@@ -30,6 +30,7 @@ import { useCreateContact } from '@/hooks/useContacts'
 import { useCreateTransaction } from '@/hooks/useTransactions'
 import { usePipelineReminderCreators } from '@/hooks/usePipelineNextActions'
 import { stageIdToTransactionStage } from '@/lib/crmAdapters'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /** Préremplissage depuis la création inline (« Plus d'options ») ou l'état vide. */
 export interface NewDealPrefill {
@@ -529,7 +530,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
             display: 'flex', alignItems: 'center', gap: 'var(--crm-space-2xl)',
           }}>
             {error && (
-              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: dark ? '#F26B65' : '#B91C1C', minWidth: 0 }}>
+              <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: dark ? '#F26B65' : STATUT_CLAIR.errInk, minWidth: 0 }}>
                 {error}
               </div>
             )}
