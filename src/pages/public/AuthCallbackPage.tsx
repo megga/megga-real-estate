@@ -5,6 +5,13 @@
  * passage le rôle du profil si l'inscription visait un rôle différent.
  * PASSWORD_RECOVERY → écran de reset.
  *
+ * ⚠ Les jetons d'agenda ne se lisent PLUS dans la session : le stockage d'auth
+ * les en retire avant toute écriture et les confie à un dépôt en mémoire, lu
+ * une seule fois (`takeCalendarProviderTokens`, cf. @/lib/authStorage). Les deux
+ * déclencheurs d'aiguillage peuvent arriver tous les deux : ils partagent donc
+ * UN seul enregistrement (`calendarSaveRef`), sinon le second lirait un dépôt
+ * déjà vidé et signalerait à tort une liaison sans jeton.
+ *
  * ⚠ Cette page n'affiche QUE l'écran d'arrivée : le seul moyen d'en sortir est
  * un `navigate()`. Elle doit donc en émettre un dans TOUS les cas, y compris
  * quand la lecture du profil traîne ou qu'aucun événement d'auth n'arrive —
@@ -29,7 +36,9 @@ import { useNavigate } from 'react-router-dom'
 import type { Session, User } from '@supabase/supabase-js'
 import BootSplash from '@/components/layout/BootSplash'
 import { supabase } from '@/lib/supabase'
-import { calendarReturnPath } from '@/lib/calendarOauth'
+import { calendarProviderFromParams, calendarReturnPath, type CalendarAuthProvider } from '@/lib/calendarOauth'
+import { takeCalendarProviderTokens } from '@/lib/authStorage'
+import { Sentry } from '@/lib/sentry'
 import { getRedirectPath, getRedirectPathWithoutProfile } from '@/lib/authRedirect'
 import type { UserRole } from '@/types/auth'
 
@@ -55,12 +64,58 @@ function destinationWithoutProfile(user: User): string {
   return getRedirectPathWithoutProfile(user.user_metadata?.role as string | undefined)
 }
 
+/** Edge qui garde les jetons d'un fournisseur d'agenda côté serveur. */
+const CALENDAR_SYNC_FN: Record<CalendarAuthProvider, string> = {
+  google: 'google-calendar-sync',
+  azure: 'outlook-calendar-sync',
+}
+
+/** Paramètre d'URL qui dit à l'écran d'arrivée l'issue de la liaison. */
+const CALENDAR_FLAG: Record<CalendarAuthProvider, string> = { google: 'gcal', azure: 'outlook' }
+
+/**
+ * Confie à l'edge les jetons que la liaison vient de déposer ; vrai si l'edge
+ * les a acceptés. L'edge vérifie leur provenance (émis pour MEGGA, pour le
+ * compte lié) : un refus est une vraie issue, pas une erreur à taire.
+ */
+async function saveCalendarTokens(provider: CalendarAuthProvider): Promise<boolean> {
+  const jetons = takeCalendarProviderTokens(provider)
+  if (!jetons?.providerToken || !jetons.providerRefreshToken) {
+    // Un refus de consentement revient avec `error` : l'absence de jeton y est
+    // normale. Sans erreur, c'est qu'auth-js a changé sa façon de ranger la
+    // session — le seul signal serait alors un agenda qui ne se connecte jamais.
+    const query = new URLSearchParams(window.location.search)
+    const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+    const refus = ['error', 'error_code'].some((k) => query.has(k) || fragment.has(k))
+    if (!refus) {
+      Sentry.captureMessage('calendar_callback_without_provider_tokens', { level: 'warning', tags: { provider } })
+    }
+    return false
+  }
+  try {
+    const { error } = await supabase.functions.invoke(CALENDAR_SYNC_FN[provider], {
+      body: {
+        action: 'save_tokens',
+        access_token: jetons.providerToken,
+        refresh_token: jetons.providerRefreshToken,
+        expires_in: 3600,
+      },
+    })
+    return !error
+  } catch {
+    return false
+  }
+}
+
 /** Tient l'écran d'arrivée le temps de l'aiguillage. */
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
   // Hors état React : l'aiguillage ne doit se produire qu'une fois, et un
   // `setState` ici ne servirait qu'à re-rendre un écran qui ne change pas.
   const settledRef = useRef(false)
+  // Un seul enregistrement des jetons d'agenda, partagé par les deux
+  // déclencheurs ET par le double effet de StrictMode (cf. en-tête).
+  const calendarSaveRef = useRef<Promise<boolean> | null>(null)
 
   useEffect(() => {
     /** Aiguillage effectif — idempotent, quel que soit le déclencheur gagnant. */
@@ -93,46 +148,16 @@ export default function AuthCallbackPage() {
     async function handleRedirect(session: Session) {
       const user = session.user
 
-      // ── Google Calendar OAuth callback ──
+      // ── Retour d'une liaison d'agenda (Google ou Outlook) ──
       const params = new URLSearchParams(window.location.search)
-      if (params.get('gcal') === '1') {
-        if (session.provider_token && session.provider_refresh_token) {
-          try {
-            await supabase.functions.invoke('google-calendar-sync', {
-              body: {
-                action: 'save_tokens',
-                access_token: session.provider_token,
-                refresh_token: session.provider_refresh_token,
-                expires_in: 3600,
-                google_email: user.user_metadata?.email ?? null,
-              },
-            })
-          } catch {
-            // Token save failed — user can retry from Settings
-          }
-        }
-        settle(calendarReturnPath(params, '/dashboard/settings?tab=integrations&gcal=success'))
-        return
-      }
-
-      // ── Outlook Calendar OAuth callback ──
-      if (params.get('outlook') === '1') {
-        if (session.provider_token && session.provider_refresh_token) {
-          try {
-            await supabase.functions.invoke('outlook-calendar-sync', {
-              body: {
-                action: 'save_tokens',
-                access_token: session.provider_token,
-                refresh_token: session.provider_refresh_token,
-                expires_in: 3600,
-                outlook_email: user.user_metadata?.email ?? null,
-              },
-            })
-          } catch {
-            // Token save failed — user can retry from Settings
-          }
-        }
-        settle(calendarReturnPath(params, '/dashboard/settings?tab=integrations&outlook=success'))
+      const provider = calendarProviderFromParams(params)
+      if (provider) {
+        // Créée de façon SYNCHRONE avant tout await : le second déclencheur
+        // retrouve la même promesse au lieu de relire un dépôt déjà vidé.
+        calendarSaveRef.current ??= saveCalendarTokens(provider)
+        const ok = await calendarSaveRef.current
+        const issue = ok ? 'success' : 'error'
+        settle(calendarReturnPath(params, `/dashboard/settings?tab=integrations&${CALENDAR_FLAG[provider]}=${issue}`))
         return
       }
 

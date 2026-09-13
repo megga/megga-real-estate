@@ -444,6 +444,7 @@
       "bien_soft_deleted": "Property archived",
       "bien_sold": "Property sold",
       "bien_updated": "Property updated",
+      "calendar_connected": "External calendar connected",
       "contact_created": "Contact created",
       "contact_message_received": "Contact message received",
       "contact_scores.recompute": "Contact scores recomputed",

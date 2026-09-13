@@ -33,6 +33,17 @@ function retourConnu(from: string | null | undefined): string | null {
 }
 
 /**
+ * Provider d'agenda désigné par l'URL de callback (`?gcal=1` / `?outlook=1`),
+ * inverse de `FLOW_FLAG`. Table FERMÉE : seule la valeur exacte `1` compte, et
+ * les deux drapeaux à la fois ne désignent rien — mieux vaut ne rien enregistrer
+ * que confier le jeton d'un fournisseur à la fonction de l'autre.
+ */
+export function calendarProviderFromParams(params: URLSearchParams): CalendarAuthProvider | null {
+  const trouves = (Object.keys(FLOW_FLAG) as CalendarAuthProvider[]).filter((p) => params.get(FLOW_FLAG[p]) === '1')
+  return trouves.length === 1 ? trouves[0] : null
+}
+
+/**
  * URL de retour passée au provider OAuth. `from` n'est ajouté que pour une
  * origine connue : un handler passé en référence (`onClick={connect}`) reçoit
  * un MouseEvent, dont `from` est absent — le défaut est alors conservé.

@@ -177,6 +177,9 @@ jobs:
           } >> $GITHUB_ENV
 
       - name: Run KYB onboarding e2e suite
+        # Porte aussi auth-handoff.spec.ts : le passage vitrine → app par fragment
+        # d'auth, et l'absence de jetons de fournisseur dans le stockage (audit
+        # S12). C'est le seul job qui a un vrai GoTrue.
         run: npm run test:e2e:kyb
 
       - name: Print Supabase logs on failure

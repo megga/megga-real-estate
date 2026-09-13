@@ -255,6 +255,54 @@ function checkPermissivePolicies(migrations) {
   }
 }
 
+// ── Check 5: les jetons d'agenda restent hors de portée des rôles clients ────
+//
+// 20260913160600 retire le GRANT de TABLE aux rôles clients sur les deux tables de
+// jetons d'agenda et ne re-grante que les colonnes d'ÉTAT. Un grant de table
+// couvre toutes les colonnes : une migration POSTÉRIEURE qui réaccorderait un
+// droit de table (SELECT, INSERT, UPDATE, ALL…) à anon/authenticated/public, ou
+// un SELECT de colonne sur access_token/refresh_token, rouvrirait les jetons de
+// rafraîchissement Google/Microsoft. Statique : tourne sans jeton de production
+// (le pendant « base réelle » vit dans check-privilege-drift.mjs).
+
+const JETONS_AGENDA = {
+  ancre: '20260913160600_calendar_tokens_secret_columns_closed.sql',
+  tables: ['google_calendar_tokens', 'outlook_calendar_tokens'],
+}
+
+function checkCalendarTokenGrants(migrations) {
+  const idx = migrations.findIndex((m) => m.file === JETONS_AGENDA.ancre)
+  if (idx < 0) {
+    anomalies.push(`Migration ${JETONS_AGENDA.ancre} introuvable : l'invariant des jetons d'agenda n'a plus d'ancre`)
+    return
+  }
+  // Contrôle positif : l'ancre révoque bien le grant de table des deux tables.
+  const ancre = stripSqlComments(migrations[idx].content)
+  for (const t of JETONS_AGENDA.tables) {
+    if (!new RegExp(`revoke\\s+all\\s+on\\s+table\\s+(?:public\\.)?${t}\\s+from\\s+anon\\s*,\\s*authenticated`, 'i').test(ancre)) {
+      anomalies.push(`${JETONS_AGENDA.ancre} ne révoque plus le grant de table de ${t} : l'invariant ne repose sur rien`)
+    }
+  }
+  for (const m of migrations.slice(idx + 1)) {
+    const sql = stripSqlComments(m.content)
+    if (/grant\s+[^;]*\bon\s+all\s+tables\s+in\s+schema\s+public\s+to\s+[^;]*\b(anon|authenticated|public)\b/i.test(sql)) {
+      anomalies.push(`${m.file} : GRANT ON ALL TABLES IN SCHEMA public à un rôle client — réaccorde entre autres les jetons d'agenda`)
+    }
+    for (const t of JETONS_AGENDA.tables) {
+      const re = new RegExp(`grant\\s+([^;]*?)\\s+on\\s+(?:table\\s+)?(?:public\\.)?"?${t}"?\\s+to\\s+([^;]*)`, 'gi')
+      for (const g of sql.matchAll(re)) {
+        if (!/\b(anon|authenticated|public)\b/i.test(g[2])) continue
+        const colonnes = g[1].match(/\(([^)]*)\)/)
+        if (!colonnes) {
+          anomalies.push(`${m.file} : GRANT de TABLE « ${g[1].trim()} » sur ${t} à un rôle client — réaccorde access_token/refresh_token`)
+        } else if (/\b(access_token|refresh_token)\b/i.test(colonnes[1]) || /\b(insert|update|delete|all)\b/i.test(g[1].replace(colonnes[0], ''))) {
+          anomalies.push(`${m.file} : GRANT « ${g[1].trim()} » sur ${t} à un rôle client — jeton ou écriture réaccordés`)
+        }
+      }
+    }
+  }
+}
+
 // ── Check 4: Edge Functions have super_admin guard ─────────────────────────
 
 function checkEdgeFunctionGuards() {
@@ -439,6 +487,7 @@ async function main() {
   checkSuperAdminFunction(migrations)
   checkPermissivePolicies(migrations)
   checkEdgeFunctionGuards()
+  checkCalendarTokenGrants(migrations)
   await runtimeProbe()
   const canalVivant = await checkAlertChannel()
 

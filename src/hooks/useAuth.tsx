@@ -30,6 +30,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { sessionSansJetonsFournisseur } from '@/lib/authStorage'
 import type { UserProfile, UserRole } from '@/types/auth'
 import { isAgentRole, isParticulierRole } from '@/types/auth'
 
@@ -276,7 +277,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const safetyTimeout = setTimeout(() => setLoading(false), 3000)
 
     supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s)
+      // Jamais les jetons Google/Microsoft dans l'état React : ils y vivraient
+      // une heure, dans cet onglet et dans tout autre qui reçoit l'événement
+      // (cf. @/lib/authStorage).
+      setSession(sessionSansJetonsFournisseur(s))
       // Pas de session : rien à charger, l'effet 2 n'aura donc rien à conclure.
       if (!s?.user) {
         loadedForUserId.current = null
@@ -296,7 +300,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ce callback depuis l'INTÉRIEUR de son verrou ; y attendre une lecture
       // PostgREST (qui redemande ce même verrou) est une attente circulaire.
       // Le chargement du profil est délégué à l'effet 2 via ce setSession.
-      setSession(s)
+      // Jetons de fournisseur retirés : SIGNED_IN les porte encore en mémoire.
+      setSession(sessionSansJetonsFournisseur(s))
       // Déconnexion : le profil tombe ICI et non dans l'effet 2 — un setState
       // synchrone dans un effet déclencherait un rendu en cascade (react-hooks).
       if (!s?.user) {

@@ -9,6 +9,7 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 import { classifyPublicKey, publicKeyRefusalMessage } from '@/lib/publicKeyGuard'
+import { createAuthStorage, scrubStoredProviderTokens } from '@/lib/authStorage'
 
 // Typed client — schema in src/types/database.ts is regenerated via:
 //   npx supabase gen types typescript --project-id eayczugyrvmtqnnmvjod > src/types/database.ts
@@ -53,49 +54,15 @@ if (!verdict.safe) {
 export const SUPABASE_FUNCTIONS_URL = `${supabaseUrl}/functions/v1`
 export const SUPABASE_PUBLIC_ANON_KEY = supabaseAnonKey
 
-// ─── "Remember me" storage switch ──────────────────────────────────────
-// When the user opts out of "Se souvenir de moi" we want the session to die
-// with the browser tab. Supabase's JS client only accepts one storage adapter
-// at client creation, so we plug in a proxy that reads a flag at each op.
-//
-//   localStorage.megga_remember === 'false'   → route tokens to sessionStorage
-//   otherwise                                 → route tokens to localStorage (default)
-//
-// The flag is written by the login form BEFORE signIn is called.
-
-export const REMEMBER_KEY = 'megga_remember'
-
-const rememberAwareStorage = {
-  getItem: (key: string): string | null => {
-    if (typeof window === 'undefined') return null
-    try {
-      if (window.localStorage.getItem(REMEMBER_KEY) === 'false') {
-        // session-only mode: prefer sessionStorage, fall back to localStorage
-        // (handles the first read right after sign-in, before storage swap)
-        return window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key)
-      }
-      return window.localStorage.getItem(key)
-    } catch { return null }
-  },
-  setItem: (key: string, value: string): void => {
-    if (typeof window === 'undefined') return
-    try {
-      if (window.localStorage.getItem(REMEMBER_KEY) === 'false') {
-        window.sessionStorage.setItem(key, value)
-        window.localStorage.removeItem(key) // make sure nothing persists across restarts
-      } else {
-        window.localStorage.setItem(key, value)
-      }
-    } catch { /* quota or private mode — silent */ }
-  },
-  removeItem: (key: string): void => {
-    if (typeof window === 'undefined') return
-    try {
-      window.localStorage.removeItem(key)
-      window.sessionStorage.removeItem(key)
-    } catch { /* silent */ }
-  },
-}
+// ─── Stockage de session ────────────────────────────────────────────────
+// « Se souvenir de moi » (localStorage.megga_remember === 'false' ⇒ la session
+// meurt avec l'onglet) ET retrait des jetons de fournisseur Google/Microsoft
+// avant toute écriture : voir l'en-tête de `@/lib/authStorage`.
+const authStorage = createAuthStorage({
+  local: () => (typeof window === 'undefined' ? null : window.localStorage),
+  session: () => (typeof window === 'undefined' ? null : window.sessionStorage),
+  location: () => (typeof window === 'undefined' ? null : window.location),
+})
 
 /** Supprime toutes les clés `sb-*-auth-token` (local + session). `reason` sert au log. */
 function purgeAuthTokens(reason: string) {
@@ -187,6 +154,9 @@ function purgeExpiredAuthTokens() {
         }
       }
     }
+    // Une version antérieure du CRM rangeait les jetons de fournisseur avec la
+    // session : on les retire de ce qui survit à la purge (cf. authStorage).
+    for (const store of stores) scrubStoredProviderTokens(store)
   } catch { /* defensive — never block app boot on storage probing */ }
 }
 
@@ -196,7 +166,7 @@ purgeExpiredAuthTokens()
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: rememberAwareStorage,
+    storage: authStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,

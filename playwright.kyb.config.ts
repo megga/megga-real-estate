@@ -64,9 +64,11 @@ if (!SUPABASE_TEST_ANON_KEY || !SUPABASE_TEST_SERVICE_ROLE_KEY) {
 
 export default defineConfig({
   testDir: './tests/e2e',
-  // Un seul spec sous ce config — tous les autres supposent VITE_DEV_BYPASS_AUTH
-  // (cf. en-tête) et échoueraient sous authentification réelle.
-  testMatch: ['onboarding-identite.spec.ts'],
+  // Les seuls specs à authentification RÉELLE — tous les autres supposent
+  // VITE_DEV_BYPASS_AUTH (cf. en-tête) et échoueraient ici. auth-handoff.spec.ts
+  // garde le passage vitrine → app (fragment d'auth) et l'absence de jetons de
+  // fournisseur dans le stockage (audit S12) : il lui faut un vrai GoTrue.
+  testMatch: ['onboarding-identite.spec.ts', 'auth-handoff.spec.ts'],
   // Chaque test crée son propre dirigeant/agence (isolation par ligne), mais tous
   // frappent la MÊME instance Supabase locale (auth + Postgres partagés) : le
   // parallélisme n'apporterait qu'un risque de rate-limit GoTrue local pour un
