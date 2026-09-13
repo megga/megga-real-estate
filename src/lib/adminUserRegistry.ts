@@ -152,6 +152,59 @@ export type ConsentState =
  * « non accepté » affirmerait un refus que personne n'a jamais eu l'occasion de
  * formuler : c'est « jamais demandé », et rien d'autre.
  */
+/**
+ * Pourquoi le serveur a refusé un geste de cycle de vie (suspendre, réinitialiser,
+ * supprimer) — un mot-clé, que le tiroir traduit.
+ *
+ * ⛔ La console affichait pour TOUT refus « les gestes de cycle de vie sont refusés côté
+ * serveur sur un compte super-admin allowlisté » : faux pour un dossier KYC en cours, un
+ * dernier administrateur d'agence ou une boîte mail qui ne se déconnecte pas. L'opérateur
+ * lisait une cause qui n'était pas la sienne, et rien pour lever le vrai blocage.
+ *
+ * Les codes en MAJUSCULES sont ceux de `delete-account` ; les deux textes reconnus
+ * (« allowlisted », « Auth user deletion failed ») viennent des deux edges. Les deux sens
+ * sont gardés contre leur source : tests/unit/admin-refus-cycle-de-vie.spec.ts.
+ */
+export type MotifRefusId =
+  | 'kycPending' | 'soleAdmin' | 'mailbox' | 'allowlisted' | 'forbidden'
+  | 'session' | 'notFound' | 'partial' | 'network' | 'other'
+
+/** Chaque code rendu par `delete-account`, et son motif. */
+export const CODES_REFUS: Readonly<Record<string, MotifRefusId>> = {
+  KYC_PENDING: 'kycPending',
+  SOLE_ADMIN: 'soleAdmin',
+  MAILBOX_DISCONNECT_FAILED: 'mailbox',
+}
+
+export const MOTIF_REFUS_KEY: Record<MotifRefusId, string> = {
+  kycPending: 'userDrawer.lifecycle.reason.kycPending',
+  soleAdmin: 'userDrawer.lifecycle.reason.soleAdmin',
+  mailbox: 'userDrawer.lifecycle.reason.mailbox',
+  allowlisted: 'userDrawer.lifecycle.reason.allowlisted',
+  forbidden: 'userDrawer.lifecycle.reason.forbidden',
+  session: 'userDrawer.lifecycle.reason.session',
+  notFound: 'userDrawer.lifecycle.reason.notFound',
+  partial: 'userDrawer.lifecycle.reason.partial',
+  network: 'userDrawer.lifecycle.reason.network',
+  other: 'userDrawer.lifecycle.reason.other',
+}
+
+/**
+ * Le motif d'un refus lu par `lireRefusEdge`. ⚠ `partial` n'est pas un refus comme les
+ * autres : le compte est déjà anonymisé et seul l'effacement de l'authentification a échoué
+ * — le dire autrement laisserait croire que rien n'a bougé.
+ */
+export function motifRefus(r: { status: number; code: string | null; texte: string | null }): MotifRefusId {
+  if (r.status === 0) return 'network'
+  if (r.code && Object.prototype.hasOwnProperty.call(CODES_REFUS, r.code)) return CODES_REFUS[r.code]!
+  const texte = (r.texte ?? '').toLowerCase()
+  if (r.status === 401) return 'session'
+  if (r.status === 403) return texte.includes('allowlisted') ? 'allowlisted' : 'forbidden'
+  if (r.status === 404) return 'notFound'
+  if (texte.startsWith('auth user deletion failed')) return 'partial'
+  return 'other'
+}
+
 export function consentView(consents: ConsentRow[] | null | undefined, marketing: boolean): {
   terms: ConsentState
   privacy: ConsentState
