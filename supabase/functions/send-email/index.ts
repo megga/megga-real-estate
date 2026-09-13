@@ -14,10 +14,33 @@
 //      exemptions historiques (vitrine, parcours vendeur) ont été retirées avant ce jour.
 // `seller_portal_access` servait de surcroît un parcours supprimé en juillet 2026, tables
 // comprises. Décision de Julien, prise sur ces mesures.
+//
+// ⛔ DEUX APPELANTS, DEUX GARDES, ET LE DESTINATAIRE N'EST JAMAIS LIBRE (13.09.2026).
+//
+//   · L'AGENT (jeton utilisateur) : `requireAgentAuth`, puis `guardOutboundEmail` — le
+//     destinataire doit être connu de SON agence (contact, lead attribué, membre, adresse de
+//     l'agence), ne pas s'être désinscrit, et l'agence doit avoir une place dans son quota.
+//     Avant ce jour, `to` était libre : un jeton d'agent étant gratuit (l'inscription
+//     provisionne une agence solo), la fonction était un relais ouvert signé DKIM par
+//     getmegga.com. Voir `_shared/email-recipient.ts`.
+//   · LA BASE (secret de service, rejoué par pg_cron) : `isServiceSecret`, pour les seuls
+//     gabarits de `SERVICE_TEMPLATES`, dont le destinataire est lu dans `app_config` et
+//     jamais dans le corps. Aujourd'hui : l'alerte RealAdvisor (`realadvisor_health_check`).
+//     ⚠ Elle était REFUSÉE EN 401 depuis le 02.08.2026 : la garde d'agent rejette toute clé
+//     d'API, et la fonction SQL en envoie une. Le commit qui a fermé les exemptions affirmait
+//     « aucun appelant… ni dans un trigger » ; celui-ci a été manqué, et la supervision du
+//     catalogue de vente n'a plus eu de canal e-mail pendant six semaines.
+//
+// ⛔ PLUS AUCUN DOCUMENT HTML FOURNI PAR L'APPELANT. Le repli qui acceptait un HTML complet
+// « pour un onglet ouvert avant le déploiement » (échéance écrite : 15.09.2026) est retiré :
+// le corps est du TEXTE, échappé et mis en forme ici, dans la coquille commune.
 
 import { shell, p, escapeHtml } from '../_shared/email-shell.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { isServiceSecret } from '../_shared/require-service-secret.ts'
+import { guardOutboundEmail } from '../_shared/email-recipient.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,6 +54,20 @@ interface SendEmailRequest {
   data: Record<string, unknown>
   /** Planification native Resend (ISO 8601 ou langage naturel, ≤ 30 j). Absent = envoi immédiat. */
   scheduled_at?: string
+}
+
+/**
+ * Gabarits INTERNES, envoyés par la base avec le secret de service. Le destinataire est
+ * résolu côté serveur, clé par clé dans `app_config` — le `to` du corps n'est pas lu : un
+ * secret de service qui fuirait ne ferait pas de cette fonction un relais. Mêmes clés que
+ * `realadvisor_health_check()` (20260625160000). Aucune adresse de repli en dur : sans
+ * réglage, on refuse (400) et on le voit — un e-mail parti vers une boîte oubliée ne se
+ * verrait pas.
+ */
+const SERVICE_TEMPLATES: Record<string, { recipientKeys: string[] }> = {
+  realadvisor_health_alert: {
+    recipientKeys: ['realadvisor_alert_email', 'realadvisor_contact_email'],
+  },
 }
 
 /**
@@ -64,6 +101,29 @@ function wrapHTML(subject: string, bodyHTML: string): string {
   })
 }
 
+const isEmail = (s: unknown): s is string =>
+  typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
+
+function jsonResponse(status: number, body: Record<string, unknown>): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
+
+/** Le destinataire d'un gabarit interne : première clé d'app_config portant une adresse valide, sinon null. */
+async function serviceRecipient(
+  admin: SupabaseClient,
+  spec: { recipientKeys: string[] },
+): Promise<string | null> {
+  for (const key of spec.recipientKeys) {
+    const { data } = await admin.from('app_config').select('value').eq('key', key).maybeSingle()
+    const v = (((data as { value?: string } | null)?.value) ?? '').trim()
+    if (isEmail(v)) return v
+  }
+  return null
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -72,88 +132,82 @@ serve(async (req) => {
   try {
     const { to, subject: overrideSubject, template, data, scheduled_at }: SendEmailRequest = await req.json()
 
-    // ── Auth ────────────────────────────────────────────────────────────────
-    // Plus AUCUNE exemption. Trois templates sautaient `requireAgentAuth` au motif
-    // qu'ils seraient « 100% rendus serveur » — ce qui était faux pour deux d'entre
-    // eux : `ticket_confirmation` rend un bouton dont l'appelant fournit le href
-    // (`data.tracking_url`) et `contact_confirmation` interpole `data.subject` et
-    // `data.message` sans échappement. La fonction étant déployée --no-verify-jwt,
-    // n'importe qui obtenait donc un e-mail MEGGA signé DKIM avec un lien de son
-    // choix : un gabarit d'hameçonnage, pas une confirmation.
-    //
-    // Retirer l'exemption ne casse rien : au 02.08.2026, `contact_messages` et
-    // `support_tickets` comptent 0 ligne DEPUIS TOUJOURS, aucun e-mail n'est parti
-    // en 30 jours, et aucun appelant n'existe — ni dans src/, ni dans sites/
-    // (vitrine), ni dans un trigger. Les deux parcours que ces templates servaient
-    // n'ont jamais tourné.
-    //
-    // ⚠ Le jour où le formulaire de contact public sera branché, il ne devra PAS
-    // rouvrir cette porte : le geste correct est un déclencheur en base qui poste
-    // avec le secret de service (cf. _shared/require-service-secret.ts), ou une
-    // fonction dédiée avec captcha — pas une exemption sur le template.
-    const auth = await requireAgentAuth(req, corsHeaders)
-    if (auth instanceof Response) return auth
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
 
-    const isEmail = (s: unknown): s is string =>
-      typeof s === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)
-    if (!isEmail(to)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid "to" address' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    // ── Auth, et le destinataire qui va avec ────────────────────────────────
+    let recipient: string
+    const serviceSpec = Object.prototype.hasOwnProperty.call(SERVICE_TEMPLATES, template)
+      ? SERVICE_TEMPLATES[template]
+      : null
+
+    if (serviceSpec && await isServiceSecret(admin, req)) {
+      // La base parle : destinataire résolu serveur, jamais le `to` du corps.
+      const resolved = await serviceRecipient(admin, serviceSpec)
+      if (!resolved) {
+        return jsonResponse(400, { error: 'no_alert_recipient', message: `Aucune adresse valide dans app_config pour ${template}.` })
+      }
+      recipient = resolved
+    } else {
+      // Un agent parle. Plus AUCUNE exemption : trois templates sautaient cette garde au
+      // motif qu'ils seraient « 100% rendus serveur », ce qui était faux pour deux d'entre
+      // eux (bouton dont l'appelant fournissait le href, champs interpolés sans échappement).
+      // ⚠ Le jour où le formulaire de contact public sera branché, il ne devra PAS rouvrir
+      // cette porte : le geste correct est un déclencheur en base qui poste avec le secret
+      // de service (cf. SERVICE_TEMPLATES ci-dessus), ou une fonction dédiée avec captcha.
+      const auth = await requireAgentAuth(req, corsHeaders)
+      if (auth instanceof Response) return auth
+
+      if (!isEmail(to)) {
+        return jsonResponse(400, { error: 'Invalid "to" address' })
+      }
+
+      // Périmètre → suppression → quota. Un e-mail libre est une SOLLICITATION que nous
+      // initions (purpose 'relance') : le registre de suppression s'applique.
+      const refus = await guardOutboundEmail(
+        admin,
+        { agencyId: auth.profile.agency_id, actorId: auth.user.id },
+        { to, purpose: 'relance', sender: 'send-email' },
+        corsHeaders,
       )
+      if (refus) return refus
+
+      // La notification admin ne part JAMAIS vers un `to` fourni par l'appelant :
+      // destinataire dérivé serveur (anti-relais via le template public admin).
+      recipient = template === 'contact_notification_admin'
+        ? (Deno.env.get('CONTACT_NOTIFICATION_TO') ?? 'contact@getmegga.com')
+        : to
     }
 
-    // Build email from template
-
+    // ── Corps ────────────────────────────────────────────────────────────────
     // ⚠ PLUS DE `switch`. Neuf gabarits nommés vivaient ici ; ils sont retirés (voir
     // l'en-tête). `template` reste dans le contrat d'entrée parce que le client le passe
     // encore (`agent_freeform`) et qu'un corps refusé pour un champ en trop casserait
     // l'envoi sans rien gagner.
-    // `agent_freeform` : l'e-mail que l'agent écrit lui-même depuis le copilote. C'est
-    // le SEUL chemin réellement emprunté de cette fonction.
     //
-    // ⚠ IL SE COMPOSAIT DANS LE NAVIGATEUR. `useSendAgentEmail` fabriquait un document
-    // HTML complet dans le bundle front et le passait en `data.html` : une QUATORZIÈME
-    // coquille d'e-mail, invisible à la porte `lint:email-shell` qui ne scanne que
-    // `supabase/functions/`. Elle est supprimée ; le front envoie désormais le TEXTE,
-    // et la composition se fait ici, avec la coquille commune.
+    // Le front envoie le TEXTE ; la composition se fait ici, avec la coquille commune. Il
+    // composait autrefois un document HTML complet dans le bundle — une quatorzième
+    // coquille, invisible à `lint:email-shell`. Sans corps, on refuse : il n'y a plus de
+    // repli qui accepterait un HTML fourni.
     const emailSubject = overrideSubject || 'MEGGA Notification'
-    const corps = data.body as string | undefined
-    let emailHtml: string
-    if (corps) {
-      // Échappé, puis structuré : double saut = paragraphe, simple = retour à la ligne.
-      emailHtml = wrapHTML(
-        emailSubject,
-        corps.trim().split(/\n{2,}/).map((par) => p(escapeHtml(par).replace(/\n/g, '<br />'))).join(''),
-      )
-    } else {
-      // ⛔ REPLI TRANSITOIRE, AVEC UNE ÉCHÉANCE ÉCRITE : 15 SEPTEMBRE 2026.
-      //
-      // Il n'existe que pour un onglet ouvert AVANT ce déploiement, qui enverrait
-      // encore `data.html`. Tant qu'il vit, n'importe quel appelant muni d'un jeton
-      // d'agent peut faire partir un document HTML complet, non échappé et hors
-      // coquille, signé DKIM par getmegga.com — et le chemin étant une donnée
-      // d'exécution, `lint:email-shell` ne le verra jamais.
-      //
-      // ⚠ « À retirer une fois le front à jour » était une INTENTION, que rien ne
-      // rappelait. La date ci-dessus est tenue par `tests/unit/email-repli-html.spec.ts`,
-      // qui rougit à l'échéance si le repli est encore là. Le retirer fait aussi
-      // disparaître le test : c'est le seul geste qui rende les deux verts.
-      emailHtml = (data.html as string) || wrapHTML(emailSubject, p(''))
+    const corps = typeof data?.body === 'string' ? data.body : ''
+    if (!corps.trim()) {
+      return jsonResponse(400, { error: 'body_required', message: 'Le corps de l’e-mail est vide.' })
     }
+    // Échappé, puis structuré : double saut = paragraphe, simple = retour à la ligne.
+    const emailHtml = wrapHTML(
+      emailSubject,
+      corps.trim().split(/\n{2,}/).map((par) => p(escapeHtml(par).replace(/\n/g, '<br />'))).join(''),
+    )
 
-    // Send via Resend
+    // ── Envoi via Resend ─────────────────────────────────────────────────────
     const resendKey = Deno.env.get('RESEND_API_KEY')
     if (!resendKey) {
       console.error('RESEND_API_KEY not configured')
-      return new Response(JSON.stringify({ error: 'Email service not configured' }), { status: 500, headers: corsHeaders })
+      return jsonResponse(500, { error: 'Email service not configured' })
     }
-
-    // La notification admin ne part JAMAIS vers un `to` fourni par l'appelant :
-    // destinataire dérivé serveur (anti-relais via le template public admin).
-    const recipient = template === 'contact_notification_admin'
-      ? (Deno.env.get('CONTACT_NOTIFICATION_TO') ?? 'contact@getmegga.com')
-      : to
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -174,17 +228,15 @@ serve(async (req) => {
     const resData = await res.json()
 
     if (!res.ok) {
-      console.error('Resend error:', resData)
-      return new Response(JSON.stringify({ error: 'Failed to send email', details: resData }), { status: res.status, headers: corsHeaders })
+      // Le corps Resend porte le destinataire : on journalise le statut, pas le corps.
+      console.error('Resend error:', res.status, String(resData?.name ?? resData?.message ?? '').slice(0, 120))
+      return jsonResponse(res.status, { error: 'Failed to send email', details: resData })
     }
 
-    return new Response(JSON.stringify({ success: true, id: resData.id }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return jsonResponse(200, { success: true, id: resData.id })
 
   } catch (err) {
-    console.error('send-email error:', err)
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: corsHeaders })
+    console.error('send-email error:', String((err as Error)?.message ?? err).slice(0, 200))
+    return jsonResponse(500, { error: 'send_failed' })
   }
 })

@@ -116,40 +116,27 @@ serve(async (req) => {
     // ── Flatfox sync health ──
     // Track listing count and last sync time so AdminMonitoringPage can show
     // whether the daily pg_cron sync ran successfully.
-    let flatfoxActiveCount = 0
+    let flatfoxActiveCount = -1
     let flatfoxLastSeen: string | null = null
     try {
+      // ⛔ PLUS DE `count: 'exact'` ICI (13.09.2026). Le comptage direct de market_listings
+      // (253 000 lignes, ~18 s à froid) expirait sous le statement_timeout de 8 s une fois par
+      // heure — 23 timeouts par 24 h dans les journaux postgres. Le chiffre est désormais
+      // MESURÉ par pg_cron (`flatfox_active_count_refresh`, rôle postgres, sans timeout,
+      // toutes les heures à :05) et lu ici dans app_config : exact, daté, jamais expiré.
+      // Migration 20260913120200 ; les trois pistes essayées et écartées avant celle-ci
+      // (estimated, index partiel, ancien index) y sont rappelées.
       const [countRes, lastRes] = await Promise.all([
-        // ⚠ CE COMPTAGE EST LENT ET LE RESTE — seule sa façon d'ÉCHOUER est corrigée ici.
-        // Mesuré le 03.09.2026 : 17 933 ms à froid (bitmap heap scan, 23 625 blocs de tas),
-        // ~480 ms à chaud. D'où 19 timeouts par 24 h dans les journaux postgres.
-        // Le vrai dégât n'était pas la lenteur mais le `?? 0` plus bas : un échec publiait la
-        // métrique à ZÉRO, indiscernable d'un corpus Flatfox réellement effondré.
-        //
-        // ⛔ TROIS PISTES ESSAYÉES ET ÉCARTÉES PAR LA MESURE, ne pas les redérouler :
-        //  1. `count: 'estimated'` — le planificateur donne 45 178 pour 35 340 lignes réelles,
-        //     après ANALYZE. 10 000 annonces d'écart sur la carte qui sert justement à repérer
-        //     une synchro en panne : c'est le chiffre lui-même qui perdrait son sens.
-        //  2. Index partiel dédié `(status) WHERE source_portal='flatfox' AND status='active'`
-        //     (256 ko, 35 340 entrées) — CRÉÉ ET MESURÉ : le planificateur ne le choisit PAS.
-        //     La carte de visibilité de market_listings n'est à jour qu'à 58 % des pages
-        //     (table écrite en continu), donc un index-only scan devrait aller chercher ~42 %
-        //     des lignes dans le tas et coûte plus cher que le bitmap. L'index a été retiré.
-        //  3. `idx_ml_flatfox_sync` — l'index que le commentaire d'AdminMonitoringPage crédite
-        //     de 166 ms : vrai à 173k lignes, faux à 250k, le planificateur ne le prend plus.
-        //
-        // Ce qui reste à trancher (décision produit, pas technique) : soit accepter la lenteur,
-        // soit lire `total_seen` du dernier `flatfox_sync_runs` — bon marché et fidèle au but
-        // affiché de la carte (« la synchro a-t-elle tourné ? »), mais ce n'est plus le même
-        // chiffre, et le libellé i18n `admin:monitoring.flatfox.activeListings` devrait suivre.
-        supabaseAdmin.from('market_listings').select('id', { count: 'exact', head: true })
-          .eq('source_portal', 'flatfox').eq('status', 'active'),
+        supabaseAdmin.from('app_config').select('value').eq('key', 'flatfox_active_count').maybeSingle(),
         supabaseAdmin.from('market_listings').select('last_seen_at')
           .eq('source_portal', 'flatfox').order('last_seen_at', { ascending: false }).limit(1),
       ])
       // -1 (et non 0) quand le compte est indisponible : la page doit pouvoir distinguer
       // « zéro annonce » de « je n'ai pas pu compter ».
-      flatfoxActiveCount = countRes.count ?? -1
+      try {
+        const snap = JSON.parse((countRes.data?.value as string | undefined) ?? 'null') as { count?: number } | null
+        flatfoxActiveCount = typeof snap?.count === 'number' ? snap.count : -1
+      } catch { flatfoxActiveCount = -1 }
       flatfoxLastSeen = lastRes.data?.[0]?.last_seen_at ?? null
     } catch { /* non-critical */ }
 

@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test'
-import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { loadEnvTestLocal } from './playwright.local-supabase'
 
 // `package.json` a "type": "module" -> ce fichier est chargé en ESM par le
 // loader de config de Playwright (contrairement à celui de Vite/Vitest, qui
@@ -37,24 +37,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 //
 // Run : npm run test:e2e:kyb (nécessite `supabase start` au préalable).
 
-// Charge .env.test.local dans process.env — même mécanisme que
-// vitest.backend.setup.ts (pas de dépendance dotenv). Dupliqué plutôt qu'importé :
-// c'est un fichier de config Playwright chargé avant tout test, pas un setupFile
-// Vitest ; les deux outils n'ont pas de point d'extension commun pour ça.
-const envPath = path.resolve(__dirname, '.env.test.local')
-if (fs.existsSync(envPath)) {
-  const content = fs.readFileSync(envPath, 'utf-8')
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim()
-    if (!trimmed || trimmed.startsWith('#')) continue
-    const eq = trimmed.indexOf('=')
-    if (eq === -1) continue
-    const key = trimmed.slice(0, eq).trim()
-    const value = trimmed.slice(eq + 1).trim()
-    // Ne jamais écraser une variable déjà posée par le shell (CI, etc.).
-    if (!process.env[key]) process.env[key] = value
-  }
-}
+// Charge .env.test.local dans process.env — chargeur partagé avec les trois configs
+// bypass (playwright.local-supabase.ts), sans dépendance dotenv.
+loadEnvTestLocal()
 
 const SUPABASE_TEST_URL = process.env.SUPABASE_TEST_URL ?? 'http://127.0.0.1:54321'
 const SUPABASE_TEST_ANON_KEY = process.env.SUPABASE_TEST_ANON_KEY

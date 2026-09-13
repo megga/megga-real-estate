@@ -2407,6 +2407,33 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_health_snapshot: {
+        Row: {
+          active: boolean
+          jobname: string
+          last_start: string | null
+          last_status: string | null
+          refreshed_at: string
+          schedule: string | null
+        }
+        Insert: {
+          active?: boolean
+          jobname: string
+          last_start?: string | null
+          last_status?: string | null
+          refreshed_at?: string
+          schedule?: string | null
+        }
+        Update: {
+          active?: boolean
+          jobname?: string
+          last_start?: string | null
+          last_status?: string | null
+          refreshed_at?: string
+          schedule?: string | null
+        }
+        Relationships: []
+      }
       documents: {
         Row: {
           agency_id: string | null
@@ -2545,6 +2572,51 @@ export type Database = {
           subject?: string | null
         }
         Relationships: []
+      }
+      email_send_log: {
+        Row: {
+          actor_id: string | null
+          agency_id: string
+          created_at: string
+          id: number
+          purpose: string
+          recipient: string
+          sender: string
+        }
+        Insert: {
+          actor_id?: string | null
+          agency_id: string
+          created_at?: string
+          id?: never
+          purpose: string
+          recipient: string
+          sender: string
+        }
+        Update: {
+          actor_id?: string | null
+          agency_id?: string
+          created_at?: string
+          id?: never
+          purpose?: string
+          recipient?: string
+          sender?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_send_log_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_send_log_agency_id_fkey"
+            columns: ["agency_id"]
+            isOneToOne: false
+            referencedRelation: "agencies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       esign_provider_connections: {
         Row: {
@@ -7794,6 +7866,7 @@ export type Database = {
         Args: { p_code: string; p_details?: Json; p_message_fr: string }
         Returns: Json
       }
+      admin_flatfox_active_count: { Args: never; Returns: Json }
       admin_kyc_link_lookup: {
         Args: {
           p_motive_agency_id: string
@@ -8320,6 +8393,11 @@ export type Database = {
           }
         | { Args: { schema_name: string; table_name: string }; Returns: string }
         | { Args: { table_name: string }; Returns: string }
+      cron_health_snapshot_refresh: { Args: never; Returns: number }
+      email_recipient_scope: {
+        Args: { p_agency_id: string; p_email: string }
+        Returns: string
+      }
       email_send_allowed: {
         Args: { p_contact_id?: string; p_email: string; p_purpose?: string }
         Returns: {
@@ -8328,6 +8406,21 @@ export type Database = {
         }[]
       }
       enablelongtransactions: { Args: never; Returns: string }
+      email_send_quota_take: {
+        Args: {
+          p_actor_id: string
+          p_agency_id: string
+          p_purpose: string
+          p_recipient: string
+          p_sender: string
+        }
+        Returns: {
+          allowed: boolean
+          day_count: number
+          hour_count: number
+          reason: string
+        }[]
+      }
       ensure_wa_inbound_lead: {
         Args: {
           p_agency_id: string
@@ -8379,6 +8472,7 @@ export type Database = {
         }[]
       }
       flatfox_sync_health: { Args: never; Returns: Json }
+      flatfox_active_count_refresh: { Args: never; Returns: number }
       focus_top_matches: {
         Args: { p_limit?: number }
         Returns: {

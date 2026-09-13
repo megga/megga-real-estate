@@ -2,7 +2,8 @@ import { buildPropertyEmail } from '../_shared/property-email.ts'
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { emailSendAllowed, unsubscribeHeaders, unsubscribeFooterHtml } from '../_shared/email-guard.ts'
+import { unsubscribeHeaders, unsubscribeFooterHtml } from '../_shared/email-guard.ts'
+import { guardOutboundEmail } from '../_shared/email-recipient.ts'
 
 interface PropertyPayload {
   title: string
@@ -76,21 +77,25 @@ serve(async (req) => {
       })
     }
 
-    // Send via Resend
     const admin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
-    // ⛔ GARDE du canal e-mail. Un STOP reçu sur WhatsApp écrit `channel='all'` : sans
-    // cette lecture, la personne continuerait de recevoir ces envois après avoir demandé
-    // qu'on la laisse tranquille.
-    const verdict = await emailSendAllowed(admin, { to: body.to, purpose: 'relance' })
-    if (!verdict.allowed) {
-      return new Response(
-        JSON.stringify({ error: verdict.reason, blocked: true }),
-        { status: 409, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } },
-      )
-    }
+
+    // ⛔ GARDE DE SORTIE (13.09.2026) : périmètre → suppression → quota.
+    //   · PÉRIMÈTRE — le destinataire doit être connu de l'agence de l'appelant. Avant, `to`
+    //     était libre derrière un jeton d'agent gratuit : un relais ouvert signé DKIM.
+    //   · SUPPRESSION — un STOP reçu sur WhatsApp écrit `channel='all'` : sans cette lecture,
+    //     la personne continuerait de recevoir ces envois après avoir demandé qu'on la laisse
+    //     tranquille.
+    //   · QUOTA — 60/h, 300/j par agence, réglable dans app_config.email_send_caps.
+    const refus = await guardOutboundEmail(
+      admin,
+      { agencyId: auth.profile.agency_id, actorId: auth.user.id },
+      { to: body.to, purpose: 'relance', sender: 'send-property-email' },
+      { 'Access-Control-Allow-Origin': '*' },
+    )
+    if (refus) return refus
 
     // Une garde sans porte de sortie n'est qu'une moitié de mécanisme : la personne peut
     // être bloquée, mais pas se bloquer elle-même. Le jeton porte l'ADRESSE — cet envoi

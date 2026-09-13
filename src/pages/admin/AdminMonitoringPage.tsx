@@ -58,38 +58,25 @@ export default function AdminMonitoringPage() {
 
   // Santé de la synchro Flatfox.
   //
-  // `count: 'exact'` sur `market_listings` (250k lignes au 03.09.2026) est ici une
-  // exception ASSUMÉE à la règle §7, et elle tient à un index. Sans lui, ce comptage
-  // prend ~18 s (bitmap heap scan) — au-delà du statement_timeout de 8 s du rôle
-  // `authenticated` : la carte échoue tout simplement.
-  //
-  // ⚠ L'INDEX QUI LA TENAIT NE LA TIENT PLUS, et la carte expire donc à froid.
-  // `idx_ml_flatfox_sync` (partiel sur flatfox, clé `last_seen_at`, INCLUDE status)
-  // donnait 166 ms quand la table faisait 173k lignes. Remesuré le 03.09.2026 à 250k :
-  // le planificateur ne le choisit plus et retombe sur un BitmapAnd — **17 933 ms** à
-  // froid, ~480 ms à chaud. Une exception de performance justifiée par une mesure se
-  // périme avec le volume qui l'a rendue vraie.
-  // Un index partiel dédié a été essayé et RETIRÉ : la carte de visibilité n'est à jour
-  // qu'à 58 % des pages, donc le planificateur préfère le bitmap. Voir le commentaire de
-  // supabase/functions/admin-monitoring/index.ts pour les trois pistes écartées et la
-  // décision qui reste à prendre.
-  //
-  // Pourquoi toujours pas `estimated` : l'estimation du planificateur donne 46 023 pour
-  // 35 340 lignes réelles. Sur une carte qui sert à repérer une synchro en panne,
-  // 10 000 annonces d'écart valent moins que quelques centaines de millisecondes.
-  //
-  // Pourquoi pas `estimated` : l'estimation du planificateur donne 46 023 pour
-  // 35 341 lignes réelles. Sur une carte qui sert à repérer une synchro en
-  // panne, 10 000 annonces d'écart valent moins que 166 ms.
+  // ⛔ PLUS DE `count: 'exact'` SUR market_listings (13.09.2026). L'« exception assumée » à la
+  // règle §7 expirait sous le statement_timeout de 8 s dès que la table était froide (~18 s,
+  // 253 000 lignes) : la carte échouait tout simplement. Le compte est désormais MESURÉ
+  // toutes les heures par pg_cron (`flatfox_active_count_refresh`, sans timeout) et lu ici
+  // par `admin_flatfox_active_count` : exact, daté, jamais expiré. Les pistes écartées
+  // (estimated : 10 000 annonces d'écart ; index partiel non choisi) restent documentées
+  // dans la migration 20260913120200 et dans admin-monitoring/index.ts.
   const flatfoxStats = useQuery({
     queryKey: ['admin-flatfox-stats'],
     queryFn: async () => {
-      const [totalRes, recentRes] = await Promise.all([
-        supabase.from('market_listings').select('id', { count: 'exact', head: true }).eq('source_portal', 'flatfox').eq('status', 'active'),
+      const [snapRes, recentRes] = await Promise.all([
+        supabase.rpc('admin_flatfox_active_count'),
         supabase.from('market_listings').select('last_seen_at').eq('source_portal', 'flatfox').order('last_seen_at', { ascending: false }).limit(1),
       ])
+      if (snapRes.error) throw snapRes.error
+      const snap = (snapRes.data ?? {}) as { count?: number | null; measured_at?: string | null }
       const lastSeen = recentRes.data?.[0]?.last_seen_at ?? null
-      return { total: totalRes.count ?? 0, lastSeen }
+      // -1 = jamais mesuré : distinct de « zéro annonce ».
+      return { total: typeof snap.count === 'number' ? snap.count : -1, measuredAt: snap.measured_at ?? null, lastSeen }
     },
     staleTime: 60_000,
   })

@@ -15,6 +15,7 @@
 // the /regenerate-visual-baselines slash command on a PR.
 
 import { defineConfig, devices } from '@playwright/test'
+import { localSupabaseStubServer, localSupabaseWebServerEnv } from './playwright.local-supabase'
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -41,7 +42,9 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
+  // ⚠ Deux serveurs, dans cet ordre : la paille Supabase (ou l'instance locale réelle si
+  // elle tourne déjà), puis le serveur de dev qui la vise. Voir playwright.local-supabase.ts.
+  webServer: [localSupabaseStubServer(), {
     command: 'npm run dev -- --port 5198 --strictPort',
     url: 'http://localhost:5198',
     // ⛔ PORT DÉDIÉ, ET AUCUNE RÉUTILISATION — mesuré le 15 août 2026.
@@ -55,9 +58,11 @@ export default defineConfig({
     reuseExistingServer: false,
     timeout: 120_000,
     env: {
+      // ⛔ Cible Supabase LOCALE, jamais le projet cloud (cf. playwright.local-supabase.ts).
+      ...localSupabaseWebServerEnv(),
       VITE_DEV_BYPASS_AUTH: 'true',
       VITE_DEV_BYPASS_ROLE: 'agent',
       VITE_PASSWORD_GATE_BYPASS: 'true',
     },
-  },
+  }],
 })

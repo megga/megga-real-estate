@@ -598,15 +598,23 @@ Fichiers concernés — ⛔ **remesuré le 04.09.2026, la liste précédente ét
 
 ### pg_cron actifs
 
-**52 jobs actifs** au 5 septembre 2026 (relevés dans `cron.job`) — cette section n'en listait que 2,
+**54 jobs actifs** depuis le 13 septembre 2026 (52 relevés dans `cron.job` le 5 septembre, plus les deux instantanés de supervision ci-dessous) — cette section n'en listait que 2,
 et a annoncé successivement 41 jobs (chiffre du 29 juillet, alors que neuf étaient nés sans que le
 compte bouge) puis 50 (17 août). ⚠ **Le 52ᵉ est `mail-sync-2min`, arrivé avec le merge de la messagerie le 04.09.2026** — et son arrivée était ANNONCÉE : le corps de la PR #1274 prévenait que « le jour du merge, le §7 passera de 51 à 52 jobs pg_cron » et que l'écart, 2 % pour une tolérance de 20 %, laisserait `lint:claude-md` **vert sur une prose périmée**. C'est exactement ce qui s'est produit pendant vingt-quatre heures : une prédiction écrite ne remplace pas une porte. Le passage de 50 à 51 était, lui, net de trois gestes du 3 septembre :
 `visit-reminder-hourly` RETIRÉ (il lisait deux GUC inexistants et n'a jamais envoyé un rappel ;
 son doublon `visit-reminders-j1` couvrait déjà une fenêtre plus large), et deux jobs d'hygiène
 ajoutés — `pg-net-response-vacuum-hourly` (`50 * * * *`, empêche `net._http_response` de reprendre
 le gigaoctet par mois qu'un VACUUM FULL vient de rendre) et `cron-job-run-details-retention`
-(`55 3 * * *`, 30 jours ; sans elle `get_cron_health` expirait 22 fois sur 24 et l'alerting des
-crons était aveugle).
+(`55 3 * * *`, 30 jours). ⛔ **Cette rétention n'a PAS suffi, et ce paragraphe a affirmé le
+contraire pendant dix jours** : mesuré le 13.09.2026, `get_cron_health` expirait ENCORE 22 fois
+par 24 h (régime de croisière ~111 000 lignes, 52 parcours par appel sous le statement_timeout de
+8 s), et l'alerting horaire rendait « santé des crons illisible » à chaque tour. Deux jobs
+d'instantané ont donc rejoint la liste le 13.09.2026 : **`cron-health-snapshot-5min`**
+(`*/5 * * * *`, écrit `cron_health_snapshot` sous le rôle postgres, sans timeout ; `get_cron_health`
+ne fait plus qu'une jointure de 52 lignes) et **`flatfox-active-count-hourly`** (`5 * * * *`,
+compte exact des annonces Flatfox actives dans `app_config.flatfox_active_count` — le
+`count: 'exact'` d'admin-monitoring et de la page de monitoring expirait 23 fois par jour, en
+violation écrite de la règle de ce §7). Migrations `20260913120100` et `20260913120200`.
 C'est le régime de péremption propre aux prétentions de base de données — elles ne se lisent dans
 aucun fichier, donc aucun diff ne les dément, et même une relecture attentive du dépôt les laisse
 passer. Inventaire complet dans le cerveau : `megga/pg-cron`. Les plus structurants :

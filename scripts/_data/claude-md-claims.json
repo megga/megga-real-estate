@@ -454,17 +454,17 @@
     {
       "id": "cron-jobs-actifs",
       "section": "§7 — pg_cron",
-      "phrase": "52 jobs actifs",
+      "phrase": "54 jobs actifs",
       "severite": "derive",
-      "mesureLe": "2026-09-05",
+      "mesureLe": "2026-09-13",
       "mesure": {
         "sql": "select count(*) from cron.job where active"
       },
       "attendu": {
-        "valeur": 52
+        "valeur": 54
       },
       "tolerance": 0.2,
-      "note": "Tolérance large : un job naît à chaque source ou sonde ajoutée. Ce que la prétention soutient est l'ORDRE DE GRANDEUR — « cette section n'en listait que 2 » reste vrai de 41 comme de 50. Ce qui doit alerter, c'est le doc qui n'a pas bougé pendant que neuf jobs naissaient."
+      "note": "Tolérance large : un job naît à chaque source ou sonde ajoutée. Ce que la prétention soutient est l'ORDRE DE GRANDEUR — « cette section n'en listait que 2 » reste vrai de 41 comme de 50. Ce qui doit alerter, c'est le doc qui n'a pas bougé pendant que neuf jobs naissaient. ⚠ 54 = 52 mesurés le 05.09 + les deux instantanés de supervision de 20260913120100/20260913120200 ; à remesurer en prod une fois ces migrations déployées."
     },
     {
       "id": "cron-jobs-documentes",

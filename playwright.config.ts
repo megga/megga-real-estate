@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { localSupabaseStubServer, localSupabaseWebServerEnv } from './playwright.local-supabase'
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -32,15 +33,21 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
+  // ⚠ Deux serveurs, dans cet ordre : la paille Supabase (ou l'instance locale réelle si
+  // elle tourne déjà), puis le serveur de dev qui la vise. Voir playwright.local-supabase.ts.
+  webServer: [localSupabaseStubServer(), {
     command: 'npm run dev',
     url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
+      // ⛔ Cible Supabase LOCALE, jamais le projet cloud — sans ces deux variables, le
+      // client retombe sur la production (mesuré le 13.09.2026 : ~10 000 requêtes par
+      // jour depuis la CI). Détail et garde : playwright.local-supabase.ts.
+      ...localSupabaseWebServerEnv(),
       VITE_DEV_BYPASS_AUTH: 'true',
       VITE_DEV_BYPASS_ROLE: 'agent',
       VITE_PASSWORD_GATE_BYPASS: 'true',
     },
-  },
+  }],
 })

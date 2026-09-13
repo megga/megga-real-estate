@@ -45,7 +45,9 @@ export function useSendAgentEmail() {
         if (error instanceof FunctionsHttpError) {
           try {
             const b = await error.context.json()
-            if (b?.error) detail = b.error as string
+            // Le refus porte un `message` lisible (destinataire hors périmètre, quota) ; à
+            // défaut, le code d'erreur.
+            detail = (b?.message as string | undefined) ?? (b?.error as string | undefined) ?? detail
           } catch {
             /* garde le message générique */
           }
