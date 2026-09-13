@@ -180,6 +180,7 @@
   "monitoring.health.emails": "Emails",
   "monitoring.health.storage": "Storage",
   "monitoring.health.todayLabel": "heute",
+  "monitoring.health.notMeasured": "nicht gemessen",
   "monitoring.health.ok": "ok",
   "monitoring.health.err": "err",
   "monitoring.edgeFunctions": "Edge Functions",
@@ -645,7 +646,7 @@
     "title": "Integrationsstatus",
     "emails": {
       "title": "E-Mails (Resend)",
-      "sent": "{{count24}} gesendet (24h) · {{count7}} (7T)",
+      "incidents": "{{count}} Zustellproblem(e) (7T)",
       "errors": "{{count}} Fehler (7T)"
     },
     "stripe": {

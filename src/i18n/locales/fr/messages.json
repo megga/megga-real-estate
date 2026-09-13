@@ -289,7 +289,13 @@
       "searchPlaceholder": "Nom, adresse ou téléphone",
       "empty": "Aucun contact trouvé.",
       "note": "L'adresse sera mémorisée pour cette fiche.",
-      "create": "Créer la fiche"
+      "create": "Créer la fiche",
+      "error": {
+        "email_not_in_thread": "Cette adresse n'apparaît pas dans ce fil.",
+        "email_is_internal": "C'est une adresse de l'agence : elle ne se rattache pas à un client.",
+        "contact_not_in_agency": "Ce contact n'appartient pas à votre agence.",
+        "generic": "Le rapprochement a échoué. Réessayez."
+      }
     },
     "draft": {
       "badge": "Brouillon",

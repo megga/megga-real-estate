@@ -44,6 +44,32 @@ export function initialsOf(name: string | null | undefined, email: string): stri
   return email.slice(0, 1).toUpperCase()
 }
 
+/**
+ * L'adresse que « Rapprocher l'adresse » apprend au CRM : un correspondant EXTERNE du fil.
+ *
+ * ⛔ C'était l'expéditeur du dernier message entrant, « ou à défaut du premier » : sur un fil
+ * sans entrant (le dossier « Envoyés »), ce premier message est le NÔTRE et son expéditeur est
+ * la BOÎTE — le bandeau disait « Adresse non rattachée : <adresse de la boîte> ». La rapprocher
+ * apprenait « adresse de la boîte → contact » à toute l'agence : chaque courrier interne venu
+ * de cette boîte se rattachait ensuite à ce contact, chez les collègues. L'edge la refuse
+ * depuis le 13.09.2026 (`email_not_in_thread`) : on vise donc l'expéditeur du dernier entrant
+ * qui n'est pas nous, sinon le premier participant externe du fil ; aucun → pas de bandeau.
+ */
+export function cibleDeRattachement(
+  messages: readonly { direction: string; from_email: string | null; from_name: string | null }[],
+  participants: readonly MailAddress[],
+  boxEmail: string,
+): MailAddress | null {
+  // La boîte, et les adresses d'où elle écrit : l'expéditeur d'un sortant, même sous un alias
+  // d'envoi, c'est nous — le serveur refuse de le rapprocher (`email_is_internal`).
+  const soi = new Set([boxEmail.trim().toLowerCase()])
+  for (const m of messages) if (m.direction === 'outbound' && m.from_email) soi.add(m.from_email.toLowerCase())
+  const externe = (e: string | null | undefined): e is string => !!e && !soi.has(e.toLowerCase())
+  const entrant = [...messages].reverse().find((m) => m.direction === 'inbound' && externe(m.from_email))
+  if (entrant?.from_email) return { name: entrant.from_name, email: entrant.from_email }
+  return participants.find((a) => externe(a.email)) ?? null
+}
+
 /** Ce qu'on montre d'un correspondant : son nom, à défaut son adresse. */
 export function displayAddress(a: MailAddress): string {
   return a.name?.trim() || a.email

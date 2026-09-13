@@ -13,7 +13,11 @@ interface PlatformHealth {
   dbLimitMb: number
   totalEdgeFunctions: number
   errorsLast24h: number
-  emailsSentToday: number
+  /**
+   * NULL = non mesuré (13.09.2026) : l'action lue jusque-là n'était écrite que par la
+   * Messagerie (courrier d'agent), jamais par Resend. Un 0 dirait « aucun envoi ».
+   */
+  emailsSentToday: number | null
   lastScrapingRun: string | null
   apiRequestsToday: number
   storageUsedMb: number
@@ -73,7 +77,7 @@ export function useAdminMonitoring() {
       if (error) throw error
       const row = ((data as Array<{
         errors_last_24h: number
-        emails_sent_today: number
+        emails_sent_today: number | null
         api_requests_today: number
         last_scraping_at: string | null
         db_size_mb: number
@@ -86,7 +90,7 @@ export function useAdminMonitoring() {
         dbLimitMb: Number(row?.db_limit_mb ?? 8000),
         totalEdgeFunctions: EDGE_FUNCTION_NAMES.length,
         errorsLast24h: Number(row?.errors_last_24h ?? 0),
-        emailsSentToday: Number(row?.emails_sent_today ?? 0),
+        emailsSentToday: row?.emails_sent_today == null ? null : Number(row.emails_sent_today),
         lastScrapingRun: row?.last_scraping_at ?? null,
         apiRequestsToday: Number(row?.api_requests_today ?? 0),
         storageUsedMb: Number(row?.storage_used_mb ?? 0),

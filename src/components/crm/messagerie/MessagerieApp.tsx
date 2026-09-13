@@ -470,7 +470,8 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 email={cible.email}
                 name={cible.name}
                 busy={actions.linkContact.isPending}
-                onClose={() => dispatch({ type: 'modal', modal: { kind: 'none' } })}
+                error={actions.linkContact.error?.message ?? null}
+                onClose={() => { actions.linkContact.reset(); dispatch({ type: 'modal', modal: { kind: 'none' } }) }}
                 onLink={(contactId) => actions.linkContact.mutate(
                   { threadId: cible.threadId, contactId, email: cible.email },
                   { onSuccess: () => dispatch({ type: 'modal', modal: { kind: 'none' } }) },

@@ -5,8 +5,8 @@
 //   { account_id, kind: 'new'|'reply'|'forward', to, cc?, bcc?, subject?, body_text,
 //     thread_id?, in_reply_to_message_id?, attachments?: [{filename, mime_type, base64}], draft_id? }
 // Gmail : messages.send (+ threadId) puis ingestion immédiate du message rendu.
-// Graph : brouillon → send ; ligne locale provisoire `pending:<Message-ID>` rapprochée
-//         par la synchro « Envoyés » (ingest.ts).
+// Graph : brouillon → send ; ligne locale provisoire `pending:<Message-ID>` (recordPendingSend,
+//         rattachée au contact dès l'envoi) rapprochée par la synchro « Envoyés » (ingest.ts).
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard.ts'
@@ -14,7 +14,7 @@ import { getValidAccessToken } from '../_shared/mail/secrets.ts'
 import { base64ByteLength, base64Encode, base64UrlEncode, buildMime, escapeHtml, makeMessageId, textToHtml } from '../_shared/mail/mime.ts'
 import { gmailAttachment, gmailGetMessage, gmailSend, normalizeGmailMessage } from '../_shared/mail/gmail.ts'
 import { GRAPH_ATTACHMENT_MAX_BYTES, graphSend } from '../_shared/mail/graph.ts'
-import { ingestMessages, mailAuditEvent, recomputeThread } from '../_shared/mail/ingest.ts'
+import { ingestMessages, mailAuditEvent, recomputeThread, recordPendingSend } from '../_shared/mail/ingest.ts'
 import type { MailAddress, OutgoingMessage } from '../_shared/mail/types.ts'
 
 const corsHeaders = {
@@ -187,6 +187,8 @@ serve(async (req: Request) => {
   } catch (e) {
     return json({ error: 'send_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
   }
+  // L'instant où le fournisseur a ACCEPTÉ : la date du fait au journal (`metadata.sent_at`).
+  const acceptedAt = new Date().toISOString()
 
   // ── Le courrier est PARTI. Tout ce qui suit est de la comptabilité locale. ───────
   let bookkeeping: string | null = null
@@ -195,39 +197,30 @@ serve(async (req: Request) => {
       // Gmail rend l'id du message envoyé ; sans lui il n'y a rien à réingérer.
       if (!sentProviderMessageId) throw new Error('gmail: aucun id de message rendu par messages.send')
       const full = await gmailGetMessage(token, sentProviderMessageId)
-      await ingestMessages(admin, account, [normalizeGmailMessage(full, account.email)], { skipAudit: true })
+      let eIngest: unknown = null
+      try { await ingestMessages(admin, account, [normalizeGmailMessage(full, account.email)], { skipAudit: true }) }
+      catch (e) { eIngest = e }
+      // Relue MÊME si l'ingestion a levé : une pièce refusée APRÈS l'insertion du message
+      // laisse une copie locale, que la synchro retrouvera connue — l'audit plus bas en dépend.
       const { data: row, error } = await admin.from('mail_messages').select('id, thread_id').eq('account_id', account.id).eq('provider_message_id', sentProviderMessageId).maybeSingle()
       if (error) throw new Error(`relecture du message envoyé: ${error.message}`)
       localMessageId = row?.id ?? null; threadId = row?.thread_id ?? threadId
+      if (eIngest) throw eIngest
     } else {
-      // Ligne provisoire : la synchro « Envoyés » la rapproche par Message-ID.
-      if (!threadId) {
-        const { data: t, error } = await admin.from('mail_threads').insert({
-          account_id: account.id, agency_id: account.agency_id, provider_thread_id: `pending-thread:${messageId}`,
-          subject, snippet: text.slice(0, 160), participants: to, from_name: outgoing.from.name, from_email: account.email,
-          last_message_at: new Date().toISOString(), last_outbound_at: new Date().toISOString(), message_count: 0, is_read: true,
-        }).select('id').single()
-        // ⚠ `t!.id` sur un résultat non vérifié levait un TypeError — dans l'ancien
-        // `try` unique, cela devenait `send_failed` sur un courrier DÉJÀ PARTI.
-        if (error || !t) throw new Error(`fil provisoire: ${error?.message ?? 'aucune ligne rendue'}`)
-        threadId = t.id
-      }
-      const { data: m, error: eMsg } = await admin.from('mail_messages').insert({
-        thread_id: threadId, account_id: account.id, agency_id: account.agency_id,
-        provider_message_id: `pending:${messageId}`, rfc822_message_id: messageId, in_reply_to: outgoing.inReplyTo,
-        direction: 'outbound', from_name: outgoing.from.name, from_email: account.email, to, cc, bcc,
-        subject, snippet: text.slice(0, 160), body_text: fullText, body_html: fullHtml, sent_at: new Date().toISOString(),
-        is_read: true, has_attachments: outAtts.length > 0,
-      }).select('id').single()
-      if (eMsg) throw new Error(`message provisoire: ${eMsg.message}`)
-      localMessageId = m?.id ?? null
-      const { error: eThread } = await admin.from('mail_threads').update({ last_message_at: new Date().toISOString(), last_outbound_at: new Date().toISOString(), snippet: text.slice(0, 160) }).eq('id', threadId)
+      // Ligne provisoire `pending:<Message-ID>` que la synchro « Envoyés » rapprochera — née
+      // RATTACHÉE au contact (D11, même règle que l'ingestion) : l'audit plus bas exige la copie
+      // ET le contact du fil, et la synchro, qui retrouvera un message CONNU, n'en écrira pas.
+      const pending = await recordPendingSend(admin, account, {
+        threadId, outgoing, snippet: text.slice(0, 160), hasAttachments: outAtts.length > 0,
+      })
+      // Repris AVANT la suite : un échec des dates ou du recalcul laisse l'audit se faire
+      // (la synchro, elle, n'en écrira pas — le message sera connu).
+      threadId = pending.threadId
+      localMessageId = pending.messageId
+      const { error: eThread } = await admin.from('mail_threads').update({ last_message_at: new Date().toISOString(), last_outbound_at: new Date().toISOString(), snippet: text.slice(0, 160) }).eq('id', pending.threadId)
       if (eThread) throw new Error(`fil, dates: ${eThread.message}`)
       // Le compteur et les dates viennent des messages : la ligne provisoire compte déjà.
-      // ⚠ `threadId` est `string | null` ici pour TypeScript (il vient de `original?.thread_id`) :
-      // sans cette garde, `deno check` rend TS2345 et l'étape CI « Type-check Edge Functions »,
-      // déclarée bloquante, rougit.
-      if (threadId) await recomputeThread(admin, threadId)
+      await recomputeThread(admin, pending.threadId)
     }
   } catch (e) {
     // JAMAIS 502 ici : le fournisseur a accepté. Un refus renvoyé à l'agent le ferait
@@ -237,8 +230,15 @@ serve(async (req: Request) => {
   }
 
   // Audit avec l'acteur (l'ingestion a été appelée en skipAudit).
-  const { data: th } = threadId ? await admin.from('mail_threads').select('contact_id').eq('id', threadId).maybeSingle() : { data: null }
-  if (th?.contact_id) {
+  //
+  // ⛔ UN ENVOI, UNE LIGNE — et c'est la COPIE LOCALE qui décide qui l'écrit. Si elle existe,
+  // la synchro la retrouvera connue et n'écrira rien : la ligne est à écrire ici. Si elle
+  // manque (message refusé par la base, `gmailGetMessage` en échec), la synchro ingérera la
+  // copie du fournisseur comme un message NEUF et la journalisera elle-même. Garder l'audit sur
+  // le seul contact du fil écrivait les DEUX : `recordPendingSend` rattache le fil avant
+  // d'insérer le message, et un refus de l'insertion laissait un fil rattaché sans copie.
+  const { data: th } = threadId && localMessageId ? await admin.from('mail_threads').select('contact_id').eq('id', threadId).maybeSingle() : { data: null }
+  if (localMessageId && th?.contact_id) {
     // ⛔ Le résultat de cette insertion était jeté — pas de `error`, pas de journal. Un
     // `email_sent` manquant dans la timeline d'un contact ne laissait alors AUCUNE trace,
     // nulle part, alors que CLAUDE.md §5 fait d'`activity_events` la trace de chaque
@@ -247,7 +247,7 @@ serve(async (req: Request) => {
     // courrier REÇU), ni les destinataires — voir `mailAuditEvent`.
     const { error: eAudit } = await admin.from('activity_events').insert(mailAuditEvent({
       agencyId: account.agency_id, contactId: th.contact_id, action: 'email_sent',
-      accountId: account.id, threadId, messageId: localMessageId, actorId: user.id, kind,
+      accountId: account.id, threadId, messageId: localMessageId, actorId: user.id, kind, sentAt: acceptedAt,
     }))
     if (eAudit) console.error(`[mail-send] activity_events refuse email_sent (fil ${threadId}, contact ${th.contact_id}):`, eAudit.message)
   }

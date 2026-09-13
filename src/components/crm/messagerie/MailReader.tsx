@@ -12,7 +12,7 @@ import MEIcon from '@/components/propertyx/MEIcon'
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailAttachmentRow, MailMessageRow } from '@/hooks/useMailThread'
 import type { MailLabel } from '@/hooks/useMailLabels'
-import { displayAddress, fileSizeLabel, initialsOf, mailDateLabel } from '@/lib/mail/format'
+import { cibleDeRattachement, displayAddress, fileSizeLabel, initialsOf, mailDateLabel } from '@/lib/mail/format'
 import { MailBodyFrame } from './MailBodyFrame'
 import { MailReplyComposer } from './MailReplyComposer'
 import { MailForwardComposer } from './MailForwardComposer'
@@ -40,6 +40,8 @@ export function MailReader(p: Props) {
   // Répondre et transférer visent le DERNIER message entrant, pas le premier du
   // fil : sur un échange long, le premier est souvent le nôtre.
   const inboundLast = [...p.messages].reverse().find((m) => m.direction === 'inbound') ?? first
+  // Rapprocher vise un correspondant EXTERNE — jamais la boîte (cf. `cibleDeRattachement`).
+  const cible = cibleDeRattachement(p.messages, p.thread.participants ?? [], p.boxEmail)
 
   // ⛔ L'AFFORDANCE PRIMAIRE PORTE L'ACCENT AU REPOS (CLAUDE.md §3, décision du
   // 10 août 2026). Elle ne le prenait qu'au SURVOL et affichait l'encre au
@@ -138,12 +140,12 @@ export function MailReader(p: Props) {
         )}
       </div>
 
-      {!p.thread.contact_id && inboundLast.from_email && (
+      {!p.thread.contact_id && cible && (
         <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>
-          {t('mail.read.unlinked', { email: inboundLast.from_email })}
+          {t('mail.read.unlinked', { email: cible.email })}
           <button
             type="button"
-            onClick={() => p.onLinkContact(inboundLast.from_email ?? '', inboundLast.from_name)}
+            onClick={() => p.onLinkContact(cible.email, cible.name)}
             style={{ marginLeft: 'auto', background: 'none', border: 'none', color: ms.accentText, fontWeight: 600, fontSize: 'var(--crm-text-xs)', cursor: 'pointer', fontFamily: 'inherit' }}
           >
             {t('mail.link.cta')}

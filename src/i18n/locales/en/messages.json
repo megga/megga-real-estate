@@ -289,7 +289,13 @@
       "searchPlaceholder": "Name, address or phone",
       "empty": "No contact found.",
       "note": "The address will be remembered for this record.",
-      "create": "Create the record"
+      "create": "Create the record",
+      "error": {
+        "email_not_in_thread": "This address does not appear in this thread.",
+        "email_is_internal": "This is an agency address: it is not linked to a client.",
+        "contact_not_in_agency": "This contact does not belong to your agency.",
+        "generic": "Linking failed. Please try again."
+      }
     },
     "draft": {
       "badge": "Draft",
