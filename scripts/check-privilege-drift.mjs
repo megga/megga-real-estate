@@ -116,6 +116,36 @@ const SQL_PERIMETRE = `
      and (c.relname like 'admin\\_%' escape '\\'
           or c.relname in (${SURVEILLEES.map(t => `'${t}'`).join(', ')}))`;
 
+/**
+ * SECONDE PROPRIÉTÉ (20260913140000, audit du 13.09.2026, point S5) : `anon` n'a AUCUN
+ * droit d'écriture sur une table de `public`, sauf l'INSERT de `seller_leads` (l'entonnoir
+ * public, dont la policy force l'agence à NULL). Elle est exacte depuis cette migration :
+ * aucun faux positif, donc aucune raison de la restreindre à une liste.
+ *
+ * ⚠ Les tables de PostGIS appartiennent à `supabase_admin` : `postgres` ne peut ni révoquer
+ * leurs droits ni changer les droits par défaut de ce rôle. Elles sont exclues PAR
+ * PROPRIÉTAIRE — `spatial_ref_sys` (référentiel de projections, aucune donnée client) garde
+ * donc des droits qu'on ne peut pas retirer d'ici.
+ */
+const ECRITURE_ANON_PERMISE = [['seller_leads', 'INSERT']];
+
+const SQL_ECRITURES = `
+  select c.relname as tbl,
+         string_agg(p.priv, ',' order by p.priv) as droits
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace
+    cross join (values ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE')) as p(priv)
+   where n.nspname = 'public'
+     and c.relkind in ('r', 'p')
+     and pg_get_userbyid(c.relowner) <> 'supabase_admin'
+     and has_table_privilege('anon', c.oid, p.priv)
+     and not ((c.relname, p.priv) in (${ECRITURE_ANON_PERMISE.map(([t, d]) => `('${t}', '${d}')`).join(', ')}))
+   group by c.relname
+   order by c.relname`;
+
+/** Contrôle positif : l'entonnoir public doit rester ouvert, sinon on a fermé trop. */
+const SQL_ENTONNOIR = `select has_table_privilege('anon', 'public.seller_leads', 'INSERT') as ouvert`;
+
 async function query(token, sql) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
     method: 'POST',
@@ -186,18 +216,44 @@ if (disparues.length > 0) {
 console.log(`${perimetre} tables surveillées inspectées en production.`);
 
 let fuites = await query(token, SQL);
-for (let essai = 1; fuites.length > 0 && essai < TENTATIVES; essai++) {
+let ecritures = await query(token, SQL_ECRITURES);
+for (let essai = 1; (fuites.length > 0 || ecritures.length > 0) && essai < TENTATIVES; essai++) {
   console.log(
-    `  ${fuites.length} table(s) encore ouverte(s) à anon — ` +
+    `  ${fuites.length} table(s) interne(s) et ${ecritures.length} table(s) en écriture encore ouvertes à anon — ` +
     `un déploiement est peut-être en cours (essai ${essai}/${TENTATIVES - 1}, ` +
     `nouvelle mesure dans ${Math.round(ATTENTE_MS / 1000)} s).`,
   );
   await new Promise((r) => setTimeout(r, ATTENTE_MS));
   fuites = await query(token, SQL);
+  ecritures = await query(token, SQL_ECRITURES);
+}
+
+const [{ ouvert: entonnoirOuvert }] = await query(token, SQL_ENTONNOIR);
+if (!entonnoirOuvert) {
+  console.error('✗ `anon` a perdu l\'INSERT de `seller_leads` : l\'entonnoir public est fermé.');
+  console.error('  La révocation de 20260913140000 a été rejouée sans son re-GRANT, ou une migration l\'a retiré.');
+  process.exit(1);
+}
+
+if (ecritures.length > 0) {
+  console.error(`\n✗ ${ecritures.length} table(s) de public accordent un droit d'ÉCRITURE à \`anon\` en production :\n`);
+  for (const { tbl, droits } of ecritures) {
+    console.error(`  ${tbl.padEnd(28)} ${droits}`);
+  }
+  console.error(`
+Depuis 20260913140000, \`anon\` n'écrit nulle part dans public, sauf l'INSERT de
+seller_leads, et les droits par défaut du rôle postgres naissent fermés. Une ligne
+ci-dessus veut dire qu'une table a été créée par un AUTRE rôle (droits par défaut non
+resserrés), ou qu'une migration a ré-accordé l'écriture. Si c'est voulu, l'ajouter à
+ECRITURE_ANON_PERMISE avec sa raison ; sinon :
+
+    revoke insert, update, delete, truncate on table public.<table> from anon;`);
+  if (fuites.length === 0) process.exit(1);
 }
 
 if (fuites.length === 0) {
-  console.log('✓ Aucune dérive de privilèges : `anon` n\'a aucun droit sur les tables internes.');
+  console.log('✓ Aucune dérive de privilèges : `anon` n\'a aucun droit sur les tables internes,');
+  console.log('  et aucun droit d\'écriture sur public hors l\'INSERT de seller_leads.');
   process.exit(0);
 }
 

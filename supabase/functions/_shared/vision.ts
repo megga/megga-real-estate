@@ -21,7 +21,7 @@ export function isReadableDocMime(mime: string | null | undefined): boolean {
 }
 
 /** Encode des octets en base64 sans exploser la pile (chunké, pour les gros fichiers). */
-function toBase64(bytes: Uint8Array): string {
+export function toBase64(bytes: Uint8Array): string {
   let binary = ''
   const chunk = 0x8000
   for (let i = 0; i < bytes.length; i += chunk) {

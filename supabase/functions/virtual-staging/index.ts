@@ -26,7 +26,8 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { analyzePhoto, judgePhotoForStaging, type PhotoAnalysis, type RoomType } from '../_shared/photo-vision.ts'
-import { assertPublicUrl } from '../_shared/safe-fetch.ts'
+import { assertPublicUrl, safeFetchResponse, type SafeFetchResult } from '../_shared/safe-fetch.ts'
+import { toBase64 } from '../_shared/vision.ts'
 import { callDeepSeek } from '../_shared/ai-provider.ts'
 
 const corsHeaders = {
@@ -355,11 +356,30 @@ serve(async (req) => {
       )
     }
 
+    // ── LA PHOTO, UNE SEULE FOIS, PAR LE FETCH SÛR ───────────────────
+    // ⛔ Elle était fetchée DEUX fois (analyse puis génération) par `fetch(photoUrl)`,
+    // qui suit les redirections : `assertPublicUrl` plus haut validait l'URL de
+    // départ, pas celle d'arrivée. Une URL publique redirigeant vers une adresse
+    // interne passait, et les octets obtenus finissaient publiés dans le bucket
+    // PUBLIC `property-photos` (audit du 13.09.2026, point S6). `safeFetchResponse`
+    // re-valide chaque saut ; 3 sauts couvrent le 301 de l'ancien hôte d'images vers `img.getmegga.com`.
+    // Plafond 15 Mo : le bucket accepte 10 Mo, la marge couvre les photos externes.
+    let photo: SafeFetchResult
+    try {
+      photo = await safeFetchResponse(photoUrl, { maxRedirects: 3, maxBytes: 15_000_000, timeoutMs: 15_000 })
+    } catch (e) {
+      const unsafe = String((e as Error)?.message ?? '').startsWith('ssrf:')
+      return new Response(
+        JSON.stringify({ error: unsafe ? 'Invalid or unsafe photoUrl' : 'Impossible de charger la photo originale' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // ── PHOTO-VISION GATE ────────────────────────────────────────────
     // Évite de brûler ~CHF 0.034 de Gemini sur une photo qui foirera. Coût
     // ajouté : ~CHF 0.003 de Gemini Vision. Break-even dès qu'on évite 1
     // staging raté sur 12 (large marge en pratique).
-    const analysis = await analyzePhoto(photoUrl)
+    const analysis = await analyzePhoto(photo)
     const compatibleRooms = expectedDetectedRooms(roomType || 'autre')
     const isMismatch =
       compatibleRooms.length > 0 &&
@@ -417,18 +437,11 @@ serve(async (req) => {
     // verdict.verdict === 'load_error' : on continue quand même — Vision peut
     // avoir échoué pour une raison transitoire, on laisse Gemini essayer.
 
-    // Fetch original photo as base64 (already validated by Vision above)
-    const photoResponse = await fetch(photoUrl)
-    if (!photoResponse.ok) {
-      return new Response(
-        JSON.stringify({ error: 'Impossible de charger la photo originale' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const photoBuffer = await photoResponse.arrayBuffer()
-    const photoBase64 = btoa(String.fromCharCode(...new Uint8Array(photoBuffer)))
-    const mimeType = photoResponse.headers.get('content-type') || 'image/jpeg'
+    // La photo déjà récupérée plus haut — plus de second fetch. `toBase64` est chunké :
+    // `String.fromCharCode(...octets)` sur une photo de quelques centaines de Ko dépassait
+    // la limite d'arguments de V8 et levait RangeError.
+    const photoBase64 = toBase64(photo.bytes)
+    const mimeType = photo.contentType || 'image/jpeg'
 
     // ── PROMPT MASTER ────────────────────────────────────────────────
     // DeepSeek enrichit le prompt en se basant sur l'analyse Vision. Si

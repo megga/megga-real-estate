@@ -4,7 +4,7 @@
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
-import { assertPublicUrl } from '../_shared/safe-fetch.ts'
+import { assertPublicUrl, safeFetchResponse, type SafeFetchResult } from '../_shared/safe-fetch.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,6 +77,14 @@ serve(async (req: Request) => {
         await assertPublicUrl(photoUrl)
         let signed = false
         let method = 'none'
+        // ⛔ Les octets passent par `safeFetchResponse`, jamais par un fetch direct de
+        // l'URL : celui-ci SUIT les redirections, et `assertPublicUrl` ci-dessus ne valide
+        // que l'URL de départ (audit du 13.09.2026, point S6). Paresseux et mémorisé :
+        // Trufo reçoit l'URL et n'en a pas besoin, Capture et le repli MEGGA la lisent une
+        // seule fois.
+        let photoOnce: SafeFetchResult | null = null
+        const loadPhoto = async (): Promise<SafeFetchResult> =>
+          (photoOnce ??= await safeFetchResponse(photoUrl, { maxRedirects: 3, maxBytes: 15_000_000, timeoutMs: 15_000 }))
 
         if (provider === 'capture') {
           // ── Capture (Numbers Protocol) — C2PA signing avec certificat officiel ──
@@ -84,9 +92,9 @@ serve(async (req: Request) => {
           const captureToken = Deno.env.get('CAPTURE_API_TOKEN')
           if (captureToken) {
             // Step 1: Télécharger la photo et l'uploader sur Capture
-            const photoResponse = await fetch(photoUrl)
-            if (photoResponse.ok) {
-              const photoBlob = await photoResponse.blob()
+            const photo = await loadPhoto()
+            {
+              const photoBlob = new Blob([photo.bytes], { type: photo.contentType || 'image/jpeg' })
               const formData = new FormData()
               formData.append('asset_file', photoBlob, 'photo.jpg')
               formData.append('caption', `MEGGA Real Estate - Property ${propertyId}`)
@@ -161,10 +169,9 @@ serve(async (req: Request) => {
 
         // ── Fallback MEGGA Shield (seulement si pas de provider error) ────
         if (!signed && (method === 'none' || method === 'wasm_pending')) {
-          const photoResponse2 = await fetch(photoUrl)
-          if (photoResponse2.ok) {
-            const buffer = await photoResponse2.arrayBuffer()
-            const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
+          const photo = await loadPhoto()
+          {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', photo.bytes)
             const hashArray = Array.from(new Uint8Array(hashBuffer))
             const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
             signed = true
