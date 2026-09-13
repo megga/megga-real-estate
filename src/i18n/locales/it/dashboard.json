@@ -231,6 +231,7 @@
     "catalogue": {
       "title": "Catalogo dei match",
       "empty": "Nessun match in questo filtro.",
+      "emptyAll": "Ancora nessun match.",
       "proposed": "Proposto",
       "proposedCount_one": "{{count}} proposto",
       "proposedCount_other": "{{count}} proposti",

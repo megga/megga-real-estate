@@ -95,7 +95,7 @@
       },
       "paste": {
         "title": "Collez le message du prospect.",
-        "subtitle": "Email, SMS, formulaire web, message WhatsApp transcrit, MEGGA AI extrait l'identité, l'intention et propose la prochaine action.",
+        "subtitle": "Email, SMS, formulaire web, message WhatsApp transcrit : MEGGA AI en extrait l'identité et l'intention, puis propose la prochaine action.",
         "placeholder": "Collez ici l'email, le SMS ou le message reçu. Plus le texte est riche, meilleure est l'extraction…",
         "tryExample": "Essayer avec un exemple"
       },

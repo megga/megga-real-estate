@@ -235,7 +235,9 @@ function rolesEmployes(): Set<string> {
  * aucun seuil de texte.
  */
 const ENCRES = ['ink', 'inkSoft', 'muted', 'ghost', 'errInk']
-const GLYPHES = ['muted', 'inkSoft', 'goal', 'ink']
+// `inkSoft` a quitté les glyphes le 13.09.2026 : l'annotation de départ de la trajectoire
+// vide était un <text fill> ; sortie du SVG (qui l'étirait), elle est devenue une encre.
+const GLYPHES = ['muted', 'goal', 'ink']
 
 /**
  * Encres posées sur l'ACCENT — leur fond n'est pas une surface, c'est `accent`.

@@ -58,11 +58,21 @@ export default function AxFirstRun({ acc, dark, target, onGoSettings }: { acc: A
             <div style={{ flex: 1, minHeight: 0, position: 'relative', marginTop: 8 }}>
               <svg viewBox="0 0 1000 380" width="100%" height="100%" preserveAspectRatio="none" style={{ animation: 'axRise .5s cubic-bezier(.2,.8,.2,1) both' }}>
                 <path d="M 22 346 L 978 34" fill="none" stroke={A.goal} strokeWidth="2" strokeDasharray="3 6" strokeLinecap="round" />
-                <text x="976" y="22" textAnchor="end" fontSize="12" fontWeight="600" fill={A.muted}>{tr('analytics.trajectory.objectiveShort', { amount: axShort(target) })}</text>
-                <circle cx="22" cy="346" r="11" fill={acc.accent} opacity="0.2" />
-                <circle cx="22" cy="346" r="6" fill={acc.accent} />
-                <text x="40" y="336" fontSize="12.5" fontWeight="600" fill={A.inkSoft}>{tr('analytics.firstrun.trajectoryStart')}</text>
               </svg>
+              {/* Le point de départ, hors du SVG pour la même raison : étiré, il devenait un ovale. */}
+              <span aria-hidden style={{ position: 'absolute', left: '2.2%', top: `${(346 / 380) * 100}%`, width: 22, height: 22, borderRadius: 'var(--crm-radius-pill)', background: acc.area, transform: 'translate(-50%, -50%)', display: 'grid', placeItems: 'center' }}>
+                <span style={{ width: 12, height: 12, borderRadius: 'var(--crm-radius-pill)', background: acc.accent }} />
+              </span>
+              {/* ⚠ Les libellés vivent HORS du SVG : en `preserveAspectRatio="none"`, un
+                  <text> s'étire avec le cadre, et l'annotation de départ, posée au-dessus
+                  du point, était barrée par la ligne d'objectif qui en part. Elle se pose
+                  désormais SOUS le point, là où la ligne ne passe jamais. */}
+              <span style={{ position: 'absolute', top: 0, right: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted, whiteSpace: 'nowrap' }}>
+                {tr('analytics.trajectory.objectiveShort', { amount: axShort(target) })}
+              </span>
+              <span style={{ position: 'absolute', left: 'calc(2.2% + var(--crm-space-4xl))', bottom: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600, color: A.inkSoft, whiteSpace: 'nowrap', animation: 'axRise .5s cubic-bezier(.2,.8,.2,1) both' }}>
+                {tr('analytics.firstrun.trajectoryStart')}
+              </span>
             </div>
           </div>
         </div>

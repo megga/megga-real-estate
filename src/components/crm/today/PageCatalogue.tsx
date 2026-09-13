@@ -966,7 +966,8 @@ export function PageCatalogue({ demo = false }: { demo?: boolean } = {}) {
 
         {/* grille */}
         {list.length === 0 ? (
-          <EtatVide dark={lightMode === false} titre={t('today.catalogue.empty')} />
+          // « Aucun match dans ce filtre » s'affichait aussi sous « Tous » : sans filtre, il n'y en a pas.
+          <EtatVide dark={lightMode === false} titre={t(filter === 'tous' ? 'today.catalogue.emptyAll' : 'today.catalogue.empty')} />
         ) : (
           <div style={{ flex: 1, minHeight: 0, display: 'grid',
             gridTemplateColumns: '1.55fr 1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 'var(--crm-space-2xl)' }}>

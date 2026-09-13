@@ -147,7 +147,10 @@ function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; on
         <div style={{ width: 1, background: A.hairline, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0, paddingLeft: 'var(--crm-space-4xl)' }}>
           <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: A.muted }}>{tr('analytics.hero.remaining')}</div>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: acc.accent, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(reste)}</div>
+          {/* ⚠ De l'ENCRE, comme « Réalisé » : l'accent de graphique (#6F8CFF, que l'en-tête
+              réserve aux graphiques) rendait ~3:1 sur la carte claire, et l'accent
+              d'interface échoue en sombre (3,44:1). La barre juste dessous porte le lien. */}
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: A.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(reste)}</div>
         </div>
       </div>
       {/* pace bar muette + objectif */}
