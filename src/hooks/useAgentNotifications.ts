@@ -19,6 +19,17 @@ import type { CrmNotif, NotifKind, NotifPriority, NotifGroup } from '@/component
 const LAST_SEEN_KEY = 'megga-agent-notif-lastseen'
 const READ_IDS_KEY = 'megga-agent-notif-read'
 
+/**
+ * Le courrier des boîtes n'entre pas dans la cloche (13.09.2026). La synchronisation
+ * écrit un `email_received` / `email_sent` (acteur 'system') pour CHAQUE message rattaché
+ * à un contact — 90 jours d'un coup à la connexion d'une boîte — et cette cloche est celle
+ * de TOUTE l'agence : chaque collègue voyait défiler le courrier d'une boîte qui n'est pas
+ * la sienne, titré par son objet. L'objet n'est plus écrit (`mailAuditEvent`), mais la
+ * ligne resterait là, sous un titre humanisé en anglais (« Email received »). Le
+ * propriétaire de la boîte a les compteurs de la Messagerie.
+ */
+const HORS_CLOCHE = '(email_received,email_sent)'
+
 interface RawEvent {
   id: string
   action: string
@@ -177,6 +188,7 @@ export function useAgentNotifications(limit = 30): AgentNotifications {
         .from('activity_events')
         .select('id, action, entity_type, entity_id, metadata, created_at, category, severity, object_label')
         .neq('actor_kind', 'user')
+        .not('action', 'in', HORS_CLOCHE)
         .order('created_at', { ascending: false })
         .limit(limit)
       if (error) throw error
