@@ -13,7 +13,7 @@
  * réclamation — auquel cas rien n'a bougé côté serveur, et l'avertissement remplace l'erreur.
  */
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -76,7 +76,6 @@ async function codeErreur(data: unknown, error: unknown): Promise<string | null>
 /** Charge l'aperçu de l'invitation puis gère sa réclamation (claim) après contrôle d'email. */
 export default function AcceptInvitePage() {
   const { token } = useParams<{ token: string }>()
-  const navigate = useNavigate()
   const { t } = useTranslation('settings')
   const { user } = useAuth()
 
@@ -135,7 +134,10 @@ export default function AcceptInvitePage() {
       }
       setClaiming(false)
     } else {
-      navigate('/dashboard')
+      // Rechargement DUR, pas une navigation de routeur (audit S11) : l'agence vient de
+      // changer, et le cache React Query (clés sans agence), le profil en mémoire (lu une
+      // fois par compte) et la pile d'onglets appartiennent tous à l'agence quittée.
+      window.location.assign('/dashboard')
     }
   }
 
