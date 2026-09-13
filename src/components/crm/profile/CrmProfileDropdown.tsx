@@ -18,7 +18,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
 import { useNavigate } from 'react-router-dom'
-import { ADMIN_CONSOLE_PATH } from '@/lib/adminEntry'
+import { consoleAReprendre } from '@/lib/adminEntry'
 
 // ─── Inline icons not in MEIcon ──────────────────────────────────────
 type InlineIconName = 'shield' | 'card' | 'help' | 'logout' | 'chevron' | 'spark' | 'console' | 'external'
@@ -179,10 +179,11 @@ export default function CrmProfileDropdown({
   const { profile, user } = useAuth()
   const navigate = useNavigate()
   const { plan } = useAgencySettings()
-  // Seule porte d'entrée vers la console depuis le CRM : aucune ligne de la
-  // barre latérale ne porte de trace de l'admin. Rendu uniquement pour un
-  // super-admin confirmé par la DB (useSuperAdminGate → RPC is_super_admin).
-  // ⚠ La retirer d'ici laisserait ⌘K comme unique chemin vers la console.
+  // Une des trois portes vers la console, avec la ligne rouge du pied de la
+  // barre latérale (13 septembre 2026) et ⌘K. Gardée ici parce que le menu de
+  // compte est l'endroit où l'on cherche ce qui dépend de SON rôle. Rendu
+  // uniquement pour un super-admin confirmé par la DB (useSuperAdminGate → RPC
+  // is_super_admin).
   const { allowed: isSuperAdmin } = useSuperAdminGate()
 
   const fullName = profile?.full_name?.trim() || user?.email?.split('@')[0] || t('profile.defaultName')
@@ -234,11 +235,13 @@ export default function CrmProfileDropdown({
             color: sp.sub,
           }}>{t('profile.platformSection')}</div>
           {/* Chevron et non flèche « sortie » : la console est une surface du
-              CRM depuis juillet 2026, on n'ouvre plus d'onglet. */}
+              CRM depuis juillet 2026, on n'ouvre plus d'onglet. Elle rouvre sur
+              sa dernière page, comme depuis la barre latérale — deux lignes
+              « Console admin » du même chrome ne mènent pas à deux endroits. */}
           <Row sp={sp} iconKind="inline" icon="console"
             label={t('profile.adminConsole')}
             trail={<InlineIco name="chevron" size={15} stroke={sp.sub} strokeWidth={2} />}
-            onClick={wrap(() => navigate(ADMIN_CONSOLE_PATH))} />
+            onClick={wrap(() => navigate(consoleAReprendre()))} />
         </>
       )}
 
