@@ -29,6 +29,7 @@ import { analyzePhoto, judgePhotoForStaging, type PhotoAnalysis, type RoomType }
 import { assertPublicUrl, safeFetchResponse, type SafeFetchResult } from '../_shared/safe-fetch.ts'
 import { toBase64 } from '../_shared/vision.ts'
 import { callDeepSeek } from '../_shared/ai-provider.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -560,9 +561,13 @@ serve(async (req) => {
     }
 
     // Log usage in activity_events
-    await supabase.from('activity_events').insert({
+    // ⛔ actor_kind 'ai' ⇒ actor_id NULL : l'ancien couple 'ai' + actor_id violait le CHECK
+    // activity_events_actor_kind_coherence, l'erreur n'était pas lue — et le quota de staging,
+    // qui compte ces lignes, n'a jamais rien compté : génération d'images sans plafond.
+    // L'agent est nommé dans metadata.profile_id.
+    const { error: auditErr } = await supabase.from('activity_events').insert({
       agency_id: profile.agency_id,
-      actor_id: user.id,
+      actor_id: null,
       actor_kind: 'ai',
       action: 'virtual_staging',
       entity_type: 'property',
@@ -570,6 +575,7 @@ serve(async (req) => {
       severity: 'info',
       category: 'ai',
       metadata: {
+        profile_id: user.id,
         style,
         room_type: roomType || 'autre',
         original_url: photoUrl,
@@ -586,6 +592,8 @@ serve(async (req) => {
         prompt_master_used: !skipPromptMaster,
       },
     })
+    // L'échec se DIT ; l'image déjà générée est livrée (la refuser ferait repayer la génération).
+    if (auditErr) console.error('virtual-staging audit (quota non compté):', redactedErrorMessage(auditErr))
 
     return new Response(
       JSON.stringify({

@@ -121,15 +121,22 @@ serve(async (req) => {
     }
 
     // Log APRÈS succès (quota + audit ; un 502/422 ne compte pas). PII non loggée.
-    await supabase.from('activity_events').insert({
+    // ⛔ L'extraction est l'œuvre de l'IA : actor_kind 'ai' ET actor_id NULL. L'ancien couple
+    // 'ai' + actor_id violait le CHECK activity_events_actor_kind_coherence (actor_id IS NULL
+    // OR actor_kind = 'user'), et l'erreur n'était pas lue : aucune ligne n'a jamais été écrite
+    // — ni trace d'import pour la LBA, ni compte pour le quota mensuel, qui lit ces lignes.
+    // L'agent qui a lancé l'import est nommé dans metadata.profile_id, comme les actions du
+    // copilote (_shared/copilot-actions.ts).
+    const { error: auditErr } = await supabase.from('activity_events').insert({
       agency_id: profile.agency_id,
-      actor_id: profile.id,
+      actor_id: null,
       actor_kind: 'ai',
       action: 'kyc_report_import',
       entity_type: 'kyc_case',
       severity: 'info',
       category: 'ai',
       metadata: {
+        profile_id: profile.id,
         filename: filename ?? 'rapport.pdf',
         provider: extract.provider,
         checks_count: extract.checks.length,
@@ -137,6 +144,15 @@ serve(async (req) => {
         quota,
       },
     })
+    // Fermé par défaut : un import de rapport KYC que le journal n'a pas retenu ne se livre
+    // pas — il échapperait à la fois à la trace LBA et au quota.
+    if (auditErr) {
+      console.error('kyc-report-import audit:', redactedErrorMessage(auditErr))
+      return new Response(
+        JSON.stringify({ error: 'Import non journalisé — réessayez dans un instant.', code: 'audit_write_failed' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
 
     // Corps = la forme consommée directement par le wizard (KwStepImport).
     return new Response(JSON.stringify(extract), {
