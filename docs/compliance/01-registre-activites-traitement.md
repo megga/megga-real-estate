@@ -35,7 +35,7 @@
 | 4 | Estimation vendeur (`/vendre`) et génération de leads | Normal |
 | 5 | **Conformité LBA/KYC — screening PEP/Sanctions via Dilisense** | **Élevé** |
 | 6 | **Scoring comportemental IA (buyer/seller intelligence)** | **Élevé** |
-| 7 | Messagerie in-app (chat agents ↔ clients) | Normal |
+| 7 | Messagerie e-mail — boîte Gmail / Outlook de l'agent dans le CRM | Normal (⚠ à réévaluer, point ouvert n°5) |
 | 8 | Génération de documents (mandats, bons de visite, offres) | Normal |
 | 9 | Support client (tickets) | Normal |
 | 10 | Analytics PostHog (avec consentement) | Normal |
@@ -157,17 +157,33 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 
 ---
 
-## Activité n°7 — Messagerie in-app
+## Activité n°7 — Messagerie e-mail (boîte de l'agent dans le CRM)
+
+> **Activité réécrite le 13.09.2026.** Elle décrivait une « messagerie in-app agents ↔ clients »
+> dont les tables (`messages`, `message_threads`) ont été supprimées le 18.07.2026
+> (`20260718152000_audit_p2_drop_dead_tables`, « feature Messages retirée du CRM agent ») — et
+> ne disait rien de la Messagerie e-mail, en production depuis le 04.09.2026. Le copilote et son
+> transfert vers DeepSeek, que l'ancien texte citait, relèvent de l'activité #12.
+>
+> ⚠ **Dispositif en production, aucun traitement effectif à ce jour** : 0 boîte connectée
+> (mesuré le 13.09.2026). Aucune boîte ne peut d'ailleurs l'être tant que trois gestes hors
+> dépôt manquent (URI de retour et scope `gmail.modify` chez Google, inscription Entra ID et
+> secrets chez Microsoft — `CLAUDE.md` §8).
 
 | Champ | Valeur |
 |---|---|
-| **Finalité** | Permettre la communication entre l'agent, ses contacts CRM et le copilote MEGGA AI |
-| **Base légale** | Exécution du contrat (service SaaS) + consentement de la personne concernée pour les messages client |
-| **Catégories de données** | Contenu des messages, horodatage, statut de lecture, pièces jointes, identité des interlocuteurs |
-| **Sous-traitants** | Supabase (DB + Realtime) — eu-west-1 | **DeepSeek** (copilote IA) — **Chine** (uniquement pour les conversations IA) |
-| **Transferts hors Suisse/UE** | **DeepSeek (Chine)** — ⚠ **base de transfert non établie**. Les messages envoyés au copilote IA sont transmis à `api.deepseek.com`. La Chine ne bénéficie d'aucune décision d'adéquation, ni du Conseil fédéral (annexe 1 OPDo) ni de la Commission européenne. La politique de rétention et de réutilisation des prompts par le fournisseur n'est pas documentée à ce jour. |
-| **Durée de conservation** | Tant que la conversation est active + 2 ans après le dernier message |
-| **Mesures de sécurité** | RLS Supabase, audit trail via `activity_events` pour les conversations liées à un dossier KYC |
+| **Finalité** | Permettre à l'agent de lire, classer, envoyer et rattacher à la fiche d'un contact le courrier de **sa propre boîte** (Google Workspace / Gmail, Microsoft 365 / Outlook) sans quitter le CRM — objectifs « réduire le temps administratif » et « remplacer un outil fragmenté » |
+| **Base légale (art. 31 nLPD)** | Exécution du contrat (fonctionnalité SaaS que l'agent active lui-même par une autorisation OAuth). Pour les **correspondants** : intérêt légitime de l'agence à gérer sa correspondance professionnelle — le responsable du traitement de cette correspondance est **l'agence utilisatrice**, MEGGA agissant comme sous-traitant (art. 9 nLPD), comme pour l'activité #2. ⚠ **Qualification à faire valider** — voir point ouvert n°5 |
+| **Catégories de personnes concernées** | L'agent qui connecte sa boîte ; les membres de son agence si la boîte est partagée ; **tous ses correspondants** — clients, prospects, notaires, banques, et tout tiers qui écrit à la boîte ou y figure en copie, **CRM ou non** |
+| **Catégories de données** | **Connexion** : adresse et nom de la boîte, fournisseur, statut, visibilité, jetons OAuth (accès + rafraîchissement, dans Supabase Vault), curseurs de synchronisation. **Courrier** : expéditeur, destinataires, copie et copie cachée, objet, extrait, corps texte et HTML (plafonné à 512 Kio), dates, statuts lu / suivi / archivé, libellés du fournisseur. **Pièces jointes** : **métadonnées seules** (nom, type, taille) — les octets ne sont pas stockés, ils sont lus à la demande chez le fournisseur ; une pièce **classée au dossier** devient un document (activité #8, ou LBA si elle entre dans un dossier KYC). **Brouillons** de l'agent. **Adresses apprises** (« Rapprocher l'adresse » : adresse → contact). **États OAuth** transitoires (`state`, vérificateur PKCE, adresse). ⚠ Un courrier peut porter **incidemment** des données sensibles (santé, poursuites, situation financière) — voir point ouvert n°5 |
+| **Périmètre de la synchronisation** | Première passe sur **90 jours** — Gmail : `newer_than:90d`, hors spam, corbeille et chats ; Outlook : Réception et Éléments envoyés, 5 000 messages au plus par dossier — puis suivi incrémental toutes les 2 minutes (cron `mail-sync-2min`, 25 boîtes par tick). Toute la boîte dans cette fenêtre, pas seulement les contacts du CRM |
+| **Destinataires internes** | Le propriétaire de la boîte ; toute son agence si la boîte est partagée (`visibility = 'agency'`, décochée par défaut). **Le super-admin ne lit pas le courrier** (aucune policy sur `mail_messages`, décision D14). Le journal d'audit ne reçoit que le **fait** d'un courrier — trois identifiants et sa date, jamais l'objet ni une adresse (13.09.2026) |
+| **Profilage ou décision automatisée** | Non. Aucun outil IA ne lit le contenu du courrier (vérifié le 13.09.2026 : aucun code hors du module Messagerie ne lit `mail_messages` ni `mail_threads`). Seul le **fait** d'un échange (action et date) peut entrer dans le contexte du copilote par la timeline du contact — activité #12 |
+| **Sous-traitants** | Supabase (DB, Vault, Edge Functions, Realtime) — eu-west-1 Ireland · **Google** (Gmail API, scope `gmail.modify`) — États-Unis · **Microsoft** (Graph, `Mail.ReadWrite`, `Mail.Send`) — États-Unis |
+| **Transferts hors Suisse/UE** | Google + Microsoft (US) — base : DPF, comme l'activité #11. ⚠ **À qualifier** : ce sont les fournisseurs de la boîte de l'agent, sous son propre contrat avec eux ; MEGGA y lit et y envoie sur son autorisation, et la copie tenue par MEGGA reste en Irlande. **Aucun contenu vers DeepSeek.** |
+| **Durée de conservation** | **Tant que la boîte est connectée.** Aucune purge à l'âge : une suppression faite chez le fournisseur se répercute sur la copie. **Déconnexion** (par l'agent, ou par un administrateur ou un manager de l'agence) : jeton révoqué chez Google, secret effacé de Vault, puis fils, messages et métadonnées de pièces supprimés en cascade (D15, `disconnectMailAccount`). **Suppression du compte** de l'agent : même chemin, avant toute autre destruction (`delete-account`, étape 5c, 13.09.2026). États OAuth : 10 minutes, purgés un jour après expiration. Lignes `messaging` du journal d'audit : 3 ans (`purge_activity_events_retention`). Documents classés depuis un courrier : leur propre durée |
+| **Mesures de sécurité** | Jetons **jamais en colonne** : Supabase Vault, atteint par quatre ponts `SECURITY DEFINER` réservés au `service_role`. OAuth **code + PKCE** en pop-up, hors GoTrue. RLS sur les 9 tables `mail_*` (`mail_account_visible`) ; `SELECT` sur `mail_accounts` accordé colonne par colonne ; adresses apprises en service-role seul. Corps HTML assaini (DOMPurify) puis rendu dans une `iframe sandbox` sans scripts. Pièces servies par l'edge `mail-attachment` (jamais d'URL publique ; 25 Mio au plus ; type servi tiré d'une liste blanche). Journal d'audit sans contenu |
+| **Droits des personnes concernées** | **Agent** : déconnexion en libre-service (sélecteur de boîte de la Messagerie, « Déconnecter ») ; effacement par la suppression du compte. ⚠ **Accès : l'export DSAR (`admin-dsar-export`) ne rend pas les boîtes connectées** — écart déclaré dans `_shared/personal-data-estate.ts`, non tranché. **Correspondants** : ils exercent leurs droits auprès de l'agence, responsable de sa correspondance (activité #2) |
 
 ---
 
@@ -277,9 +293,9 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 | Dilisense | API screening PEP/Sanctions | Union Européenne | UE — décision d'adéquation | DPA signé |
 | Stripe | Traitement des paiements d'abonnement | États-Unis | SCCs + DPF | DPA via Terms |
 | Resend | Envoi d'emails transactionnels | États-Unis | SCCs | DPA via Terms |
-| Google LLC | Google Calendar API, Gemini : virtual staging, extraction PDF, **et OCR des pièces d'identité KYB** | États-Unis | DPF | DPA via Workspace Terms — ⚠ **portée à re-qualifier** (l'OCR de pièce d'identité dépasse l'usage initialement documenté) |
+| Google LLC | Google Calendar API, **Gmail API (Messagerie, activité #7)**, Gemini : virtual staging, extraction PDF, **et OCR des pièces d'identité KYB** | États-Unis | DPF | DPA via Workspace Terms — ⚠ **portée à re-qualifier** (l'OCR de pièce d'identité dépasse l'usage initialement documenté ; pour Gmail, Google est le fournisseur de la boîte de l'agent — voir point ouvert n°5) |
 | Stripe Identity | Vérification de pièce d'identité + contrôle du vivant (selfie) — activité #13 | États-Unis | SCCs + DPF | DPA via Terms |
-| Microsoft | Outlook Calendar / Graph API | États-Unis | DPF | DPA via Services Agreement |
+| Microsoft | Outlook Calendar / Graph API, **Graph Mail (Messagerie, activité #7)** | États-Unis | DPF | DPA via Services Agreement |
 | Mapbox | Cartographie | États-Unis | SCCs | DPA signé |
 | PostHog | Analytics | Union Européenne (`eu.posthog.com`) | UE — décision d'adéquation | DPA signé |
 | Cloudflare | Hébergement Pages, CDN, DNS | Suisse / International | DPA signé |
@@ -296,6 +312,7 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 - Row Level Security PostgreSQL sur toutes les tables sensibles
 - Storage buckets privés avec policies agency-scoped
 - Hashing bcrypt pour les mots de passe (via Supabase Auth)
+- Jetons OAuth de la Messagerie dans Supabase Vault, jamais en colonne — atteints par quatre ponts `SECURITY DEFINER` réservés au `service_role` ; révoqués et effacés à la déconnexion d'une boîte comme à la suppression du compte
 - Audit trail complet via table `activity_events`
 - Triggers de rétention LBA 10 ans sur documents KYC
 - Séparation des environnements (dev / prod)
@@ -312,17 +329,18 @@ Les activités marquées **risque élevé** (#5, #6 et #13) font l'objet d'une *
 
 ---
 
-## Points ouverts — relevés le 06.08.2026
+## Points ouverts — relevés le 06.08.2026 (n°5 le 13.09.2026)
 
-Ces quatre points sont des écarts **constatés dans le code**, pas des hypothèses. Ils appellent
+Ces cinq points sont des écarts **constatés dans le code**, pas des hypothèses. Ils appellent
 un arbitrage avant d'affirmer la conformité du dispositif à un client ou à un auditeur.
 
 | # | Écart | Effet | Qui tranche |
 |---|---|---|---|
-| 1 | **DeepSeek (Chine) reçoit toute l'inférence texte sans base de transfert ni DPA** | Transfert vers un État sans décision d'adéquation. Concerne les activités #2, #7, #9, #12 | Direction + conseil juridique |
+| 1 | **DeepSeek (Chine) reçoit toute l'inférence texte sans base de transfert ni DPA** | Transfert vers un État sans décision d'adéquation. Concerne les activités #2, #9, #12. ⚠ Ce point citait aussi #7, qui décrivait alors une messagerie in-app avec copilote ; la Messagerie e-mail n'envoie **aucun contenu** à DeepSeek — seul le fait d'un échange (action et date) peut entrer au contexte du copilote, par #12 | Direction + conseil juridique |
 | 2 | ~~L'image de pièce d'identité KYB n'a ni rétention ni purge~~ → **RÉGLÉ le 06.08.2026** : purge au verdict, échéance de sécurité à 90 jours, destruction attestée. **Reste ouvert** : (a) la portée de la LBA sur l'onboarding d'agence — si elle imposait une conservation, c'est `kyb_identity_retention_days()` qui change, pas le dispositif ; (b) les données DÉCLARÉES (`agency_related_persons`) ont désormais un chemin d'effacement (07.08.2026) mais toujours **aucune durée** tant que le compte vit — rien ne les périme si personne ne demande rien | (a) conseil juridique · (b) direction (durée) |
 | 3 | **Gemini lit les pièces d'identité sous un DPA qui visait le staging de photos** | Portée contractuelle dépassée pour un traitement bien plus sensible | Direction + Google Workspace |
 | 4 | **La DPIA ne couvre pas le KYB ni le contrôle du vivant** | Traitement à risque élevé sans analyse d'impact, alors que la nLPD l'exige | Direction + conseil juridique |
+| 5 | **Messagerie e-mail (activité #7) : quatre questions ouvertes avant la première boîte réelle.** (a) **Rôle de MEGGA** : sous-traitant de l'agence pour la correspondance — le DPA avec chaque agence doit alors couvrir la Messagerie, et l'information des correspondants (art. 19 nLPD) incombe à l'agence ; la connexion elle-même (adresse, jetons) est déclarée côté responsable dans `personal-data-estate.ts`. (b) **Accès** : l'export DSAR ne rend pas les boîtes connectées. (c) **Durée** : aucune borne à l'âge tant que la boîte est connectée — la copie suit le fournisseur. (d) **Risque** : une boîte peut porter incidemment des données sensibles de tiers — l'opportunité d'une DPIA est à trancher ; et le scope `gmail.modify` est **restreint** chez Google (évaluation de sécurité CASA exigée avant l'ouverture au-delà de 100 utilisateurs) | Copies de correspondance de tiers tenues sans cadre contractuel ni durée écrits ; droit d'accès incomplet pour l'agent | Direction + conseil juridique (a, d) · direction (b, c) |
 
 **Réglé le 07.08.2026** — `admin-dsar-export` et `delete-account` ne se recoupaient plus que sur
 deux tables : on pouvait exporter ce qui n'était jamais effacé, et inversement. Le périmètre est
