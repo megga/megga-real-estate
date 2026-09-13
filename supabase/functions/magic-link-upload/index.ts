@@ -15,13 +15,13 @@
 //
 // Refus — chacun porte un `reason` que la page publique traduit, JAMAIS le texte d'une
 // erreur de base ou de stockage (un appelant anonyme n'a rien à apprendre de nos internes) :
-//   411 length_required · 413 too_large · 409 upload_limit · 409 not_uploadable
+//   413 too_large · 409 upload_limit · 409 not_uploadable
 //   400 format / empty · 410 expired · 401 invalid
 //
 // Logique :
 //   1. Vérifie HMAC token
 //   2. Charge le lien magique (DB) + valide qu'il est uploadable
-//   3. Borne le corps AVANT de le lire (Content-Length exigé) et compte les pièces du lien
+//   3. Borne le corps (longueur déclarée, puis lecture comptée) et compte les pièces du lien
 //   4. Valide le fichier (taille, MIME, nom) et le volume cumulé du lien
 //   5. Calcule SHA-256 du contenu
 //   6. Upload vers bucket `kyc-magic-link` path `{agency_id}/{magic_link_id}/{ts}_{safeName}`
@@ -44,8 +44,10 @@ import {
   MAX_BYTES_PER_LINK,
   MAX_FILE_BYTES,
   MAX_FILES_PER_LINK,
+  MAX_REQUEST_BYTES,
   exceedsLinkCaps,
   screenUploadRequest,
+  lireFormulaireBorne,
 } from '../_shared/magic-link-limits.ts'
 
 // `x-magic-link-token` DOIT figurer ici : l'appel vient d'un navigateur en
@@ -198,15 +200,12 @@ serve(async (req) => {
     return reponse({ error: 'Link expired', reason: 'expired' }, 410)
   }
 
-  // 3. Le corps est borné AVANT d'être lu. `req.formData()` tamponne tout : sans
-  //    Content-Length, un envoi chunked n'aurait aucune limite — exactement ce que le
-  //    plafond devait empêcher. Un navigateur envoie toujours la longueur d'un FormData.
+  // 3. Le corps est borné. Une longueur DÉCLARÉE trop grande est refusée sans rien lire ;
+  //    sinon la lecture elle-même compte les octets (lireFormulaireBorne) — la passerelle
+  //    peut retirer Content-Length, et l'exiger couperait tous les dépôts.
   const tri = screenUploadRequest(req.headers.get('content-length'))
   if (!tri.ok) {
-    return reponse(
-      { error: tri.status === 411 ? 'Content-Length required' : 'file too large', reason: tri.reason },
-      tri.status,
-    )
+    return reponse({ error: 'file too large', reason: tri.reason }, tri.status)
   }
 
   //    Plafond de pièces vérifié AVANT de lire le corps et d'écrire en stockage : un lien
@@ -229,10 +228,12 @@ serve(async (req) => {
     return refusPlafond()
   }
 
-  // 4. Parse multipart
+  // 4. Parse multipart, lecture bornée au plafond de requête.
   let form: FormData
   try {
-    form = await req.formData()
+    const lu = await lireFormulaireBorne(req, MAX_REQUEST_BYTES)
+    if (lu === 'trop_grand') return reponse({ error: 'file too large', reason: 'too_large' }, 413)
+    form = lu
   } catch {
     return reponse({ error: 'multipart/form-data required' }, 400)
   }

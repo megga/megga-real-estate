@@ -191,12 +191,13 @@ describe('plafonds — trois copies, une valeur', () => {
 describe('magic-link-upload — les contrôles précèdent la lecture et l’écriture', () => {
   const code = sansCommentairesTs(lire('supabase/functions/magic-link-upload/index.ts'))
 
-  it('le Content-Length est trié AVANT `req.formData()`', () => {
-    expect(avant(code, 'screenUploadRequest(', 'req.formData()')).toBe(true)
+  it('le Content-Length est trié AVANT la lecture, et la lecture est BORNÉE (jamais `req.formData()` nu)', () => {
+    expect(avant(code, 'screenUploadRequest(', 'lireFormulaireBorne(')).toBe(true)
+    expect(code).not.toContain('req.formData()')
   })
 
   it('le plafond de pièces est vérifié AVANT le formData ET avant l’écriture en stockage', () => {
-    expect(avant(code, />=\s*MAX_FILES_PER_LINK/, 'req.formData()')).toBe(true)
+    expect(avant(code, />=\s*MAX_FILES_PER_LINK/, 'lireFormulaireBorne(')).toBe(true)
     expect(avant(code, />=\s*MAX_FILES_PER_LINK/, ".from('kyc-magic-link')")).toBe(true)
   })
 

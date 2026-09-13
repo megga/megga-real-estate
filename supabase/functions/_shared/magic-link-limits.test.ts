@@ -1,9 +1,12 @@
+// @vitest-environment node
+// (Node et non jsdom : l'analyseur multipart de Node exige SES File/FormData, que jsdom
+// remplace — le module testé est du code Deno, où les deux sont les mêmes.)
 /**
  * Plafonds d'un lien magique KYC (audit S10, 13.09.2026) : le tri d'une requête avant lecture
  * du corps, et la frontière exacte des deux plafonds par lien.
  *
  * Chaque refus est confronté à son témoin juste en deçà : un tri qui refuserait TOUT
- * (411 pour tout le monde) passerait les tests de refus, pas ceux-là.
+ * passerait les tests de refus, pas ceux-là.
  */
 import { describe, it, expect } from 'vitest'
 import {
@@ -14,18 +17,21 @@ import {
   MAX_FILES_PER_LINK,
   MAX_REQUEST_BYTES,
   exceedsLinkCaps,
+  lireFormulaireBorne,
   screenUploadRequest,
 } from './magic-link-limits.ts'
 
-describe('screenUploadRequest — le corps est borné AVANT d’être lu', () => {
-  it('sans Content-Length → 411 (un envoi chunked n’aurait aucune borne)', () => {
-    expect(screenUploadRequest(null)).toEqual({ ok: false, status: 411, reason: 'length_required' })
-    expect(screenUploadRequest('')).toEqual({ ok: false, status: 411, reason: 'length_required' })
+describe('screenUploadRequest — une longueur déclarée trop grande est refusée sans lecture', () => {
+  it('sans Content-Length : PAS de refus — la lecture elle-même est bornée (lireFormulaireBorne)', () => {
+    // Exiger l'en-tête (411) couperait TOUS les dépôts le jour où la passerelle réécrit un
+    // corps en chunked et le retire.
+    expect(screenUploadRequest(null)).toEqual({ ok: true, declaredBytes: null })
+    expect(screenUploadRequest('')).toEqual({ ok: true, declaredBytes: null })
   })
 
-  it('une longueur illisible vaut une absence → 411', () => {
+  it('une longueur illisible vaut une absence — la lecture bornée tranchera', () => {
     for (const v of ['abc', '-1', '1.5', '12abc', '0x10', '1e6']) {
-      expect(screenUploadRequest(v), v).toEqual({ ok: false, status: 411, reason: 'length_required' })
+      expect(screenUploadRequest(v), v).toEqual({ ok: true, declaredBytes: null })
     }
   })
 
@@ -75,5 +81,60 @@ describe('listes fermées', () => {
     const ouverts: readonly string[] = MAGIC_LINK_OPEN_STATUSES
     expect(ouverts).not.toContain('submitted')
     expect(ouverts).not.toContain('expired')
+  })
+})
+
+describe('lireFormulaireBorne — la lecture compte les octets', () => {
+  // Corps multipart écrit à la main : sous jsdom, un FormData de l'environnement n'est pas
+  // reconnu par le Request de Node — en production (Deno), les deux sont les mêmes.
+  const FRONTIERE = '----sonde-s10'
+  const enc = new TextEncoder()
+  function corpsMultipart(octets: number): Uint8Array {
+    const tete = enc.encode(
+      `--${FRONTIERE}\r\nContent-Disposition: form-data; name="type"\r\n\r\nid_front\r\n` +
+      `--${FRONTIERE}\r\nContent-Disposition: form-data; name="file"; filename="piece.pdf"\r\n` +
+      'Content-Type: application/pdf\r\n\r\n',
+    )
+    const fin = enc.encode(`\r\n--${FRONTIERE}--\r\n`)
+    const tout = new Uint8Array(tete.length + octets + fin.length)
+    tout.set(tete, 0)
+    tout.fill(65, tete.length, tete.length + octets)
+    tout.set(fin, tete.length + octets)
+    return tout
+  }
+  // Un corps en FLUX, par morceaux de 16 Kio, SANS Content-Length : ce qu'une passerelle
+  // peut transmettre.
+  function requeteFlux(octets: number): Request {
+    const corps = corpsMultipart(octets)
+    const flux = new ReadableStream<Uint8Array>({
+      start(c) {
+        for (let i = 0; i < corps.length; i += 16 * 1024) c.enqueue(corps.slice(i, i + 16 * 1024))
+        c.close()
+      },
+    })
+    return new Request('https://exemple.test/upload', {
+      method: 'POST',
+      body: flux,
+      headers: { 'content-type': `multipart/form-data; boundary=${FRONTIERE}` },
+      duplex: 'half',
+    } as RequestInit)
+  }
+
+  it('TÉMOIN — un formulaire sous le plafond est lu en entier, fichier compris', async () => {
+    const lu = await lireFormulaireBorne(requeteFlux(2048), 64 * 1024)
+    expect(lu).not.toBe('trop_grand')
+    const fichier = (lu as FormData).get('file') as unknown as { size: number; name: string }
+    expect(fichier.size).toBe(2048)
+    expect(fichier.name).toBe('piece.pdf')
+    expect((lu as FormData).get('type')).toBe('id_front')
+  })
+
+  it('au-delà du plafond, sans Content-Length : la lecture est coupée → « trop_grand »', async () => {
+    expect(await lireFormulaireBorne(requeteFlux(200 * 1024), 64 * 1024)).toBe('trop_grand')
+  })
+
+  it('un corps qui n’est pas un formulaire jette (400 chez l’appelant), il ne passe pas pour vide', async () => {
+    const r = new Request('https://exemple.test/upload', { method: 'POST', body: 'pas un formulaire', headers: { 'content-type': 'text/plain' } })
+    await expect(lireFormulaireBorne(r, 64 * 1024)).rejects.toThrow()
   })
 })

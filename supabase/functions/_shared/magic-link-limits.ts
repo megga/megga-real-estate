@@ -58,26 +58,51 @@ export const MAGIC_LINK_OPEN_STATUSES = ['pending', 'opened', 'uploading', 'veri
 
 /** Verdict du tri d'une requête de dépôt sur son seul `Content-Length`. */
 export type UploadRequestScreen =
-  | { ok: true; declaredBytes: number }
-  | { ok: false; status: 411; reason: 'length_required' }
+  | { ok: true; declaredBytes: number | null }
   | { ok: false; status: 413; reason: 'too_large' }
 
 /**
- * Tri d'une requête de dépôt AVANT d'en lire le corps.
+ * Tri d'une requête de dépôt AVANT d'en lire le corps : une longueur DÉCLARÉE au-delà du
+ * plafond est refusée (413) sans rien lire.
  *
- * `req.formData()` tamponne tout le corps. Sans `Content-Length`, un envoi `chunked` n'aurait
- * aucune borne : c'est exactement ce que le plafond devait empêcher. Un navigateur envoie
- * toujours la longueur d'un `FormData` — l'exiger (411) ne coûte donc rien au parcours réel.
- * Une valeur illisible (négative, décimale, non numérique) vaut une absence : on ne borne pas
- * une lecture sur un nombre qu'on ne comprend pas.
+ * Une longueur absente ou illisible n'est PAS refusée : la passerelle devant les edge
+ * functions peut réécrire un corps en `chunked` et retirer l'en-tête, et exiger celui-ci
+ * (411) couperait alors TOUS les dépôts. La borne ne repose donc pas sur cet en-tête : le
+ * corps est de toute façon lu par `lireFormulaireBorne`, qui compte les octets et coupe au
+ * plafond — une longueur annoncée n'est qu'un raccourci, et un mensonge ne franchit rien.
  */
 export function screenUploadRequest(contentLength: string | null): UploadRequestScreen {
   const brut = (contentLength ?? '').trim()
-  if (!/^\d+$/.test(brut)) return { ok: false, status: 411, reason: 'length_required' }
+  if (!/^\d+$/.test(brut)) return { ok: true, declaredBytes: null }
   const declared = Number(brut)
   if (!Number.isSafeInteger(declared)) return { ok: false, status: 413, reason: 'too_large' }
   if (declared > MAX_REQUEST_BYTES) return { ok: false, status: 413, reason: 'too_large' }
   return { ok: true, declaredBytes: declared }
+}
+
+/**
+ * Lit le `multipart/form-data` d'une requête en COMPTANT les octets : au-delà de `max`, la
+ * lecture est coupée et la fonction rend `'trop_grand'`. `req.formData()` tamponnerait tout,
+ * sans borne, sur un envoi dont la longueur n'est pas annoncée. Jette si le corps n'est pas
+ * un formulaire lisible (à traiter en 400 par l'appelant).
+ */
+export async function lireFormulaireBorne(req: Request, max: number): Promise<FormData | 'trop_grand'> {
+  if (!req.body) return await req.formData()
+  let lus = 0
+  const borne = new TransformStream<Uint8Array, Uint8Array>({
+    transform(morceau, ctrl) {
+      lus += morceau.byteLength
+      if (lus > max) ctrl.error(new Error('trop_grand'))
+      else ctrl.enqueue(morceau)
+    },
+  })
+  const corps = req.body.pipeThrough(borne)
+  try {
+    return await new Response(corps, { headers: { 'content-type': req.headers.get('content-type') ?? '' } }).formData()
+  } catch (e) {
+    if (lus > max) return 'trop_grand'
+    throw e
+  }
 }
 
 /**
