@@ -3,8 +3,9 @@
 // On utilise fetch direct vers les Edge functions, qui vérifient HMAC token.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { MagicLinkPublicView } from '@/types/magicLink'
+import type { MagicLinkPublicView, MagicLinkSubmittedView } from '@/types/magicLink'
 import { SUPABASE_FUNCTIONS_URL, SUPABASE_PUBLIC_ANON_KEY } from '@/lib/supabase'
+import { MagicLinkUploadError } from '@/lib/magicLinkUploadErrors'
 
 /**
  * ⛔ L'URL DES FONCTIONS VIENT DE `lib/supabase`, JAMAIS D'UNE LECTURE NUE DE
@@ -48,14 +49,15 @@ export interface MagicLinkLoadError {
 // ─── GET — Vue publique du lien (status, contact, agency, agent, uploads) ──
 
 /**
- * Vue publique d'un lien magique (statut, contact, agence, agent, uploads).
+ * Vue publique d'un lien magique (statut, contact, agence, agent, uploads) — ou, pour un
+ * lien déjà soumis, sa forme réduite sans aucune donnée de personne.
  * Renvoie un `MagicLinkLoadError` typé au lieu de throw sur réponse non-OK ;
  * pas de retry sur 401/410/404 (token invalide ou expiré).
  */
 export function useMagicLinkClient(token: string | undefined) {
   return useQuery({
     queryKey: ['magic-link-client', token],
-    queryFn: async (): Promise<MagicLinkPublicView | MagicLinkLoadError> => {
+    queryFn: async (): Promise<MagicLinkPublicView | MagicLinkSubmittedView | MagicLinkLoadError> => {
       if (!token) throw new Error('No token')
       const res = await fetch(`${SUPABASE_URL}/functions/v1/magic-link-get`, {
         headers: tokenHeaders(token),
@@ -67,7 +69,7 @@ export function useMagicLinkClient(token: string | undefined) {
         }
         return { status: res.status, ...body }
       }
-      return (await res.json()) as MagicLinkPublicView
+      return (await res.json()) as MagicLinkPublicView | MagicLinkSubmittedView
     },
     enabled: !!token,
     staleTime: 10_000,
@@ -97,7 +99,11 @@ export interface UploadResponse {
   status: 'received'
 }
 
-/** Téléverse une pièce (multipart) côté client ; rafraîchit la vue du lien au succès. */
+/**
+ * Téléverse une pièce (multipart) côté client ; rafraîchit la vue du lien au succès.
+ * Un refus lève un `MagicLinkUploadError` qui ne porte que la CATÉGORIE du refus (statut +
+ * `reason` du corps) : la page traduit la catégorie, elle n'affiche jamais le corps reçu.
+ */
 export function useMagicLinkUploadClient() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -111,8 +117,8 @@ export function useMagicLinkUploadClient() {
         body: form,
       })
       if (!res.ok) {
-        const errBody = await res.text()
-        throw new Error(`Upload failed: HTTP ${res.status} ${errBody}`)
+        const body = (await res.json().catch(() => null)) as { reason?: unknown } | null
+        throw new MagicLinkUploadError(res.status, typeof body?.reason === 'string' ? body.reason : null)
       }
       return (await res.json()) as UploadResponse
     },

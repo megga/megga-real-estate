@@ -17,7 +17,7 @@
  * expire « le 21.08.2026 » devient un jeton expiré le lendemain, et l'écran
  * bascule sans que personne ait touché au code.
  */
-import type { MagicLinkPublicView } from '@/types/magicLink'
+import type { MagicLinkPublicView, MagicLinkSubmittedView } from '@/types/magicLink'
 import type { PublicAppointment, SlotsView } from '@/hooks/useAppointmentBooking'
 import type { ReceptionBien } from '@/hooks/useBuyerReception'
 
@@ -28,17 +28,27 @@ const jours = (n: number) => new Date(Date.now() + n * 86_400_000).toISOString()
 
 /* ─── `/kyc/:token` — magic-link-get ─────────────────────────────────────────── */
 
-export function mlkVue(etat: PublicEtat): MagicLinkPublicView {
+/**
+ * La réponse de `magic-link-get`, dans la forme EXACTE que sert la production.
+ *
+ * ⚠ « Terminé » rend la forme d'un lien SOUMIS — `{status, confirmed_at, message}`, sans
+ * aucun nom — et non une vue complète marquée `submitted`, que le serveur n'a jamais
+ * servie. L'écran de succès et la prise de rendez-vous qui suivent montrent donc leurs
+ * REPLIS (« cher client », « votre agent »). Ce n'est pas une fixture incomplète : c'est ce
+ * que voit la cliente après sa soumission. Le banc le montrait nommé, et le cachait.
+ */
+export function mlkVue(etat: PublicEtat): MagicLinkPublicView | MagicLinkSubmittedView {
+  if (etat === 'termine') {
+    return { status: 'submitted', confirmed_at: jours(0), message: 'Dossier déjà soumis. Merci !' }
+  }
   return {
     magic_link_id: 'demo-magic-link',
-    // `submitted` amène l'écran de succès puis la prise de rendez-vous ;
     // `expired` amène `MlkExpired`. `opened` est le parcours de dépôt.
-    status: etat === 'termine' ? 'submitted' : etat === 'expire' ? 'expired' : 'opened',
+    status: etat === 'expire' ? 'expired' : 'opened',
     mode: 'libre',
-    custom_message: null,
     expires_at: jours(etat === 'expire' ? -1 : 6),
-    contact: { first_name: 'Démo', last_name: 'Démo' },
-    agency: { name: 'Agence Démo', slug: 'agence-demo' },
+    contact: { first_name: 'Démo' },
+    agency: { name: 'Agence Démo' },
     agent: { full_name: 'Agent Démo' },
     uploads: [],
   }

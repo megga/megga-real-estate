@@ -12,10 +12,20 @@
 //
 // Output (200) :
 //   { status: 'submitted', confirmed_at: ISO, magic_link_id: string }
+//
+// CYCLE DE VIE À SENS UNIQUE (audit du 13.09.2026, point S10). Ordre des contrôles :
+// jeton → déjà soumis (200 idempotent) → expiré, par le statut OU par la date (410).
+// L'expiration passait AVANT la soumission : reconfirmer un dossier soumis dont la date
+// était échue le réécrivait en « expiré ». Et seule la DATE était lue — un lien passé à
+// `expired` avant son échéance (le seul levier de révocation qui existe aujourd'hui)
+// pouvait encore être soumis, et basculait le dossier en revue. Toute écriture de statut
+// filtre désormais sur les statuts OUVERTS (MAGIC_LINK_OPEN_STATUSES) : ni un lien
+// révoqué, ni un lien expiré ne devient `submitted`, et un `submitted` ne redevient rien.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { verifyMagicLinkToken } from '../_shared/magic-link-token.ts'
+import { MAGIC_LINK_OPEN_STATUSES } from '../_shared/magic-link-limits.ts'
 
 // `x-magic-link-token` DOIT figurer ici : l'appel vient d'un navigateur en
 // cross-origin, et un en-tête absent de cette liste fait échouer le preflight —
@@ -88,22 +98,29 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-  if (new Date(link.expires_at) <= new Date()) {
-    await supabase
-      .from('kyc_magic_links')
-      .update({ status: 'expired', expired_at: new Date().toISOString() })
-      .eq('id', magicLinkId)
-    return new Response(JSON.stringify({ error: 'Link expired' }), {
-      status: 410,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
+  // Déjà soumis — AVANT l'expiration : un dossier soumis ne doit jamais être réécrit en
+  // « expiré », même si sa date est échue quand la cliente reclique.
   if (link.status === 'submitted') {
     // Idempotent : pas d'erreur, on retourne le status actuel
     return new Response(
       JSON.stringify({ status: 'submitted', magic_link_id: link.id, idempotent: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
+  }
+  // Expiré par le STATUT (lien révoqué avant terme) ou par la DATE : les deux refusent.
+  if (link.status === 'expired' || new Date(link.expires_at) <= new Date()) {
+    if (link.status !== 'expired') {
+      // Filtré sur les statuts ouverts : une soumission concurrente gagne, elle.
+      await supabase
+        .from('kyc_magic_links')
+        .update({ status: 'expired', expired_at: new Date().toISOString() })
+        .eq('id', magicLinkId)
+        .in('status', [...MAGIC_LINK_OPEN_STATUSES])
+    }
+    return new Response(JSON.stringify({ error: 'Link expired', reason: 'expired' }), {
+      status: 410,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
   // Vérifie qu'il y a au moins 1 upload (sinon "submit vide" — refus)
@@ -149,29 +166,44 @@ serve(async (req) => {
       .eq('magic_link_id', link.id)
   }
 
-  // Transition status → submitted (guard race condition : refuse l'UPDATE
-  // si un confirm concurrent a déjà basculé le lien).
+  // Transition status → submitted, et SEULEMENT depuis un statut ouvert : refuse l'UPDATE
+  // si un confirm concurrent a déjà basculé le lien, ET si le lien a été expiré (ou révoqué)
+  // entre la lecture et cette écriture. `.neq('submitted')` laissait passer ce second cas.
   const { data: updated, error: updErr } = await supabase
     .from('kyc_magic_links')
     .update({ status: 'submitted', confirmed_at: confirmedAt })
     .eq('id', link.id)
-    .neq('status', 'submitted')
+    .in('status', [...MAGIC_LINK_OPEN_STATUSES])
     .select('id')
 
   if (updErr) {
+    // Le texte de l'erreur Postgres reste dans nos journaux, jamais dans la réponse publique.
+    console.error('magic-link-confirm transition', { link_id: link.id, message: updErr.message })
     return new Response(
-      JSON.stringify({ error: 'submit update failed', details: updErr.message }),
+      JSON.stringify({ error: 'submit update failed' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   }
 
-  // Si 0 ligne touchée → un confirm concurrent a gagné la course.
-  // On répond OK idempotent (le client n'a pas besoin de savoir).
+  // Si 0 ligne touchée : soit un confirm concurrent a gagné la course (le lien est
+  // `submitted` — réponse idempotente, le client n'a pas besoin de savoir), soit le lien est
+  // devenu terminal autrement (expiré, révoqué) — et alors ce n'est PAS une soumission.
   if (!updated || updated.length === 0) {
-    return new Response(
-      JSON.stringify({ status: 'submitted', magic_link_id: link.id, idempotent: true }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
+    const { data: actuel } = await supabase
+      .from('kyc_magic_links')
+      .select('status')
+      .eq('id', link.id)
+      .maybeSingle()
+    if (actuel?.status === 'submitted') {
+      return new Response(
+        JSON.stringify({ status: 'submitted', magic_link_id: link.id, idempotent: true }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+    return new Response(JSON.stringify({ error: 'Link expired', reason: 'expired' }), {
+      status: 410,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
   // Bascule le KycDossier en 'pending' (mode 'to-review' — l'agent doit valider).

@@ -72,15 +72,20 @@ serve(async (req) => {
   // 1) Crypto d'abord.
   const verified = await verifyMagicLinkToken(token)
   if (!verified.valid || !verified.payload) {
+    // Motif réduit à expired/invalid (audit S10, 13.09.2026) : le motif interne de la
+    // vérification (`no_secret`, `malformed`, `invalid_signature`) renseignerait un appelant
+    // anonyme sur le déploiement et sur la grammaire du jeton. Même règle que magic-link-get.
+    const expire = verified.reason === 'expired'
     return json(
-      { error: verified.reason === 'expired' ? 'Link expired' : 'Invalid link', reason: verified.reason },
-      verified.reason === 'expired' ? 410 : 401,
+      { error: expire ? 'Link expired' : 'Invalid link', reason: expire ? 'expired' : 'invalid' },
+      expire ? 410 : 401,
     )
   }
   // Un jeton de GESTION de rendez-vous (k='appt') ne réserve pas : son `id`
   // désigne un rendez-vous, pas un lien magique. Sans ce contrôle, la sécurité
   // reposerait sur le fait que les UUID des deux tables ne se croisent pas.
-  if (verified.payload.k === 'appt') return json({ error: 'Invalid link', reason: 'wrong_token_kind' }, 401)
+  // Même ensemble fermé de motifs : pour l'appelant, c'est un lien invalide ICI.
+  if (verified.payload.k === 'appt') return json({ error: 'Invalid link', reason: 'invalid' }, 401)
 
   const db = createClient(
     Deno.env.get('SUPABASE_URL') ?? '',

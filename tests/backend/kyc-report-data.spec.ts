@@ -105,7 +105,7 @@ describe.skipIf(!HAS_KEYS || !HAS_HMAC)('kyc-report-data — token validation + 
   let caseId: string
 
   // Sign function — loaded dynamically with Deno shim set first.
-  type SignFn = (payload: { id: string; exp: number; p?: string }) => Promise<string>
+  type SignFn = (payload: { id: string; exp: number; p?: string; k?: 'appt' | 'wa_optin' | 'unsub' }) => Promise<string>
   let signToken: SignFn
 
   beforeAll(async () => {
@@ -206,6 +206,24 @@ describe.skipIf(!HAS_KEYS || !HAS_HMAC)('kyc-report-data — token validation + 
     const json = await res.json()
     expect(json).toHaveProperty('error')
     expect(String(json.error)).toMatch(/invalid token.*expired|expired/i)
+  })
+
+  // Audit S10 (13.09.2026) : le même secret signe des jetons longs (lien KYC 7-30 j, réception
+  // acheteur jusqu'à 90 j, désinscription 365 j). Seul un jeton de RENDU — sans `k`, à moins de
+  // dix minutes de son échéance — ouvre le rapport. Le témoin est le 200 du premier test de ce
+  // bloc, signé à +300 s sur le MÊME dossier.
+  it('validly-signed token carrying a `k` claim → 401, even for the right dossier', async () => {
+    const token = await signToken({ id: caseId, exp: now() + 300, k: 'unsub' })
+    const res = await post({ token })
+    expect(res.status).toBe(401)
+    expect(String(((await res.json()) as { error?: unknown }).error)).toBe('invalid token')
+  })
+
+  it('validly-signed token living longer than a render token (a KYC link, 7 days) → 401', async () => {
+    const token = await signToken({ id: caseId, exp: now() + 7 * 86_400 })
+    const res = await post({ token })
+    expect(res.status).toBe(401)
+    expect(String(((await res.json()) as { error?: unknown }).error)).toBe('invalid token')
   })
 
   it('validly-signed token for non-existent dossier → 404', async () => {

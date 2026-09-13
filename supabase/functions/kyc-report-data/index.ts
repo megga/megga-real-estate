@@ -7,10 +7,20 @@
 // Renvoie la forme `BuildReportInput` (src/components/kyc-report/buildReportData.ts)
 // moins l'empreinte SHA-256, que le navigateur qui rend calcule lui-même à partir
 // de cette matière — la même règle que l'aperçu de l'agent.
+//
+// ⛔ SEUL UN JETON DE RENDU OUVRE CE RAPPORT (audit du 13.09.2026, point S10). Le même secret
+// signe des jetons qui vivent des jours ou des mois (liens KYC, réception acheteur,
+// désinscription) : n'importe lequel, s'il était accepté ici, désignerait un `kyc_cases.id`
+// sans aucun jeton stocké à confronter — seule la non-collision des UUID protégeait le
+// seul endpoint porteur qui serve de l'IDENTITÉ. `isReportTokenPayload` refuse tout `k` et
+// toute échéance à plus de dix minutes (_shared/kyc-report-token.ts). Et le motif interne
+// ne sort plus : `no_secret` / `malformed` renseignaient un appelant anonyme sur le
+// déploiement et sur la grammaire du jeton ; seul « expiré » reste distingué.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { verifyMagicLinkToken } from '../_shared/magic-link-token.ts'
+import { isReportTokenPayload } from '../_shared/kyc-report-token.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,7 +52,14 @@ serve(async (req) => {
     if (!token) return json({ error: 'token required' }, 400)
 
     const v = await verifyMagicLinkToken(token)
-    if (!v.valid || !v.payload) return json({ error: `invalid token: ${v.reason ?? 'unknown'}` }, 401)
+    if (!v.valid || !v.payload) {
+      return json({ error: v.reason === 'expired' ? 'invalid token: expired' : 'invalid token' }, 401)
+    }
+    // Signature valide, mais un jeton d'une AUTRE famille (discriminant `k`) ou d'une autre
+    // durée de vie qu'un rendu : même réponse qu'un jeton invalide, rien à distinguer.
+    if (!isReportTokenPayload(v.payload, Math.floor(Date.now() / 1000))) {
+      return json({ error: 'invalid token' }, 401)
+    }
     const dossierId = v.payload.id
     const requesterProfileId = v.payload.p ?? null
 
