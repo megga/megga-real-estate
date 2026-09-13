@@ -132,34 +132,44 @@ const SURFACES_EXEMPTEES: { fichier: string; motif: string }[] = [
  * vieillit, et le lot suivant y réintroduirait ce que le précédent a retiré.
  */
 /*
- * ⚠ `src/components/megga-x-crm` N'Y FIGURE PAS, et ce n'est pas un oubli : les
- * barreaux sont DÉRIVÉS de ce dossier, donc chacun de ses littéraux en est un par
- * construction. Sa ligne vaudrait toujours zéro. L'inscrire ferait rougir la
- * clause « aucune entrée ne garde de crédit » à chaque exécution.
+ * ⚠ `src/components/megga-x-crm` Y FIGURE DEPUIS LE 13.09.2026, et pour ses seuls
+ * onze littéraux de `statut.ts`. Les barreaux sont dérivés de `tokens.ts` et de
+ * lui SEUL : chacun de ses littéraux en est un par construction, et il compte
+ * zéro. `statut.ts` est posé À CÔTÉ exprès — y écrire ses teintes Tailwind les
+ * ferait passer pour des barreaux dans tout le dépôt.
  */
 const HORS_ASSUMES = new Map<string, number>([
-  ['src/components/crm', 534],
-  ['src/components/crm-mobile', 141],
-  ['src/components/crm-dossiers', 68],
-  ['src/components/crm-wizard', 48],
+  // Sept zones descendent le 13.09.2026, vingt-trois littéraux en tout : les
+  // encres d'état sur blanc (#B91C1C, #B45309, #047857) importent désormais
+  // `STATUT_CLAIR` au lieu d'être recopiées — garde : `statut-clair.spec.ts`.
+  ['src/components/crm', 528],
+  ['src/components/crm-mobile', 140],
+  ['src/components/crm-dossiers', 60],
+  ['src/components/crm-wizard', 47],
   ['src/components/propertyx', 40],
   ['src/components/listings', 37],
   ['src/pages/dev', 26],
   ['src/pages/agent', 4],
-  ['src/components/kyc-magic-link', 24],
+  // 24 → 13 et +11 sous `megga-x-crm` le 13.09.2026 : un TRANSFERT, pas une
+  // croissance. La famille qui encode (ex-`MLK_STATUT`) a quitté les jetons de
+  // la face publique pour `megga-x-crm/statut.ts` — mêmes onze valeurs, total
+  // du dépôt inchangé. Puis 13 → 11 le même jour : `MlkScreens` importe l'encre
+  // d'erreur au lieu de la recopier.
+  ['src/components/kyc-magic-link', 11],
+  ['src/components/megga-x-crm', 11],
   ['src/components/auth-bento', 22],
   // 22 → 4 le 13.09.2026 : le concept épuré du rapport n'a plus que quatre gris
   // d'imprimé (encre douce, sourdine, deux filets), tous dans tokens.ts.
   ['src/components/kyc-report', 4],
   ['src/components/matching-recherche', 23],
   ['src/components/ai-copilot', 14],
-  ['src/hooks/useAdminSurfaces.ts', 10],
+  ['src/hooks/useAdminSurfaces.ts', 7],
   ['src/hooks/useAtelierMatching.ts', 8],
   ['src/hooks/useRelanceLeads.ts', 8],
   ['src/lib/crmAdapters.ts', 8],
   ['src/hooks/useAgentProfileScreen.ts', 7],
   ['src/hooks/useCalendarScreen.ts', 6],
-  ['src/pages/public', 6],
+  ['src/pages/public', 4],
   ['src/components/auth', 4],
   ['src/components/buyer-reception', 4],
   ['src/types/visit.ts', 4],

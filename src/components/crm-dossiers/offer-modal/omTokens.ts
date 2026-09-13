@@ -13,6 +13,7 @@
  * une palette est pire qu'inutile — il donne une valeur à recopier.
  */
 import { encreSur } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import type { CrmPalette } from '@/components/crm/tokens'
 
 export interface OmPalette {
@@ -50,9 +51,9 @@ export interface OmPalette {
 }
 
 /** Voir `dealTokens` : ce sont les `--color-*-dark` de `globals.css`. */
-const OK = { clair: '#047857', sombre: '#34D399' }
+const OK = { clair: STATUT_CLAIR.okInk, sombre: '#34D399' }
 const WARN = { clair: '#F59E0B', sombre: '#FBBF24' }
-const ERR = { clair: '#B91C1C', sombre: '#F87171' }
+const ERR = { clair: STATUT_CLAIR.errInk, sombre: '#F87171' }
 
 export function omPalette(dark: boolean, sp: CrmPalette): OmPalette {
   // Le récapitulatif est peint sur un aplat d'ENCRE : ses voiles descendent donc

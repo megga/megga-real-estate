@@ -20,6 +20,7 @@
 import { createContext, useContext } from 'react'
 import { CRM_TOKENS, type CrmPalette, crmVoileEncre } from '@/components/crm/tokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /**
  * ⛔ DIX CLÉS ONT ÉTÉ RETIRÉES le 16 août 2026 (lot 3), et pas parce qu'elles
@@ -123,7 +124,7 @@ export const KYC_LIGHT: KycPalette = {
   shadowLg: `0 24px 60px ${crmVoileEncre(false, 0.08)}, 0 4px 16px ${crmVoileEncre(false, 0.04)}`,
   shadowHover: `0 32px 70px ${crmVoileEncre(false, 0.10)}, 0 6px 20px ${crmVoileEncre(false, 0.05)}`,
   errSoft: 'rgba(239,68,68,0.10)',
-  errDarker: '#B91C1C',
+  errDarker: STATUT_CLAIR.errInk,
   // ⚠ 0,75 rendait 3,95:1 sur l'accent — sous l'AA. 0,85 rend 4,63:1. Les deux
   // autres sont des APLATS (fond de pastille, fond de vignette), pas des encres :
   // ils ne portent aucun seuil de texte et ne bougent pas.

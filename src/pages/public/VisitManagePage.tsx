@@ -12,7 +12,8 @@ import { useSearchParams } from 'react-router-dom'
 import { CalendarDays, MapPin, Check, X, Loader2 } from 'lucide-react'
 import { usePublicVisit, useRescheduleVisit, useCancelVisit, estRefus } from '@/hooks/useVisits'
 import PublicPageHeader from '@/components/layout/PublicPageHeader'
-import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+import { MLK } from '@/components/kyc-magic-link/mlkTokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 const TIME_SLOTS = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
 
@@ -31,7 +32,7 @@ const SOUS = { fontSize: 'var(--crm-text-lg)', color: MLK.muted }
 
 /** Le disque d'un écran de fin — une DONNÉE : rien ne s'y actionne. */
 const disque = (ton: 'ok' | 'err'): CSSProperties => ({
-  background: ton === 'ok' ? MLK_STATUT.okFill : MLK_STATUT.errFill,
+  background: ton === 'ok' ? STATUT_CLAIR.okFill : STATUT_CLAIR.errFill,
 })
 
 /**
@@ -129,7 +130,7 @@ export default function VisitManagePage() {
         <PublicPageHeader />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
           <div className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4" style={disque('err')}>
-            <X className="h-6 w-6" style={{ color: MLK_STATUT.errInk }} />
+            <X className="h-6 w-6" style={{ color: STATUT_CLAIR.errInk }} />
           </div>
           <h2 style={TITRE}>Visite annulée</h2>
           <p style={{ ...SOUS, marginTop: 8 }}>L'agent a été notifié de l'annulation.</p>
@@ -144,7 +145,7 @@ export default function VisitManagePage() {
         <PublicPageHeader />
         <div className="max-w-md mx-auto px-4 py-16 text-center">
           <div className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4" style={disque('ok')}>
-            <Check className="h-6 w-6" style={{ color: MLK_STATUT.okInk }} />
+            <Check className="h-6 w-6" style={{ color: STATUT_CLAIR.okInk }} />
           </div>
           <h2 style={TITRE}>Visite reportée</h2>
           <p style={{ ...SOUS, marginTop: 8 }}>L'agent a été notifié du nouveau créneau.</p>
@@ -199,19 +200,19 @@ export default function VisitManagePage() {
         {(cancel.isError || reschedule.isError) && (
           <div
             className="mb-4 rounded-xl px-4 py-3"
-            style={{ background: MLK_STATUT.warnFill, boxShadow: `inset 0 0 0 1px ${MLK_STATUT.warnLine}` }}
+            style={{ background: STATUT_CLAIR.warnFill, boxShadow: `inset 0 0 0 1px ${STATUT_CLAIR.warnLine}` }}
           >
             {estRefus(cancel.error) || estRefus(reschedule.error) ? (
               <>
-                <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>Ce lien ne permet plus cette action</p>
-                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
+                <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: STATUT_CLAIR.warnInk, margin: 0 }}>Ce lien ne permet plus cette action</p>
+                <p style={{ fontSize: 'var(--crm-text-sm)', color: STATUT_CLAIR.warnInk, marginTop: 4 }}>
                   La visite a peut-être déjà été annulée ou clôturée. Contactez votre agent pour la modifier.
                 </p>
               </>
             ) : (
               <>
-                <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>L'action n'a pas abouti</p>
-                <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
+                <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: STATUT_CLAIR.warnInk, margin: 0 }}>L'action n'a pas abouti</p>
+                <p style={{ fontSize: 'var(--crm-text-sm)', color: STATUT_CLAIR.warnInk, marginTop: 4 }}>
                   Vérifiez votre connexion et réessayez.
                 </p>
               </>
@@ -233,7 +234,7 @@ export default function VisitManagePage() {
               onClick={handleCancel}
               disabled={cancel.isPending}
               className="w-full h-11 rounded-xl transition-colors flex items-center justify-center gap-2"
-              style={{ fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, border: 0, cursor: 'pointer', background: 'transparent', color: MLK_STATUT.errInk, boxShadow: `inset 0 0 0 1px ${MLK_STATUT.errLine}` }}
+              style={{ fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, border: 0, cursor: 'pointer', background: 'transparent', color: STATUT_CLAIR.errInk, boxShadow: `inset 0 0 0 1px ${STATUT_CLAIR.errLine}` }}
             >
               {cancel.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
               Annuler la visite

@@ -23,6 +23,7 @@ import {
   MlkWordmark,
 } from './MlkPrimitives'
 import { MLK } from './mlkTokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 import { crmVoileEncre } from '@/components/crm/tokens'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -552,12 +553,12 @@ export function MlkUpload({
             borderRadius: 12,
             marginBottom: 14,
             fontSize: 'var(--crm-text-sm)',
-            color: '#B91C1C',
+            color: STATUT_CLAIR.errInk,
             fontWeight: 600,
             lineHeight: 1.5,
           }}
         >
-          <MlkIcon name="alert" size={14} stroke="#B91C1C" sw={1.8} />
+          <MlkIcon name="alert" size={14} stroke={STATUT_CLAIR.errInk} sw={1.8} />
           {uploadError}
         </div>
       )}

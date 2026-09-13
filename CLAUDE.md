@@ -421,8 +421,17 @@ quatre.
 
 ⛔ **DEUX ENCRES SÉMANTIQUES ÉTAIENT SOUS L'AA sur ces pages**, et c'est mesuré,
 pas préféré : `text-red-500` rendait **3,76:1** sur carte blanche et
-`text-emerald-600` **3,77:1**. Elles passent par `MLK_STATUT` — la famille qui
-ENCODE, tenue SÉPARÉE de `MLK` parce que la direction ne la gouverne pas :
+`text-emerald-600` **3,77:1**. Elles passent par `STATUT_CLAIR` — la famille qui
+ENCODE, tenue SÉPARÉE de `MLK` parce que la direction ne la gouverne pas (née
+`MLK_STATUT` dans les jetons de cette face, elle vit depuis le 13.09.2026 dans
+`megga-x-crm/statut.ts` — à côté de `tokens.ts`, jamais dedans, sans quoi ses
+teintes Tailwind deviendraient des barreaux). ✅ **C'est la source UNIQUE des
+encres d'état sur blanc de tout le dépôt** : vingt-trois copies en dur, dans
+quatorze fichiers du CRM, de la console et de la face publique, l'importent
+depuis le 13.09.2026, et [statut-clair.spec.ts](tests/unit/statut-clair.spec.ts)
+refuse la suivante — deux exceptions nommées par RÔLE (un fond de survol, la
+baisse de prix du Matching) ; valeurs confrontées à `--color-*-dark` de
+`globals.css` :
 `#B91C1C` (6,47:1) et `#047857` (5,48:1). ⚠ L'ambre, lui, a été *baissé* de 7,09
 à 5,02:1 pour prendre la valeur que trois autres surfaces portent déjà — une
 encre d'alerte qui diffère d'un écran à l'autre coûte plus que deux points de
@@ -735,7 +744,7 @@ Chiffres du lot : Contre `main` au 05.09.2026, APRÈS la fusion du chrome de sep
 
 **Super-Admin :** **surface du CRM** montée sous `/dashboard/admin/*` (`App.tsx` → `AdminConsoleRoute` → `AdminConsoleRoutes` → `AdminShell` + 19 pages lazy — ⚠ ce point annonçait 17 ; `docs/system-map.md` disait 19, et c'est LUI qui avait raison, mesuré le 17.08.2026). L'application autonome `admin.megga.ch` a été retirée le 28.07.2026 : plus de `build:admin`, plus de projet Pages dédié, plus de passage de session par fragment d'URL. Accent violet réservé au repère de contexte du rail ; nav groupée en 5 sections ; chrome et atomes dans `src/components/admin/kit/`.
 
-Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel est en base (`is_super_admin()` = rôle **ET** e-mail allowlisté, lu dans `auth.users`) et sur les edges (`_shared/require-super-admin.ts`). ⚠️ Aucun contrôle AAL2 : le 2FA a été retiré (#873). Entrée par le dropdown profil Sugar et ⌘K (`src/lib/adminEntry.ts`) ; chaque entrée est journalisée (`admin_console_entered`) et l'impersonation reste audit-first (`admin_log_impersonation`, bloquante) via `?impersonate=<id>`.
+Accès : `AdminConsoleRoute` → `useSuperAdminGate` (UX seule) ; le mur réel est en base (`is_super_admin()` = rôle **ET** e-mail allowlisté, lu dans `auth.users`) et sur les edges (`_shared/require-super-admin.ts`). ⚠️ Aucun contrôle AAL2 : le 2FA a été retiré (#873). Entrée par trois portes (`src/lib/adminEntry.ts`) : la ligne **rouge** « Console admin » du **pied** de la barre latérale (super-admin seulement, depuis le 13.09.2026 — dans le pied parce que la liste défile sous ~900 px, le pied jamais), le dropdown profil et ⌘K. Les trois rouvrent la **dernière page** de console (`consoleAReprendre`, `sessionStorage`), et « Retour au CRM » ramène à l'**onglet actif** (`retourAuCrm`) au lieu de `/dashboard`, qui réécrivait l'onglet quitté en « Aujourd'hui ». Chaque entrée est journalisée (`admin_console_entered`) et l'impersonation reste audit-first (`admin_log_impersonation`, bloquante) via `?impersonate=<id>`.
 
 ⚠️ Les cibles de navigation de la console DOIVENT être préfixées par `ADMIN_CONSOLE_PATH` — une cible nue tombe sur le 404 du CRM, voire sur une redirection publique. Garde-fous : `tests/unit/admin-console-paths.spec.ts` et `tests/unit/redirects-guard.spec.ts` (ce dernier interdit toute règle de bord qui expulserait `/dashboard/*` vers un autre hôte : c'est ce qui avait rendu la console injoignable).
 

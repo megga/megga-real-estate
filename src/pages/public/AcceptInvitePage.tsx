@@ -11,6 +11,7 @@ import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { MLK } from '@/components/kyc-magic-link/mlkTokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /**
  * ⛔ LES DEUX ENCRES SÉMANTIQUES, ET POURQUOI ELLES NE SONT PAS DANS `MLK`.
@@ -19,12 +20,13 @@ import { MLK } from '@/components/kyc-magic-link/mlkTokens'
  * ENCODE (erreur, avertissement) reste hors direction — mais hors direction ne
  * veut pas dire hors lisibilité. Sur une carte blanche, `#EF4444` rend 3,76:1
  * en encre et `#F59E0B` 2,15 : sous l'AA tous les deux. La règle du dépôt est
- * « la teinte VIVE sur l'aplat, la FONCÉE sur le texte », et ces deux valeurs
- * sont celles que trois surfaces portent déjà au même rôle
- * (`DossierTokens.errDarker`, `EtatVide`, `PDF.errFg` / `warnFg`).
+ * « la teinte VIVE sur l'aplat, la FONCÉE sur le texte ». Ces deux encres
+ * étaient recopiées ici ; elles sont IMPORTÉES depuis le 13.09.2026 de
+ * `STATUT_CLAIR`, la source que partagent désormais `DossierTokens.errDarker`,
+ * `EtatVide` et les autres surfaces au même rôle.
  */
-const ERR_INK = '#B91C1C'
-const WARN_INK = '#B45309'
+const ERR_INK = STATUT_CLAIR.errInk
+const WARN_INK = STATUT_CLAIR.warnInk
 
 interface InvitationDetails {
   email: string

@@ -14,7 +14,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { WHATSAPP_TOOLS } from '../_shared/whatsapp-tools.ts'
-import { toolTier, CONFIRM_TOOLS, isFabricatedKycClaim, KYC_CLAIM_RETRY_NUDGE, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
+import { toolTier, CONFIRM_TOOLS, isFabricatedKycClaim, KYC_CLAIM_RETRY_NUDGE, PREP_REFUSAL_NOTE, classifyContactArg, contactResolutionNote, canLeaveConfirm, buildHistoryMessages, type WaHistoryRow, type ToolTier } from '../_shared/whatsapp-agent-router.ts'
 import { detectLang, t, asyncAck } from '../_shared/whatsapp-i18n.ts'
 import {
   execGetMyAgenda, execSearchContacts, execCreateContact, execAddNote,
@@ -29,6 +29,7 @@ import {
   execReadDocument, execFileDocument,
   execGetPublicationStatus, preparePublishToPortals, prepareWithdrawFromPortals,
   execAttachPropertyPhotos, execUpdateProperty, execCreateProperty,
+  findContactRows,
   type ActionCtx,
 } from '../_shared/whatsapp-actions.ts'
 import { formatStyleBlock, formatVoiceExamples, fetchClientVoiceSamples, fetchCorrectionExamples, formatCorrectionExamples, type LearnedStyle } from '../_shared/agent-style.ts'
@@ -231,6 +232,7 @@ serve(async (req) => {
   let kycToolCalled = false // anti-fabrication : une ACTION KYC (screening/rapport/attache) a-t-elle RÉELLEMENT tourné ?
   let kycStatusRead = false // get_kyc_status (LECTURE) a tourné → légitime la narration d'ÉTAT, jamais une revendication d'ACTION
   let phantomRetried = false // garde anti-confirmation simulée : UNE relance au plus par requête
+  const prepRefused = new Set<string>() // outils confirm dont la préparation a déjà été refusée (rendu au modèle une fois)
   const resultCache = new Map<string, string>() // F4 : dédup outils identiques d'un tour
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
@@ -300,11 +302,22 @@ serve(async (req) => {
         logToolUsage(supabase, { agency_id: ctx.agencyId, profile_id: profileId, tool: name, tier, outcome })
 
       if (tier === 'slow_async') {
+        // contact_id RÉSOLU EN CODE avant la file (13.09.2026) : DeepSeek passait le NOM
+        // (« Julien Ahmedi ») ; l'insertion échouait en 22P02 et l'agent recevait « je n'ai pas pu
+        // traiter ta demande ». Un nom qui désigne UN contact de l'agence vaut son identifiant ;
+        // sinon le modèle reçoit la liste et doit demander à l'agent — la boucle continue, rien
+        // n'est enfilé, et kycToolCalled reste faux (aucune action n'a tourné).
+        const resolved = await resolveAsyncContact(ctx, args)
+        if (!resolved.ok) {
+          logTool('error')
+          messages.push({ role: 'tool', tool_call_id: call.id, content: resolved.note })
+          continue
+        }
         kycToolCalled = true
         // ACK DÉTERMINISTE : on enfile le job et on renvoie le message système TEL QUEL, sans
         // laisser DeepSeek le reformuler (il exposait l'async / inventait — incident Vladimir).
         // Le job est RÉELLEMENT en file → « je lance le screening » est honnête. La boucle conclut ici.
-        const ack = await enqueueAsyncJob(ctx, waNumber, name, args)
+        const ack = await enqueueAsyncJob(ctx, waNumber, name, { ...args, contact_id: resolved.id })
         logTool('async_queued')
         return json({ reply: ack }, 200)
       }
@@ -333,7 +346,20 @@ serve(async (req) => {
         }
         if (stash.status === 'error') {
           logTool('error')
-          return json({ reply: stash.error ?? t(lang, 'prepFail'), isError: true }, 200)
+          // Le refus de préparation est un CONSTAT (« a déjà un dossier KYC ouvert », « contact
+          // introuvable »), pas une panne : il est rendu au MODÈLE comme résultat d'outil, une
+          // fois, pour qu'il réponde ou appelle l'outil qui convient. Mesuré le 13.09.2026 :
+          // renvoyé directement à l'agent, il partait en `is_agent_error` — donc EXCLU de la
+          // mémoire C1 — pendant que la phrase fausse du modèle (« le dossier n'existe pas »)
+          // y restait ; à chaque message le cerveau rouvrait le dossier, trois fois de suite.
+          // Au second refus du même outil dans la requête, la vérité part à l'agent.
+          const refusal = stash.error ?? t(lang, 'prepFail')
+          if (!prepRefused.has(name)) {
+            prepRefused.add(name)
+            messages.push({ role: 'tool', tool_call_id: call.id, content: `${refusal} ${PREP_REFUSAL_NOTE}` })
+            continue
+          }
+          return json({ reply: refusal, isError: true }, 200)
         }
         logTool('confirm_pending')
         // `confirmPendingId` : le webhook rend la question avec [Oui] [Non] liés à CETTE action.
@@ -346,7 +372,8 @@ serve(async (req) => {
       // la garde contre une fausse revendication d'ACTION (« j'ai lancé le screening ») au même tour ou
       // au suivant. On est APRÈS le return slow_async (l.201) → run_kyc_screening n'arme rien ici.
       if (name === 'attach_kyc_document') kycToolCalled = true
-      if (name === 'get_kyc_status') kycStatusRead = true
+      // get_contact_brief porte aussi l'état KYC du contact (kyc_note) : une lecture, au même titre.
+      if (name === 'get_kyc_status' || name === 'get_contact_brief') kycStatusRead = true
       // F4 : si un outil identique a déjà tourné ce tour, réutilise le résultat.
       const key = `${name}:${JSON.stringify(args)}`
       let result = resultCache.get(key)
@@ -403,6 +430,25 @@ function logToolUsage(
 // résultat d'outil. Dédup via l'index UNIQUE partiel (Task 1) : un INSERT en doublon
 // lève 23505, qu'on traite comme « déjà en file » (succès). On NE peut PAS utiliser
 // upsert/onConflict ici (ON CONFLICT n'infère pas un index partiel sur expression COALESCE).
+/**
+ * `contact_id` d'un outil lent → identifiant. Un UUID passe tel quel (l'exécuteur du worker revérifie
+ * l'agence via contactInAgency) ; un NOM est cherché dans l'agence, et n'est retenu que s'il désigne
+ * un seul contact. Journal PII-safe : l'issue seule, jamais le nom.
+ */
+async function resolveAsyncContact(
+  ctx: ActionCtx, args: Record<string, unknown>,
+): Promise<{ ok: true; id: string } | { ok: false; note: string }> {
+  const arg = classifyContactArg(args.contact_id)
+  if (arg.kind === 'uuid') return { ok: true, id: arg.id }
+  if (arg.kind === 'missing' || !ctx.agencyId) return { ok: false, note: contactResolutionNote('missing') }
+  const { rows, error } = await findContactRows(ctx, arg.name, 5)
+  if (error) return { ok: false, note: error }
+  const outcome = rows.length === 1 ? 'unique' : rows.length === 0 ? 'none' : 'many'
+  console.warn(`wa-agent async contact_id: name -> ${outcome}`)
+  if (rows.length === 1) return { ok: true, id: rows[0].id }
+  return { ok: false, note: contactResolutionNote(rows.length === 0 ? 'none' : 'many', arg.name, rows) }
+}
+
 async function enqueueAsyncJob(
   ctx: ActionCtx, waNumber: string, tool: string, args: Record<string, unknown>,
 ): Promise<string> {

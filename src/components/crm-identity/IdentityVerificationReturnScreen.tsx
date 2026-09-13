@@ -37,7 +37,7 @@ import VerifiedSeal, { VERIFIED_SEAL_ON_DARK } from '@/components/ui/VerifiedSea
 import type { IdentityVerificationStatus } from '@/hooks/useAgencyIdentity'
 import type { KybIdReadRecord } from '@/types/kybIdRead'
 // Les encres de STATUT, partagées avec les surfaces clientes. Cf. le bandeau d'écart.
-import { MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /**
  * Les trois issues possibles à ce moment du parcours, et rien d'autre.
@@ -218,7 +218,7 @@ export default function IdentityVerificationReturnScreen({
                           Aplat PÂLE + encre SOMBRE, et c'est la règle du mode sombre, pas un
                           choix : les couleurs de système de la vitrine sont réglées pour un
                           canvas noir, une encre ambre y rendrait 1,7:1. L'ambre vient de
-                          MLK_STATUT — la famille qui ENCODE, partagée avec les surfaces
+                          STATUT_CLAIR — la famille qui ENCODE, partagée avec les surfaces
                           clientes — plutôt que d'une quatrième valeur : une alerte qui change
                           de teinte d'un écran à l'autre coûte plus que deux points de contraste. */}
                       {ecartAffiche && (
@@ -226,18 +226,18 @@ export default function IdentityVerificationReturnScreen({
                           className="mg-top-medium"
                           role="alert"
                           style={{
-                            background: MLK_STATUT.warnFill,
-                            border: `1px solid ${MLK_STATUT.warnLine}`,
+                            background: STATUT_CLAIR.warnFill,
+                            border: `1px solid ${STATUT_CLAIR.warnLine}`,
                             borderRadius: 'var(--crm-radius-lg)',
                             padding: 'var(--crm-space-2xl)',
-                            color: MLK_STATUT.warnInk,
+                            color: STATUT_CLAIR.warnInk,
                             textAlign: 'left',
                           }}
                         >
-                          <p style={{ color: MLK_STATUT.warnInk, margin: 0 }}>
+                          <p style={{ color: STATUT_CLAIR.warnInk, margin: 0 }}>
                             {t('gate.verificationReturn.gap.title')}
                           </p>
-                          <p style={{ color: MLK_STATUT.warnInk, margin: 'var(--crm-space-sm) 0 0' }}>
+                          <p style={{ color: STATUT_CLAIR.warnInk, margin: 'var(--crm-space-sm) 0 0' }}>
                             {t('gate.verificationReturn.gap.fields', {
                               // Les champs concernés, jamais les VALEURS : MEGGA ne stocke
                               // pas ce que le prestataire a lu (minimisation LPD), donc on
@@ -257,7 +257,7 @@ export default function IdentityVerificationReturnScreen({
                                   background: 'none',
                                   border: 'none',
                                   padding: 0,
-                                  color: MLK_STATUT.warnInk,
+                                  color: STATUT_CLAIR.warnInk,
                                   textDecoration: 'underline',
                                   cursor: 'pointer',
                                   font: 'inherit',

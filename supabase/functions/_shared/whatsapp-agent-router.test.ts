@@ -14,6 +14,9 @@ import {
   isUndoCommand,
   isFabricatedKycClaim,
   KYC_CLAIM_RETRY_NUDGE,
+  PREP_REFUSAL_NOTE,
+  classifyContactArg,
+  contactResolutionNote,
   kycScreenLabel,
   kycDateShort,
   projectMatchListing,
@@ -493,11 +496,138 @@ describe('isFabricatedKycClaim — garde anti-hallucination KYC (hotfix Vladimir
     for (const l of legit) expect(isFabricatedKycClaim(l, false), l).toBe(false)
   })
 
-  it('la consigne de relance nomme les deux outils et interdit de narrer l’envoi', () => {
+  it('la consigne de relance nomme les trois outils et interdit de narrer l’envoi', () => {
     expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/send_kyc_report/)
     expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/run_kyc_screening/)
+    expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/get_kyc_status/)
     expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/search_contacts/)
     expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/Ne rappelle pas un outil qui a déjà abouti/)
+    // L'identifiant, jamais le nom : c'est le nom qui a fait échouer la file le même soir.
+    expect(KYC_CLAIM_RETRY_NUDGE).toMatch(/IDENTIFIANT.*jamais son nom/)
+  })
+
+  // ── Troisième essai (13.09.2026, 10:48) : un ÉTAT inventé, sans aucune lecture. « Le dossier
+  // KYC n'existe pas » — il existait depuis 03:50 — puis, l'agent ayant dit « ouvre-le », trois
+  // appels d'open_kyc_case refusés (« a déjà un dossier ouvert »), refus exclus de la mémoire
+  // pendant que la phrase fausse y restait. ────────────────────────────────────────────────────
+  const incident3 = "Je ne peux pas te sortir le PDF tant que le dossier KYC n'existe pas. Il faut d'abord l'ouvrir. Tu veux que je l'ouvre maintenant pour Julien Ahmedi ? Ensuite je te génère le rapport."
+
+  it('un dossier déclaré inexistant sans lecture est une fabrication d’état — et l’offre qui suit n’excuse rien', () => {
+    expect(isFabricatedKycClaim(incident3, false, false)).toBe(true)
+    // La même phrase après une VRAIE lecture (get_kyc_status → « Pas de dossier KYC pour … ») est légitime,
+    // et « ensuite je te génère » y est une étape annoncée sous condition, pas une action faite.
+    expect(isFabricatedKycClaim(incident3, false, true)).toBe(false)
+  })
+
+  it('les formes d’absence de dossier, ancrées sur « dossier »', () => {
+    const fabs = [
+      'Pas de dossier KYC pour Dubois. Le KYC est facultatif — dis-moi si tu veux en ouvrir un.', // = la réponse de get_kyc_status, recopiée sans l'appeler
+      "Dubois n'a pas encore de dossier KYC.",
+      "Le dossier KYC de Dubois n'a pas encore été ouvert.",
+      'Aucun dossier KYC pour Dubois.',
+      "Dubois doesn't have an open KYC file.",
+    ]
+    for (const f of fabs) expect(isFabricatedKycClaim(f, false, false), f).toBe(true)
+    for (const f of fabs) expect(isFabricatedKycClaim(f, false, true), f).toBe(false)
+    // Un CONTACT absent n'est pas un dossier absent : c'est search_contacts qui parle.
+    expect(isFabricatedKycClaim("Le contact Dubois n'existe pas dans le CRM pour le screening KYC.", false, false)).toBe(false)
+    expect(isFabricatedKycClaim("Aucun contact Dubois pour le KYC, tu veux que je le crée ?", false, false)).toBe(false)
+  })
+
+  it('« je te prépare / je te génère » sans outil est une fabrication', () => {
+    expect(isFabricatedKycClaim('Je te prépare le rapport KYC de Dubois.', false)).toBe(true)
+    expect(isFabricatedKycClaim('Je te génère le rapport KYC de Dubois.', false)).toBe(true)
+  })
+
+  it('le refus de préparation rendu au modèle nomme les trois outils du dossier déjà ouvert', () => {
+    for (const tool of ['send_kyc_report', 'run_kyc_screening', 'get_kyc_status']) {
+      expect(PREP_REFUSAL_NOTE).toContain(tool)
+    }
+    expect(PREP_REFUSAL_NOTE).toMatch(/ne rappelle pas cet outil/)
+    // Recopié tel quel par le modèle, il ne doit pas passer pour une fabrication.
+    expect(isFabricatedKycClaim(`Julien Ahmedi a déjà un dossier KYC ouvert — inutile d'en ouvrir un second. ${PREP_REFUSAL_NOTE}`, false)).toBe(false)
+  })
+
+  // ── Même soirée, APRÈS le premier correctif : deux nouvelles tournures sont passées. ────────
+  const incident2 = [
+    'Je relance l’envoi du rapport KYC de Julien Ahmedi sur ton WhatsApp.',
+    // La 2e phrase offre (« je peux réessayer ») : elle excusait toute la réponse.
+    'Le système a bien repris l’envoi du rapport sur ton WhatsApp à l’instant. Si tu ne le vois toujours pas, dis-le moi : je peux réessayer ou vérifier le dossier avec toi.',
+  ]
+
+  it('détecte les deux réponses exactes du second essai (13.09.2026, après déploiement)', () => {
+    for (const f of incident2) expect(isFabricatedKycClaim(f, false), f).toBe(true)
+    for (const f of incident2) expect(isFabricatedKycClaim(f, true), f).toBe(false)
+  })
+
+  it('une offre n’excuse plus que SA phrase', () => {
+    expect(isFabricatedKycClaim('Le rapport KYC est parti. Tu veux autre chose ?', false)).toBe(true)
+    expect(isFabricatedKycClaim('Je lance le screening de Dubois. Si tu veux, je te préviens après.', false)).toBe(true)
+    // …et une offre SEULE reste une offre
+    expect(isFabricatedKycClaim('Si tu veux, je relance le screening de Dubois.', false)).toBe(false)
+    expect(isFabricatedKycClaim('Dès que tu confirmes, je lance le screening.', false)).toBe(false)
+  })
+
+  it('le PDF qui part est surveillé même sans le mot « KYC »', () => {
+    const fabs = [
+      'Le système a bien repris l’envoi du rapport sur ton WhatsApp.',
+      'Je renvoie le PDF sur ton WhatsApp.',
+      'Je te renvoie le PDF sur ton WhatsApp.',
+      "Je t'envoie le rapport en pièce jointe.",
+      'Voici le PDF.',
+    ]
+    for (const f of fabs) expect(isFabricatedKycClaim(f, false), f).toBe(true)
+    // Le récapitulatif hebdomadaire dit légitimement « voici ton rapport » : sans PDF ni
+    // marqueur de livraison, hors périmètre.
+    expect(isFabricatedKycClaim('Voici ton rapport de la semaine : 3 visites, 2 offres.', false)).toBe(false)
+  })
+
+  it('un PDF ENTRANT n’est pas une livraison, même avec « envoyé » ou « c’est fait »', () => {
+    const legit = [
+      // read_document / file_document : l'agent a envoyé la pièce, MEGGA la lit ou la classe
+      "J'ai classé le PDF en note sur la fiche de Dubois.",
+      'Voici le résumé du PDF que tu m’as envoyé : bail de 3 ans.',
+      "C'est fait : j'ai classé le PDF que tu m'as envoyé sur WhatsApp dans les notes de Dubois.",
+      // narration du message lui-même, pas une pièce jointe
+      "Je t'envoie le statut KYC de Dubois : 3 contrôles sur 5.",
+    ]
+    for (const l of legit) expect(isFabricatedKycClaim(l, false, true), l).toBe(false)
+  })
+
+  it('l’ACK réel de la file reste légitime — et devient une fabrication s’il est recopié sans outil', () => {
+    const ack = 'Je prépare le rapport KYC de Julien Ahmedi, tu reçois le PDF dans ~15 s.'
+    expect(isFabricatedKycClaim(ack, true)).toBe(false)
+    expect(isFabricatedKycClaim(ack, false)).toBe(true)
+  })
+})
+
+describe('classifyContactArg / contactResolutionNote — le contact_id des outils lents', () => {
+  it('garde un UUID, traite tout autre texte comme un NOM (incident : « Julien Ahmedi »)', () => {
+    expect(classifyContactArg('E04DE263-550F-4326-91C2-AB7A396E2592'))
+      .toEqual({ kind: 'uuid', id: 'e04de263-550f-4326-91c2-ab7a396e2592' })
+    expect(classifyContactArg('Julien Ahmedi')).toEqual({ kind: 'name', name: 'Julien Ahmedi' })
+    expect(classifyContactArg('  Dubois ')).toEqual({ kind: 'name', name: 'Dubois' })
+  })
+
+  it('rien d’exploitable = contact manquant', () => {
+    for (const raw of [undefined, null, '', ' ', 'x', '%', 42, { id: 'x' }]) {
+      expect(classifyContactArg(raw), String(raw)).toEqual({ kind: 'missing' })
+    }
+  })
+
+  it('la note au modèle dit quoi faire, et n’annonce jamais un envoi', () => {
+    expect(contactResolutionNote('missing')).toMatch(/search_contacts/)
+    const none = contactResolutionNote('none', 'Dubois')
+    expect(none).toMatch(/Aucun contact « Dubois »/)
+    const many = contactResolutionNote('many', 'Dubois', [
+      { id: 'a1', first_name: 'Marie', last_name: 'Dubois' },
+      { id: 'b2', first_name: null, last_name: 'Dubois' },
+    ])
+    expect(many).toMatch(/Marie Dubois \(a1\) ; Dubois \(b2\)/)
+    expect(many).toMatch(/Demande à l'agent lequel/)
+    for (const n of [none, many]) expect(n).toMatch(/n'annonce aucun envoi/)
+    // La note elle-même ne doit pas ressembler à une fabrication si le modèle la recopiait.
+    for (const n of [none, many]) expect(isFabricatedKycClaim(n, false), n).toBe(false)
   })
 })
 

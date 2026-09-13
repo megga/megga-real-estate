@@ -321,7 +321,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       description: "Lance le screening LBA (PEP + listes de sanctions) sur le dossier KYC d'un contact. Read-only côté client, aucun message envoyé. APPELLE TOUJOURS cet outil pour lancer un screening — ne dis JAMAIS qu'il est lancé/en cours sans l'avoir appelé (le système confirme lui-même). Exemples : « screen Dubois », « vérifie les sanctions pour Mme Vaucher ». contact_id via search_contacts. Il faut un dossier KYC déjà ouvert (open_kyc_case).",
       parameters: {
         type: 'object',
-        properties: { contact_id: { type: 'string', description: 'ID du contact (via search_contacts).' } },
+        properties: { contact_id: { type: 'string', description: "Identifiant du contact renvoyé par search_contacts (UUID) — jamais son nom." } },
         required: ['contact_id'],
       },
     },
@@ -348,7 +348,7 @@ export const WHATSAPP_TOOLS: DeepSeekTool[] = [
       description: "Génère le rapport KYC officiel (PDF) d'un contact et l'envoie en pièce jointe à l'agent lui-même sur WhatsApp. Pour « envoie-moi le rapport KYC de Dubois », « le PDF KYC de Mme Vaucher ». APPELLE TOUJOURS cet outil pour envoyer un rapport — ne dis JAMAIS qu'il est parti/généré sans l'avoir appelé. Il faut un dossier KYC déjà ouvert. contact_id via search_contacts.",
       parameters: {
         type: 'object',
-        properties: { contact_id: { type: 'string', description: 'ID du contact (via search_contacts).' } },
+        properties: { contact_id: { type: 'string', description: "Identifiant du contact renvoyé par search_contacts (UUID) — jamais son nom." } },
         required: ['contact_id'],
       },
     },

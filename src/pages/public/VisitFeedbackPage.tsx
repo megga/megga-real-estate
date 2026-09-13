@@ -11,7 +11,8 @@ import { useSearchParams } from 'react-router-dom'
 import { Star, Check, Loader2, MapPin } from 'lucide-react'
 import { usePublicVisit, useSubmitFeedback, estRefus } from '@/hooks/useVisits'
 import PublicPageHeader from '@/components/layout/PublicPageHeader'
-import { MLK, MLK_STATUT } from '@/components/kyc-magic-link/mlkTokens'
+import { MLK } from '@/components/kyc-magic-link/mlkTokens'
+import { STATUT_CLAIR } from '@/components/megga-x-crm/statut'
 
 /**
  * Les quatre formes que cette page répète — écrites une fois pour qu'elles ne
@@ -46,8 +47,8 @@ function pastille(actif: boolean, ton: 'ok' | 'err' | 'accent'): CSSProperties {
     return { ...base, fontWeight: 500, color: MLK.accent, background: `${MLK.accent}0D`, boxShadow: `inset 0 0 0 1px ${MLK.accent}` }
   }
   const [encre, aplat, filet] = ton === 'ok'
-    ? [MLK_STATUT.okInk, MLK_STATUT.okFill, MLK_STATUT.okLine]
-    : [MLK_STATUT.errInk, MLK_STATUT.errFill, MLK_STATUT.errLine]
+    ? [STATUT_CLAIR.okInk, STATUT_CLAIR.okFill, STATUT_CLAIR.okLine]
+    : [STATUT_CLAIR.errInk, STATUT_CLAIR.errFill, STATUT_CLAIR.errLine]
   return { ...base, fontWeight: 500, color: encre, background: aplat, boxShadow: `inset 0 0 0 1px ${filet}` }
 }
 
@@ -118,9 +119,9 @@ export default function VisitFeedbackPage() {
               même arbitrage qu'au parcours KYC. */}
           <div
             className="h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-4"
-            style={{ background: MLK_STATUT.okFill }}
+            style={{ background: STATUT_CLAIR.okFill }}
           >
-            <Check className="h-6 w-6" style={{ color: MLK_STATUT.okInk }} />
+            <Check className="h-6 w-6" style={{ color: STATUT_CLAIR.okInk }} />
           </div>
           <h2 style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: MLK.ink, margin: 0 }}>
             Merci pour votre retour
@@ -205,8 +206,8 @@ export default function VisitFeedbackPage() {
                   <Star
                     className="h-8 w-8 transition-colors"
                     style={(hoverRating || rating) >= n
-                      ? { fill: MLK_STATUT.starOn, color: MLK_STATUT.starOn }
-                      : { color: MLK_STATUT.starOff }}
+                      ? { fill: STATUT_CLAIR.starOn, color: STATUT_CLAIR.starOn }
+                      : { color: STATUT_CLAIR.starOff }}
                   />
                 </button>
               ))}
@@ -297,12 +298,12 @@ export default function VisitFeedbackPage() {
           {submitFeedback.isError && (
             <div
               className="rounded-xl px-4 py-3"
-              style={{ background: MLK_STATUT.warnFill, boxShadow: `inset 0 0 0 1px ${MLK_STATUT.warnLine}` }}
+              style={{ background: STATUT_CLAIR.warnFill, boxShadow: `inset 0 0 0 1px ${STATUT_CLAIR.warnLine}` }}
             >
-              <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: MLK_STATUT.warnInk, margin: 0 }}>
+              <p style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 500, color: STATUT_CLAIR.warnInk, margin: 0 }}>
                 Votre avis n'a pas pu être enregistré
               </p>
-              <p style={{ fontSize: 'var(--crm-text-sm)', color: MLK_STATUT.warnInk, marginTop: 4 }}>
+              <p style={{ fontSize: 'var(--crm-text-sm)', color: STATUT_CLAIR.warnInk, marginTop: 4 }}>
                 {estRefus(submitFeedback.error)
                   ? 'Un avis a peut-être déjà été déposé pour cette visite, ou celle-ci a été annulée.'
                   : 'Vérifiez votre connexion et réessayez.'}
