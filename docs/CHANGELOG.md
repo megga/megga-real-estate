@@ -6,6 +6,14 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Audit CRM — S13, S15, S16 (13 septembre 2026)
+> Sert l'objectif 2 (risque). Suite des points faibles du même rapport (artifact « Audit CRM MEGGA ») ; S14 et S17 suivent dans la même PR.
+
+- **S13 — trois lectures ouvertes à toute session, refermées** (`20260913170000`). `compute_agent_preferences` rendait le calibrage « Premier jour » de n'importe quel agent : EXECUTE retiré aux rôles API (ses deux appelants sont des fonctions définisseuses). `is_agency_lab_cleared` ne répond plus que pour l'agence de l'appelant (`false` ailleurs) — elle reste exécutable, la policy `kyc_cases_insert` l'appelle. `agencies.stripe_customer_id` et les colonnes financières de `subscriptions` sortent de la portée des membres (revoke de table, grant des colonnes non secrètes) ; le seul lecteur navigateur, `IntercomMessenger`, ne pousse plus l'identifiant Stripe vers Intercom (un attribut posé par le navigateur est falsifiable). ⚠ Une colonne ajoutée demain à ces deux tables naît illisible pour `authenticated` : `tests/backend/lectures-exposees.spec.ts` rougit tant qu'elle n'est ni accordée ni déclarée secrète.
+- **S15 — le checkout n'ouvre que les prix MEGGA** : table commune au checkout et au webhook (`_shared/stripe-prices.ts`), 400 `price_not_allowed`, 503 `stripe_prices_not_configured`. Et le quota de biens actifs se tient en base (`20260913170100`, Starter = 10, miroir de `PLAN_LIMITS`) — **inactif** par décision : aucune limite n'était tenue nulle part, pas même dans l'interface, et aucune agence ne peut aujourd'hui passer Pro. L'activer : `app_config.plan_limits_enforced = 'true'`. ⚠ La grille tarifaire affiche 5 biens pour Starter, `PLAN_LIMITS` 10 — à trancher avec la facturation.
+- **S16 — dépendances** : `npm audit fix` (sans `--force`) — 20 vulnérabilités de production (1 critique, 4 élevées) → 2 modérées, qui exigent react-router v7. `postcss`, `autoprefixer` et `tailwindcss` passent en devDependencies. La montée de posthog-js alourdissait le chargement initial de 31 Ko gzip : le SDK se charge désormais par `import()`, et sans `VITE_POSTHOG_KEY` il n'est plus émis du tout — chargement initial 488 Ko gzip, contre 546 avant.
+- **⚠ Date des migrations** : `20260913170000` et `20260913170100` sont datées du 13.09. Mergées plus tard, `deploy.yml` les saute — les appliquer à la main avant le merge. Toutes deux éprouvées en production dans des transactions annulées.
+
 #### Audit CRM — les trois points prioritaires, puis S2 à S12 (13 septembre 2026)
 > Sert les objectifs 2 (risque) et 5 (outil fiable). Suite au scan sécurité + fonctionnel du 13.09.2026 (rapport : artifact « Audit CRM MEGGA »), trois chantiers, aucun ajout de fonctionnalité.
 
