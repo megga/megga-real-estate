@@ -472,6 +472,12 @@
     "title": "Team-Verlauf",
     "subtitle": "Echtzeit-Verfolgung jedes Dossiers · Panoramaansicht",
     "emptyState": "Kein Dossier entspricht den gewählten Filtern.",
+    "emptyAllTitle": "Keine laufenden Dossiers",
+    "emptyAllDesc": "Ein Dossier erscheint hier, sobald im Pipeline ein Geschäft eröffnet wird.",
+    "resetFilters": "Filter zurücksetzen",
+    "errorTitle": "Verlauf nicht verfügbar",
+    "errorDesc": "Die Dossiers konnten nicht geladen werden.",
+    "retry": "Erneut versuchen",
     "filters": {
       "stageLabel": "Stufe",
       "allStages": "Alle",

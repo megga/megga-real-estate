@@ -61,7 +61,7 @@ export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
         <span style={{ gridColumn: '1 / 3' }}>{t('board.list.dealContact')}</span>
         <span>{t('column.property')}</span>
         <span>{t('column.stage')}</span>
-        <span style={{ textAlign: 'right', paddingRight: 56 }}>{t('column.value')}</span>
+        <span style={{ textAlign: 'right', paddingRight: 'var(--crm-space-7xl)' }}>{t('column.value')}</span>
         <span style={{ paddingLeft: 64 }}>{t('board.list.nextAction')}</span>
       </div>
       {deals.map((deal, i) => {
@@ -110,8 +110,11 @@ export function PipelineList({ sp, dark, deals, onOpenDeal }: Props) {
               {t(`stages.${deal.stage}`, { defaultValue: CRM_STAGES[deal.stage].label })}
             </span>
             <span style={{
-              textAlign: 'right', paddingRight: 56, fontSize: 'var(--crm-text-lg)', fontWeight: 600,
-              color: sp.ink, fontVariantNumeric: 'tabular-nums',
+              // ⚠ `nowrap` et une marge droite ramenée de 56 à 24 px : la colonne (0,85 fr,
+              // ~117 px à 1440) ne laissait que ~61 px au montant, et CHAQUE ligne se
+              // cassait en « CHF » / « 850K » sur deux lignes.
+              textAlign: 'right', paddingRight: 'var(--crm-space-7xl)', fontSize: 'var(--crm-text-lg)', fontWeight: 600,
+              color: sp.ink, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap',
             }}>
               {fmtVal(deal.value)}
             </span>

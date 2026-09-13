@@ -102,10 +102,19 @@ function periodMeta(period: AxPeriodId, t: TFunction): { period: string; granula
 }
 
 // ── Libellés des canaux de source (traduits ; canaux connus, sinon brut) ─────
+/**
+ * Libellé d'un canal — les valeurs de `contacts_source_check`.
+ *
+ * ⚠ `whatsapp` et `whatsapp_ai` manquaient : ce sont pourtant deux des quatre sources
+ * présentes en production (13.09.2026), et le graphique « Commission par canal »
+ * affichait l'identifiant brut « whatsapp_ai ». Une valeur inconnue reste lisible.
+ */
 function sourceLabel(source: string, t: TFunction): string {
   const key = source === 'import' ? 'manual' : source
-  const known = ['website', 'onboarding', 'referral', 'manual']
-  return known.includes(key) ? t(`analytics.source.${key}`) : source
+  const known = ['website', 'onboarding', 'referral', 'manual', 'whatsapp', 'whatsapp_ai']
+  if (known.includes(key)) return t(`analytics.source.${key}`)
+  const s = (source || '').replace(/_+/g, ' ').trim()
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
 }
 
 // ── Libellé d'étape affiché (drill) ; le code BRUT reste la clé de probaForStage ──

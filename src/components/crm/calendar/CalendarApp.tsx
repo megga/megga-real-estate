@@ -106,7 +106,18 @@ function CalToolbar({ view, onView, headerLabel, onToday, onPrev, onNext, onCrea
   const SP = useCalPalette()
   const { t } = useTranslation('calendar')
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
+    <div className="cal-toolbar" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
+      {/* ⚠ Le titre de la période est ce qui cède quand la barre manque de place — il
+          se lisait « Septembre 2… » à 1440 px, barre latérale dépliée (~770 px utiles
+          pour ~835 demandés). Sous le seuil, c'est le bouton de création qui se
+          replie en « + » rond : son libellé reste dans `aria-label` et `title`. */}
+      <style>{`
+        .cal-toolbar { container-type: inline-size; }
+        @container (max-width: 880px) {
+          .cal-toolbar .cal-new-label { display: none; }
+          .cal-toolbar .cal-new-btn { aspect-ratio: 1; padding-inline: 0 !important; justify-content: center; }
+        }
+      `}</style>
       <button onClick={onToday} style={{ height: 38, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.cardSubtle, color: SP.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
         {t('common:time.today', { defaultValue: 'Aujourd\'hui' })}
       </button>
@@ -117,8 +128,8 @@ function CalToolbar({ view, onView, headerLabel, onToday, onPrev, onNext, onCrea
       <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: SP.ink, letterSpacing: -0.5, marginLeft: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{headerLabel}</div>
       <div style={{ flex: 1 }} />
       <CalViewToggle value={view} onChange={onView} />
-      <button onClick={onCreate} style={{ height: 40, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.accent, color: SP.onAccent, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', boxShadow: SP.shadowSm, flexShrink: 0 }}>
-        <CalIcon name="plus" size={15} stroke={SP.onAccent} sw={2.6} />{t('page.newEvent')}
+      <button className="cal-new-btn" onClick={onCreate} aria-label={t('page.newEvent')} title={t('page.newEvent')} style={{ height: 40, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.accent, color: SP.onAccent, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', boxShadow: SP.shadowSm, flexShrink: 0 }}>
+        <CalIcon name="plus" size={15} stroke={SP.onAccent} sw={2.6} /><span className="cal-new-label">{t('page.newEvent')}</span>
       </button>
     </div>
   )

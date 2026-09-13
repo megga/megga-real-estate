@@ -204,7 +204,8 @@ function DealCardImpl({
             <span style={{
               flex: 1, minWidth: 0, fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sub,
               whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-            }}>{c.firstName} {c.lastName}, {deal.value ? crmFmtCHF(deal.value) : '—'}</span>
+            }}>{/* Sans montant, le nom seul : « Pierre Vionnet, — » se lisait comme une donnée. */}
+              {`${c.firstName} ${c.lastName}`.trim()}{deal.value ? `, ${crmFmtCHF(deal.value)}` : ''}</span>
             <span style={{
               fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: ink, textDecoration: 'underline',
               textUnderlineOffset: 2, whiteSpace: 'nowrap', flexShrink: 0,

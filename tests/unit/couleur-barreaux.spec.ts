@@ -146,7 +146,8 @@ const HORS_ASSUMES = new Map<string, number>([
   // (today/data.ts), sans plus aucun lecteur, est retiré avec ses avatars teintés.
   ['src/components/crm', 513],
   ['src/components/crm-mobile', 140],
-  ['src/components/crm-dossiers', 60],
+  // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
+  ['src/components/crm-dossiers', 59],
   ['src/components/crm-wizard', 47],
   ['src/components/propertyx', 40],
   ['src/components/listings', 37],

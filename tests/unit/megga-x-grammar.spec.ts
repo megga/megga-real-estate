@@ -973,7 +973,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/contacts-pager', { hors: 68, total: 92 }],
   ['src/components/crm/journey', { hors: 3, total: 5 }],
   ['src/components/crm/notifications', { hors: 4, total: 4 }],
-  ['src/components/crm/pipeline', { hors: 32, total: 38 }],
+  // {32,38} -> {30,36} (13.09.2026) : la colonne « Valeur » de la liste passe de
+  // `paddingRight: 56` au barreau `7xl` — le montant s'y cassait sur deux lignes.
+  ['src/components/crm/pipeline', { hors: 30, total: 36 }],
   // {2,2} -> {1,1} (05.09.2026). Le sous-titre du menu de compte — « rôle ·
   // agence », puis l'e-mail quand il existait — a été retiré (décision Julien :
   // l'en-tête ne porte plus que le NOM), et son `marginTop: 3` avec lui. Ne
@@ -1053,7 +1055,9 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // `KycReportRenderPage`) ne portent plus les règles `@page`/`@media print` ni
   // la police des feuilles — tout cela vit dans `KycReportDocument`, hors cliquet
   // (papier). Ce qui reste ici est l'écran : le bureau, la barre d'outils.
-  ['src/pages/agent', { hors: 312, total: 917 }],
+  // total 917 -> 916 (13.09.2026) : le Parcours entre dans le cadre bento commun ; sa
+  // carte d'état vide (`padding: '60px 20px'`, rayon 24) laisse la place à `EtatVide`.
+  ['src/pages/agent', { hors: 312, total: 916 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 66, total: 257 }],
 ])

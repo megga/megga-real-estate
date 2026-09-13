@@ -551,7 +551,9 @@
       "website": "Agency website",
       "onboarding": "MEGGA marketplace",
       "referral": "Referrals",
-      "manual": "Manual import"
+      "manual": "Manual import",
+      "whatsapp": "WhatsApp",
+      "whatsapp_ai": "WhatsApp AI"
     },
     "composition": {
       "secured": {

@@ -1,7 +1,6 @@
 // MEGGA CRM Sugar v2 — Parcours filters (Agent / Stade / Urgence)
 // 1:1 port from `crm-screen-journey-screen.jsx` (PCFilters).
 
-import { crmVoileEncre } from '@/components/crm/tokens'
 import { useTranslation } from 'react-i18next'
 import { type CrmPalette } from '../tokens'
 import {
@@ -64,7 +63,11 @@ export function PCFilters({
       style={{
         display: 'flex',
         flexWrap: 'wrap',
-        gap: 'var(--crm-space-lg)',
+        // Les groupes se séparent par l'ÉCART, pas par un filet : quand la rangée se
+        // replie (1440 px, barre latérale dépliée), le filet restait seul en bout de
+        // première ligne. Les libellés « Stade » / « Urgence » bornent déjà les groupes.
+        columnGap: 'var(--crm-space-6xl)',
+        rowGap: 'var(--crm-space-lg)',
         alignItems: 'center',
       }}
     >
@@ -103,14 +106,6 @@ export function PCFilters({
           </button>
         ))}
       </div>
-
-      <div
-        style={{
-          width: 1,
-          height: 22,
-          background: dark ? 'rgba(255,255,255,0.12)' : `${crmVoileEncre(false, 0.10)}`,
-        }}
-      />
 
       {/* Urgence */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>

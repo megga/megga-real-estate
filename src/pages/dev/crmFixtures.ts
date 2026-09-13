@@ -415,10 +415,13 @@ const AX_OBJECTIF = {
 
 const AX_FUNNEL = {
   funnel: { leads: 34, leads_prev: 28, qualif: 19, qualif_prev: 17, visits: 11, offers: 5, compromis: 2 },
+  // ⚠ Des valeurs de `contacts_source_check`, pas des mots : le banc montrait
+  // « flatfox », « site » et « recommandation », qu'aucune ligne ne peut porter —
+  // et masquait ainsi que `whatsapp_ai` s'affichait brut.
   sources: [
-    { source: 'flatfox', v: 14, conv: 0.21, prev: 11, comm: 42_000, won: 1 },
-    { source: 'site', v: 9, conv: 0.33, prev: 8, comm: 61_000, won: 1 },
-    { source: 'recommandation', v: 6, conv: 0.5, prev: 5, comm: 84_000, won: 1 },
+    { source: 'whatsapp_ai', v: 14, conv: 0.21, prev: 11, comm: 42_000, won: 1 },
+    { source: 'website', v: 9, conv: 0.33, prev: 8, comm: 61_000, won: 1 },
+    { source: 'referral', v: 6, conv: 0.5, prev: 5, comm: 84_000, won: 1 },
   ],
   forecast: { n30: 3, mid30: 96_000, n60: 6, mid60: 148_000, n90: 9, mid90: 205_000 },
 }
