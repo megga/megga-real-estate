@@ -27,7 +27,7 @@ import { useCrmDark } from '@/lib/crmDark'
 import { crmPalette } from '@/components/crm/tokens'
 import TuileNotif from '@/components/crm/notifications/TuileNotif'
 import { KIND_META } from '@/components/crm/notifications/data'
-import { canalDe, detailFor, toKind } from '@/hooks/useAgentNotifications'
+import { canalDe, detailFor, toKind, type Designe } from '@/hooks/useAgentNotifications'
 import { dossierPalette, AUDIT_CATEGORIES, AUDIT_CAT_ICONS } from '../tokens'
 import { CrmIcon } from '../icons'
 import { heureDe, horodatage, libelleActeur, libelleCategorie } from './journal'
@@ -44,6 +44,8 @@ interface Props {
   rafale?: AuditEvent[]
   /** Les collègues de l'agence (id → nom), pour nommer l'agent qui a agi. */
   noms?: ReadonlyMap<string, string>
+  /** Ce que l'événement désigne — la photo et le titre du bien d'un match ou d'une diffusion. */
+  designe?: Designe
   /** Sous 768 px : l'heure et l'acteur passent sous le titre au lieu de tenir leur colonne. */
   compacte?: boolean
   /** Ligne d'une rafale dépliée : un filet à la place de la tuile. */
@@ -58,7 +60,7 @@ function initiales(nom: string | undefined): string {
 }
 
 /** Une ligne du journal, son détail au clic, et — pour une rafale — ses événements. */
-export function AudEventRow({ event, last, rafale, noms, compacte = false, imbriquee = false }: Props) {
+export function AudEventRow({ event, last, rafale, noms, designe, compacte = false, imbriquee = false }: Props) {
   const dark = useCrmDark()
   const sp = useMemo(() => crmPalette(dark), [dark])
   const S = useMemo(() => dossierPalette(dark), [dark])
@@ -71,10 +73,10 @@ export function AudEventRow({ event, last, rafale, noms, compacte = false, imbri
   const nomme = acteur === 'agent' && !!event.actor_id && !!noms?.get(event.actor_id)
   const kind = toKind(event.action, event.category)
   const meta = KIND_META[kind] ?? KIND_META.system
-  // Le SUJET est ce que l'événement désigne (« Léa Martin », « Visite effectuée → Offre »).
-  // Sans libellé serveur, la ligne n'en invente pas : « Contact créé / Contact » répétait
-  // son propre titre. La catégorie est dans le détail.
-  const sujet = detailFor(event)
+  // Le SUJET est ce que l'événement désigne (« Léa Martin », « Visite effectuée → Offre »),
+  // sinon le titre du bien qu'il vise — un match n'a pas de libellé serveur, comme dans la
+  // cloche. Rien d'autre : « Contact créé / Contact » répétait son propre titre.
+  const sujet = detailFor(event) || designe?.titre || ''
   const sev = event.severity ?? 'info'
   const estRafale = !!rafale && rafale.length > 1
 
@@ -141,13 +143,15 @@ export function AudEventRow({ event, last, rafale, noms, compacte = false, imbri
           // Le filet qui rattache l'événement à la tête de sa rafale.
           <span aria-hidden style={{ justifySelf: 'center', alignSelf: 'stretch', width: 2, borderRadius: 'var(--crm-radius-pill)', background: sp.cardBorder }} />
         ) : (
-          // Mêmes teintes que la cloche : en sombre le glyphe passe à l'encre — la teinte,
-          // sur fond noir, ne tient pas un trait fin.
+          // La photo du bien désigné quand il y en a une, comme dans la cloche — le type reste
+          // lisible par la pastille du coin, cerclée du fond de la ligne. Sans photo, les
+          // teintes de la cloche : en sombre le glyphe passe à l'encre, la teinte ne tenant
+          // pas un trait fin sur fond noir.
           <TuileNotif
-            n={{ kind, image: null, canal: canalDe(event.action) }}
+            n={{ kind, image: designe?.photo ?? null, canal: canalDe(event.action) }}
             fondTuile={`color-mix(in srgb, ${meta.dot} ${dark ? 24 : 11}%, transparent)`}
             encreGlyphe={dark ? sp.ink : meta.dot}
-            anneau={sp.cardBg}
+            anneau={survol || ouvert ? sp.focusSurface : sp.cardBg}
             encrePastille={sp.accentInk}
           />
         )}

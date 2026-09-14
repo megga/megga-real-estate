@@ -61,8 +61,9 @@ test('un match et une diffusion montrent la photo du bien qu’ils désignent �
   const ligne = (texte: string) => popover(page).locator('section button', { hasText: texte })
   const match = ligne('Correspondance suggérée')
   await expect(match.locator('img')).toHaveAttribute('referrerpolicy', 'no-referrer')
-  // Sans libellé serveur, le sujet d'un match est le bien qu'il désigne.
-  await expect(match).toContainText('Appartement 3,5 pièces · Carouge')
+  // Sans libellé serveur, le sujet d'un match est le bien qu'il désigne — celui de la TÊTE
+  // de la rafale, la même que dans le journal (ordre date puis id : n3c → le bien p2).
+  await expect(match).toContainText('Villa individuelle · Cologny')
   await expect(ligne('Bien diffusé sur un portail').locator('img')).toHaveCount(1)
   await expect(ligne('Rappel créé').locator('img')).toHaveCount(0)
 })

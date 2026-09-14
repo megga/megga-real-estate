@@ -151,7 +151,11 @@ const HORS_ASSUMES = new Map<string, number>([
   // l'encre d'alerte recopiée `#8C5A00`.
   ['src/components/crm-dossiers', 58],
   ['src/components/crm-wizard', 47],
-  ['src/components/propertyx', 40],
+  // 40 → 42 le 14.09.2026, et c'est une CROISSANCE assumée, pas une dérive : le logo
+  // WhatsApp fourni par Julien (`LogoWhatsApp`) porte son dégradé de marque, `#4AC14B` →
+  // `#06853A` (`WHATSAPP_DEGRADE`, à côté de `WHATSAPP_VERT`). Des couleurs de MARQUE —
+  // exactement la famille que l'en-tête de ce fichier range hors de la direction par nature.
+  ['src/components/propertyx', 42],
   ['src/components/listings', 37],
   ['src/pages/dev', 26],
   // 4 → 3 le 14.09.2026 : la carte « Actions MEGGA AI » du journal d'audit, et son violet

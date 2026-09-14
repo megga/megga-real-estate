@@ -323,7 +323,7 @@ export default function AuditPage() {
       opacity: isPlaceholderData ? 0.55 : 1, transition: 'opacity .2s ease',
     }}>
       {parJour.map((j) => (
-        <AudDayGroup key={j.cle} libelle={j.libelle} events={j.events} noms={noms} compacte={etroit} />
+        <AudDayGroup key={j.cle} libelle={j.libelle} events={j.events} noms={noms} agence={agencyId} compacte={etroit} />
       ))}
     </div>
   )
@@ -380,7 +380,7 @@ export default function AuditPage() {
           >
             <div style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, background: sp.pageBg }}>
               {etroit ? (
-                <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: 'var(--crm-space-2xl)' }}>
+                <div data-journal-defile style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: 'var(--crm-space-2xl)' }}>
                   {titre}
                   {barre}
                   {avisRecherche}
@@ -395,7 +395,7 @@ export default function AuditPage() {
                     {barre}
                     {avisRecherche}
                   </div>
-                  <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 var(--crm-space-7xl) var(--crm-space-7xl)' }}>
+                  <div data-journal-defile style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 var(--crm-space-7xl) var(--crm-space-7xl)' }}>
                     {corps}
                     {pied}
                   </div>

@@ -248,6 +248,42 @@ function premierePhoto(row: { photos?: unknown; photos_cf?: unknown }): string |
 /** Combien de lignes, au plus, reçoivent leur photo : celles que la cloche montre d'abord. */
 const LIGNES_PHOTO = 12
 
+/** Ce qu'une ligne montre de ce que l'événement désigne : sa photo, et le titre du bien. */
+export interface Designe { photo: string | null; titre: string | null }
+
+/** Les annonces et biens que désignent des événements — dédoublonnés et TRIÉS : une clé de cache stable. */
+export function ciblesPhotos(events: readonly Pick<RawEvent, 'metadata' | 'entity_type' | 'entity_id'>[]): { annonces: string[]; biens: string[] } {
+  const annonces = new Set<string>()
+  const biens = new Set<string>()
+  for (const ev of events) {
+    const c = ciblePhoto(ev)
+    if (c) (c.table === 'market_listings' ? annonces : biens).add(c.id)
+  }
+  return { annonces: [...annonces].sort(), biens: [...biens].sort() }
+}
+
+/** Identifiants par requête : une liste `in.(…)` trop longue ferait déborder l'URL. */
+const PAQUET_PHOTOS = 80
+
+/**
+ * Photos et titres des annonces et biens désignés, lus PAR IDENTIFIANT — une requête par
+ * table et par paquet, jamais une liste de `photos` parcourue (CLAUDE.md §7). Partagé par
+ * la cloche et le journal d'audit : un même événement montre la même image aux deux
+ * endroits. Une photo qui manque n'est pas une panne — la ligne garde son glyphe.
+ */
+export async function lirePhotosDesignees(cibles: { annonces: string[]; biens: string[] }): Promise<Record<string, Designe>> {
+  const paquets = (ids: string[]) => Array.from({ length: Math.ceil(ids.length / PAQUET_PHOTOS) }, (_, i) => ids.slice(i * PAQUET_PHOTOS, (i + 1) * PAQUET_PHOTOS))
+  const lectures = await Promise.all([
+    ...paquets(cibles.annonces).map((ids) => supabase.from('market_listings').select('id, title, photos, photos_cf').in('id', ids)),
+    ...paquets(cibles.biens).map((ids) => supabase.from('properties').select('id, title, photos, photos_cf').in('id', ids)),
+  ])
+  const table: Record<string, Designe> = {}
+  for (const { data } of lectures) {
+    for (const row of data ?? []) table[row.id] = { photo: premierePhoto(row), titre: texte(row.title) }
+  }
+  return table
+}
+
 /** Une ligne de la cloche : un événement, ou une rafale anonyme de la même action. */
 interface GroupeCloche {
   ev: RawEvent
@@ -390,6 +426,10 @@ export function useAgentNotifications(limit = 60): AgentNotifications {
         .not('action', 'in', HORS_CLOCHE)
         .not('action', 'in', HORS_CLOCHE_TECHNIQUE)
         .order('created_at', { ascending: false })
+        // ⚠ Le MÊME ordre que le journal d'audit (`useAuditEvents`) : une passe du moteur écrit
+        // ses correspondances à la même `created_at`, et sans second ordre la tête d'une
+        // rafale — donc sa photo et son sujet — différait entre la cloche et l'historique.
+        .order('id', { ascending: false })
         .limit(limit)
       if (error) throw error
       return (data ?? []) as RawEvent[]
@@ -404,15 +444,7 @@ export function useAgentNotifications(limit = 60): AgentNotifications {
   // Les photos des lignes montrées d'abord (14.09.2026, Julien : « pour les annonces qu'on
   // publie, ou s'il y a un match qui arrive, synchroniser l'image »). Une requête par table,
   // bornée par les identifiants — jamais une liste de `photos` parcourue.
-  const cibles = useMemo(() => {
-    const annonces = new Set<string>()
-    const biens = new Set<string>()
-    for (const { ev } of groupes.slice(0, LIGNES_PHOTO)) {
-      const c = ciblePhoto(ev)
-      if (c) (c.table === 'market_listings' ? annonces : biens).add(c.id)
-    }
-    return { annonces: [...annonces].sort(), biens: [...biens].sort() }
-  }, [groupes])
+  const cibles = useMemo(() => ciblesPhotos(groupes.slice(0, LIGNES_PHOTO).map((g) => g.ev)), [groupes])
 
   // ⚠ Le TITRE vient avec la photo : un match n'a pas de libellé serveur, et sa ligne ne
   // disait que « Correspondance suggérée ». Le bien qu'il désigne devient son sujet.
@@ -420,18 +452,7 @@ export function useAgentNotifications(limit = 60): AgentNotifications {
     queryKey: ['agent-notifications-photos', agencyId, cibles.annonces, cibles.biens],
     enabled: !!agencyId && cibles.annonces.length + cibles.biens.length > 0,
     staleTime: 5 * 60_000,
-    queryFn: async (): Promise<Record<string, { photo: string | null; titre: string | null }>> => {
-      const [annonces, biens] = await Promise.all([
-        cibles.annonces.length ? supabase.from('market_listings').select('id, title, photos, photos_cf').in('id', cibles.annonces) : null,
-        cibles.biens.length ? supabase.from('properties').select('id, title, photos, photos_cf').in('id', cibles.biens) : null,
-      ])
-      // Une photo qui manque n'est pas une panne : la ligne garde son glyphe.
-      const table: Record<string, { photo: string | null; titre: string | null }> = {}
-      for (const row of [...(annonces?.data ?? []), ...(biens?.data ?? [])]) {
-        table[row.id] = { photo: premierePhoto(row), titre: texte(row.title) }
-      }
-      return table
-    },
+    queryFn: () => lirePhotosDesignees(cibles),
   })
 
   const items = useMemo<CrmNotif[]>(() => {

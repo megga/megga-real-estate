@@ -10,8 +10,15 @@ import { test, expect, type Page } from '@playwright/test'
 const ecran = (page: Page) => page.locator('[data-onglet]:not([aria-hidden="true"])')
 const lignes = (page: Page) => ecran(page).locator('section button[aria-expanded]')
 
+/**
+ * ⚠ Les photos du banc viennent d'Unsplash : servies ici par une image locale, AVANT la
+ * navigation — une photo qui échoue retombe sur le glyphe, et le test la croirait absente.
+ */
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
+
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
+  await page.route('**/images.unsplash.com/**', (r) => r.fulfill({ body: PNG, contentType: 'image/png' }))
   await page.goto(`/dev/crm?entree=${encodeURIComponent('/dashboard/audit')}`)
   await ecran(page).getByRole('heading', { name: /Journal d.audit/ }).waitFor({ timeout: 30_000 })
   await expect(lignes(page).first()).toBeVisible()
@@ -107,4 +114,24 @@ test('« Tout » se lit par pages : 1000 d’abord, puis les plus anciens à la 
   await recherche.fill('')
   await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 977' })).toHaveCount(1)
   await expect(plusAnciens).toHaveCount(0)
+})
+
+/**
+ * « Comme dans la pop-up — les photos de l'annonce ou du match » (Julien, 14.09.2026) : la
+ * même tuile que la cloche, la même photo pour la même rafale, et le logo WhatsApp fourni.
+ */
+test('un match et une diffusion montrent la photo du bien ; WhatsApp porte son logo', async ({ page }) => {
+  const match = lignes(page).filter({ hasText: 'Correspondance suggérée' }).first()
+  await expect(match.locator('img')).toHaveAttribute('referrerpolicy', 'no-referrer')
+  // Sans libellé serveur, le sujet d'un match est le bien qu'il désigne — celui de la
+  // cloche, la tête de rafale étant la même des deux côtés (ordre date puis id).
+  await expect(match).toContainText('Villa individuelle · Cologny')
+
+  const diffusion = lignes(page).filter({ hasText: 'Bien diffusé sur un portail' }).first()
+  await diffusion.scrollIntoViewIfNeeded()
+  await expect(diffusion.locator('img')).toHaveCount(1)
+  await expect(lignes(page).filter({ hasText: 'Visite planifiée' }).first().locator('img')).toHaveCount(0)
+
+  const whatsapp = lignes(page).filter({ hasText: 'Message WhatsApp reçu' }).first()
+  await expect(whatsapp.locator('[data-canal="whatsapp"] svg linearGradient')).toHaveCount(1)
 })

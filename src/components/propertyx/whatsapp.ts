@@ -8,3 +8,10 @@
  * MEGGA X, et c'est voulu — le logo se reconnaît à elle.
  */
 export const WHATSAPP_VERT = '#25D366'
+
+/**
+ * Le dégradé du LOGO fourni par Julien (14.09.2026, `LogoWhatsApp`), de haut en bas — les
+ * deux teintes de son fichier, recopiées telles quelles. Même statut que le vert du
+ * bouton : des couleurs de marque, hors de la direction et du thème.
+ */
+export const WHATSAPP_DEGRADE = ['#4AC14B', '#06853A'] as const
