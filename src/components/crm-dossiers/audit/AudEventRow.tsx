@@ -243,9 +243,11 @@ function Detail({ id, event, nomActeur, compacte }: { id: string; event: AuditEv
       aria-label={i18n.t('common:audit.details')}
       style={{
         // Aligné sur le texte de la ligne : après la gouttière, l'heure et la tuile.
+        // Le même souffle au-dessus qu'en dessous : collée à la ligne ouverte, la fiche
+        // semblait en déborder (14.09.2026, Julien).
         margin: compacte
-          ? '0 var(--crm-space-lg) var(--crm-space-lg)'
-          : `0 var(--crm-space-4xl) var(--crm-space-lg) calc(var(--crm-space-4xl) + ${COL_HEURE + COL_TUILE}px + 2 * var(--crm-space-2xl))`,
+          ? 'var(--crm-space-lg)'
+          : `var(--crm-space-lg) var(--crm-space-4xl) var(--crm-space-lg) calc(var(--crm-space-4xl) + ${COL_HEURE + COL_TUILE}px + 2 * var(--crm-space-2xl))`,
         padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
         borderRadius: 'var(--crm-radius-lg)',
         background: sp.cardSubBg,
