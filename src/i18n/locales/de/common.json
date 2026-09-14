@@ -559,7 +559,8 @@
       "transaction": "Geschäft",
       "visit": "Besichtigung",
       "whatsapp_message": "WhatsApp-Nachricht"
-    }
+    },
+    "tabLabel": "Auditprotokoll"
   },
   "errorBoundary": {
     "title": "Ein Fehler ist aufgetreten",

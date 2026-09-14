@@ -38,7 +38,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, animate, motion, useAnimate, useMotionValue } from 'motion/react'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -124,6 +124,8 @@ const SEUIL_CROIX = 96
 // bandeau. Ses deux menus, eux, sont PORTÉS et montent à 9000 — voir plus bas.
 const Z_BARRE = 60
 const Z_MENU = 9000
+/** Le journal d'audit — l'historique complet des événements que la cloche montre. */
+const CHEMIN_JOURNAL = '/dashboard/audit'
 
 /** Durée de la sonde qui suit une transition de largeur (le pli de la barre dure 250 ms). */
 const SONDE_MS = 400
@@ -446,16 +448,23 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override, active: sectio
   const barreRef = useRef<HTMLDivElement | null>(null)
   // La cloche se loge dans le coin du cadre, comme le menu du compte (14.09.2026).
   const coinNotif = useCoinDuCadre(notifOuvert, barreRef, notifAncre, notifMenuRef)
-  const navigate = useNavigate()
   const location = useLocation()
   /**
-   * « Voir tout l'historique » : le journal d'audit, où vivent ces mêmes événements.
+   * « Voir tout l'historique » : le journal d'audit, où vivent ces mêmes événements —
+   * DANS UN ONGLET À LUI (14.09.2026, Julien : « quand on clique pour voir l'historique,
+   * qu'est-ce qui doit se passer après ? »). Il remplaçait l'écran de l'onglet courant :
+   * le Calendrier de l'agent disparaissait sous le journal, dans un onglet titré
+   * « Analytics » (la section à laquelle la route est rattachée). Un journal déjà ouvert
+   * est RE-SÉLECTIONNÉ : un clic de plus ne doit pas empiler un second onglet identique.
    * ⚠ Pas depuis un banc `/dev/*` (même règle que la barre latérale) : une cible
    * `/dashboard/*` y enverrait en production.
    */
   const versHistorique = () => {
     setNotifOuvert(false)
-    if (!location.pathname.startsWith('/dev/')) navigate('/dashboard/audit')
+    if (location.pathname.startsWith('/dev/')) return
+    const deja = api.tabs.findIndex((tb) => tb.path === CHEMIN_JOURNAL)
+    if (deja >= 0) api.selectionner(deja)
+    else api.ouvrirDans(CHEMIN_JOURNAL, t('audit.tabLabel'))
   }
   /** La piste des puces, et l'espace encore libre à sa droite. */
   const pistRef = useRef<HTMLDivElement | null>(null)

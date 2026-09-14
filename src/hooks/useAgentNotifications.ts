@@ -211,6 +211,15 @@ export function detailFor(ev: Pick<RawEvent, 'action' | 'object_label'>): string
     .join(' → ')
 }
 
+/**
+ * Le canal d'un événement, quand son logo le dit mieux que son type : toutes les actions
+ * WhatsApp (messages, prospects, relais de MEGGA AI, liaison du numéro — et l'action
+ * française « Fiche enrichie (WhatsApp) » que la production porte) prennent le logo.
+ */
+export function canalDe(action: string): 'whatsapp' | null {
+  return /whatsapp|^wa_/i.test(action) ? 'whatsapp' : null
+}
+
 /** Où trouver la photo d'un événement : l'annonce du marché ou le bien qu'il désigne. */
 interface CiblePhoto { table: 'market_listings' | 'properties'; id: string }
 
@@ -445,6 +454,7 @@ export function useAgentNotifications(limit = 60): AgentNotifications {
         count: ids.length,
         ids,
         image: designe?.photo ?? null,
+        canal: canalDe(ev.action),
         cta,
         ctaTo,
       }

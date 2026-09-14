@@ -566,7 +566,8 @@
       "transaction": "Affaire",
       "visit": "Visite",
       "whatsapp_message": "Message WhatsApp"
-    }
+    },
+    "tabLabel": "Journal d’audit"
   },
   "announcements": {
     "dismiss": "Fermer"

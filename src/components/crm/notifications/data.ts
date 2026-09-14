@@ -40,6 +40,11 @@ export interface CrmNotif {
    * quand il en a une — elle prend la place du glyphe. `null` sinon.
    */
   image: string | null
+  /**
+   * Le CANAL de l'événement quand il se reconnaît à son logo mieux qu'à son type :
+   * une notification WhatsApp porte le logo WhatsApp (14.09.2026). `null` sinon.
+   */
+  canal: 'whatsapp' | null
   cta: string
   ctaTo: string
 }

@@ -566,7 +566,8 @@
       "transaction": "Deal",
       "visit": "Visit",
       "whatsapp_message": "WhatsApp message"
-    }
+    },
+    "tabLabel": "Audit trail"
   },
   "announcements": {
     "dismiss": "Dismiss"

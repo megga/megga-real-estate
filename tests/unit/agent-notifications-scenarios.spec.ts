@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { ciblePhoto, regrouper, toKind } from '@/hooks/useAgentNotifications'
+import { canalDe, ciblePhoto, regrouper, toKind } from '@/hooks/useAgentNotifications'
 import { KIND_META, type NotifKind } from '@/components/crm/notifications/data'
 import { repoPath } from './helpers/fs-scan'
 
@@ -128,6 +128,18 @@ describe('cloche — la photo vient de ce que l’événement désigne', () => {
   it('sans bien désigné, pas de photo — la ligne garde son glyphe', () => {
     expect(ciblePhoto({ entity_type: 'contact', entity_id: 'c1', metadata: null })).toBeNull()
     expect(ciblePhoto({ entity_type: 'reminder', entity_id: null, metadata: { contact_id: 'c1' } })).toBeNull()
+  })
+})
+
+describe('cloche — le logo WhatsApp dit le canal', () => {
+  it('toute action WhatsApp prend le logo, y compris l’action française de la production', () => {
+    for (const a of ['whatsapp_message_received', 'whatsapp_inbound_lead_created', 'whatsapp_agent_copilot_reply',
+      'lead_created_whatsapp', 'whatsapp_number_verified', 'wa_undo', 'Fiche enrichie (WhatsApp)']) {
+      expect(canalDe(a), a).toBe('whatsapp')
+    }
+  })
+  it('les autres canaux gardent leur glyphe', () => {
+    for (const a of ['contact_created', 'reminder_created', 'match_suggested', 'kyc_case_opened']) expect(canalDe(a), a).toBeNull()
   })
 })
 

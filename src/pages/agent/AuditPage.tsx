@@ -25,6 +25,7 @@ import {
   AUDIT_CAT_ICONS,
 } from '@/components/crm-dossiers/tokens'
 import { useCrmDarkPref } from '@/lib/crmDark'
+import { useTabLabel } from '@/hooks/useCrmTabs'
 import {
   KycBlackPill,
   KycGhostPill,
@@ -53,6 +54,9 @@ export default function AuditPage() {
    */
   const etroit = useIsMobile()
   const { t: tr } = useTranslation('common')
+  // L'onglet dit « Journal d'audit », pas « Analytics » — la section à laquelle la route
+  // est rattachée dans la barre latérale, et que la puce reprenait faute de libellé.
+  useTabLabel(tr('audit.tabLabel'))
   /**
    * ⚠ `useCrmDarkPref()` : la barre latérale de cette page BASCULE le thème
    * (`setDark` lui est passé). Ce fut un `useState(readCrmDark)` local, pour ne pas

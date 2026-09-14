@@ -5,7 +5,11 @@
  */
 import { test, expect, type Page } from '@playwright/test'
 
-const cloche = (page: Page) => page.locator('button[aria-label^="Notifications"]').first()
+// Chaque écran d'onglet vivant a SA bande, donc sa cloche. Les écrans cachés portent
+// `aria-hidden` sur leur conteneur (`data-onglet`) : on vise celle de l'écran MONTRÉ.
+// ⚠ Pas `:visible` — mesuré, il résolvait la cloche d'un écran tout juste caché, et le
+// clic attendait trente secondes qu'elle redevienne visible.
+const cloche = (page: Page) => page.locator('[data-onglet]:not([aria-hidden="true"]) button[aria-label^="Notifications"]').first()
 const popover = (page: Page) => page.getByRole('dialog', { name: 'Notifications' })
 /** Le nombre de non-lus que la cloche annonce (« Notifications · 17 non lues »). */
 const nonLus = async (page: Page) => Number((await cloche(page).getAttribute('aria-label'))?.match(/(\d+)/)?.[1] ?? 0)
@@ -61,6 +65,53 @@ test('un match et une diffusion montrent la photo du bien qu’ils désignent �
   await expect(match).toContainText('Appartement 3,5 pièces · Carouge')
   await expect(ligne('Bien diffusé sur un portail').locator('img')).toHaveCount(1)
   await expect(ligne('Rappel créé').locator('img')).toHaveCount(0)
+})
+
+test('une notification WhatsApp porte le logo WhatsApp — les autres gardent leur glyphe', async ({ page }) => {
+  await cloche(page).click()
+  const tuile = (texte: string) => popover(page).locator('section button', { hasText: texte }).locator('[data-canal="whatsapp"]')
+  for (const texte of ['Nouveau prospect WhatsApp', 'Message WhatsApp reçu', 'Réponse du copilote WhatsApp', 'Numéro WhatsApp lié']) {
+    await expect(tuile(texte), texte).toHaveCount(1)
+  }
+  await expect(tuile('Rappel créé')).toHaveCount(0)
+  await expect(tuile('Visite planifiée')).toHaveCount(0)
+})
+
+/**
+ * « Quand on clique pour voir l'historique, qu'est-ce qui doit se passer après ? » (Julien,
+ * 14.09.2026). Le journal s'ouvrait DANS l'onglet courant — l'écran de l'agent disparaissait
+ * dessous, dans un onglet titré « Analytics ». Il a désormais son onglet, re-sélectionné
+ * s'il est déjà ouvert.
+ */
+test('« Voir tout l’historique » ouvre le journal dans SON onglet — sans écraser l’écran, sans doublon', async ({ page }) => {
+  const puces = page.locator('[role="tablist"][aria-label="Onglets ouverts"] [role="tab"]:visible')
+  const active = page.locator('[role="tablist"][aria-label="Onglets ouverts"] [role="tab"][aria-selected="true"]:visible')
+  const depart = await puces.count()
+  const ecranDepart = (await active.textContent())?.trim() ?? ''
+
+  const voirTout = async () => {
+    await cloche(page).click()
+    await popover(page).getByRole('button', { name: /Voir tout l’historique|Voir tout l'historique/ }).click()
+  }
+
+  // ⚠ La puce passe « sélectionnée » AVANT que les écrans ne s'échangent : on attend le
+  // titre du journal, faute de quoi le clic suivant visait la cloche de l'écran sortant —
+  // masqué sans être détaché, Playwright l'attendait jusqu'au délai.
+  const titreJournal = page.getByRole('heading', { name: /Journal d.audit/ })
+
+  await voirTout()
+  await expect(titreJournal).toBeVisible()
+  await expect(puces).toHaveCount(depart + 1)
+  await expect(active).toContainText('Journal d’audit')
+  await expect(puces.filter({ hasText: ecranDepart })).toHaveCount(1)
+
+  // Retour sur l'écran de départ, puis de nouveau : le journal est re-sélectionné.
+  await puces.filter({ hasText: ecranDepart }).first().click()
+  await expect(titreJournal).toBeHidden()
+  await voirTout()
+  await expect(titreJournal).toBeVisible()
+  await expect(puces).toHaveCount(depart + 1)
+  await expect(active).toContainText('Journal d’audit')
 })
 
 test('lire une ligne la marque lue — le compteur baisse, la cloche reste ouverte', async ({ page }) => {

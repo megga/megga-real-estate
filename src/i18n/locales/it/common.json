@@ -559,7 +559,8 @@
       "transaction": "Trattativa",
       "visit": "Visita",
       "whatsapp_message": "Messaggio WhatsApp"
-    }
+    },
+    "tabLabel": "Registro di audit"
   },
   "errorBoundary": {
     "title": "Si è verificato un errore",
