@@ -136,6 +136,16 @@ export const PERSONAL_DATA_ESTATE: readonly EstateEntry[] = [
     divergence:
       'Exportée ET supprimée, mais pas en entier dans les deux sens. L\'export (admin-dsar-export, 13.09.2026) rend la CONNEXION — adresse, fournisseur, visibilité, statut, dates — par une liste de colonnes fermée : jamais le pointeur Vault, les curseurs, la configuration IMAP ni le texte des erreurs, et jamais les jetons, qui sont des clés d\'accès et non une information sur la personne. Le courrier n\'est pas exporté : c\'est la correspondance de l\'agence (sous-traitance, registre activité n°7), consultable par la personne chez son fournisseur. L\'effacement, lui, emporte tout : disconnectMailAccount (étape 5c de delete-account) révoque le jeton chez Google et efface le secret de Vault — que la cascade de l\'étape 11 n\'atteignait pas —, puis fils et messages partent en cascade.',
   },
+  // La fiche de l'agent (Réglages ▸ Profil : bio, langues, spécialités, liens), qu'il crée
+  // lui-même depuis le 14.09.2026 (ensure_my_agent_profile). Supprimée à l'étape 8d de
+  // delete-account, et par la cascade de `profile_id` à l'étape 11.
+  {
+    table: 'agent_profiles',
+    subjectColumn: 'profile_id',
+    role: 'controller',
+    access: true,
+    erasure: 'delete',
+  },
   {
     table: 'agency_id_document_purges',
     subjectColumn: 'related_person_id',
