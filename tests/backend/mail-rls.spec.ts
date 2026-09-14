@@ -387,6 +387,39 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
     }
   })
 
+  // Les logos des expéditeurs (14.09.2026). Le cache est PAR BOÎTE : les domaines d'une
+  // boîte PERSONNELLE — la clinique, l'avocat — ne doivent pas se lire au bureau.
+  it('mail_sender_logos : un logo suit la visibilité de sa boîte, et seul le service-role l écrit', async () => {
+    const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>').toString('base64')
+    const ligne = (account_id: string, domain: string) => ({ account_id, domain, status: 'found', source: 'bimi', mime: 'image/svg+xml', data: svg })
+    const perso = `perso-${s.stamp}.test`
+    const partage = `partage-${s.stamp}.test`
+    const chezB = `chez-b-${s.stamp}.test`
+    const { error: e0 } = await service.from('mail_sender_logos').insert([ligne(ownerBoxId, perso), ligne(sharedBoxId, partage), ligne(boxBId, chezB)])
+    expect(e0).toBeNull()
+    const lus = async (client: SupabaseClient) =>
+      ((await client.from('mail_sender_logos').select('domain').like('domain', `%-${s.stamp}.test`)).data ?? []).map((r) => r.domain).sort()
+
+    expect(await lus(s.clientA), 'le propriétaire : ses deux boîtes').toEqual([partage, perso].sort())
+    expect(await lus(clientA2), 'le collègue : la boîte partagée seule').toEqual([partage])
+    expect(await lus(s.clientB), 'l autre agence : sa boîte seule').toEqual([chezB])
+    expect(await lus(anonClient()), 'anon : rien').toEqual([])
+
+    // Écritures client refusées — et relues au service-role, une erreur ne prouvant pas
+    // l'absence d'écriture (même règle que les alias plus haut).
+    const ins = await s.clientA.from('mail_sender_logos').insert(ligne(sharedBoxId, `forge-${s.stamp}.test`))
+    expect(ins.error, 'ajout refusé').not.toBeNull()
+    await s.clientA.from('mail_sender_logos').update({ status: 'none', data: null, mime: null, source: null }).eq('account_id', sharedBoxId)
+    await s.clientA.from('mail_sender_logos').delete().eq('account_id', sharedBoxId)
+    const { data: reste } = await service.from('mail_sender_logos').select('domain, status').eq('account_id', sharedBoxId)
+    expect(reste).toEqual([{ domain: partage, status: 'found' }])
+
+    // Un « trouvé » sans ses octets n'existe pas : la contrainte le refuse, même au service-role.
+    const { error: eVide } = await service.from('mail_sender_logos')
+      .insert({ account_id: sharedBoxId, domain: `vide-${s.stamp}.test`, status: 'found', source: 'icon', mime: 'image/png', data: null })
+    expect(eVide?.code).toBe('23514')
+  })
+
   // AJOUT, ET LE DERNIER DE LA LISTE (la suite est sérielle : ce test déplace un profil
   // puis le remet, et l'ordre de déclaration est donc l'ordre d'exécution).
   //

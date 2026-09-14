@@ -14,6 +14,8 @@ import MEIcon from '@/components/propertyx/MEIcon'
 import { MAIL_PER_PAGE, type MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import type { MailDraft } from '@/hooks/useMailDrafts'
+import { useMailSenderLogos } from '@/hooks/useMailSenderLogos'
+import { domaineDe } from '@/lib/mail/format'
 import { MailListRow } from './MailListRow'
 import { MailPager } from './MailPager'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
@@ -52,6 +54,10 @@ interface Props {
 export function MailList(p: Props) {
   const { t } = useTranslation('messages')
   const { ms } = p
+  // Les logos de la PAGE affichée seulement : une page, une lecture du cache — et au plus
+  // une demande de résolution pour ce qu'il ne couvre pas encore.
+  const adresse = (r: MailThreadRow) => r.from_email ?? r.participants[0]?.email ?? null
+  const logos = useMailSenderLogos(p.rows[0]?.account_id ?? null, p.rows.map(adresse))
 
   /**
    * ⚠ Les brouillons sont servis EN ENTIER par leur hook (ils sont locaux, il
@@ -145,6 +151,7 @@ export function MailList(p: Props) {
               ms={ms}
               row={r}
               label={labelOf(r.label_id)}
+              logo={logos[domaineDe(adresse(r)) ?? '']}
               lang={p.lang}
               onOpen={() => p.onOpen(r.id)}
               onStar={() => p.onStar(r)}

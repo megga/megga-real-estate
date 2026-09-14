@@ -1,6 +1,7 @@
 /**
- * Une ligne de la liste (README §2 « Lignes ») : étoile, expéditeur, pastille de
- * libellé, objet, extrait, trombone, date.
+ * Une ligne de la liste (README §2 « Lignes ») : étoile, expéditeur (précédé de sa
+ * pastille — logo de l'entreprise ou initiales), pastille de libellé, objet, extrait,
+ * trombone, date.
  *
  * ⚠ La grille est celle de la maquette au pixel (`26px 185px minmax(0,1fr) 16px
  * 58px`) : ce sont des largeurs de COLONNE, que l'échelle d'espacement du CRM ne
@@ -15,25 +16,33 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailLabel } from '@/hooks/useMailLabels'
+import type { MailSenderLogo } from '@/hooks/useMailSenderLogos'
 import { displayAddress, mailDateLabel } from '@/lib/mail/format'
+import { MailSenderAvatar } from './MailSenderAvatar'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
 interface Props {
   ms: MailSurfaces
   row: MailThreadRow
   label: MailLabel | null
+  /** Le logo de l'expéditeur, s'il est connu — sinon la pastille porte ses initiales. */
+  logo?: MailSenderLogo
   lang: string
   onOpen: () => void
   onStar: () => void
   onContext: (e: React.MouseEvent) => void
 }
 
-export function MailListRow({ ms, row, label, lang, onOpen, onStar, onContext }: Props) {
+/** Diamètre de la pastille d'expéditeur dans une ligne : la ligne garde sa hauteur. */
+const PASTILLE = 24
+
+export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onContext }: Props) {
   const { t } = useTranslation('messages')
   // ⚠ 600 et non 700 comme la maquette : la grammaire MEGGA X plafonne à 600
   // (cliquet `megga-x-grammar`), et l'écart 500/600 suffit à lire « non lu ».
   const weight = row.is_read ? 500 : 600
   const sender = row.from_name || row.from_email || (row.participants[0] ? displayAddress(row.participants[0]) : '')
+  const adresse = row.from_email ?? row.participants[0]?.email ?? null
 
   return (
     <div
@@ -63,7 +72,11 @@ export function MailListRow({ ms, row, label, lang, onOpen, onStar, onContext }:
         <MEIcon name="star" size={15} color={row.is_starred ? ms.star : ms.dim} fill={row.is_starred ? ms.star : 'none'} />
       </button>
 
-      <span style={{ fontWeight: weight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sender}</span>
+      {/* La pastille vit DANS la colonne de l'expéditeur : la grille reste celle de la maquette. */}
+      <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minWidth: 0 }}>
+        <MailSenderAvatar ms={ms} nom={row.from_name} adresse={adresse} logo={logo} taille={PASTILLE} />
+        <span style={{ fontWeight: weight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sender}</span>
+      </span>
 
       <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minWidth: 0 }}>
         {label && (

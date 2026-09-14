@@ -36,6 +36,7 @@
  * déclenche.
  */
 import { createContext, useContext } from 'react'
+import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
 import type { MailAccount } from '@/hooks/useMailAccounts'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import type { MailFolderCounts, MailThreadRow } from '@/hooks/useMailThreads'
@@ -281,6 +282,41 @@ export function fxThreads(
   )
   const total = tous.length
   return { rows: tous.slice(page * perPage, (page + 1) * perPage).map((r) => ({ ...r, total })), total }
+}
+
+// ─── Logos d'expéditeurs (14.09.2026) ──────────────────────────────────────────
+/** Un logo tel que `mail_sender_logos` le range : son type, ses octets en base64, sa source. */
+export interface FxSenderLogo { source: string; mime: string; data: string }
+
+const marque = (fond: string, encre: string, forme: string) =>
+  btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${fond}"/><g fill="${encre}">${forme}</g></svg>`)
+
+/**
+ * Trois marques FICTIVES pour les trois sociétés fictives du banc — des formes, aucun
+ * logo existant (même règle que les raisons sociales en « Exemple »). Les particuliers
+ * (`@exemple.ch`) n'en ont pas : le banc montre les deux visages de la pastille. Les
+ * couleurs sont des barreaux de la direction, pas des hexadécimaux, et un aplat PÂLE
+ * prend l'encre sombre (CLAUDE.md §3).
+ */
+export const FX_SENDER_LOGOS: Record<string, FxSenderLogo> = {
+  'banque-exemple.ch': {
+    source: 'bimi', mime: 'image/svg+xml',
+    data: marque(MXC_COLOR.accent, MXC_COLOR.n1000, '<path d="M12 26 32 13l20 13z"/><rect x="16" y="29" width="6" height="16"/><rect x="29" y="29" width="6" height="16"/><rect x="42" y="29" width="6" height="16"/><rect x="12" y="48" width="40" height="4"/>'),
+  },
+  'notaire-exemple.ch': {
+    source: 'apple-touch-icon', mime: 'image/svg+xml',
+    data: marque(MXC_SYSTEM.green400, MXC_COLOR.n100, '<circle cx="32" cy="30" r="13"/><path d="M24 40 20 54l12-6 12 6-4-14z"/>'),
+  },
+  'regie-exemple.ch': {
+    source: 'icon', mime: 'image/svg+xml',
+    data: marque(MXC_SYSTEM.yellow400, MXC_COLOR.n100, '<path d="M14 32 32 16l18 16h-5v17H37V38H27v11H19V32z"/>'),
+  },
+}
+
+/** Les logos du banc pour ces domaines — hors « boîte pleine », aucun. */
+export function fxSenderLogos(state: MailFixtureState, domaines: string[]): Record<string, FxSenderLogo> {
+  if (state !== 'full') return {}
+  return Object.fromEntries(domaines.filter((d) => d in FX_SENDER_LOGOS).map((d) => [d, FX_SENDER_LOGOS[d]]))
 }
 
 /** Les compteurs du rail, recalculés sur le même jeu — jamais écrits à la main. */

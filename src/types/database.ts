@@ -4000,6 +4000,44 @@ export type Database = {
           },
         ]
       }
+      mail_sender_logos: {
+        Row: {
+          account_id: string
+          checked_at: string
+          data: string | null
+          domain: string
+          mime: string | null
+          source: string | null
+          status: string
+        }
+        Insert: {
+          account_id: string
+          checked_at?: string
+          data?: string | null
+          domain: string
+          mime?: string | null
+          source?: string | null
+          status: string
+        }
+        Update: {
+          account_id?: string
+          checked_at?: string
+          data?: string | null
+          domain?: string
+          mime?: string | null
+          source?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mail_sender_logos_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "mail_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mail_threads: {
         Row: {
           account_id: string

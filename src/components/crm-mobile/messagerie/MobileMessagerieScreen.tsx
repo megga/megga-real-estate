@@ -29,8 +29,10 @@ import { useCrmDark } from '@/lib/crmDark'
 import { useMailAccounts } from '@/hooks/useMailAccounts'
 import { MAIL_PER_PAGE, useMailThreads } from '@/hooks/useMailThreads'
 import { useMailThread } from '@/hooks/useMailThread'
-import { mailDateLabel } from '@/lib/mail/format'
+import { useMailSenderLogos } from '@/hooks/useMailSenderLogos'
+import { domaineDe, mailDateLabel } from '@/lib/mail/format'
 import { MailBodyFrame } from '@/components/crm/messagerie/MailBodyFrame'
+import { MailSenderAvatar } from '@/components/crm/messagerie/MailSenderAvatar'
 import { mailSurfaces } from '@/components/crm/messagerie/mailTokens'
 import { MOBILE_FONT } from '@/components/crm-mobile/tokens'
 
@@ -54,6 +56,7 @@ export default function MobileMessagerieScreen() {
   })
   const thread = useMailThread(sel)
   const ligne = threads.rows.find((r) => r.id === sel) ?? null
+  const logos = useMailSenderLogos(boite?.id ?? null, threads.rows.map((r) => r.from_email))
 
   const cadre = {
     minHeight: '100vh',
@@ -83,24 +86,29 @@ export default function MobileMessagerieScreen() {
               type="button"
               onClick={() => setSel(r.id)}
               style={{
-                display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
-                borderBottom: `1px solid ${ms.bord2}`, padding: 'var(--crm-space-lg) 0',
+                display: 'flex', alignItems: 'flex-start', gap: 'var(--crm-space-lg)', width: '100%', textAlign: 'left',
+                background: 'none', border: 'none', borderBottom: `1px solid ${ms.bord2}`, padding: 'var(--crm-space-lg) 0',
                 color: sp.ink, fontFamily: 'inherit', cursor: 'pointer',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: r.is_read ? 500 : 600 }}>
-                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {r.from_name || r.from_email}
-                </span>
-                <span style={{ color: ms.txt3, fontSize: 'var(--crm-text-xs)', flexShrink: 0 }}>
-                  {mailDateLabel(r.last_message_at, new Date(), lang)}
-                </span>
-              </div>
-              <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: r.is_read ? 500 : 600 }}>
-                {r.subject || t('mail.row.noSubject')}
-              </div>
-              <div style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {r.snippet}
+              {/* La pastille de l'expéditeur — logo de l'entreprise, ou initiales —, en tête
+                  des trois lignes, comme dans les messageries qui montrent des logos. */}
+              <MailSenderAvatar ms={ms} nom={r.from_name} adresse={r.from_email} logo={logos[domaineDe(r.from_email) ?? '']} taille={36} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: r.is_read ? 500 : 600 }}>
+                  <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.from_name || r.from_email}
+                  </span>
+                  <span style={{ color: ms.txt3, fontSize: 'var(--crm-text-xs)', flexShrink: 0 }}>
+                    {mailDateLabel(r.last_message_at, new Date(), lang)}
+                  </span>
+                </div>
+                <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: r.is_read ? 500 : 600 }}>
+                  {r.subject || t('mail.row.noSubject')}
+                </div>
+                <div style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {r.snippet}
+                </div>
               </div>
             </button>
           ))}

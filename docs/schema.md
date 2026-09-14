@@ -345,6 +345,13 @@ mail_drafts (
   created_at, updated_at
 )
 
+-- Logos des expéditeurs (14.09.2026, 20260915080000) : l'image publique de la société
+-- expéditrice, PAR BOÎTE — jamais par domaine global (voir la RLS plus bas).
+mail_sender_logos (account_id → mail_accounts on delete cascade, domain, status 'found'|'none',
+  source 'bimi'|'apple-touch-icon'|'icon'|'favicon', mime, data (base64 ≤ 96 Kio), checked_at)
+  -- PK (account_id, domain) ; CHECK : un 'found' porte data + mime + source, un 'none' rien
+  -- écrit par l'edge mail-logos (service_role) ; revérifié à 30 jours ('found') / 7 ('none')
+
 -- Alias appris (D11) : « cette adresse est ce contact », mémorisé une fois.
 mail_contact_aliases (id, agency_id, email, contact_id, learned_by, created_at)
   -- CHECK email = lower(email) : l'index unique reste simple, donc ciblable par
@@ -456,6 +463,10 @@ de récursion) :
   autre agence, qui gouvernerait dès lors le champ).
 - mail_labels / mail_drafts : CRUD client. mail_drafts est restreinte à son auteur
   (author_id = auth.uid()).
+- mail_sender_logos : SELECT client par `mail_account_visible(account_id)`, AUCUNE écriture
+  client. ⛔ Par boîte et non par domaine : une table globale livrerait les correspondants de
+  toutes les agences, et même rangée par agence elle révélerait au bureau les domaines d'une
+  boîte PERSONNELLE. L'edge ne recopie pas un logo d'une boîte à l'autre (oracle de temps).
 - mail_oauth_states / mail_cron_locks / mail_contact_aliases : RLS activée, AUCUNE policy
   → service_role seul. ⛔ mail_contact_aliases était CRUD client jusqu'au 13.09.2026
   (migration 20260913150000) : toute l'agence lisait l'adresse d'un correspondant apprise

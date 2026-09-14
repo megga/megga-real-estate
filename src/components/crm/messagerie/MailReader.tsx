@@ -12,8 +12,10 @@ import MEIcon from '@/components/propertyx/MEIcon'
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailAttachmentRow, MailMessageRow } from '@/hooks/useMailThread'
 import type { MailLabel } from '@/hooks/useMailLabels'
-import { cibleDeRattachement, displayAddress, fileSizeLabel, initialsOf, mailDateLabel } from '@/lib/mail/format'
+import { useMailSenderLogos } from '@/hooks/useMailSenderLogos'
+import { cibleDeRattachement, displayAddress, domaineDe, fileSizeLabel, mailDateLabel } from '@/lib/mail/format'
 import { MailBodyFrame } from './MailBodyFrame'
+import { MailSenderAvatar } from './MailSenderAvatar'
 import { MailReplyComposer } from './MailReplyComposer'
 import { MailForwardComposer } from './MailForwardComposer'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
@@ -37,6 +39,8 @@ export function MailReader(p: Props) {
   const { t } = useTranslation('messages')
   const { ms } = p
   const first = p.messages[0]
+  // Avant le retour anticipé plus bas : un hook ne s'appelle pas sous condition.
+  const logos = useMailSenderLogos(p.thread.account_id, [first?.from_email])
   // Répondre et transférer visent le DERNIER message entrant, pas le premier du
   // fil : sur un échange long, le premier est souvent le nôtre.
   const inboundLast = [...p.messages].reverse().find((m) => m.direction === 'inbound') ?? first
@@ -154,9 +158,7 @@ export function MailReader(p: Props) {
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', paddingBottom: 'var(--crm-space-2xl)', borderBottom: `1px solid ${ms.bord2}`, marginTop: 'var(--crm-space-2xl)' }}>
-        <div aria-hidden style={{ width: AVATAR, height: AVATAR, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-sm)', fontWeight: 600 }}>
-          {initialsOf(first.from_name, first.from_email ?? '')}
-        </div>
+        <MailSenderAvatar ms={ms} nom={first.from_name} adresse={first.from_email} logo={logos[domaineDe(first.from_email) ?? '']} taille={AVATAR} />
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{senderName}</div>
           <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{t('mail.read.to', { box: p.boxEmail })}</div>

@@ -45,6 +45,18 @@ export function initialsOf(name: string | null | undefined, email: string): stri
 }
 
 /**
+ * Le domaine d'une adresse, en minuscules — la clé du logo de l'expéditeur
+ * (`mail_sender_logos`). `null` si l'adresse n'en a pas la forme : le serveur, qui
+ * valide la même forme, n'en rendrait rien.
+ */
+export function domaineDe(email: string | null | undefined): string | null {
+  const at = (email ?? '').lastIndexOf('@')
+  if (at < 0) return null
+  const d = (email ?? '').slice(at + 1).trim().toLowerCase().replace(/\.$/, '')
+  return /^(?=.{4,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(d) ? d : null
+}
+
+/**
  * L'adresse que « Rapprocher l'adresse » apprend au CRM : un correspondant EXTERNE du fil.
  *
  * ⛔ C'était l'expéditeur du dernier message entrant, « ou à défaut du premier » : sur un fil
