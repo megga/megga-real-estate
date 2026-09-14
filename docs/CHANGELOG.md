@@ -6,6 +6,12 @@
 
 ### ✅ Fonctionnalités LIVE
 
+#### Audit CRM — prise de rendez-vous KYC : statut du lien et bail free/busy (14 septembre 2026)
+> Sert l'objectif 2 (risque). Deux constats du rapport du 13.09.2026 laissés hors périmètre des PR #1308 et #1319. Migration `20260914090000`.
+
+- **Un lien révoqué ne réserve plus.** `appointment-slots`, `appointment-book` et la RPC `book_kyc_appointment` ne testaient que la DATE du lien : passé à `expired` avant son échéance — le seul levier de révocation —, il listait les créneaux, montrait le rendez-vous qu'il portait et réservait jusqu'à elle. Liste BLANCHE `MAGIC_LINK_BOOKING_STATUSES` (statuts ouverts + `submitted`, puisque c'est au statut soumis que la page propose le rendez-vous), refus 410 `expired` avant toute autre lecture ; miroir SQL `kyc_magic_link_bookable`, que la RPC consulte (réécrite EN PLACE depuis sa définition vivante, tout écart annule la migration). Un statut ajouté demain à l'enum refuse. `appointment-manage` ne lit pas le lien — le jeton de gestion `appt` est une capacité distincte, écrite ainsi.
+- **Un appel à Google / Microsoft au plus par agent et par minute.** Chaque liste de créneaux déclenchait un freeBusy sur l'agenda de l'agent (et un rafraîchissement OAuth si le jeton d'accès avait une heure) : un lien transféré suffisait à marteler l'API en son nom. `kyc_booking_freebusy_cache` (une ligne par agent, service seul) garde 60 s le résultat du fournisseur — « injoignable » compris — et `kyc_booking_freebusy_claim` accorde atomiquement un BAIL par fenêtre : sous rafale, les autres requêtes attendent l'instantané (4 s, sinon 503) au lieu d'appeler. L'occupation interne n'y est jamais : un créneau pris dans MEGGA ne ressort pas d'un instantané, qui est de toute façon jeté après chaque réservation, annulation ou report. Gardes : `_shared/booking-freebusy-cache.test.ts` (rafale de 25 requêtes → 1 appel), `tests/unit/rdv-kyc-statut-lien-instantane.spec.ts`, `tests/backend/rdv-kyc-statut-lien-instantane.spec.ts`.
+
 #### Audit CRM — S13 à S17 (13 septembre 2026)
 > Sert l'objectif 2 (risque). Suite des points faibles du même rapport (artifact « Audit CRM MEGGA »), après les points S1 à S12.
 
