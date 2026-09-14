@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { trackIntercomEvent, INTERCOM_EVENTS } from '@/lib/intercom'
+import { syncIntercomMilestones } from '@/lib/intercom-milestones'
 import type { ContactType } from '@/types/contact'
 import type { ExtractedLead, LeadIntent, LeadNextAction } from '@/hooks/useExtractLead'
 import type { TablesInsert } from '@/types/database'
@@ -207,6 +208,8 @@ export function useImportLead() {
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       // Signal produit → Intercom : lead importé (activation, Series, ciblage).
       trackIntercomEvent(INTERCOM_EVENTS.LEAD_IMPORTED)
+      // Le lead est un contact de plus : il peut franchir le jalon « 5 contacts ».
+      if (profile?.agency_id) void syncIntercomMilestones(profile.agency_id, [INTERCOM_EVENTS.FIRST_CONTACTS_IMPORTED])
     },
   })
 }

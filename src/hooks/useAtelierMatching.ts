@@ -9,7 +9,7 @@
 // Gmail-style : rien n'est écrit tant que le toast offre « Annuler ») :
 //   sendDossier  → matches.status='sent' + Deal new_lead (créé ou rattaché) +
 //                  activity_events 'dossier_envoye' + reminder +5 j +
-//                  send-property-email (si email)
+//                  send-property-email (si email) + jalon Intercom first_match_sent
 //   relance      → matches.sent_at=now + activity_events 'relance' +
 //                  reminder repoussé +5 j + send-relance-email (si email)
 //   snooze       → matches.snoozed_until=+7 j + reminder 'custom' à échéance
@@ -21,6 +21,8 @@
 import { useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { INTERCOM_EVENTS } from '@/lib/intercom'
+import { markIntercomMilestone } from '@/lib/intercom-milestones'
 import { useAuth } from '@/hooks/useAuth'
 import { mapKycStatus } from '@/lib/crmAdapters'
 import type { Json, TablesInsert } from '@/types/database'
@@ -487,6 +489,8 @@ export async function execSendDossier(
     .update({ status: 'sent', sent_via: viaReception ? 'reception' : 'email', sent_at: new Date().toISOString() })
     .eq('id', buyer.matchId)
   if (mErr) throw mErr
+  // Jalon Intercom (un envoi par agent). Signal seul : ni le bien ni l'acheteur ne partent.
+  void markIntercomMilestone(INTERCOM_EVENTS.FIRST_MATCH_SENT)
 
   // 2. Deal : rattacher au deal actif existant, sinon créer en new_lead
   let dealId: string | null = null

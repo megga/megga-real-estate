@@ -121,6 +121,7 @@ Intégr.    Stripe · Resend · Dilisense (KYC) · Google/Microsoft Calendar · 
            Deepgram (STT) · Cloudflare R2 (photos) · Flatfox + RealAdvisor (sync marché entrant)
            immobilier.ch (syndication IDX 3.01 SORTANTE, juin 2026 — cf §5 + brain megga/syndication-idx)
            Intercom (support unique : Messenger + Fin IA LIVE + Inbox + Help Center public + aide « ? » par écran ; région US, flag nLPD)
+           Intercom, événements : 5 jalons d'activation, un envoi par agent (`intercom-milestones.ts`, brain megga/intercom-jalons)
            Gmail API + Microsoft Graph (messagerie agent — état et date au §6ter)
 Hosting    Cloudflare Pages · CI/CD GitHub Actions → Pages + Supabase edge auto-deploy
 ```

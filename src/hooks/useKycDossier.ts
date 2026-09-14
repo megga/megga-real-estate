@@ -5,13 +5,16 @@
 //   - useKycCountByStatus : RPC kyc_count_by_status (KPIs)
 //   - useMarkKycCheck : coche un check (trigger auto-valide le dossier)
 //   - useMarkAllChecks : coche tous les checks requis d'un dossier
-//   - useCreateKycDossier : crée un dossier (trigger seed 5 checks + AuditEvent)
+//   - useCreateKycDossier : crée un dossier (trigger seed 5 checks + AuditEvent ;
+//     jalon Intercom `first_kyc_case_opened`)
 //
 // Spec : docs/handoff/sprint-1-kyc/HANDOFF_SPRINT_1_CLAUDE_CODE.md
 //        docs/handoff/sprint-1-kyc/KYC_ENRICHISSEMENTS.md
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { INTERCOM_EVENTS } from '@/lib/intercom'
+import { markIntercomMilestone } from '@/lib/intercom-milestones'
 import type {
   KycCase,
   KycChecklistItem,
@@ -290,6 +293,8 @@ export function useCreateKycDossier() {
       queryClient.invalidateQueries({ queryKey: ['kyc-dossier-by-contact'] })
       queryClient.invalidateQueries({ queryKey: ['kyc-count-by-status'] })
       queryClient.invalidateQueries({ queryKey: ['audit-events'] })
+      // Jalon Intercom (un envoi par agent). Signal seul : rien du dossier ne part.
+      void markIntercomMilestone(INTERCOM_EVENTS.FIRST_KYC_CASE_OPENED)
     },
   })
 }

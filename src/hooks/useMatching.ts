@@ -6,6 +6,8 @@
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { INTERCOM_EVENTS } from '@/lib/intercom'
+import { markIntercomMilestone } from '@/lib/intercom-milestones'
 import { useAuth } from '@/hooks/useAuth'
 import type { MatchReaction } from '@/types/matching'
 
@@ -280,6 +282,8 @@ export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['matches'] })
+      // Jalon Intercom (un envoi par agent). Signal seul : ni le bien ni le client ne partent.
+      void markIntercomMilestone(INTERCOM_EVENTS.FIRST_MATCH_SENT)
     },
   })
 
