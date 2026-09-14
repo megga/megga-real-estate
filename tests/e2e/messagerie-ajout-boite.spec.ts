@@ -67,6 +67,13 @@ test('l’adresse remplit les serveurs ; un mot de passe refusé se DIT ; le bon
   await expect(ecran(page).locator('button[aria-expanded]', { hasText: 'nouvelle@agence-exemple.ch' }).first()).toBeVisible()
 })
 
+test('un fournisseur à l’IMAP coupé par défaut (GMX, WEB.DE…) le DIT avant le test', async ({ page }) => {
+  await assistant(page).getByRole('button', { name: /Autre boîte/ }).click()
+  await champ(page, 'Adresse e-mail').fill('g@webmail-exemple.ch')
+  await expect(assistant(page).getByText('Serveurs Webmail Exemple renseignés.')).toBeVisible()
+  await expect(assistant(page).getByText("Activez d'abord l'accès IMAP dans les réglages de Webmail Exemple.")).toBeVisible()
+})
+
 test('des serveurs TAPÉS ne sont jamais écrasés par la détection', async ({ page }) => {
   await assistant(page).getByRole('button', { name: /Autre boîte/ }).click()
   await champ(page, 'Serveur IMAP').fill('imap.mon-hebergeur.ch')

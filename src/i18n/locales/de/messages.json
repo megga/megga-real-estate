@@ -168,6 +168,7 @@
           "searching": "Server werden gesucht…",
           "found": "Server von {{provider}} eingetragen.",
           "appPassword": "Dieser Anbieter verlangt ein App-Passwort.",
+          "enableImap": "Aktivieren Sie zuerst den IMAP-Zugriff in den Einstellungen von {{provider}}.",
           "none": "Server nicht erkannt: Tragen Sie die Server Ihres Anbieters ein.",
           "google": "Google-Adresse: Die Verbindung über Google erspart das App-Passwort.",
           "microsoft": "Microsoft-Adresse: Microsoft akzeptiert für IMAP kein Passwort mehr.",

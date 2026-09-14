@@ -104,17 +104,20 @@ const latence = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 /**
  * Le `mail-oauth imap_detect` du banc. ⚠ Aucun vrai fournisseur : les domaines en
- * `exemple.ch` sont reconnus chez un « Hébergeur Exemple », les adresses Google et Microsoft
- * sont renvoyées vers leur connexion — les trois réponses que l'écran sait montrer.
+ * `exemple.ch` sont reconnus chez un « Hébergeur Exemple » (`webmail-exemple.ch` chez un
+ * « Webmail Exemple » dont l'IMAP est à activer, comme GMX), les adresses Google et
+ * Microsoft sont renvoyées vers leur connexion — les réponses que l'écran sait montrer.
  */
 export async function fxDetecterImap(email: string): Promise<MailInvokeResult<ImapDetection>> {
   await latence(250)
   const domaine = email.split('@')[1] ?? ''
-  const data: ImapDetection = domaine.endsWith('exemple.ch')
-    ? { oauth: null, preset: { nom: 'Hébergeur Exemple', imapHost: 'imap.hebergeur-exemple.ch', imapPort: 993, smtpHost: 'smtp.hebergeur-exemple.ch', smtpPort: 465, motDePasseApplication: false } }
-    : domaine === 'gmail.com'
-      ? { oauth: 'gmail', preset: { nom: 'Google', imapHost: 'imap.gmail.com', imapPort: 993, smtpHost: 'smtp.gmail.com', smtpPort: 465, motDePasseApplication: true } }
-      : domaine === 'outlook.com' ? { oauth: 'outlook', preset: null } : { oauth: null, preset: null }
+  const data: ImapDetection = domaine === 'webmail-exemple.ch'
+    ? { oauth: null, preset: { nom: 'Webmail Exemple', imapHost: 'imap.webmail-exemple.ch', imapPort: 993, smtpHost: 'smtp.webmail-exemple.ch', smtpPort: 465, motDePasseApplication: false, activerImap: true } }
+    : domaine.endsWith('exemple.ch')
+      ? { oauth: null, preset: { nom: 'Hébergeur Exemple', imapHost: 'imap.hebergeur-exemple.ch', imapPort: 993, smtpHost: 'smtp.hebergeur-exemple.ch', smtpPort: 465, motDePasseApplication: false } }
+      : domaine === 'gmail.com'
+        ? { oauth: 'gmail', preset: { nom: 'Google', imapHost: 'imap.gmail.com', imapPort: 993, smtpHost: 'smtp.gmail.com', smtpPort: 465, motDePasseApplication: true } }
+        : domaine === 'outlook.com' ? { oauth: 'outlook', preset: null } : { oauth: null, preset: null }
   return { data, error: null, status: 200 }
 }
 

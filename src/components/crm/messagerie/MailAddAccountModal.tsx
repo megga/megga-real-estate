@@ -319,6 +319,9 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
         <MEIcon name="check" size={12} color={ms.successText} />
         <span>{t('mail.add.imap.detect.found', { provider: preset.nom })}</span>
         {preset.motDePasseApplication && <span>{t('mail.add.imap.detect.appPassword')}</span>}
+        {/* GMX, WEB.DE, mail.com, Zoho : IMAP coupé par défaut — sans l'activer, le test
+            échouerait en « mot de passe refusé », et l'agent chercherait au mauvais endroit. */}
+        {preset.activerImap && <span>{t('mail.add.imap.detect.enableImap', { provider: preset.nom })}</span>}
       </>)
     }
     return ligne(t('mail.add.imap.detect.none'))

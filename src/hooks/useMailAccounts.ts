@@ -28,7 +28,7 @@ export interface ImapForm {
 /** Les serveurs reconnus d'une adresse (`mail-oauth imap_detect`, `_shared/mail/imap-presets.ts`). */
 export interface ImapDetection {
   oauth: 'gmail' | 'outlook' | null
-  preset: { nom: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; motDePasseApplication: boolean } | null
+  preset: { nom: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number; motDePasseApplication: boolean; activerImap?: boolean } | null
 }
 
 const COLS = 'id, agency_id, owner_id, provider, email, display_name, visibility, status, last_sync_at, last_error, created_at'

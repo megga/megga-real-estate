@@ -168,6 +168,7 @@
           "searching": "Recherche des serveurs…",
           "found": "Serveurs {{provider}} renseignés.",
           "appPassword": "Ce fournisseur exige un mot de passe d'application.",
+          "enableImap": "Activez d'abord l'accès IMAP dans les réglages de {{provider}}.",
           "none": "Serveurs non reconnus : saisissez ceux de votre hébergeur.",
           "google": "Adresse Google : la connexion par Google évite le mot de passe d'application.",
           "microsoft": "Adresse Microsoft : Microsoft n'accepte plus de mot de passe en IMAP.",

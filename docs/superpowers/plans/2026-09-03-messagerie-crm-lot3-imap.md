@@ -25,7 +25,7 @@ un faux serveur IMAP en mémoire et un faux SMTP (`imap.test.ts`), pas contre In
 | T3.4 RFC 822 | ✅ 6 tests | `postal-mime@3.0.0`, pièces en base64 pendant la synchro (CPU) |
 | T3.5 adaptateur | ✅ 17 tests | le plan disait « pas de test dédié » : il en a, contre une boîte en mémoire. Import à reculons sur 90 jours, messages déplacés rebaptisés, drapeaux resynchronisés sur 200 messages |
 | T3.6 câblage | ✅ | `connect_imap` + **`imap_detect`** ; hôtes saisis passés à `assertPublicHost`, ports bornés à 993/143 et 465/587 ; codes d'échec par étape (`imap_auth`, `imap_certificate`, `smtp_starttls`…) |
-| T3.7 front | ✅ 7 e2e au banc | ⛔ **plus de tuile Infomaniak ni Bluewin** (Julien, 14.09.2026 : « juste mettre IMAP ») : le fournisseur est reconnu à l'adresse (`imap-presets.ts`, domaine puis MX, 9 tests) ; ports en liste, chiffrement déduit du port ; le message « STARTTLS indisponible » du Step 2 est FAUX et n'a pas été écrit |
+| T3.7 front | ✅ 7 e2e au banc | ⛔ **plus de tuile Infomaniak ni Bluewin** (Julien, 14.09.2026 : « juste mettre IMAP ») : le fournisseur est reconnu à l'adresse (`imap-presets.ts`, domaine puis MX, ~40 fournisseurs mesurés, 14 tests) ; plus de ligne WhatsApp ; ports en liste, chiffrement déduit du port ; le message « STARTTLS indisponible » du Step 2 est FAUX et n'a pas été écrit |
 | T3.8 épreuve | ☐ | attend une boîte de test — l'agent saisit lui-même son mot de passe |
 | T3.9 sonde, cerveau | ☐ / ✅ | la sonde `mail-imap-probe` est à retirer puis purger APRÈS le merge ; cerveau `megga/messagerie-imap` écrit |
 

@@ -168,6 +168,7 @@
           "searching": "Looking up the servers…",
           "found": "{{provider}} servers filled in.",
           "appPassword": "This provider requires an app password.",
+          "enableImap": "First turn on IMAP access in your {{provider}} settings.",
           "none": "Servers not recognised: enter your host's servers.",
           "google": "Google address: connecting with Google avoids the app password.",
           "microsoft": "Microsoft address: Microsoft no longer accepts passwords over IMAP.",
