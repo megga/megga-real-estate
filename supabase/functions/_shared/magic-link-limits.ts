@@ -20,6 +20,9 @@
  * plafond unitaire. Le bucket `kyc-magic-link` porte déjà, côté stockage, les mêmes 10 Mo et
  * la même liste MIME (relevé en production le 13.09.2026).
  *
+ * Le module porte aussi les deux listes de STATUTS qui bornent ce qu'un porteur fait encore
+ * d'un lien : écrire (dépôt, ouverture, soumission) et réserver sa vérification d'identité.
+ *
  * Module PUR : ni I/O ni global Deno, importable depuis Node (vitest).
  */
 
@@ -55,6 +58,30 @@ export const ALLOWED_UPLOAD_MIME: readonly string[] = [
  * endpoints publics filtre sur cette liste, pour qu'une course ne la franchisse jamais.
  */
 export const MAGIC_LINK_OPEN_STATUSES = ['pending', 'opened', 'uploading', 'verifying'] as const
+
+/**
+ * Statuts dans lesquels un lien peut encore lister les créneaux et RÉSERVER sa vérification
+ * d'identité (`appointment-slots`, `appointment-book`) — une liste BLANCHE.
+ *
+ * Les statuts ouverts PLUS `submitted` : c'est au statut soumis que la page publique propose
+ * la réservation (MlkSuccess → MlkBooking). Soumettre ferme le DÉPÔT, pas la prise de
+ * rendez-vous. `expired` refuse, qu'il vienne de l'échéance ou d'une révocation posée avant
+ * elle — c'est le seul levier de révocation d'un lien.
+ *
+ * ⛔ POURQUOI UNE LISTE BLANCHE (audit du 13.09.2026). Les deux fonctions ne testaient que la
+ * DATE : un lien révoqué restait bon jusqu'à son échéance. Un statut ajouté demain à l'enum
+ * (`revoked`…) doit REFUSER tant que personne n'a décidé qu'il réserve.
+ *
+ * Miroir en base : `kyc_magic_link_bookable`, que `book_kyc_appointment` consulte au moment
+ * d'écrire le rendez-vous (migration 20260914090000) — c'est lui qui fait foi. Les deux
+ * copies sont confrontées par `tests/unit/rdv-kyc-statut-lien-instantane.spec.ts`.
+ */
+export const MAGIC_LINK_BOOKING_STATUSES = ['pending', 'opened', 'uploading', 'verifying', 'submitted'] as const
+
+/** Vrai si un lien de ce statut peut réserver ; tout le reste — inconnu, vide, autre casse — refuse. */
+export function isMagicLinkBookable(status: unknown): boolean {
+  return typeof status === 'string' && (MAGIC_LINK_BOOKING_STATUSES as readonly string[]).includes(status)
+}
 
 /** Verdict du tri d'une requête de dépôt sur son seul `Content-Length`. */
 export type UploadRequestScreen =

@@ -2852,6 +2852,50 @@ export type Database = {
         }
         Relationships: []
       }
+      kyc_booking_freebusy_cache: {
+        Row: {
+          agent_id: string
+          busy: Json
+          claimed_at: string
+          fetched_at: string | null
+          lease_id: string
+          ok: boolean | null
+          provider: string | null
+          window_from: string | null
+          window_to: string | null
+        }
+        Insert: {
+          agent_id: string
+          busy?: Json
+          claimed_at?: string
+          fetched_at?: string | null
+          lease_id?: string
+          ok?: boolean | null
+          provider?: string | null
+          window_from?: string | null
+          window_to?: string | null
+        }
+        Update: {
+          agent_id?: string
+          busy?: Json
+          claimed_at?: string
+          fetched_at?: string | null
+          lease_id?: string
+          ok?: boolean | null
+          provider?: string | null
+          window_from?: string | null
+          window_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kyc_booking_freebusy_cache_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kyc_cases: {
         Row: {
           agency_id: string
@@ -9204,6 +9248,10 @@ export type Database = {
           starts_at: string
         }[]
       }
+      kyc_booking_freebusy_claim: {
+        Args: { p_agent_id: string; p_ttl_seconds: number }
+        Returns: string
+      }
       kyc_by_contact_id: {
         Args: { p_contact_id: string }
         Returns: {
@@ -9237,6 +9285,7 @@ export type Database = {
           justification: string
         }[]
       }
+      kyc_magic_link_bookable: { Args: { p_status: string }; Returns: boolean }
       kyc_magic_link_summary: {
         Args: { p_kyc_case_id: string }
         Returns: {

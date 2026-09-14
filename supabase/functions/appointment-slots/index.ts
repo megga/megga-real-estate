@@ -12,14 +12,31 @@
 //   ne reste que des créneaux LIBRES — jamais l'inverse, jamais un motif.
 //
 // Chaîne de confiance : HMAC vérifié en crypto d'abord, puis le lien est
-// revalidé en base (statut, expiration, token identique). Même ordre que
-// magic-link-get et buyer-reception-react.
+// revalidé en base (token identique, statut, expiration). Même ordre que
+// magic-link-get et buyer-reception-react. ⚠ Le « statut » de cette phrase
+// n'était PAS testé jusqu'au 14.09.2026 : seule la date l'était, et un lien
+// révoqué — passé à `expired` avant son échéance — listait encore les créneaux.
+// C'est désormais une liste BLANCHE (MAGIC_LINK_BOOKING_STATUSES).
+//
+// UN APPEL AU FOURNISSEUR PAR AGENT ET PAR MINUTE, AU PLUS. Les occupations
+// externes viennent de l'instantané de l'agent (_shared/booking-freebusy-cache.ts,
+// table kyc_booking_freebusy_cache) : sans lui, chaque requête — un lien
+// transféré suffit — déclenchait un freeBusy Google ou Graph au nom de l'agent.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { verifyMagicLinkToken } from '../_shared/magic-link-token.ts'
+import { isMagicLinkBookable } from '../_shared/magic-link-limits.ts'
 import { computeSlots, type BookingSettings, type BusyRange } from '../_shared/booking-slots.ts'
 import { externalBusyRanges } from '../_shared/booking-freebusy.ts'
+import {
+  COLONNES_INSTANTANE,
+  FREEBUSY_TTL_S,
+  borneALaCouverture,
+  occupationsExternes,
+  type DependancesInstantane,
+  type LigneInstantane,
+} from '../_shared/booking-freebusy-cache.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,7 +96,7 @@ serve(async (req) => {
   } else {
     const { data: link } = await db
       .from('kyc_magic_links')
-      .select('id, token, agency_id, contact_id, expires_at, created_by')
+      .select('id, token, agency_id, contact_id, status, expires_at, created_by')
       .eq('id', verified.payload.id)
       .maybeSingle()
     if (!link) return json({ error: 'Invalid link' }, 401)
@@ -87,7 +104,12 @@ serve(async (req) => {
     // Un lien régénéré par l'agent doit invalider le précédent : le token signé
     // reste cryptographiquement valide jusqu'à son exp, seul ce contrôle le révoque.
     if (link.token !== token) return json({ error: 'Token superseded', reason: 'regenerated' }, 410)
-    if (new Date(link.expires_at) < new Date()) return json({ error: 'Link expired' }, 410)
+    // Statut PUIS date, et AVANT toute autre lecture : un lien révoqué ne dit plus
+    // rien, pas même le rendez-vous qu'il porte déjà. Liste blanche — un statut
+    // inconnu refuse. Motif réduit à `expired` pour l'appelant anonyme (#1319).
+    if (!isMagicLinkBookable(link.status) || new Date(link.expires_at) < new Date()) {
+      return json({ error: 'Link expired', reason: 'expired' }, 410)
+    }
     if (!link.created_by) return json({ error: 'booking_unavailable', reason: 'no_agent' }, 409)
 
     // Un lien ne porte qu'un RDV : s'il existe déjà, on le renvoie au lieu de
@@ -118,8 +140,9 @@ serve(async (req) => {
   }
   const settings = settingsRow as unknown as BookingSettings & { default_mode: string; location_label: string | null }
 
-  // 5) Fenêtre interrogée. `days` est borné par max_advance_days, ce qui borne
-  //    aussi le coût de l'appel free/busy externe.
+  // 5) Fenêtre interrogée, bornée par max_advance_days. Elle ne cadre que la
+  //    lecture INTERNE : l'instantané externe couvre toujours l'horizon entier,
+  //    puisqu'il sert toutes les requêtes de l'agent (fenetreDeLecture).
   const requestedDays = Number(url.searchParams.get('days') ?? settings.max_advance_days)
   const days = Math.max(1, Math.min(Number.isFinite(requestedDays) ? requestedDays : settings.max_advance_days, settings.max_advance_days))
   const nowMs = Date.now()
@@ -139,21 +162,65 @@ serve(async (req) => {
     .map(r => ({ start: Date.parse(r.starts_at), end: Date.parse(r.ends_at) }))
     .filter(r => Number.isFinite(r.start) && Number.isFinite(r.end))
 
-  // 7) Occupations externes. Agenda connecté mais injoignable → on ne propose
-  //    rien : mieux vaut un message honnête qu'un créneau déjà pris.
-  const external = await externalBusyRanges(
-    async (table, userId) => {
-      const { data } = await db.from(table).select('*').eq('user_id', userId).maybeSingle()
-      return (data ?? null) as Record<string, unknown> | null
+  // 7) Occupations externes, depuis l'instantané de l'agent : un appel au
+  //    fournisseur au plus par agent et par fenêtre, sous bail. Agenda connecté
+  //    mais injoignable — ou bail tenu ailleurs sans instantané à temps — → on ne
+  //    propose rien : mieux vaut un message honnête qu'un créneau déjà pris.
+  //    Les E/S restent ici, dans le gestionnaire : la porte lint:edge-auth les y
+  //    voit, APRÈS la vérification du jeton.
+  const acces: DependancesInstantane = {
+    lire: async () => {
+      const { data, error } = await db
+        .from('kyc_booking_freebusy_cache')
+        .select(COLONNES_INSTANTANE)
+        .eq('agent_id', agentId)
+        .maybeSingle()
+      if (error) console.error('appointment-slots: instantané illisible', error.code)
+      return (data ?? null) as LigneInstantane | null
     },
-    agentId, fromIso, toIso,
-  )
-  if (!external.ok) {
-    return json({ slots: [], booking_open: true, reason: 'calendar_unavailable', provider: external.provider }, 503)
+    prendreBail: async () => {
+      const { data, error } = await db.rpc('kyc_booking_freebusy_claim', {
+        p_agent_id: agentId,
+        p_ttl_seconds: FREEBUSY_TTL_S,
+      })
+      if (error) console.error('appointment-slots: bail refusé par la base', error.code)
+      return typeof data === 'string' ? data : null
+    },
+    interroger: (from, to) => externalBusyRanges(
+      async (table, userId) => {
+        const { data } = await db.from(table).select('*').eq('user_id', userId).maybeSingle()
+        return (data ?? null) as Record<string, unknown> | null
+      },
+      agentId, from, to,
+    ),
+    // Sous le bail, jamais à côté : si l'instantané a été jeté (réservation) ou le
+    // bail repris entre-temps, cette écriture ne touche aucune ligne — un résultat
+    // lu AVANT la réservation ne redevient pas l'instantané.
+    ecrire: async (bail, champs) => {
+      const { error } = await db
+        .from('kyc_booking_freebusy_cache')
+        .update(champs)
+        .eq('agent_id', agentId)
+        .eq('lease_id', bail)
+      if (error) console.error('appointment-slots: instantané non écrit', error.code)
+    },
+    attendre: (ms) => new Promise((r) => setTimeout(r, ms)),
+    maintenant: () => Date.now(),
   }
-  busy.push(...external.busy)
+  const instantane = await occupationsExternes(acces, settings)
+  if (!instantane) {
+    return json({ slots: [], booking_open: true, reason: 'calendar_unavailable' }, 503)
+  }
+  if (!instantane.occupations.ok) {
+    return json({ slots: [], booking_open: true, reason: 'calendar_unavailable', provider: instantane.occupations.provider }, 503)
+  }
+  busy.push(...instantane.occupations.busy)
 
-  const slots = computeSlots({ settings, busy, nowMs, horizonDays: days })
+  const slots = borneALaCouverture(
+    computeSlots({ settings, busy, nowMs, horizonDays: days }),
+    instantane.couvertJusqua,
+    settings.buffer_minutes,
+  )
 
   return json({
     booking_open: true,
