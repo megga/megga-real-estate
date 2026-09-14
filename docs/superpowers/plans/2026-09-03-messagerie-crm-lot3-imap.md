@@ -11,6 +11,24 @@
 > déploie une sonde et on lit sa réponse. Si la sonde échoue, T3.9 documente l'arrêt
 > et la voie de repli (Cloudflare Worker) ; rien d'autre n'est écrit.
 
+## État au 14.09.2026 — lire AVANT les tâches
+
+Les cases des tâches décrivent le plan d'origine ; ce bloc dit ce qui est fait, et où le code
+s'en écarte. ⚠ **Rien n'a encore touché une vraie boîte** : tout ce qui suit est éprouvé contre
+un faux serveur IMAP en mémoire et un faux SMTP (`imap.test.ts`), pas contre Infomaniak.
+
+| Tâche | État | Écart au plan |
+|---|---|---|
+| T3.1 spike | ✅ 05.09.2026 | 587 OUVERT (le plan le croyait fermé) ; Bluewin = `imaps.bluewin.ch` |
+| T3.2 client IMAP | ✅ 24 tests | + STARTTLS (143), `AUTHENTICATE PLAIN` hors ASCII, refus du mot de passe en clair, `EXAMINE`, MOVE lu dans `COPYUID`, bannière muette d'Infomaniak |
+| T3.3 SMTP | ✅ 8 tests | 465 **et** 587 + STARTTLS ; `sansCci` (le Cci ne part pas dans l'en-tête) |
+| T3.4 RFC 822 | ✅ 6 tests | `postal-mime@3.0.0`, pièces en base64 pendant la synchro (CPU) |
+| T3.5 adaptateur | ✅ 17 tests | le plan disait « pas de test dédié » : il en a, contre une boîte en mémoire. Import à reculons sur 90 jours, messages déplacés rebaptisés, drapeaux resynchronisés sur 200 messages |
+| T3.6 câblage | ✅ | `connect_imap` + **`imap_detect`** ; hôtes saisis passés à `assertPublicHost`, ports bornés à 993/143 et 465/587 ; codes d'échec par étape (`imap_auth`, `imap_certificate`, `smtp_starttls`…) |
+| T3.7 front | ✅ 7 e2e au banc | ⛔ **plus de tuile Infomaniak ni Bluewin** (Julien, 14.09.2026 : « juste mettre IMAP ») : le fournisseur est reconnu à l'adresse (`imap-presets.ts`, domaine puis MX, 9 tests) ; ports en liste, chiffrement déduit du port ; le message « STARTTLS indisponible » du Step 2 est FAUX et n'a pas été écrit |
+| T3.8 épreuve | ☐ | attend une boîte de test — l'agent saisit lui-même son mot de passe |
+| T3.9 sonde, cerveau | ☐ / ✅ | la sonde `mail-imap-probe` est à retirer puis purger APRÈS le merge ; cerveau `megga/messagerie-imap` écrit |
+
 **Goal:** Connecter une boîte par IMAP (lecture, drapeaux, archive, corbeille) et SMTP (envoi avec copie dans « Envoyés ») depuis les edge functions, avec les présélections Infomaniak et Bluewin.
 
 **Architecture:** Un client IMAP minimal écrit à la main sur `Deno.connectTls` (LOGIN, LIST, SELECT, UID SEARCH, UID FETCH, UID STORE, UID MOVE/COPY, APPEND, LOGOUT), un client SMTP implicite TLS (465) tout aussi minimal, `postal-mime` pour parser le RFC 822 reçu, un adaptateur `imap.ts` qui expose la même forme que Gmail/Graph (curseur par dossier `uidValidity + lastUid`), le fil reconstruit par `References`/`In-Reply-To`. Mot de passe dans Vault.
