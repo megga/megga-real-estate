@@ -108,10 +108,11 @@ export function ajouterDestinataires(liste: MailAddress[], ajouts: MailAddress[]
 
 /**
  * Une boîte peut-elle ENVOYER ? `mail-send` refuse une boîte qui n'est pas `active`
- * (409 `account_not_active`) et tout fournisseur autre que Gmail et Outlook (501).
+ * (409 `account_not_active`). ⚠ Le fournisseur ne compte plus : IMAP envoie par SMTP depuis
+ * le lot 3 — la règle d'avant éteignait toute boîte IMAP dans le « De », en silence.
  */
-export function peutEnvoyerDepuis(boite: Pick<MailAccount, 'status' | 'provider'>): boolean {
-  return boite.status === 'active' && (boite.provider === 'gmail' || boite.provider === 'outlook')
+export function peutEnvoyerDepuis(boite: Pick<MailAccount, 'status'>): boolean {
+  return boite.status === 'active'
 }
 
 /**

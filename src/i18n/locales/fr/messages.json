@@ -242,7 +242,6 @@
       "invalidAddress": "Adresse invalide",
       "invalidHint_one": "Une adresse est à corriger — double-cliquez dessus pour la modifier.",
       "invalidHint_other": "{{count}} adresses sont à corriger — double-cliquez dessus pour les modifier.",
-      "fromUnsupported": "Envoi indisponible depuis cette boîte",
       "suggestions": "Contacts suggérés"
     },
     "folders": {

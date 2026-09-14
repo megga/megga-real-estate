@@ -78,10 +78,11 @@ const boite = (id: string, over: Partial<MailAccount> = {}): MailAccount => ({
 })
 
 describe('la boîte d’envoi', () => {
-  it('seule une boîte active, chez Gmail ou Outlook, peut envoyer — les refus de mail-send', () => {
-    expect(peutEnvoyerDepuis({ status: 'active', provider: 'outlook' })).toBe(true)
-    expect(peutEnvoyerDepuis({ status: 'reauth_required', provider: 'gmail' })).toBe(false)
-    expect(peutEnvoyerDepuis({ status: 'active', provider: 'imap' })).toBe(false)
+  it('seule une boîte ACTIVE peut envoyer — IMAP compris, qui envoie par SMTP depuis le lot 3', () => {
+    expect(peutEnvoyerDepuis({ status: 'active' })).toBe(true)
+    expect(peutEnvoyerDepuis({ status: 'reauth_required' })).toBe(false)
+    expect(peutEnvoyerDepuis({ status: 'error' })).toBe(false)
+    expect(boiteDEnvoi([boite('i', { provider: 'imap' })], [])).toBe('i')
   })
   it('prend le brouillon, puis la boîte ouverte, puis la première qui peut envoyer', () => {
     const b = [boite('a'), boite('b'), boite('c', { status: 'reauth_required' })]

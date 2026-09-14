@@ -242,7 +242,6 @@
       "invalidAddress": "Indirizzo non valido",
       "invalidHint_one": "Un indirizzo è da correggere: fai doppio clic per modificarlo.",
       "invalidHint_other": "{{count}} indirizzi sono da correggere: fai doppio clic per modificarli.",
-      "fromUnsupported": "Invio non disponibile da questa casella",
       "suggestions": "Contatti suggeriti"
     },
     "folders": {

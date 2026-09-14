@@ -36,7 +36,8 @@ export function MailFromField({ ms, boites, valeur, onChange }: Props) {
   /** L'option survolée ou atteinte au clavier. */
   const [actif, setActif] = useState<number | null>(null)
   const courante = boites.find((b) => b.id === valeur) ?? null
-  const motif = (b: MailAccount) => (b.status !== 'active' ? t(`mail.box.status.${b.status}`) : t('mail.compose.fromUnsupported'))
+  /** Pourquoi une boîte ne peut pas envoyer : son statut, le seul refus qui reste (`peutEnvoyerDepuis`). */
+  const motif = (b: MailAccount) => t(`mail.box.status.${b.status}`)
 
   useEffect(() => {
     if (!ouvert) return

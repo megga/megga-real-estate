@@ -242,7 +242,6 @@
       "invalidAddress": "Invalid address",
       "invalidHint_one": "One address needs fixing — double-click it to edit.",
       "invalidHint_other": "{{count}} addresses need fixing — double-click one to edit.",
-      "fromUnsupported": "Sending is not available from this mailbox",
       "suggestions": "Suggested contacts"
     },
     "folders": {
