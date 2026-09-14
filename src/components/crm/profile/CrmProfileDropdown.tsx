@@ -8,7 +8,7 @@
 // une transition de background-color reste bloquée à mi-course et peint la couleur
 // sombre périmée. Le fond doit s'appliquer immédiatement.
 
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ReactNode } from 'react'
 import type { CrmPalette } from '../tokens'
@@ -188,7 +188,6 @@ export default function CrmProfileDropdown({
   const { profile, user } = useAuth()
   const navigate = useNavigate()
   const { plan } = useAgencySettings()
-  const idSegment = useId()
   const reduit = useReducedMotion()
   // Une des trois portes vers la console, avec la ligne rouge du pied de la
   // barre latérale (13 septembre 2026) et ⌘K. Gardée ici parce que le menu de
@@ -285,12 +284,34 @@ export default function CrmProfileDropdown({
               flex: 1, fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, letterSpacing: -0.1,
             }}>{t('nav.appearance')}</span>
             {/* Segmenté à deux crans plutôt qu'un interrupteur : « clair » et
-                « sombre » sont deux choix nommés, pas l'activation d'un mode. */}
+                « sombre » sont deux choix nommés, pas l'activation d'un mode.
+                Deux crans ÉGAUX : la pastille qui glisse de l'un à l'autre fait
+                exactement la largeur d'un cran. */}
             <div style={{
-              display: 'flex', gap: 'var(--crm-space-2xs)', flexShrink: 0,
+              position: 'relative', display: 'grid', gridTemplateColumns: '1fr 1fr', flexShrink: 0,
               padding: 'var(--crm-space-2xs)', borderRadius: 'var(--crm-radius-pill)',
               background: sp.solidBgSub,
             }}>
+              {/* La pastille GLISSE d'un cran à l'autre au lieu de sauter — en
+                  translation LOCALE au segmenté, et pas au montage (`initial={false}`).
+                  ⛔ Elle était animée par un `layoutId`, donc en coordonnées de
+                  FENÊTRE : or la coque naît hors de l'écran le temps de mesurer le
+                  coin du cadre, puis se pose, pendant son propre `crm-fade-up`. Chaque
+                  déplacement de la coque se lisait comme un déplacement de la
+                  pastille — filmé le 14.09.2026, elle passait par « Préférences »,
+                  « Aide », sortait sous le menu et ne se posait qu'à ~500 ms. Une
+                  translation dans le repère du segmenté ne voit pas bouger la coque. */}
+              <motion.span
+                aria-hidden
+                initial={false}
+                animate={{ x: dark ? '100%' : '0%' }}
+                transition={reduit ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 38 }}
+                style={{
+                  position: 'absolute', top: 'var(--crm-space-2xs)', bottom: 'var(--crm-space-2xs)',
+                  left: 'var(--crm-space-2xs)', width: 'calc(50% - var(--crm-space-2xs))',
+                  borderRadius: 'var(--crm-radius-pill)', background: sp.accent,
+                }}
+              />
               {([false, true] as const).map(v => (
                 <button
                   key={String(v)}
@@ -307,18 +328,7 @@ export default function CrmProfileDropdown({
                     fontSize: 'var(--crm-text-xs)', fontWeight: 600,
                   }}
                 >
-                  {/* La pastille GLISSE d'un cran à l'autre au lieu de sauter.
-                      ⚠ `layoutId` propre à CE menu : un identifiant global ferait
-                      voyager la pastille entre les menus des trois écrans vivants. */}
-                  {dark === v && (
-                    <motion.span
-                      aria-hidden
-                      layoutId={`crm-apparence-${idSegment}`}
-                      transition={reduit ? { duration: 0 } : { type: 'spring', stiffness: 520, damping: 38 }}
-                      style={{ position: 'absolute', inset: 0, borderRadius: 'var(--crm-radius-pill)', background: sp.accent }}
-                    />
-                  )}
-                  <span style={{ position: 'relative' }}>{v ? t('nav.dark') : t('nav.light')}</span>
+                  {v ? t('nav.dark') : t('nav.light')}
                 </button>
               ))}
             </div>

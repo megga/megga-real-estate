@@ -66,6 +66,50 @@ for (const [ecran, chemin] of [['Aujourd’hui', '/dashboard'], ['Calendrier', '
   })
 }
 
+/**
+ * ⛔ À l'ouverture, la pastille « Clair / Sombre » traversait tout le menu (14.09.2026,
+ * Julien : « le bouton de l'apparence surgit bizarrement »). Animée par un `layoutId`,
+ * donc en coordonnées de FENÊTRE, elle suivait chaque déplacement de la coque — née
+ * hors de l'écran le temps de mesurer le coin, puis posée, pendant son `crm-fade-up` —
+ * et ne se posait qu'à ~500 ms. Mesuré à CHAQUE image (rAF) : une capture d'écran
+ * tomberait entre deux passages.
+ */
+test('à l’ouverture, la pastille « Clair / Sombre » ne quitte jamais son segmenté', async ({ page }) => {
+  await page.goto('/dev/crm')
+  const pastille = page.getByRole('button', { name: 'Mon compte' }).first()
+  await pastille.waitFor({ timeout: 30_000 })
+  await page.evaluate(() => {
+    const w = window as unknown as { __seg: { images: number; vues: number; hors: number; fin: boolean } }
+    w.__seg = { images: 0, vues: 0, hors: 0, fin: false }
+    const tick = () => {
+      const s = w.__seg
+      // Les crans du menu, pas la bascule de la bande (qui porte, elle, un `aria-label`).
+      const cran = [...document.querySelectorAll<HTMLElement>('button[aria-pressed]:not([aria-label])')]
+        .find((b) => ['Clair', 'Sombre'].includes(b.textContent?.trim() ?? ''))
+      const segmente = cran?.parentElement
+      const pilule = segmente?.querySelector<HTMLElement>('span[aria-hidden]')
+      if (segmente && pilule) {
+        s.vues++
+        const a = segmente.getBoundingClientRect()
+        const p = pilule.getBoundingClientRect()
+        if (p.left < a.left - 1 || p.right > a.right + 1 || p.top < a.top - 1 || p.bottom > a.bottom + 1) s.hors++
+      }
+      s.images++
+      if (!s.fin) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  })
+  await pastille.click()
+  await page.waitForTimeout(900)
+  const s = await page.evaluate(() => {
+    const w = window as unknown as { __seg: { images: number; vues: number; hors: number; fin: boolean } }
+    w.__seg.fin = true
+    return w.__seg
+  })
+  expect(s.vues, 'la pastille du segmenté n’a pas été vue').toBeGreaterThan(10)
+  expect(s.hors, `images où la pastille sort de son segmenté (sur ${s.vues})`).toBe(0)
+})
+
 test('Échap referme le menu du compte et rend le focus à la pastille', async ({ page }) => {
   await page.goto('/dev/crm')
   const pastille = page.getByRole('button', { name: 'Mon compte' }).first()
