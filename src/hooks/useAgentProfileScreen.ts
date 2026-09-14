@@ -167,9 +167,8 @@ export function useAgentProfileScreen(options?: { enabled?: boolean }): UseAgent
   // Jalon Intercom « profil complété » (un envoi par agent) : constaté sur la version EN
   // BASE, jamais sur la saisie en cours, que le dernier champ vienne de ce formulaire ou
   // de la vérification WhatsApp (`phone`). Même score que celui affiché à l'agent.
-  // ⚠ `bio` compte dans ce score mais vit dans `agent_profiles`, dont seul le super-admin
-  // crée la ligne (cf. `hasAgentProfile`) : sans elle, le score plafonne à 89 % et ce
-  // jalon ne part pas.
+  // La bio, qui compte dans ce score, vit dans la fiche `agent_profiles` : save() la crée
+  // au premier enregistrement qui en a besoin (#1326) — avant, le score plafonnait à 89 %.
   useEffect(() => {
     if (fetched && profileCompletionScore(fetched) === 100) {
       void markIntercomMilestone(INTERCOM_EVENTS.PROFILE_COMPLETED)
