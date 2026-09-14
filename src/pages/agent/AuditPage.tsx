@@ -15,13 +15,15 @@
  *    trigger d'immuabilité lève une exception : la transaction est annulée, rien ne
  *    s'écrit).
  * Ce qui reste : le CADRE des pages sœurs (Parcours, Analytics : rayon 26, défilement
- * intérieur, en-tête et barre d'outils fixes au-dessus de l'historique), les jours aux
- * en-têtes collants, les rafales « ×N » dépliables, le détail de chaque ligne au clic.
+ * intérieur, barre d'outils fixe au-dessus de l'historique — le titre visible, son
+ * sous-titre et le compte sont partis le même jour, à la demande de Julien ; la puce de
+ * l'onglet nomme déjà la page), les jours aux en-têtes collants, les rafales « ×N »
+ * dépliables, le détail de chaque ligne au clic.
  *
  * ⚠ L'historique se lit PAR PAGES de 1000 — le max_rows de PostgREST, qu'aucune requête
  * ne dépasse (`useAuditEvents`) : « Charger les évènements plus anciens » prolonge la
- * liste, et tant qu'il reste des pages, le compte dit « chargés » et la recherche — qui
- * filtre à l'écran — dit qu'elle ne voit que le chargé.
+ * liste, et tant qu'il reste des pages, la recherche — qui filtre à l'écran — dit
+ * qu'elle ne voit que le chargé.
  *
  * ⛔ PÉRIMÈTRE : l'agence du profil (voir useAuditLog.ts). Sans agence — le super-admin
  * de production n'en a pas —, rien n'est lu, et la page le dit au lieu de se taire.
@@ -156,52 +158,11 @@ export default function AuditPage() {
     setRecherche('')
   }
 
-  // Le compte de ce qui est affiché, et la sortie des filtres : à droite de l'en-tête, où
-  // la place est libre — dans la barre, ils la faisaient passer à la ligne.
-  const resume = (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
-      fontSize: 'var(--crm-text-md)', color: sp.sub, whiteSpace: 'nowrap',
-    }}>
-      {filtre && (
-        <button type="button" onClick={reinitialiser} style={{
-          border: 0, background: 'transparent', padding: 0, fontFamily: 'inherit', cursor: 'pointer',
-          fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink,
-          textDecoration: 'underline', textUnderlineOffset: 3,
-        }}>
-          {tr('audit.filter.reset')}
-        </button>
-      )}
-      {agencyId && !isLoading && !echec && (
-        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-          {/* Tant qu'il reste des pages, le compte est celui du CHARGÉ, et il le dit. */}
-          {suite && !recherche.trim()
-            ? tr('audit.eventCountLoaded', { count: events.length, n: nombreSuisse(events.length) })
-            : tr('audit.eventCount', { count: visibles.length, n: nombreSuisse(visibles.length) })}
-        </span>
-      )}
-    </span>
-  )
-
-  const entete = (
-    <header style={{
-      display: 'flex', alignItems: 'flex-end', flexWrap: 'wrap', justifyContent: 'space-between',
-      columnGap: 'var(--crm-space-6xl)', rowGap: 'var(--crm-space-md)', marginBottom: 'var(--crm-space-4xl)',
-    }}>
-      <div style={{ minWidth: 0 }}>
-        <h1 style={{
-          margin: 0, fontSize: etroit ? 'var(--crm-text-6xl)' : 'var(--crm-text-9xl)',
-          fontWeight: 600, letterSpacing: -1.2, lineHeight: 1, color: sp.ink,
-        }}>
-          {tr('audit.title')}
-        </h1>
-        <p style={{ margin: 'var(--crm-space-md) 0 0', fontSize: 'var(--crm-text-lg)', lineHeight: 1.5, color: sp.sub }}>
-          {tr('audit.subtitle')}
-        </p>
-      </div>
-      {resume}
-    </header>
-  )
+  // ⛔ PLUS D'EN-TÊTE VISIBLE (14.09.2026, Julien : « supprime ») : la puce de l'onglet dit
+  // déjà « Journal d'audit », et le titre, le sous-titre et le compte repoussaient
+  // l'historique d'un bloc entier. Le titre reste pour les lecteurs d'écran : sans `h1`,
+  // la page n'a plus de nom dans la liste de ses titres.
+  const titre = <h1 className="sr-only">{tr('audit.title')}</h1>
 
   // ⚠ La période et les trois menus forment UN bloc qui se replie d'un tenant : faute de
   // place (1280 px, barre latérale ouverte), c'est le bloc entier qui passe sous la
@@ -280,6 +241,23 @@ export default function AuditPage() {
             { v: 'warn', libelle: tr('audit.severity.warning') },
           ]}
         />
+        {/* Une pastille d'icône, pas un libellé : écrit en toutes lettres, « Effacer les
+            filtres » faisait passer le bloc sous la recherche dès qu'un filtre était posé. */}
+        {filtre && (
+          <button
+            type="button"
+            onClick={reinitialiser}
+            aria-label={tr('audit.filter.reset')}
+            title={tr('audit.filter.reset')}
+            style={{
+              width: H_CONTROLE, height: H_CONTROLE, flexShrink: 0, padding: 0,
+              display: 'grid', placeItems: 'center', cursor: 'pointer',
+              borderRadius: 'var(--crm-radius-pill)', border: `1px solid ${sp.cardBorder}`, background: sp.cardBg,
+            }}
+          >
+            <CrmIcon name="close" size={13} stroke={sp.ink} />
+          </button>
+        )}
       </div>
     </div>
   )
@@ -403,7 +381,7 @@ export default function AuditPage() {
             <div style={{ position: 'relative', height: '100%', borderRadius: 26, overflow: 'hidden', border: `1px solid ${sp.frameBorder}`, boxShadow: sp.shadow, background: sp.pageBg }}>
               {etroit ? (
                 <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: 'var(--crm-space-2xl)' }}>
-                  {entete}
+                  {titre}
                   {barre}
                   {avisRecherche}
                   <div style={{ marginTop: 'var(--crm-space-lg)' }}>{corps}</div>
@@ -413,7 +391,7 @@ export default function AuditPage() {
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
                   {/* En-tête et barre FIXES : seul l'historique défile, sous des jours collants. */}
                   <div style={{ flex: 'none', padding: 'var(--crm-space-7xl) var(--crm-space-7xl) var(--crm-space-md)' }}>
-                    {entete}
+                    {titre}
                     {barre}
                     {avisRecherche}
                   </div>

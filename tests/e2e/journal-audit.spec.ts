@@ -32,9 +32,15 @@ test('le journal vit dans le cadre des pages sœurs : la page ne défile plus, l
   expect(mesure.historiqueDefile, 'l’historique doit défiler DANS le cadre').toBe(true)
 })
 
-test('plus aucun export — l’historique seul', async ({ page }) => {
+test('plus aucun export ni en-tête — l’historique seul, titré pour les lecteurs d’écran', async ({ page }) => {
   await expect(ecran(page).getByText(/Export/)).toHaveCount(0)
   await expect(ecran(page).getByRole('button', { name: /CSV|PDF/ })).toHaveCount(0)
+  // « Supprime » (Julien, 14.09.2026) : titre, sous-titre et compte ne se voient plus…
+  await expect(ecran(page).getByText('Toutes les actions de l’agence')).toHaveCount(0)
+  // … mais la page garde son nom dans l'arbre d'accessibilité.
+  const titre = ecran(page).getByRole('heading', { level: 1, name: /Journal d.audit/ })
+  await expect(titre).toHaveCount(1)
+  expect(await titre.evaluate((h) => h.getBoundingClientRect().height)).toBeLessThanOrEqual(1)
 })
 
 test('une ligne s’ouvre sur son détail ; une rafale « ×3 » se déplie en trois lignes', async ({ page }) => {
@@ -81,9 +87,10 @@ test('la recherche lit le texte affiché — « contact cree » trouve « Contac
  */
 test('« Tout » se lit par pages : 1000 d’abord, puis les plus anciens à la demande', async ({ page }) => {
   await ecran(page).getByRole('button', { name: 'Tout', exact: true }).click()
-  await expect(ecran(page).getByText('1\'000 évènements chargés')).toBeVisible()
   const plusAnciens = ecran(page).getByRole('button', { name: 'Charger les évènements plus anciens' })
   await expect(plusAnciens).toHaveCount(1)
+  await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 976' })).toHaveCount(1)
+  await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 977' }), 'la 1001ᵉ ligne est sur la page 2').toHaveCount(0)
 
   // La recherche ne voit que le CHARGÉ — et le dit, là où l'œil cherche le résultat.
   const recherche = ecran(page).getByLabel('Rechercher une action, un objet…')
@@ -96,8 +103,8 @@ test('« Tout » se lit par pages : 1000 d’abord, puis les plus anciens à la 
   await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 1100' })).toHaveCount(1)
   await expect(ecran(page).getByText(/ne porte que sur/)).toHaveCount(0)
 
-  // Tout est chargé : le compte redevient un total, et le bouton s'efface.
+  // Tout est chargé : la liste va jusqu'au plus ancien, et le bouton s'efface.
   await recherche.fill('')
-  await expect(ecran(page).getByText('1\'124 évènements')).toBeVisible()
+  await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 977' })).toHaveCount(1)
   await expect(plusAnciens).toHaveCount(0)
 })
