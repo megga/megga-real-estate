@@ -21,6 +21,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { ACTOR_KIND_DE, type FamilleActeur } from '@/lib/auditActor'
 import type { Json } from '@/types/database'
 import type { AuditEvent, AuditCategory, AuditSeverity } from '@/types/kyc'
 
@@ -29,15 +30,29 @@ import type { AuditEvent, AuditCategory, AuditSeverity } from '@/types/kyc'
 export interface AuditEventsFilters {
   category?: AuditCategory | 'all'
   severity?: AuditSeverity | 'all'
+  /** Qui a agi — posé sur `actor_kind` (`ACTOR_KIND_DE`), jamais sur l'absence d'acteur. */
+  acteur?: FamilleActeur | 'all'
   /** Nombre de jours à remonter (7/30/90/3650 pour tout). */
   days?: number
-  search?: string
 }
 
 /**
+ * Au plus ce nombre de lignes par lecture : le `max_rows` de PostgREST (1000,
+ * `supabase/config.toml`), écrit en clair. Sans lui la troncature avait lieu QUAND
+ * MÊME, mais en silence — sur « Tout », la page annonçait « 1000 évènements » comme
+ * un total. Écrit ici, la page sait qu'elle a touché le plafond et le dit.
+ */
+export const LIMITE_JOURNAL = 1000
+
+/**
  * Lecture du journal d'audit nLPD (activity_events) DE L'AGENCE du profil : filtres
- * catégorie/sévérité/fenêtre jours + recherche plein-texte côté client (action, libellé,
- * metadata). Sans agence, rien n'est lu (voir l'en-tête).
+ * catégorie / sévérité / acteur / fenêtre de jours, posés dans la requête. Sans agence,
+ * rien n'est lu (voir l'en-tête).
+ *
+ * ⚠ La recherche n'est PAS ici : elle entrait dans la clé de cache, et chaque frappe
+ * relançait une lecture — la liste clignotait « Chargement du journal… » à chaque
+ * lettre. Elle filtre désormais à l'écran, sur ce que l'agent VOIT
+ * (`crm-dossiers/audit/journal.ts`).
  */
 export function useAuditEvents(filters: AuditEventsFilters = {}) {
   const { profile } = useAuth()
@@ -46,6 +61,10 @@ export function useAuditEvents(filters: AuditEventsFilters = {}) {
     // L'agence dans la clé : deux comptes successifs ne partagent pas un cache.
     queryKey: ['audit-events', agencyId, filters],
     enabled: !!agencyId,
+    // Un changement de filtre garde l'historique affiché pendant la lecture, au lieu de
+    // le remplacer par « Chargement… ». ⛔ Jamais d'une agence à l'autre : la liste
+    // précédente n'est reprise que si elle venait de la MÊME agence.
+    placeholderData: (precedent, requete) => (requete?.queryKey[1] === agencyId ? precedent : undefined),
     queryFn: async () => {
       let q = supabase
         .from('activity_events')
@@ -55,12 +74,16 @@ export function useAuditEvents(filters: AuditEventsFilters = {}) {
         )
         .eq('agency_id', agencyId as string)
         .order('created_at', { ascending: false })
+        .limit(LIMITE_JOURNAL)
 
       if (filters.category && filters.category !== 'all') {
         q = q.eq('category', filters.category)
       }
       if (filters.severity && filters.severity !== 'all') {
         q = q.eq('severity', filters.severity)
+      }
+      if (filters.acteur && filters.acteur !== 'all') {
+        q = q.eq('actor_kind', ACTOR_KIND_DE[filters.acteur])
       }
       if (filters.days && filters.days > 0) {
         const cutoff = new Date(
@@ -71,20 +94,7 @@ export function useAuditEvents(filters: AuditEventsFilters = {}) {
 
       const { data, error } = await q
       if (error) throw error
-
-      let rows = (data ?? []) as AuditEvent[]
-      if (filters.search) {
-        const s = filters.search.toLowerCase()
-        rows = rows.filter(
-          (e) =>
-            e.action.toLowerCase().includes(s) ||
-            (e.object_label ?? '').toLowerCase().includes(s) ||
-            JSON.stringify(e.metadata ?? {})
-              .toLowerCase()
-              .includes(s),
-        )
-      }
-      return rows
+      return (data ?? []) as AuditEvent[]
     },
   })
 }

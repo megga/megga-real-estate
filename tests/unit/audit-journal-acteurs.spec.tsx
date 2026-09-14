@@ -96,7 +96,7 @@ function monter(event: AuditEvent) {
   return hote
 }
 
-/** L'avatar d'acteur : le seul élément titré par un nom d'acteur (le bouton porte « Détails »). */
+/** La pastille d'acteur : le seul élément titré par un nom d'acteur (la ligne n'a plus de bouton « Détails » : elle s'ouvre entière). */
 const avatar = (titre: string) => hote.querySelector<HTMLElement>(`[title="${titre}"]`)
 const traceDe = (el: Element | null) => el?.querySelector('svg path')?.getAttribute('d') ?? null
 
@@ -117,8 +117,11 @@ describe('journal d’audit agent — l’acteur d’une ligne', () => {
     expect(a, 'une synchro de boîte est un geste du SYSTÈME').not.toBeNull()
     expect(traceDe(a), 'l’étincelle est la marque IA : elle ne se pose pas sur le système').not.toMatch(ETINCELLE)
     expect(a!.querySelector('svg'), 'le système porte un glyphe, pas des initiales').not.toBeNull()
+    // La catégorie vit dans le DÉTAIL depuis le 14.09.2026 : la ligne entière l'ouvre.
+    act(() => hote.querySelector('button')!.click())
+    expect(hote.querySelector('[role="region"]'), 'la ligne n’ouvre pas son détail').not.toBeNull()
     expect(hote.textContent).toContain('Messagerie')
-    const brut = [...hote.querySelectorAll('div')].filter((d) => d.textContent === 'messaging')
+    const brut = [...hote.querySelectorAll('div, span')].filter((d) => d.textContent === 'messaging')
     expect(brut, 'la catégorie s’affichait en valeur BRUTE, non traduite').toHaveLength(0)
   })
 
@@ -163,14 +166,26 @@ describe('journal d’audit agent — l’acteur d’une ligne', () => {
     expect(a!.textContent).toBe('AG')
   })
 
-  it('le compteur « Actions MEGGA AI » ne compte que les lignes de l’IA', async () => {
-    // Témoin : l'ancienne règle (`!e.actor_id`) comptait CINQ de ces six lignes.
+  /**
+   * La carte « Actions MEGGA AI » a laissé la place, le 14.09.2026, au filtre « Acteur » —
+   * posé CÔTÉ SERVEUR, sur `actor_kind`. La garde se déplace avec elle : chaque ligne que
+   * le serveur rend sous une famille doit être une ligne que la page NOMME ainsi.
+   */
+  it('le filtre « Acteur » rend exactement les lignes que la page nomme ainsi', async () => {
+    // Témoin : l'ancienne règle (`!e.actor_id`) prenait CINQ de ces six lignes pour l'IA.
     expect(LIGNES.filter((e) => !e.actor_id)).toHaveLength(5)
     // Chemin en variable : un littéral serait résolu à la TRANSFORMATION du fichier, et
     // son absence ferait tomber toute la suite au lieu de ce seul test.
     const module = '@/lib/auditActor'
-    const { compterActionsIa, auditActeur } = (await import(/* @vite-ignore */ module)) as typeof import('@/lib/auditActor')
-    expect(compterActionsIa(LIGNES)).toBe(1)
+    const { ACTOR_KIND_DE, auditActeur } = (await import(/* @vite-ignore */ module)) as typeof import('@/lib/auditActor')
     expect(LIGNES.map(auditActeur)).toEqual(['ai', 'system', 'system', 'agent_detache', 'agent_detache', 'agent'])
+    // Un agent détaché reste un HUMAIN : il est de la famille « Agents ».
+    const famille = (e: AuditEvent) => { const a = auditActeur(e); return a === 'agent_detache' ? 'agent' : a }
+    for (const f of ['agent', 'ai', 'system'] as const) {
+      const parLeServeur = LIGNES.filter((e) => e.actor_kind === ACTOR_KIND_DE[f]).map((e) => e.id)
+      const parLaPage = LIGNES.filter((e) => famille(e) === f).map((e) => e.id)
+      expect(parLeServeur, `famille ${f}`).toEqual(parLaPage)
+    }
+    expect(LIGNES.filter((e) => e.actor_kind === ACTOR_KIND_DE.ai), 'une seule ligne est de l’IA').toHaveLength(1)
   })
 })

@@ -375,18 +375,6 @@
       "onboarding": "Accueil",
       "messaging": "Messagerie"
     },
-    "csv": {
-      "createdAt": "Date/heure",
-      "category": "Catégorie",
-      "severity": "Sévérité",
-      "action": "Action",
-      "objectLabel": "Objet",
-      "entityType": "Type entité",
-      "entityId": "ID entité",
-      "actorId": "Acteur (ID)",
-      "ip": "IP",
-      "metadata": "Métadonnées (JSON)"
-    },
     "severity": {
       "critical": "Critique",
       "warning": "Attention"
@@ -401,43 +389,53 @@
     "details": "Détails",
     "eventCount_one": "{{count}} évènement",
     "eventCount_other": "{{count}} évènements",
-    "eyebrow": "Conformité · nLPD",
-    "title": "Journal d'audit.",
-    "subtitle": "Toutes les actions sur les contacts, biens, deals et documents sont enregistrées de manière immuable. Cette trace satisfait l'obligation d'audit nLPD (art. 12) et LBA (art. 7), conservée 10 ans.",
-    "export": {
-      "csv": "Export CSV",
-      "pdf": "Export PDF horodaté",
-      "generating": "Génération…",
-      "pdfFailed": "Export PDF échoué",
-      "pdfErrorPrefix": "Export PDF :"
-    },
-    "stats": {
-      "events": "Évènements",
-      "eventsRangeAll": "Sur les derniers mois",
-      "eventsRangeDays": "Sur les {{days}} jours",
-      "critical": "Critiques",
-      "criticalSub": "Verrous, échecs auth, refus",
-      "warning": "Attention",
-      "warningSub": "Re-screening, export données",
-      "aiActions": "Actions MEGGA AI",
-      "aiActionsSub": "Suggestions et assistance MEGGA AI"
-    },
+    "title": "Journal d’audit",
+    "subtitle": "Toutes les actions de l’agence, dans l’ordre où elles ont eu lieu.",
     "searchPlaceholder": "Rechercher une action, un objet…",
     "period": {
       "days7": "7 jours",
       "days30": "30 jours",
       "days90": "90 jours",
-      "all": "Tout"
+      "all": "Tout",
+      "label": "Période"
     },
     "filter": {
       "allCategories": "Toutes catégories",
-      "allSeverities": "Toute sévérité"
+      "allSeverities": "Toute sévérité",
+      "category": "Catégorie",
+      "actor": "Acteur",
+      "severity": "Sévérité",
+      "allActors": "Tous les acteurs",
+      "agents": "Agents",
+      "reset": "Effacer les filtres"
+    },
+    "today": "Aujourd’hui",
+    "yesterday": "Hier",
+    "grouped_one": "{{count}} évènement regroupé",
+    "grouped_other": "{{count}} évènements identiques, regroupés",
+    "dayCritical_one": "{{count}} critique",
+    "dayCritical_other": "{{count}} critiques",
+    "dayWarning_one": "{{count}} alerte",
+    "dayWarning_other": "{{count}} alertes",
+    "detail": {
+      "when": "Horodatage",
+      "category": "Catégorie",
+      "entity": "Type d’objet",
+      "reference": "Référence",
+      "actor": "Acteur",
+      "ip": "Adresse IP",
+      "code": "Code de l’action",
+      "metadata": "Métadonnées"
     },
     "loading": "Chargement du journal…",
     "empty": "Aucun évènement ne correspond à ces filtres.",
+    "emptyPeriod": "Aucun évènement sur cette période.",
+    "noAgency": "Ce compte n’est rattaché à aucune agence : il n’a pas de journal. Celui de la plateforme se consulte dans la console.",
+    "error": "Le journal n’a pas pu être chargé.",
+    "retry": "Réessayer",
+    "capped": "Seuls les {{n}} évènements les plus récents sont affichés.",
     "footer": {
-      "retention": "Les évènements sont signés cryptographiquement et conservés 10 ans (nLPD art. 12 · LBA art. 7).",
-      "tamperLogged": "Toute tentative de suppression ou modification est elle-même journalisée."
+      "retention": "Journal en ajout seul, conservé 10 ans (nLPD art. 12 · LBA art. 7) : aucune ligne ne peut en être supprimée avant ce terme."
     },
     "action": {
       "account_deleted": "Compte supprimé",

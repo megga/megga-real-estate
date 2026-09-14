@@ -1,5 +1,6 @@
 /**
- * TuileNotif — la tuile de 40 px d'une notification, au bureau comme sur mobile.
+ * TuileNotif — la tuile de 40 px d'une notification, au bureau comme sur mobile, et de
+ * chaque ligne du journal d'audit, qui est l'historique complet de la cloche.
  *
  * Trois visages, du plus parlant au plus générique :
  *  1. la PHOTO de ce que l'événement désigne (un match qui arrive, une diffusion) —
@@ -23,7 +24,8 @@ import { WHATSAPP_VERT } from '@/components/propertyx/whatsapp'
 import { KIND_META, type CrmNotif } from './data'
 
 interface Props {
-  n: CrmNotif
+  /** Ce que la tuile lit d'une notification — le journal d'audit n'en construit pas d'autre. */
+  n: Pick<CrmNotif, 'kind' | 'image' | 'canal'>
   /** Fond de la tuile SANS photo (la teinte du type). */
   fondTuile: string
   /** Encre du glyphe sans photo. */

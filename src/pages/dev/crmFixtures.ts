@@ -80,8 +80,12 @@ const EVENEMENTS = [
   // retient (avec `kyc` et `kyc_check`). Sans ces deux lignes, la piste d'audit
   // du RAPPORT sort vide, et sa page 3 se relit comme une page réussie.
   // `actor:profiles!actor_id` est embarqué : le banc n'applique pas `select`.
-  { id: 'e5', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'kyc_case_created', category: 'kyc', severity: 'info', entity_type: 'kyc_case', entity_id: 'k1', metadata: null, created_at: ilYA(310), actor: { full_name: AGENT_BANC.full_name } },
-  { id: 'e6', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'kyc_check_completed', category: 'kyc', severity: 'info', entity_type: 'kyc_check', entity_id: 'kc1-id', metadata: { category: 'id' }, created_at: ilYA(300), actor: { full_name: AGENT_BANC.full_name } },
+  // ⚠ Les ACTIONS sont celles que la production écrit : `kyc_case_opened` (renommée par
+  // 20260729100000) et « Contrôle validé », que le trigger `auto_verify_kyc_dossier` écrit
+  // encore en français. Le banc portait `kyc_case_created` et `kyc_check_completed`, que
+  // rien n'émet — le journal d'audit les affichait « Kyc case created ».
+  { id: 'e5', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'kyc_case_opened', category: 'kyc', severity: 'info', entity_type: 'kyc_case', entity_id: 'k1', metadata: null, created_at: ilYA(310), actor: { full_name: AGENT_BANC.full_name } },
+  { id: 'e6', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'Contrôle validé', category: 'kyc', severity: 'info', entity_type: 'kyc_check', entity_id: 'kc1-id', object_label: 'Pièce d’identité', metadata: { category: 'id', kyc_case_id: 'k1' }, created_at: ilYA(300), actor: { full_name: AGENT_BANC.full_name } },
   // ── Les scénarios de la CLOCHE (14.09.2026) — un événement système ou IA par type
   // (`KIND_META`), sur trois jours, pour relire la popover telle qu'une agence la vit.
   // Actions réelles : celles de la production et de la table du journal. La rafale de
@@ -89,7 +93,11 @@ const EVENEMENTS = [
   // moteur — elle doit sortir en UNE ligne « ×3 » (`regrouper`). Les matchs et la
   // diffusion désignent un bien PHOTOGRAPHIÉ : la tuile doit en montrer la photo.
   // `metadata` a la forme de la production (`source`, `market_listing_id`, `score`).
-  cloche('n1', 'ai', 'whatsapp_inbound_lead_created', 'contact', 'contact', 'Léa Martin (via WhatsApp)', 0.2),
+  // ⚠ Les sévérités aussi : `kyc_screening_match` est écrit `critical` par kyc-screening,
+  // le prospect WhatsApp `warn` par le webhook. `n7` portait `'warning'`, que
+  // `activity_events_severity_check` (info · warn · critical) refuse — le journal
+  // d'audit montrait une pastille qu'aucune base ne peut produire.
+  cloche('n1', 'ai', 'whatsapp_inbound_lead_created', 'contact', 'contact', 'Léa Martin (via WhatsApp)', 0.2, 'warn'),
   cloche('n2', 'system', 'whatsapp_message_received', 'contact', 'contact', 'Camille Rochat', 0.6),
   cloche('n3a', 'ai', 'match_suggested', 'contact', 'match', null, 1.5, 'info', { metadata: { source: 'market', score: 88, contact_id: 'c1', property_id: null, market_listing_id: 'ml-cloche-1' } }),
   cloche('n3b', 'ai', 'match_suggested', 'contact', 'match', null, 1.5, 'info', { metadata: { source: 'market', score: 81, contact_id: 'c3', property_id: null, market_listing_id: 'ml-cloche-2' } }),
@@ -97,7 +105,7 @@ const EVENEMENTS = [
   cloche('n4', 'system', 'visit_scheduled', 'contact', 'visit', 'Rue de Lausanne 12 · jeudi 10:30', 2.2),
   cloche('n5', 'ai', 'reminder_created', 'contact', 'reminder', 'Rappeler Camille Rochat', 3),
   cloche('n6', 'system', 'stage_change', 'deal', 'transaction', 'visit_done → offer', 4),
-  cloche('n7', 'ai', 'kyc_screening_match', 'kyc', 'kyc', 'Dossier Rochat · une alerte à examiner', 5, 'warning'),
+  cloche('n7', 'ai', 'kyc_screening_match', 'kyc', 'kyc', 'Dossier Rochat · une alerte à examiner', 5, 'critical'),
   cloche('n8', 'system', 'signature.created', 'deal', 'signature', 'Mandat de vente · Avenue de Champel 8', 26),
   cloche('n9', 'system', 'document_filed_from_email', 'doc', 'document', 'Attestation bancaire.pdf', 28),
   cloche('n10', 'system', 'property_published_to_portal', 'bien', 'property', 'Appartement 4,5 pièces · Champel', 30, 'info', { entity_id: 'p1' }),

@@ -1,6 +1,6 @@
 /**
  * Garde-fou : le journal d'audit agent (`/dashboard/audit`) connaît EXACTEMENT les
- * catégories que la base admet, et compte ses « Actions MEGGA AI » sur `actor_kind`.
+ * catégories que la base admet, et filtre ses acteurs sur `actor_kind`.
  *
  * ── POURQUOI CE FICHIER EXISTE ───────────────────────────────────────────────
  * `activity_events_category_check` admet DIX familles depuis 20260815214000
@@ -168,7 +168,7 @@ describe('journal d’audit agent — les catégories sont le domaine du CHECK',
     expect(d.valeurs).toContain('kyc')
   })
 
-  it('(a) AUDIT_CATEGORIES porte exactement le domaine — donc les pastilles de filtre aussi', () => {
+  it('(a) AUDIT_CATEGORIES porte exactement le domaine — donc le menu de catégories aussi', () => {
     const { valeurs } = domaineCategories()
     const front = Object.keys(AUDIT_CATEGORIES).sort()
     expect(
@@ -238,18 +238,25 @@ describe('journal d’audit agent — les catégories sont le domaine du CHECK',
     expect(faibles, `teinte de catégorie sous l’AA :\n  ${faibles.join('\n  ')}`).toEqual([])
   })
 
-  it('(e) le hook lit `actor_kind`, et la carte « Actions MEGGA AI » ne compte plus l’absence d’acteur', () => {
+  /**
+   * ⚠ La carte « Actions MEGGA AI » est partie le 14.09.2026 avec les trois autres : le
+   * journal ne compte plus, il FILTRE. La règle ne bouge pas — l'acteur se lit dans
+   * `actor_kind`, jamais dans l'absence d'`actor_id` — elle se mesure désormais sur le
+   * filtre « Acteur » du hook.
+   */
+  it('(e) le hook lit `actor_kind`, et le filtre « Acteur » passe par lui — jamais par l’absence d’acteur', () => {
     const hook = corpsDeFonction(sansCommentaires(lireCode('src', 'hooks', 'useAuditLog.ts')), 'useAuditEvents')
     expect(hook, 'useAuditEvents introuvable : la garde ne mesure plus rien').not.toBeNull()
     const select = /\.select\(\s*'([^']+)'/.exec(hook!)
     expect(select, 'select de useAuditEvents introuvable').not.toBeNull()
     const colonnes = select![1]!.split(',').map((c) => c.trim())
     expect(colonnes, 'sans `actor_kind`, la page ne peut pas distinguer IA, système et agent détaché').toContain('actor_kind')
+    expect(hook, 'le filtre Acteur doit se poser sur actor_kind').toMatch(/\.eq\(\s*'actor_kind'\s*,\s*ACTOR_KIND_DE\[/)
+    expect(hook, 'la présence d’un acteur ne dit pas QUI a agi').not.toMatch(/\.(?:is|not)\(\s*'actor_id'/)
 
     const page = sansCommentaires(lireCode('src', 'pages', 'agent', 'AuditPage.tsx'))
     expect(page, '`!e.actor_id` compte le système et les agents détachés comme des actions IA').not.toMatch(/!\s*e\.actor_id/)
-    expect(page).toContain('compterActionsIa(events)')
-    // C'est cette itération qui fait de (a) la garde des pastilles de filtre.
+    // C'est cette itération qui fait de (a) la garde du menu de catégories.
     expect(page).toMatch(/Object\.(?:keys|entries)\(AUDIT_CATEGORIES\)/)
   })
 })

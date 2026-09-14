@@ -20,15 +20,19 @@
  * ── CE QUE LA GARDE FIGE ─────────────────────────────────────────────────────
  * Le COMPORTEMENT du hook, monté pour de vrai sous React Query, avec un client
  * Supabase qui journalise chaque appel de la chaîne : agence → `eq agency_id` ;
- * sans agence → aucun `from`. Et, statiquement, le `disabled` du bouton PDF.
+ * sans agence → aucun `from`. Et, statiquement, qu'AUCUN export ne part plus de la
+ * page : le PDF désactivé sans agence a laissé la place, le 14.09.2026, à une page
+ * sans export du tout (décision Julien : « contente-toi de l'historique »).
  * Monter AuditPage entière coûterait la coquille du CRM pour une ligne.
  */
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createElement, act, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
+import { existsSync } from 'node:fs'
 import { QueryClient, QueryClientProvider, type UseQueryResult } from '@tanstack/react-query'
 import { readFileSafely, repoPath } from './helpers/fs-scan'
 import type { AuditEvent } from '@/types/kyc'
+import type { AuditEventsFilters } from '@/hooks/useAuditLog'
 
 ;(globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -78,9 +82,13 @@ let hote: HTMLDivElement | null = null
 let client: QueryClient
 const sortie: { q: UseQueryResult<AuditEvent[]> | null } = { q: null }
 
+/** Les filtres que la sonde passe au hook — par défaut ceux des cas (a) à (d). */
+const FILTRES_DEFAUT: AuditEventsFilters = { days: 30, category: 'kyc' }
+const filtres: { courants: AuditEventsFilters } = { courants: FILTRES_DEFAUT }
+
 /** La sonde : le hook, et son dernier état remonté par un effet (jamais écrit pendant le rendu). */
 function Sonde({ remonter }: { remonter: (q: UseQueryResult<AuditEvent[]>) => void }) {
-  const q = useAuditEvents({ days: 30, category: 'kyc' })
+  const q = useAuditEvents(filtres.courants)
   useEffect(() => { remonter(q) })
   return null
 }
@@ -115,6 +123,7 @@ afterEach(() => {
   journal.length = 0
   etat.profil = null
   sortie.q = null
+  filtres.courants = FILTRES_DEFAUT
 })
 
 describe('/dashboard/audit — le périmètre est l’agence du profil', () => {
@@ -151,17 +160,27 @@ describe('/dashboard/audit — le périmètre est l’agence du profil', () => {
     expect(appels('eq')).toContainEqual(['agency_id', 'agence-B'])
   })
 
-  it('le bouton PDF est désactivé sans agence — sinon l’export part en « Plateforme MEGGA »', () => {
+  it('(e) le filtre « Acteur » se pose sur `actor_kind`, et le plafond de lecture est écrit en clair', async () => {
+    etat.profil = { role: 'agent', agency_id: 'agence-A' }
+    // « Agents » : les humains, nommés ou détachés — tous `actor_kind = 'user'`.
+    filtres.courants = { days: 30, acteur: 'agent' }
+    await monter()
+    expect(appels('eq'), 'le filtre Acteur ne se lit que dans actor_kind').toContainEqual(['actor_kind', 'user'])
+    expect(appels('eq').some(([col]) => col === 'actor_id'), 'jamais sur la présence d’un acteur').toBe(false)
+    expect(appels('limit'), 'sans plafond écrit, max_rows tronque en silence').toContainEqual([1000])
+  })
+
+  it('la page n’exporte plus rien — aucune voie vers la branche « Plateforme MEGGA » d’audit-pdf-export', () => {
     const r = readFileSafely(repoPath('src', 'pages', 'agent', 'AuditPage.tsx'))
     expect(r.status).toBe('ok')
     const code = (r.status === 'ok' ? r.value : '')
       .replace(/\/\*[\s\S]*?\*\//g, ' ')
       .replace(/\/\/[^\n]*/g, ' ')
-    const appel = code.indexOf('downloadAuditPdf(')
-    expect(appel, 'appel de downloadAuditPdf introuvable : la garde ne mesure plus rien').toBeGreaterThan(-1)
-    const ouverture = code.lastIndexOf('<KycBlackPill', appel)
-    expect(ouverture, 'le bouton qui appelle downloadAuditPdf n’est plus un KycBlackPill').toBeGreaterThan(-1)
-    const disabled = /disabled=\{([^}]*)\}/.exec(code.slice(ouverture, appel))
-    expect(disabled?.[1], '`disabled` du bouton PDF').toMatch(/agency_?[iI]d/)
+    // Contrôle POSITIF : sans lui, une page devenue illisible rendrait la suite verte.
+    expect(code, 'la page ne lit plus le journal : la garde ne mesure plus rien').toContain('useAuditEvents(')
+    expect(code, 'un export est revenu sur la page agent').not.toMatch(/downloadAudit|audit-pdf-export|functions\.invoke|text\/csv/)
+    // L'outil hors de portée : un helper laissé en place se retrouve par autocomplétion.
+    expect(existsSync(repoPath('src', 'lib', 'auditPdfExport.ts')), 'src/lib/auditPdfExport.ts est revenu').toBe(false)
+    expect(existsSync(repoPath('src', 'lib', 'auditCsvExport.ts')), 'src/lib/auditCsvExport.ts est revenu').toBe(false)
   })
 })

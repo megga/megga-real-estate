@@ -368,18 +368,6 @@
       "onboarding": "Einführung",
       "messaging": "Nachrichten"
     },
-    "csv": {
-      "createdAt": "Datum/Zeit",
-      "category": "Kategorie",
-      "severity": "Schweregrad",
-      "action": "Action",
-      "objectLabel": "Gegenstand",
-      "entityType": "Entitätstyp",
-      "entityId": "Entitäts-ID",
-      "actorId": "Akteur (ID)",
-      "ip": "IP",
-      "metadata": "Metadaten (JSON)"
-    },
     "severity": {
       "critical": "Kritisch",
       "warning": "Warnung"
@@ -394,43 +382,53 @@
     "details": "Details",
     "eventCount_one": "{{count}} Ereignis",
     "eventCount_other": "{{count}} Ereignisse",
-    "eyebrow": "Compliance · nDSG",
-    "title": "Auditprotokoll.",
-    "subtitle": "Alle Aktionen an Kontakten, Objekten, Deals und Dokumenten werden unveränderlich aufgezeichnet. Diese Spur erfüllt die Auditpflicht nach nDSG (Art. 12) und GwG (Art. 7) und wird 10 Jahre aufbewahrt.",
-    "export": {
-      "csv": "Export CSV",
-      "pdf": "PDF-Export mit Zeitstempel",
-      "generating": "Wird erstellt…",
-      "pdfFailed": "PDF-Export fehlgeschlagen",
-      "pdfErrorPrefix": "PDF-Export:"
-    },
-    "stats": {
-      "events": "Ereignisse",
-      "eventsRangeAll": "Über die letzten Monate",
-      "eventsRangeDays": "Über die letzten {{days}} Tage",
-      "critical": "Kritisch",
-      "criticalSub": "Sperren, Auth-Fehler, Ablehnungen",
-      "warning": "Warnungen",
-      "warningSub": "Re-Screening, Datenexport",
-      "aiActions": "MEGGA AI-Aktionen",
-      "aiActionsSub": "Vorschläge und Unterstützung durch MEGGA AI"
-    },
+    "title": "Auditprotokoll",
+    "subtitle": "Alle Aktionen Ihrer Agentur, in der Reihenfolge, in der sie stattfanden.",
     "searchPlaceholder": "Aktion oder Gegenstand suchen…",
     "period": {
       "days7": "7 Tage",
       "days30": "30 Tage",
       "days90": "90 Tage",
-      "all": "Alle"
+      "all": "Alle",
+      "label": "Zeitraum"
     },
     "filter": {
       "allCategories": "Alle Kategorien",
-      "allSeverities": "Alle Schweregrade"
+      "allSeverities": "Alle Schweregrade",
+      "category": "Kategorie",
+      "actor": "Akteur",
+      "severity": "Schweregrad",
+      "allActors": "Alle Akteure",
+      "agents": "Agenten",
+      "reset": "Filter löschen"
+    },
+    "today": "Heute",
+    "yesterday": "Gestern",
+    "grouped_one": "{{count}} gruppiertes Ereignis",
+    "grouped_other": "{{count}} identische Ereignisse, gruppiert",
+    "dayCritical_one": "{{count}} kritisches Ereignis",
+    "dayCritical_other": "{{count}} kritische Ereignisse",
+    "dayWarning_one": "{{count}} Warnung",
+    "dayWarning_other": "{{count}} Warnungen",
+    "detail": {
+      "when": "Zeitstempel",
+      "category": "Kategorie",
+      "entity": "Objekttyp",
+      "reference": "Referenz",
+      "actor": "Akteur",
+      "ip": "IP-Adresse",
+      "code": "Aktionscode",
+      "metadata": "Metadaten"
     },
     "loading": "Protokoll wird geladen…",
     "empty": "Keine Ereignisse entsprechen diesen Filtern.",
+    "emptyPeriod": "Keine Ereignisse in diesem Zeitraum.",
+    "noAgency": "Dieses Konto ist keiner Agentur zugeordnet und hat daher kein Protokoll. Das Protokoll der Plattform finden Sie in der Admin-Konsole.",
+    "error": "Das Protokoll konnte nicht geladen werden.",
+    "retry": "Erneut versuchen",
+    "capped": "Es werden nur die {{n}} neuesten Ereignisse angezeigt.",
     "footer": {
-      "retention": "Die Ereignisse werden kryptografisch signiert und 10 Jahre aufbewahrt (nDSG Art. 12 · GwG Art. 7).",
-      "tamperLogged": "Jeder Versuch einer Löschung oder Änderung wird selbst protokolliert."
+      "retention": "Nur ergänzbares Protokoll, 10 Jahre aufbewahrt (nDSG Art. 12 · GwG Art. 7): Vor Ablauf dieser Frist kann kein Eintrag gelöscht werden."
     },
     "action": {
       "account_deleted": "Konto gelöscht",

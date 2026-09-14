@@ -958,8 +958,14 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // 69 -> 61 (18.08.2026) : le retrait de l'étape « Récapitulatif » a emporté ses
   // littéraux avec elle. Le cliquet redescend, il ne se justifie pas.
   ['src/components/crm-identity', { hors: 1, total: 61 }],
-  ['src/components/crm-dossiers', { hors: 2, total: 3 }],
-  ['src/components/crm-dossiers/audit', { hors: 3, total: 4 }],
+  // {2,3} -> {0,0} (14.09.2026) : `KycStatCard` et `KycCircleBtn` n'avaient plus qu'un
+  // lecteur, l'ancien journal d'audit. Partis avec lui, ils emportent `marginTop: 14`,
+  // `marginBottom: 6` et `marginTop: 8`.
+  ['src/components/crm-dossiers', { hors: 0, total: 0 }],
+  // {3,4} -> {0,0} (14.09.2026) : le journal d'audit refait écrit chacun de ses rayons et
+  // espacements en jetons — `padding: '18px 28px 12px'` de l'en-tête de jour et les marges
+  // de l'ancienne ligne sont partis avec elle.
+  ['src/components/crm-dossiers/audit', { hors: 0, total: 0 }],
   ['src/components/crm-dossiers/kyc', { hors: 10, total: 10 }],
   ['src/components/crm-dossiers/kyc-pager', { hors: 22, total: 25 }],
   ['src/components/crm-dossiers/kyc-wizard', { hors: 36, total: 46 }],
@@ -1060,7 +1066,12 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // (papier). Ce qui reste ici est l'écran : le bureau, la barre d'outils.
   // total 917 -> 916 (13.09.2026) : le Parcours entre dans le cadre bento commun ; sa
   // carte d'état vide (`padding: '60px 20px'`, rayon 24) laisse la place à `EtatVide`.
-  ['src/pages/agent', { hors: 312, total: 916 }],
+  // 312 -> 292, 916 -> 891 (14.09.2026) : le journal d'audit entre dans le cadre commun et
+  // perd ses cartes de chiffres, ses deux rangées de pastilles et ses exports — vingt
+  // littéraux hors échelle (`gap: 32`, `marginBottom: 36`, `padding: '18px 22px'`,
+  // `padding: '80px 40px'`…). ⚠ Il en ajoute UN, le même que ses pages sœurs : le rayon 26
+  // du cadre de travail, qui répond à `CrmPageSkeleton` et au coin que mesurent les popovers.
+  ['src/pages/agent', { hors: 292, total: 891 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 66, total: 257 }],
 ])

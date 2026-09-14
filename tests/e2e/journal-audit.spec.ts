@@ -1,0 +1,75 @@
+/**
+ * Le journal d'audit refait (14.09.2026, Julien : « inclus tout cela dans le pager ; que
+ * l'historique soit organisé et épuré », puis « les exports, on n'en a pas besoin »),
+ * éprouvé sur le banc `/dev/crm`, dont les fixtures portent des événements sur un mois,
+ * une rafale de trois correspondances, une alerte et un critique.
+ */
+import { test, expect, type Page } from '@playwright/test'
+
+// Chaque écran d'onglet vivant garde son DOM ; on vise celui qui est MONTRÉ.
+const ecran = (page: Page) => page.locator('[data-onglet]:not([aria-hidden="true"])')
+const lignes = (page: Page) => ecran(page).locator('section button[aria-expanded]')
+
+test.beforeEach(async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto(`/dev/crm?entree=${encodeURIComponent('/dashboard/audit')}`)
+  await ecran(page).getByRole('heading', { name: /Journal d.audit/ }).waitFor({ timeout: 30_000 })
+  await expect(lignes(page).first()).toBeVisible()
+})
+
+test('le journal vit dans le cadre des pages sœurs : la page ne défile plus, l’historique si', async ({ page }) => {
+  const mesure = await ecran(page).locator('main').evaluate((main) => {
+    const cadre = main.firstElementChild as HTMLElement
+    const defilants = [...cadre.querySelectorAll<HTMLElement>('div')].filter((d) => getComputedStyle(d).overflowY === 'auto')
+    return {
+      rayon: getComputedStyle(cadre).borderTopRightRadius,
+      page: document.scrollingElement!.scrollHeight <= window.innerHeight + 1,
+      historiqueDefile: defilants.some((d) => d.scrollHeight > d.clientHeight),
+    }
+  })
+  expect(mesure.rayon, 'le rayon du cadre de travail').toBe('26px')
+  expect(mesure.page, 'la page entière défilait sous la bande').toBe(true)
+  expect(mesure.historiqueDefile, 'l’historique doit défiler DANS le cadre').toBe(true)
+})
+
+test('plus aucun export — l’historique seul', async ({ page }) => {
+  await expect(ecran(page).getByText(/Export/)).toHaveCount(0)
+  await expect(ecran(page).getByRole('button', { name: /CSV|PDF/ })).toHaveCount(0)
+})
+
+test('une ligne s’ouvre sur son détail ; une rafale « ×3 » se déplie en trois lignes', async ({ page }) => {
+  const cree = lignes(page).filter({ hasText: 'Contact créé' }).first()
+  await cree.click()
+  await expect(cree).toHaveAttribute('aria-expanded', 'true')
+  const detail = ecran(page).getByRole('region', { name: 'Détails' })
+  await expect(detail).toContainText('Horodatage')
+  await expect(detail).toContainText('contact_created')
+
+  const rafale = lignes(page).filter({ hasText: '×3' })
+  await expect(rafale).toHaveCount(1)
+  await rafale.click()
+  await expect(ecran(page).locator('[role="group"] button[aria-expanded]')).toHaveCount(3)
+})
+
+test('le filtre « Acteur » ne garde que l’IA, prend l’accent, et s’efface', async ({ page }) => {
+  const avant = await lignes(page).count()
+  const acteur = ecran(page).getByLabel('Acteur')
+  await acteur.selectOption('ai')
+  await expect.poll(() => lignes(page).count()).toBeLessThan(avant)
+  // Chaque pastille d'acteur restante est celle de MEGGA AI.
+  const noms = await ecran(page).locator('section button[aria-expanded] [title]').evaluateAll(
+    (els) => els.map((e) => e.getAttribute('title')).filter((t) => t && !/regroup/.test(t)),
+  )
+  expect(new Set(noms)).toEqual(new Set(['MEGGA AI']))
+  // Un filtre posé porte l'accent (#424bfb).
+  expect(await acteur.evaluate((s) => getComputedStyle(s).backgroundColor)).toBe('rgb(66, 75, 251)')
+
+  await ecran(page).getByRole('button', { name: 'Effacer les filtres' }).click()
+  await expect.poll(() => lignes(page).count()).toBe(avant)
+})
+
+test('la recherche lit le texte affiché — « contact cree » trouve « Contact créé »', async ({ page }) => {
+  await ecran(page).getByLabel('Rechercher une action, un objet…').fill('contact cree')
+  await expect(lignes(page).filter({ hasText: 'Contact créé' }).first()).toBeVisible()
+  await expect(lignes(page).filter({ hasText: 'Visite planifiée' })).toHaveCount(0)
+})

@@ -368,18 +368,6 @@
       "onboarding": "Accoglienza",
       "messaging": "Messaggistica"
     },
-    "csv": {
-      "createdAt": "Data/ora",
-      "category": "Categoria",
-      "severity": "Gravità",
-      "action": "Action",
-      "objectLabel": "Oggetto",
-      "entityType": "Tipo entità",
-      "entityId": "ID entità",
-      "actorId": "Attore (ID)",
-      "ip": "IP",
-      "metadata": "Metadati (JSON)"
-    },
     "severity": {
       "critical": "Critico",
       "warning": "Avviso"
@@ -394,43 +382,53 @@
     "details": "Dettagli",
     "eventCount_one": "{{count}} evento",
     "eventCount_other": "{{count}} eventi",
-    "eyebrow": "Conformità · nLPD",
-    "title": "Registro di audit.",
-    "subtitle": "Tutte le azioni su contatti, immobili, deal e documenti sono registrate in modo immutabile. Questa traccia soddisfa l'obbligo di audit previsto dalla nLPD (art. 12) e dalla LRD (art. 7), ed è conservata per 10 anni.",
-    "export": {
-      "csv": "Export CSV",
-      "pdf": "Esporta PDF con marca temporale",
-      "generating": "Generazione…",
-      "pdfFailed": "Esportazione PDF non riuscita",
-      "pdfErrorPrefix": "Esportazione PDF:"
-    },
-    "stats": {
-      "events": "Eventi",
-      "eventsRangeAll": "Negli ultimi mesi",
-      "eventsRangeDays": "Negli ultimi {{days}} giorni",
-      "critical": "Critici",
-      "criticalSub": "Blocchi, errori auth, rifiuti",
-      "warning": "Avvisi",
-      "warningSub": "Re-screening, esportazione dati",
-      "aiActions": "Azioni MEGGA AI",
-      "aiActionsSub": "Suggerimenti e assistenza MEGGA AI"
-    },
+    "title": "Registro di audit",
+    "subtitle": "Tutte le azioni dell’agenzia, nell’ordine in cui sono avvenute.",
     "searchPlaceholder": "Cerca un'azione, un oggetto…",
     "period": {
       "days7": "7 giorni",
       "days30": "30 giorni",
       "days90": "90 giorni",
-      "all": "Tutto"
+      "all": "Tutto",
+      "label": "Periodo"
     },
     "filter": {
       "allCategories": "Tutte le categorie",
-      "allSeverities": "Tutte le gravità"
+      "allSeverities": "Tutte le gravità",
+      "category": "Categoria",
+      "actor": "Attore",
+      "severity": "Gravità",
+      "allActors": "Tutti gli attori",
+      "agents": "Agenti",
+      "reset": "Cancella i filtri"
+    },
+    "today": "Oggi",
+    "yesterday": "Ieri",
+    "grouped_one": "{{count}} evento raggruppato",
+    "grouped_other": "{{count}} eventi identici, raggruppati",
+    "dayCritical_one": "{{count}} critico",
+    "dayCritical_other": "{{count}} critici",
+    "dayWarning_one": "{{count}} avviso",
+    "dayWarning_other": "{{count}} avvisi",
+    "detail": {
+      "when": "Data e ora",
+      "category": "Categoria",
+      "entity": "Tipo di oggetto",
+      "reference": "Riferimento",
+      "actor": "Attore",
+      "ip": "Indirizzo IP",
+      "code": "Codice dell’azione",
+      "metadata": "Metadati"
     },
     "loading": "Caricamento del registro…",
     "empty": "Nessun evento corrisponde a questi filtri.",
+    "emptyPeriod": "Nessun evento in questo periodo.",
+    "noAgency": "Questo account non è collegato a nessuna agenzia, quindi non ha un registro. Quello della piattaforma si consulta nella console.",
+    "error": "Impossibile caricare il registro.",
+    "retry": "Riprova",
+    "capped": "Sono mostrati solo i {{n}} eventi più recenti.",
     "footer": {
-      "retention": "Gli eventi sono firmati crittograficamente e conservati per 10 anni (nLPD art. 12 · LRD art. 7).",
-      "tamperLogged": "Ogni tentativo di cancellazione o modifica viene a sua volta registrato."
+      "retention": "Registro in sola aggiunta, conservato 10 anni (nLPD art. 12 · LRD art. 7): nessuna voce può esservi cancellata prima di tale termine."
     },
     "action": {
       "account_deleted": "Account eliminato",

@@ -41,7 +41,20 @@ export function acteurDetacheProuve(e: Pick<AuditEvent, 'metadata'>): boolean {
   return typeof e.metadata?.actor_detached_from === 'string'
 }
 
-/** La carte « Actions MEGGA AI » : les seules lignes écrites par l'IA. */
-export function compterActionsIa(events: readonly Pick<AuditEvent, 'actor_id' | 'actor_kind'>[]): number {
-  return events.filter((e) => auditActeur(e) === 'ai').length
+/** Les trois familles du filtre « Acteur » du journal : un agent détaché reste un HUMAIN. */
+export type FamilleActeur = 'agent' | 'ai' | 'system'
+
+/**
+ * L'`actor_kind` que le filtre « Acteur » pose côté serveur, par famille.
+ *
+ * Exact, et non approché : la colonne est NOT NULL (défaut 'user'), et le CHECK de
+ * cohérence réserve `actor_id` aux humains. 'user' rend donc les agents, nommés ou
+ * détachés ; 'ai' et 'system' rendent exactement ce qu'`auditActeur` range sous ces noms.
+ * ⚠ Il remplace la carte « Actions MEGGA AI » (14.09.2026) : le journal ne compte plus,
+ * il filtre — mais toujours sur `actor_kind`, jamais sur l'absence d'`actor_id`.
+ */
+export const ACTOR_KIND_DE: Record<FamilleActeur, 'user' | 'ai' | 'system'> = {
+  agent: 'user',
+  ai: 'ai',
+  system: 'system',
 }
