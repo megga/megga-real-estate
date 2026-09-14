@@ -18,10 +18,16 @@
 // Effets de bord en MEILLEUR EFFORT — agenda externe et courriel. Aucun des deux
 // ne peut faire échouer une réservation déjà écrite : le rendez-vous existe, et
 // punir le client d'une panne chez Google serait absurde.
+//
+// ⚠ LE STATUT DU LIEN, PAS SEULEMENT SA DATE (14.09.2026). Un lien révoqué — passé
+// à `expired` avant son échéance — réservait encore. Refusé ici avant la RPC, et
+// par la RPC elle-même (`kyc_magic_link_bookable`, migration 20260914090000), qui
+// fait foi si le statut change entre les deux.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { verifyMagicLinkToken, signMagicLinkToken } from '../_shared/magic-link-token.ts'
+import { isMagicLinkBookable } from '../_shared/magic-link-limits.ts'
 import { createBookingEvent } from '../_shared/booking-calendar-write.ts'
 import { sendBookingEmail } from '../_shared/booking-email.ts'
 import { parseLocale, DEFAULT_LOCALE } from '../_shared/recipient-language.ts'
@@ -95,12 +101,16 @@ serve(async (req) => {
   // 2) Revalidation du lien en base (un lien régénéré révoque le précédent).
   const { data: link } = await db
     .from('kyc_magic_links')
-    .select('id, token, agency_id, contact_id, expires_at, created_by')
+    .select('id, token, agency_id, contact_id, status, expires_at, created_by')
     .eq('id', verified.payload.id)
     .maybeSingle()
   if (!link) return json({ error: 'Invalid link' }, 401)
   if (link.token !== token) return json({ error: 'Token superseded', reason: 'regenerated' }, 410)
-  if (new Date(link.expires_at) < new Date()) return json({ error: 'Link expired' }, 410)
+  // Liste BLANCHE de statuts, puis la date : un statut inconnu refuse. Motif réduit
+  // à `expired` pour l'appelant anonyme (#1319).
+  if (!isMagicLinkBookable(link.status) || new Date(link.expires_at) < new Date()) {
+    return json({ error: 'Link expired', reason: 'expired' }, 410)
+  }
 
   const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || req.headers.get('cf-connecting-ip') || null
@@ -172,6 +182,18 @@ serve(async (req) => {
   } catch (e) {
     console.error('appointment-book: écho agenda externe échoué', e)
   }
+
+  // 4 bis) L'instantané freeBusy de l'agent (appointment-slots) ne connaît pas
+  //    l'événement que l'écho vient de poser : on le jette, la prochaine liste relira
+  //    l'agenda. Aucun créneau réservé ne pouvait en ressortir — l'occupation interne
+  //    n'y est jamais — mais un instantané doit dire ce que l'agenda dit. APRÈS
+  //    l'écho : jeté avant, il pourrait être relu sans l'événement. Meilleur effort,
+  //    comme l'écho : il expire seul en 60 s.
+  const { error: cacheErr } = await db
+    .from('kyc_booking_freebusy_cache')
+    .delete()
+    .eq('agent_id', link.created_by)
+  if (cacheErr) console.error('appointment-book: instantané freeBusy non jeté', cacheErr.code)
 
   // 5) Confirmation au client, avec un lien de gestion signé pour CE rendez-vous.
   //    Il expire un jour après la séance : au-delà, il n'a plus d'objet.

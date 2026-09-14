@@ -11,12 +11,14 @@
 import { describe, it, expect } from 'vitest'
 import {
   ALLOWED_UPLOAD_MIME,
+  MAGIC_LINK_BOOKING_STATUSES,
   MAGIC_LINK_OPEN_STATUSES,
   MAX_BYTES_PER_LINK,
   MAX_FILE_BYTES,
   MAX_FILES_PER_LINK,
   MAX_REQUEST_BYTES,
   exceedsLinkCaps,
+  isMagicLinkBookable,
   lireFormulaireBorne,
   screenUploadRequest,
 } from './magic-link-limits.ts'
@@ -81,6 +83,30 @@ describe('listes fermées', () => {
     const ouverts: readonly string[] = MAGIC_LINK_OPEN_STATUSES
     expect(ouverts).not.toContain('submitted')
     expect(ouverts).not.toContain('expired')
+  })
+
+  it('les statuts qui réservent : les ouverts PLUS `submitted` — soumettre ferme le dépôt, pas le rendez-vous', () => {
+    expect([...MAGIC_LINK_BOOKING_STATUSES].sort()).toEqual([...MAGIC_LINK_OPEN_STATUSES, 'submitted'].sort())
+    const reservent: readonly string[] = MAGIC_LINK_BOOKING_STATUSES
+    expect(reservent).not.toContain('expired')
+  })
+})
+
+describe('isMagicLinkBookable — liste BLANCHE (un lien révoqué ne réserve plus)', () => {
+  it('`expired` refuse, qu’il vienne de l’échéance ou d’une révocation', () => {
+    expect(isMagicLinkBookable('expired')).toBe(false)
+  })
+
+  it('un statut INCONNU refuse — celui qu’on ajouterait demain à l’enum, comme toute valeur hors liste', () => {
+    for (const v of ['revoked', 'cancelled', '', 'SUBMITTED', ' submitted', 'submitted ', null, undefined, 0, true, {}, ['submitted']]) {
+      expect(isMagicLinkBookable(v), JSON.stringify(v) ?? String(v)).toBe(false)
+    }
+  })
+
+  it('TÉMOIN — chacun des cinq statuts vivants réserve, `submitted` compris (c’est là que la page propose le rendez-vous)', () => {
+    for (const s of ['pending', 'opened', 'uploading', 'verifying', 'submitted']) {
+      expect(isMagicLinkBookable(s), s).toBe(true)
+    }
   })
 })
 

@@ -272,7 +272,7 @@ const PERIMETRES_EXPEDITEURS = {
   },
   'send-team-invite': {
     canaux: ['resend'],
-    perimetre: "⚠ LIBRE : l'adresse que saisit un admin ou un manager d'agence (`body.email`), dans un gabarit fixe. Seules bornes : le rôle, une invitation en attente par adresse, et un plafond de sièges qui lit `get_agency_member_count` — RPC absente des migrations actives ET de `src/types/database.ts` au 13.09.2026. Aucun quota d'envoi. Relevé S17, à resserrer.",
+    perimetre: "L'adresse que saisit un admin ou un manager d'agence (`body.email`), dans un gabarit fixe — LIBRE PAR NATURE : on invite quelqu'un qui n'est pas encore dans le fichier, donc `guardOutboundEmail` (périmètre = contact, lead, membre) le refuserait. BORNÉ depuis le 14.09.2026 (20260914090100) : rang de l'appelant, une invitation en attente par adresse, QUOTA d'envoi par agence toujours actif (`team_invite_quota_take` : 20 invitations ET renvois par 24 h, `app_config.team_invite_daily_cap`, compté dans `email_send_log` sous le verrou du plafond commun 60/h-300/j, qu'il consomme aussi), plafond de sièges du plan (`team_seat_status` + trigger `enforce_plan_seat_quota`, inactif tant que `plan_limits_enforced` ≠ 'true') ; nom d'agence et d'invitant échappés et bornés à 80 caractères (`nomAffichable`). Un verdict illisible refuse (503).",
   },
   'send-visit-email': {
     canaux: ['resend'],
@@ -292,7 +292,9 @@ const PERIMETRES_EXPEDITEURS = {
   },
   'whatsapp-webhook': {
     canaux: ['resend'],
-    perimetre: "Le même envoi que `whatsapp-optin-invite` (`sendOptinInvite`), déclenché par l'exécuteur du copilote WhatsApp pour un contact de l'agence de l'agent identifié par son numéro.",
+    perimetre: "Le même envoi que `whatsapp-optin-invite` (`sendOptinInvite`), déclenché par l'exécuteur du copilote WhatsApp pour un contact de l'agence de l'agent identifié par son numéro. " +
+      "Et, depuis le 14.09.2026, la relance du « oui » (`executeSendClientEmail` → `_shared/relance-email-send.ts`), qui passe, elle, par `guardOutboundEmail` sous l'agence et l'agent du lien vérifié — " +
+      "la porte ne juge que le PREMIER envoi du gestionnaire, l'invitation : c'est elle que cette entrée couvre (banc : tests/unit/edge-guard-order.spec.ts).",
   },
 };
 

@@ -7,17 +7,39 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // Rationnel complet et garde-fou : `_shared/app-url.ts`,
 // `tests/unit/invite-link-origin-guard.spec.ts`.
 import { teamInviteAcceptUrl } from '../_shared/app-url.ts'
+// Les deux verrous de l'envoi — plafond de sièges (limite de plan, inactive tant que
+// `app_config.plan_limits_enforced` ≠ 'true') et quota d'invitations par agence (garde-fou
+// anti-abus, toujours actif). Leur vérité est en base :
+// `supabase/migrations/20260914090100_team_invite_seats_and_quota.sql`.
+import {
+  isSeatLimitError,
+  quotaRefusal,
+  readSeatStatus,
+  seatLimitRefusal,
+  seatRefusal,
+  takeTeamInviteQuota,
+  type GuardRefusal,
+} from '../_shared/team-invite-guard.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 }
 
-const PLAN_LIMITS: Record<string, number> = {
-  starter: 1,
-  pro: 3,
-  agency: 10,
-  enterprise: 50,
+// ⛔ La grille qui vivait ici (1/3/10/50, indexée par `agencies.plan`) a été retirée le
+// 14.09.2026 : elle ne ressemblait à aucune autre du dépôt, lisait un plan que le webhook
+// Stripe ne tient pas, était indexée par `agency` et `enterprise` — deux valeurs que la
+// colonne ne peut plus porter depuis 20260802170000 — et ne s'appliquait de toute façon
+// jamais (compte toujours à 0). Le plafond est désormais le miroir de
+// `PLAN_LIMITS[plan].features.maxAgents` (src/lib/plans.ts), tenu en base par `team_seat_status`.
+
+/** Un refus des verrous d'envoi, tel quel. */
+function reponse(r: GuardRefusal): Response {
+  return new Response(JSON.stringify(r.body), {
+    status: r.status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
 }
 
 interface InviteRequest {
@@ -92,10 +114,11 @@ serve(async (req) => {
     const body: InviteRequest = await req.json()
     const action = body.action || 'invite'
 
-    // Get agency info
+    // Get agency info — le NOM seul : le plan effectif se lit dans l'abonnement, en base
+    // (`team_seat_status`), jamais dans `agencies.plan`.
     const { data: agency } = await supabase
       .from('agencies')
-      .select('id, name, plan')
+      .select('id, name')
       .eq('id', profile.agency_id)
       .single()
 
@@ -161,6 +184,30 @@ serve(async (req) => {
         })
       }
 
+      // L'invitation doit exister, en attente, dans l'agence AVANT qu'on prenne une place de
+      // quota : un identifiant faux ne consomme rien.
+      const { data: pending, error: lookupError } = await supabase
+        .from('team_invitations')
+        .select('id, email')
+        .eq('id', body.invitationId)
+        .eq('agency_id', profile.agency_id)
+        .eq('status', 'pending')
+        .maybeSingle()
+
+      if (lookupError || !pending) {
+        return new Response(JSON.stringify({ error: 'Invitation not found or not pending' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // Un renvoi repart vers la même adresse : il compte comme une invitation. Pris AVANT la
+      // rotation du jeton — un refus laisse l'invitation, et son lien déjà envoyé, intacts.
+      const quotaRenvoi = quotaRefusal(
+        await takeTeamInviteQuota(supabaseAdmin, { agencyId: profile.agency_id, actorId: user.id }, pending.email),
+      )
+      if (quotaRenvoi) return reponse(quotaRenvoi)
+
       // Generate new token and extend expiry
       const newToken = crypto.randomUUID()
       const { data: invitation, error } = await supabase
@@ -175,6 +222,9 @@ serve(async (req) => {
         .select()
         .single()
 
+      // Ranimer une invitation EXPIRÉE reprend un siège : le trigger le juge comme une
+      // invitation neuve (inactif tant que l'interrupteur est éteint).
+      if (isSeatLimitError(error)) return reponse(seatLimitRefusal())
       if (error || !invitation) {
         return new Response(JSON.stringify({ error: 'Invitation not found or not pending' }), {
           status: 404,
@@ -272,22 +322,15 @@ serve(async (req) => {
       )
     }
 
-    // Check plan limit
-    const { data: countResult } = await supabaseAdmin.rpc('get_agency_member_count', {
-      p_agency_id: profile.agency_id,
-    })
-    const currentCount = countResult ?? 0
-    const maxMembers = PLAN_LIMITS[agency.plan] ?? 1
-
-    if (currentCount >= maxMembers) {
-      return new Response(JSON.stringify({
-        error: 'plan_limit_reached',
-        message: `Votre plan ${agency.plan} est limité à ${maxMembers} membres.`,
-      }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
+    // ─── Plafond de sièges du plan ───
+    // ⛔ Jusqu'au 14.09.2026, ce contrôle appelait `get_agency_member_count` — absente de la
+    // production —, ignorait l'erreur, et comptait donc toujours 0 : il ne bloquait jamais.
+    // L'état se lit désormais en base, interrupteur compris, et un état ILLISIBLE refuse (503).
+    // Inactif tant que `app_config.plan_limits_enforced` ≠ 'true' (décision du 13.09.2026 :
+    // Starter = 1 membre, et aucune agence ne peut encore passer Pro). Le trigger
+    // `enforce_plan_seat_quota` tient la même règle à l'écriture.
+    const sieges = seatRefusal(await readSeatStatus(supabaseAdmin, profile.agency_id))
+    if (sieges) return reponse(sieges)
 
     // Check if already a member
     const { data: existingMember } = await supabaseAdmin
@@ -320,6 +363,15 @@ serve(async (req) => {
       })
     }
 
+    // ─── Quota d'invitations (garde-fou anti-abus, TOUJOURS actif) ───
+    // Tout inscrit est admin de son agence solo : sans ce plafond, n'importe qui faisait partir
+    // des invitations signées DKIM getmegga.com vers n'importe quelle adresse. Pris juste avant
+    // l'écriture : un refus ne laisse ni invitation ni e-mail.
+    const quota = quotaRefusal(
+      await takeTeamInviteQuota(supabaseAdmin, { agencyId: profile.agency_id, actorId: user.id }, body.email),
+    )
+    if (quota) return reponse(quota)
+
     // Insert invitation
     const { data: invitation, error: insertError } = await supabase
       .from('team_invitations')
@@ -332,7 +384,19 @@ serve(async (req) => {
       .select()
       .single()
 
-    if (insertError) throw insertError
+    if (insertError) {
+      // Une invitation concurrente a pris le dernier siège entre la lecture et l'écriture : le
+      // trigger tranche, et le refus est le même que plus haut.
+      if (isSeatLimitError(insertError)) return reponse(seatLimitRefusal())
+      // Même course sur l'adresse : l'index unique des invitations en attente a parlé.
+      if (insertError.code === '23505') {
+        return new Response(JSON.stringify({ error: 'already_invited' }), {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      throw insertError
+    }
 
     // Send email via Resend
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
@@ -381,8 +445,10 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    return new Response(JSON.stringify({ error: message }), {
+    // Jamais le texte d'une erreur Postgres à l'appelant — il nomme contraintes et colonnes
+    // (même règle que l'audit S14) : un code stable, le détail caviardé dans les journaux.
+    console.error('[send-team-invite] échec inattendu :', redactedErrorMessage(error))
+    return new Response(JSON.stringify({ error: 'internal_error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

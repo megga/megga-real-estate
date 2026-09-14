@@ -5,6 +5,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { callDeepSeek } from '../_shared/ai-provider.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -290,15 +291,19 @@ serve(async (req) => {
 
     // Log successful extraction for quota accounting and audit trail (only on
     // the success path — failures don't burn the agent's monthly cap).
-    await supabase.from('activity_events').insert({
+    // ⛔ actor_kind 'ai' ⇒ actor_id NULL : l'ancien couple 'ai' + actor_id violait le CHECK
+    // activity_events_actor_kind_coherence, l'erreur n'était pas lue, et le quota — qui compte
+    // ces lignes — ne comptait jamais rien. L'agent est nommé dans metadata.profile_id.
+    const { error: auditErr } = await supabase.from('activity_events').insert({
       agency_id: profile.agency_id,
-      actor_id: profile.id,
+      actor_id: null,
       actor_kind: 'ai',
       action: 'extract_property_url',
       entity_type: 'property',
       severity: 'info',
       category: 'ai',
       metadata: {
+        profile_id: profile.id,
         source_url: url,
         source_portal: (extracted as { source_portal?: string } | null)?.source_portal ?? null,
         usage: { input_tokens: result.input_tokens, output_tokens: result.output_tokens },
@@ -306,6 +311,8 @@ serve(async (req) => {
         quota,
       },
     })
+    // L'échec se DIT ; le résultat déjà produit est livré (le refuser ferait repayer l'appel).
+    if (auditErr) console.error('extract-property-url audit (quota non compté):', redactedErrorMessage(auditErr))
 
     return new Response(
       JSON.stringify({
