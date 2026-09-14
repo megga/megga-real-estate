@@ -18,9 +18,15 @@
  *    Les écrans d'onglet cachés sont en `visibility: hidden`, donc hors du test de
  *    frappe : seul le cadre visible répond.
  *
- * ⚠ Même mécanique de mesure que `useSideAnchor`, pour les mêmes raisons mesurées :
- * première mesure en microtâche (une frame ne tire pas dans un volet masqué), puis
- * une sonde rAF brève, et le `setState` hors du corps de l'effet.
+ * ⚠ LA MESURE NE PASSE PAS PAR UN `ResizeObserver`, et c'est mesuré (4 septembre 2026,
+ * sur la pose latérale qui l'a précédé) : posé sur une popover et son ancre, il a rendu
+ * ZÉRO livraison en 500 ms, et la popover restait garée hors écran. D'où : une première
+ * mesure en MICROTÂCHE — une frame ne tire pas quand le rendu est gelé (onglet en
+ * arrière-plan, volet d'aperçu masqué), un microtask si — puis une sonde rAF brève, et
+ * le `setState` dans les rappels, jamais dans le corps de l'effet.
+ *
+ * Il sert les DEUX popovers de la bande (menu du compte et cloche), qui se posent donc
+ * au même coin, au même rayon.
  */
 import { useEffect, useState, type RefObject } from 'react'
 
@@ -40,7 +46,7 @@ const RETRAIT_SONDE = 40
 const ECART_MAX = 32
 /** Sous ce rayon, un élément arrondi n'est pas un cadre de page. */
 const RAYON_MIN = 12
-/** Repli sans cadre : sous l'ancre, à la gouttière de `useSideAnchor`. */
+/** Repli sans cadre : sous l'ancre, à cette gouttière. */
 const GOUTTIERE_REPLI = 10
 
 function trouverCadre(bande: DOMRect, exclure: HTMLElement | null): HTMLElement | null {

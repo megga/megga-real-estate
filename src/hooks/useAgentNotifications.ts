@@ -43,6 +43,17 @@ const READ_IDS_KEY = 'megga-agent-notif-read'
  */
 const HORS_CLOCHE = '(email_received,email_sent)'
 
+/**
+ * Le TECHNIQUE n'entre pas dans la cloche non plus (14.09.2026). Mesuré en production :
+ * dans les 30 dernières notifications de chaque agence, 32 étaient des « Scores de contacts
+ * recalculés » — la passe nocturne, une ligne par agence et par nuit — qui ne demandent rien
+ * à l'agent et poussaient hors de la liste ce qui, lui, demande quelque chose. Tenue À PART
+ * de `HORS_CLOCHE`, que `messagerie-journal.spec.ts` confronte aux seules actions du courrier.
+ * ⚠ Filtrée AUSSI côté client : le banc ne rejoue pas `not.in`.
+ */
+const TECHNIQUE = ['contact_scores.recompute', 'property_scores.recompute', 'agency_verification_recomputed', 'rls_hardening_applied']
+const HORS_CLOCHE_TECHNIQUE = `(${TECHNIQUE.join(',')})`
+
 interface RawEvent {
   id: string
   action: string
@@ -55,19 +66,86 @@ interface RawEvent {
   object_label: string | null
 }
 
-/** Classe une action/catégorie d'événement en `NotifKind` (kyc, visite, offre…). */
-function toKind(action: string, category: string | null): NotifKind {
+/**
+ * Le type de chaque action CONNUE — les 100 de la table du journal (`common:audit.action`)
+ * et celles que la production écrit sans y figurer. Explicite plutôt que deviné : l'ancien
+ * classement par motifs rangeait `match_suggested` en « Système », et `lead` en « IA ».
+ */
+const KIND_PAR_ACTION: Record<string, NotifKind> = {
+  // Contacts et leads entrants
+  contact_created: 'contact', contact_deleted: 'contact', note_added: 'contact',
+  lead_created_whatsapp: 'contact', lead_qualified_whatsapp: 'contact',
+  whatsapp_inbound_lead_created: 'contact', seller_lead_received: 'contact',
+  // Messages — reçus, et envoyés au client par MEGGA AI
+  whatsapp_message_received: 'message', contact_message_received: 'message',
+  whatsapp_agent_copilot_reply: 'message', whatsapp_ai_send_client_message: 'message',
+  whatsapp_ai_send_client_email: 'message', whatsapp_ai_send_template: 'message',
+  whatsapp_delivery_failed: 'message', whatsapp_send_blocked: 'message',
+  whatsapp_optin_invited: 'message', auto_email_sent: 'message', wa_undo: 'message',
+  // Matching : correspondances et sélections envoyées
+  match_suggested: 'matching', whatsapp_ai_send_listings: 'matching', reception_link_created: 'matching',
+  // Agenda
+  visit_scheduled: 'visite', onboarding_call_booked: 'visite', onboarding_call_cancelled: 'visite',
+  onboarding_call_rescheduled: 'visite', calendar_connected: 'visite',
+  reminder_created: 'rappel', reminder_resumed: 'rappel', relance: 'rappel', relance_sent: 'rappel',
+  // Affaires
+  stage_change: 'pipeline', status_change: 'pipeline', deal_lost: 'pipeline', dossier_envoye: 'pipeline',
+  offer_created: 'pipeline', offer_accepted: 'pipeline', offer_countered: 'pipeline', offer_expired: 'pipeline',
+  offer_rejected: 'pipeline', offer_withdrawn: 'pipeline', seller_offer_decision: 'pipeline',
+  'signature.created': 'mandat', 'signature.withdrawn': 'mandat',
+  'signature.provider_connected': 'mandat', 'signature.provider_disconnected': 'mandat',
+  // Pièces et biens
+  document_filed_from_email: 'doc', data_exported: 'doc',
+  bien_created: 'bien', bien_updated: 'bien', bien_published: 'bien', bien_sold: 'bien',
+  bien_soft_deleted: 'bien', bien_hard_deleted: 'bien', property_created: 'bien', property_updated: 'bien',
+  property_photo_added: 'bien', property_published_to_portal: 'bien', property_withdrawn_from_portal: 'bien',
+  idx_feed_pushed: 'bien', extract_property_pdf: 'bien', extract_property_url: 'bien',
+  // Conformité : KYC des clients, KYB de l'agence
+  kyc_case_opened: 'kyc', kyc_document_attached: 'kyc', kyc_link_sent: 'kyc', kyc_report_import: 'kyc',
+  kyc_report_sent: 'kyc', kyc_screening: 'kyc', kyc_screening_match: 'kyc',
+  agency_identity_submitted: 'kyc', agency_legal_identity_updated: 'kyc',
+  agency_person_identity_verdict_invalidated: 'kyc', agency_verification_notice_sent: 'kyc',
+  agency_verification_notice_undeliverable: 'kyc', agency_verification_run: 'kyc', agency_verification_validated: 'kyc',
+  // Ce que MEGGA AI produit pour l'agent
+  whatsapp_morning_brief_sent: 'ai', weekly_report_sent: 'ai', virtual_staging: 'ai',
+  // Équipe et compte
+  role_changed: 'team', team_invite_sent: 'team', team_invite_accepted: 'team',
+  team_invite_cancelled: 'team', team_invite_resent: 'team', account_deleted: 'team',
+  subscription_activated: 'facturation', subscription_changed: 'facturation',
+  subscription_cancelled: 'facturation', payment_failed: 'facturation',
+  // Plateforme
+  agency_created: 'system', admin_console_entered: 'system', edge_function_error: 'system',
+  solo_agency_released: 'system', solo_agency_retained: 'system', whatsapp_number_verified: 'system',
+}
+
+/** Repli pour une action pas encore inscrite : ses mots, puis sa catégorie. */
+const KIND_PAR_MOTIF: [RegExp, NotifKind][] = [
+  [/match/, 'matching'],
+  [/kyc|screening|pep|sanction|kyb|agency_verification|agency_identity/, 'kyc'],
+  [/lead|prospect|contact_|fiche|note_/, 'contact'],
+  [/whatsapp|message|sms|email/, 'message'],
+  [/visit|visite|appointment|booking|onboarding_call/, 'visite'],
+  [/reminder|rappel|relance/, 'rappel'],
+  [/signature|esign|mandat|mandate|compromis/, 'mandat'],
+  [/offer|offre|stage|deal|transaction/, 'pipeline'],
+  [/document|\bdoc\b|file|export/, 'doc'],
+  [/property|bien|listing|annonce|portal/, 'bien'],
+  [/subscription|payment|invoice|billing|stripe/, 'facturation'],
+  [/team|invite|member|role/, 'team'],
+  [/\bai\b|copilot|brief|staging/, 'ai'],
+]
+const KIND_PAR_CATEGORIE: Record<string, NotifKind> = {
+  contact: 'contact', kyc: 'kyc', deal: 'pipeline', bien: 'bien', ai: 'ai',
+  auth: 'team', onboarding: 'visite', messaging: 'message', doc: 'doc',
+}
+
+/** Classe une action d'événement en `NotifKind` : table explicite, puis motif, puis catégorie. */
+export function toKind(action: string, category: string | null): NotifKind {
+  const connu = KIND_PAR_ACTION[action]
+  if (connu) return connu
   const a = (action || '').toLowerCase()
-  if (/kyc|screening|pep|sanction/.test(a) || category === 'kyc') return 'kyc'
-  if (/visit|visite/.test(a)) return 'visite'
-  if (/offer|offre/.test(a)) return 'offre'
-  if (/mandate|mandat|sign|compromis/.test(a)) return 'mandat'
-  if (/document|\bdoc\b/.test(a) || category === 'doc') return 'doc'
-  if (/team|invite|member|équipe|equipe/.test(a)) return 'team'
-  if (/prospect|lead/.test(a)) return 'ai'
-  if (/\bai\b|copilot|relance/.test(a) || category === 'ai') return 'ai'
-  if (category === 'deal') return 'offre'
-  return 'system'
+  for (const [motif, kind] of KIND_PAR_MOTIF) if (motif.test(a)) return kind
+  return (category && KIND_PAR_CATEGORIE[category]) || 'system'
 }
 
 /** Mappe la sévérité de l'événement en priorité d'affichage (high / med / low). */
@@ -106,17 +184,58 @@ function relTime(iso: string): string {
 }
 
 /**
- * Titre lisible d'un événement : label serveur, sinon le libellé traduit de l'action
+ * Titre d'un événement : ce qui s'est passé — le libellé traduit de l'action
  * (`common:audit.action.*`, la table du journal d'audit), sinon l'action humanisée.
  *
  * ⚠ La cloche avait sa propre table, en français, et humanisait le reste en ne
  * remplaçant que `_` : « Contact scores.recompute », « Relance drafted ». Elle lit
  * désormais la même table que le journal — l'appairage WhatsApp (acteur 'system',
  * webhook) y porte le mot de la carte des réglages, « Numéro WhatsApp lié ».
+ * ⛔ Le libellé serveur (`object_label`) REMPLAÇAIT ce titre : un dossier KYC ouvert
+ * s'intitulait « via WhatsApp », un changement d'étape « lead → new_lead ». Il est
+ * désormais le SUJET, sous le titre (`detailFor`).
  */
-export function titleFor(ev: Pick<RawEvent, 'action' | 'object_label'>): string {
-  if (ev.object_label) return ev.object_label
+export function titleFor(ev: Pick<RawEvent, 'action'>): string {
   return auditActionLabel(ev.action)
+}
+
+/**
+ * Le sujet d'un événement, sous son titre : le libellé serveur, dont les codes d'étape
+ * d'un changement de pipeline (« visit_planned → offer ») sont traduits. Vide si aucun.
+ */
+export function detailFor(ev: Pick<RawEvent, 'action' | 'object_label'>): string {
+  const label = ev.object_label?.trim() ?? ''
+  if (!label || (ev.action !== 'stage_change' && ev.action !== 'status_change')) return label
+  return label.split(/\s*→\s*/)
+    .map((code) => i18n.t(`dashboard:pipeline.stages.${code}`, { defaultValue: code }))
+    .join(' → ')
+}
+
+/** Une ligne de la cloche : un événement, ou une rafale anonyme de la même action. */
+interface GroupeCloche {
+  ev: RawEvent
+  ids: string[]
+}
+
+/**
+ * Regroupe les RAFALES : des événements consécutifs de la même action, le même jour, sans
+ * sujet. Mesuré en production : `match_suggested` arrive par lots (une passe du moteur, à la
+ * même seconde) et `whatsapp_agent_copilot_reply` par dizaines — trente lignes identiques
+ * qui ne disent rien de plus qu'une seule, « ×30 ». Un événement qui A un sujet (un contact
+ * nommé, un bien) reste seul : le regrouper effacerait l'information qu'il porte.
+ */
+export function regrouper(events: RawEvent[]): GroupeCloche[] {
+  const groupes: GroupeCloche[] = []
+  for (const ev of events) {
+    const precedent = groupes[groupes.length - 1]
+    if (precedent && !ev.object_label && !precedent.ev.object_label
+      && precedent.ev.action === ev.action && toGroup(precedent.ev.created_at) === toGroup(ev.created_at)) {
+      precedent.ids.push(ev.id)
+    } else {
+      groupes.push({ ev, ids: [ev.id] })
+    }
+  }
+  return groupes
 }
 
 // Navigation deep-link non câblée (onNavigate = écran top-level) → clic = marquer lu.
@@ -215,7 +334,7 @@ export interface AgentNotifications {
  * localStorage). `limit` borne la lecture. Le rafraîchissement temps réel est
  * porté UNE fois par la coquille — voir `useAgentNotificationsRealtime`.
  */
-export function useAgentNotifications(limit = 30): AgentNotifications {
+export function useAgentNotifications(limit = 60): AgentNotifications {
   const { profile, user } = useAuth()
   const uid = user?.id ?? null
   const cliche = useCallback(() => lireEtatLu(uid), [uid])
@@ -232,6 +351,7 @@ export function useAgentNotifications(limit = 30): AgentNotifications {
         .eq('agency_id', agencyId as string)
         .neq('actor_kind', 'user')
         .not('action', 'in', HORS_CLOCHE)
+        .not('action', 'in', HORS_CLOCHE_TECHNIQUE)
         .order('created_at', { ascending: false })
         .limit(limit)
       if (error) throw error
@@ -242,41 +362,50 @@ export function useAgentNotifications(limit = 30): AgentNotifications {
   })
 
   const items = useMemo<CrmNotif[]>(() => {
-    return (query.data ?? []).map((ev) => {
-      const read = readIds.has(ev.id) || new Date(ev.created_at).getTime() <= lastSeen
+    const lu = (ev: RawEvent) => readIds.has(ev.id) || new Date(ev.created_at).getTime() <= lastSeen
+    const pertinents = (query.data ?? []).filter((ev) => !TECHNIQUE.includes(ev.action))
+    return regrouper(pertinents).map(({ ev, ids }) => {
       const { cta, ctaTo } = ctaFor()
+      const membres = pertinents.filter((e) => ids.includes(e.id))
       return {
         id: ev.id,
         kind: toKind(ev.action, ev.category),
         priority: toPriority(ev.severity),
-        read,
+        // Une rafale est lue quand TOUS ses événements le sont.
+        read: membres.every(lu),
         title: titleFor(ev),
-        body: '',
+        body: detailFor(ev),
         time: relTime(ev.created_at),
         group: toGroup(ev.created_at),
+        count: ids.length,
+        ids,
         cta,
         ctaTo,
       }
     })
   }, [query.data, readIds, lastSeen])
 
-  const unreadCount = useMemo(() => items.filter((n) => !n.read).length, [items])
+  // Le badge compte les ÉVÉNEMENTS non lus, pas les lignes : trois matchs regroupés en
+  // attendent trois.
+  const unreadCount = useMemo(() => items.filter((n) => !n.read).reduce((s, n) => s + n.count, 0), [items])
 
   const markRead = useCallback((id: string) => {
     if (!uid) return
+    // Une ligne regroupée se lit d'un geste : tous ses événements passent lus.
+    const cibles = items.find((n) => n.id === id)?.ids ?? [id]
     // ⚠ Depuis le magasin COURANT, jamais depuis une copie : c'est ce qui empêche
     // une cloche d'effacer une lecture faite par une autre.
     const courant = lireEtatLu(uid)
-    if (courant.readIds.has(id)) return
+    if (cibles.every((c) => courant.readIds.has(c))) return
     const next = new Set(courant.readIds)
-    next.add(id)
+    for (const c of cibles) next.add(c)
     try {
       localStorage.setItem(cleDuCompte(READ_IDS_KEY, uid), JSON.stringify([...next]))
     } catch {
       /* no-op */
     }
     poserEtatLu(uid, { ...courant, readIds: next })
-  }, [uid])
+  }, [uid, items])
 
   // Tout marquer lu = avancer le last-seen à maintenant + purger le set (audit immuable).
   const markAllRead = useCallback(() => {

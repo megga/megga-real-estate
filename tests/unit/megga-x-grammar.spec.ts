@@ -972,7 +972,10 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/calendar', { hors: 18, total: 28 }],
   ['src/components/crm/contacts-pager', { hors: 68, total: 92 }],
   ['src/components/crm/journey', { hors: 3, total: 5 }],
-  ['src/components/crm/notifications', { hors: 4, total: 4 }],
+  // {4,4} -> {0,0} (14.09.2026) : la cloche refaite écrit chacun de ses rayons et
+  // espacements en jetons — ses quatre littéraux (`marginTop: 3`, `margin: '5px 8px'`,
+  // `marginTop: 6`…) sont partis avec le menu « ⋯ » et l'ancien pied.
+  ['src/components/crm/notifications', { hors: 0, total: 0 }],
   // {32,38} -> {30,36} (13.09.2026) : la colonne « Valeur » de la liste passe de
   // `paddingRight: 56` au barreau `7xl` — le montant s'y cassait sur deux lignes.
   ['src/components/crm/pipeline', { hors: 30, total: 36 }],

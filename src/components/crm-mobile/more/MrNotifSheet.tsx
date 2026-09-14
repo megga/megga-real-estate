@@ -126,6 +126,8 @@ export default function MrNotifSheet({
             }}
           >
             {n.title}
+            {/* Une rafale regroupée (`regrouper`) ne se lit pas comme UN événement. */}
+            {n.count > 1 ? <span style={{ color: tk.muted, fontWeight: 600 }}> ×{n.count}</span> : null}
           </span>
           {n.body ? (
             <span

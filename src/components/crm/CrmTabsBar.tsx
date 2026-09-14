@@ -38,6 +38,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, animate, motion, useAnimate, useMotionValue } from 'motion/react'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -52,6 +53,7 @@ import { useAiPanel } from '@/hooks/useAiPanel'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import { modaleOuverte } from '@/lib/modaleOuverte'
 import { useAgentNotifications } from '@/hooks/useAgentNotifications'
+import { useCoinDuCadre } from '@/hooks/useCoinDuCadre'
 import CrmNotificationsPopover from './notifications/CrmNotificationsPopover'
 import CrmCompteBouton from './profile/CrmCompteBouton'
 import { planifierPrechargementOngletNeuf, prechargerOngletNeuf } from '@/lib/pagesPrechargeables'
@@ -130,7 +132,8 @@ const SONDE_MS = 400
  * Largeur réellement disponible pour les puces.
  *
  * ⛔ SANS `ResizeObserver`, ET C'EST MESURÉ, PAS PRÉFÉRÉ. Le dépôt l'avait déjà écrit
- * pour `useSideAnchor` — « zéro livraison en 500 ms » — et j'ai quand même compté sur
+ * pour la pose latérale des popovers (`useSideAnchor`, retiré le 14.09.2026 avec elle)
+ * — « zéro livraison en 500 ms » — et j'ai quand même compté sur
  * lui pour les changements ultérieurs. Remesuré ici le 4 septembre 2026, sur la piste
  * réellement rendue : **zéro rappel**, ni initial ni après un changement de largeur.
  * Un observateur qui n'observe rien est pire qu'aucun observateur : la barre restait
@@ -415,12 +418,16 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override, active: sectio
   const { items: notifs, unreadCount, markRead, markAllRead } = useAgentNotifications()
   const [notifOuvert, setNotifOuvert] = useState(false)
   const notifAncre = useRef<HTMLDivElement | null>(null)
+  /** La popover elle-même : portée dans `<body>`, elle n'est pas dans l'ancre. */
+  const notifMenuRef = useRef<HTMLDivElement | null>(null)
   // Clic dehors et Échap ferment la popover — elle vivait dans la barre latérale,
-  // son couple d'écouteurs la suit ici.
+  // son couple d'écouteurs la suit ici. ⚠ « Dehors » exclut la cloche ET la popover.
   useEffect(() => {
     if (!notifOuvert) return
     const onDown = (e: MouseEvent) => {
-      if (notifAncre.current && !notifAncre.current.contains(e.target as Node)) setNotifOuvert(false)
+      const cible = e.target as Node
+      if (notifAncre.current?.contains(cible) || notifMenuRef.current?.contains(cible)) return
+      setNotifOuvert(false)
     }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNotifOuvert(false) }
     document.addEventListener('mousedown', onDown)
@@ -437,6 +444,19 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override, active: sectio
   useEffect(() => planifierPrechargementOngletNeuf(), [])
 
   const barreRef = useRef<HTMLDivElement | null>(null)
+  // La cloche se loge dans le coin du cadre, comme le menu du compte (14.09.2026).
+  const coinNotif = useCoinDuCadre(notifOuvert, barreRef, notifAncre, notifMenuRef)
+  const navigate = useNavigate()
+  const location = useLocation()
+  /**
+   * « Voir tout l'historique » : le journal d'audit, où vivent ces mêmes événements.
+   * ⚠ Pas depuis un banc `/dev/*` (même règle que la barre latérale) : une cible
+   * `/dashboard/*` y enverrait en production.
+   */
+  const versHistorique = () => {
+    setNotifOuvert(false)
+    if (!location.pathname.startsWith('/dev/')) navigate('/dashboard/audit')
+  }
   /** La piste des puces, et l'espace encore libre à sa droite. */
   const pistRef = useRef<HTMLDivElement | null>(null)
   const videRef = useRef<HTMLDivElement | null>(null)
@@ -883,16 +903,22 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override, active: sectio
             badge={unreadCount}
             onClick={() => setNotifOuvert((o) => !o)}
           />
-          {notifOuvert && (
-            <CrmNotificationsPopover
-              sp={sp}
-              dark={dark}
-              items={notifs}
-              onItemClick={(n) => { markRead(n.id); setNotifOuvert(false) }}
-              onMarkAll={() => markAllRead()}
-              onSeeAll={() => setNotifOuvert(false)}
-              onMute={() => setNotifOuvert(false)}
-            />
+          {/* Portée dans `<body>` : elle se pose en pixels de FENÊTRE sur le coin du
+              cadre, et un ancêtre à `transform` en deviendrait le repère. Lire une ligne
+              la garde ouverte — une notification n'a pas de destination à ouvrir. */}
+          {notifOuvert && createPortal(
+            <div ref={notifMenuRef}>
+              <CrmNotificationsPopover
+                sp={sp}
+                dark={dark}
+                items={notifs}
+                coin={coinNotif}
+                onItemClick={(n) => markRead(n.id)}
+                onMarkAll={() => markAllRead()}
+                onSeeAll={versHistorique}
+              />
+            </div>,
+            document.body,
           )}
         </div>
         {ai.enabled && (
