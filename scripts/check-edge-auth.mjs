@@ -292,7 +292,9 @@ const PERIMETRES_EXPEDITEURS = {
   },
   'whatsapp-webhook': {
     canaux: ['resend'],
-    perimetre: "Le même envoi que `whatsapp-optin-invite` (`sendOptinInvite`), déclenché par l'exécuteur du copilote WhatsApp pour un contact de l'agence de l'agent identifié par son numéro.",
+    perimetre: "Le même envoi que `whatsapp-optin-invite` (`sendOptinInvite`), déclenché par l'exécuteur du copilote WhatsApp pour un contact de l'agence de l'agent identifié par son numéro. " +
+      "Et, depuis le 14.09.2026, la relance du « oui » (`executeSendClientEmail` → `_shared/relance-email-send.ts`), qui passe, elle, par `guardOutboundEmail` sous l'agence et l'agent du lien vérifié — " +
+      "la porte ne juge que le PREMIER envoi du gestionnaire, l'invitation : c'est elle que cette entrée couvre (banc : tests/unit/edge-guard-order.spec.ts).",
   },
 };
 

@@ -597,6 +597,25 @@ describe('le dépôt RÉEL', () => {
     expect(inventorier({ analyse, fonctions, perimetres: { ...table, 'send-visit-emails': { canaux: ['resend'] } } }).perimes.map((x) => x.dir)).toEqual(['send-visit-emails'])
   })
 
+  it('la relance du « oui » WhatsApp est un envoi GARDÉ, vu à travers l’exécuteur', () => {
+    // `whatsapp-webhook` est jugé sur son PREMIER envoi — l'invitation d'opt-in, que couvre
+    // PERIMETRES_EXPEDITEURS. La relance du « oui » vient après, et elle appelait jusqu'au
+    // 14.09.2026 l'edge send-relance-email (401) : une invocation, pas un envoi. Une sonde qui
+    // n'appelle qu'elle montre que la porte la voit désormais, précédée de guardOutboundEmail.
+    const chemin = 'supabase/functions/sonde-oui/index.ts'
+    const sonde = lire(src(
+      "import { executeSendClientEmail } from '../_shared/whatsapp-actions.ts'",
+      "import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'",
+      'serve(async (req) => {',
+      '  return new Response(await executeSendClientEmail(ctx, args))',
+      '})',
+    ), chemin)
+    const exp = creer(new Map([...reel, [chemin, sonde]]), regles).expeditionGestionnaire(sonde)
+    expect([...exp.canaux]).toEqual(['resend'])
+    expect(exp.premier).toMatchObject({ genre: 'perimetre', type: 'guardOutboundEmail', chemin: 'supabase/functions/_shared/relance-email-send.ts' })
+    expect(exp.premier?.via.map((v) => v.nom)).toEqual(['executeSendClientEmail', 'sendRelanceEmail'])
+  })
+
   it('aucun module ne s’exécute avec un effet au chargement', () => {
     const fautes = [...reel.values()].flatMap((m) => analyse.effetsAuChargement(m).map((e) => `${e.chemin}:${e.ligne} ${e.detail}`))
     expect(fautes).toEqual([])
