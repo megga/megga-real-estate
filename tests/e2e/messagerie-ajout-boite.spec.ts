@@ -34,6 +34,8 @@ test('quatre choix : WhatsApp, Google, Microsoft, IMAP — plus de tuile Infoman
   await expect(assistant(page).getByRole('button', { name: /Autre boîte \(IMAP \/ SMTP\)/ })).toBeVisible()
   await expect(assistant(page).getByRole('button', { name: /Infomaniak Mail|Bluewin \(Swisscom\)/ })).toHaveCount(0)
   await expect(assistant(page).getByRole('button')).toHaveCount(5) // les quatre lignes et la croix
+  // Un nom par ligne, sans sous-titre (Julien, 14.09.2026).
+  await expect(assistant(page).getByText(/Coexistence|serveurs reconnus à l'adresse/)).toHaveCount(0)
   // ⛔ Le logo WhatsApp était un combiné BLANC sur fond transparent : invisible.
   const vert = await assistant(page).getByRole('button', { name: /WhatsApp Business/ }).locator('stop').first().getAttribute('stop-color')
   expect(vert?.toLowerCase()).toBe('#4ac14b')
@@ -41,6 +43,9 @@ test('quatre choix : WhatsApp, Google, Microsoft, IMAP — plus de tuile Infoman
 
 test('l’adresse remplit les serveurs ; un mot de passe refusé se DIT ; le bon connecte la boîte', async ({ page }) => {
   await assistant(page).getByRole('button', { name: /Autre boîte/ }).click()
+  // Ni sous-titre ni note sous le formulaire (Julien, 14.09.2026).
+  await expect(assistant(page).getByText('Connexion IMAP / SMTP')).toHaveCount(0)
+  await expect(assistant(page).getByText(/Le test vérifie IMAP et SMTP/)).toHaveCount(0)
   await champ(page, 'Adresse e-mail').fill('nouvelle@agence-exemple.ch')
   await expect(assistant(page).getByText('Serveurs Hébergeur Exemple renseignés.')).toBeVisible()
   await expect(champ(page, 'Serveur IMAP')).toHaveValue('imap.hebergeur-exemple.ch')
@@ -115,4 +120,28 @@ test('l’échec d’un test s’efface quand l’adresse change — il parlait 
   await expect(assistant(page).getByRole('alert')).toHaveCount(0)
   // Vide, l'identifiant est l'adresse : le champ le montre.
   await expect(champ(page, 'Utilisateur')).toHaveAttribute('placeholder', 'h@agence-exemple.ch')
+})
+
+test('l’œil révèle le mot de passe, puis le masque — sans quitter le champ', async ({ page }) => {
+  await assistant(page).getByRole('button', { name: /Autre boîte/ }).click()
+  const mdp = assistant(page).getByLabel('Mot de passe', { exact: true })
+  await mdp.fill('Zürich2026!')
+  await expect(mdp).toHaveAttribute('type', 'password')
+  const oeil = assistant(page).getByRole('button', { name: 'Afficher le mot de passe' })
+  await expect(oeil).toHaveAttribute('aria-pressed', 'false')
+  // Le bouton est DANS le champ, à droite.
+  const [c, o] = await Promise.all([mdp.boundingBox(), oeil.boundingBox()])
+  expect(o!.x + o!.width).toBeLessThanOrEqual(c!.x + c!.width)
+  expect(o!.x).toBeGreaterThan(c!.x + c!.width / 2)
+  await mdp.focus()
+  await oeil.click()
+  await expect(mdp).toHaveAttribute('type', 'text')
+  await expect(mdp).toHaveValue('Zürich2026!')
+  await expect(mdp).toBeFocused()
+  // ⛔ En clair, pas de correcteur : il enverrait le mot de passe à un service tiers.
+  await expect(mdp).toHaveAttribute('spellcheck', 'false')
+  const masquer = assistant(page).getByRole('button', { name: 'Masquer le mot de passe' })
+  await expect(masquer).toHaveAttribute('aria-pressed', 'true')
+  await masquer.click()
+  await expect(mdp).toHaveAttribute('type', 'password')
 })

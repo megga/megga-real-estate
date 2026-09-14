@@ -17,7 +17,7 @@ export type MEIconName =
   | 'plus' | 'minus' | 'close' | 'check' | 'menu'
   | 'mail' | 'phone' | 'calendar' | 'clock' | 'lock'
   | 'home' | 'building' | 'key' | 'gallery'
-  | 'sparkle' | 'shield' | 'eye' | 'globe' | 'compass'
+  | 'sparkle' | 'shield' | 'eye' | 'eye-off' | 'globe' | 'compass'
   | 'filter' | 'sort' | 'settings' | 'download' | 'upload'
   | 'user' | 'users' | 'logout' | 'info' | 'help' | 'alert'
   | 'credit-card' | 'bell' | 'bell-ring'
@@ -83,6 +83,9 @@ const PATHS: Partial<Record<MEIconName, ReactNode>> = {
   sparkle: <path d="m12 3-1.91 5.81a2 2 0 0 1-1.28 1.28L3 12l5.81 1.91a2 2 0 0 1 1.28 1.28L12 21l1.91-5.81a2 2 0 0 1 1.28-1.28L21 12l-5.81-1.91a2 2 0 0 1-1.28-1.28L12 3Z" />,
   shield: <><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z" /><path d="m9 12 2 2 4-4" /></>,
   eye: <><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
+  // Même tracé que l'œil barré des Réglages (`settings/atoms`) : les deux champs de mot de passe
+  // du CRM montrent le même geste.
+  'eye-off': <><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" /><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" /><path d="M2 2l20 20" /></>,
   filter: <path d="M3 6h18M6 12h12M10 18h4" />,
   sort: <path d="M3 6h13M3 12h9M3 18h5M14 14l4 4 4-4M18 4v14" />,
   settings: <><circle cx="12" cy="12" r="3" /><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.2-1.3L14 3h-4l-.4 2.4a7 7 0 0 0-2.2 1.3l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .9.1 1.3l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.2 1.3L10 21h4l.4-2.4a7 7 0 0 0 2.2-1.3l2.3.9 2-3.4-2-1.5c.1-.4.1-.9.1-1.3Z" /></>,

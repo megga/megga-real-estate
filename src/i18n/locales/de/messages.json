@@ -127,9 +127,7 @@
       "title": "Postfach hinzufügen",
       "back": "Zurück",
       "share": "Dieses Postfach mit der ganzen Agentur teilen",
-      "waSub": "Koexistenz · App und Cloud API auf derselben Nummer",
       "other": "Anderes Postfach (IMAP / SMTP)",
-      "otherSub": "Infomaniak, Bluewin, Hostpoint… · Server werden an der Adresse erkannt",
       "oauth": {
         "subtitle": "Kontofreigabe",
         "addr": "E-Mail-Adresse",
@@ -155,7 +153,6 @@
         }
       },
       "imap": {
-        "subtitle": "IMAP-/SMTP-Verbindung",
         "email": "E-Mail-Adresse",
         "imapHost": "IMAP-Server",
         "smtpHost": "SMTP-Server",
@@ -163,7 +160,8 @@
         "smtpPort": "SMTP-Port",
         "user": "Benutzername",
         "password": "Passwort",
-        "note": "Der Test prüft IMAP und SMTP vor dem Hinzufügen · die Zugangsdaten werden verschlüsselt gespeichert.",
+        "showPassword": "Passwort anzeigen",
+        "hidePassword": "Passwort verbergen",
         "test": "Testen und verbinden",
         "testing": "Server werden getestet…",
         "detect": {

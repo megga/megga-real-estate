@@ -40,6 +40,8 @@ const LARGEUR = 520
 const VOILE = 0.12
 /** Diamètre du logo en tête d'étape et de la pastille verte « connectée ». */
 const LOGO_ETAPE = 40
+/** La pastille de l'œil, logée dans le bord droit du champ « Mot de passe ». */
+const OEIL = 28
 /** Le temps de finir de taper l'adresse avant d'en chercher les serveurs. */
 const ATTENTE_DETECTION = 400
 
@@ -111,6 +113,8 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
   const [done, setDone] = useState<MailAccount | null>(null)
   /** L'agent a tapé un serveur ou changé un port : la détection ne les écrase plus. */
   const [serveursSaisis, setServeursSaisis] = useState(false)
+  /** Le mot de passe en clair, le temps que l'agent le relise. */
+  const [voirMdp, setVoirMdp] = useState(false)
   /*
    * ⚠ AUCUN EFFET DE REMISE À ZÉRO ICI, et ce n'est pas un oubli : `MessagerieApp`
    * MONTE et DÉMONTE l'assistant avec la modale (même patron que le composeur),
@@ -247,19 +251,20 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
       {t('mail.add.share')}
     </label>
   )
-  const enTete = (p: Fournisseur, sousTitre: string) => (
+  const enTete = (p: Fournisseur, sousTitre?: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-4xl)' }}>
       <MailProviderLogo ms={ms} provider={p} size={LOGO_ETAPE} />
       <div>
         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{nomDe(p)}</div>
-        <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{sousTitre}</div>
+        {sousTitre && <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{sousTitre}</div>}
       </div>
     </div>
   )
   const erreur = error && (
     <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.dangerText, marginTop: 'var(--crm-space-md)' }}>{error}</div>
   )
-  const ligneFournisseur = (p: MailProviderKey, name: string, sub: string | null, big = false) => (
+  // Un nom par ligne, sans sous-titre (Julien, 14.09.2026) : le logo et le nom suffisent.
+  const ligneFournisseur = (p: MailProviderKey, name: string, big = false) => (
     <button
       key={p}
       type="button"
@@ -275,10 +280,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
       onMouseLeave={(e) => { e.currentTarget.style.borderColor = ms.bord; e.currentTarget.style.background = 'transparent' }}
     >
       <MailProviderLogo ms={ms} provider={p} size={big ? LOGO_ETAPE : undefined} />
-      <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'block', fontSize: big ? 'var(--crm-text-lg)' : 'var(--crm-text-md)', fontWeight: 600 }}>{name}</span>
-        {sub && <span style={{ display: 'block', fontSize: 'var(--crm-text-sm)', color: ms.mut, marginTop: 'var(--crm-space-2xs)' }}>{sub}</span>}
-      </span>
+      <span style={{ flex: 1, minWidth: 0, fontSize: big ? 'var(--crm-text-lg)' : 'var(--crm-text-md)', fontWeight: 600 }}>{name}</span>
       <MEIcon name="chevron-right" size={13} color={ms.mut} />
     </button>
   )
@@ -329,6 +331,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
   const recommencer = () => {
     setForm({ email: '', ...SERVEURS_VIDES, user: '', password: '', visibility: 'owner' })
     setServeursSaisis(false)
+    setVoirMdp(false)
     setDetection({ etat: 'repos' }); setAddr(''); setDone(null); setError(null); setStep('list')
   }
   const imapPret = adresseValide(form.email.trim().toLowerCase()) && !!form.password && !!form.imap_host.trim() && !!form.smtp_host.trim()
@@ -342,10 +345,10 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
 
       {step === 'list' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)', marginTop: 'var(--crm-space-2xl)' }}>
-          {ligneFournisseur('wa', 'WhatsApp Business', t('mail.add.waSub'), true)}
-          {ligneFournisseur('gmail', NOM_OAUTH.gmail, null)}
-          {ligneFournisseur('outlook', NOM_OAUTH.outlook, null)}
-          {ligneFournisseur('imap', t('mail.add.other'), t('mail.add.otherSub'))}
+          {ligneFournisseur('wa', 'WhatsApp Business', true)}
+          {ligneFournisseur('gmail', NOM_OAUTH.gmail)}
+          {ligneFournisseur('outlook', NOM_OAUTH.outlook)}
+          {ligneFournisseur('imap', t('mail.add.other'))}
         </div>
       )}
 
@@ -392,7 +395,9 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
 
       {step === 'imap' && (
         <div>
-          {enTete(prov, t('mail.add.imap.subtitle'))}
+          {/* Ni sous-titre ni note (Julien, 14.09.2026) : « Autre boîte (IMAP / SMTP) »
+              dit déjà le mode, et le bouton « Tester et connecter » ce que fait le test. */}
+          {enTete(prov)}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-2xl)' }}>
             <div>
               <input value={form.email} onChange={(e) => saisirAdresse(e.target.value)} placeholder={t('mail.add.imap.email')} aria-label={t('mail.add.imap.email')} type="email" autoComplete="off" style={champ} />
@@ -411,10 +416,33 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
                   ranger — ou d'y remplir — les identifiants du CRM lui-même. */}
               {/* Vide, l'identifiant EST l'adresse (`connect_imap`) : on le montre au lieu de le taire. */}
               <input value={form.user} onChange={(e) => setForm({ ...form, user: e.target.value })} placeholder={form.email.trim() || t('mail.add.imap.user')} aria-label={t('mail.add.imap.user')} autoComplete="off" spellCheck={false} style={champ} />
-              <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={t('mail.add.imap.password')} aria-label={t('mail.add.imap.password')} type="password" autoComplete="off" style={champ} />
+              <div style={{ position: 'relative' }}>
+                {/* ⛔ Ni correcteur ni majuscule automatique : affiché en clair, le mot de
+                    passe devient un texte comme un autre, et la correction « améliorée »
+                    de Chrome envoie ce qu'on tape aux serveurs de Google. */}
+                <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={t('mail.add.imap.password')} aria-label={t('mail.add.imap.password')} type={voirMdp ? 'text' : 'password'} autoComplete="off" spellCheck={false} autoCapitalize="off" autoCorrect="off" style={{ ...champ, paddingRight: 'var(--crm-space-6xl)' }} />
+                <button
+                  type="button"
+                  onClick={() => setVoirMdp((v) => !v)}
+                  // Le curseur reste dans le champ : on relit sans perdre sa place.
+                  onMouseDown={(e) => e.preventDefault()}
+                  aria-label={t(voirMdp ? 'mail.add.imap.hidePassword' : 'mail.add.imap.showPassword')}
+                  aria-pressed={voirMdp}
+                  title={t(voirMdp ? 'mail.add.imap.hidePassword' : 'mail.add.imap.showPassword')}
+                  style={{
+                    position: 'absolute', right: 'var(--crm-space-md)', top: '50%', transform: 'translateY(-50%)',
+                    width: OEIL, height: OEIL, borderRadius: '50%', border: 'none', background: 'transparent',
+                    display: 'grid', placeItems: 'center', cursor: 'pointer', color: voirMdp ? ms.ink : ms.mut,
+                    padding: 0, transition: MAIL_TRANSITION,
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.color = ms.ink; e.currentTarget.style.background = ms.hover }}
+                  onMouseLeave={(e) => { e.currentTarget.style.color = voirMdp ? ms.ink : ms.mut; e.currentTarget.style.background = 'transparent' }}
+                >
+                  <MEIcon name={voirMdp ? 'eye-off' : 'eye'} size={15} />
+                </button>
+              </div>
             </div>
           </div>
-          <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut, lineHeight: 1.6, marginTop: 'var(--crm-space-lg)' }}>{t('mail.add.imap.note')}</div>
           {partage}
           {erreur}
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-3xl)' }}>

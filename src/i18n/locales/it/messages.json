@@ -127,9 +127,7 @@
       "title": "Aggiungi una casella",
       "back": "Indietro",
       "share": "Condividi questa casella con tutta l'agenzia",
-      "waSub": "Coesistenza · app e Cloud API sullo stesso numero",
       "other": "Altra casella (IMAP / SMTP)",
-      "otherSub": "Infomaniak, Bluewin, Hostpoint… · server riconosciuti dall'indirizzo",
       "oauth": {
         "subtitle": "Autorizzazione dell'account",
         "addr": "Indirizzo e-mail",
@@ -155,7 +153,6 @@
         }
       },
       "imap": {
-        "subtitle": "Connessione IMAP / SMTP",
         "email": "Indirizzo e-mail",
         "imapHost": "Server IMAP",
         "smtpHost": "Server SMTP",
@@ -163,7 +160,8 @@
         "smtpPort": "Porta SMTP",
         "user": "Utente",
         "password": "Password",
-        "note": "Il test verifica IMAP e SMTP prima dell'aggiunta · le credenziali sono cifrate a riposo.",
+        "showPassword": "Mostra la password",
+        "hidePassword": "Nascondi la password",
         "test": "Verifica e collega",
         "testing": "Verifica dei server…",
         "detect": {

@@ -127,9 +127,7 @@
       "title": "Ajouter une boîte",
       "back": "Retour",
       "share": "Partager cette boîte avec toute l'agence",
-      "waSub": "Coexistence · app + Cloud API sur le même numéro",
       "other": "Autre boîte (IMAP / SMTP)",
-      "otherSub": "Infomaniak, Bluewin, Hostpoint… · serveurs reconnus à l'adresse",
       "oauth": {
         "subtitle": "Autorisation du compte",
         "addr": "Adresse e-mail",
@@ -155,7 +153,6 @@
         }
       },
       "imap": {
-        "subtitle": "Connexion IMAP / SMTP",
         "email": "Adresse e-mail",
         "imapHost": "Serveur IMAP",
         "smtpHost": "Serveur SMTP",
@@ -163,7 +160,8 @@
         "smtpPort": "Port SMTP",
         "user": "Utilisateur",
         "password": "Mot de passe",
-        "note": "Le test vérifie IMAP et SMTP avant l'ajout · les identifiants sont chiffrés au repos.",
+        "showPassword": "Afficher le mot de passe",
+        "hidePassword": "Masquer le mot de passe",
         "test": "Tester et connecter",
         "testing": "Test des serveurs…",
         "detect": {
