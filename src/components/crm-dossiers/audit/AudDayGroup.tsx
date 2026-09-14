@@ -12,7 +12,7 @@ import { useCrmDark } from '@/lib/crmDark'
 import { crmPalette } from '@/components/crm/tokens'
 import { dossierPalette } from '../tokens'
 import { AudEventRow } from './AudEventRow'
-import { rafales } from './journal'
+import { nombreSuisse, rafales } from './journal'
 import type { AuditEvent } from '@/types/kyc'
 
 interface Props {
@@ -49,7 +49,7 @@ export function AudDayGroup({ libelle, events, noms, compacte = false }: Props) 
       }}>
         <h2 style={{ margin: 0, fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, letterSpacing: '-0.01em' }}>{libelle}</h2>
         <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-          {i18n.t('common:audit.eventCount', { count: events.length })}
+          {i18n.t('common:audit.eventCount', { count: events.length, n: nombreSuisse(events.length) })}
         </span>
         {critiques > 0 && repere(critiques, S.err, 'common:audit.dayCritical')}
         {alertes > 0 && repere(alertes, S.warn, 'common:audit.dayWarning')}

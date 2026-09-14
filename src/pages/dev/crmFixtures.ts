@@ -115,6 +115,25 @@ const EVENEMENTS = [
   cloche('n14', 'system', 'whatsapp_number_verified', 'settings', 'agency', null, 120),
 ]
 
+/**
+ * La LONGUE TRAÎNE du journal d'audit (14.09.2026) : 1 100 gestes d'agent, de 100 jours à
+ * quatre ans en arrière — absents de 7, 30 et 90 jours, ils ne se montrent qu'en « Tout ».
+ * Sans elle, le banc n'atteignait jamais les 1000 lignes d'une page, et la pagination du
+ * journal (« Charger les évènements plus anciens ») ne s'y éprouvait pas.
+ * ⚠ Des gestes d'AGENT (`actor_kind: 'user'`) sur une fiche qui n'existe pas (`archive`) :
+ * la cloche (`neq actor_kind user`) et les timelines (par `entity_id`) ne les voient pas.
+ */
+const TRAINE_JOURNAL = Array.from({ length: 1100 }, (_, i) => {
+  const bien = i % 3 === 2
+  return {
+    id: `t${String(i + 1).padStart(4, '0')}`, agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user',
+    action: bien ? 'bien_updated' : i % 3 === 0 ? 'note_added' : 'contact_created',
+    category: bien ? 'bien' : 'contact', severity: 'info', entity_type: bien ? 'property' : 'contact',
+    entity_id: 'archive', object_label: `Dossier archivé n° ${i + 1}`, metadata: null,
+    created_at: ilYA(2400 + i * 30),
+  }
+})
+
 /** Un événement de la cloche : écrit par le système ou l'IA, jamais par un agent (`actor_id` NULL). */
 function cloche(
   id: string, acteur: 'ai' | 'system', action: string, category: string, entity_type: string,
@@ -339,7 +358,7 @@ export const CRM_TABLES: Record<string, unknown[]> = {
   profiles: [AGENT_BANC],
   agencies: [AGENCE_BANC],
   contacts: CONTACTS,
-  activity_events: EVENEMENTS,
+  activity_events: [...EVENEMENTS, ...TRAINE_JOURNAL],
   relance_sessions: [],
   relance_items: [],
   // ⚠ `trigger_at`, la SEULE date d'un rappel : le Calendrier, l'agenda d'« Aujourd'hui »

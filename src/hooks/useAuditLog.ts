@@ -18,7 +18,7 @@
 // l'index `idx_activity_events_audit_filters` (agency_id, created_at DESC, …) : sans lui,
 // la RLS arrive en `OR` et n'est qu'un Filter.
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { ACTOR_KIND_DE, type FamilleActeur } from '@/lib/auditActor'
@@ -37,35 +37,60 @@ export interface AuditEventsFilters {
 }
 
 /**
- * Au plus ce nombre de lignes par lecture : le `max_rows` de PostgREST (1000,
- * `supabase/config.toml`), écrit en clair. Sans lui la troncature avait lieu QUAND
- * MÊME, mais en silence — sur « Tout », la page annonçait « 1000 évènements » comme
- * un total. Écrit ici, la page sait qu'elle a touché le plafond et le dit.
+ * Une page du journal : le `max_rows` de PostgREST (1000, `supabase/config.toml`) — une
+ * requête ne peut pas en rendre plus, quoi qu'on lui demande. Jusqu'au 14.09.2026 la
+ * page lisait une seule fois : sur « Tout », elle s'arrêtait aux 1000 derniers, d'abord
+ * en silence (« 1000 évènements », lu comme un total), puis en le disant.
  */
-export const LIMITE_JOURNAL = 1000
+const PAGE_JOURNAL = 1000
 
 /**
- * Lecture du journal d'audit nLPD (activity_events) DE L'AGENCE du profil : filtres
- * catégorie / sévérité / acteur / fenêtre de jours, posés dans la requête. Sans agence,
- * rien n'est lu (voir l'en-tête).
+ * Les pages mises bout à bout, SANS DOUBLON. Un évènement écrit entre deux lectures
+ * décale toutes les lignes suivantes d'un rang — le journal ne grandit que par le haut —,
+ * et la dernière ligne d'une page reparaît en tête de la suivante. Rien n'est jamais
+ * sauté (append-only : aucune ligne ne disparaît), seulement répété : on l'écarte ici.
+ */
+function aplatir(donnees: InfiniteData<AuditEvent[], number>): AuditEvent[] {
+  const vus = new Set<string>()
+  const out: AuditEvent[] = []
+  for (const page of donnees.pages) {
+    for (const e of page) {
+      if (vus.has(e.id)) continue
+      vus.add(e.id)
+      out.push(e)
+    }
+  }
+  return out
+}
+
+/**
+ * Lecture du journal d'audit nLPD (activity_events) DE L'AGENCE du profil, PAR PAGES de
+ * 1000 : filtres catégorie / sévérité / acteur / fenêtre de jours posés dans la requête,
+ * `fetchNextPage` pour remonter plus loin. `data` rend les pages déjà aplaties. Sans
+ * agence, rien n'est lu (voir l'en-tête).
  *
  * ⚠ La recherche n'est PAS ici : elle entrait dans la clé de cache, et chaque frappe
  * relançait une lecture — la liste clignotait « Chargement du journal… » à chaque
- * lettre. Elle filtre désormais à l'écran, sur ce que l'agent VOIT
- * (`crm-dossiers/audit/journal.ts`).
+ * lettre. Elle filtre à l'écran, sur ce que l'agent VOIT (`crm-dossiers/audit/journal.ts`)
+ * — donc sur les pages CHARGÉES seulement, et la page le dit.
  */
 export function useAuditEvents(filters: AuditEventsFilters = {}) {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id ?? null
-  return useQuery<AuditEvent[]>({
+  return useInfiniteQuery({
     // L'agence dans la clé : deux comptes successifs ne partagent pas un cache.
     queryKey: ['audit-events', agencyId, filters],
     enabled: !!agencyId,
+    initialPageParam: 0,
+    // Une page pleine laisse supposer une suite ; une page incomplète est la dernière.
+    getNextPageParam: (derniere: AuditEvent[], pages: AuditEvent[][]) =>
+      (derniere.length === PAGE_JOURNAL ? pages.length : undefined),
+    select: aplatir,
     // Un changement de filtre garde l'historique affiché pendant la lecture, au lieu de
     // le remplacer par « Chargement… ». ⛔ Jamais d'une agence à l'autre : la liste
     // précédente n'est reprise que si elle venait de la MÊME agence.
     placeholderData: (precedent, requete) => (requete?.queryKey[1] === agencyId ? precedent : undefined),
-    queryFn: async () => {
+    queryFn: async ({ pageParam }): Promise<AuditEvent[]> => {
       let q = supabase
         .from('activity_events')
         .select(
@@ -74,7 +99,11 @@ export function useAuditEvents(filters: AuditEventsFilters = {}) {
         )
         .eq('agency_id', agencyId as string)
         .order('created_at', { ascending: false })
-        .limit(LIMITE_JOURNAL)
+        // ⛔ `id` DÉPARTAGE LES EX ÆQUO, et ils ne sont pas rares : une passe du moteur
+        // écrit ses correspondances dans UNE transaction, toutes à la même `created_at`
+        // (`now()`). Sans second ordre, Postgres rend les ex æquo dans un ordre libre
+        // d'une requête à l'autre — une page pouvait répéter une ligne et en taire une.
+        .order('id', { ascending: false })
 
       if (filters.category && filters.category !== 'all') {
         q = q.eq('category', filters.category)
@@ -92,7 +121,8 @@ export function useAuditEvents(filters: AuditEventsFilters = {}) {
         q = q.gte('created_at', cutoff)
       }
 
-      const { data, error } = await q
+      const debut = pageParam * PAGE_JOURNAL
+      const { data, error } = await q.range(debut, debut + PAGE_JOURNAL - 1)
       if (error) throw error
       return (data ?? []) as AuditEvent[]
     },

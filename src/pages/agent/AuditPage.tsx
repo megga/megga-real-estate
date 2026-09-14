@@ -18,6 +18,11 @@
  * intérieur, en-tête et barre d'outils fixes au-dessus de l'historique), les jours aux
  * en-têtes collants, les rafales « ×N » dépliables, le détail de chaque ligne au clic.
  *
+ * ⚠ L'historique se lit PAR PAGES de 1000 — le max_rows de PostgREST, qu'aucune requête
+ * ne dépasse (`useAuditEvents`) : « Charger les évènements plus anciens » prolonge la
+ * liste, et tant qu'il reste des pages, le compte dit « chargés » et la recherche — qui
+ * filtre à l'écran — dit qu'elle ne voit que le chargé.
+ *
  * ⛔ PÉRIMÈTRE : l'agence du profil (voir useAuditLog.ts). Sans agence — le super-admin
  * de production n'en a pas —, rien n'est lu, et la page le dit au lieu de se taire.
  *
@@ -32,13 +37,13 @@ import { CRM_KEYFRAMES } from '@/components/crm/CrmShell'
 import CrmWorkspace from '@/components/crm/CrmWorkspace'
 import EtatVide from '@/components/crm/EtatVide'
 import { crmPalette, type CrmPalette } from '@/components/crm/tokens'
-import { AUDIT_CATEGORIES } from '@/components/crm-dossiers/tokens'
+import { AUDIT_CATEGORIES, dossierPalette } from '@/components/crm-dossiers/tokens'
 import { CrmIcon } from '@/components/crm-dossiers/icons'
 import { AudDayGroup } from '@/components/crm-dossiers/audit/AudDayGroup'
-import { correspondRecherche, grouperParJour, libelleActeur } from '@/components/crm-dossiers/audit/journal'
+import { correspondRecherche, grouperParJour, libelleActeur, nombreSuisse } from '@/components/crm-dossiers/audit/journal'
 import { useCrmDarkPref } from '@/lib/crmDark'
 import { useTabLabel, useTabScopedState } from '@/hooks/useCrmTabs'
-import { LIMITE_JOURNAL, useAuditEvents } from '@/hooks/useAuditLog'
+import { useAuditEvents } from '@/hooks/useAuditLog'
 import { useTeamMembers } from '@/hooks/useTeam'
 import { useAuth } from '@/hooks/useAuth'
 import type { FamilleActeur } from '@/lib/auditActor'
@@ -106,6 +111,8 @@ export default function AuditPage() {
   // journal le lisent (`useCrmDark`). Un état local laissait la bascule privée.
   const [dark, setDark] = useCrmDarkPref()
   const sp = useMemo(() => crmPalette(dark), [dark])
+  // Les encres d'état lisibles sur la surface (`errDarker` : 6,47:1 en clair, `red400` en sombre).
+  const S = useMemo(() => dossierPalette(dark), [dark])
   const { profile } = useAuth()
   const agencyId = profile?.agency_id ?? null
 
@@ -118,9 +125,17 @@ export default function AuditPage() {
   const [severite, setSeverite] = useTabScopedState<AuditSeverity | 'all'>('audit:severite', 'all')
   const [recherche, setRecherche] = useState('')
 
-  const { data: events = [], isLoading, isError, isPlaceholderData, refetch } = useAuditEvents({
-    days: jours, category: categorie, acteur, severity: severite,
-  })
+  const {
+    data: events = [], isLoading, isError, isPlaceholderData, refetch,
+    hasNextPage, fetchNextPage, isFetchingNextPage, isFetchNextPageError,
+  } = useAuditEvents({ days: jours, category: categorie, acteur, severity: severite })
+  // ⚠ Une page suivante qui échoue met la requête en erreur SANS lui retirer ce qu'elle a
+  // lu : l'historique chargé reste à l'écran, seul le bouton dit l'échec.
+  const echec = isError && events.length === 0
+  // Pas de page suivante demandée sur une liste de remplacement : elle appartient aux
+  // filtres d'AVANT, et sa « suite » n'existe pas pour ceux d'après.
+  const suite = !!hasNextPage && !isPlaceholderData
+  const chargerPlus = () => { void fetchNextPage() }
   // Les collègues nomment l'agent qui a agi : « Grégory Lyonnet » plutôt qu'« Agent ».
   const { data: equipe } = useTeamMembers()
   const noms = useMemo(() => new Map((equipe ?? []).map((m) => [m.id, m.full_name])), [equipe])
@@ -157,8 +172,13 @@ export default function AuditPage() {
           {tr('audit.filter.reset')}
         </button>
       )}
-      {agencyId && !isLoading && !isError && (
-        <span style={{ fontVariantNumeric: 'tabular-nums' }}>{tr('audit.eventCount', { count: visibles.length })}</span>
+      {agencyId && !isLoading && !echec && (
+        <span style={{ fontVariantNumeric: 'tabular-nums' }}>
+          {/* Tant qu'il reste des pages, le compte est celui du CHARGÉ, et il le dit. */}
+          {suite && !recherche.trim()
+            ? tr('audit.eventCountLoaded', { count: events.length, n: nombreSuisse(events.length) })
+            : tr('audit.eventCount', { count: visibles.length, n: nombreSuisse(visibles.length) })}
+        </span>
       )}
     </span>
   )
@@ -264,6 +284,21 @@ export default function AuditPage() {
     </div>
   )
 
+  // ⚠ La recherche filtre À L'ÉCRAN : elle ne voit que les pages chargées. Tant qu'il en
+  // reste, elle le dit — et offre d'aller plus loin, là où l'œil cherche le résultat.
+  const avisRecherche = recherche.trim() && suite && (
+    <p style={{ margin: 'var(--crm-space-md) 0 0', fontSize: 'var(--crm-text-sm)', lineHeight: 1.5, color: sp.sub }}>
+      {tr('audit.searchLoadedOnly', { count: events.length, n: nombreSuisse(events.length) })}{' '}
+      <button type="button" onClick={chargerPlus} disabled={isFetchingNextPage} style={{
+        border: 0, background: 'transparent', padding: 0, fontFamily: 'inherit', cursor: 'pointer',
+        fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.ink,
+        textDecoration: 'underline', textUnderlineOffset: 3,
+      }}>
+        {isFetchingNextPage ? tr('audit.loading') : tr('audit.loadMore')}
+      </button>
+    </p>
+  )
+
   // Le squelette dessine la forme de ce qui arrive : un jour, cinq lignes.
   const barreGrise = (largeur: number | string, hauteur: number) => (
     <span style={{ display: 'block', width: largeur, height: hauteur, borderRadius: 'var(--crm-radius-xs)', background: sp.focusSurface }} />
@@ -293,7 +328,7 @@ export default function AuditPage() {
   // filtre trop étroit, période sans rien.
   const corps = !agencyId ? (
     <EtatVide dark={dark} glyphe={<CrmIcon name="lock" size={22} />} titre={tr('audit.noAgency')} />
-  ) : isError ? (
+  ) : echec ? (
     <EtatVide
       dark={dark} registre="erreur" titre={tr('audit.error')}
       action={{ libelle: tr('audit.retry'), onClick: () => { void refetch() } }}
@@ -317,8 +352,28 @@ export default function AuditPage() {
 
   const pied = agencyId && (
     <footer style={{ marginTop: 'var(--crm-space-4xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-sm)', lineHeight: 1.5, color: sp.sub }}>
-      {!isLoading && events.length >= LIMITE_JOURNAL && (
-        <span>{tr('audit.capped', { n: new Intl.NumberFormat('de-CH').format(LIMITE_JOURNAL) })}</span>
+      {/* La suite de l'historique, page par page : une requête ne rend jamais plus de 1000
+          lignes (max_rows de PostgREST), et une agence active les dépasse vite sur « Tout ». */}
+      {suite && !echec && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-sm)', marginBottom: 'var(--crm-space-lg)' }}>
+          <button
+            type="button"
+            onClick={chargerPlus}
+            disabled={isFetchingNextPage}
+            aria-busy={isFetchingNextPage}
+            style={{
+              height: H_CONTROLE, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)',
+              border: `1px solid ${sp.cardBorder}`, background: sp.cardBg, color: sp.ink,
+              fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
+              cursor: isFetchingNextPage ? 'default' : 'pointer', opacity: isFetchingNextPage ? 0.6 : 1,
+            }}
+          >
+            {isFetchingNextPage ? tr('audit.loading') : tr('audit.loadMore')}
+          </button>
+          {isFetchNextPageError && (
+            <span role="alert" style={{ color: S.errDarker, fontWeight: 600 }}>{tr('audit.loadMoreError')}</span>
+          )}
+        </div>
       )}
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
         <CrmIcon name="lock" size={13} stroke={sp.sub} />
@@ -350,6 +405,7 @@ export default function AuditPage() {
                 <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: 'var(--crm-space-2xl)' }}>
                   {entete}
                   {barre}
+                  {avisRecherche}
                   <div style={{ marginTop: 'var(--crm-space-lg)' }}>{corps}</div>
                   {pied}
                 </div>
@@ -359,6 +415,7 @@ export default function AuditPage() {
                   <div style={{ flex: 'none', padding: 'var(--crm-space-7xl) var(--crm-space-7xl) var(--crm-space-md)' }}>
                     {entete}
                     {barre}
+                    {avisRecherche}
                   </div>
                   <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '0 var(--crm-space-7xl) var(--crm-space-7xl)' }}>
                     {corps}

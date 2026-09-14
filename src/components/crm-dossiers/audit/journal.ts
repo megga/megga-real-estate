@@ -111,6 +111,13 @@ export function libelleActeur(
   return i18n.t(acteurDetacheProuve(e) ? 'common:audit.actor.agentDetached' : 'common:audit.actor.agentUnknown')
 }
 
+/**
+ * Un compte à l'apostrophe suisse (« 2'000 »), comme `formatCHF` — les journaux d'une
+ * agence active dépassent le millier. ⚠ Pas `{{count, number}}` d'i18next : il formate
+ * dans la LANGUE (`de` → « 2.000 », `fr` → « 2 000 »), pas dans l'usage suisse.
+ */
+export const nombreSuisse = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, "'")
+
 /** L'heure d'une ligne (« 14:32 ») — le jour est dans l'en-tête de son groupe. */
 export const heureDe = (iso: string) => format(new Date(iso), 'HH:mm')
 

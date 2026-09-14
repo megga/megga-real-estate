@@ -387,11 +387,15 @@
       "system": "System"
     },
     "details": "Details",
-    "eventCount_one": "{{count}} event",
-    "eventCount_other": "{{count}} events",
+    "eventCount_one": "{{n}} event",
+    "eventCount_other": "{{n}} events",
+    "eventCountLoaded_one": "{{n}} event loaded",
+    "eventCountLoaded_other": "{{n}} events loaded",
     "title": "Audit trail",
     "subtitle": "Every action in your agency, in the order it happened.",
     "searchPlaceholder": "Search an action or an entity…",
+    "searchLoadedOnly_one": "Search only covers the loaded event.",
+    "searchLoadedOnly_other": "Search only covers the {{n}} loaded events.",
     "period": {
       "days7": "7 days",
       "days30": "30 days",
@@ -428,12 +432,13 @@
       "metadata": "Metadata"
     },
     "loading": "Loading the audit trail…",
+    "loadMore": "Load older events",
+    "loadMoreError": "Older events couldn’t be loaded.",
     "empty": "No event matches these filters.",
     "emptyPeriod": "No events in this period.",
     "noAgency": "This account isn’t attached to an agency, so it has no audit trail. The platform’s trail lives in the admin console.",
     "error": "The audit trail couldn’t be loaded.",
     "retry": "Try again",
-    "capped": "Only the {{n}} most recent events are shown.",
     "footer": {
       "retention": "Append-only trail, kept for 10 years (nFADP art. 12 · AMLA art. 7): no entry can be deleted before then."
     },

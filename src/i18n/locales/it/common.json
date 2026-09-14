@@ -380,11 +380,15 @@
       "system": "Sistema"
     },
     "details": "Dettagli",
-    "eventCount_one": "{{count}} evento",
-    "eventCount_other": "{{count}} eventi",
+    "eventCount_one": "{{n}} evento",
+    "eventCount_other": "{{n}} eventi",
+    "eventCountLoaded_one": "{{n}} evento caricato",
+    "eventCountLoaded_other": "{{n}} eventi caricati",
     "title": "Registro di audit",
     "subtitle": "Tutte le azioni dell’agenzia, nell’ordine in cui sono avvenute.",
     "searchPlaceholder": "Cerca un'azione, un oggetto…",
+    "searchLoadedOnly_one": "La ricerca riguarda solo l’evento caricato.",
+    "searchLoadedOnly_other": "La ricerca riguarda solo i {{n}} eventi caricati.",
     "period": {
       "days7": "7 giorni",
       "days30": "30 giorni",
@@ -421,12 +425,13 @@
       "metadata": "Metadati"
     },
     "loading": "Caricamento del registro…",
+    "loadMore": "Carica gli eventi meno recenti",
+    "loadMoreError": "Impossibile caricare gli eventi meno recenti.",
     "empty": "Nessun evento corrisponde a questi filtri.",
     "emptyPeriod": "Nessun evento in questo periodo.",
     "noAgency": "Questo account non è collegato a nessuna agenzia, quindi non ha un registro. Quello della piattaforma si consulta nella console.",
     "error": "Impossibile caricare il registro.",
     "retry": "Riprova",
-    "capped": "Sono mostrati solo i {{n}} eventi più recenti.",
     "footer": {
       "retention": "Registro in sola aggiunta, conservato 10 anni (nLPD art. 12 · LRD art. 7): nessuna voce può esservi cancellata prima di tale termine."
     },

@@ -73,3 +73,31 @@ test('la recherche lit le texte affiché — « contact cree » trouve « Contac
   await expect(lignes(page).filter({ hasText: 'Contact créé' }).first()).toBeVisible()
   await expect(lignes(page).filter({ hasText: 'Visite planifiée' })).toHaveCount(0)
 })
+
+/**
+ * « Tout » dépasse une page : une requête ne rend jamais plus de 1000 lignes (max_rows
+ * de PostgREST). Le banc porte une longue traîne de 1 100 gestes anciens (`TRAINE_JOURNAL`)
+ * pour que la pagination s'y éprouve : 1 124 évènements en tout.
+ */
+test('« Tout » se lit par pages : 1000 d’abord, puis les plus anciens à la demande', async ({ page }) => {
+  await ecran(page).getByRole('button', { name: 'Tout', exact: true }).click()
+  await expect(ecran(page).getByText('1\'000 évènements chargés')).toBeVisible()
+  const plusAnciens = ecran(page).getByRole('button', { name: 'Charger les évènements plus anciens' })
+  await expect(plusAnciens).toHaveCount(1)
+
+  // La recherche ne voit que le CHARGÉ — et le dit, là où l'œil cherche le résultat.
+  const recherche = ecran(page).getByLabel('Rechercher une action, un objet…')
+  await recherche.fill('archivé n° 1100')
+  await expect(ecran(page).getByText(/ne porte que sur les 1'000 évènements chargés/)).toBeVisible()
+  await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 1100' })).toHaveCount(0)
+
+  // L'avis offre d'aller plus loin : la page suivante apporte la ligne cherchée.
+  await plusAnciens.first().click()
+  await expect(lignes(page).filter({ hasText: 'Dossier archivé n° 1100' })).toHaveCount(1)
+  await expect(ecran(page).getByText(/ne porte que sur/)).toHaveCount(0)
+
+  // Tout est chargé : le compte redevient un total, et le bouton s'efface.
+  await recherche.fill('')
+  await expect(ecran(page).getByText('1\'124 évènements')).toBeVisible()
+  await expect(plusAnciens).toHaveCount(0)
+})

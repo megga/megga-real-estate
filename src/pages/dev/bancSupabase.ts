@@ -165,9 +165,14 @@ function valeur(v: string): unknown {
  * pièges de sonde.
  *
  * Sous-ensemble volontaire : `eq`, `neq`, `gt(e)`, `lt(e)`, `in`, `is`, plus
- * `order` et `limit`. Un opérateur inconnu laisse passer la ligne plutôt que de
- * la retirer : mieux vaut un écran trop plein qu'un vide qu'on lirait comme un
- * bogue de la page.
+ * `order`, `limit` et `offset`. Un opérateur inconnu laisse passer la ligne plutôt
+ * que de la retirer : mieux vaut un écran trop plein qu'un vide qu'on lirait comme
+ * un bogue de la page.
+ *
+ * ⚠ `order` porte PLUSIEURS colonnes (`created_at.desc,id.desc` — c'est ce que
+ * `postgrest-js` écrit pour deux `.order()` à la suite) : lu comme une seule, le
+ * sens devenait `desc,id`, donc croissant. Et `.range(a, b)` s'écrit `offset=a` +
+ * `limit=b-a+1` : sans `offset`, chaque page du journal d'audit rendait la PREMIÈRE.
  */
 function filtrer(lignes: unknown[], requete: string): unknown[] {
   const p = new URLSearchParams(requete)
@@ -198,16 +203,22 @@ function filtrer(lignes: unknown[], requete: string): unknown[] {
 
   const ordre = p.get('order')
   if (ordre) {
-    const [col, sens] = ordre.split('.')
-    const desc = sens === 'desc'
+    const cles = ordre.split(',').map((terme) => {
+      const [col, sens] = terme.split('.')
+      return { col: col!, desc: sens === 'desc' }
+    })
     out = [...out].sort((a, b) => {
-      const x = String(a[col!] ?? ''), y = String(b[col!] ?? '')
-      return (x < y ? -1 : x > y ? 1 : 0) * (desc ? -1 : 1)
+      for (const { col, desc } of cles) {
+        const x = String(a[col] ?? ''), y = String(b[col] ?? '')
+        if (x !== y) return (x < y ? -1 : 1) * (desc ? -1 : 1)
+      }
+      return 0
     })
   }
 
+  const debut = Math.max(0, Number(p.get('offset')) || 0)
   const limite = Number(p.get('limit'))
-  return Number.isFinite(limite) && limite > 0 ? out.slice(0, limite) : out
+  return Number.isFinite(limite) && limite > 0 ? out.slice(debut, debut + limite) : out.slice(debut)
 }
 
 /** Arguments d'une RPC, lus dans le corps POST. `{}` si le corps n'est pas du JSON. */
