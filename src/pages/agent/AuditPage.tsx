@@ -13,7 +13,9 @@
  *    cryptographiquement » (seul l'export PDF chaînait un SHA-256, calculé à la volée) et
  *    « toute tentative de suppression ou modification est elle-même journalisée » (le
  *    trigger d'immuabilité lève une exception : la transaction est annulée, rien ne
- *    s'écrit).
+ *    s'écrit). Réécrite juste, la mention de conservation est ensuite partie tout
+ *    entière, le même jour, à la demande de Julien : le pied ne porte plus que la suite
+ *    de l'historique.
  * Ce qui reste : le CADRE des pages sœurs (Parcours, Analytics : rayon 26, défilement
  * intérieur, barre d'outils fixe au-dessus de l'historique — le titre visible, son
  * sous-titre et le compte sont partis le même jour, à la demande de Julien ; la puce de
@@ -328,35 +330,32 @@ export default function AuditPage() {
     </div>
   )
 
-  const pied = agencyId && (
-    <footer style={{ marginTop: 'var(--crm-space-4xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-sm)', lineHeight: 1.5, color: sp.sub }}>
-      {/* La suite de l'historique, page par page : une requête ne rend jamais plus de 1000
-          lignes (max_rows de PostgREST), et une agence active les dépasse vite sur « Tout ». */}
-      {suite && !echec && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--crm-space-sm)', marginBottom: 'var(--crm-space-lg)' }}>
-          <button
-            type="button"
-            onClick={chargerPlus}
-            disabled={isFetchingNextPage}
-            aria-busy={isFetchingNextPage}
-            style={{
-              height: H_CONTROLE, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)',
-              border: `1px solid ${sp.cardBorder}`, background: sp.cardBg, color: sp.ink,
-              fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
-              cursor: isFetchingNextPage ? 'default' : 'pointer', opacity: isFetchingNextPage ? 0.6 : 1,
-            }}
-          >
-            {isFetchingNextPage ? tr('audit.loading') : tr('audit.loadMore')}
-          </button>
-          {isFetchNextPageError && (
-            <span role="alert" style={{ color: S.errDarker, fontWeight: 600 }}>{tr('audit.loadMoreError')}</span>
-          )}
-        </div>
+  // La suite de l'historique, page par page : une requête ne rend jamais plus de 1000
+  // lignes (max_rows de PostgREST), et une agence active les dépasse vite sur « Tout ».
+  // ⚠ Rien d'autre au pied : la mention de conservation (« journal en ajout seul, conservé
+  // 10 ans… ») est partie le 14.09.2026, à la demande de Julien.
+  const pied = agencyId && suite && !echec && (
+    <footer style={{
+      marginTop: 'var(--crm-space-4xl)', display: 'flex', flexDirection: 'column', alignItems: 'center',
+      gap: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-sm)', lineHeight: 1.5, color: sp.sub,
+    }}>
+      <button
+        type="button"
+        onClick={chargerPlus}
+        disabled={isFetchingNextPage}
+        aria-busy={isFetchingNextPage}
+        style={{
+          height: H_CONTROLE, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)',
+          border: `1px solid ${sp.cardBorder}`, background: sp.cardBg, color: sp.ink,
+          fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600,
+          cursor: isFetchingNextPage ? 'default' : 'pointer', opacity: isFetchingNextPage ? 0.6 : 1,
+        }}
+      >
+        {isFetchingNextPage ? tr('audit.loading') : tr('audit.loadMore')}
+      </button>
+      {isFetchNextPageError && (
+        <span role="alert" style={{ color: S.errDarker, fontWeight: 600 }}>{tr('audit.loadMoreError')}</span>
       )}
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)' }}>
-        <CrmIcon name="lock" size={13} stroke={sp.sub} />
-        {tr('audit.footer.retention')}
-      </span>
     </footer>
   )
 

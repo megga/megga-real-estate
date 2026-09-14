@@ -413,9 +413,6 @@
     "noAgency": "Dieses Konto ist keiner Agentur zugeordnet und hat daher kein Protokoll. Das Protokoll der Plattform finden Sie in der Admin-Konsole.",
     "error": "Das Protokoll konnte nicht geladen werden.",
     "retry": "Erneut versuchen",
-    "footer": {
-      "retention": "Nur ergänzbares Protokoll, 10 Jahre aufbewahrt (nDSG Art. 12 · GwG Art. 7): Vor Ablauf dieser Frist kann kein Eintrag gelöscht werden."
-    },
     "action": {
       "account_deleted": "Konto gelöscht",
       "admin_console_entered": "Admin-Konsole geöffnet",

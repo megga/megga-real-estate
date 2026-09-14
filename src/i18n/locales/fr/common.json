@@ -420,9 +420,6 @@
     "noAgency": "Ce compte n’est rattaché à aucune agence : il n’a pas de journal. Celui de la plateforme se consulte dans la console.",
     "error": "Le journal n’a pas pu être chargé.",
     "retry": "Réessayer",
-    "footer": {
-      "retention": "Journal en ajout seul, conservé 10 ans (nLPD art. 12 · LBA art. 7) : aucune ligne ne peut en être supprimée avant ce terme."
-    },
     "action": {
       "account_deleted": "Compte supprimé",
       "admin_console_entered": "Console admin ouverte",

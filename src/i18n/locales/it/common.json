@@ -413,9 +413,6 @@
     "noAgency": "Questo account non è collegato a nessuna agenzia, quindi non ha un registro. Quello della piattaforma si consulta nella console.",
     "error": "Impossibile caricare il registro.",
     "retry": "Riprova",
-    "footer": {
-      "retention": "Registro in sola aggiunta, conservato 10 anni (nLPD art. 12 · LRD art. 7): nessuna voce può esservi cancellata prima di tale termine."
-    },
     "action": {
       "account_deleted": "Account eliminato",
       "admin_console_entered": "Console admin aperta",

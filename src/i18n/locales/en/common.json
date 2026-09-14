@@ -420,9 +420,6 @@
     "noAgency": "This account isn’t attached to an agency, so it has no audit trail. The platform’s trail lives in the admin console.",
     "error": "The audit trail couldn’t be loaded.",
     "retry": "Try again",
-    "footer": {
-      "retention": "Append-only trail, kept for 10 years (nFADP art. 12 · AMLA art. 7): no entry can be deleted before then."
-    },
     "action": {
       "account_deleted": "Account deleted",
       "admin_console_entered": "Admin console opened",
