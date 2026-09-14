@@ -26,6 +26,15 @@ import {
 const CHROME_MESSAGE =
   'Failed to fetch dynamically imported module: https://app.getmegga.com/assets/IdentityPage-UNAb1wxY.js'
 
+/**
+ * Ce que Safari rend pour le même incident — un chunk servi en 200 `text/html`
+ * par le fallback SPA. Chaînes recopiées de WebKit (ScriptModuleLoader::notifyFinished),
+ * avant et après le commit 2833205e livré avec Safari 27.
+ */
+const SAFARI_26_MIME = "'text/html' is not a valid JavaScript MIME type."
+const SAFARI_27_MIME =
+  "'text/html' is not a valid JavaScript MIME type for module script 'https://app.getmegga.com/assets/IdentityPage-UNAb1wxY.js'."
+
 describe('isStaleChunkError', () => {
   it('reconnaît chacun des motifs du catalogue, en Error comme en chaîne', () => {
     for (const pattern of STALE_CHUNK_PATTERNS) {
@@ -38,6 +47,11 @@ describe('isStaleChunkError', () => {
     expect(isStaleChunkError(new TypeError(
       "Failed to load module script: Expected a JavaScript module script but the server responded with a MIME type of \"text/html\".",
     ))).toBe(true)
+  })
+
+  it('reconnaît la variante MIME de Safari, avant et depuis Safari 27', () => {
+    expect(isStaleChunkError(new TypeError(SAFARI_26_MIME))).toBe(true)
+    expect(isStaleChunkError(new TypeError(SAFARI_27_MIME))).toBe(true)
   })
 
   it('ignore une erreur quelconque, null et undefined', () => {
@@ -58,8 +72,14 @@ describe('extractChunkUrl', () => {
       .toBe('/assets/Foo-abc123.js')
   })
 
-  it('rend null quand le message ne porte pas d\'URL (Safari)', () => {
+  it('extrait l\'URL de la variante MIME de Safari 27, sans l\'apostrophe qui la ferme', () => {
+    expect(extractChunkUrl(new TypeError(SAFARI_27_MIME)))
+      .toBe('https://app.getmegga.com/assets/IdentityPage-UNAb1wxY.js')
+  })
+
+  it('rend null quand le message ne porte pas d\'URL (échec réseau Safari, MIME Safari ≤ 26)', () => {
     expect(extractChunkUrl(new Error('Importing a module script failed.'))).toBeNull()
+    expect(extractChunkUrl(new TypeError(SAFARI_26_MIME))).toBeNull()
   })
 })
 
