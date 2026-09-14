@@ -1060,8 +1060,7 @@
       "saveError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
       "sessionExpired": "Sitzung abgelaufen, bitte erneut anmelden zum Speichern.",
       "agencyNotLoaded": "Agentur nicht geladen, bitte erneut anmelden zum Speichern.",
-      "logoUploadError": "Logo konnte nicht hochgeladen werden.",
-      "directoryMissing": "Ihr Verzeichnisprofil ist noch nicht eingerichtet, bitte kontaktieren Sie Ihren Administrator."
+      "logoUploadError": "Logo konnte nicht hochgeladen werden."
     }
   }
 }

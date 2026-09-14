@@ -1324,7 +1324,7 @@ export type Database = {
           {
             foreignKeyName: "agent_profiles_profile_id_fkey"
             columns: ["profile_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -8552,6 +8552,7 @@ export type Database = {
           reason: string
         }[]
       }
+      ensure_my_agent_profile: { Args: never; Returns: string }
       ensure_wa_inbound_lead: {
         Args: {
           p_agency_id: string

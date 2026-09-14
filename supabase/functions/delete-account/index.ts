@@ -16,6 +16,7 @@ import { disconnectMailAccount } from '../_shared/mail/disconnect.ts'
 //   revoked, Vault secret erased, box deleted — the cascade never reached Vault.
 // - Anonymises the director's KYB identity (agency_related_persons) and the
 //   onboarding call (onboarding_calls) — added 07.08.2026, see below.
+// - Deletes the agent's own profile card (agent_profiles) — added 14.09.2026.
 // - Keeps kyc_cases + KYC-linked documents untouched (LBA art. 7 al. 3 — 10y).
 // - Deletes non-KYC documents from Storage + DB.
 // - Deletes the Supabase Auth user via admin API (service role).
@@ -357,6 +358,23 @@ serve(async (req) => {
       .eq('booked_by', userId)
     if (callErr) {
       console.warn('onboarding_calls anonymisation warning:', callErr.message)
+    }
+
+    // 8d. Fiche de l'agent (agent_profiles) : bio, langues, spécialités, liens.
+    //
+    // L'agent la crée lui-même depuis le 14.09.2026 (ensure_my_agent_profile).
+    // `profile_id` est `on delete cascade` depuis la même migration : l'étape 11
+    // l'emporterait de toute façon. La suppression explicite garde la règle de ce
+    // fichier — ce qui est déclaré effaçable l'est par une requête qu'on peut lire
+    // (personal-data-estate.spec.ts) — et vaut aussi si l'étape 11 échoue.
+    // ⚠ Avant cette migration, la FK était NO ACTION : une fiche aurait fait échouer
+    // l'étape 11, et le compte serait devenu indestructible.
+    const { error: cardErr } = await admin
+      .from('agent_profiles')
+      .delete()
+      .eq('profile_id', userId)
+    if (cardErr) {
+      console.warn('agent_profiles deletion warning:', cardErr.message)
     }
 
     // 9. Touch KYC cases linked to this user — add a retention note, do NOT delete

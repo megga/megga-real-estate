@@ -32,10 +32,6 @@ type ProfileRowKey =
  */
 type RowKey = ProfileRowKey | 'whatsapp'
 
-// Champs stockés UNIQUEMENT dans agent_profiles (pas de repli sur profiles) :
-// ne persistent que si la fiche annuaire existe (cf. useAgentProfileScreen.hasAgentProfile).
-const DIRECTORY_KEYS: RowKey[] = ['bio', 'languages', 'specialties', 'website', 'linkedin']
-
 // Squelette des groupes (libellés résolus via i18n au render). `labelKey` par défaut = key.
 interface RowDef { key: RowKey; icon: PfRow['icon']; labelKey?: string; multiline?: boolean; chips?: string[]; placeholder?: string; locked?: boolean; hintKey?: string }
 interface GroupDef { id: 'identity' | 'contact' | 'presentation' | 'links'; rows: RowDef[] }
@@ -77,7 +73,7 @@ export function ProfileFocusSection({ sp, surf, dark, onGoToSection }: FocusSect
   const { t } = useTranslation('settings')
   const c: PfColors = pfColors(sp, surf, dark)
   const toast = useToast()
-  const { profile, hasBackend, hasAgentProfile, save } = useAgentProfileScreen()
+  const { profile, hasBackend, save } = useAgentProfileScreen()
   const { avatarUrl, saveDataUrl } = useAvatar()
   const { status: waStatus } = useWhatsAppPairing()
   const waLink = waStatus.data
@@ -137,14 +133,8 @@ export function ProfileFocusSection({ sp, surf, dark, onGoToSection }: FocusSect
     // ce qui garantit au type que `key` indexe bien ProfileData en dessous.
     if (key === 'whatsapp') { setEditKey(null); return }
     if (!hasBackend) { setEditKey(null); toast.error(t('focus.toast.sessionExpired')); return }
-    // Champ d'annuaire non persistable tant que la fiche agent_profiles n'existe pas :
-    // on ferme l'éditeur SANS appliquer la valeur ni afficher « Enregistré » (le save
-    // serait un no-op) — le champ reste vide et un message explique pourquoi.
-    if (DIRECTORY_KEYS.includes(key) && !hasAgentProfile) {
-      setEditKey(null)
-      toast.error(t('focus.toast.directoryMissing'))
-      return
-    }
+    // Bio, langues, spécialités et liens vivent dans la fiche `agent_profiles` : save()
+    // la crée au premier enregistrement qui en a besoin (useAgentProfileScreen).
     const next: ProfileData = { ...local }
     if (key === 'languages' || key === 'specialties') {
       next[key] = draft.split(',').map((s) => s.trim()).filter(Boolean)
