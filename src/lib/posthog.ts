@@ -4,8 +4,13 @@
  * Rien ne part tant que l'utilisateur n'a pas opté pour les cookies analytics
  * (`initPostHogIfConsented`) ou que `VITE_POSTHOG_KEY` n'est pas défini. Hébergement
  * EU par défaut ; session recording désactivé. Miroir fonctionnel de `intercom.ts`.
+ *
+ * Le SDK est chargé À LA DEMANDE (`import()`), jamais dans le bundle initial : il y pesait
+ * 275 Ko gzip depuis sa montée de version (audit S16, 13.09.2026) pour un outil DORMANT en
+ * production — sans `VITE_POSTHOG_KEY`, le morceau n'est même jamais téléchargé. Chaque appel
+ * passe par `sdk()` : la promesse unique garde l'ordre (init avant identify, capture, reset).
  */
-import posthog from 'posthog-js'
+import type { PostHog } from 'posthog-js'
 import { isTokenBearingPath } from '@/lib/sentry'
 
 const POSTHOG_KEY = import.meta.env.VITE_POSTHOG_KEY as string | undefined
@@ -21,6 +26,13 @@ export interface CookieConsent {
 }
 
 let posthogInitialized = false
+let chargement: Promise<PostHog> | null = null
+
+/** Le SDK, chargé une seule fois ; toute action s'enchaîne sur la même promesse. */
+function sdk(): Promise<PostHog> {
+  chargement ??= import('posthog-js').then((m) => m.default)
+  return chargement
+}
 
 function readConsent(): CookieConsent | null {
   try {
@@ -43,7 +55,9 @@ export function initPostHog() {
   // l'ajoutera, la fuite partirait sans que rien ne la signale.
   if (typeof window !== 'undefined' && isTokenBearingPath(window.location.pathname)) return
 
-  posthog.init(POSTHOG_KEY, {
+  const cle = POSTHOG_KEY
+  posthogInitialized = true
+  void sdk().then((posthog) => posthog.init(cle, {
     api_host: POSTHOG_HOST,
     autocapture: true,
     capture_pageview: true,
@@ -53,8 +67,7 @@ export function initPostHog() {
     disable_session_recording: true,
     // EU hosting for Swiss data compliance
     request_batching: true,
-  })
-  posthogInitialized = true
+  }))
 }
 
 /**
@@ -78,19 +91,23 @@ export function initPostHogIfConsented() {
       if (!posthogInitialized) {
         initPostHog()
       } else {
-        try {
-          posthog.opt_in_capturing()
-        } catch {
-          // noop
-        }
+        void sdk().then((posthog) => {
+          try {
+            posthog.opt_in_capturing()
+          } catch {
+            // noop
+          }
+        })
       }
     } else {
       if (posthogInitialized) {
-        try {
-          posthog.opt_out_capturing()
-        } catch {
-          // noop
-        }
+        void sdk().then((posthog) => {
+          try {
+            posthog.opt_out_capturing()
+          } catch {
+            // noop
+          }
+        })
       }
     }
   }) as EventListener)
@@ -99,19 +116,17 @@ export function initPostHogIfConsented() {
 /** Associe les events suivants à un utilisateur identifié. No-op si non initialisé. */
 export function identifyUser(userId: string, properties?: Record<string, string>) {
   if (!POSTHOG_KEY || !posthogInitialized) return
-  posthog.identify(userId, properties)
+  void sdk().then((posthog) => posthog.identify(userId, properties))
 }
 
 /** Capture un event produit. No-op si non consenti/initialisé. */
 export function trackEvent(event: string, properties?: Record<string, unknown>) {
   if (!POSTHOG_KEY || !posthogInitialized) return
-  posthog.capture(event, properties)
+  void sdk().then((posthog) => posthog.capture(event, properties))
 }
 
 /** Réinitialise l'identité (au logout) pour repartir en anonyme. */
 export function resetPostHog() {
   if (!POSTHOG_KEY || !posthogInitialized) return
-  posthog.reset()
+  void sdk().then((posthog) => posthog.reset())
 }
-
-export { posthog }

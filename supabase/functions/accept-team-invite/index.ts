@@ -31,6 +31,7 @@
  */
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -325,7 +326,10 @@ serve(async (req) => {
     return json({ error: 'Invalid action' }, 400)
 
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    return json({ error: message }, 500)
+    // L'aperçu se lit avec le seul jeton d'invitation, sans session : le texte d'une erreur
+    // Postgres n'a pas à sortir de la fonction (audit S14). La page n'affiche de toute façon
+    // que les codes qu'elle connaît, et une phrase générique pour le reste.
+    console.error('[accept-team-invite] échec inattendu :', redactedErrorMessage(error))
+    return json({ error: 'internal_error' }, 500)
   }
 })

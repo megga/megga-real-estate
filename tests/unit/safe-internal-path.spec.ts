@@ -5,9 +5,15 @@
  * Deux preuves, et chacune a son contrôle positif :
  *   1. un corpus HOSTILE — dont on vérifie d'abord qu'il quitte réellement
  *      l'origine, et que le garde naïf suggéré par l'audit en accepte cinq ;
- *   2. le ROUTEUR INSTALLÉ, monté pour de vrai : la valeur brute fait jeter
- *      pushState (SecurityError ⇒ @remix-run/router bascule sur
+ *   2. le ROUTEUR INSTALLÉ, monté pour de vrai : une valeur brute à `\` fait
+ *      jeter pushState (SecurityError ⇒ @remix-run/router bascule sur
  *      location.assign), la valeur filtrée navigue sans rien jeter.
+ *
+ * ⚠ Avec react-router 6.30.6 / @remix-run/router 1.23.4 (montée S16 du
+ * 13.09.2026), le routeur résout lui-même `javascript:…`, `https://…` et `//hote`
+ * en chemins internes : seules les variantes à `\` ou à caractère de contrôle
+ * quittent encore l'origine (GHSA-wrjc-x8rr-h8h6, corrigé en 7.18 seulement).
+ * Le filtre reste la barrière — c'est lui que ce spec garde, pas le routeur.
  *
  * Les caractères de contrôle sont bâtis par `String.fromCharCode` : aucun n'est
  * caché dans la source, et la règle ESLint `no-control-regex` reste muette.
@@ -174,14 +180,19 @@ describe('contre le routeur installé', () => {
     window.history.replaceState(null, '', '/')
   })
 
-  it('valeur BRUTE : pushState jette SecurityError — le routeur prend la branche location.assign', () => {
+  it('valeur BRUTE à `\\` : pushState jette SecurityError — le routeur prend la branche location.assign', () => {
     monter()
-    for (const brut of ['/\\evil.com', 'javascript:alert(1)']) {
-      act(() => { navigate!(brut) })
-      const dernier = appels.at(-1)
-      expect(dernier?.url, brut).toBe(brut)
-      expect(dernier?.erreur, brut).toBe('SecurityError')
-    }
+    act(() => { navigate!('/\\evil.com') })
+    expect(appels.at(-1)).toEqual({ url: '/\\evil.com', erreur: 'SecurityError' })
+  })
+
+  it('valeur BRUTE `javascript:` : le routeur installé la résout en chemin interne', () => {
+    // Jusqu'à 6.30.3 / 1.23.2, elle partait telle quelle — même SecurityError, même
+    // location.assign, donc un script exécuté. Si cette assertion tombe, le routeur a
+    // changé de comportement : relire le point (a) de src/lib/safeInternalPath.ts.
+    monter()
+    act(() => { navigate!('javascript:alert(1)') })
+    expect(appels.at(-1)).toEqual({ url: '/javascript:alert(1)', erreur: null })
   })
 
   it('valeur FILTRÉE : le routeur pousse le repli, sans exception', () => {

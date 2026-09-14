@@ -1371,6 +1371,7 @@
       "publishing": "Veröffentlichung…",
       "publish": "Auf MEGGA veröffentlichen",
       "publishError": "Veröffentlichung fehlgeschlagen: {{message}}",
+      "planLimit": "Ihr Abo hat die Grenze aktiver Objekte erreicht: Objekt archivieren oder Abo wechseln.",
       "unknownError": "Unbekannter Fehler",
       "recommended": "Empfohlen",
       "choose": "Auswählen",

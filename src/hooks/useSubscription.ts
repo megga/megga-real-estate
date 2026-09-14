@@ -10,12 +10,11 @@ import { supabase, urlFonction } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import type { PlanType } from '@/lib/plans'
 
+// Sans identifiant Stripe ni montant : ces colonnes ne sont plus lisibles par un membre
+// (audit S13, 20260913170000) — le portail et le checkout les lisent côté serveur.
 interface Subscription {
   id: string
   agency_id: string
-  stripe_customer_id: string
-  stripe_subscription_id: string | null
-  stripe_price_id: string | null
   plan: PlanType
   billing_period: 'monthly' | 'yearly'
   status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete'
@@ -37,7 +36,7 @@ export function useSubscription() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('subscriptions')
-        .select('id, agency_id, plan, status, stripe_customer_id, stripe_subscription_id, current_period_start, current_period_end, cancel_at_period_end, created_at')
+        .select('id, agency_id, plan, billing_period, status, current_period_start, current_period_end, cancel_at_period_end, created_at, updated_at')
         .maybeSingle()
       if (error) throw error
       return data as Subscription | null

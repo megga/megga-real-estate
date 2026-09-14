@@ -6,14 +6,20 @@
 //   update     → { account }               (display_name, visibility, status active⇄disabled
 //                                           — propriétaire seul)
 // Garde : requireAgentAuth AVANT toute lecture de configuration (règle 4 du lot).
+//
+// ⛔ Les échecs rendent un CODE (`error`), et `detail` n'est plus qu'un code lui aussi
+// (audit du 13.09.2026, S14) : il portait le message Postgres ou la description libre du
+// fournisseur, que la modale et la page de retour affichaient à l'agent. Le texte est au
+// journal de la fonction ; l'écran traduit les codes (`OAUTH_ERRORS`, `mail.callback.failed`).
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
-import { buildAuthorizeUrl, exchangeCode, fetchIdentity, pkceChallenge, randomToken, type OAuthProvider } from '../_shared/mail/oauth.ts'
+import { buildAuthorizeUrl, exchangeCode, fetchIdentity, oauthFailureCode, pkceChallenge, randomToken, type OAuthProvider } from '../_shared/mail/oauth.ts'
 import { deleteAccountSecret, storeAccountSecret } from '../_shared/mail/secrets.ts'
 import { disconnectMailAccount } from '../_shared/mail/disconnect.ts'
 import { loadAgencyAccount, loadVisibleAccount, providerConfigFromEnv, redirectUriFor } from '../_shared/mail/guard.ts'
 import { syncAccount } from '../_shared/mail/sync.ts'
 import type { MailAccountRow, OAuthSecret } from '../_shared/mail/types.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void }
 
@@ -94,7 +100,10 @@ serve(async (req: Request) => {
       .select('*')
     // Une lecture en échec n'est pas un état invalide : le dire 403 enverrait l'agent
     // recommencer une autorisation qui n'a rien de fautif.
-    if (eState) return json({ error: 'state_consume_failed', detail: eState.message }, 500)
+    if (eState) {
+      console.error('[mail-oauth] consommation du state en échec :', redactedErrorMessage(eState))
+      return json({ error: 'state_consume_failed' }, 500)
+    }
     const st = (consumed ?? [])[0]
     if (!st) return json({ error: 'invalid_state' }, 403)
     const provider = st.provider as OAuthProvider
@@ -105,7 +114,11 @@ serve(async (req: Request) => {
       tokens = await exchangeCode(provider, { code, codeVerifier: st.code_verifier, clientId: cfg[provider].clientId, clientSecret: cfg[provider].clientSecret, redirectUri: st.redirect_uri })
       identity = await fetchIdentity(provider, tokens.access_token)
     } catch (e) {
-      return json({ error: 'exchange_failed', detail: e instanceof Error ? e.message : String(e) }, 502)
+      // `detail` = le code OAuth normalisé (`invalid_grant`, `invalid_client`…) : la modale
+      // l'affiche après « La connexion a échoué : ». La description du fournisseur — traces,
+      // corrélation, horodatage chez Microsoft — reste ici.
+      console.error(`[mail-oauth] échange ${provider} en échec :`, redactedErrorMessage(e))
+      return json({ error: 'exchange_failed', detail: oauthFailureCode(e) }, 502)
     }
 
     const secret: OAuthSecret = {
@@ -163,10 +176,11 @@ serve(async (req: Request) => {
         visibility: st.visibility, status: 'active', vault_secret_id: vaultId,
       }).select('id').single()
       if (error) {
+        console.error('[mail-oauth] insertion du compte en échec :', redactedErrorMessage(error))
         // Retour arrière : sans ligne pour le porter, le secret n'aurait plus de nom.
         await deleteAccountSecret(admin, vaultId)
           .catch((e) => console.error(`[mail-oauth] secret ${vaultId} ORPHELIN après échec d'insertion:`, e instanceof Error ? e.message : String(e)))
-        return json({ error: 'account_insert_failed', detail: error.message }, 500)
+        return json({ error: 'account_insert_failed' }, 500)
       }
       accountId = ins.id
     }
@@ -221,8 +235,11 @@ serve(async (req: Request) => {
     if (r.reason === 'secret_unreadable' || r.reason === 'provider_refused') {
       return json({ error: 'revocation_failed', detail: r.reason, account_id: account.id }, 502)
     }
-    if (r.reason === 'vault_delete_failed') return json({ ok: false, error: 'vault_delete_failed', detail: r.detail, account_id: account.id }, 500)
-    return json({ error: 'delete_failed', detail: r.detail }, 500)
+    // `r.detail` est un message Vault ou Postgres : `disconnectMailAccount` journalise déjà
+    // le premier, on journalise ici le second — aucun des deux ne part au navigateur.
+    if (r.reason === 'vault_delete_failed') return json({ ok: false, error: 'vault_delete_failed', account_id: account.id }, 500)
+    console.error(`[mail-oauth] suppression du compte ${account.id} en échec :`, redactedErrorMessage(r.detail))
+    return json({ error: 'delete_failed' }, 500)
   }
 
   if (action === 'update') {

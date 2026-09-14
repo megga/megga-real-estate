@@ -24,7 +24,10 @@
 // service_role pour fermer.
 //
 // L'ordre périmètre → suppression → quota → Resend est gardé par
-// tests/unit/email-senders-scope.spec.ts sur la source des trois fonctions.
+// tests/unit/email-senders-scope.spec.ts : sur la source de `send-email` et de
+// `send-property-email`, qui appellent Resend elles-mêmes, et sur celle de
+// `_shared/relance-email-send.ts`, l'envoi de relance que partagent `send-relance-email` et
+// l'exécuteur WhatsApp (`executeSendClientEmail`, exécuté par `whatsapp-webhook`).
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { emailSendAllowed, type EmailPurpose } from './email-guard.ts'
@@ -32,11 +35,18 @@ import { emailSendAllowed, type EmailPurpose } from './email-guard.ts'
 /** Ce qui rattache le destinataire à l'agence — ou rien. */
 export type RecipientScope = 'contact' | 'lead' | 'member' | 'agency'
 
-/** Les trois expéditeurs pilotés par un agent. Le nom est journalisé dans email_send_log. */
-export type OutboundEmailSender = 'send-email' | 'send-property-email' | 'send-relance-email'
+/**
+ * La fonction edge qui envoie un e-mail piloté par un agent — journalisée dans email_send_log.
+ * `whatsapp-webhook` exécute le « oui » de l'agent à une relance rédigée par le copilote
+ * (`executeSendClientEmail` → `_shared/relance-email-send.ts`).
+ */
+export type OutboundEmailSender = 'send-email' | 'send-property-email' | 'send-relance-email' | 'whatsapp-webhook'
 
 export interface OutboundEmailCaller {
-  /** `profile.agency_id` rendu par requireAgentAuth — jamais un identifiant du corps. */
+  /**
+   * L'agence d'un appelant VÉRIFIÉ : `profile.agency_id` rendu par requireAgentAuth, ou celle
+   * du lien WhatsApp vérifié (`ActionCtx.agencyId`) — jamais un identifiant du corps.
+   */
   agencyId: string
   actorId: string
 }

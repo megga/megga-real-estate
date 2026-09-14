@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildEdgeErrorEvent } from './audit-edge-error.ts'
+import { buildEdgeErrorEvent, redactedErrorMessage } from './audit-edge-error.ts'
 
 describe('buildEdgeErrorEvent', () => {
   it('produit la forme que le monitoring sait lire', () => {
@@ -53,5 +53,37 @@ describe('buildEdgeErrorEvent', () => {
   it('rattache à une agence quand la fonction en sert une', () => {
     expect(buildEdgeErrorEvent('x', new Error('e')).agency_id).toBeNull()
     expect(buildEdgeErrorEvent('x', new Error('e'), { agencyId: 'ag-1' }).agency_id).toBe('ag-1')
+  })
+})
+
+// S14 (13.09.2026) : le texte que les fonctions JOURNALISENT au lieu de le renvoyer.
+describe('redactedErrorMessage', () => {
+  it('lit une erreur PostgREST par son code et son message, jamais par ses `details`', () => {
+    // `details` porte la valeur fautive de la ligne — une adresse que redactPII ne
+    // caviarde pas. La sérialiser entière l'aurait écrite dans les journaux.
+    const pg = {
+      message: 'duplicate key value violates unique constraint "mail_accounts_agency_email_key"',
+      code: '23505',
+      details: 'Key (email)=(prospect@example.org) already exists.',
+      hint: null,
+    }
+    const texte = redactedErrorMessage(pg)
+    expect(texte).toBe('[23505] duplicate key value violates unique constraint "mail_accounts_agency_email_key"')
+    expect(texte).not.toContain('prospect@example.org')
+  })
+
+  it('caviarde un jeton recopié par un fournisseur, et tronque au plafond demandé', () => {
+    // Forme émise par _shared/magic-link-token.ts : <base64url(payload)>.<base64url(HMAC)>.
+    const jeton = 'eyJpZCI6ImFiY2QtMTIzNCIsImV4cCI6MTc1MDAwMDAwMH0.Q2hhbmdlTWVJbkEtVmFsaWQtU2lnbmF0dXJlLTEyMzQ1'
+    const texte = redactedErrorMessage(new Error(`could not load https://app.example.org/kyc/${jeton}`))
+    expect(texte).not.toContain(jeton)
+    expect(texte).toContain('REDACTED')
+    expect(redactedErrorMessage(new Error('x'.repeat(50)), 10)).toBe(`${'x'.repeat(10)}…`)
+  })
+
+  it('reste lisible sur une chaîne, un objet sans message, et rien du tout', () => {
+    expect(redactedErrorMessage('panne texte')).toBe('panne texte')
+    expect(redactedErrorMessage({ code: 500 })).toBe('{"code":500}')
+    expect(redactedErrorMessage(undefined)).toBe('null')
   })
 })

@@ -36,6 +36,7 @@ import { lireFaitsContact } from './contact-timeline.ts'
 import { redactPII } from './pii-redaction.ts'
 import { buildDocReadPrompt } from './whatsapp-doc-prompt.ts'
 import { urlFonction } from './function-url.ts'
+import { sendRelanceEmail } from './relance-email-send.ts'
 
 export interface ActionCtx {
   supabase: SupabaseClient
@@ -1904,7 +1905,28 @@ ${insightContext ? `\nContexte de la conversation :\n${insightContext}` : ''}`).
   return { ok: true, prompt, payload }
 }
 
-/** Post-« oui » : envoie l'email figé via send-relance-email (Resend). */
+/**
+ * Refus de la garde de sortie qui se disent à l'agent sans code brut. Ce sont des RÉPONSES,
+ * pas des pannes : un STOP ou un plafond ne se contourne pas en renvoyant depuis le CRM, qui
+ * refuserait de même. Les autres motifs (panne, fournisseur) gardent leur code.
+ */
+const REFUS_RELANCE: Record<'fr' | 'en', Record<string, (qui: string) => string>> = {
+  fr: {
+    unsubscribed: (qui) => `Rien n'est parti — ${qui} a demandé à ne plus recevoir d'e-mails.`,
+    hourly_cap: () => "L'email n'est pas parti — ton agence a atteint son plafond horaire d'e-mails. Réessaie dans une heure.",
+    daily_cap: () => "L'email n'est pas parti — ton agence a atteint son plafond quotidien d'e-mails.",
+  },
+  en: {
+    unsubscribed: (who) => `Nothing was sent — ${who} asked to stop receiving emails.`,
+    hourly_cap: () => "The email didn't go out — your agency reached its hourly email cap. Try again in an hour.",
+    daily_cap: () => "The email didn't go out — your agency reached its daily email cap.",
+  },
+}
+
+/**
+ * Post-« oui » : envoie l'email figé — en DIRECT, par `_shared/relance-email-send.ts` : la
+ * même garde de sortie et le même gabarit que l'edge `send-relance-email`, sans passer par elle.
+ */
 export async function executeSendClientEmail(ctx: ActionCtx, payload: Args): Promise<string> {
   if (!hasAgency(ctx)) return NO_AGENCY
   const lang = ctx.lang ?? 'fr'
@@ -1924,6 +1946,13 @@ export async function executeSendClientEmail(ctx: ActionCtx, payload: Args): Pro
   if (!contact) return lang === 'en' ? 'Contact not found in your agency.' : 'Contact introuvable dans votre agence.'
   if (!contact.email) return lang === 'en' ? "This contact has no email — email not sent." : "Ce contact n'a pas d'email — email non envoyé."
   const first = (contact.first_name ?? '').trim() || (lang === 'en' ? 'the contact' : 'le contact')
+  // L'adresse figée au brouillon doit être encore celle de la fiche : l'agent a validé un
+  // e-mail « à Marie », et une adresse changée entre-temps n'est plus celle de Marie.
+  if (contact.email.trim().toLowerCase() !== to.toLowerCase()) {
+    return lang === 'en'
+      ? `${first}'s email address changed since the draft — email not sent. Ask me again and I'll prepare it anew.`
+      : `L'adresse e-mail de ${first} a changé depuis le brouillon — email non envoyé. Redemande-le-moi et je le prépare à nouveau.`
+  }
 
   // Nom d'affichage de l'agent pour la signature.
   const { data: agentRow } = await ctx.supabase.from('profiles')
@@ -1932,19 +1961,21 @@ export async function executeSendClientEmail(ctx: ActionCtx, payload: Args): Pro
     .maybeSingle()
   const agentName = (agentRow as { full_name: string | null } | null)?.full_name?.trim() ?? undefined
 
-  // Envoi via send-relance-email (service-role).
+  // ⛔ EN DIRECT, JAMAIS PAR L'EDGE (14.09.2026). L'appel HTTP à `send-relance-email` sous la
+  // clé de service rendait 401 à chaque « oui » : elle exige un JWT d'agent. L'agence et
+  // l'agent viennent du lien WhatsApp VÉRIFIÉ (ctx), jamais du payload ; la garde de sortie
+  // (périmètre → STOP → quota) s'applique comme au CRM. Seul `whatsapp-webhook` exécute ce
+  // « oui » : le copilote web ne propose pas send_client_email (copilot-tools.test.ts).
   let emailSent = false
   let failReason: string | null = null
   try {
-    const res = await fetch(urlFonction(Deno.env.get('SUPABASE_URL') ?? '', 'send-relance-email'), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-      },
-      body: JSON.stringify({ to, subject, body, agentName, agencyId: ctx.agencyId, leadId: contactId }),
-      signal: AbortSignal.timeout(20_000),
-    })
+    const res = await sendRelanceEmail(
+      ctx.supabase,
+      { agencyId: ctx.agencyId as string, actorId: ctx.profileId, sender: 'whatsapp-webhook' },
+      { to, subject, body, agentName, leadId: contactId },
+      {},
+      { signal: AbortSignal.timeout(20_000) },
+    )
     if (res.ok) {
       emailSent = true
     } else {
@@ -1966,6 +1997,8 @@ export async function executeSendClientEmail(ctx: ActionCtx, payload: Args): Pro
   if (emailSent) {
     return lang === 'en' ? `Email sent to ${first}.` : `Email envoyé à ${first}.`
   }
+  const refus: ((qui: string) => string) | undefined = REFUS_RELANCE[lang === 'en' ? 'en' : 'fr'][failReason ?? '']
+  if (refus) return refus(first)
   return lang === 'en'
     ? `The email didn't go out (${failReason ?? 'unknown'}). You can send it from the CRM.`
     : `L'email n'est pas parti (${failReason ?? 'inconnu'}). Tu peux le renvoyer depuis le CRM.`

@@ -25,8 +25,13 @@ export const INTERCOM_ALLOWED_KEYS = [
   'company',
 ] as const
 
-/** Clés autorisées dans l'objet `company` (données de l'AGENCE SaaS — jamais d'un client). */
-export const INTERCOM_ALLOWED_COMPANY_KEYS = ['company_id', 'name', 'stripe_customer_id'] as const
+/**
+ * Clés autorisées dans l'objet `company` (données de l'AGENCE SaaS — jamais d'un client).
+ * `stripe_customer_id` en est sorti le 13.09.2026 (audit S13) : posé par le navigateur, il est
+ * falsifiable, et la colonne n'est plus lisible par un membre. Le client Stripe se résout côté
+ * serveur depuis `company_id`.
+ */
+export const INTERCOM_ALLOWED_COMPANY_KEYS = ['company_id', 'name'] as const
 
 const USER_SET: ReadonlySet<string> = new Set(INTERCOM_ALLOWED_KEYS)
 const COMPANY_SET: ReadonlySet<string> = new Set(INTERCOM_ALLOWED_COMPANY_KEYS)

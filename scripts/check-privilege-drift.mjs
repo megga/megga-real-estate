@@ -177,6 +177,38 @@ const SQL_JETONS_ETAT = `
     from (values ('google_calendar_tokens', 'user_id'), ('google_calendar_tokens', 'google_email'),
                  ('outlook_calendar_tokens', 'user_id'), ('outlook_calendar_tokens', 'outlook_email')) as v(tb, col)`;
 
+/**
+ * S13 — la facturation et le calibrage des agents restent au serveur (20260913170000).
+ *
+ * Un membre d'agence ne lit ni `agencies.stripe_customer_id` ni les colonnes financières
+ * de `subscriptions` (identifiants Stripe, prix, MRR, dernière facture), et aucun rôle
+ * client n'appelle `compute_agent_preferences` (le calibrage « Premier jour » de
+ * n'importe quel agent). ⚠ Mesuré PAR COLONNE, comme les jetons : un grant de table
+ * réaccorde tout.
+ */
+const COLONNES_FACTURATION = [
+  ['agencies', 'stripe_customer_id'],
+  ['subscriptions', 'stripe_customer_id'], ['subscriptions', 'stripe_subscription_id'],
+  ['subscriptions', 'stripe_price_id'], ['subscriptions', 'price'], ['subscriptions', 'mrr_chf'],
+  ['subscriptions', 'last_invoice_status'], ['subscriptions', 'last_stripe_event_at'],
+];
+const SQL_FACTURATION = `
+  select 'authenticated ' || v.tb || '.' || v.col || ' SELECT' as fuite
+    from (values ${COLONNES_FACTURATION.map(([tb, col]) => `('${tb}', '${col}')`).join(', ')}) as v(tb, col)
+   where has_column_privilege('authenticated', 'public.' || v.tb, v.col, 'SELECT')
+  union all
+  select r.rl || ' compute_agent_preferences EXECUTE'
+    from (values ('anon'), ('authenticated')) as r(rl)
+   where has_function_privilege(r.rl, 'public.compute_agent_preferences(uuid)', 'EXECUTE')
+   order by 1`;
+
+/** Contrôle positif : les écrans lisent toujours le plan, la vérification et la période. */
+const SQL_FACTURATION_ETAT = `
+  select bool_and(has_column_privilege('authenticated', 'public.' || v.tb, v.col, 'SELECT')) as lisible
+    from (values ('agencies', 'plan'), ('agencies', 'verification_status'),
+                 ('agencies', 'identity_submitted_at'), ('subscriptions', 'status'),
+                 ('subscriptions', 'current_period_end')) as v(tb, col)`;
+
 async function query(token, sql) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/database/query`, {
     method: 'POST',
@@ -251,7 +283,8 @@ let ecritures = await query(token, SQL_ECRITURES);
 // Dans la boucle d'attente, comme les deux autres : mesurée sur le commit de merge
 // AVANT que deploy.yml n'applique la migration, elle rougirait à chaque livraison.
 let jetons = await query(token, SQL_JETONS);
-for (let essai = 1; (fuites.length > 0 || ecritures.length > 0 || jetons.length > 0) && essai < TENTATIVES; essai++) {
+let facturation = await query(token, SQL_FACTURATION);
+for (let essai = 1; (fuites.length > 0 || ecritures.length > 0 || jetons.length > 0 || facturation.length > 0) && essai < TENTATIVES; essai++) {
   console.log(
     `  ${fuites.length} table(s) interne(s), ${ecritures.length} table(s) en écriture et ${jetons.length} droit(s) sur les jetons d'agenda encore ouverts — ` +
     `un déploiement est peut-être en cours (essai ${essai}/${TENTATIVES - 1}, ` +
@@ -261,6 +294,7 @@ for (let essai = 1; (fuites.length > 0 || ecritures.length > 0 || jetons.length 
   fuites = await query(token, SQL);
   ecritures = await query(token, SQL_ECRITURES);
   jetons = await query(token, SQL_JETONS);
+  facturation = await query(token, SQL_FACTURATION);
 }
 
 const [{ ouvert: entonnoirOuvert }] = await query(token, SQL_ENTONNOIR);
@@ -274,6 +308,24 @@ const [{ lisible: etatLisible }] = await query(token, SQL_JETONS_ETAT);
 if (!etatLisible) {
   console.error('✗ `authenticated` ne lit plus l\'état de sa connexion d\'agenda (user_id, *_email).');
   console.error('  Le grant de colonnes de 20260913160600 a disparu : l\'écran Intégrations croit l\'agenda déconnecté.');
+  process.exit(1);
+}
+
+const [{ lisible: facturationLisible }] = await query(token, SQL_FACTURATION_ETAT);
+if (!facturationLisible) {
+  console.error('✗ `authenticated` ne lit plus une colonne d\'écran d\'agencies / subscriptions (plan, vérification, période).');
+  console.error('  Le grant de colonnes de 20260913170000 a été amputé : Réglages et l\'onboarding KYB tomberaient en 42501.');
+  process.exit(1);
+}
+
+if (facturation.length > 0) {
+  console.error(`\n✗ ${facturation.length} lecture(s) de facturation ou de calibrage ouverte(s) à un rôle client en production :\n`);
+  for (const { fuite } of facturation) console.error(`  ${fuite}`);
+  console.error(`
+Depuis 20260913170000, un membre ne lit ni les identifiants Stripe ni les montants, et
+aucun rôle client n'appelle compute_agent_preferences. Un grant de TABLE réaccorde
+toutes les colonnes — c'est le suspect habituel. Correctif : rejouer la migration
+(revoke select on table … from authenticated, puis grant des colonnes non secrètes).`);
   process.exit(1);
 }
 

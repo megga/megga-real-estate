@@ -13,6 +13,11 @@
 //
 // Fenêtre de préavis et plafond de reports sont appliqués par les RPC
 // (`cancel_kyc_appointment`, `reschedule_kyc_appointment`), pas ici.
+//
+// Le jeton `appt` est une capacité DISTINCTE du lien magique : il part à l'adresse
+// du contact (jamais dans une réponse HTTP), et révoquer le lien — le passer à
+// `expired` — ne le révoque pas. Cette fonction ne lit donc pas `kyc_magic_links`,
+// et n'a pas de statut de lien à vérifier.
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -183,6 +188,16 @@ serve(async (req) => {
   } catch (e) {
     console.error('appointment-manage: écho agenda externe échoué', e)
   }
+
+  // L'instantané freeBusy de l'agent (appointment-slots) décrit l'agenda d'AVANT le
+  // geste : une annulation y laisserait le créneau libéré bloqué, un report l'ancien
+  // horaire. On le jette APRÈS l'écho, pour que la prochaine liste relise l'agenda.
+  // Meilleur effort : il expire seul en 60 s, et l'occupation interne n'y est jamais.
+  const { error: cacheErr } = await db
+    .from('kyc_booking_freebusy_cache')
+    .delete()
+    .eq('agent_id', row.agent_id)
+  if (cacheErr) console.error('appointment-manage: instantané freeBusy non jeté', cacheErr.code)
 
   try {
     if (contact?.email) {

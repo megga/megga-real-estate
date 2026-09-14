@@ -7,6 +7,7 @@ import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
 import { reportEdgeError } from '../_shared/audit-edge-error.ts'
+import { tablePrixStripe } from '../_shared/stripe-prices.ts'
 import {
   buildStripeIdentityRecord,
   isStripeVerificationStatus,
@@ -23,22 +24,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage, stripe-signature',
 }
 
+// La table des prix est COMMUNE avec stripe-checkout (audit S15, 13.09.2026) : un prix que
+// ce webhook ne saurait pas traduire en plan ne peut plus être souscrit.
+const PRIX_STRIPE = tablePrixStripe((nom) => Deno.env.get(nom))
+
 function getPlanFromPriceId(priceId: string): string {
-  const priceMap: Record<string, string> = {
-    [Deno.env.get('STRIPE_PRICE_PRO_MONTHLY') ?? '']: 'pro',
-    [Deno.env.get('STRIPE_PRICE_PRO_YEARLY') ?? '']: 'pro',
-    [Deno.env.get('STRIPE_PRICE_ENTREPRISE_MONTHLY') ?? '']: 'entreprise',
-    [Deno.env.get('STRIPE_PRICE_ENTREPRISE_YEARLY') ?? '']: 'entreprise',
-  }
-  return priceMap[priceId] || 'starter'
+  return PRIX_STRIPE.get(priceId)?.plan ?? 'starter'
 }
 
 function getBillingPeriod(priceId: string): string {
-  const yearlyPrices = [
-    Deno.env.get('STRIPE_PRICE_PRO_YEARLY'),
-    Deno.env.get('STRIPE_PRICE_ENTREPRISE_YEARLY'),
-  ]
-  return yearlyPrices.includes(priceId) ? 'yearly' : 'monthly'
+  return PRIX_STRIPE.get(priceId)?.periode ?? 'monthly'
 }
 
 /**
@@ -333,8 +328,13 @@ serve(async (req) => {
         body, signature, webhookSecret
       )
     } catch (err) {
+      // N'importe qui peut atteindre cette branche : c'est AVANT la signature. Le message du
+      // SDK y décrivait ce qui avait échoué — en-tête absent, horodatage hors tolérance,
+      // aucune signature concordante —, un diagnostic de notre configuration rendu à un
+      // inconnu, comme le motif du lien magique avant S10. Stripe n'a besoin que du 400
+      // pour rejouer ; le détail reste dans le journal (audit S14).
       console.error('Webhook signature verification failed:', (err as Error).message)
-      return new Response(`Webhook Error: ${(err as Error).message}`, { status: 400 })
+      return new Response('Webhook Error: signature verification failed', { status: 400 })
     }
 
     const supabaseAdmin = createClient(

@@ -5,6 +5,7 @@
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
 import { readDocument } from '../_shared/vision.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -159,21 +160,28 @@ serve(async (req) => {
 
     // Log successful extraction for quota accounting and audit trail. We do
     // this AFTER the model returns so a 502/422 doesn't count against the cap.
-    await supabase.from('activity_events').insert({
+    // ⛔ actor_kind 'ai' ⇒ actor_id NULL : l'ancien couple 'ai' + actor_id violait le CHECK
+    // activity_events_actor_kind_coherence, l'erreur n'était pas lue, et le quota — qui compte
+    // ces lignes — ne comptait donc jamais rien. L'agent est nommé dans metadata.profile_id.
+    const { error: auditErr } = await supabase.from('activity_events').insert({
       agency_id: profile.agency_id,
-      actor_id: profile.id,
+      actor_id: null,
       actor_kind: 'ai',
       action: 'extract_property_pdf',
       entity_type: 'property',
       severity: 'info',
       category: 'ai',
       metadata: {
+        profile_id: profile.id,
         filename: filename ?? 'document.pdf',
         usage: null,
         usage_count: currentUsage + 1,
         quota,
       },
     })
+    // L'échec se DIT (il n'était pas lu) ; le résultat déjà produit est livré quand même —
+    // le refuser pousserait l'agent à relancer, donc à repayer l'appel au modèle.
+    if (auditErr) console.error('extract-property-pdf audit (quota non compté):', redactedErrorMessage(auditErr))
 
     return new Response(
       JSON.stringify({
@@ -186,9 +194,10 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (err) {
-    console.error('Edge function error:', err)
+    // Plus de String(err) vers le navigateur (même règle qu'en S14) : le détail est au journal.
+    console.error('extract-property-pdf error:', redactedErrorMessage(err))
     return new Response(
-      JSON.stringify({ error: 'Internal error', message: String(err) }),
+      JSON.stringify({ error: 'Internal error', message: 'Lecture du document impossible. Réessayez dans un instant.' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
