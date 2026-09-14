@@ -57,6 +57,7 @@ import { crmPalette } from '@/components/crm/tokens'
 import AgentLayout from '@/components/layout/AgentLayout'
 import KycLabGuard from '@/components/layout/KycLabGuard'
 import { SUPABASE_FUNCTIONS_URL } from '@/lib/supabase'
+import { NewTabPagePrechargeable } from '@/lib/pagesPrechargeables'
 import { desinstallerBanc, installerBanc, reglerBanc, type BancEtat } from './bancSupabase'
 import { CRM_RPC, CRM_RPC_VIDE, CRM_TABLES } from './crmFixtures'
 import { semerSessionBanc } from './bancSession'
@@ -66,7 +67,8 @@ import { MailFixturesContext, useMailFixtures } from '@/components/crm/messageri
 /* ─── Les surfaces montées, dérivées du ROUTAGE de `App.tsx` ───────────────── */
 
 const TodayPage = lazy(() => import('@/pages/agent/TodayPage'))
-const NewTabPage = lazy(() => import('@/pages/agent/NewTabPage'))
+// La MÊME instance que l'app : le banc doit montrer le préchargement tel qu'il marche.
+const NewTabPage = NewTabPagePrechargeable
 const DashboardNotFoundPage = lazy(() => import('@/pages/agent/DashboardNotFoundPage'))
 const KycPage = lazy(() => import('@/pages/agent/KycPage'))
 const KycOnboardingPage = lazy(() => import('@/pages/agent/KycOnboardingPage'))

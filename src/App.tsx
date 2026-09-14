@@ -37,6 +37,7 @@ import AdminConsoleRoute from '@/components/admin/AdminConsoleRoute'
 import ByParam from '@/components/layout/ByParam'
 import ImpersonationHandoff from '@/components/admin/ImpersonationHandoff'
 import SmartPageLoader from '@/components/skeletons/SmartPageLoader'
+import { NewTabPagePrechargeable } from '@/lib/pagesPrechargeables'
 
 // Lazy-loaded public pages
 // Property X storefront pages were removed — getmegga.com now serves the static
@@ -125,7 +126,9 @@ const VisitDetailPage = lazy(() => import('@/pages/agent/VisitDetailPage'))
 const ImportLeadPage = lazy(() => import('@/pages/agent/ImportLeadPage'))
 const MatchingPage = lazy(() => import('@/pages/agent/MatchingPage'))
 const JourneyPage = lazy(() => import('@/pages/agent/JourneyPage'))
-const NewTabPage = lazy(() => import('@/pages/agent/NewTabPage'))
+// ⚠ Préchargeable, et partagée avec la bande d'onglets qui la précharge : au premier
+// « + », son chunk manquant faisait passer l'écran entier au noir (14.09.2026).
+const NewTabPage = NewTabPagePrechargeable
 const DashboardNotFoundPage = lazy(() => import('@/pages/agent/DashboardNotFoundPage'))
 const CalendarPage = lazy(() => import('@/pages/agent/CalendarPage'))
 // Messagerie (boîte mail intégrée) — l'écran, son mobile minimal (D16) et le

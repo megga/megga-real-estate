@@ -54,6 +54,7 @@ import { modaleOuverte } from '@/lib/modaleOuverte'
 import { useAgentNotifications } from '@/hooks/useAgentNotifications'
 import CrmNotificationsPopover from './notifications/CrmNotificationsPopover'
 import CrmCompteBouton from './profile/CrmCompteBouton'
+import { planifierPrechargementOngletNeuf, prechargerOngletNeuf } from '@/lib/pagesPrechargeables'
 
 /**
  * Hauteur d'une puce. Une HAUTEUR n'est pas un espacement : aucun barreau ne la couvre.
@@ -429,6 +430,11 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override, active: sectio
       document.removeEventListener('keydown', onKey)
     }
   }, [notifOuvert])
+
+  // ⛔ Ce qu'un onglet neuf affichera est préchargé dès que la bande est là : au premier
+  // « + », l'écran entier passait au noir le temps du chunk (voir `pagesPrechargeables`).
+  // Idempotent — les six écrans vivants le demandent, un seul import part.
+  useEffect(() => planifierPrechargementOngletNeuf(), [])
 
   const barreRef = useRef<HTMLDivElement | null>(null)
   /** La piste des puces, et l'espace encore libre à sa droite. */
@@ -841,6 +847,8 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override, active: sectio
         actif={false}
         libelle={t('tabs.new')}
         onClick={() => api.ouvrirNouvel()}
+        // Filet du préchargement au repos : la main qui vient au « + » le lance aussi.
+        onIntention={prechargerOngletNeuf}
       />
 
       {/* ── Le quart droit ────────────────────────────────────────────────────
@@ -1001,12 +1009,14 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override, active: sectio
  * Commande ronde du quart droit — même diamètre que la pastille « +N », pour que
  * les trois se lisent comme une seule famille.
  */
-function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded, badge = 0 }: {
+function CommandeRonde({ sp, icone, actif, libelle, onClick, onIntention, haspopup, expanded, badge = 0 }: {
   sp: CrmPalette
   icone: 'sparkle' | 'sun' | 'moon' | 'plus' | 'bell'
   actif: boolean
   libelle: string
   onClick: () => void
+  /** Survol ou focus : la commande va sans doute être actionnée (préchargement). */
+  onIntention?: () => void
   haspopup?: 'dialog'
   expanded?: boolean
   /** Compteur non lu, posé en pastille sur le coin. `0` n'en rend aucune. */
@@ -1058,8 +1068,9 @@ function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded,
     <motion.button
       type="button"
       onClick={onClick}
-      onMouseEnter={() => setSurvol(true)}
+      onMouseEnter={() => { setSurvol(true); onIntention?.() }}
       onMouseLeave={() => setSurvol(false)}
+      onFocus={onIntention}
       title={libelle}
       aria-label={libelle}
       aria-pressed={haspopup ? undefined : actif}

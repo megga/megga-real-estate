@@ -249,6 +249,15 @@ squelette de tableau de bord — `/dashboard` ne recouvre plus qu'un chrome :
 sur la même préférence sombre que les pages ; c'était top-nav + rail d'icônes avant le 04.09.2026 —
 **et depuis le 04.09.2026 il dessine aussi la bande d'onglets**, sans quoi le cadre bento sauterait de
 48 px à chaque bascule squelette → page) pour TOUTE surface `/dashboard`, et `DefaultLoader` ailleurs.
+⛔ **« Plus aucun écran de chargement » est faux à l'OUVERTURE d'un écran d'onglet** (mesuré le
+14.09.2026) : chaque écran vivant a sa propre frontière Suspense (`AgentLayout`), et une frontière qui
+vient de monter peint son repli. Le squelette étant lui-même chargé à la demande, le premier « + »
+affichait ~300 ms le spinner de `DefaultLoader` sur fond de page — bande d'onglets et barre latérale
+comprises, disparues. La page d'onglet neuf et `CrmPageSkeleton` sont donc **préchargés au repos** dès
+que la bande monte ([`pagesPrechargeables.ts`](../src/lib/pagesPrechargeables.ts)) et rendus par
+`lazyPrechargeable`, qui ne suspend plus une fois chargé — `React.lazy` seul suspend une fois même sur
+un module en cache (vérifié par mutation). Garde : `tests/e2e/onglet-neuf.spec.ts`, qui compte les
+images sans bande pendant l'ouverture (18 sur 84 sans le correctif, 0 avec).
 ⛔ Cette phrase annonçait un second squelette `DashboardSkeleton` (sidebar + header) « pour les routes
 `AgentLayout` » : le fichier a été **supprimé le 28.07.2026** avec la coquille legacy, et
 `src/components/skeletons/` ne contient plus que ces deux fichiers. Les cinq routes qu'elle citait

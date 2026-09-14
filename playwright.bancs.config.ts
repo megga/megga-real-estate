@@ -17,7 +17,7 @@ import { defineConfig, devices } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: ['**/menus-clic-droit.spec.ts', '**/menu-compte.spec.ts'],
+  testMatch: ['**/menus-clic-droit.spec.ts', '**/menu-compte.spec.ts', '**/onglet-neuf.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
