@@ -427,7 +427,7 @@
     "modified": "Geändert",
     "deleted": "Gelöscht",
     "durationChanged": "Dauer geändert: {{start}} bis {{end}}",
-    "moved": "Verschoben: {{date}}, {{time}}",
+    "moved": "{{date}}, {{time}} Uhr",
     "markedDone": "Als erledigt markiert",
     "markedTodo": "Als offen markiert",
     "markedCancelled": "Als abgesagt markiert",

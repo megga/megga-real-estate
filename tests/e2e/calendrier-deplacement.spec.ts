@@ -83,6 +83,11 @@ test('une visite glissée de mardi à jeudi change de jour, garde son heure, et 
   await expect(colonne(page, 3).locator('button', { hasText: 'Visite —' })).toContainText('13:30')
   await expect(colonne(page, 1).locator('button', { hasText: 'Visite —' })).toHaveCount(0)
   await expect(page.getByRole('dialog'), 'le relâché ne doit pas ouvrir la bulle').toHaveCount(0)
+  // La confirmation ne dit que le point d'arrivée — le jour, le mois et l'heure (Julien,
+  // 14.09.2026) : ni le titre, ni « Déplacé ».
+  const confirmation = page.getByText('· Jeudi 17 septembre, 13:30')
+  await expect(confirmation).toBeVisible()
+  await expect(confirmation).not.toContainText(/Déplacé|Visite/)
 
   await expect.poll(() => ecritures(page, 'visits')).toHaveLength(1)
   const [w] = await ecritures(page, 'visits')

@@ -487,9 +487,12 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const commitEventTime = useCallback((id: string, mode: 'move' | 'resize', start: Date, end: Date, title: string) => {
     const mid = calMasterId(id)
     const ev = overrides[mid] ?? eventsRef.current.find(e => e.id === mid)
+    // Un déplacement ne se confirme que par son point d'arrivée — le jour, le mois et
+    // l'heure (Julien, 14.09.2026) : le titre et le verbe redisaient ce que le geste
+    // venait de montrer, et repoussaient la date en bout de ligne.
     const change = mode === 'resize'
       ? `${calShortTitle(title)} · ${t('toast.durationChanged', { start: fmtTime(start), end: fmtTime(end) })}`
-      : `${calShortTitle(title)} · ${t('toast.moved', { date: fmtDate(start), time: fmtTime(start) })}`
+      : t('toast.moved', { date: fmtDate(start), time: fmtTime(start) })
     setToast({ key: Date.now(), change, tone: 'cyan', toneColor: ev ? eventToneColor(ev) : null })
     if (ev) void persistTime(ev, start, end).then(ok => { if (!ok) revertTime(mid, title) })
   }, [overrides, t, eventToneColor, persistTime, revertTime])

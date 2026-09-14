@@ -427,7 +427,7 @@
     "modified": "Modified",
     "deleted": "Deleted",
     "durationChanged": "Duration changed: {{start}} to {{end}}",
-    "moved": "Moved: {{date}}, {{time}}",
+    "moved": "{{date}} at {{time}}",
     "markedDone": "Marked done",
     "markedTodo": "Marked to do",
     "markedCancelled": "Marked cancelled",
