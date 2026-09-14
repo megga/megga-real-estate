@@ -86,19 +86,21 @@ const EVENEMENTS = [
   // (`KIND_META`), sur trois jours, pour relire la popover telle qu'une agence la vit.
   // Actions réelles : celles de la production et de la table du journal. La rafale de
   // trois `match_suggested` sans sujet, à la même seconde, est la forme d'une passe du
-  // moteur — elle doit sortir en UNE ligne « ×3 » (`regrouper`).
+  // moteur — elle doit sortir en UNE ligne « ×3 » (`regrouper`). Les matchs et la
+  // diffusion désignent un bien PHOTOGRAPHIÉ : la tuile doit en montrer la photo.
+  // `metadata` a la forme de la production (`source`, `market_listing_id`, `score`).
   cloche('n1', 'ai', 'whatsapp_inbound_lead_created', 'contact', 'contact', 'Léa Martin (via WhatsApp)', 0.2),
   cloche('n2', 'system', 'whatsapp_message_received', 'contact', 'contact', 'Camille Rochat', 0.6),
-  cloche('n3a', 'ai', 'match_suggested', 'contact', 'match', null, 1.5),
-  cloche('n3b', 'ai', 'match_suggested', 'contact', 'match', null, 1.5),
-  cloche('n3c', 'ai', 'match_suggested', 'contact', 'match', null, 1.5),
+  cloche('n3a', 'ai', 'match_suggested', 'contact', 'match', null, 1.5, 'info', { metadata: { source: 'market', score: 88, contact_id: 'c1', property_id: null, market_listing_id: 'ml-cloche-1' } }),
+  cloche('n3b', 'ai', 'match_suggested', 'contact', 'match', null, 1.5, 'info', { metadata: { source: 'market', score: 81, contact_id: 'c3', property_id: null, market_listing_id: 'ml-cloche-2' } }),
+  cloche('n3c', 'ai', 'match_suggested', 'contact', 'match', null, 1.5, 'info', { metadata: { source: 'property', score: 76, contact_id: 'c1', property_id: 'p2', market_listing_id: null } }),
   cloche('n4', 'system', 'visit_scheduled', 'contact', 'visit', 'Rue de Lausanne 12 · jeudi 10:30', 2.2),
   cloche('n5', 'ai', 'reminder_created', 'contact', 'reminder', 'Rappeler Camille Rochat', 3),
   cloche('n6', 'system', 'stage_change', 'deal', 'transaction', 'visit_done → offer', 4),
   cloche('n7', 'ai', 'kyc_screening_match', 'kyc', 'kyc', 'Dossier Rochat · une alerte à examiner', 5, 'warning'),
   cloche('n8', 'system', 'signature.created', 'deal', 'signature', 'Mandat de vente · Avenue de Champel 8', 26),
   cloche('n9', 'system', 'document_filed_from_email', 'doc', 'document', 'Attestation bancaire.pdf', 28),
-  cloche('n10', 'system', 'property_published_to_portal', 'bien', 'property', 'Appartement 4.5 pièces · Carouge', 30),
+  cloche('n10', 'system', 'property_published_to_portal', 'bien', 'property', 'Appartement 4,5 pièces · Champel', 30, 'info', { entity_id: 'p1' }),
   cloche('n11', 'ai', 'whatsapp_morning_brief_sent', 'ai', 'agency', null, 33),
   cloche('n12', 'system', 'team_invite_accepted', 'auth', 'profile', 'Sophie Keller', 60),
   cloche('n13', 'system', 'subscription_changed', 'settings', 'agency', 'Plan Pro', 80),
@@ -106,9 +108,25 @@ const EVENEMENTS = [
 ]
 
 /** Un événement de la cloche : écrit par le système ou l'IA, jamais par un agent (`actor_id` NULL). */
-function cloche(id: string, acteur: 'ai' | 'system', action: string, category: string, entity_type: string, object_label: string | null, heures: number, severity = 'info') {
-  return { id, agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: acteur, action, category, severity, entity_type, entity_id: null, object_label, created_at: ilYA(heures) }
+function cloche(
+  id: string, acteur: 'ai' | 'system', action: string, category: string, entity_type: string,
+  object_label: string | null, heures: number, severity = 'info',
+  cible: { entity_id?: string; metadata?: Record<string, unknown> } = {},
+) {
+  return {
+    id, agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: acteur, action, category, severity, entity_type,
+    entity_id: cible.entity_id ?? null, metadata: cible.metadata ?? null, object_label, created_at: ilYA(heures),
+  }
 }
+
+/**
+ * Les deux annonces de marché que désignent les matchs de la cloche. ⚠ À PART de
+ * `ANNONCE_MARCHE_BANC`, qui doit rester SANS photo (elle éprouve le repli du catalogue).
+ */
+const ANNONCES_CLOCHE = [
+  { id: 'ml-cloche-1', title: 'Appartement 3,5 pièces · Carouge', city: 'Carouge', canton: 'GE', transaction_type: 'rent', status: 'active', photos: [PHOTO.carouge], photos_cf: null },
+  { id: 'ml-cloche-2', title: 'Appartement 4 pièces · Eaux-Vives', city: 'Genève', canton: 'GE', transaction_type: 'rent', status: 'active', photos: [PHOTO.eauxvives], photos_cf: null },
+]
 
 /* ─── KYC — de quoi regarder la liste, la vigie et la fiche stricte ────────── */
 
@@ -309,7 +327,7 @@ export const ANNONCE_MARCHE_BANC = {
 }
 
 export const CRM_TABLES: Record<string, unknown[]> = {
-  market_listings: [ANNONCE_MARCHE_BANC],
+  market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE],
   profiles: [AGENT_BANC],
   agencies: [AGENCE_BANC],
   contacts: CONTACTS,
@@ -346,8 +364,8 @@ export const CRM_TABLES: Record<string, unknown[]> = {
     { id: 'cl3', agency_id: AGENCE_BANC.id, name: 'Personnel', color: MXC_COLOR.accent, position: 2, created_at: ilYA(280), updated_at: ilYA(280) },
   ],
   properties: [
-    { id: 'p1', agency_id: AGENCE_BANC.id, title: 'Appartement 4,5 pièces · Champel', city: 'Genève', canton: 'GE', price: 1_450_000, rooms: 4.5, surface: 118, status: 'active', transaction_type: 'sale', published_at: ilYA(120), created_at: ilYA(400) },
-    { id: 'p2', agency_id: AGENCE_BANC.id, title: 'Villa individuelle · Cologny', city: 'Cologny', canton: 'GE', price: 3_200_000, rooms: 7, surface: 260, status: 'active', transaction_type: 'sale', published_at: ilYA(300), created_at: ilYA(700) },
+    { id: 'p1', agency_id: AGENCE_BANC.id, title: 'Appartement 4,5 pièces · Champel', city: 'Genève', canton: 'GE', price: 1_450_000, rooms: 4.5, surface: 118, status: 'active', transaction_type: 'sale', published_at: ilYA(120), created_at: ilYA(400), photos: [PHOTO.champel], photos_cf: null },
+    { id: 'p2', agency_id: AGENCE_BANC.id, title: 'Villa individuelle · Cologny', city: 'Cologny', canton: 'GE', price: 3_200_000, rooms: 7, surface: 260, status: 'active', transaction_type: 'sale', published_at: ilYA(300), created_at: ilYA(700), photos: [PHOTO.cologny], photos_cf: null },
   ],
   transactions: [],
   // Deux matchs pour la page « Catalogue » d'Aujourd'hui, et chacun éprouve un défaut

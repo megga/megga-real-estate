@@ -24,6 +24,7 @@ import EtatVide from '@/components/crm/EtatVide'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CoinCadre } from '@/hooks/useCoinDuCadre'
 import { KIND_META, type CrmNotif, type NotifGroup } from './data'
+import TuileNotif from './TuileNotif'
 
 /** Largeur de la coque : son bord droit se cale sur celui du cadre. */
 const LARGEUR = 380
@@ -51,16 +52,16 @@ function Ligne({ n, sp, dark, onClick }: { n: CrmNotif; sp: CrmPalette; dark: bo
         cursor: 'pointer', fontFamily: 'inherit', color: sp.ink,
       }}
     >
-      {/* La tuile porte le TYPE : glyphe au trait sur la teinte de son domaine. En
-          sombre le glyphe passe à l'encre — la teinte, sur fond noir, ne tient pas un
-          trait fin ; elle reste dans la tuile. */}
-      <span aria-hidden style={{
-        width: 40, height: 40, flexShrink: 0, display: 'grid', placeItems: 'center',
-        borderRadius: 'var(--crm-radius-lg)',
-        background: `color-mix(in srgb, ${meta.dot} ${dark ? 24 : 11}%, transparent)`,
-      }}>
-        <MEIcon name={meta.icon} size={20} color={dark ? sp.ink : meta.dot} strokeWidth={1.7} />
-      </span>
+      {/* La tuile : la PHOTO de ce que l'événement désigne quand il y en a une, sinon le
+          glyphe du type sur la teinte de son domaine. En sombre le glyphe passe à
+          l'encre — la teinte, sur fond noir, ne tient pas un trait fin. */}
+      <TuileNotif
+        n={n}
+        fondTuile={`color-mix(in srgb, ${meta.dot} ${dark ? 24 : 11}%, transparent)`}
+        encreGlyphe={dark ? sp.ink : meta.dot}
+        anneau={survol ? sp.focusSurface : sp.solidBg}
+        encrePastille={sp.accentInk}
+      />
 
       <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minWidth: 0 }}>

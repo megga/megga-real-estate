@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { KIND_META, type NotifGroup, type CrmNotif } from '@/components/crm/notifications/data'
+import TuileNotif from '@/components/crm/notifications/TuileNotif'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
@@ -86,19 +87,15 @@ export default function MrNotifSheet({
           opacity: n.read ? 0.62 : 1,
         }}
       >
-        <span
-          style={{
-            position: 'relative',
-            width: 40,
-            height: 40,
-            borderRadius: 'var(--crm-radius-lg)',
-            flexShrink: 0,
-            display: 'grid',
-            placeItems: 'center',
-            background: n.read ? tk.cardSubtle : tint(meta.dot, isDark ? 0.22 : 0.1),
-          }}
+        {/* La tuile partagée avec le bureau : la photo du bien ou de l'annonce désignés
+            quand il y en a une (match, diffusion), sinon le glyphe du type. */}
+        <TuileNotif
+          n={n}
+          fondTuile={n.read ? tk.cardSubtle : tint(meta.dot, isDark ? 0.22 : 0.1)}
+          encreGlyphe={iconColor}
+          anneau={n.read ? tk.sheetBg : tk.card}
+          encrePastille="#FFFFFF"
         >
-          <MEIcon name={meta.icon} size={19} color={iconColor} strokeWidth={1.9} />
           {!n.read ? (
             <span
               style={{
@@ -113,7 +110,7 @@ export default function MrNotifSheet({
               }}
             />
           ) : null}
-        </span>
+        </TuileNotif>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span
             style={{

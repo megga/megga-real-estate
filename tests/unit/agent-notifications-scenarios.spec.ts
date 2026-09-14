@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { regrouper, toKind } from '@/hooks/useAgentNotifications'
+import { ciblePhoto, regrouper, toKind } from '@/hooks/useAgentNotifications'
 import { KIND_META, type NotifKind } from '@/components/crm/notifications/data'
 import { repoPath } from './helpers/fs-scan'
 
@@ -109,6 +109,25 @@ describe('cloche — les rafales se lisent en une ligne', () => {
       ev('d', 'match_suggested', 50),
     ])
     expect(g.map((x) => x.ids)).toEqual([['a'], ['b'], ['c'], ['d']])
+  })
+})
+
+describe('cloche — la photo vient de ce que l’événement désigne', () => {
+  // La forme de production d'un match (mesurée le 14.09.2026) : l'annonce est dans `metadata`.
+  it('un match du marché désigne son annonce, un match d’agence son bien', () => {
+    expect(ciblePhoto({ entity_type: 'match', entity_id: 'm1', metadata: { source: 'market', market_listing_id: 'ml1', property_id: null } }))
+      .toEqual({ table: 'market_listings', id: 'ml1' })
+    expect(ciblePhoto({ entity_type: 'match', entity_id: 'm2', metadata: { source: 'property', market_listing_id: null, property_id: 'p9' } }))
+      .toEqual({ table: 'properties', id: 'p9' })
+  })
+
+  it('un événement de bien désigne le bien de son `entity_id`', () => {
+    expect(ciblePhoto({ entity_type: 'property', entity_id: 'p1', metadata: null })).toEqual({ table: 'properties', id: 'p1' })
+  })
+
+  it('sans bien désigné, pas de photo — la ligne garde son glyphe', () => {
+    expect(ciblePhoto({ entity_type: 'contact', entity_id: 'c1', metadata: null })).toBeNull()
+    expect(ciblePhoto({ entity_type: 'reminder', entity_id: null, metadata: { contact_id: 'c1' } })).toBeNull()
   })
 })
 

@@ -211,6 +211,34 @@ export function detailFor(ev: Pick<RawEvent, 'action' | 'object_label'>): string
     .join(' → ')
 }
 
+/** Où trouver la photo d'un événement : l'annonce du marché ou le bien qu'il désigne. */
+interface CiblePhoto { table: 'market_listings' | 'properties'; id: string }
+
+const texte = (v: unknown): string | null => (typeof v === 'string' && v ? v : null)
+
+/**
+ * La photo d'un événement vient de ce qu'il DÉSIGNE. Un match porte son annonce dans
+ * `metadata` (`market_listing_id` quand `source = 'market'`, sinon `property_id`, mesuré
+ * en production le 14.09.2026) ; un événement de bien porte le bien en `entity_id`.
+ */
+export function ciblePhoto(ev: Pick<RawEvent, 'metadata' | 'entity_type' | 'entity_id'>): CiblePhoto | null {
+  const m = ev.metadata ?? {}
+  const annonce = texte(m.market_listing_id)
+  if (annonce) return { table: 'market_listings', id: annonce }
+  const bien = texte(m.property_id) ?? (ev.entity_type === 'property' || ev.entity_type === 'bien' ? texte(ev.entity_id) : null)
+  return bien ? { table: 'properties', id: bien } : null
+}
+
+/** Première photo d'une ligne : les dérivés R2 (`photos_cf`) d'abord, sinon les originaux. */
+function premierePhoto(row: { photos?: unknown; photos_cf?: unknown }): string | null {
+  const cf = Array.isArray(row.photos_cf) ? row.photos_cf : []
+  const ph = Array.isArray(row.photos) ? row.photos : []
+  return [...cf, ...ph].map(texte).find(Boolean) ?? null
+}
+
+/** Combien de lignes, au plus, reçoivent leur photo : celles que la cloche montre d'abord. */
+const LIGNES_PHOTO = 12
+
 /** Une ligne de la cloche : un événement, ou une rafale anonyme de la même action. */
 interface GroupeCloche {
   ev: RawEvent
@@ -361,12 +389,48 @@ export function useAgentNotifications(limit = 60): AgentNotifications {
     staleTime: 30_000,
   })
 
+  const pertinents = useMemo(() => (query.data ?? []).filter((ev) => !TECHNIQUE.includes(ev.action)), [query.data])
+  const groupes = useMemo(() => regrouper(pertinents), [pertinents])
+
+  // Les photos des lignes montrées d'abord (14.09.2026, Julien : « pour les annonces qu'on
+  // publie, ou s'il y a un match qui arrive, synchroniser l'image »). Une requête par table,
+  // bornée par les identifiants — jamais une liste de `photos` parcourue.
+  const cibles = useMemo(() => {
+    const annonces = new Set<string>()
+    const biens = new Set<string>()
+    for (const { ev } of groupes.slice(0, LIGNES_PHOTO)) {
+      const c = ciblePhoto(ev)
+      if (c) (c.table === 'market_listings' ? annonces : biens).add(c.id)
+    }
+    return { annonces: [...annonces].sort(), biens: [...biens].sort() }
+  }, [groupes])
+
+  // ⚠ Le TITRE vient avec la photo : un match n'a pas de libellé serveur, et sa ligne ne
+  // disait que « Correspondance suggérée ». Le bien qu'il désigne devient son sujet.
+  const photos = useQuery({
+    queryKey: ['agent-notifications-photos', agencyId, cibles.annonces, cibles.biens],
+    enabled: !!agencyId && cibles.annonces.length + cibles.biens.length > 0,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<Record<string, { photo: string | null; titre: string | null }>> => {
+      const [annonces, biens] = await Promise.all([
+        cibles.annonces.length ? supabase.from('market_listings').select('id, title, photos, photos_cf').in('id', cibles.annonces) : null,
+        cibles.biens.length ? supabase.from('properties').select('id, title, photos, photos_cf').in('id', cibles.biens) : null,
+      ])
+      // Une photo qui manque n'est pas une panne : la ligne garde son glyphe.
+      const table: Record<string, { photo: string | null; titre: string | null }> = {}
+      for (const row of [...(annonces?.data ?? []), ...(biens?.data ?? [])]) {
+        table[row.id] = { photo: premierePhoto(row), titre: texte(row.title) }
+      }
+      return table
+    },
+  })
+
   const items = useMemo<CrmNotif[]>(() => {
     const lu = (ev: RawEvent) => readIds.has(ev.id) || new Date(ev.created_at).getTime() <= lastSeen
-    const pertinents = (query.data ?? []).filter((ev) => !TECHNIQUE.includes(ev.action))
-    return regrouper(pertinents).map(({ ev, ids }) => {
+    return groupes.map(({ ev, ids }) => {
       const { cta, ctaTo } = ctaFor()
       const membres = pertinents.filter((e) => ids.includes(e.id))
+      const designe = (() => { const c = ciblePhoto(ev); return c ? photos.data?.[c.id] : undefined })()
       return {
         id: ev.id,
         kind: toKind(ev.action, ev.category),
@@ -374,16 +438,18 @@ export function useAgentNotifications(limit = 60): AgentNotifications {
         // Une rafale est lue quand TOUS ses événements le sont.
         read: membres.every(lu),
         title: titleFor(ev),
-        body: detailFor(ev),
+        // Le libellé serveur d'abord ; sans lui, le titre du bien désigné (un match).
+        body: detailFor(ev) || designe?.titre || '',
         time: relTime(ev.created_at),
         group: toGroup(ev.created_at),
         count: ids.length,
         ids,
+        image: designe?.photo ?? null,
         cta,
         ctaTo,
       }
     })
-  }, [query.data, readIds, lastSeen])
+  }, [groupes, pertinents, readIds, lastSeen, photos.data])
 
   // Le badge compte les ÉVÉNEMENTS non lus, pas les lignes : trois matchs regroupés en
   // attendent trois.

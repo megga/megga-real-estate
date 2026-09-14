@@ -35,6 +35,11 @@ export interface CrmNotif {
   count: number
   /** Leurs identifiants : lire la ligne les marque tous lus. */
   ids: string[]
+  /**
+   * La photo du bien ou de l'annonce que l'événement désigne (un match, une diffusion),
+   * quand il en a une — elle prend la place du glyphe. `null` sinon.
+   */
+  image: string | null
   cta: string
   ctaTo: string
 }

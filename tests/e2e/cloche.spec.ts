@@ -44,6 +44,25 @@ test('une rafale anonyme se lit en une ligne « ×3 », et la pause de deux heur
   await expect(popover(page).getByText(/Pause/)).toHaveCount(0)
 })
 
+/**
+ * « Pour les annonces qu'on publie, ou s'il y a un match qui arrive, synchroniser l'image »
+ * (Julien, 14.09.2026). ⚠ Les photos du banc viennent d'Unsplash : servies ici par une
+ * image locale, pour que le test ne dépende pas du réseau — une photo qui échoue retombe
+ * sur le glyphe, et le test la croirait absente.
+ */
+test('un match et une diffusion montrent la photo du bien qu’ils désignent — un rappel garde son glyphe', async ({ page }) => {
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64')
+  await page.route('**/images.unsplash.com/**', (r) => r.fulfill({ body: png, contentType: 'image/png' }))
+  await cloche(page).click()
+  const ligne = (texte: string) => popover(page).locator('section button', { hasText: texte })
+  const match = ligne('Correspondance suggérée')
+  await expect(match.locator('img')).toHaveAttribute('referrerpolicy', 'no-referrer')
+  // Sans libellé serveur, le sujet d'un match est le bien qu'il désigne.
+  await expect(match).toContainText('Appartement 3,5 pièces · Carouge')
+  await expect(ligne('Bien diffusé sur un portail').locator('img')).toHaveCount(1)
+  await expect(ligne('Rappel créé').locator('img')).toHaveCount(0)
+})
+
 test('lire une ligne la marque lue — le compteur baisse, la cloche reste ouverte', async ({ page }) => {
   const avant = await nonLus(page)
   expect(avant).toBeGreaterThan(0)
