@@ -47,19 +47,33 @@ export interface CrmNotif {
 }
 
 /**
- * Les teintes des types, écrites UNE fois : un type encode son DOMAINE par une hue
- * (relation, agenda, affaires, conformité…), et deux types d'un même domaine se
- * distinguent par leur glyphe. Les valeurs sont celles que portait déjà le registre.
+ * La teinte de chaque type — UNE PAR TYPE, et toutes distinctes.
+ *
+ * ⛔ Elle encodait le DOMAINE (14.09.2026, matin) : deux types d'un même domaine
+ * partageaient leur hue et ne se distinguaient que par un glyphe de 20 px — Visite et
+ * Rappel, Étape et Mandat, Équipe et Facturation, Correspondance et MEGGA AI. Le même
+ * défaut que les pastilles d'acteur du journal (« MEGGA AI, il est pareil que le
+ * système »), et le même remède, le même jour (Julien : « fais pareil pour les icônes
+ * des évènements »). Choisies pour se séparer : l'écart le plus faible entre deux teintes
+ * vaut ΔE 21 (Correspondance / Équipe) ; toutes tiennent le blanc à 3,5:1 au moins — la
+ * tuile est un aplat, et c'est le glyphe BLANC qui doit s'y lire (seuil graphique : 3:1).
+ * MEGGA AI garde l'ACCENT, sa marque, comme sa pastille d'acteur.
  */
-const TEINTE = {
-  relation: '#059669',
-  agenda: '#0891B2',
-  affaires: '#C45A00',
-  pieces: '#1E5BC6',
-  conformite: '#E53935',
-  compte: '#7A4FD8',
-  systeme: '#7A8088',
-} as const
+const TEINTE: Record<Exclude<NotifKind, 'ai'>, string> = {
+  contact: '#059669',
+  message: '#0891B2',
+  matching: '#C026D3',
+  visite: '#2563EB',
+  rappel: '#A16207',
+  pipeline: '#EA580C',
+  mandat: '#BE185D',
+  doc: '#334155',
+  bien: '#0F766E',
+  kyc: '#DC2626',
+  team: '#7E22CE',
+  facturation: '#4D7C0F',
+  system: '#78716C',
+}
 
 /**
  * La teinte et le glyphe de chaque type.
@@ -71,21 +85,20 @@ const TEINTE = {
  * tuile disent déjà le type.
  */
 export const KIND_META: Record<NotifKind, { dot: string; icon: MEIconName }> = {
-  contact:     { dot: TEINTE.relation,   icon: 'user' },
-  message:     { dot: TEINTE.relation,   icon: 'message' },
-  // Les correspondances sont proposées par MEGGA AI : elles en portent la teinte.
-  matching:    { dot: MXC_COLOR.accent,  icon: 'target' },
-  visite:      { dot: TEINTE.agenda,     icon: 'calendar' },
-  rappel:      { dot: TEINTE.agenda,     icon: 'clock' },
-  pipeline:    { dot: TEINTE.affaires,   icon: 'pipeline' },
-  mandat:      { dot: TEINTE.affaires,   icon: 'edit' },
-  doc:         { dot: TEINTE.pieces,     icon: 'file-text' },
-  bien:        { dot: TEINTE.pieces,     icon: 'home' },
-  kyc:         { dot: TEINTE.conformite, icon: 'shield' },
+  contact:     { dot: TEINTE.contact,     icon: 'user' },
+  message:     { dot: TEINTE.message,     icon: 'message' },
+  matching:    { dot: TEINTE.matching,    icon: 'target' },
+  visite:      { dot: TEINTE.visite,      icon: 'calendar' },
+  rappel:      { dot: TEINTE.rappel,      icon: 'clock' },
+  pipeline:    { dot: TEINTE.pipeline,    icon: 'pipeline' },
+  mandat:      { dot: TEINTE.mandat,      icon: 'edit' },
+  doc:         { dot: TEINTE.doc,         icon: 'file-text' },
+  bien:        { dot: TEINTE.bien,        icon: 'home' },
+  kyc:         { dot: TEINTE.kyc,         icon: 'shield' },
   // ⚠ La pastille « ai » portait le noir de SUGAR, seule de la série à ne pas
   // porter une teinte. MEGGA AI a la sienne — l'accent, celle que le dock arbore.
-  ai:          { dot: MXC_COLOR.accent,  icon: 'sparkle' },
-  team:        { dot: TEINTE.compte,     icon: 'users' },
-  facturation: { dot: TEINTE.compte,     icon: 'credit-card' },
-  system:      { dot: TEINTE.systeme,    icon: 'settings' },
+  ai:          { dot: MXC_COLOR.accent,   icon: 'sparkle' },
+  team:        { dot: TEINTE.team,        icon: 'users' },
+  facturation: { dot: TEINTE.facturation, icon: 'credit-card' },
+  system:      { dot: TEINTE.system,      icon: 'settings' },
 }

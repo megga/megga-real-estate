@@ -23,7 +23,7 @@ import type { CrmPalette } from '../tokens'
 import EtatVide from '@/components/crm/EtatVide'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { CoinCadre } from '@/hooks/useCoinDuCadre'
-import { KIND_META, type CrmNotif, type NotifGroup } from './data'
+import { type CrmNotif, type NotifGroup } from './data'
 import TuileNotif from './TuileNotif'
 
 /** Largeur de la coque : son bord droit se cale sur celui du cadre. */
@@ -35,10 +35,9 @@ const JOURS: { id: NotifGroup; cle: string }[] = [
   { id: 'older', cle: 'notifications.groupOlder' },
 ]
 
-function Ligne({ n, sp, dark, onClick }: { n: CrmNotif; sp: CrmPalette; dark: boolean; onClick: () => void }) {
+function Ligne({ n, sp, onClick }: { n: CrmNotif; sp: CrmPalette; onClick: () => void }) {
   const { t } = useTranslation('common')
   const [survol, setSurvol] = useState(false)
-  const meta = KIND_META[n.kind] ?? KIND_META.system
   return (
     <button
       type="button"
@@ -52,13 +51,10 @@ function Ligne({ n, sp, dark, onClick }: { n: CrmNotif; sp: CrmPalette; dark: bo
         cursor: 'pointer', fontFamily: 'inherit', color: sp.ink,
       }}
     >
-      {/* La tuile : la PHOTO de ce que l'événement désigne quand il y en a une, sinon le
-          glyphe du type sur la teinte de son domaine. En sombre le glyphe passe à
-          l'encre — la teinte, sur fond noir, ne tient pas un trait fin. */}
+      {/* La tuile : la PHOTO de ce que l'événement désigne quand il y en a une, le logo
+          WhatsApp, sinon le glyphe blanc du type sur l'aplat de sa teinte. */}
       <TuileNotif
         n={n}
-        fondTuile={`color-mix(in srgb, ${meta.dot} ${dark ? 24 : 11}%, transparent)`}
-        encreGlyphe={dark ? sp.ink : meta.dot}
         anneau={survol ? sp.focusSurface : sp.solidBg}
         encrePastille={sp.accentInk}
       />
@@ -170,7 +166,7 @@ export default function CrmNotificationsPopover({
                 fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub,
               }}>{t(cle)}</span>
               {duJour.map((n) => (
-                <Ligne key={n.id} n={n} sp={sp} dark={dark} onClick={() => onItemClick(n)} />
+                <Ligne key={n.id} n={n} sp={sp} onClick={() => onItemClick(n)} />
               ))}
             </section>
           )

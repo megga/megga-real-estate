@@ -144,7 +144,12 @@ const HORS_ASSUMES = new Map<string, number>([
   // `STATUT_CLAIR` au lieu d'être recopiées — garde : `statut-clair.spec.ts`.
   // Puis −14 le même jour : le jeu de démonstration `DATA` d'« Aujourd'hui »
   // (today/data.ts), sans plus aucun lecteur, est retiré avec ses avatars teintés.
-  ['src/components/crm', 513],
+  // 513 → 519 le 14.09.2026, et c'est une CROISSANCE assumée : les types de notification
+  // passent de sept teintes de DOMAINE à une teinte PAR TYPE (`notifications/data.ts`) —
+  // deux types d'un même domaine se confondaient (Visite / Rappel, Étape / Mandat…).
+  // Des teintes qui ENCODENT, la famille que l'en-tête range hors de la direction par
+  // nature ; `agent-notifications-scenarios.spec.ts` les veut distinctes et lisibles.
+  ['src/components/crm', 519],
   ['src/components/crm-mobile', 140],
   // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
   // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de

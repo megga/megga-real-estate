@@ -32,15 +32,6 @@ const GROUPS: { id: NotifGroup; labelKey: string }[] = [
 
 const SHEET_SPRING = { type: 'spring' as const, stiffness: 320, damping: 34, mass: 0.95 }
 
-/** Convertit un hex en `rgba()` avec alpha — pour teinter le fond d'une pastille d'icône. */
-function tint(hex: string, a: number): string {
-  const h = hex.replace('#', '')
-  const r = parseInt(h.slice(0, 2), 16)
-  const g = parseInt(h.slice(2, 4), 16)
-  const b = parseInt(h.slice(4, 6), 16)
-  return `rgba(${r},${g},${b},${a})`
-}
-
 /**
  * Feuille Notifications (depuis « Plus » → cloche). Sugar Pure, alimentée par
  * `useAgentNotifications` (passé en props depuis le hub → une seule instance).
@@ -59,13 +50,12 @@ export default function MrNotifSheet({
   const reducedMotion = useReducedMotion()
   const refPiegeFocus = useFocusTrap(open, onClose)
   const { t } = useTranslation('common')
-  const { tk, isDark } = useMobileTokens()
+  const { tk } = useMobileTokens()
 
   const priorities = items.filter((n) => n.priority === 'high' && !n.read)
 
   const renderRow = (n: CrmNotif) => {
     const meta = KIND_META[n.kind]
-    const iconColor = isDark ? '#FFFFFF' : meta.dot
     return (
       <button
         key={n.id}
@@ -91,8 +81,6 @@ export default function MrNotifSheet({
             quand il y en a une (match, diffusion), sinon le glyphe du type. */}
         <TuileNotif
           n={n}
-          fondTuile={n.read ? tk.cardSubtle : tint(meta.dot, isDark ? 0.22 : 0.1)}
-          encreGlyphe={iconColor}
           anneau={n.read ? tk.sheetBg : tk.card}
           encrePastille="#FFFFFF"
         >

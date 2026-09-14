@@ -80,12 +80,25 @@ describe('cloche — chaque action a son type', () => {
 
   /**
    * Plus de libellé de type (14.09.2026, « c'est redondant ») : la ligne ne dit que l'heure.
-   * Reste ce qui distingue un type à l'œil — un glyphe au trait et une teinte.
+   * Ce qui distingue un type à l'œil est sa tuile — son glyphe BLANC sur l'aplat de SA
+   * teinte (« fais pareil pour les icônes des évènements » : deux types d'un même domaine
+   * portaient la même teinte, Visite / Rappel, Étape / Mandat, Équipe / Facturation).
    */
-  it('chaque type a son glyphe et sa teinte', () => {
+  it('chaque type a son glyphe et SA teinte — distincte, et lisible sous le blanc', () => {
+    const lin = (v: number) => { const x = v / 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4 }
+    const luminance = (hex: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => lin(parseInt(hex.slice(i, i + 2), 16)))
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    }
+    const vues = new Map<string, string>()
     for (const [kind, meta] of Object.entries(KIND_META)) {
       expect(meta.icon, kind).toBeTruthy()
       expect(meta.dot, kind).toMatch(/^#[0-9a-f]{6}$/i)
+      const teinte = meta.dot.toLowerCase()
+      expect(vues.get(teinte), `${kind} reprend la teinte de ${vues.get(teinte)}`).toBeUndefined()
+      vues.set(teinte, kind)
+      // Seuil GRAPHIQUE (WCAG 1.4.11) : le glyphe blanc de 20 px doit se lire sur l'aplat.
+      expect(1.05 / (luminance(meta.dot) + 0.05), `${kind} : blanc sur ${meta.dot}`).toBeGreaterThanOrEqual(3)
     }
   })
 })

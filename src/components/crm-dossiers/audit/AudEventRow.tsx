@@ -27,7 +27,6 @@ import { auditActionLabel, auditEntityLabel } from '@/lib/auditActionLabel'
 import { useCrmDark } from '@/lib/crmDark'
 import { crmPalette } from '@/components/crm/tokens'
 import TuileNotif from '@/components/crm/notifications/TuileNotif'
-import { KIND_META } from '@/components/crm/notifications/data'
 import { canalDe, detailFor, toKind, type Designe } from '@/hooks/useAgentNotifications'
 import { dossierPalette, AUDIT_CATEGORIES, AUDIT_CAT_ICONS } from '../tokens'
 import { CrmIcon } from '../icons'
@@ -73,7 +72,6 @@ export function AudEventRow({ event, last, rafale, noms, designe, compacte = fal
   const nomActeur = libelleActeur(event, noms)
   const nomme = acteur === 'agent' && !!event.actor_id && !!noms?.get(event.actor_id)
   const kind = toKind(event.action, event.category)
-  const meta = KIND_META[kind] ?? KIND_META.system
   // Le SUJET est ce que l'événement désigne (« Léa Martin », « Visite effectuée → Offre »),
   // sinon le titre du bien qu'il vise — un match n'a pas de libellé serveur, comme dans la
   // cloche. Rien d'autre : « Contact créé / Contact » répétait son propre titre.
@@ -157,14 +155,11 @@ export function AudEventRow({ event, last, rafale, noms, designe, compacte = fal
           // Le filet qui rattache l'événement à la tête de sa rafale.
           <span aria-hidden style={{ justifySelf: 'center', alignSelf: 'stretch', width: 2, borderRadius: 'var(--crm-radius-pill)', background: sp.cardBorder }} />
         ) : (
-          // La photo du bien désigné quand il y en a une, comme dans la cloche — le type reste
-          // lisible par la pastille du coin, cerclée du fond de la ligne. Sans photo, les
-          // teintes de la cloche : en sombre le glyphe passe à l'encre, la teinte ne tenant
-          // pas un trait fin sur fond noir.
+          // La tuile de la cloche : la photo du bien désigné quand il y en a une — le type
+          // reste lisible par la pastille du coin, cerclée du fond de la ligne —, le logo
+          // WhatsApp, sinon le glyphe blanc du type sur l'aplat de sa teinte.
           <TuileNotif
             n={{ kind, image: designe?.photo ?? null, canal: canalDe(event.action) }}
-            fondTuile={`color-mix(in srgb, ${meta.dot} ${dark ? 24 : 11}%, transparent)`}
-            encreGlyphe={dark ? sp.ink : meta.dot}
             anneau={survol || ouvert ? sp.focusSurface : sp.cardBg}
             encrePastille={sp.accentInk}
           />
