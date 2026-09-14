@@ -240,8 +240,8 @@
       "addBcc": "Empfänger in Blindkopie hinzufügen",
       "removeRecipient": "{{address}} entfernen",
       "invalidAddress": "Ungültige Adresse",
-      "invalidHint_one": "Eine Adresse ist zu korrigieren – zum Bearbeiten doppelklicken.",
-      "invalidHint_other": "{{count}} Adressen sind zu korrigieren – zum Bearbeiten doppelklicken.",
+      "invalidHint_one": "Eine Adresse ist zu korrigieren: zum Bearbeiten doppelklicken.",
+      "invalidHint_other": "{{count}} Adressen sind zu korrigieren: zum Bearbeiten doppelklicken.",
       "suggestions": "Vorgeschlagene Kontakte"
     },
     "folders": {

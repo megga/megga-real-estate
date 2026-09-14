@@ -240,8 +240,8 @@
       "addBcc": "Ajouter des destinataires en copie cachée",
       "removeRecipient": "Retirer {{address}}",
       "invalidAddress": "Adresse invalide",
-      "invalidHint_one": "Une adresse est à corriger — double-cliquez dessus pour la modifier.",
-      "invalidHint_other": "{{count}} adresses sont à corriger — double-cliquez dessus pour les modifier.",
+      "invalidHint_one": "Une adresse est à corriger : double-cliquez dessus pour la modifier.",
+      "invalidHint_other": "{{count}} adresses sont à corriger : double-cliquez dessus pour les modifier.",
       "suggestions": "Contacts suggérés"
     },
     "folders": {

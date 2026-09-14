@@ -240,8 +240,8 @@
       "addBcc": "Add Bcc recipients",
       "removeRecipient": "Remove {{address}}",
       "invalidAddress": "Invalid address",
-      "invalidHint_one": "One address needs fixing — double-click it to edit.",
-      "invalidHint_other": "{{count}} addresses need fixing — double-click one to edit.",
+      "invalidHint_one": "One address needs fixing: double-click it to edit.",
+      "invalidHint_other": "{{count}} addresses need fixing: double-click one to edit.",
       "suggestions": "Suggested contacts"
     },
     "folders": {
