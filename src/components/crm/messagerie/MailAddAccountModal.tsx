@@ -1,27 +1,31 @@
 /**
  * L'assistant « Ajouter une boîte » (README §6), transposé en MEGGA X.
  *
- * Quatre étapes, et deux seulement mènent quelque part aujourd'hui :
- *  · `list`  — le choix du fournisseur ;
+ * Quatre étapes :
+ *  · `list`  — WhatsApp, Google, Microsoft, ou « Autre boîte (IMAP / SMTP) » ;
  *  · `oauth` — Google et Microsoft, par la pop-up de consentement (maître D1) ;
- *  · `imap`  — Infomaniak, Bluewin et « autre boîte » (maître D6 : ces deux
- *    fournisseurs suisses n'exposent AUCUN OAuth de messagerie, donc leur ligne
- *    ouvre l'étape IMAP pré-remplie et jamais l'étape d'autorisation) ;
+ *  · `imap`  — toute autre boîte, par mot de passe (lot 3) ;
  *  · `done`  — la boîte connectée.
  *
- * ⚠ IMAP est le LOT 3 : `mail-oauth` ne connaît pas encore `connect_imap` et
- * répond `unknown_action`. L'écran le DIT (« arrive dans une prochaine
- * version ») au lieu de griser la ligne — un champ grisé ne se lit pas, il se
- * devine.
+ * ⚠ PLUS DE TUILE PAR FOURNISSEUR SUISSE (Julien, 14.09.2026 : « Bluewin, Infomaniak, on
+ * peut supprimer, juste mettre IMAP »). Ce qu'elles apportaient — les serveurs — vient
+ * désormais de l'ADRESSE : `mail-oauth imap_detect` reconnaît le fournisseur par le domaine
+ * puis par le MX, et l'étape pré-remplit des champs qui restent modifiables. Un domaine
+ * d'agence hébergé chez Infomaniak est ainsi reconnu, ce qu'une tuile ne faisait pas.
+ *
+ * ⚠ Une adresse Google ou Microsoft saisie en IMAP est RENVOYÉE vers sa connexion OAuth :
+ * Microsoft refuse le mot de passe en IMAP, Google ne l'accepte qu'en mot de passe
+ * d'application — pour Google, l'IMAP reste donc proposé.
  *
  * ⚠ WhatsApp n'est PAS une boîte de cet écran (maître D13) : sa ligne NAVIGUE
  * vers la carte d'appairage des Réglages.
  */
-import { useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { useMailAccounts, type ImapForm, type MailAccount } from '@/hooks/useMailAccounts'
+import { adresseValide } from '@/lib/mail/compose'
+import { useMailAccounts, type ImapDetection, type ImapForm, type MailAccount } from '@/hooks/useMailAccounts'
 import { useMailOAuthPopup } from '@/hooks/useMailOAuthPopup'
 import { MailCloseButton, MailModalShell } from './MailModalShell'
 import { MailProviderLogo, type MailProviderKey } from './MailProviderLogo'
@@ -29,33 +33,48 @@ import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
 type Step = 'list' | 'oauth' | 'imap' | 'done'
 type Fournisseur = Exclude<MailProviderKey, 'wa'>
+type ViaOAuth = 'gmail' | 'outlook'
 
 /** Largeur de la carte (README §6). */
 const LARGEUR = 520
 const VOILE = 0.12
 /** Diamètre du logo en tête d'étape et de la pastille verte « connectée ». */
 const LOGO_ETAPE = 40
+/** Le temps de finir de taper l'adresse avant d'en chercher les serveurs. */
+const ATTENTE_DETECTION = 400
+
+const NOM_OAUTH: Record<ViaOAuth, string> = { gmail: 'Google Workspace', outlook: 'Outlook / Microsoft 365' }
+/** Le fournisseur dans une phrase : « Connecter avec Google ». */
+const MARQUE: Record<ViaOAuth, string> = { gmail: 'Google', outlook: 'Microsoft' }
 
 /**
- * Présélections de l'assistant. Les ports SMTP sont en **465** (TLS implicite)
- * et non 587 : le runtime edge de Supabase bloque 25 et 587, donc STARTTLS y est
- * impossible (maître D5). Proposer 587 par défaut serait promettre un chemin
- * qui n'existe pas.
+ * Les ports que `connect_imap` accepte, et ce qu'ils disent du chiffrement : un CHOIX, pas
+ * un champ libre — un port libre finissait en `port_not_allowed`, et le chiffrement se
+ * déduit du port (993 et 465 d'emblée, 143 et 587 par STARTTLS).
  */
-const PRESET: Record<Fournisseur, { name: string; imap: string; smtp: string; oauth: boolean }> = {
-  gmail: { name: 'Google Workspace', imap: 'imap.gmail.com', smtp: 'smtp.gmail.com', oauth: true },
-  outlook: { name: 'Outlook / Microsoft 365', imap: 'outlook.office365.com', smtp: 'smtp.office365.com', oauth: true },
-  infomaniak: { name: 'Infomaniak Mail', imap: 'mail.infomaniak.com', smtp: 'mail.infomaniak.com', oauth: false },
-  bluewin: { name: 'Bluewin (Swisscom)', imap: 'imap.bluewin.ch', smtp: 'smtpauths.bluewin.ch', oauth: false },
-  imap: { name: '', imap: '', smtp: '', oauth: false },
-}
+const PORTS_IMAP: [number, string][] = [[993, '993 · SSL/TLS'], [143, '143 · STARTTLS']]
+const PORTS_SMTP: [number, string][] = [[465, '465 · SSL/TLS'], [587, '587 · STARTTLS']]
 
-/** Motif du serveur (ou de la pop-up) → clé i18n. Ce qui n'y figure pas tombe sur `generic`. */
+type Serveurs = Pick<ImapForm, 'imap_host' | 'imap_port' | 'smtp_host' | 'smtp_port'>
+const SERVEURS_VIDES: Serveurs = { imap_host: '', imap_port: 993, smtp_host: '', smtp_port: 465 }
+
+/**
+ * Motif du serveur → clé i18n. `connection_failed` se lit par son `detail`, qui nomme
+ * l'étape en échec ; ce qui n'y figure pas tombe sur `connection`, puis `generic`.
+ */
 const IMAP_ERRORS: Record<string, string> = {
   invalid_input: 'mail.add.imap.err.invalid',
-  starttls_unsupported: 'mail.add.imap.err.starttls',
-  connection_failed: 'mail.add.imap.err.connection',
-  unknown_action: 'mail.add.imap.unavailable',
+  port_not_allowed: 'mail.add.imap.err.port',
+  host_not_allowed: 'mail.add.imap.err.host',
+  already_connected: 'mail.add.imap.err.already',
+  imap_auth: 'mail.add.imap.err.imapAuth',
+  imap_unreachable: 'mail.add.imap.err.imapUnreachable',
+  imap_starttls: 'mail.add.imap.err.imapStarttls',
+  imap_certificate: 'mail.add.imap.err.imapCertificate',
+  smtp_auth: 'mail.add.imap.err.smtpAuth',
+  smtp_unreachable: 'mail.add.imap.err.smtpUnreachable',
+  smtp_starttls: 'mail.add.imap.err.smtpStarttls',
+  smtp_certificate: 'mail.add.imap.err.smtpCertificate',
 }
 const OAUTH_ERRORS: Record<string, string> = {
   popup_blocked: 'mail.add.oauth.err.popupBlocked',
@@ -65,6 +84,8 @@ const OAUTH_ERRORS: Record<string, string> = {
   provider_not_configured: 'mail.add.oauth.err.notConfigured',
   exchange_failed: 'mail.add.oauth.err.exchange',
 }
+
+type Detection = { etat: 'repos' } | { etat: 'recherche' } | { etat: 'faite'; resultat: ImapDetection }
 
 interface Props {
   ms: MailSurfaces
@@ -78,18 +99,18 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
   const { t } = useTranslation('messages')
   const navigate = useNavigate()
   const { connect, cancel } = useMailOAuthPopup()
-  const { connectImap } = useMailAccounts()
+  const { detectImap, connectImap } = useMailAccounts()
   const [step, setStep] = useState<Step>('list')
   const [prov, setProv] = useState<Fournisseur>('gmail')
   const [addr, setAddr] = useState('')
   const [shared, setShared] = useState(false)
-  const [form, setForm] = useState<ImapForm>({
-    email: '', imap_host: '', imap_port: 993, smtp_host: '', smtp_port: 465,
-    user: '', password: '', encryption: 'ssl', visibility: 'owner',
-  })
+  const [form, setForm] = useState<ImapForm>({ email: '', ...SERVEURS_VIDES, user: '', password: '', visibility: 'owner' })
+  const [detection, setDetection] = useState<Detection>({ etat: 'repos' })
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<MailAccount | null>(null)
+  /** L'agent a tapé un serveur ou changé un port : la détection ne les écrase plus. */
+  const [serveursSaisis, setServeursSaisis] = useState(false)
   /*
    * ⚠ AUCUN EFFET DE REMISE À ZÉRO ICI, et ce n'est pas un oubli : `MessagerieApp`
    * MONTE et DÉMONTE l'assistant avec la modale (même patron que le composeur),
@@ -99,14 +120,55 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
    * que `react-hooks/set-state-in-effect` signale.
    */
 
-  const nomDe = (p: Fournisseur) => (p === 'imap' ? t('mail.add.other') : PRESET[p].name)
+  /*
+   * Les serveurs de l'adresse, une fois la frappe posée. Le nettoyage de l'effet est la
+   * garde : une réponse arrivée pour une adresse déjà retapée est jetée, jamais appliquée.
+   */
+  useEffect(() => {
+    const email = form.email.trim().toLowerCase()
+    if (!adresseValide(email)) return
+    let perimee = false
+    const minuterie = window.setTimeout(() => {
+      void detectImap(email).then((r) => {
+        if (perimee) return
+        const resultat: ImapDetection = r.data ?? { oauth: null, preset: null }
+        setDetection({ etat: 'faite', resultat })
+        const p = resultat.preset
+        const serveurs: Serveurs = p ? { imap_host: p.imapHost, imap_port: p.imapPort, smtp_host: p.smtpHost, smtp_port: p.smtpPort } : SERVEURS_VIDES
+        // Une adresse corrigée vers un fournisseur inconnu vide AUSSI les serveurs devinés
+        // pour l'ancienne : des serveurs Bluewin sous une adresse d'agence seraient un piège.
+        // Ceux que l'agent a tapés ne bougent pas — sauf s'il les a effacés.
+        setForm((f) => (serveursSaisis && (f.imap_host.trim() || f.smtp_host.trim()) ? f : { ...f, ...serveurs }))
+      })
+    }, ATTENTE_DETECTION)
+    return () => { perimee = true; window.clearTimeout(minuterie) }
+  }, [form.email, serveursSaisis, detectImap])
+
+  const nomDe = (p: Fournisseur) => (p === 'imap' ? t('mail.add.other') : NOM_OAUTH[p])
+
+  /**
+   * L'adresse change : « Recherche des serveurs… » tout de suite, la requête après la frappe.
+   * L'échec du test précédent s'efface — il parlait d'une autre boîte.
+   */
+  const saisirAdresse = (valeur: string) => {
+    setForm((f) => ({ ...f, email: valeur }))
+    setDetection(adresseValide(valeur.trim().toLowerCase()) ? { etat: 'recherche' } : { etat: 'repos' })
+    setError(null)
+  }
+  const saisirServeurs = (champs: Partial<Serveurs>) => {
+    setForm((f) => ({ ...f, ...champs }))
+    setServeursSaisis(true)
+  }
 
   const pick = (p: MailProviderKey) => {
     if (p === 'wa') { onClose(); navigate('/dashboard/settings?tab=integrations'); return }
     setProv(p); setError(null)
-    const pr = PRESET[p]
-    setForm((f) => ({ ...f, imap_host: pr.imap, smtp_host: pr.smtp, imap_port: 993, smtp_port: 465, encryption: 'ssl' }))
-    setStep(pr.oauth ? 'oauth' : 'imap')
+    setStep(p === 'imap' ? 'imap' : 'oauth')
+  }
+
+  /** De l'étape IMAP vers la connexion du fournisseur reconnu, l'adresse reportée. */
+  const versOAuth = (p: ViaOAuth) => {
+    setAddr(form.email.trim()); setProv(p); setError(null); setStep('oauth')
   }
 
   const authorize = async () => {
@@ -126,7 +188,9 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
     const r = await connectImap({ ...form, email, user: form.user.trim() || email, visibility: shared ? 'agency' : 'owner' })
     setBusy(false)
     if (!r.error && r.data) { setDone(r.data.account); setStep('done'); return }
-    setError(t(IMAP_ERRORS[r.error ?? ''] ?? 'mail.add.imap.err.generic'))
+    const cle = r.error === 'connection_failed' ? IMAP_ERRORS[r.detail ?? ''] ?? 'mail.add.imap.err.connection' : IMAP_ERRORS[r.error ?? '']
+    const fournisseur = r.detail === 'gmail' || r.detail === 'outlook' ? MARQUE[r.detail] : r.detail ?? ''
+    setError(t(cle ?? 'mail.add.imap.err.generic', { provider: fournisseur }))
   }
 
   const champ = {
@@ -161,6 +225,16 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
         cursor: disabled || busy ? 'default' : 'pointer', opacity: disabled || busy ? 0.6 : 1,
         fontFamily: 'inherit', transition: MAIL_TRANSITION,
       }}
+    >
+      {label}
+    </button>
+  )
+  /** Un lien discret dans une phrase (« Configurer en IMAP », « Connecter avec Google »). */
+  const lien = (label: string, onClick: () => void) => (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{ background: 'none', border: 'none', color: ms.txt3, fontSize: 'var(--crm-text-xs)', textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
     >
       {label}
     </button>
@@ -208,8 +282,56 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
       <MEIcon name="chevron-right" size={13} color={ms.mut} />
     </button>
   )
+  const choixPort = (valeur: number, ports: [number, string][], label: string, onChange: (p: number) => void) => (
+    <div style={{ position: 'relative' }}>
+      <select
+        value={valeur}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={label}
+        style={{ ...champ, appearance: 'none', paddingRight: 'var(--crm-space-6xl)', cursor: 'pointer' }}
+      >
+        {ports.map(([p, libelle]) => <option key={p} value={p}>{libelle}</option>)}
+      </select>
+      <span aria-hidden style={{ position: 'absolute', right: 'var(--crm-space-2xl)', top: '50%', transform: 'translateY(-50%)', display: 'flex', pointerEvents: 'none' }}>
+        <MEIcon name="chevron-down" size={12} color={ms.mut} />
+      </span>
+    </div>
+  )
+  /** Ce que la détection a trouvé, sous l'adresse. */
+  const indice = () => {
+    const ligne = (contenu: ReactNode) => (
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--crm-space-sm)', marginTop: 'var(--crm-space-sm)', fontSize: 'var(--crm-text-xs)', color: ms.mut, lineHeight: 1.6 }}>
+        {contenu}
+      </div>
+    )
+    if (detection.etat === 'recherche') return ligne(t('mail.add.imap.detect.searching'))
+    if (detection.etat !== 'faite') return null
+    const { oauth, preset } = detection.resultat
+    // Venu de Google, l'agent a déjà écarté la connexion Google : on ne la lui repropose pas.
+    if (oauth && oauth !== prov) {
+      return ligne(<>
+        <span>{t(oauth === 'gmail' ? 'mail.add.imap.detect.google' : 'mail.add.imap.detect.microsoft')}</span>
+        {lien(t('mail.add.imap.detect.useOauth', { provider: MARQUE[oauth] }), () => versOAuth(oauth))}
+      </>)
+    }
+    if (preset) {
+      return ligne(<>
+        <MEIcon name="check" size={12} color={ms.successText} />
+        <span>{t('mail.add.imap.detect.found', { provider: preset.nom })}</span>
+        {preset.motDePasseApplication && <span>{t('mail.add.imap.detect.appPassword')}</span>}
+      </>)
+    }
+    return ligne(t('mail.add.imap.detect.none'))
+  }
 
   const fermer = () => { cancel(); onClose() }
+  /** « Ajouter une autre » : l'assistant repart vierge, sans l'adresse ni le mot de passe de la précédente. */
+  const recommencer = () => {
+    setForm({ email: '', ...SERVEURS_VIDES, user: '', password: '', visibility: 'owner' })
+    setServeursSaisis(false)
+    setDetection({ etat: 'repos' }); setAddr(''); setDone(null); setError(null); setStep('list')
+  }
+  const imapPret = adresseValide(form.email.trim().toLowerCase()) && !!form.password && !!form.imap_host.trim() && !!form.smtp_host.trim()
 
   return (
     <MailModalShell ms={ms} open={open} onClose={fermer} width={LARGEUR} ariaLabel={t('mail.add.title')} veil={VOILE}>
@@ -221,10 +343,8 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
       {step === 'list' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)', marginTop: 'var(--crm-space-2xl)' }}>
           {ligneFournisseur('wa', 'WhatsApp Business', t('mail.add.waSub'), true)}
-          {ligneFournisseur('gmail', PRESET.gmail.name, null)}
-          {ligneFournisseur('outlook', PRESET.outlook.name, null)}
-          {ligneFournisseur('infomaniak', PRESET.infomaniak.name, t('mail.add.imapSub'))}
-          {ligneFournisseur('bluewin', PRESET.bluewin.name, t('mail.add.imapSub'))}
+          {ligneFournisseur('gmail', NOM_OAUTH.gmail, null)}
+          {ligneFournisseur('outlook', NOM_OAUTH.outlook, null)}
           {ligneFournisseur('imap', t('mail.add.other'), t('mail.add.otherSub'))}
         </div>
       )}
@@ -258,13 +378,12 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
           {partage}
           {erreur}
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-3xl)' }}>
-            <button
-              type="button"
-              onClick={() => { setForm((f) => ({ ...f, email: addr, user: addr })); setStep('imap') }}
-              style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', color: ms.txt3, fontSize: 'var(--crm-text-xs)', textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', padding: 0 }}
-            >
-              {t('mail.add.oauth.useImap')}
-            </button>
+            {/* Microsoft n'accepte plus de mot de passe en IMAP : proposer ce chemin à une
+                boîte Outlook, c'était promettre un échec. Google, lui, l'accepte en mot de
+                passe d'application. */}
+            <span style={{ flex: 1 }}>
+              {prov === 'gmail' && lien(t('mail.add.oauth.useImap'), () => { saisirAdresse(addr); setError(null); setStep('imap') })}
+            </span>
             {ghost(t('mail.add.back'), () => { cancel(); setStep('list') })}
             {primary(busy ? t('mail.add.oauth.busy') : t('mail.add.oauth.authorize'), () => void authorize())}
           </div>
@@ -274,41 +393,33 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
       {step === 'imap' && (
         <div>
           {enTete(prov, t('mail.add.imap.subtitle'))}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-2xl)' }}>
-            <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={t('mail.add.imap.email')} aria-label={t('mail.add.imap.email')} type="email" style={{ ...champ, gridColumn: 'span 2' }} />
-            <input value={form.imap_host} onChange={(e) => setForm({ ...form, imap_host: e.target.value })} placeholder={t('mail.add.imap.imapHost')} aria-label={t('mail.add.imap.imapHost')} style={champ} />
-            <input value={form.imap_port} onChange={(e) => setForm({ ...form, imap_port: Number(e.target.value) || 0 })} placeholder={t('mail.add.imap.port')} aria-label={t('mail.add.imap.imapPort')} inputMode="numeric" style={champ} />
-            <input value={form.smtp_host} onChange={(e) => setForm({ ...form, smtp_host: e.target.value })} placeholder={t('mail.add.imap.smtpHost')} aria-label={t('mail.add.imap.smtpHost')} style={champ} />
-            <input value={form.smtp_port} onChange={(e) => setForm({ ...form, smtp_port: Number(e.target.value) || 0 })} placeholder={t('mail.add.imap.port')} aria-label={t('mail.add.imap.smtpPort')} inputMode="numeric" style={champ} />
-            <input value={form.user} onChange={(e) => setForm({ ...form, user: e.target.value })} placeholder={t('mail.add.imap.user')} aria-label={t('mail.add.imap.user')} autoComplete="username" style={champ} />
-            <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={t('mail.add.imap.password')} aria-label={t('mail.add.imap.password')} type="password" autoComplete="current-password" style={champ} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-lg)' }}>
-            <span style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{t('mail.add.imap.encryption')}</span>
-            {(['ssl', 'starttls'] as const).map((enc) => (
-              <button
-                key={enc}
-                type="button"
-                aria-pressed={form.encryption === enc}
-                onClick={() => setForm({ ...form, encryption: enc, smtp_port: enc === 'ssl' ? 465 : 587 })}
-                style={{
-                  borderRadius: PILL, padding: 'var(--crm-space-xs) var(--crm-space-lg)', fontSize: 'var(--crm-text-xs)', fontWeight: 500,
-                  border: `1px solid ${form.encryption === enc ? ms.accent : ms.bord3}`,
-                  background: form.encryption === enc ? ms.accent : ms.elev,
-                  color: form.encryption === enc ? ms.accentInk : ms.txt3,
-                  cursor: 'pointer', fontFamily: 'inherit', transition: MAIL_TRANSITION,
-                }}
-              >
-                {enc === 'ssl' ? 'SSL / TLS' : 'STARTTLS'}
-              </button>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-2xl)' }}>
+            <div>
+              <input value={form.email} onChange={(e) => saisirAdresse(e.target.value)} placeholder={t('mail.add.imap.email')} aria-label={t('mail.add.imap.email')} type="email" autoComplete="off" style={champ} />
+              {/* La région existe AVANT son contenu : un lecteur d'écran n'annonce pas une
+                  région vivante née avec le texte qu'elle porte. */}
+              <div aria-live="polite">{indice()}</div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 'var(--crm-space-md)' }}>
+              <input value={form.imap_host} onChange={(e) => saisirServeurs({ imap_host: e.target.value })} placeholder={t('mail.add.imap.imapHost')} aria-label={t('mail.add.imap.imapHost')} autoComplete="off" spellCheck={false} style={champ} />
+              {choixPort(form.imap_port, PORTS_IMAP, t('mail.add.imap.imapPort'), (p) => saisirServeurs({ imap_port: p }))}
+              <input value={form.smtp_host} onChange={(e) => saisirServeurs({ smtp_host: e.target.value })} placeholder={t('mail.add.imap.smtpHost')} aria-label={t('mail.add.imap.smtpHost')} autoComplete="off" spellCheck={false} style={champ} />
+              {choixPort(form.smtp_port, PORTS_SMTP, t('mail.add.imap.smtpPort'), (p) => saisirServeurs({ smtp_port: p }))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-md)' }}>
+              {/* ⚠ Ni `username` ni `current-password` : le navigateur proposerait d'y
+                  ranger — ou d'y remplir — les identifiants du CRM lui-même. */}
+              {/* Vide, l'identifiant EST l'adresse (`connect_imap`) : on le montre au lieu de le taire. */}
+              <input value={form.user} onChange={(e) => setForm({ ...form, user: e.target.value })} placeholder={form.email.trim() || t('mail.add.imap.user')} aria-label={t('mail.add.imap.user')} autoComplete="off" spellCheck={false} style={champ} />
+              <input value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} placeholder={t('mail.add.imap.password')} aria-label={t('mail.add.imap.password')} type="password" autoComplete="off" style={champ} />
+            </div>
           </div>
           <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut, lineHeight: 1.6, marginTop: 'var(--crm-space-lg)' }}>{t('mail.add.imap.note')}</div>
           {partage}
           {erreur}
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-3xl)' }}>
-            {ghost(t('mail.add.back'), () => setStep('list'))}
-            {primary(busy ? t('mail.add.oauth.busy') : t('mail.add.imap.test'), () => void testImap(), !form.email.includes('@') || !form.password)}
+            {ghost(t('mail.add.back'), () => { setError(null); setStep('list') })}
+            {primary(busy ? t('mail.add.imap.testing') : t('mail.add.imap.test'), () => void testImap(), !imapPret)}
           </div>
         </div>
       )}
@@ -335,7 +446,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
             ))}
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-3xl)' }}>
-            {ghost(t('mail.add.done.another'), () => { setDone(null); setStep('list') })}
+            {ghost(t('mail.add.done.another'), recommencer)}
             {primary(t('mail.add.done.open'), () => { onOpenAccount(done.id); onClose() })}
           </div>
         </div>

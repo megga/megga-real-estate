@@ -37,7 +37,8 @@
  */
 import { createContext, useContext } from 'react'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
-import type { MailAccount } from '@/hooks/useMailAccounts'
+import type { ImapDetection, ImapForm, MailAccount } from '@/hooks/useMailAccounts'
+import type { MailInvokeResult } from '@/lib/mail/invoke'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import type { MailFolderCounts, MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailMessageRow } from '@/hooks/useMailThread'
@@ -90,9 +91,49 @@ export function fxDeconnecter(accountId: string): void {
   deconnectees.add(accountId)
 }
 
+/** Les boîtes ajoutées au banc par l'assistant, le temps de la page. */
+const ajoutees: MailAccount[] = []
+
 /** Les boîtes du banc encore connectées. */
 export function fxBoites(): MailAccount[] {
-  return FX_ACCOUNTS.filter((a) => !deconnectees.has(a.id))
+  return [...FX_ACCOUNTS, ...ajoutees].filter((a) => !deconnectees.has(a.id))
+}
+
+/** Le temps d'un aller-retour : sans lui, le banc ne montrerait jamais « Recherche… » ni « Test des serveurs… ». */
+const latence = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * Le `mail-oauth imap_detect` du banc. ⚠ Aucun vrai fournisseur : les domaines en
+ * `exemple.ch` sont reconnus chez un « Hébergeur Exemple », les adresses Google et Microsoft
+ * sont renvoyées vers leur connexion — les trois réponses que l'écran sait montrer.
+ */
+export async function fxDetecterImap(email: string): Promise<MailInvokeResult<ImapDetection>> {
+  await latence(250)
+  const domaine = email.split('@')[1] ?? ''
+  const data: ImapDetection = domaine.endsWith('exemple.ch')
+    ? { oauth: null, preset: { nom: 'Hébergeur Exemple', imapHost: 'imap.hebergeur-exemple.ch', imapPort: 993, smtpHost: 'smtp.hebergeur-exemple.ch', smtpPort: 465, motDePasseApplication: false } }
+    : domaine === 'gmail.com'
+      ? { oauth: 'gmail', preset: { nom: 'Google', imapHost: 'imap.gmail.com', imapPort: 993, smtpHost: 'smtp.gmail.com', smtpPort: 465, motDePasseApplication: true } }
+      : domaine === 'outlook.com' ? { oauth: 'outlook', preset: null } : { oauth: null, preset: null }
+  return { data, error: null, status: 200 }
+}
+
+/**
+ * Le `mail-oauth connect_imap` du banc : le mot de passe « faux » est refusé par le serveur
+ * IMAP, une adresse déjà connectée par Google ou Microsoft l'est aussi — le reste connecte.
+ */
+export async function fxConnecterImap(form: ImapForm): Promise<MailInvokeResult<{ account: MailAccount }>> {
+  await latence(600)
+  const email = form.email.trim().toLowerCase()
+  const jumelle = fxBoites().find((a) => a.email === email && a.provider !== 'imap')
+  if (jumelle) return { data: null, error: 'already_connected', detail: jumelle.provider, status: 409 }
+  if (form.password === 'faux') return { data: null, error: 'connection_failed', detail: 'imap_auth', status: 502 }
+  const account: MailAccount = {
+    id: `fx-imap-${ajoutees.length + 1}`, agency_id: AG, owner_id: OWNER, provider: 'imap', email, display_name: null,
+    visibility: form.visibility, status: 'active', last_sync_at: new Date().toISOString(), last_error: null, created_at: new Date().toISOString(),
+  }
+  ajoutees.push(account)
+  return { data: { account }, error: null, status: 200 }
 }
 
 /** Les six libellés semés par le lot 1, transposés (maître §1). */
