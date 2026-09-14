@@ -34,6 +34,8 @@ import {
   useInsertMutation,
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
+import { INTERCOM_EVENTS } from '@/lib/intercom'
+import { markIntercomMilestone } from '@/lib/intercom-milestones'
 import { useAuth } from '@/hooks/useAuth'
 import type { Property } from '@/types/listing'
 import type { PropertyStatus } from '@/lib/constants'
@@ -147,6 +149,9 @@ export function useCreateProperty() {
         photos: input.photos ?? [],
       } as unknown as TablesInsert<'properties'>
       const rows = await insert.mutateAsync([payload])
+      // Jalon Intercom : un bien publié. Le brouillon que le wizard crée dès la
+      // première saisie ne compte pas ; sa publication passe par useUpdateProperty.
+      if (input.status !== 'draft') void markIntercomMilestone(INTERCOM_EVENTS.FIRST_PROPERTY_CREATED)
       const row = Array.isArray(rows) ? rows[0] : rows
       return row as unknown as { id: string; updated_at: string }
     },
@@ -208,6 +213,11 @@ export function useUpdateProperty() {
       queryClient.invalidateQueries({ queryKey: ['agency-properties'] })
       queryClient.invalidateQueries({ queryKey: ['agency-listings'] })
       queryClient.invalidateQueries({ queryKey: ['listings'] })
+      // Jalon Intercom : le brouillon du wizard devient un bien à sa publication.
+      // Les sauvegardes du brouillon (statut 'draft') et les éditions sans statut ne comptent pas.
+      if (variables.status && variables.status !== 'draft') {
+        void markIntercomMilestone(INTERCOM_EVENTS.FIRST_PROPERTY_CREATED)
+      }
     },
   })
 }

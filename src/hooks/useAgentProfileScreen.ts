@@ -25,12 +25,15 @@
 //   avatarUrl          : profiles.avatar_url (hydratation initiale — écriture
 //     gérée par useAvatar : upload bucket `avatars` + update avatar_url).
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { INTERCOM_EVENTS } from '@/lib/intercom'
+import { markIntercomMilestone } from '@/lib/intercom-milestones'
 import { useAuth } from '@/hooks/useAuth'
 import {
   DEFAULT_PROFILE,
+  profileCompletionScore,
   type ProfileData,
 } from '@/components/crm/settings/data'
 
@@ -158,6 +161,18 @@ export function useAgentProfileScreen(options?: { enabled?: boolean }): UseAgent
       avatarBg: avatarBgFromId(row.id),
     }
   }, [row])
+
+  // Jalon Intercom « profil complété » (un envoi par agent) : constaté sur la version EN
+  // BASE, jamais sur la saisie en cours, que le dernier champ vienne de ce formulaire ou
+  // de la vérification WhatsApp (`phone`). Même score que celui affiché à l'agent.
+  // ⚠ `bio` compte dans ce score mais vit dans `agent_profiles`, dont seul le super-admin
+  // crée la ligne (cf. `hasAgentProfile`) : sans elle, le score plafonne à 89 % et ce
+  // jalon ne part pas.
+  useEffect(() => {
+    if (fetched && profileCompletionScore(fetched) === 100) {
+      void markIntercomMilestone(INTERCOM_EVENTS.PROFILE_COMPLETED)
+    }
+  }, [fetched])
 
   // Profile retourné : DB si dispo, sinon defaults vides (PAS le mock "Gregory")
   const profile = useMemo<ProfileData>(() => {

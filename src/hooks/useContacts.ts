@@ -29,6 +29,8 @@ import {
   useDeleteMutation,
 } from '@supabase-cache-helpers/postgrest-react-query'
 import { supabase } from '@/lib/supabase'
+import { INTERCOM_EVENTS } from '@/lib/intercom'
+import { syncIntercomMilestones } from '@/lib/intercom-milestones'
 import { useAuth } from '@/hooks/useAuth'
 import type { Contact, ContactType } from '@/types/contact'
 import type { ContactScore } from '@/lib/constants'
@@ -140,6 +142,10 @@ export function useCreateContact() {
           form_data: (input.form_data ?? null) as unknown as import('@/types/database').Json | null,
         },
       ])
+      // Jalon Intercom « 5 contacts » : le seuil ne se voit qu'en comptant, d'où le constat
+      // en base (une requête `head`, et plus aucune une fois le jalon envoyé).
+      const agencyId = input.agency_id ?? profile?.agency_id
+      if (agencyId) void syncIntercomMilestones(agencyId, [INTERCOM_EVENTS.FIRST_CONTACTS_IMPORTED])
       return (Array.isArray(rows) ? rows[0] : rows) as unknown as Contact
     },
     isPending: insert.isPending,
