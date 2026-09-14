@@ -38,6 +38,7 @@ import { MailContextMenu } from './MailContextMenu'
 import { MailDeleteModal } from './MailDeleteModal'
 import { MailDisconnectModal } from './MailDisconnectModal'
 import { MailLinkContactModal } from './MailLinkContactModal'
+import { MailNotification, type MailNotificationData } from './MailNotification'
 import { MailCadreContext } from './mailCadre'
 import { MailRail } from './MailRail'
 import { MailReader } from './MailReader'
@@ -84,6 +85,8 @@ export function MessagerieApp({ dark, setDark }: Props) {
    * silence ; il lui faut un endroit où se dire.
    */
   const [avis, setAvis] = useState<string | null>(null)
+  /** La confirmation qui suit un geste, en bas du cadre (`MailNotification`). */
+  const [notification, setNotification] = useState<MailNotificationData | null>(null)
   // Le cadre (le « pager ») où les modales se montent : leur voile l'épouse, lui seul.
   const [cadre, setCadre] = useState<HTMLDivElement | null>(null)
   /**
@@ -231,7 +234,8 @@ export function MessagerieApp({ dark, setDark }: Props) {
   const idDeconnexion = state.modal.kind === 'disconnect' ? state.modal.accountId : null
   const boiteADeconnecter = idDeconnexion ? accounts.list.find((a) => a.id === idDeconnexion) ?? null : null
   /**
-   * La déconnexion confirmée.
+   * La déconnexion confirmée, puis la notification qui dit qu'elle a eu lieu (Julien,
+   * 14.09.2026) — un geste destructeur qui réussit en silence se refait.
    *
    * ⚠ Si la boîte déconnectée était la boîte COURANTE, l'écran passe à la SUIVANTE,
    * prise dans la liste d'avant le geste. Repartir de `null` laissait l'effet de
@@ -245,6 +249,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
       onSuccess: () => {
         dispatch({ type: 'modal', modal: { kind: 'none' } })
         if (state.accountId === b.id) dispatch({ type: 'select-account', accountId: accounts.list.find((a) => a.id !== b.id)?.id ?? null })
+        setNotification({ id: Date.now(), texte: t('mail.box.disconnected') })
       },
     })
   }
@@ -416,6 +421,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 />
               )}
             </section>
+            <MailNotification ms={ms} notification={notification} onFin={() => setNotification(null)} />
           </div>
 
           {state.ctx && (() => {

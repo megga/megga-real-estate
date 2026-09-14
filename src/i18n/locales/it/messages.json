@@ -195,6 +195,7 @@
       "disconnectTitle": "Disconnettere questa casella?",
       "disconnectBody": "I suoi messaggi verranno rimossi dal CRM. I documenti già archiviati restano nei loro dossier, e la casella stessa resta intatta presso il suo fornitore.",
       "disconnecting": "Disconnessione…",
+      "disconnected": "Casella disconnessa",
       "status": {
         "reauth_required": "Autorizzazione da rinnovare",
         "error": "Errore di sincronizzazione",

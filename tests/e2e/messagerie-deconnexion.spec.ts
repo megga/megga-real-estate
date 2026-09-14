@@ -2,7 +2,7 @@
  * Le × du sélecteur de boîtes (Julien, 14.09.2026 : « il s'agit de la suppression — une
  * confirmation avant, puis une notification pour dire que ça a été fait »). Éprouvé au
  * banc `/dev/crm` : la modale retient le geste, Annuler et Échap ne déconnectent rien, la
- * confirmation retire la boîte du sélecteur.
+ * confirmation retire la boîte du sélecteur et l'annonce.
  */
 import { test, expect, type Page } from '@playwright/test'
 
@@ -40,16 +40,34 @@ test('le × demande confirmation — Annuler et Échap ne déconnectent rien', a
 
   await selecteur(page).click()
   await expect(croix(page, 'facturation@agence-exemple.ch')).toBeVisible()
+  await expect(page.getByText('Boîte déconnectée')).toHaveCount(0)
 })
 
-test('confirmée, la boîte quitte le sélecteur', async ({ page }) => {
+test('confirmée, la boîte quitte le sélecteur et une notification le dit', async ({ page }) => {
   await selecteur(page).click()
   await croix(page, 'facturation@agence-exemple.ch').click()
   await modale(page).getByRole('button', { name: 'Déconnecter', exact: true }).click()
   await expect(modale(page)).toHaveCount(0)
+  // Court : « Boîte déconnectée », rien d'autre (Julien, 14.09.2026).
+  const notification = ecran(page).locator('[data-mail-bento] [data-mail-notification]')
+  await expect(notification).toHaveText('Boîte déconnectée')
+  // En BAS du cadre, centrée (« il faudrait la mettre en bas ») : 24 px au-dessus de son
+  // bord intérieur — le filet du cadre en plus. Mesuré une fois la capsule posée, le
+  // ressort la faisant monter.
+  await expect.poll(() => notification.evaluate((el) => {
+    const cadre = el.closest<HTMLElement>('[data-mail-bento]')!
+    const c = cadre.getBoundingClientRect()
+    const n = el.getBoundingClientRect()
+    const filet = parseFloat(getComputedStyle(cadre).borderBottomWidth)
+    return { bas: Math.round(c.bottom - filet - n.bottom), decentre: Math.abs(Math.round((n.left + n.right) / 2 - (c.left + c.right) / 2)) }
+  })).toEqual({ bas: 24, decentre: 0 })
+
   await selecteur(page).click()
   await expect(croix(page, 'facturation@agence-exemple.ch')).toHaveCount(0)
   await expect(croix(page, 'contact@agence-exemple.ch')).toBeVisible()
+  // Elle s'efface seule.
+  await page.mouse.move(0, 0)
+  await expect(notification).toHaveCount(0, { timeout: 8_000 })
 })
 
 /**

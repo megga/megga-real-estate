@@ -195,6 +195,7 @@
       "disconnectTitle": "Dieses Postfach trennen?",
       "disconnectBody": "Seine Nachrichten werden aus dem CRM entfernt. Bereits abgelegte Dokumente bleiben in ihren Dossiers, und das Postfach selbst bleibt beim Anbieter unverändert.",
       "disconnecting": "Wird getrennt …",
+      "disconnected": "Postfach getrennt",
       "status": {
         "reauth_required": "Berechtigung erneuern",
         "error": "Synchronisierungsfehler",

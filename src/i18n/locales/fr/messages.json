@@ -195,6 +195,7 @@
       "disconnectTitle": "Déconnecter cette boîte ?",
       "disconnectBody": "Ses messages seront retirés du CRM. Les documents déjà classés restent dans leurs dossiers, et la boîte elle-même reste intacte chez son fournisseur.",
       "disconnecting": "Déconnexion…",
+      "disconnected": "Boîte déconnectée",
       "status": {
         "reauth_required": "Autorisation à renouveler",
         "error": "Erreur de synchronisation",
