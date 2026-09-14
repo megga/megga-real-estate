@@ -396,7 +396,7 @@
     "dayWarning_one": "{{count}} Warnung",
     "dayWarning_other": "{{count}} Warnungen",
     "detail": {
-      "when": "Zeitstempel",
+      "when": "Uhrzeit",
       "category": "Kategorie",
       "entity": "Objekttyp",
       "reference": "Referenz",

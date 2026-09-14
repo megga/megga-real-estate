@@ -396,7 +396,7 @@
     "dayWarning_one": "{{count}} avviso",
     "dayWarning_other": "{{count}} avvisi",
     "detail": {
-      "when": "Data e ora",
+      "when": "Ora",
       "category": "Categoria",
       "entity": "Tipo di oggetto",
       "reference": "Riferimento",

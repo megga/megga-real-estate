@@ -30,7 +30,7 @@ import { KIND_META } from '@/components/crm/notifications/data'
 import { canalDe, detailFor, toKind, type Designe } from '@/hooks/useAgentNotifications'
 import { dossierPalette, AUDIT_CATEGORIES, AUDIT_CAT_ICONS } from '../tokens'
 import { CrmIcon } from '../icons'
-import { heureDe, horodatage, libelleActeur, libelleCategorie } from './journal'
+import { heureDe, heureSeconde, libelleActeur, libelleCategorie } from './journal'
 import type { AuditEvent } from '@/types/kyc'
 
 /** Largeur de la colonne de l'heure — le détail s'aligne sur le texte, après elle et la tuile. */
@@ -223,7 +223,7 @@ function Detail({ id, event, nomActeur, compacte }: { id: string; event: AuditEv
   // glyphe (seuil 3:1), pas pour un texte. Le libellé reste à l'encre.
   const cat = event.category ? AUDIT_CATEGORIES[event.category] : undefined
   const champs: { cle: string; valeur: ReactNode; code?: boolean }[] = [
-    { cle: 'when', valeur: horodatage(event.created_at) },
+    { cle: 'when', valeur: heureSeconde(event.created_at) },
     {
       cle: 'category',
       valeur: cat && event.category ? (

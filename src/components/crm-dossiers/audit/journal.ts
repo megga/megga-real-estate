@@ -121,12 +121,16 @@ export const nombreSuisse = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d
 /** L'heure d'une ligne (« 14:32 ») — le jour est dans l'en-tête de son groupe. */
 export const heureDe = (iso: string) => format(new Date(iso), 'HH:mm')
 
-/** L'horodatage complet du détail, à la seconde (« Lundi 14 septembre 2026 · 14:32:07 »). */
-export const horodatage = (iso: string) =>
-  majusculeInitiale(format(new Date(iso), "EEEE d MMMM yyyy '·' HH:mm:ss", { locale: dfLocale() }))
+/**
+ * L'heure du détail, à la seconde (« 14:32:07 »). ⚠ L'heure SEULE (14.09.2026, Julien) :
+ * le détail vit sous l'en-tête de son jour, et « Lundi 14 septembre 2026 · 14:32:07 »
+ * répétait la date que cet en-tête dit déjà — la même redondance que « Message · Il y a
+ * 53 min » dans la cloche.
+ */
+export const heureSeconde = (iso: string) => format(new Date(iso), 'HH:mm:ss')
 
 /** Casse et accents pliés : « cree » trouve « Contact créé ». */
-const plier = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const plier = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
 /**
  * La recherche du journal — sur ce que l'agent VOIT : le titre traduit, le sujet, le nom

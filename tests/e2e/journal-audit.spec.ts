@@ -55,7 +55,10 @@ test('une ligne s’ouvre sur son détail ; une rafale « ×3 » se déplie en t
   await cree.click()
   await expect(cree).toHaveAttribute('aria-expanded', 'true')
   const detail = ecran(page).getByRole('region', { name: 'Détails' })
-  await expect(detail).toContainText('Horodatage')
+  // L'heure SEULE, à la seconde : la date est celle de l'en-tête du jour.
+  await expect(detail).toContainText('Heure')
+  await expect(detail).toContainText(/\d{2}:\d{2}:\d{2}/)
+  await expect(detail).not.toContainText('septembre')
   await expect(detail).toContainText('contact_created')
 
   const rafale = lignes(page).filter({ hasText: '×3' })

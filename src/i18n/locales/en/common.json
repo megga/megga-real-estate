@@ -403,7 +403,7 @@
     "dayWarning_one": "{{count}} warning",
     "dayWarning_other": "{{count}} warnings",
     "detail": {
-      "when": "Timestamp",
+      "when": "Time",
       "category": "Category",
       "entity": "Object type",
       "reference": "Reference",

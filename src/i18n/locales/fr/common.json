@@ -403,7 +403,7 @@
     "dayWarning_one": "{{count}} alerte",
     "dayWarning_other": "{{count}} alertes",
     "detail": {
-      "when": "Horodatage",
+      "when": "Heure",
       "category": "Catégorie",
       "entity": "Type d’objet",
       "reference": "Référence",
