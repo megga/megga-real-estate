@@ -354,7 +354,8 @@
     "billing": "Abrechnung & Abonnement",
     "help": "Hilfe zu diesem Bildschirm",
     "adminConsole": "Admin-Konsole",
-    "platformSection": "Plattform"
+    "platformSection": "Plattform",
+    "menu": "Mein Konto"
   },
   "audit": {
     "category": {

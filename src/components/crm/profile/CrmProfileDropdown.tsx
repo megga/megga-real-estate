@@ -12,7 +12,7 @@ import { useId, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ReactNode } from 'react'
 import type { CrmPalette } from '../tokens'
-import { useSideAnchor, type CrmPopoverPlacement } from '@/hooks/useSideAnchor'
+import type { CoinCadre } from '@/hooks/useCoinDuCadre'
 import MEIcon, { type MEIconName } from '@/components/propertyx/MEIcon'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
@@ -153,6 +153,9 @@ function ProfileHeader({ sp, name, initials, planLabel }: ProfileHeaderProps) {
 }
 
 // ─── Main popover body ────────────────────────────────────────────────
+/** Largeur de la coque — la pose `coin` s'en sert pour caler son bord DROIT. */
+const LARGEUR = 304
+
 interface CrmProfileDropdownProps {
   sp: CrmPalette
   dark: boolean
@@ -163,20 +166,23 @@ interface CrmProfileDropdownProps {
    * ligne « Apparence » n'est pas rendue.
    */
   setDark?: (v: boolean) => void
-  /** Pose de la popover — voir `CrmPopoverPlacement`. */
-  placement?: CrmPopoverPlacement
+  /**
+   * Le coin du cadre de page où se loger, mesuré par l'appelant (`useCoinDuCadre`).
+   * Tant qu'il est `null`, la coque attend hors de l'écran.
+   *
+   * ⚠ Une seule pose depuis le 14.09.2026 : le menu ne s'ouvre plus que depuis la
+   * pastille en haut à droite de la bande (`CrmCompteBouton`). La pose latérale du
+   * pied de la barre est partie avec sa pastille.
+   */
+  coin: CoinCadre | null
   onClose?: () => void
   onSettings?: () => void
   onHelp?: () => void
   onLogout?: () => void
-  // Conservés optionnels pour compat appelant (non utilisés par le concept
-  // « badge minimal » — KYC reste accessible via le rail/TopNav).
-  onKyc?: () => void
-  onAgencyPublic?: () => void
 }
 
 export default function CrmProfileDropdown({
-  sp, dark, setDark, placement = 'below-right', onClose, onSettings, onHelp, onLogout,
+  sp, dark, setDark, coin, onClose, onSettings, onHelp, onLogout,
 }: CrmProfileDropdownProps) {
   const { t } = useTranslation('common')
   const { profile, user } = useAuth()
@@ -201,29 +207,27 @@ export default function CrmProfileDropdown({
     .toUpperCase() || '??'
   const planLabel = plan ? plan.toUpperCase() : null
 
-  // Même pose latérale bornée que la popover des notifications — le pied de la
-  // barre est bas dans la fenêtre, mais rien ne garantit qu'il le reste (bandeau
-  // d'usurpation, fenêtre courte) : on mesure plutôt que de supposer.
-  const { ref: sideRef, box: sideBox } = useSideAnchor(placement === 'side')
-
   const wrap = (fn?: () => void) => () => {
     if (fn) fn()
     if (onClose) onClose()
   }
 
   return (
-    <div ref={sideRef} style={{
-      ...(placement === 'side'
-        ? { position: 'fixed' as const, left: sideBox?.left ?? -9999, top: sideBox?.top ?? -9999 }
-        : { position: 'absolute' as const, top: 'calc(100% + 10px)', right: 0 }),
-      width: 304, padding: 'var(--crm-space-xl)', zIndex: 9000,
+    <div style={{
+      // Le coin haut-droit de la coque SUR celui du cadre : bord haut sur son bord
+      // haut, bord droit sur son bord droit (largeur en `border-box`).
+      position: 'fixed', top: coin ? coin.top : -9999, left: coin ? coin.right - LARGEUR : -9999,
+      width: LARGEUR, padding: 'var(--crm-space-xl)', zIndex: 9000,
       background: sp.solidBg,
       border: `1px solid ${sp.solidBorder}`,
-      // Rayon du pager (viewport 26 px, cf. ContactsPager/BiensPager/CalendarApp) :
-      // le popover retombe sur le coin haut-droit du pager, les deux courbures
-      // doivent se répondre. Bordure et ombre restent en tokens `solid*` — le
-      // popover est OPAQUE et surélevé, il n'emprunte pas le verre du pager.
-      borderRadius: 'var(--crm-radius-6xl)',
+      // Rayon du pager : le popover retombe sur le coin haut-droit du pager, les
+      // deux courbures doivent se répondre. ⛔ Les cadres portent 26 px (13 pages)
+      // ou 24 (`6xl` : Calendrier, Messagerie, KYC) : un rayon écrit ici laisserait
+      // dépasser un croissant du cadre sur l'une des deux familles. La coque prend
+      // donc le rayon MESURÉ du cadre, le jeton n'étant qu'un repli sans cadre.
+      // Bordure et ombre restent en tokens `solid*` — le popover est OPAQUE et
+      // surélevé, il n'emprunte pas le verre du pager.
+      borderRadius: coin?.rayon || 'var(--crm-radius-6xl)',
       boxShadow: sp.solidShadow,
       animation: 'crm-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>

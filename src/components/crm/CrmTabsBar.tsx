@@ -53,6 +53,7 @@ import { useEcranActif } from '@/hooks/useEcranActif'
 import { modaleOuverte } from '@/lib/modaleOuverte'
 import { useAgentNotifications } from '@/hooks/useAgentNotifications'
 import CrmNotificationsPopover from './notifications/CrmNotificationsPopover'
+import CrmCompteBouton from './profile/CrmCompteBouton'
 
 /**
  * Hauteur d'une puce. Une HAUTEUR n'est pas un espacement : aucun barreau ne la couvre.
@@ -257,6 +258,9 @@ interface Props {
    * que pour les bancs, qui n'ont pas de base derrière eux.
    */
   badges?: Record<string, { n: number; urgent?: boolean }>
+  /** Section active et clé d'aide de l'écran, pour la ligne « Aide » du menu du compte. */
+  active?: string
+  helpKey?: string
 }
 
 // ─── La puce ────────────────────────────────────────────────────────────────
@@ -388,7 +392,7 @@ function Badge({ n, urgent, actif, sp }: { n: number; urgent?: boolean; actif: b
 
 // ─── La barre ───────────────────────────────────────────────────────────────
 
-export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
+export function CrmTabsBar({ sp, dark, setDark, badges: override, active: sectionActive, helpKey }: Props) {
   const { t } = useTranslation('common')
   const api = useCrmTabs()
   const serveur = useCrmTabBadges()
@@ -902,6 +906,13 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
           // annoncé « Sombre » alors qu'on y est déjà se lit comme un état.
           libelle={dark ? t('nav.light') : t('nav.dark')}
           onClick={() => setDark(!dark)}
+        />
+        {/* Le compte, en DERNIER : son bord droit est celui du cadre, et c'est dans
+            le coin de ce cadre que son menu se loge (14.09.2026, Julien). */}
+        <CrmCompteBouton
+          sp={sp} dark={dark} setDark={setDark}
+          bandeRef={barreRef} diametre={H_PASTILLE}
+          active={sectionActive} helpKey={helpKey}
         />
       </div>
 

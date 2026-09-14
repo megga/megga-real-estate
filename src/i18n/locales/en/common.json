@@ -361,7 +361,8 @@
     "billing": "Billing & subscription",
     "help": "Help for this screen",
     "adminConsole": "Admin console",
-    "platformSection": "Platform"
+    "platformSection": "Platform",
+    "menu": "My account"
   },
   "audit": {
     "category": {

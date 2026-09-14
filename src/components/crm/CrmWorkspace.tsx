@@ -154,7 +154,10 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
           // la dernière commande de droite tombe à l'aplomb du bord droit.
           padding: 'var(--crm-space-lg) var(--crm-space-7xl) 0 var(--crm-space-lg)',
         }}>
-          <CrmTabsBar sp={sidebar.sp} dark={sidebar.dark} setDark={sidebar.setDark} badges={badges} />
+          <CrmTabsBar
+            sp={sidebar.sp} dark={sidebar.dark} setDark={sidebar.setDark} badges={badges}
+            active={sidebar.active} helpKey={sidebar.helpKey}
+          />
         </div>
       )}
       {/* ⚠ La RANGÉE, sous la bande : c'est elle qui porte désormais le duo

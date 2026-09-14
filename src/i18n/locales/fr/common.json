@@ -361,7 +361,8 @@
     "billing": "Facturation & abonnement",
     "help": "Aide sur cet écran",
     "adminConsole": "Console admin",
-    "platformSection": "Plateforme"
+    "platformSection": "Plateforme",
+    "menu": "Mon compte"
   },
   "audit": {
     "category": {

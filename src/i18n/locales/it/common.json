@@ -354,7 +354,8 @@
     "billing": "Fatturazione e abbonamento",
     "help": "Aiuto per questa schermata",
     "adminConsole": "Console admin",
-    "platformSection": "Piattaforma"
+    "platformSection": "Piattaforma",
+    "menu": "Il mio account"
   },
   "audit": {
     "category": {
