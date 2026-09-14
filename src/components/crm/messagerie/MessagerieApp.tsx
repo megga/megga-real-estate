@@ -38,6 +38,7 @@ import { MailFileAttachmentModal } from './MailFileAttachmentModal'
 import { MailContextMenu } from './MailContextMenu'
 import { MailDeleteModal } from './MailDeleteModal'
 import { MailLinkContactModal } from './MailLinkContactModal'
+import { MailCadreContext } from './mailCadre'
 import { MailRail } from './MailRail'
 import { MailReader } from './MailReader'
 import { MailLabelMenu } from './MailLabelMenu'
@@ -83,6 +84,8 @@ export function MessagerieApp({ dark, setDark }: Props) {
    * silence ; il lui faut un endroit où se dire.
    */
   const [avis, setAvis] = useState<string | null>(null)
+  // Le cadre (le « pager ») où les modales se montent : leur voile l'épouse, lui seul.
+  const [cadre, setCadre] = useState<HTMLDivElement | null>(null)
   /**
    * Le seul lecteur de `MailSendResult.warning`. Les trois chemins d'envoi
    * (réponse, transfert, nouveau message) passent par lui, sans quoi la
@@ -235,6 +238,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
   }, [accounts.disconnect, state.accountId, t])
 
   return (
+    <MailCadreContext.Provider value={cadre}>
     <div style={{ position: 'relative', background: sp.pageBg, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily: 'var(--crm-font)', color: sp.ink }}>
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
         <CrmWorkspace active="messagerie" helpKey="messagerie" sp={sp} dark={dark} setDark={setDark}>
@@ -246,6 +250,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
             carte latérale qu'il est censé border. */}
         <main style={{ flex: 1, minWidth: 0, minHeight: 0, height: '100%', paddingTop: 'var(--crm-space-lg)', paddingLeft: 'var(--crm-space-lg)', paddingRight: 'var(--crm-space-7xl)', paddingBottom: 'var(--crm-space-6xl)' }}>
           <div
+            ref={setCadre}
             data-mail-bento
             style={{
               position: 'relative', height: '100%', borderRadius: 'var(--crm-radius-6xl)', overflow: 'hidden',
@@ -528,5 +533,6 @@ export function MessagerieApp({ dark, setDark }: Props) {
         </CrmWorkspace>
       </div>
     </div>
+    </MailCadreContext.Provider>
   )
 }

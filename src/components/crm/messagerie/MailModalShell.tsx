@@ -1,20 +1,30 @@
 /**
- * La coquille commune des sept modales de la Messagerie : portail sur
- * `document.body`, voile assombrissant, carte, piège de focus et Échap — le
- * modèle de `WhatsAppConnectModal.tsx:70-101`.
+ * La coquille commune des sept modales de la Messagerie : portail, voile
+ * assombrissant, carte, piège de focus et Échap — le modèle de
+ * `WhatsAppConnectModal.tsx:70-101`.
  *
- * z-index 300 par défaut (règle 3 du lot 2) : au-dessus du chrome CRM (rail et
- * barre à 75, `CrmSearch` à 200), sous le dropdown de profil (9000). Les
- * popovers internes montent à 310, les menus contextuels à 320.
+ * ⚠ LE VOILE ÉPOUSE LE CADRE, PAS L'ÉCRAN (Julien, 14.09.2026 : « le flou doit épouser
+ * le pager »). La coquille se monte DANS le cadre de la Messagerie (`MailCadreContext`),
+ * en `absolute` sur ses quatre côtés et à son rayon : la barre latérale et la bande
+ * d'onglets restent nettes, et le voile suit le cadre quand il change de taille. Hors
+ * de la Messagerie, elle retombe sur le plein écran (`document.body`, `fixed`).
+ * Montée dans son écran, une modale est aussi masquée AVEC lui quand l'onglet passe en
+ * arrière-plan — portée dans `<body>`, elle lui échappait.
+ *
+ * z-index 300 par défaut (règle 3 du lot 2) : au-dessus de tout ce que porte le cadre ;
+ * en plein écran, au-dessus du chrome CRM (rail et barre à 75, `CrmSearch` à 200), sous
+ * le dropdown de profil (9000). Les popovers internes montent à 310, les menus
+ * contextuels à 320.
  *
  * ⚠ `crmVoileAssombrissant` et NON `crmVoileEncre` : ce dernier rend « ce qui
  * s'oppose à la surface », donc du BLANC en sombre — un drap blanc sur l'écran
  * au lieu de l'assombrir. Gardé par `voile-modale.spec.ts`.
  */
-import { useEffect, type ReactNode } from 'react'
+import { useContext, useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { crmVoileAssombrissant } from '@/components/crm/tokens'
 import { useFocusTrap } from '@/hooks/useFocusTrap'
+import { MailCadreContext } from './mailCadre'
 import type { MailSurfaces } from './mailTokens'
 
 interface Props {
@@ -39,6 +49,7 @@ export function MailModalShell({ ms, open, onClose, width, ariaLabel, zIndex = 3
   // premier argument, ce qui aurait compilé (la ref est truthy) tout en piégeant
   // le mauvais nœud. Signature vérifiée dans `src/hooks/useFocusTrap.ts`.
   const ref = useFocusTrap(open, onClose)
+  const cadre = useContext(MailCadreContext)
   // Échap est déjà géré par le piège ; on ne double pas l'écouteur. Ce qui reste
   // à faire ici est de rendre la page immobile sous la modale.
   useEffect(() => {
@@ -51,8 +62,11 @@ export function MailModalShell({ ms, open, onClose, width, ariaLabel, zIndex = 3
   return createPortal(
     <div
       onClick={onClose}
+      data-mail-voile=""
       style={{
-        position: 'fixed', inset: 0, zIndex, display: 'grid', placeItems: 'center', padding: 'var(--crm-space-7xl)',
+        // Dans le cadre : ses quatre côtés et son rayon (`inherit` : le cadre est le parent).
+        position: cadre ? 'absolute' : 'fixed', inset: 0, zIndex, borderRadius: cadre ? 'inherit' : undefined,
+        display: 'grid', placeItems: 'center', padding: 'var(--crm-space-7xl)',
         background: crmVoileAssombrissant(veil), backdropFilter: `blur(${blur}px)`, WebkitBackdropFilter: `blur(${blur}px)`,
       }}
     >
@@ -72,7 +86,7 @@ export function MailModalShell({ ms, open, onClose, width, ariaLabel, zIndex = 3
         {children}
       </div>
     </div>,
-    document.body,
+    cadre ?? document.body,
   )
 }
 
