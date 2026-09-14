@@ -78,7 +78,10 @@ export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onCont
         <span style={{ fontWeight: weight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sender}</span>
       </span>
 
-      <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minWidth: 0 }}>
+      {/* ⛔ La cellule ROGNE. L'objet ne rétrécissait jamais (`flexShrink: 0`) : dans une liste
+          étroite ou sur un long objet, il débordait sur la colonne de la date et les deux
+          textes se peignaient l'un sur l'autre (constaté au banc le 14.09.2026). */}
+      <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minWidth: 0, overflow: 'hidden' }}>
         {label && (
           <span
             style={{
@@ -89,12 +92,14 @@ export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onCont
             {label.name}
           </span>
         )}
-        <span style={{ fontWeight: weight, whiteSpace: 'nowrap', flexShrink: 0 }}>{row.subject || t('mail.row.noSubject')}</span>
-        {row.snippet && (
-          <span style={{ fontSize: 'var(--crm-text-sm)', color: ms.mut, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            — {row.snippet}
-          </span>
-        )}
+        {/* L'objet puis l'aperçu en UNE ligne de texte, comme Gmail : l'ellipse tombe à la fin
+            de ce qui tient — dans l'aperçu d'abord, dans l'objet seulement s'il est trop long à
+            lui seul. Deux boîtes flex rétrécissaient ensemble : l'objet cédait une fraction de
+            pixel, et ça suffisait à lui mettre des points de suspension. */}
+        <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: ms.mut }}>
+          <span style={{ fontWeight: weight, color: ms.ink }}>{row.subject || t('mail.row.noSubject')}</span>
+          {row.snippet && <span style={{ marginLeft: 'var(--crm-space-sm)' }}>— {row.snippet}</span>}
+        </span>
       </span>
 
       <span style={{ width: 16, display: 'grid', placeItems: 'center' }}>
