@@ -1,20 +1,22 @@
 // supabase/functions/_shared/mail/sync.ts
 // Une passe de synchronisation d'un compte, bornée par un budget de temps.
 // Curseurs (types.ts) : Gmail = historyId + pageToken de la passe initiale ;
-// Graph = deltaLink/nextLink par dossier + ids de dossiers.
+// Graph = deltaLink/nextLink par dossier + ids de dossiers ; IMAP = UID par dossier
+// (courrier neuf au-dessus de `lastUid`, import des 90 jours à reculons — imap.ts).
 // Échecs : reauth_required ⇒ le compte est déjà marqué (secrets.ts) ; autre
 // erreur ⇒ last_error + backoff 10 min, statut inchangé (transitoire).
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import type { GmailCursor, GraphCursor, MailAccountRow, NormalizedMessage, SyncCursor } from './types.ts'
+import type { GmailCursor, GraphCursor, ImapCursor, MailAccountRow, NormalizedMessage, SyncCursor } from './types.ts'
 import { MailAuthError, getValidAccessToken } from './secrets.ts'
 import { gmailGetMessage, gmailHistory, gmailIdentity, gmailListInitial, historyToChanges, nextHistoryCursor, normalizeGmailMessage } from './gmail.ts'
 import { deltaToChanges, graphDelta, graphFolderIds, graphGetBody, graphListAttachments, normalizeGraphMessage, resolveGraphRemoval } from './graph.ts'
 import { applyRemoteChanges, ingestMessages } from './ingest.ts'
+import { imapSyncPass, type ImapDeps } from './imap.ts'
 import type { RemoteChange } from './types.ts'
 import { MailOwnerLeftError, assertOwnerStillInAgency } from './guard.ts'
 import type { ProviderConfig } from './guard.ts'
 
-export interface SyncDeps { fetch?: typeof fetch; now?: () => number }
+export interface SyncDeps { fetch?: typeof fetch; now?: () => number; dial?: ImapDeps['dial'] }
 export interface SyncOutcome {
   inserted: number
   updated: number
@@ -123,6 +125,7 @@ export async function syncAccount(admin: SupabaseClient, account: MailAccountRow
     let cursor: SyncCursor
     if (account.provider === 'gmail') cursor = await syncGmail(admin, account, cfg, budgetMs, start, deps, out)
     else if (account.provider === 'outlook') cursor = await syncGraph(admin, account, cfg, budgetMs, start, deps, out)
+    else if (account.provider === 'imap') cursor = await syncImap(admin, account, budgetMs, start, deps, out)
     else throw new Error(`provider ${account.provider} not supported by this build`)
     // ⛔ L'écriture du curseur est VÉRIFIÉE. Muette, elle laissait `{ done: true,
     // error: null }` sur une passe qui n'avait rien mémorisé : la passe initiale
@@ -317,4 +320,14 @@ async function syncGraph(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
   if (allSettled) c.initialDone = true
   out.done = allSettled
   return c
+}
+
+// ── IMAP ──────────────────────────────────────────────────────────────────────
+async function syncImap(admin: SupabaseClient, account: MailAccountRow, budgetMs: number, start: number, deps: SyncDeps, out: SyncOutcome): Promise<ImapCursor> {
+  const now = deps.now ?? Date.now
+  const precedent = (account.sync_cursor as ImapCursor)?.kind === 'imap' ? (account.sync_cursor as ImapCursor) : null
+  const r = await imapSyncPass(admin, account, precedent, Math.max(0, budgetMs - (now() - start)), { dial: deps.dial, now })
+  out.inserted += r.inserted; out.updated += r.updated; out.changes += r.changes; out.auditFailures += r.auditFailures
+  out.done = r.done
+  return r.cursor
 }

@@ -18,6 +18,8 @@ const DNS: Record<string, string[]> = {
   'metadata.evil.ch': ['169.254.169.254'],
   'intranet.evil.ch': ['10.0.0.5'],
   'mapped.evil.ch': ['::ffff:169.254.169.254'],
+  'mail.example.ch': ['203.0.113.40', '2001:db8::40'],
+  'moitie.evil.ch': ['203.0.113.41', 'fd00::1'],
 }
 
 const originalDeno = (globalThis as Record<string, unknown>).Deno
@@ -53,7 +55,7 @@ afterEach(() => {
   globalThis.fetch = originalFetch
 })
 
-const { safeFetchResponse, safeFetch, isBlockedIp, safeFetchErrorCode } = await import('./safe-fetch.ts')
+const { safeFetchResponse, safeFetch, isBlockedIp, safeFetchErrorCode, assertPublicHost } = await import('./safe-fetch.ts')
 
 const jpeg = (n = 16) => new Response(new Uint8Array(n).fill(0xff), { status: 200, headers: { 'content-type': 'image/jpeg' } })
 const redirect = (location: string, status = 302) => new Response(null, { status, headers: { location } })
@@ -199,5 +201,21 @@ describe('safeFetchErrorCode — les motifs du module passent, le texte du runti
     expect(safeFetchErrorCode(new Error('ssrf: blocked_ip (169.254.169.254)'))).toBe('fetch_failed')
     expect(safeFetchErrorCode(new Error('fetch: 404 {"detail":"…"}'))).toBe('fetch_failed')
     expect(safeFetchErrorCode('ssrf: blocked_ip')).toBe('fetch_failed')
+  })
+})
+
+describe('assertPublicHost — l’hôte IMAP/SMTP que saisit l’agent', () => {
+  it('laisse passer un nom qui ne résout que vers le public', async () => {
+    await expect(assertPublicHost('mail.example.ch')).resolves.toBeUndefined()
+    await expect(assertPublicHost('Mail.Example.CH.')).resolves.toBeUndefined()
+  })
+  it('⛔ refuse un nom dont UNE des adresses est interne — la moitié suffit', async () => {
+    await expect(assertPublicHost('moitie.evil.ch')).rejects.toThrow('ssrf: blocked_ip')
+    await expect(assertPublicHost('metadata.evil.ch')).rejects.toThrow('ssrf: blocked_ip')
+  })
+  it('refuse une IP littérale, un nom sans domaine, un nom qui ne résout pas', async () => {
+    await expect(assertPublicHost('169.254.169.254')).rejects.toThrow('ssrf: invalid_host')
+    await expect(assertPublicHost('localhost')).rejects.toThrow('ssrf: invalid_host')
+    await expect(assertPublicHost('inconnu.example.ch')).rejects.toThrow('ssrf: dns_unresolved')
   })
 })

@@ -129,9 +129,23 @@ export interface GraphCursor {
   folderIds: Record<string, string> | null
 }
 
+/**
+ * Où en est un dossier IMAP. Deux fronts, parce que l'import initial va du PLUS RÉCENT au
+ * plus ancien — comme Gmail — pendant que le courrier neuf continue d'arriver au-dessus.
+ */
+export interface ImapFolderCursor {
+  uidValidity: number
+  /** Le plus haut UID déjà vu : le courrier neuf commence au-dessus. */
+  lastUid: number
+  /** Import des 90 jours, à reculons : il reste les UID de `floorUid` à `backfillBelow - 1`. `null` = fini. */
+  backfillBelow?: number | null
+  floorUid?: number | null
+}
+
 export interface ImapCursor {
   kind: 'imap'
-  folders: Record<string, { uidValidity: number; lastUid: number }>
+  /** Par NOM de dossier tel que le serveur l'écrit (UTF-7 modifié compris). */
+  folders: Record<string, ImapFolderCursor>
   initialDone: boolean
 }
 

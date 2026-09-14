@@ -21,6 +21,7 @@ import { attachmentServing } from '../_shared/mail/mime.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
 import { gmailAttachment } from '../_shared/mail/gmail.ts'
 import { graphAttachmentBytes } from '../_shared/mail/graph.ts'
+import { imapAttachment } from '../_shared/mail/imap.ts'
 import type { MailAccountRow } from '../_shared/mail/types.ts'
 
 const corsHeaders = {
@@ -62,6 +63,8 @@ async function loadAttachment(admin: SupabaseClient, id: string, ctx: { userId: 
 }
 
 async function fetchBytes(admin: SupabaseClient, a: NonNullable<Awaited<ReturnType<typeof loadAttachment>>>): Promise<Uint8Array> {
+  // IMAP : pas de jeton — le message est relu dans son dossier et la pièce extraite par son rang.
+  if (a.account.provider === 'imap') return imapAttachment(admin, a.account, a.providerMessageId, Number(a.att.provider_attachment_id))
   const cfg = providerConfigFromEnv((k) => Deno.env.get(k))
   const token = await getValidAccessToken(admin, a.account, a.account.provider === 'gmail' ? cfg.gmail : cfg.outlook)
   if (a.account.provider === 'gmail') return gmailAttachment(token, a.providerMessageId, a.att.provider_attachment_id)

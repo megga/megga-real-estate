@@ -13,6 +13,7 @@ import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
 import { gmailLabelPatch, gmailModify } from '../_shared/mail/gmail.ts'
 import { graphMove, graphPatch } from '../_shared/mail/graph.ts'
+import { imapApply } from '../_shared/mail/imap.ts'
 import { linkThreadToContact, recomputeThread } from '../_shared/mail/ingest.ts'
 import { syncAccount } from '../_shared/mail/sync.ts'
 import type { MailAccountRow, MailThreadAction } from '../_shared/mail/types.ts'
@@ -30,7 +31,7 @@ function json(body: unknown, status = 200): Response {
 type ThreadAction = MailThreadAction
 const THREAD_ACTIONS: ThreadAction[] = ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash']
 
-interface MsgRow { id: string; provider_message_id: string; direction: 'inbound' | 'outbound' }
+interface MsgRow { id: string; provider_message_id: string; direction: 'inbound' | 'outbound'; rfc822_message_id: string | null }
 
 /** Applique le geste chez le fournisseur, message par message. Rend les nouveaux ids Graph (move). */
 async function pushToProvider(account: MailAccountRow, token: string, action: ThreadAction, msgs: MsgRow[]): Promise<Record<string, string>> {
@@ -107,7 +108,7 @@ serve(async (req: Request) => {
   // part ne pointait vers la cause. Un fil sans message est, lui, une anomalie : la
   // ligne de fil naît AVEC son premier message et `recomputeThread` la supprime dès
   // qu'elle se vide — mieux vaut le dire que le traiter comme un succès vide.
-  const { data: msgs, error: eMsgs } = await admin.from('mail_messages').select('id, provider_message_id, direction').eq('thread_id', thread.id)
+  const { data: msgs, error: eMsgs } = await admin.from('mail_messages').select('id, provider_message_id, direction, rfc822_message_id').eq('thread_id', thread.id)
   if (eMsgs) return json({ error: 'messages_query_failed', detail: eMsgs.message }, 500)
   if (!msgs || msgs.length === 0) {
     console.error(`[mail-actions] fil ${thread.id} sans message — geste ${action} refusé`)
@@ -115,8 +116,10 @@ serve(async (req: Request) => {
   }
 
   try {
-    const token = await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook)
-    const renamed = await pushToProvider(account, token, action as ThreadAction, msgs as MsgRow[])
+    // IMAP : un mot de passe et UNE connexion pour tout le fil (imap.ts) — pas de jeton OAuth.
+    const renamed = account.provider === 'imap'
+      ? await imapApply(admin, account, action as ThreadAction, msgs as MsgRow[])
+      : await pushToProvider(account, await getValidAccessToken(admin, account, account.provider === 'gmail' ? cfg.gmail : cfg.outlook), action as ThreadAction, msgs as MsgRow[])
     for (const [oldId, newId] of Object.entries(renamed)) {
       if (oldId === newId) continue // id immuable : le déplacement ne le change plus
       // ⚠ Si un id CHANGE malgré `Prefer: IdType="ImmutableId"`, ce n'est pas seulement
@@ -125,7 +128,8 @@ serve(async (req: Request) => {
       // mail-attachment rendrait 502 sur un mandat PDF archivé. Ce cas ne devrait plus
       // exister ; s'il réapparaît, il doit se voir dans les journaux avant d'être
       // découvert par un agent.
-      console.error(`[mail-actions] id Graph modifié malgré l'id immuable (${oldId} → ${newId}) — pièces jointes du message potentiellement irrésolubles`)
+      // En IMAP c'est la règle (un déplacement change l'UID) ; chez Graph, une anomalie.
+      if (account.provider === 'outlook') console.error(`[mail-actions] id Graph modifié malgré l'id immuable (${oldId} → ${newId}) — pièces jointes du message potentiellement irrésolubles`)
       const { error } = await admin.from('mail_messages').update({ provider_message_id: newId }).eq('account_id', account.id).eq('provider_message_id', oldId)
       if (error) throw new Error(`renommage d'id: ${error.message}`)
     }

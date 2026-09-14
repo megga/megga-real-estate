@@ -92,6 +92,24 @@ export async function assertPublicUrl(rawUrl: string): Promise<URL> {
   return u
 }
 
+/**
+ * Valide qu'un NOM D'HÔTE fourni par un appelant ne résout que vers des adresses
+ * PUBLIQUES — pour une connexion TCP qui n'a pas d'URL : le serveur IMAP ou SMTP que
+ * l'agent saisit en ajoutant sa boîte. Sans elle, l'assistant ouvrait une socket vers
+ * l'hôte de son choix : `169.254.169.254:993`, un service interne, un balayage de ports.
+ * Lève une `Error` préfixée `ssrf:` ; même risque résiduel de rebinding que plus haut.
+ *
+ * ⚠ Une adresse IP LITTÉRALE est refusée : un serveur de courrier a un nom, et c'est ce
+ * nom que le certificat TLS atteste.
+ */
+export async function assertPublicHost(hostname: string): Promise<void> {
+  const h = hostname.trim().toLowerCase().replace(/\.$/, '')
+  if (!/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(h)) throw new Error('ssrf: invalid_host')
+  const ips = await resolveAll(h)
+  if (ips.length === 0) throw new Error('ssrf: dns_unresolved')
+  if (ips.some(isBlockedIp)) throw new Error('ssrf: blocked_ip')
+}
+
 export interface SafeFetchOptions {
   /** Taille maximale du corps, vérifiée PENDANT la lecture (défaut 8 Mo). */
   maxBytes?: number
