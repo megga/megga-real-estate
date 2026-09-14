@@ -413,8 +413,11 @@ export default function CrmShowcasePage() {
     reglerBanc({
       tables: CRM_TABLES, rpc: CRM_RPC, rpcVide: CRM_RPC_VIDE, session,
       socle: ['profiles', 'agencies'],
-      // Les libellés du Calendrier se créent et se suppriment DANS le banc.
-      ecrivables: ['calendar_labels'],
+      // Les libellés du Calendrier se créent et se suppriment DANS le banc ; une visite ou
+      // une tâche glissée d'un jour à l'autre y change de jour pour de bon — sans quoi
+      // l'écriture « réussissait » sans rien changer, et « Aujourd'hui », qui relit les
+      // mêmes tables, la montrait encore à son ancienne place.
+      ecrivables: ['calendar_labels', 'visits', 'reminders'],
     })
     installerBanc()
     return desinstallerBanc

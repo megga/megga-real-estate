@@ -431,7 +431,8 @@
     "markedDone": "Als erledigt markiert",
     "markedTodo": "Als offen markiert",
     "markedCancelled": "Als abgesagt markiert",
-    "reactivated": "Reaktiviert"
+    "reactivated": "Reaktiviert",
+    "moveFailed": "Verschiebung nicht gespeichert"
   },
   "onboarding": {
     "connectGoogle": "Google verbinden",

@@ -48,6 +48,34 @@ function b64url(o: unknown): string {
   return btoa(JSON.stringify(o)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
+let sessionSemee: ReturnType<typeof construireSession> | null = null
+
+/** La session du banc — un an de validité, jeton non signé (voir `semerSessionBanc`). */
+function construireSession() {
+  const expire = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365
+  const jeton = [
+    b64url({ alg: 'HS256', typ: 'JWT' }),
+    b64url({ sub: AGENT_BANC.id, aud: 'authenticated', role: 'authenticated', exp: expire }),
+    'banc-non-signe',
+  ].join('.')
+  return {
+    access_token: jeton,
+    refresh_token: 'banc',
+    token_type: 'bearer',
+    expires_in: 60 * 60 * 24 * 365,
+    expires_at: expire,
+    user: {
+      id: AGENT_BANC.id,
+      aud: 'authenticated',
+      role: 'authenticated',
+      email: AGENT_BANC.email,
+      app_metadata: {},
+      user_metadata: { full_name: AGENT_BANC.full_name, role: AGENT_BANC.role },
+      created_at: AGENT_BANC.created_at,
+    },
+  }
+}
+
 /**
  * Sème la session dans le stockage de `supabase-js` et la REND, pour que le banc
  * la serve aussi sur `/auth/v1/*`. Rend `null` si la clé n'a pas pu être dérivée
@@ -69,28 +97,13 @@ function b64url(o: unknown): string {
 export function semerSessionBanc(urlProjet: string): unknown {
   const ref = /https?:\/\/([^.]+)\./.exec(urlProjet)?.[1]
   if (!ref) return null
-  const expire = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365
-  const jeton = [
-    b64url({ alg: 'HS256', typ: 'JWT' }),
-    b64url({ sub: AGENT_BANC.id, aud: 'authenticated', role: 'authenticated', exp: expire }),
-    'banc-non-signe',
-  ].join('.')
-  const session = {
-    access_token: jeton,
-    refresh_token: 'banc',
-    token_type: 'bearer',
-    expires_in: 60 * 60 * 24 * 365,
-    expires_at: expire,
-    user: {
-      id: AGENT_BANC.id,
-      aud: 'authenticated',
-      role: 'authenticated',
-      email: AGENT_BANC.email,
-      app_metadata: {},
-      user_metadata: { full_name: AGENT_BANC.full_name, role: AGENT_BANC.role },
-      created_at: AGENT_BANC.created_at,
-    },
-  }
+  // ⛔ LA MÊME session à chaque appel, re-semée mais jamais refaite. Le banc l'appelle à
+  // CHAQUE rendu, et son installation dépend d'elle (`[session]`) : un objet neuf par
+  // rendu démontait puis remontait l'intercepteur de `fetch` à chaque appel sans
+  // fixture signalé — tout ce qui l'enveloppait après coup (l'espion d'écritures d'un
+  // test) sautait sans un mot, au hasard de la charge (14.09.2026).
+  sessionSemee ??= construireSession()
+  const session = sessionSemee
   try {
     window.localStorage.setItem('megga_remember', 'true')
     window.localStorage.setItem(`sb-${ref}-auth-token`, JSON.stringify(session))

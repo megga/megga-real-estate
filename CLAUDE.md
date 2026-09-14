@@ -303,10 +303,13 @@ d'écran n'est restée sur Graphite).
 - Modals : `createPortal(document.body)`. ⚠ **« TOUJOURS … avec `z-[100]` » n'est
   vrai ni pour l'un ni pour l'autre.** Mesuré : **33 des 36 fichiers de
   modale/panneau/dialogue** appellent `createPortal` — la règle tient à trois près —
-  mais le z-index est un **désordre assumé nulle part** : **186 sites `zIndex`
-  portant 51 valeurs DISTINCTES** (remesuré le 14.09.2026 ; 175 et 44 le 16.08 — les
-  deux dernières venues, 4099 et 4100, sont le voile et le menu de libellé du
-  Calendrier, posés au-dessus de sa bulle à 4000), dont seulement **10** valent 100.
+  mais le z-index est un **désordre assumé nulle part** : **185 sites `zIndex`
+  portant 50 valeurs DISTINCTES** (remesuré le 14.09.2026 au motif du registre,
+  commentaires blanchis ; 175 et 44 le 16.08 — les deux dernières valeurs venues, 4099
+  et 4100, sont le voile et le menu de libellé du Calendrier, posés au-dessus de sa
+  bulle à 4000 ; les deux derniers sites, les fantômes du glissé d'un jour à l'autre,
+  reprennent 30 et 4000 au lieu d'en inventer une. ⚠ Le « 186 et 51 » écrit le matin
+  même ne se reproduisait pas : 183 et 50 à ce motif), dont seulement **10** valent 100.
   Aucune garde ne le mesure. Poser `z-[100]` sans regarder ses voisins est donc un coup de dé, pas
   une convention : lire l'empilement local d'abord.
 - **Steppers : l'étape courante porte l'ACCENT, et la progression se lit dans la

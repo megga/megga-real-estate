@@ -431,7 +431,8 @@
     "markedDone": "Marqué terminé",
     "markedTodo": "Marqué à faire",
     "markedCancelled": "Marqué annulé",
-    "reactivated": "Réactivé"
+    "reactivated": "Réactivé",
+    "moveFailed": "Déplacement non enregistré"
   },
   "onboarding": {
     "connectGoogle": "Connecter Google",

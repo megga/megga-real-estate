@@ -431,7 +431,8 @@
     "markedDone": "Segnato come completato",
     "markedTodo": "Segnato da fare",
     "markedCancelled": "Segnato come annullato",
-    "reactivated": "Riattivato"
+    "reactivated": "Riattivato",
+    "moveFailed": "Spostamento non salvato"
   },
   "onboarding": {
     "connectGoogle": "Collega Google",

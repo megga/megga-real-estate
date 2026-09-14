@@ -1,6 +1,7 @@
 // MEGGA CRM Sugar — Calendar — pièces de grille partagées (Semaine / Jour)
 // Port fidèle de `crm-calendar-sugar-week-month.jsx` :
-//   · CalEventBlock  — bloc événement (glisser = déplacer, bord bas = redimensionner, snap 15 min)
+//   · CalEventBlock  — bloc événement (bord bas = redimensionner, snap 15 min)
+//   · CalFantome     — le bloc qui glisse d'une heure ET d'un jour à l'autre (moteur : useCalDeplacement)
 //   · CalDayColumn   — colonne timeline d'un jour
 //   · CalHourGutter  — gouttière des heures
 //   · CalAllDayBand  — bande « journée entière » / multi-jours (hors grille horaire)
@@ -9,6 +10,8 @@
 import { memo, useContext, useMemo, useRef, useState } from 'react'
 import { CalEventMenuContext, calLayout, calPositionMenu, calTypeStyle, useCalPalette, type CalEvent } from './data'
 import { CAL_HOUR_END, CAL_HOUR_START, calSetBodyDrag, fmtTime, sameDay } from './helpers'
+import { calDeplacable, calMinutesDuJour } from './calDeplacement'
+import { calAvalerClic, type CalGlisse } from './useCalDeplacement'
 
 // Heure (snap 30 min) à partir d'un clic dans une colonne de jour.
 function calSlotFromClick(e: React.MouseEvent<HTMLElement>, day: Date): Date {
@@ -32,19 +35,22 @@ interface CalEventBlockProps {
   selected: boolean
   past: boolean
   onSelect: (id: string, rect: DOMRect) => void
+  /** Redimensionnement par le bord bas (live) — absent si l'événement est verrouillé. */
   onUpdate?: (id: string, start: Date, end: Date) => void
   onCommit?: (id: string, mode: 'move' | 'resize', start: Date, end: Date, title: string) => void
+  /** Saisie pour un déplacement — le glissé lui-même vit dans la VUE (`useCalDeplacement`). */
+  onMoveStart?: (e: CalEvent, pe: React.PointerEvent<HTMLElement>) => void
+  /** Le bloc est en train d'être déplacé : il reste à sa place, estompé, pendant que son fantôme glisse. */
+  moving?: boolean
   roomy: boolean
   durH: number
 }
 
-interface DragState {
-  mode: 'move' | 'resize',
+interface ResizeState {
   startY: number
   pxPerMin: number
   origStartMin: number
   origEndMin: number
-  dur: number
   base: Date
   moved: boolean
   lastKey: string
@@ -53,7 +59,7 @@ interface DragState {
 }
 
 export const CalEventBlock = memo(function CalEventBlock({
-  e, topCss, heightCss, left, width, selected, past, onSelect, onUpdate, onCommit, roomy, durH,
+  e, topCss, heightCss, left, width, selected, past, onSelect, onUpdate, onCommit, onMoveStart, moving, roomy, durH,
 }: CalEventBlockProps) {
   const SP = useCalPalette()
   const t = calTypeStyle(e, SP)
@@ -66,15 +72,17 @@ export const CalEventBlock = memo(function CalEventBlock({
   const timeCol = t.ink
 
   const btnRef = useRef<HTMLButtonElement>(null)
-  const dragRef = useRef<DragState | null>(null)
+  const dragRef = useRef<ResizeState | null>(null)
   // Clic droit → libellés (`CalendarApp`). Jamais sur un créneau externe « Occupé ».
   const ouvrirMenu = useContext(CalEventMenuContext)
   const [dragging, setDragging] = useState(false)
 
-  const DAY_MIN = CAL_HOUR_START * 60
   const DAY_END = CAL_HOUR_END * 60
-  const minutesOf = (d: Date) => d.getHours() * 60 + d.getMinutes()
 
+  // ⚠ Le REDIMENSIONNEMENT reste ici, le DÉPLACEMENT n'y est plus : un bloc qui change
+  // de jour change de COLONNE, donc il est démonté d'une colonne et remonté dans
+  // l'autre — un glissé porté par le bloc perdait son état au premier jour franchi.
+  // Le bord bas, lui, ne quitte jamais sa colonne.
   const onDragMove = (ev: PointerEvent) => {
     const d = dragRef.current
     if (!d) return
@@ -82,15 +90,8 @@ export const CalEventBlock = memo(function CalEventBlock({
     if (!d.moved && Math.abs(dyPx) > 3) { d.moved = true; setDragging(true) }
     if (!d.moved) return
     const deltaMin = Math.round((dyPx / d.pxPerMin) / 15) * 15
-    let ns = d.origStartMin
-    let ne = d.origEndMin
-    if (d.mode === 'move') {
-      ns = Math.max(DAY_MIN, Math.min(d.origStartMin + deltaMin, DAY_END - d.dur))
-      ne = ns + d.dur
-    } else {
-      ne = Math.max(d.origStartMin + 15, Math.min(d.origEndMin + deltaMin, DAY_END))
-      ns = d.origStartMin
-    }
+    const ns = d.origStartMin
+    const ne = Math.max(d.origStartMin + 15, Math.min(d.origEndMin + deltaMin, DAY_END))
     const key = ns + ':' + ne
     if (key === d.lastKey) return
     d.lastKey = key
@@ -108,15 +109,12 @@ export const CalEventBlock = memo(function CalEventBlock({
     dragRef.current = null
     setDragging(false)
     if (d && d.moved) {
-      // Avale le clic de fin de glissé (ne pas ouvrir la bulle / créer un créneau).
-      const swallow = (cev: MouseEvent) => { cev.stopPropagation(); cev.preventDefault() }
-      window.addEventListener('click', swallow, true)
-      setTimeout(() => window.removeEventListener('click', swallow, true), 0)
-      if (onCommit && d.lastStart && d.lastEnd) onCommit(e.id, d.mode, d.lastStart, d.lastEnd, e.title)
+      calAvalerClic()
+      if (onCommit && d.lastStart && d.lastEnd) onCommit(e.id, 'resize', d.lastStart, d.lastEnd, e.title)
     }
   }
 
-  const beginDrag = (mode: 'move' | 'resize') => (ev: React.PointerEvent) => {
+  const beginResize = (ev: React.PointerEvent) => {
     if (!onUpdate || ev.button === 1 || ev.button === 2) return
     const col = btnRef.current && (btnRef.current.offsetParent as HTMLElement | null)
     const colH = col ? col.getBoundingClientRect().height : 0
@@ -124,22 +122,24 @@ export const CalEventBlock = memo(function CalEventBlock({
     ev.preventDefault()
     ev.stopPropagation()
     dragRef.current = {
-      mode,
       startY: ev.clientY,
       pxPerMin: colH / ((CAL_HOUR_END - CAL_HOUR_START) * 60),
-      origStartMin: minutesOf(e.start),
-      origEndMin: minutesOf(e.end),
-      dur: minutesOf(e.end) - minutesOf(e.start),
+      origStartMin: calMinutesDuJour(e.start),
+      origEndMin: calMinutesDuJour(e.end),
       base: (() => { const b = new Date(e.start); b.setHours(0, 0, 0, 0); return b })(),
       moved: false,
       lastKey: '',
     }
-    calSetBodyDrag(mode === 'resize' ? 'ns-resize' : 'grabbing')
+    calSetBodyDrag('ns-resize')
     window.addEventListener('pointermove', onDragMove)
     window.addEventListener('pointerup', onDragEnd)
   }
 
-  const boxShadow = dragging
+  // En déplacement, le bloc n'est plus que la trace de son point de départ : sans
+  // ombre ni anneau — c'est le fantôme qui les porte.
+  const boxShadow = moving
+    ? 'none'
+    : dragging
     ? `0 0 0 2px ${SP.ring}, ${SP.shadowHover}`
     : selected
       ? `0 0 0 2px ${SP.ring}, ${SP.shadow}`
@@ -153,7 +153,7 @@ export const CalEventBlock = memo(function CalEventBlock({
   return (
     <button
       ref={btnRef}
-      onPointerDown={onUpdate ? beginDrag('move') : undefined}
+      onPointerDown={onMoveStart ? pe => onMoveStart(e, pe) : undefined}
       onClick={ev => { ev.stopPropagation(); onSelect(e.id, ev.currentTarget.getBoundingClientRect()) }}
       onContextMenu={ouvrirMenu && !ext ? ev => { ev.preventDefault(); ev.stopPropagation(); const [x, y] = calPositionMenu(ev); ouvrirMenu(e.id, x, y) } : undefined}
       style={{
@@ -162,11 +162,11 @@ export const CalEventBlock = memo(function CalEventBlock({
         border: ext ? `1.4px dashed ${dk ? 'rgba(255,255,255,0.30)' : '#C4CAD2'}` : 0,
         background: surface, color: titleCol,
         padding: short ? '0 10px' : '5px 11px', textAlign: 'left', fontFamily: 'inherit',
-        cursor: onUpdate ? (dragging ? 'grabbing' : 'grab') : 'pointer',
+        cursor: onMoveStart ? (dragging ? 'grabbing' : 'grab') : 'pointer',
         touchAction: 'none', userSelect: 'none',
         boxShadow: ext && !selected ? 'none' : boxShadow,
         overflow: 'hidden', zIndex: dragging ? 30 : selected ? 6 : 3,
-        opacity: (past || hasStatus) && !dragging ? 0.55 : 1,
+        opacity: moving ? 0.35 : (past || hasStatus) && !dragging ? 0.55 : 1,
         display: 'flex', flexDirection: short ? 'row' : 'column',
         alignItems: short ? 'center' : 'stretch', gap: short ? 6 : 1,
       }}
@@ -191,7 +191,7 @@ export const CalEventBlock = memo(function CalEventBlock({
       )}
       {onUpdate && !short && (
         <div
-          onPointerDown={beginDrag('resize')}
+          onPointerDown={beginResize}
           style={{
             position: 'absolute', left: 0, right: 0, bottom: 0, height: 11, cursor: 'ns-resize',
             display: 'flex', alignItems: 'flex-end', justifyContent: 'center', touchAction: 'none',
@@ -207,22 +207,68 @@ export const CalEventBlock = memo(function CalEventBlock({
   )
 })
 
+// ─── Fantôme du glissé (Semaine / Jour) ─────────────────────────────────────
+/**
+ * Le fantôme d'un bloc en cours de déplacement (`useCalDeplacement`). Il se CALE
+ * (quart d'heure, colonne) et GLISSE d'une position calée à la suivante : le pas
+ * reste lisible, le geste reste fluide.
+ */
+export function CalFantome({ glisse }: { glisse: CalGlisse }) {
+  const SP = useCalPalette()
+  const t = calTypeStyle(glisse.ev, SP)
+  const total = (CAL_HOUR_END - CAL_HOUR_START) * 60
+  const debut = calMinutesDuJour(glisse.start) - CAL_HOUR_START * 60
+  const duree = (glisse.end.getTime() - glisse.start.getTime()) / 60000
+  const court = duree < 45
+  return (
+    <div
+      aria-hidden
+      data-cal-fantome=""
+      style={{
+        position: 'absolute', zIndex: 30, pointerEvents: 'none', boxSizing: 'border-box',
+        left: glisse.gauche + 3, width: Math.max(0, glisse.largeur - 9),
+        top: `${(debut / total) * 100}%`, height: `calc(${(duree / total) * 100}% - 3px)`, minHeight: 20,
+        borderRadius: 'var(--crm-radius-sm)', background: t.bg, color: t.ink,
+        boxShadow: `0 0 0 2px ${SP.ring}, ${SP.shadowHover}`,
+        padding: court ? '0 var(--crm-space-md)' : 'var(--crm-space-xs) var(--crm-space-md)',
+        display: 'flex', flexDirection: court ? 'row' : 'column', alignItems: court ? 'center' : 'stretch',
+        gap: court ? 'var(--crm-space-xs)' : 'var(--crm-space-2xs)', overflow: 'hidden',
+        transition: 'top 110ms cubic-bezier(.2,.8,.2,1), left 160ms cubic-bezier(.2,.8,.2,1)',
+      }}
+    >
+      {/* Sur une ligne (bloc court), la plage entière mangeait le titre — « 12:30 – 13:00 T… » :
+          l'heure d'arrivée suffit, comme sur le bloc lui-même. */}
+      <span style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 500, opacity: SP.isDark ? 0.82 : 0.72, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+        {court ? fmtTime(glisse.start) : `${fmtTime(glisse.start)} – ${fmtTime(glisse.end)}`}
+      </span>
+      <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, letterSpacing: -0.2, lineHeight: 1.15, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {glisse.ev.title}
+      </span>
+    </div>
+  )
+}
+
 // ─── Colonne de jour (timeline) ─────────────────────────────────────────────
 interface CalDayColumnProps {
   day: Date
+  /** Rang de la colonne dans sa grille — lu par le glissé pour viser un jour. */
+  colIndex: number
   events: CalEvent[]
   now: Date
   selectedId: string | null
   onSelect: (id: string, rect: DOMRect) => void
   onUpdate: (id: string, start: Date, end: Date) => void
   onCommit: (id: string, mode: 'move' | 'resize', start: Date, end: Date, title: string) => void
+  onMoveStart: (e: CalEvent, pe: React.PointerEvent<HTMLElement>) => void
+  /** L'événement en cours de déplacement, s'il y en a un. */
+  movingId: string | null
   onCreateAt: (d: Date) => void
   isToday: boolean
   showLocation: boolean
 }
 
 export function CalDayColumn({
-  day, events, now, selectedId, onSelect, onUpdate, onCommit, onCreateAt, isToday, showLocation,
+  day, colIndex, events, now, selectedId, onSelect, onUpdate, onCommit, onMoveStart, movingId, onCreateAt, isToday, showLocation,
 }: CalDayColumnProps) {
   const SP = useCalPalette()
   const totalHours = CAL_HOUR_END - CAL_HOUR_START
@@ -237,6 +283,7 @@ export function CalDayColumn({
 
   return (
     <div
+      data-cal-col={colIndex}
       onClick={e => onCreateAt(calSlotFromClick(e, day))}
       style={{
         position: 'relative', borderLeft: `1px solid ${SP.line}`,
@@ -264,7 +311,7 @@ export function CalDayColumn({
         const left = `calc(3px + (100% - 6px) * ${lo.col} / ${lo.cols})`
         const width = `calc((100% - 6px) / ${lo.cols} - 3px)`
         const past = isToday && e.end < now
-        const locked = e.isOccurrence || e.external
+        const locked = !calDeplacable(e)
         return (
           <CalEventBlock
             key={e.id} e={e} topCss={`${topPct}%`} heightCss={`calc(${hPct}% - 3px)`}
@@ -272,6 +319,8 @@ export function CalDayColumn({
             onSelect={onSelect}
             onUpdate={locked ? undefined : onUpdate}
             onCommit={locked ? undefined : onCommit}
+            onMoveStart={locked ? undefined : onMoveStart}
+            moving={e.id === movingId}
             roomy={showLocation} durH={durH}
           />
         )

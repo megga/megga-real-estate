@@ -1,7 +1,7 @@
 /**
  * Rappels/relances de l'agence (table `reminders`) : liste filtrée aux
  * statuts actifs, création manuelle (dialog Calendrier) et transitions
- * (fait / snooze +3 j / annulé). Migré vers @supabase-cache-helpers.
+ * (fait / snooze +3 j / annulé / replanifié). Migré vers @supabase-cache-helpers.
  */
 // Migrated to @supabase-cache-helpers/postgrest-react-query.
 //
@@ -121,7 +121,7 @@ function rowToReminder(row: ReminderRow): Reminder {
 
 // ── Hooks ──────────────────────────────────────────────────────────────────
 
-/** Rappels actifs de l'agence + mutateurs (create/markAsDone/snooze/cancel) et sous-listes dérivées (active/triggered/pending). */
+/** Rappels actifs de l'agence + mutateurs (create/markAsDone/snooze/cancel/reschedule) et sous-listes dérivées (active/triggered/pending). */
 export function useReminders() {
   const { profile } = useAuth()
   const agencyId = profile?.agency_id
@@ -231,6 +231,27 @@ export function useReminders() {
     [updateReminder]
   )
 
+  /**
+   * Replanifie un rappel à `triggerAt` (glissé dans le Calendrier, date changée dans
+   * sa modale). Rejette en cas d'échec : l'appelant doit pouvoir le dire.
+   *
+   * Un rappel encore OUVERT redevient `pending` : `automation-engine` ne déclenche que
+   * les `pending`, et un rappel déjà `triggered` (ou `snoozed`) replacé à la semaine
+   * prochaine doit sonner à sa nouvelle date — pas rester « à traiter » dès maintenant.
+   * Un rappel CLOS (fait, annulé) ne change que de date : le rouvrir déferait un geste
+   * de l'agent.
+   */
+  const reschedule = useCallback(
+    async (id: string, triggerAt: Date, opts?: { closed?: boolean }) => {
+      await updateReminder.mutateAsync({
+        id,
+        trigger_at: triggerAt.toISOString(),
+        ...(opts?.closed ? {} : { status: 'pending' }),
+      })
+    },
+    [updateReminder]
+  )
+
   const active = useMemo(() => reminders.filter((r) => r.status === 'pending' || r.status === 'triggered'), [reminders])
   const triggered = useMemo(() => reminders.filter((r) => r.status === 'triggered'), [reminders])
   const pending = useMemo(() => reminders.filter((r) => r.status === 'pending'), [reminders])
@@ -245,6 +266,7 @@ export function useReminders() {
     markAsDone,
     snooze,
     cancel,
+    reschedule,
     isLoading: remindersQuery.isLoading,
     isError: remindersQuery.isError,
   }

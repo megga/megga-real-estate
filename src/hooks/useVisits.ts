@@ -169,6 +169,12 @@ export function useVisits() {
       id: event.id,
       scheduled_at: event.start.toISOString(),
     }
+    // La durée suit la fin : un bloc raccourci dans le Calendrier ne l'était qu'à
+    // l'écran — le rechargement lui rendait sa durée d'origine. Elle compte aussi
+    // hors de l'écran : les créneaux KYC proposés au client la lisent pour savoir
+    // quand l'agent est libre.
+    const minutes = Math.round((event.end.getTime() - event.start.getTime()) / 60000)
+    if (minutes > 0) updatePayload.duration_minutes = minutes
     if (event.visitStatus !== undefined) {
       updatePayload.status = event.visitStatus
       if (event.visitStatus === 'done') {

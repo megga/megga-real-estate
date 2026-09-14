@@ -1,11 +1,13 @@
 // MEGGA CRM Sugar — Calendar — Vue Semaine (refonte « façon Google »)
 // Grille aérée : en-tête des jours (clic n° → vue Jour), bande journée entière,
 // corps scrollable 24 h (cadré sur ~7 h au montage), 7 colonnes timeline.
+// Un bloc se glisse d'un créneau à l'autre ET d'un jour à l'autre (`useCalDeplacement`).
 
 import { useEffect, useRef } from 'react'
 import { useCalPalette, type CalEvent } from './data'
 import { CAL_HOUR_END, CAL_HOUR_START, calDays, sameDay } from './helpers'
-import { CalAllDayBand, CalDayColumn, CalHourGutter } from './CalGrid'
+import { CalAllDayBand, CalDayColumn, CalFantome, CalHourGutter } from './CalGrid'
+import { useCalDeplacement } from './useCalDeplacement'
 
 export interface CalViewProps {
   events: CalEvent[]
@@ -15,6 +17,8 @@ export interface CalViewProps {
   onSelectEvent: (id: string, rect: DOMRect) => void
   onUpdateEvent: (id: string, start: Date, end: Date) => void
   onCommitEvent: (id: string, mode: 'move' | 'resize', start: Date, end: Date, title: string) => void
+  /** Un glissé vient de partir — la bulle ouverte se ferme, elle pointerait dans le vide. */
+  onDragStartEvent?: (id: string) => void
   onCreateAt: (d: Date) => void
   onDateChange: (d: Date) => void
   onOpenDay: (d: Date) => void
@@ -23,7 +27,7 @@ export interface CalViewProps {
 const MIN_H = 1680 // 24 h → timeline haute (≈70px/heure), le corps scrolle
 
 export function CalWeekView({
-  events, currentDate, now, selectedId, onSelectEvent, onUpdateEvent, onCommitEvent, onCreateAt, onOpenDay,
+  events, currentDate, now, selectedId, onSelectEvent, onUpdateEvent, onCommitEvent, onDragStartEvent, onCreateAt, onOpenDay,
 }: CalViewProps) {
   const SP = useCalPalette()
   const days = calDays()
@@ -39,6 +43,11 @@ export function CalWeekView({
 
   // Au montage, cadrer sur le matin (~7 h) pour ne pas ouvrir sur la nuit vide.
   const bodyRef = useRef<HTMLDivElement>(null)
+  const grilleRef = useRef<HTMLDivElement>(null)
+  const { glisse, saisir } = useCalDeplacement({
+    jours: weekDays, grilleRef, corpsRef: bodyRef,
+    onUpdate: onUpdateEvent, onCommit: onCommitEvent, onDebut: onDragStartEvent,
+  })
   useEffect(() => {
     let r1 = 0
     let r2 = 0
@@ -90,18 +99,20 @@ export function CalWeekView({
 
       {/* Corps scrollable */}
       <div ref={bodyRef} style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'var(--crm-space-md) var(--crm-space-lg) var(--crm-space-xl)' }}>
-        <div style={{
+        <div ref={grilleRef} style={{
           display: 'grid', gridTemplateColumns: '64px repeat(7, minmax(0,1fr))',
           height: '100%', minHeight: MIN_H, position: 'relative',
         }}>
           <CalHourGutter />
           {weekDays.map((d, i) => (
             <CalDayColumn
-              key={i} day={d} events={events} now={now} selectedId={selectedId}
+              key={i} colIndex={i} day={d} events={events} now={now} selectedId={selectedId}
               onSelect={onSelectEvent} onUpdate={onUpdateEvent} onCommit={onCommitEvent}
+              onMoveStart={saisir} movingId={glisse?.ev.id ?? null}
               onCreateAt={onCreateAt} isToday={sameDay(d, now)} showLocation={false}
             />
           ))}
+          {glisse && <CalFantome glisse={glisse} />}
         </div>
       </div>
     </div>

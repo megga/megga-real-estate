@@ -431,7 +431,8 @@
     "markedDone": "Marked done",
     "markedTodo": "Marked to do",
     "markedCancelled": "Marked cancelled",
-    "reactivated": "Reactivated"
+    "reactivated": "Reactivated",
+    "moveFailed": "Move not saved"
   },
   "onboarding": {
     "connectGoogle": "Connect Google",
