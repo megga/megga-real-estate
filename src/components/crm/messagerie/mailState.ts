@@ -8,6 +8,7 @@ export type MailModal =
   | { kind: 'none' }
   | { kind: 'compose'; draftId?: string }
   | { kind: 'delete'; threadId: string }
+  | { kind: 'disconnect'; accountId: string }
   | { kind: 'add-account'; step: 'list' | 'oauth' | 'imap' | 'done'; provider?: 'gmail' | 'outlook' | 'infomaniak' | 'bluewin' | 'imap'; accountId?: string }
   | { kind: 'link-contact'; threadId: string; email: string; name: string | null }
   | { kind: 'file'; attachmentId: string }

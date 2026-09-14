@@ -68,7 +68,7 @@ const MAINTENANT = Date.now()
 const ilYA = (jours: number, heures: number, minutes: number) =>
   new Date(MAINTENANT - jours * 86_400_000 - heures * 3_600_000 - minutes * 60_000).toISOString()
 
-export const FX_ACCOUNTS: MailAccount[] = [
+const FX_ACCOUNTS: MailAccount[] = [
   { id: 'fx-a1', agency_id: AG, owner_id: OWNER, provider: 'gmail', email: 'contact@agence-exemple.ch', display_name: 'Boîte générale', visibility: 'agency', status: 'active', last_sync_at: ilYA(0, 0, 4), last_error: null, created_at: ilYA(35, 0, 0) },
   { id: 'fx-a2', agency_id: AG, owner_id: OWNER, provider: 'outlook', email: 'facturation@agence-exemple.ch', display_name: 'Facturation', visibility: 'agency', status: 'active', last_sync_at: ilYA(0, 0, 11), last_error: null, created_at: ilYA(35, 0, 0) },
   // La troisième boîte porte le statut d'échec : sans elle, le banc ne montrerait
@@ -76,6 +76,24 @@ export const FX_ACCOUNTS: MailAccount[] = [
   // endroit où l'agent apprend qu'une boîte a cessé de se synchroniser.
   { id: 'fx-a3', agency_id: AG, owner_id: OWNER, provider: 'imap', email: 'j.exemple@agence-exemple.ch', display_name: 'J. Exemple · personnelle', visibility: 'owner', status: 'reauth_required', last_sync_at: null, last_error: 'invalid_grant', created_at: ilYA(35, 0, 0) },
 ]
+
+/**
+ * Les boîtes déconnectées au banc, le temps de la page — un rechargement les rend.
+ *
+ * ⚠ Sans elles, « Déconnecter » y confirmait un geste que l'écran démentait : la
+ * notification disait la boîte déconnectée, et le sélecteur la montrait encore.
+ */
+const deconnectees = new Set<string>()
+
+/** Déconnecte une boîte du banc (le `mail-oauth disconnect` des fixtures). */
+export function fxDeconnecter(accountId: string): void {
+  deconnectees.add(accountId)
+}
+
+/** Les boîtes du banc encore connectées. */
+export function fxBoites(): MailAccount[] {
+  return FX_ACCOUNTS.filter((a) => !deconnectees.has(a.id))
+}
 
 /** Les six libellés semés par le lot 1, transposés (maître §1). */
 export const FX_LABELS: MailLabel[] = [

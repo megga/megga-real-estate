@@ -36,6 +36,7 @@ import { MailComposeModal } from './MailComposeModal'
 import { MailFileAttachmentModal } from './MailFileAttachmentModal'
 import { MailContextMenu } from './MailContextMenu'
 import { MailDeleteModal } from './MailDeleteModal'
+import { MailDisconnectModal } from './MailDisconnectModal'
 import { MailLinkContactModal } from './MailLinkContactModal'
 import { MailCadreContext } from './mailCadre'
 import { MailRail } from './MailRail'
@@ -216,25 +217,37 @@ export function MessagerieApp({ dark, setDark }: Props) {
   }, [threads.rows, actions.act])
 
   /**
-   * Déconnexion d'UNE boîte, depuis le sélecteur du rail.
+   * Déconnexion d'UNE boîte, depuis le × du sélecteur du rail : le geste ouvre
+   * « Déconnecter cette boîte ? » (`MailDisconnectModal`), qui seul déconnecte.
    *
-   * ⚠ `window.confirm` et non une modale du dépôt, à dessein et par exception :
-   * le geste part d'un POPOVER, qui se ferme au premier clic dehors — une modale
-   * portée aurait dû survivre à la fermeture de son propre déclencheur, donc
-   * remonter dans l'état de l'écran pour un cas à trois lignes. Le natif bloque,
-   * et il y a un précédent (`ImportLeadPage:153`). À revoir si un second geste
-   * destructeur naît dans ce menu.
-   *
-   * ⚠ Si la boîte déconnectée était la boîte COURANTE, l'écran doit repartir de
-   * zéro : sans ça il garderait un `accountId` qui n'existe plus et la liste
-   * resterait sur la dernière page servie.
+   * ⚠ La modale vit dans l'état de l'ÉCRAN et non dans le sélecteur : le popover se
+   * ferme au clic qui l'appelle, et une modale portée par lui mourrait avec lui.
    */
   const deconnecterBoite = useCallback((id: string) => {
-    if (!window.confirm(t('mail.box.disconnectConfirm'))) return
-    accounts.disconnect.mutate(id, {
-      onSuccess: () => { if (state.accountId === id) dispatch({ type: 'select-account', accountId: null }) },
+    accounts.disconnect.reset()
+    dispatch({ type: 'modal', modal: { kind: 'disconnect', accountId: id } })
+  }, [accounts.disconnect])
+
+  const idDeconnexion = state.modal.kind === 'disconnect' ? state.modal.accountId : null
+  const boiteADeconnecter = idDeconnexion ? accounts.list.find((a) => a.id === idDeconnexion) ?? null : null
+  /**
+   * La déconnexion confirmée.
+   *
+   * ⚠ Si la boîte déconnectée était la boîte COURANTE, l'écran passe à la SUIVANTE,
+   * prise dans la liste d'avant le geste. Repartir de `null` laissait l'effet de
+   * sélection reprendre la première boîte de la liste pas encore rafraîchie — la boîte
+   * même qu'on venait de déconnecter, gardée ensuite comme un `accountId` orphelin.
+   */
+  const confirmerDeconnexion = () => {
+    const b = boiteADeconnecter
+    if (!b) return
+    accounts.disconnect.mutate(b.id, {
+      onSuccess: () => {
+        dispatch({ type: 'modal', modal: { kind: 'none' } })
+        if (state.accountId === b.id) dispatch({ type: 'select-account', accountId: accounts.list.find((a) => a.id !== b.id)?.id ?? null })
+      },
     })
-  }, [accounts.disconnect, state.accountId, t])
+  }
 
   return (
     <MailCadreContext.Provider value={cadre}>
@@ -532,6 +545,15 @@ export function MessagerieApp({ dark, setDark }: Props) {
               }}
             />
           )}
+
+          <MailDisconnectModal
+            ms={ms}
+            boite={boiteADeconnecter}
+            busy={accounts.disconnect.isPending}
+            error={accounts.disconnect.error?.message ?? null}
+            onCancel={() => { accounts.disconnect.reset(); dispatch({ type: 'modal', modal: { kind: 'none' } }) }}
+            onConfirm={confirmerDeconnexion}
+          />
 
           <MailDeleteModal
             ms={ms}

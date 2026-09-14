@@ -192,7 +192,9 @@
       "label": "Postfach",
       "none": "Kein Postfach",
       "disconnect": "Trennen",
-      "disconnectConfirm": "Dieses Postfach trennen? Seine Nachrichten werden aus dem CRM entfernt; abgelegte Dokumente bleiben erhalten.",
+      "disconnectTitle": "Dieses Postfach trennen?",
+      "disconnectBody": "Seine Nachrichten werden aus dem CRM entfernt. Bereits abgelegte Dokumente bleiben in ihren Dossiers, und das Postfach selbst bleibt beim Anbieter unverändert.",
+      "disconnecting": "Wird getrennt …",
       "status": {
         "reauth_required": "Berechtigung erneuern",
         "error": "Synchronisierungsfehler",

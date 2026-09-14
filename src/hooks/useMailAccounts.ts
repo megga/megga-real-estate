@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { invokeMail } from '@/lib/mail/invoke'
-import { FX_ACCOUNTS, FX_UNREAD, useMailFixtures } from '@/components/crm/messagerie/fixtures'
+import { FX_UNREAD, fxBoites, fxDeconnecter, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { Database } from '@/types/database'
 
 export type MailProviderId = Database['public']['Tables']['mail_accounts']['Row']['provider']
@@ -39,7 +39,7 @@ export function useMailAccounts() {
     queryKey: ['mail', 'accounts', fx],
     enabled: !!user || !!fx,
     queryFn: async (): Promise<MailAccount[]> => {
-      if (fx) return fx === 'none' ? [] : FX_ACCOUNTS
+      if (fx) return fx === 'none' ? [] : fxBoites()
       const { data, error } = await supabase.from('mail_accounts').select(COLS).order('created_at', { ascending: true })
       if (error) throw error
       return (data ?? []) as MailAccount[]
@@ -78,6 +78,8 @@ export function useMailAccounts() {
   }, [invalidate])
   const disconnect = useMutation({
     mutationFn: async (accountId: string) => {
+      // Banc : la boîte quitte les fixtures, comme les lectures y répondent — sans réseau.
+      if (fx) { fxDeconnecter(accountId); return }
       const r = await invokeMail('mail-oauth', { action: 'disconnect', account_id: accountId })
       if (r.error) throw new Error(r.error)
     },
