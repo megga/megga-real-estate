@@ -27,18 +27,16 @@ test.beforeEach(async ({ page }) => {
   await expect(assistant(page)).toBeVisible()
 })
 
-test('quatre choix : WhatsApp, Google, Microsoft, IMAP — plus de tuile Infomaniak ni Bluewin', async ({ page }) => {
-  await expect(assistant(page).getByRole('button', { name: /WhatsApp Business/ })).toBeVisible()
+test('trois choix : Google, Microsoft, IMAP — ni WhatsApp, ni Infomaniak, ni Bluewin', async ({ page }) => {
   await expect(assistant(page).getByRole('button', { name: /Google Workspace/ })).toBeVisible()
   await expect(assistant(page).getByRole('button', { name: /Outlook \/ Microsoft 365/ })).toBeVisible()
   await expect(assistant(page).getByRole('button', { name: /Autre boîte \(IMAP \/ SMTP\)/ })).toBeVisible()
+  // WhatsApp n'est pas une boîte : il s'appaire dans Réglages › Intégrations (Julien, 14.09.2026).
+  await expect(assistant(page).getByRole('button', { name: /WhatsApp/ })).toHaveCount(0)
   await expect(assistant(page).getByRole('button', { name: /Infomaniak Mail|Bluewin \(Swisscom\)/ })).toHaveCount(0)
-  await expect(assistant(page).getByRole('button')).toHaveCount(5) // les quatre lignes et la croix
+  await expect(assistant(page).getByRole('button')).toHaveCount(4) // les trois lignes et la croix
   // Un nom par ligne, sans sous-titre (Julien, 14.09.2026).
   await expect(assistant(page).getByText(/Coexistence|serveurs reconnus à l'adresse/)).toHaveCount(0)
-  // ⛔ Le logo WhatsApp était un combiné BLANC sur fond transparent : invisible.
-  const vert = await assistant(page).getByRole('button', { name: /WhatsApp Business/ }).locator('stop').first().getAttribute('stop-color')
-  expect(vert?.toLowerCase()).toBe('#4ac14b')
 })
 
 test('l’adresse remplit les serveurs ; un mot de passe refusé se DIT ; le bon connecte la boîte', async ({ page }) => {

@@ -2,7 +2,7 @@
  * L'assistant « Ajouter une boîte » (README §6), transposé en MEGGA X.
  *
  * Quatre étapes :
- *  · `list`  — WhatsApp, Google, Microsoft, ou « Autre boîte (IMAP / SMTP) » ;
+ *  · `list`  — Google, Microsoft, ou « Autre boîte (IMAP / SMTP) » ;
  *  · `oauth` — Google et Microsoft, par la pop-up de consentement (maître D1) ;
  *  · `imap`  — toute autre boîte, par mot de passe (lot 3) ;
  *  · `done`  — la boîte connectée.
@@ -17,11 +17,11 @@
  * Microsoft refuse le mot de passe en IMAP, Google ne l'accepte qu'en mot de passe
  * d'application — pour Google, l'IMAP reste donc proposé.
  *
- * ⚠ WhatsApp n'est PAS une boîte de cet écran (maître D13) : sa ligne NAVIGUE
- * vers la carte d'appairage des Réglages.
+ * ⛔ PLUS DE LIGNE WHATSAPP (Julien, 14.09.2026 : « on ne va pas ajouter une boîte avec
+ * WhatsApp, ça n'a pas de sens »). WhatsApp n'est pas une boîte (maître D13) : il s'appaire
+ * dans Réglages › Intégrations, et sa ligne ne faisait que renvoyer là-bas.
  */
 import { useEffect, useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { adresseValide } from '@/lib/mail/compose'
@@ -32,7 +32,7 @@ import { MailProviderLogo, type MailProviderKey } from './MailProviderLogo'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
 type Step = 'list' | 'oauth' | 'imap' | 'done'
-type Fournisseur = Exclude<MailProviderKey, 'wa'>
+type Fournisseur = MailProviderKey
 type ViaOAuth = 'gmail' | 'outlook'
 
 /** Largeur de la carte (README §6). */
@@ -99,7 +99,6 @@ interface Props {
 /** L'assistant complet, monté à l'ouverture et démonté à la fermeture. */
 export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props) {
   const { t } = useTranslation('messages')
-  const navigate = useNavigate()
   const { connect, cancel } = useMailOAuthPopup()
   const { detectImap, connectImap } = useMailAccounts()
   const [step, setStep] = useState<Step>('list')
@@ -164,8 +163,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
     setServeursSaisis(true)
   }
 
-  const pick = (p: MailProviderKey) => {
-    if (p === 'wa') { onClose(); navigate('/dashboard/settings?tab=integrations'); return }
+  const pick = (p: Fournisseur) => {
     setProv(p); setError(null)
     setStep(p === 'imap' ? 'imap' : 'oauth')
   }
@@ -264,23 +262,23 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
     <div role="alert" style={{ fontSize: 'var(--crm-text-xs)', color: ms.dangerText, marginTop: 'var(--crm-space-md)' }}>{error}</div>
   )
   // Un nom par ligne, sans sous-titre (Julien, 14.09.2026) : le logo et le nom suffisent.
-  const ligneFournisseur = (p: MailProviderKey, name: string, big = false) => (
+  const ligneFournisseur = (p: Fournisseur, name: string) => (
     <button
       key={p}
       type="button"
       onClick={() => pick(p)}
       style={{
-        display: 'flex', alignItems: 'center', gap: big ? 'var(--crm-space-3xl)' : 'var(--crm-space-lg)',
-        padding: big ? 'var(--crm-space-2xl)' : 'var(--crm-space-lg) var(--crm-space-2xl)',
-        border: `1px solid ${ms.bord}`, borderRadius: big ? 'var(--crm-radius-4xl)' : 'var(--crm-radius-xl)',
+        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
+        padding: 'var(--crm-space-lg) var(--crm-space-2xl)',
+        border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-xl)',
         background: 'transparent', color: ms.ink, cursor: 'pointer', textAlign: 'left', width: '100%',
         fontFamily: 'inherit', transition: MAIL_TRANSITION,
       }}
       onMouseEnter={(e) => { e.currentTarget.style.borderColor = ms.dim; e.currentTarget.style.background = ms.hover }}
       onMouseLeave={(e) => { e.currentTarget.style.borderColor = ms.bord; e.currentTarget.style.background = 'transparent' }}
     >
-      <MailProviderLogo ms={ms} provider={p} size={big ? LOGO_ETAPE : undefined} />
-      <span style={{ flex: 1, minWidth: 0, fontSize: big ? 'var(--crm-text-lg)' : 'var(--crm-text-md)', fontWeight: 600 }}>{name}</span>
+      <MailProviderLogo ms={ms} provider={p} />
+      <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{name}</span>
       <MEIcon name="chevron-right" size={13} color={ms.mut} />
     </button>
   )
@@ -345,7 +343,6 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
 
       {step === 'list' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)', marginTop: 'var(--crm-space-2xl)' }}>
-          {ligneFournisseur('wa', 'WhatsApp Business', true)}
           {ligneFournisseur('gmail', NOM_OAUTH.gmail)}
           {ligneFournisseur('outlook', NOM_OAUTH.outlook)}
           {ligneFournisseur('imap', t('mail.add.other'))}
