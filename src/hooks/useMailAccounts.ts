@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { invokeMail } from '@/lib/mail/invoke'
-import { FX_UNREAD, fxBoites, fxConnecterImap, fxDeconnecter, fxDetecterImap, useMailFixtures } from '@/components/crm/messagerie/fixtures'
+import { fxBoites, fxConnecterImap, fxDeconnecter, fxDetecterImap, fxNonLus, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { Database } from '@/types/database'
 
 export type MailProviderId = Database['public']['Tables']['mail_accounts']['Row']['provider']
@@ -56,7 +56,7 @@ export function useMailAccounts() {
     queryKey: ['mail', 'unread', fx],
     enabled: !!user || !!fx,
     queryFn: async (): Promise<Record<string, number>> => {
-      if (fx) return fx === 'full' ? FX_UNREAD : {}
+      if (fx) return fx === 'full' ? fxNonLus() : {}
       const { data, error } = await supabase.rpc('mail_unread_counts')
       if (error) throw error
       return Object.fromEntries((data ?? []).map((r) => [r.account_id, Number(r.unread)]))

@@ -10,6 +10,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { invokeMail } from '@/lib/mail/invoke'
+import { fxAgir, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 
 export type MailThreadAction = 'mark_read' | 'mark_unread' | 'star' | 'unstar' | 'archive' | 'unarchive' | 'trash' | 'untrash'
@@ -21,6 +22,8 @@ const PATCH: Record<MailThreadAction, Partial<MailThreadRow>> = {
 /** Les cinq gestes de la liste et du lecteur, tous optimistes sauf `sync_now`. */
 export function useMailActions(accountId: string | null) {
   const qc = useQueryClient()
+  // Banc : le geste s'écrit dans les fixtures, que la liste relit — comme la base en production.
+  const fx = useMailFixtures()
   const patchCaches = (threadId: string, patch: Partial<MailThreadRow>) => {
     qc.setQueriesData<{ rows: MailThreadRow[]; total: number }>({ queryKey: ['mail', 'threads', accountId] }, (old) =>
       old ? { ...old, rows: old.rows.map((r) => (r.id === threadId ? { ...r, ...patch } : r)) } : old)
@@ -33,6 +36,7 @@ export function useMailActions(accountId: string | null) {
 
   const act = useMutation({
     mutationFn: async (a: { action: MailThreadAction; threadId: string }) => {
+      if (fx) { fxAgir(a.threadId, PATCH[a.action]); return }
       const r = await invokeMail('mail-actions', { action: a.action, account_id: accountId, thread_id: a.threadId })
       if (r.error) throw new Error(r.detail ? `${r.error}: ${r.detail}` : r.error)
     },
@@ -48,6 +52,7 @@ export function useMailActions(accountId: string | null) {
 
   const setLabel = useMutation({
     mutationFn: async (a: { threadId: string; labelId: string | null }) => {
+      if (fx) { fxAgir(a.threadId, { label_id: a.labelId }); return }
       const { error } = await supabase.from('mail_threads').update({ label_id: a.labelId }).eq('id', a.threadId)
       if (error) throw error
     },

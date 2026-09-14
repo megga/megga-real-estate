@@ -293,16 +293,42 @@ export const FX_MESSAGES: MailMessageRow[] = [
 const AVEC_SORTANT = new Set(FX_MESSAGES.filter((m) => m.direction === 'outbound').map((m) => m.thread_id))
 
 /**
+ * Les gestes faits au banc sur un fil — étoile, lu, archive, corbeille, libellé —, le
+ * temps de la page : un rechargement les efface.
+ *
+ * ⛔ Sans eux, CHAQUE geste se défaisait sous les yeux : l'écran le montrait (mise à jour
+ * optimiste), puis la liste se relisait dans des fixtures inchangées et le reprenait
+ * (Julien, 14.09.2026 : « l'étoile ne reste pas, et c'est pareil pour les autres »). En
+ * production c'est la base que la liste relit, et `mail-actions` l'a écrite.
+ */
+const gestes = new Map<string, Partial<MailThreadRow>>()
+
+/** Répercute un geste sur un fil du banc (le `mail-actions` des fixtures). */
+export function fxAgir(threadId: string, patch: Partial<MailThreadRow>): void {
+  gestes.set(threadId, { ...gestes.get(threadId), ...patch })
+}
+
+/** Les fils du banc, gestes compris — la seule lecture que les hooks doivent faire. */
+function fils(): MailThreadRow[] {
+  return FX_THREADS.map((t) => {
+    const g = gestes.get(t.id)
+    return g ? { ...t, ...g } : t
+  })
+}
+
+/**
  * Non-lus par boîte, tels que le rail les affiche.
  *
  * ⚠ DÉRIVÉ du jeu, jamais écrit à la main : une pastille qui annonce un compte
  * que la liste ne montre pas est le défaut exact que ce banc doit rendre
- * visible, pas reproduire.
+ * visible, pas reproduire. Et recalculé à chaque lecture : un fil ouvert est lu.
  */
-export const FX_UNREAD: Record<string, number> = FX_THREADS.reduce<Record<string, number>>((acc, t) => {
-  if (!t.is_read && !t.is_archived && !t.is_trashed) acc[t.account_id] = (acc[t.account_id] ?? 0) + 1
-  return acc
-}, {})
+export function fxNonLus(): Record<string, number> {
+  return fils().reduce<Record<string, number>>((acc, t) => {
+    if (!t.is_read && !t.is_archived && !t.is_trashed) acc[t.account_id] = (acc[t.account_id] ?? 0) + 1
+    return acc
+  }, {})
+}
 
 /**
  * Le dossier est une REQUÊTE, pas une colonne (maître D8) : le banc rejoue le
@@ -334,7 +360,7 @@ export function fxThreads(
 ): { rows: MailThreadRow[]; total: number } {
   if (state !== 'full' || !accountId) return { rows: [], total: 0 }
   const q = f.q.trim().toLowerCase()
-  const tous = FX_THREADS.filter((t) =>
+  const tous = fils().filter((t) =>
     t.account_id === accountId
     && filtreDossier(t, f.folder)
     && (!f.labelId || t.label_id === f.labelId)
@@ -384,7 +410,7 @@ export function fxSenderLogos(state: MailFixtureState, domaines: string[]): Reco
 /** Les compteurs du rail, recalculés sur le même jeu — jamais écrits à la main. */
 export function fxCounts(state: MailFixtureState, accountId: string | null): MailFolderCounts {
   if (state !== 'full' || !accountId) return { inbox_unread: 0, archived: 0, drafts: 0, label_counts: {} }
-  const dansLaBoite = FX_THREADS.filter((t) => t.account_id === accountId)
+  const dansLaBoite = fils().filter((t) => t.account_id === accountId)
   const label_counts: Record<string, number> = {}
   for (const t of dansLaBoite) if (t.label_id) label_counts[t.label_id] = (label_counts[t.label_id] ?? 0) + 1
   return {
