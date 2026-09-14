@@ -238,6 +238,7 @@ const TABLE: Inscrit[] = [
   { fichier: 'src/components/crm-mobile/shell/MobileTabBar.tsx', genre: 'navigate', cible: 'tab.route', pourquoi: 'MOBILE_TABS, table statique' },
   { fichier: 'src/components/crm/CrmSidebar.tsx', genre: 'navigate', cible: 'consoleAReprendre()', pourquoi: 'relu du sessionStorage mais filtré par estPageConsole (préfixe de la console)' },
   { fichier: 'src/components/crm/CrmSidebar.tsx', genre: 'navigate', cible: 'route', pourquoi: 'crmSidebarRouteOf : table statique de la barre latérale' },
+  { fichier: 'src/components/crm/profile/CrmCompteBouton.tsx', genre: 'navigate', cible: 'route', pourquoi: 'crmSidebarRouteOf(\'settings\') : table statique de la barre latérale, clé constante' },
   { fichier: 'src/components/crm/profile/CrmProfileDropdown.tsx', genre: 'navigate', cible: 'consoleAReprendre()', pourquoi: 'relu du sessionStorage mais filtré par estPageConsole (préfixe de la console)' },
   { fichier: 'src/components/crm/search/CrmSearch.tsx', genre: 'navigate', cible: 'href', pourquoi: 'hrefDe : /dashboard/<genre>/<id>, ou consoleAReprendre()' },
   { fichier: 'src/components/layout/AgentLayout.tsx', genre: 'Navigate', cible: 'IDENTITY_GATE_ROUTE', pourquoi: 'constante de module' },

@@ -91,6 +91,34 @@ describe('expéditeurs e-mail pilotés par un agent', () => {
   }
 })
 
+/**
+ * ⛔ La fiche bien partait signée « Gregory Lyonnet · +41 22 000 00 00 » pour TOUTE agence
+ * (13.09.2026) : l'appelant n'envoyait pas de nom, et le hook comblait avec celui-là. La
+ * signature se lit désormais dans le profil de l'appelant ; ces clauses empêchent qu'elle
+ * redevienne une saisie libre, ou qu'un nom de repli revienne côté client.
+ */
+describe('send-property-email — la signature vient du profil de l’appelant', () => {
+  const src = source('send-property-email')
+  const hook = readFileSafely(repoPath('src/hooks/useSendEmail.ts'))
+  const hookSrc = hook.status === 'ok' ? hook.value : ''
+
+  it('lit le nom et le téléphone dans `profiles`, pour l’utilisateur authentifié', () => {
+    expect(src).toMatch(/\.from\('profiles'\)\s*\.select\('full_name, phone'\)\s*\.eq\('id', auth\.user\.id\)/)
+  })
+
+  it('n’utilise jamais un nom ou un téléphone lu dans le corps de la requête', () => {
+    expect(src).not.toMatch(/body\.agent(?:Name|Phone)/)
+    expect(src).not.toMatch(/\.\.\.body/)
+  })
+
+  it('le hook client n’invente plus de signataire', () => {
+    expect(hookSrc.length, 'useSendEmail.ts illisible').toBeGreaterThan(500)
+    // Le CODE, pas la prose : l'en-tête du hook raconte le défaut en le citant.
+    const code = hookSrc.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')
+    expect(code).not.toMatch(/agentName|agentPhone|Gregory|\+41 22 000/)
+  })
+})
+
 const MODULE_RELANCE = 'supabase/functions/_shared/relance-email-send.ts'
 
 describe('la relance — un seul envoi, dans _shared/relance-email-send.ts', () => {

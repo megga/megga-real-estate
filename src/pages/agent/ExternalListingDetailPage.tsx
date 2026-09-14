@@ -286,7 +286,7 @@ export default function ExternalListingDetailPage() {
                   <div key={stat.label} className="flex items-center gap-2">
                     <span className="text-theme-tertiary">{stat.icon}</span>
                     <div>
-                      <p className="text-xs text-theme-tertiary capitalize">{stat.label}</p>
+                      <p className="text-xs text-theme-tertiary">{stat.label}</p>
                       <p className="text-sm font-medium text-theme-primary">{stat.value}</p>
                     </div>
                   </div>
@@ -297,7 +297,7 @@ export default function ExternalListingDetailPage() {
             {/* Description */}
             {listing.description && (
               <div className="rounded-xl border border-theme-border p-5">
-                <h3 className="text-xs text-theme-tertiary capitalize mb-3">{t('external.description')}</h3>
+                <h3 className="text-xs text-theme-tertiary mb-3">{t('external.description')}</h3>
                 {/* Rendu texte brut + sauts de ligne préservés — évite XSS sur
                     description scrapée par Flatfox/Homegate qui pourrait contenir
                     du HTML malveillant si un site source est compromis. */}
@@ -313,7 +313,7 @@ export default function ExternalListingDetailPage() {
             {/* Price analysis (honnête — prix/m² propre à l'annonce, sans comparables fabriqués) */}
             {pricePerM2 && listing.price > 0 && (
               <div className="rounded-xl border border-theme-border p-5">
-                <h3 className="text-xs text-theme-tertiary capitalize mb-3">{t('external.priceAnalysis')}</h3>
+                <h3 className="text-xs text-theme-tertiary mb-3">{t('external.priceAnalysis')}</h3>
                 <div className="flex flex-wrap items-center gap-6">
                   <div>
                     <p className="text-lg font-semibold text-theme-primary">{formatCHF(pricePerM2)}</p>
@@ -336,7 +336,7 @@ export default function ExternalListingDetailPage() {
 
             {/* ── NIVEAU 3 : Notes agent ─────────────────────────────────── */}
             <div className="rounded-xl border border-theme-border p-5">
-              <h3 className="text-xs text-theme-tertiary capitalize mb-3">{t('external.agentNotes')}</h3>
+              <h3 className="text-xs text-theme-tertiary mb-3">{t('external.agentNotes')}</h3>
 
               {/* Note input */}
               <div className="flex gap-2 mb-3">
@@ -382,7 +382,7 @@ export default function ExternalListingDetailPage() {
 
             {/* Source info */}
             <div className="rounded-xl border border-theme-border p-5">
-              <h3 className="text-xs text-theme-tertiary capitalize mb-3">{t('external.source')}</h3>
+              <h3 className="text-xs text-theme-tertiary mb-3">{t('external.source')}</h3>
               <div className="space-y-2.5">
                 {listing.source_agency && (
                   <div className="flex items-center justify-between">
@@ -422,14 +422,14 @@ export default function ExternalListingDetailPage() {
             {/* Match context */}
             {contactName && (
               <div className="rounded-xl border border-theme-border p-4">
-                <p className="text-xs text-theme-tertiary capitalize mb-1.5">{t('external.matchFor')}</p>
+                <p className="text-xs text-theme-tertiary mb-1.5">{t('external.matchFor')}</p>
                 <p className="text-sm font-medium text-theme-primary">{contactName}</p>
               </div>
             )}
 
             {/* Actions */}
             <div className="rounded-xl border border-theme-border p-4 space-y-2.5">
-              <p className="text-xs text-theme-tertiary capitalize mb-1">{t('external.actions')}</p>
+              <p className="text-xs text-theme-tertiary mb-1">{t('external.actions')}</p>
 
               {/* Email sent success toast */}
               {emailSentSuccess && (
@@ -524,7 +524,7 @@ export default function ExternalListingDetailPage() {
             {/* ── NIVEAU 3 : Historique d'envoi ─────────────────────────── */}
             {sends.length > 0 && (
               <div className="rounded-xl border border-theme-border p-4">
-                <p className="text-xs text-theme-tertiary capitalize mb-2">{t('external.sendHistory')}</p>
+                <p className="text-xs text-theme-tertiary mb-2">{t('external.sendHistory')}</p>
                 <div className="space-y-2">
                   {sends.map((send) => (
                     <div key={send.id} className="flex items-center justify-between">
@@ -542,7 +542,7 @@ export default function ExternalListingDetailPage() {
             {/* Location */}
             {listing.city && (
               <div className="rounded-xl border border-theme-border p-4">
-                <p className="text-xs text-theme-tertiary capitalize mb-2">{t('external.location')}</p>
+                <p className="text-xs text-theme-tertiary mb-2">{t('external.location')}</p>
                 <p className="text-sm font-medium text-theme-primary">{listing.city}</p>
                 {listing.canton && <p className="text-xs text-theme-tertiary mt-0.5">{t('external.canton')} : {listing.canton}</p>}
                 {listing.postcode && <p className="text-xs text-theme-tertiary">{t('external.postalCode')} : {listing.postcode}</p>}

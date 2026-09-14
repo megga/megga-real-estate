@@ -108,7 +108,7 @@ function subtitleFor(rooms: number | null, surface: number | null, price: number
 // photos publiées, visites, offres, compromis, acte) avec done/active/todo.
 function buildColumns(
   current: StageId,
-  agentId: string,
+  agentId: string | null,
   dossierId: string,
   t: TFunction,
 ): Record<StageId, ParcoursTask[]> {
@@ -189,7 +189,10 @@ export function useJourneyScreen(): UseJourneyScreenReturn {
       const stageActive = stageToParcours(tx.stage)
       const cityTitle = property?.city ? `${property.city} — ${property.address ?? ''}`.trim() : property?.address ?? t('journey.dossierFallback')
       const title = property?.title || cityTitle
-      const agentId = tx.assigned_to ?? 't-greg'   // fallback team mock id si pas assigné
+      // ⛔ Pas de repli sur un membre de l'équipe de démonstration : `'t-greg'` faisait
+      // afficher « Grégory Lyonnet · Directeur » sur TOUT dossier non assigné, de
+      // n'importe quelle agence. Non assigné se dit par l'absence d'avatar.
+      const agentId = tx.assigned_to ?? null
       const columns = buildColumns(stageActive, agentId, tx.id, t)
       const activeTaskId = columns[stageActive].find(task => task.state === 'active')?.id
         ?? `t-${tx.id}-m1`

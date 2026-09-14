@@ -14,6 +14,7 @@ import { formatCHF } from '@/lib/utils'
 import type {
   AxPeriodId, AxPeriodData, AxSeries, AxKpi, AxCompositionItem, AxSource, AxDeal, AxBucketId, AxBucket, AxRecord,
 } from './tokens'
+import { axShort } from './tokens'
 
 // i18n : adaptateur PUR mais à libellés traduits → un traducteur `t` (lié au
 // namespace 'dashboard', clés dashboard:analytics.*) est injecté par le hook
@@ -102,10 +103,19 @@ function periodMeta(period: AxPeriodId, t: TFunction): { period: string; granula
 }
 
 // ── Libellés des canaux de source (traduits ; canaux connus, sinon brut) ─────
+/**
+ * Libellé d'un canal — les valeurs de `contacts_source_check`.
+ *
+ * ⚠ `whatsapp` et `whatsapp_ai` manquaient : ce sont pourtant deux des quatre sources
+ * présentes en production (13.09.2026), et le graphique « Commission par canal »
+ * affichait l'identifiant brut « whatsapp_ai ». Une valeur inconnue reste lisible.
+ */
 function sourceLabel(source: string, t: TFunction): string {
   const key = source === 'import' ? 'manual' : source
-  const known = ['website', 'onboarding', 'referral', 'manual']
-  return known.includes(key) ? t(`analytics.source.${key}`) : source
+  const known = ['website', 'onboarding', 'referral', 'manual', 'whatsapp', 'whatsapp_ai']
+  if (known.includes(key)) return t(`analytics.source.${key}`)
+  const s = (source || '').replace(/_+/g, ' ').trim()
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : '—'
 }
 
 // ── Libellé d'étape affiché (drill) ; le code BRUT reste la clé de probaForStage ──
@@ -254,6 +264,7 @@ export function buildAxData(
     {
       label: t('analytics.kpi.volume'),
       value: (cockpit.volume_signed && cockpit.volume_signed > 0) ? formatCHF(cockpit.volume_signed) : 'CHF —',
+      valueShort: (cockpit.volume_signed && cockpit.volume_signed > 0) ? `CHF ${axShort(cockpit.volume_signed)}` : undefined,
       // pas de N-1 de volume calculé : on n'affiche PAS delta_deals (variation du NOMBRE
       // de deals) à côté d'un montant CHF — ce serait un delta trompeur.
       delta: 0,
@@ -271,6 +282,9 @@ export function buildAxData(
       value: (cockpit.n_signed && cockpit.n_signed > 0)
         ? formatCHF(Math.round((decomp.signed ?? 0) / cockpit.n_signed))
         : 'CHF —',
+      valueShort: (cockpit.n_signed && cockpit.n_signed > 0)
+        ? `CHF ${axShort(Math.round((decomp.signed ?? 0) / cockpit.n_signed))}`
+        : undefined,
       delta: 0,
       spark: [],
     },

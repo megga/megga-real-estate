@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { KIND_META, type NotifGroup, type CrmNotif } from '@/components/crm/notifications/data'
+import TuileNotif from '@/components/crm/notifications/TuileNotif'
 import { MOBILE_FONT } from '../tokens'
 import { useMobileTokens } from '../useMobileTokens'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
@@ -31,15 +32,6 @@ const GROUPS: { id: NotifGroup; labelKey: string }[] = [
 
 const SHEET_SPRING = { type: 'spring' as const, stiffness: 320, damping: 34, mass: 0.95 }
 
-/** Convertit un hex en `rgba()` avec alpha — pour teinter le fond d'une pastille d'icône. */
-function tint(hex: string, a: number): string {
-  const h = hex.replace('#', '')
-  const r = parseInt(h.slice(0, 2), 16)
-  const g = parseInt(h.slice(2, 4), 16)
-  const b = parseInt(h.slice(4, 6), 16)
-  return `rgba(${r},${g},${b},${a})`
-}
-
 /**
  * Feuille Notifications (depuis « Plus » → cloche). Sugar Pure, alimentée par
  * `useAgentNotifications` (passé en props depuis le hub → une seule instance).
@@ -58,13 +50,12 @@ export default function MrNotifSheet({
   const reducedMotion = useReducedMotion()
   const refPiegeFocus = useFocusTrap(open, onClose)
   const { t } = useTranslation('common')
-  const { tk, isDark } = useMobileTokens()
+  const { tk } = useMobileTokens()
 
   const priorities = items.filter((n) => n.priority === 'high' && !n.read)
 
   const renderRow = (n: CrmNotif) => {
     const meta = KIND_META[n.kind]
-    const iconColor = isDark ? '#FFFFFF' : meta.dot
     return (
       <button
         key={n.id}
@@ -86,19 +77,13 @@ export default function MrNotifSheet({
           opacity: n.read ? 0.62 : 1,
         }}
       >
-        <span
-          style={{
-            position: 'relative',
-            width: 40,
-            height: 40,
-            borderRadius: 'var(--crm-radius-lg)',
-            flexShrink: 0,
-            display: 'grid',
-            placeItems: 'center',
-            background: n.read ? tk.cardSubtle : tint(meta.dot, isDark ? 0.22 : 0.1),
-          }}
+        {/* La tuile partagée avec le bureau : la photo du bien ou de l'annonce désignés
+            quand il y en a une (match, diffusion), sinon le glyphe du type. */}
+        <TuileNotif
+          n={n}
+          anneau={n.read ? tk.sheetBg : tk.card}
+          encrePastille="#FFFFFF"
         >
-          <MEIcon name={meta.icon} size={19} color={iconColor} strokeWidth={1.9} />
           {!n.read ? (
             <span
               style={{
@@ -113,7 +98,7 @@ export default function MrNotifSheet({
               }}
             />
           ) : null}
-        </span>
+        </TuileNotif>
         <span style={{ flex: 1, minWidth: 0 }}>
           <span
             style={{
@@ -126,6 +111,8 @@ export default function MrNotifSheet({
             }}
           >
             {n.title}
+            {/* Une rafale regroupée (`regrouper`) ne se lit pas comme UN événement. */}
+            {n.count > 1 ? <span style={{ color: tk.muted, fontWeight: 600 }}> ×{n.count}</span> : null}
           </span>
           {n.body ? (
             <span

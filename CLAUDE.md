@@ -303,9 +303,11 @@ d'écran n'est restée sur Graphite).
 - Modals : `createPortal(document.body)`. ⚠ **« TOUJOURS … avec `z-[100]` » n'est
   vrai ni pour l'un ni pour l'autre.** Mesuré : **33 des 36 fichiers de
   modale/panneau/dialogue** appellent `createPortal` — la règle tient à trois près —
-  mais le z-index est un **désordre assumé nulle part** : **175 sites `zIndex`
-  portant 44 valeurs DISTINCTES**, dont seulement **10** valent 100. Aucune garde ne
-  le mesure. Poser `z-[100]` sans regarder ses voisins est donc un coup de dé, pas
+  mais le z-index est un **désordre assumé nulle part** : **186 sites `zIndex`
+  portant 51 valeurs DISTINCTES** (remesuré le 14.09.2026 ; 175 et 44 le 16.08 — les
+  deux dernières venues, 4099 et 4100, sont le voile et le menu de libellé du
+  Calendrier, posés au-dessus de sa bulle à 4000), dont seulement **10** valent 100.
+  Aucune garde ne le mesure. Poser `z-[100]` sans regarder ses voisins est donc un coup de dé, pas
   une convention : lire l'empilement local d'abord.
 - **Steppers : l'étape courante porte l'ACCENT, et la progression se lit dans la
   GÉOMÉTRIE.** ⛔ La règle précédente disait « monochrome (numéros + underline) » :
@@ -685,7 +687,9 @@ porte ne rougisse. ⚠ Et depuis le 12.09.2026 elle perd aussi la **poussée du 
 derrière le dock. `AgentLayout` ne fait plus que publier `--crm-dock-push`. ⛔ Sa gouttière peinte au `pageBg`
 était la « plaque » vue derrière le dock en clair (« Aujourd'hui » peint `#EBEDF1`, la gouttière `#F9F9F9`).
 Mécanique, repli par écran et thème à source unique (`useCrmDarkPref`) : `usePousseeDock`, cerveau
-`megga/dock-poussee`. ⛔ **CINQ ROUTES D'ONGLET LE FAISAIENT** : basculer sur l'une d'elles faisait
+`megga/dock-poussee`. ⚠ La bascule clair ↔ sombre est une révélation de l'écran ENTIER (`crmDarkBascule`,
+transitions coupées le temps du geste) : ne pas « l'adoucir » en posant des transitions de couleur sur un
+composant — elles sont neutralisées pendant la bascule, et c'est voulu. Cerveau `megga/bascule-theme`. ⛔ **CINQ ROUTES D'ONGLET LE FAISAIENT** : basculer sur l'une d'elles faisait
 disparaître la bande ET la barre latérale, sans autre sortie que son propre lien de retour. Deux sont
 corrigées. `VisitDetailPage` (`/dashboard/visits/:id`, 07.09.2026) — c'est une FICHE, `visit` est l'un
 des cinq genres de `crmTabRecordRef`, et les quatre autres (contact, bien, deal, dossier KYC)

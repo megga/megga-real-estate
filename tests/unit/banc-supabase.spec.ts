@@ -148,3 +148,36 @@ describe('bancSupabase — la forme rendue suit l’en-tête Accept', () => {
     expect(await lire('inconnue?select=*', new Headers({ Accept: OBJET_SEUL }))).toBeNull()
   })
 })
+
+/**
+ * Le journal d'audit se lit par PAGES (14.09.2026) : deux `.order()` à la suite et
+ * `.range(a, b)`. Le banc lisait `order=created_at.desc,id.desc` comme une seule
+ * colonne — sens `desc,id`, donc croissant — et ignorait `offset` : chaque page
+ * rendait la première, et le bouton « Charger les plus anciens » aurait répété
+ * l'historique au lieu de le prolonger.
+ */
+describe('bancSupabase — le tri sur plusieurs colonnes et les pages', () => {
+  const JOURNAL = [
+    { id: 'a', created_at: '2026-09-14T10:00:00Z' },
+    { id: 'c', created_at: '2026-09-14T10:00:00Z' },
+    { id: 'b', created_at: '2026-09-14T09:00:00Z' },
+    { id: 'd', created_at: '2026-09-13T08:00:00Z' },
+    { id: 'e', created_at: '2026-09-12T08:00:00Z' },
+  ]
+  beforeAll(() => { reglerBanc({ tables: { essais: LIGNES, journal: JOURNAL } }) })
+
+  const ids = async (requete: string) => ((await lire(`journal?select=*&${requete}`)) as { id: string }[]).map((l) => l.id)
+
+  it('deux colonnes : la date d’abord, l’id départage les ex æquo', async () => {
+    expect(await ids('order=created_at.desc,id.desc')).toEqual(['c', 'a', 'b', 'd', 'e'])
+    expect(await ids('order=created_at.desc,id.asc')).toEqual(['a', 'c', 'b', 'd', 'e'])
+  })
+
+  it('`offset` + `limit` (ce que `.range()` écrit) rendent la page demandée, sans recouvrement', async () => {
+    const ordre = 'order=created_at.desc,id.desc'
+    expect(await ids(`${ordre}&offset=0&limit=2`)).toEqual(['c', 'a'])
+    expect(await ids(`${ordre}&offset=2&limit=2`)).toEqual(['b', 'd'])
+    expect(await ids(`${ordre}&offset=4&limit=2`)).toEqual(['e'])
+    expect(await ids(`${ordre}&offset=6&limit=2`)).toEqual([])
+  })
+})

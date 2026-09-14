@@ -479,7 +479,7 @@ function FieldError({ message }: { message?: string }) {
 function SectionDivider({ title }: { title: string }) {
   return (
     <div className="pt-2">
-      <p className="text-xs font-medium text-theme-muted capitalize">{title}</p>
+      <p className="text-xs font-medium text-theme-muted">{title}</p>
     </div>
   )
 }

@@ -142,14 +142,30 @@ const HORS_ASSUMES = new Map<string, number>([
   // Sept zones descendent le 13.09.2026, vingt-trois littéraux en tout : les
   // encres d'état sur blanc (#B91C1C, #B45309, #047857) importent désormais
   // `STATUT_CLAIR` au lieu d'être recopiées — garde : `statut-clair.spec.ts`.
-  ['src/components/crm', 528],
+  // Puis −14 le même jour : le jeu de démonstration `DATA` d'« Aujourd'hui »
+  // (today/data.ts), sans plus aucun lecteur, est retiré avec ses avatars teintés.
+  // 513 → 519 le 14.09.2026, et c'est une CROISSANCE assumée : les types de notification
+  // passent de sept teintes de DOMAINE à une teinte PAR TYPE (`notifications/data.ts`) —
+  // deux types d'un même domaine se confondaient (Visite / Rappel, Étape / Mandat…).
+  // Des teintes qui ENCODENT, la famille que l'en-tête range hors de la direction par
+  // nature ; `agent-notifications-scenarios.spec.ts` les veut distinctes et lisibles.
+  ['src/components/crm', 519],
   ['src/components/crm-mobile', 140],
-  ['src/components/crm-dossiers', 60],
+  // −1 le 13.09.2026 : le point actif du pager KYC prend l'accent (`#F2F2F6` retiré).
+  // −1 le 14.09.2026 : la ligne du journal d'audit refaite lit `warnDarker` au lieu de
+  // l'encre d'alerte recopiée `#8C5A00`.
+  ['src/components/crm-dossiers', 58],
   ['src/components/crm-wizard', 47],
-  ['src/components/propertyx', 40],
+  // 40 → 42 le 14.09.2026, et c'est une CROISSANCE assumée, pas une dérive : le logo
+  // WhatsApp fourni par Julien (`LogoWhatsApp`) porte son dégradé de marque, `#4AC14B` →
+  // `#06853A` (`WHATSAPP_DEGRADE`, à côté de `WHATSAPP_VERT`). Des couleurs de MARQUE —
+  // exactement la famille que l'en-tête de ce fichier range hors de la direction par nature.
+  ['src/components/propertyx', 42],
   ['src/components/listings', 37],
   ['src/pages/dev', 26],
-  ['src/pages/agent', 4],
+  // 4 → 3 le 14.09.2026 : la carte « Actions MEGGA AI » du journal d'audit, et son violet
+  // `#7A4FD8` écrit à la main, sont partis avec les trois autres cartes de chiffres.
+  ['src/pages/agent', 3],
   // 24 → 13 et +11 sous `megga-x-crm` le 13.09.2026 : un TRANSFERT, pas une
   // croissance. La famille qui encode (ex-`MLK_STATUT`) a quitté les jetons de
   // la face publique pour `megga-x-crm/statut.ts` — mêmes onze valeurs, total

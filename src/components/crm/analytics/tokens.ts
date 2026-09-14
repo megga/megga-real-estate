@@ -268,7 +268,8 @@ export type AxBucketId = 'secured' | 'probable' | 'possible'
 // ── Modèle de période ────────────────────────────────────────────────────────
 export type AxPeriodId = 'month' | 'quarter' | 'year'
 
-export interface AxKpi { label: string; value: string; delta: number; spark: number[]; pts?: boolean; abs?: boolean }
+/** `valueShort` : la même valeur en forme compacte (« CHF 2.8M »), prise par une tuile trop étroite. */
+export interface AxKpi { label: string; value: string; valueShort?: string; delta: number; spark: number[]; pts?: boolean; abs?: boolean }
 export interface AxCompositionItem { k: AxBucketId; label: string; hint: string; v: number }
 export interface AxSource { label: string; sub: string; deals: number; comm: number; pct: number; delta: number; won?: number }
 

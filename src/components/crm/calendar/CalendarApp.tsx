@@ -3,7 +3,8 @@
 // principale toolbar + grille). Vues Jour / Semaine (défaut) / Mois, drag&drop,
 // bulle détail, modale création/édition, créneaux « Occupé » externes.
 // Source de vérité : Supabase (visites + reminders via useCalendarScreen) +
-// agendas externes Google/Outlook (« Occupé », lecture seule).
+// agendas externes Google/Outlook (« Occupé », lecture seule). Libellés de
+// l'agence (useCalendarLabels) : rail, clic droit sur un bloc, bulle.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -19,15 +20,20 @@ import { CalMonthView } from './CalMonthView'
 import { CalRail } from './CalRail'
 import { CalEventPopover } from './CalEventPopover'
 import { CalEditModal, type CalEditing } from './CalEditModal'
+import { CalEventLabelMenu, CalLabelSection } from './CalLabels'
 import {
-  buildCalPalette, calBlankEvent, calExpandEvents, calMasterId, CalPaletteContext,
-  calTypeStyle, useCalPalette, type CalEvent, type CalPalette,
+  buildCalPalette, calAppliquerLibelles, calBlankEvent, calCompteParLibelle, CalEventMenuContext, calExpandEvents,
+  calMasterId, CalPaletteContext, calTypeStyle, useCalPalette, type CalEvent, type CalEventLabel, type CalPalette,
 } from './data'
-import { calMonths, calShortTitle, fmtDate, fmtTime } from './helpers'
+import { calDays, calMonths, calMonthsShort, calShortTitle, fmtDate, fmtTime } from './helpers'
+import { majusculeInitiale } from '@/lib/utils'
 import { useCalendarScreen } from '@/hooks/useCalendarScreen'
 import { useCalendarExternal } from '@/hooks/useCalendarExternal'
 import { useVisits } from '@/hooks/useVisits'
 import { useReminders } from '@/hooks/useReminders'
+import { useCalendarLabels } from '@/hooks/useCalendarLabels'
+import { MailLabelMenu } from '@/components/crm/messagerie/MailLabelMenu'
+import { mailSurfaces } from '@/components/crm/messagerie/mailTokens'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
 
 // Marge (jours) sous la fenêtre de lecture de useCalendarScreen (today ±60 j) :
@@ -35,7 +41,11 @@ import type { CalendarEvent } from '@/components/calendar/week-view-types'
 const CAL_READ_WINDOW_DAYS = 55
 
 // ─── Toast confirmation + synchro ───────────────────────────────────────────
-interface ToastData { key: number; change: string; tone?: string; toneColor?: string | null }
+/**
+ * `echec` : le geste a ÉCHOUÉ. ⛔ Sans lui, le toast disait « ✓ Synchronisé ·
+ * … · Libellé non enregistré » — une coche verte sur un refus.
+ */
+interface ToastData { key: number; change: string; tone?: string; toneColor?: string | null; echec?: boolean }
 
 function CalSyncToast({ data, onDone }: { data: ToastData; onDone: () => void }) {
   const SP = useCalPalette()
@@ -56,20 +66,26 @@ function CalSyncToast({ data, onDone }: { data: ToastData; onDone: () => void })
     cyan: ['#0891B2', '#22B0CE'],
     warn: ['#C45A00', '#E07A28'],
   }
-  const pair = data.tone ? TONES[data.tone] : undefined
-  const color = data.toneColor || (pair ? (dk ? pair[1] : pair[0]) : SP.accent)
+  const pair = data.echec ? TONES.danger : data.tone ? TONES[data.tone] : undefined
+  const color = (!data.echec && data.toneColor) || (pair ? (dk ? pair[1] : pair[0]) : SP.accent)
   return (
     <div style={{ position: 'fixed', left: '50%', bottom: 26, zIndex: 999, transform: 'translateX(-50%)', animation: 'calToastIn .32s cubic-bezier(.2,.8,.2,1) both' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', background: SP.card, color: SP.ink, borderRadius: 'var(--crm-radius-xl)', padding: 'var(--crm-space-lg) var(--crm-space-3xl) var(--crm-space-lg) var(--crm-space-xl)', minWidth: 288, maxWidth: 460, boxShadow: dk ? SP.shadowHover : `0 20px 54px ${crmVoileEncre(false, 0.18)}, 0 4px 14px ${crmVoileEncre(false, 0.10)}` }}>
-        <div style={{ width: 28, height: 28, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, display: 'grid', placeItems: 'center', background: phase === 'done' ? color : 'transparent' }}>
-          {phase === 'done'
+        <div style={{ width: 28, height: 28, borderRadius: 'var(--crm-radius-pill)', flexShrink: 0, display: 'grid', placeItems: 'center', background: phase === 'done' || data.echec ? color : 'transparent' }}>
+          {data.echec
+            ? <CalIcon name="warn" size={15} stroke="#FFFFFF" sw={2.4} />
+            : phase === 'done'
             ? <CalIcon name="check" size={15} stroke="#FFFFFF" sw={3} />
             : <div style={{ width: 16, height: 16, borderRadius: 'var(--crm-radius-pill)', border: `2px solid ${dk ? 'rgba(255,255,255,0.16)' : crmVoileEncre(false, 0.12)}`, borderTopColor: color, animation: 'calSpin .7s linear infinite' }} />}
         </div>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontVariantNumeric: 'tabular-nums' }}>
-            <span style={{ color, fontWeight: 500 }}>{phase === 'done' ? t('toast.synced') : t('toast.syncing')}</span>
-            <span style={{ color: SP.muted }}>{' · ' + data.change}</span>
+            {data.echec
+              ? <span style={{ color: SP.ink }}>{data.change}</span>
+              : <>
+                <span style={{ color, fontWeight: 500 }}>{phase === 'done' ? t('toast.synced') : t('toast.syncing')}</span>
+                <span style={{ color: SP.muted }}>{' · ' + data.change}</span>
+              </>}
           </div>
         </div>
       </div>
@@ -82,16 +98,46 @@ interface ToolbarProps {
   view: CalViewId
   onView: (v: CalViewId) => void
   headerLabel: string
+  /** La même période en mois abrégés — pris quand la barre manque de place. */
+  headerLabelShort: string
   onToday: () => void
   onPrev: () => void
   onNext: () => void
   onCreate: () => void
 }
-function CalToolbar({ view, onView, headerLabel, onToday, onPrev, onNext, onCreate }: ToolbarProps) {
+function CalToolbar({ view, onView, headerLabel, headerLabelShort, onToday, onPrev, onNext, onCreate }: ToolbarProps) {
   const SP = useCalPalette()
   const { t } = useTranslation('calendar')
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-xl) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
+    <div className="cal-toolbar" style={{ padding: 'var(--crm-space-xl) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, flexShrink: 0 }}>
+    <div className="cal-toolbar-row" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)' }}>
+      {/* ⚠ Le titre de la période est ce qui cède quand la barre manque de place — il
+          se lisait « Septembre 2… » à 1440 px, barre latérale dépliée (~770 px utiles
+          pour ~835 demandés). Sous le seuil, c'est le bouton de création qui se
+          replie en « + » rond : son libellé reste dans `aria-label` et `title`. */}
+      <style>{`
+        .cal-toolbar { container-type: inline-size; }
+        .cal-toolbar .cal-title-short { display: none; }
+        @container (max-width: 880px) {
+          .cal-toolbar .cal-new-label { display: none; }
+          .cal-toolbar .cal-new-btn { aspect-ratio: 1; padding-inline: 0 !important; justify-content: center; }
+        }
+        /* Second cran (1280 px, barre latérale dépliée) : le « + » ne suffit plus, le
+           mois passe en abrégé — « Sept. 2026 » plutôt que « Septembre… ». */
+        @container (max-width: 760px) {
+          .cal-toolbar .cal-title-long { display: none; }
+          .cal-toolbar .cal-title-short { display: inline; }
+        }
+        /* Troisième cran (1024 px, barre repliée) : même abrégé, le titre tombait à
+           « S… ». Il passe sur sa propre ligne, au-dessus des commandes. */
+        @container (max-width: 590px) {
+          .cal-toolbar .cal-toolbar-row { flex-wrap: wrap; row-gap: var(--crm-space-sm); }
+          .cal-toolbar .cal-title { order: -1; flex-basis: 100%; margin-left: 0 !important; }
+          /* Seul sur sa ligne, le titre a de nouveau la place de s'écrire en entier. */
+          .cal-toolbar .cal-title-long { display: inline; }
+          .cal-toolbar .cal-title-short { display: none; }
+        }
+      `}</style>
       <button onClick={onToday} style={{ height: 38, padding: '0 var(--crm-space-3xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.cardSubtle, color: SP.ink, fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>
         {t('common:time.today', { defaultValue: 'Aujourd\'hui' })}
       </button>
@@ -99,12 +145,16 @@ function CalToolbar({ view, onView, headerLabel, onToday, onPrev, onNext, onCrea
         <CalCircleBtn icon={<CalIcon name="chevL" size={17} stroke={SP.inkSoft} />} onClick={onPrev} title={t('common:actions.previous', { defaultValue: 'Précédent' })} size={38} />
         <CalCircleBtn icon={<CalIcon name="chevR" size={17} stroke={SP.inkSoft} />} onClick={onNext} title={t('common:actions.next', { defaultValue: 'Suivant' })} size={38} />
       </div>
-      <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: SP.ink, letterSpacing: -0.5, marginLeft: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{headerLabel}</div>
+      <div className="cal-title" style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: SP.ink, letterSpacing: -0.5, marginLeft: 6, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <span className="cal-title-long">{headerLabel}</span>
+        <span className="cal-title-short">{headerLabelShort}</span>
+      </div>
       <div style={{ flex: 1 }} />
       <CalViewToggle value={view} onChange={onView} />
-      <button onClick={onCreate} style={{ height: 40, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.accent, color: SP.onAccent, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', boxShadow: SP.shadowSm, flexShrink: 0 }}>
-        <CalIcon name="plus" size={15} stroke={SP.onAccent} sw={2.6} />{t('page.newEvent')}
+      <button className="cal-new-btn" onClick={onCreate} aria-label={t('page.newEvent')} title={t('page.newEvent')} style={{ height: 40, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0, background: SP.accent, color: SP.onAccent, fontFamily: 'inherit', fontSize: 'var(--crm-text-lg)', fontWeight: 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 'var(--crm-space-sm)', boxShadow: SP.shadowSm, flexShrink: 0 }}>
+        <CalIcon name="plus" size={15} stroke={SP.onAccent} sw={2.6} /><span className="cal-new-label">{t('page.newEvent')}</span>
       </button>
+    </div>
     </div>
   )
 }
@@ -176,10 +226,21 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const { events, isError: calendarError, refetch: calendarRefetch } = useCalendarScreen()
   const { createVisit, updateVisit, deleteVisit } = useVisits()
   const { createReminder, markAsDone, cancel: cancelReminder } = useReminders()
+  const calLabels = useCalendarLabels()
+  // Le créateur et le menu des libellés sont ceux de la Messagerie : ils se
+  // peignent avec ses surfaces, dérivées de la même palette MEGGA X.
+  const ms = mailSurfaces(sp, dark)
 
   const [view, setView] = useState<CalViewId>('week')
   const [currentDate, setCurrentDate] = useState<Date>(() => new Date())
   const [filters, setFilters] = useState<Record<string, boolean>>({})
+  /** Libellés masqués du rail (`false`), comme les types juste au-dessus. */
+  const [labelShown, setLabelShown] = useState<Record<string, boolean>>({})
+  const [labelCreator, setLabelCreator] = useState<{ open: boolean; editId: string | null }>({ open: false, editId: null })
+  /** Clic droit sur un libellé du rail. */
+  const [labelCtx, setLabelCtx] = useState<{ id: string; x: number; y: number } | null>(null)
+  /** Clic droit sur un événement (ou la ligne « Libellé » de sa bulle). */
+  const [eventLabelCtx, setEventLabelCtx] = useState<{ id: string; x: number; y: number } | null>(null)
   const [popover, setPopover] = useState<{ id: string; rect: DOMRect | null } | null>(null)
   const [editing, setEditing] = useState<CalEditing | null>(null)
   const [toast, setToast] = useState<ToastData | null>(null)
@@ -221,7 +282,12 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   // Fusion render-time : Supabase + overrides, puis expansion des occurrences,
   // puis suppressions/statuts appliqués PAR OCCURRENCE (id complet master@date —
   // sinon agir sur une occurrence affecterait toute la série récurrente).
-  const filtered = useMemo<CalEvent[]>(() => {
+  const labelById = useMemo(
+    () => new Map<string, CalEventLabel>(calLabels.labels.map(l => [l.id, { id: l.id, name: l.name, color: l.color }])),
+    [calLabels.labels],
+  )
+
+  const labelled = useMemo<CalEvent[]>(() => {
     const seen = new Set<string>()
     const merged: CalEvent[] = []
     for (const e of events) {
@@ -236,11 +302,20 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     const winStart = new Date(currentDate); winStart.setDate(winStart.getDate() - 45); winStart.setHours(0, 0, 0, 0)
     const winEnd = new Date(currentDate); winEnd.setDate(winEnd.getDate() + 45); winEnd.setHours(23, 59, 59, 999)
     const expanded = calExpandEvents(all, winStart, winEnd)
-    return expanded
+    const vivants = expanded
       .filter(e => !deletedIds.has(e.id))
       .map(e => (e.id in statuses ? { ...e, status: statuses[e.id] } : e))
-      .filter(e => (e.external ? true : filters[e.type] !== false))
-  }, [events, overrides, statuses, deletedIds, externalEvents, filters, currentDate])
+    return calAppliquerLibelles(vivants, calLabels.assignments, labelById)
+  }, [events, overrides, statuses, deletedIds, externalEvents, currentDate, calLabels.assignments, labelById])
+
+  // Un événement est masqué par son TYPE ou par son LIBELLÉ — les deux filtres du rail.
+  const filtered = useMemo<CalEvent[]>(
+    () => labelled.filter(e => (e.external ? true : filters[e.type] !== false && !(e.label && labelShown[e.label.id] === false))),
+    [labelled, filters, labelShown],
+  )
+  // Le compteur d'un libellé ne tombe pas à zéro quand on le masque : il dit ce
+  // que le filtre cache, pas ce qui reste affiché.
+  const labelCounts = useMemo(() => calCompteParLibelle(labelled), [labelled])
 
   const railEvents = useMemo(() => filtered.filter(e => !e.external), [filtered])
 
@@ -402,6 +477,67 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     }
   }, [overrides, t, eventToneColor, updateVisit, queryClient, markAsDone, cancelReminder])
 
+  // ── Libellés ──
+  // ⚠ Les surcharges lues par RÉFÉRENCE : le gestionnaire du clic droit descend aux
+  // blocs par un contexte, et une valeur qui change à chaque pas d'un glissé
+  // (les surcharges) rendait TOUS les blocs, `memo` compris, à chaque pas.
+  const overridesRef = useRef(overrides)
+  useEffect(() => { overridesRef.current = overrides }, [overrides])
+
+  /** L'événement MAÎTRE d'une occurrence, s'il peut porter un libellé (enregistré, non externe). */
+  const labellable = useCallback((id: string): CalEvent | null => {
+    const mid = calMasterId(id)
+    const ev = eventsRef.current.find(e => e.id === mid) ?? overridesRef.current[mid]
+    return ev && !ev.external && ev.origin ? ev : null
+  }, [])
+
+  const openEventLabelMenu = useCallback((id: string, x: number, y: number) => {
+    if (!labellable(id)) return
+    setEventLabelCtx({ id, x, y })
+  }, [labellable])
+
+  const pickEventLabel = useCallback((id: string, labelId: string | null) => {
+    const ev = labellable(id)
+    if (!ev?.origin) return
+    const l = labelId ? labelById.get(labelId) : null
+    const titre = calShortTitle(ev.title)
+    // `mutateAsync` et non `mutate` : les rappels par appel de TanStack ne se
+    // déclenchent que pour le DERNIER appel — deux libellés posés vite, et l'échec
+    // du premier passait sans un mot.
+    calLabels.setEventLabel.mutateAsync({ source: ev.origin, eventId: calMasterId(id), labelId })
+      .catch(() => setToast({ key: Date.now(), change: `${titre} · ${t('labels.failed')}`, echec: true }))
+    // ⚠ Pas la couleur du libellé pour le toast : saisie, elle peut être pâle — le
+    // mot « Synchronisé » et la coche blanche y tombaient sous 2:1.
+    setToast({ key: Date.now(), change: `${titre} · ${l ? t('labels.set', { name: l.name }) : t('labels.removed')}`, tone: 'info' })
+  }, [labellable, labelById, calLabels.setEventLabel, t])
+
+  const editLabel = calLabels.labels.find(l => l.id === labelCreator.editId) ?? null
+  const closeLabelCreator = useCallback(() => setLabelCreator({ open: false, editId: null }), [])
+  /** Un refus de la base, dit en clair : un nom déjà pris n'est pas une panne. */
+  const toastEchecLibelle = useCallback((e: unknown) => {
+    const code = (e as { code?: string } | null)?.code
+    setToast({ key: Date.now(), change: code === '23505' ? t('labels.duplicate') : t('labels.failed'), echec: true })
+  }, [t])
+  /**
+   * Créer, renommer ou recolorer — le même créateur, comme dans la Messagerie.
+   * ⚠ En échec, le créateur RESTE ouvert avec la saisie : le refermer faisait
+   * croire au succès (un nom en double disparaissait sans un mot).
+   */
+  const saveLabel = useCallback((v: { name: string; color: string }) => {
+    const ecriture = editLabel
+      ? calLabels.update.mutateAsync({ id: editLabel.id, name: v.name, color: v.color })
+      : calLabels.create.mutateAsync(v)
+    ecriture.then(closeLabelCreator, toastEchecLibelle)
+  }, [editLabel, calLabels.update, calLabels.create, closeLabelCreator, toastEchecLibelle])
+
+  const deleteLabel = useCallback((id: string) => {
+    const l = labelById.get(id)
+    calLabels.remove.mutateAsync(id).then(() => {
+      setLabelShown(prev => { if (!(id in prev)) return prev; const n = { ...prev }; delete n[id]; return n })
+      if (l) setToast({ key: Date.now(), change: t('labels.deleted', { name: l.name }), tone: 'danger' })
+    }, toastEchecLibelle)
+  }, [labelById, calLabels.remove, t, toastEchecLibelle])
+
   // ── Libellé d'en-tête ──
   const headerLabel = (() => {
     const months = calMonths()
@@ -415,6 +551,15 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     if (monday.getFullYear() === sunday.getFullYear()) return `${m1} – ${m2} ${sunday.getFullYear()}`
     return `${m1} ${monday.getFullYear()} – ${m2} ${sunday.getFullYear()}`
   })()
+  const headerLabelShort = (() => {
+    const ms = calMonthsShort()
+    if (view === 'day') return majusculeInitiale(`${calDays()[currentDate.getDay()] ?? ''} ${currentDate.getDate()} ${ms[currentDate.getMonth()] ?? ''}`.trim())
+    if (view === 'month') return majusculeInitiale(`${ms[currentDate.getMonth()]} ${currentDate.getFullYear()}`)
+    const monday = new Date(currentDate); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
+    const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6)
+    if (monday.getMonth() === sunday.getMonth()) return majusculeInitiale(`${ms[monday.getMonth()]} ${monday.getFullYear()}`)
+    return majusculeInitiale(`${ms[monday.getMonth()]} – ${ms[sunday.getMonth()]} ${sunday.getFullYear()}`)
+  })()
 
   const navDate = (delta: number) => {
     const d = new Date(currentDate)
@@ -424,7 +569,10 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     setCurrentDate(d)
   }
 
-  const selectedEvent = popover ? (filtered.find(e => e.id === popover.id) ?? eventsRef.current.find(e => e.id === calMasterId(popover.id)) ?? null) : null
+  // ⚠ Lu dans `labelled`, pas dans `filtered` : poser sur l'événement ouvert un
+  // libellé MASQUÉ le retire de la grille, et la bulle retombait sur la ligne
+  // brute — sans libellé, elle affichait « Ajouter un libellé ».
+  const selectedEvent = popover ? (labelled.find(e => e.id === popover.id) ?? eventsRef.current.find(e => e.id === calMasterId(popover.id)) ?? null) : null
 
   const commonView = {
     events: filtered, currentDate, now: liveNow, selectedId: popover?.id ?? null,
@@ -453,13 +601,33 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
             }}>
               {/* Rail gauche */}
               <aside style={{ padding: 'var(--crm-space-7xl) var(--crm-space-6xl)', overflowY: 'auto', minHeight: 0 }}>
-                <CalRail currentDate={currentDate} now={liveNow} onDateChange={setCurrentDate} events={railEvents} filters={filters} onFilters={setFilters} />
+                <CalRail
+                  currentDate={currentDate} now={liveNow} onDateChange={setCurrentDate} events={railEvents} filters={filters} onFilters={setFilters}
+                  labels={
+                    <CalLabelSection
+                      ms={ms}
+                      labels={calLabels.labels}
+                      counts={labelCounts}
+                      shown={labelShown}
+                      onToggle={id => setLabelShown(prev => ({ ...prev, [id]: prev[id] === false }))}
+                      creatorOpen={labelCreator.open}
+                      editLabel={editLabel}
+                      onOpenCreator={() => setLabelCreator({ open: true, editId: null })}
+                      onCloseCreator={closeLabelCreator}
+                      onSaveLabel={saveLabel}
+                      busy={calLabels.create.isPending || calLabels.update.isPending}
+                      onLabelContext={(e, id) => setLabelCtx({ id, x: e.clientX, y: e.clientY })}
+                      isLoading={calLabels.isLoading}
+                      unavailable={!!calLabels.error}
+                    />
+                  }
+                />
               </aside>
 
               {/* Carte principale */}
               <div style={{ padding: 'var(--crm-space-2xl) var(--crm-space-2xl) var(--crm-space-2xl) 0', minHeight: 0, display: 'flex' }}>
                 <div style={{ flex: 1, minWidth: 0, background: SP.card, borderRadius: 'var(--crm-radius-5xl)', boxShadow: sp.shadow, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                  <CalToolbar view={view} onView={setView} headerLabel={headerLabel} onToday={() => setCurrentDate(new Date())} onPrev={() => navDate(-1)} onNext={() => navDate(1)} onCreate={startCreate} />
+                  <CalToolbar view={view} onView={setView} headerLabel={headerLabel} headerLabelShort={headerLabelShort} onToday={() => setCurrentDate(new Date())} onPrev={() => navDate(-1)} onNext={() => navDate(1)} onCreate={startCreate} />
                   {calendarError && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)', padding: 'var(--crm-space-lg) var(--crm-space-5xl)', borderBottom: `1px solid ${SP.line}`, color: SP.ink }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
@@ -473,9 +641,11 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
                   )}
                   {invite && <CalConnectBanner invite={invite} />}
                   <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                    <CalEventMenuContext.Provider value={openEventLabelMenu}>
                     {view === 'day' && <CalDayView {...commonView} />}
                     {view === 'week' && <CalWeekView {...commonView} />}
                     {view === 'month' && <CalMonthView events={filtered} currentDate={currentDate} now={liveNow} selectedId={popover?.id ?? null} onSelectEvent={selectEvent} onDateChange={setCurrentDate} onOpenDay={openDay} onCreateAt={startCreateAt} />}
+                    </CalEventMenuContext.Provider>
                   </div>
                 </div>
               </div>
@@ -485,7 +655,36 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
         </div>
 
         {popover && selectedEvent && (
-          <CalEventPopover event={selectedEvent} anchorRect={popover.rect} allEvents={filtered} onClose={closePopover} onEdit={startEdit} onDelete={deleteEvent} onStatus={setStatus} />
+          <CalEventPopover
+            event={selectedEvent} anchorRect={popover.rect} allEvents={filtered} onClose={closePopover} onEdit={startEdit} onDelete={deleteEvent} onStatus={setStatus}
+            onLabelMenu={!selectedEvent.external && selectedEvent.origin ? (x, y) => setEventLabelCtx({ id: selectedEvent.id, x, y }) : undefined}
+          />
+        )}
+
+        {eventLabelCtx && (
+          <CalEventLabelMenu
+            ms={ms}
+            x={eventLabelCtx.x}
+            y={eventLabelCtx.y}
+            labels={calLabels.labels}
+            currentId={calLabels.assignments.get(calMasterId(eventLabelCtx.id)) ?? null}
+            onPick={labelId => pickEventLabel(eventLabelCtx.id, labelId)}
+            onCreate={() => { setPopover(null); setLabelCreator({ open: true, editId: null }) }}
+            onClose={() => setEventLabelCtx(null)}
+          />
+        )}
+
+        {/* Clic droit sur un libellé du rail : Renommer · Changer la couleur · Supprimer. */}
+        {labelCtx && (
+          <MailLabelMenu
+            ms={ms}
+            x={labelCtx.x}
+            y={labelCtx.y}
+            onClose={() => setLabelCtx(null)}
+            onRename={() => setLabelCreator({ open: true, editId: labelCtx.id })}
+            onRecolor={() => setLabelCreator({ open: true, editId: labelCtx.id })}
+            onDelete={() => deleteLabel(labelCtx.id)}
+          />
         )}
 
         {editing && (

@@ -35,6 +35,7 @@ import { EsignConnectModal } from './EsignConnectModal'
 import { openHelpFor } from '@/lib/help-articles'
 import MEIcon from '@/components/propertyx/MEIcon'
 import { useMailAccounts } from '@/hooks/useMailAccounts'
+import { listeTraduite } from '@/lib/listeTraduite'
 
 const SET = SET_PALETTE
 
@@ -557,7 +558,7 @@ function DetailsModal({
         : item.provider === 'whatsapp'
           ? 'integrations.details.permissions.whatsapp'
           : 'integrations.details.permissions.signature'
-  const permissions = t(permKey, { returnObjects: true }) as string[]
+  const permissions = listeTraduite(t(permKey, { returnObjects: true }))
 
   return createPortal(
     <div
@@ -680,9 +681,12 @@ function DetailsModal({
             marginBottom: 10,
           }}
         >
+          {/* « accordées » ne vaut qu'une fois connecté : avant, ce sont celles qu'on DEMANDE. */}
           {item.provider === 'whatsapp'
             ? t('integrations.details.whatYouCanDo')
-            : t('integrations.details.permissionsGranted')}
+            : item.connected
+              ? t('integrations.details.permissionsGranted')
+              : t('integrations.details.permissionsRequested')}
         </div>
         <ul
           style={{
@@ -1018,7 +1022,7 @@ export function IntegrationsSection() {
         <SectionHeader
           kicker={t('integrations.header.kicker')}
           title={t('integrations.header.title')}
-          sub={t('integrations.header.sub', { active: connected.length, total: items.length })}
+          sub={t('integrations.header.sub', { count: connected.length, total: items.length })}
         />
 
         {/* Filtre catégories (pilules + badge count) */}

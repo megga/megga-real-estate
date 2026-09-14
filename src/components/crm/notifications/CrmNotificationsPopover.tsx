@@ -1,343 +1,195 @@
-// MEGGA CRM — popover des notifications, ancrée sur la ligne « Notifications »
-// de la barre latérale. Port 1:1 du bundle Claude Design (crm-notifications.jsx),
-// à un ajout près : la pose LATÉRALE et son helper `useSideAnchor`, nés du
-// passage de la barre du haut à la colonne de gauche (4 septembre 2026).
-
-import EtatVide from '@/components/crm/EtatVide'
-import { useState, useEffect, useRef } from 'react'
-import { createPortal } from 'react-dom'
+/**
+ * CrmNotificationsPopover — la cloche du CRM de bureau, ouverte depuis la bande d'onglets.
+ *
+ * ⛔ REFAITE LE 14.09.2026 (Julien : « plus simple, lisible ; agrandis les icônes, que ça
+ * fasse plus premium ; enlève la pause de deux heures »). Ce qui est parti, et pourquoi :
+ *  · « Pause 2 h » ne mettait RIEN en pause — son unique appelant refermait la popover ;
+ *  · le menu « ⋯ » de chaque ligne (lu / masquer / désactiver ce type) n'agissait que sur
+ *    une COPIE locale, rendue intacte à la réouverture : trois gestes qui mentaient ;
+ *  · « Voir toutes les notifications → » refermait la popover. Il mène désormais au
+ *    journal d'audit, l'historique complet de ces mêmes événements.
+ * Ce qui reste : une ligne par événement — ou par rafale regroupée (`regrouper`, dans
+ * `useAgentNotifications`) — rangée par jour, dont la tuile de 40 px porte le glyphe du
+ * type à 20 px sur la teinte de son domaine, comme la feuille mobile (`MrNotifSheet`).
+ * Lire une ligne = cliquer dessus.
+ *
+ * ⚠ Posée dans le coin du cadre, au rayon mesuré, comme le menu du compte — les deux
+ * popovers de la bande tombent au même endroit (`useCoinDuCadre`). Portée dans `<body>`
+ * par la bande.
+ */
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { crmVoileEncre, type CrmPalette } from '../tokens'
+import type { CrmPalette } from '../tokens'
+import EtatVide from '@/components/crm/EtatVide'
 import MEIcon from '@/components/propertyx/MEIcon'
-import { KIND_META, type CrmNotif, type NotifKind } from './data'
-import { useSideAnchor, type CrmPopoverPlacement } from '@/hooks/useSideAnchor'
+import type { CoinCadre } from '@/hooks/useCoinDuCadre'
+import { type CrmNotif, type NotifGroup } from './data'
+import TuileNotif from './TuileNotif'
 
-// ─── Atom : ligne de notif compacte (popover) ──────────────────────────
-interface NotifRowProps {
-  n: CrmNotif
-  sp: CrmPalette
-  dark: boolean
-  onClick?: () => void
-  onMarkRead: (read: boolean) => void
-  onHide: () => void
-  onMute: () => void
-}
+/** Largeur de la coque : son bord droit se cale sur celui du cadre. */
+const LARGEUR = 380
 
-function NotifRow({ n, sp, dark, onClick, onMarkRead, onHide, onMute }: NotifRowProps) {
+const JOURS: { id: NotifGroup; cle: string }[] = [
+  { id: 'today', cle: 'notifications.groupToday' },
+  { id: 'yesterday', cle: 'notifications.groupYesterday' },
+  { id: 'older', cle: 'notifications.groupOlder' },
+]
+
+function Ligne({ n, sp, onClick }: { n: CrmNotif; sp: CrmPalette; onClick: () => void }) {
   const { t } = useTranslation('common')
-  const meta = KIND_META[n.kind] || KIND_META.system
-  const [hover, setHover] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [menuRect, setMenuRect] = useState<DOMRect | null>(null)
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-  const context = n.body ? n.body.split(/[.·]/)[0].trim() : ''
-
-  // Fermeture du menu sur clic extérieur.
-  useEffect(() => {
-    if (!menuOpen) return
-    const fn = (e: MouseEvent) => {
-      const t = e.target as Node
-      if (menuRef.current?.contains(t)) return
-      if (wrapRef.current && !wrapRef.current.contains(t)) setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', fn)
-    return () => document.removeEventListener('mousedown', fn)
-  }, [menuOpen])
-
-  const menuItem = (icon: 'check' | 'eye' | 'bell', label: string, onPick: () => void) => (
+  const [survol, setSurvol] = useState(false)
+  return (
     <button
-      onClick={e => { e.stopPropagation(); setMenuOpen(false); onPick() }}
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setSurvol(true)}
+      onMouseLeave={() => setSurvol(false)}
       style={{
         display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', width: '100%',
-        padding: 'var(--crm-space-md) var(--crm-space-xl)', border: 0, cursor: 'pointer', textAlign: 'left',
-        background: 'transparent', borderRadius: 'var(--crm-radius-md)', color: sp.ink,
-        fontFamily: 'inherit', fontSize: 'var(--crm-text-md)', fontWeight: 600, whiteSpace: 'nowrap',
+        padding: 'var(--crm-space-md) var(--crm-space-md)', border: 0, textAlign: 'left',
+        borderRadius: 'var(--crm-radius-xl)', background: survol ? sp.focusSurface : 'transparent',
+        cursor: 'pointer', fontFamily: 'inherit', color: sp.ink,
       }}
-      // Option survolée : elle se CREUSE sous le plafond du menu (S3) au lieu
-      // de monter — la plage reste étanche.
-      onMouseEnter={e => { e.currentTarget.style.background = sp.solidBgSub }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-      <MEIcon name={icon} size={15} color={sp.ink} />
-      {label}
-    </button>
-  )
+    >
+      {/* La tuile : la PHOTO de ce que l'événement désigne quand il y en a une, le logo
+          WhatsApp, sinon le glyphe blanc du type sur l'aplat de sa teinte. */}
+      <TuileNotif
+        n={n}
+        anneau={survol ? sp.focusSurface : sp.solidBg}
+        encrePastille={sp.accentInk}
+      />
 
-  return (
-    <div ref={wrapRef} style={{ position: 'relative' }}>
-      <button
-        onClick={onClick}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-xl)',
-          padding: 'var(--crm-space-lg) var(--crm-space-lg)',
-          border: 0, background: hover || menuOpen ? sp.cardSubBg : 'transparent',
-          cursor: 'pointer', textAlign: 'left', width: '100%',
-          borderRadius: 'var(--crm-radius-xl)', fontFamily: 'inherit', color: sp.ink,
-          transition: 'background 160ms ease',
-          position: 'relative',
-        }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 'var(--crm-radius-lg)', background: sp.cardSubBg,
-          display: 'grid', placeItems: 'center', flexShrink: 0,
-        }}>
-          <MEIcon name={meta.icon} size={14} color={sp.ink} />
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontSize: 'var(--crm-text-lg)', color: sp.ink, lineHeight: 1.4, fontWeight: 500,
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-            overflow: 'hidden', wordBreak: 'normal', overflowWrap: 'anywhere',
-          }}>
-            <span style={{ fontWeight: n.read ? 500 : 600, color: sp.ink }}>{n.title}</span>
-            {context && (
-              <span style={{ color: sp.ink, fontWeight: n.read ? 400 : 500, opacity: 0.85 }}> {context}.</span>
-            )}
-          </div>
-          <div style={{
-            fontSize: 'var(--crm-text-sm)', color: n.read ? sp.sub : sp.ink, marginTop: 3,
-            fontWeight: n.read ? 400 : 600, fontVariantNumeric: 'tabular-nums',
-            display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
+      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minWidth: 0 }}>
+          <span style={{
+            fontSize: 'var(--crm-text-lg)', fontWeight: n.read ? 500 : 600, color: sp.ink,
+            lineHeight: 1.3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>{n.title}</span>
+          {n.count > 1 && (
+            <span title={t('notifications.grouped', { count: n.count })} style={{
+              flexShrink: 0, padding: '0 var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)',
+              background: sp.cardSubBg, color: sp.sub,
+              fontSize: 'var(--crm-text-xs)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', lineHeight: 1.6,
+            }}>×{n.count}</span>
+          )}
+        </span>
+        {n.body && (
+          <span style={{
+            fontSize: 'var(--crm-text-md)', color: sp.sub, lineHeight: 1.35,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            <span>{n.time}</span>
-            <span aria-hidden style={{ width: 3, height: 3, borderRadius: 'var(--crm-radius-pill)', background: sp.sub, opacity: 0.5 }} />
-            <span style={{ color: sp.sub, fontWeight: 600 }}>{meta.label}</span>
-          </div>
-        </div>
-        {/* Bouton « ⋯ » au survol, ou pastille non-lue */}
-        <div style={{ width: 30, display: 'grid', placeItems: 'center', flexShrink: 0, alignSelf: 'center' }}>
-          {(hover || menuOpen) ? (
-            <span
-              role="button"
-              tabIndex={0}
-              title={t('actions.options')}
-              onClick={e => { e.stopPropagation(); setMenuRect(e.currentTarget.getBoundingClientRect()); setMenuOpen(o => !o) }}
-              style={{
-                width: 30, height: 30, borderRadius: 'var(--crm-radius-pill)',
-                display: 'grid', placeItems: 'center',
-                background: menuOpen ? sp.accent : sp.pageBg,
-                color: menuOpen ? sp.accentInk : sp.ink,
-                boxShadow: `0 1px 4px ${crmVoileEncre(dark, 0.12)}`,
-              }}>
-              <MEIcon name="more-horizontal" size={16} color={menuOpen ? sp.accentInk : sp.ink} />
-            </span>
-          ) : !n.read ? (
-            <span style={{ width: 10, height: 10, borderRadius: 'var(--crm-radius-pill)', background: sp.ink }} />
-          ) : null}
-        </div>
-      </button>
-      {/* Menu contextuel — `position: fixed` ancré au bouton, pour ne pas être
-          coupé par l'overflow de la liste.
-          ⛔ ET PORTÉ DANS `document.body`, ce qui n'était pas nécessaire tant que
-          la popover tombait sous la barre du haut. Depuis qu'elle s'ancre au
-          CÔTÉ de la barre latérale, sa racine porte un `backdrop-filter` : un
-          filtre fait de l'élément le BLOC CONTENEUR de tout descendant en
-          `position: fixed`, si bien que les coordonnées de fenêtre calculées ici
-          se lisaient depuis le coin de la popover — le menu partait hors écran.
-          Le portail le sort du filtre ; ses coordonnées redeviennent celles de
-          la fenêtre. Même piège que le calendrier MEGGA X.
-          ⚠ Porté, le menu n'est plus dans `wrapRef` : la fermeture au clic
-          extérieur doit l'excepter, sinon le `mousedown` la referme avant que le
-          `click` de l'option ne parte. D'où `menuRef` dans le test ci-dessus. */}
-      {menuOpen && menuRect && createPortal(
-        <div ref={menuRef} style={{
-          position: 'fixed',
-          top: menuRect.bottom + 6,
-          right: Math.max(12, window.innerWidth - menuRect.right - 2),
-          zIndex: 9999,
-          minWidth: 232, padding: 'var(--crm-space-sm)', borderRadius: 'var(--crm-radius-xl)',
-          // Menu flottant : palier haut, pas le canvas — au fond de page il ne
-          // se détachait pas de la liste qu'il recouvre.
-          background: sp.solidBg,
-          border: `1px solid ${dark ? sp.solidBorder : sp.frameBorder}`,
-          boxShadow: sp.solidShadow,
-        }}>
-          {menuItem('check', n.read ? t('notifications.markUnread') : t('notifications.markRead'), () => onMarkRead(!n.read))}
-          {menuItem('eye', t('notifications.hideOne'), () => onHide())}
-          <div style={{ height: 1, background: sp.frameBorder, margin: '5px 8px' }} />
-          {menuItem('bell', t('notifications.muteKind', { kind: meta.label }), () => onMute())}
-        </div>,
-        document.body,
-      )}
-    </div>
+          }}>{n.body}</span>
+        )}
+        {/* L'heure seule (14.09.2026, Julien : « c'est redondant ») : « Message · Il y a
+            53 min » répétait le type que le titre et la tuile disent déjà. */}
+        <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
+          {n.time}
+        </span>
+      </span>
+
+      {/* Non lu : une pastille d'accent. Lue, la place reste — les lignes ne dansent pas. */}
+      <span aria-hidden style={{
+        width: 8, height: 8, flexShrink: 0, borderRadius: 'var(--crm-radius-pill)',
+        background: n.read ? 'transparent' : sp.accent,
+      }} />
+    </button>
   )
 }
 
-// ─── Popover ───────────────────────────────────────────────────────────
 interface CrmNotificationsPopoverProps {
   sp: CrmPalette
   dark: boolean
   items: CrmNotif[]
-  /** `'below-right'` par défaut — la pose historique de la barre du haut. */
-  placement?: CrmPopoverPlacement
-  onItemClick?: (n: CrmNotif) => void
-  onMarkAll?: () => void
+  /** Le coin du cadre où se loger (`useCoinDuCadre`) ; `null` le temps de la mesure. */
+  coin: CoinCadre | null
+  onItemClick: (n: CrmNotif) => void
+  onMarkAll: () => void
+  /** « Voir tout l'historique » — le journal d'audit. Omis, la ligne n'est pas rendue. */
   onSeeAll?: () => void
-  onMute?: () => void
 }
 
+/** La popover des notifications : lignes par jour, lecture au clic, un seul lien de sortie. */
 export default function CrmNotificationsPopover({
-  sp, dark, items, placement = 'below-right', onItemClick, onMarkAll, onSeeAll, onMute,
+  sp, dark, items, coin, onItemClick, onMarkAll, onSeeAll,
 }: CrmNotificationsPopoverProps) {
   const { t } = useTranslation('common')
-  // Copie locale : les actions du menu « ⋯ » (lu/non-lu, masquer, désactiver type)
-  // s'appliquent en direct. Resynchronisée si la source `items` change.
-  const [localItems, setLocalItems] = useState<CrmNotif[]>(items)
-  useEffect(() => { setLocalItems(items) }, [items])
-
-  const [toast, setToast] = useState<string | null>(null)
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const flashToast = (msg: string) => {
-    setToast(msg)
-    if (toastTimer.current) clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast(null), 2400)
-  }
-  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
-
-  const markRead = (id: string, read: boolean) => {
-    setLocalItems(prev => prev.map(n => n.id === id ? { ...n, read } : n))
-    flashToast(read ? t('notifications.toastMarkedRead') : t('notifications.toastMarkedUnread'))
-  }
-  const hide = (id: string) => {
-    setLocalItems(prev => prev.filter(n => n.id !== id))
-    flashToast(t('notifications.toastHidden'))
-  }
-  const muteKind = (kind: NotifKind) => {
-    setLocalItems(prev => prev.filter(n => n.kind !== kind))
-    flashToast(t('notifications.toastMuted', { kind: KIND_META[kind]?.label || kind }))
-  }
-
-  const { ref: sideRef, box: sideBox } = useSideAnchor(placement === 'side')
-
-  const top = localItems.slice(0, 5)
-  const unread = localItems.filter(n => !n.read).length
-  // ⛔ La popover peignait SA propre surface flottante — `#16181F`, un palier
-  // Graphite bleuté (B−R = 9) — alors que la palette la porte : `solidBg` vaut
-  // n300 (#090909) en sombre. Troisième source de surfaces, même défaut que
-  // `adminSurfaces()` sur la console.
-  const solidBg = sp.solidBg
+  const nonLus = items.filter((n) => !n.read).reduce((s, n) => s + n.count, 0)
 
   return (
-    <div ref={sideRef} style={{
-      // Latérale : boîte `fixed` calculée et bornée (cf. `useSideAnchor`). Tant
-      // que la mesure n'a pas eu lieu, on la garde hors écran plutôt que de la
-      // peindre une frame au mauvais endroit.
-      ...(placement === 'side'
-        ? { position: 'fixed' as const, left: sideBox?.left ?? -9999, top: sideBox?.top ?? -9999 }
-        : { position: 'absolute' as const, top: 'calc(100% + 10px)', right: 0 }),
-      width: 400, padding: 'var(--crm-space-xl)', zIndex: 9000,
-      // ⚠ Portait `rgba(255,255,255,0.85)` en dur — un blanc qui aurait sauté
-      // aux yeux en sombre si la doublure opaque ci-dessous ne le recouvrait pas
-      // entièrement (`inset: 0`). Inerte, donc, mais c'est un piège posé pour qui
-      // retirerait la doublure. Le retrait est un no-op vérifié à l'écran.
-      backdropFilter: 'blur(20px) saturate(140%)',
-      WebkitBackdropFilter: 'blur(20px) saturate(140%)',
-      // Rayon du pager (26) — jumeau du dropdown profil, ancré au bouton voisin :
-      // les deux popovers de la TopNav doivent partager la même courbure.
-      borderRadius: 'var(--crm-radius-6xl)',
-      boxShadow: `0 32px 70px ${crmVoileEncre(dark, 0.10)}, 0 6px 20px ${crmVoileEncre(dark, 0.05)}`,
+    <div role="dialog" aria-label={t('nav.notifications')} style={{
+      position: 'fixed', top: coin ? coin.top : -9999, left: coin ? coin.right - LARGEUR : -9999,
+      width: LARGEUR, zIndex: 9000, padding: 'var(--crm-space-lg)',
+      background: sp.solidBg, border: `1px solid ${sp.solidBorder}`,
+      // Le rayon MESURÉ du cadre sur lequel elle se pose (26 ou 24 selon l'écran).
+      borderRadius: coin?.rayon || 'var(--crm-radius-6xl)',
+      boxShadow: sp.solidShadow,
       animation: 'crm-fade-up 280ms cubic-bezier(.22,1,.36,1)',
     }}>
-      {/* Doublure opaque — son rayon DOIT suivre celui de la coque, sinon un
-          liseré translucide réapparaît dans les coins. */}
-      <div aria-hidden style={{
-        position: 'absolute', inset: 0,
-        background: solidBg, borderRadius: 'var(--crm-radius-6xl)',
-        border: dark ? '1px solid rgba(255,255,255,0.07)' : 'none',
-        zIndex: 0,
-      }} />
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', padding: 'var(--crm-space-sm) var(--crm-space-lg) var(--crm-space-xl)' }}>
-          <div style={{
-            width: 30, height: 30, borderRadius: 'var(--crm-radius-lg)', background: sp.cardSubBg,
-            display: 'grid', placeItems: 'center',
-          }}>
-            <MEIcon name="bell" size={14} color={sp.ink} />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: sp.ink, letterSpacing: '-0.01em' }}>
-              {t('nav.notifications')}
-            </div>
-            <div style={{ fontSize: 'var(--crm-text-xs)', color: sp.sub, marginTop: 1, fontVariantNumeric: 'tabular-nums' }}>
-              {unread > 0 ? t('notifications.unreadCount', { count: unread }) : t('notifications.allClear')}
-            </div>
-          </div>
-          <button
-            onClick={() => { setLocalItems(prev => prev.map(n => ({ ...n, read: true }))); onMarkAll?.() }}
-            disabled={unread === 0}
-            style={{
-              fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: unread === 0 ? sp.sub : sp.ink,
-              padding: 'var(--crm-space-sm) var(--crm-space-lg)', borderRadius: 'var(--crm-radius-pill)', border: 0,
-              background: 'transparent', cursor: unread === 0 ? 'default' : 'pointer',
-              fontFamily: 'inherit', whiteSpace: 'nowrap',
-              opacity: unread === 0 ? 0.5 : 1,
-            }}>{t('notifications.markAllRead')}</button>
-        </div>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
+        padding: 'var(--crm-space-sm) var(--crm-space-md) var(--crm-space-lg)',
+      }}>
+        <span style={{ fontSize: 'var(--crm-text-xl)', fontWeight: 600, color: sp.ink, letterSpacing: '-0.01em' }}>
+          {t('nav.notifications')}
+        </span>
+        {nonLus > 0 && (
+          <span style={{
+            padding: '0 var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)',
+            background: sp.accent, color: sp.accentInk,
+            fontSize: 'var(--crm-text-xs)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', lineHeight: 1.7,
+          }}>{nonLus}</span>
+        )}
+        <span style={{ flex: 1 }} />
+        <button
+          type="button"
+          onClick={onMarkAll}
+          disabled={nonLus === 0}
+          style={{
+            border: 0, background: 'transparent', fontFamily: 'inherit',
+            padding: 'var(--crm-space-xs) var(--crm-space-sm)', borderRadius: 'var(--crm-radius-pill)',
+            fontSize: 'var(--crm-text-sm)', fontWeight: 600,
+            color: nonLus === 0 ? sp.sub : sp.ink, cursor: nonLus === 0 ? 'default' : 'pointer',
+            opacity: nonLus === 0 ? 0.6 : 1,
+          }}
+        >{t('notifications.markAllRead')}</button>
+      </div>
 
-        {/* Liste */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)', maxHeight: 420, overflowY: 'auto' }}>
-          {top.length === 0 && (
-            <EtatVide
-              dark={dark}
-              glyphe={<MEIcon name="bell" size={22} />}
-              titre={t('notifications.empty')}
-            />
-          )}
-          {top.map(n => (
-            <NotifRow key={n.id} n={n} sp={sp} dark={dark}
-              onClick={() => onItemClick && onItemClick(n)}
-              onMarkRead={read => markRead(n.id, read)}
-              onHide={() => hide(n.id)}
-              onMute={() => muteKind(n.kind)} />
-          ))}
-        </div>
+      <div className="scrollbar-hide" style={{ maxHeight: 460, overflowY: 'auto' }}>
+        {items.length === 0 ? (
+          <EtatVide dark={dark} glyphe={<MEIcon name="bell" size={22} />} titre={t('notifications.empty')} />
+        ) : JOURS.map(({ id, cle }) => {
+          const duJour = items.filter((n) => n.group === id)
+          if (duJour.length === 0) return null
+          return (
+            <section key={id} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-2xs)' }}>
+              <span style={{
+                padding: 'var(--crm-space-sm) var(--crm-space-md) var(--crm-space-2xs)',
+                fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: sp.sub,
+              }}>{t(cle)}</span>
+              {duJour.map((n) => (
+                <Ligne key={n.id} n={n} sp={sp} onClick={() => onItemClick(n)} />
+              ))}
+            </section>
+          )
+        })}
+      </div>
 
-        {/* Footer */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)',
-          padding: 'var(--crm-space-lg) var(--crm-space-md) var(--crm-space-xs)', marginTop: 6,
-          borderTop: `1px solid ${sp.frameBorder}`,
-        }}>
+      {onSeeAll && (
+        <div style={{ borderTop: `1px solid ${sp.frameBorder}`, marginTop: 'var(--crm-space-sm)', paddingTop: 'var(--crm-space-sm)' }}>
           <button
-            onClick={onMute}
-            title={t('notifications.pause2h')}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)',
-              padding: 'var(--crm-space-md) var(--crm-space-xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
-              background: 'transparent', color: sp.sub,
-              fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, cursor: 'pointer',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = sp.cardSubBg }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-            <MEIcon name="calendar" size={13} color={sp.sub} />
-            {t('notifications.pause2h')}
-          </button>
-          <div style={{ flex: 1 }} />
-          <button
+            type="button"
             onClick={onSeeAll}
             style={{
-              padding: 'var(--crm-space-md) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
-              background: sp.accent, color: sp.accentInk,
-              fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600,
-              cursor: 'pointer', whiteSpace: 'nowrap',
-              boxShadow: `0 4px 12px ${crmVoileEncre(dark, 0.18)}`,
-            }}>{t('notifications.seeAll')} →</button>
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--crm-space-sm)',
+              width: '100%', border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+              padding: 'var(--crm-space-md)', borderRadius: 'var(--crm-radius-xl)',
+              fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: sp.sub,
+            }}
+          >
+            {t('notifications.seeAll')}
+            <MEIcon name="arrow-right" size={14} color={sp.sub} />
+          </button>
         </div>
-
-        {/* Toast de confirmation (auto-dismiss) */}
-        {toast && (
-          <div style={{
-            position: 'absolute', left: '50%', bottom: -6, transform: 'translateX(-50%)',
-            background: sp.ink, color: sp.pageBg,
-            fontSize: 'var(--crm-text-sm)', fontWeight: 600, padding: 'var(--crm-space-sm) var(--crm-space-2xl)', borderRadius: 'var(--crm-radius-pill)',
-            boxShadow: `0 8px 24px ${crmVoileEncre(dark, 0.28)}`, whiteSpace: 'nowrap', zIndex: 2,
-            animation: 'crm-fade-up 200ms cubic-bezier(.22,1,.36,1)',
-          }}>{toast}</div>
-        )}
-      </div>
+      )}
     </div>
   )
 }

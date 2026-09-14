@@ -501,6 +501,12 @@
     "title": "Parcours équipe",
     "subtitle": "Suivi temps réel de chaque dossier · vue panoramique",
     "emptyState": "Aucun dossier ne correspond aux filtres choisis.",
+    "emptyAllTitle": "Aucun dossier en cours",
+    "emptyAllDesc": "Un dossier apparaît ici dès qu’une affaire est ouverte dans le Pipeline.",
+    "resetFilters": "Réinitialiser les filtres",
+    "errorTitle": "Parcours indisponible",
+    "errorDesc": "Les dossiers n’ont pas pu être chargés.",
+    "retry": "Réessayer",
     "filters": {
       "stageLabel": "Stade",
       "allStages": "Tous",

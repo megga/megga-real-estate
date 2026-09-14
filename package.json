@@ -45,7 +45,8 @@
     "lint:spec-sql": "node scripts/check-spec-sql-blocks.mjs",
     "lint:claude-md": "node scripts/check-claude-md-freshness.mjs",
     "lint:claude-md:update": "node scripts/check-claude-md-freshness.mjs --update",
-    "test:e2e:admin": "playwright test --config=playwright.admin.config.ts"
+    "test:e2e:admin": "playwright test --config=playwright.admin.config.ts",
+    "test:e2e:bancs": "playwright test --config=playwright.bancs.config.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

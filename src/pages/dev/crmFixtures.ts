@@ -33,6 +33,8 @@
 // fichier-ci arrive derrière un import lazy. Voir l'en-tête de `bancSession`.
 export { AGENCE_BANC, AGENT_BANC } from './bancSession'
 import { AGENCE_BANC, AGENT_BANC } from './bancSession'
+import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
+import { PHOTO } from '@/components/crm/today/data'
 import type { KycDossierStatus } from '@/types/kyc'
 
 /* ─── Le socle : ce que le CHROME tire sur CHAQUE écran ────────────────────── */
@@ -65,7 +67,7 @@ const EVENEMENTS = [
   // le lot même qui existait pour les éviter. Le contrat réel est celui des
   // edges (`actor_kind='ai'`, `actor_id` NULL) — et la ligne le lit désormais dans
   // `actor_kind` (src/lib/auditActor.ts), pas dans l'absence d'`actor_id`.
-  { id: 'e3', agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: 'ai', action: 'relance_drafted', category: 'ai', severity: 'info', entity_type: 'contact', entity_id: 'c3', created_at: ilYA(9) },
+  { id: 'e3', agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: 'ai', action: 'whatsapp_agent_copilot_reply', category: 'ai', severity: 'info', entity_type: 'whatsapp_message', entity_id: null, created_at: ilYA(9) },
   { id: 'e4', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'bien_published', category: 'bien', severity: 'info', entity_type: 'property', entity_id: 'p1', created_at: ilYA(30) },
   // Les deux autres acteurs SANS `actor_id`, que la page d'audit doit distinguer de l'IA
   // (src/lib/auditActor.ts) : le SYSTÈME (recalcul nocturne des scores, une ligne par
@@ -78,8 +80,79 @@ const EVENEMENTS = [
   // retient (avec `kyc` et `kyc_check`). Sans ces deux lignes, la piste d'audit
   // du RAPPORT sort vide, et sa page 3 se relit comme une page réussie.
   // `actor:profiles!actor_id` est embarqué : le banc n'applique pas `select`.
-  { id: 'e5', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'kyc_case_created', category: 'kyc', severity: 'info', entity_type: 'kyc_case', entity_id: 'k1', metadata: null, created_at: ilYA(310), actor: { full_name: AGENT_BANC.full_name } },
-  { id: 'e6', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'kyc_check_completed', category: 'kyc', severity: 'info', entity_type: 'kyc_check', entity_id: 'kc1-id', metadata: { category: 'id' }, created_at: ilYA(300), actor: { full_name: AGENT_BANC.full_name } },
+  // ⚠ Les ACTIONS sont celles que la production écrit : `kyc_case_opened` (renommée par
+  // 20260729100000) et « Contrôle validé », que le trigger `auto_verify_kyc_dossier` écrit
+  // encore en français. Le banc portait `kyc_case_created` et `kyc_check_completed`, que
+  // rien n'émet — le journal d'audit les affichait « Kyc case created ».
+  { id: 'e5', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'kyc_case_opened', category: 'kyc', severity: 'info', entity_type: 'kyc_case', entity_id: 'k1', metadata: null, created_at: ilYA(310), actor: { full_name: AGENT_BANC.full_name } },
+  { id: 'e6', agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user', action: 'Contrôle validé', category: 'kyc', severity: 'info', entity_type: 'kyc_check', entity_id: 'kc1-id', object_label: 'Pièce d’identité', metadata: { category: 'id', kyc_case_id: 'k1' }, created_at: ilYA(300), actor: { full_name: AGENT_BANC.full_name } },
+  // ── Les scénarios de la CLOCHE (14.09.2026) — un événement système ou IA par type
+  // (`KIND_META`), sur trois jours, pour relire la popover telle qu'une agence la vit.
+  // Actions réelles : celles de la production et de la table du journal. La rafale de
+  // trois `match_suggested` sans sujet, à la même seconde, est la forme d'une passe du
+  // moteur — elle doit sortir en UNE ligne « ×3 » (`regrouper`). Les matchs et la
+  // diffusion désignent un bien PHOTOGRAPHIÉ : la tuile doit en montrer la photo.
+  // `metadata` a la forme de la production (`source`, `market_listing_id`, `score`).
+  // ⚠ Les sévérités aussi : `kyc_screening_match` est écrit `critical` par kyc-screening,
+  // le prospect WhatsApp `warn` par le webhook. `n7` portait `'warning'`, que
+  // `activity_events_severity_check` (info · warn · critical) refuse — le journal
+  // d'audit montrait une pastille qu'aucune base ne peut produire.
+  cloche('n1', 'ai', 'whatsapp_inbound_lead_created', 'contact', 'contact', 'Léa Martin (via WhatsApp)', 0.2, 'warn'),
+  cloche('n2', 'system', 'whatsapp_message_received', 'contact', 'contact', 'Camille Rochat', 0.6),
+  cloche('n3a', 'ai', 'match_suggested', 'contact', 'match', null, 1.5, 'info', { metadata: { source: 'market', score: 88, contact_id: 'c1', property_id: null, market_listing_id: 'ml-cloche-1' } }),
+  cloche('n3b', 'ai', 'match_suggested', 'contact', 'match', null, 1.5, 'info', { metadata: { source: 'market', score: 81, contact_id: 'c3', property_id: null, market_listing_id: 'ml-cloche-2' } }),
+  cloche('n3c', 'ai', 'match_suggested', 'contact', 'match', null, 1.5, 'info', { metadata: { source: 'property', score: 76, contact_id: 'c1', property_id: 'p2', market_listing_id: null } }),
+  cloche('n4', 'system', 'visit_scheduled', 'contact', 'visit', 'Rue de Lausanne 12 · jeudi 10:30', 2.2),
+  cloche('n5', 'ai', 'reminder_created', 'contact', 'reminder', 'Rappeler Camille Rochat', 3),
+  cloche('n6', 'system', 'stage_change', 'deal', 'transaction', 'visit_done → offer', 4),
+  cloche('n7', 'ai', 'kyc_screening_match', 'kyc', 'kyc', 'Dossier Rochat · une alerte à examiner', 5, 'critical'),
+  cloche('n8', 'system', 'signature.created', 'deal', 'signature', 'Mandat de vente · Avenue de Champel 8', 26),
+  cloche('n9', 'system', 'document_filed_from_email', 'doc', 'document', 'Attestation bancaire.pdf', 28),
+  cloche('n10', 'system', 'property_published_to_portal', 'bien', 'property', 'Appartement 4,5 pièces · Champel', 30, 'info', { entity_id: 'p1' }),
+  cloche('n11', 'ai', 'whatsapp_morning_brief_sent', 'ai', 'agency', null, 33),
+  cloche('n12', 'system', 'team_invite_accepted', 'auth', 'profile', 'Sophie Keller', 60),
+  cloche('n13', 'system', 'subscription_changed', 'settings', 'agency', 'Plan Pro', 80),
+  cloche('n14', 'system', 'whatsapp_number_verified', 'settings', 'agency', null, 120),
+]
+
+/**
+ * La LONGUE TRAÎNE du journal d'audit (14.09.2026) : 1 100 gestes d'agent, de 100 jours à
+ * quatre ans en arrière — absents de 7, 30 et 90 jours, ils ne se montrent qu'en « Tout ».
+ * Sans elle, le banc n'atteignait jamais les 1000 lignes d'une page, et la pagination du
+ * journal (« Charger les évènements plus anciens ») ne s'y éprouvait pas.
+ * ⚠ Des gestes d'AGENT (`actor_kind: 'user'`) sur une fiche qui n'existe pas (`archive`) :
+ * la cloche (`neq actor_kind user`) et les timelines (par `entity_id`) ne les voient pas.
+ */
+const TRAINE_JOURNAL = Array.from({ length: 1100 }, (_, i) => {
+  const bien = i % 3 === 2
+  return {
+    id: `t${String(i + 1).padStart(4, '0')}`, agency_id: AGENCE_BANC.id, actor_id: AGENT_BANC.id, actor_kind: 'user',
+    action: bien ? 'bien_updated' : i % 3 === 0 ? 'note_added' : 'contact_created',
+    category: bien ? 'bien' : 'contact', severity: 'info', entity_type: bien ? 'property' : 'contact',
+    entity_id: 'archive', object_label: `Dossier archivé n° ${i + 1}`, metadata: null,
+    created_at: ilYA(2400 + i * 30),
+  }
+})
+
+/** Un événement de la cloche : écrit par le système ou l'IA, jamais par un agent (`actor_id` NULL). */
+function cloche(
+  id: string, acteur: 'ai' | 'system', action: string, category: string, entity_type: string,
+  object_label: string | null, heures: number, severity = 'info',
+  cible: { entity_id?: string; metadata?: Record<string, unknown> } = {},
+) {
+  return {
+    id, agency_id: AGENCE_BANC.id, actor_id: null, actor_kind: acteur, action, category, severity, entity_type,
+    entity_id: cible.entity_id ?? null, metadata: cible.metadata ?? null, object_label, created_at: ilYA(heures),
+  }
+}
+
+/**
+ * Les deux annonces de marché que désignent les matchs de la cloche. ⚠ À PART de
+ * `ANNONCE_MARCHE_BANC`, qui doit rester SANS photo (elle éprouve le repli du catalogue).
+ */
+const ANNONCES_CLOCHE = [
+  { id: 'ml-cloche-1', title: 'Appartement 3,5 pièces · Carouge', city: 'Carouge', canton: 'GE', transaction_type: 'rent', status: 'active', photos: [PHOTO.carouge], photos_cf: null },
+  { id: 'ml-cloche-2', title: 'Appartement 4 pièces · Eaux-Vives', city: 'Genève', canton: 'GE', transaction_type: 'rent', status: 'active', photos: [PHOTO.eauxvives], photos_cf: null },
 ]
 
 /* ─── KYC — de quoi regarder la liste, la vigie et la fiche stricte ────────── */
@@ -281,26 +354,89 @@ export const ANNONCE_MARCHE_BANC = {
 }
 
 export const CRM_TABLES: Record<string, unknown[]> = {
-  market_listings: [ANNONCE_MARCHE_BANC],
+  market_listings: [ANNONCE_MARCHE_BANC, ...ANNONCES_CLOCHE],
   profiles: [AGENT_BANC],
   agencies: [AGENCE_BANC],
   contacts: CONTACTS,
-  activity_events: EVENEMENTS,
+  activity_events: [...EVENEMENTS, ...TRAINE_JOURNAL],
   relance_sessions: [],
   relance_items: [],
+  // ⚠ `trigger_at`, la SEULE date d'un rappel : le Calendrier, l'agenda d'« Aujourd'hui »
+  // et l'agenda mobile la lisent tous (`useCalendarScreen`). Ces fixtures portaient un
+  // `due_at` — colonne qui n'existe pas dans `reminders` —, si bien que les trois
+  // écrans du banc ne voyaient AUCUN rappel. Depuis le 13.09.2026, « Aujourd'hui »
+  // montre donc r1 (+3 h) dans sa journée, et le Calendrier les deux.
   reminders: [
-    { id: 'r1', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c1', title: 'Rappeler pour le dossier Champel', due_at: ilYA(-3), status: 'pending', kind: 'call', created_at: ilYA(48) },
-    { id: 'r2', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c3', title: 'Envoyer le comparatif de quartier', due_at: ilYA(-27), status: 'pending', kind: 'email', created_at: ilYA(52) },
+    { id: 'r1', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c1', title: 'Rappeler pour le dossier Champel', trigger_at: ilYA(-3), status: 'pending', kind: 'call', type: 'custom', message_template: null, calendar_label_id: 'cl2', created_at: ilYA(48) },
+    { id: 'r2', agency_id: AGENCE_BANC.id, user_id: AGENT_BANC.id, contact_id: 'c3', title: 'Envoyer le comparatif de quartier', trigger_at: ilYA(-27), status: 'pending', kind: 'email', type: 'custom', message_template: null, calendar_label_id: null, created_at: ilYA(52) },
   ],
+  // ⚠ Les jointures sont portées par la ligne (le banc n'applique pas `select`) : sans
+  // elles, la fiche visite du banc titrait « Bien » sans visiteur et un bon de visite
+  // vide — un écran que la production ne rend jamais.
   visits: [
-    { id: 'v1', agency_id: AGENCE_BANC.id, contact_id: 'c1', property_id: 'p1', scheduled_at: ilYA(-5), status: 'confirmed', created_at: ilYA(40) },
+    {
+      id: 'v1', agency_id: AGENCE_BANC.id, contact_id: 'c1', property_id: 'p1', agent_id: AGENT_BANC.id,
+      scheduled_at: ilYA(-5), duration_minutes: 45, status: 'confirmed', calendar_label_id: 'cl1', created_at: ilYA(40),
+      property: { id: 'p1', title: 'Appartement 4,5 pièces · Champel', address: 'Avenue de Champel 12', city: 'Genève', canton: 'GE', photos: [], type: 'apartment', surface_m2: 118, rooms: 4.5, price: 1_450_000 },
+      contact: { id: 'c1', first_name: 'Camille', last_name: 'Rochat', email: 'camille.rochat@example.ch', phone: '+41 79 412 88 03' },
+      agent: { id: AGENT_BANC.id, full_name: AGENT_BANC.full_name, avatar_url: null },
+    },
+  ],
+  // Libellés du Calendrier — des barreaux de la direction, pas des littéraux : la
+  // couleur d'un libellé est une donnée saisie, et une fixture qui écrirait des
+  // hexadécimaux ferait monter l'inventaire de couleurs du dossier `pages/dev`.
+  calendar_labels: [
+    { id: 'cl1', agency_id: AGENCE_BANC.id, name: 'Urgent', color: MXC_SYSTEM.red400, position: 0, created_at: ilYA(300), updated_at: ilYA(300) },
+    { id: 'cl2', agency_id: AGENCE_BANC.id, name: 'Client VIP', color: MXC_SYSTEM.yellow400, position: 1, created_at: ilYA(290), updated_at: ilYA(290) },
+    { id: 'cl3', agency_id: AGENCE_BANC.id, name: 'Personnel', color: MXC_COLOR.accent, position: 2, created_at: ilYA(280), updated_at: ilYA(280) },
   ],
   properties: [
-    { id: 'p1', agency_id: AGENCE_BANC.id, title: 'Appartement 4,5 pièces · Champel', city: 'Genève', canton: 'GE', price: 1_450_000, rooms: 4.5, surface: 118, status: 'active', transaction_type: 'sale', published_at: ilYA(120), created_at: ilYA(400) },
-    { id: 'p2', agency_id: AGENCE_BANC.id, title: 'Villa individuelle · Cologny', city: 'Cologny', canton: 'GE', price: 3_200_000, rooms: 7, surface: 260, status: 'active', transaction_type: 'sale', published_at: ilYA(300), created_at: ilYA(700) },
+    { id: 'p1', agency_id: AGENCE_BANC.id, title: 'Appartement 4,5 pièces · Champel', city: 'Genève', canton: 'GE', price: 1_450_000, rooms: 4.5, surface: 118, status: 'active', transaction_type: 'sale', published_at: ilYA(120), created_at: ilYA(400), photos: [PHOTO.champel], photos_cf: null },
+    { id: 'p2', agency_id: AGENCE_BANC.id, title: 'Villa individuelle · Cologny', city: 'Cologny', canton: 'GE', price: 3_200_000, rooms: 7, surface: 260, status: 'active', transaction_type: 'sale', published_at: ilYA(300), created_at: ilYA(700), photos: [PHOTO.cologny], photos_cf: null },
   ],
   transactions: [],
-  matches: [],
+  // Deux matchs pour la page « Catalogue » d'Aujourd'hui, et chacun éprouve un défaut
+  // corrigé le 13.09.2026 : l'annonce de marché n'a AUCUNE photo (elle recevait celle
+  // de Champel, et cinq intérieurs de stock dans sa galerie), le bien de l'agence n'en
+  // a qu'UNE (le collage de la fiche la répétait trois fois).
+  // ⚠ Les jointures (`contact`, `market_listing`, `property`) sont portées par la
+  // ligne : le banc n'applique pas `select`.
+  matches: [
+    {
+      id: 'm1', agency_id: AGENCE_BANC.id, contact_id: 'c1', source: 'market',
+      property_id: null, market_listing_id: ANNONCE_MARCHE_BANC.id,
+      score: 88, status: 'suggested', sent_via: null, sent_at: null, created_at: ilYA(20),
+      reasons: {
+        budget: { match: true, score: 30, detail: 'Loyer dans le budget' },
+        zone: { match: true, score: 25, detail: 'Secteur recherché' },
+        type: { match: true, score: 15, detail: '' },
+        rooms: { match: false, score: 0, detail: '' },
+        features: { match: false, score: 0, detail: '' },
+      },
+      contact: { first_name: 'Camille', last_name: 'Rochat', email: 'camille.rochat@example.ch', phone: '+41 79 412 88 03' },
+      market_listing: ANNONCE_MARCHE_BANC, property: null,
+    },
+    {
+      id: 'm2', agency_id: AGENCE_BANC.id, contact_id: 'c3', source: 'internal',
+      property_id: 'p1', market_listing_id: null,
+      score: 81, status: 'suggested', sent_via: null, sent_at: null, created_at: ilYA(30),
+      reasons: {
+        budget: { match: true, score: 30, detail: 'Prix aligné sur le budget' },
+        zone: { match: true, score: 25, detail: '' },
+        type: { match: true, score: 15, detail: '' },
+        rooms: { match: true, score: 10, detail: '' },
+        features: { match: false, score: 0, detail: '' },
+      },
+      contact: { first_name: 'Salomé', last_name: 'Perret', email: 's.perret@example.ch', phone: '+41 76 903 55 12' },
+      property: {
+        title: 'Appartement 4,5 pièces · Champel', price: 1_450_000, address: 'Avenue de Champel 12',
+        city: 'Genève', canton: 'GE', postal_code: '1206', rooms: 4.5, bedrooms: 3, surface_m2: 118,
+        photos: [PHOTO.champel], type: 'apartment', description: 'Lumineux, traversant, deux balcons.',
+        features: ['Balcon', 'Ascenseur'], floor: 4, year_built: 1968, charges_monthly: 420,
+      },
+      market_listing: null,
+    },
+  ],
   crm_offers: [],
   seller_leads: [],
   kyc_cases: KYC_CASES,
@@ -359,10 +495,13 @@ const AX_OBJECTIF = {
 
 const AX_FUNNEL = {
   funnel: { leads: 34, leads_prev: 28, qualif: 19, qualif_prev: 17, visits: 11, offers: 5, compromis: 2 },
+  // ⚠ Des valeurs de `contacts_source_check`, pas des mots : le banc montrait
+  // « flatfox », « site » et « recommandation », qu'aucune ligne ne peut porter —
+  // et masquait ainsi que `whatsapp_ai` s'affichait brut.
   sources: [
-    { source: 'flatfox', v: 14, conv: 0.21, prev: 11, comm: 42_000, won: 1 },
-    { source: 'site', v: 9, conv: 0.33, prev: 8, comm: 61_000, won: 1 },
-    { source: 'recommandation', v: 6, conv: 0.5, prev: 5, comm: 84_000, won: 1 },
+    { source: 'whatsapp_ai', v: 14, conv: 0.21, prev: 11, comm: 42_000, won: 1 },
+    { source: 'website', v: 9, conv: 0.33, prev: 8, comm: 61_000, won: 1 },
+    { source: 'referral', v: 6, conv: 0.5, prev: 5, comm: 84_000, won: 1 },
   ],
   forecast: { n30: 3, mid30: 96_000, n60: 6, mid60: 148_000, n90: 9, mid90: 205_000 },
 }
@@ -408,8 +547,29 @@ export const CRM_RPC_VIDE: Record<string, unknown> = {
   get_agent_changelog: [],
 }
 
+/** Les trois tables d'événements du Calendrier, par `source` de libellé. */
+const TABLE_DE_SOURCE: Record<string, string> = { visit: 'visits', reminder: 'reminders', appointment: 'appointments' }
+type LigneLibellee = { id: string; calendar_label_id?: string | null }
+
 export const CRM_RPC: Record<string, unknown> = {
   claim_pending_role: null,
+  // ⚠ LUES À CHAQUE APPEL, sur les fixtures VIVANTES : un libellé créé ou supprimé
+  // dans le rail (`calendar_labels` est écrivable), ou posé par un clic droit,
+  // doit se voir au rafraîchissement suivant. Une affectation vers un libellé
+  // supprimé disparaît ici, comme le `ON DELETE SET NULL` de la base.
+  calendar_label_assignments: () => {
+    const vivants = new Set((CRM_TABLES.calendar_labels as { id: string }[]).map((l) => l.id))
+    return Object.entries(TABLE_DE_SOURCE).flatMap(([source, table]) =>
+      (CRM_TABLES[table] as LigneLibellee[])
+        .filter((r) => r.calendar_label_id && vivants.has(r.calendar_label_id))
+        .map((r) => ({ source, event_id: r.id, label_id: r.calendar_label_id })))
+  },
+  calendar_set_event_label: (a: Record<string, unknown>) => {
+    const table = TABLE_DE_SOURCE[String(a.p_source)]
+    const ligne = table ? (CRM_TABLES[table] as LigneLibellee[]).find((r) => r.id === a.p_event_id) : undefined
+    if (ligne) ligne.calendar_label_id = typeof a.p_label_id === 'string' ? a.p_label_id : null
+    return null
+  },
   is_super_admin: false,
   // ⚠ `analytics_*` rendent un OBJET, pas un tableau : le hook les lit
   // directement comme `CockpitJson` / `ObjectifJson` / `FunnelJson`.

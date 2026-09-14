@@ -26,6 +26,7 @@ import { SET_PALETTE } from './data'
 import { SetIcon } from './atoms'
 import { useWhatsAppPairing } from '@/hooks/useWhatsAppPairing'
 import { composePhone, dialCodeOptions, formatInternationalPhone, PHONE_EXAMPLES } from '@/lib/countries'
+import { listeTraduite } from '@/lib/listeTraduite'
 
 const SET = SET_PALETTE
 
@@ -286,7 +287,7 @@ function WABody() {
 
   // — linked —
   if (link?.verified) {
-    const examples = t('integrations.whatsapp.examples', { returnObjects: true }) as string[]
+    const examples = listeTraduite(t('integrations.whatsapp.examples', { returnObjects: true }))
     return (
       <div style={{ display: 'grid', gap: 'var(--crm-space-4xl)' }}>
         <WAHeader status={<WALinkedBadge t={t} />} t={t} />

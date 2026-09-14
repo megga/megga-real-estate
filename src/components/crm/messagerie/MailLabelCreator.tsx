@@ -11,6 +11,7 @@
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MXC_COLOR, MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
+import { crmVoileEncre } from '@/components/crm/tokens'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import { hslToHex, MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
@@ -18,6 +19,63 @@ const PRESETS = [MXC_SYSTEM.red400, MXC_SYSTEM.blue300, MXC_SYSTEM.yellow400, MX
 const LIGHTNESS = [30, 40, 50, 60, 70, 80]
 /** Saturation de la teinte libre : au-dessous, les six luminosités se confondent. */
 const SAT = 85
+
+/** Une pastille de couleur : 22 px, sans bordure — l'anneau est une ombre (voir `bague`). */
+const PASTILLE = {
+  width: 22, height: 22, borderRadius: '50%', border: 'none', padding: 0, flexShrink: 0,
+  cursor: 'pointer', transition: MAIL_TRANSITION,
+} as const
+
+/** Les teintes de la roue ET de la réglette (L 55) — une seule liste, pour qu'elles ne divergent pas. */
+const TEINTES = [0, 60, 120, 180, 240, 300, 360].map((h) => hslToHex(h, SAT, 55))
+
+/**
+ * La roue de la teinte libre : les teintes de la réglette, un centre qui blanchit.
+ * ⚠ BLANC = `n1000` : l'échelle de MEGGA X est sombre d'abord, `n100` y est le
+ * quasi-noir — le premier jet avait peint un trou noir au cœur de la roue.
+ */
+const ROUE = [
+  `radial-gradient(circle, ${MXC_COLOR.n1000} 0 16%, transparent 62%)`,
+  `conic-gradient(from 90deg, ${TEINTES.join(', ')})`,
+].join(', ')
+
+/** L'anneau blanc de la couleur retenue, au cœur de la bille — sur une roue, jamais sur le panneau. */
+const BLANC = MXC_COLOR.n1000
+/** Le contour d'une pastille au repos : un voile d'encre, qui assombrit le bord sans le cerner de gris. */
+const CONTOUR = `inset 0 0 0 1px ${crmVoileEncre(false, 0.1)}`
+
+/**
+ * La poignée de la réglette de teinte.
+ *
+ * ⛔ C'ÉTAIT LE ROND BLEU DU NAVIGATEUR. `appearance: none` sur le champ ne
+ * restyle que la piste ; la poignée, elle, ne se peint que par un pseudo-élément
+ * (`::-webkit-slider-thumb`, `::-moz-range-thumb`), qu'un style en ligne ne peut
+ * pas atteindre — d'où cette feuille, bornée à la classe du champ.
+ * Elle porte la teinte qu'elle désigne (`--mlc-teinte`), cerclée de blanc comme la
+ * couleur retenue au cœur de la bille ; au clavier, le halo des pastilles
+ * (`--mlc-jour`, `--mlc-anneau`).
+ */
+const POIGNEE = `
+.mlc-teinte { -webkit-appearance: none; appearance: none; cursor: pointer; outline: none; }
+.mlc-teinte::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--mlc-teinte); border: 3px solid ${MXC_COLOR.n1000};
+  box-shadow: 0 1px 4px ${crmVoileEncre(false, 0.35)}; cursor: grab; transition: box-shadow .12s, transform .12s;
+}
+.mlc-teinte:active::-webkit-slider-thumb { cursor: grabbing; transform: scale(1.08); }
+/* Le repère de focus est le halo de la POIGNÉE : le cadre global des champs
+   (\`input:focus-visible\`, globals.css) en ajoutait un second autour de toute la
+   piste. Deux classes battent \`input:focus-visible\` sans \`!important\`. */
+.mlc-teinte.mlc-teinte:focus-visible { outline: none; }
+.mlc-teinte:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px var(--mlc-jour), 0 0 0 4px var(--mlc-anneau); }
+.mlc-teinte::-moz-range-track { background: transparent; }
+.mlc-teinte::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--mlc-teinte); border: 3px solid ${MXC_COLOR.n1000};
+  box-shadow: 0 1px 4px ${crmVoileEncre(false, 0.35)}; cursor: grab;
+}
+.mlc-teinte:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px var(--mlc-jour), 0 0 0 4px var(--mlc-anneau); }
+`
 
 interface Props {
   ms: MailSurfaces
@@ -43,6 +101,10 @@ export function MailLabelCreator({ ms, initial, onCancel, onSave, busy }: Props)
   const poserTeinte = (h: number, l: number) => { setHue(h); setLight(l); setColor(hslToHex(h, SAT, l)) }
   const hexOk = useMemo(() => /^#[0-9a-fA-F]{6}$/.test(color), [color])
   const field = { background: ms.elev, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', outline: 'none' } as const
+  // Sélection = un HALO (jour de la couleur du panneau, puis anneau d'encre) qui
+  // entoure la pastille sans en manger le bord. Au repos, un voile d'encre à peine
+  // visible dessine le contour des couleurs pâles sur le panneau clair.
+  const bague = (actif: boolean) => (actif ? `0 0 0 2px ${ms.elev}, 0 0 0 4px ${ms.ink}` : CONTOUR)
   const bloque = !name.trim() || !hexOk || busy
 
   return (
@@ -71,38 +133,51 @@ export function MailLabelCreator({ ms, initial, onCancel, onSave, busy }: Props)
             key={c}
             type="button"
             aria-label={c}
+            aria-pressed={color === c && !custom}
             onClick={() => { setCustom(false); setColor(c) }}
-            style={{
-              width: 22, height: 22, borderRadius: '50%', background: c,
-              border: `2px solid ${color === c && !custom ? ms.ink : 'transparent'}`, cursor: 'pointer', transition: MAIL_TRANSITION,
-            }}
+            style={{ ...PASTILLE, background: c, boxShadow: bague(color === c && !custom) }}
           />
         ))}
+        {/* ⛔ LA BILLE ÉTAIT UN CARRÉ. Un `conic-gradient` sous une bordure
+            TRANSPARENTE de 2 px se peignait en carré aux coins à peine rognés, qui
+            débordait le rond — elle ne redevenait ronde qu'une fois sélectionnée,
+            quand la bordure prenait une couleur. Plus de bordure du tout : l'anneau
+            de sélection est une ombre, comme sur les six pastilles.
+            Et une vraie roue : teintes adoucies, centre qui blanchit (la pointe
+            vive du dégradé conique ne se voit plus) ; une fois la teinte libre
+            choisie, la bille porte la couleur retenue en son cœur. */}
         <button
           type="button"
           onClick={() => { const on = !custom; setCustom(on); if (on) poserTeinte(hue, light) }}
           aria-pressed={custom}
+          aria-label={t('mail.labels.custom')}
           title={t('mail.labels.custom')}
-          style={{
-            width: 22, height: 22, borderRadius: '50%',
-            background: 'conic-gradient(red, yellow, lime, cyan, blue, magenta, red)',
-            border: `2px solid ${custom ? ms.ink : 'transparent'}`, cursor: 'pointer',
-          }}
-        />
+          style={{ ...PASTILLE, background: ROUE, boxShadow: bague(custom), display: 'grid', placeItems: 'center' }}
+        >
+          {custom && hexOk && (
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, boxShadow: `0 0 0 2px ${BLANC}` }} />
+          )}
+        </button>
       </div>
 
       {custom && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-sm)' }}>
+          <style>{POIGNEE}</style>
           <input
             type="range"
+            className="mlc-teinte"
             min={0}
             max={360}
             value={hue}
             onChange={(e) => poserTeinte(Number(e.target.value), light)}
             aria-label={t('mail.labels.hue')}
             style={{
-              width: '100%', height: 12, borderRadius: PILL, appearance: 'none',
-              background: 'linear-gradient(90deg, hsl(0 85% 50%), hsl(60 85% 50%), hsl(120 85% 50%), hsl(180 85% 50%), hsl(240 85% 50%), hsl(300 85% 50%), hsl(360 85% 50%))',
+              ['--mlc-teinte' as string]: hslToHex(hue, SAT, 55),
+              ['--mlc-jour' as string]: ms.elev,
+              ['--mlc-anneau' as string]: ms.ink,
+              width: '100%', height: 12, margin: 0, borderRadius: PILL,
+              background: `linear-gradient(90deg, ${TEINTES.join(', ')})`,
+              boxShadow: CONTOUR,
             }}
           />
           <div style={{ display: 'flex', gap: 'var(--crm-space-sm)' }}>
@@ -112,9 +187,11 @@ export function MailLabelCreator({ ms, initial, onCancel, onSave, busy }: Props)
                 type="button"
                 aria-label={`${l}%`}
                 onClick={() => poserTeinte(hue, l)}
+                aria-pressed={light === l}
+                // Le halo des pastilles, pas une bordure qui mange la couleur.
                 style={{
                   flex: 1, height: 18, borderRadius: 'var(--crm-radius-xs)', background: hslToHex(hue, SAT, l),
-                  border: `2px solid ${light === l ? ms.ink : 'transparent'}`, cursor: 'pointer',
+                  border: 'none', padding: 0, cursor: 'pointer', transition: MAIL_TRANSITION, boxShadow: bague(light === l),
                 }}
               />
             ))}

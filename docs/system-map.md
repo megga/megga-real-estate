@@ -249,6 +249,15 @@ squelette de tableau de bord — `/dashboard` ne recouvre plus qu'un chrome :
 sur la même préférence sombre que les pages ; c'était top-nav + rail d'icônes avant le 04.09.2026 —
 **et depuis le 04.09.2026 il dessine aussi la bande d'onglets**, sans quoi le cadre bento sauterait de
 48 px à chaque bascule squelette → page) pour TOUTE surface `/dashboard`, et `DefaultLoader` ailleurs.
+⛔ **« Plus aucun écran de chargement » est faux à l'OUVERTURE d'un écran d'onglet** (mesuré le
+14.09.2026) : chaque écran vivant a sa propre frontière Suspense (`AgentLayout`), et une frontière qui
+vient de monter peint son repli. Le squelette étant lui-même chargé à la demande, le premier « + »
+affichait ~300 ms le spinner de `DefaultLoader` sur fond de page — bande d'onglets et barre latérale
+comprises, disparues. La page d'onglet neuf et `CrmPageSkeleton` sont donc **préchargés au repos** dès
+que la bande monte ([`pagesPrechargeables.ts`](../src/lib/pagesPrechargeables.ts)) et rendus par
+`lazyPrechargeable`, qui ne suspend plus une fois chargé — `React.lazy` seul suspend une fois même sur
+un module en cache (vérifié par mutation). Garde : `tests/e2e/onglet-neuf.spec.ts`, qui compte les
+images sans bande pendant l'ouverture (18 sur 84 sans le correctif, 0 avec).
 ⛔ Cette phrase annonçait un second squelette `DashboardSkeleton` (sidebar + header) « pour les routes
 `AgentLayout` » : le fichier a été **supprimé le 28.07.2026** avec la coquille legacy, et
 `src/components/skeletons/` ne contient plus que ces deux fichiers. Les cinq routes qu'elle citait
@@ -321,6 +330,29 @@ l'écrivaient pas), plus de relecture à 400 ms dans le dock et la coquille. Gar
 [`poussee-dock.spec.ts`](../tests/unit/poussee-dock.spec.ts), [`crm-dark-bascule.spec.ts`](../tests/unit/crm-dark-bascule.spec.ts).
 Cerveau : `megga/dock-poussee`.
 
+**Bascule clair ↔ sombre, d'un seul geste (12.09.2026).** Un geste de l'agent (bouton ☀/☾ de la bande,
+menu du profil, Réglages, tableau de bord d'Analytics) passe par
+[`animerBascule`](../src/lib/crmDarkBascule.ts) : `<html data-crm-bascule>` coupe **toute** transition
+(`globals.css`, `!important` pour battre les styles en ligne), la palette est rendue en `flushSync` dans
+`document.startViewTransition`, puis le nouvel écran se **révèle en cercle** depuis le point cliqué (ou le
+contrôle activé au clavier), en 520 ms **rythmées sur la SURFACE découverte** et non sur le rayon : 12 % de
+l'écran à 10 % du temps, 67 % à mi-course, et la fin découvre encore 7 % — le premier jet (rayon en courbe du
+dock) révélait 96 % en 30 % du temps puis traînait. ⛔ Pas de fondu enchaîné : la mise en page ne bouge pas,
+chaque pixel passerait par un gris moyen (contraste 1,01:1 à mi-course). Sans l'API, en mouvement réduit ou
+onglet caché : même bascule, sans animation. Une seconde bascule attend la fin de la première ; le dock et la
+poussée (`data-garde-transition`) continuent de glisser ; un changement venu du système ou d'un autre onglet
+passe par la même révélation, annoncée une seule fois. ⛔ Avant, elle courait sur trois horloges — carte de la barre latérale instantanée, lignes à
+180 ms, « Aujourd'hui » à 550 ms : le nom de l'agence restait illisible ~150 ms. Au bureau, le thème de l'app
+(`data-theme`, `color-scheme`) est **piloté** par celui du CRM (`ThemeProvider pilote`, posé par
+`AgentLayout`) — toasts, bandeau d'accueil, anneau de focus, barres de défilement et wizard suivent enfin ;
+le mobile garde `megga-theme`. Les écrans vivants cachés suivent en `startTransition`, hors de la photo et
+après la révélation — sans transition : la feuille les coupe sous tout écran caché, sinon leurs fondus se
+voyaient en rebasculant sur leur onglet.
+« Système » (Réglages) efface le choix au lieu de figer la valeur du moment. Le glyphe ☀/☾
+([`IconeTheme`](../src/components/crm/IconeTheme.tsx)) tourne avec motion/react. Le courriel ouvert dans la
+Messagerie ne recharge plus son iframe : l'encre est repeinte dans le document vivant. ⚠ Reste connu : la carte
+Mapbox du Matching recharge son style après la révélation. Cerveau : `megga/bascule-theme`.
+
 | Audience | Préfixe | Pages clés |
 |---|---|---|
 | **Marketplace SPA** (app.getmegga.com) | ~~`/buy` `/rent` `/propriete/:id`~~ → **désactivées** (redirigent vers vitrine getmegga.com) | ⚠️ **Pivot juin 2026 — marketplace publique OFF** : `MarketplaceDisabledRedirect` renvoie `/buy /rent /search /propriete/:id /listing/:id` vers getmegga.com. `SearchPage`/`PropertyXSinglePropertyPage` **retirés** (pages storefront supprimées au pivot CRM-first). `market_listings` + cron Flatfox + `matching-engine` **intacts** (le matching tourne sans affichage public). Écran marché **interne** CRM `/dashboard/market/:externalId` toujours actif. |
@@ -334,7 +366,7 @@ Cerveau : `megga/dock-poussee`.
 **CRM agent** (layout `AgentLayout`, dark CRM) — pages principales :
 `dashboard` (**cockpit « Aujourd'hui »** refonte juin 2026 — voir l'encadré ci-dessous) · `pipeline` (deals par stage) · `contacts` (+ `/:id` détail) ·
 `listings` (**design final juil. 2026, PR #871 : pager vertical Galerie · « À suivre »** — voir l'encadré ci-dessous ; + `/:id`, `/new` wizard, `/:id/edit`) · `transactions/:id` (stepper 8 étapes + bannière KYC + offres) ·
-`matching` (**refonte pager juil. 2026, PR #813** : conteneur `MatchingPage` — page 0 = atelier triptyque embarqué, page 1 = recherche hybride marché ; banc `/dev/matching-atelier` = **le pager ENTIER**, chrome + 2 pages + bascule de thème + 8 états, `MatchingRechercheHybride demo`. **Porté en MEGGA X le 13 août 2026** — `atelier.css` était un second système de jetons resté sur Sugar Pure, qu'aucune garde n'ouvrait ; carte `MrhMapView` **gelée** par décision, exemption écrite dans le cliquet. Cf. `megga/matching-meggax`) · `journey` · `calendar` (Google/Outlook) ·
+`matching` (**refonte pager juil. 2026, PR #813** : conteneur `MatchingPage` — page 0 = atelier triptyque embarqué, page 1 = recherche hybride marché ; banc `/dev/matching-atelier` = **le pager ENTIER**, chrome + 2 pages + bascule de thème + 8 états, `MatchingRechercheHybride demo`. **Porté en MEGGA X le 13 août 2026** — `atelier.css` était un second système de jetons resté sur Sugar Pure, qu'aucune garde n'ouvrait ; carte `MrhMapView` **gelée** par décision, exemption écrite dans le cliquet. Cf. `megga/matching-meggax`) · `journey` · `calendar` (Google/Outlook ; **libellés de l'agence** depuis le 13.09.2026 — même modèle que la Messagerie, un par événement, la couleur du libellé prend le bloc, clic droit sur un bloc pour poser, clic droit dans le rail pour renommer/recolorer/supprimer ; lecture et écriture par deux RPC hors de la requête des événements. Cf. `megga/calendrier-libelles`) ·
 `kyc` (**refonte pager juil. 2026, PR #853** : 2 pages verticales Dossiers · Vigie dans un bento ; `/:dossierId` = fiche stricte en overlay ; `/bienvenue` = onboarding première ouverture ; `/export` PDF ; wizard embedded + voie import PDF réelle — cf `megga/kyc-ui-hooks`) · `audit` (journal nLPD) · `analytics` (**Cockpit Commission** live — 3 RPC agrégées `SECURITY DEFINER`, objectif persisté dans Réglages › Agence ; **refonte FUSION mono-écran juil. 2026** : cockpit zéro-scroll + parcours compte-neuf porte→fantôme→réel + popover ancré ; cf `megga/analytics-cockpit-commission`) · `settings`. ⚠️ L'écran **Réseau inter-agences** a été retiré (hors périmètre v1) : `NetworkSugarV2Page` supprimée, `/dashboard/network` et `/dashboard/reseau` redirigent vers `/dashboard`.
 > ⚠️ L'écran **Documents** autonome (`/dashboard/documents` + générateur/viewer/templates) a été **retiré** (juin 2026, décision produit). Le KYC garde son onglet « Documents » + le flux d'upload/magic-link + la table/bucket `documents`. La génération de contenu d'annonce IA (`megga/doc-generation`) est indépendante et conservée.
 
@@ -446,12 +478,12 @@ et ça ne ressemble pas à une erreur. Cf. `megga/crm-agent-meggax-banc`.
 - Domaines : `search/` `listings/` `matching/` `transactions/` `kyc*/` `documents/` `calendar/` `messaging/` `admin/` `directory/` `map/` `ai-copilot/` `skeletons/` `auth-bento/`.
 
 ### Hooks (`src/hooks/`, 131, React Query)
-Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`useContacts`, `useContactsScreen`, `useContactTimeline`…) · **biens** (`useListings`, `useListingsScreen`, `useProperties`, `usePropertyScores`, `usePropertyStats`) · **transactions** (`useTransactions`, `useUpdateTransactionStage`, `usePipelineScreen`) · **KYC** (`useKycDossiers`, `useKycVigie` [dérivation Vigie + décisions], `useMarkKycCheck`, `useCreateKycDossier`) · **matching** (`useMatching`, `useExternalMatching`) · **dashboard** (`useAxDashboardData` [analytics live, 3 RPC], `useAgencyTargets`, `useDailyBrief`, `useContactNextAction`) · **calendrier** (`useCalendarScreen`, `useGoogleCalendar`, `useOutlookCalendar`) · **IA** (`useCopilot`, `useExtractLead`, `useTranslatedDescription`) · **admin** (`useAdminUsers/Agencies/Monitoring/Compliance`, `useAuditLog`, `useAdminLiveFeed`).
+Groupés par domaine : **auth** (`useAuth`, `useImpersonate`) · **contacts** (`useContacts`, `useContactsScreen`, `useContactTimeline`…) · **biens** (`useListings`, `useListingsScreen`, `useProperties`, `usePropertyScores`, `usePropertyStats`) · **transactions** (`useTransactions`, `useUpdateTransactionStage`, `usePipelineScreen`) · **KYC** (`useKycDossiers`, `useKycVigie` [dérivation Vigie + décisions], `useMarkKycCheck`, `useCreateKycDossier`) · **matching** (`useMatching`, `useExternalMatching`) · **dashboard** (`useAxDashboardData` [analytics live, 3 RPC], `useAgencyTargets`, `useDailyBrief`, `useContactNextAction`) · **calendrier** (`useCalendarScreen`, `useCalendarLabels` [libellés de l'agence + affectations, 13.09.2026], `useGoogleCalendar`, `useOutlookCalendar`) · **IA** (`useCopilot`, `useExtractLead`, `useTranslatedDescription`) · **admin** (`useAdminUsers/Agencies/Monitoring/Compliance`, `useAuditLog`, `useAdminLiveFeed`).
 
 > ⚠️ Realtime : **toujours** `useId()` pour le nom de channel (sinon crash au re-mount). ⛔ **Les trois exemples cités ici étaient faux d'un tiers** — `useAdminNotifications` n'existe pas dans `src/`, remesuré le 05.09.2026. Les **six** abonnements vivants sont `useAdminLiveFeed`, `useAgentNotifications` (centre de notif agent, dérivé d'`activity_events` non-user), `useVisitDetail`, `useContactSentMatches`, `useRealtimeHealth` et `useMailRealtime` (§6ter) — **tous en `useId()`**. Un nom de fichier inventé dans une liste d'exemples coûte plus qu'une absence d'exemples : on le cherche avant de douter d'elle.
 
 ### lib (`src/lib/`)
-`supabase.ts` (client typé, anon key) · `utils.ts` (`formatCHF` → `CHF 720'000`, `formatDate` DD.MM.YYYY, `cn`) · `constants.ts` (CANTONS, types, stages) · `crmAdapters.ts` (Supabase → vues CRM) · logique métier (`plans`, `contactNba`, `contactCriteria`) · export (`auditPdfExport`, `exportCsv`) · intégrations (`mapbox`, `captcha`, `sentry`, `posthog`).
+`supabase.ts` (client typé, anon key) · `utils.ts` (`formatCHF` → `CHF 720'000`, `formatDate` DD.MM.YYYY, `cn`) · `constants.ts` (CANTONS, types, stages) · `crmAdapters.ts` (Supabase → vues CRM) · logique métier (`plans`, `contactNba`, `contactCriteria`) · intégrations (`mapbox`, `captcha`, `sentry`, `posthog`).
 
 ### i18n
 FR (défaut, eager) + DE/EN/IT (lazy). 12 namespaces : `common, dashboard, settings, contacts, pipeline, listings, kyc, messages, calendar, matching, admin, auth` (`directory`/`compte`/`comingSoon` retirés en juil. 2026 — orphelins post-pivot). Switch = overlay shimmer 350ms.
@@ -566,7 +598,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 | Domaine | Functions |
 |---|---|
 | **IA / copilote** | `ai-copilot` (chat agent + actions, **DeepSeek** deepseek-chat) — `ai-search` et `parse-search-query` retirées à l'assainissement #671 |
-| **KYC / compliance** | `kyc-screening` (Dilisense PEP/sanctions déterministe — l'analyse Claude a été retirée) · `kyc-report-import` (**PR #853** : lit un rapport KYC/AML externe PDF via Gemini, contrôles proposés jamais auto-validés [MLRO], quota par agence) · `kyc-report-data` + `kyc-report-pdf` (rapport KYC PDF par WhatsApp, Cloudflare Browser Rendering REST API — cf. brain `kyc-report-pdf-whatsapp`) · `delete-account` (nLPD art.32, + branche admin `target_user_id`) · `log-auth-event` (IP hashée) · `audit-pdf-export` (chaîne hash SHA-256, LBA 10 ans ; branche super-admin = scope plateforme) |
+| **KYC / compliance** | `kyc-screening` (Dilisense PEP/sanctions déterministe — l'analyse Claude a été retirée) · `kyc-report-import` (**PR #853** : lit un rapport KYC/AML externe PDF via Gemini, contrôles proposés jamais auto-validés [MLRO], quota par agence) · `kyc-report-data` + `kyc-report-pdf` (rapport KYC PDF par WhatsApp, Cloudflare Browser Rendering REST API — cf. brain `kyc-report-pdf-whatsapp`) · `delete-account` (nLPD art.32, + branche admin `target_user_id`) · `log-auth-event` (IP hashée) · `audit-pdf-export` (chaîne hash SHA-256, LBA 10 ans ; branche super-admin = scope plateforme — ⚠ **plus aucun appelant dans l'app depuis le 14.09.2026** : la console avait rendu son export le 14.08, le journal agent le sien le 14.09, sur décision de Julien ; la fonction reste déployée, nommée par le §5.9 de la console) |
 | **Admin (P1-P4 07/2026)** | `admin-dsar-export` (JSON nLPD art. 25, journalisé avant retour) · `admin-user-lifecycle` (suspend/reactivate/reset, ban GoTrue, anti-lockout allowlist ; ⚠ depuis le 13.09.2026 le tiroir `UserDrawer` lit le MOTIF d'un refus de cette edge et de `delete-account` dans le corps — `lireRefusEdge` / `ErreurEdge` (`src/lib/refusEdge.ts`), `motifRefus` (10 motifs, `adminUserRegistry.ts`) : il affichait « refusé sur un compte allowlisté » pour TOUT refus, KYC en cours et dernier administrateur compris) · `admin-agency-lifecycle` (suspension agence + ban membres) · `_shared/require-super-admin.ts` (rôle + allowlist + AAL2, adopté par toutes les edges admin) · `_shared/admin-alerts.ts` (alerting cron : seuils `app_config.admin_alert_thresholds`, dédup 24h, destinataires `super_admin_allowlist()`, Resend) |
 | **Magic link KYC** | `magic-link-create/get/confirm/send-email/upload` (`magic-link-regenerate` retirée, 0 appelant, undeployée le 18 juil.) |
 | **RDV de vérification** (août 2026) | `appointment-slots` (GET public : créneaux proposables ; accepte le jeton du **lien magique** OU un jeton de **rendez-vous** `k='appt'`, sans quoi « déplacer » serait inservable — le client n'a plus le lien magique en main) · `appointment-book` (POST public) · `appointment-manage` (GET/POST : état, report, annulation). Partagés : `booking-slots.ts` (calcul **pur**, testé sur les 2 bascules DST 2026), `booking-freebusy.ts`, `booking-freebusy-cache.ts` (instantané **par agent** sous bail, 14.09.2026), `booking-oauth.ts`, `booking-calendar-write.ts`, `booking-email.ts` |
@@ -604,7 +636,7 @@ Index clés : `idx_ml_rent_active_created` (WHERE rent+active+quality≥50), `id
 
 **E · Matching & alertes** : `client_searches` (criteria JSONB) → `matching-engine` **v2** (durci PR #634 : pré-filtre **DUR** `transaction_type`+budget±15%+canton via RPC `match_candidate_listings`, puis scoring **soft** 0-100 — barème dans `app_config.matching_scoring_v2`, déterministe ; + axe **bonus** `pricePosition` en location = position du loyer vs marché du secteur via la MV `market_rent_stats`, PR #674, raison dans `budget.detail`, activation = redéploiement edge) sur `market_listings`+`properties` → `matches` (score+raisons, `score_version`, dédup dure par couple contact×bien, insert via RPC `ON CONFLICT`) → **Atelier Matching** (triptyque plein écran, gestes `E/X/P/R/V`) : Envoyer = deal `new_lead` (créé/rattaché, `transactions.market_listing_id` si bien de veille) + timeline contact (`dossier_envoye`) + reminder +5 j (→ Aujourd'hui, dédup avec `automation-engine`) + `send-property-email` ; Relancer = `sent_at` reset + reminder repoussé + `send-relance-email` ; Plus tard = `snoozed_until`+7 j + reminder custom à échéance ; Écarter = `ignored` (jamais re-proposé) ; Visite = bascule `/dashboard/visits/new` (bien interne). Écritures différées 4,5 s (undo toast avant toute écriture). Alertes email publiques (`market_alerts`/`search-alert` cron via Resend) inchangées.
 
-**F · Audit trail** : tout changement (transaction/KYC/offre/property) → triggers `SECURITY DEFINER` → `activity_events` immutable (actor_id+kind, severity, category, metadata) → timeline contact + audit super-admin + export PDF signé (chaîne de hash).
+**F · Audit trail** : tout changement (transaction/KYC/offre/property) → triggers `SECURITY DEFINER` → `activity_events` immutable (actor_id+kind, severity, category, metadata) → timeline contact + audit super-admin + journal d'audit de l'agence (`/dashboard/audit`, l'historique seul depuis le 14.09.2026 — ses exports CSV/PDF sont retirés ; cerveau `megga/journal-audit`).
 
 **G · Monitoring** : `pg_cron` → `admin-monitoring` → `platform_metrics` → `AdminMonitoringPage` (historique 30j) + feature flags.
 

@@ -591,17 +591,18 @@
     "header": {
       "kicker": "Integrations",
       "title": "Connect your business stack",
-      "sub": "{{active}} of {{total}} service(s) active · calendar, email, signature, messaging."
+      "sub_one": "{{count}} of {{total}} services active · calendar, email, signature, messaging.",
+      "sub_other": "{{count}} of {{total}} services active · calendar, email, signature, messaging."
     },
     "filters": {
       "all": "All"
     },
     "catalogue": {
       "google": {
-        "desc": "Sync Google Calendar, Gmail and Contacts with a single OAuth connection."
+        "desc": "Sync your viewings and appointments with Google Calendar."
       },
       "microsoft": {
-        "desc": "Outlook Calendar, Outlook Mail and Exchange address book."
+        "desc": "Sync your viewings and appointments with your Outlook calendar."
       },
       "docusign": {
         "desc": "eIDAS-compliant electronic signature for mandates and offers."
@@ -613,7 +614,7 @@
         "desc": "Client conversations in the CRM, certified templates."
       },
       "messagerie": {
-        "desc": "Read and reply to your emails from the CRM (Google, Microsoft, IMAP)."
+        "desc": "Read and reply to your emails from the CRM (Gmail, Outlook)."
       }
     },
     "actions": {
@@ -632,12 +633,26 @@
       "onRequestHint": "This integration is activated by the MEGGA team on request. Contact us to connect your account.",
       "whatYouCanDo": "What you can do",
       "permissionsGranted": "Permissions granted",
+      "permissionsRequested": "Permissions requested",
       "documentation": "Documentation",
       "permissions": {
-        "google": "[\"Calendar: visits, appointments\",\"Gmail: client emails in the CRM\",\"Contacts: synchronization\"]",
-        "microsoft": "[\"Outlook Calendar: calendar\",\"Outlook Mail: conversations\",\"Exchange address book\"]",
-        "whatsapp": "[\"Receive your client messages in the CRM\",\"Query MEGGA AI from your phone\"]",
-        "signature": "[\"Prepare signature files\",\"Track signature statuses\"]"
+        "google": [
+          "Calendar: create and update your viewings and appointments",
+          "Availability: read your busy times, without event details",
+          "Profile: your name and email address"
+        ],
+        "microsoft": [
+          "Outlook calendar: create and update your viewings and appointments",
+          "Profile: your name and email address"
+        ],
+        "whatsapp": [
+          "Receive your client messages in the CRM",
+          "Query MEGGA AI from your phone"
+        ],
+        "signature": [
+          "Prepare signature files",
+          "Track signature statuses"
+        ]
       }
     },
     "disconnectConfirm": {
@@ -658,7 +673,10 @@
       "linked": "Linked",
       "linkedNumber": "Linked number",
       "writeLikeColleague": "Write to MEGGA AI like a colleague",
-      "examples": "[\"My appointments tomorrow?\",\"My overdue follow-ups?\"]",
+      "examples": [
+        "My appointments tomorrow?",
+        "My overdue follow-ups?"
+      ],
       "error": {
         "title": "Status unavailable",
         "desc": "Unable to verify the WhatsApp connection right now.",

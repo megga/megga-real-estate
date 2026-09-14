@@ -199,7 +199,7 @@
     "step1": {
       "eyebrow": "Passaggio 1 di 3 · Cosa e chi",
       "title": "Quale immobile facciamo visitare, e a chi?",
-      "subtitle": "Scorri l'elenco, puoi anche cercare per nome, indirizzo o città."
+      "subtitle": "Scegli dall’elenco o cerca per nome, indirizzo o città."
     },
     "field": {
       "property": "Immobile da visitare",
@@ -291,7 +291,8 @@
       "fieldDateTime": "Data e ora",
       "plannedDuration": "Durata prevista: {{minutes}} min",
       "commitmentLabel": "Impegno del visitatore",
-      "commitmentText": "Il visitatore riconosce di essere stato informato dell'esistenza del mandato che lega il venditore a MEGGA e si impegna a non contattare direttamente il venditore. Ogni transazione conclusa nei 24 mesi successivi a questa visita sarà dovuta all'agenzia secondo i termini del mandato.",
+      "commitmentText": "Il visitatore riconosce di essere stato informato dell'esistenza del mandato che lega il venditore a {{agency}} e si impegna a non contattare direttamente il venditore. Ogni transazione conclusa nei 24 mesi successivi a questa visita sarà dovuta all'agenzia secondo i termini del mandato.",
+      "commitmentTextNoAgency": "Il visitatore riconosce di essere stato informato dell'esistenza del mandato che lega il venditore all'agenzia e si impegna a non contattare direttamente il venditore. Ogni transazione conclusa nei 24 mesi successivi a questa visita sarà dovuta all'agenzia secondo i termini del mandato.",
       "signatureVisitor": "Firma visitatore",
       "signatureAgent": "Firma agente",
       "signedElectronically": "Firmato elettronicamente",
@@ -437,5 +438,20 @@
     "connectOutlook": "Collega Outlook",
     "privacy": "I tuoi eventi personali restano privati.",
     "connectFailed": "Connessione non riuscita: {{error}}"
+  },
+  "labels": {
+    "title": "Etichette",
+    "new": "Nuova etichetta",
+    "empty": "Nessuna etichetta. Creane una con +.",
+    "menuTitle": "Etichetta",
+    "none": "Nessuna etichetta",
+    "add": "Aggiungi un'etichetta",
+    "create": "Crea un'etichetta",
+    "set": "Etichetta «{{name}}»",
+    "removed": "Etichetta rimossa",
+    "failed": "Etichetta non salvata",
+    "deleted": "Etichetta «{{name}}» eliminata",
+    "unavailable": "Etichette non disponibili al momento.",
+    "duplicate": "Esiste già un'etichetta con questo nome"
   }
 }

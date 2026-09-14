@@ -292,9 +292,12 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
     </button>
   )
 
-  const field = (label: string, val: string, onChange: (v: string) => void, opts?: { type?: string; prefix?: string; span2?: boolean }) => (
+  // `hideLabel` : le champ est déjà titré par l'en-tête de sa colonne. La Valeur
+  // s'affichait « Valeur » deux fois, l'une sous l'autre ; le libellé reste lu par
+  // les lecteurs d'écran (`aria-label`).
+  const field = (label: string, val: string, onChange: (v: string) => void, opts?: { type?: string; prefix?: string; span2?: boolean; hideLabel?: boolean }) => (
     <label style={{ display: 'block', gridColumn: opts?.span2 ? 'span 2' : undefined }}>
-      <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: nd.muted, marginBottom: 7, letterSpacing: 0.2 }}>{label}</div>
+      {!opts?.hideLabel && <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600, color: nd.muted, marginBottom: 7, letterSpacing: 0.2 }}>{label}</div>}
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
         {opts?.prefix && (
           <span style={{
@@ -303,6 +306,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
           }}>{opts.prefix}</span>
         )}
         <input value={val} onChange={e => onChange(e.target.value)} type={opts?.type ?? 'text'}
+          aria-label={opts?.hideLabel ? label : undefined}
           style={{
             width: '100%', height: 46, padding: opts?.prefix ? '0 16px 0 48px' : '0 16px',
             background: nd.cardSubtle, border: 0, borderRadius: 'var(--crm-radius-lg)',
@@ -362,7 +366,9 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
                     ]).map(o => (
                       <button key={o.v} onClick={() => setContactMode(o.v)} style={{
                         height: 36, padding: '0 var(--crm-space-4xl)', borderRadius: 'var(--crm-radius-pill)', border: 0,
-                        background: contactMode === o.v ? nd.ink : 'transparent',
+                        // L'actif porte l'ACCENT. Il était peint en `ink` sous l'encre
+                        // `accentInk` : en sombre, `ink` devient clair — blanc sur blanc.
+                        background: contactMode === o.v ? nd.accent : 'transparent',
                         color: contactMode === o.v ? nd.accentInk : nd.inkSoft,
                         fontFamily: 'inherit', fontWeight: 600, fontSize: 'var(--crm-text-lg)', cursor: 'pointer',
                         transition: 'all .16s ease',
@@ -520,7 +526,7 @@ export function NewDealModal({ open, onClose, sp, dark, prefill, banc }: Props) 
                 })}
               </div>
               <div style={{ marginTop: 26 }}>{colLabel(t('modal.value'))}</div>
-              {field(t('modal.value'), value, v => setValue(v.replace(/[^\d]/g, '')), { prefix: 'CHF' })}
+              {field(t('modal.value'), value, v => setValue(v.replace(/[^\d]/g, '')), { prefix: 'CHF', hideLabel: true })}
             </div>
           </div>
 

@@ -47,6 +47,7 @@ export interface SupabaseMatchResult {
     floor: number | null
     year_built: number
     charges_monthly: number
+    transaction_type?: string | null
   }
   market_listing?: {
     id: string
@@ -72,6 +73,7 @@ export interface SupabaseMatchResult {
     price_per_m2: number | null
     days_on_market: number
     status: string
+    transaction_type?: string | null
   }
 }
 
@@ -102,6 +104,12 @@ export interface MatchResult {
     total_floors: number | null
     year_built: number
     charges_monthly: number
+    /**
+     * 'rent' = location (le prix est un LOYER MENSUEL), 'buy' = vente. La moitié des
+     * annonces de marché actives sont des locations (42 743 sur 85 101, 13.09.2026) :
+     * sans ce champ, le catalogue les affichait sous « Prix de vente ».
+     */
+    transaction_type?: 'buy' | 'rent' | null
     // Market-specific fields
     source_portal?: string
     source_url?: string
@@ -124,6 +132,11 @@ export interface MatchResult {
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
+
+/** `transaction_type` des deux tables, ramené à 'buy' | 'rent' (NULL si inconnu). */
+function typeTransaction(v: string | null | undefined): 'buy' | 'rent' | null {
+  return v === 'rent' || v === 'buy' ? v : null
+}
 
 /** Normalise un match Supabase (bien interne OU market_listing) en `MatchResult` unifié pour l'UI. */
 function supabaseToMatch(m: SupabaseMatchResult): MatchResult {
@@ -165,6 +178,7 @@ function supabaseToMatch(m: SupabaseMatchResult): MatchResult {
         agency_name: ml.agency_name,
         price_per_m2: ml.price_per_m2 ? Number(ml.price_per_m2) : null,
         days_on_market: ml.days_on_market ?? 0,
+        transaction_type: typeTransaction(ml.transaction_type),
       }
     : {
         title: property?.title ?? 'Bien inconnu',
@@ -184,6 +198,7 @@ function supabaseToMatch(m: SupabaseMatchResult): MatchResult {
         total_floors: null,
         year_built: property?.year_built ?? 0,
         charges_monthly: property?.charges_monthly ?? 0,
+        transaction_type: typeTransaction(property?.transaction_type),
       }
 
   return {
@@ -229,7 +244,7 @@ export function useMatching(contactId?: string, opts?: { enabled?: boolean }) {
       let query = supabase
         .from('matches')
         .select(
-          '*, contact:contacts(first_name, last_name, email, phone), property:properties(title, price, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, features, floor, year_built, charges_monthly), market_listing:market_listings(id, title, price, current_price, address, city, canton, postal_code, rooms, bedrooms, bathrooms, surface_m2, photos, type, description, features, floor, source_portal, source_url, agency_name, price_per_m2, days_on_market, status)'
+          '*, contact:contacts(first_name, last_name, email, phone), property:properties(title, price, address, city, canton, postal_code, rooms, bedrooms, surface_m2, photos, type, description, features, floor, year_built, charges_monthly, transaction_type), market_listing:market_listings(id, title, price, current_price, address, city, canton, postal_code, rooms, bedrooms, bathrooms, surface_m2, photos, type, description, features, floor, source_portal, source_url, agency_name, price_per_m2, days_on_market, status, transaction_type)'
         )
         .eq('agency_id', agencyId)
         .order('score', { ascending: false })

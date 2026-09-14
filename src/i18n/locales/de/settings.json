@@ -591,17 +591,18 @@
     "header": {
       "kicker": "Integrationen",
       "title": "Verbinden Sie Ihren Business-Stack",
-      "sub": "{{active}} von {{total}} Diensten aktiv · Kalender, E-Mail, Signatur, Messaging."
+      "sub_one": "{{count}} von {{total}} Diensten aktiv · Kalender, E-Mail, Signatur, Messaging.",
+      "sub_other": "{{count}} von {{total}} Diensten aktiv · Kalender, E-Mail, Signatur, Messaging."
     },
     "filters": {
       "all": "Alle"
     },
     "catalogue": {
       "google": {
-        "desc": "Synchronisieren Sie Google Calendar, Gmail und Contacts mit einer einzigen OAuth-Verbindung."
+        "desc": "Synchronisieren Sie Ihre Besichtigungen und Termine mit Google Kalender."
       },
       "microsoft": {
-        "desc": "Outlook Calendar, Outlook Mail und Exchange-Adressbuch."
+        "desc": "Synchronisieren Sie Ihre Besichtigungen und Termine mit dem Outlook-Kalender."
       },
       "docusign": {
         "desc": "eIDAS-konforme elektronische Signatur für Mandate und Angebote."
@@ -613,7 +614,7 @@
         "desc": "Kundenkonversationen im CRM, zertifizierte Vorlagen."
       },
       "messagerie": {
-        "desc": "Lesen und beantworten Sie Ihre E-Mails aus dem CRM (Google, Microsoft, IMAP)."
+        "desc": "Lesen und beantworten Sie Ihre E-Mails aus dem CRM (Gmail, Outlook)."
       }
     },
     "actions": {
@@ -632,12 +633,26 @@
       "onRequestHint": "Diese Integration wird vom MEGGA-Team auf Anfrage aktiviert. Kontaktieren Sie uns, um Ihr Konto anzubinden.",
       "whatYouCanDo": "Was Sie tun können",
       "permissionsGranted": "Erteilte Berechtigungen",
+      "permissionsRequested": "Angeforderte Berechtigungen",
       "documentation": "Documentation",
       "permissions": {
-        "google": "[\"Calendar: Besichtigungen, Termine\",\"Gmail: Kunden-E-Mails im CRM\",\"Contacts: Synchronisierung\"]",
-        "microsoft": "[\"Outlook Calendar: Kalender\",\"Outlook Mail: Konversationen\",\"Exchange-Adressbuch\"]",
-        "whatsapp": "[\"Ihre Kundennachrichten im CRM empfangen\",\"MEGGA AI von Ihrem Telefon aus abfragen\"]",
-        "signature": "[\"Signatur-Dossiers vorbereiten\",\"Signaturstatus verfolgen\"]"
+        "google": [
+          "Kalender: Ihre Besichtigungen und Termine erstellen und aktualisieren",
+          "Verfügbarkeit: Ihre belegten Zeiten lesen, ohne Termindetails",
+          "Profil: Ihr Name und Ihre E-Mail-Adresse"
+        ],
+        "microsoft": [
+          "Outlook-Kalender: Ihre Besichtigungen und Termine erstellen und aktualisieren",
+          "Profil: Ihr Name und Ihre E-Mail-Adresse"
+        ],
+        "whatsapp": [
+          "Ihre Kundennachrichten im CRM empfangen",
+          "MEGGA AI von Ihrem Telefon aus abfragen"
+        ],
+        "signature": [
+          "Signatur-Dossiers vorbereiten",
+          "Signaturstatus verfolgen"
+        ]
       }
     },
     "disconnectConfirm": {
@@ -658,7 +673,10 @@
       "linked": "Verknüpft",
       "linkedNumber": "Verknüpfte Nummer",
       "writeLikeColleague": "Schreiben Sie MEGGA AI wie einem Kollegen",
-      "examples": "[\"Meine Termine morgen?\",\"Meine überfälligen Nachfassungen?\"]",
+      "examples": [
+        "Meine Termine morgen?",
+        "Meine überfälligen Nachfassungen?"
+      ],
       "error": {
         "title": "Status nicht verfügbar",
         "desc": "Die WhatsApp-Verbindung kann momentan nicht geprüft werden.",

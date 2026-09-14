@@ -57,6 +57,7 @@ import { useCrmDarkPref } from '@/lib/crmDark'
 import { useTabLabel } from '@/hooks/useCrmTabs'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import { DOCK_PUSH_VAR } from '@/components/ai-copilot/panel/aiPanel'
+import { majusculeInitiale } from '@/lib/utils'
 
 const BF_MAXW = 1120 // largeur max de la colonne de contenu (bride le « trop large »)
 
@@ -955,7 +956,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
                       return (
                         <div>
                           <VxSectionHead dark={dark} eyebrow={tr('detail.nextVisit.eyebrow')} />
-                          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: vx.ink, letterSpacing: -0.5, textTransform: 'capitalize', lineHeight: 1.15 }}>{vd.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                          <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 500, color: vx.ink, letterSpacing: -0.5, lineHeight: 1.15 }}>{majusculeInitiale(vd.toLocaleDateString('fr-CH', { weekday: 'long', day: 'numeric', month: 'long' }))}</div>
                           <div style={{ fontSize: 'var(--crm-text-lg)', fontWeight: 600, color: vx.inkSoft, marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{nextVisit.time}</div>
                           {vc && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginTop: 14, padding: 12, borderRadius: 14, background: vx.cardSub }}>
@@ -983,7 +984,7 @@ export default function ListingDetailPage({ demoData }: BienDetailProps = {}) {
                     {/* Mandat + vendeur */}
                     <div>
                       <VxSectionHead dark={dark} eyebrow={tr('detail.mandate.eyebrow')} />
-                      <h3 style={{ margin: '-8px 0 16px', fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: vx.ink, letterSpacing: -0.4, textTransform: 'capitalize' }}>{tr('detail.mandate.heading', { type: mandateTypeLabel(bien.mandate_type) })}</h3>
+                      <h3 style={{ margin: '-8px 0 16px', fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: vx.ink, letterSpacing: -0.4 }}>{majusculeInitiale(tr('detail.mandate.heading', { type: mandateTypeLabel(bien.mandate_type) }))}</h3>
                       {owner && (
                         <button onClick={() => navigate(`/dashboard/contacts/${owner.id}`)} style={{ width: '100%', textAlign: 'left', padding: 13, background: vx.cardSub, border: 0, borderRadius: 15, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                           <VxAvatar name={owner.first_name + ' ' + owner.last_name} size={40} dark={dark} />

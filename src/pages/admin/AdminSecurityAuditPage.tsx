@@ -8,9 +8,10 @@
  * ⚠ AUCUN EXPORT DEPUIS CETTE PAGE. Le CSV de la vue filtrée était parti le
  * 31 juillet 2026 (« aucun export CSV, nulle part dans la console ») ; le PDF de
  * la chaîne d'audit PLATEFORME est parti le 14 août 2026, sur décision de
- * Julien. `downloadAuditPdf` et l'edge `audit-pdf-export` restent VIVANTS —
- * l'export par agence de la fiche d'audit agent (`AuditPage`) les appelle
- * toujours. Ce qui a disparu est la piste PLATEFORME complète, pas le mécanisme.
+ * Julien. ⚠ Et depuis le 14 septembre 2026 le journal agent (`AuditPage`)
+ * n'exporte plus rien non plus, CSV comme PDF (même décision) : `downloadAuditPdf`
+ * est supprimé, et l'edge `audit-pdf-export` n'a plus AUCUN appelant dans l'app —
+ * elle reste déployée, nommée par le §5.9 (garde `no-csv-export.spec.ts`).
  *
  * Présentation en grammaire MEGGA X (kit `adminKit`) : journal dans un bento
  * séparé par la bordure, sévérités en pilules pleines dont l'encre est dérivée

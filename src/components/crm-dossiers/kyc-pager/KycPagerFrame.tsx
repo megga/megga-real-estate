@@ -7,7 +7,6 @@
 // fiche ou le wizard est ouvert. Fiche route-driven (deep-link), wizard embedded.
 
 import { crmVoileEncre } from '@/components/crm/tokens'
-import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import type { CrmPalette } from '@/components/crm/tokens'
 import { useTabScopedState } from '@/hooks/useCrmTabs'
@@ -23,8 +22,10 @@ const KYP_PAGES = [
   { id: 'vigie', label: 'Vigie' },
 ]
 
-function KypPageDots({ page, onGo, dark }: { page: number; onGo: (i: number) => void; dark: boolean }) {
-  const activeCol = dark ? '#F2F2F6' : MXC_COLOR.n100
+function KypPageDots({ page, onGo, dark, accent }: { page: number; onGo: (i: number) => void; dark: boolean; accent: string }) {
+  // L'actif porte l'ACCENT, comme les pagers de Biens, Contacts et de la fiche
+  // contact — celui-ci était le seul peint à l'encre (noir en clair, blanc en sombre).
+  const activeCol = accent
   const idleCol = dark ? 'rgba(255,255,255,.22)' : `${crmVoileEncre(false, .18)}`
   return (
     <div
@@ -332,7 +333,7 @@ export function KycPagerFrame({
           </div>
         </div>
 
-        {!wizard && !ficheOpen && <KypPageDots page={page} onGo={goTo} dark={dark} />}
+        {!wizard && !ficheOpen && <KypPageDots page={page} onGo={goTo} dark={dark} accent={sp.accent} />}
 
         {ficheOpen && dossierId && (
           <KycFicheStrict

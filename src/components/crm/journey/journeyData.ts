@@ -28,8 +28,8 @@ export const PARCOURS_TEAM: ParcoursAgent[] = [
   { id: 't-julien', firstName: 'Julien', lastName: 'Schmidt', initials: 'JU', role: 'KYC / Conformité', avatarBg: '#374151' },
 ]
 
-export function parcoursAgentById(id: string): ParcoursAgent | undefined {
-  return PARCOURS_TEAM.find(a => a.id === id)
+export function parcoursAgentById(id: string | null): ParcoursAgent | undefined {
+  return id ? PARCOURS_TEAM.find(a => a.id === id) : undefined
 }
 
 export type StageId = 'mandat' | 'market' | 'nego' | 'closing'
@@ -51,7 +51,8 @@ export type TaskState = 'done' | 'active' | 'todo'
 
 export interface ParcoursTask {
   id: string
-  agentId: string
+  /** `transactions.assigned_to` — NULL quand le dossier n'est assigné à personne. */
+  agentId: string | null
   label: string
   sub?: string
   state: TaskState

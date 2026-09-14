@@ -38,8 +38,12 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { AnimatePresence, animate, motion, useAnimate, useMotionValue } from 'motion/react'
 import MEIcon from '@/components/propertyx/MEIcon'
+import { useReducedMotion } from '@/hooks/useReducedMotion'
+import { IconeTheme } from './IconeTheme'
 import type { CrmPalette } from './tokens'
 import { MXC_SYSTEM, encreSur } from '@/components/megga-x-crm/tokens'
 import { useCrmTabs, useCrmTabBadges } from '@/hooks/useCrmTabs'
@@ -49,7 +53,10 @@ import { useAiPanel } from '@/hooks/useAiPanel'
 import { useEcranActif } from '@/hooks/useEcranActif'
 import { modaleOuverte } from '@/lib/modaleOuverte'
 import { useAgentNotifications } from '@/hooks/useAgentNotifications'
+import { useCoinDuCadre } from '@/hooks/useCoinDuCadre'
 import CrmNotificationsPopover from './notifications/CrmNotificationsPopover'
+import CrmCompteBouton from './profile/CrmCompteBouton'
+import { planifierPrechargementOngletNeuf, prechargerOngletNeuf } from '@/lib/pagesPrechargeables'
 
 /**
  * Hauteur d'une puce. Une HAUTEUR n'est pas un espacement : aucun barreau ne la couvre.
@@ -117,6 +124,8 @@ const SEUIL_CROIX = 96
 // bandeau. Ses deux menus, eux, sont PORTÉS et montent à 9000 — voir plus bas.
 const Z_BARRE = 60
 const Z_MENU = 9000
+/** Le journal d'audit — l'historique complet des événements que la cloche montre. */
+const CHEMIN_JOURNAL = '/dashboard/audit'
 
 /** Durée de la sonde qui suit une transition de largeur (le pli de la barre dure 250 ms). */
 const SONDE_MS = 400
@@ -125,7 +134,8 @@ const SONDE_MS = 400
  * Largeur réellement disponible pour les puces.
  *
  * ⛔ SANS `ResizeObserver`, ET C'EST MESURÉ, PAS PRÉFÉRÉ. Le dépôt l'avait déjà écrit
- * pour `useSideAnchor` — « zéro livraison en 500 ms » — et j'ai quand même compté sur
+ * pour la pose latérale des popovers (`useSideAnchor`, retiré le 14.09.2026 avec elle)
+ * — « zéro livraison en 500 ms » — et j'ai quand même compté sur
  * lui pour les changements ultérieurs. Remesuré ici le 4 septembre 2026, sur la piste
  * réellement rendue : **zéro rappel**, ni initial ni après un changement de largeur.
  * Un observateur qui n'observe rien est pire qu'aucun observateur : la barre restait
@@ -254,6 +264,9 @@ interface Props {
    * que pour les bancs, qui n'ont pas de base derrière eux.
    */
   badges?: Record<string, { n: number; urgent?: boolean }>
+  /** Section active et clé d'aide de l'écran, pour la ligne « Aide » du menu du compte. */
+  active?: string
+  helpKey?: string
 }
 
 // ─── La puce ────────────────────────────────────────────────────────────────
@@ -385,7 +398,7 @@ function Badge({ n, urgent, actif, sp }: { n: number; urgent?: boolean; actif: b
 
 // ─── La barre ───────────────────────────────────────────────────────────────
 
-export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
+export function CrmTabsBar({ sp, dark, setDark, badges: override, active: sectionActive, helpKey }: Props) {
   const { t } = useTranslation('common')
   const api = useCrmTabs()
   const serveur = useCrmTabBadges()
@@ -407,12 +420,16 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
   const { items: notifs, unreadCount, markRead, markAllRead } = useAgentNotifications()
   const [notifOuvert, setNotifOuvert] = useState(false)
   const notifAncre = useRef<HTMLDivElement | null>(null)
+  /** La popover elle-même : portée dans `<body>`, elle n'est pas dans l'ancre. */
+  const notifMenuRef = useRef<HTMLDivElement | null>(null)
   // Clic dehors et Échap ferment la popover — elle vivait dans la barre latérale,
-  // son couple d'écouteurs la suit ici.
+  // son couple d'écouteurs la suit ici. ⚠ « Dehors » exclut la cloche ET la popover.
   useEffect(() => {
     if (!notifOuvert) return
     const onDown = (e: MouseEvent) => {
-      if (notifAncre.current && !notifAncre.current.contains(e.target as Node)) setNotifOuvert(false)
+      const cible = e.target as Node
+      if (notifAncre.current?.contains(cible) || notifMenuRef.current?.contains(cible)) return
+      setNotifOuvert(false)
     }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setNotifOuvert(false) }
     document.addEventListener('mousedown', onDown)
@@ -423,7 +440,32 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
     }
   }, [notifOuvert])
 
+  // ⛔ Ce qu'un onglet neuf affichera est préchargé dès que la bande est là : au premier
+  // « + », l'écran entier passait au noir le temps du chunk (voir `pagesPrechargeables`).
+  // Idempotent — les six écrans vivants le demandent, un seul import part.
+  useEffect(() => planifierPrechargementOngletNeuf(), [])
+
   const barreRef = useRef<HTMLDivElement | null>(null)
+  // La cloche se loge dans le coin du cadre, comme le menu du compte (14.09.2026).
+  const coinNotif = useCoinDuCadre(notifOuvert, barreRef, notifAncre, notifMenuRef)
+  const location = useLocation()
+  /**
+   * « Voir tout l'historique » : le journal d'audit, où vivent ces mêmes événements —
+   * DANS UN ONGLET À LUI (14.09.2026, Julien : « quand on clique pour voir l'historique,
+   * qu'est-ce qui doit se passer après ? »). Il remplaçait l'écran de l'onglet courant :
+   * le Calendrier de l'agent disparaissait sous le journal, dans un onglet titré
+   * « Analytics » (la section à laquelle la route est rattachée). Un journal déjà ouvert
+   * est RE-SÉLECTIONNÉ : un clic de plus ne doit pas empiler un second onglet identique.
+   * ⚠ Pas depuis un banc `/dev/*` (même règle que la barre latérale) : une cible
+   * `/dashboard/*` y enverrait en production.
+   */
+  const versHistorique = () => {
+    setNotifOuvert(false)
+    if (location.pathname.startsWith('/dev/')) return
+    const deja = api.tabs.findIndex((tb) => tb.path === CHEMIN_JOURNAL)
+    if (deja >= 0) api.selectionner(deja)
+    else api.ouvrirDans(CHEMIN_JOURNAL, t('audit.tabLabel'))
+  }
   /** La piste des puces, et l'espace encore libre à sa droite. */
   const pistRef = useRef<HTMLDivElement | null>(null)
   const videRef = useRef<HTMLDivElement | null>(null)
@@ -834,6 +876,8 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
         actif={false}
         libelle={t('tabs.new')}
         onClick={() => api.ouvrirNouvel()}
+        // Filet du préchargement au repos : la main qui vient au « + » le lance aussi.
+        onIntention={prechargerOngletNeuf}
       />
 
       {/* ── Le quart droit ────────────────────────────────────────────────────
@@ -868,16 +912,22 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
             badge={unreadCount}
             onClick={() => setNotifOuvert((o) => !o)}
           />
-          {notifOuvert && (
-            <CrmNotificationsPopover
-              sp={sp}
-              dark={dark}
-              items={notifs}
-              onItemClick={(n) => { markRead(n.id); setNotifOuvert(false) }}
-              onMarkAll={() => markAllRead()}
-              onSeeAll={() => setNotifOuvert(false)}
-              onMute={() => setNotifOuvert(false)}
-            />
+          {/* Portée dans `<body>` : elle se pose en pixels de FENÊTRE sur le coin du
+              cadre, et un ancêtre à `transform` en deviendrait le repère. Lire une ligne
+              la garde ouverte — une notification n'a pas de destination à ouvrir. */}
+          {notifOuvert && createPortal(
+            <div ref={notifMenuRef}>
+              <CrmNotificationsPopover
+                sp={sp}
+                dark={dark}
+                items={notifs}
+                coin={coinNotif}
+                onItemClick={(n) => markRead(n.id)}
+                onMarkAll={() => markAllRead()}
+                onSeeAll={versHistorique}
+              />
+            </div>,
+            document.body,
           )}
         </div>
         {ai.enabled && (
@@ -899,6 +949,13 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
           // annoncé « Sombre » alors qu'on y est déjà se lit comme un état.
           libelle={dark ? t('nav.light') : t('nav.dark')}
           onClick={() => setDark(!dark)}
+        />
+        {/* Le compte, en DERNIER : son bord droit est celui du cadre, et c'est dans
+            le coin de ce cadre que son menu se loge (14.09.2026, Julien). */}
+        <CrmCompteBouton
+          sp={sp} dark={dark} setDark={setDark}
+          bandeRef={barreRef} diametre={H_PASTILLE}
+          active={sectionActive} helpKey={helpKey}
         />
       </div>
 
@@ -987,81 +1044,218 @@ export function CrmTabsBar({ sp, dark, setDark, badges: override }: Props) {
  * Commande ronde du quart droit — même diamètre que la pastille « +N », pour que
  * les trois se lisent comme une seule famille.
  */
-function CommandeRonde({ sp, icone, actif, libelle, onClick, haspopup, expanded, badge = 0 }: {
+function CommandeRonde({ sp, icone, actif, libelle, onClick, onIntention, haspopup, expanded, badge = 0 }: {
   sp: CrmPalette
   icone: 'sparkle' | 'sun' | 'moon' | 'plus' | 'bell'
   actif: boolean
   libelle: string
   onClick: () => void
+  /** Survol ou focus : la commande va sans doute être actionnée (préchargement). */
+  onIntention?: () => void
   haspopup?: 'dialog'
   expanded?: boolean
   /** Compteur non lu, posé en pastille sur le coin. `0` n'en rend aucune. */
   badge?: number
 }) {
   const [survol, setSurvol] = useState(false)
+  const reduit = useReducedMotion()
+  // Le dernier compte non nul : la pastille reste peinte le temps de sa sortie.
+  // Ajusté pendant le rendu (motif « adjusting state when a prop changes »).
+  const [compte, setCompte] = useState(badge)
+  // Le sens du dernier changement : le chiffre défile vers le haut s'il monte.
+  const [sens, setSens] = useState(1)
+  if (badge > 0 && badge !== compte) {
+    setSens(badge > compte ? 1 : -1)
+    setCompte(badge)
+  }
+  const largeur = compte > 9 ? W_COMPTEUR_LARGE : D_COMPTEUR
+
+  // ⚠ UNE SEULE VALEUR pilote la pastille ET l'encoche qu'elle creuse dans le
+  // cercle (`--compteur`, de 0 à 1) : elles naissent et meurent ensemble. Une
+  // encoche à pleine taille autour d'une pastille qui grandit se lirait comme un
+  // trou dans le bouton le temps du ressort.
+  const echelle = useMotionValue(badge > 0 ? 1 : 0)
+  const present = badge > 0
+  useEffect(() => {
+    if (reduit) { echelle.set(present ? 1 : 0); return }
+    let annule = false
+    const a = animate(echelle, present ? 1 : 0, RESSORT_COMPTEUR)
+    // Sortie finie : la pastille cesse d'être peinte. ⚠ Le drapeau, parce qu'une
+    // notification qui arrive PENDANT la sortie arrête cette animation-ci.
+    if (!present) void a.then(() => { if (!annule) setCompte(0) })
+    return () => { annule = true; a.stop() }
+  }, [present, reduit, echelle])
+  // En mouvement réduit, pas de sortie à attendre.
+  const affiche = compte > 0 && (present || !reduit)
+
+  // La cloche OSCILLE quand le compte MONTE — une notification arrive, pas une
+  // lecture. Jamais au montage, jamais en mouvement réduit.
+  const [glyphe, animerGlyphe] = useAnimate()
+  const precedent = useRef(badge)
+  useEffect(() => {
+    if (badge > precedent.current && !reduit && glyphe.current) {
+      void animerGlyphe(glyphe.current, { rotate: [0, 14, -10, 6, -3, 0] }, { duration: 0.6, ease: 'easeInOut' })
+    }
+    precedent.current = badge
+  }, [badge, reduit, glyphe, animerGlyphe])
+
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onClick}
-      onMouseEnter={() => setSurvol(true)}
+      onMouseEnter={() => { setSurvol(true); onIntention?.() }}
       onMouseLeave={() => setSurvol(false)}
+      onFocus={onIntention}
       title={libelle}
       aria-label={libelle}
       aria-pressed={haspopup ? undefined : actif}
       aria-haspopup={haspopup}
       aria-expanded={haspopup ? expanded : undefined}
+      // Un enfoncement, pas un changement de taille : la commande garde ses 26 px
+      // au repos, elle cède sous le doigt et revient.
+      whileTap={reduit ? undefined : { scale: 0.92 }}
+      transition={{ type: 'spring', stiffness: 520, damping: 30 }}
       style={{
+        ['--compteur' as string]: echelle,
+        // ⚠ `block` : un bouton reste en ligne par défaut, et la cloche, posée
+        // dans un `div` d'ancrage, héritait alors de la hauteur de ligne de son
+        // parent — la grappe passait de 26 à 32 px.
+        display: 'block',
         width: H_PASTILLE, height: H_PASTILLE, flexShrink: 0,
-        // ⚠ `border-box` : la bordure d'un pixel doit se prendre SUR les 26, sinon
-        // les deux commandes grandissent de 2 px et se désalignent de la pastille
-        // « +N », qui est leur voisine immédiate.
-        boxSizing: 'border-box',
+        padding: 0, border: 'none', background: 'transparent',
         borderRadius: 'var(--crm-radius-pill)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', fontFamily: 'inherit',
-        // ⚠ CERCLE VISIBLE AU REPOS (demande de Julien, 4 septembre 2026) : au
-        // premier jet ces deux-là étaient des glyphes nus, et rien ne disait qu'on
-        // pouvait cliquer. Elles prennent l'habillage de la pastille « +N » — fond
-        // de carte, filet d'un pixel — pour que les trois commandes de droite se
-        // lisent comme une seule famille.
-        //
-        // Actif = aplat d'accent, comme la puce active : c'est la règle du 10 août
-        // 2026, l'élément ACTIF porte l'accent. Le filet disparaît alors dans
-        // l'aplat plutôt que de le cerner d'un liseré plus clair.
-        background: actif ? sp.accent : survol ? sp.focusSurface : sp.cardBg,
-        border: `1px solid ${actif ? sp.accent : survol ? sp.soft : sp.cardBorder}`,
-        color: actif ? sp.accentInk : survol ? sp.ink : sp.sub,
-        transition: 'background-color .18s ease, border-color .18s ease, color .18s ease',
         // ⚠ Ancre de la pastille de compteur. Sans elle, le compteur se calerait
         // sur la grappe entière et flotterait entre deux commandes.
         position: 'relative',
       }}
     >
-      <MEIcon name={icone} size={15} strokeWidth={1.7} />
+      {/* ⚠ LE CERCLE EST UNE COUCHE À PART, et c'est ce qui permet l'encoche :
+          le masque découpe le fond, le filet ET le glyphe autour de la pastille,
+          sans toucher à la pastille elle-même. Le bouton reste la cible entière —
+          la pastille, qui déborde, en est un descendant et reçoit le clic. */}
+      <span
+        aria-hidden
+        style={{
+          position: 'absolute', inset: 0,
+          // ⚠ `border-box` : la bordure d'un pixel doit se prendre SUR les 26, sinon
+          // les commandes grandissent de 2 px et se désalignent de la pastille
+          // « +N », qui est leur voisine immédiate.
+          boxSizing: 'border-box',
+          borderRadius: 'var(--crm-radius-pill)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          // ⚠ CERCLE VISIBLE AU REPOS (demande de Julien, 4 septembre 2026) : au
+          // premier jet ces commandes étaient des glyphes nus, et rien ne disait
+          // qu'on pouvait cliquer. Elles prennent l'habillage de la pastille « +N »
+          // — fond de carte, filet d'un pixel — pour se lire comme une famille.
+          //
+          // Actif = aplat d'accent, comme la puce active : c'est la règle du 10 août
+          // 2026, l'élément ACTIF porte l'accent. Le filet disparaît alors dans
+          // l'aplat plutôt que de le cerner d'un liseré plus clair.
+          background: actif ? sp.accent : survol ? sp.focusSurface : sp.cardBg,
+          border: `1px solid ${actif ? sp.accent : survol ? sp.soft : sp.cardBorder}`,
+          color: actif ? sp.accentInk : survol ? sp.ink : sp.sub,
+          transition: 'background-color .18s ease, border-color .18s ease, color .18s ease',
+          ...(affiche ? encoche(largeur) : null),
+        }}
+      >
+        {/* Le soleil et la lune TOURNENT l'un vers l'autre (`IconeTheme`) : c'est le
+            seul glyphe de la bande qui change de forme sous le doigt. */}
+        <span ref={glyphe} style={{ display: 'flex', transformOrigin: '50% 15%' }}>
+          {icone === 'sun' || icone === 'moon'
+            ? <IconeTheme dark={icone === 'moon'} size={15} strokeWidth={1.7} />
+            : <MEIcon name={icone} size={15} strokeWidth={1.7} />}
+        </span>
+      </span>
       {/* ⚠ LE COMPTEUR, PAS UN POINT. La barre latérale montrait le NOMBRE de non
           lus ; le réduire à un point en déménageant aurait retiré une information
           au passage. Au-delà de neuf, « 9+ » — deux chiffres ne tiennent pas sur
           une commande de 26 px sans déborder du cercle.
           ⚠ Rouge sémantique et non l'accent : c'est un état à traiter, pas
-          l'élément actif. Même encre que la pastille qu'il remplace. */}
-      {badge > 0 && (
+          l'élément actif. ⛔ C'était `#E53935` sous encre BLANCHE — 4,23:1, sous
+          l'AA à 11 px — cerné d'un filet `frameBg` qui faisait un HALO blanc sur le
+          fond gris de la page (`#EBEDF1` sur « Aujourd'hui »). Il prend désormais le
+          rouge de la direction sous encre sombre, comme le badge urgent des puces,
+          et c'est l'ENCOCHE qui le détache : elle laisse voir le vrai fond, quel
+          qu'il soit. */}
+      {affiche && (
         <span
           aria-hidden
           style={{
-            position: 'absolute', top: -3, right: -3,
-            minWidth: 15, height: 15, padding: '0 var(--crm-space-2xs)',
-            boxSizing: 'border-box',
+            position: 'absolute', top: -DEBORD_COMPTEUR, right: -DEBORD_COMPTEUR,
+            width: largeur, height: D_COMPTEUR,
             borderRadius: 'var(--crm-radius-pill)',
-            background: '#E53935', color: '#ffffff',
-            border: `1.5px solid ${sp.frameBg}`,
+            background: MXC_SYSTEM.red400, color: encreSur(MXC_SYSTEM.red400),
             fontSize: 'var(--crm-text-xs)', fontWeight: 600, lineHeight: 1,
-            display: 'grid', placeItems: 'center',
+            display: 'grid', placeItems: 'center', overflow: 'hidden',
             fontVariantNumeric: 'tabular-nums',
+            transform: 'scale(var(--compteur))', opacity: 'var(--compteur)',
           }}
-        >{badge > 9 ? '9+' : badge}</span>
+        >
+          {/* Le chiffre DÉFILE quand le compte change : vers le haut s'il monte,
+              vers le bas s'il descend. */}
+          {/* Les deux chiffres partagent la même case (`gridArea`) : l'un sort
+              pendant que l'autre entre, sans se pousser. */}
+          <AnimatePresence initial={false} custom={sens}>
+            <motion.span
+              key={compte > 9 ? '9+' : compte}
+              custom={sens}
+              variants={DEFILEMENT}
+              initial={reduit ? false : 'entre'}
+              animate="pose"
+              exit={reduit ? undefined : 'sort'}
+              transition={{ type: 'spring', stiffness: 520, damping: 34 }}
+              style={{ gridArea: '1 / 1' }}
+            >{compte > 9 ? '9+' : compte}</motion.span>
+          </AnimatePresence>
+        </span>
       )}
-    </button>
+    </motion.button>
   )
+}
+
+/** Diamètre de la pastille de compteur — un chiffre. */
+const D_COMPTEUR = 15
+/** Sa largeur pour « 9+ » — au plus juste : la pilule mord déjà sur la cloche. */
+const W_COMPTEUR_LARGE = 20
+/** Ce qu'elle déborde du cercle, en haut et à droite. */
+const DEBORD_COMPTEUR = 3
+/** Le jour laissé entre la pastille et le cercle — l'ancien filet, en creux. */
+const JOUR_COMPTEUR = 1.5
+
+const RESSORT_COMPTEUR = { type: 'spring', stiffness: 460, damping: 26, mass: 0.7 } as const
+
+const DEFILEMENT = {
+  entre: (sens: number) => ({ y: `${70 * sens}%`, opacity: 0 }),
+  pose: { y: '0%', opacity: 1 },
+  sort: (sens: number) => ({ y: `${-70 * sens}%`, opacity: 0 }),
+}
+
+/**
+ * L'encoche que la pastille creuse dans le cercle, en masque : le fond RÉEL se
+ * voit à travers — gris de la page, noir du sombre, fond d'un autre écran — là où
+ * un filet coloré devait deviner lequel.
+ *
+ * Une pastille d'un chiffre est un disque ; « 9+ » est une pilule, dont
+ * l'encoche est l'union de deux disques (leurs masques s'INTERSECTENT). Les
+ * rayons et les centres suivent `--compteur`, l'échelle de la pastille.
+ */
+function encoche(largeur: number): CSSProperties {
+  const r = D_COMPTEUR / 2
+  const cy = -DEBORD_COMPTEUR + r
+  const droite = H_PASTILLE + DEBORD_COMPTEUR - r
+  const gauche = H_PASTILLE + DEBORD_COMPTEUR - largeur + r
+  const milieu = (gauche + droite) / 2
+  const demi = (droite - gauche) / 2
+  const rayon = r + JOUR_COMPTEUR
+  const disque = (signe: number) =>
+    `radial-gradient(circle at calc(${milieu}px + ${signe * demi}px * var(--compteur, 1)) ${cy}px, ` +
+    `transparent calc(${rayon}px * var(--compteur, 1) - .3px), #000 calc(${rayon}px * var(--compteur, 1) + .3px))`
+  const masque = demi > 0 ? `${disque(-1)}, ${disque(1)}` : disque(1)
+  return {
+    maskImage: masque, WebkitMaskImage: masque,
+    maskComposite: 'intersect', WebkitMaskComposite: 'source-in',
+  }
 }
 
 /** Une ligne de menu — même géométrie pour le clic droit et le débordement. */

@@ -93,6 +93,12 @@ export interface UseFocusQueueResult {
   isLive: boolean
   /** Sources encore en chargement — évite le flash « File traitée » trompeur. */
   isLoading: boolean
+  /**
+   * Une source au moins a ÉCHOUÉ. ⛔ La file vide ne veut alors plus rien dire : sans
+   * ce drapeau, « Aujourd'hui » annonçait « Aucun dossier à traiter en priorité » —
+   * donc « tu es à jour » — quand la base ne répondait pas.
+   */
+  isError: boolean
   /** Geste « Fait » → clôt le reminder en base ; match/deal = UI-only en v1. */
   completeItem: (item: FocusItem) => void
   /** Geste « Replanifier » → reporte le reminder OU snooze le match en base. */
@@ -102,21 +108,21 @@ export interface UseFocusQueueResult {
 export function useFocusQueue(): UseFocusQueueResult {
   const { t } = useTranslation('dashboard')
   const { user, profile } = useAuth()
-  const { deals, contactsById, biensById, kycByContact, isLoading: dealsLoading } = usePipelineScreen()
-  const { reminders, isLoading: remLoading, markAsDone, snooze } = useReminders()
-  const { matches, isLoading: matchesLoading } = useFocusMatches()
+  const { deals, contactsById, biensById, kycByContact, isLoading: dealsLoading, isError: dealsError } = usePipelineScreen()
+  const { reminders, isLoading: remLoading, isError: remError, markAsDone, snooze } = useReminders()
+  const { matches, isLoading: matchesLoading, isError: matchesError } = useFocusMatches()
   // RADAR : nouveaux mandats vendeurs 'new' à réclamer (argent qui attend).
   // Limite bornée : la file Focus est une « liste courte » et l'entonnoir public
   // (anon insert) peut faire grossir seller_leads — on ne charge que le haut.
-  const { data: sellerLeads = [], isLoading: sellerLoading } = useSellerLeads('new', 50)
+  const { data: sellerLeads = [], isLoading: sellerLoading, isError: sellerError } = useSellerLeads('new', 50)
   // RADAR v2 : leads qui refroidissent (recency). useRelanceLeads calcule déjà
   // les contacts dormants (last_interaction_at > 14j OU NULL), qualité + dormance.
-  const { leads: coolingLeads, isLoading: coolingLoading } = useRelanceLeads()
+  const { leads: coolingLeads, isLoading: coolingLoading, isError: coolingError } = useRelanceLeads()
   // RADAR v3 : offres 'pending' proches de l'échéance + visites de l'agenda.
-  const { data: expiringOffers = [], isLoading: offersLoading } = useExpiringOffers(50)
-  const { data: focusVisits = [], isLoading: visitsLoading } = useFocusVisits(100)
+  const { data: expiringOffers = [], isLoading: offersLoading, isError: offersError } = useExpiringOffers(50)
+  const { data: focusVisits = [], isLoading: visitsLoading, isError: visitsError } = useFocusVisits(100)
   // RADAR v4 : biens internes à pousser (score de bien backend, RLS agence).
-  const { properties: focusProperties, isLoading: propsLoading } = useFocusProperties(12)
+  const { properties: focusProperties, isLoading: propsLoading, isError: propsError } = useFocusProperties(12)
   const cfg = useFocusConfig()
 
   const items = useMemo<QueueItem[]>(() => {
@@ -494,6 +500,7 @@ export function useFocusQueue(): UseFocusQueueResult {
   const isLoading = dealsLoading || remLoading || matchesLoading || sellerLoading || coolingLoading || offersLoading || visitsLoading || propsLoading
   const hasData = deals.length > 0 || reminders.length > 0 || matches.length > 0 || sellerLeads.length > 0 || coolingLeads.length > 0 || expiringOffers.length > 0 || focusVisits.length > 0 || focusProperties.length > 0
   const isLive = !isLoading && hasData
+  const isError = dealsError || remError || matchesError || sellerError || coolingError || offersError || visitsError || propsError
 
   // Gestes réels (HITL) : Fait clôt le reminder ; Replanifier reporte le
   // reminder OU snooze le match (+3 j). Fait sur un match = UI-only en v1 (ne PAS
@@ -549,5 +556,5 @@ export function useFocusQueue(): UseFocusQueueResult {
     logFocusGesture(item, 'focus_snooze') // audit du geste « Replanifier », HITL
   }, [snooze, logFocusGesture])
 
-  return { items, isLive, isLoading, completeItem, snoozeItem }
+  return { items, isLive, isLoading, isError, completeItem, snoozeItem }
 }

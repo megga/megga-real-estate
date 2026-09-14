@@ -7,6 +7,11 @@
  *     CRM (`/dashboard/audit`, `market/:externalId`, `listings/:id/edit`) n'ont
  *     pas de variante mobile et rendent la coquille telle quelle, où 264 px
  *     prendraient 70 % de la largeur ;
+ *   • l'écran ÉTROIT — sous 1200 px (tablette paysage, petit portable). Mesuré à
+ *     1024 px le 13.09.2026 : dépliée, la barre ne laissait ~400 px au Calendrier,
+ *     dont la barre d'outils débordait (« Mois » et « + » hors champ, titre réduit à
+ *     rien) ; à 800 px la colonne droite d'« Aujourd'hui » s'écrasait jusqu'à un mot
+ *     par ligne. Même raisonnement que le dock ci-dessous, sans le dock ;
  *   • le dock MEGGA AI ouvert sous 1440 px — il comprime le contenu de 404 px
  *     (`COPILOT_WIDTH`), qui S'AJOUTENT aux 276 de la barre. Mesuré à 1280 px :
  *     il restait 600 px de travail, moins que l'aside des Réglages plus sa
@@ -37,6 +42,7 @@ export function useCrmSidebarRepli(): {
   const isMobile = useIsMobile()
   const ai = useAiPanel()
   const serre = useMediaQuery('(max-width: 1439px)')
-  const force = isMobile || (ai.enabled && ai.isOpen && serre)
+  const etroit = useMediaQuery('(max-width: 1199px)')
+  const force = isMobile || etroit || (ai.enabled && ai.isOpen && serre)
   return { replie: force || regle, force, regle, setRegle }
 }

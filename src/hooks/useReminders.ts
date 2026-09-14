@@ -246,6 +246,7 @@ export function useReminders() {
     snooze,
     cancel,
     isLoading: remindersQuery.isLoading,
+    isError: remindersQuery.isError,
   }
 }
 

@@ -29,6 +29,7 @@ import {
   writeCrmDark,
   CRM_DARK_KEY as STORAGE_KEY,
 } from '@/lib/crmDark'
+import { animerBascule } from '@/lib/crmDarkBascule'
 
 interface AdminThemeState {
   dark: boolean
@@ -48,9 +49,6 @@ export function AdminThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     applyCrmThemeAttribute(document.documentElement, dark)
-    // ⚠ `writeCrmDark` et non un `setItem` nu : il ANNONCE la bascule dans l'onglet,
-    // sans quoi le dock MEGGA AI, ouvrable sur la console, garderait l'ancien thème.
-    writeCrmDark(dark)
   }, [dark])
 
   // Cross-onglet : deux consoles ouvertes suivent le même réglage.
@@ -62,8 +60,21 @@ export function AdminThemeProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('storage', sync)
   }, [])
 
-  const setDark = useCallback((v: boolean) => setDarkState(v), [])
-  const toggle = useCallback(() => setDarkState(v => !v), [])
+  // ⛔ LA PRÉFÉRENCE N'EST ÉCRITE QUE SUR UN GESTE, jamais au montage. Elle l'était
+  // dans l'effet ci-dessus, donc à chaque ouverture de la console : un agent en
+  // « Système » (aucun choix enregistré, le CRM suit l'apparence du Mac) s'en
+  // retrouvait épinglé sur la valeur du moment, sans l'avoir choisi.
+  // ⚠ `writeCrmDark` et non un `setItem` nu : il ANNONCE la bascule dans l'onglet,
+  // sans quoi le dock MEGGA AI, ouvrable sur la console, garderait l'ancien thème.
+  // Et le geste passe par la bascule animée, comme partout dans le CRM.
+  const setDark = useCallback((v: boolean) => {
+    animerBascule(() => {
+      setDarkState(v)
+      applyCrmThemeAttribute(document.documentElement, v)
+      writeCrmDark(v)
+    })
+  }, [])
+  const toggle = useCallback(() => setDark(!dark), [dark, setDark])
 
   return (
     <AdminThemeContext.Provider value={{ dark, setDark, toggle }}>

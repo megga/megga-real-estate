@@ -166,6 +166,7 @@ reminders (
   completed_at,
   message_template, -- Template du message de relance (optionnel)
   channel,          -- 'email' | 'whatsapp' | 'task' | 'notification'
+  calendar_label_id,-- libellé du Calendrier (13.09.2026) — voir calendar_labels
   created_at
 )
 
@@ -203,8 +204,24 @@ visits (
   feedback_agent,   -- Notes agent post-visite
   ai_objections,    -- jsonb : objections détectées par IA dans le feedback
   rating,           -- 1-5 étoile (optionnel)
+  calendar_label_id,-- libellé du Calendrier (13.09.2026) — voir calendar_labels
   created_at
 )
+
+-- Libellés du Calendrier (13.09.2026) — même modèle que mail_labels : un
+-- classement de l'AGENCE, UN par événement. Un événement est une ligne de
+-- visits, reminders ou appointments : chacune porte calendar_label_id.
+calendar_labels (id, agency_id, name, color, position, created_at, updated_at)
+  -- color : CHECK ^#[0-9a-fA-F]{6}$ | name : CHECK 1..40 caractères après trim
+  -- unique (agency_id, lower(name)) ; unique (id, agency_id) = cible des clés composites
+  -- visits / reminders / appointments.calendar_label_id : FK COMPOSITE
+  --   (calendar_label_id, agency_id) → calendar_labels (id, agency_id)
+  --   ON DELETE SET NULL (calendar_label_id) — jamais le libellé d'une autre agence,
+  --   et supprimer un libellé ne vide pas l'agence de l'événement
+  -- RPC calendar_label_assignments(p_from, p_to) : (source, event_id, label_id) de
+  --   l'agence de l'appelant — la LECTURE, hors de la requête du Calendrier
+  -- RPC calendar_set_event_label(p_source, p_event_id, p_label_id default null) :
+  --   l'ÉCRITURE, ne touche QUE la colonne du libellé (omettre p_label_id le retire)
 
 -- Dossiers KYC
 kyc_cases (id, agency_id, transaction_id, contact_id, type, risk_level, status, completion_pct, validated_by, validated_at, created_at)
@@ -448,6 +465,10 @@ de récursion) :
   contact est de l'agence ET que l'adresse est celle d'un correspondant externe du fil (ni
   la boîte, ni un alias d'envoi — l'expéditeur d'un sortant —, ni une adresse interne) ;
   l'unique lecteur est l'ingestion.
+- calendar_labels : CRUD client borné à l'agence (get_my_agency_id()), anon révoqué.
+  Les deux RPC du Calendrier sont SECURITY DEFINER, search_path vide, fermées à anon :
+  la lecture ne rend que des identifiants ; l'écriture ne touche que calendar_label_id
+  — les policies d'appointments (pièces de conformité KYC) n'ont pas été élargies.
 - Les privilèges par défaut du projet accordent trop à anon : le socle fait un
   REVOKE ALL … FROM anon, authenticated sur les neuf tables AVANT d'accorder le strict.
 ```

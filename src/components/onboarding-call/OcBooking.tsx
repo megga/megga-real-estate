@@ -38,6 +38,7 @@ import { PHONE_EXAMPLES, composePhone, countryForDialCode, dialCodeOptions, spli
 import OcSlotPicker from './OcSlotPicker'
 import OcBookedCard from './OcBookedCard'
 import { dayKeyOf } from './ocDates'
+import { majusculeInitiale } from '@/lib/utils'
 import {
   useMyOnboardingCall,
   useOnboardingSlots,
@@ -369,7 +370,7 @@ export default function OcBooking({ onStateChange, mode = 'immediate', choice = 
         <div className="pd---content-inside-card text-center">
           <h2 className="display-3 semi-bold">{t('call.chosen.title')}</h2>
           <div className="mg-top-3x-extra-small">
-            <p className="display-2 semi-bold capitalize">{longSlotLabel(choice.slot, timezone, hour12)}</p>
+            <p className="display-2 semi-bold">{majusculeInitiale(longSlotLabel(choice.slot, timezone, hour12))}</p>
           </div>
           <div className="mg-top-3x-extra-small">
             <p className="paragraph-small text-color-neutral-600">{t('call.chosen.body')}</p>

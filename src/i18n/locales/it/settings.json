@@ -591,17 +591,18 @@
     "header": {
       "kicker": "Integrazioni",
       "title": "Collega il tuo stack di lavoro",
-      "sub": "{{active}} servizi attivi su {{total}} · agenda, email, firma, messaggistica."
+      "sub_one": "{{count}} servizio attivo su {{total}} · agenda, email, firma, messaggistica.",
+      "sub_other": "{{count}} servizi attivi su {{total}} · agenda, email, firma, messaggistica."
     },
     "filters": {
       "all": "Tutti"
     },
     "catalogue": {
       "google": {
-        "desc": "Sincronizza Google Calendar, Gmail e Contacts con un'unica connessione OAuth."
+        "desc": "Sincronizza visite e appuntamenti con Google Calendar."
       },
       "microsoft": {
-        "desc": "Outlook Calendar, Outlook Mail e rubrica Exchange."
+        "desc": "Sincronizza visite e appuntamenti con il calendario Outlook."
       },
       "docusign": {
         "desc": "Firma elettronica conforme a eIDAS per mandati e offerte."
@@ -613,7 +614,7 @@
         "desc": "Conversazioni con i clienti nel CRM, modelli certificati."
       },
       "messagerie": {
-        "desc": "Leggi e rispondi alle tue e-mail dal CRM (Google, Microsoft, IMAP)."
+        "desc": "Leggi e rispondi alle tue e-mail dal CRM (Gmail, Outlook)."
       }
     },
     "actions": {
@@ -632,12 +633,26 @@
       "onRequestHint": "Questa integrazione viene attivata dal team MEGGA su richiesta. Contattaci per collegare il tuo account.",
       "whatYouCanDo": "Cosa puoi fare",
       "permissionsGranted": "Autorizzazioni concesse",
+      "permissionsRequested": "Autorizzazioni richieste",
       "documentation": "Documentation",
       "permissions": {
-        "google": "[\"Calendar: visite, appuntamenti\",\"Gmail: email dei clienti nel CRM\",\"Contacts: sincronizzazione\"]",
-        "microsoft": "[\"Outlook Calendar: agenda\",\"Outlook Mail: conversazioni\",\"Rubrica Exchange\"]",
-        "whatsapp": "[\"Ricevere i messaggi dei clienti nel CRM\",\"Interrogare MEGGA AI dal tuo telefono\"]",
-        "signature": "[\"Preparare fascicoli di firma\",\"Seguire gli stati di firma\"]"
+        "google": [
+          "Agenda: creare e aggiornare le tue visite e i tuoi appuntamenti",
+          "Disponibilità: leggere le fasce occupate, senza i dettagli degli eventi",
+          "Profilo: il tuo nome e il tuo indirizzo e-mail"
+        ],
+        "microsoft": [
+          "Calendario Outlook: creare e aggiornare le tue visite e i tuoi appuntamenti",
+          "Profilo: il tuo nome e il tuo indirizzo e-mail"
+        ],
+        "whatsapp": [
+          "Ricevere i messaggi dei clienti nel CRM",
+          "Interrogare MEGGA AI dal tuo telefono"
+        ],
+        "signature": [
+          "Preparare fascicoli di firma",
+          "Seguire gli stati di firma"
+        ]
       }
     },
     "disconnectConfirm": {
@@ -658,7 +673,10 @@
       "linked": "Collegato",
       "linkedNumber": "Numero collegato",
       "writeLikeColleague": "Scriva a MEGGA AI come a un collega",
-      "examples": "[\"I miei appuntamenti domani?\",\"I miei solleciti in ritardo?\"]",
+      "examples": [
+        "I miei appuntamenti domani?",
+        "I miei solleciti in ritardo?"
+      ],
       "error": {
         "title": "Stato non disponibile",
         "desc": "Al momento non è possibile verificare la connessione WhatsApp.",

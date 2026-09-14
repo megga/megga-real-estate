@@ -64,12 +64,22 @@ export function formatDate(date: string | Date): string {
 }
 
 /**
+ * Majuscule au PREMIER mot seulement — la casse française d'un intitulé.
+ *
+ * ⛔ Jamais `text-transform: capitalize` pour ça : la propriété capitalise CHAQUE
+ * mot. Posée sur des dates d'`Intl`, elle rendait « Du Lundi 14 Septembre Au
+ * Mardi… » ; sur des libellés, « Surface Hab. ».
+ */
+export function majusculeInitiale(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s
+}
+
+/**
  * Format a date as the « Aujourd'hui » header label, capitalized.
  * Example: "Dimanche 14 juin"
  */
 export function formatTodayHeader(date: Date = new Date()): string {
-  const s = format(date, 'EEEE d MMMM', { locale: dfLocale() })
-  return s.charAt(0).toUpperCase() + s.slice(1)
+  return majusculeInitiale(format(date, 'EEEE d MMMM', { locale: dfLocale() }))
 }
 
 /**

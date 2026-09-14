@@ -73,6 +73,8 @@ export interface UseAbsenceSignalsReturn {
   /** Horodatage du dernier départ, déjà mis en forme (« vendredi 18:00 »). */
   sinceLabel: string | null
   isLoading: boolean
+  /** La lecture a échoué : « tu es à jour » serait faux. */
+  isError: boolean
   /** Avance la présence : vide le fil de façon durable. */
   markAllSeen: () => Promise<void>
   /** « Reprendre » : marque le rappel traité. Rend `false` si l'écriture échoue. */
@@ -87,7 +89,7 @@ export function useAbsenceSignals(): UseAbsenceSignalsReturn {
   // disparition DURABLE viendra du geste (Lot 2), pas d'un accusé de lecture.
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set())
 
-  const { data, isLoading, dataUpdatedAt } = useQuery({
+  const { data, isLoading, isError, dataUpdatedAt } = useQuery({
     queryKey: ['today-absence', profile?.id],
     queryFn: async (): Promise<AbsencePayload> => {
       const { data: payload, error } = await supabase.rpc('today_absence', { p_fallback_hours: FIRST_SESSION_HOURS })
@@ -249,6 +251,7 @@ export function useAbsenceSignals(): UseAbsenceSignalsReturn {
     total: signals.length,
     sinceLabel,
     isLoading,
+    isError,
     markAllSeen,
     resumeReminder,
   }

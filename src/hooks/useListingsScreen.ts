@@ -24,12 +24,10 @@ export interface UseListingsScreenReturn {
 
 /**
  * Biens de l'agence adaptés au shape mock CrmBien pour ListingsPage : injecte
- * vues/favoris réels (jointure listings) + score de bien, et publie chaque bien au
- * registry runtime Sugar pour crmBienById().
+ * les compteurs vues/favoris du bien, et publie chaque bien au registry runtime
+ * Sugar pour crmBienById().
  */
 export function useListingsScreen(): UseListingsScreenReturn {
-  // useAgencyProperties renvoie un sur-ensemble de Property (joint avec
-  // listings(views_count, favorites_count) — pas utile pour CrmBien).
   const { data: rawProperties = [], isLoading, isError, refetch } = useAgencyProperties()
   // ⚠ Le score de bien N'EST PLUS lu ici. Il était attaché par id depuis
   // `property_scores` (hook `usePropertyScores`, retiré le 12 août 2026 avec la
@@ -41,16 +39,11 @@ export function useListingsScreen(): UseListingsScreenReturn {
     () =>
       rawProperties.map(p => {
         const b = propertyToCrmBien(p as Property, null)
-        // Vues / favoris réels via la jointure listings(views_count, favorites_count).
-        const l = (
-          p as { listing?: Array<{ views_count?: number; favorites_count?: number }> }
-        ).listing?.[0]
-        if (l) {
-          b.stats = {
-            ...b.stats,
-            views: l.views_count ?? b.stats.views,
-            favorites: l.favorites_count ?? b.stats.favorites,
-          }
+        // Vues / favoris : les compteurs portés par `properties` (même source que la fiche).
+        b.stats = {
+          ...b.stats,
+          views: p.views_count ?? b.stats.views,
+          favorites: p.favorites_count ?? b.stats.favorites,
         }
         return b
       }),

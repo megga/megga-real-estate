@@ -95,7 +95,7 @@
       },
       "paste": {
         "title": "Paste the prospect's message.",
-        "subtitle": "Email, SMS, web form, transcribed WhatsApp message, MEGGA AI extracts the identity and intent, and suggests the next action.",
+        "subtitle": "Email, SMS, web form, transcribed WhatsApp message: MEGGA AI extracts the identity and intent, then suggests the next action.",
         "placeholder": "Paste the email, SMS or message you received here. The richer the text, the better the extraction…",
         "tryExample": "Try with an example"
       },

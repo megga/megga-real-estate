@@ -36,7 +36,7 @@
  * sans lui, replier la barre ne durerait que le temps d'un écran.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -44,14 +44,11 @@ import type { CrmPalette } from './tokens'
 import { RailIcon } from './LiquidGlassRail'
 import { CRM_SIDEBAR_GROUPS, crmSidebarActiveFor, crmSidebarRouteOf, type CrmSidebarSectionId } from './crmSidebarNav'
 import { useCrmSidebarRepli } from '@/hooks/useCrmSidebarRepli'
-import { useAuth } from '@/hooks/useAuth'
 import { useAgencySettings } from '@/hooks/useAgencySettings'
 import { useAgencyObjective } from '@/hooks/useAgencyObjective'
 import { openHelpFor } from '@/lib/help-articles'
 import { RelanceSession } from './today/RelanceSession'
-import CrmProfileDropdown from './profile/CrmProfileDropdown'
 import { formatCHF } from '@/lib/utils'
-import { useEcranActif } from '@/hooks/useEcranActif'
 import { useSuperAdminGate } from '@/hooks/useSuperAdminGate'
 import { consoleAReprendre } from '@/lib/adminEntry'
 import { MXC_SYSTEM } from '@/components/megga-x-crm/tokens'
@@ -330,11 +327,10 @@ export interface CrmSidebarProps {
   onCmd?: () => void
 }
 
-export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSidebarProps) {
+export function CrmSidebar({ active, sp, dark, onCmd }: CrmSidebarProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation('common')
-  const { signOut, profile, user } = useAuth()
   // ⚠ `agencySaved`, pas `agency` : le second est le tampon d'édition des
   // Réglages, vide au premier rendu. La barre se remonte à chaque navigation —
   // le lire ferait clignoter « Agence non définie » sur une agence parfaitement
@@ -349,37 +345,12 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
   const { allowed: isSuperAdmin } = useSuperAdminGate()
 
   const [relanceOpen, setRelanceOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
   // ⚠ On mémorise l'URL QUI A ÉCHOUÉ, pas un booléen « cassée ». Un booléen
   // demanderait un effet pour le réarmer quand l'agence remplace son logo — et
   // un `setState` dans un effet est précisément ce que la règle `react-hooks`
   // du dépôt refuse. Comparer l'URL courante à celle qui a échoué se dérive du
   // rendu, sans effet ni re-rendu en cascade.
   const [brokenLogo, setBrokenLogo] = useState<string | null>(null)
-  const [brokenAvatar, setBrokenAvatar] = useState<string | null>(null)
-  const profileAnchorRef = useRef<HTMLDivElement>(null)
-
-
-  // Fermeture de la popover du compte : clic dehors et Échap.
-  // ⚠ Elle en gardait DEUX, celle des notifications comprise. Cette dernière est
-  // partie dans la bande d'onglets le 7 septembre 2026, et son couple d'écouteurs
-  // avec elle : laisser ici un `notifOpen` qui ne s'ouvre plus aurait fait un
-  // état mort que rien ne signale.
-  const ecranActif = useEcranActif()
-  useEffect(() => {
-    if (!profileOpen || !ecranActif) return
-    const onDown = (e: MouseEvent) => {
-      const target = e.target as Node
-      if (profileAnchorRef.current && !profileAnchorRef.current.contains(target)) setProfileOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setProfileOpen(false) }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [profileOpen, ecranActif])
 
   const activeId = active ?? crmSidebarActiveFor(location.pathname) ?? undefined
 
@@ -390,11 +361,6 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
   const agencyLogo = agency?.logoUrl?.trim() || ''
   const agencyInitials = (agency?.name?.trim() || (agencyLoading ? '' : 'MG'))
     .split(/\s+/).map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
-
-  const displayName = profile?.full_name?.trim() || user?.email?.split('@')[0] || t('profile.defaultName')
-  const displayInitials = displayName
-    .split(/\s+/).map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '??'
-  const avatarUrl = profile?.avatar_url?.trim() || ''
 
   /**
    * ⛔ LA BARRE NE NAVIGUE PAS DEPUIS UN BANC `/dev/*`, et ce n'est pas un
@@ -609,11 +575,18 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
           style={{
             flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden',
             display: 'flex', flexDirection: 'column',
+            // ⚠ DÉPLIÉE, LE MÊME PAS ENTRE DEUX GROUPES QU'À L'INTÉRIEUR D'UN GROUPE. Le
+            // `gap` ne vivait que dans chaque groupe : mesuré, 41 px d'une ligne à la
+            // suivante, mais 37 px d'un groupe au suivant — la liste se resserrait
+            // précisément là où elle change de sujet, un regroupement lu à l'envers.
+            // « Seul l'ordre les signale » (décision du 7.09) veut un pas UNIFORME.
+            // Repliée, le filet porte ses propres marges : pas de pas en plus.
+            gap: collapsed ? 0 : 'var(--crm-space-2xs)',
             maskImage: 'linear-gradient(to bottom, #000 calc(100% - 18px), transparent)',
             WebkitMaskImage: 'linear-gradient(to bottom, #000 calc(100% - 18px), transparent)',
           }}
         >
-          <nav aria-label={t('nav.mainNav')} style={{ display: 'flex', flexDirection: 'column' }}>
+          <nav aria-label={t('nav.mainNav')} style={{ display: 'flex', flexDirection: 'column', gap: collapsed ? 0 : 'var(--crm-space-2xs)' }}>
             {CRM_SIDEBAR_GROUPS.map((g, i) => (
               <div key={g.labelKey} role="group" aria-label={t(g.labelKey)}>
                 <FiletDeGroupe collapsed={collapsed} first={i === 0} sp={sp} />
@@ -701,73 +674,18 @@ export function CrmSidebar({ active, helpKey, sp, dark, setDark, onCmd }: CrmSid
               Réglages. Envoyer l'agent là-bas lui ferait chercher en vain. */}
           <ObjectiveCard sp={sp} collapsed={collapsed} onGoSettings={() => goto('dashboard')} />
 
-          <div ref={profileAnchorRef} style={{ position: 'relative' }}>
-            <button
-              type="button"
-              onClick={() => setProfileOpen(o => !o)}
-              aria-haspopup="menu"
-              aria-expanded={profileOpen}
-              title={displayName}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)',
-                justifyContent: collapsed ? 'center' : 'flex-start',
-                width: '100%', overflow: 'hidden',
-                padding: 'var(--crm-space-sm)', borderRadius: 'var(--crm-radius-4xl)',
-                border: 0, background: profileOpen ? sp.focusSurface : 'transparent',
-                cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-                transition: 'background-color .18s ease',
-              }}
-            >
-              <span style={{
-                width: 36, height: 36, flexShrink: 0, overflow: 'hidden',
-                borderRadius: 'var(--crm-radius-pill)',
-                background: sp.accent, color: sp.accentInk,
-                display: 'grid', placeItems: 'center',
-                fontSize: 'var(--crm-text-md)', fontWeight: 600,
-              }}>
-                {avatarUrl && brokenAvatar !== avatarUrl ? (
-                  <img
-                    src={avatarUrl} alt="" loading="lazy"
-                    onError={() => setBrokenAvatar(avatarUrl)}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : displayInitials}
-              </span>
-              {/* ⚠ Le NOM seul. La deuxième ligne portait le rôle (« Agent »,
-                  « Manager »…) — retirée le 5 septembre 2026, décision Julien,
-                  en même temps que le sous-titre du menu de compte qu'elle
-                  redoublait. Un agent connaît son rôle ; l'afficher deux fois
-                  sous son propre nom ne lui apprend rien et vole une ligne au
-                  pied de la barre. */}
-              {!collapsed && (
-                <span style={{
-                  flex: 1, minWidth: 0,
-                  fontSize: 'var(--crm-text-md)', fontWeight: 600, color: sp.ink,
-                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                }}>{displayName}</span>
-              )}
-            </button>
-            {profileOpen && (
-              <CrmProfileDropdown
-                sp={sp}
-                dark={dark}
-                setDark={setDark}
-                placement="side"
-                onClose={() => setProfileOpen(false)}
-                onSettings={() => goto('settings')}
-                onKyc={() => goto('kyc')}
-                onAgencyPublic={() => window.open('/agencies', '_blank', 'noopener,noreferrer')}
-                onHelp={() => openHelpFor(helpKey ?? activeId)}
-                onLogout={async () => { await signOut(); navigate('/login') }}
-              />
-            )}
-          </div>
+          {/* ⛔ LE COMPTE N'EST PLUS ICI NON PLUS (14 septembre 2026, Julien). La
+              pastille du pied ouvrait le menu du compte sur le côté ; il s'ouvre
+              désormais depuis la pastille en haut à droite de la bande d'onglets, et
+              se loge dans le coin du cadre (`CrmCompteBouton`). Une seule porte : deux
+              déclencheurs pour un même menu sont une gêne, pas un confort — même
+              règle que pour la cloche. */}
         </div>
       </aside>
 
       {/* Session de relance — la barre en hérite du rail : elle en portait
           l'état ET le montage, et c'était l'UNIQUE porte d'entrée de bureau. */}
-      {relanceOpen && <RelanceSession onClose={() => setRelanceOpen(false)} />}
+      {relanceOpen && <RelanceSession dark={dark} onClose={() => setRelanceOpen(false)} />}
     </>
   )
 }

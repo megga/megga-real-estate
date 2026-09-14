@@ -15,6 +15,7 @@ import { dossierPalette } from '../tokens'
 import { CrmIcon } from '../icons'
 import { VISIT_SENTIMENT_LABELS, type VisitSentiment } from '@/types/visit'
 import type { VisitDetail } from '@/hooks/useVisitDetail'
+import { useAgencySettings } from '@/hooks/useAgencySettings'
 
 // ─── Eyebrow + Card ─────────────────────────────────────────────────────
 export function VdEyebrow({ children }: { children: ReactNode }) {
@@ -63,7 +64,7 @@ export function VdCard({
 function vdDateTime(iso: string): string {
   return new Date(iso).toLocaleString('fr-CH', {
     weekday: 'short',
-    day: '2-digit',
+    day: 'numeric',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
@@ -84,6 +85,13 @@ export function VdBonPanel({
   const dark = useCrmDark()
   const S = useMemo(() => dossierPalette(dark), [dark])
   const signed = !!visit.bon?.signedAt
+  // ⛔ LE MANDAT LIE LE VENDEUR À L'AGENCE, PAS À MEGGA. Le bon portait « MEGGA REAL
+  // ESTATE » en tête et une clause « du mandat liant le vendeur à MEGGA » — MEGGA est
+  // le logiciel. Le visiteur de n'importe quelle agence signait donc un engagement
+  // envers le mauvais bénéficiaire. Le nom vient de la fiche agence ; à défaut, la
+  // clause dit « l'agence ».
+  const { agencySaved } = useAgencySettings()
+  const agence = (agencySaved?.tradeName || agencySaved?.name || agencySaved?.legal || '').trim()
   return (
     <VdCard>
       <div
@@ -131,6 +139,7 @@ export function VdBonPanel({
         }}
       >
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
+          {agence && (
           <div
             style={{
               fontSize: 'var(--crm-text-sm)',
@@ -139,8 +148,9 @@ export function VdBonPanel({
               marginBottom: 6,
             }}
           >
-            MEGGA REAL ESTATE
+            {agence}
           </div>
+          )}
           <div
             style={{
               fontSize: 'var(--crm-text-3xl)',
@@ -243,7 +253,10 @@ export function VdBonPanel({
                   fontSize: 'var(--crm-text-lg)',
                 }}
               >
-                {visit.agent?.full_name ?? 'Grégory L.'}
+                {/* ⛔ Jamais un nom de repli : c'est un document que le visiteur signe.
+                    « Grégory L. » s'affichait ici — et dans la signature manuscrite
+                    ci-dessous — pour TOUTE agence dont la jointure agent était vide. */}
+                {visit.agent?.full_name ?? '—'}
               </div>
             </div>
           </div>
@@ -304,7 +317,9 @@ export function VdBonPanel({
                 fontWeight: 500,
               }}
             >
-              {t('visitDetail.bon.commitmentText')}
+              {agence
+                ? t('visitDetail.bon.commitmentText', { agency: agence })
+                : t('visitDetail.bon.commitmentTextNoAgency')}
             </p>
           </div>
         </div>
@@ -327,7 +342,7 @@ export function VdBonPanel({
             {
               l: t('visitDetail.bon.signatureAgent'),
               signed,
-              name: visit.agent?.full_name ?? 'Grégory L.',
+              name: visit.agent?.full_name ?? '—',
             },
           ].map((s) => (
             <div
@@ -373,7 +388,7 @@ export function VdBonPanel({
                     {t('visitDetail.bon.signedElectronically')}
                     {visit.bon?.signedAt
                       ? ` ${new Date(visit.bon.signedAt).toLocaleString('fr-CH', {
-                          day: '2-digit',
+                          day: 'numeric',
                           month: 'short',
                           hour: '2-digit',
                           minute: '2-digit',
@@ -534,7 +549,7 @@ export function VdRapportPanel({ visit }: { visit: VisitDetail }) {
           <VdEyebrow>
             {t('visitDetail.report.eyebrowPrefix')} ·{' '}
             {new Date(r.savedAt).toLocaleDateString('fr-CH', {
-              day: '2-digit',
+              day: 'numeric',
               month: 'short',
             })}
           </VdEyebrow>

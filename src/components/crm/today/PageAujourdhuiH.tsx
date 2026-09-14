@@ -27,7 +27,6 @@ import { useTranslation } from 'react-i18next'
 import { AnimatePresence, motion } from 'motion/react'
 import { TK } from './tk'
 import { RXIcon, Av, Eyebrow } from './kit'
-import { DATA } from './data'
 import {
   HL_TYPES, HL_KIND_TYPE,
   type HlSignalData, type HlHotData, type HlAnnData, type HlNewsData,
@@ -359,6 +358,22 @@ function HlZoneEmpty({ label }: { label: string }) {
   )
 }
 
+// ─── Échec d'un segment ─────────────────────────────────────────────────
+// ⛔ Un segment qui n'a pas pu se charger n'est PAS vide. Sans cet état, l'échec
+// retombait sur `HlZoneEmpty` — registre « à jour », coche verte — et l'écran
+// annonçait « Tout a été traité » quand la base ne répondait pas.
+function HlZoneError({ label }: { label: string }) {
+  return (
+    <EtatVide
+      dark={TK.mode !== 'light'}
+      forme="ligne"
+      registre="erreur"
+      glyphe={<RXIcon name="alert" size={16} sw={2.2} />}
+      titre={label}
+    />
+  )
+}
+
 // ─── Dossiers chauds ────────────────────────────────────────────────────
 function HlDealCard({ d, first, onCta }: { d: HlHotData; first?: boolean; onCta?: (d: HlHotData) => void }) {
   return (
@@ -591,9 +606,10 @@ export function PageAujourdhuiH() {
   const { t } = useTranslation('dashboard')
   const { navigate: nav } = useTodayNav()
   const { profile } = useAuth()
-  // Le prénom vient du profil réel : la donnée existe côté app, aucune raison
-  // de la simuler. Le reste de l'écran reste en démo jusqu'au Lot 0.
-  const firstName = profile?.full_name?.trim().split(/\s+/)[0] || DATA.agent.name
+  // Le prénom vient du profil réel. ⛔ Sans nom, la salutation reste nue — le repli
+  // `DATA.agent.name` faisait dire « Bonjour Gregory » à tout profil sans nom.
+  // Même règle que l'écran mobile (`today.cockpit.greetingNoName`).
+  const firstName = profile?.full_name?.trim().split(/\s+/)[0] || ''
 
   const [whatsNew, setWhatsNew] = useState(false)
   const [absOpen, setAbsOpen] = useState(false)
@@ -602,16 +618,16 @@ export function PageAujourdhuiH() {
   // bornés par la présence de l'agent.
   const {
     signals: absenceSignals, groups: absenceGroups, total: absenceTotal,
-    sinceLabel, markAllSeen, resumeReminder,
+    sinceLabel, markAllSeen, resumeReminder, isError: absenceError,
   } = useAbsenceSignals()
   // Lot 3 — Dossiers (file Focus, déterministe) et Annonces (complétude +
   // état de diffusion). Les deux dernières zones de démonstration tombent.
-  const { deals: hotDeals } = useHotDeals()
-  const { actions: listingActions } = useListingActions()
+  const { deals: hotDeals, isError: dealsError } = useHotDeals()
+  const { actions: listingActions, isError: listingsError } = useListingActions()
   // Lot 0 — journée, nouveautés et total Pipeline viennent de Supabase.
   // « fait » reste un ÉTAT DE DONNÉE (barré + badge « Terminé ») : le geste
   // `event_mark_done` est du Lot 2, et le popover de la maquette ne l'expose pas.
-  const { day, news, pipelineTotal, isLoading } = useTodayH()
+  const { day, news, pipelineTotal, isLoading, isError: dayError, refetch: refetchDay } = useTodayH()
   const [toast, setToast] = useState<string | null>(null)
   const toastRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const say = useCallback((msg: string) => {
@@ -683,7 +699,7 @@ export function PageAujourdhuiH() {
 
       {/* EN-TÊTE — intégré dans le bento */}
       <div style={{ flexShrink: 0, padding: '18px 26px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--crm-space-3xl)' }}>
-        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: TK.ink }}>{t('today.h.greeting', { name: firstName })}</h1>
+        <h1 style={{ margin: 0, fontSize: 'var(--crm-text-5xl)', fontWeight: 600, letterSpacing: -0.8, color: TK.ink }}>{firstName ? t('today.h.greeting', { name: firstName }) : t('today.cockpit.greetingNoName')}</h1>
         {/* Pas de nouveauté publiée ⇒ pas de bouton : il ouvrirait un panneau vide. */}
         {news.length > 0 && (
         <button
@@ -704,9 +720,18 @@ export function PageAujourdhuiH() {
         <div style={{ width: 420, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0, padding: 'var(--crm-space-4xl) var(--crm-space-3xl) var(--crm-space-3xl)' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12, padding: '0 var(--crm-space-xs)', flexShrink: 0 }}>
             <Eyebrow>{t('today.h.yourDay')}</Eyebrow>
-            <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub, fontVariantNumeric: 'tabular-nums' }}>{t('today.h.appointments', { count: day.blocks.length })}</span>
+            {!dayError && <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub, fontVariantNumeric: 'tabular-nums' }}>{t('today.h.appointments', { count: day.blocks.length })}</span>}
           </div>
-          {!isLoading && !day.blocks.length ? (
+          {dayError ? (
+                <EtatVide
+                  dark={TK.mode !== 'light'}
+                  registre="erreur"
+                  glyphe={<RXIcon name="alert" size={26} sw={1.9} />}
+                  titre={t('today.h.day.errorTitle')}
+                  corps={t('today.h.day.errorDesc')}
+                  action={{ libelle: t('today.h.retry'), onClick: refetchDay }}
+                />
+              ) : !isLoading && !day.blocks.length ? (
                 <EtatVide
                   dark={TK.mode !== 'light'}
                   glyphe={<RXIcon name="cal" size={26} sw={1.9} />}
@@ -738,13 +763,15 @@ export function PageAujourdhuiH() {
                   </div>
                   </div>
                   {zone === 'dossiers'
-                    ? <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub }}>{t('today.h.hotCount', { count: hotDeals.length })}</span>
+                    ? (!dealsError && <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub }}>{t('today.h.hotCount', { count: hotDeals.length })}</span>)
                     : <button onClick={() => nav('biens')} style={{ background: 'none', border: 0, fontFamily: 'inherit', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: TK.sub, cursor: 'pointer', padding: 'var(--crm-space-xs) var(--crm-space-sm)', marginRight: -4 }}>{t('today.h.openListings')}</button>}
                 </div>
                 <div key={zone} className="hl-dossier" style={{ minHeight: 0 }}>
                   {zone === 'dossiers' ? (
                     <>
-                      {!hotDeals.length && <HlZoneEmpty label={t('today.h.deals.empty')} />}
+                      {!hotDeals.length && (dealsError
+                        ? <HlZoneError label={t('today.h.deals.error')} />
+                        : <HlZoneEmpty label={t('today.h.deals.empty')} />)}
                       {hotDeals.map((d, i) => <HlDealCard key={d.id} d={d} first={i === 0} onCta={onDeal} />)}
                       {/* Pipeline vide ⇒ pas de renvoi : « Voir les 0 dossiers »
                           serait une invitation à ouvrir un écran vide. */}
@@ -761,7 +788,9 @@ export function PageAujourdhuiH() {
                   ) : (
                     listingActions.length
                       ? listingActions.map((a, i) => <HlAnnCard key={a.id} a={a} first={i === 0} onCta={onAnn} />)
-                      : <HlZoneEmpty label={t('today.h.listings.empty')} />
+                      : listingsError
+                        ? <HlZoneError label={t('today.h.listings.error')} />
+                        : <HlZoneEmpty label={t('today.h.listings.empty')} />
                   )}
                 </div>
               </div>
@@ -780,6 +809,8 @@ export function PageAujourdhuiH() {
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     {teaser.map((s, i) => <HlSignalCard key={s.id} s={s} onCta={onSignal} first={i === 0} />)}
                   </div>
+                ) : absenceError ? (
+                  <HlZoneError label={t('today.h.absence.error')} />
                 ) : (
                   <EtatVide
                     dark={TK.mode !== 'light'}

@@ -55,7 +55,7 @@ import { usePorteSaPoussee } from '@/hooks/usePousseeDock'
 function vdDateLong(iso: string): string {
   return new Date(iso).toLocaleDateString('fr-CH', {
     weekday: 'long',
-    day: '2-digit',
+    day: 'numeric',
     month: 'long',
     year: 'numeric',
   })
@@ -266,14 +266,15 @@ export default function VisitDetailPage() {
                 }}
               >
                 {visit.property?.title ?? t('visitDetail.propertyFallback')}
-                <span style={{ color: S.muted, fontWeight: 500 }}>
-                  {' '}
-                  {t('visitDetail.withContact', {
-                    name: visit.contact
-                      ? `${visit.contact.first_name} ${visit.contact.last_name}`
-                      : '—',
-                  })}
-                </span>
+                {/* Sans visiteur, pas de « avec — » : le titre se lisait « Bien avec — ». */}
+                {visit.contact && (
+                  <span style={{ color: S.muted, fontWeight: 500 }}>
+                    {' '}
+                    {t('visitDetail.withContact', {
+                      name: `${visit.contact.first_name} ${visit.contact.last_name}`.trim(),
+                    })}
+                  </span>
+                )}
               </h1>
               <div
                 style={{

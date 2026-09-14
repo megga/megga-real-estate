@@ -147,7 +147,10 @@ function AxfHero({ d, acc, onGoSettings }: { d: AxPeriodData; acc: AxfAccent; on
         <div style={{ width: 1, background: A.hairline, flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0, paddingLeft: 'var(--crm-space-4xl)' }}>
           <div style={{ fontSize: 'var(--crm-text-xs)', fontWeight: 600, color: A.muted }}>{tr('analytics.hero.remaining')}</div>
-          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: acc.accent, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(reste)}</div>
+          {/* ⚠ De l'ENCRE, comme « Réalisé » : l'accent de graphique (#6F8CFF, que l'en-tête
+              réserve aux graphiques) rendait ~3:1 sur la carte claire, et l'accent
+              d'interface échoue en sombre (3,44:1). La barre juste dessous porte le lien. */}
+          <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, color: A.ink, marginTop: 4, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{axCHF(reste)}</div>
         </div>
       </div>
       {/* pace bar muette + objectif */}
@@ -537,7 +540,7 @@ function AxfSourcesCard({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
               <div style={{ flex: 1, minHeight: 0, width: '100%', position: 'relative', borderRadius: 'var(--crm-radius-md)', background: A.cardSubtle, overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: on ? `${Math.max(5, (s.comm / maxComm) * 100)}%` : 0, background: acc.accent, opacity: opac[i] ?? 0.3, borderRadius: 'var(--crm-radius-md)', transition: `height .8s cubic-bezier(.2,.8,.2,1) ${i * 0.07}s` }} />
               </div>
-              <span style={{ maxWidth: '100%', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span>
+              <span title={s.label} style={{ maxWidth: '100%', fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.label}</span>
             </div>
           ))}
         </div>
@@ -571,13 +574,16 @@ function AxfKpiGrid({ d, acc }: { d: AxPeriodData; acc: AxfAccent }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 'var(--crm-space-xl)', minHeight: 0, minWidth: 0, width: '100%', height: '100%' }}>
       {d.kpis.map((k, i) => (
-        <div key={i} style={{ position: 'relative', background: A.card, borderRadius: 'var(--crm-radius-3xl)', boxShadow: A.shadowSm, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
+        <div key={i} className="axf-kpi" style={{ position: 'relative', background: A.card, borderRadius: 'var(--crm-radius-3xl)', boxShadow: A.shadowSm, minWidth: 0, minHeight: 0, overflow: 'hidden' }}>
           <div style={{ position: 'relative', zIndex: 1, padding: 'var(--crm-space-xl) var(--crm-space-2xl) 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
-              <span style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={k.label}>{k.label}</span>
+            <div className="axf-kpi-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--crm-space-md)' }}>
+              <span className="axf-kpi-label" style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 600, color: A.muted, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={k.label}>{k.label}</span>
               <AxfDelta v={k.delta} pts={k.pts} abs={k.abs} />
             </div>
-            <div style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: A.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 8 }}>{k.value}</div>
+            <div className="axf-kpi-value" style={{ fontSize: 'var(--crm-text-4xl)', fontWeight: 600, color: A.ink, letterSpacing: -0.6, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 8 }}>
+              <span className="axf-kpi-long">{k.value}</span>
+              <span className="axf-kpi-short">{k.valueShort ?? k.value}</span>
+            </div>
           </div>
           {k.spark.length >= 2 && <AxfAreaSpark data={k.spark} acc={acc} h={40} />}
         </div>
@@ -649,6 +655,22 @@ export function AxfStyles({ dark }: { dark: boolean }) {
       }
       @media (max-width: 760px) {
         .axf-col-left { flex-direction: column !important; }
+      }
+      /* ⚠ Une tuile KPI ÉTROITE ne tronque plus : à 1440 px, barre latérale dépliée,
+         elle mesure ~150 px et rendait « Transactio… » et « CHF 2'800'… ». Le chiffre
+         descend d'un cran et le delta passe sous le libellé — rien ne se coupe. */
+      .axf-kpi { container-type: inline-size; }
+      .axf-kpi .axf-kpi-short { display: none; }
+      @container (max-width: 200px) {
+        .axf-kpi .axf-kpi-value { font-size: var(--crm-text-2xl) !important; letter-spacing: -0.3px !important; }
+        .axf-kpi .axf-kpi-head { flex-wrap: wrap; row-gap: var(--crm-space-2xs); }
+        .axf-kpi .axf-kpi-label { white-space: normal !important; }
+      }
+      /* 1280 px : ~118 px de tuile — le montant passe en forme compacte, comme les
+         barres voisines (« 84k »). */
+      @container (max-width: 170px) {
+        .axf-kpi .axf-kpi-long { display: none; }
+        .axf-kpi .axf-kpi-short { display: inline; }
       }
     `}</style>
   )

@@ -29,7 +29,7 @@ import { MobileRelancesIA } from './MobileRelancesIA'
 export function MobileTodayScreen({ demo = false }: { demo?: boolean }) {
   const navigate = useNavigate()
   const { t } = useTranslation('dashboard')
-  const { tk } = useMobileTokens()
+  const { tk, isDark } = useMobileTokens()
   const { profile } = useAuth()
   const { items: focusItems, isLive, isLoading, completeItem, snoozeItem } = useFocusQueue()
   const [relanceOpen, setRelanceOpen] = useState(false)
@@ -80,7 +80,7 @@ export function MobileTodayScreen({ demo = false }: { demo?: boolean }) {
       {!demo && <MobileWhatsAppFollowups />}
       <MobileRelancesIA demo={demo} onStart={() => setRelanceOpen(true)} />
 
-      {relanceOpen ? <RelanceSession onClose={() => setRelanceOpen(false)} /> : null}
+      {relanceOpen ? <RelanceSession dark={isDark} onClose={() => setRelanceOpen(false)} /> : null}
     </div>
   )
 }

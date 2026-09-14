@@ -472,6 +472,12 @@
     "title": "Percorso del team",
     "subtitle": "Monitoraggio in tempo reale di ogni fascicolo · vista panoramica",
     "emptyState": "Nessun fascicolo corrisponde ai filtri selezionati.",
+    "emptyAllTitle": "Nessuna pratica in corso",
+    "emptyAllDesc": "Una pratica compare qui non appena si apre una trattativa nella Pipeline.",
+    "resetFilters": "Reimposta i filtri",
+    "errorTitle": "Percorso non disponibile",
+    "errorDesc": "Non è stato possibile caricare le pratiche.",
+    "retry": "Riprova",
     "filters": {
       "stageLabel": "Fase",
       "allStages": "Tutte",

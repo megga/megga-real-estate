@@ -116,6 +116,11 @@ interface CrmIconProps {
   size?: number
   stroke?: string
   sw?: number
+  /**
+   * Remplissage du tracé — `none` par défaut, le style au trait de toute la série. Posé,
+   * il pleine une forme fermée : l'étincelle PLEINE de MEGGA AI dans le journal d'audit.
+   */
+  fill?: string
 }
 
 /**
@@ -126,14 +131,14 @@ interface CrmIconProps {
  * @param stroke — couleur, défaut `currentColor`
  * @param sw — strokeWidth, défaut 1.6
  */
-export function CrmIcon({ name, size = 22, stroke = 'currentColor', sw = 1.6 }: CrmIconProps) {
+export function CrmIcon({ name, size = 22, stroke = 'currentColor', sw = 1.6, fill = 'none' }: CrmIconProps) {
   const path = PATHS[name as CrmIconName]
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={fill}
       stroke={stroke}
       strokeWidth={sw}
       strokeLinecap="round"

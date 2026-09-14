@@ -21,11 +21,10 @@ import { useReducedMotion } from '@/hooks/useReducedMotion'
 import { buildWaMeUrl } from '@/lib/waMeUrl'
 import { PX } from './tokens'
 import PxSocialIcon from './PxSocialIcon'
+import { WHATSAPP_VERT as WA_GREEN } from './whatsapp'
 
 const TAP_SCALE = 0.96
 const TAP_SPRING = { type: 'spring' as const, stiffness: 480, damping: 28, mass: 0.6 }
-
-const WA_GREEN = '#25D366'
 
 export type PxWhatsAppVariant = 'brand' | 'dark' | 'invert'
 export type PxWhatsAppSize = 'sm' | 'lg'

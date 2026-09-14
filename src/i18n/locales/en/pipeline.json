@@ -472,6 +472,12 @@
     "title": "Team journey",
     "subtitle": "Real-time tracking of every file · panoramic view",
     "emptyState": "No file matches the selected filters.",
+    "emptyAllTitle": "No dossiers in progress",
+    "emptyAllDesc": "A dossier appears here as soon as a deal is opened in the Pipeline.",
+    "resetFilters": "Reset filters",
+    "errorTitle": "Journey unavailable",
+    "errorDesc": "The dossiers couldn’t be loaded.",
+    "retry": "Try again",
     "filters": {
       "stageLabel": "Stage",
       "allStages": "All",

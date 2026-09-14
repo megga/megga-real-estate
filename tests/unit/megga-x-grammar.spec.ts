@@ -243,7 +243,10 @@ const ZONES: RootSpec[] = [
     // traitée ». Ils entrent en apportant ZÉRO littéral — chaque rayon et chaque
     // espacement y est écrit en `var(--crm-*)`, y compris là où la maquette
     // demandait 6, 11 et 14 px, arrondis aux barreaux.
-    keep: (n) => ['CrmShell.tsx', 'CrmSidebar.tsx', 'CrmTabsBar.tsx', 'CrmWorkspace.tsx', 'crmSidebarNav.ts', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts'].includes(n),
+    // ⚠ `IconeTheme.tsx` entre le 12 septembre 2026 avec la bascule de thème animée :
+    // le glyphe soleil/lune de la bande d'onglets et du menu du profil. Il n'écrit
+    // qu'une boîte (largeur, hauteur, `inset`), aucun barreau de grammaire.
+    keep: (n) => ['CrmShell.tsx', 'CrmSidebar.tsx', 'CrmTabsBar.tsx', 'CrmWorkspace.tsx', 'crmSidebarNav.ts', 'LiquidGlassRail.tsx', 'tokens.ts', 'EtatVide.tsx', 'mockData.ts', 'crmThemeVars.ts', 'IconeTheme.tsx'].includes(n),
     keepPath: (p) => p.split('/').length === 4,
   },
   // Le chrome rendu par les 27 surfaces du CRM (lot 1 du chantier « CRM agent »,
@@ -955,8 +958,14 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // 69 -> 61 (18.08.2026) : le retrait de l'étape « Récapitulatif » a emporté ses
   // littéraux avec elle. Le cliquet redescend, il ne se justifie pas.
   ['src/components/crm-identity', { hors: 1, total: 61 }],
-  ['src/components/crm-dossiers', { hors: 2, total: 3 }],
-  ['src/components/crm-dossiers/audit', { hors: 3, total: 4 }],
+  // {2,3} -> {0,0} (14.09.2026) : `KycStatCard` et `KycCircleBtn` n'avaient plus qu'un
+  // lecteur, l'ancien journal d'audit. Partis avec lui, ils emportent `marginTop: 14`,
+  // `marginBottom: 6` et `marginTop: 8`.
+  ['src/components/crm-dossiers', { hors: 0, total: 0 }],
+  // {3,4} -> {0,0} (14.09.2026) : le journal d'audit refait écrit chacun de ses rayons et
+  // espacements en jetons — `padding: '18px 28px 12px'` de l'en-tête de jour et les marges
+  // de l'ancienne ligne sont partis avec elle.
+  ['src/components/crm-dossiers/audit', { hors: 0, total: 0 }],
   ['src/components/crm-dossiers/kyc', { hors: 10, total: 10 }],
   ['src/components/crm-dossiers/kyc-pager', { hors: 22, total: 25 }],
   ['src/components/crm-dossiers/kyc-wizard', { hors: 36, total: 46 }],
@@ -969,8 +978,13 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   ['src/components/crm/calendar', { hors: 18, total: 28 }],
   ['src/components/crm/contacts-pager', { hors: 68, total: 92 }],
   ['src/components/crm/journey', { hors: 3, total: 5 }],
-  ['src/components/crm/notifications', { hors: 4, total: 4 }],
-  ['src/components/crm/pipeline', { hors: 32, total: 38 }],
+  // {4,4} -> {0,0} (14.09.2026) : la cloche refaite écrit chacun de ses rayons et
+  // espacements en jetons — ses quatre littéraux (`marginTop: 3`, `margin: '5px 8px'`,
+  // `marginTop: 6`…) sont partis avec le menu « ⋯ » et l'ancien pied.
+  ['src/components/crm/notifications', { hors: 0, total: 0 }],
+  // {32,38} -> {30,36} (13.09.2026) : la colonne « Valeur » de la liste passe de
+  // `paddingRight: 56` au barreau `7xl` — le montant s'y cassait sur deux lignes.
+  ['src/components/crm/pipeline', { hors: 30, total: 36 }],
   // {2,2} -> {1,1} (05.09.2026). Le sous-titre du menu de compte — « rôle ·
   // agence », puis l'e-mail quand il existait — a été retiré (décision Julien :
   // l'en-tête ne porte plus que le NOM), et son `marginTop: 3` avec lui. Ne
@@ -1050,7 +1064,14 @@ const B4_ASSUME = new Map<string, { hors: number; total: number }>([
   // `KycReportRenderPage`) ne portent plus les règles `@page`/`@media print` ni
   // la police des feuilles — tout cela vit dans `KycReportDocument`, hors cliquet
   // (papier). Ce qui reste ici est l'écran : le bureau, la barre d'outils.
-  ['src/pages/agent', { hors: 312, total: 917 }],
+  // total 917 -> 916 (13.09.2026) : le Parcours entre dans le cadre bento commun ; sa
+  // carte d'état vide (`padding: '60px 20px'`, rayon 24) laisse la place à `EtatVide`.
+  // 312 -> 292, 916 -> 891 (14.09.2026) : le journal d'audit entre dans le cadre commun et
+  // perd ses cartes de chiffres, ses deux rangées de pastilles et ses exports — vingt
+  // littéraux hors échelle (`gap: 32`, `marginBottom: 36`, `padding: '18px 22px'`,
+  // `padding: '80px 40px'`…). ⚠ Il en ajoute UN, le même que ses pages sœurs : le rayon 26
+  // du cadre de travail, qui répond à `CrmPageSkeleton` et au coin que mesurent les popovers.
+  ['src/pages/agent', { hors: 292, total: 891 }],
   ['src/pages/dev', { hors: 6, total: 34 }],
   ['src/pages/public', { hors: 66, total: 257 }],
 ])

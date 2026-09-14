@@ -45,9 +45,15 @@
  *
  * ── UNE SEULE FORME POUR DEUX RÉGIMES DE HAUTEUR ─────────────────────────────
  * Quinze surfaces sont en `height: 100vh` + `overflow: hidden` (écran figé),
- * cinq en `minHeight` (page qui défile). La colonne n'impose NI l'un NI l'autre :
- * elle hérite de la rangée qui l'accueille. Poser ici un `flex: 1, minHeight: 0`
- * ferait s'effondrer le contenu des cinq surfaces défilantes.
+ * cinq en `minHeight` (page qui défile). La coquille n'impose NI l'un NI l'autre :
+ * elle hérite de la page qui l'accueille.
+ * ⛔ SA RANGÉE PORTE POURTANT `minHeight: 0` depuis le 13.09.2026, et ce n'est pas
+ * une contradiction : sans elle, un écran FIGÉ dont le contenu dépasse la fenêtre
+ * (les 24 heures du Calendrier, la carte Profil des Réglages) poussait le cadre
+ * sous le pli, son bas hors d'atteinte. Sur une surface qui DÉFILE, la colonne n'a
+ * pas de hauteur définie et la rangée garde sa taille de contenu — mesuré sur les
+ * seize écrans du banc : seuls Calendrier et Réglages changent, les hauteurs de
+ * page des surfaces défilantes restent au pixel près.
  */
 
 import { useEffect } from 'react'
@@ -119,7 +125,8 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
   usePorteSaPoussee()
 
   return (
-    <div style={{
+    // `data-garde-transition` : sa poussée n'est pas coupée par une bascule de thème.
+    <div data-garde-transition="" style={{
       display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0,
       // ⚠ La poussée ENGLOBE la bande : ✦, la cloche et la bascule de thème vivent
       // dans son quart droit, et ne pousser que la rangée les laisserait sous le dock.
@@ -147,7 +154,10 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
           // la dernière commande de droite tombe à l'aplomb du bord droit.
           padding: 'var(--crm-space-lg) var(--crm-space-7xl) 0 var(--crm-space-lg)',
         }}>
-          <CrmTabsBar sp={sidebar.sp} dark={sidebar.dark} setDark={sidebar.setDark} badges={badges} />
+          <CrmTabsBar
+            sp={sidebar.sp} dark={sidebar.dark} setDark={sidebar.setDark} badges={badges}
+            active={sidebar.active} helpKey={sidebar.helpKey}
+          />
         </div>
       )}
       {/* ⚠ La RANGÉE, sous la bande : c'est elle qui porte désormais le duo
@@ -155,6 +165,17 @@ export function CrmWorkspace({ children, badges, ...sidebar }: Props) {
           compte la gouttière haute que la bande fournissait. */}
       <div style={{
         display: 'flex', flex: 1, minWidth: 0,
+        // ⛔ `minHeight: 0`, SANS QUOI UN ÉCRAN FIGÉ DÉBORDE PAR LE BAS. Cette
+        // rangée est l'élément `flex: 1` d'une COLONNE : sa hauteur minimale
+        // automatique y est celle de son CONTENU. Un écran figé dont le contenu
+        // dépasse la fenêtre la poussait donc au-delà du cadre — mesuré le
+        // 13.09.2026 à 1440 × 900 : 1972 px de rangée sur le Calendrier (ses 24
+        // heures), 1005 sur les Réglages (la carte Profil), pour un parent de 900.
+        // Le bas du cadre tombait 1089 et 123 px sous la fenêtre, hors d'atteinte.
+        // ⚠ Sans effet sur les surfaces qui DÉFILENT (`minHeight: 100vh`) : leur
+        // colonne n'a pas de hauteur définie, la rangée y garde sa taille de
+        // contenu — vérifié écran par écran sur le banc, hauteurs de page égales.
+        minHeight: 0,
         paddingTop: avecOnglets ? 0 : undefined,
         // ⛔ AUCUNE GOUTTIÈRE BASSE ICI, et c'est un gain de place assumé
         // (Julien : « mords un peu plus sur le bas »). Elle en portait une de 24,

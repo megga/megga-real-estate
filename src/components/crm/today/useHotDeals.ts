@@ -33,6 +33,8 @@ export interface HotDeal extends HlHotData {
 export interface UseHotDealsReturn {
   deals: HotDeal[]
   isLoading: boolean
+  /** Une source de la file a échoué — voir `useFocusQueue`. */
+  isError: boolean
 }
 
 // CTA contextuel — la maquette donne un libellé par nature de dossier, pas un
@@ -66,7 +68,7 @@ const DOT_BY_CATEGORY: Record<string, string> = {
 
 export function useHotDeals(): UseHotDealsReturn {
   const { t } = useTranslation('dashboard')
-  const { items, isLive, isLoading } = useFocusQueue()
+  const { items, isLive, isLoading, isError } = useFocusQueue()
 
   const deals = useMemo<HotDeal[]>(() => {
     const queue: FocusItem[] = selectFocusQueue({ live: isLive, items, isDemo: false })
@@ -88,5 +90,5 @@ export function useHotDeals(): UseHotDealsReturn {
     }))
   }, [items, isLive, t])
 
-  return { deals, isLoading }
+  return { deals, isLoading, isError }
 }

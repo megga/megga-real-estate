@@ -14,7 +14,7 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
-import { TK } from './tk'
+import { TK, applyTK } from './tk'
 import { RXIcon, Av } from './kit'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -184,7 +184,15 @@ function parseDraft(text: string, lead: RSLead, t: TFunc): { subject: string; bo
 // ═══════════════════════════════════════════════════════════════════════════
 // SESSION OVERLAY
 // ═══════════════════════════════════════════════════════════════════════════
-export function RelanceSession({ onClose }: { onClose: () => void }) {
+export function RelanceSession({ dark, onClose }: { dark: boolean; onClose: () => void }) {
+  // ⛔ LA SESSION ALLUME ELLE-MÊME SON AMBIANCE. Elle peint avec le singleton `TK`,
+  // que seul « Aujourd'hui » mettait à jour — et qui démarre en SOMBRE. Ouverte
+  // depuis la barre latérale d'un autre écran, sans onglet « Aujourd'hui » vivant,
+  // elle s'affichait donc en sombre sur un CRM clair (mesuré le 12.09.2026).
+  // ⚠ Le thème est celui de l'écran HÔTE, passé par lui : le bureau suit le CRM, le
+  // mobile suit encore son propre réglage (`megga-theme`) — lire la clé du bureau
+  // ici peindrait la session en clair sur un « Aujourd'hui » mobile sombre.
+  applyTK(dark)
   const [i, setI] = useState(0)
   const [asked, setAsked] = useState(false) // l'IA a-t-elle été sollicitée
   const [gen, setGen] = useState(false) // génération en cours

@@ -231,6 +231,7 @@
     "catalogue": {
       "title": "Match catalogue",
       "empty": "No matches in this filter.",
+      "emptyAll": "No matches yet.",
       "proposed": "Proposed",
       "proposedCount_one": "{{count}} proposed",
       "proposedCount_other": "{{count}} proposed",
@@ -275,6 +276,7 @@
         "description": "Description",
         "location": "Location",
         "salePrice": "Sale price",
+        "rent": "Monthly rent",
         "buyer": "Buyer",
         "compatibility": "Compatibility",
         "advertiser": "Advertiser"
@@ -290,8 +292,9 @@
         "villa": "Villa"
       },
       "price": {
-        "charges": "Charges",
+        "charges": "Service charges",
         "perMonth": "CHF {{amount}} / month",
+        "perMonthShort": "/month",
         "onMarket": "On the market",
         "today": "Today",
         "days_one": "{{count}} day",
@@ -409,6 +412,7 @@
       "greeting": "Hello {{name}}",
       "whatsNew": "What's new",
       "close": "Close",
+      "retry": "Try again",
       "yourDay": "Your day",
       "appointments_one": "{{count}} appointment",
       "appointments_other": "{{count}} appointments",
@@ -445,6 +449,7 @@
         "upToDateInline": "You're up to date, nothing new since {{since}}",
         "emptyTitle": "You're up to date",
         "emptyDesc": "No buyer feedback or reminders pending. Everything has been handled.",
+        "error": "Signals unavailable: loading failed.",
         "markAll": "Mark all as seen",
         "count_one": "{{count}} signal",
         "count_other": "{{count}} signals",
@@ -478,7 +483,9 @@
       },
       "day": {
         "emptyTitle": "Clear day",
-        "emptyDesc": "No appointment, viewing or reminder scheduled today."
+        "emptyDesc": "No appointment, viewing or reminder scheduled today.",
+        "errorTitle": "Your day is unavailable",
+        "errorDesc": "Your agenda couldn’t be loaded, which doesn’t mean it’s empty."
       },
       "mobileTitle": "Today",
       "mobileDay": "Day",
@@ -505,11 +512,13 @@
           "notPushed": "Publish",
           "published": "Open"
         },
-        "empty": "All your listings are complete and published."
+        "empty": "All your listings are complete and published.",
+        "error": "Listings unavailable: loading failed."
       },
       "deals": {
         "open": "Open",
         "empty": "No deal needs attention right now.",
+        "error": "Deals unavailable: loading failed.",
         "ctaCall": "Call back",
         "ctaKyc": "Open KYC",
         "ctaSign": "Prepare",
@@ -543,7 +552,9 @@
       "website": "Agency website",
       "onboarding": "MEGGA marketplace",
       "referral": "Referrals",
-      "manual": "Manual import"
+      "manual": "Manual import",
+      "whatsapp": "WhatsApp",
+      "whatsapp_ai": "WhatsApp AI"
     },
     "composition": {
       "secured": {

@@ -100,6 +100,22 @@ const contrat = {
    * table inconnue — sinon un banc muet ressemble à un banc complet.
    */
   edges: {} as Record<string, FixtureRpc>,
+  /**
+   * Tables dont les ÉCRITURES (POST, PATCH, DELETE) s'appliquent à la fixture, en
+   * mémoire, le temps de la page.
+   *
+   * ⛔ PAR DÉFAUT, UN BANC NE RETIENT RIEN : il rend les lignes filtrées quelle que
+   * soit la méthode, et une écriture « réussit » sans rien changer. C'est juste
+   * pour les dix-sept surfaces portées — on y regarde un écran, pas un geste. Ça
+   * ne l'est plus pour un geste dont l'effet EST l'écran : un libellé créé dans le
+   * rail du Calendrier (13.09.2026) doit y apparaître, un libellé supprimé doit en
+   * partir. D'où une liste nominative, et non un interrupteur global — une table
+   * absente d'ici garde exactement le comportement d'avant.
+   *
+   * ⚠ Rien ne sort du navigateur : la fixture est un tableau de module, qu'un
+   * rechargement remet à neuf.
+   */
+  ecrivables: [] as string[],
   /** Noms d'appels qu'aucune fixture ne couvre — remontés aux commandes du banc. */
   signaler: (_appel: string) => {},
 }
@@ -149,9 +165,14 @@ function valeur(v: string): unknown {
  * pièges de sonde.
  *
  * Sous-ensemble volontaire : `eq`, `neq`, `gt(e)`, `lt(e)`, `in`, `is`, plus
- * `order` et `limit`. Un opérateur inconnu laisse passer la ligne plutôt que de
- * la retirer : mieux vaut un écran trop plein qu'un vide qu'on lirait comme un
- * bogue de la page.
+ * `order`, `limit` et `offset`. Un opérateur inconnu laisse passer la ligne plutôt
+ * que de la retirer : mieux vaut un écran trop plein qu'un vide qu'on lirait comme
+ * un bogue de la page.
+ *
+ * ⚠ `order` porte PLUSIEURS colonnes (`created_at.desc,id.desc` — c'est ce que
+ * `postgrest-js` écrit pour deux `.order()` à la suite) : lu comme une seule, le
+ * sens devenait `desc,id`, donc croissant. Et `.range(a, b)` s'écrit `offset=a` +
+ * `limit=b-a+1` : sans `offset`, chaque page du journal d'audit rendait la PREMIÈRE.
  */
 function filtrer(lignes: unknown[], requete: string): unknown[] {
   const p = new URLSearchParams(requete)
@@ -182,16 +203,22 @@ function filtrer(lignes: unknown[], requete: string): unknown[] {
 
   const ordre = p.get('order')
   if (ordre) {
-    const [col, sens] = ordre.split('.')
-    const desc = sens === 'desc'
+    const cles = ordre.split(',').map((terme) => {
+      const [col, sens] = terme.split('.')
+      return { col: col!, desc: sens === 'desc' }
+    })
     out = [...out].sort((a, b) => {
-      const x = String(a[col!] ?? ''), y = String(b[col!] ?? '')
-      return (x < y ? -1 : x > y ? 1 : 0) * (desc ? -1 : 1)
+      for (const { col, desc } of cles) {
+        const x = String(a[col] ?? ''), y = String(b[col] ?? '')
+        if (x !== y) return (x < y ? -1 : 1) * (desc ? -1 : 1)
+      }
+      return 0
     })
   }
 
+  const debut = Math.max(0, Number(p.get('offset')) || 0)
   const limite = Number(p.get('limit'))
-  return Number.isFinite(limite) && limite > 0 ? out.slice(0, limite) : out
+  return Number.isFinite(limite) && limite > 0 ? out.slice(debut, debut + limite) : out.slice(debut)
 }
 
 /** Arguments d'une RPC, lus dans le corps POST. `{}` si le corps n'est pas du JSON. */
@@ -296,9 +323,48 @@ function repondre(url: string, init?: RequestInit): Response | null {
 
   const lignes = Object.prototype.hasOwnProperty.call(contrat.tables, chemin) ? contrat.tables[chemin]! : undefined
   if (lignes === undefined) contrat.signaler(chemin)
+  const methode = (init?.method ?? 'GET').toUpperCase()
+  if (lignes && methode !== 'GET' && methode !== 'HEAD' && contrat.ecrivables.includes(chemin)) {
+    return ecrire(methode, lignes as Record<string, unknown>[], requete, init)
+  }
   const vide = contrat.etat === 'vide' && !contrat.socle.includes(chemin)
   const sortie = vide ? [] : filtrer(lignes ?? [], requete)
   return json(objetSeul ? (sortie[0] ?? null) : sortie, sortie.length)
+}
+
+/**
+ * Applique une écriture PostgREST à une fixture déclarée écrivable.
+ *
+ * `POST` insère (identifiant et horodatages posés s'ils manquent) ; `PATCH` et
+ * `DELETE` visent les lignes que le PRÉDICAT de la requête désigne — le même
+ * filtre que la lecture, pour qu'une écriture ne touche jamais plus de lignes que
+ * PostgREST n'en toucherait. Hors « Nominal », rien ne s'écrit.
+ */
+function ecrire(methode: string, lignes: Record<string, unknown>[], requete: string, init?: RequestInit): Response {
+  if (contrat.etat !== 'nominal') return json([], 0)
+  const corps: unknown = lireCorps(init)
+  const maintenant = new Date().toISOString()
+  if (methode === 'POST') {
+    const nouvelles = (Array.isArray(corps) ? corps : [corps])
+      .filter((l): l is Record<string, unknown> => !!l && typeof l === 'object')
+      .map((l) => ({ id: crypto.randomUUID(), created_at: maintenant, updated_at: maintenant, ...l }))
+    lignes.push(...nouvelles)
+    return json(nouvelles, nouvelles.length)
+  }
+  const cibles = filtrer(lignes, requete) as Record<string, unknown>[]
+  if (methode === 'PATCH') {
+    const patch = corps && typeof corps === 'object' ? (corps as Record<string, unknown>) : {}
+    for (const l of cibles) Object.assign(l, patch, { updated_at: maintenant })
+  } else if (methode === 'DELETE') {
+    for (const l of cibles) lignes.splice(lignes.indexOf(l), 1)
+  }
+  return json(cibles, cibles.length)
+}
+
+/** Corps JSON d'une écriture, ou `null`. */
+function lireCorps(init?: RequestInit): unknown {
+  if (typeof init?.body !== 'string') return null
+  try { return JSON.parse(init.body) } catch { return null }
 }
 
 let fetchOrigine: typeof window.fetch | null = null

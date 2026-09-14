@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom'
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import BootSplash from '@/components/layout/BootSplash'
+import { CrmPageSkeletonPrechargeable as CrmPageSkeleton } from '@/lib/pagesPrechargeables'
 
 /**
  * `<SmartPageLoader>` est le fallback Suspense de l'app : il choisit, d'après
@@ -11,15 +12,16 @@ import BootSplash from '@/components/layout/BootSplash'
  * l'œil a le temps de reconnaître une mise en page. Un squelette au bon gabarit
  * dit « la bonne page charge » ; un spinner dit « le site est cassé ».
  *
- * Les squelettes sont eux-mêmes lazy pour ne pas alourdir le bundle d'entrée :
- * ils ne sont téléchargés que si une frontière Suspense en a besoin.
+ * Les squelettes sont eux-mêmes lazy pour ne pas alourdir le bundle d'entrée.
+ * ⛔ Mais « téléchargés seulement si une frontière en a besoin » voulait dire : au
+ * moment même où elle en a besoin — donc trop tard. À la première visite d'un écran
+ * d'onglet, le squelette manquait autant que la page, et c'est le spinner qui
+ * s'affichait, sur fond de page, sans bande ni barre latérale (mesuré le 14.09.2026
+ * sur l'onglet neuf). Le squelette du CRM est donc PRÉCHARGÉ dès que la bande
+ * d'onglets monte — voir `src/lib/pagesPrechargeables.ts`.
  *
  * Repli : toute route sans squelette dédié garde le spinner (`<DefaultLoader>`).
  */
-
-const CrmPageSkeleton = lazy(
-  () => import('@/components/skeletons/CrmPageSkeleton'),
-)
 
 /** Spinner générique — fallback pour toute route sans squelette dédié. */
 function DefaultLoader() {

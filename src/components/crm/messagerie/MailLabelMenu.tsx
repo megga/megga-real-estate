@@ -10,11 +10,11 @@
  * qu'un menu contextuel est toujours le dernier ouvert. Le voisinage a été lu
  * avant d'être choisi : chrome CRM 75, `CrmSearch` 200, dropdown de profil 9000.
  */
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { MAIL_TRANSITION, type MailSurfaces } from './mailTokens'
-import { useEcranActif } from '@/hooks/useEcranActif'
+import { useFermetureMenu } from '@/hooks/useFermetureMenu'
 
 interface Props {
   ms: MailSurfaces
@@ -34,21 +34,8 @@ const MARGE_BAS = 140
 export function MailLabelMenu({ ms, x, y, onClose, onRename, onRecolor, onDelete }: Props) {
   const { t } = useTranslation('messages')
   const ref = useRef<HTMLDivElement>(null)
-  // ⛔ Écran caché muet (keepalive des onglets) — voir `useEcranActif`.
-  const ecranActif = useEcranActif()
-  useEffect(() => {
-    if (!ecranActif) return
-    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose() }
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('mousedown', onDoc)
-    document.addEventListener('contextmenu', onDoc)
-    window.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDoc)
-      document.removeEventListener('contextmenu', onDoc)
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [onClose, ecranActif])
+  // Clic dehors et Échap ; armé au tick suivant — voir `useFermetureMenu`.
+  useFermetureMenu(ref, onClose)
 
   const item = (label: string, fn: () => void, danger = false) => (
     <button
@@ -75,6 +62,10 @@ export function MailLabelMenu({ ms, x, y, onClose, onRename, onRecolor, onDelete
   )
 
   return createPortal(
+    <>
+      {/* Voile : le clic qui ferme le menu ne déclenche pas ce qu'il y a dessous
+          (même geste que `MailContextMenu`). */}
+      <div onClick={onClose} onContextMenu={(e) => { e.preventDefault(); onClose() }} style={{ position: 'fixed', inset: 0, zIndex: 319 }} />
     <div
       ref={ref}
       role="menu"
@@ -88,7 +79,8 @@ export function MailLabelMenu({ ms, x, y, onClose, onRename, onRecolor, onDelete
       {item(t('mail.labels.rename'), onRename)}
       {item(t('mail.labels.recolor'), onRecolor)}
       {item(t('mail.labels.delete'), onDelete, true)}
-    </div>,
+    </div>
+    </>,
     document.body,
   )
 }

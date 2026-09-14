@@ -90,7 +90,7 @@ function fmtDate(iso: string | null | undefined, long?: boolean): string {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString(
     'fr-CH',
-    long ? { day: '2-digit', month: 'long', year: 'numeric' } : { day: '2-digit', month: 'short', year: 'numeric' },
+    long ? { day: 'numeric', month: 'long', year: 'numeric' } : { day: 'numeric', month: 'short', year: 'numeric' },
   )
 }
 

@@ -26,11 +26,14 @@ interface PropertyEmailPayload {
   source_portal: string
 }
 
+/**
+ * ⚠ Aucun nom ni téléphone d'agent : l'Edge Function signe avec le PROFIL de
+ * l'appelant. Ce hook comblait leur absence par « Gregory Lyonnet · +41 22 000 00 00 »,
+ * et toute agence envoyait donc ses fiches sous ce nom.
+ */
 export interface SendPropertyEmailParams {
   to: string
   contactFirstName: string
-  agentName?: string
-  agentPhone?: string
   property: PropertyEmailPayload
   message?: string
 }
@@ -42,14 +45,10 @@ interface SendEmailResult {
   error?: string
 }
 
-/** POST vers `send-property-email` ; applique le repli agent par défaut (nom/téléphone). */
+/** POST vers `send-property-email` ; la signature est posée côté serveur. */
 async function sendPropertyEmail(params: SendPropertyEmailParams): Promise<SendEmailResult> {
   const { data, error } = await supabase.functions.invoke<SendEmailResult>('send-property-email', {
-    body: {
-      ...params,
-      agentName: params.agentName || 'Gregory Lyonnet',
-      agentPhone: params.agentPhone || '+41 22 000 00 00',
-    },
+    body: params,
   })
   if (error) {
     // Le corps de refus porte un `message` lisible (destinataire hors périmètre, quota) ;
