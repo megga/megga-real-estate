@@ -17,6 +17,10 @@
  * Messenger et ne s'exportent pas. Le bouton « ? » du CRM garde donc le panneau ;
  * cette page remplace `help.getmegga.com`, pas le panneau.
  *
+ * PÉRIMÈTRE : un seul centre d'aide Intercom sert la holding, MEGGA CRM et MEGGA
+ * Shield (le plan n'en permet pas un par marque). Chaque site produit génère donc
+ * le sien depuis ce centre commun, restreint à SA collection : `COLLECTION_RACINE`.
+ *
  * PLACE DANS LA CHAÎNE — ce script tourne EN DERNIER :
  *   overlay-storefront.mjs  (dist/ = la vitrine statique)
  *   → vitrine-i18n.mjs --build  (dist/de, dist/en, dist/it)
@@ -52,6 +56,17 @@ import { creerClientIntercom, AIDE_JETON_MANQUANT } from './_shared/intercom-api
 const racine = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = resolve(racine, 'dist');
 const SITE = 'https://getmegga.com';
+
+/**
+ * Identifiant Intercom de la collection « MEGGA CRM », la racine de ce produit.
+ *
+ * Posé : seuls les articles rangés sous elle, à n'importe quelle profondeur, sont
+ * publiés sur getmegga.com — sans quoi le premier article Shield publié y paraîtrait.
+ * `null` : tous les articles publiés, comme avant. Il reste `null` tant que cette
+ * collection n'existe pas dans Intercom ; un commit suivant posera l'identifiant
+ * (nombre ou chaîne, les deux sont acceptés).
+ */
+const COLLECTION_RACINE = null;
 
 /** Les deux langues servies, et où elles atterrissent. */
 const SORTIES = {
@@ -437,6 +452,56 @@ export function contenuLocalise(article, langue) {
   return { title: article.title, description: article.description || '', body: article.body || '' };
 }
 
+/**
+ * Collections d'un article : `parent_ids` quand la liste est non vide, `parent_id` sinon.
+ *
+ * ⚠ Les deux champs ne disent pas toujours la même chose, et dans les deux sens.
+ * Sept articles publiés sur dix-sept ont `parent_id: null` en 2.11 (audit du
+ * 17.08.2026 ; d'où leur place sous « Autres articles », `grouper` ne lisant que lui)
+ * alors que `parent_ids` les range dans une collection (connecteur Intercom,
+ * 14.09.2026 — sa version d'API n'est pas forcément la nôtre : le compte du journal
+ * le dira au premier build filtré). La référence 2.11 documente les deux champs, et
+ * donne l'inverse en exemple : `parent_id: 148`, `parent_ids: []`.
+ */
+function collectionsDeLArticle(article) {
+  const ids = Array.isArray(article.parent_ids) && article.parent_ids.length ? article.parent_ids : [article.parent_id];
+  return ids.filter((id) => id != null).map(String);
+}
+
+/**
+ * Restreint le corpus au produit de ce site : la collection `racine` et toutes ses
+ * descendantes, à n'importe quelle profondeur. `racine` nulle : rien n'est filtré.
+ *
+ * Rend les articles gardés ET les collections à afficher — les descendantes seules,
+ * pas la racine : le sommaire garde ses collections au lieu d'une enveloppe « MEGGA
+ * CRM » qui les contiendrait toutes. Identifiants comparés en chaîne : l'API 2.11
+ * rend ceux des collections en chaîne, les parents d'un article en entier.
+ */
+export function restreindreALaRacine(articles, collections, racine) {
+  if (racine == null) return { articles, collections };
+  const cle = String(racine);
+  const filles = new Map();
+  for (const c of collections) {
+    if (c.parent_id == null) continue;
+    const parent = String(c.parent_id);
+    filles.set(parent, [...(filles.get(parent) || []), String(c.id)]);
+  }
+  const perimetre = new Set([cle]);
+  const aVisiter = [cle];
+  while (aVisiter.length) {
+    for (const id of filles.get(aVisiter.pop()) || []) {
+      if (!perimetre.has(id)) {
+        perimetre.add(id);
+        aVisiter.push(id);
+      }
+    }
+  }
+  return {
+    articles: articles.filter((a) => collectionsDeLArticle(a).some((id) => perimetre.has(id))),
+    collections: collections.filter((c) => String(c.id) !== cle && perimetre.has(String(c.id))),
+  };
+}
+
 /** Groupe les articles par collection ; ceux qui n'en ont pas forment le dernier bloc. */
 export function grouper(articles, collections, langue) {
   const m = MOTS[langue];
@@ -559,9 +624,17 @@ async function generer() {
   }
 
   const publies = liste.filter((a) => a.state === 'published');
+  // Le périmètre se tranche AVANT les GET : le corps d'un article d'un autre produit
+  // n'a rien à faire dans ce build.
+  const perimetre = restreindreALaRacine(publies, collections, COLLECTION_RACINE);
+  if (COLLECTION_RACINE != null) {
+    // Le journal dit ce que le filtre a gardé : un compte sous celui du sommaire
+    // d'avant signale des articles perdus (cf. collectionsDeLArticle).
+    console.log(`[aide] collection racine ${COLLECTION_RACINE} : ${perimetre.articles.length} article(s) publié(s) gardé(s) sur ${publies.length}`);
+  }
   // Le corps entier n'est PAS dans la liste : il faut un GET par article.
   const articles = [];
-  for (const a of publies) articles.push(await client.api(`/articles/${a.id}`));
+  for (const a of perimetre.articles) articles.push(await client.api(`/articles/${a.id}`));
 
   if (!articles.length) {
     console.error("✗ [aide] l'API n'a rendu aucun article publié — refus d'écrire un centre d'aide vide.");
@@ -574,7 +647,7 @@ async function generer() {
     const dossierArticles = join(base, s.index.replace(/\.html$/, ''));
     mkdirSync(dossierArticles, { recursive: true });
 
-    writeFileSync(join(base, s.index), pageIndex({ chrome, langue, groupes: grouper(articles, collections, langue) }));
+    writeFileSync(join(base, s.index), pageIndex({ chrome, langue, groupes: grouper(articles, perimetre.collections, langue) }));
     for (const a of articles) {
       writeFileSync(join(dossierArticles, `${segment(a, langue)}.html`), pageArticle({ chrome, langue, article: a, contenu: contenuLocalise(a, langue) }));
     }

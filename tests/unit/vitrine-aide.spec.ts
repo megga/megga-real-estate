@@ -22,7 +22,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { readFileSync, globSync } from 'node:fs'
-import { segment, grouper, contenuLocalise, normaliserRecherche, doitEchouerSur } from '../../scripts/vitrine-aide.mjs'
+import { segment, grouper, contenuLocalise, normaliserRecherche, doitEchouerSur, restreindreALaRacine } from '../../scripts/vitrine-aide.mjs'
 
 /** Forme réelle de l'API Intercom 2.11, réduite à ce que le générateur lit. */
 const ARTICLES = [
@@ -75,6 +75,75 @@ describe("centre d'aide généré — fonctions pures", () => {
 
   it('traduit le nom des collections', () => {
     expect(grouper(ARTICLES, COLLECTIONS, 'en')[0].nom).toBe('Getting started')
+  })
+})
+
+/**
+ * L'espace Intercom est PARTAGÉ : un centre d'aide, une collection racine par produit.
+ * Types de l'API 2.11 : identifiants de collection en CHAÎNE, parents d'article en
+ * ENTIER — le filtre doit rapprocher les deux, sans quoi rien ne correspondrait.
+ */
+const RACINE_CRM = '30000001'
+const RACINE_SHIELD = '30000002'
+const COLLECTIONS_PARTAGEES = [
+  { id: RACINE_CRM, name: 'MEGGA CRM', parent_id: null },
+  { id: '19659047', name: 'Démarrer', parent_id: RACINE_CRM },
+  { id: '19659048', name: 'Général', parent_id: RACINE_CRM },
+  { id: '30000011', name: 'Rapports', parent_id: '19659048' },
+  { id: RACINE_SHIELD, name: 'MEGGA Shield', parent_id: null },
+  { id: '30000021', name: 'Shield — démarrer', parent_id: RACINE_SHIELD },
+  { id: '30000022', name: 'Shield — preuves', parent_id: '30000021' },
+]
+const article = (id: string, parents: { parent_id: number | null; parent_ids?: number[] }) =>
+  ({ id, title: `Article ${id}`, description: '', body: '<p>…</p>', ...parents })
+const CORPUS_PARTAGE = [
+  article('1', { parent_id: 19659047, parent_ids: [19659047] }),
+  article('2', { parent_id: 30000011, parent_ids: [30000011] }), // deux niveaux sous la racine
+  article('3', { parent_id: null, parent_ids: [19659048] }), // la forme des sept articles réels
+  article('4', { parent_id: 30000001, parent_ids: [30000001] }), // posé sur la racine elle-même
+  article('5', { parent_id: 19659047, parent_ids: [] }), // l'exemple de la référence 2.11
+  article('6', { parent_id: 30000021, parent_ids: [30000021] }),
+  article('7', { parent_id: 30000022, parent_ids: [30000022] }),
+  article('8', { parent_id: null, parent_ids: [30000002] }),
+  article('9', { parent_id: 19659048, parent_ids: [30000021] }), // parent_ids fait foi
+  article('10', { parent_id: null, parent_ids: [] }), // sans collection : n'appartient à aucun produit
+]
+const SHIELD = ['6', '7', '8', '9']
+
+describe("centre d'aide généré — une collection racine par produit", () => {
+  it('avec la racine du CRM, aucun article Shield ne survit', () => {
+    // Le jour où un article Shield est publié dans le centre commun, il ne doit
+    // paraître que sur megga.dev — jamais sur getmegga.com/aide.
+    const { articles, collections } = restreindreALaRacine(CORPUS_PARTAGE, COLLECTIONS_PARTAGEES, RACINE_CRM)
+    expect(articles.map(a => a.id)).toEqual(['1', '2', '3', '4', '5'])
+
+    // Le sommaire reçoit les descendantes, pas la racine : il montre les collections
+    // du CRM, pas une seule enveloppe « MEGGA CRM ».
+    expect(collections.map(c => c.name)).toEqual(['Démarrer', 'Général', 'Rapports'])
+    const rendus = grouper(articles, collections, 'fr').flatMap(g => g.articles.map(x => x.article.id))
+    expect(rendus.filter(id => SHIELD.includes(id)), 'article Shield sur le site du CRM').toEqual([])
+  })
+
+  it("accepte l'identifiant de la racine en nombre comme en chaîne", () => {
+    // Il sera recopié depuis Intercom, sous l'une ou l'autre forme.
+    expect(restreindreALaRacine(CORPUS_PARTAGE, COLLECTIONS_PARTAGEES, Number(RACINE_CRM)))
+      .toEqual(restreindreALaRacine(CORPUS_PARTAGE, COLLECTIONS_PARTAGEES, RACINE_CRM))
+  })
+
+  it("sans racine, rien ne change : même corpus, même sommaire qu'aujourd'hui", () => {
+    const aujourdhui = restreindreALaRacine(ARTICLES, COLLECTIONS, null)
+    expect(aujourdhui.articles).toBe(ARTICLES)
+    expect(aujourdhui.collections).toBe(COLLECTIONS)
+    expect(grouper(aujourdhui.articles, aujourdhui.collections, 'fr')).toEqual(grouper(ARTICLES, COLLECTIONS, 'fr'))
+    expect(restreindreALaRacine(CORPUS_PARTAGE, COLLECTIONS_PARTAGEES, null).articles).toHaveLength(CORPUS_PARTAGE.length)
+  })
+
+  it('le générateur filtre avant de lire les articles, et donne ses collections au sommaire', () => {
+    const src = readFileSync('scripts/vitrine-aide.mjs', 'utf-8')
+    // Calculé puis ignoré, le filtre laisserait passer le corpus entier sans rougir.
+    expect(src).toMatch(/restreindreALaRacine\(publies, collections, COLLECTION_RACINE\)/)
+    expect(src).toMatch(/for \(const a of perimetre\.articles\)/)
+    expect(src).toMatch(/grouper\(articles, perimetre\.collections, langue\)/)
   })
 })
 
