@@ -32,9 +32,18 @@
 
 /**
  * Messages qui signent un échec de chargement de chunk. Les quatre premiers
- * viennent de StaleBundleDetector (Chrome, Firefox, Safari, webpack) ; les deux
- * derniers sont la variante MIME de Chrome quand la réponse pour une URL .js est
- * du HTML — précisément le mode « cache empoisonné » ci-dessus.
+ * viennent de StaleBundleDetector (Chrome, Firefox, Safari, webpack) ; les trois
+ * derniers sont les variantes MIME — réponse HTML pour une URL .js, précisément
+ * ce que servent les DEUX modes ci-dessus.
+ *
+ * ⛔ SAFARI NE DIT « Importing a module script failed » QUE POUR UN VRAI ÉCHEC
+ * RÉSEAU (ou un statut HTTP d'erreur). Notre chunk manquant, lui, revient en 200
+ * `text/html` (mesuré le 14.09.2026 sur app.getmegga.com : le fallback SPA répond
+ * à n'importe quel /assets/*.js), et WebKit le rejette sur son type MIME :
+ * `'text/html' is not a valid JavaScript MIME type.` jusqu'à Safari 26, suivi de
+ * ` for module script '<url>'.` depuis Safari 27 (WebKit 2833205e, rdar 169396940).
+ * Sans ce motif, un utilisateur de Safari ne récupérait JAMAIS d'un déploiement :
+ * il tombait sur « Une erreur est survenue ».
  */
 export const STALE_CHUNK_PATTERNS = [
   'Failed to fetch dynamically imported module',
@@ -43,6 +52,7 @@ export const STALE_CHUNK_PATTERNS = [
   'error loading dynamically imported module',
   'Expected a JavaScript module script',
   'Expected a JavaScript-or-Wasm module script',
+  'is not a valid JavaScript MIME type',
 ]
 
 /** true si `reason` (Error ou chaîne) correspond à un échec de chunk connu. */
@@ -54,9 +64,10 @@ export function isStaleChunkError(reason: unknown): boolean {
 
 /**
  * URL du chunk fautif, extraite du message d'erreur. Chrome et Firefox la
- * donnent (« …module: https://…/assets/X.js ») ; Safari non (« Importing a
- * module script failed. ») — null dans ce cas, la récupération se limite alors
- * au rechargement cache-busté.
+ * donnent (« …module: https://…/assets/X.js »), Safari 27 aussi dans sa variante
+ * MIME (« …for module script 'https://…/assets/X.js'. ») ; son échec réseau
+ * (« Importing a module script failed. ») et la variante MIME de Safari ≤ 26 non
+ * — null dans ce cas, la récupération se limite alors au rechargement cache-busté.
  */
 export function extractChunkUrl(reason: unknown): string | null {
   if (!reason) return null
