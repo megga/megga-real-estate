@@ -61,9 +61,16 @@ export function isBlockedIp(ip: string): boolean {
 }
 
 async function resolveAll(hostname: string): Promise<string[]> {
+  // ⚠ NOM COMPLET, point final compris. Sans lui, un nom qui n'a pas d'enregistrement du
+  // type demandé — l'AAAA d'un site sans IPv6, le cas courant — repart vers le domaine de
+  // recherche du résolveur (`….home`, `….compute.internal`) : mesuré le 14.09.2026, 5 s
+  // perdues par requête sur un résolveur lent, assez pour faire tomber les délais des
+  // appelants. Un nom interne COURT, lui, cesse de résoudre par ce détour : c'est
+  // précisément ce que ce module refuse.
+  const fqdn = hostname.endsWith('.') ? hostname : `${hostname}.`
   const [a, aaaa] = await Promise.all([
-    Deno.resolveDns(hostname, 'A').catch(() => [] as string[]),
-    Deno.resolveDns(hostname, 'AAAA').catch(() => [] as string[]),
+    Deno.resolveDns(fqdn, 'A').catch(() => [] as string[]),
+    Deno.resolveDns(fqdn, 'AAAA').catch(() => [] as string[]),
   ])
   return [...a, ...aaaa]
 }

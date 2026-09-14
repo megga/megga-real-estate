@@ -33,7 +33,8 @@ beforeEach(() => {
   ;(globalThis as unknown as { Deno: unknown }).Deno = {
     env: { get: () => undefined },
     resolveDns: async (host: string, type: string) => {
-      const ips = DNS[host] ?? []
+      // Le module interroge le nom COMPLET (point final) : la table de test est écrite sans.
+      const ips = DNS[host.replace(/\.$/, '')] ?? []
       return type === 'A' ? ips.filter((ip) => ip.includes('.')) : ips.filter((ip) => ip.includes(':'))
     },
   }
