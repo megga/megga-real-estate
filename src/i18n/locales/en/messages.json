@@ -196,7 +196,7 @@
         "sync": "Synchronisation",
         "syncValue": "Last 90 days",
         "folders": "Imported folders",
-        "foldersValue": "Inbox, Sent",
+        "foldersValue": "Inbox, Sent, Spam",
         "linking": "Contact linking",
         "linkingValue": "Active",
         "another": "Add another",
@@ -249,7 +249,8 @@
       "arch": "Archived",
       "star": "Starred",
       "sent": "Sent",
-      "draft": "Drafts"
+      "draft": "Drafts",
+      "spam": "Spam"
     },
     "labels": {
       "title": "Labels",
@@ -291,6 +292,8 @@
       "unstar": "Remove star",
       "archive": "Archive",
       "unarchive": "Move out of archive",
+      "spam": "Report spam",
+      "notSpam": "Not spam",
       "delete": "Delete"
     },
     "delete": {
@@ -310,7 +313,12 @@
       "showImages": "Show images",
       "bodyTitle": "Message body",
       "truncated": "Message truncated (too large): open it in your mail client for the full version.",
-      "unlinked": "Address not linked: {{email}}"
+      "unlinked": "Address not linked: {{email}}",
+      "spam": "In spam: this message isn't linked to any contact."
+    },
+    "spam": {
+      "reported": "Reported as spam",
+      "restored": "Moved to the inbox"
     },
     "link": {
       "cta": "Link",

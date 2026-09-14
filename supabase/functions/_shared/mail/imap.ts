@@ -2,9 +2,10 @@
  * L'adaptateur IMAP/SMTP — vu de `sync.ts`, `mail-actions`, `mail-send` et
  * `mail-attachment`, la même forme que `gmail.ts` et `graph.ts`.
  *
- * Deux dossiers sont synchronisés, comme chez Graph : la Réception et les Envoyés. Chaque
- * message y est désigné par `<dossier>:<uidValidity>:<uid>` (`provider_message_id`) — ce
- * qu'il faut pour le retrouver et y agir.
+ * Trois dossiers sont synchronisés, comme chez Graph : la Réception, les Envoyés et, depuis
+ * le 14.09.2026, le Spam (`\Junk`). Chaque message y est désigné par
+ * `<dossier>:<uidValidity>:<uid>` (`provider_message_id`) — ce qu'il faut pour le retrouver
+ * et y agir.
  *
  * ⚠ Le FIL n'existe pas en IMAP : il se reconstruit par `References` / `In-Reply-To`
  * (`cleDeFil`). ⚠ Un message DÉPLACÉ change d'UID : il est reconnu par son Message-ID et
@@ -57,7 +58,7 @@ export function decodeMUtf7(s: string): string {
   })
 }
 
-export interface ImapFolders { inbox: string; sent: string | null; archive: string | null; trash: string | null }
+export interface ImapFolders { inbox: string; sent: string | null; archive: string | null; trash: string | null; junk: string | null }
 
 /**
  * Les dossiers utiles : l'usage spécial annoncé (RFC 6154) d'abord, puis les noms usuels
@@ -75,6 +76,9 @@ export function resolveFolders(list: ImapFolder[]): ImapFolders {
     sent: parAttribut('\\Sent') ?? parNom(['Sent', 'Sent Messages', 'Sent Items', 'Sent Mail', 'Envoyés', 'Éléments envoyés', 'Messages envoyés', 'Gesendet', 'Gesendete Elemente', 'Inviati', 'Posta inviata']),
     archive: parAttribut('\\Archive') ?? parNom(['Archive', 'Archives', 'Archiv', 'Archivio']),
     trash: parAttribut('\\Trash') ?? parNom(['Trash', 'Deleted Messages', 'Deleted Items', 'Corbeille', 'Éléments supprimés', 'Papierkorb', 'Gelöschte Elemente', 'Cestino', 'Posta eliminata']),
+    // Le dossier « Spam » du CRM (14.09.2026). « Bulk Mail » est celui de Yahoo, « Spamverdacht »
+    // celui de GMX et WEB.DE.
+    junk: parAttribut('\\Junk') ?? parNom(['Junk', 'Spam', 'Junk E-mail', 'Junk Email', 'Junk Mail', 'Bulk Mail', 'Courrier indésirable', 'Pourriel', 'Indésirables', 'Spamverdacht', 'Junk-E-Mail', 'Unerwünscht', 'Posta indesiderata']),
   }
 }
 
@@ -175,6 +179,11 @@ export async function imapTestConnexion(cfg: ImapConfig, password: string, deps:
 // ── Synchronisation ───────────────────────────────────────────────────────────
 
 const FENETRE_INITIALE_JOURS = 90
+/**
+ * Le Spam, sur 30 jours seulement : c'est ce que Gmail en garde, et ce que la plupart des
+ * hébergeurs purgent. Au-delà, chaque spam importé serait du budget pris au vrai courrier.
+ */
+const FENETRE_SPAM_JOURS = 30
 /** Au-delà, le message est ingéré SANS son corps : l'edge a 256 Mo et 2 s de CPU par requête. */
 const POIDS_MAX = 8 * 1024 * 1024
 /**
@@ -187,6 +196,8 @@ const MESSAGES_PAR_PASSE = 25
 const TRANCHE = 20
 /** Les messages de la Réception dont on relit les drapeaux à chaque passe. */
 const FENETRE_DRAPEAUX = 200
+/** Les plus anciens messages du Spam dont on vérifie, à chaque passe, qu'ils n'ont pas été purgés. */
+const PURGES_PAR_PASSE = 500
 
 export interface ImapPassResult { cursor: ImapCursor; inserted: number; updated: number; changes: number; auditFailures: number; done: boolean }
 
@@ -247,16 +258,21 @@ export async function imapSyncPass(admin: SupabaseClient, account: MailAccountRo
   }
   const { client, folders } = await ouvrirCompte(admin, account, deps)
   try {
-    const dossiers: [string, 'inbox' | 'sent'][] = [[folders.inbox, 'inbox']]
+    const dossiers: [string, 'inbox' | 'sent' | 'junk'][] = [[folders.inbox, 'inbox']]
     if (folders.sent) dossiers.push([folders.sent, 'sent'])
+    // Le spam APRÈS la Réception : un message remis en Réception dans le webmail y est déjà
+    // rebaptisé quand le dossier Spam constate son départ (`resynchroniserSpam`).
+    if (folders.junk) dossiers.push([folders.junk, 'junk'])
     for (const [nom, role] of dossiers) {
       if (reste() <= 0) { out.done = false; break }
       const sel = await client.examine(nom)
       let etat: ImapFolderCursor = out.cursor.folders[nom] ?? { uidValidity: -1, lastUid: 0 }
       if (etat.uidValidity !== sel.uidValidity) {
         // Premier passage, ou dossier RECRÉÉ côté serveur (UIDVALIDITY changé : les anciens
-        // UID ne désignent plus rien). On repart des 90 jours, du plus récent au plus ancien.
-        const depuis = await client.uidSearchSince(new Date(now() - FENETRE_INITIALE_JOURS * 86_400_000))
+        // UID ne désignent plus rien). On repart de la fenêtre initiale, du plus récent au
+        // plus ancien.
+        const jours = role === 'junk' ? FENETRE_SPAM_JOURS : FENETRE_INITIALE_JOURS
+        const depuis = await client.uidSearchSince(new Date(now() - jours * 86_400_000))
         const haut = depuis.length ? Math.max(...depuis) : 0
         etat = {
           uidValidity: sel.uidValidity,
@@ -298,7 +314,7 @@ export async function imapSyncPass(admin: SupabaseClient, account: MailAccountRo
       if (neufsFaits.length) etat.lastUid = Math.max(etat.lastUid, ...neufsFaits)
       if (neufsFaits.length < neufs.length) out.done = false
 
-      // 2. L'import des 90 jours, du plus récent au plus ancien.
+      // 2. L'import de la fenêtre initiale (90 jours, 30 pour le Spam), du plus récent au plus ancien.
       if (etat.backfillBelow != null && etat.floorUid != null && reste() > 0) {
         const anciens = (await client.uidSearchBetween(etat.floorUid, etat.backfillBelow - 1)).sort((a, b) => b - a)
         if (anciens.length === 0) {
@@ -314,8 +330,10 @@ export async function imapSyncPass(admin: SupabaseClient, account: MailAccountRo
       }
       out.cursor.folders[nom] = etat
 
-      // 3. Les drapeaux posés ailleurs (webmail, téléphone) — Réception seulement.
+      // 3. Les drapeaux posés ailleurs (webmail, téléphone) — Réception ; et, pour le Spam,
+      //    les messages qui l'ont QUITTÉ (remis en Réception, ou purgés par le fournisseur).
       if (role === 'inbox' && reste() > 0) out.changes += await resynchroniserDrapeaux(admin, account, client, nom, etat)
+      if (role === 'junk' && reste() > 0) out.changes += await resynchroniserSpam(admin, account, client, nom, etat, folders.inbox)
     }
   } finally {
     await client.logout()
@@ -326,7 +344,7 @@ export async function imapSyncPass(admin: SupabaseClient, account: MailAccountRo
 }
 
 /** Télécharge et analyse un message — ou ses seuls en-têtes quand il est trop lourd. */
-async function lire(client: ImapClient, account: MailAccountRow, dossier: string, uidValidity: number, role: 'inbox' | 'sent', meta: ImapMeta): Promise<NormalizedMessage> {
+async function lire(client: ImapClient, account: MailAccountRow, dossier: string, uidValidity: number, role: 'inbox' | 'sent' | 'junk', meta: ImapMeta): Promise<NormalizedMessage> {
   const ctx = { providerMessageId: providerId(dossier, uidValidity, meta.uid), boxEmail: account.email, dossier: role, flags: meta.flags, internalDate: meta.internalDate }
   if (meta.size > POIDS_MAX) {
     return parseEntetesSeuls(await client.uidFetchHeader(meta.uid), ctx, `Message de ${Math.round(meta.size / 1024 / 1024)} Mo, trop volumineux pour être affiché ici : ouvrez-le dans votre messagerie.`)
@@ -381,6 +399,72 @@ async function resynchroniserDrapeaux(admin: SupabaseClient, account: MailAccoun
   return applyRemoteChanges(admin, account, changes)
 }
 
+/**
+ * Le dossier Spam : les messages qui l'ont QUITTÉ. Remis en Réception dans le webmail
+ * (« ce n'est pas un spam »), un message y a un nouvel UID — la passe de la Réception l'a
+ * normalement déjà rebaptisé ; sinon on l'y cherche par son Message-ID. Introuvable, il a
+ * été purgé (le fournisseur vide son spam) ou supprimé : il quitte le CRM.
+ *
+ * ⛔ JAMAIS « archivé » — c'est ce que la Réception fait d'un message qui la quitte, et un
+ * spam purgé réapparaîtrait alors dans Archivé, le défaut même que le dossier Spam répare.
+ */
+async function resynchroniserSpam(admin: SupabaseClient, account: MailAccountRow, client: ImapClient, dossier: string, etat: ImapFolderCursor, reception: string): Promise<number> {
+  const motif = `${echapperLike(`${dossier}:${etat.uidValidity}:`)}%`
+  const { data, error } = await admin.from('mail_messages').select('provider_message_id, is_read, rfc822_message_id')
+    .eq('account_id', account.id).like('provider_message_id', motif)
+    .order('sent_at', { ascending: false }).limit(FENETRE_DRAPEAUX)
+  if (error) throw new Error(`spam, messages connus: ${error.message}`)
+  const connus = ((data ?? []) as { provider_message_id: string; is_read: boolean; rfc822_message_id: string | null }[])
+    .map((r) => ({ ...r, uid: splitProviderId(r.provider_message_id)?.uid ?? 0 }))
+    .filter((r) => r.uid > 0 && r.uid <= etat.lastUid)
+  if (connus.length === 0) return 0
+  const distants = new Map((await client.uidFetchFlags(connus.map((c) => c.uid).join(','))).map((f) => [f.uid, f.flags]))
+
+  const changes: RemoteChange[] = []
+  const partis: typeof connus = []
+  for (const c of connus) {
+    const flags = distants.get(c.uid)
+    if (!flags) { partis.push(c); continue }
+    const lu = flags.includes('\\Seen')
+    if (lu !== c.is_read) changes.push({ kind: 'flags', providerMessageId: c.provider_message_id, isRead: lu })
+  }
+
+  // Sous cette fenêtre, les PURGES. Un serveur vide son spam par le bas — le plus ancien
+  // d'abord, souvent à 30 jours —, là où la fenêtre des plus récents ne regarde jamais : une
+  // boîte qui reçoit plus de FENETRE_DRAPEAUX spams par mois les verrait sinon s'accumuler
+  // ici sans fin. Une seule recherche sur leur plage rend les UID encore présents. Un
+  // message remis en Réception y a pris un nouvel UID : la passe de la Réception l'a déjà
+  // rebaptisé, ou le reprendra comme un courrier neuf.
+  const vus = new Set(connus.map((c) => c.provider_message_id))
+  const { data: bas, error: e1 } = await admin.from('mail_messages').select('provider_message_id')
+    .eq('account_id', account.id).like('provider_message_id', motif)
+    .order('sent_at', { ascending: true }).limit(PURGES_PAR_PASSE)
+  if (e1) throw new Error(`spam, messages anciens: ${e1.message}`)
+  const anciens = ((bas ?? []) as { provider_message_id: string }[])
+    .filter((r) => !vus.has(r.provider_message_id))
+    .map((r) => ({ ...r, uid: splitProviderId(r.provider_message_id)?.uid ?? 0 }))
+    .filter((r) => r.uid > 0 && r.uid <= etat.lastUid)
+  if (anciens.length) {
+    const uids = anciens.map((a) => a.uid)
+    const presents = new Set(await client.uidSearchBetween(Math.min(...uids), Math.max(...uids)))
+    for (const a of anciens) if (!presents.has(a.uid)) changes.push({ kind: 'message_deleted', providerMessageId: a.provider_message_id })
+  }
+
+  if (partis.length) {
+    const sel = await client.examine(reception)
+    for (const c of partis) {
+      const trouves = c.rfc822_message_id ? await client.uidSearchHeaderMessageId(c.rfc822_message_id) : []
+      if (trouves.length === 0) { changes.push({ kind: 'message_deleted', providerMessageId: c.provider_message_id }); continue }
+      const nouveau = providerId(reception, sel.uidValidity, Math.max(...trouves))
+      const { error: e } = await admin.from('mail_messages').update({ provider_message_id: nouveau })
+        .eq('account_id', account.id).eq('provider_message_id', c.provider_message_id)
+      if (e) throw new Error(`spam, renommage: ${e.message}`)
+      changes.push({ kind: 'flags', providerMessageId: nouveau, isSpam: false, inInbox: true })
+    }
+  }
+  return applyRemoteChanges(admin, account, changes)
+}
+
 // ── Gestes ────────────────────────────────────────────────────────────────────
 
 export interface ImapMsg { provider_message_id: string; direction: 'inbound' | 'outbound'; rfc822_message_id?: string | null }
@@ -400,6 +484,7 @@ export async function imapApply(admin: SupabaseClient, account: MailAccountRow, 
     let ouvert: string | null = null
     const ouvrir = async (dossier: string) => { if (ouvert !== dossier) { await client.select(dossier); ouvert = dossier } }
     let archive = folders.archive
+    let junk = folders.junk
     for (const m of msgs) {
       if (m.provider_message_id.startsWith('pending:')) continue
       const p = splitProviderId(m.provider_message_id)
@@ -420,7 +505,12 @@ export async function imapApply(admin: SupabaseClient, account: MailAccountRow, 
       } else if (action === 'trash') {
         dest = folders.trash
         if (!dest) throw new Error('imap: aucun dossier Corbeille sur ce serveur')
+      } else if (action === 'spam') {
+        // Même règle que l'archive : une boîte sans dossier de spam en reçoit un.
+        if (!junk) { await client.create('Junk'); junk = 'Junk' }
+        dest = junk
       } else {
+        // unarchive, untrash, not_spam : retour en Réception.
         dest = folders.inbox
       }
       if (p.folder === dest) continue

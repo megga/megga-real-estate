@@ -196,7 +196,7 @@
         "sync": "Synchronisation",
         "syncValue": "90 derniers jours",
         "folders": "Dossiers importés",
-        "foldersValue": "Réception, Envoyés",
+        "foldersValue": "Réception, Envoyés, Spam",
         "linking": "Rattachement aux contacts",
         "linkingValue": "Actif",
         "another": "Ajouter une autre",
@@ -249,7 +249,8 @@
       "arch": "Archivé",
       "star": "Suivis",
       "sent": "Envoyés",
-      "draft": "Brouillons"
+      "draft": "Brouillons",
+      "spam": "Spam"
     },
     "labels": {
       "title": "Libellés",
@@ -291,6 +292,8 @@
       "unstar": "Ne plus suivre",
       "archive": "Archiver",
       "unarchive": "Désarchiver",
+      "spam": "Signaler comme spam",
+      "notSpam": "Ce n'est pas un spam",
       "delete": "Supprimer"
     },
     "delete": {
@@ -310,7 +313,12 @@
       "showImages": "Afficher les images",
       "bodyTitle": "Corps du message",
       "truncated": "Message tronqué (trop volumineux) : ouvrez-le dans votre messagerie pour la version complète.",
-      "unlinked": "Adresse non rattachée : {{email}}"
+      "unlinked": "Adresse non rattachée : {{email}}",
+      "spam": "Dans le spam : ce message n'est rattaché à aucun contact."
+    },
+    "spam": {
+      "reported": "Signalé comme spam",
+      "restored": "Rendu à la boîte de réception"
     },
     "link": {
       "cta": "Rapprocher",

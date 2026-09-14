@@ -226,6 +226,18 @@ export function MessagerieApp({ dark, setDark }: Props) {
    * ⚠ La modale vit dans l'état de l'ÉCRAN et non dans le sélecteur : le popover se
    * ferme au clic qui l'appelle, et une modale portée par lui mourrait avec lui.
    */
+  /**
+   * « Signaler comme spam » et « Ce n'est pas un spam », d'où qu'ils viennent (menu de la
+   * ligne, lecteur) — et la notification qui dit où le fil est parti : il QUITTE le
+   * dossier courant, et un fil qui disparaît sans un mot se cherche.
+   */
+  const signalerSpam = (fil: MailThreadRow) => {
+    const retour = fil.is_spam
+    actions.act.mutate({ action: retour ? 'not_spam' : 'spam', threadId: fil.id }, {
+      onSuccess: () => setNotification({ id: Date.now(), texte: t(retour ? 'mail.spam.restored' : 'mail.spam.reported') }),
+    })
+  }
+
   const deconnecterBoite = useCallback((id: string) => {
     accounts.disconnect.reset()
     dispatch({ type: 'modal', modal: { kind: 'disconnect', accountId: id } })
@@ -364,6 +376,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                   onSendForward={(to, note, m) => send.mutate({ kind: 'forward', to, body_text: note, in_reply_to_message_id: m.id }, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'composer', composer: 'none' }) } })}
                   onArchive={() => { actions.act.mutate({ action: filOuvert.is_archived ? 'unarchive' : 'archive', threadId: filOuvert.id }); dispatch({ type: 'back' }) }}
                   onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadId: filOuvert.id } })}
+                  onSpam={() => { signalerSpam(filOuvert); dispatch({ type: 'back' }) }}
                   onOpenAttachment={(a) => dispatch({ type: 'modal', modal: { kind: 'preview', attachmentId: a.id } })}
                   onLinkContact={(email, name) => dispatch({ type: 'modal', modal: { kind: 'link-contact', threadId: filOuvert.id, email, name } })}
                 />
@@ -440,6 +453,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
                 onOpen={() => ouvrirFil(fil.id)}
                 onAction={(a) => actions.act.mutate({ action: a, threadId: fil.id })}
                 onDelete={() => dispatch({ type: 'modal', modal: { kind: 'delete', threadId: fil.id } })}
+                onSpam={() => signalerSpam(fil)}
                 onLabel={(id) => actions.setLabel.mutate({ threadId: fil.id, labelId: id })}
               />
             )

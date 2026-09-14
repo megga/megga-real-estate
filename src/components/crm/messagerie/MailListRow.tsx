@@ -59,6 +59,9 @@ export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onCont
       onMouseEnter={(e) => { e.currentTarget.style.background = ms.hover2 }}
       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
     >
+      {/* Pas d'étoile sur un spam : « Suivis » exclut le spam, le geste semblerait sans effet
+          (même règle que le menu de la ligne). La cellule reste, la grille aussi. */}
+      {row.is_spam ? <span aria-hidden style={{ width: 26 }} /> : (
       <button
         type="button"
         aria-label={row.is_starred ? t('mail.row.unstar') : t('mail.row.star')}
@@ -71,6 +74,7 @@ export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onCont
       >
         <MEIcon name="star" size={15} color={row.is_starred ? ms.star : ms.dim} fill={row.is_starred ? ms.star : 'none'} />
       </button>
+      )}
 
       {/* La pastille vit DANS la colonne de l'expéditeur : la grille reste celle de la maquette. */}
       <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-sm)', minWidth: 0 }}>

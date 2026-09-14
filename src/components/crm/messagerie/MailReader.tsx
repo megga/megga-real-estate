@@ -6,6 +6,11 @@
  * ⚠ Le bandeau de rattachement ne s'affiche QUE si le fil n'a pas de contact :
  * c'est le seul endroit de l'écran d'où l'agent peut apprendre une adresse au
  * CRM (D11), et il disparaît dès que le rattachement est fait.
+ *
+ * ⛔ JAMAIS SUR UN FIL AU SPAM : le spam n'est rattaché à personne (20260915080200). Son
+ * bandeau à lui dit où il est, et le seul geste qui compte — « Ce n'est pas un spam ». Ni
+ * « Répondre » ni « Transférer » : répondre à un spam confirme à l'expéditeur que
+ * l'adresse est lue.
  */
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
@@ -28,6 +33,8 @@ interface Props {
   onSendReply: (text: string, inReplyTo: MailMessageRow) => void
   onSendForward: (to: { name: string | null; email: string }[], note: string, original: MailMessageRow) => void
   onArchive: () => void; onDelete: () => void
+  /** « Signaler comme spam », ou « Ce n'est pas un spam » sur un fil au spam. */
+  onSpam: () => void
   onOpenAttachment: (a: MailAttachmentRow) => void
   onLinkContact: (email: string, name: string | null) => void
 }
@@ -144,7 +151,21 @@ export function MailReader(p: Props) {
         )}
       </div>
 
-      {!p.thread.contact_id && cible && (
+      {p.thread.is_spam && (
+        <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>
+          <MEIcon name="alert" size={13} />
+          {t('mail.read.spam')}
+          <button
+            type="button"
+            onClick={p.onSpam}
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', color: ms.accentText, fontWeight: 600, fontSize: 'var(--crm-text-xs)', cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            {t('mail.ctx.notSpam')}
+          </button>
+        </div>
+      )}
+
+      {!p.thread.is_spam && !p.thread.contact_id && cible && (
         <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>
           {t('mail.read.unlinked', { email: cible.email })}
           <button
@@ -189,9 +210,14 @@ export function MailReader(p: Props) {
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-7xl)' }}>
-        {btn(t('mail.read.reply'), p.onReply, { primary: true })}
-        {btn(t('mail.read.forward'), p.onForward)}
-        {btn(p.thread.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), p.onArchive)}
+        {p.thread.is_spam ? btn(t('mail.ctx.notSpam'), p.onSpam, { primary: true }) : (
+          <>
+            {btn(t('mail.read.reply'), p.onReply, { primary: true })}
+            {btn(t('mail.read.forward'), p.onForward)}
+            {btn(p.thread.is_archived ? t('mail.ctx.unarchive') : t('mail.ctx.archive'), p.onArchive)}
+            {btn(t('mail.ctx.spam'), p.onSpam)}
+          </>
+        )}
         {btn(t('mail.ctx.delete'), p.onDelete, { danger: true, right: true })}
       </div>
     </div>

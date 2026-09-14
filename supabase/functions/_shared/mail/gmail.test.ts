@@ -71,6 +71,27 @@ describe('normalizeGmailMessage', () => {
   })
 })
 
+describe('le libellé SPAM', () => {
+  it('un message au spam est isSpam, hors Réception — sans être pris pour archivé ailleurs', () => {
+    const n = normalizeGmailMessage({ ...MSG, labelIds: ['SPAM', 'UNREAD'] }, 'g@agence.ch')
+    expect(n.isSpam).toBe(true)
+    expect(n.inInbox).toBe(false)
+    expect(normalizeGmailMessage(MSG, 'g@agence.ch').isSpam).toBe(false)
+  })
+  it('l historique traduit SPAM posé / retiré en isSpam', () => {
+    const r = historyToChanges({
+      history: [
+        { id: '1', labelsAdded: [{ message: { id: 'A', threadId: 't' }, labelIds: ['SPAM'] }], labelsRemoved: [{ message: { id: 'A', threadId: 't' }, labelIds: ['INBOX'] }] },
+        { id: '2', labelsRemoved: [{ message: { id: 'B', threadId: 't' }, labelIds: ['SPAM'] }] },
+      ],
+    })
+    expect(r.changes).toEqual([
+      { kind: 'flags', providerMessageId: 'A', isSpam: true, inInbox: false },
+      { kind: 'flags', providerMessageId: 'B', isSpam: false },
+    ])
+  })
+})
+
 describe('historyToChanges', () => {
   it('traduit ajouts, suppressions et libellés en opérations', () => {
     const page: GmailHistoryPage = {
@@ -122,10 +143,12 @@ describe('nextHistoryCursor', () => {
 })
 
 describe('appels HTTP', () => {
-  it('gmailListInitial borne à 90 jours hors spam/corbeille', async () => {
+  it('gmailListInitial : 90 jours, SPAM compris (includeSpamTrash), corbeille et chats exclus', async () => {
     const fetch = vi.fn(async (u: string) => {
       const url = new URL(u)
-      expect(url.searchParams.get('q')).toBe('newer_than:90d -in:spam -in:trash -in:chats')
+      expect(url.searchParams.get('q')).toBe('newer_than:90d -in:trash -in:chats')
+      // Sans lui, messages.list écarte le spam quelle que soit la requête.
+      expect(url.searchParams.get('includeSpamTrash')).toBe('true')
       expect(url.searchParams.get('maxResults')).toBe('50')
       return new Response(JSON.stringify({ messages: [{ id: 'a' }, { id: 'b' }], nextPageToken: 'p2' }), { status: 200 })
     })
@@ -149,6 +172,11 @@ describe('gmailLabelPatch — INBOX ne se pose que sur un message entrant', () =
     // Rien à faire du tout sur une copie « Envoyés » : mail-actions saute l'appel.
     expect(gmailLabelPatch('unarchive', 'outbound')).toEqual({ add: [], remove: [] })
   })
+  it('spam pose SPAM et retire INBOX ; « pas un spam » rend la Réception au seul courrier reçu', () => {
+    for (const d of ['inbound', 'outbound'] as const) expect(gmailLabelPatch('spam', d), d).toEqual({ add: ['SPAM'], remove: ['INBOX'] })
+    expect(gmailLabelPatch('not_spam', 'inbound')).toEqual({ add: ['INBOX'], remove: ['SPAM'] })
+    expect(gmailLabelPatch('not_spam', 'outbound')).toEqual({ add: [], remove: ['SPAM'] })
+  })
   it('RETIRER un libellé reste indifférencié — c est sans effet sur qui ne l a pas', () => {
     for (const d of ['inbound', 'outbound'] as const) {
       expect(gmailLabelPatch('archive', d), d).toEqual({ add: [], remove: ['INBOX'] })
@@ -160,7 +188,7 @@ describe('gmailLabelPatch — INBOX ne se pose que sur un message entrant', () =
     }
   })
   it('aucun geste ne pose SENT ni DRAFT — Gmail les refuse (« can be manually applied: no »)', () => {
-    for (const a of ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash'] as const) {
+    for (const a of ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash', 'spam', 'not_spam'] as const) {
       for (const d of ['inbound', 'outbound'] as const) {
         const p = gmailLabelPatch(a, d)
         expect([...p.add, ...p.remove], `${a}/${d}`).not.toContain('SENT')

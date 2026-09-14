@@ -8,7 +8,7 @@ const msg = (over: Partial<NormalizedMessage> = {}): NormalizedMessage => ({
   providerMessageId: 'm1', providerThreadId: 't1', rfc822MessageId: '<m1@ex>', inReplyTo: null, references: [],
   direction: 'inbound', from: { name: 'Zoé', email: 'zoe@ex.ch' }, to: [{ name: null, email: BOX }], cc: [], bcc: [],
   replyTo: null, subject: 'Visite', snippet: 'Bonjour', bodyText: 'Bonjour', bodyHtml: null,
-  sentAt: '2026-09-03T08:00:00.000Z', isRead: false, isStarred: false, inInbox: true, isTrashed: false, isDraft: false,
+  sentAt: '2026-09-03T08:00:00.000Z', isRead: false, isStarred: false, inInbox: true, isTrashed: false, isSpam: false, isDraft: false,
   providerLabels: [], attachments: [], ...over,
 })
 
@@ -146,6 +146,35 @@ describe('deriveThreadPatch', () => {
   })
 })
 
+describe('le spam (14.09.2026)', () => {
+  it('le dernier entrant au spam met le fil au SPAM — plus en Archivé', () => {
+    const p = deriveThreadPatch(null, msg({ inInbox: false, isSpam: true }), BOX, true)
+    expect(p.is_spam).toBe(true)
+    // Sorti de la Réception par le filtre du fournisseur, il se lisait « archivé ».
+    expect(p.is_archived).toBe(false)
+  })
+  it('remis en Réception, le dernier entrant sort le fil du spam', () => {
+    const p = deriveThreadPatch({ ...fil('T1', null), last_inbound_at: '2026-09-01T00:00:00.000Z', is_spam: true }, msg({ inInbox: true, isSpam: false }), BOX, false)
+    expect(p.is_spam).toBe(false)
+    expect(p.is_archived).toBe(false)
+  })
+  it('⛔ un courrier au spam n est rattaché à PERSONNE et n entre pas au journal', async () => {
+    const { admin, calls, rpcCalls } = fakeAdmin(vide, () => ({ data: ['c1'], error: null }))
+    await ingestMessages(admin, account, [msg({ isSpam: true, inInbox: false })])
+    expect(rpcCalls.filter((r) => r.fn === 'mail_match_contact_by_emails')).toHaveLength(0)
+    expect(calls.find((c) => c.table === 'mail_messages' && c.op === 'insert')?.payload).toMatchObject({ is_spam: true, contact_id: null })
+    expect(calls.find((c) => c.table === 'mail_threads' && c.op === 'insert')?.payload).toMatchObject({ is_spam: true, contact_id: null })
+    expect(calls.filter((c) => c.table === 'activity_events')).toHaveLength(0)
+  })
+  it('contrôle positif : le même courrier hors spam est rattaché ET journalisé', async () => {
+    const { admin, calls, rpcCalls } = fakeAdmin(vide, () => ({ data: ['c1'], error: null }))
+    await ingestMessages(admin, account, [msg()])
+    expect(rpcCalls.filter((r) => r.fn === 'mail_match_contact_by_emails')).toHaveLength(1)
+    expect(calls.find((c) => c.table === 'mail_messages' && c.op === 'insert')?.payload).toMatchObject({ is_spam: false, contact_id: 'c1' })
+    expect(calls.filter((c) => c.table === 'activity_events' && c.op === 'insert')).toHaveLength(1)
+  })
+})
+
 describe('pickContact', () => {
   it('un seul contact distinct = match ; plusieurs = null', () => {
     expect(pickContact([{ contact_id: 'c1' }, { contact_id: 'c1' }])).toBe('c1')
@@ -221,7 +250,7 @@ const fil = (id: string, contact: string | null): ThreadRow => ({
   id, account_id: 'acc-1', subject: 'Visite', snippet: 's', participants: [{ name: 'Zoé', email: 'zoe@ex.ch' }],
   from_name: null, from_email: null, last_message_at: '2026-09-13T08:00:00.000Z', last_inbound_at: null,
   last_outbound_at: '2026-09-13T08:00:00.000Z', message_count: 1, has_attachments: false, is_read: true,
-  is_starred: false, is_archived: false, is_trashed: false, label_id: null, contact_id: contact,
+  is_starred: false, is_archived: false, is_trashed: false, is_spam: false, label_id: null, contact_id: contact,
 })
 
 describe('ingestMessages : recherche du message déjà connu', () => {

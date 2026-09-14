@@ -295,6 +295,7 @@ mail_threads (
   last_message_at, last_inbound_at, last_outbound_at,
   message_count, has_attachments,
   is_read, is_starred, is_archived, is_trashed,
+  is_spam,           -- 20260915080200 : suit le message ENTRANT le plus récent, comme is_archived
   label_id,          -- FK mail_labels ON DELETE SET NULL
   contact_id,        -- FK contacts ON DELETE SET NULL — rattachement D11
   search_text,       -- GENERATED ALWAYS … STORED : lower(from_name+from_email+subject+snippet)
@@ -302,8 +303,11 @@ mail_threads (
 )
   -- unique (account_id, provider_thread_id)
   -- ⚠ IL N'Y A PAS DE COLONNE « dossier » : les dossiers SONT des requêtes (D8),
-  --   dérivées de is_archived / is_starred / is_trashed / last_inbound_at /
-  --   last_outbound_at par mail_list_threads(p_folder in 'in'|'arch'|'star'|'sent')
+  --   dérivées de is_archived / is_starred / is_trashed / is_spam / last_inbound_at /
+  --   last_outbound_at par mail_list_threads(p_folder in 'in'|'arch'|'star'|'sent'|'spam')
+  -- ⛔ le spam n'apparaît QUE dans 'spam' : les quatre autres dossiers, les non-lus et les
+  --   compteurs de libellés l'excluent (sans quoi un message rangé au spam par le
+  --   fournisseur, sorti de la Réception, se lisait « archivé »)
   -- REPLICA IDENTITY FULL + table publiée dans supabase_realtime : sans elle
   --   l'ancienne ligne d'un DELETE ne porte que la PK, donc pas d'agency_id, et
   --   le filtre serveur du lot 2 jetterait l'événement
@@ -317,8 +321,9 @@ mail_messages (
   subject, snippet,
   body_text, body_html, body_truncated,             -- HTML plafonné à 512 Kio
   sent_at, is_read, has_attachments,
+  is_spam,           -- 20260915080200 : au spam chez le fournisseur (SPAM, junkemail, \Junk)
   provider_labels,   -- text[] : libellés du fournisseur, distincts de mail_labels
-  contact_id, created_at
+  contact_id, created_at   -- contact_id toujours NULL sur un spam : jamais rattaché ni journalisé
 )
   -- unique (account_id, provider_message_id) : l'idempotence de l'ingestion
   -- index (thread_id, sent_at) et (account_id, rfc822_message_id) partiel
@@ -364,10 +369,13 @@ mail_cron_locks (job, locked_until)
 
 -- RPC de lecture (SECURITY INVOKER : la RLS filtre, les totaux sont calculés sur
 -- ce que l'appelant a le droit de voir) : mail_list_threads, mail_unread_counts,
--- mail_folder_counts, mail_search_contacts.
--- mail_match_contact_by_emails(agency_id, emails[]) est la seule SECURITY DEFINER
+-- mail_folder_counts (+ spam depuis 20260915080200), mail_search_contacts.
+-- mail_match_contact_by_emails(agency_id, emails[]) est une SECURITY DEFINER
 -- de lecture : appelée par l'ingestion service-role, qui n'a pas d'auth.uid() —
 -- l'agence vient du compte, jamais du réseau.
+-- mail_spam_message_ids(uuid[]) (20260915080200), SECURITY DEFINER bornée à l'agence : la
+-- fiche du contact demande lesquels de ses courriers sont du spam, pour les écarter —
+-- y compris ceux d'une boîte personnelle dont un collègue voit le FAIT sans lire la boîte.
 
 -- Audit trail
 activity_events (id, agency_id, actor_id, action, entity_type, entity_id, metadata, created_at)

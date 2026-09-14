@@ -1,6 +1,6 @@
 /**
  * La colonne gauche de l'écran (README §1) : sélecteur de boîte, « Nouveau
- * message », les cinq dossiers, puis les libellés de l'agence.
+ * message », les six dossiers, puis les libellés de l'agence.
  *
  * ⚠ Les DOSSIERS sont des REQUÊTES, pas des colonnes (plan maître D8) : cliquer
  * « Archivé » ne déplace rien, il change le prédicat de `mail_list_threads`. Le
@@ -53,6 +53,7 @@ const FOLDERS: { key: MailFolder; icon: MEIconName; label: string }[] = [
   { key: 'star', icon: 'star', label: 'mail.folders.star' },
   { key: 'sent', icon: 'send', label: 'mail.folders.sent' },
   { key: 'draft', icon: 'file-text', label: 'mail.folders.draft' },
+  { key: 'spam', icon: 'alert', label: 'mail.folders.spam' },
 ]
 
 export function MailRail(p: Props) {
@@ -71,7 +72,7 @@ export function MailRail(p: Props) {
     onMouseEnter: (e: React.MouseEvent<HTMLButtonElement>) => { if (!active) e.currentTarget.style.background = ms.hover2 },
     onMouseLeave: (e: React.MouseEvent<HTMLButtonElement>) => { if (!active) e.currentTarget.style.background = 'transparent' },
   })
-  /** Compteur discret (archivés, brouillons, libellés) : il informe, il n'alerte pas. */
+  /** Compteur discret (archivés, brouillons, spam, libellés) : il informe, il n'alerte pas. */
   const counter = (n: number) =>
     n > 0 ? <span style={{ marginLeft: 'auto', fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{n}</span> : null
 
@@ -127,6 +128,7 @@ export function MailRail(p: Props) {
               )}
               {f.key === 'arch' && counter(p.counts.archived)}
               {f.key === 'draft' && counter(p.counts.drafts)}
+              {f.key === 'spam' && counter(p.counts.spam)}
             </button>
           )
         })}

@@ -24,6 +24,7 @@ export interface ThreadRow {
   is_starred: boolean
   is_archived: boolean
   is_trashed: boolean
+  is_spam: boolean
   label_id: string | null
   contact_id: string | null
 }
@@ -109,8 +110,12 @@ export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessa
     has_attachments: (existing?.has_attachments ?? false) || m.attachments.some((a) => !a.isInline),
     is_read: (existing?.is_read ?? true) && m.isRead,
     is_starred: (existing?.is_starred ?? false) || m.isStarred,
-    is_archived: newestInbound ? (!m.inInbox && !m.isTrashed) : (existing?.is_archived ?? false),
+    // ⛔ Un message rangé au spam n'est pas ARCHIVÉ : sorti de la Réception par le filtre du
+    // fournisseur, il se lisait « archivé » et atterrissait dans Archivé (14.09.2026). Le spam
+    // se lit, comme l'archive, sur le message entrant le plus récent.
+    is_archived: newestInbound ? (!m.inInbox && !m.isTrashed && !m.isSpam) : (existing?.is_archived ?? false),
     is_trashed: newer ? m.isTrashed : (existing?.is_trashed ?? false),
+    is_spam: newestInbound ? m.isSpam : (existing?.is_spam ?? false),
   }
 }
 
@@ -258,7 +263,7 @@ export interface IngestOptions {
   skipAudit?: boolean
 }
 
-interface KnownMessageRow { id: string; thread_id: string; provider_message_id: string }
+interface KnownMessageRow { id: string; thread_id: string; provider_message_id: string; is_spam: boolean; contact_id: string | null }
 
 /**
  * Le message est-il déjà en base ? Deux lectures `.eq()` SÉPARÉES, jamais un `.or()`.
@@ -279,7 +284,7 @@ interface KnownMessageRow { id: string; thread_id: string; provider_message_id: 
  * défaut futur casse bruyamment au lieu de se déguiser en « message inconnu ».
  */
 async function findKnownMessage(admin: SupabaseClient, accountId: string, m: NormalizedMessage): Promise<KnownMessageRow | null> {
-  const base = () => admin.from('mail_messages').select('id, thread_id, provider_message_id').eq('account_id', accountId)
+  const base = () => admin.from('mail_messages').select('id, thread_id, provider_message_id, is_spam, contact_id').eq('account_id', accountId)
   const { data: byProvider, error: e1 } = await base().eq('provider_message_id', m.providerMessageId).maybeSingle()
   if (e1) throw new Error(`message lookup: ${e1.message}`)
   if (byProvider) return byProvider as KnownMessageRow
@@ -300,6 +305,11 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
     // Message déjà connu ? (ou copie « Envoyés » d'un envoi CRM en attente : pending:<Message-ID>)
     const known = await findKnownMessage(admin, account.id, m)
     const isNew = !known
+    // Un message qui QUITTE le spam en changeant d'identifiant (IMAP : remis en Réception
+    // dans le webmail, nouvel UID reconnu par son Message-ID) n'a jamais eu sa ligne : il la
+    // reçoit maintenant, comme s'il arrivait. Un message rattaché PUIS envoyé au spam l'a déjà.
+    // Lu AVANT toute écriture : c'est l'état d'avant qui décide.
+    const sortDuSpam = !!known && known.is_spam && !m.isSpam && !known.contact_id
     // Évalué AVANT toute écriture : s'il lève, rien n'est écrit et la passe suivante rejoue le
     // message. Après l'insertion, une levée laissait un message CONNU sans sa ligne de journal.
     const dejaJournalise = isNew && !opts.skipAudit && await autreCopieSortante(admin, account.id, m)
@@ -326,7 +336,10 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
     const patch = deriveThreadPatch((existing as ThreadRow | null) ?? null, m, account.email, isNew)
     let threadId: string
     let contactId: string | null = existing?.contact_id ?? null
-    if (contactId === null) contactId = await matchContact(admin, account.agency_id, externalParticipants(m, account.email).map((a) => a.email))
+    // ⛔ LE SPAM NE SE RATTACHE À PERSONNE (14.09.2026) : l'apparier ferait entrer un courrier
+    // indésirable — souvent un hameçonnage qui usurpe une adresse connue — dans la fiche et
+    // la timeline d'un client. Il sera rattaché s'il QUITTE le spam (`rattacherApresSpam`).
+    if (contactId === null && !m.isSpam) contactId = await matchContact(admin, account.agency_id, externalParticipants(m, account.email).map((a) => a.email))
     if (existing) {
       threadId = existing.id
       const { error } = await admin.from('mail_threads').update({ ...patch, contact_id: contactId }).eq('id', threadId)
@@ -348,7 +361,7 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
       to: m.to, cc: m.cc, bcc: m.bcc, reply_to: m.replyTo, subject: m.subject, snippet: m.snippet,
       body_text: m.bodyText, body_html: html, body_truncated: truncated, sent_at: m.sentAt,
       is_read: m.isRead, has_attachments: m.attachments.some((a) => !a.isInline), provider_labels: m.providerLabels,
-      contact_id: contactId,
+      is_spam: m.isSpam, contact_id: m.isSpam ? null : contactId,
     }
     let messageId: string
     if (known) {
@@ -387,7 +400,7 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
       await recomputeThread(admin, threadId)
     }
 
-    if (isNew && contactId && !opts.skipAudit && !dejaJournalise) {
+    if ((isNew || sortDuSpam) && contactId && !m.isSpam && !opts.skipAudit && !dejaJournalise) {
       if (!await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, messageId, contactId, m.sentAt)) auditFailures++
     }
   }
@@ -506,7 +519,7 @@ export async function recordPendingSend(
  */
 export async function recomputeThread(admin: SupabaseClient, threadId: string): Promise<void> {
   const { data: msgs, error } = await admin.from('mail_messages')
-    .select('sent_at, direction, is_read, has_attachments, snippet')
+    .select('sent_at, direction, is_read, has_attachments, snippet, is_spam')
     .eq('thread_id', threadId).order('sent_at', { ascending: true })
   if (error) throw new Error(`recompute select: ${error.message}`)
   if (!msgs) throw new Error('recompute select: aucune ligne rendue et aucune erreur')
@@ -526,20 +539,24 @@ export async function recomputeThread(admin: SupabaseClient, threadId: string): 
     last_outbound_at: outbound.length ? outbound[outbound.length - 1].sent_at : null,
     has_attachments: msgs.some((x) => x.has_attachments),
     is_read: msgs.every((x) => x.is_read),
+    // Même règle que `deriveThreadPatch` : le fil est au spam si son dernier ENTRANT l'est.
+    is_spam: inbound.length ? !!inbound[inbound.length - 1].is_spam : false,
   }).eq('id', threadId)
   if (eUpd) throw new Error(`recompute update: ${eUpd.message}`)
 }
 
-/** Applique les gestes faits chez le fournisseur (lu, étoile, archive, corbeille, suppression). */
+/** Applique les gestes faits chez le fournisseur (lu, étoile, archive, corbeille, spam, suppression). */
 export async function applyRemoteChanges(admin: SupabaseClient, account: MailAccountRow, changes: RemoteChange[]): Promise<number> {
   let applied = 0
   for (const c of changes) {
     // Une lecture en échec vaudrait « ce message n'existe pas ici » et le changement
     // serait perdu sans trace : on lève, le backoff de syncAccount rejouera la passe.
-    const { data: msg, error: eMsg } = await admin.from('mail_messages').select('id, thread_id, direction')
+    const { data: msg, error: eMsg } = await admin.from('mail_messages').select('id, thread_id, direction, is_spam')
       .eq('account_id', account.id).eq('provider_message_id', c.providerMessageId).maybeSingle()
     if (eMsg) throw new Error(`remote change lookup: ${eMsg.message}`)
     if (!msg) continue
+    // L'état d'AVANT, lu avant toute écriture : c'est lui qui dit si le message sort du spam.
+    const etaitSpam = !!msg.is_spam
     if (c.kind === 'message_deleted') {
       const { error } = await admin.from('mail_messages').delete().eq('id', msg.id)
       if (error) throw new Error(`remote delete: ${error.message}`)
@@ -547,22 +564,74 @@ export async function applyRemoteChanges(admin: SupabaseClient, account: MailAcc
       applied++
       continue
     }
-    if (c.isRead !== undefined) {
-      const { error } = await admin.from('mail_messages').update({ is_read: c.isRead }).eq('id', msg.id)
-      if (error) throw new Error(`remote read flag: ${error.message}`)
+    const surMessage: Record<string, unknown> = {}
+    if (c.isRead !== undefined) surMessage.is_read = c.isRead
+    if (c.isSpam !== undefined) surMessage.is_spam = c.isSpam
+    if (Object.keys(surMessage).length) {
+      const { error } = await admin.from('mail_messages').update(surMessage).eq('id', msg.id)
+      if (error) throw new Error(`remote message flags: ${error.message}`)
     }
     const patch: Record<string, unknown> = {}
     if (c.isStarred !== undefined) patch.is_starred = c.isStarred
     if (c.isTrashed !== undefined) patch.is_trashed = c.isTrashed
-    if (c.inInbox !== undefined && msg.direction === 'inbound') patch.is_archived = !c.inInbox && !(c.isTrashed ?? false)
+    // Ni la corbeille ni le spam ne sont une archive (cf. `deriveThreadPatch`) ; un changement
+    // qui ne dit rien du spam laisse décider l'état du message.
+    if (c.inInbox !== undefined && msg.direction === 'inbound') patch.is_archived = !c.inInbox && !(c.isTrashed ?? false) && !(c.isSpam ?? etaitSpam)
     if (Object.keys(patch).length) {
       const { error } = await admin.from('mail_threads').update(patch).eq('id', msg.thread_id)
       if (error) throw new Error(`remote flags: ${error.message}`)
     }
-    if (c.isRead !== undefined) await recomputeThread(admin, msg.thread_id)
+    // Lu et spam se lisent sur les MESSAGES du fil (le spam suit son dernier entrant).
+    if (c.isRead !== undefined || c.isSpam !== undefined) await recomputeThread(admin, msg.thread_id)
+    // Sorti du spam dans le webmail : le fil entre dans le CRM comme s'il arrivait.
+    if (c.isSpam === false && etaitSpam) await rattacherApresSpam(admin, account, msg.thread_id, [msg.id])
     applied++
   }
   return applied
+}
+
+/**
+ * Un fil qui QUITTE le spam entre dans le CRM comme s'il arrivait : rattaché à son contact
+ * (D11) et journalisé — ce que l'ingestion lui refusait tant qu'il était du spam.
+ *
+ * ⚠ Seuls les messages `sortis` (ceux qui étaient au spam) et SANS contact reçoivent leur
+ * ligne : ceux-là n'ont jamais été journalisés. Un message rattaché PUIS envoyé au spam a
+ * déjà la sienne, et le journal est append-only — il ne la reçoit pas deux fois. Appelé par
+ * `mail-actions` (« Ce n'est pas un spam ») et par `applyRemoteChanges` (le même geste fait
+ * dans le webmail) ; IMAP, qui change d'UID, passe par l'ingestion (`sortDuSpam`).
+ */
+export async function rattacherApresSpam(
+  admin: SupabaseClient, account: MailAccountRow, threadId: string, sortis: string[],
+): Promise<{ journalises: number; auditFailures: number }> {
+  const rien = { journalises: 0, auditFailures: 0 }
+  if (sortis.length === 0) return rien
+  const { data: fil, error: eFil } = await admin.from('mail_threads').select('id, contact_id, is_spam')
+    .eq('id', threadId).eq('account_id', account.id).maybeSingle()
+  if (eFil) throw new Error(`sortie du spam, fil: ${eFil.message}`)
+  if (!fil || fil.is_spam) return rien
+  const { data, error } = await admin.from('mail_messages').select('id, direction, from_name, from_email, to, cc, sent_at, contact_id, is_spam')
+    .eq('thread_id', threadId).order('sent_at', { ascending: true })
+  if (error) throw new Error(`sortie du spam, messages: ${error.message}`)
+  const msgs = (data ?? []) as { id: string; direction: string; from_name: string | null; from_email: string | null; to: MailAddress[] | null; cc: MailAddress[] | null; sent_at: string; contact_id: string | null; is_spam: boolean }[]
+  const orphelins = msgs.filter((m) => sortis.includes(m.id) && !m.contact_id && !m.is_spam)
+  if (orphelins.length === 0) return rien
+  // La règle de l'ingestion, pas une seconde : les correspondants EXTERNES, la boîte exclue.
+  const adresses = [...new Set(msgs.flatMap((m) => externalParticipants({ from: { name: m.from_name, email: m.from_email ?? '' }, to: m.to ?? [], cc: m.cc ?? [] }, account.email).map((a) => a.email)))]
+  const contactId = (fil.contact_id as string | null) ?? await matchContact(admin, account.agency_id, adresses)
+  if (!contactId) return rien
+  if (!fil.contact_id) {
+    const { error: e } = await admin.from('mail_threads').update({ contact_id: contactId }).eq('id', threadId).eq('account_id', account.id)
+    if (e) throw new Error(`sortie du spam, rattachement du fil: ${e.message}`)
+  }
+  const { error: eMsgs } = await admin.from('mail_messages').update({ contact_id: contactId }).in('id', orphelins.map((m) => m.id)).is('contact_id', null)
+  if (eMsgs) throw new Error(`sortie du spam, rattachement des messages: ${eMsgs.message}`)
+  let journalises = 0
+  let auditFailures = 0
+  for (const m of orphelins) {
+    if (await audit(admin, account, m.direction === 'inbound' ? 'email_received' : 'email_sent', threadId, m.id, contactId, m.sent_at)) journalises++
+    else auditFailures++
+  }
+  return { journalises, auditFailures }
 }
 
 /**

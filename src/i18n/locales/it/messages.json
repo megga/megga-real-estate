@@ -196,7 +196,7 @@
         "sync": "Sincronizzazione",
         "syncValue": "Ultimi 90 giorni",
         "folders": "Cartelle importate",
-        "foldersValue": "Posta in arrivo, Inviati",
+        "foldersValue": "Posta in arrivo, Inviati, Spam",
         "linking": "Collegamento ai contatti",
         "linkingValue": "Attivo",
         "another": "Aggiungine un'altra",
@@ -249,7 +249,8 @@
       "arch": "Archiviati",
       "star": "Preferiti",
       "sent": "Inviati",
-      "draft": "Bozze"
+      "draft": "Bozze",
+      "spam": "Spam"
     },
     "labels": {
       "title": "Etichette",
@@ -291,6 +292,8 @@
       "unstar": "Non seguire più",
       "archive": "Archivia",
       "unarchive": "Togli dall'archivio",
+      "spam": "Segnala come spam",
+      "notSpam": "Non è spam",
       "delete": "Elimina"
     },
     "delete": {
@@ -310,7 +313,12 @@
       "showImages": "Mostra le immagini",
       "bodyTitle": "Corpo del messaggio",
       "truncated": "Messaggio troncato (troppo grande): aprilo nel tuo programma di posta per la versione completa.",
-      "unlinked": "Indirizzo non collegato: {{email}}"
+      "unlinked": "Indirizzo non collegato: {{email}}",
+      "spam": "Nello spam: questo messaggio non è collegato a nessun contatto."
+    },
+    "spam": {
+      "reported": "Segnalato come spam",
+      "restored": "Spostato nella posta in arrivo"
     },
     "link": {
       "cta": "Collega",

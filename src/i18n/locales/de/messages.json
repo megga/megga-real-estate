@@ -196,7 +196,7 @@
         "sync": "Synchronisierung",
         "syncValue": "Letzte 90 Tage",
         "folders": "Importierte Ordner",
-        "foldersValue": "Posteingang, Gesendet",
+        "foldersValue": "Posteingang, Gesendet, Spam",
         "linking": "Zuordnung zu Kontakten",
         "linkingValue": "Aktiv",
         "another": "Weiteres hinzufügen",
@@ -249,7 +249,8 @@
       "arch": "Archiviert",
       "star": "Markiert",
       "sent": "Gesendet",
-      "draft": "Entwürfe"
+      "draft": "Entwürfe",
+      "spam": "Spam"
     },
     "labels": {
       "title": "Kategorien",
@@ -291,6 +292,8 @@
       "unstar": "Markierung aufheben",
       "archive": "Archivieren",
       "unarchive": "Aus Archiv holen",
+      "spam": "Als Spam melden",
+      "notSpam": "Kein Spam",
       "delete": "Löschen"
     },
     "delete": {
@@ -310,7 +313,12 @@
       "showImages": "Bilder anzeigen",
       "bodyTitle": "Nachrichtentext",
       "truncated": "Nachricht gekürzt (zu gross): Öffnen Sie sie in Ihrem Mailprogramm für die vollständige Fassung.",
-      "unlinked": "Adresse nicht zugeordnet: {{email}}"
+      "unlinked": "Adresse nicht zugeordnet: {{email}}",
+      "spam": "Im Spam: Diese Nachricht ist keinem Kontakt zugeordnet."
+    },
+    "spam": {
+      "reported": "Als Spam gemeldet",
+      "restored": "In den Posteingang verschoben"
     },
     "link": {
       "cta": "Zuordnen",

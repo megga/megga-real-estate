@@ -3851,6 +3851,7 @@ export type Database = {
           id: string
           in_reply_to: string | null
           is_read: boolean
+          is_spam: boolean
           provider_labels: string[]
           provider_message_id: string
           reply_to: string | null
@@ -3878,6 +3879,7 @@ export type Database = {
           id?: string
           in_reply_to?: string | null
           is_read?: boolean
+          is_spam?: boolean
           provider_labels?: string[]
           provider_message_id: string
           reply_to?: string | null
@@ -3905,6 +3907,7 @@ export type Database = {
           id?: string
           in_reply_to?: string | null
           is_read?: boolean
+          is_spam?: boolean
           provider_labels?: string[]
           provider_message_id?: string
           reply_to?: string | null
@@ -4053,6 +4056,7 @@ export type Database = {
           id: string
           is_archived: boolean
           is_read: boolean
+          is_spam: boolean
           is_starred: boolean
           is_trashed: boolean
           label_id: string | null
@@ -4078,6 +4082,7 @@ export type Database = {
           id?: string
           is_archived?: boolean
           is_read?: boolean
+          is_spam?: boolean
           is_starred?: boolean
           is_trashed?: boolean
           label_id?: string | null
@@ -4103,6 +4108,7 @@ export type Database = {
           id?: string
           is_archived?: boolean
           is_read?: boolean
+          is_spam?: boolean
           is_starred?: boolean
           is_trashed?: boolean
           label_id?: string | null
@@ -9451,6 +9457,7 @@ export type Database = {
           drafts: number
           inbox_unread: number
           label_counts: Json
+          spam: number
         }[]
       }
       mail_list_threads: {
@@ -9473,6 +9480,7 @@ export type Database = {
           id: string
           is_archived: boolean
           is_read: boolean
+          is_spam: boolean
           is_starred: boolean
           is_trashed: boolean
           label_id: string
@@ -9508,6 +9516,7 @@ export type Database = {
         Args: { p_id: string; p_secret: string }
         Returns: undefined
       }
+      mail_spam_message_ids: { Args: { p_ids: string[] }; Returns: string[] }
       mail_unread_counts: {
         Args: never
         Returns: {

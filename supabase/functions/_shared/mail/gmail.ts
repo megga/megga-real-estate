@@ -9,7 +9,14 @@ import { base64UrlDecodeToString, decodeRfc2047, htmlToText, parseAddress, parse
 import { MailAuthError } from './secrets.ts'
 
 const BASE = 'https://gmail.googleapis.com/gmail/v1/users/me'
-export const GMAIL_INITIAL_QUERY = 'newer_than:90d -in:spam -in:trash -in:chats'
+/**
+ * La passe initiale : 90 jours, corbeille et chats exclus — le SPAM compris depuis le
+ * 14.09.2026 (dossier « Spam » du CRM). ⚠ `-in:spam` ne suffisait pas à le tenir dehors :
+ * `history.list` rend ensuite TOUT message ajouté, spam compris, que la synchro lisait
+ * « archivé » faute de libellé INBOX. Gmail efface le spam au bout de 30 jours : la fenêtre
+ * est donc de 30 jours pour lui, de 90 pour le reste.
+ */
+export const GMAIL_INITIAL_QUERY = 'newer_than:90d -in:trash -in:chats'
 export const GMAIL_PAGE_SIZE = 50
 
 export interface GmailDeps { fetch?: typeof fetch }
@@ -64,7 +71,9 @@ export async function gmailIdentity(token: string, deps: GmailDeps = {}): Promis
 }
 
 export async function gmailListInitial(token: string, pageToken: string | null, deps: GmailDeps = {}): Promise<{ ids: string[]; nextPageToken: string | null }> {
-  const q = new URLSearchParams({ q: GMAIL_INITIAL_QUERY, maxResults: String(GMAIL_PAGE_SIZE) })
+  // ⚠ `includeSpamTrash` : sans lui, `messages.list` écarte le spam QUELLE QUE SOIT la requête
+  // (et la corbeille, que `-in:trash` écarte de toute façon).
+  const q = new URLSearchParams({ q: GMAIL_INITIAL_QUERY, maxResults: String(GMAIL_PAGE_SIZE), includeSpamTrash: 'true' })
   if (pageToken) q.set('pageToken', pageToken)
   const j = await gcall<{ messages?: { id: string }[]; nextPageToken?: string }>(token, `/messages?${q}`, deps)
   return { ids: (j.messages ?? []).map((m) => m.id), nextPageToken: j.nextPageToken ?? null }
@@ -123,6 +132,9 @@ export function gmailLabelPatch(action: MailThreadAction, direction: MailDirecti
     star: [['STARRED'], []], unstar: [[], ['STARRED']],
     archive: [[], ['INBOX']], unarchive: [inbox, []],
     trash: [['TRASH'], ['INBOX']], untrash: [inbox, ['TRASH']],
+    // SPAM se pose à la main comme TRASH (« Manage labels ») ; « pas un spam » rend la
+    // Réception au seul message ENTRANT, comme `untrash`.
+    spam: [['SPAM'], ['INBOX']], not_spam: [inbox, ['SPAM']],
   }
   const [add, remove] = table[action]
   return { add, remove }
@@ -204,6 +216,7 @@ export function normalizeGmailMessage(m: GmailMessage, boxEmail: string): Normal
     isStarred: labels.includes('STARRED'),
     inInbox: labels.includes('INBOX'),
     isTrashed: labels.includes('TRASH'),
+    isSpam: labels.includes('SPAM'),
     isDraft: labels.includes('DRAFT'),
     providerLabels: labels,
     attachments: acc.atts,
@@ -247,6 +260,7 @@ export function historyToChanges(page: GmailHistoryPage): { added: string[]; cha
       else if (l === 'STARRED') flags(id).isStarred = on
       else if (l === 'INBOX') flags(id).inInbox = on
       else if (l === 'TRASH') flags(id).isTrashed = on
+      else if (l === 'SPAM') flags(id).isSpam = on
     }
   }
   for (const rec of page.history ?? []) {

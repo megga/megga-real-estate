@@ -175,6 +175,7 @@ const T = (i: number, over: Partial<MailThreadRow> = {}): MailThreadRow => {
     // banc, et un dossier vide ne se distingue pas d'un dossier cassé.
     is_archived: i % 8 === 5,
     is_trashed: false,
+    is_spam: false,
     label_id: FX_LABELS[i % FX_LABELS.length].id,
     contact_id: i % 2 === 0 ? 'fx-c1' : null,
     message_count: 1 + (i % 3),
@@ -185,7 +186,8 @@ const T = (i: number, over: Partial<MailThreadRow> = {}): MailThreadRow => {
 }
 
 /**
- * 48 fils : quatre pages de douze, de quoi voir la pagination bouger.
+ * 48 fils : quatre pages de douze, de quoi voir la pagination bouger — plus trois spams,
+ * que seul le dossier « Spam » montre.
  *
  * Les trois premiers sont RÉDIGÉS (README §« Données ») — ce sont eux que la
  * capture montre en haut de liste, et un objet générique en tête de banc ne dit
@@ -196,6 +198,16 @@ export const FX_THREADS: MailThreadRow[] = [
   T(2, { subject: 'Attestation de financement', snippet: "Veuillez trouver ci-joint l'attestation.", from_name: 'Banque Exemple SA', from_email: 'credit@banque-exemple.ch', participants: [{ name: 'Banque Exemple SA', email: 'credit@banque-exemple.ch' }], is_read: true, is_starred: true, has_attachments: true, label_id: 'fx-l2', contact_id: null, message_count: 2, last_message_at: ilYA(1, 2, 0) }),
   T(3, { subject: "Projet d'acte · chemin Fictif 7", snippet: "Le projet d'acte est prêt pour relecture.", from_name: 'Étude Exemple', from_email: 'etude@notaire-exemple.ch', participants: [{ name: 'Étude Exemple', email: 'etude@notaire-exemple.ch' }], is_read: false, is_starred: false, has_attachments: true, label_id: 'fx-l3', contact_id: 'fx-c1', message_count: 1, last_message_at: ilYA(2, 4, 30) }),
   ...Array.from({ length: 45 }, (_, k) => T(k + 4)),
+  // Sans eux, le dossier « Spam » serait vide au banc. Des expéditeurs qui n'existent pas,
+  // comme le reste du jeu ; aucun n'est rattaché, aucun ne porte de libellé.
+  ...([
+    [49, 'Votre colis est en attente de livraison', 'Des frais restent à régler pour libérer votre colis.', 'Service Colis Exemple', 'avis@colis-exemple.com', false, ilYA(0, 3, 40)],
+    [50, 'Vous avez été sélectionné', 'Réclamez votre récompense avant minuit.', 'Loterie Exemple', 'gains@loterie-exemple.com', true, ilYA(3, 5, 10)],
+    [51, 'Doublez la visibilité de vos biens', 'Offre réservée aux agences, sans engagement.', 'Offre Exemple', 'promo@offre-exemple.com', true, ilYA(9, 2, 0)],
+  ] as const).map(([i, subject, snippet, nom, email, lu, date]) => T(i, {
+    subject, snippet, from_name: nom, from_email: email, participants: [{ name: nom, email }], is_read: lu, is_starred: false,
+    is_archived: false, is_spam: true, has_attachments: false, label_id: null, contact_id: null, message_count: 1, last_message_at: date,
+  })),
 ]
 
 /** Les quatre messages RÉDIGÉS, ceux des trois fils de tête. */
@@ -325,7 +337,7 @@ function fils(): MailThreadRow[] {
  */
 export function fxNonLus(): Record<string, number> {
   return fils().reduce<Record<string, number>>((acc, t) => {
-    if (!t.is_read && !t.is_archived && !t.is_trashed) acc[t.account_id] = (acc[t.account_id] ?? 0) + 1
+    if (!t.is_read && !t.is_archived && !t.is_trashed && !t.is_spam) acc[t.account_id] = (acc[t.account_id] ?? 0) + 1
     return acc
   }, {})
 }
@@ -336,6 +348,9 @@ export function fxNonLus(): Record<string, number> {
  * mentiraient sur la liste servie à côté.
  */
 function filtreDossier(t: MailThreadRow, folder: MailFolder): boolean {
+  // ⛔ Le spam n'apparaît QUE dans « Spam », comme dans la RPC.
+  if (folder === 'spam') return t.is_spam && !t.is_trashed
+  if (t.is_spam) return false
   switch (folder) {
     case 'in': return !t.is_archived && !t.is_trashed
     case 'arch': return t.is_archived && !t.is_trashed
@@ -367,7 +382,9 @@ export function fxThreads(
     && (!f.unreadOnly || !t.is_read)
     && (!f.attOnly || t.has_attachments)
     && (!q || `${t.subject ?? ''} ${t.from_name ?? ''} ${t.from_email ?? ''}`.toLowerCase().includes(q)),
-  )
+  // L'ordre de la RPC (`last_message_at desc, id desc`) : un fil rendu du spam reprend sa
+  // place dans la Réception, pas la fin du jeu.
+  ).sort((a, b) => b.last_message_at.localeCompare(a.last_message_at) || b.id.localeCompare(a.id))
   const total = tous.length
   return { rows: tous.slice(page * perPage, (page + 1) * perPage).map((r) => ({ ...r, total })), total }
 }
@@ -407,16 +424,22 @@ export function fxSenderLogos(state: MailFixtureState, domaines: string[]): Reco
   return Object.fromEntries(domaines.filter((d) => d in FX_SENDER_LOGOS).map((d) => [d, FX_SENDER_LOGOS[d]]))
 }
 
-/** Les compteurs du rail, recalculés sur le même jeu — jamais écrits à la main. */
+/**
+ * Les compteurs du rail, recalculés sur le même jeu — jamais écrits à la main, et avec les
+ * prédicats de `mail_folder_counts` : sans la corbeille ni le spam, depuis que les gestes
+ * du banc tiennent (un fil supprimé comptait encore parmi les archivés).
+ */
 export function fxCounts(state: MailFixtureState, accountId: string | null): MailFolderCounts {
-  if (state !== 'full' || !accountId) return { inbox_unread: 0, archived: 0, drafts: 0, label_counts: {} }
-  const dansLaBoite = fils().filter((t) => t.account_id === accountId)
+  if (state !== 'full' || !accountId) return { inbox_unread: 0, archived: 0, drafts: 0, spam: 0, label_counts: {} }
+  const dansLaBoite = fils().filter((t) => t.account_id === accountId && !t.is_trashed)
+  const courrier = dansLaBoite.filter((t) => !t.is_spam)
   const label_counts: Record<string, number> = {}
-  for (const t of dansLaBoite) if (t.label_id) label_counts[t.label_id] = (label_counts[t.label_id] ?? 0) + 1
+  for (const t of courrier) if (t.label_id) label_counts[t.label_id] = (label_counts[t.label_id] ?? 0) + 1
   return {
-    inbox_unread: dansLaBoite.filter((t) => !t.is_read && !t.is_archived).length,
-    archived: dansLaBoite.filter((t) => t.is_archived).length,
+    inbox_unread: courrier.filter((t) => !t.is_read && !t.is_archived).length,
+    archived: courrier.filter((t) => t.is_archived).length,
     drafts: 0,
+    spam: dansLaBoite.filter((t) => t.is_spam).length,
     label_counts,
   }
 }

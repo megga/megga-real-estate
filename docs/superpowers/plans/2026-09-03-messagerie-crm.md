@@ -163,6 +163,8 @@ L'écran est celui d'un ERP dentaire ; le README l'annonce « transposable tel q
 
 **D16 — Périmètre v1 = bureau.** `ResponsiveRoute` exige un composant mobile : v1 monte un écran mobile minimal (liste des fils + lecture, sans composer), lot 2 T2.13. Le compose, les modales et l'assistant restent bureau.
 
+**D17 — Le spam est un dossier, jamais un contact** (ajoutée le 14.09.2026, Julien : « tu as oublié les spams »). D8 écartait le spam à l'import (`-in:spam`, Réception et Envoyés seuls), pas ce qui y entrait ensuite : sorti de la Réception, un message rangé au spam se lisait archivé, et apparaissait dans « Archivé ». `is_spam` sur `mail_messages` et `mail_threads` (le fil suit son entrant le plus récent, comme `is_archived`) ; un dossier `spam` dans `mail_list_threads`, que les quatre autres, les non-lus et les compteurs de libellés excluent (migration `20260915080200`). Gmail : libellé `SPAM` ; Graph : dossier `junkemail` au delta ; IMAP : dossier `\Junk`, sinon ses noms usuels — **aucun scope de plus** chez Google ni chez Microsoft. Import sur 30 jours (ce que Gmail garde). Gestes `spam` / `not_spam` répercutés chez le fournisseur. ⛔ Le spam n'est **jamais rattaché** (D11) ni journalisé ; en sortir le rattache et le journalise une fois. Un courrier rattaché PUIS signalé garde sa ligne au journal (append-only) et quitte la fiche du contact (`mail_spam_message_ids`).
+
 ---
 
 ## §4 — Architecture et flux

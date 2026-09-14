@@ -13,13 +13,15 @@ import { invokeMail } from '@/lib/mail/invoke'
 import { fxAgir, useMailFixtures } from '@/components/crm/messagerie/fixtures'
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 
-export type MailThreadAction = 'mark_read' | 'mark_unread' | 'star' | 'unstar' | 'archive' | 'unarchive' | 'trash' | 'untrash'
+export type MailThreadAction = 'mark_read' | 'mark_unread' | 'star' | 'unstar' | 'archive' | 'unarchive' | 'trash' | 'untrash' | 'spam' | 'not_spam'
 const PATCH: Record<MailThreadAction, Partial<MailThreadRow>> = {
   mark_read: { is_read: true }, mark_unread: { is_read: false }, star: { is_starred: true }, unstar: { is_starred: false },
   archive: { is_archived: true }, unarchive: { is_archived: false }, trash: { is_trashed: true }, untrash: { is_trashed: false, is_archived: false },
+  // « Ce n'est pas un spam » rend le fil à la Réception, comme le fait le fournisseur.
+  spam: { is_spam: true }, not_spam: { is_spam: false, is_archived: false },
 }
 
-/** Les cinq gestes de la liste et du lecteur, tous optimistes sauf `sync_now`. */
+/** Les gestes de la liste et du lecteur, tous optimistes sauf `sync_now`. */
 export function useMailActions(accountId: string | null) {
   const qc = useQueryClient()
   // Banc : le geste s'écrit dans les fixtures, que la liste relit — comme la base en production.

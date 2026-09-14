@@ -8,8 +8,9 @@ import { MailAuthError } from './secrets.ts'
 const BASE = 'https://graph.microsoft.com/v1.0'
 export const GRAPH_PAGE_SIZE = 50
 const DELTA_SELECT = 'id,conversationId,internetMessageId,subject,bodyPreview,from,toRecipients,ccRecipients,bccRecipients,replyTo,receivedDateTime,sentDateTime,isRead,isDraft,hasAttachments,flag,parentFolderId'
-export const GRAPH_FOLDERS = ['inbox', 'sentitems', 'archive', 'deleteditems'] as const
-export type GraphFolder = 'inbox' | 'sentitems'
+export const GRAPH_FOLDERS = ['inbox', 'sentitems', 'archive', 'deleteditems', 'junkemail'] as const
+/** Les dossiers que le delta parcourt. `junkemail` (Courrier indésirable) depuis le 14.09.2026 : le dossier « Spam » du CRM. */
+export type GraphFolder = 'inbox' | 'sentitems' | 'junkemail'
 
 export interface GraphDeps { fetch?: typeof fetch }
 export interface GraphRecipient { emailAddress: { name: string | null; address: string } }
@@ -114,7 +115,10 @@ async function gcall<T>(token: string, url: string, deps: GraphDeps, init: Reque
 }
 
 /**
- * Ids des quatre dossiers connus, résolus une fois puis persistés dans le curseur.
+ * Ids des dossiers connus, résolus une fois puis persistés dans le curseur.
+ *
+ * ⚠ `junkemail` est un dossier de CONFORT au sens ci-dessous : une boîte sans Courrier
+ * indésirable se synchronise quand même, sans dossier Spam.
  *
  * ⛔ DEUX SONT PORTEURS, DEUX SONT DE CONFORT — et confondre les deux BRIQUAIT le compte.
  * `inbox` et `sentitems` sont les dossiers que le delta parcourt : sans eux il n'y a rien
@@ -221,7 +225,7 @@ export async function graphPatch(token: string, id: string, patch: { isRead?: bo
 }
 
 /** Déplace et rend le NOUVEL id. */
-export async function graphMove(token: string, id: string, destination: 'inbox' | 'archive' | 'deleteditems', deps: GraphDeps = {}): Promise<string> {
+export async function graphMove(token: string, id: string, destination: 'inbox' | 'archive' | 'deleteditems' | 'junkemail', deps: GraphDeps = {}): Promise<string> {
   const j = await gcall<{ id: string }>(token, `/me/messages/${encodeURIComponent(id)}/move`, deps, { method: 'POST', body: JSON.stringify({ destinationId: destination }) })
   return j.id
 }
@@ -343,6 +347,7 @@ export function normalizeGraphMessage(
     isStarred: m.flag?.flagStatus === 'flagged',
     inInbox: sameFolder(m.parentFolderId, folderIds.inbox),
     isTrashed: sameFolder(m.parentFolderId, folderIds.deleteditems),
+    isSpam: sameFolder(m.parentFolderId, folderIds.junkemail),
     isDraft: !!m.isDraft,
     providerLabels: m.parentFolderId ? [m.parentFolderId] : [],
     attachments,
@@ -391,6 +396,7 @@ export function deltaToChanges(items: GraphMessage[], known: Set<string>, folder
     if (it.parentFolderId !== undefined) {
       f.inInbox = sameFolder(it.parentFolderId, folderIds.inbox)
       f.isTrashed = sameFolder(it.parentFolderId, folderIds.deleteditems)
+      f.isSpam = sameFolder(it.parentFolderId, folderIds.junkemail)
     }
     // `kind` + `providerMessageId` = un changement qui ne change RIEN : inutile de le
     // faire descendre jusqu'à une lecture en base (même seuil que historyToChanges).
@@ -431,5 +437,6 @@ export async function resolveGraphRemoval(
     kind: 'flags', providerMessageId: r.id,
     inInbox: sameFolder(parentFolderId, folderIds.inbox),
     isTrashed: sameFolder(parentFolderId, folderIds.deleteditems),
+    isSpam: sameFolder(parentFolderId, folderIds.junkemail),
   }
 }

@@ -2,6 +2,7 @@
 // Gestes sur un fil, répercutés chez le fournisseur PUIS en base (l'UI est
 // optimiste ; si le fournisseur refuse, elle rétablit — plan §4 « Flux d'actions »).
 //   mark_read | mark_unread | star | unstar | archive | unarchive | trash | untrash
+//   | spam | not_spam
 //     { account_id, thread_id }
 //   link_contact { account_id, thread_id, contact_id, email }
 //   sync_now     { account_id }
@@ -9,12 +10,13 @@
 // il n'a pas d'équivalent fournisseur.
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
 import { requireAgentAuth } from '../_shared/require-agent-auth.ts'
+import { redactedErrorMessage } from '../_shared/audit-edge-error.ts'
 import { loadVisibleAccount, providerConfigFromEnv } from '../_shared/mail/guard.ts'
 import { getValidAccessToken } from '../_shared/mail/secrets.ts'
 import { gmailLabelPatch, gmailModify } from '../_shared/mail/gmail.ts'
 import { graphMove, graphPatch } from '../_shared/mail/graph.ts'
 import { imapApply } from '../_shared/mail/imap.ts'
-import { linkThreadToContact, recomputeThread } from '../_shared/mail/ingest.ts'
+import { linkThreadToContact, rattacherApresSpam, recomputeThread } from '../_shared/mail/ingest.ts'
 import { syncAccount } from '../_shared/mail/sync.ts'
 import type { MailAccountRow, MailThreadAction } from '../_shared/mail/types.ts'
 
@@ -29,9 +31,9 @@ function json(body: unknown, status = 200): Response {
 // Le type vit dans `types.ts` : `gmailLabelPatch` (gmail.ts) en dépend, et deux unions
 // jumelles qui dérivent l'une de l'autre est exactement le défaut que ce module ne veut pas.
 type ThreadAction = MailThreadAction
-const THREAD_ACTIONS: ThreadAction[] = ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash']
+const THREAD_ACTIONS: ThreadAction[] = ['mark_read', 'mark_unread', 'star', 'unstar', 'archive', 'unarchive', 'trash', 'untrash', 'spam', 'not_spam']
 
-interface MsgRow { id: string; provider_message_id: string; direction: 'inbound' | 'outbound'; rfc822_message_id: string | null }
+interface MsgRow { id: string; provider_message_id: string; direction: 'inbound' | 'outbound'; rfc822_message_id: string | null; is_spam: boolean }
 
 /** Applique le geste chez le fournisseur, message par message. Rend les nouveaux ids Graph (move). */
 async function pushToProvider(account: MailAccountRow, token: string, action: ThreadAction, msgs: MsgRow[]): Promise<Record<string, string>> {
@@ -49,7 +51,7 @@ async function pushToProvider(account: MailAccountRow, token: string, action: Th
       if (action === 'mark_read' || action === 'mark_unread') await graphPatch(token, m.provider_message_id, { isRead: action === 'mark_read' })
       else if (action === 'star' || action === 'unstar') await graphPatch(token, m.provider_message_id, { flagged: action === 'star' })
       else if (m.direction === 'inbound') {
-        const dest = action === 'archive' ? 'archive' : action === 'trash' ? 'deleteditems' : 'inbox'
+        const dest = action === 'archive' ? 'archive' : action === 'trash' ? 'deleteditems' : action === 'spam' ? 'junkemail' : 'inbox'
         renamed[m.provider_message_id] = await graphMove(token, m.provider_message_id, dest)
       }
     } else {
@@ -80,7 +82,7 @@ serve(async (req: Request) => {
   }
 
   const threadId = String(body.thread_id ?? '')
-  const { data: thread, error: eThread } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed, contact_id')
+  const { data: thread, error: eThread } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed, is_spam, contact_id')
     .eq('id', threadId).eq('account_id', account.id).maybeSingle()
   // Une lecture en échec n'est pas un fil absent : la dire 404 enverrait l'agent
   // chercher un fil qu'il voit pourtant à l'écran.
@@ -108,7 +110,7 @@ serve(async (req: Request) => {
   // part ne pointait vers la cause. Un fil sans message est, lui, une anomalie : la
   // ligne de fil naît AVEC son premier message et `recomputeThread` la supprime dès
   // qu'elle se vide — mieux vaut le dire que le traiter comme un succès vide.
-  const { data: msgs, error: eMsgs } = await admin.from('mail_messages').select('id, provider_message_id, direction, rfc822_message_id').eq('thread_id', thread.id)
+  const { data: msgs, error: eMsgs } = await admin.from('mail_messages').select('id, provider_message_id, direction, rfc822_message_id, is_spam').eq('thread_id', thread.id)
   if (eMsgs) return json({ error: 'messages_query_failed', detail: eMsgs.message }, 500)
   if (!msgs || msgs.length === 0) {
     console.error(`[mail-actions] fil ${thread.id} sans message — geste ${action} refusé`)
@@ -150,12 +152,32 @@ serve(async (req: Request) => {
   if (action === 'unarchive') patch.is_archived = false
   if (action === 'trash') { patch.is_trashed = true }
   if (action === 'untrash') { patch.is_trashed = false; patch.is_archived = false }
+  // Le spam se pose sur les messages ENTRANTS — les seuls que le fournisseur a déplacés — et
+  // sur le fil ; en sortir le rend à la Réception, jamais à Archivé.
+  const sortisDuSpam = (msgs as MsgRow[]).filter((m) => m.is_spam).map((m) => m.id)
+  if (action === 'spam' || action === 'not_spam') {
+    const auSpam = action === 'spam'
+    let q = admin.from('mail_messages').update({ is_spam: auSpam }).eq('thread_id', thread.id)
+    if (auSpam) q = q.eq('direction', 'inbound')
+    const { error } = await q
+    // Le texte d'une erreur Postgres ne part pas à l'appelant (audit S14) : il est journalisé caviardé.
+    if (error) { console.error(`[mail-actions] fil ${thread.id}, spam des messages: ${redactedErrorMessage(error)}`); return json({ error: 'local_write_failed' }, 500) }
+    patch.is_spam = auSpam
+    if (!auSpam) patch.is_archived = false
+  }
   if (Object.keys(patch).length) {
     const { error } = await admin.from('mail_threads').update(patch).eq('id', thread.id)
     if (error) return json({ error: 'local_write_failed', detail: error.message }, 500)
   }
+  // ⛔ Sorti du spam, le fil entre dans le CRM comme s'il arrivait : rattaché à son contact et
+  // journalisé — l'ingestion le lui refusait tant qu'il était du spam. Après l'écriture du
+  // fil : `rattacherApresSpam` ne touche pas un fil encore marqué spam.
+  if (action === 'not_spam') {
+    try { await rattacherApresSpam(admin, account, thread.id, sortisDuSpam) }
+    catch (e) { console.error(`[mail-actions] fil ${thread.id}, sortie du spam: ${redactedErrorMessage(e)}`); return json({ error: 'local_write_failed' }, 500) }
+  }
 
-  const { data: after, error: eAfter } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed').eq('id', thread.id).single()
+  const { data: after, error: eAfter } = await admin.from('mail_threads').select('id, is_read, is_starred, is_archived, is_trashed, is_spam').eq('id', thread.id).single()
   // `{ ok: true, thread: null }` disait « c'est fait » sur un fil devenu illisible.
   if (eAfter || !after) return json({ error: 'thread_reload_failed', detail: eAfter?.message ?? 'aucune ligne' }, 500)
   return json({ ok: true, thread: after })

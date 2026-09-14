@@ -9,7 +9,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import type { GmailCursor, GraphCursor, ImapCursor, MailAccountRow, NormalizedMessage, SyncCursor } from './types.ts'
 import { MailAuthError, getValidAccessToken } from './secrets.ts'
 import { gmailGetMessage, gmailHistory, gmailIdentity, gmailListInitial, historyToChanges, nextHistoryCursor, normalizeGmailMessage } from './gmail.ts'
-import { deltaToChanges, graphDelta, graphFolderIds, graphGetBody, graphListAttachments, normalizeGraphMessage, resolveGraphRemoval } from './graph.ts'
+import { deltaToChanges, graphDelta, graphFolderIds, graphGetBody, graphListAttachments, normalizeGraphMessage, resolveGraphRemoval, type GraphFolder } from './graph.ts'
 import { applyRemoteChanges, ingestMessages } from './ingest.ts'
 import { imapSyncPass, type ImapDeps } from './imap.ts'
 import type { RemoteChange } from './types.ts'
@@ -30,6 +30,8 @@ export interface SyncOutcome {
 }
 
 const INITIAL_WINDOW_DAYS = 90
+/** Le Courrier indésirable, sur 30 jours seulement : ce que Gmail garde de son spam (même règle en IMAP). */
+const SPAM_WINDOW_DAYS = 30
 const NEXT_TICK_MS = 2 * 60_000
 /**
  * Délai d'une passe initiale INACHEVÉE. ⚠ Ce n'était pas un délai mais `0` — un compte en
@@ -65,8 +67,8 @@ const MAX_CONSECUTIVE_FAILURES = 5
 /** Le backoff s'élargit avec les échecs (10, 20, 30… min), plafonné à 1 h. */
 const MAX_BACKOFF_MS = 60 * 60_000
 
-function since(now: number): string {
-  return new Date(now - INITIAL_WINDOW_DAYS * 86_400_000).toISOString()
+function since(now: number, days = INITIAL_WINDOW_DAYS): string {
+  return new Date(now - days * 86_400_000).toISOString()
 }
 
 /**
@@ -275,14 +277,18 @@ async function syncGraph(admin: SupabaseClient, account: MailAccountRow, cfg: Pr
   const token = await getValidAccessToken(admin, account, cfg.outlook, deps)
   const c: GraphCursor = (account.sync_cursor as GraphCursor)?.kind === 'outlook'
     ? (account.sync_cursor as GraphCursor)
-    : { kind: 'outlook', inboxDelta: null, sentDelta: null, initialDone: false, folderIds: null }
+    : { kind: 'outlook', inboxDelta: null, sentDelta: null, junkDelta: null, initialDone: false, folderIds: null }
   if (!c.folderIds) c.folderIds = await graphFolderIds(token, deps)
 
-  const folders: { name: 'inbox' | 'sentitems'; key: 'inboxDelta' | 'sentDelta' }[] = [{ name: 'inbox', key: 'inboxDelta' }, { name: 'sentitems', key: 'sentDelta' }]
+  // Le Courrier indésirable seulement s'il existe : c'est un dossier de confort (graphFolderIds).
+  const folders: { name: GraphFolder; key: 'inboxDelta' | 'sentDelta' | 'junkDelta' }[] = [
+    { name: 'inbox', key: 'inboxDelta' }, { name: 'sentitems', key: 'sentDelta' },
+    ...(c.folderIds.junkemail ? [{ name: 'junkemail' as const, key: 'junkDelta' as const }] : []),
+  ]
   let allSettled = true
   for (const f of folders) {
     if (now() - start >= budgetMs) { allSettled = false; break }
-    const d = await graphDelta(token, f.name, c[f.key], since(now()), deps)
+    const d = await graphDelta(token, f.name, c[f.key] ?? null, since(now(), f.name === 'junkemail' ? SPAM_WINDOW_DAYS : INITIAL_WINDOW_DAYS), deps)
     const ids = d.items.filter((i) => !i['@removed']).map((i) => i.id)
     // Une lecture en échec ferait passer TOUS les messages connus pour neufs : autant
     // de GET de corps et de pièces inutiles, et un `update` complet de chaque ligne.

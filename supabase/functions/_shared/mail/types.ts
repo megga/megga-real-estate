@@ -81,15 +81,18 @@ export interface NormalizedMessage {
   isStarred: boolean
   inInbox: boolean
   isTrashed: boolean
+  /** Rangé au spam par le fournisseur (libellé SPAM, dossier Courrier indésirable, dossier \Junk). */
+  isSpam: boolean
   isDraft: boolean
   providerLabels: string[]
   attachments: NormalizedAttachment[]
 }
 
-/** Les huit gestes que `mail-actions` répercute sur un fil (et sur chacun de ses messages). */
+/** Les dix gestes que `mail-actions` répercute sur un fil (et sur chacun de ses messages). */
 export type MailThreadAction =
   | 'mark_read' | 'mark_unread' | 'star' | 'unstar'
   | 'archive' | 'unarchive' | 'trash' | 'untrash'
+  | 'spam' | 'not_spam'
 
 /** Changement d'état venu du fournisseur (geste fait dans Gmail/Outlook). */
 export type RemoteChange =
@@ -101,6 +104,7 @@ export type RemoteChange =
       isStarred?: boolean
       inInbox?: boolean
       isTrashed?: boolean
+      isSpam?: boolean
     }
 
 export interface GmailCursor {
@@ -124,6 +128,8 @@ export interface GraphCursor {
   kind: 'outlook'
   inboxDelta: string | null
   sentDelta: string | null
+  /** Delta du Courrier indésirable (dossier Spam). Absent des curseurs écrits avant le 14.09.2026 — lu en `?? null`. */
+  junkDelta?: string | null
   initialDone: boolean
   /** Ids opaques des dossiers connus (inbox, sentitems, archive, deleteditems), résolus une fois. */
   folderIds: Record<string, string> | null

@@ -3,7 +3,7 @@
  * README de la maquette. Les DONNÉES (fils, messages, libellés, comptes) vivent
  * dans TanStack Query, pas ici : ce reducer ne décide que de ce qui est affiché.
  */
-export type MailFolder = 'in' | 'arch' | 'star' | 'sent' | 'draft'
+export type MailFolder = 'in' | 'arch' | 'star' | 'sent' | 'draft' | 'spam'
 export type MailModal =
   | { kind: 'none' }
   | { kind: 'compose'; draftId?: string }

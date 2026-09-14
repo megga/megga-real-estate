@@ -14,6 +14,7 @@ import type { MailAccountRow } from './types.ts'
 import {
   cleDeFil, decodeMUtf7, imapApply, imapSecurite, imapSend, imapSyncPass, imapTestConnexion, resolveFolders, smtpSecurite, splitProviderId,
 } from './imap.ts'
+import { applyRemoteChanges } from './ingest.ts'
 
 // ── Une boîte en mémoire ──────────────────────────────────────────────────────
 interface Msg { uid: number; flags: string[]; raw: string; date: string }
@@ -81,8 +82,10 @@ function fauxImap(boite: Record<string, Dossier>, caps = 'IMAP4rev1 UIDPLUS MOVE
         if (!x) { dire(`${tag} NO no such mailbox\r\n`); return }
         courant = m[2]
         dire(`* ${x.messages.length} EXISTS\r\n* OK [UIDVALIDITY ${x.uidValidity}] ok\r\n* OK [UIDNEXT ${x.uidNext}] ok\r\n${tag} OK done\r\n`)
-      } else if (d && cmd.startsWith('UID SEARCH SINCE')) {
-        dire(`* SEARCH ${d.messages.map((x) => x.uid).join(' ')}\r\n${tag} OK\r\n`)
+      } else if (d && (m = cmd.match(/^UID SEARCH SINCE (\S+)$/))) {
+        // SINCE compare des JOURS (RFC 3501) : la date interne, sans l'heure.
+        const jour = (x: string) => Date.parse(x.split(' ')[0].replace(/-/g, ' '))
+        dire(`* SEARCH ${d.messages.filter((x) => jour(x.date) >= jour(m![1])).map((x) => x.uid).join(' ')}\r\n${tag} OK\r\n`)
       } else if (d && (m = cmd.match(/^UID SEARCH UID (\S+)$/))) {
         dire(`* SEARCH ${ensemble(m[1], d).map((x) => x.uid).join(' ')}\r\n${tag} OK\r\n`)
       } else if (d && (m = cmd.match(/^UID SEARCH HEADER Message-ID "(.*)"$/))) {
@@ -162,7 +165,8 @@ function likeEnRegex(motif: string): RegExp {
   return new RegExp(`^${re}$`)
 }
 
-function fauxAdmin(tables: Record<string, Ligne[]> = {}) {
+/** `contacts` : adresse → contact, ce que la RPC de rapprochement rendrait (vide par défaut). */
+function fauxAdmin(tables: Record<string, Ligne[]> = {}, contacts: Record<string, string> = {}) {
   const t = (n: string) => (tables[n] ??= [])
   let seq = 0
   const from = (table: string) => {
@@ -202,7 +206,11 @@ function fauxAdmin(tables: Record<string, Ligne[]> = {}) {
     }
     return b
   }
-  const rpc = async (fn: string) => (fn === 'mail_secret_read' ? { data: JSON.stringify({ password: MOT_DE_PASSE }), error: null } : { data: [], error: null })
+  const rpc = async (fn: string, args?: { p_emails?: string[] }) => {
+    if (fn === 'mail_secret_read') return { data: JSON.stringify({ password: MOT_DE_PASSE }), error: null }
+    if (fn === 'mail_match_contact_by_emails') return { data: [...new Set((args?.p_emails ?? []).map((e) => contacts[e]).filter(Boolean))], error: null }
+    return { data: [], error: null }
+  }
   return { admin: { from, rpc } as never, tables }
 }
 
@@ -230,8 +238,12 @@ const boiteType = (): Record<string, Dossier> => ({
   Trash: { uidValidity: 10, uidNext: 1, attrs: ['\\Trash'], messages: [] },
 })
 
+/** L'horloge des tests, figée : les fenêtres d'import (90 jours, 30 pour le Spam) se comptent depuis elle. */
+const MAINTENANT = Date.parse('2026-09-14T12:00:00Z')
+
 const branche = (imap: ReturnType<typeof fauxImap>, smtp?: ReturnType<typeof fauxSmtp>) => ({
   dial: async (host: string) => (host.startsWith('smtp') ? smtp!.duplex : imap.duplex),
+  now: () => MAINTENANT,
 })
 
 // ── Dossiers ──────────────────────────────────────────────────────────────────
@@ -240,7 +252,13 @@ describe('les dossiers', () => {
     expect(resolveFolders([
       { name: 'INBOX', attributes: [] }, { name: 'INBOX.Envoy&AOk-s', attributes: [] },
       { name: 'Corbeille', attributes: [] }, { name: 'Tout', attributes: ['\\Archive'] },
-    ])).toEqual({ inbox: 'INBOX', sent: 'INBOX.Envoy&AOk-s', archive: 'Tout', trash: 'Corbeille' })
+    ])).toEqual({ inbox: 'INBOX', sent: 'INBOX.Envoy&AOk-s', archive: 'Tout', trash: 'Corbeille', junk: null })
+  })
+  it('le Spam : l usage spécial \\Junk d abord, puis les noms — « Bulk Mail » de Yahoo, « Spamverdacht » de GMX', () => {
+    expect(resolveFolders([{ name: 'INBOX', attributes: [] }, { name: 'Indésirables', attributes: ['\\Junk'] }, { name: 'Spam', attributes: [] }]).junk).toBe('Indésirables')
+    expect(resolveFolders([{ name: 'INBOX', attributes: [] }, { name: 'INBOX.Spam', attributes: [] }]).junk).toBe('INBOX.Spam')
+    expect(resolveFolders([{ name: 'INBOX', attributes: [] }, { name: 'Bulk Mail', attributes: [] }]).junk).toBe('Bulk Mail')
+    expect(resolveFolders([{ name: 'INBOX', attributes: [] }, { name: 'Spamverdacht', attributes: [] }]).junk).toBe('Spamverdacht')
     expect(decodeMUtf7('Envoy&AOk-s &- Co')).toBe('Envoyés & Co')
   })
   it('un identifiant de message garde un dossier qui contient des deux-points', () => {
@@ -379,6 +397,146 @@ describe('imapSend', () => {
     const depose = boite.Sent.messages.find((m) => m.raw.includes('<neuf@agence.ch>'))!
     expect(depose.raw).toContain('Bcc: secret@ex.ch')
     expect(depose.flags).toEqual(['\\Seen'])
+  })
+})
+
+// ── Le dossier Spam (14.09.2026) ─────────────────────────────────────────────
+describe('le dossier Spam', () => {
+  /** La boîte type, plus un dossier Spam annoncé `\Junk` qui porte un courrier au nom de Zoé — une adresse CONNUE. */
+  const boiteAvecSpam = (): Record<string, Dossier> => ({
+    ...boiteType(),
+    Junk: {
+      uidValidity: 11, uidNext: 2, attrs: ['\\Junk'], messages: [
+        { uid: 1, flags: [], raw: courrier({ id: '<s1@spam.ex>', objet: 'Votre colis est bloqué' }), date: '10-Sep-2026 12:00:00 +0200' },
+      ],
+    },
+  })
+  const CONTACTS = { 'zoe@ex.ch': 'c-zoe' }
+  const messages = (t: Record<string, Ligne[]>) => (t.mail_messages ?? []) as Ligne[]
+  const ligne = (t: Record<string, Ligne[]>, pid: string) => messages(t).find((m) => m.provider_message_id === pid)!
+  const filDe = (t: Record<string, Ligne[]>, pid: string) => (t.mail_threads as Ligne[]).find((f) => f.id === ligne(t, pid).thread_id)!
+  const auJournal = (t: Record<string, Ligne[]>, messageId: unknown) =>
+    ((t.activity_events ?? []) as Ligne[]).filter((e) => (e.metadata as { message_id?: unknown } | null)?.message_id === messageId)
+
+  it('⛔ reçu au Spam : au spam, jamais archivé, rattaché à PERSONNE — même au nom d une adresse connue', async () => {
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boiteAvecSpam())))
+    expect(filDe(tables, 'Junk:11:1')).toMatchObject({ is_spam: true, is_archived: false, contact_id: null })
+    expect(ligne(tables, 'Junk:11:1')).toMatchObject({ is_spam: true, contact_id: null })
+    expect(auJournal(tables, ligne(tables, 'Junk:11:1').id)).toHaveLength(0)
+    // Contrôle positif : le courrier de Zoé en Réception, lui, est rattaché et journalisé.
+    expect(filDe(tables, 'INBOX:7:1').contact_id).toBe('c-zoe')
+    expect(auJournal(tables, ligne(tables, 'INBOX:7:1').id)).toHaveLength(1)
+  })
+
+  it('envoyé au Spam dans le webmail : rebaptisé, au spam — et PLUS dans Archivé', async () => {
+    const boite = boiteAvecSpam()
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    const premiere = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    const m3 = boite.INBOX.messages.find((m) => m.uid === 3)!
+    boite.INBOX.messages = boite.INBOX.messages.filter((m) => m !== m3)
+    boite.Junk.messages.push({ ...m3, uid: boite.Junk.uidNext++ })
+    await imapSyncPass(admin, compte(), premiere.cursor, 20_000, branche(fauxImap(boite)))
+    const ids = messages(tables).map((m) => m.provider_message_id)
+    expect(ids).toContain('Junk:11:2')
+    expect(ids).not.toContain('INBOX:7:3')
+    expect(filDe(tables, 'Junk:11:2')).toMatchObject({ is_spam: true, is_archived: false })
+  })
+
+  it('remis en Réception dans le webmail : sort du spam, rattaché, et journalisé UNE seule fois', async () => {
+    const boite = boiteAvecSpam()
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    const premiere = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    const s1 = boite.Junk.messages.find((m) => m.uid === 1)!
+    boite.Junk.messages = boite.Junk.messages.filter((m) => m !== s1)
+    boite.INBOX.messages.push({ ...s1, uid: boite.INBOX.uidNext++ })
+    const seconde = await imapSyncPass(admin, compte(), premiere.cursor, 20_000, branche(fauxImap(boite)))
+    expect(ligne(tables, 'INBOX:7:4')).toMatchObject({ is_spam: false, contact_id: 'c-zoe' })
+    expect(filDe(tables, 'INBOX:7:4')).toMatchObject({ is_spam: false, is_archived: false, contact_id: 'c-zoe' })
+    expect(auJournal(tables, ligne(tables, 'INBOX:7:4').id)).toHaveLength(1)
+    await imapSyncPass(admin, compte(), seconde.cursor, 20_000, branche(fauxImap(boite)))
+    expect(auJournal(tables, ligne(tables, 'INBOX:7:4').id)).toHaveLength(1)
+  })
+
+  it('⛔ purgé du Spam par le fournisseur : il quitte le CRM — jamais Archivé', async () => {
+    const boite = boiteAvecSpam()
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    const premiere = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    boite.Junk.messages = []
+    await imapSyncPass(admin, compte(), premiere.cursor, 20_000, branche(fauxImap(boite)))
+    expect(messages(tables).map((m) => m.provider_message_id)).not.toContain('Junk:11:1')
+    expect((tables.mail_threads as Ligne[]).some((f) => f.subject === 'Votre colis est bloqué')).toBe(false)
+  })
+
+  it('sorti du spam chez Gmail ou Outlook (un drapeau, sans déplacement d UID) : rattaché et journalisé', async () => {
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boiteAvecSpam())))
+    await applyRemoteChanges(admin, compte(), [{ kind: 'flags', providerMessageId: 'Junk:11:1', isSpam: false, inInbox: true }])
+    expect(filDe(tables, 'Junk:11:1')).toMatchObject({ is_spam: false, is_archived: false, contact_id: 'c-zoe' })
+    expect(auJournal(tables, ligne(tables, 'Junk:11:1').id)).toHaveLength(1)
+    // Rejoué, le même changement n'écrit pas une seconde ligne.
+    await applyRemoteChanges(admin, compte(), [{ kind: 'flags', providerMessageId: 'Junk:11:1', isSpam: false, inInbox: true }])
+    expect(auJournal(tables, ligne(tables, 'Junk:11:1').id)).toHaveLength(1)
+  })
+
+  it('le Spam n est importé que sur 30 jours — la Réception, elle, sur 90', async () => {
+    const boite = boiteAvecSpam()
+    boite.INBOX = { uidValidity: 7, uidNext: 3, attrs: [], messages: [
+      { uid: 1, flags: [], raw: courrier({ id: '<vieux@ex.ch>', objet: 'Il y a quarante jours' }), date: '05-Aug-2026 10:00:00 +0200' },
+      { uid: 2, flags: [], raw: courrier({ id: '<m2@ex.ch>' }), date: '10-Sep-2026 10:00:00 +0200' },
+    ] }
+    boite.Junk = { uidValidity: 11, uidNext: 3, attrs: ['\\Junk'], messages: [
+      { uid: 1, flags: [], raw: courrier({ id: '<vieux@spam.ex>', objet: 'Vieux spam' }), date: '05-Aug-2026 12:00:00 +0200' },
+      { uid: 2, flags: [], raw: courrier({ id: '<s1@spam.ex>', objet: 'Votre colis est bloqué' }), date: '10-Sep-2026 12:00:00 +0200' },
+    ] }
+    const { admin, tables } = fauxAdmin()
+    await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    const ids = messages(tables).map((m) => m.provider_message_id)
+    expect(ids).toEqual(expect.arrayContaining(['INBOX:7:1', 'INBOX:7:2', 'Junk:11:2']))
+    expect(ids).not.toContain('Junk:11:1')
+  })
+
+  it('⛔ une purge SOUS la fenêtre des 200 plus récents quitte aussi le CRM — un spam par heure pendant neuf jours', async () => {
+    const MOIS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const deux = (x: number) => String(x).padStart(2, '0')
+    const dateImap = (ms: number) => { const d = new Date(ms); return `${deux(d.getUTCDate())}-${MOIS[d.getUTCMonth()]}-${d.getUTCFullYear()} ${deux(d.getUTCHours())}:00:00 +0000` }
+    const n = 205
+    const boite = boiteType()
+    boite.Junk = { uidValidity: 12, uidNext: n + 1, attrs: ['\\Junk'], messages: Array.from({ length: n }, (_, i) => ({
+      uid: i + 1, flags: [], raw: courrier({ id: `<p${i + 1}@spam.ex>`, objet: `Promo ${i + 1}` }), date: dateImap(Date.parse('2026-09-05T00:00:00Z') + i * 3_600_000),
+    })) }
+    const { admin, tables } = fauxAdmin()
+    let curseur: Awaited<ReturnType<typeof imapSyncPass>>['cursor'] | null = null
+    for (let i = 0; i < 20; i++) {
+      const r = await imapSyncPass(admin, compte(), curseur, 20_000, branche(fauxImap(boite)))
+      curseur = r.cursor
+      if (r.done) break
+    }
+    const auSpam = () => messages(tables).map((m) => String(m.provider_message_id)).filter((id) => id.startsWith('Junk:12:'))
+    expect(auSpam()).toHaveLength(n)
+    // Le fournisseur purge les trois plus anciens : ils sont SOUS la fenêtre des 200 plus récents.
+    boite.Junk.messages = boite.Junk.messages.filter((m) => m.uid > 3)
+    await imapSyncPass(admin, compte(), curseur, 20_000, branche(fauxImap(boite)))
+    expect(auSpam()).toHaveLength(n - 3)
+    expect(auSpam()).not.toContain('Junk:12:1')
+    expect(auSpam()).toContain('Junk:12:4')
+  })
+
+  it('les gestes : « Spam » déplace vers le dossier Spam, « Pas un spam » le rend à la Réception', async () => {
+    const boite = boiteAvecSpam()
+    const { admin } = fauxAdmin()
+    const aller = await imapApply(admin, compte(), 'spam', [{ provider_message_id: 'INBOX:7:3', direction: 'inbound' }], branche(fauxImap(boite)))
+    expect(aller).toEqual({ 'INBOX:7:3': 'Junk:11:2' })
+    const retour = await imapApply(admin, compte(), 'not_spam', [{ provider_message_id: 'Junk:11:2', direction: 'inbound' }], branche(fauxImap(boite)))
+    expect(retour).toEqual({ 'Junk:11:2': 'INBOX:7:4' })
+  })
+
+  it('une boîte sans dossier Spam en reçoit un au premier signalement', async () => {
+    const imap = fauxImap(boiteType())
+    const { admin } = fauxAdmin()
+    const r = await imapApply(admin, compte(), 'spam', [{ provider_message_id: 'INBOX:7:3', direction: 'inbound' }], branche(imap))
+    expect(imap.journal.some((l) => / CREATE "Junk"$/.test(l))).toBe(true)
+    expect(r['INBOX:7:3']).toBe('Junk:99:1')
   })
 })
 

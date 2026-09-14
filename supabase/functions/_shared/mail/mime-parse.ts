@@ -17,8 +17,8 @@ import { htmlToText, snippetOf } from './mime.ts'
 export interface ParseCtx {
   providerMessageId: string
   boxEmail: string
-  /** Le dossier dit la direction : un message de « Envoyés » est sortant. */
-  dossier: 'inbox' | 'sent'
+  /** Le dossier dit la direction (un message de « Envoyés » est sortant) et le spam (`junk`). */
+  dossier: 'inbox' | 'sent' | 'junk'
   flags: string[]
   /** INTERNALDATE — la date d'ARRIVÉE, celle que Gmail donne aussi ; l'en-tête `Date` est un repli. */
   internalDate: string | null
@@ -105,6 +105,7 @@ export async function parseRfc822(raw: Uint8Array, ctx: ParseCtx): Promise<Norma
     isStarred: ctx.flags.includes('\\Flagged'),
     inInbox: ctx.dossier === 'inbox',
     isTrashed: false,
+    isSpam: ctx.dossier === 'junk',
     isDraft: ctx.flags.includes('\\Draft'),
     providerLabels: [],
     attachments,
