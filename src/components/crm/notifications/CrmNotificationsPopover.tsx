@@ -83,8 +83,10 @@ function Ligne({ n, sp, dark, onClick }: { n: CrmNotif; sp: CrmPalette; dark: bo
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{n.body}</span>
         )}
+        {/* L'heure seule (14.09.2026, Julien : « c'est redondant ») : « Message · Il y a
+            53 min » répétait le type que le titre et la tuile disent déjà. */}
         <span style={{ fontSize: 'var(--crm-text-sm)', color: sp.sub, fontVariantNumeric: 'tabular-nums' }}>
-          {meta.label} · {n.time}
+          {n.time}
         </span>
       </span>
 

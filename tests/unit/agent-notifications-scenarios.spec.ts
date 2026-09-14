@@ -78,10 +78,14 @@ describe('cloche — chaque action a son type', () => {
     expect(toKind('something_new', null)).toBe('system')
   })
 
-  it('chaque type a son glyphe et son libellé, dans les quatre langues', () => {
-    for (const langue of ['fr', 'en', 'de', 'it']) {
-      const kinds = ((lireJson(`src/i18n/locales/${langue}/common.json`).notifications as { kind: Record<string, string> }).kind)
-      for (const kind of Object.keys(KIND_META)) expect(kinds[kind], `${langue} : ${kind}`).toBeTruthy()
+  /**
+   * Plus de libellé de type (14.09.2026, « c'est redondant ») : la ligne ne dit que l'heure.
+   * Reste ce qui distingue un type à l'œil — un glyphe au trait et une teinte.
+   */
+  it('chaque type a son glyphe et sa teinte', () => {
+    for (const [kind, meta] of Object.entries(KIND_META)) {
+      expect(meta.icon, kind).toBeTruthy()
+      expect(meta.dot, kind).toMatch(/^#[0-9a-f]{6}$/i)
     }
   })
 })

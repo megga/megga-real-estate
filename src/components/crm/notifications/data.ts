@@ -9,9 +9,6 @@
 // (`toKind`), gardé action par action par `agent-notifications-scenarios.spec.ts`.
 
 import type { MEIconName } from '@/components/propertyx/MEIcon'
-// i18n : `label` des types de notif en getter (singleton, sans changer les
-// appelants).
-import i18n from '@/i18n'
 import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 
 export type NotifKind =
@@ -64,24 +61,31 @@ const TEINTE = {
   systeme: '#7A8088',
 } as const
 
-// ⚠ Glyphes au TRAIT uniquement : les glyphes délégués à la police d'icônes sont
-// pleins, et posés à 20 px à côté des traits ils se lisaient comme des taches.
-export const KIND_META: Record<NotifKind, { dot: string; icon: MEIconName; label: string }> = {
-  contact:     { dot: TEINTE.relation,   icon: 'user',        get label() { return i18n.t('common:notifications.kind.contact') } },
-  message:     { dot: TEINTE.relation,   icon: 'message',     get label() { return i18n.t('common:notifications.kind.message') } },
+/**
+ * La teinte et le glyphe de chaque type.
+ *
+ * ⚠ Glyphes au TRAIT uniquement : les glyphes délégués à la police d'icônes sont pleins,
+ * et posés à 20 px à côté des traits ils se lisaient comme des taches.
+ * ⚠ Plus de LIBELLÉ depuis le 14.09.2026 : son seul lecteur était la troisième ligne de la
+ * cloche (« Message · Il y a 53 min »), qui ne dit plus que l'heure — le titre et la
+ * tuile disent déjà le type.
+ */
+export const KIND_META: Record<NotifKind, { dot: string; icon: MEIconName }> = {
+  contact:     { dot: TEINTE.relation,   icon: 'user' },
+  message:     { dot: TEINTE.relation,   icon: 'message' },
   // Les correspondances sont proposées par MEGGA AI : elles en portent la teinte.
-  matching:    { dot: MXC_COLOR.accent,  icon: 'target',      get label() { return i18n.t('common:notifications.kind.matching') } },
-  visite:      { dot: TEINTE.agenda,     icon: 'calendar',    get label() { return i18n.t('common:notifications.kind.visite') } },
-  rappel:      { dot: TEINTE.agenda,     icon: 'clock',       get label() { return i18n.t('common:notifications.kind.rappel') } },
-  pipeline:    { dot: TEINTE.affaires,   icon: 'pipeline',    get label() { return i18n.t('common:notifications.kind.pipeline') } },
-  mandat:      { dot: TEINTE.affaires,   icon: 'edit',        get label() { return i18n.t('common:notifications.kind.mandat') } },
-  doc:         { dot: TEINTE.pieces,     icon: 'file-text',   get label() { return i18n.t('common:notifications.kind.doc') } },
-  bien:        { dot: TEINTE.pieces,     icon: 'home',        get label() { return i18n.t('common:notifications.kind.bien') } },
-  kyc:         { dot: TEINTE.conformite, icon: 'shield',      get label() { return i18n.t('common:notifications.kind.kyc') } },
+  matching:    { dot: MXC_COLOR.accent,  icon: 'target' },
+  visite:      { dot: TEINTE.agenda,     icon: 'calendar' },
+  rappel:      { dot: TEINTE.agenda,     icon: 'clock' },
+  pipeline:    { dot: TEINTE.affaires,   icon: 'pipeline' },
+  mandat:      { dot: TEINTE.affaires,   icon: 'edit' },
+  doc:         { dot: TEINTE.pieces,     icon: 'file-text' },
+  bien:        { dot: TEINTE.pieces,     icon: 'home' },
+  kyc:         { dot: TEINTE.conformite, icon: 'shield' },
   // ⚠ La pastille « ai » portait le noir de SUGAR, seule de la série à ne pas
   // porter une teinte. MEGGA AI a la sienne — l'accent, celle que le dock arbore.
-  ai:          { dot: MXC_COLOR.accent,  icon: 'sparkle',     get label() { return i18n.t('common:notifications.kind.ai') } },
-  team:        { dot: TEINTE.compte,     icon: 'users',       get label() { return i18n.t('common:notifications.kind.team') } },
-  facturation: { dot: TEINTE.compte,     icon: 'credit-card', get label() { return i18n.t('common:notifications.kind.facturation') } },
-  system:      { dot: TEINTE.systeme,    icon: 'settings',    get label() { return i18n.t('common:notifications.kind.system') } },
+  ai:          { dot: MXC_COLOR.accent,  icon: 'sparkle' },
+  team:        { dot: TEINTE.compte,     icon: 'users' },
+  facturation: { dot: TEINTE.compte,     icon: 'credit-card' },
+  system:      { dot: TEINTE.systeme,    icon: 'settings' },
 }
