@@ -1060,8 +1060,7 @@
       "saveError": "Could not save. Please try again.",
       "sessionExpired": "Session expired, sign in again to save.",
       "agencyNotLoaded": "Agency not loaded, sign in again to save.",
-      "logoUploadError": "Could not upload the logo.",
-      "directoryMissing": "Your directory profile isn't set up yet, contact your administrator to complete it."
+      "logoUploadError": "Could not upload the logo."
     }
   }
 }

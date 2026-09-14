@@ -1060,8 +1060,7 @@
       "saveError": "Enregistrement impossible. Réessayez.",
       "sessionExpired": "Session expirée, reconnectez-vous pour enregistrer.",
       "agencyNotLoaded": "Agence non chargée, reconnectez-vous pour enregistrer.",
-      "logoUploadError": "Envoi du logo impossible.",
-      "directoryMissing": "Votre fiche annuaire n'est pas encore créée, contactez votre administrateur pour la renseigner."
+      "logoUploadError": "Envoi du logo impossible."
     }
   }
 }

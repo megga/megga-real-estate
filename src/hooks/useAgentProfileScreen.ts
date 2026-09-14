@@ -4,7 +4,10 @@
 //                         email_signature, email_signature_html, signature_mode,
 //                         email, avatar_url, agency_id
 //   - `agencies`        : name (champ `agency` lecture seule côté ce form)
-//   - `agent_profiles`  : bio, languages, specialties (annuaire public)
+//   - `agent_profiles`  : la FICHE de l'agent — bio, languages, specialties, website_url,
+//                         linkedin_url. Lisible par lui seul (l'annuaire public est fermé
+//                         depuis le 19.07.2026). Créée au premier enregistrement qui a
+//                         quelque chose à y mettre (RPC `ensure_my_agent_profile`).
 //
 // Mapping ProfileData ↔ DB :
 //   firstName/lastName : split de profiles.full_name (et stockés aussi sur agent_profiles)
@@ -92,21 +95,20 @@ export interface UseAgentProfileScreenReturn {
   isLoading: boolean
   isSaving: boolean
   hasBackend: boolean   // false → utilisateur non connecté, save() est un no-op
-  /**
-   * false → aucune ligne `agent_profiles` pour cet agent. save() ne PEUT PAS
-   * persister bio/languages/specialties/website/linkedin (UPDATE-only + INSERT
-   * réservé au super-admin par RLS). L'UI doit alors éviter d'afficher un faux
-   * « Enregistré » sur ces champs d'annuaire.
-   */
-  hasAgentProfile: boolean
   save: (next: ProfileData) => Promise<void>
+}
+
+/** true si le formulaire porte au moins une valeur qui vit dans la fiche `agent_profiles`. */
+function hasCardContent(p: ProfileData): boolean {
+  return [p.bio, p.website, p.linkedin].some((v) => v.trim().length > 0)
+    || p.languages.length > 0
+    || p.specialties.length > 0
 }
 
 /**
  * Source de vérité du ProfileSection (Réglages) : joint `profiles` + `agencies`
  * + `agent_profiles` en un `ProfileData` éditable et le persiste via `save()`.
- * Fallback vide (jamais le mock) hors session ; `hasAgentProfile` signale si les
- * champs d'annuaire (bio, langues…) sont réellement persistables.
+ * Fallback vide (jamais le mock) hors session.
  */
 export function useAgentProfileScreen(options?: { enabled?: boolean }): UseAgentProfileScreenReturn {
   const enabled = options?.enabled ?? true
@@ -213,15 +215,26 @@ export function useAgentProfileScreen(options?: { enabled?: boolean }): UseAgent
         .eq('id', profileId)
       if (pErr) throw pErr
 
-      // 2. agent_profiles : upsert sur profile_id (bio + languages + specialties)
-      // Le record peut ne pas exister encore (cas agent freshly onboarded).
+      // 2. agent_profiles : la fiche (bio, langues, spécialités, liens).
+      //
+      // Sans fiche, aucun de ces champs ne s'enregistrait (UPDATE seul, INSERT réservé au
+      // super-admin) : le score de profil plafonnait à 89 %, et la bio tapée sur mobile se
+      // perdait sans message. La fiche est donc créée ici par `ensure_my_agent_profile`,
+      // la seule création ouverte à l'agent, et seulement si le formulaire a quelque chose
+      // à y mettre : un agent qui ne remplit aucun de ces champs n'a pas de fiche.
       const { data: existing } = await supabase
         .from('agent_profiles')
         .select('id')
         .eq('profile_id', profileId)
         .maybeSingle()
+      let cardId = existing?.id ?? null
+      if (!cardId && hasCardContent(next)) {
+        const { data: created, error: cErr } = await supabase.rpc('ensure_my_agent_profile')
+        if (cErr) throw cErr
+        cardId = created
+      }
 
-      if (existing?.id) {
+      if (cardId) {
         const { error: aErr } = await supabase
           .from('agent_profiles')
           .update({
@@ -241,27 +254,20 @@ export function useAgentProfileScreen(options?: { enabled?: boolean }): UseAgent
             website_url: next.website || null,
             linkedin_url: next.linkedin || null,
           })
-          .eq('id', existing.id)
+          .eq('id', cardId)
         if (aErr) throw aErr
       }
-      // Note : si pas de record agent_profiles, on ne le crée pas ici (besoin
-      // d'un slug unique). À gérer via un Edge Function dédié. C'est OK :
-      // l'agent peut sauvegarder profiles, le reste reviendra en sync quand
-      // son agent_profile sera créé.
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agent-profile', profileId] })
     },
   })
 
-  const hasAgentProfile = !!(row && unwrap(row.agent_profile))
-
   return {
     profile,
     isLoading,
     isSaving: mutation.isPending,
     hasBackend: !!profileId,
-    hasAgentProfile,
     save: async (next) => { await mutation.mutateAsync(next) },
   }
 }
