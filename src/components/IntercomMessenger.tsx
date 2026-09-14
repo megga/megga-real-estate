@@ -2,8 +2,10 @@
 // Monte le Messenger Intercom globalement (au root de App, dans AuthProvider).
 //
 // - Anonyme tant que personne n'est connecté (pages publiques de l'app : /help…).
-// - Identifié dès qu'un agent est connecté (user_id + user_hash HMAC via l'edge
-//   `intercom-identity`) + company (agence) + attributs de support.
+// - Identifié dès qu'un agent est connecté (user_id + JWT « Messenger Security » via
+//   l'edge `intercom-identity`) + company (id et nom de l'agence) + attributs de support.
+// - `produit: 'crm'` sur les DEUX boots : l'espace Intercom est partagé avec la holding
+//   ('holding') et Shield ('shield'), et c'est cet attribut qui y trie les conversations.
 // - JAMAIS identifié pendant une impersonation super-admin (sinon pollution Intercom
 //   + faux contact facturé + fuite d'identité). cf. useImpersonate.
 //
@@ -25,6 +27,18 @@ async function fetchUserJwt(): Promise<string | null> {
     const { data, error } = await supabase.functions.invoke('intercom-identity')
     if (error) return null
     return (data as { intercom_user_jwt?: string } | null)?.intercom_user_jwt ?? null
+  } catch {
+    return null
+  }
+}
+
+// Nom de l'agence, best-effort : sans lui, les agences arrivent dans Intercom sans nom,
+// méconnaissables dans l'Inbox. `name` SEUL : `stripe_customer_id` n'est plus lisible par
+// un membre (audit S13), et une colonne refusée fait échouer toute la requête (42501).
+async function fetchAgencyName(agencyId: string): Promise<string | null> {
+  try {
+    const { data } = await supabase.from('agencies').select('name').eq('id', agencyId).maybeSingle()
+    return data?.name?.trim() || null
   } catch {
     return null
   }
@@ -59,7 +73,11 @@ export default function IntercomMessenger() {
 
     async function run() {
       if (identified && user && profile) {
-        const jwt = await fetchUserJwt()
+        // Deux lectures indépendantes : l'une n'a pas à attendre l'autre au démarrage.
+        const [jwt, agencyName] = await Promise.all([
+          fetchUserJwt(),
+          profile.agency_id ? fetchAgencyName(profile.agency_id) : Promise.resolve(null),
+        ])
         if (cancelled) return
         // Plus de `stripe_customer_id` ici (audit S13, 13.09.2026) : la colonne n'est plus
         // lisible par un membre, et un attribut posé par le navigateur est falsifiable — une
@@ -74,13 +92,16 @@ export default function IntercomMessenger() {
             ? Math.floor(new Date(profile.created_at).getTime() / 1000)
             : undefined,
           intercom_user_jwt: jwt ?? undefined,
-          company: profile.agency_id ? { company_id: profile.agency_id } : undefined,
+          company: profile.agency_id
+            ? { company_id: profile.agency_id, ...(agencyName ? { name: agencyName } : {}) }
+            : undefined,
           role: profile.role ?? undefined,
           canton: profile.canton ?? undefined,
+          produit: 'crm',
         })
       } else {
         shutdownIntercom()
-        bootIntercom() // anonyme
+        bootIntercom({ produit: 'crm' }) // anonyme
       }
       if (!cancelled) bootedFor.current = identityKey
     }

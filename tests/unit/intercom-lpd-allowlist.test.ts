@@ -16,6 +16,15 @@ describe('Intercom LPD allowlist — sanitizeIntercomArgs', () => {
     expect(sanitized).toMatchObject({ user_id: 'u1', role: 'agent', canton: 'GE' })
   })
 
+  it("laisse passer `produit`, le libellé qui trie l'espace Intercom partagé", () => {
+    // Un seul espace Intercom sert la holding ('holding'), le CRM ('crm') et Shield
+    // ('shield'). Si `produit` était strippé, les conversations du CRM arriveraient
+    // sans étiquette dans la boîte commune — et rien ne le dirait.
+    const { sanitized, dropped } = sanitizeIntercomArgs({ user_id: 'u1', produit: 'crm' })
+    expect(dropped).toEqual([])
+    expect(sanitized).toEqual({ user_id: 'u1', produit: 'crm' })
+  })
+
   it('STRIP toute clé hors allowlist (PII / donnée client final potentielle)', () => {
     const { sanitized, dropped } = sanitizeIntercomArgs({
       user_id: 'u1',

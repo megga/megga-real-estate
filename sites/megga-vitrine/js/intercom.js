@@ -15,6 +15,9 @@
     app_id: INTERCOM_APP_ID,
     region: 'us',
     api_base: 'https://api-iam.intercom.io',
+    // Espace Intercom partagé : la holding envoie 'holding', Shield 'shield'.
+    // Cet attribut trie les conversations du CRM dans la boîte commune.
+    produit: 'crm',
   };
 
   // Loader officiel Intercom (boot anonyme).
