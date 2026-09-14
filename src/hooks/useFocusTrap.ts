@@ -55,11 +55,15 @@ export function useFocusTrap(active: boolean, onEscape?: () => void) {
     const container = containerRef.current
     if (!container) return
 
-    // Focus first focusable element
+    // ⚠ Un focus DÉJÀ posé dans le conteneur est gardé : c'est un `autoFocus`, que React
+    // applique au montage, AVANT cet effet. Le piège le déplaçait sur le premier
+    // focalisable — la croix de fermeture —, et « Nouveau message » s'ouvrait le curseur
+    // hors du champ « À » qu'il désignait (mesuré le 14.09.2026 : focus sur « Fermer »).
     const focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-    if (focusable.length > 0) {
+    const dejaDedans = container.contains(document.activeElement)
+    if (!dejaDedans && focusable.length > 0) {
       focusable[0].focus()
-    } else {
+    } else if (!dejaDedans) {
       // ⛔ AUCUN DESCENDANT FOCALISABLE — le cas qui rendait ce hook INOPÉRANT
       // en silence. Sans ce repli, rien n'est focalisé : le focus RESTE sur le
       // déclencheur, donc DEHORS, et la première tabulation part dans la page

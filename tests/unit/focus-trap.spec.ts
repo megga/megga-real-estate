@@ -83,6 +83,20 @@ describe('useFocusTrap', () => {
   })
 
   /**
+   * ⚠ Un `autoFocus` posé au montage est GARDÉ. Le piège le déplaçait sur le premier
+   * focalisable — la croix de fermeture —, et « Nouveau message » s'ouvrait le curseur
+   * hors du champ « À » (mesuré le 14.09.2026). Le test précédent est son contrôle :
+   * sans `autoFocus`, c'est bien le premier élément qui reçoit le focus.
+   */
+  it('garde le focus qu’un autoFocus a posé DANS le conteneur', () => {
+    const { conteneur } = monter([
+      createElement('button', { key: 'fermer' }, 'Fermer'),
+      createElement('input', { key: 'a', 'aria-label': 'À', autoFocus: true }),
+    ])
+    expect(document.activeElement).toBe(conteneur.querySelector('input'))
+  })
+
+  /**
    * ⛔ LE TEST QUI PORTE LE FICHIER — le défaut mesuré sur `ui/Sheet` et sur la
    * feuille de notifications mobile. Retirer le repli du hook fait rougir
    * celui-ci ET le suivant, et EUX SEULS : c'est le contrôle négatif.
