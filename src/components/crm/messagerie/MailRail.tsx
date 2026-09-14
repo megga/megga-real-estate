@@ -53,7 +53,7 @@ const FOLDERS: { key: MailFolder; icon: MEIconName; label: string }[] = [
   { key: 'star', icon: 'star', label: 'mail.folders.star' },
   { key: 'sent', icon: 'send', label: 'mail.folders.sent' },
   { key: 'draft', icon: 'file-text', label: 'mail.folders.draft' },
-  { key: 'spam', icon: 'alert', label: 'mail.folders.spam' },
+  { key: 'spam', icon: 'spam', label: 'mail.folders.spam' },
 ]
 
 export function MailRail(p: Props) {

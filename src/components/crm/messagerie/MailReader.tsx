@@ -153,7 +153,7 @@ export function MailReader(p: Props) {
 
       {p.thread.is_spam && (
         <div role="status" style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-lg)', padding: 'var(--crm-space-md) var(--crm-space-2xl)', border: `1px solid ${ms.bord}`, borderRadius: 'var(--crm-radius-lg)', fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>
-          <MEIcon name="alert" size={13} />
+          <MEIcon name="spam" size={13} />
           {t('mail.read.spam')}
           <button
             type="button"
