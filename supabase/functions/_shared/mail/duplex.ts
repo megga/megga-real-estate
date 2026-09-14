@@ -15,28 +15,61 @@ export interface Duplex {
   read(): Promise<Uint8Array | null>
   write(bytes: Uint8Array): Promise<void>
   close(): void
+  /**
+   * Monte une connexion EN CLAIR vers TLS, sur la même socket (STARTTLS). Absente d'une
+   * connexion déjà chiffrée : sa présence DIT que le canal est en clair — c'est ce que
+   * les clients lisent pour refuser d'y envoyer un mot de passe.
+   */
+  startTls?(): Promise<Duplex>
 }
 
+export interface DialOptions { connectTimeoutMs?: number; ioTimeoutMs?: number }
+
 /**
- * L'implémentation Deno. ⚠ `Deno` est atteint par `globalThis` et JAMAIS au
- * corps du module : ce fichier est importé par les specs, qui tournent sous
- * Node. Une référence directe le ferait échouer au chargement.
+ * ⛔ SANS DÉLAI, UN SERVEUR MUET TIENT L'EDGE JUSQU'À SA MORT. `read()` attend un paquet
+ * qui peut ne jamais venir (un pare-feu qui avale, un serveur qui oublie de répondre) :
+ * la passe de synchro ne rendait alors ni succès ni échec, son bail de compte courait
+ * jusqu'au bout, et l'assistant « Ajouter une boîte » tournait sans fin. Mesuré en
+ * T3.1 : un port filtré ne répond qu'au bout de 8 s — d'où 10 s pour ouvrir.
  */
-export async function denoTlsDuplex(hostname: string, port: number): Promise<Duplex> {
-  const D = (globalThis as unknown as {
-    Deno: {
-      connectTls(o: { hostname: string; port: number }): Promise<{
-        read(b: Uint8Array): Promise<number | null>
-        write(b: Uint8Array): Promise<number>
-        close(): void
-      }>
-    }
-  }).Deno
-  const conn = await D.connectTls({ hostname, port })
-  return {
+const CONNECT_TIMEOUT_MS = 10_000
+const IO_TIMEOUT_MS = 20_000
+
+type DenoConn = { read(b: Uint8Array): Promise<number | null>; write(b: Uint8Array): Promise<number>; close(): void }
+interface DenoNet {
+  connect(o: { hostname: string; port: number }): Promise<DenoConn>
+  connectTls(o: { hostname: string; port: number }): Promise<DenoConn>
+  startTls(conn: DenoConn, o: { hostname: string }): Promise<DenoConn>
+}
+/**
+ * ⚠ `Deno` est atteint par `globalThis` et JAMAIS au corps du module : ce fichier est
+ * importé par les specs, qui tournent sous Node. Une référence directe le ferait échouer
+ * au chargement.
+ */
+const deno = () => (globalThis as unknown as { Deno: DenoNet }).Deno
+
+/** `p`, bornée à `ms` : au-delà, `auDela` (fermer la socket) puis l'erreur `code`. */
+function borne<T>(p: Promise<T>, ms: number, code: string, auDela?: () => void): Promise<T> {
+  let minuteur: ReturnType<typeof setTimeout> | undefined
+  const delai = new Promise<never>((_, rejeter) => {
+    minuteur = setTimeout(() => { auDela?.(); rejeter(new Error(code)) }, ms)
+  })
+  return Promise.race([p, delai]).finally(() => clearTimeout(minuteur))
+}
+
+/** Ouvre, borné — et referme une socket qui aboutirait APRÈS le délai, au lieu de la laisser fuir. */
+async function ouvrir(dial: () => Promise<DenoConn>, ms: number): Promise<DenoConn> {
+  const p = dial()
+  try { return await borne(p, ms, 'timeout_connect') }
+  catch (e) { p.then((c) => { try { c.close() } catch { /* déjà fermée */ } }, () => {}); throw e }
+}
+
+function enDuplex(conn: DenoConn, hostname: string, o: Required<DialOptions>, clair: boolean): Duplex {
+  const fermer = () => { try { conn.close() } catch { /* déjà fermée */ } }
+  const d: Duplex = {
     async read() {
       const buf = new Uint8Array(16 * 1024)
-      const n = await conn.read(buf)
+      const n = await borne(conn.read(buf), o.ioTimeoutMs, 'timeout_read', fermer)
       return n === null ? null : buf.subarray(0, n)
     },
     async write(bytes) {
@@ -44,10 +77,35 @@ export async function denoTlsDuplex(hostname: string, port: number): Promise<Dup
       // message volumineux (un APPEND de pièce jointe) partirait tronqué, et le
       // serveur attendrait des octets qui ne viendraient jamais.
       let off = 0
-      while (off < bytes.length) off += await conn.write(bytes.subarray(off))
+      while (off < bytes.length) off += await borne(conn.write(bytes.subarray(off)), o.ioTimeoutMs, 'timeout_write', fermer)
     },
-    close() { try { conn.close() } catch { /* déjà fermée */ } },
+    close: fermer,
   }
+  // La socket en clair est CONSOMMÉE par la montée : seul le duplex rendu reste valable.
+  if (clair) d.startTls = async () => enDuplex(await borne(deno().startTls(conn, { hostname }), o.connectTimeoutMs, 'timeout_tls', fermer), hostname, o, false)
+  return d
+}
+
+const reglages = (opts: DialOptions): Required<DialOptions> => ({
+  connectTimeoutMs: opts.connectTimeoutMs ?? CONNECT_TIMEOUT_MS,
+  ioTimeoutMs: opts.ioTimeoutMs ?? IO_TIMEOUT_MS,
+})
+
+/** Une connexion chiffrée d'emblée (IMAP 993, SMTP 465). */
+export async function denoTlsDuplex(hostname: string, port: number, opts: DialOptions = {}): Promise<Duplex> {
+  const o = reglages(opts)
+  return enDuplex(await ouvrir(() => deno().connectTls({ hostname, port }), o.connectTimeoutMs), hostname, o, false)
+}
+
+/**
+ * Une connexion EN CLAIR, à monter en TLS par `startTls()` (SMTP 587, IMAP 143).
+ * ⚠ Mesuré en T3.1 : le port 587 est OUVERT depuis l'edge (bannière en 60 ms), le 25
+ * est filtré. Ce qui ne l'est pas encore : la montée elle-même depuis l'edge — un échec
+ * y remonte à l'ajout de la boîte, avec le motif, jamais en silence.
+ */
+export async function denoTcpDuplex(hostname: string, port: number, opts: DialOptions = {}): Promise<Duplex> {
+  const o = reglages(opts)
+  return enDuplex(await ouvrir(() => deno().connect({ hostname, port }), o.connectTimeoutMs), hostname, o, true)
 }
 
 /**

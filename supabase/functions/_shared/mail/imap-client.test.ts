@@ -28,8 +28,10 @@ function fake(script: Record<string, string>, greeting = '* OK IMAP4rev1 ready\r
     async write(bytes) {
       const brut = new TextDecoder().decode(bytes)
       if (conclusion !== null) {
-        sent.push(`<payload ${bytes.length}>`)
-        if (brut === '\r\n') { queue.push(enc.encode(conclusion)); conclusion = null }
+        sent.push(`<payload ${brut === '\r\n' ? 'crlf' : brut.replace(/\r\n$/, '')}>`)
+        // La conclusion part quand la ligne se ferme : le CRLF final d'un APPEND, ou la
+        // réponse SASL d'un AUTHENTICATE, écrite d'un seul tenant.
+        if (brut.endsWith('\r\n')) { queue.push(enc.encode(conclusion)); conclusion = null }
         return
       }
       const cmd = brut.replace(/\r\n$/, '')
@@ -157,7 +159,7 @@ describe('ImapClient — déplacer sans détruire ce que personne n\u0027a deman
       'UID MOVE': '$TAG OK MOVE completed\r\n',
     })
     await c.login('u', 'p')
-    expect(await c.uidMove(7, 'Archive')).toBe('move')
+    expect(await c.uidMove(7, 'Archive')).toEqual({ voie: 'move', uid: null, uidValidity: null })
     expect(sent.filter((s) => /MOVE|COPY|EXPUNGE/.test(s))).toEqual(['a2 UID MOVE 7 "Archive"'])
   })
 
@@ -169,7 +171,8 @@ describe('ImapClient — déplacer sans détruire ce que personne n\u0027a deman
       'UID EXPUNGE': '$TAG OK EXPUNGE completed\r\n',
     })
     await c.login('u', 'p')
-    expect(await c.uidMove(7, 'Archive')).toBe('copy+uid-expunge')
+    // L'UID d'arrivée vient du `[COPYUID 1 7 20]` : « désarchiver » retrouvera le message.
+    expect(await c.uidMove(7, 'Archive')).toEqual({ voie: 'copy+uid-expunge', uid: 20, uidValidity: 1 })
     expect(sent.filter((s) => /COPY|STORE|EXPUNGE/.test(s))).toEqual([
       'a2 UID COPY 7 "Archive"',
       'a3 UID STORE 7 +FLAGS.SILENT (\\Deleted)',
@@ -189,7 +192,7 @@ describe('ImapClient — déplacer sans détruire ce que personne n\u0027a deman
       'UID STORE': '$TAG OK STORE completed\r\n',
     })
     await c.login('u', 'p')
-    expect(await c.uidMove(7, 'Archive')).toBe('copy-only')
+    expect(await c.uidMove(7, 'Archive')).toEqual({ voie: 'copy-only', uid: null, uidValidity: null })
     expect(sent.some((s) => /\bEXPUNGE\b/.test(s))).toBe(false)
   })
 })
@@ -235,5 +238,141 @@ describe('LineReader — un littéral tronqué doit LEVER', () => {
     // Le plan rendait ici 3 octets sur 10 EN SILENCE : un message tronqué serait
     // ingéré comme complet, marqué lu, et jamais relu.
     await expect(new LineReader(conn).bytes(10)).rejects.toThrow(/flux coupé dans un littéral \(3\/10/)
+  })
+})
+
+describe('ImapClient — ce que les vrais serveurs rendent', () => {
+  it('⛔ lit un FETCH dont les éléments arrivent dans l’AUTRE ordre', async () => {
+    // La RFC 3501 ne fixe pas l'ordre. Le motif d'origine exigeait UID avant FLAGS :
+    // un serveur qui répond l'inverse rendait zéro message, sans erreur.
+    const { c } = await ouvrir({
+      LOGIN: '$TAG OK [CAPABILITY IMAP4rev1 UIDPLUS]\r\n',
+      'UID FETCH': '* 1 FETCH (FLAGS (\\Seen) UID 7)\r\n* 2 FETCH (FLAGS () UID 8)\r\n$TAG OK\r\n',
+    })
+    await c.login('u', 'p')
+    expect(await c.uidFetchFlags('7:8')).toEqual([{ uid: 7, flags: ['\\Seen'] }, { uid: 8, flags: [] }])
+  })
+
+  it('uidFetchMeta lit drapeaux, taille et date d’arrivée', async () => {
+    const { c, sent } = await ouvrir({
+      LOGIN: '$TAG OK [CAPABILITY IMAP4rev1 UIDPLUS]\r\n',
+      'UID FETCH': '* 4 FETCH (RFC822.SIZE 2048 INTERNALDATE "05-Sep-2026 10:00:00 +0200" UID 12 FLAGS (\\Flagged))\r\n$TAG OK\r\n',
+    })
+    await c.login('u', 'p')
+    expect(await c.uidFetchMeta('12')).toEqual([{ uid: 12, flags: ['\\Flagged'], size: 2048, internalDate: '05-Sep-2026 10:00:00 +0200' }])
+    expect(sent[1]).toBe('a2 UID FETCH 12 (UID FLAGS RFC822.SIZE INTERNALDATE)')
+  })
+
+  it('MOVE : l’UID d’arrivée se lit dans le COPYUID NON tagué (RFC 6851)', async () => {
+    const { c } = await ouvrir({
+      LOGIN: '$TAG OK [CAPABILITY IMAP4rev1 MOVE UIDPLUS]\r\n',
+      'UID MOVE': '* OK [COPYUID 5 7 31] Moved\r\n* 3 EXPUNGE\r\n$TAG OK MOVE completed\r\n',
+    })
+    await c.login('u', 'p')
+    expect(await c.uidMove(7, 'Archive')).toEqual({ voie: 'move', uid: 31, uidValidity: 5 })
+  })
+
+  it('list : noms entre guillemets échappés, en littéral (UTF-8), et sans nom écartés', async () => {
+    const { c } = await ouvrir({
+      LOGIN: '$TAG OK [CAPABILITY IMAP4rev1 UIDPLUS]\r\n',
+      LIST: '* LIST () "." "Clients \\"VIP\\""\r\n* LIST (\\HasNoChildren) "/" {8}\r\nEnvoyés\r\n* LIST (\\Noselect) NIL ""\r\n$TAG OK\r\n',
+    })
+    await c.login('u', 'p')
+    expect(await c.list()).toEqual([
+      { name: 'Clients "VIP"', attributes: [] },
+      { name: 'Envoyés', attributes: ['\\HasNoChildren'] },
+    ])
+  })
+
+  it('examine ouvre en LECTURE SEULE ; la recherche par Message-ID cite l’identifiant', async () => {
+    const { c, sent } = await ouvrir({
+      LOGIN: '$TAG OK [CAPABILITY IMAP4rev1 UIDPLUS]\r\n',
+      EXAMINE: '* 2 EXISTS\r\n* OK [UIDVALIDITY 9]\r\n* OK [UIDNEXT 3]\r\n$TAG OK [READ-ONLY] done\r\n',
+      'UID SEARCH HEADER': '* SEARCH 2\r\n$TAG OK\r\n',
+    })
+    await c.login('u', 'p')
+    expect(await c.examine('INBOX')).toEqual({ exists: 2, uidValidity: 9, uidNext: 3 })
+    expect(await c.uidSearchHeaderMessageId('<a"b@ex.ch>')).toEqual([2])
+    expect(sent[2]).toBe('a3 UID SEARCH HEADER Message-ID "<a\\"b@ex.ch>"')
+  })
+})
+
+describe('ImapClient — le mot de passe', () => {
+  it('un NO au LOGIN est un refus d’IDENTIFIANTS (ImapAuthError), pas une panne', async () => {
+    const { c } = await ouvrir({ LOGIN: '$TAG NO [AUTHENTICATIONFAILED] Authentication failed.\r\n' })
+    await expect(c.login('u', 'faux')).rejects.toMatchObject({ name: 'Error', message: expect.stringMatching(/AUTHENTICATIONFAILED/) })
+    const { c: c2 } = await ouvrir({ LOGIN: '$TAG NO [AUTHENTICATIONFAILED] Authentication failed.\r\n' })
+    const { ImapAuthError } = await import('./imap-client.ts')
+    await expect(c2.login('u', 'faux')).rejects.toBeInstanceOf(ImapAuthError)
+  })
+
+  it('un mot de passe hors ASCII passe par AUTHENTICATE PLAIN — en deux temps sans SASL-IR', async () => {
+    const { c, sent } = await ouvrir({
+      'AUTHENTICATE PLAIN': '+ \r\n||$TAG OK [CAPABILITY IMAP4rev1 UIDPLUS] Logged in\r\n',
+    }, '* OK IMAP4 ready\r\n')
+    await c.login('zoé@ex.ch', 'Zürich2026!')
+    expect(sent[0]).toBe('a1 AUTHENTICATE PLAIN')
+    const jeton = sent[1].replace(/^<payload (.*)>$/, '$1')
+    const octets = Uint8Array.from(atob(jeton), (x) => x.charCodeAt(0))
+    expect(new TextDecoder().decode(octets)).toBe('\0zoé@ex.ch\0Zürich2026!')
+    expect(c.has('UIDPLUS')).toBe(true)
+  })
+
+  it('⛔ refuse d’envoyer le mot de passe sur une connexion EN CLAIR ; STARTTLS d’abord', async () => {
+    const enc = new TextEncoder()
+    const queue: Uint8Array[] = [enc.encode('* OK [CAPABILITY IMAP4rev1 STARTTLS LOGINDISABLED] ready\r\n')]
+    const sent: string[] = []
+    let tls = false
+    const reponses: Record<string, string> = {
+      STARTTLS: '$TAG OK Begin TLS negotiation now\r\n',
+      CAPABILITY: '* CAPABILITY IMAP4rev1 AUTH=PLAIN UIDPLUS\r\n$TAG OK\r\n',
+      LOGIN: '$TAG OK Logged in\r\n',
+    }
+    const duplex = (chiffre: boolean): Duplex => ({
+      async read() { return queue.shift() ?? null },
+      async write(bytes) {
+        const cmd = new TextDecoder().decode(bytes).replace(/\r\n$/, '')
+        sent.push(`${chiffre ? 'tls' : 'clair'}:${cmd}`)
+        const [tag, verbe] = cmd.split(' ')
+        queue.push(enc.encode((reponses[verbe] ?? `${tag} BAD ?\r\n`).replace(/\$TAG/g, tag)))
+      },
+      close() {},
+      ...(chiffre ? {} : { startTls: async () => { tls = true; return duplex(true) } }),
+    })
+    const c = new ImapClient(duplex(false))
+    await c.connect()
+    await expect(c.login('u', 'p')).rejects.toThrow(/en clair/)
+    await c.starttls()
+    expect(tls).toBe(true)
+    // Les capacités d'avant la montée sont oubliées : LOGINDISABLED ne vaut plus.
+    expect(c.has('LOGINDISABLED')).toBe(false)
+    await c.login('u', 'p')
+    expect(sent).toEqual(['clair:a1 STARTTLS', 'tls:a2 CAPABILITY', 'tls:a3 LOGIN "u" "p"'])
+  })
+
+  it('une bannière MUETTE n’est pas un refus de STARTTLS : on demande d’abord (cas Infomaniak)', async () => {
+    const enc = new TextEncoder()
+    const queue: Uint8Array[] = [enc.encode('* OK IMAP4 ready\r\n')]
+    const sent: string[] = []
+    const reponses: Record<string, string> = {
+      CAPABILITY: '* CAPABILITY IMAP4rev1 STARTTLS\r\n$TAG OK\r\n',
+      STARTTLS: '$TAG OK Begin TLS negotiation now\r\n',
+    }
+    const duplex = (chiffre: boolean): Duplex => ({
+      async read() { return queue.shift() ?? null },
+      async write(bytes) {
+        const cmd = new TextDecoder().decode(bytes).replace(/\r\n$/, '')
+        sent.push(`${chiffre ? 'tls' : 'clair'}:${cmd}`)
+        const [tag, verbe] = cmd.split(' ')
+        queue.push(enc.encode((reponses[verbe] ?? `${tag} BAD ?\r\n`).replace(/\$TAG/g, tag)))
+      },
+      close() {},
+      ...(chiffre ? {} : { startTls: async () => duplex(true) }),
+    })
+    const c = new ImapClient(duplex(false))
+    await c.connect()
+    await c.starttls()
+    expect(sent).toEqual(['clair:a1 CAPABILITY', 'clair:a2 STARTTLS', 'tls:a3 CAPABILITY'])
+    expect(c.enClair()).toBe(false)
   })
 })

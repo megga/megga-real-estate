@@ -17,6 +17,21 @@ import { LineReader, type Duplex } from './duplex.ts'
 export interface ImapFolder { name: string; attributes: string[] }
 export interface ImapSelect { exists: number; uidValidity: number; uidNext: number }
 export interface ImapFlags { uid: number; flags: string[] }
+/** Ce qu'on lit d'un message AVANT de le télécharger : ses drapeaux, sa taille, sa date d'arrivée. */
+export interface ImapMeta extends ImapFlags { size: number; internalDate: string | null }
+/** Où un message déplacé a atterri — `null` quand le serveur ne l'annonce pas (sans UIDPLUS). */
+export interface ImapMoved { voie: 'move' | 'copy+uid-expunge' | 'copy-only'; uid: number | null; uidValidity: number | null }
+
+/** Une réponse NO/BAD à une commande — la ligne du serveur, telle quelle. */
+export class ImapCommandError extends Error {
+  constructor(readonly reponse: string) { super(`imap: ${reponse}`) }
+}
+/**
+ * Le serveur a REFUSÉ les identifiants. Distingué des autres refus parce que la suite
+ * diffère du tout au tout : un mot de passe changé met la boîte en « autorisation à
+ * renouveler », une panne passagère se réessaie.
+ */
+export class ImapAuthError extends Error {}
 
 const quote = (s: string) => `"${s.replace(/[\\"]/g, (c) => '\\' + c)}"`
 
@@ -32,6 +47,63 @@ function capsDe(ligne: string): string[] | null {
   return m ? m[1].trim().split(/\s+/).filter(Boolean) : null
 }
 
+/** base64 d'une chaîne UTF-8, sous Node comme sous Deno. */
+function base64Utf8(s: string): string {
+  let bin = ''
+  for (const b of new TextEncoder().encode(s)) bin += String.fromCharCode(b)
+  return btoa(bin)
+}
+
+/**
+ * Lit les éléments d'une réponse FETCH, dans N'IMPORTE QUEL ordre.
+ *
+ * ⚠ La RFC 3501 ne fixe pas l'ordre des éléments : `(UID 7 FLAGS (\Seen))` et
+ * `(FLAGS (\Seen) UID 7)` sont la même réponse. Le motif d'origine exigeait l'UID
+ * AVANT les drapeaux — un serveur qui répond dans l'autre ordre rendait zéro message,
+ * sans erreur, et ses drapeaux ne se synchronisaient jamais.
+ */
+function lireFetch(ligne: string): { uid: number | null; flags: string[] | null; size: number | null; internalDate: string | null } {
+  const uid = ligne.match(/\bUID (\d+)/)
+  const flags = ligne.match(/\bFLAGS \(([^)]*)\)/)
+  const size = ligne.match(/\bRFC822\.SIZE (\d+)/)
+  const date = ligne.match(/\bINTERNALDATE "([^"]+)"/)
+  return {
+    uid: uid ? Number(uid[1]) : null,
+    flags: flags ? flags[1].split(' ').filter(Boolean) : null,
+    size: size ? Number(size[1]) : null,
+    internalDate: date ? date[1] : null,
+  }
+}
+
+/** `[COPYUID <uidvalidity> <source> <destination>]`, sur une ligne taguée ou non. */
+function lireCopyUid(lignes: string[]): { uid: number; uidValidity: number } | null {
+  for (const l of lignes) {
+    const m = l.match(/\[COPYUID (\d+) \S+ (\d+)\]/i)
+    if (m) return { uidValidity: Number(m[1]), uid: Number(m[2]) }
+  }
+  return null
+}
+
+/**
+ * Découpe une ligne `* LIST` : `(attributs) délimiteur nom`.
+ *
+ * ⚠ Le nom peut être un atome, une chaîne entre guillemets (avec `\"` et `\\` échappés),
+ * ou un LITTÉRAL — que `cmd()` a déjà remplacé par `<literal n>`. Le motif d'origine ne
+ * connaissait que les deux premiers et gardait les antislashs : « Envoyés \"clients\" »
+ * devenait un nom qu'aucun SELECT ne retrouvait.
+ */
+function lireList(ligne: string, literals: Uint8Array[]): ImapFolder | null {
+  const m = ligne.match(/^\* LIST \(([^)]*)\) (?:"(?:[^"\\]|\\.)*"|NIL) (.+)$/i)
+  if (!m) return null
+  const brut = m[2].trim()
+  let name: string
+  const lit = brut.match(/^<literal (\d+)>$/)
+  if (lit) name = new TextDecoder().decode(literals[Number(lit[1])] ?? new Uint8Array())
+  else if (brut.startsWith('"')) name = brut.slice(1, -1).replace(/\\(.)/g, '$1')
+  else name = brut
+  return name ? { name, attributes: m[1] ? m[1].split(' ').filter(Boolean) : [] } : null
+}
+
 export class ImapClient {
   private reader: LineReader
   private n = 0
@@ -44,6 +116,8 @@ export class ImapClient {
   has(cap: string): boolean { return this.caps.includes(cap.toUpperCase()) }
   /** Les capacités connues à cet instant — pour journaliser ce qu'on a vu. */
   capabilities(): string[] { return [...this.caps] }
+  /** La connexion est-elle encore en clair ? (Elle l'est tant qu'elle sait monter en TLS.) */
+  enClair(): boolean { return typeof this.conn.startTls === 'function' }
 
   private noteCaps(ligne: string): void {
     const c = capsDe(ligne)
@@ -65,6 +139,11 @@ export class ImapClient {
   private async cmd(command: string): Promise<{ untagged: string[]; literals: Uint8Array[]; tagged: string }> {
     const tag = `a${++this.n}`
     await this.conn.write(new TextEncoder().encode(`${tag} ${command}\r\n`))
+    return this.attendre(tag)
+  }
+
+  /** Lit jusqu'à la réponse taguée `tag`. */
+  private async attendre(tag: string): Promise<{ untagged: string[]; literals: Uint8Array[]; tagged: string }> {
     const untagged: string[] = []
     const literals: Uint8Array[] = []
     for (;;) {
@@ -79,7 +158,7 @@ export class ImapClient {
         lit = line.match(/\{(\d+)\}$/)
       }
       if (line.startsWith(`${tag} `)) {
-        if (!line.startsWith(`${tag} OK`)) throw new Error(`imap: ${line}`)
+        if (!line.startsWith(`${tag} OK`)) throw new ImapCommandError(line)
         return { untagged, literals, tagged: line }
       }
       if (line.startsWith('* CAPABILITY')) {
@@ -89,8 +168,45 @@ export class ImapClient {
     }
   }
 
+  /**
+   * Monte la connexion en TLS (port 143). Les capacités d'avant la montée ne valent plus
+   * rien (RFC 3501 §6.2.1) : elles sont oubliées, puis redemandées.
+   */
+  async starttls(): Promise<void> {
+    if (!this.conn.startTls) throw new Error('imap: connexion déjà chiffrée')
+    // ⚠ Une bannière muette n'est pas un refus : Infomaniak ouvre par un simple
+    // `* OK IMAP4 ready` (mesuré en T3.1). On demande avant de conclure.
+    if (!this.caps.length) await this.refreshCapabilities()
+    if (!this.has('STARTTLS')) throw new Error('imap: starttls_unavailable')
+    await this.cmd('STARTTLS')
+    this.conn = await this.conn.startTls()
+    this.reader = new LineReader(this.conn)
+    this.caps = []
+    await this.refreshCapabilities()
+  }
+
+  /**
+   * S'authentifie. `LOGIN` d'IMAP4rev1 par défaut ; `AUTHENTICATE PLAIN` quand le serveur
+   * refuse `LOGIN` (`LOGINDISABLED`) ou quand l'identifiant ou le mot de passe sort de
+   * l'ASCII — une chaîne entre guillemets n'en porte pas, et « Zürich2026! » y aurait été
+   * refusé sans que l'agent comprenne pourquoi.
+   *
+   * ⛔ Jamais sur une connexion EN CLAIR : le mot de passe de la boîte passerait lisible sur
+   * le réseau. L'appelant doit monter en TLS d'abord.
+   */
   async login(user: string, password: string): Promise<void> {
-    const { tagged } = await this.cmd(`LOGIN ${quote(user)} ${quote(password)}`)
+    if (this.enClair()) throw new Error('imap: login refusé sur une connexion en clair')
+    const horsAscii = /[^\x20-\x7e]/.test(user + password)
+    let tagged: string
+    try {
+      if (horsAscii || this.has('LOGINDISABLED')) tagged = await this.authenticatePlain(user, password)
+      else tagged = (await this.cmd(`LOGIN ${quote(user)} ${quote(password)}`)).tagged
+    } catch (e) {
+      // Un NO à l'authentification, c'est le mot de passe ou l'identifiant. Le reste
+      // (connexion coupée, BAD de syntaxe) garde son erreur d'origine.
+      if (e instanceof ImapCommandError && / NO /.test(` ${e.reponse} `)) throw new ImapAuthError(e.reponse)
+      throw e
+    }
     // ⚠ ÉCART 2 — LES CAPACITÉS D'AVANT LOGIN NE SONT PAS CELLES D'APRÈS, et le
     // serveur le DIT : mesuré le 05.09.2026, Bluewin termine sa réponse par
     // « post-login capabilities have more ». Or `uidMove` et `append` décident
@@ -103,6 +219,27 @@ export class ImapClient {
     }
   }
 
+  /** SASL PLAIN, en une ligne quand le serveur accepte l'argument initial (`SASL-IR`), en deux sinon. */
+  private async authenticatePlain(user: string, password: string): Promise<string> {
+    const tag = `a${++this.n}`
+    const jeton = base64Utf8(`\0${user}\0${password}`)
+    const enc = new TextEncoder()
+    if (this.has('SASL-IR')) {
+      await this.conn.write(enc.encode(`${tag} AUTHENTICATE PLAIN ${jeton}\r\n`))
+    } else {
+      await this.conn.write(enc.encode(`${tag} AUTHENTICATE PLAIN\r\n`))
+      const suite = await this.reader.line()
+      if (suite === null) throw new Error('imap: connection closed')
+      if (!suite.startsWith('+')) {
+        // Refusé d'emblée (pas de PLAIN, ou identifiants refusés sans relance).
+        if (suite.startsWith(`${tag} `)) throw new ImapCommandError(suite)
+        throw new Error(`imap: authenticate refused ${suite}`)
+      }
+      await this.conn.write(enc.encode(`${jeton}\r\n`))
+    }
+    return (await this.attendre(tag)).tagged
+  }
+
   /** Redemande les capacités (après LOGIN, quand la bannière ne les portait pas). */
   async refreshCapabilities(): Promise<string[]> {
     const { untagged, tagged } = await this.cmd('CAPABILITY')
@@ -113,21 +250,34 @@ export class ImapClient {
   }
 
   async list(): Promise<ImapFolder[]> {
-    const { untagged } = await this.cmd('LIST "" "*"')
-    return untagged.filter((l) => l.startsWith('* LIST ')).map((l) => {
-      const m = l.match(/^\* LIST \(([^)]*)\) (?:"[^"]*"|NIL) (?:"([^"]*)"|(\S+))$/)
-      return { name: m ? (m[2] ?? m[3]) : '', attributes: m && m[1] ? m[1].split(' ') : [] }
-    }).filter((f) => f.name)
+    const { untagged, literals } = await this.cmd('LIST "" "*"')
+    return untagged.filter((l) => l.startsWith('* LIST ')).map((l) => lireList(l, literals)).filter((f): f is ImapFolder => !!f)
   }
 
-  async select(folder: string): Promise<ImapSelect> {
-    const { untagged } = await this.cmd(`SELECT ${quote(folder)}`)
+  /** Crée un dossier (l'« Archive » d'une boîte qui n'en a pas) et s'y abonne. */
+  async create(folder: string): Promise<void> {
+    await this.cmd(`CREATE ${quote(folder)}`)
+    try { await this.cmd(`SUBSCRIBE ${quote(folder)}`) } catch { /* l'abonnement est un confort */ }
+  }
+
+  private async ouvrirDossier(verbe: 'SELECT' | 'EXAMINE', folder: string): Promise<ImapSelect> {
+    const { untagged, tagged } = await this.cmd(`${verbe} ${quote(folder)}`)
     const num = (re: RegExp) => {
-      const l = untagged.map((u) => u.match(re)).find(Boolean)
+      const l = [...untagged, tagged].map((u) => u.match(re)).find(Boolean)
       return l ? Number(l[1]) : 0
     }
     return { exists: num(/^\* (\d+) EXISTS/), uidValidity: num(/\[UIDVALIDITY (\d+)\]/), uidNext: num(/\[UIDNEXT (\d+)\]/) }
   }
+
+  /** Ouvre un dossier pour y AGIR (drapeaux, déplacements). */
+  async select(folder: string): Promise<ImapSelect> { return this.ouvrirDossier('SELECT', folder) }
+
+  /**
+   * Ouvre un dossier en LECTURE SEULE — la synchro n'a rien à y changer, et `EXAMINE`
+   * garantit qu'elle ne le peut pas : un `\Seen` posé par erreur marquerait lu, dans la
+   * vraie boîte, un courrier que l'agent n'a jamais ouvert.
+   */
+  async examine(folder: string): Promise<ImapSelect> { return this.ouvrirDossier('EXAMINE', folder) }
 
   async uidSearchSince(since: Date): Promise<number[]> {
     const { untagged } = await this.cmd(`UID SEARCH SINCE ${imapDate(since)}`)
@@ -139,10 +289,32 @@ export class ImapClient {
     return lireSearch(untagged)
   }
 
+  /** Les UID existants entre `de` et `a`, bornes comprises. */
+  async uidSearchBetween(de: number, a: number): Promise<number[]> {
+    if (a < de) return []
+    const { untagged } = await this.cmd(`UID SEARCH UID ${de}:${a}`)
+    return lireSearch(untagged).filter((u) => u >= de && u <= a)
+  }
+
+  /** Le message qui porte cet en-tête `Message-ID` dans le dossier ouvert. */
+  async uidSearchHeaderMessageId(messageId: string): Promise<number[]> {
+    const { untagged } = await this.cmd(`UID SEARCH HEADER Message-ID ${quote(messageId)}`)
+    return lireSearch(untagged)
+  }
+
   async uidFetchFlags(set: string): Promise<ImapFlags[]> {
     const { untagged } = await this.cmd(`UID FETCH ${set} (FLAGS)`)
-    return untagged.map((l) => l.match(/UID (\d+) FLAGS \(([^)]*)\)/)).filter(Boolean)
-      .map((m) => ({ uid: Number(m![1]), flags: m![2].split(' ').filter(Boolean) }))
+    return untagged.filter((l) => /^\* \d+ FETCH /.test(l)).map(lireFetch)
+      .filter((f) => f.uid !== null && f.flags !== null)
+      .map((f) => ({ uid: f.uid!, flags: f.flags! }))
+  }
+
+  /** Drapeaux, taille et date d'arrivée — de quoi décider de télécharger, avant de le faire. */
+  async uidFetchMeta(set: string): Promise<ImapMeta[]> {
+    const { untagged } = await this.cmd(`UID FETCH ${set} (UID FLAGS RFC822.SIZE INTERNALDATE)`)
+    return untagged.filter((l) => /^\* \d+ FETCH /.test(l)).map(lireFetch)
+      .filter((f) => f.uid !== null)
+      .map((f) => ({ uid: f.uid!, flags: f.flags ?? [], size: f.size ?? 0, internalDate: f.internalDate }))
   }
 
   async uidFetchRaw(uid: number): Promise<Uint8Array> {
@@ -151,12 +323,21 @@ export class ImapClient {
     return literals[0]
   }
 
+  /** Les seuls en-têtes — pour un message trop lourd pour être téléchargé en entier. */
+  async uidFetchHeader(uid: number): Promise<Uint8Array> {
+    const { literals } = await this.cmd(`UID FETCH ${uid} (BODY.PEEK[HEADER])`)
+    if (!literals[0]) throw new Error(`imap: no header for uid ${uid}`)
+    return literals[0]
+  }
+
   async uidStore(uid: number, flags: string[], mode: 'add' | 'remove'): Promise<void> {
     await this.cmd(`UID STORE ${uid} ${mode === 'add' ? '+' : '-'}FLAGS.SILENT (${flags.join(' ')})`)
   }
 
   /**
-   * Déplace un message. Trois voies, de la meilleure à la moins bonne.
+   * Déplace un message. Trois voies, de la meilleure à la moins bonne — et l'UID
+   * d'arrivée quand le serveur l'annonce (`COPYUID`, extension UIDPLUS), pour que le
+   * geste suivant (« désarchiver ») retrouve le message sans relire le dossier.
    *
    * ⛔ ÉCART 3, ET C'EST UNE PERTE DE DONNÉES QUE LE PLAN PRESCRIVAIT. Le repli
    * qu'il donnait était `UID COPY` + `\Deleted` + **`EXPUNGE`**. Or `EXPUNGE`
@@ -176,18 +357,21 @@ export class ImapClient {
    * `EXPUNGE` que l'utilisateur déclenchera lui-même. Un doublon visible vaut
    * mieux qu'une suppression qu'il n'a pas demandée.
    */
-  async uidMove(uid: number, folder: string): Promise<'move' | 'copy+uid-expunge' | 'copy-only'> {
+  async uidMove(uid: number, folder: string): Promise<ImapMoved> {
     if (this.has('MOVE')) {
-      await this.cmd(`UID MOVE ${uid} ${quote(folder)}`)
-      return 'move'
+      const r = await this.cmd(`UID MOVE ${uid} ${quote(folder)}`)
+      const c = lireCopyUid([...r.untagged, r.tagged])
+      return { voie: 'move', uid: c?.uid ?? null, uidValidity: c?.uidValidity ?? null }
     }
-    await this.cmd(`UID COPY ${uid} ${quote(folder)}`)
+    const r = await this.cmd(`UID COPY ${uid} ${quote(folder)}`)
+    const c = lireCopyUid([...r.untagged, r.tagged])
     await this.uidStore(uid, ['\\Deleted'], 'add')
+    const arrivee = { uid: c?.uid ?? null, uidValidity: c?.uidValidity ?? null }
     if (this.has('UIDPLUS')) {
       await this.cmd(`UID EXPUNGE ${uid}`)
-      return 'copy+uid-expunge'
+      return { voie: 'copy+uid-expunge', ...arrivee }
     }
-    return 'copy-only'
+    return { voie: 'copy-only', ...arrivee }
   }
 
   /**
@@ -210,7 +394,7 @@ export class ImapClient {
       const line = await this.reader.line()
       if (line === null) throw new Error('imap: connection closed')
       if (line.startsWith(`${tag} `)) {
-        if (!line.startsWith(`${tag} OK`)) throw new Error(`imap: ${line}`)
+        if (!line.startsWith(`${tag} OK`)) throw new ImapCommandError(line)
         const m = line.match(/\[APPENDUID (\d+) (\d+)\]/i)
         return m ? Number(m[2]) : null
       }
