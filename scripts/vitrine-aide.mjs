@@ -17,9 +17,12 @@
  * Messenger et ne s'exportent pas. Le bouton « ? » du CRM garde donc le panneau ;
  * cette page remplace `help.getmegga.com`, pas le panneau.
  *
- * PÉRIMÈTRE : un seul centre d'aide Intercom sert la holding, MEGGA CRM et MEGGA
- * Shield (le plan n'en permet pas un par marque). Chaque site produit génère donc
- * le sien depuis ce centre commun, restreint à SA collection : `COLLECTION_RACINE`.
+ * PÉRIMÈTRE : un seul centre d'aide Intercom, PLAT, sert la holding, MEGGA CRM et
+ * MEGGA Shield (le plan n'en permet pas un par marque). Chaque site produit génère
+ * donc le sien depuis ce centre commun, restreint à SES collections, nommées une à
+ * une dans `COLLECTIONS_CRM`. Une collection CRM créée dans Intercom s'y ajoute par
+ * son identifiant ; tant qu'elle manque, le journal du build nomme chaque article
+ * publié écarté, avec sa collection.
  *
  * PLACE DANS LA CHAÎNE — ce script tourne EN DERNIER :
  *   overlay-storefront.mjs  (dist/ = la vitrine statique)
@@ -58,15 +61,24 @@ const dist = resolve(racine, 'dist');
 const SITE = 'https://getmegga.com';
 
 /**
- * Identifiant Intercom de la collection « MEGGA CRM », la racine de ce produit.
+ * Les collections Intercom du CRM, nommées une à une (relevé du 14.09.2026).
  *
- * Posé : seuls les articles rangés sous elle, à n'importe quelle profondeur, sont
- * publiés sur getmegga.com — sans quoi le premier article Shield publié y paraîtrait.
- * `null` : tous les articles publiés, comme avant. Il reste `null` tant que cette
- * collection n'existe pas dans Intercom ; un commit suivant posera l'identifiant
- * (nombre ou chaîne, les deux sont acceptés).
+ * Seuls les articles rangés dans l'une d'elles, ou sous l'une d'elles à toute
+ * profondeur, sont publiés sur getmegga.com — sans quoi le premier article de
+ * « MEGGA Shield » (19749855, vide au 14.09.2026) y paraîtrait. Pas de collection
+ * « MEGGA CRM » qui les engloberait : le centre d'aide reste plat, une enveloppe
+ * coûterait un clic de plus dans le Messenger.
+ *
+ * ⚠ UNE COLLECTION CRM CRÉÉE DANS INTERCOM S'AJOUTE ICI. Tant qu'elle manque, ses
+ * articles sont écartés, et le journal du build les nomme avec leur collection. Un
+ * identifiant de cette liste qu'Intercom ne connaît pas fait échouer le build.
  */
-const COLLECTION_RACINE = null;
+const COLLECTIONS_CRM = [
+  '19659046', // Intégrations
+  '19659047', // Démarrer
+  '19659048', // Général
+  '19659049', // Facturation
+];
 
 /** Les deux langues servies, et où elles atterrissent. */
 const SORTIES = {
@@ -454,14 +466,17 @@ export function contenuLocalise(article, langue) {
 
 /**
  * Collections d'un article : `parent_ids` quand la liste est non vide, `parent_id` sinon.
+ * Le filtre ET le sommaire lisent l'article par elle : deux lectures divergentes
+ * garderaient un article que le sommaire range ensuite sous « Autres articles ».
  *
  * ⚠ Les deux champs ne disent pas toujours la même chose, et dans les deux sens.
  * Sept articles publiés sur dix-sept ont `parent_id: null` en 2.11 (audit du
- * 17.08.2026 ; d'où leur place sous « Autres articles », `grouper` ne lisant que lui)
- * alors que `parent_ids` les range dans une collection (connecteur Intercom,
- * 14.09.2026 — sa version d'API n'est pas forcément la nôtre : le compte du journal
- * le dira au premier build filtré). La référence 2.11 documente les deux champs, et
- * donne l'inverse en exemple : `parent_id: 148`, `parent_ids: []`.
+ * 17.08.2026 ; le sommaire, qui ne lisait que lui, les rangeait sous « Autres
+ * articles ») alors que `parent_ids` les place dans une collection (connecteur
+ * Intercom, 14.09.2026 — sa version d'API n'est pas forcément la nôtre : si la 2.11
+ * ne les rendait pas, le journal du build les nommerait parmi les écartés). La
+ * référence 2.11 documente les deux champs, et donne l'inverse en exemple :
+ * `parent_id: 148`, `parent_ids: []`.
  */
 function collectionsDeLArticle(article) {
   const ids = Array.isArray(article.parent_ids) && article.parent_ids.length ? article.parent_ids : [article.parent_id];
@@ -469,25 +484,26 @@ function collectionsDeLArticle(article) {
 }
 
 /**
- * Restreint le corpus au produit de ce site : la collection `racine` et toutes ses
- * descendantes, à n'importe quelle profondeur. `racine` nulle : rien n'est filtré.
+ * Restreint le corpus aux collections `ids` et à leurs descendantes, à toute profondeur.
  *
- * Rend les articles gardés ET les collections à afficher — les descendantes seules,
- * pas la racine : le sommaire garde ses collections au lieu d'une enveloppe « MEGGA
- * CRM » qui les contiendrait toutes. Identifiants comparés en chaîne : l'API 2.11
- * rend ceux des collections en chaîne, les parents d'un article en entier.
+ * Rend les articles gardés, les collections à afficher (la liste et ses descendantes),
+ * les `ecartes` — chaque article laissé de côté avec le nom de ses collections, pour
+ * que le journal du build montre une collection CRM oubliée au lieu de la perdre en
+ * silence — et les `inconnues`, identifiants de la liste qu'Intercom ne connaît pas.
+ * Identifiants comparés en chaîne : l'API 2.11 rend ceux des collections en chaîne,
+ * les parents d'un article en entier.
  */
-export function restreindreALaRacine(articles, collections, racine) {
-  if (racine == null) return { articles, collections };
-  const cle = String(racine);
+export function restreindreAuxCollections(articles, collections, ids) {
+  const parId = new Map(collections.map((c) => [String(c.id), c]));
+  const listees = ids.map(String);
   const filles = new Map();
   for (const c of collections) {
     if (c.parent_id == null) continue;
     const parent = String(c.parent_id);
     filles.set(parent, [...(filles.get(parent) || []), String(c.id)]);
   }
-  const perimetre = new Set([cle]);
-  const aVisiter = [cle];
+  const perimetre = new Set(listees);
+  const aVisiter = [...listees];
   while (aVisiter.length) {
     for (const id of filles.get(aVisiter.pop()) || []) {
       if (!perimetre.has(id)) {
@@ -496,22 +512,36 @@ export function restreindreALaRacine(articles, collections, racine) {
       }
     }
   }
+  const dedans = (a) => collectionsDeLArticle(a).some((id) => perimetre.has(id));
   return {
-    articles: articles.filter((a) => collectionsDeLArticle(a).some((id) => perimetre.has(id))),
-    collections: collections.filter((c) => String(c.id) !== cle && perimetre.has(String(c.id))),
+    articles: articles.filter(dedans),
+    collections: collections.filter((c) => perimetre.has(String(c.id))),
+    ecartes: articles
+      .filter((a) => !dedans(a))
+      .map((a) => ({
+        id: String(a.id),
+        titre: a.title || '',
+        collections: collectionsDeLArticle(a).map((id) => parId.get(id)?.name || `#${id}`),
+      })),
+    inconnues: listees.filter((id) => !parId.has(id)),
   };
 }
 
-/** Groupe les articles par collection ; ceux qui n'en ont pas forment le dernier bloc. */
+/**
+ * Groupe les articles par collection ; ceux qui n'en ont pas forment le dernier bloc.
+ * Un article va sous la PREMIÈRE de ses collections affichées : rangé à deux
+ * endroits, il ne paraît qu'une fois — sinon le compteur et la recherche le doubleraient.
+ */
 export function grouper(articles, collections, langue) {
   const m = MOTS[langue];
   const nomCollection = (c) => c?.translated_content?.[langue]?.name || c?.name || '';
   const parId = new Map(collections.map((c) => [String(c.id), c]));
+  const place = (a) => collectionsDeLArticle(a).find((id) => parId.has(id));
   const groupes = [];
   const orphelins = [];
 
   for (const c of collections) {
-    const dedans = articles.filter((a) => String(a.parent_id ?? '') === String(c.id));
+    const dedans = articles.filter((a) => place(a) === String(c.id));
     if (dedans.length) {
       groupes.push({
         nom: nomCollection(c),
@@ -523,7 +553,7 @@ export function grouper(articles, collections, langue) {
     }
   }
   for (const a of articles) {
-    if (!parId.has(String(a.parent_id ?? ''))) {
+    if (place(a) === undefined) {
       const co = contenuLocalise(a, langue);
       orphelins.push({ article: a, titre: co.title, resume: co.description });
     }
@@ -626,11 +656,22 @@ async function generer() {
   const publies = liste.filter((a) => a.state === 'published');
   // Le périmètre se tranche AVANT les GET : le corps d'un article d'un autre produit
   // n'a rien à faire dans ce build.
-  const perimetre = restreindreALaRacine(publies, collections, COLLECTION_RACINE);
-  if (COLLECTION_RACINE != null) {
-    // Le journal dit ce que le filtre a gardé : un compte sous celui du sommaire
-    // d'avant signale des articles perdus (cf. collectionsDeLArticle).
-    console.log(`[aide] collection racine ${COLLECTION_RACINE} : ${perimetre.articles.length} article(s) publié(s) gardé(s) sur ${publies.length}`);
+  const perimetre = restreindreAuxCollections(publies, collections, COLLECTIONS_CRM);
+  if (perimetre.inconnues.length) {
+    // Supprimée dans Intercom ou mal recopiée : ses articles disparaîtraient de la
+    // page sans un mot. Même règle que le corpus vide, quel que soit le build.
+    console.error(`✗ [aide] COLLECTIONS_CRM nomme une collection qu'Intercom ne connaît pas : ${perimetre.inconnues.join(', ')}.`);
+    console.error('  Supprimée, ou identifiant mal recopié : corriger la liste en tête de scripts/vitrine-aide.mjs.');
+    process.exit(1);
+  }
+  console.log(`[aide] collections du CRM : ${perimetre.articles.length} article(s) publié(s) gardé(s) sur ${publies.length}`);
+  if (perimetre.ecartes.length) {
+    // Écarter est le cas NORMAL pour Shield, mais c'est aussi le sort des articles
+    // d'une collection CRM absente de la liste : les nommer permet de voir le second.
+    console.log(`[aide] ${perimetre.ecartes.length} article(s) publié(s) écarté(s), hors des collections du CRM :`);
+    for (const e of perimetre.ecartes) {
+      console.log(`  · ${e.id} « ${e.titre} » — ${e.collections.length ? e.collections.join(', ') : 'sans collection'}`);
+    }
   }
   // Le corps entier n'est PAS dans la liste : il faut un GET par article.
   const articles = [];
