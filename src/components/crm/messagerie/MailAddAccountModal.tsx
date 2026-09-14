@@ -173,12 +173,12 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
       {t('mail.add.share')}
     </label>
   )
-  const enTete = (p: Fournisseur, sousTitre: string) => (
+  const enTete = (p: Fournisseur, sousTitre?: string) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-4xl)' }}>
       <MailProviderLogo ms={ms} provider={p} size={LOGO_ETAPE} />
       <div>
         <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{nomDe(p)}</div>
-        <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{sousTitre}</div>
+        {sousTitre && <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{sousTitre}</div>}
       </div>
     </div>
   )
@@ -223,8 +223,8 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
           {ligneFournisseur('wa', 'WhatsApp Business', t('mail.add.waSub'), true)}
           {ligneFournisseur('gmail', PRESET.gmail.name, null)}
           {ligneFournisseur('outlook', PRESET.outlook.name, null)}
-          {ligneFournisseur('infomaniak', PRESET.infomaniak.name, t('mail.add.imapSub'))}
-          {ligneFournisseur('bluewin', PRESET.bluewin.name, t('mail.add.imapSub'))}
+          {ligneFournisseur('infomaniak', PRESET.infomaniak.name, null)}
+          {ligneFournisseur('bluewin', PRESET.bluewin.name, null)}
           {ligneFournisseur('imap', t('mail.add.other'), t('mail.add.otherSub'))}
         </div>
       )}
@@ -273,7 +273,7 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
 
       {step === 'imap' && (
         <div>
-          {enTete(prov, t('mail.add.imap.subtitle'))}
+          {enTete(prov)}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--crm-space-md)', marginTop: 'var(--crm-space-2xl)' }}>
             <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder={t('mail.add.imap.email')} aria-label={t('mail.add.imap.email')} type="email" style={{ ...champ, gridColumn: 'span 2' }} />
             <input value={form.imap_host} onChange={(e) => setForm({ ...form, imap_host: e.target.value })} placeholder={t('mail.add.imap.imapHost')} aria-label={t('mail.add.imap.imapHost')} style={champ} />
@@ -303,7 +303,6 @@ export function MailAddAccountModal({ ms, open, onClose, onOpenAccount }: Props)
               </button>
             ))}
           </div>
-          <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut, lineHeight: 1.6, marginTop: 'var(--crm-space-lg)' }}>{t('mail.add.imap.note')}</div>
           {partage}
           {erreur}
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 'var(--crm-space-lg)', marginTop: 'var(--crm-space-3xl)' }}>
