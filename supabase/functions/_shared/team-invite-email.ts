@@ -15,6 +15,13 @@
 // BRUTS dans le HTML. Les deux viennent d'une saisie (nom de profil, nom d'agence) : un
 // chevron y cassait la mise en page, une balise la rendait injectable.
 //
+// ⚠ ET BORNÉ, depuis le 14.09.2026. Échapper ne suffisait pas : tout inscrit est admin de
+// son agence solo et en choisit le nom, sans limite de longueur en base. Ce nom ouvre
+// l'OBJET d'un e-mail signé DKIM getmegga.com — un paragraphe entier d'hameçonnage y tenait,
+// un saut de ligne y visait les en-têtes, un caractère de contrôle bidirectionnel y
+// retournait le texte. `nomAffichable` borne les deux noms à `NOM_MAX` caractères et retire
+// contrôles et marques de direction, AVANT l'échappement et partout où ils s'affichent.
+//
 // ⛔ AUCUN ACCORD DE GENRE, dans aucune langue (16.08.2026). Le gabarit ne connaît PAS le
 // genre du destinataire — il n'a même pas encore de compte. Une première traduction disait
 // « Lei è invitatO » dans le titre et « L'ha invitatA » quinze lignes plus bas : l'un des
@@ -25,6 +32,40 @@
 
 import { INK, MUTED, FONT, escapeHtml, shell, p, row, button } from './email-shell.ts'
 import type { AppLocale } from './recipient-language.ts'
+
+/**
+ * Longueur maximale d'un nom SAISI (agence, invitant) dans l'invitation. 80 : au-delà du
+ * plus long nom d'agence plausible, en deçà d'un paragraphe.
+ */
+export const NOM_MAX = 80
+
+/**
+ * Contrôles C0/C1 (dont CR, LF, tabulation — la catégorie Unicode `Cc`, exactement) :
+ * remplacés par une espace, puis fusionnés — un saut de ligne sépare deux mots, il ne doit
+ * ni les coller ni atteindre un en-tête.
+ */
+const CONTROLES = /\p{Cc}/gu
+
+/**
+ * Marques et contrôles de direction, espace de largeur nulle, BOM : RETIRÉS. Invisibles à
+ * l'écran, ils servent à retourner ou à déguiser un texte (U+202E), jamais à l'écrire.
+ */
+const INVISIBLES = /[\u200B\u200E\u200F\u202A-\u202E\u2066-\u2069\uFEFF]/g
+
+/**
+ * Un nom saisi, prêt à s'afficher : contrôles et invisibles retirés, blancs fusionnés, borné
+ * à `max` caractères (points de code — une paire de substitution n'est jamais coupée), avec
+ * une ellipse quand il a fallu couper. Texte BRUT : l'échappement HTML reste à faire.
+ */
+export function nomAffichable(valeur: string, max = NOM_MAX): string {
+  const net = String(valeur ?? '')
+    .replace(CONTROLES, ' ')
+    .replace(INVISIBLES, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  const points = Array.from(net)
+  return points.length > max ? `${points.slice(0, max - 1).join('').trimEnd()}…` : net
+}
 
 /**
  * Le texte de l'invitation, dans les quatre langues du produit.
@@ -118,10 +159,13 @@ export interface TeamInviteInput {
 export function buildTeamInviteEmail(i: TeamInviteInput): { subject: string; html: string } {
   const l = i.locale ?? 'fr'
   const t = T[l]
+  const agence = nomAffichable(i.agencyName)
+  const invitant = nomAffichable(i.inviterName)
   return {
     // L'AGENCE ouvre l'objet : c'est elle que le destinataire reconnaît, pas l'outil
     // qu'elle utilise. Même règle que sur les e-mails destinés aux clients d'agence.
-    subject: t.objet(i.agencyName),
+    // L'objet n'est pas du HTML : borné et nettoyé, jamais échappé.
+    subject: t.objet(agence),
     html: shell({
       lang: l,
       title: t.titre,
@@ -130,9 +174,9 @@ export function buildTeamInviteEmail(i: TeamInviteInput): { subject: string; htm
       legalNote: t.legal,
       headerCta: null,
       bodyHtml: `
-     ${p(t.invitation(escapeHtml(i.inviterName), escapeHtml(i.agencyName)), 28)}
+     ${p(t.invitation(escapeHtml(invitant), escapeHtml(agence)), 28)}
      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;margin:0 0 28px;">
-       ${row(t.ligneAgence, escapeHtml(i.agencyName))}
+       ${row(t.ligneAgence, escapeHtml(agence))}
        ${row(t.ligneRole, escapeHtml(t.roles[i.role] ?? i.role))}
      </table>
      <div style="margin:0 0 10px;">${button(i.acceptUrl, t.ctaAccepter)}</div>
