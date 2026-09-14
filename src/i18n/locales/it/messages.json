@@ -202,7 +202,7 @@
     "compose": {
       "cta": "Nuovo messaggio",
       "to": "Destinatario",
-      "toPlaceholder": "A · destinatario",
+      "toPlaceholder": "Nome o indirizzo e-mail",
       "title": "Nuovo messaggio",
       "subject": "Oggetto",
       "body": "Messaggio",
@@ -210,7 +210,21 @@
       "fromComputer": "Dal mio computer",
       "agencyDocs": "Documenti dell'agenzia",
       "noAgencyDocs": "Nessun documento disponibile.",
-      "removeAttachment": "Rimuovi l'allegato"
+      "removeAttachment": "Rimuovi l'allegato",
+      "from": "Da",
+      "toShort": "A",
+      "cc": "Cc",
+      "bcc": "Ccn",
+      "ccField": "Destinatari in copia",
+      "bccField": "Destinatari in copia nascosta",
+      "addCc": "Aggiungi destinatari in copia",
+      "addBcc": "Aggiungi destinatari in copia nascosta",
+      "removeRecipient": "Rimuovi {{address}}",
+      "invalidAddress": "Indirizzo non valido",
+      "invalidHint_one": "Un indirizzo è da correggere: fai doppio clic per modificarlo.",
+      "invalidHint_other": "{{count}} indirizzi sono da correggere: fai doppio clic per modificarli.",
+      "fromUnsupported": "Invio non disponibile da questa casella",
+      "suggestions": "Contatti suggeriti"
     },
     "folders": {
       "aria": "Cartelle",

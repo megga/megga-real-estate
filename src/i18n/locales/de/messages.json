@@ -202,7 +202,7 @@
     "compose": {
       "cta": "Neue Nachricht",
       "to": "Empfänger",
-      "toPlaceholder": "An · Empfänger",
+      "toPlaceholder": "Name oder E-Mail-Adresse",
       "title": "Neue Nachricht",
       "subject": "Betreff",
       "body": "Nachricht",
@@ -210,7 +210,21 @@
       "fromComputer": "Von meinem Computer",
       "agencyDocs": "Dokumente der Agentur",
       "noAgencyDocs": "Kein Dokument verfügbar.",
-      "removeAttachment": "Anhang entfernen"
+      "removeAttachment": "Anhang entfernen",
+      "from": "Von",
+      "toShort": "An",
+      "cc": "Cc",
+      "bcc": "Bcc",
+      "ccField": "Empfänger in Kopie",
+      "bccField": "Empfänger in Blindkopie",
+      "addCc": "Empfänger in Kopie hinzufügen",
+      "addBcc": "Empfänger in Blindkopie hinzufügen",
+      "removeRecipient": "{{address}} entfernen",
+      "invalidAddress": "Ungültige Adresse",
+      "invalidHint_one": "Eine Adresse ist zu korrigieren – zum Bearbeiten doppelklicken.",
+      "invalidHint_other": "{{count}} Adressen sind zu korrigieren – zum Bearbeiten doppelklicken.",
+      "fromUnsupported": "Versand aus diesem Postfach nicht verfügbar",
+      "suggestions": "Vorgeschlagene Kontakte"
     },
     "folders": {
       "aria": "Ordner",

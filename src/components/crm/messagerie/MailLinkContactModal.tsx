@@ -92,7 +92,7 @@ export function MailLinkContactModal({ ms, open, email, name, busy, error, onClo
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
             <div aria-hidden style={{ width: AVATAR, height: AVATAR, borderRadius: '50%', background: ms.elev, border: `1px solid ${ms.bord}`, display: 'grid', placeItems: 'center', fontSize: 'var(--crm-text-xs)', fontWeight: 600, flexShrink: 0 }}>
-              {initialsOf(`${h.first_name} ${h.last_name}`, h.email)}
+              {initialsOf(`${h.first_name} ${h.last_name}`, h.email ?? '')}
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ fontSize: 'var(--crm-text-sm)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.first_name} {h.last_name}</div>

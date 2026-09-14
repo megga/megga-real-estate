@@ -202,7 +202,7 @@
     "compose": {
       "cta": "New message",
       "to": "Recipient",
-      "toPlaceholder": "To · recipient",
+      "toPlaceholder": "Name or email address",
       "title": "New message",
       "subject": "Subject",
       "body": "Message",
@@ -210,7 +210,21 @@
       "fromComputer": "From my computer",
       "agencyDocs": "Agency documents",
       "noAgencyDocs": "No document available.",
-      "removeAttachment": "Remove attachment"
+      "removeAttachment": "Remove attachment",
+      "from": "From",
+      "toShort": "To",
+      "cc": "Cc",
+      "bcc": "Bcc",
+      "ccField": "Cc recipients",
+      "bccField": "Bcc recipients",
+      "addCc": "Add Cc recipients",
+      "addBcc": "Add Bcc recipients",
+      "removeRecipient": "Remove {{address}}",
+      "invalidAddress": "Invalid address",
+      "invalidHint_one": "One address needs fixing — double-click it to edit.",
+      "invalidHint_other": "{{count}} addresses need fixing — double-click one to edit.",
+      "fromUnsupported": "Sending is not available from this mailbox",
+      "suggestions": "Suggested contacts"
     },
     "folders": {
       "aria": "Folders",

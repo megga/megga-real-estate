@@ -3708,6 +3708,7 @@ export type Database = {
           agency_id: string
           attachments: Json
           author_id: string
+          bcc: Json
           body_text: string | null
           cc: Json
           created_at: string
@@ -3724,6 +3725,7 @@ export type Database = {
           agency_id: string
           attachments?: Json
           author_id: string
+          bcc?: Json
           body_text?: string | null
           cc?: Json
           created_at?: string
@@ -3740,6 +3742,7 @@ export type Database = {
           agency_id?: string
           attachments?: Json
           author_id?: string
+          bcc?: Json
           body_text?: string | null
           cc?: Json
           created_at?: string

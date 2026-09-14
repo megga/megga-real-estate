@@ -202,7 +202,7 @@
     "compose": {
       "cta": "Nouveau message",
       "to": "Destinataire",
-      "toPlaceholder": "À · destinataire",
+      "toPlaceholder": "Nom ou adresse e-mail",
       "title": "Nouveau message",
       "subject": "Objet",
       "body": "Message",
@@ -210,7 +210,21 @@
       "fromComputer": "Depuis mon ordinateur",
       "agencyDocs": "Documents de l'agence",
       "noAgencyDocs": "Aucun document disponible.",
-      "removeAttachment": "Retirer la pièce"
+      "removeAttachment": "Retirer la pièce",
+      "from": "De",
+      "toShort": "À",
+      "cc": "Cc",
+      "bcc": "Cci",
+      "ccField": "Destinataires en copie",
+      "bccField": "Destinataires en copie cachée",
+      "addCc": "Ajouter des destinataires en copie",
+      "addBcc": "Ajouter des destinataires en copie cachée",
+      "removeRecipient": "Retirer {{address}}",
+      "invalidAddress": "Adresse invalide",
+      "invalidHint_one": "Une adresse est à corriger — double-cliquez dessus pour la modifier.",
+      "invalidHint_other": "{{count}} adresses sont à corriger — double-cliquez dessus pour les modifier.",
+      "fromUnsupported": "Envoi indisponible depuis cette boîte",
+      "suggestions": "Contacts suggérés"
     },
     "folders": {
       "aria": "Dossiers",

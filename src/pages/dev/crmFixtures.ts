@@ -553,6 +553,18 @@ type LigneLibellee = { id: string; calendar_label_id?: string | null }
 
 export const CRM_RPC: Record<string, unknown> = {
   claim_pending_role: null,
+  // Les destinataires suggérés du composeur de la Messagerie. Mêmes jetons que la RPC —
+  // minuscules, cinq au plus, TOUS présents, chacun dans le prénom, le nom, l'adresse ou le
+  // téléphone. Sans elle, la saisie « comme Google » ne proposait AUCUN contact au banc.
+  mail_search_contacts: (a: Record<string, unknown>) => {
+    const jetons = String(a.p_q ?? '').toLowerCase().replace(/[,()%*_\\]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 5)
+    if (jetons.length === 0) return []
+    return (CRM_TABLES.contacts as typeof CONTACTS)
+      .filter((c) => jetons.every((j) => [c.first_name, c.last_name, c.email, c.phone].some((v) => (v ?? '').toLowerCase().includes(j))))
+      .sort((x, y) => `${x.last_name} ${x.first_name}`.localeCompare(`${y.last_name} ${y.first_name}`))
+      .slice(0, 10)
+      .map(({ id, first_name, last_name, email, phone }) => ({ id, first_name, last_name, email, phone }))
+  },
   // ⚠ LUES À CHAQUE APPEL, sur les fixtures VIVANTES : un libellé créé ou supprimé
   // dans le rail (`calendar_labels` est écrivable), ou posé par un clic droit,
   // doit se voir au rafraîchissement suivant. Une affectation vers un libellé

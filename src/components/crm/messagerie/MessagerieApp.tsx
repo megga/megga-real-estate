@@ -29,7 +29,6 @@ import { useMailFolderCounts, useMailThreads, type MailThreadRow } from '@/hooks
 import { useMailThread } from '@/hooks/useMailThread'
 import { useMailSend, type MailSendResult } from '@/hooks/useMailSend'
 import { useMailRealtime } from '@/hooks/useMailRealtime'
-import { parseRecipients } from '@/hooks/useMailContactSearch'
 import { MailList } from './MailList'
 import { MailAddAccountModal } from './MailAddAccountModal'
 import { MailAttachmentPreviewModal } from './MailAttachmentPreviewModal'
@@ -444,17 +443,33 @@ export function MessagerieApp({ dark, setDark }: Props) {
           {state.modal.kind === 'compose' && (
             <MailComposeModal
               ms={ms}
+              boites={accounts.list}
+              boiteOuverte={state.accountId}
               draft={brouillonCompose}
               sending={send.isPending}
               error={send.error?.message ?? null}
               onClose={(contenu) => {
                 // Fermer sans envoyer n'efface rien : la saisie devient un
-                // brouillon LOCAL (D7), jamais poussé chez le fournisseur.
-                if (contenu) drafts.save.mutate({ id: brouillonCompose?.id, kind: 'new', to: parseRecipients(contenu.to), subject: contenu.subject, body_text: contenu.body })
+                // brouillon LOCAL (D7), jamais poussé chez le fournisseur — rangé
+                // sous la boîte d'envoi choisie.
+                if (contenu) {
+                  drafts.save.mutate({
+                    id: brouillonCompose?.id, kind: 'new', account_id: contenu.accountId ?? undefined,
+                    to: contenu.to, cc: contenu.cc, bcc: contenu.bcc, subject: contenu.subject, body_text: contenu.body,
+                  })
+                }
                 dispatch({ type: 'modal', modal: { kind: 'none' } })
               }}
-              // README : à l'envoi, le message rejoint le dossier « Envoyés ».
-              onSend={(input) => send.mutate(input, { onSuccess: (d) => { apresEnvoi(d); dispatch({ type: 'modal', modal: { kind: 'none' } }); dispatch({ type: 'folder', folder: 'sent' }) } })}
+              // README : à l'envoi, le message rejoint le dossier « Envoyés » — celui de la
+              // boîte qui a ENVOYÉ, qui devient la boîte ouverte si c'en était une autre.
+              onSend={(input) => send.mutate(input, {
+                onSuccess: (d) => {
+                  apresEnvoi(d)
+                  dispatch({ type: 'modal', modal: { kind: 'none' } })
+                  if (input.account_id && input.account_id !== state.accountId) dispatch({ type: 'select-account', accountId: input.account_id })
+                  dispatch({ type: 'folder', folder: 'sent' })
+                },
+              })}
             />
           )}
 

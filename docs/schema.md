@@ -340,7 +340,7 @@ mail_drafts (
   id, account_id, agency_id, author_id,
   kind,              -- 'new' | 'reply' | 'forward'
   thread_id, in_reply_to_message_id,
-  "to", cc, subject, body_text,
+  "to", cc, bcc, subject, body_text,   -- jsonb [{name,email}] ; bcc : 20260915080100
   attachments,       -- jsonb [{name,size,storage_path}] : pièces déjà déposées
   created_at, updated_at
 )

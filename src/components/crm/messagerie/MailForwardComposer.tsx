@@ -1,6 +1,6 @@
 /**
- * Le composeur de transfert (README §3 « Transfert ») : un destinataire, une
- * note facultative, et le rappel du message d'origine.
+ * Le composeur de transfert (README §3 « Transfert ») : ses destinataires — en capsules,
+ * comme « Nouveau message » —, une note facultative, et le rappel du message d'origine.
  *
  * ⚠ Un transfert N'EST PAS une réponse : `mail-send` ne pose ni `In-Reply-To` ni
  * `References` dessus, sans quoi le destinataire le verrait tomber dans une
@@ -9,36 +9,44 @@
  */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { parseRecipients } from '@/hooks/useMailContactSearch'
+import { adresseValide, ajouterDestinataires, decouperDestinataires } from '@/lib/mail/compose'
+import type { MailAddress } from '@/lib/mail/format'
+import { MailRecipientField } from './MailRecipientField'
 import { MAIL_TRANSITION, PILL, type MailSurfaces } from './mailTokens'
 
 interface Props {
   ms: MailSurfaces; originalFrom: string; originalSubject: string; busy: boolean
   /** ⛔ L'échec d'un envoi doit se voir ICI : le composeur reste ouvert avec le texte. */
   error: string | null
-  onCancel: () => void; onSend: (to: { name: string | null; email: string }[], note: string) => void
+  onCancel: () => void; onSend: (to: MailAddress[], note: string) => void
 }
 
-/** Champ destinataires (adresses libres), note, et rappel de l'original. */
+/** Champ destinataires, note, et rappel de l'original. */
 export function MailForwardComposer({ ms, originalFrom, originalSubject, busy, error, onCancel, onSend }: Props) {
   const { t } = useTranslation('messages')
-  const [to, setTo] = useState('')
+  const [to, setTo] = useState<MailAddress[]>([])
+  const [texte, setTexte] = useState('')
   const [note, setNote] = useState('')
-  const rcpts = parseRecipients(to)
-  const can = rcpts.length > 0 && !busy
+  // Les capsules, plus l'adresse tapée qu'on n'a pas validée : « Transférer » cliqué juste
+  // après la frappe part avec elle.
+  const rcpts = ajouterDestinataires(to, decouperDestinataires(texte))
+  const can = rcpts.length > 0 && rcpts.every((a) => adresseValide(a.email)) && !busy
+  // Comme « Nouveau message » : seules les capsules en alerte s'annoncent, pas la frappe.
+  const invalides = to.filter((a) => !adresseValide(a.email)).length
   return (
     <div style={{ borderRadius: 'var(--crm-radius-xl)', background: ms.elev, padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', marginTop: 'var(--crm-space-4xl)', display: 'flex', flexDirection: 'column', gap: 'var(--crm-space-md)' }}>
-      <input
-        value={to}
-        onChange={(e) => setTo(e.target.value)}
-        placeholder={t('mail.compose.toPlaceholder')}
-        aria-label={t('mail.compose.to')}
+      <MailRecipientField
+        ms={ms}
+        prefixe={t('mail.compose.toShort')}
+        libelle={t('mail.compose.to')}
+        valeur={to}
+        texte={texte}
+        onChange={(liste, reste) => { setTo(liste); setTexte(reste) }}
         autoFocus
-        style={{
-          borderRadius: PILL, padding: 'var(--crm-space-lg) var(--crm-space-3xl)', fontSize: 'var(--crm-text-sm)',
-          background: ms.card, border: `1px solid ${ms.bord}`, color: ms.ink, fontFamily: 'inherit', outline: 'none',
-        }}
+        placeholder={t('mail.compose.toPlaceholder')}
+        fond={ms.card}
       />
+      {invalides > 0 && <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.dangerText }}>{t('mail.compose.invalidHint', { count: invalides })}</div>}
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
