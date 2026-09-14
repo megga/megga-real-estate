@@ -16,8 +16,9 @@
  *
  * ⛔ L'ACTEUR SE LIT DANS `actor_kind` (src/lib/auditActor.ts), jamais dans la seule
  * absence d'`actor_id` : elle recouvre l'IA, le système ET l'agent dont le compte a été
- * supprimé. La TEINTE de la pastille dit humain / non-humain (`invBgSoft` / `invBg`) ; le
- * GLYPHE sépare l'IA (l'étincelle, CLAUDE.md §5) du système.
+ * supprimé. Chacun a son VISAGE : MEGGA AI l'accent et l'étincelle pleine (CLAUDE.md §5 :
+ * elle ne se pose sur rien d'autre), le système un voile gris et un engrenage, l'agent
+ * ses initiales cerclées.
  */
 import { useId, useMemo, useState, type ReactNode } from 'react'
 import i18n from '@/i18n'
@@ -80,18 +81,31 @@ export function AudEventRow({ event, last, rafale, noms, designe, compacte = fal
   const sev = event.severity ?? 'info'
   const estRafale = !!rafale && rafale.length > 1
 
+  // ⛔ TROIS ACTEURS, TROIS VISAGES (14.09.2026, Julien : « MEGGA AI, il est pareil que le
+  // système »). Les deux portaient le même aplat noir, et seul un glyphe de 12 px les
+  // séparait :
+  //  · MEGGA AI prend l'ACCENT, sa marque — celle du dock et du type « IA » de la cloche —,
+  //    et son étincelle PLEINE, blanche (l'aplat d'accent tient 5,78:1 sous le blanc) ;
+  //  · le système, un VOILE gris : un geste automatique ne demande rien à l'œil. Voile et
+  //    non aplat : la ligne survolée prend `focusSurface`, qu'un gris opaque aurait épousé ;
+  //  · l'agent, ses initiales cerclées, comme l'avatar d'agence de la barre latérale.
+  const visage = acteur === 'ai'
+    ? { fond: sp.accent, bord: 'transparent', encre: sp.accentInk }
+    : acteur === 'system'
+      ? { fond: `color-mix(in srgb, ${sp.sub} 18%, transparent)`, bord: 'transparent', encre: sp.soft }
+      : { fond: 'transparent', bord: sp.cardBorder, encre: sp.ink }
   const pastille = (
     <span
       title={nomActeur}
       style={{
-        width: 22, height: 22, flexShrink: 0, display: 'grid', placeItems: 'center',
-        borderRadius: 'var(--crm-radius-pill)', color: S.invInk,
-        background: acteur === 'ai' || acteur === 'system' ? S.invBg : S.invBgSoft,
-        fontSize: 'var(--crm-text-xs)', fontWeight: 600, letterSpacing: 0.2,
+        width: 24, height: 24, flexShrink: 0, display: 'grid', placeItems: 'center',
+        borderRadius: 'var(--crm-radius-pill)', background: visage.fond, color: visage.encre,
+        boxShadow: `inset 0 0 0 1px ${visage.bord}`,
+        fontSize: 'var(--crm-text-xs)', fontWeight: 600,
       }}
     >
-      {acteur === 'ai' ? <CrmIcon name="sparkle" size={12} stroke={S.invInk} />
-        : acteur === 'system' ? <CrmIcon name="server" size={12} stroke={S.invInk} />
+      {acteur === 'ai' ? <CrmIcon name="sparkle" size={13} stroke={visage.encre} fill={visage.encre} sw={1.2} />
+        : acteur === 'system' ? <CrmIcon name="cog" size={14} stroke={visage.encre} sw={1.8} />
           : initiales(nomme ? nomActeur : undefined)}
     </span>
   )

@@ -18,10 +18,10 @@
  * à la machine le geste d'un agent n'est pas cosmétique.
  *
  * ── CE QUE LA GARDE FIGE ─────────────────────────────────────────────────────
- * La TEINTE de l'avatar dit humain / non-humain (`invBgSoft` / `invBg`, paire déjà
- * mesurée par dossiers-contraste.spec.ts). Le GLYPHE sépare l'IA (étincelle, la
- * marque IA de CLAUDE.md §5) du système (`server`). L'étincelle ne se pose sur rien
- * d'autre.
+ * Chaque acteur a son VISAGE (14.09.2026, Julien : « MEGGA AI, il est pareil que le
+ * système » — les deux portaient le même aplat noir) : MEGGA AI l'ACCENT et l'étincelle
+ * pleine (la marque IA de CLAUDE.md §5, qui ne se pose sur rien d'autre), le système un
+ * voile gris et un engrenage, l'agent ses initiales cerclées.
  *
  * ⚠ Les tests purs importent `@/lib/auditActor` DANS le `it` : sur l'ancien code le
  * module n'existe pas, et un import statique ferait échouer le fichier entier avant
@@ -35,6 +35,7 @@ import { describe, it, expect, beforeAll, afterEach } from 'vitest'
 import { createElement, act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import i18n from '@/i18n'
+import { MXC_COLOR } from '@/components/megga-x-crm/tokens'
 import { AudEventRow } from '@/components/crm-dossiers/audit/AudEventRow'
 import type { AuditEvent } from '@/types/kyc'
 
@@ -111,7 +112,7 @@ afterEach(() => {
 })
 
 describe('journal d’audit agent — l’acteur d’une ligne', () => {
-  it('courrier synchronisé : « Système », glyphe serveur, catégorie traduite', () => {
+  it('courrier synchronisé : « Système », glyphe d’engrenage, catégorie traduite', () => {
     monter(COURRIER_SYNCHRO)
     const a = avatar('Système')
     expect(a, 'une synchro de boîte est un geste du SYSTÈME').not.toBeNull()
@@ -157,6 +158,28 @@ describe('journal d’audit agent — l’acteur d’une ligne', () => {
     expect(a!.textContent).toBe('AG')
     expect(avatar('Agent (compte supprimé)')).toBeNull()
     expect(avatar('Système')).toBeNull()
+  })
+
+  it('MEGGA AI, le système et l’agent ont chacun leur visage — l’IA porte l’accent', () => {
+    /** Le fond de la pastille d'une ligne, lu puis la ligne démontée. */
+    const fondDe = (evenement: AuditEvent, titre: string) => {
+      monter(evenement)
+      const fond = avatar(titre)!.style.background
+      act(() => racine!.unmount())
+      racine = null
+      document.body.innerHTML = ''
+      return fond
+    }
+    const ia = fondDe(IA, 'MEGGA AI')
+    const systeme = fondDe(RECALCUL, 'Système')
+    const agent = fondDe(AGENT, 'Agent')
+    expect(ia, 'MEGGA AI et le système portaient le même aplat noir').not.toBe(systeme)
+    expect(ia).not.toBe(agent)
+    expect(systeme).not.toBe(agent)
+    // L'accent, normalisé par le même moteur que la pastille.
+    const temoin = document.createElement('span')
+    temoin.style.background = MXC_COLOR.accent
+    expect(ia, 'MEGGA AI porte l’accent, sa marque').toBe(temoin.style.background)
   })
 
   it('agent identifié : « Agent », initiales', () => {
