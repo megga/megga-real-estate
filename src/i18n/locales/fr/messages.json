@@ -191,7 +191,6 @@
     "box": {
       "label": "Boîte",
       "none": "Aucune boîte",
-      "synced": "synchronisée",
       "disconnect": "Déconnecter",
       "disconnectConfirm": "Déconnecter cette boîte ? Ses messages seront retirés du CRM ; les documents classés restent.",
       "status": {

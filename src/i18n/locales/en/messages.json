@@ -191,7 +191,6 @@
     "box": {
       "label": "Mailbox",
       "none": "No mailbox",
-      "synced": "synced",
       "disconnect": "Disconnect",
       "disconnectConfirm": "Disconnect this mailbox? Its messages will be removed from the CRM; filed documents remain.",
       "status": {

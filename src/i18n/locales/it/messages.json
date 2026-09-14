@@ -191,7 +191,6 @@
     "box": {
       "label": "Casella",
       "none": "Nessuna casella",
-      "synced": "sincronizzata",
       "disconnect": "Disconnetti",
       "disconnectConfirm": "Disconnettere questa casella? I suoi messaggi verranno rimossi dal CRM; i documenti archiviati restano.",
       "status": {
