@@ -23,6 +23,8 @@ export const INTERCOM_ALLOWED_KEYS = [
   'role',
   'canton',
   'company',
+  // Libellé FIXE du produit (« crm »), jamais une donnée client : il trie l'espace Intercom partagé.
+  'produit',
 ] as const
 
 /**

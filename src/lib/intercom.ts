@@ -45,6 +45,8 @@ export interface IntercomBootArgs {
   intercom_user_jwt?: string
   /** company_id + name (seules clés d'entreprise de l'allowlist — cf. intercom-allowlist.ts). */
   company?: { company_id: string; name?: string; [key: string]: unknown }
+  /** Produit d'origine : l'espace Intercom est partagé (la holding envoie 'holding', Shield 'shield'). */
+  produit?: 'crm'
   [key: string]: unknown
 }
 
