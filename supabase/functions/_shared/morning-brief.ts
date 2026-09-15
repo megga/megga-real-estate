@@ -53,6 +53,42 @@ const CAPS = { visits: 6, reminders: 5, offers: 3, sellerLeads: 3 } as const
 // compte présenté comme exact alors qu'il est plafonné.
 export const SQL_LIMITS = { visits: 12, reminders: 20, offers: 5, sellerLeads: 5 } as const
 
+/** Visite telle que la lit `morning-brief-data.ts` : `agentId` sert à filtrer « ta journée ». */
+export type BriefVisitRow = BriefVisit & { agentId: string | null }
+
+/** Les quatre sources du point du jour, scopées AGENCE (lues par `morning-brief-data.ts`). */
+export interface BriefAgencyData {
+  visits: BriefVisitRow[]
+  reminders: BriefReminder[]
+  offers: BriefOffer[]
+  sellerLeads: BriefSellerLead[]
+}
+
+/**
+ * « Ta journée » = les visites de CET agent, attribuées à lui ou non attribuées ; celles d'un
+ * collègue ne sont pas les siennes. Partagé par le push de 07h30 et l'outil `get_daily_brief` :
+ * deux filtres écrits séparément finiraient par ne plus compter la même chose.
+ */
+export function briefVisitsForAgent<T extends { agentId: string | null }>(visits: T[], profileId: string): T[] {
+  return visits.filter((v) => !v.agentId || v.agentId === profileId)
+}
+
+/**
+ * Nombre d'éléments du point du jour — le {{2}} du template `agent_daily_brief`.
+ * `atLimit` : une section a atteint sa limite SQL, le total réel est inconnu. L'appelant
+ * l'affiche « N+ », jamais comme un compte exact — la règle des en-têtes du brief.
+ */
+export function briefItemCount(
+  data: Pick<MorningBriefData, 'visits' | 'reminders' | 'offers' | 'sellerLeads'>,
+): { count: number; atLimit: boolean } {
+  const { visits, reminders, offers, sellerLeads } = data
+  return {
+    count: visits.length + reminders.length + offers.length + sellerLeads.length,
+    atLimit: visits.length >= SQL_LIMITS.visits || reminders.length >= SQL_LIMITS.reminders
+      || offers.length >= SQL_LIMITS.offers || sellerLeads.length >= SQL_LIMITS.sellerLeads,
+  }
+}
+
 const REMINDER_LABELS: Record<WaLang, Record<string, string>> = {
   fr: {
     follow_up_sent_property: 'Relance après envoi de bien',
