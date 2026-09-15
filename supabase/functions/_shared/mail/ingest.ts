@@ -115,9 +115,25 @@ export function deriveThreadPatch(existing: ThreadRow | null, m: NormalizedMessa
     // se lit, comme l'archive, sur le message entrant le plus récent.
     is_archived: newestInbound ? (!m.inInbox && !m.isTrashed && !m.isSpam) : (existing?.is_archived ?? false),
     is_trashed: newer ? m.isTrashed : (existing?.is_trashed ?? false),
-    is_spam: newestInbound ? m.isSpam : (existing?.is_spam ?? false),
+    // Un fil NÉ d'un sortant au spam (un spam qui usurpe l'adresse de la boîte) est au spam :
+    // sans entrant pour décider, il se rangeait dans « Envoyés ».
+    is_spam: newestInbound ? m.isSpam : (existing ? existing.is_spam : m.isSpam),
   }
 }
+
+/**
+ * La clé de fil d'un courrier au spam : la sienne, jamais celle d'une conversation.
+ *
+ * ⛔ UN SPAM NE REJOINT JAMAIS UNE CONVERSATION (15.09.2026). Un hameçonnage qui citait
+ * l'échange agent ↔ notaire (`References`, même objet) rejoignait le vrai fil — IMAP par
+ * `cleDeFil`, Gmail et Graph par leur propre regroupement —, et le fil ENTIER passait au
+ * Spam, puisqu'il suit son dernier entrant. Au courrier légitime suivant il revenait en
+ * Réception, l'hameçonnage glissé entre deux vrais messages ; et « Ce n'est pas un spam »,
+ * cliqué pour récupérer la conversation, le rattachait au notaire et le remettait en
+ * Réception chez le fournisseur. Le préfixe ne peut désigner aucun fil de conversation, et
+ * l'identifiant du fournisseur n'est pas écrit par l'expéditeur.
+ */
+export const cleDeFilSpam = (providerMessageId: string) => `spam:${providerMessageId}`
 
 export function pickContact(rows: { contact_id: string }[]): string | null {
   const ids = Array.from(new Set(rows.map((r) => r.contact_id)))
@@ -288,7 +304,11 @@ async function findKnownMessage(admin: SupabaseClient, accountId: string, m: Nor
   const { data: byProvider, error: e1 } = await base().eq('provider_message_id', m.providerMessageId).maybeSingle()
   if (e1) throw new Error(`message lookup: ${e1.message}`)
   if (byProvider) return byProvider as KnownMessageRow
-  if (!m.rfc822MessageId) return null
+  // ⛔ Une ligne `pending:` est un ENVOI du CRM : seul un sortant hors spam peut en être la
+  // copie. Un destinataire connaît le Message-ID de ce qu'on lui a écrit ; sa réponse qui le
+  // reprenait, lue avant la copie « Envoyés », prenait la ligne de l'envoi et la réécrivait —
+  // et un spam qui usurpe l'adresse de la boîte passe pour un sortant.
+  if (!m.rfc822MessageId || m.direction !== 'outbound' || m.isSpam) return null
   const { data: byPending, error: e2 } = await base().eq('provider_message_id', `pending:${m.rfc822MessageId}`).maybeSingle()
   if (e2) throw new Error(`message lookup (pending): ${e2.message}`)
   return (byPending as KnownMessageRow | null) ?? null
@@ -331,7 +351,8 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
   let auditFailures = 0
   for (const brut of msgs) {
     if (brut.isDraft) continue
-    const m = assainirMessage(brut)
+    const sain = assainirMessage(brut)
+    const m = sain.isSpam ? { ...sain, providerThreadId: cleDeFilSpam(sain.providerMessageId) } : sain
 
     // Message déjà connu ? (ou copie « Envoyés » d'un envoi CRM en attente : pending:<Message-ID>)
     const known = await findKnownMessage(admin, account.id, m)
@@ -392,7 +413,10 @@ export async function ingestMessages(admin: SupabaseClient, account: MailAccount
       to: m.to, cc: m.cc, bcc: m.bcc, reply_to: m.replyTo, subject: m.subject, snippet: m.snippet,
       body_text: m.bodyText, body_html: html, body_truncated: truncated, sent_at: m.sentAt,
       is_read: m.isRead, has_attachments: m.attachments.some((a) => !a.isInline), provider_labels: m.providerLabels,
-      is_spam: m.isSpam, contact_id: m.isSpam ? null : contactId,
+      // Un message rattaché PUIS passé au spam GARDE son contact : il a sa ligne au journal, et
+      // l'effacer le faisait rejournaliser à sa sortie du spam — une seconde ligne, append-only.
+      // La fiche du contact l'écarte (`mail_spam_message_ids`).
+      is_spam: m.isSpam, contact_id: m.isSpam ? (known?.contact_id ?? null) : contactId,
     }
     let messageId: string
     if (known) {
@@ -559,19 +583,27 @@ export async function recomputeThread(admin: SupabaseClient, threadId: string): 
     if (eDel) throw new Error(`recompute delete: ${eDel.message}`)
     return
   }
-  const last = msgs[msgs.length - 1]
-  const inbound = msgs.filter((x) => x.direction === 'inbound')
-  const outbound = msgs.filter((x) => x.direction === 'outbound')
+  // Même règle que `deriveThreadPatch` : le fil est au spam si son dernier ENTRANT l'est — et,
+  // sans entrant, si tous ses messages le sont.
+  const entrants = msgs.filter((x) => x.direction === 'inbound')
+  const auSpam = entrants.length ? !!entrants[entrants.length - 1].is_spam : msgs.every((x) => x.is_spam)
+  // Un fil HORS spam se résume par ses messages hors spam : la lecture tient les autres à part
+  // (`partagerSpam`), et la liste comptait le fil « non lu » pour un hameçonnage, ou lui prêtait
+  // sa pièce jointe.
+  const horsSpam = msgs.filter((x) => !x.is_spam)
+  const vus = auSpam || horsSpam.length === 0 ? msgs : horsSpam
+  const last = vus[vus.length - 1]
+  const inbound = vus.filter((x) => x.direction === 'inbound')
+  const outbound = vus.filter((x) => x.direction === 'outbound')
   const { error: eUpd } = await admin.from('mail_threads').update({
     message_count: msgs.length,
     last_message_at: last.sent_at,
     snippet: last.snippet,
     last_inbound_at: inbound.length ? inbound[inbound.length - 1].sent_at : null,
     last_outbound_at: outbound.length ? outbound[outbound.length - 1].sent_at : null,
-    has_attachments: msgs.some((x) => x.has_attachments),
-    is_read: msgs.every((x) => x.is_read),
-    // Même règle que `deriveThreadPatch` : le fil est au spam si son dernier ENTRANT l'est.
-    is_spam: inbound.length ? !!inbound[inbound.length - 1].is_spam : false,
+    has_attachments: vus.some((x) => x.has_attachments),
+    is_read: vus.every((x) => x.is_read),
+    is_spam: auSpam,
   }).eq('id', threadId)
   if (eUpd) throw new Error(`recompute update: ${eUpd.message}`)
 }

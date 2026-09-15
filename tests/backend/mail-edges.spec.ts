@@ -259,9 +259,6 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
     }
   })
 
-  // ⛔ Un fil d'une AUTRE boîte glissé dans un lot est « introuvable » — et il n'est pas touché.
-  // Sans la borne `account_id`, le lot aurait archivé chez l'agence B un fil que l'agent A
-  // ne voit pas.
   // ⛔ connect_imap ne reprend jamais la boîte IMAP d'un autre membre : l'adresse y est un
   // champ libre, rien n'en prouve la possession. Refusé AVANT tout test de serveur — donc
   // sans réseau ni DNS : c'est la ligne en base qui décide, et elle reste intacte.
@@ -284,6 +281,9 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
     }
   })
 
+  // ⛔ Un fil d'une AUTRE boîte glissé dans un lot est « introuvable » — et il n'est pas touché.
+  // Sans la borne `account_id`, le lot aurait archivé chez l'agence B un fil que l'agent A
+  // ne voit pas.
   it('mail-actions en lot : un fil d une autre boîte est introuvable, et reste intact', async () => {
     const service = serviceRoleClient()
     const { data: filB } = await service.from('mail_threads').select('id, is_archived').eq('provider_thread_id', `t-b-${s.stamp}`).single()
@@ -485,5 +485,31 @@ describe.skipIf(!HAS_KEYS)('Messagerie — contrats HTTP des edges', () => {
       expect(r.json.error).toBe('contact_not_in_agency')
       expect(await alias(notaire())).toBeNull()
     })
+  })
+
+  // ⛔ connect_imap éprouvait des identifiants sans aucune limite de débit : un relais de
+  // bourrage d'identifiants depuis l'IP de MEGGA. Au dixième échec de l'heure, plus aucun
+  // serveur n'est éprouvé. EN DERNIER : les échecs semés ne s'effacent pas (journal append-only).
+  it('connect_imap : au-delà de dix échecs dans l heure, 429 — sans éprouver aucun serveur', async () => {
+    const svc = serviceRoleClient()
+    const semer = async (n: number) => {
+      const { error } = await svc.from('activity_events').insert(Array.from({ length: n }, () => ({
+        agency_id: s.agencyAId, actor_id: s.agentAId, actor_kind: 'user', action: 'mail_account_connect_failed',
+        category: 'messaging', severity: 'warn', entity_type: 'user', entity_id: s.agentAId, object_label: null,
+        metadata: { provider: 'imap', code: 'imap_auth' },
+      })))
+      if (error) throw new Error(`activity_events: ${error.message}`)
+    }
+    const essai = () => call('mail-oauth', {
+      action: 'connect_imap', email: `essai-${s.stamp}@a.test`, imap_host: 'localhost', smtp_host: 'localhost', password: 'x',
+    }, jwtA)
+    await semer(9)
+    // Témoin : sous le plafond, la demande va jusqu'aux serveurs — où `localhost` est refusé.
+    const sous = await essai()
+    expect(sous.json.error, sous.text.slice(0, 200)).toBe('host_not_allowed')
+    await semer(1)
+    const au = await essai()
+    expect(au.status, au.text.slice(0, 200)).toBe(429)
+    expect(au.json.error).toBe('too_many_attempts')
   })
 })

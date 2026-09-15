@@ -59,27 +59,36 @@ export interface BrouillonCalendrier {
 /**
  * Le brouillon en attente, en MÉMOIRE et nulle part ailleurs. ⛔ Pas dans l'URL : l'adresse
  * d'un onglet est rangée côté serveur (`crm_open_tabs`) et dans `sessionStorage`, et l'objet
- * et l'extrait d'un courrier n'ont rien à y faire. L'URL ne porte que `?nouveau=1`.
+ * et l'extrait d'un courrier n'ont rien à y faire. L'URL ne porte que son JETON
+ * (`?nouveau=<jeton>`).
+ *
+ * ⛔ UN JETON PAR DEMANDE, ET L'URL LE GARDE (15.09.2026). Elle portait `?nouveau=1`, que le
+ * Calendrier retirait aussitôt : l'adresse nue devenait celle d'un onglet Calendrier déjà
+ * ouvert, que la barre activait — la création s'ouvrait alors depuis un écran CACHÉ (la puce
+ * ne correspondait plus à l'écran, Échap n'y faisait rien). Unique, l'adresse reste celle de
+ * l'onglet neuf ; et un Calendrier qui la relirait plus tard ne retrouve plus de brouillon.
  */
-let enAttente: BrouillonCalendrier | null = null
+let enAttente: { jeton: string; brouillon: BrouillonCalendrier } | null = null
 
-/** Dépose le brouillon que le Calendrier reprendra à son prochain `?nouveau=1`. */
-export function deposerBrouillonCalendrier(b: BrouillonCalendrier): void {
-  enAttente = b
+/** Dépose le brouillon ; rend le jeton que l'adresse du Calendrier portera (`?nouveau=<jeton>`). */
+export function deposerBrouillonCalendrier(b: BrouillonCalendrier): string {
+  const jeton = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+  enAttente = { jeton, brouillon: b }
+  return jeton
 }
 
 /**
- * Le brouillon en attente, SANS le consommer. ⚠ Lu dans un initialiseur d'état, que le mode
+ * Le brouillon de CE jeton, SANS le consommer. ⚠ Lu dans un initialiseur d'état, que le mode
  * strict de React appelle deux fois : une lecture qui consommerait rendrait `null` au second
  * appel. C'est l'effet qui suit qui l'oublie (`oublierBrouillonCalendrier`).
  */
-export function lireBrouillonCalendrier(): BrouillonCalendrier | null {
-  return enAttente
+export function lireBrouillonCalendrier(jeton: string | null): BrouillonCalendrier | null {
+  return enAttente && jeton && enAttente.jeton === jeton ? enAttente.brouillon : null
 }
 
 /** Oublie le brouillon repris : une relecture de l'écran ne rouvrira pas la création. */
-export function oublierBrouillonCalendrier(): void {
-  enAttente = null
+export function oublierBrouillonCalendrier(jeton: string | null): void {
+  if (enAttente && enAttente.jeton === jeton) enAttente = null
 }
 
 /**

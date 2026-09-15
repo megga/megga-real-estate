@@ -60,6 +60,32 @@ const ADRESSE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 const PORTS_IMAP = new Set([993, 143])
 const PORTS_SMTP = new Set([465, 587])
 
+/**
+ * Les connexions IMAP qu'un agent peut RATER dans l'heure.
+ *
+ * ⛔ `connect_imap` ÉTAIT UN RELAIS DE TEST D'IDENTIFIANTS (revue du 15.09.2026) : il éprouve
+ * des identifiants quelconques contre n'importe quel serveur public et rend un code par étape
+ * (`imap_auth`, `smtp_auth`…). En boucle, un agent faisait du bourrage d'identifiants depuis
+ * l'IP de MEGGA — les verrouillages par IP de la cible contournés, et notre IP livrée aux
+ * listes noires. Au-delà, plus aucun serveur n'est éprouvé. Dix laisse largement la place aux
+ * fautes de frappe d'une vraie connexion. Le compte se lit dans le journal
+ * (`mail_account_connect_failed`), sur l'index `(actor_id, created_at desc)`.
+ */
+const ECHECS_IMAP_PAR_HEURE = 10
+
+/**
+ * Une ligne au journal pour un geste sur une boîte (« Audit trail : activity_events pour toute
+ * action »). Le FAIT seulement — ni adresse ni serveur : la table est lisible de l'agence.
+ * Un refus d'écriture se dit au journal de la fonction, sans défaire le geste.
+ */
+async function journaliser(admin: SupabaseAdmin, agencyId: string, userId: string, action: 'mail_account_connected' | 'mail_account_connect_failed', severity: 'info' | 'warn', metadata: Record<string, unknown>): Promise<void> {
+  const { error } = await admin.from('activity_events').insert({
+    agency_id: agencyId, actor_id: userId, actor_kind: 'user', action, category: 'messaging', severity,
+    entity_type: 'user', entity_id: userId, object_label: null, metadata,
+  })
+  if (error) console.error(`[mail-oauth] ${action} non journalisé :`, redactedErrorMessage(error))
+}
+
 /** Six libellés à la première boîte de l'agence, dans la langue de l'agent (D12). */
 async function semerLibelles(admin: SupabaseAdmin, agencyId: string, userId: string): Promise<void> {
   const { count } = await admin.from('mail_labels').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId)
@@ -282,6 +308,16 @@ serve(async (req: Request) => {
       console.warn(`[mail-oauth] connect_imap refusé : ${user.id} sur la boîte ${existing.id}, propriétaire ${existing.owner_id}`)
       return json({ error: 'owned_by_colleague' }, 409)
     }
+    // ⛔ Au-delà du plafond, plus aucun serveur n'est éprouvé (voir `ECHECS_IMAP_PAR_HEURE`). Lu
+    // AVANT tout réseau, et une lecture en échec ferme la porte au lieu de l'ouvrir.
+    const { data: echecs, error: eEchecs } = await admin.from('activity_events').select('id')
+      .eq('actor_id', user.id).eq('action', 'mail_account_connect_failed')
+      .gte('created_at', new Date(Date.now() - 3_600_000).toISOString()).limit(ECHECS_IMAP_PAR_HEURE)
+    if (eEchecs) return json({ error: 'account_lookup_failed' }, 500)
+    if ((echecs ?? []).length >= ECHECS_IMAP_PAR_HEURE) {
+      console.warn(`[mail-oauth] connect_imap plafonné : ${user.id}, ${ECHECS_IMAP_PAR_HEURE} échecs dans l'heure`)
+      return json({ error: 'too_many_attempts' }, 429)
+    }
     // ⛔ Deux noms d'hôte SAISIS par l'agent, vers lesquels nos serveurs vont ouvrir une
     // socket : ils ne doivent désigner que le réseau public (cf. `assertPublicHost`).
     try {
@@ -305,6 +341,9 @@ serve(async (req: Request) => {
     const test = await imapTestConnexion(imap, password)
     if (!test.ok) {
       console.error(`[mail-oauth] connect_imap ${imap.imapHost}:${imap.imapPort} / ${imap.smtpHost}:${imap.smtpPort} en échec (${test.code}) :`, redactedErrorMessage(test.detail))
+      // Le FAIT, jamais l'adresse ni le serveur éprouvés : le journal est lisible de l'agence.
+      // C'est aussi lui que compte le plafond — un échec non écrit n'y compterait pas.
+      await journaliser(admin, profile.agency_id, user.id, 'mail_account_connect_failed', 'warn', { provider: 'imap', code: test.code })
       return json({ error: 'connection_failed', detail: test.code }, 502)
     }
 
@@ -338,6 +377,7 @@ serve(async (req: Request) => {
       }
       accountId = ins.id
     }
+    await journaliser(admin, profile.agency_id, user.id, 'mail_account_connected', 'info', { provider: 'imap', account_id: accountId, reconnexion: !!existing })
     await semerLibelles(admin, profile.agency_id, user.id)
     return lancerEtRendre(admin, accountId, cfg)
   }

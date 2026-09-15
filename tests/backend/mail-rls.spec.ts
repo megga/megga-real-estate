@@ -459,4 +459,42 @@ describe.skipIf(!HAS_KEYS)('Messagerie — RLS, RPC, Vault', () => {
       await service.from('profiles').update({ agency_id: s.agencyAId }).eq('id', s.agentAId)
     }
   })
+
+  // ⛔ Un événement « planifié » depuis un e-mail d'une boîte PERSONNELLE restait intouchable
+  // pour un collègue : le lien au fil était revérifié à CHAQUE écriture, sous sa RLS (42501),
+  // alors qu'il pouvait supprimer l'événement. Le lien se vérifie désormais quand il est POSÉ —
+  // c'est là seulement qu'un agent pourrait citer un fil qu'il ne voit pas (20260915080300).
+  it('calendar_events : un collègue modifie l événement planifié depuis une boîte perso, sans pouvoir y poser le lien', async () => {
+    const heure = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString()
+    const { data: ev, error } = await s.clientA.from('calendar_events').insert({
+      agency_id: s.agencyAId, type: 'autre', title: `Signature ${s.stamp}`, starts_at: heure(1), ends_at: heure(2),
+      mail_thread_id: threadOwnerId, created_by: agentA2Id,
+    }).select('id, created_by').single()
+    expect(error).toBeNull()
+    // L'auteur est celui qui crée, quoi qu'on écrive.
+    expect(ev!.created_by).toBe(s.agentAId)
+    try {
+      const { data: maj, error: eMaj } = await clientA2.from('calendar_events')
+        .update({ starts_at: heure(24), ends_at: heure(25), status: 'done', title: 'Signature (déplacée)', created_by: agentA2Id })
+        .eq('id', ev!.id).select('id, created_by')
+      expect(eMaj).toBeNull()
+      expect(maj).toEqual([{ id: ev!.id, created_by: s.agentAId }])
+
+      const { data: autre, error: eAutre } = await clientA2.from('calendar_events').insert({
+        agency_id: s.agencyAId, type: 'notary', title: `Notaire ${s.stamp}`, starts_at: heure(3), ends_at: heure(4),
+      }).select('id').single()
+      expect(eAutre).toBeNull()
+      // Le fil d'une boîte qu'il ne voit pas : refusé.
+      const { error: eLien } = await clientA2.from('calendar_events').update({ mail_thread_id: threadOwnerId }).eq('id', autre!.id)
+      expect(eLien?.code).toBe('42501')
+      // Un contact d'une autre agence : refusé.
+      const { error: eContact } = await clientA2.from('calendar_events').update({ contact_id: contactBId }).eq('id', autre!.id)
+      expect(eContact?.code).toBe('42501')
+      // Témoins : le fil PARTAGÉ et un contact de l'agence se posent.
+      const { error: ePartage } = await clientA2.from('calendar_events').update({ mail_thread_id: threadSharedId, contact_id: contactAId }).eq('id', autre!.id)
+      expect(ePartage).toBeNull()
+    } finally {
+      await service.from('calendar_events').delete().eq('agency_id', s.agencyAId)
+    }
+  })
 })

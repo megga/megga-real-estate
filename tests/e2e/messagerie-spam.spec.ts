@@ -61,6 +61,20 @@ test('signalé depuis le menu : le fil quitte la Réception, rejoint « Spam »,
   await expect(lignes(page, VISITE)).toBeVisible()
 })
 
+// ⛔ Un message signalé au milieu d'une vraie conversation s'y lisait comme les autres : un
+// hameçonnage au nom de l'étude, entre deux de ses vrais messages (revue du 15.09.2026).
+test('un message au spam dans une conversation : tenu à part, déplié d’un geste, et marqué', async ({ page }) => {
+  await lignes(page, "Projet d'acte · chemin Fictif 7").first().click()
+  await expect(ecran(page).getByText('1 message de cette conversation est au spam.')).toBeVisible()
+  await expect(ecran(page).getByText(/changement de banque/)).toHaveCount(0)
+  await ecran(page).getByRole('button', { name: 'Afficher' }).click()
+  await expect(ecran(page).getByText(/changement de banque/)).toBeVisible()
+  const entete = ecran(page).locator('div', { hasText: 'etude@notaire-exemple.co>' }).last()
+  await expect(entete.getByText('Spam', { exact: true })).toBeVisible()
+  await ecran(page).getByRole('button', { name: 'Masquer' }).click()
+  await expect(ecran(page).getByText(/changement de banque/)).toHaveCount(0)
+})
+
 test('ouvert, un spam se lit sans « Répondre » ni rapprochement — et se rend à la Réception d’un geste', async ({ page }) => {
   await dossier(page, /^Spam/).click()
   await lignes(page, COLIS).first().click()

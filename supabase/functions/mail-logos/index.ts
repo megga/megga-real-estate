@@ -63,15 +63,25 @@ const frais = (l: Pick<Ligne, 'status' | 'checked_at'>) => Date.now() - Date.par
 const versLogo = (l: Pick<Ligne, 'status' | 'mime' | 'data' | 'source'>): Logo =>
   l.status === 'found' && l.mime && l.data && l.source ? { mime: l.mime, data: l.data, source: l.source } : null
 
-/** Les domaines demandés dont la boîte a réellement reçu du courrier (fils ou messages). */
+/**
+ * Les domaines demandés dont la boîte a réellement reçu du courrier (fils ou messages) HORS
+ * spam.
+ *
+ * ⛔ UN DOMAINE VU SEULEMENT AU SPAM N'EST PAS RÉSOLU (15.09.2026). Le spam est importé
+ * depuis le 14.09 : ouvrir le dossier faisait visiter par nos serveurs le DNS et le site de
+ * chaque spammeur — qui, d'un sous-domaine unique par destinataire, apprenait que la boîte
+ * est relevée et lue — et le vrai logo BIMI d'une banque se posait sur l'hameçonnage qui
+ * usurpe son domaine. L'écran n'en demande plus pour le spam ; ce verrou ne le croit pas sur
+ * parole.
+ */
 async function domainesRecus(admin: SupabaseClient, accountId: string, domaines: string[]): Promise<Set<string>> {
   // Les domaines sont validés par `normaliserDomaine` ([a-z0-9.-]) : ni virgule, ni
   // parenthèse, ni joker ne peut sortir du motif (même forme que la recherche de contacts
   // de `_shared/whatsapp-actions.ts`, qui tourne en production).
   const filtre = domaines.map((d) => `from_email.ilike.%@${d}`).join(',')
   const [fils, messages] = await Promise.all([
-    admin.from('mail_threads').select('from_email').eq('account_id', accountId).or(filtre).limit(200),
-    admin.from('mail_messages').select('from_email').eq('account_id', accountId).or(filtre).limit(200),
+    admin.from('mail_threads').select('from_email').eq('account_id', accountId).eq('is_spam', false).or(filtre).limit(200),
+    admin.from('mail_messages').select('from_email').eq('account_id', accountId).eq('is_spam', false).or(filtre).limit(200),
   ])
   const vus = new Set<string>()
   for (const r of [...(fils.data ?? []), ...(messages.data ?? [])]) {

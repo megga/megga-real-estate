@@ -30,7 +30,7 @@ import { useMailAccounts } from '@/hooks/useMailAccounts'
 import { MAIL_PER_PAGE, useMailThreads } from '@/hooks/useMailThreads'
 import { useMailThread } from '@/hooks/useMailThread'
 import { useMailSenderLogos } from '@/hooks/useMailSenderLogos'
-import { domaineDe, expediteurComplet, mailDateLabel } from '@/lib/mail/format'
+import { domaineDe, expediteurComplet, mailDateLabel, partagerSpam } from '@/lib/mail/format'
 import { MailBodyFrame } from '@/components/crm/messagerie/MailBodyFrame'
 import { MailSenderAvatar } from '@/components/crm/messagerie/MailSenderAvatar'
 import { mailSurfaces } from '@/components/crm/messagerie/mailTokens'
@@ -56,7 +56,11 @@ export default function MobileMessagerieScreen() {
   })
   const thread = useMailThread(sel)
   const ligne = threads.rows.find((r) => r.id === sel) ?? null
-  const logos = useMailSenderLogos(boite?.id ?? null, threads.rows.map((r) => r.from_email))
+  // Aucun logo pour du spam : la Réception n'en montre pas, mais la règle ne dépend pas du dossier.
+  const logos = useMailSenderLogos(boite?.id ?? null, threads.rows.filter((r) => !r.is_spam).map((r) => r.from_email))
+  // Un message au spam dans un fil qui n'y est pas ne se lit pas ici (`partagerSpam`) : l'écran
+  // n'a pas de geste pour le déplier, il le dit.
+  const { affiches, auSpam } = partagerSpam(thread.data ?? [], ligne?.is_spam ?? false)
 
   const cadre = {
     minHeight: '100vh',
@@ -93,7 +97,7 @@ export default function MobileMessagerieScreen() {
             >
               {/* La pastille de l'expéditeur — logo de l'entreprise, ou initiales —, en tête
                   des trois lignes, comme dans les messageries qui montrent des logos. */}
-              <MailSenderAvatar ms={ms} nom={r.from_name} adresse={r.from_email} logo={logos[domaineDe(r.from_email) ?? '']} taille={36} />
+              <MailSenderAvatar ms={ms} nom={r.from_name} adresse={r.from_email} logo={r.is_spam ? undefined : logos[domaineDe(r.from_email) ?? '']} taille={36} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--crm-space-md)', fontSize: 'var(--crm-text-md)', fontWeight: r.is_read ? 500 : 600 }}>
                   <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -155,7 +159,12 @@ export default function MobileMessagerieScreen() {
           <div style={{ fontSize: 'var(--crm-text-3xl)', fontWeight: 600, marginTop: 'var(--crm-space-lg)' }}>
             {ligne?.subject || t('mail.row.noSubject')}
           </div>
-          {(thread.data ?? []).map((m) => (
+          {auSpam.length > 0 && (
+            <div role="status" style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3, marginTop: 'var(--crm-space-md)' }}>
+              {t('mail.mobile.spamHidden', { count: auSpam.length })}
+            </div>
+          )}
+          {affiches.map((m) => (
             <div key={m.id} style={{ marginTop: 'var(--crm-space-2xl)', paddingTop: 'var(--crm-space-lg)', borderTop: `1px solid ${ms.bord2}` }}>
               <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>
                 {m.direction === 'outbound' ? t('mail.read.me') : expediteurComplet(m.from_name, m.from_email)}

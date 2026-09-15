@@ -75,8 +75,11 @@ export function MailList(p: Props) {
   const { ms } = p
   // Les logos de la PAGE affichée seulement : une page, une lecture du cache — et au plus
   // une demande de résolution pour ce qu'il ne couvre pas encore.
+  // ⛔ JAMAIS POUR UN SPAM (15.09.2026) : afficher « Spam » faisait interroger par nos serveurs
+  // le DNS et le site de chaque spammeur — un accusé de lecture, un domaine unique par
+  // destinataire suffit — et accolait le vrai logo d'une banque à l'hameçonnage qui l'usurpe.
   const adresse = (r: MailThreadRow) => r.from_email ?? r.participants[0]?.email ?? null
-  const logos = useMailSenderLogos(p.rows[0]?.account_id ?? null, p.rows.map(adresse))
+  const logos = useMailSenderLogos(p.rows[0]?.account_id ?? null, p.rows.filter((r) => !r.is_spam).map(adresse))
 
   /**
    * ⚠ Les brouillons sont servis EN ENTIER par leur hook (ils sont locaux, il
@@ -217,7 +220,7 @@ export function MailList(p: Props) {
               ms={ms}
               row={r}
               label={labelOf(r.label_id)}
-              logo={logos[domaineDe(adresse(r)) ?? '']}
+              logo={r.is_spam ? undefined : logos[domaineDe(adresse(r)) ?? '']}
               lang={p.lang}
               onOpen={() => p.onOpen(r.id)}
               onStar={() => p.onStar(r)}

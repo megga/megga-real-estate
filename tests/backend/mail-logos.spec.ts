@@ -123,4 +123,30 @@ describe.skipIf(!HAS_KEYS)('Messagerie — edge mail-logos', () => {
     expect(r.status, r.text.slice(0, 200)).toBe(200)
     expect(r.json.logos).toEqual({ [cache()]: { mime: 'image/svg+xml', data: svg, source: 'bimi' } })
   })
+
+  // ⛔ Un domaine vu SEULEMENT au spam n'est pas un domaine reçu (15.09.2026) : le résoudre
+  // envoyait un accusé de lecture au spammeur, et posait un vrai logo sur un hameçonnage. Son
+  // logo est même en cache ici : servi, il prouverait que le verrou le tient pour reçu — sans
+  // qu'aucune requête sorte. Le témoin est le cas d'au-dessus, le même logo hors spam.
+  it('un domaine vu seulement au spam n est pas « reçu » : même en cache, son logo ne sort pas', async () => {
+    const svc = serviceRoleClient()
+    const auSpam = `spam-${s.stamp}.test`
+    const { data: fil, error: eFil } = await svc.from('mail_threads').insert({
+      account_id: boxAId, agency_id: s.agencyAId, provider_thread_id: `t-logo-spam-${s.stamp}`, subject: 'Colis',
+      from_email: `avis@${auSpam}`, last_message_at: new Date().toISOString(), is_spam: true,
+    }).select('id').single()
+    if (eFil) throw new Error(`mail_threads spam: ${eFil.message}`)
+    const { error: eMsg } = await svc.from('mail_messages').insert({
+      thread_id: fil.id, account_id: boxAId, agency_id: s.agencyAId, provider_message_id: `m-logo-spam-${s.stamp}`,
+      direction: 'inbound', sent_at: new Date().toISOString(), from_email: `avis@${auSpam}`, is_spam: true,
+    })
+    if (eMsg) throw new Error(`mail_messages spam: ${eMsg.message}`)
+    const { error: eCache } = await svc.from('mail_sender_logos').insert({
+      account_id: boxAId, domain: auSpam, status: 'found', source: 'bimi', mime: 'image/svg+xml', data: svg,
+    })
+    if (eCache) throw new Error(`mail_sender_logos spam: ${eCache.message}`)
+    const r = await call({ account_id: boxAId, domains: [auSpam, cache()] }, jwtA)
+    expect(r.status, r.text.slice(0, 200)).toBe(200)
+    expect(r.json.logos).toEqual({ [cache()]: { mime: 'image/svg+xml', data: svg, source: 'bimi' } })
+  })
 })

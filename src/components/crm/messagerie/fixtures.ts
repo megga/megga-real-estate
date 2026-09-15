@@ -196,7 +196,7 @@ const T = (i: number, over: Partial<MailThreadRow> = {}): MailThreadRow => {
 export const FX_THREADS: MailThreadRow[] = [
   T(1, { subject: 'Visite de samedi · confirmation', snippet: 'Bonjour, je confirme la visite de samedi à 10h.', from_name: 'Zoé Exemple', from_email: 'zoe@exemple.ch', participants: [{ name: 'Zoé Exemple', email: 'zoe@exemple.ch' }], is_read: false, is_starred: false, has_attachments: false, label_id: 'fx-l4', contact_id: 'fx-c1', message_count: 1, last_message_at: ilYA(0, 1, 12) }),
   T(2, { subject: 'Attestation de financement', snippet: "Veuillez trouver ci-joint l'attestation.", from_name: 'Banque Exemple SA', from_email: 'credit@banque-exemple.ch', participants: [{ name: 'Banque Exemple SA', email: 'credit@banque-exemple.ch' }], is_read: true, is_starred: true, has_attachments: true, label_id: 'fx-l2', contact_id: null, message_count: 2, last_message_at: ilYA(1, 2, 0) }),
-  T(3, { subject: "Projet d'acte · chemin Fictif 7", snippet: "Le projet d'acte est prêt pour relecture.", from_name: 'Étude Exemple', from_email: 'etude@notaire-exemple.ch', participants: [{ name: 'Étude Exemple', email: 'etude@notaire-exemple.ch' }], is_read: false, is_starred: false, has_attachments: true, label_id: 'fx-l3', contact_id: 'fx-c1', message_count: 1, last_message_at: ilYA(2, 4, 30) }),
+  T(3, { subject: "Projet d'acte · chemin Fictif 7", snippet: "Le projet d'acte est prêt pour relecture.", from_name: 'Étude Exemple', from_email: 'etude@notaire-exemple.ch', participants: [{ name: 'Étude Exemple', email: 'etude@notaire-exemple.ch' }], is_read: false, is_starred: false, has_attachments: true, label_id: 'fx-l3', contact_id: 'fx-c1', message_count: 2, last_message_at: ilYA(2, 4, 30) }),
   ...Array.from({ length: 45 }, (_, k) => T(k + 4)),
   // Sans eux, le dossier « Spam » serait vide au banc. Des expéditeurs qui n'existent pas,
   // comme le reste du jeu ; aucun n'est rattaché, aucun ne porte de libellé.
@@ -218,7 +218,7 @@ const FX_MESSAGES_REDIGES: MailMessageRow[] = [
     snippet: 'Bonjour, je confirme la visite de samedi à 10h.',
     body_text: 'Bonjour,\n\nJe confirme la visite de samedi à 10h. Est-il possible de voir aussi la cave ?\n\nMerci, Zoé',
     body_html: null, body_truncated: false, sent_at: ilYA(0, 1, 12), is_read: false, has_attachments: false,
-    contact_id: 'fx-c1', mail_attachments: [],
+    contact_id: 'fx-c1', is_spam: false, mail_attachments: [],
   },
   {
     id: 'fx-m2', thread_id: 'fx-t2', direction: 'inbound', from_name: 'Banque Exemple SA', from_email: 'credit@banque-exemple.ch',
@@ -226,22 +226,32 @@ const FX_MESSAGES_REDIGES: MailMessageRow[] = [
     snippet: "Veuillez trouver ci-joint l'attestation.",
     body_text: "Bonjour,\n\nVeuillez trouver ci-joint l'attestation de financement de votre client.\n\nCordialement",
     body_html: "<p>Bonjour,</p><p>Veuillez trouver ci-joint l'attestation de financement de votre client.</p><p>Cordialement</p>",
-    body_truncated: false, sent_at: ilYA(1, 3, 0), is_read: true, has_attachments: true, contact_id: null,
+    body_truncated: false, sent_at: ilYA(1, 3, 0), is_read: true, has_attachments: true, contact_id: null, is_spam: false,
     mail_attachments: [{ id: 'fx-att1', message_id: 'fx-m2', filename: 'attestation-exemple.pdf', mime_type: 'application/pdf', size_bytes: 184_320, is_inline: false, content_id: null, document_id: null }],
   },
   {
     id: 'fx-m3', thread_id: 'fx-t2', direction: 'outbound', from_name: 'Boîte générale', from_email: 'contact@agence-exemple.ch',
     to: [{ name: 'Banque Exemple SA', email: 'credit@banque-exemple.ch' }], cc: [], subject: 'Re: Attestation de financement',
     snippet: 'Bien reçu, merci.', body_text: 'Bien reçu, merci.', body_html: null, body_truncated: false,
-    sent_at: ilYA(1, 2, 0), is_read: true, has_attachments: false, contact_id: null, mail_attachments: [],
+    sent_at: ilYA(1, 2, 0), is_read: true, has_attachments: false, contact_id: null, is_spam: false, mail_attachments: [],
   },
   {
     id: 'fx-m4', thread_id: 'fx-t3', direction: 'inbound', from_name: 'Étude Exemple', from_email: 'etude@notaire-exemple.ch',
     to: [{ name: null, email: 'contact@agence-exemple.ch' }], cc: [], subject: "Projet d'acte · chemin Fictif 7",
     snippet: "Le projet d'acte est prêt pour relecture.",
     body_text: "Bonjour,\n\nLe projet d'acte est prêt pour relecture. Merci de nous retourner vos remarques avant la signature.\n\nBien à vous",
-    body_html: null, body_truncated: false, sent_at: ilYA(2, 4, 30), is_read: false, has_attachments: true, contact_id: 'fx-c1',
+    body_html: null, body_truncated: false, sent_at: ilYA(2, 4, 30), is_read: false, has_attachments: true, contact_id: 'fx-c1', is_spam: false,
     mail_attachments: [{ id: 'fx-att2', message_id: 'fx-m4', filename: 'projet-acte-exemple.pdf', mime_type: 'application/pdf', size_bytes: 512_000, is_inline: false, content_id: null, document_id: null }],
+  },
+  // Un message SIGNALÉ au milieu d'une vraie conversation : la lecture le tient à part
+  // (`partagerSpam`). Un domaine voisin de celui de l'étude — le cas que la règle vise.
+  {
+    id: 'fx-m5', thread_id: 'fx-t3', direction: 'inbound', from_name: 'Étude Exemple', from_email: 'etude@notaire-exemple.co',
+    to: [{ name: null, email: 'contact@agence-exemple.ch' }], cc: [], subject: "Re: Projet d'acte · chemin Fictif 7",
+    snippet: 'Nos coordonnées bancaires ont changé.',
+    body_text: "Bonjour,\n\nSuite à un changement de banque, merci d'utiliser désormais les coordonnées ci-jointes pour l'acompte.\n\nBien à vous",
+    body_html: null, body_truncated: false, sent_at: ilYA(2, 3, 0), is_read: true, has_attachments: false, contact_id: null, is_spam: true,
+    mail_attachments: [],
   },
 ]
 
@@ -286,6 +296,7 @@ function messagesDe(t: MailThreadRow): MailMessageRow[] {
       is_read: t.is_read,
       has_attachments: k === 0 && t.has_attachments,
       contact_id: t.contact_id,
+      is_spam: !sortant && t.is_spam,
       mail_attachments: k === 0 && t.has_attachments
         ? [{ id: `fx-att-${t.id}`, message_id: `fx-m-${t.id}-0`, filename: 'piece-jointe-exemple.pdf', mime_type: 'application/pdf', size_bytes: 96_000 + (k + 1) * 4_096, is_inline: false, content_id: null, document_id: null }]
         : [],

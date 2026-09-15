@@ -180,6 +180,7 @@
           "host": "Server non trovato: verificate il nome dei server IMAP e SMTP.",
           "already": "Questo indirizzo è già collegato tramite {{provider}}.",
           "colleague": "Questo indirizzo è già collegato da un altro membro dell'agenzia. Solo chi lo ha collegato può ricollegarlo.",
+          "tooMany": "Troppi tentativi di connessione in un'ora. Riprovi più tardi.",
           "imapAuth": "Nome utente o password rifiutati dal server IMAP. Se la casella usa la verifica in due passaggi, usate una password per app.",
           "imapUnreachable": "Il server IMAP non risponde: verificate nome e porta.",
           "imapStarttls": "Questo server IMAP non accetta STARTTLS sulla porta 143: scegliete 993.",
@@ -322,7 +323,11 @@
       "bodyTitle": "Corpo del messaggio",
       "truncated": "Messaggio troncato (troppo grande): aprilo nel tuo programma di posta per la versione completa.",
       "unlinked": "Indirizzo non collegato: {{email}}",
-      "spam": "Nello spam: questo messaggio non è collegato a nessun contatto."
+      "spam": "Nello spam: questo messaggio non è collegato a nessun contatto.",
+      "spamInThread_one": "{{count}} messaggio di questa conversazione è nello spam.",
+      "spamInThread_other": "{{count}} messaggi di questa conversazione sono nello spam.",
+      "spamShow": "Mostra",
+      "spamHide": "Nascondi"
     },
     "spam": {
       "reported": "Segnalato come spam",
@@ -428,7 +433,9 @@
       }
     },
     "mobile": {
-      "readOnly": "Scrivere e rispondere si fanno dal computer, per ora."
+      "readOnly": "Scrivere e rispondere si fanno dal computer, per ora.",
+      "spamHidden_one": "{{count}} messaggio nello spam non è mostrato qui.",
+      "spamHidden_other": "{{count}} messaggi nello spam non sono mostrati qui."
     },
     "notice": {
       "sentNotRecorded": "Il messaggio è stato inviato. La copia locale non è stata salvata: non inviarlo di nuovo.",

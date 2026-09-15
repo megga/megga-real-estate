@@ -180,6 +180,7 @@
           "host": "Server nicht gefunden: Prüfen Sie die Namen der IMAP- und SMTP-Server.",
           "already": "Diese Adresse ist bereits über {{provider}} verbunden.",
           "colleague": "Diese Adresse ist bereits von einem anderen Mitglied der Agentur verbunden. Nur die Person, der sie gehört, kann sie neu verbinden.",
+          "tooMany": "Zu viele Verbindungsversuche innerhalb einer Stunde. Versuchen Sie es später erneut.",
           "imapAuth": "Benutzername oder Passwort vom IMAP-Server abgelehnt. Nutzt das Postfach die Bestätigung in zwei Schritten, verwenden Sie ein App-Passwort.",
           "imapUnreachable": "Der IMAP-Server antwortet nicht: Prüfen Sie Name und Port.",
           "imapStarttls": "Dieser IMAP-Server akzeptiert STARTTLS auf Port 143 nicht: Wählen Sie 993.",
@@ -322,7 +323,11 @@
       "bodyTitle": "Nachrichtentext",
       "truncated": "Nachricht gekürzt (zu gross): Öffnen Sie sie in Ihrem Mailprogramm für die vollständige Fassung.",
       "unlinked": "Adresse nicht zugeordnet: {{email}}",
-      "spam": "Im Spam: Diese Nachricht ist keinem Kontakt zugeordnet."
+      "spam": "Im Spam: Diese Nachricht ist keinem Kontakt zugeordnet.",
+      "spamInThread_one": "{{count}} Nachricht dieser Unterhaltung ist im Spam.",
+      "spamInThread_other": "{{count}} Nachrichten dieser Unterhaltung sind im Spam.",
+      "spamShow": "Anzeigen",
+      "spamHide": "Ausblenden"
     },
     "spam": {
       "reported": "Als Spam gemeldet",
@@ -428,7 +433,9 @@
       }
     },
     "mobile": {
-      "readOnly": "Verfassen und Antworten sind vorerst am Computer möglich."
+      "readOnly": "Verfassen und Antworten sind vorerst am Computer möglich.",
+      "spamHidden_one": "{{count}} Nachricht im Spam wird hier nicht angezeigt.",
+      "spamHidden_other": "{{count}} Nachrichten im Spam werden hier nicht angezeigt."
     },
     "notice": {
       "sentNotRecorded": "Die Nachricht wurde gesendet. Ihre Kopie konnte hier nicht gespeichert werden: senden Sie sie nicht erneut.",

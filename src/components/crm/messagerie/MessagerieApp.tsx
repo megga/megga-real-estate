@@ -13,7 +13,7 @@
  * modales restantes arrivent aux tâches 2.9-2.11. L'état vide reste honnête —
  * l'écran ne prétend pas afficher des messages qu'il ne sait pas encore lire.
  */
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
@@ -26,7 +26,7 @@ import { useMailActions, type MailThreadAction } from '@/hooks/useMailActions'
 import { useMailDrafts } from '@/hooks/useMailDrafts'
 import { useMailLabels } from '@/hooks/useMailLabels'
 import { useMailFolderCounts, useMailThreadRow, useMailThreads, type MailThreadRow } from '@/hooks/useMailThreads'
-import { useCrmTabsOptionnel } from '@/hooks/useCrmTabs'
+import { useCrmTabsOptionnel, useTabScopedState } from '@/hooks/useCrmTabs'
 import { brouillonDepuisMail, deposerBrouillonCalendrier } from '@/lib/calendrierEvenements'
 import { expediteurComplet } from '@/lib/mail/format'
 import { useMailThread } from '@/hooks/useMailThread'
@@ -57,7 +57,7 @@ interface Props { dark: boolean; setDark: (v: boolean) => void }
 export function MessagerieApp({ dark, setDark }: Props) {
   const { t, i18n } = useTranslation('messages')
   const queryClient = useQueryClient()
-  const [params, setParams] = useSearchParams()
+  const [params] = useSearchParams()
   const { profile } = useAuth()
   const sp = useMemo(() => crmPalette(dark), [dark])
   const ms = useMemo(() => mailSurfaces(sp, dark), [sp, dark])
@@ -151,8 +151,9 @@ export function MessagerieApp({ dark, setDark }: Props) {
 
   /**
    * Un fil demandé par son LIEN (`?fil=…`, l'e-mail d'origine d'un événement du Calendrier,
-   * 15.09.2026). Lu une fois au montage — l'effet plus bas retire le paramètre — et chargé
-   * hors de toute page : il peut vivre dans une autre boîte, un autre dossier, une page loin.
+   * 15.09.2026). Lu une fois au montage — le paramètre, lui, reste dans l'adresse (voir
+   * l'effet plus bas) — et chargé hors de toute page : il peut vivre dans une autre boîte, un
+   * autre dossier, une page loin.
    */
   const [filDemande] = useState(() => params.get('fil'))
   const filLie = useMailThreadRow(filDemande).data ?? null
@@ -167,22 +168,37 @@ export function MessagerieApp({ dark, setDark }: Props) {
     const first = accounts.list.find((a) => a.id === wanted) ?? accounts.list[0]
     dispatch({ type: 'select-account', accountId: first.id })
   }, [accounts.list, params, state.accountId])
-  // Le fil lié : sa boîte d'abord (changer de boîte vide l'état), puis le fil lui-même.
+  /**
+   * Le fil lié : sa boîte d'abord (changer de boîte vide l'état), puis le fil lui-même — UNE
+   * fois par lien.
+   *
+   * ⛔ `filLie` change d'IDENTITÉ à chaque relecture de sa requête (retour du focus ou du
+   * réseau, au-delà d'une minute) : l'effet rouvrait alors le fil, même archivé depuis, fermait
+   * le composeur ouvert sur un autre — la réponse en cours perdue — et vidait la sélection.
+   *
+   * ⛔ ET LE PARAMÈTRE RESTE DANS L'ADRESSE, comme `?add=` plus bas. Le retirer la rendait à
+   * `/dashboard/messagerie`, celle d'un onglet Messagerie déjà ouvert, que la barre activait :
+   * l'agent atterrissait sur son ancienne Messagerie, sans le fil, et l'onglet d'où il venait
+   * devenait une Messagerie cachée.
+   */
+  const lienOuvert = useRef<string | null>(null)
   useEffect(() => {
-    if (!filLie) return
+    if (!filLie || lienOuvert.current === filLie.id) return
+    lienOuvert.current = filLie.id
     if (state.accountId !== filLie.account_id) dispatch({ type: 'select-account', accountId: filLie.account_id })
     dispatch({ type: 'open', threadId: filLie.id })
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- une fois, à l'arrivée du fil
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- une fois par lien
   }, [filLie])
+  // `?add=<jeton>` (depuis Réglages) ouvre l'assistant — une fois par demande : l'écran remonté
+  // (rechargement, onglet évincé puis rouvert) ne le rouvre pas sous l'agent, et la demande
+  // suivante, qui porte un autre jeton, l'ouvre bien. Le jeton traité se range dans l'onglet.
+  const [ajoutDemande] = useState(() => params.get('add'))
+  const [ajoutTraite, setAjoutTraite] = useTabScopedState<string | null>('ajout-boite', null)
   useEffect(() => {
-    if (!params.get('fil')) return
-    params.delete('fil')
-    setParams(params, { replace: true })
-  }, [params, setParams])
-  // `?add=1` (depuis Réglages) ouvre l'assistant.
-  useEffect(() => {
-    if (params.get('add') === '1') { dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } }); params.delete('add'); setParams(params, { replace: true }) }
-  }, [params, setParams])
+    if (!ajoutDemande || ajoutTraite === ajoutDemande) return
+    setAjoutTraite(ajoutDemande)
+    dispatch({ type: 'modal', modal: { kind: 'add-account', step: 'list' } })
+  }, [ajoutDemande, ajoutTraite, setAjoutTraite])
 
   const editLabel = labels.labels.find((l) => l.id === state.editLabelId) ?? null
   /**
@@ -324,7 +340,7 @@ export function MessagerieApp({ dark, setDark }: Props) {
   const tabs = useCrmTabsOptionnel()
   const navigate = useNavigate()
   const planifier = (fil: MailThreadRow) => {
-    deposerBrouillonCalendrier(brouillonDepuisMail({
+    const jeton = deposerBrouillonCalendrier(brouillonDepuisMail({
       sujet: fil.subject,
       extrait: fil.snippet,
       expediteur: expediteurComplet(fil.from_name, fil.from_email),
@@ -334,8 +350,8 @@ export function MessagerieApp({ dark, setDark }: Props) {
       mailThreadId: fil.id,
       enTete: (o) => t('mail.plan.notes', o),
     }))
-    if (tabs) tabs.ouvrirDans('/dashboard/calendar?nouveau=1')
-    else navigate('/dashboard/calendar?nouveau=1')
+    if (tabs) tabs.ouvrirDans(`/dashboard/calendar?nouveau=${jeton}`)
+    else navigate(`/dashboard/calendar?nouveau=${jeton}`)
   }
 
   const deconnecterBoite = useCallback((id: string) => {
@@ -458,6 +474,8 @@ export function MessagerieApp({ dark, setDark }: Props) {
               ) : state.sel && filOuvert ? (
                 thread.data ? (
                 <MailReader
+                  // Un fil, une lecture : ce qu'on y a déplié (le spam tenu à part) ne passe pas au suivant.
+                  key={filOuvert.id}
                   ms={ms}
                   lang={i18n.language.slice(0, 2)}
                   boxEmail={currentAccount?.email ?? ''}

@@ -82,6 +82,22 @@ export function cibleDeRattachement(
   return participants.find((a) => externe(a.email)) ?? null
 }
 
+/**
+ * Les messages d'un fil tels qu'on les montre : ceux du spam À PART, quand le fil n'y est pas.
+ *
+ * ⛔ UN MESSAGE AU SPAM NE SE LIT PAS PARMI LES AUTRES (15.09.2026). Le spam se jugeait au
+ * niveau du FIL : un message signalé au milieu d'une conversation (dans le webmail, ou par le
+ * filtre du fournisseur) s'y lisait comme les autres, sans marque — un hameçonnage entre deux
+ * vrais messages du notaire, que « Répondre » pouvait même viser. Il reste accessible derrière
+ * un geste, et marqué. Un fil hors spam dont TOUS les messages le sont se montre en entier
+ * (marqués) plutôt que vide.
+ */
+export function partagerSpam<M extends { is_spam: boolean }>(messages: readonly M[], filAuSpam: boolean): { affiches: M[]; auSpam: M[] } {
+  const affiches = filAuSpam ? [] : messages.filter((m) => !m.is_spam)
+  if (affiches.length === 0) return { affiches: [...messages], auSpam: [] }
+  return { affiches, auSpam: messages.filter((m) => m.is_spam) }
+}
+
 /** Ce qu'on montre d'un correspondant : son nom, à défaut son adresse. */
 export function displayAddress(a: MailAddress): string {
   return a.name?.trim() || a.email

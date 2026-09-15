@@ -198,7 +198,9 @@ serve(async (req: Request) => {
       // et le CRM gardait le transfert dans l'ancien fil pendant que Gmail le rangeait
       // ailleurs, les deux boîtes divergeant définitivement. Le fil CRM suit désormais
       // le fournisseur : la ligne relue après ingestion porte le vrai `thread_id`.
-      const providerThreadId = kind === 'forward' ? null : (th?.provider_thread_id ?? null)
+      // ⚠ Ni pour un fil né au spam : sa clé est la nôtre (`cleDeFilSpam`), pas un fil Gmail.
+      const cle = th?.provider_thread_id ?? null
+      const providerThreadId = kind === 'forward' || cle?.startsWith('spam:') ? null : cle
       const sent = await gmailSend(token, base64UrlEncode(new TextEncoder().encode(buildMime(outgoing))), providerThreadId)
       sentProviderMessageId = sent.id
     } else if (account.provider === 'imap') {

@@ -119,6 +119,24 @@ export type CalRecurFreq = 'daily' | 'weekly' | 'biweekly' | 'monthly'
 export interface CalEventRecurrence {
   freq: CalRecurFreq
   until?: string | null
+  /**
+   * Les occurrences RETIRÉES de la série, par leur clé (`AAAA-M-J`, ce qui suit `@` dans leur
+   * id) — l'EXDATE de la RFC 5545.
+   *
+   * ⛔ UNE OCCURRENCE N'EST PAS UNE LIGNE (15.09.2026) : supprimer ou cocher UNE occurrence
+   * écrivait la ligne maîtresse — toute la série effacée d'un clic, sans confirmation, ou
+   * « terminée » d'un coup. Ce qui vaut pour une occurrence se range donc DANS la série,
+   * sous sa clé.
+   */
+  sauf?: string[] | null
+  /** Le statut d'une occurrence, par sa clé : elle seule est faite, ou annulée. */
+  etats?: Record<string, 'done' | 'cancelled'> | null
+}
+
+/** La clé d'une occurrence dans sa série (`AAAA-M-J`) ; `null` pour un événement ponctuel. */
+export function calCleOccurrence(id: string): string | null {
+  const i = id.indexOf('@')
+  return i < 0 ? null : id.slice(i + 1)
 }
 
 /** Le libellé d'un événement, tel que les vues le peignent. */
@@ -602,7 +620,10 @@ export function calExpandEvents(events: CalEvent[], rangeStart: Date, rangeEnd: 
       if (until && occ > until) break
       const en = new Date(occ.getTime() + durMs)
       const key = `${occ.getFullYear()}-${occ.getMonth() + 1}-${occ.getDate()}`
-      out.push({ ...e, start: occ, end: en, id: `${e.id}@${key}`, masterId: e.id, isOccurrence: true })
+      // Une occurrence retirée n'existe plus ; une autre porte SON statut, pas celui de la série.
+      if (!rec.sauf?.includes(key)) {
+        out.push({ ...e, start: occ, end: en, id: `${e.id}@${key}`, masterId: e.id, isOccurrence: true, status: rec.etats?.[key] })
+      }
       n++
       guard++
     }

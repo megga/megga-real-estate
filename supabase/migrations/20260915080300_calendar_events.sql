@@ -87,14 +87,50 @@ grant select, insert, update, delete on public.calendar_events to authenticated;
 drop policy if exists calendar_events_all on public.calendar_events;
 create policy calendar_events_all on public.calendar_events for all to authenticated
   using (agency_id = public.get_my_agency_id())
-  -- ⛔ Un événement ne se relie qu'à un e-mail que l'agent VOIT : la sous-requête passe
-  -- par la RLS de `mail_threads` (`mail_account_visible`). Sans elle, la clé étrangère
-  -- seule laissait citer le fil d'une boîte personnelle d'un collègue — ou d'une autre
-  -- agence, dont l'existence se serait lue au refus ou au succès.
-  with check (
-    agency_id = public.get_my_agency_id()
-    and (mail_thread_id is null or exists (select 1 from public.mail_threads t where t.id = mail_thread_id))
-  );
+  with check (agency_id = public.get_my_agency_id());
+
+-- ── 2 bis. Les liens, vérifiés quand ils NAISSENT ou CHANGENT ──────────────────
+-- ⛔ PAS DANS LE `WITH CHECK`. Le lien à l'e-mail y était vérifié : réévalué à CHAQUE
+-- écriture, sous la RLS de l'appelant, il interdisait à un collègue qui ne voit pas la boîte
+-- personnelle d'origine de déplacer, modifier ou cocher l'événement (42501, éprouvé sur
+-- Postgres 17.6) — alors qu'il pouvait le supprimer. Le lien se vérifie une fois, quand on le
+-- pose : c'est là seulement qu'un agent pourrait citer un fil qu'il ne voit pas.
+--
+-- ⚠ SECURITY INVOKER, et c'est le point : la sous-requête sur `mail_threads` passe par SA
+-- RLS (`mail_account_visible`) sous l'identité de l'appelant. Un fil d'une boîte personnelle
+-- d'un collègue, ou d'une autre agence, est donc refusé — et le refus ne dit pas s'il existe.
+-- Un contact et un bien, eux, sont de l'agence de l'événement. L'auteur est celui qui crée,
+-- et il ne se réécrit pas ensuite (la suppression d'un profil, qui le remet à NULL, passe).
+create or replace function public.calendar_events_verifier_liens()
+returns trigger language plpgsql set search_path = '' as $$
+begin
+  if new.mail_thread_id is not null
+     and (tg_op = 'INSERT' or new.mail_thread_id is distinct from old.mail_thread_id)
+     and not exists (select 1 from public.mail_threads t where t.id = new.mail_thread_id) then
+    raise exception 'calendar_events: mail thread not visible' using errcode = '42501';
+  end if;
+  if new.contact_id is not null
+     and (tg_op = 'INSERT' or new.contact_id is distinct from old.contact_id or new.agency_id is distinct from old.agency_id)
+     and not exists (select 1 from public.contacts c where c.id = new.contact_id and c.agency_id = new.agency_id) then
+    raise exception 'calendar_events: contact not in agency' using errcode = '42501';
+  end if;
+  if new.property_id is not null
+     and (tg_op = 'INSERT' or new.property_id is distinct from old.property_id or new.agency_id is distinct from old.agency_id)
+     and not exists (select 1 from public.properties p where p.id = new.property_id and p.agency_id = new.agency_id) then
+    raise exception 'calendar_events: property not in agency' using errcode = '42501';
+  end if;
+  if tg_op = 'INSERT' and auth.uid() is not null then
+    new.created_by := auth.uid();
+  elsif tg_op = 'UPDATE' and new.created_by is not null and new.created_by is distinct from old.created_by then
+    new.created_by := old.created_by;
+  end if;
+  return new;
+end $$;
+revoke all on function public.calendar_events_verifier_liens() from public, anon, authenticated;
+
+drop trigger if exists calendar_events_liens on public.calendar_events;
+create trigger calendar_events_liens before insert or update on public.calendar_events
+  for each row execute function public.calendar_events_verifier_liens();
 
 -- ── 3. Les libellés, étendus à la quatrième source ───────────────────────────
 -- Mêmes signatures que 20260914213550 : un `create or replace` suffit.

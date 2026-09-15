@@ -12,7 +12,7 @@ import { describe, it, expect } from 'vitest'
 import type { Duplex } from './duplex.ts'
 import type { MailAccountRow } from './types.ts'
 import {
-  cleDeFil, decodeMUtf7, dialVerifie, imapApply, imapSecurite, imapSend, imapSyncPass, imapTestConnexion, resolveFolders, smtpSecurite, splitProviderId,
+  cleDeFil, decodeMUtf7, dialVerifie, imapApply, imapAttachment, imapSecurite, imapSend, imapSyncPass, imapTestConnexion, resolveFolders, smtpSecurite, splitProviderId,
 } from './imap.ts'
 import { applyRemoteChanges } from './ingest.ts'
 import { syncAccount } from './sync.ts'
@@ -386,6 +386,28 @@ describe('imapApply', () => {
     expect(boite.INBOX.messages.find((m) => m.uid === 2)!.flags).toContain('\\Seen')
   })
 
+  // ⛔ Un UID ne vaut que sous son UIDVALIDITY : après un dossier recréé (ou un changement
+  // d'hébergeur, que la reconnexion ne voit pas), « Supprimer » envoyait à la corbeille le
+  // courrier d'un autre, et l'aperçu servait la pièce d'un autre message.
+  it('⛔ un dossier RECRÉÉ (autre UIDVALIDITY) : gestes et pièces refusés, rien ne bouge dans la boîte', async () => {
+    const boite = boiteType()
+    boite.INBOX.uidValidity = 70
+    const { admin } = fauxAdmin()
+    for (const [geste, pid] of [['trash', 'INBOX:7:1'], ['mark_read', 'INBOX:7:2'], ['archive', 'INBOX:7:3']] as const) {
+      const imap = fauxImap(boite)
+      await expect(imapApply(admin, compte(), geste, [{ provider_message_id: pid, direction: 'inbound' }], branche(imap))).rejects.toThrow(/recréé/)
+      expect(imap.journal.some((l) => /UID (MOVE|STORE)/.test(l)), geste).toBe(false)
+    }
+    expect(boite.INBOX.messages.map((m) => [m.uid, m.flags])).toEqual([[1, ['\\Seen']], [2, []], [3, ['\\Flagged']]])
+    expect(boite.Trash.messages).toHaveLength(0)
+    const imap = fauxImap(boite)
+    await expect(imapAttachment(admin, compte(), 'INBOX:7:1', 0, branche(imap))).rejects.toThrow(/recréé/)
+    expect(imap.journal.some((l) => /BODY\.PEEK/.test(l))).toBe(false)
+    // Témoin : sous la bonne UIDVALIDITY, le même geste passe.
+    await imapApply(admin, compte(), 'mark_read', [{ provider_message_id: 'INBOX:70:2', direction: 'inbound' }], branche(fauxImap(boite)))
+    expect(boite.INBOX.messages.find((m) => m.uid === 2)!.flags).toContain('\\Seen')
+  })
+
   it('une boîte sans dossier d’archive en reçoit un au premier archivage', async () => {
     const boite = boiteType()
     delete (boite as Partial<typeof boite>).Archive
@@ -454,6 +476,63 @@ describe('le dossier Spam', () => {
     expect(ids).toContain('Junk:11:2')
     expect(ids).not.toContain('INBOX:7:3')
     expect(filDe(tables, 'Junk:11:2')).toMatchObject({ is_spam: true, is_archived: false })
+  })
+
+  // ⛔ Le scénario de la revue du 15.09.2026 : un hameçonnage au nom de Zoé cite son échange
+  // avec l'agence. Il rejoignait le vrai fil, qui partait ENTIER au Spam ; au courrier suivant
+  // le fil revenait en Réception, l'hameçonnage glissé entre deux vrais messages.
+  it('⛔ un hameçonnage au Spam n entre pas dans la conversation — ni par References, ni par un Message-ID repris', async () => {
+    const boite = boiteType()
+    boite.Junk = { uidValidity: 11, uidNext: 3, attrs: ['\\Junk'], messages: [
+      { uid: 1, flags: [], raw: courrier({ id: '<iban@evil.ex>', de: 'Zoé <zoe@ex-ch.com>', objet: 'Re: Visite', refs: '<m1@ex.ch>', corps: 'Nouvel IBAN' }), date: '11-Sep-2026 10:00:00 +0200' },
+      // Le Message-ID de m1 lui-même — la clé du vrai fil.
+      { uid: 2, flags: [], raw: courrier({ id: '<m1@ex.ch>', de: 'Zoé <zoe@ex-ch.com>', objet: 'Re: Visite', corps: 'Nouvel IBAN' }), date: '12-Sep-2026 10:00:00 +0200' },
+    ] }
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    const conversation = filDe(tables, 'INBOX:7:1')
+    expect(conversation).toMatchObject({ is_spam: false, contact_id: 'c-zoe' })
+    expect(messages(tables).filter((m) => m.thread_id === conversation.id).map((m) => m.provider_message_id).sort()).toEqual(['INBOX:7:1', 'INBOX:7:2', 'Sent:8:1'])
+    for (const pid of ['Junk:11:1', 'Junk:11:2']) {
+      expect(filDe(tables, pid)).toMatchObject({ provider_thread_id: `spam:${pid}`, is_spam: true, contact_id: null })
+    }
+    // m1 n'a pas été pris pour un message DÉPLACÉ : sa ligne est intacte.
+    expect(ligne(tables, 'INBOX:7:1')).toMatchObject({ from_email: 'zoe@ex.ch', is_spam: false })
+  })
+
+  it('un courrier qui ne cite QU UN spam ne l arrache pas au Spam', async () => {
+    const boite = boiteAvecSpam()
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    const premiere = await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))
+    boite.INBOX.messages.push({ uid: 4, flags: [], raw: courrier({ id: '<suite@spam.ex>', objet: 'Re: Votre colis est bloqué', refs: '<s1@spam.ex>' }), date: '12-Sep-2026 10:00:00 +0200' })
+    boite.INBOX.uidNext = 5
+    await imapSyncPass(admin, compte(), premiere.cursor, 20_000, branche(fauxImap(boite)))
+    expect(filDe(tables, 'INBOX:7:4').id).not.toBe(filDe(tables, 'Junk:11:1').id)
+    expect(filDe(tables, 'Junk:11:1')).toMatchObject({ is_spam: true })
+  })
+
+  // ⛔ Rattaché et journalisé, envoyé au Spam puis rendu : son contact effacé au passage, il se
+  // rejournalisait — une seconde ligne, append-only, pour un seul courrier.
+  it('rattaché, envoyé au Spam puis rendu dans le webmail : UNE seule ligne au journal', async () => {
+    const boite = boiteAvecSpam()
+    const { admin, tables } = fauxAdmin({}, CONTACTS)
+    let curseur = (await imapSyncPass(admin, compte(), null, 20_000, branche(fauxImap(boite)))).cursor
+    const id = ligne(tables, 'INBOX:7:1').id
+    expect(auJournal(tables, id)).toHaveLength(1)
+    const m1 = boite.INBOX.messages.find((m) => m.uid === 1)!
+    boite.INBOX.messages = boite.INBOX.messages.filter((m) => m !== m1)
+    boite.Junk.messages.push({ ...m1, uid: boite.Junk.uidNext++ })
+    curseur = (await imapSyncPass(admin, compte(), curseur, 20_000, branche(fauxImap(boite)))).cursor
+    expect(ligne(tables, 'Junk:11:2')).toMatchObject({ id, is_spam: true, contact_id: 'c-zoe' })
+    // Parti au Spam, il a quitté la conversation : elle reste en Réception.
+    expect(filDe(tables, 'INBOX:7:2').is_spam).toBe(false)
+    const auSpam = boite.Junk.messages.find((m) => m.uid === 2)!
+    boite.Junk.messages = boite.Junk.messages.filter((m) => m !== auSpam)
+    boite.INBOX.messages.push({ ...auSpam, uid: boite.INBOX.uidNext++ })
+    await imapSyncPass(admin, compte(), curseur, 20_000, branche(fauxImap(boite)))
+    expect(ligne(tables, 'INBOX:7:4')).toMatchObject({ id, is_spam: false })
+    expect(filDe(tables, 'INBOX:7:4').id).toBe(filDe(tables, 'INBOX:7:2').id)
+    expect(auJournal(tables, id)).toHaveLength(1)
   })
 
   it('remis en Réception dans le webmail : sort du spam, rattaché, et journalisé UNE seule fois', async () => {

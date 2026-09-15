@@ -24,8 +24,8 @@ import { CalEventPopover } from './CalEventPopover'
 import { CalEditModal, type CalEditing } from './CalEditModal'
 import { CalEventLabelMenu, CalLabelSection } from './CalLabels'
 import {
-  buildCalPalette, calAppliquerLibelles, calBlankEvent, calCompteParLibelle, CalEventMenuContext, calExpandEvents,
-  calMasterId, CalPaletteContext, calTypeStyle, useCalPalette, type CalEvent, type CalEventLabel, type CalPalette,
+  buildCalPalette, calAppliquerLibelles, calBlankEvent, calCleOccurrence, calCompteParLibelle, CalEventMenuContext, calExpandEvents,
+  calMasterId, CalPaletteContext, calTypeStyle, useCalPalette, type CalEvent, type CalEventLabel, type CalEventRecurrence, type CalPalette,
 } from './data'
 import { calDays, calMonths, calMonthsShort, calShortTitle, fmtDate, fmtTime } from './helpers'
 import { majusculeInitiale } from '@/lib/utils'
@@ -39,6 +39,7 @@ import { evenementDepuisBrouillon, lireBrouillonCalendrier, oublierBrouillonCale
 import { MailLabelMenu } from '@/components/crm/messagerie/MailLabelMenu'
 import { mailSurfaces } from '@/components/crm/messagerie/mailTokens'
 import type { CalendarEvent } from '@/components/calendar/week-view-types'
+import type { Json } from '@/types/database'
 
 // Marge (jours) sous la fenêtre de lecture de useCalendarScreen (today ±60 j) :
 // en-deçà, un événement créé est forcément refetché → on peut retirer l'override.
@@ -248,30 +249,34 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const [eventLabelCtx, setEventLabelCtx] = useState<{ id: string; x: number; y: number } | null>(null)
   const [popover, setPopover] = useState<{ id: string; rect: DOMRect | null } | null>(null)
   /**
-   * Un e-mail à planifier (Messagerie, 15.09.2026) : `?nouveau=1` ouvre la création
-   * pré-remplie du brouillon que la Messagerie a déposé EN MÉMOIRE. Lu à l'initialisation,
-   * comme l'`openWizard` du KYC ; l'effet qui suit l'oublie et retire le paramètre — une
+   * Un e-mail à planifier (Messagerie, 15.09.2026) : `?nouveau=<jeton>` ouvre la création
+   * pré-remplie du brouillon que la Messagerie a déposé EN MÉMOIRE sous ce jeton. Lu à
+   * l'initialisation, comme l'`openWizard` du KYC ; l'effet qui suit l'oublie — une
    * relecture de l'écran ne rouvrira pas la modale.
+   *
+   * ⛔ LE PARAMÈTRE RESTE DANS L'ADRESSE. Le retirer la rendait à `/dashboard/calendar`, celle
+   * d'un onglet Calendrier déjà ouvert : la barre l'activait, et la création s'ouvrait depuis
+   * cet écran-ci devenu CACHÉ (voir `deposerBrouillonCalendrier`).
    */
-  const [params, setParams] = useSearchParams()
+  const [params] = useSearchParams()
+  const [jetonBrouillon] = useState(() => params.get('nouveau'))
   const [editing, setEditing] = useState<CalEditing | null>(() => {
-    if (params.get('nouveau') !== '1') return null
-    const b = lireBrouillonCalendrier()
+    const b = lireBrouillonCalendrier(jetonBrouillon)
     return b ? { mode: 'create', draft: evenementDepuisBrouillon(b) } : null
   })
-  useEffect(() => {
-    if (params.get('nouveau') !== '1') return
-    oublierBrouillonCalendrier()
-    const suite = new URLSearchParams(params)
-    suite.delete('nouveau')
-    setParams(suite, { replace: true })
-  }, [params, setParams])
+  useEffect(() => { oublierBrouillonCalendrier(jetonBrouillon) }, [jetonBrouillon])
   const [toast, setToast] = useState<ToastData | null>(null)
 
   // Couche interactive optimiste (édition/création/drag + statut + suppression).
   const [overrides, setOverrides] = useState<Record<string, CalEvent>>({})
+  // ⚠ Les surcharges lues par RÉFÉRENCE : le gestionnaire du clic droit descend aux
+  // blocs par un contexte, et une valeur qui change à chaque pas d'un glissé
+  // (les surcharges) rendait TOUS les blocs, `memo` compris, à chaque pas.
+  const overridesRef = useRef(overrides)
+  useEffect(() => { overridesRef.current = overrides }, [overrides])
   const [statuses, setStatuses] = useState<Record<string, 'done' | 'cancelled' | undefined>>({})
-  // Lu par la replanification d'une tâche : une tâche faite ou annulée ne se rouvre pas.
+  // Lu par la replanification d'une tâche (une tâche faite ou annulée ne se rouvre pas), et
+  // par la bascule du statut (`setStatus`).
   const statusesRef = useRef(statuses)
   useEffect(() => { statusesRef.current = statuses }, [statuses])
   const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
@@ -329,7 +334,8 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     const winEnd = new Date(currentDate); winEnd.setDate(winEnd.getDate() + 45); winEnd.setHours(23, 59, 59, 999)
     const expanded = calExpandEvents(all, winStart, winEnd)
     const vivants = expanded
-      .filter(e => !deletedIds.has(e.id))
+      // Une série supprimée (depuis sa fiche) disparaît avec toutes ses occurrences.
+      .filter(e => !deletedIds.has(e.id) && !(e.masterId && deletedIds.has(e.masterId)))
       .map(e => (e.id in statuses ? { ...e, status: statuses[e.id] } : e))
     return calAppliquerLibelles(vivants, calLabels.assignments, labelById)
   }, [events, overrides, statuses, deletedIds, externalEvents, currentDate, calLabels.assignments, labelById])
@@ -359,7 +365,9 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     setEditing({ mode: 'create', draft: { ...base, start, end } })
   }, [currentDate])
   const startEdit = useCallback((id: string) => {
-    const ev = eventsRef.current.find(e => e.id === calMasterId(id)) ?? overrides[calMasterId(id)]
+    // La surcharge d'abord : c'est elle que l'écran montre — une occurrence tout juste retirée
+    // de la série y est déjà, la base pas encore relue.
+    const ev = overrides[calMasterId(id)] ?? eventsRef.current.find(e => e.id === calMasterId(id))
     if (ev && !ev.external) { setPopover(null); setEditing({ mode: 'edit', draft: { ...ev } }) }
   }, [overrides])
   const cancelEdit = useCallback(() => setEditing(null), [])
@@ -489,9 +497,36 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
     }
   }, [editing, t, eventToneColor, persistCreate, persistTime, revertTime, evenements])
 
+  /**
+   * Réécrit la récurrence d'une série d'ÉVÉNEMENTS : ce qui vaut pour une occurrence (retirée,
+   * faite, annulée) y vit sous sa clé (`CalEventRecurrence`). Rend `null` sans série.
+   *
+   * ⚠ Lue et réécrite depuis la surcharge optimiste, tenue à jour SANS attendre le rendu : deux
+   * occurrences cochées d'affilée repartaient sinon de la même série lue en base, et la seconde
+   * écriture effaçait la première. Un refus remet la série d'avant.
+   */
+  const ecrireRecurrence = useCallback((mid: string, maj: (r: CalEventRecurrence) => CalEventRecurrence): Promise<void> | null => {
+    const avant = overridesRef.current[mid]
+    const serie = avant ?? eventsRef.current.find(e => e.id === mid)
+    if (!serie?.recurrence) return null
+    const apres = { ...serie, recurrence: maj(serie.recurrence) }
+    const poser = (e: CalEvent | undefined) => {
+      const next = { ...overridesRef.current }
+      if (e) next[mid] = e; else delete next[mid]
+      overridesRef.current = next
+      setOverrides(next)
+    }
+    poser(apres)
+    return evenements.modifier(mid, { recurrence: apres.recurrence as unknown as Json }).catch((e: unknown) => {
+      poser(avant)
+      throw e
+    })
+  }, [evenements])
+
   const deleteEvent = useCallback((id: string) => {
     const mid = calMasterId(id)
     const ev = eventsRef.current.find(e => e.id === mid) ?? overrides[mid]
+    const cle = calCleOccurrence(id)
     // Masque UNIQUEMENT l'occurrence ciblée (id complet), pas toute la série.
     setDeletedIds(prev => { const n = new Set(prev); n.add(id); return n })
     setPopover(null)
@@ -505,13 +540,19 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
       cancelReminder(mid)
       void queryClient.invalidateQueries({ queryKey: ['calendar-reminders'] })
     } else if (ev?.origin === 'event') {
-      // Une série se supprime entière : ses occurrences ne sont pas des lignes.
-      void evenements.supprimer(mid).catch(() => {
+      const annuler = () => {
         setDeletedIds(prev => { const n = new Set(prev); n.delete(id); return n })
         setToast({ key: Date.now(), change: `${calShortTitle(ev.title)} · ${t('toast.deleteFailed')}`, echec: true })
-      })
+      }
+      // ⛔ UNE OCCURRENCE SE RETIRE DE SA SÉRIE, elle n'efface pas la ligne maîtresse : la
+      // corbeille de sa bulle supprimait toute la série d'un clic, sans confirmation. La série
+      // entière se supprime depuis sa fiche (`CalEditModal`, qui porte l'id du maître).
+      if (!cle) { void evenements.supprimer(mid).catch(annuler); return }
+      const retrait = ecrireRecurrence(mid, r => ({ ...r, sauf: [...new Set([...(r.sauf ?? []), cle])] }))
+      if (retrait) void retrait.catch(annuler)
+      else annuler()
     }
-  }, [overrides, t, deleteVisit, queryClient, propagateVisit, cancelReminder, evenements])
+  }, [overrides, t, deleteVisit, queryClient, propagateVisit, cancelReminder, evenements, ecrireRecurrence])
 
   // Un glissé part : la bulle ouverte se ferme (elle resterait accrochée au point de départ).
   const dragStartEvent = useCallback((_id: string) => setPopover(null), [])
@@ -543,12 +584,22 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
   const setStatus = useCallback((id: string, status: 'done' | 'cancelled') => {
     const mid = calMasterId(id)
     const ev = eventsRef.current.find(e => e.id === mid) ?? overrides[mid]
-    // Statut appliqué à l'occurrence ciblée (id complet), pas à toute la série.
-    let nowOn = false
-    setStatuses(prev => {
-      nowOn = prev[id] !== status
-      return { ...prev, [id]: prev[id] === status ? undefined : status }
-    })
+    const cle = calCleOccurrence(id)
+    // ⛔ LA BASCULE SE DÉCIDE ICI, JAMAIS DANS L'UPDATER DE `setStatuses`. Elle y était calculée
+    // puis lue aussitôt : quand React diffère l'updater (une lane restée sur l'alternate — après
+    // l'extinction d'un toast, un tic d'horloge), « Marquer terminé » disait « Marqué à faire »,
+    // n'enregistrait rien pour une visite ou une tâche, et écrivait `status: null` sur un
+    // événement. La référence est tenue à jour sur-le-champ : deux clics avant le rendu
+    // basculent deux fois. Statut appliqué à l'occurrence ciblée (id complet), pas à la série.
+    const courant = id in statusesRef.current ? statusesRef.current[id]
+      // Un ÉVÉNEMENT se décoche comme il se coche : sans geste de la session, son état est celui
+      // de la base — celui de son occurrence, pour une série. Visites et tâches ne
+      // s'enregistrent que « faites » : leur bascule part du geste de la session.
+      : ev?.origin === 'event' ? (cle ? (overridesRef.current[mid] ?? ev).recurrence?.etats?.[cle] : ev.status) : undefined
+    const nowOn = courant !== status
+    const suivant = nowOn ? status : undefined
+    statusesRef.current = { ...statusesRef.current, [id]: suivant }
+    setStatuses(prev => ({ ...prev, [id]: suivant }))
     if (ev) {
       const change = status === 'done'
         ? `${calShortTitle(ev.title)} · ${nowOn ? t('toast.markedDone') : t('toast.markedTodo')}`
@@ -562,19 +613,22 @@ export function CalendarApp({ dark, setDark, invite }: CalendarAppProps) {
         if (status === 'done') markAsDone(mid)
         else cancelReminder(mid)
       } else if (ev.origin === 'event') {
-        // Réversible dans les deux sens : l'événement porte son statut, il ne s'éteint pas.
-        void evenements.modifier(mid, { status: nowOn ? status : null }).catch(() => { /* best-effort, comme les autres sources */ })
+        // Réversible dans les deux sens : l'événement porte son statut, il ne s'éteint pas. Une
+        // OCCURRENCE le porte dans sa série, sous sa clé : la série n'est pas « terminée » d'un coup.
+        const ecrit = cle
+          ? ecrireRecurrence(mid, r => {
+            const etats = { ...(r.etats ?? {}) }
+            if (suivant) etats[cle] = suivant
+            else delete etats[cle]
+            return { ...r, etats }
+          })
+          : evenements.modifier(mid, { status: suivant ?? null })
+        void ecrit?.catch(() => { /* best-effort, comme les autres sources */ })
       }
     }
-  }, [overrides, t, eventToneColor, updateVisit, queryClient, markAsDone, cancelReminder, evenements])
+  }, [overrides, t, eventToneColor, updateVisit, queryClient, markAsDone, cancelReminder, evenements, ecrireRecurrence])
 
   // ── Libellés ──
-  // ⚠ Les surcharges lues par RÉFÉRENCE : le gestionnaire du clic droit descend aux
-  // blocs par un contexte, et une valeur qui change à chaque pas d'un glissé
-  // (les surcharges) rendait TOUS les blocs, `memo` compris, à chaque pas.
-  const overridesRef = useRef(overrides)
-  useEffect(() => { overridesRef.current = overrides }, [overrides])
-
   /** L'événement MAÎTRE d'une occurrence, s'il peut porter un libellé (enregistré, non externe). */
   const labellable = useCallback((id: string): CalEvent | null => {
     const mid = calMasterId(id)

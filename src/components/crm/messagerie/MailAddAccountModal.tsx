@@ -70,6 +70,7 @@ const IMAP_ERRORS: Record<string, string> = {
   host_not_allowed: 'mail.add.imap.err.host',
   already_connected: 'mail.add.imap.err.already',
   owned_by_colleague: 'mail.add.imap.err.colleague',
+  too_many_attempts: 'mail.add.imap.err.tooMany',
   imap_auth: 'mail.add.imap.err.imapAuth',
   imap_unreachable: 'mail.add.imap.err.imapUnreachable',
   imap_starttls: 'mail.add.imap.err.imapStarttls',

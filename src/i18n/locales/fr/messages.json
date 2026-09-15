@@ -180,6 +180,7 @@
           "host": "Serveur introuvable : vérifiez le nom des serveurs IMAP et SMTP.",
           "already": "Cette adresse est déjà connectée par {{provider}}.",
           "colleague": "Cette adresse est déjà connectée par un autre membre de l'agence. Seul son propriétaire peut la reconnecter.",
+          "tooMany": "Trop de tentatives de connexion en une heure. Réessayez plus tard.",
           "imapAuth": "Identifiant ou mot de passe refusé par le serveur IMAP. Si la boîte a la validation en deux étapes, utilisez un mot de passe d'application.",
           "imapUnreachable": "Le serveur IMAP ne répond pas : vérifiez son nom et son port.",
           "imapStarttls": "Ce serveur IMAP n'accepte pas STARTTLS sur le port 143 : choisissez 993.",
@@ -322,7 +323,11 @@
       "bodyTitle": "Corps du message",
       "truncated": "Message tronqué (trop volumineux) : ouvrez-le dans votre messagerie pour la version complète.",
       "unlinked": "Adresse non rattachée : {{email}}",
-      "spam": "Dans le spam : ce message n'est rattaché à aucun contact."
+      "spam": "Dans le spam : ce message n'est rattaché à aucun contact.",
+      "spamInThread_one": "{{count}} message de cette conversation est au spam.",
+      "spamInThread_other": "{{count}} messages de cette conversation sont au spam.",
+      "spamShow": "Afficher",
+      "spamHide": "Masquer"
     },
     "spam": {
       "reported": "Signalé comme spam",
@@ -428,7 +433,9 @@
       }
     },
     "mobile": {
-      "readOnly": "Composer et répondre se font sur ordinateur pour l'instant."
+      "readOnly": "Composer et répondre se font sur ordinateur pour l'instant.",
+      "spamHidden_one": "{{count}} message au spam n'est pas affiché ici.",
+      "spamHidden_other": "{{count}} messages au spam ne sont pas affichés ici."
     },
     "notice": {
       "sentNotRecorded": "Le message est bien parti. Sa copie n'a pas pu être enregistrée ici : ne le renvoyez pas.",

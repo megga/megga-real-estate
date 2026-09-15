@@ -234,11 +234,15 @@ const echapperLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`)
  * La clé de fil d'un message : celle du fil d'un message qu'il cite et que la base
  * connaît déjà ; sinon la RACINE de ses `References` — la même pour toute la
  * conversation, que la racine soit arrivée avant ou après.
+ *
+ * ⚠ Un message au SPAM n'ancre aucune conversation : un courrier qui ne cite que lui ne
+ * rejoint pas son fil, qui repasserait alors en Réception avec lui (l'ingestion range le
+ * spam dans un fil à part, `cleDeFilSpam`).
  */
 export async function cleDeFil(admin: SupabaseClient, accountId: string, m: NormalizedMessage): Promise<string> {
   const cites = [...new Set([...m.references.slice(0, 1), ...m.references.slice(-20), ...(m.inReplyTo ? [m.inReplyTo] : [])])]
   if (cites.length) {
-    const { data, error } = await admin.from('mail_messages').select('thread_id').eq('account_id', accountId).in('rfc822_message_id', cites).limit(1)
+    const { data, error } = await admin.from('mail_messages').select('thread_id').eq('account_id', accountId).eq('is_spam', false).in('rfc822_message_id', cites).limit(1)
     if (error) throw new Error(`fil, recherche par référence: ${error.message}`)
     const threadId = (data as { thread_id: string }[] | null)?.[0]?.thread_id
     if (threadId) {
@@ -339,7 +343,8 @@ export async function imapSyncPass(admin: SupabaseClient, account: MailAccountRo
             // Illisible jusque dans ses en-têtes : sauté — il reste dans la boîte, et la passe
             // continue au lieu de buter sur lui à chaque tick (cf. `lire`).
             if (!m || m.isDraft) continue
-            m.providerThreadId = await cleDeFil(admin, account.id, m)
+            // Le spam a son propre fil, décidé à l'ingestion (`cleDeFilSpam`).
+            if (!m.isSpam) m.providerThreadId = await cleDeFil(admin, account.id, m)
             await reconnaitreDeplace(admin, account.id, m, meta.internalDate)
             lot.push(m)
           }
@@ -548,6 +553,24 @@ async function resynchroniserSpam(admin: SupabaseClient, account: MailAccountRow
 export interface ImapMsg { provider_message_id: string; direction: 'inbound' | 'outbound'; rfc822_message_id?: string | null }
 
 /**
+ * Le dossier d'un message a été RECRÉÉ depuis que la base l'a lu : son UID désigne peut-être
+ * un autre message.
+ *
+ * ⛔ UN UID NE VAUT QUE SOUS SON UIDVALIDITY (RFC 3501 §2.3.1.1). Les gestes, l'aperçu d'une
+ * pièce et le transfert agissaient sur l'UID stocké sans la comparer : après un changement
+ * d'hébergeur (la reconnexion garde lignes et curseur) ou un dossier recréé, « Supprimer »
+ * envoyait à la corbeille le courrier d'un autre, et l'aperçu servait la pièce d'un autre
+ * message — celui d'un autre client. Le geste est refusé ; la synchronisation suivante,
+ * qui repart de la nouvelle UIDVALIDITY, rebaptise les lignes.
+ */
+export class ImapDossierRecree extends Error {
+  constructor(dossier: string) {
+    super(`imap: le dossier « ${dossier} » a été recréé, geste refusé jusqu'à la prochaine synchronisation`)
+    this.name = 'ImapDossierRecree'
+  }
+}
+
+/**
  * Répercute un geste sur les messages d'un fil, en UNE connexion. Rend les identifiants
  * qui ont changé (un déplacement change l'UID) : `mail-actions` les réécrit en base, sans
  * quoi le geste suivant — « désarchiver » — viserait un message qui n'est plus là.
@@ -560,7 +583,15 @@ export async function imapApply(admin: SupabaseClient, account: MailAccountRow, 
   const { client, folders } = await ouvrirCompte(admin, account, deps)
   try {
     let ouvert: string | null = null
-    const ouvrir = async (dossier: string) => { if (ouvert !== dossier) { await client.select(dossier); ouvert = dossier } }
+    let validite = 0
+    const ouvrir = async (dossier: string) => {
+      if (ouvert !== dossier) { validite = (await client.select(dossier)).uidValidity; ouvert = dossier }
+    }
+    // Le dossier du message, et SON UIDVALIDITY : sinon l'UID vise un autre message.
+    const viser = async (p: { folder: string; uidValidity: number }) => {
+      await ouvrir(p.folder)
+      if (validite !== p.uidValidity) throw new ImapDossierRecree(p.folder)
+    }
     let archive = folders.archive
     let junk = folders.junk
     for (const m of msgs) {
@@ -568,7 +599,7 @@ export async function imapApply(admin: SupabaseClient, account: MailAccountRow, 
       const p = splitProviderId(m.provider_message_id)
       if (!p) continue
       if (action === 'mark_read' || action === 'mark_unread' || action === 'star' || action === 'unstar') {
-        await ouvrir(p.folder)
+        await viser(p)
         const drapeau = action === 'mark_read' || action === 'mark_unread' ? '\\Seen' : '\\Flagged'
         await client.uidStore(p.uid, [drapeau], action === 'mark_read' || action === 'star' ? 'add' : 'remove')
         continue
@@ -592,7 +623,7 @@ export async function imapApply(admin: SupabaseClient, account: MailAccountRow, 
         dest = folders.inbox
       }
       if (p.folder === dest) continue
-      await ouvrir(p.folder)
+      await viser(p)
       const arrivee = await client.uidMove(p.uid, dest)
       if (arrivee.uid !== null && arrivee.uidValidity !== null) {
         renamed[m.provider_message_id] = providerId(dest, arrivee.uidValidity, arrivee.uid)
@@ -601,6 +632,7 @@ export async function imapApply(admin: SupabaseClient, account: MailAccountRow, 
         // un Message-ID NETTOYÉ, jamais la valeur lue en base telle quelle.
         const sel = await client.select(dest)
         ouvert = dest
+        validite = sel.uidValidity
         const trouves = await client.uidSearchHeaderMessageId(nettoyerMessageId(m.rfc822_message_id)!)
         if (trouves.length) renamed[m.provider_message_id] = providerId(dest, sel.uidValidity, Math.max(...trouves))
       }
@@ -652,7 +684,8 @@ async function brut(admin: SupabaseClient, account: MailAccountRow, pid: string,
   if (!p) throw new Error('imap: identifiant de message illisible')
   const { client } = await ouvrirCompte(admin, account, deps)
   try {
-    await client.examine(p.folder)
+    // Sous une autre UIDVALIDITY, cet UID est la pièce d'un AUTRE message (`ImapDossierRecree`).
+    if ((await client.examine(p.folder)).uidValidity !== p.uidValidity) throw new ImapDossierRecree(p.folder)
     return await client.uidFetchRaw(p.uid)
   } finally {
     await client.logout()

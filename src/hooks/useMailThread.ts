@@ -13,6 +13,8 @@ export interface MailMessageRow {
   id: string; thread_id: string; direction: 'inbound' | 'outbound'; from_name: string | null; from_email: string | null
   to: MailAddress[]; cc: MailAddress[]; subject: string | null; snippet: string | null; body_text: string | null; body_html: string | null
   body_truncated: boolean; sent_at: string; is_read: boolean; has_attachments: boolean; contact_id: string | null
+  /** Au spam, ce message-là : un fil hors spam le tient à part (`partagerSpam`). */
+  is_spam: boolean
   mail_attachments: MailAttachmentRow[]
 }
 
@@ -27,7 +29,7 @@ export function useMailThread(threadId: string | null) {
       // `enabled` garantit l'identifiant, le typage ne le sait pas.
       if (!threadId) throw new Error('no_thread')
       const { data, error } = await supabase.from('mail_messages')
-        .select('id, thread_id, direction, from_name, from_email, to, cc, subject, snippet, body_text, body_html, body_truncated, sent_at, is_read, has_attachments, contact_id, mail_attachments(id, message_id, filename, mime_type, size_bytes, is_inline, content_id, document_id)')
+        .select('id, thread_id, direction, from_name, from_email, to, cc, subject, snippet, body_text, body_html, body_truncated, sent_at, is_read, has_attachments, contact_id, is_spam, mail_attachments(id, message_id, filename, mime_type, size_bytes, is_inline, content_id, document_id)')
         .eq('thread_id', threadId).order('sent_at', { ascending: true })
       if (error) throw error
       return (data ?? []) as unknown as MailMessageRow[]
