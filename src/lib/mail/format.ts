@@ -87,6 +87,19 @@ export function displayAddress(a: MailAddress): string {
   return a.name?.trim() || a.email
 }
 
+/**
+ * L'expéditeur EN ENTIER : « Zoé Exemple <zoe@exemple.ch> », ou l'adresse seule s'il n'a pas
+ * de nom (15.09.2026, Julien : « c'est difficile de voir l'adresse de la personne qui
+ * envoie »). ⚠ Le nom se choisit librement, l'adresse dit qui écrit vraiment : « Banque
+ * Exemple » peut écrire depuis n'importe où.
+ */
+export function expediteurComplet(nom: string | null | undefined, adresse: string | null | undefined): string {
+  const n = nom?.trim() ?? ''
+  const a = adresse?.trim() ?? ''
+  if (!a) return n
+  return n && n.toLowerCase() !== a.toLowerCase() ? `${n} <${a}>` : a
+}
+
 /** Taille lisible d'une pièce jointe (README : « 11px var(--mut) »). */
 export function fileSizeLabel(bytes: number): string {
   if (bytes < 1024) return `${bytes} o`

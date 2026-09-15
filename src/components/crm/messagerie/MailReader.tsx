@@ -12,13 +12,14 @@
  * « Répondre » ni « Transférer » : répondre à un spam confirme à l'expéditeur que
  * l'adresse est lue.
  */
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MEIcon from '@/components/propertyx/MEIcon'
 import type { MailThreadRow } from '@/hooks/useMailThreads'
 import type { MailAttachmentRow, MailMessageRow } from '@/hooks/useMailThread'
 import type { MailLabel } from '@/hooks/useMailLabels'
 import { useMailSenderLogos } from '@/hooks/useMailSenderLogos'
-import { cibleDeRattachement, displayAddress, domaineDe, fileSizeLabel, mailDateLabel } from '@/lib/mail/format'
+import { cibleDeRattachement, displayAddress, domaineDe, expediteurComplet, fileSizeLabel, mailDateLabel } from '@/lib/mail/format'
 import { MailBodyFrame } from './MailBodyFrame'
 import { MailSenderAvatar } from './MailSenderAvatar'
 import { MailReplyComposer } from './MailReplyComposer'
@@ -181,7 +182,15 @@ export function MailReader(p: Props) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--crm-space-lg)', paddingBottom: 'var(--crm-space-2xl)', borderBottom: `1px solid ${ms.bord2}`, marginTop: 'var(--crm-space-2xl)' }}>
         <MailSenderAvatar ms={ms} nom={first.from_name} adresse={first.from_email} logo={logos[domaineDe(first.from_email) ?? '']} taille={AVATAR} />
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{senderName}</div>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', columnGap: 'var(--crm-space-sm)' }}>
+            <span style={{ fontSize: 'var(--crm-text-md)', fontWeight: 600 }}>{senderName}</span>
+            {/* L'adresse, TOUJOURS, à côté du nom (15.09.2026) : le nom se choisit librement,
+                l'adresse dit qui écrit vraiment — c'est elle qui trahit une usurpation. */}
+            {first.from_email && first.from_name && (
+              <span style={{ fontSize: 'var(--crm-text-sm)', color: ms.txt3, userSelect: 'all', overflowWrap: 'anywhere' }}>{`<${first.from_email}>`}</span>
+            )}
+            {first.from_email && <CopierAdresse ms={ms} adresse={first.from_email} />}
+          </div>
           <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.mut }}>{t('mail.read.to', { box: p.boxEmail })}</div>
         </div>
         <div style={{ marginLeft: 'auto', fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>{mailDateLabel(first.sent_at, new Date(), p.lang)}</div>
@@ -193,7 +202,7 @@ export function MailReader(p: Props) {
       {p.messages.slice(1).map((m) => (
         <div key={m.id} style={{ borderRadius: 'var(--crm-radius-xl)', background: ms.elev, padding: 'var(--crm-space-2xl) var(--crm-space-3xl)', marginTop: 'var(--crm-space-2xl)' }}>
           <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3, marginBottom: 'var(--crm-space-md)' }}>
-            {m.direction === 'outbound' ? `${t('mail.read.me')} → ${m.to.map(displayAddress).join(', ')}` : (m.from_name || m.from_email)} · {mailDateLabel(m.sent_at, new Date(), p.lang)}
+            {m.direction === 'outbound' ? `${t('mail.read.me')} → ${m.to.map(displayAddress).join(', ')}` : expediteurComplet(m.from_name, m.from_email)} · {mailDateLabel(m.sent_at, new Date(), p.lang)}
           </div>
           {m.body_html
             ? <MailBodyFrame ms={ms} html={m.body_html} text={m.body_text} truncated={m.body_truncated} />
@@ -221,5 +230,28 @@ export function MailReader(p: Props) {
         {btn(t('mail.ctx.delete'), p.onDelete, { danger: true, right: true })}
       </div>
     </div>
+  )
+}
+
+/** Copie l'adresse de l'expéditeur ; la coche dit que c'est fait, le temps d'un regard. */
+function CopierAdresse({ ms, adresse }: { ms: MailSurfaces; adresse: string }) {
+  const { t } = useTranslation('messages')
+  const [copiee, setCopiee] = useState(false)
+  const libelle = copiee ? t('mail.read.copied') : t('mail.read.copyAddress')
+  return (
+    <button
+      type="button"
+      title={libelle}
+      aria-label={libelle}
+      onClick={() => {
+        void navigator.clipboard?.writeText(adresse).then(() => {
+          setCopiee(true)
+          setTimeout(() => setCopiee(false), 1500)
+        }, () => {})
+      }}
+      style={{ display: 'grid', placeItems: 'center', width: 22, height: 22, padding: 0, border: 'none', borderRadius: '50%', background: 'transparent', color: copiee ? ms.successText : ms.mut, cursor: 'pointer' }}
+    >
+      <MEIcon name={copiee ? 'check' : 'copy'} size={13} />
+    </button>
   )
 }

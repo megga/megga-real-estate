@@ -120,7 +120,8 @@ export function MailListRow({ ms, row, label, logo, lang, onOpen, onStar, onCont
               : <MailSenderAvatar ms={ms} nom={row.from_name} adresse={adresse} logo={logo} taille={PASTILLE} />}
           </span>
         </button>
-        <span style={{ fontWeight: weight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sender}</span>
+        {/* L'adresse au survol : la colonne n'a la place que du nom. */}
+        <span title={adresse ?? undefined} style={{ fontWeight: weight, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sender}</span>
       </span>
 
       {/* ⛔ La cellule ROGNE. L'objet ne rétrécissait jamais (`flexShrink: 0`) : dans une liste

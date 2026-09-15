@@ -308,6 +308,8 @@
     "read": {
       "back": "Zurück zur Liste",
       "to": "an {{box}}",
+      "copyAddress": "Adresse kopieren",
+      "copied": "Adresse kopiert",
       "me": "ich",
       "reply": "Antworten",
       "forward": "Weiterleiten",

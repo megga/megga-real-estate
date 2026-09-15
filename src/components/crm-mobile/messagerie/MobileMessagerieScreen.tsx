@@ -30,7 +30,7 @@ import { useMailAccounts } from '@/hooks/useMailAccounts'
 import { MAIL_PER_PAGE, useMailThreads } from '@/hooks/useMailThreads'
 import { useMailThread } from '@/hooks/useMailThread'
 import { useMailSenderLogos } from '@/hooks/useMailSenderLogos'
-import { domaineDe, mailDateLabel } from '@/lib/mail/format'
+import { domaineDe, expediteurComplet, mailDateLabel } from '@/lib/mail/format'
 import { MailBodyFrame } from '@/components/crm/messagerie/MailBodyFrame'
 import { MailSenderAvatar } from '@/components/crm/messagerie/MailSenderAvatar'
 import { mailSurfaces } from '@/components/crm/messagerie/mailTokens'
@@ -158,7 +158,7 @@ export default function MobileMessagerieScreen() {
           {(thread.data ?? []).map((m) => (
             <div key={m.id} style={{ marginTop: 'var(--crm-space-2xl)', paddingTop: 'var(--crm-space-lg)', borderTop: `1px solid ${ms.bord2}` }}>
               <div style={{ fontSize: 'var(--crm-text-xs)', color: ms.txt3 }}>
-                {m.direction === 'outbound' ? t('mail.read.me') : (m.from_name || m.from_email)}
+                {m.direction === 'outbound' ? t('mail.read.me') : expediteurComplet(m.from_name, m.from_email)}
                 {' · '}
                 {mailDateLabel(m.sent_at, new Date(), lang)}
               </div>
